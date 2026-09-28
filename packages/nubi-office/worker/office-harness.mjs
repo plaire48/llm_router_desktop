@@ -22,7 +22,14 @@ function readThroughFormat(value,format,date1904){
 }
 const planFault=(issue,code='task_plan_invalid')=>{throw Object.assign(new Error(code),{issue:issue.slice(0,600)});};
 const located=(error,issue)=>{if(typeof error.issue!=='string')error.issue=issue.slice(0,600);else error.issue=(issue+' '+error.issue).slice(0,600);return error;};
-export function parseTask(result,scope,mode){
+// What the user said, as text to look values up in. "605,000" and "605000" are the same number.
+const statedText=text=>String(text??'').replace(/(\d),(?=\d{3})/g,'$1');
+const statedIn=(text,value)=>typeof value==='number'?new RegExp('(?<![\\d.])'+String(value).replace(/[.+-]/g,'\\$&')+'(?!\\d|\\.\\d)').test(text):typeof value==='string'&&!!value.trim()&&text.includes(value.trim());
+const cellName=(row,column)=>{let name='';for(let c=column;c;c=Math.floor((c-1)/26))name=String.fromCharCode(65+(c-1)%26)+name;return name+row;};
+// options.workbookCalculates (template runs): the form is the calculator. A value the plan expects in a cell that
+// holds a formula is a prediction unless the user stated it, so that cell is accepted when its formula is preserved
+// and calculates without error. options.stated is the user's own text.
+export function parseTask(result,scope,mode,options={}){
   const shape='Return ONLY one JSON object {intent,summary,requirements,questions,preserveFormulas,checks,steps}, without prose or Markdown.';
   if(result?.calls?.length)planFault('Do not call a tool while planning. '+shape);
   if(result?.finishReason==='length'||typeof result?.content!=='string'||result.content.length>20000)planFault('The plan was cut off or is longer than 20000 characters. '+shape);
@@ -42,6 +49,11 @@ export function parseTask(result,scope,mode){
   v.checks.forEach((check,i)=>{
     const at=`checks[${i}]`;
     if(!check||typeof check!=='object'||Array.isArray(check))planFault(`${at} must be an object {address,field,operator,expected}.`);
+    // A single row or column is often written as a plain list. A block is never guessed from a list.
+    if(Array.isArray(check.expected)&&check.expected.length&&check.expected.every(value=>!Array.isArray(value))){
+      let line;try{line=region(localAddress(check.address,scope.worksheet));}catch{/* reported below with the address rule */}
+      if(line&&(line.rows===1||line.cols===1)&&check.expected.length===line.rows*line.cols)check.expected=line.rows===1?[check.expected]:check.expected.map(value=>[value]);
+    }
     if(check.valueType!==undefined){
       if(check.field!=='value'||check.operator!=='equals')planFault(`${at}.valueType is only allowed with field value and operator equals.`);
       if(check.expected===null||check.expected===undefined)planFault(`${at}.expected must be a concrete value when valueType is set. When the value is not known at planning time, for example because it must be read from another cell first, use operator not_empty without valueType.`);
@@ -62,6 +74,16 @@ export function parseTask(result,scope,mode){
       if(!Object.hasOwn(check,'expected'))planFault(`${at}.expected is required for operator equals. Use not_empty or no_error when no exact value is known.`);
       const scalar=x=>x===null||['string','boolean','number'].includes(typeof x)&&(typeof x!=='number'||Number.isFinite(x)),x=check.expected;
       if(Array.isArray(x)?x.length!==a.rows||x.some(row=>!Array.isArray(row)||row.length!==a.cols||row.some(n=>!scalar(n))):!scalar(x))planFault(`${at}.expected must be one scalar, or a matrix of ${a.rows} row(s) by ${a.cols} column(s) of scalars matching ${check.address}.`);
+    }
+    delete check.computed;
+    if(options.workbookCalculates===true&&check.field==='value'&&check.operator==='equals'){
+      const said=statedText(options.stated);let any=false;
+      const computed=Array.from({length:a.rows},(_,row)=>Array.from({length:a.cols},(_,column)=>{
+        const formula=scope.formulas?.[a.r-outer.r+row]?.[a.c-outer.c+column],expected=Array.isArray(check.expected)?check.expected[row][column]:check.expected;
+        if(typeof formula!=='string'||!formula||statedIn(said,expected))return null;
+        any=true;return formula;
+      }));
+      if(any)check.computed=computed;
     }
   });
   const steps=v.steps;
@@ -89,7 +111,7 @@ export function requireSnapshot(s,scope){
 }
 export function inspectChecks(checks,snapshot){
   const outer=region(snapshot.address),results=[];
-  for(const check of checks){const a=region(check.address);if(!inside(outer,a))throw new Error('out_of_scope');let pass=true,known=true;const actual=[];
+  for(const check of checks){const a=region(check.address);if(!inside(outer,a))throw new Error('out_of_scope');let pass=true,known=true;const actual=[],predictions=[];
     for(let row=0;row<a.rows;row++){const line=[];for(let col=0;col<a.cols;col++){
       const r=a.r-outer.r+row,c=a.c-outer.c+col,m=check.field==='value'?snapshot.values:check.field==='formula'?snapshot.formulas:snapshot.formats?.[check.field];
       const observed=m?.[r]?.[c],expected=Array.isArray(check.expected)?check.expected[row]?.[col]:check.expected,exists=!!m?.[r]&&c<m[r].length,error=snapshot.errors?.[r]?.[c];
@@ -97,10 +119,17 @@ export function inspectChecks(checks,snapshot){
       // An empty cell reads as null or as empty text; an expected empty value means either.
       const blank=value=>value===null||value===undefined||value==='';
       const equal=check.field==='value'&&blank(expected)?blank(observed):typeof expected==='number'&&typeof observed==='number'?Math.abs(expected-observed)<=Math.max(1,Math.abs(expected))*1e-10:JSON.stringify(expected)===JSON.stringify(observed);
+      const planned=check.field==='value'&&check.operator==='equals'?check.computed?.[row]?.[col]:null;
+      if(planned){
+        // The workbook calculates this cell: the preserved formula decides, the planned value was a prediction.
+        const formula=snapshot.formulas?.[r]?.[c];known=known&&exists&&formula!==undefined&&typeof error==='boolean';pass=pass&&exists&&formula===planned&&error===false;
+        if(!equal)predictions.push({address:cellName(a.r+row,a.c+col),predicted:expected??null,actual:observed??null});
+        line.push(observed??null);continue;
+      }
       pass=pass&&exists&&(check.operator==='equals'?equal:check.operator==='not_empty'?observed!==null&&observed!=='':error===false);
       if(check.field==='formula'&&check.operator==='equals')pass=pass&&error===false;
       if(['value','formula'].includes(check.field)&&snapshot.properties?.validation?.[r]?.[c]){const valid=snapshot.properties.validationValid?.[r]?.[c];known=known&&typeof valid==='boolean';pass=pass&&valid===true;}line.push(observed??null);
-    }actual.push(line);}results.push({...check,actual,status:!known?'unknown':pass?'met':'unmet'});
+    }actual.push(line);}results.push({...check,actual,status:!known?'unknown':pass?'met':'unmet',...(predictions.length?{predictions,note:'Cells with a preserved formula are calculated by the workbook. predictions lists planned values that differ from the calculated ones: report them, they are not failures.'}:{})});
   }return{verified:results.every(c=>c.status==='met'),checks:results};
 }
 export function editChecks(plan,before,preserveFormulas){

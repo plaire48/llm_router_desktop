@@ -47,7 +47,7 @@
 | 계측과 평가 실행기의 계약 | 합성 모델 검사 63개 통과 (2026-09-29, macOS, Node 25.4) |
 | 전체 검사 | 365개 중 364개 통과. 실패 1개는 반영 전부터 있던 입력 한도 14,000 토큰 문맥 예산 검사 |
 | 과제 정답 | 인용을 원문에서 확인. 자료가 정답을 뒷받침하는지 검사로 고정 |
-| 앱 번들 | **미반영.** 아래 빌드 상태 참고 |
+| 앱 번들 | 계측 포함해 빌드 통과. 실제 화면 검사 통과 |
 | 실모델 기준선 | 미측정 |
 | 사내 Qwen 3.8 27B | 미측정 |
 | 회사 저장소와 회사 Wiki | 범위 밖 |
@@ -55,17 +55,9 @@
 
 ## 빌드 상태
 
-2026-09-29 기준 `npm run compile`은 계측 변경과 무관한 디자인 검사에서 멈춘다.
+2026-09-29 기준 `npm run compile`, `npm run build`, `npm run test:ui`가 통과한다. 앱 번들에 계측이 들어 있다.
 
-| 항목 | 내용 |
-|---|---|
-| 멈추는 곳 | `scripts/check-identity.mjs`의 `HTML palette changed: green` |
-| 원인 | `design/reference.json`은 `green` `#148A5C`, `green-soft` `#E6F6EE`를 기대한다. 공유 `extensions/aipro-chat/design/agent-deck.css`는 2026-09-27부터 두 값을 `var(--deck-blue-deep)`, `var(--deck-blue-soft)`로 둔다 |
-| 영향 | 앱 번들 `extension/lib/node/service-entry.mjs`는 2026-09-25 빌드다. 앱을 실행하면 계측이 기록되지 않는다 |
-| 평가 실행기 | 영향 없음. `runtime/`의 소스를 직접 읽는다 |
-| 후보 식별 | 영향 없음. 빌드 기록에 없는 `runtime/` 모듈도 포함한다 |
-
-검사를 우회하거나 기준 값을 고쳐 빌드를 통과시키지 않는다. 어느 쪽 값이 맞는지는 디자인 결정이다.
+기준 HTML은 성공 색으로 초록 `#148A5C`, `#E6F6EE`를 쓴다. 공유 `agent-deck.css`는 브라우저 누비의 결정에 따라 두 값을 파랑으로 둔다. Desktop은 공유 파일을 바꾸지 않고 `design/workspace-identity.css`에서 기준 HTML의 값을 되돌린다. `scripts/check-identity.mjs`는 Desktop 계층이 값을 정하면 그 값을, 아니면 공유 값을 기준 HTML과 대조한다.
 
 ## 한계
 

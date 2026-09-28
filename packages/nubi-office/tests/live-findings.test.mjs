@@ -9,7 +9,7 @@ import {taskMessages,reviewMessages} from '../worker/office-harness.mjs';
 import {startAgent} from '../worker/agent.mjs';
 import {createSimHost,hostAction} from '../eval/sim/host.mjs';
 import {formById} from '../eval/sim/forms.mjs';
-import {contract,text,call,verdict,drive} from './harness-fixtures.mjs';
+import {contract,text,call,verdict,drive,recoveryVerdict} from './harness-fixtures.mjs';
 
 const fast={wait:async()=>{},random:()=>0};
 const expense=formById('expense-report');
@@ -21,6 +21,7 @@ function scripted({task,actor,review=payload=>verdict(payload)}){
     const system=messages[0].content;
     if(system.startsWith('NUBI_TASK_PLANNER')){seen.planner.push(messages);return text(JSON.stringify(task));}
     if(/^NUBI_(ACTION|STEP|RESULT)_REVIEWER/.test(system)){seen.review.push(messages);return review(JSON.parse(messages[1].content));}
+    if(system.startsWith('NUBI_RECOVERY_PLANNER')){(seen.recovery??=[]).push(messages);return recoveryVerdict();}
     seen.actor.push({messages,tools});return actor[turn++]??text('완료했습니다.');
   }};
 }
@@ -274,4 +275,62 @@ test('a verdict that lists host-unverifiable properties is returned with the rea
   assert.equal(status.state,'done',status.error);assert.equal(finals,2);
   const feedback=JSON.parse(providers.seen.review.at(-1).at(-1).content);
   assert.equal(feedback.error,'goal_review_failed');assert.match(feedback.issue,/unverified/);
+});
+test('expected values of a single row or column may be written as a plain list',async()=>{
+  // Recorded: {"address":"F7:F13","expected":[300000,250000,0,0,550000,55000,605000]} was refused and the plan was written again (about 10 seconds) in every quotation run.
+  const {parseTask}=await import('../worker/office-harness.mjs'),{scope}=await open(formById('quotation'));
+  const plan=checks=>text(JSON.stringify(contract(checks)));
+  const column=parseTask(plan([{address:'D7:D8',field:'value',operator:'equals',expected:[10,10]}]),scope,'edit').checks[0];
+  assert.deepEqual(column.expected,[[10],[10]]);
+  const row=parseTask(plan([{address:'B7:E7',field:'value',operator:'equals',expected:['무선 키보드','K380',10,'30,000']}]),scope,'edit').checks[0];
+  assert.deepEqual(row.expected,[['무선 키보드','K380',10,30000]],'values of a plain list are read through the cell format like any other');
+  assert.deepEqual(parseTask(plan([{address:'E3',field:'value',operator:'equals',expected:['2026-10-20'],valueType:'date'}]),scope,'edit').checks[0].expected,[[46315]]);
+  for(const bad of [[10],[10,10,10],[[10,10]]])assert.throws(()=>parseTask(plan([{address:'D7:D8',field:'value',operator:'equals',expected:bad}]),scope,'edit'),error=>/matrix of 2 row/.test(error.issue));
+  assert.throws(()=>parseTask(plan([{address:'B7:C8',field:'value',operator:'equals',expected:['a','b','c','d']}]),scope,'edit'),error=>/matrix of 2 row/.test(error.issue),'a block is never guessed from a list');
+});
+test('in a template the workbook calculates: a predicted result of a preserved formula is not an acceptance check',async()=>{
+  // Recorded: the plan expected F9:F10 to be 0. The form formula =IF(OR(D9="",E9=""),"",D9*E9) returns "" for an unused row.
+  // Every input was written correctly, the check failed, and the run stopped for recovery.
+  const {parseTask,inspectChecks}=await import('../worker/office-harness.mjs'),form=formById('quotation'),{host,scope}=await open(form);
+  const predicted=[[300000],[250000],[0],[0],[550000],[55000],[605000]],request='수량 10개, 단가 30000원. 합계는 605000원이 맞는지 봐줘';
+  const parse=(checks,options)=>parseTask(text(JSON.stringify(contract(checks))),scope,'edit',options).checks;
+  const [check]=parse([{address:'F7:F13',field:'value',operator:'equals',expected:predicted}],{workbookCalculates:true,stated:request});
+  assert.deepEqual(check.computed.map(row=>row[0]!==null),[true,true,true,true,true,true,false],'605000 was stated by the user and stays an exact check');
+  assert.equal(check.computed[2][0],scope.formulas[8][5]);
+  // After the inputs are written the calculated cells hold what the form computes.
+  const session=(await import('../worker/template.mjs')).createTemplateSession(scope);session.confirm(session.propose(form.fields,scope),scope);
+  const filled=await host.call('apply',{scopeId:scope.scopeId,operationId:'fill-0000000000000001',plan:{operations:[{type:'set_values',address:'B7:E8',values:[['무선 키보드','K380',10,30000],['무선 마우스','M350',10,25000]]}]}});
+  const after=inspectChecks([check],filled.snapshot??(await host.call('read',{scopeId:scope.scopeId}))).checks[0];
+  assert.equal(after.status,'met');assert.deepEqual(after.actual.map(row=>row[0]),[300000,250000,'','',550000,55000,605000]);
+  assert.deepEqual(after.predictions,[{address:'F9',predicted:0,actual:''},{address:'F10',predicted:0,actual:''}],'the difference is reported to the reviewer, not hidden');
+  // A value the user stated stays exact, and so does everything outside a template.
+  const stated=parse([{address:'F13',field:'value',operator:'equals',expected:600000}],{workbookCalculates:true,stated:'합계는 600,000원이어야 해'})[0];
+  assert.equal(stated.computed,undefined);assert.equal(inspectChecks([stated],filled.snapshot??(await host.call('read',{scopeId:scope.scopeId}))).checks[0].status,'unmet');
+  assert.equal(parse([{address:'F9',field:'value',operator:'equals',expected:0}])[0].computed,undefined,'ordinary edits keep exact value checks');
+  assert.equal(parse([{address:'B7',field:'value',operator:'equals',expected:'무선 키보드'}],{workbookCalculates:true,stated:request})[0].computed,undefined,'an input cell is always checked exactly');
+  // A damaged or failing formula is never waived.
+  const current=filled.snapshot??(await host.call('read',{scopeId:scope.scopeId})),damaged=structuredClone(current);damaged.formulas[8][5]='=1';
+  assert.equal(inspectChecks([check],damaged).checks[0].status,'unmet');
+  const failing=structuredClone(current);failing.errors[8][5]=true;assert.equal(inspectChecks([check],failing).checks[0].status,'unmet');
+});
+test('a refused field mapping names the field and the reason, so the rest of the mapping is kept',async()=>{
+  // Recorded: eight fields were proposed, one of them the calculated cell C10. The answer was only "template_mapping_invalid".
+  // The recovery guessed that the example values C3:C5 were the problem, dropped them, and three inputs were lost from the template.
+  const form=formById('training-request'),{host,scope}=await open(form),session=createTemplateSession(scope);
+  const field=(address,extra={})=>({address,label:'항목',valueType:'text',required:true,...extra});
+  const refused=definitions=>{try{session.propose(definitions,scope);}catch(error){assert.equal(error.message,'template_mapping_invalid');return error.issue;}assert.fail('expected a refusal');};
+  const formula=refused([...form.fields,{address:'C10',label:'본인 부담금',valueType:'number',required:true}]);
+  assert.match(formula,/fields\[7\]/);assert.match(formula,/C10/);assert.match(formula,/formula/);assert.match(formula,/Keep the other fields/);
+  assert.match(refused([field('C3'),field('C3')]),/fields\[1\].*C3.*more than once/);
+  assert.match(refused([field('C3:C4')]),/fields\[0\].*one cell/);
+  assert.match(refused([field('Z99')]),/fields\[0\].*Z99.*outside/);
+  assert.match(refused([field('C3',{valueType:'money'})]),/fields\[0\]\.valueType.*text/);
+  assert.match(refused([field('C3',{note:'x'})]),/fields\[0\].*address, label, valueType, required/);
+  assert.match(refused([]),/1-30/);assert.match(refused(Array.from({length:31},()=>field('C3'))),/1-30/);
+  // The reason reaches the executor with the refusal.
+  const providers=scripted({task:contract([],{intent:'analyze'}),actor:[call('define_template_fields',{fields:[...form.fields,{address:'C10',label:'본인 부담금',valueType:'number',required:true}]}),call('define_template_fields',{fields:form.fields}),call('register_template',{name:form.title,purpose:form.purpose}),text('등록했습니다.')]});
+  const status=await run({request:form.register.request,scope,mode:'template-register',providers},host);
+  assert.equal(status.state,'done',status.error);
+  const told=providers.seen.actor[1].messages.at(-1).content;assert.match(typeof told==='string'?told:JSON.stringify(told),/C10 holds a formula/);
+  assert.match(providers.seen.recovery[0].at(-1).content,/C10 holds a formula/,'the recovery planner diagnoses from the stated reason, not from a guess');
 });

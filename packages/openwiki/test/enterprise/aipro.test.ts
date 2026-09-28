@@ -185,7 +185,12 @@ describe("AI Pro SSO", () => {
       expect(new Headers(init?.headers).get("Authorization")).toBe(
         `Bearer ${credential}`,
       );
-      expect(new Headers(init?.headers).get("User-Agent")).toBe(null);
+      // Exactly the headers the AI Pro browser client sends for this request.
+      expect(Object.fromEntries(new Headers(init?.headers).entries())).toEqual({
+        accept: "application/json",
+        authorization: `Bearer ${credential}`,
+        "x-reasoning": "true",
+      });
       return Response.json({
         modelList: [
           {

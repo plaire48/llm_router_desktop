@@ -528,6 +528,21 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
           result = toolException(error, {mutating: MUTATING_TOOLS.has(definition.name)});
           if (result.recovery.execution === 'unknown') uncertainWrite = true;
         }
+        // A check of a state that the control does not expose cannot pass, and
+        // one measured lookup repeated it 17 times. When every check that can
+        // be evaluated passed, a lookup verifies those again without the
+        // unevaluable ones and the result names what was left out.
+        if (definition.name === 'verify_page' && result?.verified === false && !result.cancelled && !uncertainWrite && Array.isArray(result.checks) &&
+            Array.isArray(args.checks) && result.checks.length === args.checks.length && lookupRun()) {
+          const unevaluable = result.checks.filter(check => check.reason === 'check_target_incompatible' && Array.isArray(check.exposedStates));
+          if (unevaluable.length && unevaluable.length < result.checks.length && result.checks.every(check => unevaluable.includes(check) || check.passed === true)) {
+            let second;
+            try {second = await execute('verify_page', {...args, checks: args.checks.filter((_, index) => !unevaluable.some(check => check.index === index))});} catch {second = null;}
+            if (second?.verified === true) result = {...second,
+              notEvaluated: unevaluable.map(({index, kind, exposedStates}) => ({index, kind, reason: 'check_target_incompatible', exposedStates})),
+              scope: 'Only the checks listed in checks were verified. The checks in notEvaluated ask for a state those controls do not expose: they were left out, are not verified, and cannot pass if repeated.'};
+          }
+        }
         const pdfReference=splitPDFReference(result,referenceImageEnabled);result=pdfReference.result;
         dispatch.complete(dispatchId, result);
         await dispatch.bindInputArguments(dispatchId,args);
@@ -653,7 +668,8 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
           }
         }
         if (requiresVerification(definition.name, result) || FINALIZATION_TOOLS.has(definition.name)) autoComparisonAllowed = false;
-        result = await captureResearchSource(definition.name, result, !uncertainWrite && !harness?.needsCheck() && !awaitingUser && !clarification && !reviewRecovery && !requiresVerification(definition.name, result) && !FINALIZATION_TOOLS.has(definition.name));
+        result = await captureResearchSource(definition.name, result, !uncertainWrite && !harness?.needsCheck() && !awaitingUser && !clarification && !reviewRecovery && !requiresVerification(definition.name, result) && !FINALIZATION_TOOLS.has(definition.name),
+          !uncertainWrite && !awaitingUser && !clarification && !reviewRecovery);
         if (result?.source_capture?.status !== 'observed') await considerComparison(definition.name, result, analysisId);
         const {image, ...textResult} = result || {error: 'tool_result_missing'};
         // Compare actual returned image bytes, never random attachment IDs.

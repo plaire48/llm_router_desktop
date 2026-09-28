@@ -12,12 +12,17 @@ export function createResearchSourceCapture({enabled, preserveReadSources = fals
   };
   const identified = value => typeof value === 'string' && value.trim().length > 0;
   const sourceIdentity = (url, documentId, frame, view) => JSON.stringify([url, documentId, frame, pageViewKey(view)]);
-  return async (name, result, permitted) => {
+  // A click that turns a counted list to another page ("2 / 3") leaves a view
+  // that the next click replaces. Waiting for a passed verification lost every
+  // page the agent clicked through, and a review then saw only the last one.
+  const viewTools = new Set(['click_element', 'click_at', 'press_key']);
+  return async (name, result, permitted, viewPermitted = false) => {
     if (name === 'read_page' && isPageContentReference(result)) {
       if (identified(result.source_document_id)) seen.add(sourceIdentity(sourceURL(result.url), result.source_document_id, result.frame, result.page_view));
       return result;
     }
-    if (!supported || !permitted || !observations.has(name) || result?.error || result?.ok === false || result?.cancelled || signal.aborted) return result;
+    const turned = !permitted && viewPermitted && viewTools.has(name) && result?.actionIssued === true;
+    if (!supported || !permitted && !turned || !observations.has(name) && !turned || result?.error || result?.ok === false || result?.cancelled || signal.aborted) return result;
     const observation = result?.observation || result;
     const url = sourceURL(observation?.url);
     const topFrames = observation?.frames?.filter(frame => frame.frame === 0) || [];
@@ -30,7 +35,7 @@ export function createResearchSourceCapture({enabled, preserveReadSources = fals
     // Keeping an opened information source must not depend on launching a
     // multi-source comparison. A simple lookup can leave a useful search
     // excerpt behind while opening an inaccessible original document.
-    if (!enabled && !preserveReadSources && !viewKey) return result;
+    if (!enabled && !preserveReadSources && !viewKey || turned && !viewKey) return result;
     const key = sourceIdentity(url, documentId, 0, top.page_view);
     if (!url || observation.metadata_only || !Array.isArray(observation.frames) || !observation.frames.some(frame => !frame.unavailable) || seen.has(key) || seen.size >= 16) return result;
     seen.add(key);

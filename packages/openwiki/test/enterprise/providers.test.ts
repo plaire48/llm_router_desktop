@@ -43,6 +43,42 @@ const request = {
   tools: [echo],
 };
 const endpoint = "https://fabrix.openwiki.invalid/v1/chat/completions";
+const aiproEndpoint = "https://aipro.sdsdev.co.kr/api/v1/chat/completions";
+// The exact headers the AI Pro browser client sets. Nothing else may be added.
+const aiproChatHeaders = {
+  accept: "text/event-stream",
+  authorization: `Bearer ${token}`,
+  "content-type": "application/json",
+};
+const sentHeaders = (init?: RequestInit) =>
+  Object.fromEntries(new Headers(init?.headers).entries());
+// What the OpenAI SDK attaches to every request it builds.
+const sdkHeaders = {
+  Accept: "application/json",
+  Authorization: "Bearer openwiki-managed-credential",
+  "User-Agent": "langchainjs-openai/1.0.0 ((node/v25.4.0; darwin; arm64))",
+  "X-Stainless-Arch": "arm64",
+  "X-Stainless-Lang": "js",
+  "X-Stainless-OS": "MacOS",
+  "X-Stainless-Package-Version": "7.8.0",
+  "X-Stainless-Retry-Count": "0",
+  "X-Stainless-Runtime": "node",
+  "X-Stainless-Runtime-Version": "v25.4.0",
+};
+const sse = (events: unknown[], { done = true } = {}) =>
+  new Response(
+    events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join("") +
+      (done ? "data: [DONE]\n\n" : ""),
+    { headers: { "Content-Type": "text/event-stream; charset=utf-8" } },
+  );
+const chunk = (delta: unknown, extra: Record<string, unknown> = {}) => ({
+  id: "chatcmpl-1",
+  object: "chat.completion.chunk",
+  created: 1,
+  model: "test-model",
+  choices: [{ index: 0, delta, finish_reason: null }],
+  ...extra,
+});
 beforeEach(() => {
   vi.stubEnv("AIPRO_ACCESS_TOKEN", token);
   vi.stubEnv("AIPRO_CLI_TOKEN", "synthetic-cli-token");
@@ -80,10 +116,8 @@ describe("enterprise model transports", () => {
   test("AI Pro uses the current bearer token and chat completions with tools", async () => {
     const fetchImpl = vi.fn(async (url: unknown, init?: RequestInit) => {
       expect(url).toBe("https://aipro.sdsdev.co.kr/api/v1/chat/completions");
-      expect(new Headers(init?.headers).get("Authorization")).toBe(
-        `Bearer ${token}`,
-      );
-      expect(new Headers(init?.headers).has("User-Agent")).toBe(false);
+      expect(sentHeaders(init)).toEqual(aiproChatHeaders);
+      expect(requestBody(init).stream).toBe(true);
       expect(requestBody(init).tools).toEqual([echo]);
       expect(requestBody(init).max_tokens).toBe(100);
       expect(init?.redirect).toBe("error");
@@ -103,6 +137,184 @@ describe("enterprise model transports", () => {
       }),
     ).rejects.toThrow("Unsupported");
     expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  test("AI Pro sends only the browser client headers even when the SDK supplies its own", async () => {
+    const fetchImpl = vi.fn(async (_url: unknown, init?: RequestInit) => {
+      expect(sentHeaders(init)).toEqual(aiproChatHeaders);
+      const body = requestBody(init) as WireBody & {
+        stream_options?: unknown;
+      };
+      expect(body.stream).toBe(true);
+      expect(body.stream_options).toEqual({ include_usage: true });
+      return sse([chunk({ role: "assistant", content: "ok" })]);
+    });
+    await createAiproFetch(fetchImpl)(aiproEndpoint, {
+      method: "POST",
+      headers: sdkHeaders,
+      body: JSON.stringify({ ...request, stream: false }),
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  test("AI Pro returns one completed reply to a caller that did not ask for a stream", async () => {
+    const fetchImpl = vi.fn(async () =>
+      sse([
+        chunk({ role: "assistant", content: "" }),
+        chunk({ reasoning_content: "thinking" }),
+        chunk({ content: "안녕" }),
+        chunk({ content: "하세요" }),
+        chunk({
+          tool_calls: [
+            {
+              index: 0,
+              id: "call_1",
+              type: "function",
+              function: { name: "echo", arguments: '{"val' },
+            },
+          ],
+        }),
+        chunk({
+          tool_calls: [{ index: 0, function: { arguments: 'ue":"a"}' } }],
+        }),
+        chunk({
+          tool_calls: [
+            {
+              index: 1,
+              id: "call_2",
+              type: "function",
+              function: { name: "echo", arguments: "{}" },
+            },
+          ],
+        }),
+        {
+          ...chunk({}),
+          choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }],
+        },
+        {
+          ...chunk({}),
+          choices: [],
+          usage: {
+            prompt_tokens: 11,
+            completion_tokens: 4,
+            total_tokens: 15,
+            prompt_tokens_details: { cached_tokens: 3 },
+          },
+        },
+      ]),
+    );
+    const response = await createAiproFetch(fetchImpl)(aiproEndpoint, {
+      method: "POST",
+      headers: sdkHeaders,
+      body: JSON.stringify(request),
+    });
+    expect(response.headers.get("Content-Type")).toContain("application/json");
+    expect(await response.json()).toEqual({
+      id: "chatcmpl-1",
+      object: "chat.completion",
+      created: 1,
+      model: "test-model",
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: "assistant",
+            content: "안녕하세요",
+            tool_calls: [
+              {
+                id: "call_1",
+                type: "function",
+                function: { name: "echo", arguments: '{"value":"a"}' },
+              },
+              {
+                id: "call_2",
+                type: "function",
+                function: { name: "echo", arguments: "{}" },
+              },
+            ],
+          },
+          finish_reason: "tool_calls",
+        },
+      ],
+      usage: {
+        prompt_tokens: 11,
+        completion_tokens: 4,
+        total_tokens: 15,
+        prompt_tokens_details: { cached_tokens: 3 },
+      },
+    });
+  });
+
+  test("AI Pro passes a stream through to a caller that asked for one", async () => {
+    const fetchImpl = vi.fn(async () => sse([chunk({ content: "a" })]));
+    const response = await createAiproFetch(fetchImpl)(aiproEndpoint, {
+      method: "POST",
+      body: JSON.stringify({ ...request, stream: true }),
+    });
+    expect(response.headers.get("Content-Type")).toContain("text/event-stream");
+    expect(await response.text()).toContain('"content":"a"');
+  });
+
+  test("AI Pro keeps rejections and plain JSON replies unchanged", async () => {
+    const rejected = await createAiproFetch(
+      vi.fn(async () =>
+        Response.json({ error: { message: "expired" } }, { status: 401 }),
+      ),
+    )(aiproEndpoint, { method: "POST", body: JSON.stringify(request) });
+    expect(rejected.status).toBe(401);
+    expect(await rejected.json()).toEqual({ error: { message: "expired" } });
+    const plain = await createAiproFetch(
+      vi.fn(async () => Response.json({ choices: [], model: "test-model" })),
+    )(aiproEndpoint, { method: "POST", body: JSON.stringify(request) });
+    expect(await plain.json()).toEqual({ choices: [], model: "test-model" });
+  });
+
+  test("AI Pro retries once without the usage option only when the server rejects that option", async () => {
+    const bodies: WireBody[] = [];
+    const fetchImpl = vi.fn(async (_url: unknown, init?: RequestInit) => {
+      bodies.push(requestBody(init));
+      return bodies.length === 1
+        ? Response.json(
+            { error: { message: "Unknown field: stream_options" } },
+            { status: 400 },
+          )
+        : sse([chunk({ role: "assistant", content: "ok" })]);
+    });
+    const response = await createAiproFetch(fetchImpl)(aiproEndpoint, {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+    expect(response.status).toBe(200);
+    expect(bodies.map((body) => "stream_options" in body)).toEqual([
+      true,
+      false,
+    ]);
+    const other = vi.fn(async () =>
+      Response.json({ error: { message: "model not found" } }, { status: 400 }),
+    );
+    expect(
+      (
+        await createAiproFetch(other)(aiproEndpoint, {
+          method: "POST",
+          body: JSON.stringify(request),
+        })
+      ).status,
+    ).toBe(400);
+    expect(other).toHaveBeenCalledTimes(1);
+  });
+
+  test("AI Pro reports a stream that ends before it is complete", async () => {
+    const fetchImpl = vi.fn(async () =>
+      sse([chunk({ content: "partial" })], { done: false }),
+    );
+    const response = await createAiproFetch(fetchImpl)(aiproEndpoint, {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+    expect(response.status).toBe(502);
+    expect(await response.json()).toEqual({
+      error: { message: "model_stream_incomplete", type: "upstream" },
+    });
   });
 
   test("FabriX converts headers, tool calls, results, usage and streaming", async () => {
@@ -212,6 +424,49 @@ describe("enterprise model transports", () => {
           expect(new Headers(init?.headers).get("Authorization")).toBe(
             `Bearer ${provider === "aipro-cli" ? "synthetic-cli-token" : token}`,
           );
+          // AI Pro is always asked for a stream, like the browser client.
+          // The first turn has no tool result yet and must call the tool.
+          const wire = body as unknown as {
+            messages: { role: string }[];
+            stream?: boolean;
+          };
+          if (provider === "aipro") {
+            expect(wire.stream).toBe(true);
+            expect(sentHeaders(init)).toEqual(aiproChatHeaders);
+          }
+          const firstTurn = !wire.messages.some(
+            (message) => message.role === "tool",
+          );
+          if (provider === "aipro" && firstTurn)
+            return new Response(
+              `data: ${JSON.stringify({
+                id: "synthetic",
+                object: "chat.completion.chunk",
+                created: 0,
+                model: body.model,
+                choices: [
+                  {
+                    index: 0,
+                    delta: {
+                      role: "assistant",
+                      tool_calls: [
+                        {
+                          index: 0,
+                          id: "call_test",
+                          type: "function",
+                          function: {
+                            name: "echo",
+                            arguments: '{"value":"done"}',
+                          },
+                        },
+                      ],
+                    },
+                    finish_reason: "tool_calls",
+                  },
+                ],
+              })}\n\ndata: [DONE]\n\n`,
+              { headers: { "Content-Type": "text/event-stream" } },
+            );
           if (body.stream) {
             const chunk = {
               id: "synthetic",

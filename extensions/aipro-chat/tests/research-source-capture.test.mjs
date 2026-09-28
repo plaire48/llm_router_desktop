@@ -226,3 +226,29 @@ test('an explicit child-frame content read cannot mark the top-frame source as a
  await state.capture('browser_snapshot',page(url),true);
  assert.equal(reads,1);assert.equal(state.evidence.length,1);
 });
+test('a click that turns a counted list keeps that page before its check has passed, and nothing else does',async()=>{
+ const url='https://example.test/list';
+ const view=(current,extra={})=>({ok:true,actionIssued:true,observation:{url,frames:[{frame:0,text:`${current}쪽`,documentId:'doc',page_view:{current,total:3}}]},...extra});
+ const read=current=>({...content(url,`${current}쪽 본문`,String(current).repeat(64)),source_document_id:'doc',page_view:{current,total:3}});
+ let reads=0,current=1;
+ const state=setup(async()=>{reads++;return read(current);},{enabled:false});
+ // The first page is kept by an ordinary observation.
+ await state.capture('browser_snapshot',{url,frames:[{frame:0,text:'1쪽',documentId:'doc',page_view:{current:1,total:3}}]},true);
+ // Two clicks in a row: neither has a passed check yet.
+ current=2;const second=await state.capture('click_element',view(2),false,true);
+ current=3;const third=await state.capture('click_element',view(3),false,true);
+ assert.equal(second.source_capture.status,'observed');assert.equal(third.source_capture.status,'observed');
+ assert.equal(reads,3);assert.deepEqual(state.evidence.map(item=>item.result.page_view.current),[1,2,3]);
+ assert(state.evidence.every(item=>item.referenceOnly&&item.usable&&!item.superseded));
+ // Returning to a kept page reads nothing again.
+ current=2;await state.capture('click_element',view(2),false,true);assert.equal(reads,3);
+ const other=setup(async()=>assert.fail('must not read'),{enabled:false});
+ // No counted view, an unissued or failed click, an input, or an uncertain run: no capture.
+ await other.capture('click_element',{ok:true,actionIssued:true,observation:{url,frames:[{frame:0,text:'본문',documentId:'doc'}]}},false,true);
+ await other.capture('click_element',view(2,{actionIssued:false}),false,true);
+ await other.capture('click_element',view(2,{error:'browser_stale'}),false,true);
+ await other.capture('fill_form',view(2),false,true);
+ await other.capture('select_option',view(2),false,true);
+ await other.capture('click_element',view(2),false,false);
+ assert.equal(other.evidence.length,0);
+});

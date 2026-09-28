@@ -1,0 +1,259 @@
+{
+  "suite": "invoke",
+  "id": "sentence-unrelated",
+  "trial": 1,
+  "routing": "product",
+  "passed": true,
+  "outcome": "passed",
+  "state": "done",
+  "writes": 1,
+  "recoveries": 0,
+  "questions": [],
+  "approvals": [
+    "edit"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 10,
+    "toolCalls": 5,
+    "elapsedMs": 25019
+  },
+  "transcript": {
+    "modelCalls": 10,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 1,
+      "actor": 5,
+      "action_review": 1,
+      "step_review": 1,
+      "result_review": 1
+    },
+    "elapsedMs": 24857,
+    "requestCharacters": 224780,
+    "peakRequestCharacters": 45834,
+    "toolCalls": {
+      "read": 1,
+      "read_selection": 1,
+      "apply_changes": 1,
+      "verify_selection": 1
+    },
+    "errors": {}
+  },
+  "score": {
+    "passed": true,
+    "outcome": "passed",
+    "deterministicPassed": true,
+    "semanticReview": {
+      "required": false,
+      "status": "not_required",
+      "criteria": []
+    },
+    "expectedState": "done",
+    "actualState": "done",
+    "checks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "A2",
+          "field": "value",
+          "operator": "equals",
+          "expected": 4,
+          "actual": [
+            [
+              4
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "persistedChecks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "A2",
+          "field": "value",
+          "operator": "equals",
+          "expected": 4,
+          "actual": [
+            [
+              4
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "unexpectedChanges": [],
+    "persistedUnexpectedChanges": [],
+    "sourceChecks": [],
+    "formulaChecks": [],
+    "openedTemplate": null,
+    "expectedTemplate": null
+  },
+  "request": "A2의 값을 4로 바꿔줘. 다른 셀은 그대로 둬.",
+  "answer": "A2를 숫자 **4**로 변경했습니다. 다른 셀, 수식 및 기존 서식은 유지되었고 변경 결과를 확인했습니다.",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_selection",
+        "title": "선택 범위와 A2의 기존 값·수식·서식 확인",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "update_a2",
+        "title": "A2의 값을 숫자 4로 변경하고 나머지는 유지",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1
+        ],
+        "state": "done",
+        "requiresReview": true
+      },
+      {
+        "id": "verify_result",
+        "title": "A2 변경 및 다른 셀과 수식 보존 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1
+        ],
+        "state": "done"
+      }
+    ],
+    "total": 3,
+    "completed": 3,
+    "currentStepId": null
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "A2의 값을 숫자 4로 변경하고 다른 셀과 기존 서식·수식은 유지합니다.",
+    "requirements": [
+      "A2만 숫자 4로 변경",
+      "다른 셀, 기존 수식 및 서식 유지"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "A2",
+        "field": "value",
+        "operator": "equals",
+        "expected": 4,
+        "valueType": "number"
+      },
+      {
+        "address": "A1:C3",
+        "field": "formula",
+        "operator": "no_error"
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_selection",
+        "title": "선택 범위와 A2의 기존 값·수식·서식 확인",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "update_a2",
+        "title": "A2의 값을 숫자 4로 변경하고 나머지는 유지",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1
+        ]
+      },
+      {
+        "id": "verify_result",
+        "title": "A2 변경 및 다른 셀과 수식 보존 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1
+        ]
+      }
+    ]
+  },
+  "review": {
+    "status": "complete",
+    "checks": [
+      {
+        "requirement": "A2만 숫자 4로 변경",
+        "status": "met",
+        "evidence_ids": [
+          7
+        ]
+      },
+      {
+        "requirement": "다른 셀과 기존 수식·서식 유지",
+        "status": "met",
+        "evidence_ids": [
+          7
+        ]
+      }
+    ],
+    "next_step": ""
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_selection"
+    },
+    {
+      "name": "read",
+      "state": "done",
+      "stepId": "update_a2"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "update_a2"
+    },
+    {
+      "name": "apply_changes",
+      "state": "done",
+      "stepId": "update_a2"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "update_a2"
+    },
+    {
+      "name": "review_action",
+      "state": "done",
+      "stepId": "update_a2"
+    },
+    {
+      "name": "review_step",
+      "state": "done",
+      "stepId": "update_a2"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_result"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_result"
+    },
+    {
+      "name": "review_task",
+      "state": "done",
+      "stepId": "verify_result"
+    }
+  ],
+  "recoveryLog": []
+}

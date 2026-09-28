@@ -1,0 +1,37 @@
+{
+  "suite": "invoke",
+  "id": "command-unknown",
+  "trial": 2,
+  "routing": "product",
+  "passed": true,
+  "outcome": "passed",
+  "state": "unsupported",
+  "writes": 0,
+  "recoveries": 0,
+  "questions": [],
+  "approvals": [],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 0,
+    "toolCalls": 1,
+    "elapsedMs": 21
+  },
+  "transcript": {
+    "modelCalls": 0,
+    "byRole": {},
+    "elapsedMs": 0,
+    "requestCharacters": 0,
+    "peakRequestCharacters": 0,
+    "toolCalls": {},
+    "errors": {}
+  },
+  "score": {
+    "openedTemplate": null,
+    "expectedTemplate": null,
+    "passed": true,
+    "outcome": "passed"
+  },
+  "request": "/회의록 오늘 회의 내용을 정리해줘",
+  "answer": "등록한 양식에서 '회의록'에 맞는 것을 찾지 못했습니다. 등록한 양식: 지출 결의서, 출장 신청서, 교육 신청서, 견적서, 출장 정산서",
+  "trace": []
+}

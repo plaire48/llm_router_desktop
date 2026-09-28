@@ -1,0 +1,977 @@
+{
+  "suite": "register",
+  "id": "quotation",
+  "trial": 1,
+  "routing": "direct",
+  "passed": true,
+  "outcome": "passed",
+  "state": "done",
+  "writes": 0,
+  "recoveries": 0,
+  "questions": [],
+  "approvals": [
+    "template_mapping",
+    "template_register",
+    "template_mapping"
+  ],
+  "proposals": 2,
+  "metrics": {
+    "modelCalls": 13,
+    "toolCalls": 10,
+    "elapsedMs": 65832
+  },
+  "transcript": {
+    "modelCalls": 13,
+    "byRole": {
+      "planner": 1,
+      "actor": 11,
+      "result_review": 1
+    },
+    "elapsedMs": 65389,
+    "requestCharacters": 614019,
+    "peakRequestCharacters": 68765,
+    "toolCalls": {
+      "read": 1,
+      "inspect_template": 5,
+      "define_template_fields": 2,
+      "register_template": 2
+    },
+    "errors": {}
+  },
+  "score": {
+    "mapping": {
+      "proposed": 21,
+      "gold": 21,
+      "matched": 21,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "unexpected": [],
+      "wrongType": [],
+      "wrongRequired": [],
+      "exact": true,
+      "strict": true
+    },
+    "registered": true,
+    "sourceUnchanged": true,
+    "proposedFields": [
+      {
+        "address": "B3",
+        "label": "수신",
+        "valueType": "text",
+        "required": true
+      },
+      {
+        "address": "E3",
+        "label": "견적일",
+        "valueType": "date",
+        "required": true
+      },
+      {
+        "address": "B4",
+        "label": "담당자",
+        "valueType": "text",
+        "required": true
+      },
+      {
+        "address": "E4",
+        "label": "유효 기간",
+        "valueType": "text",
+        "required": true
+      },
+      {
+        "address": "B7",
+        "label": "품목(1행)",
+        "valueType": "text",
+        "required": true
+      },
+      {
+        "address": "C7",
+        "label": "규격(1행)",
+        "valueType": "text",
+        "required": false
+      },
+      {
+        "address": "D7",
+        "label": "수량(1행)",
+        "valueType": "number",
+        "required": true
+      },
+      {
+        "address": "E7",
+        "label": "단가(1행)",
+        "valueType": "number",
+        "required": true
+      },
+      {
+        "address": "B8",
+        "label": "품목(2행)",
+        "valueType": "text",
+        "required": false
+      },
+      {
+        "address": "C8",
+        "label": "규격(2행)",
+        "valueType": "text",
+        "required": false
+      },
+      {
+        "address": "D8",
+        "label": "수량(2행)",
+        "valueType": "number",
+        "required": false
+      },
+      {
+        "address": "E8",
+        "label": "단가(2행)",
+        "valueType": "number",
+        "required": false
+      },
+      {
+        "address": "B9",
+        "label": "품목(3행)",
+        "valueType": "text",
+        "required": false
+      },
+      {
+        "address": "C9",
+        "label": "규격(3행)",
+        "valueType": "text",
+        "required": false
+      },
+      {
+        "address": "D9",
+        "label": "수량(3행)",
+        "valueType": "number",
+        "required": false
+      },
+      {
+        "address": "E9",
+        "label": "단가(3행)",
+        "valueType": "number",
+        "required": false
+      },
+      {
+        "address": "B10",
+        "label": "품목(4행)",
+        "valueType": "text",
+        "required": false
+      },
+      {
+        "address": "C10",
+        "label": "규격(4행)",
+        "valueType": "text",
+        "required": false
+      },
+      {
+        "address": "D10",
+        "label": "수량(4행)",
+        "valueType": "number",
+        "required": false
+      },
+      {
+        "address": "E10",
+        "label": "단가(4행)",
+        "valueType": "number",
+        "required": false
+      },
+      {
+        "address": "B14",
+        "label": "비고",
+        "valueType": "text",
+        "required": false
+      }
+    ],
+    "passed": true,
+    "outcome": "passed"
+  },
+  "request": "지금 선택한 견적서 양식을 분석해서 다음에 다시 쓸 수 있게 등록해줘. 양식 이름은 견적서, 용도는 고객사 제출용 물품 견적이야. 품목 표는 네 줄이고 첫 줄의 품목, 수량, 단가만 필수야. 규격과 비고, 둘째 줄부터의 품목은 선택이야. 수신, 견적일, 담당자, 유효 기간은 필수야. No와 금액, 공급가액, 부가세, 합계는 입력하지 않아.",
+  "answer": "견적서 양식을 등록했습니다.\n\n- 용도: 고객사 제출용 물품 견적\n- 필수·선택 필드 및 계산 제외 항목 반영\n- 기존 수식·서식·병합 보존 확인\n- 등록 파일: `10e96f1e-8f8c-4164-be4f-a0b2ad973fbc.xlsx`\n\n인쇄 결과, 조건부 서식, 선택 범위 밖 내용 및 NASCA 암호화 상태는 확인되지 않았습니다.",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "선택한 견적서 양식의 필드, 수식, 병합과 서식을 확인",
+        "kind": "inspect",
+        "checkIndexes": [
+          0,
+          1
+        ],
+        "state": "done"
+      },
+      {
+        "id": "analyze_schema",
+        "title": "필수·선택 입력 필드와 계산 제외 항목을 정의",
+        "kind": "analyze",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "verify_registration",
+        "title": "등록된 양식 정보와 기존 수식 보존을 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1
+        ],
+        "state": "done"
+      }
+    ],
+    "total": 3,
+    "completed": 3,
+    "currentStepId": null
+  },
+  "task": {
+    "intent": "analyze",
+    "summary": "선택한 견적서 양식을 분석하고, 지정한 필수·선택 필드와 계산 제외 항목을 반영해 재사용 가능한 양식으로 등록합니다.",
+    "requirements": [
+      "양식 이름은 견적서, 용도는 고객사 제출용 물품 견적입니다.",
+      "품목 표는 4행이며 첫 행의 품목·수량·단가만 필수입니다.",
+      "규격·비고 및 둘째 행부터의 품목은 선택입니다.",
+      "수신·견적일·담당자·유효 기간은 필수입니다.",
+      "No·금액·공급가액·부가세·합계는 입력 필드로 등록하지 않습니다."
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "F7:F10",
+        "field": "formula",
+        "operator": "no_error"
+      },
+      {
+        "address": "F11:F13",
+        "field": "formula",
+        "operator": "no_error"
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "선택한 견적서 양식의 필드, 수식, 병합과 서식을 확인",
+        "kind": "inspect",
+        "checkIndexes": [
+          0,
+          1
+        ]
+      },
+      {
+        "id": "analyze_schema",
+        "title": "필수·선택 입력 필드와 계산 제외 항목을 정의",
+        "kind": "analyze",
+        "checkIndexes": []
+      },
+      {
+        "id": "verify_registration",
+        "title": "등록된 양식 정보와 기존 수식 보존을 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1
+        ]
+      }
+    ]
+  },
+  "review": {
+    "status": "complete",
+    "checks": [
+      {
+        "requirement": "양식 이름은 견적서, 용도는 고객사 제출용 물품 견적",
+        "status": "met",
+        "evidence_ids": [
+          15
+        ]
+      },
+      {
+        "requirement": "품목 표는 4행이며 첫 행의 품목·수량·단가만 필수",
+        "status": "met",
+        "evidence_ids": [
+          15
+        ]
+      },
+      {
+        "requirement": "규격·비고 및 둘째 줄부터의 품목은 선택",
+        "status": "met",
+        "evidence_ids": [
+          15
+        ]
+      },
+      {
+        "requirement": "수신·견적일·담당자·유효 기간은 필수",
+        "status": "met",
+        "evidence_ids": [
+          15
+        ]
+      },
+      {
+        "requirement": "No·금액·공급가액·부가세·합계는 입력 필드로 등록하지 않음",
+        "status": "met",
+        "evidence_ids": [
+          14,
+          15
+        ]
+      },
+      {
+        "requirement": "기존 수식과 확인된 서식·병합을 보존",
+        "status": "met",
+        "evidence_ids": [
+          15,
+          16
+        ]
+      }
+    ],
+    "next_step": "등록이 완료되었습니다."
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_form"
+    },
+    {
+      "name": "read",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "define_template_fields",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "register_template",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "define_template_fields",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "register_template",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_registration"
+    },
+    {
+      "name": "review_task",
+      "state": "done",
+      "stepId": "verify_registration"
+    }
+  ],
+  "recoveryLog": [],
+  "lastProposal": [
+    {
+      "id": "field_B3",
+      "address": "B3",
+      "label": "수신",
+      "valueType": "text",
+      "required": true,
+      "numberFormat": "General",
+      "merge": "B3:C3",
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_E3",
+      "address": "E3",
+      "label": "견적일",
+      "valueType": "date",
+      "required": true,
+      "numberFormat": "yyyy-mm-dd",
+      "merge": "E3:F3",
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_B4",
+      "address": "B4",
+      "label": "담당자",
+      "valueType": "text",
+      "required": true,
+      "numberFormat": "General",
+      "merge": "B4:C4",
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_E4",
+      "address": "E4",
+      "label": "유효 기간",
+      "valueType": "text",
+      "required": true,
+      "numberFormat": "General",
+      "merge": "E4:F4",
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_B7",
+      "address": "B7",
+      "label": "품목(1행)",
+      "valueType": "text",
+      "required": true,
+      "numberFormat": "General",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_C7",
+      "address": "C7",
+      "label": "규격(1행)",
+      "valueType": "text",
+      "required": false,
+      "numberFormat": "General",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_D7",
+      "address": "D7",
+      "label": "수량(1행)",
+      "valueType": "number",
+      "required": true,
+      "numberFormat": "General",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_E7",
+      "address": "E7",
+      "label": "단가(1행)",
+      "valueType": "number",
+      "required": true,
+      "numberFormat": "#,##0",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_B8",
+      "address": "B8",
+      "label": "품목(2행)",
+      "valueType": "text",
+      "required": false,
+      "numberFormat": "General",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_C8",
+      "address": "C8",
+      "label": "규격(2행)",
+      "valueType": "text",
+      "required": false,
+      "numberFormat": "General",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_D8",
+      "address": "D8",
+      "label": "수량(2행)",
+      "valueType": "number",
+      "required": false,
+      "numberFormat": "General",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_E8",
+      "address": "E8",
+      "label": "단가(2행)",
+      "valueType": "number",
+      "required": false,
+      "numberFormat": "#,##0",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_B9",
+      "address": "B9",
+      "label": "품목(3행)",
+      "valueType": "text",
+      "required": false,
+      "numberFormat": "General",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_C9",
+      "address": "C9",
+      "label": "규격(3행)",
+      "valueType": "text",
+      "required": false,
+      "numberFormat": "General",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_D9",
+      "address": "D9",
+      "label": "수량(3행)",
+      "valueType": "number",
+      "required": false,
+      "numberFormat": "General",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_E9",
+      "address": "E9",
+      "label": "단가(3행)",
+      "valueType": "number",
+      "required": false,
+      "numberFormat": "#,##0",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_B10",
+      "address": "B10",
+      "label": "품목(4행)",
+      "valueType": "text",
+      "required": false,
+      "numberFormat": "General",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_C10",
+      "address": "C10",
+      "label": "규격(4행)",
+      "valueType": "text",
+      "required": false,
+      "numberFormat": "General",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_D10",
+      "address": "D10",
+      "label": "수량(4행)",
+      "valueType": "number",
+      "required": false,
+      "numberFormat": "General",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_E10",
+      "address": "E10",
+      "label": "단가(4행)",
+      "valueType": "number",
+      "required": false,
+      "numberFormat": "#,##0",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_B14",
+      "address": "B14",
+      "label": "비고",
+      "valueType": "text",
+      "required": false,
+      "numberFormat": "General",
+      "merge": "B14:F14",
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    }
+  ],
+  "registeredTemplate": {
+    "saved": true,
+    "id": "10e96f1e-8f8c-4164-be4f-a0b2ad973fbc",
+    "path": "/sim/templates/10e96f1e-8f8c-4164-be4f-a0b2ad973fbc.xlsx",
+    "metadataVerified": true,
+    "protectionMode": "nasca_excel_managed",
+    "nascaEncryptionVerified": false,
+    "name": "견적서",
+    "profile": {
+      "schemaVersion": 1,
+      "structureId": "c3a4cc858243a0f9884240a932567eec0be8137ff643aac606bebef0f9ed08fa",
+      "definitionHash": "0ee9a84241565e988f065d4b6772fe4ec69b68e361903970c89387ebe15d9366",
+      "worksheet": "견적서",
+      "address": "A1:F14",
+      "fields": [
+        {
+          "address": "B3",
+          "label": "수신",
+          "valueType": "text",
+          "required": true
+        },
+        {
+          "address": "E3",
+          "label": "견적일",
+          "valueType": "date",
+          "required": true
+        },
+        {
+          "address": "B4",
+          "label": "담당자",
+          "valueType": "text",
+          "required": true
+        },
+        {
+          "address": "E4",
+          "label": "유효 기간",
+          "valueType": "text",
+          "required": true
+        },
+        {
+          "address": "B7",
+          "label": "품목(1행)",
+          "valueType": "text",
+          "required": true
+        },
+        {
+          "address": "C7",
+          "label": "규격(1행)",
+          "valueType": "text",
+          "required": false
+        },
+        {
+          "address": "D7",
+          "label": "수량(1행)",
+          "valueType": "number",
+          "required": true
+        },
+        {
+          "address": "E7",
+          "label": "단가(1행)",
+          "valueType": "number",
+          "required": true
+        },
+        {
+          "address": "B8",
+          "label": "품목(2행)",
+          "valueType": "text",
+          "required": false
+        },
+        {
+          "address": "C8",
+          "label": "규격(2행)",
+          "valueType": "text",
+          "required": false
+        },
+        {
+          "address": "D8",
+          "label": "수량(2행)",
+          "valueType": "number",
+          "required": false
+        },
+        {
+          "address": "E8",
+          "label": "단가(2행)",
+          "valueType": "number",
+          "required": false
+        },
+        {
+          "address": "B9",
+          "label": "품목(3행)",
+          "valueType": "text",
+          "required": false
+        },
+        {
+          "address": "C9",
+          "label": "규격(3행)",
+          "valueType": "text",
+          "required": false
+        },
+        {
+          "address": "D9",
+          "label": "수량(3행)",
+          "valueType": "number",
+          "required": false
+        },
+        {
+          "address": "E9",
+          "label": "단가(3행)",
+          "valueType": "number",
+          "required": false
+        },
+        {
+          "address": "B10",
+          "label": "품목(4행)",
+          "valueType": "text",
+          "required": false
+        },
+        {
+          "address": "C10",
+          "label": "규격(4행)",
+          "valueType": "text",
+          "required": false
+        },
+        {
+          "address": "D10",
+          "label": "수량(4행)",
+          "valueType": "number",
+          "required": false
+        },
+        {
+          "address": "E10",
+          "label": "단가(4행)",
+          "valueType": "number",
+          "required": false
+        },
+        {
+          "address": "B14",
+          "label": "비고",
+          "valueType": "text",
+          "required": false
+        }
+      ]
+    },
+    "preservation": {
+      "schemaVersion": 1,
+      "stage": "registered_copy",
+      "target": "견적서!A1:F14",
+      "status": "partial",
+      "checks": [
+        {
+          "id": "formulas",
+          "label": "수식",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "formats",
+          "label": "글꼴, 색, 정렬, 표시 형식",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "merges",
+          "label": "병합",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "borders",
+          "label": "테두리",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "dimensions",
+          "label": "행, 열 크기와 숨김",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "validation",
+          "label": "입력 제한, 잠금",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "values",
+          "label": "고정 내용",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "date1904",
+          "label": "날짜 체계",
+          "status": "preserved"
+        },
+        {
+          "id": "protected",
+          "label": "시트 보호",
+          "status": "preserved"
+        },
+        {
+          "id": "objects",
+          "label": "그림, 차트, 도형",
+          "status": "unverified"
+        },
+        {
+          "id": "conditional",
+          "label": "조건부 서식, 기타 셀 효과",
+          "status": "unverified"
+        },
+        {
+          "id": "print",
+          "label": "인쇄 결과, 페이지 전체 모양",
+          "status": "unverified"
+        },
+        {
+          "id": "other_ranges",
+          "label": "선택 범위 밖의 내용과 양식",
+          "status": "unverified"
+        },
+        {
+          "id": "nasca",
+          "label": "NASCA 암호화 상태",
+          "status": "unverified"
+        }
+      ],
+      "differences": [],
+      "differenceCount": 0,
+      "expectedValueChanges": 0,
+      "note": "읽은 속성의 비교 결과입니다. 전체 문서가 동일하다는 뜻은 아닙니다."
+    },
+    "catalogued": true,
+    "entry": {
+      "id": "10e96f1e-8f8c-4164-be4f-a0b2ad973fbc",
+      "host": "excel",
+      "name": "견적서",
+      "summary": "고객사 제출용 물품 견적",
+      "revision": 1,
+      "createdAt": "2026-09-28T23:02:32.603Z",
+      "updatedAt": "2026-09-28T23:02:32.603Z",
+      "itemCount": 21,
+      "inputCount": 21,
+      "sourceFile": "10e96f1e-8f8c-4164-be4f-a0b2ad973fbc.xlsx",
+      "available": true,
+      "protection": "windows_current_user"
+    }
+  }
+}

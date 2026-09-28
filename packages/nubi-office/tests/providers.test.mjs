@@ -33,9 +33,9 @@ test('saved AI Pro API catalog retains all ten models and sends each original na
   const sent=[];let modelRequests=0;
   const fetchImpl=async(url,options)=>{
     assert.equal(options.headers.Authorization,`Bearer ${token}`);
-    if(url==='https://aipro.sdsdev.co.kr/api/models'){modelRequests++;return Response.json(payload);}
+    if(url==='https://aipro.sdsdev.co.kr/api/models'){modelRequests++;assert.deepEqual(options.headers,{Accept:'application/json',Authorization:`Bearer ${token}`,'X-REASONING':'true'},'model discovery sends exactly the browser client headers');return Response.json(payload);}
     assert.equal(url,'https://aipro.sdsdev.co.kr/api/v1/chat/completions');
-    assert.equal(options.headers['User-Agent'],undefined);sent.push(JSON.parse(options.body).model);
+    assert.deepEqual(options.headers,{'Content-Type':'application/json',Accept:'text/event-stream',Authorization:`Bearer ${token}`},'chat sends exactly the browser client headers');sent.push(JSON.parse(options.body).model);
     return Response.json({choices:[{message:{content:'ok'},finish_reason:'stop'}]});
   };
   const p=createProviders({fetchImpl,startLogin:async()=>({result:fetchModels(token,fetchImpl).then(models=>({token,models})),cancel(){}})});

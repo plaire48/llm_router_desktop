@@ -277,7 +277,7 @@ handle = async function(message, sender, owner) {
     if (!message.type.startsWith('GET_')) return ui.evaluate(message => chrome.runtime.sendMessage(message), message);
     for (let attempt = 0; ; attempt++) {
       try {return await waitForRead(()=>ui.evaluate(message => chrome.runtime.sendMessage(message),message),{timeoutMs:10000});}
-      catch (error) {if (error.message !== 'read_timeout' || attempt >= 2) throw error; report.readRetries++;}
+      catch (error) {if (error.message !== 'read_timeout' || attempt >= 4) throw error; report.readRetries++;}
     }
   };
   const state = async () => (await rpc({type: 'GET_STATE'})).data;
