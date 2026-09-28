@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Nubi handoff request design example",
+  "description": "Structural validation only. The receiver must authenticate, authorize, bind artifacts and reconcile receipts independently.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocolVersion", "requestId", "projectId", "changeId", "sender", "receiver", "requestedCapability", "requirementIds", "sourceSnapshot", "inputArtifacts", "completionCriteria", "expiresAt"],
+  "properties": {
+    "protocolVersion": {"const": "nubi-handoff/0.1-design"},
+    "requestId": {"$ref": "#/$defs/id"},
+    "projectId": {"$ref": "#/$defs/id"},
+    "changeId": {"$ref": "#/$defs/id"},
+    "sender": {"$ref": "#/$defs/endpoint"},
+    "receiver": {"$ref": "#/$defs/endpoint"},
+    "requestedCapability": {"enum": ["browser.verify", "office.draft"]},
+    "requirementIds": {"type": "array", "minItems": 1, "maxItems": 30, "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
+    "sourceSnapshot": {"$ref": "#/$defs/snapshot"},
+    "inputArtifacts": {"type": "array", "minItems": 1, "maxItems": 20, "items": {"$ref": "#/$defs/artifact"}},
+    "completionCriteria": {"type": "array", "minItems": 1, "maxItems": 30, "items": {"type": "string", "minLength": 1, "maxLength": 500}},
+    "expiresAt": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"}
+  },
+  "oneOf": [
+    {"properties": {"requestedCapability": {"const": "browser.verify"}, "receiver": {"type": "object", "properties": {"surface": {"const": "browser"}}, "required": ["surface"]}}},
+    {"properties": {"requestedCapability": {"const": "office.draft"}, "receiver": {"type": "object", "properties": {"surface": {"const": "office"}}, "required": ["surface"]}}}
+  ],
+  "$defs": {
+    "id": {"type": "string", "minLength": 1, "maxLength": 100, "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$"},
+    "hash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "endpoint": {"type": "object", "additionalProperties": false, "required": ["surface", "instanceId"], "properties": {"surface": {"enum": ["desktop", "browser", "office"]}, "instanceId": {"$ref": "#/$defs/id"}}},
+    "snapshot": {
+      "type": "object", "additionalProperties": false,
+      "required": ["workspaceId", "commitOid", "state"],
+      "properties": {
+        "workspaceId": {"$ref": "#/$defs/id"},
+        "commitOid": {"type": "string", "pattern": "^(?:[a-f0-9]{40}|[a-f0-9]{64})$"},
+        "state": {"enum": ["clean", "dirty"]},
+        "dirtyManifestHash": {"$ref": "#/$defs/hash"}
+      },
+      "allOf": [
+        {"if": {"properties": {"state": {"const": "dirty"}}}, "then": {"properties": {"dirtyManifestHash": {"$ref": "#/$defs/hash"}}, "required": ["dirtyManifestHash"]}, "else": {"properties": {"dirtyManifestHash": false}}}
+      ]
+    },
+    "artifact": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "contentHash", "purpose"],
+      "properties": {"id": {"$ref": "#/$defs/id"}, "contentHash": {"$ref": "#/$defs/hash"}, "purpose": {"enum": ["requirement", "scenario", "verification-summary"]}}
+    }
+  }
+}

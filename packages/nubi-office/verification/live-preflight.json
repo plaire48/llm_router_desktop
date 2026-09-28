@@ -1,0 +1,783 @@
+{
+  "kind": "live-excel-model-evaluation",
+  "schema": 4,
+  "analysisConcurrency": 2,
+  "limits": {
+    "timeoutMs": 600000,
+    "maxModelCalls": 80,
+    "maxActions": 120
+  },
+  "supportedModes": [
+    "edit",
+    "template",
+    "document"
+  ],
+  "caseVersion": "office-business-cases@4",
+  "startedAt": "2026-09-22T17:40:26.587Z",
+  "status": "blocked",
+  "accuracy": null,
+  "cases": [],
+  "limitations": [
+    "Synthetic edit, document and template cases do not establish representative company-template accuracy.",
+    "Separate context review uses the selected model; it is not an independent-model guarantee.",
+    "Native COM evaluation does not prove VSTO installation or the Office 2016 edition.",
+    "Questions and unsupported-feature answers require independent semantic review; pending review is not a pass.",
+    "Source and existing artifact hashes do not establish that an artifact was built from those sources."
+  ],
+  "provenance": {
+    "sourceHash": "19c0f59bf2bfb8f824b1ae4f60e2f0e2cad245d43d1db603d9be1a6adc3b8eb6",
+    "manifest": [
+      {
+        "path": "eval/audit.mjs",
+        "sha256": "38b13a2a1b706e3ee9544c7f72e57b87cbba28933ae986ffa65c15ad57c8459c"
+      },
+      {
+        "path": "eval/cases.json",
+        "sha256": "a3d59a929cc422c69180d7872aa238197de2302e7c3901053dba1fbc3a156c6a"
+      },
+      {
+        "path": "eval/compare.mjs",
+        "sha256": "8a849d2286cf552a82544428d26169216463a56ea7e531f00433b60874eda09a"
+      },
+      {
+        "path": "eval/document-scoring.mjs",
+        "sha256": "8944b78a3249b113a81c969524c012e5d6e04daca253ef9020ad8d7a614e4813"
+      },
+      {
+        "path": "eval/driver.mjs",
+        "sha256": "4df0a5959ce3c95748287ea70e1f836ead5231271b22807f9b7fca8d2588a5b5"
+      },
+      {
+        "path": "eval/harness-rubric.json",
+        "sha256": "2e4bf570d12059eb246192a1baedbbca38b6b0912f218612904171056481ed8e"
+      },
+      {
+        "path": "eval/interactions.mjs",
+        "sha256": "07f8a8272c9975da48103294ed35c0a18f89c8bb1e5a847d522903e0dcd1f01d"
+      },
+      {
+        "path": "eval/promptfoo-provider.mjs",
+        "sha256": "050e03949e904efa3c90fd13c9edaeba8491748e2940e4dfbc35a0f4dbd62bf1"
+      },
+      {
+        "path": "eval/provenance.mjs",
+        "sha256": "c8e7684b33b59c69e46bd911a3dbdea23e928b271dcc7284c01d5d13f82a73bd"
+      },
+      {
+        "path": "eval/review-cli.mjs",
+        "sha256": "538fb4eb084d531ae8e0ccd3b5cdbbf35f9b195f415f59b9f38994263f5fe847"
+      },
+      {
+        "path": "eval/review.mjs",
+        "sha256": "2b446b2c4aab77253a354317897b5f6352d543025439acd4fd8e684d1f3602db"
+      },
+      {
+        "path": "eval/run.mjs",
+        "sha256": "d4b4fa24fb77ad4f8c8e7f8fc3a25c8c86a7286dac29b96773c643690d5d92a5"
+      },
+      {
+        "path": "eval/scoring.mjs",
+        "sha256": "aff21feb2a522e91e6c44bb41cf8ead483674d8f3e91be4010f406685300f325"
+      },
+      {
+        "path": "native/Nubi.Office.AddIn/ThisAddIn.Designer.xml",
+        "sha256": "5b27f0c92ab52bbba190715cdb8dfc8769ac279bbb6edc352200be4dcc1efd53"
+      },
+      {
+        "path": "native/Nubi.Office.Core/CellStyle.cs",
+        "sha256": "f99a4171a1309db0f6aaa315bf47cb15fbd0ff19238c557795e278cf991f5634"
+      },
+      {
+        "path": "native/Nubi.Office.Core/Nubi.Office.Core.csproj",
+        "sha256": "5fdcff3c21356b548afb9f52927397fdcbdf3317ec28907c5351945b0c901254"
+      },
+      {
+        "path": "native/Nubi.Office.Core/WorkbookEngine.cs",
+        "sha256": "7be6eaef4fde6e9c5a9581dc4df80d6f05abc31e0942a756aad1cd0280c48f54"
+      },
+      {
+        "path": "native/Nubi.Office.EvalHost/Nubi.Office.EvalHost.csproj",
+        "sha256": "b4d2bff309438cee5be8484e4fe4450fd976c978a125902190d4a6ce416cdae3"
+      },
+      {
+        "path": "native/Nubi.Office.EvalHost/Program.cs",
+        "sha256": "349c6f23d19a90e2d1fe427f80473f431a5c1cce0fe2c28fac0441252627fcde"
+      },
+      {
+        "path": "native/Nubi.Office.Host/DocumentPort.cs",
+        "sha256": "1b2fa3042cc4ee4b90347f7d26954ef5e9907dd6b791e09b52adef92b2be1da1"
+      },
+      {
+        "path": "native/Nubi.Office.Host/ExcelPort.cs",
+        "sha256": "16cbafe9dc72d2d263ada36003ab2124121be2c11cb3d522b0cb5eaeaf09c4c3"
+      },
+      {
+        "path": "native/Nubi.Office.Host/ExcelTemplateStore.cs",
+        "sha256": "7c6eb7b08341ed634a060ec4ce090db6d09a40976b09ac4a48a7ce021ca91193"
+      },
+      {
+        "path": "native/Nubi.Office.Host/ExcelWorkbookReader.cs",
+        "sha256": "2734c63473a6594b0221557c7dc8faa8102fac9b7167806b24499eae526a35c9"
+      },
+      {
+        "path": "native/Nubi.Office.Host/Nubi.Office.Host.csproj",
+        "sha256": "1f0aa465b292035016fb52b05890c6f5fa6a58b892c22d3c993258dc1990a10a"
+      },
+      {
+        "path": "native/Nubi.Office.Host/NubiPane.cs",
+        "sha256": "5eef5806b10dfc4002979506988d14394ac1dde1d11e7d2577e00a1a2b1f8b8d"
+      },
+      {
+        "path": "native/Nubi.Office.Host/WorkerProcess.cs",
+        "sha256": "00c2a0adb8d3aae5ba7c1e25ef1847e2ba373f3a1190726476749b1a84bf3a87"
+      },
+      {
+        "path": "native/Nubi.Office.Tests/Nubi.Office.Tests.csproj",
+        "sha256": "eac27ecfc0c2ee02847451b9e02df2424589cbf831bae24ebbf33178c41c6d7e"
+      },
+      {
+        "path": "native/Nubi.Office.Tests/Program.cs",
+        "sha256": "f30a89a2af9e6a5e0bc526b5a09c7ede232cf3f7215c065b74d1e229888702f1"
+      },
+      {
+        "path": "package-lock.json",
+        "sha256": "6ccfc3062a09661a574e5081dee69354f1ee976099896b65436b11004c290d86"
+      },
+      {
+        "path": "package.json",
+        "sha256": "57618c36f5a508a0282569f9c37d73f81012ff05a41c9d47a3050d6c1427b3a7"
+      },
+      {
+        "path": "scripts/Build-Installer.ps1",
+        "sha256": "2b6ff6e243924be3b5defe862bd106df53d312897f78613b397c3dbca29800ca"
+      },
+      {
+        "path": "scripts/Build-Windows.ps1",
+        "sha256": "9016dccfec23ef8da0373e9680b2e91b1c708b9cb3c2deed25438cde30db6863"
+      },
+      {
+        "path": "scripts/build.mjs",
+        "sha256": "3cc9947306e9078cb52ec40237fa81750e51a564b6547081c506601754ae81f3"
+      },
+      {
+        "path": "scripts/component-preview.mjs",
+        "sha256": "4d25fa8bf495a2f47122f59f5afe1492eca7ca1a7acf3c02f9238c7372e687ce"
+      },
+      {
+        "path": "scripts/download-runtimes.mjs",
+        "sha256": "7f6af95fbffb9d6fc06587e9f99a1cc75b83a641d90961472d0699b1e0057dc3"
+      },
+      {
+        "path": "scripts/package.mjs",
+        "sha256": "0d9482c619b8de17664bfd9f173902a957b5fb2318f4d207b8e307814f56e2be"
+      },
+      {
+        "path": "scripts/Test-Installer.ps1",
+        "sha256": "ca9619acbc3982432747ef496aa2b87dbf7a5c1370163dfca1df2902cb22e7f2"
+      },
+      {
+        "path": "shared/account-usage.js",
+        "sha256": "cd02a73a4d89bd45cd478ee32ad74be48fafc15a1e42d0aeaf9a0ac81c55b318"
+      },
+      {
+        "path": "shared/agent-harness.js",
+        "sha256": "7a9abaec74dfbb176a2b26cf87e2c0e8d19e5b234fc15da6d3225978d71e0830"
+      },
+      {
+        "path": "shared/agent-runtime.js",
+        "sha256": "ad2d0c6fb8fbd58d3d097b170e4852694e5713eacf24a65e4a94f0fe347b68fb"
+      },
+      {
+        "path": "shared/agent-trace.js",
+        "sha256": "a6ecc48ce9356419b93c16a750ded1646aeda353a10dbc62a416943cfbcdb51a"
+      },
+      {
+        "path": "shared/analysis-agents.js",
+        "sha256": "61fc164e58b03f53e7e45775573782f977597c19ed2eb0c96ba7fbf93a617090"
+      },
+      {
+        "path": "shared/attachment-store.js",
+        "sha256": "187a903783d6579826e7438e61a940a4b453f2c9abb0abfad147979d292866ca"
+      },
+      {
+        "path": "shared/attachments.js",
+        "sha256": "1f4a468e0296844fe332fa5b917eafaaca17ac2279cd34b5d78b310888462cbd"
+      },
+      {
+        "path": "shared/auth-trace.js",
+        "sha256": "9f871fd3834ad60c99edaff89c15c8a8a869f5fece8918407cc18ce48add2138"
+      },
+      {
+        "path": "shared/browser-agent.js",
+        "sha256": "e88bb88804f48bf6f4557e64e4cefb81ea6d741fcfb1e371d423cf68577155f0"
+      },
+      {
+        "path": "shared/browser-approval.js",
+        "sha256": "7b27d9f3cb88cb05874d9616f7aa27074681f7685b5ac67c35add847581c50d5"
+      },
+      {
+        "path": "shared/browser-dom.js",
+        "sha256": "6bb947d9b09f55a938bdeb5c6fda45ef296cb6d2b7c3eb2edefe95053b1d6357"
+      },
+      {
+        "path": "shared/browser-drag.js",
+        "sha256": "ac74bff1498ff027e353616600df0d6b45f6ef7bcb6adfe7457d6860465d1486"
+      },
+      {
+        "path": "shared/browser-editor.js",
+        "sha256": "5f390a418effe60a5eeb4c04c392e32d13f202f022c105426b1898fc5468d749"
+      },
+      {
+        "path": "shared/browser-observation.js",
+        "sha256": "3ca56bd6b26885191b6a0f2663b0abc655e6cc485fc3f87fb745b374342989c8"
+      },
+      {
+        "path": "shared/browser-pointer.js",
+        "sha256": "e0b3cb3cc66001e57e077296d8bb24d8920c180bcf80f2527900b6250cf12894"
+      },
+      {
+        "path": "shared/browser-popups.js",
+        "sha256": "e82a72127bf6f7ea50bb19476aa40de35074b2ed7a0815a35ac49c4870d1f07d"
+      },
+      {
+        "path": "shared/browser-recovery.js",
+        "sha256": "22dba033e05f436d691a2de097a2508ccfe1d30395defd0a31ad620cd025f26e"
+      },
+      {
+        "path": "shared/browser-script-api.js",
+        "sha256": "0fe26b9a01bf5c3ed213ec0648db2a7e14a996577bbdee3138161269be00a403"
+      },
+      {
+        "path": "shared/browser-text.js",
+        "sha256": "de6635e4df10e8b16d5448d26b01058b4c6dfccfb1d8a197322966bb46494f8e"
+      },
+      {
+        "path": "shared/callback.js",
+        "sha256": "eb9ce0b9460c543d5ab8c27c5e32a396d01b272622cdbf41a9f7a06e7238061d"
+      },
+      {
+        "path": "shared/capture-store.js",
+        "sha256": "e4e8028180c4fe1b4dbf53e7ca67c68edf59f773aacc55c13365a8f153ba6b44"
+      },
+      {
+        "path": "shared/chat-contract.js",
+        "sha256": "d47da28f8eba014e3a24ae1bedf2b7315de21ab43ad50c1117adaf46c12d9205"
+      },
+      {
+        "path": "shared/chatgpt-api.js",
+        "sha256": "ac926f037b7280f903aaf2f3ee17c0efd438f4663a2ee54a3f9c762f9c539825"
+      },
+      {
+        "path": "shared/chatgpt-auth.js",
+        "sha256": "1979666bc3a7cfced0b17b5498e204dea3cc3c03a4fc3fff694977103524258c"
+      },
+      {
+        "path": "shared/completion-errors.js",
+        "sha256": "084c9e5348a803138c09e2c60491b829f4f35c9d896608fa59870c241ed34b4b"
+      },
+      {
+        "path": "shared/completion-reader.js",
+        "sha256": "e50bbae060e1bddfdaaf03deb9e03f0b2d485ac62165a2e10a30406bf59944a4"
+      },
+      {
+        "path": "shared/context-evidence.js",
+        "sha256": "f0779c5e1a7c00643190d838e82a97d9154c6087ff1f760e184291734ca2494a"
+      },
+      {
+        "path": "shared/context-manager.js",
+        "sha256": "3c75f323c07666bcc2bd74053fd214c1b8a854df879646bbc77da619159f32c2"
+      },
+      {
+        "path": "shared/context-state.js",
+        "sha256": "39801341c2dd43d40bbb5f48806f4c397fc634e0e7a89c63e647bcbf2e8fc1e6"
+      },
+      {
+        "path": "shared/conversations.js",
+        "sha256": "30e32c7942d0dba2ff954f3a118d73a9c57d08f499dd45fe811c84563d112d80"
+      },
+      {
+        "path": "shared/core.js",
+        "sha256": "eda6dfddeafc1372a02815a436990e44be6a14e2d710bb44a4f597b2f998cd41"
+      },
+      {
+        "path": "shared/design/agent-deck.css",
+        "sha256": "a9e56c768c82fcdbd39ebf7ce5c6660f8da93b2926ac51507ae9fa331369e775"
+      },
+      {
+        "path": "shared/evidence-search.js",
+        "sha256": "2b0711e2b9ba50f99d707ac7178afb5358157c8898d4f984d30195e03a067485"
+      },
+      {
+        "path": "shared/exchange.js",
+        "sha256": "63ee5e03283ebad81f808736dd8136c65f7cc955d2e1c499e8b2a9bbc5af092b"
+      },
+      {
+        "path": "shared/fabrix.js",
+        "sha256": "e7d8c53708355774428870f621a0b668eb1924d149fbd86eb49f2e5c4d3cf4eb"
+      },
+      {
+        "path": "shared/goal-review.js",
+        "sha256": "dcf39842b5f10f800dc1b9e8b756be99a9538668f4369ba09362dad2f12612d4"
+      },
+      {
+        "path": "shared/help-content.js",
+        "sha256": "6d15c48871d43dbe8032f8cee33c0218963922d5a65e1b7f239bb40d5675ea05"
+      },
+      {
+        "path": "shared/http-retry.js",
+        "sha256": "12ea328413cf79d1cef5a842afdf7fb153daff4d77b945a826ad2cc7eadc2ea3"
+      },
+      {
+        "path": "shared/image-comparison.js",
+        "sha256": "d0e2635898dc2516326b9005530e46ed43d08ea1400e035b0581edaaace3d76b"
+      },
+      {
+        "path": "shared/image-files.js",
+        "sha256": "942d747a1da7cbecacc7296522b4c6bdc054a4e11f8a808c312e0e8ac1038e67"
+      },
+      {
+        "path": "shared/login-redirect.js",
+        "sha256": "203d4f5d4ece8a6a386e34b72fe9439061808a68e25a132850e935308041bdb4"
+      },
+      {
+        "path": "shared/model-recovery.js",
+        "sha256": "f23fe8e6a5076a069b25daf248aa78a9385194779b8202e8796744793a116b40"
+      },
+      {
+        "path": "shared/model-routing.js",
+        "sha256": "9c8f5e7267d75ed384b4b1cbc01df9a6b247bc8443a6f3db8d7a5d9e9275fc46"
+      },
+      {
+        "path": "shared/output-recovery.js",
+        "sha256": "66193ac1ef5783f4450461465aa67bb6a4dd072c388a08d1351f21fdfa02e5af"
+      },
+      {
+        "path": "shared/page-images.js",
+        "sha256": "5f03ea937c51f6276c8a657252ea5e8c1f030f5bf2e01c93dddb20fc6b2cb307"
+      },
+      {
+        "path": "shared/page-tools.js",
+        "sha256": "784ca8135bb61ea62cf0154dba7fadfdc91b361901986e0e756ed9cbb7201e21"
+      },
+      {
+        "path": "shared/project-connection.js",
+        "sha256": "ae3d225b8e0555848d9db9e3823896d6c9176b93fff41155d8094b1d0e7b6d31"
+      },
+      {
+        "path": "shared/project-tools.js",
+        "sha256": "ce819b66294d06bc0659cc6268ec650856194cb03d3072b279360a7c2228baa7"
+      },
+      {
+        "path": "shared/provider-sessions.js",
+        "sha256": "2e2a4d2a708ed1e207888af00c1ac09887118cce583e05ba72072ee7c2a3b8e8"
+      },
+      {
+        "path": "shared/script-feedback.js",
+        "sha256": "e03ae315902774cd99e5f6f6004a4d8f5106fca24f7c6ddb2f0914e46267cc84"
+      },
+      {
+        "path": "shared/script-preflight.js",
+        "sha256": "266b59558cdb9a5c61be190410b52c198da4073d3ac8f181187f960946bf2c8f"
+      },
+      {
+        "path": "shared/script-sandbox.js",
+        "sha256": "e41e864cf4fb959ba5e0768add40f7ba610a8764b4f0b44fd8339c57d029449e"
+      },
+      {
+        "path": "shared/skills.js",
+        "sha256": "fea3d15269e252906fd17926e749bac15c75d577e302b37f6ab83542ddde525a"
+      },
+      {
+        "path": "shared/src/ActionApproval.jsx",
+        "sha256": "7c3743d14309965120621fe0a5d602ed0e70dc4a5d4b431af279a6ce1a99520c"
+      },
+      {
+        "path": "shared/src/AgentMark.jsx",
+        "sha256": "add93dafa68e4bf9dcfb52ee04d4e0f69c69cb345200561fb211e69043fa00da"
+      },
+      {
+        "path": "shared/src/AgentTabs.jsx",
+        "sha256": "5cdcaeeb2017abb3d2911a5107cf0b74a2fe0397775fec6244edaf03a9158e69"
+      },
+      {
+        "path": "shared/src/AgentTrace.jsx",
+        "sha256": "7e4e48efcb47bd37c08f0f4eb3ae720417e1bcdc9d717856adc506fc17dc1a8a"
+      },
+      {
+        "path": "shared/src/api.js",
+        "sha256": "eb3581da0f82748d2566f8524f26638502ed86e4615ae40305b41e0458b9b7d3"
+      },
+      {
+        "path": "shared/src/app.css",
+        "sha256": "ec8d2d73e64f0cd18e117e1340d23a5f6d92828f29c9e84dc75cc1f2889a9c9a"
+      },
+      {
+        "path": "shared/src/App.jsx",
+        "sha256": "7d21db2afe4dc3335e54d3a920d5be7bf34fb7487d12ca8e5f4519d03ccd2d77"
+      },
+      {
+        "path": "shared/src/approval.css",
+        "sha256": "30671564948d9c049aa6c731491f3771505f00fe22eb275e1daa5439184b8ac8"
+      },
+      {
+        "path": "shared/src/Atmosphere.jsx",
+        "sha256": "15624260c9f87f939f0f77fbddf55ec3ea8da318fbe78f9aa1c7ff35df48682a"
+      },
+      {
+        "path": "shared/src/attachments.css",
+        "sha256": "e6ab8cc2d1b0d3df71db7eb7f48da27bad1c9dc61e7431158306bc5581fdb291"
+      },
+      {
+        "path": "shared/src/Attachments.jsx",
+        "sha256": "173c852267bdfaa94e2924cbb3b4521c3500615de773050daae8de7a5fc9bf38"
+      },
+      {
+        "path": "shared/src/CaptureGallery.jsx",
+        "sha256": "19c1ec11f60e401bcff3705c028a85e14c8016031b381a7cbb9becedb386f6a4"
+      },
+      {
+        "path": "shared/src/captures.css",
+        "sha256": "9a5fdd0eebc9567e30c2228115e1ad3b916c79e1c7b8a7208147d1810b446401"
+      },
+      {
+        "path": "shared/src/ChatControls.jsx",
+        "sha256": "f3b001a10f7b584a5fd5cf265af19b63fbb0b7c8951b328ad609ce3c5ad147bb"
+      },
+      {
+        "path": "shared/src/code-highlight.js",
+        "sha256": "89869c51b67a43cc7d6896af9fba50702f4309b918f7b76202b14f5c0448344e"
+      },
+      {
+        "path": "shared/src/code.css",
+        "sha256": "5f0dd34fff99fed3fe822772f6858a2d4ee2dd830778c00871d12c2ef23b2987"
+      },
+      {
+        "path": "shared/src/CodeBlock.jsx",
+        "sha256": "4ae8253a173cae124c09b7de63b33a8fd6cc8999cf6e050d8b22ebf2e87564e1"
+      },
+      {
+        "path": "shared/src/ConversationHistory.jsx",
+        "sha256": "54ccd72debb85b2359565321237c7bf0ffa81ef16d1ae713f62ed375326eaf59"
+      },
+      {
+        "path": "shared/src/CopyButton.jsx",
+        "sha256": "680e9324480f68ec5133fb13a6da2dac1ad5e594604f85dfe969644bcbcf132a"
+      },
+      {
+        "path": "shared/src/deck-surfaces.css",
+        "sha256": "aa87f5127cfaae5308e0d8a33b1549fb0316bb4c93ca18609d2d6ae6401129c5"
+      },
+      {
+        "path": "shared/src/DeckSurfaces.jsx",
+        "sha256": "7e7360b224bcfcde8e929ce5030f15c948f93f914f219c84fe5dc5e4e9b6b226"
+      },
+      {
+        "path": "shared/src/document-parser.js",
+        "sha256": "e54c1731ed92adc307fb1348e3e0db8615b4b2988c0a091ba8e19e99bdb98cf5"
+      },
+      {
+        "path": "shared/src/document-worker.js",
+        "sha256": "8d15db398665cd1983dea1590688eaf6f75515c2a127ed869a7b1eb7ee6e59db"
+      },
+      {
+        "path": "shared/src/FabrixConnection.jsx",
+        "sha256": "c1ed86a5ee611fcbee5cd4d84506046dc1c598571bf686fcdcb634fdc9e84007"
+      },
+      {
+        "path": "shared/src/HelpContent.jsx",
+        "sha256": "b26ff8f09582a8aa293ccf6e9ee8057f4531e725b9e7bcb4ee4399594cc9006d"
+      },
+      {
+        "path": "shared/src/interaction-forms.css",
+        "sha256": "13caabae0c590cb31858f3a039d5aa485bfbb00b193615c46cfbca911b1527cd"
+      },
+      {
+        "path": "shared/src/main.jsx",
+        "sha256": "72034b4dcc3444ffaee81b53bbeaad583cc8ae0b1ee099f09ef7a742447b4474"
+      },
+      {
+        "path": "shared/src/MessageBody.jsx",
+        "sha256": "4d407ebae9ffcecd7fd9491d64b457c5c16914a38d34c9232fdf9a4abaa232ec"
+      },
+      {
+        "path": "shared/src/NubiSurfaces.jsx",
+        "sha256": "2a146b4daddacdb84651fc636f10104a4e55c56d756a0d31d3dffa0d5141f2a6"
+      },
+      {
+        "path": "shared/src/ProjectConnection.jsx",
+        "sha256": "35e1c7b5a696f380abb78c1b8d092650d3e7f4928095c4c0d00ab77a307fdb72"
+      },
+      {
+        "path": "shared/src/QuestionForm.jsx",
+        "sha256": "1afca493cea9ec34e41423acba10d0cc7f8c48187493f288a2855d48fcbeadaa"
+      },
+      {
+        "path": "shared/src/Skills.jsx",
+        "sha256": "465b5d6ed140e1b55f901cfa8faadbf28afee0a365a4eae8eb41a11492f4d613"
+      },
+      {
+        "path": "shared/src/surfaces.css",
+        "sha256": "0763b991660bd25ef972a0ebd7788da5bf05524e62ab2cbc6c958455cbf23c56"
+      },
+      {
+        "path": "shared/src/TaskPlan.jsx",
+        "sha256": "8c68d58a22d16a1dc61597a59fd6f6514f4e6bb44ed7895c2ced8f9a5c8079c6"
+      },
+      {
+        "path": "shared/src/UsagePanel.jsx",
+        "sha256": "f28f266f435276b4a6b597d5ef8d8c91eb3d3feabc5e79489d8f54f850434a5d"
+      },
+      {
+        "path": "shared/src/Welcome.jsx",
+        "sha256": "4a48401c1266c79e751a593f350922d5d2a79dd6ab23334504e6d254f639cc81"
+      },
+      {
+        "path": "shared/src/WikiFolderSettings.jsx",
+        "sha256": "ac6a7449a02988b695d6a149eb8f5cb50e599d85f39dc16f4d282b497f32985a"
+      },
+      {
+        "path": "shared/state-sync.js",
+        "sha256": "d0e96bae0babb8205e1eb997982d2b02645446fae473ab2a49cec82db3a4b6ff"
+      },
+      {
+        "path": "shared/task-plan.js",
+        "sha256": "d356de92fbdd06385a9c327e092bd41a55dfec5d1bce53aeb82ed515861fb40a"
+      },
+      {
+        "path": "shared/tool-errors.js",
+        "sha256": "078e8bb5fc7d46024b63a1b5ec8e38f6d2ba805fa1b3817c78eea26ef2d5215d"
+      },
+      {
+        "path": "shared/usage-ledger.js",
+        "sha256": "117deb4c5a629f99dc965e20a208c91a65aa60d4fc9e621076d4f34c1fcb800c"
+      },
+      {
+        "path": "shared/usage-stream.js",
+        "sha256": "e0ad210109540f69fae59cd60abc7e7d650b21696f3e75a7f1e70b1c60b47fc5"
+      },
+      {
+        "path": "shared/usage.js",
+        "sha256": "49310f2d1866aae91cbb5e0ec8812416777a395f83560fad1f8428538fee6006"
+      },
+      {
+        "path": "shared/user-question.js",
+        "sha256": "891184a51a5bf3d765429c987201ab14334b8ea653816bf70b318f9da11d3f06"
+      },
+      {
+        "path": "shared/wiki-folder.js",
+        "sha256": "63956a6c794864ecf9aaa4b2451a47bb1712359ce9aef789b506ba81caa28a1c"
+      },
+      {
+        "path": "src/App.jsx",
+        "sha256": "e646b5207835d89f1d53846f238c0239e3ba9eb9ae5d59fb270c959b857ce454"
+      },
+      {
+        "path": "src/bridge.js",
+        "sha256": "3c789376bc43780071a499666dc38cc0da73aa76fd28d7c897d7ea4daef23592"
+      },
+      {
+        "path": "src/errors.js",
+        "sha256": "b34b3745999e7ffbc69c6c83b1059f6064890dc4b689a95cd9ee892f67e23226"
+      },
+      {
+        "path": "src/input-delivery.js",
+        "sha256": "9a93e64542f2087f9d121bbde67d07280a3b71e7f68bbda9df6a85fe0f8fbfd7"
+      },
+      {
+        "path": "src/main.jsx",
+        "sha256": "9644ae5839d537ba02f4d9a97b1906e48c2a92b7a610b0a7e877da48420e8fff"
+      },
+      {
+        "path": "src/office.css",
+        "sha256": "8825ba3ee1cf43e0c51e825c1e8df8e3ba80e260e51648fbe16363e8921d121c"
+      },
+      {
+        "path": "src/OfficeDialogs.jsx",
+        "sha256": "85843a04352b00a8c0050d89e353e3f81f53855cf91c593908ac95aeed90c5c2"
+      },
+      {
+        "path": "src/OfficeQuestion.jsx",
+        "sha256": "20bb00db4cbe10110e80fa3ccce65add23e3be8d6d438a9380e4901d3f38ae9a"
+      },
+      {
+        "path": "src/OfficeTransaction.jsx",
+        "sha256": "b5ed4676b13a993239719816daaf7f444b903ebbc3219e2a26bc7dfda93bf8d3"
+      },
+      {
+        "path": "src/SelectionDetails.jsx",
+        "sha256": "b5039c45c7f6d512404591f74f936efe24f5f68d5a514e1f41e4ab59d3157c06"
+      },
+      {
+        "path": "src/task-view.js",
+        "sha256": "5d615b8b75ad97e311feb8d665ec5cbec41a05cb5a0b064b3b5d0ceb8e28cb7e"
+      },
+      {
+        "path": "src/TaskActivity.jsx",
+        "sha256": "ce5586cfd246f655775ad41068c3b791db98187d45a61e5b6cf38258cb626e85"
+      },
+      {
+        "path": "src/TaskDock.jsx",
+        "sha256": "6427fb573f8614863ffcfe1ca57cdcc651dd0f2ec6a488d52870f155839d3364"
+      },
+      {
+        "path": "src/taskpane.html",
+        "sha256": "3024de417a14facbb0a588649bdb5cf424ae1d7900774930879851e12ad5259e"
+      },
+      {
+        "path": "src/TaskRecovery.jsx",
+        "sha256": "0cab0cde6ce84c6ac8c0958573b2be0915d44f8296d874e9eeb4655e8fba7088"
+      },
+      {
+        "path": "src/TemplatePreservation.jsx",
+        "sha256": "81ca4c5014a0af39e96d59011880e1d342939bc52ccb153268c3918e1c038df2"
+      },
+      {
+        "path": "src/worker-recovery.js",
+        "sha256": "73a49417eada5478e41d5dd5d75cd05d9419c68c76d8266290dd714653bb36e4"
+      },
+      {
+        "path": "worker/activity.mjs",
+        "sha256": "ff8a44cfd012cd237b7a8bd916da41d5ab723cd6d59b927b64493c2ff9c22519"
+      },
+      {
+        "path": "worker/agent.mjs",
+        "sha256": "22ebb045108cf2ffad7d84d2cb1bc31f2c23395a8cf16b9acc55975692ae46dc"
+      },
+      {
+        "path": "worker/aipro-auth.mjs",
+        "sha256": "a4d51648d0f63ac47c94bab5313f2a40bddbf8efa9970fbf84fa6e6bd3cf890a"
+      },
+      {
+        "path": "worker/cell-format.mjs",
+        "sha256": "ee12305d19fa265c745243d9593b8956508d3683e0a809aa4172ef84717a4a3f"
+      },
+      {
+        "path": "worker/connection-errors.mjs",
+        "sha256": "5d990f5afb51e653b4e7c774320e09f1b9eeba7e6f44f7d571b23bc0152d3cc0"
+      },
+      {
+        "path": "worker/document-agent.mjs",
+        "sha256": "79499253c373bba4ea88ecd2b68b7cd5424125ff0ee6e2dcb01682edd880f270"
+      },
+      {
+        "path": "worker/document-chunks.mjs",
+        "sha256": "8104e188a214f5129afe623fd83cdc75e3ce94e66dac4907642fc1cd001a3edb"
+      },
+      {
+        "path": "worker/document-context.mjs",
+        "sha256": "b545f33427f87f283c08821bc402c9e81212c6ee3742c5010fc3d96a97ba28d6"
+      },
+      {
+        "path": "worker/document-file.mjs",
+        "sha256": "11612d4ca6beeb34cea56897e72a980295e949a2dc05bdaafc7b25f108898992"
+      },
+      {
+        "path": "worker/document-schema.mjs",
+        "sha256": "6b82467362a820a4837a4e9051ac5979aa111afd81e9a7cd985c1d1515d4e8e0"
+      },
+      {
+        "path": "worker/excel-capabilities.mjs",
+        "sha256": "1312d7473008646a50bf63a71780a030bd2862396eea72ca3b1d55e74aa43466"
+      },
+      {
+        "path": "worker/fault-policy.mjs",
+        "sha256": "c67ecd6cbaaf5b97396908b576bcbeb689a297052c202805daa9b74fadca6e78"
+      },
+      {
+        "path": "worker/formula-preflight.mjs",
+        "sha256": "40635e898e1115f0f57df2dc075381dc3b38b96b96b9acecb68dff13ee0e7672"
+      },
+      {
+        "path": "worker/input-contract.mjs",
+        "sha256": "af1691edff8d0197deca4304c8546b91d82a8db5276fb80641ab6fee2a6a7628"
+      },
+      {
+        "path": "worker/interaction.mjs",
+        "sha256": "93bcd8ce48d946c856a8d422976af30c6895652b7e9ce305e02b622bb420dec1"
+      },
+      {
+        "path": "worker/main.mjs",
+        "sha256": "5b4eb6b159665e4f2b7971f0aec0fb688cfb139601766d9c8165168cc1671009"
+      },
+      {
+        "path": "worker/model-context.mjs",
+        "sha256": "4623c227367048c1702a5d8fdc3680ff0e0f13d674f9fd08dbf6449f1dc97ba4"
+      },
+      {
+        "path": "worker/model-json.mjs",
+        "sha256": "ebd99a4dc5c5431d627d0ca784638d57aa952c3ea10dcedd208d90cf7c12525d"
+      },
+      {
+        "path": "worker/office-harness.mjs",
+        "sha256": "6d4dc019de47bba61504663f6c1945a03aca4ee2c9aa8929e9aab9aa8b086d8c"
+      },
+      {
+        "path": "worker/office-plan.mjs",
+        "sha256": "3667a40f75cad26b167f1a1efc4341a626c7e3b694fe3daaafdfc5b8b2e2aee6"
+      },
+      {
+        "path": "worker/office-range.mjs",
+        "sha256": "33e1604e62b860801331c616397de2b1226a01ef404b8ee5734e17f150bb689b"
+      },
+      {
+        "path": "worker/providers.mjs",
+        "sha256": "fcb03c58ae5bdae6ccd17beaf643bb0d1f3f8b465e8910dd7ba31e847f47dd96"
+      },
+      {
+        "path": "worker/recovery.mjs",
+        "sha256": "7d0260cad4175c654af2cf4d75323a916cbb5463c3b90168caae16b445b3779f"
+      },
+      {
+        "path": "worker/resilience.mjs",
+        "sha256": "b46d020ed95b1433927388d4d961fc0705e6d2557dc5fbb83b7d9495596605a1"
+      },
+      {
+        "path": "worker/template-library.mjs",
+        "sha256": "3d8de7dcf8d06ef54a6f7da1e44c0ee8842b178d8634d4c1913b0e0208ba3750"
+      },
+      {
+        "path": "worker/template-preservation.mjs",
+        "sha256": "ca11eb7c2c4c87aea7661396ea26ae9b0c78d2154db332b6b70ff0db2794102f"
+      },
+      {
+        "path": "worker/template.mjs",
+        "sha256": "5622504bb5e16b3230b69e5ac89ae3586481c06e37a056753d18f3eb8dab9b49"
+      },
+      {
+        "path": "worker/tool-response.mjs",
+        "sha256": "674aa39e0b4edb8e722bc2fa91eda0e554a0a14ddd640830ed79abaa6fe34e2f"
+      },
+      {
+        "path": "worker/workbook-context.mjs",
+        "sha256": "c3015ccdaf19e65e8b1f37ec0c01294560ff514343206116a65b3c1cfbff61bb"
+      }
+    ],
+    "artifacts": [
+      {
+        "path": "dist/worker/main.mjs",
+        "sha256": "9a5e727e7b3637427a52e2048c58ee6117d020b4c96418c0f7655ca6187bc541"
+      },
+      {
+        "path": "eval/run-bundled.mjs",
+        "sha256": "7331064a73821614241a42c6ba9f22c0fec1e372e2e24353c78a3207c0952a43"
+      },
+      {
+        "path": "eval/promptfoo-provider-bundled.mjs",
+        "sha256": "afd095c963a7f2a901416ea18874902a7de41deba7378b62710961b176eb9904"
+      },
+      {
+        "path": "native/Nubi.Office.EvalHost/bin/Release/net472/Nubi.Office.EvalHost.exe",
+        "sha256": "a6593c95b97d57d20e6cb4d6b6e91554af3d467b420eb0f83005c97d022958ea"
+      }
+    ],
+    "buildMatchesSource": null
+  },
+  "sourceHash": "19c0f59bf2bfb8f824b1ae4f60e2f0e2cad245d43d1db603d9be1a6adc3b8eb6",
+  "blockers": [
+    "evaluation_transaction_approval_required",
+    "windows_excel_unavailable",
+    "provider_model_not_configured",
+    "dedicated_connection_not_configured"
+  ],
+  "finishedAt": "2026-09-22T17:40:26.604Z"
+}

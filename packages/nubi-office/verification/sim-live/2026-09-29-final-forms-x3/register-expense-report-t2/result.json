@@ -1,0 +1,649 @@
+{
+  "suite": "register",
+  "id": "expense-report",
+  "trial": 2,
+  "routing": "direct",
+  "passed": true,
+  "outcome": "passed",
+  "state": "done",
+  "writes": 0,
+  "recoveries": 1,
+  "questions": [],
+  "approvals": [
+    "template_mapping",
+    "template_register"
+  ],
+  "proposals": 1,
+  "metrics": {
+    "modelCalls": 11,
+    "toolCalls": 7,
+    "elapsedMs": 42116
+  },
+  "transcript": {
+    "modelCalls": 11,
+    "byRole": {
+      "planner": 1,
+      "actor": 8,
+      "recovery": 1,
+      "result_review": 1
+    },
+    "elapsedMs": 41183,
+    "requestCharacters": 439248,
+    "peakRequestCharacters": 66082,
+    "toolCalls": {
+      "read": 1,
+      "inspect_template": 3,
+      "define_template_fields": 2,
+      "register_template": 1
+    },
+    "errors": {}
+  },
+  "score": {
+    "mapping": {
+      "proposed": 8,
+      "gold": 8,
+      "matched": 8,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "unexpected": [],
+      "wrongType": [],
+      "wrongRequired": [],
+      "exact": true,
+      "strict": true
+    },
+    "registered": true,
+    "sourceUnchanged": true,
+    "proposedFields": [
+      {
+        "address": "B3",
+        "label": "결의 번호",
+        "valueType": "text",
+        "required": true
+      },
+      {
+        "address": "E3",
+        "label": "작성일",
+        "valueType": "date",
+        "required": true
+      },
+      {
+        "address": "B4",
+        "label": "부서",
+        "valueType": "text",
+        "required": true
+      },
+      {
+        "address": "E4",
+        "label": "작성자",
+        "valueType": "text",
+        "required": true
+      },
+      {
+        "address": "B5",
+        "label": "지급처",
+        "valueType": "text",
+        "required": true
+      },
+      {
+        "address": "E5",
+        "label": "결제 수단",
+        "valueType": "text",
+        "required": true
+      },
+      {
+        "address": "B7",
+        "label": "공급가액",
+        "valueType": "number",
+        "required": true
+      },
+      {
+        "address": "B11",
+        "label": "적요",
+        "valueType": "text",
+        "required": false
+      }
+    ],
+    "passed": true,
+    "outcome": "passed"
+  },
+  "request": "지금 선택한 지출 결의서 양식을 분석해서 다음에 다시 쓸 수 있게 등록해줘. 양식 이름은 지출 결의서, 용도는 부서 경비 지출 승인 요청이야. 적요만 선택 항목이고 나머지 입력 칸은 모두 필수야. 부가세와 합계는 자동 계산이야.",
+  "answer": "지출 결의서 양식을 등록했습니다.\n\n- 용도: 부서 경비 지출 승인 요청\n- 필수: 결의 번호, 작성일, 부서, 작성자, 지급처, 결제 수단, 공급가액\n- 선택: 적요\n- 자동 계산: 부가세(B8), 합계(B9) 수식 보존\n- 서식·병합·검증 규칙 보존 확인\n- 저장 파일: `30aa2a78-2841-4ab0-897d-4193fd702674.xlsx`\n\n인쇄 결과와 조건부 서식 등 일부 항목은 검증되지 않았습니다.",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "선택한 지출 결의서 양식의 필드, 수식, 서식과 입력 규칙 확인",
+        "kind": "inspect",
+        "checkIndexes": [
+          0,
+          1
+        ],
+        "state": "done"
+      },
+      {
+        "id": "define_schema",
+        "title": "필수·선택 입력 항목과 자동 계산 항목을 재사용 필드로 정의",
+        "kind": "analyze",
+        "checkIndexes": [
+          0,
+          1
+        ],
+        "state": "done"
+      },
+      {
+        "id": "verify_registration",
+        "title": "등록된 양식 이름, 용도와 필드 매핑 및 수식 보존 상태 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1
+        ],
+        "state": "done"
+      }
+    ],
+    "total": 3,
+    "completed": 3,
+    "currentStepId": null
+  },
+  "task": {
+    "intent": "analyze",
+    "summary": "선택한 지출 결의서 양식을 분석하고, 지정한 필드 의미·필수 여부·자동 계산 정보를 반영해 재사용 가능한 템플릿으로 등록합니다.",
+    "requirements": [
+      "양식 이름은 지출 결의서로 등록",
+      "용도는 부서 경비 지출 승인 요청으로 등록",
+      "적요만 선택 항목으로 지정",
+      "나머지 입력 칸은 모두 필수 항목으로 지정",
+      "부가세와 합계는 기존 자동 계산 수식 필드로 등록"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "B8",
+        "field": "formula",
+        "operator": "equals",
+        "expected": "=ROUND(B7*0.1,0)"
+      },
+      {
+        "address": "B9",
+        "field": "formula",
+        "operator": "equals",
+        "expected": "=B7+B8"
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "선택한 지출 결의서 양식의 필드, 수식, 서식과 입력 규칙 확인",
+        "kind": "inspect",
+        "checkIndexes": [
+          0,
+          1
+        ]
+      },
+      {
+        "id": "define_schema",
+        "title": "필수·선택 입력 항목과 자동 계산 항목을 재사용 필드로 정의",
+        "kind": "analyze",
+        "checkIndexes": [
+          0,
+          1
+        ]
+      },
+      {
+        "id": "verify_registration",
+        "title": "등록된 양식 이름, 용도와 필드 매핑 및 수식 보존 상태 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1
+        ]
+      }
+    ]
+  },
+  "review": {
+    "status": "complete",
+    "checks": [
+      {
+        "requirement": "양식 이름을 ‘지출 결의서’로 등록",
+        "status": "met",
+        "evidence_ids": [
+          12
+        ]
+      },
+      {
+        "requirement": "용도를 ‘부서 경비 지출 승인 요청’으로 등록",
+        "status": "met",
+        "evidence_ids": [
+          12
+        ]
+      },
+      {
+        "requirement": "적요만 선택 항목으로 지정",
+        "status": "met",
+        "evidence_ids": [
+          12
+        ]
+      },
+      {
+        "requirement": "나머지 입력 칸을 필수 항목으로 지정",
+        "status": "met",
+        "evidence_ids": [
+          12
+        ]
+      },
+      {
+        "requirement": "부가세와 합계의 기존 자동 계산 수식을 보존",
+        "status": "met",
+        "evidence_ids": [
+          11,
+          12,
+          13
+        ]
+      },
+      {
+        "requirement": "양식을 저장하고 재사용 가능 상태로 등록",
+        "status": "met",
+        "evidence_ids": [
+          12
+        ]
+      }
+    ],
+    "next_step": "등록 완료"
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_form"
+    },
+    {
+      "name": "read",
+      "state": "done",
+      "stepId": "define_schema"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "define_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "define_schema"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "define_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "define_schema"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "define_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "define_schema"
+    },
+    {
+      "name": "define_template_fields",
+      "state": "error",
+      "stepId": "define_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "define_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "define_schema"
+    },
+    {
+      "name": "define_template_fields",
+      "state": "done",
+      "stepId": "define_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "define_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "define_schema"
+    },
+    {
+      "name": "register_template",
+      "state": "done",
+      "stepId": "define_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "define_schema"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_registration"
+    },
+    {
+      "name": "review_task",
+      "state": "done",
+      "stepId": "verify_registration"
+    }
+  ],
+  "recoveryLog": [
+    {
+      "attempt": 1,
+      "stepId": "define_schema",
+      "code": "template_mapping_invalid",
+      "tool": "define_template_fields",
+      "outcome": "not_executed",
+      "state": "verified",
+      "summary": "템플릿 필드 매핑이 잘못되어 등록이 실행되지 않았습니다. 관찰된 입력 셀과 수식을 기준으로 매핑을 수정해야 합니다.",
+      "nextAction": "A1:E11에서 라벨별 입력 셀을 정확히 매핑해 다시 정의하세요: 결의 번호 B3, 작성일 E3, 부서 B4, 작성자 E4, 지급처 B5, 결제 수단 E5, 공급가액 B7, 적요 B11. 위 입력 항목은 적요만 선택으로 지정하고, B8·B9는 각각 원본 수식 =ROUND(B7*0.1,0), =B7+B8을 보존한 자동 계산 필드로 등록하세요. 이름은 ‘지출 결의서’, 용도는 ‘부서 경비 지출 승인 요청’으로 설정하세요."
+    }
+  ],
+  "lastProposal": [
+    {
+      "id": "field_B3",
+      "address": "B3",
+      "label": "결의 번호",
+      "valueType": "text",
+      "required": true,
+      "numberFormat": "@",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_E3",
+      "address": "E3",
+      "label": "작성일",
+      "valueType": "date",
+      "required": true,
+      "numberFormat": "yyyy-mm-dd",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_B4",
+      "address": "B4",
+      "label": "부서",
+      "valueType": "text",
+      "required": true,
+      "numberFormat": "General",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_E4",
+      "address": "E4",
+      "label": "작성자",
+      "valueType": "text",
+      "required": true,
+      "numberFormat": "General",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_B5",
+      "address": "B5",
+      "label": "지급처",
+      "valueType": "text",
+      "required": true,
+      "numberFormat": "General",
+      "merge": "B5:C5",
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_E5",
+      "address": "E5",
+      "label": "결제 수단",
+      "valueType": "text",
+      "required": true,
+      "numberFormat": "General",
+      "merge": null,
+      "choices": [
+        "법인카드",
+        "계좌이체",
+        "현금"
+      ],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": {
+        "type": 3,
+        "formula1": "법인카드,계좌이체,현금",
+        "ignoreBlank": true
+      }
+    },
+    {
+      "id": "field_B7",
+      "address": "B7",
+      "label": "공급가액",
+      "valueType": "number",
+      "required": true,
+      "numberFormat": "#,##0",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_B11",
+      "address": "B11",
+      "label": "적요",
+      "valueType": "text",
+      "required": false,
+      "numberFormat": "General",
+      "merge": "B11:E11",
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    }
+  ],
+  "registeredTemplate": {
+    "saved": true,
+    "id": "30aa2a78-2841-4ab0-897d-4193fd702674",
+    "path": "/sim/templates/30aa2a78-2841-4ab0-897d-4193fd702674.xlsx",
+    "metadataVerified": true,
+    "protectionMode": "nasca_excel_managed",
+    "nascaEncryptionVerified": false,
+    "name": "지출 결의서",
+    "profile": {
+      "schemaVersion": 1,
+      "structureId": "b87a7ff2cbfe857d615c44d6da2419c2ee6c4840a3646bd74279893d564bc6e5",
+      "definitionHash": "b2df90844c11f5abb2c80510b5a258856a1ad46796a36f8dfb0dc10882b7a039",
+      "worksheet": "지출결의서",
+      "address": "A1:E11",
+      "fields": [
+        {
+          "address": "B3",
+          "label": "결의 번호",
+          "valueType": "text",
+          "required": true
+        },
+        {
+          "address": "E3",
+          "label": "작성일",
+          "valueType": "date",
+          "required": true
+        },
+        {
+          "address": "B4",
+          "label": "부서",
+          "valueType": "text",
+          "required": true
+        },
+        {
+          "address": "E4",
+          "label": "작성자",
+          "valueType": "text",
+          "required": true
+        },
+        {
+          "address": "B5",
+          "label": "지급처",
+          "valueType": "text",
+          "required": true
+        },
+        {
+          "address": "E5",
+          "label": "결제 수단",
+          "valueType": "text",
+          "required": true
+        },
+        {
+          "address": "B7",
+          "label": "공급가액",
+          "valueType": "number",
+          "required": true
+        },
+        {
+          "address": "B11",
+          "label": "적요",
+          "valueType": "text",
+          "required": false
+        }
+      ]
+    },
+    "preservation": {
+      "schemaVersion": 1,
+      "stage": "registered_copy",
+      "target": "지출결의서!A1:E11",
+      "status": "partial",
+      "checks": [
+        {
+          "id": "formulas",
+          "label": "수식",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "formats",
+          "label": "글꼴, 색, 정렬, 표시 형식",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "merges",
+          "label": "병합",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "borders",
+          "label": "테두리",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "dimensions",
+          "label": "행, 열 크기와 숨김",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "validation",
+          "label": "입력 제한, 잠금",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "values",
+          "label": "고정 내용",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "date1904",
+          "label": "날짜 체계",
+          "status": "preserved"
+        },
+        {
+          "id": "protected",
+          "label": "시트 보호",
+          "status": "preserved"
+        },
+        {
+          "id": "objects",
+          "label": "그림, 차트, 도형",
+          "status": "unverified"
+        },
+        {
+          "id": "conditional",
+          "label": "조건부 서식, 기타 셀 효과",
+          "status": "unverified"
+        },
+        {
+          "id": "print",
+          "label": "인쇄 결과, 페이지 전체 모양",
+          "status": "unverified"
+        },
+        {
+          "id": "other_ranges",
+          "label": "선택 범위 밖의 내용과 양식",
+          "status": "unverified"
+        },
+        {
+          "id": "nasca",
+          "label": "NASCA 암호화 상태",
+          "status": "unverified"
+        }
+      ],
+      "differences": [],
+      "differenceCount": 0,
+      "expectedValueChanges": 0,
+      "note": "읽은 속성의 비교 결과입니다. 전체 문서가 동일하다는 뜻은 아닙니다."
+    },
+    "catalogued": true,
+    "entry": {
+      "id": "30aa2a78-2841-4ab0-897d-4193fd702674",
+      "host": "excel",
+      "name": "지출 결의서",
+      "summary": "부서 경비 지출 승인 요청",
+      "revision": 1,
+      "createdAt": "2026-09-28T21:40:29.215Z",
+      "updatedAt": "2026-09-28T21:40:29.215Z",
+      "itemCount": 8,
+      "inputCount": 8,
+      "sourceFile": "30aa2a78-2841-4ab0-897d-4193fd702674.xlsx",
+      "available": true,
+      "protection": "windows_current_user"
+    }
+  }
+}

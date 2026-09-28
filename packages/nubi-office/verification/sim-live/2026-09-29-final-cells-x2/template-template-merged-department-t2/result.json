@@ -1,0 +1,60 @@
+{
+  "suite": "template",
+  "id": "template-merged-department",
+  "trial": 2,
+  "routing": "product",
+  "passed": false,
+  "outcome": "error",
+  "state": "cancelled",
+  "error": "evaluation_interaction_requires_human",
+  "writes": 0,
+  "recoveries": 0,
+  "questions": [
+    "담당 부서명을 입력해 주세요."
+  ],
+  "approvals": [],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 2,
+    "toolCalls": 0,
+    "elapsedMs": 4645
+  },
+  "transcript": {
+    "modelCalls": 2,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 1
+    },
+    "elapsedMs": 4629,
+    "requestCharacters": 12662,
+    "peakRequestCharacters": 9856,
+    "toolCalls": {},
+    "errors": {}
+  },
+  "request": "기존 양식 B2:C2 병합 칸의 B2는 필수 텍스트 담당 부서 입력칸이다. 입력 항목을 확인받고 담당 부서를 나에게 물어본 뒤 답한 값을 입력해. 병합·서식·다른 내용은 그대로 유지해.",
+  "answer": "",
+  "question": "",
+  "task": {
+    "intent": "clarify",
+    "summary": "B2:C2 병합 입력칸의 필수 항목을 확인하고 담당 부서명을 받은 뒤 B2에 입력합니다.",
+    "requirements": [
+      "입력 항목: 담당 부서",
+      "입력 위치: B2:C2 병합 영역의 왼쪽 위 셀 B2",
+      "담당 부서명은 사용자가 답한 값을 그대로 입력",
+      "병합, 서식, 기존 내용 및 수식은 유지"
+    ],
+    "questions": [
+      "담당 부서명을 입력해 주세요."
+    ],
+    "preserveFormulas": true,
+    "checks": [],
+    "steps": []
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "running"
+    }
+  ],
+  "recoveryLog": []
+}

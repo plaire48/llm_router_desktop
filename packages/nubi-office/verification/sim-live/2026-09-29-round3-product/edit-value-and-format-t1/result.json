@@ -1,0 +1,390 @@
+{
+  "suite": "edit",
+  "id": "value-and-format",
+  "trial": 1,
+  "routing": "product",
+  "passed": true,
+  "outcome": "passed",
+  "state": "done",
+  "writes": 1,
+  "recoveries": 0,
+  "questions": [],
+  "approvals": [
+    "edit"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 10,
+    "toolCalls": 4,
+    "elapsedMs": 30110
+  },
+  "transcript": {
+    "modelCalls": 10,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 1,
+      "actor": 5,
+      "action_review": 1,
+      "step_review": 1,
+      "result_review": 1
+    },
+    "elapsedMs": 29934,
+    "requestCharacters": 231439,
+    "peakRequestCharacters": 47623,
+    "toolCalls": {
+      "read": 1,
+      "read_selection": 1,
+      "apply_changes": 1,
+      "verify_selection": 1
+    },
+    "errors": {}
+  },
+  "score": {
+    "passed": true,
+    "outcome": "passed",
+    "deterministicPassed": true,
+    "semanticReview": {
+      "required": false,
+      "status": "not_required",
+      "criteria": []
+    },
+    "expectedState": "done",
+    "actualState": "done",
+    "checks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "A2",
+          "field": "value",
+          "operator": "equals",
+          "expected": 4,
+          "actual": [
+            [
+              4
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "A2",
+          "field": "bold",
+          "operator": "equals",
+          "expected": true,
+          "actual": [
+            [
+              true
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C2",
+          "field": "value",
+          "operator": "equals",
+          "expected": 4800,
+          "actual": [
+            [
+              4800
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C2",
+          "field": "formula",
+          "operator": "equals",
+          "expected": "=A2*B2",
+          "actual": [
+            [
+              "=A2*B2"
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "persistedChecks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "A2",
+          "field": "value",
+          "operator": "equals",
+          "expected": 4,
+          "actual": [
+            [
+              4
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "A2",
+          "field": "bold",
+          "operator": "equals",
+          "expected": true,
+          "actual": [
+            [
+              true
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C2",
+          "field": "value",
+          "operator": "equals",
+          "expected": 4800,
+          "actual": [
+            [
+              4800
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C2",
+          "field": "formula",
+          "operator": "equals",
+          "expected": "=A2*B2",
+          "actual": [
+            [
+              "=A2*B2"
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "unexpectedChanges": [],
+    "persistedUnexpectedChanges": [],
+    "sourceChecks": [],
+    "formulaChecks": []
+  },
+  "request": "A2의 수량을 4로 바꾸고 굵게 해줘. 나머지 값, 수식, 서식은 그대로 유지해줘.",
+  "answer": "A2를 숫자 **4**로 변경하고 굵게 설정했습니다.  \nB2 값, C2 수식(`=A2*B2`), 계산 결과 4800 및 기존 서식도 유지되었습니다.",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_inputs",
+        "title": "선택 범위의 값·수식·서식 확인",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "update_quantity",
+        "title": "A2 수량을 4로 바꾸고 굵게 설정",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "state": "done",
+        "requiresReview": true
+      },
+      {
+        "id": "verify_result",
+        "title": "변경 결과와 기존 수식·서식 유지 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "state": "done"
+      }
+    ],
+    "total": 3,
+    "completed": 3,
+    "currentStepId": null
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "A2의 수량을 4로 변경하고 A2만 굵게 설정한 뒤, 기존 값·수식·서식이 유지되는지 확인합니다.",
+    "requirements": [
+      "A2 값을 숫자 4로 변경",
+      "A2를 굵게 설정",
+      "기존 값, 수식, 기타 서식은 유지"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "A2",
+        "field": "value",
+        "operator": "equals",
+        "expected": 4
+      },
+      {
+        "address": "A2",
+        "field": "bold",
+        "operator": "equals",
+        "expected": true
+      },
+      {
+        "address": "B2",
+        "field": "value",
+        "operator": "equals",
+        "expected": 1200
+      },
+      {
+        "address": "C2",
+        "field": "formula",
+        "operator": "equals",
+        "expected": "=A2*B2"
+      },
+      {
+        "address": "C2",
+        "field": "value",
+        "operator": "equals",
+        "expected": 4800
+      },
+      {
+        "address": "A2:C2",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": [
+          [
+            "General",
+            "General",
+            "General"
+          ]
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_inputs",
+        "title": "선택 범위의 값·수식·서식 확인",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "update_quantity",
+        "title": "A2 수량을 4로 바꾸고 굵게 설정",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      {
+        "id": "verify_result",
+        "title": "변경 결과와 기존 수식·서식 유지 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ]
+  },
+  "review": {
+    "status": "complete",
+    "checks": [
+      {
+        "requirement": "A2 값이 숫자 4로 변경됨",
+        "status": "met",
+        "evidence_ids": [
+          7
+        ]
+      },
+      {
+        "requirement": "A2가 굵게 설정됨",
+        "status": "met",
+        "evidence_ids": [
+          7
+        ]
+      },
+      {
+        "requirement": "B2 값 1200과 C2 수식·계산 결과 4800이 유지됨",
+        "status": "met",
+        "evidence_ids": [
+          7
+        ]
+      },
+      {
+        "requirement": "A2:C2의 숫자 형식이 General로 유지됨",
+        "status": "met",
+        "evidence_ids": [
+          7
+        ]
+      }
+    ],
+    "next_step": "없음"
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_inputs"
+    },
+    {
+      "name": "read",
+      "state": "done",
+      "stepId": "update_quantity"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "update_quantity"
+    },
+    {
+      "name": "apply_changes",
+      "state": "done",
+      "stepId": "update_quantity"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "update_quantity"
+    },
+    {
+      "name": "review_action",
+      "state": "done",
+      "stepId": "update_quantity"
+    },
+    {
+      "name": "review_step",
+      "state": "done",
+      "stepId": "update_quantity"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_result"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_result"
+    },
+    {
+      "name": "review_task",
+      "state": "done",
+      "stepId": "verify_result"
+    }
+  ],
+  "recoveryLog": []
+}

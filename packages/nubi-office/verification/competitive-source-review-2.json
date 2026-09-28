@@ -1,0 +1,58 @@
+{
+  "date": "2026-09-25",
+  "ownRelease": {
+    "repo": "plaire48/ai_workspace",
+    "tag": "nubi-office-v0.8.4",
+    "commit": "ee460cd1c5b7f5e5401682e5c3508e50912e628d",
+    "download": "GitHub authenticated source tarball",
+    "sha256": "7d7cca51cce25b84a7842ced00c95d0e53f3f533b7f72ec84db03ec5acf2c93b",
+    "installerExecuted": false
+  },
+  "sources": [
+    {
+      "repo": "hewliyang/office-agents",
+      "commit": "95fb654491a9d394dc85ea2b8c93dee2ca4546b9",
+      "licenseReview": "MIT declared in package.json; no root LICENSE found; no code copied",
+      "downloadPath": "/tmp/nubi-benchmark-office-agents-20260925",
+      "files": {
+        "package.json": "e6f3b6af8d8ce1531f392e029bd03bfd84873f3e57ce46f47ccc1cd7f91df489",
+        "packages/word/src/lib/tools/get-document-structure.ts": "5e281214177cecdcf46de2e21ceea7fb7f9a1a26164e52b3e49eed75fa2a397a",
+        "packages/word/src/lib/tools/index.ts": "e087ef9a6b3535357a2e36f844ffeca8c9c6bef253a2a18a4b5f2b73d43d0fc5",
+        "packages/sdk/src/truncate.ts": "696cdf617c56417b7d02f6ae9bde87fe7595aa6e8e3b1fa9e0eafa3721006d96"
+      }
+    },
+    {
+      "repo": "thomasfuk/officecli",
+      "commit": "b5d0ad354bfc1255f54c26ee3b6cdab84f9cace9",
+      "licenseReview": "Apache-2.0; no code copied",
+      "downloadPath": "/tmp/nubi-benchmark-officecli-20260925",
+      "files": {
+        "LICENSE": "01ac3e9a41fbe85d8311b49ab0b5e124a41cfee921bb5caf98023707a9270ee2",
+        "README.md": "e1594443dce86f93f0350e2fa1772ea605c5cc2c4d994412eeea47c120381f36",
+        "src/officecli/Handlers/Word/WordHandler.View.cs": "cc21009038327b15c187d3423b92070fb3bb610d746475423ec24b02b62a0d65"
+      }
+    },
+    {
+      "repo": "anomalyco/opencode",
+      "commit": "16c56fe5ecc3305028d1f0a9cff5806e51c9d480",
+      "remoteHeadRechecked": "16c56fe5ecc3305028d1f0a9cff5806e51c9d480",
+      "matchesDownloadedCommit": true,
+      "license": "MIT",
+      "files": {
+        "packages/opencode/src/session/compaction.ts": "8d478570a7e4ad32b746030d4f86a1c673949b1e2259bd716b3885d99283289a"
+      }
+    },
+    {
+      "repo": "openai/codex",
+      "commit": "aa380897f67b91e1a47d530d7286d497b6726d3f",
+      "remoteHeadRechecked": "aa380897f67b91e1a47d530d7286d497b6726d3f",
+      "matchesDownloadedCommit": true,
+      "license": "Apache-2.0",
+      "files": {
+        "codex-rs/core/src/tools/registry.rs": "2146f148c7c7f69e599d4bb2bc8ef903000cfbc157dd9352fd687248f8e6dcaa"
+      }
+    }
+  ],
+  "thirdPartySourceExecuted": false,
+  "newRuntimeDependencies": 0
+}

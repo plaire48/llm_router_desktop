@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-23",
+  "scope": "Office document-authoring draft syntax diagnostics",
+  "baselineCommit": "54287b91ed7f653c06a6eec927ee66f0004c32f2",
+  "modelBaseline": "Enterprise Qwen 3.8 27B; live model not invoked",
+  "before": {
+    "tests": 4,
+    "pass": 0,
+    "fail": 4,
+    "cancelled": 0,
+    "skipped": 0,
+    "logSha256": "31af1dc4a2542bb49469b95395a77c19bb3d576ad269b49c231f975655fb4bfc"
+  },
+  "after": {
+    "developmentFocusedSuite": {
+      "tests": 43,
+      "pass": 43,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "logSha256": "370d075237eecf22a5216ce0cbc8a20830ddfd5eca79bb700359da9a0a59e36d"
+    },
+    "publicationFullSuite": {
+      "tests": 393,
+      "pass": 393,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "logSha256": "3c6067c507c8e9e896cdeac9aa0cbf50b5c07f47094be2837a39a2fed86e107d"
+    },
+    "designCheckIssues": 0,
+    "sharedUiParity": {
+      "files": 24,
+      "matched": true
+    }
+  },
+  "opencodeReference": {
+    "repository": "anomalyco/opencode",
+    "commit": "18ef3cc7c5a25b82114c953a80ccc09f4988f74e",
+    "path": "packages/opencode/src/tool/edit.ts",
+    "sha256": "f84d9d242137e1f18ce912188efb7a97b71bf4f255e0a69f16a1fe9d1ff236d4",
+    "license": "MIT",
+    "use": "reference only; no source copied or runtime installed"
+  },
+  "dependenciesChanged": false,
+  "actualReuse": {
+    "QuickJS": "0.32.0 compileOnly and existing worker isolation/limits",
+    "Pi Coding Agent": "0.86.1 write/edit and actual agent loop",
+    "JSON": "native JSON.parse syntax check only"
+  },
+  "executionEvidence": [
+    "Actual QuickJS compile-only does not run top-level throw, infinite loop or queued promise",
+    "Actual release/debug runtime and bytecode/error handle release",
+    "Actual Pi tool loop consumes syntax diagnostic then edits and executes 12 + 30"
+  ],
+  "scripted": [
+    "model decisions",
+    "Office native results",
+    "test approval responses"
+  ],
+  "buildsExecuted": false,
+  "installerUpdated": false,
+  "notVerified": [
+    "Qwen correction accuracy and end-to-end task quality",
+    "Windows Office 2016 installation/COM",
+    "corporate SSO and NASCA",
+    "performance gains or Windows diagnostic overhead",
+    "Python and external skill dependencies",
+    "long document hierarchical final review",
+    "protected durable restart recovery"
+  ],
+  "separateDevelopmentChanges": "Existing unrelated shared UI drift in seven files not included; no complete development-checkout green claim",
+  "references": [
+    "https://github.com/anomalyco/opencode/blob/18ef3cc7c5a25b82114c953a80ccc09f4988f74e/packages/opencode/src/tool/edit.ts",
+    "https://github.com/justjake/quickjs-emscripten/blob/main/packages/quickjs-emscripten-core/src/types.ts",
+    "https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents"
+  ],
+  "sourceCheckout": "publication",
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "bbaf9ef01d3acc3022e0665104c9ed88e46ad75c942cc02ad35afe01c7aa9104"
+    },
+    {
+      "path": "docs/DOCUMENT-SCRIPT-RUNTIME-2026-09-23.md",
+      "sha256": "72cdc5b30bcaff07442fc2a993afca6851812395222e343b0c22bad1bc457df6"
+    },
+    {
+      "path": "docs/IMPROVEMENT-STATUS.md",
+      "sha256": "1a90a97c38b156bdfa264117aa75491fe003b1042718ec5a1ce9e686f56eb0b8"
+    },
+    {
+      "path": "docs/WORKSPACE-DIAGNOSTICS-2026-09-23.md",
+      "sha256": "dec2a6224850bac9676a1f665b9c29613277a2d3f9f6474c682354c937d9cc23"
+    },
+    {
+      "path": "tests/script-memory.test.mjs",
+      "sha256": "22318564cd63ffd2109d9eb535645bccfb4bbcee0283a7f187d086b2035440d2"
+    },
+    {
+      "path": "tests/skill-workspace.test.mjs",
+      "sha256": "12de7bc5f366e50280c9c13b0e55c15d65e0aa82fae64099e0c6573b3f98133a"
+    },
+    {
+      "path": "tests/workspace-diagnostics.test.mjs",
+      "sha256": "f3b42c4dfea24e7168e85f63e4186f606eb66dab6e5de2c99e99021b657cdad8"
+    },
+    {
+      "path": "worker/script-runtime.mjs",
+      "sha256": "abd0bd92f256a9fd0aed0c63ea57035be6d50930b43d8bcf1b59f402162cd292"
+    },
+    {
+      "path": "worker/script-thread.mjs",
+      "sha256": "f6eb6c8fdf69437b0c8617faf623b5a85e8bf6a2a8960541ba212e8052a175df"
+    },
+    {
+      "path": "worker/script-vm.mjs",
+      "sha256": "a056041d64089f485a30972014be48c6c6e73090011e6019706125b25dbf4491"
+    },
+    {
+      "path": "worker/skill-workspace.mjs",
+      "sha256": "6dfe76b8d5cc98c364deaf0e8fb8d3ecfb59632ba84168264965394e7ee6a985"
+    },
+    {
+      "path": "worker/workspace-diagnostics.mjs",
+      "sha256": "b56d3c46c0cecca30fca3604bd6128848728673c1bafa34b2ff0b0be93923587"
+    }
+  ]
+}

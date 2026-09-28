@@ -1,0 +1,207 @@
+{
+  "date": "2026-09-23",
+  "version": "0.8.2",
+  "kind": "source-and-scripted-protocol-review",
+  "publicationBase": "273d8e2d3b1bc414db0d7a64e8f25fba81b33fb5",
+  "implementation": [
+    "Composer + and per-host template dialog",
+    "Search, rename and metadata-only removal with revision checks",
+    "Native protected CurrentUser catalog source",
+    "Excel indexing after preservation approval",
+    "Word/PPT analyzed copy and native snapshot registration",
+    "Registered usage notes retained for later chat",
+    "Reload source observations before reuse",
+    "Reuse bound verified draft on follow-up chat",
+    "One-shot mutation with read-only receipt reconciliation"
+  ],
+  "tests": {
+    "publicationCommand": "npm test",
+    "passed": 293,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "logSha256": "feed16a6fe84690bef8d5384858e8ec5e8b4babc1d98a4eae8c2faa155cbcc98",
+    "guideTargetedPassed": 46,
+    "fastCheck": {
+      "seed": 230924,
+      "runs": 60
+    },
+    "axe": "Source DOM checks, contrast disabled, no violations",
+    "parity": {
+      "files": 24,
+      "matched": true
+    },
+    "designCheckIssues": 0
+  },
+  "preview": {
+    "type": "Static actual JSX DOM with scripted host, rendered in headless Chrome",
+    "modelLabel": "Fixture only; no company model call",
+    "viewports": [
+      {
+        "name": "template-composer",
+        "width": 360,
+        "measurements": {
+          "horizontalOverflow": false,
+          "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+        }
+      },
+      {
+        "name": "template-catalog",
+        "width": 360,
+        "measurements": {
+          "horizontalOverflow": false,
+          "dialog": {
+            "x": 12,
+            "y": 66,
+            "width": 336,
+            "height": 718,
+            "top": 66,
+            "right": 348,
+            "bottom": 784,
+            "left": 12
+          },
+          "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+        }
+      },
+      {
+        "name": "template-composer",
+        "width": 480,
+        "measurements": {
+          "horizontalOverflow": false,
+          "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+        }
+      },
+      {
+        "name": "template-catalog",
+        "width": 480,
+        "measurements": {
+          "horizontalOverflow": false,
+          "dialog": {
+            "x": 12,
+            "y": 77,
+            "width": 456,
+            "height": 696,
+            "top": 77,
+            "right": 468,
+            "bottom": 773,
+            "left": 12
+          },
+          "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+        }
+      }
+    ],
+    "manualInspection": [
+      "template-composer-360.png",
+      "template-catalog-360.png"
+    ],
+    "notEvidenceOf": "Interactive Windows WebView2, live Office or model quality"
+  },
+  "adoption": {
+    "newRuntimeDependencies": [],
+    "actual": [
+      "Existing Nubi/CX components",
+      "Existing Pi harness",
+      "Existing fast-check 4.10.2, Testing Library and axe-core",
+      "Windows DPAPI API source"
+    ],
+    "referenceOnly": [
+      "JSON Forms schema/UI separation",
+      "WAI APG modal pattern"
+    ]
+  },
+  "notExecuted": [
+    "Product bundle build",
+    "Native compilation",
+    "Installer build or workflow dispatch",
+    "Windows DPAPI persistence/cross-user/restart/tamper tests",
+    "Office 2016 COM and multi-window taskpane lifecycle",
+    "Corporate Qwen/SSO calls",
+    "NASCA encryption and visual/layout preservation validation"
+  ],
+  "limits": [
+    "Per-Windows-user local catalog; not shared enterprise catalog",
+    "Selected/observed input types only; no complete document visual identity claim",
+    "Metadata may include protected source text/business notes; company policy not verified",
+    "Durable template records do not implement durable agent run recovery"
+  ],
+  "developmentSourceHashes": {
+    "AGENTS.md": "fdf223ac1d15925e3f026a32591c08c04ce6c3730fae778fd6038f8777768437",
+    "README.md": "b6c003caaa211a48e3d5c8698d4786c94eeb2bdb8e6bc6cfa34f42e47f699c73",
+    "design/shared-ui.json": "97bd77b5dda735d3b7c7aaa4e4eb28d0cd4acb1ca1707ac770f5528adb2ba017",
+    "docs/IMPROVEMENT-STATUS.md": "7c55ea6c58b252ebbef405762c5d35a281efaa9069a01082d9cdc4f024a4d832",
+    "docs/TEMPLATE-FILLING.md": "3e9e82d10c686cba10b07363d47ccc071d24e9965e4a702d5232ed644dbd8a03",
+    "docs/TEMPLATE-COPY-2026-09-23.md": "f226e377a1f6eab175fa6921d16e658c63d5534c50011f676d888e144143787d",
+    "docs/TEMPLATE-CATALOG-2026-09-23.md": "56d5c0efa17a425e780ef7145ee7ea4cf2ee0d3ad74ab67480ff01f24da66af7",
+    "native/Nubi.Office.Host/TemplateCatalog.cs": "d6681927ca02eba163558a45e30bd91669bc0b72a1cac398d3ac0d1d2339a787",
+    "native/Nubi.Office.Host/CatalogActions.cs": "0168f4faee3396af5e0d230261114b80e5a282c4ca667da857be6f3e5584bfc9",
+    "native/Nubi.Office.Host/ContentTemplates.cs": "db951e659e2a3d6207e033ed95f57bb708822fec61d9857c60986e1081dc1d42",
+    "native/Nubi.Office.Host/ContentPort.cs": "eb390ea61f90a1bf2438b052a9eb83291064321853e998553164be681a9d4913",
+    "native/Nubi.Office.Host/NubiPane.cs": "6fedf71d322dadcf81e76c660b22dc4a8958c430476cf165afb43b8de620ca8b",
+    "native/Nubi.Office.Host/ExcelTemplateStore.cs": "d27090043c74b1ca6890b06089377714c0299f36e465da885a7c0fe0e933ef3e",
+    "native/Nubi.Office.Host/Nubi.Office.Host.csproj": "674665762ac14c526facc20a01c8a3b4bd33074e3d976e18c9e292027ae30b93",
+    "src/App.jsx": "eff55c84eeb793f18da9ce0b0036e5b2d42b9354ac82df7a579bc760ba21d2eb",
+    "src/OfficeComposer.jsx": "4b5519acc96fed6446686c01f0b0a1fa6772174bbb77b3b14398120861a1de5c",
+    "src/OfficeTemplates.jsx": "cb141580096dbbfb712ac1ead2580adad050402688b688a6871358f38dfd2cb2",
+    "src/template-catalog.js": "e2cb33c0c28416a7433f0084728178c8939c46b978f11464d62a56c0ed755f11",
+    "src/OfficeDialogs.jsx": "e6e69582f711c53bdaf7bee824bcd511468aa8a16c5bc7be305148cd00e48cca",
+    "src/bridge.js": "d3354c9901174270eaf5bc4e5960bc1b727eae7750c0233528a5be11c48a4ebf",
+    "src/errors.js": "f74098dd70ab7f80edb021d3c60600b13629612feaf7a16153e69239b4eb78bb",
+    "src/office.css": "fe9b5f206abfd152007919334223c24fad5dd4cecb0f41b44e6225f2440286a7",
+    "worker/agent.mjs": "2a742770c2704ec03f60f27ba49effcd48f8b6e92526aea4c88393849766c0a1",
+    "worker/content-agent.mjs": "049f2e0f2662c09169fa9d5da112beb512df12ecc3aba7bdb8d7e1e1f705619e",
+    "worker/content-schema.mjs": "3a7396c704e1a709416bec36b834b2d5ab6a319b8604803c1ccb2bfff1778ccc",
+    "worker/office-hosts.mjs": "866602dbc2a0cf51358d88e482a3e9d7fe442fff63afc1c9332445b86abb1aed",
+    "tests/template-catalog.test.mjs": "5592b5c3a3cd822e56de3b00aa72712590d745ba6b5fe0cc6b4106aca44798c7",
+    "tests/template-library.test.mjs": "3a2a93816d61ec9658b7741f550287e3ef23bd63c963d514a0e84208935a50a7",
+    "tests/content-agent.test.mjs": "5526869d08b7a30bfcb3dfe1b2b16d38f34e749b85cc417350bee00f4665b4d0",
+    "tests/content-ui.test.mjs": "9e290433d22475fbb24b30fa7b33e3997799c48e2ae949f28c377201330f4074",
+    "tests/ui-usability.test.mjs": "b74664e311a9503fb9a5df2bcac617d67410cdc87e276e1379de1c6a3f940de6",
+    "verification/template-catalog-360.png": "e927b37f72d5e313c363ff66b54c1f6e3cc630b35366b3866d875ea632958720",
+    "verification/template-catalog-480.png": "622e918c3e1a0b3d2b9e0775af2765934394170ec9f70cc696bc0591de7a14ba",
+    "verification/template-composer-360.png": "fc30a9c14fa4e6399738e1506b37bc1437823c6fd3325eb964c5d5d168ca96d7",
+    "verification/template-composer-480.png": "a63daadb0174733b5f4b7569523967b58264f3e0056af79f2eb6f4de9c8a9da6",
+    "verification/template-catalog-preview.mjs": "dc0ef493fde9fea1ed1dd57a893b2682ed2aac2f49ce09a30ba8dc79fa91a2f3"
+  },
+  "publicationSourceHashes": {
+    "AGENTS.md": "fdf223ac1d15925e3f026a32591c08c04ce6c3730fae778fd6038f8777768437",
+    "README.md": "b6c003caaa211a48e3d5c8698d4786c94eeb2bdb8e6bc6cfa34f42e47f699c73",
+    "design/shared-ui.json": "97bd77b5dda735d3b7c7aaa4e4eb28d0cd4acb1ca1707ac770f5528adb2ba017",
+    "docs/IMPROVEMENT-STATUS.md": "7c55ea6c58b252ebbef405762c5d35a281efaa9069a01082d9cdc4f024a4d832",
+    "docs/TEMPLATE-FILLING.md": "3e9e82d10c686cba10b07363d47ccc071d24e9965e4a702d5232ed644dbd8a03",
+    "docs/TEMPLATE-COPY-2026-09-23.md": "f226e377a1f6eab175fa6921d16e658c63d5534c50011f676d888e144143787d",
+    "docs/TEMPLATE-CATALOG-2026-09-23.md": "56d5c0efa17a425e780ef7145ee7ea4cf2ee0d3ad74ab67480ff01f24da66af7",
+    "native/Nubi.Office.Host/TemplateCatalog.cs": "d6681927ca02eba163558a45e30bd91669bc0b72a1cac398d3ac0d1d2339a787",
+    "native/Nubi.Office.Host/CatalogActions.cs": "0168f4faee3396af5e0d230261114b80e5a282c4ca667da857be6f3e5584bfc9",
+    "native/Nubi.Office.Host/ContentTemplates.cs": "db951e659e2a3d6207e033ed95f57bb708822fec61d9857c60986e1081dc1d42",
+    "native/Nubi.Office.Host/ContentPort.cs": "eb390ea61f90a1bf2438b052a9eb83291064321853e998553164be681a9d4913",
+    "native/Nubi.Office.Host/NubiPane.cs": "6fedf71d322dadcf81e76c660b22dc4a8958c430476cf165afb43b8de620ca8b",
+    "native/Nubi.Office.Host/ExcelTemplateStore.cs": "d27090043c74b1ca6890b06089377714c0299f36e465da885a7c0fe0e933ef3e",
+    "native/Nubi.Office.Host/Nubi.Office.Host.csproj": "674665762ac14c526facc20a01c8a3b4bd33074e3d976e18c9e292027ae30b93",
+    "src/App.jsx": "9d87c99d6591b2caee69214468b27142bf65f0b1861779e7f627663b1d4a1e66",
+    "src/OfficeComposer.jsx": "e9d911b21c65bfd36328fb064ea1e7cbf49d6e32fc1efadf5ebdaa964bdeeeec",
+    "src/OfficeTemplates.jsx": "eef950ea697af0a48e651d2684dad34eb4ea2da20b4ec696ca2da515ab62bafd",
+    "src/template-catalog.js": "e2cb33c0c28416a7433f0084728178c8939c46b978f11464d62a56c0ed755f11",
+    "src/OfficeDialogs.jsx": "45ec8b71224e962182c5889283cadc4db7d96f446fa052067e2259ed524d262b",
+    "src/bridge.js": "d3354c9901174270eaf5bc4e5960bc1b727eae7750c0233528a5be11c48a4ebf",
+    "src/errors.js": "5276aafc0acef470b2bd22b789770d0fd07c2abeb18276f42bd777763e41645f",
+    "src/office.css": "fe9b5f206abfd152007919334223c24fad5dd4cecb0f41b44e6225f2440286a7",
+    "worker/agent.mjs": "9e0b72d7263a909b42037ac7ce97cbd81088d30f70a7c51cb8eb16d4fa417820",
+    "worker/content-agent.mjs": "d7211b9dc86550e79c6a1bdd644d51bd414b79696cbf7021068b5f5396e461af",
+    "worker/content-schema.mjs": "3a7396c704e1a709416bec36b834b2d5ab6a319b8604803c1ccb2bfff1778ccc",
+    "worker/office-hosts.mjs": "866602dbc2a0cf51358d88e482a3e9d7fe442fff63afc1c9332445b86abb1aed",
+    "tests/template-catalog.test.mjs": "5592b5c3a3cd822e56de3b00aa72712590d745ba6b5fe0cc6b4106aca44798c7",
+    "tests/template-library.test.mjs": "3a2a93816d61ec9658b7741f550287e3ef23bd63c963d514a0e84208935a50a7",
+    "tests/content-agent.test.mjs": "5526869d08b7a30bfcb3dfe1b2b16d38f34e749b85cc417350bee00f4665b4d0",
+    "tests/content-ui.test.mjs": "9e290433d22475fbb24b30fa7b33e3997799c48e2ae949f28c377201330f4074",
+    "tests/ui-usability.test.mjs": "c05937246e8b0c4372c3a52fed600bc556454320632aeebd016b90467d2e5294",
+    "vendor/nubi-shared/design/agent-deck.css": "a9ca1d93cdbba7f522e66937ac57d0628e7931eb15a048740f6f3f8b53ad9d6d",
+    "vendor/nubi-shared/src/app.css": "0367e61f6d0a7143c9fac1b714735db29df5a36300ef8617c517aa23c39bf6fe",
+    "vendor/nubi-shared/src/interaction-forms.css": "293b3d71a73647f2c06e667fc017640e0a3a6f3197f3c47b9ece68d2aff125b0",
+    "vendor/nubi-shared/src/approval.css": "444f55963913a21d86536a3d52cd1ced4a4450b17e361770dfa6ed078e352db4",
+    "verification/template-catalog-360.png": "e927b37f72d5e313c363ff66b54c1f6e3cc630b35366b3866d875ea632958720",
+    "verification/template-catalog-480.png": "622e918c3e1a0b3d2b9e0775af2765934394170ec9f70cc696bc0591de7a14ba",
+    "verification/template-composer-360.png": "fc30a9c14fa4e6399738e1506b37bc1437823c6fd3325eb964c5d5d168ca96d7",
+    "verification/template-composer-480.png": "a63daadb0174733b5f4b7569523967b58264f3e0056af79f2eb6f4de9c8a9da6",
+    "verification/template-catalog-preview.mjs": "8418b21cdbae78142ffb4d45e7fb02ceea33308da98fc45c91f9a5ef48a2762f"
+  }
+}

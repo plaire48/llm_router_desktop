@@ -1,0 +1,206 @@
+{
+  "recordedAt": "2026-09-23T03:14:02.721669+00:00",
+  "kind": "source_sdk_integration_review",
+  "baselineCommit": "66f9e6eecc82bb30933d80a3a08d63a1b890ed42",
+  "sourceVersion": "0.8.2",
+  "scope": "Office document-authoring skills, references, in-memory script/draft editing and independent analysis scheduling",
+  "target": "Windows Office 2016; preserve enterprise Qwen 3.8 27B model ID and selected provider/model",
+  "testRuntime": {
+    "node": "v25.4.0",
+    "platform": "darwin/arm64"
+  },
+  "adoptedDependencies": {
+    "@earendil-works/pi-coding-agent": {
+      "version": "0.86.1",
+      "resolved": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/-/pi-coding-agent-0.86.1.tgz",
+      "integrity": "sha512-vZBuNfJnruxZyemZ3O05V0S/Ylze08ahFTIQ1Mik++gVdOevPl89gt/Uv0U97BPAJaj9cj6Vf9rcIgKtUrd0BA==",
+      "license": "MIT"
+    },
+    "p-map": {
+      "version": "7.0.4",
+      "resolved": "https://registry.npmjs.org/p-map/-/p-map-7.0.4.tgz",
+      "integrity": "sha512-tkAQEw8ysMzmkhgw8k+1U/iPhWNhykKnSk4Rd5zLoPJCuJaGRPo6YposrZgaxHKzDHdDWWZvE/Sk7hsL2X/CpQ==",
+      "license": "MIT"
+    }
+  },
+  "sdkFunctionsUsed": [
+    "loadSkillsFromDir",
+    "formatSkillsForPrompt",
+    "createReadTool",
+    "createFindTool",
+    "createEditTool",
+    "createWriteTool",
+    "truncateHead"
+  ],
+  "checks": [
+    {
+      "command": "npm test",
+      "passed": 320,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "logSha256": "f138ac8b0c20b56d19ee6caeab702cbab96569310d806f12f063c0d92c741758",
+      "modelAndNativeResponses": "scripted fixtures; Pi SDK and worker integration execute real source"
+    },
+    {
+      "command": "node scripts/check-ui-parity.mjs",
+      "matchedFiles": 24,
+      "matched": true,
+      "referenceHtmlSha256": "df9cfcc44f2f8d4ea14c6f137d0297c562ca506f8a0028df374c7f012d8715ac"
+    },
+    {
+      "command": "npm run design:check",
+      "issues": [],
+      "scope": "source token rules only; no new browser layout review"
+    },
+    {
+      "command": "npm ls --depth=0",
+      "exitCode": 0
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0
+    }
+  ],
+  "exercised": [
+    "Host-specific bundled skill discovery and progressive reference reads for Excel, Word and PowerPoint",
+    "Real SDK Unicode/CRLF preservation, ambiguous/missing/overlapping edit rejection, unchanged rejected drafts, and concurrent edit serialization",
+    "Scoped basename/directory search, bounded Unicode line paging, continuation offsets, and huge-line rejection without shell fallback",
+    "Per-run memory isolation, path boundaries, read-only references, cancellation, and atomic bound-sheet schema validation",
+    "Excel worker: read skill, write current sheet JSON, reject bad edit, read current text, correct edit, commit sheet, native review fixture, pending final save approval",
+    "Word/PPT and existing Excel actors can use skill tools without granting native document writes",
+    "p-map: bounded concurrency, queued dispatch cancellation, late-response fencing, success cache retention, 429 queue suppression, Retry-After propagation and serial fallback"
+  ],
+  "notImplemented": [
+    "Python/JavaScript execution",
+    "automatic dependency installation",
+    "external skill installation and picker UI",
+    "persistent scratch files or worker-restart recovery",
+    "general project file editing"
+  ],
+  "notVerified": [
+    "real Windows Office 2016 COM",
+    "company Qwen or AI Pro service quality",
+    "NASCA encryption",
+    "Windows x86/x64 SDK bundle installation"
+  ],
+  "buildsExecuted": false,
+  "installedApplicationUpdated": false,
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "bff23520b55d65d1a5a89cae74a1aec2362e32c8a37a4ab20aabfb300685029f"
+    },
+    {
+      "path": "THIRD-PARTY-NOTICES.md",
+      "sha256": "1a6bbdd71b484d6ea211db3bc78946c840a1d2ffa02414fe5e23a2f84d039681"
+    },
+    {
+      "path": "docs/CODING-SDK-ADOPTION-2026-09-23.md",
+      "sha256": "4da131aa713ffdd191f649c6fba6082d6d0974018e46dda8b680159f59dacd1e"
+    },
+    {
+      "path": "docs/IMPROVEMENT-STATUS.md",
+      "sha256": "860def617a620e9be9415a2b7c3071ab1872695a997464fde18229662cfd35cd"
+    },
+    {
+      "path": "docs/SKILL-DOCUMENT-AUTHORING-2026-09-23.md",
+      "sha256": "6bf4cbb55e3c3dc6d73243bde20db1e683984c7b05abdbd71ca4a72c29351907"
+    },
+    {
+      "path": "docs/TOOL-PROGRESS-BP-2026-09-23.md",
+      "sha256": "2e3eec81f4d063a7febc7418d262bc26b80aa4c72bd3d14c5b33aee590350f13"
+    },
+    {
+      "path": "licenses/p-map-MIT.txt",
+      "sha256": "5c932d88256b4ab958f64a856fa48e8bd1f55bc1d96b8149c65689e0c61789d3"
+    },
+    {
+      "path": "licenses/pi-coding-agent-MIT.txt",
+      "sha256": "0457f5bcec3b3b211605dfb5d1a49042fd638f3686a410fe099c24a25af13c48"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "f9dcc3730bf01b1d24412de9d6f76cd398a659c6e9518ed6afe148bcc9f6bc75"
+    },
+    {
+      "path": "package.json",
+      "sha256": "4ea81a90dfabb8b1ff8c55dcd53223f407e827c6da50bad950bb6a49ddba0305"
+    },
+    {
+      "path": "scripts/build.mjs",
+      "sha256": "9c96f9cdef3a0532b40f5a2feadaec7a3dfa28f6c61d6050bc47ead0ca53d799"
+    },
+    {
+      "path": "tests/content-agent.test.mjs",
+      "sha256": "92dcc01e66ba888a430849af66a46dd4a99234bfef6c047fe14922ab7756fd11"
+    },
+    {
+      "path": "tests/content-analysis.test.mjs",
+      "sha256": "9d42ab6c247797d18c257ed0cbf8870c3c9f66fa900724581a1c9c4e6a2c5d03"
+    },
+    {
+      "path": "tests/skill-workspace.test.mjs",
+      "sha256": "1a7b49cd0b5d26f9356c4c1e8e47896ac40ed94c2d08549d0d68da27c7ae8611"
+    },
+    {
+      "path": "tests/workbook-context.test.mjs",
+      "sha256": "3c889eb3d4262575a500fc187b688ea13ddceaacb6541737a8442ca4907b62c8"
+    },
+    {
+      "path": "worker/agent.mjs",
+      "sha256": "90a6be5460bb0ba9808908c5bd587de6a536f0eda90eba29c27ded3f003f1f1a"
+    },
+    {
+      "path": "worker/analysis-jobs.mjs",
+      "sha256": "dfa92ee81e7a87f8e6833fd369728c9e32f9c2a12486e8080fbec5712d5928f9"
+    },
+    {
+      "path": "worker/content-agent.mjs",
+      "sha256": "827298d82c164b5a77a9f688ca27d01564defe967d5088c664b5cbe0bc631ab2"
+    },
+    {
+      "path": "worker/document-agent.mjs",
+      "sha256": "6fa135d3532c38bfe8110de2430883919f68fa4f672a80c151afb5e46bc31f3c"
+    },
+    {
+      "path": "worker/skill-workspace.mjs",
+      "sha256": "ad4c63b6f377fbca05b46914278a814d2703eeb52cbf8ea53a71b3f0ddf1fd5f"
+    },
+    {
+      "path": "worker/skills/excel-2016/SKILL.md",
+      "sha256": "b182af51f44e2182b82d555406e4c9632305bde9e882d4b391c26ecbf3976388"
+    },
+    {
+      "path": "worker/skills/excel-2016/references/authoring.md",
+      "sha256": "6c5fb249e9db3f933b9258f8dbe35770abfd2b4b310ae8d10796b7863431dd2e"
+    },
+    {
+      "path": "worker/skills/powerpoint-2016/SKILL.md",
+      "sha256": "4adb1f724df5ed52d49f3b246d033c1b1e8c83af590df712cd5881e7253b89d1"
+    },
+    {
+      "path": "worker/skills/powerpoint-2016/references/authoring.md",
+      "sha256": "fbf817108641b9784a57b817f983cd486cc940970d1bc7e46827df67160a8e1c"
+    },
+    {
+      "path": "worker/skills/word-2016/SKILL.md",
+      "sha256": "bdcdaf836969c4b2dd9737da0b75f76b4f4db9635d2ac98d53ff275049bf7801"
+    },
+    {
+      "path": "worker/skills/word-2016/references/authoring.md",
+      "sha256": "4951f49f9f3d6754f634a19c29b03d54b683b700bec42e6261ccb76fe1febe9f"
+    },
+    {
+      "path": "worker/tool-progress.mjs",
+      "sha256": "8f18661f9667c37bbb0b66b90bf8be85e8104ac53e7035e44e99838b46f6ae32"
+    }
+  ],
+  "references": [
+    "https://pi.dev/docs/latest/sdk",
+    "https://github.com/earendil-works/pi/blob/v0.86.1/packages/coding-agent/docs/sdk.md",
+    "https://github.com/sindresorhus/p-map",
+    "https://opencode.ai/docs/sdk/",
+    "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents"
+  ]
+}

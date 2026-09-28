@@ -1,0 +1,795 @@
+{
+  "suite": "invoke",
+  "id": "command-quotation",
+  "trial": 2,
+  "routing": "product",
+  "passed": true,
+  "outcome": "passed",
+  "state": "done",
+  "writes": 1,
+  "recoveries": 0,
+  "questions": [],
+  "approvals": [
+    "edit"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 9,
+    "toolCalls": 5,
+    "elapsedMs": 48558
+  },
+  "transcript": {
+    "modelCalls": 9,
+    "byRole": {
+      "planner": 2,
+      "actor": 4,
+      "action_review": 1,
+      "step_review": 1,
+      "result_review": 1
+    },
+    "elapsedMs": 47547,
+    "requestCharacters": 311940,
+    "peakRequestCharacters": 74370,
+    "toolCalls": {
+      "inspect_template": 1,
+      "fill_template_fields": 1,
+      "verify_selection": 1
+    },
+    "errors": {}
+  },
+  "score": {
+    "passed": true,
+    "outcome": "passed",
+    "deterministicPassed": true,
+    "semanticReview": {
+      "required": false,
+      "status": "not_required",
+      "criteria": []
+    },
+    "expectedState": "done",
+    "actualState": "done",
+    "checks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "B3",
+          "field": "value",
+          "operator": "equals",
+          "expected": "대한상사",
+          "actual": [
+            [
+              "대한상사"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "E3",
+          "field": "value",
+          "operator": "equals",
+          "expected": 46315,
+          "actual": [
+            [
+              46315
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "B4",
+          "field": "value",
+          "operator": "equals",
+          "expected": "최유진",
+          "actual": [
+            [
+              "최유진"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "E4",
+          "field": "value",
+          "operator": "equals",
+          "expected": "견적일로부터 30일",
+          "actual": [
+            [
+              "견적일로부터 30일"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "B7",
+          "field": "value",
+          "operator": "equals",
+          "expected": "무선 키보드",
+          "actual": [
+            [
+              "무선 키보드"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C7",
+          "field": "value",
+          "operator": "equals",
+          "expected": "K380",
+          "actual": [
+            [
+              "K380"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "D7",
+          "field": "value",
+          "operator": "equals",
+          "expected": 10,
+          "actual": [
+            [
+              10
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "E7",
+          "field": "value",
+          "operator": "equals",
+          "expected": 30000,
+          "actual": [
+            [
+              30000
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "B8",
+          "field": "value",
+          "operator": "equals",
+          "expected": "무선 마우스",
+          "actual": [
+            [
+              "무선 마우스"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C8",
+          "field": "value",
+          "operator": "equals",
+          "expected": "M350",
+          "actual": [
+            [
+              "M350"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "D8",
+          "field": "value",
+          "operator": "equals",
+          "expected": 10,
+          "actual": [
+            [
+              10
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "E8",
+          "field": "value",
+          "operator": "equals",
+          "expected": 25000,
+          "actual": [
+            [
+              25000
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "F7",
+          "field": "value",
+          "operator": "equals",
+          "expected": 300000,
+          "actual": [
+            [
+              300000
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "F8",
+          "field": "value",
+          "operator": "equals",
+          "expected": 250000,
+          "actual": [
+            [
+              250000
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "F11",
+          "field": "value",
+          "operator": "equals",
+          "expected": 550000,
+          "actual": [
+            [
+              550000
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "F12",
+          "field": "value",
+          "operator": "equals",
+          "expected": 55000,
+          "actual": [
+            [
+              55000
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "F13",
+          "field": "value",
+          "operator": "equals",
+          "expected": 605000,
+          "actual": [
+            [
+              605000
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "persistedChecks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "B3",
+          "field": "value",
+          "operator": "equals",
+          "expected": "대한상사",
+          "actual": [
+            [
+              "대한상사"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "E3",
+          "field": "value",
+          "operator": "equals",
+          "expected": 46315,
+          "actual": [
+            [
+              46315
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "B4",
+          "field": "value",
+          "operator": "equals",
+          "expected": "최유진",
+          "actual": [
+            [
+              "최유진"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "E4",
+          "field": "value",
+          "operator": "equals",
+          "expected": "견적일로부터 30일",
+          "actual": [
+            [
+              "견적일로부터 30일"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "B7",
+          "field": "value",
+          "operator": "equals",
+          "expected": "무선 키보드",
+          "actual": [
+            [
+              "무선 키보드"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C7",
+          "field": "value",
+          "operator": "equals",
+          "expected": "K380",
+          "actual": [
+            [
+              "K380"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "D7",
+          "field": "value",
+          "operator": "equals",
+          "expected": 10,
+          "actual": [
+            [
+              10
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "E7",
+          "field": "value",
+          "operator": "equals",
+          "expected": 30000,
+          "actual": [
+            [
+              30000
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "B8",
+          "field": "value",
+          "operator": "equals",
+          "expected": "무선 마우스",
+          "actual": [
+            [
+              "무선 마우스"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C8",
+          "field": "value",
+          "operator": "equals",
+          "expected": "M350",
+          "actual": [
+            [
+              "M350"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "D8",
+          "field": "value",
+          "operator": "equals",
+          "expected": 10,
+          "actual": [
+            [
+              10
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "E8",
+          "field": "value",
+          "operator": "equals",
+          "expected": 25000,
+          "actual": [
+            [
+              25000
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "F7",
+          "field": "value",
+          "operator": "equals",
+          "expected": 300000,
+          "actual": [
+            [
+              300000
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "F8",
+          "field": "value",
+          "operator": "equals",
+          "expected": 250000,
+          "actual": [
+            [
+              250000
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "F11",
+          "field": "value",
+          "operator": "equals",
+          "expected": 550000,
+          "actual": [
+            [
+              550000
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "F12",
+          "field": "value",
+          "operator": "equals",
+          "expected": 55000,
+          "actual": [
+            [
+              55000
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "F13",
+          "field": "value",
+          "operator": "equals",
+          "expected": 605000,
+          "actual": [
+            [
+              605000
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "unexpectedChanges": [],
+    "persistedUnexpectedChanges": [],
+    "sourceChecks": [],
+    "formulaChecks": [],
+    "openedTemplate": "c921b9e9-3e5f-45fc-b4fd-5233f741e02c",
+    "expectedTemplate": "c921b9e9-3e5f-45fc-b4fd-5233f741e02c",
+    "selected": true,
+    "openWorkbookUntouched": true
+  },
+  "request": "/견적서 견적서를 작성해줘. 수신은 대한상사, 견적일 2026-10-20, 담당자 최유진, 유효 기간은 견적일로부터 30일이야. 품목은 두 개야. 첫째는 무선 키보드, 규격 K380, 수량 10개, 단가 30000원. 둘째는 무선 마우스, 규격 M350, 수량 10개, 단가 25000원. 비고는 없어.",
+  "openedTemplate": {
+    "id": "c921b9e9-3e5f-45fc-b4fd-5233f741e02c",
+    "name": "견적서"
+  },
+  "answer": "견적서 작성을 완료했습니다.\n\n- 수신: 대한상사\n- 견적일: 2026-10-20\n- 담당자: 최유진\n- 합계: 605,000원\n- 기존 계산 수식 보존 및 검증 완료\n- 비고: 미입력",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_template",
+        "title": "견적서 서식과 입력 필드 및 기존 수식을 확인합니다",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "fill_quote",
+        "title": "확정된 견적 정보를 서식에 입력하고 계산 결과를 확인합니다",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "state": "done",
+        "requiresReview": true
+      },
+      {
+        "id": "verify_quote",
+        "title": "입력값과 금액 계산 및 수식 보존을 최종 확인합니다",
+        "kind": "verify",
+        "checkIndexes": [],
+        "state": "done"
+      }
+    ],
+    "total": 3,
+    "completed": 3,
+    "currentStepId": null
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "등록된 견적서 서식에 수신자, 날짜, 담당자, 유효 기간과 두 품목 정보를 입력하고 계산 금액을 확인합니다.",
+    "requirements": [
+      "B3에 대한상사를 입력합니다.",
+      "E3에 2026-10-20, B4에 최유진을 입력합니다.",
+      "E4에 견적일로부터 30일을 입력합니다.",
+      "B7:E8에 두 품목의 품목명, 규격, 수량, 단가를 입력합니다.",
+      "기존 금액·공급가액·부가세·합계 수식은 보존합니다.",
+      "비고는 입력하지 않습니다."
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "B3",
+        "field": "value",
+        "operator": "equals",
+        "expected": "대한상사"
+      },
+      {
+        "address": "E3",
+        "field": "value",
+        "operator": "equals",
+        "expected": 46315
+      },
+      {
+        "address": "E3",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "yyyy-mm-dd"
+      },
+      {
+        "address": "B4",
+        "field": "value",
+        "operator": "equals",
+        "expected": "최유진"
+      },
+      {
+        "address": "E4",
+        "field": "value",
+        "operator": "equals",
+        "expected": "견적일로부터 30일"
+      },
+      {
+        "address": "B7:E8",
+        "field": "value",
+        "operator": "equals",
+        "expected": [
+          [
+            "무선 키보드",
+            "K380",
+            10,
+            30000
+          ],
+          [
+            "무선 마우스",
+            "M350",
+            10,
+            25000
+          ]
+        ]
+      },
+      {
+        "address": "E7:E8",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": [
+          [
+            "#,##0"
+          ],
+          [
+            "#,##0"
+          ]
+        ]
+      },
+      {
+        "address": "F7:F8",
+        "field": "formula",
+        "operator": "no_error"
+      },
+      {
+        "address": "F11:F13",
+        "field": "formula",
+        "operator": "no_error"
+      },
+      {
+        "address": "F7:F8",
+        "field": "value",
+        "operator": "equals",
+        "expected": [
+          [
+            300000
+          ],
+          [
+            250000
+          ]
+        ]
+      },
+      {
+        "address": "F11:F13",
+        "field": "value",
+        "operator": "equals",
+        "expected": [
+          [
+            550000
+          ],
+          [
+            55000
+          ],
+          [
+            605000
+          ]
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_template",
+        "title": "견적서 서식과 입력 필드 및 기존 수식을 확인합니다",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "fill_quote",
+        "title": "확정된 견적 정보를 서식에 입력하고 계산 결과를 확인합니다",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ]
+      },
+      {
+        "id": "verify_quote",
+        "title": "입력값과 금액 계산 및 수식 보존을 최종 확인합니다",
+        "kind": "verify",
+        "checkIndexes": []
+      }
+    ]
+  },
+  "review": {
+    "status": "complete",
+    "checks": [
+      {
+        "requirement": "B3에 수신자 대한상사를 입력",
+        "status": "met",
+        "evidence_ids": [
+          9
+        ]
+      },
+      {
+        "requirement": "견적일 2026-10-20과 담당자 최유진 입력",
+        "status": "met",
+        "evidence_ids": [
+          9
+        ]
+      },
+      {
+        "requirement": "유효 기간에 견적일로부터 30일 입력",
+        "status": "met",
+        "evidence_ids": [
+          9
+        ]
+      },
+      {
+        "requirement": "두 품목의 규격, 수량, 단가 입력",
+        "status": "met",
+        "evidence_ids": [
+          9
+        ]
+      },
+      {
+        "requirement": "품목별 금액이 300,000원과 250,000원",
+        "status": "met",
+        "evidence_ids": [
+          9
+        ]
+      },
+      {
+        "requirement": "공급가액, 부가세, 합계가 각각 550,000원, 55,000원, 605,000원",
+        "status": "met",
+        "evidence_ids": [
+          9
+        ]
+      },
+      {
+        "requirement": "기존 금액 및 합계 수식 보존",
+        "status": "met",
+        "evidence_ids": [
+          9,
+          10
+        ]
+      },
+      {
+        "requirement": "비고는 입력하지 않음",
+        "status": "met",
+        "evidence_ids": [
+          9
+        ]
+      }
+    ],
+    "next_step": "없음"
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_template"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "fill_quote"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "fill_quote"
+    },
+    {
+      "name": "fill_template_fields",
+      "state": "done",
+      "stepId": "fill_quote"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "fill_quote"
+    },
+    {
+      "name": "review_action",
+      "state": "done",
+      "stepId": "fill_quote"
+    },
+    {
+      "name": "review_step",
+      "state": "done",
+      "stepId": "fill_quote"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_quote"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_quote"
+    },
+    {
+      "name": "review_task",
+      "state": "done",
+      "stepId": "verify_quote"
+    }
+  ],
+  "recoveryLog": []
+}

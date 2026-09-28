@@ -1,0 +1,780 @@
+{
+  "suite": "reuse",
+  "id": "trip-request",
+  "trial": 1,
+  "routing": "product",
+  "passed": true,
+  "outcome": "passed",
+  "state": "done",
+  "writes": 1,
+  "recoveries": 0,
+  "questions": [
+    "일비(1일)은 얼마인가요? 원 단위 금액으로 알려주세요."
+  ],
+  "approvals": [
+    "edit"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 16,
+    "toolCalls": 7,
+    "elapsedMs": 80685
+  },
+  "transcript": {
+    "modelCalls": 16,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 4,
+      "actor": 8,
+      "action_review": 1,
+      "step_review": 1,
+      "result_review": 1
+    },
+    "elapsedMs": 78464,
+    "requestCharacters": 629416,
+    "peakRequestCharacters": 92642,
+    "toolCalls": {
+      "read": 1,
+      "inspect_template": 4,
+      "fill_template_fields": 1,
+      "verify_selection": 1
+    },
+    "errors": {}
+  },
+  "score": {
+    "passed": true,
+    "outcome": "passed",
+    "deterministicPassed": true,
+    "semanticReview": {
+      "required": false,
+      "status": "not_required",
+      "criteria": []
+    },
+    "expectedState": "done",
+    "actualState": "done",
+    "checks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "C3",
+          "field": "value",
+          "operator": "equals",
+          "expected": "영업1팀",
+          "actual": [
+            [
+              "영업1팀"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "E3",
+          "field": "value",
+          "operator": "equals",
+          "expected": "김민수",
+          "actual": [
+            [
+              "김민수"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C4",
+          "field": "value",
+          "operator": "equals",
+          "expected": "00417",
+          "actual": [
+            [
+              "00417"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "E4",
+          "field": "value",
+          "operator": "equals",
+          "expected": "과장",
+          "actual": [
+            [
+              "과장"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C5",
+          "field": "value",
+          "operator": "equals",
+          "expected": "국내",
+          "actual": [
+            [
+              "국내"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "E5",
+          "field": "value",
+          "operator": "equals",
+          "expected": "부산",
+          "actual": [
+            [
+              "부산"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C6",
+          "field": "value",
+          "operator": "equals",
+          "expected": 46307,
+          "actual": [
+            [
+              46307
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "E6",
+          "field": "value",
+          "operator": "equals",
+          "expected": 46309,
+          "actual": [
+            [
+              46309
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C8",
+          "field": "value",
+          "operator": "equals",
+          "expected": "신규 거래처 계약 협의",
+          "actual": [
+            [
+              "신규 거래처 계약 협의"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C10",
+          "field": "value",
+          "operator": "equals",
+          "expected": 50000,
+          "actual": [
+            [
+              50000
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C7",
+          "field": "value",
+          "operator": "equals",
+          "expected": 3,
+          "actual": [
+            [
+              3
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "E10",
+          "field": "value",
+          "operator": "equals",
+          "expected": 150000,
+          "actual": [
+            [
+              150000
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "persistedChecks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "C3",
+          "field": "value",
+          "operator": "equals",
+          "expected": "영업1팀",
+          "actual": [
+            [
+              "영업1팀"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "E3",
+          "field": "value",
+          "operator": "equals",
+          "expected": "김민수",
+          "actual": [
+            [
+              "김민수"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C4",
+          "field": "value",
+          "operator": "equals",
+          "expected": "00417",
+          "actual": [
+            [
+              "00417"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "E4",
+          "field": "value",
+          "operator": "equals",
+          "expected": "과장",
+          "actual": [
+            [
+              "과장"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C5",
+          "field": "value",
+          "operator": "equals",
+          "expected": "국내",
+          "actual": [
+            [
+              "국내"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "E5",
+          "field": "value",
+          "operator": "equals",
+          "expected": "부산",
+          "actual": [
+            [
+              "부산"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C6",
+          "field": "value",
+          "operator": "equals",
+          "expected": 46307,
+          "actual": [
+            [
+              46307
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "E6",
+          "field": "value",
+          "operator": "equals",
+          "expected": 46309,
+          "actual": [
+            [
+              46309
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C8",
+          "field": "value",
+          "operator": "equals",
+          "expected": "신규 거래처 계약 협의",
+          "actual": [
+            [
+              "신규 거래처 계약 협의"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C10",
+          "field": "value",
+          "operator": "equals",
+          "expected": 50000,
+          "actual": [
+            [
+              50000
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C7",
+          "field": "value",
+          "operator": "equals",
+          "expected": 3,
+          "actual": [
+            [
+              3
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "E10",
+          "field": "value",
+          "operator": "equals",
+          "expected": 150000,
+          "actual": [
+            [
+              150000
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "unexpectedChanges": [],
+    "persistedUnexpectedChanges": [],
+    "sourceChecks": [],
+    "formulaChecks": [],
+    "templateUnchanged": true
+  },
+  "request": "출장 신청서를 작성해줘. 영업1팀 김민수 과장이고 사번은 00417이야. 국내 출장으로 부산에 2026-10-12부터 2026-10-14까지 다녀와. 목적은 신규 거래처 계약 협의야. 일비는 나한테 물어봐.",
+  "answer": "출장 신청서 입력과 검증을 완료했습니다.\n\n- 출장 일수: 3일\n- 예상 경비: 150,000원\n- 기존 수식과 서식은 보존되었습니다.",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "신청서 입력 칸과 기존 수식 확인",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "fill_trip",
+        "title": "출장 정보를 입력하고 계산 결과 확인",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ],
+        "state": "done",
+        "requiresReview": true
+      },
+      {
+        "id": "verify_form",
+        "title": "입력값과 계산 결과 최종 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ],
+        "state": "done"
+      }
+    ],
+    "total": 3,
+    "completed": 3,
+    "currentStepId": null
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "출장 신청서에 영업1팀 김민수 과장의 부산 국내 출장 정보를 입력하고 계산 결과를 확인합니다.",
+    "requirements": [
+      "소속 부서: 영업1팀",
+      "성명: 김민수, 직급: 과장",
+      "사번: 00417",
+      "출장 구분: 국내, 출장지: 부산",
+      "출발일: 2026-10-12, 복귀일: 2026-10-14",
+      "출장 목적: 신규 거래처 계약 협의",
+      "일비(1일): 50000원"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "C3",
+        "field": "value",
+        "operator": "equals",
+        "expected": "영업1팀",
+        "valueType": "text"
+      },
+      {
+        "address": "E3",
+        "field": "value",
+        "operator": "equals",
+        "expected": "김민수",
+        "valueType": "text"
+      },
+      {
+        "address": "C4",
+        "field": "value",
+        "operator": "equals",
+        "expected": "00417",
+        "valueType": "text"
+      },
+      {
+        "address": "E4",
+        "field": "value",
+        "operator": "equals",
+        "expected": "과장",
+        "valueType": "text"
+      },
+      {
+        "address": "C5",
+        "field": "value",
+        "operator": "equals",
+        "expected": "국내",
+        "valueType": "text"
+      },
+      {
+        "address": "E5",
+        "field": "value",
+        "operator": "equals",
+        "expected": "부산",
+        "valueType": "text"
+      },
+      {
+        "address": "C6",
+        "field": "value",
+        "operator": "equals",
+        "expected": 46307,
+        "valueType": "date"
+      },
+      {
+        "address": "C6",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "yyyy-mm-dd"
+      },
+      {
+        "address": "E6",
+        "field": "value",
+        "operator": "equals",
+        "expected": 46309,
+        "valueType": "date"
+      },
+      {
+        "address": "E6",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "yyyy-mm-dd"
+      },
+      {
+        "address": "C8",
+        "field": "value",
+        "operator": "equals",
+        "expected": "신규 거래처 계약 협의",
+        "valueType": "text"
+      },
+      {
+        "address": "C10",
+        "field": "value",
+        "operator": "equals",
+        "expected": 50000,
+        "valueType": "number"
+      },
+      {
+        "address": "C10",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "#,##0"
+      },
+      {
+        "address": "C7",
+        "field": "formula",
+        "operator": "equals",
+        "expected": "=IF(OR(C6=\"\",E6=\"\"),\"\",E6-C6+1)"
+      },
+      {
+        "address": "C7",
+        "field": "value",
+        "operator": "equals",
+        "expected": 3,
+        "valueType": "number"
+      },
+      {
+        "address": "E10",
+        "field": "formula",
+        "operator": "equals",
+        "expected": "=IF(OR(C7=\"\",C10=\"\"),\"\",C7*C10)"
+      },
+      {
+        "address": "E10",
+        "field": "value",
+        "operator": "equals",
+        "expected": 150000,
+        "valueType": "number"
+      },
+      {
+        "address": "C7",
+        "field": "value",
+        "operator": "no_error"
+      },
+      {
+        "address": "E10",
+        "field": "value",
+        "operator": "no_error"
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "신청서 입력 칸과 기존 수식 확인",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "fill_trip",
+        "title": "출장 정보를 입력하고 계산 결과 확인",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ]
+      },
+      {
+        "id": "verify_form",
+        "title": "입력값과 계산 결과 최종 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ]
+      }
+    ]
+  },
+  "review": {
+    "status": "complete",
+    "checks": [
+      {
+        "requirement": "소속 부서, 성명, 직급, 사번이 정확히 입력됨",
+        "status": "met",
+        "evidence_ids": [
+          13
+        ]
+      },
+      {
+        "requirement": "국내 부산 출장 정보가 입력됨",
+        "status": "met",
+        "evidence_ids": [
+          13
+        ]
+      },
+      {
+        "requirement": "출발일과 복귀일이 2026-10-12~2026-10-14로 입력됨",
+        "status": "met",
+        "evidence_ids": [
+          13
+        ]
+      },
+      {
+        "requirement": "출장 목적이 정확히 입력됨",
+        "status": "met",
+        "evidence_ids": [
+          13
+        ]
+      },
+      {
+        "requirement": "일비 50,000원이 입력됨",
+        "status": "met",
+        "evidence_ids": [
+          13
+        ]
+      },
+      {
+        "requirement": "출장 일수 3일과 예상 경비 150,000원이 계산됨",
+        "status": "met",
+        "evidence_ids": [
+          13
+        ]
+      },
+      {
+        "requirement": "기존 수식과 서식·병합·입력 제한이 보존됨",
+        "status": "met",
+        "evidence_ids": [
+          13,
+          14
+        ]
+      }
+    ],
+    "next_step": "없음"
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_form"
+    },
+    {
+      "name": "read",
+      "state": "done",
+      "stepId": "fill_trip"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "fill_trip"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "fill_trip"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "fill_trip"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "fill_trip"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "fill_trip"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "fill_trip"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "fill_trip"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "fill_trip"
+    },
+    {
+      "name": "fill_template_fields",
+      "state": "done",
+      "stepId": "fill_trip"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "fill_trip"
+    },
+    {
+      "name": "review_action",
+      "state": "done",
+      "stepId": "fill_trip"
+    },
+    {
+      "name": "review_step",
+      "state": "done",
+      "stepId": "fill_trip"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_form"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_form"
+    },
+    {
+      "name": "review_task",
+      "state": "done",
+      "stepId": "verify_form"
+    }
+  ],
+  "recoveryLog": []
+}

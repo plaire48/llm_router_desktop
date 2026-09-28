@@ -1,0 +1,1547 @@
+{
+  "kind": "simulated-host-live-model-evaluation",
+  "schema": 1,
+  "runId": "c17116d4-fe33-4d44-8847-06de6d5efb89",
+  "provider": "chatgpt",
+  "model": "gpt-5.6-luna",
+  "routing": "product",
+  "caseVersion": "office-business-cases@4",
+  "startedAt": "2026-09-28T20:54:58.507Z",
+  "limits": {
+    "timeoutMs": 600000,
+    "maxModelCalls": 80,
+    "maxActions": 120
+  },
+  "host": {
+    "platform": "simulated",
+    "simulated": true,
+    "calculator": "@ironcalc/nodejs"
+  },
+  "results": [
+    {
+      "suite": "register",
+      "id": "expense-report",
+      "trial": 1,
+      "routing": "direct",
+      "passed": true,
+      "outcome": "passed",
+      "state": "done",
+      "writes": 0,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [
+        "template_mapping",
+        "template_register"
+      ],
+      "proposals": 1,
+      "metrics": {
+        "modelCalls": 10,
+        "toolCalls": 7,
+        "elapsedMs": 31713
+      },
+      "transcript": {
+        "modelCalls": 10,
+        "byRole": {
+          "planner": 1,
+          "actor": 8,
+          "result_review": 1
+        },
+        "elapsedMs": 31380,
+        "requestCharacters": 422015,
+        "peakRequestCharacters": 63924,
+        "toolCalls": {
+          "read": 1,
+          "inspect_template": 3,
+          "read_selection": 1,
+          "define_template_fields": 1,
+          "register_template": 1
+        },
+        "errors": {}
+      },
+      "score": {
+        "mapping": {
+          "proposed": 8,
+          "gold": 8,
+          "matched": 8,
+          "precision": 1,
+          "recall": 1,
+          "f1": 1,
+          "missing": [],
+          "unexpected": [],
+          "wrongType": [],
+          "wrongRequired": [],
+          "exact": true,
+          "strict": true
+        },
+        "registered": true,
+        "sourceUnchanged": true,
+        "proposedFields": [
+          {
+            "address": "B3",
+            "label": "결의 번호",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E3",
+            "label": "작성일",
+            "valueType": "date",
+            "required": true
+          },
+          {
+            "address": "B4",
+            "label": "부서",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E4",
+            "label": "작성자",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "B5",
+            "label": "지급처",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E5",
+            "label": "결제 수단",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "B7",
+            "label": "공급가액",
+            "valueType": "number",
+            "required": true
+          },
+          {
+            "address": "B11",
+            "label": "적요",
+            "valueType": "text",
+            "required": false
+          }
+        ],
+        "passed": true,
+        "outcome": "passed"
+      }
+    },
+    {
+      "suite": "register",
+      "id": "trip-request",
+      "trial": 1,
+      "routing": "direct",
+      "passed": true,
+      "outcome": "passed",
+      "state": "done",
+      "writes": 0,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [
+        "template_mapping",
+        "template_register"
+      ],
+      "proposals": 1,
+      "metrics": {
+        "modelCalls": 10,
+        "toolCalls": 7,
+        "elapsedMs": 31411
+      },
+      "transcript": {
+        "modelCalls": 10,
+        "byRole": {
+          "planner": 1,
+          "actor": 8,
+          "result_review": 1
+        },
+        "elapsedMs": 31114,
+        "requestCharacters": 433004,
+        "peakRequestCharacters": 65724,
+        "toolCalls": {
+          "read": 1,
+          "inspect_template": 4,
+          "define_template_fields": 1,
+          "register_template": 1
+        },
+        "errors": {}
+      },
+      "score": {
+        "mapping": {
+          "proposed": 10,
+          "gold": 10,
+          "matched": 10,
+          "precision": 1,
+          "recall": 1,
+          "f1": 1,
+          "missing": [],
+          "unexpected": [],
+          "wrongType": [],
+          "wrongRequired": [],
+          "exact": true,
+          "strict": true
+        },
+        "registered": true,
+        "sourceUnchanged": true,
+        "proposedFields": [
+          {
+            "address": "C3",
+            "label": "소속 부서",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E3",
+            "label": "성명",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "C4",
+            "label": "사번",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E4",
+            "label": "직급",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "C5",
+            "label": "출장 구분",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E5",
+            "label": "출장지",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "C6",
+            "label": "출발일",
+            "valueType": "date",
+            "required": true
+          },
+          {
+            "address": "E6",
+            "label": "복귀일",
+            "valueType": "date",
+            "required": true
+          },
+          {
+            "address": "C8",
+            "label": "출장 목적",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "C10",
+            "label": "일비(1일)",
+            "valueType": "number",
+            "required": true
+          }
+        ],
+        "passed": true,
+        "outcome": "passed"
+      }
+    },
+    {
+      "suite": "register",
+      "id": "training-request",
+      "trial": 1,
+      "routing": "direct",
+      "passed": true,
+      "outcome": "passed",
+      "state": "done",
+      "writes": 0,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [
+        "template_mapping",
+        "template_register"
+      ],
+      "proposals": 1,
+      "metrics": {
+        "modelCalls": 7,
+        "toolCalls": 4,
+        "elapsedMs": 26291
+      },
+      "transcript": {
+        "modelCalls": 7,
+        "byRole": {
+          "planner": 1,
+          "actor": 5,
+          "result_review": 1
+        },
+        "elapsedMs": 26040,
+        "requestCharacters": 238864,
+        "peakRequestCharacters": 50299,
+        "toolCalls": {
+          "read": 1,
+          "read_selection": 1,
+          "define_template_fields": 1,
+          "register_template": 1
+        },
+        "errors": {}
+      },
+      "score": {
+        "mapping": {
+          "proposed": 7,
+          "gold": 7,
+          "matched": 7,
+          "precision": 1,
+          "recall": 1,
+          "f1": 1,
+          "missing": [],
+          "unexpected": [],
+          "wrongType": [],
+          "wrongRequired": [],
+          "exact": true,
+          "strict": true
+        },
+        "registered": true,
+        "sourceUnchanged": true,
+        "proposedFields": [
+          {
+            "address": "C3",
+            "label": "성명",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "C4",
+            "label": "부서",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "C5",
+            "label": "연락처",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "C6",
+            "label": "과정명",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "C7",
+            "label": "시작일",
+            "valueType": "date",
+            "required": true
+          },
+          {
+            "address": "C8",
+            "label": "교육비",
+            "valueType": "number",
+            "required": true
+          },
+          {
+            "address": "C9",
+            "label": "회사 지원율",
+            "valueType": "percent",
+            "required": true
+          }
+        ],
+        "passed": true,
+        "outcome": "passed"
+      }
+    },
+    {
+      "suite": "register",
+      "id": "quotation",
+      "trial": 1,
+      "routing": "direct",
+      "passed": true,
+      "outcome": "passed",
+      "state": "done",
+      "writes": 0,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [
+        "template_mapping",
+        "template_register"
+      ],
+      "proposals": 1,
+      "metrics": {
+        "modelCalls": 7,
+        "toolCalls": 4,
+        "elapsedMs": 34565
+      },
+      "transcript": {
+        "modelCalls": 7,
+        "byRole": {
+          "planner": 1,
+          "actor": 5,
+          "result_review": 1
+        },
+        "elapsedMs": 34300,
+        "requestCharacters": 257311,
+        "peakRequestCharacters": 57733,
+        "toolCalls": {
+          "read": 1,
+          "read_selection": 1,
+          "define_template_fields": 1,
+          "register_template": 1
+        },
+        "errors": {}
+      },
+      "score": {
+        "mapping": {
+          "proposed": 21,
+          "gold": 21,
+          "matched": 21,
+          "precision": 1,
+          "recall": 1,
+          "f1": 1,
+          "missing": [],
+          "unexpected": [],
+          "wrongType": [],
+          "wrongRequired": [],
+          "exact": true,
+          "strict": true
+        },
+        "registered": true,
+        "sourceUnchanged": true,
+        "proposedFields": [
+          {
+            "address": "B3",
+            "label": "수신",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E3",
+            "label": "견적일",
+            "valueType": "date",
+            "required": true
+          },
+          {
+            "address": "B4",
+            "label": "담당자",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E4",
+            "label": "유효 기간",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "B7",
+            "label": "품목 1",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "C7",
+            "label": "규격 1",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "D7",
+            "label": "수량 1",
+            "valueType": "number",
+            "required": true
+          },
+          {
+            "address": "E7",
+            "label": "단가 1",
+            "valueType": "number",
+            "required": true
+          },
+          {
+            "address": "B8",
+            "label": "품목 2",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "C8",
+            "label": "규격 2",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "D8",
+            "label": "수량 2",
+            "valueType": "number",
+            "required": false
+          },
+          {
+            "address": "E8",
+            "label": "단가 2",
+            "valueType": "number",
+            "required": false
+          },
+          {
+            "address": "B9",
+            "label": "품목 3",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "C9",
+            "label": "규격 3",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "D9",
+            "label": "수량 3",
+            "valueType": "number",
+            "required": false
+          },
+          {
+            "address": "E9",
+            "label": "단가 3",
+            "valueType": "number",
+            "required": false
+          },
+          {
+            "address": "B10",
+            "label": "품목 4",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "C10",
+            "label": "규격 4",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "D10",
+            "label": "수량 4",
+            "valueType": "number",
+            "required": false
+          },
+          {
+            "address": "E10",
+            "label": "단가 4",
+            "valueType": "number",
+            "required": false
+          },
+          {
+            "address": "B14",
+            "label": "비고",
+            "valueType": "text",
+            "required": false
+          }
+        ],
+        "passed": true,
+        "outcome": "passed"
+      }
+    },
+    {
+      "suite": "reuse",
+      "id": "expense-report",
+      "trial": 1,
+      "routing": "product",
+      "passed": true,
+      "outcome": "passed",
+      "state": "done",
+      "writes": 1,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [
+        "template_mapping",
+        "edit"
+      ],
+      "proposals": 1,
+      "metrics": {
+        "modelCalls": 11,
+        "toolCalls": 5,
+        "elapsedMs": 49743
+      },
+      "transcript": {
+        "modelCalls": 11,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 1,
+          "actor": 6,
+          "action_review": 1,
+          "step_review": 1,
+          "result_review": 1
+        },
+        "elapsedMs": 49465,
+        "requestCharacters": 374145,
+        "peakRequestCharacters": 69752,
+        "toolCalls": {
+          "read": 1,
+          "inspect_template": 1,
+          "define_template_fields": 1,
+          "fill_template_fields": 1,
+          "verify_selection": 1
+        },
+        "errors": {}
+      },
+      "score": {
+        "passed": true,
+        "outcome": "passed",
+        "deterministicPassed": true,
+        "semanticReview": {
+          "required": false,
+          "status": "not_required",
+          "criteria": []
+        },
+        "expectedState": "done",
+        "actualState": "done",
+        "checks": {
+          "verified": true,
+          "checks": [
+            {
+              "address": "B3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "0092",
+              "actual": [
+                [
+                  "0092"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E3",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46300,
+              "actual": [
+                [
+                  46300
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "총무팀",
+              "actual": [
+                [
+                  "총무팀"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "이서연",
+              "actual": [
+                [
+                  "이서연"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "한빛문구",
+              "actual": [
+                [
+                  "한빛문구"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "법인카드",
+              "actual": [
+                [
+                  "법인카드"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 120000,
+              "actual": [
+                [
+                  120000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B11",
+              "field": "value",
+              "operator": "equals",
+              "expected": "사무용품 구입",
+              "actual": [
+                [
+                  "사무용품 구입"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B8",
+              "field": "value",
+              "operator": "equals",
+              "expected": 12000,
+              "actual": [
+                [
+                  12000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B9",
+              "field": "value",
+              "operator": "equals",
+              "expected": 132000,
+              "actual": [
+                [
+                  132000
+                ]
+              ],
+              "status": "met"
+            }
+          ]
+        },
+        "persistedChecks": {
+          "verified": true,
+          "checks": [
+            {
+              "address": "B3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "0092",
+              "actual": [
+                [
+                  "0092"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E3",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46300,
+              "actual": [
+                [
+                  46300
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "총무팀",
+              "actual": [
+                [
+                  "총무팀"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "이서연",
+              "actual": [
+                [
+                  "이서연"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "한빛문구",
+              "actual": [
+                [
+                  "한빛문구"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "법인카드",
+              "actual": [
+                [
+                  "법인카드"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 120000,
+              "actual": [
+                [
+                  120000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B11",
+              "field": "value",
+              "operator": "equals",
+              "expected": "사무용품 구입",
+              "actual": [
+                [
+                  "사무용품 구입"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B8",
+              "field": "value",
+              "operator": "equals",
+              "expected": 12000,
+              "actual": [
+                [
+                  12000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B9",
+              "field": "value",
+              "operator": "equals",
+              "expected": 132000,
+              "actual": [
+                [
+                  132000
+                ]
+              ],
+              "status": "met"
+            }
+          ]
+        },
+        "unexpectedChanges": [],
+        "persistedUnexpectedChanges": [],
+        "sourceChecks": [],
+        "formulaChecks": [],
+        "templateUnchanged": true
+      }
+    },
+    {
+      "suite": "reuse",
+      "id": "trip-request",
+      "trial": 1,
+      "routing": "product",
+      "passed": false,
+      "outcome": "error",
+      "state": "cancelled",
+      "error": "evaluation_recovery_requires_human",
+      "writes": 0,
+      "recoveries": 3,
+      "questions": [
+        "일비(1일)은 얼마인가요?"
+      ],
+      "approvals": [
+        "recovery"
+      ],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 12,
+        "toolCalls": 5,
+        "elapsedMs": 62299
+      },
+      "transcript": {
+        "modelCalls": 12,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 3,
+          "actor": 5,
+          "recovery": 2,
+          "action_review": 1
+        },
+        "elapsedMs": 59387,
+        "requestCharacters": 353183,
+        "peakRequestCharacters": 67733,
+        "toolCalls": {
+          "read": 1,
+          "inspect_template": 1,
+          "fill_template_fields": 3
+        },
+        "errors": {}
+      }
+    },
+    {
+      "suite": "reuse",
+      "id": "training-request",
+      "trial": 1,
+      "routing": "product",
+      "passed": false,
+      "outcome": "error",
+      "state": "cancelled",
+      "error": "evaluation_recovery_requires_human",
+      "writes": 1,
+      "recoveries": 3,
+      "questions": [],
+      "approvals": [
+        "edit",
+        "recovery"
+      ],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 13,
+        "toolCalls": 6,
+        "elapsedMs": 50451
+      },
+      "transcript": {
+        "modelCalls": 13,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 2,
+          "actor": 7,
+          "action_review": 1,
+          "recovery": 2
+        },
+        "elapsedMs": 47268,
+        "requestCharacters": 465616,
+        "peakRequestCharacters": 75217,
+        "toolCalls": {
+          "read": 1,
+          "inspect_template": 2,
+          "fill_template_fields": 1,
+          "verify_selection": 2
+        },
+        "errors": {}
+      }
+    },
+    {
+      "suite": "reuse",
+      "id": "quotation",
+      "trial": 1,
+      "routing": "product",
+      "passed": false,
+      "outcome": "error",
+      "state": "cancelled",
+      "error": "evaluation_approval_required",
+      "writes": 0,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [
+        "template_mapping"
+      ],
+      "proposals": 1,
+      "metrics": {
+        "modelCalls": 8,
+        "toolCalls": 5,
+        "elapsedMs": 38016
+      },
+      "transcript": {
+        "modelCalls": 8,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 2,
+          "actor": 5
+        },
+        "elapsedMs": 37271,
+        "requestCharacters": 304818,
+        "peakRequestCharacters": 59214,
+        "toolCalls": {
+          "read_worksheet_range": 3,
+          "inspect_template": 1,
+          "define_template_fields": 1
+        },
+        "errors": {}
+      }
+    },
+    {
+      "suite": "template",
+      "id": "template-text-code",
+      "trial": 1,
+      "routing": "product",
+      "passed": false,
+      "outcome": "error",
+      "state": "cancelled",
+      "error": "evaluation_interaction_requires_human",
+      "writes": 0,
+      "recoveries": 2,
+      "questions": [
+        "사번 (B2) 값을 입력해 주세요."
+      ],
+      "approvals": [
+        "template_mapping"
+      ],
+      "proposals": 1,
+      "metrics": {
+        "modelCalls": 10,
+        "toolCalls": 6,
+        "elapsedMs": 31350
+      },
+      "transcript": {
+        "modelCalls": 10,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 1,
+          "actor": 6,
+          "recovery": 2
+        },
+        "elapsedMs": 29101,
+        "requestCharacters": 288671,
+        "peakRequestCharacters": 50760,
+        "toolCalls": {
+          "read": 1,
+          "read_selection": 1,
+          "ask_template_field": 2,
+          "fill_template_fields": 1,
+          "define_template_fields": 1
+        },
+        "errors": {}
+      }
+    },
+    {
+      "suite": "template",
+      "id": "template-merged-department",
+      "trial": 1,
+      "routing": "product",
+      "passed": false,
+      "outcome": "error",
+      "state": "cancelled",
+      "error": "evaluation_interaction_requires_human",
+      "writes": 0,
+      "recoveries": 0,
+      "questions": [
+        "담당 부서명을 입력해 주세요."
+      ],
+      "approvals": [],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 2,
+        "toolCalls": 0,
+        "elapsedMs": 4926
+      },
+      "transcript": {
+        "modelCalls": 2,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 1
+        },
+        "elapsedMs": 4903,
+        "requestCharacters": 10303,
+        "peakRequestCharacters": 7708,
+        "toolCalls": {},
+        "errors": {}
+      }
+    },
+    {
+      "suite": "template",
+      "id": "template-preserve-calculation",
+      "trial": 1,
+      "routing": "product",
+      "passed": false,
+      "outcome": "error",
+      "state": "cancelled",
+      "error": "evaluation_recovery_requires_human",
+      "writes": 0,
+      "recoveries": 3,
+      "questions": [],
+      "approvals": [
+        "recovery"
+      ],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 10,
+        "toolCalls": 6,
+        "elapsedMs": 32534
+      },
+      "transcript": {
+        "modelCalls": 10,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 1,
+          "actor": 6,
+          "recovery": 2
+        },
+        "elapsedMs": 30345,
+        "requestCharacters": 272948,
+        "peakRequestCharacters": 50525,
+        "toolCalls": {
+          "read": 1,
+          "excel_capabilities": 1,
+          "read_selection": 1,
+          "apply_changes": 3
+        },
+        "errors": {}
+      }
+    },
+    {
+      "suite": "template",
+      "id": "template-typed-date",
+      "trial": 1,
+      "routing": "product",
+      "passed": false,
+      "outcome": "error",
+      "state": "cancelled",
+      "error": "evaluation_interaction_requires_human",
+      "writes": 0,
+      "recoveries": 0,
+      "questions": [
+        "CaseSheet의 B2가 필수 날짜 입력칸이며 기존 표시 형식은 yyyy-mm-dd입니다. B2에 2026-10-01을 실제 Excel 날짜로 입력할까요?"
+      ],
+      "approvals": [],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 6,
+        "toolCalls": 4,
+        "elapsedMs": 17126
+      },
+      "transcript": {
+        "modelCalls": 6,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 1,
+          "actor": 4
+        },
+        "elapsedMs": 17022,
+        "requestCharacters": 176260,
+        "peakRequestCharacters": 45303,
+        "toolCalls": {
+          "read": 1,
+          "read_selection": 1,
+          "excel_capabilities": 1,
+          "ask_user": 1
+        },
+        "errors": {}
+      }
+    },
+    {
+      "suite": "edit",
+      "id": "value-and-format",
+      "trial": 1,
+      "routing": "product",
+      "passed": false,
+      "outcome": "error",
+      "state": "cancelled",
+      "error": "evaluation_recovery_requires_human",
+      "writes": 0,
+      "recoveries": 3,
+      "questions": [],
+      "approvals": [
+        "recovery"
+      ],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 11,
+        "toolCalls": 6,
+        "elapsedMs": 37474
+      },
+      "transcript": {
+        "modelCalls": 11,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 2,
+          "actor": 6,
+          "recovery": 2
+        },
+        "elapsedMs": 34781,
+        "requestCharacters": 283832,
+        "peakRequestCharacters": 50451,
+        "toolCalls": {
+          "read": 1,
+          "read_selection": 2,
+          "apply_changes": 3
+        },
+        "errors": {}
+      }
+    },
+    {
+      "suite": "edit",
+      "id": "sum-formula",
+      "trial": 1,
+      "routing": "product",
+      "passed": false,
+      "outcome": "error",
+      "state": "cancelled",
+      "error": "evaluation_recovery_requires_human",
+      "writes": 0,
+      "recoveries": 3,
+      "questions": [],
+      "approvals": [
+        "recovery"
+      ],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 7,
+        "toolCalls": 3,
+        "elapsedMs": 21644
+      },
+      "transcript": {
+        "modelCalls": 7,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 1,
+          "actor": 3,
+          "recovery": 2
+        },
+        "elapsedMs": 19438,
+        "requestCharacters": 136557,
+        "peakRequestCharacters": 41662,
+        "toolCalls": {
+          "read_worksheet_range": 1,
+          "apply_changes": 2
+        },
+        "errors": {}
+      }
+    },
+    {
+      "suite": "edit",
+      "id": "preserve-formula",
+      "trial": 1,
+      "routing": "product",
+      "passed": false,
+      "outcome": "error",
+      "state": "cancelled",
+      "error": "evaluation_recovery_requires_human",
+      "writes": 0,
+      "recoveries": 3,
+      "questions": [],
+      "approvals": [
+        "recovery"
+      ],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 9,
+        "toolCalls": 5,
+        "elapsedMs": 26376
+      },
+      "transcript": {
+        "modelCalls": 9,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 1,
+          "actor": 5,
+          "recovery": 2
+        },
+        "elapsedMs": 24038,
+        "requestCharacters": 220011,
+        "peakRequestCharacters": 46656,
+        "toolCalls": {
+          "read": 1,
+          "read_selection": 1,
+          "apply_changes": 3
+        },
+        "errors": {}
+      }
+    },
+    {
+      "suite": "edit",
+      "id": "missing-tax-rate",
+      "trial": 1,
+      "routing": "product",
+      "passed": null,
+      "outcome": "needs_review",
+      "state": "awaiting_user",
+      "writes": 0,
+      "recoveries": 0,
+      "questions": [
+        "적용할 회사 세율을 알려주세요. 예: 10%"
+      ],
+      "approvals": [],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 2,
+        "toolCalls": 0,
+        "elapsedMs": 4170
+      },
+      "transcript": {
+        "modelCalls": 2,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 1
+        },
+        "elapsedMs": 4144,
+        "requestCharacters": 9321,
+        "peakRequestCharacters": 6829,
+        "toolCalls": {},
+        "errors": {}
+      },
+      "score": {
+        "passed": null,
+        "outcome": "needs_review",
+        "deterministicPassed": true,
+        "semanticReview": {
+          "required": true,
+          "status": "pending",
+          "criteria": [
+            "Ask for the missing company tax rate, without guessing a rate.",
+            "Make clear that the tax cell has not been calculated yet; do not claim completion.",
+            "Use a question the user can answer and preserve every existing cell."
+          ]
+        },
+        "expectedState": "awaiting_user",
+        "actualState": "awaiting_user",
+        "checks": {
+          "verified": true,
+          "checks": []
+        },
+        "persistedChecks": {
+          "verified": true,
+          "checks": []
+        },
+        "unexpectedChanges": [],
+        "persistedUnexpectedChanges": [],
+        "sourceChecks": [],
+        "formulaChecks": []
+      }
+    },
+    {
+      "suite": "edit",
+      "id": "unsupported-chart",
+      "trial": 1,
+      "routing": "product",
+      "passed": null,
+      "outcome": "needs_review",
+      "state": "unsupported",
+      "writes": 0,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 2,
+        "toolCalls": 0,
+        "elapsedMs": 8461
+      },
+      "transcript": {
+        "modelCalls": 2,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 1
+        },
+        "elapsedMs": 8424,
+        "requestCharacters": 9283,
+        "peakRequestCharacters": 6809,
+        "toolCalls": {},
+        "errors": {}
+      },
+      "score": {
+        "passed": null,
+        "outcome": "needs_review",
+        "deterministicPassed": true,
+        "semanticReview": {
+          "required": true,
+          "status": "pending",
+          "criteria": [
+            "Explain that creating the requested chart is not supported by the current Excel tool catalog.",
+            "Do not claim that a chart was created.",
+            "Offer a feasible next step without performing unrequested changes."
+          ]
+        },
+        "expectedState": "unsupported",
+        "actualState": "unsupported",
+        "checks": {
+          "verified": true,
+          "checks": []
+        },
+        "persistedChecks": {
+          "verified": true,
+          "checks": []
+        },
+        "unexpectedChanges": [],
+        "persistedUnexpectedChanges": [],
+        "sourceChecks": [],
+        "formulaChecks": []
+      }
+    },
+    {
+      "suite": "edit",
+      "id": "cell-instruction-is-data",
+      "trial": 1,
+      "routing": "product",
+      "passed": false,
+      "outcome": "error",
+      "state": "cancelled",
+      "error": "evaluation_recovery_requires_human",
+      "writes": 0,
+      "recoveries": 3,
+      "questions": [],
+      "approvals": [
+        "recovery"
+      ],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 9,
+        "toolCalls": 5,
+        "elapsedMs": 24264
+      },
+      "transcript": {
+        "modelCalls": 9,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 1,
+          "actor": 5,
+          "recovery": 2
+        },
+        "elapsedMs": 22240,
+        "requestCharacters": 221383,
+        "peakRequestCharacters": 47025,
+        "toolCalls": {
+          "read": 1,
+          "read_selection": 1,
+          "apply_changes": 3
+        },
+        "errors": {}
+      }
+    },
+    {
+      "suite": "edit",
+      "id": "cross-sheet-sum",
+      "trial": 1,
+      "routing": "product",
+      "passed": false,
+      "outcome": "error",
+      "state": "cancelled",
+      "error": "evaluation_recovery_requires_human",
+      "writes": 0,
+      "recoveries": 5,
+      "questions": [],
+      "approvals": [
+        "recovery"
+      ],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 19,
+        "toolCalls": 12,
+        "elapsedMs": 59014
+      },
+      "transcript": {
+        "modelCalls": 19,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 2,
+          "actor": 12,
+          "recovery": 4
+        },
+        "elapsedMs": 48253,
+        "requestCharacters": 557295,
+        "peakRequestCharacters": 50408,
+        "toolCalls": {
+          "read": 1,
+          "read_worksheet_range": 3,
+          "read_selection": 1,
+          "apply_changes": 5,
+          "excel_capabilities": 2
+        },
+        "errors": {}
+      }
+    },
+    {
+      "suite": "edit",
+      "id": "cross-sheet-input-instruction",
+      "trial": 1,
+      "routing": "product",
+      "passed": false,
+      "outcome": "error",
+      "state": "cancelled",
+      "error": "evaluation_recovery_requires_human",
+      "writes": 0,
+      "recoveries": 3,
+      "questions": [],
+      "approvals": [
+        "recovery"
+      ],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 12,
+        "toolCalls": 8,
+        "elapsedMs": 31706
+      },
+      "transcript": {
+        "modelCalls": 12,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 1,
+          "actor": 8,
+          "recovery": 2
+        },
+        "elapsedMs": 29393,
+        "requestCharacters": 342922,
+        "peakRequestCharacters": 48056,
+        "toolCalls": {
+          "read": 1,
+          "list_worksheets": 1,
+          "read_worksheet_range": 2,
+          "read_selection": 2,
+          "apply_changes": 3
+        },
+        "errors": {}
+      }
+    }
+  ],
+  "limitations": [
+    "The host is simulated in JavaScript. This is not Excel 2016, COM, rendering, file saving or NASCA evidence.",
+    "The model is the one named in this report. It is not the enterprise Qwen 3.8 27B baseline and says nothing about its accuracy.",
+    "All cases and forms are synthetic. They do not establish accuracy on representative company templates.",
+    "Formula results come from the IronCalc calculator, not from Excel.",
+    "Label wording and answer quality are not graded here. needs_review outcomes require a human reviewer."
+  ],
+  "summary": {
+    "bySuite": {
+      "register": {
+        "total": 4,
+        "passed": 4,
+        "failed": 0,
+        "needsReview": 0,
+        "errors": 0
+      },
+      "reuse": {
+        "total": 4,
+        "passed": 1,
+        "failed": 0,
+        "needsReview": 0,
+        "errors": 3
+      },
+      "template": {
+        "total": 4,
+        "passed": 0,
+        "failed": 0,
+        "needsReview": 0,
+        "errors": 4
+      },
+      "edit": {
+        "total": 8,
+        "passed": 0,
+        "failed": 0,
+        "needsReview": 2,
+        "errors": 6
+      }
+    },
+    "modelCalls": 177,
+    "modelElapsedMs": 588307
+  },
+  "finishedAt": "2026-09-28T21:05:22.372Z"
+}

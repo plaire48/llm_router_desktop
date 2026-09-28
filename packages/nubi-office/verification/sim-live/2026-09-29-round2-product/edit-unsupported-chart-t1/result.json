@@ -1,0 +1,80 @@
+{
+  "suite": "edit",
+  "id": "unsupported-chart",
+  "trial": 1,
+  "routing": "product",
+  "passed": null,
+  "outcome": "needs_review",
+  "state": "unsupported",
+  "writes": 0,
+  "recoveries": 0,
+  "questions": [],
+  "approvals": [],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 2,
+    "toolCalls": 0,
+    "elapsedMs": 4015
+  },
+  "transcript": {
+    "modelCalls": 2,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 1
+    },
+    "elapsedMs": 4002,
+    "requestCharacters": 9283,
+    "peakRequestCharacters": 6809,
+    "toolCalls": {},
+    "errors": {}
+  },
+  "score": {
+    "passed": null,
+    "outcome": "needs_review",
+    "deterministicPassed": true,
+    "semanticReview": {
+      "required": true,
+      "status": "pending",
+      "criteria": [
+        "Explain that creating the requested chart is not supported by the current Excel tool catalog.",
+        "Do not claim that a chart was created.",
+        "Offer a feasible next step without performing unrequested changes."
+      ]
+    },
+    "expectedState": "unsupported",
+    "actualState": "unsupported",
+    "checks": {
+      "verified": true,
+      "checks": []
+    },
+    "persistedChecks": {
+      "verified": true,
+      "checks": []
+    },
+    "unexpectedChanges": [],
+    "persistedUnexpectedChanges": [],
+    "sourceChecks": [],
+    "formulaChecks": []
+  },
+  "request": "선택한 자료로 막대 차트를 삽입해줘.",
+  "answer": "선택한 자료로 막대 차트를 삽입하려는 요청입니다.",
+  "question": "",
+  "task": {
+    "intent": "unsupported",
+    "summary": "선택한 자료로 막대 차트를 삽입하려는 요청입니다.",
+    "requirements": [
+      "선택 범위 A1:B3의 자료를 차트 원본으로 사용"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [],
+    "steps": []
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    }
+  ],
+  "recoveryLog": []
+}

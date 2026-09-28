@@ -1,0 +1,34 @@
+{
+  "date": "2026-09-25",
+  "sources": [
+    {
+      "repo": "hewliyang/office-agents",
+      "commit": "95fb654491a9d394dc85ea2b8c93dee2ca4546b9",
+      "licenseReview": "MIT declaration only; root LICENSE absent",
+      "path": "/tmp/nubi-office-draft-context-20260925/get-cell-ranges.ts",
+      "newDownload": true,
+      "sha256": "6a4739b7fb66bca5ba251b6fe809069d6d434e3b5e1406828bb9a04baa85e1cf"
+    },
+    {
+      "repo": "anomalyco/opencode",
+      "commit": "16c56fe5ecc3305028d1f0a9cff5806e51c9d480",
+      "licenseReview": "MIT",
+      "path": "/tmp/nubi-office-benchmark-2026-09-25/opencode/packages/opencode/src/tool/read.ts",
+      "newDownload": false,
+      "sha256": "afec8294965cbd9b9e29d3453b682164f0ecdba26574ebc048e9ba21af209c68"
+    },
+    {
+      "repo": "openai/codex",
+      "commit": "aa380897f67b91e1a47d530d7286d497b6726d3f",
+      "licenseReview": "Apache-2.0",
+      "path": "/tmp/nubi-office-benchmark-2026-09-25/codex/codex-rs/exec-server/src/file_read.rs",
+      "newDownload": false,
+      "sha256": "99e2e06d68f2aea044648681400eea99eb3a66fa01c7cf317e2e0e2ab6dc2bbd"
+    }
+  ],
+  "officialReference": "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents",
+  "externalSourceExecuted": false,
+  "externalCodeCopied": false,
+  "newRuntimeDependencies": 0,
+  "runtimeReuse": "Existing Pi and Office draft tools; fast-check development tests"
+}

@@ -1,0 +1,61 @@
+{
+  "kind": "source-only-agent-quality-checks",
+  "date": "2026-09-23",
+  "version": "0.8.2-unreleased",
+  "baselineModel": "User-designated enterprise Qwen 3.8 27B; no API ID or capability assumed",
+  "checks": {
+    "sourceNodeTests": {
+      "passed": 149,
+      "failed": 0
+    },
+    "publicationSnapshotNodeTests": {
+      "passed": 149,
+      "failed": 0
+    },
+    "finalFixtureTests": {
+      "sourcePassed": 4,
+      "publicationPassed": 4
+    },
+    "designSourceChecks": "passed in source and publication snapshot",
+    "actualXlsxSerialization": "covered by existing Node test; not Excel calculation"
+  },
+  "wireSizeFixture": {
+    "unit": "JSON characters",
+    "cells": 600,
+    "originalChars": 85912,
+    "sentChars": 8438,
+    "savedPercent": 90.18
+  },
+  "dependency": {
+    "name": "excel-formula-tokenizer",
+    "version": "3.0.0",
+    "license": "MIT",
+    "use": "tokenization only; not calculation"
+  },
+  "publicationSourceHashes": {
+    "worker/agent.mjs": "f7e9ef01d2be02a4930361c051dacb8a7b33634a131ce43a40af1f9c410fd87a",
+    "worker/document-agent.mjs": "bfe31d9a8fd56dddb21d432da7094445d18e763901ac0d818d1a446de191b761",
+    "worker/document-schema.mjs": "6b82467362a820a4837a4e9051ac5979aa111afd81e9a7cd985c1d1515d4e8e0",
+    "worker/document-context.mjs": "b545f33427f87f283c08821bc402c9e81212c6ee3742c5010fc3d96a97ba28d6",
+    "worker/formula-preflight.mjs": "40635e898e1115f0f57df2dc075381dc3b38b96b96b9acecb68dff13ee0e7672",
+    "worker/model-context.mjs": "4623c227367048c1702a5d8fdc3680ff0e0f13d674f9fd08dbf6449f1dc97ba4",
+    "worker/tool-response.mjs": "674aa39e0b4edb8e722bc2fa91eda0e554a0a14ddd640830ed79abaa6fe34e2f",
+    "worker/resilience.mjs": "207bd695242ccb9759ee48f4afdc764f18ce5ac65e0a93a721c2d595197fdfd3",
+    "worker/workbook-context.mjs": "20dc33c4233640a8cd4c51a9839543b9b24cff4036a0992d7be90b5820c7aae6",
+    "worker/providers.mjs": "c3505be3ef2729c913f1d62c740a982a914bc31627be84e767b2831c606a1f63",
+    "package-lock.json": "c17951bdcfc2e33c753d2e567b9cb1eac792ab2c6f25fae7ce575132a48d74f1"
+  },
+  "notRun": [
+    "live Qwen/provider quality, latency or token-cost evaluation",
+    "Windows Excel 2016 COM and NASCA",
+    "new UI browser bundle or native compilation",
+    "installer build, CI build or release"
+  ],
+  "liveAccuracy": null,
+  "limitations": [
+    "Scripted model/host tests verify harness behavior, not real model success.",
+    "Character reduction is for a repetitive synthetic fixture within the existing observation limit, not end-to-end token/latency/accuracy improvement.",
+    "Static formula checks are a supported subset and cannot replace actual Excel calculation or requirement review.",
+    "Previous installed native worker session failure remains unresolved."
+  ]
+}

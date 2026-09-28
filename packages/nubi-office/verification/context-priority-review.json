@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-23",
+  "scope": "Latest user history retention and ownership under bounded context reconstruction",
+  "baselineCommit": "60f6660f3372af8cee1a7453e9fab097e5342ab4",
+  "modelBaseline": "Enterprise Qwen 3.8 27B; live model not invoked",
+  "before": {
+    "tests": 5,
+    "pass": 0,
+    "fail": 5,
+    "cancelled": 0,
+    "skipped": 0,
+    "logSha256": "85ea6f0e5cf60ad1fc20b591227fb75683eeaa76fd35b66ea29365ee9845c637"
+  },
+  "beforeNote": "Five initial tests include reproduced behavior defects and assertions for new coverage metadata. Not five independently confirmed production defects.",
+  "after": {
+    "developmentFocusedSuite": {
+      "tests": 34,
+      "pass": 34,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "logSha256": "5bfc9a8c0bb67860bd9395addc0748bb4f1bca4382df1ac32d58b5446a0b5cf6"
+    },
+    "publicationFullSuite": {
+      "tests": 417,
+      "pass": 417,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "logSha256": "1753e2620817324456a93d5f36ee97bae9afea7ba7c08557a73ce35355bc8385"
+    },
+    "designCheckIssues": 0,
+    "designLogSha256": "04446bc6c97d6fc13a0768901bc6b1d53ced22555cbc8d3340758450880c7475",
+    "sharedUiParity": {
+      "files": 24,
+      "matched": true,
+      "logSha256": "6f841ecad570fd5539ea057528c6d70fbcf11f9364a907309c5c3976692ac3b1"
+    }
+  },
+  "dependenciesChanged": false,
+  "actualReuse": {
+    "MiniSearch": "7.2.0 MIT, unchanged source index and scored query",
+    "fast-check": "4.10.2 MIT, development-only 100 generated inputs seed 2392305",
+    "Pi": "0.86.1 existing executor integration regression checks"
+  },
+  "patternOnly": {
+    "Anthropic context engineering": "Recent source retention and recoverable exact evidence; no runtime or model adoption"
+  },
+  "checks": [
+    "Latest user correction survives older retrieval and assistant messages",
+    "Summary returned to a consumer cannot mutate retained memory",
+    "Advisory summary omitted before exact latest user source",
+    "Serialized metadata/escaping budget enforced; impossible envelope rejected",
+    "Oversized latest source coverage explicit and full original pageable",
+    "Original user requirements unchanged",
+    "Empty and assistant-only histories do not create user authority"
+  ],
+  "scripted": [
+    "Model decisions in existing integration fixtures",
+    "Office/native results and test approval responses"
+  ],
+  "buildsExecuted": false,
+  "installerUpdated": false,
+  "limitations": [
+    "Latest user priority is not semantic preservation of every historical constraint",
+    "Oversized latest message remains partial with exact retrieval available",
+    "Run memory only; no durable restart context"
+  ],
+  "notVerified": [
+    "Windows Office 2016 COM/installation/WebView2",
+    "Qwen correction comprehension, accuracy, latency or cost",
+    "Corporate SSO and NASCA",
+    "Native long-item continuation",
+    "Hierarchical large-document final review",
+    "Protected durable recovery",
+    "Python/external skill installation"
+  ],
+  "references": [
+    "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents",
+    "https://lucaong.github.io/minisearch/classes/MiniSearch.MiniSearch.html"
+  ],
+  "sourceCheckout": "publication",
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "8c290aa9476a2dd8d5f37358dea3e7cada95efb6aacafac3043968fa4d59be24"
+    },
+    {
+      "path": "docs/CONTEXT-PRIORITY-2026-09-23.md",
+      "sha256": "2bfac24fd4a645b19d851fb8f55b7e34d5915ab382c36dbce3e908e2deec2638"
+    },
+    {
+      "path": "docs/CONTEXT-MANAGEMENT-2026-09-23.md",
+      "sha256": "be0a526fd0bb693c88b0f165ea00dbc6e031d6504840d42401bdcfb8e879915b"
+    },
+    {
+      "path": "docs/IMPROVEMENT-STATUS.md",
+      "sha256": "9439c6d84cf410ce74309d7cc23778db51979667e2f54d7b40e22a2bbd550642"
+    },
+    {
+      "path": "worker/context-memory.mjs",
+      "sha256": "c1b293fef94b63adb4386a6b1b312e3663e6b2b86952e3b4843c0cd5e6badc5d"
+    },
+    {
+      "path": "tests/context-priority.test.mjs",
+      "sha256": "11a62b18b468f6431ed85d9386665c2b455b10a6bba97347338f584ef18dc84d"
+    }
+  ]
+}

@@ -1,0 +1,125 @@
+[
+  [
+    "word",
+    {
+      "type": "append_paragraph",
+      "text": "보고",
+      "style": "heading"
+    },
+    "/style"
+  ],
+  [
+    "word",
+    {
+      "type": "append_paragraph",
+      "text": "보고"
+    },
+    "/style"
+  ],
+  [
+    "word",
+    {
+      "type": "append_paragraph",
+      "text": "보고\n",
+      "style": "Normal"
+    },
+    "/text"
+  ],
+  [
+    "word",
+    {
+      "type": "append_table",
+      "rows": [
+        [
+          "제목"
+        ],
+        [
+          "a",
+          "b"
+        ]
+      ]
+    },
+    "/rows/1"
+  ],
+  [
+    "word",
+    {
+      "type": "append_table",
+      "rows": [
+        [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "/rows/0/0"
+  ],
+  [
+    "word",
+    {
+      "type": "append_table",
+      "rows": [
+        []
+      ]
+    },
+    "/rows/0"
+  ],
+  [
+    "word",
+    {
+      "type": "fill_field",
+      "targetId": "cc1",
+      "text": 42
+    },
+    "/text"
+  ],
+  [
+    "word",
+    {
+      "type": "replace_text",
+      "targetId": "p1",
+      "text": "값\t"
+    },
+    "/text"
+  ],
+  [
+    "powerpoint",
+    {
+      "type": "add_slide",
+      "title": "제목",
+      "bullets": "내용",
+      "notes": ""
+    },
+    "/bullets"
+  ],
+  [
+    "powerpoint",
+    {
+      "type": "add_slide",
+      "title": "제목",
+      "bullets": [
+        "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      ],
+      "notes": ""
+    },
+    "/bullets/0"
+  ],
+  [
+    "powerpoint",
+    {
+      "type": "set_slide_content",
+      "targetId": "s1",
+      "title": "제목",
+      "bullets": []
+    },
+    "/notes"
+  ],
+  [
+    "powerpoint",
+    {
+      "type": "append_paragraph",
+      "text": "타 앱 작업",
+      "style": "Normal"
+    },
+    "/type"
+  ]
+]

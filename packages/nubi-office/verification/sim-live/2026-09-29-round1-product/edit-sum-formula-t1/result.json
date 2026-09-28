@@ -1,0 +1,214 @@
+{
+  "suite": "edit",
+  "id": "sum-formula",
+  "trial": 1,
+  "routing": "product",
+  "passed": false,
+  "outcome": "error",
+  "state": "cancelled",
+  "error": "evaluation_recovery_requires_human",
+  "writes": 0,
+  "recoveries": 3,
+  "questions": [],
+  "approvals": [
+    "recovery"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 7,
+    "toolCalls": 3,
+    "elapsedMs": 21644
+  },
+  "transcript": {
+    "modelCalls": 7,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 1,
+      "actor": 3,
+      "recovery": 2
+    },
+    "elapsedMs": 19438,
+    "requestCharacters": 136557,
+    "peakRequestCharacters": 41662,
+    "toolCalls": {
+      "read_worksheet_range": 1,
+      "apply_changes": 2
+    },
+    "errors": {}
+  },
+  "request": "A2와 A3의 합계를 A4에 SUM 수식으로 넣고 표시 형식을 0.00으로 해줘. 다른 셀은 유지해줘.",
+  "answer": "",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_selection",
+        "title": "선택 범위와 기존 값·수식을 확인합니다",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "write_sum",
+        "title": "A4에 합계 수식과 0.00 형식을 적용합니다",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2
+        ],
+        "state": "paused"
+      },
+      {
+        "id": "verify_result",
+        "title": "A4의 수식·합계·표시 형식과 다른 셀 보존을 확인합니다",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2
+        ],
+        "state": "pending"
+      }
+    ],
+    "total": 3,
+    "completed": 1,
+    "currentStepId": "write_sum"
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "A2와 A3의 합계를 A4에 SUM 수식으로 입력하고 A4 표시 형식을 0.00으로 설정하며 다른 셀은 유지합니다.",
+    "requirements": [
+      "A4에 =SUM(A2:A3) 수식을 입력합니다.",
+      "A4의 표시 형식을 0.00으로 설정합니다.",
+      "A1:B3 및 B4의 기존 값과 수식을 유지합니다."
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "A4",
+        "field": "formula",
+        "operator": "equals",
+        "expected": "=SUM(A2:A3)"
+      },
+      {
+        "address": "A4",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "0.00"
+      },
+      {
+        "address": "A4",
+        "field": "value",
+        "operator": "equals",
+        "expected": 350,
+        "valueType": "number"
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_selection",
+        "title": "선택 범위와 기존 값·수식을 확인합니다",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "write_sum",
+        "title": "A4에 합계 수식과 0.00 형식을 적용합니다",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "id": "verify_result",
+        "title": "A4의 수식·합계·표시 형식과 다른 셀 보존을 확인합니다",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2
+        ]
+      }
+    ]
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_selection"
+    },
+    {
+      "name": "read_worksheet_range",
+      "state": "error",
+      "stepId": "write_sum"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_sum"
+    },
+    {
+      "name": "apply_changes",
+      "state": "error",
+      "stepId": "write_sum"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_sum"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_sum"
+    },
+    {
+      "name": "apply_changes",
+      "state": "error",
+      "stepId": "write_sum"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_sum"
+    }
+  ],
+  "recoveryLog": [
+    {
+      "attempt": 1,
+      "stepId": "write_sum",
+      "code": "worksheet_not_discovered",
+      "tool": "read_worksheet_range",
+      "outcome": "not_executed",
+      "state": "superseded",
+      "summary": "시트를 찾지 못해 작업이 실행되지 않았습니다. 대상 시트와 기존 값은 확인되었습니다.",
+      "nextAction": "워크시트 목록에서 반환된 정확한 시트 이름 `CaseSheet`를 사용해 A4에 `=SUM(A2:A3)` 수식을 입력하고 표시 형식을 `0.00`으로 설정한 뒤 A4와 보존 대상 셀을 다시 읽어 검증하세요."
+    },
+    {
+      "attempt": 2,
+      "stepId": "write_sum",
+      "code": "invalid_range",
+      "tool": "apply_changes",
+      "outcome": "not_executed",
+      "state": "superseded",
+      "summary": "시트명을 포함한 주소 형식 오류로 작업이 실행되지 않았습니다. 현재 A4는 비어 있어 수정 가능합니다.",
+      "nextAction": "현재 선택 범위 내 주소인 A4만 사용해 =SUM(A2:A3) 수식을 입력하고, A4의 표시 형식을 0.00으로 설정한 뒤 A4와 다른 셀을 다시 검토하세요."
+    },
+    {
+      "attempt": 3,
+      "stepId": "write_sum",
+      "code": "invalid_range",
+      "tool": "apply_changes",
+      "outcome": "not_executed",
+      "state": "cancelled"
+    }
+  ]
+}

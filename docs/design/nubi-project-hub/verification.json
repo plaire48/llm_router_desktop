@@ -1,0 +1,125 @@
+{
+  "kind": "design-fixture-only",
+  "schemaEngine": "Ajv 8.20.0",
+  "schemaCases": [
+    {
+      "name": "browser example",
+      "expected": true,
+      "actual": true,
+      "passed": true
+    },
+    {
+      "name": "office example",
+      "expected": true,
+      "actual": true,
+      "passed": true
+    },
+    {
+      "name": "missing project identity",
+      "expected": false,
+      "actual": false,
+      "passed": true
+    },
+    {
+      "name": "dirty snapshot without manifest hash",
+      "expected": false,
+      "actual": false,
+      "passed": true
+    },
+    {
+      "name": "clean snapshot with dirty hash",
+      "expected": false,
+      "actual": false,
+      "passed": true
+    },
+    {
+      "name": "capability with wrong receiver",
+      "expected": false,
+      "actual": false,
+      "passed": true
+    },
+    {
+      "name": "unexpected command payload",
+      "expected": false,
+      "actual": false,
+      "passed": true
+    },
+    {
+      "name": "unexpected token field",
+      "expected": false,
+      "actual": false,
+      "passed": true
+    },
+    {
+      "name": "shortened commit reference",
+      "expected": false,
+      "actual": false,
+      "passed": true
+    },
+    {
+      "name": "duplicate requirement identifiers",
+      "expected": false,
+      "actual": false,
+      "passed": true
+    }
+  ],
+  "openSpec": {
+    "version": "1.13.1",
+    "command": "OPENSPEC_TELEMETRY=0 DO_NOT_TRACK=1 npm exec --yes --package=@fission-ai/openspec@1.13.1 -- openspec validate project-knowledge --strict --no-interactive",
+    "workingDirectory": "docs/design/nubi-project-hub",
+    "exitCode": 0,
+    "result": "Change 'project-knowledge' is valid",
+    "packageIntegrity": "sha512-UHJSV2n6ohjfRaJLvi526avOohFS/orCjM+7JPgvDzuEJbCCkykKfP2fp3gcsvthDLeWolMRT5JAE08MSPnr8Q=="
+  },
+  "limits": [
+    "Does not test authentication, authorization, expiry semantics, current source binding, durable receipts or host execution.",
+    "OpenSpec validates document structure, not requirement satisfaction or real model quality."
+  ],
+  "gitMerge": {
+    "gitVersion": "git version 2.50.1 (Apple Git-155)",
+    "platform": "Darwin",
+    "command": "git merge-file -p OURS BASE THEIRS",
+    "cases": [
+      {
+        "name": "independent human and generator edits",
+        "exitCode": 0,
+        "expectedExitCode": 0,
+        "inputsPreserved": true,
+        "passed": true,
+        "base": "# Search rules\n\n## User intent\nKeep the chosen filter.\n\n## Implementation\nRoute: /search\nComponent: ResultList\nEmpty result: blank\n\n## Evidence\nNo execution evidence yet.\n",
+        "ours": "# Search rules\n\n## User intent\nKeep the chosen filter and the user-entered query.\n\n## Implementation\nRoute: /search\nComponent: ResultList\nEmpty result: blank\n\n## Evidence\nNo execution evidence yet.\n",
+        "theirs": "# Search rules\n\n## User intent\nKeep the chosen filter.\n\n## Implementation\nRoute: /search\nComponent: ResultList\nEmpty result: render EmptyState\n\n## Evidence\nNo execution evidence yet.\n",
+        "mergedOutput": "# Search rules\n\n## User intent\nKeep the chosen filter and the user-entered query.\n\n## Implementation\nRoute: /search\nComponent: ResultList\nEmpty result: render EmptyState\n\n## Evidence\nNo execution evidence yet.\n",
+        "stderr": ""
+      },
+      {
+        "name": "overlapping human and generator edits",
+        "exitCode": 1,
+        "expectedExitCode": 1,
+        "inputsPreserved": true,
+        "passed": true,
+        "base": "# Search rules\n\n## User intent\nKeep the chosen filter.\n\n## Implementation\nRoute: /search\nComponent: ResultList\nEmpty result: blank\n\n## Evidence\nNo execution evidence yet.\n",
+        "ours": "# Search rules\n\n## User intent\nKeep the chosen filter until reset is requested.\n\n## Implementation\nRoute: /search\nComponent: ResultList\nEmpty result: blank\n\n## Evidence\nNo execution evidence yet.\n",
+        "theirs": "# Search rules\n\n## User intent\nClear the filter after every search.\n\n## Implementation\nRoute: /search\nComponent: ResultList\nEmpty result: blank\n\n## Evidence\nNo execution evidence yet.\n",
+        "mergedOutput": "# Search rules\n\n## User intent\n<<<<<<< FIXTURE_DIRECTORY/사용자 문서.md\nKeep the chosen filter until reset is requested.\n=======\nClear the filter after every search.\n>>>>>>> FIXTURE_DIRECTORY/생성 제안.md\n\n## Implementation\nRoute: /search\nComponent: ResultList\nEmpty result: blank\n\n## Evidence\nNo execution evidence yet.\n",
+        "stderr": ""
+      },
+      {
+        "name": "no change preserves exact bytes",
+        "exitCode": 0,
+        "expectedExitCode": 0,
+        "inputsPreserved": true,
+        "passed": true,
+        "base": "# Search rules\n\n## User intent\nKeep the chosen filter.\n\n## Implementation\nRoute: /search\nComponent: ResultList\nEmpty result: blank\n\n## Evidence\nNo execution evidence yet.\n",
+        "ours": "# Search rules\n\n## User intent\nKeep the chosen filter.\n\n## Implementation\nRoute: /search\nComponent: ResultList\nEmpty result: blank\n\n## Evidence\nNo execution evidence yet.\n",
+        "theirs": "# Search rules\n\n## User intent\nKeep the chosen filter.\n\n## Implementation\nRoute: /search\nComponent: ResultList\nEmpty result: blank\n\n## Evidence\nNo execution evidence yet.\n",
+        "mergedOutput": "# Search rules\n\n## User intent\nKeep the chosen filter.\n\n## Implementation\nRoute: /search\nComponent: ResultList\nEmpty result: blank\n\n## Evidence\nNo execution evidence yet.\n",
+        "stderr": ""
+      }
+    ],
+    "limits": [
+      "Text merge only; semantic correctness and OpenWiki Claims reconciliation were not tested.",
+      "Unicode and spaced paths were tested on macOS, not Windows."
+    ]
+  }
+}

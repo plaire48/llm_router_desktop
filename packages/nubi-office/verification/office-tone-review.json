@@ -1,0 +1,300 @@
+{
+  "date": "2026-09-23",
+  "version": "0.8.2",
+  "kind": "source-ui-and-state-projection",
+  "baseCommit": "a2ab319ebb11df6401457854d59aacce0cd6ea60",
+  "implementation": [
+    "Deck-token compact catalog and utility icons",
+    "Shared accessible ActionButton in composer and result cards",
+    "Source-observed terminal-state projection without fabricated receipts",
+    "Failure/recovery trace disclosure and cancellation icon",
+    "Finite entry motion respecting reduced-motion"
+  ],
+  "checks": {
+    "testCommand": "npm test",
+    "passed": 298,
+    "failed": 0,
+    "skipped": 0,
+    "cancelled": 0,
+    "testLogSha256": "fd02c34a5a98b3f89c66ddacd72bfb31d0a53fc1edeb3dd1281c7aef213e167f",
+    "fastCheck": {
+      "seed": 230926,
+      "runs": 150
+    },
+    "parity": {
+      "files": 24,
+      "matched": true
+    },
+    "designIssues": 0,
+    "axe": "Source DOM checks; color-contrast rule disabled"
+  },
+  "preview": {
+    "type": "Static JSX DOM with scripted Office bridge, rendered in Chrome",
+    "measurements": [
+      {
+        "name": "office-tone-welcome",
+        "width": 360,
+        "measurements": {
+          "horizontalOverflow": false,
+          "fontSize": "14px",
+          "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+        }
+      },
+      {
+        "name": "office-tone-catalog",
+        "width": 360,
+        "measurements": {
+          "horizontalOverflow": false,
+          "fontSize": "14px",
+          "cardHeight": 108,
+          "animations": "none",
+          "dialog": {
+            "x": 12,
+            "y": 216,
+            "width": 336,
+            "height": 418,
+            "top": 216,
+            "right": 348,
+            "bottom": 634,
+            "left": 12
+          },
+          "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+        }
+      },
+      {
+        "name": "office-tone-template-info",
+        "width": 360,
+        "measurements": {
+          "horizontalOverflow": false,
+          "fontSize": "14px",
+          "cardHeight": 245,
+          "animations": "none",
+          "dialog": {
+            "x": 12,
+            "y": 147.5,
+            "width": 336,
+            "height": 555,
+            "top": 147.5,
+            "right": 348,
+            "bottom": 702.5,
+            "left": 12
+          },
+          "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+        }
+      },
+      {
+        "name": "office-tone-models",
+        "width": 360,
+        "measurements": {
+          "horizontalOverflow": false,
+          "fontSize": "14px",
+          "dialog": {
+            "x": 12,
+            "y": 273,
+            "width": 336,
+            "height": 304,
+            "top": 273,
+            "right": 348,
+            "bottom": 577,
+            "left": 12
+          },
+          "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+        }
+      },
+      {
+        "name": "office-tone-progress",
+        "width": 360,
+        "measurements": {
+          "horizontalOverflow": false,
+          "fontSize": "14px",
+          "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+        }
+      },
+      {
+        "name": "office-tone-question",
+        "width": 360,
+        "measurements": {
+          "horizontalOverflow": false,
+          "fontSize": "14px",
+          "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+        }
+      },
+      {
+        "name": "office-tone-recovery",
+        "width": 360,
+        "measurements": {
+          "horizontalOverflow": false,
+          "fontSize": "14px",
+          "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+        }
+      },
+      {
+        "name": "office-tone-approval",
+        "width": 360,
+        "measurements": {
+          "horizontalOverflow": false,
+          "fontSize": "14px",
+          "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+        }
+      },
+      {
+        "name": "office-tone-welcome",
+        "width": 480,
+        "measurements": {
+          "horizontalOverflow": false,
+          "fontSize": "14px",
+          "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+        }
+      },
+      {
+        "name": "office-tone-catalog",
+        "width": 480,
+        "measurements": {
+          "horizontalOverflow": false,
+          "fontSize": "14px",
+          "cardHeight": 108,
+          "animations": "none",
+          "dialog": {
+            "x": 12,
+            "y": 216,
+            "width": 456,
+            "height": 418,
+            "top": 216,
+            "right": 468,
+            "bottom": 634,
+            "left": 12
+          },
+          "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+        }
+      },
+      {
+        "name": "office-tone-template-info",
+        "width": 480,
+        "measurements": {
+          "horizontalOverflow": false,
+          "fontSize": "14px",
+          "cardHeight": 223,
+          "animations": "none",
+          "dialog": {
+            "x": 12,
+            "y": 158.5,
+            "width": 456,
+            "height": 533,
+            "top": 158.5,
+            "right": 468,
+            "bottom": 691.5,
+            "left": 12
+          },
+          "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+        }
+      },
+      {
+        "name": "office-tone-models",
+        "width": 480,
+        "measurements": {
+          "horizontalOverflow": false,
+          "fontSize": "14px",
+          "dialog": {
+            "x": 30,
+            "y": 273,
+            "width": 420,
+            "height": 304,
+            "top": 273,
+            "right": 450,
+            "bottom": 577,
+            "left": 30
+          },
+          "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+        }
+      },
+      {
+        "name": "office-tone-progress",
+        "width": 480,
+        "measurements": {
+          "horizontalOverflow": false,
+          "fontSize": "14px",
+          "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+        }
+      },
+      {
+        "name": "office-tone-question",
+        "width": 480,
+        "measurements": {
+          "horizontalOverflow": false,
+          "fontSize": "14px",
+          "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+        }
+      },
+      {
+        "name": "office-tone-recovery",
+        "width": 480,
+        "measurements": {
+          "horizontalOverflow": false,
+          "fontSize": "14px",
+          "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+        }
+      },
+      {
+        "name": "office-tone-approval",
+        "width": 480,
+        "measurements": {
+          "horizontalOverflow": false,
+          "fontSize": "14px",
+          "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+        }
+      },
+      {
+        "name": "motion",
+        "animation": {
+          "name": "deck-rise",
+          "iterations": "1",
+          "duration": "0.4s"
+        }
+      }
+    ],
+    "sourceFixtureOnly": true
+  },
+  "notVerified": [
+    "Windows Office 2016 or WebView2 interaction",
+    "Native COM and NASCA behavior",
+    "Corporate authentication and live Qwen model quality",
+    "Installer or product bundle build"
+  ],
+  "sourceHashes": {
+    "AGENTS.md": "8c8fa89518f2721d380bba2a0c829115f2eec7f9b399429cf4e5f0e47d22ff54",
+    "src/App.jsx": "c8f434d5d82bcbb1531b368ac5538c1d51e56448af466bf9ba6e41fae16224e3",
+    "src/OfficeTemplates.jsx": "a3e45bb2e8b3dfbd3c07677f0b814d9f9e359cec009f4dfdb3407aa4ac344525",
+    "src/OfficeComposer.jsx": "8b6106a06d851263fc632205556f3d87a379b405732b757a1e4f3cee60cc6af4",
+    "src/OfficeDocumentResult.jsx": "192809a63ade8fe4b7d45ddc8d15f7c6b6dc0aa366b2e7e0ae12d093a229cec1",
+    "src/ContentDetails.jsx": "67d6d503cf7579916d46bc72e19f80e12d4de163004841d8b7565b4e953869a8",
+    "src/TaskActivity.jsx": "50b3278bb46b06ac56d3c81af00972687acd0f213e0c482121bcd8ec6f62d382",
+    "src/TaskDock.jsx": "af69b6c01276778d67cfcf578f0c62c2a8ef6dd9260c05da1e6ad18599e94f96",
+    "src/task-view.js": "e6f171cf3e665ed8804d0ee2c3f50b13cee7fbc3e659dd1f0090ef1e6736b6db",
+    "src/office.css": "8971d4f124047ec4311c93361dfcac675b1c94dacbb446ec601a852a2e1afe76",
+    "design/shared-ui.json": "a61f881ab1fa132a5ac5cc7106992f54c9f5afc085e3f768464d811b8361dcb9",
+    "tests/activity-view.test.mjs": "62d111deb42b2890a850d9513f76f203f15d7e998312697fcb05556a19615e0a",
+    "tests/content-ui.test.mjs": "6ae6c4d683755af07b23a1f12144e839508b0b9d1bd5dc2c65639f08b7fb7f8d",
+    "tests/ui-usability.test.mjs": "98b662af7071129631afe357eca950e62f002fc4bb47ad87cdd56e106ad30538",
+    "docs/IMPROVEMENT-STATUS.md": "0eb936b90879dbe49f40770c43f67f0c10b36f2a1c6a989020a54e6e57aca192",
+    "docs/UI-TONE-HARNESS-BP-2026-09-23.md": "84c93b551cb6950f7ca94c9ecf3fed4641b9f17803a09cff1fe43e69ad47d81b",
+    "vendor/nubi-shared/src/TraceSurface.jsx": "68dc1b4703fc389e7efcf538ddd67d1be6105e7d0aab1e93c2f4ac675a471bb5"
+  },
+  "screenshotHashes": {
+    "verification/office-tone-welcome-360.png": "1effc56ffb0ed5c19f881e7e3c9acdc40f0d837207bc8ca7d7327cbd77a5f974",
+    "verification/office-tone-welcome-480.png": "222588b8125086872d5c6361178a45494f18f89579eb411d055a7af2f52e0578",
+    "verification/office-tone-catalog-360.png": "a6339ef192ac6ad430e7de13aa7cfdbf4afe379e4ed6c2b64eb9dc51af0e7dd6",
+    "verification/office-tone-catalog-480.png": "b7ecfd7627c73c5aeca6753e796ca7fd0570235055aa5355f7d941edf54fa544",
+    "verification/office-tone-template-info-360.png": "bef3bd128e89a24b9589ee16fa4d89394531c2f853cd17cca1759c9984492c9b",
+    "verification/office-tone-template-info-480.png": "5e9d39d379b811e3aeae03eb497e62f4bbaff814cc3d46a160efb2b0bba97550",
+    "verification/office-tone-models-360.png": "e38c01495e7b87b80ad7dbf9b88704ab7c25ef76ebeb19697938527cfd7674f8",
+    "verification/office-tone-models-480.png": "1f5b1682519a0af935bc3632a75e91154598abd51b7ac8112122ce8a18544d03",
+    "verification/office-tone-progress-360.png": "3fe4cd9e0d89140c2a390a85827362fbee21c2df44ddcaa84c90d74bed2ac7a7",
+    "verification/office-tone-progress-480.png": "95d6dc3c1114d49c630a8bd65203462dd7f1062bfea188f32c2997f72a244f27",
+    "verification/office-tone-question-360.png": "9bd3a311d05f8a37409f15d8599254b62e711e45fab7cbdc26c078943c68ec9e",
+    "verification/office-tone-question-480.png": "299db20bb0bea79c351b3d53c4adc056b2af2ccd4fb68a71cd20aeb6d9e5699f",
+    "verification/office-tone-recovery-360.png": "34f5f494043bed7bcb9bd5056030ae4c550fe69ed4841f0572f2bbfca292d765",
+    "verification/office-tone-recovery-480.png": "bd346a9699ed2b1862315b3b0a8cd611e83294ac2af2fd93ec23c742330635ee",
+    "verification/office-tone-approval-360.png": "45ab2b254b7e09d154ca27b0ed6d726e7a717f5bc521cfadcd2851138be6c6d5",
+    "verification/office-tone-approval-480.png": "175fb1ccfb394ad208797e8f4026f77b7f052584d6c694d8b66055c7d00dcd9f"
+  }
+}

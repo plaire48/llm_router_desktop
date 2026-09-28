@@ -1,0 +1,48 @@
+{
+  "date": "2026-09-25",
+  "scope": "New Word/PPT minimum-delivery gate and recovery",
+  "regression": {
+    "before": {
+      "cases": 2,
+      "unexpectedSaveApproval": 2,
+      "logSha256": "dac0698113be4352bae332a0d1ea5dae9e6b19efc1e35c6316d1f59063beed7b"
+    },
+    "after": {
+      "sameCasesRepairBeforeSave": 2,
+      "unchangedFailuresPauseAfter": 3,
+      "repairStepsDuringRepeatedFailure": 1,
+      "sameDraftRepairAndApprovedSaveVerified": true
+    }
+  },
+  "tests": {
+    "command": "npm run test:pinned",
+    "passed": 676,
+    "failed": 0,
+    "skipped": 0,
+    "logSha256": "b53323c30162a06e795ad785f96f29dec5204d31207c607c91ae32d2c1f5a0c3"
+  },
+  "design": {
+    "command": "npm run design:check",
+    "sharedFiles": 24,
+    "matched": true,
+    "issues": 0,
+    "logSha256": "cbd43b2caa594ada7152f9d7dad24c264cf9b2184b5a5fa1997a7b9fce90b256"
+  },
+  "sourceSha256": {
+    "worker/content-context.mjs": "0230e552f95dc4159f69c889c14516a5cb6880be927399020935fdede4571184",
+    "worker/content-agent.mjs": "cb6cf7e99bf1180f2f5b7e46ce73fc6c9dbae79dcc499ad3634cd180bf52da9f",
+    "tests/content-agent.test.mjs": "04872c86351dc337851a52ed741687e7a4a380f7b300df4f60735c375cb70f12",
+    "tests/content-delivery.test.mjs": "a9af2ae843ea4a70f11169a53f579c076cebd4e300cdd90ebb9a010ea8778a31"
+  },
+  "sourceReview": "delivery-source-review.json",
+  "nativeBuild": false,
+  "installerBuild": false,
+  "releaseChanged": false,
+  "notVerified": [
+    "Windows 11 installation",
+    "Office 2016 COM",
+    "Qwen actual inference accuracy",
+    "NASCA",
+    "competitor runtime performance"
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "suite": "register",
+  "id": "expense-report",
+  "trial": 1,
+  "routing": "direct",
+  "passed": false,
+  "outcome": "error",
+  "state": "cancelled",
+  "error": "evaluation_recovery_requires_human",
+  "writes": 0,
+  "recoveries": 0,
+  "questions": [],
+  "approvals": [
+    "recovery"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 3,
+    "toolCalls": 0,
+    "elapsedMs": 0
+  },
+  "transcript": {
+    "modelCalls": 3,
+    "byRole": {
+      "planner": 3
+    },
+    "elapsedMs": 21143,
+    "requestCharacters": 35449,
+    "peakRequestCharacters": 12365,
+    "toolCalls": {},
+    "errors": {}
+  },
+  "score": {
+    "mapping": {
+      "proposed": 0,
+      "gold": 8,
+      "matched": 0,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0,
+      "missing": [
+        "B3",
+        "E3",
+        "B4",
+        "E4",
+        "B5",
+        "E5",
+        "B7",
+        "B11"
+      ],
+      "unexpected": [],
+      "wrongType": [],
+      "wrongRequired": [],
+      "exact": false,
+      "strict": false
+    },
+    "registered": false,
+    "sourceUnchanged": true,
+    "proposedFields": []
+  },
+  "request": "지금 선택한 지출 결의서 양식을 분석해서 다음에 다시 쓸 수 있게 등록해줘. 양식 이름은 지출 결의서, 용도는 부서 경비 지출 승인 요청이야. 적요만 선택 항목이고 나머지 입력 칸은 모두 필수야. 부가세와 합계는 자동 계산이야.",
+  "answer": "",
+  "question": "",
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "running"
+    }
+  ],
+  "recoveryLog": []
+}

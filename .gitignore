@@ -1,0 +1,19 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+.pytest_cache/
+.ruff_cache/
+.venv/
+__pycache__/
+*.egg-info/
+dist/
+profiles.yaml
+
+# 저장소에 올리지 않는 빌드 산출물과 실측 증거
+node_modules/
+releases/
+extensions/aipro-chat/verification/
+.playwright-mcp/
+*.har
+*.webm

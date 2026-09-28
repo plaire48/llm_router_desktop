@@ -1,0 +1,57 @@
+{
+  "checkedAt": "2026-09-22T10:24:15.644Z",
+  "source": "saved API response fixture",
+  "requestPath": "/api/models",
+  "provider": "aipro",
+  "received": 10,
+  "displayed": 10,
+  "models": [
+    {
+      "id": "GPT-OSS-128K_general",
+      "label": "GPT-OSS-128K_general"
+    },
+    {
+      "id": "QWEN3-CODER-480B-A35B-INSTRUCT-FP8-128K_rag",
+      "label": "Qwen3-Coder_rag"
+    },
+    {
+      "id": "glm-5.2",
+      "label": "glm-5.2_CLI"
+    },
+    {
+      "id": "QWEN3.8-27B-FP8-256K",
+      "label": "QWEN3.8-27B-256K"
+    },
+    {
+      "id": "QWEN3-CODER-128K_general",
+      "label": "QWEN3-CODER-128K_general"
+    },
+    {
+      "id": "GLM-5.2-NVFP4",
+      "label": "GLM-5.2-512K"
+    },
+    {
+      "id": "qwen3.8-27b",
+      "label": "qwen3.8-27b_CLI"
+    },
+    {
+      "id": "GPT-OSS-120B-128K",
+      "label": "GPT-OSS-128K"
+    },
+    {
+      "id": "gpt-oss-120b",
+      "label": "GPT-OSS-128K_CLI"
+    },
+    {
+      "id": "aipro-fast-model",
+      "label": "aipro-fast-model"
+    }
+  ],
+  "allSelectable": true,
+  "reportedFiveSourceCount": true,
+  "refreshFiveToTen": true,
+  "failedRefreshRetainsSelection": true,
+  "fastSearchAndSelection": true,
+  "classificationFilter": false,
+  "liveApiCalled": false
+}

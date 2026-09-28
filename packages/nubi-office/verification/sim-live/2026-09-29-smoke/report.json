@@ -1,0 +1,76 @@
+{
+  "kind": "simulated-host-live-model-evaluation",
+  "schema": 1,
+  "runId": "53e381d2-6486-4d7a-8bcf-f0c803f3a7f4",
+  "provider": "chatgpt",
+  "model": "gpt-5.6-luna",
+  "routing": "direct",
+  "caseVersion": "office-business-cases@4",
+  "startedAt": "2026-09-28T20:39:43.917Z",
+  "limits": {
+    "timeoutMs": 600000,
+    "maxModelCalls": 80,
+    "maxActions": 120
+  },
+  "host": {
+    "platform": "simulated",
+    "simulated": true,
+    "calculator": "@ironcalc/nodejs"
+  },
+  "results": [
+    {
+      "suite": "edit",
+      "id": "value-and-format",
+      "trial": 1,
+      "routing": "direct",
+      "passed": false,
+      "outcome": "error",
+      "state": "cancelled",
+      "error": "evaluation_recovery_requires_human",
+      "writes": 0,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [
+        "recovery"
+      ],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 3,
+        "toolCalls": 0,
+        "elapsedMs": 0
+      },
+      "transcript": {
+        "modelCalls": 3,
+        "byRole": {
+          "planner": 3
+        },
+        "elapsedMs": 25090,
+        "requestCharacters": 26023,
+        "peakRequestCharacters": 9335,
+        "toolCalls": {},
+        "errors": {}
+      }
+    }
+  ],
+  "limitations": [
+    "The host is simulated in JavaScript. This is not Excel 2016, COM, rendering, file saving or NASCA evidence.",
+    "The model is the one named in this report. It is not the enterprise Qwen 3.8 27B baseline and says nothing about its accuracy.",
+    "All cases and forms are synthetic. They do not establish accuracy on representative company templates.",
+    "Formula results come from the IronCalc calculator, not from Excel.",
+    "Label wording and answer quality are not graded here. needs_review outcomes require a human reviewer."
+  ],
+  "summary": {
+    "bySuite": {
+      "edit": {
+        "total": 1,
+        "passed": 0,
+        "failed": 0,
+        "needsReview": 0,
+        "errors": 1
+      }
+    },
+    "modelCalls": 3,
+    "modelElapsedMs": 25090
+  },
+  "finishedAt": "2026-09-28T20:40:11.100Z"
+}

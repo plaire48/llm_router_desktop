@@ -1,0 +1,74 @@
+{
+  "recordedAt": "2026-09-22T15:11:02.886867+00:00",
+  "kind": "source-only controlled harness verification",
+  "baseRevision": "890383e8738838fd17c6496546ce3fb36799373e",
+  "publicationRepository": "plaire48/ai_workspace",
+  "checks": {
+    "publicationOfficeNode": {
+      "passed": 136,
+      "failed": 0,
+      "command": "npm test"
+    },
+    "templateCases": {
+      "passed": 22,
+      "failed": 0
+    },
+    "sharedRuntimeAndHarnessWorkingTree": {
+      "passed": 34,
+      "failed": 0
+    },
+    "designSourceCheck": {
+      "issues": 0,
+      "behaviorVerified": false
+    },
+    "nodeSyntax": "passed"
+  },
+  "workingTreeCompatibility": {
+    "observedEarlierOfficeRun": {
+      "passed": 134,
+      "failed": 1,
+      "total": 135
+    },
+    "failure": "Independent shared completion-reader changes normalize malformed non-SSE JSON to response_invalid; Office expected response_json_invalid. Those unrelated shared changes were not published. The publication retains its pinned shared sources plus only the tool-schema validator fix. The working-tree full suite was not rerun after the last focused template addition."
+  },
+  "notVerified": [
+    "New C# code compilation and native tests",
+    "Windows Excel 2016 COM template copy/open/save and merged cell editing",
+    "NASCA policy and actual encryption status",
+    "Actual Qwen 3.8 27B or other provider accuracy",
+    "UI rendering and interaction",
+    "Whole-workbook OOXML part equivalence and visual or printed equivalence",
+    "Installed application and previous installer verification failure"
+  ],
+  "buildsRun": false,
+  "newInstallerProduced": false,
+  "caseCoverage": [
+    "same-run typed HITL and cancellation",
+    "formulas/merge anchors/source drift",
+    "persisted schema rebind to copied workbook",
+    "instance values excluded from saved metadata",
+    "differences and missing evidence remain distinct",
+    "copy differences require human review",
+    "uncertain save not replayed",
+    "uncertain write remains failed with observed layout differences"
+  ],
+  "publicationSourceSha256": {
+    "worker/agent.mjs": "882d2a5bf3cb130554cf957ebac47fd3424074f76e909572c0b8acad4ca7f809",
+    "worker/template.mjs": "5622504bb5e16b3230b69e5ac89ae3586481c06e37a056753d18f3eb8dab9b49",
+    "worker/template-library.mjs": "3d8de7dcf8d06ef54a6f7da1e44c0ee8842b178d8634d4c1913b0e0208ba3750",
+    "worker/template-preservation.mjs": "ca11eb7c2c4c87aea7661396ea26ae9b0c78d2154db332b6b70ff0db2794102f",
+    "worker/office-plan.mjs": "3667a40f75cad26b167f1a1efc4341a626c7e3b694fe3daaafdfc5b8b2e2aee6",
+    "worker/office-harness.mjs": "25368e43f2e70a2da487ef55c2d17734ec766ac4c067eb19c83256f0c423ae6e",
+    "native/Nubi.Office.Core/WorkbookEngine.cs": "7be6eaef4fde6e9c5a9581dc4df80d6f05abc31e0942a756aad1cd0280c48f54",
+    "native/Nubi.Office.Host/ExcelPort.cs": "16cbafe9dc72d2d263ada36003ab2124121be2c11cb3d522b0cb5eaeaf09c4c3",
+    "native/Nubi.Office.Host/ExcelTemplateStore.cs": "7c6eb7b08341ed634a060ec4ce090db6d09a40976b09ac4a48a7ce021ca91193",
+    "native/Nubi.Office.Host/NubiPane.cs": "c461b78a62983eaf0712b06f7703215baa9e5a71e089e4f7929e6963fa381cc8",
+    "src/App.jsx": "1eece216f629f5bd82ea30866ebfe5679975ea19dea66c7ec05dc5bb11692c6c",
+    "src/OfficeTransaction.jsx": "2193ebde44833525159c9434c09d968c32072902c31496435ec4b819bbe686f8",
+    "src/TemplatePreservation.jsx": "23a35f16d8541d28a2509bcfae9e38cdde14f0b9b5bf13db6c00b67ca34c6828",
+    "vendor/nubi-shared/agent-runtime.js": "a8da5a8e65963c1c6b1ac4ee2e057fabe2fb8c3823c7e91628262fb159c70dd1",
+    "vendor/nubi-shared/completion-reader.js": "c360bb87b09168467bc5e8f733b797109e249336925bc2eda4f5af0380263810",
+    "tests/template.test.mjs": "53ea1a647a3d6338bd0c2d8c4e0c279f3663a5482aa2189bb04e8caba0f0bb2a",
+    "tests/template-library.test.mjs": "a88d98210ac24e3298ec9addb558c90942dc7f497144617cd42445bcf6d1cc21"
+  }
+}

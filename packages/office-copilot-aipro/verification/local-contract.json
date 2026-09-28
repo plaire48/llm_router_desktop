@@ -1,0 +1,12 @@
+{
+  "date": "2026-09-22",
+  "manifestSchema": "1.28",
+  "toolDescriptions": "valid",
+  "nativeCopilotInstalled": false,
+  "liveAiProVerified": false,
+  "excelEditingVerified": false,
+  "fixtureConfiguration": true,
+  "installablePackageProduced": false,
+  "testsPassed": 8,
+  "schemaSource": "https://developer.microsoft.com/json-schemas/teams/v1.28/MicrosoftTeams.schema.json"
+}

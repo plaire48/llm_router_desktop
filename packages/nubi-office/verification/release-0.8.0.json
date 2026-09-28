@@ -1,0 +1,42 @@
+{
+  "version": "0.8.0",
+  "checkedAt": "2026-09-22T12:04:18.951681+00:00",
+  "baseline": {
+    "host": "Windows Excel 2016",
+    "model": "Qwen 3.8 27B (actual enterprise catalog ID)",
+    "liveModelAccuracy": null
+  },
+  "javascriptChecks": 88,
+  "nativeContractChecks": 28,
+  "modelResponses": "scripted fault injection",
+  "excelCOM": "simulated for contracts; Windows Host cross-compiled only",
+  "browser": [
+    "production UI/Pi/worker and scripted model/native host",
+    "document creation without selection",
+    "HITL before save",
+    "lost save receipt read-only reconciliation",
+    "cell edits and readback/restore"
+  ],
+  "recovery": [
+    "five transient failures before success",
+    "five document review revisions",
+    "chunked authoring across 8-turn checkpoints",
+    "cancel during backoff",
+    "no duplicate writes",
+    "invalid evidence repair"
+  ],
+  "interaction": [
+    "choice and free-text forms",
+    "HITL required before cell edit and final save",
+    "reject/cancel does not resume"
+  ],
+  "realFileExample": "verification/document-artifact.json: scripted specification, actual XLSX and LibreOffice calculations",
+  "notVerified": [
+    "Windows Excel 2016 VSTO installation",
+    "real COM document creation/save/reconciliation",
+    "live corporate SSO",
+    "Qwen 3.8 27B accuracy and task quality",
+    "worker restart recovery"
+  ],
+  "signedWindowsInstaller": false
+}

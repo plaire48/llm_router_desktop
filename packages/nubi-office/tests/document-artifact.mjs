@@ -1,0 +1,22 @@
+// Actual file writer and independent calculation; no model accuracy/Excel COM claim.
+import {mkdir,readFile,writeFile} from 'node:fs/promises';import {spawn} from 'node:child_process';import {resolve,join} from 'node:path';import assert from 'node:assert/strict';import ExcelJS from 'exceljs';
+import {canonicalFormula} from '../worker/document-schema.mjs';
+import {writeDocument} from '../worker/document-file.mjs';import {documentTask,specs} from './document-fixtures.mjs';
+const base=resolve('verification/workbooks/document'),drafts=join(base,'drafts'),calculated=join(base,'calculated');await mkdir(calculated,{recursive:true});
+const commandEnv={...process.env};
+if(process.platform==='darwin'&&!commandEnv.FONTCONFIG_FILE){const config=join(base,'preview-fonts.xml');await writeFile(config,'<?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "fonts.dtd"><fontconfig><dir>/System/Library/Fonts</dir><dir>/System/Library/Fonts/Supplemental</dir><cachedir>/tmp/nubi-office-font-cache</cachedir><alias><family>맑은 고딕</family><prefer><family>Apple SD Gothic Neo</family><family>AppleGothic</family></prefer></alias></fontconfig>');commandEnv.FONTCONFIG_FILE=config;}
+const binary=process.env.NUBI_SOFFICE;if(!binary)throw new Error('Set NUBI_SOFFICE to an installed LibreOffice; no synthetic calculation fallback.');
+function command(args){return new Promise((resolve,reject)=>{const p=spawn(binary,args,{stdio:['ignore','pipe','pipe'],env:commandEnv});let output='';p.stdout.on('data',v=>output+=v);p.stderr.on('data',v=>output+=v);p.on('error',reject);p.on('exit',code=>code===0?resolve(output):reject(new Error(output)));});}
+const expected=specs(),draft=await writeDocument(documentTask,expected,{directory:drafts});
+await command(['-env:UserInstallation=file:///tmp/nubi-office-document-profile','--headless','--convert-to','xlsx','--outdir',calculated,draft.path]);
+const calculatedBook=new ExcelJS.Workbook();await calculatedBook.xlsx.readFile(join(calculated,draft.fileName));
+assert.equal(calculatedBook.getWorksheet('예산').getCell('D9').result,840000);assert.equal(calculatedBook.getWorksheet('운영계획').getCell('B12').result,840000);
+const original=new ExcelJS.Workbook();await original.xlsx.readFile(draft.path);const layoutDifferences=[];
+for(const s of expected){const result=calculatedBook.getWorksheet(s.name),source=original.getWorksheet(s.name);for(const c of s.cells){if(c.formula){const actual=result.getCell(c.address);assert.equal(canonicalFormula(actual.formula),canonicalFormula(c.formula.slice(1)));assert.equal(typeof actual.result,'number');source.getCell(c.address).value={formula:c.formula.slice(1),result:actual.result};}else if(c.numberFormat==='yyyy-mm-dd')assert.equal(result.getCell(c.address).value.toISOString().slice(0,10),'2026-10-01');else assert.equal(typeof c.value==='string'?result.getCell(c.address).text:result.getCell(c.address).value,c.value);}
+  for(const w of s.columnWidths){assert.equal(source.getColumn(w.index).width,w.size);if(Math.abs(result.getColumn(w.index).width-w.size)>.2)layoutDifferences.push({sheet:s.name,column:w.index,original:w.size,libreOffice:result.getColumn(w.index).width});}
+}
+// Deliver the original layout with independently calculated caches, not LO's layout conversion.
+const path=join(base,'교육-운영계획-작성결과.xlsx');await original.xlsx.writeFile(path);const reopened=new ExcelJS.Workbook();await reopened.xlsx.readFile(path);assert.equal(reopened.getWorksheet('예산').getCell('D9').result,840000);assert.equal(reopened.getWorksheet('운영계획').getColumn(1).width,20);
+await command(['-env:UserInstallation=file:///tmp/nubi-office-document-profile','--headless','--convert-to','pdf','--outdir',base,path]);
+await writeFile('verification/document-artifact.json',JSON.stringify({checkedAt:new Date().toISOString(),input:'scripted specification, not live model output',xlsxGeneration:'production ExcelJS writer',calculation:'LibreOfficeDev 26.8, not Excel 2016',savedFileReadback:true,crossSheetTotal:840000,windowsExcel2016:false,realModelAccuracy:null,artifact:path,preview:'LibreOffice PDF rendering with local Apple SD Gothic Neo fallback for Korean when FONTCONFIG_FILE is configured',layoutRoundTripDifferences:layoutDifferences,layoutPreservedInDeliverable:true,formulaCaches:'Calculated independently with LibreOffice and copied into original styled workbook'},null,2)+'\n');
+console.log(JSON.stringify({path,total:840000,layoutRoundTripDifferences:layoutDifferences.length,liveModel:false,windowsExcel:false}));

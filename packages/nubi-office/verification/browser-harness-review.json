@@ -1,0 +1,99 @@
+{
+  "date": "2026-09-23",
+  "baselineCommit": "9f5d3f1c7d4d258f9d2fa796898ea69003781c51",
+  "scope": "Browser Nubi patterns adapted to Office analysis roles, evidence and requirement continuity",
+  "tests": {
+    "development": {
+      "command": "npm test",
+      "passed": 264,
+      "failed": 0,
+      "skipped": 0
+    },
+    "publication": {
+      "command": "npm test",
+      "passed": 264,
+      "failed": 0,
+      "skipped": 0
+    },
+    "newCases": 11,
+    "modelResponses": "scripted fixtures; real Pi loop, no live inference"
+  },
+  "sourceChecks": {
+    "designIssues": 0,
+    "sharedUiFilesMatched": 24,
+    "publicationImportParity": true,
+    "diffWhitespace": "passed"
+  },
+  "findings": [
+    "HTTP status overwrote analysis job status; fixed separate httpStatus field",
+    "Context reconstruction dropped Excel finding citations; retained entire bounded reports",
+    "Old user conditions could be omitted by retrieval; pinned originals for routing/planning/reviews"
+  ],
+  "adoption": {
+    "existingRuntimeLibraries": [
+      "@earendil-works/pi-agent-core@0.86.1",
+      "minisearch@7.2.0",
+      "p-retry@8.0.1"
+    ],
+    "newDependencies": [],
+    "patternsOnly": [
+      "browser Nubi analysis-agents/context modules",
+      "Anthropic multi-agent and context engineering",
+      "DeepAgents isolated subagents"
+    ],
+    "rejectedNewDependency": "p-limit: existing queue also needs cancellation, deadline, partial-result cache and rate-limit dispatch suppression"
+  },
+  "boundaries": {
+    "maxConcurrentModelAnalyses": 2,
+    "chatgptConcurrentModelAnalyses": 1,
+    "childModelCallsPerAttempt": 1,
+    "childNativeTools": false,
+    "nativeOfficeWrites": "serialized by existing main executor and HITL",
+    "buildExecuted": false,
+    "installerProduced": false,
+    "windowsOffice2016": "not tested",
+    "liveQwenAccuracy": "not measured",
+    "NASCA": "not tested",
+    "tokenCostAndLatency": "not measured",
+    "protectedDurableResume": "not implemented",
+    "asyncStartCollect": "not implemented"
+  },
+  "sourceSha256": {
+    "development": {
+      "AGENTS.md": "9731e99a48076b61ab103b3ae93e45f4f4cb51c1278fedb34fdd28c457503725",
+      "docs/IMPROVEMENT-STATUS.md": "117dd9f20a2c0e09c93957e6a3011efb3f4e303475bf579352dae681898bf914",
+      "docs/BROWSER-HARNESS-ADOPTION-2026-09-23.md": "143c085ea8d6f7adb3d3cf81f02a6ddefb4267a7faf0ddd7759616340ab63279",
+      "worker/analysis-jobs.mjs": "4915010fd2fa65b10d540a9355907b285e7f14ea7c847989c72e82bc18542f34",
+      "worker/content-analysis.mjs": "8e726e927aa5c11649384a3caa1f69b1c3dafd14f06c6f11dc78c40facdda66c",
+      "worker/workbook-context.mjs": "7d491daf6ce6a55bf7c4df5f085d712e81adc3ef1128f97b65fb969ab086fe30",
+      "worker/content-agent.mjs": "4512eb84116dde91722caab40aaf374c7565e4a16f765d7931c83db0eaad3df9",
+      "worker/context-memory.mjs": "8fb08b4221e5c8f950fe5ae31697f2337437a88d13a3d7cb061581402e5ce246",
+      "worker/agent.mjs": "81b221d7be932dd35a603eed2a7c184eb774059af44df68a1cde7e4c1251fb72",
+      "worker/document-agent.mjs": "51fc899417ef158ba6601f7ed71921db6637e19359ad0d4d2a2d39fd3e4f03a0",
+      "worker/intent-agent.mjs": "d23d4d1b9fbf07032393e01275334d6b163bb084fe6b38332aa128745018840a",
+      "src/errors.js": "3a3ca6dc9841e12f60e1c82abe2377b14649609ab03eeae4042b296ab2a2b026",
+      "tests/content-analysis.test.mjs": "09d4dd4460e513c89513277d1414f7fba1f18170d610871af667471dda4e88d7",
+      "tests/context-memory.test.mjs": "8e357c9a7b9b16b3bd75092e864ee3a19dbba6b5ec89dcadc3b22b6553695734",
+      "tests/workbook-context.test.mjs": "9ca68c48492aa34440a0811c92545ab0913d3d2206222cf8e69ad127bb7de0ad",
+      "tests/content-agent.test.mjs": "d6b71855526cb99e4f89c0b9c39541c3fb98b574f1a9e4fc24d8bdbb700b11a0"
+    },
+    "publication": {
+      "AGENTS.md": "9731e99a48076b61ab103b3ae93e45f4f4cb51c1278fedb34fdd28c457503725",
+      "docs/IMPROVEMENT-STATUS.md": "117dd9f20a2c0e09c93957e6a3011efb3f4e303475bf579352dae681898bf914",
+      "docs/BROWSER-HARNESS-ADOPTION-2026-09-23.md": "143c085ea8d6f7adb3d3cf81f02a6ddefb4267a7faf0ddd7759616340ab63279",
+      "worker/analysis-jobs.mjs": "4915010fd2fa65b10d540a9355907b285e7f14ea7c847989c72e82bc18542f34",
+      "worker/content-analysis.mjs": "8e726e927aa5c11649384a3caa1f69b1c3dafd14f06c6f11dc78c40facdda66c",
+      "worker/workbook-context.mjs": "7d491daf6ce6a55bf7c4df5f085d712e81adc3ef1128f97b65fb969ab086fe30",
+      "worker/content-agent.mjs": "dbc0c7aed6b863ea98c8ffc149b3105ebe508cbc6696d582c0e60d86e25ead7a",
+      "worker/context-memory.mjs": "8fb08b4221e5c8f950fe5ae31697f2337437a88d13a3d7cb061581402e5ce246",
+      "worker/agent.mjs": "a7b0288ec4f3a8263b49a3a27c3a152b5bed816c473c8927310fa085e33a7b62",
+      "worker/document-agent.mjs": "d889424d9a914ccfa84f17755bff01fa547efcdd714906d6d174f8d253944788",
+      "worker/intent-agent.mjs": "d23d4d1b9fbf07032393e01275334d6b163bb084fe6b38332aa128745018840a",
+      "src/errors.js": "032b8a0f59a1e042a2d15c01714ef2702955dccb41631c8fc58b2d6194275f03",
+      "tests/content-analysis.test.mjs": "09d4dd4460e513c89513277d1414f7fba1f18170d610871af667471dda4e88d7",
+      "tests/context-memory.test.mjs": "8e357c9a7b9b16b3bd75092e864ee3a19dbba6b5ec89dcadc3b22b6553695734",
+      "tests/workbook-context.test.mjs": "9ca68c48492aa34440a0811c92545ab0913d3d2206222cf8e69ad127bb7de0ad",
+      "tests/content-agent.test.mjs": "d6b71855526cb99e4f89c0b9c39541c3fb98b574f1a9e4fc24d8bdbb700b11a0"
+    }
+  }
+}

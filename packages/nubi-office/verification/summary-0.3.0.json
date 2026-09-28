@@ -1,0 +1,43 @@
+{
+  "version": "0.3.0",
+  "checkedAt": "2026-09-22T08:53:43.022Z",
+  "controlTests": {
+    "jsPassed": 33,
+    "nativePassed": 19,
+    "usesScriptedModels": true,
+    "usesSimulatedCom": true
+  },
+  "nativeReleaseCrossCompilation": {
+    "host": true,
+    "evaluationHost": true,
+    "warnings": 0,
+    "errors": 0,
+    "platform": "macOS"
+  },
+  "falseCompletion": {
+    "requested": 42,
+    "observed": 1,
+    "before": "done",
+    "after": "failed",
+    "reason": "write_uncertain",
+    "writeAttempts": 1
+  },
+  "fileCalculation": {
+    "engine": "LibreOffice",
+    "fixtures": 12,
+    "modelCalled": false
+  },
+  "liveEvaluation": {
+    "status": "blocked",
+    "accuracy": null,
+    "blockers": [
+      "windows_excel_unavailable",
+      "provider_model_not_configured",
+      "dedicated_connection_not_configured"
+    ]
+  },
+  "windowsVstoBuild": false,
+  "windowsInstallation": false,
+  "signedInstaller": false,
+  "enterpriseTemplateCatalogImplemented": false
+}

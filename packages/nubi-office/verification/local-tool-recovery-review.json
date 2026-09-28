@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-23",
+  "scope": "Office local tool failure supervision and source regression verification",
+  "baselineCommit": "9ea643b4a27021bb506782677cd6f58a0ca61da9",
+  "modelBaseline": "Enterprise Qwen 3.8 27B, live model not invoked",
+  "before": {
+    "reproductionSuite": {
+      "tests": 2,
+      "pass": 0,
+      "fail": 2,
+      "cancelled": 0,
+      "skipped": 0,
+      "logSha256": "7202970c3bca81fb65874a2d014c55e55679d099b7a055ce2d19e00fca83d65e"
+    },
+    "callsBeforePause": {
+      "excelCellRead": 9,
+      "excelDocumentChunk": 9
+    },
+    "required": 3
+  },
+  "after": {
+    "callsBeforePause": {
+      "excelCellRead": 3,
+      "excelDocumentChunk": 3,
+      "wordRead": 3,
+      "powerpointRead": 3
+    },
+    "developmentFocusedSuite": {
+      "tests": 60,
+      "pass": 60,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "logSha256": "4a6013d62fd48bd1906c93f8cf13b3bd1a6a2181802c728736c6d31df7606bba"
+    },
+    "publicationDocumentSuite": {
+      "tests": 16,
+      "pass": 16,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "logSha256": "8bf1116c594e0aaaeeb283d8846b88c0632165f930c8c07dead2f78a10855b85"
+    },
+    "publicationFullSuite": {
+      "tests": 358,
+      "pass": 358,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "logSha256": "c3614a357d97f99001f59f28347d4c5bfd936549349c0edd13ccab856e6ad536"
+    },
+    "designCheckIssues": 0,
+    "sharedUiParity": "24 unchanged reviewed files pass existing full-suite check"
+  },
+  "intermediateFullSuite": {
+    "tests": 357,
+    "pass": 356,
+    "fail": 1,
+    "cancelled": 0,
+    "skipped": 0,
+    "logSha256": "a87b811f8e4058753f3908d5cf4c3771c5851d412b11cad31be3b9a306565672"
+  },
+  "intermediateFailureResolution": "A checkpoint fixture injected one rejected chunk but expected zero recoveries. Split into healthy and injected cases: zero and one real failures respectively; normal checkpoints still add no failures.",
+  "actualExecution": [
+    "Pi SDK orchestration",
+    "existing QuickJS release/debug regression cases",
+    "fast-check generated progress/failure sequences"
+  ],
+  "scripted": [
+    "model decisions",
+    "native Office replies",
+    "HITL answers in tests"
+  ],
+  "generatedChecks": {
+    "seed": 2392303,
+    "runs": 100,
+    "maximumSequenceLength": 70
+  },
+  "adopted": [
+    "existing Pi 0.86.1 tool execution",
+    "existing p-retry 8.0.1 inference and allowlisted read policy",
+    "existing fast-check 4.10.2 generated regression checks",
+    "Anthropic meaningful tool-result feedback and trace-based evaluation pattern"
+  ],
+  "dependenciesChanged": false,
+  "buildsExecuted": false,
+  "installerUpdated": false,
+  "notVerified": [
+    "Windows Office 2016 COM and installation",
+    "Qwen real task accuracy, latency and cost",
+    "corporate SSO and NASCA",
+    "protected durable run recovery",
+    "large-document hierarchical final review",
+    "Python dependencies and external skills"
+  ],
+  "separateDevelopmentChanges": "Shared UI baseline mismatch in seven files remains outside this change; publication uses its reviewed pinned UI. No claim that the entire development checkout is clean.",
+  "references": [
+    "https://www.anthropic.com/engineering/writing-tools-for-agents",
+    "https://github.com/sindresorhus/p-retry",
+    "https://github.com/dubzzz/fast-check"
+  ],
+  "sourceCheckout": "publication",
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "f50fd6c056115815382d453a53593514f498714a90915d2f47e3dfa2f16cae1e"
+    },
+    {
+      "path": "docs/IMPROVEMENT-STATUS.md",
+      "sha256": "d1852bc44476571f8307327367ff4e9b650f7fb99ed33622252c4cde6d3535ca"
+    },
+    {
+      "path": "docs/LOCAL-TOOL-RECOVERY-2026-09-23.md",
+      "sha256": "05450e9382b4aa9953656bc945c2a96988ca717e431e2211bfb91b082133f624"
+    },
+    {
+      "path": "worker/resilience.mjs",
+      "sha256": "0b1d83149e78a1c102129fa2d1a1c4a4a3f9334719f48d276778e4fa5afeabee"
+    },
+    {
+      "path": "worker/agent.mjs",
+      "sha256": "aa09555efebc3817b99e1a0f083a2f5b97b305dca268993b36b27f31e4a36449"
+    },
+    {
+      "path": "worker/document-agent.mjs",
+      "sha256": "dbcfde2a9fe4d5cfcade2c47314250f4b8d2f64c2e51ec7d4b7731f7639a623e"
+    },
+    {
+      "path": "worker/content-agent.mjs",
+      "sha256": "45be06e9077609421975ec6f1c234c5c175b0c85295abddb83a2d900f1c7f17a"
+    },
+    {
+      "path": "tests/local-tool-recovery.test.mjs",
+      "sha256": "cc1ef3a8aef8ee0987f45c6783610d4840ff83cc7bd3ff70fc7f066fcdb2c56b"
+    },
+    {
+      "path": "tests/content-agent.test.mjs",
+      "sha256": "4c9aa295c0726c5cbd40d551ec42c6cb2e7ee260d78a13160c8ff4c181207d2b"
+    },
+    {
+      "path": "tests/document.test.mjs",
+      "sha256": "aeca74f011b54c17f217e95e1c70b91e7009dcd6e759c1223d9ae6fe1427d4a8"
+    }
+  ]
+}

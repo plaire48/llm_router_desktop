@@ -1,0 +1,123 @@
+{
+  "version": "0.8.2",
+  "sharedSources": [
+    {
+      "path": "extensions/aipro-chat/src/A2AInbox.jsx",
+      "sha256": "f0491e36b043734475bbede94629415a20c4913a3ec2658bc93a8a6623d1c3c6"
+    },
+    {
+      "path": "extensions/aipro-chat/src/deck-surfaces.css",
+      "sha256": "d5a6cdc7f6f45c0b45d9fec12a4110120132d8982bd705c4a09e0b6c654e2270"
+    },
+    {
+      "path": "extensions/aipro-chat/src/DeckSurfaces.jsx",
+      "sha256": "7c79a39b71ad7b0e064e0d0ca3a33292668c3a4b6bb63bedb3d6ec2f57f6cf3f"
+    },
+    {
+      "path": "extensions/aipro-chat/src/Atmosphere.jsx",
+      "sha256": "15624260c9f87f939f0f77fbddf55ec3ea8da318fbe78f9aa1c7ff35df48682a"
+    },
+    {
+      "path": "extensions/aipro-chat/src/AgentMark.jsx",
+      "sha256": "add93dafa68e4bf9dcfb52ee04d4e0f69c69cb345200561fb211e69043fa00da"
+    },
+    {
+      "path": "extensions/aipro-chat/src/Welcome.jsx",
+      "sha256": "773ebd3ee8fdf86b7bc1d671d669765b0e021db6847346b0d7ad251a343191e8"
+    },
+    {
+      "path": "extensions/aipro-chat/src/NubiSurfaces.jsx",
+      "sha256": "2a146b4daddacdb84651fc636f10104a4e55c56d756a0d31d3dffa0d5141f2a6"
+    },
+    {
+      "path": "extensions/aipro-chat/src/AgentTabs.jsx",
+      "sha256": "5cdcaeeb2017abb3d2911a5107cf0b74a2fe0397775fec6244edaf03a9158e69"
+    },
+    {
+      "path": "extensions/aipro-chat/src/ChatControls.jsx",
+      "sha256": "6734fbd175263d0f13a45feda570ee4ca36bbbb7e097cf912800beef726a2c16"
+    },
+    {
+      "path": "extensions/aipro-chat/src/HelpContent.jsx",
+      "sha256": "dc5ccf1d38e1c3a92d53f29b8a9447d40548d4a6dff6a82b8aa87a7d5aeafa8f"
+    },
+    {
+      "path": "extensions/aipro-chat/src/interaction-forms.css",
+      "sha256": "0ba61dd6ff66f8c490d04efae96c6c13e8eb3e6faa13a043e9aa573e0d2f855b"
+    },
+    {
+      "path": "extensions/aipro-chat/src/approval.css",
+      "sha256": "444f55963913a21d86536a3d52cd1ced4a4450b17e361770dfa6ed078e352db4"
+    },
+    {
+      "path": "extensions/aipro-chat/src/InteractionSurface.jsx",
+      "sha256": "a7ee27050da5a7611763eefdb9cd2d676f05eec2c0cef3bb4e2e9e0a74ccec5d"
+    },
+    {
+      "path": "extensions/aipro-chat/src/QuestionForm.jsx",
+      "sha256": "968f01b044d45b5ffc1c11cbc4b5394bd67f5e512ac857c64088b4fd23180193"
+    },
+    {
+      "path": "extensions/aipro-chat/src/ConversationHistory.jsx",
+      "sha256": "59068cd9e2ab553fbbb12e98dddb5f40115525d5f0194299e509f568b6704e54"
+    },
+    {
+      "path": "extensions/aipro-chat/src/CopyButton.jsx",
+      "sha256": "680e9324480f68ec5133fb13a6da2dac1ad5e594604f85dfe969644bcbcf132a"
+    },
+    {
+      "path": "extensions/aipro-chat/src/code-highlight.js",
+      "sha256": "89869c51b67a43cc7d6896af9fba50702f4309b918f7b76202b14f5c0448344e"
+    },
+    {
+      "path": "extensions/aipro-chat/src/code.css",
+      "sha256": "d0cb6a43544652700ee80b139a9f136bdd0a176895dbc2bdb72915e931680814"
+    },
+    {
+      "path": "extensions/aipro-chat/src/CodeBlock.jsx",
+      "sha256": "4ae8253a173cae124c09b7de63b33a8fd6cc8999cf6e050d8b22ebf2e87564e1"
+    },
+    {
+      "path": "extensions/aipro-chat/src/MessageBody.jsx",
+      "sha256": "4d407ebae9ffcecd7fd9491d64b457c5c16914a38d34c9232fdf9a4abaa232ec"
+    },
+    {
+      "path": "extensions/aipro-chat/src/TraceSurface.jsx",
+      "sha256": "68dc1b4703fc389e7efcf538ddd67d1be6105e7d0aab1e93c2f4ac675a471bb5"
+    },
+    {
+      "path": "extensions/aipro-chat/src/TaskPlan.jsx",
+      "sha256": "346d2da39f4128ed86a4dbb25b4370a90eb39a74c7544c435d6ce2e62592f7c5"
+    },
+    {
+      "path": "extensions/aipro-chat/design/agent-deck.css",
+      "sha256": "ac5021db44391c9a824f0f5d1a2f60fddb67fe1a9e0cd31617f2fdca82b24b90"
+    },
+    {
+      "path": "extensions/aipro-chat/src/app.css",
+      "sha256": "e7abce4c421a194ce5a745689af06ce1036199765bc56f8852d543be7dfc3873"
+    },
+    {
+      "path": "extensions/aipro-chat/src/surfaces.css",
+      "sha256": "b404e9d185d557882d02dcfc69a780c7c9c6f630d973f1e3ab171852821f044a"
+    },
+    {
+      "path": "extensions/aipro-chat/src/code.css",
+      "sha256": "d0cb6a43544652700ee80b139a9f136bdd0a176895dbc2bdb72915e931680814"
+    },
+    {
+      "path": "extensions/aipro-chat/src/interaction-forms.css",
+      "sha256": "0ba61dd6ff66f8c490d04efae96c6c13e8eb3e6faa13a043e9aa573e0d2f855b"
+    },
+    {
+      "path": "extensions/aipro-chat/src/approval.css",
+      "sha256": "444f55963913a21d86536a3d52cd1ced4a4450b17e361770dfa6ed078e352db4"
+    },
+    {
+      "path": "extensions/aipro-chat/src/deck-surfaces.css",
+      "sha256": "d5a6cdc7f6f45c0b45d9fec12a4110120132d8982bd705c4a09e0b6c654e2270"
+    }
+  ],
+  "fullStyleCascade": true,
+  "reactVersion": "19.2.8"
+}

@@ -1,0 +1,24 @@
+{
+  "kind": "source-only-invalid-operation-diagnostics",
+  "checkedAt": "2026-09-25T03:22:11.630Z",
+  "fixtureSha256": "17380963cd3b11a6316e66953ff2d0ce356bc0c29798008a708c8195246d9a4d",
+  "baselineSourceSha256": "02983e8dbf8730bf2c170f28cc16700738d298f688d0d844950cb132d23f6242",
+  "currentValidatorSha256": "6362583d053f908ee9313765a0bd5dbf94e22c501dc624d40cecdcbb177040c9",
+  "baseline": {
+    "cases": 12,
+    "rejected": 12,
+    "localizedWithExpectedSchema": 0,
+    "inputUnchanged": 12
+  },
+  "current": {
+    "cases": 12,
+    "rejected": 12,
+    "localizedWithExpectedSchema": 12,
+    "inputUnchanged": 12
+  },
+  "limits": [
+    "Fixed invalid-input corpus, not a representative accuracy score",
+    "No model, COM, Windows installation or NASCA execution",
+    "End-to-end repair and approval are tested separately with scripted model/native fixtures"
+  ]
+}

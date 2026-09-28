@@ -1,0 +1,103 @@
+{
+  "date": "2026-09-23",
+  "scope": "Publication checkout changed harness modules, touched tests and pinned dependency files; not installer or complete-source hashes",
+  "baselineCommit": "98e73d53f86ab433d51d818518ebce94e56e2ba7",
+  "runtime": "v25.4.0",
+  "checks": {
+    "sourceTests": {
+      "command": "npm test",
+      "tests": 309,
+      "pass": 309,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "generatedProgressSequences": {
+      "numRuns": 150,
+      "seed": 2392026
+    },
+    "uiParity": {
+      "files": 24,
+      "matched": true
+    },
+    "designCheck": {
+      "issues": 0
+    },
+    "diffCheck": {
+      "passed": true
+    }
+  },
+  "comparison": "tool-progress-comparison.json",
+  "build": {
+    "executed": false
+  },
+  "liveVerification": {
+    "windowsOffice2016": "not_executed",
+    "enterpriseQwen": "not_executed",
+    "sso": "not_executed",
+    "nasca": "not_executed"
+  },
+  "sources": [
+    {
+      "path": "worker/tool-progress.mjs",
+      "sha256": "41f17e44e9a73bb977d5d41fe41888556359f1605a865d7bce776e0248c34a59"
+    },
+    {
+      "path": "worker/resilience.mjs",
+      "sha256": "2c6d3a8650459102010c5c8c17358208653d98294b9a3df6be969daf6bd0bdeb"
+    },
+    {
+      "path": "worker/connection-errors.mjs",
+      "sha256": "f5cbcf5ede387b0367075ad8f18090e0fff020a350d1296f99136133f9652176"
+    },
+    {
+      "path": "worker/agent.mjs",
+      "sha256": "4b5b87a24c46bcdaa6e714cd4a9031c70a9479b6b50c9c655fb491bd5ad32fea"
+    },
+    {
+      "path": "worker/document-agent.mjs",
+      "sha256": "4b9b80c3abc06faa236115829bf3f6d5ae49b57b77dfcc11f23e0e8ac4802b01"
+    },
+    {
+      "path": "worker/content-agent.mjs",
+      "sha256": "6aee957fba16efd70912648e9e415f30e5485ba9d20b9c14382af5fbbc3737ae"
+    },
+    {
+      "path": "worker/workbook-context.mjs",
+      "sha256": "5eaf82174b98da3bb8aa595777dd037955a989e152ddb2998a0809ad89898448"
+    },
+    {
+      "path": "tests/tool-progress.test.mjs",
+      "sha256": "6a363f0409a14a8e568b5825dd948a5c3ea31c74ded1d6eed375752a99588829"
+    },
+    {
+      "path": "tests/content-agent.test.mjs",
+      "sha256": "017a4eb4449793390c45a66cc2965670efde1086f52cbb00f3375bc28040c639"
+    },
+    {
+      "path": "tests/workbook-context.test.mjs",
+      "sha256": "41113e8a4be8011a2ca5c0a364ac48b39ffdcd499064ccf26c8a0871c5623055"
+    },
+    {
+      "path": "scripts/check-tool-progress.mjs",
+      "sha256": "82d8ed2b3df55475e997604ab1d4bb2bce19665d2d0f20fd1de0af5e4fa79677"
+    },
+    {
+      "path": "package.json",
+      "sha256": "17cc85ffffa55909231b0d106ffbda3a98fa212a537acbfa2a3286924175d35a"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "5e52cd026bfc36b830c3945087b49711e947d0f34d59c50f4744362cc6781063"
+    },
+    {
+      "path": "vendor/nubi-shared/agent-runtime.js",
+      "sha256": "a8da5a8e65963c1c6b1ac4ee2e057fabe2fb8c3823c7e91628262fb159c70dd1"
+    },
+    {
+      "path": "verification/tool-progress-comparison.json",
+      "sha256": "570ff79892c817c68936fe950896db3470f2feefcd39ab06066815d5031ce99d"
+    }
+  ]
+}

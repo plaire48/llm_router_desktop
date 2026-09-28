@@ -1,0 +1,383 @@
+{
+  "suite": "template",
+  "id": "template-preserve-calculation",
+  "trial": 1,
+  "routing": "product",
+  "passed": true,
+  "outcome": "passed",
+  "state": "done",
+  "writes": 1,
+  "recoveries": 0,
+  "questions": [],
+  "approvals": [
+    "template_mapping",
+    "edit"
+  ],
+  "proposals": 1,
+  "metrics": {
+    "modelCalls": 11,
+    "toolCalls": 5,
+    "elapsedMs": 31067
+  },
+  "transcript": {
+    "modelCalls": 11,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 1,
+      "actor": 6,
+      "action_review": 1,
+      "step_review": 1,
+      "result_review": 1
+    },
+    "elapsedMs": 30833,
+    "requestCharacters": 297783,
+    "peakRequestCharacters": 51147,
+    "toolCalls": {
+      "read": 1,
+      "inspect_template": 1,
+      "define_template_fields": 1,
+      "fill_template_fields": 1,
+      "verify_selection": 1
+    },
+    "errors": {}
+  },
+  "score": {
+    "passed": true,
+    "outcome": "passed",
+    "deterministicPassed": true,
+    "semanticReview": {
+      "required": false,
+      "status": "not_required",
+      "criteria": []
+    },
+    "expectedState": "done",
+    "actualState": "done",
+    "checks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "B2",
+          "field": "value",
+          "operator": "equals",
+          "expected": 5,
+          "actual": [
+            [
+              5
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C2",
+          "field": "value",
+          "operator": "equals",
+          "expected": 6000,
+          "actual": [
+            [
+              6000
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C2",
+          "field": "formula",
+          "operator": "equals",
+          "expected": "=B2*1200",
+          "actual": [
+            [
+              "=B2*1200"
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "persistedChecks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "B2",
+          "field": "value",
+          "operator": "equals",
+          "expected": 5,
+          "actual": [
+            [
+              5
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C2",
+          "field": "value",
+          "operator": "equals",
+          "expected": 6000,
+          "actual": [
+            [
+              6000
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C2",
+          "field": "formula",
+          "operator": "equals",
+          "expected": "=B2*1200",
+          "actual": [
+            [
+              "=B2*1200"
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "unexpectedChanges": [],
+    "persistedUnexpectedChanges": [],
+    "sourceChecks": [],
+    "formulaChecks": []
+  },
+  "request": "기존 양식의 B2만 필수 숫자 수량 입력칸으로 확인받고 5를 채워줘. C2의 기존 계산 수식과 양식은 그대로 유지해.",
+  "answer": "완료했습니다.\n\n- **B2**: 숫자 5 입력, 형식 `General` 유지\n- **C2**: 수식 `=B2*1200` 유지\n- **C2 결과**: 6,000\n- **C2 형식**: `#,##0` 유지\n- 기존 양식과 서식 보존 확인됨",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_input_and_formula",
+        "title": "B2와 C2의 입력값, 수식, 기존 양식 확인",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "enter_quantity_and_recalculate",
+        "title": "B2에 수량 5 입력 후 C2 계산 결과 확인",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "state": "done",
+        "requiresReview": true
+      },
+      {
+        "id": "verify_preservation",
+        "title": "C2 수식과 양식이 유지되었는지 최종 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          2,
+          4
+        ],
+        "state": "done"
+      }
+    ],
+    "total": 3,
+    "completed": 3,
+    "currentStepId": null
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "기존 양식의 B2에 수량 5를 입력하고, C2의 기존 수식과 양식을 유지합니다.",
+    "requirements": [
+      "B2를 필수 숫자 수량 입력칸으로 확인하고 값 5 입력",
+      "C2의 기존 계산 수식 =B2*1200 유지",
+      "기존 양식과 서식 보존"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "B2",
+        "field": "value",
+        "operator": "equals",
+        "expected": 5
+      },
+      {
+        "address": "B2",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "General"
+      },
+      {
+        "address": "C2",
+        "field": "formula",
+        "operator": "equals",
+        "expected": "=B2*1200"
+      },
+      {
+        "address": "C2",
+        "field": "value",
+        "operator": "equals",
+        "expected": 6000
+      },
+      {
+        "address": "C2",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "#,##0"
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_input_and_formula",
+        "title": "B2와 C2의 입력값, 수식, 기존 양식 확인",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "enter_quantity_and_recalculate",
+        "title": "B2에 수량 5 입력 후 C2 계산 결과 확인",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "id": "verify_preservation",
+        "title": "C2 수식과 양식이 유지되었는지 최종 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          2,
+          4
+        ]
+      }
+    ]
+  },
+  "review": {
+    "status": "complete",
+    "checks": [
+      {
+        "requirement": "B2에 숫자 5가 입력됨",
+        "status": "met",
+        "evidence_ids": [
+          11
+        ]
+      },
+      {
+        "requirement": "C2의 기존 수식 =B2*1200이 유지됨",
+        "status": "met",
+        "evidence_ids": [
+          11,
+          12
+        ]
+      },
+      {
+        "requirement": "C2 계산 결과가 6000임",
+        "status": "met",
+        "evidence_ids": [
+          11
+        ]
+      },
+      {
+        "requirement": "기존 양식과 확인된 서식이 보존됨",
+        "status": "met",
+        "evidence_ids": [
+          11,
+          12
+        ]
+      }
+    ],
+    "next_step": "없음"
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_input_and_formula"
+    },
+    {
+      "name": "read",
+      "state": "done",
+      "stepId": "enter_quantity_and_recalculate"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "enter_quantity_and_recalculate"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_quantity_and_recalculate"
+    },
+    {
+      "name": "define_template_fields",
+      "state": "done",
+      "stepId": "enter_quantity_and_recalculate"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_quantity_and_recalculate"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_quantity_and_recalculate"
+    },
+    {
+      "name": "fill_template_fields",
+      "state": "done",
+      "stepId": "enter_quantity_and_recalculate"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_quantity_and_recalculate"
+    },
+    {
+      "name": "review_action",
+      "state": "done",
+      "stepId": "enter_quantity_and_recalculate"
+    },
+    {
+      "name": "review_step",
+      "state": "done",
+      "stepId": "enter_quantity_and_recalculate"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_preservation"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_preservation"
+    },
+    {
+      "name": "review_task",
+      "state": "done",
+      "stepId": "verify_preservation"
+    }
+  ],
+  "recoveryLog": [],
+  "lastProposal": [
+    {
+      "id": "field_B2",
+      "address": "B2",
+      "label": "수량",
+      "valueType": "number",
+      "required": true,
+      "numberFormat": "General",
+      "merge": null,
+      "choices": [],
+      "currentValue": "2",
+      "currentValueIsPreview": true,
+      "validation": null
+    }
+  ]
+}

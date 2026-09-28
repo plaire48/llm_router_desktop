@@ -1,0 +1,195 @@
+{
+  "version": "0.8.0",
+  "source": "/Users/ganadi/Downloads/agentfactorysdkdeck.html",
+  "sourceSha256": "df9cfcc44f2f8d4ea14c6f137d0297c562ca506f8a0028df374c7f012d8715ac",
+  "entries": [
+    {
+      "id": "choice",
+      "label": "요구사항 선택형 폼",
+      "file": "question-choice-380.png",
+      "responsive": false
+    },
+    {
+      "id": "document-start",
+      "label": "문서 작성 시작",
+      "file": "document-start-380.png",
+      "responsive": false
+    },
+    {
+      "id": "document-writing",
+      "label": "문서 작성 중",
+      "file": "document-writing-380.png",
+      "responsive": false
+    },
+    {
+      "id": "document-approval",
+      "label": "저장 HITL",
+      "file": "document-approval-380.png",
+      "responsive": false
+    },
+    {
+      "id": "document-complete",
+      "label": "문서 완성",
+      "file": "document-complete-380.png",
+      "responsive": false
+    },
+    {
+      "id": "document-save-failed",
+      "label": "저장 응답 복구",
+      "file": "document-save-failed-380.png",
+      "responsive": false
+    },
+    {
+      "id": "mode-document",
+      "label": "문서 작성 방식",
+      "file": "components-mode-document-380.png",
+      "responsive": true
+    },
+    {
+      "id": "login",
+      "label": "로그인",
+      "file": "login-380.png",
+      "responsive": false
+    },
+    {
+      "id": "connections",
+      "label": "연결 선택",
+      "file": "components-connections-380.png",
+      "responsive": true
+    },
+    {
+      "id": "cli",
+      "label": "AI Pro CLI",
+      "file": "components-cli-380.png",
+      "responsive": true
+    },
+    {
+      "id": "compatible",
+      "label": "호환 API",
+      "file": "components-compatible-380.png",
+      "responsive": true
+    },
+    {
+      "id": "fabrix",
+      "label": "FabriX",
+      "file": "components-fabrix-380.png",
+      "responsive": true
+    },
+    {
+      "id": "models",
+      "label": "모델 목록",
+      "file": "aipro-models-380.png",
+      "responsive": false
+    },
+    {
+      "id": "received-five",
+      "label": "서버 5개 응답",
+      "file": "models-received-five-380.png",
+      "responsive": false
+    },
+    {
+      "id": "fast",
+      "label": "Fast 모델 검색",
+      "file": "models-fast-found-380.png",
+      "responsive": false
+    },
+    {
+      "id": "cell-properties",
+      "label": "셀 속성",
+      "file": "components-cell-properties-380.png",
+      "responsive": true
+    },
+    {
+      "id": "cell-rules",
+      "label": "양식과 입력 제한",
+      "file": "components-cell-rules-380.png",
+      "responsive": true
+    },
+    {
+      "id": "settings",
+      "label": "설정",
+      "file": "components-settings-380.png",
+      "responsive": true
+    },
+    {
+      "id": "help",
+      "label": "도움말",
+      "file": "components-help-380.png",
+      "responsive": true
+    },
+    {
+      "id": "help-expanded",
+      "label": "도움말 펼침",
+      "file": "components-help-expanded-380.png",
+      "responsive": true
+    },
+    {
+      "id": "usage-empty",
+      "label": "사용량",
+      "file": "components-usage-empty-380.png",
+      "responsive": true
+    },
+    {
+      "id": "mode-analyze",
+      "label": "분석만",
+      "file": "components-mode-analyze-380.png",
+      "responsive": true
+    },
+    {
+      "id": "mode-edit",
+      "label": "셀 수정",
+      "file": "components-mode-edit-380.png",
+      "responsive": true
+    },
+    {
+      "id": "history-empty",
+      "label": "변경 전",
+      "file": "components-history-empty-380.png",
+      "responsive": true
+    },
+    {
+      "id": "history",
+      "label": "변경 비교",
+      "file": "components-history-380.png",
+      "responsive": true
+    },
+    {
+      "id": "question",
+      "label": "질문과 답변",
+      "file": "components-question-380.png",
+      "responsive": true
+    },
+    {
+      "id": "plan",
+      "label": "실행 계획",
+      "file": "plan-before-380.png",
+      "responsive": false
+    },
+    {
+      "id": "progress",
+      "label": "도구 실행 중",
+      "file": "plan-running-380.png",
+      "responsive": false
+    },
+    {
+      "id": "result",
+      "label": "작업 결과",
+      "file": "applied-380.png",
+      "responsive": false
+    },
+    {
+      "id": "paused",
+      "label": "중지",
+      "file": "plan-paused-380.png",
+      "responsive": false
+    }
+  ],
+  "widths": [
+    320,
+    380,
+    1100
+  ],
+  "uiCode": "production",
+  "liveExcelVerified": false,
+  "liveModelApiVerified": false
+}

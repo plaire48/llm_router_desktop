@@ -1,0 +1,191 @@
+name: Windows release smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag to verify
+        required: true
+        default: v0.1.16
+      expected_sha256:
+        description: Expected wheel SHA-256
+        required: true
+        default: c6a58de886553b2ef2f7ce503a2b9a80f769fd261a92db6e0caa2685f6dafc5f
+      python_version:
+        description: Python version used to install and run llm-router
+        required: true
+        default: "3.14"
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "${{ inputs.python_version }}"
+
+      - name: Download Windows wheel from GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "${{ inputs.release_tag }}" `
+            --repo "${{ github.repository }}" `
+            --pattern "*win_amd64.whl"
+
+      - name: Verify, install, and execute bundled OpenCode
+        shell: pwsh
+        run: |
+          $wheel = Get-ChildItem -File "*win_amd64.whl" | Select-Object -First 1
+          if (-not $wheel) {
+            throw "Windows wheel was not downloaded"
+          }
+          $actualSha = (Get-FileHash $wheel.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualSha -ne "${{ inputs.expected_sha256 }}") {
+            throw "Wheel SHA-256 mismatch: $actualSha"
+          }
+
+          py -m pip install --force-reinstall $wheel.FullName
+
+          $env:LLM_ROUTER_SMOKE_DER_CRT = Join-Path $PWD "sds.crt"
+          $derScript = @'
+          import os
+          import ssl
+          from pathlib import Path
+
+          import certifi
+
+          bundle = Path(certifi.where()).read_text(encoding="ascii")
+          pem = "-----BEGIN CERTIFICATE-----" + bundle.split(
+              "-----BEGIN CERTIFICATE-----", 1
+          )[1].split("-----END CERTIFICATE-----", 1)[0]
+          pem += "-----END CERTIFICATE-----\n"
+          source = Path(os.environ["LLM_ROUTER_SMOKE_DER_CRT"])
+          source.write_bytes(ssl.PEM_cert_to_DER_cert(pem))
+          os.environ["NODE_EXTRA_CA_CERTS"] = str(source)
+
+          from llm_router.http_client import create_ssl_context
+
+          create_ssl_context()
+          print(os.environ["NODE_EXTRA_CA_CERTS"])
+          '@
+          $convertedCa = ($derScript | py -).Trim()
+          if ($convertedCa -eq $env:LLM_ROUTER_SMOKE_DER_CRT) {
+            throw "Binary DER CRT was not converted for the embedded OpenCode runtime"
+          }
+          if (-not (Test-Path $convertedCa -PathType Leaf)) {
+            throw "Converted DER certificate cache was not created: $convertedCa"
+          }
+          if ((Get-Content $convertedCa -TotalCount 1) -ne "-----BEGIN CERTIFICATE-----") {
+            throw "Converted DER certificate cache is not PEM encoded"
+          }
+
+          $binary = py -c "from llm_router.opencode_runtime import bundled_opencode_path; print(bundled_opencode_path())"
+          if (-not (Test-Path $binary -PathType Leaf)) {
+            throw "Bundled opencode.exe was not found: $binary"
+          }
+
+          $env:HTTP_PROXY = "http://127.0.0.1:1"
+          $env:HTTPS_PROXY = "http://127.0.0.1:1"
+          $env:ALL_PROXY = "http://127.0.0.1:1"
+          Remove-Item Env:NO_PROXY -ErrorAction SilentlyContinue
+          $env:LLM_ROUTER_SMOKE_RUNTIME_DIR = Join-Path $PWD "router-managed-opencode"
+          $runtimeScript = @'
+          import asyncio
+          import json
+          import os
+          import time
+          from pathlib import Path
+
+          from llm_router.http_client import create_async_client
+          from llm_router.models import ToolDef
+          from llm_router.opencode_runtime import OpenCodeRuntime
+
+
+          async def main():
+              runtime = OpenCodeRuntime(
+                  base_url="http://127.0.0.1:0",
+                  directory=Path(os.environ["LLM_ROUTER_SMOKE_RUNTIME_DIR"]),
+              )
+              if runtime.startup_timeout != 120.0:
+                  raise RuntimeError(f"Unexpected startup timeout: {runtime.startup_timeout}")
+              started = time.monotonic()
+              async with create_async_client(timeout=30.0) as client:
+                  try:
+                      await runtime.ensure_started(client)
+                      response = await client.get(f"{runtime.base_url}/global/health")
+                      response.raise_for_status()
+                      health = response.json()
+                      session_response = await client.post(
+                          f"{runtime.base_url}/session",
+                          params={"directory": str(runtime.directory)},
+                          json={"title": "Windows MCP smoke"},
+                      )
+                      session_response.raise_for_status()
+                      session_id = session_response.json()["id"]
+                      context = await runtime.tool_bridge.create(
+                          [
+                              ToolDef.model_validate(
+                                  {
+                                      "type": "function",
+                                      "function": {
+                                          "name": "smoke_tool",
+                                          "description": "Windows MCP bridge smoke tool",
+                                          "parameters": {"type": "object", "properties": {}},
+                                      },
+                                  }
+                              )
+                          ],
+                          session_id=session_id,
+                          profile_name="smoke",
+                      )
+                      mcp_response = await client.post(
+                          f"{runtime.base_url}/mcp",
+                          params={"directory": str(runtime.directory)},
+                          json={
+                              "name": context.mcp_name,
+                              "config": runtime.tool_bridge.mcp_config(context),
+                          },
+                      )
+                      mcp_response.raise_for_status()
+                      mcp_status = mcp_response.json()[context.mcp_name]["status"]
+                  finally:
+                      await runtime.close()
+              print(
+                  json.dumps(
+                      {
+                          "elapsed": time.monotonic() - started,
+                          "health": health,
+                          "mcp_status": mcp_status,
+                      }
+                  )
+              )
+
+
+          asyncio.run(main())
+          '@
+          $runtimeResult = ($runtimeScript | py -).Trim()
+          $runtimeReport = $runtimeResult | ConvertFrom-Json
+          if ($runtimeReport.health.healthy -ne $true) {
+            throw "Router-managed OpenCode health check failed: $runtimeResult"
+          }
+          if ($runtimeReport.mcp_status -ne "connected") {
+            throw "Router-managed MCP bridge check failed: $runtimeResult"
+          }
+
+          $version = (& $binary --version).Trim()
+          if ($version -ne "1.18.18") {
+            throw "Unexpected OpenCode version: $version"
+          }
+          py -m llm_router --help
+
+          "### Windows release smoke passed" >> $env:GITHUB_STEP_SUMMARY
+          "- Wheel: $($wheel.Name)" >> $env:GITHUB_STEP_SUMMARY
+          "- SHA-256: $actualSha" >> $env:GITHUB_STEP_SUMMARY
+          "- Python: ${{ inputs.python_version }}" >> $env:GITHUB_STEP_SUMMARY
+          "- Bundled OpenCode: $version" >> $env:GITHUB_STEP_SUMMARY
+          "- Caller-tool MCP bridge: $($runtimeReport.mcp_status)" >> $env:GITHUB_STEP_SUMMARY
+          "- Router-managed startup seconds: $($runtimeReport.elapsed)" >> $env:GITHUB_STEP_SUMMARY

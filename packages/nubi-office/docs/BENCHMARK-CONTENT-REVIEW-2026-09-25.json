@@ -1,0 +1,26 @@
+{
+  "kind": "source-only-review-partition-coverage",
+  "checkedAt": "2026-09-25T03:37:13.725Z",
+  "fixtureSha256": "fc54ec53082f1a2bbfc587bd4ae13a25b893efe0a436010d838208eef40d8541",
+  "baselineSourceSha256": "9fbf41c44b1e05b0a3807fa9e242869e7c750189f4eb14cbe39a048d0dd1955d",
+  "currentSourceSha256": "b13ddb7d6480c1a80291761b8258b447815fafb8b0458a9f8cfc7e6eaa6e8d96",
+  "input": {
+    "items": 200,
+    "serializedPagesChars": 254861
+  },
+  "baseline": {
+    "accepted": false,
+    "error": "evidence_limit"
+  },
+  "current": {
+    "partitions": 7,
+    "coveredItems": 200,
+    "exactItemReconstruction": true,
+    "maxPartitionEvidenceChars": 47851
+  },
+  "limits": [
+    "Deterministic source fixture, no model calls or quality score",
+    "Partition evidence size excludes instructions and task context; the existing whole-request budget still applies",
+    "Windows Office 2016, Qwen and NASCA were not executed"
+  ]
+}

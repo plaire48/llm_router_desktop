@@ -1,0 +1,123 @@
+{
+  "kind": "source-only-office-host-review",
+  "recordedAt": "2026-09-22T23:54:30.205637+00:00",
+  "checkout": "development checkout",
+  "version": "0.8.2-unreleased",
+  "baseline": "Qwen 3.8 27B from enterprise catalog; no live model evaluation",
+  "tests": {
+    "command": "npm test",
+    "total": 231,
+    "passed": 231,
+    "failed": 0,
+    "skipped": 0,
+    "newHostProtocolCases": 12,
+    "newHostUiCases": 2,
+    "provider": "scripted",
+    "nativeHost": "scripted",
+    "agentRuntime": "real Pi 0.86.1"
+  },
+  "ui": {
+    "sourceCheckIssues": 0,
+    "sharedFilesMatched": 24,
+    "staticChromiumStates": 81,
+    "pageOverflows": 0,
+    "axeViolations": 0,
+    "axeManualReviewNeeded": [
+      "aria-prohibited-attr",
+      "color-contrast"
+    ],
+    "previewEvidence": "usability-preview.json",
+    "measuredIn": "development checkout",
+    "notAFullAccessibilityAudit": true
+  },
+  "nativeSource": {
+    "hostProjectXmlParsed": true,
+    "entryProjects": [
+      {
+        "app": "Excel",
+        "project": "native/Nubi.Office.AddIn/Nubi.Office.AddIn.vbproj",
+        "xmlParsed": true,
+        "compileInputsPresent": true,
+        "nativeCompiled": false
+      },
+      {
+        "app": "Word",
+        "project": "native/Nubi.Office.Word.AddIn/Nubi.Office.Word.AddIn.vbproj",
+        "xmlParsed": true,
+        "compileInputsPresent": true,
+        "nativeCompiled": false
+      },
+      {
+        "app": "PowerPoint",
+        "project": "native/Nubi.Office.PowerPoint.AddIn/Nubi.Office.PowerPoint.AddIn.vbproj",
+        "xmlParsed": true,
+        "compileInputsPresent": true,
+        "nativeCompiled": false
+      }
+    ],
+    "manualApiReview": [
+      "PowerPoint HasVBProject is Boolean",
+      "native Office UI STA dispatch",
+      "Word XML element-only validation; no OPC file spill",
+      "in-memory native write receipts never replay uncertain mutations"
+    ]
+  },
+  "notVerified": [
+    "native dependency restore/compile",
+    "Office 2016 installation or COM execution",
+    "company SSO and Qwen response quality",
+    "real Word/PPT output and visual fidelity",
+    "NASCA encryption/save/reopen",
+    "new component installer execution"
+  ],
+  "buildsRun": false,
+  "installerWorkflowDispatched": false,
+  "sourceSha256": {
+    "AGENTS.md": "488d0352fc80d9e2c16bf109201c2b266f49d113ff8896c910a0a1dd326a7bf0",
+    "README.md": "dd808a8ad69454081a030a3f099acc3fa010fa2f7ead513171a7c668e8b82e40",
+    "THIRD-PARTY-NOTICES.md": "448413befb64ec7837288b67a00630a97f60c5e2495b68c8cf8f3d4d96e0afd2",
+    "design/shared-ui.json": "e93800d23e4371f77d667a3aee704c6756cee38dba923e2bfa941cd770ac87b5",
+    "docs/OFFICE-2016-SPECIALIZATION.md": "dfec005713394fd982c7eaad28d593fb928c0d85d29b401308cd0d6211479026",
+    "installer/INSTALL-KO.txt": "2359b427574eac1df54f46a2f66a2acc25e71a52e6918d66829a4aef856b9cb9",
+    "installer/NubiOffice.iss": "f8e354af043f7a8f8ceb8193ea825f86b7d4963c9218643bf8a73fa703b95982",
+    "native/Nubi.Office.Host/Nubi.Office.Host.csproj": "f656f0a8c63481c2607d7fb3f769f84832766a418bdef0a4b3a5cf200c1faa18",
+    "native/Nubi.Office.Host/NubiPane.cs": "a2ced92dc10cb27da30844172d398274fd1b63d6366d0cf754086ec1fb26449e",
+    "native/Nubi.Office.Host/WorkerProcess.cs": "61101de3426ef459aade93c1129e81a0eb5dbe70cc91a9e38499e256af6bf5bc",
+    "native/Nubi.Office.Host/ContentPort.cs": "98fda312c5fd81b1813c8762ff8a4e8938a4b164ebdaad274b6890aab474982e",
+    "native/Nubi.Office.Host/WordContentDocument.cs": "d7b7c340e45a11052e0e2b6dd4c6f00a03bccb3e386df3c3d2604a76364bbc24",
+    "native/Nubi.Office.Host/SlideContentDocument.cs": "1501eaf3d46dd60af11bc11076c804c7a2ac08d86a98f617a347bb40391a8190",
+    "scripts/Build-Installer.ps1": "380c25fc80f87310597024bf70a8a648a206488ee040b1a3d0940c9055e8cc16",
+    "scripts/Test-Installer.ps1": "12aff123f372f3dcb014ddb6c1b33a5548a6720dc02e893c7cc41514f6097e0d",
+    "src/App.jsx": "a0cbaa0c13cfbc9552721dc8e15a7eb62a8f7466fd9b8d2635933c2f5e0e4ace",
+    "src/ContentDetails.jsx": "e974d9dc5eb1647d15ee874d1a5fc8d6194e4e5ff3cdb2b033e7f30ec99134db",
+    "src/OfficeComposer.jsx": "873a49fa5695b1342c701f6d12b74e5392d86079f3f84524e561930ac7d0d379",
+    "src/OfficeDialogs.jsx": "2ab75eed46d6216ea0055cc4da7f329056be441c0e23cec539a824d8847136df",
+    "src/OfficeTools.jsx": "e6ffc204643ed71c26c0aa2f27cd4bef9471b33e86eb474f523b54fa38ad7e0d",
+    "src/OfficeTransaction.jsx": "7832ff8e9d209c47720203c72a8ef302498d8d99ad9c97dfa80255622e746f33",
+    "src/TaskActivity.jsx": "2c6ae497ab650a6289b3e67886ccbf21106e0af15e6ce33cc7ed6411d23debc0",
+    "src/bridge.js": "584172296f110a2f373b15d81f69a09a94735526be5ab1af28fcd0dc2ab4df7f",
+    "src/errors.js": "5b76381f2641856a359f77bf0fd7407a9cbbca43edb31b9706346dec5e68c96c",
+    "src/task-view.js": "0701a95238ab1ce63d5a97b9506b29e8c078b5080628043af4dcc74ab5f455e9",
+    "tests/content-agent.test.mjs": "1a0cbd29daa6056f6b595e34f82113449c153b1a741818b4bc37c18b50ec86c7",
+    "tests/content-ui.test.mjs": "aba320e7d388b9c9a229742986613562bd416baaad5c77012a8128c7e1de2c42",
+    "tests/installed-host.ps1": "2c74ca0da46d7943304a3f60b50369f23de09f41db0e672a78a601de6e091436",
+    "tests/ui-preview.mjs": "79e9764c40354b52a89aa78e1e9ba43cde8dc968c4d2c334e471aa6bfc4af875",
+    "worker/content-agent.mjs": "dc9ef465184d2ae58856b98afff6b4d4d3630f3551e42e39f820946a440822d3",
+    "worker/content-schema.mjs": "070182de89a85fd418d637914cf82e4cad578ae5ed40e838804329aa6870f2cf",
+    "worker/office-hosts.mjs": "68156498b49f4f594266d1865c5a61905417571c2d6c3852434236ace4a07116",
+    "worker/fault-policy.mjs": "bcc4da737b3c6f2b0fa3928313c6a2cd8ae1d87542f4ca70329a70b42e7974bc",
+    "worker/main.mjs": "db09cd51f94e9ef21449c603f3443afdac3c2d5c4d523284bf6cfe8d5dbb3223",
+    "licenses/openxml-LICENSE.txt": "ed03ba352313a4ba7019d5bed4bd3218ac17f3e44442a3bb1aaff54dcca9a2bc",
+    "licenses/openxml-NOTICE.txt": "17f127daf81a23e7835b735b91c7486fbc99538102942bf1bce8d73e63a65038",
+    "native/Nubi.Office.Word.AddIn/Nubi.Office.Word.AddIn.vbproj": "c8bafd4bd14274ae8587f86af376116e80e798813314b0561a1f0cc1ffb4d626",
+    "native/Nubi.Office.Word.AddIn/ThisAddIn.vb": "a76ae5f54eb57a11609fe044f3cb5facadfa95a9dba462b046761376c8c4f24d",
+    "native/Nubi.Office.Word.AddIn/ThisAddIn.Designer.vb": "79b3c5c271026dd25779720afc3e825ca63537f0b8e380d12b55b0c6bc8ff233",
+    "native/Nubi.Office.Word.AddIn/ThisAddIn.Designer.xml": "87b22810dc3557519700ccad71f1bab21eca0dc8c35994e5d0d3c4e63706b5f4",
+    "native/Nubi.Office.Word.AddIn/AssemblyInfo.vb": "a2748243bdcd43a85b835362e27a4805baf67a8e95ba1ab272d77085a1e8e8c5",
+    "native/Nubi.Office.PowerPoint.AddIn/Nubi.Office.PowerPoint.AddIn.vbproj": "4519c87ac021ddb587850916e73c3ec109d50dab20ea3bb6aa240f927e828aa1",
+    "native/Nubi.Office.PowerPoint.AddIn/ThisAddIn.vb": "550dd5efe2a5bcd66dd77c71ad780893f2f788abb78cb86b1c3936278e838290",
+    "native/Nubi.Office.PowerPoint.AddIn/ThisAddIn.Designer.vb": "7da6623523665824183c82fea45ebbb1eaeeb45d42ae5d376ca9e589e37eeffc",
+    "native/Nubi.Office.PowerPoint.AddIn/ThisAddIn.Designer.xml": "2031f43e6db634e986719e58583236658dba48f09679c789e0870c7ef1b769dc",
+    "native/Nubi.Office.PowerPoint.AddIn/AssemblyInfo.vb": "314d3b13411ad6b0d51750f81a7913437abb16b9ecdbf2645374d331164dbc0d"
+  }
+}

@@ -1,0 +1,216 @@
+{
+  "suite": "register",
+  "id": "trip-request",
+  "trial": 2,
+  "routing": "direct",
+  "passed": false,
+  "outcome": "failed",
+  "state": "awaiting_user",
+  "writes": 0,
+  "recoveries": 1,
+  "questions": [],
+  "approvals": [],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 8,
+    "toolCalls": 6,
+    "elapsedMs": 23932
+  },
+  "transcript": {
+    "modelCalls": 8,
+    "byRole": {
+      "planner": 1,
+      "actor": 6,
+      "recovery": 1
+    },
+    "elapsedMs": 23118,
+    "requestCharacters": 300634,
+    "peakRequestCharacters": 57399,
+    "toolCalls": {
+      "read": 1,
+      "inspect_template": 4,
+      "define_template_fields": 1
+    },
+    "errors": {}
+  },
+  "score": {
+    "mapping": {
+      "proposed": 0,
+      "gold": 10,
+      "matched": 0,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0,
+      "missing": [
+        "C3",
+        "E3",
+        "C4",
+        "E4",
+        "C5",
+        "E5",
+        "C6",
+        "E6",
+        "C8",
+        "C10"
+      ],
+      "unexpected": [],
+      "wrongType": [],
+      "wrongRequired": [],
+      "exact": false,
+      "strict": false
+    },
+    "registered": false,
+    "sourceUnchanged": true,
+    "proposedFields": [],
+    "passed": false,
+    "outcome": "failed"
+  },
+  "request": "지금 선택한 출장 신청서 양식을 분석해서 다음에 다시 쓸 수 있게 등록해줘. 양식 이름은 출장 신청서, 용도는 임직원 국내외 출장 사전 신청이야. 직급만 선택 항목이고 나머지 입력 칸은 모두 필수야. 출장 일수와 예상 경비는 자동 계산이야.",
+  "answer": "직급 선택 항목에 사용할 목록(예: 사원, 대리, 과장, 차장, 부장)을 알려주세요.",
+  "question": "직급 선택 항목에 사용할 목록(예: 사원, 대리, 과장, 차장, 부장)을 알려주세요.",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "선택 영역의 필드, 수식, 병합, 서식과 선택 규칙 확인",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "analyze_fields",
+        "title": "출장 신청서의 입력 필드와 자동 계산 필드를 재사용 schema로 정의",
+        "kind": "analyze",
+        "checkIndexes": [],
+        "state": "waiting"
+      },
+      {
+        "id": "verify_registration",
+        "title": "등록된 출장 신청서 템플릿과 메타데이터 저장 결과 확인",
+        "kind": "verify",
+        "checkIndexes": [],
+        "state": "pending"
+      }
+    ],
+    "total": 3,
+    "completed": 1,
+    "currentStepId": "analyze_fields"
+  },
+  "task": {
+    "intent": "analyze",
+    "summary": "선택한 출장 신청서 양식의 필드, 수식, 선택 항목, 필수 조건과 서식을 분석해 재사용 가능한 템플릿으로 등록합니다.",
+    "requirements": [
+      "양식 이름은 출장 신청서로 등록",
+      "용도는 임직원 국내외 출장 사전 신청",
+      "직급만 선택 항목으로 지정",
+      "직급 외 모든 입력 칸은 필수 항목으로 지정",
+      "출장 일수와 예상 경비는 기존 자동 계산 수식 필드로 등록"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [],
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "선택 영역의 필드, 수식, 병합, 서식과 선택 규칙 확인",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "analyze_fields",
+        "title": "출장 신청서의 입력 필드와 자동 계산 필드를 재사용 schema로 정의",
+        "kind": "analyze",
+        "checkIndexes": []
+      },
+      {
+        "id": "verify_registration",
+        "title": "등록된 출장 신청서 템플릿과 메타데이터 저장 결과 확인",
+        "kind": "verify",
+        "checkIndexes": []
+      }
+    ]
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_form"
+    },
+    {
+      "name": "read",
+      "state": "done",
+      "stepId": "analyze_fields"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "analyze_fields"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_fields"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "analyze_fields"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_fields"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "analyze_fields"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_fields"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "analyze_fields"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_fields"
+    },
+    {
+      "name": "define_template_fields",
+      "state": "error",
+      "stepId": "analyze_fields"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_fields"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_fields"
+    }
+  ],
+  "recoveryLog": [
+    {
+      "attempt": 1,
+      "stepId": "analyze_fields",
+      "code": "template_mapping_invalid",
+      "tool": "define_template_fields",
+      "outcome": "not_executed",
+      "state": "waiting",
+      "summary": "직급 선택 항목의 실제 선택 목록을 확인할 수 없어 템플릿 필드 정의를 완료할 수 없습니다.",
+      "nextAction": ""
+    }
+  ]
+}

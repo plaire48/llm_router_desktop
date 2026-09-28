@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-23",
+  "scope": "Office pre-execution tool admission and recovery source checks",
+  "baselineCommit": "1146c1b6c192aac0852e0dd957c7b440aaa36276",
+  "modelBaseline": "Enterprise Qwen 3.8 27B; live model not invoked",
+  "before": {
+    "developmentReproduction": {
+      "tests": 2,
+      "pass": 0,
+      "fail": 2,
+      "cancelled": 0,
+      "skipped": 0,
+      "logSha256": "6a903e056b9eeb734a8f8ce23a4e426b3cc801cdb962edcd316062500575ecba"
+    },
+    "publicationReproduction": {
+      "tests": 2,
+      "pass": 0,
+      "fail": 2,
+      "cancelled": 0,
+      "skipped": 0,
+      "logSha256": "80e29aee3ae14c775c605f424740da702cd9f77cceabf226d22168e237bba6a2"
+    },
+    "callsBeforeHITL": {
+      "excelCellWithRepeatedCallId": 4,
+      "excelDocumentWithRepeatedCallId": 9
+    }
+  },
+  "after": {
+    "developmentFocusedSuite": {
+      "tests": 76,
+      "pass": 76,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "logSha256": "052c5431e70c61eb70d30ae52d51ddd7fdb2ab0fe064242b78177403e856d609"
+    },
+    "publicationFullSuite": {
+      "tests": 374,
+      "pass": 374,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "logSha256": "df84d06e16e0337bc215e27198bcf7d899d2747025503caa7097fec1077c5c28"
+    },
+    "callsBeforeHITL": {
+      "excelCellSchema": 3,
+      "excelCellUnknownTool": 3,
+      "excelDocumentSchema": 3,
+      "excelDocumentUnknownTool": 3,
+      "wordNativeSchemaOrUnknown": 3,
+      "powerpointNativeSchemaOrUnknown": 3,
+      "wordJsonSchemaOrUnknownIncludingInitialFallbackFailure": 3,
+      "powerpointJsonSchemaOrUnknownIncludingInitialFallbackFailure": 3
+    },
+    "designCheckIssues": 0,
+    "sharedUiParity": "existing reviewed 24-file snapshot test passes; no shared UI changes"
+  },
+  "intermediatePublicationFailure": {
+    "suite": {
+      "tests": 128,
+      "pass": 106,
+      "fail": 22,
+      "cancelled": 0,
+      "skipped": 0,
+      "logSha256": "4ece909484a538191ff19b039df000af3ad0d78288e0418d1cb882a2fa0301a5"
+    },
+    "cause": "New shared validator import absent from publication snapshot",
+    "resolution": "Copied the unchanged original shared validator and retained TypeBox license; reran full source suite"
+  },
+  "sharedSource": {
+    "source": "extensions/aipro-chat/tool-validation.js",
+    "publication": "vendor/nubi-shared/tool-validation.js",
+    "sha256": "f2cb543495dadc76ce5800f5048e1eee2b896797e6a49fe96fd7ffdfcc90c492",
+    "modified": false
+  },
+  "actualExecution": [
+    "Pi agent runtime",
+    "TypeBox Errors through shared Nubi validator",
+    "existing QuickJS release/debug regression suite"
+  ],
+  "scripted": [
+    "model decisions",
+    "native Office results",
+    "test HITL answers"
+  ],
+  "dependenciesChanged": false,
+  "reusedPackages": {
+    "Pi": "0.86.1",
+    "TypeBox": "1.3.27"
+  },
+  "buildsExecuted": false,
+  "installerUpdated": false,
+  "notVerified": [
+    "Windows Office 2016 COM and installation",
+    "Qwen task accuracy, latency and cost",
+    "corporate SSO and NASCA",
+    "protected durable run recovery",
+    "large-document hierarchical final review",
+    "Python and external skill dependencies"
+  ],
+  "separateDevelopmentChanges": "Other shared UI baseline changes in seven files remain outside this publication; no full development-checkout green claim",
+  "references": [
+    "https://www.anthropic.com/engineering/writing-tools-for-agents",
+    "https://github.com/modelcontextprotocol/typescript-sdk/blob/main/docs/servers/errors.md",
+    "https://github.com/sinclairzx81/typebox",
+    "https://github.com/earendil-works/pi"
+  ],
+  "sourceCheckout": "publication",
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "98c978a4fb6d5ea95acaf3024d3f0181300b4aceb7880b51a3ff7dea6adb3fe1"
+    },
+    {
+      "path": "THIRD-PARTY-NOTICES.md",
+      "sha256": "75e0bc8bde47234a638ea1dc738a9848c44123e7a65cd4ab1fd8b8f9d51c353a"
+    },
+    {
+      "path": "docs/IMPROVEMENT-STATUS.md",
+      "sha256": "46ef6f268f97e090610600874f5678544020b0c3dc996655ff7bcff0700ad639"
+    },
+    {
+      "path": "docs/TOOL-SCHEMA-RECOVERY-2026-09-23.md",
+      "sha256": "e7aebca790d60d0c8c7737683a57b972bdd39d3f12a39098108dc468d5f94039"
+    },
+    {
+      "path": "worker/tool-response.mjs",
+      "sha256": "fae27f075fc466cb53653357d24aaecb75218a87cf9884577d1a89fe7641bde1"
+    },
+    {
+      "path": "worker/agent.mjs",
+      "sha256": "c990f98e5699150051870b6b754d4abae8437d1b24bd4b8f3fc1c9d371c390c3"
+    },
+    {
+      "path": "worker/document-agent.mjs",
+      "sha256": "a85a04a8833762a5a68ab570752bd2214130308c30f60cdea18571962ef5f330"
+    },
+    {
+      "path": "worker/content-agent.mjs",
+      "sha256": "a7b48ac33d8ab98a1d02940bc06fb97f42b89ad204409e9e683c62d59a133e9f"
+    },
+    {
+      "path": "worker/recovery.mjs",
+      "sha256": "2d88c8f95141fa84eca9dfd4791a8ff8c0722b8a6e457c45b042ad86e430545d"
+    },
+    {
+      "path": "worker/resilience.mjs",
+      "sha256": "fb913386e513dd20903db52dd58fa62d842e385156380e7190ff2b78002632c1"
+    },
+    {
+      "path": "tests/tool-schema-recovery.test.mjs",
+      "sha256": "8ec16279da1c10902c84d0ea7cf55d7480525eaee6ddb8d6c0502b53fdae7b5d"
+    },
+    {
+      "path": "tests/content-agent.test.mjs",
+      "sha256": "c9750d401e7918a205d5693a633de4938b4e7a88fcda9d978972d59f8f53ea6d"
+    },
+    {
+      "path": "licenses/typebox-MIT.txt",
+      "sha256": "e8a7cc256941a26ba8234f04390165243a4d42f74fd6491934140605bf7eae2d"
+    },
+    {
+      "path": "vendor/nubi-shared/tool-validation.js",
+      "sha256": "f2cb543495dadc76ce5800f5048e1eee2b896797e6a49fe96fd7ffdfcc90c492"
+    }
+  ]
+}

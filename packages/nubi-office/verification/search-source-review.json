@@ -1,0 +1,42 @@
+{
+  "date": "2026-09-25",
+  "ownRelease": "Previously downloaded 0.8.4 source archive reused; see competitive-source-review-2.json",
+  "sources": [
+    {
+      "repo": "hewliyang/office-agents",
+      "commit": "95fb654491a9d394dc85ea2b8c93dee2ca4546b9",
+      "licenseReview": "MIT declared in package.json; root LICENSE not found; reference only",
+      "files": {
+        "/tmp/nubi-office-search-benchmark-20260925/search-data-pagination.ts": "0387f14dcab34bc44542450c777fb58960fbb625ceb6a745ba9e6f0582e96e89",
+        "/tmp/nubi-office-search-benchmark-20260925/search-data.ts": "a4b83889252a4b704903a61e60a2bd42ed214788b0949b4d48b5b04152074307"
+      }
+    },
+    {
+      "repo": "anomalyco/opencode",
+      "commit": "16c56fe5ecc3305028d1f0a9cff5806e51c9d480",
+      "licenseReview": "MIT; reference only",
+      "files": {
+        "/tmp/nubi-office-benchmark-2026-09-25/opencode/packages/opencode/src/tool/grep.ts": "f7bbab8ae3fabfe3dd78b5728a283a56bff318d5b1f278d15d1c637227ff660f"
+      }
+    },
+    {
+      "repo": "openai/codex",
+      "commit": "aa380897f67b91e1a47d530d7286d497b6726d3f",
+      "licenseReview": "Apache-2.0; reference only",
+      "files": {
+        "/tmp/nubi-office-benchmark-2026-09-25/codex/codex-rs/core/src/tools/handlers/tool_search_spec.rs": "06e8e03deb3d4a2da2fc36bc6660b399f3d8e54dee76b0557658ee55abed93de"
+      }
+    }
+  ],
+  "newDownloads": [
+    "Office Agents search-data.ts and search-data-pagination.ts at pinned commit"
+  ],
+  "officialReferences": [
+    "https://www.anthropic.com/engineering/writing-tools-for-agents",
+    "https://www.anthropic.com/engineering/advanced-tool-use"
+  ],
+  "executedExternalSource": false,
+  "copiedExternalCode": false,
+  "reusedRuntime": "MiniSearch 7.2.0 and existing Pi",
+  "newRuntimeDependencies": 0
+}

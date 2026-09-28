@@ -1,0 +1,25 @@
+{
+  "checkedAt": "2026-09-22T13:19:17.374Z",
+  "ui": "production",
+  "worker": "production Pi/document workflow",
+  "xlsxWriter": "production",
+  "model": "scripted",
+  "excelHost": "simulated",
+  "noSelectionRequired": true,
+  "planBeforeDocumentOpen": true,
+  "wholeDocumentSaveCompletion": true,
+  "saveLostReplyReconciled": true,
+  "saveRequiresHumanApproval": true,
+  "groundedChoiceAnswerResumes": true,
+  "noProgressWaitsForUser": true,
+  "explicitResume": true,
+  "connectionCauseVisible": true,
+  "approvalRejectDoesNotSave": true,
+  "widths": [
+    320,
+    380,
+    1100
+  ],
+  "windowsExcel": false,
+  "errors": []
+}

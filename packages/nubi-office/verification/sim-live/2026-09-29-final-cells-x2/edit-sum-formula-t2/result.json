@@ -1,0 +1,333 @@
+{
+  "suite": "edit",
+  "id": "sum-formula",
+  "trial": 2,
+  "routing": "product",
+  "passed": true,
+  "outcome": "passed",
+  "state": "done",
+  "writes": 1,
+  "recoveries": 0,
+  "questions": [],
+  "approvals": [
+    "edit"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 11,
+    "toolCalls": 4,
+    "elapsedMs": 38517
+  },
+  "transcript": {
+    "modelCalls": 11,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 2,
+      "actor": 5,
+      "action_review": 1,
+      "step_review": 1,
+      "result_review": 1
+    },
+    "elapsedMs": 37636,
+    "requestCharacters": 235969,
+    "peakRequestCharacters": 46705,
+    "toolCalls": {
+      "read": 1,
+      "read_selection": 1,
+      "apply_changes": 1,
+      "verify_selection": 1
+    },
+    "errors": {}
+  },
+  "score": {
+    "passed": true,
+    "outcome": "passed",
+    "deterministicPassed": true,
+    "semanticReview": {
+      "required": false,
+      "status": "not_required",
+      "criteria": []
+    },
+    "expectedState": "done",
+    "actualState": "done",
+    "checks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "A4",
+          "field": "formula",
+          "operator": "equals",
+          "expected": "=SUM(A2:A3)",
+          "actual": [
+            [
+              "=SUM(A2:A3)"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "A4",
+          "field": "value",
+          "operator": "equals",
+          "expected": 350,
+          "actual": [
+            [
+              350
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "A4",
+          "field": "numberFormat",
+          "operator": "equals",
+          "expected": "0.00",
+          "actual": [
+            [
+              "0.00"
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "persistedChecks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "A4",
+          "field": "formula",
+          "operator": "equals",
+          "expected": "=SUM(A2:A3)",
+          "actual": [
+            [
+              "=SUM(A2:A3)"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "A4",
+          "field": "value",
+          "operator": "equals",
+          "expected": 350,
+          "actual": [
+            [
+              350
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "A4",
+          "field": "numberFormat",
+          "operator": "equals",
+          "expected": "0.00",
+          "actual": [
+            [
+              "0.00"
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "unexpectedChanges": [],
+    "persistedUnexpectedChanges": [],
+    "sourceChecks": [],
+    "formulaChecks": []
+  },
+  "request": "A2와 A3의 합계를 A4에 SUM 수식으로 넣고 표시 형식을 0.00으로 해줘. 다른 셀은 유지해줘.",
+  "answer": "완료했습니다.\n\n- A4: `=SUM(A2:A3)`\n- 표시 형식: `0.00` (표시값 `350.00`)\n- B4 및 다른 셀의 값과 수식은 유지되었습니다.",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_range",
+        "title": "선택 범위와 기존 값 및 수식을 확인",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "set_sum",
+        "title": "A4에 합계 수식과 0.00 표시 형식을 적용",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "state": "done",
+        "requiresReview": true
+      },
+      {
+        "id": "verify_result",
+        "title": "합계와 다른 셀의 보존 상태를 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "state": "done"
+      }
+    ],
+    "total": 3,
+    "completed": 3,
+    "currentStepId": null
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "A2와 A3의 합계를 A4에 SUM 수식으로 입력하고 0.00 형식으로 설정합니다.",
+    "requirements": [
+      "A4에 =SUM(A2:A3) 수식을 입력",
+      "A4의 표시 형식을 0.00으로 설정",
+      "다른 셀의 값과 수식은 유지"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "A4",
+        "field": "formula",
+        "operator": "equals",
+        "expected": "=SUM(A2:A3)"
+      },
+      {
+        "address": "A4",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "0.00"
+      },
+      {
+        "address": "B4",
+        "field": "value",
+        "operator": "equals",
+        "expected": "지우지 마세요"
+      },
+      {
+        "address": "A4",
+        "field": "value",
+        "operator": "equals",
+        "expected": 350
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_range",
+        "title": "선택 범위와 기존 값 및 수식을 확인",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "set_sum",
+        "title": "A4에 합계 수식과 0.00 표시 형식을 적용",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "id": "verify_result",
+        "title": "합계와 다른 셀의 보존 상태를 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3
+        ]
+      }
+    ]
+  },
+  "review": {
+    "status": "complete",
+    "checks": [
+      {
+        "requirement": "A4에 =SUM(A2:A3) 수식을 입력",
+        "status": "met",
+        "evidence_ids": [
+          7
+        ]
+      },
+      {
+        "requirement": "A4의 표시 형식을 0.00으로 설정",
+        "status": "met",
+        "evidence_ids": [
+          7
+        ]
+      },
+      {
+        "requirement": "다른 셀의 값과 수식은 유지",
+        "status": "met",
+        "evidence_ids": [
+          7
+        ]
+      }
+    ],
+    "next_step": "없음"
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_range"
+    },
+    {
+      "name": "read",
+      "state": "done",
+      "stepId": "set_sum"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "set_sum"
+    },
+    {
+      "name": "apply_changes",
+      "state": "done",
+      "stepId": "set_sum"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "set_sum"
+    },
+    {
+      "name": "review_action",
+      "state": "done",
+      "stepId": "set_sum"
+    },
+    {
+      "name": "review_step",
+      "state": "done",
+      "stepId": "set_sum"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_result"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_result"
+    },
+    {
+      "name": "review_task",
+      "state": "done",
+      "stepId": "verify_result"
+    }
+  ],
+  "recoveryLog": []
+}

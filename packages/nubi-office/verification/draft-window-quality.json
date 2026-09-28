@@ -1,0 +1,37 @@
+{
+  "date": "2026-09-25",
+  "scope": "Bounded current Excel draft, exact cells/layout reads and whole replacement guard",
+  "tests": {
+    "command": "npm run test:pinned",
+    "passed": 681,
+    "failed": 0,
+    "skipped": 0,
+    "logSha256": "83a881df3d6fb4da8397215dd5cc30619f4fb63c9eb32a56c5ab2b3be556c8bc"
+  },
+  "design": {
+    "command": "npm run design:check",
+    "sharedFiles": 24,
+    "matched": true,
+    "issues": 0,
+    "logSha256": "cbd43b2caa594ada7152f9d7dad24c264cf9b2184b5a5fa1997a7b9fce90b256"
+  },
+  "sourceSha256": {
+    "worker/document-context.mjs": "c1fd620a9b57571f04497d20afd951d24cb0291f2c2c943b95e815c564b6326c",
+    "worker/document-agent.mjs": "67bafccf997e67f4573761d25371d9038545f05b86bbdd9196196eebce1da561",
+    "tests/draft-window.test.mjs": "59c40ca4a2afb6a7f5d278e8cc63ae97d4afc49524bc613fe6c18551d1b63e41",
+    "tests/document.test.mjs": "0823e98f1ef5f241216eea5f12506cae9610fe355fa1493fcc88cd6ad74ece9d",
+    "eval/benchmark-draft-window.mjs": "973e66cd42e6bc5771c145cbe584a1df0f87c52f6e7a240467f490430a942f56"
+  },
+  "benchmark": "draft-window-benchmark.json",
+  "sourceReview": "draft-context-source-review.json",
+  "nativeBuild": false,
+  "installerBuild": false,
+  "releaseChanged": false,
+  "notVerified": [
+    "Windows 11 installation",
+    "Office 2016 COM",
+    "Qwen actual inference accuracy",
+    "NASCA",
+    "competitor runtime performance"
+  ]
+}

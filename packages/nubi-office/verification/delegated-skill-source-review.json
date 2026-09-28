@@ -1,0 +1,93 @@
+{
+  "date": "2026-09-25",
+  "downloadPath": "/tmp/nubi-office-source-audit-20260925",
+  "sources": [
+    {
+      "repo": "hewliyang/office-agents",
+      "commit": "95fb654491a9d394dc85ea2b8c93dee2ca4546b9",
+      "files": [
+        {
+          "path": "package.json",
+          "url": "https://raw.githubusercontent.com/hewliyang/office-agents/95fb654491a9d394dc85ea2b8c93dee2ca4546b9/package.json",
+          "sha256": "e6f3b6af8d8ce1531f392e029bd03bfd84873f3e57ce46f47ccc1cd7f91df489",
+          "bytes": 3716
+        },
+        {
+          "path": "packages/excel/src/lib/system-prompt.ts",
+          "url": "https://raw.githubusercontent.com/hewliyang/office-agents/95fb654491a9d394dc85ea2b8c93dee2ca4546b9/packages/excel/src/lib/system-prompt.ts",
+          "sha256": "fe7e8ab3b4782bef86c68c23c792d47597392cba4bcc4adc276e35ac047541ff",
+          "bytes": 3367
+        },
+        {
+          "path": "packages/word/src/lib/system-prompt.ts",
+          "url": "https://raw.githubusercontent.com/hewliyang/office-agents/95fb654491a9d394dc85ea2b8c93dee2ca4546b9/packages/word/src/lib/system-prompt.ts",
+          "sha256": "d94eb640675d1de47f20a316e2ad4568dd342f6d41833b3b6acb578d4dcec733",
+          "bytes": 32372
+        },
+        {
+          "path": "packages/powerpoint/src/lib/system-prompt.ts",
+          "url": "https://raw.githubusercontent.com/hewliyang/office-agents/95fb654491a9d394dc85ea2b8c93dee2ca4546b9/packages/powerpoint/src/lib/system-prompt.ts",
+          "sha256": "684fc2c2aa39c7a05073ab51a24f1d4497849e06e8128a99fc3fc9a36f646951",
+          "bytes": 54882
+        }
+      ]
+    },
+    {
+      "repo": "anomalyco/opencode",
+      "commit": "16c56fe5ecc3305028d1f0a9cff5806e51c9d480",
+      "files": [
+        {
+          "path": "LICENSE",
+          "url": "https://raw.githubusercontent.com/anomalyco/opencode/16c56fe5ecc3305028d1f0a9cff5806e51c9d480/LICENSE",
+          "sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b",
+          "bytes": 1065
+        },
+        {
+          "path": "packages/opencode/src/tool/task.ts",
+          "url": "https://raw.githubusercontent.com/anomalyco/opencode/16c56fe5ecc3305028d1f0a9cff5806e51c9d480/packages/opencode/src/tool/task.ts",
+          "sha256": "db09fa5868ad3ecfdd83aa2bb7243f85e9e2cd13d0b19fd6f307f7a337b2b36e",
+          "bytes": 14200
+        },
+        {
+          "path": "packages/opencode/src/tool/skill.ts",
+          "url": "https://raw.githubusercontent.com/anomalyco/opencode/16c56fe5ecc3305028d1f0a9cff5806e51c9d480/packages/opencode/src/tool/skill.ts",
+          "sha256": "629ada0c0a0135cb003429aec233aeb165f0b98a2bd5171986bc319c11af3c07",
+          "bytes": 2215
+        }
+      ]
+    },
+    {
+      "repo": "openai/codex",
+      "commit": "d7b07d45517a793acfba4cbf8de697d723cceb46",
+      "files": [
+        {
+          "path": "LICENSE",
+          "url": "https://raw.githubusercontent.com/openai/codex/d7b07d45517a793acfba4cbf8de697d723cceb46/LICENSE",
+          "sha256": "d17f227e4df5da1600391338865ce0f3055211760a36688f816941d58232d8dc",
+          "bytes": 10926
+        },
+        {
+          "path": "codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs",
+          "url": "https://raw.githubusercontent.com/openai/codex/d7b07d45517a793acfba4cbf8de697d723cceb46/codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs",
+          "sha256": "a1fcab59a6f6f7abea77a823e2f6fd60a5042659c57d2adea8d7a321dce8bcdb",
+          "bytes": 11607
+        },
+        {
+          "path": "codex-rs/app-server/tests/suite/v2/multi_agent_v2_developer_instructions.rs",
+          "url": "https://raw.githubusercontent.com/openai/codex/d7b07d45517a793acfba4cbf8de697d723cceb46/codex-rs/app-server/tests/suite/v2/multi_agent_v2_developer_instructions.rs",
+          "sha256": "0b53f748d22cdb7388bf1c5f742ac01a1c9af99e34d841a27f66b3483e34a9f5",
+          "bytes": 40120
+        }
+      ]
+    }
+  ],
+  "thirdPartySourceExecuted": false,
+  "purpose": "Active skill inheritance and delegated result reuse benchmark",
+  "implementation": "Design patterns adapted to the existing Pi, p-map and dependency-graph runtime. No upstream implementation source copied. No new dependency.",
+  "licenses": {
+    "hewliyang/office-agents": "package.json declares MIT; prompt sources used for comparison only",
+    "anomalyco/opencode": "MIT; LICENSE downloaded",
+    "openai/codex": "Apache-2.0; LICENSE downloaded"
+  },
+  "microsoftCopilotPrivateSourceDownloaded": false
+}

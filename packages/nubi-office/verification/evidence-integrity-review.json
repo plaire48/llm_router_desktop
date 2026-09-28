@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-23",
+  "scope": "Office partial source evidence and post-review source version source checks",
+  "baselineCommit": "37fc82131cacb378688e2b9eca8a34576ef2ded9",
+  "modelBaseline": "Enterprise Qwen 3.8 27B; live model not invoked",
+  "before": {
+    "tests": 4,
+    "pass": 0,
+    "fail": 4,
+    "cancelled": 0,
+    "skipped": 0,
+    "logSha256": "bea0af178b56c34a8c1317f5bd805e8e78532efc6c18cf900795f8fa50b6cd1a"
+  },
+  "after": {
+    "developmentFocusedSuite": {
+      "tests": 83,
+      "pass": 83,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "logSha256": "ee680fe7302d22118b6006771eaa966d575dde863d7ee6b1285d83ab4040f1ea"
+    },
+    "publicationFullSuite": {
+      "tests": 384,
+      "pass": 384,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "logSha256": "661c4dd9e48adf541caae585168165adf1690b16a83d3860e5f0586c4361e75c"
+    },
+    "designCheckIssues": 0,
+    "sharedUiParity": {
+      "files": 24,
+      "matched": true
+    }
+  },
+  "actualExecution": [
+    "Pi agent runtime",
+    "existing MiniSearch exact source retrieval",
+    "existing source regression suite"
+  ],
+  "scripted": [
+    "model responses",
+    "native Office results",
+    "test HITL answers"
+  ],
+  "dependenciesChanged": false,
+  "reusedPackages": {
+    "MiniSearch": "7.2.0",
+    "Pi": "0.86.1"
+  },
+  "buildsExecuted": false,
+  "installerUpdated": false,
+  "nativeChanges": "Source only; no compilation or COM execution",
+  "notVerified": [
+    "Windows Office 2016 COM and installation",
+    "Qwen accuracy, latency and cost",
+    "corporate SSO and NASCA",
+    "protected durable run recovery",
+    "large-document hierarchical final review",
+    "retrieval of hidden tails in truncated native items",
+    "Python and external skill dependencies"
+  ],
+  "compatibility": "Old catalog snapshots containing long or boundary Word text can require reanalysis and registration after native metadata changes; short-item snapshots unchanged",
+  "separateDevelopmentChanges": "Seven shared UI files with independent baseline drift remain outside publication",
+  "references": [
+    "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents",
+    "https://learn.microsoft.com/en-us/ef/core/saving/concurrency",
+    "https://github.com/lucaong/minisearch",
+    "https://docs.langchain.com/oss/javascript/langgraph/workflows-agents"
+  ],
+  "sourceCheckout": "publication",
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "8760a30885854498664a5b0e578aacdee66dbb556f9032c4a00daec470ffddd8"
+    },
+    {
+      "path": "docs/CONTEXT-MANAGEMENT-2026-09-23.md",
+      "sha256": "4f68f2a1d0135796a40ba2fb4bf7b690e9d1508e2feabbe598f033ac804ebb4c"
+    },
+    {
+      "path": "docs/EVIDENCE-INTEGRITY-2026-09-23.md",
+      "sha256": "196f3ec60d8c0ebe7ecd09dbb18d7a28df36efdb4e6f1ec6e072c67461dbd472"
+    },
+    {
+      "path": "docs/IMPROVEMENT-STATUS.md",
+      "sha256": "972fab47b8568b30b506b798ff79688c187b7d6d1567562447fca0f035833d92"
+    },
+    {
+      "path": "native/Nubi.Office.Host/ContentTemplates.cs",
+      "sha256": "fa1e226895d27fc449e35aa1e1f6339da9b4410dcfd34447d0490ac8c34c9725"
+    },
+    {
+      "path": "native/Nubi.Office.Host/WordContentDocument.cs",
+      "sha256": "dd5a005e608c0cbcc1824ffbc68b3452edb314e36728c6db06dcc1682d5069ae"
+    },
+    {
+      "path": "native/Nubi.Office.Host/WordContentFields.cs",
+      "sha256": "1182d96ceb03132b8bca23694cdd0db6a278cb26ace50fd8d6e68e47be74d041"
+    },
+    {
+      "path": "src/errors.js",
+      "sha256": "50a6101f6143e1659b2cf6bda1cb9e7151b0d9d03ab81fc5f730888463d5b0b2"
+    },
+    {
+      "path": "tests/content-agent.test.mjs",
+      "sha256": "7adcd1bf4faea65c644a54e066a8b5cb052411b9c6fa940e9603dcef62ba5bdc"
+    },
+    {
+      "path": "tests/content-analysis.test.mjs",
+      "sha256": "d4f9cd7fb50cd14aeb4430f986237e2e08222fc9cd3bcf97dd5e4467eedb05a0"
+    },
+    {
+      "path": "tests/content-context.test.mjs",
+      "sha256": "df03fd4214e7285534f428676216f9b9d9c686973a378ec9b71d031b4735087b"
+    },
+    {
+      "path": "tests/content-ui.test.mjs",
+      "sha256": "61fdc633563fcd49d0e9357987b16109141b469a42855856bcb61f08ca479490"
+    },
+    {
+      "path": "tests/context-memory.test.mjs",
+      "sha256": "d419f17ffe46498bc9094193217c857eb7012a3af73416d16f00410912704d10"
+    },
+    {
+      "path": "worker/content-agent.mjs",
+      "sha256": "5bc27c6cf8b98954eec87912e344a5ac6a48087e11a7aca535bc1f1842c13afb"
+    },
+    {
+      "path": "worker/content-analysis.mjs",
+      "sha256": "1bc6990fde730a3a30358198cba147efe1be17e1620037cac1bf70d44425b532"
+    },
+    {
+      "path": "worker/content-context.mjs",
+      "sha256": "9fbf41c44b1e05b0a3807fa9e242869e7c750189f4eb14cbe39a048d0dd1955d"
+    },
+    {
+      "path": "worker/content-integrity.mjs",
+      "sha256": "d01cdb5865e86fc3732cc9586893ea95cfdde8a5746c3dcbd9f8d748abb75c3b"
+    },
+    {
+      "path": "worker/content-schema.mjs",
+      "sha256": "a0bfbc52f75fe55cf91dd4a7d9397d31f82e459a1c2b4faf5327078f167c6607"
+    }
+  ]
+}

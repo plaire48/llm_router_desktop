@@ -1,0 +1,222 @@
+[
+  {
+    "name": "office-tone-welcome",
+    "width": 360,
+    "measurements": {
+      "horizontalOverflow": false,
+      "fontSize": "14px",
+      "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+    }
+  },
+  {
+    "name": "office-tone-catalog",
+    "width": 360,
+    "measurements": {
+      "horizontalOverflow": false,
+      "fontSize": "14px",
+      "cardHeight": 108,
+      "animations": "none",
+      "dialog": {
+        "x": 12,
+        "y": 216,
+        "width": 336,
+        "height": 418,
+        "top": 216,
+        "right": 348,
+        "bottom": 634,
+        "left": 12
+      },
+      "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+    }
+  },
+  {
+    "name": "office-tone-template-info",
+    "width": 360,
+    "measurements": {
+      "horizontalOverflow": false,
+      "fontSize": "14px",
+      "cardHeight": 245,
+      "animations": "none",
+      "dialog": {
+        "x": 12,
+        "y": 147.5,
+        "width": 336,
+        "height": 555,
+        "top": 147.5,
+        "right": 348,
+        "bottom": 702.5,
+        "left": 12
+      },
+      "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+    }
+  },
+  {
+    "name": "office-tone-models",
+    "width": 360,
+    "measurements": {
+      "horizontalOverflow": false,
+      "fontSize": "14px",
+      "dialog": {
+        "x": 12,
+        "y": 273,
+        "width": 336,
+        "height": 304,
+        "top": 273,
+        "right": 348,
+        "bottom": 577,
+        "left": 12
+      },
+      "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+    }
+  },
+  {
+    "name": "office-tone-progress",
+    "width": 360,
+    "measurements": {
+      "horizontalOverflow": false,
+      "fontSize": "14px",
+      "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+    }
+  },
+  {
+    "name": "office-tone-question",
+    "width": 360,
+    "measurements": {
+      "horizontalOverflow": false,
+      "fontSize": "14px",
+      "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+    }
+  },
+  {
+    "name": "office-tone-recovery",
+    "width": 360,
+    "measurements": {
+      "horizontalOverflow": false,
+      "fontSize": "14px",
+      "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+    }
+  },
+  {
+    "name": "office-tone-approval",
+    "width": 360,
+    "measurements": {
+      "horizontalOverflow": false,
+      "fontSize": "14px",
+      "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+    }
+  },
+  {
+    "name": "office-tone-welcome",
+    "width": 480,
+    "measurements": {
+      "horizontalOverflow": false,
+      "fontSize": "14px",
+      "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+    }
+  },
+  {
+    "name": "office-tone-catalog",
+    "width": 480,
+    "measurements": {
+      "horizontalOverflow": false,
+      "fontSize": "14px",
+      "cardHeight": 108,
+      "animations": "none",
+      "dialog": {
+        "x": 12,
+        "y": 216,
+        "width": 456,
+        "height": 418,
+        "top": 216,
+        "right": 468,
+        "bottom": 634,
+        "left": 12
+      },
+      "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+    }
+  },
+  {
+    "name": "office-tone-template-info",
+    "width": 480,
+    "measurements": {
+      "horizontalOverflow": false,
+      "fontSize": "14px",
+      "cardHeight": 223,
+      "animations": "none",
+      "dialog": {
+        "x": 12,
+        "y": 158.5,
+        "width": 456,
+        "height": 533,
+        "top": 158.5,
+        "right": 468,
+        "bottom": 691.5,
+        "left": 12
+      },
+      "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+    }
+  },
+  {
+    "name": "office-tone-models",
+    "width": 480,
+    "measurements": {
+      "horizontalOverflow": false,
+      "fontSize": "14px",
+      "dialog": {
+        "x": 30,
+        "y": 273,
+        "width": 420,
+        "height": 304,
+        "top": 273,
+        "right": 450,
+        "bottom": 577,
+        "left": 30
+      },
+      "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+    }
+  },
+  {
+    "name": "office-tone-progress",
+    "width": 480,
+    "measurements": {
+      "horizontalOverflow": false,
+      "fontSize": "14px",
+      "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+    }
+  },
+  {
+    "name": "office-tone-question",
+    "width": 480,
+    "measurements": {
+      "horizontalOverflow": false,
+      "fontSize": "14px",
+      "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+    }
+  },
+  {
+    "name": "office-tone-recovery",
+    "width": 480,
+    "measurements": {
+      "horizontalOverflow": false,
+      "fontSize": "14px",
+      "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+    }
+  },
+  {
+    "name": "office-tone-approval",
+    "width": 480,
+    "measurements": {
+      "horizontalOverflow": false,
+      "fontSize": "14px",
+      "font": "\"Noto Sans KR\", \"Malgun Gothic\", sans-serif"
+    }
+  },
+  {
+    "name": "motion",
+    "animation": {
+      "name": "deck-rise",
+      "iterations": "1",
+      "duration": "0.4s"
+    }
+  }
+]

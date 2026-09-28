@@ -1,0 +1,246 @@
+{
+  "suite": "template",
+  "id": "template-text-code",
+  "trial": 1,
+  "routing": "product",
+  "passed": false,
+  "outcome": "error",
+  "state": "cancelled",
+  "error": "evaluation_interaction_requires_human",
+  "writes": 0,
+  "recoveries": 2,
+  "questions": [
+    "사번 (B2) 값을 입력해 주세요."
+  ],
+  "approvals": [
+    "template_mapping"
+  ],
+  "proposals": 1,
+  "metrics": {
+    "modelCalls": 10,
+    "toolCalls": 6,
+    "elapsedMs": 31350
+  },
+  "transcript": {
+    "modelCalls": 10,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 1,
+      "actor": 6,
+      "recovery": 2
+    },
+    "elapsedMs": 29101,
+    "requestCharacters": 288671,
+    "peakRequestCharacters": 50760,
+    "toolCalls": {
+      "read": 1,
+      "read_selection": 1,
+      "ask_template_field": 2,
+      "fill_template_fields": 1,
+      "define_template_fields": 1
+    },
+    "errors": {}
+  },
+  "request": "기존 양식을 그대로 사용해. B2는 필수 텍스트 사번 입력칸이다. 입력 항목을 확인받고 사번 00123을 넣어줘. 앞자리 0과 모든 서식·수식·다른 셀은 보존해.",
+  "answer": "",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "기존 양식과 B2 입력 항목 확인",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "enter_employee_id",
+        "title": "B2에 사번 00123 입력",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1
+        ],
+        "state": "paused"
+      },
+      {
+        "id": "verify_preservation",
+        "title": "입력값과 기존 양식 보존 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1
+        ],
+        "state": "pending"
+      }
+    ],
+    "total": 3,
+    "completed": 1,
+    "currentStepId": "enter_employee_id"
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "기존 양식을 보존하고 B2의 필수 텍스트 사번 입력 항목을 확인한 뒤 00123을 입력합니다.",
+    "requirements": [
+      "B2에 사번 00123을 텍스트로 입력",
+      "B2의 앞자리 0과 기존 텍스트 서식(@) 보존",
+      "기존 수식·다른 셀·양식 서식 보존"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "B2",
+        "field": "value",
+        "operator": "equals",
+        "expected": "00123",
+        "valueType": "text"
+      },
+      {
+        "address": "B2",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "@"
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "기존 양식과 B2 입력 항목 확인",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "enter_employee_id",
+        "title": "B2에 사번 00123 입력",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1
+        ]
+      },
+      {
+        "id": "verify_preservation",
+        "title": "입력값과 기존 양식 보존 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1
+        ]
+      }
+    ]
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_form"
+    },
+    {
+      "name": "read",
+      "state": "done",
+      "stepId": "enter_employee_id"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_employee_id"
+    },
+    {
+      "name": "ask_template_field",
+      "state": "error",
+      "stepId": "enter_employee_id"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_employee_id"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_employee_id"
+    },
+    {
+      "name": "fill_template_fields",
+      "state": "error",
+      "stepId": "enter_employee_id"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_employee_id"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_employee_id"
+    },
+    {
+      "name": "define_template_fields",
+      "state": "done",
+      "stepId": "enter_employee_id"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_employee_id"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_employee_id"
+    },
+    {
+      "name": "ask_template_field",
+      "state": "error",
+      "stepId": "enter_employee_id"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_employee_id"
+    }
+  ],
+  "recoveryLog": [
+    {
+      "attempt": 1,
+      "stepId": "enter_employee_id",
+      "code": "template_field_unknown",
+      "tool": "ask_template_field",
+      "outcome": "not_executed",
+      "state": "superseded",
+      "summary": "B2가 텍스트 형식(@)인 입력칸임을 확인했습니다. 사번 00123을 텍스트로 입력합니다.",
+      "nextAction": "B2에 텍스트 값 '00123'만 입력하고, 다른 셀·수식·서식은 변경하지 마세요. 완료 후 B2의 값과 numberFormat을 다시 읽어 확인하세요."
+    },
+    {
+      "attempt": 2,
+      "stepId": "enter_employee_id",
+      "code": "template_mapping_required",
+      "tool": "fill_template_fields",
+      "outcome": "not_executed",
+      "state": "cancelled",
+      "summary": "B2가 텍스트 형식(@)인 필수 사번 입력칸임을 확인했습니다. 입력 작업만 재시도합니다.",
+      "nextAction": "B2에 텍스트 값 '00123'을 입력하고, 다른 셀·수식·서식은 변경하지 마세요. 완료 후 B2 값과 numberFormat을 다시 읽어 확인하세요."
+    }
+  ],
+  "lastProposal": [
+    {
+      "id": "field_B2",
+      "address": "B2",
+      "label": "사번",
+      "valueType": "text",
+      "required": true,
+      "numberFormat": "@",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    }
+  ]
+}

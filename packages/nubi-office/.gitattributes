@@ -1,0 +1,6 @@
+# Keep reviewed source hashes identical on Windows and Unix checkouts.
+*.js text eol=lf
+*.jsx text eol=lf
+*.mjs text eol=lf
+*.css text eol=lf
+*.json text eol=lf

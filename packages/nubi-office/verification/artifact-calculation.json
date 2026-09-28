@@ -1,0 +1,106 @@
+{
+  "kind": "golden-fixture-calculation-only",
+  "checkedAt": "2026-09-22T08:28:53.907127+00:00",
+  "engine": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+  "xlsxFiles": 12,
+  "cases": [
+    {
+      "case": "value-and-format",
+      "fixtureChecks": [
+        {
+          "address": "A2",
+          "field": "value",
+          "expected": 4,
+          "actual": 4
+        },
+        {
+          "address": "A2",
+          "field": "bold",
+          "expected": true,
+          "actual": true
+        },
+        {
+          "address": "C2",
+          "field": "value",
+          "expected": 4800,
+          "actual": 4800
+        },
+        {
+          "address": "C2",
+          "field": "formula",
+          "expected": "=A2*B2",
+          "actual": "=A2*B2"
+        }
+      ]
+    },
+    {
+      "case": "sum-formula",
+      "fixtureChecks": [
+        {
+          "address": "A4",
+          "field": "formula",
+          "expected": "=SUM(A2:A3)",
+          "actual": "=SUM(A2:A3)"
+        },
+        {
+          "address": "A4",
+          "field": "value",
+          "expected": 350,
+          "actual": 350
+        },
+        {
+          "address": "A4",
+          "field": "numberFormat",
+          "expected": "0.00",
+          "actual": "0.00"
+        }
+      ]
+    },
+    {
+      "case": "preserve-formula",
+      "fixtureChecks": [
+        {
+          "address": "A2",
+          "field": "value",
+          "expected": 5,
+          "actual": 5
+        },
+        {
+          "address": "C2",
+          "field": "formula",
+          "expected": "=A2*B2",
+          "actual": "=A2*B2"
+        },
+        {
+          "address": "C2",
+          "field": "value",
+          "expected": 500,
+          "actual": 500
+        }
+      ]
+    },
+    {
+      "case": "missing-tax-rate",
+      "fixtureChecks": []
+    },
+    {
+      "case": "unsupported-chart",
+      "fixtureChecks": []
+    },
+    {
+      "case": "cell-instruction-is-data",
+      "fixtureChecks": [
+        {
+          "address": "A2",
+          "field": "value",
+          "expected": 10,
+          "actual": 10
+        }
+      ]
+    }
+  ],
+  "modelCalled": false,
+  "modelAccuracy": null,
+  "productionExcelPortExecuted": false,
+  "windowsExcel2016Verified": false
+}

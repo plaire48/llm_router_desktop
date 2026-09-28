@@ -1,0 +1,75 @@
+{
+  "kind": "deterministic-source-observation-payload",
+  "baseline": "Raw captured native pages",
+  "candidate": "All entries from paginated structure map",
+  "purpose": "Locate structural anchors before deliberate full-content retrieval",
+  "notMeasured": [
+    "model accuracy",
+    "Qwen token counts",
+    "Office COM latency",
+    "NASCA",
+    "competitor runtime performance"
+  ],
+  "cases": [
+    {
+      "host": "word",
+      "nativeItems": 40,
+      "baselineChars": 130235,
+      "structureChars": 7213,
+      "reductionPercent": 94.5,
+      "allAnchorsPreserved": true,
+      "missingPagesRemainUnknown": false,
+      "fixtureHash": "87ccdfe68006b9655cad8f14e3ba8699ac9e033f37a0cff020503445b7a57348"
+    },
+    {
+      "host": "word",
+      "nativeItems": 80,
+      "baselineChars": 260488,
+      "structureChars": 14474,
+      "reductionPercent": 94.4,
+      "allAnchorsPreserved": true,
+      "missingPagesRemainUnknown": true,
+      "fixtureHash": "1944edd137099793f73ffbc827fce6ede79abf9d7c4f591b3531d6798730626d"
+    },
+    {
+      "host": "word",
+      "nativeItems": 200,
+      "baselineChars": 651456,
+      "structureChars": 36461,
+      "reductionPercent": 94.4,
+      "allAnchorsPreserved": true,
+      "missingPagesRemainUnknown": true,
+      "fixtureHash": "dc054d5e1028a07c608777d5b46427beb9c5da29b1eb82cb8292f2f4f090999b"
+    },
+    {
+      "host": "powerpoint",
+      "nativeItems": 40,
+      "baselineChars": 130723,
+      "structureChars": 8768,
+      "reductionPercent": 93.3,
+      "allAnchorsPreserved": true,
+      "missingPagesRemainUnknown": false,
+      "fixtureHash": "6459c502b5ef7f1d87386e0e5d1856faed2da2e079d06b9316dde141ed2aed64"
+    },
+    {
+      "host": "powerpoint",
+      "nativeItems": 80,
+      "baselineChars": 261474,
+      "structureChars": 17594,
+      "reductionPercent": 93.3,
+      "allAnchorsPreserved": true,
+      "missingPagesRemainUnknown": true,
+      "fixtureHash": "b1aca125a9ead76d24bada13ff11218953cf0f894a4091b6dcb48ff3a12ab4c5"
+    },
+    {
+      "host": "powerpoint",
+      "nativeItems": 200,
+      "baselineChars": 654038,
+      "structureChars": 44346,
+      "reductionPercent": 93.2,
+      "allAnchorsPreserved": true,
+      "missingPagesRemainUnknown": true,
+      "fixtureHash": "c6f86512102be8ce8258e004bad99f382449d180b22005191e73797abf1ae588"
+    }
+  ]
+}

@@ -1,0 +1,558 @@
+{
+  "suite": "reuse",
+  "id": "training-request",
+  "trial": 1,
+  "routing": "product",
+  "passed": false,
+  "outcome": "error",
+  "state": "cancelled",
+  "error": "evaluation_recovery_requires_human",
+  "writes": 1,
+  "recoveries": 3,
+  "questions": [],
+  "approvals": [
+    "edit",
+    "recovery"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 13,
+    "toolCalls": 6,
+    "elapsedMs": 50451
+  },
+  "transcript": {
+    "modelCalls": 13,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 2,
+      "actor": 7,
+      "action_review": 1,
+      "recovery": 2
+    },
+    "elapsedMs": 47268,
+    "requestCharacters": 465616,
+    "peakRequestCharacters": 75217,
+    "toolCalls": {
+      "read": 1,
+      "inspect_template": 2,
+      "fill_template_fields": 1,
+      "verify_selection": 2
+    },
+    "errors": {}
+  },
+  "request": "교육 신청서를 작성해줘. 신청자는 재무팀 박지훈, 연락처 010-2345-6789야. 과정명은 재무제표 분석 실무, 시작일 2026-11-02, 교육비 400000원, 회사 지원율은 80%야.",
+  "answer": "",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "신청서 입력 위치와 기존 수식 확인",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "fill_applicant",
+        "title": "신청자 및 교육 정보를 입력하고 결과 확인",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "state": "paused",
+        "requiresReview": true
+      },
+      {
+        "id": "verify_form",
+        "title": "입력값과 본인 부담금 수식 최종 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "state": "pending"
+      }
+    ],
+    "total": 3,
+    "completed": 1,
+    "currentStepId": "fill_applicant"
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "교육 신청서에 신청자와 교육 정보를 입력하고 기존 본인 부담금 수식을 유지·확인합니다.",
+    "requirements": [
+      "C3에 성명 박지훈 입력",
+      "C4에 부서 재무팀 입력",
+      "C5에 연락처 010-2345-6789 입력",
+      "C6에 과정명 재무제표 분석 실무 입력",
+      "C7에 시작일 2026-11-02 입력",
+      "C8에 교육비 400000 입력",
+      "C9에 회사 지원율 80% 입력",
+      "C10 기존 수식 유지 및 오류 없음 확인"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "C3",
+        "field": "value",
+        "operator": "equals",
+        "expected": "박지훈"
+      },
+      {
+        "address": "C4",
+        "field": "value",
+        "operator": "equals",
+        "expected": "재무팀"
+      },
+      {
+        "address": "C5",
+        "field": "value",
+        "operator": "equals",
+        "expected": "010-2345-6789"
+      },
+      {
+        "address": "C6",
+        "field": "value",
+        "operator": "equals",
+        "expected": "재무제표 분석 실무"
+      },
+      {
+        "address": "C7",
+        "field": "value",
+        "operator": "equals",
+        "expected": "2026-11-02"
+      },
+      {
+        "address": "C7",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "yyyy-mm-dd"
+      },
+      {
+        "address": "C8",
+        "field": "value",
+        "operator": "equals",
+        "expected": 400000
+      },
+      {
+        "address": "C9",
+        "field": "value",
+        "operator": "equals",
+        "expected": "80%"
+      },
+      {
+        "address": "C9",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "0%"
+      },
+      {
+        "address": "C10",
+        "field": "formula",
+        "operator": "equals",
+        "expected": "=IF(OR(C8=\"\",C9=\"\"),\"\",C8*(1-C9))"
+      },
+      {
+        "address": "C10",
+        "field": "value",
+        "operator": "no_error"
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "신청서 입력 위치와 기존 수식 확인",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "fill_applicant",
+        "title": "신청자 및 교육 정보를 입력하고 결과 확인",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ]
+      },
+      {
+        "id": "verify_form",
+        "title": "입력값과 본인 부담금 수식 최종 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ]
+      }
+    ]
+  },
+  "review": {
+    "status": "revise",
+    "checks": [
+      {
+        "address": "C3",
+        "field": "value",
+        "operator": "equals",
+        "expected": "박지훈",
+        "actual": [
+          [
+            "박지훈"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "C4",
+        "field": "value",
+        "operator": "equals",
+        "expected": "재무팀",
+        "actual": [
+          [
+            "재무팀"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "C5",
+        "field": "value",
+        "operator": "equals",
+        "expected": "010-2345-6789",
+        "actual": [
+          [
+            "010-2345-6789"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "C6",
+        "field": "value",
+        "operator": "equals",
+        "expected": "재무제표 분석 실무",
+        "actual": [
+          [
+            "재무제표 분석 실무"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "C7",
+        "field": "value",
+        "operator": "equals",
+        "expected": "2026-11-02",
+        "actual": [
+          [
+            46328
+          ]
+        ],
+        "status": "unmet"
+      },
+      {
+        "address": "C7",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "yyyy-mm-dd",
+        "actual": [
+          [
+            "yyyy-mm-dd"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "C8",
+        "field": "value",
+        "operator": "equals",
+        "expected": 400000,
+        "actual": [
+          [
+            400000
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "C9",
+        "field": "value",
+        "operator": "equals",
+        "expected": "80%",
+        "actual": [
+          [
+            0.8
+          ]
+        ],
+        "status": "unmet"
+      },
+      {
+        "address": "C9",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "0%",
+        "actual": [
+          [
+            "0%"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "C10",
+        "field": "formula",
+        "operator": "equals",
+        "expected": "=IF(OR(C8=\"\",C9=\"\"),\"\",C8*(1-C9))",
+        "actual": [
+          [
+            "=IF(OR(C8=\"\",C9=\"\"),\"\",C8*(1-C9))"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "C10",
+        "field": "value",
+        "operator": "no_error",
+        "actual": [
+          [
+            79999.99999999999
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "C3",
+        "field": "value",
+        "operator": "equals",
+        "expected": "박지훈",
+        "actual": [
+          [
+            "박지훈"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "C4",
+        "field": "value",
+        "operator": "equals",
+        "expected": "재무팀",
+        "actual": [
+          [
+            "재무팀"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "C5",
+        "field": "value",
+        "operator": "equals",
+        "expected": "010-2345-6789",
+        "actual": [
+          [
+            "010-2345-6789"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "C6",
+        "field": "value",
+        "operator": "equals",
+        "expected": "재무제표 분석 실무",
+        "actual": [
+          [
+            "재무제표 분석 실무"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "C7",
+        "field": "value",
+        "operator": "equals",
+        "expected": 46328,
+        "actual": [
+          [
+            46328
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "C8",
+        "field": "value",
+        "operator": "equals",
+        "expected": 400000,
+        "actual": [
+          [
+            400000
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "C9",
+        "field": "value",
+        "operator": "equals",
+        "expected": 0.8,
+        "actual": [
+          [
+            0.8
+          ]
+        ],
+        "status": "met"
+      }
+    ],
+    "next_step": "Acceptance checks failed. Inspect unmet checks and repair only unfinished requirements."
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_form"
+    },
+    {
+      "name": "read",
+      "state": "done",
+      "stepId": "fill_applicant"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "fill_applicant"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "fill_applicant"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "fill_applicant"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "fill_applicant"
+    },
+    {
+      "name": "fill_template_fields",
+      "state": "done",
+      "stepId": "fill_applicant"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "fill_applicant"
+    },
+    {
+      "name": "review_action",
+      "state": "done",
+      "stepId": "fill_applicant"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "fill_applicant"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "fill_applicant"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "fill_applicant"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "fill_applicant"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "fill_applicant"
+    },
+    {
+      "name": "repair_task",
+      "state": "done",
+      "stepId": "fill_applicant"
+    }
+  ],
+  "recoveryLog": [
+    {
+      "attempt": 1,
+      "stepId": "fill_applicant",
+      "code": "acceptance_not_met",
+      "tool": "verify_selection",
+      "outcome": "observed",
+      "state": "superseded",
+      "summary": "입력은 완료되었지만 C7과 C9의 내부값이 표시 형식과 달라 검증이 실패했습니다.",
+      "nextAction": "C7을 날짜 문자열 2026-11-02로, C9를 텍스트 80%로 입력하면 기존 수식 의미가 훼손될 수 있으므로, 검증 기준을 실제 Excel 내부값(46328, 0.8)과 표시 형식에 맞춰 재검토하고 C10 수식·오류를 다시 읽어 확인하세요."
+    },
+    {
+      "attempt": 2,
+      "stepId": "fill_applicant",
+      "code": "acceptance_not_met",
+      "tool": "verify_selection",
+      "outcome": "observed",
+      "state": "superseded",
+      "summary": "대부분 입력은 완료됐지만 C7과 C9의 내부 값 형식이 검수 기준과 일치하지 않았습니다.",
+      "nextAction": "C7을 날짜값이 아닌 텍스트 \"2026-11-02\"로, C9를 텍스트 \"80%\"로 입력하면 표시 형식이 유지되지 않을 수 있으므로 먼저 검수 기준을 확인해야 합니다. 현재 수식과 완료된 입력은 변경하지 마세요."
+    },
+    {
+      "attempt": 3,
+      "stepId": "fill_applicant",
+      "code": "result_needs_revision",
+      "tool": "review_task",
+      "outcome": "observed",
+      "state": "cancelled"
+    }
+  ]
+}

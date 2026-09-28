@@ -1,0 +1,42 @@
+{
+  "kind": "deterministic-current-draft-context",
+  "budgetChars": 24000,
+  "notMeasured": [
+    "total request token reduction",
+    "Qwen accuracy",
+    "Office COM performance",
+    "competitor runtime quality"
+  ],
+  "cases": [
+    {
+      "cells": 16,
+      "rawChars": 35135,
+      "windowChars": 23489,
+      "reductionPercent": 33.1,
+      "omittedCells": 5,
+      "allCellsExactlyRetrievable": true,
+      "rawDraftUnchanged": true,
+      "fixtureSha256": "df9676e060f1e3af12857d344f22f3b29a68566976166954683ed319ee39cd87"
+    },
+    {
+      "cells": 40,
+      "rawChars": 38145,
+      "windowChars": 23899,
+      "reductionPercent": 37.3,
+      "omittedCells": 15,
+      "allCellsExactlyRetrievable": true,
+      "rawDraftUnchanged": true,
+      "fixtureSha256": "62a9ecd42f851b0de806f9d136632eaab14f4ca15f74a355131a8ccc2f90c46f"
+    },
+    {
+      "cells": 100,
+      "rawChars": 40848,
+      "windowChars": 23847,
+      "reductionPercent": 41.6,
+      "omittedCells": 43,
+      "allCellsExactlyRetrievable": true,
+      "rawDraftUnchanged": true,
+      "fixtureSha256": "a37cfe44326a540adc2033e2966605d3758e92f74bf15491b5bc080ca07e836f"
+    }
+  ]
+}

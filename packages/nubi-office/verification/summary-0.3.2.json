@@ -1,0 +1,50 @@
+{
+  "version": "0.3.2",
+  "checkedAt": "2026-09-22T09:24:58.809Z",
+  "change": "Bounded AI recovery: failure receipt, fresh cells, corrected approach, tool execution and independent readback/review; retain goal, scope and completed edits.",
+  "javascriptTests": 46,
+  "javascriptTestsPassed": 46,
+  "browser": {
+    "checkedAt": "2026-09-22T09:24:31.051Z",
+    "browserUi": true,
+    "realPiLoop": true,
+    "realWorkbookEngine": true,
+    "excelCom": "simulated",
+    "providers": "synthetic",
+    "widths": [
+      320,
+      380,
+      600
+    ],
+    "mutationAndRestore": true,
+    "clarificationAndResume": true,
+    "taskReviewVisible": true,
+    "planShownBeforeWrite": true,
+    "sequentialStepProgress": true,
+    "liveActivityBeforeFinalReply": true,
+    "scrollHistoryAndFollowLatest": true,
+    "activitySettlesOnCompletionAndStop": true,
+    "activitySettlesOnConnectionFailure": true,
+    "userStopVisible": true,
+    "windowsVstoInstalled": false,
+    "realProvidersVerified": false,
+    "errors": []
+  },
+  "build": true,
+  "designCheck": true,
+  "standaloneBundleSmoke": true,
+  "recovery": {
+    "record": "recovery-checks.json",
+    "attempts": 1,
+    "state": "verified",
+    "actualNativeValidation": true,
+    "completedValueWriteNotRepeated": true,
+    "successfulWrites": 2,
+    "recording": "recovery-demo.webm",
+    "durationSeconds": 28.28,
+    "providerResponses": "synthetic",
+    "excelCom": "simulated"
+  },
+  "windowsExcel2016Verified": false,
+  "realModelRecoveryRate": null
+}

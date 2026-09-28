@@ -1,0 +1,62 @@
+{
+  "date": "2026-09-25",
+  "scope": "Native long text retrieval, evidence fragments and new XLSX draft specialists",
+  "testCommand": "npm run test:pinned",
+  "pinnedOfficePi": "0.86.1",
+  "tests": 638,
+  "pass": 638,
+  "fail": 0,
+  "design": {
+    "sharedFilesMatched": 24,
+    "issues": 0
+  },
+  "nativeVerification": "C# source contract tests only; no compile or COM execution",
+  "uiVerification": "Design and existing source tests; no new Chromium or WebView2 run",
+  "newRuntimeDependencies": 0,
+  "installerBuilt": false,
+  "deployed": false,
+  "notVerified": [
+    "Windows 11 Office 2016 COM",
+    "live enterprise Qwen quality/latency/cost",
+    "NASCA save and reopen",
+    "native compilation of these changes"
+  ],
+  "remainingImplementation": [
+    "Native lazy item paging and measured COM performance",
+    "Arbitrary source offset assignments for dynamic analysis of single items larger than 32K",
+    "Protected durable run recovery",
+    "Unsupported rich text/chart/table mutation capabilities and enterprise template distribution"
+  ],
+  "files": {
+    "worker/content-text.mjs": "5a8cce0616d74d0f34065f51ed311e32640d816972d4498ed95b6bdb30a822c0",
+    "worker/content-integrity.mjs": "43b5fa65aa5aad8868ffb2b56cd6ac896b8737b67272d68436efafd3b4dcb249",
+    "worker/content-agent.mjs": "1bf1674c4cd9d4b4c680267ed30a77f162060969a2114a5ecbfb03f05952cc3e",
+    "worker/content-analysis.mjs": "3ff51612c031cdf3c5a62a6c9ece9b435935a9216d9faf8750040f6c569930a8",
+    "worker/content-context.mjs": "4aa365debd819d837b57597744ccb004005fbff4dd1457bfa7fe7b232377743b",
+    "worker/content-review.mjs": "71d9321e909f6bc4aa80e3c5bebd48ce926c0f34d5733dc59b4deecfb6c06632",
+    "worker/content-schema.mjs": "2dc612ac7018068a849420abd49df62ce94ddb6a361234ebb09be62e4a0e656e",
+    "worker/document-delegation.mjs": "ce80ae6915dce6d9af5c431c1d7bcfb6bc1a13764b3daf88fdfcc79e02f0be45",
+    "worker/document-agent.mjs": "f36f341321b185951bba83c0f6438710c6807c8d01c1a2ea0b739e01bf3ee8cb",
+    "worker/draft-specialists.mjs": "b86f1c540414f55339a85b4318f24b33ab14e8e973e06d036f9234fa5ff6e6f5",
+    "worker/analysis-jobs.mjs": "f1ccfa547c7a46fb00406da087a8936b59fd960bc2980b2b1f30df0c4db1d5c7",
+    "worker/fault-policy.mjs": "6de7388e9f4853686206cdcf18f286176db1b0386586e7d970c7002bfee6b886",
+    "worker/resilience.mjs": "371dc8f55689f2014ab3d3351578fe4f0067123649afe8cd5057f749d26c271c",
+    "src/App.jsx": "866c5add45f60e0cd57ba9a995633e78ea200cb2ba5b21f8b6ced658cf30af36",
+    "tests/content-text.test.mjs": "135f7da98c49619ad7d181117fd811be6fb32c916d601dfc2493c3a6808eb486",
+    "tests/content-agent.test.mjs": "a4573fa48d43fe10058549e98ee23e535b7f2a16e835ef9f5e6095c128294bb2",
+    "tests/content-review.test.mjs": "eee01a8c21ee38f9d75ed72d757bb15144ddb791b5b2d058a8ad0458eb76348c",
+    "tests/content-review-fragments.test.mjs": "1cfa5b5a402466a2207b71b1c8640c16bc8fbb2c7fa6da17b720cd03fd197a00",
+    "tests/native-content-text.test.mjs": "e050de5827b249612d5b4ee69763c81b3a74c0314f94e6e2129da2d789432101",
+    "tests/analysis-lifecycle.test.mjs": "a4891b18a76647d8c6e01aff97623b04d4681b03d9029fc6246b5b0944866d33",
+    "tests/draft-specialists.test.mjs": "e7c4f0793a4936346896754e4ba1aa47496b69dbc47ff96531f8cd94b7d9ad1f",
+    "tests/document-specialists.test.mjs": "246447a73bd8b22eb0fdf34eb67e27716c7d535fb8596201a3ec3b5147ff1b97",
+    "AGENTS.md": "98d172dbbe079d0478f499b82ce6e9e5969aeb90de8ce62b535e48d513773a4a",
+    "docs/LONG-TEXT-DRAFT-SPECIALISTS-2026-09-25.md": "6ee41b640434435d07b03d86bc7d683891924435da938ab3f6c9cae8e14fab2b",
+    "docs/IMPROVEMENT-STATUS.md": "ae0c0bb8b8628a884188fddeec30c3d80495398d985bfde23e955ba9f2d5654b",
+    "native/Nubi.Office.Host/ContentPort.cs": "95e06ba264da9b44c977578ef2666f9f4ef01ddceddda6bef92a6681b7874430",
+    "native/Nubi.Office.Host/WordContentDocument.cs": "0ffecd450838a527e2a7b014b78365a4f689c312b41efb7fac6c248d38521ec8",
+    "native/Nubi.Office.Host/WordContentFields.cs": "e20225efb7bbba9eaff3e4473d92c3d84861d22bb5e0d3b9d9ed86c436b25c60",
+    "native/Nubi.Office.Host/SlideContentDocument.cs": "fab160e8c4bfec6b26079383d6a271340d5b99cef4c32bf746f672f9b3915850",
+    "native/Nubi.Office.Host/NubiPane.cs": "f4135bddc74d656f48c6f73a3176cb48f4a2a73829059a6cabfc49643920afbf"
+  }
+}

@@ -1,0 +1,669 @@
+{
+  "suite": "register",
+  "id": "training-request",
+  "trial": 1,
+  "routing": "direct",
+  "passed": true,
+  "outcome": "passed",
+  "state": "done",
+  "writes": 0,
+  "recoveries": 0,
+  "questions": [],
+  "approvals": [
+    "template_mapping",
+    "template_register"
+  ],
+  "proposals": 1,
+  "metrics": {
+    "modelCalls": 10,
+    "toolCalls": 7,
+    "elapsedMs": 37294
+  },
+  "transcript": {
+    "modelCalls": 10,
+    "byRole": {
+      "planner": 1,
+      "actor": 8,
+      "result_review": 1
+    },
+    "elapsedMs": 37021,
+    "requestCharacters": 433383,
+    "peakRequestCharacters": 67289,
+    "toolCalls": {
+      "read": 1,
+      "read_selection": 1,
+      "excel_capabilities": 1,
+      "inspect_template": 3,
+      "define_template_fields": 1,
+      "register_template": 1,
+      "verify_selection": 1
+    },
+    "errors": {}
+  },
+  "score": {
+    "mapping": {
+      "proposed": 7,
+      "gold": 7,
+      "matched": 7,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "unexpected": [],
+      "wrongType": [],
+      "wrongRequired": [],
+      "exact": true,
+      "strict": true
+    },
+    "registered": true,
+    "sourceUnchanged": true,
+    "proposedFields": [
+      {
+        "address": "C3",
+        "label": "성명",
+        "valueType": "text",
+        "required": true
+      },
+      {
+        "address": "C4",
+        "label": "부서",
+        "valueType": "text",
+        "required": true
+      },
+      {
+        "address": "C5",
+        "label": "연락처",
+        "valueType": "text",
+        "required": true
+      },
+      {
+        "address": "C6",
+        "label": "과정명",
+        "valueType": "text",
+        "required": true
+      },
+      {
+        "address": "C7",
+        "label": "시작일",
+        "valueType": "date",
+        "required": true
+      },
+      {
+        "address": "C8",
+        "label": "교육비",
+        "valueType": "number",
+        "required": true
+      },
+      {
+        "address": "C9",
+        "label": "회사 지원율",
+        "valueType": "percent",
+        "required": true
+      }
+    ],
+    "passed": true,
+    "outcome": "passed"
+  },
+  "request": "지금 선택한 교육 신청서 양식을 분석해서 다음에 다시 쓸 수 있게 등록해줘. 양식 이름은 교육 신청서, 용도는 사외 교육 수강 신청이야. 회색 글자는 작성 예시라서 실제 값이 아니야. 입력 칸은 모두 필수이고 본인 부담금은 자동 계산이야.",
+  "answer": "교육 신청서 템플릿 등록을 완료했습니다.\n\n- **용도:** 사외 교육 수강 신청\n- **필수 입력:** 성명, 부서, 연락처, 과정명, 시작일, 교육비, 회사 지원율\n- **작성 예시:** 홍길동·인사팀·010-0000-0000\n- **자동 계산:** C10 본인 부담금 수식 보존\n- **검증:** 수식, 서식, 병합 및 예시 글자색 모두 확인됨\n- **저장본:** Excel 관리 복사본에 등록됨 (NASCA 암호화 자체 검증은 불가)",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "선택한 신청서의 필드, 병합, 형식, 수식과 예시 값을 확인",
+        "kind": "inspect",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "state": "done"
+      },
+      {
+        "id": "analyze_schema",
+        "title": "필수 입력 필드와 자동 계산 규칙을 정의하고 등록 정보를 준비",
+        "kind": "analyze",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "state": "done"
+      },
+      {
+        "id": "verify_registration",
+        "title": "템플릿 저장 및 메타데이터 재확인 결과를 검증",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "state": "done"
+      }
+    ],
+    "total": 3,
+    "completed": 3,
+    "currentStepId": null
+  },
+  "task": {
+    "intent": "analyze",
+    "summary": "선택한 교육 신청서 양식을 분석해 필드 의미와 형식, 필수 여부, 자동 계산 규칙을 확인한 뒤 ‘교육 신청서’ 템플릿으로 등록합니다.",
+    "requirements": [
+      "양식 이름은 교육 신청서로 등록",
+      "용도는 사외 교육 수강 신청으로 기록",
+      "회색 글자 홍길동·인사팀·010-0000-0000은 작성 예시로 분류",
+      "입력 필드는 모두 필수로 기록",
+      "본인 부담금은 기존 자동 계산 수식을 보존"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "C10",
+        "field": "formula",
+        "operator": "equals",
+        "expected": "=IF(OR(C8=\"\",C9=\"\"),\"\",C8*(1-C9))"
+      },
+      {
+        "address": "C10",
+        "field": "formula",
+        "operator": "no_error"
+      },
+      {
+        "address": "C3",
+        "field": "fontColor",
+        "operator": "equals",
+        "expected": "#808080"
+      },
+      {
+        "address": "C4",
+        "field": "fontColor",
+        "operator": "equals",
+        "expected": "#808080"
+      },
+      {
+        "address": "C5",
+        "field": "fontColor",
+        "operator": "equals",
+        "expected": "#808080"
+      },
+      {
+        "address": "C7",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "yyyy-mm-dd"
+      },
+      {
+        "address": "C8",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "#,##0"
+      },
+      {
+        "address": "C9",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "0%"
+      },
+      {
+        "address": "C10",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "#,##0"
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "선택한 신청서의 필드, 병합, 형식, 수식과 예시 값을 확인",
+        "kind": "inspect",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ]
+      },
+      {
+        "id": "analyze_schema",
+        "title": "필수 입력 필드와 자동 계산 규칙을 정의하고 등록 정보를 준비",
+        "kind": "analyze",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ]
+      },
+      {
+        "id": "verify_registration",
+        "title": "템플릿 저장 및 메타데이터 재확인 결과를 검증",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ]
+      }
+    ]
+  },
+  "review": {
+    "status": "complete",
+    "checks": [
+      {
+        "requirement": "‘교육 신청서’ 이름과 ‘사외 교육 수강 신청’ 용도로 등록",
+        "status": "met",
+        "evidence_ids": [
+          11
+        ]
+      },
+      {
+        "requirement": "홍길동·인사팀·010-0000-0000을 작성 예시로 분류",
+        "status": "met",
+        "evidence_ids": [
+          10,
+          11
+        ]
+      },
+      {
+        "requirement": "모든 입력 필드를 필수로 등록",
+        "status": "met",
+        "evidence_ids": [
+          11
+        ]
+      },
+      {
+        "requirement": "본인 부담금 자동 계산 수식을 보존",
+        "status": "met",
+        "evidence_ids": [
+          10,
+          11
+        ]
+      },
+      {
+        "requirement": "등록본의 확인된 수식·서식·병합·잠금 등을 보존",
+        "status": "met",
+        "evidence_ids": [
+          11,
+          12
+        ]
+      }
+    ],
+    "next_step": "없음"
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_form"
+    },
+    {
+      "name": "read",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "define_template_fields",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "register_template",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_registration"
+    },
+    {
+      "name": "review_task",
+      "state": "done",
+      "stepId": "verify_registration"
+    }
+  ],
+  "recoveryLog": [],
+  "lastProposal": [
+    {
+      "id": "field_C3",
+      "address": "C3",
+      "label": "성명",
+      "valueType": "text",
+      "required": true,
+      "numberFormat": "General",
+      "merge": "C3:D3",
+      "choices": [],
+      "currentValue": "홍길동",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_C4",
+      "address": "C4",
+      "label": "부서",
+      "valueType": "text",
+      "required": true,
+      "numberFormat": "General",
+      "merge": "C4:D4",
+      "choices": [],
+      "currentValue": "인사팀",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_C5",
+      "address": "C5",
+      "label": "연락처",
+      "valueType": "text",
+      "required": true,
+      "numberFormat": "@",
+      "merge": "C5:D5",
+      "choices": [],
+      "currentValue": "010-0000-0000",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_C6",
+      "address": "C6",
+      "label": "과정명",
+      "valueType": "text",
+      "required": true,
+      "numberFormat": "General",
+      "merge": "C6:D6",
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_C7",
+      "address": "C7",
+      "label": "시작일",
+      "valueType": "date",
+      "required": true,
+      "numberFormat": "yyyy-mm-dd",
+      "merge": "C7:D7",
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_C8",
+      "address": "C8",
+      "label": "교육비",
+      "valueType": "number",
+      "required": true,
+      "numberFormat": "#,##0",
+      "merge": "C8:D8",
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_C9",
+      "address": "C9",
+      "label": "회사 지원율",
+      "valueType": "percent",
+      "required": true,
+      "numberFormat": "0%",
+      "merge": "C9:D9",
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    }
+  ],
+  "registeredTemplate": {
+    "saved": true,
+    "id": "71fedb7a-78bb-4edd-890d-d6f95db9881d",
+    "path": "/sim/templates/71fedb7a-78bb-4edd-890d-d6f95db9881d.xlsx",
+    "metadataVerified": true,
+    "protectionMode": "nasca_excel_managed",
+    "nascaEncryptionVerified": false,
+    "name": "교육 신청서",
+    "profile": {
+      "schemaVersion": 1,
+      "structureId": "114f49b31bbd163e364480052814752c10a1609b0332331ea880445a18fb19f0",
+      "definitionHash": "1765841d7b2b5b1ac23a2151f15f7637b85444e6be1e0f04c8d3ca5c8789d7eb",
+      "worksheet": "교육신청서",
+      "address": "A1:D10",
+      "fields": [
+        {
+          "address": "C3",
+          "label": "성명",
+          "valueType": "text",
+          "required": true
+        },
+        {
+          "address": "C4",
+          "label": "부서",
+          "valueType": "text",
+          "required": true
+        },
+        {
+          "address": "C5",
+          "label": "연락처",
+          "valueType": "text",
+          "required": true
+        },
+        {
+          "address": "C6",
+          "label": "과정명",
+          "valueType": "text",
+          "required": true
+        },
+        {
+          "address": "C7",
+          "label": "시작일",
+          "valueType": "date",
+          "required": true
+        },
+        {
+          "address": "C8",
+          "label": "교육비",
+          "valueType": "number",
+          "required": true
+        },
+        {
+          "address": "C9",
+          "label": "회사 지원율",
+          "valueType": "percent",
+          "required": true
+        }
+      ]
+    },
+    "preservation": {
+      "schemaVersion": 1,
+      "stage": "registered_copy",
+      "target": "교육신청서!A1:D10",
+      "status": "partial",
+      "checks": [
+        {
+          "id": "formulas",
+          "label": "수식",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "formats",
+          "label": "글꼴, 색, 정렬, 표시 형식",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "merges",
+          "label": "병합",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "borders",
+          "label": "테두리",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "dimensions",
+          "label": "행, 열 크기와 숨김",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "validation",
+          "label": "입력 제한, 잠금",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "values",
+          "label": "고정 내용",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "date1904",
+          "label": "날짜 체계",
+          "status": "preserved"
+        },
+        {
+          "id": "protected",
+          "label": "시트 보호",
+          "status": "preserved"
+        },
+        {
+          "id": "objects",
+          "label": "그림, 차트, 도형",
+          "status": "unverified"
+        },
+        {
+          "id": "conditional",
+          "label": "조건부 서식, 기타 셀 효과",
+          "status": "unverified"
+        },
+        {
+          "id": "print",
+          "label": "인쇄 결과, 페이지 전체 모양",
+          "status": "unverified"
+        },
+        {
+          "id": "other_ranges",
+          "label": "선택 범위 밖의 내용과 양식",
+          "status": "unverified"
+        },
+        {
+          "id": "nasca",
+          "label": "NASCA 암호화 상태",
+          "status": "unverified"
+        }
+      ],
+      "differences": [],
+      "differenceCount": 0,
+      "expectedValueChanges": 0,
+      "note": "읽은 속성의 비교 결과입니다. 전체 문서가 동일하다는 뜻은 아닙니다."
+    },
+    "catalogued": true,
+    "entry": {
+      "id": "71fedb7a-78bb-4edd-890d-d6f95db9881d",
+      "host": "excel",
+      "name": "교육 신청서",
+      "summary": "사외 교육 수강 신청",
+      "revision": 1,
+      "createdAt": "2026-09-28T20:42:42.468Z",
+      "updatedAt": "2026-09-28T20:42:42.468Z",
+      "itemCount": 7,
+      "inputCount": 7,
+      "sourceFile": "71fedb7a-78bb-4edd-890d-d6f95db9881d.xlsx",
+      "available": true,
+      "protection": "windows_current_user"
+    }
+  }
+}

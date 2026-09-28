@@ -1,0 +1,5053 @@
+{
+  "kind": "simulated-host-live-model-evaluation",
+  "schema": 1,
+  "runId": "f7751f5e-c98e-4769-af2b-28c3abed0844",
+  "provider": "chatgpt",
+  "model": "gpt-5.6-luna",
+  "routing": "product",
+  "caseVersion": "office-business-cases@4",
+  "startedAt": "2026-09-28T21:39:28.934Z",
+  "limits": {
+    "timeoutMs": 600000,
+    "maxModelCalls": 80,
+    "maxActions": 120
+  },
+  "host": {
+    "platform": "simulated",
+    "simulated": true,
+    "calculator": "@ironcalc/nodejs"
+  },
+  "results": [
+    {
+      "suite": "register",
+      "id": "expense-report",
+      "trial": 1,
+      "routing": "direct",
+      "passed": true,
+      "outcome": "passed",
+      "state": "done",
+      "writes": 0,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [
+        "template_mapping",
+        "template_register"
+      ],
+      "proposals": 1,
+      "metrics": {
+        "modelCalls": 7,
+        "toolCalls": 4,
+        "elapsedMs": 26529
+      },
+      "transcript": {
+        "modelCalls": 7,
+        "byRole": {
+          "planner": 1,
+          "actor": 5,
+          "result_review": 1
+        },
+        "elapsedMs": 26313,
+        "requestCharacters": 241617,
+        "peakRequestCharacters": 51159,
+        "toolCalls": {
+          "read": 1,
+          "read_selection": 1,
+          "define_template_fields": 1,
+          "register_template": 1
+        },
+        "errors": {}
+      },
+      "score": {
+        "mapping": {
+          "proposed": 8,
+          "gold": 8,
+          "matched": 8,
+          "precision": 1,
+          "recall": 1,
+          "f1": 1,
+          "missing": [],
+          "unexpected": [],
+          "wrongType": [],
+          "wrongRequired": [],
+          "exact": true,
+          "strict": true
+        },
+        "registered": true,
+        "sourceUnchanged": true,
+        "proposedFields": [
+          {
+            "address": "B3",
+            "label": "결의 번호",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E3",
+            "label": "작성일",
+            "valueType": "date",
+            "required": true
+          },
+          {
+            "address": "B4",
+            "label": "부서",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E4",
+            "label": "작성자",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "B5",
+            "label": "지급처",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E5",
+            "label": "결제 수단",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "B7",
+            "label": "공급가액",
+            "valueType": "number",
+            "required": true
+          },
+          {
+            "address": "B11",
+            "label": "적요",
+            "valueType": "text",
+            "required": false
+          }
+        ],
+        "passed": true,
+        "outcome": "passed"
+      }
+    },
+    {
+      "suite": "register",
+      "id": "expense-report",
+      "trial": 2,
+      "routing": "direct",
+      "passed": true,
+      "outcome": "passed",
+      "state": "done",
+      "writes": 0,
+      "recoveries": 1,
+      "questions": [],
+      "approvals": [
+        "template_mapping",
+        "template_register"
+      ],
+      "proposals": 1,
+      "metrics": {
+        "modelCalls": 11,
+        "toolCalls": 7,
+        "elapsedMs": 42116
+      },
+      "transcript": {
+        "modelCalls": 11,
+        "byRole": {
+          "planner": 1,
+          "actor": 8,
+          "recovery": 1,
+          "result_review": 1
+        },
+        "elapsedMs": 41183,
+        "requestCharacters": 439248,
+        "peakRequestCharacters": 66082,
+        "toolCalls": {
+          "read": 1,
+          "inspect_template": 3,
+          "define_template_fields": 2,
+          "register_template": 1
+        },
+        "errors": {}
+      },
+      "score": {
+        "mapping": {
+          "proposed": 8,
+          "gold": 8,
+          "matched": 8,
+          "precision": 1,
+          "recall": 1,
+          "f1": 1,
+          "missing": [],
+          "unexpected": [],
+          "wrongType": [],
+          "wrongRequired": [],
+          "exact": true,
+          "strict": true
+        },
+        "registered": true,
+        "sourceUnchanged": true,
+        "proposedFields": [
+          {
+            "address": "B3",
+            "label": "결의 번호",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E3",
+            "label": "작성일",
+            "valueType": "date",
+            "required": true
+          },
+          {
+            "address": "B4",
+            "label": "부서",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E4",
+            "label": "작성자",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "B5",
+            "label": "지급처",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E5",
+            "label": "결제 수단",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "B7",
+            "label": "공급가액",
+            "valueType": "number",
+            "required": true
+          },
+          {
+            "address": "B11",
+            "label": "적요",
+            "valueType": "text",
+            "required": false
+          }
+        ],
+        "passed": true,
+        "outcome": "passed"
+      }
+    },
+    {
+      "suite": "register",
+      "id": "expense-report",
+      "trial": 3,
+      "routing": "direct",
+      "passed": true,
+      "outcome": "passed",
+      "state": "done",
+      "writes": 0,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [
+        "template_mapping",
+        "template_register"
+      ],
+      "proposals": 1,
+      "metrics": {
+        "modelCalls": 9,
+        "toolCalls": 6,
+        "elapsedMs": 30991
+      },
+      "transcript": {
+        "modelCalls": 9,
+        "byRole": {
+          "planner": 1,
+          "actor": 7,
+          "result_review": 1
+        },
+        "elapsedMs": 30723,
+        "requestCharacters": 359056,
+        "peakRequestCharacters": 59418,
+        "toolCalls": {
+          "read": 1,
+          "inspect_template": 3,
+          "define_template_fields": 1,
+          "register_template": 1
+        },
+        "errors": {}
+      },
+      "score": {
+        "mapping": {
+          "proposed": 8,
+          "gold": 8,
+          "matched": 8,
+          "precision": 1,
+          "recall": 1,
+          "f1": 1,
+          "missing": [],
+          "unexpected": [],
+          "wrongType": [],
+          "wrongRequired": [],
+          "exact": true,
+          "strict": true
+        },
+        "registered": true,
+        "sourceUnchanged": true,
+        "proposedFields": [
+          {
+            "address": "B3",
+            "label": "결의 번호",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E3",
+            "label": "작성일",
+            "valueType": "date",
+            "required": true
+          },
+          {
+            "address": "B4",
+            "label": "부서",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E4",
+            "label": "작성자",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "B5",
+            "label": "지급처",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E5",
+            "label": "결제 수단",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "B7",
+            "label": "공급가액",
+            "valueType": "number",
+            "required": true
+          },
+          {
+            "address": "B11",
+            "label": "적요",
+            "valueType": "text",
+            "required": false
+          }
+        ],
+        "passed": true,
+        "outcome": "passed"
+      }
+    },
+    {
+      "suite": "register",
+      "id": "trip-request",
+      "trial": 1,
+      "routing": "direct",
+      "passed": true,
+      "outcome": "passed",
+      "state": "done",
+      "writes": 0,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [
+        "template_mapping",
+        "template_register",
+        "template_mapping"
+      ],
+      "proposals": 2,
+      "metrics": {
+        "modelCalls": 13,
+        "toolCalls": 10,
+        "elapsedMs": 44590
+      },
+      "transcript": {
+        "modelCalls": 13,
+        "byRole": {
+          "planner": 1,
+          "actor": 11,
+          "result_review": 1
+        },
+        "elapsedMs": 44205,
+        "requestCharacters": 596431,
+        "peakRequestCharacters": 67715,
+        "toolCalls": {
+          "read": 1,
+          "inspect_template": 4,
+          "read_selection": 1,
+          "define_template_fields": 2,
+          "register_template": 2
+        },
+        "errors": {}
+      },
+      "score": {
+        "mapping": {
+          "proposed": 10,
+          "gold": 10,
+          "matched": 10,
+          "precision": 1,
+          "recall": 1,
+          "f1": 1,
+          "missing": [],
+          "unexpected": [],
+          "wrongType": [],
+          "wrongRequired": [],
+          "exact": true,
+          "strict": true
+        },
+        "registered": true,
+        "sourceUnchanged": true,
+        "proposedFields": [
+          {
+            "address": "C3",
+            "label": "소속 부서",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E3",
+            "label": "성명",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "C4",
+            "label": "사번",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E4",
+            "label": "직급",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "C5",
+            "label": "출장 구분",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E5",
+            "label": "출장지",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "C6",
+            "label": "출발일",
+            "valueType": "date",
+            "required": true
+          },
+          {
+            "address": "E6",
+            "label": "복귀일",
+            "valueType": "date",
+            "required": true
+          },
+          {
+            "address": "C8",
+            "label": "출장 목적",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "C10",
+            "label": "일비(1일)",
+            "valueType": "number",
+            "required": true
+          }
+        ],
+        "passed": true,
+        "outcome": "passed"
+      }
+    },
+    {
+      "suite": "register",
+      "id": "trip-request",
+      "trial": 2,
+      "routing": "direct",
+      "passed": false,
+      "outcome": "failed",
+      "state": "awaiting_user",
+      "writes": 0,
+      "recoveries": 1,
+      "questions": [],
+      "approvals": [],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 8,
+        "toolCalls": 6,
+        "elapsedMs": 23932
+      },
+      "transcript": {
+        "modelCalls": 8,
+        "byRole": {
+          "planner": 1,
+          "actor": 6,
+          "recovery": 1
+        },
+        "elapsedMs": 23118,
+        "requestCharacters": 300634,
+        "peakRequestCharacters": 57399,
+        "toolCalls": {
+          "read": 1,
+          "inspect_template": 4,
+          "define_template_fields": 1
+        },
+        "errors": {}
+      },
+      "score": {
+        "mapping": {
+          "proposed": 0,
+          "gold": 10,
+          "matched": 0,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "missing": [
+            "C3",
+            "E3",
+            "C4",
+            "E4",
+            "C5",
+            "E5",
+            "C6",
+            "E6",
+            "C8",
+            "C10"
+          ],
+          "unexpected": [],
+          "wrongType": [],
+          "wrongRequired": [],
+          "exact": false,
+          "strict": false
+        },
+        "registered": false,
+        "sourceUnchanged": true,
+        "proposedFields": [],
+        "passed": false,
+        "outcome": "failed"
+      }
+    },
+    {
+      "suite": "register",
+      "id": "trip-request",
+      "trial": 3,
+      "routing": "direct",
+      "passed": true,
+      "outcome": "passed",
+      "state": "done",
+      "writes": 0,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [
+        "template_mapping",
+        "template_register"
+      ],
+      "proposals": 1,
+      "metrics": {
+        "modelCalls": 10,
+        "toolCalls": 7,
+        "elapsedMs": 32593
+      },
+      "transcript": {
+        "modelCalls": 10,
+        "byRole": {
+          "planner": 1,
+          "actor": 8,
+          "result_review": 1
+        },
+        "elapsedMs": 32250,
+        "requestCharacters": 434586,
+        "peakRequestCharacters": 65750,
+        "toolCalls": {
+          "read": 1,
+          "inspect_template": 4,
+          "define_template_fields": 1,
+          "register_template": 1
+        },
+        "errors": {}
+      },
+      "score": {
+        "mapping": {
+          "proposed": 10,
+          "gold": 10,
+          "matched": 10,
+          "precision": 1,
+          "recall": 1,
+          "f1": 1,
+          "missing": [],
+          "unexpected": [],
+          "wrongType": [],
+          "wrongRequired": [],
+          "exact": true,
+          "strict": true
+        },
+        "registered": true,
+        "sourceUnchanged": true,
+        "proposedFields": [
+          {
+            "address": "C3",
+            "label": "소속 부서",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E3",
+            "label": "성명",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "C4",
+            "label": "사번",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E4",
+            "label": "직급",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "C5",
+            "label": "출장 구분",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E5",
+            "label": "출장지",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "C6",
+            "label": "출발일",
+            "valueType": "date",
+            "required": true
+          },
+          {
+            "address": "E6",
+            "label": "복귀일",
+            "valueType": "date",
+            "required": true
+          },
+          {
+            "address": "C8",
+            "label": "출장 목적",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "C10",
+            "label": "일비(1일)",
+            "valueType": "number",
+            "required": true
+          }
+        ],
+        "passed": true,
+        "outcome": "passed"
+      }
+    },
+    {
+      "suite": "register",
+      "id": "training-request",
+      "trial": 1,
+      "routing": "direct",
+      "passed": true,
+      "outcome": "passed",
+      "state": "done",
+      "writes": 0,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [
+        "template_mapping",
+        "template_register"
+      ],
+      "proposals": 1,
+      "metrics": {
+        "modelCalls": 8,
+        "toolCalls": 4,
+        "elapsedMs": 33581
+      },
+      "transcript": {
+        "modelCalls": 8,
+        "byRole": {
+          "planner": 2,
+          "actor": 5,
+          "result_review": 1
+        },
+        "elapsedMs": 32754,
+        "requestCharacters": 252497,
+        "peakRequestCharacters": 50433,
+        "toolCalls": {
+          "read": 1,
+          "read_selection": 1,
+          "define_template_fields": 1,
+          "register_template": 1
+        },
+        "errors": {}
+      },
+      "score": {
+        "mapping": {
+          "proposed": 7,
+          "gold": 7,
+          "matched": 7,
+          "precision": 1,
+          "recall": 1,
+          "f1": 1,
+          "missing": [],
+          "unexpected": [],
+          "wrongType": [],
+          "wrongRequired": [],
+          "exact": true,
+          "strict": true
+        },
+        "registered": true,
+        "sourceUnchanged": true,
+        "proposedFields": [
+          {
+            "address": "C3",
+            "label": "성명",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "C4",
+            "label": "부서",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "C5",
+            "label": "연락처",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "C6",
+            "label": "과정명",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "C7",
+            "label": "시작일",
+            "valueType": "date",
+            "required": true
+          },
+          {
+            "address": "C8",
+            "label": "교육비",
+            "valueType": "number",
+            "required": true
+          },
+          {
+            "address": "C9",
+            "label": "회사 지원율",
+            "valueType": "percent",
+            "required": true
+          }
+        ],
+        "passed": true,
+        "outcome": "passed"
+      }
+    },
+    {
+      "suite": "register",
+      "id": "training-request",
+      "trial": 2,
+      "routing": "direct",
+      "passed": false,
+      "outcome": "failed",
+      "state": "awaiting_user",
+      "writes": 0,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 2,
+        "toolCalls": 0,
+        "elapsedMs": 11473
+      },
+      "transcript": {
+        "modelCalls": 2,
+        "byRole": {
+          "planner": 2
+        },
+        "elapsedMs": 10798,
+        "requestCharacters": 23980,
+        "peakRequestCharacters": 12806,
+        "toolCalls": {},
+        "errors": {}
+      },
+      "score": {
+        "mapping": {
+          "proposed": 0,
+          "gold": 7,
+          "matched": 0,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "missing": [
+            "C3",
+            "C4",
+            "C5",
+            "C6",
+            "C7",
+            "C8",
+            "C9"
+          ],
+          "unexpected": [],
+          "wrongType": [],
+          "wrongRequired": [],
+          "exact": false,
+          "strict": false
+        },
+        "registered": false,
+        "sourceUnchanged": true,
+        "proposedFields": [],
+        "passed": false,
+        "outcome": "failed"
+      }
+    },
+    {
+      "suite": "register",
+      "id": "training-request",
+      "trial": 3,
+      "routing": "direct",
+      "passed": false,
+      "outcome": "failed",
+      "state": "awaiting_user",
+      "writes": 0,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 2,
+        "toolCalls": 0,
+        "elapsedMs": 12740
+      },
+      "transcript": {
+        "modelCalls": 2,
+        "byRole": {
+          "planner": 2
+        },
+        "elapsedMs": 12138,
+        "requestCharacters": 23972,
+        "peakRequestCharacters": 12798,
+        "toolCalls": {},
+        "errors": {}
+      },
+      "score": {
+        "mapping": {
+          "proposed": 0,
+          "gold": 7,
+          "matched": 0,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "missing": [
+            "C3",
+            "C4",
+            "C5",
+            "C6",
+            "C7",
+            "C8",
+            "C9"
+          ],
+          "unexpected": [],
+          "wrongType": [],
+          "wrongRequired": [],
+          "exact": false,
+          "strict": false
+        },
+        "registered": false,
+        "sourceUnchanged": true,
+        "proposedFields": [],
+        "passed": false,
+        "outcome": "failed"
+      }
+    },
+    {
+      "suite": "register",
+      "id": "quotation",
+      "trial": 1,
+      "routing": "direct",
+      "passed": true,
+      "outcome": "passed",
+      "state": "done",
+      "writes": 0,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [
+        "template_mapping",
+        "template_register",
+        "template_mapping"
+      ],
+      "proposals": 2,
+      "metrics": {
+        "modelCalls": 13,
+        "toolCalls": 10,
+        "elapsedMs": 54243
+      },
+      "transcript": {
+        "modelCalls": 13,
+        "byRole": {
+          "planner": 1,
+          "actor": 11,
+          "result_review": 1
+        },
+        "elapsedMs": 53823,
+        "requestCharacters": 621077,
+        "peakRequestCharacters": 73064,
+        "toolCalls": {
+          "read": 1,
+          "inspect_template": 4,
+          "read_selection": 1,
+          "define_template_fields": 2,
+          "register_template": 2
+        },
+        "errors": {}
+      },
+      "score": {
+        "mapping": {
+          "proposed": 21,
+          "gold": 21,
+          "matched": 21,
+          "precision": 1,
+          "recall": 1,
+          "f1": 1,
+          "missing": [],
+          "unexpected": [],
+          "wrongType": [],
+          "wrongRequired": [],
+          "exact": true,
+          "strict": true
+        },
+        "registered": true,
+        "sourceUnchanged": true,
+        "proposedFields": [
+          {
+            "address": "B3",
+            "label": "수신",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E3",
+            "label": "견적일",
+            "valueType": "date",
+            "required": true
+          },
+          {
+            "address": "B4",
+            "label": "담당자",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E4",
+            "label": "유효 기간",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "B7",
+            "label": "품목 1",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "C7",
+            "label": "규격 1",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "D7",
+            "label": "수량 1",
+            "valueType": "number",
+            "required": true
+          },
+          {
+            "address": "E7",
+            "label": "단가 1",
+            "valueType": "number",
+            "required": true
+          },
+          {
+            "address": "B8",
+            "label": "품목 2",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "C8",
+            "label": "규격 2",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "D8",
+            "label": "수량 2",
+            "valueType": "number",
+            "required": false
+          },
+          {
+            "address": "E8",
+            "label": "단가 2",
+            "valueType": "number",
+            "required": false
+          },
+          {
+            "address": "B9",
+            "label": "품목 3",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "C9",
+            "label": "규격 3",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "D9",
+            "label": "수량 3",
+            "valueType": "number",
+            "required": false
+          },
+          {
+            "address": "E9",
+            "label": "단가 3",
+            "valueType": "number",
+            "required": false
+          },
+          {
+            "address": "B10",
+            "label": "품목 4",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "C10",
+            "label": "규격 4",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "D10",
+            "label": "수량 4",
+            "valueType": "number",
+            "required": false
+          },
+          {
+            "address": "E10",
+            "label": "단가 4",
+            "valueType": "number",
+            "required": false
+          },
+          {
+            "address": "B14",
+            "label": "비고",
+            "valueType": "text",
+            "required": false
+          }
+        ],
+        "passed": true,
+        "outcome": "passed"
+      }
+    },
+    {
+      "suite": "register",
+      "id": "quotation",
+      "trial": 2,
+      "routing": "direct",
+      "passed": true,
+      "outcome": "passed",
+      "state": "done",
+      "writes": 0,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [
+        "template_mapping",
+        "template_register",
+        "template_mapping"
+      ],
+      "proposals": 2,
+      "metrics": {
+        "modelCalls": 13,
+        "toolCalls": 10,
+        "elapsedMs": 54752
+      },
+      "transcript": {
+        "modelCalls": 13,
+        "byRole": {
+          "planner": 1,
+          "actor": 11,
+          "result_review": 1
+        },
+        "elapsedMs": 54338,
+        "requestCharacters": 614075,
+        "peakRequestCharacters": 68785,
+        "toolCalls": {
+          "read": 1,
+          "inspect_template": 5,
+          "define_template_fields": 2,
+          "register_template": 2
+        },
+        "errors": {}
+      },
+      "score": {
+        "mapping": {
+          "proposed": 21,
+          "gold": 21,
+          "matched": 21,
+          "precision": 1,
+          "recall": 1,
+          "f1": 1,
+          "missing": [],
+          "unexpected": [],
+          "wrongType": [],
+          "wrongRequired": [],
+          "exact": true,
+          "strict": true
+        },
+        "registered": true,
+        "sourceUnchanged": true,
+        "proposedFields": [
+          {
+            "address": "B3",
+            "label": "수신",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E3",
+            "label": "견적일",
+            "valueType": "date",
+            "required": true
+          },
+          {
+            "address": "B4",
+            "label": "담당자",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E4",
+            "label": "유효 기간",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "B7",
+            "label": "첫째 행 품목",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "C7",
+            "label": "첫째 행 규격",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "D7",
+            "label": "첫째 행 수량",
+            "valueType": "number",
+            "required": true
+          },
+          {
+            "address": "E7",
+            "label": "첫째 행 단가",
+            "valueType": "number",
+            "required": true
+          },
+          {
+            "address": "B8",
+            "label": "둘째 행 품목",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "C8",
+            "label": "둘째 행 규격",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "D8",
+            "label": "둘째 행 수량",
+            "valueType": "number",
+            "required": false
+          },
+          {
+            "address": "E8",
+            "label": "둘째 행 단가",
+            "valueType": "number",
+            "required": false
+          },
+          {
+            "address": "B9",
+            "label": "셋째 행 품목",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "C9",
+            "label": "셋째 행 규격",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "D9",
+            "label": "셋째 행 수량",
+            "valueType": "number",
+            "required": false
+          },
+          {
+            "address": "E9",
+            "label": "셋째 행 단가",
+            "valueType": "number",
+            "required": false
+          },
+          {
+            "address": "B10",
+            "label": "넷째 행 품목",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "C10",
+            "label": "넷째 행 규격",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "D10",
+            "label": "넷째 행 수량",
+            "valueType": "number",
+            "required": false
+          },
+          {
+            "address": "E10",
+            "label": "넷째 행 단가",
+            "valueType": "number",
+            "required": false
+          },
+          {
+            "address": "B14",
+            "label": "비고",
+            "valueType": "text",
+            "required": false
+          }
+        ],
+        "passed": true,
+        "outcome": "passed"
+      }
+    },
+    {
+      "suite": "register",
+      "id": "quotation",
+      "trial": 3,
+      "routing": "direct",
+      "passed": true,
+      "outcome": "passed",
+      "state": "done",
+      "writes": 0,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [
+        "template_mapping",
+        "template_register",
+        "template_mapping"
+      ],
+      "proposals": 2,
+      "metrics": {
+        "modelCalls": 13,
+        "toolCalls": 10,
+        "elapsedMs": 52641
+      },
+      "transcript": {
+        "modelCalls": 13,
+        "byRole": {
+          "planner": 1,
+          "actor": 11,
+          "result_review": 1
+        },
+        "elapsedMs": 52194,
+        "requestCharacters": 623423,
+        "peakRequestCharacters": 73257,
+        "toolCalls": {
+          "read": 1,
+          "inspect_template": 4,
+          "read_selection": 1,
+          "define_template_fields": 2,
+          "register_template": 2
+        },
+        "errors": {}
+      },
+      "score": {
+        "mapping": {
+          "proposed": 21,
+          "gold": 21,
+          "matched": 21,
+          "precision": 1,
+          "recall": 1,
+          "f1": 1,
+          "missing": [],
+          "unexpected": [],
+          "wrongType": [],
+          "wrongRequired": [],
+          "exact": true,
+          "strict": true
+        },
+        "registered": true,
+        "sourceUnchanged": true,
+        "proposedFields": [
+          {
+            "address": "B3",
+            "label": "수신",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E3",
+            "label": "견적일",
+            "valueType": "date",
+            "required": true
+          },
+          {
+            "address": "B4",
+            "label": "담당자",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "E4",
+            "label": "유효 기간",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "B7",
+            "label": "품목 1",
+            "valueType": "text",
+            "required": true
+          },
+          {
+            "address": "C7",
+            "label": "규격 1",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "D7",
+            "label": "수량 1",
+            "valueType": "number",
+            "required": true
+          },
+          {
+            "address": "E7",
+            "label": "단가 1",
+            "valueType": "number",
+            "required": true
+          },
+          {
+            "address": "B8",
+            "label": "품목 2",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "C8",
+            "label": "규격 2",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "D8",
+            "label": "수량 2",
+            "valueType": "number",
+            "required": false
+          },
+          {
+            "address": "E8",
+            "label": "단가 2",
+            "valueType": "number",
+            "required": false
+          },
+          {
+            "address": "B9",
+            "label": "품목 3",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "C9",
+            "label": "규격 3",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "D9",
+            "label": "수량 3",
+            "valueType": "number",
+            "required": false
+          },
+          {
+            "address": "E9",
+            "label": "단가 3",
+            "valueType": "number",
+            "required": false
+          },
+          {
+            "address": "B10",
+            "label": "품목 4",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "C10",
+            "label": "규격 4",
+            "valueType": "text",
+            "required": false
+          },
+          {
+            "address": "D10",
+            "label": "수량 4",
+            "valueType": "number",
+            "required": false
+          },
+          {
+            "address": "E10",
+            "label": "단가 4",
+            "valueType": "number",
+            "required": false
+          },
+          {
+            "address": "B14",
+            "label": "비고",
+            "valueType": "text",
+            "required": false
+          }
+        ],
+        "passed": true,
+        "outcome": "passed"
+      }
+    },
+    {
+      "suite": "reuse",
+      "id": "expense-report",
+      "trial": 1,
+      "routing": "product",
+      "passed": true,
+      "outcome": "passed",
+      "state": "done",
+      "writes": 1,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [
+        "edit"
+      ],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 11,
+        "toolCalls": 4,
+        "elapsedMs": 55009
+      },
+      "transcript": {
+        "modelCalls": 11,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 2,
+          "actor": 5,
+          "action_review": 1,
+          "step_review": 1,
+          "result_review": 1
+        },
+        "elapsedMs": 54156,
+        "requestCharacters": 325227,
+        "peakRequestCharacters": 65391,
+        "toolCalls": {
+          "read": 1,
+          "inspect_template": 1,
+          "fill_template_fields": 1,
+          "verify_selection": 1
+        },
+        "errors": {}
+      },
+      "score": {
+        "passed": true,
+        "outcome": "passed",
+        "deterministicPassed": true,
+        "semanticReview": {
+          "required": false,
+          "status": "not_required",
+          "criteria": []
+        },
+        "expectedState": "done",
+        "actualState": "done",
+        "checks": {
+          "verified": true,
+          "checks": [
+            {
+              "address": "B3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "0092",
+              "actual": [
+                [
+                  "0092"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E3",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46300,
+              "actual": [
+                [
+                  46300
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "총무팀",
+              "actual": [
+                [
+                  "총무팀"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "이서연",
+              "actual": [
+                [
+                  "이서연"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "한빛문구",
+              "actual": [
+                [
+                  "한빛문구"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "법인카드",
+              "actual": [
+                [
+                  "법인카드"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 120000,
+              "actual": [
+                [
+                  120000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B11",
+              "field": "value",
+              "operator": "equals",
+              "expected": "사무용품 구입",
+              "actual": [
+                [
+                  "사무용품 구입"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B8",
+              "field": "value",
+              "operator": "equals",
+              "expected": 12000,
+              "actual": [
+                [
+                  12000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B9",
+              "field": "value",
+              "operator": "equals",
+              "expected": 132000,
+              "actual": [
+                [
+                  132000
+                ]
+              ],
+              "status": "met"
+            }
+          ]
+        },
+        "persistedChecks": {
+          "verified": true,
+          "checks": [
+            {
+              "address": "B3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "0092",
+              "actual": [
+                [
+                  "0092"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E3",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46300,
+              "actual": [
+                [
+                  46300
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "총무팀",
+              "actual": [
+                [
+                  "총무팀"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "이서연",
+              "actual": [
+                [
+                  "이서연"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "한빛문구",
+              "actual": [
+                [
+                  "한빛문구"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "법인카드",
+              "actual": [
+                [
+                  "법인카드"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 120000,
+              "actual": [
+                [
+                  120000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B11",
+              "field": "value",
+              "operator": "equals",
+              "expected": "사무용품 구입",
+              "actual": [
+                [
+                  "사무용품 구입"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B8",
+              "field": "value",
+              "operator": "equals",
+              "expected": 12000,
+              "actual": [
+                [
+                  12000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B9",
+              "field": "value",
+              "operator": "equals",
+              "expected": 132000,
+              "actual": [
+                [
+                  132000
+                ]
+              ],
+              "status": "met"
+            }
+          ]
+        },
+        "unexpectedChanges": [],
+        "persistedUnexpectedChanges": [],
+        "sourceChecks": [],
+        "formulaChecks": [],
+        "templateUnchanged": true
+      }
+    },
+    {
+      "suite": "reuse",
+      "id": "expense-report",
+      "trial": 2,
+      "routing": "product",
+      "passed": true,
+      "outcome": "passed",
+      "state": "done",
+      "writes": 1,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [
+        "edit"
+      ],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 11,
+        "toolCalls": 4,
+        "elapsedMs": 52898
+      },
+      "transcript": {
+        "modelCalls": 11,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 2,
+          "actor": 5,
+          "action_review": 1,
+          "step_review": 1,
+          "result_review": 1
+        },
+        "elapsedMs": 51810,
+        "requestCharacters": 327281,
+        "peakRequestCharacters": 61339,
+        "toolCalls": {
+          "read_worksheet_range": 1,
+          "get_range_data": 1,
+          "fill_template_fields": 1,
+          "verify_selection": 1
+        },
+        "errors": {}
+      },
+      "score": {
+        "passed": true,
+        "outcome": "passed",
+        "deterministicPassed": true,
+        "semanticReview": {
+          "required": false,
+          "status": "not_required",
+          "criteria": []
+        },
+        "expectedState": "done",
+        "actualState": "done",
+        "checks": {
+          "verified": true,
+          "checks": [
+            {
+              "address": "B3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "0092",
+              "actual": [
+                [
+                  "0092"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E3",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46300,
+              "actual": [
+                [
+                  46300
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "총무팀",
+              "actual": [
+                [
+                  "총무팀"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "이서연",
+              "actual": [
+                [
+                  "이서연"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "한빛문구",
+              "actual": [
+                [
+                  "한빛문구"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "법인카드",
+              "actual": [
+                [
+                  "법인카드"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 120000,
+              "actual": [
+                [
+                  120000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B11",
+              "field": "value",
+              "operator": "equals",
+              "expected": "사무용품 구입",
+              "actual": [
+                [
+                  "사무용품 구입"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B8",
+              "field": "value",
+              "operator": "equals",
+              "expected": 12000,
+              "actual": [
+                [
+                  12000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B9",
+              "field": "value",
+              "operator": "equals",
+              "expected": 132000,
+              "actual": [
+                [
+                  132000
+                ]
+              ],
+              "status": "met"
+            }
+          ]
+        },
+        "persistedChecks": {
+          "verified": true,
+          "checks": [
+            {
+              "address": "B3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "0092",
+              "actual": [
+                [
+                  "0092"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E3",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46300,
+              "actual": [
+                [
+                  46300
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "총무팀",
+              "actual": [
+                [
+                  "총무팀"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "이서연",
+              "actual": [
+                [
+                  "이서연"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "한빛문구",
+              "actual": [
+                [
+                  "한빛문구"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "법인카드",
+              "actual": [
+                [
+                  "법인카드"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 120000,
+              "actual": [
+                [
+                  120000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B11",
+              "field": "value",
+              "operator": "equals",
+              "expected": "사무용품 구입",
+              "actual": [
+                [
+                  "사무용품 구입"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B8",
+              "field": "value",
+              "operator": "equals",
+              "expected": 12000,
+              "actual": [
+                [
+                  12000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B9",
+              "field": "value",
+              "operator": "equals",
+              "expected": 132000,
+              "actual": [
+                [
+                  132000
+                ]
+              ],
+              "status": "met"
+            }
+          ]
+        },
+        "unexpectedChanges": [],
+        "persistedUnexpectedChanges": [],
+        "sourceChecks": [],
+        "formulaChecks": [],
+        "templateUnchanged": true
+      }
+    },
+    {
+      "suite": "reuse",
+      "id": "expense-report",
+      "trial": 3,
+      "routing": "product",
+      "passed": true,
+      "outcome": "passed",
+      "state": "done",
+      "writes": 1,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [
+        "edit"
+      ],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 10,
+        "toolCalls": 4,
+        "elapsedMs": 41547
+      },
+      "transcript": {
+        "modelCalls": 10,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 1,
+          "actor": 5,
+          "action_review": 1,
+          "step_review": 1,
+          "result_review": 1
+        },
+        "elapsedMs": 41388,
+        "requestCharacters": 310775,
+        "peakRequestCharacters": 65815,
+        "toolCalls": {
+          "read": 1,
+          "inspect_template": 1,
+          "fill_template_fields": 1,
+          "verify_selection": 1
+        },
+        "errors": {}
+      },
+      "score": {
+        "passed": true,
+        "outcome": "passed",
+        "deterministicPassed": true,
+        "semanticReview": {
+          "required": false,
+          "status": "not_required",
+          "criteria": []
+        },
+        "expectedState": "done",
+        "actualState": "done",
+        "checks": {
+          "verified": true,
+          "checks": [
+            {
+              "address": "B3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "0092",
+              "actual": [
+                [
+                  "0092"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E3",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46300,
+              "actual": [
+                [
+                  46300
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "총무팀",
+              "actual": [
+                [
+                  "총무팀"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "이서연",
+              "actual": [
+                [
+                  "이서연"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "한빛문구",
+              "actual": [
+                [
+                  "한빛문구"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "법인카드",
+              "actual": [
+                [
+                  "법인카드"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 120000,
+              "actual": [
+                [
+                  120000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B11",
+              "field": "value",
+              "operator": "equals",
+              "expected": "사무용품 구입",
+              "actual": [
+                [
+                  "사무용품 구입"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B8",
+              "field": "value",
+              "operator": "equals",
+              "expected": 12000,
+              "actual": [
+                [
+                  12000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B9",
+              "field": "value",
+              "operator": "equals",
+              "expected": 132000,
+              "actual": [
+                [
+                  132000
+                ]
+              ],
+              "status": "met"
+            }
+          ]
+        },
+        "persistedChecks": {
+          "verified": true,
+          "checks": [
+            {
+              "address": "B3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "0092",
+              "actual": [
+                [
+                  "0092"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E3",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46300,
+              "actual": [
+                [
+                  46300
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "총무팀",
+              "actual": [
+                [
+                  "총무팀"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "이서연",
+              "actual": [
+                [
+                  "이서연"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "한빛문구",
+              "actual": [
+                [
+                  "한빛문구"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "법인카드",
+              "actual": [
+                [
+                  "법인카드"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 120000,
+              "actual": [
+                [
+                  120000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B11",
+              "field": "value",
+              "operator": "equals",
+              "expected": "사무용품 구입",
+              "actual": [
+                [
+                  "사무용품 구입"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B8",
+              "field": "value",
+              "operator": "equals",
+              "expected": 12000,
+              "actual": [
+                [
+                  12000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B9",
+              "field": "value",
+              "operator": "equals",
+              "expected": 132000,
+              "actual": [
+                [
+                  132000
+                ]
+              ],
+              "status": "met"
+            }
+          ]
+        },
+        "unexpectedChanges": [],
+        "persistedUnexpectedChanges": [],
+        "sourceChecks": [],
+        "formulaChecks": [],
+        "templateUnchanged": true
+      }
+    },
+    {
+      "suite": "reuse",
+      "id": "trip-request",
+      "trial": 1,
+      "routing": "product",
+      "passed": true,
+      "outcome": "passed",
+      "state": "done",
+      "writes": 1,
+      "recoveries": 0,
+      "questions": [
+        "일비(1일)은 얼마인가요? 원 단위 금액으로 알려주세요."
+      ],
+      "approvals": [
+        "edit"
+      ],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 16,
+        "toolCalls": 7,
+        "elapsedMs": 80685
+      },
+      "transcript": {
+        "modelCalls": 16,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 4,
+          "actor": 8,
+          "action_review": 1,
+          "step_review": 1,
+          "result_review": 1
+        },
+        "elapsedMs": 78464,
+        "requestCharacters": 629416,
+        "peakRequestCharacters": 92642,
+        "toolCalls": {
+          "read": 1,
+          "inspect_template": 4,
+          "fill_template_fields": 1,
+          "verify_selection": 1
+        },
+        "errors": {}
+      },
+      "score": {
+        "passed": true,
+        "outcome": "passed",
+        "deterministicPassed": true,
+        "semanticReview": {
+          "required": false,
+          "status": "not_required",
+          "criteria": []
+        },
+        "expectedState": "done",
+        "actualState": "done",
+        "checks": {
+          "verified": true,
+          "checks": [
+            {
+              "address": "C3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "영업1팀",
+              "actual": [
+                [
+                  "영업1팀"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "김민수",
+              "actual": [
+                [
+                  "김민수"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "00417",
+              "actual": [
+                [
+                  "00417"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "과장",
+              "actual": [
+                [
+                  "과장"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "국내",
+              "actual": [
+                [
+                  "국내"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "부산",
+              "actual": [
+                [
+                  "부산"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C6",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46307,
+              "actual": [
+                [
+                  46307
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E6",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46309,
+              "actual": [
+                [
+                  46309
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C8",
+              "field": "value",
+              "operator": "equals",
+              "expected": "신규 거래처 계약 협의",
+              "actual": [
+                [
+                  "신규 거래처 계약 협의"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C10",
+              "field": "value",
+              "operator": "equals",
+              "expected": 50000,
+              "actual": [
+                [
+                  50000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 3,
+              "actual": [
+                [
+                  3
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E10",
+              "field": "value",
+              "operator": "equals",
+              "expected": 150000,
+              "actual": [
+                [
+                  150000
+                ]
+              ],
+              "status": "met"
+            }
+          ]
+        },
+        "persistedChecks": {
+          "verified": true,
+          "checks": [
+            {
+              "address": "C3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "영업1팀",
+              "actual": [
+                [
+                  "영업1팀"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "김민수",
+              "actual": [
+                [
+                  "김민수"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "00417",
+              "actual": [
+                [
+                  "00417"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "과장",
+              "actual": [
+                [
+                  "과장"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "국내",
+              "actual": [
+                [
+                  "국내"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "부산",
+              "actual": [
+                [
+                  "부산"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C6",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46307,
+              "actual": [
+                [
+                  46307
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E6",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46309,
+              "actual": [
+                [
+                  46309
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C8",
+              "field": "value",
+              "operator": "equals",
+              "expected": "신규 거래처 계약 협의",
+              "actual": [
+                [
+                  "신규 거래처 계약 협의"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C10",
+              "field": "value",
+              "operator": "equals",
+              "expected": 50000,
+              "actual": [
+                [
+                  50000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 3,
+              "actual": [
+                [
+                  3
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E10",
+              "field": "value",
+              "operator": "equals",
+              "expected": 150000,
+              "actual": [
+                [
+                  150000
+                ]
+              ],
+              "status": "met"
+            }
+          ]
+        },
+        "unexpectedChanges": [],
+        "persistedUnexpectedChanges": [],
+        "sourceChecks": [],
+        "formulaChecks": [],
+        "templateUnchanged": true
+      }
+    },
+    {
+      "suite": "reuse",
+      "id": "trip-request",
+      "trial": 2,
+      "routing": "product",
+      "passed": true,
+      "outcome": "passed",
+      "state": "done",
+      "writes": 1,
+      "recoveries": 0,
+      "questions": [
+        "일비(1일)은 얼마로 입력할까요?"
+      ],
+      "approvals": [
+        "edit"
+      ],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 11,
+        "toolCalls": 3,
+        "elapsedMs": 56342
+      },
+      "transcript": {
+        "modelCalls": 11,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 3,
+          "actor": 4,
+          "action_review": 1,
+          "step_review": 1,
+          "result_review": 1
+        },
+        "elapsedMs": 55365,
+        "requestCharacters": 305113,
+        "peakRequestCharacters": 67593,
+        "toolCalls": {
+          "inspect_template": 1,
+          "fill_template_fields": 1,
+          "verify_selection": 1
+        },
+        "errors": {}
+      },
+      "score": {
+        "passed": true,
+        "outcome": "passed",
+        "deterministicPassed": true,
+        "semanticReview": {
+          "required": false,
+          "status": "not_required",
+          "criteria": []
+        },
+        "expectedState": "done",
+        "actualState": "done",
+        "checks": {
+          "verified": true,
+          "checks": [
+            {
+              "address": "C3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "영업1팀",
+              "actual": [
+                [
+                  "영업1팀"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "김민수",
+              "actual": [
+                [
+                  "김민수"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "00417",
+              "actual": [
+                [
+                  "00417"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "과장",
+              "actual": [
+                [
+                  "과장"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "국내",
+              "actual": [
+                [
+                  "국내"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "부산",
+              "actual": [
+                [
+                  "부산"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C6",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46307,
+              "actual": [
+                [
+                  46307
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E6",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46309,
+              "actual": [
+                [
+                  46309
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C8",
+              "field": "value",
+              "operator": "equals",
+              "expected": "신규 거래처 계약 협의",
+              "actual": [
+                [
+                  "신규 거래처 계약 협의"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C10",
+              "field": "value",
+              "operator": "equals",
+              "expected": 50000,
+              "actual": [
+                [
+                  50000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 3,
+              "actual": [
+                [
+                  3
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E10",
+              "field": "value",
+              "operator": "equals",
+              "expected": 150000,
+              "actual": [
+                [
+                  150000
+                ]
+              ],
+              "status": "met"
+            }
+          ]
+        },
+        "persistedChecks": {
+          "verified": true,
+          "checks": [
+            {
+              "address": "C3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "영업1팀",
+              "actual": [
+                [
+                  "영업1팀"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "김민수",
+              "actual": [
+                [
+                  "김민수"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "00417",
+              "actual": [
+                [
+                  "00417"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "과장",
+              "actual": [
+                [
+                  "과장"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "국내",
+              "actual": [
+                [
+                  "국내"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "부산",
+              "actual": [
+                [
+                  "부산"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C6",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46307,
+              "actual": [
+                [
+                  46307
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E6",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46309,
+              "actual": [
+                [
+                  46309
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C8",
+              "field": "value",
+              "operator": "equals",
+              "expected": "신규 거래처 계약 협의",
+              "actual": [
+                [
+                  "신규 거래처 계약 협의"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C10",
+              "field": "value",
+              "operator": "equals",
+              "expected": 50000,
+              "actual": [
+                [
+                  50000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 3,
+              "actual": [
+                [
+                  3
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E10",
+              "field": "value",
+              "operator": "equals",
+              "expected": 150000,
+              "actual": [
+                [
+                  150000
+                ]
+              ],
+              "status": "met"
+            }
+          ]
+        },
+        "unexpectedChanges": [],
+        "persistedUnexpectedChanges": [],
+        "sourceChecks": [],
+        "formulaChecks": [],
+        "templateUnchanged": true
+      }
+    },
+    {
+      "suite": "reuse",
+      "id": "trip-request",
+      "trial": 3,
+      "routing": "product",
+      "passed": true,
+      "outcome": "passed",
+      "state": "done",
+      "writes": 1,
+      "recoveries": 0,
+      "questions": [
+        "일비(1일) 금액을 얼마로 입력할까요? (숫자, 원 단위)"
+      ],
+      "approvals": [
+        "edit"
+      ],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 10,
+        "toolCalls": 3,
+        "elapsedMs": 45394
+      },
+      "transcript": {
+        "modelCalls": 10,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 2,
+          "actor": 4,
+          "action_review": 1,
+          "step_review": 1,
+          "result_review": 1
+        },
+        "elapsedMs": 45003,
+        "requestCharacters": 272591,
+        "peakRequestCharacters": 60533,
+        "toolCalls": {
+          "read_worksheet_range": 1,
+          "fill_template_fields": 1,
+          "verify_selection": 1
+        },
+        "errors": {}
+      },
+      "score": {
+        "passed": true,
+        "outcome": "passed",
+        "deterministicPassed": true,
+        "semanticReview": {
+          "required": false,
+          "status": "not_required",
+          "criteria": []
+        },
+        "expectedState": "done",
+        "actualState": "done",
+        "checks": {
+          "verified": true,
+          "checks": [
+            {
+              "address": "C3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "영업1팀",
+              "actual": [
+                [
+                  "영업1팀"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "김민수",
+              "actual": [
+                [
+                  "김민수"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "00417",
+              "actual": [
+                [
+                  "00417"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "과장",
+              "actual": [
+                [
+                  "과장"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "국내",
+              "actual": [
+                [
+                  "국내"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "부산",
+              "actual": [
+                [
+                  "부산"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C6",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46307,
+              "actual": [
+                [
+                  46307
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E6",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46309,
+              "actual": [
+                [
+                  46309
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C8",
+              "field": "value",
+              "operator": "equals",
+              "expected": "신규 거래처 계약 협의",
+              "actual": [
+                [
+                  "신규 거래처 계약 협의"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C10",
+              "field": "value",
+              "operator": "equals",
+              "expected": 50000,
+              "actual": [
+                [
+                  50000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 3,
+              "actual": [
+                [
+                  3
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E10",
+              "field": "value",
+              "operator": "equals",
+              "expected": 150000,
+              "actual": [
+                [
+                  150000
+                ]
+              ],
+              "status": "met"
+            }
+          ]
+        },
+        "persistedChecks": {
+          "verified": true,
+          "checks": [
+            {
+              "address": "C3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "영업1팀",
+              "actual": [
+                [
+                  "영업1팀"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "김민수",
+              "actual": [
+                [
+                  "김민수"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "00417",
+              "actual": [
+                [
+                  "00417"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "과장",
+              "actual": [
+                [
+                  "과장"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "국내",
+              "actual": [
+                [
+                  "국내"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "부산",
+              "actual": [
+                [
+                  "부산"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C6",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46307,
+              "actual": [
+                [
+                  46307
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E6",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46309,
+              "actual": [
+                [
+                  46309
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C8",
+              "field": "value",
+              "operator": "equals",
+              "expected": "신규 거래처 계약 협의",
+              "actual": [
+                [
+                  "신규 거래처 계약 협의"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C10",
+              "field": "value",
+              "operator": "equals",
+              "expected": 50000,
+              "actual": [
+                [
+                  50000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 3,
+              "actual": [
+                [
+                  3
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E10",
+              "field": "value",
+              "operator": "equals",
+              "expected": 150000,
+              "actual": [
+                [
+                  150000
+                ]
+              ],
+              "status": "met"
+            }
+          ]
+        },
+        "unexpectedChanges": [],
+        "persistedUnexpectedChanges": [],
+        "sourceChecks": [],
+        "formulaChecks": [],
+        "templateUnchanged": true
+      }
+    },
+    {
+      "suite": "reuse",
+      "id": "training-request",
+      "trial": 1,
+      "routing": "product",
+      "passed": true,
+      "outcome": "passed",
+      "state": "done",
+      "writes": 1,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [
+        "edit"
+      ],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 9,
+        "toolCalls": 3,
+        "elapsedMs": 35377
+      },
+      "transcript": {
+        "modelCalls": 9,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 1,
+          "actor": 4,
+          "action_review": 1,
+          "step_review": 1,
+          "result_review": 1
+        },
+        "elapsedMs": 35178,
+        "requestCharacters": 254835,
+        "peakRequestCharacters": 62179,
+        "toolCalls": {
+          "inspect_template": 1,
+          "fill_template_fields": 1,
+          "verify_selection": 1
+        },
+        "errors": {}
+      },
+      "score": {
+        "passed": true,
+        "outcome": "passed",
+        "deterministicPassed": true,
+        "semanticReview": {
+          "required": false,
+          "status": "not_required",
+          "criteria": []
+        },
+        "expectedState": "done",
+        "actualState": "done",
+        "checks": {
+          "verified": true,
+          "checks": [
+            {
+              "address": "C3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "박지훈",
+              "actual": [
+                [
+                  "박지훈"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "재무팀",
+              "actual": [
+                [
+                  "재무팀"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "010-2345-6789",
+              "actual": [
+                [
+                  "010-2345-6789"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C6",
+              "field": "value",
+              "operator": "equals",
+              "expected": "재무제표 분석 실무",
+              "actual": [
+                [
+                  "재무제표 분석 실무"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46328,
+              "actual": [
+                [
+                  46328
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C8",
+              "field": "value",
+              "operator": "equals",
+              "expected": 400000,
+              "actual": [
+                [
+                  400000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C9",
+              "field": "value",
+              "operator": "equals",
+              "expected": 0.8,
+              "actual": [
+                [
+                  0.8
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C10",
+              "field": "value",
+              "operator": "equals",
+              "expected": 80000,
+              "actual": [
+                [
+                  79999.99999999999
+                ]
+              ],
+              "status": "met"
+            }
+          ]
+        },
+        "persistedChecks": {
+          "verified": true,
+          "checks": [
+            {
+              "address": "C3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "박지훈",
+              "actual": [
+                [
+                  "박지훈"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "재무팀",
+              "actual": [
+                [
+                  "재무팀"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "010-2345-6789",
+              "actual": [
+                [
+                  "010-2345-6789"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C6",
+              "field": "value",
+              "operator": "equals",
+              "expected": "재무제표 분석 실무",
+              "actual": [
+                [
+                  "재무제표 분석 실무"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46328,
+              "actual": [
+                [
+                  46328
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C8",
+              "field": "value",
+              "operator": "equals",
+              "expected": 400000,
+              "actual": [
+                [
+                  400000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C9",
+              "field": "value",
+              "operator": "equals",
+              "expected": 0.8,
+              "actual": [
+                [
+                  0.8
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C10",
+              "field": "value",
+              "operator": "equals",
+              "expected": 80000,
+              "actual": [
+                [
+                  79999.99999999999
+                ]
+              ],
+              "status": "met"
+            }
+          ]
+        },
+        "unexpectedChanges": [],
+        "persistedUnexpectedChanges": [],
+        "sourceChecks": [],
+        "formulaChecks": [],
+        "templateUnchanged": true
+      }
+    },
+    {
+      "suite": "reuse",
+      "id": "training-request",
+      "trial": 2,
+      "routing": "product",
+      "passed": true,
+      "outcome": "passed",
+      "state": "done",
+      "writes": 1,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [
+        "edit"
+      ],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 10,
+        "toolCalls": 3,
+        "elapsedMs": 46107
+      },
+      "transcript": {
+        "modelCalls": 10,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 2,
+          "actor": 4,
+          "action_review": 1,
+          "step_review": 1,
+          "result_review": 1
+        },
+        "elapsedMs": 45338,
+        "requestCharacters": 268503,
+        "peakRequestCharacters": 61767,
+        "toolCalls": {
+          "inspect_template": 1,
+          "fill_template_fields": 1,
+          "verify_selection": 1
+        },
+        "errors": {}
+      },
+      "score": {
+        "passed": true,
+        "outcome": "passed",
+        "deterministicPassed": true,
+        "semanticReview": {
+          "required": false,
+          "status": "not_required",
+          "criteria": []
+        },
+        "expectedState": "done",
+        "actualState": "done",
+        "checks": {
+          "verified": true,
+          "checks": [
+            {
+              "address": "C3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "박지훈",
+              "actual": [
+                [
+                  "박지훈"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "재무팀",
+              "actual": [
+                [
+                  "재무팀"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "010-2345-6789",
+              "actual": [
+                [
+                  "010-2345-6789"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C6",
+              "field": "value",
+              "operator": "equals",
+              "expected": "재무제표 분석 실무",
+              "actual": [
+                [
+                  "재무제표 분석 실무"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46328,
+              "actual": [
+                [
+                  46328
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C8",
+              "field": "value",
+              "operator": "equals",
+              "expected": 400000,
+              "actual": [
+                [
+                  400000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C9",
+              "field": "value",
+              "operator": "equals",
+              "expected": 0.8,
+              "actual": [
+                [
+                  0.8
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C10",
+              "field": "value",
+              "operator": "equals",
+              "expected": 80000,
+              "actual": [
+                [
+                  79999.99999999999
+                ]
+              ],
+              "status": "met"
+            }
+          ]
+        },
+        "persistedChecks": {
+          "verified": true,
+          "checks": [
+            {
+              "address": "C3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "박지훈",
+              "actual": [
+                [
+                  "박지훈"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "재무팀",
+              "actual": [
+                [
+                  "재무팀"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C5",
+              "field": "value",
+              "operator": "equals",
+              "expected": "010-2345-6789",
+              "actual": [
+                [
+                  "010-2345-6789"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C6",
+              "field": "value",
+              "operator": "equals",
+              "expected": "재무제표 분석 실무",
+              "actual": [
+                [
+                  "재무제표 분석 실무"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46328,
+              "actual": [
+                [
+                  46328
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C8",
+              "field": "value",
+              "operator": "equals",
+              "expected": 400000,
+              "actual": [
+                [
+                  400000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C9",
+              "field": "value",
+              "operator": "equals",
+              "expected": 0.8,
+              "actual": [
+                [
+                  0.8
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C10",
+              "field": "value",
+              "operator": "equals",
+              "expected": 80000,
+              "actual": [
+                [
+                  79999.99999999999
+                ]
+              ],
+              "status": "met"
+            }
+          ]
+        },
+        "unexpectedChanges": [],
+        "persistedUnexpectedChanges": [],
+        "sourceChecks": [],
+        "formulaChecks": [],
+        "templateUnchanged": true
+      }
+    },
+    {
+      "suite": "reuse",
+      "id": "training-request",
+      "trial": 3,
+      "routing": "product",
+      "passed": false,
+      "outcome": "error",
+      "state": "cancelled",
+      "error": "evaluation_interaction_requires_human",
+      "writes": 1,
+      "recoveries": 1,
+      "questions": [
+        "본인 부담금이 표시값 80,000원이면 충분한가요, 아니면 실제 저장값도 정확히 80,000이어야 하나요?"
+      ],
+      "approvals": [
+        "edit"
+      ],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 12,
+        "toolCalls": 4,
+        "elapsedMs": 48655
+      },
+      "transcript": {
+        "modelCalls": 12,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 1,
+          "actor": 5,
+          "action_review": 1,
+          "step_review": 1,
+          "result_review": 2,
+          "recovery": 1
+        },
+        "elapsedMs": 46918,
+        "requestCharacters": 323774,
+        "peakRequestCharacters": 59560,
+        "toolCalls": {
+          "read_worksheet_range": 1,
+          "get_range_data": 1,
+          "fill_template_fields": 1,
+          "verify_selection": 1
+        },
+        "errors": {}
+      }
+    },
+    {
+      "suite": "reuse",
+      "id": "quotation",
+      "trial": 1,
+      "routing": "product",
+      "passed": false,
+      "outcome": "error",
+      "state": "cancelled",
+      "error": "evaluation_recovery_requires_human",
+      "writes": 1,
+      "recoveries": 5,
+      "questions": [],
+      "approvals": [
+        "edit",
+        "recovery"
+      ],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 21,
+        "toolCalls": 13,
+        "elapsedMs": 79883
+      },
+      "transcript": {
+        "modelCalls": 21,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 2,
+          "actor": 13,
+          "action_review": 1,
+          "recovery": 4
+        },
+        "elapsedMs": 68168,
+        "requestCharacters": 974296,
+        "peakRequestCharacters": 82783,
+        "toolCalls": {
+          "read_worksheet_range": 2,
+          "get_range_data": 2,
+          "fill_template_fields": 3,
+          "verify_selection": 3,
+          "read_selection": 2,
+          "excel_capabilities": 1
+        },
+        "errors": {}
+      }
+    },
+    {
+      "suite": "reuse",
+      "id": "quotation",
+      "trial": 2,
+      "routing": "product",
+      "passed": true,
+      "outcome": "passed",
+      "state": "done",
+      "writes": 1,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [
+        "edit"
+      ],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 11,
+        "toolCalls": 4,
+        "elapsedMs": 50055
+      },
+      "transcript": {
+        "modelCalls": 11,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 2,
+          "actor": 5,
+          "action_review": 1,
+          "step_review": 1,
+          "result_review": 1
+        },
+        "elapsedMs": 49219,
+        "requestCharacters": 369241,
+        "peakRequestCharacters": 76601,
+        "toolCalls": {
+          "read": 1,
+          "inspect_template": 1,
+          "fill_template_fields": 1,
+          "verify_selection": 1
+        },
+        "errors": {}
+      },
+      "score": {
+        "passed": true,
+        "outcome": "passed",
+        "deterministicPassed": true,
+        "semanticReview": {
+          "required": false,
+          "status": "not_required",
+          "criteria": []
+        },
+        "expectedState": "done",
+        "actualState": "done",
+        "checks": {
+          "verified": true,
+          "checks": [
+            {
+              "address": "B3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "대한상사",
+              "actual": [
+                [
+                  "대한상사"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E3",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46315,
+              "actual": [
+                [
+                  46315
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "최유진",
+              "actual": [
+                [
+                  "최유진"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "견적일로부터 30일",
+              "actual": [
+                [
+                  "견적일로부터 30일"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B7",
+              "field": "value",
+              "operator": "equals",
+              "expected": "무선 키보드",
+              "actual": [
+                [
+                  "무선 키보드"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C7",
+              "field": "value",
+              "operator": "equals",
+              "expected": "K380",
+              "actual": [
+                [
+                  "K380"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "D7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 10,
+              "actual": [
+                [
+                  10
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 30000,
+              "actual": [
+                [
+                  30000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B8",
+              "field": "value",
+              "operator": "equals",
+              "expected": "무선 마우스",
+              "actual": [
+                [
+                  "무선 마우스"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C8",
+              "field": "value",
+              "operator": "equals",
+              "expected": "M350",
+              "actual": [
+                [
+                  "M350"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "D8",
+              "field": "value",
+              "operator": "equals",
+              "expected": 10,
+              "actual": [
+                [
+                  10
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E8",
+              "field": "value",
+              "operator": "equals",
+              "expected": 25000,
+              "actual": [
+                [
+                  25000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "F7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 300000,
+              "actual": [
+                [
+                  300000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "F8",
+              "field": "value",
+              "operator": "equals",
+              "expected": 250000,
+              "actual": [
+                [
+                  250000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "F11",
+              "field": "value",
+              "operator": "equals",
+              "expected": 550000,
+              "actual": [
+                [
+                  550000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "F12",
+              "field": "value",
+              "operator": "equals",
+              "expected": 55000,
+              "actual": [
+                [
+                  55000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "F13",
+              "field": "value",
+              "operator": "equals",
+              "expected": 605000,
+              "actual": [
+                [
+                  605000
+                ]
+              ],
+              "status": "met"
+            }
+          ]
+        },
+        "persistedChecks": {
+          "verified": true,
+          "checks": [
+            {
+              "address": "B3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "대한상사",
+              "actual": [
+                [
+                  "대한상사"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E3",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46315,
+              "actual": [
+                [
+                  46315
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "최유진",
+              "actual": [
+                [
+                  "최유진"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "견적일로부터 30일",
+              "actual": [
+                [
+                  "견적일로부터 30일"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B7",
+              "field": "value",
+              "operator": "equals",
+              "expected": "무선 키보드",
+              "actual": [
+                [
+                  "무선 키보드"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C7",
+              "field": "value",
+              "operator": "equals",
+              "expected": "K380",
+              "actual": [
+                [
+                  "K380"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "D7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 10,
+              "actual": [
+                [
+                  10
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 30000,
+              "actual": [
+                [
+                  30000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B8",
+              "field": "value",
+              "operator": "equals",
+              "expected": "무선 마우스",
+              "actual": [
+                [
+                  "무선 마우스"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C8",
+              "field": "value",
+              "operator": "equals",
+              "expected": "M350",
+              "actual": [
+                [
+                  "M350"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "D8",
+              "field": "value",
+              "operator": "equals",
+              "expected": 10,
+              "actual": [
+                [
+                  10
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E8",
+              "field": "value",
+              "operator": "equals",
+              "expected": 25000,
+              "actual": [
+                [
+                  25000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "F7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 300000,
+              "actual": [
+                [
+                  300000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "F8",
+              "field": "value",
+              "operator": "equals",
+              "expected": 250000,
+              "actual": [
+                [
+                  250000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "F11",
+              "field": "value",
+              "operator": "equals",
+              "expected": 550000,
+              "actual": [
+                [
+                  550000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "F12",
+              "field": "value",
+              "operator": "equals",
+              "expected": 55000,
+              "actual": [
+                [
+                  55000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "F13",
+              "field": "value",
+              "operator": "equals",
+              "expected": 605000,
+              "actual": [
+                [
+                  605000
+                ]
+              ],
+              "status": "met"
+            }
+          ]
+        },
+        "unexpectedChanges": [],
+        "persistedUnexpectedChanges": [],
+        "sourceChecks": [],
+        "formulaChecks": [],
+        "templateUnchanged": true
+      }
+    },
+    {
+      "suite": "reuse",
+      "id": "quotation",
+      "trial": 3,
+      "routing": "product",
+      "passed": true,
+      "outcome": "passed",
+      "state": "done",
+      "writes": 1,
+      "recoveries": 0,
+      "questions": [],
+      "approvals": [
+        "edit"
+      ],
+      "proposals": 0,
+      "metrics": {
+        "modelCalls": 10,
+        "toolCalls": 4,
+        "elapsedMs": 41184
+      },
+      "transcript": {
+        "modelCalls": 10,
+        "byRole": {
+          "intent_router": 1,
+          "planner": 1,
+          "actor": 5,
+          "action_review": 1,
+          "step_review": 1,
+          "result_review": 1
+        },
+        "elapsedMs": 40791,
+        "requestCharacters": 349996,
+        "peakRequestCharacters": 69558,
+        "toolCalls": {
+          "read_worksheet_range": 1,
+          "get_range_data": 1,
+          "fill_template_fields": 1,
+          "verify_selection": 1
+        },
+        "errors": {}
+      },
+      "score": {
+        "passed": true,
+        "outcome": "passed",
+        "deterministicPassed": true,
+        "semanticReview": {
+          "required": false,
+          "status": "not_required",
+          "criteria": []
+        },
+        "expectedState": "done",
+        "actualState": "done",
+        "checks": {
+          "verified": true,
+          "checks": [
+            {
+              "address": "B3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "대한상사",
+              "actual": [
+                [
+                  "대한상사"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E3",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46315,
+              "actual": [
+                [
+                  46315
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "최유진",
+              "actual": [
+                [
+                  "최유진"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "견적일로부터 30일",
+              "actual": [
+                [
+                  "견적일로부터 30일"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B7",
+              "field": "value",
+              "operator": "equals",
+              "expected": "무선 키보드",
+              "actual": [
+                [
+                  "무선 키보드"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C7",
+              "field": "value",
+              "operator": "equals",
+              "expected": "K380",
+              "actual": [
+                [
+                  "K380"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "D7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 10,
+              "actual": [
+                [
+                  10
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 30000,
+              "actual": [
+                [
+                  30000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B8",
+              "field": "value",
+              "operator": "equals",
+              "expected": "무선 마우스",
+              "actual": [
+                [
+                  "무선 마우스"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C8",
+              "field": "value",
+              "operator": "equals",
+              "expected": "M350",
+              "actual": [
+                [
+                  "M350"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "D8",
+              "field": "value",
+              "operator": "equals",
+              "expected": 10,
+              "actual": [
+                [
+                  10
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E8",
+              "field": "value",
+              "operator": "equals",
+              "expected": 25000,
+              "actual": [
+                [
+                  25000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "F7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 300000,
+              "actual": [
+                [
+                  300000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "F8",
+              "field": "value",
+              "operator": "equals",
+              "expected": 250000,
+              "actual": [
+                [
+                  250000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "F11",
+              "field": "value",
+              "operator": "equals",
+              "expected": 550000,
+              "actual": [
+                [
+                  550000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "F12",
+              "field": "value",
+              "operator": "equals",
+              "expected": 55000,
+              "actual": [
+                [
+                  55000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "F13",
+              "field": "value",
+              "operator": "equals",
+              "expected": 605000,
+              "actual": [
+                [
+                  605000
+                ]
+              ],
+              "status": "met"
+            }
+          ]
+        },
+        "persistedChecks": {
+          "verified": true,
+          "checks": [
+            {
+              "address": "B3",
+              "field": "value",
+              "operator": "equals",
+              "expected": "대한상사",
+              "actual": [
+                [
+                  "대한상사"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E3",
+              "field": "value",
+              "operator": "equals",
+              "expected": 46315,
+              "actual": [
+                [
+                  46315
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "최유진",
+              "actual": [
+                [
+                  "최유진"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E4",
+              "field": "value",
+              "operator": "equals",
+              "expected": "견적일로부터 30일",
+              "actual": [
+                [
+                  "견적일로부터 30일"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B7",
+              "field": "value",
+              "operator": "equals",
+              "expected": "무선 키보드",
+              "actual": [
+                [
+                  "무선 키보드"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C7",
+              "field": "value",
+              "operator": "equals",
+              "expected": "K380",
+              "actual": [
+                [
+                  "K380"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "D7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 10,
+              "actual": [
+                [
+                  10
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 30000,
+              "actual": [
+                [
+                  30000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "B8",
+              "field": "value",
+              "operator": "equals",
+              "expected": "무선 마우스",
+              "actual": [
+                [
+                  "무선 마우스"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "C8",
+              "field": "value",
+              "operator": "equals",
+              "expected": "M350",
+              "actual": [
+                [
+                  "M350"
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "D8",
+              "field": "value",
+              "operator": "equals",
+              "expected": 10,
+              "actual": [
+                [
+                  10
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "E8",
+              "field": "value",
+              "operator": "equals",
+              "expected": 25000,
+              "actual": [
+                [
+                  25000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "F7",
+              "field": "value",
+              "operator": "equals",
+              "expected": 300000,
+              "actual": [
+                [
+                  300000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "F8",
+              "field": "value",
+              "operator": "equals",
+              "expected": 250000,
+              "actual": [
+                [
+                  250000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "F11",
+              "field": "value",
+              "operator": "equals",
+              "expected": 550000,
+              "actual": [
+                [
+                  550000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "F12",
+              "field": "value",
+              "operator": "equals",
+              "expected": 55000,
+              "actual": [
+                [
+                  55000
+                ]
+              ],
+              "status": "met"
+            },
+            {
+              "address": "F13",
+              "field": "value",
+              "operator": "equals",
+              "expected": 605000,
+              "actual": [
+                [
+                  605000
+                ]
+              ],
+              "status": "met"
+            }
+          ]
+        },
+        "unexpectedChanges": [],
+        "persistedUnexpectedChanges": [],
+        "sourceChecks": [],
+        "formulaChecks": [],
+        "templateUnchanged": true
+      }
+    }
+  ],
+  "limitations": [
+    "The host is simulated in JavaScript. This is not Excel 2016, COM, rendering, file saving or NASCA evidence.",
+    "The model is the one named in this report. It is not the enterprise Qwen 3.8 27B baseline and says nothing about its accuracy.",
+    "All cases and forms are synthetic. They do not establish accuracy on representative company templates.",
+    "Formula results come from the IronCalc calculator, not from Excel.",
+    "Label wording and answer quality are not graded here. needs_review outcomes require a human reviewer."
+  ],
+  "summary": {
+    "bySuite": {
+      "register": {
+        "total": 12,
+        "passed": 9,
+        "failed": 3,
+        "needsReview": 0,
+        "errors": 0
+      },
+      "reuse": {
+        "total": 12,
+        "passed": 10,
+        "failed": 0,
+        "needsReview": 0,
+        "errors": 2
+      }
+    },
+    "modelCalls": 251,
+    "modelElapsedMs": 1025635
+  },
+  "finishedAt": "2026-09-28T21:57:02.942Z"
+}

@@ -1,0 +1,42 @@
+✔ Office worker imports source context without native actions or exposed pairing credentials (62.666917ms)
+✔ AI Pro callback preserves safe authentication and connection causes without replaying exchange (39.010458ms)
+✔ fetch causes survive safe redaction and permanent connection faults never retry (2.397542ms)
+✔ an HTML proxy/login response is a distinct response error, not a hidden request_failed (1.168667ms)
+✔ one complete JSON object tolerates Markdown but ambiguous and truncated payloads fail (1.021292ms)
+✔ the reported scorecard request with uppercase IDs reaches sequential tools and native readback (30.647417ms)
+✔ three unchanged planner failures pause with zero Excel actions and do not continue without approval (2.147208ms)
+✔ resuming a stalled second sheet keeps the same run and never rewrites the accepted first sheet (10.895208ms)
+✔ a writer without native tool calls switches to one validated JSON tool per model turn (7.988833ms)
+✔ complete document waits for explicit HITL before saving; declining is user cancellation (55.166666ms)
+✔ cell edit presents exact operations and remains unexecuted until approval (7.442167ms)
+✔ document ambiguity uses a grounded choice form and retains a free text input mode (1.612209ms)
+✔ cell actor can ask grounded choices through the shared Nubi question contract (7.413125ms)
+✔ question schema rejects fabricated image references and duplicate choices (0.432667ms)
+✔ waiting plan pauses spinners and the action remains discoverable outside the log (87.945958ms)
+✔ receipt and network wait take priority over a stale input or approval phase (0.1655ms)
+✔ old activity folds without losing errors or inflating verified completion (19.02ms)
+✔ read-only completion and unsupported requests do not claim writes or empty status (1.726958ms)
+✔ question retains rejected text and permits correction before receipt acknowledgement (51.564416ms)
+✔ mapping approval displays actual zero and false values (3.271792ms)
+✔ completed traces fold automatically while explicitly opened records stay open (5.287083ms)
+✔ shared browser approval keeps preview separate from a locked explicit decision (6.637375ms)
+✔ recovery actions lead to inspection without repeating a mutation (7.493333ms)
+(node:81948) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ axe source DOM checks waiting, approval, recovery and failure surfaces (189.19275ms)
+✔ App preserves the answer until acknowledged and exposes the pending question from the composer (1225.63425ms)
+✔ terminal and recovery traces expose evidence without stale spinners or successful cancellation icons (14.887ms)
+✔ shared A2A inbox imports a reviewed request and never starts an Office run (75.157667ms)
+✔ lost acknowledgement pauses after three failures and redelivers only the identical receipt after HITL (6.300208ms)
+✔ cancellation during reconnect backoff makes no further worker request (0.31825ms)
+✔ declining reconnect HITL ends delivery without replaying the tool (0.103583ms)
+✔ new runs, mutations, disconnected workers and expired runs are never automatically replayed (0.153458ms)
+✔ reconnection rejects another run snapshot or an unconfirmed receipt acknowledgement (0.093417ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2530.754167

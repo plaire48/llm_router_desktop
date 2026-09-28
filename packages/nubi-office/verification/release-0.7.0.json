@@ -1,0 +1,105 @@
+{
+  "version": "0.7.0",
+  "assembledAt": "2026-09-22T11:36:24.506Z",
+  "scope": "Requirements to complete new Excel workbook: plan, Pi-authored sheets, actual XLSX, native Excel readback, requirement review/revision and unique SaveAs",
+  "unitTests": 70,
+  "documentTests": 13,
+  "legacyNativeEngineTests": 25,
+  "newDocumentHost": "cross-compiled net472 only; no Windows COM execution",
+  "build": true,
+  "designCheck": true,
+  "bundleSmoke": true,
+  "browser": {
+    "checkedAt": "2026-09-22T11:34:30.342Z",
+    "ui": "production",
+    "worker": "production Pi/document workflow",
+    "xlsxWriter": "production",
+    "model": "scripted",
+    "excelHost": "simulated",
+    "noSelectionRequired": true,
+    "planBeforeDocumentOpen": true,
+    "wholeDocumentSaveCompletion": true,
+    "saveFailureNotCompleted": true,
+    "widths": [
+      320,
+      380,
+      1100
+    ],
+    "windowsExcel": false,
+    "errors": []
+  },
+  "actualArtifact": {
+    "checkedAt": "2026-09-22T11:30:15.928Z",
+    "input": "scripted specification, not live model output",
+    "xlsxGeneration": "production ExcelJS writer",
+    "calculation": "LibreOfficeDev 26.8, not Excel 2016",
+    "savedFileReadback": true,
+    "crossSheetTotal": 840000,
+    "windowsExcel2016": false,
+    "realModelAccuracy": null,
+    "artifact": "/Users/ganadi/Documents/llm_router/packages/nubi-office/verification/workbooks/document/교육-운영계획-작성결과.xlsx",
+    "preview": "LibreOffice PDF rendering",
+    "layoutRoundTripDifferences": [
+      {
+        "sheet": "운영계획",
+        "column": 1,
+        "original": 20,
+        "libreOffice": 15.97
+      },
+      {
+        "sheet": "운영계획",
+        "column": 2,
+        "original": 24,
+        "libreOffice": 19.17
+      },
+      {
+        "sheet": "운영계획",
+        "column": 3,
+        "original": 20,
+        "libreOffice": 15.97
+      },
+      {
+        "sheet": "운영계획",
+        "column": 4,
+        "original": 22,
+        "libreOffice": 17.57
+      },
+      {
+        "sheet": "예산",
+        "column": 1,
+        "original": 20,
+        "libreOffice": 15.97
+      },
+      {
+        "sheet": "예산",
+        "column": 2,
+        "original": 24,
+        "libreOffice": 19.17
+      },
+      {
+        "sheet": "예산",
+        "column": 3,
+        "original": 20,
+        "libreOffice": 15.97
+      },
+      {
+        "sheet": "예산",
+        "column": 4,
+        "original": 22,
+        "libreOffice": 17.57
+      }
+    ],
+    "layoutPreservedInDeliverable": true,
+    "formulaCaches": "Calculated independently with LibreOffice and copied into original styled workbook",
+    "renderedPdfPages": 2,
+    "koreanPdfTextVerified": true,
+    "previewFontFallback": "Apple SD Gothic Neo through local fontconfig, used for macOS preview only"
+  },
+  "realWindowsExcel": false,
+  "realModelAccuracy": null,
+  "liveAuthentication": false,
+  "enterpriseTemplateImport": false,
+  "enterpriseCatalog": false,
+  "wordPowerPoint": false,
+  "windowsInstaller": false
+}

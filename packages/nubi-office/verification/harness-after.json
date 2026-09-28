@@ -1,0 +1,43 @@
+{
+  "kind": "reproduced-control-defect-not-model-evaluation",
+  "checkedAt": "2026-09-22T08:52:48.143Z",
+  "requestedValue": 42,
+  "observedValue": 1,
+  "state": "failed",
+  "error": "write_uncertain",
+  "writeAttempts": 1,
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect",
+        "title": "선택한 표와 기존 수식 확인",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "work",
+        "title": "요청한 값과 서식 반영",
+        "kind": "edit",
+        "checkIndexes": [
+          0
+        ],
+        "state": "failed",
+        "requiresReview": true
+      },
+      {
+        "id": "verify",
+        "title": "최종 셀과 요청 조건 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0
+        ],
+        "state": "pending"
+      }
+    ],
+    "total": 3,
+    "completed": 1,
+    "currentStepId": "work"
+  },
+  "modelAccuracy": null
+}

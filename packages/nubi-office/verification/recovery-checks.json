@@ -1,0 +1,428 @@
+{
+  "checkedAt": "2026-09-22T10:24:43.015Z",
+  "scenario": "Native engine rejects invalid bold value; AI receives error and fresh cells, revises input; corrected write and independent review finish without repeating completed value edit.",
+  "nativeValidation": "real WorkbookEngine.Compile",
+  "providerResponses": "synthetic",
+  "excelCom": "simulated",
+  "writes": 2,
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect",
+        "title": "선택 범위와 기존 수식 확인",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "value",
+        "title": "A1 값을 42로 변경",
+        "kind": "edit",
+        "checkIndexes": [
+          0
+        ],
+        "state": "done",
+        "requiresReview": true
+      },
+      {
+        "id": "style",
+        "title": "A1을 굵게 표시",
+        "kind": "edit",
+        "checkIndexes": [
+          1
+        ],
+        "state": "done",
+        "requiresReview": true
+      },
+      {
+        "id": "verify",
+        "title": "변경 결과와 원래 요청 재확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1
+        ],
+        "state": "done"
+      }
+    ],
+    "total": 4,
+    "completed": 4,
+    "currentStepId": null
+  },
+  "recoveries": [
+    {
+      "attempt": 1,
+      "stepId": "style",
+      "code": "invalid_format",
+      "tool": "apply_changes",
+      "outcome": "rejected_before_write",
+      "state": "verified",
+      "summary": "굵게 표시 입력의 형식이 잘못되어 적용되지 않았습니다.",
+      "nextAction": "완료한 값 변경은 유지하고, 굵게 표시 입력을 고쳐 다시 적용하겠습니다."
+    }
+  ],
+  "activity": [
+    {
+      "id": 1,
+      "kind": "commentary",
+      "title": "4단계로 나누어 진행하겠습니다.",
+      "detail": "A1을 42로 바꾸고 굵게 표시합니다.",
+      "tool": "",
+      "state": "done",
+      "startedAt": 1790072658723,
+      "endedAt": 1790072660436
+    },
+    {
+      "id": 2,
+      "kind": "tool",
+      "title": "셀 값과 수식을 읽었습니다.",
+      "detail": "Sheet1!A1:B2",
+      "tool": "read_selection",
+      "state": "done",
+      "startedAt": 1790072658723,
+      "endedAt": 1790072659429
+    },
+    {
+      "id": 3,
+      "kind": "commentary",
+      "title": "다음 작업: 선택 범위와 기존 수식 확인",
+      "detail": "",
+      "tool": "",
+      "state": "done",
+      "startedAt": 1790072660604,
+      "endedAt": 1790072660604
+    },
+    {
+      "id": 4,
+      "kind": "tool",
+      "title": "셀 값과 수식을 읽었습니다.",
+      "detail": "Sheet1!A1:B2",
+      "tool": "read_selection",
+      "state": "done",
+      "startedAt": 1790072660604,
+      "endedAt": 1790072661492
+    },
+    {
+      "id": 5,
+      "kind": "commentary",
+      "title": "다음 작업: A1 값을 42로 변경",
+      "detail": "",
+      "tool": "",
+      "state": "done",
+      "startedAt": 1790072661492,
+      "endedAt": 1790072661492
+    },
+    {
+      "id": 6,
+      "kind": "model",
+      "title": "실행할 도구를 선택했습니다.",
+      "detail": "A1 값을 42로 변경",
+      "tool": "model_request",
+      "state": "done",
+      "startedAt": 1790072661496,
+      "endedAt": 1790072662496
+    },
+    {
+      "id": 7,
+      "kind": "tool",
+      "title": "셀 값과 수식을 읽었습니다.",
+      "detail": "Sheet1!A1:B2",
+      "tool": "read_selection",
+      "state": "done",
+      "startedAt": 1790072662499,
+      "endedAt": 1790072663308
+    },
+    {
+      "id": 8,
+      "kind": "model",
+      "title": "실행할 도구를 선택했습니다.",
+      "detail": "A1 값을 42로 변경",
+      "tool": "model_request",
+      "state": "done",
+      "startedAt": 1790072663309,
+      "endedAt": 1790072664310
+    },
+    {
+      "id": 9,
+      "kind": "tool",
+      "title": "셀 값과 수식을 읽었습니다.",
+      "detail": "Sheet1!A1:B2",
+      "tool": "read_selection",
+      "state": "done",
+      "startedAt": 1790072664311,
+      "endedAt": 1790072665121
+    },
+    {
+      "id": 10,
+      "kind": "review",
+      "title": "수정 내용을 확인했습니다.",
+      "detail": "A1 값을 42로 변경",
+      "tool": "review_action",
+      "state": "done",
+      "startedAt": 1790072665121,
+      "endedAt": 1790072666122
+    },
+    {
+      "id": 11,
+      "kind": "tool",
+      "title": "셀 수정 후 실제 결과를 확인했습니다.",
+      "detail": "A1 ← 42",
+      "tool": "apply_changes",
+      "state": "done",
+      "startedAt": 1790072666122,
+      "endedAt": 1790072666937
+    },
+    {
+      "id": 12,
+      "kind": "review",
+      "title": "이 단계의 결과를 확인했습니다.",
+      "detail": "A1 값을 42로 변경",
+      "tool": "review_step",
+      "state": "done",
+      "startedAt": 1790072666937,
+      "endedAt": 1790072667938
+    },
+    {
+      "id": 13,
+      "kind": "commentary",
+      "title": "완료: A1 값을 42로 변경",
+      "detail": "",
+      "tool": "",
+      "state": "done",
+      "startedAt": 1790072667939,
+      "endedAt": 1790072667939
+    },
+    {
+      "id": 14,
+      "kind": "commentary",
+      "title": "다음 작업: A1을 굵게 표시",
+      "detail": "",
+      "tool": "",
+      "state": "done",
+      "startedAt": 1790072667939,
+      "endedAt": 1790072667939
+    },
+    {
+      "id": 15,
+      "kind": "model",
+      "title": "실행할 도구를 선택했습니다.",
+      "detail": "A1을 굵게 표시",
+      "tool": "model_request",
+      "state": "done",
+      "startedAt": 1790072667939,
+      "endedAt": 1790072668941
+    },
+    {
+      "id": 16,
+      "kind": "tool",
+      "title": "셀 값과 수식을 읽었습니다.",
+      "detail": "Sheet1!A1:B2",
+      "tool": "read_selection",
+      "state": "done",
+      "startedAt": 1790072668942,
+      "endedAt": 1790072669681
+    },
+    {
+      "id": 17,
+      "kind": "review",
+      "title": "수정 내용을 확인했습니다.",
+      "detail": "A1을 굵게 표시",
+      "tool": "review_action",
+      "state": "done",
+      "startedAt": 1790072669681,
+      "endedAt": 1790072670683
+    },
+    {
+      "id": 18,
+      "kind": "tool",
+      "title": "셀 수정을 완료하지 못했습니다.",
+      "detail": "A1 · 굵게",
+      "tool": "apply_changes",
+      "state": "error",
+      "startedAt": 1790072670683,
+      "endedAt": 1790072671573
+    },
+    {
+      "id": 19,
+      "kind": "commentary",
+      "title": "작업에서 문제를 발견했습니다.",
+      "detail": "서식 값의 형식이 올바르지 않습니다.",
+      "tool": "",
+      "state": "done",
+      "startedAt": 1790072671573,
+      "endedAt": 1790072671573
+    },
+    {
+      "id": 20,
+      "kind": "recovery",
+      "title": "수정할 방법을 정했습니다.",
+      "detail": "굵게 표시 입력의 형식이 잘못되어 적용되지 않았습니다.",
+      "tool": "recover_failure",
+      "state": "done",
+      "startedAt": 1790072671573,
+      "endedAt": 1790072673506
+    },
+    {
+      "id": 21,
+      "kind": "tool",
+      "title": "셀 값과 수식을 읽었습니다.",
+      "detail": "Sheet1!A1:B2",
+      "tool": "read_selection",
+      "state": "done",
+      "startedAt": 1790072671573,
+      "endedAt": 1790072672461
+    },
+    {
+      "id": 22,
+      "kind": "commentary",
+      "title": "수정 후 다시 진행합니다 · 1/3",
+      "detail": "완료한 값 변경은 유지하고, 굵게 표시 입력을 고쳐 다시 적용하겠습니다.",
+      "tool": "",
+      "state": "done",
+      "startedAt": 1790072673506,
+      "endedAt": 1790072673506
+    },
+    {
+      "id": 23,
+      "kind": "model",
+      "title": "실행할 도구를 선택했습니다.",
+      "detail": "A1을 굵게 표시",
+      "tool": "model_request",
+      "state": "done",
+      "startedAt": 1790072673506,
+      "endedAt": 1790072674507
+    },
+    {
+      "id": 24,
+      "kind": "tool",
+      "title": "셀 값과 수식을 읽었습니다.",
+      "detail": "Sheet1!A1:B2",
+      "tool": "read_selection",
+      "state": "done",
+      "startedAt": 1790072674507,
+      "endedAt": 1790072675391
+    },
+    {
+      "id": 25,
+      "kind": "review",
+      "title": "수정 내용을 확인했습니다.",
+      "detail": "A1을 굵게 표시",
+      "tool": "review_action",
+      "state": "done",
+      "startedAt": 1790072675391,
+      "endedAt": 1790072676394
+    },
+    {
+      "id": 26,
+      "kind": "tool",
+      "title": "셀 수정 후 실제 결과를 확인했습니다.",
+      "detail": "A1 · 굵게",
+      "tool": "apply_changes",
+      "state": "done",
+      "startedAt": 1790072676394,
+      "endedAt": 1790072677285
+    },
+    {
+      "id": 27,
+      "kind": "review",
+      "title": "이 단계의 결과를 확인했습니다.",
+      "detail": "A1을 굵게 표시",
+      "tool": "review_step",
+      "state": "done",
+      "startedAt": 1790072677285,
+      "endedAt": 1790072678286
+    },
+    {
+      "id": 28,
+      "kind": "commentary",
+      "title": "수정 후 결과를 다시 확인했습니다.",
+      "detail": "완료한 값 변경은 유지하고, 굵게 표시 입력을 고쳐 다시 적용하겠습니다.",
+      "tool": "",
+      "state": "done",
+      "startedAt": 1790072678286,
+      "endedAt": 1790072678286
+    },
+    {
+      "id": 29,
+      "kind": "commentary",
+      "title": "완료: A1을 굵게 표시",
+      "detail": "",
+      "tool": "",
+      "state": "done",
+      "startedAt": 1790072678286,
+      "endedAt": 1790072678286
+    },
+    {
+      "id": 30,
+      "kind": "commentary",
+      "title": "이제 원래 요청과 결과를 다시 확인하겠습니다.",
+      "detail": "",
+      "tool": "",
+      "state": "done",
+      "startedAt": 1790072678286,
+      "endedAt": 1790072678286
+    },
+    {
+      "id": 31,
+      "kind": "model",
+      "title": "실행할 도구를 선택했습니다.",
+      "detail": "변경 결과와 원래 요청 재확인",
+      "tool": "model_request",
+      "state": "done",
+      "startedAt": 1790072678287,
+      "endedAt": 1790072679288
+    },
+    {
+      "id": 32,
+      "kind": "tool",
+      "title": "셀 값과 수식을 읽었습니다.",
+      "detail": "Sheet1!A1:B2",
+      "tool": "verify_selection",
+      "state": "done",
+      "startedAt": 1790072679290,
+      "endedAt": 1790072680017
+    },
+    {
+      "id": 33,
+      "kind": "model",
+      "title": "응답을 작성했습니다. 결과를 확인합니다.",
+      "detail": "변경 결과와 원래 요청 재확인",
+      "tool": "model_request",
+      "state": "done",
+      "startedAt": 1790072680018,
+      "endedAt": 1790072681021
+    },
+    {
+      "id": 34,
+      "kind": "tool",
+      "title": "셀 값과 수식을 읽었습니다.",
+      "detail": "Sheet1!A1:B2",
+      "tool": "verify_selection",
+      "state": "done",
+      "startedAt": 1790072681021,
+      "endedAt": 1790072681844
+    },
+    {
+      "id": 35,
+      "kind": "review",
+      "title": "요청 전체의 결과를 확인했습니다.",
+      "detail": "변경 결과와 원래 요청 재확인",
+      "tool": "review_task",
+      "state": "done",
+      "startedAt": 1790072681844,
+      "endedAt": 1790072682846
+    },
+    {
+      "id": 36,
+      "kind": "commentary",
+      "title": "모든 단계의 결과 확인을 마쳤습니다.",
+      "detail": "",
+      "tool": "",
+      "state": "done",
+      "startedAt": 1790072682846,
+      "endedAt": 1790072682846
+    }
+  ],
+  "realModelAccuracy": null,
+  "errors": []
+}

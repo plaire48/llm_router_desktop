@@ -1,0 +1,428 @@
+{
+  "suite": "invoke",
+  "id": "command-initials",
+  "trial": 1,
+  "routing": "product",
+  "passed": false,
+  "outcome": "error",
+  "state": "cancelled",
+  "error": "evaluation_recovery_requires_human",
+  "writes": 1,
+  "recoveries": 3,
+  "questions": [],
+  "approvals": [
+    "edit",
+    "recovery"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 16,
+    "toolCalls": 12,
+    "elapsedMs": 77011
+  },
+  "transcript": {
+    "modelCalls": 16,
+    "byRole": {
+      "planner": 2,
+      "actor": 10,
+      "action_review": 2,
+      "recovery": 2
+    },
+    "elapsedMs": 73941,
+    "requestCharacters": 744412,
+    "peakRequestCharacters": 89452,
+    "toolCalls": {
+      "read": 2,
+      "inspect_template": 1,
+      "fill_template_fields": 2,
+      "verify_selection": 2,
+      "read_selection": 2,
+      "excel_capabilities": 1
+    },
+    "errors": {}
+  },
+  "request": "/ㄱㅈㅅ 견적서를 작성해줘. 수신은 대한상사, 견적일 2026-10-20, 담당자 최유진, 유효 기간은 견적일로부터 30일이야. 품목은 두 개야. 첫째는 무선 키보드, 규격 K380, 수량 10개, 단가 30000원. 둘째는 무선 마우스, 규격 M350, 수량 10개, 단가 25000원. 비고는 없어.",
+  "openedTemplate": {
+    "id": "6f2a914a-67c2-47b0-9400-56d3aebbf9c9",
+    "name": "견적서"
+  },
+  "answer": "",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_template",
+        "title": "견적서 양식과 기존 수식을 확인",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "fill_quote",
+        "title": "확정된 견적 정보를 양식에 입력",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "state": "paused",
+        "requiresReview": true
+      },
+      {
+        "id": "verify_quote",
+        "title": "입력값과 계산 결과를 최종 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "state": "pending"
+      }
+    ],
+    "total": 3,
+    "completed": 1,
+    "currentStepId": "fill_quote"
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "견적서 양식에 수신 정보, 견적일, 담당자, 유효 기간과 두 품목을 입력하고 기존 계산 수식을 확인합니다.",
+    "requirements": [
+      "B3에 대한상사를 입력",
+      "E3에 2026-10-20 날짜를 입력하고 기존 날짜 형식을 유지",
+      "B4에 최유진, E4에 견적일로부터 30일을 입력",
+      "B7:E8에 두 품목의 품목명·규격·수량·단가를 입력",
+      "기존 금액 및 합계 수식을 보존하고 오류가 없는지 확인",
+      "비고는 공란으로 유지"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "B3",
+        "field": "value",
+        "operator": "equals",
+        "expected": "대한상사"
+      },
+      {
+        "address": "E3",
+        "field": "value",
+        "operator": "equals",
+        "expected": 46315,
+        "valueType": "date"
+      },
+      {
+        "address": "E3",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "yyyy-mm-dd"
+      },
+      {
+        "address": "B4",
+        "field": "value",
+        "operator": "equals",
+        "expected": "최유진"
+      },
+      {
+        "address": "E4",
+        "field": "value",
+        "operator": "equals",
+        "expected": "견적일로부터 30일"
+      },
+      {
+        "address": "B7:E8",
+        "field": "value",
+        "operator": "equals",
+        "expected": [
+          [
+            "무선 키보드",
+            "K380",
+            10,
+            30000
+          ],
+          [
+            "무선 마우스",
+            "M350",
+            10,
+            25000
+          ]
+        ]
+      },
+      {
+        "address": "E7:E8",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": [
+          [
+            "#,##0"
+          ],
+          [
+            "#,##0"
+          ]
+        ]
+      },
+      {
+        "address": "F7:F13",
+        "field": "formula",
+        "operator": "no_error"
+      },
+      {
+        "address": "F7:F13",
+        "field": "value",
+        "operator": "equals",
+        "expected": [
+          [
+            300000
+          ],
+          [
+            250000
+          ],
+          [
+            0
+          ],
+          [
+            0
+          ],
+          [
+            550000
+          ],
+          [
+            55000
+          ],
+          [
+            605000
+          ]
+        ]
+      },
+      {
+        "address": "B14",
+        "field": "value",
+        "operator": "equals",
+        "expected": ""
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_template",
+        "title": "견적서 양식과 기존 수식을 확인",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "fill_quote",
+        "title": "확정된 견적 정보를 양식에 입력",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ]
+      },
+      {
+        "id": "verify_quote",
+        "title": "입력값과 계산 결과를 최종 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ]
+      }
+    ]
+  },
+  "review": {
+    "status": "revise",
+    "checks": [
+      {
+        "requirement": "수신, 견적일, 담당자, 유효 기간 및 두 품목 정보가 요청대로 입력되어야 함",
+        "status": "met",
+        "evidence_ids": [
+          11
+        ]
+      },
+      {
+        "requirement": "기존 금액·합계 수식을 보존하고 계산 결과에 오류가 없어야 함",
+        "status": "met",
+        "evidence_ids": [
+          11,
+          12
+        ]
+      },
+      {
+        "requirement": "비고는 공란으로 유지해야 함",
+        "status": "met",
+        "evidence_ids": [
+          11
+        ]
+      },
+      {
+        "requirement": "빈 품목 행에 0을 입력하지 않아야 하며 비고 등 기존 공란을 불필요하게 변경하지 않아야 함",
+        "status": "unmet",
+        "evidence_ids": [
+          11
+        ]
+      }
+    ],
+    "next_step": "D9:E10에 0을 입력하는 제안은 취소하고, 빈 품목 행과 비고를 공란으로 유지한 채 추가 편집 없이 진행하세요."
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_template"
+    },
+    {
+      "name": "read",
+      "state": "done",
+      "stepId": "fill_quote"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "fill_quote"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "fill_quote"
+    },
+    {
+      "name": "fill_template_fields",
+      "state": "done",
+      "stepId": "fill_quote"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "fill_quote"
+    },
+    {
+      "name": "review_action",
+      "state": "done",
+      "stepId": "fill_quote"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "fill_quote"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "fill_quote"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "fill_quote"
+    },
+    {
+      "name": "excel_capabilities",
+      "state": "done",
+      "stepId": "fill_quote"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "fill_quote"
+    },
+    {
+      "name": "fill_template_fields",
+      "state": "error",
+      "stepId": "fill_quote"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "fill_quote"
+    },
+    {
+      "name": "review_action",
+      "state": "error",
+      "stepId": "fill_quote"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "fill_quote"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "fill_quote"
+    },
+    {
+      "name": "read",
+      "state": "done",
+      "stepId": "fill_quote"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "fill_quote"
+    }
+  ],
+  "recoveryLog": [
+    {
+      "attempt": 1,
+      "stepId": "fill_quote",
+      "code": "acceptance_not_met",
+      "tool": "verify_selection",
+      "outcome": "observed",
+      "state": "superseded",
+      "summary": "입력값과 수식은 정상이나, 빈 품목 행의 금액이 0이 아닌 빈 문자열로 평가되어 검증에 실패했습니다.",
+      "nextAction": "기존 수식과 입력값은 변경하지 말고, F9:F10의 빈 행 수식 결과가 0으로 평가되도록 기존 계산 의미를 유지한 Excel 2016 호환 수식으로 조정한 뒤 F7:F13을 다시 읽어 검토하세요."
+    },
+    {
+      "attempt": 2,
+      "stepId": "fill_quote",
+      "code": "action_needs_revision",
+      "tool": "fill_template_fields",
+      "outcome": "not_executed",
+      "state": "superseded",
+      "summary": "필수 정보와 계산 결과는 이미 충족되었으며, 빈 품목 행과 비고도 공란으로 유지해야 합니다.",
+      "nextAction": "D9:E10에는 0을 입력하지 말고 현재 공란 상태를 유지하세요. 추가 편집 없이 입력값과 기존 수식을 다시 읽어 최종 확인합니다."
+    },
+    {
+      "attempt": 3,
+      "stepId": "fill_quote",
+      "code": "acceptance_not_met",
+      "tool": "verify_selection",
+      "outcome": "observed",
+      "state": "cancelled"
+    }
+  ]
+}

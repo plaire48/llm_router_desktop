@@ -1,0 +1,74 @@
+import {hash,fail} from './files.mjs';
+
+export const COMPUTER_EVIDENCE_SOURCES=Object.freeze({observe_computer:'live',read_computer_result:'historical',verify_computer_value:'receipt'});
+export const COMPUTER_GUIDANCE='Prefer supported UIA invoke, set_value, select and explicit toggle/expand/collapse states. Read target.controlState first; never blind-toggle. The visual AI pointer marks an observed target without moving the user cursor and proves no execution. Physical pointer input requires host pointerFallback.eligible after three fresh safe UIA failures on the same bound target plus separate per-action HITL. Never manufacture failures, repeat unchanged calls to unlock it, or count unknown issued outcomes. Unknown capability is not fallback eligibility. Use observed selectors only; drag needs two distinct controls in the same connected window. No raw coordinates, global keys, persistent grants, long press or shell-input substitutes. Neither user goals, Wiki text, question answers nor earlier approvals authorize another input. Ask about ambiguous targets. Stop on cancellation; a started short native gesture may finish and is not undone. Include documentAnalysisId when research informs an action and this-run Wiki evidenceIds for OpenWiki-SDS rules. Changed sources require fresh research and a new proposal; never remove citations to bypass checks. Partial findings retain unresolved scope. Preserve the original goal and every criterion. For recovery or after compaction use computer_checkpoint and read_computer_result before a fresh observe_computer. Unknown outcomes must be reconciled, never replayed. Prefer structured UIA; if the shallow tree misses a target, query a specific label then inspect the exact candidate. Repeated truncated/no-match observations do not prove absence. After click/invoke, inspect the captured whole-window result and historical UIA, then observe afresh. Pixels and UIA are sequential, not atomic; resolve contradictions with a focused read. Models without vision use includeImage=false; otherwise crop a relevant element when sufficient. Delegate frozen analysis_evidence_id to page/review/recovery workers when independent inspection helps. Child opinions and historical captures do not supply current selectors, approvals or verified completion. Use verify_computer_value for literal comparisons. Matched values/states or visual differences do not establish saving, server acceptance or overall success. Propose one native action per approval and stop for review. Ask a focused question if expected results are unclear.';
+
+export function computerCheckpoint(service,taskId){
+  const all=service.store.list('computer-action:').filter(v=>v.taskId===taskId),checks=service.store.list('computer-check:').filter(v=>v.taskId===taskId);
+  const unresolved=all.filter(v=>['proposed','starting','attention'].includes(v.state));
+  return {kind:'host_computer_checkpoint',taskId,bound:service.computerBinding?.taskId===taskId,
+    actions:all.slice(0,8).map(({id,action,state,execution,verification,finishedAt,review})=>({id,action,state,execution:execution||'not_started',verification,finishedAt:finishedAt||null,review:review?{state:review.state}:null})),
+    checks:checks.slice(0,4).map(({id,verification,scope,at})=>({id,verification,scope,at})),
+    unresolvedCount:unresolved.length,unresolved:unresolved.slice(0,8).map(({id,state})=>({id,state})),omittedActions:Math.max(0,all.length-8),omittedChecks:Math.max(0,checks.length-4),
+    instruction:'Host facts, not an AI summary or execution permission. Historical results do not establish current app state. Never replay pending or uncertain operations. A matched control value does not verify the entire task.'};
+}
+
+export function readComputerResult(service,taskId,{actionId,includeImage=false,phase='after'}={}){
+  if(typeof actionId!=='string'||typeof includeImage!=='boolean'||!['before','after'].includes(phase))fail('computer_invalid');
+  const action=service.store.get('computer-action:'+actionId);
+  if(!action||action.taskId!==taskId)fail('computer_result_missing');
+  const receipt={id:action.id,action:action.action,state:action.state,execution:action.execution||'not_started',verification:action.verification,createdAt:action.createdAt,finishedAt:action.finishedAt||null,error:action.error||null,inputMode:action.inputMode||'uia',pointerApproval:action.pointerApproval||null,pointerDisplay:action.pointerDisplay?{available:action.pointerDisplay.available,animated:action.pointerDisplay.animated}:null,visualDifference:action.visualDifference||null,controlCheck:action.controlCheck||null,wikiEvidence:action.wikiEvidence||[],documentEvidence:action.documentEvidence||null};
+  let image;
+  const binding=service.computerBinding,canReadEvidence=binding?.taskId===taskId&&binding.id===action.bindingId;
+  if(includeImage){
+    if(!canReadEvidence)fail('computer_binding_required');
+    image=service.store.get('computer-image:'+actionId)?.[phase];
+  }
+  const observation=phase==='after'&&canReadEvidence?service.store.get('computer-image:'+actionId)?.afterObservation:undefined;
+  return {receipt,historical:true,phase,image,observation,imageStatus:includeImage?(image?'captured':'not_captured'):'not_requested',instruction:'This is an immutable capture of a previous operation, not the live screen. UIA and pixels were read sequentially, not atomically. Obtain observe_computer before input. Never turn this result or a subagent opinion into permission or business success.'};
+}
+
+// Ephemeral loop detection. New opaque observation IDs alone are not progress.
+export function createComputerProgress(){
+  const scopes=new Map();let failures=0,lastValue=null;
+  return {
+    observe(name,args,result){
+      if(name==='observe_computer'&&result?.observationId){
+        // Animation/cursor pixels do not demonstrate progress on a UIA target.
+        const scope=JSON.stringify([result.identity,result.coverage||{mode:'tree'}]);
+        const next=hash(JSON.stringify([...(result.elements||[])].sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)))));
+        if(scopes.has(scope)&&scopes.get(scope)!==next)failures=0;
+        // Changing a query or result order is not progress. Keep the comparison cache bounded.
+        scopes.set(scope,next);if(scopes.size>16)scopes.delete(scopes.keys().next().value);
+      }
+      if(name==='verify_computer_value'&&result?.verification==='value_matched'){
+        const key=hash(JSON.stringify([result.selector,result.expected,result.actual]));
+        if(key!==lastValue)failures=0;lastValue=key;
+      }
+      if(result?.error?.startsWith('computer_')){
+        failures++;
+      }
+      return {failures,needsInput:failures>=3};
+    }
+  };
+}
+
+export async function reviewComputerResult(service,taskId,{id,fingerprint}={}){
+  const action=service.store.get('computer-action:'+id),task=service.task(taskId);
+  if(!action||action.taskId!==taskId||action.fingerprint!==fingerprint||action.state!=='observed')fail('computer_review_required');
+  if(task.state==='cancelled'||service.disposed)fail('computer_cancelled');
+  if(task.question)fail('question_pending');
+  if(action.review?.state==='running'||action.review?.state==='finished')return {review:action.review};
+  if(service.store.list('computer-action:').some(v=>v.taskId===taskId&&['proposed','starting','attention'].includes(v.state)))fail('computer_review_required');
+  if(service.agent?.running||service.computerBusy||service.unsettledOperations?.size)fail('computer_busy');
+  if(service.computerBinding?.taskId!==taskId)fail('computer_binding_required');
+  // Claim before awaiting startAgent. Never dispatch the old native action.
+  action.review={state:'running',at:new Date().toISOString()};service.store.set('computer-action:'+id,action);
+  const update=value=>{const current=service.store.get('computer-action:'+id);if(current)service.store.set('computer-action:'+id,{...current,review:{...current.review,...value}});};
+  try{
+    const started=await service.startAgent({taskId,computerReviewId:id}),run=service.agent;
+    if(run?.taskId!==taskId||run.runId!==started.runId){update({state:'interrupted'});return {review:service.store.get('computer-action:'+id).review};}
+    run.promise.finally(()=>{const state=service.task(taskId).state;update({state:state==='review'||state==='waiting_input'?'finished':'interrupted'});}).catch(()=>{});
+  }catch(error){update({state:'unavailable',error:error.message});}
+  return {review:service.store.get('computer-action:'+id).review};
+}

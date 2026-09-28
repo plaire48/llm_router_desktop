@@ -1,0 +1,56 @@
+{
+  "scope": "dynamic-read-only-Word-PowerPoint-delegation",
+  "dependency": {
+    "name": "dependency-graph",
+    "version": "1.0.0",
+    "license": "MIT"
+  },
+  "currentSource": {
+    "tests": 571,
+    "pass": 569,
+    "fail": 2,
+    "failures": [
+      "shared Pi engine label/version expectation differs",
+      "seven shared UI source hashes differ from reviewed snapshot"
+    ]
+  },
+  "controlledReleaseSharedSource": {
+    "tests": 571,
+    "pass": 571,
+    "fail": 0,
+    "designCheck": "pass",
+    "normalization": "shared import paths only; all 12 touched executable/test files equal after normalization"
+  },
+  "staticChromium": {
+    "scenarios": 105,
+    "horizontalOverflow": 0,
+    "axeViolations": 0,
+    "contrast": "incomplete",
+    "delegationWidths": [
+      320,
+      380,
+      1100
+    ]
+  },
+  "unverified": [
+    "Windows Office 2016 COM",
+    "NASCA",
+    "live Qwen accuracy and costs",
+    "WebView2"
+  ],
+  "installerBuilt": false,
+  "files": {
+    "worker/content-agent.mjs": "a422b06d04d82f0c990867b7ba1530309fd97a057bc4bc1944901bcba0eb6a2d",
+    "worker/content-analysis.mjs": "b4fb9578647fa33a00e5ab4fbc2a258eae0ef10542976bf93f42ac8afa0702de",
+    "worker/analysis-jobs.mjs": "a56c357cc491d9efe8e8e5346769d144b843332228ea471f6c8867810cd2a8a5",
+    "worker/document-delegation.mjs": "b8a8bbd37465850b5814b5fd42a5585f0e98bee2f07f24580a9f2466c69c6d4b",
+    "src/TaskActivity.jsx": "5b4db8a6550b77d2836ec21b8644f59bf7c385632e019cf3c625985e57091707",
+    "src/task-view.js": "494943e96f737a6dcb27d93f585ffc6e03fab698e89e074ad980c4319041c3d6",
+    "tests/document-delegation.test.mjs": "127113e1aeada591ea1369bff032a914c81322bceacc5bf17888862f97b473ad",
+    "tests/analysis-jobs.test.mjs": "947fa101763a09fe9422d862f4afa55ddd2fc945bddc14db13cf04ab69eb90e0",
+    "tests/content-agent.test.mjs": "8bf7d12696abf240b1ebc0628eff06b8a988f3b776f74af1dc8127d417e4d97a",
+    "tests/activity-view.test.mjs": "92587940f7315f31fc99e6d3be8ef44d4811b1ff5850152e0a02e71651c9c3ad",
+    "tests/ui-usability.test.mjs": "6884f32e6c44537ad3084f354c5c30b57a0d6491f20d15adc8f3ea68a405224c",
+    "tests/a2a.test.mjs": "d069c8b6a386c7890eacc68ab1d476e6dfad68e48b4bebc654e0a7b02640d254"
+  }
+}

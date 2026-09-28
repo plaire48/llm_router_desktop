@@ -1,0 +1,46 @@
+{
+  "date": "2026-09-25",
+  "downloadedFiles": [
+    {
+      "repo": "openai/codex",
+      "commit": "d7b07d45517a793acfba4cbf8de697d723cceb46",
+      "path": "codex-rs/core/src/tools/handlers/request_user_input_spec.rs",
+      "url": "https://raw.githubusercontent.com/openai/codex/d7b07d45517a793acfba4cbf8de697d723cceb46/codex-rs/core/src/tools/handlers/request_user_input_spec.rs",
+      "sha256": "86ef5b005211ea6cc14c5a99821357a4484cccbb4756c911bbeba3913315d16f"
+    },
+    {
+      "repo": "openai/codex",
+      "commit": "d7b07d45517a793acfba4cbf8de697d723cceb46",
+      "path": "codex-rs/app-server-test-client/src/request_user_input_tests.rs",
+      "url": "https://raw.githubusercontent.com/openai/codex/d7b07d45517a793acfba4cbf8de697d723cceb46/codex-rs/app-server-test-client/src/request_user_input_tests.rs",
+      "sha256": "952ea31b4db31fff8febe5c34bac9f8866b10ad257cde693c11b53058fc16d33"
+    },
+    {
+      "repo": "anomalyco/opencode",
+      "commit": "16c56fe5ecc3305028d1f0a9cff5806e51c9d480",
+      "path": "packages/app/src/pages/session/composer/session-question-dock.tsx",
+      "url": "https://raw.githubusercontent.com/anomalyco/opencode/16c56fe5ecc3305028d1f0a9cff5806e51c9d480/packages/app/src/pages/session/composer/session-question-dock.tsx",
+      "sha256": "a03dff2425df40900345af9e75938ac9f18bf8ab1efa1e2ef3d4b94f8e401612"
+    },
+    {
+      "repo": "anomalyco/opencode",
+      "commit": "16c56fe5ecc3305028d1f0a9cff5806e51c9d480",
+      "path": "packages/opencode/src/question/schema.ts",
+      "url": "https://raw.githubusercontent.com/anomalyco/opencode/16c56fe5ecc3305028d1f0a9cff5806e51c9d480/packages/opencode/src/question/schema.ts",
+      "sha256": "97d4800bf60985bea7ff02719427f73474271611792b735e74bd62fa4eb8a791"
+    }
+  ],
+  "licenses": {
+    "openai/codex": "Apache-2.0",
+    "anomalyco/opencode": "MIT"
+  },
+  "thirdPartyCodeExecuted": false,
+  "thirdPartyCodeCopied": false,
+  "newDependencies": [],
+  "officialReferences": [
+    "https://code.claude.com/docs/en/agent-sdk/user-input",
+    "https://opencode.ai/docs/tools/#question",
+    "https://www.w3.org/WAI/tutorials/forms/notifications/",
+    "https://playwright.dev/docs/chrome-extensions"
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "date": "2026-09-25",
+  "scope": "Office structure navigation and receipt preservation",
+  "tests": {
+    "command": "npm run test:pinned",
+    "passed": 660,
+    "failed": 0,
+    "skipped": 0,
+    "logSha256": "d5db5cb6293037f2fec0830328847ca830b9c1898a996fc0aa7b00c165fe0b9b"
+  },
+  "design": {
+    "command": "npm run design:check",
+    "sharedFiles": 24,
+    "matched": true,
+    "issues": 0,
+    "logSha256": "cbd43b2caa594ada7152f9d7dad24c264cf9b2184b5a5fa1997a7b9fce90b256"
+  },
+  "sourceSha256": {
+    "worker/content-structure.mjs": "3dd32f98d7258c9f0b453ba8e659c79e94b3808526b9fac8b1b5d1193ab7a498",
+    "worker/content-agent.mjs": "4c9545986066580bb743c47e915d96c2359a33c61095c747a39caf17833602dd",
+    "worker/content-context.mjs": "590d1f8edcbe806bea1169dd4943c4aa6107051657db7170a0bdf6c8e8ac9d72",
+    "worker/tool-progress.mjs": "86853a215a46a2530cc843bdac03ac7b5c753b3dcc5959ddd54509958920cbd9",
+    "tests/content-structure.test.mjs": "cd9d7063802362400bf0a448c98e0e0743762e1acea5940798b26923a277cfa6",
+    "tests/content-agent.test.mjs": "4011c8d3ce253882b6dfca29ec5dd1b0e0d709951b28d7684980aba684281c6b",
+    "tests/tool-progress.test.mjs": "63abffb4c5057c15eeb03789ef5e5eefef1d0ad716f3ea2d87d712fc9234bb10",
+    "eval/benchmark-structure-map.mjs": "e20de39c8efc0e57f0e653a361894d2b9d116cf9175430b3bc746efe495a7d0a"
+  },
+  "benchmarkFile": "structure-map-benchmark.json",
+  "provenanceFile": "competitive-source-review-2.json",
+  "benchmarkScope": "Synthetic navigation JSON size only, not total request token reduction or live model quality",
+  "newRuntimeDependencies": 0,
+  "nativeBuild": false,
+  "installerBuild": false,
+  "releaseChanged": false,
+  "notVerified": [
+    "Windows 11 installation",
+    "Office 2016 COM",
+    "Qwen real inference accuracy",
+    "NASCA",
+    "competitor runtime performance"
+  ]
+}

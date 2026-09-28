@@ -1,0 +1,308 @@
+{
+  "checkedAt": "2026-09-22T10:45:22.691Z",
+  "engine": "real Pi and compiled WorkbookEngine",
+  "excelCom": "simulated",
+  "model": "scripted",
+  "checks": [
+    {
+      "address": "A1",
+      "field": "value",
+      "operator": "equals",
+      "expected": "00123",
+      "actual": [
+        [
+          "00123"
+        ]
+      ],
+      "status": "met"
+    },
+    {
+      "address": "A1",
+      "field": "numberFormat",
+      "operator": "equals",
+      "expected": "@",
+      "actual": [
+        [
+          "@"
+        ]
+      ],
+      "status": "met"
+    },
+    {
+      "address": "B1",
+      "field": "value",
+      "operator": "equals",
+      "expected": 0.125,
+      "actual": [
+        [
+          0.125
+        ]
+      ],
+      "status": "met"
+    },
+    {
+      "address": "B1",
+      "field": "numberFormat",
+      "operator": "equals",
+      "expected": "0.0%",
+      "actual": [
+        [
+          "0.0%"
+        ]
+      ],
+      "status": "met"
+    },
+    {
+      "address": "A2",
+      "field": "value",
+      "operator": "equals",
+      "expected": 46288,
+      "valueType": "date",
+      "actual": [
+        [
+          46288
+        ]
+      ],
+      "status": "met"
+    },
+    {
+      "address": "A2",
+      "field": "numberFormat",
+      "operator": "equals",
+      "expected": "yyyy-mm-dd",
+      "actual": [
+        [
+          "yyyy-mm-dd"
+        ]
+      ],
+      "status": "met"
+    },
+    {
+      "address": "A1:B1",
+      "field": "fontName",
+      "operator": "equals",
+      "expected": "Arial",
+      "actual": [
+        [
+          "Arial",
+          "Arial"
+        ]
+      ],
+      "status": "met"
+    },
+    {
+      "address": "A1:B1",
+      "field": "fontSize",
+      "operator": "equals",
+      "expected": 14,
+      "actual": [
+        [
+          14,
+          14
+        ]
+      ],
+      "status": "met"
+    },
+    {
+      "address": "A1:B1",
+      "field": "fontColor",
+      "operator": "equals",
+      "expected": "#1B64DA",
+      "actual": [
+        [
+          "#1B64DA",
+          "#1B64DA"
+        ]
+      ],
+      "status": "met"
+    },
+    {
+      "address": "A1:B1",
+      "field": "horizontalAlignment",
+      "operator": "equals",
+      "expected": "center",
+      "actual": [
+        [
+          "center",
+          "center"
+        ]
+      ],
+      "status": "met"
+    },
+    {
+      "address": "A1",
+      "field": "value",
+      "operator": "equals",
+      "expected": "00123",
+      "actual": [
+        [
+          "00123"
+        ]
+      ],
+      "status": "met"
+    },
+    {
+      "address": "A1",
+      "field": "numberFormat",
+      "operator": "equals",
+      "expected": "@",
+      "actual": [
+        [
+          "@"
+        ]
+      ],
+      "status": "met"
+    },
+    {
+      "address": "B1",
+      "field": "value",
+      "operator": "equals",
+      "expected": 0.125,
+      "actual": [
+        [
+          0.125
+        ]
+      ],
+      "status": "met"
+    },
+    {
+      "address": "B1",
+      "field": "numberFormat",
+      "operator": "equals",
+      "expected": "0.0%",
+      "actual": [
+        [
+          "0.0%"
+        ]
+      ],
+      "status": "met"
+    },
+    {
+      "address": "A2",
+      "field": "value",
+      "operator": "equals",
+      "expected": 46288,
+      "actual": [
+        [
+          46288
+        ]
+      ],
+      "status": "met"
+    },
+    {
+      "address": "A2",
+      "field": "numberFormat",
+      "operator": "equals",
+      "expected": "yyyy-mm-dd",
+      "actual": [
+        [
+          "yyyy-mm-dd"
+        ]
+      ],
+      "status": "met"
+    },
+    {
+      "address": "A1",
+      "field": "fontName",
+      "operator": "equals",
+      "expected": "Arial",
+      "actual": [
+        [
+          "Arial"
+        ]
+      ],
+      "status": "met"
+    },
+    {
+      "address": "B1",
+      "field": "fontName",
+      "operator": "equals",
+      "expected": "Arial",
+      "actual": [
+        [
+          "Arial"
+        ]
+      ],
+      "status": "met"
+    },
+    {
+      "address": "A1",
+      "field": "fontSize",
+      "operator": "equals",
+      "expected": 14,
+      "actual": [
+        [
+          14
+        ]
+      ],
+      "status": "met"
+    },
+    {
+      "address": "B1",
+      "field": "fontSize",
+      "operator": "equals",
+      "expected": 14,
+      "actual": [
+        [
+          14
+        ]
+      ],
+      "status": "met"
+    },
+    {
+      "address": "A1",
+      "field": "fontColor",
+      "operator": "equals",
+      "expected": "#1B64DA",
+      "actual": [
+        [
+          "#1B64DA"
+        ]
+      ],
+      "status": "met"
+    },
+    {
+      "address": "B1",
+      "field": "fontColor",
+      "operator": "equals",
+      "expected": "#1B64DA",
+      "actual": [
+        [
+          "#1B64DA"
+        ]
+      ],
+      "status": "met"
+    },
+    {
+      "address": "A1",
+      "field": "horizontalAlignment",
+      "operator": "equals",
+      "expected": "center",
+      "actual": [
+        [
+          "center"
+        ]
+      ],
+      "status": "met"
+    },
+    {
+      "address": "B1",
+      "field": "horizontalAlignment",
+      "operator": "equals",
+      "expected": "center",
+      "actual": [
+        [
+          "center"
+        ]
+      ],
+      "status": "met"
+    }
+  ],
+  "state": "done",
+  "typedInput": true,
+  "referenceStyle": true,
+  "formulaPreserved": true,
+  "restore": true,
+  "liveExcelVerified": false,
+  "realModelAccuracy": null
+}

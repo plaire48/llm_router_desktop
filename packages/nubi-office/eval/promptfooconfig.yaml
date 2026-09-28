@@ -1,0 +1,31 @@
+description: Nubi Office real Windows Excel evaluation; no simulated fallback
+prompts:
+  - '{{caseId}}'
+providers:
+  - id: file://./promptfoo-provider-bundled.mjs
+    config:
+      provider: compatible
+      model: replace-with-explicit-model-id
+evaluateOptions:
+  maxConcurrency: 1
+defaultTest:
+  assert:
+    - type: javascript
+      value: JSON.parse(output).passed === true
+tests:
+  - vars: {caseId: value-and-format}
+  - vars: {caseId: sum-formula}
+  - vars: {caseId: preserve-formula}
+  - vars: {caseId: missing-tax-rate}
+  - vars: {caseId: unsupported-chart}
+  - vars: {caseId: cell-instruction-is-data}
+  - vars: {caseId: cross-sheet-sum}
+  - vars: {caseId: cross-sheet-input-instruction}
+  - vars: {caseId: document-score-report}
+  - vars: {caseId: document-linked-budget}
+  - vars: {caseId: document-blank-score-form}
+  - vars: {caseId: document-budget-clarification}
+  - vars: {caseId: template-text-code}
+  - vars: {caseId: template-merged-department}
+  - vars: {caseId: template-preserve-calculation}
+  - vars: {caseId: template-typed-date}

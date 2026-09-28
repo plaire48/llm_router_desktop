@@ -1,0 +1,29 @@
+{
+  "checkedAt": "2026-09-22T13:21:20.887Z",
+  "browserUi": true,
+  "realPiLoop": true,
+  "realWorkbookEngine": true,
+  "excelCom": "simulated",
+  "providers": "synthetic",
+  "widths": [
+    320,
+    380,
+    600,
+    1100
+  ],
+  "componentGallery": true,
+  "questionFormPreservesComposer": true,
+  "mutationAndRestore": true,
+  "clarificationAndResume": true,
+  "taskReviewVisible": true,
+  "planShownBeforeWrite": true,
+  "sequentialStepProgress": true,
+  "liveActivityBeforeFinalReply": true,
+  "scrollHistoryAndFollowLatest": true,
+  "activitySettlesOnCompletionAndStop": true,
+  "activitySettlesOnConnectionFailure": true,
+  "userStopVisible": true,
+  "windowsVstoInstalled": false,
+  "realProvidersVerified": false,
+  "errors": []
+}

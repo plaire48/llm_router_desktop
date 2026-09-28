@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-09-25",
+  "source": "Nubi browser UI / extensions/aipro-chat",
+  "reference": {
+    "name": "agentfactorysdkdeck.html",
+    "sha256": "df9cfcc44f2f8d4ea14c6f137d0297c562ca506f8a0028df374c7f012d8715ac"
+  },
+  "files": [
+    {
+      "path": "design/agent-deck.css",
+      "sha256": "f2b8e5f203db6c939bdcf01c06c9665d6cc4acc8bda46552942585932bcb83dd"
+    },
+    {
+      "path": "src/AgentMark.jsx",
+      "sha256": "d4d484069117d331aaaf5ecace03cd8e946036b967ce53b3701a8f0e774f03cc"
+    },
+    {
+      "path": "src/AgentTabs.jsx",
+      "sha256": "5cdcaeeb2017abb3d2911a5107cf0b74a2fe0397775fec6244edaf03a9158e69"
+    },
+    {
+      "path": "src/Atmosphere.jsx",
+      "sha256": "15624260c9f87f939f0f77fbddf55ec3ea8da318fbe78f9aa1c7ff35df48682a"
+    },
+    {
+      "path": "src/ChatControls.jsx",
+      "sha256": "fceb6a8aeeeeb9f5613e99843e0438bde05f3aa86bd03aaab11f96b40ea805e0"
+    },
+    {
+      "path": "src/CodeBlock.jsx",
+      "sha256": "4ae8253a173cae124c09b7de63b33a8fd6cc8999cf6e050d8b22ebf2e87564e1"
+    },
+    {
+      "path": "src/ConversationHistory.jsx",
+      "sha256": "59068cd9e2ab553fbbb12e98dddb5f40115525d5f0194299e509f568b6704e54"
+    },
+    {
+      "path": "src/CopyButton.jsx",
+      "sha256": "680e9324480f68ec5133fb13a6da2dac1ad5e594604f85dfe969644bcbcf132a"
+    },
+    {
+      "path": "src/DeckSurfaces.jsx",
+      "sha256": "93f86ced65837d2cd2ed9f637b6448cb1a9880d751a8333a58bf27f436777456"
+    },
+    {
+      "path": "src/HelpContent.jsx",
+      "sha256": "d4bfccaa5c69e4b5353108f31abae2bd9b978c95319d94415b824a35e1aa95be"
+    },
+    {
+      "path": "src/MessageBody.jsx",
+      "sha256": "4d407ebae9ffcecd7fd9491d64b457c5c16914a38d34c9232fdf9a4abaa232ec"
+    },
+    {
+      "path": "src/NubiSurfaces.jsx",
+      "sha256": "590aad48d7fb12977dcc46a9d95e6e099fe99dba2806e22c3d44d7f01a47829f"
+    },
+    {
+      "path": "src/QuestionForm.jsx",
+      "sha256": "e5e2b9c03e78c59571b8a7167e7d43f7c142532e1d68e60dfef6b7ccaf115a42"
+    },
+    {
+      "path": "src/TaskPlan.jsx",
+      "sha256": "346d2da39f4128ed86a4dbb25b4370a90eb39a74c7544c435d6ce2e62592f7c5"
+    },
+    {
+      "path": "src/Welcome.jsx",
+      "sha256": "1e6e20b277de9a3c42a710c093695e3ab7c6577494c18c9209b41ce1f6523c37"
+    },
+    {
+      "path": "src/InteractionSurface.jsx",
+      "sha256": "a7ee27050da5a7611763eefdb9cd2d676f05eec2c0cef3bb4e2e9e0a74ccec5d"
+    },
+    {
+      "path": "src/TraceSurface.jsx",
+      "sha256": "7a5d03d386201aacb790e6cace326ccc8bec1797ebbbc85b0a11f2f9ce5252b9"
+    },
+    {
+      "path": "src/ActionApproval.jsx",
+      "sha256": "517b7ea93231482c9862f176c6c0f795b10b0e71d6f84240c70d35286b97716a"
+    },
+    {
+      "path": "src/app.css",
+      "sha256": "e578ee9ef26a0fbeea43f3cf70e6bee1176b537abd97130f696898bc9463d319"
+    },
+    {
+      "path": "src/surfaces.css",
+      "sha256": "a882f32f8e7beb98c57a93f85af2fcb580cd15210c43c4bd717c9a1aef570c36"
+    },
+    {
+      "path": "src/code.css",
+      "sha256": "d0cb6a43544652700ee80b139a9f136bdd0a176895dbc2bdb72915e931680814"
+    },
+    {
+      "path": "src/interaction-forms.css",
+      "sha256": "37758b9c7bb62ea185b50823092f2ae09410cde0e72856693afc582ba508c2b7"
+    },
+    {
+      "path": "src/approval.css",
+      "sha256": "444f55963913a21d86536a3d52cd1ced4a4450b17e361770dfa6ed078e352db4"
+    },
+    {
+      "path": "src/deck-surfaces.css",
+      "sha256": "6a61f25fa54abbc6018d719eed8db1730bf6756ef5b123971a9ff4656b9ca848"
+    }
+  ]
+}

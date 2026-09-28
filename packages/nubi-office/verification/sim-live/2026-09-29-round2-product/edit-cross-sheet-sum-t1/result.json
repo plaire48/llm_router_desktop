@@ -1,0 +1,350 @@
+{
+  "suite": "edit",
+  "id": "cross-sheet-sum",
+  "trial": 1,
+  "routing": "product",
+  "passed": true,
+  "outcome": "passed",
+  "state": "done",
+  "writes": 1,
+  "recoveries": 0,
+  "questions": [],
+  "approvals": [
+    "edit"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 13,
+    "toolCalls": 7,
+    "elapsedMs": 35715
+  },
+  "transcript": {
+    "modelCalls": 13,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 1,
+      "actor": 8,
+      "action_review": 1,
+      "step_review": 1,
+      "result_review": 1
+    },
+    "elapsedMs": 35306,
+    "requestCharacters": 347765,
+    "peakRequestCharacters": 47503,
+    "toolCalls": {
+      "read": 1,
+      "list_worksheets": 1,
+      "read_worksheet_range": 3,
+      "read_selection": 2,
+      "apply_changes": 1,
+      "verify_selection": 1
+    },
+    "errors": {}
+  },
+  "score": {
+    "passed": true,
+    "outcome": "passed",
+    "deterministicPassed": true,
+    "semanticReview": {
+      "required": false,
+      "status": "not_required",
+      "criteria": []
+    },
+    "expectedState": "done",
+    "actualState": "done",
+    "checks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "A2",
+          "field": "value",
+          "operator": "equals",
+          "expected": 400,
+          "actual": [
+            [
+              400
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "A2",
+          "field": "formula",
+          "operator": "not_empty",
+          "actual": [
+            [
+              "=SUM(동부!B2:B3,서부!B2:B3)"
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "persistedChecks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "A2",
+          "field": "value",
+          "operator": "equals",
+          "expected": 400,
+          "actual": [
+            [
+              400
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "A2",
+          "field": "formula",
+          "operator": "not_empty",
+          "actual": [
+            [
+              "=SUM(동부!B2:B3,서부!B2:B3)"
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "unexpectedChanges": [],
+    "persistedUnexpectedChanges": [],
+    "sourceChecks": [
+      {
+        "worksheet": "동부",
+        "passed": true,
+        "unexpectedChanges": [],
+        "persistedUnexpectedChanges": []
+      },
+      {
+        "worksheet": "서부",
+        "passed": true,
+        "unexpectedChanges": [],
+        "persistedUnexpectedChanges": []
+      }
+    ],
+    "formulaChecks": [
+      {
+        "address": "A2",
+        "passed": true
+      },
+      {
+        "address": "A2",
+        "passed": true
+      }
+    ]
+  },
+  "request": "통합문서에서 동부와 서부 시트의 B2:B3 매출을 확인하고, 두 시트의 합계를 선택한 A2에 SUM 수식으로 작성해줘. 다른 셀과 원본 시트는 유지해줘.",
+  "answer": "완료했습니다.\n\n- 동부 B2:B3: 120, 80\n- 서부 B2:B3: 50, 150\n- `CaseSheet!A2`: `=SUM(동부!B2:B3,서부!B2:B3)`\n- 계산 결과: **400**\n- 다른 셀과 원본 시트는 변경하지 않았습니다.",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_sources",
+        "title": "동부·서부 시트의 B2:B3 매출과 선택 영역을 확인",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "write_total",
+        "title": "A2에 두 시트 매출 합계 SUM 수식을 작성",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1
+        ],
+        "state": "done",
+        "requiresReview": true
+      },
+      {
+        "id": "verify_result",
+        "title": "A2 수식과 계산 오류가 없는지 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1
+        ],
+        "state": "done"
+      }
+    ],
+    "total": 3,
+    "completed": 3,
+    "currentStepId": null
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "동부와 서부 시트의 B2:B3 매출을 확인한 뒤 선택한 A2에 두 범위의 합계를 SUM 수식으로 작성합니다.",
+    "requirements": [
+      "동부 시트의 B2:B3 매출을 확인합니다.",
+      "서부 시트의 B2:B3 매출을 확인합니다.",
+      "선택 영역의 A2에 동부·서부 B2:B3 합계 SUM 수식을 작성합니다.",
+      "다른 셀과 원본 시트는 변경하지 않습니다.",
+      "기존 수식과 서식은 유지합니다."
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "A2",
+        "field": "formula",
+        "operator": "equals",
+        "expected": "=SUM(동부!B2:B3,서부!B2:B3)"
+      },
+      {
+        "address": "A2",
+        "field": "value",
+        "operator": "no_error"
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_sources",
+        "title": "동부·서부 시트의 B2:B3 매출과 선택 영역을 확인",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "write_total",
+        "title": "A2에 두 시트 매출 합계 SUM 수식을 작성",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1
+        ]
+      },
+      {
+        "id": "verify_result",
+        "title": "A2 수식과 계산 오류가 없는지 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1
+        ]
+      }
+    ]
+  },
+  "review": {
+    "status": "complete",
+    "checks": [
+      {
+        "requirement": "동부 시트 B2:B3 매출을 확인",
+        "status": "met",
+        "evidence_ids": [
+          10
+        ]
+      },
+      {
+        "requirement": "서부 시트 B2:B3 매출을 확인",
+        "status": "met",
+        "evidence_ids": [
+          10
+        ]
+      },
+      {
+        "requirement": "선택 영역 A2에 합계 SUM 수식을 작성",
+        "status": "met",
+        "evidence_ids": [
+          9
+        ]
+      },
+      {
+        "requirement": "수식 계산 오류가 없음",
+        "status": "met",
+        "evidence_ids": [
+          9
+        ]
+      },
+      {
+        "requirement": "다른 셀과 원본 시트를 유지",
+        "status": "met",
+        "evidence_ids": [
+          9,
+          10
+        ]
+      },
+      {
+        "requirement": "기존 수식과 서식을 유지",
+        "status": "met",
+        "evidence_ids": [
+          9,
+          10
+        ]
+      }
+    ],
+    "next_step": "없음"
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_sources"
+    },
+    {
+      "name": "read",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "list_worksheets",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "read_worksheet_range",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "read_worksheet_range",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "apply_changes",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "review_action",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "review_step",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_result"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_result"
+    },
+    {
+      "name": "review_task",
+      "state": "done",
+      "stepId": "verify_result"
+    }
+  ],
+  "recoveryLog": []
+}

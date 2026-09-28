@@ -1,0 +1,83 @@
+{
+  "kind": "form-usability-source-and-browser-verification",
+  "date": "2026-09-25",
+  "sourceReview": "form-source-review.json",
+  "before": {
+    "newRegressions": 3,
+    "failed": 3,
+    "log": "/tmp/nubi-form-before.log"
+  },
+  "officeTests": {
+    "command": "npm run test:pinned",
+    "passed": 701,
+    "failed": 0,
+    "skipped": 0,
+    "log": "/tmp/nubi-form-office-final.log"
+  },
+  "design": {
+    "sharedFiles": 24,
+    "matched": true,
+    "issues": 0
+  },
+  "visual": {
+    "screens": 120,
+    "overflow": 0,
+    "axeViolations": 0,
+    "incomplete": [
+      "color-contrast"
+    ],
+    "manualInspection": [
+      "usability-input-380.png",
+      "usability-question-error-320.png",
+      "usability-question-long-380.png",
+      "usability-skills-editor-380.png",
+      "usability-connection-320.png",
+      "usability-approval-380.png"
+    ],
+    "lastChoiceOnlyErrorFollowup": "Linked fallback error container; verified in current full Office suite and native-dialog browser suite."
+  },
+  "sharedBrowser": {
+    "command": "NUBI_TEST_CONCURRENCY=3 CHROME_BINARY=<Playwright bundled Chromium executable> npm run verify:identity",
+    "status": "passed",
+    "passedStages": 29,
+    "report": "../../extensions/aipro-chat/verification/pre-release-2026-09-25T07-10-16-048Z/report.json",
+    "reportSha256": "bc8502b4bef2a9bd6d84a6d9ec872d65432f19f291b4294c91fec6cd15a57363",
+    "buildSha256": "7edcf562c29df74973c978bb9b66ef41bc1608248813f85d664684ceed3849ac",
+    "actualBrowser": true,
+    "actualModel": false,
+    "initialFailures": [
+      "Default headless shell did not expose extension service worker.",
+      "Intermediate candidate checks passed but source changed during verification; that run was rejected."
+    ],
+    "earlierReports": [
+      "../../extensions/aipro-chat/verification/pre-release-2026-09-25T06-59-29-396Z/report.json",
+      "../../extensions/aipro-chat/verification/pre-release-2026-09-25T07-02-06-181Z/report.json"
+    ]
+  },
+  "newDependencies": [],
+  "nativeBuild": false,
+  "installerBuild": false,
+  "released": false,
+  "notVerified": [
+    "User study of comprehension or perceived effort",
+    "Windows Office 2016 WebView2 and COM",
+    "Live Qwen question selection accuracy",
+    "Company SSO and NASCA",
+    "Some automatic color contrast checks"
+  ],
+  "sourceSha256": {
+    "src/OfficeQuestion.jsx": "512214bb281aa8974015292d7d714e56e3332445e3841ff91c2cb9c2e7ef40dd",
+    "src/OfficeSkills.jsx": "633e9690903019bc75b6b027c26026f32a37d580a7ed2ba19eea5edad48f0218",
+    "src/OfficeTemplates.jsx": "f4a76749462553808ccc7b585456b5ee86adee13eeb2d958ec75df91cb058f91",
+    "src/OfficeDialogs.jsx": "72e304a8e293137f83d77381b592418887b6de8e5aa63d90f8566cfaea66f2a9",
+    "src/OfficeTransaction.jsx": "7ff6df0fc506b7608a06c3b07b18bf64bf5014fd800ef46bd3ac0336497b68e8",
+    "tests/shared-question-contract.test.mjs": "15e22b867a494da44d5281a477080c0dcc2348fc5c2022ac13b58d85ca26f7c5",
+    "tests/ui-usability.test.mjs": "88e8b0f99cffef6ec07a0ac0425b4af8859b6db65e2bf93ece369db8bfbd014b",
+    "tests/content-ui.test.mjs": "2e04445d5cd98731cec0d111aa7b8288536a755c89d0e25a55857652d4d58c1f",
+    "tests/ui-preview.mjs": "54a9473a2c299172d05f3000ef1f66cf832bf62b3b58bcd56ebcfdf3c523b803",
+    "design/shared-ui.json": "53e3017ca7276d3ef9e312e9a34427c6d8d30712a868869363629150d55c6ec4",
+    "../../extensions/aipro-chat/src/QuestionForm.jsx": "ad03d239af7f067d655c296160b84abaf33f1f6c6d7fc6f12e2ce21851a624aa",
+    "../../extensions/aipro-chat/src/interaction-forms.css": "2ca82bc87dc5dbc25a9cce22798ddd5d9eb0b1e0e2dd7f82f95b346f6d658483",
+    "../../extensions/aipro-chat/tests/question-forms-browser.mjs": "9992608fe6a1f08c8a8340be224adb93ab4a376eaff3cdb471fc9894799badd5"
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "kind": "static-source-components-in-chromium",
+  "generatedAt": "2026-09-23T11:00:06.928Z",
+  "reference": {
+    "source": "agentfactorysdkdeck.html",
+    "sha256": "df9cfcc44f2f8d4ea14c6f137d0297c562ca506f8a0028df374c7f012d8715ac",
+    "paletteTokens": 19,
+    "matched": true
+  },
+  "sourceUiTests": {
+    "passed": 45,
+    "failed": 0
+  },
+  "screens": 99,
+  "states": [
+    "approval",
+    "cells",
+    "cells-error",
+    "changes",
+    "connection",
+    "draft",
+    "empty",
+    "help",
+    "history",
+    "input",
+    "login",
+    "models",
+    "powerpoint-approval",
+    "powerpoint-empty",
+    "powerpoint-tools",
+    "recovery",
+    "result",
+    "skills",
+    "skills-editor",
+    "skills-empty",
+    "target",
+    "templates",
+    "toast",
+    "toast-error",
+    "toast-modal",
+    "tools",
+    "usage",
+    "word-approval",
+    "word-empty",
+    "word-fields",
+    "word-tools",
+    "working"
+  ],
+  "widths": [
+    320,
+    380,
+    1100
+  ],
+  "horizontalOverflow": 0,
+  "axeViolations": 0,
+  "manualReviewRequired": [
+    "color-contrast"
+  ],
+  "checked": [
+    "shared palette",
+    "bundled Korean font",
+    "body and input 14/22px",
+    "modal title 16px",
+    "white modal surface and 20px radius",
+    "top toast including modal entrance",
+    "complete model fixture list",
+    "explicit template/model/send controls",
+    "visible exact approval target",
+    "selective inline bold",
+    "optional result location with named icon",
+    "preservation status uses icon and text"
+  ],
+  "notVerified": [
+    "Interactive browser runtime",
+    "Windows WebView2",
+    "Excel 2016 COM",
+    "Word 2016 COM",
+    "PowerPoint 2016 COM",
+    "Live Qwen",
+    "NASCA"
+  ]
+}

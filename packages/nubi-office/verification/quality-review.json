@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-23",
+  "scope": "Nubi Office source verification, publication checkout",
+  "baselineCommit": "fc8dbf3d0d53884ed7495fc4b2d0e066f78ff79b",
+  "modelBaseline": "Enterprise Qwen 3.8 27B, live model not invoked",
+  "platform": {
+    "os": "darwin",
+    "arch": "arm64",
+    "node": "v25.4.0"
+  },
+  "baseline": {
+    "tests": 334,
+    "pass": 334,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "logSha256": "48fcf190c33a98e72afc0cc87b84013be5d84834f7e57ea9c0bf85273c3a709a"
+  },
+  "publicationFullSuite": {
+    "tests": 347,
+    "pass": 347,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "logSha256": "c139e774fa07bcf040f37e0f3478985db2241072b26e1aff943f0c975a306649"
+  },
+  "publicationFollowupIntentFixtureSuite": {
+    "tests": 12,
+    "pass": 12,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "logSha256": "803e48ae9510f66ed08e8cffb5de163cfdb97fb99deb41c7c4d5b84f9233689a"
+  },
+  "developmentFocusedSuite": {
+    "tests": 64,
+    "pass": 64,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "logSha256": "36a080905f2d65468feb0cbba68613ca945930e028ce8c8f1bd3ec0f44b57d9e"
+  },
+  "developmentFullBeforeFixtureCorrection": {
+    "tests": 349,
+    "pass": 347,
+    "fail": 2,
+    "cancelled": 0,
+    "skipped": 0,
+    "logSha256": "87659cc04b18db223d03d2428301d121b0dc88c6014f720253b8e454206468ce"
+  },
+  "developmentFollowupIntentFixtureSuite": {
+    "tests": 12,
+    "pass": 12,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "logSha256": "b2d810184959904d2730db51ea894491f0d4805be5c8e08d287dd5e93ce3a2bb"
+  },
+  "remainingDevelopmentFailure": "Shared UI baseline mismatch in seven files from separate ongoing work; not copied into publication or silently rehashed",
+  "ui": {
+    "reviewedSharedFiles": 24,
+    "parityPassed": true,
+    "designCheckIssues": 0,
+    "toastAccessibilityPassed": true,
+    "visualStylesChanged": false
+  },
+  "actualExecution": [
+    "Pi SDK tools",
+    "QuickJS release worker",
+    "QuickJS release/debug evaluator lifecycle",
+    "axe on rendered React toast"
+  ],
+  "modelAndNativeResponses": "scripted fixtures; no company model or native Office execution",
+  "generatedChecks": {
+    "unicode": {
+      "seed": 2392302,
+      "runs": 100
+    },
+    "integerCalculation": {
+      "seed": 2392301,
+      "runs": 20
+    }
+  },
+  "memoryMatrix": {
+    "variants": [
+      "release-sync 0.32.0",
+      "debug-sync 0.32.0"
+    ],
+    "casesPerVariant": 14,
+    "checks": [
+      "runtime/context dead before clearing tracking references",
+      "upstream assertNoMemoryAllocated",
+      "depth 64 accepted, 65 and cycles rejected"
+    ],
+    "upstreamWrapperLimitation": "0.32.0 newRuntime omits ownedLifetimes; dead bookkeeping is cleared only after alive=false assertions"
+  },
+  "fixes": [
+    "version-bound exact character paging for long resources",
+    "truncated flag for line-limited reads",
+    "reject source changes during reads",
+    "preserve chained calculation input in two bounded result slots",
+    "reject pending jobs created during output serialization",
+    "iterative finite JSON validation with depth bound",
+    "named toast region with reproducible package patch",
+    "complete provider status fixture contract"
+  ],
+  "newDevDependencies": {
+    "@jitl/quickjs-wasmfile-debug-sync": "0.32.0",
+    "patch-package": "8.0.1"
+  },
+  "runtimeDependenciesChanged": false,
+  "testConcurrency": 1,
+  "buildsExecuted": false,
+  "installerUpdated": false,
+  "notVerified": [
+    "Windows Office 2016 COM/install",
+    "company Qwen model accuracy and cost",
+    "NASCA and real corporate authentication",
+    "large-document hierarchical final review",
+    "protected durable run recovery",
+    "Python dependencies and external skills"
+  ],
+  "references": [
+    "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents",
+    "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents",
+    "https://github.com/justjake/quickjs-emscripten#testing-your-code",
+    "https://github.com/ds300/patch-package",
+    "https://www.w3.org/TR/wai-aria-1.2/#generic"
+  ],
+  "sourceCheckout": "publication",
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "5598dce782eceafd1f6b3b5b8d940f74e59e0af6341d96fbc3c20d06da551070"
+    },
+    {
+      "path": "THIRD-PARTY-NOTICES.md",
+      "sha256": "20e1ea2ed544c86cc0d7cf5ca8072cd00d5d9b5adecef894c661f5481ba7846a"
+    },
+    {
+      "path": "docs/DOCUMENT-SCRIPT-RUNTIME-2026-09-23.md",
+      "sha256": "c7bccf79fad741b4a9bdb313290579ecf7c270b2ee6a54b02468553497dc6195"
+    },
+    {
+      "path": "docs/IMPROVEMENT-STATUS.md",
+      "sha256": "2277dc2892f316788dbc2f03d4729272ff24616772c2c3482b7c956dde1eca49"
+    },
+    {
+      "path": "docs/QUALITY-REVIEW-2026-09-23.md",
+      "sha256": "c9262a6b8f45b2892ef0be5b8efe2421c91c09735b16fdd8106b4a0da4d2d3cc"
+    },
+    {
+      "path": "licenses/patch-package-MIT.txt",
+      "sha256": "655e803db63d51b48a040e4fafe8bb5b11c4433379686252996c5cf382455a3e"
+    },
+    {
+      "path": "licenses/quickjs-wasmfile-debug-sync-LICENSE.txt",
+      "sha256": "446a69ae534aa8612d8b16d3bfc670c5a5050597dca3ce9820441a60d5d04fbb"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "d4fccab32764774810d49ee66e9c815ab2bff9b1680216345435e2201530f437"
+    },
+    {
+      "path": "package.json",
+      "sha256": "2d356fe26dc34788830a72b640b5b6da5ce0d632b17bf441cfb5be5cdea3c75d"
+    },
+    {
+      "path": "patches/@e2e+cx-design-system+0.5.4.patch",
+      "sha256": "906caabd55adbd8e797e62698a9403656aa9d4e7aa2bad49f181a330af3ef0df"
+    },
+    {
+      "path": "tests/content-ui.test.mjs",
+      "sha256": "dcc0e463a2de978f97220d10e9749653655a4c8e714148f431997b4e55cfc062"
+    },
+    {
+      "path": "tests/intent-agent.test.mjs",
+      "sha256": "639390f1b806376ff56c4a7b4bcf6a5cb0b5c2f34c1accd862f5623d1de605e1"
+    },
+    {
+      "path": "tests/script-memory.test.mjs",
+      "sha256": "aa4af681d80f40955c827e1cf63c21c3dba46c042c7926c281a2e3432064a54f"
+    },
+    {
+      "path": "tests/script-quality.test.mjs",
+      "sha256": "97e700b87f2db1c027373314ef329f155ed750e4c0ceae4135be629c9ee9d0fe"
+    },
+    {
+      "path": "tests/skill-workspace.test.mjs",
+      "sha256": "58ee5fedd6e6848ff2a1efc448dffc5c24b97b06ff10bf2c7f2ba5bf5c265801"
+    },
+    {
+      "path": "worker/script-vm.mjs",
+      "sha256": "2ea7f121582c004f2a7d3ab2d54d470f62726caa7af4c420e1105346353a2c92"
+    },
+    {
+      "path": "worker/skill-workspace.mjs",
+      "sha256": "ac1de67c81f9aab40a945ca90649c8da32195f2e1df88ca90deb310091a3b755"
+    },
+    {
+      "path": "worker/skills/excel-2016/references/calculations.md",
+      "sha256": "b6486862e2c47a67ea8e7d73e23a11cc04fe37ee80f96b8ce6f0141bc8b065e8"
+    },
+    {
+      "path": "worker/skills/powerpoint-2016/references/calculations.md",
+      "sha256": "b6486862e2c47a67ea8e7d73e23a11cc04fe37ee80f96b8ce6f0141bc8b065e8"
+    },
+    {
+      "path": "worker/skills/word-2016/references/calculations.md",
+      "sha256": "b6486862e2c47a67ea8e7d73e23a11cc04fe37ee80f96b8ce6f0141bc8b065e8"
+    },
+    {
+      "path": "worker/workspace-read.mjs",
+      "sha256": "e5a1198f496ab73bfa2ebf34441cc14f0e84eb5c41bb954befb84763b51b860c"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "checkedAt": "2026-09-22T14:15:30.126504+00:00",
+  "kind": "source-control-regression",
+  "command": "npm test",
+  "tests": 114,
+  "passed": 114,
+  "failed": 0,
+  "modelResponses": "controlled",
+  "excelCom": "test fixtures only",
+  "newNativeCompiled": false,
+  "newNativeTestsExecuted": false,
+  "uiRendered": false,
+  "realExcel2016Verified": false,
+  "realModelAccuracy": null,
+  "performanceImprovementMeasured": false,
+  "installerBuilt": false,
+  "notes": [
+    "Existing installation verification failure is unresolved.",
+    "Read-only analyses reuse the selected provider/model; no new framework runtime installed."
+  ],
+  "sourceSha256": {
+    "worker/agent.mjs": "28258fc21f86aa9ac0a90bf574dc801c02b28194bdaee1a5083832af52bff8c8",
+    "worker/workbook-context.mjs": "3d189f62bd53d0872fb7e7de7e530ff4203b5c843b0461556bf63f2a3dcb346e",
+    "worker/excel-capabilities.mjs": "74e7fb9ce7705b508562d10014fc4a7e624bf210328da8d13f32e3085951f4d4",
+    "worker/office-harness.mjs": "50df826577c52031670b67cd32e4e9feee056316829512e21544a1a8af144831",
+    "worker/recovery.mjs": "4ea3d78df124b8d2ab393791ad0f34681162fb275df4ea24b7315ab9d9b00692",
+    "native/Nubi.Office.Core/WorkbookEngine.cs": "f3e143ece08e8f3348e25462cd1b5b48ed87f07fc7e495ba81f6d7d4e1cd0cc4",
+    "native/Nubi.Office.Host/ExcelPort.cs": "df3d0a18dfa5f4db3abb90f6249c7f22ad5a31886ed523224da2dc396014edaf",
+    "native/Nubi.Office.Host/ExcelWorkbookReader.cs": "2734c63473a6594b0221557c7dc8faa8102fac9b7167806b24499eae526a35c9",
+    "native/Nubi.Office.Host/NubiPane.cs": "8754435c01c71ce6d355084fef7e86889346bde315bf420fbac079b3c6a247a2",
+    "native/Nubi.Office.Tests/Program.cs": "91ec01bc6d09473efed112fec5eb18aaa4d91da4e63586d7ff0571c036f7a97b",
+    "native/Nubi.Office.EvalHost/Program.cs": "12509d686072ed656a9e78cb91177fb3f5aebd6e9dee1240c7b64170184af586",
+    "src/App.jsx": "d9c09e430a521553b02ad177518327c7e37f9b1b5eeb10f62b96d556365e1bac",
+    "src/TaskActivity.jsx": "a678a661f7b9b5c45073173bc3bc21c31eb73072618da744386e2ea9ca4df5bb",
+    "eval/run.mjs": "d5148d3438373bc5ef69528dc0d3695632c7e8a3c5a2d548114a210f26261392",
+    "eval/scoring.mjs": "ec1f6481c26a56825e5638187ab79c2cabb7a3669def9ef677bf3992f57b396b",
+    "tests/workbook-context.test.mjs": "2ad09e983fcad9ff09275b34448924f2c34848c758be6e127e1868cad5caee3e",
+    "tests/evaluation.test.mjs": "0dd562baef78ad8348925171c38876af226d5cf3866041a63c66205443a4e657"
+  }
+}

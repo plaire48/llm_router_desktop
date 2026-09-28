@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>누비 — IDE 워크스페이스 시안</title>
+  <link rel="icon" href="assets/agent-48.png">
+  <link rel="stylesheet" href="assets/fonts.css"><link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/agent-deck.css"><link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<svg class="symbols" xmlns="http://www.w3.org/2000/svg"><defs>
+ <symbol id="i-code" viewBox="0 0 24 24"><path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-15-2 18"/></symbol>
+ <symbol id="i-files" viewBox="0 0 24 24"><path d="M8 3h8l4 4v14H8zM4 17V3m12 0v5h4"/></symbol>
+ <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6.5"/><path d="m15 15 6 6"/></symbol>
+ <symbol id="i-branch" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2.5"/><circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="5" r="2.5"/><path d="M6 8v8m12-8c0 7-12 3-12 8"/></symbol>
+ <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 5C8 2 4 3 2 4v15c4-2 7-1 10 1 3-2 6-3 10-1V4c-4-2-7-1-10 1v15"/></symbol>
+ <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+ <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M12 20V4m-6 6 6-6 6 6"/></symbol>
+ <symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></symbol>
+ <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></symbol>
+ <symbol id="i-map" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="6" rx="1"/><rect x="2" y="16" width="7" height="6" rx="1"/><rect x="15" y="16" width="7" height="6" rx="1"/><path d="M12 8v4H5v4m7-4h7v4"/></symbol>
+ <symbol id="i-compare" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 1v22m-7-11h3m8 0h3"/></symbol>
+ <symbol id="i-terminal" viewBox="0 0 24 24"><path d="m4 6 6 6-6 6m9 0h7"/></symbol>
+ <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 4v16M4 12h16"/></symbol>
+ <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+ <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/></symbol>
+ <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 4 12 8-12 8z"/></symbol>
+ <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="16" cy="17" r="3"/></symbol>
+</defs></svg>
+<header class="titlebar">
+ <div class="brand"><img src="assets/agent-48.png" alt=""><img class="wordmark" src="assets/nubi-wordmark.webp" alt="누비"><span class="edition">Desktop</span></div>
+ <div class="title-path"><svg><use href="#i-code"/></svg><span>고객 포털</span><span class="muted">/</span><span>검색 결과 화면 개선</span></div>
+ <div class="view-switch" aria-label="레이아웃"><button id="dev-layout" aria-pressed="true">개발</button><button id="review-layout" aria-pressed="false">검토</button></div>
+ <span class="prototype-label">화면 시안 · 예시 데이터</span>
+</header>
+<div class="workspace">
+ <nav class="activity" aria-label="주요 도구">
+  <button class="icon active" title="소스 탐색" aria-label="소스 탐색" data-tab="code"><svg><use href="#i-files"/></svg></button>
+  <button class="icon" title="프로젝트 검색" aria-label="프로젝트 검색" data-info="프로젝트 검색은 실제 IDE의 전역 검색에 연결합니다."><svg><use href="#i-search"/></svg></button>
+  <button class="icon" title="변경 파일" aria-label="변경 파일" data-tab="code"><svg><use href="#i-branch"/></svg><span class="count-dot">2</span></button>
+  <button class="icon" title="프로젝트 지식" aria-label="프로젝트 지식" data-tab="map"><svg><use href="#i-book"/></svg></button>
+  <button class="icon" title="작업 이력" aria-label="작업 이력" data-info="작업별 원래 요구, 변경 파일, 실행 증거를 함께 보관하는 영역입니다."><svg><use href="#i-clock"/></svg></button>
+  <span class="spacer"></span><button class="icon" title="설정" aria-label="설정" data-info="설계 기준은 Windows 11 x64와 Theia 기반입니다. 이 시안에는 실행 엔진과 제공자가 연결되어 있지 않습니다."><svg><use href="#i-settings"/></svg></button>
+ </nav>
+ <aside class="explorer">
+  <div class="panel-heading"><strong>탐색</strong><button class="icon small" title="프로젝트 열기" aria-label="프로젝트 열기" data-info="실제 앱에서는 폴더 선택으로 프로젝트를 엽니다. 이 화면은 고객 포털 예제를 사용합니다."><svg><use href="#i-plus"/></svg></button></div>
+  <div class="project-name"><span class="project-avatar">P</span><div><strong>고객 포털</strong><small>customer-portal</small></div></div>
+  <div class="tree-title">⌄ &nbsp; 소스 코드</div>
+  <div class="tree-item folder">⌄ &nbsp; src</div><div class="tree-item nested folder">⌄ &nbsp; pages</div>
+  <button class="tree-item deep selected" data-tab="code"><span class="file-type">TS</span>SearchPage.tsx <span class="modified">M</span></button>
+  <div class="tree-item nested folder">⌄ &nbsp; components</div>
+  <button class="tree-item deep" data-tab="code"><span class="file-type teal">TS</span>EmptyState.tsx <span class="added">A</span></button>
+  <div class="tree-item nested folder">› &nbsp; services</div><div class="tree-item nested folder">› &nbsp; tests</div>
+  <div class="tree-title top-space">⌄ &nbsp; 프로젝트 지식</div>
+  <button class="tree-item" data-tab="requirements"><svg><use href="#i-check"/></svg>검색 경험 요구사항</button>
+  <button class="tree-item" data-tab="map"><svg><use href="#i-book"/></svg>OpenWiki</button>
+  <button class="tree-item" data-tab="map"><svg><use href="#i-map"/></svg>코드와 화면 연결</button>
+  <div class="tree-title top-space">⌄ &nbsp; 현재 작업</div>
+  <button class="task-entry" data-tab="compare"><span class="task-bullet"></span><span>검색 결과 화면 개선<small>조건 2개 확인 · 1개 미확인</small></span></button>
+  <div class="explorer-bottom"><svg><use href="#i-branch"/></svg><span>nubi/search-empty-state</span></div>
+ </aside>
+ <main class="workbench">
+  <div class="artifact-tabs" role="tablist" aria-label="작업 결과물">
+   <button role="tab" id="tab-requirements" aria-controls="view-requirements" aria-selected="false" tabindex="-1" data-tab="requirements"><svg><use href="#i-check"/></svg>요구사항</button>
+   <button role="tab" id="tab-map" aria-controls="view-map" aria-selected="false" tabindex="-1" data-tab="map"><svg><use href="#i-map"/></svg>연결 지도</button>
+   <button role="tab" id="tab-code" aria-controls="view-code" aria-selected="true" data-tab="code"><svg><use href="#i-code"/></svg>코드<span class="tab-count">2</span></button>
+   <button role="tab" id="tab-preview" aria-controls="view-preview" aria-selected="false" tabindex="-1" data-tab="preview"><svg><use href="#i-monitor"/></svg>미리보기</button>
+   <button role="tab" id="tab-compare" aria-controls="view-compare" aria-selected="false" tabindex="-1" data-tab="compare"><svg><use href="#i-compare"/></svg>비교</button>
+   <span class="spacer"></span><button class="icon" id="toggle-chat" title="누비 패널 접기" aria-label="누비 패널 접기" aria-expanded="true"><svg><use href="#i-panel"/></svg></button>
+  </div>
+  <div class="result-area">
+   <section id="view-code" class="view code-view" role="tabpanel" aria-labelledby="tab-code">
+    <div class="code-toolbar"><span class="file-type">TS</span><strong>SearchPage.tsx</strong><span class="muted">src / pages</span><span class="spacer"></span><span class="added">+12</span><span class="removed">−1</span><button class="quiet" data-tab="compare">화면에서 확인 ↗</button></div>
+    <div class="code-context"><span class="tag blue">REQ-014</span><span>검색 결과가 없는 상태를 명확하게 안내</span><button class="text-link" data-evidence="code">관련 근거 3개 ↗</button></div>
+    <div class="editor-scroll"><ol class="code-lines" aria-label="수정한 코드 예시">
+     <li><span class="kw">import</span> { EmptyState } <span class="kw">from</span> <span class="str">'../components/EmptyState'</span>;</li><li><span class="kw">import</span> { useSearch } <span class="kw">from</span> <span class="str">'../hooks/useSearch'</span>;</li><li>&nbsp;</li><li><span class="kw">export function</span> <span class="fn">SearchPage</span>() {</li><li>  <span class="kw">const</span> { query, filters, results, resetFilters } = <span class="fn">useSearch</span>();</li><li>  <span class="kw">const</span> isEmpty = results.length === <span class="num">0</span>;</li><li>&nbsp;</li><li>  <span class="kw">return</span> (</li><li>    &lt;<span class="tag-code">main</span> className=<span class="str">"search-page"</span>&gt;</li><li>      &lt;<span class="tag-code">SearchToolbar</span> query={query} filters={filters} /&gt;</li><li>      &lt;<span class="tag-code">section</span> aria-label=<span class="str">"검색 결과"</span>&gt;</li><li class="deletion">        &lt;<span class="tag-code">ResultList</span> items={results} /&gt;</li><li class="addition">        {isEmpty ? (</li><li class="addition">          &lt;<span class="tag-code">EmptyState</span></li><li class="addition">            title=<span class="str">"검색 결과가 없어요"</span></li><li class="addition">            description=<span class="str">"다른 검색어나 조건으로 찾아보세요."</span></li><li class="addition">            actionLabel=<span class="str">"필터 초기화"</span></li><li class="addition">            onAction={resetFilters}</li><li class="addition">          /&gt;</li><li class="addition">        ) : (</li><li class="addition">          &lt;<span class="tag-code">ResultList</span> items={results} /&gt;</li><li class="addition">        )}</li><li>      &lt;/<span class="tag-code">section</span>&gt;</li><li>    &lt;/<span class="tag-code">main</span>&gt;</li><li>  );</li><li>}</li>
+    </ol></div>
+    <div class="editor-note"><svg><use href="#i-book"/></svg><span><strong>OpenWiki</strong> 검색 결과와 필터 상태는 서로 독립적으로 관리합니다.</span><button class="text-link" data-evidence="wiki">원문 보기 ↗</button></div>
+   </section>
+   <section id="view-requirements" class="view document-view" role="tabpanel" aria-labelledby="tab-requirements" hidden>
+    <div class="eyebrow">요구사항 / REQ-014</div><h1>검색이 끝나도,<br>다음 행동은 보여야 해요.</h1><p class="lead">빈 결과를 안내하고 조건을 다시 선택할 수 있게 합니다.<br>사용자가 입력한 검색어와 필터는 그대로 유지합니다.</p>
+    <div class="request-quote">“검색 결과가 없을 때 안내와 초기화 버튼을 넣어줘.<br>기존 필터는 유지하고 변경 전후를 보여줘.”</div>
+    <h2>완료 조건 <span class="muted">3</span></h2>
+    <button class="criterion" data-evidence="empty"><span class="check-circle">✓</span><span><strong>AC-01 빈 결과 안내</strong><small>검색 결과 0건에서 안내 문구가 표시된다.</small></span><span class="tag green">확인 예시</span></button>
+    <button class="criterion" data-evidence="filter"><span class="check-circle">✓</span><span><strong>AC-02 필터 유지와 초기화</strong><small>입력값을 유지하고 명시적 초기화 시에만 바뀐다.</small></span><span class="tag green">확인 예시</span></button>
+    <button class="criterion" data-evidence="keyboard"><span class="unknown-circle">?</span><span><strong>AC-03 키보드 사용</strong><small>Tab으로 초기화에 접근하고 Enter로 실행한다.</small></span><span class="tag orange">미확인 예시</span></button>
+    <div class="doc-foot">이 예시에서는 AC-03이 남아 있어 전체 작업을 완료로 표시하지 않습니다.</div>
+   </section>
+   <section id="view-map" class="view map-view" role="tabpanel" aria-labelledby="tab-map" hidden>
+    <div class="page-heading"><div><div class="eyebrow">프로젝트 이해</div><h1>요구에서 실행까지, 한눈에.</h1><p>관계를 선택하면 코드와 근거로 이어집니다.</p></div><span class="tag">예시 연결</span></div>
+    <div class="map-canvas"><div class="map-column"><span class="column-label">요구사항</span><button class="map-node blue-node" data-tab="requirements"><small>REQ-014</small><strong>검색 결과 화면 개선</strong><span>완료 조건 3개</span></button></div><span class="connector">→</span><div class="map-column"><span class="column-label">소스와 지식</span><button class="map-node" data-tab="code"><small>src/pages</small><strong>SearchPage.tsx</strong><span>검색 결과 분기</span></button><button class="map-node wiki-node" data-evidence="wiki"><small>OpenWiki</small><strong>검색과 필터</strong><span>설계 의도와 출처</span></button></div><span class="connector dashed">⇢</span><div class="map-column"><span class="column-label">화면과 검증</span><button class="map-node" data-tab="preview"><small>/search</small><strong>고객 검색 화면</strong><span>정적 연결 후보</span></button><button class="map-node" data-tab="compare"><small>시나리오</small><strong>빈 검색 결과</strong><span>전후 비교와 AC</span></button></div></div>
+    <div class="map-legend"><span>— 소스 근거</span><span>┄ 화면 연결 후보</span><span>✓ 실제 실행 근거는 별도 연결</span></div>
+    <div class="insight"><svg><use href="#i-book"/></svg><div><strong>문서는 코드를 설명하고, 실행은 결과를 확인합니다.</strong><p>Wiki를 읽었다는 사실만으로 실제 화면의 동작을 확인했다고 표시하지 않습니다.</p></div></div>
+   </section>
+   <section id="view-preview" class="view preview-view" role="tabpanel" aria-labelledby="tab-preview" hidden>
+    <div class="preview-toolbar"><span class="tag green">서버 예시</span><div class="address"><svg><use href="#i-monitor"/></svg><span>http://localhost:5174/search?q=누비</span></div><button class="icon" aria-label="검증 시나리오 설명" title="검증 시나리오 설명" data-info="실제 앱에서는 이 URL과 데이터 조건을 고정하여 Playwright 검증을 실행합니다. 현재는 예시 화면입니다."><svg><use href="#i-play"/></svg></button></div>
+    <div id="preview-sample" class="preview-stage"></div>
+    <div class="preview-footer"><span>수정본 / 예시 작업 공간</span><button class="quiet" data-tab="compare">변경 전후 비교 →</button></div>
+   </section>
+   <section id="view-compare" class="view compare-view" role="tabpanel" aria-labelledby="tab-compare" hidden>
+    <div class="compare-heading"><div><div class="eyebrow">변경 검토</div><h1>무엇이 달라졌나요?</h1></div><label class="state-select"><span>상태 예시</span><select id="compare-state"><option value="ready">비교 준비됨</option><option value="failed">서버 실행 실패</option><option value="stale">기준 코드 변경됨</option></select></label></div>
+    <div class="compare-controls"><span class="tag">시나리오: 빈 검색 결과</span><span class="muted">같은 검색어 · 같은 필터</span><span class="spacer"></span><button id="compare-side" class="quiet selected" aria-pressed="true">나란히</button><button id="compare-overlay" class="quiet" aria-pressed="false">겹쳐 보기</button></div>
+    <div id="compare-error" class="compare-error" hidden></div>
+    <div id="comparison" class="comparison"><article class="before"><div class="capture-title"><strong>변경 전</strong><span>기준 코드 / 예시</span></div><div id="sample-before"></div></article><article class="after"><div class="capture-title"><strong>변경 후</strong><span>수정 코드 / 예시</span></div><div id="sample-after"></div></article></div>
+    <div id="overlay-controls" class="overlay-controls" hidden><label for="overlay-range">변경 후 화면 비율</label><input id="overlay-range" type="range" min="0" max="100" value="50"><output id="overlay-value">50%</output></div>
+    <div class="comparison-results"><button data-evidence="empty"><span class="check-circle">✓</span>빈 결과 안내</button><button data-evidence="filter"><span class="check-circle">✓</span>필터 유지</button><button data-evidence="keyboard"><span class="unknown-circle">?</span>키보드 사용 <span class="muted">미확인</span></button></div>
+    <p class="compare-caption">화면·검증 상태는 모두 예시입니다. 실제 소스나 서버에는 연결되어 있지 않습니다.</p>
+   </section>
+  </div>
+  <div class="bottom-panel"><div class="bottom-tabs"><button id="toggle-log" aria-expanded="false"><svg><use href="#i-terminal"/></svg>터미널 · 실행 기록 <span class="muted">예시</span><span id="log-chevron">⌃</span></button><span class="spacer"></span><label for="shell-profile" class="sr-only">실행 환경 예시</label><select id="shell-profile"><option value="bash">Git Bash</option><option value="powershell">PowerShell</option><option value="wsl">WSL2 · 선택 환경</option></select></div><div id="log-content" hidden><div id="shell-command">$ rg -n 'ResultList' src/pages</div><div><span>읽기</span> src/pages/SearchPage.tsx:12</div><div id="shell-test">$ npm run test -- search</div><div><span>결과</span> 예시 출력 · 실제 명령은 실행하지 않았습니다.</div><div><span>검토</span> AC-01 / AC-02 확인 예시 · AC-03 미확인 예시</div></div></div>
+ </main>
+ <aside class="agent-panel" id="agent-panel">
+  <div class="agent-header"><img src="assets/agent-48.png" alt=""><strong>누비</strong><span class="tag blue">작업 검토</span><span class="spacer"></span><button class="icon small" title="문맥 상세" aria-label="문맥 상세" id="context-open"><svg><use href="#i-book"/></svg></button></div>
+  <button id="close-agent" class="icon" aria-label="결과물로 돌아가기" title="결과물로 돌아가기"><svg><use href="#i-close"/></svg></button>
+  <div class="conversation">
+   <div class="conversation-date">검색 결과 화면 개선</div><div class="user-message">검색 결과가 없을 때 안내와 초기화 버튼을 넣어줘. 기존 필터는 유지하고 변경 전후를 보여줘.</div>
+   <div class="agent-message"><p>검색 화면의 요구사항과 관련 코드를 연결했어요.</p><div class="evidence-chips"><button data-tab="requirements">REQ-014</button><button data-evidence="wiki">Wiki 1개 ↗</button><button data-tab="code">소스 2개 ↗</button></div></div>
+   <div class="plan"><div class="plan-title"><strong>작업 계획</strong><span class="muted">예시</span></div><div><span class="step-check">✓</span>요구사항과 기존 동작 확인</div><div><span class="step-check">✓</span>빈 결과 안내와 초기화 추가</div><div><span class="step-check">✓</span>실행 화면 비교</div><div><span class="step-current">4</span>키보드 사용 확인</div></div>
+   <details class="analysis-details"><summary>분석 근거 <span class="muted">2개 담당</span></summary><p><strong>소스 조사</strong> 필터 상태와 결과 렌더링 경로</p><p><strong>독립 검토</strong> AC-03 실행 근거 부족</p><small>읽기 전용 분석. 사용자 승인이나 실행 성공을 대신하지 않습니다.</small></details>
+   <div class="agent-message"><p>결과가 없을 때 다음 행동이 보이도록 바꾸는 예시입니다. 필터를 유지하고 초기화 버튼을 추가했어요.</p><p>키보드 조작은 아직 미확인으로 남깁니다.</p><button class="result-link" data-tab="compare"><svg><use href="#i-compare"/></svg><span><strong>변경 전후 확인</strong><small>화면과 완료 조건을 함께 보기</small></span><span>↗</span></button></div>
+  </div>
+  <form class="composer" id="composer"><label class="sr-only" for="message">누비에게 보낼 메시지 예시</label><textarea id="message" placeholder="이 변경에 대해 더 이야기해 보세요" rows="3"></textarea><div class="composer-actions"><button type="button" class="icon small" title="문맥 첨부" aria-label="문맥 첨부" data-info="파일, 선택 코드, 요구사항, 화면 캡처를 현재 작업 문맥에 추가합니다."><svg><use href="#i-plus"/></svg></button><button type="button" class="model-picker" data-info="AI Pro의 Qwen 3.8 27B를 기준 모델로 제안합니다. 이 시안은 실제 계정이나 모델에 연결되어 있지 않습니다.">AI Pro <span>Qwen 3.8 27B</span>⌄</button><span class="spacer"></span><button type="submit" class="send" title="메시지 동작 예시" aria-label="메시지 동작 예시"><svg><use href="#i-arrow"/></svg></button></div><div class="composer-note">레이아웃 시안 · 메시지는 전송되지 않아요</div></form>
+ </aside>
+</div>
+<footer class="statusbar"><span><svg><use href="#i-branch"/></svg> 작업 공간 예시</span><span>TypeScript React</span><span class="spacer"></span><span>Theia 기반 제안</span><span>UTF-8</span></footer>
+<dialog id="detail-dialog"><div class="dialog-head"><h2 id="detail-title">근거</h2><button id="dialog-close" class="icon" title="닫기" aria-label="닫기"><svg><use href="#i-close"/></svg></button></div><div id="detail-body"></div><div class="dialog-foot">화면 설계용 예시입니다. 실제 실행 결과가 아닙니다.</div></dialog>
+<div id="toast" role="status" hidden></div>
+<script src="app.js"></script>
+</body></html>

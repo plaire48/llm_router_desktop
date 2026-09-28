@@ -1,0 +1,686 @@
+{
+  "suite": "register",
+  "id": "trip-request",
+  "trial": 1,
+  "routing": "direct",
+  "passed": true,
+  "outcome": "passed",
+  "state": "done",
+  "writes": 0,
+  "recoveries": 0,
+  "questions": [],
+  "approvals": [
+    "template_mapping",
+    "template_register"
+  ],
+  "proposals": 1,
+  "metrics": {
+    "modelCalls": 10,
+    "toolCalls": 7,
+    "elapsedMs": 34898
+  },
+  "transcript": {
+    "modelCalls": 10,
+    "byRole": {
+      "planner": 1,
+      "actor": 8,
+      "result_review": 1
+    },
+    "elapsedMs": 34594,
+    "requestCharacters": 435484,
+    "peakRequestCharacters": 65895,
+    "toolCalls": {
+      "read": 1,
+      "inspect_template": 4,
+      "define_template_fields": 1,
+      "register_template": 1
+    },
+    "errors": {}
+  },
+  "score": {
+    "mapping": {
+      "proposed": 10,
+      "gold": 10,
+      "matched": 10,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "unexpected": [],
+      "wrongType": [],
+      "wrongRequired": [],
+      "exact": true,
+      "strict": true
+    },
+    "registered": true,
+    "sourceUnchanged": true,
+    "proposedFields": [
+      {
+        "address": "C3",
+        "label": "소속 부서",
+        "valueType": "text",
+        "required": true
+      },
+      {
+        "address": "E3",
+        "label": "성명",
+        "valueType": "text",
+        "required": true
+      },
+      {
+        "address": "C4",
+        "label": "사번",
+        "valueType": "text",
+        "required": true
+      },
+      {
+        "address": "E4",
+        "label": "직급",
+        "valueType": "text",
+        "required": false
+      },
+      {
+        "address": "C5",
+        "label": "출장 구분",
+        "valueType": "text",
+        "required": true
+      },
+      {
+        "address": "E5",
+        "label": "출장지",
+        "valueType": "text",
+        "required": true
+      },
+      {
+        "address": "C6",
+        "label": "출발일",
+        "valueType": "date",
+        "required": true
+      },
+      {
+        "address": "E6",
+        "label": "복귀일",
+        "valueType": "date",
+        "required": true
+      },
+      {
+        "address": "C8",
+        "label": "출장 목적",
+        "valueType": "text",
+        "required": true
+      },
+      {
+        "address": "C10",
+        "label": "일비(1일)",
+        "valueType": "number",
+        "required": true
+      }
+    ],
+    "passed": true,
+    "outcome": "passed"
+  },
+  "request": "지금 선택한 출장 신청서 양식을 분석해서 다음에 다시 쓸 수 있게 등록해줘. 양식 이름은 출장 신청서, 용도는 임직원 국내외 출장 사전 신청이야. 직급만 선택 항목이고 나머지 입력 칸은 모두 필수야. 출장 일수와 예상 경비는 자동 계산이야.",
+  "answer": "출장 신청서 템플릿으로 등록했습니다.\n\n- 용도: 임직원 국내외 출장 사전 신청\n- 입력 필드 10개 등록\n- 직급만 선택 사항, 나머지는 필수\n- 출장 일수·예상 경비 수식 보존\n- 병합, 서식, 유효성 검사 보존 확인\n- 저장 및 메타데이터 확인 완료\n\n선택 범위 밖 내용과 인쇄 결과·조건부 서식·개체·NASCA 암호화 상태는 확인 대상에서 제외되었습니다.",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "선택된 양식의 필드, 수식, 병합, 서식 및 입력 규칙 확인",
+        "kind": "inspect",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "state": "done"
+      },
+      {
+        "id": "analyze_schema",
+        "title": "출장 신청서의 필수 입력 필드와 선택 필드 의미 정의",
+        "kind": "analyze",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "verify_registration",
+        "title": "템플릿 등록 결과와 원본 수식 및 양식 보존 여부 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1
+        ],
+        "state": "done"
+      }
+    ],
+    "total": 3,
+    "completed": 3,
+    "currentStepId": null
+  },
+  "task": {
+    "intent": "analyze",
+    "summary": "선택한 출장 신청서 양식의 필드, 수식, 형식 및 입력 규칙을 분석하고 재사용 가능한 템플릿으로 등록합니다.",
+    "requirements": [
+      "양식 이름은 출장 신청서로 등록",
+      "용도는 임직원 국내외 출장 사전 신청으로 등록",
+      "직급은 선택 항목으로 정의",
+      "직급을 제외한 모든 입력 칸은 필수 항목으로 정의",
+      "출장 일수와 예상 경비는 기존 자동 계산 수식을 유지",
+      "선택 영역의 레이아웃, 병합, 서식, 유효성 검사를 보존"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "C7",
+        "field": "formula",
+        "operator": "equals",
+        "expected": "=IF(OR(C6=\"\",E6=\"\"),\"\",E6-C6+1)"
+      },
+      {
+        "address": "E10",
+        "field": "formula",
+        "operator": "equals",
+        "expected": "=IF(OR(C7=\"\",C10=\"\"),\"\",C7*C10)"
+      },
+      {
+        "address": "C5",
+        "field": "value",
+        "operator": "equals",
+        "expected": null
+      },
+      {
+        "address": "C4",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "@"
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "선택된 양식의 필드, 수식, 병합, 서식 및 입력 규칙 확인",
+        "kind": "inspect",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "id": "analyze_schema",
+        "title": "출장 신청서의 필수 입력 필드와 선택 필드 의미 정의",
+        "kind": "analyze",
+        "checkIndexes": []
+      },
+      {
+        "id": "verify_registration",
+        "title": "템플릿 등록 결과와 원본 수식 및 양식 보존 여부 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1
+        ]
+      }
+    ]
+  },
+  "review": {
+    "status": "complete",
+    "checks": [
+      {
+        "requirement": "양식 이름을 ‘출장 신청서’로 등록",
+        "status": "met",
+        "evidence_ids": [
+          11
+        ]
+      },
+      {
+        "requirement": "용도를 ‘임직원 국내외 출장 사전 신청’으로 등록",
+        "status": "met",
+        "evidence_ids": [
+          11
+        ]
+      },
+      {
+        "requirement": "직급만 선택 항목이고 나머지 9개 입력 필드는 필수",
+        "status": "met",
+        "evidence_ids": [
+          11
+        ]
+      },
+      {
+        "requirement": "출장 일수와 예상 경비 자동 계산 수식을 보존",
+        "status": "met",
+        "evidence_ids": [
+          10,
+          11
+        ]
+      },
+      {
+        "requirement": "선택 영역의 레이아웃, 병합, 서식, 유효성 검사를 보존",
+        "status": "met",
+        "evidence_ids": [
+          10,
+          11,
+          12
+        ]
+      }
+    ],
+    "next_step": "등록이 완료되었습니다. 개체·조건부 서식·인쇄 결과·선택 범위 밖 내용·NASCA 암호화 상태는 호스트에서 확인되지 않았습니다."
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_form"
+    },
+    {
+      "name": "read",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "define_template_fields",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "register_template",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "analyze_schema"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_registration"
+    },
+    {
+      "name": "review_task",
+      "state": "done",
+      "stepId": "verify_registration"
+    }
+  ],
+  "recoveryLog": [],
+  "lastProposal": [
+    {
+      "id": "field_C3",
+      "address": "C3",
+      "label": "소속 부서",
+      "valueType": "text",
+      "required": true,
+      "numberFormat": "General",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_E3",
+      "address": "E3",
+      "label": "성명",
+      "valueType": "text",
+      "required": true,
+      "numberFormat": "General",
+      "merge": "E3:F3",
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_C4",
+      "address": "C4",
+      "label": "사번",
+      "valueType": "text",
+      "required": true,
+      "numberFormat": "@",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_E4",
+      "address": "E4",
+      "label": "직급",
+      "valueType": "text",
+      "required": false,
+      "numberFormat": "General",
+      "merge": "E4:F4",
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_C5",
+      "address": "C5",
+      "label": "출장 구분",
+      "valueType": "text",
+      "required": true,
+      "numberFormat": "General",
+      "merge": null,
+      "choices": [
+        "국내",
+        "해외"
+      ],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": {
+        "type": 3,
+        "formula1": "국내,해외",
+        "ignoreBlank": true
+      }
+    },
+    {
+      "id": "field_E5",
+      "address": "E5",
+      "label": "출장지",
+      "valueType": "text",
+      "required": true,
+      "numberFormat": "General",
+      "merge": "E5:F5",
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_C6",
+      "address": "C6",
+      "label": "출발일",
+      "valueType": "date",
+      "required": true,
+      "numberFormat": "yyyy-mm-dd",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_E6",
+      "address": "E6",
+      "label": "복귀일",
+      "valueType": "date",
+      "required": true,
+      "numberFormat": "yyyy-mm-dd",
+      "merge": "E6:F6",
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_C8",
+      "address": "C8",
+      "label": "출장 목적",
+      "valueType": "text",
+      "required": true,
+      "numberFormat": "General",
+      "merge": "C8:F8",
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    },
+    {
+      "id": "field_C10",
+      "address": "C10",
+      "label": "일비(1일)",
+      "valueType": "number",
+      "required": true,
+      "numberFormat": "#,##0",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    }
+  ],
+  "registeredTemplate": {
+    "saved": true,
+    "id": "6d93d275-0fdb-4ef3-9f4c-0b0eb8bee265",
+    "path": "/sim/templates/6d93d275-0fdb-4ef3-9f4c-0b0eb8bee265.xlsx",
+    "metadataVerified": true,
+    "protectionMode": "nasca_excel_managed",
+    "nascaEncryptionVerified": false,
+    "name": "출장 신청서",
+    "profile": {
+      "schemaVersion": 1,
+      "structureId": "43d3a6727bf37bd8dbc45b3ece0b4787313c105e9a8c8eded5394a55f30c32c5",
+      "definitionHash": "943576db0a8b1fa6f5c5290b71f582e4822646e3a93a57701ff49ab1952ecc07",
+      "worksheet": "출장신청서",
+      "address": "A1:F12",
+      "fields": [
+        {
+          "address": "C3",
+          "label": "소속 부서",
+          "valueType": "text",
+          "required": true
+        },
+        {
+          "address": "E3",
+          "label": "성명",
+          "valueType": "text",
+          "required": true
+        },
+        {
+          "address": "C4",
+          "label": "사번",
+          "valueType": "text",
+          "required": true
+        },
+        {
+          "address": "E4",
+          "label": "직급",
+          "valueType": "text",
+          "required": false
+        },
+        {
+          "address": "C5",
+          "label": "출장 구분",
+          "valueType": "text",
+          "required": true
+        },
+        {
+          "address": "E5",
+          "label": "출장지",
+          "valueType": "text",
+          "required": true
+        },
+        {
+          "address": "C6",
+          "label": "출발일",
+          "valueType": "date",
+          "required": true
+        },
+        {
+          "address": "E6",
+          "label": "복귀일",
+          "valueType": "date",
+          "required": true
+        },
+        {
+          "address": "C8",
+          "label": "출장 목적",
+          "valueType": "text",
+          "required": true
+        },
+        {
+          "address": "C10",
+          "label": "일비(1일)",
+          "valueType": "number",
+          "required": true
+        }
+      ]
+    },
+    "preservation": {
+      "schemaVersion": 1,
+      "stage": "registered_copy",
+      "target": "출장신청서!A1:F12",
+      "status": "partial",
+      "checks": [
+        {
+          "id": "formulas",
+          "label": "수식",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "formats",
+          "label": "글꼴, 색, 정렬, 표시 형식",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "merges",
+          "label": "병합",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "borders",
+          "label": "테두리",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "dimensions",
+          "label": "행, 열 크기와 숨김",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "validation",
+          "label": "입력 제한, 잠금",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "values",
+          "label": "고정 내용",
+          "status": "preserved",
+          "differenceCount": 0
+        },
+        {
+          "id": "date1904",
+          "label": "날짜 체계",
+          "status": "preserved"
+        },
+        {
+          "id": "protected",
+          "label": "시트 보호",
+          "status": "preserved"
+        },
+        {
+          "id": "objects",
+          "label": "그림, 차트, 도형",
+          "status": "unverified"
+        },
+        {
+          "id": "conditional",
+          "label": "조건부 서식, 기타 셀 효과",
+          "status": "unverified"
+        },
+        {
+          "id": "print",
+          "label": "인쇄 결과, 페이지 전체 모양",
+          "status": "unverified"
+        },
+        {
+          "id": "other_ranges",
+          "label": "선택 범위 밖의 내용과 양식",
+          "status": "unverified"
+        },
+        {
+          "id": "nasca",
+          "label": "NASCA 암호화 상태",
+          "status": "unverified"
+        }
+      ],
+      "differences": [],
+      "differenceCount": 0,
+      "expectedValueChanges": 0,
+      "note": "읽은 속성의 비교 결과입니다. 전체 문서가 동일하다는 뜻은 아닙니다."
+    },
+    "catalogued": true,
+    "entry": {
+      "id": "6d93d275-0fdb-4ef3-9f4c-0b0eb8bee265",
+      "host": "excel",
+      "name": "출장 신청서",
+      "summary": "임직원 국내외 출장 사전 신청",
+      "revision": 1,
+      "createdAt": "2026-09-28T21:27:47.459Z",
+      "updatedAt": "2026-09-28T21:27:47.459Z",
+      "itemCount": 10,
+      "inputCount": 10,
+      "sourceFile": "6d93d275-0fdb-4ef3-9f4c-0b0eb8bee265.xlsx",
+      "available": true,
+      "protection": "windows_current_user"
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "suite": "template",
+  "id": "template-text-code",
+  "trial": 1,
+  "routing": "product",
+  "passed": false,
+  "outcome": "error",
+  "state": "cancelled",
+  "error": "evaluation_recovery_requires_human",
+  "writes": 0,
+  "recoveries": 0,
+  "questions": [],
+  "approvals": [
+    "recovery"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 5,
+    "toolCalls": 0,
+    "elapsedMs": 24400
+  },
+  "transcript": {
+    "modelCalls": 5,
+    "byRole": {
+      "intent_router": 2,
+      "planner": 3
+    },
+    "elapsedMs": 21614,
+    "requestCharacters": 36363,
+    "peakRequestCharacters": 10813,
+    "toolCalls": {},
+    "errors": {}
+  },
+  "request": "기존 양식을 그대로 사용해. B2는 필수 텍스트 사번 입력칸이다. 입력 항목을 확인받고 사번 00123을 넣어줘. 앞자리 0과 모든 서식·수식·다른 셀은 보존해.",
+  "answer": "",
+  "question": "",
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "running"
+    }
+  ],
+  "recoveryLog": []
+}

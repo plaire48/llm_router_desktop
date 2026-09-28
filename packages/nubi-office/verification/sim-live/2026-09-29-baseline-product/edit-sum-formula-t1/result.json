@@ -1,0 +1,44 @@
+{
+  "suite": "edit",
+  "id": "sum-formula",
+  "trial": 1,
+  "routing": "product",
+  "passed": false,
+  "outcome": "error",
+  "state": "cancelled",
+  "error": "evaluation_recovery_requires_human",
+  "writes": 0,
+  "recoveries": 0,
+  "questions": [],
+  "approvals": [
+    "recovery"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 4,
+    "toolCalls": 0,
+    "elapsedMs": 27742
+  },
+  "transcript": {
+    "modelCalls": 4,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 3
+    },
+    "elapsedMs": 25720,
+    "requestCharacters": 26517,
+    "peakRequestCharacters": 8635,
+    "toolCalls": {},
+    "errors": {}
+  },
+  "request": "A2와 A3의 합계를 A4에 SUM 수식으로 넣고 표시 형식을 0.00으로 해줘. 다른 셀은 유지해줘.",
+  "answer": "",
+  "question": "",
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "running"
+    }
+  ],
+  "recoveryLog": []
+}

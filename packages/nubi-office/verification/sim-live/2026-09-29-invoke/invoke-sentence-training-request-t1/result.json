@@ -1,0 +1,407 @@
+{
+  "suite": "invoke",
+  "id": "sentence-training-request",
+  "trial": 1,
+  "routing": "product",
+  "passed": false,
+  "outcome": "failed",
+  "state": "failed",
+  "agentError": "recovery_unavailable",
+  "writes": 1,
+  "recoveries": 1,
+  "questions": [],
+  "approvals": [
+    "edit"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 12,
+    "toolCalls": 6,
+    "elapsedMs": 54636
+  },
+  "transcript": {
+    "modelCalls": 12,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 1,
+      "actor": 5,
+      "action_review": 1,
+      "step_review": 1,
+      "result_review": 2,
+      "recovery": 1
+    },
+    "elapsedMs": 52997,
+    "requestCharacters": 316365,
+    "peakRequestCharacters": 58394,
+    "toolCalls": {
+      "read_worksheet_range": 1,
+      "get_range_data": 1,
+      "fill_template_fields": 1,
+      "verify_selection": 1
+    },
+    "errors": {}
+  },
+  "score": {
+    "openedTemplate": "ff3679a3-9e8b-41f1-9967-7d2718fec323",
+    "expectedTemplate": "ff3679a3-9e8b-41f1-9967-7d2718fec323",
+    "selected": true,
+    "passed": false,
+    "outcome": "failed"
+  },
+  "request": "교육 신청서를 작성해줘. 신청자는 재무팀 박지훈, 연락처 010-2345-6789야. 과정명은 재무제표 분석 실무, 시작일 2026-11-02, 교육비 400000원, 회사 지원율은 80%야.",
+  "openedTemplate": {
+    "id": "ff3679a3-9e8b-41f1-9967-7d2718fec323",
+    "name": "교육 신청서"
+  },
+  "answer": "",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "신청서 입력 위치와 기존 수식 확인",
+        "kind": "inspect",
+        "checkIndexes": [
+          11
+        ],
+        "state": "done"
+      },
+      {
+        "id": "fill_form",
+        "title": "확정된 신청자 및 교육 정보 입력",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13
+        ],
+        "state": "done",
+        "requiresReview": true
+      },
+      {
+        "id": "verify_form",
+        "title": "입력값과 본인 부담금 계산 결과 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13
+        ],
+        "state": "failed"
+      }
+    ],
+    "total": 3,
+    "completed": 2,
+    "currentStepId": "verify_form"
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "교육 신청서에 신청자 정보와 교육 정보를 입력하고, 기존 수식으로 본인 부담금이 계산되는지 확인합니다.",
+    "requirements": [
+      "C3에 박지훈 입력",
+      "C4에 재무팀 입력",
+      "C5에 010-2345-6789를 텍스트로 입력",
+      "C6에 재무제표 분석 실무 입력",
+      "C7에 2026-11-02 입력",
+      "C8에 400000 입력",
+      "C9에 80% 입력",
+      "기존 C10 수식과 계산 결과 보존 및 확인"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "C3",
+        "field": "value",
+        "operator": "equals",
+        "expected": "박지훈"
+      },
+      {
+        "address": "C4",
+        "field": "value",
+        "operator": "equals",
+        "expected": "재무팀"
+      },
+      {
+        "address": "C5",
+        "field": "value",
+        "operator": "equals",
+        "expected": "010-2345-6789"
+      },
+      {
+        "address": "C5",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "@"
+      },
+      {
+        "address": "C6",
+        "field": "value",
+        "operator": "equals",
+        "expected": "재무제표 분석 실무"
+      },
+      {
+        "address": "C7",
+        "field": "value",
+        "operator": "equals",
+        "expected": 46328,
+        "valueType": "date"
+      },
+      {
+        "address": "C7",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "yyyy-mm-dd"
+      },
+      {
+        "address": "C8",
+        "field": "value",
+        "operator": "equals",
+        "expected": 400000,
+        "valueType": "number"
+      },
+      {
+        "address": "C8",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "#,##0"
+      },
+      {
+        "address": "C9",
+        "field": "value",
+        "operator": "equals",
+        "expected": 0.8,
+        "valueType": "percent"
+      },
+      {
+        "address": "C9",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "0%"
+      },
+      {
+        "address": "C10",
+        "field": "formula",
+        "operator": "equals",
+        "expected": "=IF(OR(C8=\"\",C9=\"\"),\"\",C8*(1-C9))"
+      },
+      {
+        "address": "C10",
+        "field": "value",
+        "operator": "equals",
+        "expected": 80000,
+        "valueType": "number"
+      },
+      {
+        "address": "C10",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "#,##0"
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "신청서 입력 위치와 기존 수식 확인",
+        "kind": "inspect",
+        "checkIndexes": [
+          11
+        ]
+      },
+      {
+        "id": "fill_form",
+        "title": "확정된 신청자 및 교육 정보 입력",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13
+        ]
+      },
+      {
+        "id": "verify_form",
+        "title": "입력값과 본인 부담금 계산 결과 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13
+        ]
+      }
+    ]
+  },
+  "review": {
+    "status": "revise",
+    "checks": [
+      {
+        "requirement": "신청자·부서·연락처·과정명이 지정 셀에 입력됨",
+        "status": "met",
+        "evidence_ids": [
+          10,
+          12
+        ]
+      },
+      {
+        "requirement": "시작일·교육비·지원율이 지정 값과 형식으로 입력됨",
+        "status": "met",
+        "evidence_ids": [
+          10,
+          12
+        ]
+      },
+      {
+        "requirement": "C10 수식이 보존됨",
+        "status": "met",
+        "evidence_ids": [
+          10,
+          12
+        ]
+      },
+      {
+        "requirement": "C10 계산값이 80,000원으로 표시됨",
+        "status": "met",
+        "evidence_ids": [
+          10,
+          12
+        ]
+      },
+      {
+        "requirement": "확인 범위의 서식·병합·보호·크기가 보존됨",
+        "status": "met",
+        "evidence_ids": [
+          11
+        ]
+      },
+      {
+        "requirement": "문서 전체의 개체·조건부 서식·인쇄·범위 밖 내용·NASCA 상태",
+        "status": "unknown",
+        "evidence_ids": [
+          11
+        ]
+      }
+    ],
+    "next_step": "추가 수정은 필요하지 않습니다. 다만 도구가 확인하지 못한 문서 전체 속성은 검증되지 않았습니다."
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_form"
+    },
+    {
+      "name": "read_worksheet_range",
+      "state": "done",
+      "stepId": "fill_form"
+    },
+    {
+      "name": "get_range_data",
+      "state": "done",
+      "stepId": "fill_form"
+    },
+    {
+      "name": "fill_template_fields",
+      "state": "done",
+      "stepId": "fill_form"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "fill_form"
+    },
+    {
+      "name": "review_action",
+      "state": "done",
+      "stepId": "fill_form"
+    },
+    {
+      "name": "review_step",
+      "state": "done",
+      "stepId": "fill_form"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_form"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_form"
+    },
+    {
+      "name": "review_task",
+      "state": "error",
+      "stepId": "verify_form"
+    },
+    {
+      "name": "repair_task",
+      "state": "done",
+      "stepId": "verify_form"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "verify_form"
+    }
+  ],
+  "recoveryLog": [
+    {
+      "attempt": 1,
+      "stepId": "verify_form",
+      "code": "result_needs_revision",
+      "tool": "review_task",
+      "outcome": "observed",
+      "state": "failed",
+      "summary": "교육 신청서 입력과 C10 수식·계산 결과 확인이 완료되었습니다. 표시값은 80,000원이며 추가 수정은 필요하지 않습니다.",
+      "nextAction": ""
+    }
+  ]
+}

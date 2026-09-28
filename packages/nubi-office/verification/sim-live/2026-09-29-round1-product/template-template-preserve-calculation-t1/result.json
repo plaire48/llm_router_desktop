@@ -1,0 +1,258 @@
+{
+  "suite": "template",
+  "id": "template-preserve-calculation",
+  "trial": 1,
+  "routing": "product",
+  "passed": false,
+  "outcome": "error",
+  "state": "cancelled",
+  "error": "evaluation_recovery_requires_human",
+  "writes": 0,
+  "recoveries": 3,
+  "questions": [],
+  "approvals": [
+    "recovery"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 10,
+    "toolCalls": 6,
+    "elapsedMs": 32534
+  },
+  "transcript": {
+    "modelCalls": 10,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 1,
+      "actor": 6,
+      "recovery": 2
+    },
+    "elapsedMs": 30345,
+    "requestCharacters": 272948,
+    "peakRequestCharacters": 50525,
+    "toolCalls": {
+      "read": 1,
+      "excel_capabilities": 1,
+      "read_selection": 1,
+      "apply_changes": 3
+    },
+    "errors": {}
+  },
+  "request": "기존 양식의 B2만 필수 숫자 수량 입력칸으로 확인받고 5를 채워줘. C2의 기존 계산 수식과 양식은 그대로 유지해.",
+  "answer": "",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_input_formula",
+        "title": "B2 입력칸과 C2 기존 수식 및 양식 확인",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "enter_quantity",
+        "title": "B2에 숫자 5 입력 후 C2 계산 결과 확인",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "state": "paused"
+      },
+      {
+        "id": "verify_preservation",
+        "title": "기존 수식과 양식이 유지되었는지 최종 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "state": "pending"
+      }
+    ],
+    "total": 3,
+    "completed": 1,
+    "currentStepId": "enter_quantity"
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "기존 양식을 확인하고 B2에 수량 5를 입력한 뒤, C2의 기존 수식과 계산 결과 및 양식을 확인합니다.",
+    "requirements": [
+      "B2에 숫자 5 입력",
+      "C2의 기존 수식 =B2*1200 유지",
+      "C2 계산 결과 6,000 확인",
+      "기존 양식과 셀 형식 유지"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "B2",
+        "field": "value",
+        "operator": "equals",
+        "expected": 5,
+        "valueType": "number"
+      },
+      {
+        "address": "C2",
+        "field": "formula",
+        "operator": "equals",
+        "expected": "=B2*1200"
+      },
+      {
+        "address": "C2",
+        "field": "value",
+        "operator": "equals",
+        "expected": 6000,
+        "valueType": "number"
+      },
+      {
+        "address": "C2",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "#,##0"
+      },
+      {
+        "address": "B2",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "General"
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_input_formula",
+        "title": "B2 입력칸과 C2 기존 수식 및 양식 확인",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "enter_quantity",
+        "title": "B2에 숫자 5 입력 후 C2 계산 결과 확인",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "id": "verify_preservation",
+        "title": "기존 수식과 양식이 유지되었는지 최종 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    ]
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_input_formula"
+    },
+    {
+      "name": "read",
+      "state": "done",
+      "stepId": "enter_quantity"
+    },
+    {
+      "name": "excel_capabilities",
+      "state": "done",
+      "stepId": "enter_quantity"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_quantity"
+    },
+    {
+      "name": "apply_changes",
+      "state": "error",
+      "stepId": "enter_quantity"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_quantity"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_quantity"
+    },
+    {
+      "name": "apply_changes",
+      "state": "error",
+      "stepId": "enter_quantity"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_quantity"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_quantity"
+    },
+    {
+      "name": "apply_changes",
+      "state": "error",
+      "stepId": "enter_quantity"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_quantity"
+    }
+  ],
+  "recoveryLog": [
+    {
+      "attempt": 1,
+      "stepId": "enter_quantity",
+      "code": "invalid_range",
+      "tool": "apply_changes",
+      "outcome": "not_executed",
+      "state": "superseded",
+      "summary": "B2 입력 작업이 주소 형식 오류로 실행되지 않았습니다. C2 수식과 기존 양식은 유지되고 있습니다.",
+      "nextAction": "A1 주소를 시트명 없이 사용하여 B2 셀에 숫자 5만 입력하세요. C2 수식과 서식은 변경하지 말고, 완료 후 B2와 C2를 다시 읽어 확인하세요."
+    },
+    {
+      "attempt": 2,
+      "stepId": "enter_quantity",
+      "code": "invalid_range",
+      "tool": "apply_changes",
+      "outcome": "not_executed",
+      "state": "superseded",
+      "summary": "B2 입력 작업은 실행되지 않았습니다. C2 수식과 기존 양식은 현재 유지되고 있습니다.",
+      "nextAction": "A1:C4 범위 안의 셀 주소 B2에 숫자 5만 입력하세요. C2 수식과 서식은 변경하지 말고, 입력 후 B2와 C2를 다시 읽어 확인하세요."
+    },
+    {
+      "attempt": 3,
+      "stepId": "enter_quantity",
+      "code": "invalid_range",
+      "tool": "apply_changes",
+      "outcome": "not_executed",
+      "state": "cancelled"
+    }
+  ]
+}

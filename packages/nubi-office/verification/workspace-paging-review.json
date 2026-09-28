@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-23",
+  "scope": "Exact memory-source pagination and completed-write activity status",
+  "baselineCommit": "b17a2eee1f4d2e8d0f9b97160d9cda2cba3829e8",
+  "modelBaseline": "Enterprise Qwen 3.8 27B; live model not invoked",
+  "before": {
+    "tests": 4,
+    "pass": 0,
+    "fail": 4,
+    "cancelled": 0,
+    "skipped": 0,
+    "logSha256": "444ceb8eed008837ba4714e32216fb9f8098498a1650bacb2513b7fc583b2019"
+  },
+  "after": {
+    "developmentFocusedSuite": {
+      "tests": 50,
+      "pass": 50,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "logSha256": "6c257b6ac57064d6d1c5741dad9d1918af4df2565e8abe0ecb748f37fb5c22d3"
+    },
+    "publicationFullSuite": {
+      "tests": 400,
+      "pass": 400,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "logSha256": "053ea74929806680f7f0a7291e48bed09e0a239ca69c4989b0f62f0fca3bfbf8"
+    },
+    "designCheckIssues": 0,
+    "sharedUiParity": {
+      "files": 24,
+      "matched": true
+    }
+  },
+  "propertyChecks": {
+    "library": "fast-check 4.10.2",
+    "runs": 150,
+    "seed": 2392304,
+    "assertions": [
+      "Exact raw source reconstruction",
+      "UTF-8 page byte bound",
+      "Monotonic source cursors",
+      "CRLF/blank line/Unicode preservation"
+    ]
+  },
+  "dependenciesChanged": false,
+  "actualReuse": {
+    "Pi": "0.86.1 createReadTool and truncateHead",
+    "fast-check": "4.10.2 development only"
+  },
+  "scripted": [
+    "model decisions in existing integration fixtures",
+    "native Office results",
+    "test approvals"
+  ],
+  "buildsExecuted": false,
+  "installerUpdated": false,
+  "notVerified": [
+    "Windows Office 2016 COM/installation",
+    "Qwen accuracy, latency and cost",
+    "corporate SSO and NASCA",
+    "native truncated-item tail retrieval",
+    "large-document hierarchical final review",
+    "protected durable recovery",
+    "Python and external skill installation"
+  ],
+  "separateDevelopmentChanges": "Seven independently changed shared UI files remain outside publication",
+  "references": [
+    "https://www.anthropic.com/engineering/writing-tools-for-agents",
+    "https://github.com/earendil-works/pi/blob/v0.86.1/packages/coding-agent/src/core/tools/read.ts",
+    "https://github.com/earendil-works/pi/blob/v0.86.1/packages/coding-agent/src/core/tools/truncate.ts",
+    "https://fast-check.dev/docs/introduction/why-property-based/"
+  ],
+  "sourceCheckout": "publication",
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "2701c6f5c6f36cbe6d8ec11e23eece77065b0e92fa3b9043d5d3723210f05208"
+    },
+    {
+      "path": "docs/CONTEXT-MANAGEMENT-2026-09-23.md",
+      "sha256": "05d7295d0d14a0ed4cf591475c65d76ca206049cdf61864115268dc884c228eb"
+    },
+    {
+      "path": "docs/IMPROVEMENT-STATUS.md",
+      "sha256": "111f3426f5b97bfc721c11a023485c4fb9d3f76d6ec59c97296f3a6efff4dbcf"
+    },
+    {
+      "path": "docs/WORKSPACE-PAGING-2026-09-23.md",
+      "sha256": "040c5b63b06c1ebc370efde1e1bf1b381d2ab9125e3c1a05650128fc37dfdbaf"
+    },
+    {
+      "path": "tests/workspace-paging.test.mjs",
+      "sha256": "5448e267a4dc2ea1102b84be9ec400329661b5f30a35f98801553885f264051b"
+    },
+    {
+      "path": "worker/skill-workspace.mjs",
+      "sha256": "77717f5961b6c791a76f9be200cf19508f4872255e64e3fafc3889a4cade16b0"
+    },
+    {
+      "path": "worker/workspace-read.mjs",
+      "sha256": "70aa7aa34912e2d83f8d482f978c1cbdf89bcaa332a658123c0ade14c4ec550b"
+    }
+  ]
+}

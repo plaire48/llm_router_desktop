@@ -1,0 +1,295 @@
+{
+  "date": "2026-09-23",
+  "kind": "source-ui-parity-and-automatic-task-flow",
+  "unitTests": {
+    "source": {
+      "passed": 217,
+      "failed": 0
+    },
+    "publication": {
+      "passed": 217,
+      "failed": 0
+    }
+  },
+  "automaticFlowTests": {
+    "passed": 12,
+    "failed": 0,
+    "models": "scripted fixtures, not live Qwen"
+  },
+  "browserQuestionApprovalContractTests": {
+    "passed": 10,
+    "failed": 0
+  },
+  "sharedUiFiles": 24,
+  "providerChoices": [
+    "AI Pro",
+    "ChatGPT",
+    "FabriX"
+  ],
+  "sourceAndPublicationMetricsMatch": true,
+  "chromiumStaticScreens": 63,
+  "axeViolations": 0,
+  "axeIncomplete": [
+    "aria-prohibited-attr",
+    "color-contrast"
+  ],
+  "buildPerformed": false,
+  "liveExcelVerified": false,
+  "liveModelVerified": false,
+  "sourceFingerprint": "527ff1cf6b4585284d8130bba28123be0fff065db7719a320f2ae2dda6fbc2b1",
+  "sourceFiles": [
+    {
+      "path": "src/App.jsx",
+      "sha256": "07c99a99dea8f8f4bd17cb7d6b3afe74233ca976ae9194e900938d03f94126d5"
+    },
+    {
+      "path": "src/OfficeComposer.jsx",
+      "sha256": "0bfd77a74826a138cb29a9d8ab44723d5c8d4552b42726ac4ca2384216d3b404"
+    },
+    {
+      "path": "src/OfficeDialogs.jsx",
+      "sha256": "9e99118050c677ec0912c1269a823b7e6eefa4c7b5a8ffc92883e5b0dbc6f670"
+    },
+    {
+      "path": "src/OfficeDocumentResult.jsx",
+      "sha256": "5e46cc364f362a5521adea4b562e39ea7b3472f7738e6ad852ccf92fb6474c66"
+    },
+    {
+      "path": "src/OfficeQuestion.jsx",
+      "sha256": "2099916a1651781f26c5f517a18338b8b49ad7b93d5a78c8f57880f4295c7b18"
+    },
+    {
+      "path": "src/OfficeTools.jsx",
+      "sha256": "1c0f6696d2ef4719e70192092df0bf9eda8f1b80571527520fa4ec6d02c89774"
+    },
+    {
+      "path": "src/OfficeTransaction.jsx",
+      "sha256": "828cb1197f01f012f2b95981f3ad435e1ae847b6e77f4f1f6aa36722bb6bc88c"
+    },
+    {
+      "path": "src/SelectionDetails.jsx",
+      "sha256": "7f6453e022928bdfcb46b0bc5c70defce56933b3750ea9e376963bf01f028472"
+    },
+    {
+      "path": "src/TaskActivity.jsx",
+      "sha256": "5bdeccba28a44b89dbd93bc2b2a2117e580a7e6d37e4810d5733fbe77a1d9323"
+    },
+    {
+      "path": "src/TaskDock.jsx",
+      "sha256": "e357ef52f070bdf180c0b930cb30f921534080f92b24cfd95cacbd81eef9ed70"
+    },
+    {
+      "path": "src/TaskRecovery.jsx",
+      "sha256": "0cab0cde6ce84c6ac8c0958573b2be0915d44f8296d874e9eeb4655e8fba7088"
+    },
+    {
+      "path": "src/TemplatePreservation.jsx",
+      "sha256": "23ba92e5c78078c5ec2eeb6cdb936aab148c8d0e817745e9e127dec4b5e21d74"
+    },
+    {
+      "path": "src/bridge.js",
+      "sha256": "3c789376bc43780071a499666dc38cc0da73aa76fd28d7c897d7ea4daef23592"
+    },
+    {
+      "path": "src/errors.js",
+      "sha256": "78b676131718d7a5e324b47b88208398acd13b19279afc8b7f9e26129195bde4"
+    },
+    {
+      "path": "src/input-delivery.js",
+      "sha256": "9a93e64542f2087f9d121bbde67d07280a3b71e7f68bbda9df6a85fe0f8fbfd7"
+    },
+    {
+      "path": "src/main.jsx",
+      "sha256": "9644ae5839d537ba02f4d9a97b1906e48c2a92b7a610b0a7e877da48420e8fff"
+    },
+    {
+      "path": "src/office.css",
+      "sha256": "07d0735a6516c3a403dbb822863f2422ddc0da350ff1ebaff7114e66c158fa68"
+    },
+    {
+      "path": "src/task-view.js",
+      "sha256": "5d615b8b75ad97e311feb8d665ec5cbec41a05cb5a0b064b3b5d0ceb8e28cb7e"
+    },
+    {
+      "path": "src/taskpane.html",
+      "sha256": "3024de417a14facbb0a588649bdb5cf424ae1d7900774930879851e12ad5259e"
+    },
+    {
+      "path": "src/worker-recovery.js",
+      "sha256": "73a49417eada5478e41d5dd5d75cd05d9419c68c76d8266290dd714653bb36e4"
+    },
+    {
+      "path": "worker/activity.mjs",
+      "sha256": "c30612f52fee727e4f9ddb48570db1630c2ebedb2bb45b8c09a8ceb04b04cd10"
+    },
+    {
+      "path": "worker/agent.mjs",
+      "sha256": "1d6f502944613279303f9c315f7dab0ae9532f671c143fc8cc617d2ab151b4e2"
+    },
+    {
+      "path": "worker/aipro-auth.mjs",
+      "sha256": "a4d51648d0f63ac47c94bab5313f2a40bddbf8efa9970fbf84fa6e6bd3cf890a"
+    },
+    {
+      "path": "worker/cell-format.mjs",
+      "sha256": "ee12305d19fa265c745243d9593b8956508d3683e0a809aa4172ef84717a4a3f"
+    },
+    {
+      "path": "worker/connection-errors.mjs",
+      "sha256": "57c0473aa7af121598b0ff0a0d26ac2017aca5954654c2f2b94a1de7c89d90f6"
+    },
+    {
+      "path": "worker/document-agent.mjs",
+      "sha256": "cb525ad503b0f4553f47b49d9f9bbcb81c4377b0db4741368e8153d52d1553d6"
+    },
+    {
+      "path": "worker/document-chunks.mjs",
+      "sha256": "8104e188a214f5129afe623fd83cdc75e3ce94e66dac4907642fc1cd001a3edb"
+    },
+    {
+      "path": "worker/document-context.mjs",
+      "sha256": "b545f33427f87f283c08821bc402c9e81212c6ee3742c5010fc3d96a97ba28d6"
+    },
+    {
+      "path": "worker/document-file.mjs",
+      "sha256": "11612d4ca6beeb34cea56897e72a980295e949a2dc05bdaafc7b25f108898992"
+    },
+    {
+      "path": "worker/document-schema.mjs",
+      "sha256": "3a753a0db05374e68b48bf0561ed4bc1ac26000a90675c788a9826d03ac0a949"
+    },
+    {
+      "path": "worker/excel-capabilities.mjs",
+      "sha256": "1312d7473008646a50bf63a71780a030bd2862396eea72ca3b1d55e74aa43466"
+    },
+    {
+      "path": "worker/fault-policy.mjs",
+      "sha256": "c67ecd6cbaaf5b97396908b576bcbeb689a297052c202805daa9b74fadca6e78"
+    },
+    {
+      "path": "worker/formula-preflight.mjs",
+      "sha256": "40635e898e1115f0f57df2dc075381dc3b38b96b96b9acecb68dff13ee0e7672"
+    },
+    {
+      "path": "worker/input-contract.mjs",
+      "sha256": "1b4a267cc9928762c4591d5da892356d87661341a1943728becd791eac30f1eb"
+    },
+    {
+      "path": "worker/intent-agent.mjs",
+      "sha256": "0d209effff53d8944ec01aebcdedb5261037ac4a86dcfea17c18bcd707c88492"
+    },
+    {
+      "path": "worker/interaction.mjs",
+      "sha256": "93bcd8ce48d946c856a8d422976af30c6895652b7e9ce305e02b622bb420dec1"
+    },
+    {
+      "path": "worker/main.mjs",
+      "sha256": "2f255e4e47f23bc59f567afb8f26d79ceb4d948e507ee283f48a0438a93882d3"
+    },
+    {
+      "path": "worker/model-context.mjs",
+      "sha256": "4623c227367048c1702a5d8fdc3680ff0e0f13d674f9fd08dbf6449f1dc97ba4"
+    },
+    {
+      "path": "worker/model-json.mjs",
+      "sha256": "ebd99a4dc5c5431d627d0ca784638d57aa952c3ea10dcedd208d90cf7c12525d"
+    },
+    {
+      "path": "worker/office-harness.mjs",
+      "sha256": "6d4dc019de47bba61504663f6c1945a03aca4ee2c9aa8929e9aab9aa8b086d8c"
+    },
+    {
+      "path": "worker/office-plan.mjs",
+      "sha256": "3667a40f75cad26b167f1a1efc4341a626c7e3b694fe3daaafdfc5b8b2e2aee6"
+    },
+    {
+      "path": "worker/office-range.mjs",
+      "sha256": "33e1604e62b860801331c616397de2b1226a01ef404b8ee5734e17f150bb689b"
+    },
+    {
+      "path": "worker/providers.mjs",
+      "sha256": "fcb03c58ae5bdae6ccd17beaf643bb0d1f3f8b465e8910dd7ba31e847f47dd96"
+    },
+    {
+      "path": "worker/recovery.mjs",
+      "sha256": "b8abbc2f301c32618d68c5bfac667c1198f4768cc955c95d61e0e5c251aa27af"
+    },
+    {
+      "path": "worker/resilience.mjs",
+      "sha256": "2a3e76f8617ded01b81b00a6b2f2ab55c7c0f96d2ba4b25116b73c910349105e"
+    },
+    {
+      "path": "worker/template-library.mjs",
+      "sha256": "3d8de7dcf8d06ef54a6f7da1e44c0ee8842b178d8634d4c1913b0e0208ba3750"
+    },
+    {
+      "path": "worker/template-preservation.mjs",
+      "sha256": "aa7cf5c96ac5a6e42d043c8ce4ff49910e493f3e04896af50d37bc82d352264c"
+    },
+    {
+      "path": "worker/template.mjs",
+      "sha256": "5622504bb5e16b3230b69e5ac89ae3586481c06e37a056753d18f3eb8dab9b49"
+    },
+    {
+      "path": "worker/tool-response.mjs",
+      "sha256": "674aa39e0b4edb8e722bc2fa91eda0e554a0a14ddd640830ed79abaa6fe34e2f"
+    },
+    {
+      "path": "worker/workbook-context.mjs",
+      "sha256": "ed8780acd143143f69d3c328a9c7cd7cebcfd2d17e33934c408441aff299268d"
+    }
+  ],
+  "dockNavigation": "Text action only while the pending question or approval is outside the conversation viewport; IntersectionObserver behavior tested with scripted callbacks.",
+  "allAiProModels": {
+    "source": "saved API response fixture",
+    "received": 10,
+    "displayed": 10,
+    "allSelectable": true,
+    "originalRequestIds": true,
+    "liveService": false
+  },
+  "toastPlacement": {
+    "normalAndModal": true,
+    "duringModalEntrance": true,
+    "topPixels": {
+      "320": 12,
+      "380": 12,
+      "1100": 24
+    }
+  },
+  "sourceFingerprintAlgorithm": "SHA-256 of source path:sha256 lines; hashes refer to the development checkout before vendored import rewriting",
+  "layoutSimplification": {
+    "composerActionsBeforeWithSelection": 7,
+    "composerActionsAfter": 2,
+    "secondaryTools": "header More dialog",
+    "selectionRead": "fresh on inspect, refresh and submit",
+    "failedInspection": "no stale cell details or request action",
+    "templateCancel": "draft preserved, no agent run started",
+    "usage": "header dialog, last measured call detail",
+    "acceptedAnswers": "collapsed, can be reopened",
+    "busyComposer": "input collapsed, progress and stop retained",
+    "welcome": "Full mascot, Excel brand title, two-line description and separate Nubi invitation retained at user request",
+    "newDependencies": []
+  },
+  "htmlIdentityReview": {
+    "source": "agentfactorysdkdeck.html",
+    "sha256": "df9cfcc44f2f8d4ea14c6f137d0297c562ca506f8a0028df374c7f012d8715ac",
+    "paletteTokens": 19,
+    "matched": true,
+    "welcomeRestored": true,
+    "shortPaneChecked": {
+      "width": 320,
+      "height": 600
+    },
+    "resultCard": "white surface, blue-soft border, file shadow, icon tile",
+    "sourceTests": 217,
+    "publicationTests": 217,
+    "notVerified": [
+      "Windows WebView2",
+      "Excel 2016 COM",
+      "Live Qwen",
+      "NASCA"
+    ],
+    "buildPerformed": false
+  }
+}

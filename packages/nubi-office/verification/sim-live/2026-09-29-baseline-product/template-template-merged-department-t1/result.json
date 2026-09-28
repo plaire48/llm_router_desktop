@@ -1,0 +1,35 @@
+{
+  "suite": "template",
+  "id": "template-merged-department",
+  "trial": 1,
+  "routing": "product",
+  "passed": false,
+  "outcome": "error",
+  "state": "cancelled",
+  "error": "evaluation_interaction_requires_human",
+  "writes": 0,
+  "recoveries": 0,
+  "questions": [
+    "담당 부서에 입력할 값을 알려주세요."
+  ],
+  "approvals": [],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 1,
+    "toolCalls": 1,
+    "elapsedMs": 2083
+  },
+  "transcript": {
+    "modelCalls": 1,
+    "byRole": {
+      "intent_router": 1
+    },
+    "elapsedMs": 2063,
+    "requestCharacters": 2355,
+    "peakRequestCharacters": 2355,
+    "toolCalls": {},
+    "errors": {}
+  },
+  "request": "기존 양식 B2:C2 병합 칸의 B2는 필수 텍스트 담당 부서 입력칸이다. 입력 항목을 확인받고 담당 부서를 나에게 물어본 뒤 답한 값을 입력해. 병합·서식·다른 내용은 그대로 유지해.",
+  "trace": []
+}

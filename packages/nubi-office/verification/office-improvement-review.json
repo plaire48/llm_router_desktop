@@ -1,0 +1,80 @@
+{
+  "kind": "source-and-scripted-protocol-evidence",
+  "recordedAt": "2026-09-23T00:13:38.801769+00:00",
+  "baselineCommit": "fac3fbf24ff21be0638ef79e46857604b02eea7d",
+  "checkout": "development",
+  "statusTable": "docs/IMPROVEMENT-STATUS.md",
+  "tests": {
+    "total": 242,
+    "passed": 242,
+    "failed": 0,
+    "skipped": 0,
+    "newSinceBaseline": 11,
+    "agentRuntime": "Pi 0.86.1",
+    "provider": "scripted",
+    "nativeResponses": "scripted",
+    "propertyTesting": {
+      "library": "fast-check 4.10.2",
+      "seed": 231016,
+      "cases": 100
+    }
+  },
+  "ui": {
+    "staticChromiumScreens": 84,
+    "overflow": 0,
+    "axeViolations": 0,
+    "manualAxeReviewRequired": [
+      "aria-prohibited-attr",
+      "color-contrast"
+    ],
+    "sharedUiFilesMatched": 24,
+    "designSourceIssues": 0,
+    "fullAccessibilityAudit": false,
+    "evidence": "usability-preview.json",
+    "measuredCheckout": "development"
+  },
+  "nativeSourceReview": {
+    "method": "manual source and official API review",
+    "word": "selected inline plain content controls, unsigned/signed IDs, XML mapping and temporary control exclusion, value and surrounding main-document XML readback",
+    "powerpoint": "per-run text/font observations; mixed runs stay read-only",
+    "compiled": false,
+    "executed": false
+  },
+  "limits": {
+    "actorObservationChars": 48000,
+    "finalEvidenceChars": 180000,
+    "oversizedFinalEvidence": "fails incomplete; no lossy success summary",
+    "allOfficeFunctionsImplemented": false
+  },
+  "notVerified": [
+    "native compile and real Office 2016 COM",
+    "Word field formatting and layout on representative company templates",
+    "PowerPoint rich-text readback in Office",
+    "company Qwen accuracy, latency and token savings",
+    "company SSO and NASCA save/reopen",
+    "component installer execution",
+    "process restart recovery"
+  ],
+  "buildsRun": false,
+  "sourceSha256": {
+    "AGENTS.md": "4e26a05080230278f4a4ea946bedcceb2d21f508bc63cafcaff4486ff1f6a863",
+    "README.md": "edf098032c6d264d38ff74ae28e08204363e3297b4320fdfdfb83844359cc569",
+    "docs/OFFICE-2016-SPECIALIZATION.md": "1d570152c141944ab62a39751f20da84e892223a4dbf91e31fb1dc0e622ffbe3",
+    "docs/IMPROVEMENT-STATUS.md": "7ca3f06112d227ea71b23dfd7fb696d63a8827e1d0c005d1e3d3357071bd6b27",
+    "worker/content-agent.mjs": "87bd74bd879b63ee8c64a3be58b801712372afb7a5cb2038f9aa28853aa0302f",
+    "worker/content-schema.mjs": "1472722cded87ff7e54ce75441035fd5114d258710903fb48cc8cb3efa13996f",
+    "worker/content-context.mjs": "e38063e22b769167b77ba00c05efb17e3f8bda094e70b7024041175147f0aeff",
+    "worker/office-hosts.mjs": "7e1bb5cb675221a5b6d61602e7c4f0bd26a04e0723a281a5501e2c0e4db38a02",
+    "worker/resilience.mjs": "8650609b8b858dd971f8de1e3c1bc8798eb7ecbccedc5308025ca6b544cfd7da",
+    "native/Nubi.Office.Host/WordContentDocument.cs": "97a520d8c0994a4a7762ec2878dc8b272274f3baff324ff9e0a9af567674159b",
+    "native/Nubi.Office.Host/WordContentFields.cs": "07d00dee872620d4bebc8812b484bc1c71f8cdaa5172b1000f85e2ab0cd40b2b",
+    "native/Nubi.Office.Host/SlideContentDocument.cs": "869c18f5639b705add0ed5a0ef5673f7d743a0611e9409e0c97096f7310869eb",
+    "src/ContentDetails.jsx": "28e24a665a99e9c08e12ff0327fdc4c93c8460fe655d833e7fe3d3d42c215587",
+    "src/OfficeDialogs.jsx": "53a0feaacc783d229ab5cca36f660c7d0ad455c2d2ebdf8e9c22798b2e449473",
+    "src/errors.js": "29367c1ae177f96732c0a76e8f43b9b6ddc3e3b79a7d322e09f3651cfd4366b1",
+    "tests/content-agent.test.mjs": "c0ce9187aaf45cbb23e51fb9b2b28091b1996e3188bba2f5bf10060a5b79495a",
+    "tests/content-context.test.mjs": "af893c06bc9fb4b024db12b2002c99a7445a0f3a6038286c506fb2148e721b05",
+    "tests/content-ui.test.mjs": "bc12bfa92604d61e01146ca3a2df1ed177190ba9ef090c2c9ecaf55414493a0c",
+    "tests/ui-preview.mjs": "062b8b2431a4e5b2681979b8c48f022113671c6d4dbed77b849ce81c1a01fd97"
+  }
+}

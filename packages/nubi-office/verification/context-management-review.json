@@ -1,0 +1,77 @@
+{
+  "date": "2026-09-23",
+  "baselineCommit": "b0339108438aed83106304edd5f91e6a2e62adee",
+  "sourceVariant": "development",
+  "scope": "Per-run exact context retrieval, request budgeting and Office actor continuity",
+  "tests": {
+    "command": "npm test",
+    "passed": 253,
+    "failed": 0,
+    "skipped": 0,
+    "followup": "Final Unicode/multi-chunk property test strengthened and rerun: 7/7 context-memory tests passed",
+    "historyRoundTripPropertyRuns": 100,
+    "historyRoundTripSeed": 23923,
+    "existingNativePartitionPropertyRuns": 100
+  },
+  "sourceChecks": {
+    "designIssues": 0,
+    "sharedUiFilesMatched": 24,
+    "appJsxInMemorySyntax": "passed; no output file",
+    "diffWhitespace": "passed"
+  },
+  "dependency": {
+    "name": "minisearch",
+    "version": "7.2.0",
+    "license": "MIT",
+    "mode": "production dependency; per-run in-memory index; no server or embedding call",
+    "installScriptsExecuted": false
+  },
+  "benchmark": {
+    "scenario": "30 synthetic Korean conversation messages; no model or Office invocation",
+    "rawChars": 100253,
+    "newWindowChars": 15144,
+    "oldWordPptHistoryChars": 26733,
+    "oldExcelHistoryChars": 26733,
+    "oldNewWorkbookHistoryChars": 66831,
+    "retainsOlderCode": true,
+    "tokenReduction": "unmeasured",
+    "modelAccuracy": "unmeasured"
+  },
+  "evidenceBoundaries": {
+    "modelTokenCount": "unmeasured",
+    "qwenAccuracy": "unmeasured",
+    "windowsOffice2016": "not run",
+    "nasca": "not run",
+    "nativeCompilation": false,
+    "bundlesBuilt": false,
+    "installerBuilt": false,
+    "liveAuthentication": "not run",
+    "hierarchicalFinalReview": "not implemented; Word/PPT full evidence cap remains 180000 chars"
+  },
+  "sourceHashes": {
+    "AGENTS.md": "1a5c9bf3c3ae5db5aa0189a5cdb3f20431e6c54c2d8dad51f418af0c4343a969",
+    "README.md": "6e097db7250de948ad252b6eb13b5242c6804c68cc2d37852363c0c99015f270",
+    "THIRD-PARTY-NOTICES.md": "e6afbff40932131bc4c8c4b9b36382a4f60b98b7fd6293a3e558ede0cb6ed7a5",
+    "docs/IMPROVEMENT-STATUS.md": "91eb41f9ad8f5da3b9d3f4a0b77f1166f9770195f6d5a38234fb824974b33ab5",
+    "docs/CONTEXT-MANAGEMENT-2026-09-23.md": "aed423e7158ed7901b8c4115b95f33ee560eaccb92b0b082e687dfd6f0c0e937",
+    "licenses/minisearch-MIT.txt": "70d37354d6395629fb99edb28cb37a5d356ffa24a48cd02a5def5b83a300a899",
+    "worker/context-memory.mjs": "94ef162e3a5e8026116463739d16685f55581569fb9f3dd89bd1785a0ef6b87b",
+    "worker/context-budget.mjs": "2e0b6f05197e374a354961790a6a7bc6f9abae7709ddc34cf1dfe665bf01c347",
+    "worker/content-context.mjs": "fc36c56cf68f487c39af5a994fd37270adf02b4a215d1f61156e37fc2959a97c",
+    "worker/content-agent.mjs": "b3a0bbd292ab542bc8639b40f7e39e1b0877ff828359ecddb3ea316e3785e5f2",
+    "worker/agent.mjs": "cc6a3d55d7ac937482ba1b8ae4a2c215eed984afd4831e999fe204186f8e7227",
+    "worker/document-agent.mjs": "27867e407d971b1b417fc3b4b5735ee816d68de73879001f531f8ec9468d7982",
+    "worker/intent-agent.mjs": "aa4cdef66cfc6f75a29178804ce3fcade4789438ff428414f521be3ead3c1109",
+    "worker/resilience.mjs": "749bb45d88e3e07d8f9073cbeb60f1ec346fd83f3dd4a4637c0a21b0ab8c631a",
+    "worker/workbook-context.mjs": "2f0877e8eed4d256b884f7f7d65ad229879c1597081e0f4b6285c4bea861a110",
+    "src/App.jsx": "fa7f8bb678391bb016fc7d0709a885e1566dc0c9de29c1e9082001d83ce8424b",
+    "src/run-context.js": "c85de8d6badb48171b693315b7a972cef17f04241c4db5e14090535004fa40c5",
+    "src/errors.js": "95337d4df5f9fb53c17cde9a7760c3af678a8d42c1ff2c2eb2aaff0079aa332e",
+    "tests/context-memory.test.mjs": "4632beb159c94e0386db93289152a2cc3afd2a7c7fadf4d72e8e7229eb7262f6",
+    "tests/content-agent.test.mjs": "5b5f47cc917b56570d4b743c86cde811af82606889269d7a916db5537ff9f98c",
+    "tests/agent.test.mjs": "af17ccf997c3d9956599dfbaa6eb35a18aa9ba727f5486c4dd551f1caa1c85e3",
+    "tests/document.test.mjs": "148789d63cfae300ea148290c6391a895513b2047e10c1ebaf7e15527bb80300",
+    "package.json": "43988f1ffaed6855cd9342de58e2503d7e1381383f85f11c9e6275fe1471969d",
+    "package-lock.json": "430bd781bca7e5012fdf781d42f0d0d00516b48d50051c9fc18b28aad65f2d6e"
+  }
+}

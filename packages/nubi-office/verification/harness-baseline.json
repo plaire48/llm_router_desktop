@@ -1,0 +1,8 @@
+{
+  "kind": "reproduced-control-defect-not-model-evaluation",
+  "sourceHash": "e69602276d87a2e0ef595fa93d326e6f611a2584063c78a65bd701245fbd577d",
+  "requestedValue": 42,
+  "observedValue": 1,
+  "reportedState": "done",
+  "defect": "Old supervisor accepted unchanged readback as success"
+}

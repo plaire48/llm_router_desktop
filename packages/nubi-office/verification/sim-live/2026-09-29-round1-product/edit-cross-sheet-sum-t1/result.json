@@ -1,0 +1,311 @@
+{
+  "suite": "edit",
+  "id": "cross-sheet-sum",
+  "trial": 1,
+  "routing": "product",
+  "passed": false,
+  "outcome": "error",
+  "state": "cancelled",
+  "error": "evaluation_recovery_requires_human",
+  "writes": 0,
+  "recoveries": 5,
+  "questions": [],
+  "approvals": [
+    "recovery"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 19,
+    "toolCalls": 12,
+    "elapsedMs": 59014
+  },
+  "transcript": {
+    "modelCalls": 19,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 2,
+      "actor": 12,
+      "recovery": 4
+    },
+    "elapsedMs": 48253,
+    "requestCharacters": 557295,
+    "peakRequestCharacters": 50408,
+    "toolCalls": {
+      "read": 1,
+      "read_worksheet_range": 3,
+      "read_selection": 1,
+      "apply_changes": 5,
+      "excel_capabilities": 2
+    },
+    "errors": {}
+  },
+  "request": "통합문서에서 동부와 서부 시트의 B2:B3 매출을 확인하고, 두 시트의 합계를 선택한 A2에 SUM 수식으로 작성해줘. 다른 셀과 원본 시트는 유지해줘.",
+  "answer": "",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_sources",
+        "title": "동부·서부 시트의 B2:B3와 선택 영역을 확인",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "write_total",
+        "title": "A2에 동부·서부 매출 합계 SUM 수식 작성",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2
+        ],
+        "state": "paused"
+      },
+      {
+        "id": "verify_preservation",
+        "title": "수식 계산 결과와 기존 레이블 보존을 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2
+        ],
+        "state": "pending"
+      }
+    ],
+    "total": 3,
+    "completed": 1,
+    "currentStepId": "write_total"
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "동부와 서부 시트의 B2:B3 매출을 합산해 선택 영역 A2에 SUM 수식을 작성하고 기존 셀과 원본 시트는 유지합니다.",
+    "requirements": [
+      "동부 시트 B2:B3 매출을 합계에 포함",
+      "서부 시트 B2:B3 매출을 합계에 포함",
+      "선택한 CaseSheet의 A2에 SUM 수식 작성",
+      "다른 셀과 원본 시트의 값·수식은 변경하지 않음"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "A2",
+        "field": "formula",
+        "operator": "equals",
+        "expected": "=SUM('동부'!B2:B3,'서부'!B2:B3)"
+      },
+      {
+        "address": "A2",
+        "field": "value",
+        "operator": "no_error"
+      },
+      {
+        "address": "A1",
+        "field": "value",
+        "operator": "equals",
+        "expected": "전체 매출"
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_sources",
+        "title": "동부·서부 시트의 B2:B3와 선택 영역을 확인",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "write_total",
+        "title": "A2에 동부·서부 매출 합계 SUM 수식 작성",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "id": "verify_preservation",
+        "title": "수식 계산 결과와 기존 레이블 보존을 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2
+        ]
+      }
+    ]
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_sources"
+    },
+    {
+      "name": "read",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "read_worksheet_range",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "read_worksheet_range",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "apply_changes",
+      "state": "error",
+      "stepId": "write_total"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "apply_changes",
+      "state": "error",
+      "stepId": "write_total"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "excel_capabilities",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "read_worksheet_range",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "apply_changes",
+      "state": "error",
+      "stepId": "write_total"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "apply_changes",
+      "state": "error",
+      "stepId": "write_total"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "excel_capabilities",
+      "state": "done",
+      "stepId": "write_total"
+    },
+    {
+      "name": "apply_changes",
+      "state": "error",
+      "stepId": "write_total"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_total"
+    }
+  ],
+  "recoveryLog": [
+    {
+      "attempt": 1,
+      "stepId": "write_total",
+      "code": "invalid_range",
+      "tool": "apply_changes",
+      "outcome": "not_executed",
+      "state": "superseded",
+      "summary": "주소에 시트명을 포함해 오류가 발생했으며, A2는 아직 비어 있습니다.",
+      "nextAction": "CaseSheet 시트에서 A2 셀을 대상으로 지정하고, =SUM('동부'!B2:B3,'서부'!B2:B3) 수식을 작성한 뒤 A2를 다시 읽어 검토하세요."
+    },
+    {
+      "attempt": 2,
+      "stepId": "write_total",
+      "code": "invalid_range",
+      "tool": "apply_changes",
+      "outcome": "not_executed",
+      "state": "superseded",
+      "summary": "주소 형식 오류로 수식이 아직 작성되지 않았습니다. CaseSheet의 A2만 대상으로 다시 작성해야 합니다.",
+      "nextAction": "CaseSheet 시트 컨텍스트에서 A2 셀에 =SUM('동부'!B2:B3,'서부'!B2:B3) 수식을 입력한 뒤 A2의 수식과 오류 여부를 다시 읽어 확인하세요."
+    },
+    {
+      "attempt": 3,
+      "stepId": "write_total",
+      "code": "invalid_range",
+      "tool": "apply_changes",
+      "outcome": "not_executed",
+      "state": "superseded",
+      "summary": "A2 수식 작성이 실행되지 않았습니다. CaseSheet 범위 내부 주소로 재시도해야 합니다.",
+      "nextAction": "CaseSheet 시트 컨텍스트에서 A2 셀에 =SUM('동부'!B2:B3,'서부'!B2:B3) 수식을 작성한 뒤 A2를 다시 읽어 수식과 오류 여부를 확인하세요."
+    },
+    {
+      "attempt": 4,
+      "stepId": "write_total",
+      "code": "invalid_range",
+      "tool": "apply_changes",
+      "outcome": "not_executed",
+      "state": "superseded",
+      "summary": "수식 자체는 올바르지만 주소 형식 오류로 실행되지 않았습니다. CaseSheet의 선택 셀 A2에 다시 작성해야 합니다.",
+      "nextAction": "대상 시트를 CaseSheet로 지정하고 주소에는 시트명을 포함하지 않은 A2만 사용해 =SUM('동부'!B2:B3,'서부'!B2:B3) 수식을 작성한 뒤 A2를 다시 읽어 검토합니다."
+    },
+    {
+      "attempt": 5,
+      "stepId": "write_total",
+      "code": "invalid_range",
+      "tool": "apply_changes",
+      "outcome": "not_executed",
+      "state": "cancelled"
+    }
+  ]
+}

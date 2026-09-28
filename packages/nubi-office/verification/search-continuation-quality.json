@@ -1,0 +1,38 @@
+{
+  "date": "2026-09-25",
+  "scope": "Word/PPT search continuation and source validation",
+  "tests": {
+    "command": "npm run test:pinned",
+    "passed": 668,
+    "failed": 0,
+    "skipped": 0,
+    "logSha256": "c7f8c5e13a55ac8800b527be60900d61cab1372bf8c8005d9df952706ce7366e"
+  },
+  "design": {
+    "command": "npm run design:check",
+    "sharedFiles": 24,
+    "matched": true,
+    "issues": 0,
+    "logSha256": "cbd43b2caa594ada7152f9d7dad24c264cf9b2184b5a5fa1997a7b9fce90b256"
+  },
+  "sourceSha256": {
+    "worker/content-context.mjs": "9f8916745c5e3ae77066b1caf08b589971230013e0234c2a51a92e296a6d6f23",
+    "worker/content-agent.mjs": "3e3ca300fa22ce5a07e5430bd710103dfcf6d28e0de7b543e457a14f563a3f3f",
+    "tests/content-search-pagination.test.mjs": "a80ba2f384eced654c5126425fbe5a5660891022feca3d29cc4ccd2e1855a3c0",
+    "tests/content-agent.test.mjs": "f5c7da3cbc1aeaf9bdac6e1fa237426d8e4551b2439b4b8d2241ef31996cd1c4",
+    "eval/benchmark-search-continuation.mjs": "4b04ccaf0ef01a533317c6ab929cfcaa8eb48a8fa4a7dd21a5edb0c9e1dc937a"
+  },
+  "benchmark": "search-continuation-benchmark.json",
+  "sourceReview": "search-source-review.json",
+  "newRuntimeDependencies": 0,
+  "nativeBuild": false,
+  "installerBuild": false,
+  "releaseChanged": false,
+  "notVerified": [
+    "Windows 11 installation",
+    "Office 2016 COM",
+    "Qwen live inference quality",
+    "NASCA",
+    "competitor runtime performance"
+  ]
+}

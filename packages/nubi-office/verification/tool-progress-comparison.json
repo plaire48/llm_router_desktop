@@ -1,0 +1,46 @@
+{
+  "evidence": "Scripted real Pi/Office-worker control flow, no live model or native Office",
+  "baselineCommit": "98e73d53f86ab433d51d818518ebce94e56e2ba7",
+  "results": [
+    {
+      "version": "before",
+      "flow": "excel_selection",
+      "actorCallsBeforeRecoveryHITL": 9,
+      "nativeReadsBeforeRecoveryHITL": 13,
+      "code": "agent_stalled",
+      "writes": 0,
+      "prevented": 0,
+      "automaticallyApproved": false
+    },
+    {
+      "version": "before",
+      "flow": "excel_document",
+      "actorCallsBeforeRecoveryHITL": 9,
+      "nativeReadsBeforeRecoveryHITL": 0,
+      "code": "agent_stalled",
+      "writes": 0,
+      "prevented": 0,
+      "automaticallyApproved": false
+    },
+    {
+      "version": "after",
+      "flow": "excel_selection",
+      "actorCallsBeforeRecoveryHITL": 4,
+      "nativeReadsBeforeRecoveryHITL": 4,
+      "code": "tool_loop_detected",
+      "writes": 0,
+      "prevented": 2,
+      "automaticallyApproved": false
+    },
+    {
+      "version": "after",
+      "flow": "excel_document",
+      "actorCallsBeforeRecoveryHITL": 5,
+      "nativeReadsBeforeRecoveryHITL": 0,
+      "code": "tool_loop_detected",
+      "writes": 0,
+      "prevented": 2,
+      "automaticallyApproved": false
+    }
+  ]
+}

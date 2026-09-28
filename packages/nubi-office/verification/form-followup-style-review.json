@@ -1,0 +1,14 @@
+{
+  "date": "2026-09-25",
+  "file": "extensions/aipro-chat/src/app.css",
+  "previousReviewedSha256": "f2930b8716ef55efa964e19bac097eb6de2ab8b639a42142e51be40b93418627",
+  "currentReviewedSha256": "58c8a1f7e48064fe414459233611dcf2d6979411fa87ca5c96f2d47cdc119bbd",
+  "sourceChangedInThisTask": false,
+  "review": "Current shared CSS inspected against the supplied HTML and existing deck tokens; Office source previews rendered at 320, 380 and 1100 pixels. Only this manifest entry refreshed. Prior full source bytes for the previous manifest hash were unavailable; no exact previous-to-current diff is claimed. Browser-only skill-command and subagent styles remain scoped and unmodified.",
+  "visualEvidence": "usability-preview.json",
+  "screens": 129,
+  "notVerified": [
+    "Browser-only skill command behavior",
+    "Live Windows WebView2"
+  ]
+}

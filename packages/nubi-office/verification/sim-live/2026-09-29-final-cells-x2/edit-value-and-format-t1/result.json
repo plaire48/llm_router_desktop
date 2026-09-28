@@ -1,0 +1,384 @@
+{
+  "suite": "edit",
+  "id": "value-and-format",
+  "trial": 1,
+  "routing": "product",
+  "passed": true,
+  "outcome": "passed",
+  "state": "done",
+  "writes": 1,
+  "recoveries": 0,
+  "questions": [],
+  "approvals": [
+    "edit"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 10,
+    "toolCalls": 4,
+    "elapsedMs": 32607
+  },
+  "transcript": {
+    "modelCalls": 10,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 1,
+      "actor": 5,
+      "action_review": 1,
+      "step_review": 1,
+      "result_review": 1
+    },
+    "elapsedMs": 32457,
+    "requestCharacters": 231776,
+    "peakRequestCharacters": 47597,
+    "toolCalls": {
+      "read": 1,
+      "read_selection": 1,
+      "apply_changes": 1,
+      "verify_selection": 1
+    },
+    "errors": {}
+  },
+  "score": {
+    "passed": true,
+    "outcome": "passed",
+    "deterministicPassed": true,
+    "semanticReview": {
+      "required": false,
+      "status": "not_required",
+      "criteria": []
+    },
+    "expectedState": "done",
+    "actualState": "done",
+    "checks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "A2",
+          "field": "value",
+          "operator": "equals",
+          "expected": 4,
+          "actual": [
+            [
+              4
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "A2",
+          "field": "bold",
+          "operator": "equals",
+          "expected": true,
+          "actual": [
+            [
+              true
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C2",
+          "field": "value",
+          "operator": "equals",
+          "expected": 4800,
+          "actual": [
+            [
+              4800
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C2",
+          "field": "formula",
+          "operator": "equals",
+          "expected": "=A2*B2",
+          "actual": [
+            [
+              "=A2*B2"
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "persistedChecks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "A2",
+          "field": "value",
+          "operator": "equals",
+          "expected": 4,
+          "actual": [
+            [
+              4
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "A2",
+          "field": "bold",
+          "operator": "equals",
+          "expected": true,
+          "actual": [
+            [
+              true
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C2",
+          "field": "value",
+          "operator": "equals",
+          "expected": 4800,
+          "actual": [
+            [
+              4800
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C2",
+          "field": "formula",
+          "operator": "equals",
+          "expected": "=A2*B2",
+          "actual": [
+            [
+              "=A2*B2"
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "unexpectedChanges": [],
+    "persistedUnexpectedChanges": [],
+    "sourceChecks": [],
+    "formulaChecks": []
+  },
+  "request": "A2의 수량을 4로 바꾸고 굵게 해줘. 나머지 값, 수식, 서식은 그대로 유지해줘.",
+  "answer": "완료했습니다.\n\n- A2: 숫자 `4`, 굵게 설정\n- C2: 수식 `=A2*B2`, 계산값 `4800` 확인\n- B2 및 제목 행의 값과 기존 서식 유지 확인",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_selection",
+        "title": "선택 영역의 기존 값과 수식 및 서식 확인",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "edit_quantity_bold",
+        "title": "A2를 4로 변경하고 굵게 설정한 뒤 금액 확인",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "state": "done",
+        "requiresReview": true
+      },
+      {
+        "id": "verify_preservation",
+        "title": "나머지 값과 수식 및 서식 유지 여부 확인",
+        "kind": "verify",
+        "checkIndexes": [],
+        "state": "done"
+      }
+    ],
+    "total": 3,
+    "completed": 3,
+    "currentStepId": null
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "A2의 수량을 4로 변경하고 A2만 굵게 설정한 뒤, 금액 수식과 나머지 값·서식이 유지되는지 확인합니다.",
+    "requirements": [
+      "A2 값을 숫자 4로 변경",
+      "A2를 굵게 설정",
+      "기존 수식, 값, 기타 서식 유지",
+      "A2 변경에 따른 C2 금액 계산 확인"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "A2",
+        "field": "value",
+        "operator": "equals",
+        "expected": 4
+      },
+      {
+        "address": "A2",
+        "field": "bold",
+        "operator": "equals",
+        "expected": true
+      },
+      {
+        "address": "C2",
+        "field": "formula",
+        "operator": "equals",
+        "expected": "=A2*B2"
+      },
+      {
+        "address": "C2",
+        "field": "value",
+        "operator": "equals",
+        "expected": 4800
+      },
+      {
+        "address": "B2",
+        "field": "value",
+        "operator": "equals",
+        "expected": 1200
+      },
+      {
+        "address": "A1:C1",
+        "field": "value",
+        "operator": "equals",
+        "expected": [
+          [
+            "수량",
+            "단가",
+            "금액"
+          ]
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_selection",
+        "title": "선택 영역의 기존 값과 수식 및 서식 확인",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "edit_quantity_bold",
+        "title": "A2를 4로 변경하고 굵게 설정한 뒤 금액 확인",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      {
+        "id": "verify_preservation",
+        "title": "나머지 값과 수식 및 서식 유지 여부 확인",
+        "kind": "verify",
+        "checkIndexes": []
+      }
+    ]
+  },
+  "review": {
+    "status": "complete",
+    "checks": [
+      {
+        "requirement": "A2의 값을 숫자 4로 변경",
+        "status": "met",
+        "evidence_ids": [
+          7
+        ]
+      },
+      {
+        "requirement": "A2를 굵게 설정",
+        "status": "met",
+        "evidence_ids": [
+          7
+        ]
+      },
+      {
+        "requirement": "기존 수식과 값 유지",
+        "status": "met",
+        "evidence_ids": [
+          7
+        ]
+      },
+      {
+        "requirement": "A2 변경에 따라 C2가 4800으로 계산되고 수식이 유지됨",
+        "status": "met",
+        "evidence_ids": [
+          7
+        ]
+      },
+      {
+        "requirement": "기타 확인된 서식 유지",
+        "status": "met",
+        "evidence_ids": [
+          7
+        ]
+      }
+    ],
+    "next_step": "없음"
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_selection"
+    },
+    {
+      "name": "read",
+      "state": "done",
+      "stepId": "edit_quantity_bold"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "edit_quantity_bold"
+    },
+    {
+      "name": "apply_changes",
+      "state": "done",
+      "stepId": "edit_quantity_bold"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "edit_quantity_bold"
+    },
+    {
+      "name": "review_action",
+      "state": "done",
+      "stepId": "edit_quantity_bold"
+    },
+    {
+      "name": "review_step",
+      "state": "done",
+      "stepId": "edit_quantity_bold"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_preservation"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_preservation"
+    },
+    {
+      "name": "review_task",
+      "state": "done",
+      "stepId": "verify_preservation"
+    }
+  ],
+  "recoveryLog": []
+}

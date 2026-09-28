@@ -1,0 +1,214 @@
+{
+  "suite": "template",
+  "id": "template-preserve-calculation",
+  "trial": 2,
+  "routing": "product",
+  "passed": false,
+  "outcome": "error",
+  "state": "cancelled",
+  "error": "evaluation_interaction_requires_human",
+  "writes": 0,
+  "recoveries": 0,
+  "questions": [
+    "수량 (B2) 값을 입력해 주세요."
+  ],
+  "approvals": [
+    "template_mapping"
+  ],
+  "proposals": 1,
+  "metrics": {
+    "modelCalls": 6,
+    "toolCalls": 4,
+    "elapsedMs": 15371
+  },
+  "transcript": {
+    "modelCalls": 6,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 1,
+      "actor": 4
+    },
+    "elapsedMs": 15223,
+    "requestCharacters": 176719,
+    "peakRequestCharacters": 43883,
+    "toolCalls": {
+      "read": 1,
+      "read_selection": 1,
+      "define_template_fields": 1,
+      "ask_template_field": 1
+    },
+    "errors": {}
+  },
+  "request": "기존 양식의 B2만 필수 숫자 수량 입력칸으로 확인받고 5를 채워줘. C2의 기존 계산 수식과 양식은 그대로 유지해.",
+  "answer": "",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "기존 B2 입력칸과 C2 수식 및 양식 확인",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "enter_quantity",
+        "title": "B2에 숫자 수량 5 입력 후 C2 계산 확인",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "state": "paused"
+      },
+      {
+        "id": "verify_result",
+        "title": "입력값과 수식 및 계산 결과 최종 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "state": "pending"
+      }
+    ],
+    "total": 3,
+    "completed": 1,
+    "currentStepId": "enter_quantity"
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "기존 양식을 유지하면서 B2에 수량 5를 입력하고, C2의 기존 수식과 계산 결과를 확인합니다.",
+    "requirements": [
+      "B2를 숫자 5로 입력",
+      "C2의 기존 수식과 계산 결과 유지",
+      "기존 양식과 수식 보존"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "B2",
+        "field": "value",
+        "operator": "equals",
+        "expected": 5,
+        "valueType": "number"
+      },
+      {
+        "address": "C2",
+        "field": "formula",
+        "operator": "equals",
+        "expected": "=B2*1200"
+      },
+      {
+        "address": "C2",
+        "field": "value",
+        "operator": "equals",
+        "expected": 6000,
+        "valueType": "number"
+      },
+      {
+        "address": "C2",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "#,##0"
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "기존 B2 입력칸과 C2 수식 및 양식 확인",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "enter_quantity",
+        "title": "B2에 숫자 수량 5 입력 후 C2 계산 확인",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "id": "verify_result",
+        "title": "입력값과 수식 및 계산 결과 최종 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3
+        ]
+      }
+    ]
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_form"
+    },
+    {
+      "name": "read",
+      "state": "done",
+      "stepId": "enter_quantity"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_quantity"
+    },
+    {
+      "name": "define_template_fields",
+      "state": "done",
+      "stepId": "enter_quantity"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_quantity"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_quantity"
+    },
+    {
+      "name": "ask_template_field",
+      "state": "error",
+      "stepId": "enter_quantity"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_quantity"
+    }
+  ],
+  "recoveryLog": [],
+  "lastProposal": [
+    {
+      "id": "field_B2",
+      "address": "B2",
+      "label": "수량",
+      "valueType": "number",
+      "required": true,
+      "numberFormat": "General",
+      "merge": null,
+      "choices": [],
+      "currentValue": "2",
+      "currentValueIsPreview": true,
+      "validation": null
+    }
+  ]
+}

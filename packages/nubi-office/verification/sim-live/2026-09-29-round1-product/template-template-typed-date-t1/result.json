@@ -1,0 +1,172 @@
+{
+  "suite": "template",
+  "id": "template-typed-date",
+  "trial": 1,
+  "routing": "product",
+  "passed": false,
+  "outcome": "error",
+  "state": "cancelled",
+  "error": "evaluation_interaction_requires_human",
+  "writes": 0,
+  "recoveries": 0,
+  "questions": [
+    "CaseSheet의 B2가 필수 날짜 입력칸이며 기존 표시 형식은 yyyy-mm-dd입니다. B2에 2026-10-01을 실제 Excel 날짜로 입력할까요?"
+  ],
+  "approvals": [],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 6,
+    "toolCalls": 4,
+    "elapsedMs": 17126
+  },
+  "transcript": {
+    "modelCalls": 6,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 1,
+      "actor": 4
+    },
+    "elapsedMs": 17022,
+    "requestCharacters": 176260,
+    "peakRequestCharacters": 45303,
+    "toolCalls": {
+      "read": 1,
+      "read_selection": 1,
+      "excel_capabilities": 1,
+      "ask_user": 1
+    },
+    "errors": {}
+  },
+  "request": "기존 양식 B2는 필수 날짜 입력칸이다. 입력 항목을 확인받고 날짜 2026-10-01을 실제 Excel 날짜로 넣어줘. 기존 표시 형식과 모든 다른 셀은 유지해.",
+  "answer": "",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_input",
+        "title": "B2 입력 항목과 기존 날짜 형식 확인",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "write_date",
+        "title": "B2에 2026-10-01 실제 날짜 입력 및 형식 유지",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2
+        ],
+        "state": "paused"
+      },
+      {
+        "id": "verify_result",
+        "title": "B2 날짜와 다른 셀 보존 여부 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2
+        ],
+        "state": "pending"
+      }
+    ],
+    "total": 3,
+    "completed": 1,
+    "currentStepId": "write_date"
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "B2 필수 입력 항목을 확인하고 기존 날짜 표시 형식을 유지한 채 2026-10-01을 실제 Excel 날짜로 입력한다.",
+    "requirements": [
+      "입력 대상은 CaseSheet의 B2이다.",
+      "2026-10-01을 실제 날짜 값으로 입력한다.",
+      "B2의 기존 표시 형식 yyyy-mm-dd를 유지한다.",
+      "기존 수식, 값, 서식 및 다른 셀은 변경하지 않는다."
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "B2",
+        "field": "value",
+        "operator": "equals",
+        "expected": 46296,
+        "valueType": "date"
+      },
+      {
+        "address": "B2",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "yyyy-mm-dd"
+      },
+      {
+        "address": "B2",
+        "field": "formula",
+        "operator": "equals",
+        "expected": null
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_input",
+        "title": "B2 입력 항목과 기존 날짜 형식 확인",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "write_date",
+        "title": "B2에 2026-10-01 실제 날짜 입력 및 형식 유지",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "id": "verify_result",
+        "title": "B2 날짜와 다른 셀 보존 여부 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2
+        ]
+      }
+    ]
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_input"
+    },
+    {
+      "name": "read",
+      "state": "done",
+      "stepId": "write_date"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_date"
+    },
+    {
+      "name": "excel_capabilities",
+      "state": "done",
+      "stepId": "write_date"
+    },
+    {
+      "name": "ask_user",
+      "state": "error",
+      "stepId": "write_date"
+    }
+  ],
+  "recoveryLog": []
+}

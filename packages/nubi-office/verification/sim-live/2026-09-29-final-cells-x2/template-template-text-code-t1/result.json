@@ -1,0 +1,342 @@
+{
+  "suite": "template",
+  "id": "template-text-code",
+  "trial": 1,
+  "routing": "product",
+  "passed": true,
+  "outcome": "passed",
+  "state": "done",
+  "writes": 1,
+  "recoveries": 2,
+  "questions": [],
+  "approvals": [
+    "template_mapping",
+    "edit"
+  ],
+  "proposals": 1,
+  "metrics": {
+    "modelCalls": 13,
+    "toolCalls": 5,
+    "elapsedMs": 36179
+  },
+  "transcript": {
+    "modelCalls": 13,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 1,
+      "actor": 6,
+      "recovery": 2,
+      "action_review": 1,
+      "step_review": 1,
+      "result_review": 1
+    },
+    "elapsedMs": 34064,
+    "requestCharacters": 323774,
+    "peakRequestCharacters": 53189,
+    "toolCalls": {
+      "read_worksheet_range": 1,
+      "fill_template_fields": 2,
+      "define_template_fields": 1,
+      "verify_selection": 1
+    },
+    "errors": {}
+  },
+  "score": {
+    "passed": true,
+    "outcome": "passed",
+    "deterministicPassed": true,
+    "semanticReview": {
+      "required": false,
+      "status": "not_required",
+      "criteria": []
+    },
+    "expectedState": "done",
+    "actualState": "done",
+    "checks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "B2",
+          "field": "value",
+          "operator": "equals",
+          "expected": "00123",
+          "actual": [
+            [
+              "00123"
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "persistedChecks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "B2",
+          "field": "value",
+          "operator": "equals",
+          "expected": "00123",
+          "actual": [
+            [
+              "00123"
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "unexpectedChanges": [],
+    "persistedUnexpectedChanges": [],
+    "sourceChecks": [],
+    "formulaChecks": []
+  },
+  "request": "기존 양식을 그대로 사용해. B2는 필수 텍스트 사번 입력칸이다. 입력 항목을 확인받고 사번 00123을 넣어줘. 앞자리 0과 모든 서식·수식·다른 셀은 보존해.",
+  "answer": "CaseSheet의 B2를 필수 텍스트 사번 입력칸으로 확인하고 `00123`을 입력했습니다.\n\n- 값: `00123` (앞자리 0 보존)\n- 숫자 형식: `@`\n- 수식·다른 셀·기존 서식: 보존 확인됨",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "기존 양식과 B2 입력 항목 확인",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "confirm_and_fill",
+        "title": "확인된 B2에 사번 00123 입력",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1
+        ],
+        "state": "done",
+        "requiresReview": true
+      },
+      {
+        "id": "verify_preservation",
+        "title": "입력값과 서식·수식 보존 상태 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1
+        ],
+        "state": "done"
+      }
+    ],
+    "total": 3,
+    "completed": 3,
+    "currentStepId": null
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "기존 양식과 서식을 보존하면서 입력 항목 확인 후 B2에 사번 00123을 텍스트로 입력합니다.",
+    "requirements": [
+      "기존 양식과 다른 셀의 값·수식·서식을 보존합니다.",
+      "B2를 필수 텍스트 사번 입력칸으로 확인합니다.",
+      "B2에 앞자리 0을 포함한 사번 00123을 입력합니다.",
+      "B2의 텍스트 서식(@)을 유지합니다."
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "B2",
+        "field": "value",
+        "operator": "equals",
+        "expected": "00123",
+        "valueType": "text"
+      },
+      {
+        "address": "B2",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "@"
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "기존 양식과 B2 입력 항목 확인",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "confirm_and_fill",
+        "title": "확인된 B2에 사번 00123 입력",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1
+        ]
+      },
+      {
+        "id": "verify_preservation",
+        "title": "입력값과 서식·수식 보존 상태 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1
+        ]
+      }
+    ]
+  },
+  "review": {
+    "status": "complete",
+    "checks": [
+      {
+        "requirement": "B2가 사번 입력칸으로 확인됨",
+        "status": "met",
+        "evidence_ids": [
+          15
+        ]
+      },
+      {
+        "requirement": "B2에 텍스트 00123이 입력됨",
+        "status": "met",
+        "evidence_ids": [
+          15
+        ]
+      },
+      {
+        "requirement": "B2의 텍스트 서식(@)이 유지됨",
+        "status": "met",
+        "evidence_ids": [
+          15
+        ]
+      },
+      {
+        "requirement": "수식·다른 셀·확인된 서식이 보존됨",
+        "status": "met",
+        "evidence_ids": [
+          16
+        ]
+      }
+    ],
+    "next_step": "없음"
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_form"
+    },
+    {
+      "name": "read_worksheet_range",
+      "state": "error",
+      "stepId": "confirm_and_fill"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "confirm_and_fill"
+    },
+    {
+      "name": "fill_template_fields",
+      "state": "error",
+      "stepId": "confirm_and_fill"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "confirm_and_fill"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "confirm_and_fill"
+    },
+    {
+      "name": "define_template_fields",
+      "state": "done",
+      "stepId": "confirm_and_fill"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "confirm_and_fill"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "confirm_and_fill"
+    },
+    {
+      "name": "fill_template_fields",
+      "state": "done",
+      "stepId": "confirm_and_fill"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "confirm_and_fill"
+    },
+    {
+      "name": "review_action",
+      "state": "done",
+      "stepId": "confirm_and_fill"
+    },
+    {
+      "name": "review_step",
+      "state": "done",
+      "stepId": "confirm_and_fill"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_preservation"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_preservation"
+    },
+    {
+      "name": "review_task",
+      "state": "done",
+      "stepId": "verify_preservation"
+    }
+  ],
+  "recoveryLog": [
+    {
+      "attempt": 1,
+      "stepId": "confirm_and_fill",
+      "code": "worksheet_not_discovered",
+      "tool": "read_worksheet_range",
+      "outcome": "not_executed",
+      "state": "superseded",
+      "summary": "B2가 텍스트 형식(@)의 사번 입력칸임을 확인했습니다. 현재 쓰기 단계에서 시트 식별 오류가 발생했습니다.",
+      "nextAction": "시트 이름 CaseSheet를 사용해 B2에 텍스트 값 '00123'을 입력한 뒤, B2의 값과 numberFormat을 다시 읽어 확인하세요."
+    },
+    {
+      "attempt": 2,
+      "stepId": "confirm_and_fill",
+      "code": "template_mapping_required",
+      "tool": "fill_template_fields",
+      "outcome": "not_executed",
+      "state": "verified",
+      "summary": "B2가 사번 입력칸이며 텍스트 서식(@)임을 확인했습니다. 이전 작업은 매핑 미확인으로 실행되지 않았습니다.",
+      "nextAction": "먼저 CaseSheet의 B2를 사번 필드로 매핑 확정한 뒤, 텍스트 값 00123을 B2에 입력하세요. 다른 셀과 서식·수식은 변경하지 말고, 완료 후 B2 값을 다시 읽어 검증하세요."
+    }
+  ],
+  "lastProposal": [
+    {
+      "id": "field_B2",
+      "address": "B2",
+      "label": "사번",
+      "valueType": "text",
+      "required": true,
+      "numberFormat": "@",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "kind": "harness-improvement-source-checks",
+  "generatedAt": "2026-09-22T17:12:33.932985+00:00",
+  "baselineCommit": "f339dae7c4340efe5013036ea316d0db13399791",
+  "sourceHash": "aae6f8f01ed78c9dd8c2b245239c1050daac2bd207cd4597140371633cb46e5d",
+  "localNodeVersion": "v25.4.0",
+  "bundledWindowsRuntimeTested": false,
+  "checks": [
+    {
+      "name": "node-source-suite",
+      "location": "original",
+      "passed": 186,
+      "failed": 0,
+      "exitCode": 0
+    },
+    {
+      "name": "node-source-suite",
+      "location": "publication",
+      "passed": 186,
+      "failed": 0,
+      "exitCode": 0
+    },
+    {
+      "name": "continuity-suite-after-partial-draft-case",
+      "passed": 5,
+      "failed": 0,
+      "exitCode": 0
+    },
+    {
+      "name": "cx-source-check",
+      "locations": [
+        "original",
+        "publication"
+      ],
+      "issues": 0
+    },
+    {
+      "name": "jsx-syntax-transform",
+      "locations": [
+        "original",
+        "publication"
+      ],
+      "passed": true,
+      "filesEmitted": false
+    },
+    {
+      "name": "live-preflight",
+      "locations": [
+        "original",
+        "publication"
+      ],
+      "status": "blocked",
+      "accuracy": null,
+      "exitCode": 2
+    }
+  ],
+  "propertyBasedTesting": {
+    "library": "fast-check",
+    "version": "4.10.2",
+    "runs": 200,
+    "maxCommands": 30,
+    "seed": 23092026,
+    "model": "scripted-control",
+    "testSha256": "13f67a7128cc22ddf45fb375f316f06ff6cbe72a223817c3079f3030368b3d4b"
+  },
+  "clarificationProbe": {
+    "stateBefore": "running",
+    "acceptedDraftsBefore": 1,
+    "newRunId": false,
+    "acceptedDraftsAfter": 1,
+    "previousRunAccessible": true,
+    "plannerCalls": 1,
+    "preserved": true
+  },
+  "caseCoverage": {
+    "caseVersion": "office-business-cases@4",
+    "total": 16,
+    "modes": {
+      "edit": 8,
+      "document": 4,
+      "template": 4
+    }
+  },
+  "implementationAssessment": {
+    "before": 55,
+    "after": 62,
+    "notAnAccuracyEstimate": true
+  },
+  "limitations": {
+    "buildExecuted": false,
+    "installerGenerated": false,
+    "nativeCompiled": false,
+    "windowsExcel2016Tested": false,
+    "liveQwenTested": false,
+    "nascaTested": false,
+    "liveAccuracy": null
+  },
+  "remainingGaps": [
+    "Protected durable checkpoints and recovery across process restarts.",
+    "Representative company-template and free-layout held-out evaluations.",
+    "Human-grader calibration and live Qwen/Excel/NASCA evidence.",
+    "New native protocol and bundling configuration require final-build verification."
+  ]
+}

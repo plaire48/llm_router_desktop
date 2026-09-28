@@ -1,0 +1,116 @@
+{
+  "kind": "source-usability-checks",
+  "generatedAt": "2026-09-22T17:41:15.900Z",
+  "checkout": "source",
+  "node": "v25.4.0",
+  "sourceHash": "19c0f59bf2bfb8f824b1ae4f60e2f0e2cad245d43d1db603d9be1a6adc3b8eb6",
+  "tests": {
+    "tests": 200,
+    "pass": 200,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0
+  },
+  "sourceDom": {
+    "library": "React Testing Library 16.3.3 + jsdom 27.4.0",
+    "appBridge": "scripted",
+    "axeVersion": "4.13.0",
+    "violations": 0,
+    "colorContrastTested": false
+  },
+  "staticChrome": {
+    "kind": "static-source-components-in-chromium",
+    "generatedAt": "2026-09-22T17:38:15.106Z",
+    "checks": [
+      {
+        "state": "input",
+        "width": 320,
+        "overflow": false,
+        "violations": [],
+        "incomplete": [
+          "color-contrast"
+        ]
+      },
+      {
+        "state": "input",
+        "width": 380,
+        "overflow": false,
+        "violations": [],
+        "incomplete": [
+          "color-contrast"
+        ]
+      },
+      {
+        "state": "input",
+        "width": 1100,
+        "overflow": false,
+        "violations": [],
+        "incomplete": [
+          "color-contrast"
+        ]
+      },
+      {
+        "state": "recovery",
+        "width": 320,
+        "overflow": false,
+        "violations": [],
+        "incomplete": [
+          "color-contrast"
+        ]
+      },
+      {
+        "state": "recovery",
+        "width": 380,
+        "overflow": false,
+        "violations": [],
+        "incomplete": [
+          "color-contrast"
+        ]
+      },
+      {
+        "state": "recovery",
+        "width": 1100,
+        "overflow": false,
+        "violations": [],
+        "incomplete": [
+          "color-contrast"
+        ]
+      }
+    ],
+    "notVerified": [
+      "Interactive browser runtime",
+      "Windows WebView2",
+      "Excel 2016 COM",
+      "Live Qwen",
+      "NASCA"
+    ]
+  },
+  "designSourceIssues": 0,
+  "generatedStateSequences": 200,
+  "fastCheckSeed": 23092026,
+  "implementationScore": 62,
+  "scoreKind": "reviewer-assessed-implementation-maturity",
+  "liveAccuracy": null,
+  "built": false,
+  "installerCreated": false,
+  "nativeCompiled": false,
+  "notVerified": [
+    "Live Qwen",
+    "Windows Excel 2016 COM",
+    "NASCA",
+    "Interactive WebView2",
+    "Screen reader behavior",
+    "Full contrast compliance",
+    "Restart persistence"
+  ],
+  "fixes": [
+    "preserve answer until acknowledged",
+    "validate answer before consuming pending input",
+    "shared answer length and history budget",
+    "visible input/approval/recovery state and navigation",
+    "bounded visible activity history",
+    "zero/false mapping values",
+    "safe recovery shortcuts",
+    "shared UI source hashes"
+  ]
+}

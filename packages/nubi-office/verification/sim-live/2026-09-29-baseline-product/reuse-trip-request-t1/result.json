@@ -1,0 +1,35 @@
+{
+  "suite": "reuse",
+  "id": "trip-request",
+  "trial": 1,
+  "routing": "product",
+  "passed": false,
+  "outcome": "error",
+  "state": "cancelled",
+  "error": "evaluation_recovery_requires_human",
+  "writes": 0,
+  "recoveries": 0,
+  "questions": [],
+  "approvals": [
+    "recovery"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 3,
+    "toolCalls": 1,
+    "elapsedMs": 8441
+  },
+  "transcript": {
+    "modelCalls": 3,
+    "byRole": {
+      "intent_router": 3
+    },
+    "elapsedMs": 6459,
+    "requestCharacters": 9010,
+    "peakRequestCharacters": 3291,
+    "toolCalls": {},
+    "errors": {}
+  },
+  "request": "출장 신청서를 작성해줘. 영업1팀 김민수 과장이고 사번은 00417이야. 국내 출장으로 부산에 2026-10-12부터 2026-10-14까지 다녀와. 목적은 신규 거래처 계약 협의야. 일비는 나한테 물어봐.",
+  "trace": []
+}

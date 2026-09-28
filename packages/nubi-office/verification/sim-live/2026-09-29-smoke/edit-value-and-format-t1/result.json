@@ -1,0 +1,43 @@
+{
+  "suite": "edit",
+  "id": "value-and-format",
+  "trial": 1,
+  "routing": "direct",
+  "passed": false,
+  "outcome": "error",
+  "state": "cancelled",
+  "error": "evaluation_recovery_requires_human",
+  "writes": 0,
+  "recoveries": 0,
+  "questions": [],
+  "approvals": [
+    "recovery"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 3,
+    "toolCalls": 0,
+    "elapsedMs": 0
+  },
+  "transcript": {
+    "modelCalls": 3,
+    "byRole": {
+      "planner": 3
+    },
+    "elapsedMs": 25090,
+    "requestCharacters": 26023,
+    "peakRequestCharacters": 9335,
+    "toolCalls": {},
+    "errors": {}
+  },
+  "request": "A2의 수량을 4로 바꾸고 굵게 해줘. 나머지 값, 수식, 서식은 그대로 유지해줘.",
+  "answer": "",
+  "question": "",
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "running"
+    }
+  ],
+  "recoveryLog": []
+}

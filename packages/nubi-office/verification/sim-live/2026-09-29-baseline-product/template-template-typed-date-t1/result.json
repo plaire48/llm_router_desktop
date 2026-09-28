@@ -1,0 +1,44 @@
+{
+  "suite": "template",
+  "id": "template-typed-date",
+  "trial": 1,
+  "routing": "product",
+  "passed": false,
+  "outcome": "error",
+  "state": "cancelled",
+  "error": "evaluation_recovery_requires_human",
+  "writes": 0,
+  "recoveries": 0,
+  "questions": [],
+  "approvals": [
+    "recovery"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 4,
+    "toolCalls": 0,
+    "elapsedMs": 22775
+  },
+  "transcript": {
+    "modelCalls": 4,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 3
+    },
+    "elapsedMs": 20639,
+    "requestCharacters": 27961,
+    "peakRequestCharacters": 9080,
+    "toolCalls": {},
+    "errors": {}
+  },
+  "request": "기존 양식 B2는 필수 날짜 입력칸이다. 입력 항목을 확인받고 날짜 2026-10-01을 실제 Excel 날짜로 넣어줘. 기존 표시 형식과 모든 다른 셀은 유지해.",
+  "answer": "",
+  "question": "",
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "running"
+    }
+  ],
+  "recoveryLog": []
+}

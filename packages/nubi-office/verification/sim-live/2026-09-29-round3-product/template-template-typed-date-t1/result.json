@@ -1,0 +1,336 @@
+{
+  "suite": "template",
+  "id": "template-typed-date",
+  "trial": 1,
+  "routing": "product",
+  "passed": true,
+  "outcome": "passed",
+  "state": "done",
+  "writes": 1,
+  "recoveries": 1,
+  "questions": [],
+  "approvals": [
+    "template_mapping",
+    "edit"
+  ],
+  "proposals": 1,
+  "metrics": {
+    "modelCalls": 13,
+    "toolCalls": 6,
+    "elapsedMs": 31971
+  },
+  "transcript": {
+    "modelCalls": 13,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 1,
+      "actor": 7,
+      "recovery": 1,
+      "action_review": 1,
+      "step_review": 1,
+      "result_review": 1
+    },
+    "elapsedMs": 31120,
+    "requestCharacters": 360299,
+    "peakRequestCharacters": 54569,
+    "toolCalls": {
+      "read": 1,
+      "read_selection": 1,
+      "fill_template_fields": 2,
+      "define_template_fields": 1,
+      "verify_selection": 1
+    },
+    "errors": {}
+  },
+  "score": {
+    "passed": true,
+    "outcome": "passed",
+    "deterministicPassed": true,
+    "semanticReview": {
+      "required": false,
+      "status": "not_required",
+      "criteria": []
+    },
+    "expectedState": "done",
+    "actualState": "done",
+    "checks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "B2",
+          "field": "value",
+          "operator": "equals",
+          "expected": 46296,
+          "actual": [
+            [
+              46296
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "persistedChecks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "B2",
+          "field": "value",
+          "operator": "equals",
+          "expected": 46296,
+          "actual": [
+            [
+              46296
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "unexpectedChanges": [],
+    "persistedUnexpectedChanges": [],
+    "sourceChecks": [],
+    "formulaChecks": []
+  },
+  "request": "기존 양식 B2는 필수 날짜 입력칸이다. 입력 항목을 확인받고 날짜 2026-10-01을 실제 Excel 날짜로 넣어줘. 기존 표시 형식과 모든 다른 셀은 유지해.",
+  "answer": "B2 입력칸을 확인하고 날짜를 입력했습니다.\n\n- 값: 실제 Excel 날짜 `46296` (`2026-10-01`)\n- 표시 형식: `yyyy-mm-dd` 유지\n- 수식 없음\n- 다른 셀 및 기존 양식 유지 확인 완료",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "기존 양식과 B2 입력칸 확인",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "enter_date",
+        "title": "B2에 2026-10-01 날짜 입력",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2
+        ],
+        "state": "done",
+        "requiresReview": true
+      },
+      {
+        "id": "verify_result",
+        "title": "입력 날짜와 기존 표시 형식 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2
+        ],
+        "state": "done"
+      }
+    ],
+    "total": 3,
+    "completed": 3,
+    "currentStepId": null
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "기존 양식의 필수 날짜 입력칸 B2를 확인하고, 기존 표시 형식을 유지한 채 2026-10-01을 실제 Excel 날짜로 입력합니다.",
+    "requirements": [
+      "B2에 날짜 2026-10-01 입력",
+      "B2의 기존 표시 형식 yyyy-mm-dd 유지",
+      "기존 수식, 레이블 및 다른 셀 유지"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "B2",
+        "field": "value",
+        "operator": "equals",
+        "expected": 46296,
+        "valueType": "date"
+      },
+      {
+        "address": "B2",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "yyyy-mm-dd"
+      },
+      {
+        "address": "B2",
+        "field": "formula",
+        "operator": "equals",
+        "expected": null
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "기존 양식과 B2 입력칸 확인",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "enter_date",
+        "title": "B2에 2026-10-01 날짜 입력",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "id": "verify_result",
+        "title": "입력 날짜와 기존 표시 형식 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2
+        ]
+      }
+    ]
+  },
+  "review": {
+    "status": "complete",
+    "checks": [
+      {
+        "requirement": "B2에 2026-10-01을 실제 Excel 날짜로 입력",
+        "status": "met",
+        "evidence_ids": [
+          13
+        ]
+      },
+      {
+        "requirement": "B2의 표시 형식 yyyy-mm-dd 유지",
+        "status": "met",
+        "evidence_ids": [
+          13
+        ]
+      },
+      {
+        "requirement": "기존 수식, 레이블 및 다른 셀 유지",
+        "status": "met",
+        "evidence_ids": [
+          13,
+          14
+        ]
+      }
+    ],
+    "next_step": "없음"
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_form"
+    },
+    {
+      "name": "read",
+      "state": "done",
+      "stepId": "enter_date"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_date"
+    },
+    {
+      "name": "fill_template_fields",
+      "state": "error",
+      "stepId": "enter_date"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_date"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_date"
+    },
+    {
+      "name": "define_template_fields",
+      "state": "done",
+      "stepId": "enter_date"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_date"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_date"
+    },
+    {
+      "name": "fill_template_fields",
+      "state": "done",
+      "stepId": "enter_date"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_date"
+    },
+    {
+      "name": "review_action",
+      "state": "done",
+      "stepId": "enter_date"
+    },
+    {
+      "name": "review_step",
+      "state": "done",
+      "stepId": "enter_date"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_result"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_result"
+    },
+    {
+      "name": "review_task",
+      "state": "done",
+      "stepId": "verify_result"
+    }
+  ],
+  "recoveryLog": [
+    {
+      "attempt": 1,
+      "stepId": "enter_date",
+      "code": "template_mapping_required",
+      "tool": "fill_template_fields",
+      "outcome": "not_executed",
+      "state": "verified",
+      "summary": "B2의 날짜 형식은 확인됐지만, 필드 매핑 미확인으로 입력이 실행되지 않았습니다.",
+      "nextAction": "B2를 날짜 입력 필드로 명시적으로 매핑한 뒤, 기존 형식 yyyy-mm-dd를 유지하며 실제 날짜 2026-10-01(Excel 값 46296)을 입력하세요. 다른 셀은 변경하지 마세요."
+    }
+  ],
+  "lastProposal": [
+    {
+      "id": "field_B2",
+      "address": "B2",
+      "label": "교육일",
+      "valueType": "date",
+      "required": true,
+      "numberFormat": "yyyy-mm-dd",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    }
+  ]
+}

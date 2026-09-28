@@ -1,0 +1,78 @@
+{
+  "kind": "source-and-scripted-harness-verification",
+  "date": "2026-09-25",
+  "change": "exact activated skill context for delegated Office analysis, evidence-bound reuse and bounded parent continuation",
+  "sources": "delegated-skill-source-review.json",
+  "before": {
+    "regressionTests": 4,
+    "passed": 0,
+    "failed": 4,
+    "log": "/tmp/nubi-child-skills-before.log"
+  },
+  "tests": {
+    "command": "npm run test:pinned",
+    "passed": 694,
+    "failed": 0,
+    "skipped": 0,
+    "log": "/tmp/nubi-delegated-skill-full-final.log"
+  },
+  "targetedIntegration": {
+    "passed": 93,
+    "failed": 0,
+    "hosts": [
+      "Excel range analysis",
+      "new Excel draft specialists",
+      "Word",
+      "PowerPoint"
+    ],
+    "provider": "scripted; real Pi loop, synthetic native host"
+  },
+  "design": {
+    "sharedFiles": 24,
+    "matched": true,
+    "issues": 0
+  },
+  "visual": {
+    "screens": 114,
+    "overflow": 0,
+    "axeViolations": 0,
+    "incomplete": [
+      "color-contrast"
+    ],
+    "manuallyInspected": [
+      "usability-input-320.png",
+      "usability-input-380.png"
+    ],
+    "interactiveFocusTest": "shared-question-contract.test.mjs; textarea focus and draft preservation"
+  },
+  "newRuntimeDependencies": [],
+  "upstreamSourceCopied": false,
+  "nativeBuild": false,
+  "installerBuild": false,
+  "released": false,
+  "notVerified": [
+    "Real Qwen or other provider decision accuracy",
+    "Windows 11 VSTO installation",
+    "Office 2016 native COM runtime",
+    "NASCA encryption",
+    "Whole-document rendering or preservation",
+    "Protection and reconciliation after process restart"
+  ],
+  "sourceSha256": {
+    "worker/analysis-jobs.mjs": "49605b43d3004ffcac35cdf62dc4b0f53062d26a64c2c5f81757b499b7f77030",
+    "worker/agent.mjs": "64a878071322aa51c867f92e21a9d3bc89e045b20f1eef7b56b6ee438c2e95b8",
+    "worker/content-agent.mjs": "6b90c3de64ae5ee8ad4c135bc5b1a5a93d6a92ced9b8d70a4d7fc42757a6603b",
+    "worker/document-agent.mjs": "a1cb565420f88ff0774aa5dfcef491d4f0382b61f2d6598e98cc32ffb4e013d5",
+    "worker/document-delegation.mjs": "f3529545bb17a5a68fcdcb5e597f321ce75fc35a663c3b5cbb76612a26ebbee6",
+    "worker/document-skill.mjs": "d134c0e11bc7bd205b0c773bb5347d571e7e3099b2404ca00eb2864329ad157f",
+    "tests/analysis-skill-context.test.mjs": "f6e3bb040354df93cb3b1f82a49f3c7fd4946ff3db27bb55d573b9b5a049bcfa",
+    "tests/analysis-lifecycle.test.mjs": "93da14f30364ee8aaa4ede285cd8bd295fcfaaca9706c6bf7f3484dd9f165179",
+    "tests/workbook-context.test.mjs": "61a93c7eaf41d5906215bacabae48ed965da0433b11e0af7757c0abc2187451a",
+    "tests/document-specialists.test.mjs": "04353591366b3662e7aab237ffe12275e6e9089cfeb2ac2ead74125a7c637f86",
+    "tests/content-agent.test.mjs": "8a157afc316347ded571a2e7c529b27351d72a340d6f7ff2fcbcfff8aaf078ba",
+    "tests/shared-question-contract.test.mjs": "c44a6eb3579cf262f5ab62313283824d3d0ebcf4272c3dc56ec317acb6aa4ca4",
+    "design/shared-ui.json": "eb77fda4b94e0c33cc1a3d17ed0abc9de0aaa56530e1268381274a86b0457660",
+    "docs/DELEGATED-SKILL-BENCHMARK-2026-09-25.md": "02fc01482f18364e3e3dfb0b54e6b9c6a9a2c419fc004f584e8eadfb20dccbc2",
+    "AGENTS.md": "a86a23d146ef0c4798d945a2cb0a3a6bc45f8fc0282fd6f64a0265a48a1ace52"
+  }
+}

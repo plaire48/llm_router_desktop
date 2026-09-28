@@ -1,0 +1,85 @@
+{
+  "suite": "edit",
+  "id": "missing-tax-rate",
+  "trial": 1,
+  "routing": "product",
+  "passed": null,
+  "outcome": "needs_review",
+  "state": "awaiting_user",
+  "writes": 0,
+  "recoveries": 0,
+  "questions": [
+    "적용할 회사 세율을 몇 퍼센트로 입력할까요?"
+  ],
+  "approvals": [],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 2,
+    "toolCalls": 0,
+    "elapsedMs": 5732
+  },
+  "transcript": {
+    "modelCalls": 2,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 1
+    },
+    "elapsedMs": 5712,
+    "requestCharacters": 9321,
+    "peakRequestCharacters": 6829,
+    "toolCalls": {},
+    "errors": {}
+  },
+  "score": {
+    "passed": null,
+    "outcome": "needs_review",
+    "deterministicPassed": true,
+    "semanticReview": {
+      "required": true,
+      "status": "pending",
+      "criteria": [
+        "Ask for the missing company tax rate, without guessing a rate.",
+        "Make clear that the tax cell has not been calculated yet; do not claim completion.",
+        "Use a question the user can answer and preserve every existing cell."
+      ]
+    },
+    "expectedState": "awaiting_user",
+    "actualState": "awaiting_user",
+    "checks": {
+      "verified": true,
+      "checks": []
+    },
+    "persistedChecks": {
+      "verified": true,
+      "checks": []
+    },
+    "unexpectedChanges": [],
+    "persistedUnexpectedChanges": [],
+    "sourceChecks": [],
+    "formulaChecks": []
+  },
+  "request": "회사 세율을 적용한 세금을 B2에 계산해줘. 세율은 파일에 없어.",
+  "answer": "",
+  "question": "적용할 회사 세율을 몇 퍼센트로 입력할까요?",
+  "task": {
+    "intent": "clarify",
+    "summary": "B2에 세금을 계산하려면 회사 세율이 필요하지만 파일에서 확인되지 않습니다.",
+    "requirements": [
+      "과세표준 A2의 100000을 기준으로 B2에 세금 계산",
+      "회사 세율 확인 후 기존 서식과 셀 구조 유지"
+    ],
+    "questions": [
+      "적용할 회사 세율을 몇 퍼센트로 입력할까요?"
+    ],
+    "preserveFormulas": true,
+    "checks": [],
+    "steps": []
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "running"
+    }
+  ],
+  "recoveryLog": []
+}

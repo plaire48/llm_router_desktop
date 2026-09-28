@@ -1,0 +1,304 @@
+{
+  "suite": "template",
+  "id": "template-text-code",
+  "trial": 1,
+  "routing": "product",
+  "passed": true,
+  "outcome": "passed",
+  "state": "done",
+  "writes": 1,
+  "recoveries": 0,
+  "questions": [],
+  "approvals": [
+    "template_mapping",
+    "edit"
+  ],
+  "proposals": 1,
+  "metrics": {
+    "modelCalls": 11,
+    "toolCalls": 5,
+    "elapsedMs": 30527
+  },
+  "transcript": {
+    "modelCalls": 11,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 1,
+      "actor": 6,
+      "action_review": 1,
+      "step_review": 1,
+      "result_review": 1
+    },
+    "elapsedMs": 30272,
+    "requestCharacters": 294579,
+    "peakRequestCharacters": 50423,
+    "toolCalls": {
+      "read": 1,
+      "inspect_template": 1,
+      "define_template_fields": 1,
+      "fill_template_fields": 1,
+      "verify_selection": 1
+    },
+    "errors": {}
+  },
+  "score": {
+    "passed": true,
+    "outcome": "passed",
+    "deterministicPassed": true,
+    "semanticReview": {
+      "required": false,
+      "status": "not_required",
+      "criteria": []
+    },
+    "expectedState": "done",
+    "actualState": "done",
+    "checks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "B2",
+          "field": "value",
+          "operator": "equals",
+          "expected": "00123",
+          "actual": [
+            [
+              "00123"
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "persistedChecks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "B2",
+          "field": "value",
+          "operator": "equals",
+          "expected": "00123",
+          "actual": [
+            [
+              "00123"
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "unexpectedChanges": [],
+    "persistedUnexpectedChanges": [],
+    "sourceChecks": [],
+    "formulaChecks": []
+  },
+  "request": "기존 양식을 그대로 사용해. B2는 필수 텍스트 사번 입력칸이다. 입력 항목을 확인받고 사번 00123을 넣어줘. 앞자리 0과 모든 서식·수식·다른 셀은 보존해.",
+  "answer": "CaseSheet의 기존 양식을 확인하고 B2 입력 항목으로 확정했습니다.\n\n- B2: 텍스트 `00123`\n- 숫자 형식: `@`\n- 앞자리 0 유지 확인\n- 기존 수식·서식·다른 셀 보존 확인 완료",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "기존 양식과 B2 입력 항목 확인",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "enter_employee_id",
+        "title": "B2에 사번 00123 입력",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1
+        ],
+        "state": "done",
+        "requiresReview": true
+      },
+      {
+        "id": "verify_preservation",
+        "title": "입력값과 기존 양식 보존 여부 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1
+        ],
+        "state": "done"
+      }
+    ],
+    "total": 3,
+    "completed": 3,
+    "currentStepId": null
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "기존 양식의 입력 항목을 확인한 뒤 B2에 사번 00123을 텍스트로 입력하고 기존 서식·수식·다른 셀을 보존합니다.",
+    "requirements": [
+      "B2에 사번 00123을 앞자리 0이 유지되는 텍스트로 입력",
+      "B2의 텍스트 형식(@)과 기존 서식·수식·다른 셀을 보존",
+      "기존 양식과 입력 항목을 먼저 확인"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "B2",
+        "field": "value",
+        "operator": "equals",
+        "expected": "00123",
+        "valueType": "text"
+      },
+      {
+        "address": "B2",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "@"
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "기존 양식과 B2 입력 항목 확인",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "enter_employee_id",
+        "title": "B2에 사번 00123 입력",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1
+        ]
+      },
+      {
+        "id": "verify_preservation",
+        "title": "입력값과 기존 양식 보존 여부 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1
+        ]
+      }
+    ]
+  },
+  "review": {
+    "status": "complete",
+    "checks": [
+      {
+        "requirement": "기존 양식과 B2 입력 항목을 먼저 확인",
+        "status": "met",
+        "evidence_ids": [
+          11
+        ]
+      },
+      {
+        "requirement": "B2에 사번 00123을 앞자리 0이 유지되는 텍스트로 입력",
+        "status": "met",
+        "evidence_ids": [
+          11
+        ]
+      },
+      {
+        "requirement": "B2 텍스트 형식(@)과 기존 서식·수식·다른 셀을 보존",
+        "status": "met",
+        "evidence_ids": [
+          11,
+          12
+        ]
+      }
+    ],
+    "next_step": "없음"
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_form"
+    },
+    {
+      "name": "read",
+      "state": "done",
+      "stepId": "enter_employee_id"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "enter_employee_id"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_employee_id"
+    },
+    {
+      "name": "define_template_fields",
+      "state": "done",
+      "stepId": "enter_employee_id"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_employee_id"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_employee_id"
+    },
+    {
+      "name": "fill_template_fields",
+      "state": "done",
+      "stepId": "enter_employee_id"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "enter_employee_id"
+    },
+    {
+      "name": "review_action",
+      "state": "done",
+      "stepId": "enter_employee_id"
+    },
+    {
+      "name": "review_step",
+      "state": "done",
+      "stepId": "enter_employee_id"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_preservation"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_preservation"
+    },
+    {
+      "name": "review_task",
+      "state": "done",
+      "stepId": "verify_preservation"
+    }
+  ],
+  "recoveryLog": [],
+  "lastProposal": [
+    {
+      "id": "field_B2",
+      "address": "B2",
+      "label": "사번",
+      "valueType": "text",
+      "required": true,
+      "numberFormat": "@",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    }
+  ]
+}

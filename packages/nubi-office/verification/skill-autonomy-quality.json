@@ -1,0 +1,34 @@
+{
+  "kind": "source-and-scripted-harness-verification",
+  "date": "2026-09-25",
+  "change": "agent-owned skill clarification without user-designed forms",
+  "tests": {
+    "command": "npm run test:pinned",
+    "passed": 687,
+    "failed": 0,
+    "skipped": 0
+  },
+  "design": {
+    "sharedFiles": 24,
+    "matched": true,
+    "issues": 0
+  },
+  "visual": {
+    "screens": 114,
+    "overflow": 0,
+    "axeViolations": 0,
+    "incomplete": [
+      "color-contrast"
+    ],
+    "reviewed": [
+      "usability-skills-editor-380.png"
+    ]
+  },
+  "notVerified": [
+    "Windows Office 2016",
+    "Live Qwen clarification accuracy",
+    "NASCA",
+    "Installer build or deployment"
+  ],
+  "research": "docs/SKILL-AUTONOMY-2026-09-25.md"
+}

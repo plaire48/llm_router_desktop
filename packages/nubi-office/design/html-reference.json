@@ -1,0 +1,41 @@
+{
+  "source": "agentfactorysdkdeck.html",
+  "sha256": "df9cfcc44f2f8d4ea14c6f137d0297c562ca506f8a0028df374c7f012d8715ac",
+  "palette": {
+    "blue": "#3182F6",
+    "blue-deep": "#1B64DA",
+    "blue-lite": "#64A8F8",
+    "blue-soft": "#E8F1FE",
+    "ink": "#191F28",
+    "sub": "#4E5968",
+    "card": "#FFFFFF",
+    "tint": "#F1F7FE",
+    "line": "#E5E8EB",
+    "violet": "#7B61E6",
+    "violet-soft": "#EFECFD",
+    "teal": "#189BB0",
+    "teal-soft": "#E6F6F9",
+    "green": "#148A5C",
+    "green-soft": "#E6F6EE",
+    "red": "#D22030",
+    "red-soft": "#FDEBEC",
+    "orange": "#F08A3C",
+    "orange-soft": "#FEF1E6"
+  },
+  "background": "linear-gradient(155deg, #EAF3FE 0%, #E9F2FD 42%, #ECEFFD 72%, #E9F6F2 100%)",
+  "cardShadow": "0 14px 44px rgba(25, 31, 40, .09)",
+  "components": {
+    ".tile": "DeckStatus / interaction-symbol / result icon tile",
+    ".list-card": "history and change cards",
+    ".chat-card": "composer and chat surfaces",
+    ".approve-box": "OfficeTransaction / ApprovalPreview",
+    ".file-card": "OfficeDocumentResult",
+    ".pill": "DeckStatus"
+  },
+  "adaptations": [
+    "Local Noto Sans KR matches the HTML fallback; no external font request.",
+    "Desktop body/input 14/22px and modal title 16/24px instead of presentation-sized headings.",
+    "Use deep blue for small text and actions; keep the reviewed Nubi soft chat colors and teal mascot.",
+    "Keep app controls, accessible focus, real HITL and the complete introduction."
+  ]
+}

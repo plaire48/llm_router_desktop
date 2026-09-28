@@ -1,0 +1,357 @@
+{
+  "version": "0.6.0",
+  "assembledAt": "2026-09-22T10:51:48.783Z",
+  "scope": "Selected range: typed values, 10 supported formatting properties, property inspector, reference-cell formats and post-write validation",
+  "officeUnitTests": 57,
+  "nativeEngineTests": 25,
+  "build": true,
+  "designCheck": true,
+  "bundleSmoke": true,
+  "nativeHostCrossCompile": true,
+  "nativeEvalHostCrossCompile": true,
+  "browserUi": {
+    "checkedAt": "2026-09-22T10:45:57.575Z",
+    "browserUi": true,
+    "realPiLoop": true,
+    "realWorkbookEngine": true,
+    "excelCom": "simulated",
+    "providers": "synthetic",
+    "widths": [
+      320,
+      380,
+      600,
+      1100
+    ],
+    "componentGallery": true,
+    "questionFormPreservesComposer": true,
+    "mutationAndRestore": true,
+    "clarificationAndResume": true,
+    "taskReviewVisible": true,
+    "planShownBeforeWrite": true,
+    "sequentialStepProgress": true,
+    "liveActivityBeforeFinalReply": true,
+    "scrollHistoryAndFollowLatest": true,
+    "activitySettlesOnCompletionAndStop": true,
+    "activitySettlesOnConnectionFailure": true,
+    "userStopVisible": true,
+    "windowsVstoInstalled": false,
+    "realProvidersVerified": false,
+    "errors": []
+  },
+  "valueFormatIntegration": {
+    "checkedAt": "2026-09-22T10:45:22.691Z",
+    "engine": "real Pi and compiled WorkbookEngine",
+    "excelCom": "simulated",
+    "model": "scripted",
+    "checks": [
+      {
+        "address": "A1",
+        "field": "value",
+        "operator": "equals",
+        "expected": "00123",
+        "actual": [
+          [
+            "00123"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "A1",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "@",
+        "actual": [
+          [
+            "@"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "B1",
+        "field": "value",
+        "operator": "equals",
+        "expected": 0.125,
+        "actual": [
+          [
+            0.125
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "B1",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "0.0%",
+        "actual": [
+          [
+            "0.0%"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "A2",
+        "field": "value",
+        "operator": "equals",
+        "expected": 46288,
+        "valueType": "date",
+        "actual": [
+          [
+            46288
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "A2",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "yyyy-mm-dd",
+        "actual": [
+          [
+            "yyyy-mm-dd"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "A1:B1",
+        "field": "fontName",
+        "operator": "equals",
+        "expected": "Arial",
+        "actual": [
+          [
+            "Arial",
+            "Arial"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "A1:B1",
+        "field": "fontSize",
+        "operator": "equals",
+        "expected": 14,
+        "actual": [
+          [
+            14,
+            14
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "A1:B1",
+        "field": "fontColor",
+        "operator": "equals",
+        "expected": "#1B64DA",
+        "actual": [
+          [
+            "#1B64DA",
+            "#1B64DA"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "A1:B1",
+        "field": "horizontalAlignment",
+        "operator": "equals",
+        "expected": "center",
+        "actual": [
+          [
+            "center",
+            "center"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "A1",
+        "field": "value",
+        "operator": "equals",
+        "expected": "00123",
+        "actual": [
+          [
+            "00123"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "A1",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "@",
+        "actual": [
+          [
+            "@"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "B1",
+        "field": "value",
+        "operator": "equals",
+        "expected": 0.125,
+        "actual": [
+          [
+            0.125
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "B1",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "0.0%",
+        "actual": [
+          [
+            "0.0%"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "A2",
+        "field": "value",
+        "operator": "equals",
+        "expected": 46288,
+        "actual": [
+          [
+            46288
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "A2",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "yyyy-mm-dd",
+        "actual": [
+          [
+            "yyyy-mm-dd"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "A1",
+        "field": "fontName",
+        "operator": "equals",
+        "expected": "Arial",
+        "actual": [
+          [
+            "Arial"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "B1",
+        "field": "fontName",
+        "operator": "equals",
+        "expected": "Arial",
+        "actual": [
+          [
+            "Arial"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "A1",
+        "field": "fontSize",
+        "operator": "equals",
+        "expected": 14,
+        "actual": [
+          [
+            14
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "B1",
+        "field": "fontSize",
+        "operator": "equals",
+        "expected": 14,
+        "actual": [
+          [
+            14
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "A1",
+        "field": "fontColor",
+        "operator": "equals",
+        "expected": "#1B64DA",
+        "actual": [
+          [
+            "#1B64DA"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "B1",
+        "field": "fontColor",
+        "operator": "equals",
+        "expected": "#1B64DA",
+        "actual": [
+          [
+            "#1B64DA"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "A1",
+        "field": "horizontalAlignment",
+        "operator": "equals",
+        "expected": "center",
+        "actual": [
+          [
+            "center"
+          ]
+        ],
+        "status": "met"
+      },
+      {
+        "address": "B1",
+        "field": "horizontalAlignment",
+        "operator": "equals",
+        "expected": "center",
+        "actual": [
+          [
+            "center"
+          ]
+        ],
+        "status": "met"
+      }
+    ],
+    "state": "done",
+    "typedInput": true,
+    "referenceStyle": true,
+    "formulaPreserved": true,
+    "restore": true,
+    "liveExcelVerified": false,
+    "realModelAccuracy": null
+  },
+  "componentGallery": "component-reference.json",
+  "realWindowsExcel": false,
+  "realProviderAuthentication": false,
+  "realModelAccuracy": null,
+  "enterpriseTemplateCatalogImplemented": false,
+  "multiSheetFieldMappingImplemented": false,
+  "windowsInstaller": false,
+  "modelCatalog": "Unchanged since 0.5.0; real reported five-model response cause still unconfirmed"
+}

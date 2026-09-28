@@ -1,0 +1,48 @@
+{
+  "version": "0.3.1",
+  "checkedAt": "2026-09-22T09:10:48.007Z",
+  "change": "Chat activity tied to actual worker events: planning, model wait, tool execution, readback, review, completion, interruption.",
+  "javascriptTests": 33,
+  "javascriptTestsPassed": 33,
+  "browser": {
+    "checkedAt": "2026-09-22T09:10:15.932Z",
+    "browserUi": true,
+    "realPiLoop": true,
+    "realWorkbookEngine": true,
+    "excelCom": "simulated",
+    "providers": "synthetic",
+    "widths": [
+      320,
+      380,
+      600
+    ],
+    "mutationAndRestore": true,
+    "clarificationAndResume": true,
+    "taskReviewVisible": true,
+    "planShownBeforeWrite": true,
+    "sequentialStepProgress": true,
+    "liveActivityBeforeFinalReply": true,
+    "scrollHistoryAndFollowLatest": true,
+    "activitySettlesOnCompletionAndStop": true,
+    "activitySettlesOnConnectionFailure": true,
+    "userStopVisible": true,
+    "windowsVstoInstalled": false,
+    "realProvidersVerified": false,
+    "errors": []
+  },
+  "build": true,
+  "designCheck": true,
+  "standaloneBundleSmoke": true,
+  "recording": {
+    "file": "activity-demo.webm",
+    "durationSeconds": 22.92,
+    "width": 380,
+    "height": 850,
+    "actualFrontend": true,
+    "providerResponses": "synthetic",
+    "excelCom": "simulated",
+    "testOnlyResponseLatency": true
+  },
+  "windowsExcel2016Verified": false,
+  "realModelAccuracy": null
+}

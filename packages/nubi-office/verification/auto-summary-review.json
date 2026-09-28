@@ -1,0 +1,107 @@
+{
+  "date": "2026-09-23",
+  "baselineCommit": "638d47fe7ffab6bd984f5b68e6e93e5ad418c6b4",
+  "scope": "Optional grounded conversation summarization and same-process Office run continuity",
+  "tests": {
+    "development": {
+      "command": "npm test",
+      "passed": 274,
+      "failed": 0,
+      "skipped": 0,
+      "finalFollowups": [
+        "47 context-summary/Excel/new-workbook tests passed after final metadata and usage accounting refinement",
+        "18 content tests passed after replacing duplicate failure text with a compact machine record"
+      ]
+    },
+    "publication": {
+      "command": "npm test",
+      "passed": 274,
+      "failed": 0,
+      "skipped": 0
+    },
+    "newCases": 10,
+    "modelAndNativeInputs": "scripted control fixtures; actual Pi loop; no real Qwen/Office execution"
+  },
+  "sourceChecks": {
+    "designIssues": 0,
+    "sharedUiFilesMatched": 24,
+    "importAwareSourceParity": true,
+    "diffWhitespace": "passed",
+    "developmentOnlyCheckFix": "Removed one middle-dot separator from the existing local worker/aipro-auth.mjs title; unrelated local authentication implementation was not copied to publication."
+  },
+  "adopted": {
+    "existingLibraries": [
+      "Pi agent-core 0.86.1",
+      "MiniSearch 7.2.0",
+      "p-retry 8.0.1"
+    ],
+    "newDependencies": [],
+    "patterns": [
+      "Anthropic structured progress and incremental verification",
+      "Pi recent-context preservation and compaction boundaries",
+      "LangChain summarization trigger/keep",
+      "LangGraph checkpoint and side-effect separation"
+    ]
+  },
+  "limits": {
+    "summaryTriggerRawChars": 24000,
+    "summaryInputJsonChars": 24000,
+    "summaryItems": 8,
+    "summaryOutputChars": 6000,
+    "summaryTimeoutMs": 20000,
+    "summaryAttemptsPerRun": 1,
+    "summarizedWindowChars": 12000,
+    "unsummarizedWindowChars": 16000,
+    "tokenCounter": "unmeasured; character budgets only"
+  },
+  "verifiedControls": [
+    "Grounded source quote/role/offset validation",
+    "Assistant claims cannot become user decisions",
+    "Summary fallback preserves original conditions and retrieval",
+    "Cancellation fences late summaries; Retry-After retained",
+    "Normal context checkpoints do not increase retries or recovery HITL",
+    "At least four live Pi draft checkpoints preserve chunks and a prior tool error",
+    "Failed or uncertain writes still require native receipt checks"
+  ],
+  "unverified": {
+    "windowsOffice2016": "not executed",
+    "liveQwenAccuracy": "not measured",
+    "tokensCostLatency": "not measured",
+    "NASCA": "not tested",
+    "durableAppOrPcRestart": "not implemented",
+    "build": "not run",
+    "installer": "not produced"
+  },
+  "sourceSha256": {
+    "development": {
+      "AGENTS.md": "bebf5a8ac697242dea85e0b8aecfb3137cd9d6dad8b449f5913b6cac091ea135",
+      "docs/IMPROVEMENT-STATUS.md": "981743e5767350296a473c7cafc7bbff8ab3334b2f7700f5ddb09ba4b6765278",
+      "docs/AUTO-SUMMARY-CONTINUITY-2026-09-23.md": "ce24606fceb5e300eb60b00d8cc71a7d88031f89fc592ad25275d2075ff33aaa",
+      "worker/context-summary.mjs": "83fbe8bf26d934d246adcdd4d5f95885835c76326a02b4990efa5484d53489a9",
+      "worker/run-continuity.mjs": "fbf58cf02b191dabc946c84358fefccb82569b6789f8e979014c344eb3c7240a",
+      "worker/context-memory.mjs": "a933f1c158784427732cb1b8add91b0d081f73869df14981f3fb66519d299678",
+      "worker/agent.mjs": "3c2b4c0ac150bda60043debc8053c0b249303e76c0d62a43d8e8411bd2fecbd2",
+      "worker/document-agent.mjs": "91357b2944aa105e0c375a77400a6129d7b21ad38d5eeb73cf002b08fde20111",
+      "worker/content-agent.mjs": "84f401e474aeb14daec5da6cfa1be6d6602dda621f3986440aac4fa3950bd5a0",
+      "tests/context-summary.test.mjs": "80d10c296e0202ca8e117787202f839e4957848ae03223a8f766d5e0a67fd3ed",
+      "tests/agent.test.mjs": "7ef9e48fc1d242e7dc92bf3a783eec0477500b05e28b09f2e8f805057da234e9",
+      "tests/document.test.mjs": "516dc1a29a20a3118db2be5669cdd0a986728626cd171f31414ccc82335cee51",
+      "tests/content-agent.test.mjs": "660ad351a0d8cb0b49ae0113232c7d7bc058315da0be0907538e65844d168406"
+    },
+    "publication": {
+      "AGENTS.md": "bebf5a8ac697242dea85e0b8aecfb3137cd9d6dad8b449f5913b6cac091ea135",
+      "docs/IMPROVEMENT-STATUS.md": "981743e5767350296a473c7cafc7bbff8ab3334b2f7700f5ddb09ba4b6765278",
+      "docs/AUTO-SUMMARY-CONTINUITY-2026-09-23.md": "ce24606fceb5e300eb60b00d8cc71a7d88031f89fc592ad25275d2075ff33aaa",
+      "worker/context-summary.mjs": "83fbe8bf26d934d246adcdd4d5f95885835c76326a02b4990efa5484d53489a9",
+      "worker/run-continuity.mjs": "fbf58cf02b191dabc946c84358fefccb82569b6789f8e979014c344eb3c7240a",
+      "worker/context-memory.mjs": "a933f1c158784427732cb1b8add91b0d081f73869df14981f3fb66519d299678",
+      "worker/agent.mjs": "6ec69ca027ca0e5137a03940e7adc5993aa831affbf1987b86ebe4fe35f47396",
+      "worker/document-agent.mjs": "65b036bfe1b5b618ff9e1308af965408c582d9c75c964503384f0ad6cc82db6f",
+      "worker/content-agent.mjs": "374ec13a97b312cf4ca80e018ffbed6623b3de7d68902da78fff43a9db682135",
+      "tests/context-summary.test.mjs": "80d10c296e0202ca8e117787202f839e4957848ae03223a8f766d5e0a67fd3ed",
+      "tests/agent.test.mjs": "7ef9e48fc1d242e7dc92bf3a783eec0477500b05e28b09f2e8f805057da234e9",
+      "tests/document.test.mjs": "516dc1a29a20a3118db2be5669cdd0a986728626cd171f31414ccc82335cee51",
+      "tests/content-agent.test.mjs": "660ad351a0d8cb0b49ae0113232c7d7bc058315da0be0907538e65844d168406"
+    }
+  }
+}

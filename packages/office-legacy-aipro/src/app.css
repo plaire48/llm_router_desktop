@@ -1,0 +1,95 @@
+:root { --pane-bg: var(--layout-surface); }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { width: 100%; height: 100%; margin: 0; }
+body { font-family:var(--cx-font-family); font-size: 14px; color: var(--layout-text); background: var(--layout-surface); }
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: default; opacity: .5; }
+button, input, select { min-height: 32px; }
+input, select, textarea { border: 1px solid var(--layout-border); border-radius: 8px; color: var(--layout-text); background: var(--layout-surface); }
+input, select { padding: 4px 8px; max-width: 100%; }
+button:focus, input:focus, select:focus, textarea:focus { outline: 2px solid var(--brand-action); outline-offset: 2px; }
+.app { height: 100%; display: flex; flex-direction: column; }
+.header { flex-shrink: 0; padding: 20px 16px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--layout-border); }
+.brand { display: flex; align-items: center; min-width: 0; }
+.mark { width: 36px; height: 36px; border-radius: 12px; background: var(--brand-action); color: var(--color-white); text-align: center; line-height: 36px; font-size: 25px; margin-right: 10px; }
+h1, h2, p { margin: 0; } h1 { font-size: 16px; font-weight: 700; } h1 span { font-size: 12px; color: var(--layout-muted); font-weight: 500; }
+.brand p { margin-top: 3px; font-size: 11px; color: var(--layout-muted); }
+.icon-button { border: 0; background: transparent; color: var(--layout-muted); width: 32px; flex-shrink: 0; border-radius: 8px; font-size: 21px; }
+.icon-button:hover, .text-button:hover { background: var(--layout-soft); }
+.status { flex-shrink: 0; margin: 12px 16px 0; padding: 9px 12px; border-radius: 8px; font-size: 12px; line-height: 1.6; color: var(--brand-action); background: var(--brand-soft); }
+.status.error { color: var(--cx-danger); background: var(--cx-error-surface); }
+.connection { padding: 12px 16px; display: flex; align-items: center; flex-shrink: 0; font-size: 12px; color: var(--layout-muted); }
+.connection select { margin-left: auto; max-width: 62%; font-size: 12px; min-height: 28px; }
+.conversation { overflow-y: auto; flex: 1 1 auto; min-height: 0; padding: 8px 16px 20px; }
+.welcome { padding-top: 28px; } .welcome-symbol { font-size: 34px; color: var(--brand-action); margin-bottom: 14px; }
+.welcome h2 { font-size: 18px; line-height: 1.5; } .welcome p { color: var(--layout-muted); line-height: 1.8; font-size: 13px; margin: 10px 0 24px; }
+.examples button { display: flex; align-items: center; justify-content: space-between; width: 100%; background: var(--layout-surface); border: 1px solid var(--layout-border); border-radius: 10px; padding: 12px; margin-bottom: 8px; font-size: 12px; text-align: left; }
+.examples span { color: var(--layout-muted); margin-left: 8px; } .examples button:hover { background: var(--brand-soft); border-color: var(--brand-action); }
+.composer { flex-shrink: 0; border-top: 1px solid var(--layout-border); padding: 12px 16px; }
+.scope { display: flex; align-items: center; color: var(--layout-muted); font-size: 12px; margin-bottom: 8px; }
+.scope>span:first-child { color: var(--brand-action); font-size: 18px; margin-right: 8px; } #scope-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .scope button { margin-left: auto; }
+#request-form { border: 1px solid var(--layout-border); border-radius: 12px; padding: 10px; } textarea { resize: vertical; width: 100%; max-height: 180px; min-height: 60px; border: 0; outline-offset: 0; padding: 2px; font-size: 13px; }
+.composer-actions { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; } .composer-actions select { font-size: 12px; border: 0; background: var(--layout-soft); }
+.primary { background: var(--brand-action); color: var(--color-white); border: 0; border-radius: 8px; padding: 6px 14px; font-weight: 600; } .primary:hover { background: var(--color-bg-primary-hover); }
+.secondary { color: var(--layout-text); background: var(--layout-surface); border: 1px solid var(--layout-border); border-radius: 8px; padding: 6px 12px; }
+.footnote { font-size: 10px; line-height: 1.6; color: var(--layout-muted); margin-top: 8px; }
+.settings { overflow-y: auto; max-height: 65%; flex-shrink: 0; margin: 12px 16px 0; padding: 14px; background: var(--layout-soft); border: 1px solid var(--layout-border); border-radius: 12px; }
+.section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; } .section-title h2 { font-size: 14px; } .wide { width: 100%; margin: 8px 0 0; }
+.hint { color: var(--layout-muted); font-size: 11px; line-height: 1.6; margin-top: 8px; } .text-button { color: var(--brand-action); border: 0; border-radius: 8px; background: transparent; padding: 6px 0; font-size: 12px; margin-top: 8px; }
+#cli-form label { display: block; margin: 12px 0 4px; font-size: 12px; } #cli-form input { width: 100%; }
+.message { margin: 14px 0; padding: 12px; font-size: 13px; line-height: 1.8; border-radius: 12px; white-space: pre-wrap; word-break: break-word; overflow-wrap: break-word; }
+.message.user { background: var(--layout-soft); } .message.assistant { padding-left: 0; padding-right: 0; } .message .label { display: block; font-size: 11px; color: var(--brand-action); margin-bottom: 4px; font-weight: 600; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+@media (pointer: coarse) { button, input, select { min-height: 44px; } }
+@media (max-height: 650px) { .welcome { padding-top: 8px; } .welcome p { margin-bottom: 12px; } .welcome-symbol { display: none; } }
+
+/* Nubi App/Welcome/AgentMark/Composer port. The original theme and bird motion
+   rules are imported during build; these layout fallbacks keep Excel 2016 usable. */
+body, .app { background: var(--deck-background); }
+.header { border: 0; padding: 14px 16px 8px; }
+.header-actions { display: flex; align-items: center; }
+.icon-button svg { width: 20px; height: 20px; vertical-align: middle; }
+.nubi-logo { display: inline-flex; align-items: center; background: transparent; border: 0; padding: 0; }
+.nubi-logo img { display: block; margin-right: 4px; }
+.nubi-wordmark { width: 42px; height: 24px; }
+.nubi-beta { color: var(--layout-muted); font-size: 12px; }
+.connection { padding-top: 8px; padding-bottom: 4px; }
+.connection select { border: 0; background: transparent; color: var(--brand-ink); }
+.status { background: var(--brand-soft); border-radius: 12px; }
+.welcome { text-align: center; padding-top: 0; }
+.welcome-art { margin: 0 auto; width: 160px; height: 148px; }
+.welcome-emblem { display: block; position: relative; width: 148px; height: 148px; }
+.agent-mark { display: inline-block; position: relative; width: 148px; height: 148px; }
+.agent-mark>img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+.agent-intro h2 { font-size: 18px; line-height: 1.5; color: var(--bird-ink); letter-spacing: -.02em; }
+.agent-intro p { font-size: 13px; line-height: 1.8; margin: 8px 0 16px; }
+.welcome-title { font-size: 17px; margin: 8px 0 14px; letter-spacing: -.02em; }
+.welcome-title span { color: var(--bird-ink); }
+.examples button { border-radius: 12px; background: var(--layout-surface); padding: 10px 12px; border-color: var(--layout-border); }
+.composer { border: 0; background: transparent; padding-top: 8px; }
+#request-form { background: var(--layout-surface); padding: 12px; border-radius: 24px; box-shadow: var(--deck-shadow); }
+#request-form:focus-within { border-color: var(--brand-action); }
+.composer-actions select { border-radius: 12px; }
+.composer-tools { display: flex; align-items: center; }
+#submit { width: 34px; padding: 2px; font-size: 22px; border-radius: 12px; }
+.message-user { background: var(--conversation-user-surface); border-radius: 24px; border-bottom-right-radius: 8px; margin-left: 20px; }
+.message.assistant { padding: 4px 4px 12px; }
+.message.user { background: var(--conversation-user-surface); }
+.message .label { font-size: 12px; color: var(--brand-ink); margin-bottom: 6px; }
+.message-body { font-size: 14px; line-height: 1.75; }
+.settings { background: var(--layout-surface); border-radius: 20px; box-shadow: var(--deck-shadow); }
+#login { min-height: 44px; background: linear-gradient(130deg, var(--provider-aipro-start), var(--provider-aipro-end)); color: var(--brand-ink); border: 1px solid var(--brand-border); border-radius: 12px; }
+.history-item { display: block; width: 100%; text-align: left; margin: 8px 0; padding: 8px 10px; border: 0; border-radius: 8px; background: var(--brand-surface); color: var(--layout-text); font-size: 12px; }
+.trace-panel { padding: 0 4px; font-size: 12px; color: var(--layout-muted); }
+.trace-panel ol { list-style: none; padding: 0; margin: 0; }
+.trace-panel li { line-height: 1.9; }
+.trace-panel li[data-state='running'] { color: var(--brand-ink); }
+.trace-panel li[data-state='error'] { color: var(--cx-danger); }
+.footnote { font-size: 10px; }
+@media (max-height: 740px) { .welcome-art, .welcome-emblem, .agent-mark { width: 104px; height: 104px; } .agent-intro p { margin-bottom: 8px; } }
+@media (min-height: 741px) and (max-height: 850px) { .welcome-art, .welcome-emblem, .agent-mark { width: 116px; height: 116px; } }
+@media (max-height: 570px) { .welcome-art { display: none; } .welcome-title { margin: 6px 0; } .agent-intro p { display: none; } }
+@media (prefers-reduced-motion: reduce) { .agent-mark, .agent-mark>img { animation: none !important; } }
+.app[data-motion='paused'] .agent-mark, .app[data-motion='paused'] .agent-mark>img { animation-play-state: paused; }

@@ -1,0 +1,225 @@
+{
+  "suite": "edit",
+  "id": "preserve-formula",
+  "trial": 1,
+  "routing": "product",
+  "passed": false,
+  "outcome": "error",
+  "state": "cancelled",
+  "error": "evaluation_recovery_requires_human",
+  "writes": 0,
+  "recoveries": 3,
+  "questions": [],
+  "approvals": [
+    "recovery"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 9,
+    "toolCalls": 5,
+    "elapsedMs": 26376
+  },
+  "transcript": {
+    "modelCalls": 9,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 1,
+      "actor": 5,
+      "recovery": 2
+    },
+    "elapsedMs": 24038,
+    "requestCharacters": 220011,
+    "peakRequestCharacters": 46656,
+    "toolCalls": {
+      "read": 1,
+      "read_selection": 1,
+      "apply_changes": 3
+    },
+    "errors": {}
+  },
+  "request": "A2의 수량만 5로 바꿔줘. C2의 기존 계산 수식과 나머지 셀은 유지해줘.",
+  "answer": "",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_selection",
+        "title": "선택 범위와 기존 수식 확인",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "update_quantity",
+        "title": "A2 수량을 5로 변경하고 금액 재계산 확인",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2
+        ],
+        "state": "paused"
+      },
+      {
+        "id": "verify_preservation",
+        "title": "기존 수식과 나머지 셀 유지 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          1
+        ],
+        "state": "pending"
+      }
+    ],
+    "total": 3,
+    "completed": 1,
+    "currentStepId": "update_quantity"
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "A2의 수량을 5로 변경하고 C2의 기존 계산 수식과 나머지 셀을 유지합니다.",
+    "requirements": [
+      "A2 값을 숫자 5로 변경",
+      "C2의 기존 수식 =A2*B2 유지",
+      "나머지 셀의 값과 수식 유지"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "A2",
+        "field": "value",
+        "operator": "equals",
+        "expected": 5
+      },
+      {
+        "address": "C2",
+        "field": "formula",
+        "operator": "equals",
+        "expected": "=A2*B2"
+      },
+      {
+        "address": "C2",
+        "field": "value",
+        "operator": "equals",
+        "expected": 500
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_selection",
+        "title": "선택 범위와 기존 수식 확인",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "update_quantity",
+        "title": "A2 수량을 5로 변경하고 금액 재계산 확인",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "id": "verify_preservation",
+        "title": "기존 수식과 나머지 셀 유지 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          1
+        ]
+      }
+    ]
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_selection"
+    },
+    {
+      "name": "read",
+      "state": "done",
+      "stepId": "update_quantity"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "update_quantity"
+    },
+    {
+      "name": "apply_changes",
+      "state": "error",
+      "stepId": "update_quantity"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "update_quantity"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "update_quantity"
+    },
+    {
+      "name": "apply_changes",
+      "state": "error",
+      "stepId": "update_quantity"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "update_quantity"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "update_quantity"
+    },
+    {
+      "name": "apply_changes",
+      "state": "error",
+      "stepId": "update_quantity"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "update_quantity"
+    }
+  ],
+  "recoveryLog": [
+    {
+      "attempt": 1,
+      "stepId": "update_quantity",
+      "code": "invalid_range",
+      "tool": "apply_changes",
+      "outcome": "not_executed",
+      "state": "superseded",
+      "summary": "A2 변경 작업은 범위 주소 오류로 실행되지 않았습니다. 현재 A2는 3이고 C2 수식은 유지되어 있습니다.",
+      "nextAction": "A1:C3 내부의 단일 셀 주소인 A2에 숫자 5를 입력한 뒤, A2=5·C2 수식이 =A2*B2·C2 값이 500인지 다시 읽어 확인하세요."
+    },
+    {
+      "attempt": 2,
+      "stepId": "update_quantity",
+      "code": "invalid_range",
+      "tool": "apply_changes",
+      "outcome": "not_executed",
+      "state": "superseded",
+      "summary": "A2 변경 작업은 범위 주소 오류로 실행되지 않았습니다. 현재 A2는 3이고 C2 수식은 유지되고 있습니다.",
+      "nextAction": "A1:C3 범위 내 주소인 A2에 숫자 5를 설정하세요. 실행 후 A2 값, C2 수식(=A2*B2), C2 계산값 500 및 나머지 셀을 다시 읽어 검토하세요."
+    },
+    {
+      "attempt": 3,
+      "stepId": "update_quantity",
+      "code": "invalid_range",
+      "tool": "apply_changes",
+      "outcome": "not_executed",
+      "state": "cancelled"
+    }
+  ]
+}

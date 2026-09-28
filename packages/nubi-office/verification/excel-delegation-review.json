@@ -1,0 +1,52 @@
+{
+  "scope": "Excel dynamic specialists and Office report retrieval",
+  "date": "2026-09-25",
+  "currentDevelopmentDependencies": {
+    "wholeSuite": 590,
+    "pass": 590,
+    "additionalReadBoundaryTests": 8,
+    "additionalPass": 8
+  },
+  "pinnedOfficePi": {
+    "version": "0.86.1",
+    "wholeSuite": 598,
+    "pass": 598,
+    "fail": 0,
+    "method": "test-only ESM resolution of the three direct Pi packages; no product/native/installer build",
+    "committedLoaderTargetedTests": 4,
+    "committedLoaderTargetedPass": 4
+  },
+  "design": {
+    "sharedFilesMatched": 24,
+    "issues": 0
+  },
+  "staticChromium": {
+    "scenarios": 105,
+    "horizontalOverflow": 0,
+    "axeViolations": 0,
+    "contrast": "incomplete"
+  },
+  "notVerified": [
+    "Windows 11 Office 2016 COM",
+    "NASCA",
+    "live Qwen quality/cost/latency",
+    "WebView2"
+  ],
+  "newRuntimeDependencies": 0,
+  "installerBuilt": false,
+  "files": {
+    "worker/agent.mjs": "be72a69d0031aeac354f2be72069c2888f8a7e4f0b29b084dc09f657f1fa30da",
+    "worker/content-agent.mjs": "921a773dd109bc93188cab7b2a93bf4dfcefa7e5fef02b9754645c34d1b11f29",
+    "worker/document-delegation.mjs": "659251472dc5d2b2069b246d29451a3df794670c284cb4c2f0b1745fe6254d87",
+    "worker/workbook-context.mjs": "ec5d54e1f365a3f35d9810de4d21d88b7dd08a8344eea061216af18c87d2321e",
+    "tests/excel-delegation.test.mjs": "8b3bbeb6ea918014947c108802ce5eccec3d7000cb6b5e73a56f1f3b54e93e20",
+    "tests/workbook-delegation.test.mjs": "5b2870a715d6d5ad501d8c7e5427e650b02a16c773d407de3750d258c6642db1",
+    "tests/document-delegation.test.mjs": "46a69b08c710d9db3c42752bf662e58ed1d08faeb9940eb23869a0b3b00f738a",
+    "tests/delegation-read-boundaries.test.mjs": "0c1806da97813574f913325b08fc142a0ff6bbb158aa243c0852ea2737ff4156",
+    "tests/shared-runtime-contract.test.mjs": "da65cc443aa12bc3d12530c780f5c565d7440483449b7bc880cb20091d0d8660",
+    "tests/shared-question-contract.test.mjs": "2c98dc3134377c97e80ea4c54eb06251cb51576a6ca84b596edeabafa6d4eb6f",
+    "design/shared-ui.json": "919d2c8bf53787d46948b036452d39caf327a5e5783883bc01b2980a7fbb5bf2",
+    "scripts/pinned-runtime-loader.mjs": "2a6c7a592a3cda21c03b33e51d81e02988976a342d999c6bce958d1b0d6c9b61",
+    "scripts/pinned-runtime-resolve.mjs": "70ca69610bf948bfb7d5557be75738c56e9230d9d324fbb702028e073d433258"
+  }
+}

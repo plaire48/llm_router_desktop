@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>누비 · 실패 후 수정과 재검증</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f6f7f9;color:#202832;font:15px/1.7 system-ui,sans-serif}main{max-width:840px;margin:32px auto;padding:0 24px;display:flex;align-items:center;gap:40px}video{width:380px;max-width:100%;max-height:86vh;border-radius:22px;box-shadow:0 12px 40px #18243818;background:#eaf3ff}section{flex:1}h1{font-size:26px;line-height:1.4;letter-spacing:-.7px}p{color:#556170}.caption{font-size:12px;color:#66727e}a{color:#394caf}@media(max-width:650px){main{flex-direction:column;align-items:center;gap:10px;margin:20px auto}section{order:-1;width:100%;max-width:380px}h1{font-size:22px;margin:0}p{margin:8px 0}video{max-height:75vh}}
+</style>
+<main>
+  <video controls autoplay muted loop playsinline aria-label="누비 채팅에서 서식 입력 실패, 원인 확인, 수정 실행, 재검증이 차례로 표시되는 UI 녹화">
+    <source src="recovery-demo.webm" type="video/webm">
+  </video>
+  <section>
+    <h1>실패한 작업을<br>고쳐서 이어가도록</h1>
+    <p>서식 입력이 거절되면 현재 셀과 오류를 확인하고, 수정 방법을 정해 다시 실행합니다.</p>
+    <p>앞서 완료한 값 변경은 유지하고, 수정한 서식과 전체 결과를 다시 검증합니다.</p>
+    <p class="caption">실제 UI 녹화 · 모델 응답과 Excel COM은 테스트 구현을 사용했습니다. Windows Excel 2016 및 실모델 성능 검증은 아직 진행하지 못했습니다.</p>
+    <a href="recovery-demo.webm" download>녹화 파일 받기</a>
+  </section>
+</main>
+</html>

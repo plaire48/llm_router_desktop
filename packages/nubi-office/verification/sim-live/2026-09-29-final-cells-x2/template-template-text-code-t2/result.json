@@ -1,0 +1,59 @@
+{
+  "suite": "template",
+  "id": "template-text-code",
+  "trial": 2,
+  "routing": "product",
+  "passed": false,
+  "outcome": "error",
+  "state": "cancelled",
+  "error": "evaluation_interaction_requires_human",
+  "writes": 0,
+  "recoveries": 0,
+  "questions": [
+    "B2를 사번 필드로 확정해도 될까요?"
+  ],
+  "approvals": [],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 2,
+    "toolCalls": 0,
+    "elapsedMs": 4654
+  },
+  "transcript": {
+    "modelCalls": 2,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 1
+    },
+    "elapsedMs": 4634,
+    "requestCharacters": 12640,
+    "peakRequestCharacters": 9850,
+    "toolCalls": {},
+    "errors": {}
+  },
+  "request": "기존 양식을 그대로 사용해. B2는 필수 텍스트 사번 입력칸이다. 입력 항목을 확인받고 사번 00123을 넣어줘. 앞자리 0과 모든 서식·수식·다른 셀은 보존해.",
+  "answer": "",
+  "question": "",
+  "task": {
+    "intent": "clarify",
+    "summary": "기존 양식의 B2 사번 입력 항목을 확인한 뒤, 확인된 필드에 00123을 입력하고 서식·수식·다른 셀을 보존합니다.",
+    "requirements": [
+      "B2는 필수 텍스트 사번 입력칸으로 확인되어야 함",
+      "사번 값은 앞자리 0을 포함한 텍스트 00123",
+      "기존 서식·수식·다른 셀은 보존"
+    ],
+    "questions": [
+      "B2를 사번 필드로 확정해도 될까요?"
+    ],
+    "preserveFormulas": true,
+    "checks": [],
+    "steps": []
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "running"
+    }
+  ],
+  "recoveryLog": []
+}

@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-23",
+  "change": "Word and PowerPoint copy-before-edit template workflow",
+  "baselineCommit": "7099ffa412ca7c8a13310a13c639a209ce7dff67",
+  "evidenceType": "source-only; scripted provider/native responses with real Pi runtime",
+  "checks": {
+    "developmentRegression": {
+      "passed": 281,
+      "failed": 0
+    },
+    "publicationRegression": {
+      "passed": 281,
+      "failed": 0
+    },
+    "sharedUiParity": {
+      "matched": true,
+      "files": 24
+    },
+    "designIssues": 0,
+    "publicationImportParity": true
+  },
+  "implemented": [
+    "template intent and mandatory visible copy stage",
+    "copy HITL and host-specific behavior disclosure",
+    "new restricted scope with original fingerprint and observed item/selection checks",
+    "receipt-only reconciliation for copy and final save",
+    "copy readiness and final saved artifact distinguished",
+    "Word native SaveAs2 and stale path scope rejection",
+    "PowerPoint native SaveCopyAs/Open with restored automation security",
+    "same-copy final native Save with observed item checks"
+  ],
+  "notVerified": [
+    "native compilation",
+    "Windows Office 2016 COM",
+    "Word open-document SaveAs2 transition",
+    "PowerPoint multiwindow/task-pane lifetime",
+    "macro-enabled file retention",
+    "NASCA encryption and reopen",
+    "complete formatting and rendered output identity",
+    "live Qwen quality, tool choice, intent routing and performance"
+  ],
+  "notImplemented": [
+    "protected Word/PPT analysis profile persistence and reuse",
+    "shared enterprise template catalog",
+    "worker or PC restart recovery",
+    "unsupported rich/mapped/nested content controls and mixed-run writes"
+  ],
+  "buildPerformed": false,
+  "installerWorkflowTriggered": false,
+  "newRuntimeDependencies": [],
+  "sourceSha256": {
+    "AGENTS.md": "b84fa257a451f0187c609f99edb465636ef91d881b2f3eb046053a89abe116ba",
+    "docs/IMPROVEMENT-STATUS.md": "02e9f2b708dd704713b88a4769008b5724ab13d2b0bef9603dbf5c89d9c2d23e",
+    "docs/TEMPLATE-COPY-2026-09-23.md": "c50ff8c2b0d93dd0a34d77a4118df07c7283c82aeae3512eeeeb8c893bb7f198",
+    "worker/content-agent.mjs": "a6e5f69c5a020c09005a6de9aedbe84e46131a59e9270e0f6f50138b78ff851c",
+    "worker/content-copy.mjs": "8f3354804d4e6f5409c89c918360dc1ff5c66784602f13de25be5b4218fe18b3",
+    "worker/content-schema.mjs": "b7e1afd14c41f82e797bd3fda3739de29ffc2aebd52d698b9b7b62a3cb25c1ba",
+    "native/Nubi.Office.Host/ContentPort.cs": "162217c07be981d67fbebcb40bd2dd7241f1b4a84f694f26b9f7ecfec7a6c2c2",
+    "native/Nubi.Office.Host/ContentCopies.cs": "e5ae083ed2d002d8ea01dd24bc3119c38748f33a57129357c838a7ef619682b8",
+    "native/Nubi.Office.Host/WordContentDocument.cs": "df31a8a168057f3e5ec018237006a0e03be5006ab6106bb065a937fb45cf8821",
+    "native/Nubi.Office.Host/SlideContentDocument.cs": "fb7aaaa1991dfe440529667baa2545767855370c5f96a22dbcf76df1bb4746b8",
+    "src/App.jsx": "08a84aa4af5d1d8421f1bf72a1d42eb2bf68373bd8a253e22fdbd8c616bbaad1",
+    "src/OfficeTransaction.jsx": "0cebd1c903c423f8b0d6e1b6d2a22c8534da82cade60f48a1b0aee27399ab1a6",
+    "src/bridge.js": "f7c69e0261ec7219eaa4e78544a15a468fec33afaeeee13b38efc01db95967c5",
+    "src/errors.js": "8fd173f23cbb74a289e67d33a573d9e4ad7544b483b13bc6af9551fe33595c41",
+    "tests/content-agent.test.mjs": "5d000efef475579e2209c1cc9d10aa685cb0d90c43dceb24f5c104c0661293ce",
+    "tests/content-ui.test.mjs": "b9a00b62d09f678de5252070876006f2be974b4200cdd8c735532d9b7fa262b5"
+  }
+}

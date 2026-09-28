@@ -1,0 +1,67 @@
+{
+  "kind": "office-form-followup-source-verification",
+  "date": "2026-09-25",
+  "before": {
+    "newRegressions": 3,
+    "failed": 3,
+    "log": "/tmp/nubi-form-followup-before.log"
+  },
+  "focused": {
+    "passed": 40,
+    "failed": 0,
+    "log": "/tmp/nubi-form-followup-after.log"
+  },
+  "officeTests": {
+    "command": "npm run test:pinned",
+    "passed": 704,
+    "failed": 0,
+    "skipped": 0,
+    "log": "/tmp/nubi-form-followup-full.log"
+  },
+  "design": {
+    "sharedFiles": 24,
+    "matched": true,
+    "issues": 0,
+    "review": "form-followup-style-review.json"
+  },
+  "visual": {
+    "screens": 129,
+    "overflow": 0,
+    "axeViolations": 0,
+    "incomplete": [
+      "color-contrast"
+    ],
+    "manualInspection": [
+      "usability-skills-paste-error-380.png",
+      "usability-connection-input-error-320.png",
+      "usability-templates-input-error-320.png"
+    ]
+  },
+  "referenceReview": "form-source-review.json",
+  "officialDocsRechecked": [
+    "https://code.claude.com/docs/en/agent-sdk/user-input",
+    "https://opencode.ai/docs/tools/#question",
+    "https://www.w3.org/WAI/tutorials/forms/validation/"
+  ],
+  "newDependencies": [],
+  "nativeBuild": false,
+  "installerBuild": false,
+  "released": false,
+  "notVerified": [
+    "User study of comprehension and effort",
+    "Windows Office 2016 WebView2/COM",
+    "Live Qwen question judgment",
+    "Company SSO and NASCA",
+    "Some automatic color contrast checks"
+  ],
+  "sourceSha256": {
+    "src/form-feedback.js": "827ba71648aedfdf4d367056a898cae80d14dc6006a501a1df002bda2724fab1",
+    "src/OfficeSkills.jsx": "4be964a7307e08110b2009bf0d818be9f139945c74dbd547cc72f1c305eb0e0f",
+    "src/OfficeTemplates.jsx": "6aae4ab717e3388b55f2c11b07ad71724f029536e87af16bc4ca5b2a7974b993",
+    "src/OfficeDialogs.jsx": "3b515896aa70acd32356bc7b2cbec0650ca00ad1819823f0909eae8990c0c1a0",
+    "src/office.css": "9577c61df502f30949961896d42ef4e53592c1c522ef45c93ac8daf925ef86ba",
+    "tests/content-ui.test.mjs": "296104b85071437f8b94996923926058ca222f1b3f44bc94c7cfb2e2f40f375e",
+    "tests/ui-preview.mjs": "eb0758bfabd1f441056e09534c2c34480e5ce0bd6b1c4519299d1770039b2b35",
+    "design/shared-ui.json": "042f6ebe715934bc296513cd104dec53b704c51b363a66d540aeaa5ad17725f6"
+  }
+}

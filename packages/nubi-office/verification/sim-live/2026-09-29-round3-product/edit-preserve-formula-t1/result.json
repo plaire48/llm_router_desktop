@@ -1,0 +1,330 @@
+{
+  "suite": "edit",
+  "id": "preserve-formula",
+  "trial": 1,
+  "routing": "product",
+  "passed": true,
+  "outcome": "passed",
+  "state": "done",
+  "writes": 1,
+  "recoveries": 1,
+  "questions": [],
+  "approvals": [
+    "edit"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 10,
+    "toolCalls": 3,
+    "elapsedMs": 26455
+  },
+  "transcript": {
+    "modelCalls": 10,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 1,
+      "actor": 4,
+      "recovery": 1,
+      "action_review": 1,
+      "step_review": 1,
+      "result_review": 1
+    },
+    "elapsedMs": 25528,
+    "requestCharacters": 193447,
+    "peakRequestCharacters": 44852,
+    "toolCalls": {
+      "read_worksheet_range": 1,
+      "apply_changes": 1,
+      "verify_selection": 1
+    },
+    "errors": {}
+  },
+  "score": {
+    "passed": true,
+    "outcome": "passed",
+    "deterministicPassed": true,
+    "semanticReview": {
+      "required": false,
+      "status": "not_required",
+      "criteria": []
+    },
+    "expectedState": "done",
+    "actualState": "done",
+    "checks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "A2",
+          "field": "value",
+          "operator": "equals",
+          "expected": 5,
+          "actual": [
+            [
+              5
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C2",
+          "field": "formula",
+          "operator": "equals",
+          "expected": "=A2*B2",
+          "actual": [
+            [
+              "=A2*B2"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C2",
+          "field": "value",
+          "operator": "equals",
+          "expected": 500,
+          "actual": [
+            [
+              500
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "persistedChecks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "A2",
+          "field": "value",
+          "operator": "equals",
+          "expected": 5,
+          "actual": [
+            [
+              5
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C2",
+          "field": "formula",
+          "operator": "equals",
+          "expected": "=A2*B2",
+          "actual": [
+            [
+              "=A2*B2"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "C2",
+          "field": "value",
+          "operator": "equals",
+          "expected": 500,
+          "actual": [
+            [
+              500
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "unexpectedChanges": [],
+    "persistedUnexpectedChanges": [],
+    "sourceChecks": [],
+    "formulaChecks": []
+  },
+  "request": "A2의 수량만 5로 바꿔줘. C2의 기존 계산 수식과 나머지 셀은 유지해줘.",
+  "answer": "A2를 숫자 5로 변경했습니다.  \nC2의 수식 `=A2*B2`와 계산 결과 500, 나머지 셀은 유지되었습니다.",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_selection",
+        "title": "선택 범위와 기존 값·수식 확인",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "update_quantity",
+        "title": "A2 수량을 5로 변경하고 계산 결과 확인",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2
+        ],
+        "state": "done",
+        "requiresReview": true
+      },
+      {
+        "id": "verify_preservation",
+        "title": "C2 수식과 나머지 셀 유지 여부 최종 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          1
+        ],
+        "state": "done"
+      }
+    ],
+    "total": 3,
+    "completed": 3,
+    "currentStepId": null
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "A2 수량을 5로 변경하고 C2의 기존 계산 수식과 나머지 셀을 유지합니다.",
+    "requirements": [
+      "A2 값을 숫자 5로 변경",
+      "C2의 기존 수식 =A2*B2 유지 및 계산 오류 없음",
+      "나머지 셀의 값과 수식 유지"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "A2",
+        "field": "value",
+        "operator": "equals",
+        "expected": 5
+      },
+      {
+        "address": "C2",
+        "field": "formula",
+        "operator": "equals",
+        "expected": "=A2*B2"
+      },
+      {
+        "address": "C2",
+        "field": "value",
+        "operator": "equals",
+        "expected": 500
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_selection",
+        "title": "선택 범위와 기존 값·수식 확인",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "update_quantity",
+        "title": "A2 수량을 5로 변경하고 계산 결과 확인",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "id": "verify_preservation",
+        "title": "C2 수식과 나머지 셀 유지 여부 최종 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          1
+        ]
+      }
+    ]
+  },
+  "review": {
+    "status": "complete",
+    "checks": [
+      {
+        "requirement": "A2 값을 숫자 5로 변경",
+        "status": "met",
+        "evidence_ids": [
+          9
+        ]
+      },
+      {
+        "requirement": "C2의 기존 수식 =A2*B2 유지 및 계산 오류 없음",
+        "status": "met",
+        "evidence_ids": [
+          9
+        ]
+      },
+      {
+        "requirement": "나머지 셀의 값과 수식 유지",
+        "status": "met",
+        "evidence_ids": [
+          9
+        ]
+      }
+    ],
+    "next_step": "없음"
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_selection"
+    },
+    {
+      "name": "read_worksheet_range",
+      "state": "error",
+      "stepId": "update_quantity"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "update_quantity"
+    },
+    {
+      "name": "apply_changes",
+      "state": "done",
+      "stepId": "update_quantity"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "update_quantity"
+    },
+    {
+      "name": "review_action",
+      "state": "done",
+      "stepId": "update_quantity"
+    },
+    {
+      "name": "review_step",
+      "state": "done",
+      "stepId": "update_quantity"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_preservation"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_preservation"
+    },
+    {
+      "name": "review_task",
+      "state": "done",
+      "stepId": "verify_preservation"
+    }
+  ],
+  "recoveryLog": [
+    {
+      "attempt": 1,
+      "stepId": "update_quantity",
+      "code": "worksheet_not_discovered",
+      "tool": "read_worksheet_range",
+      "outcome": "not_executed",
+      "state": "verified",
+      "summary": "시트를 확인했으며 A2는 현재 3, C2 수식은 유지되고 있습니다. 올바른 시트 식별자로 A2만 수정해야 합니다.",
+      "nextAction": "worksheet 이름 CaseSheet를 사용해 A2에 숫자 5만 입력하세요. C2의 =A2*B2 수식과 나머지 셀은 건드리지 말고, 이후 A2와 C2를 다시 읽어 검토하세요."
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "date": "2026-09-25",
+  "scope": "Explicit long-item specialist ranges, direct source revalidation and no-progress protection",
+  "pinnedOfficePi": "0.86.1",
+  "command": "npm run test:pinned",
+  "tests": 652,
+  "pass": 652,
+  "fail": 0,
+  "design": {
+    "sharedFilesMatched": 24,
+    "issues": 0
+  },
+  "staticChromium": {
+    "scenarios": 105,
+    "horizontalOverflow": 0,
+    "axeViolations": 0,
+    "contrast": "incomplete",
+    "reviewedScreens": [
+      "usability-delegation-320.png",
+      "usability-models-380.png"
+    ]
+  },
+  "newRuntimeDependencies": 0,
+  "nativeBuilt": false,
+  "installerBuilt": false,
+  "deployed": false,
+  "notVerified": [
+    "Windows 11 Office 2016 COM",
+    "Live Qwen accuracy/cost/latency",
+    "NASCA save/reopen",
+    "Windows WebView2"
+  ],
+  "remaining": [
+    "Native lazy paging and COM performance",
+    "Protected durable run recovery",
+    "Unsupported rich text, chart/table editing and enterprise template distribution"
+  ],
+  "sharedAppCss": "f2930b8716ef55efa964e19bac097eb6de2ab8b639a42142e51be40b93418627",
+  "files": {
+    "worker/content-ranges.mjs": "b009bfb6405ce9b0e8cffd2fd4695ca7fda875f0c4e27fb6c0209a8e1cf6f825",
+    "worker/content-text.mjs": "b6b088f78734ed7c701d46e58f0c4c53b0a38c50fd8e95059555591d90745513",
+    "worker/content-analysis.mjs": "b968946987d6875fb12efe6bd86a58797c1ed1d8042253a319476980eba2710f",
+    "worker/content-agent.mjs": "546af7096f88928e337934c1e024c6364971136657b7f7871fa749010e45d298",
+    "worker/document-delegation.mjs": "a3d5fbda4906b7588259cfb9a42381eba713f0523c11ab20d26721eba8fde76f",
+    "worker/tool-progress.mjs": "3d383b565caacd790befdcb18cc81ec25c3e37c5e824a99c58a96c1a1b8b233d",
+    "tests/content-ranges.test.mjs": "3c7f77d78c85e5b07a8bc5475550811b5f4a77dfe4fab2a302f094e6c8881361",
+    "tests/content-analysis.test.mjs": "e62ac6e57769d6ffa6f24216596f4ef9937771df2d642783b0113cdfb2ef169f",
+    "tests/content-agent.test.mjs": "47547323bab8d618ffd773ab65df0952c75b40e96f4dfd2fb5262b6063aea3ff",
+    "tests/tool-progress.test.mjs": "5eea74d25613ea54b39bb76e6cc12d005b33daa5978d201a933657409479a335",
+    "design/shared-ui.json": "056e839fa3fcff771711655bb149fa10c5036194cc15a3b359a76d600650ba10",
+    "AGENTS.md": "3c8da2fd73edd952ace73909e88ef8c789c0ba8a78d9fb52d7d7f22bd2342d42",
+    "docs/RANGE-SPECIALISTS-QUALITY-2026-09-25.md": "34d06d81e2488f6c162fa875eff149fe684ccabc33a3532d4854bf3e16a5e6ac",
+    "docs/IMPROVEMENT-STATUS.md": "604b252af1312a892c771862efebe7c58f87259946bec05fb9cc249018903d30"
+  }
+}

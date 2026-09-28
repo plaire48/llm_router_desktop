@@ -1,0 +1,240 @@
+{
+  "recordedAt": "2026-09-23T03:35:22.026664+00:00",
+  "kind": "document_script_source_review",
+  "baselineCommit": "b2ab0d429f2155c69477b98cf00cb7ac97c27296",
+  "sourceCheckout": "self-contained ai_workspace publication package",
+  "sourceVersion": "0.8.2",
+  "target": "Windows Office 2016; enterprise Qwen 3.8 27B baseline with unchanged selected provider/model",
+  "runtime": {
+    "node": "v25.4.0",
+    "platform": "darwin/arm64"
+  },
+  "adopted": {
+    "quickjs-emscripten-core": {
+      "version": "0.32.0",
+      "license": "MIT",
+      "resolved": "https://registry.npmjs.org/quickjs-emscripten-core/-/quickjs-emscripten-core-0.32.0.tgz",
+      "integrity": "sha512-QFnPfjFey8EqknSrSxe1hZrf1/8z7/6s1QzGOmKo6++02r7QRRX7ZoyNaZh7JuVjWsVW87KnQrbZqnHkOAzUyg=="
+    },
+    "@jitl/quickjs-wasmfile-release-sync": {
+      "version": "0.32.0",
+      "license": "MIT",
+      "resolved": "https://registry.npmjs.org/@jitl/quickjs-wasmfile-release-sync/-/quickjs-wasmfile-release-sync-0.32.0.tgz",
+      "integrity": "sha512-BKNDI/TPBfGlLNGYpLrhcDGXmIk4xHm4MRAisOBnOzpXVn9HZWsfmMAc9WMBrAHjvvds6HOikKeaOBKdPdpVrg=="
+    },
+    "@jitl/quickjs-ffi-types": {
+      "version": "0.32.0",
+      "license": "MIT",
+      "resolved": "https://registry.npmjs.org/@jitl/quickjs-ffi-types/-/quickjs-ffi-types-0.32.0.tgz",
+      "integrity": "sha512-v9T+GQpmk43VDJ7d72sf0Nexhk+ArvtUihW27dy7lqAl0zBObFKtSBBIm5RBjwIhE8VwsPPm9PNuvPvNqLWUEg=="
+    }
+  },
+  "checks": [
+    {
+      "command": "npm test",
+      "passed": 334,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "logSha256": "bd6147752f42cb2b2de7a350a61ccb0dfe5ed255063e371b7938496d18a817b1"
+    },
+    {
+      "command": "node scripts/check-ui-parity.mjs",
+      "matchedFiles": 24,
+      "matched": true
+    },
+    {
+      "command": "npm run design:check",
+      "issues": []
+    },
+    {
+      "command": "node --check scripts/build.mjs",
+      "exitCode": 0
+    },
+    {
+      "command": "node --check scripts/package.mjs",
+      "exitCode": 0
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0
+    }
+  ],
+  "actualRuntimeExecution": true,
+  "scriptChecks": [
+    "finite JSON arithmetic",
+    "Korean and zero-prefixed identifiers",
+    "20 generated integer inputs against independent sums, seed 2392301",
+    "host globals and module access unavailable",
+    "isolated runtime per call",
+    "infinite loop interrupt and memory allocation limit",
+    "syntax/entry/async/non-JSON/depth/output errors",
+    "cancellation and subsequent healthy execution",
+    "failed execution retains prior result and bound sheet",
+    "source drift rejects an in-flight result",
+    "edited result invalidates current receipt metadata",
+    "unchanged success loop prevention including JSON whitespace"
+  ],
+  "agentIntegration": {
+    "engine": "actual Pi + actual QuickJS WASM",
+    "modelResponses": "scripted fixtures",
+    "nativeOfficeResponses": "scripted fixtures",
+    "flows": [
+      "Excel script result -> exact native edit approval -> single fixture write/readback",
+      "Word and PowerPoint code error -> edit -> successful execution -> native content proposal -> explicit save wait; test declines save"
+    ]
+  },
+  "limits": {
+    "codeChars": 32000,
+    "inputChars": 48000,
+    "outputChars": 24000,
+    "outputDepth": 64,
+    "quickjsHeapBytes": 16777216,
+    "quickjsStackBytes": 262144,
+    "executionInterruptMs": 250,
+    "wallWatchdogMs": 3000
+  },
+  "remaining": [
+    "Python execution and automatic dependencies",
+    "external skill installation/picker",
+    "protected durable restart recovery",
+    "hierarchical final review beyond 180000 evidence characters",
+    "complex native Office authoring features"
+  ],
+  "notVerified": [
+    "Windows x86/x64 packaged runtime",
+    "Office 2016 COM and installed add-ins",
+    "company Qwen model accuracy or cost",
+    "corporate authentication and NASCA",
+    "comprehensive security certification"
+  ],
+  "buildsExecuted": false,
+  "installerUpdated": false,
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "e3ab7aea572b69811424fb10dee3c40532ff3f267a6dc31ffa29569f0b35684f"
+    },
+    {
+      "path": "THIRD-PARTY-NOTICES.md",
+      "sha256": "4427bea44ecff09257d47f5bae2852bd5a5d233e8d639c45dfb6aa9ac15bdd15"
+    },
+    {
+      "path": "docs/CODING-SDK-ADOPTION-2026-09-23.md",
+      "sha256": "ce09dcdc625f8d4237ab441a8c6e0ea8ccac0f7c6d23d3691e79be6935a0ffdb"
+    },
+    {
+      "path": "docs/DOCUMENT-SCRIPT-RUNTIME-2026-09-23.md",
+      "sha256": "344b411632043782c69c9bfa3737f8068782cf062875487cb3b8ec0b5df31907"
+    },
+    {
+      "path": "docs/IMPROVEMENT-STATUS.md",
+      "sha256": "e63ce508887aea926ff37d34541b3140cf563790f8b045573f6a6324b12d223e"
+    },
+    {
+      "path": "docs/SKILL-DOCUMENT-AUTHORING-2026-09-23.md",
+      "sha256": "d82e14770562381d2ba2e04ca3c77e0c293683c2543237c06bad7bc8b2f6b3c5"
+    },
+    {
+      "path": "docs/TOOL-PROGRESS-BP-2026-09-23.md",
+      "sha256": "524d6cc16b2eb596032018d381ee110288caf11bc4da058b8d6738694ea0e907"
+    },
+    {
+      "path": "licenses/quickjs-emscripten-core-MIT.txt",
+      "sha256": "3c6040aa318612a234cc951609b640c0c63d85ae5a98a9330d3116f1553a79db"
+    },
+    {
+      "path": "licenses/quickjs-ffi-types-MIT.txt",
+      "sha256": "3c6040aa318612a234cc951609b640c0c63d85ae5a98a9330d3116f1553a79db"
+    },
+    {
+      "path": "licenses/quickjs-wasmfile-release-sync-LICENSE.txt",
+      "sha256": "446a69ae534aa8612d8b16d3bfc670c5a5050597dca3ce9820441a60d5d04fbb"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "b1c82b7ba23dd83d238a5138f15b8f51883d2b99f6ac0809151bfeb4d789c57d"
+    },
+    {
+      "path": "package.json",
+      "sha256": "683d68684b651b379e4bf88d0cb9a4698a3d89fa587c2b5ab6a98a108d765ef8"
+    },
+    {
+      "path": "scripts/Build-Installer.ps1",
+      "sha256": "b271e2e013eda275a5d45f32723b8b2c9ddd5b869ae6fc88649eb4e762102507"
+    },
+    {
+      "path": "scripts/build.mjs",
+      "sha256": "78cf3c40347c34d7862101820a32c4e4893552e372d4cbf11e4860d0055e3e12"
+    },
+    {
+      "path": "scripts/package.mjs",
+      "sha256": "5b717bd9b081049a809c4b2ab05fff4ca0b452d7288d83160fa31d3bbd941785"
+    },
+    {
+      "path": "tests/content-agent.test.mjs",
+      "sha256": "9ecd9aabc1aa28c924f033b6747ab497a5c50eadc49394aece689be413dd794e"
+    },
+    {
+      "path": "tests/script-runtime.test.mjs",
+      "sha256": "976b153b9e79076e5e983ed30aea2fcc52616a18b9752aca75371877954e06ef"
+    },
+    {
+      "path": "tests/skill-workspace.test.mjs",
+      "sha256": "ca4d3f6d47581f61d456d869069c2e11b28e777ed13af84087214268d4cad23f"
+    },
+    {
+      "path": "worker/content-agent.mjs",
+      "sha256": "01dd7e98c752f48741dc05f29f6cb91d1e5e47b3a395d875ad2e9131df12ef15"
+    },
+    {
+      "path": "worker/script-runtime.mjs",
+      "sha256": "70f05c1f84b551213a1c2788531ebc5bd1e0bcef817b89768a0c3cc70be882b8"
+    },
+    {
+      "path": "worker/script-thread.mjs",
+      "sha256": "e86d76d6c36de5365b3d2df2b5d3ac6eaea8c016306a817804fe6386eb13fb10"
+    },
+    {
+      "path": "worker/script-vm.mjs",
+      "sha256": "c847dd844de2def4d8f795c68327322c22b7821c1e7e74192555f97de21492d5"
+    },
+    {
+      "path": "worker/skill-workspace.mjs",
+      "sha256": "24b608c9b0460795c8f98d4492aaa90c141d620418c6dbbd0c99291042698b09"
+    },
+    {
+      "path": "worker/skills/excel-2016/SKILL.md",
+      "sha256": "66191429ab84f497b2e5cebbd17b2f839dd99ec0f24a8474d9d66365caa69ea0"
+    },
+    {
+      "path": "worker/skills/excel-2016/references/calculations.md",
+      "sha256": "4a56877652528fc4e26bac0780a3b89fba063331c0e9bc1b42dad594d10594ca"
+    },
+    {
+      "path": "worker/skills/powerpoint-2016/SKILL.md",
+      "sha256": "5cc1869586b5ce78b0b14e0bb4d2d8a0d9eb5d307a68279c71e32f26cc8b0a30"
+    },
+    {
+      "path": "worker/skills/powerpoint-2016/references/calculations.md",
+      "sha256": "4a56877652528fc4e26bac0780a3b89fba063331c0e9bc1b42dad594d10594ca"
+    },
+    {
+      "path": "worker/skills/word-2016/SKILL.md",
+      "sha256": "04161bae68dc3be53cb9e0254906ce7109c8539d8fe4b338f5eabed8bb7e8fdf"
+    },
+    {
+      "path": "worker/skills/word-2016/references/calculations.md",
+      "sha256": "4a56877652528fc4e26bac0780a3b89fba063331c0e9bc1b42dad594d10594ca"
+    },
+    {
+      "path": "worker/tool-progress.mjs",
+      "sha256": "df84322df86f3c4acf735d3464f2735f3dedb91e0806027f1781200523a29eff"
+    }
+  ],
+  "references": [
+    "https://github.com/justjake/quickjs-emscripten",
+    "https://www.anthropic.com/engineering/code-execution-with-mcp",
+    "https://nodejs.org/api/vm.html"
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "suite": "reuse",
+  "id": "expense-report",
+  "trial": 1,
+  "routing": "product",
+  "passed": false,
+  "outcome": "error",
+  "state": "cancelled",
+  "error": "evaluation_recovery_requires_human",
+  "writes": 0,
+  "recoveries": 0,
+  "questions": [],
+  "approvals": [
+    "recovery"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 4,
+    "toolCalls": 0,
+    "elapsedMs": 42289
+  },
+  "transcript": {
+    "modelCalls": 4,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 3
+    },
+    "elapsedMs": 40110,
+    "requestCharacters": 46661,
+    "peakRequestCharacters": 15972,
+    "toolCalls": {},
+    "errors": {}
+  },
+  "request": "지출 결의서를 작성해줘. 결의 번호는 0092, 작성일 2026-10-05, 부서 총무팀, 작성자 이서연, 지급처 한빛문구, 결제 수단은 법인카드, 공급가액 120000원, 적요는 사무용품 구입이야.",
+  "answer": "",
+  "question": "",
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "running"
+    }
+  ],
+  "recoveryLog": []
+}

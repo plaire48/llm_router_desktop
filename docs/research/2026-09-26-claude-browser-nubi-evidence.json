@@ -1,0 +1,288 @@
+{
+  "reviewedAt": "2026-09-26T07:25:37.808995+00:00",
+  "scope": "Static deployed client analysis and Nubi source comparison; no extension execution or model evaluation",
+  "claudeVersion": "1.0.94",
+  "buildGitHash": "e884a41a3e844489d46a5eac649ad57d54a9c5bf",
+  "rawLocalPath": "/var/folders/30/2ns17vk15kn_689zclbvz07c0000gn/T/nubi-claude-public-xxlbgoah/unpacked",
+  "originMetadata": "../../extensions/aipro-chat/verification/claude-comparison-2026-09-25/claude-package.json",
+  "downloadedThisTurn": false,
+  "storeVersionCheckedThisTurn": true,
+  "files": [
+    {
+      "path": "assets/mcpPermissions-tSjXinpi.js",
+      "bytes": 569971,
+      "sha256": "e240270612684e9108303513f4a5f0cacb83a5d6876fec4d05a4fd7d2d990ed9",
+      "formattedLocalPath": "/tmp/claude-code-review-7G7iDf/mcpPermissions-tSjXinpi.js",
+      "anchors": [
+        {
+          "needle": "async getEffectiveTabId",
+          "rawCharacterOffset": 146634,
+          "formattedLines": [
+            7614
+          ]
+        },
+        {
+          "needle": "beginPendingScope",
+          "rawCharacterOffset": 19966,
+          "formattedLines": [
+            805,
+            11398
+          ]
+        },
+        {
+          "needle": "browser_batch",
+          "rawCharacterOffset": 188859,
+          "formattedLines": [
+            9467,
+            10373,
+            10927,
+            10928,
+            10930,
+            10957,
+            11241,
+            11334,
+            11341,
+            11401,
+            11403,
+            11414
+          ]
+        },
+        {
+          "needle": "small_fast",
+          "rawCharacterOffset": 273636,
+          "formattedLines": [
+            13182,
+            27234,
+            27236
+          ]
+        },
+        {
+          "needle": "async processToolResults",
+          "rawCharacterOffset": 553499,
+          "formattedLines": [
+            27249
+          ]
+        },
+        {
+          "needle": "async sendCommand(",
+          "rawCharacterOffset": 176688,
+          "formattedLines": [
+            8787
+          ]
+        },
+        {
+          "needle": "Runtime.evaluate",
+          "rawCharacterOffset": 267513,
+          "formattedLines": [
+            12961
+          ]
+        },
+        {
+          "needle": "url_hash_check/browser_extension",
+          "rawCharacterOffset": 22580,
+          "formattedLines": [
+            929
+          ]
+        }
+      ]
+    },
+    {
+      "path": "assets/sidepanel-so8SIo6y.js",
+      "bytes": 1764862,
+      "sha256": "a5bb018a6faeda6e619d4b54d51961f1a689624f942335501c073d54f6242908",
+      "formattedLocalPath": "/tmp/claude-code-review-7G7iDf/sidepanel-so8SIo6y.js",
+      "anchors": [
+        {
+          "needle": "function Wse",
+          "rawCharacterOffset": 1656850,
+          "formattedLines": [
+            86083
+          ]
+        },
+        {
+          "needle": "compactConversation",
+          "rawCharacterOffset": 1607319,
+          "formattedLines": [
+            84326,
+            86830
+          ]
+        },
+        {
+          "needle": "preserveRecentContext",
+          "rawCharacterOffset": 1615046,
+          "formattedLines": [
+            84378,
+            84456
+          ]
+        },
+        {
+          "needle": "const p=10",
+          "rawCharacterOffset": 1675413,
+          "formattedLines": []
+        },
+        {
+          "needle": "messages.stream",
+          "rawCharacterOffset": 1676857,
+          "formattedLines": [
+            87080
+          ]
+        },
+        {
+          "needle": "small_fast_model",
+          "rawCharacterOffset": 1664062,
+          "formattedLines": [
+            86439
+          ]
+        }
+      ]
+    },
+    {
+      "path": "assets/service-worker.ts-HKLyjT1Y.js",
+      "bytes": 78767,
+      "sha256": "dacc235753a698af6373205e748c9da85600e2cb9c4437848c673034faceaa72",
+      "formattedLocalPath": "/tmp/claude-code-review-7G7iDf/service-worker.ts-HKLyjT1Y.js",
+      "anchors": [
+        {
+          "needle": "new WebSocket",
+          "rawCharacterOffset": 2760,
+          "formattedLines": [
+            208
+          ]
+        },
+        {
+          "needle": "connectNative",
+          "rawCharacterOffset": 39609,
+          "formattedLines": [
+            2252,
+            2264
+          ]
+        },
+        {
+          "needle": "CIC_IFRAME_BRIDGE_INIT",
+          "rawCharacterOffset": 49333,
+          "formattedLines": [
+            2807,
+            2817,
+            2820
+          ]
+        },
+        {
+          "needle": "async function zi",
+          "rawCharacterOffset": 71197,
+          "formattedLines": [
+            3940
+          ]
+        },
+        {
+          "needle": "onMessageExternal",
+          "rawCharacterOffset": 76660,
+          "formattedLines": [
+            4204
+          ]
+        }
+      ]
+    },
+    {
+      "path": "assets/SavedPromptsService-N3Mr18Wn.js",
+      "bytes": 167463,
+      "sha256": "75bd88ec88034bde4e800ff91c4a69b0d08782a9244dc37742ea2b036a00c7c4",
+      "formattedLocalPath": "/tmp/claude-code-review-7G7iDf/SavedPromptsService-N3Mr18Wn.js",
+      "anchors": [
+        {
+          "needle": "async checkPermission",
+          "rawCharacterOffset": 148486,
+          "formattedLines": [
+            8290
+          ]
+        },
+        {
+          "needle": "async function vu",
+          "rawCharacterOffset": 145307,
+          "formattedLines": [
+            8120
+          ]
+        },
+        {
+          "needle": "async function wu",
+          "rawCharacterOffset": 145603,
+          "formattedLines": [
+            8131
+          ]
+        }
+      ]
+    },
+    {
+      "path": "assets/accessibility-tree.js-B-oUarrX.js",
+      "bytes": 6806,
+      "sha256": "5b179ad53bd86324859cd9fdb44bc10d8adba78ef6d9f7af0818988838b5a6b2",
+      "formattedLocalPath": "/tmp/claude-code-review-7G7iDf/accessibility-tree.js-B-oUarrX.js",
+      "anchors": [
+        {
+          "needle": "__generateAccessibilityTree",
+          "rawCharacterOffset": 215,
+          "formattedLines": [
+            6
+          ]
+        },
+        {
+          "needle": "new WeakRef",
+          "rawCharacterOffset": 4467,
+          "formattedLines": [
+            243
+          ]
+        },
+        {
+          "needle": "1e4",
+          "rawCharacterOffset": 4160,
+          "formattedLines": [
+            228
+          ]
+        }
+      ]
+    }
+  ],
+  "nubiFiles": [
+    {
+      "path": "extensions/aipro-chat/agent-runtime.js",
+      "sha256": "eff3c8d4ef486d0332034b1da35e01f29a8652954750784fbd31a9e19b64f183"
+    },
+    {
+      "path": "extensions/aipro-chat/browser-agent.js",
+      "sha256": "acced75eaa6f42a2a8566e0399fba96198031e8014d8d52cf5c0cd276efab5f2"
+    },
+    {
+      "path": "extensions/aipro-chat/browser-dom.js",
+      "sha256": "afacf6e6826ec0c2a9034ea56e967af5676dd6cea7b24a2a59668b3490a1cf49"
+    },
+    {
+      "path": "extensions/aipro-chat/browser-script-api.js",
+      "sha256": "ce3ebff85397328be6d8e379382be80f7d6cdfd5cd759dd10f90d0e9e575072f"
+    },
+    {
+      "path": "extensions/aipro-chat/evidence-search.js",
+      "sha256": "2b0711e2b9ba50f99d707ac7178afb5358157c8898d4f984d30195e03a067485"
+    },
+    {
+      "path": "extensions/aipro-chat/task-plan.js",
+      "sha256": "fa774569253fc9d897800711a1b45e97123454175333f83917e9b27e87eecc85"
+    },
+    {
+      "path": "extensions/aipro-chat/src/api.js",
+      "sha256": "9c746581705df5b9ab52d5aca57bcceaf89c54c2500bc137c028b91a0c4c8aa1"
+    },
+    {
+      "path": "extensions/aipro-chat/action-recovery-analysis.js",
+      "sha256": "1559e9dc938481593dd7b75c28314ea3d415200069334148ee1f6e7d8a867042"
+    },
+    {
+      "path": "extensions/aipro-chat/goal-review.js",
+      "sha256": "0ef10cf0d1eeff5d4ecd790f60542274bcd1114ae402831570eb83d03c3ffd70"
+    },
+    {
+      "path": "extensions/aipro-chat/browser-capture.js",
+      "sha256": "00b591f80af7b1e1447b4c5dc9d6eb78e5562726b5b43d41b2cc9c188d73b2b2"
+    }
+  ],
+  "finalCheckedAt": "2026-09-26T07:29:36.261165+00:00",
+  "concurrentSourceChange": "src/api.js changed during review. Re-read preparePlan: it now explicitly emits cancelled/error when format repair exits via cancellation or a non-format failure. Analysis conclusion unchanged."
+}

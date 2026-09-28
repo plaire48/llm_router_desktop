@@ -1,0 +1,14 @@
+node_modules/
+dist/
+releases/
+native/**/bin/
+native/**/obj/
+vendor/office-ai-agent/packages/
+vendor/office-ai-agent/**/bin/
+vendor/office-ai-agent/**/obj/
+
+installer/stage/
+
+installer/prerequisites/
+
+native/packages/

@@ -1,0 +1,130 @@
+{
+  "date": "2026-09-23",
+  "scope": "HTML design prototype only; no Windows, model, IDE, shell or server execution integration",
+  "checks": [
+    {
+      "name": "code default",
+      "passed": true
+    },
+    {
+      "name": "tab requirements",
+      "passed": true
+    },
+    {
+      "name": "tab map",
+      "passed": true
+    },
+    {
+      "name": "tab preview",
+      "passed": true
+    },
+    {
+      "name": "tab compare",
+      "passed": true
+    },
+    {
+      "name": "tab code",
+      "passed": true
+    },
+    {
+      "name": "arrow keyboard tabs",
+      "passed": true
+    },
+    {
+      "name": "evidence dialog",
+      "passed": true
+    },
+    {
+      "name": "dialog focus restoration",
+      "passed": true
+    },
+    {
+      "name": "powershell profile sample",
+      "passed": true
+    },
+    {
+      "name": "wsl profile sample",
+      "passed": true
+    },
+    {
+      "name": "review expands comparison",
+      "passed": true
+    },
+    {
+      "name": "overlay slider",
+      "passed": true
+    },
+    {
+      "name": "failed hides comparison",
+      "passed": true
+    },
+    {
+      "name": "stale state",
+      "passed": true
+    },
+    {
+      "name": "mock submit preserves input",
+      "passed": true
+    },
+    {
+      "name": "no document overflow 1280",
+      "passed": true
+    },
+    {
+      "name": "comparison no overflow 1280",
+      "passed": true
+    },
+    {
+      "name": "no document overflow 1024",
+      "passed": true
+    },
+    {
+      "name": "comparison no overflow 1024",
+      "passed": true
+    },
+    {
+      "name": "no document overflow 760",
+      "passed": true
+    },
+    {
+      "name": "comparison no overflow 760",
+      "passed": true
+    },
+    {
+      "name": "no document overflow 390",
+      "passed": true
+    },
+    {
+      "name": "comparison no overflow 390",
+      "passed": true
+    },
+    {
+      "name": "browser errors",
+      "passed": true
+    },
+    {
+      "name": "side mode clears previous overlay clipping",
+      "passed": true
+    },
+    {
+      "name": "code remains accessible in review layout",
+      "passed": true
+    },
+    {
+      "name": "narrow chat can open",
+      "passed": true
+    },
+    {
+      "name": "narrow chat returns to workbench",
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "styleCheck": {
+    "command": "CX static checker on prototype directory",
+    "rawExitCode": 1,
+    "authoredFileIssues": 0,
+    "copiedAssetFindings": 718,
+    "explanation": "Scanner flags literal declarations in copied upstream CX tokens, Nubi token CSS and font-face definitions. No declarations in authored HTML/CSS/JS were flagged. This is not a clean pass for the whole directory."
+  }
+}

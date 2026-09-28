@@ -1,0 +1,37 @@
+{
+  "protocolVersion": "nubi-handoff/0.1-design",
+  "requestId": "request-example-office-014",
+  "projectId": "project-example-portal",
+  "changeId": "change-example-search-014",
+  "sender": {
+    "surface": "desktop",
+    "instanceId": "desktop-example-01"
+  },
+  "receiver": {
+    "surface": "office",
+    "instanceId": "office-example-01"
+  },
+  "requestedCapability": "office.draft",
+  "requirementIds": [
+    "REQ-014"
+  ],
+  "sourceSnapshot": {
+    "workspaceId": "workspace-example-candidate",
+    "commitOid": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "state": "dirty",
+    "dirtyManifestHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "inputArtifacts": [
+    {
+      "id": "artifact-example-report-014",
+      "contentHash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "purpose": "verification-summary"
+    }
+  ],
+  "completionCriteria": [
+    "확인·실패·미확인을 구분해 보고서 초안에 반영한다.",
+    "요구사항과 검증 근거의 원본 참조를 포함한다.",
+    "최종 저장은 Office 호스트의 기존 승인과 readback을 따른다."
+  ],
+  "expiresAt": "2026-09-24T00:00:00Z"
+}

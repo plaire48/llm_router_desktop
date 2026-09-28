@@ -1,0 +1,387 @@
+# llm-router
+
+OpenAI, AI Pro, FabriX, 사내 OpenAI 호환 LLM을 localhost의 OpenAI 호환 API로 서빙하는 데스크톱형
+로컬 관리 콘솔입니다.
+
+OpenWiki에서 AI Pro SSO, AI Pro CLI와 FabriX를 직접 쓰려면 [독립 OpenWiki 패키지 안내](packages/openwiki/ENTERPRISE.md)를 참고하세요. 기존 OpenAI·ChatGPT 연결을 유지하며 라우터 설치를 요구하지 않습니다.
+
+Windows Excel 2016에서 누비의 AI Pro·ChatGPT·FabriX와 AI Pro CLI·OpenAI 호환 모델로 셀을 분석·수정하는 [누비 Office 검토 빌드](packages/nubi-office/README.md)를 제공합니다. Office AI Agent의 VSTO 호스트와 누비 실행기를 재사용하며 변경 확인·복구를 지원합니다. Windows 설치와 실제 제공자 연결은 검증 전이며 Microsoft Copilot의 모델 교체 기능은 아닙니다. 앞서 만든 [Office.js 참고 구현](packages/office-legacy-aipro/README.md)도 유지합니다.
+
+## 화면 구성
+
+- **연결** — ChatGPT 계정 OAuth와 사내 API 연결
+- **LLM 서빙** — 단일 로컬 Gateway와 model 기반 프로필 라우팅
+- **대시보드** — 계정 크레딧·한도, 프로필·모델별 요청 수, 일별 입력·출력 토큰
+
+대시보드 진입에는 키 입력이 없습니다. `GET /dashboard`가 localhost 전용 HttpOnly 세션을 자동으로
+만듭니다.
+
+## 설치와 실행
+
+Python 3.11 이상이 필요합니다. ChatGPT 계정 OAuth와 OpenAI 추론에 사용하는 플랫폼별 OpenCode 실행
+파일은 배포 wheel에 포함됩니다. 별도 OpenAI CLI나 OpenCode 설치는 필요하지 않습니다.
+
+```bash
+python3 -m pip install llm_router-0.1.16-<platform>.whl
+cp .env.example .env
+cp profiles.example.yaml profiles.yaml
+llm-router serve --profiles profiles.yaml
+```
+
+Windows 11 x64에서는 GitHub Release의 `win_amd64.whl`을 내려받아 PowerShell에서 설치합니다.
+저장소가 Private이므로 GitHub CLI 로그인이 필요합니다.
+
+```powershell
+gh auth login
+gh release download v0.1.16 --repo plaire48/llm-router --pattern "*win_amd64.whl"
+py -m pip install --force-reinstall .\llm_router-0.1.16-py3-none-win_amd64.whl
+gh api "repos/plaire48/llm-router/contents/profiles.example.yaml?ref=v0.1.16" `
+  -H "Accept: application/vnd.github.raw+json" | Out-File -Encoding utf8 profiles.yaml
+py -m llm_router serve --profiles profiles.yaml
+```
+
+실행 후 [http://localhost:8787/dashboard](http://localhost:8787/dashboard)를 열어 OpenAI 브라우저
+로그인, AI Pro SAML 브라우저 로그인 또는 AI Pro API Key 프로필을 추가합니다.
+
+소스에서 개발할 때만 `python3 -m pip install -e '.[dev]'`를 사용합니다. editable 설치는 wheel 빌드가
+아니므로 시스템 `PATH`의 OpenCode를 개발용 fallback으로 사용합니다.
+
+`llm-router`는 설치 후 생성되는 콘솔 명령입니다. Python 모듈로 직접 실행할 때는 하이픈 대신
+밑줄을 사용합니다.
+
+```bash
+python3 -m llm_router serve --profiles profiles.yaml
+```
+
+`python3 -m llm-router`는 유효한 Python 모듈명이 아니므로 사용할 수 없습니다.
+
+기본 localhost 실행에는 로컬 API 키가 필요하지 않습니다.
+
+```dotenv
+LLM_ROUTER_HOST=127.0.0.1
+LLM_ROUTER_PORT=8787
+LLM_ROUTER_USAGE_DB=~/.llm-router/usage.db
+LLM_ROUTER_LOG_BODIES=false
+# 포트 0은 실행할 때마다 사용 가능한 localhost 포트를 자동 선택합니다.
+LLM_ROUTER_OPENCODE_URL=http://127.0.0.1:0
+# 기본값은 배포 wheel에 포함된 OpenCode입니다. 외부 실행 파일을 강제할 때만 절대 경로로 바꿉니다.
+LLM_ROUTER_OPENCODE_BINARY=opencode
+LLM_ROUTER_OPENCODE_DIRECTORY=~/.llm-router/opencode
+LLM_ROUTER_OPENCODE_AUTO_START=true
+LLM_ROUTER_OPENCODE_STARTUP_TIMEOUT=120
+```
+
+기본 포트 `0`은 라우터가 실행 시 빈 localhost 포트를 선택한다는 뜻입니다. 이전 버전의 기본값인
+`4097`이 `.env`에 남아 있어도 다른 프로세스가 사용 중이면 자동으로 빈 포트로 이동합니다. 사용자가
+지정한 고정 포트는 충돌 시 자동 변경하지 않습니다.
+
+Python HTTP 클라이언트는 운영체제 인증서 저장소와 공개 CA 묶음을 함께 사용합니다. 따라서 회사 루트
+인증서가 Windows의 신뢰할 수 있는 루트 인증 기관에 설치돼 있으면 OpenAI 크레딧 조회에도 자동으로
+적용됩니다. 사내 HTTPS 프록시의 CA가 저장소에 없으면 CA 인증서 파일을 설정합니다. 라우터의 Python
+HTTP 클라이언트와 내부 OpenCode 프로세스가 `NODE_EXTRA_CA_CERTS`를 함께 사용하므로 로그인, 토큰
+교환·갱신, 크레딧 조회와 추론 요청에 동일하게 적용됩니다.
+
+```bash
+export NODE_EXTRA_CA_CERTS=/absolute/path/company-ca.pem
+llm-router serve --profiles profiles.yaml
+```
+
+Windows 11에서는 SDS 인증서의 절대경로를 `.env`에 지정합니다. 라우터가 이 경로를 정규화해 Python과
+OpenCode에 동일하게 전달합니다. `.crt`가 PEM 인증서 묶음이면 그대로 사용하고, 바이너리 DER X.509
+인증서이면 라우터가 내부 전용 캐시에 자동으로 PEM 변환하여 OpenCode에 전달합니다. 사용자가 파일을
+변환하거나 설정 경로를 바꿀 필요는 없습니다.
+
+```dotenv
+NODE_EXTRA_CA_CERTS=C:/sds.crt
+```
+
+PowerShell에서는 파일 경로만 확인하면 됩니다.
+
+```powershell
+Test-Path C:\sds.crt
+```
+
+결과가 `True`이면 됩니다. 인증서가 PEM인지 바이너리 DER인지는 라우터가 자동 판별합니다.
+
+PowerShell에서 현재 프로세스에만 적용하려면 다음처럼 설정한 뒤 같은 창에서 라우터를 실행합니다.
+
+```powershell
+$env:NODE_EXTRA_CA_CERTS = 'C:\sds.crt'
+python -m llm_router serve --profiles profiles.yaml
+```
+
+Windows 인증서 저장소에서 내보낸 바이너리 DER `.crt`/`.cer`도 그대로 지정할 수 있습니다. 하나의
+PEM 파일에 여러 인증서가 들어 있다면 사내 프록시 체인에 필요한 루트와 중간 인증서를 모두 읽습니다.
+
+인증서 검증을 끄는 방식(`verify=False`)은 지원하지 않습니다.
+
+`certificate verify failed`가 계속 표시되면 `.env`의 경로와 SDS 인증서 체인을 확인한 뒤
+라우터를 완전히 종료하고 다시 시작합니다. 이미 실행 중인 프로세스에는 변경된 환경 변수가 반영되지
+않습니다.
+
+번들 OpenCode 경로가 출력되는데도 내부 서버 연결 오류가 발생하면 최신 버전으로 업데이트합니다.
+Python 3.14를 포함한 Windows의 첫 실행 보안 검사를 고려해 기본 120초간 준비를 기다립니다. 또한
+사내 `HTTP_PROXY`/`ALL_PROXY`가 설정돼 있어도 localhost OpenCode 요청은 프록시를 우회합니다.
+프로세스가 종료되면 종료 코드와 시작 오류를, 프로세스가 살아 있으면 확인한 헬스 주소와 마지막 연결
+오류를 대시보드에 표시합니다. 필요하면 `LLM_ROUTER_OPENCODE_STARTUP_TIMEOUT`을 최대 600초로 조정할
+수 있습니다.
+
+서버 실행 후 [http://localhost:8787/dashboard](http://localhost:8787/dashboard)를 엽니다.
+
+## 브라우저 로그인
+
+화면의 `연결` 메뉴에서 **Sign in with ChatGPT**를 사용할 수 있습니다.
+
+- wheel에 포함된 OpenCode가 브라우저 OAuth 시작, localhost callback, token exchange와 refresh를
+  직접 처리합니다.
+- 자격증명은 `~/.llm-router/opencode/data/opencode/auth.json`에 격리되며 Codex CLI/IDE 세션을 공유하거나
+  변경하지 않습니다.
+- OpenAI 추론 요청의 `User-Agent`와 `originator`는 번들 OpenCode의 공식 내장 플러그인이 직접 생성하며,
+  라우터는 해당 헤더를 덮어쓰거나 다른 클라이언트로 위장하지 않습니다.
+
+AI Pro는 기존 API Key 연결과 별도로 **SAML 브라우저 로그인**도 지원합니다.
+
+- 라우터가 `127.0.0.1`의 임시 포트를 열고
+  `https://aipro.sdsdev.co.kr/auth/vscode/login?port=<port>`를 기본 브라우저로 엽니다.
+- 로그인 완료 페이지가 localhost로 보내는 `jwt` 헤더를 CORS와 Private Network preflight를 거쳐
+  수신합니다. 쿼리·JSON의 `token`, `jwt`, `auth_jwt`도 호환합니다.
+- JWT는 `~/.llm-router/aipro-auth.json`에 0600 권한으로 저장하며 로그, 프로필 YAML 및 API 응답에
+  노출하지 않습니다.
+- 브라우저 프로필은 `https://aipro.sdsdev.co.kr/api/v1/chat/completions`에
+  `Authorization: <JWT>`로 요청합니다. 만료된 JWT는 다시 로그인해야 합니다.
+
+Claude 구독 OAuth는 정책 준수를 위해 비활성화되어 있으며 로그인, 프로필 생성, 추론 요청을 모두
+거부합니다. 기존 자격증명 파일은 자동 삭제하지 않지만 라우터가 사용하지 않습니다.
+
+터미널에서 직접 시작하려면 다음 명령을 사용합니다.
+
+```bash
+llm-router oauth login openai
+```
+
+OpenAI OAuth 프로필의 추론은 내부 OpenCode 세션에서 실행한 뒤 Chat Completions로 변환합니다.
+프로필을 등록하거나 수정할 때 번들 OpenCode를 즉시 기동해 사용 가능 여부를 확인하며,
+프로필 API에는 `inference_engine: opencode`가 표시됩니다.
+
+## LLM 서빙 프로필
+
+`LLM 서빙` 메뉴에서 다음 연결 방식을 선택할 수 있습니다.
+
+1. ChatGPT 계정 OAuth
+2. AI Pro SAML 브라우저 JWT
+3. AI Pro API Key
+4. FabriX 사내 API
+5. OpenAI 호환 LLM Endpoint
+
+라우터가 실행되면 모든 프로필은 다음 하나의 OpenAI 호환 Gateway에서 바로 사용할 수 있습니다.
+
+```text
+Base URL:         http://127.0.0.1:8787/v1
+Chat Completions: http://127.0.0.1:8787/v1/chat/completions
+Models:           http://127.0.0.1:8787/v1/models
+```
+
+프로필마다 별도 포트를 시작하거나 중지하지 않습니다. 요청의 `model`에 프로필 이름을 넣으면 Gateway가
+ChatGPT 계정 OAuth, AI Pro SAML JWT, AI Pro API Key, FabriX, OpenAI 호환 LLM 중 알맞은 연결로
+라우팅합니다.
+
+```bash
+curl http://127.0.0.1:8787/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"openai","messages":[{"role":"user","content":"안녕"}]}'
+```
+
+API 키는 AI Pro, FabriX와 OpenAI 호환 사내 LLM 프로필에서 입력할 수 있습니다. OpenAI 호환 Endpoint가
+인증을 요구하지 않으면 `인증 없음`을 선택하고 API Key를 비워 둡니다. 키는 `profiles.yaml`에 기록하지 않고
+`~/.llm-router/profile-secrets.json`에 0600 권한으로 저장하며 API 응답에도 반환하지 않습니다.
+AI Pro API Key 연결은 기본 Endpoint `https://aipro.sdsdev.co.kr/open/api/v1`과 발급받은 모델 ID를
+사용하며 `Authorization: Bearer <token>`으로 인증합니다. 라우터는
+`@ai-sdk/openai-compatible` custom provider에 Endpoint, 모델, API Key 환경변수 참조만 등록하고 모든 추론을
+번들 OpenCode 세션으로 실행합니다. `User-Agent`를 설정하는 코드는 없으며 실제 OpenCode가 생성한 헤더를
+그대로 사용합니다.
+
+AI Pro 브라우저 프로필은 API Key 프로필과 함께 사용할 수 있으며 Endpoint는
+`https://aipro.sdsdev.co.kr/api/v1`입니다. 두 방식 모두 추론은 번들 OpenCode 세션으로 실행되므로
+공식 OpenCode `User-Agent`가 그대로 전송됩니다.
+
+OpenAI 호환 LLM은 다음 계약을 지원하면 연결됩니다.
+
+- `GET {base_url}/models`
+- `POST {base_url}/chat/completions`
+- Bearer API key 또는 인증 헤더 없음
+
+브라우저 인증은 대시보드가 처음 열릴 때 `/v1/auth/status`에서 먼저 점검합니다. OpenAI OAuth 토큰이
+만료되었거나 60초 안에 만료되면 refresh token으로 자동 갱신한 뒤 프로필 상태를 불러옵니다. 자동 갱신에
+실패하거나 갱신할 수 없는 AI Pro JWT가 만료되면 `토큰 만료`로 표시하고 재로그인을 안내합니다.
+
+FabriX 프로필은 Endpoint, 모델 ID, Client Key, API Token을 입력합니다. `next_langgraph`와 같은
+FabriX 계약으로 업스트림을 호출합니다.
+
+- `POST {endpoint}/openapi/chat/v1/messages`
+- `x-fabrix-client: <Client Key>`
+- `x-openapi-token: Bearer <API Token>`
+- `modelIds`, `contents`, `isStream`, `llmConfig`, `systemPrompt` 요청 본문
+
+두 비밀값 모두 같은 로컬 0600 비밀 저장소에 보관되고 YAML 및 제어 API 응답에는 노출되지 않습니다.
+FabriX의 SSE `CHUNK` 응답도 로컬 OpenAI Chat Completions 스트림으로 변환됩니다.
+
+## Agent Factory SDK 연결
+
+Google ADK 2.6.2와 Agent Factory SDK의 `openai/*` 모델은 LiteLLM을 사용합니다. LiteLLM이 OpenAI
+플랫폼 대신 로컬 Gateway를 호출하도록 Agent Factory를 시작하는 프로세스에 다음 값을 설정합니다.
+llm-router에 Master Key가 없더라도 LiteLLM 자체가 빈 키를 거부하므로 임의의 로컬 값을 넣습니다.
+
+```powershell
+$env:OPENAI_BASE_URL="http://127.0.0.1:8787/v1"
+$env:OPENAI_API_KEY="local-router" # Master Key를 사용하면 그 값을 입력
+afs serve .\agent.yaml --port 8000
+```
+
+라우터 프로필 이름이 `openai`이면 ADK 모델은 `openai/openai`, `aipro`이면 `openai/aipro`입니다. 앞의
+`openai/`는 LiteLLM 프로바이더이고 뒤의 값은 Gateway에 전달되는 llm-router 프로필 이름입니다.
+
+```yaml
+agent_class: LlmAgent
+name: assistant
+model: openai/openai
+instruction: 필요한 경우 등록된 도구를 사용하세요.
+```
+
+Python 코드에서도 같은 모델 문자열을 사용합니다.
+
+```python
+from agent_factory_sdk import Agent
+
+agent = Agent(model="openai/openai", tools=[get_weather])
+result = agent.run("서울 날씨를 알려줘")
+```
+
+Studio의 서버-target AgentConfig에서는 저장한 모델 연결의 `baseUrl`이 현재 ADK 실행에 자동 전달되지
+않습니다. `LlmAgent.model`을 위 문자열로 저장하고 `afs`/Studio 프로세스에 환경 변수를 설정해야 합니다.
+별도 HTTP workflow 프로필을 사용하는 화면에서는 전체 Endpoint
+`http://127.0.0.1:8787/v1/chat/completions`와 라우터 프로필 이름을 사용합니다.
+
+호환 어댑터가 지원하는 Agent Factory/ADK 계약은 다음과 같습니다.
+
+- 일반 응답과 버퍼링 SSE 스트리밍
+- 함수 및 MCP/RAG 도구의 단일·병렬 `tool_calls` 왕복
+- `tool_choice=required`와 `parallel_tool_calls=false` 검증
+- `LlmAgent.output_schema`의 JSON Schema 구조화 출력
+- 이미지·오디오·비디오 URL 및 inline data
+- LiteLLM `POST /v1/files` 업로드를 통한 PDF·Office 문서 첨부
+- 취소 시 OpenCode 세션 abort와 OpenCode 오류의 OpenAI 오류 형식 변환
+
+Google Search와 Code Execution 같은 Gemini 전용 네이티브 도구는 함수 도구로 가장하지 않고 422 오류로
+거부합니다. OpenCode message API에 없는 요청별 `temperature`, `top_p`, `max_tokens`, `stop` 등의 생성
+옵션도 조용히 무시하지 않고 `unsupported_parameter`로 반환합니다. 해당 값은 OpenCode가 지원하는 모델
+프로필/variant 설정으로 관리해야 합니다.
+
+Agent 프로젝트는 OpenAI OAuth, AI Pro JWT나 업스트림 API Key를 알 필요가 없습니다. 설치 런처는 다음
+두 검사만 통과하면 같은 Agent 코드를 실행할 수 있습니다.
+
+1. `GET http://127.0.0.1:8787/health`가 성공하는지 확인
+2. `GET /v1/models`에 Agent가 사용할 프로필 이름이 있는지 확인
+
+이 경계를 사용하면 Agent Factory SDK의 에이전트·도구 실행 구조는 변경하지 않고 인증·OpenCode
+User-Agent·세션 변환을 llm-router가 담당합니다.
+
+## 내부 OpenCode 실행
+
+ChatGPT 계정 OAuth 프로필의 실제 호출 경로는 `사용자/IDE → llm-router → OpenCode → OpenAI`입니다.
+라우터가 wheel에 포함된 OpenCode의 headless 서버를 localhost에서 지연 시작하고, 요청마다 임시 세션을
+만든 뒤 응답을 OpenAI Chat Completions 형식으로 변환합니다. 사용자가 OpenCode를 설치하거나
+`opencode.json`을 복사하거나 OpenCode를 별도로 실행할 필요는 없습니다.
+
+배포 wheel은 빌드 호스트와 같은 플랫폼의 OpenCode `1.18.18` 공식 릴리스 바이너리를 내려받아
+SHA-256을 검증한 뒤 포함합니다. macOS arm64/x64, Linux glibc·musl arm64/x64, Windows arm64/x64를
+지원하며 x64는 CPU 호환성을 위해 baseline 바이너리를 사용합니다. 따라서 각 대상 플랫폼에서 wheel을
+각각 빌드해 배포합니다. 소스 editable 설치는 배포물이 아니므로 시스템 `opencode`를 fallback으로
+사용할 수 있습니다.
+
+라우터가 시작한 OpenCode는 별도의 `~/.llm-router/opencode` 데이터 디렉터리를 사용합니다. 프로젝트
+설정은 읽지 않고 파일·쉘·웹 등 OpenCode 내장 도구 권한과 세션 공유를 차단합니다. 브라우저 로그인
+자격증명도 같은 내부 런타임이 직접 소유하며, 로그와 API 응답에는 노출하지 않습니다. 로그인·토큰
+교환·refresh·추론 요청은 별도 Codex 런타임을 우회하지 않습니다.
+
+부모 프로세스의 `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `BUN_OPTIONS` 및 OpenCode 플러그인 비활성화 설정은
+내부 런타임에 전달하지 않습니다. 설치 환경의 우발적인 override가 공식 OpenCode OAuth·endpoint·식별
+동작을 바꾸지 않도록 하기 위한 격리이며, OpenCode 자체의 요청 헤더는 수정하지 않습니다.
+
+호출자가 보낸 함수 정의는 요청별 localhost MCP 브리지에만 등록합니다. OpenCode가 함수를 선택하면
+라우터는 함수를 직접 실행하지 않고 표준 `tool_calls` 응답을 호출자에게 반환합니다. 호출자가 같은
+`tool_call_id`의 `role: tool` 결과를 보내면 보관한 OpenCode 세션을 이어서 최종 답변을 생성합니다.
+병렬 호출 결과는 한 번에 모두 반환해야 하며, 대기 세션은 30분 후 만료됩니다. 라우터를 재시작하면
+대기 중인 호출도 만료됩니다. `stream=true`는 OpenCode 응답 또는 도구 선택 완료 후 유효한 SSE 청크로
+전달하는 버퍼링 방식입니다.
+
+표준 OpenAI Python 클라이언트의 도구 왕복 예시는 다음과 같습니다.
+
+```python
+from openai import OpenAI
+
+client = OpenAI(base_url="http://127.0.0.1:8787/v1", api_key="local")
+messages = [{"role": "user", "content": "서울 날씨를 확인해줘"}]
+tools = [{
+    "type": "function",
+    "function": {
+        "name": "get_weather",
+        "description": "도시의 현재 날씨를 조회합니다.",
+        "parameters": {
+            "type": "object",
+            "properties": {"city": {"type": "string"}},
+            "required": ["city"],
+        },
+    },
+}]
+
+first = client.chat.completions.create(model="openai", messages=messages, tools=tools)
+call = first.choices[0].message.tool_calls[0]
+messages.extend([
+    first.choices[0].message,
+    {"role": "tool", "tool_call_id": call.id, "content": "22C, sunny"},
+])
+final = client.chat.completions.create(model="openai", messages=messages, tools=tools)
+print(final.choices[0].message.content)
+```
+
+## 사용량
+
+라우터를 통과한 모든 호출은 프로필별 일일 입력·출력 토큰으로 SQLite에 기록됩니다. 요청·응답 본문은
+기본적으로 저장하지 않습니다. OpenAI Enterprise 카드의 잔여 크레딧·한도 사용률은 OpenCode 브라우저
+로그인 세션의 OAuth access token과 account ID로 OpenAI 계정 API에서 직접 조회하며 5분간 캐시합니다.
+별도 Codex 설치나 Admin API Key는 사용하지 않습니다. Windows에서는 네이티브 인증서 저장소로 TLS
+체인을 검증하고 `NODE_EXTRA_CA_CERTS`의 추가 CA도 함께 신뢰합니다. 로컬 토큰을 크레딧이나 금액으로
+환산하지 않습니다. 프로필·모델별 표에는 실제 요청 수와 입력·출력 토큰만 표시합니다.
+
+## API
+
+- `GET /health`
+- `GET /v1/models`
+- `POST /v1/files`
+- `GET /v1/files/{file_id}`
+- `DELETE /v1/files/{file_id}`
+- `POST /v1/chat/completions`
+- `GET /v1/auth/status`
+- `POST /v1/auth/openai/login`
+- `POST /v1/auth/aipro/login`
+- `DELETE /v1/auth/{anthropic|openai|aipro}` (`anthropic`은 기존 로컬 토큰 삭제 전용)
+- `GET /v1/profiles`
+- `POST /v1/profiles`
+- `PUT /v1/profiles/{name}`
+- `DELETE /v1/profiles/{name}`
+- `POST /v1/profiles/discover-models`
+- `GET /v1/usage/summary`
+- `GET /v1/usage/account/openai`
+
+localhost의 `/v1/models`와 `/v1/chat/completions`는 로컬 API 키 없이 호출합니다. 데스크톱 화면의
+제어 API는 대시보드가 자동 발급한 localhost 세션 쿠키를 사용합니다. `0.0.0.0` 등 localhost 밖으로
+바인딩할 때만 `LLM_ROUTER_MASTER_KEY`를 반드시 설정해야 하며, 이 경우 LLM API에는 Bearer 인증이
+적용됩니다.
+
+## 개발
+
+```bash
+pytest -q
+ruff check src tests
+ruff format --check src tests
+```

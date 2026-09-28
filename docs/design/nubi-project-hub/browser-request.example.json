@@ -1,0 +1,37 @@
+{
+  "protocolVersion": "nubi-handoff/0.1-design",
+  "requestId": "request-example-browser-014",
+  "projectId": "project-example-portal",
+  "changeId": "change-example-search-014",
+  "sender": {
+    "surface": "desktop",
+    "instanceId": "desktop-example-01"
+  },
+  "receiver": {
+    "surface": "browser",
+    "instanceId": "browser-example-01"
+  },
+  "requestedCapability": "browser.verify",
+  "requirementIds": [
+    "REQ-014"
+  ],
+  "sourceSnapshot": {
+    "workspaceId": "workspace-example-candidate",
+    "commitOid": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "state": "dirty",
+    "dirtyManifestHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "inputArtifacts": [
+    {
+      "id": "artifact-example-scenario-014",
+      "contentHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "purpose": "scenario"
+    }
+  ],
+  "completionCriteria": [
+    "AC-01: 빈 결과에서 안내 문구를 확인한다.",
+    "AC-02: 초기화 전후 실제 필터값을 확인한다.",
+    "AC-03: 키보드로 초기화를 실행한다."
+  ],
+  "expiresAt": "2026-09-24T00:00:00Z"
+}

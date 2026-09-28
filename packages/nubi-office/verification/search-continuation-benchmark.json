@@ -1,0 +1,85 @@
+{
+  "kind": "deterministic-search-retrieval-coverage",
+  "baseline": "Previous source policy: first 8 item-field matches with no continuation",
+  "candidate": "MiniSearch ranked results with source-bound continuation",
+  "notMeasured": [
+    "real model accuracy",
+    "Office 2016 performance",
+    "competitor runtime quality",
+    "all phrase occurrences"
+  ],
+  "cases": [
+    {
+      "host": "word",
+      "items": 25,
+      "matchingFields": 50,
+      "legacyTopEightPolicyReachable": 8,
+      "paginatedReachable": 50,
+      "duplicateMatches": 0,
+      "pages": 7,
+      "maxResponseChars": 2170,
+      "allExcerptsExact": true,
+      "fixtureSha256": "25d274b74d7b2036d2d89329a28e16b4cd5a042bf35107c61be8bf7ac016a1ea"
+    },
+    {
+      "host": "word",
+      "items": 80,
+      "matchingFields": 160,
+      "legacyTopEightPolicyReachable": 8,
+      "paginatedReachable": 160,
+      "duplicateMatches": 0,
+      "pages": 20,
+      "maxResponseChars": 2182,
+      "allExcerptsExact": true,
+      "fixtureSha256": "26401705e0a414765d4e02b59b2d0975eeac5a90b4efa42f87f607e33aee60e1"
+    },
+    {
+      "host": "word",
+      "items": 200,
+      "matchingFields": 400,
+      "legacyTopEightPolicyReachable": 8,
+      "paginatedReachable": 400,
+      "duplicateMatches": 0,
+      "pages": 50,
+      "maxResponseChars": 2208,
+      "allExcerptsExact": true,
+      "fixtureSha256": "52b45b6c51e30bbb62fa9bb2d30df196aed81e60985b0ada20e81d004252a5d8"
+    },
+    {
+      "host": "powerpoint",
+      "items": 25,
+      "matchingFields": 50,
+      "legacyTopEightPolicyReachable": 8,
+      "paginatedReachable": 50,
+      "duplicateMatches": 0,
+      "pages": 7,
+      "maxResponseChars": 2170,
+      "allExcerptsExact": true,
+      "fixtureSha256": "24c349f90151c6fde55c96825d6389b96e5629e4fd01579fb698afb70c695a98"
+    },
+    {
+      "host": "powerpoint",
+      "items": 80,
+      "matchingFields": 160,
+      "legacyTopEightPolicyReachable": 8,
+      "paginatedReachable": 160,
+      "duplicateMatches": 0,
+      "pages": 20,
+      "maxResponseChars": 2182,
+      "allExcerptsExact": true,
+      "fixtureSha256": "3428bebe373ef2f479a3d78259911ef351bbe622f75dc89fd36c99258d2b7e2e"
+    },
+    {
+      "host": "powerpoint",
+      "items": 200,
+      "matchingFields": 400,
+      "legacyTopEightPolicyReachable": 8,
+      "paginatedReachable": 400,
+      "duplicateMatches": 0,
+      "pages": 50,
+      "maxResponseChars": 2208,
+      "allExcerptsExact": true,
+      "fixtureSha256": "af0a018482fb3326de6a3760449f4353a5668ad3b691d11147bcc7d0d28a3c9e"
+    }
+  ]
+}

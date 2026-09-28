@@ -1,0 +1,17 @@
+{
+  "date": "2026-09-22T06:49:01.551Z",
+  "browser": "Chromium with mocked Office.js and AI Pro",
+  "engine": "Original Nubi pi-agent-core@0.86.1 runtime",
+  "passed": [
+    "CLI form and credential clearing",
+    "Pi tool loop with Excel apply/readback",
+    "320/380/600px no horizontal overflow",
+    "settings Escape and focus",
+    "stale cell conflict preserves draft without write",
+    "new chat and history restore",
+    "no browser JS errors"
+  ],
+  "actualExcel2016Verified": false,
+  "actualIE11Verified": false,
+  "liveAiProVerified": false
+}

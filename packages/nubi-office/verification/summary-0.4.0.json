@@ -1,0 +1,51 @@
+{
+  "version": "0.4.0",
+  "checkedAt": "2026-09-22T10:00:56.096Z",
+  "change": "Share original Nubi React surfaces and complete CSS with the Office WebView2 host",
+  "fullNubiCssVerified": true,
+  "officeUnitTests": {
+    "passed": 49,
+    "failed": 0
+  },
+  "nubiUnitTests": {
+    "passed": 300,
+    "failed": 0
+  },
+  "officeBrowser": {
+    "realUi": true,
+    "realPi": true,
+    "realWorkbookEngine": true,
+    "modelResponses": "synthetic",
+    "excelCom": "simulated",
+    "widths": [
+      320,
+      380,
+      600
+    ],
+    "modelCatalog": {
+      "source": "saved API response",
+      "received": 10,
+      "displayed": 10,
+      "allSelectable": true
+    },
+    "keyboardSearchAndModalFocus": true,
+    "mutationRestoreCancelClarification": true,
+    "failureRepairVideo": true
+  },
+  "existingNubiUi": {
+    "surfaces": 48,
+    "widths": [
+      320,
+      360,
+      1100
+    ],
+    "errors": []
+  },
+  "nativeHost": "net472 cross-compiled, zero warnings/errors",
+  "productionBundleSha256": "2d202bb35b8994adcb75584e36175b8035b38782e25e957ac0d13be3e7c582d7",
+  "windowsExcel2016Verified": false,
+  "liveProviderVerified": false,
+  "modelAccuracy": null,
+  "preview": "ui-preview.html",
+  "video": "models-demo.webm"
+}

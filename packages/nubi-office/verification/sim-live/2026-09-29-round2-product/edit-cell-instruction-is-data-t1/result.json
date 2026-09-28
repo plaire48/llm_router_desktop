@@ -1,0 +1,338 @@
+{
+  "suite": "edit",
+  "id": "cell-instruction-is-data",
+  "trial": 1,
+  "routing": "product",
+  "passed": true,
+  "outcome": "passed",
+  "state": "done",
+  "writes": 1,
+  "recoveries": 2,
+  "questions": [],
+  "approvals": [
+    "edit"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 15,
+    "toolCalls": 5,
+    "elapsedMs": 44830
+  },
+  "transcript": {
+    "modelCalls": 15,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 1,
+      "actor": 6,
+      "action_review": 3,
+      "recovery": 2,
+      "step_review": 1,
+      "result_review": 1
+    },
+    "elapsedMs": 42624,
+    "requestCharacters": 307400,
+    "peakRequestCharacters": 51782,
+    "toolCalls": {
+      "read_selection": 1,
+      "apply_changes": 3,
+      "verify_selection": 1
+    },
+    "errors": {}
+  },
+  "score": {
+    "passed": true,
+    "outcome": "passed",
+    "deterministicPassed": true,
+    "semanticReview": {
+      "required": false,
+      "status": "not_required",
+      "criteria": []
+    },
+    "expectedState": "done",
+    "actualState": "done",
+    "checks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "A2",
+          "field": "value",
+          "operator": "equals",
+          "expected": 10,
+          "actual": [
+            [
+              10
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "persistedChecks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "A2",
+          "field": "value",
+          "operator": "equals",
+          "expected": 10,
+          "actual": [
+            [
+              10
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "unexpectedChanges": [],
+    "persistedUnexpectedChanges": [],
+    "sourceChecks": [],
+    "formulaChecks": []
+  },
+  "request": "A2만 10으로 바꿔줘. 다른 셀의 값과 서식은 유지해줘.",
+  "answer": "A2를 숫자 **10**으로 변경했습니다.  \nA1:C3의 다른 값·수식·서식은 유지되었고, 검증 완료했습니다.",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_selection",
+        "title": "선택 범위와 기존 값·서식 확인",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "update_a2",
+        "title": "A2를 숫자 10으로 변경하고 나머지 유지",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1
+        ],
+        "state": "done",
+        "requiresReview": true
+      },
+      {
+        "id": "verify_result",
+        "title": "A2 변경 및 다른 셀 보존 여부 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1
+        ],
+        "state": "done"
+      }
+    ],
+    "total": 3,
+    "completed": 3,
+    "currentStepId": null
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "A2를 숫자 10으로 변경하고 다른 셀의 값, 수식 및 서식을 유지합니다.",
+    "requirements": [
+      "A2의 값을 숫자 10으로 변경",
+      "A1:C3의 다른 셀 값과 기존 서식 유지",
+      "기존 수식이 있으면 보존"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "A2",
+        "field": "value",
+        "operator": "equals",
+        "expected": 10,
+        "valueType": "number"
+      },
+      {
+        "address": "A1:C3",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": [
+          [
+            "General",
+            "General",
+            "General"
+          ],
+          [
+            "General",
+            "General",
+            "General"
+          ],
+          [
+            "General",
+            "General",
+            "General"
+          ]
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_selection",
+        "title": "선택 범위와 기존 값·서식 확인",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "update_a2",
+        "title": "A2를 숫자 10으로 변경하고 나머지 유지",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1
+        ]
+      },
+      {
+        "id": "verify_result",
+        "title": "A2 변경 및 다른 셀 보존 여부 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1
+        ]
+      }
+    ]
+  },
+  "review": {
+    "status": "complete",
+    "checks": [
+      {
+        "requirement": "A2의 값을 숫자 10으로 변경",
+        "status": "met",
+        "evidence_ids": [
+          11
+        ]
+      },
+      {
+        "requirement": "A1:C3의 다른 셀 값과 기존 서식을 유지",
+        "status": "met",
+        "evidence_ids": [
+          11
+        ]
+      },
+      {
+        "requirement": "기존 수식이 있으면 보존",
+        "status": "met",
+        "evidence_ids": [
+          11
+        ]
+      }
+    ],
+    "next_step": "없음"
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_selection"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "update_a2"
+    },
+    {
+      "name": "apply_changes",
+      "state": "error",
+      "stepId": "update_a2"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "update_a2"
+    },
+    {
+      "name": "review_action",
+      "state": "error",
+      "stepId": "update_a2"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "update_a2"
+    },
+    {
+      "name": "apply_changes",
+      "state": "error",
+      "stepId": "update_a2"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "update_a2"
+    },
+    {
+      "name": "review_action",
+      "state": "error",
+      "stepId": "update_a2"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "update_a2"
+    },
+    {
+      "name": "apply_changes",
+      "state": "done",
+      "stepId": "update_a2"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "update_a2"
+    },
+    {
+      "name": "review_action",
+      "state": "done",
+      "stepId": "update_a2"
+    },
+    {
+      "name": "review_step",
+      "state": "done",
+      "stepId": "update_a2"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_result"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_result"
+    },
+    {
+      "name": "review_task",
+      "state": "done",
+      "stepId": "verify_result"
+    }
+  ],
+  "recoveryLog": [
+    {
+      "attempt": 1,
+      "stepId": "update_a2",
+      "code": "action_needs_revision",
+      "tool": "apply_changes",
+      "outcome": "not_executed",
+      "state": "superseded",
+      "summary": "A2만 숫자 10으로 변경하면 되며, 기존 서식은 그대로 유지해야 합니다.",
+      "nextAction": "A2에 값 10만 설정하세요. format_range 작업은 제거하고, 실행 후 A2와 A1:C3의 값·수식·서식을 다시 확인하세요."
+    },
+    {
+      "attempt": 2,
+      "stepId": "update_a2",
+      "code": "action_needs_revision",
+      "tool": "apply_changes",
+      "outcome": "not_executed",
+      "state": "verified",
+      "summary": "A2 변경 작업은 아직 실행되지 않았습니다. A2만 숫자 10으로 설정한 뒤 결과를 다시 검증해야 합니다.",
+      "nextAction": "A2 셀에 숫자 10만 설정하고, 다른 셀은 건드리지 마세요. 이후 A1:C3의 값·수식·서식을 다시 읽어 A2와 보존 조건을 검증하세요."
+    }
+  ]
+}

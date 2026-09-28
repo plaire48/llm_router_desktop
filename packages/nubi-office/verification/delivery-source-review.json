@@ -1,0 +1,34 @@
+{
+  "date": "2026-09-25",
+  "sources": [
+    {
+      "repo": "thomasfuk/officecli",
+      "commit": "b5d0ad354bfc1255f54c26ee3b6cdab84f9cace9",
+      "license": "Apache-2.0",
+      "path": "/tmp/nubi-office-delivery-benchmark-20260925/PowerPointHandler.View.cs",
+      "newDownload": true,
+      "sha256": "d1746ef06ba84feacfd3232a45aeba660bd20096e96e2cdaa6dfdd430929671f"
+    },
+    {
+      "repo": "openai/codex",
+      "commit": "aa380897f67b91e1a47d530d7286d497b6726d3f",
+      "license": "Apache-2.0",
+      "path": "/tmp/nubi-office-benchmark-2026-09-25/codex/codex-rs/core/src/tools/registry.rs",
+      "newDownload": false,
+      "sha256": "2146f148c7c7f69e599d4bb2bc8ef903000cfbc157dd9352fd687248f8e6dcaa"
+    },
+    {
+      "repo": "anomalyco/opencode",
+      "commit": "16c56fe5ecc3305028d1f0a9cff5806e51c9d480",
+      "license": "MIT",
+      "path": "/tmp/nubi-office-benchmark-2026-09-25/opencode/packages/opencode/src/tool/todo.ts",
+      "newDownload": false,
+      "sha256": "f18fdedc754e0842660a968fa225ed961fb516a544eb04209d8b44c7673df270"
+    }
+  ],
+  "officialMethodology": "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents",
+  "externalSourceExecuted": false,
+  "externalCodeCopied": false,
+  "newRuntimeDependencies": 0,
+  "reusedRuntime": "Existing Pi and Office resilience supervisor"
+}

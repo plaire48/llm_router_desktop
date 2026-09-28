@@ -1,0 +1,44 @@
+{
+  "suite": "edit",
+  "id": "cross-sheet-sum",
+  "trial": 1,
+  "routing": "product",
+  "passed": false,
+  "outcome": "error",
+  "state": "cancelled",
+  "error": "evaluation_recovery_requires_human",
+  "writes": 0,
+  "recoveries": 0,
+  "questions": [],
+  "approvals": [
+    "recovery"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 4,
+    "toolCalls": 0,
+    "elapsedMs": 20862
+  },
+  "transcript": {
+    "modelCalls": 4,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 3
+    },
+    "elapsedMs": 18827,
+    "requestCharacters": 25006,
+    "peakRequestCharacters": 8073,
+    "toolCalls": {},
+    "errors": {}
+  },
+  "request": "통합문서에서 동부와 서부 시트의 B2:B3 매출을 확인하고, 두 시트의 합계를 선택한 A2에 SUM 수식으로 작성해줘. 다른 셀과 원본 시트는 유지해줘.",
+  "answer": "",
+  "question": "",
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "running"
+    }
+  ],
+  "recoveryLog": []
+}

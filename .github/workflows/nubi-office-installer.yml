@@ -1,0 +1,102 @@
+name: Nubi Office Windows installer
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  installer:
+    runs-on: windows-2022
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: packages/nubi-office
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.2'
+      - name: Verify Windows window observation
+        run: |
+          dotnet build native/Nubi.Office.Host/Nubi.Office.Host.csproj -c Release
+          if ($LASTEXITCODE) { throw 'Host build failed' }
+          dotnet build native/Nubi.Office.View/Nubi.Office.View.csproj -c Release
+          if ($LASTEXITCODE) { throw 'View helper build failed' }
+          & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -STA -File tests/windows-view.ps1
+          if ($LASTEXITCODE) { throw 'Window observation failed' }
+      - name: Verify native skill package storage
+        run: |
+          dotnet build native/Nubi.Office.SkillTests -c Release
+          if ($LASTEXITCODE) { throw "Native skill tests build failed" }
+          foreach ($folder in @('System32','SysWOW64')) {
+            & "$env:WINDIR\$folder\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -STA -File tests/windows-skills.ps1
+            if ($LASTEXITCODE) { throw "Native skill storage failed: $folder" }
+          }
+      - name: Build web UI and bundled worker
+        run: |
+          npm ci
+          if ($LASTEXITCODE) { throw 'npm ci failed' }
+          npm run build
+          if ($LASTEXITCODE) { throw 'UI build failed' }
+          npm run design:check
+          if ($LASTEXITCODE) { throw 'Design checks failed' }
+          npm test
+          if ($LASTEXITCODE) { throw 'Harness regression tests failed' }
+          npm ci --prefix dist --omit=dev --ignore-scripts
+          if ($LASTEXITCODE) { throw 'Runtime dependencies failed' }
+          node scripts/download-runtimes.mjs
+          if ($LASTEXITCODE) { throw 'Node runtime verification failed' }
+          node scripts/download-python-tool.mjs
+          if ($LASTEXITCODE) { throw 'Python tool verification failed' }
+      - name: Verify native worker transport before packaging
+        run: |
+          dotnet build native/Nubi.Office.Host/Nubi.Office.Host.csproj -c Release
+          if ($LASTEXITCODE) { throw 'Native host build failed' }
+          foreach ($folder in @('System32','SysWOW64')) {
+            & "$env:WINDIR\$folder\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -STA -File tests/worker-host.ps1 -HostAssemblyPath native/Nubi.Office.Host/bin/Release/net472/Nubi.Office.Host.dll -BundleRoot (Resolve-Path dist).Path
+            if ($LASTEXITCODE) { throw "Native worker transport failed: $folder" }
+          }
+      - name: Verify real Python skills and recovery
+        run: |
+          node tests/python-integration.mjs
+          if ($LASTEXITCODE) { throw 'Python integration failed' }
+      - name: Verify native mutation contracts
+        run: |
+          dotnet run --project native/Nubi.Office.Tests -c Release
+          if ($LASTEXITCODE) { throw 'Native contract tests failed' }
+      - name: Verify current browser document flow
+        run: |
+          $env:PLAYWRIGHT_CHANNEL = 'chrome'
+          npm run test:visual
+          if ($LASTEXITCODE) { throw 'HTML identity and modal checks failed' }
+          npm run test:browser
+          if ($LASTEXITCODE) { throw 'Browser integration failed' }
+      - name: Build Windows installer
+        run: ./scripts/Build-Installer.ps1
+      - name: Verify installation, reinstallation and uninstall
+        timeout-minutes: 20
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $baseline = Join-Path $env:RUNNER_TEMP 'nubi-office-baseline'
+          gh release download nubi-office-v0.8.3 --repo $env:GITHUB_REPOSITORY --pattern Nubi-Office-0.8.3-Setup.exe --dir $baseline
+          if ($LASTEXITCODE) { throw 'Baseline installer download failed' }
+          Remove-Item Env:\GH_TOKEN
+          ./scripts/Test-Installer.ps1 -BaselineInstallerPath (Join-Path $baseline 'Nubi-Office-0.8.3-Setup.exe')
+          Copy-Item verification/release-browser.json releases/installer-browser.json
+          Copy-Item verification/usability-preview.json releases/installer-ui-identity.json
+          Copy-Item verification/python-integration.json releases/installer-python.json
+          Copy-Item verification/windows-view.json releases/installer-view.json
+          Copy-Item verification/windows-skills-x32.json releases/installer-skills-x32.json
+          Copy-Item verification/windows-skills-x64.json releases/installer-skills-x64.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubi-office-windows-installer
+          path: |
+            packages/nubi-office/releases/*Setup.exe
+            packages/nubi-office/releases/*Setup.exe.sha256
+            packages/nubi-office/releases/installer-*.json
+            packages/nubi-office/releases/*.log
+          if-no-files-found: error
+          retention-days: 14

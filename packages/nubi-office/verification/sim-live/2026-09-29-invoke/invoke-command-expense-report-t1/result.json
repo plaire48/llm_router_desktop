@@ -1,0 +1,640 @@
+{
+  "suite": "invoke",
+  "id": "command-expense-report",
+  "trial": 1,
+  "routing": "product",
+  "passed": true,
+  "outcome": "passed",
+  "state": "done",
+  "writes": 1,
+  "recoveries": 0,
+  "questions": [],
+  "approvals": [
+    "edit"
+  ],
+  "proposals": 0,
+  "metrics": {
+    "modelCalls": 8,
+    "toolCalls": 5,
+    "elapsedMs": 35977
+  },
+  "transcript": {
+    "modelCalls": 8,
+    "byRole": {
+      "planner": 1,
+      "actor": 4,
+      "action_review": 1,
+      "step_review": 1,
+      "result_review": 1
+    },
+    "elapsedMs": 35720,
+    "requestCharacters": 257224,
+    "peakRequestCharacters": 63666,
+    "toolCalls": {
+      "inspect_template": 1,
+      "fill_template_fields": 1,
+      "verify_selection": 1
+    },
+    "errors": {}
+  },
+  "score": {
+    "passed": true,
+    "outcome": "passed",
+    "deterministicPassed": true,
+    "semanticReview": {
+      "required": false,
+      "status": "not_required",
+      "criteria": []
+    },
+    "expectedState": "done",
+    "actualState": "done",
+    "checks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "B3",
+          "field": "value",
+          "operator": "equals",
+          "expected": "0092",
+          "actual": [
+            [
+              "0092"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "E3",
+          "field": "value",
+          "operator": "equals",
+          "expected": 46300,
+          "actual": [
+            [
+              46300
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "B4",
+          "field": "value",
+          "operator": "equals",
+          "expected": "총무팀",
+          "actual": [
+            [
+              "총무팀"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "E4",
+          "field": "value",
+          "operator": "equals",
+          "expected": "이서연",
+          "actual": [
+            [
+              "이서연"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "B5",
+          "field": "value",
+          "operator": "equals",
+          "expected": "한빛문구",
+          "actual": [
+            [
+              "한빛문구"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "E5",
+          "field": "value",
+          "operator": "equals",
+          "expected": "법인카드",
+          "actual": [
+            [
+              "법인카드"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "B7",
+          "field": "value",
+          "operator": "equals",
+          "expected": 120000,
+          "actual": [
+            [
+              120000
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "B11",
+          "field": "value",
+          "operator": "equals",
+          "expected": "사무용품 구입",
+          "actual": [
+            [
+              "사무용품 구입"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "B8",
+          "field": "value",
+          "operator": "equals",
+          "expected": 12000,
+          "actual": [
+            [
+              12000
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "B9",
+          "field": "value",
+          "operator": "equals",
+          "expected": 132000,
+          "actual": [
+            [
+              132000
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "persistedChecks": {
+      "verified": true,
+      "checks": [
+        {
+          "address": "B3",
+          "field": "value",
+          "operator": "equals",
+          "expected": "0092",
+          "actual": [
+            [
+              "0092"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "E3",
+          "field": "value",
+          "operator": "equals",
+          "expected": 46300,
+          "actual": [
+            [
+              46300
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "B4",
+          "field": "value",
+          "operator": "equals",
+          "expected": "총무팀",
+          "actual": [
+            [
+              "총무팀"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "E4",
+          "field": "value",
+          "operator": "equals",
+          "expected": "이서연",
+          "actual": [
+            [
+              "이서연"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "B5",
+          "field": "value",
+          "operator": "equals",
+          "expected": "한빛문구",
+          "actual": [
+            [
+              "한빛문구"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "E5",
+          "field": "value",
+          "operator": "equals",
+          "expected": "법인카드",
+          "actual": [
+            [
+              "법인카드"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "B7",
+          "field": "value",
+          "operator": "equals",
+          "expected": 120000,
+          "actual": [
+            [
+              120000
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "B11",
+          "field": "value",
+          "operator": "equals",
+          "expected": "사무용품 구입",
+          "actual": [
+            [
+              "사무용품 구입"
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "B8",
+          "field": "value",
+          "operator": "equals",
+          "expected": 12000,
+          "actual": [
+            [
+              12000
+            ]
+          ],
+          "status": "met"
+        },
+        {
+          "address": "B9",
+          "field": "value",
+          "operator": "equals",
+          "expected": 132000,
+          "actual": [
+            [
+              132000
+            ]
+          ],
+          "status": "met"
+        }
+      ]
+    },
+    "unexpectedChanges": [],
+    "persistedUnexpectedChanges": [],
+    "sourceChecks": [],
+    "formulaChecks": [],
+    "openedTemplate": "c85afc44-0cb5-406e-aa5c-806775e02ef0",
+    "expectedTemplate": "c85afc44-0cb5-406e-aa5c-806775e02ef0",
+    "selected": true,
+    "openWorkbookUntouched": true
+  },
+  "request": "/지출결의서 지출 결의서를 작성해줘. 결의 번호는 0092, 작성일 2026-10-05, 부서 총무팀, 작성자 이서연, 지급처 한빛문구, 결제 수단은 법인카드, 공급가액 120000원, 적요는 사무용품 구입이야.",
+  "openedTemplate": {
+    "id": "c85afc44-0cb5-406e-aa5c-806775e02ef0",
+    "name": "지출 결의서"
+  },
+  "answer": "지출 결의서 작성을 완료했습니다.\n\n- 결의 번호: 0092\n- 작성일: 2026-10-05\n- 공급가액: 120,000원\n- 부가세: 12,000원\n- 합계: 132,000원\n- 수식 및 서식 확인 완료 (지출결의서 A1:E11)",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_template",
+        "title": "등록된 양식과 입력 필드 및 기존 수식을 확인",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "fill_fields",
+        "title": "제공된 결의 정보를 양식의 지정 필드에 입력",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14
+        ],
+        "state": "done",
+        "requiresReview": true
+      },
+      {
+        "id": "verify_result",
+        "title": "입력값과 부가세·합계 계산 결과를 최종 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14
+        ],
+        "state": "done"
+      }
+    ],
+    "total": 3,
+    "completed": 3,
+    "currentStepId": null
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "등록된 지출 결의서 양식에 제공된 결의 정보를 입력하고 부가세와 합계 수식을 확인합니다.",
+    "requirements": [
+      "결의 번호 0092 입력",
+      "작성일 2026-10-05 입력",
+      "부서 총무팀, 작성자 이서연 입력",
+      "지급처 한빛문구, 결제 수단 법인카드 입력",
+      "공급가액 120000, 적요 사무용품 구입 입력",
+      "기존 부가세·합계 수식 보존 및 계산 결과 확인"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "B3",
+        "field": "value",
+        "operator": "equals",
+        "expected": "0092",
+        "valueType": "text"
+      },
+      {
+        "address": "E3",
+        "field": "value",
+        "operator": "equals",
+        "expected": 46300,
+        "valueType": "date"
+      },
+      {
+        "address": "B4",
+        "field": "value",
+        "operator": "equals",
+        "expected": "총무팀",
+        "valueType": "text"
+      },
+      {
+        "address": "E4",
+        "field": "value",
+        "operator": "equals",
+        "expected": "이서연",
+        "valueType": "text"
+      },
+      {
+        "address": "B5",
+        "field": "value",
+        "operator": "equals",
+        "expected": "한빛문구",
+        "valueType": "text"
+      },
+      {
+        "address": "E5",
+        "field": "value",
+        "operator": "equals",
+        "expected": "법인카드",
+        "valueType": "text"
+      },
+      {
+        "address": "B7",
+        "field": "value",
+        "operator": "equals",
+        "expected": 120000,
+        "valueType": "number"
+      },
+      {
+        "address": "B8",
+        "field": "formula",
+        "operator": "equals",
+        "expected": "=ROUND(B7*0.1,0)"
+      },
+      {
+        "address": "B8",
+        "field": "value",
+        "operator": "equals",
+        "expected": 12000,
+        "valueType": "number"
+      },
+      {
+        "address": "B9",
+        "field": "formula",
+        "operator": "equals",
+        "expected": "=B7+B8"
+      },
+      {
+        "address": "B9",
+        "field": "value",
+        "operator": "equals",
+        "expected": 132000,
+        "valueType": "number"
+      },
+      {
+        "address": "B11",
+        "field": "value",
+        "operator": "equals",
+        "expected": "사무용품 구입",
+        "valueType": "text"
+      },
+      {
+        "address": "B3",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "@"
+      },
+      {
+        "address": "E3",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "yyyy-mm-dd"
+      },
+      {
+        "address": "B7",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "#,##0"
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_template",
+        "title": "등록된 양식과 입력 필드 및 기존 수식을 확인",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "fill_fields",
+        "title": "제공된 결의 정보를 양식의 지정 필드에 입력",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14
+        ]
+      },
+      {
+        "id": "verify_result",
+        "title": "입력값과 부가세·합계 계산 결과를 최종 확인",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14
+        ]
+      }
+    ]
+  },
+  "review": {
+    "status": "complete",
+    "checks": [
+      {
+        "requirement": "결의 정보와 적요가 지정 셀에 입력됨",
+        "status": "met",
+        "evidence_ids": [
+          9
+        ]
+      },
+      {
+        "requirement": "부가세·합계 수식과 계산 결과가 보존됨",
+        "status": "met",
+        "evidence_ids": [
+          9,
+          10
+        ]
+      },
+      {
+        "requirement": "요청한 숫자·날짜·번호 표시 형식이 유지됨",
+        "status": "met",
+        "evidence_ids": [
+          9,
+          10
+        ]
+      },
+      {
+        "requirement": "기존 병합, 서식, 유효성 검사와 보호 설정이 보존됨",
+        "status": "met",
+        "evidence_ids": [
+          9,
+          10
+        ]
+      }
+    ],
+    "next_step": "없음"
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_template"
+    },
+    {
+      "name": "inspect_template",
+      "state": "done",
+      "stepId": "fill_fields"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "fill_fields"
+    },
+    {
+      "name": "fill_template_fields",
+      "state": "done",
+      "stepId": "fill_fields"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "fill_fields"
+    },
+    {
+      "name": "review_action",
+      "state": "done",
+      "stepId": "fill_fields"
+    },
+    {
+      "name": "review_step",
+      "state": "done",
+      "stepId": "fill_fields"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_result"
+    },
+    {
+      "name": "verify_selection",
+      "state": "done",
+      "stepId": "verify_result"
+    },
+    {
+      "name": "review_task",
+      "state": "done",
+      "stepId": "verify_result"
+    }
+  ],
+  "recoveryLog": []
+}

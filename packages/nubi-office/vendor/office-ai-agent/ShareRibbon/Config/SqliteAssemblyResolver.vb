@@ -1,0 +1,168 @@
+' ShareRibbon\Config\SqliteAssemblyResolver.vb
+' 部署时可将共享依赖集中放在一个目录，ExcelAi/WordAi/PowerPointAi 按需从此加载
+
+Imports System.Collections.Generic
+Imports System.IO
+Imports System.Reflection
+Imports System.Linq
+
+    ''' <summary>
+    ''' AssemblyResolve：从安装根目录、ShareRibbon/Common、三端目录加载共享依赖
+    ''' 启动优化：EnsureRegistered() 仅注册事件处理器（微秒级），PreloadAssemblies() 可在后台线程调用
+    ''' </summary>
+    Public Class SqliteAssemblyResolver
+
+    Private Shared _registered As Boolean = False
+    Private Shared ReadOnly _lockObj As New Object()
+    Private Shared ReadOnly _sharedDependencyNames As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase) From {
+        "AngleSharp",
+        "DocumentFormat.OpenXml",
+        "DocumentFormat.OpenXml.Framework",
+        "HtmlAgilityPack",
+        "Markdig",
+        "MessagePack",
+        "MessagePack.Annotations",
+        "Microsoft.Bcl.AsyncInterfaces",
+        "Microsoft.NET.StringTools",
+        "Microsoft.VisualStudio.Threading",
+        "Microsoft.VisualStudio.Validation",
+        "Microsoft.Web.WebView2.Core",
+        "Microsoft.Web.WebView2.WinForms",
+        "Microsoft.Web.WebView2.Wpf",
+        "Microsoft.Win32.Registry",
+        "Nerdbank.Streams",
+        "Newtonsoft.Json",
+        "System.Buffers",
+        "System.Collections.Immutable",
+        "System.Data.SQLite",
+        "System.Diagnostics.DiagnosticSource",
+        "System.IO.Pipelines",
+        "System.Memory",
+        "System.Numerics.Vectors",
+        "System.Runtime.CompilerServices.Unsafe",
+        "System.Security.AccessControl",
+        "System.Security.Principal.Windows",
+        "System.Text.Encodings.Web",
+        "System.Text.Json",
+        "System.Threading.Tasks.Extensions",
+        "System.ValueTuple"
+    }
+
+    ''' <summary>
+    ''' 仅注册 AssemblyResolve 事件处理器，不做预加载（微秒级，可在 VSTO Startup 中同步调用）
+    ''' </summary>
+    Public Shared Sub EnsureRegistered()
+        If _registered Then Return
+        SyncLock _lockObj
+            If _registered Then Return
+            AddHandler AppDomain.CurrentDomain.AssemblyResolve, AddressOf OnAssemblyResolve
+            _registered = True
+        End SyncLock
+    End Sub
+
+    ''' <summary>
+    ''' 缓存探测目录列表，避免每次调用重复计算和 Directory.Exists 检查
+    ''' </summary>
+    Private Shared _cachedProbeDirs As Lazy(Of IEnumerable(Of String)) =
+        New Lazy(Of IEnumerable(Of String))(Function() ComputeProbeDirs())
+
+    Private Shared Function GetProbeDirs() As IEnumerable(Of String)
+        Return _cachedProbeDirs.Value
+    End Function
+
+    Private Shared Function ComputeProbeDirs() As IEnumerable(Of String)
+        Dim our = GetType(SqliteAssemblyResolver).Assembly
+        Dim locDir = GetDir(our.Location)
+        Dim cbDir = GetDirFromCodeBase(our)
+        
+        Dim list As New List(Of String) From {locDir, cbDir}
+        
+        ' 尝试从 locDir 和 cbDir 的父目录查找（安装根目录）
+        Dim p1 = GetParent(locDir)
+        If Not String.IsNullOrEmpty(p1) Then list.Add(p1)
+        
+        Dim p2 = GetParent(cbDir)
+        If Not String.IsNullOrEmpty(p2) Then list.Add(p2)
+
+        ' 显式添加常见的子目录路径
+        Dim initialPaths = list.ToArray()
+        For Each p In initialPaths
+            If String.IsNullOrEmpty(p) Then Continue For
+            list.Add(Path.Combine(p, "ShareRibbon"))
+            list.Add(Path.Combine(p, "Common"))
+            list.Add(Path.Combine(p, "Shared"))
+            list.Add(Path.Combine(p, "SharedRuntime"))
+            list.Add(Path.Combine(p, "lib"))
+            list.Add(Path.Combine(p, "WordAi"))
+            list.Add(Path.Combine(p, "ExcelAi"))
+            list.Add(Path.Combine(p, "PowerPointAi"))
+        Next
+
+        ' 兜底：尝试从 AppDomain 基目录及其上级查找
+        Dim baseDir = AppDomain.CurrentDomain.BaseDirectory
+        list.Add(baseDir)
+        Dim baseParent = GetParent(baseDir)
+        If Not String.IsNullOrEmpty(baseParent) Then list.Add(baseParent)
+
+        ' 去重并排除不存在的目录
+        Dim result As New List(Of String)
+        For Each d In list
+            If Not String.IsNullOrEmpty(d) AndAlso Directory.Exists(d) Then
+                If Not result.Contains(d) Then result.Add(d)
+            End If
+        Next
+        Return result
+    End Function
+
+    Private Shared Function GetDir(filePath As String) As String
+        If String.IsNullOrEmpty(filePath) Then Return Nothing
+        Try
+            Return Path.GetDirectoryName(filePath)
+        Catch
+            Return Nothing
+        End Try
+    End Function
+
+    Private Shared Function GetParent(dir As String) As String
+        If String.IsNullOrEmpty(dir) OrElse Not Directory.Exists(dir) Then Return Nothing
+        Try
+            Return Path.GetDirectoryName(dir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
+        Catch
+            Return Nothing
+        End Try
+    End Function
+
+    Private Shared Function GetDirFromCodeBase(asm As Assembly) As String
+        Try
+            Dim cb = asm.CodeBase
+            If String.IsNullOrEmpty(cb) Then Return Nothing
+            Dim uri As New Uri(cb)
+            Dim localPath = uri.LocalPath
+            If String.IsNullOrEmpty(localPath) Then Return Nothing
+            If uri.Host?.Length > 0 Then localPath = "\\" & uri.Host & localPath
+            Return Path.GetDirectoryName(localPath)
+        Catch
+            Return Nothing
+        End Try
+    End Function
+
+    Private Shared Function OnAssemblyResolve(sender As Object, args As ResolveEventArgs) As Assembly
+        Try
+            Dim name As New AssemblyName(args.Name)
+            Dim simpleName = name.Name
+            If Not _sharedDependencyNames.Contains(simpleName) Then Return Nothing
+
+            For Each d As String In GetProbeDirs()
+                Dim p = Path.Combine(d, simpleName & ".dll")
+                If File.Exists(p) Then
+                    Try
+                        Return Assembly.LoadFrom(p)
+                    Catch
+                    End Try
+                End If
+            Next
+        Catch
+        End Try
+        Return Nothing
+    End Function
+End Class

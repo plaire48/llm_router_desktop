@@ -1,0 +1,310 @@
+{
+  "suite": "template",
+  "id": "template-typed-date",
+  "trial": 1,
+  "routing": "product",
+  "passed": false,
+  "outcome": "error",
+  "state": "cancelled",
+  "error": "evaluation_interaction_requires_human",
+  "writes": 0,
+  "recoveries": 2,
+  "questions": [
+    "필수 날짜 (B2) 값을 입력해 주세요. YYYY-MM-DD 형식입니다."
+  ],
+  "approvals": [
+    "template_mapping",
+    "template_mapping"
+  ],
+  "proposals": 2,
+  "metrics": {
+    "modelCalls": 13,
+    "toolCalls": 8,
+    "elapsedMs": 34526
+  },
+  "transcript": {
+    "modelCalls": 13,
+    "byRole": {
+      "intent_router": 1,
+      "planner": 1,
+      "actor": 8,
+      "recovery": 2,
+      "action_review": 1
+    },
+    "elapsedMs": 32413,
+    "requestCharacters": 408133,
+    "peakRequestCharacters": 55603,
+    "toolCalls": {
+      "read": 1,
+      "read_selection": 2,
+      "fill_template_fields": 2,
+      "define_template_fields": 2,
+      "ask_template_field": 1
+    },
+    "errors": {}
+  },
+  "request": "기존 양식 B2는 필수 날짜 입력칸이다. 입력 항목을 확인받고 날짜 2026-10-01을 실제 Excel 날짜로 넣어줘. 기존 표시 형식과 모든 다른 셀은 유지해.",
+  "answer": "",
+  "question": "",
+  "plan": {
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "양식과 B2의 기존 날짜 형식을 확인합니다",
+        "kind": "inspect",
+        "checkIndexes": [],
+        "state": "done"
+      },
+      {
+        "id": "write_date",
+        "title": "B2에 2026-10-01을 실제 Excel 날짜로 입력합니다",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2
+        ],
+        "state": "paused"
+      },
+      {
+        "id": "verify_result",
+        "title": "입력 날짜와 다른 셀 보존 여부를 확인합니다",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2
+        ],
+        "state": "pending"
+      }
+    ],
+    "total": 3,
+    "completed": 1,
+    "currentStepId": "write_date"
+  },
+  "task": {
+    "intent": "edit",
+    "summary": "기존 양식의 B2 필수 날짜 입력칸에 2026-10-01을 실제 Excel 날짜로 입력하고 기존 표시 형식과 다른 셀을 유지합니다.",
+    "requirements": [
+      "B2에 날짜 2026-10-01 입력",
+      "B2의 기존 표시 형식 yyyy-mm-dd 유지",
+      "기존 수식과 다른 셀의 값·서식·구조 유지"
+    ],
+    "questions": [],
+    "preserveFormulas": true,
+    "checks": [
+      {
+        "address": "B2",
+        "field": "value",
+        "operator": "equals",
+        "expected": 46296,
+        "valueType": "date"
+      },
+      {
+        "address": "B2",
+        "field": "numberFormat",
+        "operator": "equals",
+        "expected": "yyyy-mm-dd"
+      },
+      {
+        "address": "B2",
+        "field": "formula",
+        "operator": "equals",
+        "expected": null
+      }
+    ],
+    "steps": [
+      {
+        "id": "inspect_form",
+        "title": "양식과 B2의 기존 날짜 형식을 확인합니다",
+        "kind": "inspect",
+        "checkIndexes": []
+      },
+      {
+        "id": "write_date",
+        "title": "B2에 2026-10-01을 실제 Excel 날짜로 입력합니다",
+        "kind": "edit",
+        "checkIndexes": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "id": "verify_result",
+        "title": "입력 날짜와 다른 셀 보존 여부를 확인합니다",
+        "kind": "verify",
+        "checkIndexes": [
+          0,
+          1,
+          2
+        ]
+      }
+    ]
+  },
+  "review": {
+    "status": "revise",
+    "checks": [
+      {
+        "requirement": "B2에 2026-10-01을 실제 Excel 날짜 값으로 입력",
+        "status": "met",
+        "evidence_ids": [
+          8
+        ]
+      },
+      {
+        "requirement": "B2의 기존 표시 형식 yyyy-mm-dd 유지",
+        "status": "met",
+        "evidence_ids": [
+          8
+        ]
+      },
+      {
+        "requirement": "B2의 기존 수식과 다른 셀의 값·서식·구조 유지",
+        "status": "unknown",
+        "evidence_ids": [
+          9
+        ]
+      }
+    ],
+    "next_step": "제안된 B2 값 입력은 적절하지만, 보존 검증 결과가 입력 전 상태로 보이며 실제 편집 후 검증이 필요합니다."
+  },
+  "trace": [
+    {
+      "name": "analyze_request",
+      "state": "done"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "inspect_form"
+    },
+    {
+      "name": "read",
+      "state": "done",
+      "stepId": "write_date"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_date"
+    },
+    {
+      "name": "fill_template_fields",
+      "state": "error",
+      "stepId": "write_date"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_date"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_date"
+    },
+    {
+      "name": "define_template_fields",
+      "state": "done",
+      "stepId": "write_date"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_date"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_date"
+    },
+    {
+      "name": "fill_template_fields",
+      "state": "error",
+      "stepId": "write_date"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_date"
+    },
+    {
+      "name": "review_action",
+      "state": "error",
+      "stepId": "write_date"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_date"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_date"
+    },
+    {
+      "name": "define_template_fields",
+      "state": "done",
+      "stepId": "write_date"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_date"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_date"
+    },
+    {
+      "name": "ask_template_field",
+      "state": "error",
+      "stepId": "write_date"
+    },
+    {
+      "name": "read_selection",
+      "state": "done",
+      "stepId": "write_date"
+    }
+  ],
+  "recoveryLog": [
+    {
+      "attempt": 1,
+      "stepId": "write_date",
+      "code": "template_mapping_required",
+      "tool": "fill_template_fields",
+      "outcome": "not_executed",
+      "state": "superseded",
+      "summary": "B2의 형식은 확인됐지만 입력 도구가 필드 매핑 부족으로 실행되지 않았습니다.",
+      "nextAction": "B2를 대상 필드로 매핑한 뒤, 다른 셀과 서식을 건드리지 않고 Excel 날짜 일련값 46296을 입력하고 B2의 형식·수식을 다시 검증하세요."
+    },
+    {
+      "attempt": 2,
+      "stepId": "write_date",
+      "code": "action_needs_revision",
+      "tool": "fill_template_fields",
+      "outcome": "not_executed",
+      "state": "cancelled",
+      "summary": "B2 입력은 아직 실행되지 않았습니다. 기존 형식은 확인되었으며, 다른 셀 보존 여부는 입력 후 재검증해야 합니다.",
+      "nextAction": "B2에 Excel 날짜 일련값 46296을 값으로 입력하고 yyyy-mm-dd 형식은 유지하세요. 이후 B2와 A1:C4를 다시 읽어 값·수식·서식·구조 보존을 검증하세요."
+    }
+  ],
+  "lastProposal": [
+    {
+      "id": "field_B2",
+      "address": "B2",
+      "label": "필수 날짜",
+      "valueType": "date",
+      "required": true,
+      "numberFormat": "yyyy-mm-dd",
+      "merge": null,
+      "choices": [],
+      "currentValue": "",
+      "currentValueIsPreview": true,
+      "validation": null
+    }
+  ]
+}

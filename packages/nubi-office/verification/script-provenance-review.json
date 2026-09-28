@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-23",
+  "scope": "Explicit script inputPath chain dependency and output ownership checks",
+  "baselineCommit": "d722764995f9262b2cc767e181ca772d9cb5ea94",
+  "modelBaseline": "Enterprise Qwen 3.8 27B; live model not invoked",
+  "before": {
+    "tests": 3,
+    "pass": 0,
+    "fail": 3,
+    "cancelled": 0,
+    "skipped": 0,
+    "logSha256": "831a1f5ab6bc5cb0f22cac785883396ff69a144a64dc407f3aa16359f4a18ac3"
+  },
+  "after": {
+    "developmentFocusedSuite": {
+      "tests": 50,
+      "pass": 50,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "logSha256": "426e31abbac931c3d99ad6aaa9206e88ce2425e01c95ac250dd9253a87b197b3"
+    },
+    "publicationFullSuite": {
+      "tests": 410,
+      "pass": 410,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "logSha256": "24b68948f993e0faa7f0d0db1c8a1f1628a479fc4b492d83e59bf556a7ddcab2"
+    },
+    "designCheckIssues": 0,
+    "sharedUiParity": {
+      "files": 24,
+      "matched": true
+    }
+  },
+  "dependenciesChanged": false,
+  "actualReuse": {
+    "QuickJS": "0.32.0 actual script execution",
+    "Pi": "0.86.1 memory read/write/edit and existing actor integration tests",
+    "Node crypto": "SHA-256",
+    "Office resilience": "existing local-tool supervisor, no automatic script replay"
+  },
+  "patternOnly": {
+    "DVC": "Apache-2.0; dependency/output change detection, no source copied or package/CLI installed"
+  },
+  "checks": [
+    "Upstream input/code changes invalidate chained result",
+    "Stale generated inputs refused",
+    "Eight further slot rotations retain three source dependencies",
+    "40 -> 41 -> 82; changed original 10 -> 11 -> 22",
+    "Concurrent original/result changes preserve prior work",
+    "User-edited/occupied and bound result slots preserved",
+    "Receipt/context copies do not expose mutable internal dependency records",
+    "Three unchanged failures reach existing supervisor pause"
+  ],
+  "scripted": [
+    "model decisions in existing fixtures",
+    "Office native results",
+    "test approval responses"
+  ],
+  "buildsExecuted": false,
+  "installerUpdated": false,
+  "limitations": [
+    "Only explicit inputPath chains retain dependencies; manual value copies do not",
+    "Two output slots; if both occupied by user drafts, return conflict rather than delete or overwrite",
+    "Worker memory only; no durable restart provenance"
+  ],
+  "notVerified": [
+    "Windows Office 2016 COM/installation",
+    "Qwen correction accuracy, latency and cost",
+    "corporate SSO and NASCA",
+    "large-document hierarchical final review",
+    "protected durable recovery",
+    "Python/external skill installation"
+  ],
+  "separateDevelopmentChanges": "Seven independently changed shared UI files remain outside publication",
+  "references": [
+    "https://doc.dvc.org/command-reference/repro",
+    "https://doc.dvc.org/user-guide/project-structure/dvc-files",
+    "https://raw.githubusercontent.com/iterative/dvc/main/LICENSE",
+    "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents"
+  ],
+  "sourceCheckout": "publication",
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "b14fbf93fa8da32074a2605f7863a24cdb62200f4ea8f8957af30f284dcab918"
+    },
+    {
+      "path": "docs/DOCUMENT-SCRIPT-RUNTIME-2026-09-23.md",
+      "sha256": "0b1f739518d47a83097e8efa8e0d2577354e5d117504122ab6b9e6535c5630dc"
+    },
+    {
+      "path": "docs/IMPROVEMENT-STATUS.md",
+      "sha256": "380f3b8b03632d3aa3c7ead60b77e7430f9b3ae2ea1da5221b29e2d2a27c0676"
+    },
+    {
+      "path": "docs/SCRIPT-PROVENANCE-2026-09-23.md",
+      "sha256": "dc8f2d36788619ab018b1daf95ef8094f1b64b36b48b07975c76fbe148e1bdc6"
+    },
+    {
+      "path": "tests/script-provenance.test.mjs",
+      "sha256": "cfcdec05583b3c5fbedcb6b2551f40d1cb840734247561d27b35257980f9cb37"
+    },
+    {
+      "path": "worker/resilience.mjs",
+      "sha256": "4cee34ab482c1380a48231eefbc74b1196ae581dccdb17e3d847fc99b34f5b78"
+    },
+    {
+      "path": "worker/script-provenance.mjs",
+      "sha256": "963838fc671d75430705e19616526990bc49b67d7f75d656fad123e064253c88"
+    },
+    {
+      "path": "worker/skill-workspace.mjs",
+      "sha256": "3443697655e0a7ade5c244e8c093f1acdffdb7c40600595ece052ccb096eb9ec"
+    },
+    {
+      "path": "worker/skills/excel-2016/references/calculations.md",
+      "sha256": "5875bacfba42af56dc858d9a806e3f83e022c31ee7266286c8348a721ee27701"
+    },
+    {
+      "path": "worker/skills/powerpoint-2016/references/calculations.md",
+      "sha256": "5875bacfba42af56dc858d9a806e3f83e022c31ee7266286c8348a721ee27701"
+    },
+    {
+      "path": "worker/skills/word-2016/references/calculations.md",
+      "sha256": "5875bacfba42af56dc858d9a806e3f83e022c31ee7266286c8348a721ee27701"
+    }
+  ]
+}

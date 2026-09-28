@@ -1,0 +1,40 @@
+{
+  "name": "office-legacy-aipro",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "node tests/browser.mjs",
+    "design:check": "node ../../extensions/aipro-chat/node_modules/@e2e/cx-design-system/scripts/check.mjs src",
+    "validate:manifest": "office-addin-manifest validate manifest.xml",
+    "dev-server": "node dist/server.mjs",
+    "start": "office-addin-debugging start manifest.xml desktop --app excel --no-debug --no-live-reload --dev-server-port 8790",
+    "stop": "office-addin-debugging stop manifest.xml",
+    "package": "node scripts/package.mjs"
+  },
+  "dependencies": {
+    "@earendil-works/pi-agent-core": "0.86.1",
+    "@earendil-works/pi-ai": "0.86.1",
+    "office-addin-dev-certs": "3.0.0"
+  },
+  "devDependencies": {
+    "@babel/core": "8.0.6",
+    "@babel/preset-env": "8.0.6",
+    "@csstools/postcss-color-mix-function": "3.0.12",
+    "acorn": "8.18.0",
+    "core-js": "3.50.0",
+    "esbuild": "0.28.2",
+    "fflate": "0.8.3",
+    "office-addin-debugging": "7.0.0",
+    "office-addin-manifest": "3.0.0",
+    "playwright": "1.62.1",
+    "postcss": "8.5.28",
+    "postcss-custom-properties": "15.0.1",
+    "whatwg-fetch": "3.6.20"
+  }
+}

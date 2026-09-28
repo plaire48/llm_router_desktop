@@ -1,0 +1,4 @@
+[
+  {"architecture":"x64","archive":"node-v22.23.2-win-x64.zip","sha256":"1177b4137ba5adaa56354ae40f1080c7450e8ae09cecb47da459d1c52ac99f97","source":"https://nodejs.org/dist/v22.23.2/node-v22.23.2-win-x64.zip"},
+  {"architecture":"x86","archive":"node-v22.23.2-win-x86.zip","sha256":"725c9e2bdd1c2016b41c995a81f4fa36ce4e2ee565b7455d8f889182727df647","source":"https://nodejs.org/dist/v22.23.2/node-v22.23.2-win-x86.zip"}
+]
