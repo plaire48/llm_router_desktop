@@ -34,7 +34,7 @@ export function renderComparison(comparison){
   const [before,after]=comparison.quality,row=cells=>'| '+cells.join(' | ')+' |',lines=[];
   lines.push('# 평가 비교','',`- 모델: ${comparison.model}`,`- 후보: ${comparison.candidates[0].slice(0,12)} → ${comparison.candidates[1].slice(0,12)}`+(comparison.sameCandidate?' (같은 후보의 반복 측정)':''),'');
   lines.push('## 품질','',row(['지표','이전','이후','차이']),row(['---','---:','---:','---:']));
-  for(const [label,name] of [['실행한 과제','executed'],['독립 통과','passed'],['답변 전달','delivered'],['잘못된 완료','falseCompletion'],['검토 상한 전달','reviewLimit'],['불필요한 질문','unnecessaryQuestion'],['필요한 질문 누락','missedQuestion'],['정답 경로 도달','retrievalReached'],['정답 경로 인용','citationFound']])
+  for(const [label,name] of [['실행한 과제','executed'],['독립 통과','passed'],['답변 전달','delivered'],['잘못된 완료','falseCompletion'],['검토 상한 전달','reviewLimit'],['검토 반복 전달','reviewStalled'],['불필요한 질문','unnecessaryQuestion'],['필요한 질문 누락','missedQuestion'],['정답 경로 도달','retrievalReached'],['정답 경로 인용','citationFound']])
     // A report made before a measure existed counts as zero.
     lines.push(row([label,before[name]??0,after[name]??0,delta(before[name]??0,after[name]??0)]));
   lines.push('','## 비용','',row(['목적','호출 이전','호출 이후','입력 토큰 이전','입력 토큰 이후','입력 토큰 차이']),row(['---','---:','---:','---:','---:','---:']));

@@ -916,9 +916,13 @@ async function runBrowserTool(requestId, page, name, args = {}, {vision = false,
     }
     if (['read_page', 'inspect_dom', 'browser_snapshot'].includes(name)) return {result: await observe(task, args.query || ''), tabId: task.tabId};
     if (name === 'list_tabs') {
-      const tabs = (await chrome.tabs.query(task.workspace ? {windowId: task.workspace.windowId} : {})).filter(tab => safeURL(tab.url) && (!task.workspace || task.workspace.tabIds.includes(tab.id))).slice(0, 40);
+      // An owned tab whose first page has not arrived yet has no url, only a
+      // pendingUrl. It is still the conversation's tab and stays listed.
+      const address = tab => safeURL(tab.url) || (task.workspace && !tab.url ? safeURL(tab.pendingUrl) : null);
+      const tabs = (await chrome.tabs.query(task.workspace ? {windowId: task.workspace.windowId} : {})).filter(tab => address(tab) && (!task.workspace || task.workspace.tabIds.includes(tab.id))).slice(0, 40);
       task.tabs = new Set(tabs.map(tab => tab.id));
-      return {result: {tabs: tabs.map(tab => ({tab_id: String(tab.id), window_id: String(tab.windowId), ...(tab.openerTabId ? {opener_tab_id: String(tab.openerTabId)} : {}), title: String(tab.title || '').slice(0, 180), url: safeURL(tab.url), current: tab.id === task.tabId}))}, tabId: task.tabId};
+      return {result: {tabs: tabs.map(tab => ({tab_id: String(tab.id), window_id: String(tab.windowId), ...(tab.openerTabId ? {opener_tab_id: String(tab.openerTabId)} : {}), title: String(tab.title || '').slice(0, 180), url: address(tab), current: tab.id === task.tabId,
+        ...(safeURL(tab.url) ? {} : {loading: true})}))}, tabId: task.tabId};
     }
     let action = {ok: true};
     if (name === 'drag_element') {

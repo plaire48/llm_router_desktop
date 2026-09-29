@@ -19,6 +19,12 @@
   "modelLimits": {
     "contextLength": 22000
   },
+  "dialogue": [
+    {
+      "match": "시행일|시행 시점|적용 시점|10월 첫째",
+      "answer": "시행일은 코드에 넣지 마. 지금 바로 주문 배송비 계산의 제주와 도서 추가 요금만 5,500원으로 바꿔 줘."
+    }
+  ],
   "expect": {
     "state": "review",
     "compacted": true,

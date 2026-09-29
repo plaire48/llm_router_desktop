@@ -57,8 +57,9 @@ test('forbidden tokens of absence cases are absent from the whole corpus',async 
   const manifest=await corpusManifest('openwiki-sds');let everything='';
   for(const file of manifest.files)everything+=await readFile(path.join(workspace.root,file.path),'utf8')+'\n';
   // W3 excludes by pattern since 2026-09-29, so the names it guards are listed here.
-  const names=['OPENWIKI_CONFLUENCE_TOKEN','CONFLUENCE_API_TOKEN','OPENWIKI_CONFLUENCE_API_KEY','CONFLUENCE_TOKEN'];
-  for(const item of cases)for(const token of [...item.expect.answer_excludes.filter(value=>!value.startsWith('re:')),...(item.expect.answer_flags||[]),...names])assert.ok(!everything.includes(token),item.id+': corpus contains '+token);
+  // D3 flags by pattern since 2026-09-29 as well.
+  const names=['OPENWIKI_CONFLUENCE_TOKEN','CONFLUENCE_API_TOKEN','OPENWIKI_CONFLUENCE_API_KEY','CONFLUENCE_TOKEN','HTTP_PROXY','HTTPS_PROXY','NO_PROXY'];
+  for(const item of cases)for(const token of [...item.expect.answer_excludes.filter(value=>!value.startsWith('re:')),...(item.expect.answer_flags||[]).filter(value=>!value.startsWith('re:')),...names])assert.ok(!everything.includes(token),item.id+': corpus contains '+token);
   assert.ok(!/confluence|atlassian/i.test(everything));
 });
 
@@ -121,4 +122,40 @@ test('absence cases accept recorded right answers and still refuse an invented s
   assert.ok(!accepts(w3,'Confluence 커넥터 문서는 없습니다. `CONFLUENCE_API_TOKEN`에 토큰을 넣으면 됩니다.'));
   assert.ok(!accepts(w3,'문서에는 없지만 `OPENWIKI_CONFLUENCE_TOKEN=...` 형식으로 설정하세요.'));
   assert.ok(!accepts(w3,'안내되어 있지 않습니다. `CONFLUENCE_TOKEN`을 사용하면 됩니다.'));
+});
+
+// User decision 2026-09-29 (second): README.md line 457 routes a provider at
+// "a self-hosted or proxied gateway" by its base URL. Three answers of
+// gpt-5.6-sol named those variables from README and were graded as failures,
+// because the key expected only a statement that proxy settings are absent.
+// An answer that names a *_BASE_URL together with README is right. Naming
+// HTTP_PROXY to say that the documents do not use it is not flagged; giving it
+// a value to set still is. A pattern for advice in words also caught denials
+// (S12) and was dropped.
+test('the proxy case accepts base URLs from README and flags only a proxy variable to set',async()=>{
+  const [d3]=(await loadCases()).filter(item=>item.id==='D3-absent-proxy-setting');
+  const accepts=answer=>d3.expect.answer_includes.every(group=>group.some(item=>mentions(answer,item)))&&(d3.expect.answer_excludes||[]).every(item=>!mentions(answer,item));
+  const flagged=answer=>(d3.expect.answer_flags||[]).some(item=>mentions(answer,item));
+  for(const name of ['S7','S8','S9','S12']){
+    const answer=await readFile(new URL('./recorded/D3-'+name+'.txt',import.meta.url),'utf8');
+    assert.ok(accepts(answer),name+' is accepted');assert.ok(!flagged(answer),name+' is not flagged');
+  }
+  assert.ok(accepts('README.md와 ENTERPRISE.md에는 회사 프록시 설정이 안내되어 있지 않습니다.'),'absence stays right');
+  assert.ok(!accepts('`OPENAI_BASE_URL`을 회사 프록시 주소로 설정하세요.'),'a base URL without its source');
+  assert.ok(!accepts('README.md에 따라 `OPENWIKI_PROXY`와 `OPENAI_BASE_URL`을 설정하세요.'),'an invented variable is refused');
+  assert.ok(flagged('README.md 기준으로 `HTTPS_PROXY=http://proxy:8080`을 설정하세요.'),'a proxy variable to set is flagged');
+  assert.ok(!flagged('두 문서는 `HTTP_PROXY`나 `HTTPS_PROXY` 설정을 안내하지 않습니다.'));
+  assert.ok(!flagged('두 문서의 확인 범위에서는 `HTTP_PROXY`나 `HTTPS_PROXY`를 설정하라는 안내는 없습니다.'),'recorded in S12');
+});
+
+// User decision 2026-09-29: gpt-5.6-sol asked twice how the start date of the
+// new fee, "the first Monday of October", should enter the code. The case had
+// no answer for it and ended with needs_human.
+test('the compaction case answers the question about the start date',async()=>{
+  const {createUser}=await import('../eval/user.mjs');
+  const [l1]=await loadCases({ids:['L1-condition-after-compaction']});
+  const user=createUser(l1);
+  const reply=user.answer('추가 요금 5,500원의 시행일인 ‘10월 첫째 주 월요일’을 어떻게 해석할까요?');
+  assert.match(reply.answer,/5,500원/);assert.match(reply.answer,/시행일/);
+  assert.equal(createUser(l1).answer('어느 파일을 고칠까요?'),null,'other questions still need a person');
 });

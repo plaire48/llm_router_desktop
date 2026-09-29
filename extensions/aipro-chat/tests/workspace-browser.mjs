@@ -104,10 +104,15 @@ try {
 
   await worker.evaluate(id=>chrome.tabs.ungroup(id),userTab.id);
   const second=await worker.evaluate(source=>workspaceTest.createWorkspace(source,{conversationId:'other',provider:'aipro',credentialReceivedAt:1}),sourceTab);
-  assert.equal(second.windowId,workspace.windowId);assert.notEqual(second.groupId,workspace.groupId);
+  // One Nubi group per window is shared for presentation (browser-workspace.js
+  // joinWorkspaceGroup). Ownership stays with each conversation's own tab list.
+  assert.equal(second.windowId,workspace.windowId);assert.equal(second.groupId,workspace.groupId);
+  assert.deepEqual(second.tabIds,[second.tabId]);assert(!second.tabIds.includes(workspace.tabId));
+  result=await run('list_tabs');assert.deepEqual(result.result.tabs.map(t=>+t.tab_id),[workspace.tabId]);
+  result=await run('switch_tab',{tab_id:String(second.tabId)});assert.equal(result.result.error,'browser_stale');
   await worker.evaluate(id=>chrome.tabs.remove(id),second.tabId);
   assert.equal(await focus(),userTab.id);
-  check('another conversation gets a distinct group in the same window; grouping a user tab grants no ownership');
+  check('another conversation shares the window group but owns only its own tab; grouping a user tab grants no ownership');
 
   for(const label of ['새 탭','새 창']) {
     let beforeFocus;

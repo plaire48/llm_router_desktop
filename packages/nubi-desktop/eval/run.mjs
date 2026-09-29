@@ -28,7 +28,7 @@ const add=(target,key,value)=>{target[key]=(target[key]||0)+(value||0);};
 
 function summarize(results){
   const tally=()=>Object.fromEntries([['total',0],...OUTCOMES.map(name=>[name,0])]),bySuite={},bySplit={};
-  const quality={total:results.length,executed:0,passed:0,delivered:0,falseCompletion:0,reviewLimit:0,unnecessaryQuestion:0,missedQuestion:0,retrievalCases:0,retrievalReached:0,citationCases:0,citationFound:0};
+  const quality={total:results.length,executed:0,passed:0,delivered:0,falseCompletion:0,reviewLimit:0,reviewStalled:0,unnecessaryQuestion:0,missedQuestion:0,retrievalCases:0,retrievalReached:0,citationCases:0,citationFound:0};
   const cost={modelCalls:0,retries:0,toolCalls:0,compactions:0,elapsedMs:0,promptTokens:0,completionTokens:0,cachedTokens:0,estimatedTokens:0,measuredEstimatedTokens:0,requestCharacters:0,fixedCharacters:0,peakRequestCharacters:0,byPurpose:{},byTool:{}};
   for(const result of results){
     for(const group of [bySuite[result.suite]??=tally(),bySplit[result.split]??=tally()]){group.total++;group[result.outcome]++;}
@@ -37,6 +37,7 @@ function summarize(results){
     if(result.state==='review'&&result.answerCharacters>0)quality.delivered++;
     if(result.falseCompletion)quality.falseCompletion++;
     if(result.reviewHandoff==='review_limit')quality.reviewLimit++;
+    if(result.reviewHandoff==='review_stalled')quality.reviewStalled++;
     if(result.expectedAsked===false&&result.asked)quality.unnecessaryQuestion++;
     if(result.expectedAsked===true&&!result.asked)quality.missedQuestion++;
     const retrieved=result.checks.find(item=>item.name==='retrieved'),cited=result.checks.find(item=>item.name==='cited');

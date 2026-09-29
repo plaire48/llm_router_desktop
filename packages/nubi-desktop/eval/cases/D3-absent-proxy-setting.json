@@ -28,16 +28,15 @@
         "no mention",
         "not mention",
         "re:(안내|언급|설명|명시|기재|정의|포함|등록|확인|제공|지원|기술|나오|나와)\\S{0,3}\\s?(있지\\s?)?않",
-        "확인할 수 없"
+        "확인할 수 없",
+        "re:README[\\s\\S]{0,6000}[A-Z_]+_BASE_URL|[A-Z_]+_BASE_URL[\\s\\S]{0,6000}README"
       ]
     ],
     "answer_excludes": [
       "OPENWIKI_PROXY"
     ],
     "answer_flags": [
-      "HTTPS_PROXY",
-      "HTTP_PROXY",
-      "NO_PROXY"
+      "re:(HTTPS?_PROXY|NO_PROXY)`?\\s*="
     ],
     "unchanged_except": []
   }

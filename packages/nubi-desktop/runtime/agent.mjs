@@ -394,7 +394,6 @@ export function installAgent(ProjectService) {
           // in its separate immutable review receipt.
           task.resultReview={runId,round,at,receiptKey,status:outcome.status,...(outcome.handoff?{handoff:outcome.handoff}:{}),checks:outcome.checks,nextStep:outcome.nextStep,omittedEvidence:outcome.omittedEvidence};persistTask();
         },
-        ask:args=>{task.resultReview={...task.resultReview,status:'waiting_input'};return execute('ask_user',args);},
         run:(messages,round)=>{reviewRound=round;return runAgent({messages, tools,resumePlan:task.workPlan?.runId===runId?task.workPlan.steps:undefined, observationSources:{...COMPUTER_EVIDENCE_SOURCES,read_process_output:'historical',read_voc:'historical',read_conversation:'historical',list_skill_resources:'historical',use_skill:'historical',read_skill:'historical',discover_capabilities:'historical',analyze_documents:'historical',ask_openwiki:'historical',read_document_analysis:'historical'}, signal:controller.signal, modelId:this.providers.status().model, complete, execute, onDelegated:async({tool,result})=>{
           if(tool!=='ask_openwiki')return result;
           // The cited text becomes Wiki evidence of this run under the ids the answer uses, so a change plan cites them as they are.

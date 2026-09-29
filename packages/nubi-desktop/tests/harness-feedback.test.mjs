@@ -180,8 +180,9 @@ test('without anything waiting for approval the review keeps its own verdict',as
   }};
   const task=await service.createTask({request:'app.txt를 확인해 줘'});await service.startAgent({taskId:task.id});await service.agent.promise;
   const done=service.task(task.id);
-  assert.equal(done.state,'waiting_input');assert.ok(done.question,'the existing stall question is asked');assert.equal(reviews,3);
-  assert.notEqual(done.resultReview.handoff,'approval_boundary');
+  // Three reviews without new evidence hand the answer over (user decision 2026-09-29).
+  assert.equal(done.state,'review');assert.equal(done.question,null);assert.equal(reviews,3);
+  assert.equal(done.resultReview.status,'revise');assert.equal(done.resultReview.handoff,'review_stalled','not an approval boundary');
 });
 
 test('unverified items with new evidence arriving are not handed over early',async t=>{

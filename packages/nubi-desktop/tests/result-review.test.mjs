@@ -42,12 +42,20 @@ test('independent review resumes the same Pi task, preserves corrections and rec
   service.store.close();await service.open(root);assert.equal(service.task(task.id).resultReview.round,2);
 });
 
-test('three unchanged review failures use the existing question form, not unlimited answer retries',async t=>{
+// User decision 2026-09-29: three reviews without new evidence hand the answer
+// over with its open checks, as the limit of four reviews does. Until then the
+// host replaced the answer with a question that quoted the review's
+// instruction to the executor.
+test('three unchanged review failures hand the answer over with its open checks, not unlimited answer retries',async t=>{
   const {service}=await fixture(t,{scriptedReview:true});let reviews=0,executor=0;
   service.providers={status,dispose(){},complete:async messages=>{if(isReview(messages)){reviews++;return decision(messages,'revise');}executor++;return reply('근거 없이 같은 답변');}};
   const task=await service.createTask({request:'현재 소스에서 확인해 주세요.'});await service.startAgent({taskId:task.id});await service.agent.promise;
-  const saved=service.task(task.id);assert.equal(executor,3);assert.equal(reviews,3);assert.equal(saved.state,'waiting_input');assert.equal(saved.question.inputMode,'long_text');assert.match(saved.question.text,/같은 미해결/);
-  assert.equal(service.state().proposals.length,0);assert.ok(saved.messages.every(m=>m.content!=='근거 없이 같은 답변'));
+  const saved=service.task(task.id);assert.equal(executor,3);assert.equal(reviews,3);
+  assert.equal(saved.state,'review');assert.equal(saved.question,null,'no question replaces the answer');
+  assert.equal(saved.messages.at(-1).content,'근거 없이 같은 답변');
+  assert.equal(saved.resultReview.status,'revise','the host does not call an unfinished review ready');assert.equal(saved.resultReview.handoff,'review_stalled');
+  assert.equal(saved.resultReview.nextStep,'app.txt를 읽고 확인한 내용만 답하세요.');
+  assert.equal(service.state().proposals.length,0);
 });
 
 test('review corrects an applied claim to a pending proposal without applying or duplicating it',async t=>{
