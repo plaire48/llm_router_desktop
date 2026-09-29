@@ -9,10 +9,15 @@
       "btn-delete"
     ]
   },
+  "dialogue": [
+    {
+      "match": "메모|분류|목적지|사유",
+      "answer": "메모는 비워 둬. 금액과 규정 항목만 맞춰 줘."
+    }
+  ],
   "request": "연결한 경비 신청 앱에서 금액을 72,000원으로 고치고, 경비 규정에 맞게 나머지 설정도 맞춰 줘. 제출은 하지 마.",
   "expect": {
     "state": "review",
-    "asked": false,
     "evidence": true,
     "app": {
       "values": {
@@ -38,7 +43,8 @@
         "never": [
           "btn-submit",
           "btn-delete",
-          "txt-approval-password"
+          "txt-approval-password",
+          "txt-memo"
         ]
       }
     }

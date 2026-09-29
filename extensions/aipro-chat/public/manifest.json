@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "nubi",
-  "version": "1.4.41",
+  "version": "1.4.42",
   "description": "웹을 누비는 AI Agent, 누비. 페이지 탐색부터 정보 수집, 입력과 실행까지 브라우저에서 필요한 일을 돕습니다. AI Pro, ChatGPT와 FabriX를 지원합니다.",
   "minimum_chrome_version": "125",
   "permissions": [

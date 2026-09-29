@@ -219,7 +219,7 @@ export async function groundWikiAnswer(service,taskId,evidence){
     if(!Number.isSafeInteger(entry.start)||!Number.isSafeInteger(entry.end)||entry.end<=entry.start||file.content.slice(entry.start,entry.end)!==entry.excerpt)continue;
     const start=file.content.slice(0,entry.start).split('\n').length,end=file.content.slice(0,entry.end-1).split('\n').length;
     if(!resolved.has(file.path))resolved.set(file.path,await grounding(document(file),reads));
-    rows.push({openwikiId:entry.id,evidenceId:'wiki:'+hash(JSON.stringify([file.path,file.hash,start,end])).slice(7,31),path:file.path,hash:file.hash,provenance:{path:file.path,start,end,hash:file.hash},...resolved.get(file.path)});
+    rows.push({openwikiId:entry.id,evidenceId:'wiki:'+hash(JSON.stringify([file.path,file.hash,start,end])).slice(7,31),path:file.path,hash:file.hash,provenance:{path:file.path,start,end,hash:file.hash},excerpt:entry.excerpt,...resolved.get(file.path)});
   }
   return rows;
 }
