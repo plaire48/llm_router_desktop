@@ -2,7 +2,7 @@ import {takeFieldMarks, fieldScope} from './field-marks.js';
 import {rankEvidence} from './evidence-search.js';
 import {pageScript} from './page-script.js';
 import {collectSnapshot} from './generated/browser-dom.js';
-export {collectSnapshot, inspectTarget, clickTarget, controlState, valueMark, pointerPosition, pointerCover, pointerBlocker, fieldMarks, prepareHoverReveal, waitForHoverReveal} from './generated/browser-dom.js';
+export {collectSnapshot, inspectTarget, clickTarget, controlState, valueMark, pointerPosition, pointerCover, pointerBlocker, fieldMarks, prepareHoverReveal, waitForHoverReveal, stateWords} from './generated/browser-dom.js';
 
 // Some pages put a whole configuration document into an iframe's name. The
 // attribute identifies the frame; its first characters are enough for that.

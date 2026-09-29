@@ -459,8 +459,8 @@ export async function completeChat(request, signal, onText = () => {}, onUsage =
                 review={...review,status:'revise',next_step:'원래 요청에 없던 조건을 미완료 계획에서 수정하고, 수정한 단계의 결과를 다시 검토하세요.'};
               }
               scopeResult.corrected = true;
-            } else if (audit.decision === 'within_scope' && audit.correctionTarget === 'answer' && phase === 'final') {
-              review = {...review, correctionTarget: 'answer'};
+            } else if (audit.decision === 'within_scope' && ['answer', 'external'].includes(audit.correctionTarget) && phase === 'final') {
+              review = {...review, correctionTarget: audit.correctionTarget};
             }
             // A valid inconclusive audit is a completed observation, not a
             // failed browser action to later label as recovered.

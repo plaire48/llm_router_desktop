@@ -104,6 +104,7 @@ await copyFile('browser-pointer.js', 'dist/browser-pointer.js');
 await copyFile('browser-drag.js', 'dist/browser-drag.js');
 await copyFile('browser-popups.js', 'dist/browser-popups.js');
 await copyFile('browser-observation.js', 'dist/browser-observation.js');
+await copyFile('browser-effect.js', 'dist/browser-effect.js');
 // page-script.js remembers slow tabs: one shared copy, not a second one inside this bundle.
 await build({entryPoints: ['browser-content.js'], outfile: 'dist/browser-content.js', bundle: true, platform: 'browser', format: 'esm', target: 'chrome125', minify: true, external:['./background-images.js','./browser-url.js','./page-script.js']});
 await cp('generated', 'dist/generated', {recursive: true});

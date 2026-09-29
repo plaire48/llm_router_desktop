@@ -7,7 +7,11 @@ import {fieldBaseline} from './field-marks.js';
 export function approvalTarget(el, operation = {}) {
   if(operation.method==='upload')return {label:String(el.getAttribute('aria-label')||[...el.labels||[]].map(n=>n.textContent).join(' ')||el.name||'파일 입력칸').trim().slice(0,100),action:'업로드'};
   if(operation.method==='download')return {label:'파일 다운로드',action:'다운로드'};
-  const name = node => String(node?.getAttribute('aria-label') || node?.innerText || node?.value || node?.title || '').trim().replace(/\s+/g, ' ').slice(0, 100);
+  // An image button is named by its alt text, as the browser names it. Measured
+  // (H-03, candidate 42): a museum search form's <input type="image" alt="검색">
+  // had no name here, so one search was held for approval as a form submission.
+  const name = node => String(node?.getAttribute('aria-label') || node?.innerText || node?.value || node?.title ||
+    (node?.matches?.('input[type="image"]') ? node.getAttribute('alt') : node?.querySelector?.('img[alt]')?.getAttribute('alt')) || '').trim().replace(/\s+/g, ' ').slice(0, 100);
   const key = String(operation.key || '');
   const control = el.closest('button,a,[role="button"],[role="link"],[onclick],[onpointerup],input[type="submit"]') || el;
   const label = name(control);

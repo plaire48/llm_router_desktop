@@ -12,7 +12,8 @@ import {notePageLoading} from './page-script.js';
 import {watchPopups} from './browser-popups.js';
 import {clickEffect} from './browser-click-effect.js';
 import {takeFieldMarks, markFieldWritten, fieldUnchanged, fieldScope, recordFieldMarks, fieldsUnchanged, restoreFieldBaseline} from './field-marks.js';
-import {collectSnapshot, inspectTarget, clickTarget, controlState, valueMark, pointerPosition, pointerCover, pointerBlocker, fieldMarks, prepareHoverReveal, waitForHoverReveal, readWithoutDebugger, selectControls, CONTROL_LIMIT, CONTROLS_HINT, bindObservedRef, releaseObservedRefs, topDocumentId, observedDocumentScope, frameOwner} from './browser-observation.js';
+import {collectSnapshot, inspectTarget, clickTarget, controlState, valueMark, pointerPosition, pointerCover, pointerBlocker, fieldMarks, prepareHoverReveal, waitForHoverReveal, stateWords, readWithoutDebugger, selectControls, CONTROL_LIMIT, CONTROLS_HINT, bindObservedRef, releaseObservedRefs, topDocumentId, observedDocumentScope, frameOwner} from './browser-observation.js';
+import {observationEffect, noteRepeatedNoEffect} from './browser-effect.js';
 import {appendText, editableText, textDigest} from './browser-text.js';
 import {keyboardInput} from './browser-keyboard.js';
 import {createScriptInputWitness} from './browser-script-receipt.js';
@@ -300,7 +301,29 @@ async function pageFieldsUnchanged(task) {
   return fieldsUnchanged(task, frames);
 }
 async function verifyPage(task, checks, timeoutMs = 5000) {
-  if (!Array.isArray(checks) || !checks.length || checks.length > MAX_PAGE_CHECKS || checks.some(check => !['field_value', 'field_valid', 'field_sum', 'field_digest', 'field_contains', 'text_style', 'control_state', 'control_expanded', 'element_in', 'text_present', 'url_is', 'url_page_is', 'link_destination', 'link_page_is', 'field_unchanged', 'fields_unchanged'].includes(check?.kind) || typeof check.expected !== 'string' || check.expected.length > MAX_FIELD_VALUE_CHARS || check.kind !== 'field_value' && !check.expected.trim() || ['link_destination', 'link_page_is'].includes(check.kind) && (typeof check.ref !== 'string' || !check.ref.trim() || check.ref.length > 200 || Object.keys(check).some(key => !['kind', 'ref', 'expected'].includes(key))) || ['field_valid', 'field_unchanged', 'fields_unchanged'].includes(check.kind) && check.expected !== 'true' || check.kind === 'field_sum' && !validSumCheck(check) || check.kind === 'field_digest' && !/^[a-f0-9]{64}$/.test(check.expected) || check.kind === 'text_style' && !validEditorFormat(check.format) || check.kind?.startsWith('control_') && !['true', 'false', 'mixed'].includes(check.expected))) throw new Error('tool_arguments_invalid');
+  const kinds = ['field_value', 'field_valid', 'field_sum', 'field_digest', 'field_contains', 'text_style', 'control_state', 'control_expanded', 'element_in', 'text_present', 'url_is', 'url_page_is', 'link_destination', 'link_page_is', 'field_unchanged', 'fields_unchanged'];
+  // Why a check cannot run, in the words needed to correct it; null when it can.
+  // Measured (M-08, candidate 39): two calls failed whole with a hint about
+  // scripts and no word on which check was wrong. The model then read the select
+  // value with scripts, which the review never took as a check, six times.
+  // The words stateWords reads from class names and data-state (browser-dom.js).
+  const stateVocabulary = ['on', 'off', 'active', 'selected', 'checked', 'starred', 'important', 'flagged', 'pinned', 'marked', 'favorite', 'favourite', 'liked', 'unread', 'read', 'done', 'completed', 'current', 'expanded', 'collapsed', 'opened', 'closed', 'unchecked', 'indeterminate', 'open'];
+  const checkProblem = check => {
+    if (!check || typeof check !== 'object' || !kinds.includes(check.kind)) return `kind must be one of: ${kinds.join(', ')}`;
+    if (typeof check.expected !== 'string' || check.expected.length > MAX_FIELD_VALUE_CHARS) return `expected must be a string of at most ${MAX_FIELD_VALUE_CHARS} characters`;
+    if (check.kind !== 'field_value' && !check.expected.trim()) return 'expected must not be empty';
+    if (['link_destination', 'link_page_is'].includes(check.kind) && (typeof check.ref !== 'string' || !check.ref.trim() || check.ref.length > 200 || Object.keys(check).some(key => !['kind', 'ref', 'expected'].includes(key)))) return 'needs the ref of an observed link, and no fields other than kind, ref and expected';
+    if (['field_valid', 'field_unchanged', 'fields_unchanged'].includes(check.kind) && check.expected !== 'true') return 'expected must be "true"';
+    if (check.kind === 'field_sum' && !validSumCheck(check)) return 'terms must name 1-24 different observed numeric fields, each a ref with an optional positive multiplier; expected is the total';
+    if (check.kind === 'field_digest' && !/^[a-f0-9]{64}$/.test(check.expected)) return 'expected must be the 64-character SHA-256 digest returned by appendText';
+    if (check.kind === 'text_style' && !validEditorFormat(check.format)) return 'format must list the required computed styles';
+    if (check.kind.startsWith('control_') && !['true', 'false', 'mixed'].includes(check.expected) && !(check.kind === 'control_state' && stateVocabulary.includes(check.expected))) return 'expected must be "true", "false" or "mixed", or for control_state a state word of the observation (stateHint or row state, such as "starred"). For the chosen option of a select, use field_value with that option\'s value from the observed options; for the text of a field, use field_value';
+    return null;
+  };
+  if (!Array.isArray(checks) || !checks.length || checks.length > MAX_PAGE_CHECKS) throw Object.assign(new Error('tool_arguments_invalid'),
+    {reason: 'check_invalid', invalidChecks: [{index: null, kind: null, problem: `checks must be a list of 1 to ${MAX_PAGE_CHECKS} checks`}]});
+  const invalidChecks = checks.map((check, index) => ({index, kind: typeof check?.kind === 'string' ? check.kind.slice(0, 40) : null, problem: checkProblem(check)})).filter(item => item.problem);
+  if (invalidChecks.length) throw Object.assign(new Error('tool_arguments_invalid'), {reason: 'check_invalid', invalidChecks});
   const deadline = Date.now() + timeoutMs;
   const expectedTexts = checks.filter(check => check.kind === 'text_present').map(check => check.expected);
   let results = [], consecutive = 0, previousURL, observation, stale = false;
@@ -385,12 +408,20 @@ async function verifyPage(task, checks, timeoutMs = 5000) {
                 : 'This field was not observed before this check, so there is nothing to compare with. Report the preservation as not verified.';
             } else if (check.kind === 'text_style') {
               passed = matchesEditorFormat(await entry.handle.evaluate(editorOperation, {query: check.expected}), check.format);
+            } else if (check.kind === 'control_state' && stateVocabulary.includes(check.expected)) {
+              // A state shown only in class names ("row starred"), read now on the control or its row.
+              const words = await entry.handle.evaluate(stateWords);
+              passed = words.own.includes(check.expected) || words.row.includes(check.expected);
+              detail = {stateWords: words};
             } else if (check.kind.startsWith('control_')) {
               const state = await entry.handle.evaluate(controlState);
               // A tab, option or navigation link states its selection as selected or current.
               const value = check.kind === 'control_expanded' ? state.expanded : state.state ?? state.selected ?? state.current;
-              if (value === undefined) throw Object.assign(new Error('tool_arguments_invalid'),
-                {exposedStates: ['checked', 'pressed', 'selected', 'current', 'expanded'].filter(key => state[key] !== undefined)});
+              if (value === undefined) {
+                const words = await entry.handle.evaluate(stateWords);
+                throw Object.assign(new Error('tool_arguments_invalid'),
+                  {exposedStates: ['checked', 'pressed', 'selected', 'current', 'expanded'].filter(key => state[key] !== undefined), ...(words.own.length || words.row.length ? {stateWords: words} : {})});
+              }
               passed = String(value) === check.expected;
             } else if (!['field', 'select', 'checkbox', 'radio'].includes(entry.descriptor.kind)) throw new Error('tool_arguments_invalid');
             else if (check.kind === 'field_valid') passed = await entry.handle.evaluate(el => el.isConnected && el.willValidate === true && el.validity?.valid === true && el.getAttribute('aria-invalid') !== 'true');
@@ -403,9 +434,9 @@ async function verifyPage(task, checks, timeoutMs = 5000) {
         } catch (error) {
           if (error.message === 'cancelled' || active !== task) throw new Error('cancelled');
           if (error.message === 'tool_arguments_invalid') {
-            detail = {reason: 'check_target_incompatible', ...(error.exposedStates ? {exposedStates: error.exposedStates} : {}),
+            detail = {reason: 'check_target_incompatible', ...(error.exposedStates ? {exposedStates: error.exposedStates} : {}), ...(error.stateWords ? {stateWords: error.stateWords} : {}),
               instruction: error.exposedStates
-                ? 'This control does not expose the state that was checked; exposedStates lists what it does expose. The same check on the same control cannot pass on a retry. When the page marks an applied filter, tab or sort order only visually, verify it through what the page shows: text_present for the applied label or the changed results, or url_page_is for the page. Retry only corrected checks; do not repeat earlier actions.'
+                ? `This control does not expose the state that was checked; exposedStates lists what it does expose. The same check on the same control cannot pass on a retry. ${error.stateWords ? 'stateWords lists the state words in the class names of this control (own) and its row: control_state with one of them as expected checks that word now. ' : ''}When the page marks an applied filter, tab or sort order only visually, verify it through what the page shows: text_present for the applied label or the changed results, or url_page_is for the page. Retry only corrected checks; do not repeat earlier actions.`
                 : 'The check kind does not match this observed control. Use field_value/field_contains for actual inputs, control_state only for checked/pressed/selected/current controls, and text_present for visible page text. Inspect the fresh observation and retry only corrected checks; do not repeat earlier writes.'};
           } else stale = true;
         }
@@ -767,6 +798,7 @@ export async function runApprovedAction(requestId,page,record,{onNativeDialog,on
   let task,handle,watcher,issued=false;
   try {
     task=await ensure(requestId,{tabId:record.tabId,browserContext:page?.browserContext||record.browserContext},true,true);
+    const before=task.latestObservation;
     restoreFieldBaseline(task,record.fieldBaseline);
     task.onNativeDialog = onNativeDialog;
     task.dialogs?.assertCanAct();
@@ -797,7 +829,8 @@ export async function runApprovedAction(requestId,page,record,{onNativeDialog,on
     else await clickObserved(task,handle,{},false,onIssued);
     await followPopup(task,watcher);watcher=null;await settle(task);
     task.dialogs?.assertCanAct();
-    return {result:{ok:true,actionIssued:true,...(transfer?{transfer}:{}),observation:await observe(task),instruction:'The user-approved action was issued once. Verify the visible result before reporting completion. Do not click it again.'},tabId:task.tabId};
+    const observation=await observe(task),effect=observationEffect(before,observation,['upload','download','press'].includes(record.operation.method)?record.operation.method:'click_element');
+    return {result:{ok:true,actionIssued:true,...(transfer?{transfer}:{}),...(effect?{effect}:{}),observation,instruction:'The user-approved action was issued once. Verify the visible result before reporting completion. Do not click it again.'},tabId:task.tabId};
   } catch(error) {
     if (active === task && task?.dialogs?.blocked && error.message !== 'cancelled') error = new Error('browser_dialog');
     if (error.message === 'browser_dialog') return {result: {error: 'browser_dialog', reason: 'browser_dialog', actionIssued: issued,
@@ -846,7 +879,8 @@ export async function runBrowserAgent(requestId, page, name, args = {}, options 
   try {return await Promise.race([run, late]);} finally {clearTimeout(timer);}
 }
 async function runBrowserTool(requestId, page, name, args = {}, {vision = false, onCapture, onImage, onApproval, onNativeDialog, uploadFiles:availableFiles, navigationLoadMs = NAVIGATION_LOAD_MS, hint} = {}) {
-  let task, issued = false, loading = false;
+  // The observation the model acted on, compared with the one after the action.
+  let task, issued = false, loading = false, before;
   let actionTargetReceipt = name === 'click_element'
     ? {dataKind: 'click_target_dispatch', version: 1, status: 'unknown', actionIssued: false, reason: 'click_not_dispatched'} : null;
   const inputExecution = ['fill_form','press_key'].includes(name) ? {commands:[],omitted:0} : null;
@@ -1036,6 +1070,7 @@ async function runBrowserTool(requestId, page, name, args = {}, {vision = false,
         ...(safeURL(tab.url) ? {} : {loading: true})}))}, tabId: task.tabId};
     }
     let action = {ok: true};
+    before = task.latestObservation;
     if (name === 'drag_element') {
       const source = await target(task, args.source_ref), destination = await target(task, args.target_ref);
       if (source.handle === destination.handle) throw new Error('tool_arguments_invalid');
@@ -1184,7 +1219,8 @@ async function runBrowserTool(requestId, page, name, args = {}, {vision = false,
     await settle(task, loading);
     task.dialogs?.assertCanAct();
     task.screenshot = null;
-    return {result: {...action, ...targetReceipt(), ...(loading ? {navigationUnsettled: true, instruction: LOADING_INSTRUCTION} : {}), observation: await observe(task)}, tabId: task.tabId};
+    const observation = await observe(task), effect = noteRepeatedNoEffect(task, name, observationEffect(before, observation, name));
+    return {result: {...action, ...targetReceipt(), ...(loading ? {navigationUnsettled: true, instruction: LOADING_INSTRUCTION} : {}), ...(effect ? {effect} : {}), observation}, tabId: task.tabId};
   } catch (error) {
     if (active === task && task?.dialogs?.blocked && error.message !== 'cancelled') error = new Error('browser_dialog');
     if(task?.approvalPause)return {result:{...task.approvalPause,actionIssued:issued,...targetReceipt()},tabId:task.tabId};
@@ -1193,8 +1229,8 @@ async function runBrowserTool(requestId, page, name, args = {}, {vision = false,
     if (task && active === task && !['cancelled', 'page_restricted', 'tools_unavailable', 'workspace_changed'].includes(error.message)) {
       try {await clearRefs(task); observation = task.app ? await observe(task) : await readWithoutDebugger(task, '', safeURL, () => active !== task);} catch { /* Keep the original error when the page cannot be inspected. */ }
     }
-    const feedback = scriptFailure(error);
-    return {result: {error: allowed.includes(error.message) ? error.message : feedback.reason, reason: feedback.reason, actionIssued: issued, ...targetReceipt(), ...(error.blocker ? {blocker: error.blocker} : {}), ...(observation ? {observation} : {}), ...(error.message === 'browser_dialog' ? {nativeDialogs: task.dialogs.snapshot()} : {}), ...(error.message === 'workspace_changed' ? {recovery:{strategy:'user_action',execution:'not_started'}} : {}), instruction: error.message === 'workspace_changed' ? 'The owned work tab was closed or moved. Ask the user to reconnect the intended page. Never switch to an unrelated user tab, recreate the workspace or replay prior writes automatically.' : error.message === 'drag_cross_frame' ? 'No drag was issued. Both endpoints must be in one frame. Inspect a supported same-frame target or ask about the intended outcome.' : error.message === 'drag_approval_required' ? 'No drag was issued. This target may finalize a transaction. Inspect the site explicit action, prepare and verify the draft, then use request_approval. Never substitute an unapproved click or coordinate drag.' : feedback.instruction}, tabId: task?.tabId || page.tabId};
+    const feedback = scriptFailure(error), effect = issued && observation ? noteRepeatedNoEffect(task, name, observationEffect(before, observation, name)) : null;
+    return {result: {error: allowed.includes(error.message) ? error.message : feedback.reason, reason: feedback.reason, actionIssued: issued, ...targetReceipt(), ...(error.blocker ? {blocker: error.blocker} : {}), ...(error.invalidChecks ? {invalidChecks: error.invalidChecks} : {}), ...(effect ? {effect} : {}), ...(observation ? {observation} : {}), ...(error.message === 'browser_dialog' ? {nativeDialogs: task.dialogs.snapshot()} : {}), ...(error.message === 'workspace_changed' ? {recovery:{strategy:'user_action',execution:'not_started'}} : {}), instruction: error.message === 'workspace_changed' ? 'The owned work tab was closed or moved. Ask the user to reconnect the intended page. Never switch to an unrelated user tab, recreate the workspace or replay prior writes automatically.' : error.message === 'drag_cross_frame' ? 'No drag was issued. Both endpoints must be in one frame. Inspect a supported same-frame target or ask about the intended outcome.' : error.message === 'drag_approval_required' ? 'No drag was issued. This target may finalize a transaction. Inspect the site explicit action, prepare and verify the draft, then use request_approval. Never substitute an unapproved click or coordinate drag.' : feedback.instruction}, tabId: task?.tabId || page.tabId};
   }
 }
 

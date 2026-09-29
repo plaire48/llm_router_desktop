@@ -250,4 +250,9 @@ test('the agent proposes a batch through its tool and stops for the user',async 
   assert.equal(service.task(task.id).state,'review');assert.deepEqual(host.state().inputs,[]);
   assert.equal(service.state().computer.actions.filter(action=>action.state==='proposed').length,1);
   assert.match(COMPUTER_GUIDANCE,/propose_computer_batch/);
+  // Measured 2026-09-30 with gpt-5.6-sol (case A14): the model stated that the
+  // rules forbid automation to submit, then proposed pressing Submit for the
+  // user's approval. An approval does not lift a rule that forbids the action.
+  assert.match(COMPUTER_GUIDANCE,/never an exception to a project or Wiki rule/);
+  assert.match(COMPUTER_GUIDANCE,/tell the user what they must do themselves/);
 });

@@ -1,7 +1,8 @@
 // Real Chrome: an applied tab, option or navigation entry states its selection
 // as aria-selected or aria-current, and a result link hides its query in the
 // observation. Both must be verifiable; a link marked only by a class must say
-// that it exposes no state instead of failing the same way on every retry.
+// that it exposes no state instead of failing the same way on every retry, and
+// can be checked by the state word in its class.
 import assert from 'node:assert/strict';
 import {chromium} from 'playwright';
 import {createServer} from 'node:http';
@@ -57,7 +58,13 @@ try {
     const bare = await run('verify_page', {checks: [{kind: 'control_state', ref: ref('p1w'), expected: 'true'}]});
     assert.equal(bare.verified, false); assert.equal(bare.checks[0].reason, 'check_target_incompatible');
     assert.deepEqual(bare.checks[0].exposedStates, []); assert.match(bare.checks[0].instruction, /text_present/);
-    pass(`${mode}: a link marked only by a class reports that it exposes no state`);
+    assert.deepEqual(bare.checks[0].stateWords, {own: ['on'], row: []}); assert.match(bare.checks[0].instruction, /control_state with one of them/);
+    pass(`${mode}: a link marked only by a class reports that it exposes no state, with the state word in its class`);
+
+    elements = await observe();
+    const word = await run('verify_page', {checks: [{kind: 'control_state', ref: ref('p1w'), expected: 'on'}, {kind: 'control_state', ref: ref('pall'), expected: 'on'}]});
+    assert.deepEqual(word.checks.map(check => check.passed), [true, false], JSON.stringify(word.checks));
+    pass(`${mode}: the class state word checks the applied period and not the other one`);
 
     elements = await observe();
     const shown = elements.find(el => el.id === 'article').destination;

@@ -490,7 +490,8 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
               const tab = await chrome.tabs.get(r.tabId);
               return {questionId:r.questionId,conversationId:r.conversationId,operation:r.operation,action:r.action,pageUrl:tab.url};
             }, current.chat.sessionId);
-            if (fixtureApprovalAllowed({enabled:true,taskId:task.id,origin:fixtures.origin,question:last.question,
+            // A run of public tasks starts no fixture server; their approvals are never answered here.
+            if (fixtureApprovalAllowed({enabled:true,taskId:task.id,origin:fixtures?.origin,question:last.question,
               record,conversationId:current.chat.sessionId,pageUrl:record?.pageUrl})) {
               await ui.locator('.action-approval[data-answered="false"]').getByRole('button',{name:last.question.buttonLabel,exact:true}).click();
               trial.transferApproval={questionId:last.question.id,messageId:last.id,method:record.operation.method,at:new Date().toISOString(),scope:'frozen_local_fixture_only'};

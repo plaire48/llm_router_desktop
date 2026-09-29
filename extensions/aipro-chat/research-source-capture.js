@@ -1,4 +1,4 @@
-import {isPageContentReference, reviewEvidence, samePageContentSource, pageViewKey} from './goal-review.js';
+import {isPageContentReference, reviewEvidence, replacesPageContent, pageViewKey} from './goal-review.js';
 
 const observations = new Set(['read_page', 'browser_snapshot', 'inspect_dom', 'navigate_page', 'switch_tab', 'go_back', 'click_element', 'click_at', 'verify_page']);
 
@@ -62,7 +62,7 @@ export function createResearchSourceCapture({enabled, preserveReadSources = fals
       onStep({index, tool: 'read_page', status: 'done', label: '출처 본문 확보'});
       return {...result, source_capture: {status: 'observed', review_evidence_id: same.id, reference: same.result}};
     }
-    for (const item of evidence) if (item.tool === 'read_page' && isPageContentReference(item.result) && samePageContentSource(item.result, content) && item.result.content_hash !== content.content_hash) {
+    for (const item of evidence) if (item.tool === 'read_page' && isPageContentReference(item.result) && replacesPageContent(item.result, content)) {
       item.usable = false; item.superseded = true;
     }
     const id = evidence.length + 1;

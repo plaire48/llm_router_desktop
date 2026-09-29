@@ -49,6 +49,14 @@ export function isPageContentReference(result) {
 export const samePageContentSource = (a, b) => a.url === b.url && a.frame === b.frame &&
   pageViewKey(a.page_view) === pageViewKey(b.page_view) &&
   (a.source_key && b.source_key ? a.source_key === b.source_key : !a.source_key && !b.source_key);
+// A later read of the same source replaces an earlier one only when its text
+// changed. content_hash is bound to the document, so it also changes when an
+// unchanged page is opened again. Measured (H-06, candidate 41): the first read
+// of a library page was dropped when the page was opened again to recheck it,
+// and the review could no longer see that it had been read before the other
+// library; the required recheck stayed unconfirmed through three reviews.
+export const replacesPageContent = (older, newer) => samePageContentSource(older, newer) && older.content_hash !== newer.content_hash &&
+  !(typeof older.content_text_hash === 'string' && older.content_text_hash === newer.content_text_hash);
 export const pageViewKey = view => Number.isSafeInteger(view?.current) && Number.isSafeInteger(view?.total) &&
   view.current > 0 && view.current <= view.total && view.total > 1 && view.total <= 999999 ? `${view.current}/${view.total}` : '';
 const protectedResearch = item => item.usable && !item.superseded && (isResearchReference(item.tool, item.result) ||
@@ -152,7 +160,12 @@ function reviewContext(evidence) {
       const receipt = Object.fromEntries(['ok', 'verified', 'actionIssued', 'completed', 'yielded', 'cancelled', 'applied', 'error', 'reason']
         .filter(key => ['boolean', 'number'].includes(typeof item.result?.[key]) || ['error', 'reason'].includes(key) && /^[a-z_]{1,64}$/.test(item.result?.[key] || ''))
         .map(key => [key, item.result[key]]));
-      retained.push({id: item.id, tool: item.tool, usable: false, superseded: true, result: receipt});
+      // Which page an older read was of, so the order of visits stays visible.
+      // Its text is not kept and proves nothing about that page now.
+      const page = readTools.has(item.tool) && (item.result?.observation || item.result);
+      const visited = page && typeof page.url === 'string' && /^https?:\/\//.test(page.url) ? {visited: {url: page.url.slice(0, 600),
+        ...(typeof page.title === 'string' && page.title ? {title: page.title.slice(0, 180)} : {})}} : {};
+      retained.push({id: item.id, tool: item.tool, usable: false, superseded: true, result: {...receipt, ...visited}});
       omitted = true;
       continue;
     }

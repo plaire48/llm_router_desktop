@@ -32,4 +32,12 @@ try {
   assert.equal((await target('#b5',{method:'click'}))?.action,undefined,'a POST form with a search caption keeps its existing rule');
   assert.equal((await target('#q1',{method:'press',key:'ControlOrMeta+Enter'})).action,'제출');
   console.log('PASS observed GET search navigation needs no approval; POST, credentials, registration and submit shortcuts remain guarded');
+  // A museum's detailed search: several query fields, a select, and an image
+  // button named only by its alt text. The search click is not a submission.
+  await page.setContent('<form method="get" action="/collection"><input type="text" name="query" title="소장품명 검색"><input type="text" name="query"><select name="sc"><option>전체</option></select>'+
+    '<input id="img1" type="image" alt="검색" src="data:," onclick="return false;"><button id="img2" type="submit"><img alt="검색" src="data:,"></button><input id="img3" type="image" alt="등록" src="data:,"><input id="img4" type="image" src="data:,"></form>');
+  for(const id of ['#img1','#img2'])assert.equal(await target(id,{method:'click'}),null,id);
+  assert.equal((await target('#img3',{method:'click'}))?.action,'등록','an image button named 등록 still needs approval');
+  assert.equal((await target('#img4',{method:'click'}))?.action,'제출','an unnamed image submit is still a form submission');
+  console.log('PASS an image search button is named by its alt text; other image submits keep their rule');
 } finally {await browser.close();}

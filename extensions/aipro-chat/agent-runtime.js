@@ -7,7 +7,7 @@ import {DOCUMENT_TOOL_NAMES} from './document-contract.js';
 import {Agent} from '@earendil-works/pi-agent-core';
 import {createAssistantMessageEventStream} from '@earendil-works/pi-ai';
 import {createHarness, MUTATING_TOOLS, changesObservation, requiresVerification} from './agent-harness.js';
-import {reviewEvidence, isPageContentReference, samePageContentSource, isPageTextRecord, pageTextRecord, pageIdentity} from './goal-review.js';
+import {reviewEvidence, isPageContentReference, replacesPageContent, isPageTextRecord, pageTextRecord, pageIdentity} from './goal-review.js';
 import {PROJECT_TOOL_NAMES} from './project-tools.js';
 import {normalizePlan, initialPlan, activePlanStep} from './task-plan.js';
 import {textQuestionArgs, clarificationMessage} from './user-question.js';
@@ -274,6 +274,9 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
   let answerCorrectionPlan;
   let answerOnlyRepairRevision = -1, answerOnlyRepair = false;
   let claimRemovalRevision = -1, claimRemoval = false;
+  // Final reviews whose audit found a gap that needs a new source read, since the
+  // last user input, and whether the no-tool pass below follows such a search.
+  let externalReviews = 0, evidenceExhausted = false;
   let reviewSettledByHost = false;
   // Final reviews of one request revision in a lookup. New evidence renews a
   // revision without limit, so a lookup whose review keeps naming another gap
@@ -449,7 +452,7 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
     // the real user correction. Never turn this into transaction approval.
     clarification = undefined; previousReviewProgress = undefined; previousReviewAnswer = undefined;
     finalReviewCorrections.clear(); answerCorrectionPlan = undefined; answerOnlyRepair = false;
-    finalReviewRounds = 0; finalReviewTotal = 0; finalReviewStall = 0; bestReviewed = undefined; stageReviews = undefined;
+    finalReviewRounds = 0; finalReviewTotal = 0; finalReviewStall = 0; bestReviewed = undefined; stageReviews = undefined; externalReviews = 0;
     onRound();
     return true;
   };
@@ -685,8 +688,7 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
           // Keep it across navigation, but never combine changed versions of
           // the same URL/frame into a current source claim.
           if (definition.name === 'read_page' && isPageContentReference(result)) {
-            for (const item of evidence) if (item.tool === 'read_page' && isPageContentReference(item.result) &&
-                samePageContentSource(item.result, result) && item.result.content_hash !== result.content_hash) {
+            for (const item of evidence) if (item.tool === 'read_page' && isPageContentReference(item.result) && replacesPageContent(item.result, result)) {
               item.usable = false; item.superseded = true;
             }
           }
@@ -1252,7 +1254,7 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
         continue;
       }
       reviewRecovery = false; reviewRecoveryAttempted = false;
-      answerOnlyRepair = false; claimRemoval = false;
+      answerOnlyRepair = false; claimRemoval = false; evidenceExhausted = false;
       onStep({index, tool: 'review_task', status: review.status === 'blocked' ? 'waiting' : 'done'});
       if (await acceptInput()) {await agent.continue(); continue;}
       if (review.status === 'complete') {
@@ -1331,6 +1333,16 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
           if (!tools.some(tool => tool.function.name === 'ask_user')) throw Object.assign(new Error('goal_review_failed'), {suppressPartial: true});
           clarification = {args: {question: `다음 단계를 ${stageReviews.rounds}번 확인했지만 결과를 검증하지 못했습니다: ${reviewLine(pendingStep.text).slice(0, 120)}. 계속 확인할까요?`, choices: [{label: '계속 확인'}, {label: '중지'}]}, sent: false};
           stageReviews = undefined;
+        } else if (!pendingStep && review.correctionTarget === 'external' && ++externalReviews >= 2 && lookupRun() && !uncertainWrite && !awaitingUser && !clarification &&
+            claimRemovalRevision !== userInputRevision && checks.some(check => check.status !== 'met')) {
+          // A new read was asked for, made, and the gap is still there. Product
+          // agents then say what could not be confirmed instead of searching on.
+          // Measured (H-04, candidate 43): the same membership page was read three
+          // times, unsupported details stayed, and the run ended in a question
+          // without an answer. One bounded pass without tools removes what the
+          // review could not support; the final review still decides.
+          claimRemovalRevision = userInputRevision;
+          answerOnlyRepair = true; claimRemoval = true; evidenceExhausted = true;
         } else if (progress === previousReviewProgress && !narrowed) {
           // An independently classified wording-only correction is different
           // from another attempt to collect browser proof. Allow it once per
@@ -1386,8 +1398,13 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
       // Pi consumes follow-ups one at a time. Send the review and its advice in
       // one envelope, so the next model decision actually receives both.
       if (!inputDeferred) agent.followUp({role: 'user', content: [feedback,
+        // Measured (H-04, candidate 41): the audit found that a gap needed a new
+        // source read, but only a wording verdict was passed on. The model rewrote
+        // the answer twice without reading and the review never passed.
+        ...(review.correctionTarget === 'external' && !answerOnlyRepair ? ['A separate audit found that at least one gap needs new evidence, not only new wording: a source read or a page observation named in next_step. Before writing the answer again, read it with the browser tools. An answer rewritten from the same evidence will be reviewed the same way. If it cannot be read, say so in the answer and mark that point as not confirmed.'] : []),
         ...(claimRemoval ? ['Earlier corrections kept a statement the review could not support. In this pass DELETE every statement, date, number, name or source named in a check that is not met. Do not rephrase it, soften it or replace it with another claim. List each deleted point under what could not be confirmed, without restating it as fact. Keep every supported result and source unchanged.'] : []),
-        ...(answerOnlyRepair ? ['A separate validated audit classified every remaining gap as answer wording only. Produce one complete corrected answer using the retained evidence. No tools, browser actions, new research or plan changes are available in this pass. Preserve every original requirement and source. This does not certify completion; the replacement answer must still pass independent final review.'] : []),
+        ...(evidenceExhausted ? ['Another read did not provide the evidence that the review asked for. No tools, browser actions or new research are available in this pass. Produce one complete answer from the retained evidence only, with every point that could not be confirmed listed as such. This does not certify completion; the answer must still pass independent final review.'] : []),
+        ...(answerOnlyRepair && !evidenceExhausted ? ['A separate validated audit classified every remaining gap as answer wording only. Produce one complete corrected answer using the retained evidence. No tools, browser actions, new research or plan changes are available in this pass. Preserve every original requirement and source. This does not certify completion; the replacement answer must still pass independent final review.'] : []),
         ...(prepared?.messages || []).map(message => message.content)].join('\n\n'), timestamp: Date.now()});
       await agent.continue();
       if (clarification?.sent && !awaitingUser) throw new Error('question_failed');

@@ -10,6 +10,7 @@ import {taskReceipt} from '../context-state.js';
 import {unresolvedReconciliations} from '../restart-reconciliation.js';
 import {publicSourceURL} from '../browser-public-url.js';
 import {createScriptInputWitness} from '../browser-script-receipt.js';
+import {observationEffect, noteRepeatedNoEffect} from '../browser-effect.js';
 
 // Execute the actual module functions with host transports stubbed. Import
 // removal is AST-based; click preparation, command dispatch/receipts and the
@@ -53,7 +54,7 @@ function fixture(failure = 'hover', {receipt = false, childFrame = false, covere
     if (failure === 'mouse') throw Error('connection closed after dispatch');
   }};
   let documentReads = 0, targetReads = 0;
-  const context = vm.createContext({...scriptAPI, executeScript, preflightScript, scriptFailure, createScriptInputWitness,
+  const context = vm.createContext({...scriptAPI, executeScript, preflightScript, scriptFailure, createScriptInputWitness, observationEffect, noteRepeatedNoEffect,
     sourceURL: publicSourceURL, browserURL: value => value, assertBrowserPolicy() {},
     observedDocumentScope: async () => {
       if (failure === 'receipt_failed') throw Error('document observation failed');

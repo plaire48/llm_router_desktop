@@ -293,6 +293,21 @@ function classStates(node) {
   }
   return found;
 }
+// The state words a control shows only in its class names or data-state, and
+// those of the row, list item or repeated box it sits in: the words the
+// observation gives as stateHint and row state. verify_page reads them live.
+// Measured (W-02, candidate 40): a star that only added "starred" to its row
+// could not be checked, and the model tried five other ways.
+export function stateWords(el) {
+  const own = classStates(el), hint = el.getAttribute('data-state');
+  if (['on', 'off', 'checked', 'unchecked', 'indeterminate', 'open', 'closed'].includes(hint) && !own.includes(hint)) own.push(hint);
+  const cache = new WeakMap();
+  for (let node = parent(el); node; node = parent(node)) {
+    const role = getRole(node) || (repeatedItem(node, cache) ? 'item' : null);
+    if (['row', 'listitem', 'item'].includes(role)) return {own, row: classStates(node)};
+  }
+  return {own, row: []};
+}
 function secret(el, name) {
   const hint = `${el.type} ${el.name} ${el.id} ${name} ${el.autocomplete}`;
   return el.matches('input[type="file"],input[type="password"]') || /password|passwd|비밀번호|인증번호|일회용|토큰|시크릿|카드번호|보안코드|api[ _-]?key|secret|cc-|one-time-code|\b(?:otp|token|cvv|cvc|pin)\b/i.test(hint) ||
