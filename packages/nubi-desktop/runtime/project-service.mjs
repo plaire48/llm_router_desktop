@@ -89,12 +89,25 @@ export class ProjectService {
     }
     return root;
   }
-  async read({path: rel, taskId, start = 1, end, full = false}) {
+  async read({path: rel, taskId, start = 1, end, full = false, maxChars}) {
     this.ready(); const root = await this.target(taskId), file = {...await readSource(root, rel),projectRules:await projectRules(root,rel)};
     if (full) return {...file, uri: pathToFileURL(path.join(root, rel)).href};
+    const requestedEnd = end;
     end ??= start + 199;
-    if (!Number.isInteger(start) || start < 1 || start > file.lines || !Number.isInteger(end) || end < start || end - start >= 200) fail('range_invalid');
-    return {...file, content: file.content.split('\n').slice(start - 1, end).join('\n'), start, end: Math.min(end, file.lines), truncated: start !== 1 || end < file.lines, nextStart: end < file.lines ? end + 1 : null, uri: pathToFileURL(path.join(root, rel)).href};
+    if (!Number.isInteger(start) || start < 1 || start > file.lines || !Number.isInteger(end) || end < start) throw Object.assign(new Error('range_invalid'),{details:{lines:file.lines}});
+    // A request beyond a limit is served from its start. A refusal costs a
+    // model call and says nothing that the result cannot say.
+    let limited = null;
+    if (end - start >= 200) { end = start + 199; limited = 'lines'; }
+    end = Math.min(end, file.lines);
+    const lines = file.content.split('\n').slice(start - 1, end);
+    if (Number.isInteger(maxChars)) {
+      // Measured as the model receives it: a JSON string. The first line is always whole.
+      let size = 0, count = 0;
+      for (const text of lines) { size += JSON.stringify(text).length; if (count && size > maxChars) break; count++; }
+      if (count < lines.length) { lines.length = count; end = start + count - 1; limited = 'size'; }
+    }
+    return {...file, content: lines.join('\n'), start, end, truncated: start !== 1 || end < file.lines, nextStart: end < file.lines ? end + 1 : null, ...(limited ? {limited: {by: limited, ...(requestedEnd === undefined ? {} : {requestedEnd})}} : {}), uri: pathToFileURL(path.join(root, rel)).href};
   }
   async inspectPath({taskId,path}) {return inspectNewPath(await this.target(taskId),path);}
   async proposeNewFile(args) {return proposeNewFile.call(this,args);}

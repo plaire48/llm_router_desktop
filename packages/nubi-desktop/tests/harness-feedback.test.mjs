@@ -7,7 +7,7 @@ import {fixture} from './fixtures.mjs';
 import {SourceObservations} from '../runtime/source-edits.mjs';
 import {recordChangePlan} from '../runtime/change-plan.mjs';
 import {rememberWikiEvidence} from '../runtime/wiki-evidence.mjs';
-import {REVIEW_PROMPT,reviewResult} from '../runtime/result-review.mjs';
+import {REVIEW_PROMPT,reviewResult,resultReviewInput} from '../runtime/result-review.mjs';
 import {recoveryInstruction} from '../runtime/tool-feedback.mjs';
 import {ProjectService} from '../runtime/project-service.mjs';
 import {installAgent} from '../runtime/agent.mjs';
@@ -310,4 +310,74 @@ test('unusable evidence is set aside and never counts as support',async()=>{
   assert.equal(review.checks[1].state,'unknown','nothing usable is left, so the requirement is unverified');
   assert.deepEqual(review.checks[1].evidenceIds,[]);
   assert.deepEqual(review.setAside,['tool:1']);
+});
+
+// Found in B2 cases D2 and D3: each round read a new range, so the review
+// never stalled, and ten reviews later the time ran out with no answer at all.
+test('after four reviews that still ask for more, the answer is handed over with its open checks',async t=>{
+  const {service}=await fixture(t,{scriptedReview:true});let reviews=0,answers=0,line=0;
+  const call=(name,args)=>({content:'',calls:[{id:crypto.randomUUID(),type:'function',function:{name,arguments:JSON.stringify(args)}}]});
+  let reading=true;
+  service.providers={status:fixtureStatus,dispose(){},async complete(messages){
+    if(messages[0].content.startsWith(REVIEW_PROMPT)){reviews++;return verdict(messages,'revise','unknown','남은 범위를 더 읽으세요.');}
+    // Each round reads a line that no earlier round read: new evidence, so no stall.
+    if(reading){reading=false;line++;return call('read_source',{path:'app.txt',start:line,end:line});}
+    reading=true;answers++;return {content:'확인한 범위까지 정리했습니다. '+answers,calls:[]};
+  }};
+  const task=await service.createTask({request:'app.txt를 확인해 줘'});await service.startAgent({taskId:task.id});await service.agent.promise;
+  const done=service.task(task.id);
+  assert.equal(done.state,'review',done.error);assert.equal(done.question,null,'no question replaces the answer');
+  assert.equal(reviews,4);assert.equal(answers,4);
+  assert.equal(done.messages.at(-1).content,'확인한 범위까지 정리했습니다. 4');
+  assert.equal(done.resultReview.status,'revise','the host does not call an unfinished review ready');
+  assert.equal(done.resultReview.handoff,'review_limit');
+  assert.equal(done.resultReview.nextStep,'남은 범위를 더 읽으세요.');
+  assert.ok(done.resultReview.checks.every(check=>check.state==='unknown'));
+});
+
+// Found in B2 case C5: the executor wrote its question in the final answer,
+// the review accepted it, and the task ended without waiting for the user.
+test('the executor and the review are told that a question goes through ask_user',async t=>{
+  const {service}=await fixture(t,{scriptedReview:true});let system='',continued='',reviews=0;
+  service.providers={status:fixtureStatus,dispose(){},async complete(messages){
+    if(messages[0].content.startsWith(REVIEW_PROMPT)){reviews++;return reviews===1?verdict(messages,'revise','unknown','인상 폭을 확인하세요.'):verdict(messages,'ready','unknown');}
+    system||=messages.filter(message=>message.role==='system').map(message=>message.content).join('\n');
+    if(reviews===1)continued||=messages.findLast(message=>message.role==='user'&&String(message.content).startsWith('Independent review')).content;
+    return {content:'확인했습니다.',calls:[]};
+  }};
+  const task=await service.createTask({request:'app.txt를 확인해 줘'});await service.startAgent({taskId:task.id});await service.agent.promise;
+  assert.match(system,/ask_user[^.]*\. A question written in the final response ends the run without an answer/);
+  assert.match(continued,/call ask_user/);
+  assert.match(REVIEW_PROMPT,/asks the user to decide[^.]*ask_user/);
+});
+
+// Found in B1 and B2 case L1: in the third turn of one task the review still
+// judged the answer against the first request, asked for the earlier answers
+// again, and after three rounds the user got a question instead of the answer.
+test('the review is told which turn the answer belongs to',()=>{
+  const turns={id:'t',request:'먼저 배송 정책을 설명해 줘.',criteria:[],messages:[{role:'user',content:'회의록을 정리해 줘.'},{role:'assistant',content:'정리했습니다.'},{role:'user',content:'주문 상태 순서를 위키에서 찾아 줘.'}]};
+  const later=resultReviewInput({task:turns,evidence:[],receipts:{},candidate:'답',model:{contextLength:200000},history:['회의록을 정리해 줘.','주문 상태 순서를 위키에서 찾아 줘.']}).data;
+  assert.equal(later.currentTurn,'주문 상태 순서를 위키에서 찾아 줘.');
+  assert.deepEqual(later.requirements[0],{id:'request',text:'먼저 배송 정책을 설명해 줘.'},'the requirement keeps the words of the task');
+  assert.deepEqual(later.corrections,['회의록을 정리해 줘.','주문 상태 순서를 위키에서 찾아 줘.'],'earlier turns stay in view');
+  const first=resultReviewInput({task:{...turns,messages:[]},evidence:[],receipts:{},candidate:'답',model:{contextLength:200000},history:[]}).data;
+  assert.deepEqual(first.requirements[0],{id:'request',text:'먼저 배송 정책을 설명해 줘.'});assert.equal('currentTurn' in first,false);
+  assert.match(REVIEW_PROMPT,/When currentTurn is present, it is the latest message of the same task and the candidate answers it/);
+  assert.match(REVIEW_PROMPT,/needs no repeated answer/);
+});
+
+test('an answer to a question is not taken for a new turn',()=>{
+  const asked={id:'t',request:'할인율 좀 올려 줘.',criteria:[],messages:[{role:'assistant',content:'얼마나 올릴까요?'},{role:'user',content:'모든 등급 2%p 인상'}],questionHistory:[{text:'얼마나 올릴까요?',answer:{text:'모든 등급 2%p 인상',at:'2026-09-29T00:00:00.000Z'}}]};
+  const data=resultReviewInput({task:asked,evidence:[],receipts:{},candidate:'답',model:{contextLength:200000},history:['모든 등급 2%p 인상']}).data;
+  assert.deepEqual(data.requirements[0],{id:'request',text:'할인율 좀 올려 줘.'});assert.equal('currentTurn' in data,false);
+  assert.deepEqual(data.corrections,['모든 등급 2%p 인상']);
+  const next=resultReviewInput({task:{...asked,messages:[...asked.messages,{role:'user',content:'이제 테스트도 고쳐 줘.'}]},evidence:[],receipts:{},candidate:'답',model:{contextLength:200000},history:['모든 등급 2%p 인상','이제 테스트도 고쳐 줘.']}).data;
+  assert.equal(next.currentTurn,'이제 테스트도 고쳐 줘.');assert.equal(next.requirements[0].text,'할인율 좀 올려 줘.');
+});
+
+// Found in B2 cases W3 and D3: the Wiki did not cover what was asked and the
+// answer said so, but the review kept asking for the fact the sources lack.
+test('the review instruction accepts a report that the sources lack the fact',()=>{
+  assert.match(REVIEW_PROMPT,/reports that the sources it searched or read do not contain/);
+  assert.match(REVIEW_PROMPT,/do not ask for a fact the sources lack/);
 });

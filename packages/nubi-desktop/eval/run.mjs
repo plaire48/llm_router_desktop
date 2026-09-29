@@ -28,7 +28,7 @@ const add=(target,key,value)=>{target[key]=(target[key]||0)+(value||0);};
 
 function summarize(results){
   const tally=()=>Object.fromEntries([['total',0],...OUTCOMES.map(name=>[name,0])]),bySuite={},bySplit={};
-  const quality={total:results.length,executed:0,passed:0,delivered:0,falseCompletion:0,unnecessaryQuestion:0,missedQuestion:0,retrievalCases:0,retrievalReached:0,citationCases:0,citationFound:0};
+  const quality={total:results.length,executed:0,passed:0,delivered:0,falseCompletion:0,reviewLimit:0,unnecessaryQuestion:0,missedQuestion:0,retrievalCases:0,retrievalReached:0,citationCases:0,citationFound:0};
   const cost={modelCalls:0,retries:0,toolCalls:0,compactions:0,elapsedMs:0,promptTokens:0,completionTokens:0,cachedTokens:0,estimatedTokens:0,measuredEstimatedTokens:0,requestCharacters:0,fixedCharacters:0,peakRequestCharacters:0,byPurpose:{},byTool:{}};
   for(const result of results){
     for(const group of [bySuite[result.suite]??=tally(),bySplit[result.split]??=tally()]){group.total++;group[result.outcome]++;}
@@ -36,6 +36,7 @@ function summarize(results){
     quality.executed++;if(result.outcome==='passed')quality.passed++;
     if(result.state==='review'&&result.answerCharacters>0)quality.delivered++;
     if(result.falseCompletion)quality.falseCompletion++;
+    if(result.reviewHandoff==='review_limit')quality.reviewLimit++;
     if(result.expectedAsked===false&&result.asked)quality.unnecessaryQuestion++;
     if(result.expectedAsked===true&&!result.asked)quality.missedQuestion++;
     const retrieved=result.checks.find(item=>item.name==='retrieved'),cited=result.checks.find(item=>item.name==='cited');
@@ -70,7 +71,7 @@ export async function evaluate({providers,cases,trials=1,outputDir,limits=EVALUA
     try{graded=await gradeCase(testCase,run);}catch{graded={outcome:'error',passed:false,checks:[],error:'grading_failed',falseCompletion:false};}
     finally{await run.dispose().catch(()=>{});}
     const result={...common,outcome:graded.outcome,passed:graded.passed,...(graded.error?{error:graded.error}:{}),...(graded.flagged?{flagged:graded.flagged}:{}),falseCompletion:graded.falseCompletion,checks:graded.checks,
-      state:run.state,asked:run.asked,reviewStatus:run.reviewStatus,answerCharacters:run.answer.length,elapsedMs:run.elapsedMs,modelCalls:run.modelCalls,interactions:run.interactions,metrics:run.metrics.summary};
+      state:run.state,asked:run.asked,reviewStatus:run.reviewStatus,reviewHandoff:run.reviewHandoff,answerCharacters:run.answer.length,elapsedMs:run.elapsedMs,modelCalls:run.modelCalls,interactions:run.interactions,metrics:run.metrics.summary};
     const directory=path.join(outputDir,name);await mkdir(directory,{recursive:true});
     await writeFile(path.join(directory,'transcript.jsonl'),run.transcript.map(entry=>JSON.stringify(entry)).join('\n')+(run.transcript.length?'\n':''));
     await writeFile(path.join(directory,'metrics.json'),JSON.stringify(run.metrics,null,2)+'\n');

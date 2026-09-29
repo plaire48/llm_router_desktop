@@ -58,3 +58,21 @@ test('a fully passed verification keeps its checks and text but not its element 
   const last = pair('verify_page', verified);
   assert.equal(clearVerifiedElements(last), last, 'the latest observation keeps the refs the next action needs');
 });
+
+test('a replaced page loses its reading offsets and instructions but keeps what it showed and whether it was partial', () => {
+  const rich = tag => {const value = observation(tag); Object.assign(value.frames[0], {truncated: true, textFiltered: false, tables: [{caption: '표', rows: 3}],
+    retrieval: {method: 'lexical', instruction: '읽기 안내 '.repeat(200), textBlocks: Array.from({length: 40}, (_, index) => ({index, start: index * 10, end: index * 10 + 10})), textRegions: []},
+    coverage: {scope: '범위 설명 '.repeat(80), domTruncated: true, queryFiltered: false, observedNodes: 1200}}); return value;};
+  const wire = [...pair('navigate_page', {ok: true, observation: rich('first')}), ...pair('navigate_page', {ok: true, observation: rich('second')}), ...pair('browser_snapshot', rich('third'))];
+  const tools = clearSupersededElements(wire).filter(message => message.role === 'tool').map(parsed);
+  const old = tools[0].observation.frames[0];
+  assert.deepEqual(old.retrieval, {method: 'lexical'});
+  assert.deepEqual(old.coverage, {domTruncated: true, queryFiltered: false, observedNodes: 1200});
+  assert.equal(old.text, '본문 first'); assert.deepEqual(old.tables, [{caption: '표', rows: 3}]); assert.equal(old.truncated, true);
+  assert.match(tools[0].observation.elementsNotice, /offsets and instructions for reading that page/);
+  // The two latest observations are untouched: they can still be read further.
+  for (const current of [tools[1].observation.frames[0], tools[2].frames[0]]) {
+    assert.equal(current.retrieval.textBlocks.length, 40); assert.match(current.coverage.scope, /범위 설명/); assert.equal(current.elements.length, 60);
+  }
+  assert(JSON.stringify(tools[0]).length < JSON.stringify(parsed(wire.filter(message => message.role === 'tool')[0])).length * .2);
+});

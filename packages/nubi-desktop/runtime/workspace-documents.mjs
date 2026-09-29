@@ -7,8 +7,10 @@ import {randomUUID} from 'node:crypto';
 import {scopedFile,relativeFile,hash,fail} from './files.mjs';
 
 export const DOCUMENT_LIMITS={files:32,bytes:12_000_000,characters:4_000_000,totalCharacters:8_000_000};
+// The research core accepts 300 documents; a Wiki question covers the whole Wiki.
+export const WIKI_LIMITS={files:300};
 export const DOCUMENT_GUIDANCE='Use analyze_documents for large workspace UTF-8 text: locate exact paths, give scoped questions, preserve citations, conflicts and unread ranges. OpenWiki-SDS partitions, reads with two workers, repairs gaps and synthesizes. read_document_analysis retrieves saved results without rerunning. Findings are advisory, not edit observations or live app state. Independent source/screenshot/review/recovery work uses delegate_analysis with scoped evidence; dependent actions stay sequential. Use fresh source/UIA and existing approvals for changes. Avoid workers for trivial tasks.';
-export const DOCUMENT_TOOL={type:'function',function:{name:'analyze_documents',description:'Investigate large UTF-8 workspace text/Markdown documents using the maintained OpenWiki-SDS read-only multi-agent core. Select exact relative paths discovered with source_search mode=path or provided by the user. Plans focused or comprehensive coverage, divides independent ranges, combines evidence, and reports unread ranges. Up to 32 files, 4 million characters/file, 8 million total. PDF/DOCX/images/OCR are not supported here. No edits, shell, app input or approval. Returned coverage applies only to selected files. Cancellation stops child inference.',parameters:{type:'object',properties:{paths:{type:'array',minItems:1,maxItems:32,uniqueItems:true,items:{type:'string',minLength:1,maxLength:1000}},question:{type:'string',minLength:1,maxLength:4000}},required:['paths','question'],additionalProperties:false}}};
+export const DOCUMENT_TOOL={type:'function',function:{name:'analyze_documents',description:'Investigate large UTF-8 workspace text/Markdown documents with read-only workers. Costs about five model calls per 24,000 characters: use it for text over about 60,000 characters or when every part must be covered. For project Wiki questions use ask_openwiki. Select exact relative paths from source_search mode=path or the user. Reports unread ranges. Up to 32 files, 4 million characters/file, 8 million total. No PDF/DOCX/images/OCR. No edits, shell, app input or approval. Coverage applies to the selected files only.',parameters:{type:'object',properties:{paths:{type:'array',minItems:1,maxItems:32,uniqueItems:true,items:{type:'string',minLength:1,maxLength:1000}},question:{type:'string',minLength:1,maxLength:4000}},required:['paths','question'],additionalProperties:false}}};
 
 async function safeTarget(root,rel){
   relativeFile(rel);
@@ -19,8 +21,8 @@ async function safeTarget(root,rel){
 
 // Bounded descriptor reads avoid readFile allocating an unbounded growing file.
 // Sources remain references; this never touches SourceObservations.
-export async function documentSnapshot(root,paths,signal){
-  if(!Array.isArray(paths)||!paths.length||paths.length>DOCUMENT_LIMITS.files||new Set(paths).size!==paths.length)fail('document_arguments');
+export async function documentSnapshot(root,paths,signal,{maxFiles=DOCUMENT_LIMITS.files,kind='folder'}={}){
+  if(!Array.isArray(paths)||!paths.length||paths.length>maxFiles||new Set(paths).size!==paths.length)fail('document_arguments');
   root=await realpath(root);const documents=[];let total=0;
   for(const rel of paths){
     signal.throwIfAborted();
@@ -45,7 +47,7 @@ export async function documentSnapshot(root,paths,signal){
       if(bytes.includes(0)||!isUtf8(bytes))fail('document_encoding');
       const text=bytes.toString('utf8');total+=text.length;
       if(text.length>DOCUMENT_LIMITS.characters||total>DOCUMENT_LIMITS.totalCharacters)fail('document_limit');
-      documents.push({id:'document:'+hash(rel).slice(7),title:path.posix.basename(rel),path:rel,text,kind:'folder',version:hash(bytes)});
+      documents.push({id:'document:'+hash(rel).slice(7),title:path.posix.basename(rel),path:rel,text,kind,version:hash(bytes)});
     }finally{await file.close();}
   }
   return documents;
@@ -79,6 +81,14 @@ export function interruptDocumentResearch(store){
   const interrupt=record=>({...record,state:'interrupted',phase:'finished',error:'document_interrupted',workers:(record.workers||[]).map(worker=>worker.outcome?worker:{...worker,phase:'interrupted'})});
   for(const record of store.list('document-analysis:').filter(item=>item.state==='running'))store.set('document-analysis:'+record.id,interrupt(record));
   for(const task of store.list('task:').filter(item=>item.documentAnalysis?.state==='running'))store.set('task:'+task.id,{...task,documentAnalysis:interrupt(task.documentAnalysis)});
+}
+
+// The project Wiki as the shared ask_openwiki protocol expects it: the host
+// supplies documents, the OpenWiki agent of the shared runtime does the research.
+export async function wikiSnapshot({root,pages,projectId,signal}){
+  if(!Array.isArray(pages)||!pages.length)fail('document_wiki_missing');
+  const documents=await documentSnapshot(root,pages.slice(0,WIKI_LIMITS.files),signal,{maxFiles:WIKI_LIMITS.files,kind:'wiki'});
+  return {wikiId:'external:'+projectId,documents,sourceComplete:pages.length<=WIKI_LIMITS.files};
 }
 
 export async function analyzeWorkspaceDocuments({root,args,signal,modelId,complete,taskId,runId,onRecord,store},engine){

@@ -40,7 +40,7 @@ const GUIDANCE=Object.freeze({
   tool_arguments_invalid:'The arguments do not match the tool schema. Correct the input instead of repeating the same call.',
   source_read_required:UNCHANGED+'Read `details.path` with read_source in this run, including the lines to change, then repeat the call.',
   source_stale:UNCHANGED+'The file changed after it was read. Read it again and use the new hash.',
-  range_invalid:'Use start and end within the file length. Omit them to read from line 1.',
+  range_invalid:'Use a start within the file length (details.lines) and an end not before it. Omit them to read from line 1.',
   edits_invalid:UNCHANGED+'Provide 1-10 edits with non-empty oldText.',
   edit_text_missing:UNCHANGED+'oldText was not found in the range read in this run. Copy the exact current text, including whitespace.',
   edit_text_ambiguous:UNCHANGED+'oldText occurs more than once. Include surrounding lines so it is unique.',

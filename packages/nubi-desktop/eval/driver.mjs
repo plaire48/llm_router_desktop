@@ -56,7 +56,7 @@ export async function runCase({testCase,providers,limits={},parent,corpusDirecto
   return{
     id:testCase.id,root:workspace.root,dispose:workspace.dispose,corpusHash:workspace.corpusHash,
     state:task?.state||null,answer:task?.messages?.findLast(message=>message.role==='assistant')?.content||'',
-    asked,needsHuman,error,reviewStatus:task?.resultReview?.status||null,compactions:metrics.summary?.compactions||0,
+    asked,needsHuman,error,reviewStatus:task?.resultReview?.status||null,reviewHandoff:task?.resultReview?.handoff||null,compactions:metrics.summary?.compactions||0,
     elapsedMs:Date.now()-started,modelCalls:recorded.modelCalls(),interactions,user:user.log,transcript,metrics,
   };
 }

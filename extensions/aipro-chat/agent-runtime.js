@@ -182,7 +182,7 @@ export function progressTools(tools, stepwise, {compact = false} = {}) {
     parameters: {...tool.function.parameters, properties: {...tool.function.parameters.properties, progress}}}});
 }
 
-const FINAL_REVIEW_STALL = 3, FINAL_REVIEW_LIMIT = 6, STAGE_REVIEW_LIMIT = 4;
+const FINAL_REVIEW_STALL = 3, FINAL_REVIEW_LIMIT = 6, STAGE_REVIEW_LIMIT = 4, LOOKUP_CHECKPOINT_ACTIONS = 15;
 const reviewLine = value => String(value || '').replace(/\s+/g, ' ').trim();
 // Host-written notice under a lookup answer that was released without a passed
 // review. It names what is open; it never restates or corrects the answer.
@@ -194,7 +194,7 @@ function limitedReviewNote({checks, opinion}, rounds) {
     ...(text ? [`검토 의견: ${text}`] : [])].join('\n');
 }
 
-export async function runAgent({messages, goal: taskGoal, tools, inputBudget, documents = [], observationSources = {}, modelId = 'aipro', signal, complete, completeAnalysis, execute, onStep = () => {}, onDiagnostic = () => {}, onAnalysisHandoff, analysisHandoffs, onResearchHandoff, researchHandoffs, onRound = () => {}, prepareContext, preparePlan, resumePlan, requirePlanOutcomes = false, harness: useHarness = false, stepwise = useHarness, parallelReads = false, referenceImageEnabled = false, clarifyOnStall = false, compactProgress = false, reviewGoal, reviewPlanScope, assessCompletion, resumeVerification = false, resumeUncertainAction = false, resumedObservation, interruptedAction, takeInput}) {
+export async function runAgent({messages, goal: taskGoal, tools, inputBudget, documents = [], observationSources = {}, modelId = 'aipro', signal, complete, completeAnalysis, execute, onStep = () => {}, onDiagnostic = () => {}, onAnalysisHandoff, analysisHandoffs, onResearchHandoff, researchHandoffs, onDelegated, onRound = () => {}, prepareContext, preparePlan, resumePlan, requirePlanOutcomes = false, harness: useHarness = false, stepwise = useHarness, parallelReads = false, referenceImageEnabled = false, clarifyOnStall = false, compactProgress = false, reviewGoal, reviewPlanScope, assessCompletion, resumeVerification = false, resumeUncertainAction = false, resumedObservation, interruptedAction, takeInput}) {
   const dispatch = createReviewExecution({taskStartObserved:!resumePlan && !resumeVerification && !resumedObservation && !resumeUncertainAction && !interruptedAction});
   const readTools = new Set(['read_analysis_evidence', ...PROJECT_TOOL_NAMES, ...DOCUMENT_TOOL_NAMES]);
   const parallel = parallelReads === true && !stepwise && !useHarness && !completeAnalysis && tools.length > 0 && tools.every(tool => readTools.has(tool.function.name));
@@ -368,7 +368,10 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
     if (failed && result?.error !== 'cancelled') {batchFailed = true; failureStreak++;}
     else if (result?.verified === true) failureStreak = 0;
     if (MUTATING_TOOLS.has(name) && !result?.cancelled && result?.actionIssued !== false) actionsSinceReview++;
-    if (harness && reviewGoal && (failureStreak >= 2 || actionsSinceReview >= 5)) checkpointDue = true;
+    // Opening pages, switching tabs and following links is how a lookup reads
+    // its sources. Two measured lookups spent four and five intermediate
+    // reviews on it, each telling an unfinished search that it was unfinished.
+    if (harness && reviewGoal && (failureStreak >= 2 || actionsSinceReview >= (lookupRun() ? LOOKUP_CHECKPOINT_ACTIONS : 5))) checkpointDue = true;
     const repeatedRead = !failed && repeatedReadTools.has(name) && !requiresVerification(name, result);
     // Rechecking a source after actual work/report delivery is normal. Metadata
     // alone cannot break a read loop; this boundary does not certify progress.
@@ -526,7 +529,9 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
             result=resolved.error ? resolved : await execute(definition.name,resolved.args);
           } else if (definition.name === 'collect_analysis' && analyses && args.wait !== false) {
             result = await collectWithInput(args) || {deferred: true, reason: 'user_input_pending', instruction: 'A new user instruction interrupted collection. Reports were not consumed. Reconsider their relevance before collecting or cancelling them.'};
-          } else result = definition.name === 'ask_openwiki' ? await delegateWikiQuestion(args, {complete: completeAnalysis || complete, execute, signal, modelId, onStep,researchHandoffs,onResearchHandoff}) : definition.name === 'ask_documents' ? await delegateDocumentQuestion(args, {complete: completeAnalysis || complete, execute, signal, modelId, onStep,researchHandoffs,onResearchHandoff}) : ANALYSIS_TOOL_NAMES.has(definition.name) && analyses ? await analyses.execute(definition.name, args) : definition.name === 'select_tools' && harness ? harness.select(args) : parallel ? await readLimit(async () => {abort(); return execute(definition.name, args);}) : await execute(definition.name, args);}
+          } else result = definition.name === 'ask_openwiki' ? await delegateWikiQuestion(args, {complete: completeAnalysis || complete, execute, signal, modelId, onStep,researchHandoffs,onResearchHandoff}) : definition.name === 'ask_documents' ? await delegateDocumentQuestion(args, {complete: completeAnalysis || complete, execute, signal, modelId, onStep,researchHandoffs,onResearchHandoff}) : ANALYSIS_TOOL_NAMES.has(definition.name) && analyses ? await analyses.execute(definition.name, args) : definition.name === 'select_tools' && harness ? harness.select(args) : parallel ? await readLimit(async () => {abort(); return execute(definition.name, args);}) : await execute(definition.name, args);
+          // A host may record a delegated answer and shorten what returns to the model. The research is unchanged.
+          if (onDelegated && ['ask_openwiki', 'ask_documents'].includes(definition.name)) result = await onDelegated({tool: definition.name, args, result}) ?? result;}
         catch (error) {
           if (['ask_openwiki', 'analyze_documents', 'ask_documents'].includes(definition.name) && isWikiAuthenticationError(error)) stop(error);
           result = toolException(error, {mutating: MUTATING_TOOLS.has(definition.name)});

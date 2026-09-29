@@ -210,6 +210,21 @@ handle = async function(message, sender, owner) {
     return result;
   } catch(error) {evalRecord({kind:'browser_tool',at,callId,tool:message.name,elapsedMs:Date.now()-at,error:evalCode(error.message)});throw error;}
 };
+// The worker handles messages one at a time. A handler that does not return
+// holds every later read. Names and ages of running handlers only.
+const evalInflight = new Map(), evalRecordedHandle = handle;
+let evalInflightSequence = 0;
+handle = async function(message, sender, owner) {
+  const token = ++evalInflightSequence;
+  evalInflight.set(token, {type: typeof message?.type === 'string' && /^[A-Z_]{1,40}$/.test(message.type) ? message.type : null, name: evalCode(message?.name), at: Date.now()});
+  try {return await evalRecordedHandle(message, sender, owner);} finally {evalInflight.delete(token);}
+};
+// Answered outside that queue, so a held queue cannot hide what holds it.
+chrome.runtime.onMessage.addListener((message, sender, reply) => {
+  if (message?.type !== 'EVAL_DIRECT_DIAGNOSTICS' || !trustedUI(sender)) return;
+  reply({ok: true, data: {events: evalEvents.slice(-1000), pendingToolOperations,
+    inflight: [...evalInflight.values()].map(item => ({type: item.type, name: item.name, ms: Date.now() - item.at})).sort((left, right) => right.ms - left.ms).slice(0, 8)}});
+});
 `);
   report.diagnosticInstrumentation = 'Tool/schema codes, bounded review conclusions, redacted source URL/text hash/range coverage, value-free page-region counts, host semantic-click targets, bounded host script/semantic-input command receipts and model start/finish timestamps; no credentials, browser input values or request bodies';
   report.publicReadCapture = {enabled:publicReadPages.length>0,allowedPages:publicReadPages,scope:'Opt-in sanitized tool text on fixed public task pages; no authentication pages, arbitrary tool arguments, model request bodies or private reasoning'};
@@ -275,6 +290,12 @@ handle = async function(message, sender, owner) {
   // count is reported so a slow worker stays visible instead of ending the run.
   report.readRetries = 0;
   const rpc = async message => {
+    if (message.type === 'GET_EVAL_DIAGNOSTICS' && !attachment) {
+      try {
+        const direct = await waitForRead(() => ui.evaluate(() => chrome.runtime.sendMessage({type: 'EVAL_DIRECT_DIAGNOSTICS'})), {timeoutMs: 10000});
+        if (Array.isArray(direct?.data?.events)) return {ok: true, data: direct.data.events};
+      } catch (error) {if (error.message !== 'read_timeout') throw error;}
+    }
     if (!message.type.startsWith('GET_')) return ui.evaluate(message => chrome.runtime.sendMessage(message), message);
     for (let attempt = 0; ; attempt++) {
       try {return await waitForRead(()=>ui.evaluate(message => chrome.runtime.sendMessage(message),message),{timeoutMs:10000});}
@@ -283,8 +304,11 @@ handle = async function(message, sender, owner) {
         report.readRetries++;
         // Which side stalled: the page thread, the worker, or the message between them.
         const responds = async run => {const started = Date.now(); try {await waitForRead(run, {timeoutMs: 5000}); return Date.now() - started;} catch {return null;}};
+        let inflight = null;
+        try {inflight = (await waitForRead(() => ui.evaluate(() => chrome.runtime.sendMessage({type: 'EVAL_DIRECT_DIAGNOSTICS'})), {timeoutMs: 5000}))?.data;} catch { /* Recorded as null. */ }
         if ((report.readStalls ||= []).length < 24) report.readStalls.push({at: new Date().toISOString(), type: message.type, attempt,
-          pageMs: await responds(() => ui.evaluate(() => 1)), workerMs: worker ? await responds(() => worker.evaluate(() => 1)) : null});
+          pageMs: await responds(() => ui.evaluate(() => 1)), workerMs: worker ? await responds(() => worker.evaluate(() => 1)) : null,
+          pendingToolOperations: inflight?.pendingToolOperations ?? null, inflight: inflight?.inflight ?? null});
         // The product recovered by itself after such a stall: wait up to two minutes before giving up.
         if (attempt >= 11) throw error;
       }

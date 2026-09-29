@@ -42,7 +42,7 @@ test('a run writes a report, per-case records and totals by purpose',async t=>{
   assert.deepEqual(seen,['T1-first-case:passed','T2-second-case:failed']);
   assert.deepEqual(report.results.map(result=>[result.outcome,result.falseCompletion]),[['passed',false],['failed',true]]);
   const {quality,cost,bySuite,bySplit}=report.summary;
-  assert.deepEqual([quality.executed,quality.passed,quality.delivered,quality.falseCompletion,quality.retrievalCases,quality.retrievalReached],[2,1,2,1,1,1]);
+  assert.deepEqual([quality.executed,quality.passed,quality.delivered,quality.falseCompletion,quality.retrievalCases,quality.retrievalReached],[2,1,2,1,1,1]);assert.equal(quality.reviewLimit,0);
   assert.equal(bySuite.wiki.total,2);assert.equal(bySplit.dev.passed,1);assert.equal(bySplit.holdout.failed,1);
   assert.equal(cost.modelCalls,8);assert.deepEqual(Object.keys(cost.byPurpose).sort(),['actor','planner','reviewer']);
   assert.equal(cost.byPurpose.actor.calls,4);assert.equal(cost.promptTokens,8000);assert.equal(cost.cacheShare,0.4);assert.ok(cost.fixedShare>0.5);
@@ -84,7 +84,10 @@ test('two reports of one model and corpus are compared case by case and by purpo
   assert.deepEqual(comparison.cases.map(item=>[item.id,item.before,item.after,item.changed]),[['T1-first-case','failed','passed',true],['T2-second-case','passed','passed',false]]);
   assert.deepEqual(comparison.purposes.map(item=>item.purpose),['actor','planner','reviewer']);
   const text=renderComparison(comparison);
-  assert.match(text,/\| 독립 통과 \| 1 \| 2 \| \+1 \|/);assert.match(text,/\*\*passed\*\*/);assert.match(text,/우열을 입증하지 않습니다/);assert.ok(!text.includes('·'));
+  assert.match(text,/\| 독립 통과 \| 1 \| 2 \| \+1 \|/);assert.match(text,/\| 검토 상한 전달 \| 0 \| 0 \|/);
+  // A report written before the measure existed is compared as zero.
+  const older={...before,summary:{...before.summary,quality:Object.fromEntries(Object.entries(before.summary.quality).filter(([name])=>name!=='reviewLimit'))}};
+  assert.match(renderComparison(compareReports(older,after)),/\| 검토 상한 전달 \| 0 \| 0 \|/);assert.match(text,/\*\*passed\*\*/);assert.match(text,/우열을 입증하지 않습니다/);assert.ok(!text.includes('·'));
   assert.equal(compareReports(before,before).sameCandidate,true);
   assert.throws(()=>compareReports(before,{...after,model:'other'}),/report_model_differs/);
   assert.throws(()=>compareReports(before,{...after,corpora:{'order-service':'0'.repeat(64)}}),/report_corpus_differs/);

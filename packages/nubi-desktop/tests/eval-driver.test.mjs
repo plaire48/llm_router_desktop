@@ -41,7 +41,7 @@ test('a question case returns the answer, the transcript and measured costs',asy
   const result=await runCase({...options,testCase:base,providers:scripted(()=>round++===0?call('wiki_query',{query:'제주 추가 요금'}):{content:'제주 추가 요금은 4,500원입니다. 근거: openwiki/concepts/shipping-policy.md',calls:[]})});
   t.after(result.dispose);
   assert.equal(result.error,null);assert.equal(result.state,'review');assert.equal(result.asked,false);assert.match(result.answer,/4,500원/);
-  assert.equal(result.reviewStatus,'ready');assert.equal(result.modelCalls,4);assert.equal(result.transcript.length,4);
+  assert.equal(result.reviewStatus,'ready');assert.equal(result.reviewHandoff,null);assert.equal(result.modelCalls,4);assert.equal(result.transcript.length,4);
   assert.equal(result.metrics.summary.modelCalls,4);assert.equal(result.metrics.summary.byTool.wiki_query.calls,1);
   const graded=await gradeCase({...base,expect:{state:'review',asked:false,answer_includes:[['4,500','4500']],retrieved:{paths:['openwiki/concepts/shipping-policy.md'],min:1},cited:{paths:['openwiki/concepts/shipping-policy.md']},unchanged_except:[]}},result);
   assert.equal(graded.outcome,'passed',JSON.stringify(graded.checks));
