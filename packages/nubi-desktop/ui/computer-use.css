@@ -17,3 +17,5 @@
 .nubi-batch-steps>li>span { font-weight:600; color:var(--layout-text); }
 .nubi-batch-steps>li>pre { margin:var(--cx-space-1,4px) 0 0; white-space:pre-wrap; overflow-wrap:anywhere; }
 .nubi-batch-steps>li>small { display:block; font:var(--deck-font-body); color:var(--layout-muted); }
+.nubi-wiki-update-pages { margin:var(--cx-space-2,8px) 0; padding-left:var(--cx-space-5,24px); display:grid; gap:var(--cx-space-1,4px); }
+.nubi-wiki-update-pages small { font:var(--deck-font-body); color:var(--layout-muted); }

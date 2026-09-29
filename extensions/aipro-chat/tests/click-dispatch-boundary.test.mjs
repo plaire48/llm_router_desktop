@@ -20,10 +20,10 @@ const edits = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body.
     ? [[node.start, node.end]] : node.type === 'ExportNamedDeclaration' ? [[node.start, node.declaration.start]] : []);
 const isolatedSource = edits.reverse().reduce((text, [start, end]) => text.slice(0, start) + text.slice(end), source);
 
-function fixture(failure = 'hover', {receipt = false, childFrame = false} = {}) {
+function fixture(failure = 'hover', {receipt = false, childFrame = false, covered = false} = {}) {
   const effects = [];
   const node = {closest: selector => receipt && selector === 'a[href]' ? {href: 'https://example.com/video?token=PRIVATE#secret'} : null,
-    tagName: receipt ? 'A' : 'BUTTON', type: 'button', isContentEditable: false, matches: () => true};
+    tagName: receipt ? 'A' : 'BUTTON', type: 'button', isContentEditable: false, matches: () => true, scrollIntoView() {}};
   const handle = {
     asElement: () => handle,
     evaluate: async (fn, arg) => fn(node, arg), evaluateHandle: async () => handle,
@@ -70,7 +70,8 @@ function fixture(failure = 'hover', {receipt = false, childFrame = false} = {}) 
       return {...state, ...(failure === 'long_name' ? {name: 'x'.repeat(180)} : {}),
         ...(failure === 'long_role' ? {role: 'x'.repeat(81)} : {}), ...(targetReads === 3 ? changed[failure] : {})};
     },
-    clickTarget: value => value, pointerPosition: () => null, settlePointerTravel: async () => {},
+    clickTarget: value => value, pointerPosition: () => covered ? null : {x: 4, y: 4}, pointerCover: () => null, pointerBlocker: () => ({kind: 'same_row', tag: 'button', role: 'button', name: '삭제'}),
+    approvalTarget: () => null, restoreFieldBaseline() {}, settlePointerTravel: async () => {},
     withActionPointer: async (_task, _handle, _kind, fn) => {
       if (failure === 'pointer') throw Error('pointer preparation failed');
       return fn();
@@ -111,6 +112,16 @@ test('script preparation failure records no click and does not create an unrecon
     assert(effects.includes(stage)); assert(!effects.includes('click')); assert.equal(pendingAfter(result).length, 0);
     if (stage === 'hover') assert.equal(result.reason, 'script_obscured');
   }
+});
+
+test('a target covered at every point is never clicked in the middle blindly', async () => {
+  // Playwright accepts a hit on a control inside the target, such as a delete
+  // button a mail row shows on hover. With no clear point nothing is pressed.
+  const {host, effects, task} = fixture('none', {covered: true});
+  const {result} = await host.runBrowserAgent('owned', {tabId: 10}, 'click_element', {ref: 'observed'});
+  assert.equal(result.reason, 'script_obscured', JSON.stringify(result)); assert.equal(result.actionIssued, false);
+  assert.deepEqual(result.blocker, {kind: 'same_row', tag: 'button', role: 'button', name: '삭제'});
+  assert(!effects.includes('hover') && !effects.includes('click'), JSON.stringify(effects)); assert.equal(task.actionRevision, 0);
 });
 
 test('failure after actual click or double-click invocation remains uncertain', async () => {

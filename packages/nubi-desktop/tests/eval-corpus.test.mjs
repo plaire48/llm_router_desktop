@@ -58,6 +58,16 @@ test('a link inside a corpus source is refused',async t=>{
   await assert.rejects(listFiles(base),/corpus_link/);
 });
 
+// expense-office holds the rules of the simulated expense app (2026-09-29).
 test('registered corpora are the only names',()=>{
-  assert.deepEqual(Object.keys(CORPORA).sort(),['openwiki-sds','order-service']);
+  assert.deepEqual(Object.keys(CORPORA).sort(),['expense-office','openwiki-sds','order-service']);
+});
+
+test('the expense rules corpus is pinned, has its Wiki and no company data',async t=>{
+  const manifest=await corpusManifest('expense-office');
+  assert.deepEqual(manifest.files.map(file=>file.path),['AGENTS.md','README.md','openwiki/apps/expense-form.md','openwiki/policies/expense-rules.md','openwiki/quickstart.md']);
+  const workspace=await createWorkspace({corpus:'expense-office'});t.after(workspace.dispose);
+  const rules=await readFile(path.join(workspace.root,'openwiki','policies','expense-rules.md'),'utf8');
+  assert.match(rules,/50,000원 이상이면 영수증 첨부를 켠다/);assert.match(rules,/교통비 \| 운영팀/);assert.match(rules,/제출은 신청자 본인이 직접 누른다/);
+  assert.ok(!/해외/.test(rules),'the overseas allowance is left out on purpose');
 });

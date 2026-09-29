@@ -26,6 +26,7 @@ import {databaseConnection} from './database-connections.mjs';
 import {Processes, shellProfiles} from './processes.mjs';
 import {preferredShell} from './environment-inspection.mjs';
 import {git, hash, fail, readSource, listFiles, scopedFile, relativeFile, snapshot} from './files.mjs';
+import {wikiUpdate} from './wiki-update.mjs';
 
 const exec = promisify(execFile);
 const id = () => randomUUID();
@@ -132,6 +133,7 @@ export class ProjectService {
   async readVoc(args) {return readVoc.call(this,args);}
 
   async computer(args) {return computer.call(this,args);}
+  async wikiUpdate(args) {return wikiUpdate.call(this,args);}
   async decideSetupAction(args) {return decideSetupAction.call(this,args);}
 
   async collaboration() {fail('a2a_not_enabled');}
@@ -227,7 +229,7 @@ export class ProjectService {
     const file = path.join(reports, task.id + '.md'); await writeFile(file, content); return {uri: pathToFileURL(file).href, hash: hash(content), content};
   }
   async invoke(method, args = {}) {
-    const allowed = new Set(['analysisHistory','listSkills','importSkill','importVoc','queryVoc','readVoc','computer','applyNewFile','decideSetupAction','collaboration','codeOutline','recoverySnapshot','resumeAgent','diagnoseProcess','applyCommandRepair','knowledgeMap','knowledgeQuery','initializeKnowledgeCatalog','exportKnowledgeMap','databaseConnection','open','knowledgeStatus','recordKnowledge','comparison','connectKnowledge','overview','state','setShellPreference','read','search','wikiQuery','createTask','exportRequirement','createWorktree','propose','prepareProposal','proposalArtifacts','confirmProposal','mergeProposal','diff','run','exportReport','compare','provider','fabrix','startAgent','answerAgent','saveQuestionDraft','stopAgent']);
+    const allowed = new Set(['wikiUpdate','analysisHistory','listSkills','importSkill','importVoc','queryVoc','readVoc','computer','applyNewFile','decideSetupAction','collaboration','codeOutline','recoverySnapshot','resumeAgent','diagnoseProcess','applyCommandRepair','knowledgeMap','knowledgeQuery','initializeKnowledgeCatalog','exportKnowledgeMap','databaseConnection','open','knowledgeStatus','recordKnowledge','comparison','connectKnowledge','overview','state','setShellPreference','read','search','wikiQuery','createTask','exportRequirement','createWorktree','propose','prepareProposal','proposalArtifacts','confirmProposal','mergeProposal','diff','run','exportReport','compare','provider','fabrix','startAgent','answerAgent','saveQuestionDraft','stopAgent']);
     if (method === 'poll') { this.ready(); return this.processes.poll(args.id); }
     if (method === 'stop') { this.ready(); return this.processes.stop(args.id); }
     if (method === 'events') { this.ready(); return this.store.events(args.after); }

@@ -1,7 +1,8 @@
 import {takeFieldMarks, fieldScope} from './field-marks.js';
+import {rankEvidence} from './evidence-search.js';
 import {pageScript} from './page-script.js';
 import {collectSnapshot} from './generated/browser-dom.js';
-export {collectSnapshot, inspectTarget, clickTarget, controlState, valueMark, pointerPosition, prepareHoverReveal, waitForHoverReveal} from './generated/browser-dom.js';
+export {collectSnapshot, inspectTarget, clickTarget, controlState, valueMark, pointerPosition, pointerCover, pointerBlocker, fieldMarks, prepareHoverReveal, waitForHoverReveal} from './generated/browser-dom.js';
 
 // Some pages put a whole configuration document into an iframe's name. The
 // attribute identifies the frame; its first characters are enough for that.
@@ -93,6 +94,42 @@ export async function bindObservedRef(task, entry, safeURL, {relink = false} = {
   finally {await referenceCall(entry, 'release', marker).catch(() => {});}
 }
 
+// Which of the controls a page returned go to the model. Up to 180 always, as
+// before; more while the grouped lines stay within about 12K tokens, up to 400.
+// When not all fit: dialog controls, the focused control, then the controls that
+// match the user's request (ranked here in the extension; the request is never
+// sent into the page), then the rest in page order. Kept in page order, so the
+// controls of one row stay together. Measured on a 30-row time sheet: the first
+// 180 controls in page order left out the two cells the request named.
+const CONTROL_FLOOR = 180, CONTROL_CHARACTERS = 36000;
+export const CONTROL_LIMIT = 400;
+export const CONTROLS_HINT = 'Not every control was returned. To act on a table row or a field that is not listed, observe again with a query naming its row, column or label; matching controls come first.';
+// About the characters a control takes in the grouped lines the model reads: its
+// line, and a share of the line naming its row or form.
+function controlSize(d) {
+  const context = (d.context || []).map(item => `${item.role || ''} ${item.name || ''}`).join(' < ');
+  const extra = JSON.stringify({...(d.column ? {column: d.column} : {}), ...(d.description ? {description: d.description} : {}),
+    ...(d.options ? {options: d.options} : {}), ...(d.scroll ? {scroll: d.scroll} : {})});
+  return 28 + String(d.role || '').length + String(d.name || '').length + (d.destination ? String(d.destination).length + 4 : 0) +
+    (extra.length > 2 ? extra.length + 2 : 0) + Math.ceil(context.length / 4);
+}
+export function selectControls(descriptors, hint) {
+  const all = descriptors.map((_, index) => index);
+  const sizes = descriptors.map(controlSize), total = sizes.reduce((sum, size) => sum + size, 0);
+  if (descriptors.length <= CONTROL_FLOOR || total <= CONTROL_CHARACTERS) return all;
+  const dialog = index => descriptors[index].context?.some(item => ['dialog', 'alertdialog'].includes(item.role));
+  const hinted = typeof hint === 'string' && hint.trim() ? rankEvidence(descriptors.map((d, id) => ({id, name: `${d.name || ''} ${d.accessibleName || ''}`,
+    context: `${(d.context || []).map(c => c.name || '').join(' ')} ${d.column || ''}`, text: `${d.role || ''} ${d.description || ''}`})), hint).map(hit => hit.id) : [];
+  const order = [...all.filter(dialog), ...all.filter(index => descriptors[index].focused === true), ...hinted, ...all];
+  const picked = new Set();
+  let used = 0;
+  for (const index of order) {
+    if (picked.has(index)) continue;
+    if (picked.size >= CONTROL_FLOOR && (used + sizes[index] > CONTROL_CHARACTERS || picked.size >= CONTROL_LIMIT)) break;
+    picked.add(index); used += sizes[index];
+  }
+  return [...picked].sort((a, b) => a - b);
+}
 export async function readWithoutDebugger(task, query, safeURL, cancelled, expectedTexts) {
   const metadata = await pageScript({target: {tabId: task.tabId, allFrames: true}, world: 'ISOLATED',
     func: () => ({url: location.href, title: document.title, owner: frameElement ? {tag: frameElement.tagName.toLowerCase(), id: frameElement.id, name: frameElement.getAttribute('name'), title: frameElement.getAttribute('title')} : null})});
@@ -107,13 +144,17 @@ export async function readWithoutDebugger(task, query, safeURL, cancelled, expec
     const frame = frames.length, nonce = crypto.randomUUID();
     try {
       const [record] = await pageScript({target: {tabId: task.tabId, documentIds: [meta.documentId]}, world: 'ISOLATED', func: collectSnapshot,
-        args: [{query, nonce, expectedURL: meta.result.url, expectedTexts}]});
+        args: [{query, nonce, expectedURL: meta.result.url, expectedTexts, ...(query ? {} : {limit: CONTROL_LIMIT, ...(task.goalHint ? {hint: task.goalHint} : {})})}]});
       if (cancelled()) {
         await referenceCall({tabId: task.tabId, documentId: meta.documentId, nonce}, 'clear').catch(() => {});
         throw new Error('cancelled');
       }
       if (!record?.result || record.result.error) throw new Error('browser_stale');
-      const {descriptors, text, textFiltered, textChecks, truncated, regions, headings, retrieval, alerts, omittedControls, pageState, surfaces, tables, tableCoverage, coverage, page_view, queryUnmatched} = record.result;
+      const {descriptors: returned, text, textFiltered, textChecks, truncated: pageTruncated, regions, headings, retrieval, alerts, omittedControls: pageOmitted, pageState, surfaces, tables, tableCoverage, coverage: pageCoverage, page_view, queryUnmatched} = record.result;
+      // The page may return up to 400 controls; the budget and the user's request choose among them here.
+      const descriptors = query ? returned : selectControls(returned, task.goalHint).map(index => returned[index]);
+      const dropped = returned.length - descriptors.length, truncated = pageTruncated || dropped > 0, omittedControls = (pageOmitted || 0) + dropped;
+      const coverage = dropped > 0 ? {...pageCoverage, controlsReturned: descriptors.length, controlsHint: CONTROLS_HINT} : pageCoverage;
       task.observedDocuments ||= new Map();
       task.observedDocuments.set(meta.documentId, {tabId: task.tabId, documentId: meta.documentId, nonce});
       const taken = takeFieldMarks(task, fieldScope(meta.result.url, top.url, meta.result.owner), descriptors, {baseline: pageState?.readyState !== 'loading'}), visible = taken.map(item => item.descriptor);

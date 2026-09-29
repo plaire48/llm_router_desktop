@@ -64,9 +64,10 @@ node eval/compare.mjs <이전>/report.json <이후>/report.json
 | 평가 | 명령 | 재는 것 |
 |---|---|---|
 | 압축 품질 | `node eval/compaction.mjs --socket <경로> --out <폴더>` | 압축 뒤에 남은 내용. 질문 17개 |
-| 앱 조작 | `node eval/computer.mjs --socket <경로> --out <폴더>` | 가상 Windows 앱에서의 읽기, 입력, 거절, 묶음 승인. 과제 11개 |
+| 앱 조작 | `node eval/computer.mjs --socket <경로> --out <폴더>` | 가상 Windows 앱에서의 읽기, 입력, 거절, 묶음 승인. 과제 15개. A12~A15는 OpenWiki 에이전트에게 규정을 묻고 그 답과 근거로 앱을 고친다 |
+| OpenWiki 갱신 | `node eval/wiki-update.mjs --socket <경로> --out <폴더>` | 주문 서비스 자료에서 OpenWiki로 Wiki를 만든 뒤(준비) 원본 하나를 바꾸고, Desktop의 갱신 흐름(상태, 제안, 실행, 반영)을 잰다 |
 
-두 평가 모두 `--only <ID 앞부분>`으로 일부만 실행한다.
+압축과 앱 조작 평가는 `--only <ID 앞부분>`으로 일부만 실행한다.
 
 앱 조작 평가의 가상 사용자는 묶음 승인을 한 번에 결정한다. 묶음의 단계 하나라도 과제가 금지한 컨트롤을 대상으로 하면 묶음 전체를 거절한다. 보고서는 묶음 승인 수와 묶음에 든 입력 수를 따로 센다.
 

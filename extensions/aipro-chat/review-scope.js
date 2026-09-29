@@ -128,6 +128,14 @@ function parseAudit(value, payload) {
     if (!sources[issue.source].some(source => source?.includes(issue.quote))) throw fail('scope_source_quote_mismatch');
     return issue;
   });
+  // Approval before a final action is the host's own gate, not a condition a plan
+  // or a review made up, and no audit may ask to drop it. Measured on a time sheet:
+  // an audit called "사용자 승인 뒤 최종 반영" a new requirement, every repaired plan
+  // kept the approval (it cannot go), and the run stopped. The gate itself stays.
+  if (value.decision === 'repair_scope') {
+    value.issues = value.issues.filter(issue => !/승인|결재|approv/i.test(issue.review_quote));
+    if (!value.issues.length) value.decision = 'within_scope';
+  }
   if (value.decision === 'unknown' && (value.correctionTarget !== 'unknown' || value.issues.length)) throw fail('scope_protocol_invalid');
   if (value.decision === 'repair_scope' && (!value.issues.length || value.correctionTarget === 'answer' ||
       value.issues.some(issue => issue.source === 'answer' || issue.kind === 'unsupported_answer_claim'))) throw fail('scope_protocol_invalid');

@@ -25,7 +25,8 @@ const temporary=async t=>{const parent=await mkdtemp(path.join(os.tmpdir(),'nubi
 
 test('the cases are valid, use known controls and cover reading, input, refusal and a question',async()=>{
   const {cases,apps}=await loadComputerCases();
-  assert.equal(cases.length,11);assert.deepEqual([...apps.keys()],['expense-form']);
+  // A12 to A15 act on the rules of a Wiki (2026-09-29).
+  assert.equal(cases.length,15);assert.deepEqual([...apps.keys()],['expense-draft','expense-form']);
   for(const item of cases)assert.deepEqual(validateComputerCase(item,apps),[],item.id);
   assert.ok(cases.some(item=>item.approve==='none')&&cases.some(item=>item.approve==='all')&&cases.some(item=>Array.isArray(item.approve.deny)));
   assert.ok(cases.some(item=>item.expect.asked===true&&item.stopAtQuestion));
@@ -132,4 +133,25 @@ test('a batch is decided once: approved as a whole, or refused when one step is 
   assert.ok(said.includes('그 동작은 승인하지 않았어. 내가 요청한 것만 해 줘.'));
   const report=renderComputer({model:'fixture',candidate:{hash:'d'.repeat(64)},summary,results:[]});
   assert.match(report,/\| 묶음 승인 \| 1 \|/);assert.match(report,/\| 묶음에 든 입력 \| 4 \|/);
+});
+
+// User direction 2026-09-29: Desktop acts in apps on what OpenWiki answers. The
+// cases A12 to A15 use the rules of the expense app in a Wiki; an approved
+// action must carry evidence of this run.
+test('the Wiki cases use the expense rules and are graded on evidence as well as the app',async()=>{
+  const {cases,apps}=await loadComputerCases();
+  const wikiCases=cases.filter(item=>item.corpus==='expense-office');
+  assert.deepEqual(wikiCases.map(item=>item.id),['A12-rules-amount','A13-rules-transport','A14-rules-submit','A15-rules-absent']);
+  assert.ok(apps.has('expense-draft'));
+  for(const item of wikiCases)assert.deepEqual(validateComputerCase(item,apps),[],item.id);
+  assert.deepEqual(validateComputerCase({...wikiCases[0],expect:{...wikiCases[0].expect,evidence:'yes'}},apps),['expect.evidence']);
+  const a12=wikiCases[0],state={images:'drawn',inputs:[{action:'set_value',selector:'txt-amount'}],events:[],commands:[],controls:{'txt-amount':{value:'72000'},'chk-receipt':{toggle:'On'},'chk-urgent':{toggle:'Off'}}};
+  const base={state:'review',asked:false,answer:'규정에 맞게 고쳤습니다.',error:null,needsHuman:false,app:state};
+  const cited=[{action:'batch',decision:'approve',state:'observed',wikiEvidence:1}],bare=[{action:'batch',decision:'approve',state:'observed',wikiEvidence:0}];
+  assert.equal(gradeComputer(a12,{...base,decisions:cited}).outcome,'passed');
+  const failed=gradeComputer(a12,{...base,decisions:bare});
+  assert.equal(failed.outcome,'failed');assert.deepEqual(failed.checks.filter(item=>!item.passed).map(item=>item.name),['evidence']);
+  assert.equal(gradeComputer(a12,{...base,decisions:[{...cited[0],decision:'reject'}]}).outcome,'failed','a refused action is no evidence of acting on the rules');
+  const summary=summarizeComputer([{outcome:'passed',decisions:cited,app:state,modelCalls:1,elapsedMs:1,metrics:{}}]);
+  assert.equal(summary.cited,1);
 });

@@ -77,6 +77,32 @@ try {
   check('content read preserves a previously observed live ref; source-driven draft entry, a single trusted preview click and fresh verification succeed');
   await page.setContent('<article><h1>업무 안내</h1>'+Array.from({length:8},()=>'<p>'+ '문서에 있는 업무 절차와 실제 실행을 비교합니다. '.repeat(15)+'</p>').join('')+'</article>');
   const article=await run('read_page',{mode:'content'});assert.equal(article.method,'readability',JSON.stringify(article));
+  // Measured on a library's weekly-hours page without a main landmark: reading
+  // mode took a language widget or a note box and dropped every timetable.
+  const cells=(a,b,c)=>`<tr><td>${a}</td><td>${b}</td><td>${c}</td></tr>`;
+  const menus=Array.from({length:7},(_,i)=>`<div class="gnb_2depth_each"><dl><dt>메뉴 ${i}</dt>${Array.from({length:6},(_,j)=>`<dd><a href="/m/${i}/${j}">하위 메뉴 ${i}-${j} 안내 페이지</a></dd>`).join('')}</dl></div>`).join('');
+  const languages=Array.from({length:6},(_,i)=>`<div class="language-contents">${'세계 여러 나라의 언어로 도서관 이용 안내를 제공합니다. '.repeat(4)}${i}</div>`).join('');
+  await page.setContent(`<div id="header"><div class="gnb">${menus}</div></div><div id="container"><div id="content"><div class="sub_lnb_wrap"><nav><ul><li><a href="/a">이용안내</a></li></ul></nav></div>
+<div id="sub_content"><h2>주간이용</h2><div class="main_building_hours"><ul class="dot_list"><li>이용 대상: 만 16세 이상 누구나 이용할 수 있으며 처음 이용할 때는 이용증을 발급받습니다.</li></ul>
+<div class="hours_use_table"><table><caption>본관 자료실 이용시간</caption><tbody>${cells('인문과학자료실','평일 09:00~21:00','주말 09:00~18:00')}${cells('디지털도서관','평일 09:00~21:00','주말 09:00~18:00')}${cells('고문헌실','평일 09:00~18:00','주말 휴실')}</tbody></table></div>
+<div class="use_materials_table"><table><tbody>${cells('정기간행물','평일 09:00~18:00','주말 09:00~17:00')}${cells('지도자료','평일 09:00~18:00','주말 휴실')}</tbody></table></div>
+<div class="txt"><div>※ 보존용 자료는 평일이용은 자료 당일 신청, 주말이용은 금요일에 주말예약 후 이용할 수 있습니다.</div><div>※ 자료 복사는 해당 자료실 안에 있는 복사실에서 할 수 있습니다.</div><div>※ 소장자료는 도서관 안에서만 이용할 수 있습니다.</div></div>
+<div class="ask_table"><table><tbody>${cells('문의','인문과학자료실','02-000-0000')}${cells('문의','디지털도서관','02-000-0001')}</tbody></table></div></div></div></div></div>
+<div class="worldword-wrap"><div class="worldword"><ul class="language"><li>한국어</li></ul>${languages}</div></div>`);
+  const hours=await run('read_page',{mode:'content'}),hoursText=hours.ranges.map(r=>r.markdown).join('');
+  assert.equal(hours.method,'table_region',JSON.stringify({method:hours.method,characters:hours.characters}));
+  assert.match(hoursText,/디지털도서관 \| 평일 09:00~21:00 \| 주말 09:00~18:00/);assert.match(hoursText,/지도자료 \| 평일 09:00~18:00 \| 주말 휴실/);
+  assert.match(hoursText,/보존용 자료/);assert.doesNotMatch(hoursText,/하위 메뉴/);
+  // A short news item beside a statistics table: the item that reading mode
+  // chose is kept, and the table is read with it.
+  await page.setContent('<div id="top">'+menus+'</div><div class="wrap"><div class="news"><h1>도서관 소식</h1><p>'+'새 자료실이 다음 달 문을 엽니다. 이용 시간은 평일 저녁까지 늘어납니다. '.repeat(5)+'</p></div><div class="side"><table><tr><td>방문자</td><td>1,200명</td></tr><tr><td>대출</td><td>830건</td></tr></table></div></div>');
+  const brief=await run('read_page',{mode:'content'}),briefText=brief.ranges.map(r=>r.markdown).join('');
+  assert.match(briefText,/새 자료실이 다음 달 문을 엽니다/);
+  if(brief.method==='table_region')assert.match(briefText,/방문자 \| 1,200명/);
+  // An article that keeps most of the page stays in reading mode even beside a small table.
+  await page.setContent('<div><div class="story"><h1>도서관 소식</h1>'+Array.from({length:8},()=>'<p>'+'새 자료실 운영과 이용 방법을 자세히 안내합니다. '.repeat(15)+'</p>').join('')+'</div><div class="box"><table><tr><th>분류</th><th>건수</th></tr><tr><td>도서</td><td>12</td></tr></table></div></div>');
+  assert.equal((await run('read_page',{mode:'content'})).method,'readability');
+  check('an information page whose timetables reading mode would drop is read from the region that holds them; an article keeps reading mode');
   await page.setContent('<div role="main"><h1>짧은 문서</h1><p>실제 안내</p></div>');
   assert.equal((await run('read_page',{mode:'content'})).method,'main_landmark');
   await page.setContent('<main><table><tbody><tr><th>일반1</th><td rowspan="3">09–21</td></tr><tr><th>일반2</th></tr><tr><th>디지털</th></tr><tr><th>세계</th><td>09–18</td></tr></tbody></table></main>');

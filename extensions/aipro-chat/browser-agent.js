@@ -11,8 +11,8 @@ import {executeScript, preflightScript} from './script-sandbox.js';
 import {notePageLoading} from './page-script.js';
 import {watchPopups} from './browser-popups.js';
 import {clickEffect} from './browser-click-effect.js';
-import {takeFieldMarks, markFieldWritten, fieldUnchanged, fieldScope} from './field-marks.js';
-import {collectSnapshot, inspectTarget, clickTarget, controlState, valueMark, pointerPosition, prepareHoverReveal, waitForHoverReveal, readWithoutDebugger, bindObservedRef, releaseObservedRefs, topDocumentId, observedDocumentScope, frameOwner} from './browser-observation.js';
+import {takeFieldMarks, markFieldWritten, fieldUnchanged, fieldScope, recordFieldMarks, fieldsUnchanged, restoreFieldBaseline} from './field-marks.js';
+import {collectSnapshot, inspectTarget, clickTarget, controlState, valueMark, pointerPosition, pointerCover, pointerBlocker, fieldMarks, prepareHoverReveal, waitForHoverReveal, readWithoutDebugger, selectControls, CONTROL_LIMIT, CONTROLS_HINT, bindObservedRef, releaseObservedRefs, topDocumentId, observedDocumentScope, frameOwner} from './browser-observation.js';
 import {appendText, editableText, textDigest} from './browser-text.js';
 import {keyboardInput} from './browser-keyboard.js';
 import {createScriptInputWitness} from './browser-script-receipt.js';
@@ -25,7 +25,7 @@ import {withActionPointer, clearActionPointer, keepActionPointer, settlePointerT
 import {dragObserved} from './browser-drag.js';
 import {ownDebugger, releaseDebuggers} from './browser-debugger-ownership.js';
 import {watchNativeDialogs} from './browser-dialogs.js';
-import {captureBrowserPage, screenshotOptions, captureCoverage, captureRegion} from './browser-capture.js';
+import {captureBrowserPage, screenshotOptions, captureCoverage, captureRegion, enlargeCapture, markCapture} from './browser-capture.js';
 import {scrollBrowserSection} from './browser-scroll.js';
 import {createBrowserDiagnostics} from './browser-diagnostics.js';
 import {workspaceTab, readyWorkspaceTab, adoptWorkspaceTab, releaseWorkspace, guardPopupFocus, followWorkspaceTab, findWorkspaceURL} from './browser-workspace.js';
@@ -70,7 +70,7 @@ async function observe(task, query = '') {
     if (!url && frame !== task.page.mainFrame() && !['about:blank', 'about:srcdoc'].includes(frame.url())) continue;
     let group, handles;
     try {
-      group = await frame.evaluateHandle(collectSnapshot, query);
+      group = await frame.evaluateHandle(collectSnapshot, query || {limit: CONTROL_LIMIT});
       const data = await group.evaluate(value => ({descriptors: value.descriptors, text: value.text, textFiltered: value.textFiltered, truncated: value.truncated, regions: value.regions, headings: value.headings, retrieval: value.retrieval, alerts: value.alerts, omittedControls: value.omittedControls,
         pageState: value.pageState, surfaces: value.surfaces, tables: value.tables, tableCoverage: value.tableCoverage, coverage: value.coverage, page_view: value.page_view, ...(value.queryUnmatched ? {queryUnmatched: value.queryUnmatched} : {})}));
       handles = await group.getProperty('elements');
@@ -80,11 +80,19 @@ async function observe(task, query = '') {
         const element = await frame.frameElement();
         try {owner = await element.evaluate(el => ({tag: el.tagName.toLowerCase(), id: el.id, name: el.name, title: el.title}));} finally {await element.dispose();}
       }
-      const elements = takeFieldMarks(task, fieldScope(frame.url(), task.page.url(), owner), data.descriptors, {baseline: data.pageState?.readyState !== 'loading'}).map(({descriptor, fieldKey}, i) => {
-        const ref = `e-${prefix}-${index}-${i}`, handle = props.get(String(i)).asElement();
+      const scope = fieldScope(frame.url(), task.page.url(), owner), baseline = data.pageState?.readyState !== 'loading';
+      if (baseline) recordFieldMarks(task, scope, await frame.evaluate(fieldMarks).catch(() => null));
+      const picked = query ? data.descriptors.map((_, i) => i) : selectControls(data.descriptors, task.goalHint);
+      const kept = new Set(picked);
+      for (const [key, value] of props) if (!kept.has(Number(key))) await value.dispose().catch(() => {});
+      const elements = takeFieldMarks(task, scope, picked.map(i => data.descriptors[i]), {baseline}).map(({descriptor, fieldKey}, i) => {
+        const ref = `e-${prefix}-${index}-${i}`, handle = props.get(String(picked[i])).asElement();
         task.refs.set(ref, {handle, frame, descriptor, ...(fieldKey ? {fieldKey} : {})}); return {ref, ...descriptor};
       });
-      const {descriptors: ignored, ...details} = data;
+      const {descriptors: ignored, omittedControls: pageOmitted, ...details} = data;
+      const dropped = data.descriptors.length - picked.length;
+      if (dropped > 0) Object.assign(details, {truncated: true, coverage: {...details.coverage, controlsReturned: picked.length, controlsHint: CONTROLS_HINT}});
+      details.omittedControls = (pageOmitted || 0) + Math.max(0, dropped);
       frames.push({frame: index, observedAt: new Date().toISOString(), url: url || safeURL(task.page.url()), ...(owner ? {owner: frameOwner(owner)} : {}), elements, ...details});
     } catch {frames.push({frame: index, url, unavailable: true});}
     finally {await handles?.dispose().catch(() => {}); await group?.dispose().catch(() => {});}
@@ -263,8 +271,36 @@ async function verifyObservedLink(task, check) {
     return changed();
   }
 }
+// Which control a check read, in the page's own words: its label, its row and
+// its column, never its value. Measured on a weekly time sheet: the review could
+// not tell which row and day two verified cells were in, and asked again until
+// the run stopped, although the cells were right.
+const checkTarget = descriptor => {
+  const row = descriptor?.context?.find(item => ['row', 'listitem', 'item'].includes(item.role) && item.name)?.name;
+  const about = {...(descriptor?.name ? {name: String(descriptor.name).slice(0, 80)} : {}),
+    ...(row && row !== descriptor.name ? {row: String(row).slice(0, 80)} : {}), ...(descriptor?.column ? {column: String(descriptor.column).slice(0, 60)} : {})};
+  return Object.keys(about).length ? about : null;
+};
+// Every field of the current frames against what this run first observed there,
+// except the fields it wrote. The page reduces each value to a one-way mark.
+async function pageFieldsUnchanged(task) {
+  if (!task.app) return {passed: false, reason: 'baseline_missing'};
+  const frames = [];
+  for (const frame of task.page.frames().slice(0, 16)) {
+    if (!safeURL(frame.url()) && frame !== task.page.mainFrame() && !['about:blank', 'about:srcdoc'].includes(frame.url())) continue;
+    let owner;
+    if (frame.parentFrame()) {
+      const element = await frame.frameElement();
+      try {owner = await element.evaluate(el => ({tag: el.tagName.toLowerCase(), id: el.id, name: el.name, title: el.title}));} finally {await element.dispose();}
+    }
+    const scope = fieldScope(frame.url(), task.page.url(), owner), marks = scope ? await frame.evaluate(fieldMarks).catch(() => null) : [];
+    if (!Array.isArray(marks)) return {passed: false, reason: 'baseline_missing'};
+    if (scope) frames.push({scope, marks});
+  }
+  return fieldsUnchanged(task, frames);
+}
 async function verifyPage(task, checks, timeoutMs = 5000) {
-  if (!Array.isArray(checks) || !checks.length || checks.length > MAX_PAGE_CHECKS || checks.some(check => !['field_value', 'field_valid', 'field_sum', 'field_digest', 'field_contains', 'text_style', 'control_state', 'control_expanded', 'element_in', 'text_present', 'url_is', 'url_page_is', 'link_destination', 'link_page_is', 'field_unchanged'].includes(check?.kind) || typeof check.expected !== 'string' || check.expected.length > MAX_FIELD_VALUE_CHARS || check.kind !== 'field_value' && !check.expected.trim() || ['link_destination', 'link_page_is'].includes(check.kind) && (typeof check.ref !== 'string' || !check.ref.trim() || check.ref.length > 200 || Object.keys(check).some(key => !['kind', 'ref', 'expected'].includes(key))) || ['field_valid', 'field_unchanged'].includes(check.kind) && check.expected !== 'true' || check.kind === 'field_sum' && !validSumCheck(check) || check.kind === 'field_digest' && !/^[a-f0-9]{64}$/.test(check.expected) || check.kind === 'text_style' && !validEditorFormat(check.format) || check.kind?.startsWith('control_') && !['true', 'false', 'mixed'].includes(check.expected))) throw new Error('tool_arguments_invalid');
+  if (!Array.isArray(checks) || !checks.length || checks.length > MAX_PAGE_CHECKS || checks.some(check => !['field_value', 'field_valid', 'field_sum', 'field_digest', 'field_contains', 'text_style', 'control_state', 'control_expanded', 'element_in', 'text_present', 'url_is', 'url_page_is', 'link_destination', 'link_page_is', 'field_unchanged', 'fields_unchanged'].includes(check?.kind) || typeof check.expected !== 'string' || check.expected.length > MAX_FIELD_VALUE_CHARS || check.kind !== 'field_value' && !check.expected.trim() || ['link_destination', 'link_page_is'].includes(check.kind) && (typeof check.ref !== 'string' || !check.ref.trim() || check.ref.length > 200 || Object.keys(check).some(key => !['kind', 'ref', 'expected'].includes(key))) || ['field_valid', 'field_unchanged', 'fields_unchanged'].includes(check.kind) && check.expected !== 'true' || check.kind === 'field_sum' && !validSumCheck(check) || check.kind === 'field_digest' && !/^[a-f0-9]{64}$/.test(check.expected) || check.kind === 'text_style' && !validEditorFormat(check.format) || check.kind?.startsWith('control_') && !['true', 'false', 'mixed'].includes(check.expected))) throw new Error('tool_arguments_invalid');
   const deadline = Date.now() + timeoutMs;
   const expectedTexts = checks.filter(check => check.kind === 'text_present').map(check => check.expected);
   let results = [], consecutive = 0, previousURL, observation, stale = false;
@@ -297,7 +333,7 @@ async function verifyPage(task, checks, timeoutMs = 5000) {
     results = [];
     let textIndex = 0;
     for (const [index, check] of checks.entries()) {
-      let passed = false, detail = {};
+      let passed = false, detail = {}, about = null;
       if (check.kind === 'url_is') {
         const comparison = compareBrowserURL(check.expected, url);
         passed = !stale && comparison.passed;
@@ -316,6 +352,12 @@ async function verifyPage(task, checks, timeoutMs = 5000) {
         if (comparison.reason === 'target_changed') stale = true;
       }
       if (check.kind === 'text_present') {passed = textChecks.some(matches => matches[textIndex] === true); textIndex++;}
+      if (check.kind === 'fields_unchanged') {
+        detail = await pageFieldsUnchanged(task);
+        passed = detail.passed === true;
+        if (!passed) detail.instruction = detail.reason === 'value_changed' ? 'Some fields that no action of this run aimed at no longer hold what this run first observed. Report that; do not write values to make this check pass.'
+          : 'Not every field of this page was observed before, or a field is gone, so there is nothing complete to compare with. Report the preservation of the other fields as not verified.';
+      }
       if (check.kind.startsWith('field_') || check.kind.startsWith('control_') || check.kind === 'text_style' || check.kind === 'element_in') {
         try {
           if (check.kind === 'field_sum') {
@@ -328,6 +370,7 @@ async function verifyPage(task, checks, timeoutMs = 5000) {
             passed = detail.passed;
           } else {
             const entry = await target(task, check.ref, {readOnly: true});
+            about = checkTarget(entry.descriptor);
             if (check.kind === 'element_in') {
               const destination = await target(task, check.expected, {readOnly: true});
               passed = entry.frame === destination.frame && await destination.handle.evaluate((parent, child) => parent !== child && parent.contains(child), entry.handle);
@@ -367,7 +410,7 @@ async function verifyPage(task, checks, timeoutMs = 5000) {
           } else stale = true;
         }
       }
-      results.push({index, kind: check.kind, ...detail, passed, ...(stale ? {reason: 'target_changed'} : {})});
+      results.push({index, kind: check.kind, ...(about ? {target: about} : {}), ...detail, passed, ...(stale ? {reason: 'target_changed'} : {})});
       if (stale) break;
     }
     consecutive = results.every(check => check.passed) ? consecutive + 1 : 0;
@@ -375,9 +418,15 @@ async function verifyPage(task, checks, timeoutMs = 5000) {
     await delay(Math.max(0, Math.min(250, deadline - Date.now())));
   }
   const verified = consecutive >= 2;
+  // After this run wrote fields, every verification also states whether all the
+  // other fields kept what this run first saw. Measured on a time sheet: the check
+  // ran before the final apply, the final review saw only the last verification
+  // and could not confirm "leave the other cells alone", and the run stopped.
+  const otherFields = task.app && task.writtenFields?.size && !checks.some(check => check.kind === 'fields_unchanged')
+    ? await pageFieldsUnchanged(task).catch(() => null) : null;
   const finalObservation = task.app ? await observe(task) : observation;
   const textFeedback = !verified && !stale ? verificationTextFeedback(checks, results, finalObservation) : [];
-  return {ok: verified, verified, checks: results, ...(textFeedback.length ? {textFeedback} : {}), ...(verified ? {} : stale ? {error: 'browser_stale', reason: 'browser_stale', instruction: 'A checked field changed. Use the fresh observation to identify it and retry only verification. This is not evidence that earlier input failed; never replay the write automatically.'} : {error: 'verification_failed', instruction: 'The requested checks did not pass after waiting. Inspect the fresh observation before choosing a correction. Do not replay earlier writes.'}), scope: 'Fresh visible page evidence only. Input values and expected text are not returned. DOM retention and visible application confirmation are not an independent backend audit.', observation: finalObservation};
+  return {ok: verified, verified, checks: results, ...(otherFields ? {otherFields: {...otherFields, scope: 'Host comparison of every field of the page except those this run wrote, against what this run first observed. Not one of the requested checks.'}} : {}), ...(textFeedback.length ? {textFeedback} : {}), ...(verified ? {} : stale ? {error: 'browser_stale', reason: 'browser_stale', instruction: 'A checked field changed. Use the fresh observation to identify it and retry only verification. This is not evidence that earlier input failed; never replay the write automatically.'} : {error: 'verification_failed', instruction: 'The requested checks did not pass after waiting. Inspect the fresh observation before choosing a correction. Do not replay earlier writes.'}), scope: 'Fresh visible page evidence only. Input values and expected text are not returned. DOM retention and visible application confirmation are not an independent backend audit.', observation: finalObservation};
 }
 async function attachTab(task, tabId, openerId, created = false) {
   if (active !== task) throw new Error('cancelled');
@@ -550,23 +599,50 @@ async function semanticInputWitness(task, entry, ref, method, value) {
       return node.value === value;
     },expected),cancelled:()=>active!==task||task.dialogs?.blocked});
 }
+const centered = el => el.scrollIntoView({block: 'center', inline: 'nearest'});
+const obscured = blocker => Object.assign(new Error('script_obscured'), {reason: 'script_obscured', ...(blocker ? {blocker} : {})});
+// Where the pointer goes. A point where live hit testing reaches the target;
+// else, after moving the target to the middle (away from fixed bars and sticky
+// headers), again; else the one control that stands for the target at every
+// point (pointerCover), unless either needs approval. Never the middle blindly:
+// there Playwright would also press a control inside the target, such as a
+// delete button a mail row shows on hover.
+async function aim(target, {center = true, cover = true} = {}) {
+  let position = await target.evaluate(pointerPosition);
+  if (!position && center) {await target.evaluate(centered); position = await target.evaluate(pointerPosition);}
+  if (position) return {pointer: target, position};
+  if (cover && !await target.evaluate(approvalTarget, {method: 'click'})) {
+    const found = await target.evaluateHandle(pointerCover), receiver = found.asElement();
+    if (receiver && !await receiver.evaluate(approvalTarget, {method: 'click'})) {
+      const at = await receiver.evaluate(pointerPosition, target);
+      if (at) return {pointer: receiver, position: at, cover: true};
+    }
+    await found.dispose().catch(() => {});
+  }
+  throw obscured(await target.evaluate(pointerBlocker).catch(() => null));
+}
 async function clickObserved(task, handle, options = {}, double = false, onIssued = () => {}, captureTarget) {
   const destination=await handle.evaluate(el=>el.closest('a[href]')?.href||(['submit','image'].includes(el.type)&&el.form?el.formAction||el.form.action:null));
   if(destination&&/^https?:/.test(destination))assertBrowserPolicy(destination);
   const target = await handle.evaluateHandle(clickTarget);
+  const covers = new Set();
   try {return await showAction(task, target, 'click', async () => {
     const before = await target.evaluate(inspectTarget);
     // Hover may close a tooltip or move layout. Settle at the exact node first,
     // then let Playwright recompute its click point and normal actionability.
     await target.scrollIntoViewIfNeeded({timeout: 7000});
-    const position = options.position || await target.evaluate(pointerPosition);
-    await target.hover({...options, ...(position ? {position} : {}), force: false, timeout: 7000});
-    await settlePointerTravel(task, target);
+    const first = options.position ? {pointer: target, position: options.position} : await aim(target);
+    if (first.cover) covers.add(first.pointer);
+    await first.pointer.hover({...options, position: first.position, force: false, timeout: 7000});
+    await settlePointerTravel(task, first.pointer);
     task.dialogs?.assertCanAct();
     if (active !== task) throw new Error('cancelled');
     const after = await target.evaluate(inspectTarget);
-    if (!after.connected || after.secret || after.name !== before.name && !await target.evaluate(namedByHint) || after.type !== before.type) throw new Error('browser_stale');
-    const clickPosition = options.position || await target.evaluate(pointerPosition);
+    // Tools a row shows under the pointer change its visible name, not its words.
+    const renamed = after.name !== before.name && !(before.itemText && after.itemText === before.itemText) && !await target.evaluate(namedByHint);
+    if (!after.connected || after.secret || renamed || after.type !== before.type) throw new Error('browser_stale');
+    const {pointer, position: clickPosition, cover} = options.position ? first : await aim(target, {center: false});
+    if (cover) covers.add(pointer);
     const attribution = captureTarget ? await captureTarget(target, after) : undefined;
     if (captureTarget) {
       const final = await target.evaluate(inspectTarget);
@@ -578,10 +654,10 @@ async function clickObserved(task, handle, options = {}, double = false, onIssue
     // Scroll/hover/identity preparation may fail before any click is sent.
     // Once Playwright's actual click is invoked its outcome is conservative:
     // even an actionability timeout may hide a dispatched input or navigation.
-    onIssued(attribution);
-    return target[double ? 'dblclick' : 'click']({...options, ...(clickPosition ? {position:clickPosition} : {}), force: false, timeout: 7000});
+    onIssued(attribution && cover ? {...attribution, via: await pointer.evaluate(el => ({tag: el.localName, name: String(el.getAttribute('aria-label') || el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 80)}))} : attribution);
+    return pointer[double ? 'dblclick' : 'click']({...options, position: clickPosition, force: false, timeout: 7000});
   });}
-  finally {await target.dispose().catch(() => {});}
+  finally {await target.dispose().catch(() => {}); for (const cover of covers) await cover.dispose().catch(() => {});}
 }
 async function hoverObserved(task, handle, options = {}) {
   const destination=await handle.evaluate(el=>el.closest('a[href]')?.href||(['submit','image'].includes(el.type)&&el.form?el.formAction||el.form.action:null));
@@ -589,7 +665,9 @@ async function hoverObserved(task, handle, options = {}) {
   const target = await handle.evaluateHandle(clickTarget);
   try {return await showAction(task, target, 'hover', async () => {
     await target.scrollIntoViewIfNeeded({timeout:7000});
-    const position = options.position || await target.evaluate(pointerPosition);
+    // A hover presses nothing; a covered target is still moved clear of fixed bars.
+    let position = options.position || await target.evaluate(pointerPosition);
+    if (!position) {await target.evaluate(centered); position = await target.evaluate(pointerPosition);}
     if (active !== task) throw new Error('cancelled');
     const reveal = await handle.evaluateHandle(prepareHoverReveal);
     try {
@@ -689,6 +767,7 @@ export async function runApprovedAction(requestId,page,record,{onNativeDialog,on
   let task,handle,watcher,issued=false;
   try {
     task=await ensure(requestId,{tabId:record.tabId,browserContext:page?.browserContext||record.browserContext},true,true);
+    restoreFieldBaseline(task,record.fieldBaseline);
     task.onNativeDialog = onNativeDialog;
     task.dialogs?.assertCanAct();
     watcher=await popupWatch(task,null);
@@ -766,7 +845,7 @@ export async function runBrowserAgent(requestId, page, name, args = {}, options 
     tabId: active?.id === requestId && Number.isInteger(active.tabId) ? active.tabId : page?.tabId}), options.navigationDeadlineMs || NAVIGATION_DEADLINE_MS);});
   try {return await Promise.race([run, late]);} finally {clearTimeout(timer);}
 }
-async function runBrowserTool(requestId, page, name, args = {}, {vision = false, onCapture, onImage, onApproval, onNativeDialog, uploadFiles:availableFiles, navigationLoadMs = NAVIGATION_LOAD_MS} = {}) {
+async function runBrowserTool(requestId, page, name, args = {}, {vision = false, onCapture, onImage, onApproval, onNativeDialog, uploadFiles:availableFiles, navigationLoadMs = NAVIGATION_LOAD_MS, hint} = {}) {
   let task, issued = false, loading = false;
   let actionTargetReceipt = name === 'click_element'
     ? {dataKind: 'click_target_dispatch', version: 1, status: 'unknown', actionIssued: false, reason: 'click_not_dispatched'} : null;
@@ -778,6 +857,8 @@ async function runBrowserTool(requestId, page, name, args = {}, {vision = false,
     const passive = name === 'wait_page' && !!args.condition || ['read_page', 'inspect_dom', 'browser_snapshot', 'list_tabs'].includes(name) || name === 'verify_page' && args.checks?.every(check => ['text_present', 'url_is', 'url_page_is'].includes(check.kind));
     task = await ensure(requestId, page, !preflight && !passive);
     if(onNativeDialog)task.onNativeDialog=onNativeDialog;
+    // The user's request orders controls when a page has more than fit; it stays in the extension.
+    if (typeof hint === 'string') task.goalHint = hint.slice(0, 1000);
     if (['fill_form', 'click_element', 'hover_element', 'press_key', 'select_option', 'navigate_page', 'go_back', 'switch_tab', 'click_at', 'drag_element', 'scroll_page', 'request_approval'].includes(name)) task.dialogs?.assertCanAct();
     if (!task.approvalPause && await followDeferredPopups(task)) {
       await settle(task);
@@ -886,13 +967,36 @@ async function runBrowserTool(requestId, page, name, args = {}, {vision = false,
     }
     if (name === 'capture_page') {
       if (!vision) throw new Error('tools_unavailable');
-      if (args.full_page !== undefined && typeof args.full_page !== 'boolean') throw new Error('tool_arguments_invalid');
-      const fullPage = args.full_page !== false;
-      const region = captureRegion(args.region);
-      if (region && fullPage) throw new Error('tool_arguments_invalid');
+      if (args.full_page !== undefined && typeof args.full_page !== 'boolean' || args.marks !== undefined && typeof args.marks !== 'boolean' ||
+          args.ref !== undefined && (typeof args.ref !== 'string' || args.full_page === true || args.region !== undefined || args.marks)) throw new Error('tool_arguments_invalid');
+      const fullPage = args.full_page !== false && args.ref === undefined;
+      let region = captureRegion(args.region), element;
+      if (region && fullPage || args.marks && (fullPage || region)) throw new Error('tool_arguments_invalid');
       task.screenshot = null;
       await settle(task);
-      const {screenshot, viewport, image} = await captureBrowserPage(task.page, {fullPage, ...(region ? {region} : {}), cancelled: () => active !== task});
+      // One observed element with a small margin, for reading how it looks: a
+      // star that only turns yellow, an icon, small text.
+      if (args.ref !== undefined) {
+        const entry = await target(task, args.ref, {readOnly: true}), node = await entry.handle.evaluateHandle(clickTarget);
+        let box;
+        try {await node.asElement()?.scrollIntoViewIfNeeded({timeout: 5000}).catch(() => {}); box = await node.asElement()?.boundingBox();}
+        finally {await node.dispose().catch(() => {});}
+        const view = await task.page.evaluate(() => ({width: innerWidth, height: innerHeight}));
+        if (!box || box.width <= 0 || box.height <= 0) throw new Error('script_hidden');
+        let x = Math.floor(box.x - 12), y = Math.floor(box.y - 12), width = Math.ceil(box.width + 24), height = Math.ceil(box.height + 24);
+        if (width < 160) {x -= Math.floor((160 - width) / 2); width = 160;}
+        if (height < 64) {y -= Math.floor((64 - height) / 2); height = 64;}
+        x = Math.max(0, x); y = Math.max(0, y); width = Math.min(width, view.width - x); height = Math.min(height, view.height - y);
+        if (width < 1 || height < 1) throw new Error('script_hidden');
+        region = captureRegion({x, y, width, height});
+        element = {ref: args.ref, name: String(entry.descriptor.name || '').slice(0, 120), role: entry.descriptor.role || ''};
+      }
+      let {screenshot, viewport, image} = await captureBrowserPage(task.page, {fullPage, ...(region ? {region} : {}), cancelled: () => active !== task});
+      let enlarged = 1;
+      if (element && region.width < 400) {
+        const factor = Math.min(3, Math.floor(1200 / region.width * 10) / 10), bigger = await enlargeCapture(image, factor);
+        if (bigger) {image = bigger.image; enlarged = factor; screenshot = {...screenshot, width: bigger.dimensions.width, height: bigger.dimensions.height};}
+      }
       browserURL(task.page.url());
       if (screenshot.mode === 'viewport') task.screenshot = screenshot;
       const observation = await observe(task), visualTargets = [];
@@ -908,8 +1012,15 @@ async function runBrowserTool(requestId, page, name, args = {}, {vision = false,
         } catch { /* A changed element is not a visual action target. */ }
         finally {await target?.dispose().catch(() => {});}
       }
+      // Numbered boxes on the image, each number listed with its ref here.
+      if (args.marks && visualTargets.length) {
+        visualTargets.slice(0, 40).forEach((item, index) => {item.mark = index + 1;});
+        image = await markCapture(image, {viewportWidth: viewport.width, viewportHeight: viewport.height,
+          items: visualTargets.filter(item => item.mark).map(({mark, bounds}) => ({mark, bounds}))}).catch(() => image);
+      }
       const attachment = await onCapture?.(screenshot, image);
-      return {result: {screenshot_id: screenshot.id, ...viewport, width: screenshot.width, height: screenshot.height, viewport, capture_mode: screenshot.mode, coverage: captureCoverage(screenshot, observation), image, observation, visualTargets, ...(attachment ? {attachment} : {}), scope: fullPage
+      return {result: {screenshot_id: screenshot.id, ...viewport, width: screenshot.width, height: screenshot.height, viewport, capture_mode: element ? 'element' : screenshot.mode,
+        ...(element ? {element, ...(enlarged > 1 ? {image_scale: enlarged, scale_note: 'The element region was enlarged: image pixels are page pixels times image_scale.'} : {})} : {}), ...(screenshot.scale ? {image_scale: screenshot.scale, scale_note: 'The whole page was reduced to fit one image: image pixels are page pixels times image_scale.'} : {}), ...(screenshot.documentCovered === false ? {document_note: `The browser returned a ${screenshot.width}x${screenshot.height} image for a page measured at ${screenshot.documentWidth}x${screenshot.documentHeight}. The image holds only the part it shows; capture scrolled sections or read the text for the rest.`} : {}), coverage: captureCoverage(screenshot, observation), image, observation, visualTargets, ...(attachment ? {attachment} : {}), scope: fullPage
         ? 'Full currently rendered top-level document, known secret fields masked. Reading/download evidence only, NOT click_at coordinates. Nested scroll areas, virtualized lists, collapsed sections and lazy/unloaded content are not expanded. Inspect observation.frames and their surfaces; scroll the relevant observed area, re-observe and capture each required section. Never claim all data was captured. For clicks scroll to the target, then use a fresh viewport capture or semantic ref.'
         : region ? 'Selected rectangle within the current browser viewport. Known secret fields masked. Reading/download evidence only, NOT click_at coordinates. Use a fresh uncropped viewport capture or semantic ref to act. Never infer saving or complete content coverage from this image.'
         : 'Current browser viewport only; known secret fields masked. Bounds use CSS pixels in this image. Match visual appearance to exact observed refs first. State hints are not verified state. Never infer a successful toggle from color alone.'}, tabId: task.tabId};
@@ -1083,7 +1194,7 @@ async function runBrowserTool(requestId, page, name, args = {}, {vision = false,
       try {await clearRefs(task); observation = task.app ? await observe(task) : await readWithoutDebugger(task, '', safeURL, () => active !== task);} catch { /* Keep the original error when the page cannot be inspected. */ }
     }
     const feedback = scriptFailure(error);
-    return {result: {error: allowed.includes(error.message) ? error.message : feedback.reason, reason: feedback.reason, actionIssued: issued, ...targetReceipt(), ...(observation ? {observation} : {}), ...(error.message === 'browser_dialog' ? {nativeDialogs: task.dialogs.snapshot()} : {}), ...(error.message === 'workspace_changed' ? {recovery:{strategy:'user_action',execution:'not_started'}} : {}), instruction: error.message === 'workspace_changed' ? 'The owned work tab was closed or moved. Ask the user to reconnect the intended page. Never switch to an unrelated user tab, recreate the workspace or replay prior writes automatically.' : error.message === 'drag_cross_frame' ? 'No drag was issued. Both endpoints must be in one frame. Inspect a supported same-frame target or ask about the intended outcome.' : error.message === 'drag_approval_required' ? 'No drag was issued. This target may finalize a transaction. Inspect the site explicit action, prepare and verify the draft, then use request_approval. Never substitute an unapproved click or coordinate drag.' : feedback.instruction}, tabId: task?.tabId || page.tabId};
+    return {result: {error: allowed.includes(error.message) ? error.message : feedback.reason, reason: feedback.reason, actionIssued: issued, ...targetReceipt(), ...(error.blocker ? {blocker: error.blocker} : {}), ...(observation ? {observation} : {}), ...(error.message === 'browser_dialog' ? {nativeDialogs: task.dialogs.snapshot()} : {}), ...(error.message === 'workspace_changed' ? {recovery:{strategy:'user_action',execution:'not_started'}} : {}), instruction: error.message === 'workspace_changed' ? 'The owned work tab was closed or moved. Ask the user to reconnect the intended page. Never switch to an unrelated user tab, recreate the workspace or replay prior writes automatically.' : error.message === 'drag_cross_frame' ? 'No drag was issued. Both endpoints must be in one frame. Inspect a supported same-frame target or ask about the intended outcome.' : error.message === 'drag_approval_required' ? 'No drag was issued. This target may finalize a transaction. Inspect the site explicit action, prepare and verify the draft, then use request_approval. Never substitute an unapproved click or coordinate drag.' : feedback.instruction}, tabId: task?.tabId || page.tabId};
   }
 }
 

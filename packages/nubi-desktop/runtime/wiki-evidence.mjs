@@ -64,11 +64,11 @@ function fuse(lists){
   return [...values.values()].sort((a,b)=>b.rankScore-a.rankScore||a.provenance.path.localeCompare(b.provenance.path)||a.provenance.start-b.provenance.start);
 }
 
-async function reader(root){
+async function reader(root,{references=MAX_REFERENCES}={}){
   let ignore=new OpenWikiIgnore([]);
   try{ignore=OpenWikiIgnore.parse((await readSource(root,'.openwikiignore')).content);}catch(error){if(error.code!=='ENOENT')throw error;}
   const resolver=new RepositoryEvidenceResolver({rootDir:root,openWikiIgnore:ignore}),store=new ClaimsStore(root);
-  let remaining=MAX_REFERENCES;
+  let remaining=references;
   const cache=new Map();
   const inspect=async(resource,version)=>{
     const key=JSON.stringify([resource,version]);if(cache.has(key))return cache.get(key);
@@ -152,6 +152,18 @@ export async function queryWiki({query,taskId,includeHistory=false}){
 // Korean question to an English page, so the language travels with the list.
 const OVERVIEW_PAGES=40;
 // Project knowledge only: claim sidecars and Nubi's own task records are not Wiki pages.
+// The pages whose evidence no longer matches the source, as an OpenWiki update would find them:
+// source_changed (a cited source changed), unavailable (a cited source is gone) or
+// document_changed (the page differs from the version its Claims were written for).
+export async function stalePages(root,{references=4000}={}){
+  const reads={...await reader(root,{references}),root},rows=[];
+  for(const rel of await wikiPages(root)){
+    let doc;try{doc=document(await readSource(root,rel));}catch{continue;}
+    const {freshness}=await grounding(doc,reads);
+    if(uncertain.has(freshness))rows.push({path:rel,freshness});
+  }
+  return rows;
+}
 export async function wikiPages(root){
   const reads=await reader(root),listed=await listFiles(root);
   return listed.paths.filter(p=>/^openwiki\/.+\.md$/.test(p)&&!p.includes('/.claims/')&&!/^openwiki\/nubi-(evidence|map)\//.test(p)&&!reads.ignore.ignores(p)).sort();

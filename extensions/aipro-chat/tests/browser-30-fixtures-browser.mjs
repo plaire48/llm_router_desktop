@@ -4,7 +4,8 @@ import {strict as assert} from 'node:assert';
 import {startBrowserFixtures, trainingText} from '../evaluation/browser-fixtures.mjs';
 import {createHash} from 'node:crypto';
 import {fixtureGrade} from '../evaluation/browser-fixture-grades.mjs';
-import {browserTasks30} from '../evaluation/browser-30.mjs';
+import {browserTasks30, browserTasksAll} from '../evaluation/browser-30.mjs';
+import {workSheetTasks, mailListTarget} from '../evaluation/browser-fixtures.mjs';
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
 const server = await startBrowserFixtures();
 let browser;
@@ -18,7 +19,7 @@ try {
     for(const [index,frame] of page.frames().entries()) fixtureState.push({frameId:index,documentId:`fixture-document-${index}`,...await frame.evaluate(()=>({url:location.href,
       fields:[...document.querySelectorAll('input,textarea,select')].map(el=>({id:el.id,label:el.labels?.[0]?.textContent,value:el.value})),
       counters:window.evalCounters,toggle:document.querySelector('#toggle')?.getAttribute('aria-checked'),modalOpen:!!document.querySelector('dialog[open]')}))});
-    return fixtureGrade(browserTasks30.find(t=>t.id===id),{id,startUrl:server.origin+'/'+id,target:{observed:true,tabId:1},targetPage:{url:page.url()},fixtureState});
+    return fixtureGrade(browserTasksAll.find(t=>t.id===id),{id,startUrl:server.origin+'/'+id,target:{observed:true,tabId:1},targetPage:{url:page.url()},fixtureState});
   };
   await page.goto(server.origin + '/E-09');
   await page.getByLabel('제목', {exact: true}).fill('가을 교육');
@@ -81,6 +82,20 @@ try {
   await page.goto(server.origin + '/H-10');
   assert.equal(await page.getByLabel('기존 메모').inputValue(), '원본 메모 유지');
   assert.equal(await page.getByLabel('담당 팀').inputValue(), ''); checks.push('clarification-initial-state');
+  // The page scripts of the work sheet and the mail list must run: once their
+  // counters were set up after them, so the final button and the rows did nothing.
+  await page.goto(server.origin + '/W-01');
+  const sheetRow = page.locator('tbody tr').nth(workSheetTasks.indexOf('데이터 시스템 모니터링'));
+  for (const day of [2, 3]) await sheetRow.locator('input').nth(day).fill('4');
+  await page.getByRole('button', {name: '최종 반영', exact: true}).click();
+  assert.equal(await page.locator('output').innerText(), '최종 반영 완료');
+  assert.deepEqual((await gradeReadback('W-01')).checks.map(check => check.passed), [true, true, true]); checks.push('work-sheet-apply');
+  await page.goto(server.origin + '/W-02');
+  const mailRow = page.locator(`.row[data-row="${mailListTarget}"]`);
+  await mailRow.locator('.star').click();
+  await mailRow.locator('.subject').click();
+  assert.match(await page.locator('#reader').innerText(), /10월 15일/);
+  assert.deepEqual((await gradeReadback('W-02')).checks.slice(0, 2).map(check => check.passed), [true, true]); checks.push('mail-list-open');
   await mkdir('verification/browser-30', {recursive: true});
   await writeFile('verification/browser-30/fixture-check.json', JSON.stringify({status: 'passed', actualModel: false, scope: 'fixture-validation-only', checks, sampleSha256: createHash('sha256').update(bytes).digest('hex')}, null, 2));
   console.log(`PASS ${checks.length} fixture checks; no model performance measured`);

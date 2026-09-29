@@ -1,6 +1,6 @@
 import {readFile, writeFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
-import {browserTasks30} from '../evaluation/browser-30.mjs';
+import {browserTasksAll as browserTasks30} from '../evaluation/browser-30.mjs';
 import {fixtureGrade} from '../evaluation/browser-fixture-grades.mjs';
 const [path] = process.argv.slice(2);
 if (!path) throw Error('Usage: node scripts/grade-browser-fixtures.mjs REPORT.json');

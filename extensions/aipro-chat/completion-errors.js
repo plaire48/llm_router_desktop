@@ -6,7 +6,7 @@ const requestStatuses = [400, 404, 413, 415, 422];
 
 // Typed check outcomes only: never retain expected values, refs or page text.
 export function verificationDiagnostic(result) {
-  const kinds = new Set(['field_value', 'field_valid', 'field_sum', 'field_digest', 'field_contains', 'text_style', 'control_state', 'control_expanded', 'element_in', 'text_present', 'url_is', 'url_page_is', 'link_destination', 'link_page_is', 'field_unchanged']);
+  const kinds = new Set(['field_value', 'field_valid', 'field_sum', 'field_digest', 'field_contains', 'text_style', 'control_state', 'control_expanded', 'element_in', 'text_present', 'url_is', 'url_page_is', 'link_destination', 'link_page_is', 'field_unchanged', 'fields_unchanged']);
   return (Array.isArray(result?.checks) ? result.checks : []).slice(0, 24)
     .filter(check => kinds.has(check?.kind) && typeof check.passed === 'boolean')
     .map(check => ({kind: check.kind, passed: check.passed,
@@ -34,7 +34,7 @@ export function agentDiagnostic(value) {
   if (value.phase === 'scope_review' && ['plan_scope', 'plan_step', 'checkpoint', 'final'].includes(value.scope) &&
       ['within_scope', 'repair_scope', 'unknown'].includes(value.decision) && ['answer', 'external', 'unknown'].includes(value.correctionTarget) && typeof value.corrected === 'boolean') {
     return {phase: value.phase, scope: value.scope, decision: value.decision, correctionTarget: value.correctionTarget, corrected: value.corrected,
-      ...(['scope_input_invalid', 'scope_context_budget', 'scope_protocol_invalid', 'scope_quote_invalid', 'scope_issue_invalid', 'scope_target_invalid', 'scope_anchor_invalid', 'scope_review_quote_mismatch', 'scope_source_quote_mismatch', 'scope_answer_invalid', 'scope_response_invalid', 'cancelled', 'authentication'].includes(value.reason) ? {reason: value.reason} : {}),
+      ...(['scope_input_invalid', 'scope_context_budget', 'scope_protocol_invalid', 'scope_quote_invalid', 'scope_issue_invalid', 'scope_target_invalid', 'scope_anchor_invalid', 'scope_review_quote_mismatch', 'scope_source_quote_mismatch', 'scope_answer_invalid', 'scope_response_invalid', 'scope_skipped', 'cancelled', 'authentication'].includes(value.reason) ? {reason: value.reason} : {}),
       ...(SCOPE_REASONS.includes(value.withdrawn) ? {withdrawn: value.withdrawn} : {}),
       // The stage was settled by its met checks: every open check lay outside it.
       ...(value.settled === true && value.scope === 'plan_step' && value.decision === 'repair_scope' ? {settled: true} : {}),

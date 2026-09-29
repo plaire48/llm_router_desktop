@@ -9,6 +9,8 @@ export function fixtureApprovalAllowed({enabled, taskId, origin, question, recor
   if (taskId === 'H-08' && record.operation?.method === 'download') {
     try {const url = new URL(record.operation.url); return url.origin === fixture.origin && url.pathname === '/training.txt' && !url.search && !url.hash;} catch {return false;}
   }
+  // The work-system sheet's final apply is the requested outcome of that frozen task.
+  if (taskId === 'W-01') return record.operation?.method === 'click' && record.action === '반영';
   return taskId === 'H-09' && record.operation?.method === 'upload' && record.operation.files?.length === 1 &&
     record.operation.files[0].name === 'training.txt';
 }

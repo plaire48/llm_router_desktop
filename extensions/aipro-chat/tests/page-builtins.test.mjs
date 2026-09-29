@@ -68,7 +68,8 @@ test('a page that forbids frames keeps its own built-ins and the code still runs
 
 test('the generated page functions and the packaged Playwright script carry the text', async () => {
   const generated = await readFile(new URL('../generated/browser-dom.js', import.meta.url), 'utf8');
-  assert.equal(generated.split('var NubiBuiltins = ').length - 1, 8, 'one in front of each generated function');
+  assert.equal(generated.split('var NubiBuiltins = ').length - 1, (generated.match(/^export function /gm) || []).length, 'one in front of each generated function');
+  assert(generated.includes('export function pointerCover('), 'the covered-click helpers are generated too');
   const build = await readFile(new URL('../scripts/package.mjs', import.meta.url), 'utf8');
   assert.match(build, /playwright_utility_script_place_missing/);
   assert.match(build, /page_builtins_not_embeddable/);

@@ -73,7 +73,31 @@ export function collectPageContent() {
   if (!main) {
     try {
       const article = new Readability(clone.cloneNode(true), {charThreshold: 200, maxElemsToParse: 30000, disableJSONLD: true}).parse();
-      if (article?.textContent?.trim().length >= 200) {content = article.content; method = 'readability';}
+      // Readability looks for one article. On an information page it can take
+      // a note box and drop the tables that hold the answer. Measured on a
+      // library's weekly-hours page: it kept 267 of about 2,400 characters and
+      // none of the seven timetables. When it keeps less than half of the
+      // visible text and leaves out a data table, the smallest region that
+      // holds every data table is read too, so that menus around it do not fill
+      // the first window. What reading mode chose is never dropped: a region
+      // that already contains it is read alone, otherwise both are read.
+      const flat = value => String(value || '').replace(/\s+/g, ' ').trim();
+      const dataTables = [...clone.body.querySelectorAll('table')].filter(table => table.rows.length >= 2 && flat(table.textContent).length >= 20);
+      const keptTables = (String(article?.content || '').match(/<table\b/gi) || []).length;
+      const chosen = flat(article?.textContent);
+      const droppedAnswer = dataTables.length > keptTables && chosen.length < flat(clone.body.textContent).length / 2;
+      let region = droppedAnswer ? dataTables[0].parentElement : null;
+      while (region && region !== clone.body && !dataTables.every(table => region.contains(table))) region = region.parentElement;
+      if (droppedAnswer && region) {
+        const inside = !chosen || flat(region.textContent).includes(chosen.slice(0, 120));
+        if (inside && region !== clone.body) content = region;
+        else {
+          content = clone.createElement('div');
+          if (chosen.length >= 200) content.innerHTML = article.content;
+          content.append(region.cloneNode(true));
+        }
+        method = 'table_region';
+      } else if (chosen.length >= 200) {content = article.content; method = 'readability';}
     } catch { /* Keep the bounded visible-document fallback. */ }
   }
   const markdown = new TurndownService({headingStyle: 'atx', codeBlockStyle: 'fenced', bulletListMarker: '-', preformattedCode: true});

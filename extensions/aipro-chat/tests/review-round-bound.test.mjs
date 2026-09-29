@@ -52,7 +52,9 @@ const names = ['상품 3개 비교', '가격 제시', '배송비 제시', '용�
 const round = met => ({status: 'revise', next_step: '출처를 확인하세요.', checks: names.map((text, index) => check(text, index < met ? 'met' : 'unknown'))});
 
 test('four final reviews are the limit even when each one is slightly better', async () => {
-  const s = lookup([3, 4, 5, 6, 7].map(round));
+  // Every round meets most of the request (the host settles the no-purchase
+  // conduct), so each one is a correction.
+  const s = lookup([4, 5, 5, 6, 6].map(round));
   const result = await s.run;
   assert.equal(s.reviewed(), 4); assert.equal(result.reviewLimited, true);
   assert.match(result.content, /^후보 답변 4\n/); assert.match(result.content, /독립 검토를 4회/);
@@ -75,4 +77,30 @@ test('a run that changed the page is never released by the round limit', async (
   clearTimeout(guard);
   assert.equal(result.reviewLimited, undefined);
   assert(!/검증 완료가 아닙니다/.test(result.content || ''));
+});
+
+// Measured on a comparison of two sources: rounds met 1, 4, 1 and 5 requirements.
+// The rounds with one requirement met judged a text written in the middle of the
+// work, not an answer. At the fourth review the limit released the best candidate
+// "unverified", while its only open point was one unsupported figure.
+const finished = {status: 'complete', next_step: '', checks: names.map(text => ({requirement: text, status: 'met', evidence_ids: [1]}))};
+
+test('a text that is not yet an answer does not use up a correction', async () => {
+  const s = lookup([round(1), round(4), round(1), round(5), finished]);
+  const result = await s.run;
+  assert.equal(s.reviewed(), 5); assert.equal(result.reviewLimited, undefined);
+  assert.equal(result.content, '후보 답변 5');
+});
+
+test('six reviews are the limit however many of them judged no answer', async () => {
+  const s = lookup([round(1), round(4), round(1), round(5), round(1), round(6), finished]);
+  const result = await s.run;
+  assert.equal(s.reviewed(), 6); assert.equal(result.reviewLimited, true);
+  assert.match(result.content, /^후보 답변 6\n/); assert.match(result.content, /독립 검토를 6회/);
+});
+
+test('a run that keeps writing no answer still stops after two rounds without improvement', async () => {
+  const s = lookup([round(1), round(1), round(1), round(1)]);
+  const result = await s.run;
+  assert.equal(s.reviewed(), 3); assert.equal(result.reviewLimited, undefined); assert.equal(result.awaitingUser, true);
 });

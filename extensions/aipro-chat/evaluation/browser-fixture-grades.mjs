@@ -1,7 +1,8 @@
+import {workSheetTasks, workSheetDays, workSheetStart, mailListTarget} from './browser-fixtures.mjs';
 // Independent readback grading for fixed, deterministic fixture outcomes.
 // The executing model's answer, plan and self-review are never proof here.
 export function fixtureGrade(task, trial) {
-  if (task.environment !== 'local-fixture' || task.id !== trial.id || !['E-09', 'E-10', 'M-07', 'M-08'].includes(task.id)) return null;
+  if (task.environment !== 'local-fixture' || task.id !== trial.id || !['E-09', 'E-10', 'M-07', 'M-08', 'W-01', 'W-02'].includes(task.id)) return null;
   let start;
   try {start = new URL(trial.startUrl);} catch {return null;}
   if (start.protocol !== 'http:' || start.hostname !== '127.0.0.1' || start.pathname !== '/' + task.id ||
@@ -32,6 +33,24 @@ export function fixtureGrade(task, trial) {
     checks = [equal(top.modalOpen, true, 'actual open dialog'),
       check(type && email ? type.value === '온라인' && email.value === 'demo@example.test' : null, 'Actual attendance selection and conditional email value'),
       equal(field(top, f => ['현장메모', '현장메모기존현장안내'].includes(String(f.label || '').replace(/\s/g, '')))?.value, '기존 현장 안내', 'original onsite note'), submits(top)];
+  }
+  if (task.id === 'W-01') {
+    // Inputs in document order: one per task row and day.
+    const values = top.fields.map(field => field.value), cells = workSheetTasks.length * workSheetDays.length;
+    const row = workSheetTasks.indexOf('데이터 시스템 모니터링'), target = new Set([row * 7 + 2, row * 7 + 3]);
+    const expected = index => target.has(index) ? '4' : workSheetStart(Math.floor(index / 7), index % 7);
+    const applied = top.counters?.appliedValues;
+    checks = [check(values.length === cells ? values[row * 7 + 2] === '4' && values[row * 7 + 3] === '4' : null, `target cells: ${JSON.stringify([values[row * 7 + 2], values[row * 7 + 3]])}`),
+      check(values.length === cells ? values.every((value, index) => target.has(index) || value === expected(index)) : null, `other cells changed: ${values.filter((value, index) => !target.has(index) && value !== expected(index)).length}`),
+      check(Number.isInteger(top.counters?.applies) ? top.counters.applies === 1 && Array.isArray(applied) && applied.length === cells && applied.every((value, index) => value === expected(index)) : null,
+        `applies ${JSON.stringify(top.counters?.applies)}, values at apply ${Array.isArray(applied) ? applied.every((value, index) => value === expected(index)) ? 'as requested' : 'not as requested' : 'none'}`)];
+  }
+  if (task.id === 'W-02') {
+    const starred = top.counters?.starred, opened = top.counters?.opened;
+    const answer = String(trial.answer || '');
+    checks = [check(Array.isArray(starred) ? starred.length === 1 && starred[0] === mailListTarget : null, `starred rows: ${JSON.stringify(starred ?? null)}`),
+      check(Array.isArray(opened) ? opened.includes(mailListTarget) && opened.every(row => row === mailListTarget) : null, `opened rows: ${JSON.stringify(opened ?? null)}`),
+      check(answer ? /10월\s*15일/.test(answer) && /대강당/.test(answer) : null, 'The answer names 10월 15일 and 대강당 from the opened mail')];
   }
   if (!checks || checks.length !== task.checks.length) return null;
   return {id: task.id, grader: 'independent-fixture-readback-v1', checks: checks.map((result, index) => ({check: task.checks[index], ...result}))};

@@ -3,7 +3,8 @@
 // never change the run under measurement.
 import {contextTokens} from '../../../extensions/aipro-chat/context-manager.js';
 
-export const METRIC_PURPOSES = Object.freeze(['actor', 'planner', 'reviewer', 'summary', 'analysis', 'document']);
+// wiki_update: an OpenWiki update that the user approved, apart from any task.
+export const METRIC_PURPOSES = Object.freeze(['actor', 'planner', 'reviewer', 'summary', 'analysis', 'document', 'wiki_update']);
 export const METRIC_TRIGGERS = Object.freeze(['history', 'threshold', 'overflow']);
 export const METRIC_KINDS = Object.freeze(['metric_model', 'metric_tool', 'metric_compaction']);
 const RETENTION_MS = 30 * 24 * 60 * 60 * 1000;

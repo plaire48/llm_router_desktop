@@ -44,3 +44,52 @@ export function fieldUnchanged(task, entry, currentMark) {
   if (task.writtenFields?.has(entry.fieldKey)) return {passed: false, reason: 'field_written'};
   return known.first === currentMark ? {passed: true, compared: 'first_observation'} : {passed: false, reason: 'value_changed'};
 }
+// Marks of every field of a frame, taken with each observation (fieldMarks in
+// the page). The same record as above: the first mark of a place is its baseline.
+export function recordFieldMarks(task, scope, marks) {
+  task.fieldMarks ||= new Map();
+  if (typeof scope !== 'string' || !scope || !Array.isArray(marks)) return;
+  for (const [place, mark] of marks.slice(0, FIELD_MARK_LIMIT)) {
+    if (typeof place !== 'string' || !place || typeof mark !== 'string' || !MARK.test(mark)) continue;
+    const fieldKey = JSON.stringify([scope, place]), known = task.fieldMarks.get(fieldKey);
+    if (known) known.latest = mark;
+    else if (task.fieldMarks.size < FIELD_MARK_LIMIT) task.fieldMarks.set(fieldKey, {first: mark, latest: mark});
+  }
+}
+// Every field of the current frames against its first mark, except the fields an
+// action of this run aimed at. Only counts leave the host, never a value.
+export function fieldsUnchanged(task, frames) {
+  const counts = {kept: 0, changed: 0, written: 0, unobserved: 0, missing: 0}, seen = new Set();
+  for (const {scope, marks} of frames) for (const [place, mark] of marks) {
+    const fieldKey = JSON.stringify([scope, place]), known = task.fieldMarks?.get(fieldKey);
+    seen.add(fieldKey);
+    if (task.writtenFields?.has(fieldKey)) counts.written++;
+    else if (!known || typeof mark !== 'string' || !MARK.test(mark)) counts.unobserved++;
+    else if (known.first === mark) counts.kept++;
+    else counts.changed++;
+  }
+  const scopes = new Set(frames.map(frame => frame.scope));
+  for (const fieldKey of task.fieldMarks?.keys() || []) {
+    if (!seen.has(fieldKey) && !task.writtenFields?.has(fieldKey) && scopes.has(JSON.parse(fieldKey)[0])) counts.missing++;
+  }
+  const passed = counts.kept > 0 && counts.changed === 0 && counts.unobserved === 0 && counts.missing === 0;
+  return {passed, ...counts, compared: 'first_observation',
+    ...(passed ? {} : {reason: counts.changed ? 'value_changed' : counts.missing ? 'field_missing' : counts.unobserved ? 'baseline_missing' : 'no_fields'})};
+}
+// The approval of a final action is carried out by a new request, and a new
+// request starts a new browser task. Without this, the run after the approval had
+// no baseline and no record of the cells written before it, so "leave the other
+// cells alone" could not be shown after the final apply. Marks only, never values.
+export function fieldBaseline(task) {
+  if (!task.fieldMarks?.size) return undefined;
+  return {marks: [...task.fieldMarks].slice(0, FIELD_MARK_LIMIT).map(([fieldKey, mark]) => [fieldKey, mark.first]),
+    written: [...task.writtenFields || []].slice(0, FIELD_MARK_LIMIT)};
+}
+export function restoreFieldBaseline(task, baseline) {
+  if (task.fieldMarks?.size || !Array.isArray(baseline?.marks)) return;
+  task.fieldMarks = new Map();
+  for (const [fieldKey, first] of baseline.marks.slice(0, FIELD_MARK_LIMIT))
+    if (typeof fieldKey === 'string' && fieldKey.length <= 2000 && typeof first === 'string' && MARK.test(first)) task.fieldMarks.set(fieldKey, {first, latest: first});
+  const written = Array.isArray(baseline.written) ? baseline.written.filter(fieldKey => typeof fieldKey === 'string' && fieldKey.length <= 2000).slice(0, FIELD_MARK_LIMIT) : [];
+  if (written.length) task.writtenFields = new Set([...task.writtenFields || [], ...written]);
+}

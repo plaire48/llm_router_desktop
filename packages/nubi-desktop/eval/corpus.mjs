@@ -18,6 +18,8 @@ const packages=path.resolve(here,'..','..');
 export const CORPORA=Object.freeze({
   'openwiki-sds':{source:path.join(packages,'openwiki'),include:['src','openwiki','README.md','AGENTS.md','CONTRIBUTING.md','DEVELOPMENT.md','ENTERPRISE.md','CHANGELOG.md','package.json','tsconfig.json','evals/ledger/README.md','evals/deepswe/README.md']},
   'order-service':{source:path.join(here,'corpus-src','order-service'),include:['.']},
+  // Rules of the simulated expense app, for app control that acts on an OpenWiki answer.
+  'expense-office':{source:path.join(here,'corpus-src','expense-office'),include:['.']},
 });
 const IGNORED=new Set(['node_modules','dist','.git','.DS_Store']);
 const fail=code=>{throw new Error(code);};

@@ -64,3 +64,30 @@ test('application settings is preparation, while form submission and combined ac
  assert(approvalTarget(node('신청하고 설정')));
  assert(approvalTarget(node('설정 저장')));
 });
+
+// Reported from a company work system: its "최종 반영" button commits the week's
+// time sheet, and it was not treated as a final action.
+test('commit verbs of company work systems require approval, their menus do not', () => {
+  for (const [label, action] of [['최종 반영', '반영'], ['반영하기', '반영'], ['일괄 승인', '승인'], ['승인', '승인'], ['Approve', '승인'], ['확정', '확정'], ['결재', '결재'], ['결재 상신', '상신'], ['승인 요청', '상신']])
+    assert.equal(approvalTarget(node(label))?.action, action, label);
+  for (const label of ['승인 현황', '반영 이력', '결재 문서함', '확정 내역 보기', '승인 대기 목록']) assert.equal(approvalTarget(node(label)), null, label);
+  assert.deepEqual(approvalPresentation(approvalTarget(node('최종 반영'))), {buttonLabel: '최종 반영', text: '반영할까요?'});
+});
+
+// Measured on a mail app: opening a mail whose subject held an action word was
+// held for approval, and so was every retry with Enter.
+test('a link or a clickable row is an action only when its short caption ends with the verb', () => {
+  const as = selector => label => node(label, {matches: value => value.split(',').includes(selector)});
+  const link = as('a'), row = as('div'), item = as('li'), button = as('button');
+  for (const label of ['[인사] 10월 교육 신청 안내', '휴가 신청서 제출 요청 드립니다', '보낸사람41 업무 메일 제목 41 09/28', '회의실 예약 등록 확인 메일']) {
+    assert.equal(approvalTarget(link(label)), null, label); assert.equal(approvalTarget(row(label)), null, label); assert.equal(approvalTarget(item(label)), null, label);
+    assert.equal(approvalTarget(link(label), {method: 'press', key: 'Enter'}), null, `Enter on ${label}`);
+  }
+  for (const [label, action] of [['삭제', '삭제'], ['신청하기', '신청'], ['신청 내역 삭제', '삭제'], ['최종 반영', '반영']]) {
+    assert.equal(approvalTarget(link(label))?.action, action, label); assert.equal(approvalTarget(row(label))?.action, action, label);
+  }
+  // A long row caption that ends with a verb still describes the row.
+  assert.equal(approvalTarget(row('9월 22일 인사팀 공지 교육 참가자 명단 등록')), null);
+  // Buttons keep the full rule.
+  for (const label of ['초안 저장 후 게시', '휴가 신청서 제출', '등록 후 목록 보기']) assert(approvalTarget(button(label)), label);
+});

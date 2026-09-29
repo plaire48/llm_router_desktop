@@ -106,9 +106,12 @@ try{
   check('a full-screen nested scroller is not silently wheeled by an unspecified document request');
   const stale=await run('scroll_page',{direction:'down',ref:area.ref});assert(stale.error);check('stale scroll refs cannot operate another area after observations change');
   await page.evaluate(()=>document.body.style.height='50000px');
-  const huge=await run('capture_page');assert.equal(huge.error,'capture_too_large');assert(huge.observation);
+  // A document too large for one image is captured whole, joined from sections
+  // and reduced to fit; a viewport section remains available at full size.
+  const huge=await run('capture_page');assert(!huge.error,JSON.stringify({error:huge.error}));assert.equal(huge.capture_mode,'page');
+  assert(huge.image_scale>0&&huge.image_scale<1,String(huge.image_scale));assert(huge.observation);assert.equal(huge.coverage.scope,'rendered_document');
   const fallback=await run('capture_page',{full_page:false});assert(!fallback.error);assert.equal(fallback.coverage.scope,'viewport');
-  check('oversized document returns fresh recovery evidence and a viewport section remains available');
+  check('oversized document is captured whole at a reduced size and a viewport section remains available');
   await worker.evaluate(()=>coverageTestHost.stopBrowserAgent('coverage-test'));
   const cancelled=await run('scroll_page',{direction:'down'});assert.equal(cancelled.error,'cancelled');
   check('stopped capture workflow cannot resume scrolling');

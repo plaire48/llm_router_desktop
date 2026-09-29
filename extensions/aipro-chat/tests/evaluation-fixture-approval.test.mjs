@@ -11,3 +11,11 @@ test('fixture upload approval excludes submission and unrelated files',()=>{
   const x=sample();x.taskId='H-09';x.pageUrl=x.origin+'/H-09';x.record.operation={method:'upload',files:[{name:'training.txt'}]};assert(allowed(x));
   x.record.operation.method='click';assert(!allowed(x));x.record.operation.method='upload';x.record.operation.files.push({name:'private.txt'});assert(!allowed(x));
 });
+test('the work sheet operator approves only its final apply click', () => {
+  const x = sample(); x.taskId = 'W-01'; x.pageUrl = x.origin + '/W-01'; x.record.operation = {method: 'click'}; x.record.action = '반영';
+  assert(allowed(x));
+  for (const change of [record => {record.action = '제출';}, record => {record.operation = {method: 'upload', files: [{name: 'training.txt'}]};}, record => {record.operation = {method: 'download', url: x.origin + '/training.txt'};}]) {
+    const y = structuredClone(x); change(y.record); assert(!allowed(y));
+  }
+  const other = structuredClone(x); other.pageUrl = x.origin + '/M-08'; assert(!allowed(other));
+});

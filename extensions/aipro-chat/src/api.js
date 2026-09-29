@@ -281,6 +281,11 @@ export async function completeChat(request, signal, onText = () => {}, onUsage =
   const scopeUserHistory = request.messages.filter(message => message.role === 'user' && !message.contextOnly)
     .map(message => requestMessageText(message.content)).filter(Boolean);
   let scopeReviews = 0;
+  // A model that cannot follow the audit's reply format failed it again and
+  // again, two model calls each time, and a failed audit leaves the review as
+  // it is anyway. After two failures in a row this run stops asking for it.
+  let scopeFailuresInRow = 0;
+  const SCOPE_FAILURE_LIMIT = 2;
   const context = createRunContext({model: contextModel, tools: contextTools, goal,
     // A short initial history may only need compaction after tool work grows.
     // Prepare bounded original-request anchors even when no history summary
@@ -415,7 +420,9 @@ export async function completeChat(request, signal, onText = () => {}, onUsage =
         // This host hint can only come from a separately validated audit, not
         // an extra field authored by the outcome reviewer itself.
         delete review.correctionTarget; delete review.scopeCorrection;
-        if (review.status !== 'complete') {
+        if (review.status !== 'complete' && scopeFailuresInRow >= SCOPE_FAILURE_LIMIT) {
+          try {Promise.resolve(host.onAgentDiagnostic?.({kind: 'agent', phase: 'scope_review', scope: evidence.phase || 'final', decision: 'unknown', correctionTarget: 'unknown', corrected: false, reason: 'scope_skipped'})).catch(() => {});} catch { /* Diagnostic only. */ }
+        } else if (review.status !== 'complete') {
           const scopeIndex = `scope-review-${++scopeReviews}`;
           const phase = evidence.phase || 'final';
           let scopeStarted = false;
@@ -459,6 +466,7 @@ export async function completeChat(request, signal, onText = () => {}, onUsage =
             // failed browser action to later label as recovered.
             onStep({index: scopeIndex, tool: 'recover_model', status: 'done',
               label: audit.decision === 'unknown' ? '검토 범위 미확인' : '검토 범위 확인'});
+            scopeFailuresInRow = 0;
           } catch (error) {
             const interrupted = signal.aborted || error.message === 'cancelled';
             const authentication = ['no_credential', 'expired_token', 'unauthorized', 'forbidden', 'fabrix_credentials'].includes(error.message);
@@ -467,6 +475,7 @@ export async function completeChat(request, signal, onText = () => {}, onUsage =
             onStep({index: scopeIndex, tool: 'recover_model', status: interrupted ? 'cancelled' : 'error',
               label: error.scopeReason === 'scope_context_budget' ? '검토 범위 입력 한도' : error.scopeReason ? '검토 범위 형식 미확인' : scopeStarted ? '검토 범위 응답 미확인' : '검토 범위 미확인'});
             if (interrupted || authentication) throw error;
+            if (error.scopeReason !== 'scope_context_budget') scopeFailuresInRow++;
             // No scope result is safer than silently weakening a noncomplete
             // review. Preserve it; the existing recovery/question path remains.
           } finally {

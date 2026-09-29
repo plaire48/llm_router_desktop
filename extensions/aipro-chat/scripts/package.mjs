@@ -169,6 +169,16 @@ await writeFile('GUIDE.md', helpMarkdown());
 await copyFile('GUIDE.md', 'dist/GUIDE.md');
 await copyFile('node_modules/@e2e/cx-design-system/THIRD-PARTY-NOTICES.md', 'dist/THIRD-PARTY-NOTICES.md');
 await copyFile('THIRD-PARTY-AGENT-NOTICES.md', 'dist/THIRD-PARTY-AGENT-NOTICES.md');
+// Every relative module a packaged script imports must be packaged too. A module
+// that exists only inside another bundle (context-evidence.js) was imported by
+// browser-agent.js once, and the service worker never started.
+const unresolved = [];
+for (const file of (await readdir(resolve(root, 'dist'))).filter(name => name.endsWith('.js'))) {
+  const text = await readFile(resolve(root, 'dist', file), 'utf8');
+  for (const [, target] of text.matchAll(/(?:\bimport|\bexport)\s*(?:[^'";]*?\bfrom\s*)?['"](\.\/[^'"]+)['"]/g))
+    if (!await readFile(resolve(root, 'dist', target)).then(() => true, () => false)) unresolved.push(`${file} -> ${target}`);
+}
+if (unresolved.length) throw new Error(`Packaged modules import missing files:\n${unresolved.join('\n')}`);
 // Candidate checks must never replace an already published version's archive.
 const candidate = process.argv.includes('--candidate');
 const outputDirectory = candidate ? 'verification/candidate' : 'releases';

@@ -1,5 +1,6 @@
 import {canonicalJSON} from './canonical-json.js';
 import {textDigest} from './browser-text.js';
+import {fieldBaseline} from './field-marks.js';
 
 // Static DOM inspection only. The model cannot issue grants or choose a
 // stored selector: approvals bind to an actual node in an isolated world.
@@ -27,7 +28,22 @@ export function approvalTarget(el, operation = {}) {
   const editable = el.isContentEditable || el.matches('textarea,input:not([type=submit]):not([type=button]):not([type=image])');
   // The last Korean action is the verb: "신청 내역 삭제" means deletion,
   // while "삭제 신청" means application. English captions put it first.
-  const action = !editable && (actions.find(([, pattern]) => new RegExp(`(?:${pattern.source})(?:하기)?$`, 'i').test(label)) || actions.find(([, pattern]) => pattern.test(label)));
+  // Company work systems commit with these verbs. Only as the last word: "최종
+  // 반영" and "일괄 승인" act, while menus such as "승인 현황" and "반영 이력" open
+  // a list. Reported from a work system whose "최종 반영" was not recognized.
+  const endOnly = [['반영', /반영/], ['승인', /승인|approve/i], ['확정', /확정|finali[sz]e/i], ['결재', /결재/], ['상신', /상신|(?:승인|결재|반영)\s*요청/]];
+  // A link or a clickable row opens something; its words describe it. Measured
+  // on a mail app: a mail whose subject held "신청" was taken for a final
+  // action, the click was held for approval and draft verification, and every
+  // retry (a fresh ref, then Enter) was held the same way. For these, only a
+  // short caption that ends with the verb ("삭제", "신청하기") is an action.
+  // Buttons keep the full rule, so "초안 저장 후 게시" still needs approval.
+  const buttonLike = control.matches('button,[role="button"],input[type="submit"],input[type="button"],input[type="image"],[role="menuitem"]');
+  const opener = !buttonLike && control.matches('a,[role="link"],[role="row"],[role="gridcell"],[role="option"],[role="listitem"],[role="treeitem"],li,tr,td,div,span,article,section');
+  const ending = ([, pattern]) => new RegExp(`(?:${pattern.source})(?:하기)?$`, 'i').test(label);
+  const action = !editable && (opener
+    ? label.length <= 20 && [...actions, ...endOnly].find(ending)
+    : [...actions, ...endOnly].find(ending) || actions.find(([, pattern]) => pattern.test(label)));
   if (action) return {label, action: action[0]};
   // A search Enter is navigation, not a final business submission. Require
   // observed GET/search semantics and a search input, never a caption alone.
@@ -58,7 +74,7 @@ export function approvalPresentation(record) {
   const action = record.action || '실행';
   // A keyboard shortcut acts on a field; its label is not the command name.
   return {buttonLabel: !['press','upload','download'].includes(record.operation?.method) && label && label.length <= 32 ? label : action,
-    text: /^(?:배포|게시|발송|등록|제출|신청|삭제|결제|저장|실행|업로드|다운로드)$/.test(action) ? `${action}할까요?` : '이 동작을 실행할까요?'};
+    text: /^(?:배포|게시|발송|등록|제출|신청|삭제|결제|저장|반영|승인|확정|결재|상신|실행|업로드|다운로드)$/.test(action) ? `${action}할까요?` : '이 동작을 실행할까요?'};
 }
 
 function pageApproval({nonce, mode}) {
@@ -116,7 +132,7 @@ export async function prepareApproval(task, handle, operation, details, summary 
   if(operation.method==='upload')preview.unshift({label:'선택 파일',editable:false,value:operation.files.map(f=>`${f.name} (${f.bytes} bytes)`).join(', ').slice(0,240)},{label:'업로드 대상',editable:false,value:details.label});
   return {nonce,tabId:task.tabId,documentId:target[0].documentId,digest:await fingerprint(rows,operation),operation,expiresAt:Date.now()+600000,
     action:details.action,label:details.label,pageTitle:String(top?.title||'').slice(0,180),preview,hasEditableDraft:rows.some(row=>row.result?.data.fields.some(field=>field.editable)),summary:String(summary||'').slice(0,240),
-    afterActions:(task.actionRevision||0)!==(task.approvalBaseRevision||0)};
+    afterActions:(task.actionRevision||0)!==(task.approvalBaseRevision||0),...(fieldBaseline(task)?{fieldBaseline:fieldBaseline(task)}:{})};
 }
 export async function clearApproval(record) {if(record)await collect(record.tabId,record.nonce,'clear').catch(()=>{});}
 const changedApproval = reason => Object.assign(new Error('approval_changed'), {reason});

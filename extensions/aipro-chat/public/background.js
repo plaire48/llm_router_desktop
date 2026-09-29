@@ -1076,7 +1076,7 @@ async function handle(message, sender, owner) {
         const observedBefore=browserAgentObservation(chatLease.id);
         const reconciliation=await reconciliationProof(executionName,executionArgs||{},observedBefore);
         await checkpointTool(chatLease.id, message.name, 'start',MUTATING_TOOLS.has(message.name)?{reconciliation:reconciliation||{version:2,unverifiable:true}}:undefined);
-        const {result, tabId} = await runBrowserAgent(chatLease.id, {...page, browserContext: chatLease.browserContext}, executionName, executionArgs, {vision: chatLease.vision, uploadFiles:availableFiles,
+        const {result, tabId} = await runBrowserAgent(chatLease.id, {...page, browserContext: chatLease.browserContext}, executionName, executionArgs, {vision: chatLease.vision, hint: typeof beforeTool?.task?.goal === 'string' ? beforeTool.task.goal : undefined, uploadFiles:availableFiles,
           onNativeDialog: (details,signal) => nativeDialogRequests.ask(chatLease,details,signal),
           onApproval: record => saveActionApproval(chatLease, record, verifiedBeforeTool),
           onCapture: (screenshot, image) => attachCapture(chatLease, screenshot, image, saveCapture, message.traceId),

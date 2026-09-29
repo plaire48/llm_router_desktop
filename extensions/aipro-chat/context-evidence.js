@@ -127,8 +127,8 @@ export function clearSupersededElements(wire) {
     let removed = 0;
     const frames = observation.frames.map(frame => {
       if (!Array.isArray(frame?.elements) || JSON.stringify(frame.elements).length < 2048) return frame;
-      const {elements, ...rest} = frame; removed += elements.length;
-      return {...readingAids(rest), elementsCleared: {count: elements.length, reason: 'superseded_observation'}};
+      const {elements, ...rest} = frame; removed += elementCount(elements);
+      return {...readingAids(rest), elementsCleared: {count: elementCount(elements), reason: 'superseded_observation'}};
     });
     if (!removed) continue;
     const cleared = {...observation, frames, elementsNotice: 'Element refs of this older observation were released by later observations and are omitted, with the offsets and instructions for reading that page further. Text, headings, tables, state and receipts above are unchanged. Use the latest observation for refs; omitted elements are not proof of absence.'};
@@ -140,11 +140,12 @@ export function clearSupersededElements(wire) {
 // Model-facing encoding only; host refs, evidence and review input keep the
 // complete descriptors. Every omitted field has the single default stated in
 // elementDefaults, so no observed state is lost. Applying it twice is a no-op.
-export const ELEMENT_DEFAULTS = 'Each element is one line: [ref] role "name" -> link destination {flags} in ancestors +{other fields as JSON}. Use the text inside [ ] exactly as ref. A second quoted text after aka is the accessible name when it differs. kind follows role after / when it differs. Absent flags mean: enabled, optional, editable state unknown unless shown, valid, inside the viewport. in lists ancestors nearest first. tag is given only when unusual for the role.';
+export const ELEMENT_DEFAULTS = 'Elements are grouped: a line "in <ancestors>:" names the ancestors, nearest first, that the element lines under it share, until the next such line; "in page:" means none; (words) after an ancestor are state words from its class names, only a hint. Each element is one line: [ref] role "name" -> link destination {flags} +{other fields as JSON}. Use the text inside [ ] exactly as ref. A second quoted text after aka is the accessible name when it differs and is not empty. kind follows role after / when it differs; a textbox, searchbox, combobox or spinbutton is a field, another element with a role a control. A checked or pressed state is given as checked or pressed only; stateSource is given when not native; not-editable is not given for checkboxes and radios. Absent flags mean: enabled, optional, editable state unknown unless shown, valid, inside the viewport. validation is given only when not valid; type only when it differs from the role (text for a textbox); tag only when unusual for the role.';
 export const ELEMENT_OMISSIONS = 'Omitted element fields have these defaults: accessibleName=name, type="", disabled/required/readonly/invalid=false, inViewport=true.';
 const quoted = value => JSON.stringify(String(value));
-// The observation the next action uses keeps every key, so a ref, role, kind or
-// context is read exactly as before; only fields at their default are left out.
+// A small latest observation keeps keyed objects: every key is read exactly, and
+// only fields at their default are left out. A large one (more than 80 controls)
+// is written in grouped lines instead, where the saving matters.
 const keyedElement = element => {
   if (!element || typeof element !== 'object' || Array.isArray(element)) return element;
   const {accessibleName, type, disabled, required, readonly, invalid, inViewport, ...rest} = element;
@@ -157,22 +158,53 @@ const keyedElement = element => {
     ...(invalid !== undefined && invalid !== false ? {invalid} : {}),
     ...(inViewport !== undefined && inViewport !== true ? {inViewport} : {})};
 };
-const compactElement = element => {
+const GROUPED_LATEST = 80;
+const validContext = context => context === undefined || Array.isArray(context) && context.every(item => item && typeof item === 'object' && typeof item.role === 'string' &&
+  Object.keys(item).every(key => key === 'role' || key === 'name' || key === 'state' && Array.isArray(item.state) && item.state.every(word => /^[a-z]{1,16}$/.test(word))));
+const contextText = context => context.map(item => `${item.name ? `${item.role} ${quoted(item.name)}` : item.role}${item.state?.length ? ` (${item.state.join(',')})` : ''}`).join(' < ');
+const compactElement = (element, withContext = true) => {
   if (!element || typeof element !== 'object' || Array.isArray(element) || typeof element.ref !== 'string' || /[\[\]\s]/.test(element.ref)) return element;
-  const {ref, name, accessibleName, role, kind, tag, type, destination, disabled, required, readonly, invalid, inViewport, focused, editable, context, ...rest} = element;
-  if (context !== undefined && !(Array.isArray(context) && context.every(item => item && typeof item === 'object' && typeof item.role === 'string' &&
-      Object.keys(item).every(key => key === 'role' || key === 'name')))) return element;
-  const flags = [focused === true && 'focused', editable === true && 'editable', editable === false && 'not-editable', disabled === true && 'disabled', required === true && 'required',
+  const {ref, name, accessibleName, role, kind, tag, type, destination, disabled, required, readonly, invalid, inViewport, focused, editable, context, validation, ...rest} = element;
+  if (!validContext(context)) return element;
+  // Defaults stated in elementDefaults: a valid field, a field kind for a text
+  // role, a type that repeats the role, an empty accessible name.
+  const plainValid = validation && typeof validation === 'object' && validation.valid === true && (!Array.isArray(validation.issues) || !validation.issues.length);
+  if (validation !== undefined && !plainValid) rest.validation = validation;
+  const fieldRole = ['textbox', 'searchbox', 'combobox', 'spinbutton'].includes(role) && kind === 'field';
+  const sameType = type === role || type === 'text' && role === 'textbox' || type === 'search' && role === 'searchbox';
+  // A checked or pressed state is given once, under its own name.
+  if (['checked', 'pressed'].includes(rest.stateKind) && Object.hasOwn(rest, rest.stateKind) && rest.state === rest[rest.stateKind]) {
+    delete rest.state; delete rest.stateKind;
+    if (rest.stateSource === 'native' || rest.stateSource === `aria-${Object.keys(rest).find(key => ['checked', 'pressed'].includes(key))}`) delete rest.stateSource;
+  }
+  const toggle = ['checkbox', 'radio', 'switch'].includes(role);
+  const flags = [focused === true && 'focused', editable === true && 'editable', editable === false && !['checkbox', 'radio', 'switch'].includes(role) && 'not-editable', disabled === true && 'disabled', required === true && 'required',
     readonly === true && 'readonly', invalid === true && 'invalid', inViewport === false && 'offscreen'].filter(Boolean);
   const usual = {link: ['a'], button: ['button'], textbox: ['input', 'textarea'], searchbox: ['input'], combobox: ['input', 'select'], checkbox: ['input'], radio: ['input'], listbox: ['select']}[role];
-  const other = {...rest, ...(tag !== undefined && tag !== role && !usual?.includes(tag) ? {tag} : {}), ...(type ? {type} : {})};
-  return [`[${ref}]`, `${role ?? ''}${kind !== undefined && kind !== role ? `/${kind}` : ''}`, quoted(name ?? ''),
-    ...(accessibleName !== undefined && accessibleName !== name ? ['aka', quoted(accessibleName)] : []),
+  const other = {...rest, ...(tag !== undefined && tag !== role && !usual?.includes(tag) ? {tag} : {}), ...(type && !sameType ? {type} : {})};
+  return [`[${ref}]`, `${role ?? ''}${kind !== undefined && kind !== role && !fieldRole && !(role && kind === 'control') && !(toggle && kind === 'toggle') ? `/${kind}` : ''}`, quoted(name ?? ''),
+    ...(accessibleName && accessibleName !== name ? ['aka', quoted(accessibleName)] : []),
     ...(destination ? ['->', String(destination)] : []),
     ...(flags.length ? [`{${flags.join(',')}}`] : []),
-    ...(context?.length ? ['in', context.map(item => item.name ? `${item.role} ${quoted(item.name)}` : item.role).join(' < ')] : []),
+    ...(withContext && context?.length ? ['in', contextText(context)] : []),
     ...(Object.keys(other).length ? [`+${JSON.stringify(other)}`] : [])].join(' ');
 };
+// Controls that share their ancestors are listed under one line naming them, so
+// a table row, a mail item or a form is written once, not on each of its
+// controls. Measured on a 30-row time sheet: 88 tokens per control as keyed
+// objects, 39 grouped. An element that cannot be written as a line stays whole.
+const groupedElements = elements => {
+  const lines = []; let current;
+  for (const element of elements) {
+    const line = compactElement(element, false);
+    if (typeof line !== 'string' || line === element) {lines.push(line); current = undefined; continue;}
+    const header = element.context?.length ? `in ${contextText(element.context)}:` : 'in page:';
+    if (header !== current) {lines.push(header); current = header;}
+    lines.push(line);
+  }
+  return lines;
+};
+const elementCount = elements => elements.filter(element => typeof element !== 'string' || element.startsWith('[')).length;
 // Inverse of the one-line encoding, for diagnostics and tests that inspect what
 // a model or reviewer was shown. Returns null for anything that is not a line.
 export function parseElementLine(line) {
@@ -182,8 +214,9 @@ export function parseElementLine(line) {
   let rest = line.slice(match[0].length), other = {};
   const tail = rest.lastIndexOf(' +{');
   if (tail >= 0) {try {other = JSON.parse(rest.slice(tail + 2)); rest = rest.slice(0, tail);} catch {return null;}}
+  // An omitted kind reads as field for a text role and as the role otherwise.
   const [role, kind] = match[2].split('/');
-  const element = {ref: match[1], name: JSON.parse(match[3]), role, kind: kind || role, ...other};
+  const element = {ref: match[1], name: JSON.parse(match[3]), role, kind: kind || (['textbox', 'searchbox', 'combobox', 'spinbutton'].includes(role) ? 'field' : role), ...other};
   const aka = /^ aka ("(?:[^"\\]|\\.)*")/.exec(rest);
   if (aka) {element.accessibleName = JSON.parse(aka[1]); rest = rest.slice(aka[0].length);}
   const destination = /^ -> (\S+)/.exec(rest);
@@ -206,7 +239,7 @@ const encodeObservation = (result, encode, note) => {
   const observation = result?.observation || result;
   if (!result || typeof result !== 'object' || !Array.isArray(observation?.frames) || observation.elementDefaults ||
       !observation.frames.some(frame => Array.isArray(frame?.elements) && frame.elements.length)) return result;
-  const frames = observation.frames.map(frame => Array.isArray(frame?.elements) && frame.elements.length ? {...frame, elements: frame.elements.map(encode)} : frame);
+  const frames = observation.frames.map(frame => Array.isArray(frame?.elements) && frame.elements.length ? {...frame, elements: encode(frame.elements)} : frame);
   const compact = {...observation, frames, elementDefaults: note};
   return result.observation ? {...result, observation: compact} : compact;
 };
@@ -233,17 +266,21 @@ const hoistFrameNotes = result => {
 };
 // The same encoding for one tool result object, used for the reviewer's copy.
 export function compactObservationResult(result) {
-  return encodeObservation(result, compactElement, ELEMENT_DEFAULTS);
+  return encodeObservation(result, groupedElements, ELEMENT_DEFAULTS);
 }
-// Model-facing only. The latest observation is the one the next action reads:
-// it keeps keyed objects. Earlier ones are reference and use one line each.
+// Model-facing only. Earlier observations list their controls in grouped lines.
+// The latest one, which the next action reads, keeps keyed objects unless it has
+// more than 80 controls; then it is grouped too (a 30-row time sheet: 88 tokens
+// per control as keyed objects, 46 grouped).
 export function compactObservationElements(wire) {
   const latest = wire.findLastIndex(message => message.role === 'tool' && typeof message.content === 'string' && message.content.includes('"elements":[{'));
   let changed = false;
   const next = wire.map((message, index) => {
     if (message.role !== 'tool' || typeof message.content !== 'string' || message.content.length < 4096 || !message.content.includes('"frames":[')) return message;
-    const result = parse(message.content);
-    const encoded = hoistFrameNotes(index === latest ? encodeObservation(result, keyedElement, ELEMENT_OMISSIONS) : encodeObservation(result, compactElement, ELEMENT_DEFAULTS));
+    const result = parse(message.content), observation = result?.observation || result;
+    const controls = Array.isArray(observation?.frames) ? observation.frames.reduce((sum, frame) => sum + (Array.isArray(frame?.elements) ? frame.elements.length : 0), 0) : 0;
+    const keyed = index === latest && controls <= GROUPED_LATEST;
+    const encoded = hoistFrameNotes(keyed ? encodeObservation(result, elements => elements.map(keyedElement), ELEMENT_OMISSIONS) : encodeObservation(result, groupedElements, ELEMENT_DEFAULTS));
     if (!encoded || encoded === result) return message;
     const content = JSON.stringify(encoded);
     if (content.length >= message.content.length) return message;

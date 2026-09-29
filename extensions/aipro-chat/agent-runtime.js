@@ -184,7 +184,7 @@ export function progressTools(tools, stepwise, {compact = false} = {}) {
 
 // Measured over 75 runs: 45 of the 47 answers that passed their review did so
 // within three revisions, and no run passed after four stage revisions in a row.
-const FINAL_REVIEW_STALL = 2, FINAL_REVIEW_LIMIT = 4, STAGE_REVIEW_LIMIT = 4, LOOKUP_CHECKPOINT_ACTIONS = 15;
+const FINAL_REVIEW_STALL = 2, FINAL_REVIEW_LIMIT = 4, FINAL_REVIEW_TOTAL = 6, STAGE_REVIEW_LIMIT = 4, LOOKUP_CHECKPOINT_ACTIONS = 15;
 const STAGE_READING_TOOLS = new Set(['navigate_page', 'switch_tab', 'go_back']);
 // How many pages that the run has left keep their observed text for the review.
 const KEPT_PAGE_TEXTS = 6;
@@ -279,7 +279,7 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
   // revision without limit, so a lookup whose review keeps naming another gap
   // ran until the caller gave up and the user received nothing. Two rounds
   // without a better reviewed candidate, or four rounds, end the loop.
-  let finalReviewRounds = 0, finalReviewStall = 0, bestReviewed, stageReviews;
+  let finalReviewRounds = 0, finalReviewTotal = 0, finalReviewStall = 0, bestReviewed, stageReviews;
   const readRepairAttempts = new Set();
   // One technical verification diagnosis per actual user revision. Neither
   // changing DOM, plan wording nor a new worker ID renews this opportunity.
@@ -449,7 +449,7 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
     // the real user correction. Never turn this into transaction approval.
     clarification = undefined; previousReviewProgress = undefined; previousReviewAnswer = undefined;
     finalReviewCorrections.clear(); answerCorrectionPlan = undefined; answerOnlyRepair = false;
-    finalReviewRounds = 0; finalReviewStall = 0; bestReviewed = undefined; stageReviews = undefined;
+    finalReviewRounds = 0; finalReviewTotal = 0; finalReviewStall = 0; bestReviewed = undefined; stageReviews = undefined;
     onRound();
     return true;
   };
@@ -1296,7 +1296,17 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
         } else if (!pendingStep) stageReviews = undefined;
         const stageSpent = stageReviews?.rounds >= STAGE_REVIEW_LIMIT && !awaitingUser && !clarification;
         if (bounded) {
-          finalReviewRounds++;
+          // A lookup sends every text to this review, also one written in the
+          // middle of the work. Measured on a comparison of two sources: two of
+          // four rounds judged such a text (only the read-only conduct met, the
+          // rest open), and the one deletion that the real answer needed was
+          // never made. Only a round whose candidate meets most of the request,
+          // the same bar as a limited release, is a correction; all rounds
+          // together have their own limit. The stall count below is unchanged,
+          // so a run that keeps writing no answer still stops after two rounds
+          // without improvement.
+          finalReviewTotal++;
+          if (met > unresolved) finalReviewRounds++;
           const better = !bestReviewed || met > bestReviewed.met || met === bestReviewed.met && unresolved < bestReviewed.unresolved;
           // Among equally reviewed candidates the latest one is kept: it went through more corrections.
           if (better || met === bestReviewed.met && unresolved === bestReviewed.unresolved) bestReviewed = {content: candidateAnswer, checks, met, unresolved, opinion: String(review.next_step || '')};
@@ -1304,19 +1314,19 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
         }
         // The round limit holds whether or not new evidence arrived. The stall
         // limit applies to rounds with new evidence; rounds without it have their own repairs below.
-        if (bounded && !awaitingUser && !clarification && (finalReviewRounds >= FINAL_REVIEW_LIMIT ||
+        if (bounded && !awaitingUser && !clarification && (finalReviewRounds >= FINAL_REVIEW_LIMIT || finalReviewTotal >= FINAL_REVIEW_TOTAL ||
             (progress !== previousReviewProgress || narrowed) && finalReviewStall >= FINAL_REVIEW_STALL)) {
           if (bestReviewed.met >= 2 && bestReviewed.met > bestReviewed.unresolved) {
             // The best reviewed candidate is released as unverified with every
             // open check and the reviewer's opinion. Never a passed review, and
             // never after a page write: lookupRun() excludes those runs.
-            answer = {...answer, content: `${bestReviewed.content}\n\n---\n${limitedReviewNote(bestReviewed, finalReviewRounds)}`, reviewLimited: true};
+            answer = {...answer, content: `${bestReviewed.content}\n\n---\n${limitedReviewNote(bestReviewed, finalReviewTotal)}`, reviewLimited: true};
             onStep({index, tool: 'review_task', status: 'done', reason: 'review_limited_answer'});
             break;
           }
           if (!tools.some(tool => tool.function.name === 'ask_user')) throw Object.assign(new Error('goal_review_failed'), {suppressPartial: true});
           clarification = {args: {question: '여러 번 다시 확인했지만 요청한 조건을 모두 충족하는 결과를 만들지 못했습니다. 계속 확인할까요?', choices: [{label: '계속 확인'}, {label: '중지'}]}, sent: false};
-          finalReviewRounds = 0; finalReviewStall = 0;
+          finalReviewRounds = 0; finalReviewTotal = 0; finalReviewStall = 0;
         } else if (stageSpent) {
           if (!tools.some(tool => tool.function.name === 'ask_user')) throw Object.assign(new Error('goal_review_failed'), {suppressPartial: true});
           clarification = {args: {question: `다음 단계를 ${stageReviews.rounds}번 확인했지만 결과를 검증하지 못했습니다: ${reviewLine(pendingStep.text).slice(0, 120)}. 계속 확인할까요?`, choices: [{label: '계속 확인'}, {label: '중지'}]}, sent: false};
@@ -1361,7 +1371,7 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
             // Every repair of this ladder is spent and the review still names a
             // gap. A lookup whose best candidate met most checks is released
             // with that gap stated, instead of a question without an answer.
-            answer = {...answer, content: `${bestReviewed.content}\n\n---\n${limitedReviewNote(bestReviewed, finalReviewRounds)}`, reviewLimited: true};
+            answer = {...answer, content: `${bestReviewed.content}\n\n---\n${limitedReviewNote(bestReviewed, finalReviewTotal)}`, reviewLimited: true};
             onStep({index, tool: 'review_task', status: 'done', reason: 'review_limited_answer'});
             break;
           } else if (tools.some(tool => tool.function.name === 'ask_user')) {

@@ -488,7 +488,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
               const r = actionApprovals?.[id];
               if (!r) return null;
               const tab = await chrome.tabs.get(r.tabId);
-              return {questionId:r.questionId,conversationId:r.conversationId,operation:r.operation,pageUrl:tab.url};
+              return {questionId:r.questionId,conversationId:r.conversationId,operation:r.operation,action:r.action,pageUrl:tab.url};
             }, current.chat.sessionId);
             if (fixtureApprovalAllowed({enabled:true,taskId:task.id,origin:fixtures.origin,question:last.question,
               record,conversationId:current.chat.sessionId,pageUrl:record?.pageUrl})) {

@@ -46,31 +46,104 @@ export function clickTarget(el) {
     return true;
   }) || el;
 }
+// What a pointer at (x, y) would press: the nearest control or handler around
+// the element hit there. A label of the target is reported as that label.
+function hitAt(el, hitRoot, x, y) {
+  let hit = hitRoot.elementFromPoint(x, y);
+  while (hit?.shadowRoot?.elementFromPoint) {
+    const child = hit.shadowRoot.elementFromPoint(x, y);
+    if (!child || child === hit) break;
+    hit = child;
+  }
+  let node = hit;
+  while (node && node !== el && !node.matches?.(`${controls},${handlers}`) && !(node.localName === 'label' && node.control === el)) node = parent(node);
+  return {hit, owner: node || null};
+}
+// Points of each visible box of the target (or of `near`), middle first. The
+// points near the ends reach the sender of a mail row when tools shown on hover
+// cover its middle.
+function* pointSamples(el, near = el) {
+  const root = el.getRootNode(), hitRoot = typeof root.elementFromPoint === 'function' ? root : el.ownerDocument;
+  for (const rect of [...near.getClientRects()].slice(0, 32)) {
+    const left = Math.max(0, rect.left), top = Math.max(0, rect.top);
+    const right = Math.min(innerWidth, rect.right), bottom = Math.min(innerHeight, rect.bottom);
+    if (right - left < 2 || bottom - top < 2) continue;
+    for (const [rx, ry] of [[.5,.5],[.25,.5],[.75,.5],[.5,.25],[.5,.75],[.1,.5],[.9,.5]]) {
+      const x = left + (right-left)*rx, y = top + (bottom-top)*ry;
+      yield {x, y, ...hitAt(el, hitRoot, x, y)};
+    }
+  }
+}
 // A wrapped inline link can have several hit areas. Playwright normally uses
 // its first quad; a cover over that line must not hide a clear second line.
 // Return an element-relative position only when live hit testing reaches this
 // exact target. Playwright still performs its normal actionability checks.
-export function pointerPosition(el) {
+// With `near` (the covered target when this is what takes its click), a point
+// over that target comes first, where a person would click.
+export function pointerPosition(el, near) {
   const box = el.getBoundingClientRect(), style = getComputedStyle(el);
-  const root = el.getRootNode(), hitRoot = typeof root.elementFromPoint === 'function' ? root : el.ownerDocument;
-  for (const rect of [...el.getClientRects()].slice(0, 32)) {
-    const left = Math.max(0, rect.left), top = Math.max(0, rect.top);
-    const right = Math.min(innerWidth, rect.right), bottom = Math.min(innerHeight, rect.bottom);
-    if (right - left < 2 || bottom - top < 2) continue;
-    for (const [rx, ry] of [[.5,.5],[.25,.5],[.75,.5],[.5,.25],[.5,.75]]) {
-      const x = left + (right-left)*rx, y = top + (bottom-top)*ry;
-      let hit = hitRoot.elementFromPoint(x, y);
-      while (hit?.shadowRoot?.elementFromPoint) {
-        const child = hit.shadowRoot.elementFromPoint(x, y);
-        if (!child || child === hit) break;
-        hit = child;
-      }
-      let node = hit;
-      while (node && node !== el && !node.matches?.(`${controls},${handlers}`)) node = parent(node);
-      if (node === el) return {x:x-box.left-(parseFloat(style.borderLeftWidth)||0), y:y-box.top-(parseFloat(style.borderTopWidth)||0)};
-    }
-  }
+  for (const {x, y, owner} of near?.nodeType === 1 && near !== el ? [...pointSamples(el, near), ...pointSamples(el)] : pointSamples(el))
+    if (owner === el) return {x:x-box.left-(parseFloat(style.borderLeftWidth)||0), y:y-box.top-(parseFloat(style.borderTopWidth)||0)};
   return null;
+}
+// The row, list item or repeated box a control belongs to.
+const ITEMS = 'tr,li,article,[role="row"],[role="listitem"],[role="option"],[role="treeitem"],[role="article"]';
+function itemOf(el) {
+  const cache = {};
+  for (let node = el, depth = 0; node && depth < 8; node = parent(node), depth++)
+    if (node.matches?.(ITEMS) || repeatedItem(node, cache)) return node;
+  return null;
+}
+const words = value => new Set(clean(value).toLowerCase().split(/[\s,.:;!?()[\]{}"'·|/-]+/).filter(word => word.length >= 2));
+// A covering link is often hidden from assistive technology; its label still says what it does.
+const labelOf = node => clean(computeAccessibleName(node, {hidden: true}));
+// When no point of the target is clear: the one element that a pointer meets at
+// every visible point of it, if that element stands for the target. A label of
+// the target, a control that fills it, a link stretched over its row that opens
+// the same thing, or the row itself drawn over it (a row's ::after layer, or a
+// link that takes no pointer events, so the row handles the click, as browser-use
+// and agent-browser also accept). Reported from a mail app, where such a layer
+// covered the subject and every click was refused. A control that covers only
+// part of the target, such as a delete button shown on hover, never qualifies.
+export function pointerCover(el) {
+  let owner, top, count = 0;
+  for (const sample of pointSamples(el)) {
+    if (!sample.hit || top !== undefined && sample.hit !== top) top = null;
+    else if (top !== null) top = sample.hit;
+    owner = count && owner !== sample.owner ? null : sample.owner; count++;
+  }
+  if (!count) return null;
+  const item = itemOf(el), usable = node => !node.closest('[inert]') && !node.matches(':disabled') && !node.closest('[aria-disabled="true"]') && !secret(node, labelOf(node));
+  if (top && top !== el && top.contains(el) && item?.contains(top) && !top.matches(BUTTONS) && !top.isContentEditable && usable(top)) return top;
+  // Hidden from assistive technology is common for such a link; it is still what
+  // the pointer meets. Inert or disabled controls never take the click.
+  if (!owner || owner === el || !usable(owner)) return null;
+  if (owner.localName === 'label') return owner.control === el ? owner : null;
+  if (owner.matches('input,textarea,select') || owner.isContentEditable) return null;
+  if (el.contains(owner)) return owner;
+  if (!item?.contains(owner) || !owner.matches('a[href],[role="link"]')) return null;
+  // An unnamed link opens the row only when the target is not a link of its own.
+  const href = el.closest('a[href]')?.href, name = labelOf(owner);
+  if (href && owner.href === href || !href && !name) return owner;
+  if (!name) return null;
+  // Most of the link's words are the target's own ("10월 교육 일정 안내 열기"
+  // over "10월 교육 일정 안내"); one shared word ("메일 삭제") is not enough.
+  const own = words(inspectTarget(el).name), its = [...words(name)];
+  return its.filter(word => own.has(word)).length * 2 > its.length ? owner : null;
+}
+// What covers the target, for the model, when no point of it is clear.
+export function pointerBlocker(el) {
+  const first = pointSamples(el).next().value;
+  if (!first?.hit) return {kind: 'outside_view'};
+  const node = first.owner || first.hit, item = itemOf(el);
+  let kind = el.contains(node) ? 'inside_target' : item?.contains(node) ? 'same_row' :
+    node.closest('dialog[open],[role="dialog"],[role="alertdialog"],[aria-modal="true"]') ? 'dialog' : '';
+  for (let layer = first.hit; !kind && layer && layer !== layer.ownerDocument.body; layer = parent(layer))
+    if (['fixed', 'sticky'].includes(getComputedStyle(layer).position)) kind = 'fixed_bar';
+  const box = first.hit.getBoundingClientRect();
+  kind ||= box.width * box.height >= innerWidth * innerHeight * .8 ? 'page_cover' : 'other';
+  const name = clean(labelOf(node) || ownText(node, 60), 60);
+  return {kind, tag: node.localName, role: getRole(node) || '', ...(name && !secret(node, name) ? {name} : {})};
 }
 
 function hoverSurfaces(el) {
@@ -162,6 +235,20 @@ export function valueMark(el) {
 // position among all fields. Hidden fields count too: a field that appears later must
 // not renumber the ones after it, and a filtered or shortened list must not either.
 const FIELD_ELEMENTS = 'input,textarea,select,[contenteditable]:not([contenteditable="false"])';
+// Every field of the document with its place and a one-way mark of what it
+// holds, for the host only. An observation returns at most 180 controls, and a
+// time sheet has more fields than that; "leave the other cells alone" has to
+// cover all of them. Hidden, file and secret fields are left out.
+export function fieldMarks() {
+  const cache = new Map(), marks = [];
+  for (const el of document.querySelectorAll(FIELD_ELEMENTS)) {
+    if (marks.length >= 400) break;
+    if (el.matches('input[type="hidden"],input[type="file"],input[type="password"]') || secret(el, String(el.getAttribute('aria-label') || ''))) continue;
+    const place = fieldPlace(el, cache);
+    if (place) marks.push([place, valueMark(el)]);
+  }
+  return marks;
+}
 export function fieldPlace(el, cache) {
   const root = el.getRootNode();
   if (!root?.querySelectorAll) return null;
@@ -190,7 +277,21 @@ export function controlState(el) {
   if (key) Object.assign(result, {state: result[key], stateKind: key, stateSource: native ? 'native' : `aria-${key}`});
   const hint = el.getAttribute('data-state');
   if (['on', 'off', 'checked', 'unchecked', 'indeterminate', 'open', 'closed'].includes(hint)) result.stateHint = hint;
+  else if (!key) {const [word] = classStates(el); if (word) result.stateHint = word;}
   return result;
+}
+// State words in class names ("btn_star on", "row starred", "mail-unread").
+// Measured on a mail list whose star only turned yellow: with no state to read,
+// the review asked for it again and a second click turned the star off.
+const STATE_WORD = /(?:^|[-_])(on|off|active|selected|checked|starred|important|flagged|pinned|marked|favou?rite|liked|unread|read|done|completed|current|expanded|collapsed|opened|closed)$/i;
+function classStates(node) {
+  const found = [];
+  for (const token of node?.classList || []) {
+    const word = token.length <= 32 && STATE_WORD.exec(token)?.[1].toLowerCase();
+    if (word && !found.includes(word)) found.push(word);
+    if (found.length >= 3) break;
+  }
+  return found;
 }
 function secret(el, name) {
   const hint = `${el.type} ${el.name} ${el.id} ${name} ${el.autocomplete}`;
@@ -198,13 +299,113 @@ function secret(el, name) {
     (el.matches('input,textarea,select') || el.isContentEditable) && /\bcard\b/i.test(hint);
 }
 export {secret as isSensitiveElement};
+// Visible words of an element outside its fields. Field values are not text
+// nodes, and a textarea's or an editor's text and a select's options are left out.
+// Words not shown are left out too: tools a mail row shows only on hover.
+function ownText(el, limit = 120) {
+  const parts = [];
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {acceptNode: node =>
+    node.parentElement?.closest('textarea,select,[contenteditable]:not([contenteditable="false"]),script,style,template') ||
+    node.parentElement?.checkVisibility?.({visibilityProperty: true}) === false ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT});
+  let length = 0;
+  for (let node = walker.nextNode(); node && length < limit * 2; node = walker.nextNode()) {
+    const text = node.data.replace(/\s+/g, ' ').trim();
+    if (text) {parts.push(text); length += text.length + 1;}
+  }
+  return clean(parts.join(' '), limit);
+}
+// What a link or a row says, words not shown included and buttons left out.
+// Tools that a mail row shows under the pointer change its visible name; this
+// stays the same through that, and still tells a reused row apart.
+const BUTTONS = 'button,input,select,textarea,summary,[role="button"],[role="switch"],[role="checkbox"],[role="radio"],[role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"],[role="tab"],[aria-pressed]';
+function itemText(el) {
+  if (el.matches(BUTTONS) || el.isContentEditable) return '';
+  const parts = [];
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {acceptNode: node => {
+    const owner = node.parentElement?.closest(`${BUTTONS},[contenteditable]:not([contenteditable="false"]),script,style,template`);
+    return owner && el.contains(owner) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+  }});
+  let length = 0;
+  for (let node = walker.nextNode(); node && length < 400; node = walker.nextNode()) {
+    const text = node.data.replace(/\s+/g, ' ').trim();
+    if (text) {parts.push(text); length += text.length + 1;}
+  }
+  return clean(parts.join(' '), 200);
+}
 export function inspectTarget(el) {
   const accessibleName = accessible(el) || (el.matches('input[type="checkbox"],input[type="radio"]') && clickTarget(el) !== el ? clean(computeAccessibleName(el, {hidden: true})) : '');
-  const text = activation(el) && !el.matches('input,textarea,select') && !el.isContentEditable && !el.querySelector('input,textarea,select,[contenteditable]') ? clean(el.innerText || el.textContent) : '';
+  // A clickable mail row holds a checkbox. Its words still name it; only the
+  // fields inside are left out, so no field value becomes part of the name.
+  const text = activation(el) && !el.matches('input,textarea,select') && !el.isContentEditable ? (el.querySelector('input,textarea,select,[contenteditable]') ? ownText(el) : clean(el.innerText || el.textContent)) : '';
   const name = accessibleName || clean(el.placeholder || el.title) || text || clean(el.name || el.id);
-  return {name, accessibleName, role: getRole(el), type: el.isContentEditable ? 'contenteditable' : el.type,
+  return {name, accessibleName, itemText: itemText(el), role: getRole(el), type: el.isContentEditable ? 'contenteditable' : el.type,
     disabled: el.matches(':disabled') || !!el.closest('[aria-disabled="true"]'),
     secret: secret(el, name), hidden: hidden(el), connected: el.isConnected, ...controlState(el), ...keyboardState(el)};
+}
+// Which column heading a control sits under. In a table of inputs (a weekly
+// time sheet: one row per task, one column per day) the row name alone left
+// every input of a row alike, and the model had to guess the day by order.
+function columnOf(el, cache) {
+  const cell = el.closest('td,th,[role="gridcell"],[role="cell"]');
+  if (!cell || cell === el) return '';
+  const table = cell.closest('table,[role="grid"],[role="treegrid"],[role="table"]');
+  if (!table) return '';
+  let layout = cache.get(table);
+  if (layout === undefined) {
+    const headers = new Map(), positions = new Map();
+    const add = (index, span, text) => {for (let i = index; i < index + span; i++) headers.set(i, [...(headers.get(i) || []), text].slice(-2));};
+    if (table.tagName === 'TABLE') {
+      // Column positions follow merged cells: a cell spanning rows keeps its
+      // column taken in the rows below, as the browser lays the table out.
+      const rows = [...table.rows].slice(0, 2000), taken = [];
+      const headerRows = new Set(table.tHead?.rows.length ? [...table.tHead.rows] : rows.slice(0, 3).filter(row => row.cells.length && [...row.cells].every(c => c.tagName === 'TH')));
+      rows.forEach((row, r) => {
+        let column = 0;
+        for (const c of row.cells) {
+          while (taken[r]?.has(column)) column++;
+          const span = Math.max(1, c.colSpan || 1), down = Math.max(1, c.rowSpan || 1);
+          positions.set(c, column);
+          if (headerRows.has(row)) {
+            const text = c.querySelector('input,select,textarea,[contenteditable]') ? '' : clean(c.textContent, 80);
+            if (text) add(column, span, text);
+          }
+          for (let i = 0; i < down; i++) for (let j = 0; j < span; j++) (taken[r + i] ||= new Set()).add(column + j);
+          column += span;
+        }
+      });
+    } else {
+      [...table.querySelectorAll('[role="columnheader"]')].slice(0, 200).forEach((c, position) => {
+        const text = clean(c.textContent, 80);
+        if (text) add(Number(c.getAttribute('aria-colindex')) || position + 1, 1, text);
+      });
+    }
+    layout = {headers, positions};
+    cache.set(table, layout);
+  }
+  let index = layout.positions.get(cell);
+  if (index === undefined) {
+    const row = cell.closest('[role="row"]');
+    index = Number(cell.getAttribute('aria-colindex')) || (row ? [...row.querySelectorAll('[role="gridcell"],[role="cell"],[role="rowheader"],[role="columnheader"]')].indexOf(cell) + 1 : -1);
+  }
+  return (layout.headers.get(index) || []).join(' / ');
+}
+// A list drawn with plain boxes: an element with at least two siblings of the
+// same tag and class, holding words of its own. Mail lists are often built this way.
+// Rows are compared by tag and first class without a state word: a starred,
+// selected or unread row ("row starred") is still one of the rows ("row").
+const baseClass = node => `${node.tagName}|${[...node.classList || []].find(token => !STATE_WORD.test(token)) || ''}`;
+function repeatedItem(node, cache) {
+  const parentNode = node.parentElement;
+  if (!parentNode || !node.matches('div,li,article,section,tr') || parentNode.children.length < 3) return false;
+  // Sibling counts live beside the context cache, never in it: the parent can be a context node too.
+  const siblings = cache.siblings ||= new WeakMap();
+  let counts = siblings.get(parentNode);
+  if (!counts) {
+    counts = new Map();
+    for (const child of parentNode.children) {const k = baseClass(child); counts.set(k, (counts.get(k) || 0) + 1);}
+    siblings.set(parentNode, counts);
+  }
+  return (counts.get(baseClass(node)) || 0) >= 3 && !!ownText(node, 20);
 }
 function contextOf(el, cache) {
   const result = [];
@@ -212,14 +413,19 @@ function contextOf(el, cache) {
     let context = cache.get(node);
     if (context === undefined) {
       const heading = node.querySelector(':scope > legend,:scope > h1,:scope > h2,:scope > h3,:scope > [role="heading"]');
-      const role = getRole(node) || (heading && node.matches('section,article') ? node.localName : null);
+      const role = getRole(node) || (heading && node.matches('section,article') ? node.localName : null) || (repeatedItem(node, cache) ? 'item' : null);
       context = null;
-      if (['dialog', 'alertdialog', 'form', 'group', 'region', 'row', 'listitem', 'navigation', 'main', 'section', 'article'].includes(role)) {
+      if (['dialog', 'alertdialog', 'form', 'group', 'region', 'row', 'listitem', 'item', 'navigation', 'main', 'section', 'article'].includes(role)) {
         // Row/list names computed from descendants can include editable values.
         // Use authored labels or a non-editable heading/cell as the context hint.
-        const cell = role === 'row' ? node.querySelector('th,td,[role="rowheader"],[role="cell"]') : null;
-        const name = node.matches('[aria-label],[aria-labelledby],fieldset') ? accessible(node) : clean(heading?.textContent || (cell && !cell.querySelector('input,textarea,select,[contenteditable]') ? cell.textContent : ''));
-        if (!secret(node, name)) context = {role, ...(name ? {name} : {})};
+        // A row whose first cell is plain words (a task name) is named by it. A
+        // mail list row starts with a checkbox or a star instead; such a row, a
+        // list item or a repeated box is named by its own words.
+        const first = role === 'row' ? node.querySelector(':scope > th,:scope > td,:scope > [role="rowheader"],:scope > [role="cell"],:scope > [role="gridcell"]') : null;
+        const cell = first && !first.querySelector('input,textarea,select,[contenteditable],button,a,[role="button"],[role="link"],[role="checkbox"]') && clean(first.textContent) ? first : null;
+        const name = node.matches('[aria-label],[aria-labelledby],fieldset') ? accessible(node) : clean(heading?.textContent || cell?.textContent || (['row', 'listitem', 'item'].includes(role) ? ownText(node, 80) : ''));
+        const state = ['row', 'listitem', 'item'].includes(role) ? classStates(node) : [];
+        if (!secret(node, name)) context = {role, ...(name ? {name} : {}), ...(state.length ? {state} : {})};
       }
       cache.set(node, context);
     }
@@ -273,7 +479,7 @@ export function collectSnapshot(input) {
   };
   if (regionRead) all.push(regionEntry);
   walk(regionRead ? regionEntry : document.body || document.documentElement);
-  const candidates = [], texts = [], regions = [], headings = [], alerts = [], focused = activeElement(), contextCache = new WeakMap(), fieldCache = new Map();
+  const candidates = [], texts = [], regions = [], headings = [], alerts = [], focused = activeElement(), contextCache = new WeakMap(), fieldCache = new Map(), columnCache = new WeakMap();
   for (const el of all) {
     if (isHidden(el) || el.closest('script,style,noscript,template,svg,canvas')) continue;
     const rich = el.isContentEditable && el.matches('[contenteditable="true"],[contenteditable="plaintext-only"]');
@@ -293,7 +499,7 @@ export function collectSnapshot(input) {
     if (interactive) {
       const state = controlState(el);
       const kind = scroll && !field && !trigger ? 'scroll_area' : el.tagName === 'SELECT' ? 'select' : ['checkbox', 'radio'].includes(el.type) ? el.type : state.stateKind === 'checked' ? (role === 'radio' || role === 'menuitemradio' ? 'radio' : role === 'switch' ? 'switch' : 'checkbox') : state.stateKind === 'pressed' ? 'toggle' : field ? 'field' : el.matches('a[href]') ? 'link' : 'control';
-      const context = contextOf(el, contextCache), name = info.name || role || kind;
+      const context = contextOf(el, contextCache), name = info.name || role || kind, column = field || trigger ? columnOf(el, columnCache) : '';
       const choices = el.tagName === 'SELECT' ? [...el.options].slice(0, 80).map(o => ({value: o.value.slice(0, 200), label: clean(o.label), disabled: o.disabled || !!o.closest('optgroup[disabled]')})) : undefined;
       const destination = el.matches('a[href]') ? publicSourceURL(el.href) : null;
       const descriptor = {name, accessibleName: info.accessibleName, role, kind, tag: el.tagName.toLowerCase(),
@@ -306,7 +512,7 @@ export function collectSnapshot(input) {
         ...(destination ? {destination} : {}), ...(el.matches('a[target]') ? {linkTarget: clean(el.target, 80)} : {}), ...(el.matches('a[download]') ? {download: true} : {}),
         ...(el.id ? {id: clean(el.id)} : {}), ...(el.getAttribute('data-testid') ? {testId: clean(el.getAttribute('data-testid'))} : {}),
         type: info.type, disabled: info.disabled, ...(info.focused ? {focused: true} : {}), ...(field ? {editable: info.editable} : {}),
-        ...widgetRelations(el), ...(context.length ? {context} : {}),
+        ...widgetRelations(el), ...(context.length ? {context} : {}), ...(column ? {column} : {}),
         ...(field || ['combobox', 'textbox', 'searchbox', 'spinbutton', 'listbox'].includes(role) ? {required: !!el.required || el.getAttribute('aria-required') === 'true', readonly: !!el.readOnly || el.getAttribute('aria-readonly') === 'true', invalid: el.getAttribute('aria-invalid') === 'true' || el.validity?.valid === false} : {}),
         ...(choices ? {options: choices} : {}),
         ...state,
@@ -388,12 +594,22 @@ export function collectSnapshot(input) {
   // Keep all visible choices, prioritizing dialogs when a long background page
   // would otherwise exhaust the budget. Never turn DOM order into confidence.
   const roleWords = {switch: '스위치 토글', checkbox: '체크박스', radio: '라디오', button: '버튼', link: '링크', tab: '탭', combobox: '선택', textbox: '입력란', searchbox: '검색'};
-  const ranked = query ? rankEvidence(candidates.map(({descriptor: d}, id) => ({id, name: `${d.name} ${d.accessibleName}`, context: `${(d.context || []).map(c => c.name || '').join(' ')} ${d.description || ''}`, text: `${d.id || ''} ${d.testId || ''} ${d.role || ''} ${roleWords[d.role] || ''} ${d.validationMessage || ''}`})), query) : [];
+  const ranked = query ? rankEvidence(candidates.map(({descriptor: d}, id) => ({id, name: `${d.name} ${d.accessibleName}`, context: `${(d.context || []).map(c => c.name || '').join(' ')} ${d.column || ''} ${d.description || ''}`, text: `${d.id || ''} ${d.testId || ''} ${d.role || ''} ${roleWords[d.role] || ''} ${d.validationMessage || ''}`})), query) : [];
   // Preserve DOM order when every control fits. Moving focus must not reorder
   // an otherwise unchanged observation and look like progress to recovery.
+  // The host may ask for up to 400 controls and choose among them itself (by a
+  // size budget and the user's request, which never enters the page).
+  const limit = !query && Number.isInteger(options?.limit) ? Math.min(400, Math.max(180, options.limit)) : 180;
+  // A hint (the user's request) is given only to the isolated-world reader, never to
+  // a script the page could watch. When not every control fits, the controls it
+  // matches come right after dialog and focused ones; it never filters.
+  const hint = !query && typeof options?.hint === 'string' ? options.hint.slice(0, 1000) : '';
+  const hinted = hint && candidates.length > limit ? new Map(rankEvidence(candidates.map(({descriptor: d}, id) => ({id, name: `${d.name} ${d.accessibleName}`,
+    context: `${(d.context || []).map(c => c.name || '').join(' ')} ${d.column || ''}`, text: `${d.role || ''} ${d.description || ''}`})), hint).map((hit, rank) => [candidates[hit.id], rank])) : null;
+  const orderOf = item => item.priority < 2 ? item.priority : hinted?.has(item) ? 2 + hinted.get(item) / 1e6 : item.priority + 1;
   const ordered = query ? ranked.map(hit => ({...candidates[hit.id], match: hit.match})) :
-    candidates.length > 180 ? candidates.sort((a, b) => a.priority - b.priority) : candidates;
-  const chosen = ordered.slice(0, 180), elements = chosen.map(item => item.el);
+    candidates.length > limit ? candidates.sort((a, b) => orderOf(a) - orderOf(b)) : candidates;
+  const chosen = ordered.slice(0, limit), elements = chosen.map(item => item.el);
   let detailBudget = 6000, omittedControlDetails = 0;
   const descriptors = chosen.map(({descriptor, match}) => {
     const {description, validationMessage, constraints, ...base} = descriptor;
@@ -453,6 +669,8 @@ export function collectSnapshot(input) {
     ...(expectedTexts.length ? {textChecks} : {}),
     coverage: {nodesInspected: all.length, nodeLimit, skippedSubtrees, domTruncated, textTruncated: textPartial, queryFiltered: !!query,
       controlsObserved: candidates.length, controlsReturned: regionRead ? 0 : descriptors.length, omittedControlDetails,
+      // A long form lost its later rows here without saying how to reach them.
+      ...(!query && !regionRead && ordered.length > chosen.length ? {controlsHint: 'Not every control was returned. To act on a table row or a field that is not listed, observe again with a query naming its row, column or label; matching controls come first.'} : {}),
       scope: 'Rendered DOM in this document and open shadow roots. Hidden content, field values, closed roots and unloaded virtual rows are not inspected. Counts describe this scan only.'},
     retrieval: {method: query ? 'lexical' : 'dom_order', ...(query ? {matchedControls: ranked.length, matchedTextBlocks: textMatches.length, filteredControls: candidates.length - ranked.length} : {}),
       textBlocks, textRegions: contexts, contextOmitted,

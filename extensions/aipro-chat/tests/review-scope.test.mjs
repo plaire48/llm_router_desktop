@@ -83,7 +83,7 @@ const call = name => ({content: '', tool_calls: [{id: crypto.randomUUID(), type:
 const wireReply = message => new Response(JSON.stringify({choices: [{message, finish_reason: message.tool_calls ? 'tool_calls' : 'stop'}], usage: {prompt_tokens: 100, completion_tokens: 10, total_tokens: 110}}), {headers: {'Content-Type': 'application/json'}});
 
 async function api(t, {audit, correctedComplete = true, cancel = false, auth = false, sameReview = false, history = [],
-  goal = '일반 결과 2개를 알려줘.', initialReview, steering, correctedInvalid = false} = {}) {
+  goal = '일반 결과 2개를 알려줘.', initialReview, steering, correctedInvalid = false, rounds = 1} = {}) {
   const previous = {chrome: globalThis.chrome, fetch: globalThis.fetch}; t.after(() => Object.assign(globalThis, previous));
   const controller = new AbortController(), calls = [], stages = [], reviews = [], actions = [], metrics = [], diagnostics = [];
   let leader = 0, reviewCalls = 0, audits = 0, steered = false;
@@ -110,12 +110,14 @@ async function api(t, {audit, correctedComplete = true, cancel = false, auth = f
       return wireReply({content: JSON.stringify(value)});
     }
     if (++leader === 1) return wireReply(call('read_page'));
-    if (leader > 2) return wireReply(call('ask_user'));
-    return wireReply({content: sameReview ? '과거 성남시청 소속입니다.' : '일반 결과 A와 B입니다.'});
+    // With several rounds each answer follows a fresh read, as a real lookup does.
+    if (rounds > 1 && leader <= 2 * rounds && leader % 2 === 1) return wireReply(call('read_page'));
+    if (leader > (rounds > 1 ? 2 * rounds : 2)) return wireReply(call('ask_user'));
+    return wireReply({content: sameReview ? '과거 성남시청 소속입니다.' : leader === 2 ? '일반 결과 A와 B입니다.' : `일반 결과 A와 B입니다 (${leader}).`});
   };
   const run = () => completeChat({provider: 'aipro', modelId: 'test', model: {contextLength: 128000, maxInputTokens: 98304}, credentialReceivedAt: 1,
     skill, autoConnect: true, tools, messages: [...history, {role: 'user', content: goal}]}, controller.signal,
-    undefined, undefined, undefined, undefined, async name => {actions.push(name); return name === 'read_page' ? {url: 'https://example.test/results', text: '일반 결과 A와 B, 원래 관찰한 출처'} : {requiresUserInput: true};}, event => stages.push(event), metric => metrics.push(metric), undefined, undefined,
+    undefined, undefined, undefined, undefined, async name => {actions.push(name); return name === 'read_page' ? {url: 'https://example.test/results', text: `일반 결과 A와 B, 원래 관찰한 출처${rounds > 1 ? ` ${actions.length}` : ''}`} : {requiresUserInput: true};}, event => stages.push(event), metric => metrics.push(metric), undefined, undefined,
     {takeInput: steering ? async () => {if (!actions.includes('read_page') || steered) return null; steered = true; return {text: steering};} : undefined,
       onAgentDiagnostic: event => diagnostics.push(event)});
   return {run, calls, stages, reviews, actions, metrics, diagnostics, counts: () => ({leader, reviewCalls, audits})};
@@ -356,6 +358,16 @@ test('a plan audit never turns a contradictory approval into plan approval',()=>
   assert.throws(()=>parseReviewScope(response({decision:'unknown',correctionTarget:'external',issues:[]}),scoped.payload),e=>e.scopeReason==='scope_protocol_invalid');
 });
 
+test('an audit may not ask a plan to drop the approval before a final action',()=>{
+  const plan=[{text:'두 칸에 4 입력',expected_outcome:'현재값이 식별되고 두 칸이 각각 4'},{text:'최종 반영 승인 후 실행',expected_outcome:'사용자 승인 뒤 페이지의 최종 반영이 완료됨'}];
+  const scoped=input({phase:'plan_scope',goal:'두 칸에 4를 넣고 최종 반영해 줘.',userHistory:[],stepOutcomes:plan,currentPlan:plan});
+  const approvalOnly={decision:'repair_scope',correctionTarget:'external',issues:[{target:'plan1',kind:'new_requirement',source:'user',quote:'최종 반영해 줘',review_quote:'사용자 승인 뒤'}]};
+  assert.deepEqual(parseReviewScope(response(approvalOnly),scoped.payload),{decision:'within_scope',correctionTarget:'external',issues:[]});
+  const mixed={decision:'repair_scope',correctionTarget:'external',issues:[{target:'plan0',kind:'new_requirement',source:'user',quote:'두 칸에 4',review_quote:'현재값이 식별되고'},...approvalOnly.issues]};
+  const kept=parseReviewScope(response(mixed),scoped.payload);
+  assert.equal(kept.decision,'repair_scope');assert.deepEqual(kept.issues.map(issue=>issue.target),['plan0']);
+});
+
 test('an answer classification without citations is withdrawn after one repair and reports counts only',async()=>{
   const scoped=input();let calls=0;const repairs=[];
   const audit=await requestReviewScope(scoped,{inputBudget:16000,onRepair:reason=>repairs.push(reason),
@@ -372,4 +384,28 @@ test('an answer classification without citations is withdrawn after one repair a
   const plan=input({phase:'plan_scope',stepOutcomes:[{text:'결과 2개',expected_outcome:'두 결과의 제목과 링크'}]});
   await assert.rejects(requestReviewScope(plan,{inputBudget:16000,complete:async()=>response({decision:'within_scope',correctionTarget:'answer',issues:[]})}),
     error=>error.scopeReason==='scope_answer_invalid');
+});
+
+// A model that could not follow the audit's reply format failed it at every
+// review, two calls each time, while a failed audit changes nothing.
+test('after two failed audits in a row the run stops asking for the audit', async t => {
+  const testApi = await api(t, {audit: 'not json', correctedComplete: false, rounds: 4});
+  await testApi.run();
+  const {reviewCalls, audits} = testApi.counts();
+  assert(reviewCalls >= 3, JSON.stringify(testApi.counts()));
+  const scope = testApi.diagnostics.filter(event => event.phase === 'scope_review');
+  assert(scope.slice(0, 2).every(event => event.reason && event.reason !== 'scope_skipped'), JSON.stringify(scope));
+  assert(scope.slice(2).every(event => event.reason === 'scope_skipped'), JSON.stringify(scope));
+  assert.equal(scope.length, reviewCalls);
+  assert(audits <= 4, `audits ${audits}`);
+});
+
+test('a successful audit starts the failure count again', async t => {
+  let call = 0;
+  const testApi = await api(t, {audit: () => (++call === 3 ? {decision: 'unknown', correctionTarget: 'unknown', issues: []} : 'not json'), correctedComplete: false, rounds: 4});
+  await testApi.run();
+  const reasons = testApi.diagnostics.filter(event => event.phase === 'scope_review').map(event => event.reason || 'ok');
+  assert.equal(reasons.filter(reason => reason === 'scope_skipped').length <= Math.max(0, reasons.length - 3), true, JSON.stringify(reasons));
+  // The first review's audit and its repair fail, the second review's audit succeeds.
+  assert.notEqual(reasons[0], 'ok'); assert.equal(reasons[1], 'ok'); assert.notEqual(reasons[2], 'scope_skipped');
 });

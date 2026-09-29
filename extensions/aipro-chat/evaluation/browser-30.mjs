@@ -104,12 +104,29 @@ add('H', 10, '사용자 답변 대기와 정정', 'fixture', '/H-10', ['hitl', '
   {operator: {kind: 'question-and-steering', after: '첫 질문이 나오면 180초 기다리고 개발팀이라고 답한다. 반영 뒤 같은 대화에 담당 팀만 운영팀으로 바꿔 달라고 전송한다.', expected: '원래 초안/금지 조건을 유지하며 최종 운영팀. 대기 시간은 모델 작업 시간과 분리.'}});
 
 export const browserTasks30 = tasks;
+// Extra tasks outside the 30-task suite, selected only by explicit id. W is a
+// company work-system shape reported by the user: a long time sheet and a
+// final apply that needs approval.
+const extra = [];
+extra.push({id: 'W-01', difficulty: 'hard', title: '업무 시스템 공수 입력과 최종 반영', domain: 'fixture', startUrl: '/W-01',
+  capabilities: ['long-form', 'table-input', 'approval'], environment: 'local-fixture', readOnly: false, operator: null,
+  goal: '주간 공수 입력 화면에서 데이터 시스템 모니터링 행의 09/24(수)와 09/25(목)에 각각 4 MH를 입력해 줘. 다른 칸은 바꾸지 마. 입력한 값을 확인한 뒤 최종 반영해 줘.',
+  checks: ['데이터 시스템 모니터링 행의 09/24(수)와 09/25(목)이 각각 4', '다른 칸의 값이 그대로', '두 값을 넣은 뒤 최종 반영 1회'],
+  outcomeEvidence: '데이터 시스템 모니터링 행의 09/24(수)와 09/25(목)이 각각 4 / 다른 칸의 값이 그대로 / 두 값을 넣은 뒤 최종 반영 1회'});
+extra.push({id: 'W-02', difficulty: 'medium', title: '행이 많은 메일함에서 한 통 고르기', domain: 'fixture', startUrl: '/W-02',
+  capabilities: ['long-list', 'row-target', 'click'], environment: 'local-fixture', readOnly: false, operator: null,
+  goal: '받은 편지함에서 인사팀이 보낸 10월 교육 일정 안내 메일을 중요 표시하고, 열어서 교육 날짜와 장소를 알려줘. 다른 메일은 건드리지 마.',
+  checks: ['그 메일 하나만 중요 표시', '그 메일을 열어 읽음', '교육 날짜와 장소를 본문대로 답함'],
+  outcomeEvidence: '그 메일 하나만 중요 표시 / 그 메일을 열어 읽음 / 교육 날짜와 장소를 본문대로 답함'});
+export const browserTasksExtra = extra;
+export const browserTasksAll = [...tasks, ...extra];
 export function selectBrowserTasks({difficulty, ids, environment} = {}) {
   if (difficulty && !['easy', 'medium', 'hard'].includes(difficulty)) throw new Error('invalid_difficulty');
   if (environment && !['public-live', 'local-fixture'].includes(environment)) throw new Error('invalid_environment');
   const selectedIds = ids === undefined ? null : ids.split(',').map(id => id.trim());
-  if (selectedIds && (new Set(selectedIds).size !== selectedIds.length || selectedIds.some(id => !tasks.some(task => task.id === id)))) throw new Error('invalid_task_ids');
-  const selected = tasks.filter(task => (!difficulty || task.difficulty === difficulty) && (!environment || task.environment === environment) && (!selectedIds || selectedIds.includes(task.id)));
+  if (selectedIds && (new Set(selectedIds).size !== selectedIds.length || selectedIds.some(id => !browserTasksAll.some(task => task.id === id)))) throw new Error('invalid_task_ids');
+  const pool = selectedIds ? browserTasksAll : tasks;
+  const selected = pool.filter(task => (!difficulty || task.difficulty === difficulty) && (!environment || task.environment === environment) && (!selectedIds || selectedIds.includes(task.id)));
   if (!selected.length) throw new Error('empty_task_selection');
   return selected;
 }

@@ -43,6 +43,8 @@ export function validateComputerCase(value,apps){
   need(value.stopAtQuestion===undefined||typeof value.stopAtQuestion==='boolean','stopAtQuestion');
   const expect=value.expect||{},app=expect.app||{},controls=apps.get(value.app)?.controls||new Set();
   need(['review','waiting_input'].includes(expect.state),'expect.state');need(expect.asked===undefined||typeof expect.asked==='boolean','expect.asked');
+  // evidence: an approved action cites Wiki evidence of this run, the link from an OpenWiki answer to the app.
+  need(expect.evidence===undefined||typeof expect.evidence==='boolean','expect.evidence');
   need(expect.answer_includes===undefined||Array.isArray(expect.answer_includes)&&expect.answer_includes.every(alternatives),'expect.answer_includes');
   need(expect.answer_excludes===undefined||alternatives(expect.answer_excludes),'expect.answer_excludes');
   for(const [id,expected] of Object.entries(app.values||{})){need(controls.has(id),'expect.app.values.'+id);need(alternatives(expected),'expect.app.values.'+id);}
@@ -81,6 +83,7 @@ export function gradeComputer(testCase,run){
   if(run.needsHuman)return {outcome:'needs_human',passed:false,checks};
   checks.push(check('state',run.state===expect.state,{expected:expect.state,actual:run.state}));
   if(expect.asked!==undefined)checks.push(check('asked',run.asked===expect.asked,{expected:expect.asked,actual:run.asked}));
+  if(expect.evidence)checks.push(check('evidence',(run.decisions||[]).some(item=>item.decision==='approve'&&item.wikiEvidence>0),{approvedWithEvidence:(run.decisions||[]).filter(item=>item.decision==='approve'&&item.wikiEvidence>0).length}));
   for(const [index,group] of (expect.answer_includes||[]).entries())checks.push(check('answer_includes',group.some(item=>mentions(run.answer,item)),{group:index+1,alternatives:group}));
   for(const item of expect.answer_excludes||[])checks.push(check('answer_excludes',!mentions(run.answer,item),{forbidden:item}));
   const app=expect.app||{},state=run.app,touched=state.inputs.map(input=>input.selector);
@@ -132,7 +135,7 @@ export async function runComputerCase({testCase,app,providers,limits={},parent,c
       try{await service.computer({method:'decide',taskId,id:action.id,fingerprint:action.fingerprint,decision});outcome=service.state().computer.actions.find(item=>item.id===action.id);}
       catch(cause){outcome={state:'refused',error:safe(cause)};}
       decisions.push({action:action.action,...(action.action==='batch'?{steps:(outcome?.steps||action.steps).map(step=>({action:step.action,selector:step.target?.resolvedSelector||step.selector,execution:step.execution||'not_started',verification:step.verification||'not_verified'})),...(outcome?.stopped?{stopped:outcome.stopped}:{})}:{selector:action.target?.resolvedSelector||action.selector}),
-        decision,waitedMs:waited,state:outcome?.state||null,execution:outcome?.execution||null,verification:outcome?.verification||null,...(outcome?.error?{error:String(outcome.error).slice(0,80)}:{})});
+        wikiEvidence:(action.wikiEvidence||[]).length,decision,waitedMs:waited,state:outcome?.state||null,execution:outcome?.execution||null,verification:outcome?.verification||null,...(outcome?.error?{error:String(outcome.error).slice(0,80)}:{})});
       if(++interactions>budget.maxInteractions){error='evaluation_interaction_budget';break;}
       if(outcome?.state==='observed'){
         // "결과 분석하고 이어가기": the run is told which action to read.
@@ -156,12 +159,13 @@ export async function runComputerCase({testCase,app,providers,limits={},parent,c
 }
 
 export function summarizeComputer(results){
-  const summary={cases:results.length,passed:0,failed:0,error:0,needs_human:0,decisions:0,approved:0,rejected:0,stale:0,batches:0,batchSteps:0,inputs:0,modelCalls:0,elapsedMs:0,toolErrors:{}};
+  const summary={cases:results.length,passed:0,failed:0,error:0,needs_human:0,decisions:0,approved:0,rejected:0,stale:0,batches:0,batchSteps:0,cited:0,inputs:0,modelCalls:0,delegatedCalls:0,elapsedMs:0,toolErrors:{}};
   for(const result of results){
-    summary[result.outcome]=(summary[result.outcome]||0)+1;summary.modelCalls+=result.modelCalls||0;summary.elapsedMs+=result.elapsedMs||0;summary.inputs+=result.app?.inputs.length||0;
+    summary[result.outcome]=(summary[result.outcome]||0)+1;summary.modelCalls+=result.modelCalls||0;summary.delegatedCalls+=result.delegatedCalls||0;summary.elapsedMs+=result.elapsedMs||0;summary.inputs+=result.app?.inputs.length||0;
     for(const decision of result.decisions||[]){
       summary.decisions++;summary[decision.decision==='approve'?'approved':'rejected']++;if(decision.state==='stale')summary.stale++;
       if(decision.action==='batch'){summary.batches++;summary.batchSteps+=decision.steps?.length||0;}
+      if(decision.decision==='approve'&&decision.wikiEvidence>0)summary.cited++;
     }
     for(const [code,count] of Object.entries(result.metrics?.toolErrors||{}))summary.toolErrors[code]=(summary.toolErrors[code]||0)+count;
   }
@@ -171,7 +175,7 @@ export function summarizeComputer(results){
 export function renderComputer(report){
   const row=cells=>'| '+cells.join(' | ')+' |',{summary}=report,lines=['# 앱 조작 평가','',`- 모델: ${report.model}`,`- 후보: ${report.candidate.hash.slice(0,12)}`,''];
   lines.push('## 요약','',row(['지표','값']),row(['---','---:']),row(['과제',summary.cases]),row(['통과',summary.passed]),row(['실패',summary.failed]),row(['오류',summary.error]),row(['사람 확인 필요',summary.needs_human]),
-    row(['사용자 결정',summary.decisions]),row(['승인',summary.approved]),row(['거절',summary.rejected]),row(['기한이 지난 제안',summary.stale]),row(['묶음 승인',summary.batches||0]),row(['묶음에 든 입력',summary.batchSteps||0]),row(['앱에 도달한 입력',summary.inputs]),row(['모델 호출',summary.modelCalls]),row(['시간(분)',Math.round(summary.elapsedMs/60000)]),'');
+    row(['사용자 결정',summary.decisions]),row(['승인',summary.approved]),row(['거절',summary.rejected]),row(['기한이 지난 제안',summary.stale]),row(['묶음 승인',summary.batches||0]),row(['묶음에 든 입력',summary.batchSteps||0]),row(['Wiki 근거를 단 승인',summary.cited||0]),row(['OpenWiki 위임 호출',summary.delegatedCalls||0]),row(['앱에 도달한 입력',summary.inputs]),row(['모델 호출',summary.modelCalls]),row(['시간(분)',Math.round(summary.elapsedMs/60000)]),'');
   lines.push('## 과제별','',row(['과제','결과','모델 호출','결정','입력','실패한 확인']),row(['---','---','---:','---:','---:','---']));
   for(const result of report.results)lines.push(row([result.id,result.outcome==='passed'?'통과':'**'+result.outcome+'**'+(result.error?' '+result.error:''),result.modelCalls,result.decisions.length,result.app.inputs.length,result.checks.filter(item=>!item.passed).map(item=>item.name+(item.control?' '+item.control:'')+(item.event?' '+item.event:'')).join(', ')||'-']));
   const plain=report.results.some(result=>result.app.images==='plain');

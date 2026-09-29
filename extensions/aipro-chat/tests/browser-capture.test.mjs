@@ -26,10 +26,41 @@ test('full document and viewport preserve distinct dimensions and exact PNG atta
   assert.deepEqual(captureCoverage(region.screenshot).captured,{x:100,y:200,width:240,height:120});
   assert.equal(captureRecord({...region,requestId:'fixture',provider:'aipro'}).mode,'region');
 });
-test('oversized, truncated, unstable and cancelled captures never produce successful attachments',async()=>{
-  const huge=fixture({height:40000});
-  await assert.rejects(captureBrowserPage(huge.page,{fullPage:true}),/capture_too_large/); assert.equal(huge.calls.length,0);
-  await assert.rejects(captureBrowserPage(fixture({rasterHeight:700}).page,{fullPage:true}),/capture_incomplete/);
+// A page image too large for one capture is joined from sections. Node has no
+// image APIs, so they are stood in for with recorders of what was drawn.
+function imageAPIs() {
+  const drawn = [];
+  const png = (width, height) => {const bytes = new Uint8Array(24); bytes.set([137,80,78,71,13,10,26,10]); const view = new DataView(bytes.buffer); view.setUint32(16, width); view.setUint32(20, height); return bytes;};
+  globalThis.createImageBitmap = async blob => ({blob, close() {}});
+  globalThis.OffscreenCanvas = class {constructor(width, height) {this.width = width; this.height = height;}
+    getContext() {return {drawImage: (...args) => drawn.push(args.slice(1).map(Math.round))};}
+    async convertToBlob() {return new Blob([png(this.width, this.height)], {type: 'image/png'});}};
+  return {drawn, restore: () => {delete globalThis.createImageBitmap; delete globalThis.OffscreenCanvas;}};
+}
+test('a page too large for one image is captured whole from sections and reduced to fit', async () => {
+  const apis = imageAPIs();
+  try {
+    const huge = fixture({height: 40000});
+    const result = await captureBrowserPage(huge.page, {fullPage: true});
+    assert.equal(result.screenshot.mode, 'page'); assert(result.screenshot.scale > 0 && result.screenshot.scale < 1);
+    assert(result.screenshot.width * result.screenshot.height <= 32 * 1024 * 1024);
+    assert.equal(Math.round(result.screenshot.height / result.screenshot.width), 40, 'the whole page keeps its proportions');
+    const clips = huge.calls.map(call => call.clip);
+    assert(clips.length > 1 && clips.every(clip => clip.width === 1000 && clip.x === 0));
+    assert.equal(clips[0].y, 0); assert.equal(clips.at(-1).y + clips.at(-1).height, 40000, 'the sections reach the end of the page');
+    assert(huge.calls.every(call => call.mask[0].includes('password')), 'secret fields stay masked in every section');
+    assert.equal(apis.drawn.length, clips.length);
+  } finally {apis.restore();}
+});
+test('a few pixels of difference is the same page; a page image at least the window size is kept with its real size', async () => {
+  const near = fixture({rasterHeight: 2212});
+  assert.equal((await captureBrowserPage(near.page, {fullPage: true})).screenshot.documentCovered, undefined);
+  const short = await captureBrowserPage(fixture({rasterHeight: 700}).page, {fullPage: true});
+  assert.equal(short.screenshot.documentCovered, false); assert.equal(short.screenshot.height, 700); assert.equal(short.screenshot.documentHeight, 2200);
+  await assert.rejects(captureBrowserPage(fixture({rasterHeight: 300}).page, {fullPage: true}), /capture_incomplete/);
+  await assert.rejects(captureBrowserPage(fixture({rasterHeight: 400}).page, {fullPage: false}), /capture_incomplete/);
+});
+test('truncated, unstable and cancelled captures never produce successful attachments',async()=>{
   const moving=fixture({changing:true});
   await assert.rejects(captureBrowserPage(moving.page,{fullPage:true}),/browser_stale/); assert.equal(moving.calls.length,2);
   await assert.rejects(captureBrowserPage(fixture().page,{cancelled:()=>true}),/cancelled/);
