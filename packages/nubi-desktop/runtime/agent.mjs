@@ -54,6 +54,19 @@ export function spokenTurns(task,messages,room) {
   }
   return kept;
 }
+// The read_source results that a conversation holds whole. After a compaction these are what the model
+// still sees: a range read in this run counts for an edit only while its text is in view.
+export function observedReads(wire) {
+  const names=new Map();for(const message of wire)for(const item of message.tool_calls||[])names.set(item.id,item.function?.name);
+  const reads=[];
+  for(const message of wire){
+    if(message.role!=='tool'||names.get(message.tool_call_id)!=='read_source'||typeof message.content!=='string')continue;
+    let value;try{value=JSON.parse(message.content);}catch{continue;}
+    if(!value||value.contextCleared||typeof value.path!=='string'||typeof value.hash!=='string'||typeof value.content!=='string'||!Number.isSafeInteger(value.start)||!Number.isSafeInteger(value.end))continue;
+    reads.push({path:value.path,hash:value.hash,start:value.start,end:value.end,projectRules:{fingerprint:value.projectRules?.fingerprint}});
+  }
+  return reads;
+}
 // What stands in place of a result that the input window could not hold: where it came from and how to read it again.
 const CLEARABLE=2000;
 export function clearedResult(tool,content) {
@@ -167,7 +180,7 @@ export function installAgent(ProjectService) {
       let wire=messages,result;
       definitions=toolSet.advertised(definitions);
       try{result=await invokeModel(wire,definitions);}
-      catch(error){if(error.message!=='context_overflow'||controller.signal.aborted)throw error;overflowing=true;try{wire=await fitted(messages,true,definitions);}finally{overflowing=false;}result=await invokeModel(wire,definitions);}
+      catch(error){if(error.message!=='context_overflow'||controller.signal.aborted)throw error;overflowing=true;try{wire=reobserve(await fitted(messages,true,definitions));}finally{overflowing=false;}result=await invokeModel(wire,definitions);}
       lastWire=structuredClone(wire);spent=0;context.record(result.usage,wire);
       if(result.calls?.length&&!result.calls.some(c=>['ask_user','update_plan'].includes(c.function.name))&&task.workPlan?.runId!==runId){
         task.checkpoint={runId,phase:'planning',at:new Date().toISOString()};persistTask();
@@ -189,7 +202,9 @@ export function installAgent(ProjectService) {
     // When nothing protected is left, the largest result is cleared: the newest result is
     // never summarized, so one that fills the window would stop the run (user decision 2026-09-29).
     const clearedResults=new Set();
-    let firstRequest=null;
+    let firstRequest=null,compacted=false;
+    // A compaction forgets the reads of this run. Those that the compacted conversation still holds whole count again.
+    const reobserve=wire=>{if(compacted){compacted=false;for(const read of observedReads(wire))observations.observe(read);}return wire;};
     const withoutCleared=wire=>{
       if(!clearedResults.size)return wire;
       const names=new Map();for(const message of wire)for(const item of message.tool_calls||[])names.set(item.id,item.function?.name);
@@ -368,7 +383,7 @@ export function installAgent(ProjectService) {
       context=createRunContext({model:budgetModel,tools:progressTools([...tools,...analysisToolDefinitions()],true,{compact:true}),
         protectedMessages,isSupersededMessage:message=>message.role==='user'&&message.content===initialReceipts.content,compactionDeferred:packed.compactionDeferred,
         getRequirements:()=>[JSON.stringify({originalCriteria:task.criteria,answeredQuestions:task.questionHistory||[],workPlan:task.workPlan||null}),hostReceipts({includeCapabilities:false}).content],signal:controller.signal,invoke:summarize,
-        save:async summary=>{this.store.set('context:'+taskId,summary);computerReads.clear();computerAppReads.clear();loadedSkills.clear();observations.files.clear();observations.environment?.clear();observations.newPaths.clear();observations.wikiEvidence?.clear();rememberCompaction(summary,overflowing?'overflow':'threshold');}});
+        save:async summary=>{this.store.set('context:'+taskId,summary);compacted=true;computerReads.clear();computerAppReads.clear();loadedSkills.clear();observations.files.clear();observations.environment?.clear();observations.newPaths.clear();observations.wikiEvidence?.clear();rememberCompaction(summary,overflowing?'overflow':'threshold');}});
       return runReviewedAgent({messages:packed.messages,signal:controller.signal,// An app action that waits for the user's decision is a wait like a question: the user reviews the proposal itself.
         waiting:()=>!!task.question||pendingComputerConnection(task)||this.store.list('computer-action:').some(action=>action.taskId===taskId&&action.state==='proposed'),continuation:()=>lastSource||lastWire,
         // A compaction during a revision keeps the answer under revision and the feedback of the latest review.
@@ -406,7 +421,7 @@ export function installAgent(ProjectService) {
           spent+=contextTokens([{role:'tool',content:JSON.stringify(delivered)}]);return delivered;
         }, stepwise:true, harness:false, clarifyOnStall:true, compactProgress:true, readTogether:READ_TOGETHER,
       completeAnalysis: (wire, definitions, scope) => invokeModel(wire, definitions, scope.signal, 'analysis'),
-      prepareContext: (wire,definitions) => {lastSource=structuredClone(wire);return fitted(wire,false,toolSet.advertised(definitions));}, onStep: event => { const entry={...event,id:runId+':'+round+':'+event.index,at:new Date().toISOString()};saveRoleProgress(this.store,taskId,runId,entry);const at=task.trace.findIndex(item=>item.id===entry.id);if(at<0)task.trace=[...task.trace.slice(-79),entry];else task.trace=task.trace.map((item,index)=>index===at?entry:item); persistTask(); },
+      prepareContext: async (wire,definitions) => {lastSource=structuredClone(wire);return reobserve(await fitted(wire,false,toolSet.advertised(definitions)));}, onStep: event => { const entry={...event,id:runId+':'+round+':'+event.index,at:new Date().toISOString()};saveRoleProgress(this.store,taskId,runId,entry);const at=task.trace.findIndex(item=>item.id===entry.id);if(at<0)task.trace=[...task.trace.slice(-79),entry];else task.trace=task.trace.map((item,index)=>index===at?entry:item); persistTask(); },
       onRound: () => { this.store.event('agent_round', {taskId}); }
     });}});}).then(result => {
       if (controller.signal.aborted) return;

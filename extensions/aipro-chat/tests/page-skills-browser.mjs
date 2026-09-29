@@ -11,6 +11,7 @@ import {resolve} from 'node:path';
 
 const profile = await mkdtemp(resolve(tmpdir(), 'aipro-page-skills-')), output = resolve('verification'), extension = resolve(profile,'extension');
 const assertions = [], errors = [], requests = [];
+let recoveryAnalysts = 0;
 let context, ui, target, worker;
 const token = `header.${Buffer.from(JSON.stringify({exp: Math.floor(Date.now() / 1000) + 3600})).toString('base64url')}.signature`;
 const check = label => {assertions.push(label); console.log(`PASS ${label}`);};
@@ -57,6 +58,16 @@ try {
     const planning = planCompletion(body); if (planning) return route.fulfill({json: planning});
     const review = goalReviewPayload(body.messages);
     if (review) return route.fulfill({json: reviewCompletion(review)});
+    // A leader that repeats the same step without progress gets one read-only
+    // recovery analyst (action-recovery-analysis.js). It never acts in the page.
+    if (/isolated recovery analyst/.test(body.messages[0]?.content || '')) {
+      recoveryAnalysts++;
+      assert.deepEqual((body.tools || []).map(item => item.function.name).filter(name => name !== 'read_analysis_evidence'), []);
+      const brief = JSON.parse(body.messages[1].content), id = brief.evidence[0].evidence_id;
+      if (body.tools?.length && !body.messages.some(message => message.role === 'tool')) return route.fulfill({contentType: 'text/event-stream', body: tool('read_analysis_evidence', {evidence_id: id})});
+      return route.fulfill({contentType: 'text/event-stream', body: frame({choices: [{delta: {content: JSON.stringify({status: 'complete', summary: '같은 도구 선택을 반복했습니다.',
+        findings: [{text: '필요한 도구는 이미 선택되어 있습니다.', evidence_ids: [id]}], uncertainties: [], next_step: '선택된 도구로 다음 단계를 진행하세요.'})}, finish_reason: 'stop'}]}) + 'data: [DONE]\n\n'});
+    }
     requests.push(body);
     const last = body.messages.at(-1);
     const storageTask = body.messages.findLast(message => message.role === 'user')?.content.includes('저장 정보');
