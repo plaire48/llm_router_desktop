@@ -25,6 +25,27 @@ function clean(value) {
   if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).filter(([key])=>!['image','images','image_url','screenshot','screenshots','base64','dataUrl','bytes'].includes(key)).map(([key,v])=>[key,clean(v)]));
   return typeof value==='string'&&value.startsWith('data:image/')?'[image omitted]':value;
 }
+// A review can use no entry above ENTRY_LIMIT characters. A long text that
+// the main agent read whole is divided at line ends, so every line reaches the
+// review in a part it can cite. The first part keeps the id of the result.
+const ENTRY_LIMIT=12000;
+function parts(record) {
+  const result=record.result,field=['content','excerpt'].find(key=>typeof result?.[key]==='string');
+  if(!field||JSON.stringify(result).length<=ENTRY_LIMIT||result.error||result.ok===false)return [record];
+  const {[field]:text,...rest}=result,lines=text.split('\n'),numbered=Number.isSafeInteger(rest.start)&&Number.isSafeInteger(rest.end)&&rest.end-rest.start+1===lines.length;
+  // Room for the text of one part, beside the other fields and the marks of the part.
+  const room=ENTRY_LIMIT-JSON.stringify(rest).length-200,found=[];let from=0,size=0;
+  if(room<1000)return [record];
+  for(const [index,line] of lines.entries()){
+    const length=JSON.stringify(line).length+1;
+    if(length>room)return [record];
+    if(size+length>room){found.push([from,index]);from=index;size=0;}
+    size+=length;
+  }
+  found.push([from,lines.length]);
+  return found.map(([start,end],index)=>({id:index?`${record.id}.${index+1}`:record.id,tool:record.tool,
+    result:{...rest,...(numbered?{start:rest.start+start,end:rest.start+end-1}:{}),[field]:lines.slice(start,end).join('\n'),part:{index:index+1,of:found.length}}}));
+}
 export function resultReviewInput({task,evidence,receipts,candidate,model,history,handoffs={items:[],omitted:0}}) {
   const requirements=reviewRequirements(task),turn=currentTurn(task,history);
   if(requirements.length>64)throw new Error('context_input_too_large');
@@ -38,15 +59,20 @@ export function resultReviewInput({task,evidence,receipts,candidate,model,histor
   if(contextTokens(messages())>limit-512)throw new Error('context_input_too_large');
   // Live host receipts have priority over historical tool excerpts.
   const records=[{id:'host',tool:'host_receipts',result:host},...entries.reverse()],given=new Set();
-  for(const record of records){
-    const text=JSON.stringify(record.result),truncated=text.length>12000;
+  for(const whole of records){
+    const key=whole.tool+'\n'+JSON.stringify(whole.result);
     // A result repeated word for word adds nothing: the newest copy stands for all.
-    if(given.has(record.tool+'\n'+text)){data.omittedEvidence--;data.duplicateEvidence++;continue;}
-    given.add(record.tool+'\n'+text);
-    const entry={id:record.id,tool:record.tool,result:truncated?text.slice(0,12000):record.result,truncated,usable:!truncated&&!record.result?.error&&record.result?.ok!==false};
-    data.evidence.push(entry);
-    if(contextTokens(messages())>limit-512){data.evidence.pop();continue;}
-    if(record.id!=='host')data.omittedEvidence--;
+    if(given.has(key)){data.omittedEvidence--;data.duplicateEvidence++;continue;}
+    given.add(key);
+    // A result counts as given when all of its parts fit.
+    let fitted=true;
+    for(const record of parts(whole)){
+      const text=JSON.stringify(record.result),truncated=text.length>ENTRY_LIMIT;
+      const entry={id:record.id,tool:record.tool,result:truncated?text.slice(0,ENTRY_LIMIT):record.result,truncated,usable:!truncated&&!record.result?.error&&record.result?.ok!==false};
+      data.evidence.push(entry);
+      if(contextTokens(messages())>limit-512||data.evidence.length>32){data.evidence.pop();fitted=false;break;}
+    }
+    if(fitted&&whole.id!=='host')data.omittedEvidence--;
     if(data.evidence.length>=32)break;
   }
   // Host facts and literal requirements retain priority over advisory summaries.

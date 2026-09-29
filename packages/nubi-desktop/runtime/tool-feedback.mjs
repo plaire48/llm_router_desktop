@@ -50,6 +50,23 @@ const GUIDANCE=Object.freeze({
   path_scope:'The path is outside this workspace or not allowed. Use a relative path inside the project.',
 });
 export const RECOVERABLE_CODES=Object.freeze(Object.keys(GUIDANCE));
+
+// App control. A refused operation sent nothing to the app.
+const NO_INPUT='No input was sent to the app. ';
+const COMPUTER=Object.freeze({
+  computer_invalid:NO_INPUT+'The arguments are not a valid operation. set_value needs value and no other action takes one; a value must not start with "-". drag needs destinationSelector and no other action takes one. Use a selector exactly as observe_computer returned it.',
+  computer_observation_stale:NO_INPUT+'The observation is older than two minutes or is not from this run. Call observe_computer again and use its observationId.',
+  computer_review_required:NO_INPUT+'An earlier action of this task waits for the user, or its result has not been read. Propose nothing new: stop for the user, or read the receipt with read_computer_result.',
+  computer_target_unavailable:NO_INPUT+'The selector is not among the elements of that observation. Observe with query or selector so that the target is among them, then use that observationId.',
+  computer_target_changed:NO_INPUT+'The control or the window changed after the observation. Observe again before the next step.',
+  computer_busy:NO_INPUT+'Another operation on the app is running. Read its result before the next step.',
+  computer_command_failed:NO_INPUT+'The app did not answer this command. Observe again. The control may not offer this operation: read target.controlState and choose an action it supports.',
+  computer_password:NO_INPUT+'The control is a password field. Its value is never read or compared. Say so to the user.',
+  computer_input_unavailable:NO_INPUT+'This control does not accept the operation: it is a password field, read-only or disabled. Say so to the user instead of trying another input.',
+  wiki_evidence_required:NO_INPUT+'`details.unknownEvidenceIds` are not ids that wiki_query or ask_openwiki returned in this run. Omit evidenceIds when no Wiki rule informs this action, or use an id from `details.observedEvidence`.',
+});
+const COMPUTER_FALLBACK=NO_INPUT+'Inspect computer_checkpoint and stored receipts, change the observation or target, and ask for missing app setup. Re-observe changed targets. Never replay uncertain operations or bypass approval through shell.';
+export const computerInstruction=code=>COMPUTER[code]||COMPUTER_FALLBACK;
 const FALLBACK=UNCHANGED+'Inspect the error, correct the input and do not repeat the same call unchanged.';
 
 export function recoveryInstruction(code,tool,readTools=new Set(['read_source','source_search','inspect_path','code_outline','wiki_query','knowledge_query','read_conversation','inspect_workspace_changes','search_voc','read_voc'])){

@@ -23,14 +23,43 @@ export function workPlanSteps(input,{initial=false}={}){
   if(!steps||steps.filter(s=>s.status==='in_progress').length!==1||new Set(steps.map(s=>s.text)).size!==steps.length)throw new Error('work_plan_invalid');
   return initial?initialPlan(steps):steps;
 }
+// A planner that leaves out every status meant the first plan of a run: the
+// first step is in progress and the others wait. A plan that names some
+// statuses is left as it is and judged by the rules.
+function withStatus(value){
+  if(!Array.isArray(value?.steps)||!value.steps.length||value.steps.some(step=>!step||typeof step!=='object'||'status' in step))return value;
+  return {...value,steps:value.steps.map((step,index)=>({...step,status:index?'pending':'in_progress'}))};
+}
+// Names what a refused plan broke, for the second request.
+export function planProblems(value,capabilities){
+  if(!value||typeof value!=='object')return ['The response was not a JSON object.'];
+  const problems=[];
+  if(!validate({steps:value.steps,...(value.intent===undefined?{}:{intent:value.intent})}))problems.push(...validate.errors.slice(0,6).map(error=>((error.instancePath||'/')+' '+error.message+(error.params?.allowedValues?': '+error.params.allowedValues.join(', '):error.params?.missingProperty?': '+error.params.missingProperty:error.params?.additionalProperty?': '+error.params.additionalProperty:'')).slice(0,200)));
+  if(value.intent===undefined)problems.push('intent is required in the first plan of a run.');
+  if(Array.isArray(value.steps)){
+    const running=value.steps.filter(step=>step?.status==='in_progress').length;
+    if(running!==1)problems.push('Exactly one step must be in_progress; found '+running+'.');
+    if(new Set(value.steps.map(step=>step?.text)).size!==value.steps.length)problems.push('Step texts must differ.');
+  }
+  const unknown=(value.intent?.workflowIds||[]).filter(id=>!capabilities.workflows.some(item=>item.id===id));
+  if(unknown.length)problems.push('Unknown workflowIds: '+unknown.map(id=>JSON.stringify(id)).join(', ')+'. Available: '+(capabilities.workflows.map(item=>item.id).join(', ')||'none')+'.');
+  const paths=(value.intent?.skillPaths||[]).filter(path=>!capabilities.skills.some(item=>item.path===path));
+  if(paths.length)problems.push('Unknown skillPaths: '+paths.map(path=>JSON.stringify(path)).join(', ')+'. Use [] when no skill applies.');
+  return problems.length?problems:['The plan did not pass validation.'];
+}
 export async function prepareWorkPlan({task,history,model,invoke,signal,capabilities}){
   const messages=[{role:'system',content:WORK_PLAN_PROMPT},{role:'user',content:JSON.stringify({request:task.request,criteria:task.criteria,answeredQuestions:task.questionHistory||[],history,capabilities,previousIntent:task.workPlan?.intent||null,previousPlan:task.workPlan?.steps||[]})}];
   if(contextTokens(messages)>contextBudget(model).input-512)throw new Error('context_input_too_large');
+  let problems=[];
   for(let attempt=0;attempt<2;attempt++){
     if(signal.aborted)throw new Error('cancelled');
-    const result=await invoke(attempt?[{...messages[0],content:WORK_PLAN_PROMPT+' The previous response was invalid. Return complete JSON in the exact schema.'},messages[1]]:messages,[]);
+    const result=await invoke(attempt?[{...messages[0],content:WORK_PLAN_PROMPT+' The previous response was invalid. Return complete JSON in the exact schema. Problems found: '+problems.join(' ')},messages[1]]:messages,[]);
     if(signal.aborted)throw new Error('cancelled');
-    try{if(result.calls?.length||result.finishReason==='length')continue;const value=JSON.parse(result.content);return {steps:workPlanSteps(value,{initial:true}),intent:workIntent(value.intent,capabilities)};}catch{}
+    if(result.calls?.length){problems=['The response called a tool. Return JSON only.'];continue;}
+    if(result.finishReason==='length'){problems=['The response was cut off. Use fewer and shorter steps.'];continue;}
+    let value;
+    try{value=withStatus(JSON.parse(result.content));}catch{problems=['The response was not valid JSON.'];continue;}
+    try{return {steps:workPlanSteps(value,{initial:true}),intent:workIntent(value.intent,capabilities)};}catch{problems=planProblems(value,capabilities);}
   }
   throw new Error('work_plan_invalid');
 }

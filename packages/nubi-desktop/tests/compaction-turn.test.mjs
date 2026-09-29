@@ -17,7 +17,9 @@ const SECOND='이번에는 docs/big.md에서 KEY-777 항목의 값을 찾아 알
 const summary={goal:'문서에서 값을 찾는다',constraints:['src/legacy 수정 금지'],decisions:[],completed:['앞부분을 읽었다'],pending:['남은 부분 확인'],references:['docs/big.md']};
 const call=(name,args)=>({content:'',calls:[{id:crypto.randomUUID(),type:'function',function:{name,arguments:JSON.stringify(args)}}]});
 
-async function twoTurns(t,{reads=8,history=[]}={}){
+// Short reads stay in the conversation as they are: old long reads are cleared without a summary,
+// so many short ones are what fills a window and brings a compaction.
+async function twoTurns(t,{reads=40,history=[],second=SECOND}={}){
   const {service,root}=await fixture(t);
   await mkdir(path.join(root,'docs'));
   await writeFile(path.join(root,'docs','big.md'),Array.from({length:900},(_,i)=>`line ${i+1} `+'reference text for the measurement of compaction. '.repeat(2)).join('\n'));
@@ -29,13 +31,13 @@ async function twoTurns(t,{reads=8,history=[]}={}){
     if(messages.some(message=>message.role==='user'&&String(message.content).includes('Current task memory')))compacted.push(messages);
     const last=messages.findLast(message=>message.role==='tool');
     if(last){const result=JSON.parse(last.content);if(result.nextStart)next=result.nextStart;}
-    return step++<reads?call('read_source',{path:'docs/big.md',start:next}):{content:'KEY-777 항목은 문서에 없습니다.',calls:[]};
+    return step++<reads?call('read_source',{path:'docs/big.md',start:next,end:next+9}):{content:'KEY-777 항목은 문서에 없습니다.',calls:[]};
   }};
   const task=await service.createTask({request:FIRST});
   if(history.length){task.messages=history;service.store.set('task:'+task.id,task);}
   await service.startAgent({taskId:task.id});await service.agent.promise;
   assert.equal(service.task(task.id).state,'review',service.task(task.id).error);
-  turn=2;await service.startAgent({taskId:task.id,answer:SECOND});await service.agent.promise;
+  turn=2;await service.startAgent({taskId:task.id,answer:second});await service.agent.promise;
   assert.equal(service.task(task.id).state,'review',service.task(task.id).error);
   return {compacted,summaries,service,task};
 }
@@ -115,10 +117,10 @@ test('a revision after a compaction continues without losing or breaking message
     rounds.push({reviews,messages:structuredClone(messages)});
     const last=messages.findLast(message=>message.role==='tool');
     if(last){const result=JSON.parse(last.content);if(result.nextStart)next=result.nextStart;}
-    // Four reads, an answer, then after the revision two more reads and the final answer.
+    // Thirty short reads, an answer, then after the revision two more reads and the final answer.
     step++;
-    if(step<=4||step===6||step===7)return call('read_source',{path:'docs/big.md',start:next});
-    return {content:step===5?'앞부분까지 확인했습니다.':'KEY-777 항목은 문서에 없습니다.',calls:[]};
+    if(step<=30||step===32||step===33)return call('read_source',{path:'docs/big.md',start:next,end:next+9});
+    return {content:step===31?'앞부분까지 확인했습니다.':'KEY-777 항목은 문서에 없습니다.',calls:[]};
   }};
   const task=await service.createTask({request:SECOND});await service.startAgent({taskId:task.id});await service.agent.promise;
   const done=service.task(task.id);
@@ -134,4 +136,39 @@ test('a revision after a compaction continues without losing or breaking message
     assert.ok(messages.some(message=>message.role==='assistant'&&message.content==='앞부분까지 확인했습니다.'),'the answer under revision is in view');
     for(const [index,message] of messages.entries())if(message.role==='tool')assert.ok(messages.slice(0,index).some(item=>item.tool_calls?.some(entry=>entry.id===message.tool_call_id)),'every result follows its call');
   }
+});
+
+// Found in B5 case L1: protected messages left no room in a window of 22,000
+// tokens, the compacted request did not fit, and the run stopped with
+// context_compaction_failed. A run that cannot keep a message word for word
+// leaves it to the summary, the largest first.
+test('protected messages that the window cannot hold are left to the summary instead of stopping the run',async t=>{
+  const {fixture:make}=await import('./fixtures.mjs'),{REVIEW_PROMPT}=await import('../runtime/result-review.mjs');
+  const {service,root}=await make(t,{scriptedReview:true});
+  await mkdir(path.join(root,'docs'));
+  await writeFile(path.join(root,'docs','big.md'),Array.from({length:900},(_,i)=>`line ${i+1} `+'reference text for the measurement of compaction. '.repeat(2)).join('\n'));
+  await git(root,['add','-A']);await git(root,['commit','-qm','big document']);
+  const long='앞부분까지 확인했습니다. '+'확인한 내용을 자세히 적은 문장입니다. '.repeat(260);
+  let step=0,next=1,reviews=0,summaries=0;const rounds=[];
+  service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:22000}]}),dispose(){},async complete(messages){
+    if(messages[0].content.startsWith('Summarize conversation')){summaries++;return {content:JSON.stringify(summary),calls:[]};}
+    if(messages[0].content.startsWith(REVIEW_PROMPT)){
+      reviews++;const requirements=JSON.parse(messages[1].content).requirements;
+      return {content:JSON.stringify({status:reviews===1?'revise':'ready',nextStep:reviews===1?'남은 범위를 읽으세요.':'',checks:requirements.map(item=>({requirementId:item.id,state:'unknown',evidenceIds:[],detail:'확인 중'}))}),calls:[]};
+    }
+    rounds.push({reviews,messages:structuredClone(messages)});
+    const last=messages.findLast(message=>message.role==='tool');
+    if(last){const result=JSON.parse(last.content);if(result.nextStart)next=result.nextStart;}
+    step++;
+    if(step<=3||step>=5&&step<=34)return call('read_source',{path:'docs/big.md',start:next,end:next+9});
+    return {content:step===4?long:'KEY-777 항목은 문서에 없습니다.',calls:[]};
+  }};
+  const task=await service.createTask({request:SECOND});await service.startAgent({taskId:task.id});await service.agent.promise;
+  const done=service.task(task.id);
+  assert.equal(done.error||null,null);assert.equal(done.state,'review');
+  assert.ok(summaries>0,'the run was compacted');assert.equal(reviews,2);
+  const last=rounds.at(-1).messages,users=last.filter(message=>message.role==='user').map(message=>String(message.content));
+  assert.ok(users.includes(SECOND),'the short request still stands word for word');
+  assert.ok(users.some(text=>text.startsWith('Independent review found unfinished work')),'the feedback of the review too');
+  assert.ok(!last.some(message=>message.role==='assistant'&&message.content===long),'the long answer under revision is in the summary');
 });

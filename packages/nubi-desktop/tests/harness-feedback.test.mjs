@@ -381,3 +381,28 @@ test('the review instruction accepts a report that the sources lack the fact',()
   assert.match(REVIEW_PROMPT,/reports that the sources it searched or read do not contain/);
   assert.match(REVIEW_PROMPT,/do not ask for a fact the sources lack/);
 });
+
+// Found in B6 case L1: the planner returned steps without a status, twice.
+// The second request said only that the response was invalid, and the run
+// stopped with work_plan_invalid before any work.
+test('a plan whose steps have no status is completed by the host',async()=>{
+  const {prepareWorkPlan}=await import('../runtime/work-plan.mjs');
+  const capabilities={workflows:[{id:'knowledge'}],skills:[]},task={request:'주문 상태를 위키에서 찾아 줘',criteria:[],questionHistory:[]};
+  const plan={intent:{goal:'위키 확인',constraints:[],outcomes:['상태 순서 설명'],workflowIds:['knowledge'],skillPaths:[]},steps:[{text:'위키 조회',expected_outcome:'근거 확인'},{text:'정리',expected_outcome:'설명 제공'}]};
+  let calls=0;
+  const prepared=await prepareWorkPlan({task,history:[],model:{contextLength:200000},capabilities,signal:new AbortController().signal,invoke:async()=>{calls++;return {content:JSON.stringify(plan),calls:[]};}});
+  assert.equal(calls,1,'no second request is needed');
+  assert.deepEqual(prepared.steps.map(step=>[step.text,step.status]),[['위키 조회','in_progress'],['정리','pending']]);
+  assert.equal(prepared.intent.goal,'위키 확인');
+});
+
+test('a plan that stays invalid is asked again with the rule it broke',async()=>{
+  const {prepareWorkPlan}=await import('../runtime/work-plan.mjs');
+  const capabilities={workflows:[{id:'knowledge'}],skills:[]},task={request:'확인해 줘',criteria:[],questionHistory:[]},seen=[];
+  const broken={intent:{goal:'확인',constraints:[],outcomes:['결과'],workflowIds:['unknown-workflow'],skillPaths:[]},steps:[{text:'확인',expected_outcome:'결과',status:'completed'}]};
+  const fixed={intent:{goal:'확인',constraints:[],outcomes:['결과'],workflowIds:['knowledge'],skillPaths:[]},steps:[{text:'확인',expected_outcome:'결과',status:'in_progress'}]};
+  const prepared=await prepareWorkPlan({task,history:[],model:{contextLength:200000},capabilities,signal:new AbortController().signal,invoke:async messages=>{seen.push(messages[0].content);return {content:JSON.stringify(seen.length===1?broken:fixed),calls:[]};}});
+  assert.equal(seen.length,2);assert.equal(prepared.steps[0].status,'in_progress');
+  assert.match(seen[1],/Problems found:/);assert.match(seen[1],/status/);assert.match(seen[1],/unknown-workflow/);assert.match(seen[1],/knowledge/,'the valid workflow ids are named');
+  await assert.rejects(prepareWorkPlan({task,history:[],model:{contextLength:200000},capabilities,signal:new AbortController().signal,invoke:async()=>({content:JSON.stringify(broken),calls:[]})}),/work_plan_invalid/);
+});

@@ -4,8 +4,12 @@
 // Credentials never pass through here.
 import {safeError} from '../../nubi-office/worker/connection-errors.mjs';
 
-export function recordingProviders(providers,{write=()=>{},maxModelCalls=Infinity,modelLimits}={}){
-  let sequence=0;
+// Research that the main agent hands to the OpenWiki agent is that agent's work.
+// Its calls are counted apart and have their own limit (user decision
+// 2026-09-29: the OpenWiki agent searches and answers the way it does).
+const delegated=messages=>{const first=String(messages?.[0]?.content||'');return first.startsWith('Plan OpenWiki research')||first.startsWith("You are OpenWiki's");};
+export function recordingProviders(providers,{write=()=>{},maxModelCalls=Infinity,maxDelegatedCalls=Infinity,modelLimits}={}){
+  let sequence=0,own=0,handed=0;
   const record=entry=>{try{write(entry);}catch{/* Recording must never change the run under test. */}};
   return{
     // A case may lower the context limit to exercise compaction. It can only lower.
@@ -16,12 +20,16 @@ export function recordingProviders(providers,{write=()=>{},maxModelCalls=Infinit
         ...(Number.isSafeInteger(modelLimits.contextLength)?{contextLength:Math.min(model.contextLength||Infinity,modelLimits.contextLength)}:{}),
         ...(Number.isSafeInteger(modelLimits.maxInputTokens)?{maxInputTokens:Math.min(model.maxInputTokens||Infinity,modelLimits.maxInputTokens)}:{})})};
     },
-    modelCalls:()=>sequence,
+    // Calls of the main agent, its planner, reviewer and summaries.
+    modelCalls:()=>own,
+    delegatedCalls:()=>handed,
     // The relay connection belongs to the runner and outlives one case.
     dispose(){},
     async complete(messages,tools=[],signal,onText,onPhase){
-      if(sequence>=maxModelCalls)throw Object.assign(new Error('evaluation_model_budget'),{retryable:false});
-      const started=Date.now(),entry={sequence:++sequence,model:providers.status().model,startedAt:new Date(started).toISOString(),elapsedMs:0,
+      const research=delegated(messages);
+      if(research?handed>=maxDelegatedCalls:own>=maxModelCalls)throw Object.assign(new Error(research?'evaluation_delegated_budget':'evaluation_model_budget'),{retryable:false});
+      if(research)handed++;else own++;
+      const started=Date.now(),entry={sequence:++sequence,...(research?{delegated:true}:{}),model:providers.status().model,startedAt:new Date(started).toISOString(),elapsedMs:0,
         request:{messages:structuredClone(messages),toolNames:tools.map(tool=>tool.function.name),characters:JSON.stringify(messages).length+JSON.stringify(tools).length}};
       try{
         const result=await providers.complete(messages,tools,signal,onText,onPhase);

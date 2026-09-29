@@ -719,7 +719,24 @@ export async function runApprovedAction(requestId,page,record,{onNativeDialog,on
     await clearApproval(record);
   }
 }
-export async function runBrowserAgent(requestId, page, name, args = {}, {vision = false, onCapture, onImage, onApproval, onNativeDialog, uploadFiles:availableFiles} = {}) {
+// A history move or a load that the page never finishes (a document opened in
+// the viewer, a download) left the tool waiting without end, and the run with
+// it: measured 120 seconds on go_back before the caller gave up. A navigation
+// tool answers within this time. The move may still have taken effect, so the
+// result says that it was issued and that the page must be observed first.
+const NAVIGATION_TOOLS = new Set(['navigate_page', 'go_back', 'switch_tab']);
+export const NAVIGATION_DEADLINE_MS = 30000;
+export async function runBrowserAgent(requestId, page, name, args = {}, options = {}) {
+  if (!NAVIGATION_TOOLS.has(name)) return runBrowserTool(requestId, page, name, args, options);
+  let timer;
+  const run = runBrowserTool(requestId, page, name, args, options);
+  run.catch(() => {});
+  const late = new Promise(resolve => {timer = setTimeout(() => resolve({result: {error: 'script_timeout', reason: 'script_timeout', actionIssued: true, navigationUnsettled: true,
+    instruction: 'The navigation did not settle in time and may still have taken effect. Observe the current page with browser_snapshot before any other action. Do not repeat the navigation until that observation shows where the page is.'},
+    tabId: active?.id === requestId && Number.isInteger(active.tabId) ? active.tabId : page?.tabId}), options.navigationDeadlineMs || NAVIGATION_DEADLINE_MS);});
+  try {return await Promise.race([run, late]);} finally {clearTimeout(timer);}
+}
+async function runBrowserTool(requestId, page, name, args = {}, {vision = false, onCapture, onImage, onApproval, onNativeDialog, uploadFiles:availableFiles} = {}) {
   let task, issued = false;
   let actionTargetReceipt = name === 'click_element'
     ? {dataKind: 'click_target_dispatch', version: 1, status: 'unknown', actionIssued: false, reason: 'click_not_dispatched'} : null;
@@ -915,8 +932,8 @@ export async function runBrowserAgent(requestId, page, name, args = {}, {vision 
       const existing = args.new_tab === 'yes' ? await findWorkspaceURL(task.workspace, url) : null;
       if (existing) {if (existing.id !== task.tabId) await attachTab(task, existing.id);}
       else if (args.new_tab === 'yes') {const openerId = task.tabId; const tab = await chrome.tabs.create({url, active: !task.workspace, openerTabId: openerId, ...(task.workspace ? {windowId: task.workspace.windowId} : {})}); await attachTab(task, tab.id, openerId, true);}
-      else await task.page.goto(url, {waitUntil: 'domcontentloaded'});
-    } else if (name === 'go_back') {task.screenshot = null; await task.page.goBack({waitUntil: 'domcontentloaded'});}
+      else await task.page.goto(url, {waitUntil: 'domcontentloaded', timeout: 15000});
+    } else if (name === 'go_back') {task.screenshot = null; await task.page.goBack({waitUntil: 'domcontentloaded', timeout: 12000});}
     else if (name === 'scroll_page') {
       const entry = args.ref ? await target(task, args.ref) : null;
       try {

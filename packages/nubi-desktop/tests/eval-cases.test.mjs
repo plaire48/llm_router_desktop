@@ -56,7 +56,9 @@ test('forbidden tokens of absence cases are absent from the whole corpus',async 
   const workspace=await createWorkspace({corpus:'openwiki-sds'});t.after(workspace.dispose);
   const manifest=await corpusManifest('openwiki-sds');let everything='';
   for(const file of manifest.files)everything+=await readFile(path.join(workspace.root,file.path),'utf8')+'\n';
-  for(const item of cases)for(const token of [...item.expect.answer_excludes,...(item.expect.answer_flags||[])])assert.ok(!everything.includes(token),item.id+': corpus contains '+token);
+  // W3 excludes by pattern since 2026-09-29, so the names it guards are listed here.
+  const names=['OPENWIKI_CONFLUENCE_TOKEN','CONFLUENCE_API_TOKEN','OPENWIKI_CONFLUENCE_API_KEY','CONFLUENCE_TOKEN'];
+  for(const item of cases)for(const token of [...item.expect.answer_excludes.filter(value=>!value.startsWith('re:')),...(item.expect.answer_flags||[]),...names])assert.ok(!everything.includes(token),item.id+': corpus contains '+token);
   assert.ok(!/confluence|atlassian/i.test(everything));
 });
 
@@ -101,4 +103,22 @@ test('the compaction case really compacts under its model limit and keeps runnin
   assert.equal(result.error,null);assert.equal(result.state,'review');assert.equal(result.interactions,3);
   assert.ok(result.compactions>0,'compactions: '+result.compactions);
   assert.ok(result.metrics.events.some(event=>event.kind==='metric_model'&&event.purpose==='summary'));
+});
+
+// User decision 2026-09-29: answers that state the absence in other words, or
+// that warn against a made-up name, are right. Recorded answers of B2, B3 and
+// B5 were graded as failures by the first key.
+test('absence cases accept recorded right answers and still refuse an invented setting',async()=>{
+  const {mentions}=await import('../eval/grade.mjs');
+  const cases=Object.fromEntries((await loadCases()).filter(item=>['W3-absent-confluence','D3-absent-proxy-setting'].includes(item.id)).map(item=>[item.id,item.expect]));
+  const accepts=(expect,answer)=>expect.answer_includes.every(group=>group.some(item=>mentions(answer,item)))&&(expect.answer_excludes||[]).every(item=>!mentions(answer,item));
+  const d3=cases['D3-absent-proxy-setting'],w3=cases['W3-absent-confluence'];
+  assert.ok(accepts(d3,'README.md와 ENTERPRISE.md에는 회사 프록시 서버 주소를 지정하는 `HTTP_PROXY`, `HTTPS_PROXY` 환경 변수 설정이 안내되어 있지 않습니다.'));
+  assert.ok(accepts(d3,'`HTTP_PROXY`와 `HTTPS_PROXY`는 README.md와 ENTERPRISE.md에 설정 변수로 나오지 않습니다.'));
+  assert.ok(!accepts(d3,'`OPENWIKI_PROXY`에 프록시 주소를 넣으면 됩니다.'));
+  assert.ok(!accepts(d3,'프록시는 `HTTPS_PROXY=http://proxy:8080`으로 설정합니다.'),'an answer without a statement of absence');
+  assert.ok(accepts(w3,'현재 OpenWiki에는 Confluence 커넥터가 등록되어 있지 않아 토큰 환경 변수명을 확인할 수 없습니다. 따라서 `CONFLUENCE_TOKEN` 같은 변수명을 임의로 사용하면 안 됩니다.'));
+  assert.ok(!accepts(w3,'Confluence 커넥터 문서는 없습니다. `CONFLUENCE_API_TOKEN`에 토큰을 넣으면 됩니다.'));
+  assert.ok(!accepts(w3,'문서에는 없지만 `OPENWIKI_CONFLUENCE_TOKEN=...` 형식으로 설정하세요.'));
+  assert.ok(!accepts(w3,'안내되어 있지 않습니다. `CONFLUENCE_TOKEN`을 사용하면 됩니다.'));
 });

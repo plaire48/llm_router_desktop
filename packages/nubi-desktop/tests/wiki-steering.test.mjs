@@ -169,15 +169,17 @@ async function delegated(t,{pages=1,contextLength=200000}={}){
 test('the main agent receives the cited text of the OpenWiki answer in full',async t=>{
   const {answer,characters}=await delegated(t);
   // Found in B3 case K1: the answer was right and named no source, because a finding carried only evidence ids.
-  assert.deepEqual(answer.findings[0].sources,['openwiki/operations/export-0.md']);
-  assert.deepEqual(answer.sources,['openwiki/operations/export-0.md']);
-  assert.match(answer.instruction,/Name the path of each source in the answer/);
+  assert.deepEqual(answer.desktop.sources,['openwiki/operations/export-0.md']);
+  assert.match(answer.desktop.note,/Name the pages of sources in the answer/);
+  // User decision 2026-09-29: what the OpenWiki agent returns is passed on as it came.
+  assert.deepEqual(Object.keys(answer.findings[0]).sort(),['citations','text']);
+  assert.ok(answer.evidence.every(item=>/^e_\d+_\d+_\d+$/.test(item.id)&&!('evidenceId' in item)),'ids of the OpenWiki agent');
+  assert.match(answer.instruction,/^Independent OpenWiki advice/,'the instruction of the shared protocol');
   assert.equal(answer.dataKind,'openwiki_reference');assert.equal(answer.status,'complete');
   assert.equal(answer.evidence.length,3);assert.ok(characters>16000,'nothing was cut: '+characters);
   assert.ok(answer.evidence.every(item=>!item.excerptTruncated&&item.excerpt.length===item.end-item.start));
   assert.ok(answer.evidence.some(item=>item.excerpt.includes(fact)),'a Korean finding keeps its English source');
-  assert.equal('omittedExcerpts' in answer,false);
-  assert.match(answer.instruction,/read_source/);
+  assert.equal('omittedExcerpts' in answer.desktop,false);
 });
 
 test('the review receives the answer and every cited text as entries it can use',async t=>{
@@ -186,7 +188,7 @@ test('the review receives the answer and every cited text as entries it can use'
   assert.equal(entries.length,1,'the answer, once');assert.equal(texts.length,3,'one entry for each cited text');
   for(const entry of [...entries,...texts]){assert.equal(entry.usable,true,entry.id);assert.equal(entry.truncated,false,entry.id);}
   assert.equal(entries[0].result.dataKind,'openwiki_reference');assert.match(entries[0].result.answer,/02:00/);
-  assert.deepEqual(entries[0].result.evidence.map(item=>Object.keys(item).sort()),Array(3).fill(['end','evidenceId','freshness','hash','id','lines','path','start','unit']),'the answer entry names its sources; their text follows in its own entries');
+  assert.deepEqual(entries[0].result.evidence.map(item=>Object.keys(item).sort()),Array(3).fill(['end','hash','id','path','start','unit']),'the answer entry names its sources; their text follows in its own entries');
   assert.deepEqual(texts.map(entry=>entry.result.id).sort(),entries[0].result.evidence.map(item=>item.id).sort());
   assert.ok(texts.some(entry=>entry.result.excerpt.includes(fact)));
   assert.ok(texts.every(entry=>entry.result.path.startsWith('openwiki/operations/export-')&&entry.result.excerpt.length===entry.result.end-entry.result.start));
@@ -199,7 +201,7 @@ test('six cited texts reach the main agent in full when the model can take them'
   const {answer,characters,reviewed}=await delegated(t,{pages:2});
   assert.equal(answer.evidence.length,6);assert.ok(characters>32000,'nothing was cut: '+characters);
   assert.ok(answer.evidence.every(item=>!item.excerptTruncated&&item.excerpt.length===item.end-item.start));
-  assert.equal('omittedExcerpts' in answer,false);
+  assert.equal('omittedExcerpts' in answer.desktop,false);
   assert.equal(reviewed.evidence.filter(entry=>entry.tool==='openwiki_excerpt'&&entry.usable).length,6);
 });
 
@@ -211,7 +213,7 @@ test('only text that one request of the model cannot hold is shortened, and the 
   assert.ok(whole.length>=1&&cut.length>=1,`whole ${whole.length}, shortened ${cut.length}`);
   assert.deepEqual(answer.evidence.map(item=>!!item.excerptTruncated),[...whole.map(()=>false),...cut.map(()=>true)],'texts stay whole in citation order');
   for(const item of cut){assert.ok(item.excerpt.length<=800);assert.ok(item.excerptStart>=item.start&&item.excerptEnd<=item.end);}
-  assert.equal(answer.omittedExcerpts,cut.length);assert.match(answer.instruction,/excerptTruncated/);
+  assert.equal(answer.desktop.omittedExcerpts,cut.length);assert.match(answer.desktop.note,/excerptTruncated/);
 });
 
 // Found in B3 case C1: the agent asked the OpenWiki agent, then a change plan
@@ -226,7 +228,7 @@ test('a change plan can cite the text that the OpenWiki agent returned',async t=
     switch(leader++){
       case 0:return call('ask_openwiki',{wiki:'external',question:'How is part 1 operated? (Wiki language: en)'});
       case 1:answer=result;return call('read_source',{path:'app.txt'});
-      case 2:hashOfTarget=result.hash;return call('record_change_plan',{summary:'Update observed text',requirements:[{id:'R1',text:'Follow the operation page',evidenceIds:[answer.evidence[0].evidenceId]}],targets:[{path:'app.txt',reason:'Observed behavior',requirementIds:['R1']}],checks:[{requirementId:'R1',method:'test',description:'Assert expected stored content'}],assumptions:[]});
+      case 2:hashOfTarget=result.hash;return call('record_change_plan',{summary:'Update observed text',requirements:[{id:'R1',text:'Follow the operation page',evidenceIds:[answer.evidence[0].id]}],targets:[{path:'app.txt',reason:'Observed behavior',requirementIds:['R1']}],checks:[{requirementId:'R1',method:'test',description:'Assert expected stored content'}],assumptions:[]});
       case 3:planned=result;return {content:'계획을 기록했습니다.',calls:[]};
       default:return {content:'계획을 기록했습니다.',calls:[]};
     }
@@ -234,12 +236,14 @@ test('a change plan can cite the text that the OpenWiki agent returned',async t=
   const task=await service.createTask({request:'1번 부분 운영 방식에 맞게 app.txt를 고쳐 줘'});await service.startAgent({taskId:task.id});await service.agent.promise;
   assert.equal(service.task(task.id).state,'review',service.task(task.id).error);
   const cited=answer.evidence[0];
-  assert.match(cited.evidenceId,/^wiki:[0-9a-f]{24}$/);assert.equal(cited.path,'openwiki/operations/page-01.md');
-  assert.ok(Number.isInteger(cited.lines.start)&&cited.lines.end>=cited.lines.start);assert.equal(typeof cited.freshness,'string');
-  assert.match(answer.instruction,/evidenceId/);assert.match(answer.instruction,/record_change_plan/);
+  // Found in B3 and B5 cases C1 and C2: the plan cited the id that the answer gave and was refused.
+  assert.match(cited.id,/^e_\d+_\d+_\d+$/);assert.equal(cited.path,'openwiki/operations/page-01.md');
+  assert.match(answer.desktop.note,/record_change_plan/);
   assert.notEqual(planned.error,'wiki_evidence_required',JSON.stringify(planned).slice(0,300));
   assert.ok(planned.id,'the plan was recorded: '+JSON.stringify(planned).slice(0,300));
-  assert.deepEqual(service.task(task.id).changePlan.wikiEvidence.map(row=>row.evidenceId),[cited.evidenceId]);
+  const stored=service.task(task.id).changePlan.wikiEvidence;
+  assert.equal(stored.length,1);assert.match(stored[0].evidenceId,/^wiki:[0-9a-f]{24}$/,'the host keeps its own identity of the text');
+  assert.equal(stored[0].path,'openwiki/operations/page-01.md');assert.equal(typeof stored[0].freshness,'string');
   assert.ok(hashOfTarget);
 });
 
@@ -250,8 +254,10 @@ test('an OpenWiki answer that does not settle the question sends the main agent 
   const {wikiAnswer}=await import('../runtime/wiki-evidence.mjs'),{REVIEW_PROMPT}=await import('../runtime/result-review.mjs');
   const base={dataKind:'openwiki_reference',wikiId:'external:x',wiki:'external',advisory:true,coverage:{mode:'focused'},evidence:[]};
   const missing=wikiAnswer({...base,status:'partial',answer:'The Wiki does not state the constant.',findings:[],uncertainties:['No page names the constant.']}).delivered;
-  assert.match(missing.instruction,/The Wiki did not settle this question/);assert.match(missing.instruction,/source_search/);assert.match(missing.instruction,/before reporting that it is not found/);
-  const settled=wikiAnswer({...base,status:'complete',answer:'The port is 53682.',findings:[{text:'The port is 53682.',citations:['e_1']}],uncertainties:[],evidence:[{id:'e_1',path:'openwiki/a.md',hash:'h',start:0,end:4,unit:'utf16',excerpt:'port'}]}).delivered;
-  assert.doesNotMatch(settled.instruction,/did not settle/);
+  assert.match(missing.desktop.note,/The Wiki did not settle this question/);assert.match(missing.desktop.note,/source_search/);assert.match(missing.desktop.note,/before reporting that it is not found/);
+  const given={...base,status:'complete',answer:'The port is 53682.',findings:[{text:'The port is 53682.',citations:['e_1']}],uncertainties:[],instruction:'Independent OpenWiki advice.',evidence:[{id:'e_1',path:'openwiki/a.md',hash:'h',start:0,end:4,unit:'utf16',excerpt:'port'}]};
+  const settled=wikiAnswer(given).delivered;
+  assert.doesNotMatch(settled.desktop.note,/did not settle/);
+  const {desktop,...rest}=settled;assert.deepEqual(rest,given,'nothing of the answer is changed');
   assert.match(REVIEW_PROMPT,/for a question about code or behavior that includes the source, not only the Wiki/);
 });

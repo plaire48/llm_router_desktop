@@ -31,7 +31,9 @@ import {validEvaluationAttachment} from './evaluation-attachment.mjs';
 import {inspectEvaluationDelivery,waitForEvaluationDelivery} from './evaluation-delivery.mjs';
 
 process.chdir(fileURLToPath(new URL('../', import.meta.url)));
-const model = 'gpt-5.6-luna';
+// The same harness with another model tells a model limit from a harness fault.
+const model = process.env.NUBI_EVAL_MODEL || 'gpt-5.6-luna';
+if (!/^[a-z0-9][a-z0-9.-]{1,60}$/.test(model)) throw Error('invalid_evaluation_model');
 const suite30 = process.env.NUBI_EVAL_TASK_SET === 'browser-30';
 const fixtureApprovals = suite30 && process.env.NUBI_EVAL_FIXTURE_APPROVALS === '1';
 const taskSet = suite30 ? evaluationSelection() : process.env.NUBI_EVAL_TASK_SET === 'v2' ? naverTasksV2 : naverTasks;
@@ -54,7 +56,7 @@ const idleTimeoutMs = Math.max(30000, Number(process.env.NUBI_EVAL_IDLE_TIMEOUT_
 // it is not counted in the task's elapsed time.
 const resultHoldMs = Number(process.env.NUBI_EVAL_RESULT_HOLD_MS || 0);
 if (!Number.isSafeInteger(resultHoldMs) || resultHoldMs < 0 || resultHoldMs > 60000) throw Error('invalid_result_hold');
-const output = resolve('verification', `naver-sso-luna-${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
+const output = resolve('verification', `naver-sso-${model.split('-').at(-1)}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
 const evidenceDirectory = output.replace(/\.json$/, '-evidence');
 const candidateArchive = resolve(process.env.NUBI_EVAL_CANDIDATE_ARCHIVE || 'verification/candidate/nubi-beta-1.0.0-candidate.zip');
 const candidateBytes = await readFile(candidateArchive);

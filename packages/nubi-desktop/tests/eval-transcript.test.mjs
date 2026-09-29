@@ -56,3 +56,19 @@ test('only the main agent tool results are collected, once each',()=>{
   assert.equal(results.length,2);assert.ok(results[0].includes('openwiki/a.md'));assert.ok(results[1].includes('src/b.mjs'));
   assert.ok(!results.join('\n').includes('child/only.md'));
 });
+
+// User decision 2026-09-29: the OpenWiki agent works the way it does. Its calls
+// have their own limit, so a whole-Wiki review does not use up the main agent's.
+test('calls of the OpenWiki agent are counted apart and have their own limit',async()=>{
+  const entries=[],providers=recordingProviders({status,complete:async()=>({content:'ok'})},{write:entry=>entries.push(entry),maxModelCalls:2,maxDelegatedCalls:3});
+  const leader=[{role:'system',content:'You are Nubi Desktop. Reply in Korean.'},{role:'user',content:'질문'}];
+  const research=[{role:'system',content:"You are OpenWiki's read-only evidence researcher. Answer the original question in its language."},{role:'user',content:'q'}];
+  const planner=[{role:'system',content:'Plan OpenWiki research. Return ONLY JSON.'},{role:'user',content:'{}'}];
+  await providers.complete(leader,[]);await providers.complete(planner,[]);await providers.complete(research,[]);await providers.complete(research,[]);
+  assert.equal(providers.modelCalls(),1);assert.equal(providers.delegatedCalls(),3);
+  await assert.rejects(providers.complete(research,[]),/evaluation_delegated_budget/);
+  await providers.complete(leader,[]);
+  await assert.rejects(providers.complete(leader,[]),/evaluation_model_budget/);
+  assert.deepEqual(entries.map(entry=>entry.delegated===true),[false,true,true,true,false]);
+  assert.deepEqual(entries.map(entry=>entry.sequence),[1,2,3,4,5]);
+});

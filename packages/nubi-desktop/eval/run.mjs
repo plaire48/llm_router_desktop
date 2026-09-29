@@ -71,7 +71,7 @@ export async function evaluate({providers,cases,trials=1,outputDir,limits=EVALUA
     try{graded=await gradeCase(testCase,run);}catch{graded={outcome:'error',passed:false,checks:[],error:'grading_failed',falseCompletion:false};}
     finally{await run.dispose().catch(()=>{});}
     const result={...common,outcome:graded.outcome,passed:graded.passed,...(graded.error?{error:graded.error}:{}),...(graded.flagged?{flagged:graded.flagged}:{}),falseCompletion:graded.falseCompletion,checks:graded.checks,
-      state:run.state,asked:run.asked,reviewStatus:run.reviewStatus,reviewHandoff:run.reviewHandoff,answerCharacters:run.answer.length,elapsedMs:run.elapsedMs,modelCalls:run.modelCalls,interactions:run.interactions,metrics:run.metrics.summary};
+      state:run.state,asked:run.asked,reviewStatus:run.reviewStatus,reviewHandoff:run.reviewHandoff,answerCharacters:run.answer.length,elapsedMs:run.elapsedMs,modelCalls:run.modelCalls,delegatedCalls:run.delegatedCalls,interactions:run.interactions,metrics:run.metrics.summary};
     const directory=path.join(outputDir,name);await mkdir(directory,{recursive:true});
     await writeFile(path.join(directory,'transcript.jsonl'),run.transcript.map(entry=>JSON.stringify(entry)).join('\n')+(run.transcript.length?'\n':''));
     await writeFile(path.join(directory,'metrics.json'),JSON.stringify(run.metrics,null,2)+'\n');
@@ -95,7 +95,7 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
   catch{console.error('모델 세션에 연결하지 못했습니다. 먼저 다른 터미널에서 node eval/model-session.mjs 를 실행하고 로그인해 주세요.');process.exit(2);}
   try{
     const report=await evaluate({providers,cases,trials:Number(option('trials')||1),outputDir,
-      onResult:result=>console.log([result.outcome.padEnd(12),result.id.padEnd(30),'모델 호출 '+String(result.modelCalls??0).padStart(3),Math.round((result.elapsedMs||0)/1000)+'초',result.error||result.reason||''].join(' '))});
+      onResult:result=>console.log([result.outcome.padEnd(12),result.id.padEnd(30),'모델 호출 '+String(result.modelCalls??0).padStart(3),'위임 '+String(result.delegatedCalls??0).padStart(3),Math.round((result.elapsedMs||0)/1000)+'초',result.error||result.reason||''].join(' '))});
     const {quality,cost}=report.summary;
     console.log(JSON.stringify({model:report.model,candidate:report.candidate.hash.slice(0,12),passed:`${quality.passed}/${quality.executed}`,falseCompletion:quality.falseCompletion,modelCalls:cost.modelCalls,promptTokens:cost.promptTokens,fixedShare:cost.fixedShare,report:path.join(outputDir,'report.json')},null,2));
     console.log('공개 자료와 합성 자료로 측정한 결과입니다. 사내 모델이나 회사 저장소의 성능이 아닙니다.');

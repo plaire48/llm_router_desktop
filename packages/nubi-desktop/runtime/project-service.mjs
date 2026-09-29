@@ -89,7 +89,7 @@ export class ProjectService {
     }
     return root;
   }
-  async read({path: rel, taskId, start = 1, end, full = false, maxChars}) {
+  async read({path: rel, taskId, start = 1, end, full = false, room, measure = text => text.length}) {
     this.ready(); const root = await this.target(taskId), file = {...await readSource(root, rel),projectRules:await projectRules(root,rel)};
     if (full) return {...file, uri: pathToFileURL(path.join(root, rel)).href};
     const requestedEnd = end;
@@ -101,10 +101,10 @@ export class ProjectService {
     if (end - start >= 200) { end = start + 199; limited = 'lines'; }
     end = Math.min(end, file.lines);
     const lines = file.content.split('\n').slice(start - 1, end);
-    if (Number.isInteger(maxChars)) {
-      // Measured as the model receives it: a JSON string. The first line is always whole.
+    if (Number.isFinite(room)) {
+      // The caller says how much the next request of the model can hold. The first line is always returned.
       let size = 0, count = 0;
-      for (const text of lines) { size += JSON.stringify(text).length; if (count && size > maxChars) break; count++; }
+      for (const text of lines) { size += measure(text); if (count && size > room) break; count++; }
       if (count < lines.length) { lines.length = count; end = start + count - 1; limited = 'size'; }
     }
     return {...file, content: lines.join('\n'), start, end, truncated: start !== 1 || end < file.lines, nextStart: end < file.lines ? end + 1 : null, ...(limited ? {limited: {by: limited, ...(requestedEnd === undefined ? {} : {requestedEnd})}} : {}), uri: pathToFileURL(path.join(root, rel)).href};

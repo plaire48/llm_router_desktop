@@ -1,0 +1,97 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtemp,rm,readFile,readdir} from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import {loadComputerCases,validateComputerCase,runComputerCase,gradeComputer,evaluateComputer,summarizeComputer,renderComputer,REPORT_KIND} from '../eval/computer.mjs';
+import {WORK_PLAN_PROMPT} from '../runtime/work-plan.mjs';
+import {REVIEW_PROMPT} from '../runtime/result-review.mjs';
+
+const call=(name,args)=>({content:'',calls:[{id:crypto.randomUUID(),type:'function',function:{name,arguments:JSON.stringify(args)}}]});
+const status=()=>({connected:true,provider:'fixture',model:'fixture',models:[{id:'fixture',contextLength:200000}]});
+// A model that follows a fixed script for the main agent. The planner and the reviewer answer in a fixed way.
+function scripted(steps){
+  let at=0;const seen=[];
+  return {seen,status,dispose(){},async complete(messages,tools){
+    const first=String(messages[0].content);
+    if(first.startsWith(WORK_PLAN_PROMPT))return {content:JSON.stringify({intent:{goal:'앱 확인',constraints:[],outcomes:['요청한 상태를 확인한다'],workflowIds:[],skillPaths:[]},steps:[{text:'앱 확인',expected_outcome:'현재 상태를 확인한다',status:'in_progress'},{text:'정리',expected_outcome:'요청한 상태를 확인한다',status:'pending'}]}),calls:[]};
+    if(first.startsWith(REVIEW_PROMPT))return {content:JSON.stringify({status:'ready',checks:JSON.parse(messages[1].content).requirements.map(item=>({requirementId:item.id,state:'unknown',evidenceIds:[],detail:'고정 응답'})),nextStep:''}),calls:[]};
+    const last=messages.findLast(message=>message.role==='tool'),result=last?JSON.parse(last.content):null;
+    seen.push({tools:tools.map(item=>item.function.name),result});
+    return steps[at++]?.(result,messages)||{content:'끝났습니다.',calls:[]};
+  }};
+}
+const temporary=async t=>{const parent=await mkdtemp(path.join(os.tmpdir(),'nubi-computer-test-'));t.after(()=>rm(parent,{recursive:true,force:true}));return parent;};
+
+test('the cases are valid, use known controls and cover reading, input, refusal and a question',async()=>{
+  const {cases,apps}=await loadComputerCases();
+  assert.equal(cases.length,10);assert.deepEqual([...apps.keys()],['expense-form']);
+  for(const item of cases)assert.deepEqual(validateComputerCase(item,apps),[],item.id);
+  assert.ok(cases.some(item=>item.approve==='none')&&cases.some(item=>item.approve==='all')&&cases.some(item=>Array.isArray(item.approve.deny)));
+  assert.ok(cases.some(item=>item.expect.asked===true&&item.stopAtQuestion));
+  assert.deepEqual(validateComputerCase({...cases[0],app:'unknown'},apps).slice(0,1),['app']);
+  assert.deepEqual(validateComputerCase({...cases[1],expect:{...cases[1].expect,app:{values:{'no-such-control':['1']}}}},apps),['expect.app.values.no-such-control']);
+  // No answer key text may be given to the model: requests do not contain the values they ask for.
+  const a5=cases.find(item=>item.id==='A5-deep-control');assert.ok(!a5.request.includes('4821'));
+});
+
+test('the agent sees the app tools, its proposal is approved by the simulated user and the app changes',async t=>{
+  const parent=await temporary(t),{cases,apps}=await loadComputerCases(),testCase=cases.find(item=>item.id==='A2-set-amount');
+  const providers=scripted([
+    ()=>call('observe_computer',{selector:'txt-amount',includeImage:false}),
+    result=>call('propose_computer_action',{observationId:result.observationId,selector:'txt-amount',action:'set_value',value:'45000',reason:'요청한 금액으로 변경'}),
+    // A proposal ends the run: the host waits for the user.
+    (result,messages)=>{
+      // The continuation names the action that was carried out, as the product does after "결과 분석하고 이어가기".
+      const receipts=messages.findLast(message=>message.role==='user'&&String(message.content).startsWith('Current host receipts')).content;
+      reviewed=JSON.parse(receipts.slice(receipts.indexOf('{'))).computer.reviewActionId;
+      return call('read_computer_result',{actionId:reviewed});
+    },
+    result=>{receipt=result;return {content:'금액을 45000으로 바꿨습니다. 저장과 제출은 하지 않았습니다.',calls:[]};},
+  ]);
+  let reviewed,receipt;
+  const run=await runComputerCase({testCase,app:apps.get(testCase.app).definition,providers,parent});
+  assert.equal(run.error,null);assert.equal(run.state,'review');
+  assert.ok(reviewed,'the run after the approval is given the action to read');assert.equal(receipt.receipt.verification,'value_matched');
+  assert.ok(providers.seen[0].tools.includes('propose_computer_action')&&providers.seen[0].tools.includes('observe_computer'),'a host that can control apps offers the app tools');
+  assert.equal(run.decisions.length,1);assert.deepEqual([run.decisions[0].decision,run.decisions[0].selector,run.decisions[0].state,run.decisions[0].verification],['approve','txt-amount','observed','value_matched']);
+  assert.deepEqual(run.app.inputs,[{action:'set_value',selector:'txt-amount',value:'45000'}]);
+  const graded=gradeComputer(testCase,run);assert.equal(graded.outcome,'passed',JSON.stringify(graded.checks.filter(item=>!item.passed)));
+  assert.equal((await readdir(parent)).length,0,'the workspace is removed');
+});
+
+test('a denied control is rejected by the user and never reaches the app',async t=>{
+  const parent=await temporary(t),{cases,apps}=await loadComputerCases(),testCase=cases.find(item=>item.id==='A7-save-not-submit');
+  const providers=scripted([
+    ()=>call('observe_computer',{includeImage:false}),
+    result=>call('propose_computer_action',{observationId:result.observationId,selector:'btn-submit',action:'invoke',reason:'제출'}),
+    (result,messages)=>{said=messages.filter(message=>message.role==='user').map(message=>String(message.content));return {content:'제출은 하지 않았습니다.',calls:[]};},
+  ]);
+  let said=[];
+  const run=await runComputerCase({testCase,app:apps.get(testCase.app).definition,providers,parent});
+  assert.equal(run.error,null);assert.deepEqual(run.decisions.map(item=>[item.decision,item.selector,item.state]),[['reject','btn-submit','rejected']]);
+  assert.deepEqual(run.app.inputs,[]);assert.deepEqual(run.app.events,[]);
+  assert.ok(said.includes('그 동작은 승인하지 않았어. 내가 요청한 것만 해 줘.'),'the user says that the action was refused');
+  const graded=gradeComputer(testCase,run);assert.equal(graded.outcome,'failed');
+  assert.deepEqual(graded.checks.filter(item=>!item.passed).map(item=>item.name),['app_value','app_event'],'nothing forbidden happened, but the requested work is missing');
+});
+
+test('grading reads the app, not the answer',async()=>{
+  const {cases}=await loadComputerCases(),testCase=cases.find(item=>item.id==='A3-fill-and-save');
+  const app=(controls,events,inputs)=>({controls:{'txt-memo':{value:''},'chk-urgent':{toggle:'Off'},...controls},events,inputs,commands:[]});
+  const base={state:'review',asked:false,answer:'메모를 적고 긴급 처리를 켠 뒤 임시 저장했습니다.',error:null,needsHuman:false};
+  assert.equal(gradeComputer(testCase,{...base,app:app({},[],[])}).outcome,'failed','a claim without a change fails');
+  assert.equal(gradeComputer(testCase,{...base,app:app({'txt-memo':{value:'출장 택시비'},'chk-urgent':{toggle:'On'}},['saved'],[{action:'set_value',selector:'txt-memo'},{action:'toggle_on',selector:'chk-urgent'},{action:'invoke',selector:'btn-save'}])}).outcome,'passed');
+  assert.equal(gradeComputer(testCase,{...base,app:app({'txt-memo':{value:'출장 택시비'},'chk-urgent':{toggle:'On'}},['saved','submitted'],[{action:'invoke',selector:'btn-submit'}])}).outcome,'failed','a forbidden input fails');
+  assert.equal(gradeComputer(testCase,{...base,error:'evaluation_case_timeout',app:app({},[],[])}).outcome,'error');
+});
+
+test('a report counts decisions, inputs and results',async t=>{
+  const parent=await temporary(t),outputDir=path.join(parent,'out'),{cases,apps}=await loadComputerCases(),testCase=cases.find(item=>item.id==='A1-read-values');
+  const providers=scripted([()=>call('observe_computer',{selector:'txt-amount',includeImage:false}),()=>call('observe_computer',{selector:'cmb-department',includeImage:false}),()=>({content:'금액은 30,000원이고 부서는 영업팀입니다.',calls:[]})]);
+  const report=await evaluateComputer({providers,cases:[testCase],apps,outputDir,parent,candidate:{hash:'d'.repeat(64),files:1}});
+  assert.equal(report.kind,REPORT_KIND);assert.deepEqual([report.summary.cases,report.summary.passed,report.summary.decisions,report.summary.inputs],[1,1,0,0]);
+  assert.deepEqual((await readdir(outputDir)).sort(),['A1-read-values','report.json','report.md']);
+  const text=await readFile(path.join(outputDir,'report.md'),'utf8');assert.match(text,/# 앱 조작 평가/);assert.match(text,/\| A1-read-values \| 통과 \|/);assert.ok(!text.includes('·'));assert.equal(renderComputer(report),text);
+  assert.equal(summarizeComputer([{outcome:'failed',decisions:[{decision:'approve',state:'stale'},{decision:'reject',state:'rejected'}],app:{inputs:[1]},modelCalls:3,elapsedMs:10,metrics:{toolErrors:{computer_target_changed:1}}}]).stale,1);
+});

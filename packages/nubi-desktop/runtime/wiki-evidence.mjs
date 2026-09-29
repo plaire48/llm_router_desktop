@@ -214,10 +214,7 @@ export async function groundWikiAnswer(service,taskId,evidence){
 
 // The OpenWiki agent returns the text behind every citation, up to 6,000
 // characters each. Later steps work from that text, so the main agent gets it
-// whole, in citation order, as far as one request of the model can hold it.
-// Only text beyond that room is shortened and marked; a conversation that
-// grows too long is compacted by the run context. The review gets the answer
-// and each text as separate entries: it can use no entry above 12,000 characters.
+// whole. A conversation that grows too long is compacted by the run context.
 const SHORT_EXCERPT=800;
 const words=text=>[...new Set(String(text).toLowerCase().match(/[\p{L}\p{N}_]{2,}/gu)||[])];
 function excerptWindow(entry,claims,size) {
@@ -232,27 +229,29 @@ function excerptWindow(entry,claims,size) {
   const excerpt=text.slice(best,best+size);
   return {excerptStart:entry.start+best,excerptEnd:entry.start+best+excerpt.length,excerpt,excerptTruncated:true};
 }
-// room: the tokens one request has left for the answer. measure: the token estimate of a text.
+// The answer of the OpenWiki agent is passed on as it came: its ids, findings,
+// cited text and instruction are not changed (user decision 2026-09-29).
+// Nubi Desktop adds its own note beside it, in the field desktop.
+// room: the tokens one request has left for the answer. measure: the token
+// estimate of a text. Only an answer that one request of the model cannot
+// hold has cited text shortened, the last cited first, and says so.
 export function wikiAnswer(result,{room=Infinity,measure=text=>text.length}={}) {
   if(!result||result.error||result.dataKind!=='openwiki_reference'||!Array.isArray(result.evidence))return {delivered:result,entries:[{tool:'ask_openwiki',result}]};
   const claims=id=>(result.findings||[]).filter(finding=>finding.citations?.includes(id)).map(finding=>finding.text).join(' ')||result.answer||'';
+  const sources=[...new Set(result.evidence.map(entry=>entry.path).filter(path=>typeof path==='string'&&path))];
   // The Wiki does not cover every detail of the code. An answer that leaves the question open is a reason to look at the source, not a result.
   const open=result.status!=='complete'||!(result.findings||[]).length;
-  const instruction=(open?'The Wiki did not settle this question. Continue with source_search and read_source before reporting that it is not found. ':'')+'OpenWiki agent answer with the text it cites. Findings may be partial: keep coverage and uncertainties with the answer. Name the path of each source in the answer. An evidenceId can be cited in record_change_plan. An entry marked excerptTruncated shows a part of its text: read the cited path with read_source for the rest. The Wiki can be older than the source. No edit, approval or save has been performed.';
-  const source=({id,path,hash,start,end,unit,evidenceId,lines,freshness})=>({id,path,hash,start,end,unit,...(evidenceId?{evidenceId,lines,freshness}:{})});
-  // The first cited texts stay whole. The answer is measured as the model receives it.
-  // A finding names the pages behind it, so an answer can cite them without resolving evidence ids.
-  const pathOf=new Map(result.evidence.map(entry=>[entry.id,entry.path])),pagesOf=ids=>[...new Set((ids||[]).map(id=>pathOf.get(id)).filter(Boolean))];
-  const findings=(result.findings||[]).map(finding=>({...finding,sources:pagesOf(finding.citations)})),sources=[...new Set(findings.flatMap(finding=>finding.sources))];
-  result={...result,findings,sources};
+  const note=(open?'The Wiki did not settle this question. Continue with source_search and read_source before reporting that it is not found. ':'')+'Name the pages of sources in the answer. The evidence ids of this answer can be cited in record_change_plan. The Wiki can be older than the source.';
   const build=whole=>{
     const evidence=result.evidence.map((entry,index)=>{if(index<whole)return entry;const short=excerptWindow(entry,claims(entry.id),SHORT_EXCERPT);return short.excerptTruncated?{...entry,...short}:entry;}),omitted=evidence.filter(entry=>entry.excerptTruncated).length;
-    return {...result,evidence,...(omitted?{omittedExcerpts:omitted}:{}),instruction};
+    return {...result,evidence,desktop:{sources,note:note+(omitted?' An entry marked excerptTruncated shows a part of its text: read the cited path with read_source for the rest.':''),...(omitted?{omittedExcerpts:omitted}:{})}};
   };
   let whole=result.evidence.length,delivered=build(whole);
   while(whole>0&&measure(JSON.stringify(delivered))>room)delivered=build(--whole);
+  const source=({id,path,hash,start,end,unit})=>({id,path,hash,start,end,unit});
   return {delivered,
+    // For the review the answer and each cited text are separate entries, because it can use no entry above 12,000 characters.
     // The answer is recorded last, so the review keeps it when older entries do not fit.
     entries:[...result.evidence.map(entry=>({tool:'openwiki_excerpt',result:{...source(entry),wikiId:result.wikiId,excerpt:entry.excerpt,dataKind:'openwiki_reference'}})),
-      {tool:'ask_openwiki',result:{...result,evidence:result.evidence.map(source),instruction}}]};
+      {tool:'ask_openwiki',result:{...result,evidence:result.evidence.map(source),desktop:{sources}}}]};
 }

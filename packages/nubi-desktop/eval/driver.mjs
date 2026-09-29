@@ -9,7 +9,10 @@ import {createWorkspace} from './corpus.mjs';
 import {recordingProviders} from './transcript.mjs';
 import {createUser,applyProposals} from './user.mjs';
 
-export const EVALUATION_LIMITS=Object.freeze({timeoutMs:600000,maxModelCalls:80,maxInteractions:12});
+// maxModelCalls bounds the main agent. maxDelegatedCalls bounds the OpenWiki agent it hands questions to:
+// a review of a whole Wiki of 460,000 characters took about 150 calls (2026-09-29).
+// A case may take 20 minutes: a whole-Wiki review alone ran longer than 10 (B6 case D2, 190 calls).
+export const EVALUATION_LIMITS=Object.freeze({timeoutMs:1200000,maxModelCalls:80,maxDelegatedCalls:400,maxInteractions:12});
 const safe=error=>/^[a-z][a-z0-9_]{1,60}$/.test(error?.message||'')?error.message:'evaluation_failed';
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 if(!ProjectService.prototype.startAgent)installAgent(ProjectService);
@@ -19,7 +22,7 @@ export async function runCase({testCase,providers,limits={},parent,corpusDirecto
   if(Object.values(budget).some(value=>!Number.isSafeInteger(value)||value<1))throw new Error('evaluation_invalid_budget');
   const workspace=await createWorkspace({corpus:testCase.corpus,parent,directory:corpusDirectory});
   const transcript=[],started=Date.now();
-  const recorded=recordingProviders(providers,{write:entry=>transcript.push(entry),maxModelCalls:budget.maxModelCalls,modelLimits:testCase.modelLimits});
+  const recorded=recordingProviders(providers,{write:entry=>transcript.push(entry),maxModelCalls:budget.maxModelCalls,maxDelegatedCalls:budget.maxDelegatedCalls,modelLimits:testCase.modelLimits});
   const service=new ProjectService({storageRoot:workspace.stateRoot}),user=createUser(testCase);
   let taskId,error=null,needsHuman=false,asked=false,interactions=0,expired=false,timer;
   try{
@@ -57,6 +60,6 @@ export async function runCase({testCase,providers,limits={},parent,corpusDirecto
     id:testCase.id,root:workspace.root,dispose:workspace.dispose,corpusHash:workspace.corpusHash,
     state:task?.state||null,answer:task?.messages?.findLast(message=>message.role==='assistant')?.content||'',
     asked,needsHuman,error,reviewStatus:task?.resultReview?.status||null,reviewHandoff:task?.resultReview?.handoff||null,compactions:metrics.summary?.compactions||0,
-    elapsedMs:Date.now()-started,modelCalls:recorded.modelCalls(),interactions,user:user.log,transcript,metrics,
+    elapsedMs:Date.now()-started,modelCalls:recorded.modelCalls(),delegatedCalls:recorded.delegatedCalls(),interactions,user:user.log,transcript,metrics,
   };
 }
