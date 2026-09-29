@@ -42,6 +42,8 @@ test('a lookup verifies the evaluable checks once more and names the check that 
   assert.deepEqual(result.notEvaluated, [{index: 0, kind: 'control_state', reason: 'check_target_incompatible', exposedStates: []}]);
   assert.match(result.scope, /not verified/);
   assert.deepEqual(result.checks.map(check => check.kind), ['text_present', 'url_page_is']);
+  // Positions are those of the original request, so a result is never paired with the check that was left out.
+  assert.deepEqual(result.checks.map(check => check.index), [1, 2]);
 });
 
 test('the failed result is kept when another check failed, the second pass fails, or nothing else was checked', async () => {

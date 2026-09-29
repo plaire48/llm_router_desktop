@@ -7,7 +7,7 @@ import {reconciliationProof,unresolvedReconciliations,reconcilesProofs} from './
 import {sameVerifiedDocuments} from './uncertain-action.js';
 import {MUTATING_TOOLS} from './agent-harness.js';
 import {isPlanCommand, planningRequest, planTools, planToolAllowed} from './plan-mode.js';
-import {documentObservedPage, knowledgeState, knowledgeURL, learnPage, autoRefreshPage, restoreKnowledge, invalidatePage, searchKnowledge, knowledgePacket, wikiOffer, wikiSource, parseWikiDraft, observationHash, observationDrift, SITE_WIKI_TOOLS, hasSiteWiki, executeSiteWiki, siteWikiSnapshot} from './browser-knowledge.js';
+import {documentObservedPage, knowledgeState, knowledgeURL, knowledgeOrigin, siteWikiOrigins, routeStep, extendRoute, learnPage, autoRefreshPage, restoreKnowledge, invalidatePage, searchKnowledge, knowledgePacket, wikiOffer, wikiSource, parseWikiDraft, observationHash, observationDrift, SITE_WIKI_TOOLS, hasSiteWiki, executeSiteWiki, siteWikiSnapshot} from './browser-knowledge.js';
 import {resolveSkillCommand} from './skill-command.js';
 import {skillCreationSource, creationSessionContext, continueSkillCreation, parseSkillDraft, saveSkillDraft} from './skill-creator.js';
 import {enqueueInput, nextInput, reorderInput} from './agent-inbox.js';
@@ -41,6 +41,7 @@ import {ACCOUNT_USAGE_VERSION, normalizeAccountUsage} from './account-usage.js';
 import {CHAT_TIMEOUT_MS} from './chat-contract.js';
 import {allSkills, normalizeSkill, browserTools, clarificationTool, automaticSkillTools, taskSkillId} from './skills.js';
 import {skillLibrary, skillCatalog, bindSkillLibrary, prepareSkillScript, skillLibraryTools, executeSkillTool, SKILL_TOOL_NAMES} from './skill-library.js';
+import {skillStats, recordSkillUse, forgetSkill} from './skill-stats.js';
 import {runPageOperation} from './page-tools.js';
 import {runBrowserAgent, browserAgentObservation, runApprovedAction, stopBrowserAgent, browserAgentRequestForTab, browserAgentContext, resolveBrowserTab, browserURL} from './browser-agent.js';
 import {createWorkspace, workspaceMatches, workspaceTab, readyWorkspaceTab, releaseWorkspace, showWorkspace, reconnectWorkspace, openChatTab} from './browser-workspace.js';
@@ -415,7 +416,7 @@ async function state(sender, clientId, readOnly = false) {
     pending: session.attempt ? {provider: session.attempt.provider || 'aipro', expiresAt: session.attempt.expiresAt, port: session.attempt.port, phase: session.attempt.phase} : null,
     agentRun: session.chatLease && session.agentRun?.requestId === session.chatLease.id ? session.agentRun : null,
     report: session.authReport || {stage: 'not_started'}, events: session.events || [], authTrace: session.authTrace || null, busy: !!session.chatLease,
-    skills: allSkills(skills), activeSkillId, fabrixConnection, page: session.page ? {id: session.page.id, title: session.page.title, url: session.page.url} : null};
+    skills: allSkills(skills), skillStats: skillStats((await chrome.storage.local.get('skillStats').catch(() => ({}))).skillStats), activeSkillId, fabrixConnection, page: session.page ? {id: session.page.id, title: session.page.title, url: session.page.url} : null};
 }
 function trustedUI(sender) {
   return sender.id === chrome.runtime.id && sender.url?.split(/[?#]/)[0] === chrome.runtime.getURL('index.html');
@@ -816,8 +817,8 @@ async function handle(message, sender, owner) {
     }
     case 'DELETE_SKILL': {
       if ((await getSession()).chatLease) fail('busy');
-      const {skills = [], activeSkillId = ''} = await chrome.storage.local.get(['skills', 'activeSkillId']);
-      await chrome.storage.local.set({skills: skills.filter(skill => skill.id !== message.id), activeSkillId: activeSkillId === message.id ? '' : activeSkillId});
+      const {skills = [], activeSkillId = '', skillStats: records} = await chrome.storage.local.get(['skills', 'activeSkillId', 'skillStats']);
+      await chrome.storage.local.set({skills: skills.filter(skill => skill.id !== message.id), activeSkillId: activeSkillId === message.id ? '' : activeSkillId, skillStats: forgetSkill(records, message.id)});
       return state();
     }
     case 'SELECT_SKILL': {
@@ -884,10 +885,10 @@ async function handle(message, sender, owner) {
         if (message.args.wiki === 'internal') {
           const tabId = chatLease.browserContext?.tabId ?? chatLease.pageTargetTabId;
           const tab = Number.isInteger(tabId) ? await chrome.tabs.get(tabId).catch(() => null) : null;
-          const url = knowledgeURL(tab?.url || '');
-          if (!url) return {error:'wiki_context_missing'};
+          const origin = knowledgeOrigin(tab?.url || '');
+          if (!origin) return {error:'wiki_context_missing'};
           return siteWikiSnapshot((await chrome.storage.local.get('browserKnowledge')).browserKnowledge,
-            {origin:new URL(url).origin, provider:chatLease.provider});
+            {origin, provider:chatLease.provider});
         }
         const {connection} = await projectBinding(await getSession());
         if (!connection || connection.connectionId !== chatLease.projectConnectionId) return {error:'project_changed'};
@@ -932,7 +933,11 @@ async function handle(message, sender, owner) {
         const {project} = await projectBinding(await getSession());
         const library = skillLibrary(skills, {selectedSkillId: chatLease.librarySkillId, project});
         await checkpointTool(chatLease.id, message.name, 'start');
-        const result = await executeSkillTool(library, chatLease.skillBindings || [], message.name, message.args);
+        const result = await executeSkillTool(library, chatLease.skillBindings || [], message.name, message.args, skillStats((await chrome.storage.local.get('skillStats')).skillStats));
+        if (message.name === 'read_skill' && result?.ok === true && typeof result.skill_id === 'string') {
+          const current = (await getSession()).chatLease;
+          if (current?.id === chatLease.id && !current.skillsRead?.includes(result.skill_id)) await chrome.storage.session.set({chatLease: {...current, skillsRead: [...(current.skillsRead || []), result.skill_id].slice(-5)}});
+        }
         await checkpointTool(chatLease.id, message.name, 'end', result);
         if ((await getSession()).chatLease?.cancelled) return {error: 'cancelled'};
         return result;
@@ -1473,7 +1478,7 @@ async function handle(message, sender, owner) {
       // Direct Wiki search/read remain host primitives; the leader delegates to OpenWiki.
       if (wikiSources.internal || wikiSources.external) {
         tools.splice(0, tools.length, ...tools.filter(tool => !['wiki_query','wiki_search','wiki_read','search_site_wiki','read_site_wiki'].includes(tool.function.name)));
-        tools.push(...openWikiTools(wikiSources));
+        tools.push(...openWikiTools({...wikiSources, sites: wikiSources.internal ? siteWikiOrigins(browserKnowledge, credential.provider || 'aipro') : []}));
       }
       const skillBindings = await bindSkillLibrary(library);
       const mcpServers = message.compact || creationSource ? [] : (await getSession()).mcpServers || [];
@@ -1506,11 +1511,11 @@ async function handle(message, sender, owner) {
       const documents = creationSource ? [] : documentBindings(messages);
       if (documents.length && !message.compact) tools.push(...documentToolDefinitions());
       if (planningOnly) tools.splice(0,tools.length,...planTools(tools));
-      if (!creationSource && !message.compact) chat.task = skill?.allowAutomation && (!autoConnect || resumeTask) ? {requestId, skillId: skill.id, autoConnect, planningOnly, goal: resumeTask?.goal || messages.findLast(m => m.role === 'user')?.content || '', status: 'running', steps: resumeTask?.steps || [], ...(resumeTask?.pendingReconciliation?{pendingReconciliation:resumeTask.pendingReconciliation}:{}), plan: resumeTask?.plan || [], ...(resumeTask?.planUpdates ? {planUpdates:resumeTask.planUpdates,planRevision:resumeTask.planRevision} : {}), ...(resumeTask?.analysisCheckpoint ? {analysisCheckpoint:resumeTask.analysisCheckpoint} : {}), ...(resumeTask?.analysisHandoffs ? {analysisHandoffs:resumeTask.analysisHandoffs} : {}), ...(resumeTask?.researchHandoffs?{researchHandoffs:resumeTask.researchHandoffs}:{}), summary: resumeTask?.summary || null, ...(resumedVerification(resumeTask) ? {verification: {status: 'pending'}} : {}), ...(resumeTask?.goalReview ? {goalReview: {status: 'running', checks: 0}} : {}), page: page ? {title: page.title, url: page.url} : resumeTask?.page || null, updatedAt: Date.now()} : null;
+      if (!creationSource && !message.compact) chat.task = skill?.allowAutomation && (!autoConnect || resumeTask) ? {requestId, skillId: skill.id, autoConnect, planningOnly, goal: resumeTask?.goal || messages.findLast(m => m.role === 'user')?.content || '', status: 'running', steps: resumeTask?.steps || [], ...(resumeTask?.pendingReconciliation?{pendingReconciliation:resumeTask.pendingReconciliation}:{}), plan: resumeTask?.plan || [], ...(resumeTask?.planUpdates ? {planUpdates:resumeTask.planUpdates,planRevision:resumeTask.planRevision} : {}), ...(resumeTask?.analysisCheckpoint ? {analysisCheckpoint:resumeTask.analysisCheckpoint} : {}), ...(resumeTask?.analysisHandoffs ? {analysisHandoffs:resumeTask.analysisHandoffs} : {}), ...(resumeTask?.researchHandoffs?{researchHandoffs:resumeTask.researchHandoffs}:{}), summary: resumeTask?.summary || null, ...(resumeTask?.used ? {used: resumeTask.used} : {}), ...(resumedVerification(resumeTask) ? {verification: {status: 'pending'}} : {}), ...(resumeTask?.goalReview ? {goalReview: {status: 'running', checks: 0}} : {}), page: page ? {title: page.title, url: page.url} : resumeTask?.page || null, updatedAt: Date.now()} : null;
       chat.messages.push({id: requestId, requestId, role: 'assistant', content: '', state: 'pending', ...(planningOnly ? {planningOnly:true} : {}), ...(creationSource ? {creatingSkill:true, creationSource} : {}), modelId: settings.modelId, modelName: model?.displayName || settings.modelId, skillId: skill?.id || '', pageId: page?.id || '', ...(message.compact ? {contextOnly: true} : {})});
       if (creationSource) tools.splice(0, tools.length, clarificationTool(false), ...skillLibraryTools(library).filter(tool => ['find_skills', 'read_skill'].includes(tool.function.name)));
       await saveChat(chat);
-      await chrome.storage.session.set({chatLease: {id: requestId, ...(answeringQuestion && !answeringApproval ? {answeredQuestion: pendingQuestion} : {}), ...(owner === RUNNER ? {owner: 'worker'} : {}), conversationId: chat.sessionId, wikiInit, planningOnly, wikiSources: Object.keys(wikiSources).filter(key => wikiSources[key]), knowledgeRevision: knowledgeState(browserKnowledge).revision, ...(approvalRecord ? {approvalQuestionId: approvalRecord.questionId} : {}), browserContext, browserWorkMode, documentBindings: documents, creationSource, compacting: !!message.compact, workspaceId, mcpBindings, skillBindings, librarySkillId: selectedSkill?.id || '', modelIds: [settings.modelId, visionModel?.name].filter(Boolean), projectConnectionId: project?.status === 'connected' ? projectConnection?.connectionId : null, provider: credential.provider || 'aipro', automation: skill?.allowAutomation === true, autoConnect, pageTargetTabId, vision: !!visionModel, documentId: sender.documentId, clientId: typeof message.clientId === 'string' ? message.clientId.slice(0, 100) : null, tabId: sender.tab?.id, lastSeenAt: Date.now(), credentialReceivedAt: credential.receivedAt, pageId: page?.id, toolNames: tools.map(tool => tool.function.name), until: Date.now() + CHAT_TIMEOUT_MS + 60000}});
+      await chrome.storage.session.set({chatLease: {id: requestId, ...(answeringQuestion && !answeringApproval ? {answeredQuestion: pendingQuestion} : {}), ...(owner === RUNNER ? {owner: 'worker'} : {}), conversationId: chat.sessionId, wikiInit, planningOnly, wikiSources: Object.keys(wikiSources).filter(key => wikiSources[key]), knowledgeRevision: knowledgeState(browserKnowledge).revision, ...(resumeTask?.used ? {knowledgeRoute: extendRoute(resumeTask.used.route), skillsRead: (Array.isArray(resumeTask.used.skills) ? resumeTask.used.skills : []).filter(id => typeof id === 'string').slice(-5)} : {}), ...(approvalRecord ? {approvalQuestionId: approvalRecord.questionId} : {}), browserContext, browserWorkMode, documentBindings: documents, creationSource, compacting: !!message.compact, workspaceId, mcpBindings, skillBindings, librarySkillId: selectedSkill?.id || '', modelIds: [settings.modelId, visionModel?.name].filter(Boolean), projectConnectionId: project?.status === 'connected' ? projectConnection?.connectionId : null, provider: credential.provider || 'aipro', automation: skill?.allowAutomation === true, autoConnect, pageTargetTabId, vision: !!visionModel, documentId: sender.documentId, clientId: typeof message.clientId === 'string' ? message.clientId.slice(0, 100) : null, tabId: sender.tab?.id, lastSeenAt: Date.now(), credentialReceivedAt: credential.receivedAt, pageId: page?.id, toolNames: tools.map(tool => tool.function.name), until: Date.now() + CHAT_TIMEOUT_MS + 60000}});
       return {requestId, conversationId: chat.sessionId, creationSource, planningOnly, documents, provider: credential.provider || 'aipro', modelId: settings.modelId, model: model || {name: settings.modelId}, visionModel, memory: chat.memory || null, compact: !!message.compact, approvedAction: !!approvalRecord, approvedToolName: approvalRecord?.kind === 'mcp' ? 'apply_approved_mcp' : 'apply_approved_action', resumeTask, mode: credential.mode, credentialReceivedAt: credential.receivedAt, messages, skill, skillCatalog: skillCatalog(library), autoConnect, browserWorkMode, project: projectContext(project), page: page ? {title: page.title, url: page.url} : null, tools};
     }
     case 'FINISH_CHAT': {
@@ -1534,13 +1539,16 @@ async function handle(message, sender, owner) {
       let skillDraft, wikiDraft;
       if (chatLease.creationSource && !chatLease.awaitingUser && !message.error) {
         try {
-          if (chatLease.creationSource.kind==='wiki') {wikiDraft=parseWikiDraft(message.content); message={...message,content:'사이트 위키 초안을 만들었습니다.'};}
-          else {skillDraft = {skill: parseSkillDraft(message.content), sourceId: chatLease.creationSource.sourceId, status: 'draft'}; message = {...message, content: '스킬 초안을 만들었습니다. 절차와 입력 변수를 확인해 주세요.'};}
+          if (chatLease.creationSource.kind==='wiki') {wikiDraft=parseWikiDraft(message.content,{redact:true}); message={...message,content:'사이트 위키 초안을 만들었습니다.'};}
+          else {skillDraft = {skill: parseSkillDraft(message.content, chatLease.creationSource), sourceId: chatLease.creationSource.sourceId, status: 'draft'}; message = {...message, content: '스킬 초안을 만들었습니다. 절차와 입력 변수를 확인해 주세요.'};}
         }
         catch {message = {...message, content: '', error: chatLease.creationSource.kind==='wiki' ? 'wiki_draft_invalid' : 'skill_draft_invalid'};}
       }
       const awaitingUser = chatLease.awaitingUser && !!chat.messages.find(m => m.id === message.requestId)?.question && !message.error;
-      const unchecked = !awaitingUser && chat.task?.requestId === message.requestId && (['pending', 'failed'].includes(chat.task.verification?.status)||unresolvedReconciliations(chat.task).length>0);
+      // An answer released as limited comes from a lookup and names its open checks.
+      // A failed page check of that run does not withhold it; an unresolved action still does.
+      const limitedLookup = chat.task?.goalReview?.status === 'limited' && unresolvedReconciliations(chat.task).length === 0;
+      const unchecked = !awaitingUser && chat.task?.requestId === message.requestId && (['pending', 'failed'].includes(chat.task.verification?.status) && !limitedLookup||unresolvedReconciliations(chat.task).length>0);
       const unreviewed = !awaitingUser && chat.task?.requestId === message.requestId && chat.task.goalReview && !['complete', 'limited'].includes(chat.task.goalReview.status);
       const error = Object.hasOwn(ERROR_TEXT, message.error) ? message.error : message.error ? 'upstream' : unchecked ? 'verification_required' : unreviewed ? 'goal_review_failed' : null;
       chat.messages = chat.messages.map(m => m.id === message.requestId ? {...m, ...(journal ? {traceJournal: journal} : {}), ...(skillDraft ? {skillDraft} : {}), ...(wikiDraft ? {wikiDraft} : {}), content: awaitingUser || (unchecked || unreviewed) && !message.error ? '' : String(message.content || '').slice(0, 400000), state: error ? 'error' : 'done', error, finishReason: error ? null : message.finishReason === 'length' ? 'length' : 'stop', usage: error ? null : normalizeUsage(message.usage), trace: normalizeTrace(message.trace)} : m);
@@ -1548,6 +1556,28 @@ async function handle(message, sender, owner) {
       if(error==='cancelled'&&chat.task?.requestId===message.requestId&&chat.task.researchHandoffs)chat.task.researchHandoffs=cancelResearchHandoffs(chat.task.researchHandoffs);
       if (error==='cancelled' && chat.task?.requestId===message.requestId && chat.task.analysisHandoffs) chat.task.analysisHandoffs=cancelAnalysisHandoffs(chat.task.analysisHandoffs);
       if (wikiDraft) {const source=chat.messages.find(item=>item.id===chatLease.creationSource.sourceId);if(source?.wikiOffer)source.wikiOffer.status='drafted';}
+      // A finished run counts for the skill it selected or read. A run that was
+      // stopped or is waiting for the user says nothing about the skill.
+      // What this request used so far. A question or an approval ends the lease,
+      // so the record travels with the task and seeds the lease that resumes it.
+      const used = chat.task?.requestId === chatLease.id && !chatLease.creationSource ? {
+        route: extendRoute([...(chat.task.used?.route || []), ...(chatLease.knowledgeRoute || [])].reduce((route, step) => extendRoute(route, routeStep(step?.url, step?.title)), [])),
+        skills: [...new Set([...(chat.task.used?.skills || []), ...(chatLease.skillsRead || [])])].filter(id => typeof id === 'string' && /^custom-[\w-]{1,80}$/.test(id)).slice(-5)} : null;
+      if (used) chat.task = {...chat.task, used};
+      // A run counts for the skill it selected or read when it finished or failed
+      // its own checks. A stopped run, a login or a quota error says nothing about the skill.
+      if (used && !chatLease.compacting && !chatLease.planningOnly && !awaitingUser && (!error || ['verification_required', 'goal_review_failed'].includes(error))) {
+        const skillsUsed = [chat.task.skillId, ...used.skills].filter(id => typeof id === 'string' && id.startsWith('custom-'));
+        if (skillsUsed.length) {
+          try {await chrome.storage.local.set({skillStats: recordSkillUse((await chrome.storage.local.get('skillStats')).skillStats, skillsUsed, !error && chat.task.goalReview?.status === 'complete' ? 'passed' : 'failed')});}
+          catch { /* A usage count never fails a finished run. */ }
+        }
+      }
+      // The pages this request passed through stay with its answer for a later skill draft.
+      if (!error && used?.route.length > 1) {
+        const reply = chat.messages.find(item => item.id === message.requestId);
+        if (reply) reply.pageRoute = used.route;
+      }
       let offered;
       if (!error && !awaitingUser && !chatLease.planningOnly && chat.task?.requestId === chatLease.id && chat.task.goalReview?.status === 'complete' && chat.task.verification?.status === 'passed' && chatLease.knowledgeCandidate) {
         try {
@@ -1555,6 +1585,7 @@ async function handle(message, sender, owner) {
           if (stored.enabled && stored.revision===chatLease.knowledgeRevision) {
             let summary=null;
             try {summary=skillCreationSource(chat);} catch { /* A page document needs no procedure summary. */ }
+            if (used?.route.length > 1) summary={...(summary || {}),route:used.route};
             const refreshed=autoRefreshPage(stored,chatLease.knowledgeCandidate,{revision:chatLease.knowledgeRevision,expectedVersion:chatLease.knowledgeCandidate.expectedVersion,completed:true});
             const updated=refreshed.entries.find(item=>item.url===chatLease.knowledgeCandidate.url && item.provider===chatLease.provider);
             const prior=stored.entries.find(item=>item.url===chatLease.knowledgeCandidate.url && item.provider===chatLease.provider);
@@ -1642,18 +1673,28 @@ async function handle(message, sender, owner) {
 }
 async function browserKnowledgeResult(lease, tool, args, result, tabId) {
   if (!['read_page','browser_snapshot','verify_page','navigate_page'].includes(tool)) {
+    // Looking at the page (inspect, capture, list tabs, wait) leaves the verified page as it was.
+    if (!MUTATING_TOOLS.has(tool)) return result;
     try {const current=(await getSession()).chatLease;
       if (current?.id===lease.id && current.knowledgeCandidate) await chrome.storage.session.set({chatLease:{...current,knowledgeCandidate:null}});
     } catch { /* Optional documentation cannot fail a successful action. */ }
     return result;
   }
   try {
-    const current = (await getSession()).chatLease;
+    let current = (await getSession()).chatLease;
     if (!current || current.id !== lease.id || current.cancelled) return result;
     const stored = knowledgeState((await chrome.storage.local.get('browserKnowledge')).browserKnowledge);
     if (!stored.enabled || stored.revision !== current.knowledgeRevision) return result;
     const tab = await chrome.tabs.get(tabId), url = knowledgeURL(tab.url || '');
     const observation = result.observation || result;
+    // The pages this run passed through, for the document and skill drafts.
+    const step = !result.error && url ? routeStep(url, tab.title) : null;
+    if (step && current.knowledgeRoute?.at(-1)?.url !== step.url) {
+      const fresh = (await getSession()).chatLease;
+      if (!fresh || fresh.id !== lease.id || fresh.cancelled) return result;
+      current = {...fresh, knowledgeRoute: extendRoute(fresh.knowledgeRoute, step)};
+      await chrome.storage.session.set({chatLease: current});
+    }
     if (tool === 'navigate_page') {
       // A failed remembered destination stays visible in settings, but is not retrieved.
       if (result.error || !url) await chrome.storage.local.set({browserKnowledge:invalidatePage(stored,args?.url,lease.provider)});
@@ -1661,7 +1702,9 @@ async function browserKnowledgeResult(lease, tool, args, result, tabId) {
     }
     if (tool === 'verify_page') {
       if (result.error || result.verified !== true) {
-        if (url && args?.checks?.some(check=>['text_present','url_is'].includes(check.kind))) await chrome.storage.local.set({browserKnowledge:invalidatePage(stored,url,lease.provider)});
+        // A failed check is most often the expectation of this run, not a changed
+        // site. The stored page is withdrawn only when the observation contradicts it.
+        if (url && await observationDrift(stored,url,lease.provider,observation)) await chrome.storage.local.set({browserKnowledge:invalidatePage(stored,url,lease.provider)});
         await chrome.storage.session.set({chatLease:{...current,knowledgeCandidate:null}});
       } else if (url && args?.checks?.length > 0 &&
           observation.url === new URL(url).origin + new URL(url).pathname && observation.title === tab.title) {
@@ -1683,6 +1726,21 @@ async function browserKnowledgeResult(lease, tool, args, result, tabId) {
         }
       }
       if(drift)return {...result,browserKnowledge:{...knowledgePacket([]),invalidated:[url],instruction:'The current observation contradicts the stored page knowledge. Discard previously retrieved guidance for this URL, use the live observation, and ask about unresolved business rules. Do not repeat actions from the old document.'}};
+    }
+    // An address with its own parameters is not remembered, but the documents
+    // of its site still apply. Nothing is compared or withdrawn for such a page.
+    const sitePage = !url && (() => {try {const page = new URL(tab.url || ''); return !!knowledgeURL(page.origin + page.pathname) && knowledgeOrigin(page.href);} catch {return null;}})();
+    if (['read_page','browser_snapshot'].includes(tool) && !result.error && sitePage) {
+      const {chat} = await chrome.storage.local.get('chat');
+      const entries = searchKnowledge(stored,{origin:sitePage,provider:lease.provider,query:[chat?.task?.goal,args?.query].filter(Boolean).join(' ')});
+      if (entries.length) {
+        const key=JSON.stringify(entries.map(entry=>[entry.url,entry.documentVersion,entry.sourceHash,entry.excerpts.map(excerpt=>excerpt.id)]));
+        const delivered=current.knowledgeDelivered || [];
+        if(!delivered.includes(key)) {
+          await chrome.storage.session.set({chatLease:{...current,knowledgeDelivered:[...delivered,key].slice(-8)}});
+          return {...result,browserKnowledge:knowledgePacket(entries)};
+        }
+      }
     }
   } catch { /* Navigation remains usable when optional local knowledge is unavailable. */ }
   return result;

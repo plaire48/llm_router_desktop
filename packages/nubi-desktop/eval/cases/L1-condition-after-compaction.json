@@ -17,7 +17,7 @@
     "patch"
   ],
   "modelLimits": {
-    "contextLength": 28000
+    "contextLength": 22000
   },
   "expect": {
     "state": "review",

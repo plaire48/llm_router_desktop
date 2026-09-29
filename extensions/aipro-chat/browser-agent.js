@@ -1,4 +1,4 @@
-import {browserURL, sourceURL, compareBrowserURL, comparePageURL, URL_VERIFICATION_GUIDE, LINK_VERIFICATION_GUIDE} from './browser-url.js';
+import {browserURL, sourceURL, compareBrowserURL, compareLinkURL, comparePageURL, URL_VERIFICATION_GUIDE, LINK_VERIFICATION_GUIDE} from './browser-url.js';
 import {assertBrowserPolicy,refreshBrowserPolicy} from './browser-policy.js';
 // Pinned, prebuilt browser-only Playwright runtime, copied during packaging.
 import {readPageContent, readPdfPageReference} from './browser-content.js';
@@ -254,7 +254,7 @@ async function verifyObservedLink(task, check) {
         current.name !== entry.descriptor.name || current.role !== entry.descriptor.role || current.type !== entry.descriptor.type ||
         !await sameDocument()) return changed();
     if (active !== task) throw new Error('cancelled');
-    return {...(check.kind === 'link_page_is' ? comparePageURL : compareBrowserURL)(check.expected, second.href), ...(entry.relinked ? {relinked: true} : {})};
+    return {...(check.kind === 'link_page_is' ? comparePageURL : compareLinkURL)(check.expected, second.href), ...(entry.relinked ? {relinked: true} : {})};
   } catch (error) {
     if (error.message === 'cancelled' || active !== task) throw new Error('cancelled');
     return changed();
@@ -309,7 +309,7 @@ async function verifyPage(task, checks, timeoutMs = 5000) {
         const comparison = await verifyObservedLink(task, check);
         passed = !stale && comparison.passed;
         if (!passed) detail = {...comparison, instruction: LINK_VERIFICATION_GUIDE};
-        else detail = {...(check.kind === 'link_page_is' ? {matched: 'origin_path', queryCompared: false} : {}), ...(comparison.relinked ? {relinked: true} : {})};
+        else detail = {...(check.kind === 'link_page_is' || comparison.queryCompared === false ? {matched: 'origin_path', queryCompared: false} : {}), ...(comparison.relinked ? {relinked: true} : {})};
         if (comparison.reason === 'target_changed') stale = true;
       }
       if (check.kind === 'text_present') {passed = textChecks.some(matches => matches[textIndex] === true); textIndex++;}

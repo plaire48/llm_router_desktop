@@ -62,7 +62,11 @@ try {
     elements = await observe();
     const shown = elements.find(el => el.id === 'article').destination;
     assert.equal(shown, `${origin}/article/7`); assert(!JSON.stringify(elements).includes('PRIVATE_TRACKING'));
-    const exact = await run('verify_page', {checks: [{kind: 'link_destination', ref: ref('article'), expected: shown}]});
+    // link_destination with the shown destination is compared as a display reference; its own query is compared exactly.
+    const display = await run('verify_page', {checks: [{kind: 'link_destination', ref: ref('article'), expected: shown}]});
+    assert.equal(display.verified, true, JSON.stringify(display.checks)); assert.equal(display.checks[0].queryCompared, false);
+    elements = await observe();
+    const exact = await run('verify_page', {checks: [{kind: 'link_destination', ref: ref('article'), expected: `${shown}?utm_source=other`}]});
     assert.equal(exact.verified, false); assert.equal(exact.checks[0].reason, 'url_query_mismatch');
     elements = await observe();
     const page = await run('verify_page', {checks: [{kind: 'link_page_is', ref: ref('article'), expected: shown}, {kind: 'text_present', expected: '적용된 기간: 최근 일주일'}]});
@@ -71,7 +75,7 @@ try {
     elements = await observe();
     const other = await run('verify_page', {checks: [{kind: 'link_page_is', ref: ref('article'), expected: `${origin}/article/8`}]});
     assert.equal(other.verified, false); assert.equal(other.checks[0].reason, 'url_path_mismatch');
-    pass(`${mode}: the shown destination of a link with a hidden query is verified by link_page_is only`);
+    pass(`${mode}: the shown destination of a link with a hidden query is verified, an invented query is not`);
     await worker.evaluate(id => contentTest.stopBrowserAgent(id), id).catch(() => {}); await tab.close();
   }
   console.log(`DONE ${count}`);

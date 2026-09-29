@@ -44,7 +44,8 @@ try{
   reviews.push(phase);return {status:'complete'};
  }});
  assert.equal(plan.filter(s=>s.status==='completed').length,3);assert(result.content.includes('21명'));assert.deepEqual(await page.evaluate(()=>visited),[1,2,3]);
- assert.equal(actions.filter(n=>n==='read_page').length,3);assert.deepEqual(reviews,['plan_step','final']);
+ // Pages 2 and 3 are kept at the click and read once more when their check passes.
+ assert.equal(actions.filter(n=>n==='read_page').length,5);assert.deepEqual(reviews,['plan_step','final']);
  // Ambiguous and hidden counters never manufacture a distinct source view.
  await page.evaluate(()=>{const p=document.querySelector('#position');p.insertAdjacentHTML('afterend','<p>1 / 5쪽</p>');});
  const ambiguous=await worker.evaluate(async tabId=>(await pagerProbe.runBrowserAgent('pager-run',{tabId},'browser_snapshot')).result,tabId);assert(!ambiguous.frames[0].page_view);

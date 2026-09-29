@@ -43,9 +43,13 @@ test('after rewording fails, one tool-free pass deletes the unsupported statemen
   assert(!run1.executed.includes('ask_user'));
 });
 
-test('the deletion pass is granted once; a still unmet answer stays withheld', async () => {
+test('the deletion pass is granted once; a lookup that still has a gap is released with the gap stated', async () => {
   const run2 = await run([gap]);
   assert.equal(run2.removalRounds.length, 1);
-  assert(run2.result.awaitingUser); assert.equal(run2.result.content, '');
-  assert.equal(run2.executed.at(-1), 'ask_user');
+  assert(!run2.result.awaitingUser); assert.equal(run2.result.reviewLimited, true);
+  // The latest candidate is released: the one without the unsupported statement.
+  assert.match(run2.result.content, /^종목은 사브르, 소속은 대전광역시청입니다\. 확인하지 못한 부분: 최근 보도 날짜\./);
+  assert(!/9월 30일 보도로 확인했습니다/.test(run2.result.content));
+  assert.match(run2.result.content, /검증 완료가 아닙니다/); assert.match(run2.result.content, /- \(충족되지 않음\) 9월 30일 보도 확인 주장/);
+  assert(!run2.executed.includes('ask_user'));
 });

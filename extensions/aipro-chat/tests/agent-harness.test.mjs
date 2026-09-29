@@ -289,11 +289,14 @@ test('an unavailable intermediate reviewer does not replay work or skip final re
 });
 
 test('optional source schemas stay discoverable without occupying every initial browser turn', () => {
-  const optional = ['ask_openwiki', 'read_document', 'read_skill', 'read_analysis_evidence', 'cancel_analysis'];
-  const catalog = [...tools, ...optional.map(name => ({type: 'function', function: {name, description: name,
+  const optional = ['ask_openwiki', 'read_document', 'read_analysis_evidence', 'cancel_analysis'];
+  const catalog = [...tools, ...[...optional, 'read_skill'].map(name => ({type: 'function', function: {name, description: name,
     parameters: {type: 'object', properties: {}}}}))];
   const h = createHarness(catalog);
   assert(optional.every(name => !names(h.advertised()).includes(name)));
+  // A registered skill is how a request reaches its procedure: it is offered from the start.
+  assert(names(h.advertised()).includes('read_skill'));
+  assert(!names(createHarness(catalog, {inputBudget: 16000}).advertised()).includes('read_skill'));
   assert(names(h.advertised()).includes('verify_page'));
   assert.equal(h.select({groups: ['knowledge', 'documents', 'workflows', 'analysis']}).ok, true);
   assert(optional.every(name => names(h.advertised()).includes(name)));

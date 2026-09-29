@@ -65,7 +65,9 @@ export function changesObservation(name, result) {
 // inference each time and changed the tool list in the middle of a run. They
 // are offered from the start unless the model's input window is small. Large
 // or rare schemas (scripts, images, files, storage, knowledge) stay on demand.
-const basics = ['navigation', 'interaction', 'input'];
+// Registered skills are offered with them: finding and reading a skill is
+// how a request reaches its procedure, and the two schemas are small.
+const basics = ['navigation', 'interaction', 'input', 'workflows'];
 export const LEAN_INPUT_TOKENS = 32000;
 export function createHarness(tools, {resumeVerification = false, inputBudget} = {}) {
   const catalog = Object.fromEntries(Object.entries(groups).map(([group, names]) => [group, names.filter(name => tools.some(tool => tool.function.name === name))]).filter(([, names]) => names.length));

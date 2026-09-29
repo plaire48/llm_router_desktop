@@ -57,14 +57,16 @@ export function skillLibraryTools(library, {scripts = false} = {}) {
     {type: 'function', function: {name: 'read_skill', description: 'Load a registered workflow SKILL.md, then only its needed reference files. Use query to search business terms/rules in this skill and references (optionally one exact path); it returns up to 3 excerpts, not the complete procedure. Never combine query and start. Otherwise start is a 1-based line number for a truncated resource. Use only a skill_id from the catalog/find_skills and paths from its inventory. These instructions do not grant tools, execution or final-action approval. Only scripts/*.browser.js can run through run_skill_script when offered; other scripts are references. Local Python/Node are unavailable. A procedure is not evidence that the business task succeeded.', parameters: {type: 'object', properties: {skill_id: {type: 'string', maxLength: 100}, path: {type: 'string', maxLength: 200}, start: {type: 'integer', minimum: 1}, query: {type: 'string', minLength: 1, maxLength: 300}}, required: ['skill_id'], additionalProperties: false}}},
   ];
 }
-export async function executeSkillTool(library, bindings, name, args = {}) {
+export async function executeSkillTool(library, bindings, name, args = {}, records = null) {
   const bound = new Map((bindings || []).map(item => [item.id, item.hash]));
   const current = await bindSkillLibrary(library);
   const valid = library.filter((skill, index) => bound.get(skill.id) === current[index].hash);
   if (name === 'find_skills') {
     if (typeof args.query !== 'string' || !args.query.trim() || args.query.length > 300) return {error: 'tool_arguments_invalid'};
-    const hits = rankEvidence(valid.map(skill => ({id: skill.id, name: skill.name, context: skill.description, text: knowledge(skill).map(resource => resource.content).join('\n')})), args.query).slice(0, 5);
-    return {ok: true, dataKind: 'skill_catalog', skills: hits.map(hit => skillCatalog([valid.find(skill => skill.id === hit.id)])[0]), changed: (bindings || []).length !== valid.length};
+    const hits = rankEvidence(valid.map(skill => ({id: skill.id, name: skill.name, context: `${skill.description} ${skill.compatibility || ''}`, text: knowledge(skill).map(resource => resource.content).join('\n')})), args.query).slice(0, 5);
+    // How a skill fared in earlier runs helps choose between similar ones. It is a count, not a guarantee.
+    return {ok: true, dataKind: 'skill_catalog', skills: hits.map(hit => ({...skillCatalog([valid.find(skill => skill.id === hit.id)])[0],
+      ...(records?.[hit.id]?.uses > 0 ? {record: {uses: records[hit.id].uses, reviewPassed: records[hit.id].passed, lastOutcome: records[hit.id].lastOutcome}} : {})})), changed: (bindings || []).length !== valid.length};
   }
   if (name !== 'read_skill' || typeof args.skill_id !== 'string') return {error: 'tool_arguments_invalid'};
   const skill = valid.find(skill => skill.id === args.skill_id);

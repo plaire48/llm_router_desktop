@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {verificationTextFeedback} from '../verification-text-feedback.js';
 import {parse} from 'acorn';
-import {browserURL, sourceURL, compareBrowserURL, comparePageURL, URL_VERIFICATION_GUIDE, LINK_VERIFICATION_GUIDE} from '../browser-url.js';
+import {browserURL, sourceURL, compareBrowserURL, compareLinkURL, comparePageURL, URL_VERIFICATION_GUIDE, LINK_VERIFICATION_GUIDE} from '../browser-url.js';
 import {refreshBrowserPolicy} from '../browser-policy.js';
 globalThis.chrome={storage:{managed:{get:async()=>({})}}};
 await refreshBrowserPolicy();
@@ -28,7 +28,7 @@ function fixture({href='https://example.test/article?id=1#section',fault,child=f
   const task={tabId:7,app:true,latestObservation,refs:new Map(fault==='missing_ref'?[]:[['observed',entry]]),page:{url:()=> 'https://search.test/results',frames:()=>[]}};
   const inspectTarget=()=>{inspectReads++;return {name:fault==='name_changed'?'Other article':fault==='empty_name'?'':'Observed article',role:fault==='role_changed'?'button':'link',type:'',connected:fault!=='removed',secret:fault==='secret',hidden:fault==='hidden'};};
   if(fault==='descriptor_non_anchor')descriptor.kind='control';
-  const context=vm.createContext({verificationTextFeedback,document,browserURL,compareBrowserURL,comparePageURL,URL_VERIFICATION_GUIDE,LINK_VERIFICATION_GUIDE,safeURL:sourceURL,inspectTarget,
+  const context=vm.createContext({verificationTextFeedback,document,browserURL,compareBrowserURL,compareLinkURL,comparePageURL,URL_VERIFICATION_GUIDE,LINK_VERIFICATION_GUIDE,safeURL:sourceURL,inspectTarget,
     MAX_PAGE_CHECKS:20,MAX_FIELD_VALUE_CHARS:16000,validSumCheck:()=>false,validEditorFormat:()=>false,active:task,
     bindObservedRef:async()=>{binds++;if(fault==='wrong_document')throw Error('browser_stale');return entry;},
     observedDocumentScope:async()=>{scopeReads++;return [{frameId:0,documentId:fault==='top_changed'||fault==='scope_race'&&scopeReads>1?'other-top':'top-doc',result:{url:'https://search.test/results'}},...(child?[{frameId:4,documentId:fault==='frame_changed'?'new-child':'child-doc',result:{url:frame.url()}}]:[])];},
@@ -81,7 +81,12 @@ test('tool schema and diagnostics distinguish current URL from link destination 
 test('link_page_is accepts the shown destination of a link whose query is hidden and says what was not compared',async()=>{
   const shown=expected=>({kind:'link_page_is',ref:'observed',expected});
   const f=fixture({href:'https://example.test/article?utm_source=PRIVATE_TRACKING#section'});
-  assert.equal((await f.host.check(link('https://example.test/article'))).reason,'url_query_mismatch');
+  // link_destination with the shown destination compares as a display reference and says so;
+  // an expected value with its own query or fragment is still compared exactly.
+  assert.deepEqual(plain(await f.host.check(link('https://example.test/article'))),{passed:true,matched:'origin_path',queryCompared:false});
+  assert.equal((await f.host.check(link('https://example.test/article?utm_source=other'))).reason,'url_query_mismatch');
+  assert.equal((await f.host.check(link('https://example.test/article#other'))).reason,'url_query_mismatch');
+  assert.equal((await f.host.check(link('https://example.test/other'))).reason,'url_path_mismatch');
   const result=await f.host.verify([shown('https://example.test/article')]);
   assert.equal(result.verified,true);
   assert.deepEqual(plain(result.checks[0]),{index:0,kind:'link_page_is',matched:'origin_path',queryCompared:false,passed:true});

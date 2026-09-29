@@ -48,7 +48,13 @@ try {
   const pageCheck = await run('verify_page',{checks:[{kind:'url_is',expected:'https://example.test/article-one'}]});
   assert.equal(pageCheck.verified,false); assert.equal(pageCheck.checks[0].reason,'url_origin_mismatch');
   rows = await observe();
-  const query = await run('verify_page',{checks:[{kind:'link_destination',ref:find(rows,'Query result'),expected:'https://example.test/article'}]});
+  // The shown destination of a link with a hidden query is a display reference: it passes and says
+  // that the query was not compared. An expected value with its own query is compared exactly.
+  const shown = await run('verify_page',{checks:[{kind:'link_destination',ref:find(rows,'Query result'),expected:'https://example.test/article'}]});
+  assert.equal(shown.verified,true); assert.equal(shown.checks[0].queryCompared,false);
+  assert(!JSON.stringify(shown).includes('PRIVATE_QUERY'));
+  rows = await observe();
+  const query = await run('verify_page',{checks:[{kind:'link_destination',ref:find(rows,'Query result'),expected:'https://example.test/article?q=other'}]});
   assert.equal(query.verified,false); assert.equal(query.checks[0].reason,'url_query_mismatch');
   assert(!JSON.stringify(query).includes('PRIVATE_QUERY'));
   rows = await observe();

@@ -61,10 +61,13 @@ test('discovery exposes metadata only and reads only request-bound resources wit
   assert.equal((await executeSkillTool(library, bindings, 'read_skill', {skill_id: skill.id, path: 'references/check.md', start: 121})).truncated, false);
   assert.equal((await executeSkillTool(library, bindings, 'read_skill', {skill_id: 'unregistered'})).error, 'skill_unavailable');
   assert.equal((await executeSkillTool([{...skill, instructions: 'changed'}], bindings, 'read_skill', {skill_id: skill.id})).error, 'skill_changed');
+  // Registered skills are reachable without a selection step; a small input window keeps them on demand.
   const harness = createHarness(skillLibraryTools(library));
-  assert(!harness.advertised().some(tool => tool.function.name === 'read_skill'));
-  assert.equal(harness.select({groups: ['workflows']}).ok, true);
-  assert(harness.advertised().some(tool => tool.function.name === 'read_skill'));
+  assert(['find_skills', 'read_skill'].every(name => harness.advertised().some(tool => tool.function.name === name)));
+  const lean = createHarness(skillLibraryTools(library), {inputBudget: 16000});
+  assert(!lean.advertised().some(tool => tool.function.name === 'read_skill'));
+  assert.equal(lean.select({groups: ['workflows']}).ok, true);
+  assert(lean.advertised().some(tool => tool.function.name === 'read_skill'));
   harness.observe('read_skill', read); assert.equal(harness.needsCheck(), false);
 });
 test('OpenWiki workflow is available only for a connected project and explicit selection limits other skills', () => {

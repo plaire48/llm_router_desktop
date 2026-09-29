@@ -25,9 +25,20 @@ test('a read-only run whose stalled final review has no unmet check releases the
   assert(outcomes.every(outcome => outcome.verification !== 'passed'));
 });
 
-test('an unmet check, a minority of met checks, or a blocked review still withholds the answer', async () => {
+test('a lookup with an unmet check and a majority of met checks is released with both kinds of gap stated', async () => {
+  let rounds = 0; const executed = [];
+  const result = await runAgent({...base(),
+    complete: async () => ++rounds === 1 ? call('read_page') : {content: '종목은 사브르, 소속은 대전광역시청입니다.'},
+    execute: async name => {executed.push(name); return name === 'ask_user' ? {requiresUserInput: true} : {text: '본문'};},
+    reviewGoal: async () => ({...mostlyMet(), checks: [...mostlyMet().checks, check('소속 시점', 'unmet')], next_step: '소속 시점을 밝히세요.'})});
+  assert.equal(result.reviewLimited, true); assert.notEqual(result.awaitingUser, true); assert(!executed.includes('ask_user'));
+  assert.match(result.content, /- \(충족되지 않음\) 소속 시점/); assert.match(result.content, /- \(확인하지 못함\) 현재 소속의 최신성 근거/);
+  assert.match(result.content, /검토 의견: 소속 시점을 밝히세요\./);
+});
+
+test('a minority of met checks, a blocked review or a run that changed the page still withholds the answer', async () => {
   const cases = [
-    {review: () => ({...mostlyMet(), checks: [...mostlyMet().checks, check('소속 시점', 'unmet')]}), first: 'read_page'},
+    {review: () => ({...mostlyMet(), checks: [...mostlyMet().checks, check('소속 시점', 'unmet')]}), first: 'click_element', goal: '선수 정보를 수정해 줘.'},
     {review: () => ({status: 'revise', checks: [check('종목 제시', 'met'), check('소속', 'unknown'), check('출처', 'unknown')], next_step: 'x'}), first: 'read_page'},
     {review: () => ({...mostlyMet(), status: 'blocked', next_step: '어느 선수인가요?'}), first: 'read_page'}];
   for (const item of cases) {

@@ -3,7 +3,7 @@
 // and names no operation that changes a page, a file or an account. Anything
 // uncertain is NOT an information request, because that class relaxes
 // intermediate reviews. This never grants permission for an operation.
-const CHANGE_WORD = '작성|수정|편집|입력|등록|저장|전송|발송|게시|발행|업로드|다운로드|삭제|구매|결제|예약|배포|제출|변경|생성|채우|채워|넣어|붙여|보내|올려|고쳐|바꿔' +
+const CHANGE_WORD = '작성|수정|편집|입력|등록|저장|전송|발송|게시|발행|업로드|다운로드|삭제|구매|결제|예약|배포|제출|변경|생성|채우|채워|넣어|붙여|보내|올려|고쳐|바꿔|반영' +
   '|옮겨|옮기|드래그|끌어|맞춰|토글|켜\\s*줘|꺼\\s*줘|켜\\s*주|꺼\\s*주|신청|가입|로그인|로그아웃' +
   // An action form of these verbs, not the adnominal form in "선택한 폴더" or "설정된 값".
   '|(?:선택|체크|해제|설정|이동|추가|제거|취소|승인|적용|실행)(?:해|하고|하여|하세요|하라|하기|시켜|시키)';
@@ -12,8 +12,9 @@ const ASK = /알려|찾아|조사|조회|확인|설명|요약|비교|대조|식�
 // A forbidden operation: the change word followed closely by a negative ending.
 // Several operations can share one ending ("등록/제출은 하지 마", "로그인하거나
 // 신청하지 마"), and the ending can carry a helper noun ("예약은 진행하지 마").
-// Only an alternative joins the list: "입력하고 저장하지 마" still asks for input.
-const FORBIDDEN = new RegExp(`(?:(?:${CHANGE_WORD})(?:\\s*(?:/|·|,|또는|및)\\s*|(?:하거나|거나|이나)\\s*))*(?:${CHANGE_WORD})[가-힣]{0,6}(?:\\s*(?:은|는|도|을|를))?\\s*(?:(?:진행|시도|수행)\\s*)?(?:하지|하지는|지는|지)\\s*(?:마|말)[가-힣]{0,6}`, 'g');
+// Only an alternative joins the list: "입력하고 저장하지 마" and "수정, 저장하지
+// 말고" still ask for the first operation.
+const FORBIDDEN = new RegExp(`(?:(?:${CHANGE_WORD})(?:\\s*(?:/|·|또는|및)\\s*|(?:하거나|거나|이나)\\s*))*(?:${CHANGE_WORD})[가-힣]{0,6}(?:\\s*(?:은|는|도|을|를))?\\s*(?:(?:진행|시도|수행)\\s*)?(?:하지|하지는|지는|지)\\s*(?:마|말)[가-힣]{0,6}`, 'g');
 const FORBIDDEN_EN = /\b(?:do not|don't|never|without)\s+(?:\w+\s+){0,2}?(?:writ|edit|sav|submit|publish|post|upload|delet|purchas|book|mov|drag|set|select|toggl|enabl|disabl|apply|approv|cancel|add|remov)\w*\b/gi;
 // A noun built on a change word names a fact to report, not an operation:
 // "수정일" is a date, "작성자" a person, "변경 이력" a record.
@@ -26,8 +27,15 @@ const REQUIREMENT = /(?:로그인|가입|예약|신청|결제)(?:이|가)?\s?(?:
 // Answer formatting: attach a source, link or citation to the reply.
 const CITATION = /(?:출처|링크|근거|인용|참고\s*자료|주소|URL)[가-힣]{0,2}(?:\s*[가-힣]{0,4}){0,2}\s*(?:붙여|넣어|달아|첨부)/gi;
 
+// "반영" changes a page or a document unless the request asks for a plan or a
+// recommendation and names nothing to write into: there the conditions are
+// taken into the answer ("식사 40분을 반영해 계획을 세워 줘").
+const COMPOSED = /계획을?\s*세워|일정을?\s*짜|추천해|골라\s*줘/;
+const WRITE_TARGET = /페이지|문서|양식|폼|메일|본문|안내문|초안|설정|시트|셀|필드|입력란|게시글|화면에/;
+
 export function isInformationRequest(goal) {
   if (typeof goal !== 'string' || !goal.trim() || goal.length > 2000) return false;
-  const request = goal.replace(FORBIDDEN, ' ').replace(FORBIDDEN_EN, ' ').replace(CITATION, ' ').replace(FACT_NOUN, ' ').replace(REQUIREMENT, ' ');
+  let request = goal.replace(FORBIDDEN, ' ').replace(FORBIDDEN_EN, ' ').replace(CITATION, ' ').replace(FACT_NOUN, ' ').replace(REQUIREMENT, ' ');
+  if (COMPOSED.test(request) && !WRITE_TARGET.test(request)) request = request.replace(/반영[가-힣]*/g, ' ');
   return ASK.test(request) && !CHANGE.test(request);
 }

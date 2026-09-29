@@ -19,6 +19,7 @@ import {startBrowserFixtures, trainingText} from '../evaluation/browser-fixtures
 import {evaluationTarget, inspectEvaluationTarget} from './evaluation-target.mjs';
 import {hasResponsesOutput, parsedReviewEvidence, browserScore} from '../evaluation/browser-score.mjs';
 import {prepareEvaluationTrial, evaluationComposer, waitForEvaluationUI, submitEvaluationTask} from './evaluation-reset.mjs';
+import {knowledgeProbe} from './evaluation-knowledge-probe.mjs';
 import {prepareEvaluationBuild} from './evaluation-build.mjs';
 import {fixtureApprovalAllowed} from './evaluation-fixture-approval.mjs';
 import {modelExecutionTiming} from '../evaluation/browser-latency.mjs';
@@ -277,7 +278,16 @@ handle = async function(message, sender, owner) {
     if (!message.type.startsWith('GET_')) return ui.evaluate(message => chrome.runtime.sendMessage(message), message);
     for (let attempt = 0; ; attempt++) {
       try {return await waitForRead(()=>ui.evaluate(message => chrome.runtime.sendMessage(message),message),{timeoutMs:10000});}
-      catch (error) {if (error.message !== 'read_timeout' || attempt >= 4) throw error; report.readRetries++;}
+      catch (error) {
+        if (error.message !== 'read_timeout') throw error;
+        report.readRetries++;
+        // Which side stalled: the page thread, the worker, or the message between them.
+        const responds = async run => {const started = Date.now(); try {await waitForRead(run, {timeoutMs: 5000}); return Date.now() - started;} catch {return null;}};
+        if ((report.readStalls ||= []).length < 24) report.readStalls.push({at: new Date().toISOString(), type: message.type, attempt,
+          pageMs: await responds(() => ui.evaluate(() => 1)), workerMs: worker ? await responds(() => worker.evaluate(() => 1)) : null});
+        // The product recovered by itself after such a stall: wait up to two minutes before giving up.
+        if (attempt >= 11) throw error;
+      }
     }
   };
   const state = async () => (await rpc({type: 'GET_STATE'})).data;
@@ -316,10 +326,26 @@ handle = async function(message, sender, owner) {
     if (selected?.data?.settings?.modelId !== model) throw new Error('selected_model_not_applied');
     report.status = 'running'; await save();
     const uiTabId = await ui.evaluate(async () => (await chrome.tabs.getCurrent()).id);
-    for (const selectedTask of taskSet.slice(startIndex, startIndex + limit)) {
+    // Knowledge probe: the same task runs without stored knowledge, with a site
+    // document drafted from that run, and with a skill drafted from it (found
+    // by the model, then selected by the user). Drafts are made and saved
+    // through the product's own buttons. Measures the effect, not correctness.
+    // NUBI_EVAL_KNOWLEDGE_PROBE names the task ids to probe; other tasks run once as usual.
+    const probeIds = new Set((process.env.NUBI_EVAL_KNOWLEDGE_PROBE || '').split(',').map(id => id.trim()).filter(Boolean));
+    const probe = probeIds.size ? knowledgeProbe({ui, rpc, state, report, save}) : null;
+    // Ordinary tasks run first: a probe drives more of the UI and is more likely to stop the run.
+    const schedule = taskSet.slice(startIndex, startIndex + limit).flatMap(item => (probeIds.has(item.id) ? ['baseline', 'wiki', 'skill-auto', 'skill-selected'] : [null]).map(phase => ({item, phase})))
+      .sort((left, right) => (left.phase ? 1 : 0) - (right.phase ? 1 : 0));
+    for (const {item: selectedTask, phase} of schedule) {
       if (stopRequested) break;
       const task = {...selectedTask, startUrl: selectedTask.environment === 'local-fixture' ? fixtures.origin + selectedTask.startUrl : selectedTask.startUrl};
-      const trial = {id: task.id, runId:report.runId, trialId:randomUUID(), domain: task.domain, goal: task.goal, expectedEvidence: task.outcomeEvidence,
+      const trialKey = phase && phase !== 'baseline' ? `${task.id}@${phase}` : task.id;
+      if (probe && phase && !await probe.prepare(task, phase)) {
+        report.trials.push({id: task.id, phase, status: 'not_run_knowledge_missing', startedAt: new Date().toISOString()}); await save();
+        console.log(`${trialKey} not_run_knowledge_missing`);
+        continue;
+      }
+      const trial = {id: task.id, ...(phase ? {phase} : {}), runId:report.runId, trialId:randomUUID(), domain: task.domain, goal: task.goal, expectedEvidence: task.outcomeEvidence,
         ...(suite30 ? {difficulty: task.difficulty, environment: task.environment, capabilities: task.capabilities, checks: task.checks, operator: task.operator} : {}),
         startUrl: task.startUrl, startedAt: new Date().toISOString(), model, provider: 'chatgpt',
         status: 'running', factualPass: null};
@@ -332,7 +358,7 @@ handle = async function(message, sender, owner) {
         if(observed.length)lastDiagnosticSequence=observed.at(-1).sequence;
         rows.push({runId:report.runId,trialId:trial.trialId,taskId:task.id,kind:'checkpoint',at:Date.now(),modelRequests:modelRequests.size,
           taskStatus:current.chat?.task?.status,modelId:last?.modelId,answerCharacters:last?.content?.length||0,plan:current.chat?.task?.plan||[]});
-        await appendFile(resolve(evidenceDirectory,task.id+'.jsonl'),rows.map(row=>JSON.stringify(row)).join('\n')+'\n');
+        await appendFile(resolve(evidenceDirectory,trialKey+'.jsonl'),rows.map(row=>JSON.stringify(row)).join('\n')+'\n');
         trial.lastCheckpointAt=new Date().toISOString();await save();
       };
       const modelRequests = new Set(), modelStarted = new Map(), modelDurations = [], modelFirstResponse = [];
@@ -599,13 +625,13 @@ handle = async function(message, sender, owner) {
         }
         trial.diagnostics = ((await rpc({type:'GET_EVAL_DIAGNOSTICS'}))?.data || []).filter(event => event.at >= Date.parse(trial.startedAt));
         trial.modelExecutionTiming = modelExecutionTiming(trial.diagnostics);
-        await ui.screenshot({path:output.replace('.json', `-${task.id}.png`),animations:'disabled',timeout:10000}).catch(()=>{});
+        await ui.screenshot({path:output.replace('.json', `-${trialKey}.png`),animations:'disabled',timeout:10000}).catch(()=>{});
       } catch (error) {
         trial.outcomeBeforeCollectionError = trial.status;
         trial.status = 'runner_error'; trial.error = String(error.message).slice(0, 200);
         if (error.submissionDiagnostics) trial.submissionFailure = error.submissionDiagnostics;
         if (error.reason) trial.bindingFailure = error.reason;
-        await ui.screenshot({path:output.replace('.json', `-${task.id}-error.png`),animations:'disabled',timeout:5000}).catch(()=>{});
+        await ui.screenshot({path:output.replace('.json', `-${trialKey}-error.png`),animations:'disabled',timeout:5000}).catch(()=>{});
       } finally {
         context.off('request', onRequest); context.off('response', onResponse); context.off('requestfinished', onRequestFinished);
         await Promise.all([...responseChecks]);
@@ -633,7 +659,7 @@ handle = async function(message, sender, owner) {
           report.actualModel = true;
         }
         trial.elapsedMs = Date.parse(trial.finishedAt) - Date.parse(trial.startedAt);
-        if (suite30) report.progress = browserScore(selectedTasks, report.trials, [], {targetRate}).total;
+        if (suite30 && !probe) report.progress = browserScore(selectedTasks, report.trials, [], {targetRate}).total;
         report.completedTrials = report.trials.filter(item => item.status !== 'running' && !item.status.startsWith('not_run')).length;
         if (resultHoldMs && trial.status !== 'runner_error') {
           await ui.bringToFront().catch(() => {});
@@ -642,13 +668,16 @@ handle = async function(message, sender, owner) {
         }
         if (trial.status !== 'runner_error') await source?.close().catch(() => {});
         await save();
-        await writeFile(resolve(evidenceDirectory,task.id+'.json'),JSON.stringify(trial,null,2));
-        console.log(`${trial.id} ${trial.status} model=${trial.actualModel} calls=${trial.modelRequests}${report.progress ? ` evaluated=${report.progress.completed}/${report.progress.planned} (${(report.progress.executionCompletionRate * 100).toFixed(1)}%) quality=independent-grading-required` : ''}`);
+        await writeFile(resolve(evidenceDirectory,trialKey+'.json'),JSON.stringify(trial,null,2));
+        if (probe && phase && trial.status !== 'runner_error') await probe.after(task, phase, trial).catch(error => {trial.probeError = String(error?.message).slice(0, 200);});
+        if (probe) await save();
+        console.log(`${trialKey} ${trial.status} model=${trial.actualModel} calls=${trial.modelRequests}${report.progress ? ` evaluated=${report.progress.completed}/${report.progress.planned} (${(report.progress.executionCompletionRate * 100).toFixed(1)}%) quality=independent-grading-required` : ''}`);
       }
       if (trial.status === 'runner_error' || (trial.status === 'timeout' && !trial.stopConfirmed)) break;
     }
     report.recordedTasks = report.trials.filter(item => item.status !== 'running').length;
-    report.status = report.completedTrials === limit ? 'trials_recorded' : report.recordedTasks === limit ? 'partial_operator_required' : 'interrupted';
+    report.status = probe ? (report.recordedTasks === schedule.length ? 'probe_recorded' : 'interrupted')
+      : report.completedTrials === limit ? 'trials_recorded' : report.recordedTasks === limit ? 'partial_operator_required' : 'interrupted';
   }
 } catch (error) {
   report.status = 'setup_error'; report.error = String(error.message).slice(0, 200);

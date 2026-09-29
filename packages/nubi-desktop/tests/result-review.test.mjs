@@ -95,9 +95,16 @@ test('cancellation during independent review never publishes a result or starts 
 });
 
 const input=()=>({task:{request:'Original request',criteria:[{id:'AC-1',text:'Preserve original acceptance'}],questionHistory:[]},evidence:[{tool:'read_source',result:{path:'a.ts',text:'const x=1',hash:'abc'}}],receipts:{proposals:[],processes:[]},candidate:'Observed x=1',model:{contextLength:32000},signal:new AbortController().signal});
-test('review rejects missing criteria, invented evidence and truncated supported evidence',async()=>{
-  for(const mode of ['missing','invented','truncated','tool-call']){
-    const args=input();if(mode==='truncated')args.evidence[0].result.text='x'.repeat(13000);
+test('truncated evidence never supports a requirement: the check is kept as unverified',async()=>{
+  // Changed 2026-09-29 after live runs: this used to refuse the whole review and discard the answer.
+  const args=input();args.evidence[0].result.text='x'.repeat(13000);let calls=0;
+  const review=await reviewResult({...args,invoke:async messages=>{calls++;const body=JSON.parse(decision(messages).content);body.checks[0].state='supported';body.checks[0].evidenceIds=['tool:0'];return reply(JSON.stringify(body));}});
+  assert.equal(calls,1);assert.equal(review.checks[0].state,'unknown');assert.deepEqual(review.checks[0].evidenceIds,[]);assert.deepEqual(review.setAside,['tool:0']);
+  assert.equal(review.evidence.find(e=>e.id==='tool:0').usable,false);
+});
+test('review rejects missing criteria, invented evidence and tool calls',async()=>{
+  for(const mode of ['missing','invented','tool-call']){
+    const args=input();
     let calls=0;
     await assert.rejects(reviewResult({...args,invoke:async messages=>{
       calls++;const result=decision(messages),body=JSON.parse(result.content);

@@ -82,11 +82,19 @@ test('reviewer variability on the exact same answer cannot establish correction 
   assert.equal(run.children, 1); assert(!run.result.awaitingUser); assert.equal(run.result.reviewLimited, true); assert.match(run.result.content, /검증 완료가 아닙니다/);
 });
 
-test('an unmet check still withholds the answer and asks after the repair budget is spent', async () => {
+test('after the repair budget is spent a lookup with an unmet check is released with that check stated', async () => {
   const gap = reviewed(3, 2); gap.checks.at(-1).status = 'unmet';
   const run = await sequence([gap, gap, gap]);
-  assert.equal(run.children, 1); assert(run.result.awaitingUser); assert.equal(run.result.content, '');
-  assert.deepEqual(run.executed, ['read_page', 'ask_user']);
+  assert.equal(run.children, 1); assert(!run.result.awaitingUser); assert.equal(run.result.reviewLimited, true);
+  assert.match(run.result.content, /검증 완료가 아닙니다/); assert.match(run.result.content, /- \(충족되지 않음\) 요구사항 4/); assert.match(run.result.content, /- \(확인하지 못함\) 요구사항 3/);
+  assert.deepEqual(run.executed, ['read_page']);
+});
+
+test('without a majority of met checks an unmet check still withholds the answer and asks', async () => {
+  const gap = reviewed(2, 2); gap.checks.at(-1).status = 'unmet';
+  const run = await sequence([gap, gap, gap]);
+  assert(run.result.awaitingUser); assert.equal(run.result.content, '');
+  assert.equal(run.executed.at(-1), 'ask_user');
 });
 
 test('a new explicit user request gets a fresh correction frontier without relaxing its final review', async () => {

@@ -9,7 +9,7 @@ export {readCompletion} from '../completion-reader.js';
 import {attachmentMessages} from '../attachment-store.js';
 import {visionModelFor, routeImageRequest} from '../model-routing.js';
 import {runAgent, progressTools} from '../agent-runtime.js';
-import {createHarness} from '../agent-harness.js';
+import {createHarness, LEAN_INPUT_TOKENS} from '../agent-harness.js';
 import {ORIGIN, endpoint, httpError, ERROR_TEXT} from '../core.js';
 import {promptPreamble} from '../chat-contract.js';
 import {chatGPTModels, completeChatGPT} from '../chatgpt-api.js';
@@ -240,12 +240,13 @@ export async function completeChat(request, signal, onText = () => {}, onUsage =
       complete: wire => invoke(wire, {selectedTools: tools, holdText: true, maxTokens: 6000})});
     if (!result.awaitingUser) {
       if (result.finishReason === 'length') throw new Error('skill_draft_invalid');
-      (request.creationSource.kind === 'wiki' ? parseWikiDraft : parseSkillDraft)(result.content);
+      if (request.creationSource.kind === 'wiki') parseWikiDraft(result.content); else parseSkillDraft(result.content);
     }
     onUsage(result.usage); onFinish('stop');
     return result.content;
   }
-  const preamble = promptPreamble(request.modelId, undefined, {...request, visionModel});
+  // A small input window keeps the selected skill to its own text.
+  const preamble = promptPreamble(request.modelId, undefined, {...request, visionModel, inlineSkillReferences: budget.input >= LEAN_INPUT_TOKENS});
   if (request.documents?.length) preamble.push(documentCatalogMessage(request.documents));
   const {boundary} = historyContext(request.messages, request.memory);
   const fileMessages = request.messages.map((message, index) => index <= boundary ? {...message, attachments: []} : message);

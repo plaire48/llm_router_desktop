@@ -68,6 +68,7 @@ await copyFile('skill-command.js', 'dist/skill-command.js');
 await copyFile('skill-creator.js', 'dist/skill-creator.js');
 await copyFile('skills.js', 'dist/skills.js');
 await copyFile('skill-library.js', 'dist/skill-library.js');
+await copyFile('skill-stats.js', 'dist/skill-stats.js');
 await copyFile('openwiki-workflow.js', 'dist/openwiki-workflow.js');
 await build({entryPoints: ['skill-package.js'], outfile: 'dist/skill-package.js', bundle: true, platform: 'browser', format: 'esm', target: 'chrome125', minify: true});
 await copyFile('project-tools.js', 'dist/project-tools.js');

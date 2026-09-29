@@ -242,6 +242,17 @@ test('a click that turns a counted list keeps that page before its check has pas
  assert(state.evidence.every(item=>item.referenceOnly&&item.usable&&!item.superseded));
  // Returning to a kept page reads nothing again.
  current=2;await state.capture('click_element',view(2),false,true);assert.equal(reads,3);
+ // A later permitted observation reads the kept view once more: unchanged content keeps the same evidence,
+ current=2;const again=await state.capture('verify_page',{ok:true,verified:true,observation:view(2).observation},true);
+ assert.equal(reads,4);assert.equal(again.source_capture.review_evidence_id,second.source_capture.review_evidence_id);assert.equal(state.evidence.length,3);
+ await state.capture('verify_page',{ok:true,verified:true,observation:view(2).observation},true);assert.equal(reads,4);
+ // and content that finished loading after the click replaces what the click kept.
+ const loaded={...content(url,'3쪽 전체 본문','f'.repeat(64)),source_document_id:'doc',page_view:{current:3,total:3}};
+ const late=setup(async()=>late.next,{enabled:false});late.next=read(3);
+ const early=await late.capture('click_element',view(3),false,true);late.next=loaded;
+ const final=await late.capture('verify_page',{ok:true,verified:true,observation:view(3).observation},true);
+ assert.notEqual(final.source_capture.review_evidence_id,early.source_capture.review_evidence_id);
+ assert.deepEqual(late.evidence.map(item=>[item.usable,!!item.superseded]),[[false,true],[true,false]]);
  const other=setup(async()=>assert.fail('must not read'),{enabled:false});
  // No counted view, an unissued or failed click, an input, or an uncertain run: no capture.
  await other.capture('click_element',{ok:true,actionIssued:true,observation:{url,frames:[{frame:0,text:'본문',documentId:'doc'}]}},false,true);
