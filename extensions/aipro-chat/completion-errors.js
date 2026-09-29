@@ -6,11 +6,11 @@ const requestStatuses = [400, 404, 413, 415, 422];
 
 // Typed check outcomes only: never retain expected values, refs or page text.
 export function verificationDiagnostic(result) {
-  const kinds = new Set(['field_value', 'field_valid', 'field_sum', 'field_digest', 'field_contains', 'text_style', 'control_state', 'control_expanded', 'element_in', 'text_present', 'url_is', 'url_page_is', 'link_destination', 'link_page_is']);
+  const kinds = new Set(['field_value', 'field_valid', 'field_sum', 'field_digest', 'field_contains', 'text_style', 'control_state', 'control_expanded', 'element_in', 'text_present', 'url_is', 'url_page_is', 'link_destination', 'link_page_is', 'field_unchanged']);
   return (Array.isArray(result?.checks) ? result.checks : []).slice(0, 24)
     .filter(check => kinds.has(check?.kind) && typeof check.passed === 'boolean')
     .map(check => ({kind: check.kind, passed: check.passed,
-      ...(['target_changed', 'check_target_incompatible', 'url_expected_invalid', 'url_expected_restricted', 'url_actual_invalid', 'url_actual_restricted', 'url_origin_mismatch', 'url_path_mismatch', 'url_identifier_mismatch', 'url_query_mismatch', 'url_fragment_mismatch', 'url_identity_mismatch'].includes(check.reason) ? {reason: check.reason} : {})}));
+      ...(['target_changed', 'check_target_incompatible', 'url_expected_invalid', 'url_expected_restricted', 'url_actual_invalid', 'url_actual_restricted', 'url_origin_mismatch', 'url_path_mismatch', 'url_identifier_mismatch', 'baseline_missing', 'field_written', 'value_changed', 'url_query_mismatch', 'url_fragment_mismatch', 'url_identity_mismatch'].includes(check.reason) ? {reason: check.reason} : {})}));
 }
 
 const SCOPE_REASONS = ['scope_issue_invalid', 'scope_target_invalid', 'scope_anchor_invalid', 'scope_review_quote_mismatch', 'scope_source_quote_mismatch', 'scope_answer_invalid'];
@@ -36,6 +36,8 @@ export function agentDiagnostic(value) {
     return {phase: value.phase, scope: value.scope, decision: value.decision, correctionTarget: value.correctionTarget, corrected: value.corrected,
       ...(['scope_input_invalid', 'scope_context_budget', 'scope_protocol_invalid', 'scope_quote_invalid', 'scope_issue_invalid', 'scope_target_invalid', 'scope_anchor_invalid', 'scope_review_quote_mismatch', 'scope_source_quote_mismatch', 'scope_answer_invalid', 'scope_response_invalid', 'cancelled', 'authentication'].includes(value.reason) ? {reason: value.reason} : {}),
       ...(SCOPE_REASONS.includes(value.withdrawn) ? {withdrawn: value.withdrawn} : {}),
+      // The stage was settled by its met checks: every open check lay outside it.
+      ...(value.settled === true && value.scope === 'plan_step' && value.decision === 'repair_scope' ? {settled: true} : {}),
       ...(scopeShape(value.shape) ? {shape: scopeShape(value.shape)} : {})};
   }
   if (value.phase === 'review_result' && ['plan_step', 'checkpoint', 'final'].includes(value.scope) && ['complete', 'revise', 'blocked'].includes(value.status)) {

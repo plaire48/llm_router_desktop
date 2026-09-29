@@ -2,7 +2,10 @@ import {tokenizer} from 'acorn';
 import {SCRIPT_FAILURES} from './script-feedback.js';
 
 const META = new Set(['select_tools', 'update_plan', 'ask_user', 'delegate_analysis', 'cancel_analysis']);
-const VOLATILE = new Set(['ref', 'field_id', 'nonce', 'timestamp', 'at', 'screenshot_id', 'analysis_evidence_id', 'image', 'scope', 'instruction', 'recovery', 'visualRecovery', 'execution', 'logs', 'calls', 'focused', 'textChecks']);
+// region_ref is new on every observation, like ref. Left out, every read of an
+// unchanged page counted as a change: loop detection and the checkpoint after
+// repeated failures never fired, and a failing script was retried 346 times.
+const VOLATILE = new Set(['ref', 'region_ref', 'field_id', 'nonce', 'timestamp', 'at', 'screenshot_id', 'analysis_evidence_id', 'image', 'scope', 'instruction', 'recovery', 'visualRecovery', 'execution', 'logs', 'calls', 'focused', 'textChecks']);
 const hasTextHash = value => value?.dataKind === 'page_content' && /^[a-f0-9]{64}$/.test(value.content_text_hash || '');
 const TARGET = ['id', 'name', 'accessibleName', 'role', 'tag', 'type', 'kind', 'href', 'context'];
 function canonical(value, parentKey) {

@@ -56,7 +56,7 @@ test('a draft records its target site and says when its source run was not verif
 test('a selected skill carries its procedure and checks when the input window allows it', () => {
   const skill = parseSkillDraft(draft(), skillCreationSource(chat()));
   const full = selectedSkillText(skill, {inlineReferences: true});
-  assert.match(full, /^User-selected skill: 변경 요청 승인 대기 조회\n# 사용 전 확인/);
+  assert.match(full, /^User-selected skill: 변경 요청 승인 대기 조회 \(selected and loaded: references\/procedure\.md, references\/checks\.md follow below, so do not call find_skills or read_skill for them\)\n# 사용 전 확인/);
   assert.match(full, /\[references\/procedure\.md\]\n1\. 목록을 연다\n2\. 상태를 승인 대기로 고른다/);
   assert.match(full, /\[references\/checks\.md\]\n표에 승인 대기만 보인다/);
   assert(full.indexOf('[references/procedure.md]') < full.indexOf('[references/checks.md]'), 'the procedure comes before its checks');
@@ -81,4 +81,14 @@ test('a skill is found by the site it was made for and the catalog shows that si
   const found = await executeSkillTool(library, bindings, 'find_skills', {query: 'hr.example.test'});
   assert.equal(found.skills[0].name, '휴가 신청');
   assert.equal((await executeSkillTool(library, bindings, 'find_skills', {query: 'jsm 승인 대기'})).skills[0].name, '변경 요청 승인 대기 조회');
+});
+
+test('a selected skill offers no search, and the catalog says that a listed skill can be read directly', async () => {
+  const {skillLibraryTools} = await import('../skill-library.js');
+  const skill = parseSkillDraft(draft(), skillCreationSource(chat()));
+  const names = tools => tools.map(tool => tool.function.name);
+  assert.deepEqual(names(skillLibraryTools(skillLibrary([skill]))), ['find_skills', 'read_skill']);
+  assert.deepEqual(names(skillLibraryTools(skillLibrary([skill], {selectedSkillId: skill.id}), {find: false})), ['read_skill']);
+  assert.match(skillLibraryTools(skillLibrary([skill]))[0].function.description, /can be read directly with read_skill and its id/);
+  assert.deepEqual(skillLibraryTools([], {find: false}), []);
 });

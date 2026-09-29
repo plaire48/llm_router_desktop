@@ -10,6 +10,9 @@ import {goalReviewPayload, reviewCompletion} from './fixtures/goal-review.mjs';
 const profile = await mkdtemp(resolve(tmpdir(), 'nubi-task-plan-')), extension = resolve(profile, 'extension');
 const labels = ['작성 화면 확인', '교육 안내 초안 작성', '입력 결과 확인'];
 const steps = active => labels.map((text, index) => ({text, status: index < active ? 'completed' : index === active ? 'in_progress' : 'pending'}));
+// A new plan must give every step an acceptance condition (src/api.js requires expected_outcome).
+const outcomes = ['제목 입력란이 있는 작성 화면 확인', '제목 입력란에 요청한 제목이 반영됨', '입력 결과가 화면에 표시되고 등록하지 않음'];
+const initialSteps = () => steps(0).map((step, index) => ({...step, expected_outcome: outcomes[index]}));
 const call = (name, args = {}) => ({id: crypto.randomUUID(), type: 'function', function: {name, arguments: JSON.stringify(args)}});
 const reply = (calls, content = '') => ({choices: [{message: {content, ...(calls ? {tool_calls: calls} : {})}, finish_reason: calls ? 'tool_calls' : 'stop'}]});
 const checks = [], errors = []; let context, ui, target, worker, failure, mode = 'work', round = 0, held, reviewHeld;
@@ -39,7 +42,7 @@ try {
     if (body.messages[0].content.startsWith(PLAN_PROMPT)) {
       assert.equal(await target.evaluate(() => writes), mode === 'work' ? 0 : 1);
       assert.deepEqual(body.tools.map(tool => tool.function.name).sort(), ['ask_user', 'update_plan']);
-      return route.fulfill({json: reply([call('update_plan', {steps: steps(0)})])});
+      return route.fulfill({json: reply([call('update_plan', {steps: initialSteps()})])});
     }
     const review = goalReviewPayload(body.messages);
     if (review) {if(review.phase!=='plan_step')await new Promise(resolve => {reviewHeld = resolve;}); return route.fulfill({json: reviewCompletion(review)});}
@@ -85,7 +88,8 @@ try {
   await worker.evaluate(async uiId => {const page = (await chrome.tabs.query({})).find(tab => tab.url === 'https://plan.example.test/'); await chrome.storage.session.set({chatSourceTabs: {[uiId]: page.id}});}, uiId);
   await send('교육 안내 제목에 10월 교육 안내를 입력하고 반영됐는지 확인해줘. 등록하지 마.');
   await poll(() => worker.evaluate(() => typeof releasePageRead === 'function'), true);
-  const reading = ui.locator('.agent-trace li[data-tool=read_page]');
+  // The host also records its own source capture as a read_page row ('출처 본문 확보').
+  const reading = ui.locator('.agent-trace li[data-tool=read_page]').filter({hasText: '교육 안내 읽기'});
   await poll(() => reading.getAttribute('data-status'), 'running');
   assert(await reading.isVisible()); assert.match(await reading.innerText(), /교육 안내 읽기.*중/s);
   await reading.evaluate(element => {window.activeTraceRow = element;});
@@ -126,7 +130,8 @@ try {
   await ui.screenshot({path:resolve('verification/task-plan-revised-panel.png')});
   await plan().locator('.task-plan-context > summary').click();
   const contextText = await plan().locator('.task-plan-context').innerText();
-  assert.match(contextText, /완료 기준.*구체적인 완료 기준이 아직 없습니다/s);
+  // The current step keeps the planner's acceptance condition through a status-only update.
+  assert.match(contextText, /완료 기준.*제목 입력란에 요청한 제목이 반영됨/s);
   assert.match(contextText, /최근 실행.*교육 안내 제목 입력.*도구 실행 완료/s);
   assert.match(contextText, /다음 계획.*제목과 반영 상태 확인/s);
   await ui.setViewportSize({width: 320, height: 800});
@@ -146,6 +151,10 @@ try {
   check('a premature completed step stays active until its real check returns to a new model decision');
   await next(); await poll(() => !!held, true);
   await poll(async () => plan().locator('.task-plan-count').innerText(), '2/3');
+  // The step added by the executor's revision has no acceptance condition, and the panel says so.
+  await plan().locator('.task-plan-context > summary').click();
+  assert.match(await plan().locator('.task-plan-context').innerText(), /완료 기준.*구체적인 완료 기준이 아직 없습니다/s);
+  await plan().locator('.task-plan-context > summary').click();
   await ui.setViewportSize({width: 1100, height: 850});
   await ui.waitForTimeout(450); await ui.screenshot({path: resolve('verification/task-plan-progress-desktop.png')});
   await next(); await poll(() => !!reviewHeld, true);

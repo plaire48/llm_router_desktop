@@ -43,7 +43,10 @@ try {
       // Region metadata makes this real snapshot exceed the bounded 2400-char
       // preload. Follow the allowed reader instead of asserting every brief
       // must contain the full original page, or enlarging the product budget.
-      assert(source.characters>2400);assert.equal(brief.evidence_reads,undefined);
+      // A large source may carry one query-matched excerpt (analysis-agents.js);
+      // it is partial, so the worker still reads the whole observation below.
+      assert(source.characters>2400);
+      assert((brief.evidence_reads||[]).every(packet=>packet.evidence_id===source.evidence_id&&packet.selection==='query'&&packet.coverage==='partial'));
       const reads=wire.filter(message=>message.role==='tool').map(message=>JSON.parse(message.content));
       if(!reads.length)return call('read_analysis_evidence',{evidence_id:source.evidence_id});
       analysisReads=reads.length;
@@ -71,7 +74,10 @@ try {
     }});
   const children=new Set(events.filter(event=>event.tool==='analysis_recovery').map(event=>event.index)).size;
   assert.equal(children,1);assert.equal(analysisCalls,2);assert.equal(analysisReads,1);assert.equal(reviews,3);assert.equal(rounds,5);assert(result.content.includes('10월 1일'));
-  assert.deepEqual(actions,['browser_snapshot','read_page']);assert.deepEqual(visits,{a:1,b:0});
+  // The opened source is captured once by the host (read_page mode=content,
+  // research-source-capture.js) before the leader's own read after the advice.
+  assert.deepEqual(actions,['browser_snapshot','read_page','read_page']);assert.deepEqual(visits,{a:1,b:0});
+  assert(events.some(event=>event.tool==='read_page'&&event.index==='research-source-1'&&event.status==='done'));
   assert(events.some(event=>event.tool==='analysis_recovery'&&event.analysis?.delivered));
   assert.equal(results.at(-1).outcome,'answer');assert.equal(results.at(-1).verification,'passed');
   checks.push('two unchanged final gaps start one actual Pi recovery worker before asking the user');

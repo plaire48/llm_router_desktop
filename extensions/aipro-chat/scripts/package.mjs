@@ -1,4 +1,4 @@
-import {copyFile, cp, mkdir, readFile, rm, writeFile} from 'node:fs/promises';
+import {copyFile, cp, mkdir, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {basename, resolve} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
@@ -7,6 +7,7 @@ import {wikiBrowserBuild} from './wiki-browser-build.mjs';
 import {helpMarkdown} from '../help-content.js';
 import {copyDocumentLicenses} from './document-licenses.mjs';
 import {releaseInfo} from './release-info.mjs';
+import {PAGE_BUILTINS} from './page-builtins.mjs';
 
 const root = process.cwd();
 await mkdir('dist/licenses',{recursive:true});
@@ -69,6 +70,8 @@ await copyFile('skill-creator.js', 'dist/skill-creator.js');
 await copyFile('skills.js', 'dist/skills.js');
 await copyFile('skill-library.js', 'dist/skill-library.js');
 await copyFile('skill-stats.js', 'dist/skill-stats.js');
+await copyFile('field-marks.js', 'dist/field-marks.js');
+await copyFile('page-script.js', 'dist/page-script.js');
 await copyFile('openwiki-workflow.js', 'dist/openwiki-workflow.js');
 await build({entryPoints: ['skill-package.js'], outfile: 'dist/skill-package.js', bundle: true, platform: 'browser', format: 'esm', target: 'chrome125', minify: true});
 await copyFile('project-tools.js', 'dist/project-tools.js');
@@ -101,7 +104,8 @@ await copyFile('browser-pointer.js', 'dist/browser-pointer.js');
 await copyFile('browser-drag.js', 'dist/browser-drag.js');
 await copyFile('browser-popups.js', 'dist/browser-popups.js');
 await copyFile('browser-observation.js', 'dist/browser-observation.js');
-await build({entryPoints: ['browser-content.js'], outfile: 'dist/browser-content.js', bundle: true, platform: 'browser', format: 'esm', target: 'chrome125', minify: true, external:['./background-images.js','./browser-url.js']});
+// page-script.js remembers slow tabs: one shared copy, not a second one inside this bundle.
+await build({entryPoints: ['browser-content.js'], outfile: 'dist/browser-content.js', bundle: true, platform: 'browser', format: 'esm', target: 'chrome125', minify: true, external:['./background-images.js','./browser-url.js','./page-script.js']});
 await cp('generated', 'dist/generated', {recursive: true});
 await copyFile('browser-text.js', 'dist/browser-text.js');
 await copyFile('browser-keyboard.js', 'dist/browser-keyboard.js');
@@ -119,6 +123,23 @@ await copyFile('page-images.js', 'dist/page-images.js');
 await copyFile('image-files.js', 'dist/image-files.js');
 await build({entryPoints: ['script-sandbox.js'], outfile: 'dist/script-sandbox.js', bundle: true, platform: 'browser', format: 'esm', target: 'chrome120', minify: true});
 await cp('node_modules/@playwright-repl/playwright-crx/lib', 'dist/playwright', {recursive: true});
+// Playwright evaluates its utility script in the page's own world, where a page can have
+// replaced Map. Arguments and results then fail to pass ("refs.set is not a function").
+// The pinned bundle gets working built-ins in front of that script; a bundle without
+// the exact place fails the build instead of shipping without the guard.
+{
+  const PLACE = 'const module = {};\n        ${source$5}\n        return new (module.exports.UtilityScript())';
+  if (/[`\\]|\$\{/.test(PAGE_BUILTINS)) throw new Error('page_builtins_not_embeddable');
+  let patched = 0;
+  for (const name of (await readdir('dist/playwright')).filter(name => name.endsWith('.js'))) {
+    const text = await readFile(`dist/playwright/${name}`, 'utf8');
+    if (!text.includes(PLACE)) continue;
+    if (text.split(PLACE).length !== 2) throw new Error('playwright_utility_script_place_ambiguous');
+    await writeFile(`dist/playwright/${name}`, text.replace(PLACE, () => PLACE.replace('${source$5}', () => `${PAGE_BUILTINS}\n        \${source$5}`)));
+    patched++;
+  }
+  if (patched !== 1) throw new Error('playwright_utility_script_place_missing');
+}
 await copyFile('node_modules/@playwright-repl/playwright-crx/LICENSE', 'dist/playwright/LICENSE');
 await copyFile('node_modules/@playwright-repl/playwright-crx/NOTICE', 'dist/playwright/NOTICE');
 await mkdir('dist/script-licenses', {recursive: true});

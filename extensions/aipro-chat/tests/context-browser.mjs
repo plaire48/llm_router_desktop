@@ -26,7 +26,10 @@ try {
   context=await chromium.launchPersistentContext(profile,{headless:true,executablePath:process.env.CHROME_BINARY,args:[`--disable-extensions-except=${extension}`,`--load-extension=${extension}`]});context.setDefaultTimeout(12000);
   await context.route('https://mail.example.test/**',route=>route.fulfill({contentType:'text/html',body:'<meta charset="utf-8"><title>메일 초안</title><label>제목<input aria-label="제목"></label><output>작성 중</output><script>window.writes=0;document.querySelector("input").addEventListener("input",()=>{window.writes++;document.querySelector("output").textContent="초안 저장됨";});</script>'}));
   await context.route('https://aipro.sdsdev.co.kr/**',async route=>{try{
-    if(route.request().url().endsWith('/api/models'))return route.fulfill({contentType:'application/json',body:JSON.stringify({modelList:[{name:'GLM-5.2-NVFP4',display_name:'GLM-5.2-512K',context_length:16000,max_input_tokens:14000}]})});
+    // A small synthetic window forces compaction of the long history. The fixed
+    // system prompt and lean tool set alone now estimate about 13.4k tokens,
+    // so 16000/14000 (13600 input) cannot hold even the compacted request.
+    if(route.request().url().endsWith('/api/models'))return route.fulfill({contentType:'application/json',body:JSON.stringify({modelList:[{name:'GLM-5.2-NVFP4',display_name:'GLM-5.2-512K',context_length:18000,max_input_tokens:15000}]})});
     const body=route.request().postDataJSON();
     if(body.messages[0].content.startsWith(COMPLETION_REVIEW_PROMPT)) {requests.push(body);assert.equal(mode,'chat');return route.fulfill({contentType:'application/json',body:reply(JSON.stringify({decision:'reply',scope:'conversation',next_step:''}))});}
     const planning = planCompletion(body); if (planning) return route.fulfill({json: planning});requests.push(body);

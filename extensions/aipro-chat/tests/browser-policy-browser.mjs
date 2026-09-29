@@ -62,7 +62,12 @@ globalThis.policyProbe={ready:()=>serial(()=>{}),snapshot:policySnapshot,refresh
       toolNames:['list_tabs','switch_tab','navigate_page','browser_snapshot'],pageTargetTabId:workspace.tabId,browserContext:{tabId:workspace.tabId,workspace}};
     await chrome.storage.session.set({chatLease:lease,credential:{provider:'chatgpt',receivedAt:1},browserWorkspaces:{[binding.conversationId]:workspace}});
     const connected=await policyProbe.connectWorkPage({},lease,null);
+    // A run's first navigate_page is held until the connected page has been
+    // observed (browser-agent.js). Observe it first, as the model must.
+    const observedFirst=await policyProbe.run(lease.id,{...connected.page,browserContext:connected.lease.browserContext},'browser_snapshot');
+    if(observedFirst.result?.error)throw new Error(JSON.stringify(observedFirst.result));
     const navigation=await policyProbe.run(lease.id,{...connected.page,browserContext:connected.lease.browserContext},'navigate_page',{url:'https://127.0.0.1:9/news',new_tab:'yes'});
+    if(navigation.result?.yielded || navigation.tabId===connected.page.tabId)throw new Error(`error tab was not opened: ${JSON.stringify(navigation.result)}`);
     await policyProbe.rememberBrowserContext(connected.lease);
     await policyProbe.refreshWorkConnection(connected.page,navigation.tabId);
     const stored=await chrome.storage.session.get(['page','browserWorkspaces']);

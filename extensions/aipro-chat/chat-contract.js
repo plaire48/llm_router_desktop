@@ -44,6 +44,9 @@ export function selectedSkillText(skill, {inlineReferences = false, limit = 8000
     if (typeof content !== 'string' || !content.trim() || content.trim().length > remaining) continue;
     text += `\n\n[${path}]\n${content.trim()}`; remaining -= content.trim().length; loaded.add(path);
   }
+  // Measured: with the procedure already here, a run still searched for the
+  // skill and read it twice. Saying that it is loaded saves those calls.
+  if (loaded.size) text = text.replace('\n', ` (selected and loaded: ${[...loaded].join(', ')} follow below, so do not call find_skills or read_skill for them)\n`);
   const others = resources.map(resource => resource.path).filter(path => !loaded.has(path));
   return others.length ? `${text}\n\nOther references of this skill, read with read_skill when needed: ${others.slice(0, 12).join(', ')}` : text;
 }

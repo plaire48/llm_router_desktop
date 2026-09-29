@@ -132,7 +132,7 @@ test('a refused review is asked again with the exact problems and the valid IDs'
   assert.equal(prompts.length,2);assert.equal(prompts[0],REVIEW_PROMPT);
   assert.match(prompts[1],/Unknown evidence IDs: "fake"/);
   assert.match(prompts[1],/supported needs at least one evidence ID: criterion:AC-1/);
-  assert.match(prompts[1],/Usable evidence IDs: host, tool:0\./,'usable IDs are listed, unusable ones are not');
+  assert.match(prompts[1],/Usable evidence IDs: host, user, tool:0\./,'usable IDs are listed, unusable ones are not');
   assert.equal(review.status,'revise');
 });
 

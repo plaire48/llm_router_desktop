@@ -112,7 +112,10 @@ try {
       const wanted = mode === 'project' ? ['ask_openwiki', 'source_search', 'read_source'][stage] : mode === 'wiki-only' ? ['ask_openwiki'][stage] : stage === 0 ? 'read_source' : null;
       if (wanted && !names.includes(wanted)) {
         const selector = body.tools?.find(tool => tool.function.name === 'select_tools');
-        const group = selector?.function.parameters.properties.groups.items.enum.find(value => /project|wiki|source/.test(value));
+        // ask_openwiki is in the knowledge group; source tools are in project.
+        // Choose the advertised group that actually lists the wanted tool.
+        const overview = JSON.parse(/Available groups: (\{.*\})\. No software/.exec(selector?.function.description || '')?.[1] || '{}');
+        const group = selector?.function.parameters.properties.groups.items.enum.find(value => overview[value]?.tools.includes(wanted));
         assert(group, `Project tool ${wanted} must be reachable without a browser page`);
         return route.fulfill({contentType: 'text/event-stream', body: response('select_tools', {groups: [group]})});
       }

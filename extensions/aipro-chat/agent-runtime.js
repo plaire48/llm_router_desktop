@@ -7,7 +7,7 @@ import {DOCUMENT_TOOL_NAMES} from './document-contract.js';
 import {Agent} from '@earendil-works/pi-agent-core';
 import {createAssistantMessageEventStream} from '@earendil-works/pi-ai';
 import {createHarness, MUTATING_TOOLS, changesObservation, requiresVerification} from './agent-harness.js';
-import {reviewEvidence, isPageContentReference, samePageContentSource} from './goal-review.js';
+import {reviewEvidence, isPageContentReference, samePageContentSource, isPageTextRecord, pageTextRecord, pageIdentity} from './goal-review.js';
 import {PROJECT_TOOL_NAMES} from './project-tools.js';
 import {normalizePlan, initialPlan, activePlanStep} from './task-plan.js';
 import {textQuestionArgs, clarificationMessage} from './user-question.js';
@@ -182,7 +182,12 @@ export function progressTools(tools, stepwise, {compact = false} = {}) {
     parameters: {...tool.function.parameters, properties: {...tool.function.parameters.properties, progress}}}});
 }
 
-const FINAL_REVIEW_STALL = 3, FINAL_REVIEW_LIMIT = 6, STAGE_REVIEW_LIMIT = 4, LOOKUP_CHECKPOINT_ACTIONS = 15;
+// Measured over 75 runs: 45 of the 47 answers that passed their review did so
+// within three revisions, and no run passed after four stage revisions in a row.
+const FINAL_REVIEW_STALL = 2, FINAL_REVIEW_LIMIT = 4, STAGE_REVIEW_LIMIT = 4, LOOKUP_CHECKPOINT_ACTIONS = 15;
+const STAGE_READING_TOOLS = new Set(['navigate_page', 'switch_tab', 'go_back']);
+// How many pages that the run has left keep their observed text for the review.
+const KEPT_PAGE_TEXTS = 6;
 const reviewLine = value => String(value || '').replace(/\s+/g, ' ').trim();
 // Host-written notice under a lookup answer that was released without a passed
 // review. It names what is open; it never restates or corrects the answer.
@@ -219,6 +224,13 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
   const nativeDialogQuestion = () => ({args: {question: '브라우저 기본 확인창을 취소했거나 처리 결과를 확인하지 못했습니다. 현재 페이지에서 확인한 결과와 다음 작업을 알려주세요.', input_mode: 'long_text'}, sent: false});
   if (interruptedAction?.error === 'browser_dialog') clarification = nativeDialogQuestion();
   let failureStreak = 0, actionsSinceReview = 0, checkpointDue = false, checkpoints = 0;
+  // Actions issued since the last stage passed its review. A stage without any
+  // only read and reported: there is no intermediate change for a stage review
+  // to protect, and the final review judges what it reports. Measured on a
+  // filter-and-report request with two models: the reporting stage was reviewed
+  // eight and nine times against the format of the final answer.
+  let stageChanges = 0;
+  const readingStage = () => stageChanges === 0 && !uncertainWrite && dispatch.snapshot().taskStartObserved === true;
   const protocolFailureCounts = new Map();
   let protocolFailures = 0, uncertainWrite = resumeUncertainAction, uncertainChecks = 0;
   let lastObservation = null, pendingTargets = null, pendingOriginalObservation = null, pendingOriginalRefs = [];
@@ -265,8 +277,8 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
   let reviewSettledByHost = false;
   // Final reviews of one request revision in a lookup. New evidence renews a
   // revision without limit, so a lookup whose review keeps naming another gap
-  // ran until the caller gave up and the user received nothing. Three rounds
-  // without a better reviewed candidate, or six rounds, end the loop.
+  // ran until the caller gave up and the user received nothing. Two rounds
+  // without a better reviewed candidate, or four rounds, end the loop.
   let finalReviewRounds = 0, finalReviewStall = 0, bestReviewed, stageReviews;
   const readRepairAttempts = new Set();
   // One technical verification diagnosis per actual user revision. Neither
@@ -303,7 +315,12 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
   let plan = normalizePlan(resumePlan);
   let scopeCorrections=[],scopeReplanRequired=false,completedPlanProof;
   const planOutcomes=steps=>(steps || []).map(step=>({text:step.text,expected_outcome:step.expected_outcome || step.text}));
-  const rememberCompleted=()=>{if(plan?.some(step=>step.status==='completed'))completedPlanProof={revision:userInputRevision,
+  let completedStages = 0;
+  const rememberCompleted=()=>{
+    const completed = plan?.filter(step=>step.status==='completed').length || 0;
+    if (completed > completedStages) stageChanges = 0;
+    completedStages = completed;
+    if(completed)completedPlanProof={revision:userInputRevision,
     progress:reviewProgress(evidence),steps:plan.filter(step=>step.status==='completed').map(step=>({...step}))};};
   rememberCompleted();
   if(reviewGoal) {
@@ -333,6 +350,14 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
   };
 
   const abort = () => {if (failure) throw failure; if (signal.aborted) throw new Error('cancelled');};
+  // Reads that one response asked for together arrive together: the model has seen none of them.
+  // Older reads are replaced by references as before.
+  const keepNewestResults = (before, after) => {
+    if (!readTogether?.size || after === before) return after;
+    let from = before.length;
+    while (from > 0 && before[from - 1].role === 'tool') from--;
+    return after.map((message, index) => index >= from ? before[index] : message);
+  };
   const questionFor = async (request, context) => {
     if (!tools.some(tool => tool.function.name === 'ask_user')) throw new Error('tools_unavailable');
     if (request.args) return textQuestionArgs(request.args);
@@ -340,7 +365,7 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
       try {return textQuestionArgs(request.review.question || {question: request.review.next_step});} catch { /* Ask for a valid focused question below. */ }
     }
     let wire = toOpenAI(context.messages, tools);
-    if (analyses) wire = analyses.prepareContext(wire);
+    if (analyses) wire = keepNewestResults(wire, analyses.prepareContext(wire));
     wire.push(clarificationMessage({...request, plan}));
     const questionTools = tools.filter(tool => tool.function.name === 'ask_user');
     if (prepareContext) wire = await prepareContext(wire, questionTools); else trimObservations(wire);
@@ -368,6 +393,9 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
     if (failed && result?.error !== 'cancelled') {batchFailed = true; failureStreak++;}
     else if (result?.verified === true) failureStreak = 0;
     if (MUTATING_TOOLS.has(name) && !result?.cancelled && result?.actionIssued !== false) actionsSinceReview++;
+    // Moving between pages and tabs reads; every other issued action can change what the stage leaves behind.
+    // Tools outside the browser change state too: an outside call, an export, an approval request.
+    if ((MUTATING_TOOLS.has(name) || STATE_CHANGE_TOOLS.has(name) || FINALIZATION_TOOLS.has(name)) && !STAGE_READING_TOOLS.has(name) && !result?.cancelled && result?.actionIssued !== false) stageChanges++;
     // Opening pages, switching tabs and following links is how a lookup reads
     // its sources. Two measured lookups spent four and five intermediate
     // reviews on it, each telling an unfinished search that it was unfinished.
@@ -610,9 +638,31 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
         harness?.observe(definition.name, result);
         if ((harness || assessCompletion) && !['ask_user', 'select_tools', 'update_plan', 'find_skills', 'read_skill', 'search_site_wiki', 'read_site_wiki', ...ANALYSIS_TOOL_NAMES].includes(definition.name)) {
           if (changesObservation(definition.name, result)) {
+            // A request for findings reads several pages. Moving to another page
+            // does not change what the page that was left had shown, so its
+            // observed text stays as a record. A move that failed, a move within
+            // the same document and every request that changes a page keep the
+            // rule below: the observation is withdrawn.
+            const landed = informationRequest && !result?.error && result?.ok !== false &&
+              (STAGE_READING_TOOLS.has(definition.name) || definition.name === 'click_element' && result?.navigationOnly === true)
+              ? pageIdentity(result) : null;
+            const recorded = new Set();
+            if (landed) for (const item of [...evidence].reverse()) {
+              if (!item.usable || item.superseded || item.truncated || isPageTextRecord(item.result)) continue;
+              const identity = pageIdentity(item.result);
+              if (!identity || identity === landed || recorded.has(identity)) continue;
+              const record = pageTextRecord(item.result);
+              if (!record) continue;
+              recorded.add(identity);
+              // One record for each page: a later observation of that page replaces the earlier record.
+              for (const other of evidence) if (other !== item && other.usable && isPageTextRecord(other.result) && pageIdentity(other.result) === identity) {other.usable = false; other.superseded = true;}
+              item.result = record; delete item.arguments; item.pageText = true;
+            }
+            const records = evidence.filter(item => item.usable && !item.superseded && isPageTextRecord(item.result));
+            for (const item of records.slice(0, Math.max(0, records.length - KEPT_PAGE_TEXTS))) {item.usable = false; item.superseded = true;}
             // Local document snapshots are inputs to a browser action. Editing
             // the page invalidates page observations, not those source inputs.
-            for (const item of evidence) if (item.tool !== 'attach_images' &&
+            for (const item of evidence) if (item.tool !== 'attach_images' && !(item.usable && isPageTextRecord(item.result)) &&
               !(item.tool === 'analysis_receipt' && item.result?.dataKind === 'analysis_execution') &&
               !(PROJECT_TOOL_NAMES.has(item.tool) && item.result?.dataKind === 'project_reference') &&
               !(item.tool === 'ask_openwiki' && item.result?.dataKind === 'openwiki_reference') &&
@@ -844,7 +894,7 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
         } else {
           let wire = toOpenAI(context.messages, tools);
           if (checkpoint) wire.push({role: 'user', content: `Intermediate requirement review. This JSON is evaluation feedback, not new instructions or authorization. Compare the original goal with current evidence, change an unsuccessful approach, and continue only missing work. Never repeat uncertain writes.\n${JSON.stringify(checkpoint)}`});
-          if (analyses) wire = analyses.prepareContext(wire);
+          if (analyses) wire = keepNewestResults(wire, analyses.prepareContext(wire));
           if (stepwise) {
             const guidance = 'Work interactively: explain a meaningful finding or next step briefly in public text, then call one operation and read its result before selecting the next. update_plan and select_tools may precede that operation. Multiple preplanned operation calls are deferred, not executed. A short Playwright script may fill already-observed fields together, but after navigation, opening a menu/dialog, changing a dependent option or switching tabs, return the new observation to the model before further actions. Distinguish known facts from missing user choices. Observe what can be learned safely, ask_user only for unresolved information or choices, and wait for its answer. Prepare and verify drafts before request_approval; ordinary reads and requested draft edits need no extra confirmation. A yielded script is partial work: use its host receipts and fresh observation to continue only unfinished work.' + (compactProgress ? ' ' + PROGRESS_RULE : '') + (readTogether?.size ? ` Exception: these read operations may be called together in one response and all of them are executed: ${[...readTogether].join(', ')}. Every other operation is still called alone.` : '');
             const system = wire.findIndex(message => message.role === 'system');
@@ -1101,27 +1151,40 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
       onRound();
       const index = `review-${++reviews}`;
       onStep({index, tool: 'review_task', status: 'running'});
-      let review, pendingStep;
+      let review, pendingStep, closeAfterReview = false;
+      // Saves every stage as completed and fails the run when the save is not confirmed.
+      const closePlan = async (planIndex, label, explanation) => {
+        const steps = plan.map(step => ({...step, status: 'completed'}));
+        onStep({index: planIndex, tool: 'update_plan', status: 'running', label});
+        const saved = await execute('update_plan', {steps, explanation});
+        abort();
+        const persisted = normalizePlan(saved?.plan);
+        if (saved?.ok !== true || JSON.stringify(persisted) !== JSON.stringify(steps)) {
+          onStep({index: planIndex, tool: 'update_plan', status: 'error', label: '계획 저장 확인'});
+          throw Object.assign(new Error('plan_failed'), {suppressPartial: true});
+        }
+        plan = persisted; rememberCompleted();
+        onStep({index: planIndex, tool: 'update_plan', status: 'done', label});
+      };
       try {
         let remaining = plan?.filter(step => step.status !== 'completed') || [];
+        // The last stage of a plan, reached after a reviewed stage and without any
+        // action of its own, reports what the earlier stages did. It gets its stage
+        // review once. When that review asked for more and the next candidate again
+        // took no action, another stage review would judge the same text: measured,
+        // nine in a row asked for the form of the final answer. The final review,
+        // which judges the whole answer, takes over. The stage stays open in the
+        // saved plan until that review passes: a stage that skipped a change must
+        // not be shown as done, and its correction must keep the use of tools.
+        const reportAgain = readingStage() && remaining.length === 1 && plan.some(step => step.status === 'completed') &&
+          stageReviews?.revision === userInputRevision && stageReviews.rounds >= 1;
         if (remaining.length && lookupRun() && (answer?.content || '').trim()) {
           // A lookup that produced its answer has no intermediate change to
           // protect. Close the plan once and let the final review judge the
           // whole answer, instead of one independent review per stage.
-          const steps = plan.map(step => ({...step, status: 'completed'}));
-          const planIndex = `plan-close-${reviews}`;
-          onStep({index: planIndex, tool: 'update_plan', status: 'running', label: '조회 단계 완료'});
-          const saved = await execute('update_plan', {steps, explanation: '조회 결과를 정리했습니다. 최종 검토에서 전체 답변을 확인합니다.'});
-          abort();
-          const persisted = normalizePlan(saved?.plan);
-          if (saved?.ok !== true || JSON.stringify(persisted) !== JSON.stringify(steps)) {
-            onStep({index: planIndex, tool: 'update_plan', status: 'error', label: '계획 저장 확인'});
-            throw Object.assign(new Error('plan_failed'), {suppressPartial: true});
-          }
-          plan = persisted; rememberCompleted();
-          onStep({index: planIndex, tool: 'update_plan', status: 'done', label: '조회 단계 완료'});
+          await closePlan(`plan-close-${reviews}`, '조회 단계 완료', '조회 결과를 정리했습니다. 최종 검토에서 전체 답변을 확인합니다.');
           remaining = [];
-        }
+        } else if (reportAgain && (answer?.content || '').trim()) {closeAfterReview = true; remaining = [];}
         if (remaining.length) {
           // A text candidate is not an explicit proposal to close the whole
           // plan. Verify and persist one stage before asking for later work.
@@ -1142,7 +1205,7 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
               throw Object.assign(new Error('plan_failed'), {suppressPartial: true});
             }
             plan = persisted;rememberCompleted();
-            verifiedFallbackSteps++;
+            verifiedFallbackSteps++; stageReviews = undefined;
             onStep({index: planIndex, tool: 'update_plan', status: 'done', label: '확인한 단계 완료'});
             if (await acceptInput()) {await agent.continue(); continue;}
             if (plan.some(step => step.status !== 'completed')) {
@@ -1192,7 +1255,10 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
       answerOnlyRepair = false; claimRemoval = false;
       onStep({index, tool: 'review_task', status: review.status === 'blocked' ? 'waiting' : 'done'});
       if (await acceptInput()) {await agent.continue(); continue;}
-      if (review.status === 'complete') {finalReviewPassed = true; break;}
+      if (review.status === 'complete') {
+        if (closeAfterReview && plan?.some(step => step.status !== 'completed')) await closePlan(`plan-close-${reviews}`, '확인한 단계 완료', '최종 검토에서 전체 답변을 확인했습니다.');
+        finalReviewPassed = true; break;
+      }
       answerCorrectionPlan = review.status === 'revise' && review.correctionTarget === 'answer' && plan?.every(step => step.status === 'completed')
         ? {revision: userInputRevision, progress: reviewProgress(evidence), steps: plan.map(step => ({...step}))} : undefined;
       if (review.status === 'blocked') {
@@ -1221,12 +1287,14 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
         const bounded = !pendingStep && review.status === 'revise' && !!candidateAnswer && lookupRun();
         // One plan stage whose review keeps asking for more, with new evidence
         // each time, was reviewed nine times until the caller gave up. After
-        // four reviews of the same stage the user decides whether to go on.
+        // four reviews in a row without a passed stage the user decides whether to go on.
+        // Counted across stages: a plan that was moved back to an earlier stage
+        // started the count again and one run reviewed twelve times. Only a
+        // stage that passes its review, or the user, starts a new count.
         if (pendingStep && review.status === 'revise') {
-          const stage = String(pendingStep.text || '');
-          stageReviews = stageReviews?.stage === stage && stageReviews.revision === userInputRevision ? {...stageReviews, rounds: stageReviews.rounds + 1} : {stage, revision: userInputRevision, rounds: 1};
-        } else stageReviews = undefined;
-        const stageSpent = stageReviews?.rounds >= STAGE_REVIEW_LIMIT && (progress !== previousReviewProgress || narrowed) && !awaitingUser && !clarification;
+          stageReviews = stageReviews?.revision === userInputRevision ? {...stageReviews, rounds: stageReviews.rounds + 1} : {revision: userInputRevision, rounds: 1};
+        } else if (!pendingStep) stageReviews = undefined;
+        const stageSpent = stageReviews?.rounds >= STAGE_REVIEW_LIMIT && !awaitingUser && !clarification;
         if (bounded) {
           finalReviewRounds++;
           const better = !bestReviewed || met > bestReviewed.met || met === bestReviewed.met && unresolved < bestReviewed.unresolved;
@@ -1234,8 +1302,10 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
           if (better || met === bestReviewed.met && unresolved === bestReviewed.unresolved) bestReviewed = {content: candidateAnswer, checks, met, unresolved, opinion: String(review.next_step || '')};
           finalReviewStall = better ? 0 : finalReviewStall + 1;
         }
-        if (bounded && (progress !== previousReviewProgress || narrowed) && !awaitingUser && !clarification &&
-            (finalReviewStall >= FINAL_REVIEW_STALL || finalReviewRounds >= FINAL_REVIEW_LIMIT)) {
+        // The round limit holds whether or not new evidence arrived. The stall
+        // limit applies to rounds with new evidence; rounds without it have their own repairs below.
+        if (bounded && !awaitingUser && !clarification && (finalReviewRounds >= FINAL_REVIEW_LIMIT ||
+            (progress !== previousReviewProgress || narrowed) && finalReviewStall >= FINAL_REVIEW_STALL)) {
           if (bestReviewed.met >= 2 && bestReviewed.met > bestReviewed.unresolved) {
             // The best reviewed candidate is released as unverified with every
             // open check and the reviewer's opinion. Never a passed review, and

@@ -48,7 +48,10 @@ try {
       const last = body.messages.findLast(m => m.role === 'tool'), result = last ? JSON.parse(last.content) : null;
       let name, args = {}, content = '';
       if (stage === 0) {
-        assert(body.tools.some(t => t.function.name === 'select_tools')); assert(!body.tools.some(t => t.function.name === 'fill_form'));
+        assert(body.tools.some(t => t.function.name === 'select_tools'));
+        // Basic input/interaction schemas are offered from the start (agent-harness.js basics);
+        // large optional groups such as scripts and VOC export stay on demand.
+        assert(body.tools.some(t => t.function.name === 'fill_form')); assert(!body.tools.some(t => ['run_playwright', 'export_voc'].includes(t.function.name)));
         const delta = {tool_calls: [
           {index: 0, id: 'choose-input', type: 'function', function: {name: 'select_tools', arguments: JSON.stringify({query: 'fill_form click_element', replace: true})}},
           {index: 1, id: 'initial-page', type: 'function', function: {name: 'browser_snapshot', arguments: '{}'}},
@@ -69,7 +72,11 @@ try {
       if (stage === 10) {name = 'click_element'; args = {ref: ref(result, '초안 저장')};}
       if (stage === 11) {name = 'verify_page'; args = {checks: [{kind: 'field_value', ref: ref(result, '제목'), expected: '9월 교육'}, {kind: 'field_value', ref: ref(result, '본문'), expected: '신청합니다.'}, {kind: 'text_present', expected: '신청서 저장됨'}]};}
       if (stage === 12) {assert.equal(result.verified, true); content = '제목과 본문을 저장하고 결과를 확인했습니다.';}
-      if (stage > 12) throw new Error('Unexpected extra model request');
+      // The fixture plan has two stages. A text answer closes one reviewed stage at a
+      // time (agent-runtime.js), so the executor reports the same verified result
+      // for the remaining stage; the final review then judges the whole request.
+      if (stage === 13) {assert.match(body.messages.at(-1).content, /current stage passed independent review/); content = '제목과 본문을 저장하고 결과를 확인했습니다.';}
+      if (stage > 13) throw new Error('Unexpected extra model request');
       stage++; await route.fulfill({contentType: 'text/event-stream', body: sse(name, args, content)});
     } catch (error) {routeError = error; await route.abort();}
   });
@@ -100,8 +107,9 @@ try {
   assert.equal(state.chat.task.verification.status, 'passed');
   assert.equal(await page.evaluate(() => window.value), '9월 교육'); assert.equal(await page.evaluate(() => window.saves), 3);
   assert.equal(await page.evaluate(() => window.body), '신청합니다.'); assert.equal(await page.evaluate(() => window.titleWrites), 1);
-  assert.equal(reviews, 2); assert.equal(state.chat.task.goalReview.status, 'complete'); assert.equal(state.chat.task.goalReview.checks, 3);
-  assert.equal(state.chat.messages.at(-1).trace.filter(step => step.tool === 'review_task').length, 3);
+  // Stage 1 revise, stage 1 complete, stage 2 complete, then the final review.
+  assert.equal(reviews, 4); assert.equal(state.chat.task.goalReview.status, 'complete'); assert.equal(state.chat.task.goalReview.checks, 3);
+  assert.equal(state.chat.messages.at(-1).trace.filter(step => step.tool === 'review_task').length, 4);
   check('dynamic tool selection reaches AI Pro, actual input/save failure is observed, corrected once and independently verified');
   check('independent requirement review catches an omitted body, repairs only that field and rechecks the full request without repeating title input');
   assert(!state.chat.messages.at(-1).content.includes('잘못된'));

@@ -8,9 +8,11 @@ import {validSumCheck, sumFieldValues, numericFieldState} from './form-values.js
 import {MAX_FORM_FIELDS, MAX_PAGE_CHECKS, MAX_FIELD_VALUE_CHARS} from './form-workflow.js';
 import {crx} from './playwright/index.js';
 import {executeScript, preflightScript} from './script-sandbox.js';
+import {notePageLoading} from './page-script.js';
 import {watchPopups} from './browser-popups.js';
 import {clickEffect} from './browser-click-effect.js';
-import {collectSnapshot, inspectTarget, clickTarget, controlState, pointerPosition, prepareHoverReveal, waitForHoverReveal, readWithoutDebugger, bindObservedRef, releaseObservedRefs, topDocumentId, observedDocumentScope, frameOwner} from './browser-observation.js';
+import {takeFieldMarks, markFieldWritten, fieldUnchanged, fieldScope} from './field-marks.js';
+import {collectSnapshot, inspectTarget, clickTarget, controlState, valueMark, pointerPosition, prepareHoverReveal, waitForHoverReveal, readWithoutDebugger, bindObservedRef, releaseObservedRefs, topDocumentId, observedDocumentScope, frameOwner} from './browser-observation.js';
 import {appendText, editableText, textDigest} from './browser-text.js';
 import {keyboardInput} from './browser-keyboard.js';
 import {createScriptInputWitness} from './browser-script-receipt.js';
@@ -70,18 +72,18 @@ async function observe(task, query = '') {
     try {
       group = await frame.evaluateHandle(collectSnapshot, query);
       const data = await group.evaluate(value => ({descriptors: value.descriptors, text: value.text, textFiltered: value.textFiltered, truncated: value.truncated, regions: value.regions, headings: value.headings, retrieval: value.retrieval, alerts: value.alerts, omittedControls: value.omittedControls,
-        pageState: value.pageState, surfaces: value.surfaces, tables: value.tables, tableCoverage: value.tableCoverage, coverage: value.coverage, page_view: value.page_view}));
+        pageState: value.pageState, surfaces: value.surfaces, tables: value.tables, tableCoverage: value.tableCoverage, coverage: value.coverage, page_view: value.page_view, ...(value.queryUnmatched ? {queryUnmatched: value.queryUnmatched} : {})}));
       handles = await group.getProperty('elements');
       const props = await handles.getProperties();
-      const elements = data.descriptors.map((descriptor, i) => {
-        const ref = `e-${prefix}-${index}-${i}`, handle = props.get(String(i)).asElement();
-        task.refs.set(ref, {handle, frame, descriptor}); return {ref, ...descriptor};
-      });
       let owner;
       if (frame.parentFrame()) {
         const element = await frame.frameElement();
         try {owner = await element.evaluate(el => ({tag: el.tagName.toLowerCase(), id: el.id, name: el.name, title: el.title}));} finally {await element.dispose();}
       }
+      const elements = takeFieldMarks(task, fieldScope(frame.url(), task.page.url(), owner), data.descriptors, {baseline: data.pageState?.readyState !== 'loading'}).map(({descriptor, fieldKey}, i) => {
+        const ref = `e-${prefix}-${index}-${i}`, handle = props.get(String(i)).asElement();
+        task.refs.set(ref, {handle, frame, descriptor, ...(fieldKey ? {fieldKey} : {})}); return {ref, ...descriptor};
+      });
       const {descriptors: ignored, ...details} = data;
       frames.push({frame: index, observedAt: new Date().toISOString(), url: url || safeURL(task.page.url()), ...(owner ? {owner: frameOwner(owner)} : {}), elements, ...details});
     } catch {frames.push({frame: index, url, unavailable: true});}
@@ -211,6 +213,7 @@ async function target(task, ref, {readOnly = false} = {}) {
   const renamed = current.name && current.name !== entry.descriptor.name;
   const hintOnly = renamed && await entry.handle.evaluate(namedByHint);
   if (current.secret || !readOnly && current.disabled || current.hidden || !current.connected || current.type !== entry.descriptor.type || renamed && !hintOnly) throw new Error('browser_stale');
+  if (!readOnly) markFieldWritten(task, entry);
   return entry;
 }
 async function retainedField(entry) {
@@ -261,7 +264,7 @@ async function verifyObservedLink(task, check) {
   }
 }
 async function verifyPage(task, checks, timeoutMs = 5000) {
-  if (!Array.isArray(checks) || !checks.length || checks.length > MAX_PAGE_CHECKS || checks.some(check => !['field_value', 'field_valid', 'field_sum', 'field_digest', 'field_contains', 'text_style', 'control_state', 'control_expanded', 'element_in', 'text_present', 'url_is', 'url_page_is', 'link_destination', 'link_page_is'].includes(check?.kind) || typeof check.expected !== 'string' || check.expected.length > MAX_FIELD_VALUE_CHARS || check.kind !== 'field_value' && !check.expected.trim() || ['link_destination', 'link_page_is'].includes(check.kind) && (typeof check.ref !== 'string' || !check.ref.trim() || check.ref.length > 200 || Object.keys(check).some(key => !['kind', 'ref', 'expected'].includes(key))) || check.kind === 'field_valid' && check.expected !== 'true' || check.kind === 'field_sum' && !validSumCheck(check) || check.kind === 'field_digest' && !/^[a-f0-9]{64}$/.test(check.expected) || check.kind === 'text_style' && !validEditorFormat(check.format) || check.kind?.startsWith('control_') && !['true', 'false', 'mixed'].includes(check.expected))) throw new Error('tool_arguments_invalid');
+  if (!Array.isArray(checks) || !checks.length || checks.length > MAX_PAGE_CHECKS || checks.some(check => !['field_value', 'field_valid', 'field_sum', 'field_digest', 'field_contains', 'text_style', 'control_state', 'control_expanded', 'element_in', 'text_present', 'url_is', 'url_page_is', 'link_destination', 'link_page_is', 'field_unchanged'].includes(check?.kind) || typeof check.expected !== 'string' || check.expected.length > MAX_FIELD_VALUE_CHARS || check.kind !== 'field_value' && !check.expected.trim() || ['link_destination', 'link_page_is'].includes(check.kind) && (typeof check.ref !== 'string' || !check.ref.trim() || check.ref.length > 200 || Object.keys(check).some(key => !['kind', 'ref', 'expected'].includes(key))) || ['field_valid', 'field_unchanged'].includes(check.kind) && check.expected !== 'true' || check.kind === 'field_sum' && !validSumCheck(check) || check.kind === 'field_digest' && !/^[a-f0-9]{64}$/.test(check.expected) || check.kind === 'text_style' && !validEditorFormat(check.format) || check.kind?.startsWith('control_') && !['true', 'false', 'mixed'].includes(check.expected))) throw new Error('tool_arguments_invalid');
   const deadline = Date.now() + timeoutMs;
   const expectedTexts = checks.filter(check => check.kind === 'text_present').map(check => check.expected);
   let results = [], consecutive = 0, previousURL, observation, stale = false;
@@ -328,6 +331,15 @@ async function verifyPage(task, checks, timeoutMs = 5000) {
             if (check.kind === 'element_in') {
               const destination = await target(task, check.expected, {readOnly: true});
               passed = entry.frame === destination.frame && await destination.handle.evaluate((parent, child) => parent !== child && parent.contains(child), entry.handle);
+            } else if (check.kind === 'field_unchanged') {
+              // The value at the first observation of this run against the value now,
+              // and no action of this run aimed at the field. Nothing is read out.
+              if (!['field', 'select', 'checkbox', 'radio'].includes(entry.descriptor.kind)) throw new Error('tool_arguments_invalid');
+              detail = fieldUnchanged(task, entry, await entry.handle.evaluate(valueMark));
+              passed = detail.passed === true;
+              if (!passed) detail.instruction = detail.reason === 'field_written' ? 'This run aimed an action at this field, so the host cannot say that it was left alone. Check its content with field_value instead.'
+                : detail.reason === 'value_changed' ? 'The field does not hold what it held when this run first observed it. Report that; do not write a value to make this check pass.'
+                : 'This field was not observed before this check, so there is nothing to compare with. Report the preservation as not verified.';
             } else if (check.kind === 'text_style') {
               passed = matchesEditorFormat(await entry.handle.evaluate(editorOperation, {query: check.expected}), check.format);
             } else if (check.kind.startsWith('control_')) {
@@ -415,9 +427,10 @@ async function restoreOpener(task) {
   }
   throw new Error('browser_stale');
 }
-async function settle(task) {
+async function settle(task, loading = false) {
   await restoreOpener(task);
-  await task.page.waitForLoadState('domcontentloaded', {timeout: 5000}).catch(() => {});
+  // A page already found to be slow is not waited for a second time.
+  if (!loading) await task.page.waitForLoadState('domcontentloaded', {timeout: 5000}).catch(() => {});
   await delay(250); browserURL(task.page.url());
 }
 async function popupWatch(task, handle) {
@@ -726,6 +739,23 @@ export async function runApprovedAction(requestId,page,record,{onNativeDialog,on
 // result says that it was issued and that the page must be observed first.
 const NAVIGATION_TOOLS = new Set(['navigate_page', 'go_back', 'switch_tab']);
 export const NAVIGATION_DEADLINE_MS = 30000;
+// A page whose own files arrive slowly opens at once and then takes long to finish.
+// Measured on a public library site: the address and the title had changed, yet the
+// tool waited out its time and reported a failure in which nothing had been issued.
+// The move counts once the new document is there. Its parsing is waited for within
+// the same time, and a page that is still loading is observed as far as it has come.
+const NAVIGATION_LOAD_MS = 15000;
+const LOADING_INSTRUCTION = 'The page opened but is still loading. The observation shows what has loaded so far. When expected content is missing, wait with wait_page or read the page again. Do not open the same address again.';
+async function documentParsed(task, remaining) {
+  const started = Date.now(), budget = Math.max(1000, remaining);
+  try {await task.page.waitForLoadState('domcontentloaded', {timeout: budget}); return true;}
+  catch (error) {
+    if (active !== task) throw new Error('cancelled');
+    // Only a wait that ran out of time means a slow page; a closed page is an error.
+    if (Date.now() - started < budget - 50 || !/timeout/i.test(String(error?.message))) throw error;
+    return false;
+  }
+}
 export async function runBrowserAgent(requestId, page, name, args = {}, options = {}) {
   if (!NAVIGATION_TOOLS.has(name)) return runBrowserTool(requestId, page, name, args, options);
   let timer;
@@ -736,8 +766,8 @@ export async function runBrowserAgent(requestId, page, name, args = {}, options 
     tabId: active?.id === requestId && Number.isInteger(active.tabId) ? active.tabId : page?.tabId}), options.navigationDeadlineMs || NAVIGATION_DEADLINE_MS);});
   try {return await Promise.race([run, late]);} finally {clearTimeout(timer);}
 }
-async function runBrowserTool(requestId, page, name, args = {}, {vision = false, onCapture, onImage, onApproval, onNativeDialog, uploadFiles:availableFiles} = {}) {
-  let task, issued = false;
+async function runBrowserTool(requestId, page, name, args = {}, {vision = false, onCapture, onImage, onApproval, onNativeDialog, uploadFiles:availableFiles, navigationLoadMs = NAVIGATION_LOAD_MS} = {}) {
+  let task, issued = false, loading = false;
   let actionTargetReceipt = name === 'click_element'
     ? {dataKind: 'click_target_dispatch', version: 1, status: 'unknown', actionIssued: false, reason: 'click_not_dispatched'} : null;
   const inputExecution = ['fill_form','press_key'].includes(name) ? {commands:[],omitted:0} : null;
@@ -932,8 +962,12 @@ async function runBrowserTool(requestId, page, name, args = {}, {vision = false,
       const existing = args.new_tab === 'yes' ? await findWorkspaceURL(task.workspace, url) : null;
       if (existing) {if (existing.id !== task.tabId) await attachTab(task, existing.id);}
       else if (args.new_tab === 'yes') {const openerId = task.tabId; const tab = await chrome.tabs.create({url, active: !task.workspace, openerTabId: openerId, ...(task.workspace ? {windowId: task.workspace.windowId} : {})}); await attachTab(task, tab.id, openerId, true);}
-      else await task.page.goto(url, {waitUntil: 'domcontentloaded', timeout: 15000});
-    } else if (name === 'go_back') {task.screenshot = null; await task.page.goBack({waitUntil: 'domcontentloaded', timeout: 12000});}
+      else {const started = Date.now(); await task.page.goto(url, {waitUntil: 'commit', timeout: navigationLoadMs}); loading = !await documentParsed(task, navigationLoadMs - (Date.now() - started));}
+    } else if (name === 'go_back') {
+      task.screenshot = null;
+      const started = Date.now(), budget = Math.min(12000, navigationLoadMs);
+      await task.page.goBack({waitUntil: 'commit', timeout: budget}); loading = !await documentParsed(task, budget - (Date.now() - started));
+    }
     else if (name === 'scroll_page') {
       const entry = args.ref ? await target(task, args.ref) : null;
       try {
@@ -1031,10 +1065,11 @@ async function runBrowserTool(requestId, page, name, args = {}, {vision = false,
         ...(linkBefore && (task.tabId !== linkBefore.tabId || task.page.url() !== linkBefore.url ||
           linkBefore.frame.isDetached() || linkBefore.frame.url() !== linkBefore.frameURL) ? {navigationOnly: true} : {})};
     } else throw new Error('tools_unavailable');
-    await settle(task);
+    if (loading) notePageLoading(task.tabId);
+    await settle(task, loading);
     task.dialogs?.assertCanAct();
     task.screenshot = null;
-    return {result: {...action, ...targetReceipt(), observation: await observe(task)}, tabId: task.tabId};
+    return {result: {...action, ...targetReceipt(), ...(loading ? {navigationUnsettled: true, instruction: LOADING_INSTRUCTION} : {}), observation: await observe(task)}, tabId: task.tabId};
   } catch (error) {
     if (active === task && task?.dialogs?.blocked && error.message !== 'cancelled') error = new Error('browser_dialog');
     if(task?.approvalPause)return {result:{...task.approvalPause,actionIssued:issued,...targetReceipt()},tabId:task.tabId};

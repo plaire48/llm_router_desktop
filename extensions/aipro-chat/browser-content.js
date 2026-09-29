@@ -1,4 +1,5 @@
 import {collectPageContent} from './generated/browser-content-dom.js';
+import {pageScript} from './page-script.js';
 import {MarkdownTextSplitter} from '@langchain/textsplitters';
 import {rankEvidence, evidenceExcerpt} from './evidence-search.js';
 import {readCurrentPdf, readCurrentPdfPage} from './browser-pdf.js';
@@ -73,12 +74,12 @@ export async function readPageContent(task, args, safeURL, cancelled) {
   if (!Number.isSafeInteger(offset) || offset < 0 || offset > 2000000 || !Number.isSafeInteger(frame) || frame < 0 || frame > 15 ||
       args.query !== undefined && (typeof args.query !== 'string' || args.query.length > 200) ||
       args.content_hash !== undefined && !/^[a-f0-9]{64}$/.test(args.content_hash)) return {error: 'tool_arguments_invalid'};
-  const frames = await chrome.scripting.executeScript({target: {tabId: task.tabId, allFrames: true}, world: 'ISOLATED', func: () => ({url: location.href,contentType:document.contentType})});
+  const frames = await pageScript({target: {tabId: task.tabId, allFrames: true}, world: 'ISOLATED', func: () => ({url: location.href,contentType:document.contentType})});
   const available = frames.sort((a, b) => a.frameId - b.frameId).slice(0, 16).filter(item => safeURL(item.result?.url) || ['about:blank', 'about:srcdoc'].includes(item.result?.url));
   const selected = available[frame];
   if (!selected || !safeURL(available[0]?.result?.url)) return {error: 'browser_stale'};
   if (cancelled()) throw new Error('cancelled');
-  const [result] = await chrome.scripting.executeScript({target: {tabId: task.tabId, documentIds: [selected.documentId]}, world: 'ISOLATED', func: collectPageContent});
+  const [result] = await pageScript({target: {tabId: task.tabId, documentIds: [selected.documentId]}, world: 'ISOLATED', func: collectPageContent});
   if (cancelled()) throw new Error('cancelled');
   if (!result?.result || result.result.url && result.result.url !== selected.result.url) return {error: 'browser_stale'};
   if(result.result.error==='page_content_pdf_unavailable'&&selected.frameId===0&&selected.result.contentType==='application/pdf') {
@@ -86,7 +87,7 @@ export async function readPageContent(task, args, safeURL, cancelled) {
     if(pdf.error)return pdf;
     const packet=await contentPacket({...pdf,url:safeURL(selected.result.url),frame},args);
     if(cancelled())throw Error('cancelled');
-    const [current]=await chrome.scripting.executeScript({target:{tabId:task.tabId,documentIds:[selected.documentId]},world:'ISOLATED',func:()=>({url:location.href})});
+    const [current]=await pageScript({target:{tabId:task.tabId,documentIds:[selected.documentId]},world:'ISOLATED',func:()=>({url:location.href})});
     if(current?.documentId!==selected.documentId||current.result?.url!==selected.result.url)return {error:'browser_stale'};
     return packet;
   }
@@ -95,7 +96,7 @@ export async function readPageContent(task, args, safeURL, cancelled) {
 
 export async function readPdfPageReference(task,args,safeURL,cancelled,vision) {
   if(!vision)return {error:'vision_unavailable',instruction:'PDF images need an available image-input model. Use observed text sources for unresolved exceptions or report the visual limitation.'};
-  const [selected]=await chrome.scripting.executeScript({target:{tabId:task.tabId,frameIds:[0]},world:'ISOLATED',func:()=>({url:location.href,contentType:document.contentType})});
+  const [selected]=await pageScript({target:{tabId:task.tabId,frameIds:[0]},world:'ISOLATED',func:()=>({url:location.href,contentType:document.contentType})});
   if(cancelled())throw Error('cancelled');
   if(!selected||!safeURL(selected.result?.url))return {error:'browser_stale'};
   return readCurrentPdfPage(task,selected,args,cancelled);

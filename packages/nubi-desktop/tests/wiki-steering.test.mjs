@@ -206,8 +206,9 @@ test('six cited texts reach the main agent in full when the model can take them'
 });
 
 test('only text that one request of the model cannot hold is shortened, and the answer says so',async t=>{
-  // 24,000 tokens of context: the fixed request and six texts of about 1,500 tokens each do not fit together.
-  const {answer}=await delegated(t,{pages:2,contextLength:24000});
+  // 20,000 tokens of context: the fixed request and six texts of about 1,500 tokens each do not fit together.
+  // A small window offers fewer tools since B8, so the window is smaller than the 24,000 it was.
+  const {answer}=await delegated(t,{pages:2,contextLength:20000});
   assert.equal(answer.evidence.length,6);
   const whole=answer.evidence.filter(item=>!item.excerptTruncated),cut=answer.evidence.filter(item=>item.excerptTruncated);
   assert.ok(whole.length>=1&&cut.length>=1,`whole ${whole.length}, shortened ${cut.length}`);

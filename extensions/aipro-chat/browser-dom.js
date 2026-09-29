@@ -141,6 +141,40 @@ function widgetRelations(el) {
     ...(['none', 'inline', 'list', 'both'].includes(el.getAttribute('aria-autocomplete')) ? {autocomplete: el.getAttribute('aria-autocomplete')} : {}),
     ...(activeInfo && !activeInfo.secret ? {activeDescendant: {id: clean(active.id), role: activeInfo.role, name: activeInfo.name, ...controlState(active)}} : {})};
 }
+// One-way mark of what a field holds now, so that the host can tell whether a
+// later observation of the same field holds the same. The value itself is
+// never read out of the page, and the mark never reaches the model.
+export function valueMark(el) {
+  const value = el.matches('input[type="checkbox"],input[type="radio"]') ? String(!!el.checked)
+    : el.tagName === 'SELECT' ? [...el.selectedOptions].map(option => option.value).join('\n')
+    : el.isContentEditable ? String(el.innerText ?? '') : String(el.value ?? '');
+  let low = 0xdeadbeef ^ value.length, high = 0x41c6ce57 ^ value.length;
+  for (let index = 0; index < value.length; index++) {
+    const code = value.charCodeAt(index);
+    low = Math.imul(low ^ code, 2654435761); high = Math.imul(high ^ code, 1597334677);
+  }
+  low = Math.imul(low ^ (low >>> 16), 2246822507) ^ Math.imul(high ^ (high >>> 13), 3266489909);
+  high = Math.imul(high ^ (high >>> 16), 2246822507) ^ Math.imul(low ^ (low >>> 13), 3266489909);
+  return `${Math.min(value.length, 9999999)}:${(high >>> 0).toString(16).padStart(8, '0')}${(low >>> 0).toString(16).padStart(8, '0')}`;
+}
+// Which field of its document this is, for the host only. An id that is unique in
+// the document, else the name with its position among fields of that name, else the
+// position among all fields. Hidden fields count too: a field that appears later must
+// not renumber the ones after it, and a filtered or shortened list must not either.
+const FIELD_ELEMENTS = 'input,textarea,select,[contenteditable]:not([contenteditable="false"])';
+export function fieldPlace(el, cache) {
+  const root = el.getRootNode();
+  if (!root?.querySelectorAll) return null;
+  let fields = cache?.get(root);
+  if (!fields) {fields = [...root.querySelectorAll(FIELD_ELEMENTS)]; cache?.set(root, fields);}
+  const id = el.id, name = el.getAttribute('name');
+  // A field inside a shadow root is told apart from a field of the same id outside it.
+  const host = root.host ? `${root.host.tagName.toLowerCase()}${root.host.id ? '#' + root.host.id : ''}>` : '';
+  if (id && fields.filter(item => item.id === id).length === 1) return `${host}id:${id}`.slice(0, 300);
+  if (name) return `${host}name:${name}#${fields.filter(item => item.getAttribute('name') === name).indexOf(el)}`.slice(0, 300);
+  const at = fields.indexOf(el);
+  return at < 0 ? null : `${host}at:${at}`;
+}
 export function controlState(el) {
   const result = {};
   const native = el.matches('input[type="checkbox"],input[type="radio"]');
@@ -239,7 +273,7 @@ export function collectSnapshot(input) {
   };
   if (regionRead) all.push(regionEntry);
   walk(regionRead ? regionEntry : document.body || document.documentElement);
-  const candidates = [], texts = [], regions = [], headings = [], alerts = [], focused = activeElement(), contextCache = new WeakMap();
+  const candidates = [], texts = [], regions = [], headings = [], alerts = [], focused = activeElement(), contextCache = new WeakMap(), fieldCache = new Map();
   for (const el of all) {
     if (isHidden(el) || el.closest('script,style,noscript,template,svg,canvas')) continue;
     const rich = el.isContentEditable && el.matches('[contenteditable="true"],[contenteditable="plaintext-only"]');
@@ -276,7 +310,8 @@ export function collectSnapshot(input) {
         ...(field || ['combobox', 'textbox', 'searchbox', 'spinbutton', 'listbox'].includes(role) ? {required: !!el.required || el.getAttribute('aria-required') === 'true', readonly: !!el.readOnly || el.getAttribute('aria-readonly') === 'true', invalid: el.getAttribute('aria-invalid') === 'true' || el.validity?.valid === false} : {}),
         ...(choices ? {options: choices} : {}),
         ...state,
-        ...(el.hasAttribute('aria-haspopup') ? {haspopup: el.getAttribute('aria-haspopup')} : {})};
+        ...(el.hasAttribute('aria-haspopup') ? {haspopup: el.getAttribute('aria-haspopup')} : {}),
+        ...(field ? {valueMark: valueMark(el), fieldPlace: fieldPlace(el, fieldCache)} : {})};
       candidates.push({el, descriptor, priority: context.some(c => ['dialog','alertdialog'].includes(c.role)) ? 0 : el === focused ? 1 : descriptor.inViewport ? 2 : 3});
     }
   }
@@ -408,7 +443,13 @@ export function collectSnapshot(input) {
   }
   const information = pageInformation(all, {query, hidden: isHidden, secret, domTruncated});
   const textPartial = textTruncated || text.length > 16000 || !!query && (textMatches.length > 8 || excerptOmitted || [...excerpts.keys()].some(i => texts[i].length > 1200));
+  // Measured: a query whose words the page does not use returned four controls and
+  // no text. The model took the page for empty and asked the user which page to use.
+  const pageText = texts.reduce((sum, part) => sum + part.trim().length, 0);
+  const unmatched = !!query && !regionRead && !returnedText.trim() && pageText > 0;
   const result = {descriptors: regionRead ? [] : descriptors, text: returnedText, textFiltered: !!query, regions, headings, alerts, ...information, page_view: paginationView(all),
+    ...(unmatched ? {queryUnmatched: {pageTextCharacters: pageText, controlsObserved: candidates.length,
+      instruction: 'No text of this page matched the query words. The page is not empty. Observe it again without a query, or with words that the page itself shows.'}} : {}),
     ...(expectedTexts.length ? {textChecks} : {}),
     coverage: {nodesInspected: all.length, nodeLimit, skippedSubtrees, domTruncated, textTruncated: textPartial, queryFiltered: !!query,
       controlsObserved: candidates.length, controlsReturned: regionRead ? 0 : descriptors.length, omittedControlDetails,

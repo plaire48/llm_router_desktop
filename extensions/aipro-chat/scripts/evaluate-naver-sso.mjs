@@ -358,7 +358,8 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     // through the product's own buttons. Measures the effect, not correctness.
     // NUBI_EVAL_KNOWLEDGE_PROBE names the task ids to probe; other tasks run once as usual.
     const probeIds = new Set((process.env.NUBI_EVAL_KNOWLEDGE_PROBE || '').split(',').map(id => id.trim()).filter(Boolean));
-    const probe = probeIds.size ? knowledgeProbe({ui, rpc, state, report, save}) : null;
+    const probe = probeIds.size ? knowledgeProbe({ui, rpc, state, report, save,
+      keepText: (name, text) => /^[A-Z]-[0-9]{2}-(?:wiki|skill)\.md$/.test(name) ? writeFile(resolve(evidenceDirectory, name), String(text).slice(0, 60000)) : null}) : null;
     // Ordinary tasks run first: a probe drives more of the UI and is more likely to stop the run.
     const schedule = taskSet.slice(startIndex, startIndex + limit).flatMap(item => (probeIds.has(item.id) ? ['baseline', 'wiki', 'skill-auto', 'skill-selected'] : [null]).map(phase => ({item, phase})))
       .sort((left, right) => (left.phase ? 1 : 0) - (right.phase ? 1 : 0));

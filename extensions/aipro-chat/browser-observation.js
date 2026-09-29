@@ -1,5 +1,7 @@
+import {takeFieldMarks, fieldScope} from './field-marks.js';
+import {pageScript} from './page-script.js';
 import {collectSnapshot} from './generated/browser-dom.js';
-export {collectSnapshot, inspectTarget, clickTarget, controlState, pointerPosition, prepareHoverReveal, waitForHoverReveal} from './generated/browser-dom.js';
+export {collectSnapshot, inspectTarget, clickTarget, controlState, valueMark, pointerPosition, prepareHoverReveal, waitForHoverReveal} from './generated/browser-dom.js';
 
 // Some pages put a whole configuration document into an iframe's name. The
 // attribute identifies the frame; its first characters are enough for that.
@@ -8,13 +10,13 @@ export const frameOwner = owner => owner ? Object.fromEntries(Object.entries(own
 
 export async function topDocumentId(tabId) {
   try {
-    const [record] = await chrome.scripting.executeScript({target: {tabId, frameIds: [0]}, world: 'ISOLATED', func: () => null});
+    const [record] = await pageScript({target: {tabId, frameIds: [0]}, world: 'ISOLATED', func: () => null});
     return typeof record?.documentId === 'string' && record.documentId ? record.documentId : null;
   } catch {return null;}
 }
 export async function observedDocumentScope(tabId) {
   try {
-    return await chrome.scripting.executeScript({target: {tabId, allFrames: true}, world: 'ISOLATED',
+    return await pageScript({target: {tabId, allFrames: true}, world: 'ISOLATED',
       func: () => ({url: location.href, owner: frameElement ? {tag: frameElement.tagName.toLowerCase(), id: frameElement.id, name: frameElement.getAttribute('name'), title: frameElement.getAttribute('title')} : null})});
   } catch {return [];}
 }
@@ -57,7 +59,7 @@ function referenceOperation({operation, nonce, ref, marker, relink}) {
   return {ok: true, ...(relinked ? {relinked} : {})};
 }
 async function referenceCall(entry, operation, marker, relink = false) {
-  const [result] = await chrome.scripting.executeScript({target: {tabId: entry.tabId, documentIds: [entry.documentId]}, world: 'ISOLATED', func: referenceOperation,
+  const [result] = await pageScript({target: {tabId: entry.tabId, documentIds: [entry.documentId]}, world: 'ISOLATED', func: referenceOperation,
     args: [{operation, nonce: entry.nonce, ref: entry.ref, marker, relink}]}).catch(() => {throw new Error('browser_stale');});
   if (!result?.result?.ok) throw new Error('browser_stale');
   return result.result;
@@ -83,7 +85,7 @@ export async function bindObservedRef(task, entry, safeURL, {relink = false} = {
       if (await locator.count() !== 1) continue;
       handle = await locator.elementHandle({timeout: 1000});
       await referenceCall(entry, 'check', marker);
-      const bound = {handle, frame, descriptor: entry.descriptor, contentRef: entry, ...(binding.relinked ? {relinked: true} : {})};
+      const bound = {handle, frame, descriptor: entry.descriptor, ...(entry.fieldKey ? {fieldKey: entry.fieldKey} : {}), contentRef: entry, ...(binding.relinked ? {relinked: true} : {})};
       task.refs.set(entry.ref, bound); return bound;
     }
     throw new Error('browser_stale');
@@ -92,7 +94,7 @@ export async function bindObservedRef(task, entry, safeURL, {relink = false} = {
 }
 
 export async function readWithoutDebugger(task, query, safeURL, cancelled, expectedTexts) {
-  const metadata = await chrome.scripting.executeScript({target: {tabId: task.tabId, allFrames: true}, world: 'ISOLATED',
+  const metadata = await pageScript({target: {tabId: task.tabId, allFrames: true}, world: 'ISOLATED',
     func: () => ({url: location.href, title: document.title, owner: frameElement ? {tag: frameElement.tagName.toLowerCase(), id: frameElement.id, name: frameElement.getAttribute('name'), title: frameElement.getAttribute('title')} : null})});
   const top = metadata.find(item => item.frameId === 0)?.result;
   const topId = metadata.find(item => item.frameId === 0)?.documentId;
@@ -104,20 +106,21 @@ export async function readWithoutDebugger(task, query, safeURL, cancelled, expec
     if (!url && !['about:blank', 'about:srcdoc'].includes(meta.result?.url)) continue;
     const frame = frames.length, nonce = crypto.randomUUID();
     try {
-      const [record] = await chrome.scripting.executeScript({target: {tabId: task.tabId, documentIds: [meta.documentId]}, world: 'ISOLATED', func: collectSnapshot,
+      const [record] = await pageScript({target: {tabId: task.tabId, documentIds: [meta.documentId]}, world: 'ISOLATED', func: collectSnapshot,
         args: [{query, nonce, expectedURL: meta.result.url, expectedTexts}]});
       if (cancelled()) {
         await referenceCall({tabId: task.tabId, documentId: meta.documentId, nonce}, 'clear').catch(() => {});
         throw new Error('cancelled');
       }
       if (!record?.result || record.result.error) throw new Error('browser_stale');
-      const {descriptors, text, textFiltered, textChecks, truncated, regions, headings, retrieval, alerts, omittedControls, pageState, surfaces, tables, tableCoverage, coverage, page_view} = record.result;
+      const {descriptors, text, textFiltered, textChecks, truncated, regions, headings, retrieval, alerts, omittedControls, pageState, surfaces, tables, tableCoverage, coverage, page_view, queryUnmatched} = record.result;
       task.observedDocuments ||= new Map();
       task.observedDocuments.set(meta.documentId, {tabId: task.tabId, documentId: meta.documentId, nonce});
-      for (const descriptor of descriptors) {
-        task.refs.set(descriptor.ref, {ref: descriptor.ref, descriptor, tabId: task.tabId, documentId: meta.documentId, nonce});
+      const taken = takeFieldMarks(task, fieldScope(meta.result.url, top.url, meta.result.owner), descriptors, {baseline: pageState?.readyState !== 'loading'}), visible = taken.map(item => item.descriptor);
+      for (const {descriptor, fieldKey} of taken) {
+        task.refs.set(descriptor.ref, {ref: descriptor.ref, descriptor, ...(fieldKey ? {fieldKey} : {}), tabId: task.tabId, documentId: meta.documentId, nonce});
       }
-      frames.push({frame, observedAt: new Date().toISOString(), url: url || safeURL(top.url), ...(meta.result.owner ? {owner: frameOwner(meta.result.owner)} : {}), ...(meta.documentId ? {documentId: meta.documentId} : {}), elements: descriptors, text, textFiltered, ...(textChecks ? {textChecks} : {}), truncated, regions, headings, ...(retrieval ? {retrieval} : {}), alerts, omittedControls, pageState, surfaces, tables, tableCoverage, coverage, ...(page_view ? {page_view} : {})});
+      frames.push({frame, observedAt: new Date().toISOString(), url: url || safeURL(top.url), ...(meta.result.owner ? {owner: frameOwner(meta.result.owner)} : {}), ...(meta.documentId ? {documentId: meta.documentId} : {}), elements: visible, text, textFiltered, ...(textChecks ? {textChecks} : {}), truncated, regions, headings, ...(retrieval ? {retrieval} : {}), alerts, omittedControls, pageState, surfaces, tables, tableCoverage, coverage, ...(page_view ? {page_view} : {}), ...(queryUnmatched ? {queryUnmatched} : {})});
     } catch (error) {if (cancelled()) throw new Error('cancelled'); frames.push({frame, url, unavailable: true});}
   }
   if (cancelled()) throw new Error('cancelled');

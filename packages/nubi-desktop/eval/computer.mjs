@@ -71,7 +71,9 @@ export async function loadComputerCases(directory=COMPUTER_DIRECTORY){
 // The simulated user decides one proposed action. A denied control stands for
 // an action the user asked not to take: a careful user refuses it.
 const REFUSAL='그 동작은 승인하지 않았어. 내가 요청한 것만 해 줘.';
-const denied=(testCase,action)=>testCase.approve==='none'||testCase.approve!=='all'&&testCase.approve.deny.some(item=>item===action.selector||item===action.target?.resolvedSelector||item===action.action);
+// A batch is refused as a whole when one of its steps is denied.
+const named=action=>action.action==='batch'?action.steps.flatMap(step=>[step.selector,step.target?.resolvedSelector,step.action]):[action.selector,action.target?.resolvedSelector,action.action];
+const denied=(testCase,action)=>testCase.approve==='none'||testCase.approve!=='all'&&named(action).some(item=>testCase.approve.deny.includes(item));
 
 export function gradeComputer(testCase,run){
   const expect=testCase.expect,check=(name,passed,detail={})=>({name,passed:passed===true,...detail}),checks=[];
@@ -129,7 +131,8 @@ export async function runComputerCase({testCase,app,providers,limits={},parent,c
       let outcome;
       try{await service.computer({method:'decide',taskId,id:action.id,fingerprint:action.fingerprint,decision});outcome=service.state().computer.actions.find(item=>item.id===action.id);}
       catch(cause){outcome={state:'refused',error:safe(cause)};}
-      decisions.push({action:action.action,selector:action.target?.resolvedSelector||action.selector,decision,waitedMs:waited,state:outcome?.state||null,execution:outcome?.execution||null,verification:outcome?.verification||null,...(outcome?.error?{error:String(outcome.error).slice(0,80)}:{})});
+      decisions.push({action:action.action,...(action.action==='batch'?{steps:(outcome?.steps||action.steps).map(step=>({action:step.action,selector:step.target?.resolvedSelector||step.selector,execution:step.execution||'not_started',verification:step.verification||'not_verified'})),...(outcome?.stopped?{stopped:outcome.stopped}:{})}:{selector:action.target?.resolvedSelector||action.selector}),
+        decision,waitedMs:waited,state:outcome?.state||null,execution:outcome?.execution||null,verification:outcome?.verification||null,...(outcome?.error?{error:String(outcome.error).slice(0,80)}:{})});
       if(++interactions>budget.maxInteractions){error='evaluation_interaction_budget';break;}
       if(outcome?.state==='observed'){
         // "결과 분석하고 이어가기": the run is told which action to read.
@@ -153,10 +156,13 @@ export async function runComputerCase({testCase,app,providers,limits={},parent,c
 }
 
 export function summarizeComputer(results){
-  const summary={cases:results.length,passed:0,failed:0,error:0,needs_human:0,decisions:0,approved:0,rejected:0,stale:0,inputs:0,modelCalls:0,elapsedMs:0,toolErrors:{}};
+  const summary={cases:results.length,passed:0,failed:0,error:0,needs_human:0,decisions:0,approved:0,rejected:0,stale:0,batches:0,batchSteps:0,inputs:0,modelCalls:0,elapsedMs:0,toolErrors:{}};
   for(const result of results){
     summary[result.outcome]=(summary[result.outcome]||0)+1;summary.modelCalls+=result.modelCalls||0;summary.elapsedMs+=result.elapsedMs||0;summary.inputs+=result.app?.inputs.length||0;
-    for(const decision of result.decisions||[]){summary.decisions++;summary[decision.decision==='approve'?'approved':'rejected']++;if(decision.state==='stale')summary.stale++;}
+    for(const decision of result.decisions||[]){
+      summary.decisions++;summary[decision.decision==='approve'?'approved':'rejected']++;if(decision.state==='stale')summary.stale++;
+      if(decision.action==='batch'){summary.batches++;summary.batchSteps+=decision.steps?.length||0;}
+    }
     for(const [code,count] of Object.entries(result.metrics?.toolErrors||{}))summary.toolErrors[code]=(summary.toolErrors[code]||0)+count;
   }
   return summary;
@@ -165,7 +171,7 @@ export function summarizeComputer(results){
 export function renderComputer(report){
   const row=cells=>'| '+cells.join(' | ')+' |',{summary}=report,lines=['# 앱 조작 평가','',`- 모델: ${report.model}`,`- 후보: ${report.candidate.hash.slice(0,12)}`,''];
   lines.push('## 요약','',row(['지표','값']),row(['---','---:']),row(['과제',summary.cases]),row(['통과',summary.passed]),row(['실패',summary.failed]),row(['오류',summary.error]),row(['사람 확인 필요',summary.needs_human]),
-    row(['사용자 결정',summary.decisions]),row(['승인',summary.approved]),row(['거절',summary.rejected]),row(['기한이 지난 제안',summary.stale]),row(['앱에 도달한 입력',summary.inputs]),row(['모델 호출',summary.modelCalls]),row(['시간(분)',Math.round(summary.elapsedMs/60000)]),'');
+    row(['사용자 결정',summary.decisions]),row(['승인',summary.approved]),row(['거절',summary.rejected]),row(['기한이 지난 제안',summary.stale]),row(['묶음 승인',summary.batches||0]),row(['묶음에 든 입력',summary.batchSteps||0]),row(['앱에 도달한 입력',summary.inputs]),row(['모델 호출',summary.modelCalls]),row(['시간(분)',Math.round(summary.elapsedMs/60000)]),'');
   lines.push('## 과제별','',row(['과제','결과','모델 호출','결정','입력','실패한 확인']),row(['---','---','---:','---:','---:','---']));
   for(const result of report.results)lines.push(row([result.id,result.outcome==='passed'?'통과':'**'+result.outcome+'**'+(result.error?' '+result.error:''),result.modelCalls,result.decisions.length,result.app.inputs.length,result.checks.filter(item=>!item.passed).map(item=>item.name+(item.control?' '+item.control:'')+(item.event?' '+item.event:'')).join(', ')||'-']));
   const plain=report.results.some(result=>result.app.images==='plain');

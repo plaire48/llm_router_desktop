@@ -25,7 +25,8 @@ function fixture({app=false,child=false,fault}={}){
   const context=vm.createContext({collectSnapshot:function collectSnapshot(){},observedDocumentScope:async()=>{
     scopeReads++;if(fault==='cancel_after_scope')cancelled=true;
     return [{frameId:0,documentId:fault==='top_changed'||fault==='after_changed'&&scopeReads>1?'replaced-top':'top-doc',result:{url:'https://example.test/page?private=SECRET'}},...(child?[{frameId:fault==='frame_moved'&&scopeReads>1?5:3,documentId:fault==='child_changed'?'new-child':documentId,result:{url:raw}}]:[])];},
-    chrome:{scripting:{executeScript:async operation=>{operations.push({transport:'isolated',target:operation.target,world:operation.world,args:operation.args});if(fault==='cancel_after_read')cancelled=true;return[{documentId:fault==='wrong_return_document'?'another-doc':documentId,result:fault==='node_stale'?{error:'region_stale'}:details}];}}},safeURL,task,isCancelled:()=>cancelled});
+    // The region is read through the bounded page script call; a loaded tab reaches chrome.scripting unchanged.
+    pageScript:async operation=>{operations.push({transport:'isolated',target:operation.target,world:operation.world,args:operation.args});if(fault==='cancel_after_read')cancelled=true;return[{documentId:fault==='wrong_return_document'?'another-doc':documentId,result:fault==='node_stale'?{error:'region_stale'}:details}];},safeURL,task,isCancelled:()=>cancelled});
   vm.runInContext(body+'\nglobalThis.read=args=>readObservedPageRegion(task,args,safeURL,isCancelled);',context);
   return{read:context.read,operations,details,task};
 }

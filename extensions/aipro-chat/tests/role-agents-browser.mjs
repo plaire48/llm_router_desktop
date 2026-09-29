@@ -97,7 +97,10 @@ try {
       assert.deepEqual(body.tools.map(tool => tool.function.name), ['read_analysis_evidence']);
       if (role === 'page') await pageGate;
       const output = body.messages.findLast(message => message.role === 'tool');
-      if (!output) return route.fulfill({json: reply(role === 'page' ? ['담당 팀', '장소'].map(query => call('read_analysis_evidence', {evidence_id: 'ev_1', query})) : [call('read_analysis_evidence', {evidence_id: 'ev_2'})])});
+      // Automatic source capture adds its own content evidence after the first
+      // read, so the recovery analyst reads the evidence it was assigned.
+      const assigned = JSON.parse(body.messages[1].content).evidence.map(item => item.evidence_id);
+      if (!output) return route.fulfill({json: reply(role === 'page' ? ['담당 팀', '장소'].map(query => call('read_analysis_evidence', {evidence_id: 'ev_1', query})) : [call('read_analysis_evidence', {evidence_id: assigned[0]})])});
       if (role === 'page') assert.equal(body.messages.filter(message => message.role === 'tool').length, 2);
       const source = JSON.parse(output.content);
       if (role === 'recovery') assert.match(source.text, /script_api/);
@@ -108,9 +111,9 @@ try {
     if (++parentRound === 1) return route.fulfill({json: reply([call('read_page')], '**교육 안내**를 확인하겠습니다.')});
     if (parentRound === 2) return route.fulfill({json: reply([call('run_playwright', {code: 'return await page.evaluate(() => document.body.innerText);'})])});
     if (parentRound === 3) {
-      assert.equal(result.error, 'script_api'); assert.equal(result.reason, 'script_api');
+      assert.equal(result.error, 'script_api'); assert.equal(result.reason, 'script_api'); assert.match(result.analysis_evidence_id, /^ev_\d+$/);
       return route.fulfill({json: reply([call('delegate_analysis', {tasks: [
-        {role: 'recovery', task: '실패한 스크립트의 실행 여부와 수정 방법 확인', done_when: '재실행 없는 대안과 검증 방법', evidence_ids: ['ev_2']},
+        {role: 'recovery', task: '실패한 스크립트의 실행 여부와 수정 방법 확인', done_when: '재실행 없는 대안과 검증 방법', evidence_ids: [result.analysis_evidence_id]},
         {role: 'page', task: '안내에서 담당 팀 확인', done_when: '근거 확보', evidence_ids: ['ev_1']},
       ]})])});
     }

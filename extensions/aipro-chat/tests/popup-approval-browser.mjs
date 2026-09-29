@@ -81,7 +81,10 @@ try {
       if (current === 6) {assert.equal(result.verified, true); name = 'request_approval'; args = {ref: ref(result, '등록')};}
       if (current === 7) {assert.equal(result.title, '업무 포털', JSON.stringify(result)); name = 'verify_page'; args = {checks: [{kind: 'text_present', expected: '등록 완료'}]};}
       if (current === 8) assert.equal(result.verified, true);
-      assert(current <= 8, `Unexpected round ${current}`);
+      // The first plan stage passed its review. The reporting stage answers once
+      // more without another action; the approved click is never repeated.
+      if (current === 9) {assert.match(body.messages.at(-1).content, /Later stages remain unfinished/); assert.equal(submitted.length, mode === 'popup' ? 1 : 2);}
+      assert(current <= 9, `Unexpected round ${current}`);
       return route.fulfill({json: {choices: [{message: name ? {content: '', tool_calls: [{id: `step-${stage}`, type: 'function', function: {name, arguments: JSON.stringify(args)}}]} : {content: '등록 결과를 확인했습니다.'}, finish_reason: name ? 'tool_calls' : 'stop'}], usage: {prompt_tokens: 100, completion_tokens: 20, total_tokens: 120}}});
     } catch (error) {routeFailure = error; return route.fulfill({status: 500, body: 'Synthetic assertion failed'});}
   });

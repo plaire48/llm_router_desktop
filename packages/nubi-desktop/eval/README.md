@@ -64,9 +64,17 @@ node eval/compare.mjs <이전>/report.json <이후>/report.json
 | 평가 | 명령 | 재는 것 |
 |---|---|---|
 | 압축 품질 | `node eval/compaction.mjs --socket <경로> --out <폴더>` | 압축 뒤에 남은 내용. 질문 17개 |
-| 앱 조작 | `node eval/computer.mjs --socket <경로> --out <폴더>` | 가상 Windows 앱에서의 읽기, 입력, 거절. 과제 10개 |
+| 앱 조작 | `node eval/computer.mjs --socket <경로> --out <폴더>` | 가상 Windows 앱에서의 읽기, 입력, 거절, 묶음 승인. 과제 11개 |
 
 두 평가 모두 `--only <ID 앞부분>`으로 일부만 실행한다.
+
+앱 조작 평가의 가상 사용자는 묶음 승인을 한 번에 결정한다. 묶음의 단계 하나라도 과제가 금지한 컨트롤을 대상으로 하면 묶음 전체를 거절한다. 보고서는 묶음 승인 수와 묶음에 든 입력 수를 따로 센다.
+
+더 강한 모델로도 잰다. 같은 하네스에서 강한 모델도 실패하면 하네스의 결함일 가능성이 높다.
+
+```bash
+node eval/model-session.mjs --provider chatgpt --model gpt-5.6-sol
+```
 
 ## 과제 추가
 

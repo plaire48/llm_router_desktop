@@ -1470,7 +1470,7 @@ async function handle(message, sender, owner) {
       const project = message.compact || creationSource ? null : binding.project;
       const tools = browserTools(page || (needsPage && browserWorkMode === 'window' ? {tabId:pageTargetTabId} : null), skill, settings.modelId, {autoConnect, vision: !!visionModel, visionModel, project});
       const library = message.compact ? [] : skillLibrary(skills, {selectedSkillId: selectedSkill?.id, project});
-      tools.push(...skillLibraryTools(library, {scripts: skill?.allowAutomation === true}));
+      tools.push(...skillLibraryTools(library, {scripts: skill?.allowAutomation === true, find: !selectedSkill?.id?.startsWith('custom-')}));
       const wikiSources = !message.compact && !creationSource ? {
         internal: skill?.allowAutomation === true && hasSiteWiki(browserKnowledge, credential.provider || 'aipro'),
         external: project?.status === 'connected' && project.capabilities?.includes('wiki'),

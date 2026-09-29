@@ -51,7 +51,10 @@ try {
       else if(current===1){name='select_tools';args={groups:['scripts','input']};}
       else if(current===2){name='run_playwright';args={code:"const field=page.getByLabel('테스트'); await field.fill('후속'); return await field.appendText(' 완료',{expectedLength:2});"};}
       else if(current===3){assert.equal(result.value?.verified,true,JSON.stringify(result));name='verify_page';args={checks:[{kind:'field_value',ref:result.observation.frames.flatMap(frame=>frame.elements||[]).find(element=>element.name==='테스트').ref,expected:'후속 완료'}]};}
-      else {assert.equal(current,4);assert.equal(result.verified,true,JSON.stringify(result));}
+      else if(current===4)assert.equal(result.verified,true,JSON.stringify(result));
+      // The fixture plan has two stages. After the first passes its stage review
+      // the reporting stage answers once more, without another write.
+      else {assert.equal(current,5);assert.match(body.messages.at(-1).content,/Later stages remain unfinished/);}
       return route.fulfill({contentType:'text/event-stream',body:completion(name,args)});
     }
     if(result?.value?.error) {
@@ -125,7 +128,7 @@ try {
   await poll(async()=>(await textState()).chat.messages.at(-1)?.state,'done');
   assert.equal(await page.getByLabel('테스트').inputValue(),'후속 완료');
   assert.equal((await textState()).chat.task.goalReview.status,'complete');
-  assert.equal(followupRound,5);
+  assert.equal(followupRound,6);
   check('a second real chat request after reload reattaches, appends and verifies the same page with normal lease ownership');
 
   // The following helper probes intentionally have no chat lease. Close the

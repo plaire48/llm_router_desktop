@@ -95,7 +95,9 @@ try {
   await page.evaluate(()=>{const cover=document.createElement('div');cover.id='cover';cover.setAttribute('role','dialog');cover.setAttribute('aria-label','도움말');cover.tabIndex=0;cover.textContent='Escape로 닫기';cover.onkeydown=e=>{if(e.key==='Escape')cover.remove();};document.body.append(cover);});
   result=await script(`await page.getByRole('button',{name:'미리보기',exact:true}).click();`);
   assert.equal(result.reason,'script_obscured',JSON.stringify(result));assert.equal(await page.evaluate(()=>state.previews),0);
-  assert.equal(result.execution.commands[0].actionIssued,true);
+  // The overlay fails Playwright's hover actionability before any click is
+  // sent, so the host receipt is exact: nothing was issued (browser-agent.js).
+  assert.equal(result.execution.commands[0].state,'failed');assert.equal(result.execution.commands[0].actionIssued,false);
   assert(result.observation.frames[0].regions.some(r=>r.name==='도움말'));
   result=await script(`await page.getByRole('dialog',{name:'도움말',exact:true}).press('Escape');`);
   assert.equal(result.ok,true,JSON.stringify(result));

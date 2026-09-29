@@ -184,6 +184,28 @@ export function scopeCorrectionMessages(input, audit, priorReview) {
   return input.messages.map((message, index) => index ? message : {...message, content: `${message.content}\n${feedback}`});
 }
 
+// Measured on a filter-and-sort request, with two models: the review marked the
+// stage's own outcome as met and sent the stage back for the form of the final
+// answer. The audit named that check as outside the stage in four of five
+// rounds, and the re-review repeated it each time, until the run asked the user.
+// When every check that is not met is one that this validated audit placed
+// outside the stage, the stage is settled by the checks that are met. Nothing
+// else is settled here: the final review still judges the whole request, a
+// criterion of the plan itself (planN) still needs a corrected plan, and a
+// blocked review or a stage without a met check with evidence is left as it is.
+export function settleStepScope(review, audit) {
+  const payload = audited.get(audit);
+  if (!payload || payload.phase !== 'plan_step' || audit.decision !== 'repair_scope' || review?.status !== 'revise' || !Array.isArray(review.checks)) return null;
+  if (payload.review?.checks?.length !== review.checks.length ||
+      payload.review.checks.some((check, index) => check.requirement !== review.checks[index]?.requirement || check.status !== review.checks[index]?.status)) return null;
+  if (!audit.issues.length || audit.issues.some(issue => !(Number.isSafeInteger(issue.target) && issue.target >= 0) && issue.target !== 'next_step')) return null;
+  const outside = new Set(audit.issues.filter(issue => Number.isSafeInteger(issue.target)).map(issue => issue.target));
+  const open = review.checks.flatMap((check, index) => check.status === 'met' ? [] : [index]);
+  const met = review.checks.filter((check, index) => check.status === 'met' && !outside.has(index) && Array.isArray(check.evidence_ids) && check.evidence_ids.length);
+  if (!open.length || !open.every(index => outside.has(index)) || !met.length) return null;
+  return {...review, status: 'complete', checks: met.map(check => ({...check})), next_step: ''};
+}
+
 // In-process certificates are minted only from the strict host parser. Model
 // JSON, persisted narration and a copied object cannot forge this provenance.
 export function scopeCorrectionCertificate(audit) {

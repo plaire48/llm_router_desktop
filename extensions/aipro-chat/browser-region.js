@@ -1,4 +1,5 @@
 import {collectSnapshot} from './generated/browser-dom.js';
+import {pageScript} from './page-script.js';
 import {observedDocumentScope} from './browser-observation.js';
 
 // Read-only references use a separate namespace and node cache. They never
@@ -26,7 +27,7 @@ export async function readObservedPageRegion(task, args, safeURL, cancelled = ()
   const before = await currentScope();
   let data;
   if (task.observedDocuments?.has(documentId)) {
-    const records = await chrome.scripting.executeScript({target: {tabId: task.tabId, documentIds: [documentId]}, world: 'ISOLATED',
+    const records = await pageScript({target: {tabId: task.tabId, documentIds: [documentId]}, world: 'ISOLATED',
       func: collectSnapshot, args: [{region_ref: args.region_ref}]}).catch(() => {check(); throw Error('region_stale');});
     check();
     if (records.length !== 1 || records[0].documentId !== documentId) throw Error('region_stale');

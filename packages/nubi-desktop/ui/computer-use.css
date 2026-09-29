@@ -13,3 +13,7 @@
 .nubi-action-stage[data-motion=off] .nubi-action-pointer,.nubi-action-stage[data-motion=off] .nubi-action-halo { animation:none; transition:none; }
 @keyframes nubi-click-ring { 0% { opacity:1; } 100% { opacity:0; } }
 @media(prefers-reduced-motion:reduce) { :root { --nubi-pointer-move:0ms; --nubi-pointer-feedback:0ms; } .nubi-action-pointer,.nubi-action-halo { animation:none !important; transition:none !important; } }
+.nubi-batch-steps { margin:var(--cx-space-2,8px) 0; padding-left:var(--cx-space-5,24px); display:grid; gap:var(--cx-space-2,8px); }
+.nubi-batch-steps>li>span { font-weight:600; color:var(--layout-text); }
+.nubi-batch-steps>li>pre { margin:var(--cx-space-1,4px) 0 0; white-space:pre-wrap; overflow-wrap:anywhere; }
+.nubi-batch-steps>li>small { display:block; font:var(--deck-font-body); color:var(--layout-muted); }

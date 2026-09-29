@@ -54,15 +54,17 @@ export const RECOVERABLE_CODES=Object.freeze(Object.keys(GUIDANCE));
 // App control. A refused operation sent nothing to the app.
 const NO_INPUT='No input was sent to the app. ';
 const COMPUTER=Object.freeze({
-  computer_invalid:NO_INPUT+'The arguments are not a valid operation. set_value needs value and no other action takes one; a value must not start with "-". drag needs destinationSelector and no other action takes one. Use a selector exactly as observe_computer returned it.',
+  computer_invalid:NO_INPUT+'The arguments are not a valid operation. set_value needs value and no other action takes one; a value must not start with "-". To choose from a list, propose select on the list item itself, without value. drag needs destinationSelector and no other action takes one. Use a selector exactly as observe_computer returned it.',
   computer_observation_stale:NO_INPUT+'The observation is older than two minutes or is not from this run. Call observe_computer again and use its observationId.',
   computer_review_required:NO_INPUT+'An earlier action of this task waits for the user, or its result has not been read. Propose nothing new: stop for the user, or read the receipt with read_computer_result.',
-  computer_target_unavailable:NO_INPUT+'The selector is not among the elements of that observation. Observe with query or selector so that the target is among them, then use that observationId.',
+  computer_target_unavailable:NO_INPUT+'`details.reason` tells why. Without it the selector is not among the elements of that observation: observe with query or selector so that the target is among them, then use that observationId. not_found: no control has that selector. disabled, off_screen or no_size: the control takes no input now; its value can still be read with observe_computer selector.',
   computer_target_changed:NO_INPUT+'The control or the window changed after the observation. Observe again before the next step.',
   computer_busy:NO_INPUT+'Another operation on the app is running. Read its result before the next step.',
   computer_command_failed:NO_INPUT+'The app did not answer this command. Observe again. The control may not offer this operation: read target.controlState and choose an action it supports.',
   computer_password:NO_INPUT+'The control is a password field. Its value is never read or compared. Say so to the user.',
   computer_input_unavailable:NO_INPUT+'This control does not accept the operation: it is a password field, read-only or disabled. Say so to the user instead of trying another input.',
+  computer_no_effect_repeat:NO_INPUT+'The same action on this control was carried out before (`details.times`) and the host observed no change in the window. Asking the user to approve it again repeats what did not work. Observe the control with its selector: target.controlState tells whether it takes select, toggle_on, toggle_off, expand or collapse. A list item is chosen with select. If the user asked for the repetition, propose it once more: that proposal is accepted.',
+  computer_batch_invalid:NO_INPUT+'`details.problems` names each step and what is wrong with it. A batch holds 2 to 5 steps on different controls of one observation. Allowed: set_value (with value), select, toggle_on, toggle_off, expand, collapse, invoke. invoke appears once at most and is the last step. Use propose_computer_action for anything else.',
   wiki_evidence_required:NO_INPUT+'`details.unknownEvidenceIds` are not ids that wiki_query or ask_openwiki returned in this run. Omit evidenceIds when no Wiki rule informs this action, or use an id from `details.observedEvidence`.',
 });
 const COMPUTER_FALLBACK=NO_INPUT+'Inspect computer_checkpoint and stored receipts, change the observation or target, and ask for missing app setup. Re-observe changed targets. Never replay uncertain operations or bypass approval through shell.';

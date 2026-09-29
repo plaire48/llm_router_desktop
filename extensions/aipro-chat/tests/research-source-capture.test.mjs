@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createResearchSourceCapture} from '../research-source-capture.js';
-import {goalReviewMessages, reviewEvidence, samePageContentSource} from '../goal-review.js';
+import {goalReviewMessages, reviewEvidence, samePageContentSource, isPageTextRecord} from '../goal-review.js';
 import {contentPacket} from '../browser-content.js';
 import {createAnalysisCoordinator} from '../analysis-agents.js';
 import {runAgent} from '../agent-runtime.js';
@@ -148,7 +148,9 @@ test('the exact E08 citation request retains all opened originals after navigati
    assert.deepEqual(refs.map(item=>item.result.ranges[0].markdown),texts);
    assert(refs.every(item=>item.usable&&item.result.coverage.partial));
    assert.deepEqual(payload.source_snapshot_evidence_ids,refs.map(item=>item.id));
-   assert(evidence.filter(item=>item.tool==='navigate_page').slice(0,-1).every(item=>item.superseded&&!item.usable),'Old DOM must not become current action evidence');
+   // A page that was left keeps its observed text as a record. Its controls are gone, so it cannot serve an action.
+   assert(evidence.filter(item=>item.tool==='navigate_page').slice(0,-1).every(item=>item.superseded&&!item.usable||isPageTextRecord(item.result)&&!JSON.stringify(item.result).includes('"elements"')),'Old DOM must not become current action evidence');
+   assert(!payload.evidence.filter(item=>isPageTextRecord(item.result)).some(item=>item.referenceOnly),'A record is not a source snapshot');
    return {status:'complete',checks:[{requirement:'출처별 사실',status:'met',evidence_ids:refs.map(item=>item.id)}],next_step:''};
   }});
  assert(result.content.includes('2026년'));assert.equal(reviews,1);

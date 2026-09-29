@@ -140,7 +140,7 @@ test('the review receives a long read in parts of whole lines that it can use',(
 
 test('a result that cannot be divided into lines stays unusable',()=>{
   const {data}=resultReviewInput({task,evidence:[{tool:'read_source',result:{path:'wide.md',content:'x'.repeat(13000),hash:'h',start:1,end:1}},{tool:'read_process_output',result:{text:'y'.repeat(13000)}}],receipts:{},candidate:'답',model:{contextLength:200000}});
-  assert.deepEqual(data.evidence.filter(entry=>entry.id!=='host').map(entry=>[entry.id,entry.truncated,entry.usable]),[['tool:1',true,false],['tool:0',true,false]]);
+  assert.deepEqual(data.evidence.filter(entry=>entry.id.startsWith('tool:')).map(entry=>[entry.id,entry.truncated,entry.usable]),[['tool:1',true,false],['tool:0',true,false]]);
 });
 
 test('parts that do not fit the review are counted as left out',()=>{
@@ -156,6 +156,6 @@ const source=(pathName,start,end,content)=>({tool:'read_source',result:{path:pat
 test('the same result read twice is given to the review once',()=>{
   const evidence=[source('a.md',1,50,'alpha'),source('b.md',1,50,'beta'),source('a.md',1,50,'alpha'),{tool:'read_source',result:{ok:false,error:'range_invalid'}},{tool:'read_source',result:{ok:false,error:'range_invalid'}}];
   const {data}=resultReviewInput({task,evidence,receipts:{},candidate:'답',model:{contextLength:200000}});
-  assert.deepEqual(data.evidence.map(entry=>entry.id),['host','tool:4','tool:2','tool:1']);
+  assert.deepEqual(data.evidence.map(entry=>entry.id),['host','user','tool:4','tool:2','tool:1']);
   assert.equal(data.duplicateEvidence,2);assert.equal(data.omittedEvidence,0);
 });

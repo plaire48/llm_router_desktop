@@ -139,6 +139,18 @@ try{
  assert.equal(await p.getByRole('button',{name:'승인하고 실행',exact:true}).count(),0);
  await p.setViewportSize({width:440,height:950});assert.equal(await p.locator('.nubi-workbench').evaluate(e=>e.scrollWidth<=e.clientWidth),true);await p.screenshot({path:'verification/ui-uia-state-evidence.png'});
  checks.push('UIA no-op and stale Wiki remain distinct with reviewable evidence and no execution button');assert.deepEqual(errors,[]);
+ await p.setViewportSize({width:1280,height:950});
+ const waitingBatch=p.getByRole('region',{name:'컴퓨터 동작 묶음 승인'}).filter({hasText:'요청한 입력 세 가지'});
+ await waitingBatch.getByText('묶음 입력 3단계',{exact:true}).waitFor();
+ assert.deepEqual(await waitingBatch.locator('.nubi-batch-steps > li > span').allTextContents(),['입력: 메모','체크 켜기: 긴급 처리','누르기: 임시 저장']);
+ await waitingBatch.getByText('출장 택시비',{exact:true}).waitFor();
+ assert.equal(await waitingBatch.getByRole('button',{name:'모두 승인하고 실행',exact:true}).count(),1);
+ const partialBatch=p.getByRole('region',{name:'컴퓨터 동작 묶음 승인'}).filter({hasText:'두 칸을 입력합니다.'});
+ await partialBatch.getByText('2번째 단계에서 대상이 바뀌어 멈췄습니다. 그 단계부터는 실행하지 않았습니다.',{exact:true}).waitFor();
+ assert.deepEqual(await partialBatch.locator('.nubi-batch-steps small').allTextContents(),['입력값 일치','실행하지 않음']);
+ assert.equal(await partialBatch.getByRole('button',{name:'모두 승인하고 실행',exact:true}).count(),0);
+ await p.setViewportSize({width:440,height:950});assert.equal(await p.locator('.nubi-workbench').evaluate(e=>e.scrollWidth<=e.clientWidth),true);await waitingBatch.screenshot({path:'verification/ui-computer-batch.png'});
+ checks.push('a batch lists every step with its value, and a stopped batch tells which steps ran');assert.deepEqual(errors,[]);
  await p.goto('http://127.0.0.1:'+server.address().port+'/?pointer=1');
  const pointerApproval=p.getByRole('button',{name:'마우스 제어 승인',exact:true});assert.equal(await pointerApproval.isDisabled(),true);assert.equal(await p.getByLabel('마우스 실행 횟수').textContent(),'0');
  await p.getByRole('button',{name:'대상 위치 보기',exact:true}).click();await p.getByRole('figure',{name:'컴퓨터 동작 미리보기',exact:true}).nth(1).waitFor();assert.equal(await pointerApproval.isEnabled(),true);

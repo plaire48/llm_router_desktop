@@ -7,7 +7,7 @@ import {resolve} from 'node:path';
 import {goalReviewPayload} from './fixtures/goal-review.mjs';
 
 const profile = await mkdtemp(resolve(tmpdir(), 'nubi-analysis-recovery-')), extension = resolve(profile, 'extension');
-let context, ui, target, failure, round = 0, checkpoints = 0, finals = 0, stepReviews = 0;
+let context, ui, target, failure, round = 0, checkpoints = 0, finals = 0, stepReviews = 0, stageTurns = 0;
 const errors = [], checks = [];
 const goal = '교육 안내에서 신청 마감일, 담당 팀, 장소를 읽어서 알려줘. 입력하거나 등록하지 마.';
 const call = (name, args = {}) => ({id: crypto.randomUUID(), type: 'function', function: {name, arguments: JSON.stringify(args)}});
@@ -50,6 +50,12 @@ try {
         {requirement: '장소', status: missing ? 'unmet' : 'met', evidence_ids: missing ? [] : [proof.id]},
       ], next_step: missing ? '원래 요청의 장소가 빠졌습니다. 장소를 확인해서 답변에 포함하세요.' : ''}))});
     }
+    // Stage-by-stage plan review: after an answer passes one stage review the
+    // host asks for the next stage. Restate the same answer; it is not a new
+    // executor round and the final review still judges the whole answer.
+    if (String(body.messages.at(-1)?.content || '').startsWith('The current stage passed independent review')) {
+      stageTurns++; return route.fulfill({json: reply(null, body.messages.findLast(message => message.role === 'assistant' && message.content)?.content || '')});
+    }
     const result = body.messages.findLast(message => message.role === 'tool');
     const output = result && JSON.parse(result.content);
     if (++round === 1) return route.fulfill({json: reply([call('run_playwright', {code: 'return await page.evaluate(() => document.title);'}), call('fill_form', {fields: [{field_id: 'unobserved', value: 'DO_NOT_WRITE'}]})])});
@@ -78,6 +84,7 @@ try {
   assert(chat.messages.at(-1).content.includes('서울 A 강의실')); assert.equal(chat.task.goalReview.status, 'complete');
   assert.equal(round, 6); assert.equal(checkpoints, 1); assert.equal(finals, 2);
   assert(stepReviews > 0, 'Step review must not replace the independent final-answer gate');
+  assert.equal(stageTurns, stepReviews - 1);
   assert.equal(await target.evaluate(() => writes), 0); assert.equal(await worker.evaluate(() => attachCount), 0);
   checks.push('failed batches do not execute later writes', 'independent checkpoint redirects failed scripts to passive reading', 'final review catches an omitted requirement and repairs only the answer', 'reading completes without debugger attachment, page writes or redundant verify_page');
   assert.deepEqual(errors, []); await mkdir('verification', {recursive: true});

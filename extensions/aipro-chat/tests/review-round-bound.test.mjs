@@ -29,13 +29,12 @@ function lookup(reviews, {first = 'read_page', extra = {}} = {}) {
 
 test('a lookup whose review stops improving releases the best reviewed candidate with every open check', async () => {
   const s = lookup([verdict(['met', 'unknown', 'unmet', 'met'], '출처를 구분하세요.'), verdict(['unmet', 'met', 'met', 'met'], '두 상품은 조건이 확인되지 않았습니다.'),
-    verdict(['unmet', 'unmet', 'met', 'met'], '3개를 다시 고르세요.'), verdict(['unmet', 'unmet', 'met', 'met'], '3개를 다시 고르세요.'),
-    verdict(['unmet', 'unmet', 'met', 'met'], '3개를 다시 고르세요.')]);
+    verdict(['unmet', 'unmet', 'met', 'met'], '3개를 다시 고르세요.'), verdict(['unmet', 'unmet', 'met', 'met'], '3개를 다시 고르세요.')]);
   const result = await s.run;
-  assert.equal(s.reviewed(), 5);
+  assert.equal(s.reviewed(), 4);
   assert.notEqual(result.awaitingUser, true); assert.equal(result.reviewLimited, true);
   assert.match(result.content, /^후보 답변 2\n/);
-  assert.match(result.content, /검증 완료가 아닙니다\. 독립 검토를 5회 거쳤지만/);
+  assert.match(result.content, /검증 완료가 아닙니다\. 독립 검토를 4회 거쳤지만/);
   assert.match(result.content, /- \(충족되지 않음\) 상품 3개 비교/);
   assert.match(result.content, /검토 의견: 두 상품은 조건이 확인되지 않았습니다\./);
   assert(!/가격과 배송비 제시/.test(result.content));
@@ -49,20 +48,21 @@ test('a lookup that keeps improving is reviewed until it passes', async () => {
   assert.equal(s.reviewed(), 4); assert.equal(result.content, '후보 답변 4'); assert.equal(result.reviewLimited, undefined);
 });
 
-test('six final reviews are the limit even when each one is slightly better', async () => {
-  const names = ['상품 3개 비교', '가격 제시', '배송비 제시', '용량 제시', '출력 제시', '제품명 제시', '출처 URL 제시', '구매하지 않기'];
-  const round = met => ({status: 'revise', next_step: '출처를 확인하세요.', checks: names.map((text, index) => check(text, index < met ? 'met' : 'unknown'))});
-  const s = lookup([1, 2, 3, 4, 5, 6, 7].map(round));
+const names = ['상품 3개 비교', '가격 제시', '배송비 제시', '용량 제시', '출력 제시', '제품명 제시', '출처 URL 제시', '구매하지 않기'];
+const round = met => ({status: 'revise', next_step: '출처를 확인하세요.', checks: names.map((text, index) => check(text, index < met ? 'met' : 'unknown'))});
+
+test('four final reviews are the limit even when each one is slightly better', async () => {
+  const s = lookup([3, 4, 5, 6, 7].map(round));
   const result = await s.run;
-  assert.equal(s.reviewed(), 6); assert.equal(result.reviewLimited, true);
-  assert.match(result.content, /^후보 답변 6\n/); assert.match(result.content, /독립 검토를 6회/);
+  assert.equal(s.reviewed(), 4); assert.equal(result.reviewLimited, true);
+  assert.match(result.content, /^후보 답변 4\n/); assert.match(result.content, /독립 검토를 4회/);
   assert.match(result.content, /- \(확인하지 못함\) 출처 URL 제시/);
 });
 
 test('without a majority of met checks the user is asked instead of receiving the candidate', async () => {
   const s = lookup([verdict(['unmet', 'unmet', 'unknown', 'met'], 'a')]);
   const result = await s.run;
-  assert.equal(s.reviewed(), 4); assert.equal(result.reviewLimited, undefined);
+  assert.equal(s.reviewed(), 3); assert.equal(result.reviewLimited, undefined);
   assert.equal(result.awaitingUser, true); assert(s.executed.includes('ask_user'));
   assert(!/검증 완료가 아닙니다/.test(result.content || ''));
 });

@@ -16,7 +16,7 @@ import {chatGPTModels, completeChatGPT} from '../chatgpt-api.js';
 import {compactHistory, contextBudget, contextTokens, createRunContext, routingContextModel, userRequestAnchors} from '../context-manager.js';
 import {historyContext, resumeMessage, resumedVerification, needsBrowserResume} from '../context-state.js';
 import {goalReviewMessages, parseGoalReview} from '../goal-review.js';
-import {reviewScopeMessages, requestReviewScope, scopeCorrectionMessages, scopeCorrectionCertificate, scopeCorrectionRequiresPlanRepair} from '../review-scope.js';
+import {reviewScopeMessages, requestReviewScope, scopeCorrectionMessages, scopeCorrectionCertificate, scopeCorrectionRequiresPlanRepair, settleStepScope} from '../review-scope.js';
 import {progressNote} from '../agent-trace.js';
 import {completionReviewMessages, parseCompletionReview} from '../completion-review.js';
 import {fabrixModels, fabrixCompletion} from '../fabrix.js';
@@ -430,7 +430,11 @@ export async function completeChat(request, signal, onText = () => {}, onUsage =
               onRepair:()=>onStep({index:scopeIndex,tool:'recover_model',status:'running',label:'검토 형식 교정'})});
             scopeResult = {decision: audit.decision, correctionTarget: audit.correctionTarget, corrected: false,
               ...(audit.withdrawn ? {withdrawn: audit.withdrawn} : {})};
-            if (audit.decision === 'repair_scope') {
+            const settled = audit.decision === 'repair_scope' && phase === 'plan_step' ? settleStepScope(review, audit) : null;
+            if (settled) {
+              // Every open check lay outside this stage and its own checks are met.
+              review = settled; scopeResult.settled = true;
+            } else if (audit.decision === 'repair_scope') {
               const correction = scopeCorrectionMessages(input, audit, review);
               if (contextTokens(withComputerTime(correction)) > budget.input) throw Object.assign(new Error('review_scope_failed'), {scopeReason: 'scope_context_budget'});
               onStep({index: scopeIndex, tool: 'recover_model', status: 'running', label: '검토 범위 교정'});

@@ -19,7 +19,7 @@ const server = createServer((_, response) => {response.writeHead(200, {'content-
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const origin = `http://127.0.0.1:${server.address().port}`;
 const checks = [], errors = [], reviewSizes = [];
-let context, ui, source, worker, failure, lastToolError, stage = 0, checkpointCount = 0, finalCount = 0;
+let context, ui, source, worker, failure, lastToolError, stage = 0, checkpointCount = 0, finalCount = 0, continuations = 0;
 const state = () => ui.evaluate(async () => (await chrome.runtime.sendMessage({type: 'GET_STATE'})).data);
 const reply = (name, args = {}, content = '') => ({choices: [{message: {content, ...(name ? {tool_calls: [{id: crypto.randomUUID(), type: 'function', function: {name, arguments: JSON.stringify(args)}}]} : {})}, finish_reason: name ? 'tool_calls' : 'stop'}], usage: {prompt_tokens: 100, completion_tokens: 10, total_tokens: 110}});
 const elements = result => (result.observation || result).frames.flatMap(frame => frame.elements || []);
@@ -66,6 +66,13 @@ try {
     }
     const last = body.messages.findLast(message => message.role === 'tool'), result = last && JSON.parse(last.content);
     lastToolError = result?.error || result?.reason;
+    // The fixture plan has two stages; a text answer closes one reviewed stage at a
+    // time (agent-runtime.js). The executor restates its verified answer for the
+    // remaining stage, which does not advance this scenario's stages.
+    if (typeof body.messages.at(-1).content === 'string' && body.messages.at(-1).content.startsWith('The current stage passed independent review')) {
+      continuations++; assert.equal(stage, 8);
+      return route.fulfill({json: reply(null, {}, '초안의 다섯 항목을 확인했습니다. 등록하지 않았습니다.')});
+    }
     let answer;
     if (stage === 0) answer = reply('browser_snapshot');
     else if (stage <= 5) {
@@ -103,7 +110,7 @@ try {
   await ui.getByRole('button', {name: '전송', exact: true}).click();
   await until(async () => (await state()).chat.messages.at(-1)?.state === 'done' && !(await state()).busy);
   const current = await state(), work = context.pages().find(page => page !== source && page.url() === `${origin}/draft`);
-  assert(work); assert.equal(checkpointCount, 1); assert.equal(finalCount, 3);
+  assert(work); assert.equal(checkpointCount, 1); assert.equal(finalCount, 3); assert.equal(continuations, 1);
   assert.deepEqual(await work.evaluate(() => writes), fields.map((_, index) => `field-${index}`));
   assert.deepEqual(await source.evaluate(() => writes), []); assert.equal(await source.evaluate(() => submits), 0);
   assert.equal(current.chat.task.goalReview.status, 'complete');

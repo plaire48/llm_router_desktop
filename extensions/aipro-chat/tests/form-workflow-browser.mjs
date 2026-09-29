@@ -62,8 +62,11 @@ try{
     if(current===10)calls=[call('verify_page',{checks:[{kind:'field_value',ref:ref(result,'개발 시간'),expected:'5'},{kind:'field_valid',ref:ref(result,'개발 시간'),expected:'true'},{kind:'field_value',ref:ref(result,'테스트 시간'),expected:'180'},{kind:'field_valid',ref:ref(result,'테스트 시간'),expected:'true'},{kind:'field_sum',terms:[{ref:ref(result,'개발 시간'),multiplier:'60'},{ref:ref(result,'테스트 시간')}],expected:'480'}]})];
     if(current===11){assert.equal(result.verified,true);calls=[call('request_approval',{ref:ref(result,'등록'),summary:'개발 300분과 테스트 180분, 총 480분의 상시업무를 등록합니다.'})];}
     if(current===12)calls=[call('verify_page',{checks:[{kind:'text_present',expected:'공수 등록 완료'}]})];
-    if(current===13){assert.equal(result.verified,true);text='개발 300분과 테스트 180분으로 등록하고 확인했습니다.';}
-    assert(current<=13,JSON.stringify(result));
+    // A text answer closes one plan stage per independent stage review
+    // (agent-runtime.js); the two-stage fixture plan asks for the answer once
+    // more after the first stage passes. No further tool call is allowed.
+    if(current>=13){assert.equal(result.verified,true);text='개발 300분과 테스트 180분으로 등록하고 확인했습니다.';}
+    assert(current<=14,JSON.stringify(result));
     return route.fulfill({json:{choices:[{message:calls.length?{content:'',tool_calls:calls}:{content:text},finish_reason:calls.length?'tool_calls':'stop'}]}});
   }catch(error){failure=error;return route.fulfill({status:500,body:'synthetic fixture failure'});}});
   worker=context.serviceWorkers()[0]||await context.waitForEvent('serviceworker');await worker.evaluate(()=>chrome.storage.local.set({browserWorkMode:'current'}));

@@ -98,10 +98,11 @@ try {
           assert.equal(await target.evaluate(() => window.writes), 0);
           content = '담당 팀을 선택해야 합니다. 어느 팀인지 확인하겠습니다.';
         }
-        // Registered workflow lookup is now available to ordinary skill turns.
-        // These read-only instructions do not grant browser action tools. The
-        // forced clarification branch above must still expose ask_user alone.
-        if (mode === 'custom') assert.deepEqual(body.tools.map(tool => tool.function.name), ['ask_user', 'find_skills', 'read_skill']);
+        // A selected skill can read its own references. Its library holds that
+        // skill only, so there is no search. These read-only instructions do not
+        // grant browser action tools. The forced clarification branch above must
+        // still expose ask_user alone.
+        if (mode === 'custom') assert.deepEqual(body.tools.map(tool => tool.function.name), ['ask_user', 'read_skill']);
         if (mode === 'source') assert.deepEqual(body.tools.map(tool => tool.function.name), ['ask_user', 'read_page', 'inspect_dom', 'delegate_analysis', 'collect_analysis', 'read_analysis_evidence', 'cancel_analysis', 'read_analysis_handoff']);
         calls = [...(mode === 'direct' ? [call('fill_form', {fields: [{field_id: 'unconfirmed', value: '추측한 팀'}]})] : []),
           call('ask_user', {question, choices: [{label: '개발팀'}, {label: '디자인팀'}]}),

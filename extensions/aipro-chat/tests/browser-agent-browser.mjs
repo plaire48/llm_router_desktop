@@ -187,7 +187,10 @@ try {
   assert.equal(await mail.frames().find(frame => frame.url().includes('editor.example.test')).evaluate(() => window.inputTrusted), true);
   assert.equal(await mail.evaluate(() => window.bodySaved), '안녕하세요.\n교육 일정을 안내드립니다.');
   check('Playwright produces trusted click, keyboard and rich-editor input events and observes the resulting draft state');
-  assert.equal((await state()).usage.total.aipro.calls - usageBeforeMail.calls, 12); assert.equal((await state()).usage.total.aipro.total - usageBeforeMail.total, 1320);
+  // 10 executor turns, 1 plan, 1 checkpoint, 1 scope audit of the checkpoint's
+  // revise verdict, 2 stage reviews (a text answer closes one plan stage at a
+  // time, agent-runtime.js) and 1 final review. Every call carries 110 tokens.
+  assert.equal((await state()).usage.total.aipro.calls - usageBeforeMail.calls, 16); assert.equal((await state()).usage.total.aipro.total - usageBeforeMail.total, 1760);
   assert.equal((await state()).chat.messages.at(-1).usage.total_tokens, 110);
   check('execution, planning, intermediate review and final review contribute usage while context remains the last request');
   assert.equal(await worker.evaluate(async () => {

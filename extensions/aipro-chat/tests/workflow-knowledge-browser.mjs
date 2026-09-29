@@ -81,16 +81,20 @@ try {
     let name, args = {};
     if (reuse) {
       switch (++reuseRound) {
-        case 1: name='find_skills'; args={query:'팀기록'}; break;
-        case 2: assert.equal(result.skills[0].name,'공유 업무 초안'); skillId=result.skills[0].id; name='read_skill'; args={skill_id:skillId}; break;
-        case 3: name='read_skill'; args={skill_id:skillId,query:'단위',path:'references/terms.md'}; break;
-        case 4: assert(result.results.some(r=>r.content.includes('60'))); name='read_skill'; args={skill_id:skillId,path:'references/procedure.md'}; break;
-        case 5: name='read_skill'; args={skill_id:skillId,path:'references/checks.md'}; break;
-        case 6: name='read_page'; break;
-        case 7: observation=result.observation || result; name='fill_form'; args={fields:[{field_id:ref('업무 날짜'),value:'2026-09-25'},{field_id:ref('투입 시간'),value:'4'},{field_id:ref('업무 내용'),value:'검색 기능 점검'}]}; break;
-        case 8: assert.equal(result.applied,3); observation=result.observation || observation; name='verify_page'; args={checks:[['업무 날짜','2026-09-25'],['투입 시간','4'],['업무 내용','검색 기능 점검']].map(([name,expected])=>({kind:'field_value',ref:ref(name),expected}))}; break;
-        case 9: assert(result.verified); name='update_plan'; args={steps:fixturePlan.map(step=>({...step,status:'completed'}))}; break;
-        default: assert.equal(reuseRound,10); assert(result.ok && result.plan.every(step=>step.status==='completed')); return route.fulfill({json:reply(null,{},'새 값으로 초안을 확인했습니다. 등록하지 않았습니다.')});
+        case 1: {
+          // The slash command selected this skill. Its library holds that skill only, so there is no search.
+          assert(!body.tools.some(tool => tool.function.name === 'find_skills'));
+          const listed = JSON.parse(body.messages.map(message => String(message.content)).join('\n').match(/Registered workflow catalog: (\[.*?\])\nConnected page/s)[1]);
+          assert.equal(listed[0].name,'공유 업무 초안'); skillId=listed[0].id; name='read_skill'; args={skill_id:skillId}; break;
+        }
+        case 2: name='read_skill'; args={skill_id:skillId,query:'단위',path:'references/terms.md'}; break;
+        case 3: assert(result.results.some(r=>r.content.includes('60'))); name='read_skill'; args={skill_id:skillId,path:'references/procedure.md'}; break;
+        case 4: name='read_skill'; args={skill_id:skillId,path:'references/checks.md'}; break;
+        case 5: name='read_page'; break;
+        case 6: observation=result.observation || result; name='fill_form'; args={fields:[{field_id:ref('업무 날짜'),value:'2026-09-25'},{field_id:ref('투입 시간'),value:'4'},{field_id:ref('업무 내용'),value:'검색 기능 점검'}]}; break;
+        case 7: assert.equal(result.applied,3); observation=result.observation || observation; name='verify_page'; args={checks:[['업무 날짜','2026-09-25'],['투입 시간','4'],['업무 내용','검색 기능 점검']].map(([name,expected])=>({kind:'field_value',ref:ref(name),expected}))}; break;
+        case 8: assert(result.verified); name='update_plan'; args={steps:fixturePlan.map(step=>({...step,status:'completed'}))}; break;
+        default: assert.equal(reuseRound,9); assert(result.ok && result.plan.every(step=>step.status==='completed')); return route.fulfill({json:reply(null,{},'새 값으로 초안을 확인했습니다. 등록하지 않았습니다.')});
       }
       return route.fulfill({json:reply(name,args)});
     }
@@ -212,7 +216,7 @@ try {
   assert.equal(await ui.getByRole('textbox',{name:'메시지',exact:true}).inputValue(),'/공유-업무-초안 ');
   await ui.getByRole('textbox',{name:'메시지',exact:true}).fill('/공유-업무-초안 팀기록 2026-09-25 검색 기능 점검 240분 초안만 작성해줘.');
   await ui.getByRole('button',{name:'전송',exact:true}).click();
-  await until(async () => !(await state()).busy && reuseRound===10);
+  await until(async () => !(await state()).busy && reuseRound===9);
   assert.equal((await state()).chat.messages.at(-1).state,'done');
   assert.equal((await state()).activeSkillId,'');
   assert.equal((await state()).chat.messages.findLast(m=>m.role==='user').skillCommandId,skillId);

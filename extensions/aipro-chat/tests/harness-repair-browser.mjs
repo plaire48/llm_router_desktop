@@ -19,7 +19,7 @@ const server = createServer((req, res) => {
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const origin = `http://127.0.0.1:${server.address().port}`;
 let context, ui, source, work, failure, stage = 0, snapshot;
-const errors = [], checks = [], corrections = [];
+const errors = [], checks = [], corrections = [], reviewPhases = [];
 const reply = (name, args = {}, content = '') => ({choices: [{message: {content, ...(name ? {tool_calls: [{id: name === 'fill_form' ? 'reused-fill-id' : crypto.randomUUID(), type: 'function', function: {name, arguments: JSON.stringify(args)}}]} : {})}, finish_reason: name ? 'tool_calls' : 'stop'}], usage: {prompt_tokens: 100, completion_tokens: 10, total_tokens: 110}});
 const state = () => ui.evaluate(async () => (await chrome.runtime.sendMessage({type: 'GET_STATE'})).data);
 const ref = (result, n) => {
@@ -47,7 +47,9 @@ try {
     const plan = planCompletion(body); if (plan) return route.fulfill({json: plan});
     const review = goalReviewPayload(body.messages);
     if (review) {
-      assert.equal(stage, 12, 'Only the final review is expected');
+      // The fixture plan has two stages; a text answer closes one reviewed stage at a
+      // time (agent-runtime.js). Reviews start only after all three inputs are verified.
+      assert([12, 13].includes(stage), 'Reviews run only after the verified answer'); reviewPhases.push(review.phase);
       assert.deepEqual(await work.locator('input').evaluateAll(inputs => inputs.map(input => input.value)), ['초안 1', '초안 2', '초안 3']);
       return route.fulfill({json: reviewCompletion(review)});
     }
@@ -84,7 +86,8 @@ try {
       name = 'fill_form'; args = {fields: [{field_id: ref(result, n), value: `초안 ${n}`}]};
     }
     if (current === 11) {assert.equal(result.verified, true); content = '세 입력란의 초안을 모두 확인했습니다.';}
-    assert(current <= 11, 'No replay or unbounded repair');
+    if (current === 12) {assert.match(body.messages.at(-1).content, /current stage passed independent review/); content = '세 입력란의 초안을 모두 확인했습니다.';}
+    assert(current <= 12, 'No replay or unbounded repair');
     return route.fulfill({json: reply(name, args, content)});
   } catch (error) {failure = error; await route.fulfill({status: 400, body: 'Synthetic assertion failed'});}});
   const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
@@ -105,7 +108,8 @@ try {
     return ['done', 'error'].includes(current.chat.messages.at(-1)?.state);
   });
   const saved = await state(), answer = saved.chat.messages.at(-1);
-  assert.equal(answer.state, 'done', JSON.stringify(answer)); assert.equal(stage, 12);
+  assert.equal(answer.state, 'done', JSON.stringify(answer)); assert.equal(stage, 13);
+  assert.deepEqual(reviewPhases, ['plan_step', 'plan_step', 'final']);
   assert.deepEqual(corrections, [1, 2, 3]);
   const events = await work.evaluate(() => window.events);
   assert.deepEqual(events, [1, 2, 3].map(n => ({id: `field-${n}`, value: `초안 ${n}`, trusted: true})));

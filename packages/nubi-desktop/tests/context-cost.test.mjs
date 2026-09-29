@@ -41,7 +41,7 @@ test('Desktop sends the progress rule once and no per-tool copy',async t=>{
 // and answered that it could not check.
 import {WinappComputer} from '../runtime/computer-use.mjs';
 import {COMPUTER_GUIDANCE} from '../runtime/computer-harness.mjs';
-const APP_TOOLS=['computer_checkpoint','read_computer_result','request_computer_connection','list_computer_apps','propose_computer_launch','verify_computer_value','observe_computer','propose_computer_action'];
+const APP_TOOLS=['computer_checkpoint','read_computer_result','request_computer_connection','list_computer_apps','propose_computer_launch','verify_computer_value','observe_computer','propose_computer_action','propose_computer_batch'];
 async function firstRequest(t,prepare=()=>{}){
   const {service}=await fixture(t);let request;prepare(service);
   service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:200000}]}),dispose(){},async complete(messages,tools){request??={messages,tools};return {content:'확인했습니다.',calls:[]};}};

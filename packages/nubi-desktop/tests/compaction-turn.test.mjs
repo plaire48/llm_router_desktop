@@ -66,6 +66,25 @@ test('a first request that an earlier compaction of the history left out still s
   }
 });
 
+// Found by the third measurement with gpt-5.6-sol (case L1, 2026-09-29). The
+// run was compacted in the fourth turn. The first request was not among the
+// protected turns and went to the shared context as the goal, which it places
+// after the protected messages. The request being answered had moved into
+// the protected messages, so the first request stood last, where a model reads
+// the latest request. The model answered the first request again.
+const plain=messages=>messages.filter(message=>message.role==='user').map(message=>String(message.content)).filter(text=>!/^(<|\{|Current host receipts|Independent review)/.test(text));
+test('after a compaction the request being answered is the last thing the user said',async t=>{
+  const history=Array.from({length:8},(_,index)=>({role:index%2?'user':'assistant',content:(index%2?'이전 요청 ':'이전 답변 ')+index+' '+'자세한 설명입니다. '.repeat(260)}));
+  const {compacted}=await twoTurns(t,{history});
+  assert.ok(compacted.length>0);
+  for(const messages of compacted){
+    const said=plain(messages);
+    assert.equal(said.at(-1),SECOND,'last: '+JSON.stringify(said.map(text=>text.slice(0,20))));
+    assert.equal(messages.filter(message=>message.role==='user'&&String(message.content)===FIRST).length<=1,true,'the first request once');
+    assert.ok(messages.some(message=>message.role==='user'&&String(message.content).includes(FIRST)),'the first request is still there word for word');
+  }
+});
+
 test('the newest messages of the user are kept first when all do not fit',async()=>{
   const {spokenTurns}=await import('../runtime/agent.mjs');
   const long='가'.repeat(3000),task={request:'첫 요청',messages:[{role:'user',content:long+'1'},{role:'assistant',content:'답'},{role:'user',content:long+'2'},{role:'user',content:'지금 요청'}]};
@@ -85,7 +104,9 @@ test('the newest messages of the user are kept first when all do not fit',async(
 // document of 2,500 characters left no room, and the run stopped with
 // context_compaction_failed.
 test('a long pasted message does not stop a run in a small window',async t=>{
-  const pasted='아래 회의록을 정리해 줘.\n\n'+'회의에서 정한 내용을 적은 문장입니다. '.repeat(120);
+  // Longer than the room for protected messages. A small window counts only the tools it sends since B8,
+  // so the room is larger and the document is longer than the 2,500 characters it was.
+  const pasted='아래 회의록을 정리해 줘.\n\n'+'회의에서 정한 내용을 적은 문장입니다. '.repeat(300);
   const history=[{role:'assistant',content:'확인했습니다.'},{role:'user',content:pasted},{role:'assistant',content:'정리했습니다.'}];
   const {compacted,summaries,service,task}=await twoTurns(t,{history});
   assert.equal(service.task(task.id).error||null,null);
@@ -148,7 +169,9 @@ test('protected messages that the window cannot hold are left to the summary ins
   await mkdir(path.join(root,'docs'));
   await writeFile(path.join(root,'docs','big.md'),Array.from({length:900},(_,i)=>`line ${i+1} `+'reference text for the measurement of compaction. '.repeat(2)).join('\n'));
   await git(root,['add','-A']);await git(root,['commit','-qm','big document']);
-  const long='앞부분까지 확인했습니다. '+'확인한 내용을 자세히 적은 문장입니다. '.repeat(260);
+  // Longer than what the window leaves beside the fixed part. A small window offers fewer tools
+  // since B8, so the fixed part is smaller and the answer is longer than it was.
+  const long='앞부분까지 확인했습니다. '+'확인한 내용을 자세히 적은 문장입니다. '.repeat(520);
   let step=0,next=1,reviews=0,summaries=0;const rounds=[];
   service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:22000}]}),dispose(){},async complete(messages){
     if(messages[0].content.startsWith('Summarize conversation')){summaries++;return {content:JSON.stringify(summary),calls:[]};}
@@ -171,4 +194,42 @@ test('protected messages that the window cannot hold are left to the summary ins
   assert.ok(users.includes(SECOND),'the short request still stands word for word');
   assert.ok(users.some(text=>text.startsWith('Independent review found unfinished work')),'the feedback of the review too');
   assert.ok(!last.some(message=>message.role==='assistant'&&message.content===long),'the long answer under revision is in the summary');
+});
+
+// User decision 2026-09-29. Found in the first compaction measurement: the
+// newest result is never summarized, so one result that filled the window
+// stopped the run with context_compaction_failed. Such a result is cleared
+// and says how to read it again in smaller parts.
+test('a newest result that the window cannot hold is cleared with a way to read it again',async t=>{
+  const {service,root}=await fixture(t);
+  await mkdir(path.join(root,'docs'));
+  await writeFile(path.join(root,'docs','many.md'),Array.from({length:60},(_,index)=>`NEEDLE ${index+1} `+'long line of text about the needle in this document. '.repeat(9)).join('\n'));
+  await git(root,['add','-A']);await git(root,['commit','-qm','many matches']);
+  let step=0,summaries=0;const seen=[];
+  // A window that the result exceeds. A small window offers fewer tools since B8, so the window is smaller than it was.
+  service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:16000}]}),dispose(){},async complete(messages){
+    if(messages[0].content.startsWith('Summarize conversation')){summaries++;return {content:JSON.stringify(summary),calls:[]};}
+    const names=new Map();for(const message of messages)for(const item of message.tool_calls||[])names.set(item.id,item.function.name);
+    seen.push(messages.filter(message=>message.role==='tool').map(message=>({tool:names.get(message.tool_call_id),text:message.content})));
+    return step++===0?call('source_search',{query:'NEEDLE',within:'docs/many.md'}):{content:'일치하는 줄이 많아 범위를 좁혀야 합니다.',calls:[]};
+  }};
+  const task=await service.createTask({request:SECOND});await service.startAgent({taskId:task.id});await service.agent.promise;
+  const done=service.task(task.id);
+  assert.equal(done.error||null,null);assert.equal(done.state,'review');
+  const result=seen.at(-1).find(item=>item.tool==='source_search'),cleared=JSON.parse(result.text);
+  assert.equal(cleared.contextCleared,true);assert.equal(cleared.reason,'result_larger_than_window');assert.equal(cleared.tool,'source_search');
+  assert.ok(cleared.characters>15000,'the size of what was cleared: '+cleared.characters);
+  assert.match(cleared.instruction,/smaller/);assert.ok(result.text.length<1500);
+  assert.ok(!result.text.includes('long line of text about the needle'),'the text itself is gone');
+});
+
+test('a cleared read keeps where it was read from',async()=>{
+  const {clearedResult}=await import('../runtime/agent.mjs');
+  const read=JSON.stringify({path:'docs/a.md',content:'x'.repeat(30000),hash:'sha256:abc',lines:900,start:201,end:400,nextStart:401,analysis_evidence_id:'ev_7'});
+  const cleared=JSON.parse(clearedResult('read_source',read));
+  assert.deepEqual(cleared.source,{path:'docs/a.md',hash:'sha256:abc',lines:900,start:201,end:400,nextStart:401});
+  assert.equal(cleared.analysis_evidence_id,'ev_7');assert.equal(cleared.characters,read.length);
+  assert.match(cleared.instruction,/read_source/);
+  const plain=JSON.parse(clearedResult('read_process_output','not json '.repeat(3000)));
+  assert.equal(plain.contextCleared,true);assert.equal(plain.source,undefined);
 });

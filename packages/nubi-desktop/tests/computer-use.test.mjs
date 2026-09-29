@@ -293,7 +293,9 @@ test('three unchanged Windows failures pause the same task in existing HITL with
 });
 
 test('a pending or uncertain newer operation blocks continuation from an older result',async t=>{
-  const {service,task,data,propose,decide}=await setup(t);const first=await propose();await decide(first);const next=await propose();
+  const {service,task,data,propose,decide}=await setup(t);const first=await propose();await decide(first);
+  // The first action changed nothing that the host saw: the same proposal is warned about once, then accepted.
+  await assert.rejects(()=>propose(),/computer_no_effect_repeat/);const next=await propose();
   const args={method:'review_result',taskId:task.id,id:first.id,fingerprint:first.fingerprint};
   await assert.rejects(()=>service.computer(args),/computer_review_required/);
   data.failAction=true;await decide(next);await assert.rejects(()=>service.computer(args),/computer_review_required/);

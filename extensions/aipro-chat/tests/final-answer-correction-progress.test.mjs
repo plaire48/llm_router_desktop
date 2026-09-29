@@ -106,8 +106,16 @@ test('a new explicit user request gets a fresh correction frontier without relax
   assert.deepEqual(run.executed, ['read_page']);
 });
 
-test('new external source content establishes a separate correction frontier', async () => {
-  const run = await sequence([reviewed(3, 2), reviewed(4, 1), reviewed(3, 2), reviewed(4, 1), complete], {extraReadAt: 4});
-  assert.equal(run.reviewedCount, 5); assert.equal(run.children, 0); assert(!run.result.awaitingUser);
+test('new external source content establishes a separate correction frontier within the round limit', async () => {
+  const run = await sequence([reviewed(3, 2), reviewed(4, 1), complete], {extraReadAt: 3});
+  assert.equal(run.reviewedCount, 3); assert.equal(run.children, 0); assert(!run.result.awaitingUser);
+  assert.equal(run.result.reviewLimited, undefined);
   assert.deepEqual(run.executed, ['read_page', 'read_page']);
+});
+
+test('a lookup that still has a gap at the fourth review is released with it instead of being reviewed again', async () => {
+  // Measured over 75 runs: 45 of the 47 answers that passed did so within three revisions.
+  const run = await sequence([reviewed(3, 2), reviewed(4, 1), reviewed(3, 2), reviewed(4, 1), complete], {extraReadAt: 4});
+  assert.equal(run.reviewedCount, 4); assert(!run.result.awaitingUser); assert.equal(run.result.reviewLimited, true);
+  assert.match(run.result.content, /독립 검토를 4회 거쳤지만/); assert.match(run.result.content, /- \(확인하지 못함\) 요구사항 4/);
 });

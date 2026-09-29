@@ -204,3 +204,17 @@ test('recovery guidance contains fixed causes, never private values or page inst
     return done;
   }, execute: async () => ({error: 'PRIVATE_PAGE_INSTRUCTION', actionIssued: false}), reviewGoal: async () => ({status: 'complete'})});
 });
+
+// Every observation names its text regions with a new region_ref. Counted as
+// content, each read of an unchanged page was a change, and a failing script
+// was retried 346 times without the loop being noticed.
+test('fresh region references are not new page content', () => {
+  const recovery = createBrowserRecovery();
+  const read = (page, i) => {
+    const observation = snapshot(`ref-${i}`, page);
+    observation.frames[0].retrieval = {method: 'visible_text', textRegions: [{index: 0, heading: page, region_ref: `r-${crypto.randomUUID()}-0`}]};
+    return recovery.observe('browser_snapshot', {}, observation, 'read');
+  };
+  const counts = ['A', 'B', 'A', 'B', 'A', 'B'].map((page, i) => read(page, i).repetitions);
+  assert.deepEqual(counts, [1, 1, 1, 2, 2, 3]);
+});

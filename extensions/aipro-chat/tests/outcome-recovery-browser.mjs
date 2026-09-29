@@ -7,8 +7,8 @@ import {planCompletion} from './fixtures/task-plan.mjs';
 import {goalReviewPayload, reviewCompletion} from './fixtures/goal-review.mjs';
 
 const profile = await mkdtemp(resolve(tmpdir(), 'nubi-outcome-recovery-')), extension = resolve(profile, 'extension');
-let context, ui, target, failure, stage = 0, checkpoints = 0, firstRef;
-const errors = [], checks = [], reasons = [];
+let context, ui, target, failure, stage = 0, checkpoints = 0, firstRef, analystCalls = 0;
+const errors = [], checks = [], reasons = [], reviewPhases = [];
 const reply = (name, args = {}, content = '') => ({choices: [{message: {content, ...(name ? {tool_calls: [{id: crypto.randomUUID(), type: 'function', function: {name, arguments: JSON.stringify(args)}}]} : {})}, finish_reason: name ? 'tool_calls' : 'stop'}], usage: {prompt_tokens: 100, completion_tokens: 10, total_tokens: 110}});
 const state = () => ui.evaluate(async () => (await chrome.runtime.sendMessage({type: 'GET_STATE'})).data);
 const ref = (result, name) => {const found = (result.observation || result).frames.flatMap(frame => frame.elements || []).find(element => element.name === name); assert(found, name); return found.ref;};
@@ -40,8 +40,19 @@ try {
     const review = goalReviewPayload(body.messages);
     if (review) {
       if (review.phase === 'checkpoint') {checkpoints++; assert.equal(stage, 4, 'Diagnosis must happen after the second failure despite the successful read');}
-      else {assert.equal(stage, 11); assert.equal(await target.locator('output').textContent(), '표준 안내 문서 1건');}
+      else {reviewPhases.push([review.phase, stage]); assert.equal(await target.locator('output').textContent(), '표준 안내 문서 1건');}
       return route.fulfill({json: reviewCompletion(review)});
+    }
+    // The second identical stale-target failure starts one read-only recovery
+    // analyst (action-recovery-analysis.js). It never acts in the browser.
+    if (/isolated recovery analyst/.test(body.messages[0].content)) {
+      analystCalls++; assert(stage >= 4, 'Analysis starts only after the second stale failure');
+      assert.deepEqual(body.tools.map(tool => tool.function.name), ['read_analysis_evidence']);
+      const brief = JSON.parse(body.messages[1].content), id = brief.evidence[0].evidence_id;
+      assert.match(brief.task, /repeated browser_stale result from click_element/);
+      if (!body.messages.some(message => message.role === 'tool')) return route.fulfill({json: reply('read_analysis_evidence', {evidence_id: id})});
+      return route.fulfill({json: reply(null, {}, JSON.stringify({status: 'complete', summary: '검색 버튼이 다시 그려져 이전 참조가 만료되었습니다.',
+        findings: [{text: '새 관찰의 검색 버튼 참조를 사용해야 합니다.', evidence_ids: [id]}], uncertainties: [], next_step: '새 관찰의 참조로 검색어를 입력하고 검색하세요.'}))});
     }
     const last = body.messages.findLast(message => message.role === 'tool'), result = last && JSON.parse(last.content);
     const current = stage++;
@@ -57,7 +68,9 @@ try {
     }
     if (current === 2) {
       assert.equal(result.reason, 'browser_stale'); reasons.push(result.reason);
-      assert(result.visualRecovery); assert.equal((await target.evaluate(() => events)).length, 0);
+      // A stale ref already returns a fresh observation; no screenshot is taken (agent-runtime.js visual recovery).
+      assert(!result.visualRecovery && !result.image); assert.notEqual(ref(result, '검색'), firstRef);
+      assert.equal((await target.evaluate(() => events)).length, 0);
       name = 'browser_snapshot';
     }
     if (current === 4) {
@@ -77,7 +90,9 @@ try {
     if (current === 8) {name = 'click_element'; args = {ref: ref(result, '검색')};}
     if (current === 9) {name = 'verify_page'; args = {checks: [{kind: 'field_value', ref: ref(result, '검색어'), expected: '표준 안내'}, {kind: 'text_present', expected: '표준 안내 문서 1건'}]};}
     if (current === 10) {assert.equal(result.verified, true); content = '전체 문서에서 표준 안내 문서 1건을 확인했습니다.';}
-    assert(current <= 10, 'No unexpected replay or clarification');
+    // The first plan stage passed its review; the last stage reports without another action.
+    if (current === 11) {assert.match(body.messages.at(-1).content, /Later stages remain unfinished/); content = '전체 문서에서 표준 안내 문서 1건을 확인했습니다.';}
+    assert(current <= 11, 'No unexpected replay or clarification');
     return route.fulfill({json: reply(name, args, content)});
   } catch (error) {failure = error; await route.fulfill({status: 400, body: 'Synthetic assertion failed'});}});
   const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
@@ -97,7 +112,8 @@ try {
   await ui.getByRole('button', {name: '전송', exact: true}).click();
   await until(async () => ['done', 'error'].includes((await state()).chat.messages.at(-1)?.state));
   const saved = await state(), answer = saved.chat.messages.at(-1);
-  assert.equal(answer.state, 'done', JSON.stringify(answer)); assert.equal(stage, 11); assert.equal(checkpoints, 1);
+  assert.equal(answer.state, 'done', JSON.stringify(answer)); assert.equal(stage, 12); assert.equal(checkpoints, 1); assert.equal(analystCalls, 2);
+  assert.deepEqual(reviewPhases, [['plan_step', 11], ['plan_step', 12], ['final', 12]]);
   assert.deepEqual(reasons, ['browser_stale', 'browser_stale', 'verification_failed']);
   const events = await target.evaluate(() => window.events);
   assert.deepEqual(events.filter(event => event.kind === 'input'), [{kind: 'input', trusted: true}]);
@@ -110,7 +126,7 @@ try {
   assert.equal(saved.chat.task.goalReview.status, 'complete');
   assert.equal(answer.trace.filter(step => step.status === 'error').length, 3);
   assert(answer.trace.some(step => step.tool === 'progress_note' && step.content.includes('전체 문서')));
-  checks.push('Real stale references trigger visual observation and independent diagnosis despite successful rereads',
+  checks.push('Real stale references return fresh refs without a screenshot and trigger one read-only recovery analyst and independent diagnosis despite successful rereads',
     'A failed result check reaches the next model turn, which changes scope before another search',
     'Exactly one trusted input and two purposeful searches complete the goal without replaying input',
     'Qwen receives one system message and fresh evidence on each corrective turn');

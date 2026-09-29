@@ -65,7 +65,8 @@ try {
       if (stage === 0) {assert(names.includes('find_skills')); assert(!environment.includes('Evidence contract')); name = 'find_skills'; args = {query: 'OpenWiki'};}
       if (stage === 1) {assert.equal(result.skills[0].id, 'openwiki-page-workflow'); name = 'read_skill'; args = {skill_id: result.skills[0].id};}
       if (stage === 2) {assert.equal(result.dataKind, 'skill_reference'); assert(result.resources.some(item => item.path === 'references/evidence-contract.md')); name = 'read_skill'; args = {skill_id: 'openwiki-page-workflow', path: 'references/evidence-contract.md'};}
-      if (stage === 3) {assert.match(result.content, /Evidence contract/); name = 'select_tools'; args = {groups: ['project']};}
+      // ask_openwiki belongs to the knowledge group; project holds the source tools.
+      if (stage === 3) {assert.match(result.content, /Evidence contract/); name = 'select_tools'; args = {groups: ['knowledge']};}
       if (stage === 4) {assert(names.includes('ask_openwiki')); name = 'ask_openwiki'; args = {wiki:'external',question: 'How does CheckoutButton present the review before payments?'};}
       if (stage === 5) {assert.equal(result.engine, 'openwiki-deepagents'); assert(result.evidence.some(item => item.excerpt.includes('CheckoutButton'))); assert.equal(result.coverage.sourceComplete, true); assert(names.includes('read_page')); name = 'read_page';}
       if (stage === 6) {
@@ -119,7 +120,11 @@ try {
   const answer = await poll(async () => (await state()).chat.messages.at(-1), value => ['done', 'error'].includes(value?.state));
   assert.equal(answer.state, 'done', answer.error);
   assert.equal((await state()).page.url, `${fixture.origin}/checkout`);
-  assert.deepEqual(answer.trace.filter(step => ['read_page', 'source_search', 'read_source'].includes(step.tool)).map(step => [step.tool, step.status]), [['read_page', 'done'], ['source_search', 'done'], ['read_source', 'done']]);
+  // After the model's read_page the host reads the opened page's content once
+  // on its own (automatic source capture, labelled '출처 본문 확보').
+  const readSteps = answer.trace.filter(step => ['read_page', 'source_search', 'read_source'].includes(step.tool));
+  assert(readSteps.filter(step => step.label === '출처 본문 확보').length <= 1);
+  assert.deepEqual(readSteps.filter(step => step.label !== '출처 본문 확보').map(step => [step.tool, step.status]), [['read_page', 'done'], ['source_search', 'done'], ['read_source', 'done']]);
   check('workflow discovery, selective resource reads and real OpenWiki evidence retrieval precede browser use');
   check('the current application tab is observed automatically and project source tools run in the same chat');
   assert(reviewed); assert(screenEvidence && sourceEvidence);

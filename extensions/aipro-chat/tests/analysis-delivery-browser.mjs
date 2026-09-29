@@ -4,7 +4,7 @@ import {mkdtemp, cp, readFile, writeFile, rm, mkdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {resolve} from 'node:path';
 import {createServer} from 'node:http';
-import {planCompletion} from './fixtures/task-plan.mjs';
+import {planCompletion, fixturePlan} from './fixtures/task-plan.mjs';
 import {goalReviewPayload} from './fixtures/goal-review.mjs';
 
 const profile = await mkdtemp(resolve(tmpdir(), 'nubi-analysis-delivery-')), extension = resolve(profile, 'extension');
@@ -14,7 +14,7 @@ const server = createServer((_, response) => {
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const origin = `http://127.0.0.1:${server.address().port}`;
-let context, ui, worker, source, failure, round = 0, calls = 0, finalReviews = 0, stepReviews = 0, releaseReview, reviewReleased = false;
+let context, ui, worker, source, failure, round = 0, calls = 0, finalReviews = 0, stepReviews = 0, stageTurns = 0, releaseReview, reviewReleased = false;
 const reviewGate = new Promise(resolve => {releaseReview = () => {reviewReleased = true; resolve();};});
 const errors = [], checks = [], packets = [], roleStarts = new Set();
 const usage = {prompt_tokens: 100, completion_tokens: 20, total_tokens: 120};
@@ -70,6 +70,12 @@ try {
       return route.fulfill({json: reply(null, {}, JSON.stringify({status: 'complete', summary: role === 'page' ? '담당 팀 확인' : '마감일 확인',
         findings: [{text: role === 'page' ? '담당 팀은 개발팀입니다.' : '마감일은 10월 8일입니다.', evidence_ids: [evidence.evidence_id]}], uncertainties: [], next_step: ''}))});
     }
+    // One plan stage is reviewed per text answer; the host then asks for the
+    // next stage. Restate the same answer: it is not a new executor round and
+    // the final review still judges the whole answer against the page.
+    if (String(body.messages.at(-1)?.content || '').startsWith('The current stage passed independent review')) {
+      stageTurns++; return route.fulfill({json: reply(null, {}, body.messages.findLast(message => message.role === 'assistant' && message.content)?.content || '')});
+    }
     const last = body.messages.findLast(message => message.role === 'tool'), result = last && JSON.parse(last.content);
     const delivered = body.messages.filter(message => message.role === 'user' && String(message.content).startsWith('Delegated analysis returned.'))
       .map(message => JSON.parse(message.content.split('\n').slice(1).join('\n')));
@@ -123,7 +129,7 @@ try {
   await ui.getByRole('textbox', {name: '메시지', exact: true}).fill('안내의 담당 팀과 마감일을 각각 확인하고 담당 팀을 초안에 입력해줘. 등록하지 마.');
   await ui.getByRole('button', {name: '전송', exact: true}).click();
   await until(async () => ['done', 'error'].includes((await state()).chat.messages.at(-1)?.state) && !(await state()).busy);
-  const final = await state(); assert.equal(final.chat.messages.at(-1).state, 'done'); assert.equal(finalReviews, 1); assert.equal(stepReviews,1);
+  const final = await state(); assert.equal(final.chat.messages.at(-1).state, 'done'); assert.equal(finalReviews, 1); assert.equal(stepReviews, fixturePlan.length); assert.equal(stageTurns, stepReviews - 1);
   assert.equal(final.chat.task.goalReview.status, 'complete');
   assert.equal(final.usage.total.aipro.calls, calls); assert.equal(final.usage.total.aipro.total, calls * 120);
   assert.equal(await source.evaluate(() => writes), 0); assert.equal(await source.evaluate(() => submits), 0);
