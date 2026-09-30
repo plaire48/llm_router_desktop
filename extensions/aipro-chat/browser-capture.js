@@ -6,7 +6,7 @@ const secretFields = 'input[type="password"],input[autocomplete^="cc-"],input[na
 
 function layout() {
   const root = document.documentElement, body = document.body;
-  return {width: innerWidth, height: innerHeight, scrollX, scrollY,
+  return {width: innerWidth, height: innerHeight, scrollX, scrollY, pixelRatio: devicePixelRatio,
     documentWidth: Math.max(root.clientWidth, root.scrollWidth, root.offsetWidth, body?.clientWidth || 0, body?.scrollWidth || 0, body?.offsetWidth || 0),
     documentHeight: Math.max(root.clientHeight, root.scrollHeight, root.offsetHeight, body?.clientHeight || 0, body?.scrollHeight || 0, body?.offsetHeight || 0)};
 }
@@ -33,6 +33,27 @@ export function screenshotOptions(value) {
       value.fullPage !== undefined && typeof value.fullPage !== 'boolean' || value.region !== undefined && value.fullPage !== false) throw new Error('tool_arguments_invalid');
   const region = captureRegion(value.region);
   return {full_page: value.fullPage !== false, ...(region ? {region} : {})};
+}
+// The tab's own capture draws no masks: secret fields are covered and the
+// action pointer is hidden in the page for the moment of the capture.
+function coverSecrets({selector, color, token}) {
+  const layer = document.createElement('div');
+  layer.setAttribute('data-nubi-capture-cover', token);
+  layer.style.cssText = 'position:absolute;left:0;top:0;width:0;height:0;pointer-events:none;z-index:2147483647';
+  for (const field of document.querySelectorAll(selector)) {
+    const box = field.getBoundingClientRect();
+    if (!box.width || !box.height) continue;
+    const cover = document.createElement('div');
+    cover.style.cssText = `position:absolute;left:${box.left + scrollX}px;top:${box.top + scrollY}px;width:${box.width}px;height:${box.height}px;background:${color}`;
+    layer.append(cover);
+  }
+  const style = document.createElement('style');
+  style.setAttribute('data-nubi-capture-cover', token);
+  style.textContent = 'nubi-action-pointer { visibility: hidden !important; }';
+  document.documentElement.append(layer, style);
+}
+function uncoverSecrets(token) {
+  for (const node of document.querySelectorAll(`[data-nubi-capture-cover="${token}"]`)) node.remove();
 }
 async function withinCaptureDeadline(operation, deadline, cancelled) {
   if (cancelled()) throw new Error('cancelled');
@@ -107,16 +128,67 @@ async function stitchedPage(page, before, shot, deadline, cancelled) {
   }
   throw new Error('capture_too_large');
 }
-export async function captureBrowserPage(page, {fullPage = true, region, cancelled = () => false, deadlineMs = 16000} = {}) {
+// Chrome's page zoom: Playwright's screenshot assumes none. Measured at 125%: a
+// viewport image was 80% of the page in each direction, a clip landed 20% off,
+// and every capture failed as "캡처 범위 확인" (reported from a company PC). At a
+// zoom other than 100% the tab's own capture is used: clips in document
+// coordinates times the zoom, scaled to CSS pixels, so sizes, regions and click
+// coordinates stay those of the page.
+const scaleCorrections = new Map();
+async function tabCapture(page, before, zoom, capture, options, deadline, cancelled) {
+  const {fullPage = false, clip} = options;
+  const rect = fullPage ? (clip || {x: 0, y: 0, width: before.documentWidth, height: before.documentHeight})
+    : clip ? {x: clip.x + before.scrollX, y: clip.y + before.scrollY, width: clip.width, height: clip.height}
+      : {x: before.scrollX, y: before.scrollY, width: before.width, height: before.height};
+  const token = crypto.randomUUID(), frames = page.frames(), width = Math.round(rect.width), height = Math.round(rect.height);
+  // The clip is in window pixels (CSS pixels times the zoom), so it holds the
+  // right part of the page whatever the display scale is; only the image's scale
+  // can be off. Measured with Windows-style display scaling at 125% and a 125%
+  // zoom: the image came 1000x700 for an 800x560 page, as the debugger session
+  // reports another device scale than the page does. A scale that is off by the
+  // same factor both ways is corrected, taken again once and kept for later.
+  const key = `${before.pixelRatio}|${zoom}`;
+  await Promise.allSettled(frames.map(frame => frame.evaluate(coverSecrets, {selector: secretFields, color: '#E5E8EB', token})));
+  let bytes, size;
+  try {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const correction = scaleCorrections.get(key) || 1;
+      bytes = await withinCaptureDeadline(() => capture({clip: {x: rect.x * zoom, y: rect.y * zoom, width: rect.width * zoom, height: rect.height * zoom, scale: correction / before.pixelRatio},
+        ...(fullPage ? {captureBeyondViewport: true} : {})}), deadline, cancelled);
+      size = pngSize(bytes);
+      const [across, down] = [width / size.width, height / size.height];
+      if (Math.abs(size.width - width) <= 2 && Math.abs(size.height - height) <= 2 || Math.abs(across - down) > .02 * Math.max(across, down)) break;
+      scaleCorrections.set(key, correction * (across + down) / 2);
+      while (scaleCorrections.size > 16) scaleCorrections.delete(scaleCorrections.keys().next().value);
+    }
+  } finally {await Promise.allSettled(frames.map(frame => frame.evaluate(uncoverSecrets, token)));}
+  // Chrome rounds the zoomed clip to whole pixels, so the image can be a pixel
+  // short (measured at 90%: 1110 for 1111). Drawn at the page's exact size, the
+  // image keeps click coordinates and the viewport comparison exact. So is an
+  // image still off by one factor both ways.
+  const [across, down] = [width / size.width, height / size.height];
+  if (size.width === width && size.height === height || (Math.abs(size.width - width) > 2 || Math.abs(size.height - height) > 2) && Math.abs(across - down) > .02 * Math.max(across, down)) return bytes;
+  const bitmap = await createImageBitmap(new Blob([bytes], {type: 'image/png'}));
+  try {
+    const canvas = new OffscreenCanvas(width, height), context = canvas.getContext('2d');
+    context.imageSmoothingQuality = 'high'; context.drawImage(bitmap, 0, 0, width, height);
+    return new Uint8Array(await (await canvas.convertToBlob({type: 'image/png'})).arrayBuffer());
+  } finally {bitmap.close?.();}
+}
+export async function captureBrowserPage(page, {fullPage = true, region, cancelled = () => false, deadlineMs = 16000, zoom = 1, capture} = {}) {
   if (typeof fullPage !== 'boolean') throw new Error('tool_arguments_invalid');
   const selected = captureRegion(region);
   if (selected && fullPage) throw new Error('tool_arguments_invalid');
   let deadline=Date.now()+deadlineMs;
   const masks = page.frames().map(frame => frame.locator(secretFields));
-  const shot = options => page.screenshot({type: 'png', scale: 'css', style: 'nubi-action-pointer { visibility: hidden !important; }', mask: masks, maskColor: '#E5E8EB', timeout: Math.max(1000, deadline - Date.now()), ...options});
+  const zoomed = typeof capture === 'function' && Number.isFinite(zoom) && zoom > 0 && Math.abs(zoom - 1) > 0.001;
+  let before;
+  const shot = zoomed ? options => tabCapture(page, before, zoom, capture, options, deadline, cancelled)
+    : options => page.screenshot({type: 'png', scale: 'css', style: 'nubi-action-pointer { visibility: hidden !important; }', mask: masks, maskColor: '#E5E8EB', timeout: Math.max(1000, deadline - Date.now()), ...options});
   for (let attempt = 0; attempt < 2; attempt++) {
     if (cancelled()) throw new Error('cancelled');
-    const url = page.url(), before = await withinCaptureDeadline(()=>page.evaluate(layout),deadline,cancelled);
+    const url = page.url();
+    before = await withinCaptureDeadline(()=>page.evaluate(layout),deadline,cancelled);
     if (selected && (selected.x + selected.width > before.width || selected.y + selected.height > before.height)) throw new Error('tool_arguments_invalid');
     const expected = {width: selected?.width || (fullPage ? before.documentWidth : before.width), height: selected?.height || (fullPage ? before.documentHeight : before.height)};
     if (!expected.width || !expected.height) throw new Error('capture_too_large');
@@ -147,7 +219,7 @@ export async function captureBrowserPage(page, {fullPage = true, region, cancell
     const keys = fullPage ? Object.keys(before) : ['width', 'height', 'scrollX', 'scrollY'];
     if (page.url() !== url || keys.some(key => before[key] !== after[key])) continue;
     return {screenshot: {id: crypto.randomUUID(), ...before, ...dimensions, viewportWidth: before.width, viewportHeight: before.height, mode: fullPage ? 'page' : selected ? 'region' : 'viewport',
-      ...(scale < 1 ? {scale: Math.round(scale * 1000) / 1000} : {}), ...(sections > 1 ? {sections} : {}), ...(uncovered ? {documentCovered: false} : {}), ...(selected ? {region: selected} : {}), url, at: Date.now()},
+      ...(scale < 1 ? {scale: Math.round(scale * 1000) / 1000} : {}), ...(sections > 1 ? {sections} : {}), ...(uncovered ? {documentCovered: false} : {}), ...(selected ? {region: selected} : {}), ...(zoomed ? {pageZoom: zoom} : {}), url, at: Date.now()},
       viewport: {width: before.width, height: before.height, scrollX: before.scrollX, scrollY: before.scrollY}, image: {data, mimeType: 'image/png'}};
   }
   throw Object.assign(new Error('browser_stale'), {reason: 'viewport_changed'});

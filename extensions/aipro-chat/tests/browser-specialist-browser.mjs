@@ -122,8 +122,8 @@ try {
   assert.equal(result.error,'approval_required',JSON.stringify(result));assert.equal(await page.evaluate(()=>sent),0);
   check('actual requested fields pass fresh verification and ref-based final sending still stops for approval');
 
-  // More controls than one observation holds (up to 400 within a size budget).
-  await page.evaluate(()=>{for(let i=0;i<450;i++){const b=document.createElement('button');b.textContent='배경 '+i;document.body.prepend(b);}});
+  // More controls than one observation holds (up to 600 within a size budget).
+  await page.evaluate(()=>{for(let i=0;i<700;i++){const b=document.createElement('button');b.textContent='배경 '+i;document.body.prepend(b);}});
   result=await run('browser_snapshot');
   assert(result.frames[0].truncated);assert(result.frames[0].omittedControls>0);assert(byId(result,'subject'));
   result=await run('browser_snapshot',{query:'메일 초안'});

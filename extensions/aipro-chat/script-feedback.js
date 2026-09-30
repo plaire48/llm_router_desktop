@@ -35,6 +35,7 @@ export const SCRIPT_FAILURES = Object.freeze({
   script_secret_field: ['보호된 입력란', 'This input is protected. Do not bypass the guard or read authentication data.'],
   script_cpu_limit: ['코드 실행 시간 초과', 'Split the script into small awaited steps. Remove busy loops and inspect results between steps.'],
   script_invalid: ['코드 형식 오류', 'Use the declared schema and a short complete JavaScript function body.'],
+  fill_would_erase: ['기존 내용 보존', 'No field was written. The fields in erasing already hold text that this write would erase: in a mail reply or forward, the quoted original message and the signature. To add the text, use fill_form with position "start" (above the existing text, as for a reply or forward) or "end". If it is unclear, or the user may want it replaced, ask with ask_user: choices 기존 내용 위에 추가, 기존 내용 아래에 추가, 기존 내용 지우고 새로 쓰기, and input_mode text. Use replace_existing true only after the user chose to replace it.'],
   check_invalid: ['확인 항목 형식 오류', 'No check ran: the checks in invalidChecks are malformed, each with the reason. Correct only those, keep the others, and call verify_page again with current refs. Do not read the values with a script instead: a script read is not a verification. Do not repeat earlier actions.'],
   fill_not_retained: ['입력 반영 확인', 'Read the current field and visible save state. Do not append or fill the same content again without checking what was retained.'],
   cancelled: ['취소', 'The task was cancelled. Do not repeat or resume its actions.'],

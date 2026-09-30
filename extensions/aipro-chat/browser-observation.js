@@ -95,14 +95,16 @@ export async function bindObservedRef(task, entry, safeURL, {relink = false} = {
 }
 
 // Which of the controls a page returned go to the model. Up to 180 always, as
-// before; more while the grouped lines stay within about 12K tokens, up to 400.
+// before; more while the grouped lines stay within about 24K tokens, up to 600.
+// Models here read 256K or 512K tokens and the conversation is compacted, so a
+// control left out (the model then guesses or asks) costs more than its line.
 // When not all fit: dialog controls, the focused control, then the controls that
 // match the user's request (ranked here in the extension; the request is never
 // sent into the page), then the rest in page order. Kept in page order, so the
 // controls of one row stay together. Measured on a 30-row time sheet: the first
 // 180 controls in page order left out the two cells the request named.
-const CONTROL_FLOOR = 180, CONTROL_CHARACTERS = 36000;
-export const CONTROL_LIMIT = 400;
+const CONTROL_FLOOR = 180, CONTROL_CHARACTERS = 72000;
+export const CONTROL_LIMIT = 600;
 export const CONTROLS_HINT = 'Not every control was returned. To act on a table row or a field that is not listed, observe again with a query naming its row, column or label; matching controls come first.';
 // About the characters a control takes in the grouped lines the model reads: its
 // line, and a share of the line naming its row or form.
@@ -151,7 +153,7 @@ export async function readWithoutDebugger(task, query, safeURL, cancelled, expec
       }
       if (!record?.result || record.result.error) throw new Error('browser_stale');
       const {descriptors: returned, text, textFiltered, textChecks, truncated: pageTruncated, regions, headings, retrieval, alerts, omittedControls: pageOmitted, pageState, surfaces, tables, tableCoverage, coverage: pageCoverage, page_view, queryUnmatched} = record.result;
-      // The page may return up to 400 controls; the budget and the user's request choose among them here.
+      // The page may return up to 600 controls; the budget and the user's request choose among them here.
       const descriptors = query ? returned : selectControls(returned, task.goalHint).map(index => returned[index]);
       const dropped = returned.length - descriptors.length, truncated = pageTruncated || dropped > 0, omittedControls = (pageOmitted || 0) + dropped;
       const coverage = dropped > 0 ? {...pageCoverage, controlsReturned: descriptors.length, controlsHint: CONTROLS_HINT} : pageCoverage;

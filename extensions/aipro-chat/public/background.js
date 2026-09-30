@@ -6,6 +6,7 @@ import {createNativeDialogRequests} from './native-dialog-request.js';
 import {reconciliationProof,unresolvedReconciliations,reconcilesProofs} from './restart-reconciliation.js';
 import {sameVerifiedDocuments} from './uncertain-action.js';
 import {MUTATING_TOOLS} from './agent-harness.js';
+import {recordStep as recordReplayStep, replayRecord} from './browser-replay.js';
 import {isPlanCommand, planningRequest, planTools, planToolAllowed} from './plan-mode.js';
 import {documentObservedPage, knowledgeState, knowledgeURL, knowledgeOrigin, siteWikiOrigins, routeStep, extendRoute, learnPage, autoRefreshPage, restoreKnowledge, invalidatePage, searchKnowledge, knowledgePacket, wikiOffer, wikiSource, parseWikiDraft, observationHash, observationDrift, SITE_WIKI_TOOLS, hasSiteWiki, executeSiteWiki, siteWikiSnapshot} from './browser-knowledge.js';
 import {resolveSkillCommand} from './skill-command.js';
@@ -230,7 +231,7 @@ async function rememberBrowserContext(lease) {
   if (context.workspace) browserWorkspaces[lease.conversationId] = context.workspace;
   await chrome.storage.session.set({chatLease: {...chatLease, browserContext: context}, browserContexts: Object.fromEntries(Object.entries(browserContexts).slice(-40)), browserWorkspaces});
 }
-async function saveActionApproval(lease, record, verifiedBeforeTool) {
+async function saveActionApproval(lease, record, verifiedBeforeTool, replay = null) {
   if (record.kind !== 'mcp' && (!verifiedBeforeTool || record.afterActions)) return {error: 'approval_verification_required'};
   const {chatLease, actionApprovals = {}} = await getSession();
   const {chat} = await chrome.storage.local.get('chat');
@@ -244,7 +245,7 @@ async function saveActionApproval(lease, record, verifiedBeforeTool) {
   const {preview, summary, afterActions, ...binding} = record;
   const previous = actionApprovals[chat.sessionId];
   actionApprovals[chat.sessionId] = {...binding, browserContext: browserAgentContext(lease.id), questionId: question.id, conversationId: chat.sessionId,
-    provider: lease.provider, credentialReceivedAt: lease.credentialReceivedAt};
+    provider: lease.provider, credentialReceivedAt: lease.credentialReceivedAt, ...(replay ? {replay} : {})};
   await chrome.storage.session.set({actionApprovals});
   try {
     reply.question = question;
@@ -870,7 +871,7 @@ async function handle(message, sender, owner) {
       if (message.type === 'RUN_TOOL' && chatLease.autoConnect) {
         const {chat} = await chrome.storage.local.get('chat');
         if (chat.task?.requestId !== chatLease.id) {
-          chat.task = {requestId: chatLease.id, skillId: chatLease.librarySkillId || 'browser-agent', autoConnect: true, planningOnly:chatLease.planningOnly === true, goal: chat.messages.find(m => m.id === chatLease.id)?.inputGoal || chat.messages.findLast(m => m.role === 'user')?.content || '', status: 'running', steps: [], plan: [], summary: null, page: null, updatedAt: Date.now()};
+          chat.task = {requestId: chatLease.id, skillId: chatLease.librarySkillId || 'browser-agent', autoConnect: true, planningOnly:chatLease.planningOnly === true, goal: chat.messages.find(m => m.id === chatLease.id)?.inputGoal || chat.messages.findLast(m => m.role === 'user')?.content || '', status: 'running', replayLogId: crypto.randomUUID(), steps: [], plan: [], summary: null, page: null, updatedAt: Date.now()};
           await saveChat(chat);
         }
       }
@@ -1051,6 +1052,7 @@ async function handle(message, sender, owner) {
           onDownload:url=>startDownload(chatLease,url)});
         await rememberBrowserContext(chatLease);
         await checkpointTool(chatLease.id, message.name, 'end', result, result.observation || result);
+        await recordReplay(approvalChat?.task?.requestId === chatLease.id ? approvalChat.task.replayLogId : null, message.name, {}, null, result, tabId);
         const {chat} = await chrome.storage.local.get('chat');
         const question = chat?.messages.find(item => item.question?.id === record.questionId)?.question;
         if (question?.answer) {
@@ -1076,15 +1078,19 @@ async function handle(message, sender, owner) {
         const observedBefore=browserAgentObservation(chatLease.id);
         const reconciliation=await reconciliationProof(executionName,executionArgs||{},observedBefore);
         await checkpointTool(chatLease.id, message.name, 'start',MUTATING_TOOLS.has(message.name)?{reconciliation:reconciliation||{version:2,unverifiable:true}}:undefined);
-        const {result, tabId} = await runBrowserAgent(chatLease.id, {...page, browserContext: chatLease.browserContext}, executionName, executionArgs, {vision: chatLease.vision, hint: typeof beforeTool?.task?.goal === 'string' ? beforeTool.task.goal : undefined, uploadFiles:availableFiles,
+        // Whether the latest user input answered a question: replacing text a field
+        // already holds needs that answer.
+        const answered = !!beforeTool?.messages?.findLast?.(item => item.role === 'user')?.clarification;
+        const {result, tabId} = await runBrowserAgent(chatLease.id, {...page, browserContext: chatLease.browserContext}, executionName, executionArgs, {vision: chatLease.vision, answered, hint: typeof beforeTool?.task?.goal === 'string' ? beforeTool.task.goal : undefined, uploadFiles:availableFiles,
           onNativeDialog: (details,signal) => nativeDialogRequests.ask(chatLease,details,signal),
-          onApproval: record => saveActionApproval(chatLease, record, verifiedBeforeTool),
+          onApproval: record => saveActionApproval(chatLease, record, verifiedBeforeTool, chatLease.replay && Number.isInteger(message.replayIndex) ? {...chatLease.replay, resumeAt: message.replayIndex + 1} : null),
           onCapture: (screenshot, image) => attachCapture(chatLease, screenshot, image, saveCapture, message.traceId),
           onImage: (image, payload) => attachCapture(chatLease, image, payload, savePageImage)});
         await rememberBrowserContext(chatLease);
         if(message.name==='verify_page'&&result.ok===true&&result.verified===true&&!result.error&&result.checks?.length===executionArgs.checks.length&&result.checks.every((check,index)=>check.passed===true&&check.kind===executionArgs.checks[index].kind)&&await reconcilesProofs(unresolved,executionArgs.checks,observedBefore)&&sameVerifiedDocuments(observedBefore,result.observation,executionArgs.checks))result.reconciledAction=true;
         if(unresolved.length&&message.name==='verify_page'&&!result.reconciledAction)Object.assign(result,{unresolvedAction:true,recoveryInstruction:unresolved.some(proof=>proof.version===2)?'The original action target was not durably bound to a browser document. This check cannot clear the uncertain action; stop this run and ask the user to inspect the page.':'This check did not establish the original input values or toggle target. Keep the uncertain action blocked and verify every original target.'});
         await checkpointTool(chatLease.id, message.name, 'end', result, result.observation || result);
+        await recordReplay(beforeTool?.task?.requestId === chatLease.id ? beforeTool.task.replayLogId : null, message.name, executionArgs, observedBefore, result, tabId);
         if ((await getSession()).chatLease?.cancelled) return {error: 'cancelled'};
         // Follow only the tab selected by the authorized action. Old manual fill
         // plans stay document-bound and cannot cross this connection update.
@@ -1247,6 +1253,16 @@ async function handle(message, sender, owner) {
       question.draft = message.value;
       await saveChat(chat); return null;
     }
+    case 'GET_REPLAY': {
+      const {chat} = await readConversationState();
+      const answer = message.conversationId === chat.sessionId ? chat.messages.find(item => item.id === message.messageId && item.role === 'assistant' && item.replay?.version === 1) : null;
+      if (!answer) fail('replay_unavailable');
+      // The values typed last time, kept in memory only; after a browser restart they are asked again.
+      const saved = (await getSession()).replayValues?.[answer.replay.id]?.values || {};
+      return {inputs: answer.replay.inputs, values: Object.fromEntries(answer.replay.inputs.filter(input => Object.hasOwn(saved, input.slot)).map(input => [input.slot, saved[input.slot]])),
+        steps: answer.replay.steps.length, startPage: answer.replay.startPage || '', scripts: answer.replay.steps.filter(step => ['run_playwright', 'run_skill_script'].includes(step.tool)).length,
+        memoryMissing: (answer.replay.memory || []).some(slot => !Object.hasOwn(saved, slot))};
+    }
     case 'READ_APPROVAL_DRAFT': {
       if ((await getSession()).chatLease) fail('busy');
       const {chat} = await readConversationState();
@@ -1373,6 +1389,10 @@ async function handle(message, sender, owner) {
       const queuedInput = message.queuedInputId ? nextInput(queuedCandidate ? [queuedCandidate] : [], {conversationId:chat.sessionId, provider:credential.provider || 'aipro', credentialReceivedAt:credential.receivedAt}) : null;
       if (message.queuedInputId && queuedInput?.id !== message.queuedInputId) fail('agent_input_closed');
       if (queuedInput && chat.messages.at(-1)?.question && !chat.messages.at(-1).question.answer) fail('agent_input_closed');
+      // A replay repeats the recorded steps of a verified answer without the model.
+      const replaySource = message.replay ? chat.messages.find(item => item.id === message.replay?.messageId && item.role === 'assistant' && item.state === 'done' && item.replay?.version === 1) : null;
+      if (message.replay && (!replaySource || message.retry || message.compact || message.resume || message.choice || message.draftEdit || message.createSkill || message.createWiki || queuedInput ||
+        chat.messages.at(-1)?.question && !chat.messages.at(-1).question.answer)) fail('replay_unavailable');
       const creationQuestion = chat.messages.at(-1)?.creatingSkill && chat.messages.at(-1)?.question && !chat.messages.at(-1).question.answer && chat.messages.at(-1).state === 'done' ? chat.messages.at(-1) : null;
       let creationSource = message.createWiki ? wikiSource(chat,message.createWiki) : message.createSkill === true ? skillCreationSource(chat) : creationQuestion?.creationSource || null;
       if (creationSource && (message.retry || message.compact || message.resume || message.choice && !creationQuestion || message.draftEdit || queuedInput || (message.createSkill || message.createWiki) && chat.messages.at(-1)?.question && !chat.messages.at(-1).question.answer)) fail('skill_source_missing');
@@ -1394,6 +1414,8 @@ async function handle(message, sender, owner) {
       if (message.choice?.optionId === 'approve' && approvalContext?.operation?.method === 'download' &&
           !await chrome.permissions.contains({permissions:['downloads']})) fail('download_permission');
       let userInput = String(queuedInput?.text || message.text || '').trim().slice(0, 16000) || (useDraftFiles && files.length ? '첨부한 파일을 확인해주세요.' : '');
+      // The request of the recorded run, so "작업 이어가기" after a stopped replay hands the model that task.
+      if (replaySource) userInput = String(replaySource.replay.goal || '').trim() || '기록한 절차를 다시 실행합니다.';
       if (message.draftEdit) {
         if (!answeringApproval || message.choice || message.draftEdit.questionId !== pendingQuestion.id) fail('question_changed');
         const record = (await getSession()).actionApprovals?.[chat.sessionId];
@@ -1443,10 +1465,10 @@ async function handle(message, sender, owner) {
         await revokeActionApproval(chat.sessionId);
         if (resumeTask) resumeTask = {...resumeTask, goal: `${resumeTask.goal}\n사용자 수정 요청: ${message.draftEdit ? '사용자가 직접 수정한 초안을 그대로 반영하고 다시 승인을 받기' : userInput}`};
       }
-      const planCommand = !creationSource && !answeringQuestion && !message.compact && !message.retry && !message.resume && isPlanCommand(userInput);
+      const planCommand = !replaySource && !creationSource && !answeringQuestion && !message.compact && !message.retry && !message.resume && isPlanCommand(userInput);
       const planningOnly = !creationSource && !message.compact && (planCommand || resumeTask?.planningOnly === true || message.retry && chat.messages.at(-1)?.planningOnly === true);
-      const commandedSkill = !creationSource && !answeringQuestion && !message.compact && !message.retry && !message.resume ? wikiInit || planCommand ? null : resolveSkillCommand(allSkills(skills), userInput) : null;
-      const selectedSkill = wikiInit || planningOnly ? null : commandedSkill?.skill || allSkills(skills).find(skill => skill.id === taskSkillId(resumeTask, activeSkillId));
+      const commandedSkill = !replaySource && !creationSource && !answeringQuestion && !message.compact && !message.retry && !message.resume ? wikiInit || planCommand ? null : resolveSkillCommand(allSkills(skills), userInput) : null;
+      const selectedSkill = replaySource || wikiInit || planningOnly ? null : commandedSkill?.skill || allSkills(skills).find(skill => skill.id === taskSkillId(resumeTask, activeSkillId));
       const autoConnect = !creationSource && !message.compact && automaticSkillTools(selectedSkill);
       const skill = message.compact || creationSource ? null : selectedSkill || allSkills().find(skill => skill.id === 'browser-agent');
       // Bind only the tab identity at send time. Do not inspect or transmit its
@@ -1487,6 +1509,26 @@ async function handle(message, sender, owner) {
       if (!message.compact && skill?.allowAutomation) tools.push(...vocTools());
       if (wikiInit) tools.splice(0,tools.length,...tools.filter(tool=>['read_page','browser_snapshot','inspect_dom','verify_page','ask_user','find_skills','read_skill','progress_note'].includes(tool.function.name)));
 
+      let replay = null;
+      if (replaySource || approvalRecord?.replay) {
+        const source = replaySource || chat.messages.find(item => item.id === approvalRecord.replay.sourceId && item.replay?.id === approvalRecord.replay.id);
+        if (!source?.replay) fail('replay_unavailable');
+        const {replayValues = {}} = await getSession();
+        const saved = replayValues[source.replay.id]?.values || {}, given = replaySource && message.replay.values && typeof message.replay.values === 'object' ? message.replay.values : {};
+        const values = {...saved};
+        // Scripts and attachments are kept in memory only; after a browser restart they are gone.
+        if ((source.replay.memory || []).some(slot => !Object.hasOwn(saved, slot))) fail('replay_memory_missing');
+        for (const input of source.replay.inputs) {
+          const value = Object.hasOwn(given, input.slot) ? given[input.slot] : saved[input.slot];
+          const usable = typeof value === 'string' ? value.length <= 16000 : input.kind === 'choice' && Array.isArray(value) && value.length <= 20 && value.every(item => typeof item === 'string' && item.length <= 400);
+          if (!usable) fail('replay_values_missing');
+          values[input.slot] = value;
+        }
+        delete replayValues[source.replay.id]; replayValues[source.replay.id] = {values, at: Date.now()};
+        await chrome.storage.session.set({replayValues: Object.fromEntries(Object.entries(replayValues).slice(-REPLAY_VALUES))});
+        replay = {id: source.replay.id, sourceId: source.id, steps: source.replay.steps, values, linked: source.replay.linked || {}, startPage: source.replay.startPage || '',
+          startURL: typeof saved.__start === 'string' ? saved.__start : '', ...(approvalRecord?.replay ? {startAt: approvalRecord.replay.resumeAt, approved: true} : {})};
+      }
       const workspaceId = (await workspaceRecord().catch(() => null))?.id || null;
       if (!settings.modelId) fail('model_required');
       const requestId = crypto.randomUUID();
@@ -1503,7 +1545,7 @@ async function handle(message, sender, owner) {
           pendingQuestion.answer = {text: message.draftEdit ? '초안을 직접 수정했습니다.' : content, ...(message.choice?.optionId ? {optionId: message.choice.optionId} : {})};
           delete pendingQuestion.draft;
         }
-        chat.messages.push({id: crypto.randomUUID(), ...(queuedInput ? {inputId:queuedInput.id} : {}), role: 'user', content, ...(answeringQuestion && !answeringApproval ? {clarification: {questionId: pendingQuestion.id, question: pendingQuestion.text, answer: content}} : {}), ...(useDraftFiles && files.length ? {attachments: files} : {}), ...(wikiInit || planCommand ? {displayContent:userInput} : {}), ...(commandedSkill ? {skillCommandId:commandedSkill.skill.id, displayContent:userInput} : {}), ...(message.draftEdit ? {displayContent: '초안을 수정했습니다.'} : {}), ...(message.compact ? {contextOnly: true} : {})});
+        chat.messages.push({id: crypto.randomUUID(), ...(queuedInput ? {inputId:queuedInput.id} : {}), role: 'user', content, ...(answeringQuestion && !answeringApproval ? {clarification: {questionId: pendingQuestion.id, question: pendingQuestion.text, answer: content}} : {}), ...(useDraftFiles && files.length ? {attachments: files} : {}), ...(wikiInit || planCommand ? {displayContent:userInput} : {}), ...(commandedSkill ? {skillCommandId:commandedSkill.skill.id, displayContent:userInput} : {}), ...(message.draftEdit ? {displayContent: '초안을 수정했습니다.'} : {}), ...(replaySource ? {displayContent: '기록한 절차를 모델 없이 다시 실행', replayOf: replaySource.id} : {}), ...(message.compact ? {contextOnly: true} : {})});
         if (useDraftFiles) {chat.draft = ''; chat.draftAttachments = [];}
         if (queuedInput) chat.inbox = chat.inbox.filter(item => item.id !== queuedInput.id);
       }
@@ -1511,12 +1553,12 @@ async function handle(message, sender, owner) {
       const documents = creationSource ? [] : documentBindings(messages);
       if (documents.length && !message.compact) tools.push(...documentToolDefinitions());
       if (planningOnly) tools.splice(0,tools.length,...planTools(tools));
-      if (!creationSource && !message.compact) chat.task = skill?.allowAutomation && (!autoConnect || resumeTask) ? {requestId, skillId: skill.id, autoConnect, planningOnly, goal: resumeTask?.goal || messages.findLast(m => m.role === 'user')?.content || '', status: 'running', steps: resumeTask?.steps || [], ...(resumeTask?.pendingReconciliation?{pendingReconciliation:resumeTask.pendingReconciliation}:{}), plan: resumeTask?.plan || [], ...(resumeTask?.planUpdates ? {planUpdates:resumeTask.planUpdates,planRevision:resumeTask.planRevision} : {}), ...(resumeTask?.analysisCheckpoint ? {analysisCheckpoint:resumeTask.analysisCheckpoint} : {}), ...(resumeTask?.analysisHandoffs ? {analysisHandoffs:resumeTask.analysisHandoffs} : {}), ...(resumeTask?.researchHandoffs?{researchHandoffs:resumeTask.researchHandoffs}:{}), summary: resumeTask?.summary || null, ...(resumeTask?.used ? {used: resumeTask.used} : {}), ...(resumedVerification(resumeTask) ? {verification: {status: 'pending'}} : {}), ...(resumeTask?.goalReview ? {goalReview: {status: 'running', checks: 0}} : {}), page: page ? {title: page.title, url: page.url} : resumeTask?.page || null, updatedAt: Date.now()} : null;
+      if (!creationSource && !message.compact) chat.task = skill?.allowAutomation && (!autoConnect || resumeTask) ? {requestId, skillId: skill.id, autoConnect, planningOnly, goal: resumeTask?.goal || messages.findLast(m => m.role === 'user')?.content || '', status: 'running', replayLogId: resumeTask?.replayLogId || crypto.randomUUID(), steps: resumeTask?.steps || [], ...(resumeTask?.pendingReconciliation?{pendingReconciliation:resumeTask.pendingReconciliation}:{}), plan: resumeTask?.plan || [], ...(resumeTask?.planUpdates ? {planUpdates:resumeTask.planUpdates,planRevision:resumeTask.planRevision} : {}), ...(resumeTask?.analysisCheckpoint ? {analysisCheckpoint:resumeTask.analysisCheckpoint} : {}), ...(resumeTask?.analysisHandoffs ? {analysisHandoffs:resumeTask.analysisHandoffs} : {}), ...(resumeTask?.researchHandoffs?{researchHandoffs:resumeTask.researchHandoffs}:{}), summary: resumeTask?.summary || null, ...(resumeTask?.used ? {used: resumeTask.used} : {}), ...(resumedVerification(resumeTask) ? {verification: {status: 'pending'}} : {}), ...(resumeTask?.goalReview ? {goalReview: {status: 'running', checks: 0}} : {}), page: page ? {title: page.title, url: page.url} : resumeTask?.page || null, updatedAt: Date.now()} : null;
       chat.messages.push({id: requestId, requestId, role: 'assistant', content: '', state: 'pending', ...(planningOnly ? {planningOnly:true} : {}), ...(creationSource ? {creatingSkill:true, creationSource} : {}), modelId: settings.modelId, modelName: model?.displayName || settings.modelId, skillId: skill?.id || '', pageId: page?.id || '', ...(message.compact ? {contextOnly: true} : {})});
       if (creationSource) tools.splice(0, tools.length, clarificationTool(false), ...skillLibraryTools(library).filter(tool => ['find_skills', 'read_skill'].includes(tool.function.name)));
       await saveChat(chat);
-      await chrome.storage.session.set({chatLease: {id: requestId, ...(answeringQuestion && !answeringApproval ? {answeredQuestion: pendingQuestion} : {}), ...(owner === RUNNER ? {owner: 'worker'} : {}), conversationId: chat.sessionId, wikiInit, planningOnly, wikiSources: Object.keys(wikiSources).filter(key => wikiSources[key]), knowledgeRevision: knowledgeState(browserKnowledge).revision, ...(resumeTask?.used ? {knowledgeRoute: extendRoute(resumeTask.used.route), skillsRead: (Array.isArray(resumeTask.used.skills) ? resumeTask.used.skills : []).filter(id => typeof id === 'string').slice(-5)} : {}), ...(approvalRecord ? {approvalQuestionId: approvalRecord.questionId} : {}), browserContext, browserWorkMode, documentBindings: documents, creationSource, compacting: !!message.compact, workspaceId, mcpBindings, skillBindings, librarySkillId: selectedSkill?.id || '', modelIds: [settings.modelId, visionModel?.name].filter(Boolean), projectConnectionId: project?.status === 'connected' ? projectConnection?.connectionId : null, provider: credential.provider || 'aipro', automation: skill?.allowAutomation === true, autoConnect, pageTargetTabId, vision: !!visionModel, documentId: sender.documentId, clientId: typeof message.clientId === 'string' ? message.clientId.slice(0, 100) : null, tabId: sender.tab?.id, lastSeenAt: Date.now(), credentialReceivedAt: credential.receivedAt, pageId: page?.id, toolNames: tools.map(tool => tool.function.name), until: Date.now() + CHAT_TIMEOUT_MS + 60000}});
-      return {requestId, conversationId: chat.sessionId, creationSource, planningOnly, documents, provider: credential.provider || 'aipro', modelId: settings.modelId, model: model || {name: settings.modelId}, visionModel, memory: chat.memory || null, compact: !!message.compact, approvedAction: !!approvalRecord, approvedToolName: approvalRecord?.kind === 'mcp' ? 'apply_approved_mcp' : 'apply_approved_action', resumeTask, mode: credential.mode, credentialReceivedAt: credential.receivedAt, messages, skill, skillCatalog: skillCatalog(library), autoConnect, browserWorkMode, project: projectContext(project), page: page ? {title: page.title, url: page.url} : null, tools};
+      await chrome.storage.session.set({chatLease: {id: requestId, ...(answeringQuestion && !answeringApproval ? {answeredQuestion: pendingQuestion} : {}), ...(owner === RUNNER ? {owner: 'worker'} : {}), conversationId: chat.sessionId, wikiInit, planningOnly, wikiSources: Object.keys(wikiSources).filter(key => wikiSources[key]), knowledgeRevision: knowledgeState(browserKnowledge).revision, ...(resumeTask?.used ? {knowledgeRoute: extendRoute(resumeTask.used.route), skillsRead: (Array.isArray(resumeTask.used.skills) ? resumeTask.used.skills : []).filter(id => typeof id === 'string').slice(-5)} : {}), ...(approvalRecord ? {approvalQuestionId: approvalRecord.questionId} : {}), ...(replay ? {replay: {id: replay.id, sourceId: replay.sourceId}} : {}), browserContext, browserWorkMode, documentBindings: documents, creationSource, compacting: !!message.compact, workspaceId, mcpBindings, skillBindings, librarySkillId: selectedSkill?.id || '', modelIds: [settings.modelId, visionModel?.name].filter(Boolean), projectConnectionId: project?.status === 'connected' ? projectConnection?.connectionId : null, provider: credential.provider || 'aipro', automation: skill?.allowAutomation === true, autoConnect, pageTargetTabId, vision: !!visionModel, documentId: sender.documentId, clientId: typeof message.clientId === 'string' ? message.clientId.slice(0, 100) : null, tabId: sender.tab?.id, lastSeenAt: Date.now(), credentialReceivedAt: credential.receivedAt, pageId: page?.id, toolNames: tools.map(tool => tool.function.name), until: Date.now() + CHAT_TIMEOUT_MS + 60000}});
+      return {requestId, conversationId: chat.sessionId, ...(replay ? {replay} : {}), creationSource, planningOnly, documents, provider: credential.provider || 'aipro', modelId: settings.modelId, model: model || {name: settings.modelId}, visionModel, memory: chat.memory || null, compact: !!message.compact, approvedAction: !!approvalRecord, approvedToolName: approvalRecord?.kind === 'mcp' ? 'apply_approved_mcp' : 'apply_approved_action', resumeTask, mode: credential.mode, credentialReceivedAt: credential.receivedAt, messages, skill, skillCatalog: skillCatalog(library), autoConnect, browserWorkMode, project: projectContext(project), page: page ? {title: page.title, url: page.url} : null, tools};
     }
     case 'FINISH_CHAT': {
       const {chatLease, credential} = await getSession();
@@ -1597,6 +1639,26 @@ async function handle(message, sender, owner) {
             if (offered) chat.messages.find(item=>item.id===message.requestId).wikiOffer=offered;
           }
         } catch { /* Optional wiki drafting never fails an otherwise completed task. */ }
+      }
+      // A task that finished verified keeps its steps, so it can be repeated
+      // without the model. A stopped or failed one keeps its log for the run that
+      // resumes it. The typed values stay in memory only.
+      const replayLogId = chat.task?.requestId === chatLease.id && typeof chat.task.replayLogId === 'string' ? chat.task.replayLogId : null;
+      if (replayLogId && !awaitingUser) {
+        try {
+          const {replayLogs = {}, replayValues = {}} = await getSession();
+          const log = replayLogs[replayLogId];
+          const passed = !error && chat.task.verification?.status === 'passed' && (!!chatLease.replay || chat.task.goalReview?.status === 'complete');
+          const record = passed && log ? replayRecord(log, {id: replayLogId, goal: chat.task.goal}) : null;
+          const answer = chat.messages.find(item => item.id === message.requestId && item.role === 'assistant');
+          if (record && answer) {
+            answer.replay = record;
+            for (const old of chat.messages.filter(item => item.replay).slice(0, -5)) delete old.replay;
+            delete replayValues[replayLogId]; replayValues[replayLogId] = {values: log.values, at: Date.now()};
+          }
+          if (!error) delete replayLogs[replayLogId];
+          await chrome.storage.session.set({replayLogs, replayValues: Object.fromEntries(Object.entries(replayValues).slice(-REPLAY_VALUES))});
+        } catch { /* A replay record never fails a finished run. */ }
       }
       await saveChat(chat);
       await chrome.storage.session.remove(['chatLease', 'agentRun']);
@@ -1752,6 +1814,35 @@ async function trackedVocTool(lease,name,operation) {
   catch (error) {result={error:Object.hasOwn(ERROR_TEXT,error.message) ? error.message : 'workspace_verify',instruction:'Do not claim collection or export completed. Preserve existing evidence and user edits. Resolve the missing page/folder permission or ask a focused question. Do not overwrite a conflicting file.'};}
   await checkpointTool(lease.id,name,'end',result);
   return (await getSession()).chatLease?.cancelled ? {error:'cancelled'} : result;
+}
+// The steps of a task as a replay repeats them, and the values typed into them,
+// in memory only (chrome.storage.session): field values are never saved to disk.
+// A question or an approval ends a run, not its task, so the log continues with
+// the run that resumes it. Only a run that finished verified keeps its steps.
+const REPLAY_LOGS = 8, REPLAY_STEPS = 80, REPLAY_VALUES = 20;
+const replayPage = value => {try {const url = new URL(value); return /^https?:$/.test(url.protocol) ? url.origin + url.pathname : '';} catch {return '';}};
+async function recordReplay(logId, tool, args, observedBefore, result, tabId) {
+  if (typeof logId !== 'string' || !logId) return;
+  try {
+    const {replayLogs = {}} = await getSession();
+    const log = replayLogs[logId] || {steps: [], values: {}, next: 0};
+    if (log.unreplayable) return;
+    const recorded = recordReplayStep(tool, args || {}, observedBefore, result, () => `v${log.next++}`, {uploadTargets: log.uploadTargets || {}});
+    if (!recorded) return;
+    if (recorded.uploadTargets) log.uploadTargets = recorded.uploadTargets;
+    else if (recorded.unreplayable || log.steps.length >= REPLAY_STEPS) log.unreplayable = recorded.unreplayable || 'too_long';
+    else {
+      if (!log.steps.length && observedBefore?.url) {
+        log.startPage = replayPage(observedBefore.url);
+        // The full address, query included, only in memory: it opens the same page.
+        const tab = Number.isInteger(tabId) ? await chrome.tabs.get(tabId).catch(() => null) : null;
+        if (tab?.url && replayPage(tab.url) === log.startPage) log.values.__start = tab.url;
+      }
+      log.steps.push(recorded.step); Object.assign(log.values, recorded.values);
+    }
+    delete replayLogs[logId]; replayLogs[logId] = log;
+    await chrome.storage.session.set({replayLogs: Object.fromEntries(Object.entries(replayLogs).slice(-REPLAY_LOGS))});
+  } catch { /* A replay log never fails the run it records. */ }
 }
 async function checkpointTool(requestId, tool, phase, result, page) {
   const {chat} = await chrome.storage.local.get('chat');

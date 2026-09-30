@@ -131,3 +131,11 @@ test('the same controls and lines in another order are reported as reordered, no
   assert.equal(effect.none, undefined);
   assert.equal(observationEffect(before, page({elements: before.frames[0].elements, text: '보고서\n회의\n메일'}), 'drag_element').none, true);
 });
+
+test('a field whose value changed without typing is an effect, named but never valued', () => {
+  const date = ref => ({ref, role: 'textbox', name: '시행 일자', readonly: true});
+  const before = page({elements: [date('e-a-0-0')], text: '기안 작성'}), after = page({elements: [date('e-b-0-0')], text: '기안 작성'});
+  const effect = observationEffect(before, after, 'click_element', {fieldsChanged: [{ref: 'e-b-0-0', role: 'textbox', name: '시행 일자'}]});
+  assert.deepEqual(effect, {fieldsChanged: {count: 1, first: [{ref: 'e-b-0-0', role: 'textbox', name: '시행 일자'}]}});
+  assert.deepEqual(observationEffect(before, after, 'click_element', {fieldsChanged: []}), {none: true, note: NO_EFFECT_NOTE});
+});

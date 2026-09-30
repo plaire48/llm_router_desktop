@@ -93,7 +93,7 @@ try {
     });
     const bounded=await page.evaluate(collectSnapshot,'');assert(bounded.coverage.omittedControlDetails>0);assert.equal(bounded.descriptors.length,180);
     assert(bounded.descriptors.reduce((sum,d)=>sum+JSON.stringify({description:d.description,validationMessage:d.validationMessage,constraints:d.constraints}).length,0)<6500);
-    await page.evaluate(()=>{document.body.innerHTML='<div>'+ '<span>긴 본문</span>'.repeat(5100)+'</div><button>뒤쪽 버튼</button>';});
+    await page.evaluate(()=>{document.body.innerHTML='<div>'+ '<span>긴 본문</span>'.repeat(10100)+'</div><button>뒤쪽 버튼</button>';});
     const limited=await page.evaluate(collectSnapshot,'');assert(limited.coverage.domTruncated);assert(limited.truncated);assert(!limited.descriptors.some(d=>d.name==='뒤쪽 버튼'));
     const focused=await page.evaluate(collectSnapshot,{query:'뒤쪽 버튼'});assert(focused.descriptors.some(d=>d.name==='뒤쪽 버튼'));assert.equal(focused.coverage.domTruncated,false);assert(focused.descriptors.length<=180);
     checks.push('control details stay bounded and a real DOM scan limit explicitly reports incomplete evidence');

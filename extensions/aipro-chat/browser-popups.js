@@ -1,8 +1,8 @@
 // Register before dispatch: tabs may be created before Playwright's click
 // resolves, and window.open() may first create an about:blank document.
-export async function watchPopups(tabs, sourceId, hint = {}, {cancelled = () => false, timeout = 7000, interval = 50, workspace, onCreated = () => {}, changed, onClose = () => {}} = {}) {
+export async function watchPopups(tabs, sourceId, hint = {}, {cancelled = () => false, timeout = 7000, grace = 2500, interval = 50, workspace, onCreated = () => {}, changed, onClose = () => {}} = {}) {
   const candidates = new Set();
-  let stopped = false, before, deadline, expiry, deferred = false;
+  let stopped = false, before, deadline, settleBy, expiry, deferred = false;
   const related = tab => (!workspace || tab.openerTabId === sourceId || workspace.tabIds.includes(tab.id) || tab.windowId === workspace.windowId && !before?.has(tab.id)) &&
     (tab.openerTabId === sourceId || !!hint.href && [tab.url, tab.pendingUrl].includes(hint.href));
   const created = tab => {if (tab.id !== sourceId && related(tab)) {candidates.add(tab.id); Promise.resolve(onCreated(tab)).catch(() => {});}};
@@ -35,6 +35,12 @@ export async function watchPopups(tabs, sourceId, hint = {}, {cancelled = () => 
     setHint(value) {hint = value || {};},
     async finish({pollOnly = false} = {}) {
       deadline ??= Date.now() + timeout;
+      // A click that opens no window is not waited on for the whole timeout.
+      // Measured on public sites: a menu button changed nothing this detector
+      // saw, and each such click took 7 seconds. After the grace period the
+      // watcher keeps listening until the deadline and a late window is taken
+      // at the next tool call, as for a click with a local effect.
+      settleBy ??= Date.now() + Math.min(grace, timeout);
       let retain = false;
       try {
         do {
@@ -56,7 +62,7 @@ export async function watchPopups(tabs, sourceId, hint = {}, {cancelled = () => 
           // A local effect is enough to return fresh evidence, not proof of
           // task completion. Keep event listeners for delayed popups; consume
           // them only at the next host boundary, never mid-action.
-          if (!child && !stopped && Date.now() < deadline && (pollOnly || !expectsPopup && changed && await changed())) {
+          if (!child && !stopped && Date.now() < deadline && (pollOnly || !expectsPopup && (changed && await changed() || Date.now() >= settleBy))) {
             retain = deferred = true;
             expiry ||= setTimeout(() => close('expired'), Math.max(0, deadline - Date.now()));
             return {deferred: true};

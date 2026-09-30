@@ -11,6 +11,11 @@ export function clickEffect(node) {
     const element = node.getRootNode().getElementById?.(id);
     return !!element?.getClientRects().length && getComputedStyle(element).visibility !== 'hidden';
   });
+  // A menu or a panel opened by a class name (html.nav-open, body.menu-active, the
+  // button's own "on") often shows text that was already in innerText, hidden by
+  // opacity or position. Its class names and the open dialogs still change.
+  const classes = [document.documentElement, document.body, node, node.parentElement].map(element => String(element?.className?.baseVal ?? element?.className ?? '').slice(0, 200));
+  const dialogs = document.querySelectorAll('dialog[open],[role="dialog"],[role="alertdialog"],[aria-modal="true"]').length;
   return JSON.stringify([hash, text.length, node.isConnected, !!node.getClientRects().length,
-    node.checked, ...['aria-expanded', 'aria-pressed', 'aria-checked', 'aria-selected'].map(key => node.getAttribute(key)), controls]);
+    node.checked, ...['aria-expanded', 'aria-pressed', 'aria-checked', 'aria-selected'].map(key => node.getAttribute(key)), controls, classes, dialogs]);
 }

@@ -114,3 +114,12 @@ test('instruction texts repeated in every frame are stated once and frame owners
   const owner = frameOwner({tag: 'iframe', id: 'ad', name: 'x'.repeat(57000), title: null});
   assert.equal(owner.name.length, FRAME_OWNER_LIMIT); assert.equal(owner.tag, 'iframe'); assert.equal(owner.title, null); assert.equal(frameOwner(null), null);
 });
+
+test('a covered control keeps what covers it in its line, and both notes say what that means', () => {
+  const element = {ref: 'c-n-1', name: '확인', accessibleName: '확인', role: 'button', kind: 'control', tag: 'button', inViewport: true, disabled: false, coveredBy: 'dialog "결재선 지정"'};
+  const {frames: [{elements: [header, line]}]} = compactObservationResult({frames: [{frame: 0, elements: [element]}]});
+  assert.equal(header, 'in page:');
+  assert.equal(line, '[c-n-1] button "확인" +{"coveredBy":"dialog \\"결재선 지정\\""}');
+  assert.equal(parseElementLine(line).coveredBy, 'dialog "결재선 지정"');
+  for (const note of [ELEMENT_DEFAULTS, ELEMENT_OMISSIONS]) assert.match(note, /coveredBy: a dialog, an overlay or another element takes every point of it now/);
+});

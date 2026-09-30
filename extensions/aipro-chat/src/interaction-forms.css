@@ -31,3 +31,5 @@
 .interaction-editor-field textarea { min-height: 154px; resize: vertical; }
 @media (max-width: 380px) { .interaction-card { padding: var(--cx-space-3); } .interaction-heading { gap: var(--cx-space-2); } .interaction-editor-field { padding: var(--cx-space-3); } }
 @media (prefers-reduced-motion: reduce) { .interaction-card { animation: none; } .interaction-input, .question-option.cx-kit-button { transition: none; } .question-option.cx-kit-button:not(:disabled):hover { transform: none; } }
+.replay-summary { margin: 0; color: var(--layout-muted); font: var(--deck-font-body); }
+.replay-fields { display: grid; gap: var(--cx-space-2); margin-top: var(--cx-space-3); }

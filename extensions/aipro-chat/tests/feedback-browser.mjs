@@ -71,7 +71,7 @@ try {
   while (!release) await new Promise(resolve => setTimeout(resolve, 25)); release();
   await ui.waitForFunction(() => !document.querySelector('.reply-status'));
   await ui.getByRole('button', {name: '코드 복사', exact: true}).waitFor();
-  const answerCopy = ui.locator('.message-actions .copy-control button');
+  const answerCopy = ui.locator('.message-assistant .message-actions .copy-control button');
   await answerCopy.click(); await expectToast('답변을 복사했습니다.');
   assert.equal(await ui.evaluate(() => navigator.clipboard.readText()), reply);
   assert.match(await answerCopy.getAttribute('aria-label'), /복사 완료$/);
@@ -98,6 +98,17 @@ try {
   await ui.locator('.cx-toast').waitFor({state: 'detached'});
   await ui.getByRole('button', {name: '코드 복사', exact: true}).waitFor();
   check('success feedback expires and the original copy control returns');
+  // A user message copies what it shows from an icon under its bubble,
+  // right-aligned and clear of the answer below.
+  const userCopy = ui.locator('.message-user .message-actions .copy-control button');
+  await userCopy.click(); await expectToast('메시지를 복사했습니다.');
+  assert.equal(await ui.evaluate(() => navigator.clipboard.readText()), '업무 정리 예시를 보여줘');
+  const [bubble, icon, answer] = await Promise.all([ui.locator('.message-user').boundingBox(), userCopy.boundingBox(), ui.locator('.message-assistant').boundingBox()]);
+  assert(icon.y >= bubble.y + bubble.height - 1, `the icon is under the bubble: ${JSON.stringify({bubble, icon})}`);
+  assert(Math.abs(icon.x + icon.width - (bubble.x + bubble.width)) <= 1, `the icon is right-aligned: ${JSON.stringify({bubble, icon})}`);
+  assert(icon.y + icon.height <= answer.y, `the icon is clear of the answer: ${JSON.stringify({icon, answer})}`);
+  await ui.getByRole('textbox', {name: '메시지', exact: true}).focus(); await ui.locator('.cx-toast').waitFor({state: 'detached'});
+  check('a user message copies its exact text from an icon under its bubble');
   // Deferred/denied clipboard is a controlled fault. Successful copies above
   // and the retry below use the real browser Clipboard API.
   await ui.evaluate(() => {
@@ -110,7 +121,7 @@ try {
   await ui.evaluate(() => window.rejectCopy(new DOMException('Synthetic denial', 'NotAllowedError')));
   await expectToast('복사하지 못했습니다. 다시 시도해 주세요.');
   await ui.getByRole('textbox', {name: '메시지', exact: true}).focus(); await ui.locator('.cx-toast').waitFor({state: 'detached'});
-  assert.equal(await ui.locator('.message-actions .copy-error').innerText(), '복사 실패. 다시 눌러주세요.');
+  assert.equal(await ui.locator('.message-assistant .message-actions .copy-error').innerText(), '복사 실패. 다시 눌러주세요.');
   assert(!await answerCopy.getAttribute('aria-label').then(value => value.includes('완료')));
   await ui.evaluate(() => {navigator.clipboard.writeText = window.realWrite;});
   await answerCopy.click(); await expectToast('답변을 복사했습니다.'); assert.equal(await ui.evaluate(() => navigator.clipboard.readText()), reply); assert.equal(await ui.locator('.copy-error').count(), 0);

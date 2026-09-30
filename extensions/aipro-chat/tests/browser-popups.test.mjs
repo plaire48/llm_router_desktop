@@ -105,3 +105,15 @@ test('a deferred child closed before the next step is not returned as a live tar
   await new Promise(resolve=>setTimeout(resolve,20));
   assert.deepEqual(await watcher.finish({pollOnly:true}),{candidates:[]});assert.equal(f.listeners(),0);
 });
+test('a click that opens nothing is released after the grace period and a late window is still taken later', async () => {
+  const f = fixture(), started = Date.now(), watcher = await watchPopups(f.tabs, 1, {}, {timeout: 1000, grace: 40, interval: 2});
+  assert.deepEqual(await watcher.finish(), {deferred: true});
+  assert(Date.now() - started < 600, 'released well before the timeout'); assert(f.listeners() > 0, 'still listening for a late window');
+  f.create({id: 2, openerTabId: 1, url: 'https://mail.test/late'});
+  assert.deepEqual(await watcher.finish({pollOnly: true}), {tabId: 2}); assert.equal(f.listeners(), 0);
+});
+test('a link that targets a new window is still waited on for the whole timeout', async () => {
+  const f = fixture(), watcher = await watchPopups(f.tabs, 1, {target: '_blank'}, {timeout: 300, grace: 20, interval: 2});
+  setTimeout(() => f.create({id: 3, openerTabId: 1, url: 'https://mail.test/new'}), 120);
+  assert.deepEqual(await watcher.finish(), {tabId: 3});
+});

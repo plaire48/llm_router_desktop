@@ -16,7 +16,7 @@ test('runner sends every event separately while keeping recent trace bounded and
   t.after(()=>{delete globalThis[key];});
   let source = await readFile(new URL('../background-runner.js',import.meta.url),'utf8');
   source = source.replace("import {completeChat} from './src/api.js';", `const completeChat = globalThis[${JSON.stringify(key)}];`);
-  for(const file of ['agent-trace.js','model-recovery.js','chat-contract.js','core.js']) source=source.replace(`'./${file}'`,JSON.stringify(new URL(`../${file}`,import.meta.url).href));
+  for(const file of ['agent-trace.js','model-recovery.js','chat-contract.js','core.js','browser-replay.js']) source=source.replace(`'./${file}'`,JSON.stringify(new URL(`../${file}`,import.meta.url).href));
   const {createBackgroundRunner} = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
   const calls=[],snapshots=[]; let resolve;
   const finished = new Promise(done=>{resolve=done;});
@@ -61,7 +61,7 @@ test('cancelled runner reports the attempted tail sequence even when progress sa
   t.after(()=>{delete globalThis[key];});
   let source=await readFile(new URL('../background-runner.js',import.meta.url),'utf8');
   source=source.replace("import {completeChat} from './src/api.js';",`const completeChat=globalThis[${JSON.stringify(key)}];`);
-  for(const file of ['agent-trace.js','model-recovery.js','chat-contract.js','core.js'])source=source.replace(`'./${file}'`,JSON.stringify(new URL(`../${file}`,import.meta.url).href));
+  for(const file of ['agent-trace.js','model-recovery.js','chat-contract.js','core.js','browser-replay.js'])source=source.replace(`'./${file}'`,JSON.stringify(new URL(`../${file}`,import.meta.url).href));
   const {createBackgroundRunner}=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
   const saved=[];let finish;
   const done=new Promise(resolve=>{finish=resolve;});
@@ -93,7 +93,7 @@ test('nested form verification preserves operation start order while journal eve
   t.after(()=>{delete globalThis[key];});
   let source=await readFile(new URL('../background-runner.js',import.meta.url),'utf8');
   source=source.replace("import {completeChat} from './src/api.js';",`const completeChat=globalThis[${JSON.stringify(key)}];`);
-  for(const file of ['agent-trace.js','model-recovery.js','chat-contract.js','core.js'])source=source.replace(`'./${file}'`,JSON.stringify(new URL(`../${file}`,import.meta.url).href));
+  for(const file of ['agent-trace.js','model-recovery.js','chat-contract.js','core.js','browser-replay.js'])source=source.replace(`'./${file}'`,JSON.stringify(new URL(`../${file}`,import.meta.url).href));
   const {createBackgroundRunner}=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
   const saved=[],snapshots=[];let finish;
   const done=new Promise(resolve=>{finish=resolve;});
@@ -117,7 +117,7 @@ test('human fill review survives the inactivity deadline without model calls and
   t.after(() => {delete globalThis[key];});
   let source = await readFile(new URL('../background-runner.js', import.meta.url), 'utf8');
   source = source.replace("import {completeChat} from './src/api.js';", `const completeChat = globalThis[${JSON.stringify(key)}];`);
-  for (const file of ['agent-trace.js','model-recovery.js','chat-contract.js','core.js']) source = source.replace(`'./${file}'`, JSON.stringify(new URL(`../${file}`, import.meta.url).href));
+  for (const file of ['agent-trace.js','model-recovery.js','chat-contract.js','core.js','browser-replay.js']) source = source.replace(`'./${file}'`, JSON.stringify(new URL(`../${file}`, import.meta.url).href));
   const {createBackgroundRunner} = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
   t.mock.timers.enable({apis:['setTimeout','setInterval','Date'], now:1000});
   const calls = [], snapshots = [];

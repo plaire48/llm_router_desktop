@@ -4,13 +4,14 @@
 // nubi (W-02): a star that turned on only by a class name was clicked again on
 // review and turned off; its row state change is now stated here. Refs differ
 // between observations, so controls are matched by frame, role, name and the
-// names of their ancestors, in page order. Field values are never observed, so
-// they are never compared. Every list is bounded.
+// names of their ancestors, in page order. Field values are never read: a field
+// whose value changed is known only from the mark its observations keep, and is
+// given by the caller. Every list is bounded.
 const STATE_KEYS = ['checked', 'pressed', 'expanded', 'selected', 'current', 'stateHint', 'disabled', 'invalid'];
 const LIST = 4, CHANGES = 6, TEXT = 160;
 const FIELDS = new Set(['textbox', 'searchbox', 'combobox', 'spinbutton']);
 export const CLICK_TOOLS = new Set(['click_element', 'click_at', 'drag_element']);
-export const NO_EFFECT_NOTE = 'No change was observed in the address, title, dialogs, alerts, control states or text after this action. It may not have taken effect, or its effect is outside the observation (a field value, a canvas, another tab). Check the intended result before repeating the action.';
+export const NO_EFFECT_NOTE = 'No change was observed in the address, title, dialogs, alerts, control states, field values or text after this action. It may not have taken effect, or its effect is outside the observation (a field not listed, a canvas, a print or file window, another tab). Check the intended result before repeating the action.';
 // Product agents stop repeating a step that does nothing: they change approach
 // or hand the step back to the user.
 export const REPEATED_NO_EFFECT_NOTE = 'Several actions in a row changed nothing that could be observed. Do not repeat them. Read the target state (capture_page with its ref, or read_page), try another control or the keyboard, or ask the user when the page does not respond.';
@@ -61,7 +62,7 @@ const dialogs = frame => (Array.isArray(frame.regions) ? frame.regions : []).fil
   .map(region => `${region.role}${region.name ? ` "${clip(region.name, 80)}"` : ''}`);
 const alerts = frame => (Array.isArray(frame.alerts) ? frame.alerts : []).map(alert => clip(alert?.text, 200)).filter(Boolean);
 
-export function observationEffect(before, after, tool = '') {
+export function observationEffect(before, after, tool = '', {fieldsChanged = []} = {}) {
   if (!before || !after || !Array.isArray(before.frames) || !Array.isArray(after.frames)) return null;
   const effect = {};
   if (before.tabId !== after.tabId) effect.tabChanged = true;
@@ -147,6 +148,8 @@ export function observationEffect(before, after, tool = '') {
   if (textAdded.length) effect.textAdded = {count: textAdded.length, first: textAdded.slice(0, 3).map(line => clip(line))};
   if (textRemoved) effect.textRemoved = {count: textRemoved};
   if (focused) effect.focused = focused;
+  // A value that changed without typing (a date picker, a lookup), never the value itself.
+  if (Array.isArray(fieldsChanged) && fieldsChanged.length) effect.fieldsChanged = {count: fieldsChanged.length, first: fieldsChanged.slice(0, LIST).map(label)};
   if (movedControls || textMoved) effect.reordered = {...(movedControls ? {controls: movedControls} : {}), ...(textMoved ? {text: true} : {})};
   if (countFrom !== countTo) effect.controlCount = {from: countFrom, to: countTo};
   if (framesAdded || framesRemoved) effect.frames = {added: framesAdded, removed: framesRemoved};

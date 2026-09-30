@@ -83,7 +83,10 @@ export function browserTools(page, skill, modelId = '', {autoConnect = false, vi
   if (skill?.allowAutomation) {
     for (const tool of tools) {
       if (['read_page', 'inspect_dom'].includes(tool.function.name)) tool.function.description = 'Observe current browser text and actionable element refs, including accessible iframes and open shadow roots. Input values are omitted. Use refs from this observation for subsequent actions. accessibleName/role use standard DOM accessibility semantics; name may be a fallback hint, not an exact role locator. Inspect descriptions, constraints, tables, pageState, surfaces and coverage. For focused queries and information-source guidance use browser_snapshot.';
-      if (tool.function.name === 'fill_form') tool.function.description = 'Fill user-requested values immediately and verify them. Use distinct observed element refs as field_id, once per field; duplicate targets are rejected before any input. Supports text inputs, contenteditable mail bodies, select option values and checkbox/radio/switch/toggle values "true"/"false". Boolean controls are set to the desired state without flipping an already-correct control. Does not submit. Returns applied counts and a fresh observation.';
+      if (tool.function.name === 'fill_form') {
+        tool.function.description = 'Fill user-requested values immediately and verify them. Use distinct observed element refs as field_id, once per field; duplicates are rejected before any input. Supports text inputs, contenteditable mail bodies, select option values and checkbox/radio/switch/toggle values "true"/"false"; a boolean already right is not flipped. Text already in a mail body or text area (a quoted original, a signature) is never erased: position start or end inserts the value there; replace_existing only after the user chose it in ask_user. Does not submit. Returns applied counts and a fresh observation.';
+        Object.assign(tool.function.parameters.properties.fields.items.properties, {position: {type: 'string', enum: ['start', 'end']}, replace_existing: {type: 'boolean'}});
+      }
     }
     const str = {type: 'string', maxLength: 200};
     const pageReader = tools.find(tool => tool.function.name === 'read_page').function;

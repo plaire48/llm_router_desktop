@@ -39,7 +39,7 @@ try {
   assert.equal(unfiltered.retrieval.method, 'dom_order');
   assert.equal(unfiltered.textFiltered, false);
   assert.equal(unfiltered.coverage.queryFiltered, false);
-  assert.equal(unfiltered.coverage.nodeLimit, 5000);
+  assert.equal(unfiltered.coverage.nodeLimit, 10000);
   assert.equal(unfiltered.retrieval.matchedControls, undefined);
   assert.equal(unfiltered.text, '서울 날씨 검색\n현재 날씨 카드\n중구 을지로1가\n현재 기온 26.7℃\n오늘 9.27. 최저 17℃ 최고 28℃\n카드 끝\n외부 예보\n어제 9.26. 13시 현재 28.0℃\n최저 18℃ 최고 28℃\n다른 지역\n부산 현재 26.7℃\n고유숫자 28℃\n독립 날짜 9.27.');
   const evidence = reviewEvidence(7, 'read_page', {}, {frames: [{...unfiltered, frame: 0, url: 'https://example.test/search'}]});
@@ -133,12 +133,12 @@ try {
   assert.equal(plain.retrieval.method, 'dom_order');
   console.log('PASS original control ranking, shadow context, late long-paragraph matches, absent targets and unfiltered text order remain intact');
 
-  await page.setContent(`<section><h2>긴 본문</h2><p>${'가'.repeat(17000)}</p></section>${'<div>x</div>'.repeat(6000)}`);
+  await page.setContent(`<section><h2>긴 본문</h2><p>${'가'.repeat(17000)}</p></section>${'<div>x</div>'.repeat(11000)}`);
   const limited = await observe('');
   assert.equal(limited.text, `긴 본문\n${'가'.repeat(15995)}`);
   assert.equal(limited.text.length, 16000);
-  assert.equal(limited.coverage.nodeLimit, 5000);
-  assert(limited.coverage.nodesInspected <= 5000);
+  assert.equal(limited.coverage.nodeLimit, 10000);
+  assert(limited.coverage.nodesInspected <= 10000);
   assert(limited.coverage.domTruncated);
   assert(limited.coverage.textTruncated);
   assert(limited.retrieval.textBlocks.every(block => block.end <= 16000));

@@ -25,7 +25,7 @@ import {knowledgeMap,knowledgeQuery,initializeKnowledgeCatalog,exportKnowledgeMa
 import {databaseConnection} from './database-connections.mjs';
 import {Processes, shellProfiles} from './processes.mjs';
 import {preferredShell} from './environment-inspection.mjs';
-import {git, hash, fail, readSource, listFiles, scopedFile, relativeFile, snapshot} from './files.mjs';
+import {git, gitOpenFailure, hash, fail, readSource, listFiles, scopedFile, relativeFile, snapshot} from './files.mjs';
 import {wikiUpdate} from './wiki-update.mjs';
 
 const exec = promisify(execFile);
@@ -34,8 +34,9 @@ const limited = (value, max = 16000) => typeof value === 'string' && value.trim(
 export class ProjectService {
   constructor({storageRoot = path.join(os.homedir(), '.nubi-desktop'), recoveryOptions = {}} = {}) { this.storageRoot = storageRoot; this.recoveryOptions=recoveryOptions; }
   async open(root) {
-    const resolved = await realpath(limited(root, 2000));
-    const top = await realpath((await git(resolved, ['rev-parse', '--show-toplevel'])).trim());
+    // Each reason a folder cannot be opened has its own code for the "프로젝트 열기" message.
+    const resolved = await realpath(limited(root, 2000)).catch(error => fail(['EACCES', 'EPERM'].includes(error?.code) ? 'project_path_denied' : 'project_path_missing'));
+    const top = await git(resolved, ['rev-parse', '--show-toplevel']).then(output => realpath(output.trim()), error => fail(gitOpenFailure(error)));
     if (this.root === top && this.store?.db.isOpen) return this.overview();
     if (this.skillImportBusy || this.vocBusy || this.computerBusy || this.newFileBusy || this.setupBusy || this.processes?.active.size || this.processes?.pending.size || this.unsettledOperations?.size || this.reconciling || this.agent?.running || this.recordingKnowledge || this.databaseBusy || this.collaborationBusy) fail('project_busy');
     const projectId = hash(top).slice(7, 31), store = new Store(path.join(this.storageRoot, projectId));

@@ -7,7 +7,7 @@ import {collectPageContent} from '../generated/browser-content-dom.js';
 const browser = await chromium.launch({headless: true, executablePath: process.env.CHROME_BINARY});
 try {
   const page = await browser.newPage();
-  await page.setContent(`<details><summary>지난 기록</summary>${'<p>접힌 기록</p>'.repeat(5100)}</details><label>검색어<input id="search"></label><button id="search-button">검색</button>`);
+  await page.setContent(`<details><summary>지난 기록</summary>${'<p>접힌 기록</p>'.repeat(10100)}</details><label>검색어<input id="search"></label><button id="search-button">검색</button>`);
   const closed = await page.evaluate(collectSnapshot);
   assert(closed.descriptors.some(element => element.id === 'search'), 'A visible input after a large collapsed section must remain observed');
   assert(closed.descriptors.some(element => element.id === 'search-button'));
@@ -18,7 +18,7 @@ try {
   await page.getByText('지난 기록', {exact: true}).click();
   const opened = await page.evaluate(collectSnapshot, {query: '검색'});
   assert(opened.descriptors.some(element => element.id === 'search-button'));
-  assert(opened.coverage.nodesInspected > 5100);
+  assert(opened.coverage.nodesInspected > 10100);
   const unfiltered = await page.evaluate(collectSnapshot);
   assert(unfiltered.text.includes('접힌 기록'));
   assert(unfiltered.coverage.domTruncated, 'Opening the section must re-observe its real rendered scope');

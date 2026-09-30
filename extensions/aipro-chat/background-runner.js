@@ -3,6 +3,7 @@ import {normalizeTrace} from './agent-trace.js';
 import {activityDeadline} from './model-recovery.js';
 import {CHAT_TIMEOUT_MS} from './chat-contract.js';
 import {ERROR_TEXT} from './core.js';
+import {runReplay, replayAnswer} from './browser-replay.js';
 
 // One live executor per lease. Views are observers, never execution owners.
 // Checkpoints live in the host; a terminated worker is paused, not replayed.
@@ -68,14 +69,14 @@ export function createBackgroundRunner({call, publish, compareImages, keepAlive 
       if (event && event.tool !== 'progress_note') traceSequence++;
       void invoke('SAVE_CONTEXT', {kind: 'trace', trace: normalizeTrace(trace), ...(event && event.tool !== 'progress_note' ? {event, sequence: traceSequence} : {})}).catch(() => {});
     };
-    const executeTool = async (name, args) => {
+    const executeTool = async (name, args, extra = {}) => {
       if (abort.signal.aborted) throw new Error('cancelled');
       setPhase(name === 'update_plan' ? 'planning' : ['verify_page', 'verify_form'].includes(name) ? 'verifying' : name === 'read_page' ? 'reading' : 'acting');
       const traceId = trace.findLast(step => step.tool === name && step.status === 'running')?.id;
       // Publish before entering the serialized, potentially long tool call.
       // Otherwise captures can arrive while observers still see an older step.
       await flush().catch(() => {});
-      let result = await invoke('RUN_TOOL', {name, args, traceId});
+      let result = await invoke('RUN_TOOL', {name, args, traceId, ...(Number.isInteger(extra.replayIndex) ? {replayIndex: extra.replayIndex} : {})});
       if (abort.signal.aborted) throw new Error('cancelled');
       if (name === 'inspect_images' && !result.error) result = await compareImages(result, abort.signal);
       if (!result.planId) return result;
@@ -101,6 +102,19 @@ export function createBackgroundRunner({call, publish, compareImages, keepAlive 
     };
     touch(); update();
     try {
+      if (request.replay) {
+        // A recorded procedure repeated without the model. The host runs every
+        // tool as it does for the model: observations, approvals, receipts and
+        // checkpoints are the same; only the next step comes from the record.
+        let outcome;
+        try {outcome = await runReplay(request.replay, {executeTool, progress, signal: abort.signal});}
+        catch (error) {if (error.message !== 'replay_observation') throw error; outcome = {stopped: {text: '페이지를 관찰하지 못했습니다.'}};}
+        if (abort.signal.aborted) throw new Error('cancelled');
+        content = replayAnswer(outcome); update();
+        await flush().catch(() => {});
+        await invoke('FINISH_CHAT', {content, trace: normalizeTrace(trace), traceSequence, status: 200, finishReason: 'stop', ...(outcome.stopped ? {error: 'replay_stopped'} : {})});
+        return;
+      }
       const result = await completeChat(request, abort.signal,
         text => {touch(); content = text; update();}, value => {usage = value;}, setPhase, value => {finishReason = value;},
         executeTool, progress, measurement => invoke('RECORD_USAGE', measurement), update => invoke('SAVE_CONTEXT', update), diagnostic => invoke('MODEL_DIAGNOSTIC', diagnostic),

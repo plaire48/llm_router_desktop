@@ -14,7 +14,7 @@ import {clickEffect} from './browser-click-effect.js';
 import {takeFieldMarks, markFieldWritten, fieldUnchanged, fieldScope, recordFieldMarks, fieldsUnchanged, restoreFieldBaseline} from './field-marks.js';
 import {collectSnapshot, inspectTarget, clickTarget, controlState, valueMark, pointerPosition, pointerCover, pointerBlocker, fieldMarks, prepareHoverReveal, waitForHoverReveal, stateWords, readWithoutDebugger, selectControls, CONTROL_LIMIT, CONTROLS_HINT, bindObservedRef, releaseObservedRefs, topDocumentId, observedDocumentScope, frameOwner} from './browser-observation.js';
 import {observationEffect, noteRepeatedNoEffect} from './browser-effect.js';
-import {appendText, editableText, textDigest} from './browser-text.js';
+import {appendText, insertText, editableText, textDigest} from './browser-text.js';
 import {keyboardInput} from './browser-keyboard.js';
 import {createScriptInputWitness} from './browser-script-receipt.js';
 import {editorOperation, validEditorFormat, matchesEditorFormat} from './browser-editor.js';
@@ -55,6 +55,39 @@ const safeURL = sourceURL;
 
 export function browserAgentObservation(requestId) {return active?.id===requestId?active.latestObservation:null;}
 
+// The observed control that a click at a point pressed, the innermost one that
+// holds the point. A replay repeats the click on that control, found again,
+// instead of at coordinates that another window size would move.
+async function observedRefAt(task, pointed) {
+  const element = pointed?.asElement?.();
+  if (!element) return null;
+  const entries = [...task.refs.values()].filter(entry => entry.handle && entry.frame === task.page.mainFrame() && entry.descriptor?.kind !== 'scroll_area');
+  if (!entries.length) return null;
+  const index = await element.evaluate((node, candidates) => {
+    let best = -1, nearest = Infinity;
+    candidates.forEach((candidate, at) => {
+      if (candidate !== node && !candidate?.contains?.(node)) return;
+      let depth = 0; for (let current = node; current && current !== candidate; current = current.parentElement) depth++;
+      if (depth < nearest) {nearest = depth; best = at;}
+    });
+    return best;
+  }, entries.map(entry => entry.handle)).catch(() => -1);
+  return index >= 0 ? entries[index].ref : null;
+}
+// Fields whose value changed while an action ran, other than its own targets: a
+// date picker's day fills its field, a lookup fills the fields beside it. The
+// value is never read; each observation keeps a mark of it (field-marks.js).
+function fieldMarksNow(task) {return new Map([...task.fieldMarks || []].map(([key, mark]) => [key, mark.latest]));}
+function fieldsChangedSince(task, marks, targets) {
+  if (!marks?.size) return [];
+  const changed = [];
+  for (const entry of task.refs.values()) {
+    const key = entry.fieldKey;
+    if (!key || targets?.has(key) || !marks.has(key) || marks.get(key) === task.fieldMarks?.get(key)?.latest) continue;
+    changed.push({ref: entry.ref, role: entry.descriptor?.role || '', name: String(entry.descriptor?.name || '').slice(0, 80)});
+  }
+  return changed;
+}
 async function clearRefs(task) {
   const refs = [...task.refs.values(), ...task.uploadRefs?.values() || []]; task.refs.clear(); task.uploadRefs?.clear();
   const observations = [...task.observedDocuments?.values() || []]; task.observedDocuments?.clear();
@@ -225,6 +258,40 @@ async function target(task, ref, {readOnly = false} = {}) {
   if (!readOnly) markFieldWritten(task, entry);
   return entry;
 }
+// Text already in a multi-line field (a mail body's quoted original and
+// signature, a text area) that a fill would erase. Reported from a company mail:
+// a forward lost its "----- Original Message -----" part. Single-line inputs are
+// replaced as before, and so is text this run wrote itself.
+const compactText = value => String(value).replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+// What the agent itself last wrote into a field, kept across runs of this worker
+// so a follow-up ("change the deadline to Thursday") can rewrite its own draft.
+// Keyed by document address and field name, not by tab: a draft written before an
+// approval or in a popup is still recognized. Text a user edited no longer matches.
+const writtenTexts = new Map();
+async function writtenKey(entry) {
+  const where = await entry.handle.evaluate(el => {
+    let owner = '';
+    try {owner = frameElement ? frameElement.id || frameElement.getAttribute('name') || frameElement.title || '' : '';} catch { /* A cross-origin frame has no readable owner. */ }
+    return [location.href, owner, el.getAttribute('aria-label') || el.id || el.getAttribute('name') || '', el.tagName];
+  }).catch(() => null);
+  return where && JSON.stringify(where);
+}
+async function erasedText(entry, value) {
+  if (!await entry.handle.evaluate(el => el.isContentEditable || el.tagName === 'TEXTAREA').catch(() => false)) return null;
+  const existing = await entry.handle.evaluate(editableText).catch(() => ''), kept = compactText(existing);
+  if (kept.length < 8 || compactText(value).includes(kept) || writtenTexts.get(await writtenKey(entry)) === kept) return null;
+  return existing;
+}
+// Bookkeeping only: a write that completed never fails because of it.
+async function rememberWritten(entry) {
+  try {
+    const text = await entry.handle.evaluate(editableText), key = await writtenKey(entry);
+    if (typeof text !== 'string' || !key) return;
+    writtenTexts.delete(key); writtenTexts.set(key, compactText(text));
+    while (writtenTexts.size > 200) writtenTexts.delete(writtenTexts.keys().next().value);
+  } catch { /* The field is gone or unreadable; nothing is remembered. */ }
+}
+async function forgetWritten(entry) {try {writtenTexts.delete(await writtenKey(entry));} catch { /* As above. */ }}
 async function retainedField(entry) {
   try {
     if (['checkbox', 'radio', 'switch', 'toggle'].includes(entry.descriptor.kind)) {
@@ -878,9 +945,9 @@ export async function runBrowserAgent(requestId, page, name, args = {}, options 
     tabId: active?.id === requestId && Number.isInteger(active.tabId) ? active.tabId : page?.tabId}), options.navigationDeadlineMs || NAVIGATION_DEADLINE_MS);});
   try {return await Promise.race([run, late]);} finally {clearTimeout(timer);}
 }
-async function runBrowserTool(requestId, page, name, args = {}, {vision = false, onCapture, onImage, onApproval, onNativeDialog, uploadFiles:availableFiles, navigationLoadMs = NAVIGATION_LOAD_MS, hint} = {}) {
+async function runBrowserTool(requestId, page, name, args = {}, {vision = false, onCapture, onImage, onApproval, onNativeDialog, uploadFiles:availableFiles, navigationLoadMs = NAVIGATION_LOAD_MS, hint, answered = false} = {}) {
   // The observation the model acted on, compared with the one after the action.
-  let task, issued = false, loading = false, before;
+  let task, issued = false, loading = false, before, marksBefore, markTargets;
   let actionTargetReceipt = name === 'click_element'
     ? {dataKind: 'click_target_dispatch', version: 1, status: 'unknown', actionIssued: false, reason: 'click_not_dispatched'} : null;
   const inputExecution = ['fill_form','press_key'].includes(name) ? {commands:[],omitted:0} : null;
@@ -1025,7 +1092,10 @@ async function runBrowserTool(requestId, page, name, args = {}, {vision = false,
         region = captureRegion({x, y, width, height});
         element = {ref: args.ref, name: String(entry.descriptor.name || '').slice(0, 120), role: entry.descriptor.role || ''};
       }
-      let {screenshot, viewport, image} = await captureBrowserPage(task.page, {fullPage, ...(region ? {region} : {}), cancelled: () => active !== task});
+      // The tab's zoom and its own capture: Playwright's screenshot assumes 100%.
+      const zoom = await chrome.tabs.getZoom(task.tabId).catch(() => 1);
+      const capture = async params => Uint8Array.from(atob((await chrome.debugger.sendCommand({tabId: task.tabId}, 'Page.captureScreenshot', {format: 'png', ...params})).data), character => character.charCodeAt(0));
+      let {screenshot, viewport, image} = await captureBrowserPage(task.page, {fullPage, ...(region ? {region} : {}), cancelled: () => active !== task, zoom, capture});
       let enlarged = 1;
       if (element && region.width < 400) {
         const factor = Math.min(3, Math.floor(1200 / region.width * 10) / 10), bigger = await enlargeCapture(image, factor);
@@ -1070,7 +1140,10 @@ async function runBrowserTool(requestId, page, name, args = {}, {vision = false,
         ...(safeURL(tab.url) ? {} : {loading: true})}))}, tabId: task.tabId};
     }
     let action = {ok: true};
+    task.pointedRef = null;
     before = task.latestObservation;
+    marksBefore = fieldMarksNow(task);
+    markTargets = new Set([args.ref, args.source_ref, ...(Array.isArray(args.fields) ? args.fields.map(field => field?.field_id) : [])].map(ref => task.refs.get(ref)?.fieldKey).filter(Boolean));
     if (name === 'drag_element') {
       const source = await target(task, args.source_ref), destination = await target(task, args.target_ref);
       if (source.handle === destination.handle) throw new Error('tool_arguments_invalid');
@@ -1088,6 +1161,7 @@ async function runBrowserTool(requestId, page, name, args = {}, {vision = false,
       const reason = !vision || !shot ? 'missing_screenshot' : shot.id !== args.screenshot_id ? 'screenshot_changed' : shot.url !== task.page.url() ? 'page_changed' : Object.keys(viewport).some(key => viewport[key] !== shot[key]) ? 'viewport_changed' : Date.now() - shot.at > 30000 ? 'screenshot_expired' : !Number.isFinite(args.x) || !Number.isFinite(args.y) || args.x < 0 || args.y < 0 || args.x >= shot.width || args.y >= shot.height ? 'point_outside_viewport' : null;
       if (reason) throw Object.assign(new Error('browser_stale'), {reason});
       const pointed=await task.page.evaluateHandle(({x,y})=>document.elementFromPoint(x,y),{x:args.x,y:args.y});
+      task.pointedRef = await observedRefAt(task, pointed);
       try {if(pointed.asElement())await requireApproval(task,pointed.asElement(),{method:'point',x:args.x,y:args.y},{force:args.approvalOnly===true,summary:args.summary});else if(args.approvalOnly)throw new Error('browser_stale');} finally {await pointed.dispose();}
       task.screenshot = null;
       const watcher = await popupWatch(task);
@@ -1102,7 +1176,7 @@ async function runBrowserTool(requestId, page, name, args = {}, {vision = false,
         });
       }
       finally {await followPopup(task, watcher);}
-      action = {ok: true, actionIssued: true};
+      action = {ok: true, actionIssued: true, ...(task.pointedRef ? {pointedRef: task.pointedRef} : {})};
     } else if (name === 'switch_tab') {
       const id = Number(args.tab_id); if (!task.tabs.has(id)) throw new Error('browser_stale');
       await attachTab(task, id);
@@ -1135,15 +1209,34 @@ async function runBrowserTool(requestId, page, name, args = {}, {vision = false,
       const entries = [], seen = new Set();
       for (const field of args.fields) {
         if (typeof field.field_id !== 'string' || seen.has(field.field_id) || typeof field.value !== 'string' || field.value.length > MAX_FIELD_VALUE_CHARS) throw new Error('fill_invalid');
+        if (field.position !== undefined && !['start', 'end'].includes(field.position) || field.replace_existing !== undefined && typeof field.replace_existing !== 'boolean' ||
+          field.position && field.replace_existing || field.position && !field.value) throw new Error('fill_invalid');
         seen.add(field.field_id);
-        const entry = await target(task, field.field_id);
+        // Read-only until every field passes: a field that is not written keeps its first mark.
+        const entry = await target(task, field.field_id, {readOnly: true});
         if (!['field', 'select', 'checkbox', 'radio', 'switch', 'toggle'].includes(entry.descriptor.kind)) throw new Error('fill_invalid');
         if (['checkbox', 'radio', 'switch', 'toggle'].includes(entry.descriptor.kind) && !['true', 'false'].includes(field.value)) throw new Error('fill_invalid');
-        entries.push({...entry, fieldId:field.field_id, value: field.value});
+        if (field.position && entry.descriptor.kind !== 'field') throw new Error('fill_invalid');
+        entries.push({...entry, fieldId:field.field_id, value: field.value, ...(field.position ? {position: field.position} : {}), replaceExisting: field.replace_existing === true});
+      }
+      // Nothing is written while any field would lose text it already holds.
+      // Replacing it needs the user's choice: replace_existing after an answer.
+      const erasing = [];
+      for (const entry of entries) {
+        if (entry.descriptor.kind !== 'field' || entry.position) continue;
+        const existing = await erasedText(entry, entry.value);
+        if (existing === null || entry.replaceExisting && answered) continue;
+        erasing.push({field_id: entry.fieldId, name: String(entry.descriptor.name || '').slice(0, 80), existingCharacters: existing.length, ...(entry.replaceExisting ? {replaceNeedsAnswer: true} : {})});
+      }
+      if (erasing.length) throw Object.assign(new Error('fill_would_erase'), {erasing});
+      for (const entry of entries) {
+        if (entry.descriptor.disabled) throw new Error('script_disabled');
+        if ((await entry.handle.evaluate(inspectTarget)).disabled) throw new Error('browser_stale');
+        markFieldWritten(task, entry);
       }
       let applied = 0; await Promise.allSettled(task.receipts.map(entry => entry.handle.dispose())); task.receipts = [];
       for (const entry of entries) {
-        const method = entry.descriptor.kind === 'field' ? 'fill' : 'unsupported';
+        const method = entry.position ? 'insert' : entry.descriptor.kind === 'field' ? 'fill' : 'unsupported';
         const witness = method === 'fill' ? await semanticInputWitness(task,entry,entry.fieldId,'fill',entry.value) : null;
         const command = {method,state:'failed',actionIssued:false};
         inputExecution.commands.push(command);
@@ -1158,10 +1251,20 @@ async function runBrowserTool(requestId, page, name, args = {}, {vision = false,
             if (current.secret) throw new Error('script_secret_field');
             if (!current.connected || current.hidden) throw new Error('browser_stale');
             issued = command.actionIssued = true; witness?.onIssued();
+            if (entry.position) {
+              const inserted = await insertText(entry.handle, task.page, entry.value, entry.position, () => active !== task || task.dialogs?.blocked);
+              if (!inserted.verified) throw new Error('fill_not_retained');
+              return inserted;
+            }
             return entry.descriptor.kind === 'select' ? entry.handle.selectOption(entry.value) : entry.handle.fill(entry.value);
           });
           command.state = 'returned';
-          applied++; task.receipts.push({...entry, handle: await entry.handle.evaluateHandle(el => el)});
+          // Only a whole fill makes the field's text this run's own; after an insert it still holds earlier text.
+          if (entry.descriptor.kind === 'field' && entry.position) await forgetWritten(entry);
+          else if (entry.descriptor.kind === 'field') await rememberWritten(entry);
+          // An insert keeps the field's earlier text: its receipt is the whole text now.
+          const receiptValue = entry.position ? await entry.handle.evaluate(el => el.isContentEditable ? el.innerText : el.value) : entry.value;
+          applied++; task.receipts.push({...entry, value: receiptValue, handle: await entry.handle.evaluateHandle(el => el)});
         } catch (error) {
           command.state = 'failed';
           if (witness) command.inputReceipt = await witness.finish('failed');
@@ -1219,18 +1322,18 @@ async function runBrowserTool(requestId, page, name, args = {}, {vision = false,
     await settle(task, loading);
     task.dialogs?.assertCanAct();
     task.screenshot = null;
-    const observation = await observe(task), effect = noteRepeatedNoEffect(task, name, observationEffect(before, observation, name));
+    const observation = await observe(task), effect = noteRepeatedNoEffect(task, name, observationEffect(before, observation, name, {fieldsChanged: fieldsChangedSince(task, marksBefore, markTargets)}));
     return {result: {...action, ...targetReceipt(), ...(loading ? {navigationUnsettled: true, instruction: LOADING_INSTRUCTION} : {}), ...(effect ? {effect} : {}), observation}, tabId: task.tabId};
   } catch (error) {
     if (active === task && task?.dialogs?.blocked && error.message !== 'cancelled') error = new Error('browser_dialog');
-    if(task?.approvalPause)return {result:{...task.approvalPause,actionIssued:issued,...targetReceipt()},tabId:task.tabId};
-    const allowed = ['workspace_changed', 'workspace_loading', 'drag_cross_frame', 'drag_approval_required', 'approval_required','approval_verification_required','approval_changed','cancelled', 'page_restricted', 'browser_stale', 'script_disabled', 'fill_invalid', 'fill_no_receipt', 'tool_arguments_invalid', 'tools_unavailable'];
+    if(task?.approvalPause)return {result:{...task.approvalPause,actionIssued:issued,...targetReceipt(),...(task.pointedRef ? {pointedRef: task.pointedRef} : {})},tabId:task.tabId};
+    const allowed = ['fill_would_erase', 'workspace_changed', 'workspace_loading', 'drag_cross_frame', 'drag_approval_required', 'approval_required','approval_verification_required','approval_changed','cancelled', 'page_restricted', 'browser_stale', 'script_disabled', 'fill_invalid', 'fill_no_receipt', 'tool_arguments_invalid', 'tools_unavailable'];
     let observation;
     if (task && active === task && !['cancelled', 'page_restricted', 'tools_unavailable', 'workspace_changed'].includes(error.message)) {
       try {await clearRefs(task); observation = task.app ? await observe(task) : await readWithoutDebugger(task, '', safeURL, () => active !== task);} catch { /* Keep the original error when the page cannot be inspected. */ }
     }
-    const feedback = scriptFailure(error), effect = issued && observation ? noteRepeatedNoEffect(task, name, observationEffect(before, observation, name)) : null;
-    return {result: {error: allowed.includes(error.message) ? error.message : feedback.reason, reason: feedback.reason, actionIssued: issued, ...targetReceipt(), ...(error.blocker ? {blocker: error.blocker} : {}), ...(error.invalidChecks ? {invalidChecks: error.invalidChecks} : {}), ...(effect ? {effect} : {}), ...(observation ? {observation} : {}), ...(error.message === 'browser_dialog' ? {nativeDialogs: task.dialogs.snapshot()} : {}), ...(error.message === 'workspace_changed' ? {recovery:{strategy:'user_action',execution:'not_started'}} : {}), instruction: error.message === 'workspace_changed' ? 'The owned work tab was closed or moved. Ask the user to reconnect the intended page. Never switch to an unrelated user tab, recreate the workspace or replay prior writes automatically.' : error.message === 'drag_cross_frame' ? 'No drag was issued. Both endpoints must be in one frame. Inspect a supported same-frame target or ask about the intended outcome.' : error.message === 'drag_approval_required' ? 'No drag was issued. This target may finalize a transaction. Inspect the site explicit action, prepare and verify the draft, then use request_approval. Never substitute an unapproved click or coordinate drag.' : feedback.instruction}, tabId: task?.tabId || page.tabId};
+    const feedback = scriptFailure(error), effect = issued && observation ? noteRepeatedNoEffect(task, name, observationEffect(before, observation, name, {fieldsChanged: fieldsChangedSince(task, marksBefore, markTargets)})) : null;
+    return {result: {error: allowed.includes(error.message) ? error.message : feedback.reason, reason: feedback.reason, actionIssued: issued, ...targetReceipt(), ...(error.blocker ? {blocker: error.blocker} : {}), ...(error.invalidChecks ? {invalidChecks: error.invalidChecks} : {}), ...(error.erasing ? {erasing: error.erasing} : {}), ...(error.message === 'capture_incomplete' && error.expected && error.actual ? {imageSize: {page: error.expected, image: error.actual}} : {}), ...(effect ? {effect} : {}), ...(observation ? {observation} : {}), ...(error.message === 'browser_dialog' ? {nativeDialogs: task.dialogs.snapshot()} : {}), ...(error.message === 'workspace_changed' ? {recovery:{strategy:'user_action',execution:'not_started'}} : {}), instruction: error.message === 'workspace_changed' ? 'The owned work tab was closed or moved. Ask the user to reconnect the intended page. Never switch to an unrelated user tab, recreate the workspace or replay prior writes automatically.' : error.message === 'drag_cross_frame' ? 'No drag was issued. Both endpoints must be in one frame. Inspect a supported same-frame target or ask about the intended outcome.' : error.message === 'drag_approval_required' ? 'No drag was issued. This target may finalize a transaction. Inspect the site explicit action, prepare and verify the draft, then use request_approval. Never substitute an unapproved click or coordinate drag.' : feedback.instruction}, tabId: task?.tabId || page.tabId};
   }
 }
 
@@ -1315,6 +1418,11 @@ async function scriptCall(task, originalPage, call, vision, onCapture, onInputRe
       if (method === 'fill' && !await actionHandle.evaluate(el =>
         el.isContentEditable || el.matches('textarea,input:not([type="button"],[type="submit"],[type="reset"],[type="checkbox"],[type="radio"],[type="file"],[type="hidden"],[type="image"])')
       )) throw new Error('script_target');
+      if (method === 'fill') {
+        const entry = {handle: actionHandle, descriptor: refMode ? task.refs.get(chain[0][1][0])?.descriptor : null};
+        const existing = await erasedText(entry, String(args[0] ?? ''));
+        if (existing !== null) throw Object.assign(new Error('fill_would_erase'), {erasing: [{name: String(entry.descriptor?.name || '').slice(0, 80), existingCharacters: existing.length}]});
+      }
       if(['click','dblclick'].includes(method)||method==='press'&&/(?:Enter|Space|(?:Control|Meta|ControlOrMeta)\+(?:Shift\+)?[sS])$/.test(args[0]))await requireApproval(task,actionHandle,method==='press'?{method:'press',key:args[0]}:{method:'click'});
       if (['click', 'dblclick'].includes(method) || method === 'press' && /(?:Enter|Space|(?:Control|Meta|ControlOrMeta)\+(?:Shift\+)?[sS])$/.test(args[0])) watcher = await popupWatch(task, actionHandle);
     }
@@ -1358,6 +1466,8 @@ async function scriptCall(task, originalPage, call, vision, onCapture, onInputRe
         }
         const result = method === 'appendText' ? await appendText(actionHandle, task.page, args[0], args[1], () => active !== task || task.dialogs?.blocked) : await (actionHandle || locator)[method](...args);
         inputState = 'returned';
+        if (method === 'fill' && actionHandle) await rememberWritten({handle: actionHandle, descriptor: refMode ? task.refs.get(chain[0][1][0])?.descriptor : null});
+        else if (method === 'appendText' && actionHandle) await forgetWritten({handle: actionHandle, descriptor: refMode ? task.refs.get(chain[0][1][0])?.descriptor : null});
         return result;
       };
       value = LOCATOR_ACTIONS.includes(method) ? await showAction(task, actionHandle, method === 'hover' ? 'hover' : 'input', operation) : await operation();

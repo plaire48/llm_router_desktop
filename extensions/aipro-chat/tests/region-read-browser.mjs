@@ -54,10 +54,10 @@ try {
   assert.equal((await collect({region_ref:'r-00000000-0000-0000-0000-000000000000-0'})).error,'region_stale');
   checks.push('Replaced, hidden, missing and stale region nodes fail explicitly');
   const largeQuery=await collect('긴 영역'), largeRef=largeQuery.retrieval.textRegions.find(r=>r.heading==='긴 영역').region_ref;
-  const large=await collect({region_ref:largeRef});assert(large.text.length<=16000);assert.equal(large.region_scope.partial,true);assert.equal(large.coverage.nodeLimit,5000);
+  const large=await collect({region_ref:largeRef});assert(large.text.length<=16000);assert.equal(large.region_scope.partial,true);assert.equal(large.coverage.nodeLimit,10000);
   const broad=await collect('여러 카드를 포함한 영역'), broadRef=broad.retrieval.textRegions.find(r=>r.heading==='여러 카드를 포함한 영역').region_ref;
   const broadRead=await collect({region_ref:broadRef});assert(broadRead.text.includes('서울'));assert(broadRead.text.includes('부산'));assert.match(broadRead.region_scope.instruction,/several cards or dates/);
-  checks.push('Existing 16k text and 5000-node budgets remain; truncation and multi-card interpretation limits are explicit');
+  checks.push('Existing 16k text and 10000-node budgets remain; truncation and multi-card interpretation limits are explicit');
   const frame=await page.evaluateHandle(()=>{const f=document.createElement('iframe');f.srcdoc='<section><h2>별도 프레임</h2><p>서울 현재 수치 999</p></section>';document.body.append(f);return f;});
   const child=await frame.asElement().contentFrame();await child.waitForLoadState();await child.addScriptTag({content:bundle.outputFiles[0].text});
   const foreign=await child.evaluate(()=>NubiDOM.collectSnapshot('현재').retrieval.textRegions[0].region_ref);

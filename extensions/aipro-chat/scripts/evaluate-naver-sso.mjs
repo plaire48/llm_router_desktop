@@ -197,6 +197,13 @@ handle = async function(message, sender, owner) {
       ...(message.name==='run_playwright'?{scriptExecution:NubiEvaluationScriptEvidence.normalizeScriptCommandEvidence(result?.execution)}:{}),
       ...(['fill_form','press_key'].includes(message.name)?{inputExecution:NubiEvaluationScriptEvidence.normalizeScriptCommandEvidence(result?.inputExecution),actionIssued:typeof result?.actionIssued==='boolean'?result.actionIssued:null}:{}),
       ...(message.name==='list_tabs' && Array.isArray(result?.tabs)?{tabCount:result.tabs.length,currentTabListed:result.tabs.some(tab=>tab.current===true)}:{}),
+      // Kinds only, never values, refs or page text: which checks a model writes and
+      // why one is refused, what covered a click, what an action changed.
+      ...(message.name==='verify_page'?{checkKinds:(Array.isArray(message.args?.checks)?message.args.checks:[]).slice(0,24).map(check=>evalCode(check?.kind)),
+        ...(Array.isArray(result?.invalidChecks)?{invalidChecks:result.invalidChecks.slice(0,24).map(item=>({index:Number.isInteger(item?.index)?item.index:null,kind:evalCode(item?.kind),problem:String(item?.problem||'').slice(0,160)}))}:{})}:{}),
+      ...(result?.blocker&&typeof result.blocker==='object'?{blocker:{kind:evalCode(result.blocker.kind),tag:evalCode(result.blocker.tag)}}:{}),
+      ...(result?.effect&&typeof result.effect==='object'?{effectKinds:Object.keys(result.effect).filter(key=>/^[a-zA-Z]{1,40}$/.test(key)).slice(0,20)}:{}),
+      ...(Array.isArray(result?.erasing)?{erasing:result.erasing.length}:{}),
       ...(['read_page','browser_snapshot'].includes(message.name)?{readObservation:{queryProvided:typeof message.args?.query==='string'&&message.args.query.trim().length>0,
         frameCount:Array.isArray(result?.frames)?result.frames.length:null,
         frames:Array.isArray(result?.frames)?result.frames.slice(0,16).map(frame=>({textCharacters:typeof frame.text==='string'?frame.text.length:null,

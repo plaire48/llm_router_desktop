@@ -28,6 +28,7 @@ import {WikiFolderSettings} from './WikiFolderSettings.jsx';
 import {CopyButton} from './CopyButton.jsx';
 import {MessageBody} from './MessageBody.jsx';
 import {ActionApproval} from './ActionApproval.jsx';
+import {ReplayCard} from './ReplayCard.jsx';
 import {prepareFiles} from './document-parser.js';
 import {AttachmentList, AttachmentPicker} from './Attachments.jsx';
 import {clipboardAttachments} from '../attachments.js';
@@ -60,6 +61,7 @@ export default function App() {
   const [stateStatus, setStateStatus] = useState({paused: false, reload: false});
   const stateSync = useRef(null);
   const [skillDraftReview, setSkillDraftReview] = useState(null);
+  const [replayOpen, setReplayOpen] = useState(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const helpReturnFocus = useRef(false);
   const [draft, setDraft] = useState(''), [error, setError] = useState('');
@@ -455,6 +457,18 @@ export default function App() {
     } catch (e) {setError(errorText(e.message)); return false;}
     finally {setStarting(false); if (document.activeElement?.closest('.composer')) textarea.current?.focus();}
   }
+  // Repeats a verified answer's recorded steps without the model. Page access is
+  // asked on this click, as for a message, not by the worker later.
+  async function replay(messageId, values) {
+    if (!validAuth || working || data.busy || data.pending) return;
+    setError('');
+    const granted = await chrome.permissions.request({origins: PAGE_ORIGINS}).catch(() => false);
+    if (!granted) throw new Error('page_permission');
+    followReply.current = true; setAway(false);
+    await rpc('START_AGENT', {replay: {messageId, values}, conversationId: data.chat.sessionId});
+    setReplayOpen(null);
+    await refresh();
+  }
   async function stop() {
     const requestId = data.agentRun?.requestId || data.chat.messages.findLast(message => message.state === 'pending')?.id;
     if (!requestId) return;
@@ -536,7 +550,10 @@ export default function App() {
           {message.state === 'pending' && !separateProgress && !progressFor(message) && <span className="reply-status" role="status"><span className="status-spinner" aria-hidden="true"/>{!working ? '다른 창에서 답변 생성 중' : phaseText[replyPhase]}</span>}
           {message.finishReason === 'length' && <p className="reply-note">출력 한도에 도달했습니다. “이어서”라고 요청하세요.</p>}
           {message.error && <CxNotice tone="danger">{errorText(message.error)}</CxNotice>}
-          {message.role === 'assistant' && <div className="message-actions">{message.content && <CopyButton text={message.content} label={`${index + 1}번째 메시지 복사`} successMessage="답변을 복사했습니다."/>}{message.error && !message.creatingSkill && (index === data.chat.messages.length - 1 || data.chat.task?.status === 'paused' && data.chat.task.requestId === message.requestId) && <ActionButton action="refresh" label={data.chat.task?.status === 'paused' && !message.contextOnly ? '작업 이어가기' : '재시도'} disabled={!validAuth || working || switching || data.busy} onClick={() => send(true, !!message.contextOnly, !message.contextOnly && data.chat.task?.status === 'paused')}/>}</div>}
+          {message.role === 'user' && (message.displayContent || message.content) && <div className="message-actions"><CopyButton text={message.displayContent || message.content} label={`${index + 1}번째 메시지 복사`} successMessage="메시지를 복사했습니다."/></div>}
+          {message.role === 'assistant' && <div className="message-actions">{message.content && <CopyButton text={message.content} label={`${index + 1}번째 메시지 복사`} successMessage="답변을 복사했습니다."/>}{message.replay && message.state === 'done' && <ActionButton action="redo" label="모델 없이 다시 실행" aria-expanded={replayOpen === message.id} disabled={!validAuth || working || switching || data.busy || !!data.pending} onClick={() => setReplayOpen(current => current === message.id ? null : message.id)}/>}{message.error && !message.creatingSkill && (index === data.chat.messages.length - 1 || data.chat.task?.status === 'paused' && data.chat.task.requestId === message.requestId) && <ActionButton action="refresh" label={data.chat.task?.status === 'paused' && !message.contextOnly ? '작업 이어가기' : '재시도'} disabled={!validAuth || working || switching || data.busy} onClick={() => send(true, !!message.contextOnly, !message.contextOnly && data.chat.task?.status === 'paused')}/>}</div>}
+          {message.role === 'assistant' && message.replay && replayOpen === message.id && <ReplayCard message={message} conversationId={data.chat.sessionId} rpc={rpc} describeError={errorText}
+            disabled={!validAuth || working || switching || data.busy || !!data.pending} onClose={() => setReplayOpen(null)} onRun={values => replay(message.id, values)}/>}
           {pendingInput && <div className="steering-message-status">
             <span role="status" data-pending={working && pendingInput.runId === activeRequestId || undefined}>{working && pendingInput.runId === activeRequestId ? '반영 대기' : '보류'}</span>
             <div className="agent-input-actions">

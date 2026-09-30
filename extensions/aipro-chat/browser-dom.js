@@ -136,13 +136,15 @@ export function pointerBlocker(el) {
   const first = pointSamples(el).next().value;
   if (!first?.hit) return {kind: 'outside_view'};
   const node = first.owner || first.hit, item = itemOf(el);
-  let kind = el.contains(node) ? 'inside_target' : item?.contains(node) ? 'same_row' :
-    node.closest('dialog[open],[role="dialog"],[role="alertdialog"],[aria-modal="true"]') ? 'dialog' : '';
+  const dialog = node.closest('dialog[open],[role="dialog"],[role="alertdialog"],[aria-modal="true"]');
+  let kind = el.contains(node) ? 'inside_target' : item?.contains(node) ? 'same_row' : dialog ? 'dialog' : '';
+  // A layer's dim overlay is fixed too; it covers the page, not a bar of it.
+  const box = first.hit.getBoundingClientRect();
+  if (!kind && box.width * box.height >= innerWidth * innerHeight * .8) kind = 'page_cover';
   for (let layer = first.hit; !kind && layer && layer !== layer.ownerDocument.body; layer = parent(layer))
     if (['fixed', 'sticky'].includes(getComputedStyle(layer).position)) kind = 'fixed_bar';
-  const box = first.hit.getBoundingClientRect();
-  kind ||= box.width * box.height >= innerWidth * innerHeight * .8 ? 'page_cover' : 'other';
-  const name = clean(labelOf(node) || ownText(node, 60), 60);
+  kind ||= 'other';
+  const name = clean(kind === 'dialog' ? accessible(dialog) || layerName(dialog) : labelOf(node) || ownText(node, 60), 60);
   return {kind, tag: node.localName, role: getRole(node) || '', ...(name && !secret(node, name) ? {name} : {})};
 }
 
@@ -347,12 +349,59 @@ function itemText(el) {
   }
   return clean(parts.join(' '), 200);
 }
+// Words right beside an element that has none of its own, up to the next control:
+// a check box drawn with a class and then its words, or a field after its label.
+function besideText(el, forward) {
+  for (let node = forward ? el.nextSibling : el.previousSibling, steps = 0; node && steps < 4; node = forward ? node.nextSibling : node.previousSibling, steps++) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = clean(node.data, 60);
+      if (text) return text.length <= 30 ? text : '';
+      continue;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE || node.matches('input[type="hidden"],script,style,template') || getComputedStyle(node).display === 'none') continue;
+    if (node.matches(`${controls},${handlers},input,select,textarea,img,svg,canvas,br`) || node.querySelector(`${controls},${handlers},input,select,textarea`)) return '';
+    const text = ownText(node, 60);
+    return text.length <= 30 ? text : '';
+  }
+  return '';
+}
+const columnHeadings = table => table.tagName === 'TABLE' ? !!table.tHead?.rows.length || [...table.rows].slice(0, 3).some(row => row.cells.length > 1 && [...row.cells].every(c => c.tagName === 'TH')) :
+  !!table.querySelector('[role="columnheader"]');
+// The words that name a field in a form drawn as a table or a list of terms:
+// "<th>제목</th><td><input></td>", "<dt>제목</dt><dd><input></dd>", or a label
+// cell by class. Not in a table with column headings: there the column names it.
+function formLabel(el) {
+  const cell = el.closest('td,dd,[role="cell"],[role="gridcell"]');
+  if (!cell || cell === el) return el.matches('input,textarea,select') || el.isContentEditable ? besideText(el, false) : '';
+  const header = cell.previousElementSibling, table = cell.closest('table,[role="table"],[role="grid"],[role="treegrid"]');
+  if (!header || table && columnHeadings(table)) return '';
+  if (!header.matches('th,dt,[role="rowheader"]') && !(header.matches('td') && /(^|[\s_-])(th|tit|title|label|lbl|head)([\s_-]|$)/i.test(header.className))) return '';
+  if (header.querySelector(`${controls},input,select,textarea`)) return '';
+  const text = ownText(header, 60);
+  return text.length <= 30 ? text : '';
+}
+// A dialog or a layer popup is named by its heading, or by its first words that
+// are not a button's ("상신하시겠습니까?").
+function layerName(node) {
+  if (!node) return '';
+  for (const selector of ['h1,h2,h3,h4,h5,h6,[role="heading"],legend', 'strong,b', '[class*="tit"],[class*="head"]']) {
+    const heading = [...node.querySelectorAll(selector)].slice(0, 20).find(el => !el.closest(`${BUTTONS},a[href]`) && ownText(el, 60));
+    if (heading) return ownText(heading, 60);
+  }
+  return clean(itemText(node), 60);
+}
 export function inspectTarget(el) {
   const accessibleName = accessible(el) || (el.matches('input[type="checkbox"],input[type="radio"]') && clickTarget(el) !== el ? clean(computeAccessibleName(el, {hidden: true})) : '');
   // A clickable mail row holds a checkbox. Its words still name it; only the
   // fields inside are left out, so no field value becomes part of the name.
-  const text = activation(el) && !el.matches('input,textarea,select') && !el.isContentEditable ? (el.querySelector('input,textarea,select,[contenteditable]') ? ownText(el) : clean(el.innerText || el.textContent)) : '';
-  const name = accessibleName || clean(el.placeholder || el.title) || text || clean(el.name || el.id);
+  const trigger = activation(el), fieldish = el.matches('input,textarea,select') || el.isContentEditable;
+  const text = trigger && !fieldish ? (el.querySelector('input,textarea,select,[contenteditable]') ? ownText(el) : clean(el.innerText || el.textContent)) : '';
+  // Company forms are often built without <label>: a table row "<th>제목</th><td>
+  // <input>", or a box drawn beside its words ("<span class=chk></span> 긴급 문서").
+  // Measured on such a form: fields were named by their id ("subject") or hint.
+  const toggle = el.matches('input[type="checkbox"],input[type="radio"],[role="checkbox"],[role="radio"],[role="switch"]');
+  const near = accessibleName || text ? '' : toggle || !fieldish && ['pointer', 'handler'].includes(trigger) ? besideText(el, true) || besideText(el, false) || formLabel(el) : fieldish ? formLabel(el) : '';
+  const name = accessibleName || (fieldish && !toggle ? near : '') || clean(el.placeholder || el.title) || text || near || clean(el.name || el.id);
   return {name, accessibleName, itemText: itemText(el), role: getRole(el), type: el.isContentEditable ? 'contenteditable' : el.type,
     disabled: el.matches(':disabled') || !!el.closest('[aria-disabled="true"]'),
     secret: secret(el, name), hidden: hidden(el), connected: el.isConnected, ...controlState(el), ...keyboardState(el)};
@@ -438,7 +487,8 @@ function contextOf(el, cache) {
         // list item or a repeated box is named by its own words.
         const first = role === 'row' ? node.querySelector(':scope > th,:scope > td,:scope > [role="rowheader"],:scope > [role="cell"],:scope > [role="gridcell"]') : null;
         const cell = first && !first.querySelector('input,textarea,select,[contenteditable],button,a,[role="button"],[role="link"],[role="checkbox"]') && clean(first.textContent) ? first : null;
-        const name = node.matches('[aria-label],[aria-labelledby],fieldset') ? accessible(node) : clean(heading?.textContent || cell?.textContent || (['row', 'listitem', 'item'].includes(role) ? ownText(node, 80) : ''));
+        const name = node.matches('[aria-label],[aria-labelledby],fieldset') ? accessible(node) : clean(heading?.textContent || cell?.textContent || (['row', 'listitem', 'item'].includes(role) ? ownText(node, 80) : '')) ||
+          (['dialog', 'alertdialog'].includes(role) ? layerName(node) : '');
         const state = ['row', 'listitem', 'item'].includes(role) ? classStates(node) : [];
         if (!secret(node, name)) context = {role, ...(name ? {name} : {}), ...(state.length ? {state} : {})};
       }
@@ -467,7 +517,7 @@ export function collectSnapshot(input) {
     return visibility.get(el);
   };
   // Focused retrieval can inspect further without enlarging model output.
-  const nodeLimit = query || expectedTexts.length ? 16000 : 5000;
+  const nodeLimit = query || expectedTexts.length ? 16000 : 10000;
   if (options?.expectedURL && location.href !== options.expectedURL) return {error: 'browser_stale'};
   let skippedSubtrees = 0, domTruncated = false;
   const all = [], textNodes = [], walk = root => {
@@ -493,11 +543,15 @@ export function collectSnapshot(input) {
     }
   };
   if (regionRead) all.push(regionEntry);
+  // A rich editor in an iframe is often the frame's body itself (contenteditable
+  // or designMode), as in many company mail editors. The walk starts below the
+  // body, so the body is observed here as the field it is.
+  if (!regionRead && document.body?.isContentEditable) all.push(document.body);
   walk(regionRead ? regionEntry : document.body || document.documentElement);
   const candidates = [], texts = [], regions = [], headings = [], alerts = [], focused = activeElement(), contextCache = new WeakMap(), fieldCache = new Map(), columnCache = new WeakMap();
   for (const el of all) {
     if (isHidden(el) || el.closest('script,style,noscript,template,svg,canvas')) continue;
-    const rich = el.isContentEditable && el.matches('[contenteditable="true"],[contenteditable="plaintext-only"]');
+    const rich = el.isContentEditable && (el.matches('[contenteditable="true"],[contenteditable="plaintext-only"]') || el === document.body);
     const field = el.matches('input:not([type="hidden"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]),textarea,select') || rich;
     const scroll = scrollGeometry(el);
     const trigger = activation(el), interactive = field || trigger || scroll;
@@ -507,7 +561,7 @@ export function collectSnapshot(input) {
     if (secret(el, info?.name || clean(el.getAttribute('aria-label')))) continue;
     if (role === 'heading' && headings.length < 40 && !el.closest('[contenteditable]') && !el.querySelector('input,textarea,select,[contenteditable]')) headings.push({level: Number(el.getAttribute('aria-level') || el.tagName.slice(1)) || 0, name: accessible(el)});
     if (['dialog', 'alertdialog', 'form', 'navigation', 'main', 'region'].includes(role) && regions.length < 24) {
-      const name = accessible(el);
+      const name = accessible(el) || (['dialog', 'alertdialog'].includes(role) ? layerName(el) : '');
       if (!secret(el, name)) regions.push({role, name, ...(el.matches('dialog:modal,[aria-modal="true"]') ? {modal: true} : {})});
     }
     if (['alert', 'status'].includes(role) && alerts.length < 12 && !el.querySelector('input,textarea,[contenteditable]')) alerts.push({role, text: clean(el.textContent, 400)});
@@ -516,7 +570,8 @@ export function collectSnapshot(input) {
       const kind = scroll && !field && !trigger ? 'scroll_area' : el.tagName === 'SELECT' ? 'select' : ['checkbox', 'radio'].includes(el.type) ? el.type : state.stateKind === 'checked' ? (role === 'radio' || role === 'menuitemradio' ? 'radio' : role === 'switch' ? 'switch' : 'checkbox') : state.stateKind === 'pressed' ? 'toggle' : field ? 'field' : el.matches('a[href]') ? 'link' : 'control';
       const context = contextOf(el, contextCache), name = info.name || role || kind, column = field || trigger ? columnOf(el, columnCache) : '';
       const choices = el.tagName === 'SELECT' ? [...el.options].slice(0, 80).map(o => ({value: o.value.slice(0, 200), label: clean(o.label), disabled: o.disabled || !!o.closest('optgroup[disabled]')})) : undefined;
-      const destination = el.matches('a[href]') ? publicSourceURL(el.href) : null;
+      // "#none" or "#" opens nothing: the page's script handles the click.
+      const destination = el.matches('a[href]') && !el.getAttribute('href').trim().startsWith('#') ? publicSourceURL(el.href) : null;
       const descriptor = {name, accessibleName: info.accessibleName, role, kind, tag: el.tagName.toLowerCase(),
         ...(scroll ? {scroll} : {}),
         ...describeControl(el, secret), inViewport: inViewport(clickTarget(el)),
@@ -535,6 +590,61 @@ export function collectSnapshot(input) {
         ...(field ? {valueMark: valueMark(el), fieldPlace: fieldPlace(el, fieldCache)} : {})};
       candidates.push({el, descriptor, priority: context.some(c => ['dialog','alertdialog'].includes(c.role)) ? 0 : el === focused ? 1 : descriptor.inViewport ? 2 : 3});
     }
+  }
+  // Controls no pointer reaches now: every sampled point meets an open dialog, a
+  // layer's dim overlay or another element that does not stand for them. A fixed
+  // bar is left out: a click scrolls the control from under it. Reported from
+  // company pages: a layer popup without role="dialog" opened over the page, and
+  // its "확인" looked the same as the page's own "확인" behind the overlay.
+  const blocked = [];
+  for (const item of regionRead ? [] : candidates) {
+    if (!item.descriptor.inViewport) continue;
+    const target = clickTarget(item.el);
+    if (pointerPosition(target) || pointerCover(target)) continue;
+    const blocker = pointerBlocker(target);
+    if (!['dialog', 'page_cover', 'other'].includes(blocker.kind)) continue;
+    item.descriptor.coveredBy = blocker.kind === 'page_cover' ? 'overlay' : `${blocker.kind === 'dialog' ? 'dialog' : 'element'}${blocker.name ? ` "${blocker.name}"` : ''}`;
+    blocked.push(item);
+  }
+  // Over an overlay, the controls still reached belong to the layer on top of
+  // it: the outermost positioned box around them that holds no covered control.
+  const inDialog = item => item.descriptor.context?.some(c => ['dialog', 'alertdialog'].includes(c.role));
+  if (blocked.some(item => item.descriptor.coveredBy === 'overlay')) {
+    const holdsBlocked = new Map(), names = new Map();
+    const holds = node => {if (!holdsBlocked.has(node)) holdsBlocked.set(node, blocked.some(item => node.contains(item.el))); return holdsBlocked.get(node);};
+    for (const item of candidates) {
+      if (item.descriptor.coveredBy || !item.descriptor.inViewport || inDialog(item)) continue;
+      let layer = null;
+      for (let node = parent(item.el); node?.nodeType === 1 && node !== document.body && node !== document.documentElement && !holds(node); node = parent(node))
+        if (['fixed', 'absolute'].includes(getComputedStyle(node).position)) layer = node;
+      if (layer && !names.has(layer)) names.set(layer, layerName(layer));
+    }
+    // Every control of a layer is in that dialog, also one scrolled out of view.
+    for (const item of candidates) {
+      if (item.descriptor.coveredBy || inDialog(item)) continue;
+      const layer = [...names.keys()].find(node => node.contains(item.el));
+      if (!layer) continue;
+      const name = names.get(layer);
+      item.descriptor.context = [...(item.descriptor.context || []).slice(0, 2), {role: 'dialog', ...(name && !secret(layer, name) ? {name} : {})}];
+      item.priority = 0;
+    }
+    // A layer is listed with the dialogs, so opening or closing it is an effect.
+    for (const [layer, name] of names) if (regions.length < 24) regions.push({role: 'dialog', ...(name && !secret(layer, name) ? {name} : {}), modal: true, layer: true});
+    // One layer over the overlay is what covers the page.
+    const [only] = names.size === 1 ? names.entries() : [];
+    const cover = only ? `dialog${only[1] && !secret(only[0], only[1]) ? ` "${only[1]}"` : ''}` : 'overlay';
+    for (const item of blocked) if (item.descriptor.coveredBy === 'overlay') item.descriptor.coveredBy = cover;
+    // When no control of the page is reached in the window, the overlay covers
+    // the window, and the controls scrolled out of it come under it too.
+    if (!candidates.some(item => item.descriptor.inViewport && !item.descriptor.coveredBy && !inDialog(item)))
+      for (const item of candidates) if (!item.descriptor.coveredBy && !inDialog(item)) item.descriptor.coveredBy = cover;
+  }
+  // A modal <dialog> makes the rest of its document inert, in view or not.
+  let modal = null;
+  try {modal = regionRead ? null : document.querySelector('dialog:modal');} catch { /* An older engine has no :modal. */ }
+  if (modal) {
+    const name = accessible(modal) || layerName(modal), cover = `dialog${name && !secret(modal, name) ? ` "${name}"` : ''}`;
+    for (const item of candidates) if (!item.descriptor.coveredBy && !modal.contains(item.el)) item.descriptor.coveredBy = cover;
   }
   // A result may expose a publisher, title and snippet as separate links to
   // exactly the same address. Preserve alternatives without inferring a title.
@@ -612,9 +722,9 @@ export function collectSnapshot(input) {
   const ranked = query ? rankEvidence(candidates.map(({descriptor: d}, id) => ({id, name: `${d.name} ${d.accessibleName}`, context: `${(d.context || []).map(c => c.name || '').join(' ')} ${d.column || ''} ${d.description || ''}`, text: `${d.id || ''} ${d.testId || ''} ${d.role || ''} ${roleWords[d.role] || ''} ${d.validationMessage || ''}`})), query) : [];
   // Preserve DOM order when every control fits. Moving focus must not reorder
   // an otherwise unchanged observation and look like progress to recovery.
-  // The host may ask for up to 400 controls and choose among them itself (by a
+  // The host may ask for up to 600 controls and choose among them itself (by a
   // size budget and the user's request, which never enters the page).
-  const limit = !query && Number.isInteger(options?.limit) ? Math.min(400, Math.max(180, options.limit)) : 180;
+  const limit = !query && Number.isInteger(options?.limit) ? Math.min(600, Math.max(180, options.limit)) : 180;
   // A hint (the user's request) is given only to the isolated-world reader, never to
   // a script the page could watch. When not every control fits, the controls it
   // matches come right after dialog and focused ones; it never filters.
@@ -625,7 +735,9 @@ export function collectSnapshot(input) {
   const ordered = query ? ranked.map(hit => ({...candidates[hit.id], match: hit.match})) :
     candidates.length > limit ? candidates.sort((a, b) => orderOf(a) - orderOf(b)) : candidates;
   const chosen = ordered.slice(0, limit), elements = chosen.map(item => item.el);
-  let detailBudget = 6000, omittedControlDetails = 0;
+  // Help texts and validation messages tell a field's rule; models here read
+  // 256K tokens or more, so more of them are kept (was 6000).
+  let detailBudget = 16000, omittedControlDetails = 0;
   const descriptors = chosen.map(({descriptor, match}) => {
     const {description, validationMessage, constraints, ...base} = descriptor;
     const details = {...(description ? {description} : {}), ...(validationMessage ? {validationMessage} : {}), ...(constraints ? {constraints} : {})};

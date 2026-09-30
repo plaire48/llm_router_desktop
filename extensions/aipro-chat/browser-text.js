@@ -27,6 +27,47 @@ export async function textDigest(value) {
   const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
   return [...new Uint8Array(hash)].map(byte => byte.toString(16).padStart(2, '0')).join('');
 }
+const compact = value => String(value).replace(/ /g, ' ').replace(/\s+/g, ' ').trim();
+// Adds text at the start or the end of a field and keeps what it already held.
+// A reply or forward is written above the quoted original and the signature;
+// a fill would erase both (reported from a company mail: a forward lost its
+// "----- Original Message -----" part). An editor may split the inserted lines
+// into its own blocks, so the check compares text with whitespace collapsed.
+export async function insertText(handle, page, text, position, cancelled) {
+  if (typeof text !== 'string' || !text || text.length > 16000 || !['start', 'end'].includes(position)) throw new Error('fill_invalid');
+  if (!await handle.evaluate(el => el.isConnected && !el.disabled && !el.readOnly && el.getAttribute('aria-disabled') !== 'true')) throw new Error('browser_stale');
+  const raw = await handle.evaluate(el => el.isContentEditable ? el.innerText : el.value);
+  const before = await handle.evaluate(editableText);
+  if (before.length + text.length > 400000) throw new Error('fill_invalid');
+  if (cancelled()) throw new Error('cancelled');
+  await handle.focus();
+  await handle.evaluate((el, {raw, position}) => {
+    const root = el.getRootNode(), focused = root.activeElement;
+    if (!el.isConnected || !(focused === el || el.contains(focused)) || (el.isContentEditable ? el.innerText : el.value) !== raw) throw new Error('browser_stale');
+    if (el.isContentEditable) {
+      const range = document.createRange(); range.selectNodeContents(el); range.collapse(position === 'start');
+      // Keep the caret inside the first or last text, not beside a block.
+      let edge = el;
+      while (position === 'start' ? edge.firstChild : edge.lastChild) edge = position === 'start' ? edge.firstChild : edge.lastChild;
+      if (edge.nodeType === Node.TEXT_NODE) {range.setStart(edge, position === 'start' ? 0 : edge.textContent.length); range.collapse(true);}
+      const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range);
+    } else {const at = position === 'start' ? 0 : el.value.length; el.setSelectionRange(at, at);}
+  }, {raw, position});
+  if (cancelled()) throw new Error('cancelled');
+  await page.keyboard.insertText(text);
+  const [added, kept] = [compact(text), compact(before)];
+  let after = '', verified = false;
+  for (let i = 0; i < 2; i++) {
+    if (cancelled()) throw new Error('cancelled');
+    after = compact(await handle.evaluate(editableText));
+    verified = position === 'start' ? after.startsWith(added) && after.endsWith(kept) : after.startsWith(kept) && after.endsWith(added);
+    if (!verified) break;
+    if (!i) await new Promise(resolve => setTimeout(resolve, 150));
+  }
+  return {ok: verified, verified, inserted: text.length, position, kept: before.length,
+    ...(verified ? {} : {error: 'fill_not_retained'}),
+    scope: 'Inserted visible text only; the text the field already held was kept. Verify_page and visible save confirmation are still required.'};
+}
 export async function appendText(handle, page, text, options, cancelled) {
   if (typeof text !== 'string' || !text || text.length > 4000 || !Number.isSafeInteger(options?.expectedLength) || options.expectedLength < 0 ||
     options.expectedDigest != null && !/^[a-f0-9]{64}$/.test(options.expectedDigest)) throw new Error('fill_invalid');

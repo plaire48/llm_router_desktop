@@ -111,7 +111,7 @@ h1 { font-size: var(--cx-type-title); font-weight: 900; letter-spacing: -.02em; 
 .ambient-spark-one { top: 23%; left: 9%; }
 .ambient-spark-two { top: 66%; right: 12%; width: 12px; height: 12px; animation-delay: -1.7s; color: var(--deck-card); }
 .welcome-art { position: relative; width: 224px; height: 174px; display: grid; place-items: center; align-self: center; }
-.welcome-emblem { position: relative; isolation: isolate; display: grid; place-items: center; width: 160px; height: 160px; animation: deck-float var(--deck-float) ease-in-out infinite; }
+.welcome-emblem { position: relative; z-index: 1; isolation: isolate; display: grid; place-items: center; width: 160px; height: 160px; animation: deck-float var(--deck-float) ease-in-out infinite; }
 .welcome-emblem > .agent-mark { width: 100%; height: 100%; filter: drop-shadow(0 12px 14px var(--bird-shadow)); }
 .welcome-emblem::before { content: ''; position: absolute; z-index: -1; inset: -24px; border-radius: 50%; background: var(--bird-aura); opacity: .55; animation: deck-glow var(--deck-float) ease-in-out infinite; pointer-events: none; }
 .welcome-spark-one { top: 28px; right: 22px; color: var(--deck-teal); animation-delay: -.6s; }
@@ -178,7 +178,7 @@ h1 { font-size: var(--cx-type-title); font-weight: 900; letter-spacing: -.02em; 
 .app-shell .jump-latest { position: absolute; z-index: 3; bottom: 0; left: 50%; translate: -50% 0; padding: 0; aspect-ratio: 1; border-radius: 50%; background: var(--layout-surface); color: var(--brand-ink); box-shadow: var(--cx-shadow-overlay); }
 .welcome { display: grid; justify-items: center; gap: var(--cx-space-4); padding: var(--cx-space-6) 0; max-width: 480px; text-align: center; }
 .welcome-title { margin: var(--cx-space-2) 0 0; font-size: 20px; line-height: 1.5; font-weight: 700; letter-spacing: -.025em; }
-.welcome-accent { color: var(--brand-ink); background: linear-gradient(92deg, var(--deck-blue-deep), var(--deck-blue)); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.welcome-accent { color: var(--deck-blue-deep); }
 .welcome-display { position: relative; display: inline-block; white-space: nowrap; }
 .welcome-reserve { visibility: hidden; }
 .welcome-typed { position: absolute; top: 0; left: 0; }
@@ -197,7 +197,7 @@ h1 { font-size: var(--cx-type-title); font-weight: 900; letter-spacing: -.02em; 
 .message-body ul, .message-body ol { padding-left: var(--cx-space-6); margin-block: var(--cx-space-3); }
 .message-body pre { overflow-x: auto; white-space: pre; padding: var(--cx-space-4); background: var(--layout-soft); border: 1px solid var(--layout-border); border-radius: var(--cx-radius-card); }
 .message-body :not(pre) > code { font-family:var(--deck-mono); font-size: inherit; background: var(--layout-soft); border-radius: var(--cx-radius-control); padding: 0 var(--cx-space-1); }
-.message-body blockquote { margin-inline: 0; border-left: 2px solid var(--brand-border); border-radius: 0 var(--cx-radius-control) var(--cx-radius-control) 0; padding: var(--cx-space-3); background: var(--brand-surface); color: var(--layout-muted); }
+.message-body blockquote { margin-inline: 0; border: 1px solid var(--brand-border); border-radius: var(--cx-radius-control); padding: var(--cx-space-3); background: var(--brand-surface); color: var(--layout-muted); }
 .message-body blockquote > :last-child { margin-bottom: 0; }
 .message-body a { color: var(--brand-ink); text-decoration: underline; }
 .aipro-table { overflow: auto; }
@@ -206,6 +206,9 @@ h1 { font-size: var(--cx-type-title); font-weight: 900; letter-spacing: -.02em; 
 .aipro-table th { background: var(--brand-surface); font-weight: 500; }
 .message-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cx-space-1); margin-top: var(--cx-space-2); }
 .message-actions:empty { display: none; }
+/* The copy control sits under the user bubble, right-aligned, in space the message keeps for it. */
+.message-user:has(> .message-actions) { margin-bottom: calc(var(--cx-space-6) + var(--cx-control)); }
+.message-user > .message-actions { position: absolute; top: 100%; right: 0; margin-top: 0; padding-top: var(--cx-space-1); }
 .conversation-progress { min-width: 0; padding-block: var(--cx-space-2); }
 .steering-message-status { display: flex; align-items: center; justify-content: space-between; gap: var(--cx-space-3); margin-top: var(--cx-space-2); color: var(--layout-muted); font: var(--deck-font-body); }
 .steering-message-status > [data-pending] { color: var(--brand-ink); font-weight: 600; }

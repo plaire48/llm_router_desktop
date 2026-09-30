@@ -7,8 +7,21 @@ import {readCompletion} from '../../../extensions/aipro-chat/completion-reader.j
 import {startLogin, fetchModelCatalog, openLoginBrowser} from './aipro-auth.mjs';
 import {safeError} from './connection-errors.mjs';
 import {faultFacts,retryAfterMs} from './fault-policy.mjs';
+import {OUTPUT_TOKENS} from './context-budget.mjs';
 export {safeError} from './connection-errors.mjs';
 
+// The answer size requested from an OpenAI-compatible server: the output limit the catalog or the connection reports,
+// otherwise the reserve the context budget keeps (OUTPUT_TOKENS), at most 32,768. A server that refuses that size
+// keeps 4,096, the size used before, for the rest of the session.
+const OUTPUT_TOKEN_CEILING = 32768, FALLBACK_OUTPUT_TOKENS = 4096;
+const positiveCount = value => Number.isSafeInteger(value) && value > 0;
+export function outputTokens(session) {
+  if (positiveCount(session?.outputTokens)) return session.outputTokens;
+  const selected = session?.models?.find?.(item => item.id === session.model);
+  const reported = positiveCount(selected?.maxOutputTokens) ? selected.maxOutputTokens : positiveCount(session?.credential?.maxOutputTokens) ? session.credential.maxOutputTokens : null;
+  return Math.min(reported ?? OUTPUT_TOKENS, OUTPUT_TOKEN_CEILING);
+}
+const refusesOutputSize = text => /max[_ ]?(?:completion_|output_|new_)?tokens|maximum context|context length|output tokens/i.test(text);
 // Explicit implemented adapters make parity tests fail when Nubi adds a provider.
 export const PROVIDERS = {aipro: PROVIDER_LABELS.aipro, chatgpt: PROVIDER_LABELS.chatgpt, fabrix: PROVIDER_LABELS.fabrix, 'aipro-cli': 'AI Pro CLI', compatible: 'OpenAI 호환'};
 const catalog = payload => (payload?.modelList || []).map(m => ({id: m.name, label: m.display_name || m.name, contextLength: m.context_length, maxOutputTokens: m.max_output_tokens, ...(typeof m.supports_images==='boolean'?{supportsImages:m.supports_images}:{})}));
@@ -112,11 +125,19 @@ export function createProviders(deps = {}) {
       if (session.credential.expiresAt <= Date.now() + 60000) session.credential = (await api.refreshChatGPTToken(session.credential, {signal, fetchImpl: api.fetchImpl})).credential;
       result = await api.completeChatGPT({messages, tools, modelId: session.model, credential: session.credential, signal, onText, onPhase});
     } else {
-      const body = {model: session.model, messages, stream: true, max_tokens: 4096, ...(tools.length ? {tools, tool_choice: 'auto'} : {})};
-      const response = provider === 'fabrix'
-        ? await api.fabrixCompletion(body, {...session.credential, modelId: session.model}, {signal, fetchImpl: inferenceFetch})
-        : await inferenceFetch(provider === 'aipro' ? endpoint('browser') : session.credential.endpoint, {method: 'POST', redirect: 'error', signal,
-          headers: {'Content-Type': 'application/json', Accept: 'text/event-stream', Authorization: `Bearer ${session.credential.token}`, ...(provider === 'aipro-cli' ? {'User-Agent': 'AIPROCLI'} : {})}, body: JSON.stringify(body)});
+      const send = maxTokens => {
+        const body = {model: session.model, messages, stream: true, max_tokens: maxTokens, ...(tools.length ? {tools, tool_choice: 'auto'} : {})};
+        return provider === 'fabrix'
+          ? api.fabrixCompletion(body, {...session.credential, modelId: session.model}, {signal, fetchImpl: inferenceFetch})
+          : inferenceFetch(provider === 'aipro' ? endpoint('browser') : session.credential.endpoint, {method: 'POST', redirect: 'error', signal,
+            headers: {'Content-Type': 'application/json', Accept: 'text/event-stream', Authorization: `Bearer ${session.credential.token}`, ...(provider === 'aipro-cli' ? {'User-Agent': 'AIPROCLI'} : {})}, body: JSON.stringify(body)});
+      };
+      const requested = outputTokens(session);
+      let response = await send(requested);
+      if (response.status === 400 && requested > FALLBACK_OUTPUT_TOKENS) {
+        const text = await response.text().catch(() => '');
+        if (refusesOutputSize(text)) { session.outputTokens = FALLBACK_OUTPUT_TOKENS; httpFailure = undefined; response = await send(FALLBACK_OUTPUT_TOKENS); }
+      }
       if(!response.ok){await response.body?.cancel().catch(()=>{});throw Object.assign(new Error(response.status===401?'unauthorized':response.status===403?'forbidden':response.status===429?'rate_limited':response.status===413?'context_overflow':[400,404,422].includes(response.status)?'invalid_model':'upstream'),{status:response.status,retryAfterMs:retryAfterMs(response.headers)});}
       let calls = [], usage, finishReason;
       // Keep Office's permanent transport error distinct from a repairable
@@ -128,7 +149,7 @@ export function createProviders(deps = {}) {
       result = {content, calls, usage, finishReason};
     }
     if (signal.aborted) throw new Error('cancelled');
-    if (JSON.stringify(result).length > 64000) throw new Error('output_limit');
+    if (JSON.stringify(result).length > 600000) throw new Error('output_limit');
     if (result.finishReason === 'length') throw new Error('output_limit');
     session.verified = true; return result;
     }catch(error){
