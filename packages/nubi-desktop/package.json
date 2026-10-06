@@ -16,15 +16,15 @@
     "start:electron": "node scripts/start.mjs",
     "test": "node --test --test-concurrency=1 tests/*.test.mjs",
     "test:ui": "node scripts/check-electron-shell.mjs",
+    "test:lifecycle": "node scripts/check-electron-lifecycle.mjs",
+    "test:gates": "npm test && npm run design:check && npm run test:forms-ui && npm run test:mail-ui && npm run test:modals-ui && npm run test:shared-ui && npm run build:electron && npm run test:ui && npm run test:lifecycle",
     "test:shared-ui": "node scripts/check-shared-ui.mjs",
     "package:windows": "node scripts/package-windows.mjs",
     "test:electron": "node scripts/check-electron-shell.mjs",
-    "test:setup-ui": "node scripts/check-project-setup.mjs",
     "design:check": "node scripts/check-identity.mjs",
     "verify:identity": "npm run build && npm run test:ui && npm run test:skills-ui && npm run test:shared-ui && npm run test:forms-ui && npm run test:mail-ui && npm run test:modals-ui",
     "test:forms-ui": "node scripts/check-form-clarity.mjs",
     "test:mail-ui": "node scripts/check-mail-ui.mjs",
-    "test:mail-host-ui": "node scripts/check-mail-host-ui.mjs",
     "test:modals-ui": "node scripts/check-modals.mjs",
     "start:web": "node scripts/start-web.mjs",
     "preview:web": "node scripts/start-web.mjs",
@@ -80,7 +80,6 @@
     "yauzl": "3.4.0"
   },
   "overrides": {
-    "decompress": "file:./vendor/decompress-compat",
     "serialize-javascript": "7.0.5",
     "dompurify": "$dompurify",
     "react-tooltip": {

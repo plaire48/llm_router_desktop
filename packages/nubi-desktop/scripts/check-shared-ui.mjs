@@ -12,14 +12,18 @@ await cp('../../extensions/aipro-chat/public/icons',path.join(dir,'icons'),{recu
 await writeFile(path.join(dir,'index.html'),'<!doctype html><html lang="ko"><title>Nubi synthetic flow check</title><link rel="stylesheet" href="app.css"><div id="root"></div><script type="module" src="app.js"></script></html>');
 const server=createServer(async(req,res)=>{try{const requested=path.resolve(dir,'.'+new URL(req.url,'http://localhost').pathname.replace(/\/$/,'/index.html'));if(!requested.startsWith(dir+path.sep))throw Error();const ext=path.extname(requested),data=await readFile(requested);res.writeHead(200,{'content-type':({'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.svg':'image/svg+xml','.woff2':'font/woff2','.webp':'image/webp'})[ext]||'application/octet-stream'}).end(data);}catch{res.writeHead(404).end();}});await new Promise(r=>server.listen(0,'127.0.0.1',r));
 let browser,p;const errors=[],checks=[];
+// Every page opens in the Electron Workspace layout (integrated: rail navigation, sidebar with its toggle, mail page). The fixture passes the workspace view the rail needs.
+const page=(query='')=>'http://127.0.0.1:'+server.address().port+'/?'+[query,'integrated'].filter(Boolean).join('&');
 // The conversation list lives in the sidebar; its search button opens the '대화 검색' dialog and '새 대화' is a sidebar button (2026-10-02).
 // Answer articles are labelled by the answering model ("Qwen fixture 답변"), so answer locators match the suffix.
 async function openSidebar(){const opener=p.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await opener.count())await opener.click();}
+// In the compact layout the open sidebar is an overlay over the content; the check closes it before using the content.
+async function closeSidebar(){const closer=p.getByRole('button',{name:'사이드바 접기',exact:true});if(await closer.count()&&await p.locator('.nubi-sidebar[data-open="true"]').count())await closer.click();}
 async function openHistory(){await p.locator('.nubi-sidebar').waitFor({state:'attached'});await openSidebar();await p.getByRole('button',{name:'대화 검색',exact:true}).click();}
 async function newConversation(){await openSidebar();await p.getByRole('button',{name:'새 대화',exact:true}).click();}
 const record=checks.push.bind(checks);checks.push=(...items)=>{console.log(items.join('\n'));return record(...items);};
 try{
- browser=await chromium.launch({channel:process.platform==='win32'?'msedge':'chrome',headless:true});p=await browser.newPage({viewport:{width:1280,height:950}});p.on('pageerror',e=>errors.push(e.message));await p.goto('http://127.0.0.1:'+server.address().port);
+ browser=await chromium.launch({channel:process.platform==='win32'?'msedge':'chrome',headless:true});p=await browser.newPage({viewport:{width:1280,height:950}});p.on('pageerror',e=>errors.push(e.message));await p.goto(page());
  await p.locator('.aipro-login').getByRole('button',{name:'AI Pro',exact:true}).click();await p.getByRole('textbox',{name:'작업 요청'}).waitFor();assert.equal(await p.locator('.aipro-login').count(),0);checks.push('login state transitions to shared Welcome and composer');
  const requestBox=p.getByRole('textbox',{name:'작업 요청'}),smallHeight=await requestBox.evaluate(e=>e.clientHeight);
  assert.equal(await p.locator('.nubi-welcome h1, .nubi-welcome h2, h1').filter({hasText:/해볼까요|맡길까요|맡겨 주세요|열어볼까요|찾아볼까요|정해볼까요/}).count(),1);// the welcome title greets by time of day (2026-10-02)
@@ -99,7 +103,7 @@ try{
  // the large-text toggle left the Workbench (2026-10-02); large text is verified through the host setting in check-modals.
 
  if(DESKTOP_FEATURES.computerUse){// app connection flows need the computer-use feature (off since 2026-10-05)
- await p.goto('http://127.0.0.1:'+server.address().port+'/?connection=1');
+ await p.goto(page('connection=1'));
  await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/메신저 창의 안내문/}).click();
  const connection=p.getByRole('region',{name:'확인할 앱 연결',exact:true});await connection.waitFor();
  assert.deepEqual(await p.evaluate(()=>window.connectionCalls),[]);
@@ -140,7 +144,7 @@ try{
 
 
  if(DESKTOP_FEATURES.computerUse){// app launch, UIA controls and mouse scenarios need the computer-use feature (off since 2026-10-05)
- await p.goto('http://127.0.0.1:'+server.address().port+'/?computer=1');
+ await p.goto(page('computer=1'));
  await p.getByText('컴퓨터로 확인',{exact:true}).click();await p.getByText('프로그램 실행',{exact:true}).click();
  await p.getByRole('button',{name:'앱 파일 선택',exact:true}).click();assert.equal(await p.getByRole('button',{name:'실행 준비',exact:true}).count(),0);
  await p.getByLabel('실행 파일 (.exe)',{exact:true}).fill('C:\\Program Files\\한국어 업무 시스템\\app.exe');await p.getByRole('button',{name:'앱 등록',exact:true}).click();assert.equal(await p.getByLabel('실행 횟수').textContent(),'0');
@@ -155,7 +159,7 @@ try{
 
  await p.setViewportSize({width:440,height:950});assert.equal(await p.locator('.nubi-workbench').evaluate(e=>e.scrollWidth<=e.clientWidth),true);await p.screenshot({path:'verification/ui-windows-launch-narrow.png'});
  await p.setViewportSize({width:1280,height:950});await p.screenshot({path:'verification/ui-windows-launch.png'});assert.deepEqual(errors,[]);
- await p.goto('http://127.0.0.1:'+server.address().port+'/?controls=1');
+ await p.goto(page('controls=1'));
  await p.getByText('이미 요청한 상태여서 다시 조작하지 않았습니다.',{exact:true}).waitFor();
  await p.getByText('OpenWiki-SDS 근거가 바뀌어 실행하지 않았습니다. 최신 근거로 다시 제안해 주세요.',{exact:true}).waitFor();
  await p.getByText('OpenWiki-SDS 근거 1개',{exact:true}).first().click();await p.getByText('openwiki/notification.md:3 참조 버전 일치',{exact:true}).first().waitFor();
@@ -174,7 +178,7 @@ try{
  assert.equal(await partialBatch.getByRole('button',{name:'모두 실행',exact:true}).count(),0);
  await p.setViewportSize({width:440,height:950});assert.equal(await p.locator('.nubi-workbench').evaluate(e=>e.scrollWidth<=e.clientWidth),true);await waitingBatch.screenshot({path:'verification/ui-computer-batch.png'});
  checks.push('a batch lists every step with its value, and a stopped batch tells which steps ran');assert.deepEqual(errors,[]);
- await p.goto('http://127.0.0.1:'+server.address().port+'/?pointer=1');
+ await p.goto(page('pointer=1'));
  // Both drag targets are shown before consent without a click to open them (2026-09-30: fewer steps).
  const pointerApproval=p.getByRole('button',{name:'마우스 제어 승인',exact:true});assert.equal(await p.getByLabel('마우스 실행 횟수').textContent(),'0');
  await p.getByRole('figure',{name:'컴퓨터 동작 미리보기',exact:true}).nth(1).waitFor();assert.equal(await pointerApproval.isEnabled(),true);
@@ -182,7 +186,7 @@ try{
  await p.screenshot({path:'verification/ui-shared-pointer-approval.png'});await pointerApproval.click();await p.getByRole('button',{name:'작업 중지',exact:true}).click();await p.getByText('확인 필요',{exact:true}).waitFor();assert.equal(await p.getByLabel('마우스 실행 횟수').textContent(),'1');assert.equal(await p.getByRole('button',{name:'마우스 제어 승인',exact:true}).count(),0);
  checks.push('mouse control shows both drag targets before explicit consent and permits stop without replay');assert.deepEqual(errors,[]);
  }else checks.push('app launch, control and mouse scenarios skipped: computerUse feature off');
- await p.goto('http://127.0.0.1:'+server.address().port+'/?command=1');
+ await p.goto(page('command=1'));
  await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/무료 배송 기준을 고치고/}).click();
  const checkCard=p.getByRole('region',{name:'실행 준비 승인',exact:true});await checkCard.waitFor();
  assert.equal(await checkCard.getByRole('button',{name:/^실행$/}).isDisabled(),true);assert.equal(await checkCard.getByRole('button',{name:/항상 허용/}).isDisabled(),true);
@@ -193,7 +197,7 @@ try{
  assert.deepEqual(await p.evaluate(()=>window.approvalPolicy.allowedCommands.map(item=>item.script)),['npm test']);
  checks.push('a check proposed with its fix waits for the fix; always allow approves it and remembers the command');assert.deepEqual(errors,[]);
  if(DESKTOP_FEATURES.computerUse){
- await p.goto('http://127.0.0.1:'+server.address().port+'/?keyboard=1');
+ await p.goto(page('keyboard=1'));
  const keysCard=p.getByRole('region',{name:'컴퓨터 동작 승인',exact:true});
  assert.deepEqual(await keysCard.locator('.nubi-keys kbd').allTextContents(),['Ctrl + S']);
  const keyApproval=keysCard.getByRole('button',{name:'키보드 입력 승인',exact:true});await keysCard.getByRole('figure',{name:'컴퓨터 동작 미리보기',exact:true}).waitFor();
@@ -201,7 +205,7 @@ try{
  assert.equal(await keysCard.getByRole('button',{name:'키보드 입력 승인',exact:true}).count(),0);
  checks.push('keys show as keycaps and are sent only with keyboard consent');assert.deepEqual(errors,[]);
  }else checks.push('keyboard consent scenario skipped: computerUse feature off');
- await p.goto('http://127.0.0.1:'+server.address().port+'/?compaction=1');
+ await p.goto(page('compaction=1'));
  await openSidebar();assert.equal(await p.getByRole('button',{name:'새 대화',exact:true}).isDisabled(),false);await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/대화 압축 화면 검증/}).click();
  await p.getByRole('region',{name:'계획과 진행 상황',exact:true}).getByText('이전 대화를 정리하고 있어요',{exact:true}).waitFor();// the compaction status is the activity's current step (2026-10-02)
  await p.getByRole('article',{name:'내 메시지'}).getByText('원문 보존 확인: 승인 없이 실행하지 마세요.',{exact:true}).waitFor();
@@ -209,7 +213,7 @@ try{
  await p.getByRole('button',{name:'중지',exact:true}).click();await p.getByText('이전 대화를 정리하고 있어요',{exact:true}).waitFor({state:'hidden'});
  await p.getByRole('article',{name:'내 메시지'}).getByText('원문 보존 확인: 승인 없이 실행하지 마세요.',{exact:true}).waitFor();
  checks.push('synthetic compaction phase has a concise status and stop control while original messages remain visible');assert.deepEqual(errors,[]);
- await p.goto('http://127.0.0.1:'+server.address().port+'/?elevation=1');
+ await p.goto(page('elevation=1'));
  await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/관리자 승인 화면 검증/}).click();
  const adminCard=title=>p.getByRole('region',{name:'실행 준비 승인',exact:true}).filter({has:p.getByRole('heading',{name:title,exact:true})});
  await adminCard('관리자 실행 거절').getByRole('button',{name:'실행 안 함',exact:true}).click();await adminCard('관리자 실행 거절').getByText('실행하지 않음',{exact:true}).waitFor();
@@ -218,7 +222,7 @@ try{
  await adminCard('관리자 실행 검증').getByRole('button',{name:'관리자 권한으로 실행',exact:true}).click();await p.getByText('합성 관리자 승인 전달을 확인했습니다. 실제 UAC 실행은 하지 않았습니다.',{exact:true}).waitFor();
  assert.equal(await adminCard('관리자 실행 검증').getByRole('button',{name:'관리자 권한으로 실행',exact:true}).count(),0);
  checks.push('administrator card distinguishes dedicated consent, rejection and OS UAC from ordinary command approval');assert.deepEqual(errors,[]);
- await p.goto('http://127.0.0.1:'+server.address().port+'/?apply=1');
+ await p.goto(page('apply=1'));
  await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/준비한 두 파일을 반영/}).click();
  assert.equal(await p.getByRole('button',{name:'이어서 진행',exact:true}).count(),0);
  await p.locator('.nubi-file-card').filter({hasText:'first.txt'}).getByRole('button',{name:'반영',exact:true}).click();assert.equal(await p.getByRole('article',{name:/ 답변$/}).count(),0);
@@ -230,7 +234,7 @@ try{
  assert.equal(await p.getByRole('textbox',{name:'추가 요청'}).inputValue(),'새로고침 후에도 보존할 초안');
  await newConversation();assert.equal(await p.getByRole('textbox',{name:'작업 요청'}).inputValue(),'');
  checks.push('same-window reload restores only the selected conversation draft without sending it or copying it to a new conversation');assert.deepEqual(errors,[]);
- await p.goto('http://127.0.0.1:'+server.address().port+'/?context=1');
+ await p.goto(page('context=1'));
  await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/문맥 사용량 화면 검증/}).click();
  const meter=p.getByRole('button',{name:'컨텍스트 사용량',exact:true});await meter.waitFor();
  assert.equal(await meter.getAttribute('title'),'마지막 응답 실측\n23,223 / 262,144 토큰');
@@ -239,7 +243,7 @@ try{
  assert.equal(await meterDialog.getByText('23,175 토큰',{exact:true}).count(),1);
  await p.screenshot({path:'verification/ui-context-meter.png',animations:'disabled'});
  checks.push('the composer gauge shows the reported tokens against the model window and where the history is summarized');assert.deepEqual(errors,[]);
- await p.goto('http://127.0.0.1:'+server.address().port+'/?document=running');
+ await p.goto(page('document=running'));
  await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/긴 업무 문서의 요구사항/}).click();
  const documentProgress=p.getByRole('region',{name:'문서 분석 진행',exact:true});
  await documentProgress.getByText('분석 결과를 합치고 있어요',{exact:true}).waitFor();
@@ -247,13 +251,13 @@ try{
  await documentProgress.getByText('응답 2/3',{exact:true}).waitFor();await documentProgress.getByText('일부 확인',{exact:true}).waitFor();
  await documentProgress.getByText('문자 1–6,000',{exact:true}).waitFor();await documentProgress.getByText('결과 통합 3',{exact:true}).waitFor();
  assert.equal(await documentProgress.getByText('완료',{exact:true}).count(),0);
- await p.setViewportSize({width:440,height:950});await p.waitForFunction(()=>{const e=document.querySelector('.nubi-workbench');return !!e&&e.scrollWidth<=e.clientWidth;},null,{timeout:5000});/* layout settles after the resize */
+ await p.setViewportSize({width:440,height:950});await closeSidebar();await p.waitForFunction(()=>{const e=document.querySelector('.nubi-workbench');return !!e&&e.scrollWidth<=e.clientWidth;},null,{timeout:5000});/* layout settles after the resize */
  await p.screenshot({path:'verification/ui-document-analysis-running.png',animations:'disabled'});
  await p.getByRole('button',{name:'중지',exact:true}).click();await documentProgress.getByText('분석 중지됨',{exact:true}).waitFor();
  if(!(await documentProgress.locator('details').first().getAttribute('open')))await documentProgress.locator('details > summary').first().click();
  await documentProgress.getByText('응답 미확인',{exact:true}).waitFor();
  checks.push('document analysis exposes real worker roles, ranges, partial response and synthesis phase; stop never marks pending work successful');
- await p.setViewportSize({width:1280,height:950});/* the shared layout has no sidebar opener at 440px; Electron's integrated layout does (check-modals) */await p.goto('http://127.0.0.1:'+server.address().port+'/?document=partial');
+ await p.setViewportSize({width:1280,height:950});/* the shared layout has no sidebar opener at 440px; Electron's integrated layout does (check-modals) */await p.goto(page('document=partial'));
  await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/긴 업무 문서의 요구사항/}).click();
  await documentProgress.getByText('일부만 확인됨',{exact:true}).waitFor();await documentProgress.getByText('읽지 못한 구간 1개가 남아 있어요.',{exact:true}).waitFor();
  assert.equal(await documentProgress.locator('details').first().getAttribute('open'),null);
@@ -261,7 +265,7 @@ try{
  await documentProgress.getByText('문자 12,001–18,000',{exact:true}).waitFor();
  await p.screenshot({path:'verification/ui-document-analysis-partial.png',animations:'disabled'});
  checks.push('partial document analysis keeps missing ranges visible after reopening and distinguishes report responses from business success');assert.deepEqual(errors,[]);
- await p.goto('http://127.0.0.1:'+server.address().port+'/?document=history');
+ await p.goto(page('document=history'));
  await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/긴 업무 문서의 요구사항/}).click();
  const analyses=p.getByRole('region',{name:'분석 과정과 이력'});
  await analyses.getByText('이전 분석 1개',{exact:true}).click();
@@ -280,7 +284,7 @@ try{
  await old.getByText('이전 조사 기록 2',{exact:true}).waitFor();assert.equal(await analyses.getByRole('button',{name:'이전 분석 더 보기',exact:true}).count(),0);
  await p.getByRole('button',{name:'중지',exact:true}).click();await roles.getByText('분석 중단됨',{exact:true}).waitFor();if(await roles.locator('details').first().getAttribute('open')===null)await roles.locator('details > summary').first().click();await roles.getByText('응답 미확인',{exact:true}).waitFor();
  checks.push('all document and role analyses remain paged and expandable across live refresh; screenshots retain historical provenance and unfinished workers never become complete');
- await p.goto('http://127.0.0.1:'+server.address().port+'/?document=history-resume');
+ await p.goto(page('document=history-resume'));
  await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/긴 업무 문서의 요구사항/}).click();
  await analyses.getByText('이전 분석 1개',{exact:true}).click();
  await roles.getByText('분석 중단됨',{exact:true}).waitFor();await roles.locator('details > summary').first().click();
@@ -289,12 +293,12 @@ try{
  assert.equal(await roles.getByText('근거 읽는 중',{exact:true}).count(),0);
  await p.screenshot({path:'verification/ui-analysis-resumed.png',animations:'disabled'});
  checks.push('resumed task keeps prior interrupted worker stopped despite retained running trace; old worker is never presented as active');
- await p.goto('http://127.0.0.1:'+server.address().port+'/?document=history-error');
+ await p.goto(page('document=history-error'));
  await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/긴 업무 문서의 요구사항/}).click();
  await analyses.getByText('분석 이력을 불러오지 못했어요. 표시된 기록은 유지합니다.',{exact:true}).waitFor();
  await analyses.getByRole('button',{name:'다시 불러오기',exact:true}).click();await analyses.getByText('이전 분석 1개',{exact:true}).waitFor();
  checks.push('history read failure is explicit and retry reads stored records without restarting analysis');
- await p.goto('http://127.0.0.1:'+server.address().port+'/?document=history-handoff');
+ await p.goto(page('document=history-handoff'));
  await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/긴 업무 문서의 요구사항/}).click();
  await analyses.getByText('이전 분석 1개',{exact:true}).click();
  const reviewProgress=p.getByRole('region',{name:'분석 결과 검토',exact:true});
@@ -319,14 +323,14 @@ try{
  await p.screenshot({path:'verification/ui-analysis-handoff.png',animations:'disabled'});
  checks.push('paged worker outside recent trace refreshes to partial and keeps uncertainty and next action; collected is not reviewed');assert.deepEqual(errors,[]);
  if(DESKTOP_FEATURES.computerUse){// native app proposals need the computer-use feature (off since 2026-10-05)
- await p.goto('http://127.0.0.1:'+server.address().port+'/?controls');
+ await p.goto(page('controls'));
  await p.getByText('문서 분석 근거 1개',{exact:true}).first().click();await p.getByText('docs/앱-규칙.md',{exact:true}).first().waitFor();
  await p.getByText('일부만 확인한 분석입니다. 미열람 구간과 결과를 확인해 주세요.',{exact:true}).first().waitFor();
  assert.equal(await p.getByRole('button',{name:'실행',exact:true}).count(),0);
  checks.push('native proposals show linked document scope and partial analysis without adding or implying approval');assert.deepEqual(errors,[]);
  }else checks.push('native proposal document evidence skipped: computerUse feature off');
 
- await p.setViewportSize({width:1280,height:950});await p.goto('http://127.0.0.1:'+server.address().port+'/?sessions=1');
+ await p.setViewportSize({width:1280,height:950});await p.goto(page('sessions=1'));
  await openHistory();
  const sessionHistory=p.getByRole('dialog',{name:'대화 검색',exact:true});
  assert.equal(await sessionHistory.getByText('세션 검증 프로젝트',{exact:true}).count(),0);
@@ -370,7 +374,7 @@ try{
  await sessionHistory.getByRole('region',{name:/2025년 1월 2일 대화/}).locator('.nubi-history-item').filter({hasText:'지난달 코드 검토'}).waitFor();
  await p.keyboard.press('Escape');
  // The narrow sidebar is the Electron (integrated) layout's overlay with its own opener; the shared layout has none at 440px.
- await p.setViewportSize({width:440,height:900});await p.goto('http://127.0.0.1:'+server.address().port+'/?sessions=1&integrated');await p.locator('.nubi-sidebar').waitFor({state:'attached'});await openSidebar();
+ await p.setViewportSize({width:440,height:900});await p.goto(page('sessions=1'));await p.locator('.nubi-sidebar').waitFor({state:'attached'});await openSidebar();
  await p.waitForFunction(()=>{const e=document.querySelector('.nubi-workbench');return !!e&&e.scrollWidth<=e.clientWidth;},null,{timeout:5000});
  await p.screenshot({path:'verification/ui-session-sidebar-narrow.png',animations:'disabled'});
  assert.equal(await p.getByRole('complementary',{name:'프로젝트 대화'}).isVisible(),true);
@@ -379,7 +383,7 @@ try{
 
  // Project start (user decision 2026-09-30): folder and remote repository cards in the composer's place. Without a
  // project the host has no state; that is the start screen, not an error.
- await p.setViewportSize({width:1100,height:760});await p.goto('http://127.0.0.1:'+server.address().port+'/?noproject');
+ await p.setViewportSize({width:1100,height:760});await p.goto(page('noproject'));
  await p.locator('.aipro-login').getByRole('button',{name:'AI Pro',exact:true}).click();await p.locator('.aipro-login').waitFor({state:'detached'});
  await p.getByRole('region',{name:'프로젝트 열기',exact:true}).waitFor();/* the greeting varies by time of day; the start screen is its own region (2026-10-02) */
  assert.equal(await p.getByRole('button',{name:/^폴더 열기/}).count(),1);assert.equal(await p.locator('.nubi-start-card').count(),2);

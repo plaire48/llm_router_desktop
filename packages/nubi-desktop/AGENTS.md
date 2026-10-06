@@ -1,6 +1,6 @@
 # Nubi Desktop
 
-- 사용자 결정 2026-10-07: 검증과 수정은 MUST Electron 앱(`electron-app/`)만 대상으로 한다. Theia 브라우저 앱은 쓰지 않으므로 검사와 수정 대상에서 뺀다.
+- 사용자 결정 2026-10-07: 검증과 수정은 MUST Electron 앱(`electron-app/`)만 대상으로 한다. Theia 브라우저 앱은 쓰지 않으므로 검사와 수정 대상에서 뺀다. 브라우저 검사(`test:shared-ui`, `test:modals-ui`)는 Electron 배치(`integrated`)로 돌리고, 모든 게이트는 `npm run test:gates`로 차례로 돌린다(브라우저 검사를 동시에 돌리면 Chrome이 멈춘다).
 
 - 사용자 결정 2026-10-07: 메일 자동 정리는 MUST 나중에 연결된 모델을 자동으로 쓴다(명시적 선택을 기다리지 않는다). 사용자가 다른 모델을 고르면 그 선택이 우선한다. 시험은 `tests/mail.test.mjs`의 "a model connected later is used automatically".
 
