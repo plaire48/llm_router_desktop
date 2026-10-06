@@ -84,11 +84,15 @@ class WorkerSupervisor extends EventEmitter{
   }
   send(message){if(this.child?.connected)this.child.send(message);}
   // Asks the worker to leave (it disposes and exits on disconnect) and kills it when it has not left in `graceMs`.
+  // Resolves when the worker has exited: the project store's lock is released with the process, so a quit that waits
+  // for this lets an immediate relaunch open the same project (quit-relaunch race seen in the lifecycle check, 2026-10-07).
   stop({graceMs=2500}={}){
-    this.stopping=true;const child=this.child;if(!child)return;
+    this.stopping=true;const child=this.child;if(!child)return Promise.resolve();
     try{child.disconnect();}catch{}
-    const timer=this.schedule(()=>{if(this.child===child||child.exitCode===null&&!child.killed)child.kill();},graceMs);
-    child.once('exit',()=>clearTimeout(timer));
+    return new Promise(resolve=>{
+      const timer=this.schedule(()=>{if(this.child===child||child.exitCode===null&&!child.killed)child.kill();},graceMs);
+      child.once('exit',()=>{clearTimeout(timer);resolve();});
+    });
   }
 }
 // A text log that never grows past `maxBytes`: when it does, the file becomes `.1` and a new file starts. Secrets are

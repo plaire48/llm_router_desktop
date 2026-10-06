@@ -75,8 +75,9 @@ test('a worker that keeps dying is given up, and a stopped worker is not started
   // Ten minutes later a death is a new first death.
   clock(1000+11*60000);supervisor.start();spawned.at(-1).connected=false;spawned.at(-1).emit('exit',1,null);assert.equal(events.at(-1)[0],'restarting');assert.equal(events.at(-1)[1].delayMs,500);
   // Stopping asks the worker to leave and kills it when it stays.
-  const stopped=supervised();stopped.supervisor.start();const child=stopped.spawned[0];stopped.supervisor.stop();
+  const stopped=supervised();stopped.supervisor.start();const child=stopped.spawned[0];const stopping=stopped.supervisor.stop();
   assert.equal(child.connected,false);assert.equal(stopped.scheduled.at(-1).ms,2500);stopped.scheduled.at(-1).fn();assert.equal(child.killed,true);
+  await stopping;/* stop() resolves once the worker has exited, so quitting can wait for the project lock to be released */
   assert.deepEqual(stopped.events.map(([name,e])=>[name,e.expected]),[['exit',true]]);assert.equal(stopped.spawned.length,1,'no restart after stop');
 });
 test('the worker log never grows past its bound',async()=>{

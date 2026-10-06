@@ -1,4 +1,5 @@
 import {AnswerSources} from './AnswerSources.jsx';
+import {AnalysisHistory} from './AnalysisHistory.jsx';
 import {AGENT_COMMANDS,desktopSkillCommand} from '../runtime/agent-commands.mjs';
 import {MessageTimestamp} from './MessageTimestamp.jsx';
 import {UsagePanel} from '../../../extensions/aipro-chat/src/UsagePanel.jsx';
@@ -273,7 +274,9 @@ export function Workbench({api,openCurrent,startConversation,chooseFolder,active
   const historyMessages=inboxTurnStart<0?task?.messages||[]:task.messages.slice(0,inboxTurnStart);
   const inboxMessages=inboxTurnStart<0?[]:task.messages.slice(inboxTurnStart);
   const activityLayout=conversationActivity(task),activityRunId=activityLayout.runId,activityAnswer=activityLayout.anchor;
-  const activity=task?<WorkspaceActivity key={activityRunId||task.id} task={task}/>:null;
+  // The analysis history (document and role analyses with ranges, partial outcomes and unread ranges) follows the current
+  // run's activity; the per-run refactor of 2026-10-04 had dropped it although the runtime still records it.
+  const activity=task?<><WorkspaceActivity key={activityRunId||task.id} task={task}/><AnalysisHistory key={`analysis:${task.id}`} api={api} task={task}/></>:null;
   const historicalActivity=run=><WorkspaceActivity key={run.runId} task={task} run={run} historical/>;
   const beforeActivityAnswer=message=><>{activityLayout.before.get(message)?.map(historicalActivity)}{message===activityAnswer&&activity}</>;
   const afterActivityMessage=message=>activityLayout.after.get(message)?.map(historicalActivity);
@@ -475,7 +478,7 @@ export function Workbench({api,openCurrent,startConversation,chooseFolder,active
     {resizeSidebar&&<div className="nubi-sidebar-resize" {...sidebarResize}/>}
     <div className="nubi-workbench-content">
     {mailPage?<MailHistory onReturn={mailSourceTarget?()=>{closeMailDocument?.();setMailPage(false);setMailSourceTarget(null);requestAnimationFrame(()=>composer.current?.focus());}:undefined} sourceTarget={mailSourceTarget} onSettings={openMailConnection} connectionRef={mailButton} api={api} provider={provider} onDocument={openMailDocument} onAsk={askFromMail}/>:skillsPage?<SkillManager key={`${project?.projectId}:${taskId}:${skillRevision}`} api={api} taskId={taskId} openPath={openPath} onRegister={registerSkill} connectMarketplace={connectMarketplace&&connectCompanyMarketplace} openTeamWorkspace={openTeamWorkspace&&enterTeamWorkspace} onBack={()=>{setSkillsPage(false);requestAnimationFrame(()=>skillsButton.current?.focus());}}/>:<>
-    <header className="nubi-bar">{hostLayout==='integrated'&&project?<DriftLabel className="nubi-conversation-title" title={task?.request||undefined}>{task?.request||''}</DriftLabel>:<NubiLogo size={hostLayout==='integrated'?24:32} product="Workspace" versionLabel="Beta" mood={activeTask?'working':'idle'}/>}<DriftLabel className="nubi-project-label">{project?.name||''}</DriftLabel>{task&&task.state!=='review'&&(task.state==='paused'&&!connectionRequest?<RecoveryStatus/>:<DeckStatus tone={running?'active':'neutral'}>{connectionRequest?'앱 연결 대기':task.state==='waiting_input'&&task.peerWait&&!task.question?'연결한 누비 응답 대기':stateLabel[task.state]||task.state}</DeckStatus>)}<div className="nubi-header-actions">
+    <header className="nubi-bar">{hostLayout==='integrated'&&project?<DriftLabel className="nubi-conversation-title" title={task?.request||undefined}>{task?.request||''}</DriftLabel>:<NubiLogo size={hostLayout==='integrated'?24:32} product="Workspace" versionLabel="Beta" mood={activeTask?'working':'idle'}/>}{project?.name&&<DriftLabel className="nubi-project-label">{project.name}</DriftLabel>}/* no project, no empty label (user decision 2026-09-30) */{task&&task.state!=='review'&&(task.state==='paused'&&!connectionRequest?<RecoveryStatus/>:<DeckStatus tone={running?'active':'neutral'}>{connectionRequest?'앱 연결 대기':task.state==='waiting_input'&&task.peerWait&&!task.question?'연결한 누비 응답 대기':stateLabel[task.state]||task.state}</DeckStatus>)}<div className="nubi-header-actions">
       <CxButton ref={usageButton} className="nubi-icon-button" aria-label="토큰 사용량" title="토큰 사용량" aria-haspopup="dialog" onClick={()=>setPanel('usage')}><Icon name="chartColumn" size={18}/></CxButton>
       {DESKTOP_FEATURES.computerUse&&task&&<CxButton ref={appButton} className="nubi-icon-button" aria-label="앱 연결" title="앱 연결" onClick={()=>setPanel('computer')}><WindowMark size={18}/></CxButton>}{project&&<CxButton className="nubi-icon-button" aria-label="위키" title="프로젝트 위키" onClick={()=>setPanel('library')}><Icon name="bookmark" size={18}/>{wikiInitialization?.state==='running'&&<span className="status-spinner" aria-label="위키 준비 중"/>}</CxButton>}
     </div></header>

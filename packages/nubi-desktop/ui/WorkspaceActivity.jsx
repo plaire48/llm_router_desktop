@@ -29,7 +29,9 @@ export function WorkspaceActivity({task,run,historical=false}) {
   // verify all actions or recover earlier failures merely by being delivered.
   const verified=task.resultReview?.runId===runId&&task.resultReview.status==='ready'&&!!task.resultReview.checks?.length&&task.resultReview.checks.every(check=>check.state==='supported');
   // The previous run's plan/trace must never appear as this run's progress.
-  const trace = normalizeTrace((task.trace || []).filter(event => event.runId === runId || event.id?.startsWith(runId + ':')), traceOptions).map(event => {
+  // Analysis workers are presented once, in the analysis history section with their roles, ranges and outcomes; the
+  // run's trace keeps the leader's own steps (as the Workbench did before the per-run activity, 2026-10-07).
+  const trace = normalizeTrace((task.trace || []).filter(event => (event.runId === runId || event.id?.startsWith(runId + ':')) && !isAnalysisStep(event)), traceOptions).map(event => {
     if(answered&&event.tool==='ask_user'&&event.status==='waiting')return {...event,status:'done'};
     // A stopped actor is not a running tool. Unsettled operations remain pending,
     // never become completed/cancelled just because the actor stopped.

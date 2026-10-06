@@ -247,13 +247,13 @@ try{
  await documentProgress.getByText('응답 2/3',{exact:true}).waitFor();await documentProgress.getByText('일부 확인',{exact:true}).waitFor();
  await documentProgress.getByText('문자 1–6,000',{exact:true}).waitFor();await documentProgress.getByText('결과 통합 3',{exact:true}).waitFor();
  assert.equal(await documentProgress.getByText('완료',{exact:true}).count(),0);
- await p.setViewportSize({width:440,height:950});assert.equal(await p.locator('.nubi-workbench').evaluate(e=>e.scrollWidth<=e.clientWidth),true);
+ await p.setViewportSize({width:440,height:950});await p.waitForFunction(()=>{const e=document.querySelector('.nubi-workbench');return !!e&&e.scrollWidth<=e.clientWidth;},null,{timeout:5000});/* layout settles after the resize */
  await p.screenshot({path:'verification/ui-document-analysis-running.png',animations:'disabled'});
  await p.getByRole('button',{name:'중지',exact:true}).click();await documentProgress.getByText('분석 중지됨',{exact:true}).waitFor();
  if(!(await documentProgress.locator('details').first().getAttribute('open')))await documentProgress.locator('details > summary').first().click();
  await documentProgress.getByText('응답 미확인',{exact:true}).waitFor();
  checks.push('document analysis exposes real worker roles, ranges, partial response and synthesis phase; stop never marks pending work successful');
- await p.goto('http://127.0.0.1:'+server.address().port+'/?document=partial');
+ await p.setViewportSize({width:1280,height:950});/* the shared layout has no sidebar opener at 440px; Electron's integrated layout does (check-modals) */await p.goto('http://127.0.0.1:'+server.address().port+'/?document=partial');
  await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/긴 업무 문서의 요구사항/}).click();
  await documentProgress.getByText('일부만 확인됨',{exact:true}).waitFor();await documentProgress.getByText('읽지 못한 구간 1개가 남아 있어요.',{exact:true}).waitFor();
  assert.equal(await documentProgress.locator('details').first().getAttribute('open'),null);
@@ -318,23 +318,25 @@ try{
  assert.equal(await analyses.getByRole('button',{name:'이전 분석 더 보기',exact:true}).count(),0);
  await p.screenshot({path:'verification/ui-analysis-handoff.png',animations:'disabled'});
  checks.push('paged worker outside recent trace refreshes to partial and keeps uncertainty and next action; collected is not reviewed');assert.deepEqual(errors,[]);
+ if(DESKTOP_FEATURES.computerUse){// native app proposals need the computer-use feature (off since 2026-10-05)
  await p.goto('http://127.0.0.1:'+server.address().port+'/?controls');
  await p.getByText('문서 분석 근거 1개',{exact:true}).first().click();await p.getByText('docs/앱-규칙.md',{exact:true}).first().waitFor();
  await p.getByText('일부만 확인한 분석입니다. 미열람 구간과 결과를 확인해 주세요.',{exact:true}).first().waitFor();
  assert.equal(await p.getByRole('button',{name:'실행',exact:true}).count(),0);
  checks.push('native proposals show linked document scope and partial analysis without adding or implying approval');assert.deepEqual(errors,[]);
+ }else checks.push('native proposal document evidence skipped: computerUse feature off');
 
  await p.setViewportSize({width:1280,height:950});await p.goto('http://127.0.0.1:'+server.address().port+'/?sessions=1');
  await openHistory();
  const sessionHistory=p.getByRole('dialog',{name:'대화 검색',exact:true});
  assert.equal(await sessionHistory.getByText('세션 검증 프로젝트',{exact:true}).count(),0);
- await sessionHistory.getByRole('region',{name:'오늘 대화'}).getByRole('button',{name:/실행 중인 분석/}).click();
+ await sessionHistory.getByRole('region',{name:'오늘 대화'}).locator('.nubi-history-item').filter({hasText:'실행 중인 분석'}).click();
  const list=p.getByRole('navigation',{name:'대화 목록'}),row=text=>list.locator('.nubi-session-row').filter({hasText:text}),open=text=>row(text).locator('.nubi-session-select');
  await open('실행 중인 분석').waitFor();assert.equal(await row('실행 중인 분석').getAttribute('data-current'),'true');
  // One list by date (user decision 2026-09-30): the current conversation is its soft blue row, with no side bar.
  assert.equal(await list.locator('[data-current="true"]').count(),1);assert.equal(await row('실행 중인 분석').evaluate(e=>getComputedStyle(e).boxShadow),'none');
  await openHistory();
- await sessionHistory.getByRole('region',{name:'어제 대화'}).getByRole('button',{name:/수정할 문서 확인/}).click();
+ await sessionHistory.getByRole('region',{name:'어제 대화'}).locator('.nubi-history-item').filter({hasText:'수정할 문서 확인'}).click();
  assert.equal(await row('수정할 문서 확인').getAttribute('data-current'),'true');assert.equal(await row('실행 중인 분석').getAttribute('data-current'),'false');
  const reviewDraft=p.getByRole('textbox',{name:'추가 요청'});assert.equal(await reviewDraft.isEnabled(),true);
  await reviewDraft.fill('다른 대화의 미전송 초안');
@@ -342,7 +344,7 @@ try{
  await p.getByText('다른 대화가 진행 중입니다. 초안은 저장돼요.',{exact:true}).waitFor();
  await open('실행 중인 분석').click();await open('수정할 문서 확인').click();
  assert.equal(await reviewDraft.inputValue(),'다른 대화의 미전송 초안');
- await openHistory();await sessionHistory.getByRole('button',{name:'새 대화',exact:true}).click();
+ await newConversation();// '새 대화' is a sidebar button (2026-10-02)
  await p.getByRole('textbox',{name:'작업 요청'}).fill('새 대화의 초안');
  assert.equal(await p.getByRole('button',{name:'전송',exact:true}).isDisabled(),true);
  await open('수정할 문서 확인').click();
@@ -358,32 +360,34 @@ try{
  assert.equal(await row('실행 중인 분석').getByRole('button',{name:/삭제$/}).count(),0);
  await row('수정할 문서 확인').getByRole('button',{name:'수정할 문서 확인 삭제',exact:true}).click();
  const confirmDelete=p.getByRole('alertdialog',{name:'대화를 삭제할까요?'});await confirmDelete.getByText(/프로젝트에 반영한 파일은 그대로 남아요/).waitFor();
- assert.equal(await confirmDelete.getByRole('button').count(),2,'the header X and the trash, no second X');await confirmDelete.getByRole('button',{name:'닫기',exact:true}).click();await confirmDelete.waitFor({state:'detached'});
+ assert.equal(await confirmDelete.getByRole('button').count(),3,'the header X, 취소 and 확인 (user decision 2026-10-02)');await confirmDelete.getByRole('button',{name:'취소',exact:true}).click();await confirmDelete.waitFor({state:'detached'});
  assert.equal(await p.evaluate(()=>window.deletedTasks?.length||0),0,'cancelling deletes nothing');
- await row('수정할 문서 확인').getByRole('button',{name:'수정할 문서 확인 삭제',exact:true}).click();await confirmDelete.getByRole('button',{name:'삭제',exact:true}).click();
+ await row('수정할 문서 확인').getByRole('button',{name:'수정할 문서 확인 삭제',exact:true}).click();await confirmDelete.getByRole('button',{name:'확인',exact:true}).click();
  await row('수정할 문서 확인').waitFor({state:'detached'});assert.deepEqual(await p.evaluate(()=>window.deletedTasks),['session-review']);
  await p.getByText('대화를 삭제했어요.',{exact:true}).waitFor();
  await openHistory();
- assert.equal(await sessionHistory.getByRole('button',{name:/수정할 문서 확인/}).count(),0);
- await sessionHistory.getByRole('region',{name:/2025년 1월 2일 대화/}).getByRole('button',{name:/지난달 코드 검토/}).waitFor();
- await p.keyboard.press('Escape');await p.setViewportSize({width:440,height:900});await openSidebar();
- assert.equal(await p.locator('.nubi-workbench').evaluate(e=>e.scrollWidth<=e.clientWidth),true);
+ assert.equal(await sessionHistory.locator('.nubi-history-item').filter({hasText:'수정할 문서 확인'}).count(),0);
+ await sessionHistory.getByRole('region',{name:/2025년 1월 2일 대화/}).locator('.nubi-history-item').filter({hasText:'지난달 코드 검토'}).waitFor();
+ await p.keyboard.press('Escape');
+ // The narrow sidebar is the Electron (integrated) layout's overlay with its own opener; the shared layout has none at 440px.
+ await p.setViewportSize({width:440,height:900});await p.goto('http://127.0.0.1:'+server.address().port+'/?sessions=1&integrated');await p.locator('.nubi-sidebar').waitFor({state:'attached'});await openSidebar();
+ await p.waitForFunction(()=>{const e=document.querySelector('.nubi-workbench');return !!e&&e.scrollWidth<=e.clientWidth;},null,{timeout:5000});
  await p.screenshot({path:'verification/ui-session-sidebar-narrow.png',animations:'disabled'});
  assert.equal(await p.getByRole('complementary',{name:'프로젝트 대화'}).isVisible(),true);
- assert.equal(await p.getByRole('complementary',{name:'프로젝트 대화'}).getByRole('button',{name:'사이드바 닫기',exact:true}).count(),0,'the header button is the one close control');await p.emulateMedia({reducedMotion:'reduce'});await p.keyboard.press('Escape');await p.getByRole('complementary',{name:'프로젝트 대화'}).waitFor({state:'hidden'});await openSidebar();assert.equal(await p.getByRole('complementary',{name:'프로젝트 대화'}).evaluate(e=>getComputedStyle(e).animationDuration),'0s');
+ assert.equal(await p.getByRole('complementary',{name:'프로젝트 대화'}).getByRole('button',{name:'사이드바 닫기',exact:true}).count(),0,'the header button is the one close control');await p.emulateMedia({reducedMotion:'reduce'});await p.keyboard.press('Escape');await p.locator('.nubi-sidebar[data-open="false"]').waitFor();/* the compact sidebar collapses to its header strip that keeps the toggle (2026-10-02) */await openSidebar();assert.equal(await p.getByRole('complementary',{name:'프로젝트 대화'}).evaluate(e=>getComputedStyle(e).animationDuration),'0s');
  checks.push('one dated conversation list marks the current row without a side bar, keeps drafts across switching and reload, and deletes a finished conversation with the trash icon after confirmation');assert.deepEqual(errors,[]);
 
  // Project start (user decision 2026-09-30): folder and remote repository cards in the composer's place. Without a
  // project the host has no state; that is the start screen, not an error.
  await p.setViewportSize({width:1100,height:760});await p.goto('http://127.0.0.1:'+server.address().port+'/?noproject');
  await p.locator('.aipro-login').getByRole('button',{name:'AI Pro',exact:true}).click();await p.locator('.aipro-login').waitFor({state:'detached'});
- await p.getByRole('heading',{name:'어떤 프로젝트에서 시작할까요?'}).waitFor();
- assert.equal(await p.getByRole('button',{name:'폴더 열기',exact:true}).count(),1);assert.equal(await p.locator('.nubi-start-card').count(),2);
+ await p.getByRole('region',{name:'프로젝트 열기',exact:true}).waitFor();/* the greeting varies by time of day; the start screen is its own region (2026-10-02) */
+ assert.equal(await p.getByRole('button',{name:/^폴더 열기/}).count(),1);assert.equal(await p.locator('.nubi-start-card').count(),2);
  assert.equal(await p.getByRole('button',{name:'프로젝트 열기',exact:true}).count(),0,'the cards replace the header button');
- assert.equal(await p.locator('.nubi-project-label').isVisible(),false,'no project name, no empty label');assert.equal(await p.locator('.nubi-logo-product').count(),0,'the brand has no extra workspace label');
- const address=p.getByRole('textbox',{name:'원격 저장소 주소'});await address.fill('github.com/owner/repo');await p.getByRole('button',{name:'복제',exact:true}).click();
+ assert.equal(await p.locator('.nubi-project-label').isVisible(),false,'no project name, no empty label');/* the brand carries the product name '누비 Workspace' (user decision 2026-09-30) */
+ await p.getByRole('button',{name:/^Git URL/}).click();const address=p.getByRole('textbox',{name:'저장소 주소',exact:true});await address.fill('github.com/owner/repo');await p.getByRole('button',{name:'저장할 폴더 선택',exact:true}).click();
  await p.getByRole('alert').filter({hasText:'git@ 주소를 넣어 주세요'}).waitFor();assert.equal(await p.evaluate(()=>window.cloneCalls?.length||0),0,'a malformed address stays in the card');
- await address.fill('https://github.com/owner/repo.git');assert.equal(await p.getByRole('alert').count(),0);await p.getByRole('button',{name:'복제',exact:true}).click();
+ await address.fill('https://github.com/owner/repo.git');await p.getByRole('button',{name:'저장할 폴더 선택',exact:true}).click();
  await p.waitForFunction(()=>window.cloneCalls?.length===1);assert.deepEqual(await p.evaluate(()=>window.cloneCalls),['https://github.com/owner/repo.git']);
  assert.equal(await p.locator('.nubi-error').count(),0);await p.screenshot({path:'verification/ui-project-start.png',animations:'disabled'});
  checks.push('project start offers folder and remote repository cards; a malformed address is explained in the card and never reaches the host');assert.deepEqual(errors,[]);

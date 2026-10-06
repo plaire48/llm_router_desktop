@@ -51,7 +51,10 @@ const keyStore={
  async setPassword(service,key,value){secretScope(service,key);if(typeof value!=='string')throw Error('secret_unavailable');sessionSecrets.set(key,value);},
  async deletePassword(service,key){secretScope(service,key);sessionSecrets.delete(key);}
 };
-async function openProject(root,kind='project',{initializeWiki=true}={}){const overview=await invoke('open',{root,kind,initializeWiki});currentRoot=overview.root;currentKind=kind;await mkdir(storage,{recursive:true});await writeFile(path.join(storage,'last-project.json'),JSON.stringify({root:currentRoot,kind}));return overview;}
+async function openProject(root,kind='project',{initializeWiki=true}={}){
+ // A predecessor that is still exiting (quit or crash) holds the project store for a moment; the single-instance lock
+ // rules out a live second instance, so a short retry is safe.
+ let overview;for(let attempt=0;;attempt++){try{overview=await invoke('open',{root,kind,initializeWiki});break;}catch(error){if(error.message!=='project_locked'||attempt>=4)throw error;await new Promise(resolve=>setTimeout(resolve,600));}}currentRoot=overview.root;currentKind=kind;await mkdir(storage,{recursive:true});await writeFile(path.join(storage,'last-project.json'),JSON.stringify({root:currentRoot,kind}));return overview;}
 const forbidden=new Set(['open','importSkill','connectSkillMarketplace','disconnectSkillMarketplace','initializeWiki','collaboration']);
 app.whenReady().then(async()=>{
  if(!primary)return;
@@ -146,4 +149,7 @@ app.whenReady().then(async()=>{
  if(process.env.NUBI_WEB_PORT){webHost=await startWebHost({frontend,dispatch:(method,args)=>dispatch(method,args,'web'),port:Number(process.env.NUBI_WEB_PORT)});console.log(`Nubi live workspace: ${webHost.origin}`);}
  await window.loadURL('app://bundle/index.html');
 });
-app.on('window-all-closed',()=>app.quit());app.on('before-quit',()=>{browserHost?.dispose();void webHost?.close();host?.dispose?.();sessionSecrets.clear();worker?.stop();});
+app.on('window-all-closed',()=>app.quit());
+// Quitting waits for the worker to exit (bounded by its kill grace): the worker releases the project store lock with its
+// process, so a relaunch right after quit can open the same project instead of failing with project_locked.
+let quitting=false;app.on('before-quit',event=>{if(quitting)return;quitting=true;event.preventDefault();browserHost?.dispose();void webHost?.close();host?.dispose?.();sessionSecrets.clear();Promise.resolve(worker?.stop()).catch(()=>{}).then(()=>app.quit());});
