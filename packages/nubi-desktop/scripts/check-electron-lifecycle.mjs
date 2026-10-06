@@ -67,5 +67,13 @@ try{
   assert.equal(result.bounds.width,1000);assert.equal(result.bounds.height,700);assert.equal(result.bounds.x,60);
   result.workerLog=(await readFile(path.join(storage,'worker.log'),'utf8').catch(()=>'')).length;
 }finally{await again.close();}
+// 6. A last project whose folder is gone: the start screen opens and the stale pointer is cleared (2026-10-07).
+{
+  await writeFile(path.join(storage,'last-project.json'),JSON.stringify({root:path.join(temporary,'gone-project')}));
+  const app=await launch();
+  try{const page=await app.firstWindow();await page.getByRole('button',{name:'AI Pro',exact:true}).waitFor({timeout:30000});/* without a model the start screen is the provider chooser */result.missingProjectStartScreen=true;
+    await new Promise(resolve=>setTimeout(resolve,500));result.stalePointerCleared=await readFile(path.join(storage,'last-project.json'),'utf8').then(()=>false,()=>true);assert.equal(result.stalePointerCleared,true,'the stale pointer is removed');}
+  finally{await app.close();}
+}
 await rm(temporary,{recursive:true,force:true});
 console.log(JSON.stringify(result));

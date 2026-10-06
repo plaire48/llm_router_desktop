@@ -106,6 +106,18 @@ test('an automatic inference retry pins the mail model and reports a model failu
  assert.deepEqual(models,[destination,destination,destination]);assert.equal(mail.rows()[0].state,'attention');assert.equal(mail.rows()[0].error,'mail_summary_failed');assert.equal(mail.status().counts.saved,0);
 });
 
+test('a model failure is retried on the next polls, three times in all, and a manual retry starts the count again',async t=>{
+ const f=await fixture(t);let failing=true,calls=0;
+ const host={storageRoot:path.join(f.root,'state'),recoveryOptions:{model:{minTimeout:1,maxTimeout:1,retries:0}},providers:{catalogs:()=>CATALOGS,status:()=>({connected:true,...destination}),complete:async()=>{calls++;if(failing)throw Error('network_error');return {content:JSON.stringify(answer)};}}};
+ const mail=new PersonalMail(host,{personalRoot:path.join(f.root,'personal'),pull:input=>pullPop3({...input,endpoint:f.endpoint})});t.after(()=>mail.dispose());
+ await mail.call({action:'connect',requestId:'base',...credentials,destination});f.mailbox.push({uidl:'one',raw:simple('one')});
+ await mail.cycle();await settled(mail);assert.equal(mail.rows()[0].error,'mail_summary_failed');assert.equal(mail.rows()[0].summaryAttempts,1);const first=calls;
+ await mail.cycle();await settled(mail);assert.equal(mail.rows()[0].summaryAttempts,2);
+ await mail.cycle();await settled(mail);assert.equal(mail.rows()[0].summaryAttempts,3);
+ await mail.cycle();await settled(mail);assert.equal(mail.rows()[0].summaryAttempts,3,'the fourth poll leaves the mail for a manual retry');assert.equal(mail.rows()[0].state,'attention');
+ failing=false;await mail.cycle();await settled(mail);assert.equal(mail.status().counts.saved,0,'no automatic retry after the bound');
+ await mail.call({action:'retry'});await settled(mail);assert.equal(mail.status().counts.saved,1);assert.ok(calls>first);
+});
 test('bundled host worker performs TLS retrieval with sanitized failures and no stdout/stderr',async t=>{
  const f=await fixture(t);f.auth(true);
  const worker=new Worker(new URL('../extension/lib/node/mail-worker.mjs',import.meta.url),{workerData:{...credentials,endpoint:f.endpoint},stdout:true,stderr:true});let output='';worker.stdout.on('data',chunk=>output+=chunk);worker.stderr.on('data',chunk=>output+=chunk);

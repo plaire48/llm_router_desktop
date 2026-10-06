@@ -1,4 +1,4 @@
-import {lstat} from 'node:fs/promises';
+import {lstat, readFile} from 'node:fs/promises';
 import path from 'node:path';
 import {git,hash,fail,privatePath,relativeFile,scopedFile} from './files.mjs';
 
@@ -67,6 +67,13 @@ export async function inspectWorkspaceChanges(service, {taskId, path: rel} = {})
     end = bytes.lastIndexOf(0x0a, end - 1) + 1 || end;
     while (end > 0 && (bytes[end] & 0xc0) === 0x80) end--;
   }
-  return {...summary, patch: truncated ? bytes.subarray(0, end).toString('utf8') : diff, patchBytes: bytes.length, patchHash: hash(bytes), patchTruncated: truncated,
+  // The screen shows the change as an inline diff (as the commit history does): both texts travel with the patch when the
+  // file is text within the bounded size. Binary files keep only the patch summary.
+  const binary = /^Binary files .* differ$/m.test(diff);
+  const contents = binary ? {} : {
+    before: item.code.includes('A') ? '' : await git(root, ['show', `HEAD:${rel}`]).catch(() => ''),
+    after: item.code.includes('D') ? '' : await readFile(path.join(root, rel), 'utf8').catch(() => ''),
+  };
+  return {...summary, ...contents, binary, patch: truncated ? bytes.subarray(0, end).toString('utf8') : diff, patchBytes: bytes.length, patchHash: hash(bytes), patchTruncated: truncated,
     instruction: truncated ? 'Only the first part of this diff is shown. Read current source and inspect the remaining change before claiming complete review. Git diff is not edit authorization or a passed test.' : 'Read-only HEAD-to-worktree diff. Read current source before editing; Git diff does not grant edit authority or prove tests passed.'};
 }

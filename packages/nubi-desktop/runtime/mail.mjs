@@ -16,6 +16,7 @@ const sha=value=>createHash('sha256').update(value).digest('hex'),now=()=>new Da
 const servers=Object.freeze({company:Object.freeze({host:'pop3.samsung.net',port:995,tls:true}),gmail_test:Object.freeze({host:'pop.gmail.com',port:995,tls:true})});
 const errors=new Set(['mail_input_invalid','mail_auth_failed','mail_gmail_app_password_format','mail_gmail_app_password_required','mail_gmail_web_login_required','mail_gmail_pop_disabled','mail_gmail_credentials_invalid','mail_tls_error','mail_timeout','mail_connection_failed','mail_uidl_invalid','mail_protocol','mail_size_limit','mail_cancelled','mail_parse_failed','mail_summary_invalid','mail_source_changed','mail_model_changed','mail_model_missing','mail_file_conflict','mail_storage_failed','mail_summary_failed']);
 const code=error=>errors.has(error?.message)?error.message:'mail_storage_failed';
+export const MAIL_SUMMARY_RETRIES=3;
 const model=host=>{const value=host.providers?.status();return value?.connected&&value.model?{provider:value.provider,model:value.model}:null;};
 const sameModel=(a,b)=>a&&b&&a.provider===b.provider&&a.model===b.model;
 async function readFile(file,encoding){
@@ -167,7 +168,7 @@ export class PersonalMail {
     if(action==='retry'){
       if(this.synthesis||this.attachmentRead)throw new Error('mail_busy');
       for(const row of this.rows().filter(r=>r.account===this.account&&r.attachmentState==='attention'))this.store.set('mail:'+row.id,{...row,attachmentState:'queued'});
-      for(const row of this.rows().filter(r=>r.account===this.account&&r.state==='attention'&&r.error!=='mail_source_changed'))this.store.set('mail:'+row.id,{...row,state:'queued',error:null});
+      for(const row of this.rows().filter(r=>r.account===this.account&&r.state==='attention'&&r.error!=='mail_source_changed'))this.store.set('mail:'+row.id,{...row,state:'queued',error:null,summaryAttempts:0});
       this.error=null;await this.reconcilePrepared();void this.drain();return this.status();
     }
     this.searchIndex ||= new MailSearch(this);
@@ -226,6 +227,9 @@ export class PersonalMail {
     try{
       const account=this.store.get('account:'+this.account);const result=await this.pull({...this.credentials,known:this.rows().filter(row=>row.account===this.account).map(row=>row.uidl),skip:(account.rejected||[]).map(item=>item.uidl)});
       if(generation!==this.generation)return;delay=result.delaySeconds;await this.intake(result,generation);this.error=result.failed?.[0]?.error||null;
+      // A model failure is retried on the next polls, three times in all; a manual retry resets the count (retry action).
+      for(const row of this.rows().filter(r=>r.account===this.account&&r.state==='attention'&&r.error==='mail_summary_failed'&&(r.summaryAttempts||0)<MAIL_SUMMARY_RETRIES))this.store.set('mail:'+row.id,{...row,state:'queued',error:null});
+      void this.drain();
     }catch(error){if(generation===this.generation){this.error=code(error);this.recordActivity({kind:'error',error:this.error});if(this.error==='mail_auth_failed'||this.error.startsWith('mail_gmail_')){this.disconnect();return;}this.failures=(this.failures||0)+1;delay=Math.min(3600,60*2**Math.min(this.failures,6));}}
     finally{this.checking=false;if(generation===this.generation)this.schedule(delay);else this.resumeCollection();}
   }
@@ -291,7 +295,7 @@ export class PersonalMail {
       const prepared=row.prepared||{text,path:wikiPath,hash:sha(text),model:destination};
       this.store.set('mail:'+row.id,{...row,state:'summarizing',prepared,summaryTiming:timing.snapshot()});
       await this.savePrepared(row,prepared,timing,()=>{if(controller.signal.aborted||!this.autoWiki)throw new Error('mail_cancelled');});
-    }catch(error){if(!this.disposed){const current=this.store.get('mail:'+row.id);this.store.set('mail:'+row.id,controller.signal.aborted&&!this.autoWiki?{...current,state:'queued',error:null,summaryTiming:timing.finish('cancelled')}:{...current,state:'attention',summaryTiming:timing.finish('interrupted'),error:!this.modelAvailable(this.destination)?'mail_model_changed':code(error)});}}
+    }catch(error){if(!this.disposed){const current=this.store.get('mail:'+row.id);const failure=!this.modelAvailable(this.destination)?'mail_model_changed':code(error);this.store.set('mail:'+row.id,controller.signal.aborted&&!this.autoWiki?{...current,state:'queued',error:null,summaryTiming:timing.finish('cancelled')}:{...current,state:'attention',summaryTiming:timing.finish('interrupted'),error:failure,...(failure==='mail_summary_failed'?{summaryAttempts:(current?.summaryAttempts||0)+1}:{})});}}
     finally{this.synthesis=null;this.synthesisTimer=null;if(!this.disposed)queueMicrotask(()=>void this.drain());}
   }
   // The saving stage: the prepared text becomes the Wiki file (or is verified against the file already there), then

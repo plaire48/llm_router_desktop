@@ -30,6 +30,7 @@ test('Git inspection shows bounded current changes without exposing private path
   assert.equal(detail.state,'modified');
   assert.match(detail.patch,/\+human edit/);
   assert.equal(detail.patchTruncated,false);
+  assert.equal(detail.after,changed,'the current text accompanies the patch for the inline diff');assert.equal(detail.binary,false);assert.ok(typeof detail.before==='string'&&detail.before!==changed,'the HEAD text accompanies the patch');
   assert.equal((await inspectWorkspaceChanges(service,{taskId:task.id,path:'new.ts'})).state,'untracked');
   assert.equal((await inspectWorkspaceChanges(service,{taskId:task.id,path:'new.ts'})).patch,null);
   await assert.rejects(inspectWorkspaceChanges(service,{taskId:task.id,path:'.env'}),/path_scope/);

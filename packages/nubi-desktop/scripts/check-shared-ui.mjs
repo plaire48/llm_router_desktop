@@ -26,7 +26,7 @@ try{
  browser=await chromium.launch({channel:process.platform==='win32'?'msedge':'chrome',headless:true});p=await browser.newPage({viewport:{width:1280,height:950}});p.on('pageerror',e=>errors.push(e.message));await p.goto(page());
  await p.locator('.aipro-login').getByRole('button',{name:'AI Pro',exact:true}).click();await p.getByRole('textbox',{name:'작업 요청'}).waitFor();assert.equal(await p.locator('.aipro-login').count(),0);checks.push('login state transitions to shared Welcome and composer');
  const requestBox=p.getByRole('textbox',{name:'작업 요청'}),smallHeight=await requestBox.evaluate(e=>e.clientHeight);
- assert.equal(await p.locator('.nubi-welcome h1, .nubi-welcome h2, h1').filter({hasText:/해볼까요|맡길까요|맡겨 주세요|열어볼까요|찾아볼까요|정해볼까요/}).count(),1);// the welcome title greets by time of day (2026-10-02)
+ assert.equal(await p.locator('h1.welcome-title').filter({hasText:/(까요|인가요|주세요|있나요)[?.]?/}).count(),1);// the welcome title greets by time of day: a question or an invitation; the drifting title repeats its text (2026-10-02)
  assert.equal(await p.getByRole('complementary',{name:'프로젝트 대화'}).count(),1);
  assert.equal(await requestBox.getAttribute('title'),'');
  assert.equal(await p.getByText('완료 조건 추가',{exact:true}).count(),0);
@@ -388,7 +388,7 @@ try{
  await p.getByRole('region',{name:'프로젝트 열기',exact:true}).waitFor();/* the greeting varies by time of day; the start screen is its own region (2026-10-02) */
  assert.equal(await p.getByRole('button',{name:/^폴더 열기/}).count(),1);assert.equal(await p.locator('.nubi-start-card').count(),2);
  assert.equal(await p.getByRole('button',{name:'프로젝트 열기',exact:true}).count(),0,'the cards replace the header button');
- assert.equal(await p.locator('.nubi-project-label').isVisible(),false,'no project name, no empty label');/* the brand carries the product name '누비 Workspace' (user decision 2026-09-30) */
+ assert.equal(await p.locator('.nubi-project-label').isVisible(),false,'no project name, no empty label');/* the brand carries the product name '누비 Workspace' (user decision 2026-09-30) */assert.doesNotMatch(await p.locator('.nubi-workbench').innerText(),/\/\*|\*\//,'no source comment leaks into the screen');
  await p.getByRole('button',{name:/^Git URL/}).click();const address=p.getByRole('textbox',{name:'저장소 주소',exact:true});await address.fill('github.com/owner/repo');await p.getByRole('button',{name:'저장할 폴더 선택',exact:true}).click();
  await p.getByRole('alert').filter({hasText:'git@ 주소를 넣어 주세요'}).waitFor();assert.equal(await p.evaluate(()=>window.cloneCalls?.length||0),0,'a malformed address stays in the card');
  await address.fill('https://github.com/owner/repo.git');await p.getByRole('button',{name:'저장할 폴더 선택',exact:true}).click();

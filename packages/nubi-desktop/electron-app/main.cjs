@@ -1,6 +1,6 @@
 const {app,BrowserWindow,protocol,net,ipcMain,dialog,clipboard,Menu}=require('electron');
 const {fork}=require('node:child_process');
-const {readFile,writeFile,mkdir,realpath}=require('node:fs/promises');
+const {readFile,writeFile,mkdir,realpath,rm}=require('node:fs/promises');
 const path=require('node:path');
 const {randomUUID,createHash}=require('node:crypto');
 const {pathToFileURL}=require('node:url');
@@ -111,7 +111,10 @@ app.whenReady().then(async()=>{
   if(method==='openCurrent'){
    if(currentRoot)return invoke('overview');
    let saved;try{saved=JSON.parse(await readFile(path.join(storage,'last-project.json'),'utf8'));}catch{return null;}
-   return saved?.root?openProject(saved.root,saved.kind==='conversation'?'conversation':'project',{initializeWiki:false}):null;
+   if(!saved?.root)return null;
+   // A last project whose folder is gone opens the start screen once; the stale pointer goes so the next start is clean.
+   try{return await openProject(saved.root,saved.kind==='conversation'?'conversation':'project',{initializeWiki:false});}
+   catch(error){if(error.message==='project_path_missing')await rm(path.join(storage,'last-project.json'),{force:true}).catch(()=>{});throw error;}
   }
   if(method==='startConversation'){const root=path.join(storage,'conversations');await mkdir(root,{recursive:true});return openProject(root,'conversation');}
   if(method==='chooseFolder'){const root=await choose(['openDirectory'],'프로젝트 폴더 열기');return root?openProject(root):{cancelled:true};}
