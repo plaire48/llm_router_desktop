@@ -5,8 +5,10 @@ Versions are pinned in the package lock. Original source notices and installed p
 | Component | Version | License | Use |
 |---|---|---|---|
 | Eclipse Theia | 1.75.0 | EPL-2.0 OR GPL-2.0-only WITH Classpath-exception-2.0 | IDE, Monaco integration, browser and desktop host |
-| Electron | 42.8.1 | MIT; bundled Chromium/Node notices also apply | Desktop window |
+| Electron | 42.11.10 | MIT; bundled Chromium/Node notices also apply | Desktop window |
 | React / React DOM | 19.2.8 | MIT | Shared UI |
+| React Arborist | 3.16.0 | MIT | Virtualized file explorer selection and keyboard navigation |
+| xterm.js / Fit addon | 6.0.0 / 0.11.0 | MIT | Manual command output terminal and container fitting |
 | Pi agent-core / pi-ai | 0.86.1 | MIT | Existing Nubi agent and provider runtime |
 | @vscode/ripgrep | 1.18.0 | MIT wrapper; ripgrep MIT OR Unlicense | Bounded native source search; platform package retained by npm |
 | TypeScript | 5.9.3 | Apache-2.0 | In-memory JS/TS syntax diagnostics and declaration outlines |
@@ -72,3 +74,11 @@ Additional components from `packages/openwiki/pnpm-lock.yaml`:
 | ci-info | 4.4.0 | MIT | OpenWiki's environment check; no event is sent |
 
 Not included: Mermaid and jsdom (optional OpenWiki peers; without them OpenWiki checks diagrams by rules), the model SDKs of the OpenWiki CLI providers (replaced by modules that fail when used; Desktop passes its own model), and the PostHog client (replaced by a module that sends nothing).
+
+## POP3 and MIME
+
+node-pop3 0.15.3, MIT, https://github.com/node-pop3/node-pop3 — POP3/TLS commands and streams. MailParser 3.9.28, MIT, https://github.com/nodemailer/mailparser — MIME decoding and attachment bytes. Exact versions are pinned in the lockfile. The repository's fragment tail adapter wraps the pinned stream parser; installed vendor sources are unchanged. Full license texts are retained in third-party/pop3/node-pop3-LICENSE.txt and third-party/pop3/mailparser-LICENSE.txt.
+
+Computer perception (2026-10-01): Agent S3 and UI-TARS inform grounding/reflection design; their SDKs and weights are not bundled. The optional OmniParser adapter uses its HTTP contract without redistributing parser code or weights. No Python/GPU runtime is added. Review code/dependency/weight licenses separately before installing a parser. See docs/COMPUTER-PERCEPTION-2026-10-01.md.
+
+Arborist and xterm full MIT notices are retained in vendor/licenses/React-Arborist-LICENSE.txt, xterm-LICENSE.txt and xterm-addon-fit-LICENSE.txt. Native Chromium browsing uses the pinned Electron distribution and its bundled third-party notices.

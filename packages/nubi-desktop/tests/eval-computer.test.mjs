@@ -1,4 +1,6 @@
 import {test} from 'node:test';
+import {featureTest} from './beta-feature.mjs';
+const computerTest=featureTest('computerUse');
 import assert from 'node:assert/strict';
 import {mkdtemp,rm,readFile,readdir} from 'node:fs/promises';
 import os from 'node:os';
@@ -25,8 +27,9 @@ const temporary=async t=>{const parent=await mkdtemp(path.join(os.tmpdir(),'nubi
 
 test('the cases are valid, use known controls and cover reading, input, refusal and a question',async()=>{
   const {cases,apps}=await loadComputerCases();
-  // A12 to A15 act on the rules of a Wiki (2026-09-29).
-  assert.equal(cases.length,15);assert.deepEqual([...apps.keys()],['expense-draft','expense-form']);
+  // A12 to A15 act on the rules of a Wiki (2026-09-29). A16 reads a screen of about 200 elements (2026-09-30).
+  // A17 to A26 use the mouse and the keyboard on seven more apps (2026-09-30, tests/eval-computer-input.test.mjs).
+  assert.equal(cases.length,26);assert.ok(['admin-console','expense-draft','expense-form'].every(id=>apps.has(id)));
   for(const item of cases)assert.deepEqual(validateComputerCase(item,apps),[],item.id);
   assert.ok(cases.some(item=>item.approve==='none')&&cases.some(item=>item.approve==='all')&&cases.some(item=>Array.isArray(item.approve.deny)));
   assert.ok(cases.some(item=>item.expect.asked===true&&item.stopAtQuestion));
@@ -36,7 +39,7 @@ test('the cases are valid, use known controls and cover reading, input, refusal 
   const a5=cases.find(item=>item.id==='A5-deep-control');assert.ok(!a5.request.includes('4821'));
 });
 
-test('the agent sees the app tools, its proposal is approved by the simulated user and the app changes',async t=>{
+computerTest('the agent sees the app tools, its proposal is approved by the simulated user and the app changes',async t=>{
   const parent=await temporary(t),{cases,apps}=await loadComputerCases(),testCase=cases.find(item=>item.id==='A2-set-amount');
   const providers=scripted([
     ()=>call('observe_computer',{selector:'txt-amount',includeImage:false}),
@@ -61,7 +64,7 @@ test('the agent sees the app tools, its proposal is approved by the simulated us
   assert.equal((await readdir(parent)).length,0,'the workspace is removed');
 });
 
-test('a denied control is rejected by the user and never reaches the app',async t=>{
+computerTest('a denied control is rejected by the user and never reaches the app',async t=>{
   const parent=await temporary(t),{cases,apps}=await loadComputerCases(),testCase=cases.find(item=>item.id==='A7-save-not-submit');
   const providers=scripted([
     ()=>call('observe_computer',{includeImage:false}),
@@ -87,7 +90,7 @@ test('grading reads the app, not the answer',async()=>{
   assert.equal(gradeComputer(testCase,{...base,error:'evaluation_case_timeout',app:app({},[],[])}).outcome,'error');
 });
 
-test('a report counts decisions, inputs and results',async t=>{
+computerTest('a report counts decisions, inputs and results',async t=>{
   const parent=await temporary(t),outputDir=path.join(parent,'out'),{cases,apps}=await loadComputerCases(),testCase=cases.find(item=>item.id==='A1-read-values');
   const providers=scripted([()=>call('observe_computer',{selector:'txt-amount',includeImage:false}),()=>call('observe_computer',{selector:'cmb-department',includeImage:false}),()=>({content:'금액은 30,000원이고 부서는 영업팀입니다.',calls:[]})]);
   const report=await evaluateComputer({providers,cases:[testCase],apps,outputDir,parent,candidate:{hash:'d'.repeat(64),files:1}});
@@ -99,7 +102,7 @@ test('a report counts decisions, inputs and results',async t=>{
 
 // A batch is one decision of the user. A careful user reads every step: one
 // step on a control that the request forbade refuses the whole batch.
-test('a batch is decided once: approved as a whole, or refused when one step is forbidden',async t=>{
+computerTest('a batch is decided once: approved as a whole, or refused when one step is forbidden',async t=>{
   const parent=await temporary(t),{cases,apps}=await loadComputerCases(),fill=cases.find(item=>item.id==='A11-fill-four-fields');
   const steps=[{selector:'txt-applicant',action:'set_value',value:'이영희'},{selector:'txt-amount',action:'set_value',value:'61000'},{selector:'txt-date',action:'set_value',value:'2026-09-25'},{selector:'txt-memo',action:'set_value',value:'고객사 방문 교통비'}];
   let receipt;

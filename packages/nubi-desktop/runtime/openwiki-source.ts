@@ -16,3 +16,7 @@ import {traceable} from 'langsmith/traceable';
 export const runWikiQuestion = traceable(researchQuestion, {name:'nubi-document-research',tracingEnabled:false});
 export {NubiOpenWikiModel,isWikiAuthenticationError} from '../../../extensions/aipro-chat/openwiki-agent.js';
 export {createWikiQuestionSearch} from '../../../extensions/aipro-chat/openwiki-retrieval.js';
+
+export {synthesizePersonalMail} from '../../openwiki/src/ingestion/personal-mail';
+export {resolveOpenWikiHomeDir} from '../../openwiki/src/config/openwiki-home';
+export {restrictDirToCurrentUser} from '../../openwiki/src/platform/windows-acl';

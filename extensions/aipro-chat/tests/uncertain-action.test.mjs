@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import {uncertainTargets,resolvesTargets,sameVerifiedDocuments} from '../uncertain-action.js';
 import {runAgent} from '../agent-runtime.js';
 import {BUILTIN_SKILLS,browserTools} from '../skills.js';
+// The host appends this run's state (plan, last operation) as the final message;
+// these tests read the message before it.
+const lastMessage = messages => messages.findLast(message => !(message?.role === 'user' && typeof message.content === 'string' && message.content.startsWith('Current run state from the host.')));
 const observation=(ref='old',url='https://portal.test/form')=>({url,tabId:101,topDocumentId:'document-a',frames:[{frameId:0,documentId:'document-a',elements:[{ref,name:'시간',role:'textbox'},{ref:'other',name:'부서',role:'textbox'}]}]});
 test('uncertain fill requires every requested field value and the same uniquely observed target',()=>{
  const targets=uncertainTargets('fill_form',{fields:[{field_id:'old',value:'480'}]},observation());
@@ -23,14 +26,14 @@ test('Pi refuses a second write after unrelated passing checks, then resumes aft
  let round=0,writes=0;
  const call=(name,args={})=>({content:'',calls:[{id:String(round),type:'function',function:{name,arguments:JSON.stringify(args)}}]});
  const done={content:'초안을 확인했습니다.',calls:null};
- await runAgent({messages:[{role:'user',content:'시간에 480을 입력해줘'}],tools:browserTools({},BUILTIN_SKILLS[0]),signal:new AbortController().signal,stepwise:true,
+ await runAgent({messages:[{role:'user',content:'시간에 480을 입력해줘'}],tools:browserTools({},BUILTIN_SKILLS[0]),signal:new AbortController().signal,stepwise:true,harness:true,
  complete:async(messages,_,state)=>{
   if(++round===1)return call('read_page');
   if(round===2)return call('fill_form',{fields:[{field_id:'old',value:'480'}]});
   if(round===3)return call('verify_page',{checks:[{kind:'text_present',expected:'포털'}]});
-  if(round===4){assert.equal(state.verificationPending,true);assert(JSON.parse(messages.at(-1).content).unresolvedAction);return call('fill_form',{fields:[{field_id:'fresh',value:'480'}]});}
-  if(round===5){assert.equal(JSON.parse(messages.at(-1).content).error,'action_outcome_unknown');return call('verify_page',{checks:[{kind:'field_value',ref:'fresh',expected:'480'}]});}
-  assert.equal(state.verificationPending,false);return done;
+  if(round===4){assert.equal(state.verificationPending,true);assert(JSON.parse(lastMessage(messages).content).unresolvedAction);return call('fill_form',{fields:[{field_id:'fresh',value:'480'}]});}
+  if(round===5){assert.equal(JSON.parse(lastMessage(messages).content).error,'action_outcome_unknown');return call('verify_page',{checks:[{kind:'field_value',ref:'fresh',expected:'480'}]});}
+  assert.equal(state.verificationPending,false);assert.equal(JSON.parse(lastMessage(messages).content).reconciledAction,true);return done;
  },execute:async(name,args)=>{
   if(name==='fill_form'){writes++;throw new Error('lost receipt');}
   if(name==='verify_page')return {ok:true,verified:true,checks:args.checks.map(check=>({kind:check.kind,passed:true})),observation:observation('fresh')};

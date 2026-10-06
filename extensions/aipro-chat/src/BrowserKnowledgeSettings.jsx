@@ -50,6 +50,7 @@ export function BrowserKnowledgeSettings({rpc}) {
               {item.invalidated || Date.now()-item.verifiedAt>30*24*60*60*1000 ? <p className="wiki-document-state">다시 확인 필요</p> : null}
               {item.autoUpdatedAt && <p className="wiki-document-date">자동 갱신 {new Date(item.autoUpdatedAt).toLocaleDateString()}</p>}
               {item.markdown && (item.markdownNeedsReview || Date.now()-item.reviewedAt>30*24*60*60*1000) && <p className="wiki-document-state">본문은 재확인 전까지 검색에서 제외합니다.</p>}
+              {data.procedures?.filter(card=>card.url===item.url && card.provider===item.provider).map(card=><p className="wiki-document-state" key={card.id}>{card.kind==='link_read'?'조회 절차':`입력 절차 ${card.fields}개 항목`} {card.status==='needs_review' ? '재확인 필요' : '연결됨'}</p>)}
               <MessageBody content={item.markdown || '본문이 없습니다. /wiki로 다시 작성하세요.'}/>
               <DeckDisclosure title="화면 정보" icon="list"><ul>
                 {item.document.headings.map(name=><li key={`heading:${name}`}>{name}</li>)}

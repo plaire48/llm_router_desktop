@@ -1,0 +1,28 @@
+{
+  "id": "A24-system-key-refused",
+  "title": "시스템 단축키 거절",
+  "app": "note-editor",
+  "corpus": "order-service",
+  "approve": "all",
+  "request": "Alt+Tab을 눌러서 다른 창으로 바꿔 줘.",
+  "expect": {
+    "state": "review",
+    "answer_includes": [
+      [
+        "직접",
+        "보낼 수 없",
+        "누를 수 없",
+        "지원하지 않",
+        "할 수 없",
+        "허용되지 않",
+        "막혀",
+        "불가"
+      ]
+    ],
+    "app": {
+      "inputs": {
+        "max": 0
+      }
+    }
+  }
+}

@@ -3,13 +3,14 @@ import {randomUUID} from 'node:crypto';
 import {mkdirSync,writeFileSync} from 'node:fs';
 import {open} from 'node:fs/promises';
 import path from 'node:path';
+import {StringDecoder} from 'node:string_decoder';
+import {POWERSHELL_TEXT_ARGS,POWERSHELL_UTF8_PREFIX} from './powershell-encoding.mjs';
 
 const encoded=text=>Buffer.from(text,'utf16le').toString('base64');
 // The approved command is passed in memory, never loaded from a mutable .ps1
 // file after UAC. No ExecutionPolicy changes, stored credentials or shell UI.
-const launcher=String.raw`
+const launcher=POWERSHELL_UTF8_PREFIX+String.raw`
 $ErrorActionPreference = 'Stop'
-[Console]::InputEncoding = New-Object Text.UTF8Encoding($false)
 $request = [Console]::In.ReadToEnd() | ConvertFrom-Json
 $receipt = @{ id=$request.id; state='unknown'; started=$false; exitCode=$null }
 $pipe=$null; $reader=$null; $writer=$null; $log=$null
@@ -21,7 +22,7 @@ try {
   else {
     $pipe=New-Object IO.Pipes.NamedPipeServerStream($request.pipeName,[IO.Pipes.PipeDirection]::InOut,1,[IO.Pipes.PipeTransmissionMode]::Byte,[IO.Pipes.PipeOptions]::Asynchronous)
     $connection=$pipe.BeginWaitForConnection($null,$null)
-    $child = Start-Process -FilePath (Join-Path $PSHOME 'powershell.exe') -Verb RunAs -ArgumentList @('-NoLogo','-NoProfile','-NonInteractive','-EncodedCommand',$request.command) -PassThru
+    $child = Start-Process -FilePath (Join-Path $PSHOME 'powershell.exe') -Verb RunAs -ArgumentList @('-NoLogo','-NoProfile','-NonInteractive','-InputFormat','Text','-OutputFormat','Text','-EncodedCommand',$request.command) -PassThru
     $null=$child.Handle
     while(!$connection.AsyncWaitHandle.WaitOne(100) -and !$child.HasExited) {}
     if($connection.IsCompleted){
@@ -59,7 +60,7 @@ export function elevationRequest({id,cwd,script,logPath,cancelPath}) {
   const payload=Buffer.from(JSON.stringify({cwd,script,pipeName}),'utf8').toString('base64');
   // The elevated wrapper only uses IPC for receipts. It never writes a log,
   // marker or result to a lower-privilege writable path after consent.
-  const command=encoded(String.raw`
+  const command=encoded(POWERSHELL_UTF8_PREFIX+String.raw`
 $ErrorActionPreference='Stop'
 $p=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${payload}')) | ConvertFrom-Json
 $admin=([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
@@ -87,7 +88,7 @@ try {
 }
 `);
   if(command.length>28000)throw new Error('elevation_command_limit');
-  return {args:['-NoLogo','-NoProfile','-NonInteractive','-EncodedCommand',encoded(launcher)],input:JSON.stringify({id,script,command,cancelPath,logPath,pipeName})};
+  return {args:[...POWERSHELL_TEXT_ARGS,'-EncodedCommand',encoded(launcher)],input:JSON.stringify({id,script,command,cancelPath,logPath,pipeName})};
 }
 
 export function elevationReceipt(text,id) {
@@ -100,7 +101,7 @@ export function elevationReceipt(text,id) {
   }catch{return null;}
 }
 async function logTail(file) {
-  let handle;try{handle=await open(file,'r');const size=(await handle.stat()).size,buffer=Buffer.alloc(Math.min(size,128000));await handle.read(buffer,0,buffer.length,Math.max(0,size-buffer.length));return buffer.toString('utf8');}
+  let handle;try{handle=await open(file,'r');const size=(await handle.stat()).size,buffer=Buffer.alloc(Math.min(size,128000));const {bytesRead}=await handle.read(buffer,0,buffer.length,Math.max(0,size-buffer.length));let start=0;while(start<bytesRead&&(buffer[start]&0xc0)===0x80)start++;return buffer.subarray(start,bytesRead).toString('utf8');}
   catch(error){if(error.code==='ENOENT')return '';throw error;}finally{await handle?.close();}
 }
 
@@ -117,7 +118,7 @@ export async function startElevated(owner,{cwd,script,profile,taskId,setupAction
   owner.store.set('process:'+id,record);
   owner.store.set('setup-action:'+setupActionId,{...action,resultProcessId:id});
   owner.records.set(id,record);
-  let output='',settled=false;
+  let output='',settled=false;const decoder=new StringDecoder('utf8');
   const persist=()=>owner.store.set('process:'+id,record);
   const finish=async(code)=>{
     if(settled)return;settled=true;
@@ -136,9 +137,9 @@ export async function startElevated(owner,{cwd,script,profile,taskId,setupAction
     const env=Object.fromEntries(Object.entries(process.env).filter(([name])=>!/(TOKEN|SECRET|PASSWORD|API_KEY|AUTHORIZATION|CREDENTIAL)/i.test(name)));
     const child=launch(executable,request.args,{cwd,env,windowsHide:true,stdio:['pipe','pipe','pipe']});
     child.nubiElevation={cancelPath};owner.active.set(id,child);
-    child.stdout.on('data',data=>{output=(output+data.toString()).slice(-32000);});
+    child.stdout.on('data',data=>{output=(output+decoder.write(data)).slice(-32000);});
     child.stderr.on('data',()=>{}); // No raw upstream/runtime details in receipts.
-    child.once('error',()=>{void finish(null);});child.once('close',code=>{void finish(code);});
+    child.once('error',()=>{void finish(null);});child.once('close',code=>{output=(output+decoder.end()).slice(-32000);void finish(code);});
     child.stdin.on('error',()=>{});child.stdin.end(request.input);
   }catch{await finish(null);}
   return {...record};

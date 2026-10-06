@@ -1,6 +1,8 @@
 // The simulated app must satisfy the real adapter: every check here goes
 // through WinappComputer and the host functions, not through the runner alone.
 import {test} from 'node:test';
+import {featureTest} from './beta-feature.mjs';
+const computerTest=featureTest('computerUse');
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {fixture} from './fixtures.mjs';
@@ -26,7 +28,7 @@ test('the app definition is valid and a broken one names its fields',()=>{
   assert.throws(()=>createAppHost({...definition,window:{}}),/app_invalid/);
 });
 
-test('an observation through the adapter shows the controls down to the depth the tool reads',async t=>{
+computerTest('an observation through the adapter shows the controls down to the depth the tool reads',async t=>{
   const {service,task,host}=await connected(t);
   assert.equal(service.state().computer.availability.available,true);
   const seen=await observeComputer(service,task.id,{includeImage:false});
@@ -41,7 +43,7 @@ test('an observation through the adapter shows the controls down to the depth th
   assert.ok(host.state().commands.includes('inspect -w'));assert.deepEqual(host.state().inputs,[]);
 });
 
-test('an approved value change reaches the app once and is read back',async t=>{
+computerTest('an approved value change reaches the app once and is read back',async t=>{
   const {service,task,host,decide}=await connected(t);
   const seen=await observeComputer(service,task.id,{selector:'txt-amount',includeImage:false});
   const proposal=await proposeComputerAction(service,task.id,{observationId:seen.observationId,selector:'txt-amount',action:'set_value',value:'45000',reason:'금액 변경'},new Set([seen.observationId]));
@@ -56,7 +58,7 @@ test('an approved value change reaches the app once and is read back',async t=>{
   assert.equal(check.verification,'value_matched');
 });
 
-test('states, selection and rules of the app follow the inputs',async t=>{
+computerTest('states, selection and rules of the app follow the inputs',async t=>{
   const {service,task,host,decide}=await connected(t);
   const act=async(selector,action,value)=>{
     const seen=await observeComputer(service,task.id,{...(selector==='item-dept-dev'?{query:'개발팀'}:{selector}),includeImage:false});
@@ -73,7 +75,7 @@ test('states, selection and rules of the app follow the inputs',async t=>{
   assert.deepEqual(host.state().events,['saved','submit_refused'],'the app refuses an amount that is not a number');
 });
 
-test('a password and a read-only field keep their protection',async t=>{
+computerTest('a password and a read-only field keep their protection',async t=>{
   const {service,task,host}=await connected(t);
   const secret=await observeComputer(service,task.id,{selector:'txt-approval-password',includeImage:false});
   assert.equal(secret.target.password,'True');assert.ok(!JSON.stringify(secret).includes('p@ss-7731'),'the value of a password field is never read');

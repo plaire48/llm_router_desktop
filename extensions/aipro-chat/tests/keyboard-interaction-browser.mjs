@@ -164,7 +164,7 @@ try {
         if(!reviewedSteps.length){const input=byId(proof.result,'search');assert.equal(input.name,'직원 검색');assert.equal(input.role,'combobox');}
         reviewedSteps.push(review.stepOutcomes[0].text);
       }else{
-        assert.equal(review.phase,'final');assert.equal(reviewedSteps.length,2);
+        assert.equal(review.phase,'final');assert.equal(reviewedSteps.length,1);
         assert.equal(review.proposed_answer,finalAnswer);finalReviews++;
       }
       return route.fulfill({json:{choices:[{message:{content:JSON.stringify({status:'complete',
@@ -177,7 +177,8 @@ try {
     if(stage===1)calls=[call('run_playwright',{code:`await browser.ref(${JSON.stringify(byId(result,'redirect').ref)}).press("A");`})];
     if(stage===2){
       assert.equal(result.reason,'script_focus');assert.equal(result.actionIssued,false);
-      recoverySeen=body.messages[0].content.includes('retained prefix');assert(recoverySeen);
+      // Recovery guidance is run state, given in the final message (the system message stays fixed for the prompt cache).
+      recoverySeen=body.messages.at(-1).content.includes('retained prefix')&&!body.messages[0].content.includes('retained prefix');assert(recoverySeen);
       const api=body.tools.find(t=>t.function.name==='run_playwright').function.description;
       assert(api.includes('pressSequentially'));assert(api.includes('activeDescendant'));
       calls=[call('run_playwright',{code:`await browser.ref(${JSON.stringify(byId(result,'search').ref)}).pressSequentially("alice");`})];
@@ -211,7 +212,8 @@ try {
   let reply;
   for(let i=0;i<900;i++){if(failure)throw failure;reply=(await state()).chat.messages.at(-1);if(reply?.role==='assistant'&&['done','error'].includes(reply.state))break;await new Promise(r=>setTimeout(r,40));}
   assert.equal(reply?.state,'done',JSON.stringify({stage,reply,state:await state()}));assert.equal(stage,8);assert(recoverySeen);
-  assert.deepEqual(reviewedSteps,keyboardPlan.map(step=>step.text));assert.equal(finalReviews,1);
+  // The reporting last step is judged by the final review.
+  assert.deepEqual(reviewedSteps,[keyboardPlan[0].text]);assert.equal(finalReviews,1);
   assert((await state()).chat.task.plan.every(step=>step.status==='completed'));
   assert.equal(await page.locator('#search').inputValue(),'Alice Kim');assert.equal(await page.locator('#other').inputValue(),'');assert.equal(await page.evaluate(()=>submits),0);
   assert.equal((await page.evaluate(()=>keys.filter(e=>e.id==='search'&&e.key.length===1))).length,5,'The query must be typed only once');

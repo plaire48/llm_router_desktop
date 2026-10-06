@@ -9,6 +9,7 @@ import {ProjectService} from '../runtime/project-service.mjs';
 import {Store} from '../runtime/store.mjs';
 import {SourceObservations,replaceObserved} from '../runtime/source-edits.mjs';
 import {git} from '../runtime/files.mjs';
+import {READ_LINES} from '../runtime/read-room.mjs';
 
 test('narrow edits preserve unread CRLF lines and reject ambiguous, unseen, overlapping or stale replacements',async t=>{
   const {service,root}=await fixture(t),content=Array.from({length:450},(_,i)=>`line-${i+1}`).join('\r\n');
@@ -33,11 +34,12 @@ test('narrow edits preserve unread CRLF lines and reject ambiguous, unseen, over
 });
 
 test('whole-file replacement requires complete current-run coverage, including continuation reads',async t=>{
-  const {service,root}=await fixture(t);await writeFile(path.join(root,'app.txt'),Array.from({length:450},(_,i)=>'row '+i).join('\n'));
+  // Longer than two reads of READ_LINES (200 lines before the user decision of 2026-09-30 on large windows).
+  const {service,root}=await fixture(t);await writeFile(path.join(root,'app.txt'),Array.from({length:2*READ_LINES+50},(_,i)=>'row '+i).join('\n'));
   const seen=new SourceObservations(),file=await service.read({path:'app.txt',full:true});
   seen.observe(await service.read({path:'app.txt'}));assert.throws(()=>seen.require(file),/source_read_required/);
-  const second=await service.read({path:'app.txt',start:201});assert.equal(second.end,400);assert.equal(second.nextStart,401);seen.observe(second);
-  seen.observe(await service.read({path:'app.txt',start:401}));assert.doesNotThrow(()=>seen.require(file));
+  const second=await service.read({path:'app.txt',start:READ_LINES+1});assert.equal(second.end,2*READ_LINES);assert.equal(second.nextStart,2*READ_LINES+1);seen.observe(second);
+  seen.observe(await service.read({path:'app.txt',start:2*READ_LINES+1}));assert.doesNotThrow(()=>seen.require(file));
   assert.throws(()=>new SourceObservations().require(file),/source_read_required/);
   await writeFile(path.join(root,'legacy.txt'),Buffer.from([0xff,0xfe,0x61]));
   await assert.rejects(service.read({path:'legacy.txt'}),/file_encoding/);

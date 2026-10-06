@@ -54,7 +54,8 @@ test('a changed content hash retires only the earlier version of the same URL an
 test('review cannot silently trim one side of a source comparison to fit the context budget', () => {
   const evidence = ['a', 'b'].map((key, index) => reviewEvidence(index + 1, 'read_page', {mode: 'content'}, source(key, key, 'Detailed observed source conditions '.repeat(280))));
   assert(evidence.every(item => item.usable));
-  const adequate = goalReviewMessages({goal: '두 출처 비교', history: [], evidence, answer: '', inputBudget: 10000});
+  // The reviewer instructions take part of the budget; both sources fit with room for them.
+  const adequate = goalReviewMessages({goal: '두 출처 비교', history: [], evidence, answer: '', inputBudget: 10200});
   assert.equal(adequate.evidence.filter(item => item.usable).length, 2);
   assert.throws(() => goalReviewMessages({goal: '두 출처 비교', history: [], evidence, answer: '', inputBudget: 4000}), /goal_review_failed/);
 });

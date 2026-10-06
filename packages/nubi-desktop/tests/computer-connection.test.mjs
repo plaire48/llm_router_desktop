@@ -1,4 +1,5 @@
-import test from 'node:test';
+import {featureTest} from './beta-feature.mjs';
+const test=featureTest('computerUse');
 import assert from 'node:assert/strict';
 import {fixture} from './fixtures.mjs';
 import {ProjectService} from '../runtime/project-service.mjs';

@@ -97,3 +97,16 @@ test('manual cases and flagged answers wait for a reviewer instead of passing',a
   const failedFirst=await gradeCase({...testCase({answer_includes:[['없습니다']]}),manual:true},finished(root,{answer:'HTTPS_PROXY를 설정하세요.'}));
   assert.equal(failedFirst.outcome,'failed','a failed check is not hidden behind review');
 });
+
+test('only started commands count, and the last matching command carries the result',async t=>{
+  const root=await workspace(t),expect={commands:{match:['re:npm (?:run )?test'],min:2,lastExitCode:0}};
+  const commands=[{script:'npm test',execution:'started',state:'failed',exitCode:1},{script:'npm test',execution:'not_started',state:'failed',exitCode:null},
+    {script:'git status',execution:'started',state:'completed',exitCode:0},{script:'npm run test',execution:'started',state:'completed',exitCode:0}];
+  const passed=await gradeCase(testCase(expect),finished(root,{commands}));
+  assert.equal(passed.outcome,'passed',JSON.stringify(passed.checks));
+  assert.deepEqual(passed.checks.find(item=>item.name==='commands').ran.map(item=>item.exitCode),[1,0]);
+  const unverified=await gradeCase(testCase(expect),finished(root,{commands:commands.slice(0,3)}));
+  assert.deepEqual(unverified.checks.filter(item=>!item.passed).map(item=>item.name),['commands','command_result']);
+  const failedLast=await gradeCase(testCase(expect),finished(root,{commands:[...commands,{script:'npm test',execution:'started',state:'failed',exitCode:1}]}));
+  assert.deepEqual(failedLast.checks.filter(item=>!item.passed).map(item=>[item.name,item.actual]),[['command_result',1]]);
+});

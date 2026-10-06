@@ -17,6 +17,18 @@ test('region read failures retain typed recovery without requesting input or act
   assert.match(invalid.instruction, /only mode="region" and region_ref/);
 });
 
+test('browser state and argument failures retain their own category instead of script-repair advice',()=>{
+ for(const reason of ['workspace_loading','workspace_changed','page_restricted','page_permission','action_outcome_unknown','tool_arguments_invalid','wait_arguments_invalid']){
+  const result=scriptFailure(new Error(`page.evaluate: Error: ${reason} PRIVATE_PAGE_VALUE`));
+  assert.equal(result.reason,reason);assert(!JSON.stringify(result).includes('PRIVATE_PAGE_VALUE'));
+  const trace=normalizeTrace([{tool:'wait_page',status:'error',reason:result.reason}]);
+  assert.equal(trace[0].reason,reason);
+ }
+ assert.match(scriptFailure('wait_arguments_invalid').instruction,/alone or with condition/);
+ assert.match(scriptFailure('page_restricted').instruction,/does not establish.*permission/);
+ assert.match(scriptFailure('action_outcome_unknown').instruction,/new action was withheld/);
+});
+
 test('unconfirmed managed policy stays a policy failure with no script-repair guidance', () => {
   const result = scriptFailure(new Error('browser_policy_invalid'));
   assert.equal(result.error, 'browser_policy_invalid');
@@ -24,6 +36,13 @@ test('unconfirmed managed policy stays a policy failure with no script-repair gu
   assert.match(result.instruction, /No operation is authorized/);
   assert.match(result.instruction, /do not retry another tool/);
   assert.equal(normalizeTrace([{tool:'browser_snapshot',status:'error',reason:result.reason}])[0].reason, result.reason);
+});
+
+test('capture deadlines and debugger failures are distinguished from generated-code failures', () => {
+  for (const reason of ['capture_timeout', 'debugger_unavailable', 'debugger_conflict', 'debugger_policy_blocked', 'debugger_protocol_unsupported', 'debugger_attach_failed', 'debugger_disconnected']) {
+    const result = scriptFailure(new Error(reason)); assert.equal(result.reason, reason);
+    assert.equal(normalizeTrace([{tool: 'run_playwright', status: 'error', reason}])[0].reason, reason);
+  }
 });
 
 test('script feedback distinguishes syntax, unsupported APIs, ambiguous targets and editable controls without raw data', async () => {

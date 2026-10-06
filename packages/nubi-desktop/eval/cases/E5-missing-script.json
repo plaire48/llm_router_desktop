@@ -1,0 +1,38 @@
+{
+  "id": "E5-missing-script",
+  "title": "없는 스크립트 이름으로 요청한 검사 실행",
+  "suite": "command",
+  "split": "dev",
+  "corpus": "order-failing",
+  "request": "npm run test:discount 로 할인 검사만 돌려서 결과를 알려 줘. 코드는 고치지 마.",
+  "approvals": [
+    "command"
+  ],
+  "commands": [
+    "npm(?:\\.cmd)? (?:run )?test(?::discount)?(?: .+)?",
+    "node --test(?: .+)?",
+    "(?:node|npm)(?:\\.cmd)? (?:--version|-v)",
+    "git (?:status|diff|log)(?: [\\w./=@-]+)*"
+  ],
+  "expect": {
+    "state": "review",
+    "commands": {
+      "match": [
+        "re:discount"
+      ],
+      "min": 1,
+      "lastExitCode": 0
+    },
+    "answer_includes": [
+      [
+        "통과",
+        "pass",
+        "성공"
+      ]
+    ],
+    "answer_excludes": [
+      "re:무료 배송 기준과 기본 배송비[^\\n]{0,40}(통과|성공)"
+    ],
+    "unchanged_except": []
+  }
+}

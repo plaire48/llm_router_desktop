@@ -6,6 +6,7 @@ await cp('../../extensions/aipro-chat/public/icons',`${target}/lib/frontend/icon
 await cp('runtime/computer-pointer.ps1',`${target}/lib/backend/computer-pointer.ps1`);
 // Theia bundles backend modules into lib/backend/main.js; keep the owned worker alongside it.
 await cp('extension/lib/node/service-entry.mjs',`${target}/lib/backend/service-entry.mjs`);
+await cp('extension/src/node/git-askpass.cjs',`${target}/lib/backend/git-askpass.cjs`);
 // The OpenWiki update runner, imported by the worker from beside it when an update runs.
 await cp('extension/lib/node/openwiki-update',`${target}/lib/backend/openwiki-update`,{recursive:true});
 

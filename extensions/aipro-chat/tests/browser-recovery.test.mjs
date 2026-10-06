@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {runAgent} from '../agent-runtime.js';
 import {browserTools, BUILTIN_SKILLS} from '../skills.js';
-import {createBrowserRecovery} from '../browser-recovery.js';
+import {createBrowserRecovery, createVisualRecovery} from '../browser-recovery.js';
 import {contentPacket} from '../browser-content.js';
 
 const call = (name, args = {}) => ({content: '', calls: [{id: crypto.randomUUID(), type: 'function', function: {name, arguments: JSON.stringify(args)}}]});
@@ -10,6 +10,33 @@ const done = {content: '조회 결과를 확인했습니다.', calls: null};
 const snapshot = (ref, text = '자료 검색') => ({url: 'https://example.test/search', frames: [{frame: 0, url: 'https://example.test/search', text,
   elements: [{ref, role: 'button', name: '검색', id: 'search', kind: 'control'}]}]});
 const options = () => ({messages: [{role: 'user', content: '자료를 검색하고 결과를 확인해줘'}], tools: browserTools({}, BUILTIN_SKILLS[0]), signal: new AbortController().signal, harness: true});
+
+test('visual recovery covers repeated target failures without multiplying captures on unchanged refs or errors', () => {
+  const recovery = createVisualRecovery();
+  const failure = reason => ({error: reason, actionIssued: false});
+  assert.equal(recovery.consider('run_playwright', failure('script_locator'), snapshot('r1'), true), null);
+  assert.equal(recovery.consider('run_playwright', failure('script_disabled'), snapshot('r2'), true).status, 'capture');
+  recovery.observed(snapshot('r3'));
+  for (const reason of ['script_locator', 'script_obscured', 'script_failed']) assert.equal(recovery.consider('click_element', failure(reason), snapshot(crypto.randomUUID()), true), null);
+  assert.equal(recovery.consider('click_element', failure('script_obscured'), snapshot('r4', '새 팝업'), true).status, 'capture');
+  const changed = {...snapshot('r5', '새 팝업'), topDocumentId: 'new-document'};
+  assert.equal(recovery.consider('click_element', failure('script_obscured'), changed, true).status, 'capture');
+  recovery.dispose();
+  assert.equal(recovery.consider('click_element', failure('script_obscured'), snapshot('r6'), true).status, 'capture');
+});
+
+test('visual recovery keeps syntax, stale refs, permissions, cancelled work and model capabilities separate', () => {
+  for (const reason of ['script_syntax', 'script_api', 'script_unawaited', 'browser_stale', 'capture_timeout', 'page_permission', 'page_restricted', 'workspace_changed', 'approval_required', 'cancelled']) {
+    const recovery = createVisualRecovery();
+    for (let i = 0; i < 4; i++) assert.equal(recovery.consider('run_playwright', {error: reason}, snapshot(`r${i}`), true), null, reason);
+  }
+  const recovery = createVisualRecovery();
+  assert.equal(recovery.consider('run_playwright', {error: 'script_failed', image: {data: 'AAAA'}}, snapshot('r'), true), null);
+  const unavailable = recovery.consider('click_element', {error: 'script_obscured'}, snapshot('r'), false);
+  assert.equal(unavailable.reason, 'vision_model_unavailable');
+  assert.match(unavailable.instruction, /text-only/);
+  assert.equal(recovery.consider('click_element', {error: 'script_obscured'}, snapshot('new-ref'), false), null);
+});
 
 test('reloaded identical pages and capture bookkeeping are not new task progress', () => {
   const recovery = createBrowserRecovery();
@@ -200,7 +227,7 @@ test('recovery guidance contains fixed causes, never private values or page inst
     assert.equal(systems.length, 1);
     assert(!systems[0].content.includes('PRIVATE_PAGE_INSTRUCTION'));
     if (++round === 1) return call('read_page');
-    assert.match(systems[0].content, /Browser recovery: tool_failed/);
+    assert.match(messages.at(-1).content, /Browser recovery: tool_failed/); assert(!systems[0].content.includes('Browser recovery:'), 'run state stays out of the system message');
     return done;
   }, execute: async () => ({error: 'PRIVATE_PAGE_INSTRUCTION', actionIssued: false}), reviewGoal: async () => ({status: 'complete'})});
 });
@@ -217,4 +244,24 @@ test('fresh region references are not new page content', () => {
   };
   const counts = ['A', 'B', 'A', 'B', 'A', 'B'].map((page, i) => read(page, i).repetitions);
   assert.deepEqual(counts, [1, 1, 1, 2, 2, 3]);
+});
+
+test('navigation indexes never turn an identical body reload into new reading progress', async () => {
+  const recovery = createBrowserRecovery();
+  const body = '# Overview\n\n' + 'Same content. '.repeat(700) + '\n## Tail\n\nException.';
+  for (let i = 1; i <= 3; i++) {
+    const packet = await contentPacket({url: 'https://example.test/long', sourceIdentity: [`doc-${i}`],
+      documentId: `doc-${i}`, frame: 0, title: 'Long', text: body, coverage: {partial: false}});
+    assert(packet.outline);
+    packet.boundary_index = {content_hash: packet.content_hash, sections: [{start: 0, end: body.length}]};
+    const progress = recovery.observe('read_page', {mode: 'content'}, packet, 'same-read');
+    assert.equal(progress.changed, false);
+    assert.equal(progress.repetitions, i);
+  }
+  const changed = await contentPacket({url: 'https://example.test/long', documentId: 'changed', frame: 0,
+    title: 'Long', text: body + '\nA real new rule.', coverage: {partial: false}});
+  assert.equal(recovery.observe('read_page', {mode: 'content'}, changed, 'same-read').changed, true);
+  const business = createBrowserRecovery();
+  business.observe('read_page', {}, {outline: {rule: 'old'}}, 'read');
+  assert.equal(business.observe('read_page', {}, {outline: {rule: 'new'}}, 'read').changed, true);
 });

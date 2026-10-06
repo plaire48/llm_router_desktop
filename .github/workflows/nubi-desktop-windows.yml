@@ -34,6 +34,9 @@ jobs:
         run: |
           npm ci --prefix ../../extensions/aipro-chat --ignore-scripts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # The runtime bundles the A2A hub and its SDK (A2A enabled 2026-10-01).
+          npm ci --prefix ../nubi-a2a --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm ci
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       # The shared runtime imports OpenWiki-SDS source at run time (agent-runtime -> openwiki-agent -> wiki-question.ts),

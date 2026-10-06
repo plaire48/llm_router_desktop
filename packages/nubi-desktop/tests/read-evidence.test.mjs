@@ -18,6 +18,7 @@ import {resultReviewInput} from '../runtime/result-review.mjs';
 import {recoveryInstruction} from '../runtime/tool-feedback.mjs';
 import {ProjectService} from '../runtime/project-service.mjs';
 import {installAgent} from '../runtime/agent.mjs';
+import {READ_LINES} from '../runtime/read-room.mjs';
 installAgent(ProjectService);
 
 const REVIEW_ENTRY_LIMIT=12000;
@@ -28,7 +29,8 @@ async function project(t){
   await writeFile(path.join(root,'AGENTS.md'),'# Rules\n\n'+'Keep amounts as integers. '.repeat(120));
   await writeFile(path.join(root,'src','AGENTS.md'),'Scoped rule for src.');
   await writeFile(path.join(root,'src','code.mjs'),Array.from({length:60},(_,i)=>`export const v${i}=${i};`).join('\n'));
-  await writeFile(path.join(root,'docs','long.md'),Array.from({length:300},(_,i)=>line(i+1,120)).join('\n'));
+  // Longer than one read: 200 lines before the user decision of 2026-09-30 on large windows, now READ_LINES.
+  await writeFile(path.join(root,'docs','long.md'),Array.from({length:READ_LINES+100},(_,i)=>line(i+1,120)).join('\n'));
   await writeFile(path.join(root,'docs','short.md'),Array.from({length:260},(_,i)=>'row '+(i+1)).join('\n'));
   await git(root,['add','-A']);await git(root,['commit','-qm','documents']);
   return {service,root};
@@ -46,14 +48,16 @@ async function reads(t,requests){
   return {results,receipts,service,task};
 }
 
-test('a request for more than 200 lines returns its first 200 and says where to continue',async t=>{
-  const {service}=await project(t);
-  const read=await service.read({path:'docs/short.md',start:1,end:260});
-  assert.equal(read.start,1);assert.equal(read.end,200);assert.equal(read.nextStart,201);assert.equal(read.truncated,true);
-  assert.deepEqual(read.limited,{by:'lines',requestedEnd:260});
-  assert.equal(read.content.split('\n').length,200);
-  const rest=await service.read({path:'docs/short.md',start:201,end:260});
-  assert.equal(rest.end,260);assert.equal(rest.nextStart,null);assert.equal('limited' in rest,false);
+test('a request for more than READ_LINES lines returns its first READ_LINES and says where to continue',async t=>{
+  const {service}=await project(t);assert.equal(READ_LINES,1000);
+  const read=await service.read({path:'docs/long.md',start:1,end:READ_LINES+60});
+  assert.equal(read.start,1);assert.equal(read.end,READ_LINES);assert.equal(read.nextStart,READ_LINES+1);assert.equal(read.truncated,true);
+  assert.deepEqual(read.limited,{by:'lines',requestedEnd:READ_LINES+60});
+  assert.equal(read.content.split('\n').length,READ_LINES);
+  const rest=await service.read({path:'docs/long.md',start:READ_LINES+1,end:READ_LINES+100});
+  assert.equal(rest.end,READ_LINES+100);assert.equal(rest.nextStart,null);assert.equal('limited' in rest,false);
+  const short=await service.read({path:'docs/short.md'});
+  assert.equal(short.end,260,'a file of 260 lines comes whole in one read');assert.equal(short.nextStart,null);
 });
 
 test('a start beyond the file is refused with the file length',async t=>{
@@ -63,15 +67,15 @@ test('a start beyond the file is refused with the file length',async t=>{
   assert.match(recoveryInstruction('range_invalid','read_source'),/details\.lines/);
 });
 
-test('a long read reaches the main agent whole, up to 200 lines',async t=>{
-  const {results}=await reads(t,[{path:'docs/long.md'},{path:'docs/long.md',start:1,end:300}]);
+test('a long read reaches the main agent whole, up to READ_LINES lines',async t=>{
+  const {results}=await reads(t,[{path:'docs/long.md'},{path:'docs/long.md',start:1,end:READ_LINES+100}]);
   for(const {text,value} of results){
-    assert.equal(value.end,200);assert.equal(value.nextStart,201);
-    assert.equal(value.content.split('\n').length,200);assert.equal(value.content.split('\n').at(-1),line(200,120));
-    assert.ok(text.length>20000,'nothing was cut: '+text.length);
-    assert.equal(value.provenance.end,200);
+    assert.equal(value.end,READ_LINES);assert.equal(value.nextStart,READ_LINES+1);
+    assert.equal(value.content.split('\n').length,READ_LINES);assert.equal(value.content.split('\n').at(-1),line(READ_LINES,120));
+    assert.ok(text.length>100000,'nothing was cut: '+text.length);
+    assert.equal(value.provenance.end,READ_LINES);
   }
-  assert.deepEqual(results[1].value.limited,{by:'lines',requestedEnd:300});assert.equal('limited' in results[0].value,false);
+  assert.deepEqual(results[1].value.limited,{by:'lines',requestedEnd:READ_LINES+100});assert.equal('limited' in results[0].value,false);
 });
 
 // A window of 22,000 tokens holds the fixed part of a request and little else.
@@ -80,9 +84,9 @@ test('a long read reaches the main agent whole, up to 200 lines',async t=>{
 test('a read is as long as the next request of the model can hold',async t=>{
   const {service}=await project(t);
   const whole=await service.read({path:'docs/long.md'});
-  assert.equal(whole.end,200);assert.equal('limited' in whole,false);
+  assert.equal(whole.end,READ_LINES);assert.equal('limited' in whole,false);
   const measure=text=>Math.ceil(text.length/4),small=await service.read({path:'docs/long.md',room:1500,measure});
-  assert.ok(small.end<200&&small.end>=40,'lines that fit 1,500 tokens: '+small.end);
+  assert.ok(small.end<READ_LINES&&small.end>=40,'lines that fit 1,500 tokens: '+small.end);
   assert.deepEqual(small.limited,{by:'size'});assert.equal(small.nextStart,small.end+1);
   assert.equal(small.content.split('\n').length,small.end);assert.equal(small.content.split('\n').at(-1),line(small.end,120));
   assert.ok(small.content.split('\n').reduce((sum,text)=>sum+measure(text),0)<=1500);

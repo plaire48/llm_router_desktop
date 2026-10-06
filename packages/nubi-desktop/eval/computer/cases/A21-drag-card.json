@@ -1,0 +1,22 @@
+{
+  "id": "A21-drag-card",
+  "title": "카드를 끌어 옮기기",
+  "app": "task-board",
+  "corpus": "order-service",
+  "approve": "all",
+  "request": "팀 작업 보드에서 '결제 오류 수정' 카드를 완료 칸으로 옮겨 줘.",
+  "expect": {
+    "state": "review",
+    "app": {
+      "events": {
+        "includes": [
+          "payment-done"
+        ],
+        "excludes": [
+          "payment-doing",
+          "login-done"
+        ]
+      }
+    }
+  }
+}

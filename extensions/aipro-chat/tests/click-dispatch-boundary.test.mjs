@@ -72,6 +72,8 @@ function fixture(failure = 'hover', {receipt = false, childFrame = false, covere
         ...(failure === 'long_role' ? {role: 'x'.repeat(81)} : {}), ...(targetReads === 3 ? changed[failure] : {})};
     },
     clickTarget: value => value, pointerPosition: () => covered ? null : {x: 4, y: 4}, pointerCover: () => null, pointerBlocker: () => ({kind: 'same_row', tag: 'button', role: 'button', name: '삭제'}),
+    // A control of the target's own row is never passed through (passBars answers null).
+    passBars: () => null, restoreBars: () => false,
     approvalTarget: () => null, restoreFieldBaseline() {}, settlePointerTravel: async () => {},
     withActionPointer: async (_task, _handle, _kind, fn) => {
       if (failure === 'pointer') throw Error('pointer preparation failed');

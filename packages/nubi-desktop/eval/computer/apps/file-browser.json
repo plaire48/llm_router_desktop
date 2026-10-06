@@ -1,0 +1,315 @@
+{
+  "id": "file-browser",
+  "title": "공유 문서",
+  "window": {
+    "hwnd": 4201,
+    "processId": 5201,
+    "processName": "FileDesk.exe",
+    "title": "공유 문서 - FileDesk",
+    "width": 900,
+    "height": 640
+  },
+  "controls": [
+    {
+      "selector": "lst-files",
+      "name": "파일 목록",
+      "type": "List",
+      "children": [
+        {
+          "selector": "file-plan",
+          "name": "사업 계획.docx",
+          "type": "DataItem"
+        },
+        {
+          "selector": "file-report",
+          "name": "분기 보고서.xlsx",
+          "type": "DataItem"
+        },
+        {
+          "selector": "file-budget",
+          "name": "예산안.xlsx",
+          "type": "DataItem"
+        }
+      ]
+    },
+    {
+      "selector": "pnl-detail",
+      "name": "상세 정보",
+      "type": "Pane",
+      "offscreen": true,
+      "children": [
+        {
+          "selector": "lbl-detail-name",
+          "name": "",
+          "type": "Text",
+          "offscreen": true
+        },
+        {
+          "selector": "lbl-detail-owner",
+          "name": "",
+          "type": "Text",
+          "offscreen": true
+        }
+      ]
+    },
+    {
+      "selector": "mnu-context",
+      "name": "파일 메뉴",
+      "type": "Menu",
+      "value": "",
+      "offscreen": true,
+      "children": [
+        {
+          "selector": "mnu-copy",
+          "name": "복사본 만들기",
+          "type": "MenuItem",
+          "offscreen": true
+        },
+        {
+          "selector": "mnu-rename",
+          "name": "이름 바꾸기",
+          "type": "MenuItem",
+          "offscreen": true
+        },
+        {
+          "selector": "mnu-delete",
+          "name": "삭제",
+          "type": "MenuItem",
+          "offscreen": true
+        }
+      ]
+    },
+    {
+      "selector": "lbl-file-count",
+      "name": "파일 3개",
+      "type": "Text"
+    }
+  ],
+  "rules": [
+    {
+      "on": {
+        "selector": "file-report",
+        "action": "pointer_double_click"
+      },
+      "set": [
+        {
+          "selector": "pnl-detail",
+          "offscreen": false
+        },
+        {
+          "selector": "lbl-detail-name",
+          "offscreen": false,
+          "name": "분기 보고서.xlsx"
+        },
+        {
+          "selector": "lbl-detail-owner",
+          "offscreen": false,
+          "name": "작성자: 박서연, 마지막 수정: 9월 28일"
+        }
+      ],
+      "record": "opened-report"
+    },
+    {
+      "on": {
+        "selector": "file-plan",
+        "action": "pointer_double_click"
+      },
+      "set": [
+        {
+          "selector": "pnl-detail",
+          "offscreen": false
+        },
+        {
+          "selector": "lbl-detail-name",
+          "offscreen": false,
+          "name": "사업 계획.docx"
+        },
+        {
+          "selector": "lbl-detail-owner",
+          "offscreen": false,
+          "name": "작성자: 이도윤, 마지막 수정: 9월 12일"
+        }
+      ],
+      "record": "opened-plan"
+    },
+    {
+      "on": {
+        "selector": "file-budget",
+        "action": "pointer_double_click"
+      },
+      "set": [
+        {
+          "selector": "pnl-detail",
+          "offscreen": false
+        },
+        {
+          "selector": "lbl-detail-name",
+          "offscreen": false,
+          "name": "예산안.xlsx"
+        },
+        {
+          "selector": "lbl-detail-owner",
+          "offscreen": false,
+          "name": "작성자: 최유진, 마지막 수정: 9월 3일"
+        }
+      ],
+      "record": "opened-budget"
+    },
+    {
+      "on": {
+        "selector": "file-plan",
+        "action": "pointer_right_click"
+      },
+      "set": [
+        {
+          "selector": "mnu-context",
+          "offscreen": false,
+          "value": "file-plan"
+        },
+        {
+          "selector": "mnu-copy",
+          "offscreen": false
+        },
+        {
+          "selector": "mnu-rename",
+          "offscreen": false
+        },
+        {
+          "selector": "mnu-delete",
+          "offscreen": false
+        }
+      ],
+      "record": "menu-plan"
+    },
+    {
+      "on": {
+        "selector": "file-report",
+        "action": "pointer_right_click"
+      },
+      "set": [
+        {
+          "selector": "mnu-context",
+          "offscreen": false,
+          "value": "file-report"
+        },
+        {
+          "selector": "mnu-copy",
+          "offscreen": false
+        },
+        {
+          "selector": "mnu-rename",
+          "offscreen": false
+        },
+        {
+          "selector": "mnu-delete",
+          "offscreen": false
+        }
+      ],
+      "record": "menu-report"
+    },
+    {
+      "on": {
+        "selector": "file-budget",
+        "action": "pointer_right_click"
+      },
+      "set": [
+        {
+          "selector": "mnu-context",
+          "offscreen": false,
+          "value": "file-budget"
+        },
+        {
+          "selector": "mnu-copy",
+          "offscreen": false
+        },
+        {
+          "selector": "mnu-rename",
+          "offscreen": false
+        },
+        {
+          "selector": "mnu-delete",
+          "offscreen": false
+        }
+      ],
+      "record": "menu-budget"
+    },
+    {
+      "on": {
+        "selector": "mnu-copy",
+        "action": "invoke"
+      },
+      "when": {
+        "mnu-context": "^file-report$"
+      },
+      "set": [
+        {
+          "selector": "lbl-file-count",
+          "name": "파일 4개: 분기 보고서 - 복사본.xlsx 추가"
+        },
+        {
+          "selector": "mnu-context",
+          "offscreen": true
+        },
+        {
+          "selector": "mnu-copy",
+          "offscreen": true
+        },
+        {
+          "selector": "mnu-rename",
+          "offscreen": true
+        },
+        {
+          "selector": "mnu-delete",
+          "offscreen": true
+        }
+      ],
+      "record": "copied-report"
+    },
+    {
+      "on": {
+        "selector": "mnu-copy",
+        "action": "invoke"
+      },
+      "set": [
+        {
+          "selector": "lbl-file-count",
+          "name": "파일 4개"
+        },
+        {
+          "selector": "mnu-context",
+          "offscreen": true
+        },
+        {
+          "selector": "mnu-copy",
+          "offscreen": true
+        },
+        {
+          "selector": "mnu-rename",
+          "offscreen": true
+        },
+        {
+          "selector": "mnu-delete",
+          "offscreen": true
+        }
+      ],
+      "record": "copied-other"
+    },
+    {
+      "on": {
+        "selector": "mnu-delete",
+        "action": "invoke"
+      },
+      "set": [
+        {
+          "selector": "lbl-file-count",
+          "name": "파일 2개"
+        },
+        {
+          "selector": "mnu-context",
+          "offscreen": true
+        }
+      ],
+      "record": "deleted"
+    }
+  ]
+}

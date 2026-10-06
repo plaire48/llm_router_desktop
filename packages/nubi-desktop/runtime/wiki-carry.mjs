@@ -8,7 +8,9 @@
 // before a run offers it and again when an action or a plan uses it.
 import {validateWikiEvidence} from './wiki-evidence.mjs';
 
-const KEPT=12,EXCERPT=200,key=taskId=>'wiki-carry:'+taskId;
+// The excerpt is kept as received up to 4,000 characters (200 before the user decision of 2026-09-30 on large windows).
+// A small window shows only ID and place (B15).
+const KEPT=12,EXCERPT=4000,key=taskId=>'wiki-carry:'+taskId;
 
 // A citation of a whole page starts with its front matter, which says nothing about the rule (case A14).
 const excerptOf=text=>String(text||'').replace(/^---\r?\n[\s\S]*?\r?\n---[^\n]*\n?/,'').replace(/\s+/g,' ').trim().slice(0,EXCERPT);

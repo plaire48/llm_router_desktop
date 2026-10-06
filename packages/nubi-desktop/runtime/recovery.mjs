@@ -5,7 +5,7 @@ import {safeError} from '../../nubi-office/worker/connection-errors.mjs';
 import {hash,fail} from './files.mjs';
 import {shellProfiles} from './processes.mjs';
 
-export const READ_TOOLS=new Set(['ask_openwiki','inspect_environment','inspect_workspace_changes','read_process_output','read_document_analysis','analyze_documents','list_skill_resources','discover_capabilities','use_skill','read_skill','read_conversation','search_voc','read_voc','computer_checkpoint','read_computer_result','list_computer_apps','inspect_path','code_outline','source_search','read_source','wiki_query','knowledge_query','recovery_snapshot']);
+export const READ_TOOLS=new Set(['personal_mail_query','read_personal_mail','ask_openwiki','inspect_environment','inspect_workspace_changes','read_process_output','read_document_analysis','analyze_documents','list_skill_resources','discover_capabilities','use_skill','read_skill','read_conversation','computer_checkpoint','read_computer_result','list_computer_apps','inspect_path','code_outline','source_search','read_source','wiki_query','knowledge_query','recovery_snapshot']);
 const recoverableProcesses=new Set(['failed','timed_out','interrupted']);
 const now=()=>new Date().toISOString();
 export const recoveryCode=error=>safeError(error);
@@ -16,11 +16,15 @@ export function modelTransport(service,{signal,onRetry,metrics}){
   const cooldown=createModelCooldown();
   // Telemetry reads the model name defensively: it must not add a failure path.
   const modelName=()=>{try{return service.providers.status().model;}catch{return null;}};
-  return (messages,tools,childSignal=signal,purpose='actor')=>recoverModel(async ({signal:attemptSignal,activity,attempt})=>{
-    const measured=metrics?.beginModel({purpose,attempt,messages,tools,model:modelName()});
-    try{const result=await service.providers.complete(messages,tools,attemptSignal,activity,activity);measured?.end(result);return result;}
-    catch(error){const code=safeError(error);measured?.fail(code);throw Object.assign(new Error(({network_error:'network',network_timeout:'model_timeout'})[code]||code),{status:error.status,retryAfterMs:error.retryAfterMs});}
-  },{signal:childSignal,cooldown,retries:2,...service.recoveryOptions?.model,onRetry});
+  // retries may lower the retries of one call (a large request), never raise them.
+  return (messages,tools,childSignal=signal,purpose='actor',{retries,visionModel}={})=>{
+    const options={retries:2,...service.recoveryOptions?.model};
+    return recoverModel(async ({signal:attemptSignal,activity,attempt})=>{
+      const measured=metrics?.beginModel({purpose,attempt,messages,tools,model:visionModel||modelName()});
+      try{const result=await service.providers.complete(messages,tools,attemptSignal,activity,activity,undefined,visionModel?{visionModel}:{});measured?.end(result);return result;}
+      catch(error){const code=safeError(error);measured?.fail(code);throw Object.assign(new Error(({network_error:'network',network_timeout:'model_timeout'})[code]||code),{status:error.status,retryAfterMs:error.retryAfterMs,...(error.apiDiagnostic?{apiDiagnostic:error.apiDiagnostic}:{})});}
+    },{signal:childSignal,cooldown,...options,...(Number.isSafeInteger(retries)?{retries:Math.min(retries,options.retries)}:{}),onRetry});
+  };
 }
 
 export async function boundedRead(operation,{signal,timeoutMs=30000}){
@@ -81,6 +85,7 @@ export function installRecovery(ProjectService){
       catch{record.recoveryState='attention';this.store.set('process:'+id,record);}
       return;
     }
+
   };
   ProjectService.prototype.diagnoseProcess=async function({id}){
     const record=this.processes.poll(id);if(!recoverableProcesses.has(record.state))fail('recovery_changed');

@@ -26,8 +26,8 @@ async function send(text) {
   if (pending) await questionCard().getByText(pending.text,{exact:true}).waitFor();
 }
 const questions = {
-  choice: {question:'어떤 형식으로 정리할까요?', choices:[{label:'간단한 요약',description:'핵심 내용을 짧게 정리해요.'},{label:'상세 보고서',description:'근거와 실행 방안을 함께 담아요.'}]},
-  short: {question:'누구에게 보낼 내용인가요?',input_placeholder:'받는 팀 이름만 적어주세요.'},
+  choice: {question:'어떤 형식으로 정리할까요?', choices:[{label:'간단한 요약',description:'핵심 내용을 짧게 정리해요.'},{label:'기타 (직접 입력)'},{label:'상세 보고서',description:'근거와 실행 방안을 함께 담아요.'}]},
+  short: {question:'누구에게 보낼 내용인가요?',input_placeholder:'예: 받는 팀 이름'},
   narrative: {question:'초안에 담을 내용과 원하는 분위기를 알려주세요.',input_mode:'long_text'},
 };
 try {
@@ -61,8 +61,10 @@ try {
   await send('이 자료를 정리해줘');
   let question=(await last()).question;
   assert.equal(question.kind,'choice');assert.equal(requests.length,1);assert(await answer().isVisible());
-  assert(await questionCard().getByText('선택하면 답변을 보냅니다.',{exact:true}).isVisible());
-  assert.equal(await answer().getAttribute('placeholder'),'선택지에 없다면 직접 적어주세요.');
+  assert.equal(await questionCard().getByText('선택하면 답변을 보냅니다.',{exact:true}).count(),0);
+  assert.equal(await answer().getAttribute('placeholder'),'예: 다른 답변이나 추가 조건');
+  assert.equal(await questionCard().getByRole('button',{name:/기타/}).count(),0);
+  assert.equal(await questionCard().locator('.question-option').count(),2);
   assert.equal(await questionCard().getByRole('button',{name:'직접 답변 입력',exact:true}).count(),0);
   assert(await questionCard().getByRole('button',{name:'답변 보내기',exact:true}).isDisabled());
   for(const width of [320,360,1100]) {
@@ -70,22 +72,28 @@ try {
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     const fonts=await questionCard().locator('.interaction-heading p,.question-option-copy strong,.question-option-copy>span,.interaction-input label').evaluateAll(els=>els.map(el=>({font:getComputedStyle(el).fontFamily,size:getComputedStyle(el).fontSize})));
     assert(fonts.every(font=>font.font.includes('Noto Sans KR')&&font.size==='14px'));
+    const spacing=await questionCard().evaluate(card=>{
+      const field=card.querySelector('textarea'),form=card.querySelector('form'),button=card.querySelector('.question-send');
+      const options=card.querySelector('.question-options'),r=el=>el.getBoundingClientRect();
+      return {inputAfterChoices:r(form).top-r(options).bottom,buttonGap:r(button).top-r(field).bottom,
+        inset:parseFloat(getComputedStyle(form).paddingLeft),bottomInset:r(form).bottom-r(button).bottom};
+    });
+    assert(spacing.inputAfterChoices>=16&&spacing.buttonGap>=12&&spacing.inset>=16&&spacing.bottomInset>=16,JSON.stringify(spacing));
     await page.screenshot({path:`verification/question-choice-${width}.png`});
   }
   await composer().fill('보관할 채팅 초안'); await poll(async()=>(await state()).chat.draft,'보관할 채팅 초안');
   mode='answer'; await questionCard().getByRole('button',{name:/상세 보고서/}).focus(); await page.keyboard.press('Enter');
   await poll(async()=>!((await last()).question),true);await poll(async()=>(await last()).state,'done');
-  assert.equal((await state()).chat.messages.find(m=>m.question?.id===question.id).question.answer.optionId,'option-2');
+  assert.equal((await state()).chat.messages.find(m=>m.question?.id===question.id).question.answer.optionId,'option-3');
   assert.equal((await state()).chat.draft,'보관할 채팅 초안');
   assert(requests.at(-1).messages.some(m=>m.role==='user'&&m.content.startsWith('상세 보고서\n<answered_question>')));
   check('text choices pause the actual agent loop, fit 320/360/1100px and resume by keyboard without consuming the composer draft');
 
   mode='short';await send('다음 초안을 준비해줘');question=(await last()).question;
   assert.equal(await answer().evaluate(el=>el.tagName),'TEXTAREA');
-  assert.equal(await answer().getAttribute('placeholder'),null);
-  assert(await questionCard().getByText('받는 팀 이름만 적어주세요.',{exact:true}).isVisible());
+  assert.equal(await answer().getAttribute('placeholder'),'예: 받는 팀 이름');
   await answer().fill('개발팀'); await poll(async()=>(await last()).question?.draft,'개발팀');
-  assert(await answer().evaluate(el=>el.getAttribute('aria-describedby').split(' ').some(id=>document.getElementById(id)?.textContent==='받는 팀 이름만 적어주세요.')));
+  assert(await answer().evaluate(el=>el.labels?.[0]?.textContent==='직접 답변'));
   assert.equal(await questionCard().getByText('Enter로 전송',{exact:true}).count(),0);
   await answer().dispatchEvent('keydown',{key:'Enter',code:'Enter',isComposing:true});
   assert.equal((await last()).question.id,question.id);assert.equal((await last()).question.answer,undefined);

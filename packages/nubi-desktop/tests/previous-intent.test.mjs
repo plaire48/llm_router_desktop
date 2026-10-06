@@ -44,3 +44,23 @@ test('a new run shows the agent the constraints of the previous intent, all thro
     assert.match(item.previous.instruction,/Keep its constraints/);
   }
 });
+
+// A large window shows every constraint whole (six of 200 characters before the user decision of 2026-09-30 on
+// large windows). The plan schema allows eight of 400 characters.
+test('a large window shows all the constraints of the previous intent whole',async t=>{
+  const {service}=await fixture(t);let run=1,step=0;const seen=[];
+  const constraints=Array.from({length:8},(_,index)=>`제약 ${index+1}. `+'규정에 맞게 처리한다. '.repeat(40).slice(0,380));
+  service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:272000}]}),dispose(){},async complete(messages){
+    if(run===2)seen.push(receiptsOf(messages)?.previousIntent??null);
+    step++;
+    if(step===1)return call('update_plan',{intent:intent('신청서를 마무리한다',constraints),steps});
+    if(run===1)return {content:'임시 저장까지 했습니다.',calls:[]};
+    return {content:'확인했습니다.',calls:[]};
+  }};
+  const task=await service.createTask({request:'신청서를 규정대로 마무리해 줘'});
+  await service.startAgent({taskId:task.id});await service.agent.promise;
+  run=2;
+  await service.startAgent({taskId:task.id,answer:'이어서 해 줘'});await service.agent.promise;
+  assert.ok(seen.length>=1);
+  assert.deepEqual(seen[0].constraints,constraints,'all eight, each whole');
+});

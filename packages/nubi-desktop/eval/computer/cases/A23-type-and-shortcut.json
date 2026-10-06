@@ -1,0 +1,23 @@
+{
+  "id": "A23-type-and-shortcut",
+  "title": "이어 쓰고 단축키로 저장",
+  "app": "note-editor",
+  "corpus": "order-service",
+  "approve": "all",
+  "request": "회의 메모 끝에 ' 회의는 목요일 10시.'를 이어서 쓰고 Ctrl+S로 저장해 줘.",
+  "expect": {
+    "state": "review",
+    "app": {
+      "values": {
+        "doc-note": [
+          "안건 정리. 회의는 목요일 10시."
+        ]
+      },
+      "events": {
+        "includes": [
+          "saved"
+        ]
+      }
+    }
+  }
+}

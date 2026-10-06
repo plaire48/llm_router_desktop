@@ -14,7 +14,7 @@ const server = createServer((_, response) => {
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const origin = `http://127.0.0.1:${server.address().port}`;
-let context, ui, worker, source, failure, round = 0, calls = 0, finalReviews = 0, stepReviews = 0, stageTurns = 0, releaseReview, reviewReleased = false;
+let context, ui, worker, source, contentSource, failure, round = 0, calls = 0, finalReviews = 0, stepReviews = 0, stageTurns = 0, releaseReview, reviewReleased = false;
 const reviewGate = new Promise(resolve => {releaseReview = () => {reviewReleased = true; resolve();};});
 const errors = [], checks = [], packets = [], roleStarts = new Set();
 const usage = {prompt_tokens: 100, completion_tokens: 20, total_tokens: 120};
@@ -48,6 +48,15 @@ try {
       const receipts=review.evidence.filter(item=>item.tool==='analysis_receipt');
       assert.equal(receipts.length,2);
       assert(receipts.every(item=>item.usable && !item.superseded && item.result.delivered && item.result.dataKind==='analysis_execution' && !item.result.findings));
+      for (const receipt of receipts) {
+        const reads = receipt.result.source_reads;
+        assert.equal(reads.omitted_sources, 0);
+        const snapshot = reads.sources.find(item => item.evidence_id === 'ev_1').page_content;
+        assert.equal(snapshot.content_hash, contentSource.content_hash);
+        assert.equal(snapshot.url, contentSource.url);
+        assert.deepEqual(snapshot.returned_ranges, contentSource.ranges.map(({start, end}) => ({start, end})));
+        assert(!JSON.stringify(reads).includes('개발팀'), 'Source facts remain separate from the host read receipt');
+      }
       assert(!review.evidence.some(item => ['delegate_analysis', 'collect_analysis'].includes(item.tool)));
       const proof = review.evidence.findLast(item => item.tool === 'verify_page' && item.usable && item.result.verified); assert(proof);
       const work = context.pages().find(page => page !== source && page.url() === `${origin}/draft`); assert(work);
@@ -80,11 +89,11 @@ try {
     const delivered = body.messages.filter(message => message.role === 'user' && String(message.content).startsWith('Delegated analysis returned.'))
       .map(message => JSON.parse(message.content.split('\n').slice(1).join('\n')));
     round++;
-    if (round === 1) return route.fulfill({json: reply('read_page')});
-    if (round === 2) return route.fulfill({json: reply('delegate_analysis', {tasks: [
+    if (round === 1) return route.fulfill({json: reply('read_page', {mode: 'content'})});
+    if (round === 2) { contentSource = result; return route.fulfill({json: reply('delegate_analysis', {tasks: [
       {role: 'page', effort: 'quick', task: '승인 담당팀 확인', constraints: '화면 읽기만', done_when: '담당 팀 명칭의 근거 확보', evidence_ids: ['ev_1']},
       {role: 'review', effort: 'quick', task: '안내의 마감일 확인', constraints: '날짜만 조사', done_when: '관찰된 마감일의 근거 확보', evidence_ids: ['ev_1']},
-    ]})});
+    ]})}); }
     if (round === 3) {
       await until(async () => (await state()).chat.messages.at(-1).trace?.some(item => item.tool === 'analysis_page' && item.status === 'done'));
       return route.fulfill({json: reply('browser_snapshot')});
@@ -129,7 +138,9 @@ try {
   await ui.getByRole('textbox', {name: '메시지', exact: true}).fill('안내의 담당 팀과 마감일을 각각 확인하고 담당 팀을 초안에 입력해줘. 등록하지 마.');
   await ui.getByRole('button', {name: '전송', exact: true}).click();
   await until(async () => ['done', 'error'].includes((await state()).chat.messages.at(-1)?.state) && !(await state()).busy);
-  const final = await state(); assert.equal(final.chat.messages.at(-1).state, 'done'); assert.equal(finalReviews, 1); assert.equal(stepReviews, fixturePlan.length); assert.equal(stageTurns, stepReviews - 1);
+  const final = await state(); assert.equal(final.chat.messages.at(-1).state, 'done'); assert.equal(finalReviews, 1);
+  // The last stage made no change of its own: the final review judges it, so every stage review is followed by a later stage.
+  assert.equal(stepReviews, fixturePlan.length - 1); assert.equal(stageTurns, stepReviews);
   assert.equal(final.chat.task.goalReview.status, 'complete');
   assert.equal(final.usage.total.aipro.calls, calls); assert.equal(final.usage.total.aipro.total, calls * 120);
   assert.equal(await source.evaluate(() => writes), 0); assert.equal(await source.evaluate(() => submits), 0);

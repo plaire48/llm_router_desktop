@@ -1,0 +1,61 @@
+// Real Chromium and DOM, synthetic account/model only. Exercises host binding,
+// single-use capability, stale wiki fencing and native readback independently.
+import assert from 'node:assert/strict';
+import {chromium} from 'playwright';
+import {createServer} from 'node:http';
+import {mkdtemp,cp,readFile,writeFile,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {resolve} from 'node:path';
+import {recordStep,replayRecord} from '../browser-replay.js';
+import {createFormProcedure} from '../site-procedures.js';
+import {documentObservedPage,observationHash,learnPage} from '../browser-knowledge.js';
+const server=createServer((_req,res)=>{res.setHeader('Content-Type','text/html; charset=utf-8');res.end('<!doctype html><title>초안</title><h1>초안</h1><form onsubmit="return false"><label>제목<input id="title"></label><label>내용<textarea id="body"></textarea></label><button>등록</button></form><script>window.submits=0;document.querySelector("button").onclick=()=>window.submits++;</script>');});
+await new Promise(done=>server.listen(0,'127.0.0.1',done));
+const origin=`http://127.0.0.1:${server.address().port}`, url=origin+'/draft';
+const profile=await mkdtemp(resolve(tmpdir(),'nubi-site-procedure-')),extension=resolve(profile,'extension');
+let context;let checks=0;const pass=label=>{checks++;console.log('PASS '+label);};
+try {
+  await cp('dist',extension,{recursive:true});
+  const manifest=JSON.parse(await readFile(resolve(extension,'manifest.json'),'utf8'));manifest.host_permissions.push('http://*/*','https://*/*');await writeFile(resolve(extension,'manifest.json'),JSON.stringify(manifest));
+  context=await chromium.launchPersistentContext(profile,{channel:'chromium',headless:true,args:[`--disable-extensions-except=${extension}`,`--load-extension=${extension}`]});
+  await context.route('https://aipro.sdsdev.co.kr/**',route=>route.fulfill({json:{modelList:[{name:'GLM-5.2-NVFP4',context_length:524288}]}}));
+  const worker=context.serviceWorkers()[0] || await context.waitForEvent('serviceworker',{timeout:20000}),page=await context.newPage();await page.goto(url);
+  const token=`header.${Buffer.from(JSON.stringify({exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')}.signature`;
+  await worker.evaluate(token=>chrome.storage.session.set({credential:{provider:'aipro',mode:'browser',token,receivedAt:1}}),token);
+  await worker.evaluate(()=>chrome.storage.local.set({browserWorkMode:'current'}));
+  const ui=await context.newPage();await ui.goto(`chrome-extension://${new URL(worker.url()).hostname}/index.html`);
+  const rpc=async message=>{const result=await ui.evaluate(message=>chrome.runtime.sendMessage(message),message);assert(result.ok,JSON.stringify(result));return result.data;};
+  for(let i=0;i<40;i++){if((await rpc({type:'GET_STATE'})).catalog?.models?.length)break;await ui.waitForTimeout(100);}
+  const tabId=await worker.evaluate(async url=>(await chrome.tabs.query({})).find(tab=>tab.url===url).id,url),uiId=await ui.evaluate(async()=>(await chrome.tabs.getCurrent()).id);
+  await worker.evaluate(({tabId,uiId})=>chrome.storage.session.set({chatSourceTabs:{[uiId]:tabId}}),{tabId,uiId});
+  let request=await rpc({type:'START_CHAT',text:'제목은 첫 제목, 내용은 첫 본문으로 입력해 주세요. 등록하지 마세요.'});
+  const tool=async(name,args={},extra={})=>rpc({type:'RUN_TOOL',requestId:request.requestId,name,args,...extra});
+  const before=await tool('browser_snapshot');
+  const elements=before.frames.flatMap(frame=>frame.elements || []),ref=name=>elements.find(element=>element.name===name).ref;
+  const args={fields:[{field_id:ref('제목'),value:'첫 제목'},{field_id:ref('내용'),value:'첫 본문'}]};
+  const actual=await tool('fill_form',args);assert.equal(actual.verified,true);
+  const recorded=recordStep('fill_form',args,before,actual),replay=replayRecord({steps:[recorded.step],startPage:url},{id:'fixture-source',goalReviewed:true});
+  const document=documentObservedPage(before), entry={url,origin,provider:'aipro',title:'초안',sourceHash:await observationHash(document),document,verifiedAt:Date.now(),reviewedAt:Date.now(),markdown:'# 초안\n제목과 내용 입력. 등록하지 않습니다.'};
+  const knowledge=learnPage({enabled:true,revision:0,entries:[]},entry,0),card=createFormProcedure(replay,knowledge.entries[0],{id:'fixture-card'});assert(card,JSON.stringify(replay));
+  await rpc({type:'FINISH_CHAT',requestId:request.requestId,content:'fixture',status:200});
+  await page.reload();await worker.evaluate(({knowledge,card})=>chrome.storage.local.set({browserKnowledge:knowledge,browserSiteProcedures:[card]}),{knowledge,card});
+  await rpc({type:'NEW_CHAT'});request=await rpc({type:'START_CHAT',text:'제목은 새 제목, 내용은 두 줄 본문으로 입력해 주세요. 등록하지 마세요.'});
+  assert.equal(request.siteKnowledge.procedures[0].id,card.id);pass('first planning request includes a wiki-linked form candidate before any model call');
+  const values=card.fields.map(field=>({slot:field.slot,value:field.target.name==='제목'?'새 제목':'첫 줄\n둘째 줄'}));
+  let prepared=await tool('fill_site_procedure',{procedure_id:card.id,values});assert.equal(prepared.prepared,true);assert(prepared.procedureToken);
+  const result=await tool('fill_form',{fields:prepared.fields},{procedureToken:prepared.procedureToken});assert.equal(result.verified,true);
+  assert.deepEqual(await page.evaluate(()=>({title:document.querySelector('#title').value,body:document.querySelector('#body').value,submits:window.submits})),{title:'새 제목',body:'첫 줄\n둘째 줄',submits:0});pass('fresh inputs pass native readback with no registration');
+  assert.equal((await tool('fill_form',{fields:prepared.fields},{procedureToken:prepared.procedureToken})).actionIssued,false);pass('consumed capability cannot dispatch twice');
+  prepared=await tool('fill_site_procedure',{procedure_id:card.id,values});
+  await worker.evaluate(()=>chrome.storage.local.get('browserKnowledge').then(({browserKnowledge})=>chrome.storage.local.set({browserKnowledge:{...browserKnowledge,entries:browserKnowledge.entries.map(entry=>({...entry,documentVersion:entry.documentVersion+1}))}})));
+  assert.equal((await tool('fill_form',{fields:prepared.fields},{procedureToken:prepared.procedureToken})).error,'procedure_changed');pass('wiki change between preparation and input revokes capability');
+  await worker.evaluate(knowledge=>chrome.storage.local.set({browserKnowledge:knowledge}),knowledge);
+  prepared=await tool('fill_site_procedure',{procedure_id:card.id,values});
+  await page.evaluate(()=>{const label=document.createElement('label');label.textContent='필수 코드';const input=document.createElement('input');input.required=true;label.append(input);document.querySelector('form').append(label);});
+  assert.equal((await tool('fill_form',{fields:prepared.fields},{procedureToken:prepared.procedureToken})).error,'procedure_structure');
+  assert.equal((await tool('fill_site_procedure',{procedure_id:card.id,values})).error,'procedure_structure');assert.equal(await page.locator('#title').inputValue(),'새 제목');pass('new required input rejects the whole transaction before writing');
+  const local=await worker.evaluate(()=>chrome.storage.local.get('browserSiteProcedures'));assert(!JSON.stringify(local).includes('첫 제목'));assert(!JSON.stringify(local).includes('첫 본문'));assert(!JSON.stringify(local).includes('새 제목'));pass('stored card contains no input values or old approval');
+  await rpc({type:'FINISH_CHAT',requestId:request.requestId,content:'fixture',status:200});
+  await rpc({type:'UPDATE_BROWSER_KNOWLEDGE',clear:true});assert.deepEqual((await worker.evaluate(()=>chrome.storage.local.get('browserSiteProcedures'))).browserSiteProcedures,[]);pass('wiki deletion also removes linked procedures');
+  console.log(JSON.stringify({checks,realChrome:true,actualModel:false}));
+} finally {await context?.close();await new Promise(done=>server.close(done));await rm(profile,{recursive:true,force:true});}

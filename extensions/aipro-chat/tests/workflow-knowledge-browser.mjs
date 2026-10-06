@@ -128,7 +128,8 @@ try {
   await ui.getByRole('textbox', {name: '메시지', exact: true}).fill('2026-09-24 로그인 오류 분석 MH 480분 초안을 작성해줘. 등록하지 마.');
   await ui.getByRole('button', {name: '전송', exact: true}).click();
   await until(async () => ['done', 'error'].includes((await state()).chat.messages.at(-1)?.state) && !(await state()).busy);
-  assert.equal((await state()).chat.messages.at(-1).state, 'done'); assert.equal(reviews, 2);
+  // One final review judges the draft stage too (it was checked before the answer).
+  assert.equal((await state()).chat.messages.at(-1).state, 'done'); assert.equal(reviews, 1);
   assert((await state()).chat.task.plan.every(step=>step.status==='completed'));
   const work = context.pages().find(p => p !== source && p.url() === url); assert(work);
   assert.equal(await work.getByRole('spinbutton', {name: '투입 시간'}).inputValue(), '8');

@@ -24,3 +24,34 @@ test('repeat uses a separate trial only for an entirely recorded read-only suite
   v.attachment.trials=[{id:'E-08',status:'timeout',stopConfirmed:true}];
   assert(validEvaluationAttachment(v));
 });
+test('closed-screen recovery starts only the exact unrecorded remainder, including fresh local fixtures',()=>{
+  const v={...input(),freshAfterInterruption:false,unrunRemainder:true,model:'gpt-5.6-sol',fixtureApprovals:true,
+    publicReadPages:[],plannedTaskIds:['H-08','H-09'],selectedTasks:[{id:'H-08',environment:'local-fixture',readOnly:false},{id:'H-09',environment:'local-fixture',readOnly:false}]};
+  v.attachment={...v.attachment,status:'setup_error',model:v.model,publicReadCapture:{allowedPages:[]},
+    operatorSetup:{fixtureTransferApprovals:true},plannedTaskIds:['H-07','H-08','H-09'],trials:[{id:'H-07',status:'runner_error'}]};
+  assert(validEvaluationAttachment(v));
+  for(const patch of [{model:'gpt-5.6-luna'},{candidateSha256:'different'},{plannedTaskIds:['H-07','H-08','H-09']},
+    {plannedTaskIds:['H-09']},{freshAfterInterruption:true},{repeatRecorded:true},{reuseProfile:false},
+    {attachment:{...v.attachment,status:'trials_recorded'}},{attachment:{...v.attachment,operatorSetup:{}}},
+    {selectedTasks:[{id:'H-09'},{id:'H-08'}]}]) assert(!validEvaluationAttachment({...v,...patch}));
+});
+test('Sol/Luna comparison uses the same candidate and an entirely new 30-task run after a recorded evaluation',()=>{
+ const ids=['E','M','H'].flatMap(level=>Array.from({length:10},(_,index)=>`${level}-${String(index+1).padStart(2,'0')}`));
+ const v={...input(),freshAfterInterruption:false,modelComparison:true,model:'gpt-5.6-luna',plannedTaskIds:ids,
+   selectedTasks:ids.map(id=>({id})),publicReadPages:[],fixtureApprovals:true};
+ v.attachment={...v.attachment,status:'trials_recorded',model:'gpt-5.6-sol',publicReadCapture:{allowedPages:[]},
+   operatorSetup:{fixtureTransferApprovals:true},trials:[{id:'H-03',status:'answered'}]};
+ assert(validEvaluationAttachment(v));
+ for(const patch of [{model:'gpt-5.6-sol'},{model:'other-model'},{candidateSha256:'other'},
+   {unrunRemainder:true},{plannedTaskIds:ids.slice(1)},{selectedTasks:[{id:'E-01'}]},
+   {attachment:{...v.attachment,status:'interrupted'}},{attachment:{...v.attachment,trials:[{id:'H-03',status:'running'}]}},
+   {attachment:{...v.attachment,trials:[{id:'H-03',status:'timeout',stopConfirmed:false}]}}]) assert(!validEvaluationAttachment({...v,...patch}));
+});
+test('public setup retry requires zero model requests and no prior submission',()=>{
+ const v={...input(),freshAfterInterruption:false,retryUnsent:true,model:'gpt-5.6-sol'};
+ v.attachment={...v.attachment,model:v.model,plannedTaskIds:['E-08'],trials:[{id:'E-08',status:'runner_error',modelRequests:0}]};
+ assert(validEvaluationAttachment(v));
+ for(const trial of [{...v.attachment.trials[0],modelRequests:1},{...v.attachment.trials[0],submission:{}},{...v.attachment.trials[0],status:'answered'}])
+   assert(!validEvaluationAttachment({...v,attachment:{...v.attachment,trials:[trial]}}));
+ assert(!validEvaluationAttachment({...v,selectedTasks:[{...task,readOnly:false}]}));
+});

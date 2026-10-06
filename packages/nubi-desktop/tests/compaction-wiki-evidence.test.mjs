@@ -1,3 +1,5 @@
+// Window of 26,000 tokens since 2026-10-05 (22,000 before): the fixed part of a request grew with the guidance and
+// core tools of 2026-10-04 (5,670 → 6,942 tokens in the lean window), and the behaviors below are the same ones.
 // Found by the measurement of 2026-09-29 with gpt-5.6-sol (case L1, S16, a
 // window of 22,000 tokens). The change plan cited Wiki evidence from a
 // wiki_query of this run. The query results filled the window, the run
@@ -31,7 +33,7 @@ async function run(t){
   await writeFile(path.join(root,'openwiki','.claims','home.json'),JSON.stringify({schemaVersion:1,pageVersion:hash(content),claims:[{id:'claim-1',statement:'The welcome screen uses app.txt.',evidence:[{resource,version:evidence.evidence.version}]}]}));
   await git(root,['add','-A']);await git(root,['commit','-qm','big document and claims']);
   let step=0,next=1,summaries=0,atQuery=null,atPlan=null,visible=null,evidenceId=null;const results=[];
-  service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:22000}]}),dispose(){},async complete(messages){
+  service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:26000}]}),dispose(){},async complete(messages){
     if(messages[0].content.startsWith('Summarize conversation')){summaries++;return {content:JSON.stringify(summary),calls:[]};}
     const last=messages.findLast(message=>message.role==='tool'),result=last?JSON.parse(last.content):null;
     if(result?.nextStart)next=result.nextStart;

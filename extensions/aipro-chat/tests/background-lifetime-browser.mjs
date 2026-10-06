@@ -2,6 +2,7 @@
 // keep this executor alive. CDP is attached to the disposable UI document only.
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
+import {once} from 'node:events';
 import {createHash,generateKeyPairSync} from 'node:crypto';
 import {mkdir,mkdtemp,cp,readFile,writeFile,appendFile,rm} from 'node:fs/promises';
 import {createServer} from 'node:http';
@@ -91,4 +92,6 @@ try{
 
  await writeFile('verification/background-execution/lifetime'+(long?'-long':'')+'.json',JSON.stringify({checks,actualBrowser:true,actualModel:false,workerDebuggerAttached:false,durationMs:duration},null,2));
 }catch(error){console.error(JSON.stringify(await send('Target.getTargets').catch(()=>null)));if(session){console.error(JSON.stringify(await evalUI('({url:location.href,title:document.title,text:document.body?.innerText?.slice(0,1000)})').catch(()=>null)));console.error(JSON.stringify(await rpc('GET_STATE').catch(()=>null)));}throw error;}
-finally{for(const timer of timers){clearInterval(timer);clearTimeout(timer);}stream?.end();release?.();for(const p of pending.values())clearTimeout(p.timer);ws?.close();child?.kill('SIGTERM');server.closeAllConnections();await new Promise(r=>server.close(r));await new Promise(r=>setTimeout(r,500));await rm(profile,{recursive:true,force:true});}
+finally{for(const timer of timers){clearInterval(timer);clearTimeout(timer);}stream?.end();release?.();for(const p of pending.values())clearTimeout(p.timer);ws?.close();
+ if(child&&child.exitCode===null&&child.signalCode===null){const exited=once(child,'exit');child.kill('SIGTERM');await exited;}
+ server.closeAllConnections();await new Promise(r=>server.close(r));await rm(profile,{recursive:true,force:true,maxRetries:5,retryDelay:100});}

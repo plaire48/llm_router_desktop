@@ -8,15 +8,21 @@ export function searchTerms(value) {
   const words = normalizeSearch(String(value || '').replace(/([a-z\d])([A-Z])/g, '$1 $2')).match(/[\p{L}\p{N}]+/gu) || [];
   return [...new Set(words.map(word => /^[가-힣]{3,}$/.test(word) ? word.replace(/(?:에서는|에서|으로|은|는|을|를|의|에|와|과)$/, '') : word).filter(word => word && !stop.has(word)))];
 }
-export function rankEvidence(documents, query) {
-  const terms = searchTerms(query).slice(0, 24);
-  if (!documents.length || !terms.length) return [];
-  const index = new MiniSearch({fields: ['name', 'context', 'text'], tokenize: searchTerms});
+export function createEvidenceSearch(documents, {fields = ['name', 'context', 'text']} = {}) {
+  const index = new MiniSearch({fields, tokenize: searchTerms});
   index.addAll(documents);
-  return index.search(terms.join(' '), {boost: {name: 4, context: 2}, prefix: term => term.length >= 2, fuzzy: false}).map(hit => {
-    const matched = terms.filter(term => hit.queryTerms.includes(term));
-    return {id: hit.id, score: hit.score, match: {terms: matched, fields: [...new Set(Object.values(hit.match).flat())], coverage: matched.length / terms.length}};
-  }).sort((a, b) => b.match.coverage - a.match.coverage || b.score - a.score);
+  return query => {
+    const terms = searchTerms(query).slice(0, 24);
+    if (!documents.length || !terms.length) return [];
+    return index.search(terms.join(' '), {boost: {name: 4, context: 2}, prefix: term => term.length >= 2, fuzzy: false}).map(hit => {
+      const matched = terms.filter(term => hit.queryTerms.includes(term));
+      return {id: hit.id, score: hit.score, match: {terms: matched, fields: [...new Set(Object.values(hit.match).flat())], coverage: matched.length / terms.length}};
+    }).sort((a, b) => b.match.coverage - a.match.coverage || b.score - a.score);
+  };
+}
+export function rankEvidence(documents, query) {
+  if (!documents.length || !searchTerms(query).length) return [];
+  return createEvidenceSearch(documents)(query);
 }
 
 // Keep the match, not just the beginning of a long paragraph. The original

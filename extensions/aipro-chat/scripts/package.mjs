@@ -4,12 +4,16 @@ import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {build} from 'esbuild';
 import {wikiBrowserBuild} from './wiki-browser-build.mjs';
+import {workerMarkdownBuild} from './worker-markdown-build.mjs';
 import {helpMarkdown} from '../help-content.js';
 import {copyDocumentLicenses} from './document-licenses.mjs';
 import {releaseInfo} from './release-info.mjs';
 import {PAGE_BUILTINS} from './page-builtins.mjs';
 
 const root = process.cwd();
+// Collaboration (v1) and task exchange (nubi-task-v1) share one copy of the official SDK.
+await build({entryPoints:['a2a-connection.js','a2a-tasks.js'],outdir:'dist',bundle:true,splitting:true,chunkNames:'a2a-shared-[hash]',platform:'browser',format:'esm',target:'chrome125',minify:true});
+await cp('../../packages/nubi-a2a/licenses','dist/a2a-licenses',{recursive:true});
 await mkdir('dist/licenses',{recursive:true});
 for (const [name,file] of [['buffer','LICENSE'],['base64-js','LICENSE'],['ieee754','LICENSE']]) await copyFile(`node_modules/${name}/${file}`,`dist/licenses/${name}-LICENSE`);
 const manifest = JSON.parse(await readFile('public/manifest.json', 'utf8'));
@@ -34,6 +38,7 @@ await build({entryPoints:['mcp-client.js'], outfile:'dist/mcp-client.js',bundle:
 await copyFile('plan-mode.js', 'dist/plan-mode.js');
 await copyFile('document-contract.js', 'dist/document-contract.js');
 await copyFile('browser-knowledge.js', 'dist/browser-knowledge.js');
+await copyFile('site-procedures.js', 'dist/site-procedures.js');
 // The parser's named-entity decoder exposes a DOM-free worker export. A
 // service worker has no document; the default browser export cannot run here.
 await build({entryPoints: ['site-wiki-retrieval.js'], outfile: 'dist/site-wiki-retrieval.js', bundle: true, platform: 'browser', conditions: ['worker'], external: ['./evidence-search.js'], format: 'esm', target: 'chrome125', minify: true});
@@ -61,6 +66,7 @@ await copyFile('computer-time.js', 'dist/computer-time.js');
 await copyFile('context-state.js', 'dist/context-state.js');
 await copyFile('analysis-checkpoint.js', 'dist/analysis-checkpoint.js');
 await copyFile('analysis-handoff.js', 'dist/analysis-handoff.js');
+await copyFile('analysis-limits.js', 'dist/analysis-limits.js');
 await copyFile('research-handoff.js', 'dist/research-handoff.js');
 await copyFile('restart-reconciliation.js', 'dist/restart-reconciliation.js');
 await copyFile('uncertain-action.js', 'dist/uncertain-action.js');
@@ -86,6 +92,8 @@ await build({entryPoints: ['canonical-json.js'], outfile: 'dist/canonical-json.j
 await copyFile('browser-click-effect.js', 'dist/browser-click-effect.js');
 await copyFile('browser-debugger-ownership.js', 'dist/browser-debugger-ownership.js');
 await copyFile('browser-agent.js', 'dist/browser-agent.js');
+await copyFile('research-browser.js', 'dist/research-browser.js');
+await copyFile('research-browser-native.js', 'dist/research-browser-native.js');
 await copyFile('browser-region.js', 'dist/browser-region.js');
 await copyFile('verification-text-feedback.js', 'dist/verification-text-feedback.js');
 await copyFile('browser-url.js', 'dist/browser-url.js');
@@ -107,7 +115,7 @@ await copyFile('browser-observation.js', 'dist/browser-observation.js');
 await copyFile('browser-effect.js', 'dist/browser-effect.js');
 await copyFile('browser-replay.js', 'dist/browser-replay.js');
 // page-script.js remembers slow tabs: one shared copy, not a second one inside this bundle.
-await build({entryPoints: ['browser-content.js'], outfile: 'dist/browser-content.js', bundle: true, platform: 'browser', format: 'esm', target: 'chrome125', minify: true, external:['./background-images.js','./browser-url.js','./page-script.js']});
+await build({entryPoints: ['browser-content.js'], outfile: 'dist/browser-content.js', bundle: true, platform: 'browser', format: 'esm', target: 'chrome125', minify: true, ...workerMarkdownBuild, external:['./background-images.js','./browser-url.js','./page-script.js']});
 await cp('generated', 'dist/generated', {recursive: true});
 await copyFile('browser-text.js', 'dist/browser-text.js');
 await copyFile('browser-keyboard.js', 'dist/browser-keyboard.js');

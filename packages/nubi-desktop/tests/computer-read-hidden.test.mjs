@@ -4,7 +4,8 @@
 // tree, and it is off screen. Both refusals said that the selector was not
 // among the observed elements. Reading a value needs neither a place in the
 // tree nor a place on the screen; only input does.
-import {test} from 'node:test';
+import {featureTest} from './beta-feature.mjs';
+const test=featureTest('computerUse');
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {fixture} from './fixtures.mjs';

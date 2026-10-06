@@ -20,6 +20,7 @@ export const LIMITATIONS=Object.freeze([
   'The model is the one named in this report. It is not the enterprise Qwen 3.8 27B baseline and says nothing about its accuracy.',
   'The corpora are a public open-source project and a synthetic project. They do not establish accuracy on company repositories or company wikis.',
   'Windows app control is not measured.',
+  'Commands of the command suite ran with the Bash of this computer. Windows PowerShell and CMD are not measured.',
   'The case set is small. Differences between two reports are observations, not statistically established improvements.',
   'Substring grading can miss a correct answer in unexpected wording. needs_review and invalid outcomes are never counted as passed.',
 ]);
@@ -28,12 +29,14 @@ const add=(target,key,value)=>{target[key]=(target[key]||0)+(value||0);};
 
 function summarize(results){
   const tally=()=>Object.fromEntries([['total',0],...OUTCOMES.map(name=>[name,0])]),bySuite={},bySplit={};
-  const quality={total:results.length,executed:0,passed:0,delivered:0,falseCompletion:0,reviewLimit:0,reviewStalled:0,unnecessaryQuestion:0,missedQuestion:0,retrievalCases:0,retrievalReached:0,citationCases:0,citationFound:0};
+  const quality={total:results.length,executed:0,passed:0,reducedWindow:{executed:0,passed:0},delivered:0,falseCompletion:0,reviewLimit:0,reviewStalled:0,unnecessaryQuestion:0,missedQuestion:0,retrievalCases:0,retrievalReached:0,citationCases:0,citationFound:0};
   const cost={modelCalls:0,retries:0,toolCalls:0,compactions:0,elapsedMs:0,promptTokens:0,completionTokens:0,cachedTokens:0,estimatedTokens:0,measuredEstimatedTokens:0,requestCharacters:0,fixedCharacters:0,peakRequestCharacters:0,byPurpose:{},byTool:{}};
   for(const result of results){
     for(const group of [bySuite[result.suite]??=tally(),bySplit[result.split]??=tally()]){group.total++;group[result.outcome]++;}
     if(result.outcome==='not_run')continue;
-    quality.executed++;if(result.outcome==='passed')quality.passed++;
+    // Historical diagnostics stay separate. Normal runs use the provider catalog window (user, 2026-10-01).
+    if(result.reducedWindow){quality.reducedWindow.executed++;if(result.outcome==='passed')quality.reducedWindow.passed++;}
+    else{quality.executed++;if(result.outcome==='passed')quality.passed++;}
     if(result.state==='review'&&result.answerCharacters>0)quality.delivered++;
     if(result.falseCompletion)quality.falseCompletion++;
     if(result.reviewHandoff==='review_limit')quality.reviewLimit++;
@@ -54,20 +57,21 @@ function summarize(results){
   return {bySuite,bySplit,quality,cost};
 }
 
-export async function evaluate({providers,cases,trials=1,outputDir,limits=EVALUATION_LIMITS,parent,corpusDirectory,candidate,onResult=()=>{}}){
+export async function evaluate({providers,cases,trials=1,outputDir,limits=EVALUATION_LIMITS,parent,corpusDirectory,candidate,leanTools=false,allowModelLimitOverrides=false,onResult=()=>{}}){
   if(!Array.isArray(cases)||!cases.length)throw new Error('cases_required');
+  if(!allowModelLimitOverrides&&cases.some(item=>item.modelLimits))throw new Error('model_limit_override_forbidden');
   if(!Number.isInteger(trials)||trials<1||trials>10)throw new Error('invalid_trials');
   if(typeof outputDir!=='string'||!outputDir)throw new Error('output_directory_required');
   await mkdir(outputDir,{recursive:true});
   const status=providers.status(),corpora={};
   for(const name of new Set(cases.map(item=>item.corpus)))corpora[name]=(await corpusManifest(name,corpusDirectory)).hash;
-  const report={kind:REPORT_KIND,schema:1,runId:randomUUID(),provider:status.provider,model:status.model,candidate:candidate||await candidateIdentity(),corpora,limits:{...EVALUATION_LIMITS,...limits},trials,startedAt:new Date().toISOString(),results:[],limitations:LIMITATIONS};
+  const report={kind:REPORT_KIND,schema:1,runId:randomUUID(),provider:status.provider,model:status.model,candidate:candidate||await candidateIdentity(),corpora,limits:{...EVALUATION_LIMITS,...limits},trials,tools:leanTools?'lean':'auto',startedAt:new Date().toISOString(),results:[],limitations:LIMITATIONS};
   // A missing or lost model session is "not run": it must not look like a model failure.
   let stopped=status.connected===true?null:'model_session_not_connected';
   for(const testCase of cases)for(let trial=1;trial<=trials;trial++){
-    const name=`${testCase.id}-t${trial}`,common={id:testCase.id,title:testCase.title,suite:testCase.suite,split:testCase.split,corpus:testCase.corpus,trial,expectedAsked:testCase.expect.asked??null};
+    const name=`${testCase.id}-t${trial}`,common={id:testCase.id,title:testCase.title,suite:testCase.suite,split:testCase.split,corpus:testCase.corpus,trial,expectedAsked:testCase.expect.asked??null,...(testCase.modelLimits?{reducedWindow:testCase.modelLimits.contextLength}:{})};
     if(stopped){const skipped={...common,outcome:'not_run',passed:false,reason:stopped,checks:[],falseCompletion:false};report.results.push(skipped);onResult(skipped);continue;}
-    const run=await runCase({testCase,providers,limits,parent,corpusDirectory});
+    const run=await runCase({testCase,providers,limits,parent,corpusDirectory,leanTools});
     let graded;
     try{graded=await gradeCase(testCase,run);}catch{graded={outcome:'error',passed:false,checks:[],error:'grading_failed',falseCompletion:false};}
     finally{await run.dispose().catch(()=>{});}
@@ -95,10 +99,11 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
   try{providers=await connectRelayProviders({socketPath:option('socket')||defaultSocketPath()});}
   catch{console.error('모델 세션에 연결하지 못했습니다. 먼저 다른 터미널에서 node eval/model-session.mjs 를 실행하고 로그인해 주세요.');process.exit(2);}
   try{
-    const report=await evaluate({providers,cases,trials:Number(option('trials')||1),outputDir,
+    if(![undefined,'lean','auto'].includes(option('tools'))){console.error('--tools는 lean 또는 auto입니다.');process.exit(2);}
+    const report=await evaluate({providers,cases,trials:Number(option('trials')||1),outputDir,leanTools:option('tools')==='lean',
       onResult:result=>console.log([result.outcome.padEnd(12),result.id.padEnd(30),'모델 호출 '+String(result.modelCalls??0).padStart(3),'위임 '+String(result.delegatedCalls??0).padStart(3),Math.round((result.elapsedMs||0)/1000)+'초',result.error||result.reason||''].join(' '))});
     const {quality,cost}=report.summary;
-    console.log(JSON.stringify({model:report.model,candidate:report.candidate.hash.slice(0,12),passed:`${quality.passed}/${quality.executed}`,falseCompletion:quality.falseCompletion,modelCalls:cost.modelCalls,promptTokens:cost.promptTokens,fixedShare:cost.fixedShare,report:path.join(outputDir,'report.json')},null,2));
-    console.log('공개 자료와 합성 자료로 측정한 결과입니다. 사내 모델이나 회사 저장소의 성능이 아닙니다.');
+    console.log(JSON.stringify({model:report.model,candidate:report.candidate.hash.slice(0,12),passed:`${quality.passed}/${quality.executed}`,reducedWindow:`${quality.reducedWindow.passed}/${quality.reducedWindow.executed}`,falseCompletion:quality.falseCompletion,modelCalls:cost.modelCalls,promptTokens:cost.promptTokens,fixedShare:cost.fixedShare,report:path.join(outputDir,'report.json')},null,2));
+    console.log('공개 자료와 합성 자료로 측정한 결과입니다. 회사 저장소나 회사 문서에서의 성능이 아닙니다.');
   }finally{providers.dispose();}
 }

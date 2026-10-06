@@ -5,6 +5,15 @@ import {questionAnswer, questionContext} from '../user-question.js';
 import {runAgent} from '../agent-runtime.js';
 import {browserTools, BUILTIN_SKILLS} from '../skills.js';
 const node = (label, extra={}) => ({innerText:label,getAttribute:()=>null,closest(){return this;},matches:()=>false,...extra});
+test('generic confirmation inside a dialog or visual overlay still requires a bound approval',()=>{
+  for(const label of ['확인','확인하기','OK','Okay']) {
+    const dialog={closest:()=>({role:'dialog'})};
+    assert.equal(approvalTarget(node(label,{parentElement:dialog})).action,'확인');
+    const overlay={closest:()=>null,ownerDocument:{body:{}},parentElement:null};
+    assert.equal(approvalTarget(node(label,{parentElement:overlay})).action,'확인');
+  }
+  for(const label of ['닫기','검색','임시 저장','Save draft']) assert.equal(approvalTarget(node(label,{parentElement:{closest:()=>({})}})),null);
+});
 test('final controls require approval while draft saves and ordinary editor actions do not',()=>{
   for(const [label,action] of [['등록','등록'],['배포','배포'],['게시하기','게시'],['Send','발송'],['저장','저장'],['삭제','삭제']]) assert.equal(approvalTarget(node(label)).action,action);
   for(const label of ['임시 저장','초안 저장','Save draft','Preview','메일 쓰기','굵게']) assert.equal(approvalTarget(node(label)),null);
@@ -19,7 +28,8 @@ test('approval names reflect the actual action and keep preparation separate fro
     assert.deepEqual(approvalPresentation(target),{buttonLabel:label,text:`${action}할까요?`});
   }
   for(const label of ['등록 화면 열기','신청 내역 보기','발송 목록','Open registration form'])assert.equal(approvalTarget(node(label)),null,label);
-  for(const label of ['등록 화면 열기','신청 내역 보기'])assert(approvalTarget(node(label,{form:{},type:'submit'})),label);
+  // A form submit is judged by its name like any button: opening a form is not a final action.
+  for(const label of ['등록 화면 열기','신청 내역 보기'])assert.equal(approvalTarget(node(label,{form:{},type:'submit'})),null,label);
   for(const label of ['초안 저장 후 게시','등록 후 목록 보기','제출하고 내역 보기'])assert(approvalTarget(node(label)),label);
   assert.deepEqual(approvalPresentation({label:'열기',action:'열기'}),{buttonLabel:'열기',text:'이 동작을 실행할까요?'});
   assert.equal(approvalPresentation({label:'매우 긴 대상 이름 '.repeat(10),action:'삭제'}).buttonLabel,'삭제');
@@ -50,17 +60,17 @@ test('informational payment links do not request payment but real commits stay g
   const link = label => node(label, {matches: selector => selector === 'a,[role="link"]'});
   for (const label of ['추가요금 결제 안내', '구매 안내 보기', '신청 안내 열기']) {
     assert.equal(approvalTarget(link(label)), null);
-    assert(approvalTarget({...link(label), form: {}, type: 'submit'}));
+    assert.equal(approvalTarget({...link(label), form: {}, type: 'submit'}), null);
     assert.equal(approvalTarget(link(label), {method:'press', key:'ControlOrMeta+Enter'}).action, '제출');
   }
   for (const label of ['결제', '결제하기', '결제하고 안내', '구매 후 안내', '신청 및 안내', '안내 발송']) assert(approvalTarget(link(label)), label);
-  assert(approvalTarget(node('결제 안내')), 'Ambiguous non-link controls retain approval');
+  assert.equal(approvalTarget(node('결제 안내')), null, 'a payment notice is not a payment: the name ends with 안내');
 });
 
 
 test('application settings is preparation, while form submission and combined actions still require approval',()=>{
  assert.equal(approvalTarget(node('신청 설정')),null);
- assert(approvalTarget({...node('신청 설정'),form:{},type:'submit'}));
+ assert.equal(approvalTarget({...node('신청 설정'),form:{},type:'submit'}),null);
  assert(approvalTarget(node('신청하고 설정')));
  assert(approvalTarget(node('설정 저장')));
 });
@@ -90,4 +100,18 @@ test('a link or a clickable row is an action only when its short caption ends wi
   assert.equal(approvalTarget(row('9월 22일 인사팀 공지 교육 참가자 명단 등록')), null);
   // Buttons keep the full rule.
   for (const label of ['초안 저장 후 게시', '휴가 신청서 제출', '등록 후 목록 보기']) assert(approvalTarget(button(label)), label);
+});
+
+// Reported by the user: "clicks keep getting held"; "a click that works matters
+// more than a guard". A final action is named by its button: a short caption that
+// ends with the verb (Korean) or starts with it (English), and 확인 or OK alone.
+test('only a button named for a final action asks for approval', () => {
+  for (const [label, action] of [['저장', '저장'], ['메일 보내기', '발송'], ['전송', '발송'], ['최종 반영', '반영'], ['등록 후 목록 보기', '등록'], ['확인', '확인'], ['OK', '확인'],
+    ['Send email', '발송'], ['Delete registration', '삭제'], ['휴가 신청서 제출', '제출'], ['승인 요청', '상신'], ['결재 상신', '상신']])
+    assert.equal(approvalTarget(node(label))?.action, action, label);
+  for (const label of ['닫기', '다음', '결과 확인', '예약 확인', '게시판', '등록일순', '신청 현황', '삭제된 항목 보기', '[인사] 10월 교육 신청 안내', 'Order history', '임시 저장', 'Save draft', '조회', '검색'])
+    assert.equal(approvalTarget(node(label)), null, label);
+  // A form submit is its name too: 닫기 in a page-wide form is not held.
+  assert.equal(approvalTarget(node('닫기', {form: {}, type: 'submit'})), null);
+  assert.equal(approvalTarget(node('저장', {form: {}, type: 'submit'}))?.action, '저장');
 });

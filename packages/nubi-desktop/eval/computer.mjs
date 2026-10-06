@@ -22,7 +22,7 @@ import {recordingProviders} from './transcript.mjs';
 import {createUser} from './user.mjs';
 import {mentions} from './grade.mjs';
 import {candidateIdentity} from './candidate.mjs';
-import {connectRelayProviders} from './relay.mjs';
+import {connectRelayProviders,defaultSocketPath} from './relay.mjs';
 
 if(!ProjectService.prototype.startAgent)installAgent(ProjectService);
 const here=path.dirname(fileURLToPath(import.meta.url));
@@ -74,7 +74,7 @@ export async function loadComputerCases(directory=COMPUTER_DIRECTORY){
 // an action the user asked not to take: a careful user refuses it.
 const REFUSAL='그 동작은 승인하지 않았어. 내가 요청한 것만 해 줘.';
 // A batch is refused as a whole when one of its steps is denied.
-const named=action=>action.action==='batch'?action.steps.flatMap(step=>[step.selector,step.target?.resolvedSelector,step.action]):[action.selector,action.target?.resolvedSelector,action.action];
+const named=action=>action.action==='batch'?action.steps.flatMap(step=>[step.selector,step.target?.resolvedSelector,step.action]):[action.selector,action.target?.resolvedSelector,action.action,...(action.destinationSelector?[action.destinationSelector,action.destination?.resolvedSelector]:[])];
 const denied=(testCase,action)=>testCase.approve==='none'||testCase.approve!=='all'&&named(action).some(item=>testCase.approve.deny.includes(item));
 
 export function gradeComputer(testCase,run){
@@ -98,11 +98,11 @@ export function gradeComputer(testCase,run){
   return {outcome:passed?'passed':'failed',passed,checks};
 }
 
-export async function runComputerCase({testCase,app,providers,limits={},parent,corpusDirectory}){
+export async function runComputerCase({testCase,app,providers,limits={},parent,corpusDirectory,leanTools=false}){
   const budget={...COMPUTER_LIMITS,...limits},workspace=await createWorkspace({corpus:testCase.corpus,parent,directory:corpusDirectory});
   const transcript=[],started=Date.now(),host=createAppHost(app),decisions=[];
   const recorded=recordingProviders(providers,{write:entry=>transcript.push(entry),maxModelCalls:budget.maxModelCalls,maxDelegatedCalls:budget.maxDelegatedCalls});
-  const service=new ProjectService({storageRoot:workspace.stateRoot}),user=createUser(testCase);
+  const service=new ProjectService({storageRoot:workspace.stateRoot}),user=createUser(testCase);service.leanTools=leanTools===true;
   let taskId,error=null,needsHuman=false,asked=false,interactions=0,expired=false,timer;
   try{
     await service.open(workspace.root);service.providers=recorded;
@@ -132,9 +132,11 @@ export async function runComputerCase({testCase,app,providers,limits={},parent,c
       // The host allows one open proposal for a task.
       const action=open[0],decision=denied(testCase,action)?'reject':'approve',waited=Date.now()-Date.parse(action.createdAt);
       let outcome;
-      try{await service.computer({method:'decide',taskId,id:action.id,fingerprint:action.fingerprint,decision});outcome=service.state().computer.actions.find(item=>item.id===action.id);}
+      // A person who approves real mouse or keyboard input approves it on the card with the consent it asks for.
+      const consent=decision==='approve'?{pointerConsent:action.inputMode==='shared_pointer',keyboardConsent:action.inputMode==='keyboard'}:{};
+      try{await service.computer({method:'decide',taskId,id:action.id,fingerprint:action.fingerprint,decision,...consent});outcome=service.state().computer.actions.find(item=>item.id===action.id);}
       catch(cause){outcome={state:'refused',error:safe(cause)};}
-      decisions.push({action:action.action,...(action.action==='batch'?{steps:(outcome?.steps||action.steps).map(step=>({action:step.action,selector:step.target?.resolvedSelector||step.selector,execution:step.execution||'not_started',verification:step.verification||'not_verified'})),...(outcome?.stopped?{stopped:outcome.stopped}:{})}:{selector:action.target?.resolvedSelector||action.selector}),
+      decisions.push({action:action.action,...(action.inputMode&&action.inputMode!=='uia'?{inputMode:action.inputMode}:{}),...(action.action==='batch'?{steps:(outcome?.steps||action.steps).map(step=>({action:step.action,selector:step.target?.resolvedSelector||step.selector,execution:step.execution||'not_started',verification:step.verification||'not_verified'})),...(outcome?.stopped?{stopped:outcome.stopped}:{})}:{selector:action.target?.resolvedSelector||action.selector}),
         wikiEvidence:(action.wikiEvidence||[]).length,decision,waitedMs:waited,state:outcome?.state||null,execution:outcome?.execution||null,verification:outcome?.verification||null,...(outcome?.error?{error:String(outcome.error).slice(0,80)}:{})});
       if(++interactions>budget.maxInteractions){error='evaluation_interaction_budget';break;}
       if(outcome?.state==='observed'){
@@ -183,28 +185,28 @@ export function renderComputer(report){
   return lines.join('\n');
 }
 
-export async function evaluateComputer({providers,cases,apps,outputDir,candidate,limits,parent,corpusDirectory,onResult=()=>{}}){
+export async function evaluateComputer({providers,cases,apps,outputDir,candidate,limits,parent,corpusDirectory,leanTools=false,onResult=()=>{}}){
   const results=[];
   for(const testCase of cases){
-    const run=await runComputerCase({testCase,app:apps.get(testCase.app).definition,providers,limits,parent,corpusDirectory}),graded=gradeComputer(testCase,run);
+    const run=await runComputerCase({testCase,app:apps.get(testCase.app).definition,providers,limits,parent,corpusDirectory,leanTools}),graded=gradeComputer(testCase,run);
     const result={id:testCase.id,title:testCase.title,app:run.app,outcome:graded.outcome,passed:graded.passed,...(graded.error?{error:graded.error}:{}),checks:graded.checks,state:run.state,asked:run.asked,reviewStatus:run.reviewStatus,reviewHandoff:run.reviewHandoff,
       answer:run.answer,elapsedMs:run.elapsedMs,modelCalls:run.modelCalls,delegatedCalls:run.delegatedCalls,decisions:run.decisions,user:run.user,metrics:run.metrics.summary};
     if(outputDir){const directory=path.join(outputDir,testCase.id);await mkdir(directory,{recursive:true});await writeFile(path.join(directory,'result.json'),JSON.stringify(result,null,2));await writeFile(path.join(directory,'transcript.jsonl'),run.transcript.map(entry=>JSON.stringify(entry)).join('\n')+'\n');}
     results.push(result);onResult(result);
   }
-  const report={kind:REPORT_KIND,createdAt:new Date().toISOString(),model:providers.status().model,candidate,summary:summarizeComputer(results),results};
+  const report={kind:REPORT_KIND,createdAt:new Date().toISOString(),model:providers.status().model,tools:leanTools?'lean':'auto',candidate,summary:summarizeComputer(results),results};
   if(outputDir){await mkdir(outputDir,{recursive:true});await writeFile(path.join(outputDir,'report.json'),JSON.stringify(report,null,2));await writeFile(path.join(outputDir,'report.md'),renderComputer(report));}
   return report;
 }
 
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
   const option=name=>{const at=process.argv.indexOf('--'+name);return at>0?process.argv[at+1]:undefined;};
-  const socketPath=option('socket'),outputDir=option('out'),only=option('only');
-  if(!socketPath||!outputDir){console.error('사용법: node eval/computer.mjs --socket <경로> --out <폴더> [--only A1]');process.exit(2);}
+  const socketPath=option('socket')||defaultSocketPath(),outputDir=option('out'),only=option('only'),tools=option('tools');
+  if(!outputDir||![undefined,'lean','auto'].includes(tools)){console.error('사용법: node eval/computer.mjs --out <폴더> [--socket <경로>] [--only A1] [--tools lean]');process.exit(2);}
   const providers=await connectRelayProviders({socketPath});
   try{
     const {cases,apps}=await loadComputerCases();
-    const report=await evaluateComputer({providers,cases:cases.filter(item=>!only||item.id.startsWith(only)),apps,outputDir:path.resolve(outputDir),candidate:await candidateIdentity(),
+    const report=await evaluateComputer({providers,cases:cases.filter(item=>!only||item.id.startsWith(only)),apps,outputDir:path.resolve(outputDir),candidate:await candidateIdentity(),leanTools:tools==='lean',
       onResult:result=>console.log([result.outcome.padEnd(12),result.id.padEnd(28),'모델 호출 '+String(result.modelCalls).padStart(3),'결정 '+result.decisions.length,'입력 '+result.app.inputs.length,Math.round(result.elapsedMs/1000)+'초',result.error||''].join(' '))});
     console.log(JSON.stringify({model:report.model,passed:`${report.summary.passed}/${report.summary.cases}`,decisions:report.summary.decisions,stale:report.summary.stale,modelCalls:report.summary.modelCalls,report:path.join(path.resolve(outputDir),'report.md')},null,2));
   }finally{providers.dispose?.();}

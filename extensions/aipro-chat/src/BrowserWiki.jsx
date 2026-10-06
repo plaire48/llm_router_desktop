@@ -1,5 +1,6 @@
+import {DeckField} from './DeckSurfaces.jsx';
 import React, {useId, useRef, useState} from 'react';
-import {ActionButton,CxButton,CxField,CxInput,CxTextarea,CxNotice,DetailPanel,Icon,notifyToast} from '@e2e/cx-design-system';
+import {ActionButton,CxButton,CxInput,CxTextarea,CxNotice,CxCheckbox,DetailPanel,Icon,notifyToast} from '@e2e/cx-design-system';
 import {exportKnowledge} from '../browser-knowledge.js';
 import {zipSync,strToU8} from 'fflate';
 
@@ -17,6 +18,7 @@ export function BrowserWiki(props) {
 
 function BrowserWikiEditor({message,conversationId,action,disabled}) {
   const formId=useId();
+  const [linkProcedure,setLinkProcedure]=useState(false);
   const [open,setOpen]=useState(false), [draft,setDraft]=useState(null), [busy,setBusy]=useState(false), [error,setError]=useState('');
   const pending=useRef(false), draftSource=useRef(null), offer=message.wikiOffer, saved=message.wikiDraft;
   const dirty=draft && (draft.title!==draftSource.current?.title || draft.markdown!==draftSource.current?.markdown);
@@ -34,10 +36,12 @@ function BrowserWikiEditor({message,conversationId,action,disabled}) {
     </div></div>
     {open && <DetailPanel className="deck-dialog" title="사이트 위키" variant="modal" hideHelp busy={busy} onClose={()=>{if(!busy)setOpen(false);}}
       footer={<ActionButton action="save" iconOnly className="icon-commit" label="위키 저장" type="submit" form={formId} busy={busy}/> }>
-      <form id={formId} className="settings-fields" onSubmit={async event=>{event.preventDefault();if(await perform('SAVE_BROWSER_WIKI',{messageId:message.id,document:{title:draft.title,markdown:draft.markdown}})){notifyToast('위키를 저장했습니다.');setDraft(null);setOpen(false);}}}>
+      <form id={formId} className="settings-fields" onSubmit={async event=>{event.preventDefault();if(await perform('SAVE_BROWSER_WIKI',{messageId:message.id,linkProcedure,document:{title:draft.title,markdown:draft.markdown}})){notifyToast('위키를 저장했습니다.');setDraft(null);setOpen(false);}}}>
         <p className="reply-note">업무 기준과 개인정보를 확인한 뒤 저장하세요.</p>
-        <CxField label="문서 이름"><CxInput disabled={busy} autoFocus required maxLength={100} value={draft.title} onChange={event=>setDraft({...draft,title:event.target.value})}/></CxField>
-        <CxField label="내용"><CxTextarea disabled={busy} required rows={12} maxLength={16000} value={draft.markdown} onChange={event=>setDraft({...draft,markdown:event.target.value})}/></CxField>
+        <DeckField icon="file" label="문서 이름"><CxInput disabled={busy} autoFocus required maxLength={100} value={draft.title} onChange={event=>setDraft({...draft,title:event.target.value})}/></DeckField>
+        <DeckField icon="file" label="내용"><CxTextarea disabled={busy} required rows={12} maxLength={16000} value={draft.markdown} onChange={event=>setDraft({...draft,markdown:event.target.value})}/></DeckField>
+        {saved.procedureAvailable && !saved.procedureLinked && <CxCheckbox label={saved.procedureKind==='link_read'?'확인한 조회 절차도 연결':'확인한 입력 절차도 연결'} checked={linkProcedure} disabled={busy} onChange={event=>setLinkProcedure(event.target.checked)}/> }
+        {saved.procedureLinked && <p className="reply-note">{saved.procedureKind==='link_read'?'조회 절차 연결됨. 실행할 때 화면과 목적지를 다시 확인합니다.':'입력 절차 연결됨. 실행할 때 화면과 새 입력을 다시 확인합니다.'}</p>}
         {error && <CxNotice tone="danger">{error}</CxNotice>}
       </form>
     </DetailPanel>}

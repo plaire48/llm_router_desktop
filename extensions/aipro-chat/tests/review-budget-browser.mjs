@@ -90,8 +90,9 @@ try {
   await wait(async()=>(await state()).chat?.messages?.length>2);
   await wait(async()=>{const current=await state(), last=current.chat?.messages?.at(-1); if(last?.state==='error')throw new Error(JSON.stringify({error:last.error,trace:last.trace,reads,reviews})); return !current.busy&&last?.state==='done';});
   assert.equal(reads,6);assert.equal(reviews,2);assert.equal((await state()).chat.task.goalReview.status,'complete');
-  assert.equal(stepReviews,4);
-  assert.deepEqual(reviewedSteps,['현재 검색 화면 확인','현재 검색 화면 확인','공식 안내 출처 확인','열람 범위와 결과 정리']);
+  // The last stage only reports what the reviewed stages found: the final review judges it.
+  assert.equal(stepReviews,3);
+  assert.deepEqual(reviewedSteps,['현재 검색 화면 확인','현재 검색 화면 확인','공식 안내 출처 확인']);
   const completed=await state();assert(completed.chat.task.plan.every(step=>step.status==='completed'));assert.equal(completed.chat.task.plan.length,3);
   await ui.reload();await ui.locator('.task-plan-count').filter({hasText:'3/3'}).first().waitFor();
   assert.equal(await ui.locator('.task-plan .status-spinner').count(),0);

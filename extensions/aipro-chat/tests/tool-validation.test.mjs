@@ -68,6 +68,8 @@ test('closed-object repair names allowed and required schema fields without expo
   assert.equal(extra.objectSchemaPath, '');
   assert.deepEqual(extra.objectSchemas, [{allowedProperties: ['fields'], requiredProperties: ['fields'], additionalProperties: false}]);
   const feedback = rejectedToolFeedback(false, issues);
+  assert.equal(feedback.reason, 'tool_arguments_invalid');
+  assert.equal(feedback.actionIssued, false);
   assert.equal(feedback.actionIssued, false);
   assert.match(feedback.instruction, /No arguments were automatically removed/);
   assert(!JSON.stringify(feedback).includes('PRIVATE'));

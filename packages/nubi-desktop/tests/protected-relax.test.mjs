@@ -1,3 +1,5 @@
+// Window of 26,000 tokens since 2026-10-05 (22,000 before): the fixed part of a request grew with the guidance and
+// core tools of 2026-10-04 (5,670 → 6,942 tokens in the lean window), and the behaviors below are the same ones.
 // Found by the measurement of 2026-09-29 with gpt-5.6-sol (case L1, S14). A
 // compacted request did not fit. The host then left one protected message to
 // the summary and compacted again, one message per attempt: the same span was
@@ -50,7 +52,7 @@ if(!ProjectService.prototype.startAgent)installAgent(ProjectService);
 const FIRST='이 작업에서는 src/legacy 폴더를 절대 수정하지 마. 먼저 app.txt를 확인해 줘.';
 const SECOND='이번에는 docs/big.md에서 KEY-777 항목의 값을 찾아 알려 줘.';
 const summary={goal:'문서에서 값을 찾는다',constraints:['src/legacy 수정 금지'],decisions:[],completed:['앞부분을 읽었다'],pending:['남은 부분 확인'],references:['docs/big.md']};
-const plain=messages=>messages.filter(item=>item.role==='user').map(item=>String(item.content)).filter(text=>!/^(<|\{|Current host receipts|Independent review)/.test(text));
+const plain=messages=>messages.filter(item=>item.role==='user').map(item=>String(item.content)).filter(text=>!/^(<|\{|Current host receipts|Current run state from the host|Independent review)/.test(text));
 
 test('in a later turn a compaction that does not fit keeps the message being answered and does not repeat the same summary',async t=>{
   const {service,root}=await fixture(t,{scriptedReview:true,scriptedPlanning:true});
@@ -59,10 +61,10 @@ test('in a later turn a compaction that does not fit keeps the message being ans
   await git(root,['add','-A']);await git(root,['commit','-qm','big document']);
   const long='앞부분까지 확인했습니다. '+'확인한 내용을 자세히 적은 문장입니다. '.repeat(520);
   let turn=1,step=0,next=1,reviews=0;const sources=[],compacted=[];
-  service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:22000}]}),dispose(){},async complete(messages){
+  service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:26000}]}),dispose(){},async complete(messages){
     if(messages[0].content.startsWith('Summarize conversation')){sources.push(JSON.stringify(messages.slice(1)));return {content:JSON.stringify(summary),calls:[]};}
     // The plan offers many workflows, as in the measured run: in a small window its tools make the fixed part larger.
-    if(messages[0].content.startsWith(WORK_PLAN_PROMPT))return {content:JSON.stringify({intent:{goal:'값 찾기',constraints:[],outcomes:['값을 찾는다'],workflowIds:['source-change','environment','recovery','knowledge','document-research','voc'],skillPaths:[]},steps:[{text:'찾기',expected_outcome:'값을 찾는다',status:'in_progress'}]}),calls:[]};
+    if(messages[0].content.startsWith(WORK_PLAN_PROMPT))return {content:JSON.stringify({intent:{goal:'값 찾기',constraints:[],outcomes:['값을 찾는다'],workflowIds:['source-change','environment','recovery','knowledge','document-research'],skillPaths:[]},steps:[{text:'찾기',expected_outcome:'값을 찾는다',status:'in_progress'}]}),calls:[]};
     if(messages[0].content.startsWith(REVIEW_PROMPT)){
       reviews++;const requirements=JSON.parse(messages[1].content).requirements,revise=turn===2&&reviews===2;
       return {content:JSON.stringify({status:revise?'revise':'ready',nextStep:revise?'남은 범위를 읽으세요.':'',checks:requirements.map(item=>({requirementId:item.id,state:'unknown',evidenceIds:[],detail:'확인 중'}))}),calls:[]};

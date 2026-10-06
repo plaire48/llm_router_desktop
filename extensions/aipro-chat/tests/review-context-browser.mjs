@@ -85,20 +85,27 @@ try {
     return route.fulfill({json: answer});
   } catch (error) {failure = error; return route.fulfill({status: 500, body: 'fixture assertion failed'}).catch(() => {});}});
   worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
-  await worker.evaluate(async ({restriction}) => {
+  const seed = () => worker.evaluate(async ({restriction}) => {
     await chrome.storage.local.set({chat: {messages: [{id: 'restriction', role: 'user', content: restriction}, {id: 'ack', role: 'assistant', content: '초안만 작성하겠습니다.', state: 'done'}], draft: ''}});
     await chrome.storage.session.set({credential: {provider: 'aipro', mode: 'browser', token: 'synthetic-review-context', receivedAt: 1}});
   }, {restriction});
+  await seed();
   source = await context.newPage(); await source.goto(`${origin}/draft`);
   ui = await context.newPage(); await ui.goto(`chrome-extension://${new URL(worker.url()).hostname}/index.html`);
   await until(async () => (await state()).catalog?.models?.length === 1);
+  // Under load the worker can still be setting up its own conversation when the
+  // fixture writes one (measured: the gate's checkpoint review had no restriction).
+  // The scenario starts only from the seeded history.
+  for (let i = 0; i < 25 && !(await state()).chat?.messages?.some(message => message.content === restriction); i++) {await seed(); await new Promise(resolve => setTimeout(resolve, 120));}
+  assert((await state()).chat.messages.some(message => message.content === restriction), 'the seeded restriction is part of the conversation');
   const uiId = await ui.evaluate(async () => (await chrome.tabs.getCurrent()).id);
   await worker.evaluate(async ({uiId, origin}) => {const tab = (await chrome.tabs.query({})).find(tab => tab.url === `${origin}/draft`); await chrome.storage.session.set({chatSourceTabs: {[uiId]: tab.id}});}, {uiId, origin});
   await ui.getByRole('textbox', {name: '메시지', exact: true}).fill(`다섯 항목을 차례로 작성해줘. ${fields.map((name, index) => `${name}: ${values[index]}`).join(', ')}.`);
   await ui.getByRole('button', {name: '전송', exact: true}).click();
   await until(async () => (await state()).chat.messages.at(-1)?.state === 'done' && !(await state()).busy);
   const current = await state(), work = context.pages().find(page => page !== source && page.url() === `${origin}/draft`);
-  assert(work); assert.equal(checkpointCount, 1); assert.equal(finalCount, 1); assert.equal(stepCount, 2);
+  // The last stage only reports what the reviewed stage wrote: the final review judges it.
+  assert(work); assert.equal(checkpointCount, 1); assert.equal(finalCount, 1); assert.equal(stepCount, 1);
   assert.deepEqual(await work.evaluate(() => writes), fields.map((_, index) => `field-${index}`));
   assert.deepEqual(await source.evaluate(() => writes), []); assert.equal(await source.evaluate(() => submits), 0);
   assert.equal(current.chat.task.goalReview.status, 'complete');

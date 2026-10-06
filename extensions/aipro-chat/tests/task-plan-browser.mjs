@@ -58,8 +58,10 @@ try {
     if (round === 3) return route.fulfill({json: reply([call('update_plan', {steps: steps(2)}), call('verify_page', {checks: [{kind: 'field_value', ref, expected: '10월 교육 안내'}, {kind: 'text_present', expected: '초안 반영됨'}], progress: '변경한 제목 검증'})], '입력한 제목과 화면의 반영 결과를 확인하겠습니다.')});
     if (round === 4) {
       assert.equal(output.verified, true);
-      assert(body.messages.some(message => message.role === 'tool' && JSON.parse(message.content).reason === 'verification_required'));
-      assert.match(body.messages[0].content, /Compare the actual input and output/);
+      // The fill read back its value, so the step closed with it (its stage review judged the outcome); no verification_required block.
+      assert(!body.messages.some(message => message.role === 'tool' && JSON.parse(message.content).reason === 'verification_required'));
+      // The last operation's feedback is run state: it travels in the host's run-state message, not the system message.
+      assert(body.messages.some(message => message.role === 'user' && typeof message.content === 'string' && message.content.startsWith('Current run state from the host.') && /Compare the actual input and output/.test(message.content)));
       return route.fulfill({json: reply([call('update_plan', {steps: steps(2)})], '제목과 반영 안내를 확인했습니다. 요청한 내용과 마지막으로 비교하겠습니다.')});
     }
     assert.equal(round, 5);
@@ -145,10 +147,10 @@ try {
   await next(); await poll(() => !!held, true);
   assert.equal(await plan().locator('[data-plan-overview]').getAttribute('open'), null);
   await plan().locator('[data-plan-overview] > summary').focus(); await ui.keyboard.press('Enter');
-  assert.equal(await plan().locator('.task-plan-count').innerText(), '1/3');
+  assert.equal(await plan().locator('.task-plan-count').innerText(), '2/3');
   assert.equal(await ui.locator('.agent-trace [data-status=error]').count(), 0);
   assert.equal(await target.evaluate(() => writes), 1);
-  check('a premature completed step stays active until its real check returns to a new model decision');
+  check('a step whose fill read back its value closes without a separate check call; its stage review judges the outcome');
   await next(); await poll(() => !!held, true);
   await poll(async () => plan().locator('.task-plan-count').innerText(), '2/3');
   // The step added by the executor's revision has no acceptance condition, and the panel says so.
@@ -158,7 +160,8 @@ try {
   await ui.setViewportSize({width: 1100, height: 850});
   await ui.waitForTimeout(450); await ui.screenshot({path: resolve('verification/task-plan-progress-desktop.png')});
   await next(); await poll(() => !!reviewHeld, true);
-  await poll(async () => plan().locator('.task-plan-count').innerText(), '3/3');
+  // The reporting last step stays open while the final review judges it, and closes when it passes.
+  await poll(async () => plan().locator('.task-plan-count').innerText(), '2/3');
   assert.equal(await plan().locator('.task-plan-pause').innerText(), '답변 확인 중');
   assert.equal((await state()).chat.messages.at(-1).state,'pending');
   await ui.setViewportSize({width:320,height:800});

@@ -34,7 +34,7 @@ export async function startDownload(owner, url) {
   } catch(error) { // A rejected API call does not authorize a retry of an uncertain request.
     receipt.reason='download_request_unconfirmed';await chrome.storage.local.set({browserTransfers:transfers});throw error;
   }
-  return {transfer_id:receipt.id,state:receipt.status,instruction:'Read download_status with this transfer_id. Chrome completion is not content integrity or server persistence proof.'};
+  return {kind:'download',transfer_id:receipt.id,state:receipt.status,instruction:'Read download_status with this transfer_id. Chrome completion is not content integrity or server persistence proof.'};
 }
 export async function downloadStatus(owner, id) {
   const {browserTransfers=[]}=await chrome.storage.local.get('browserTransfers');
@@ -54,8 +54,10 @@ export async function downloadStatus(owner, id) {
     } else receipt.status='unavailable';
     await chrome.storage.local.set({browserTransfers});
   }
-  return {transfer_id:receipt.id,state:receipt.status,filename:receipt.filename,bytesReceived:receipt.bytesReceived,totalBytes:receipt.totalBytes,error:receipt.error,
-    existsReported:receipt.existsReported,danger:receipt.danger,verified:false,instruction:'State comes from Chrome downloads. exists may be cached; completion does not verify file contents. Never restart unknown/interrupted transfers automatically.'};
+  return {dataKind:'download_status',transfer_id:receipt.id,state:receipt.status,filename:receipt.filename,bytesReceived:receipt.bytesReceived,totalBytes:receipt.totalBytes,error:receipt.error,
+    observedAt:Date.now(),completionVerified:receipt.status==='complete'&&!receipt.error&&!!receipt.filename,
+    existsReported:receipt.existsReported,danger:receipt.danger,verified:false,contentIntegrityVerified:false,
+    instruction:'Chrome complete verifies the requested transfer completion and filename at this observation. It can satisfy a request for those facts. It does not verify contents or current filesystem existence (exists may be cached). Do not add content integrity as a new user requirement. Never restart unknown/interrupted transfers automatically.'};
 }
 
 export const playwrightFiles = files => files.map(f=>({name:f.meta.name,mimeType:f.meta.mimeType,buffer:Buffer.from(f.bytes)}));

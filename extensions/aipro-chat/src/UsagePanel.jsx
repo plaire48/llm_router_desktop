@@ -28,7 +28,7 @@ function ProviderUsage({provider, stats, active}) {
     </div>
   </details>;
 }
-export function UsagePanel({data, rpc, onClose}) {
+export function UsagePanel({data, rpc, onClose, loadAccountUsage, scopeLabel = '이 확장에서 사용한 토큰'}) {
   const [period, setPeriod] = useState('today'), [loading, setLoading] = useState(false);
   const controller = useRef(null), generation = useRef(0);
   const connection = data.connections?.chatgpt || (data.auth.provider === 'chatgpt' ? data.auth : {});
@@ -43,6 +43,9 @@ export function UsagePanel({data, rpc, onClose}) {
     const credentialReceivedAt = connection.receivedAt;
     setLoading(true);
     try {
+      // Native hosts keep credentials in their own process. They provide only
+      // the normalized quota result; the extension's session flow stays intact.
+      if (loadAccountUsage) {await loadAccountUsage({force, signal:abort.signal}); return;}
       const prepare = async force => {
         await rpc('PREPARE_CREDENTIAL', {provider: 'chatgpt', credentialReceivedAt, force});
         if (abort.signal.aborted) throw new Error('quota_network');
@@ -62,7 +65,7 @@ export function UsagePanel({data, rpc, onClose}) {
       if (version === generation.current) await rpc('SAVE_ACCOUNT_USAGE', {credentialReceivedAt, ...result});
     } catch (error) {
       if (version === generation.current && (!abort.signal.aborted || abort.signal.reason === 'timeout')) {
-        await rpc('SAVE_ACCOUNT_USAGE', {credentialReceivedAt, error: error.message.startsWith('quota_') ? error.message : 'quota_unavailable', status: error.status || 0}).catch(() => {});
+        if (!loadAccountUsage) await rpc('SAVE_ACCOUNT_USAGE', {credentialReceivedAt, error: error.message.startsWith('quota_') ? error.message : 'quota_unavailable', status: error.status || 0}).catch(() => {});
       }
     } finally {clearTimeout(timeout); if (version === generation.current) setLoading(false);}
   }
@@ -99,7 +102,8 @@ export function UsagePanel({data, rpc, onClose}) {
     <AgentTabs items={[{key: 'today', label: '오늘'}, {key: 'total', label: '전체'}]} active={period} onChange={setPeriod} label="집계 기간" idPrefix="usage-period" panelId="usage-statistics"/>
     <div id="usage-statistics" role="tabpanel" aria-labelledby={`usage-period-${period}`} tabIndex={0} className="usage-statistics">
       {stats && <div className="usage-providers">{['aipro', 'chatgpt', 'fabrix'].filter(provider => stats[provider]).map(provider => <ProviderUsage key={provider} provider={provider} stats={stats[provider]} active={data.auth.present && data.auth.provider === provider}/>)}</div>}
-      <p className="usage-caption usage-scope" title={data.usage?.startedAt ? `${new Date(data.usage.startedAt).toLocaleDateString('ko-KR')}부터 집계` : undefined}>이 확장에서 사용한 토큰</p>
+      {data.usageError && <p className="usage-caption" role="status">{data.usageError==='usage_save_failed'?'사용량 기록을 저장하지 못했어요. 현재 앱의 집계를 표시합니다.':'사용량 기록을 불러오지 못했어요. 다시 열어 주세요.'}</p>}
+      <p className="usage-caption usage-scope" title={data.usage?.startedAt ? `${new Date(data.usage.startedAt).toLocaleDateString('ko-KR')}부터 집계` : undefined}>{scopeLabel}</p>
     </div>
   </DetailPanel>;
 }

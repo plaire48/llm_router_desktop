@@ -4,7 +4,8 @@
 // and so on: four approvals for an action that the host had seen fail to
 // change the window. The model never tried select, and its one attempt to
 // select on the list itself was refused without a word about how to select.
-import {test} from 'node:test';
+import {featureTest} from './beta-feature.mjs';
+const test=featureTest('computerUse');
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {fixture} from './fixtures.mjs';

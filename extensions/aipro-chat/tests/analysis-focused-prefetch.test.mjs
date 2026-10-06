@@ -29,6 +29,28 @@ test('a large source reaches the analyst as the ranges that match its assignment
 });
 const wireSize = brief => JSON.stringify(brief).length;
 
+test('navigation indexes cannot displace returned body evidence from the first frozen read',async t=>{
+  const value=coordinator(t,async()=>({content:'unused'}));
+  const quote='The library is open on weekdays.';
+  const id=value.observe('read_page',{mode:'content'},{ok:true,dataKind:'page_content',url:'https://official.test/rules',frame:0,
+    content_hash:'a'.repeat(64),source_key:'b'.repeat(64),characters:40000,
+    outline:{sections:[{heading:'Navigation only '.repeat(800),start:30000}]},
+    boundary_index:{candidates:[{label:'Exception location '.repeat(200),offset:35000}]},
+    ranges:[{start:0,end:quote.length,markdown:quote}],coverage:{partial:true}});
+  const read=await value.execute('read_analysis_evidence',{evidence_id:id});
+  assert(read.text.includes(quote));assert(!read.text.includes('Exception location'));
+  assert.equal(read.coverage,'partial');assert(read.text.includes('"partial":true'));
+  // The complete wire still retains navigation metadata for an explicit later
+  // range. It never becomes an actually returned original-body quote.
+  let offset=read.next_offset,tail='';
+  while(offset!==null){const next=await value.execute('read_analysis_evidence',{evidence_id:id,offset});tail+=next.text;offset=next.next_offset;}
+  assert(tail.includes('Exception location'));
+  const metadataOnly=await value.execute('read_analysis_evidence',{evidence_id:id,query:'Exception location'});
+  assert.equal(metadataOnly.text,'');assert.deepEqual(metadataOnly.ranges,[]);
+  const body=await value.execute('read_analysis_evidence',{evidence_id:id,query:'weekdays'});
+  assert(body.text.includes(quote));assert(!body.text.includes('Navigation only'));
+});
+
 test('a source that shares no word with the assignment is not sent ahead and must be read explicitly', async t => {
   let calls = 0;
   const value = coordinator(t, async wire => {

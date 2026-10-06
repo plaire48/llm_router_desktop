@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {runAgent, normalizeTrace} from '../agent-runtime.js';
 import {BUILTIN_SKILLS, browserTools} from '../skills.js';
+// The host appends this run's state (plan, last operation) as the final message;
+// these tests read the message before it.
+const lastMessage = messages => messages.findLast(message => !(message?.role === 'user' && typeof message.content === 'string' && message.content.startsWith('Current run state from the host.')));
 
 const tools = browserTools({}, BUILTIN_SKILLS.find(skill => skill.id === 'browser-agent'));
 const call = (name, args = {}, id = name) => ({content: '', calls: [{id, type: 'function', function: {name, arguments: typeof args === 'string' ? args : JSON.stringify(args)}}]});
@@ -31,7 +34,7 @@ test('tool schemas accept booleans, integer pagination and nullable typed values
   }
   for(const args of [{offset:0.5,required:true,value:null},{offset:21,required:true,value:null},{offset:0,required:'false',value:null},{offset:0,required:true,value:{}},{offset:0,required:true,value:null,extra:true}]) {
     let turn=0,executed=0;
-    await runAgent({...base(),tools:schemaTools,complete:async messages=>{if(++turn===1)return call('typed_input',args);assert.equal(JSON.parse(messages.at(-1).content).error,'tool_arguments_invalid');return done;},execute:async()=>{executed++;return{ok:true};}});
+    await runAgent({...base(),tools:schemaTools,complete:async messages=>{if(++turn===1)return call('typed_input',args);assert.equal(JSON.parse(lastMessage(messages).content).error,'tool_arguments_invalid');return done;},execute:async()=>{executed++;return{ok:true};}});
     assert.equal(executed,0);
   }
 });
@@ -41,9 +44,9 @@ test('agent repairs invalid arguments from tool feedback before continuing with 
   let round = 0;
   const result = await runAgent({...options, onStep: step => steps.push(step), complete: async messages => {
     if (++round === 1) return call('read_page_storage', {area: 'cookies', keys: ['profile']});
-    if (round === 2) {assert.equal(JSON.parse(messages.at(-1).content).error, 'tool_arguments_invalid'); return call('inspect_dom');}
-    if (round === 3) {assert.equal(JSON.parse(messages.at(-1).content).fields[0].label, '이름'); return call('fill_form', {fields: [{field_id:'f1',value:'예시'}]});}
-    assert.equal(JSON.parse(messages.at(-1).content).verified, true); return done;
+    if (round === 2) {assert.equal(JSON.parse(lastMessage(messages).content).error, 'tool_arguments_invalid'); return call('inspect_dom');}
+    if (round === 3) {assert.equal(JSON.parse(lastMessage(messages).content).fields[0].label, '이름'); return call('fill_form', {fields: [{field_id:'f1',value:'예시'}]});}
+    assert.equal(JSON.parse(lastMessage(messages).content).verified, true); return done;
   }, execute: async (name, args) => {executed.push(name); return name === 'inspect_dom' ? {fields:[{field_id:'f1',label:'이름'}]} : {applied:1,verified:true};}});
   assert.equal(result, done);
   assert.deepEqual(executed, ['inspect_dom','fill_form']);
@@ -56,7 +59,7 @@ test('applied writes are not repeated and cancellation blocks changed write argu
     let round = 0, applied = 0;
     await runAgent({...base(), complete: async messages => {
       if (++round < 3) return call('fill_form', {fields:[{field_id:'f1',value: cancelled ? String(round) : 'same'}]});
-      assert.equal(JSON.parse(messages.at(-1).content).error, 'action_already_handled'); return done;
+      assert.equal(JSON.parse(lastMessage(messages).content).error, 'action_already_handled'); return done;
     }, execute: async () => {applied++; return cancelled ? {cancelled:true,applied:0} : {applied:1,verified:true};}});
     assert.equal(applied, 1);
   }
@@ -84,7 +87,7 @@ test('large observations are compacted without removing tool call/result pairs o
   await runAgent({...options, complete:async messages => {
     assert.equal(messages.length, 17);
     assert.equal(JSON.parse(messages[2].content).omitted.startsWith('Older'), true);
-    assert.equal(JSON.parse(messages.at(-1).content).html.length, 20000);
+    assert.equal(JSON.parse(lastMessage(messages).content).html.length, 20000);
     return done;
   }});
 });
@@ -130,14 +133,14 @@ test('a lost write receipt requires fresh observation before another write or fi
     if (++round === 1) return call('read_page');
     if (round === 2) return call('fill_form', {fields: [{field_id: 'f1', value: 'draft'}]});
     if (round === 3) {
-      const result = JSON.parse(messages.at(-1).content);
+      const result = JSON.parse(lastMessage(messages).content);
       assert.equal(result.recovery.execution, 'unknown'); assert(!JSON.stringify(result).includes('PRIVATE'));
       assert.equal(state.verificationPending, true);
       return call('fill_form', {fields: [{field_id: 'f1', value: 'draft'}]});
     }
-    if (round === 4) {assert.equal(JSON.parse(messages.at(-1).content).error, 'action_outcome_unknown'); return done;}
-    if (round === 5) {assert.match(messages.at(-1).content, /lost its receipt/); return call('inspect_dom');}
-    if(round===6){assert.equal(JSON.parse(messages.at(-1).content).fields[0].value, 'draft');assert.equal(state.verificationPending,true);return call('verify_page',{checks:[{kind:'field_value',ref:'f1',expected:'draft'}]});} return done;
+    if (round === 4) {assert.equal(JSON.parse(lastMessage(messages).content).error, 'action_outcome_unknown'); return done;}
+    if (round === 5) {assert.match(lastMessage(messages).content, /lost its receipt/); return call('inspect_dom');}
+    if(round===6){assert.equal(JSON.parse(lastMessage(messages).content).fields[0].value, 'draft');assert.equal(state.verificationPending,true);return call('verify_page',{checks:[{kind:'field_value',ref:'f1',expected:'draft'}]});} return done;
   }, execute: async name => {
     executed.push(name);
     if (name === 'fill_form') {writes++; throw new Error('PRIVATE upstream exception with Bearer SECRET');}
@@ -156,7 +159,7 @@ test('document excerpts cannot clear an unknown write outcome', async () => {
       assert.equal(state.verificationPending, true);
       return call('fill_form', {fields: [{field_id: 'f1', value: 'another draft'}]});
     }
-    if (round === 5) {assert.equal(JSON.parse(messages.at(-1).content).error, 'action_outcome_unknown'); return call('browser_snapshot');}
+    if (round === 5) {assert.equal(JSON.parse(lastMessage(messages).content).error, 'action_outcome_unknown'); return call('browser_snapshot');}
     if(round===6){assert.equal(state.verificationPending,true);return call('verify_page',{checks:[{kind:'field_value',ref:'f1',expected:'draft'}]});}
     assert.equal(state.verificationPending,false);return done;
   }, execute: async (name,args) => {
@@ -172,7 +175,7 @@ test('known host errors retain fixed classifications and user cancellation does 
   let round = 0, executions = 0;
   await runAgent({...base(), complete: async messages => {
     if (++round === 1) return call('read_page');
-    const result = JSON.parse(messages.at(-1).content);
+    const result = JSON.parse(lastMessage(messages).content);
     assert.equal(result.error, 'page_permission'); assert.equal(result.recovery.strategy, 'user_action');
     assert(!JSON.stringify(result).includes('PRIVATE')); return done;
   }, execute: async () => {throw Object.assign(new Error('page_permission'), {stack: 'PRIVATE', token: 'PRIVATE'});}});
@@ -188,7 +191,7 @@ test('a failed tool defers the rest of its batch until the model replans from fe
   const result = await runAgent({...base(), complete: async messages => {
     if (++round === 1) return {content: '', calls: [...call('inspect_dom').calls, ...call('list_page_storage').calls]};
     assert.equal(JSON.parse(messages.at(-2).content).error, 'tool_execution_failed');
-    assert.equal(JSON.parse(messages.at(-1).content).error, 'tool_replan_required');
+    assert.equal(JSON.parse(lastMessage(messages).content).error, 'tool_replan_required');
     return done;
   }, execute: async name => {
     events.push(name);
@@ -228,10 +231,10 @@ test('each successful operation returns evidence to the model before another bat
       ...call('request_approval', {ref: 'old'}, 'premature-approval').calls,
     ]};
     if (round === 2) {
-      assert.equal(JSON.parse(messages.at(-1).content).deferred, true);
+      assert.equal(JSON.parse(lastMessage(messages).content).deferred, true);
       return call('verify_page', {checks: [{kind: 'text_present', expected: '초안'}]});
     }
-    assert.equal(JSON.parse(messages.at(-1).content).verified, true);
+    assert.equal(JSON.parse(lastMessage(messages).content).verified, true);
     return call('request_approval', {ref: 'current'});
   }, execute: async name => {
     executed.push(name);
@@ -247,9 +250,9 @@ test('read-only skills replan from the first result before executing another pro
   await runAgent({...base(), tools: readTools, harness: true, onStep: step => trace.push(step), complete: async (messages, active, state) => {
     if (++round === 1) return {calls: [...call('read_page', {}, 'read').calls, ...call('inspect_dom', {}, 'speculative').calls]};
     assert.equal(state.assessing, true);
-    assert.match(messages[0].content, /Compare the actual input and output/);
+    assert.match(messages.at(-1).content, /Compare the actual input and output/);
     assert.equal(JSON.parse(messages.find(message => message.tool_call_id === 'read').content).text, '마감일 10월 8일');
-    assert.equal(JSON.parse(messages.at(-1).content).deferred, true);
+    assert.equal(JSON.parse(lastMessage(messages).content).deferred, true);
     return {content: '마감일은 10월 8일입니다.'};
   }, execute: async name => {executed.push(name); return {text: '마감일 10월 8일'};}});
   assert.deepEqual(executed, ['read_page']);
@@ -261,7 +264,7 @@ test('failed batches do not show a running or failed row for an unexecuted later
   await runAgent({...base(), harness: true, onStep: step => trace.push(step), complete: async (messages, active, state) => {
     if (++round === 1) return {calls: [...call('read_page').calls, ...call('inspect_dom').calls]};
     assert.equal(state.assessing, true);
-    assert.match(messages[0].content, /Last operation: read_page; outcome: failed/);
+    assert.match(messages.at(-1).content, /Last operation: read_page; outcome: failed/);
     return done;
   }, execute: async () => ({error: 'page_changed'})});
   assert.deepEqual(trace.filter(step => step.tool === 'read_page').map(step => step.status), ['running', 'error']);
@@ -280,7 +283,7 @@ test('an unverified step cannot be marked completed, but its planned check can s
     ]};
     if (round === 3) {
       assert.equal(JSON.parse(messages.find(message => message.tool_call_id === 'premature').content).reason, 'verification_required');
-      assert.equal(JSON.parse(messages.at(-1).content).verified, true);
+      assert.equal(JSON.parse(lastMessage(messages).content).verified, true);
       assert.equal(state.verificationPending, false);
       return call('update_plan', {steps: completed}, 'checked');
     }
@@ -297,8 +300,8 @@ test('partial execution feeds its receipts into the next decision instead of rep
     if (++round === 1) return call('run_playwright', {code: 'await page.getByRole("button", {name:"작성"}).click();'});
     if (round === 2) {
       assert.equal(state.assessing, true);
-      assert.match(messages[0].content, /outcome: partial/);
-      assert.equal(JSON.parse(messages.at(-1).content).execution.commands[0].status, 'returned');
+      assert.match(messages.at(-1).content, /outcome: partial/);
+      assert.equal(JSON.parse(lastMessage(messages).content).execution.commands[0].status, 'returned');
       return call('verify_page', {checks: [{kind: 'text_present', expected: '작성 화면'}]});
     }
     return done;
@@ -333,7 +336,7 @@ test('a cancelled first write blocks subsequent writes from the same model respo
       ...call('fill_form', {fields:[{field_id:'f1', value:'one'}]}, 'first').calls,
       ...call('fill_form', {fields:[{field_id:'f2', value:'two'}]}, 'second').calls,
     ]};
-    assert.equal(JSON.parse(messages.at(-1).content).error, 'action_already_handled');
+    assert.equal(JSON.parse(lastMessage(messages).content).error, 'action_already_handled');
     return done;
   }, execute: async () => {executed++; return {cancelled: true};}});
   assert.equal(executed, 1);
@@ -360,7 +363,7 @@ test('screen tools require the confirmed Qwen family and numeric coordinates', a
   let round = 0, calls = 0;
   await runAgent({...base(), tools: browserTools({}, BUILTIN_SKILLS[0], 'qwen3.8-27b'), complete: async messages => {
     if (++round === 1) return call('click_at', {screenshot_id: 'latest', x: '12', y: 15});
-    if (round === 2) {assert.equal(JSON.parse(messages.at(-1).content).error, 'tool_arguments_invalid'); return call('click_at', {screenshot_id: 'latest', x: 12, y: 15});}
+    if (round === 2) {assert.equal(JSON.parse(lastMessage(messages).content).error, 'tool_arguments_invalid'); return call('click_at', {screenshot_id: 'latest', x: 12, y: 15});}
     return done;
   }, execute: async () => {calls++; return {ok: true};}});
   assert.equal(calls, 1);
@@ -395,7 +398,7 @@ test('a generic observation cannot unlock a lost write; explicit successful veri
    if(round===2)return call('fill_form',{fields:[{field_id:'f1',value:'first'}]});
    if(round===3)return call(readTool);
    if(round===4){assert.equal(state.verificationPending,true,readTool+' must not resolve uncertainty');return call('fill_form',{fields:[{field_id:'f2',value:'next'}]});}
-   if(round===5){assert.equal(JSON.parse(messages.at(-1).content).error,'action_outcome_unknown');return call('verify_page',{checks:[{kind:'field_value',ref:'f1',expected:'first'}]});}
+   if(round===5){assert.equal(JSON.parse(lastMessage(messages).content).error,'action_outcome_unknown');return call('verify_page',{checks:[{kind:'field_value',ref:'f1',expected:'first'}]});}
    if(round===6){assert.equal(state.verificationPending,false);return call('fill_form',{fields:[{field_id:'f2',value:'next'}]});}
    return done;
   },execute:async name=>{
@@ -416,7 +419,7 @@ test('returned unknown outcomes and automatic recovery screenshots keep the same
    if(++round===1)return call('read_page');
    if(round===2)return call('click_element',{ref:'r1'});
    if(round===3){assert.equal(state.verificationPending,true);return call('click_element',{ref:'r2'});}
-   if(round===4){assert.equal(JSON.parse(messages.at(-1).content).error,'action_outcome_unknown');return call('verify_page',{checks:[{kind:'text_present',expected:'saved'}]});}
+   if(round===4){assert.equal(JSON.parse(lastMessage(messages).content).error,'action_outcome_unknown');return call('verify_page',{checks:[{kind:'text_present',expected:'saved'}]});}
    return done;
   },execute:async name=>{
    if(name==='read_page')return livePage();
@@ -428,6 +431,85 @@ test('returned unknown outcomes and automatic recovery screenshots keep the same
    return {ok:true,verified:true,checks:[{kind:'text_present',passed:true}],observation:livePage()};
   }});assert.equal(captures,1);
  }
+});
+
+test('Qwen gets a screenshot after repeated locator failure with original receipts and matching renewed refs', async () => {
+  let round = 0, failures = 0, captures = 0;
+  const receipt = {commands: [{index: 1, method: 'fill', state: 'returned', actionIssued: true}, {index: 2, method: 'click', state: 'failed', actionIssued: false}]};
+  const fresh = {...livePage(), frames: [{...livePage().frames[0], elements: [{ref: 'visual-ref', role: 'button', name: '다음', id: 'next'}]}]};
+  const result = await runAgent({...base(), harness: true, tools: browserTools({}, BUILTIN_SKILLS[0], 'QWEN3.8-27B-FP8-256K'),
+    complete: async messages => {
+      if (++round <= 2) return call('run_playwright', {code: 'await page.getByRole("button").click();'});
+      const failed = JSON.parse(messages.findLast(message => message.role === 'tool').content);
+      assert.equal(failed.reason, 'script_locator');
+      assert.deepEqual(failed.execution, receipt);
+      assert.equal(failed.observation.frames[0].elements[0].ref, 'visual-ref');
+      assert.equal(failed.visualRecovery.visualTargets[0].ref, 'visual-ref');
+      assert.match(failed.recovery, /old refs expired/);
+      assert.equal(messages.flatMap(message => Array.isArray(message.content) ? message.content.filter(part => part.type === 'image_url') : []).length, 1);
+      return call('ask_user', {question: '어느 버튼을 선택할까요?', choices: [{label: '다음'}, {label: '중지'}]});
+    }, execute: async name => {
+      if (name === 'run_playwright') {failures++; return {error: 'script_locator', reason: 'script_locator', actionIssued: false, execution: receipt, observation: livePage()};}
+      if (name === 'capture_page') {captures++; return {screenshot_id: 'shot', image: {mimeType: 'image/png', data: 'AAAA'}, observation: fresh, visualTargets: [{ref: 'visual-ref'}]};}
+      return {requiresUserInput: true};
+    }});
+  assert.equal(result.awaitingUser, true); assert.equal(failures, 2); assert.equal(captures, 1);
+});
+
+test('failed automatic capture preserves its reason, reads DOM once and never replays an issued action', async () => {
+  let round = 0, clicks = 0, captures = 0, reads = 0;
+  const steps = [], fresh = {...livePage(), frames: [{...livePage().frames[0], elements: [{ref: 'new-ref', role: 'button', name: '保存', id: 'save'}]}]};
+  await runAgent({...base(), harness: true, tools: browserTools({}, BUILTIN_SKILLS[0], 'QWEN3.8-27B-FP8-256K'), onStep: step => steps.push(step),
+    complete: async (messages, _, state) => {
+      if (++round === 1) return call('click_element', {ref: 'r1'});
+      if (round === 2) {
+        const failed = JSON.parse(messages.findLast(message => message.role === 'tool').content);
+        assert.equal(failed.error, 'script_timeout'); assert.equal(failed.actionIssued, true);
+        assert.equal(failed.visualRecoveryStatus.reason, 'capture_timeout');
+        assert.equal(failed.observation.frames[0].elements[0].ref, 'new-ref');
+        assert.equal(state.verificationPending, true);
+        return call('click_element', {ref: 'new-ref'});
+      }
+      assert.equal(JSON.parse(messages.findLast(message => message.role === 'tool').content).error, 'action_outcome_unknown');
+      return call('ask_user', {question: '이전 저장 결과를 확인해 주세요.', input_mode: 'long_text'});
+    }, execute: async name => {
+      if (name === 'click_element') {clicks++; return {error: 'script_timeout', actionIssued: true, recovery: {execution: 'unknown'}};}
+      if (name === 'capture_page') {captures++; throw new Error('capture_timeout');}
+      if (name === 'browser_snapshot') {reads++; return fresh;}
+      return {requiresUserInput: true};
+    }});
+  assert.equal(clicks, 1); assert.equal(captures, 1); assert.equal(reads, 1);
+  assert(steps.some(step => step.tool === 'capture_page' && step.status === 'error' && step.reason === 'capture_timeout'));
+});
+
+test('failed visual capture does not bypass a permission failure with another DOM route', async () => {
+  let round = 0, reads = 0;
+  await runAgent({...base(), harness: true, tools: browserTools({}, BUILTIN_SKILLS[0], 'QWEN3.8-27B-FP8-256K'),
+    complete: async messages => {
+      if (++round === 1) return call('click_element', {ref: 'r1'});
+      const failed = JSON.parse(messages.findLast(message => message.role === 'tool').content);
+      assert.equal(failed.visualRecoveryStatus.reason, 'page_permission');
+      return call('ask_user', {question: '페이지 접근 권한을 허용해 주세요.', input_mode: 'long_text'});
+    }, execute: async name => {
+      if (name === 'click_element') return {error: 'script_obscured', actionIssued: false};
+      if (name === 'capture_page') throw new Error('page_permission');
+      if (name === 'browser_snapshot') reads++;
+      return {requiresUserInput: true};
+    }});
+  assert.equal(reads, 0);
+});
+
+test('debugger connection failure pauses once instead of generating more action code or captures', async () => {
+  for (const reason of ['debugger_unavailable', 'debugger_conflict', 'debugger_policy_blocked', 'debugger_protocol_unsupported', 'debugger_attach_failed', 'debugger_disconnected']) {
+    let rounds = 0, actions = 0, questions = 0;
+    const result = await runAgent({...base(), harness: true,
+      complete: async () => {rounds++; return call('click_element', {ref: 'r1'});},
+      execute: async (name, args) => {
+        if (name === 'click_element') {actions++; return {error: reason, reason, actionIssued: false, browserConnection: {phase: 'debugger_attach', status: 'failed', reason}};}
+        assert.equal(name, 'ask_user'); assert.match(args.question, /연결/); questions++; return {requiresUserInput: true};
+      }});
+    assert.equal(result.awaitingUser, true, reason); assert.equal(rounds, 1); assert.equal(actions, 1); assert.equal(questions, 1);
+  }
 });
 
 test('a successful page check cannot clear an unknown click after the original document changes', async () => {
@@ -443,7 +525,7 @@ test('a successful page check cannot clear an unknown click after the original d
       if(round===3)return call('browser_snapshot');
       if(round===4)return call('verify_page',{checks:[{kind:'text_present',expected:'saved'}]});
       assert.equal(state.verificationPending,true);
-      assert.equal(JSON.parse(messages.at(-1).content).unresolvedAction,true);
+      assert.equal(JSON.parse(lastMessage(messages).content).unresolvedAction,true);
       return call('ask_user',{question:'원래 문서가 바뀌었습니다. 현재 상태를 확인해 주시겠습니까?',input_mode:'long_text'});
     },execute:async name=>{
       if(name==='read_page')return original;

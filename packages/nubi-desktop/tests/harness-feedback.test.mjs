@@ -348,6 +348,11 @@ test('the executor and the review are told that a question goes through ask_user
   }};
   const task=await service.createTask({request:'app.txt를 확인해 줘'});await service.startAgent({taskId:task.id});await service.agent.promise;
   assert.match(system,/ask_user[^.]*\. A question written in the final response ends the run without an answer/);
+  // E5 (S27, 2026-09-30): the command the user named failed and the run stopped without the corrected command.
+  // User decision 2026-10-01: the goal, not the words of the command; a command known to be wrong is not run.
+  // K1 (S28, 2026-10-01): a correct answer named no file it rested on.
+  assert.match(system,/Name the files or Wiki pages an answer rests on, with path and lines when known\./);
+  assert.match(system,/When the command asked for is wrong[^.]*whether its run failed or project files show it[^.]*do not stop at reporting it: propose the corrected command[^.]*do not run a command known to be wrong/);
   assert.match(continued,/call ask_user/);
   assert.match(REVIEW_PROMPT,/asks the user to decide[^.]*ask_user/);
 });
@@ -406,4 +411,16 @@ test('a plan that stays invalid is asked again with the rule it broke',async()=>
   assert.equal(seen.length,2);assert.equal(prepared.steps[0].status,'in_progress');
   assert.match(seen[1],/Problems found:/);assert.match(seen[1],/status/);assert.match(seen[1],/unknown-workflow/);assert.match(seen[1],/knowledge/,'the valid workflow ids are named');
   await assert.rejects(prepareWorkPlan({task,history:[],model:{contextLength:200000},capabilities,signal:new AbortController().signal,invoke:async()=>({content:JSON.stringify(broken),calls:[]})}),/work_plan_invalid/);
+});
+
+// E5 and E6 (S27, 2026-10-01): the command the user named failed because it was wrong, and the review took an
+// accurate report of the error for the answer. The host names what is still owed as a requirement of its own.
+test('a wrong command that nothing followed is a requirement of the review until it is corrected or asked about',async()=>{
+  const {WRONG_COMMAND_REQUIREMENT}=await import('../runtime/result-review.mjs');
+  const task={id:'t',request:'npm run test:discount 로 할인 검사만 돌려서 결과를 알려 줘.',criteria:[],messages:[]};
+  const input=receipts=>resultReviewInput({task,evidence:[],receipts,candidate:'스크립트가 없어 실행되지 않았습니다.',model:{contextLength:200000},history:[]}).data;
+  const wrong=input({processes:[],wrongCommand:{processId:'p',script:'npm run test:discount',kind:'missing_script',detail:'test:discount'}});
+  assert.deepEqual(wrong.requirements.find(item=>item.id==='host:command'),{id:'host:command',text:WRONG_COMMAND_REQUIREMENT});
+  assert.match(WRONG_COMMAND_REQUIREMENT,/a report of the error alone does not meet it/);
+  assert.equal(input({processes:[]}).requirements.some(item=>item.id==='host:command'),false);
 });

@@ -31,6 +31,16 @@ async function scenario(goal, pages, operations = pages.map(() => 'read_page'), 
   return {result, executed, steps, briefs, childTurns, parentTurns};
 }
 
+test('automatic comparisons preserve a 2000-character request including trailing exclusions in every actual child input', async () => {
+  const tail = '\n2026년 3월 휴실 예외를 확인하고 로그인과 회원 전용 서비스는 비교에서 제외해 줘.';
+  const goal = '두 출처의 조건을 비교해 줘.\n' + '조건의 적용 범위를 확인해 주세요. '.repeat(110);
+  const request = goal.slice(0, 2000 - tail.length) + tail;
+  assert.equal(request.length, 2000);
+  const result = await scenario(request, [page('https://one.example/guide', '이용 안내'), page('https://two.example/guide', '조건 안내')]);
+  assert.equal(result.briefs.length, 2);
+  for (const brief of result.briefs) assert.equal(brief.task, request);
+});
+
 test('an explicit read-only comparison automatically analyzes two different captured pages once', async () => {
   const goal = '두 출처의 경기 결과를 교차 확인하고 서로 다른 갱신 시각을 설명해 줘.';
   const result = await scenario(goal, [page('https://sports.example.com/result', '스포츠 카드'), page('https://news.example.com/article', '뉴스 원문')]);

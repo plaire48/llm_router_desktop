@@ -105,7 +105,7 @@ test('a span too short to be worth a summary is not sent to the model', async ()
   assert(second.some(message => message.role === 'tool' && message.content.includes('read 2')));
 });
 
-test('reported usage lowers the estimate only when it is a plausible count of the request', async () => {
+test('valid reported input usage replaces the exact request estimate; invalid usage does not', async () => {
   const model = {name: 'm', contextLength: 40000, maxInputTokens: 30000};
   const wire = [{role: 'system', content: '지침'}, {role: 'user', content: base.goal}, ...pair('a', 'read_page', {text: '가'.repeat(8000)}), ...pair('b', 'read_page', {text: '나'.repeat(8000)}), ...pair('c', 'read_page', {text: '다'.repeat(3000)})];
   const summaries = async usage => {
@@ -120,9 +120,11 @@ test('reported usage lowers the estimate only when it is a plausible count of th
   assert(estimate > contextBudget(model).trigger, String(estimate));
   assert(estimate * .7 <= contextBudget(model).trigger, 'the fixture sits between the two thresholds');
   assert.equal(await summaries(null), true);
-  // Sixty percent of the estimate is counted as seventy: under the trigger, so no summary is made.
+  // The exact request uses the provider's valid count without an estimator floor.
   assert.equal(await summaries({prompt_tokens: Math.floor(estimate * .6)}), false);
-  // An implausibly small report changes nothing, and a larger one never lowers the estimate.
-  assert.equal(await summaries({prompt_tokens: 100}), true);
+  assert.equal(await summaries({prompt_tokens: 100}), false);
+  // Invalid measurements cannot suppress compaction; larger valid input still triggers it.
+  assert.equal(await summaries({prompt_tokens: '100'}), true);
+  assert.equal(await summaries({prompt_tokens: 100, total_tokens: 1}), true);
   assert.equal(await summaries({prompt_tokens: Math.floor(estimate * 1.5)}), true);
 });

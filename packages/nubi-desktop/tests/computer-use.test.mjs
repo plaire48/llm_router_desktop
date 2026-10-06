@@ -1,4 +1,5 @@
-import test from 'node:test';
+import {featureTest} from './beta-feature.mjs';
+const test=featureTest('computerUse');
 import assert from 'node:assert/strict';
 import {writeFile,symlink,readFile} from 'node:fs/promises';
 import {PNG} from 'pngjs';
@@ -123,7 +124,7 @@ test('Pi carries its own Wiki evidence into an approved UIA state action and rea
   const call=(name,args)=>({content:'',calls:[{id:crypto.randomUUID(),type:'function',function:{name,arguments:JSON.stringify(args)}}]});
   service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:32000}]}),dispose(){},complete:async(messages,definitions)=>{
     const definition=definitions.find(v=>v.function?.name==='propose_computer_action').function;
-    assert(definition.parameters.properties.action.enum.includes('toggle_on'));assert.match(definition.description,/separate user mouse-control approval/);
+    assert(definition.parameters.properties.action.enum.includes('toggle_on'));assert.match(definition.description,/Real input, approved on its own/);
     const last=messages.findLast(m=>m.role==='tool'),result=last?JSON.parse(last.content):null;
     switch(++round){
       case 1:return call('wiki_query',{query:'welcome'});
@@ -302,11 +303,13 @@ test('a pending or uncertain newer operation blocks continuation from an older r
   assert.equal(data.acted,2);assert.equal(service.store.get('computer-action:'+first.id).review,undefined);
 });
 
-test('targeted UIA search finds a control outside the first 150 elements without input or capture',async t=>{
+// 150 elements before the user decision of 2026-09-30 on large windows (case A16).
+test('targeted UIA search finds a control outside the first INSPECT_ELEMENTS elements without input or capture',async t=>{
   const {service,task,data}=await setup(t);
-  data.elements=Array.from({length:160},(_,i)=>({...data.control,selector:'row-'+i,name:'Unrelated row'}));
+  const {INSPECT_ELEMENTS}=await import('../runtime/computer-use.mjs');assert.equal(INSPECT_ELEMENTS,400);
+  data.elements=Array.from({length:INSPECT_ELEMENTS+10},(_,i)=>({...data.control,selector:'row-'+i,name:'Unrelated row'}));
   const shallow=await observeComputer(service,task.id,{includeImage:false});
-  assert.equal(shallow.elements.length,150);assert.equal(shallow.truncated,true);
+  assert.equal(shallow.elements.length,INSPECT_ELEMENTS);assert.equal(shallow.truncated,true);
   const focused=await observeComputer(service,task.id,{query:'검색',includeImage:false});
   assert.equal(focused.elements[0].selector,data.control.selector);assert.equal(focused.coverage.mode,'search');
   assert.deepEqual(data.calls.find(v=>v[1]==='search'),['ui','search','검색','-w','100','--max','20','--json']);
@@ -320,6 +323,11 @@ test('search empty results are partial evidence and malformed results never gran
   data.searchResult={matchCount:0,hasMore:false,matches:[]};
   const result=await observeComputer(service,task.id,{query:'존재하지 않음',includeImage:false});
   assert.deepEqual(result.elements,[]);assert.equal(result.coverage.complete,false);
+  // Several keywords in one query match no control (A5, 2026-09-30): the result says to search one word of a label.
+  assert.match(result.searchHint,/one word or a short phrase of a single label/);
+  data.searchResult={matchCount:1,hasMore:false,matches:[data.control]};
+  assert.equal((await observeComputer(service,task.id,{query:'검색',includeImage:false})).searchHint,undefined);
+  data.searchResult={matchCount:0,hasMore:false,matches:[]};
   for(const query of ['', ' -w', '\0', 'x'.repeat(201)])await assert.rejects(()=>observeComputer(service,task.id,{query,includeImage:false}),/computer_invalid/);
   data.searchResult={matchCount:2,hasMore:false,matches:[data.control,data.control]};
   await assert.rejects(()=>observeComputer(service,task.id,{query:'검색'}),/computer_contract/);
@@ -427,15 +435,28 @@ async function allowPointer(propose){
   for(let i=0;i<3;i++)await assert.rejects(()=>propose('select'),error=>error.message==='computer_target_unavailable'&&error.pointerFallback.failures===i+1);
 }
 
-for(const [action,command,flag] of [['pointer_click','click',null],['pointer_double_click','click','--double'],['pointer_right_click','click','--right'],['hover','hover','--dwell-time']])test(action+' needs a separate one-action HITL grant',async t=>{
+// User decision 2026-09-30: every mouse operation, each approved on its own. Gestures that UIA does not offer are
+// proposed directly; a left click is for a control that cannot be invoked (see the test after this one).
+for(const [action,command,flag] of [['pointer_click','click',null],['pointer_double_click','click','--double'],['pointer_right_click','click','--right'],['hover','hover','--dwell-time']])test(action+' is proposed directly and needs a one-action mouse consent',async t=>{
   const {service,task,data,propose,decide}=await setup(t);data.control.isInvokable=false;
-  await allowPointer(propose);const p=await propose(action);assert.equal(p.inputMode,'shared_pointer');assert.equal(data.acted,0);
+  const p=await propose(action);assert.equal(p.inputMode,'shared_pointer');assert.equal(p.pointerBasis,action==='pointer_click'?'not_invokable':'gesture');assert.equal(data.acted,0);
   await assert.rejects(decide(p),/computer_pointer_consent_required/);assert.equal(data.acted,0);
   const approve=()=>service.computer({method:'decide',taskId:task.id,id:p.id,fingerprint:p.fingerprint,decision:'approve',pointerConsent:true});
   await approve();await approve();assert.equal(data.acted,1);
   const args=data.calls.find(v=>v[1]===command);assert(args);if(flag)assert(args.includes(flag));assert(args.includes('100'));
   const receipt=readComputerResult(service,task.id,{actionId:p.id}).receipt;assert.equal(receipt.pointerApproval.scope,'one_action');assert.equal(receipt.inputMode,'shared_pointer');assert.equal(receipt.verification,'not_verified');
-  await assert.rejects(propose(action),/computer_uia_attempts_required/);await allowPointer(propose);const q=await propose(action);await assert.rejects(decide(q),/computer_pointer_consent_required/);assert.equal(data.acted,1);
+  // The window did not change: the same gesture again is warned about once, then proposed with its own consent.
+  await assert.rejects(propose(action),/computer_no_effect_repeat/);const q=await propose(action);assert.equal(q.repeats.times,1);
+  await assert.rejects(decide(q),/computer_pointer_consent_required/);assert.equal(data.acted,1);
+});
+
+test('a real click on a control that can be invoked waits until its invoke changed nothing',async t=>{
+  const {service,task,data,propose,decide}=await setup(t);
+  await assert.rejects(propose('pointer_click'),/computer_uia_attempts_required/);assert.equal(data.acted,0);
+  const invoked=await propose('invoke');await decide(invoked);assert.equal(data.acted,1);
+  const p=await propose('pointer_click');assert.equal(p.pointerBasis,'invoke_no_change');
+  await service.computer({method:'decide',taskId:task.id,id:p.id,fingerprint:p.fingerprint,decision:'approve',pointerConsent:true});
+  assert.equal(data.acted,2);assert.deepEqual(data.calls.find(v=>v[1]==='click'),['ui','click',data.control.selector,'-w','100','--json']);
 });
 
 test('drag binds two observed selectors and rejects a destination changed after approval preview',async t=>{

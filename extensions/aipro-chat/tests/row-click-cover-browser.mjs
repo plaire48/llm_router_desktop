@@ -62,6 +62,19 @@ ${mails.map((m, i) => `<div class="row" data-row="${i}"><button type="button" cl
       const star = elements.find(el => el.role === 'button' && ['☆', '중요'].includes(el.name) && named(el, '인사팀'));
       assert.deepEqual(star?.context?.find(c => c.name?.includes('인사팀'))?.state, ['starred'], JSON.stringify(star || elements.slice(0, 3)).slice(0, 900));
     }},
+  // A quick menu fixed to the right edge and as tall as the window over the
+  // footer's GO button (measured on a library site, H-06): no scroll moves the
+  // button out from under it. The bar lets this one click through, then takes
+  // the pointer again.
+  quickmenu: {page: `<style>body{margin:0}.quick{position:fixed;top:0;right:0;width:180px;height:100vh;background:#eef;z-index:150}.quick a{display:block;padding:12px}.foot{display:flex;justify-content:flex-end;gap:8px;padding:20px 12px;margin-top:900px}</style>
+<div class="quick"><a href="#quick-search">소장자료 검색</a><a href="#quick-first">처음 방문하셨나요? GO</a></div>
+<div class="foot" data-row="27"><select title="연관 도서관 사이트"><option>도서관 홈페이지</option><option>국립중앙도서관</option></select><button type="button" onclick="this.parentNode.dataset.opened='1'">GO</button></div>`,
+    query: 'GO 연관 도서관 사이트', pick: el => el.role === 'button' && el.name === 'GO', opened: true,
+    check: async (run, tab) => assert.equal(await tab.evaluate(() => document.querySelector('.quick').style.pointerEvents), '', 'the bar takes the pointer again')},
+  // A layer notice drawn over the list is a dialog: resolving it belongs to the task.
+  layerdialog: {page: `<style>.row{padding:10px;border-bottom:1px solid #ddd}.notice{position:fixed;left:0;right:0;top:0;height:420px;background:#fff;border:2px solid #333;z-index:9}</style>
+<div role="dialog" aria-label="공지" class="notice"><p>점검 안내</p><button type="button">닫기</button></div>
+${mails.map((m, i) => `<div class="row" data-row="${i}"><a href="#open-${i}">${m.from} · ${m.subject}</a></div>`).join('')}`, refused: {kind: 'dialog', name: '공지'}},
   // A long mail caption that ends with an approval word only opens the mail.
   approval: {page: `<div class="list">${mails.map((m, i) => `<div data-row="${i}"><a class="mail" href="#open-${i}">${m.from} · ${i === 27 ? '[결재] 2026년 10월 휴가 신청 승인' : m.subject}</a></div>`).join('')}</div>`,
     query: '인사팀 휴가 신청 승인', words: '휴가 신청', opens: '#open-27'},
@@ -116,7 +129,7 @@ try {
         assert(events.length >= 1 && events.every(event => event.row === '27') && events.some(event => event.trusted), `${shape}: ${JSON.stringify(events)}`);
         if (spec.opens) assert.equal(new URL(tab.url()).hash, spec.opens);
         if (spec.opened) assert.deepEqual(JSON.parse(await tab.evaluate(() => JSON.stringify([...document.querySelectorAll('[data-opened]')].map(el => el.dataset.row)))), ['27']);
-        if (spec.check) await spec.check(run);
+        if (spec.check) await spec.check(run, tab);
         if (spec.checkbox) assert.deepEqual(JSON.parse(await tab.evaluate(() => JSON.stringify([...document.querySelectorAll('input[type=checkbox]')].map((box, i) => box.checked ? i : -1).filter(i => i >= 0)))), [27]);
         pass(`${shape}: the row is acted on with one trusted click and nothing else is pressed`);
       }

@@ -1,0 +1,38 @@
+{
+  "id": "E4-run-one-test-file",
+  "title": "요청한 검사 파일만 실행",
+  "suite": "command",
+  "split": "holdout",
+  "corpus": "order-failing",
+  "request": "할인 검사 파일만 실행해서 결과를 알려 줘. 다른 검사는 돌리지 마.",
+  "approvals": [
+    "command"
+  ],
+  "commands": [
+    "npm(?:\\.cmd)? (?:run )?test(?: .+)?",
+    "node --test(?: .+)?",
+    "(?:node|npm)(?:\\.cmd)? (?:--version|-v)",
+    "git (?:status|diff|log)(?: [\\w./=@-]+)*"
+  ],
+  "expect": {
+    "state": "review",
+    "commands": {
+      "match": [
+        "re:discount"
+      ],
+      "min": 1,
+      "lastExitCode": 0
+    },
+    "answer_includes": [
+      [
+        "통과",
+        "pass",
+        "성공"
+      ]
+    ],
+    "answer_excludes": [
+      "re:무료 배송 기준과 기본 배송비[^\\n]{0,40}(통과|성공)"
+    ],
+    "unchanged_except": []
+  }
+}

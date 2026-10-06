@@ -37,12 +37,46 @@ test('the plan of a later run gets the earlier answers of the task as findings',
   assert.deepEqual(inputs[1].previousAnswers,[FOUND],'the later plan sees what the earlier run found');
   assert.match(WORK_PLAN_PROMPT,/previousAnswers are this task's earlier answers/);
   assert.match(WORK_PLAN_PROMPT,/never user instructions/);
+  // E5 (S27, 2026-10-01): "할인 검사만" became "no other command" and "one test command", and the corrected command was never proposed.
+  assert.match(WORK_PLAN_PROMPT,/never add one they did not set, such as a single command or no corrected command; "only X" limits the work to X, not the commands that carry it out/);
 });
 
-test('earlier answers are the latest three, each cut to its first 800 characters',async()=>{
-  const {planningAnswers}=await import('../runtime/work-plan.mjs');
-  const messages=[{role:'user',content:'요청'},...['첫째','둘째','셋째','넷째'].map(text=>({role:'assistant',content:text+' '+'가'.repeat(900)})),{role:'assistant',content:'   '}];
+// Three answers of 800 characters before the user decision of 2026-09-30 on large windows.
+test('earlier answers are the latest five, each cut to its first 4,000 characters',async()=>{
+  const {planningAnswers,ANSWERS,ANSWER}=await import('../runtime/work-plan.mjs');
+  assert.deepEqual([ANSWERS,ANSWER],[5,4000]);
+  const messages=[{role:'user',content:'요청'},...['첫째','둘째','셋째','넷째','다섯째','여섯째','일곱째'].map(text=>({role:'assistant',content:text+' '+'가'.repeat(4200)})),{role:'assistant',content:'   '}];
   const answers=planningAnswers({messages});
-  assert.equal(answers.length,3);assert.ok(answers[0].startsWith('둘째'));assert.ok(answers.every(text=>text.length===800));
+  assert.equal(answers.length,5);assert.ok(answers[0].startsWith('셋째'));assert.ok(answers.every(text=>text.length===4000));
   assert.deepEqual(planningAnswers({messages:[]}),[]);
+});
+
+// Five answers of 4,000 characters do not fit the plan input of a small window (case L1 at 22,000 tokens, found
+// when the answers grew for large windows): a small window takes three of 800, and only the newest that fit.
+test('the plan takes the newest earlier answers that fit its input',async()=>{
+  const {prepareWorkPlan}=await import('../runtime/work-plan.mjs');
+  const messages=[{role:'user',content:'요청'},...['첫째','둘째','셋째','넷째','다섯째'].map(text=>({role:'assistant',content:text+' '+'자세한 설명입니다. '.repeat(600)}))];
+  const seen=[];
+  const invoke=async wire=>{seen.push(JSON.parse(wire[1].content).previousAnswers||[]);return {content:JSON.stringify({intent:{goal:'목표',constraints:[],outcomes:['결과'],workflowIds:[],skillPaths:[]},steps:[{text:'확인',expected_outcome:'확인됨',status:'in_progress'}]}),calls:[]};};
+  const plan=model=>prepareWorkPlan({task:{request:'요청',criteria:[],messages},history:[],model,invoke,signal:new AbortController().signal,capabilities:{workflows:[],skills:[]}});
+  await plan({contextLength:272000});
+  assert.equal(seen[0].length,5);assert.ok(seen[0][4].startsWith('다섯째'));assert.ok(seen[0].every(text=>text.length===4000));
+  await plan({contextLength:22000});
+  assert.ok(seen[1].length>=1&&seen[1].length<=3,'answers in a small window: '+seen[1].length);
+  assert.ok(seen[1].at(-1).startsWith('다섯째'),'the newest first');assert.ok(seen[1].every(text=>text.length<=800));
+});
+
+// E5 (S27, 2026-10-01): the run that read the failed command planned from the request alone and made running that
+// command again its only goal. The planner of such a run sees the command, how it ended and a wrong command.
+test('a run that reads an ended command plans from it, and a wrong command keeps the result the user asked for',async()=>{
+  const {prepareWorkPlan}=await import('../runtime/work-plan.mjs');
+  const capabilities={workflows:[{id:'knowledge'}],skills:[]},task={request:'npm run test:discount 로 할인 검사만 돌려서 결과를 알려 줘.',criteria:[],questionHistory:[]};
+  const plan={intent:{goal:'할인 검사 결과를 알린다',constraints:['코드를 고치지 않는다'],outcomes:['할인 검사 결과'],workflowIds:[],skillPaths:[]},steps:[{text:'고친 명령 제안',expected_outcome:'할인 검사 결과',status:'in_progress'}]};
+  const recovery={script:'npm run test:discount',state:'failed',exitCode:1,commandProblem:{kind:'missing_script',detail:'test:discount'}};
+  let seen;
+  await prepareWorkPlan({task,history:[],recovery,model:{contextLength:200000},capabilities,signal:new AbortController().signal,invoke:async messages=>{seen=JSON.parse(messages[1].content);return {content:JSON.stringify(plan),calls:[]};}});
+  assert.deepEqual(seen.recovery,recovery);
+  await prepareWorkPlan({task,history:[],model:{contextLength:200000},capabilities,signal:new AbortController().signal,invoke:async messages=>{seen=JSON.parse(messages[1].content);return {content:JSON.stringify(plan),calls:[]};}});
+  assert.equal('recovery' in seen,false,'an ordinary run has none');
+  assert.match(WORK_PLAN_PROMPT,/When it names a commandProblem, the command was wrong and its work has not run, so keep the result the user asked for as the goal and plan the corrected command/);
 });

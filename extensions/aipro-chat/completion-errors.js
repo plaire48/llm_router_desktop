@@ -1,8 +1,11 @@
 import {httpError, ERROR_TEXT} from './core.js';
 import {retryAfterMs} from './http-retry.js';
 
-const reasons = new Set(['system_messages', 'tool_messages', 'tool_schema', 'stream_options', 'context_limit', 'model_unavailable', 'image_input', 'request_body', 'endpoint', 'http']);
+const reasons = new Set(['system_messages', 'tool_messages', 'tool_schema', 'stream_options', 'context_limit', 'model_unavailable', 'image_input', 'request_body', 'endpoint', 'http', 'stream_error']);
 const requestStatuses = [400, 404, 413, 415, 422];
+// A server's error code is an identifier such as server_error or image_too_large.
+// Only that shape is kept, never the server's message text.
+export const errorCode = value => typeof value === 'string' && /^[a-z][a-z0-9_.-]{0,63}$/.test(value) ? value : undefined;
 
 // Typed check outcomes only: never retain expected values, refs or page text.
 export function verificationDiagnostic(result) {
@@ -70,13 +73,17 @@ const streamCodes = new Map([
   ...['context_length_exceeded', 'context_window_exceeded', 'max_input_tokens'].map(code => [code, ['context_overflow', false]]),
   ...['model_not_found', 'invalid_model', 'unknown_model'].map(code => [code, ['invalid_model', false]]),
   ['invalid_request_error', ['request_rejected', false]], ['content_filter', ['response_filtered', false]],
+  ['invalid_prompt', ['response_filtered', false]],
+  // OpenAI Responses image failures: the image, not the server, was refused.
+  ...['invalid_image', 'invalid_image_format', 'invalid_base64_image', 'invalid_image_url', 'image_too_large', 'image_too_small', 'image_parse_error',
+    'image_content_policy_violation', 'invalid_image_mode', 'image_file_too_large', 'unsupported_image_media_type', 'empty_image_file'].map(code => [code, ['request_image', false]]),
 ]);
 export function completionStreamError(payload, headers) {
   const source = payload?.response?.error || payload?.error || payload;
   const key = typeof source?.code === 'string' && source.code ? source.code : source?.type;
   const [message, retryable] = streamCodes.get(key) || ['upstream', false];
   const delay = retryable ? retryAfterMs(headers) : undefined;
-  return Object.assign(new Error(message), {retryable, ...(delay === undefined ? {} : {retryAfterMs: delay})});
+  return Object.assign(new Error(message), {retryable, ...(errorCode(key) ? {code: errorCode(key)} : {}), ...(delay === undefined ? {} : {retryAfterMs: delay})});
 }
 
 // Only fixed classifications cross the provider boundary. Raw error messages
@@ -84,14 +91,14 @@ export function completionStreamError(payload, headers) {
 export function completionDiagnostic(value) {
   if (!value || !['rejected', 'recovered'].includes(value.phase) || !reasons.has(value.reason) || ![1, 2].includes(value.attempt) ||
       !Number.isInteger(value.status) || value.status < 200 || value.status > 599) return null;
-  return {phase: value.phase, reason: value.reason, attempt: value.attempt, status: value.status};
+  return {phase: value.phase, reason: value.reason, attempt: value.attempt, status: value.status, ...(errorCode(value.code) ? {code: value.code} : {})};
 }
 
 export function classifyCompletionError(status, payload) {
-  let reason = status === 404 ? 'endpoint' : requestStatuses.includes(status) ? 'request_body' : 'http';
+  let reason = status === 404 ? 'endpoint' : requestStatuses.includes(status) ? 'request_body' : 'http', code = '';
   if (requestStatuses.includes(status)) {
     const error = payload?.error && typeof payload.error === 'object' ? payload.error : payload;
-    const code = typeof error?.code === 'string' ? error.code.toLowerCase() : '';
+    code = typeof error?.code === 'string' ? error.code.toLowerCase() : '';
     const message = typeof error?.message === 'string' ? error.message.slice(0, 8192) : '';
     const param = typeof error?.param === 'string' ? error.param : '';
     const locations = Array.isArray(payload?.detail) ? payload.detail.slice(0, 32).flatMap(item => Array.isArray(item?.loc) ? item.loc.filter(value => typeof value === 'string') : []) : [];
@@ -104,7 +111,7 @@ export function classifyCompletionError(status, payload) {
     else if (param === 'tools' || param.startsWith('tools.') || locations.includes('tools')) reason = 'tool_schema';
     else if (['image_url', 'image'].includes(param) || locations.includes('image_url') || /(?:image|vision).{0,50}(?:not supported|unsupported)|(?:not support|unsupported).{0,30}(?:image|vision)/i.test(message)) reason = 'image_input';
   }
-  return {error: errorFor(reason) || httpError(status), reason, status};
+  return {error: errorFor(reason) || httpError(status), reason, status, ...(errorCode(code) ? {code} : {})};
 }
 
 export async function readCompletionError(response) {

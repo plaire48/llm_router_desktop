@@ -3,6 +3,8 @@
 // must be accepted as the evidence of an app action, single or batch, and the
 // action keeps where its rule came from.
 import {test} from 'node:test';
+import {featureTest} from './beta-feature.mjs';
+const computerTest=featureTest('computerUse');
 import assert from 'node:assert/strict';
 import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import path from 'node:path';
@@ -41,7 +43,7 @@ function openwiki(messages){
   return {content:JSON.stringify({status:'complete',answer:RULE,findings:[{text:RULE,citations:[read.id]}],uncertainties:[]})};
 }
 
-for(const kind of ['single','batch'])test(`an app action (${kind}) cites the text that the OpenWiki agent returned`,async t=>{
+for(const kind of ['single','batch'])computerTest(`an app action (${kind}) cites the text that the OpenWiki agent returned`,async t=>{
   const {service,task,host}=await setup(t);let leader=0,answer,proposed;
   service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:200000}]}),dispose(){},async complete(messages){
     if(!messages[0].content.startsWith('You are Nubi Desktop'))return openwiki(messages);

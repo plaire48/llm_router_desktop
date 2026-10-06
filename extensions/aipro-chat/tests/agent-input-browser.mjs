@@ -27,6 +27,14 @@ const rpc=(type,value={})=>ui.evaluate(async({type,value})=>chrome.runtime.sendM
 const state=async()=>(await rpc('GET_STATE')).data;
 async function until(check){for(let i=0;i<600;i++){if(failure)throw failure;if(await check())return;await new Promise(r=>setTimeout(r,40));}throw Error('Input fixture timed out');}
 const input=()=>ui.getByRole('textbox',{name:'메시지',exact:true});
+// Persisted queue state can precede the composer acknowledgement. Enter
+// does not auto-wait for a disabled submit button, unlike a locator click.
+const enqueue=async text=>{
+ await input().fill(text);
+ const add=ui.getByRole('button',{name:'대기열에 추가',exact:true});
+ await until(async()=>await add.count()===1 && await add.isEnabled());
+ await input().press('Enter');
+};
 const send=async text=>{await input().fill(text);await ui.getByRole('button',{name:'전송',exact:true}).click();await until(()=>!!held);};
 async function dragQueue(from,to) {
  const handles=ui.getByRole('button',{name:'대기 메시지 순서 변경',exact:true});
@@ -47,8 +55,8 @@ try{
  await until(async()=>(await state()).catalog?.models?.length===1);
  await send('안녕하세요');let data=await state();const firstId=data.chat.messages.at(-1).id;
  const invalid=await rpc('AGENT_INPUT',{id:'wrong-conversation',mode:'steer',text:'잘못된 세션',requestId:firstId,conversationId:'other'});assert.equal(invalid.ok,false);
- await input().fill('더 짧게 설명해줘');await input().press('Enter');await until(async()=>(await state()).chat.inbox?.length===1);
- await input().fill('두 번째 작업');await input().press('Enter');await until(async()=>(await state()).chat.inbox?.length===2);
+ await enqueue('더 짧게 설명해줘');await until(async()=>(await state()).chat.inbox?.length===1);
+ await enqueue('두 번째 작업');await until(async()=>(await state()).chat.inbox?.length===2);
  assert.equal(requests.length,1,'queued work cannot overlap current inference');
  const originalOrder=(await state()).chat.inbox.map(item=>item.id);
  await dragQueue(1,0);await until(async()=>(await state()).chat.inbox[0].id===originalOrder[1]);
@@ -99,21 +107,21 @@ try{
  pass('queue promotion interrupts model generation immediately; Pi receives steering; next task runs once after completion');
  // Stop never means run queued work. Editing takes a message back into the composer.
  await rpc('NEW_CHAT');await ui.reload();scenario='cancel';round=0;held=null;await send('중지 시험');
- await input().fill('보류할 작업');await input().press('Enter');await until(async()=>(await state()).chat.inbox?.length===1);
+ await enqueue('보류할 작업');await until(async()=>(await state()).chat.inbox?.length===1);
  await ui.getByRole('button',{name:'중지',exact:true}).click();await until(async()=>!(await state()).busy);held();held=null;
  await ui.reload();assert.equal((await state()).chat.inbox.length,1);assert.equal(round,1);
  // An unrelated manually-started task must not unpause the old queue.
- round=0;held=null;await send('새로운 별도 질문');await input().fill('새 작업의 후속 질문');await input().press('Enter');await until(async()=>(await state()).chat.inbox.length===2);held();held=null;await until(async()=>!(await state()).busy);assert.equal(round,2);assert.equal((await state()).chat.inbox.length,1);assert.equal((await state()).chat.inbox[0].text,'보류할 작업');
+ round=0;held=null;await send('새로운 별도 질문');await enqueue('새 작업의 후속 질문');await until(async()=>(await state()).chat.inbox.length===2);held();held=null;await until(async()=>!(await state()).busy);assert.equal(round,2);assert.equal((await state()).chat.inbox.length,1);assert.equal((await state()).chat.inbox[0].text,'보류할 작업');
  await until(async()=>await ui.getByRole('button',{name:'대기 메시지 수정',exact:true}).count()===1);await ui.getByRole('button',{name:'대기 메시지 수정',exact:true}).click();await until(async()=>await input().inputValue()==='보류할 작업');assert.equal((await state()).chat.inbox.length,0);
  pass('stop and re-entry preserve queued work without execution; editing restores the draft');
  await rpc('NEW_CHAT');await ui.reload();scenario='question';round=0;held=null;await send('질문 시험');
- await input().fill('승인 대신 실행하면 안 됨');await input().press('Enter');await until(async()=>(await state()).chat.inbox?.length===1);held();held=null;
+ await enqueue('승인 대신 실행하면 안 됨');await until(async()=>(await state()).chat.inbox?.length===1);held();held=null;
  await until(async()=>!(await state()).busy);data=await state();assert(data.chat.messages.at(-1).question,JSON.stringify(data.chat.messages.at(-1)));assert.equal(data.chat.inbox.length,1);assert.equal(round,1);
  assert.equal((await rpc('START_AGENT',{queuedInputId:data.chat.inbox[0].id,conversationId:data.chat.sessionId})).ok,false);
  await input().fill('표로 작성해주세요');await ui.getByRole('button',{name:'전송',exact:true}).click();await until(async()=>!(await state()).busy&&(await state()).chat.inbox.length===0);assert.equal(round,3);
  pass('question boundary cannot be bypassed; an explicit answer resumes the same queue after task completion');
  await rpc('NEW_CHAT');await ui.reload();scenario='error';round=0;held=null;await send('오류 시험');
- await input().fill('오류 뒤 보류');await input().press('Enter');await until(async()=>(await state()).chat.inbox?.length===1);held();held=null;
+ await enqueue('오류 뒤 보류');await until(async()=>(await state()).chat.inbox?.length===1);held();held=null;
  await until(async()=>!(await state()).busy);data=await state();assert.equal(data.chat.messages.at(-1).state,'error');assert.equal(data.chat.inbox.length,1);assert.equal(round,1);
  await ui.getByRole('button',{name:'대기 메시지 삭제',exact:true}).click();await until(async()=>(await state()).chat.inbox.length===0);
  pass('provider rejection preserves queued work without automatically starting it; pending messages can be deleted');

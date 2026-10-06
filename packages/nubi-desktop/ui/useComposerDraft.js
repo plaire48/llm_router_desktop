@@ -16,5 +16,5 @@ export function useComposerDraft(projectId,taskId) {
     try{if(next)sessionStorage.setItem(key,next);else sessionStorage.removeItem(key);}catch{}
     render(n=>n+1);
   }
-  return [value,setValue];
+  return [value,setValue,()=>key?cache.current.get(key)||'':''];
 }

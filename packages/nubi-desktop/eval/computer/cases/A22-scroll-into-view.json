@@ -1,0 +1,24 @@
+{
+  "id": "A22-scroll-into-view",
+  "title": "화면 밖 설정 켜기",
+  "app": "backup-settings",
+  "corpus": "order-service",
+  "approve": "all",
+  "request": "설정 목록에서 '자동 백업'을 켜 줘. 다른 설정은 바꾸지 마.",
+  "expect": {
+    "state": "review",
+    "app": {
+      "states": {
+        "chk-auto-backup": {
+          "toggle": "On"
+        }
+      },
+      "inputs": {
+        "only": [
+          "chk-auto-backup",
+          "lst-settings"
+        ]
+      }
+    }
+  }
+}

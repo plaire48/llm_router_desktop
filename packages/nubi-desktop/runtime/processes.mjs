@@ -5,6 +5,7 @@ import {access} from 'node:fs/promises';
 import path from 'node:path';
 import {promisify} from 'node:util';
 import {StringDecoder} from 'node:string_decoder';
+import {POWERSHELL_TEXT_ARGS,POWERSHELL_UTF8_PREFIX} from './powershell-encoding.mjs';
 import {startElevated,stopElevated} from './elevated-process.mjs';
 const executeFile=promisify(execFile);
 export const hostShell = (platform=process.platform) => platform==='win32'?'powershell':'bash';
@@ -18,10 +19,10 @@ export function shellArguments(shell, profile, script) {
   if(profile!=='powershell')return [...shell.args,script];
   // Windows PowerShell otherwise emits the console code page into UTF-8 pipes.
   // EncodedCommand also preserves Korean paths and literal quotes in argv.
-  const content='[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false); $OutputEncoding = [Console]::OutputEncoding;\n'+script;
+  const content=POWERSHELL_UTF8_PREFIX+script;
   const encoded=Buffer.from(content,'utf16le').toString('base64');
   if(encoded.length>28000)throw Object.assign(new Error('shell_command_limit'),{code:'shell_command_limit'});
-  return ['-NoLogo','-NoProfile','-NonInteractive','-EncodedCommand',encoded];
+  return [...POWERSHELL_TEXT_ARGS,'-EncodedCommand',encoded];
 }
 
 export async function shellProfiles({platform=process.platform,bashCandidates}={}) {
@@ -35,13 +36,13 @@ export async function shellProfiles({platform=process.platform,bashCandidates}={
 }
 export class Processes {
   constructor(store,{onFinished=()=>{},profiles=shellProfiles}={}) { this.store = store; this.active = new Map(); this.records = new Map(); this.pending=new Set();this.preflights=new Map();this.disposed=false;this.onFinished=onFinished;this.profiles=profiles; }
-  async start({cwd, script, profile = hostShell(), taskId, timeoutMs = 0,autoDiagnose=true,repairOf,setupActionId,privilege='user'}) {
+  async start({cwd, script, profile = hostShell(), taskId, timeoutMs = 0,autoDiagnose=true,repairOf,setupActionId,privilege='user',terminalRequestId,terminalProjectId}) {
     if(this.disposed)throw new Error('host_disconnected');
     if(privilege==='administrator')return startElevated(this,{cwd,script,profile,taskId,setupActionId});
     if(privilege!=='user')throw new Error('elevation_approval_required');
     if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 0 || timeoutMs > 86400000) throw new Error('timeout_invalid');
     if (typeof script !== 'string' || !script.trim() || script.length > 16000) throw new Error('command_invalid');
-    const id = randomUUID(), record = {id, taskId, cwd, profile, script,timeoutMs,autoDiagnose:autoDiagnose===true,...(repairOf?{repairOf}:{}),...(setupActionId?{setupActionId}:{}), startedAt: new Date().toISOString(), state: 'checking', execution:'not_started', output: '', exitCode: null};
+    const id = randomUUID(), record = {id, taskId, cwd, profile, script,timeoutMs,autoDiagnose:autoDiagnose===true,...(repairOf?{repairOf}:{}),...(setupActionId?{setupActionId}:{}),...(terminalRequestId?{terminal:true,terminalRequestId,terminalProjectId}:{}), startedAt: new Date().toISOString(), state: 'checking', execution:'not_started', output: '', exitCode: null};
     const persist=()=>this.store.set('process:'+id,record);
     const finish=()=>{record.finishedAt=new Date().toISOString();persist();this.store.event('process_finished',{id,state:record.state,exitCode:record.exitCode});try{this.onFinished({...record});}catch{}};
     mkdirSync(path.join(this.store.directory,'logs'),{recursive:true}); record.logPath=path.join(this.store.directory,'logs',id+'.log');

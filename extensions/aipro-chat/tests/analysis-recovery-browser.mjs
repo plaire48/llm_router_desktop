@@ -84,7 +84,8 @@ try {
   assert(chat.messages.at(-1).content.includes('서울 A 강의실')); assert.equal(chat.task.goalReview.status, 'complete');
   assert.equal(round, 6); assert.equal(checkpoints, 1); assert.equal(finals, 2);
   assert(stepReviews > 0, 'Step review must not replace the independent final-answer gate');
-  assert.equal(stageTurns, stepReviews - 1);
+  // The last stage only reports: the final review judges it, so every stage review is followed by a later stage.
+  assert.equal(stageTurns, stepReviews);
   assert.equal(await target.evaluate(() => writes), 0); assert.equal(await worker.evaluate(() => attachCount), 0);
   checks.push('failed batches do not execute later writes', 'independent checkpoint redirects failed scripts to passive reading', 'final review catches an omitted requirement and repairs only the answer', 'reading completes without debugger attachment, page writes or redundant verify_page');
   assert.deepEqual(errors, []); await mkdir('verification', {recursive: true});

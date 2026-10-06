@@ -1,3 +1,5 @@
+import {A2AInbox} from './A2AInbox.jsx';
+import {A2ATasks} from './A2ATasks.jsx';
 import {BrowserRoutinesSettings} from './BrowserRoutinesSettings.jsx';
 import {NativeDialogQuestion} from './NativeDialogQuestion.jsx';
 import {BrowserWiki} from './BrowserWiki.jsx';
@@ -61,6 +63,7 @@ export default function App() {
   const [stateStatus, setStateStatus] = useState({paused: false, reload: false});
   const stateSync = useRef(null);
   const [skillDraftReview, setSkillDraftReview] = useState(null);
+  const [a2aOpen,setA2aOpen]=useState(false);
   const [replayOpen, setReplayOpen] = useState(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const helpReturnFocus = useRef(false);
@@ -479,9 +482,20 @@ export default function App() {
     try {await rpc('RESOLVE_FILL', {requestId: data.agentRun.requestId, conversationId: data.chat.sessionId, planId: fillReview.planId, approved}); await refresh();}
     catch (cause) {setError(errorText(cause.message));}
   }
+  // Calls per kind with their average and slowest time, for a quick read of where a run waited.
+  function modelTimeSummary(timings = []) {
+    const kinds = {};
+    for (const item of timings) {
+      const kind = (kinds[item.scope] ||= {calls: 0, totalMs: 0, maxMs: 0, inputK: 0, firstMs: 0, firstCount: 0});
+      kind.calls++; kind.totalMs += item.ms; kind.maxMs = Math.max(kind.maxMs, item.ms); kind.inputK += item.inputK;
+      if (Number.isFinite(item.firstMs)) {kind.firstMs += item.firstMs; kind.firstCount++;}
+    }
+    return Object.fromEntries(Object.entries(kinds).map(([scope, kind]) => [scope, {calls: kind.calls, averageMs: Math.round(kind.totalMs / kind.calls), maxMs: kind.maxMs,
+      averageInputK: Math.round(kind.inputK / kind.calls), ...(kind.firstCount ? {averageFirstMs: Math.round(kind.firstMs / kind.firstCount)} : {})}]));
+  }
   async function diagnosticText() {
       const latest = await rpc('GET_STATE');
-      const diagnostic = {product: 'nubi', version: displayVersion, extensionVersion: manifest.version, provider: latest.auth.provider, loginRoute: latest.settings.loginRoute, credentialMode: latest.auth.mode || latest.settings.mode, credentialReceived: latest.auth.present, credentialExpired: latest.auth.expired, apiAccepted: !!latest.auth.verifiedAt, modelsLoaded: latest.catalog?.models?.length ?? null, modelsError: latest.catalog?.error, modelsDiagnostics: latest.catalog?.diagnostics, stage: latest.report.stage, events: latest.events, authTrace: latest.authTrace};
+      const diagnostic = {product: 'nubi', version: displayVersion, extensionVersion: manifest.version, provider: latest.auth.provider, loginRoute: latest.settings.loginRoute, credentialMode: latest.auth.mode || latest.settings.mode, credentialReceived: latest.auth.present, credentialExpired: latest.auth.expired, apiAccepted: !!latest.auth.verifiedAt, modelsLoaded: latest.catalog?.models?.length ?? null, modelsError: latest.catalog?.error, modelsDiagnostics: latest.catalog?.diagnostics, stage: latest.report.stage, events: latest.events, modelTimings: latest.modelTimings, modelTimeSummary: modelTimeSummary(latest.modelTimings), authTrace: latest.authTrace};
       return JSON.stringify(diagnostic, null, 2);
   }
   const headerActions = <NubiHeaderActions
@@ -496,6 +510,13 @@ export default function App() {
   const showChat = validAuth || (!showLogin && !isEmpty);
   const noModels = data.catalog?.models?.length === 0 && !data.catalog.error;
   const selectedModel = data.catalog?.models?.find(model => model.name === data.settings.modelId) || {name: data.settings.modelId};
+  // While a run works, the gauge shows what its latest request actually read
+  // (page contents included), as the provider counted it; otherwise the estimate.
+  const liveUsage = data.busy && data.liveContext?.prompt_tokens > 0 ? data.liveContext : null;
+  const liveUsed = liveUsage ? liveUsage.total_tokens ?? liveUsage.prompt_tokens : null;
+  const liveCapacity = Number.isSafeInteger(selectedModel.contextLength) && selectedModel.contextLength > 0 ? selectedModel.contextLength : null;
+  const liveContext = liveUsage ? {used: liveUsed, capacity: liveCapacity, ratio: liveCapacity ? liveUsed / liveCapacity : null, kind: 'measured', usage: liveUsage,
+    source: '작업 중 실측', note: '작업 중 마지막 모델 요청의 입력과 출력입니다. 읽은 페이지 내용이 포함됩니다.'} : null;
   const draftAttachments = data.chat.draftAttachments || [];
   const visionModel = visionModelFor(data.activeProvider, selectedModel, data.catalog?.models);
   const imageBlocked = draftAttachments.some(file => file.kind === 'image') && !visionModel;
@@ -594,7 +615,7 @@ export default function App() {
         {imageBlocked && <div className="attachment-model-hint" role="status"><p>이미지 지원 모델을 선택해주세요.</p><CxButton aria-label="이미지 지원 모델 선택" title="모델 변경" onClick={() => openModels()}><Icon name="layers" size={20}/></CxButton></div>}
         <SkillCommands items={commandOptions} onSelect={chooseSkillCommand}/>
         <NubiComposerInput inputRef={textarea} onPaste={pasteFiles} value={draft} maxLength={16000} rows={2} placeholder={working ? "추가 메시지 입력" : "메시지 입력"} title={working ? 'Enter 대기열에 추가\nShift + Enter 줄바꿈' : 'Enter 전송\nShift + Enter 줄바꿈'} onChange={e => updateDraft(e.target.value)} onKeyDown={e => {if (e.nativeEvent.isComposing || e.keyCode === 229) return; if (commandOptions.length && e.key === 'ArrowDown') {e.preventDefault(); document.querySelector('#skill-command-menu button')?.focus(); return;} if (commandOptions.length && e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) {e.preventDefault(); chooseSkillCommand(commandOptions[0]); return;} if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) {e.preventDefault(); send();}}}/>
-        <NubiComposerBar leading={<><ComposerAddMenu><AttachmentPicker menuItem loading={attachmentBusy} disabled={working || switching || data.busy || !!data.pending || accountBusy || projectBusy} count={draftAttachments.length} onAdd={addFiles} onBusy={setAttachmentBusy} onError={setError}/><CxButton className="composer-add-item" aria-label="현재 페이지 연결" aria-pressed={!!data.page} title={data.page ? '페이지 연결 해제' : '현재 페이지 연결'} disabled={data.busy} busy={connectingPage} onClick={() => action(data.page ? 'DISCONNECT_PAGE' : 'CONNECT_PAGE')}>{!connectingPage && <Icon name="link" size={20}/>}<span>{data.page ? '페이지 연결 해제' : '현재 페이지 연결'}</span></CxButton>{serverProject && <CxButton className="composer-add-item" aria-label="프로젝트 연결" title="프로젝트 연결" aria-haspopup="dialog" aria-expanded={projectOpen} data-active={serverProject?.status === 'connected'} disabled={working || switching || data.busy || !!data.pending || accountBusy || projectBusy} onClick={() => openServerProject()}><Icon name="code" size={20}/><span>프로젝트 연결</span></CxButton>}<SkillPicker menuItem data={data} action={action} draftReview={skillDraftReview} onReviewOpened={() => setSkillDraftReview(null)}/></ComposerAddMenu><ModelPicker data={data} loading={modelsLoading} disabled={working || switching || data.busy || !!data.pending} open={modelsOpen} onOpen={() => openModels()} onRefresh={() => loadModels(data.auth.receivedAt, true)}/></>} tools={<><ContextMeter messages={data.chat.messages} draft={draft} model={selectedModel} busy={data.busy || working} partial={partial} promptContext={promptContext} memory={data.chat.memory} stats={data.chat.contextStats} task={data.chat.task} onCompact={() => send(false, true)}/>{working ? <>
+        <NubiComposerBar leading={<><ComposerAddMenu><AttachmentPicker menuItem loading={attachmentBusy} disabled={working || switching || data.busy || !!data.pending || accountBusy || projectBusy} count={draftAttachments.length} onAdd={addFiles} onBusy={setAttachmentBusy} onError={setError}/><CxButton className="composer-add-item" aria-label="현재 페이지 연결" aria-pressed={!!data.page} title={data.page ? '페이지 연결 해제' : '현재 페이지 연결'} disabled={data.busy} busy={connectingPage} onClick={() => action(data.page ? 'DISCONNECT_PAGE' : 'CONNECT_PAGE')}>{!connectingPage && <Icon name="link" size={20}/>}<span>{data.page ? '페이지 연결 해제' : '현재 페이지 연결'}</span></CxButton>{serverProject && <CxButton className="composer-add-item" aria-label="프로젝트 연결" title="프로젝트 연결" aria-haspopup="dialog" aria-expanded={projectOpen} data-active={serverProject?.status === 'connected'} disabled={working || switching || data.busy || !!data.pending || accountBusy || projectBusy} onClick={() => openServerProject()}><Icon name="code" size={20}/><span>프로젝트 연결</span></CxButton>}<SkillPicker menuItem data={data} action={action} draftReview={skillDraftReview} onReviewOpened={() => setSkillDraftReview(null)}/></ComposerAddMenu><ModelPicker data={data} loading={modelsLoading} disabled={working || switching || data.busy || !!data.pending} open={modelsOpen} onOpen={() => openModels()} onRefresh={() => loadModels(data.auth.receivedAt, true)}/></>} tools={<><ContextMeter messages={data.chat.messages} draft={draft} model={selectedModel} usageInfo={liveContext} busy={data.busy || working} partial={partial} promptContext={promptContext} memory={data.chat.memory} stats={data.chat.contextStats} task={data.chat.task} onCompact={() => send(false, true)}/>{working ? <>
           {draft.trim() && <CxButton variant="primary" aria-label="대기열에 추가" title="대기열에 추가 (Enter)" disabled={inputSending || starting || !!draftAttachments.length} onClick={() => submitRunningInput()}><Icon name="arrowUp" size={20}/></CxButton>}
           <CxButton aria-label="중지" title="중지" onClick={stop}><span className="stop-symbol" aria-hidden="true"/></CxButton></> : <CxButton type="submit" variant="primary" aria-label="전송" title={noModels ? errorText('models_empty') : '전송'} disabled={(!draft.trim() && !draftAttachments.length) || imageBlocked || attachmentBusy || switching || data.busy || !!data.pending || accountBusy || projectBusy || noModels}><Icon name="arrowUp" size={20}/></CxButton>}</>}/>
       </form></div>}
@@ -612,14 +633,16 @@ export default function App() {
         <WikiFolderSettings folder={data.wikiFolder} statusError={data.wikiFolderError} serverProject={data.serverProject} rpc={rpc} clientId={clientId} disabled={working || switching || data.busy || !!data.pending || accountBusy} initialOpen={wikiSectionOpen} initialServerOpen={wikiServerOpen} onBusy={setProjectBusy} onChanged={refresh} onServerOpen={() => openServerProject(true)}/>
         <BrowserRoutinesSettings rpc={rpc} disabled={working || switching || data.busy || !!data.pending || accountBusy} onBusy={setProjectBusy} scheduleTemplate={scheduleTemplate} onScheduleTemplateApplied={()=>setScheduleTemplate(null)} onRecordingStart={()=>{setSettingsOpen(false);notifyToast('사이트에서 작업하세요. 마치면 누비에서 확인하세요.');}}/>
         <PromptShortcutsSettings items={promptShortcuts} loadError={promptShortcutsError} disabled={working || switching || data.busy || !!data.pending || accountBusy} onSave={savePromptShortcutFromSettings} onDelete={deletePromptShortcutFromSettings} onSchedule={item=>setScheduleTemplate({id:crypto.randomUUID(),name:item.name,prompt:item.text,url:data.page?.url||''})}/>
+        <div className="connection-row"><DeckSectionLabel icon="link">다른 누비와 작업</DeckSectionLabel><CxButton disabled={working || switching || !!data.pending || accountBusy} onClick={()=>{setSettingsOpen(false);setA2aOpen(true);}}>누비 작업 연결</CxButton></div>
         <WorkspaceSettings rpc={rpc} clientId={clientId} disabled={working || switching || data.busy || !!data.pending || accountBusy} onBusy={setProjectBusy}/>
         <McpSettings rpc={rpc} disabled={working || switching || data.busy || !!data.pending || accountBusy} onBusy={setProjectBusy}/>
-        <div className="settings-debug"><CxCheckbox label="디버그 모드" checked={data.debugMode === true} onChange={event => action('SET_DEBUG_MODE', {enabled: event.target.checked})}/><p className="workspace-mode-note">실행 진단과 전체 기록을 표시합니다.</p></div>
-        <details className="diagnostics"><summary><DeckSectionLabel icon="link">연결 진단</DeckSectionLabel></summary><div className="advanced-content"><div className="connection-row"><span>{validAuth ? `${PROVIDER_LABELS[data.auth.provider] || 'AI Pro'} 연결됨` : '로그인 필요'}</span><div className="diagnostic-actions">{data.auth.provider === 'fabrix' && <ActionButton action="edit" label="FabriX 연결 편집" disabled={data.busy} onClick={openFabrix}/>}<CopyButton getText={diagnosticText} label="진단 복사" successMessage="진단을 복사했습니다."/></div></div>{data.auth.present && <p className="reply-note">{data.auth.verifiedAt ? '응답 확인 완료' : '응답 확인 전'}</p>}<pre aria-label="진단 이벤트">{data.events.length ? data.events.map(e => `${e.time.slice(11,19)}  ${e.event}${e.transport ? ` (${e.transport}/${e.field})` : ''}${e.status ? ` HTTP ${e.status}` : ''}${e.reason ? ` / ${e.reason}` : ''}${e.event === 'models_received' ? ` 수신 ${e.received} / 표시 ${e.usable}` : ''}`).join('\n') : '기록 없음'}</pre>{data.catalog?.error && <p>{errorText(data.catalog.error)}</p>}</div></details>
+        <div className="settings-debug"><span className="settings-debug-icon" aria-hidden="true"><Icon name="code" size={18}/></span><div className="settings-debug-copy"><CxCheckbox label="디버그 모드" checked={data.debugMode === true} onChange={event => action('SET_DEBUG_MODE', {enabled: event.target.checked})}/><p>실행 진단과 전체 기록을 표시합니다.</p></div></div>
+        <details className="diagnostics"><summary><DeckSectionLabel icon="link">연결 진단</DeckSectionLabel></summary><div className="advanced-content"><div className="connection-row"><span>{validAuth ? `${PROVIDER_LABELS[data.auth.provider] || 'AI Pro'} 연결됨` : '로그인 필요'}</span><div className="diagnostic-actions">{data.auth.provider === 'fabrix' && <ActionButton action="edit" label="FabriX 연결 편집" disabled={data.busy} onClick={openFabrix}/>}<CopyButton getText={diagnosticText} label="진단 복사" successMessage="진단을 복사했습니다."/></div></div>{data.auth.present && <p className="reply-note">{data.auth.verifiedAt ? '응답 확인 완료' : '응답 확인 전'}</p>}<pre aria-label="진단 이벤트">{data.events.length ? data.events.map(e => `${e.time.slice(11,19)}  ${e.event}${e.transport ? ` (${e.transport}/${e.field})` : ''}${e.status ? ` HTTP ${e.status}` : ''}${e.reason ? ` / ${e.reason}` : ''}${e.code ? ` (${e.code})` : ''}${e.event === 'models_received' ? ` 수신 ${e.received} / 표시 ${e.usable}` : ''}`).join('\n') : '기록 없음'}</pre>{data.catalog?.error && <p>{errorText(data.catalog.error)}</p>}</div></details>
         <BrowserKnowledgeSettings rpc={rpc}/>
         <details className="storage-help"><summary><DeckSectionLabel icon="save" tone="teal">데이터 보관</DeckSectionLabel></summary><p>대화와 이미지는 이 브라우저에 저장됩니다.</p><p>로그인 정보는 브라우저를 종료하면 삭제됩니다.</p></details>
       </div>}
     </DetailPanel>}
+    {a2aOpen && <A2AInbox role="browser" disabled={working || switching || !!data.pending} call={input=>rpc('A2A',{...input,conversationId:data.chat.sessionId})} onImport={async value=>{clearTimeout(draftTimer.current);setDraft(value);await refresh();}} onClose={()=>{setA2aOpen(false);setSettingsOpen(true);}}><A2ATasks rpc={rpc} disabled={working || switching || !!data.pending} onStarted={()=>{setA2aOpen(false);void refresh();}}/></A2AInbox>}
     {fillReview && <FillReview plan={fillReview} onResolve={resolveFill}/> }
   </CxAppShell>;
 }

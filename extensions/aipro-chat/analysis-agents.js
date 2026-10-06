@@ -1,4 +1,5 @@
 import pLimit from 'p-limit';
+import {ANALYSIS_TASK_CHARACTERS} from './analysis-limits.js';
 import {waitForRead, REFERENCE_READ_TIMEOUT_MS} from './read-deadline.js';
 import {DOCUMENT_TOOL_NAMES} from './document-contract.js';
 import {ATTACHMENT_LIMITS} from './attachment-limits.js';
@@ -6,9 +7,12 @@ import {PROJECT_TOOL_NAMES} from './project-tools.js';
 import {MUTATING_TOOLS, changesObservation} from './agent-harness.js';
 import {rankEvidence, evidenceExcerpt, searchTerms} from './evidence-search.js';
 import {normalizeUsage} from './usage.js';
-import {clearCachedToolResults} from './context-evidence.js';
+import {clearCachedToolResults, clearCapturedSourceCopies} from './context-evidence.js';
 import {toolArgumentIssues} from './tool-validation.js';
 import {normalizeAnalysisHandoff, readAnalysisHandoff} from './analysis-handoff.js';
+import {analysisReadReceipt,pageBodyWireRanges} from './analysis-read-receipt.js';
+import {groundSourceQuotes, SOURCE_QUOTE_GUIDANCE} from './analysis-source-quotes.js';
+import {isPageContentReference, pageViewKey} from './goal-review.js';
 
 // Isolated Pi agents share the parent's authenticated transport, never its
 // transcript or browser executor. Only the leader can mutate the page.
@@ -56,15 +60,15 @@ export function parseAnalysisReport(response, seen) {
   const short = (value, max) => typeof value === 'string' && value.length <= max;
   if (!value || !['complete', 'partial', 'blocked'].includes(value.status) || !short(value.summary, 600) || !value.summary.trim() || !short(value.next_step, 300) ||
       !Array.isArray(value.findings) || value.findings.length > 5 || !Array.isArray(value.uncertainties) || value.uncertainties.length > 3 || !value.uncertainties.every(item => short(item, 200)) ||
-      !value.findings.every(item => short(item?.text, 300) && item.text.trim() && Array.isArray(item.evidence_ids) && item.evidence_ids.length > 0 && item.evidence_ids.length <= 6 && item.evidence_ids.every(id => seen.has(id))) ||
+      !value.findings.every(item => short(item?.text, 300) && item.text.trim() && Array.isArray(item.evidence_ids) && item.evidence_ids.length > 0 && item.evidence_ids.length <= 6 && item.evidence_ids.every(id => seen.has(id)) && (item.quotes === undefined || Array.isArray(item.quotes) && item.quotes.length <= 6 && item.quotes.every(q => item.evidence_ids.includes(q?.evidence_id) && short(q?.quote, 240) && q.quote.trim()))) ||
       value.status === 'complete' && !value.findings.length) throw new Error('analysis_format');
   const uncertainties = [...new Set(value.uncertainties.map(item => item.trim()).filter(Boolean))];
-  return {status: value.status === 'complete' && uncertainties.length ? 'partial' : value.status, summary: value.summary, findings: value.findings.map(({text, evidence_ids}) => ({text, evidence_ids: [...new Set(evidence_ids)]})), uncertainties, next_step: value.next_step};
+  return {status: value.status === 'complete' && uncertainties.length ? 'partial' : value.status, summary: value.summary, findings: value.findings.map(({text, evidence_ids, quotes}) => ({text, evidence_ids: [...new Set(evidence_ids)], ...(quotes ? {quotes: quotes.map(({evidence_id, quote}) => ({evidence_id, quote}))} : {})})), uncertainties, next_step: value.next_step};
 }
 
 export function analysisToolDefinitions() {
   return [
-    tool('delegate_analysis', `Start up to six independent read-only assignments; two run concurrently and the rest queue automatically. For a multi-source browser comparison, first capture each source with the leader's browser read tools, then submit one page assignment per frozen analysis_evidence_id in a single delegation. Children cannot open a new page or obtain an independent live browser view; the leader must reconcile their citations against the original source and re-observe the current page before acting. Do a simple single-source lookup directly. Split by source or question, not just role names. Roles: page, research (assigned attached documents and connected Wiki/source), review, recovery. Give each analyst a distinct task, constraints, done_when and observed evidence IDs. The analyst sees only this brief: say what the finding is for and what is out of scope. For large whole-document work the leader should prefer ask_documents when available; it handles bounded parallel reading and hierarchical synthesis. For a focused manual assignment, first read_document mode=plan and split the returned document_ranges across independent research tasks with document_ids. Ranges restrict each child to that part. A partial/error returns document_progress with unread and review-needed ranges; preserve successful reports, assign missing work, then reconcile cross-section dependencies. For research over attachments pass document_ids from the attached document catalog; only those files will be available to that analyst. effort: quick for one focused lookup (3 decisions), standard for comparison (6, default), deep for substantial multi-source research (10). The last decision is reserved for a partial handoff; never increase effort to repeat an unchanged failure. These are child allocations, not a limit on the user's task. Model/credentials stay within this connection; images use its vision route. No child can click, fill, navigate, approve or delegate.`, {tasks: {type: 'array', minItems: 1, maxItems: 6, items: {type: 'object', properties: {role: {type: 'string', enum: Object.keys(ANALYSIS_ROLES)}, task: requiredText(1800), constraints: text(800), done_when: requiredText(400), evidence_ids: ids, document_ids: ids, document_ranges: documentRanges, effort: {type: 'string', enum: Object.keys(ANALYSIS_EFFORT)}}, required: ['role', 'task', 'done_when', 'evidence_ids'], additionalProperties: false}}}, ['tasks']),
+    tool('delegate_analysis', `Delegate up to six independent read-only assignments; two run concurrently. The leader owns navigation, writes, questions, approvals and final verification. Children cannot open a new page, act or delegate. For browser comparisons first capture each source, then assign focused page tasks by observed ev_N IDs. Use one task per independent source/question, not role names; do simple or dependent work directly. Each child sees only task, constraints, done_when and its assigned evidence, never the parent transcript. Roles: page analyzes frozen pages; review checks criteria; recovery diagnoses failures; research reads assigned attachments or connected project sources. require_quotes validates exact returned page_content quotes for page tasks. Prefer ask_documents for whole documents. Otherwise read_document mode=plan first and assign document_ids/document_ranges; children stay inside those ranges. Preserve successful reports, inspect document_progress and assign missing work before reconciling cross-section facts. Partial or failed work needs changed evidence or a changed brief, not just higher effort. quick gives 3 decisions, standard 6, deep 10; the last decision returns a partial handoff. These are child allocations, not limits on the user's task. Model and credentials stay in this connection; images use its vision route. Reports are advice, not completion or permission. Completed advice arrives automatically; collect_analysis waits when your next decision needs it. Read original sources and re-observe current page state before acting.`, {tasks: {type: 'array', minItems: 1, maxItems: 6, items: {type: 'object', properties: {role: {type: 'string', enum: Object.keys(ANALYSIS_ROLES)}, task: requiredText(ANALYSIS_TASK_CHARACTERS), constraints: text(800), done_when: requiredText(400), evidence_ids: ids, document_ids: ids, document_ranges: documentRanges, require_quotes: {type: 'boolean', description: 'Require exact quotes from actually read page_content for every finding. Page role only.'}, effort: {type: 'string', enum: Object.keys(ANALYSIS_EFFORT)}}, required: ['role', 'task', 'done_when', 'evidence_ids'], additionalProperties: false}}}, ['tasks']),
     tool('collect_analysis', 'Completed advice is delivered automatically at the next decision boundary. Call this only when your next step depends on an unfinished analyst: wait for the next completed result, not all analysts. wait=false checks without waiting. Without task_ids, delivered results are not repeated. Supply task_ids to recover a prior report and its full assignment after context compaction. Reconcile its constraints and done_when with the original goal; done means the child stopped, not that the overall task succeeded. Inspect original evidence before acting; stale page advice needs fresh observation.', {task_ids: {type: 'array', minItems: 1, maxItems: 6, items: text(80)}, wait: {type: 'boolean'}}),
     readTool,
     tool('cancel_analysis', 'Cancel one obsolete analysis. This never cancels or replays a browser action.', {task_id: text(80)}, ['task_id']),
@@ -166,7 +170,15 @@ export function createAnalysisCoordinator({signal, modelId, complete, execute, r
     if (!result?.cancelled && (changesObservation(name, result) || ['read_page', 'inspect_dom', 'browser_snapshot', 'capture_page'].includes(name)) &&
         (result?.actionIssued !== false || name === 'run_playwright' && changesObservation(name, result))) revision++;
     if (!nativeSources.has(name) && !pageSources.has(name) && !PROJECT_TOOL_NAMES.has(name) && !DOCUMENT_TOOL_NAMES.has(name)) return null;
-    const raw = JSON.stringify({input: args, result}, (key, value) => key === 'image' ? undefined : value);
+    // Frozen analysts read bounded wire ranges. Put returned body evidence
+    // before optional navigation indexes so an index cannot consume their
+    // first reading window. Keep both indexes available as untrusted metadata.
+    let wireResult=result;
+    if(result?.dataKind==='page_content') {
+      const {outline,boundary_index,...body}=result;
+      wireResult={...body,...(outline?{outline}:{}),...(boundary_index?{boundary_index}:{})};
+    }
+    const raw = JSON.stringify({input: args, result:wireResult}, (key, value) => key === 'image' ? undefined : value);
     const id = `ev_${++sequence}`;
     const image = result?.image?.mimeType === 'image/png' && typeof result.image.data === 'string' && result.image.data.length <= 6000000 ? {...result.image} : null;
     const failed = !result || typeof result !== 'object' || result.error || result.ok === false || result.cancelled;
@@ -176,6 +188,9 @@ export function createAnalysisCoordinator({signal, modelId, complete, execute, r
       status: failed ? 'error' : result.metadata_only ? 'metadata' : 'observed', error: failed ? /^[a-z_]{1,64}$/.test(result?.error || '') ? result.error : 'source_read_failed' : null,
       provenance: result?.provenance ? {...(['wiki', 'source'].includes(result.provenance.kind) ? {kind: result.provenance.kind} : {}), path: result.provenance.path, hash: result.provenance.hash, start: result.provenance.start, end: result.provenance.end, ...(result.provenance.document_id ? {document_id: result.provenance.document_id, unit: result.provenance.unit} : {})} : null};
     if(name==='read_page' && !failed && !source.truncated && result.dataKind==='page_content' && /^[a-f0-9]{64}$/.test(result.content_hash || '')) source.contentRef=`c_${contentReadNamespace}_${sequence}`;
+    if (name === 'read_page' && !failed && isPageContentReference(result) && result.source_document_id) {
+      source.prefetchGroup = JSON.stringify([result.source_document_id, result.source_key || result.url, result.content_hash, result.frame, pageViewKey(result.page_view)]);
+    }
     sources.set(id, source);
     // Keep inputs pinned through result delivery, including finished analysts.
     // Outstanding jobs are bounded separately from running concurrency.
@@ -201,8 +216,13 @@ export function createAnalysisCoordinator({signal, modelId, complete, execute, r
       // JSON wire escapes must act as word boundaries in the search index.
       // Otherwise "\n마감일은" is tokenized as "n마감일은". Source offsets
       // and returned excerpts still refer to the untouched original text.
-      for (let start = 0; start < source.text.length; start += 1600) chunks.push({id: start, text: source.text.slice(start, start + 1800).replace(/\\(?:[nrtbf]|["\\])/g, ' ')});
-      ranges = rankEvidence(chunks, query).slice(0, maxRanges).map(hit => ({start: hit.id, end: Math.min(hit.id + 1800, source.text.length)}));
+      const bodies=pageBodyWireRanges(source)||[{start:0,end:source.text.length}];
+      for(const body of bodies)for(let start=body.start;start<body.end;start+=1600) {
+        const end=Math.min(start+1800,body.end);
+        chunks.push({id:start,end,text:source.text.slice(start,end).replace(/\\(?:[nrtbf]|["\\])/g,' ')});
+      }
+      const ends=new Map(chunks.map(chunk=>[chunk.id,chunk.end]));
+      ranges = rankEvidence(chunks, query).slice(0, maxRanges).map(hit => ({start:hit.id,end:ends.get(hit.id)}));
     }
     ranges = mergeRanges(ranges);
     const value = ranges.map(range => source.text.slice(range.start, range.end)).join('\n[unread source range omitted]\n');
@@ -228,7 +248,10 @@ export function createAnalysisCoordinator({signal, modelId, complete, execute, r
   }
   const state = job => ({task_id: job.id, role: job.role, effort: job.effort, status: job.status, delivered: job.reported, task: job.task.slice(0, 160)});
   function parseReport(response, job, seen = job.seen) {
-    const report = parseAnalysisReport(response, seen);
+    let report = parseAnalysisReport(response, seen);
+    if (job.requireQuotes) {
+      try {report = groundSourceQuotes(report, sources, job.readRanges);} catch {throw new Error('analysis_format');}
+    }
     // A failed lookup is evidence about the failure, not a completed factual
     // analysis. A recovery analyst may legitimately diagnose that failure.
     if (job.role !== 'recovery' &&
@@ -275,13 +298,20 @@ export function createAnalysisCoordinator({signal, modelId, complete, execute, r
     // describe a partial page; retain every original scope/continuation field.
     // Neither path grants live authority or credits unreturned page ranges.
     const initialReads = [];
+    const initialGroups = new Set();
     if (['recovery', 'page', 'review'].includes(job.role)) for (const id of [...job.allowed].sort((a, b) => Number(sources.get(b)?.status === 'error') - Number(sources.get(a)?.status === 'error'))) {
       const source = sources.get(id);
-      if (!source || source.text.length > 2400 || source.truncated || initialReads.length >= 2 ||
+      const group = job.role !== 'recovery' && source?.prefetchGroup || id;
+      // Several short returned ranges of one immutable document need no extra
+      // model turn just to fetch the third range. Keep two distinct sources,
+      // six packets and the existing combined 5000-character bound.
+      if (!source || source.text.length > 2400 || source.truncated || initialReads.length >= 6 ||
+          !initialGroups.has(group) && initialGroups.size >= 2 ||
           job.role !== 'recovery' && !source.prefetchable) continue;
       const preview = read({evidence_id: id});
       if (JSON.stringify([...initialReads, preview]).length > 5000) continue;
       initialReads.push(read({evidence_id: id}, job));
+      initialGroups.add(group);
       job.readCount = (job.readCount || 0) + 1;
     }
     // A large source used to cost one whole inference just to request its first
@@ -305,7 +335,7 @@ export function createAnalysisCoordinator({signal, modelId, complete, execute, r
       job.readCount = (job.readCount || 0) + 1;
       break;
     }
-    const initial = [{role: 'system', content: childPrompt(job.role)}, {role: 'user', content: JSON.stringify({task: job.task, constraints: job.constraints,
+    const initial = [{role: 'system', content: childPrompt(job.role) + (job.requireQuotes ? '\n' + SOURCE_QUOTE_GUIDANCE : '')}, {role: 'user', content: JSON.stringify({task: job.task, constraints: job.constraints,
       done_when: job.doneWhen, allocation: job.budget, document_ranges: job.documentRanges, documents: documents.filter(item => job.documents.includes(item.id)).map(item => ({document_id: item.id, name: item.name, sha256: item.hash})), evidence: [...job.allowed].map(id => meta(sources.get(id))), ...(initialReads.length ? {evidence_reads: initialReads} : {})})}];
     const ask = async (messages, selectedTools) => {
       check(childSignal);
@@ -475,8 +505,8 @@ export function createAnalysisCoordinator({signal, modelId, complete, execute, r
     const issues = toolArgumentIssues(delegationSchema, input);
     if (issues) return {error: 'analysis_scope', issues, instruction: 'Provide bounded tasks with a nonblank objective and done_when. Correct the listed schema paths before delegating; no assignment was launched.'};
     const {tasks} = input;
-    const planned = tasks.map(task => ({role: task.role, task: task.task.trim(), constraints: (task.constraints || '').trim(), done_when: task.done_when.trim(), effort: task.effort || 'standard', evidence_ids: [...new Set(task.evidence_ids || [])].sort(), document_ids: [...new Set(task.document_ids || [])].sort(), document_ranges: task.document_ranges || []}));
-    if (planned.some(task => !ANALYSIS_ROLES[task.role] || !Object.hasOwn(ANALYSIS_EFFORT, task.effort) || task.document_ids.some(id => !documents.some(item => item.id === id)) || !Array.isArray(task.document_ranges) || task.document_ranges.length > 6 || task.document_ranges.some(range => task.role !== "research" || !task.document_ids.includes(range.document_id) || !documents.some(item => item.id === range.document_id && item.hash === range.hash) || !Number.isSafeInteger(range.start) || !Number.isSafeInteger(range.end) || range.start < 0 || range.end > ATTACHMENT_LIMITS.textChars || range.end <= range.start || range.end - range.start > 6000) || task.role === 'research' && !projectTools.length && !(documentTools.length && task.document_ids.length) || task.evidence_ids.some(id => !sources.has(id)) || task.role !== 'research' && !task.evidence_ids.length)) {
+    const planned = tasks.map(task => ({role: task.role, task: task.task.trim(), constraints: (task.constraints || '').trim(), done_when: task.done_when.trim(), effort: task.effort || 'standard', evidence_ids: [...new Set(task.evidence_ids || [])].sort(), document_ids: [...new Set(task.document_ids || [])].sort(), document_ranges: task.document_ranges || [], ...(task.require_quotes ? {require_quotes: true} : {})}));
+    if (planned.some(task => task.require_quotes && task.role !== 'page' || !ANALYSIS_ROLES[task.role] || !Object.hasOwn(ANALYSIS_EFFORT, task.effort) || task.document_ids.some(id => !documents.some(item => item.id === id)) || !Array.isArray(task.document_ranges) || task.document_ranges.length > 6 || task.document_ranges.some(range => task.role !== "research" || !task.document_ids.includes(range.document_id) || !documents.some(item => item.id === range.document_id && item.hash === range.hash) || !Number.isSafeInteger(range.start) || !Number.isSafeInteger(range.end) || range.start < 0 || range.end > ATTACHMENT_LIMITS.textChars || range.end <= range.start || range.end - range.start > 6000) || task.role === 'research' && !projectTools.length && !(documentTools.length && task.document_ids.length) || task.evidence_ids.some(id => !sources.has(id)) || task.role !== 'research' && !task.evidence_ids.length)) {
       const scopeIssues = planned.flatMap((task, index) => {
         const rows = [];
         if (task.evidence_ids.some(id => !sources.has(id))) rows.push({task: index, field: 'evidence_ids', reason: 'unknown_evidence'});
@@ -503,7 +533,7 @@ export function createAnalysisCoordinator({signal, modelId, complete, execute, r
     if ([...jobs.values()].filter(job => pending(job) || !job.reported).length + needed > ANALYSIS_CAPACITY) return {error: 'analysis_busy', instruction: 'Six assignments are active, queued or awaiting collection. Collect results before adding more assignments; completed work will not be restarted.'};
     const launched = planned.map(task => {
       const previous = existing(task); if (previous) return {...state(previous), reused: true, ...(needsContinuation(previous) ? {recovery_required: true, instruction: 'Collect this prior result. Preserve its evidence and change the failed approach or supply new observations before delegating again. Increasing effort alone does not resume it.'} : {})};
-      const job = {id: `analysis_${crypto.randomUUID()}`, assignment: structuredClone(task), signature: JSON.stringify(task), failureKey: failureKey(task), role: task.role, task: task.task, constraints: task.constraints || '', doneWhen: task.done_when, effort: task.effort, budget: ANALYSIS_EFFORT[task.effort],
+      const job = {id: `analysis_${crypto.randomUUID()}`, assignment: structuredClone(task), signature: JSON.stringify(task), failureKey: failureKey(task), role: task.role, requireQuotes: !!task.require_quotes, task: task.task, constraints: task.constraints || '', doneWhen: task.done_when, effort: task.effort, budget: ANALYSIS_EFFORT[task.effort],
         documents: task.document_ids, documentRanges: task.document_ranges.map(item => ({...item})), documentReads: [], allowed: new Set(task.evidence_ids), seen: new Set(), readRanges: new Map(), reads: new Map(), imagesRead: new Set(),
         controller: new AbortController(), status: 'queued', calls: 0, readCharacters: 0, inputCharacters: 0, peakCharacters: 0, reported: false,
         usage: {measured_calls: 0, prompt_tokens: null, completion_tokens: null, total_tokens: null}};
@@ -558,7 +588,8 @@ export function createAnalysisCoordinator({signal, modelId, complete, execute, r
       if (!job.reported) onDelivery({ok: true, dataKind: 'analysis_execution', task_id: job.id,
         role: job.role, task: job.task, status: job.status, calls: job.calls, reads: job.readCount || 0,
         report_status: result(job).report?.status || null, delivered: true,
-        scope: 'Execution metadata only. Findings require original source evidence; this receipt is not action verification or permission.'});
+        source_reads: analysisReadReceipt(sources, job.readRanges),
+        scope: 'Host execution and returned-text metadata only. Findings require original source evidence; this receipt is not action verification or permission.'});
       job.reported = true; emit(job);
     });
     const failed = ready.length > 0 && ready.every(job => job.status !== 'done');
@@ -569,8 +600,14 @@ export function createAnalysisCoordinator({signal, modelId, complete, execute, r
   signal.addEventListener('abort', cancel, {once: true});
 
   return {
-    tools: definitions, observe, hasUnreported: () => [...jobs.values()].some(job => !job.reported),
-    prepareContext: wire => clearCachedToolResults(wire, id => sources.has(id) ? meta(sources.get(id)) : null),
+    tools: definitions, observe, hasEvidence: id => sources.has(id), hasUnreported: () => [...jobs.values()].some(job => !job.reported),
+    prepareContext: wire => clearCachedToolResults(clearCapturedSourceCopies(wire, (id, reference) => {
+      const source = sources.get(id);
+      if (!source?.contentRef || source.tool !== 'read_page' || source.status !== 'observed' || source.truncated || source.image) return false;
+      // Exact equality prevents a stale/mismatched ID from discarding the only
+      // copy of another URL, hash, range, coverage field or document version.
+      try {return JSON.stringify(JSON.parse(source.text).result) === JSON.stringify(reference);} catch {return false;}
+    }), id => sources.has(id) ? meta(sources.get(id)) : null),
     pageContentReference: id => sources.get(id)?.contentRef,
     resolvePageContentRead(args) {
       check();

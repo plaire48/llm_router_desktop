@@ -4,7 +4,8 @@
 // operation returned the same instruction, so the model repeated the mistake:
 // a proposal with an evidence id of its own making was refused six times in
 // two cases without a word about the id.
-import {test} from 'node:test';
+import {featureTest} from './beta-feature.mjs';
+const test=featureTest('computerUse');
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {fixture} from './fixtures.mjs';

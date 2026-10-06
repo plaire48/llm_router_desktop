@@ -1,3 +1,5 @@
+// Window of 26,000 tokens since 2026-10-05 (22,000 before): the fixed part of a request grew with the guidance and
+// core tools of 2026-10-04 (5,670 → 6,942 tokens in the lean window), and the behaviors below are the same ones.
 // Found in the live runs of case L1 (2026-09-29): in the third turn of one
 // task the run was compacted while it worked. After that the request of the
 // turn existed only as a paraphrase inside the summary, and the first request
@@ -25,7 +27,7 @@ async function twoTurns(t,{reads=40,history=[],second=SECOND}={}){
   await writeFile(path.join(root,'docs','big.md'),Array.from({length:900},(_,i)=>`line ${i+1} `+'reference text for the measurement of compaction. '.repeat(2)).join('\n'));
   await git(root,['add','-A']);await git(root,['commit','-qm','big document']);
   let turn=1,step=0,summaries=0,next=1;const compacted=[];
-  service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:22000}]}),dispose(){},async complete(messages){
+  service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:26000}]}),dispose(){},async complete(messages){
     if(messages[0].content.startsWith('Summarize conversation')){summaries++;return {content:JSON.stringify(summary),calls:[]};}
     if(turn===1)return {content:'app.txt를 확인했습니다.',calls:[]};
     if(messages.some(message=>message.role==='user'&&String(message.content).includes('Current task memory')))compacted.push(messages);
@@ -72,7 +74,7 @@ test('a first request that an earlier compaction of the history left out still s
 // after the protected messages. The request being answered had moved into
 // the protected messages, so the first request stood last, where a model reads
 // the latest request. The model answered the first request again.
-const plain=messages=>messages.filter(message=>message.role==='user').map(message=>String(message.content)).filter(text=>!/^(<|\{|Current host receipts|Independent review)/.test(text));
+const plain=messages=>messages.filter(message=>message.role==='user').map(message=>String(message.content)).filter(text=>!/^(<|\{|Current host receipts|Current run state from the host|Independent review)/.test(text));
 test('after a compaction the request being answered is the last thing the user said',async t=>{
   const history=Array.from({length:8},(_,index)=>({role:index%2?'user':'assistant',content:(index%2?'이전 요청 ':'이전 답변 ')+index+' '+'자세한 설명입니다. '.repeat(260)}));
   const {compacted}=await twoTurns(t,{history});
@@ -129,7 +131,7 @@ test('a revision after a compaction continues without losing or breaking message
   await writeFile(path.join(root,'docs','big.md'),Array.from({length:900},(_,i)=>`line ${i+1} `+'reference text for the measurement of compaction. '.repeat(2)).join('\n'));
   await git(root,['add','-A']);await git(root,['commit','-qm','big document']);
   let step=0,next=1,reviews=0,summaries=0;const rounds=[];
-  service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:22000}]}),dispose(){},async complete(messages){
+  service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:26000}]}),dispose(){},async complete(messages){
     if(messages[0].content.startsWith('Summarize conversation')){summaries++;return {content:JSON.stringify(summary),calls:[]};}
     if(messages[0].content.startsWith(REVIEW_PROMPT)){
       reviews++;const requirements=JSON.parse(messages[1].content).requirements;
@@ -173,7 +175,7 @@ test('protected messages that the window cannot hold are left to the summary ins
   // since B8, so the fixed part is smaller and the answer is longer than it was.
   const long='앞부분까지 확인했습니다. '+'확인한 내용을 자세히 적은 문장입니다. '.repeat(520);
   let step=0,next=1,reviews=0,summaries=0;const rounds=[];
-  service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:22000}]}),dispose(){},async complete(messages){
+  service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:26000}]}),dispose(){},async complete(messages){
     if(messages[0].content.startsWith('Summarize conversation')){summaries++;return {content:JSON.stringify(summary),calls:[]};}
     if(messages[0].content.startsWith(REVIEW_PROMPT)){
       reviews++;const requirements=JSON.parse(messages[1].content).requirements;

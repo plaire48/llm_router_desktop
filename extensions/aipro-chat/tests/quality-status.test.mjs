@@ -15,7 +15,7 @@ test('implementation percentage includes pending and external work and excludes 
  const excluded=qualityWorkStatus(workOf([{id:'x',order:1,state:'not_selected',acceptance:'rejected'}]),[],inputs);
  assert.equal(excluded.progress.implementationPercent,null);
 });
-const valid=()=>({path:'verification/current/report.json',report:{status:'passed',profile:'quality-baseline-v8',repeats:3,finishedAt:'2026-09-25T00:00:00Z',evidence:{actualBrowser:true},inputSha256:{...inputs},stages:['unit','design','candidate-build',...QUALITY_BASELINE.flatMap(x=>once.has(x)?[x]:[1,2,3].map(n=>`${x}-${n}`))].map(name=>({name,status:'passed',exitCode:0,timedOut:false}))}});
+const valid=()=>({path:'verification/current/report.json',report:{status:'passed',profile:'quality-baseline-v15',repeats:3,finishedAt:'2026-09-25T00:00:00Z',evidence:{actualBrowser:true},inputSha256:{...inputs},stages:['unit','design','candidate-build',...QUALITY_BASELINE.flatMap(x=>once.has(x)?[x]:[1,2,3].map(n=>`${x}-${n}`))].map(name=>({name,status:'passed',exitCode:0,timedOut:false}))}});
 const full=()=>{const item=valid();Object.assign(item.report,{profile:'full',fullMatrix:true,selection:[...QUALITY_BASELINE,'extra-browser','more-browser']});
  item.report.stages.push(...['extra-browser','more-browser-1','more-browser-2','more-browser-3'].map(name=>({name,status:'passed',exitCode:0,timedOut:false})));return item;};
 test('work status uses one current complete report and keeps external work unverified',()=>{

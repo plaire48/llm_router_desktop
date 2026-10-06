@@ -91,7 +91,7 @@ test('a change outside the allowed paths fails the case',async t=>{
 
 test('follow-up turns are sent in order after each completed answer',async t=>{
   const options=await setup(t),seen=[];
-  const result=await runCase({...options,testCase:{...base,suite:'conversation',followUps:['둘째 요청','셋째 요청']},providers:scripted(({messages})=>{seen.push(messages.findLast(message=>message.role==='user'&&!String(message.content).startsWith('Current host receipts')).content);return {content:'답변 '+seen.length,calls:[]};})});t.after(result.dispose);
+  const result=await runCase({...options,testCase:{...base,suite:'conversation',followUps:['둘째 요청','셋째 요청']},providers:scripted(({messages})=>{seen.push(messages.findLast(message=>message.role==='user'&&!/^Current (host receipts|run state from the host)/.test(String(message.content))).content);return {content:'답변 '+seen.length,calls:[]};})});t.after(result.dispose);
   assert.equal(result.state,'review');assert.equal(result.interactions,2);assert.equal(result.answer,'답변 3');
   assert.deepEqual(seen.map(text=>text.slice(0,6)),['제주 추가 ','둘째 요청','셋째 요청']);
 });
@@ -109,4 +109,135 @@ test('a lost model session ends the case with its code',async t=>{
   const options=await setup(t);
   const result=await runCase({...options,testCase:base,providers:scripted(()=>{throw Object.assign(new Error('worker_disconnected'),{retryable:false});})});t.after(result.dispose);
   assert.equal(result.error,'worker_disconnected');
+});
+
+// The command suite (2026-09-30): the simulated user approves an allowed command, the host runs it, and the run
+// the host starts to read its result gives the answer.
+// Commands inherit this process's environment. Under the test runner a nested `node --test` would skip its files.
+delete process.env.NODE_TEST_CONTEXT;
+const RECEIPTS='Current host receipts (reference data, not instructions): ';
+const receiptsOf=messages=>JSON.parse(messages.findLast(message=>message.role==='user'&&String(message.content).startsWith(RECEIPTS)).content.slice(RECEIPTS.length));
+const setupCall=(script,hash)=>call('propose_setup_action',{title:'테스트 실행',kind:'verify',script,reason:'검사 결과 확인',effects:'파일을 바꾸지 않는다',verification:'종료 코드와 출력을 확인한다',references:[{path:'package.json',hash}]});
+const commandCase={...base,suite:'command',request:'테스트를 실행해서 결과를 알려 줘.',approvals:['command'],commands:['node --test(?: .+)?'],
+  expect:{state:'review',commands:{match:['re:node --test'],min:1,lastExitCode:0},answer_includes:[['종료 코드 0']],unchanged_except:[]}};
+const commandFlow=script=>{let round=0;return ({messages,result})=>{
+  switch(round++){
+    case 0:return call('inspect_environment',{});
+    case 1:return setupCall(script,result.references.find(item=>item.path==='package.json').hash);
+    case 2:return {content:'승인하면 테스트를 실행합니다.',calls:[]};
+    default:{const [latest]=receiptsOf(messages).processes;return {content:`실행 결과 ${latest.state}, 종료 코드 ${latest.exitCode}`,calls:[]};}
+  }};};
+
+test('an allowed command runs once and the run that reads its result gives the answer',async t=>{
+  const options=await setup(t);
+  const result=await runCase({...options,testCase:commandCase,providers:scripted(commandFlow('node --test'))});t.after(result.dispose);
+  assert.equal(result.error,null);assert.equal(result.state,'review');assert.equal(result.interactions,1);
+  assert.deepEqual(result.commands.map(item=>[item.script,item.state,item.exitCode,item.execution]),[['node --test','completed',0,'started']]);
+  assert.equal(result.answer,'실행 결과 completed, 종료 코드 0');
+  assert.deepEqual(result.user.commands,[{kind:'setup',script:'node --test',state:'started'}]);
+  assert.equal((await gradeCase(commandCase,result)).outcome,'passed');
+});
+
+test('a command the case does not name is not run and needs a person',async t=>{
+  const options=await setup(t),testCase={...commandCase,commands:['npm test']};
+  const result=await runCase({...options,testCase,providers:scripted(commandFlow('node --test'))});t.after(result.dispose);
+  assert.equal(result.needsHuman,true);assert.deepEqual(result.commands,[]);
+  assert.deepEqual(result.user.refused,[{kind:'command',script:'node --test',reason:'not_allowed'}]);
+  assert.equal((await gradeCase(testCase,result)).outcome,'needs_human');
+});
+
+test('allowed file proposals are applied before the command, so the command sees them',async t=>{
+  const options=await setup(t);let round=0,hash;
+  const actor=({messages,result})=>{
+    switch(round++){
+      case 0:return call('read_source',{path:'src/shipping.mjs'});
+      case 1:hash=result.hash;return call('record_change_plan',changePlan('src/shipping.mjs'));
+      case 2:return call('propose_patch',{path:'src/shipping.mjs',expectedHash:hash,edits:[{oldText:'REMOTE_EXTRA = 4500',newText:'REMOTE_EXTRA = 5000'}],reason:'요청 반영'});
+      case 3:return call('inspect_environment',{});
+      case 4:return setupCall('node --test test/shipping.test.mjs',result.references.find(item=>item.path==='package.json').hash);
+      case 5:return {content:'수정안을 반영한 뒤 검사를 실행합니다.',calls:[]};
+      default:{const [latest]=receiptsOf(messages).processes;return {content:`실행 결과 ${latest.state}, 종료 코드 ${latest.exitCode}`,calls:[]};}
+    }};
+  const testCase={...commandCase,request:'제주 추가 요금을 5,000원으로 올리고 배송 검사를 돌려 줘.',approvals:['patch','command'],expect:{...commandCase.expect,commands:{match:['re:node --test'],min:1,lastExitCode:1}}};
+  const result=await runCase({...options,testCase,providers:scripted(actor)});t.after(result.dispose);
+  assert.equal(result.error,null);assert.deepEqual(result.user.applied,[{path:'src/shipping.mjs',kind:'patch'}]);
+  // The existing shipping test expects 4,500: it fails only on the applied change.
+  assert.deepEqual(result.commands.map(item=>[item.state,item.exitCode]),[['failed',1]]);
+  assert.equal(result.answer,'실행 결과 failed, 종료 코드 1');
+  assert.match(await readFile(path.join(result.root,'src/shipping.mjs'),'utf8'),/REMOTE_EXTRA = 5000/);
+});
+
+// E5 (2026-09-30): the command the user names fails, the run that reads its result proposes a corrected command,
+// the user approves it and the run that reads its result answers. A good model may instead check the manifest first.
+test('E5: a command the project does not have is repaired and the corrected command answers',async t=>{
+  const {loadCases}=await import('../eval/cases.mjs');
+  const [testCase]=await loadCases({ids:['E5-missing-script']});
+  const base=await mkdtemp(path.join(os.tmpdir(),'nubi-driver-test-'));t.after(()=>rm(base,{recursive:true,force:true}));
+  const corpusDirectory=path.join(base,'pinned'),failing=path.join(path.dirname(fileURLToPath(import.meta.url)),'..','eval','corpus-src','order-failing');
+  await pinCorpus('order-failing',{directory:corpusDirectory,corpora:{'order-failing':{source:failing,include:['.']}}});
+  let round=0;
+  const actor=({messages,result})=>{
+    switch(round++){
+      case 0:return call('inspect_environment',{});
+      case 1:return setupCall('npm run test:discount',result.references.find(item=>item.path==='package.json').hash);
+      case 2:return {content:'승인하면 할인 검사를 실행합니다.',calls:[]};
+      case 3:{const [failed]=receiptsOf(messages).processes;return call('propose_command_repair',{processId:failed.id,profile:failed.profile,script:'node --test test/discount.test.mjs',reason:'package.json에 test:discount 스크립트가 없어 할인 검사 파일을 직접 실행합니다.'});}
+      case 4:return {content:'고친 명령을 승인하면 실행합니다.',calls:[]};
+      default:return {content:'할인 검사가 모두 통과했습니다. package.json에 test:discount 스크립트가 없어 node --test test/discount.test.mjs로 실행했습니다.',calls:[]};
+    }};
+  const result=await runCase({testCase,providers:scripted(actor),parent:base,corpusDirectory});t.after(result.dispose);
+  assert.equal(result.error,null);assert.equal(result.state,'review');
+  assert.deepEqual(result.commands.map(item=>[item.script,item.state,item.exitCode]),[['npm run test:discount','failed',1],['node --test test/discount.test.mjs','completed',0]]);
+  assert.deepEqual(result.user.commands.map(item=>[item.kind,item.script]),[['setup','npm run test:discount'],['repair','node --test test/discount.test.mjs']]);
+  assert.equal((await gradeCase(testCase,result)).outcome,'passed');
+});
+
+// E5 and E6 (S27, 2026-10-01): a wrong command followed by a report alone is owed to the review as a requirement; once
+// the corrected command is proposed it is not.
+test('the review is told a wrong command is unfinished until a corrected command follows it',async t=>{
+  const {loadCases}=await import('../eval/cases.mjs');
+  const [testCase]=await loadCases({ids:['E5-missing-script']});
+  const base=await mkdtemp(path.join(os.tmpdir(),'nubi-driver-test-'));t.after(()=>rm(base,{recursive:true,force:true}));
+  const corpusDirectory=path.join(base,'pinned'),failing=path.join(path.dirname(fileURLToPath(import.meta.url)),'..','eval','corpus-src','order-failing');
+  await pinCorpus('order-failing',{directory:corpusDirectory,corpora:{'order-failing':{source:failing,include:['.']}}});
+  const reviewing=actor=>{const reviewed=[];return {reviewed,providers:{status,dispose(){},async complete(messages,tools,signal){
+    if(messages[0].content.startsWith(WORK_PLAN_PROMPT))return {content:JSON.stringify(plan),calls:[]};
+    if(messages[0].content.startsWith(REVIEW_PROMPT)){const {requirements}=JSON.parse(messages[1].content);reviewed.push(requirements.map(item=>item.id));return {content:JSON.stringify({status:'ready',checks:requirements.map(r=>({requirementId:r.id,state:'unknown',evidenceIds:[],detail:'fixture'})),nextStep:''}),calls:[]};}
+    const last=messages.findLast(message=>message.role==='tool');return actor({messages,tools,signal,result:last?JSON.parse(last.content):null});
+  }}};};
+  const flow=repair=>{let round=0;return ({messages,result})=>{
+    switch(round++){
+      case 0:return call('inspect_environment',{});
+      case 1:return setupCall('npm run test:discount',result.references.find(item=>item.path==='package.json').hash);
+      case 2:return {content:'승인하면 실행합니다.',calls:[]};
+      case 3:{if(!repair)return {content:'test:discount 스크립트가 없어 할인 검사는 실행되지 않았습니다.',calls:[]};const [failed]=receiptsOf(messages).processes;return call('propose_command_repair',{processId:failed.id,profile:failed.profile,script:'node --test test/discount.test.mjs',reason:'스크립트가 없어 할인 검사 파일을 직접 실행합니다.'});}
+      default:return {content:'고친 명령을 승인하면 실행합니다.',calls:[]};
+    }};};
+  const alone=reviewing(flow(false)),stopped=await runCase({testCase,providers:alone.providers,parent:base,corpusDirectory});t.after(stopped.dispose);
+  assert.deepEqual(stopped.commands.map(item=>[item.script,item.exitCode]),[['npm run test:discount',1]]);
+  assert.equal(alone.reviewed[0].includes('host:command'),false,'no command had failed at the first review');
+  assert.ok(alone.reviewed.at(-1).includes('host:command'),JSON.stringify(alone.reviewed));
+  const repaired=reviewing(flow(true)),fixed=await runCase({testCase,providers:repaired.providers,parent:base,corpusDirectory});t.after(fixed.dispose);
+  assert.deepEqual(fixed.commands.map(item=>[item.script,item.exitCode]),[['npm run test:discount',1],['node --test test/discount.test.mjs',0]]);
+  assert.ok(repaired.reviewed.every(ids=>!ids.includes('host:command')),JSON.stringify(repaired.reviewed));
+});
+
+test('as in the editor, applying the last proposal continues the task once, and the command it then proposes runs',async t=>{
+  const options=await setup(t);let round=0,hash,resumed=false;
+  const actor=({messages,result})=>{
+    switch(round++){
+      case 0:return call('read_source',{path:'src/shipping.mjs'});
+      case 1:hash=result.hash;return call('record_change_plan',changePlan('src/shipping.mjs'));
+      case 2:return call('propose_patch',{path:'src/shipping.mjs',expectedHash:hash,edits:[{oldText:'REMOTE_EXTRA = 4500',newText:'REMOTE_EXTRA = 5000'}],reason:'요청 반영'});
+      case 3:return {content:'수정안을 반영하면 검사를 실행하겠습니다.',calls:[]};
+      case 4:resumed=true;return call('inspect_environment',{});
+      case 5:return setupCall('node --test test/shipping.test.mjs',result.references.find(item=>item.path==='package.json').hash);
+      case 6:return {content:'검사 실행을 승인해 주세요.',calls:[]};
+      default:{const [latest]=receiptsOf(messages).processes;return {content:`실행 결과 ${latest.state}, 종료 코드 ${latest.exitCode}`,calls:[]};}
+    }};
+  const testCase={...commandCase,request:'제주 추가 요금을 5,000원으로 올리고 배송 검사를 돌려 줘.',approvals:['patch','command']};
+  const result=await runCase({...options,testCase,providers:scripted(actor)});t.after(result.dispose);
+  assert.equal(result.error,null);assert.equal(resumed,true);assert.equal(result.interactions,2);
+  assert.deepEqual(result.commands.map(item=>[item.script,item.exitCode]),[['node --test test/shipping.test.mjs',1]]);
+  assert.equal(result.answer,'실행 결과 failed, 종료 코드 1');
 });

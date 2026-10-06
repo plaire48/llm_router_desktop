@@ -12,7 +12,7 @@ export function toolException(error, {mutating = false} = {}) {
   const cancelled = code === 'cancelled';
   const notStarted = error?.actionIssued === false;
   const uncertain = mutating && !cancelled && !notStarted;
-  const connection = ['workspace_changed', 'workspace_unavailable', 'page_permission', 'page_restricted', 'unauthorized', 'forbidden', 'no_credential', 'expired_token'].includes(code);
+  const connection = ['debugger_unavailable', 'debugger_conflict', 'debugger_policy_blocked', 'debugger_protocol_unsupported', 'debugger_attach_failed', 'debugger_disconnected', 'workspace_changed', 'workspace_unavailable', 'page_permission', 'page_restricted', 'unauthorized', 'forbidden', 'no_credential', 'expired_token'].includes(code);
   return {ok: false, error: code, ...(reason ? {reason} : {}), ...(status ? {status} : {}), ...(cancelled ? {cancelled: true} : {}),
     ...(mutating ? {actionIssued: notStarted ? false : null} : {}),
     recovery: {strategy: cancelled ? 'stop' : connection ? 'user_action' : uncertain ? 'observe_before_action' : 'replan', execution: uncertain ? 'unknown' : notStarted ? 'not_started' : 'read_failed'},
@@ -22,7 +22,7 @@ export function toolException(error, {mutating = false} = {}) {
 }
 
 export function rejectedToolFeedback(unavailable = false, issues) {
-  return {error: unavailable ? 'tool_unavailable' : 'tool_arguments_invalid', actionIssued: false,
+  return {error: unavailable ? 'tool_unavailable' : 'tool_arguments_invalid', ...(!unavailable ? {reason:'tool_arguments_invalid'} : {}), actionIssued: false,
     recovery: {strategy: 'replan', execution: 'not_started'},
     ...(!unavailable && issues?.length ? {issues} : {}),
     instruction: unavailable ? 'This tool is not connected and was NOT executed. Choose from the currently declared tools, or select_tools to inspect existing authorized groups. Never invent another tool or assume extra permissions.' :

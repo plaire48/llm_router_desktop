@@ -2,8 +2,11 @@ import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {lstat} from 'node:fs/promises';
 import {listFiles,relativeFile,scopedFile,readSource,fail} from './files.mjs';
+import {READ_LINES} from './read-room.mjs';
 const exec=promisify(execFile);
 const MAX_EXCERPTS_PER_FILE=3,MAX_EXCERPTS=40;
+// Characters of one search excerpt (500 before the user decision of 2026-09-30 on large windows).
+export const SEARCH_EXCERPT=1500;
 
 export async function searchSource({query,kind='all',mode='content',within,taskId,signal}){
   this.ready();
@@ -55,9 +58,17 @@ export async function searchSource({query,kind='all',mode='content',within,taskI
       const file=cache.get(rel),actual=file.content.split('\n')[line-1];
       // Reread disk for truthful hashes and reject results invalidated in flight.
       if(typeof actual!=='string'||!actual.toLowerCase().includes(query.toLowerCase())){limited=true;continue;}
-      results.push({path:rel,line,excerpt:actual.slice(0,500),hash:file.hash,kind:rel.startsWith('openwiki/')?'wiki':'source',freshness:'unverified'});entry.shown++;
+      results.push({path:rel,line,excerpt:actual.slice(0,SEARCH_EXCERPT),hash:file.hash,kind:rel.startsWith('openwiki/')?'wiki':'source',freshness:'unverified'});entry.shown++;
     }catch{limited=true;}
   }
   omittedExcerpts=[...matched.values()].reduce((sum,file)=>sum+file.matches-file.shown,0);
-  return {results,files:[...matched.values()].sort((a,b)=>a.path<b.path?-1:1),omittedExcerpts,scanned,skipped,total:files.length,truncated:listed.truncated||limited||scanned<files.length||skipped>0||omittedExcerpts>0,engine:'ripgrep',instruction:'Static search candidates with current file hashes, not executed behavior or edit authorization. files lists every file with a match and its count. When several files match, at most 3 excerpts per file are shown: compare the listed files, then read one or search within it to see all of its matches. If truncated, narrow within to a directory or use a more specific query. mode=path finds filenames before reading them.'};
+  // A search within one file that a single read holds (D1, S28, 2026-10-01): the model read ranges around English
+  // matches and missed the Korean line beside them. Such a file is read whole, matches or not.
+  let readWhole;
+  if(within&&files.length===1&&files[0]===within){
+    try{const file=cache.get(within)||await readSource(root,within),lines=file.content.split('\n').length;
+      if(lines<=READ_LINES)readWhole={path:within,lines,instruction:`${within} has ${lines} lines, which one read_source holds: read it whole (no start or end) for its facts. A search misses text written differently, such as in another language.`};}
+    catch{}
+  }
+  return {results,files:[...matched.values()].sort((a,b)=>a.path<b.path?-1:1),...(readWhole?{readWhole}:{}),omittedExcerpts,scanned,skipped,total:files.length,truncated:listed.truncated||limited||scanned<files.length||skipped>0||omittedExcerpts>0,engine:'ripgrep',instruction:'Static search candidates with current file hashes, not executed behavior or edit authorization. files lists every file with a match and its count. When several files match, at most 3 excerpts per file are shown: compare the listed files, then read one or search within it to see all of its matches. If truncated, narrow within to a directory or use a more specific query. mode=path finds filenames before reading them.'};
 }

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {classifyCompletionError, completionDiagnostic, readCompletionError} from '../completion-errors.js';
-import {completeChat} from '../src/api.js';
+import {classifyCompletionError, completionDiagnostic, completionStreamError, readCompletionError} from '../completion-errors.js';
+import {completeChat, standardMessages} from '../src/api.js';
 import {readCompletion} from '../completion-reader.js';
 import {retryableModelError, recoverModel} from '../model-recovery.js';
 
@@ -61,7 +61,9 @@ test('request rejections distinguish Qwen templates, models, context and media w
     [403, null, 'forbidden', 'http'], [429, null, 'rate_limited', 'http'], [503, null, 'upstream', 'http'],
   ];
   for (const [status, payload, error, reason] of cases) {
-    assert.deepEqual(classifyCompletionError(status, payload), {error, reason, status});
+    // A request rejection keeps the server's error code (an identifier), never its text.
+    const code = [400, 404, 413, 415, 422].includes(status) ? payload?.error?.code : undefined;
+    assert.deepEqual(classifyCompletionError(status, payload), {error, reason, status, ...(code ? {code} : {})});
     assert(!JSON.stringify(classifyCompletionError(status, payload)).includes('private'));
   }
 });
@@ -187,4 +189,24 @@ test('in-band permanent and long rate-limit failures do not trigger early infere
   assert.equal(count, 1); count = 0; code = 'rate_limit_exceeded';
   await assert.rejects(completeChat(request, new AbortController().signal), {message: 'rate_limited', retryable: true, status: 200, retryAfterMs: 3600000});
   assert.equal(count, 1);
+});
+
+test('a failed stream keeps the server error code for the connection diagnostics, never its text', () => {
+  const image = completionStreamError({type: 'response.failed', response: {error: {code: 'image_too_large', message: 'private-prompt'}}});
+  assert.equal(image.message, 'request_image'); assert.equal(image.code, 'image_too_large');
+  assert.equal(completionStreamError({type: 'error', error: {code: 'invalid_prompt', message: 'private-prompt'}}).message, 'response_filtered');
+  const server = completionStreamError({type: 'error', error: {code: 'server_error'}});
+  assert.equal(server.message, 'upstream'); assert.equal(server.code, 'server_error'); assert.equal(server.retryable, true);
+  assert.equal(completionStreamError({type: 'error', error: {code: 'Private text, with spaces'}}).code, undefined);
+  assert.deepEqual(completionDiagnostic({phase: 'rejected', reason: 'stream_error', attempt: 1, status: 200, code: 'server_error'}),
+    {phase: 'rejected', reason: 'stream_error', attempt: 1, status: 200, code: 'server_error'});
+  assert.deepEqual(completionDiagnostic({phase: 'rejected', reason: 'http', attempt: 1, status: 504, code: 'private text'}), {phase: 'rejected', reason: 'http', attempt: 1, status: 504});
+});
+
+test('OpenAI-compatible servers receive standard message fields only', () => {
+  const calls = [{id: 'call-1', type: 'function', function: {name: 'read_page', arguments: '{}'}}];
+  assert.deepEqual(standardMessages([{role: 'system', content: 'rules'}, {role: 'user', content: 'goal'}, {role: 'assistant', content: null, tool_calls: calls},
+    {role: 'tool', tool_call_id: 'call-1', content: '{}'}, {role: 'user', contextOnly: true, content: 'Current run state from the host.'}]),
+  [{role: 'system', content: 'rules'}, {role: 'user', content: 'goal'}, {role: 'assistant', content: null, tool_calls: calls},
+    {role: 'tool', tool_call_id: 'call-1', content: '{}'}, {role: 'user', content: 'Current run state from the host.'}]);
 });

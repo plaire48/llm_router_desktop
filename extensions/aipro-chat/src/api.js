@@ -7,7 +7,7 @@ import {documentCatalogMessage, INLINE_DOCUMENT_CHARS} from '../document-contrac
 import {readCompletion} from '../completion-reader.js';
 export {readCompletion} from '../completion-reader.js';
 import {attachmentMessages} from '../attachment-store.js';
-import {visionModelFor, routeImageRequest} from '../model-routing.js';
+import {visionModelFor, routeImageRequest, hasImageInput} from '../model-routing.js';
 import {runAgent, progressTools} from '../agent-runtime.js';
 import {createHarness, LEAN_INPUT_TOKENS} from '../agent-harness.js';
 import {ORIGIN, endpoint, httpError, ERROR_TEXT} from '../core.js';
@@ -21,15 +21,30 @@ import {progressNote} from '../agent-trace.js';
 import {completionReviewMessages, parseCompletionReview} from '../completion-review.js';
 import {fabrixModels, fabrixCompletion} from '../fabrix.js';
 import {createOutputRecovery} from '../output-recovery.js';
+import {siteKnowledgeMessage} from '../site-procedures.js';
 import {planMessages, planningFailure, requestMessageText} from '../task-plan.js';
 import {parsePlanningResponse} from '../planning-response.js';
 import {textQuestionArgs} from '../user-question.js';
-import {recoverModel, createModelCooldown} from '../model-recovery.js';
+import {recoverModel, createModelCooldown, IMAGE_MODEL_WAIT_POLICY} from '../model-recovery.js';
 import {readCompletionError} from '../completion-errors.js';
 import {analysisToolDefinitions, supportsAnalysis} from '../analysis-agents.js';
 import {analysisHandoffReminder} from '../analysis-handoff.js';
 import isNetworkError from 'is-network-error';
 import {withComputerTime, createRunClock, RUN_CLOCK_MAX_AGE_MS} from '../computer-time.js';
+// A stable, non-reversible key per conversation and kind of call for the
+// provider's prompt cache (four 32-bit FNV-1a hashes). The Codex API also sends
+// it as the session-id header, so it has the shape of a UUID, as Codex CLI's does.
+function promptCacheKey(conversationId, kind) {
+  if (typeof conversationId !== 'string' || !conversationId) return undefined;
+  const source = `${conversationId}:${kind}`;
+  const hash = seed => {let value = seed; for (let i = 0; i < source.length; i++) value = Math.imul(value ^ source.charCodeAt(i), 16777619) >>> 0; return value.toString(16).padStart(8, '0');};
+  const hex = [2166136261, 3735928559, 2654435761, 374761393].map(hash).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-8${hex.slice(13, 16)}-${(8 | parseInt(hex[16], 16) & 3).toString(16)}${hex.slice(17, 20)}-${hex.slice(20)}`;
+}
+// OpenAI-compatible servers get standard message fields only: a strict gateway
+// rejects unknown fields such as the host's contextOnly mark.
+export const standardMessages = messages => messages.map(({role, content, name, tool_calls: calls, tool_call_id: callId}) =>
+  ({role, content, ...(name ? {name} : {}), ...(calls ? {tool_calls: calls} : {}), ...(callId ? {tool_call_id: callId} : {})}));
 
 // Counts the pre-provider message/schema JSON, not tokens, UTF-8 bytes or
 // encoded HTTP bodies. Only typed image parts contribute image URL characters;
@@ -104,14 +119,17 @@ export async function completeChat(request, signal, onText = () => {}, onUsage =
       // phases must not overwrite the leader's current action/response state.
       const publishPhase = value => {if (!analysis) onPhase(value);};
       publishPhase(attemptPhase);
-      const heartbeat = () => {if (!signal.aborted) {activity(); publishPhase(attemptPhase);}};
-      const emitText = text => {if (signal.aborted) return; activity(); if (!summary && !review && !holdText) {partial = textPrefix + text; onText(partial);}};
+      // How long each call takes and when its first output arrives: sizes and
+      // times only, for the connection diagnostics (a company server cannot be
+      // measured from outside, so the user can copy them).
+      let startedAt = Date.now(), firstAt;
+      const heartbeat = () => {if (!signal.aborted) {firstAt ??= Date.now(); activity(); publishPhase(attemptPhase);}};
+      const emitText = text => {if (signal.aborted) return; firstAt ??= Date.now(); activity(); if (!summary && !review && !holdText) {partial = textPrefix + text; onText(partial);}};
       const emitPhase = value => {if (signal.aborted) return; if (!summary && !review && !planning) {attemptPhase = value; publishPhase(value);}};
       if (signal.aborted) throw Object.assign(new Error('cancelled'), {partial});
       const currentRound = ++round;
-      const imageStep = model.name !== selectedModel.name && !summary && !review && !planning && !analysis ? `image-model-${currentRound}` : null;
-      let imageSucceeded = false;
-      if (imageStep) onStep({index: imageStep, tool: 'image_model', status: 'running', label: `${model.displayName || model.name}로 이미지 확인`});
+      // Images stay in the ordinary inference request. Model routing metadata
+      // is saved below; it is not a separate image-analysis operation in the UI.
       let usageRound = currentRound;
       let writes = Promise.resolve();
       const measurementScope = analysis ? 'analysis' : planning ? 'planning' : review ? 'review' : summary ? 'compaction' : 'execution';
@@ -121,13 +139,15 @@ export async function completeChat(request, signal, onText = () => {}, onUsage =
         const measuredRound = usageRound;
         writes = writes.then(async () => {
           let timer;
-          try {await Promise.race([Promise.resolve().then(() => recordUsage({round: measuredRound, phase, usage, scope: measurementScope, ...inputSize, toolCount: activeTools.length})), new Promise(resolve => {timer = setTimeout(resolve, 1000);})]);}
+          const timing = phase === 'finish' ? {elapsedMs: Date.now() - startedAt, ...(firstAt ? {firstMs: firstAt - startedAt} : {})} : {};
+          try {await Promise.race([Promise.resolve().then(() => recordUsage({round: measuredRound, phase, usage, scope: measurementScope, ...inputSize, toolCount: activeTools.length, ...timing})), new Promise(resolve => {timer = setTimeout(resolve, 1000);})]);}
           finally {clearTimeout(timer);}
         }).catch(() => {});
         return writes;
       };
-      await record('start');
+      startedAt = Date.now(); firstAt = undefined;
       try {
+        await record('start');
         if (signal.aborted) throw Object.assign(new Error('cancelled'), {partial});
         if (!summary && !review && !planning && !analysis && model.name !== reportedModel) {
           await saveContext({kind: 'model', modelId: model.name}); reportedModel = model.name;
@@ -137,9 +157,10 @@ export async function completeChat(request, signal, onText = () => {}, onUsage =
           if (!prepared?.ok) throw new Error(prepared?.error || 'no_credential');
           credential = (await chrome.storage.session.get('credential')).credential;
           if (credential?.receivedAt !== request.credentialReceivedAt) throw new Error('no_credential');
-          const answer = await completeChatGPT({messages, tools: activeTools, modelId: model.name, credential, signal, toolChoice, maxCharacters: review ? 8000 : summary ? 15000 : 400000,
+          const answer = await completeChatGPT({messages, tools: activeTools, modelId: model.name, credential, signal, toolChoice, maxCharacters: review ? 8000 : summary ? 15000 : 400000, onDiagnostic: recordDiagnostic,
+            cacheKey: promptCacheKey(request.conversationId, review ? 'review' : summary ? 'summary' : planning ? 'planning' : analysis ? 'analysis' : 'execution'),
             onText: emitText, onPhase: emitPhase, onActivity: heartbeat, onMeasurement: usage => {record('report', usage);}});
-          imageSucceeded = true; return answer;
+          return answer;
         }
         let response;
         try {
@@ -147,7 +168,7 @@ export async function completeChat(request, signal, onText = () => {}, onUsage =
             const {credential: current, catalog} = await chrome.storage.session.get(['credential', 'catalog']);
             if (current?.provider !== 'fabrix' || current.receivedAt !== request.credentialReceivedAt || current.rejected) throw new Error('no_credential');
             if (catalog?.credentialReceivedAt !== current.receivedAt || !catalog.models?.some(model => model.name === request.modelId)) throw new Error('invalid_model');
-            response = await fabrixCompletion({model: request.modelId, max_tokens: maxTokens, messages, stream: true,
+            response = await fabrixCompletion({model: request.modelId, max_tokens: maxTokens, messages: standardMessages(messages), stream: true,
               ...(activeTools.length ? {tools: activeTools, tool_choice: toolChoice} : {}), stream_options: {include_usage: true}}, {...current, modelId: request.modelId}, {signal, onMeasurement: usage => record('report', usage), onDiagnostic: recordDiagnostic,
                 onRetry: async () => {
                   await record('finish');
@@ -157,7 +178,7 @@ export async function completeChat(request, signal, onText = () => {}, onUsage =
           const send = includeUsage => fetch(endpoint(credential.mode), {
             method: 'POST', credentials: 'omit', redirect: 'error', signal,
             headers: {'Content-Type': 'application/json', Accept: 'text/event-stream', Authorization: `Bearer ${credential.token}`},
-            body: JSON.stringify({model: model.name, max_tokens: maxTokens, messages, stream: true,
+            body: JSON.stringify({model: model.name, max_tokens: maxTokens, messages: standardMessages(messages), stream: true,
               ...(activeTools.length ? {tools: activeTools, tool_choice: toolChoice} : {}),
               ...(includeUsage ? {stream_options: {include_usage: true}} : {})}),
           });
@@ -205,11 +226,12 @@ export async function completeChat(request, signal, onText = () => {}, onUsage =
           content = await readCompletion(response, emitText, value => {usage = value;}, emitPhase, value => {finishReason = value;}, activeTools.length && (executeTool || structuredReview) ? value => {calls = value;} : undefined, usage => {record('report', usage);}, heartbeat);
         } catch (error) {
           if (signal.aborted) throw Object.assign(new Error('cancelled'), {partial: error.partial || partial});
+          // An error event after a successful handshake: keep its code for the diagnostics.
+          if (error.code) Promise.resolve().then(() => recordDiagnostic({phase: 'rejected', reason: 'stream_error', attempt: 1, status: response.status, code: error.code})).catch(() => {});
           throw Object.assign(error, {status: response.status});
         }
-        imageSucceeded = true;
         return {content, usage, finishReason, calls};
-      } finally {await record('finish'); if (imageStep) onStep({index: imageStep, tool: 'image_model', status: signal.aborted ? 'cancelled' : imageSucceeded ? 'done' : 'error'});}
+      } finally {await record('finish');}
   };
   let recoveryCount = 0;
   const invoke = async (messages, options = {}) => {
@@ -218,7 +240,7 @@ export async function completeChat(request, signal, onText = () => {}, onUsage =
     const settleWait = status => {if (waiting) {onStep({index: waiting, tool: 'wait_model', status, label: waitLabel}); waiting = undefined;}};
     const invocationSignal = options.signal || parentSignal;
     try {
-      const result = await recoverModel(attempt => invokeAttempt(messages, {...options, ...attempt}), {signal: invocationSignal, cooldown, onSlow: () => {
+      const result = await recoverModel(attempt => invokeAttempt(messages, {...options, ...attempt}), {signal: invocationSignal, cooldown, ...(Number.isInteger(options.retries) ? {retries: options.retries} : {}), ...(hasImageInput(messages) ? IMAGE_MODEL_WAIT_POLICY : {}), onSlow: () => {
         waiting ||= `model-wait-${++recoveryCount}`;
         onStep({index: waiting, tool: 'wait_model', status: 'running', label: waitLabel});
       }, onResumed: () => settleWait('done'), onRetry: (_attempt, reason) => {
@@ -248,6 +270,7 @@ export async function completeChat(request, signal, onText = () => {}, onUsage =
   // A small input window keeps the selected skill to its own text.
   const preamble = promptPreamble(request.modelId, undefined, {...request, visionModel, inlineSkillReferences: budget.input >= LEAN_INPUT_TOKENS});
   if (request.documents?.length) preamble.push(documentCatalogMessage(request.documents));
+  if (request.siteKnowledge) preamble.push(siteKnowledgeMessage(request.siteKnowledge));
   const {boundary} = historyContext(request.messages, request.memory);
   const fileMessages = request.messages.map((message, index) => index <= boundary ? {...message, attachments: []} : message);
   const inputs = await attachmentMessages(fileMessages, {provider: request.provider, conversationId: request.conversationId}, !!visionModel, {inlineLimit: INLINE_DOCUMENT_CHARS, canReadDocuments: !!request.compact || !!executeTool && tools.some(tool => tool.function.name === 'read_document')});
@@ -255,13 +278,14 @@ export async function completeChat(request, signal, onText = () => {}, onUsage =
     force: !!request.compact, invoke, signal, save: saveContext});
   if (request.compact) {onUsage(null); onFinish('stop'); return packed.memory ? '이전 대화를 요약했습니다. 원본 대화는 그대로 남아 있습니다.' : '압축할 이전 대화가 없습니다.';}
   const messages = [...preamble, ...packed.messages, ...(request.resumeTask ? [resumeMessage(request.resumeTask)] : [])];
-  let interruptedAction;
+  let interruptedAction, approvedActionReceipt;
   if (request.approvedAction && executeTool) {
     const actionTool = request.approvedToolName === 'apply_approved_mcp' ? 'apply_approved_mcp' : 'apply_approved_action';
     onPhase('acting'); onStep({index: 'approved-action', tool: actionTool, status: 'running'});
     const result = await executeTool(actionTool, {}, request, signal);
     onStep({index: 'approved-action', tool: actionTool, status: result?.error ? 'error' : 'done'});
     if (signal.aborted) throw new Error('cancelled');
+    approvedActionReceipt = {name: actionTool, result, priorVerification: request.resumeTask?.verification};
     if (result?.error === 'browser_dialog') interruptedAction = result;
     messages.push({role: 'user', content: `The user chose the final-action approval button. The worker already consumed that one-use approval and attempted the action. This is an execution receipt, not authorization to repeat it. Never replay the action. Inspect fresh state and verify the visible outcome; changed drafts need a NEW approval. Untrusted result data: ${JSON.stringify(result)}`});
   }
@@ -295,16 +319,18 @@ export async function completeChat(request, signal, onText = () => {}, onUsage =
     invoke, signal, compactionDeferred: packed.compactionDeferred, save: saveContext});
   const recoverOutput = createOutputRecovery({signal, inputBudget: budget.input, onProgress: () => onPhase('thinking')});
   const result = await runAgent({messages, goal, tools, inputBudget: budget.input, referenceImageEnabled: !!visionModel, onDiagnostic: host.onAgentDiagnostic,
+    researchBrowser: request.skill?.allowAutomation === true ? host.researchBrowser : undefined, researchOnInput:host.onSteer,
     analysisHandoffs: request.resumeTask?.analysisHandoffs,
     onAnalysisHandoff: host.saveAnalysisHandoff,
     researchHandoffs:request.resumeTask?.researchHandoffs,
     onResearchHandoff:host.saveResearchHandoff,
+    onFacts: host.saveFacts,
     takeInput: host.takeInput ? async () => {
       const item = await host.takeInput();
       if (item) {goal += `\n사용자 변경 요청: ${item.text}`; scopeUserHistory.push(item.text); packed.messages.push({role:'user',content:item.text});}
       return item;
     } : undefined, documents: request.documents || [], modelId: request.modelId, signal, onStep, harness: request.skill?.allowAutomation === true, stepwise: tools.length > 0,
-    resumeVerification: !!resumedVerification(request.resumeTask), resumeUncertainAction: unresolvedReconciliations(request.resumeTask).length>0, resumedObservation, interruptedAction,
+    resumeVerification: !!resumedVerification(request.resumeTask), resumeUncertainAction: unresolvedReconciliations(request.resumeTask).length>0, resumedObservation, interruptedAction, approvedActionReceipt,
     resumePlan: request.resumeTask?.plan, requirePlanOutcomes: true,
     assessCompletion: tools.some(tool => !['ask_user', 'update_plan', 'find_skills', 'read_skill'].includes(tool.function.name)) ? async ({answer}) => {
       try {
@@ -331,7 +357,7 @@ export async function completeChat(request, signal, onText = () => {}, onUsage =
       let previousFailure;
       const repairIndex = `plan-format-${round}`;
       for (let attempt = 0; attempt < 2; attempt++) {
-        const messages = planMessages(goal, packed.messages, {userRequests: scopeUserHistory});
+        const messages = planMessages(goal, packed.messages, {userRequests: scopeUserHistory, siteKnowledge:request.siteKnowledge});
         if (previousFailure) {
           messages[0] = {...messages[0], content: `${messages[0].content}\nThe previous planning response failed validation (${previousFailure}). Preserve the original goal and constraints. Return exactly ONE update_plan or ask_user call with its complete declared schema. Do not include other calls, execute actions or invent missing information. A whole JSON object containing only steps is also accepted as plan data. Use valid JSON and concise steps.`};
           onStep({index: repairIndex, tool: 'recover_model', status: 'running', label: '계획 형식 수정'});
@@ -507,13 +533,22 @@ export async function completeChat(request, signal, onText = () => {}, onUsage =
       const steer = new AbortController();
       const detach = host.onSteer?.(() => steer.abort('steer'));
       const inferenceSignal = AbortSignal.any([signal, steer.signal]);
+      // A large request is retried once, not three times: a server that timed out
+      // or failed on it is likely to fail on the same size again (up to 20 minutes).
       const complete = input => recoverOutput(input, selectedTools, async (next, options) => {
-        const result = await invoke(next, {...options, signal:inferenceSignal, assessing, selectedTools, holdText: verificationPending || reviewPending});
+        const result = await invoke(next, {...options, signal:inferenceSignal, assessing, selectedTools, holdText: verificationPending || reviewPending,
+          ...(context.size(next) >= context.largeInput ? {retries: 1} : {})});
         context.record(result.usage, next); return result;
       });
       try {
         try {return await complete(wire);} catch (error) {
-          if (error.message !== 'context_overflow' || signal.aborted || steer.signal.aborted) throw error;
+          if (signal.aborted || steer.signal.aborted) throw error;
+          // Too large for the window, or a large request the server could not
+          // answer: summarize now and send once more. The failed size, less a
+          // fifth, becomes this model's limit (context.pressure).
+          const serverFailed = ['upstream', 'model_timeout', 'model_stream_incomplete'].includes(error.message) || error.status >= 500;
+          if (error.message === 'model_timeout' && hasImageInput(wire)) throw error;
+          if (error.message !== 'context_overflow' && !(serverFailed && context.pressure(wire))) throw error;
           wire = await context.prepare(wire, true);
           return await complete(wire);
         }

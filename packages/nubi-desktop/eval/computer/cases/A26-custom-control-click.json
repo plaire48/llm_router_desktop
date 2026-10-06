@@ -1,0 +1,27 @@
+{
+  "id": "A26-custom-control-click",
+  "title": "누를 수 없는 컨트롤 클릭",
+  "app": "sales-chart",
+  "corpus": "order-service",
+  "approve": "all",
+  "request": "매출 차트에서 다음 달로 넘겨서 10월 매출을 알려 줘.",
+  "expect": {
+    "state": "review",
+    "answer_includes": [
+      [
+        "1,385",
+        "1385"
+      ]
+    ],
+    "app": {
+      "events": {
+        "includes": [
+          "next-month"
+        ],
+        "excludes": [
+          "prev-month"
+        ]
+      }
+    }
+  }
+}

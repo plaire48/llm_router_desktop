@@ -7,7 +7,7 @@ const stale={state:'stale',lastUpdate:{updatedAt:'2026-09-29T00:00:00.000Z'},cha
 
 test('a stale Wiki offers an update and says what it costs and what it sends',()=>{
   const view=wikiUpdateView({status:stale,update:null});
-  assert.equal(view.title,'OpenWiki 갱신 제안');
+  assert.equal(view.title,'위키 갱신 제안');
   assert.deepEqual(view.pages,[{path:'openwiki/home.md',label:'원본이 바뀜'},{path:'openwiki/old.md',label:'원본이 없음'}]);
   assert.match(view.lines.join('\n'),/마지막 갱신 뒤 바뀐 파일 2개/);
   assert.match(view.lines.join('\n'),/커밋하지 않은 변경 1개는 갱신에 들어가지 않아요/);
@@ -24,12 +24,12 @@ test('a current Wiki and a Wiki without a generation record offer nothing to run
 
 test('a running update shows its stage and can be stopped',()=>{
   const view=wikiUpdateView({status:stale,update:{state:'running',events:[{type:'progress',stage:'planning'},{type:'progress',stage:'generating',page:'openwiki/home.md',index:2,total:5}]}});
-  assert.equal(view.title,'OpenWiki 갱신 중');assert.match(view.lines[0],/페이지 작성 2\/5: openwiki\/home\.md/);assert.deepEqual(view.actions,['cancel']);
+  assert.equal(view.title,'위키 갱신 중');assert.match(view.lines[0],/페이지 작성 2\/5: openwiki\/home\.md/);assert.deepEqual(view.actions,['cancel']);
 });
 
 test('a finished update lists the pages to apply and what is left out',()=>{
   const view=wikiUpdateView({status:stale,update:{state:'ready',changes:[{path:'openwiki/home.md',change:'modified'},{path:'openwiki/new.md',change:'added'},{path:'openwiki/gone.md',change:'deleted'}],outside:['AGENTS.md']}});
-  assert.equal(view.title,'OpenWiki 갱신 결과');
+  assert.equal(view.title,'위키 갱신 결과');
   assert.deepEqual(view.pages,[{path:'openwiki/home.md',label:'수정'},{path:'openwiki/new.md',label:'추가'},{path:'openwiki/gone.md',label:'삭제'}]);
   assert.match(view.lines.join('\n'),/반영하지 않는 파일: AGENTS\.md/);assert.deepEqual(view.actions,['apply','discard']);
   const empty=wikiUpdateView({status:stale,update:{state:'ready',changes:[],outside:[]}});

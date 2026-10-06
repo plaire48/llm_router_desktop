@@ -1,0 +1,52 @@
+{
+  "id": "E3-long-log-check",
+  "title": "긴 점검 기록에서 오류를 찾아 고치기",
+  "suite": "command",
+  "split": "dev",
+  "corpus": "order-catalog",
+  "request": "배포 전에 `npm run check`로 상품 목록 점검을 돌려서, 오류가 있으면 원인을 찾아 고치고 다시 돌려서 통과하는지 확인해 줘.",
+  "approvals": [
+    "patch",
+    "command"
+  ],
+  "commands": [
+    "npm(?:\\.cmd)? run check(?: .+)?",
+    "node scripts/check-catalog\\.mjs(?: .+)?",
+    "npm(?:\\.cmd)? (?:run )?test(?: .+)?",
+    "node --test(?: .+)?",
+    "(?:node|npm)(?:\\.cmd)? (?:--version|-v)",
+    "git (?:status|diff|log)(?: [\\w./=@-]+)*"
+  ],
+  "expect": {
+    "state": "review",
+    "commands": {
+      "match": [
+        "re:npm(?:\\.cmd)? run check",
+        "re:node scripts/check-catalog"
+      ],
+      "min": 2,
+      "lastExitCode": 0
+    },
+    "answer_includes": [
+      [
+        "SKU-0613"
+      ],
+      [
+        "jejoo"
+      ]
+    ],
+    "test": {
+      "files": {
+        "test/eval-hidden.test.mjs": "import {test} from 'node:test';\nimport assert from 'node:assert/strict';\nimport {readFileSync} from 'node:fs';\nimport {spawnSync} from 'node:child_process';\nimport {fileURLToPath} from 'node:url';\ntest('hidden check', () => {\n  const root = fileURLToPath(new URL('..', import.meta.url));\n  const items = JSON.parse(readFileSync(root + 'catalog/items.json', 'utf8'));\n  assert.equal(items.length, 1000);\n  assert.equal(items.find(item => item.sku === 'SKU-0613').region, 'jeju');\n  const run = spawnSync(process.execPath, ['scripts/check-catalog.mjs'], {cwd: root, encoding: 'utf8'});\n  assert.equal(run.status, 0, run.stdout.slice(-400));\n});\n"
+      },
+      "command": [
+        "node",
+        "--test",
+        "test/eval-hidden.test.mjs"
+      ]
+    },
+    "unchanged_except": [
+      "catalog/items.json"
+    ]
+  }
+}

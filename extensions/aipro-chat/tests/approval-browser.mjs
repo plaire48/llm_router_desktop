@@ -108,10 +108,12 @@ try{
   assert.equal(Object.keys(await worker.evaluate(async()=> (await chrome.storage.session.get('actionApprovals')).actionApprovals)).length,0);
   check('cancel needs no model call, preserves the page draft and revokes the pending approval');
   stage=0;mode='unverified';await send('안내를 작성해줘');await poll(async()=> (await state()).chat.task?.status,'awaiting_user');
-  assert.equal(stage,5);assert.equal(await page.evaluate(()=>window.submits.length),1);
-  assert((await state()).chat.messages.at(-1).trace.some(s=>s.reason==='approval_verification_required'));
+  // The user decides on the card, which shows the draft; no separate check is asked first.
+  assert.equal(stage,3);assert.equal(await page.evaluate(()=>window.submits.length),1);
+  assert.equal((await state()).chat.messages.at(-1).question?.kind,'approval');
+  assert(!(await state()).chat.messages.at(-1).trace.some(s=>s.reason==='approval_verification_required'));
   await ui.getByRole('button',{name:'취소',exact:true}).click();await poll(async()=> (await state()).chat.messages.at(-1)?.question?.answer?.state,'rejected');
-  check('unverified final script clicks are refused; the model verifies the draft before an approval can appear');
+  check('a final script click without a prior check shows the approval card with the draft, and nothing is sent');
   stage=0;mode='revise';await send('팀 업무 안내를 새로 작성해줘');await poll(async()=> (await state()).chat.task?.status,'awaiting_user');
   const prior=(await state()).chat.messages.at(-1).question.id;
   await send('마감일을 목요일로 바꿔줘');await poll(async()=> (await state()).chat.task?.status,'awaiting_user');

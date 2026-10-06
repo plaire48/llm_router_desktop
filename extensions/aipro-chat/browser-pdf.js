@@ -5,6 +5,8 @@ import {publicSourceURL} from './browser-public-url.js';
 import pRetry from 'p-retry';
 
 const digest=async bytes=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(b=>b.toString(16).padStart(2,'0')).join('');
+// A PDF's header may follow a few bytes of padding; readers look within the first 1024.
+const pdfHeader=bytes=>new TextDecoder('latin1').decode(bytes.subarray(0,1024)).includes('%PDF-');
 const unavailable=(reason,details={})=>({error:'page_content_pdf_unavailable',format:'pdf',retryable:false,reason,...details,
   instruction:'This current PDF could not be read as text. Do not repeat the unchanged PDF read or screenshots, invent its contents or claim full coverage. Keep the original user requirements. A different source is an optional recovery route, not a new requirement or mandatory plan step. If this exact PDF is required, report the limitation or request the original file; otherwise answer only what existing verified evidence supports.'});
 const transientStatuses=new Set([408,429,500,502,503,504]);
@@ -100,7 +102,10 @@ export async function readCurrentPdf(task,selected,cancelled,{fetchImpl=fetch,pa
       }});
     if(response.redirected||response.url&&new URL(response.url).href!==url.href)return unavailable('pdf_redirect_blocked');
     if(!response.ok)return unavailable([401,403].includes(response.status)?'pdf_auth_required':'pdf_http_error',{http_status:response.status,request_attempts:requestAttempts});
-    if(!/^(?:application\/pdf|application\/octet-stream)(?:\s*;|$)/i.test(response.headers.get('content-type')||''))return unavailable('pdf_mime_invalid');
+    // The tab already shows this document as a PDF. Sites label it application/x-download,
+    // application/unknown, application/force-download and the like (measured: a public library
+    // guide was refused as pdf_mime_invalid); the file's own header decides, not the label.
+    if(/^(?:text\/|application\/(?:json|xhtml\+xml|javascript)|image\/)/i.test(response.headers.get('content-type')||''))return unavailable('pdf_mime_invalid');
     const sizeHint=Number(response.headers.get('content-length'));
     if(sizeHint>ATTACHMENT_LIMITS.documentBytes)return unavailable('pdf_size_limit');
     if(!response.body?.getReader)return unavailable('pdf_body_unavailable');
@@ -109,12 +114,14 @@ export async function readCurrentPdf(task,selected,cancelled,{fetchImpl=fetch,pa
       if(cancelled())throw Error('cancelled');
       const {done,value}=await abortable(reader.read(),controller.signal);if(done)break;size+=value.length;
       if(size>ATTACHMENT_LIMITS.documentBytes)return unavailable('pdf_size_limit');chunks.push(value);
+      // Stop at the first bytes when they are not a PDF (an HTML page behind a PDF link).
+      if(chunks.length===1&&size>=1024&&!pdfHeader(value))return unavailable('pdf_magic_invalid');
     }
     clearTimeout(fetchTimer);fetchTimer=null;
     if(!await abortable(same(),controller.signal))return {error:'browser_stale'};
     if(!await abortable(permitted(url.href),controller.signal))return unavailable('pdf_permission_missing');
     const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
-    if(new TextDecoder().decode(bytes.subarray(0,5))!=='%PDF-')return unavailable('pdf_magic_invalid');
+    if(!pdfHeader(bytes))return unavailable('pdf_magic_invalid');
     let binary='';for(let at=0;at<bytes.length;at+=8192)binary+=String.fromCharCode(...bytes.subarray(at,at+8192));
     const rawHash=await digest(bytes),parsed=await abortable(parse(btoa(binary),controller.signal),controller.signal);
     if(cancelled()||controller.signal.reason==='cancelled')throw Error('cancelled');

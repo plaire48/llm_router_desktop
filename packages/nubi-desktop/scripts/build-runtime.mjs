@@ -2,7 +2,7 @@ import {build} from 'esbuild';
 import {mkdir,copyFile,cp,readFile,rm,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import './check-identity.mjs';
+
 // Both standalone Wiki tests and the packaged host resolve the same locked
 // framework copies. NODE_PATH alone would prefer an optional OpenWiki install.
 const sharedRoot=path.resolve('../../extensions/aipro-chat');
@@ -81,14 +81,18 @@ const updateSources=Object.keys(updateBuild.metafile.inputs).filter(p=>!p.includ
 const updateHash=createHash('sha256');for(const file of updateSources){updateHash.update(file.replaceAll('\\','/'));updateHash.update(await readFile(file));}
 await writeFile('generated/runtime-provenance.json',JSON.stringify({openwiki:{name:wikiPackage.name,version:wikiPackage.version,sourceSha256:wikiHash.digest('hex'),sourceFiles:wikiSources.length,scope:'Bundled retrieval, Claims, read-only document research, repository evidence and pairing. Not the full CLI.'},openwikiUpdate:{sourceSha256:updateHash.digest('hex'),sourceFiles:updateSources.length,scope:'The repository update runner (openwiki --update), run with the Desktop model on the user\'s approval. A separate file loaded only for an update.'},documentResearch:{dependencyLock:'extensions/aipro-chat/package-lock.json',dependencies:researchDependencies}},null,2)+'\n');
 await mkdir('extension/lib/node',{recursive:true});
+await copyFile('extension/src/node/theia-host.cjs','extension/lib/node/theia-host.cjs');
+await copyFile('extension/src/node/git-askpass.cjs','extension/lib/node/git-askpass.cjs');
 await copyFile('runtime/computer-pointer.ps1','extension/lib/node/computer-pointer.ps1');
+await copyFile('runtime/office-document.ps1','extension/lib/node/office-document.ps1');
 await rm('extension/lib/node/openwiki-update',{recursive:true,force:true});
 await cp('generated/openwiki-update','extension/lib/node/openwiki-update',{recursive:true});
-for (const worker of ['schema-worker','database-worker','code-analysis-worker']) await build({entryPoints:[`runtime/${worker}.mjs`],outfile:`extension/lib/node/${worker}.mjs`,bundle:true,platform:'node',format:'esm',target:'node24',external:['knex','knex-schema-inspector','typescript','jsonc-parser'],banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);"}});
+for (const worker of ['schema-worker','database-worker','code-analysis-worker','mail-worker','mail-attachment-worker']) await build({entryPoints:[`runtime/${worker}.mjs`],outfile:`extension/lib/node/${worker}.mjs`,bundle:true,platform:'node',format:'esm',target:'node24',external:['knex','knex-schema-inspector','typescript','jsonc-parser','./document-extract.mjs'],banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);"}});
 const sourceWiki={name:'nubi-source-wiki',setup(builder){builder.onResolve({filter:/openwiki\.mjs$/},args=>path.resolve(args.resolveDir,args.path)===path.resolve('generated/openwiki.mjs')?{path:path.resolve('runtime/openwiki-source.ts')}:undefined);}};
 // The host imports the update runner from the folder next to it.
+const deferredDocuments={name:'nubi-deferred-documents',setup(builder){builder.onResolve({filter:/document-extract\.mjs$/},args=>path.resolve(args.resolveDir,args.path)===path.resolve('runtime/document-extract.mjs')?{path:'./document-extract.mjs',external:true}:undefined);}};
 const deferredUpdate={name:'nubi-deferred-wiki-update',setup(builder){builder.onResolve({filter:/openwiki-update\/index\.mjs$/},args=>path.resolve(args.resolveDir,args.path)===path.resolve('generated/openwiki-update/index.mjs')?{path:'./openwiki-update/index.mjs',external:true}:undefined);}};
-const runtimeBuild=await build({metafile:true,plugins:[pinnedFramework,sourceWiki,deferredUpdate],entryPoints:['runtime/service-entry.mjs'],outfile:'extension/lib/node/service-entry.mjs',bundle:true,platform:'node',nodePaths:[path.resolve('node_modules')],format:'esm',target:'node24',banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);"},external:['jsonc-parser','@vscode/ripgrep','knex','knex-schema-inspector','@earendil-works/pi-agent-core','@earendil-works/pi-ai','playwright','pixelmatch','pngjs','minisearch'],legalComments:'eof'});
+const runtimeBuild=await build({metafile:true,plugins:[pinnedFramework,sourceWiki,deferredUpdate,deferredDocuments],entryPoints:['runtime/service-entry.mjs'],outfile:'extension/lib/node/service-entry.mjs',bundle:true,platform:'node',nodePaths:[path.resolve('node_modules')],format:'esm',target:'node24',banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);"},external:['jsonc-parser','@vscode/ripgrep','knex','knex-schema-inspector','@earendil-works/pi-agent-core','@earendil-works/pi-ai','playwright','pixelmatch','pngjs','minisearch'],legalComments:'eof'});
 assertFrameworkSources(runtimeBuild.metafile);
 if(Object.keys(runtimeBuild.metafile.inputs).some(file=>path.resolve(file)===path.resolve('generated/openwiki.mjs')))throw Error('research_prebundle_duplicate');
 if(!Object.keys(runtimeBuild.metafile.inputs).some(file=>file.replaceAll('\\','/').endsWith('/openwiki/src/agent/wiki-question.ts')))throw Error('research_core_missing');
@@ -101,8 +105,15 @@ await copyFile('../../extensions/aipro-chat/design/agent-deck.css','extension/li
 const shared=await Promise.all(['app','surfaces','code','interaction-forms','approval','deck-surfaces'].map(name=>readFile('../../extensions/aipro-chat/src/'+name+'.css','utf8')));
 await writeFile('extension/lib/browser/style/nubi-shared.css',shared.join('\n'));
 
-for(const bundle of [runtimeBuild,uiBuild]){if(Object.keys(bundle.metafile.inputs).some(file=>/nubi-a2a\/(?!contract\.mjs)|@a2a-js\/sdk|runtime\/collaboration\.mjs|ui\/Collaboration\.jsx/.test(file.replaceAll('\\','/'))))throw Error('a2a_must_remain_deferred');}
+
+if(Object.keys(uiBuild.metafile.inputs).some(file=>/@a2a-js\/sdk|nubi-a2a\/(?:client|server)\.mjs/.test(file.replaceAll('\\','/'))))throw Error('a2a_auth_must_remain_in_host');
 // Release snapshots copy the actual shared source dependency closure rather
 // than silently taking unrelated in-progress Office/browser changes. Modules the
 // build replaces (nubi-*: namespaces) are not files.
 await writeFile('generated/source-inputs.json',JSON.stringify([...new Set([wikiBuild,updateBuild,runtimeBuild,uiBuild].flatMap(bundle=>Object.keys(bundle.metafile.inputs)).filter(file=>!file.includes('node_modules')&&!/^nubi-[a-z-]+:/.test(file)))].sort(),null,2)+'\n');
+
+await build({entryPoints:['runtime/document-extract.mjs'],outfile:'extension/lib/node/document-extract.mjs',bundle:true,platform:'node',format:'esm',target:'node24',banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);"}});
+await copyFile('../../extensions/aipro-chat/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs','extension/lib/node/pdf.worker.mjs');
+
+await copyFile('../../extensions/aipro-chat/public/icons/agent-128.png','extension/lib/node/auth-bird.png');
+await copyFile('../openwiki/src/auth/aipro-callback-fonts.css','extension/lib/node/auth-fonts.css');

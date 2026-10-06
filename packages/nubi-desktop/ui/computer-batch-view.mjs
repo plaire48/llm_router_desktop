@@ -1,5 +1,5 @@
 // What the approval card of a batch shows. Text only: no input, no state.
-const RESULT={value_matched:'입력값 일치',state_matched:'상태 확인',value_mismatch:'입력값이 요청과 다름',state_mismatch:'상태가 요청과 다름',state_unavailable:'상태를 읽지 못함'};
+const RESULT={value_matched:'입력값 일치',state_matched:'상태 확인',value_mismatch:'입력값이 요청과 다름',state_mismatch:'상태가 요청과 다름',state_unavailable:'상태를 읽지 못함',text_present:'입력한 글자 확인',text_absent:'입력한 글자가 보이지 않음'};
 const ran=state=>['observed','attention','acknowledged','starting'].includes(state);
 function result(action,step){
   if(!ran(action.state))return '';
@@ -17,7 +17,7 @@ function summary(action){
     case 'acknowledged':return '사용자가 결과를 확인했습니다. 업무 성공 판정과는 별개입니다.';
     case 'stale':return action.error==='computer_approval_expired'?'승인 시간이 지나 실행하지 않았습니다. 다시 제안해 주세요.'
       :action.error==='computer_document_stale'?'문서 분석의 원본이 바뀌어 실행하지 않았습니다. 최신 문서로 다시 확인해 주세요.'
-      :action.error==='wiki_evidence_stale'?'OpenWiki-SDS 근거가 바뀌어 실행하지 않았습니다. 최신 근거로 다시 제안해 주세요.'
+      :action.error==='wiki_evidence_stale'?'위키 근거가 바뀌어 실행하지 않았습니다. 최신 근거로 다시 제안해 주세요.'
       :'대상이 바뀌어 실행하지 않았습니다. 현재 화면으로 다시 제안해 주세요.';
     case 'attention':return action.error==='computer_pointer_hide_failed'?'단계는 실행했지만 표시용 커서를 숨기지 못했습니다. 화면을 확인해 주세요.':action.verification==='steps_mismatch'?at+'의 결과가 요청과 다릅니다. 실제 앱을 확인해 주세요. 남은 단계는 실행하지 않았습니다.'
       :at+'의 결과를 알 수 없습니다. 실제 앱을 확인해 주세요. 같은 동작을 자동으로 반복하지 않습니다.';
@@ -28,6 +28,6 @@ function summary(action){
 }
 export function batchView(action,verbs){
   const steps=(action.steps||[]).map(step=>({index:step.index,label:(verbs[step.action]||step.action)+': '+(step.target?.element?.name||step.target?.element?.type||step.selector),
-    ...(step.action==='set_value'?{value:step.value??''}:{}),result:result(action,step)}));
+    ...(['set_value','type_text'].includes(step.action)?{value:step.value??''}:{}),...(step.keys?{keys:step.keys}:{}),result:result(action,step)}));
   return {title:`묶음 입력 ${steps.length}단계`,steps,summary:summary(action)};
 }

@@ -96,7 +96,7 @@ try{
     });
     assert.deepEqual(emphasis,{lead:{weight:'600',color:'rgb(25, 31, 40)',size:'14px',line:'22px'},key:{weight:'600',color:'rgb(27, 100, 218)',size:'14px',line:'22px'},detail:{weight:'400',color:'rgb(78, 89, 104)',size:'14px',line:'22px'}});
     await snapshot('help-expanded',width,height);await close();await modal('설정').waitFor();await close();
-    await button('설정').click();assert.equal(await button('누비 작업 연결').count(),0);await close();
+    await button('설정').click();assert.equal(await button('누비 작업 연결').count(),1);await close();
     checks.push(`${width}px login, FabriX fields, settings and collapsed help fit; keyboard disclosure and Escape return work`);
   }
   await worker.evaluate(token=>chrome.storage.session.set({providerSessions:{chatgpt:{credential:{provider:'chatgpt',token,receivedAt:88,expiresAt:Date.now()+3600000}}}}),chatgptToken());

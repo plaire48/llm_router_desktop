@@ -50,6 +50,12 @@ test('model catalog preserves all classifications and separates display names fr
   assert.equal(rows[1].maxInputTokens, 460800);
   assert.equal(rows[1].contextLength, 525288);
   assert.equal(rows[0].contextLength, null);
+  // AI Pro's open_api entries name the window context; vLLM names it max_model_len.
+  const windows = parseModelList({modelList:[{id:69,name:'glm-5.2',target:'open_api',context:524288},{id:72,name:'qwen3.8-27b',target:'open_api',context:'262144'},
+    {id:57,name:'gpt-oss-120b',target:'open_api',max_model_len:131072},{name:'odd',target:'open_api',context:'large',max_input_tokens:9000}]});
+  const windowOf = name => windows.find(m => m.name === name);
+  assert.deepEqual(['glm-5.2', 'qwen3.8-27b', 'gpt-oss-120b', 'odd'].map(name => windowOf(name).contextLength), [524288, 262144, 131072, null]);
+  assert.equal(windowOf('odd').maxInputTokens, 9000, 'an input limit is never taken for the window');
   assert.throws(() => parseModelList({data:[]}), /models_invalid/);
   assert.deepEqual(parseModelList({modelList:[]}), []);
   assert.equal(parseModelList({modelList:[{name:'model',target:'chat',display_name:''} ]})[0].displayName, 'model');

@@ -2,8 +2,8 @@ import {readFile, writeFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {browserTasksAll as browserTasks30} from '../evaluation/browser-30.mjs';
 import {fixtureGrade} from '../evaluation/browser-fixture-grades.mjs';
-const [path] = process.argv.slice(2);
-if (!path) throw Error('Usage: node scripts/grade-browser-fixtures.mjs REPORT.json');
+const [path,outputOverride] = process.argv.slice(2);
+if (!path) throw Error('Usage: node scripts/grade-browser-fixtures.mjs REPORT.json [OUTPUT.json]');
 const raw = await readFile(path), report = JSON.parse(raw);
 if (report.suite !== 'browser-30-v1' || !Array.isArray(report.plannedTaskIds) || !Array.isArray(report.trials) ||
     new Set(report.plannedTaskIds).size !== report.plannedTaskIds.length || new Set(report.trials.map(t=>t.id)).size !== report.trials.length ||
@@ -12,7 +12,7 @@ const grades = report.trials.flatMap(trial => {
   const grade = fixtureGrade(browserTasks30.find(task => task.id === trial.id), trial);
   return grade ? [grade] : [];
 });
-const output = path + '.fixture-grades.json';
+const output = outputOverride || path + '.fixture-grades.json';
 // Preserve manual grades and previous automated artifacts. A caller must choose
 // how to reconcile partial checks; this tool never promotes incomplete grades.
 await writeFile(output, JSON.stringify({sourceReport: path, sourceSha256: createHash('sha256').update(raw).digest('hex'),

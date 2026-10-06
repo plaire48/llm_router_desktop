@@ -28,6 +28,7 @@ import {publicSourceURL} from '../browser-public-url.js';
 import {evaluationPublicRead} from './evaluation-public-read.mjs';
 import {observeEvaluationDialogs} from './evaluation-dialogs.mjs';
 import {validEvaluationAttachment} from './evaluation-attachment.mjs';
+import {evaluationSourceTab} from './evaluation-source.mjs';
 import {inspectEvaluationDelivery,waitForEvaluationDelivery} from './evaluation-delivery.mjs';
 
 process.chdir(fileURLToPath(new URL('../', import.meta.url)));
@@ -88,15 +89,34 @@ const runnerSha256 = createHash('sha256').update(await readFile(fileURLToPath(im
 const attachment = process.env.NUBI_EVAL_ATTACH_REPORT ? JSON.parse(await readFile(resolve(process.env.NUBI_EVAL_ATTACH_REPORT), 'utf8')) : null;
 const freshAfterInterruption = process.env.NUBI_EVAL_FRESH_AFTER_INTERRUPTION === '1';
 const repeatRecorded = process.env.NUBI_EVAL_REPEAT_RECORDED === '1';
+const unrunRemainder = process.env.NUBI_EVAL_UNRUN_REMAINDER === '1';
+const modelComparison = process.env.NUBI_EVAL_MODEL_COMPARISON === '1';
+const retryUnsent = process.env.NUBI_EVAL_RETRY_UNSENT === '1';
+if (retryUnsent && !attachment) throw Error('evaluation_unsent_retry_requires_report');
+if (modelComparison && !attachment) throw Error('evaluation_comparison_requires_report');
+if (unrunRemainder && !attachment) throw Error('evaluation_remainder_requires_report');
 if (repeatRecorded && !attachment) throw Error('evaluation_repeat_requires_report');
 if (attachment && !validEvaluationAttachment({attachment, reuseProfile:process.env.NUBI_EVAL_REUSE_PROFILE,
     candidateSha256, plannedTaskIds:report.plannedTaskIds, publicReadPages, fixtureApprovals, suite30, selectedTasks,
-    freshAfterInterruption, repeatRecorded})) throw Error('invalid_evaluation_attachment');
+    freshAfterInterruption, repeatRecorded, unrunRemainder, modelComparison, retryUnsent, model})) throw Error('invalid_evaluation_attachment');
+if (retryUnsent) report.recovery = {kind:'unsent_public_setup_retry',originalRunId:attachment.runId,
+  originalReport:resolve(process.env.NUBI_EVAL_ATTACH_REPORT),priorModelRequests:0,originalTrialsPreserved:true};
+if (modelComparison) report.modelComparison = {originalRunId:attachment.runId, originalModel:attachment.model,
+  originalReport:resolve(process.env.NUBI_EVAL_ATTACH_REPORT), freshConversations:true, freshFixtures:true,
+  sameCandidate:true, isolatedEvaluationProfileOnly:true, authenticationCopied:false};
+if (unrunRemainder) report.recovery = {kind:'unrun_remainder', originalRunId:attachment.runId,
+  originalReport:resolve(process.env.NUBI_EVAL_ATTACH_REPORT), recordedTaskIds:attachment.trials.map(trial=>trial.id),
+  replayedTasks:0, originalTrialsPreserved:true};
 const evaluatorSha256 = attachment?.evaluatorSha256 || runnerSha256;
 report.runnerSha256 = runnerSha256;
-const extension = resolve(profile, `extension-${candidateSha256.slice(0,16)}-${evaluatorSha256.slice(0,12)}`);
+// Instrumented background contents can differ between two runs with the same ZIP.
+// Give each run a fresh module identity, while attachments reconnect their original one.
+const extensionInstance = attachment ? attachment.extensionInstance || '' : report.runId.slice(0,8);
+if(extensionInstance && !/^[a-f0-9]{8}$/.test(extensionInstance))throw Error('invalid_evaluation_attachment');
+report.extensionInstance = extensionInstance;
+const extension = resolve(profile, `extension-${candidateSha256.slice(0,16)}-${evaluatorSha256.slice(0,12)}${extensionInstance ? '-'+extensionInstance : ''}`);
 report.evaluatorSha256 = evaluatorSha256;
-const evaluationVersion = `evaluation-${candidateSha256.slice(0,16)}-${evaluatorSha256.slice(0,12)}`;
+const evaluationVersion = `evaluation-${candidateSha256.slice(0,16)}-${evaluatorSha256.slice(0,12)}${extensionInstance ? '-'+extensionInstance : ''}`;
 const downloadsPath = resolve(profile, 'downloads', evaluationVersion);
 let browser, context, child, fixtures;
 const freePort = () => new Promise((resolvePort, reject) => {
@@ -115,10 +135,12 @@ try {
     // download directory. Isolate files per candidate to avoid user Downloads
     // collisions and verify the actual saved filename/hash reproducibly.
     await mkdir(downloadsPath,{recursive:true});await mkdir(resolve(profile,'Default'),{recursive:true});
-    const preferencesPath=resolve(profile,'Default','Preferences');
-    const preferences=await readFile(preferencesPath,'utf8').then(JSON.parse).catch(error=>{if(error.code==='ENOENT')return {};throw error;});
-    preferences.download={...preferences.download,default_directory:downloadsPath,prompt_for_download:false};
-    await writeFile(preferencesPath,JSON.stringify(preferences));
+    if (!attachment) {
+      const preferencesPath=resolve(profile,'Default','Preferences');
+      const preferences=await readFile(preferencesPath,'utf8').then(JSON.parse).catch(error=>{if(error.code==='ENOENT')return {};throw error;});
+      preferences.download={...preferences.download,default_directory:downloadsPath,prompt_for_download:false};
+      await writeFile(preferencesPath,JSON.stringify(preferences));
+    } else if (attachment.downloadSetup?.isolatedDirectory !== true) throw Error('evaluation_download_setup_missing');
     report.downloadSetup={isolatedDirectory:true,scope:'candidate_evaluator',userDownloadsUnchanged:true};
   }
   if (!attachment) {
@@ -160,6 +182,9 @@ const evalContentEvidence = ${evaluationContentEvidence.toString()};
 const evalPublicRead = ${evaluationPublicRead.toString()};
 const evalPublicReadPages = ${JSON.stringify(publicReadPages)};
 const evalCode = value => typeof value === 'string' && /^[a-z_]{1,64}$/.test(value) ? value : null;
+// The approval rule's action word as a code; the words are the product's fixed vocabulary.
+const APPROVAL_CODES = {배포: 'deploy', 게시: 'publish', 발송: 'send', 등록: 'register', 제출: 'submit', 신청: 'apply', 삭제: 'delete', 결제: 'pay', 저장: 'save', 반영: 'commit', 승인: 'approve', 확정: 'finalize', 결재: 'sign', 상신: 'request',
+  구독: 'subscribe', 가입: 'sign_up', 탈퇴: 'withdraw', 해지: 'terminate', 예약: 'reserve', 주문: 'order', 수락: 'accept', 거절: 'decline', 동의: 'agree', 취소: 'cancel', 업로드: 'upload', 다운로드: 'download', 실행: 'run'};
 // Sizes only, never content: shows which observation fields dominate model input.
 const evalResultSize = result => {
   try {
@@ -200,7 +225,11 @@ handle = async function(message, sender, owner) {
       // Kinds only, never values, refs or page text: which checks a model writes and
       // why one is refused, what covered a click, what an action changed.
       ...(message.name==='verify_page'?{checkKinds:(Array.isArray(message.args?.checks)?message.args.checks:[]).slice(0,24).map(check=>evalCode(check?.kind)),
-        ...(Array.isArray(result?.invalidChecks)?{invalidChecks:result.invalidChecks.slice(0,24).map(item=>({index:Number.isInteger(item?.index)?item.index:null,kind:evalCode(item?.kind),problem:String(item?.problem||'').slice(0,160)}))}:{})}:{}),
+        ...(Array.isArray(result?.invalidChecks)?{invalidChecks:result.invalidChecks.slice(0,24).map(item=>({index:Number.isInteger(item?.index)?item.index:null,kind:evalCode(item?.kind),problem:String(item?.problem||'').slice(0,160)}))}:{}),
+      }:{}),
+      // Why a ref no longer named a control, and which action word held a press for approval.
+      ...(typeof result?.staleReason==='string'?{staleReason:evalCode(result.staleReason)}:{}),
+      ...(typeof result?.approvalAction==='string'?{approvalAction:APPROVAL_CODES[result.approvalAction]||'other'}:{}),
       ...(result?.blocker&&typeof result.blocker==='object'?{blocker:{kind:evalCode(result.blocker.kind),tag:evalCode(result.blocker.tag)}}:{}),
       ...(result?.effect&&typeof result.effect==='object'?{effectKinds:Object.keys(result.effect).filter(key=>/^[a-zA-Z]{1,40}$/.test(key)).slice(0,20)}:{}),
       ...(Array.isArray(result?.erasing)?{erasing:result.erasing.length}:{}),
@@ -238,13 +267,14 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   report.diagnosticInstrumentation = 'Tool/schema codes, bounded review conclusions, redacted source URL/text hash/range coverage, value-free page-region counts, host semantic-click targets, bounded host script/semantic-input command receipts and model start/finish timestamps; no credentials, browser input values or request bodies';
   report.publicReadCapture = {enabled:publicReadPages.length>0,allowedPages:publicReadPages,scope:'Opt-in sanitized tool text on fixed public task pages; no authentication pages, arbitrary tool arguments, model request bodies or private reasoning'};
   } else {
-    for (const key of ['scriptEvidenceInstrumentationSha256', 'diagnosticInstrumentation', 'publicReadCapture']) report[key] = attachment[key];
+    for (const key of ['scriptEvidenceInstrumentationSha256', 'diagnosticInstrumentation', 'publicReadCapture', 'operatorSetup'])
+      if(attachment[key]!==undefined)report[key] = attachment[key];
     for (const check of attachment.loadedBuild?.checks || []) {
       if (!/^[a-z0-9-]+\.js$/.test(check.file) || createHash('sha256').update(await readFile(resolve(extension,check.file))).digest('hex') !== check.expectedSha256) throw Error('evaluation_attachment_changed');
     }
     if (!attachment.loadedBuild?.verified || !attachment.loadedBuild.checks.length) throw Error('evaluation_attachment_unverified');
     report.attachedFromRunId = attachment.runId;
-    report.attachmentMode = repeatRecorded ? 'new_trial_same_recorded_candidate' : freshAfterInterruption ? 'fresh_trial_after_harness_interruption' : 'continue_login_setup';
+    report.attachmentMode = retryUnsent ? 'unsent_public_setup_retry' : modelComparison ? 'new_model_fresh_30_tasks' : unrunRemainder ? 'unrun_remainder' : repeatRecorded ? 'new_trial_same_recorded_candidate' : freshAfterInterruption ? 'fresh_trial_after_harness_interruption' : 'continue_login_setup';
   }
   let port;
   if (attachment) {
@@ -326,7 +356,8 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   const state = async () => (await rpc({type: 'GET_STATE'})).data;
   const composer = evaluationComposer(ui);
   let ready=await state();
-  if ((freshAfterInterruption || repeatRecorded) && ready.busy) throw Error('evaluation_previous_run_busy');
+  if ((freshAfterInterruption || repeatRecorded || unrunRemainder || modelComparison || retryUnsent) && ready.busy) throw Error('evaluation_previous_run_busy');
+  if ((unrunRemainder || modelComparison || retryUnsent) && ready.chat?.task?.status === 'awaiting_user') throw Error('evaluation_previous_question_pending');
   if (repeatRecorded && (ready.chat?.task?.status === 'awaiting_user' || ready.chat?.messages?.at(-1)?.question)) throw Error('evaluation_previous_question_pending');
   if(!ready.auth?.present || ready.auth.provider!=='chatgpt' || ready.auth.rejected){
     report.status = 'awaiting_login'; await save();
@@ -365,10 +396,13 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     // through the product's own buttons. Measures the effect, not correctness.
     // NUBI_EVAL_KNOWLEDGE_PROBE names the task ids to probe; other tasks run once as usual.
     const probeIds = new Set((process.env.NUBI_EVAL_KNOWLEDGE_PROBE || '').split(',').map(id => id.trim()).filter(Boolean));
+    const siteRepeats=process.env.NUBI_EVAL_SITE_REPEATS===undefined ? null : Number(process.env.NUBI_EVAL_SITE_REPEATS);
+    if(siteRepeats!==null && (!Number.isInteger(siteRepeats) || siteRepeats<1 || siteRepeats>5 || !probeIds.size))throw Error('invalid_site_repeats');
+    const probePhases=siteRepeats===null ? ['baseline','wiki','skill-auto','skill-selected'] : ['baseline',...Array.from({length:siteRepeats},(_,index)=>`wiki-${index+1}`)];
     const probe = probeIds.size ? knowledgeProbe({ui, rpc, state, report, save,
       keepText: (name, text) => /^[A-Z]-[0-9]{2}-(?:wiki|skill)\.md$/.test(name) ? writeFile(resolve(evidenceDirectory, name), String(text).slice(0, 60000)) : null}) : null;
     // Ordinary tasks run first: a probe drives more of the UI and is more likely to stop the run.
-    const schedule = taskSet.slice(startIndex, startIndex + limit).flatMap(item => (probeIds.has(item.id) ? ['baseline', 'wiki', 'skill-auto', 'skill-selected'] : [null]).map(phase => ({item, phase})))
+    const schedule = taskSet.slice(startIndex, startIndex + limit).flatMap(item => (probeIds.has(item.id) ? probePhases : [null]).map(phase => ({item, phase})))
       .sort((left, right) => (left.phase ? 1 : 0) - (right.phase ? 1 : 0));
     for (const {item: selectedTask, phase} of schedule) {
       if (stopRequested) break;
@@ -448,18 +482,23 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
         }
         if (startAttempts > 1) trial.startAttempts = startAttempts;
         trial.initialHttpStatus = initial?.status() || null;
-        const sourceTabId = await worker.evaluate(async ({url, previousTabIds}) => {
-          const fresh = (await chrome.tabs.query({})).filter(tab => !previousTabIds.includes(tab.id) && tab.url === url);
-          if (fresh.length !== 1) throw Error('evaluation_source_ambiguous');
-          return fresh[0].id;
-        }, {url: source.url(), previousTabIds});
+        const sourceIdentity=await context.newCDPSession(source);
+        let sourceTabId;
+        try {
+          for(let attempt=0;attempt<20;attempt++){
+            const {targetInfo}=await sourceIdentity.send('Target.getTargetInfo');
+            const native=await worker.evaluate(async()=>({targets:(await chrome.debugger.getTargets()).map(({id,type,tabId,url})=>({id,type,tabId,url})),tabs:(await chrome.tabs.query({})).map(({id,url})=>({id,url}))}));
+            try {sourceTabId=evaluationSourceTab({targetId:targetInfo.targetId,pageUrl:source.url(),...native,previousTabIds});break;}
+            catch(error){if(error.message!=='evaluation_source_url_pending'||attempt===19)throw error;await source.waitForTimeout(100);}
+          }
+        }finally{await sourceIdentity.detach();}
         if (!sourceTabId) throw new Error('source_tab_missing');
         await worker.evaluate(({uiTabId, sourceTabId}) => chrome.storage.session.set({chatSourceTabs: {[uiTabId]: sourceTabId}}), {uiTabId, sourceTabId});
         await source.bringToFront();
         const connection = await rpc({type:'CONNECT_PAGE'});
         const connectedTabId = await worker.evaluate(async () => (await chrome.storage.session.get('page')).page?.tabId);
         if (connection?.error || connectedTabId !== sourceTabId) throw Error('evaluation_source_connection_mismatch');
-        trial.sourceBinding = {tabId:sourceTabId, connectedTabId, uniqueNewTab:true};
+        trial.sourceBinding = {tabId:sourceTabId, connectedTabId, uniqueNewTab:true,identity:'cdp-target/native-tab'};
         if (task.setup === 'fixture-attachment') {
           await ui.getByLabel('첨부 파일 선택', {exact: true}).setInputFiles({name: 'training.txt', mimeType: 'text/plain', buffer: Buffer.from(trainingText)});
           const until = Date.now() + 15000;

@@ -52,7 +52,7 @@ test('a captured image switches the next request without replaying tools or losi
     step => steps.push(step), event => {ledger = recordUsage(ledger, {...event, requestId: 'route-run', provider: 'aipro'});});
   assert.equal(result, '화면을 확인했습니다.'); assert.equal(captures, 1); assert.equal(requests.length, 2);
   assert.equal(request.modelId, text.name);
-  assert(steps.some(step => step.tool === 'image_model' && step.status === 'done'));
+  assert(!steps.some(step => step.tool === 'image_model'), 'Image inference uses ordinary response progress');
   assert.equal(usageSummary(ledger).total.aipro.total, 160);
 });
 

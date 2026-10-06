@@ -68,14 +68,17 @@ test('in a small window the offered evidence carries no excerpt',async t=>{
   assert.equal(results.at(-1).error,undefined,'the plan was recorded: '+JSON.stringify(results.at(-1)).slice(0,300));
 });
 
-test('a task keeps its latest twelve evidence rows with short excerpts',()=>{
+// Excerpts were cut to 200 characters before the user decision of 2026-09-30 on large windows.
+test('a task keeps its latest twelve evidence rows with excerpts up to 4,000 characters',()=>{
   const values=new Map(),store={get:key=>values.get(key),set:(key,value)=>values.set(key,value)};
   const row=index=>({evidenceId:'wiki:'+index,path:'openwiki/a.md',hash:'sha256:a',provenance:{start:index,end:index+1},freshness:'source_matched',claimsHash:null,sourceReferences:[],excerpt:'x '.repeat(300)});
   keepWikiEvidence(store,'t1',Array.from({length:15},(_,index)=>row(index)));
   keepWikiEvidence(store,'t1',[row(5)]);
   const kept=values.get('wiki-carry:t1').rows;
   assert.equal(kept.length,12);assert.equal(kept.at(-1).evidenceId,'wiki:5','a row seen again becomes the newest');
-  assert.ok(kept.every(item=>item.excerpt.length<=200));assert.equal(kept[0].start,3,'the three oldest of fifteen are dropped');
+  assert.ok(kept.every(item=>item.excerpt==='x '.repeat(300).trim()),'an excerpt of 600 characters is kept whole');assert.equal(kept[0].start,3,'the three oldest of fifteen are dropped');
+  keepWikiEvidence(store,'t3',[{...row(1),excerpt:'가'.repeat(5000)}]);
+  assert.equal(values.get('wiki-carry:t3').rows[0].excerpt.length,4000);
   keepWikiEvidence(store,'t2',[{...row(1),excerpt:'---\ntype: policy\ntitle: 경비 규정\n---\n\n# 경비 규정\n\n## 제출\n\n제출은 신청자 본인이 직접 누른다.'}]);
   assert.equal(values.get('wiki-carry:t2').rows[0].excerpt,'# 경비 규정 ## 제출 제출은 신청자 본인이 직접 누른다.','the front matter of a whole page is left out');
 });

@@ -38,7 +38,7 @@ try{
       if(review.phase==='plan_step'){
         assert.equal(review.stepOutcomes.length,1,'text fallback must never batch three outcomes');
         assert.equal(review.stepOutcomes[0].text,steps[stepReviews].text);stepReviews++;
-      }else{assert.equal(stepReviews,3);finalReviews++;await new Promise(r=>{finalHeld=r;});}
+      }else{assert.equal(stepReviews,2);finalReviews++;await new Promise(r=>{finalHeld=r;});}
       return route.fulfill({json:reviewCompletion(review)});
     }
     round++;assert(round<=4,'one initial read and one candidate per pending stage');
@@ -70,7 +70,8 @@ try{
     const release=held;held=null;release();
   }
   await poll(()=>!!finalHeld,true);
-  await poll(()=>plan().locator('.task-plan-count').innerText(),'3/3');
+  // The reporting last step stays open while the final review judges the answer; the plan says so.
+  await poll(()=>plan().locator('.task-plan-count').innerText(),'2/3');
   assert.equal((await state()).chat.messages.at(-1).state,'pending');
   assert.equal(await plan().locator('.task-plan-pause').innerText(),'답변 확인 중');counts.push(3);
   const release=finalHeld;finalHeld=null;release();

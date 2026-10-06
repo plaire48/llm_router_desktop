@@ -202,3 +202,15 @@
 .nubi-db-options { margin:16px 0; }
 .nubi-db-options summary { cursor:pointer; }
 .nubi-db-options .nubi-db-fields { margin-top:12px; }
+
+.nubi-mail-library, .nubi-mail-form { display: flex; flex-direction: column; gap: var(--cx-space-4); min-width: 0; }
+.nubi-mail-library p { margin: 0; }
+.nubi-mail-purpose { color: var(--deck-blue-deep); }
+.nubi-mail-model { display: grid; gap: var(--cx-space-2); padding: var(--cx-space-3); border-radius: var(--deck-control-radius); background: var(--deck-tint); overflow-wrap: anywhere; }
+.nubi-mail-connect.cx-kit-button { align-self: flex-start; }
+.nubi-mail-heading, .nubi-mail-manage, .nubi-mail-recovery { display: flex; align-items: center; flex-wrap: wrap; gap: var(--cx-space-2); }
+.nubi-mail-heading { justify-content: space-between; }
+.nubi-mail-summary { display: grid; gap: var(--cx-space-2); }
+.nubi-mail-row { display: grid; gap: var(--cx-space-2); padding: var(--cx-space-3) 0; border-bottom: 1px solid var(--deck-line); }
+.nubi-mail-text { white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; padding: var(--cx-space-3); background: var(--deck-tint); border-radius: var(--deck-control-radius); max-height: 320px; overflow: auto; }
+.nubi-mail-path { overflow-wrap: anywhere; }

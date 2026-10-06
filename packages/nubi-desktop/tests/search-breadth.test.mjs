@@ -72,3 +72,19 @@ test('two files with many matches still show three excerpts each',async t=>{
   assert.equal(found.omittedExcerpts,54);assert.equal(found.truncated,true);
   assert.match(found.instruction,/search within/);
 });
+
+// D1 (S28, 2026-10-01): an English search within a 143-line document missed its Korean line, and the ranges read
+// around the matches stopped one line short of the answer. A file one read holds is read whole.
+test('a search within a file that one read holds says to read it whole, matches or not',async t=>{
+  const {service,root}=await fixture(t);
+  await writeFile(path.join(root,'guide.md'),Array.from({length:143},(_,index)=>index===71?'기본 선택은 목록에 있는 경우 GLM-5.2-NVFP4입니다.':`install step ${index}`).join('\n'));
+  await writeFile(path.join(root,'long.md'),Array.from({length:1200},(_,index)=>`line ${index}`).join('\n'));
+  await git(root,['add','-A']);await git(root,['commit','-qm','guides']);
+  const found=await service.search({query:'model',within:'guide.md'});
+  assert.equal(found.results.length,0);
+  assert.deepEqual({path:found.readWhole.path,lines:found.readWhole.lines},{path:'guide.md',lines:143});
+  assert.match(found.readWhole.instruction,/read it whole \(no start or end\)/);
+  assert.equal((await service.search({query:'install',within:'guide.md'})).readWhole.lines,143);
+  assert.equal('readWhole' in await service.search({query:'line',within:'long.md'}),false,'longer than one read');
+  assert.equal('readWhole' in await service.search({query:'install'}),false,'not a search within one file');
+});

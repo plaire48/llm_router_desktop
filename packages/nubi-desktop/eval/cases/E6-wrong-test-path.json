@@ -1,0 +1,38 @@
+{
+  "id": "E6-wrong-test-path",
+  "title": "경로를 잘못 적은 검사 명령",
+  "suite": "command",
+  "split": "holdout",
+  "corpus": "order-failing",
+  "request": "node --test tests/discount.test.mjs 로 할인 검사만 돌려서 결과를 알려 줘. 코드는 고치지 마.",
+  "approvals": [
+    "command"
+  ],
+  "commands": [
+    "node --test(?: .+)?",
+    "npm(?:\\.cmd)? (?:run )?test(?: .+)?",
+    "(?:node|npm)(?:\\.cmd)? (?:--version|-v)",
+    "git (?:status|diff|log)(?: [\\w./=@-]+)*"
+  ],
+  "expect": {
+    "state": "review",
+    "commands": {
+      "match": [
+        "re:discount"
+      ],
+      "min": 1,
+      "lastExitCode": 0
+    },
+    "answer_includes": [
+      [
+        "통과",
+        "pass",
+        "성공"
+      ]
+    ],
+    "answer_excludes": [
+      "re:무료 배송 기준과 기본 배송비[^\\n]{0,40}(통과|성공)"
+    ],
+    "unchanged_except": []
+  }
+}

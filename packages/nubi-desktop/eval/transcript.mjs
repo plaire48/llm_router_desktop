@@ -31,13 +31,17 @@ export function recordingProviders(providers,{write=()=>{},maxModelCalls=Infinit
       if(research)handed++;else own++;
       const started=Date.now(),entry={sequence:++sequence,...(research?{delegated:true}:{}),model:providers.status().model,startedAt:new Date(started).toISOString(),elapsedMs:0,
         request:{messages:structuredClone(messages),toolNames:tools.map(tool=>tool.function.name),characters:JSON.stringify(messages).length+JSON.stringify(tools).length}};
+      // The longest wait between two signs of model activity, to judge the idle limit of a call (2026-09-30).
+      let last=started,longest=0,events=0;
+      const tick=()=>{const now=Date.now();longest=Math.max(longest,now-last);last=now;events++;};
+      const activity={events:()=>events,longest:()=>Math.max(longest,Date.now()-last)};
       try{
-        const result=await providers.complete(messages,tools,signal,onText,onPhase);
-        entry.elapsedMs=Date.now()-started;
+        const result=await providers.complete(messages,tools,signal,(...args)=>{tick();return onText?.(...args);},(...args)=>{tick();return onPhase?.(...args);});
+        entry.elapsedMs=Date.now()-started;entry.activity={events:activity.events(),longestGapMs:activity.longest()};
         entry.response={content:result.content??'',calls:(result.calls||[]).map(call=>({name:call.function?.name,arguments:call.function?.arguments})),finishReason:result.finishReason,...(result.usage?{usage:structuredClone(result.usage)}:{})};
         record(entry);return result;
       }catch(error){
-        entry.elapsedMs=Date.now()-started;entry.error={code:safeError(error),...(Number.isInteger(error?.status)?{status:error.status}:{})};
+        entry.elapsedMs=Date.now()-started;entry.activity={events:activity.events(),longestGapMs:activity.longest()};entry.error={code:safeError(error),...(Number.isInteger(error?.status)?{status:error.status}:{})};
         record(entry);throw error;
       }
     }};

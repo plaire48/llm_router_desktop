@@ -14,8 +14,8 @@ import {installAgent} from '../runtime/agent.mjs';
 if(!ProjectService.prototype.startAgent)installAgent(ProjectService);
 
 const calls=list=>({content:'',calls:list.map(([name,args])=>({id:crypto.randomUUID(),type:'function',function:{name,arguments:JSON.stringify(args)}}))});
-async function run(t,{contextLength=22000,workflowIds=[],steps=[]}={}){
-  const {service}=await fixture(t,{scriptedPlanning:true});const requests=[];let at=0;
+async function run(t,{contextLength=22000,workflowIds=[],steps=[],leanTools=false}={}){
+  const {service}=await fixture(t,{scriptedPlanning:true});const requests=[];let at=0;service.leanTools=leanTools;
   service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength}]}),dispose(){},async complete(messages,tools){
     if(String(messages[0].content).startsWith(WORK_PLAN_PROMPT))return {content:JSON.stringify({intent:{goal:'요청 확인',constraints:[],outcomes:['요청한 내용을 확인한다'],workflowIds,skillPaths:[]},steps:[{text:'확인',expected_outcome:'요청한 내용을 확인한다',status:'in_progress'}]}),calls:[]};
     const names=new Map();for(const message of messages)for(const call of message.tool_calls||[])names.set(call.id,call.function.name);
@@ -29,44 +29,56 @@ async function run(t,{contextLength=22000,workflowIds=[],steps=[]}={}){
   return {requests,service,task};
 }
 
+// The recovery group's tools this host offers: the Windows app tools are absent without the Windows driver.
+const RECOVERY_CONNECTED=['recovery_snapshot','propose_command_repair'];
 test('a large window offers every tool; a small one offers the core and a way to the rest',async t=>{
   const large=await run(t,{contextLength:200000}),small=await run(t,{contextLength:22000});
   const [wide,narrow]=[large.requests[0],small.requests[0]];
-  assert.ok(wide.names.includes('record_change_plan')&&wide.names.includes('search_voc')&&wide.names.includes('delegate_analysis'));
+  assert.ok(wide.names.includes('record_change_plan')&&wide.names.includes('propose_command_repair')&&wide.names.includes('delegate_analysis'));
   assert.ok(!wide.names.includes('select_tools'));assert.ok(!wide.system.includes('select_tools adds'));
   assert.ok(narrow.names.every(name=>LEAN_TOOLS.includes(name)),'only core tools: '+narrow.names.join(', '));
   for(const name of ['update_plan','ask_user','select_tools','discover_capabilities','read_source','source_search','wiki_query','read_analysis_evidence'])assert.ok(narrow.names.includes(name),name);
-  for(const name of ['record_change_plan','search_voc','delegate_analysis','propose_setup_action'])assert.ok(!narrow.names.includes(name),name);
-  assert.ok(narrow.size<9000&&narrow.size*3<wide.size,`small ${narrow.size}, large ${wide.size}`);
+  for(const name of ['record_change_plan','propose_command_repair','delegate_analysis','propose_setup_action'])assert.ok(!narrow.names.includes(name),name);
+  // Measured 2026-10-05: 10,223 and 28,905 characters. The core set took the two personal mail tools on 2026-10-04 (user
+  // decision: the mail Wiki is a basic knowledge tool), with the filter schema of the search; the bound follows them.
+  assert.ok(narrow.size<11000&&narrow.size*2.5<wide.size,`small ${narrow.size}, large ${wide.size}`);
   assert.match(narrow.system,/select_tools adds/);
   assert.equal(LEAN_INPUT_TOKENS,20000);
   // A window of 32,000 tokens (27,200 of input) offers every tool, as before.
   const normal=await run(t,{contextLength:32000});assert.ok(!normal.requests[0].names.includes('select_tools')&&normal.requests[0].names.includes('record_change_plan'));
 });
 
+// Tool search in any window (2026-09-30): an evaluation offers the core tools first on a large window too, to compare
+// with every tool on a weaker model. The product decides by the window as before.
+test('an evaluation can offer the core tools first in a large window',async t=>{
+  const {requests}=await run(t,{contextLength:262144,leanTools:true});
+  assert.ok(requests[0].names.every(name=>LEAN_TOOLS.includes(name)),requests[0].names.join(', '));
+  assert.match(requests[0].system,/A request offers only some tools, so its fixed part stays small\. [^]*select_tools adds/);
+});
+
 test('the tools of the workflows in the plan are offered once the plan is recorded',async t=>{
   const {requests}=await run(t,{workflowIds:['source-change'],steps:[()=>calls([['read_source',{path:'app.txt'}]])]});
   assert.ok(!requests[0].names.includes('record_change_plan'));
   for(const name of ['record_change_plan','propose_patch','code_outline','inspect_path'])assert.ok(requests[1].names.includes(name),name);
-  assert.ok(!requests[1].names.includes('search_voc'));
+  assert.ok(!requests[1].names.includes('propose_command_repair'));
 });
 
 test('select_tools connects a group or what a query names, and the operation beside it runs',async t=>{
   const {requests}=await run(t,{steps:[
-    ()=>calls([['select_tools',{groups:['voc']}],['search_voc',{query:'배송'}]]),
+    ()=>calls([['select_tools',{groups:['recovery']}],['recovery_snapshot',{}]]),
     ()=>calls([['select_tools',{query:'설치 빌드 환경'}]]),
     ()=>calls([['select_tools',{groups:['no-such-group']}]]),
   ]});
   const [selected,searched]=requests[1].results;
-  assert.equal(selected.tool,'select_tools');assert.equal(selected.result.ok,true);assert.deepEqual(selected.result.connected,['search_voc','read_voc']);
-  assert.equal(searched.tool,'search_voc');assert.equal(searched.result.deferred,undefined,'the operation after select_tools ran');
-  assert.ok(requests[1].names.includes('search_voc')&&requests[1].names.includes('read_voc'));
+  assert.equal(selected.tool,'select_tools');assert.equal(selected.result.ok,true);assert.deepEqual(selected.result.connected,RECOVERY_CONNECTED);
+  assert.equal(searched.tool,'recovery_snapshot');assert.equal(searched.result.deferred,undefined,'the operation after select_tools ran');
+  assert.ok(selected.result.connected.every(name=>requests[1].names.includes(name)));
   const queried=requests[2].results.at(-1).result;
   assert.ok(queried.matches.includes('inspect_environment'),JSON.stringify(queried.matches));assert.ok(queried.matches.length<=5);
   assert.ok(requests[2].names.includes('inspect_environment'));
   const refused=requests[3].results.at(-1).result;
   assert.equal(refused.ok,false);assert.equal(refused.error,'tool_group_unknown');assert.deepEqual(refused.details.unknownGroups,['no-such-group']);
-  assert.ok(refused.details.groups.includes('source-change')&&refused.details.groups.includes('voc'));
+  assert.ok(refused.details.groups.includes('source-change')&&refused.details.groups.includes('recovery')&&!refused.details.groups.includes('voc'));
   assert.equal(refused.actionIssued,false);
 });
 
@@ -79,7 +91,7 @@ test('a tool that is not offered still runs when called and is offered from then
 });
 
 test('the tool set without a small window changes nothing',()=>{
-  const tools=[{type:'function',function:{name:'read_source'}},{type:'function',function:{name:'search_voc'}}];
+  const tools=[{type:'function',function:{name:'read_source'}},{type:'function',function:{name:'propose_command_repair'}}];
   const wide=createToolSet({tools,lean:false});
-  assert.equal(wide.advertised(tools),tools);assert.deepEqual(wide.select({groups:['voc']}).connected,[]);
+  assert.equal(wide.advertised(tools),tools);assert.deepEqual(wide.select({groups:['recovery']}).connected,[]);
 });

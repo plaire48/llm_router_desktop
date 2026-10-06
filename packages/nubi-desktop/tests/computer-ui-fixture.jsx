@@ -22,6 +22,25 @@ export function ComputerPointerUiFixture(){
   return <main className="nubi-workbench"><p>실제 마우스 입력이 없는 승인 화면 검증입니다.</p><output aria-label="마우스 실행 횟수">{count}</output><ComputerUse taskId="pointer-fixture" state={state} api={api} refresh={async()=>{}}/></main>;
 }
 
+// Keyboard input on its approval card: the keys as keycaps, keyboard consent, and a typed text batch (2026-09-30).
+export function ComputerKeyboardUiFixture(){
+  const [sent,setSent]=useState([]);
+  const identity={windowTitle:'합성 키보드 검증',processName:'Fixture'};
+  const [state,setState]=useState({availability:{available:false},apps:[],checks:[],actions:[
+    {id:'keys',taskId:'keyboard-fixture',fingerprint:'fixture',action:'press_keys',keys:'ctrl+s',inputMode:'keyboard',state:'proposed',reason:'메모를 단축키로 저장합니다.',target:{element:{name:'메모 본문',type:'Document'}},identity,pointer:{x:0.5,y:0.5}}]});
+  const image=()=>{const canvas=document.createElement('canvas');canvas.width=240;canvas.height=70;const context=canvas.getContext('2d');context.fillStyle='#eef4ff';context.fillRect(0,0,240,70);return {data:canvas.toDataURL('image/png').split(',')[1],width:240,height:70};};
+  async function api(method,args){
+    if(method!=='computer')throw Error('fixture_method');
+    if(args.method==='artifact')return {before:image()};
+    if(args.method==='decide'){
+      if(args.keyboardConsent!==true)throw Error('computer_keyboard_consent_required');
+      setSent(s=>[...s,args.id]);setState(s=>({...s,actions:s.actions.map(a=>a.id===args.id?{...a,state:'observed',execution:'command_returned',verification:'not_verified'}:a)}));return {};
+    }
+    throw Error('fixture_method');
+  }
+  return <main className="nubi-workbench"><p>실제 키 입력이 없는 승인 화면 검증입니다.</p><output aria-label="키 입력 횟수">{sent.length}</output><ComputerUse taskId="keyboard-fixture" state={state} api={api} refresh={async()=>{}}/></main>;
+}
+
 export function ComputerControlUiFixture(){
   const base={taskId:'controls-fixture',target:{element:{name:'알림 설정',type:'CheckBox'}},identity:{windowTitle:'합성 업무 앱',processName:'Fixture'},reason:'요청한 설정을 확인합니다.',documentEvidence:{id:'analysis-fixture',status:'partial',sources:[{path:'docs/앱-규칙.md',hash:'fixture',characters:18000}],resultHash:'result',advisory:true},wikiEvidence:[{evidenceId:'wiki-fixture',path:'openwiki/notification.md',start:3,freshness:'source_matched'}]};
   const actions=[{...base,id:'matched',action:'toggle_on',state:'observed',verification:'state_matched',execution:'already_at_target'},{...base,id:'stale',action:'select',state:'stale',error:'wiki_evidence_stale'}];

@@ -1,5 +1,6 @@
+import {DeckField} from './DeckSurfaces.jsx';
 import React, {useEffect, useLayoutEffect, useRef, useState} from 'react';
-import {ActionButton, CxButton, CxField, CxInput, CxTextarea, CxNotice} from '@e2e/cx-design-system';
+import {ActionButton, CxButton,  CxInput, CxTextarea, CxNotice, Icon} from '@e2e/cx-design-system';
 import {ERROR_TEXT} from '../core.js';
 import './approval.css';
 import {InteractionSurface, ApprovalPreview} from './InteractionSurface.jsx';
@@ -66,16 +67,16 @@ export function ActionApproval({question, disabled, canApprove, onApprove, onRej
     {(question.preview?.length > 0 || question.summary || question.pageTitle || editor) && <ApprovalPreview title={editableDraft ? '초안 보기' : '내용 확인'} label={editableDraft ? '작성한 초안' : '실행할 내용'}>{question.pageTitle && <p className="approval-page">{question.pageTitle}</p>}
       {question.summary && <p>{question.summary}</p>}
       {question.targetLabel && question.targetLabel !== question.action && <p>{question.targetLabel}</p>}
-      {editor && !answer ? <div className="approval-editor-fields" role="group" aria-label="초안 편집">{editor.map((field, index) => <div className="interaction-editor-field" key={field.id}><CxField label={field.label}>{React.createElement(field.multiline ? CxTextarea : CxInput, {
+      {editor && !answer ? <div className="approval-editor-fields" role="group" aria-label="초안 편집">{editor.map((field, index) => <div className="interaction-editor-field" key={field.id}><DeckField label={field.label}>{React.createElement(field.multiline ? CxTextarea : CxInput, {
         ref: node => {if (node) fieldNodes.current.set(field.id,node); else fieldNodes.current.delete(field.id);}, value:field.value,maxLength:400000,...(field.multiline ? {rows:5} : {}),disabled:blocked,
         onChange:event=>setEditor(current=>current.map((item,i)=>i===index?{...item,value:event.target.value}:item)),
-      })}</CxField></div>)}</div> : <dl>{question.preview?.map((field,index)=><div key={field.id || index}><dt>{field.label}</dt><dd>{!answer && editableDraft && field.editable !== false ? <button type="button" className="approval-edit-value" aria-label={`${field.label} 편집`} title="클릭하여 편집" disabled={blocked || !canApprove} onClick={()=>edit(field)}>{field.value || '내용 입력'}{question.action !== '실행' && field.value.length >= 240 ? '…' : ''}</button> : <>{field.value}{question.action !== '실행' && field.value.length >= 240 ? '…' : ''}</>}</dd></div>)}</dl>}
+      })}</DeckField></div>)}</div> : <dl>{question.preview?.map((field,index)=><div key={field.id || index}><dt>{field.label}</dt><dd>{!answer && editableDraft && field.editable !== false ? <button type="button" className="approval-edit-value" aria-label={`${field.label} 편집`} title="클릭하여 편집" disabled={blocked || !canApprove} onClick={()=>edit(field)}>{field.value || '내용 입력'}{question.action !== '실행' && field.value.length >= 240 ? '…' : ''}</button> : <>{field.value}{question.action !== '실행' && field.value.length >= 240 ? '…' : ''}</>}</dd></div>)}</dl>}
     </ApprovalPreview>}
-    {!answer && editableDraft && !editor && !question.preview?.some(field=>field.editable !== false) && <CxButton disabled={blocked || !canApprove} onClick={()=>edit()}>초안 입력</CxButton>}
+    {!answer && editableDraft && !editor && !question.preview?.some(field=>field.editable !== false) && <CxButton disabled={blocked || !canApprove} onClick={()=>edit()}><Icon name="pencil" size={18}/>초안 입력</CxButton>}
     {!answer && <div className="approval-actions">
       {editor && <ActionButton action="undo" label="수정 전으로 되돌리기" disabled={blocked || !dirty} onClick={()=>setEditor(current=>current.map(field=>({...field,value:field.original})))}/>}
       <ActionButton action="cancel" iconOnly label="취소" disabled={blocked} onClick={()=>decide(onReject)}/>
-      <CxButton variant="primary" disabled={blocked || !canApprove} busy={saving || acting} onClick={dirty ? apply : approve}>{dirty ? '수정 반영' : question.buttonLabel || question.action}</CxButton>
+      <CxButton variant="primary" disabled={blocked || !canApprove} busy={saving || acting} onClick={dirty ? apply : approve}><Icon name={dirty ? 'pencil' : 'check'} size={18}/>{dirty ? '수정 반영' : question.buttonLabel || question.action}</CxButton>
     </div>}
     {loading && <p className="reply-note" role="status">원문 확인 중</p>}
     {error && <CxNotice tone="danger">{error}</CxNotice>}

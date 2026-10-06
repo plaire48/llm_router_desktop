@@ -1,0 +1,26 @@
+{
+  "id": "A17-search-with-enter",
+  "title": "검색어를 넣고 Enter로 검색",
+  "app": "order-search",
+  "corpus": "order-service",
+  "approve": "all",
+  "request": "주문 조회 창에서 SKU-0613을 검색해서 배송 상태를 알려 줘.",
+  "expect": {
+    "state": "review",
+    "answer_includes": [
+      [
+        "배송 중"
+      ]
+    ],
+    "app": {
+      "events": {
+        "includes": [
+          "searched"
+        ],
+        "excludes": [
+          "searched-other"
+        ]
+      }
+    }
+  }
+}

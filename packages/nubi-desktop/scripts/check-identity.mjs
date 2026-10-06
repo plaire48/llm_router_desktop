@@ -7,8 +7,12 @@ const deck=await readFile('../../extensions/aipro-chat/design/agent-deck.css','u
 const identity=await readFile('design/workspace-identity.css','utf8');
 for(const [name,value]of Object.entries(reference.palette)) {
   if(['muted','dark'].includes(name))continue; // Not normal text tokens in the accessible app palette.
-  // Desktop's identity layer loads after the shared deck and may restore an HTML value.
-  assert(identity.includes(`--deck-${name}: ${value};`)||deck.includes(`--deck-${name}: ${value};`)&&!identity.includes(`--deck-${name}:`),`HTML palette changed: ${name}`);
+  // Desktop's identity layer loads after the shared deck and may restore an HTML value, globally or inside one
+  // component's scope. Every definition the identity layer makes must hold the HTML value; the deck is the source when
+  // the identity layer makes none.
+  const defined=[...identity.matchAll(new RegExp(`--deck-${name}:\\s*([^;]+);`,'g'))].map(match=>match[1].trim());
+  const deckValue=deck.match(new RegExp(`--deck-${name}:\\s*([^;]+);`))?.[1].trim();
+  assert(defined.every(found=>found===value)&&(defined.length>0||deckValue===value),`HTML palette changed: ${name} (deck ${deckValue}, identity ${defined.join(', ')||'none'})`);
 }
 const css=await readFile('extension/src/browser/style.css','utf8');
 for(const family of ['Pretendard Variable','Noto Sans KR','Malgun Gothic'])assert(css.includes(family),`Missing local font fallback: ${family}`);

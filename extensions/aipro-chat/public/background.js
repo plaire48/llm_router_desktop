@@ -1,3 +1,6 @@
+import {browserCollaboration,A2A_ERRORS} from './a2a-connection.js';
+import {browserTasks,taskPrompt,TASK_ERRORS,DELEGATION_TOOLS,DELEGATION_TOOL_NAMES,runDelegationTool,REPORT_FACTS_TOOL,delegationResult} from './a2a-tasks.js';
+import {planningKnowledge, procedureCards, createSiteProcedure, procedureTool, prepareFormProcedure, linkProcedureTool, prepareLinkProcedure} from './site-procedures.js';
 import {storeResearchHandoff,cancelResearchHandoffs} from './research-handoff.js';
 import {routinesView,restoreRoutines,restoreRecording,expireRecording,saveRoutine,changeRoutine,fireRoutine,finishRoutine,setRoutineNotifications,notifyRoutineResult,beginRecording,recordStep,recordingNavigation,stopRecording,saveWorkflow,deleteWorkflow,workflowPrompt} from './browser-routines.js';
 import {refreshBrowserPolicy,assertBrowserPolicy,browserPolicySnapshot} from './browser-policy.js';
@@ -45,6 +48,7 @@ import {skillLibrary, skillCatalog, bindSkillLibrary, prepareSkillScript, skillL
 import {skillStats, recordSkillUse, forgetSkill} from './skill-stats.js';
 import {runPageOperation} from './page-tools.js';
 import {runBrowserAgent, browserAgentObservation, runApprovedAction, stopBrowserAgent, browserAgentRequestForTab, browserAgentContext, resolveBrowserTab, browserURL} from './browser-agent.js';
+import {nativeResearchBrowser} from './research-browser-native.js';
 import {createWorkspace, workspaceMatches, workspaceTab, readyWorkspaceTab, releaseWorkspace, showWorkspace, reconnectWorkspace, openChatTab} from './browser-workspace.js';
 import {normalizeSummary, taskReceipt, pauseTask, resumedVerification, assertResumeTarget} from './context-state.js';
 import {analysisCheckpoint} from './analysis-checkpoint.js';
@@ -57,7 +61,14 @@ import {cleanFabrixCredentials, fabrixSettings, fabrixModels, fabrixDiagnostic} 
 import {saveCapture, savePageImage, attachedScreenshotRecords, deleteCaptures, pruneCaptures} from './capture-store.js';
 import {PROVIDERS, providerSession, updateProviderSession, connectionStatuses, activateProviderSession, removeProviderSession} from './provider-sessions.js';
 
+const researchBrowser = nativeResearchBrowser({checkOwner:async id=>{
+  const {chatLease:lease,credential}=await getSession();
+  if(!lease || lease.id!==id || lease.cancelled || lease.awaitingUser || lease.planningOnly || !lease.automation ||
+    lease.until<=Date.now() || credential?.receivedAt!==lease.credentialReceivedAt || credential?.rejected ||
+    (credential?.provider || 'aipro')!==lease.provider)fail('interrupted');
+}});
 const boot = Promise.all([
+  researchBrowser.recover(),
   chrome.storage.session.setAccessLevel({accessLevel: 'TRUSTED_CONTEXTS'}),
   chrome.storage.local.setAccessLevel({accessLevel: 'TRUSTED_CONTEXTS'}),
   chrome.sidePanel.setPanelBehavior({openPanelOnActionClick: true}),
@@ -89,10 +100,11 @@ const serialTool = (type, task) => {
 const getSession = async () => chrome.storage.session.get(null);
 // An in-memory capability, never a document ID or a message-supplied flag.
 const RUNNER = Object.freeze({});
-const RUNNER_TYPES = new Set(['SAVE_CONTEXT', 'RUN_TOOL', 'APPLY_FILL', 'RECORD_USAGE', 'MODEL_DIAGNOSTIC', 'FINISH_CHAT', 'TAKE_AGENT_INPUT', 'START_CHAT']);
+const RUNNER_TYPES = new Set(['SAVE_CONTEXT', 'RUN_TOOL', 'APPLY_FILL', 'RECORD_USAGE', 'MODEL_DIAGNOSTIC', 'FINISH_CHAT', 'TAKE_AGENT_INPUT', 'START_CHAT', 'RESEARCH_OPERATION']);
 const referenceReads = createReferenceReads();
 const runner = createBackgroundRunner({
-  call: (type, value) => type === 'PREPARE_CREDENTIAL' ? prepareCredential({type, ...value}, RUNNER) : serialTool(type, () => handle({type, ...value}, RUNNER)),
+  call: (type, value) => type === 'PREPARE_CREDENTIAL' ? prepareCredential({type, ...value}, RUNNER)
+    : type === 'RESEARCH_OPERATION' ? boot.then(()=>handle({type,...value},RUNNER)) : serialTool(type, () => handle({type, ...value}, RUNNER)),
   compareImages,
   publish: snapshot => serial(async () => {
     const {chatLease, credential} = await getSession();
@@ -128,6 +140,101 @@ async function readConversationState() {
     return {...local, ...patch};
   }
   return local;
+}
+// Loaded only by an explicit connection action or a bound imported run.
+let a2aReceiver;
+async function browserA2A() {
+  if(!a2aReceiver)a2aReceiver=browserCollaboration({session:getSession,saveSession:value=>chrome.storage.session.set(value),conversation:readConversationState,saveChat});
+  return a2aReceiver;
+}
+// nubi-task-v1 uses the pairing made above (session a2a). A received task runs
+// only after the user accepts it, in a new conversation, and its result is sent
+// when that run ends. The token never reaches UI state or the model.
+const A2A_POLL = 'nubi-a2a-tasks';
+const a2aTasks = browserTasks({
+  load: async () => (await getSession()).a2aTasks,
+  save: value => chrome.storage.session.set({a2aTasks: value}),
+  connection: async () => (await getSession()).a2a?.connection || null,
+  saveConnection: async moved => {const {a2a} = await getSession(); if (a2a?.connection?.token === moved.token) await chrome.storage.session.set({a2a: {...a2a, connection: moved}});},
+});
+function taskError(error) {
+  const code = String(error?.message || ''), known = Object.hasOwn(TASK_ERRORS, code) || Object.hasOwn(ERROR_TEXT, code);
+  return {error: known ? code : 'a2a_unavailable', message: TASK_ERRORS[code] || ERROR_TEXT[code] || TASK_ERRORS.a2a_unavailable};
+}
+async function taskBadge(tasks) {
+  const waiting = tasks.filter(task => task.recipient === 'browser' && task.state === 'submitted').length;
+  const current = await chrome.action.getBadgeText({}).catch(() => '');
+  // The '?' of a question waiting for the user stays.
+  if (current === '' || /^\d+$/.test(current)) await chrome.action.setBadgeText({text: waiting ? String(Math.min(waiting, 99)) : ''}).catch(() => {});
+}
+async function a2aTasksRpc(message, sender) {
+  try {
+    if (!(await getSession()).a2a?.connection) return {connected: false, tasks: []};
+    if (!await chrome.alarms.get(A2A_POLL)) await chrome.alarms.create(A2A_POLL, {periodInMinutes: 1});
+    const id = typeof message.id === 'string' ? message.id.slice(0, 100) : '';
+    if (message.action === 'accept') await acceptTask(id, message, sender);
+    else if (message.action === 'reject') await a2aTasks.reject(id, '브라우저 사용자가 거절했습니다.');
+    else if (message.action === 'cancel') await a2aTasks.cancel(id);
+    else if (message.action === 'fail') {
+      const run = await a2aTasks.run();
+      if (run?.taskId !== id || !run.stopped) fail('a2a_scope');
+      await a2aTasks.fail(id, '브라우저 실행이 끝나지 않아 실패로 알렸습니다.'); await a2aTasks.clearRun(id);
+    } else if (message.action !== 'list') fail('a2a_scope');
+    const {tasks} = await a2aTasks.list(), session = await getSession(), run = session.a2aTasks?.run;
+    await taskBadge(tasks);
+    return {connected: true, tasks, busy: !!(session.chatLease || session.attempt || run), run: run ? {taskId: run.taskId, stopped: run.stopped === true} : null};
+  } catch (error) {return taskError(error);}
+}
+async function acceptTask(id, message, sender) {
+  const session = await getSession();
+  if (session.chatLease || session.attempt || session.a2aTasks?.run) fail('a2a_busy');
+  const task = await a2aTasks.get(id);
+  if (task.recipient !== 'browser' || task.state !== 'submitted') fail('a2a_state');
+  await a2aTasks.accept(id);
+  let request;
+  try {
+    // Like a scheduled routine, a task with an address starts in its own background
+    // tab, so the page the user is looking at is left alone.
+    const start = task.urls?.length ? await chrome.tabs.create({url: browserURL(task.urls[0]).href, active: false}) : null;
+    request = await serial(async () => {
+      await handle({type: 'NEW_CHAT', clientId: message.clientId}, sender);
+      const {chat} = await readConversationState();
+      await a2aTasks.bindRun({taskId: id, conversationId: chat.sessionId, provider: chat.provider, facts: [], acceptedAt: Date.now()});
+      const text = taskPrompt(task);
+      return start ? handle({type: 'START_CHAT', text, conversationId: chat.sessionId, scheduledTabId: start.id}, RUNNER, RUNNER)
+        : handle({type: 'START_CHAT', text, conversationId: chat.sessionId, clientId: message.clientId}, sender, RUNNER);
+    });
+  } catch (error) {
+    await a2aTasks.clearRun(id);
+    await a2aTasks.fail(id, '브라우저에서 작업을 시작하지 못했습니다.').catch(() => {});
+    throw error;
+  }
+  await chrome.action.setBadgeText({text: ''}).catch(() => {});
+  runner.start(request);
+}
+async function deliverTaskResult(run) {
+  try {await a2aTasks.complete(run.taskId, run.result); await a2aTasks.clearRun(run.taskId);}
+  // A lost reply keeps the result and its message ID for the next poll.
+  catch (error) {if (!['a2a_uncertain', 'a2a_unavailable'].includes(error.message)) await a2aTasks.clearRun(run.taskId);}
+}
+// A run of the conversation bound to an accepted task ended. A question or an
+// approval pause is progress; a stop keeps the task open for the user.
+async function finishDelegatedRun(lease, {error, awaitingUser, content, reviewed}) {
+  const run = await a2aTasks.run();
+  if (!run || run.conversationId !== lease.conversationId || run.provider !== lease.provider || lease.compacting || run.result) return;
+  if (awaitingUser) {await a2aTasks.progress(run.taskId, '브라우저 사용자의 답을 기다립니다.').catch(() => {}); return;}
+  if (error) {await a2aTasks.updateRun({stopped: true}); await a2aTasks.progress(run.taskId, '브라우저 실행이 멈췄습니다. 브라우저에서 이어 가거나 실패로 알립니다.').catch(() => {}); return;}
+  const updated = await a2aTasks.updateRun({result: delegationResult({content, facts: run.facts || [], verified: reviewed, runId: lease.id})});
+  if (updated) await deliverTaskResult(updated);
+}
+async function pollTasks() {
+  const {a2a, a2aTasks: stored} = await getSession();
+  if (!a2a?.connection) {await chrome.alarms.clear(A2A_POLL); return;}
+  if (stored?.run?.result) await deliverTaskResult(stored.run);
+  const {tasks} = await a2aTasks.list(), run = (await getSession()).a2aTasks?.run;
+  // A task its requester cancelled no longer takes this run's result.
+  if (run && !run.result && tasks.find(task => task.id === run.taskId)?.state === 'canceled') await a2aTasks.clearRun(run.taskId);
+  await taskBadge(tasks);
 }
 async function migrateChatHistory() {await readConversationState();}
 async function saveChat(chat) {
@@ -231,8 +338,9 @@ async function rememberBrowserContext(lease) {
   if (context.workspace) browserWorkspaces[lease.conversationId] = context.workspace;
   await chrome.storage.session.set({chatLease: {...chatLease, browserContext: context}, browserContexts: Object.fromEntries(Object.entries(browserContexts).slice(-40)), browserWorkspaces});
 }
-async function saveActionApproval(lease, record, verifiedBeforeTool, replay = null) {
-  if (record.kind !== 'mcp' && (!verifiedBeforeTool || record.afterActions)) return {error: 'approval_verification_required'};
+async function saveActionApproval(lease, record, replay = null) {
+  // The approval card itself shows the draft for the user to decide on. Requiring
+  // a separate check first held presses the user wanted made ("초안 검증 필요").
   const {chatLease, actionApprovals = {}} = await getSession();
   const {chat} = await chrome.storage.local.get('chat');
   const reply = chat?.messages.find(message => message.id === lease.id);
@@ -320,6 +428,11 @@ function ownsChat(lease, sender, clientId) {
 }
 function recoverReply(message) {
   return message.question ? {...message, content: '', state: 'done', error: null} : {...message, state: 'error', error: 'interrupted'};
+}
+async function patchChatLease(lease,patch) {
+  const current=(await getSession()).chatLease;
+  if (!current || current.id!==lease.id || current.cancelled) fail('interrupted');
+  await chrome.storage.session.set({chatLease:{...current,...patch}});
 }
 async function touchChatLease(lease) {
   const now = Date.now();
@@ -416,7 +529,8 @@ async function state(sender, clientId, readOnly = false) {
     serverProject: projectSummary(session.projectConnection),
     pending: session.attempt ? {provider: session.attempt.provider || 'aipro', expiresAt: session.attempt.expiresAt, port: session.attempt.port, phase: session.attempt.phase} : null,
     agentRun: session.chatLease && session.agentRun?.requestId === session.chatLease.id ? session.agentRun : null,
-    report: session.authReport || {stage: 'not_started'}, events: session.events || [], authTrace: session.authTrace || null, busy: !!session.chatLease,
+    liveContext: session.chatLease && session.liveContext?.requestId === session.chatLease.id ? session.liveContext.usage : null,
+    report: session.authReport || {stage: 'not_started'}, events: session.events || [], modelTimings: session.modelTimings || [], authTrace: session.authTrace || null, busy: !!session.chatLease,
     skills: allSkills(skills), skillStats: skillStats((await chrome.storage.local.get('skillStats').catch(() => ({}))).skillStats), activeSkillId, fabrixConnection, page: session.page ? {id: session.page.id, title: session.page.title, url: session.page.url} : null};
 }
 function trustedUI(sender) {
@@ -516,6 +630,16 @@ async function handle(message, sender, owner) {
   if (sender === RUNNER ? !RUNNER_TYPES.has(message.type) : !trustedUI(sender)) fail('invalid_sender');
   switch (message.type) {
     case 'GET_STATE': return state(sender, message.clientId);
+    case 'A2A': {
+      try {
+        const receiver=await browserA2A();
+        const value=await receiver.dispatch({...message,conversationId:message.conversationId});
+        if(value.draft){const {chat}=await readConversationState();chat.draft=value.draft;await saveChat(chat);}
+        return value;
+      } catch(error) {
+        return {error:Object.hasOwn(A2A_ERRORS,error.message)?error.message:'a2a_unavailable'};
+      }
+    }
     case 'GET_AGENT_DIAGNOSTICS':
     case 'GET_TRACE_JOURNAL': {
       const local = await readConversationState();
@@ -536,7 +660,12 @@ async function handle(message, sender, owner) {
     case 'DELETE_BROWSER_WORKFLOW': await deleteWorkflow(message.id);return routinesView();
     case 'RUN_BROWSER_WORKFLOW': {const text=await workflowPrompt(message.id);return handle({type:'START_AGENT',text},sender);}
 
-    case 'GET_BROWSER_KNOWLEDGE': return knowledgeState((await chrome.storage.local.get('browserKnowledge')).browserKnowledge);
+    case 'GET_BROWSER_KNOWLEDGE': {
+      const stored=await chrome.storage.local.get(['browserKnowledge','browserSiteProcedures']);
+      const knowledge=knowledgeState(stored.browserKnowledge);
+      return {...knowledge,procedures:procedureCards(stored.browserSiteProcedures).map(card=>({id:card.id,url:card.url,provider:card.provider,title:card.title,
+        kind:card.kind || 'form',fields:card.fields.length,wikiVersion:card.wikiVersion,status:knowledge.entries.some(entry=>entry.url===card.url && entry.provider===card.provider && !entry.invalidated && !entry.markdownNeedsReview && entry.documentVersion===card.wikiVersion && entry.sourceHash===card.sourceHash) ? 'reviewed' : 'needs_review'}))};
+    }
     case 'UPDATE_BROWSER_KNOWLEDGE': {
       const current = knowledgeState((await chrome.storage.local.get('browserKnowledge')).browserKnowledge);
       if (message.enabled !== undefined && typeof message.enabled !== 'boolean') fail('tool_arguments_invalid');
@@ -550,7 +679,9 @@ async function handle(message, sender, owner) {
         ...(message.enabled !== undefined ? {enabled:message.enabled} : {}),
         ...(message.autoUpdate !== undefined ? {autoUpdate:message.autoUpdate} : {}),
         entries:message.clear === true ? [] : current.entries.filter(item => !(item.url === message.url && item.provider === message.provider))};
-      await chrome.storage.local.set({browserKnowledge:updated}); return updated;
+      const storedCards=procedureCards((await chrome.storage.local.get('browserSiteProcedures')).browserSiteProcedures);
+      await chrome.storage.local.set({browserKnowledge:updated,...(message.clear===true || message.url && !message.restore ? {browserSiteProcedures:message.clear===true ? [] : storedCards.filter(card=>card.url!==message.url || card.provider!==message.provider)} : {})});
+      return {...updated,procedures:storedCards.filter(card=>updated.entries.some(entry=>entry.url===card.url && entry.provider===card.provider)).map(card=>({id:card.id,url:card.url,provider:card.provider,title:card.title,kind:card.kind || 'form',fields:card.fields.length,wikiVersion:card.wikiVersion,status:updated.entries.some(entry=>entry.url===card.url && entry.provider===card.provider && entry.documentVersion===card.wikiVersion && entry.sourceHash===card.sourceHash && !entry.invalidated && !entry.markdownNeedsReview) ? 'reviewed' : 'needs_review'}))};
     }
     case 'SAVE_BROWSER_WIKI':
     case 'DISMISS_BROWSER_WIKI': {
@@ -577,8 +708,13 @@ async function handle(message, sender, owner) {
       reply.creationSource={...reply.creationSource,targetVersion:updated.entries.find(item=>item.url===candidate.url && item.provider===candidate.provider).documentVersion};
       const source=chat.messages.find(item=>item.id===reply.creationSource.sourceId);
       if (source?.wikiOffer) source.wikiOffer.status='saved';
+      const previousCards=(await chrome.storage.local.get('browserSiteProcedures')).browserSiteProcedures;
+      const card=message.linkProcedure === true && source?.replay ? createSiteProcedure(source.replay,
+        updated.entries.find(item=>item.url===candidate.url && item.provider===candidate.provider),{id:crypto.randomUUID()}) : null;
+      if (message.linkProcedure === true && !card) fail('skill_draft_invalid');
+      reply.wikiDraft={...reply.wikiDraft,...(card ? {procedureLinked:true,procedureKind:card.kind || 'form'} : {})};
       // One storage transaction: document and its conversation receipt agree.
-      await chrome.storage.local.set({browserKnowledge:updated,chat:{...chat,updatedAt:Date.now()}});
+      await chrome.storage.local.set({browserKnowledge:updated,chat:{...chat,updatedAt:Date.now()},...(card ? {browserSiteProcedures:[...procedureCards(previousCards).filter(item=>item.url!==card.url || item.provider!==card.provider),card].slice(-50)} : {})});
       return state();
     }
     case 'SET_DEBUG_MODE': {
@@ -711,6 +847,13 @@ async function handle(message, sender, owner) {
       // paused. Neither observers nor cancelled/expired owners can revive it.
       await touchChatLease(chatLease);
       if (message.kind === 'heartbeat') return null;
+      if (message.kind === 'delegation_facts') {
+        // The runner checked these against its own page reads; keep them for the result.
+        const run = await a2aTasks.run();
+        if (sender !== RUNNER || !Array.isArray(message.facts) || message.facts.length > 50 || run?.conversationId !== chatLease.conversationId || run.provider !== chatLease.provider) fail('interrupted');
+        await a2aTasks.updateRun({facts: message.facts.map(({name, value, source_url, quote, checked, title}) => ({name, value, source_url, quote, checked: checked === true, ...(typeof title === 'string' && title ? {title} : {})}))});
+        return null;
+      }
       const {chat} = await chrome.storage.local.get('chat');
       if (['analysis_handoff','research_handoff'].includes(message.kind)) {
         if (sender!==RUNNER || chat.sessionId!==chatLease.conversationId || chat.provider!==chatLease.provider || !chatLease.automation ||
@@ -779,7 +922,7 @@ async function handle(message, sender, owner) {
         }
         return null;
       }
-      const diagnostic = chatLease.provider === 'fabrix' ? fabrixDiagnostic(message) : chatLease.provider === 'aipro' && message.type === 'MODEL_DIAGNOSTIC' ? completionDiagnostic(message) : null;
+      const diagnostic = chatLease.provider === 'fabrix' ? fabrixDiagnostic(message) : ['aipro', 'chatgpt'].includes(chatLease.provider) && message.type === 'MODEL_DIAGNOSTIC' ? completionDiagnostic(message) : null;
       if (!diagnostic) return null;
       await event(`${chatLease.provider === 'fabrix' ? 'fabrix_format' : 'model_request'}_${diagnostic.phase}`, diagnostic);
       return null;
@@ -792,6 +935,25 @@ async function handle(message, sender, owner) {
         const next = recordUsage(usageLedger, {requestId: chatLease.id, provider: chatLease.provider || 'aipro', round: message.round, phase: message.phase, usage: message.usage});
         if (next && next !== usageLedger) await chrome.storage.local.set({usageLedger: next});
       } catch { /* Telemetry failure cannot interrupt inference. */ }
+      // What the latest working request actually read, page contents included, as
+      // the provider counted it. The context gauge showed only the conversation text
+      // during a run, so reading page after page did not move it.
+      const measured = message.scope === 'execution' ? normalizeUsage(message.usage) : null;
+      if (measured?.prompt_tokens > 0) {
+        try {await chrome.storage.session.set({liveContext: {requestId: chatLease.id, usage: measured, at: Date.now()}});}
+        catch { /* Telemetry failure cannot interrupt inference. */ }
+      }
+      // Time per model call for the connection diagnostics: kind, input size and
+      // milliseconds only. A company server is measured where it is reachable.
+      if (message.phase === 'finish' && Number.isFinite(message.elapsedMs) && message.elapsedMs >= 0) {
+        try {
+          const {modelTimings = []} = await chrome.storage.session.get('modelTimings');
+          const entry = {at: new Date().toISOString(), provider: chatLease.provider || 'aipro', scope: ['execution', 'planning', 'review', 'analysis', 'compaction'].includes(message.scope) ? message.scope : 'other',
+            inputK: Math.round((Number(message.inputCharacters) || 0) / 1000), ...(Number(message.imageInputCharacters) > 0 ? {imageK: Math.round(message.imageInputCharacters / 1000)} : {}),
+            tools: Number.isSafeInteger(message.toolCount) ? message.toolCount : 0, ms: Math.round(message.elapsedMs), ...(Number.isFinite(message.firstMs) && message.firstMs >= 0 ? {firstMs: Math.round(message.firstMs)} : {})};
+          await chrome.storage.session.set({modelTimings: [...modelTimings.slice(-79), entry]});
+        } catch { /* Telemetry failure cannot interrupt inference. */ }
+      }
       return null;
     }
     case 'SAVE_ACCOUNT_USAGE': {
@@ -853,6 +1015,11 @@ async function handle(message, sender, owner) {
       if (page) await runPageOperation(page, 'clear').catch(() => {});
       return state();
     }
+    case 'RESEARCH_OPERATION': {
+      if(sender!==RUNNER)fail('invalid_sender');
+      if(message.operation==='close_owner') {await researchBrowser.closeOwner(message.requestId);return {ok:true};}
+      return researchBrowser.execute(message.requestId,message);
+    }
     case 'RUN_TOOL':
     case 'APPLY_FILL': {
       let {chatLease, page, credential} = await getSession();
@@ -863,6 +1030,51 @@ async function handle(message, sender, owner) {
       if (chatLease.awaitingUser) fail('question_changed');
       if (chatLease.planningOnly && (message.type !== 'RUN_TOOL' || !planToolAllowed(message.name))) fail('plan_read_only');
       if (message.type === 'RUN_TOOL' && !chatLease.toolNames?.includes(message.name) && !(['apply_approved_action','apply_approved_mcp'].includes(message.name) && chatLease.approvalQuestionId)) fail('tools_unavailable');
+      if (message.type === 'RUN_TOOL' && message.name === 'open_site_procedure') {
+        if(!chatLease.automation || !chatLease.toolNames.includes('click_element') || !chatLease.siteProcedureIds?.includes(message.args?.procedure_id))return {error:'procedure_unavailable',actionIssued:false};
+        const stored=await chrome.storage.local.get(['browserKnowledge','browserSiteProcedures']);
+        const snapshot=await handle({type:'RUN_TOOL',name:'browser_snapshot',args:{},requestId:message.requestId,clientId:message.clientId},sender);
+        if(snapshot.error)return {...snapshot,actionIssued:false};
+        const tab=Number.isInteger(snapshot.tabId)?await chrome.tabs.get(snapshot.tabId).catch(()=>null):null;
+        const prepared=prepareLinkProcedure(stored.browserSiteProcedures,stored.browserKnowledge,message.args,snapshot,{provider:chatLease.provider,currentURL:tab?.url});
+        if(!prepared.prepared)return prepared;
+        const procedureToken=crypto.randomUUID();
+        await patchChatLease(chatLease,{siteLinkPrepared:{token:procedureToken,args:message.args,ref:prepared.ref}});
+        return {...prepared,procedureToken};
+      }
+      if(message.type==='RUN_TOOL' && message.name==='click_element' && message.procedureToken) {
+        const binding=chatLease.siteLinkPrepared;
+        if(!binding || binding.token!==message.procedureToken || binding.ref!==message.args?.ref)return {error:'procedure_changed',actionIssued:false};
+        // Consume before any browser work. A failed/replayed capability cannot click.
+        await patchChatLease(chatLease,{siteLinkPrepared:null});
+        const stored=await chrome.storage.local.get(['browserKnowledge','browserSiteProcedures']);
+        const snapshot=await handle({type:'RUN_TOOL',name:'browser_snapshot',args:{},requestId:message.requestId,clientId:message.clientId},sender);
+        if(snapshot.error)return {...snapshot,actionIssued:false};
+        const tab=Number.isInteger(snapshot.tabId)?await chrome.tabs.get(snapshot.tabId).catch(()=>null):null;
+        const checked=prepareLinkProcedure(stored.browserSiteProcedures,stored.browserKnowledge,binding.args,snapshot,{provider:chatLease.provider,currentURL:tab?.url});
+        if(!checked.prepared)return checked;
+        message={...message,args:{ref:checked.ref},siteProcedureBound:{before:snapshot,destination:checked.destination}};
+      }
+      if (message.type === 'RUN_TOOL' && message.name === 'fill_site_procedure') {
+        if (!chatLease.automation || !chatLease.toolNames.includes('fill_form') || !chatLease.siteProcedureIds?.includes(message.args?.procedure_id)) return {error:'procedure_unavailable',actionIssued:false};
+        const stored=await chrome.storage.local.get(['browserKnowledge','browserSiteProcedures']);
+        const snapshot=await handle({type:'RUN_TOOL',name:'browser_snapshot',args:{},requestId:message.requestId,clientId:message.clientId},sender);
+        const prepared=prepareFormProcedure(stored.browserSiteProcedures,stored.browserKnowledge,message.args,snapshot,{provider:chatLease.provider});
+        if (!prepared.prepared) return prepared;
+        const procedureToken=crypto.randomUUID();
+        await patchChatLease(chatLease,{siteProcedurePrepared:{token:procedureToken,args:message.args,fields:prepared.fields,observation:snapshot}});
+        return {...prepared,procedureToken};
+      }
+      if (message.type === 'RUN_TOOL' && message.name === 'fill_form' && message.procedureToken) {
+        const binding=chatLease.siteProcedurePrepared;
+        if (!binding || binding.token!==message.procedureToken || JSON.stringify(binding.fields)!==JSON.stringify(message.args?.fields)) return {error:'procedure_changed',actionIssued:false};
+        const stored=await chrome.storage.local.get(['browserKnowledge','browserSiteProcedures']);
+        const snapshot=await handle({type:'RUN_TOOL',name:'browser_snapshot',args:{},requestId:message.requestId,clientId:message.clientId},sender);
+        const checked=prepareFormProcedure(stored.browserSiteProcedures,stored.browserKnowledge,binding.args,snapshot,{provider:chatLease.provider});
+        await patchChatLease(chatLease,{siteProcedurePrepared:null});
+        if (!checked.prepared) return checked;
+        message={...message,args:{...message.args,fields:checked.fields},siteProcedureBound:{before:snapshot}};
+      }
       if (message.type === 'RUN_TOOL' && message.name === 'attach_images') {
         const attached = await alreadyAttachedScreenshots(chatLease, message.args?.refs);
         if (attached) return attached;
@@ -879,7 +1091,12 @@ async function handle(message, sender, owner) {
       // optional permission from that approval's user gesture, then recheck
       // before storing the answer and consuming the execution approval.
       if(message.name==='list_upload_files'){const {chat}=await chrome.storage.local.get('chat');return {files:uploadMetadata(chat)};}
-      if(message.name==='download_status')return downloadStatus(chatLease,message.args?.transfer_id);
+      if(message.name==='download_status'){
+        await checkpointTool(chatLease.id,message.name,'start');
+        const result=await downloadStatus(chatLease,message.args?.transfer_id);
+        await checkpointTool(chatLease.id,message.name,'end',result);
+        return result;
+      }
       if (question && !question.refs.length) return saveUserQuestion(chatLease, question);
       if (message.type === 'RUN_TOOL' && message.name === 'ask_openwiki') {
         if (!chatLease.wikiSources?.includes(message.args?.wiki)) return {error:'tools_unavailable'};
@@ -943,6 +1160,16 @@ async function handle(message, sender, owner) {
         if ((await getSession()).chatLease?.cancelled) return {error: 'cancelled'};
         return result;
       }
+      if (message.type === 'RUN_TOOL' && DELEGATION_TOOL_NAMES.has(message.name)) {
+        await checkpointTool(chatLease.id, message.name, 'start');
+        let result;
+        // The step id names this call, so a retry does not send a second task.
+        try {result = await runDelegationTool(message.name, message.args || {}, {tasks: a2aTasks, conversationId: chatLease.conversationId, key: `${chatLease.id}:${typeof message.traceId === 'string' ? message.traceId.slice(0, 100) : crypto.randomUUID()}`});}
+        catch (error) {result = taskError(error);}
+        await checkpointTool(chatLease.id, message.name, 'end', result);
+        if ((await getSession()).chatLease?.cancelled) return {error: 'cancelled'};
+        return result;
+      }
       if (message.type === 'RUN_TOOL' && (MCP_TOOL_NAMES.has(message.name) || message.name === 'apply_approved_mcp')) {
         const session = await getSession(), servers = session.mcpServers || [];
         if (message.name === 'list_mcp_tools') {
@@ -952,7 +1179,7 @@ async function handle(message, sender, owner) {
         if (message.name === 'call_mcp_tool') {
           const record = mcpCallBinding(servers,chatLease.mcpBindings,message.args);
           const server = servers.find(item => item.id === record.serverId);
-          return saveActionApproval(chatLease,{...record,action:'실행',label:record.tool,pageTitle:server.name,hasEditableDraft:false,preview:[{label:'전달할 내용',value:JSON.stringify(record.args,null,2)}]},false);
+          return saveActionApproval(chatLease,{...record,action:'실행',label:record.tool,pageTitle:server.name,hasEditableDraft:false,preview:[{label:'전달할 내용',value:JSON.stringify(record.args,null,2)}]});
         }
         const actionApprovals = session.actionApprovals || {}, record = actionApprovals[chatLease.conversationId];
         if (record?.kind !== 'mcp' || record.questionId !== chatLease.approvalQuestionId || record.provider !== chatLease.provider || record.credentialReceivedAt !== credential.receivedAt) fail('approval_changed');
@@ -1071,7 +1298,6 @@ async function handle(message, sender, owner) {
           executionArgs = {code: await prepareSkillScript(library, chatLease.skillBindings, message.args)}; executionName = 'run_playwright';
         }
         const {chat: beforeTool} = await chrome.storage.local.get('chat');
-        const verifiedBeforeTool = beforeTool?.task?.requestId === chatLease.id && beforeTool.task.verification?.status === 'passed';
         const unresolved=unresolvedReconciliations(beforeTool?.task);
         if(unresolved.length && (MUTATING_TOOLS.has(message.name)||message.name==='request_approval'))return {error:'action_outcome_unknown',actionIssued:false,instruction:unresolved.some(proof=>proof.version===2)?'The prior action lost its receipt and its exact target could not be bound to a document. Stop this run and inspect the page with the user before starting a new task. Do not replay the action or use another tab as proof.':'A prior input or toggle lost its receipt. Re-observe and verify every original target/value before another action. Do not replay it.'};
         const availableFiles=message.name==='prepare_file_upload' ? (await uploadFiles(beforeTool,message.args?.file_ids)).map(f=>f.meta) : undefined;
@@ -1081,9 +1307,9 @@ async function handle(message, sender, owner) {
         // Whether the latest user input answered a question: replacing text a field
         // already holds needs that answer.
         const answered = !!beforeTool?.messages?.findLast?.(item => item.role === 'user')?.clarification;
-        const {result, tabId} = await runBrowserAgent(chatLease.id, {...page, browserContext: chatLease.browserContext}, executionName, executionArgs, {vision: chatLease.vision, answered, hint: typeof beforeTool?.task?.goal === 'string' ? beforeTool.task.goal : undefined, uploadFiles:availableFiles,
+        const {result, tabId} = await runBrowserAgent(chatLease.id, {...page, browserContext: chatLease.browserContext}, executionName, executionArgs, {vision: chatLease.vision, answered, hint: typeof beforeTool?.task?.goal === 'string' ? beforeTool.task.goal : undefined, uploadFiles:availableFiles, informationDestination:message.siteProcedureBound?.destination,
           onNativeDialog: (details,signal) => nativeDialogRequests.ask(chatLease,details,signal),
-          onApproval: record => saveActionApproval(chatLease, record, verifiedBeforeTool, chatLease.replay && Number.isInteger(message.replayIndex) ? {...chatLease.replay, resumeAt: message.replayIndex + 1} : null),
+          onApproval: record => saveActionApproval(chatLease, record, chatLease.replay && Number.isInteger(message.replayIndex) ? {...chatLease.replay, resumeAt: message.replayIndex + 1} : null),
           onCapture: (screenshot, image) => attachCapture(chatLease, screenshot, image, saveCapture, message.traceId),
           onImage: (image, payload) => attachCapture(chatLease, image, payload, savePageImage)});
         await rememberBrowserContext(chatLease);
@@ -1091,6 +1317,7 @@ async function handle(message, sender, owner) {
         if(unresolved.length&&message.name==='verify_page'&&!result.reconciledAction)Object.assign(result,{unresolvedAction:true,recoveryInstruction:unresolved.some(proof=>proof.version===2)?'The original action target was not durably bound to a browser document. This check cannot clear the uncertain action; stop this run and ask the user to inspect the page.':'This check did not establish the original input values or toggle target. Keep the uncertain action blocked and verify every original target.'});
         await checkpointTool(chatLease.id, message.name, 'end', result, result.observation || result);
         await recordReplay(beforeTool?.task?.requestId === chatLease.id ? beforeTool.task.replayLogId : null, message.name, executionArgs, observedBefore, result, tabId);
+        if(message.siteProcedureBound)result.siteProcedurePrimitive={args:executionArgs,before:message.siteProcedureBound.before};
         if ((await getSession()).chatLease?.cancelled) return {error: 'cancelled'};
         // Follow only the tab selected by the authorized action. Old manual fill
         // plans stay document-bound and cannot cross this connection update.
@@ -1502,9 +1729,23 @@ async function handle(message, sender, owner) {
         tools.splice(0, tools.length, ...tools.filter(tool => !['wiki_query','wiki_search','wiki_read','search_site_wiki','read_site_wiki'].includes(tool.function.name)));
         tools.push(...openWikiTools({...wikiSources, sites: wikiSources.internal ? siteWikiOrigins(browserKnowledge, credential.provider || 'aipro') : []}));
       }
+      const knowledgeTab = !creationSource && !message.compact && !planningOnly && skill?.allowAutomation && Number.isInteger(pageTargetTabId)
+        ? await chrome.tabs.get(pageTargetTabId).catch(()=>null) : null;
+      const siteKnowledge = knowledgeTab ? planningKnowledge(browserKnowledge,
+        (await chrome.storage.local.get('browserSiteProcedures')).browserSiteProcedures,
+        {url:knowledgeTab.url,provider:credential.provider || 'aipro',query:resumeTask?.goal || userInput}) : null;
+      if (siteKnowledge?.procedures?.some(card=>card.kind!=='link_read') && tools.some(tool=>tool.function.name==='fill_form')) tools.push(procedureTool());
+      if (siteKnowledge?.procedures?.some(card=>card.kind==='link_read') && tools.some(tool=>tool.function.name==='click_element')) tools.push(linkProcedureTool());
       const skillBindings = await bindSkillLibrary(library);
       const mcpServers = message.compact || creationSource ? [] : (await getSession()).mcpServers || [];
       tools.push(...mcpTools(mcpServers));
+      // The conversation running a task another Nubi sent reports facts and does
+      // not delegate back. Other conversations may ask the paired desktop.
+      const delegatedRun = message.compact || creationSource ? null : await a2aTasks.run();
+      if (delegatedRun?.conversationId === chat.sessionId && delegatedRun.provider === chat.provider) {
+        tools.push(REPORT_FACTS_TOOL);
+        if (delegatedRun.stopped) await a2aTasks.updateRun({stopped: false});
+      } else if (!message.compact && !creationSource && (await getSession()).a2a?.connection) tools.push(...DELEGATION_TOOLS);
       const mcpBindings = mcpServers.map(({id,hash}) => ({id,hash}));
       if (!message.compact && skill?.allowAutomation) tools.push(...vocTools());
       if (wikiInit) tools.splice(0,tools.length,...tools.filter(tool=>['read_page','browser_snapshot','inspect_dom','verify_page','ask_user','find_skills','read_skill','progress_note'].includes(tool.function.name)));
@@ -1553,12 +1794,13 @@ async function handle(message, sender, owner) {
       const documents = creationSource ? [] : documentBindings(messages);
       if (documents.length && !message.compact) tools.push(...documentToolDefinitions());
       if (planningOnly) tools.splice(0,tools.length,...planTools(tools));
-      if (!creationSource && !message.compact) chat.task = skill?.allowAutomation && (!autoConnect || resumeTask) ? {requestId, skillId: skill.id, autoConnect, planningOnly, goal: resumeTask?.goal || messages.findLast(m => m.role === 'user')?.content || '', status: 'running', replayLogId: resumeTask?.replayLogId || crypto.randomUUID(), steps: resumeTask?.steps || [], ...(resumeTask?.pendingReconciliation?{pendingReconciliation:resumeTask.pendingReconciliation}:{}), plan: resumeTask?.plan || [], ...(resumeTask?.planUpdates ? {planUpdates:resumeTask.planUpdates,planRevision:resumeTask.planRevision} : {}), ...(resumeTask?.analysisCheckpoint ? {analysisCheckpoint:resumeTask.analysisCheckpoint} : {}), ...(resumeTask?.analysisHandoffs ? {analysisHandoffs:resumeTask.analysisHandoffs} : {}), ...(resumeTask?.researchHandoffs?{researchHandoffs:resumeTask.researchHandoffs}:{}), summary: resumeTask?.summary || null, ...(resumeTask?.used ? {used: resumeTask.used} : {}), ...(resumedVerification(resumeTask) ? {verification: {status: 'pending'}} : {}), ...(resumeTask?.goalReview ? {goalReview: {status: 'running', checks: 0}} : {}), page: page ? {title: page.title, url: page.url} : resumeTask?.page || null, updatedAt: Date.now()} : null;
+      if (!creationSource && !message.compact) chat.task = skill?.allowAutomation && (!autoConnect || resumeTask) ? {requestId, skillId: skill.id, autoConnect, planningOnly, goal: resumeTask?.goal || messages.findLast(m => m.role === 'user')?.content || '', status: 'running', replayLogId: resumeTask?.replayLogId || crypto.randomUUID(), steps: resumeTask?.steps || [], ...(resumeTask?.pendingReconciliation?{pendingReconciliation:resumeTask.pendingReconciliation}:{}), plan: resumeTask?.plan || [], ...(resumeTask?.planUpdates ? {planUpdates:resumeTask.planUpdates,planRevision:resumeTask.planRevision} : {}), ...(resumeTask?.analysisCheckpoint ? {analysisCheckpoint:resumeTask.analysisCheckpoint} : {}), ...(resumeTask?.analysisHandoffs ? {analysisHandoffs:resumeTask.analysisHandoffs} : {}), ...(resumeTask?.researchHandoffs?{researchHandoffs:resumeTask.researchHandoffs}:{}), summary: resumeTask?.summary || null, ...(resumeTask?.used ? {used: resumeTask.used} : {}), ...(resumedVerification(resumeTask) ? {verification: approvalRecord?.operation?.method === 'download' && resumeTask?.verification?.status === 'passed' && !unresolvedReconciliations(resumeTask).length ? resumeTask.verification : {status: 'pending'}} : {}), ...(resumeTask?.goalReview ? {goalReview: {status: 'running', checks: 0}} : {}), page: page ? {title: page.title, url: page.url} : resumeTask?.page || null, updatedAt: Date.now()} : null;
       chat.messages.push({id: requestId, requestId, role: 'assistant', content: '', state: 'pending', ...(planningOnly ? {planningOnly:true} : {}), ...(creationSource ? {creatingSkill:true, creationSource} : {}), modelId: settings.modelId, modelName: model?.displayName || settings.modelId, skillId: skill?.id || '', pageId: page?.id || '', ...(message.compact ? {contextOnly: true} : {})});
       if (creationSource) tools.splice(0, tools.length, clarificationTool(false), ...skillLibraryTools(library).filter(tool => ['find_skills', 'read_skill'].includes(tool.function.name)));
       await saveChat(chat);
-      await chrome.storage.session.set({chatLease: {id: requestId, ...(answeringQuestion && !answeringApproval ? {answeredQuestion: pendingQuestion} : {}), ...(owner === RUNNER ? {owner: 'worker'} : {}), conversationId: chat.sessionId, wikiInit, planningOnly, wikiSources: Object.keys(wikiSources).filter(key => wikiSources[key]), knowledgeRevision: knowledgeState(browserKnowledge).revision, ...(resumeTask?.used ? {knowledgeRoute: extendRoute(resumeTask.used.route), skillsRead: (Array.isArray(resumeTask.used.skills) ? resumeTask.used.skills : []).filter(id => typeof id === 'string').slice(-5)} : {}), ...(approvalRecord ? {approvalQuestionId: approvalRecord.questionId} : {}), ...(replay ? {replay: {id: replay.id, sourceId: replay.sourceId}} : {}), browserContext, browserWorkMode, documentBindings: documents, creationSource, compacting: !!message.compact, workspaceId, mcpBindings, skillBindings, librarySkillId: selectedSkill?.id || '', modelIds: [settings.modelId, visionModel?.name].filter(Boolean), projectConnectionId: project?.status === 'connected' ? projectConnection?.connectionId : null, provider: credential.provider || 'aipro', automation: skill?.allowAutomation === true, autoConnect, pageTargetTabId, vision: !!visionModel, documentId: sender.documentId, clientId: typeof message.clientId === 'string' ? message.clientId.slice(0, 100) : null, tabId: sender.tab?.id, lastSeenAt: Date.now(), credentialReceivedAt: credential.receivedAt, pageId: page?.id, toolNames: tools.map(tool => tool.function.name), until: Date.now() + CHAT_TIMEOUT_MS + 60000}});
-      return {requestId, conversationId: chat.sessionId, ...(replay ? {replay} : {}), creationSource, planningOnly, documents, provider: credential.provider || 'aipro', modelId: settings.modelId, model: model || {name: settings.modelId}, visionModel, memory: chat.memory || null, compact: !!message.compact, approvedAction: !!approvalRecord, approvedToolName: approvalRecord?.kind === 'mcp' ? 'apply_approved_mcp' : 'apply_approved_action', resumeTask, mode: credential.mode, credentialReceivedAt: credential.receivedAt, messages, skill, skillCatalog: skillCatalog(library), autoConnect, browserWorkMode, project: projectContext(project), page: page ? {title: page.title, url: page.url} : null, tools};
+      if((await getSession()).a2a?.binding && !message.compact && !creationSource && !planningOnly && !replay)await (await browserA2A()).bindRun({text:userInput,runId:requestId,conversationId:chat.sessionId,provider:chat.provider,continuation:answeringQuestion || !!message.resume});
+      await chrome.storage.session.set({chatLease: {id: requestId, ...(answeringQuestion && !answeringApproval ? {answeredQuestion: pendingQuestion} : {}), ...(owner === RUNNER ? {owner: 'worker'} : {}), conversationId: chat.sessionId, siteProcedureIds:siteKnowledge?.procedures?.map(item=>item.id) || [], wikiInit, planningOnly, wikiSources: Object.keys(wikiSources).filter(key => wikiSources[key]), knowledgeRevision: knowledgeState(browserKnowledge).revision, ...(resumeTask?.used ? {knowledgeRoute: extendRoute(resumeTask.used.route), skillsRead: (Array.isArray(resumeTask.used.skills) ? resumeTask.used.skills : []).filter(id => typeof id === 'string').slice(-5)} : {}), ...(approvalRecord ? {approvalQuestionId: approvalRecord.questionId} : {}), ...(replay ? {replay: {id: replay.id, sourceId: replay.sourceId}} : {}), browserContext, browserWorkMode, documentBindings: documents, creationSource, compacting: !!message.compact, workspaceId, mcpBindings, skillBindings, librarySkillId: selectedSkill?.id || '', modelIds: [settings.modelId, visionModel?.name].filter(Boolean), projectConnectionId: project?.status === 'connected' ? projectConnection?.connectionId : null, provider: credential.provider || 'aipro', automation: skill?.allowAutomation === true, autoConnect, pageTargetTabId, vision: !!visionModel, documentId: sender.documentId, clientId: typeof message.clientId === 'string' ? message.clientId.slice(0, 100) : null, tabId: sender.tab?.id, lastSeenAt: Date.now(), credentialReceivedAt: credential.receivedAt, pageId: page?.id, toolNames: tools.map(tool => tool.function.name), until: Date.now() + CHAT_TIMEOUT_MS + 60000}});
+      return {requestId, conversationId: chat.sessionId, ...(siteKnowledge ? {siteKnowledge} : {}), ...(replay ? {replay} : {}), creationSource, planningOnly, documents, provider: credential.provider || 'aipro', modelId: settings.modelId, model: model || {name: settings.modelId}, visionModel, memory: chat.memory || null, compact: !!message.compact, approvedAction: !!approvalRecord, approvedToolName: approvalRecord?.kind === 'mcp' ? 'apply_approved_mcp' : 'apply_approved_action', resumeTask, mode: credential.mode, credentialReceivedAt: credential.receivedAt, messages, skill, skillCatalog: skillCatalog(library), autoConnect, browserWorkMode, project: projectContext(project), page: page ? {title: page.title, url: page.url} : null, tools};
     }
     case 'FINISH_CHAT': {
       const {chatLease, credential} = await getSession();
@@ -1581,7 +1823,7 @@ async function handle(message, sender, owner) {
       let skillDraft, wikiDraft;
       if (chatLease.creationSource && !chatLease.awaitingUser && !message.error) {
         try {
-          if (chatLease.creationSource.kind==='wiki') {wikiDraft=parseWikiDraft(message.content,{redact:true}); message={...message,content:'사이트 위키 초안을 만들었습니다.'};}
+          if (chatLease.creationSource.kind==='wiki') {wikiDraft=parseWikiDraft(message.content,{redact:true}); const procedure=createSiteProcedure(chat.messages.find(item=>item.id===chatLease.creationSource.sourceId)?.replay, {...chatLease.creationSource.candidate,documentVersion:1,reviewedAt:Date.now()},{id:'preview'});wikiDraft.procedureAvailable=!!procedure;wikiDraft.procedureKind=procedure?.kind || 'form'; message={...message,content:'사이트 위키 초안을 만들었습니다.'};}
           else {skillDraft = {skill: parseSkillDraft(message.content, chatLease.creationSource), sourceId: chatLease.creationSource.sourceId, status: 'draft'}; message = {...message, content: '스킬 초안을 만들었습니다. 절차와 입력 변수를 확인해 주세요.'};}
         }
         catch {message = {...message, content: '', error: chatLease.creationSource.kind==='wiki' ? 'wiki_draft_invalid' : 'skill_draft_invalid'};}
@@ -1649,7 +1891,7 @@ async function handle(message, sender, owner) {
           const {replayLogs = {}, replayValues = {}} = await getSession();
           const log = replayLogs[replayLogId];
           const passed = !error && chat.task.verification?.status === 'passed' && (!!chatLease.replay || chat.task.goalReview?.status === 'complete');
-          const record = passed && log ? replayRecord(log, {id: replayLogId, goal: chat.task.goal}) : null;
+          const record = passed && log ? replayRecord(log, {id: replayLogId, goal: chat.task.goal,goalReviewed:!chatLease.replay && chat.task.goalReview?.status==='complete'}) : null;
           const answer = chat.messages.find(item => item.id === message.requestId && item.role === 'assistant');
           if (record && answer) {
             answer.replay = record;
@@ -1667,6 +1909,9 @@ async function handle(message, sender, owner) {
       const verified=chat.task?.verification?.status==='passed'&&chat.task?.goalReview?.status==='complete';
       await finishRoutine(chatLease.id,{error,awaitingUser,verified}).catch(()=>{});
       await notifyRoutineResult(chatLease,{error,awaitingUser,verified});
+      // Sending the result waits on the desktop, so it runs outside this queue.
+      const delegatedReply = chat.messages.find(item => item.id === message.requestId && item.role === 'assistant');
+      void finishDelegatedRun(chatLease, {error, awaitingUser, content: delegatedReply?.content, reviewed: !error && chat.task?.requestId === chatLease.id && chat.task.goalReview?.status === 'complete'}).catch(() => {});
       if (credential?.receivedAt === chatLease.credentialReceivedAt) {
         if (!error && !chatLease.compacting) await chrome.storage.session.set({credential: {...credential, verifiedAt: Date.now()}});
         else if (error === 'unauthorized') await chrome.storage.session.set({credential: {...credential, verifiedAt: null, rejected: true}});
@@ -1886,6 +2131,8 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     : ['GET_TRACE_JOURNAL', 'GET_AGENT_DIAGNOSTICS', 'SET_DEBUG_MODE'].includes(message?.type) && trustedUI(sender) ? boot.then(() => handle(message, sender))
     : message?.type === 'GET_STATE' && pendingToolOperations > 0 && trustedUI(sender) ? boot.then(() => state(sender, message.clientId, true))
     : message?.type === 'SHOW_BROWSER_WORKSPACE' && trustedUI(sender) ? boot.then(() => handle(message, sender))
+    // Task exchange waits on the desktop over the network; it queues only its own chat changes.
+    : message?.type === 'A2A_TASKS' && trustedUI(sender) ? boot.then(() => a2aTasksRpc(message, sender))
     : message?.type === 'CANCEL_BROWSER' ? cancelBrowser(message, sender) : message?.type === 'PREPARE_CREDENTIAL' ? prepareCredential(message, sender) : message?.type === 'TEST_FABRIX' ? runFabrixTest(message, sender) : serialTool(message?.type, () => handle(message, sender));
   task.then(data => reply({ok: true, data}), error => reply({ok: false, error: Object.hasOwn(ERROR_TEXT, error.message) ? error.message : 'storage_failed'}));
   return true;
@@ -1893,6 +2140,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
 chrome.alarms.onAlarm.addListener(alarm => {
   if(alarm.name.startsWith('nubi-recording:')){serial(()=>expireRecording(alarm.name)).catch(()=>{});return;}
   if(alarm.name.startsWith('nubi-routine:')){serial(async()=>fireRoutine(alarm.name,await routineOwner(),startScheduledRoutine)).catch(()=>{});return;}
+  if(alarm.name===A2A_POLL){boot.then(pollTasks).catch(()=>{});return;}
 
   if (!['login-timeout', 'callback-close'].includes(alarm.name)) return;
   serial(async () => {

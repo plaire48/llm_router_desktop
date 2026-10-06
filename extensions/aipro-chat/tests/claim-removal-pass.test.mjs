@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {runAgent} from '../agent-runtime.js';
 import {browserTools, BUILTIN_SKILLS} from '../skills.js';
+// The host appends this run's state (plan, last operation) as the final message;
+// these tests read the message before it.
+const lastMessage = messages => messages.findLast(message => !(message?.role === 'user' && typeof message.content === 'string' && message.content.startsWith('Current run state from the host.')));
 
 const tools = browserTools({}, BUILTIN_SKILLS.find(skill => skill.id === 'browser-agent'));
 const call = (name, args = {}) => ({calls: [{id: crypto.randomUUID(), type: 'function', function: {name, arguments: JSON.stringify(args)}}]});
@@ -20,7 +23,7 @@ async function run(reviews) {
       if (rounds === 1) return call('update_plan', {steps: step('in_progress')});
       if (rounds === 2) return call('read_page');
       toolCounts.push(selected.length);
-      if (JSON.stringify(wire.at(-1)).includes('DELETE every statement')) removalRounds.push(rounds);
+      if (JSON.stringify(lastMessage(wire)).includes('DELETE every statement')) removalRounds.push(rounds);
       return {content: removalRounds.length ? '종목은 사브르, 소속은 대전광역시청입니다. 확인하지 못한 부분: 최근 보도 날짜.' : `종목은 사브르, 소속은 대전광역시청입니다. 9월 30일 보도로 확인했습니다. ${rounds}`};
     },
     execute: async (name, args) => {

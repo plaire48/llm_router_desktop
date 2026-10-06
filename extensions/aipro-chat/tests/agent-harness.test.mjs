@@ -4,6 +4,9 @@ import {createHarness, requiresVerification} from '../agent-harness.js';
 import {runAgent} from '../agent-runtime.js';
 import {browserTools, BUILTIN_SKILLS} from '../skills.js';
 import {taskReceipt, resumedVerification} from '../context-state.js';
+// The host appends this run's state (plan, last operation) as the final message;
+// these tests read the message before it.
+const lastMessage = messages => messages.findLast(message => !(message?.role === 'user' && typeof message.content === 'string' && message.content.startsWith('Current run state from the host.')));
 
 const tools = browserTools({}, BUILTIN_SKILLS[0]);
 const call = (name, args = {}) => ({content: '', calls: [{id: crypto.randomUUID(), type: 'function', function: {name, arguments: JSON.stringify(args)}}]});
@@ -34,7 +37,7 @@ test('tool selection runs locally and its schemas reach the next model round', a
   let round = 0;
   await runAgent({...options(), execute: () => assert.fail('Selection must not connect a page'), complete: async (messages, active) => {
     if (++round === 1) {assert(!names(active).includes('run_playwright')); return call('select_tools', {groups: ['scripts']});}
-    assert(names(active).includes('run_playwright')); assert.equal(JSON.parse(messages.at(-1).content).ok, true); return done;
+    assert(names(active).includes('run_playwright')); assert.equal(JSON.parse(lastMessage(messages).content).ok, true); return done;
   }});
 });
 
@@ -85,7 +88,7 @@ test('query discovery is metadata-only and reaches the next model request withou
   await runAgent({...options(),execute:()=>assert.fail('Discovery must not execute a browser action'),complete:async(messages,active)=>{
     if(++round===1)return call('select_tools',{query:'입력란 채우기',replace:true});
     assert(names(active).includes('fill_form'));assert(!names(active).includes('run_playwright'));
-    assert(JSON.parse(messages.at(-1).content).matches.some(item=>item.name==='fill_form'));return done;
+    assert(JSON.parse(lastMessage(messages).content).matches.some(item=>item.name==='fill_form'));return done;
   }});
   assert.equal(round,2);
 });
@@ -96,8 +99,8 @@ test('premature completion triggers fresh verification, failed checks feed back 
     held.push(state.verificationPending);
     if (++round === 1) return call('fill_form', {fields: [{field_id: 'f1', value: '교육'}]});
     if (round === 2) return done;
-    if (round === 3) {assert.match(messages.at(-1).content, /Harness result check/); return call('verify_page', {checks: [{kind: 'text_present', expected: '저장됨'}]});}
-    if (round === 4) {assert.equal(JSON.parse(messages.at(-1).content).error, 'verification_failed'); return call('click_element', {ref: 'save'});}
+    if (round === 3) {assert.match(lastMessage(messages).content, /Harness result check/); return call('verify_page', {checks: [{kind: 'text_present', expected: '저장됨'}]});}
+    if (round === 4) {assert.equal(JSON.parse(lastMessage(messages).content).error, 'verification_failed'); return call('click_element', {ref: 'save'});}
     if (round === 5) return call('verify_page', {checks: [{kind: 'text_present', expected: '저장됨'}]});
     assert.equal(state.verificationPending, false); return done;
   }, execute: async name => {
@@ -142,7 +145,7 @@ test('Pi continues after three separate premature completions when each stage is
     if (turn === 9) {assert.equal(state.verificationPending, false); return done;}
     if (turn % 3 === 0) {stage++; return call('fill_form', {fields: [{field_id: `f${stage}`, value: `draft-${stage}`}]});}
     if (turn % 3 === 1) return done;
-    assert.match(messages.at(-1).content, /Harness result check/);
+    assert.match(lastMessage(messages).content, /Harness result check/);
     return call('verify_page', {checks: [{kind: 'field_value', ref: `f${stage}`, expected: `draft-${stage}`}]});
   }, execute: async name => {
     assert.notEqual(name, 'ask_user');
@@ -192,6 +195,31 @@ test('read-only navigation uses the fresh observation without clearing a pending
   task = taskReceipt(task, 'click_element', 'start');
   task = taskReceipt(task, 'click_element', 'end', {ok: true, actionIssued: true, navigationOnly: true});
   assert.equal(task.verification.status, 'pending');
+});
+
+test('passed page checks retain a host-unresolved action across later reads and checks', () => {
+  const h = createHarness(tools);
+  h.observe('click_element', {error:'script_timeout',actionIssued:true});
+  const check={ok:true,verified:true,unresolvedAction:true,checks:[{passed:true}]};
+  h.observe('verify_page',check);
+  assert(h.needsCheck());
+  assert.match(h.repairMessage().content,/Call ask_user/);
+  for(const name of ['browser_snapshot','navigate_page','verify_page']) h.observe(name,{ok:true,verified:true});
+  assert(h.needsCheck(),'Another page assertion is not the original action receipt');
+  let task=taskReceipt(taskReceipt({steps:[]},'click_element','start',{reconciliation:{version:2,unverifiable:true}}),'click_element','end',{error:'script_timeout',actionIssued:true});
+  task=taskReceipt(task,'verify_page','end',check);
+  assert.equal(task.verification.status,'failed');
+  assert(task.pendingReconciliation);
+});
+
+test('only successful host reconciliation releases resumed uncertain action debt', () => {
+  const h=createHarness(tools,{resumeUncertainAction:true});
+  h.observe('verify_page',{ok:false,verified:false,reconciledAction:true});
+  assert(h.needsCheck());
+  h.observe('verify_page',{ok:true,verified:true,reconciledAction:true,unresolvedAction:true});
+  assert(h.needsCheck());
+  h.observe('verify_page',{ok:true,verified:true,reconciledAction:true});
+  assert.equal(h.needsCheck(),false);
 });
 
 test('read-only script evidence does not add or erase verification debt', () => {
@@ -258,7 +286,7 @@ test('repeated failures get an independent checkpoint before a corrected read an
   let round = 0; const phases = [], executed = [];
   await runAgent({...options(), complete: async messages => {
     if (++round <= 2) return call('run_playwright', {code: 'return await page.evaluate(() => 1);'});
-    if (round === 3) {assert.match(messages.at(-1).content, /Intermediate requirement review/); return call('read_page');}
+    if (round === 3) {assert.match(lastMessage(messages).content, /Intermediate requirement review/); return call('read_page');}
     return done;
   }, execute: async name => {
     executed.push(name);

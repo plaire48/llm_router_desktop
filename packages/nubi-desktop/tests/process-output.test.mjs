@@ -4,7 +4,7 @@ import {mkdir,writeFile,appendFile,symlink,unlink,link} from 'node:fs/promises';
 import path from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {fixture} from './fixtures.mjs';
-import {readProcessOutput,processOutputPreview} from '../runtime/process-output.mjs';
+import {readProcessOutput,processOutputPreview,commandProblem} from '../runtime/process-output.mjs';
 import {installAgent} from '../runtime/agent.mjs';
 import {ProjectService} from '../runtime/project-service.mjs';
 installAgent(ProjectService);
@@ -15,6 +15,29 @@ async function saved(t,text,privilege='user'){
   const record={id,taskId:task.id,state:'failed',execution:'command_returned',exitCode:1,output:text.slice(-128000),privilege};service.store.set('process:'+id,record);
   return {service,root,task,id,file,record,read:args=>readProcessOutput(service,task.id,{processId:id,...args})};
 }
+// E5 and E6 (S27, 2026-10-01): the command the user named was wrong, and the run stopped at the failure.
+test('a command that failed because it is wrong is named with a request for the corrected command',()=>{
+  const failed=output=>commandProblem({state:'failed',output});
+  const cases=[
+    ['npm error Missing script: "test:discount"\nnpm error\n','missing_script','test:discount'],
+    ["Could not find '/work/repo/tests/discount.test.mjs'\n",'missing_file','/work/repo/tests/discount.test.mjs'],
+    ['bash: line 1: pnpm: command not found\n','missing_command','pnpm'],
+    ["The term 'yarn' is not recognized as the name of a cmdlet, function, script file, or operable program.",'missing_command','yarn'],
+    ["'yarn' 용어가 cmdlet, 함수, 스크립트 파일 또는 실행할 수 있는 프로그램 이름으로 인식되지 않습니다.",'missing_command','yarn'],
+    ["'pnpm'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는 배치 파일이 아닙니다.",'missing_command','pnpm'],
+    ["Get-ChildItem : Cannot find path 'C:\\repo\\tests' because it does not exist.",'missing_file','C:\\repo\\tests'],
+    ['지정된 경로를 찾을 수 없습니다.','missing_file',undefined],
+    ['node: bad option: --grep\n','bad_option','--grep'],
+  ];
+  for(const [output,kind,detail] of cases){const problem=failed(output);assert.equal(problem?.kind,kind,output);assert.equal(problem.detail,detail,output);assert.match(problem.instruction,/propose_command_repair/);}
+  // Checks that ran and failed are not a wrong command, and a finished command is never one.
+  assert.equal(failed('not ok 1 - 무료 배송 기준과 기본 배송비\n  expected: 3000\n  actual: 0\n'),null);
+  assert.equal(commandProblem({state:'completed',output:'npm error Missing script: "lint"'}),null);
+  const preview=processOutputPreview({id:'p',state:'failed',output:'npm error Missing script: "test:discount"'});
+  assert.equal(preview.commandProblem.kind,'missing_script');
+  assert.equal('commandProblem' in processOutputPreview({id:'p',state:'failed',output:'not ok 1'}),false);
+});
+
 test('large saved output is read exactly with UTF-8 paging rather than lost buffer tails',async t=>{
   const text='BEGIN\n'+('가😀나다\n'.repeat(25000))+'END',f=await saved(t,text);let offset=0,revision,result='';
   do{const page=await f.read({offset,revision});assert.equal(page.historical,true);assert.equal(page.encodingLoss,false);assert.equal(page.revisionKind,'file_metadata');assert.ok(Buffer.byteLength(page.text)<=8000);result+=page.text;offset=page.nextOffset;revision=page.revision;}while(offset!==null);
@@ -49,7 +72,7 @@ test('saved path overrides, symlink and hardlink logs cannot escape the owned lo
 });
 test('administrator logs use their fixed owned location and incomplete output remains disclosed',async t=>{
   const f=await saved(t,'admin output','administrator');f.service.store.set('process:'+f.id,{...f.record,logIncomplete:true});const page=await f.read({});assert.equal(page.text,'admin output');assert.equal(page.logIncomplete,true);assert.equal(page.execution,'command_returned');
-  const preview=processOutputPreview({...f.record,output:'HEAD'+'.'.repeat(16000)+'TAIL'});assert.ok(preview.output.startsWith('HEAD'));assert.ok(preview.output.endsWith('TAIL'));assert.equal(preview.outputTruncated,true);
+  const preview=processOutputPreview({...f.record,output:'HEAD'+'.'.repeat(50000)+'TAIL'});assert.ok(preview.output.startsWith('HEAD'));assert.ok(preview.output.endsWith('TAIL'));assert.equal(preview.outputTruncated,true);
 });
 test('actual Bash output beyond the retained buffer stays recoverable without restarting the process',async t=>{
   if(process.platform==='win32'){t.skip('Bash local integration');return;}

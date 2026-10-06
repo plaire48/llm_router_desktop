@@ -1,8 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {workspaceMatches, workspaceTab, createWorkspace, adoptWorkspaceTab, showWorkspace, followWorkspaceTab, reconnectWorkspace, openChatTab, findWorkspaceURL, releaseWorkspace} from '../browser-workspace.js';
+import {workspaceMatches, workspaceTab, createWorkspace, adoptWorkspaceTab, showWorkspace, followWorkspaceTab, reconnectWorkspace, openChatTab, findWorkspaceURL, releaseWorkspace, readyCreatedTab, readyWorkspaceTab} from '../browser-workspace.js';
 
 const binding={conversationId:'one',provider:'aipro',credentialReceivedAt:10};
+test('created tabs wait for actual HTTP commit, not pendingUrl or completed assets, and preserve cancellation/ownership', async () => {
+  let reads = 0;
+  globalThis.chrome = {tabs:{get:async id => (++reads < 3 ? {id,pendingUrl:'https://example.test/target',url:'about:blank',status:'loading'} : {id,url:'https://example.test/target',status:'loading'})}};
+  const result = await readyCreatedTab(17, () => false, {waitMs:1000});
+  assert.equal(result.id,17); assert.equal(result.status,'loading'); assert.equal(reads,3);
+  await assert.rejects(() => readyCreatedTab(17, () => true), /cancelled/);
+  globalThis.chrome.tabs.get = async id => ({id,url:'about:blank',pendingUrl:'https://example.test/target'});
+  await assert.rejects(() => readyCreatedTab(17, () => false, {waitMs:10}), /workspace_loading/);
+  globalThis.chrome.tabs.get = async id => ({id,windowId:4,url:'https://example.test/target',status:'loading'});
+  const workspace = {windowId:4,tabIds:[17]};
+  assert.equal((await readyWorkspaceTab(workspace,17,()=>false,{committedOnly:true})).id,17);
+  await assert.rejects(() => readyWorkspaceTab({...workspace,windowId:5},17,()=>false,{committedOnly:true}), /workspace_changed/);
+});
 test('different conversations share one visual group without sharing tab authority or drafts', async () => {
   const {tabs, calls} = fixture();
   tabs.get(2).active = true;

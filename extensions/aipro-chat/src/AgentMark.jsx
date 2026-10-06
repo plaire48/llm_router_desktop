@@ -4,8 +4,8 @@ export function NubiWordmark() {
   return <img className="nubi-wordmark" src="./icons/nubi-wordmark.webp" alt="누비" width="42" height="24" draggable="false"/>;
 }
 
-export function NubiLogo({mood = 'idle', product}) {
-  return <span className="nubi-logo"><AgentMark size={32} mood={mood} lively/><NubiWordmark/>{product&&<span className="nubi-logo-product">{product}</span>}<span className="nubi-beta">beta</span></span>;
+export function NubiLogo({mood = 'idle', product, title, versionLabel = 'beta', size = 32}) {
+  return <span className="nubi-logo"><AgentMark size={size} mood={mood} lively/>{title?<span className="nubi-logo-title">{title}</span>:<><NubiWordmark/>{product&&<span className="nubi-logo-product">{product}</span>}</>}<span className="nubi-beta">{versionLabel}</span></span>;
 }
 
 // The mascot identifies the agent. Provider buttons keep their own logos.

@@ -1,4 +1,5 @@
-import test from 'node:test';
+import {featureTest} from './beta-feature.mjs';
+const test=featureTest('computerUse');
 import assert from 'node:assert/strict';
 import {writeFile,unlink} from 'node:fs/promises';
 import path from 'node:path';

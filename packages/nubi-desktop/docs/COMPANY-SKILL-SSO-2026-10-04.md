@@ -1,0 +1,11 @@
+# Company skill sign-in
+
+The AI Workspace skill dialog and skill page show a shared **회사 SSO 로그인** action when the native account or marketplace requires authentication. The previous message attributed every marketplace fetch failure to the company network. An anonymous API fetch can also fail on an SSO redirect, so remote reads now require credentials first.
+
+The action reuses the existing GHES Device Flow, identity verification, memory-only host credentials and native browser login-code toolbar. It starts that flow directly, lowers the skill dialog before login, and restores its AI Workspace tab after verified account connection. The refreshed dialog and page use the same catalog revision. A cancelled login preserves custom skills, conversation drafts and project files. Existing authenticated accounts bind the marketplace without a new sign-in.
+
+The reader follows the native GHES error contract: 401 requests reauthentication, 403 with an SSO header requests company sign-in, plain 403 retains the permission explanation, and rate limiting and transport errors remain separate. It never follows API redirects with a bearer token. Guest refresh/install cannot make anonymous remote requests. Local edit/remove/reconciliation remain available. Late errors from a previous credential generation cannot invalidate a new connection.
+
+The button, colors, spacing and error toast reuse the installed CX components and existing Desktop identity/feedback implementation. No new authentication package or storage was introduced. Automated tests and real GHES requests are outside this change's requested build-only verification. `preview:mock` offers `?conversation&skills&company-skills=signin`, `cancel`, `connected`, `network`, `permission` and `sso` as isolated UI examples; these do not authenticate an account or install a skill.
+
+Verification: the Electron build completed. Manual example interactions confirmed the guest sign-in action, direct entry into the existing device-flow UI, restoration of the AI Workspace catalog after an example account connection, cancellation back to the same tab, and preservation of the message draft. Permission and network examples show their own recovery action rather than requesting SSO again. The running authenticated app was not restarted, and actual GHES/Windows sign-in remains unverified.

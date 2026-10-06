@@ -147,3 +147,52 @@ test('cancelling a page analyst discards its late prefetched-source report', asy
   const result = (await value.collect({task_ids: [tasks[0].task_id]})).results[0];
   assert.equal(result.status, 'cancelled'); assert.equal(result.report, undefined);
 });
+
+test('three short ranges of one document arrive in one model call with the original rule and later exception', async t => {
+  let calls = 0;
+  const value = coordinator(t, {complete: async wire => {
+    calls++;
+    const brief = JSON.parse(wire[1].content);
+    const packets = [...(brief.evidence_reads || []), ...wire.filter(item => item.role === 'tool').map(item => JSON.parse(item.content))];
+    const missing = brief.evidence.find(item => !packets.some(packet => packet.evidence_id === item.evidence_id));
+    if (missing) return call(missing.evidence_id);
+    assert(JSON.stringify(brief.evidence_reads).length <= 5000);
+    const originals = packets.map(packet => JSON.parse(packet.text).result);
+    assert(originals.every(result => result.coverage.partial && result.content_hash === 'a'.repeat(64)));
+    assert.match(originals[0].ranges[0].markdown, /general rule/);
+    assert.match(originals[2].ranges[0].markdown, /exception/);
+    return answer(brief.evidence.map(item => item.evidence_id));
+  }});
+  const texts = ['general rule: deadline 3 days.', 'definition: counted business days.', 'exception: deadline 5 days on holidays.'];
+  let offset = 0;
+  for (const text of texts) {
+    const packet = {ok:true,dataKind:'page_content',url:'https://example.test/policy',frame:0,source_document_id:'doc-policy',
+      content_hash:'a'.repeat(64),characters:500,ranges:[{start:offset,end:offset+text.length,markdown:text}],coverage:{partial:true},next_offset:offset+text.length};
+    value.observe('read_page', {mode:'content'}, packet); offset += text.length;
+  }
+  await value.execute('delegate_analysis', {tasks:[{...assignment('ev_1', 'review'), effort:'standard',evidence_ids:['ev_1','ev_2','ev_3']}]});
+  const result = (await value.collect()).results[0];
+  assert.equal(calls, 1);
+  assert.equal(result.report.status, 'complete');
+  assert.deepEqual(result.evidence.map(source => source.evidence_id), ['ev_1','ev_2','ev_3']);
+  assert(result.evidence.every(source => source.requires_fresh_check));
+});
+
+test('prefetch groups do not merge three distinct documents, content versions or frames', async t => {
+  for (const dimension of ['source_document_id', 'content_hash', 'frame']) {
+    const value = coordinator(t, {complete: async wire => {
+      const brief = JSON.parse(wire[1].content);
+      assert.equal(brief.evidence_reads.length, 2);
+      assert(!brief.evidence_reads.some(packet => packet.evidence_id === 'ev_3'));
+      return answer(['ev_1','ev_2']);
+    }});
+    for (let index = 0; index < 3; index++) {
+      const text = `deadline ${index+3} days`;
+      value.observe('read_page', {mode:'content'}, {ok:true,dataKind:'page_content',url:'https://example.test/policy',frame:0,
+        source_document_id:'doc-policy',content_hash:'a'.repeat(64),characters:500,ranges:[{start:0,end:text.length,markdown:text}],coverage:{partial:true},
+        [dimension]:dimension === 'frame' ? index : dimension === 'content_hash' ? String(index+1).repeat(64) : `doc-${index}`});
+    }
+    await value.execute('delegate_analysis', {tasks:[{...assignment('ev_1', 'review'),evidence_ids:['ev_1','ev_2','ev_3']}]});
+    assert.equal((await value.collect()).results[0].report.status,'complete');
+  }
+});

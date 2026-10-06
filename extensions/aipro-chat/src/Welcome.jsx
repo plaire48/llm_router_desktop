@@ -9,7 +9,7 @@ export function WelcomeMark({mood = 'idle', size = 160}) {
 export function AgentIntro({title = '웹을 누비는 AI Agent, 누비', description = <>작은 뱁새가 웹을 누비며<br/>탐색부터 입력과 실행까지 대신합니다.</>} = {}) {
   return <div className="agent-intro">
     <h1>{title}</h1>
-    <p>{description}</p>
+    {description!==null&&description!==false&&<p>{description}</p>}
   </div>;
 }
 

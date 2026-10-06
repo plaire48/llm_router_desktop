@@ -12,8 +12,11 @@ const server = createServer((req, res) => {
   res.writeHead(200, {'content-type': 'text/html; charset=utf-8'});
   res.end(`<!doctype html><html lang="ko"><meta charset="utf-8"><title>단계별 초안</title>
     <h1>단계별 초안</h1>${[1, 2, 3].map(n => `<label>단계 ${n}<input id="field-${n}"></label>`).join('')}
+    <label>입력 수<input id="count" readonly value="0"></label>
     <output>초안 준비</output><script>window.events=[];document.addEventListener('input',e=>{
       events.push({id:e.target.id,value:e.target.value,trusted:e.isTrusted});
+      // A field the page updates beside each input: a fill's own read-back is not its whole check.
+      document.getElementById('count').value=String(events.length);
       document.querySelector('output').textContent='입력 '+events.length+'건';});</script></html>`);
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -50,7 +53,7 @@ try {
       // The fixture plan has two stages; a text answer closes one reviewed stage at a
       // time (agent-runtime.js). Reviews start only after all three inputs are verified.
       assert([12, 13].includes(stage), 'Reviews run only after the verified answer'); reviewPhases.push(review.phase);
-      assert.deepEqual(await work.locator('input').evaluateAll(inputs => inputs.map(input => input.value)), ['초안 1', '초안 2', '초안 3']);
+      assert.deepEqual(await work.locator('input[id^="field-"]').evaluateAll(inputs => inputs.map(input => input.value)), ['초안 1', '초안 2', '초안 3']);
       return route.fulfill({json: reviewCompletion(review)});
     }
     assert(!body.tools.every(tool => tool.function.name === 'ask_user'), 'Verified stages must not consume later repair attempts');
@@ -109,7 +112,8 @@ try {
   });
   const saved = await state(), answer = saved.chat.messages.at(-1);
   assert.equal(answer.state, 'done', JSON.stringify(answer)); assert.equal(stage, 13);
-  assert.deepEqual(reviewPhases, ['plan_step', 'plan_step', 'final']);
+  // The second stage only reports what the first did: the final review judges it.
+  assert.deepEqual(reviewPhases, ['plan_step', 'final']);
   assert.deepEqual(corrections, [1, 2, 3]);
   const events = await work.evaluate(() => window.events);
   assert.deepEqual(events, [1, 2, 3].map(n => ({id: `field-${n}`, value: `초안 ${n}`, trusted: true})));

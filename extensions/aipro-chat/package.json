@@ -1,6 +1,6 @@
 {
   "name": "nubi",
-  "version": "1.0.0-beta.40",
+  "version": "1.0.0-beta.41",
   "private": true,
   "type": "module",
   "scripts": {
@@ -65,6 +65,8 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-markdown": "10.1.0",
+    "rehype-raw": "7.0.0",
+    "rehype-sanitize": "6.0.0",
     "remark-gfm": "4.0.1",
     "turndown": "7.2.4",
     "turndown-plugin-gfm": "1.0.2",

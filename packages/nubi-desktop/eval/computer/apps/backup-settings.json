@@ -1,0 +1,218 @@
+{
+  "id": "backup-settings",
+  "title": "설정",
+  "window": {
+    "hwnd": 4501,
+    "processId": 5501,
+    "processName": "Settings.exe",
+    "title": "설정 - 백업과 보안",
+    "width": 900,
+    "height": 520
+  },
+  "controls": [
+    {
+      "selector": "lbl-settings-title",
+      "name": "설정",
+      "type": "Text"
+    },
+    {
+      "selector": "lst-settings",
+      "name": "설정 목록",
+      "type": "List",
+      "scroll": {
+        "visible": 8
+      },
+      "children": [
+        {
+          "selector": "chk-setting-1",
+          "name": "화면 밝기 자동",
+          "type": "CheckBox",
+          "toggle": "On"
+        },
+        {
+          "selector": "chk-setting-2",
+          "name": "야간 모드",
+          "type": "CheckBox",
+          "toggle": "Off"
+        },
+        {
+          "selector": "chk-setting-3",
+          "name": "알림 소리",
+          "type": "CheckBox",
+          "toggle": "Off"
+        },
+        {
+          "selector": "chk-setting-4",
+          "name": "알림 미리 보기",
+          "type": "CheckBox",
+          "toggle": "On"
+        },
+        {
+          "selector": "chk-setting-5",
+          "name": "방해 금지",
+          "type": "CheckBox",
+          "toggle": "Off"
+        },
+        {
+          "selector": "chk-setting-6",
+          "name": "위치 기록",
+          "type": "CheckBox",
+          "toggle": "Off"
+        },
+        {
+          "selector": "chk-setting-7",
+          "name": "자동 업데이트",
+          "type": "CheckBox",
+          "toggle": "On"
+        },
+        {
+          "selector": "chk-setting-8",
+          "name": "베타 기능",
+          "type": "CheckBox",
+          "toggle": "Off"
+        },
+        {
+          "selector": "chk-setting-9",
+          "name": "로그 수집",
+          "type": "CheckBox",
+          "toggle": "Off"
+        },
+        {
+          "selector": "chk-setting-10",
+          "name": "오류 보고",
+          "type": "CheckBox",
+          "toggle": "On"
+        },
+        {
+          "selector": "chk-setting-11",
+          "name": "자동 잠금",
+          "type": "CheckBox",
+          "toggle": "Off"
+        },
+        {
+          "selector": "chk-setting-12",
+          "name": "잠금 화면 알림",
+          "type": "CheckBox",
+          "toggle": "Off"
+        },
+        {
+          "selector": "chk-setting-13",
+          "name": "지문 로그인",
+          "type": "CheckBox",
+          "toggle": "On"
+        },
+        {
+          "selector": "chk-setting-14",
+          "name": "두 단계 인증",
+          "type": "CheckBox",
+          "toggle": "Off"
+        },
+        {
+          "selector": "chk-setting-15",
+          "name": "접속 기록 보관",
+          "type": "CheckBox",
+          "toggle": "Off"
+        },
+        {
+          "selector": "chk-setting-16",
+          "name": "세션 자동 종료",
+          "type": "CheckBox",
+          "toggle": "On"
+        },
+        {
+          "selector": "chk-setting-17",
+          "name": "클립보드 기록",
+          "type": "CheckBox",
+          "toggle": "Off"
+        },
+        {
+          "selector": "chk-setting-18",
+          "name": "원격 지원 허용",
+          "type": "CheckBox",
+          "toggle": "Off"
+        },
+        {
+          "selector": "chk-setting-19",
+          "name": "파일 암호화",
+          "type": "CheckBox",
+          "toggle": "On"
+        },
+        {
+          "selector": "chk-setting-20",
+          "name": "외부 저장소 허용",
+          "type": "CheckBox",
+          "toggle": "Off"
+        },
+        {
+          "selector": "chk-setting-21",
+          "name": "동기화 일시 중지",
+          "type": "CheckBox",
+          "toggle": "Off"
+        },
+        {
+          "selector": "chk-setting-22",
+          "name": "데이터 절약",
+          "type": "CheckBox",
+          "toggle": "On"
+        },
+        {
+          "selector": "chk-setting-23",
+          "name": "대용량 파일 경고",
+          "type": "CheckBox",
+          "toggle": "Off"
+        },
+        {
+          "selector": "chk-setting-24",
+          "name": "휴지통 자동 비우기",
+          "type": "CheckBox",
+          "toggle": "Off"
+        },
+        {
+          "selector": "chk-auto-backup",
+          "name": "자동 백업",
+          "type": "CheckBox",
+          "toggle": "Off"
+        },
+        {
+          "selector": "chk-setting-26",
+          "name": "백업 알림",
+          "type": "CheckBox",
+          "toggle": "Off"
+        },
+        {
+          "selector": "chk-setting-27",
+          "name": "백업 암호화",
+          "type": "CheckBox",
+          "toggle": "Off"
+        },
+        {
+          "selector": "chk-setting-28",
+          "name": "백업 보관 30일",
+          "type": "CheckBox",
+          "toggle": "On"
+        },
+        {
+          "selector": "chk-setting-29",
+          "name": "클라우드 백업",
+          "type": "CheckBox",
+          "toggle": "Off"
+        },
+        {
+          "selector": "chk-setting-30",
+          "name": "로컬 백업",
+          "type": "CheckBox",
+          "toggle": "Off"
+        }
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "on": {
+        "selector": "chk-auto-backup",
+        "action": "toggle_on"
+      },
+      "record": "backup-on"
+    }
+  ]
+}

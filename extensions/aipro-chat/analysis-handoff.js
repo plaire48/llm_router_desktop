@@ -1,5 +1,6 @@
 // Durable, read-only handoffs. These are briefs and historical source locators,
 // never serialized workers, browser handles, source bodies or authorization.
+import {ANALYSIS_TASK_CHARACTERS} from './analysis-limits.js';
 const MAX_RECORDS = 12, MAX_CHARACTERS = 96000;
 const roles = ['page','research','review','recovery'];
 const states = ['queued','running','done','failed','cancelled'];
@@ -14,7 +15,7 @@ const range = value => interval(value) && string(value.document_id,80,true) && s
 export function normalizeAnalysisHandoff(value) {
   if (value?.version !== 1 || !idPattern.test(value.id || '') || !states.includes(value.status)) return null;
   const b=value.brief;
-  if (!b || !roles.includes(b.role) || !string(b.task,1800,true) || !string(b.constraints,800) || !string(b.done_when,400,true) || !['quick','standard','deep'].includes(b.effort)) return null;
+  if (!b || !roles.includes(b.role) || !string(b.task,ANALYSIS_TASK_CHARACTERS,true) || !string(b.constraints,800) || !string(b.done_when,400,true) || !['quick','standard','deep'].includes(b.effort)) return null;
   if (!list(value.documents,6) || value.documents.some(d=>!string(d?.id,80,true)||!string(d.hash,128,true)) ||
       !list(value.ranges,6) || value.ranges.some(r=>!range(r)||!value.documents.some(d=>d.id===r.document_id&&d.hash===r.hash))) return null;
   if (!list(value.progress,6) || value.progress.some(p=>!range(p)||!value.ranges.some(r=>r.document_id===p.document_id&&r.hash===p.hash&&r.start===p.start&&r.end===p.end)||

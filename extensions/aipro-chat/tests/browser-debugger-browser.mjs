@@ -125,6 +125,34 @@ try {
     assert.equal(failed, true); await detached();
     check(`${phase} detaches before storage access even when persistence fails`);
   }
+  for (const [message, reason] of [
+    ['Another debugger is already attached to the tab with id: 42 PRIVATE', 'debugger_conflict'],
+    ['Host access is restricted by policy.', 'debugger_policy_blocked'],
+    ["Protocol error: method 'Target.setAutoAttach' wasn't found PRIVATE", 'debugger_protocol_unsupported'],
+    ['PRIVATE unknown connection rejection', 'debugger_attach_failed'],
+  ]) {
+    requestId = `failed-attach-${reason}`;
+    await page.reload(); await page.frameLocator('iframe').getByLabel('Body').waitFor();
+    snapshot = (await run('browser_snapshot')).result;
+    await worker.evaluate(message => {
+      globalThis.restoreAttach = chrome.debugger.attach;
+      chrome.debugger.attach = async () => {throw new Error(message);};
+    }, message);
+    try {
+      result = await run('click_element', {ref: elements(snapshot).find(el => el.name === 'Open details').ref});
+      assert.equal(result.result.reason, reason, JSON.stringify(result));
+      assert.equal(result.result.actionIssued, false);
+      assert.equal(result.result.browserConnection.phase, 'debugger_attach');
+      assert(!JSON.stringify(result).includes('PRIVATE'));
+      assert.equal(await page.evaluate(() => !!window.clicked), false);
+      const count = await attaches();
+      const read = (await run('browser_snapshot')).result;
+      assert(elements(read).some(el => el.name === 'Open details'));
+      assert.equal(await attaches(), count, 'A read after failed promotion must not reconnect debugger');
+    } finally {await worker.evaluate(() => {chrome.debugger.attach = restoreAttach; delete globalThis.restoreAttach;});}
+    await stop(); await detached();
+  }
+  check('injected attach conflict, policy rejection, unsupported protocol and generic failure have distinct safe feedback with no click or read-triggered reattach');
   assert.equal(errors.length, 0, JSON.stringify(errors));
   await mkdir('verification', {recursive: true});
   await writeFile('verification/browser-debugger-result.json', JSON.stringify({checks, errors, realBrowserActions:true, syntheticPages:true, detachEventSimulated:true, nativeBannerClicked:false, actualCompanyPageVerified:false},null,2));

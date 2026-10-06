@@ -42,6 +42,8 @@ export function knowledgeProbe({ui, rpc, state, report, save, keepText = async (
     Object.assign(record, {status: 'drafted', characters: text.length, headings: (text.match(/^#{1,4}\s/gm) || []).length,
       mentionsRoute: /경로|메뉴|이동/.test(text), mentionsCaution: /주의|확인할|다음에/.test(text), placeholders: (text.match(/\{[^{}\n]{1,20}\}/g) || []).length});
     await ui.getByRole('button', {name: '사이트 위키 검토', exact: true}).last().click();
+    const link=ui.getByRole('checkbox',{name:'확인한 입력 절차도 연결',exact:true});
+    if(process.env.NUBI_EVAL_LINK_PROCEDURE==='1' && task.environment==='local-fixture' && await link.count()) {await link.check();record.procedureSelected=true;}
     await ui.getByRole('button', {name: '위키 저장', exact: true}).click();
     const until = Date.now() + 15000;
     while (Date.now() < until) {
@@ -93,7 +95,7 @@ export function knowledgeProbe({ui, rpc, state, report, save, keepText = async (
     async prepare(task, phase) {
       const record = entry(task.id);
       if (phase === 'baseline') {await reset(); return true;}
-      if (phase === 'wiki') {
+      if (phase === 'wiki' || /^wiki-[1-5]$/.test(phase)) {
         // Only the site document is present: the drafted skill waits outside the library.
         for (const skill of (await state()).skills?.filter(item => item.id.startsWith('custom-')) || []) await rpc({type: 'DELETE_SKILL', id: skill.id});
         await rpc({type: 'SELECT_SKILL', id: ''});
@@ -118,12 +120,12 @@ export function knowledgeProbe({ui, rpc, state, report, save, keepText = async (
     async after(task, phase, trial) {
       const tools = (trial.trace || []).map(step => step.tool);
       trial.knowledgeUse = {findSkills: tools.filter(tool => tool === 'find_skills').length, readSkill: tools.filter(tool => tool === 'read_skill').length,
-        askWiki: tools.filter(tool => tool === 'ask_openwiki').length, selectTools: tools.filter(tool => tool === 'select_tools').length,
+        useProcedure:tools.filter(tool=>tool==='fill_site_procedure').length, askWiki: tools.filter(tool => tool === 'ask_openwiki').length, selectTools: tools.filter(tool => tool === 'select_tools').length,
         browserSteps: tools.filter(tool => !['progress_note', 'update_plan', 'review_task', 'recover_model', 'select_tools', 'find_skills', 'read_skill'].includes(tool)).length};
       if (phase === 'baseline' && trial.status === 'answered') {
         await draftWiki(task).catch(error => {entry(task.id).wiki.status = 'draft_error'; entry(task.id).wiki.error = String(error?.message).slice(0, 120);});
         await ui.keyboard.press('Escape').catch(() => {});
-        await draftSkill(task).catch(error => {entry(task.id).skill.status = 'draft_error'; entry(task.id).skill.error = String(error?.message).slice(0, 120);});
+        if(process.env.NUBI_EVAL_SITE_REPEATS===undefined) await draftSkill(task).catch(error => {entry(task.id).skill.status = 'draft_error'; entry(task.id).skill.error = String(error?.message).slice(0, 120);});
         await ui.keyboard.press('Escape').catch(() => {});
       }
       if (phase === 'skill-selected') await reset();

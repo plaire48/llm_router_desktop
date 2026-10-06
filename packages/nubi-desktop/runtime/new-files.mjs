@@ -29,8 +29,12 @@ export async function proposeNewFile({taskId,path:rel,content,reason='',signal,r
   const id=randomUUID(),folder=path.join(this.store.directory,'proposals',id);await mkdir(folder,{recursive:true});
   const before=path.join(folder,'before'+path.extname(rel)),after=path.join(folder,'after'+path.extname(rel));
   await writeFile(before,'');await writeFile(after,content);
-  const proposal={id,taskId,path:rel,kind:'create',expectedHash:'absent',afterHash:hash(content),before,after,content,reason:String(reason).slice(0,2000),quality,stats:summarizeDiff('',content),rulesFingerprint:observed.projectRules.fingerprint,state:'proposed',createdAt:new Date().toISOString()};
-  this.store.set('proposal:'+id,proposal);return proposal;
+  const runId=this.agent?.running&&this.agent.taskId===taskId?this.agent.runId:undefined;
+  const proposal={id,taskId,path:rel,kind:'create',expectedHash:'absent',afterHash:hash(content),before,after,content,reason:String(reason).slice(0,2000),quality,stats:summarizeDiff('',content),rulesFingerprint:observed.projectRules.fingerprint,state:'proposed',createdAt:new Date().toISOString(),...(runId?{runId}:{})};
+  this.store.set('proposal:'+id,proposal);
+  // Only the newest proposal of a file can be applied: an older open one of the task is superseded.
+  for(const older of this.store.list('proposal:').filter(p=>p.id!==id&&p.taskId===taskId&&p.path===rel&&p.state==='proposed'))this.store.set('proposal:'+older.id,{...older,state:'superseded'});
+  return proposal;
 }
 
 export async function prepareNewFile(proposal) {

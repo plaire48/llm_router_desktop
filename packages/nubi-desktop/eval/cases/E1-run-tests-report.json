@@ -1,0 +1,49 @@
+{
+  "id": "E1-run-tests-report",
+  "title": "테스트를 실행하고 실패 원인 보고",
+  "suite": "command",
+  "split": "dev",
+  "corpus": "order-failing",
+  "request": "테스트를 실행해서 결과를 알려 줘. 실패한 검사가 있으면 어떤 검사가 왜 실패하는지 알려 줘. 코드는 아직 고치지 마.",
+  "approvals": [
+    "command"
+  ],
+  "commands": [
+    "npm(?:\\.cmd)? (?:run )?test(?: .+)?",
+    "node --test(?: .+)?",
+    "(?:node|npm)(?:\\.cmd)? (?:--version|-v)",
+    "git (?:status|diff|log)(?: [\\w./=@-]+)*"
+  ],
+  "expect": {
+    "state": "review",
+    "commands": {
+      "match": [
+        "re:npm(?:\\.cmd)? (?:run )?test",
+        "re:node --test"
+      ],
+      "min": 1
+    },
+    "answer_includes": [
+      [
+        "무료 배송 기준과 기본 배송비",
+        "shipping.test"
+      ],
+      [
+        "주문 합계는 할인과 배송비를 반영한다",
+        "order.test"
+      ],
+      [
+        "FREE_SHIPPING_MIN",
+        "30000",
+        "30,000",
+        "3만"
+      ],
+      [
+        "50000",
+        "50,000",
+        "5만"
+      ]
+    ],
+    "unchanged_except": []
+  }
+}

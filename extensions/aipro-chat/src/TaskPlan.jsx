@@ -4,17 +4,20 @@ import {normalizePlan, planDifference, planUpdateHistory} from '../task-plan.js'
 import {TOOL_LABELS} from '../agent-trace.js';
 import {InlineMarkdown} from './MessageBody.jsx';
 
-export function TaskPlan({debugMode = false, progress, trace = [], phase, question, detailsId, countId, countSuffix = '', stepAttributes, statusLabel, defaultExpanded = true}) {
+export function TaskPlan({className = '', overviewClassName, debugMode = false, progress, trace = [], phase, question, detailsId, countId, countSuffix = '', stepAttributes, statusLabel, defaultExpanded = true}) {
   const [expanded, setExpanded] = useState(null);
+  const Overview=overviewClassName?'div':React.Fragment;
   const plan = normalizePlan(progress?.plan);
   if (!plan) return null;
   const completed = plan.filter(step => step.status === 'completed').length;
   const waiting = progress.status === 'awaiting_user', paused = progress.status === 'paused';
-  const finalizing = completed === plan.length && !waiting && !paused && progress.status !== 'done';
+  const running = trace.findLast(step => step.status === 'running' && step.tool !== 'update_plan');
+  // A reporting last step stays open until the final review passes; the answer is already being checked.
+  const checkingAnswer = running?.tool === 'review_task' && running.label === '답변 확인';
+  const finalizing = (completed === plan.length || checkingAnswer) && !waiting && !paused && progress.status !== 'done';
   const waitingText = question?.kind === 'approval' ? '승인 대기' : '답변 대기';
   const status = statusLabel || (waiting ? waitingText : paused ? '일시 중단' : finalizing ? '답변 확인 중' : progress.status === 'done' ? '완료' : '진행 중');
   const current = plan.find(step => step.status === 'in_progress');
-  const running = trace.findLast(step => step.status === 'running' && step.tool !== 'update_plan');
   const updates = planUpdateHistory(progress.updates);
   const revisions = updates.filter(entry => entry.before.length && planDifference(entry.before, entry.after).revised);
   const latest = revisions.at(-1), change = latest && planDifference(latest.before, latest.after);
@@ -24,10 +27,10 @@ export function TaskPlan({debugMode = false, progress, trace = [], phase, questi
   const recent = current && trace.findLast(step => step.planStep === current.text && !['update_plan', 'progress_note'].includes(step.tool) && TOOL_LABELS[step.tool]);
   const executionStatus = {running: '실행 중', done: '도구 실행 완료', error: '실행 실패', cancelled: '취소', waiting: '확인 대기', recovered: '복구 확인', deferred: '보류'};
 
-  return <section className="task-plan" aria-label="작업 계획" data-status={progress.status} data-finalizing={finalizing || undefined}>
+  return <section className={`task-plan ${className}`} aria-label="작업 계획" data-status={progress.status} data-finalizing={finalizing || undefined}>
     <span className="visually-hidden" role="status" aria-live="polite" aria-atomic="true">{`작업 계획 ${completed}/${plan.length} 완료. ${status}${current ? `: ${current.text}` : ''}${latest ? `. 최근 계획 수정: ${latest.reason || summary}` : ''}`}</span>
     {current && !(expanded ?? defaultExpanded) && <div className="task-plan-current"><span>{currentLabel}</span><InlineMarkdown content={current.text}/></div>}
-    <details data-plan-overview id={detailsId} open={expanded ?? defaultExpanded} onToggle={event => {if(event.target===event.currentTarget && event.currentTarget.open !== (expanded ?? defaultExpanded))setExpanded(event.currentTarget.open);}}>
+    <Overview {...(overviewClassName?{className:overviewClassName}:{})}><details data-plan-overview id={detailsId} open={expanded ?? defaultExpanded} onToggle={event => {if(event.target===event.currentTarget && event.currentTarget.open !== (expanded ?? defaultExpanded))setExpanded(event.currentTarget.open);}}>
       <summary><Icon name="layers" size={16}/><span>작업 계획</span><span id={countId} className="task-plan-count" title={`${plan.length}단계 중 ${completed}단계 완료`}>{completed}/{plan.length}{countSuffix}</span>{(waiting || paused || finalizing) && <span className="task-plan-pause">{status}</span>}<Icon name="chevronDown" size={14}/></summary>
       <ol>{plan.map((step, index) => {
         const active = step.status === 'in_progress', done = step.status === 'completed';
@@ -41,6 +44,7 @@ export function TaskPlan({debugMode = false, progress, trace = [], phase, questi
         </li>;
       })}</ol>
     </details>
+    </Overview>
     {latest && <details className="task-plan-update" key={latest.revision}>
       <summary aria-label={`계획 수정: ${summary}`} title={`계획 수정: ${summary}`}><span className="task-plan-update-heading">
         <Icon name="refresh" size={14}/><span className="visually-hidden">계획 수정</span>

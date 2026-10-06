@@ -1,10 +1,50 @@
 import {collectPageContent} from './generated/browser-content-dom.js';
 import {pageScript} from './page-script.js';
 import {MarkdownTextSplitter} from '@langchain/textsplitters';
-import {rankEvidence, evidenceExcerpt} from './evidence-search.js';
+import {createEvidenceSearch, evidenceExcerpt} from './evidence-search.js';
 import {readCurrentPdf, readCurrentPdfPage} from './browser-pdf.js';
+import {contentOutline} from './browser-content-outline.js';
+import {sourceBoundaryIndex} from './source-boundaries.js';
 
 const splitter = new MarkdownTextSplitter({chunkSize: 5000, chunkOverlap: 0, keepSeparator: true});
+// This caches only the local lexical index, never a page observation. The host
+// still reads the actual document and checks its full identity/text hash first.
+// Short lived and bounded across runs; nothing is written to storage or a wiki.
+const queryIndexes = new Map(), INDEX_CHARACTERS = 300000, INDEX_ENTRIES = 6, INDEX_TTL = 60000;
+function dropQueryIndex(key) {
+  clearTimeout(queryIndexes.get(key)?.expiry);
+  queryIndexes.delete(key);
+}
+async function queryIndex(text, key) {
+  const now = Date.now();
+  for (const [id, entry] of queryIndexes) if (entry.expires <= now) dropQueryIndex(id);
+  let entry = queryIndexes.get(key);
+  if (entry) {queryIndexes.delete(key); queryIndexes.set(key, entry); return entry.pending;}
+  const build = async () => {
+    const chunks = []; let previous = 0;
+    for (const part of await splitter.splitText(text)) {
+      const start = text.indexOf(part, previous);
+      if (start < 0) throw new Error('response_invalid');
+      chunks.push({id: chunks.length, text: part, start, end: start + part.length}); previous = start + part.length;
+    }
+    // A document title repeated on every chunk must not manufacture body hits.
+    return {chunks, search: createEvidenceSearch(chunks, {fields: ['text']})};
+  };
+  if (text.length > INDEX_CHARACTERS) return build();
+  while (queryIndexes.size >= INDEX_ENTRIES || [...queryIndexes.values()].reduce((sum, item) => sum + item.characters, 0) + text.length > INDEX_CHARACTERS) {
+    dropQueryIndex(queryIndexes.keys().next().value);
+  }
+  entry = {characters: text.length, expires: now + INDEX_TTL, pending: build()};
+  queryIndexes.set(key, entry);
+  entry.expiry = setTimeout(() => {if (queryIndexes.get(key) === entry) dropQueryIndex(key);}, INDEX_TTL);
+  entry.expiry.unref?.();
+  try {return await entry.pending;} catch (error) {if (queryIndexes.get(key) === entry) dropQueryIndex(key); throw error;}
+}
+const windowEnd = (text, start) => {
+  let end = Math.min(text.length, start + 5000);
+  if (end < text.length && /[\uD800-\uDBFF]/.test(text[end - 1]) && /[\uDC00-\uDFFF]/.test(text[end])) end--;
+  return end;
+};
 export async function contentPacket(source, args = {}) {
   if (source.error) return source;
   // Display URLs omit query values. Bind reference identity to a hash of the
@@ -22,16 +62,18 @@ export async function contentPacket(source, args = {}) {
   // Semantic retrieval chunks can be a heading of only a few characters.
   // Sequential reading instead uses exact, contiguous source windows. Keep
   // lexical query pagination separate; its offset is a result index.
-  const chunks = []; let previous = 0;
-  if (query) for (const text of await splitter.splitText(source.text)) {
-    const start = source.text.indexOf(text, previous);
-    if (start < 0) throw new Error('response_invalid');
-    chunks.push({id: chunks.length, name: source.title, text, start, end: start + text.length}); previous = start + text.length;
-  }
-  const hits = query ? rankEvidence(chunks, query) : [];
-  let end = Math.min(source.text.length, offset + 5000);
-  if (end < source.text.length && /[\uD800-\uDBFF]/.test(source.text[end - 1]) && /[\uDC00-\uDFFF]/.test(source.text[end])) end--;
-  const selected = query ? hits.map(hit => chunks[hit.id]).slice(offset, offset + 1)
+  const queryData = query ? await queryIndex(source.text, JSON.stringify([hash, source.frame])) : null;
+  const hits = queryData ? queryData.search(query) : [];
+  // Markdown splitting can isolate a heading from an oversized paragraph.
+  // Retrieve by its precise child match, then include bounded adjacent original
+  // text. This context is not an inferred answer or exhaustive section read.
+  const contextRange = chunk => {
+    const headingOnly = chunk.text.length < 1000 && /^(?:#{1,6}\s+[^\n]+\s*)+$/.test(chunk.text.trim());
+    const end = headingOnly ? windowEnd(source.text, chunk.start) : chunk.end;
+    return {...chunk, end, text: source.text.slice(chunk.start, end)};
+  };
+  const end = windowEnd(source.text, offset);
+  const selected = query ? hits.slice(offset, offset + 1).map(hit => contextRange(queryData.chunks[hit.id]))
     : offset < end ? [{start:offset,end,text:source.text.slice(offset,end)}] : [];
   const rows = selected.map(chunk => {
     const pages=source.pageRanges?.filter(page=>page.end>chunk.start&&page.start<chunk.end)||[];
@@ -51,14 +93,16 @@ export async function contentPacket(source, args = {}) {
   // exact source offsets so it can open a different one. Excerpts are verbatim
   // source text and word matches only, never a relevance or coverage verdict.
   const matches = query ? hits.slice(0, 8).map((hit, index) => {
-    const chunk = chunks[hit.id], pages = source.pageRanges?.filter(page => page.end > chunk.start && page.start < chunk.end) || [];
+    const chunk = contextRange(queryData.chunks[hit.id]), pages = source.pageRanges?.filter(page => page.end > chunk.start && page.start < chunk.end) || [];
     return {result_offset: index, start: chunk.start, end: chunk.end, ...(source.pdf && pages.length ? {pages: [pages[0].page, pages.at(-1).page]} : {}),
       terms: hit.match.terms.slice(0, 8), excerpt: evidenceExcerpt(chunk.text, query, 160), returned: index === offset};
   }) : [];
   return {ok: true, dataKind: 'page_content', observedAt: new Date().toISOString(), title: source.title, url: source.url, frame: source.frame,
+    ...(!query && offset === 0 ? {outline: contentOutline(source.text, hash)} : {}),
+    ...(!query && offset === 0 ? {boundary_index: sourceBoundaryIndex(source.text,hash)} : {}),
     ...(query ? {retrieval: {method:'lexical', match:hits[offset]?.match || {terms:[],fields:[],coverage:0},
       total_matches: hits.length, matches,
-      scope:'Word matches only, not factual relevance. matches lists the ranked candidate ranges; returned marks the one in ranges. If it does not answer the requested fact, open another candidate with offset=result_offset and the same query/hash, or read around it sequentially with content_hash, no query and offset=start. Changing query words may return the same range.' +
+      scope:'Body word matches only, not factual relevance. Heading-only matches include adjacent original context up to 5000 characters; it may cross sections or omit later exceptions. matches lists the candidate context ranges; returned marks the one in ranges. If it does not answer the requested fact, open another candidate with offset=result_offset and the same query/hash, or read around it sequentially with content_hash, no query and offset=start. Changing query words may return the same range.' +
         (hits.length ? '' : ' No word matched: the source may use another language or wording. Use terms in the source language or read sequentially.')}} : {}),
     ...(datedLabels.length?{dated_labels:{candidates:datedLabels,scope:'Exact labeled date text in returned ranges only. Interpret the label and claim together; these are not freshness or current-affiliation verdicts. Event dates and host read time are separate.'}}:{}),
     source_key: sourceKey, ...(source.documentId ? {source_document_id: source.documentId} : {}),

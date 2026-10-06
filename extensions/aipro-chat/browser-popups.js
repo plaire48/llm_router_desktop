@@ -37,9 +37,9 @@ export async function watchPopups(tabs, sourceId, hint = {}, {cancelled = () => 
       deadline ??= Date.now() + timeout;
       // A click that opens no window is not waited on for the whole timeout.
       // Measured on public sites: a menu button changed nothing this detector
-      // saw, and each such click took 7 seconds. After the grace period the
-      // watcher keeps listening until the deadline and a late window is taken
-      // at the next tool call, as for a click with a local effect.
+      // saw, and each such click took 7 seconds. After the grace period such a
+      // click is done and the watcher stops: a tab that opens later may be one
+      // the user opened (its opener is inherited from the active tab).
       settleBy ??= Date.now() + Math.min(grace, timeout);
       let retain = false;
       try {
@@ -62,11 +62,12 @@ export async function watchPopups(tabs, sourceId, hint = {}, {cancelled = () => 
           // A local effect is enough to return fresh evidence, not proof of
           // task completion. Keep event listeners for delayed popups; consume
           // them only at the next host boundary, never mid-action.
-          if (!child && !stopped && Date.now() < deadline && (pollOnly || !expectsPopup && (changed && await changed() || Date.now() >= settleBy))) {
+          if (!child && !stopped && Date.now() < deadline && (pollOnly || !expectsPopup && changed && await changed())) {
             retain = deferred = true;
             expiry ||= setTimeout(() => close('expired'), Math.max(0, deadline - Date.now()));
             return {deferred: true};
           }
+          if (!child && !stopped && !expectsPopup && Date.now() >= settleBy) return {candidates: []};
           if (stopped) break;
           await new Promise(resolve => setTimeout(resolve, interval));
         } while (Date.now() < deadline);

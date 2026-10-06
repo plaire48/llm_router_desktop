@@ -1,0 +1,45 @@
+{
+  "id": "note-editor",
+  "title": "회의 메모",
+  "window": {
+    "hwnd": 4601,
+    "processId": 5601,
+    "processName": "NoteDesk.exe",
+    "title": "회의 메모 - NoteDesk",
+    "width": 900,
+    "height": 640
+  },
+  "controls": [
+    {
+      "selector": "doc-note",
+      "name": "메모 본문",
+      "type": "Document",
+      "value": "안건 정리."
+    },
+    {
+      "selector": "lbl-save-state",
+      "name": "저장 안 됨",
+      "type": "Text"
+    },
+    {
+      "selector": "lbl-shortcut-hint",
+      "name": "Ctrl+S 저장",
+      "type": "Text"
+    }
+  ],
+  "rules": [
+    {
+      "on": {
+        "selector": "doc-note",
+        "action": "key:ctrl+s"
+      },
+      "set": [
+        {
+          "selector": "lbl-save-state",
+          "name": "저장됨"
+        }
+      ],
+      "record": "saved"
+    }
+  ]
+}

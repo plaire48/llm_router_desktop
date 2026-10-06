@@ -4,6 +4,9 @@ import {createAnalysisCoordinator, parseAnalysisReport} from '../analysis-agents
 import {runAgent} from '../agent-runtime.js';
 import {projectTools} from '../project-tools.js';
 import {BUILTIN_SKILLS, browserTools} from '../skills.js';
+// The host appends this run's state (plan, last operation) as the final message;
+// these tests read the message before it.
+const lastMessage = messages => messages.findLast(message => !(message?.role === 'user' && typeof message.content === 'string' && message.content.startsWith('Current run state from the host.')));
 
 const call = (name, args = {}) => ({content: '', calls: [{id: crypto.randomUUID(), type: 'function', function: {name, arguments: JSON.stringify(args)}}]});
 const report = (ids = ['ev_1'], extra = {}) => ({content: JSON.stringify({status: ids.length ? 'complete' : 'partial', summary: '확인한 결과', findings: ids.length ? [{text: '화면의 담당 팀은 개발팀입니다.', evidence_ids: ids}] : [], uncertainties: [], next_step: '', ...extra})});
@@ -32,7 +35,7 @@ test('recovery analysts receive frozen diagnostic evidence without live browser 
   const value=coordinator(t,{complete:async (wire,tools)=>{
     assert.deepEqual(tools.map(t=>t.function.name),['read_analysis_evidence']);
     if(!wire.some(m=>m.role==='tool'))return call('read_analysis_evidence',{evidence_id:'ev_2'});
-    assert.match(wire.at(-1).content,/503/);
+    assert.match(lastMessage(wire).content,/503/);
     return report(['ev_2'],{findings:[{text:'Observed service failure requires fresh state verification, not write replay.',evidence_ids:['ev_2']}]});
   }});
   const payload={ok:true,events:[{kind:'network',status:503}]};
@@ -111,7 +114,7 @@ test('isolated Pi analysts overlap and the first result returns before the secon
     assert.deepEqual(tools.map(item => item.function.name), ['read_analysis_evidence']);
     assert.equal(wire.filter(message => message.role === 'system').length, 1);
     if (counts[scope.role] === 1) return call('read_analysis_evidence', {evidence_id: 'ev_1'});
-    assert.match(wire.at(-1).content, /개발팀/);
+    assert.match(lastMessage(wire).content, /개발팀/);
     await gates[scope.role].promise;
     return report();
   }});
@@ -145,7 +148,7 @@ test('a child cannot read unassigned evidence or acquire browser tools', async t
     assert(!JSON.stringify(wire).includes('UNRELATED_SECRET'));
     if (!tools.length) {round++; return report([], {uncertainties: ['The requested additional source was not read.']});}
     if (++round === 1) return call('read_analysis_evidence', {evidence_id: 'ev_2'});
-    assert.match(wire.at(-1).content, round === 2 ? /analysis_evidence_missing/ : /tool_unavailable/);
+    assert.match(lastMessage(wire).content, round === 2 ? /analysis_evidence_missing/ : /tool_unavailable/);
     return call('click_element', {ref: 'guessed'});
   }});
   value.observe('read_page', {}, {text: 'UNRELATED_SECRET'});
@@ -167,8 +170,8 @@ test('a research child corrects a failed query and only returns the summary and 
     complete: async (wire, tools) => {
       assert.deepEqual(tools.map(item => item.function.name), ['read_analysis_evidence', 'wiki_search', 'wiki_read']);
       if (++round === 1) return call('wiki_search', {query: 'missing'});
-      if (round === 2) {assert.match(wire.at(-1).content, /project_not_found/); return call('wiki_search', {query: '담당 팀'});}
-      const source = JSON.parse(wire.at(-1).content);
+      if (round === 2) {assert.match(lastMessage(wire).content, /project_not_found/); return call('wiki_search', {query: '담당 팀'});}
+      const source = JSON.parse(lastMessage(wire).content);
       assert.equal(source.provenance.path, 'guide.md');
       return report([source.evidence_id]);
     }});
@@ -189,7 +192,7 @@ test('invalid child citations trigger model correction without re-reading or rep
   const value = coordinator(t, {complete: async wire => {
     if (++round === 1) return call('read_analysis_evidence', {evidence_id: 'ev_1'});
     if (round === 2) return report(['invented']);
-    assert.match(wire.at(-1).content, /report was invalid/);
+    assert.match(lastMessage(wire).content, /report was invalid/);
     assert.equal(wire.filter(message => message.role === 'tool').length, 1);
     return report();
   }});
@@ -237,10 +240,10 @@ test('parent waits for outstanding advice and retains its own independent verifi
     },
     complete: async wire => {
       if (++parentRound === 1) return call('read_page');
-      if (parentRound === 2) {assert.match(wire.at(-1).content, /analysis_evidence_id/); return call('delegate_analysis', {tasks: [task('page')]});}
+      if (parentRound === 2) {assert.match(lastMessage(wire).content, /analysis_evidence_id/); return call('delegate_analysis', {tasks: [task('page')]});}
       if (parentRound === 3) return {content: 'Premature result'};
-      assert.match(wire.at(-1).content, /Delegated analysis returned/);
-      assert.match(wire.at(-1).content, /확인한 결과/);
+      assert.match(lastMessage(wire).content, /Delegated analysis returned/);
+      assert.match(lastMessage(wire).content, /확인한 결과/);
       return {content: '검토 결과를 반영한 답변'};
     }});
   assert.equal(result.content, '검토 결과를 반영한 답변');

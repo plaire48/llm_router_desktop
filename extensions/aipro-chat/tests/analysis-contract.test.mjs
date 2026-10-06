@@ -27,7 +27,7 @@ test('collected and recalled advice retains the full immutable assignment, indep
 
 test('malformed or empty delegation is rejected atomically before any model call with safe schema feedback', async t => {
   let calls = 0; const value = setup(t, async () => {calls++; return partial;});
-  for (const bad of [null, {tasks: [null]}, {tasks: [brief(), brief({task: '   '})]}, {tasks: [brief({done_when: '\n '})]}, {tasks: [brief({task: 'x'.repeat(1801)})]}, {tasks: [brief({SECRET_VALUE: 'DO_NOT_ECHO'})]}]) {
+  for (const bad of [null, {tasks: [null]}, {tasks: [brief(), brief({task: '   '})]}, {tasks: [brief({done_when: '\n '})]}, {tasks: [brief({task: 'x'.repeat(2001)})]}, {tasks: [brief({SECRET_VALUE: 'DO_NOT_ECHO'})]}]) {
     const result = await value.execute('delegate_analysis', bad);
     assert.equal(result.error, 'analysis_scope'); assert(result.issues?.length);
     assert(!JSON.stringify(result).includes('DO_NOT_ECHO')); assert(!JSON.stringify(result).includes('SECRET_VALUE'));
@@ -40,6 +40,20 @@ test('advertised task schema rejects blank objectives and completion conditions'
   const schema = analysisToolDefinitions().find(tool => tool.function.name === 'delegate_analysis').function.parameters;
   for (const key of ['task', 'done_when']) assert(toolArgumentIssues(schema, {tasks: [brief({[key]: '  \n '})]}));
   assert.equal(toolArgumentIssues(schema, {tasks: [brief()]}), null);
+});
+
+test('a complete 2000-character brief reaches the child and survives assignment recovery', async t => {
+  const tail = 'Exclude member-only services and retain exceptions.';
+  const task = 'Compare source conditions. '.padEnd(2000 - tail.length, 'x') + tail;
+  let received;
+  const value = setup(t, async messages => {received = JSON.parse(messages[1].content).task; return partial;});
+  const started = await value.execute('delegate_analysis', {tasks: [brief({task})]});
+  assert.equal(started.ok, true);
+  const collected = (await value.collect()).results[0];
+  assert.equal(received, task);
+  assert.equal(collected.assignment.task, task);
+  const recovered = (await value.collect({task_ids: [started.tasks[0].task_id]})).results[0];
+  assert.equal(recovered.assignment.task, task);
 });
 
 test('partial and blocked assignments reuse their result when only effort changes, while changed work can proceed', async t => {

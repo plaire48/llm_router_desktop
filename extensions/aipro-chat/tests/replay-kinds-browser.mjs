@@ -43,9 +43,11 @@ try {
   let snap = await run('browser_snapshot');
   const button = elements(snap).find(el => el.name === '결재선 지정');
   let shot = await run('capture_page', {full_page: false});
+  // The capture returns a fresh observation; its refs are the ones a click names.
+  const shown = elements(shot).find(el => el.name === '결재선 지정') || button;
   let result = await run('click_at', {screenshot_id: shot.screenshot_id, x: 380, y: 84});
   assert.equal(result.error, undefined, JSON.stringify(result).slice(0, 300));
-  assert.equal(result.pointedRef, button.ref, 'the point on the button text reports the button, not its row');
+  assert.equal(result.pointedRef, shown.ref, `the point on the button text reports the button, not its row: ${JSON.stringify({...result, observation: undefined, effect: undefined})}`);
   assert.deepEqual(await tab.evaluate(() => clicks), ['approve']);
   pass('a click at a point reports the innermost observed control that held it');
 

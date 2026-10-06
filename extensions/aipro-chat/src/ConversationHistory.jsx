@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
-import {ActionButton, CxButton, CxField, CxInput, CxNotice, DetailPanel, Icon, SearchInput} from '@e2e/cx-design-system';
-import {DeckConfirmation} from './DeckSurfaces.jsx';
+import {ActionButton, CxButton,  CxInput, CxNotice, DetailPanel, Icon, SearchInput} from '@e2e/cx-design-system';
+import {DeckField, DeckConfirmation} from './DeckSurfaces.jsx';
 import {ProviderIcon} from './ChatControls.jsx';
 import {ERROR_TEXT, PROVIDER_LABELS} from '../core.js';
 
@@ -24,7 +24,7 @@ export function ConversationHistory({conversations, disabled, onAction, onClose,
       {!visible.length && <div className="history-empty"><Icon name={query ? 'search' : 'message'} size={24}/><p>{query ? '검색 결과가 없습니다.' : '대화를 시작하면 여기에 남습니다.'}</p></div>}
       {visible.map(item => <div className="history-row" data-current={item.current} key={item.id}>
         {editor?.id === item.id ? <form className="history-editor" onSubmit={e => {e.preventDefault(); perform('RENAME_CONVERSATION', {id: item.id, title: editor.title});}}>
-          <CxField label="대화 이름"><CxInput autoFocus value={editor.title} maxLength={80} required onChange={e => setEditor({...editor, title: e.target.value})}/></CxField>
+          <DeckField icon="message" label="대화 이름"><CxInput autoFocus value={editor.title} maxLength={80} required onChange={e => setEditor({...editor, title: e.target.value})}/></DeckField>
           <div className="history-editor-actions"><ActionButton action="cancel" label="취소" disabled={saving} onClick={() => {setEditor(null); setError('');}}/><ActionButton action="save" iconOnly className="icon-commit" label="저장" type="submit" busy={saving} disabled={disabled || !editor.title.trim()}/></div>
         </form> : <>
           <CxButton className="history-select" aria-current={item.current ? 'true' : undefined} aria-label={`${item.title} 열기`} disabled={disabled || saving} onClick={() => perform('SELECT_CONVERSATION', {id: item.id}, true)}>

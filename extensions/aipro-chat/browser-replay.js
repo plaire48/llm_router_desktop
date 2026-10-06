@@ -1,3 +1,5 @@
+import {hostVerifiedFill} from './agent-harness.js';
+import {formContract} from './site-procedures.js';
 // Replay of a verified run without the model, as Nanobrowser and browser-use
 // rerun a saved history: each recorded action is matched to the page as it is
 // now and issued again. Their matcher compares XPath and attribute hashes and,
@@ -43,8 +45,10 @@ function score(target, element) {
   if ((element.role || '') !== target.role || clean(element.name) !== target.name) return -1;
   if (target.tag && element.tag && element.tag !== target.tag) return -1;
   let points = 0;
-  if (target.id) {if (element.id === target.id) points += 4; else if (stableId(element.id)) points -= 2;}
-  if (target.testId) {if (clean(element.testId) === target.testId) points += 4; else if (element.testId) points -= 2;}
+  // A stable id or test id that was there must still be there: another value, or
+  // none, is another control that only looks the same.
+  if (target.id) {if (element.id !== target.id) return -1; points += 4;}
+  if (target.testId) {if (clean(element.testId) !== target.testId) return -1; points += 4;}
   if (contextKey(element.context) === contextKey(target.context)) points += 3;
   else if (target.context?.length) {
     const names = new Set((element.context || []).map(item => clean(item?.name)).filter(Boolean));
@@ -145,7 +149,15 @@ export function recordStep(tool, args = {}, observation, result = {}, slot = (()
     const found = target(args.ref);
     if (!found) return {unreplayable: 'target'};
     const step = {tool, target: found};
-    if (tool === 'click_element') step.args = {...(args.button === 'right' ? {button: 'right'} : {}), ...(args.double === 'yes' ? {double: 'yes'} : {})};
+    if (tool === 'click_element') {
+      step.args = {...(args.button === 'right' ? {button: 'right'} : {}), ...(args.double === 'yes' ? {double: 'yes'} : {})};
+      // Host-observed navigation only. This is historical metadata, not a
+      // reusable ref, authorization or proof that a later link is read-only.
+      if (found.role === 'link' && result.actionIssued === true && !result.requiresUserInput &&
+          found.destination === result.observation?.url && observation?.url && observation?.title) {
+        step.navigation = {from: observation.url, title: clean(observation.title), to: result.observation.url};
+      }
+    }
     if (tool === 'press_key') step.args = {key: args.key};
     if (tool === 'scroll_page') step.args = {direction: args.direction};
     if (tool === 'select_option') step.slot = keep(args.values);
@@ -157,9 +169,9 @@ export function recordStep(tool, args = {}, observation, result = {}, slot = (()
       const found = target(field?.field_id);
       if (!found) return {unreplayable: 'target'};
       fields.push({target: found, slot: keep(field.value), ...(['start', 'end'].includes(field.position) ? {position: field.position} : {}),
-        ...(field.replace_existing === true ? {replace_existing: true} : {})});
+        ...(field.replace_existing === true ? {replace_existing: true} : {}), ...(field.format === 'html' ? {format: 'html'} : {})});
     }
-    return fields.length ? {step: {tool, fields}, values} : null;
+    return fields.length ? {step: {tool, fields, ...(typeof observation?.title==='string' ? {formTitle:observation.title.slice(0,180)} : {}), ...(hostVerifiedFill(tool,result) ? {verifiedFill:true} : {}), ...(formContract(observation) ? {formContract:formContract(observation)} : {})}, values} : null;
   }
   if (tool === 'verify_page') {
     const checks = [];
@@ -207,12 +219,12 @@ export function replayInputs(steps) {
 }
 
 // The saved record of a verified run: steps without values and the inputs to ask for.
-export function replayRecord(log, {id, goal = '', createdAt = Date.now()} = {}) {
+export function replayRecord(log, {id, goal = '', createdAt = Date.now(), goalReviewed = false} = {}) {
   const steps = Array.isArray(log?.steps) ? log.steps : [];
-  if (log?.unreplayable || !steps.some(step => CHANGES_PAGE.has(step.tool)) || !steps.some(step => step.tool === 'verify_page')) return null;
+  if (log?.unreplayable || !steps.some(step => CHANGES_PAGE.has(step.tool)) || !steps.some(step => step.tool === 'verify_page' || step.tool==='fill_form' && step.verifiedFill===true)) return null;
   const {inputs, linked} = replayInputs(steps);
   const memory = steps.filter(step => MEMORY_STEPS.has(step.tool)).map(step => step.slot);
-  return {id, version: 1, goal: clean(goal).slice(0, 400), ...(log.startPage ? {startPage: log.startPage} : {}), createdAt, steps, inputs, linked, ...(memory.length ? {memory} : {})};
+  return {id, version: 1, ...(goalReviewed ? {goalReviewed:true} : {}), goal: clean(goal).slice(0, 400), ...(log.startPage ? {startPage: log.startPage} : {}), createdAt, steps, inputs, linked, ...(memory.length ? {memory} : {})};
 }
 
 // The arguments of one step for the page as it is now: the matched refs and the values.
@@ -220,7 +232,7 @@ function bind(step, refs, values, linked = {}) {
   const value = slot => values[linked[slot] || slot];
   switch (step.tool) {
     case 'fill_form': return {fields: step.fields.map((field, index) => ({field_id: refs.fields[index], value: value(field.slot) ?? '',
-      ...(field.position ? {position: field.position} : {}), ...(field.replace_existing ? {replace_existing: true} : {})}))};
+      ...(field.position ? {position: field.position} : {}), ...(field.replace_existing ? {replace_existing: true} : {}), ...(field.format ? {format: field.format} : {})}))};
     case 'verify_page': return {checks: step.checks.flatMap((check, index) => {
       const {target, terms, slot, ...rest} = check;
       if (slot && value(slot) === undefined) return [];

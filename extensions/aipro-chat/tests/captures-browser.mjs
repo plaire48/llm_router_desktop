@@ -167,7 +167,7 @@ try {
   check('direct capture and both captures inside a generated script appear during the pending reply');
   assert.equal((await state()).settings.modelId, textModel);
   if (textModel !== 'QWEN3.8-27B-FP8-256K') {
-    assert((await state()).chat.messages.at(-1).trace.some(step => step.tool === 'image_model' && step.status === 'done'));
+    assert(!(await state()).chat.messages.at(-1).trace.some(step => step.tool === 'image_model'));
     assert.deepEqual(routedModels.slice(0, 3), [textModel, 'QWEN3.8-27B-FP8-256K', 'QWEN3.8-27B-FP8-256K']);
     assert.deepEqual(routedModels.slice(3), ['QWEN3.8-27B-FP8-256K', 'QWEN3.8-27B-FP8-256K', 'QWEN3.8-27B-FP8-256K']);
     assert.deepEqual(analystModels, [textModel, 'QWEN3.8-27B-FP8-256K']);

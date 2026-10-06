@@ -54,6 +54,13 @@ export async function gradeCase(testCase,result){
     const outside=changed.filter(file=>!expect.unchanged_except.includes(file));
     checks.push(check('unchanged_except',outside.length===0,{outside,changed}));
   }
+  // Commands from the host's process records: only commands that started count, and the last matching one
+  // carries the result the task ended with.
+  if(expect.commands){
+    const ran=(result.commands||[]).filter(item=>item.execution==='started'&&expect.commands.match.some(alternative=>mentions(item.script,alternative)));
+    checks.push(check('commands',ran.length>=expect.commands.min,{min:expect.commands.min,ran:ran.map(({script,state,exitCode})=>({script,state,exitCode}))}));
+    if(expect.commands.lastExitCode!==undefined)checks.push(check('command_result',ran.at(-1)?.exitCode===expect.commands.lastExitCode,{expected:expect.commands.lastExitCode,actual:ran.at(-1)?.exitCode??null}));
+  }
   if(expect.test)checks.push(check('test',(await runTest(result.root,expect.test)).exitCode===0,{command:expect.test.command}));
   const passed=checks.every(item=>item.passed),flagged=(expect.answer_flags||[]).filter(item=>mentions(answer,item));
   // A completed task whose observable results fail is a false completion.

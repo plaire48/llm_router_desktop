@@ -1,6 +1,6 @@
 import React, {useRef, useState} from 'react';
-import {ActionButton, CxButton, CxField, CxInput, CxNotice, CxTextarea, Icon} from '@e2e/cx-design-system';
-import {DeckSectionLabel} from './DeckSurfaces.jsx';
+import {ActionButton, CxButton,  CxInput, CxNotice, CxTextarea, Icon} from '@e2e/cx-design-system';
+import {DeckField, DeckSectionLabel} from './DeckSurfaces.jsx';
 import {MAX_PROMPT_SHORTCUTS} from '../prompt-shortcuts.js';
 
 const empty = {name:'', text:''};
@@ -53,8 +53,8 @@ export function PromptShortcutsSettings({items, loadError, disabled, onSave, onD
     </div>)}</div>}
     {!editor && <ActionButton action="add" label="바로가기 추가" disabled={locked || items.length >= MAX_PROMPT_SHORTCUTS} onClick={() => openEditor()}/>}
     {editor && <form className="prompt-shortcut-editor" aria-label={editor.id ? '프롬프트 바로가기 편집' : '프롬프트 바로가기 추가'} onSubmit={save}>
-      <CxField label="이름" required><CxInput ref={nameInput} value={editor.name} maxLength={60} disabled={locked} onChange={event => setEditor(current => ({...current, name:event.target.value}))}/></CxField>
-      <CxField label="프롬프트" required><CxTextarea rows={4} value={editor.text} maxLength={16000} disabled={locked} onChange={event => setEditor(current => ({...current, text:event.target.value}))}/></CxField>
+      <DeckField icon="tag" label="이름" required><CxInput ref={nameInput} value={editor.name} maxLength={60} disabled={locked} onChange={event => setEditor(current => ({...current, name:event.target.value}))}/></DeckField>
+      <DeckField icon="message" label="프롬프트" required><CxTextarea rows={4} value={editor.text} maxLength={16000} disabled={locked} onChange={event => setEditor(current => ({...current, text:event.target.value}))}/></DeckField>
       <div className="prompt-shortcut-actions"><ActionButton action="cancel" label="취소" disabled={busy} onClick={() => {setEditor(null); setError('');}}/><ActionButton action="save" label="저장" type="submit" busy={busy} disabled={locked || !editor.name.trim() || !editor.text.trim()}/></div>
     </form>}
   </div></details>;

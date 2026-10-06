@@ -1,0 +1,108 @@
+{
+  "id": "task-board",
+  "title": "팀 작업 보드",
+  "window": {
+    "hwnd": 4401,
+    "processId": 5401,
+    "processName": "BoardDesk.exe",
+    "title": "팀 작업 보드 - BoardDesk",
+    "width": 900,
+    "height": 640
+  },
+  "controls": [
+    {
+      "selector": "col-todo",
+      "name": "할 일",
+      "type": "List",
+      "children": [
+        {
+          "selector": "card-payment",
+          "name": "결제 오류 수정",
+          "type": "DataItem"
+        },
+        {
+          "selector": "card-login",
+          "name": "로그인 문구 변경",
+          "type": "DataItem"
+        }
+      ]
+    },
+    {
+      "selector": "col-doing",
+      "name": "진행 중",
+      "type": "List",
+      "children": [
+        {
+          "selector": "card-search",
+          "name": "검색 속도 개선",
+          "type": "DataItem"
+        }
+      ]
+    },
+    {
+      "selector": "col-done",
+      "name": "완료",
+      "type": "List",
+      "children": [
+        {
+          "selector": "card-docs",
+          "name": "안내서 개정",
+          "type": "DataItem"
+        }
+      ]
+    },
+    {
+      "selector": "lbl-board-status",
+      "name": "완료 1건",
+      "type": "Text"
+    }
+  ],
+  "rules": [
+    {
+      "on": {
+        "selector": "card-payment",
+        "action": "drag",
+        "to": "col-done"
+      },
+      "set": [
+        {
+          "selector": "lbl-board-status",
+          "name": "완료 2건: 결제 오류 수정 완료로 이동"
+        },
+        {
+          "selector": "card-payment",
+          "name": "결제 오류 수정 (완료)"
+        }
+      ],
+      "record": "payment-done"
+    },
+    {
+      "on": {
+        "selector": "card-payment",
+        "action": "drag",
+        "to": "col-doing"
+      },
+      "set": [
+        {
+          "selector": "lbl-board-status",
+          "name": "완료 1건: 결제 오류 수정 진행 중으로 이동"
+        }
+      ],
+      "record": "payment-doing"
+    },
+    {
+      "on": {
+        "selector": "card-login",
+        "action": "drag",
+        "to": "col-done"
+      },
+      "set": [
+        {
+          "selector": "lbl-board-status",
+          "name": "완료 2건: 로그인 문구 변경 완료로 이동"
+        }
+      ],
+      "record": "login-done"
+    }
+  ]
+}

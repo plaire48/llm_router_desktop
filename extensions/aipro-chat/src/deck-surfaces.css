@@ -37,3 +37,7 @@
 .deck-disclosure-body > :first-child { margin-top: 0; }
 .deck-disclosure-body > :last-child { margin-bottom: 0; }
 @media (prefers-reduced-motion: reduce) { .deck-disclosure > summary > svg:last-child { transition: none; } }
+
+.deck-field-label { display: inline-flex; align-items: center; gap: var(--cx-space-2); min-width: 0; font: var(--deck-font-label); color: var(--layout-text); }
+.deck-field-label > span:first-child { display: inline-flex; flex-shrink: 0; color: var(--brand-ink); }
+.deck-field-label > span:last-child { min-width: 0; overflow-wrap: anywhere; word-break: keep-all; }

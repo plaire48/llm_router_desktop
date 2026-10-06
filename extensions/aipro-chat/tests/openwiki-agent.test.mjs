@@ -244,9 +244,11 @@ test('the actual synthesis DeepAgent can load omitted context through its eviden
   }});
   assert(fetched);assert.equal(result.status,'complete');
 });
-test('many repaired contexts stay in groups of four and within two concurrent model calls',async()=>{
+// Four research workers since 2026-09-30 (user decision; two before). Five windows of 24,000 characters: never more
+// than four calls at once.
+test('many repaired contexts stay in groups of four and within four concurrent model calls',async()=>{
   const base=model({mode:'comprehensive',skip:true});let active=0,peak=0,reducers=0;
-  const result=await run(packet([doc('x'.repeat(30000))]),{complete:async(messages,tools,scope)=>{
+  const result=await run(packet([doc('x'.repeat(100000))]),{complete:async(messages,tools,scope)=>{
     active++;peak=Math.max(peak,active);
     try {
       await new Promise(resolve=>setTimeout(resolve,1));
@@ -260,7 +262,7 @@ test('many repaired contexts stay in groups of four and within two concurrent mo
       return response;
     } finally {active--;}
   }});
-  assert.equal(result.status,'complete');assert.equal(peak,2);assert(reducers>2);assert.deepEqual(result.coverage.unreadRanges,[]);
+  assert.equal(result.status,'complete');assert.equal(peak,4);assert(reducers>2);assert.deepEqual(result.coverage.unreadRanges,[]);
 });
 
 test('candidate retrieval reserves space for another matching source',()=>{
@@ -429,34 +431,41 @@ for (const failure of [
   {message:'unauthorized',status:401}, {message:'forbidden',status:403},
   {message:'unauthorized'}, {message:'forbidden'}, {message:'no_credential'}, {message:'expired_token'},
 ]) test(`Wiki authentication failure stops remaining research (${failure.message}/${failure.status || 'stream'})`,async()=>{
-  let calls=0,sourceReads=0;const phases=[];
+  let calls=0,sourceReads=0,authFailed=false,callsAfterAuthFailure=0;const phases=[];
   const auth=Object.assign(new Error(failure.message),failure);
   const snapshot=packet(Array.from({length:6},(_,i)=>doc('source',{id:`doc-${i}`})));
   await assert.rejects(run(snapshot,{execute:async()=>{sourceReads++;return snapshot;},onStep:step=>phases.push(step),complete:async messages=>{
+    if(authFailed)callsAfterAuthFailure++;
     calls++;
     if(messages.some(m=>m.role==='system' && m.content.includes('Plan OpenWiki research')))return {content:JSON.stringify({mode:'comprehensive',questions:['Read all documents']})};
+    authFailed=true;
     throw auth;
   }}),error=>error.message===auth.message && error.status===auth.status);
-  assert(calls<=3,`Only planner and at most two already-started researchers, got ${calls}`);
+  assert(calls<=5,`Only planner and at most four already-started researchers, got ${calls}`);
+  assert.equal(callsAfterAuthFailure,0,'No new model calls after the authentication rejection');
   assert.equal(sourceReads,1,'No stale-result reread after authentication failure');
   assert(!phases.some(step=>step.analysis?.delivered));
 });
 
 test('Wiki authentication aborts an in-flight sibling without cancelling another Wiki or the parent',async()=>{
   const parent=new AbortController(),auth=Object.assign(new Error('unauthorized'),{status:401});
-  let releasePeer,children=0,peerAborted=false,timer;
+  let releasePeer,children=0,peerAborted=false,authFailed=false,callsAfterAuthFailure=0,peerAbortCount=0,startedAtFailure=0;
+  const timers=new Set();
   const peerStarted=new Promise(resolve=>{releasePeer=resolve;});
   const snapshot=packet(Array.from({length:6},(_,i)=>doc('source',{id:`parallel-${i}`})));
   const failing=run(snapshot,{signal:parent.signal,complete:async(messages,_tools,scope)=>{
+    if(authFailed)callsAfterAuthFailure++;
     if(messages.some(m=>m.role==='system' && m.content.includes('Plan OpenWiki research')))return {content:JSON.stringify({mode:'comprehensive',questions:['Read all']})};
     children++;
-    if(children===1){await peerStarted;throw auth;}
+    if(children===1){await peerStarted;authFailed=true;startedAtFailure=children;throw auth;}
     releasePeer();
     return new Promise((resolve,reject)=>{
-      const abort=()=>{peerAborted=true;clearTimeout(timer);reject(new Error('cancelled'));};
+      let timer;
+      const abort=()=>{peerAborted=true;peerAbortCount++;clearTimeout(timer);reject(new Error('cancelled'));};
       scope.signal.addEventListener('abort',abort,{once:true});
       if(scope.signal.aborted)return abort();
       timer=setTimeout(()=>{scope.signal.removeEventListener('abort',abort);resolve({content:JSON.stringify({status:'blocked',answer:'No result',findings:[],uncertainties:['Pending']})});},1000);
+      timers.add(timer);
     });
   }});
   const healthy=run(packet([doc('healthy',{kind:'folder',path:'healthy.md'})],{wikiId:'external:healthy'}),{signal:parent.signal});
@@ -464,9 +473,10 @@ test('Wiki authentication aborts an in-flight sibling without cancelling another
     const results=await Promise.allSettled([failing,healthy]);
     assert.equal(results[0].status,'rejected');assert.equal(results[0].reason,auth);
     assert.equal(results[1].status,'fulfilled');assert.equal(results[1].value.status,'complete');
-    assert.equal(children,2);assert.equal(peerAborted,true);assert.equal(parent.signal.aborted,false);
+    assert(children>=2 && children<=4);assert.equal(callsAfterAuthFailure,0);assert.equal(startedAtFailure,children);
+    assert.equal(peerAbortCount,children-1);assert.equal(peerAborted,true);assert.equal(parent.signal.aborted,false);
     assert.equal((await run(packet(),{signal:parent.signal})).status,'complete','A later run must not inherit the aborted Wiki scope');
-  } finally {clearTimeout(timer);parent.abort();}
+  } finally {for(const timer of timers)clearTimeout(timer);parent.abort();}
 });
 test('authentication failure during synthesis cannot become a partial success',async()=>{
   const base=model();let syntheses=0,sourceReads=0;

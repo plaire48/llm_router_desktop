@@ -69,8 +69,10 @@ try {
         findings: [{text: '필요한 도구는 이미 선택되어 있습니다.', evidence_ids: [id]}], uncertainties: [], next_step: '선택된 도구로 다음 단계를 진행하세요.'})}, finish_reason: 'stop'}]}) + 'data: [DONE]\n\n'});
     }
     requests.push(body);
-    const last = body.messages.at(-1);
-    const storageTask = body.messages.findLast(message => message.role === 'user')?.content.includes('저장 정보');
+    // The host's run state follows the latest results; this synthetic model reads past it.
+    const hostState = message => message?.role === 'user' && typeof message.content === 'string' && message.content.startsWith('Current run state from the host.');
+    const last = body.messages.findLast(message => !hostState(message));
+    const storageTask = body.messages.findLast(message => message.role === 'user' && !hostState(message))?.content.includes('저장 정보');
     let response;
     if (last.role !== 'tool') response = body.tools.some(t => t.function.name === 'select_tools') ? tool('select_tools', {groups: ['scripts']}) : tool('inspect_dom', {});
     else {
@@ -287,7 +289,7 @@ try {
   assert.equal(await target.locator('input[name="name"]').inputValue(), '김신청');
   assert.equal(await target.locator('textarea').first().inputValue(), '저장된 교육 신청');
   const agentMessages = requests.at(-1).messages;
-  const fillResult = JSON.parse(agentMessages.at(-1).content);
+  const fillResult = JSON.parse(agentMessages.findLast(message => message.role === 'tool').content);
   assert.equal(fillResult.verified, true);
   assert.equal(fillResult.verification.matched, 2);
   assert.equal(fillResult.submitted, false);
@@ -331,7 +333,7 @@ try {
   await ui.getByRole('dialog', {name:'입력 내용 확인',exact:true}).waitFor();
   await ui.getByRole('button', {name:'페이지에 입력',exact:true}).click();
   await poll(async ()=>(await state()).chat.messages.at(-1)?.state,'done');
-  const rejectedFill=JSON.parse(requests.at(-1).messages.at(-1).content);
+  const rejectedFill=JSON.parse(requests.at(-1).messages.findLast(message=>message.role==='tool').content);
   assert.equal(rejectedFill.verified,false);
   assert.equal(rejectedFill.error,'fill_not_retained');
   assert.equal((await state()).chat.messages.at(-1).trace.at(-1).status,'error');

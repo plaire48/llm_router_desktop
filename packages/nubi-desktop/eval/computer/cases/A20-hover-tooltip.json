@@ -1,0 +1,27 @@
+{
+  "id": "A20-hover-tooltip",
+  "title": "마우스를 올려 안내 읽기",
+  "app": "sync-status",
+  "corpus": "order-service",
+  "approve": "all",
+  "request": "자료 동기화 창의 동기화 상태 아이콘에 마우스를 올리면 나오는 안내에서 마지막 동기화 시각을 알려 줘. 아이콘을 누르지는 마.",
+  "expect": {
+    "state": "review",
+    "answer_includes": [
+      [
+        "09:40",
+        "9시 40분"
+      ]
+    ],
+    "app": {
+      "events": {
+        "includes": [
+          "tooltip"
+        ],
+        "excludes": [
+          "resync"
+        ]
+      }
+    }
+  }
+}

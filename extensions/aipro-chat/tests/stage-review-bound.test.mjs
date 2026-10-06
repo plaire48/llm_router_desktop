@@ -97,31 +97,28 @@ async function report(review) {
 }
 const passed = {status: 'complete', checks: [{requirement: '확인', status: 'met', evidence_ids: [1]}], next_step: ''};
 
-test('a last stage that only read and reported keeps its stage review', async () => {
-  const {result, phases} = await report(() => passed);
-  assert.deepEqual(phases, ['plan_step:필터 적용', 'plan_step:결과 정리', 'final'], JSON.stringify(phases));
-  assert.match(result.content, /^상위 3개는 A, B, C입니다/);
-});
-
-test('a reporting stage whose review asked for more is judged by the final review, not by the same review again', async () => {
-  // Measured: nine stage reviews in a row asked for the form of the final answer.
+test('a last stage that only read and reported is judged by the final review, without a stage review of its own', async () => {
+  // Measured: its stage review (8 s) ran right before the final review (10 s) of the same answer.
   const {result, phases, executed, events} = await report(name => name === 'plan_step:결과 정리' ? revise : passed);
-  assert.deepEqual(phases, ['plan_step:필터 적용', 'plan_step:결과 정리', 'final'], JSON.stringify(phases));
+  assert.deepEqual(phases, ['plan_step:필터 적용', 'final'], JSON.stringify(phases));
   assert.match(result.content, /^상위 3개는 A, B, C입니다/); assert.equal(result.awaitingUser, undefined);
   assert(!executed.includes('ask_user'));
   // The stage is saved as done only after the final review passed.
-  assert.deepEqual(events.slice(events.indexOf('final') - 1), ['plan_step:결과 정리', 'final', 'plan:completed,completed'], JSON.stringify(events));
+  assert.deepEqual(events.slice(events.indexOf('final')), ['final', 'plan:completed,completed'], JSON.stringify(events));
 });
 
-test('a reporting stage that the final review also rejects stays open in the saved plan', async () => {
+test('a reporting stage that the final review rejects stays open in the saved plan', async () => {
   const {phases, events, result} = await report(name => name === 'plan_step:필터 적용' ? passed : revise);
-  assert.equal(phases.filter(name => name === 'plan_step:결과 정리').length, 1, JSON.stringify(phases));
+  assert.equal(phases.filter(name => name === 'plan_step:결과 정리').length, 0, JSON.stringify(phases));
   assert(phases.filter(name => name === 'final').length >= 1);
   assert(!events.includes('plan:completed,completed'), JSON.stringify(events));
   assert.notEqual(result.reviewLimited, true, 'a request that changes the page is never released unverified');
 });
 
-test('a last stage that acted on the page keeps its stage review', async () => {
+// The final review judges the last stage with the whole answer, whether that stage
+// read or acted: its change was checked before the answer (measured: a stage review
+// and then the final review of the same form, 8 s and 10 s, on every form task).
+test('a last stage that acted on the page and checked its change closes with the final review', async () => {
   let turn = 0; const phases = [];
   const steps = [{text: '화면 확인', status: 'in_progress', expected_outcome: '입력란 확인'}, {text: '초안 입력', status: 'pending', expected_outcome: '제목이 입력됨'}];
   await runAgent({goal: '제목에 가을 교육을 입력해 줘.', messages: [{role: 'user', content: '제목에 가을 교육을 입력해 줘.'}], tools, harness: true, signal: new AbortController().signal,
@@ -142,5 +139,6 @@ test('a last stage that acted on the page keeps its stage review', async () => {
     },
     reviewGoal: async ({phase = 'final', stepOutcomes}) => {phases.push(phase === 'plan_step' ? `plan_step:${stepOutcomes[0].text}` : phase);
       return {status: 'complete', checks: [{requirement: '확인', status: 'met', evidence_ids: [1]}], next_step: ''};}}).catch(error => ({error: error.message}));
-  assert(phases.includes('plan_step:초안 입력'), JSON.stringify(phases));
+  assert(!phases.includes('plan_step:초안 입력'), JSON.stringify(phases));
+  assert(phases.includes('final'), JSON.stringify(phases));
 });

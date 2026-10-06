@@ -1,5 +1,6 @@
+import {DeckField} from './DeckSurfaces.jsx';
 import React, {useEffect, useRef, useState} from 'react';
-import {CxButton, CxField, CxInput, CxTextarea, CxNotice, DetailPanel, ActionButton, Icon, notifyToast} from '@e2e/cx-design-system';
+import {CxButton,  CxInput, CxTextarea, CxNotice, DetailPanel, ActionButton, Icon, notifyToast} from '@e2e/cx-design-system';
 import {skillCreationSource} from '../skill-creator.js';
 import {exportSkillArchive, importSkillArchive} from '../skill-archive.js';
 import {skillCommand} from '../skill-command.js';
@@ -55,11 +56,11 @@ function SkillPickerEditor({data, action, draftReview, onReviewOpened, menuItem 
         } catch {setError('스킬 내용과 파일 크기를 확인해 주세요.');}
         finally {setSaving(false);}
       }}>
-        <CxField label="이름"><CxInput disabled={saving} autoFocus value={editor.name} maxLength={64} required onChange={event => setEditor({...editor, name: event.target.value})}/></CxField>
-        <CxField label="사용할 때"><CxInput disabled={saving} value={editor.description === '내 스킬' ? '' : editor.description || ''} maxLength={1024} placeholder="예: 고객 문의를 표로 정리한다. 문의 현황을 물을 때 사용" onChange={event => setEditor({...editor, description: event.target.value})}/></CxField>
+        <DeckField icon="tag" label="이름"><CxInput disabled={saving} autoFocus value={editor.name} maxLength={64} required onChange={event => setEditor({...editor, name: event.target.value})}/></DeckField>
+        <DeckField icon="automation" label="사용할 때"><CxInput disabled={saving} value={editor.description === '내 스킬' ? '' : editor.description || ''} maxLength={1024} placeholder="예: 고객 문의를 표로 정리한다. 문의 현황을 물을 때 사용" onChange={event => setEditor({...editor, description: event.target.value})}/></DeckField>
         {skillRecordText(data.skillStats?.[editor.id]) && <p className="workspace-mode-note">{skillRecordText(data.skillStats?.[editor.id])}</p>}
-        <CxField label="지침"><CxTextarea disabled={saving} value={editor.instructions} maxLength={16000} rows={9} required placeholder="할 일과 완료 기준" onChange={event => setEditor({...editor, instructions: event.target.value})}/></CxField>
-        {!!editor.resources?.length && <details className="skill-detail deck-subsection"><summary>참고 자료 {editor.resources.length}개</summary><div className="settings-fields">{editor.resources.map((resource, index) => <CxField key={resource.path} label={({terms:'용어', inputs:'입력 변수', procedure:'절차', checks:'완료 기준'})[resource.path.match(/^references\/(\w+)\.md$/)?.[1]] || resource.path}><CxTextarea disabled={saving} rows={5} value={resource.content} maxLength={40000} onChange={event => setEditor({...editor, resources: editor.resources.map((item, i) => i === index ? {...item, content: event.target.value} : item)})}/></CxField>)}</div></details>}
+        <DeckField icon="taskList" label="지침"><CxTextarea disabled={saving} value={editor.instructions} maxLength={16000} rows={9} required placeholder="할 일과 완료 기준" onChange={event => setEditor({...editor, instructions: event.target.value})}/></DeckField>
+        {!!editor.resources?.length && <details className="skill-detail deck-subsection"><summary>참고 자료 {editor.resources.length}개</summary><div className="settings-fields">{editor.resources.map((resource, index) => <DeckField key={resource.path} label={({terms:'용어', inputs:'입력 변수', procedure:'절차', checks:'완료 기준'})[resource.path.match(/^references\/(\w+)\.md$/)?.[1]] || resource.path}><CxTextarea disabled={saving} rows={5} value={resource.content} maxLength={40000} onChange={event => setEditor({...editor, resources: editor.resources.map((item, i) => i === index ? {...item, content: event.target.value} : item)})}/></DeckField>)}</div></details>}
         <div className="skill-editor-actions"><ActionButton action="upload" label="스킬 파일 불러오기" disabled={saving} onClick={() => file.current?.click()}/>{folderButton}<span/><ActionButton action="cancel" label="취소" disabled={saving} onClick={() => setEditor(null)}/><ActionButton action="download" label="저장하고 ZIP 다운로드" type="submit" data-export="zip" disabled={saving}/><ActionButton action="save" iconOnly className="icon-commit" label="저장" type="submit" busy={saving}/></div>
       </form> : <>
         <div className="skill-toolbar"><CxButton disabled={saving || !canCreate} title={canCreate ? "완료한 작업으로 검토할 스킬 초안을 만듭니다." : "브라우저 작업을 완료한 뒤 사용할 수 있습니다."} onClick={create}><Icon name="layers" size={18}/>작업으로 만들기</CxButton><span/>{folderButton}<ActionButton action="upload" label="스킬 불러오기" disabled={saving} onClick={() => file.current?.click()}/><ActionButton action="add" label="스킬 등록" disabled={saving} onClick={() => editSkill({name: '', description: '', instructions: ''})}/></div>

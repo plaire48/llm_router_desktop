@@ -82,7 +82,8 @@ try {
   assert.equal(chat.messages.at(-1).state,'done',JSON.stringify(chat.messages.at(-1)));
   assert.equal(chat.task.goalReview.status,'complete');assert.equal(chat.task.verification.status,'passed');
   assert.equal(chat.task.plan[0].expected_outcome,plan[0].expected_outcome);
-  assert.equal(stepReviews,3);assert.equal(phases.at(-1),'final');
+  // The reporting last stage is judged by the final review.
+  assert.equal(stepReviews,2);assert.equal(phases.at(-1),'final');
   assert(chat.task.plan.every(step=>step.status==='completed'));
   assert.deepEqual(await page.evaluate(()=>drops),[{target:'waiting',trusted:true},{target:'archive',trusted:true}]);
   assert.equal(await page.evaluate(()=>starts),2);assert.equal(await page.evaluate(()=>deleted),0);

@@ -1,43 +1,33 @@
+// Real Chrome: which presses ask for approval. Reported by the user: clicks kept
+// being held ("초안 검증 필요", a search Enter, 닫기 in a page-wide form), and "a
+// click that works matters more than a guard". Only a button named for a final
+// action is held: a short caption that ends with the verb (저장, 메일 보내기, 최종
+// 반영), in English one that starts with it, and 확인 or OK alone. Save and submit
+// shortcuts stay held, and text typed into a field never names an action.
 import assert from 'node:assert/strict';
 import {chromium} from 'playwright';
 import {approvalTarget} from '../browser-approval.js';
 const browser=await chromium.launch({executablePath:process.env.CHROME_BINARY,headless:true});
 try {
   const page=await browser.newPage();
-  await page.setContent('<form role="search" method="get"><fieldset><input id="query" type="search" name="query" title="검색어를 입력해 주세요."><button id="search" type="submit">검색</button><button id="ai" type="submit">AI 검색</button><button id="register" type="submit">등록</button></fieldset></form>');
-  const query=await page.locator('#query').elementHandle();
-  assert.equal(await query.evaluate(approvalTarget,{method:'press',key:'Enter'}),null);
-  assert.equal(await (await page.locator('#ai').elementHandle()).evaluate(approvalTarget,{method:'click'}),null);
-  assert.equal((await (await page.locator('#register').elementHandle()).evaluate(approvalTarget,{method:'click'})).action,'등록');
-  assert.equal((await query.evaluate(approvalTarget,{method:'press',key:'ControlOrMeta+Enter'})).action,'제출');
-  await page.locator('#ai').evaluate(e=>e.setAttribute('formmethod','post'));
-  assert.equal((await (await page.locator('#ai').elementHandle()).evaluate(approvalTarget,{method:'click'})).action,'제출');
-  await page.locator('#ai').evaluate(e=>e.removeAttribute('formmethod'));
-  await page.locator('form').evaluate(f=>f.method='post');
-  assert.equal((await query.evaluate(approvalTarget,{method:'press',key:'Enter'})).action,'제출');
-  await page.locator('form').evaluate(f=>{f.method='get';const e=document.createElement('input');e.type='password';f.append(e);});
-  assert.equal((await query.evaluate(approvalTarget,{method:'press',key:'Enter'})).action,'제출');
-  // Sites often use type=text for the query. One marked query field in a GET form is a search.
-  const target=(selector,operation)=>page.locator(selector).elementHandle().then(handle=>handle.evaluate(approvalTarget,operation));
-  await page.setContent('<form role="search" method="get" action="/search"><input id="q1" type="text" name="query" class="box_window"><button id="b1" type="submit" aria-label="검색"></button></form>'+
-    '<form method="get" action="/find"><input id="q2" type="text" name="q" placeholder="Search rules"><input type="hidden" name="lang" value="en"><button id="b2" type="submit">Search</button></form>'+
-    '<form method="get" action="/list"><input id="q3" type="text" name="title"><button id="b3" type="submit">조회하기</button></form>'+
-    '<form method="get" action="/s"><input id="q4" type="text" name="q"><input id="other" type="text" name="memo"><button type="submit">검색</button></form>'+
-    '<form method="post" action="/s"><input id="q5" type="text" name="q" aria-label="검색"><button id="b5" type="submit">검색</button></form>'+
-    '<form method="get" action="/s"><input id="q6" type="text" name="q"><textarea name="note"></textarea><button type="submit">검색</button></form>'+
-    '<form method="get" action="/s"><input id="q7" type="text" name="q"><select name="scope"><option>all</option></select><button type="submit">검색</button></form>');
-  for(const id of ['#q1','#q2'])assert.equal(await target(id,{method:'press',key:'Enter'}),null,id);
-  for(const id of ['#b1','#b2'])assert.equal(await target(id,{method:'click'}),null,id);
-  for(const id of ['#q3','#q4','#other','#q5','#q6','#q7'])assert.equal((await target(id,{method:'press',key:'Enter'}))?.action,'제출',id);
-  assert.equal((await target('#b5',{method:'click'}))?.action,undefined,'a POST form with a search caption keeps its existing rule');
-  assert.equal((await target('#q1',{method:'press',key:'ControlOrMeta+Enter'})).action,'제출');
-  console.log('PASS observed GET search navigation needs no approval; POST, credentials, registration and submit shortcuts remain guarded');
-  // A museum's detailed search: several query fields, a select, and an image
-  // button named only by its alt text. The search click is not a submission.
-  await page.setContent('<form method="get" action="/collection"><input type="text" name="query" title="소장품명 검색"><input type="text" name="query"><select name="sc"><option>전체</option></select>'+
-    '<input id="img1" type="image" alt="검색" src="data:," onclick="return false;"><button id="img2" type="submit"><img alt="검색" src="data:,"></button><input id="img3" type="image" alt="등록" src="data:,"><input id="img4" type="image" src="data:,"></form>');
-  for(const id of ['#img1','#img2'])assert.equal(await target(id,{method:'click'}),null,id);
-  assert.equal((await target('#img3',{method:'click'}))?.action,'등록','an image button named 등록 still needs approval');
-  assert.equal((await target('#img4',{method:'click'}))?.action,'제출','an unnamed image submit is still a form submission');
-  console.log('PASS an image search button is named by its alt text; other image submits keep their rule');
+  const target=(selector,operation={method:'click'})=>page.locator(selector).elementHandle().then(handle=>handle.evaluate(approvalTarget,operation));
+  await page.setContent('<form method="post" action="/page.do"><input id="memo" type="text" name="memo" value="삭제"><select name="unit"><option>1팀</option><option>2팀</option></select>'+
+    '<button id="close" type="submit">닫기</button><button id="next">다음</button><input id="unnamed" type="submit" value=""><button id="save">저장</button>'+
+    '<input id="send" type="submit" value="전송"><button id="ok" type="button">확인</button><button id="lookup" type="button">결과 확인</button><button id="apply" type="button">최종 반영</button>'+
+    '<input id="img" type="image" alt="검색" src="data:,"><button id="mail" type="button"><span>메일</span> <span>보내기</span></button></form>'+
+    '<a id="navapply" href="#a">교육 신청</a><a id="subject" href="#s">[인사] 2026년 10월 교육 일정 신청 안내</a><a id="board" href="#b">게시판</a>');
+  for(const [id,action] of [['#save','저장'],['#send','발송'],['#ok','확인'],['#apply','반영'],['#mail','발송'],['#navapply','신청']])assert.equal((await target(id))?.action,action,id);
+  for(const id of ['#close','#next','#unnamed','#lookup','#img','#subject','#board','#memo'])assert.equal(await target(id),null,id);
+  console.log('PASS only buttons named for a final action are held; 닫기, 다음, an unnamed submit, a search image, a mail subject and a field value are not');
+  assert.equal((await target('#memo',{method:'press',key:'ControlOrMeta+S'})).action,'저장');
+  assert.equal((await target('#memo',{method:'press',key:'ControlOrMeta+Enter'})).action,'제출');
+  console.log('PASS save and submit shortcuts stay held');
+  // Enter in a field submits its form as the first submit button would.
+  await page.setContent('<form id="f1"><input id="q1" name="q"><button type="submit">검색</button></form><form id="f2"><input id="t2" name="title"><button type="submit">저장</button><button type="submit">취소</button></form>'+
+    '<form id="f3"><input id="t3" name="title"></form><form id="f4" method="post"><input id="t4" name="title"><button type="submit">조회</button></form>');
+  assert.equal(await target('#q1',{method:'press',key:'Enter'}),null,'a search Enter');
+  assert.equal((await target('#t2',{method:'press',key:'Enter'}))?.action,'저장','Enter in a form whose first submit saves');
+  assert.equal(await target('#t3',{method:'press',key:'Enter'}),null,'a form without a submit button');
+  assert.equal(await target('#t4',{method:'press',key:'Enter'}),null,'a POST lookup form');
+  console.log('PASS Enter in a field is held only when the form\'s first submit button names a final action');
 } finally {await browser.close();}

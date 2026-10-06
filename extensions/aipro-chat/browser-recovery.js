@@ -19,6 +19,8 @@ function canonical(value, parentKey) {
       !(key === 'source_document_id' && value.dataKind === 'page_content') &&
       !(key === 'source_capture' && (value.observation || Array.isArray(value.frames))) &&
       !(key === 'content_ref' && value?.dataKind === 'page_content') &&
+      // Indexes help locate text; their document-bound hashes are not new body evidence.
+      !(['outline', 'boundary_index'].includes(key) && hasTextHash(value)) &&
       !(key === 'content_hash' && hasTextHash(value)) && !(key === 'id' && (parentKey === 'observation' || Array.isArray(value.frames))))
     .map(key => [key, canonical(value[key], key)]));
   return value;
@@ -34,6 +36,36 @@ function diagnosticEvidence(result) {
 function remember(map, key, value, limit) {
   map.delete(key); map.set(key, value);
   while (map.size > limit) map.delete(map.keys().next().value);
+}
+
+const VISUAL_ACTIONS = new Set(['run_playwright', 'run_skill_script', 'click_element', 'click_at', 'fill_form']);
+const VISUAL_FAILURES = new Set(['script_missing', 'script_hidden', 'script_obscured', 'script_timeout', 'script_target', 'script_control_state']);
+const REPEATED_VISUAL_FAILURES = new Set(['script_locator', 'script_disabled', 'script_focus', 'script_failed']);
+
+// Capture is an observation opportunity, not another retry budget. Renewed
+// refs, different generated code and different errors on the same page must
+// not buy another automatic screenshot. Keep this state only for this run.
+export function createVisualRecovery() {
+  const attempts = new Map(), failures = new Map();
+  const pageKey = observation => keyOf([observation?.tabId, observation?.topDocumentId,
+    (observation?.frames || []).map(frame => [frame.frame, frame.documentId]), observation || null]);
+  return {
+    consider(name, result, observation, available) {
+      if (!VISUAL_ACTIONS.has(name) || result?.cancelled || result?.error === 'cancelled' || result?.requiresUserInput) return null;
+      if (!result?.error && result?.ok !== false) {failures.clear(); return null;}
+      const reason = result.reason || result.error;
+      if (!VISUAL_FAILURES.has(reason) && !REPEATED_VISUAL_FAILURES.has(reason)) return null;
+      if (result.image) return null; // A script may already have captured the matching viewport.
+      const key = pageKey(observation), count = (failures.get(key) || 0) + 1;
+      remember(failures, key, count, 64);
+      if (!VISUAL_FAILURES.has(reason) && count < 2 || attempts.has(key)) return null;
+      remember(attempts, key, true, 64); // Capture failure must not start a capture loop either.
+      return available ? {status: 'capture'} : {status: 'unavailable', reason: 'vision_model_unavailable',
+        instruction: 'No image-capable model is available in this run. Inspect the fresh DOM and command receipts; do not send pixels to a text-only model or replay issued writes.'};
+    },
+    observed(observation) {remember(attempts, pageKey(observation), true, 64);},
+    dispose() {attempts.clear(); failures.clear();},
+  };
 }
 
 // Run-local comparison state only. Never persist these keys or put page/input
@@ -145,7 +177,7 @@ export function createBrowserRecovery() {
         tool_arguments_invalid: 'Select a declared tool and correct its arguments using its schema and observed evidence.',
         tool_unavailable: 'Choose an available tool for the task. Do not invent another tool name.',
       })[lastFailure] || 'Inspect the failed result, command receipts and current page. Change the unsuccessful approach and continue only missing work.';
-      return `Browser recovery: ${lastFailure}; failures without changed evidence: ${failures}. ${advice} A successful read or fresh element IDs alone do not resolve the failure. After repeated failure, reconsider the target, frame, open tab and interaction method; do not keep issuing the same action. Use the available screenshot when DOM evidence is insufficient. Ask the user only for missing information or an unresolved choice, not routine technical repair. Keep final transaction approval and user cancellation intact.`;
+      return `Browser recovery: ${lastFailure}; failures without changed evidence: ${failures}. ${advice} For a basic click/open, navigation or screenshot, switch from generated code to an available click_element, navigate_page/switch_tab/go_back or capture_page. Use the latest observation refs and observed destination. If a click already issued or its outcome is unknown, check the landed page/owned popup before any new action; do not substitute a navigation to bypass a blocked or approval-bound click. A successful read or fresh element IDs alone do not resolve the failure. After repeated failure, reconsider the target, frame, open tab and interaction method; do not keep issuing the same action. Use the available screenshot when DOM evidence is insufficient. Ask the user only for missing information or an unresolved choice, not routine technical repair. Keep final transaction approval and user cancellation intact.`;
     },
     dispose() {refs.clear(); screenshots.clear(); states.clear(); seenStates.clear(); repeats.clear(); lastFailure = null; failures = 0;},
   };

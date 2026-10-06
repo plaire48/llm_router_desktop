@@ -41,8 +41,9 @@ async function send(text, nextMode) {
   const answer = await poll(async () => (await state()).chat.messages.at(-1), value => value?.id !== previous && ['done', 'error'].includes(value?.state), 'wiki chat result');
   assert.equal(answer.state, 'done', answer.error);
   assert((await state()).chat.task.plan.every(step=>step.status==='completed'));
-  // A lookup is judged by the final review only; a request that writes keeps its stage review.
-  assert.deepEqual(reviewPhases,mode==='write'?['plan_step','final']:['final']);
+  // The last stage is judged by the final review with the whole answer, whether it
+  // read or wrote: a write was checked before the answer.
+  assert.deepEqual(reviewPhases,['final']);
   assert.match(answer.content,mode==='write'?/초안 저장을 확인/:/교육 안내 문서를 확인/);
   await ui.getByRole('button', {name: '전송', exact: true}).waitFor();
   return answer;

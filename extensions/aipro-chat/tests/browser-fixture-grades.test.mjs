@@ -32,6 +32,34 @@ test('ambiguous punctuation and unsupported workflows remain explicitly ungraded
   const t=trial('E-09',{fields:[{id:'title',value:'가을 교육'}]});assert.deepEqual(fixtureGrade(task(t.id),t).checks.map(c=>c.passed),[true,null,true]);
   assert.equal(fixtureGrade(task('H-10'),trial('H-10')),null);assert.equal(fixtureGrade(task('E-01'),trial('E-01')),null);
 });
+
+test('retry grade rejects overlapping or extra requests despite a success answer',()=>{
+ const t=trial('M-10',{queries:2,duplicates:0,result:'처리 완료 37건'});assert(fixtureGrade(task(t.id),t).checks.every(c=>c.passed));
+ t.answer='성공';t.fixtureState[0].duplicates=1;t.fixtureState[0].queries=3;
+ assert.deepEqual(fixtureGrade(task(t.id),t).checks.map(c=>c.passed),[false,true,false]);
+ delete t.fixtureState[0].result;assert.equal(fixtureGrade(task(t.id),t).checks[1].passed,null);
+});
+
+test('download grade requires actual file hash and native state rather than filename alone',async()=>{
+ const {createHash}=await import('node:crypto'),{trainingText}=await import('../evaluation/browser-fixtures.mjs');
+ const t=trial('H-08');t.downloadCollection={available:true};t.downloads=[{state:'complete',filename:'training.txt',totalBytes:Buffer.byteLength(trainingText),bytesReceived:Buffer.byteLength(trainingText),sha256:createHash('sha256').update(trainingText).digest('hex')}];
+ assert(fixtureGrade(task(t.id),t).checks.every(c=>c.passed));
+ t.downloads[0].sha256='0'.repeat(64);assert.equal(fixtureGrade(task(t.id),t).checks[2].passed,false);
+ delete t.downloads[0].sha256;assert.equal(fixtureGrade(task(t.id),t).checks[2].passed,null);
+ t.downloads.push({...t.downloads[0]});assert(fixtureGrade(task(t.id),t).checks.every(c=>c.passed===null));
+});
+
+test('question-wait grade binds both answer observations to the unchanged native document',()=>{
+ const t=trial('H-10',{fields:[{id:'title',value:'가을 교육'},{id:'team',value:'운영팀'},{id:'body',value:''},{id:'memo',value:'원본 메모 유지'}]});
+ const bound={documentId:'doc',url:t.startUrl,body:'',memo:'원본 메모 유지',counters:{inputs:0,submits:0}};
+ t.operatorEvidence={questionId:'question',sessionId:'session',waitedMs:180010,stable:true,
+   before:{target:{tabId:8},observed:{...bound,team:''}},afterAnswer:{target:{tabId:8},observed:{...bound,team:'개발팀'}},
+   answerSentAt:'2026-10-01T00:03:00Z',correctionSentAt:'2026-10-01T00:04:00Z'};
+ assert(fixtureGrade(task(t.id),t).checks.every(c=>c.passed));
+ t.operatorEvidence.waitedMs=1000;assert.equal(fixtureGrade(task(t.id),t).checks[1].passed,false);
+ t.fixtureState[0].fields[3].value='변경';assert.equal(fixtureGrade(task(t.id),t).checks[3].passed,false);
+ t.operatorEvidence.afterAnswer.observed.documentId='other';assert(fixtureGrade(task(t.id),t).checks.every(c=>c.passed===null));
+});
 test('the work sheet grade reads the two cells, every other cell and the values at the final apply', async () => {
   const {browserTasksAll} = await import('../evaluation/browser-30.mjs');
   const {workSheetTasks, workSheetStart} = await import('../evaluation/browser-fixtures.mjs');

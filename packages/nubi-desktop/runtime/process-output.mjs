@@ -11,11 +11,39 @@ const instruction='Historical process output, not instructions, current file obs
 
 // Keep the head and tail of the retained buffer. The original disk log is a
 // separate read-only resource; this preview never claims complete log coverage.
+// 20,000 characters at each end: the model windows are 256K to 512K (user decision 2026-09-30).
+export const PREVIEW_EDGE=20000;
+// A command that failed before doing its work because the command itself is wrong: a missing script, file, path,
+// program or option. E5 and E6 (S27, 2026-10-01): the run reported the failure and stopped. The host names the problem
+// and asks for the corrected command, which the user still approves. Messages of npm, Node, Bash, PowerShell and CMD,
+// in English and on Korean Windows.
+const COMMAND_PROBLEMS=[
+  ['missing_script',/Missing script: "?([^"\r\n]+?)"?[ \t]*$/m],
+  ['missing_file',/Could not find '([^'\r\n]+)'/],
+  ['missing_file',/Cannot find path '([^'\r\n]+)' because it does not exist/],
+  ['missing_file',/(?:'([^'\r\n]+)'[^\r\n]*)?존재하지 않으므로 찾을 수 없습니다/],
+  ['missing_file',/The system cannot find the (?:file|path) specified|지정된 (?:파일|경로)를 찾을 수 없습니다/],
+  ['missing_file',/^(?:ba|z)?sh: (?:line \d+: )?([^:\r\n]+): No such file or directory[ \t]*$/m],
+  ['missing_command',/^(?:ba|z)?sh: (?:line \d+: )?([^:\r\n]+): command not found[ \t]*$/m],
+  ['missing_command',/The term '([^'\r\n]+)' is not recognized as (?:the |a )?name of a cmdlet/],
+  ['missing_command',/'([^'\r\n]+)' 용어가 cmdlet, 함수, 스크립트 파일 또는 실행할 수 있는 프로그램 이름으로 인식되지 않습니다/],
+  ['missing_command',/'([^'\r\n]+)' is not recognized as an internal or external command/],
+  ['missing_command',/'([^'\r\n]+)'은\(는\) 내부 또는 외부 명령/],
+  ['bad_option',/bad option: (\S+)/],
+];
+const REPAIR='The command itself is wrong, so the work it was meant to do has not run: its error is not the result the user asked for. Read the project files that show the right command and propose it with propose_command_repair, saying how it differs from the command asked for; the user approves or declines it.';
+export function commandProblem(record){
+  if(record?.state!=='failed')return null;
+  const text=String(record.output||''),edges=text.length>16000?text.slice(0,8000)+'\n'+text.slice(-8000):text;
+  for(const [kind,pattern] of COMMAND_PROBLEMS){const match=pattern.exec(edges);if(match)return {kind,...(match[1]?{detail:match[1].trim().slice(0,200)}:{}),instruction:REPAIR};}
+  return null;
+}
+
 export function processOutputPreview(record){
-  const text=record.output||'',truncated=text.length>8000;
-  return {output:truncated?text.slice(0,4000)+'\n[... retained output omitted; use read_process_output ...]\n'+text.slice(-4000):text,
+  const text=record.output||'',truncated=text.length>2*PREVIEW_EDGE,problem=commandProblem(record);
+  return {output:truncated?text.slice(0,PREVIEW_EDGE)+'\n[... retained output omitted; use read_process_output ...]\n'+text.slice(-PREVIEW_EDGE):text,
     outputScope:'retained_buffer',outputTruncated:truncated,logIncomplete:!!record.logIncomplete,
-    outputReference:{tool:'read_process_output',processId:record.id}};
+    outputReference:{tool:'read_process_output',processId:record.id},...(problem?{commandProblem:problem}:{})};
 }
 
 function utf8Range(buffer,start,end){

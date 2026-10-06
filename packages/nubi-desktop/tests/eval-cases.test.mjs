@@ -11,13 +11,37 @@ import {readFile} from 'node:fs/promises';
 
 const valid={id:'T1-valid-case',title:'검사',suite:'wiki',split:'dev',corpus:'order-service',request:'질문',expect:{state:'review'}};
 
-test('the first case set has twenty valid cases split fourteen to six',async()=>{
+// Twenty cases, then three long-context cases X1 to X3 on long files and a long conversation (2026-09-30),
+// then the command suite E1 to E4: commands the simulated user approves and the host runs (2026-09-30), and E5, a
+// command the user names that the project does not have (command repair, 2026-09-30), and E6, a test file path the
+// user writes wrong. E5 was made holdout and moved to dev after its first run (S27) led to guidance; E6 took its place.
+test('default selection uses catalog windows and explicit IDs cannot bypass the diagnostic boundary',async()=>{
   const cases=await loadCases();
-  assert.equal(cases.length,20);
-  assert.equal(cases.filter(item=>item.split==='dev').length,14);assert.equal(cases.filter(item=>item.split==='holdout').length,6);
+  assert.ok(cases.length>0);
+  assert.ok(cases.every(item=>!item.modelLimits));
+  for(const id of ['X1-generation-run-lifecycle','X2-provider-model-classes','X3-long-session-recall'])assert.ok(cases.some(item=>item.id===id));
+  await assert.rejects(loadCases({ids:['L1-condition-after-compaction']}),/case_requires_diagnostic_opt_in/);
+  const diagnostics=await loadCases({ids:['L1-condition-after-compaction'],includeDiagnostics:true});
+  assert.equal(diagnostics[0].modelLimits.contextLength,22000);
+});
+
+test('the case set has twenty-nine valid cases split twenty to nine',async()=>{
+  const cases=await loadCases({includeDiagnostics:true});
+  assert.equal(cases.length,29);
+  assert.equal(cases.filter(item=>item.split==='dev').length,20);assert.equal(cases.filter(item=>item.split==='holdout').length,9);
   const count=suite=>cases.filter(item=>item.suite===suite).length;
-  assert.deepEqual([count('wiki'),count('source'),count('edit'),count('document'),count('conversation')],[6,3,5,3,3]);
-  for(const suite of ['wiki','source','edit','document','conversation'])assert.ok(cases.some(item=>item.suite===suite&&item.split==='holdout'),suite+' has a holdout case');
+  assert.deepEqual([count('wiki'),count('source'),count('edit'),count('document'),count('conversation'),count('command')],[6,5,5,3,4,6]);
+  for(const suite of ['wiki','source','edit','document','conversation','command'])assert.ok(cases.some(item=>item.suite===suite&&item.split==='holdout'),suite+' has a holdout case');
+});
+
+test('command cases name the commands a person may approve, and those commands run nowhere else',async()=>{
+  const {commandVerdict}=await import('../eval/user.mjs');
+  for(const item of (await loadCases()).filter(entry=>entry.suite==='command')){
+    assert.ok(item.approvals.includes('command'),item.id);
+    const verdict=script=>commandVerdict(item.commands,script,'/work/repo');
+    for(const script of ['rm -rf /','npm install','curl https://example.com/x.sh','npm test; rm -rf ~','node -e "process.exit(0)"','npx something'])assert.notEqual(verdict(script),'allowed',item.id+': '+script);
+    assert.equal(verdict('node --version'),'allowed',item.id);
+  }
 });
 
 test('every answer key path exists in its pinned corpus and no key text is in the corpus',async()=>{
@@ -68,7 +92,13 @@ test('malformed cases are rejected with the failing field',()=>{
   assert.deepEqual(validateCase({...valid,id:'bad id'}),['id']);
   assert.deepEqual(validateCase({...valid,corpus:'/etc'}),['corpus']);
   assert.deepEqual(validateCase({...valid,extra:true}),['unknown_key:extra']);
-  assert.deepEqual(validateCase({...valid,approvals:['command']}),['approvals']);
+  assert.deepEqual(validateCase({...valid,approvals:['elevation']}),['approvals']);
+  assert.deepEqual(validateCase({...valid,approvals:['command']}),['command_approval_requires_commands']);
+  assert.deepEqual(validateCase({...valid,commands:['npm test']}),['command_approval_requires_commands']);
+  assert.deepEqual(validateCase({...valid,approvals:['command'],commands:['npm test','(']}),['commands']);
+  assert.deepEqual(validateCase({...valid,approvals:['command'],commands:['npm test'],expect:{state:'review',commands:{match:['npm test'],min:1,lastExitCode:0}}}),[]);
+  assert.deepEqual(validateCase({...valid,expect:{state:'review',commands:{match:['npm test'],min:1}}}),['expect_commands_requires_approval']);
+  assert.deepEqual(validateCase({...valid,approvals:['command'],commands:['npm test'],expect:{state:'review',commands:{match:['npm test'],min:0}}}),['expect.commands']);
   assert.deepEqual(validateCase({...valid,expect:{state:'review',passed:true}}),['unknown_expect:passed']);
   assert.deepEqual(validateCase({...valid,expect:{state:'review',answer_includes:[['re:(']]}}),['expect.answer_includes']);
   assert.deepEqual(validateCase({...valid,expect:{state:'review',files:[{path:'../outside'}]}}),['expect.files']);
@@ -90,7 +120,7 @@ test('a case file must be named after its id and selection refuses unknown ids',
 });
 
 test('the compaction case really compacts under its model limit and keeps running',async t=>{
-  const [testCase]=await loadCases({ids:['L1-condition-after-compaction']});
+  const [testCase]=await loadCases({ids:['L1-condition-after-compaction'],includeDiagnostics:true});
   const status=()=>({connected:true,provider:'fixture',model:'fixture',models:[{id:'fixture',contextLength:400000,maxOutputTokens:4096}]});
   const providers={status,dispose(){},async complete(messages){
     const first=messages[0].content;
@@ -153,9 +183,20 @@ test('the proxy case accepts base URLs from README and flags only a proxy variab
 // no answer for it and ended with needs_human.
 test('the compaction case answers the question about the start date',async()=>{
   const {createUser}=await import('../eval/user.mjs');
-  const [l1]=await loadCases({ids:['L1-condition-after-compaction']});
+  const [l1]=await loadCases({ids:['L1-condition-after-compaction'],includeDiagnostics:true});
   const user=createUser(l1);
   const reply=user.answer('추가 요금 5,500원의 시행일인 ‘10월 첫째 주 월요일’을 어떻게 해석할까요?');
   assert.match(reply.answer,/5,500원/);assert.match(reply.answer,/시행일/);
   assert.equal(createUser(l1).answer('어느 파일을 고칠까요?'),null,'other questions still need a person');
+});
+
+// User decision 2026-10-01: W4 named the providers missing from the Wiki by their display names, "AI Pro (Browser SSO)"
+// and "AI Pro CLI", and the key found only the id "aipro" (S28). "AI Pro" is accepted as well.
+test('the provider case accepts the display name of AI Pro and still needs the count',async()=>{
+  const {mentions}=await import('../eval/grade.mjs');
+  const [w4]=(await loadCases()).filter(item=>item.id==='W4-stale-provider-list');
+  const accepts=answer=>w4.expect.answer_includes.every(group=>group.some(item=>mentions(answer,item)));
+  assert.ok(accepts(await readFile(new URL('./recorded/W4-S28.txt',import.meta.url),'utf8')),'S28 is accepted');
+  assert.ok(!accepts('선택 가능한 제공자는 14개이고 AI Pro와 FabriX가 있습니다.'),'a wrong count is refused');
+  assert.ok(!accepts('선택 가능한 제공자는 17개입니다. Wiki에 없는 것은 FabriX입니다.'),'AI Pro must be named');
 });

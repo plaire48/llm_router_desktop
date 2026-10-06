@@ -13,6 +13,21 @@ const call=(name,args)=>({content:'',calls:[{id:crypto.randomUUID(),type:'functi
 const isReview=messages=>messages[0]?.content.startsWith(REVIEW_PROMPT);
 const decision=(messages,status='ready')=>reply(JSON.stringify({status,checks:JSON.parse(messages[1].content).requirements.map(r=>({requirementId:r.id,state:'unknown',evidenceIds:[],detail:'확인한 범위만 설명합니다.'})),nextStep:status==='revise'?'app.txt를 읽고 확인한 내용만 답하세요.':''}));
 
+test('a claimed approval wait without any host action resumes preparation instead of delivering ready',async()=>{
+  const input={task:{request:'복사본을 만들어 줘'},candidate:'승인해 주시면 복사하겠습니다.',evidence:[],model:{contextLength:32000},signal:new AbortController().signal,
+    receipts:{proposals:[],setupActions:[],processes:[],computer:{actions:[],omittedActions:0,unresolvedCount:0}},
+    invoke:async messages=>reply(JSON.stringify({status:'ready',checks:JSON.parse(messages[1].content).requirements.map(r=>({requirementId:r.id,state:'pending',evidenceIds:['host'],detail:'사용자 승인을 기다립니다.'})),nextStep:''}))};
+  const result=await reviewResult(input);
+  assert.equal(result.status,'revise');assert.equal(result.normalized,'missing_host_boundary');assert.equal(result.checks[0].state,'unknown');
+  assert.equal(input.receipts.computer.actions.length,0,'review creates no action or approval');
+  for(const record of [{state:'proposed'},{state:'starting'},{state:'attention',execution:'unknown'},{state:'interrupted',execution:'unknown'}]){
+    const protectedResult=await reviewResult({...input,receipts:{...input.receipts,computer:{actions:[record]}}});
+    assert.equal(protectedResult.status,'ready','existing or uncertain work must not be prepared again');
+  }
+  const omitted=await reviewResult({...input,receipts:{...input.receipts,computer:{actions:[],omittedActions:1}}});
+  assert.equal(omitted.normalized,undefined,'an incomplete list cannot prove absence');
+});
+
 test('independent review resumes the same Pi task, preserves corrections and records evidence without granting passes',async t=>{
   const {service,root}=await fixture(t,{scriptedReview:true});let executor=0,reviews=0;
   service.providers={status,dispose(){},complete:async(messages,tools)=>{
@@ -85,7 +100,9 @@ test('malformed reviews repair once and pause without publishing an unchecked an
   const {service}=await fixture(t,{scriptedReview:true});let reviews=0;
   service.providers={status,dispose(){},complete:async messages=>{if(isReview(messages)){reviews++;return reply('{broken');}return reply('모두 성공했습니다.');}};
   const task=await service.createTask({request:'확인해 주세요.'});await service.startAgent({taskId:task.id});await service.agent.promise;
-  assert.equal(reviews,2);assert.equal(service.task(task.id).state,'paused');assert.equal(service.task(task.id).error,'goal_review_failed');assert.equal(service.task(task.id).messages.length,0);assert.equal(service.task(task.id).resultReview.status,'error');
+  // The structured repair asks once more for valid JSON (2 calls); the read-only recovery of 2026-10-02 then runs the
+  // executor again and reviews once more (2 calls) before the pause.
+  assert.equal(reviews,4);assert.equal(service.task(task.id).state,'paused');assert.equal(service.task(task.id).error,'goal_review_failed');assert.equal(service.task(task.id).messages.length,0);assert.equal(service.task(task.id).resultReview.status,'error');
 });
 
 test('a pending user question bypasses result review and preserves the same task',async t=>{
@@ -155,4 +172,16 @@ test('review reports unresolved handoffs omitted by the input budget as well as 
   const dropped=12-data.advisoryHandoffs.length;
   assert.ok(dropped>0);assert.equal(data.omittedHandoffs,3+dropped);assert.equal(data.omittedUnresolvedHandoffs,2+dropped);
   assert.equal(data.requirements[0].text,'Original request');assert.equal(data.requirements[1].text,'Preserve original acceptance');
+});
+
+// Found 2026-10-05: a task of 24 long messages in a 64K window paused with context_input_too_large from the review.
+import {boundedCorrections,reviewInputLimit} from '../runtime/result-review.mjs';
+test('the review keeps the newest user messages within its share and counts the rest, instead of throwing',()=>{
+  const long=i=>'Historical project discussion '+i+' '+'reference details '.repeat(500);
+  const model={id:'fixture',contextLength:64000,maxOutputTokens:4096},history=Array.from({length:12},(_,i)=>long(i));
+  const {data,messages}=resultReviewInput({task:{id:'t',request:'Original user goal',criteria:[],messages:[]},evidence:[],receipts:{},candidate:'답',model,history});
+  assert.ok(data.corrections.length>=1&&data.corrections.length<12);assert.equal(data.corrections.at(-1),long(11),'the newest earlier messages are kept');
+  assert.equal(data.omittedCorrections,12-data.corrections.length);assert.ok(messages.length>0);
+  const limit=reviewInputLimit(model);assert.deepEqual(boundedCorrections(['a','b'],limit),{kept:['a','b'],omitted:0});
+  const cut=boundedCorrections(['x'.repeat(200000)],1000);assert.equal(cut.omitted,0);assert.match(cut.kept[0],/이후 생략/);assert.ok(cut.kept[0].length<4000);
 });

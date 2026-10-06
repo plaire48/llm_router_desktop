@@ -1,11 +1,17 @@
 import React, {useEffect, useId, useState} from 'react';
-import {ActionButton, CxButton, DetailPanel, Icon} from '@e2e/cx-design-system';
+import {ActionButton, CxButton, CxField, DetailPanel, Icon} from '@e2e/cx-design-system';
 import './deck-surfaces.css';
 
 // Small surface primitives derived from the user's HTML: tile, pill,
 // list-card and approve-box. Host data and operations stay in the caller.
 export function DeckSectionLabel({icon, tone='blue', children}) {
   return <span className="deck-section-label"><span className="deck-section-icon" data-tone={tone} aria-hidden="true"><Icon name={icon} size={18}/></span><span>{children}</span></span>;
+}
+
+// Add a semantic field cue without replacing the accessible text label or
+// changing CX's input, validation and description wiring.
+export function DeckField({icon='pencil', label, ...props}) {
+  return <CxField {...props} label={<span className="deck-field-label"><span aria-hidden="true"><Icon name={icon} size={16}/></span><span>{label}</span></span>}/>;
 }
 
 export function DeckStatus({tone='neutral',icon,children}) {
@@ -25,11 +31,12 @@ export function DeckGuidance({icon,lead,children}) {
 
 // Compose public CX controls so confirmations use the same button typography
 // as other dialogs, including busy/error states and initial cancel focus.
-export function DeckConfirmation({title, message, confirmLabel, cancelLabel='취소', busy=false, onConfirm, onCancel, children}) {
+// showActionLabels adds visible labels beside icons without changing other hosts.
+export function DeckConfirmation({title, message, confirmLabel, cancelLabel='취소', busy=false, onConfirm, onCancel, children, headerCancelOnly=false, confirmIcon, showActionLabels=false}) {
   const descriptionId = useId();
-  return <DetailPanel title={title} className="deck-dialog deck-confirmation" variant="confirmation" role="alertdialog" describedBy={descriptionId} initialFocus="[data-cancel-confirmation]" busy={busy} onClose={onCancel} footer={<>
-    <ActionButton action="cancel" iconOnly label={cancelLabel} title={cancelLabel} data-cancel-confirmation disabled={busy} onClick={onCancel}/>
-    <CxButton variant="primary" busy={busy} disabled={busy} onClick={onConfirm}>{confirmLabel}</CxButton>
+  return <DetailPanel title={title} className="deck-dialog deck-confirmation" variant="confirmation" role="alertdialog" describedBy={descriptionId} initialFocus={headerCancelOnly ? '.cx-panel-header-actions [data-action="close"]' : '[data-cancel-confirmation]'} busy={busy} onClose={onCancel} footer={<>
+    {!headerCancelOnly && <ActionButton action="cancel" iconOnly={!showActionLabels} label={cancelLabel} title={cancelLabel} data-cancel-confirmation disabled={busy} onClick={onCancel}/>}
+    <CxButton variant="primary" busy={busy} disabled={busy} onClick={onConfirm} {...(confirmIcon ? {'aria-label': confirmLabel, title: confirmLabel} : {})}>{confirmIcon && <Icon name={confirmIcon} size={18}/>} {(!confirmIcon || showActionLabels) && confirmLabel}</CxButton>
   </>}>
     <div className="deck-confirmation-content"><span className="deck-symbol" aria-hidden="true"><Icon name="alertCircle" size={24}/></span><p id={descriptionId}>{message}</p></div>
     {children}

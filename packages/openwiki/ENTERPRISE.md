@@ -141,3 +141,7 @@ npm pack --pack-destination ../../releases/openwiki
 모의 검증은 실제 loopback 수신, 코드 교환, 취소/만료, 모델 목록, LangChain 도구 호출과 SSE, FabriX 도구 인자 검증, 설정 저장/재조회, 설정 화면의 성공·실패를 포함합니다. **실제 회사망 AI Pro SSO와 FabriX 계정, 실제 모델의 Wiki 생성 품질은 이 개발 환경에서 검증하지 않았습니다.** 기존 OpenAI/ChatGPT 코드 보존과 회귀 테스트는 실제 계정 로그인 검증을 의미하지 않습니다.
 
 원본 프로젝트는 [LangChain OpenWiki](https://github.com/langchain-ai/openwiki)이며 MIT 라이선스를 유지합니다. FabriX 변환과 usage 정규화는 같은 저장소의 `extensions/aipro-chat` 0.10.2 구현을 기반으로 합니다. 이 패키지는 공개 npm 레지스트리에 게시하지 않으며 로컬 TGZ로 배포합니다.
+
+### Workspace POP3 host adapter
+
+`src/connectors/sources/pop3.mjs` is a host-injected POP3 reader using pinned node-pop3 0.15.3 and MailParser 3.9.28 (MIT). `src/ingestion/personal-mail.ts` reuses the extracted personal synthesis policy with a host-owned transport and structured output. It does not load CLI auth, invoke shell tools, introduce POP3 credentials into environment files, or register a CLI POP3 login command. Nubi Workspace owns UIDL checkpoints, raw/attachment storage, private queue, model consent and immutable personal source pages. Existing source-ingestion APIs continue to export `createConnectorSynthesisGuidance` and keep their original 24-hour contracts.

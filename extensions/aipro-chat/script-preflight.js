@@ -65,7 +65,9 @@ function failure(reason, node) {
 // still runs in the bounded VM and all actions keep the host's safety checks.
 // This is neither a security boundary nor a promise that a locator will work.
 export function preflightScript(code) {
-  if (typeof code !== 'string' || !code.trim() || code.length > 20000) return failure('script_invalid');
+  // Each cause has its own correction; one vague "형식 오류" left the model repeating it.
+  if (typeof code !== 'string' || !code.trim()) return failure('script_code_missing');
+  if (code.length > 20000) return failure('script_too_long');
   let body;
   try {body = parse(`async function __nubi__() {\n${code}\n}`, {ecmaVersion: 2022, locations: true}).body[0].body;}
   catch (error) {return failure(error instanceof SyntaxError ? 'script_syntax' : 'script_invalid', error);}

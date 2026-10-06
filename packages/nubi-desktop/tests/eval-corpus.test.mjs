@@ -60,7 +60,26 @@ test('a link inside a corpus source is refused',async t=>{
 
 // expense-office holds the rules of the simulated expense app (2026-09-29).
 test('registered corpora are the only names',()=>{
-  assert.deepEqual(Object.keys(CORPORA).sort(),['expense-office','openwiki-sds','order-service']);
+  assert.deepEqual(Object.keys(CORPORA).sort(),['expense-office','openwiki-sds','order-catalog','order-failing','order-service']);
+});
+
+// The command suite rests on two facts of its corpora: the order service fails two tests on its free-shipping
+// threshold, and the product list check fails once, far from both ends of a long log.
+test('the command corpora fail the way their cases expect',async t=>{
+  const {execFile}=await import('node:child_process'),{promisify}=await import('node:util'),run=promisify(execFile);
+  const env={PATH:process.env.PATH,HOME:process.env.HOME};
+  const failing=await createWorkspace({corpus:'order-failing'});t.after(failing.dispose);
+  const tests=await run(process.execPath,['--test'],{cwd:failing.root,env}).then(()=>null,error=>error);
+  assert.equal(tests?.code,1);
+  assert.deepEqual([...tests.stdout.matchAll(/^✖ (.+) \(/gm)].map(match=>match[1]).filter((name,index,all)=>all.indexOf(name)===index).sort(),['무료 배송 기준과 기본 배송비','주문 합계는 할인과 배송비를 반영한다']);
+  const catalog=await createWorkspace({corpus:'order-catalog'});t.after(catalog.dispose);
+  const check=await run(process.execPath,['scripts/check-catalog.mjs'],{cwd:catalog.root,env,maxBuffer:4e6}).then(()=>null,error=>error);
+  assert.equal(check?.code,1);
+  const errors=check.stdout.split('\n').filter(line=>line.startsWith('[오류]'));
+  assert.deepEqual(errors,['[오류] catalog/items.json:614 SKU-0613 허용되지 않은 지역: jejoo (허용: seoul, busan, daegu, jeju, island)']);
+  const at=check.stdout.indexOf(errors[0]);
+  assert.ok(at>20000&&check.stdout.length-at>20000,'the error line is in neither end of the log');
+  assert.doesNotMatch(check.stdout.slice(-2000),/SKU-0613|jejoo/,'the summary does not name the item');
 });
 
 test('the expense rules corpus is pinned, has its Wiki and no company data',async t=>{

@@ -7,7 +7,7 @@ export async function assertDesktopDialog(dialog,{large=false}={}) {
     const buttons=[...root.querySelectorAll('button')].filter(e=>e.checkVisibility());
     return {font:css.fontFamily,size:css.fontSize,line:css.lineHeight,radius:css.borderRadius,
       title:{size:title.fontSize,line:title.lineHeight},blue:css.getPropertyValue('--brand-action').trim(),
-      buttons:buttons.map(e=>({size:getComputedStyle(e).fontSize,radius:getComputedStyle(e).borderRadius,kit:e.classList.contains('cx-kit-button'),label:e.getAttribute('aria-label')||e.textContent.trim(),iconOnly:e.dataset.iconOnly,title:e.title})),
+      buttons:buttons.map(e=>({size:getComputedStyle(e).fontSize,radius:getComputedStyle(e).borderRadius,kit:e.classList.contains('cx-kit-button'),chip:e.classList.contains('nubi-page-chip')||e.classList.contains('nubi-custom-skill-register'),/* toolbar pill actions use the pill radius by design (workspace-identity.css) */label:e.getAttribute('aria-label')||e.textContent.trim(),iconOnly:e.dataset.iconOnly,title:e.title})),
       fields:[...root.querySelectorAll('.nubi-url-pair label,.nubi-db-fields label,.nubi-map-controls label,.nubi-db-tls,.nubi-recovery-option,.nubi-run-form small')].filter(e=>e.checkVisibility()).map(e=>({size:getComputedStyle(e).fontSize,line:getComputedStyle(e).lineHeight})),
       overflow:root.scrollWidth>root.clientWidth};
   });
@@ -16,6 +16,7 @@ export async function assertDesktopDialog(dialog,{large=false}={}) {
   assert.deepEqual(facts.title,{size:'16px',line:'24px'});assert.equal(facts.blue.toLowerCase(),'#1b64da');
   assert.equal(facts.overflow,false);assert(facts.buttons.every(b=>b.label&&b.size===size));
   assert(facts.fields.every(field=>field.size===size&&field.line===line),'Dialog labels and instructions must track the body scale: '+JSON.stringify(facts.fields));
-  assert(facts.buttons.filter(b=>b.kit).every(b=>b.radius==='12px'));
+  assert(facts.buttons.filter(b=>b.kit&&!b.chip).every(b=>b.radius==='12px'));
+  assert(facts.buttons.filter(b=>b.chip).every(b=>b.radius==='100px'),'Page chips use the reference pill radius');
   assert(facts.buttons.filter(b=>b.iconOnly).every(b=>b.title));
 }

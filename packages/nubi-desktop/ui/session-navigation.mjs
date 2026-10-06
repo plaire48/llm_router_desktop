@@ -25,14 +25,24 @@ export function closeSession(tabs, selected, id) {
   return {tabs: next, selected: selected === id ? next[Math.min(index, next.length - 1)] || null : selected};
 }
 
-export function groupSessionsByDate(tasks, now = new Date()) {
+export function sessionDate(task) {
+  for (const value of [task?.updatedAt, task?.createdAt]) {
+    if (typeof value !== 'string' || !value.trim()) continue;
+    const date = new Date(value);
+    if (Number.isFinite(date.getTime())) return date;
+  }
+  return null;
+}
+
+export function groupSessionsByDate(tasks, now = new Date(), preserveOrder = false) {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
   const dateKey = date => `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
   const groups = new Map();
-  for (const task of [...tasks].sort((a, b) => Date.parse(b.createdAt || '') - Date.parse(a.createdAt || ''))) {
-    const date = new Date(task.createdAt);
-    const key = Number.isNaN(date.getTime()) ? 'unknown' : dateKey(date);
+  const ordered = preserveOrder ? [...tasks] : [...tasks].sort((a, b) => (sessionDate(b)?.getTime() ?? 0) - (sessionDate(a)?.getTime() ?? 0));
+  for (const task of ordered) {
+    const date = sessionDate(task);
+    const key = date ? dateKey(date) : 'unknown';
     const label = key === 'unknown' ? '날짜 미상' : key === dateKey(today) ? '오늘' : key === dateKey(yesterday) ? '어제' : new Intl.DateTimeFormat('ko-KR', {year: 'numeric', month: 'long', day: 'numeric'}).format(date);
     if (!groups.has(key)) groups.set(key, {key, label, tasks: []});
     groups.get(key).tasks.push(task);

@@ -1,0 +1,76 @@
+{
+  "id": "sync-status",
+  "title": "자료 동기화",
+  "window": {
+    "hwnd": 4301,
+    "processId": 5301,
+    "processName": "SyncDesk.exe",
+    "title": "자료 동기화 - SyncDesk",
+    "width": 900,
+    "height": 640
+  },
+  "controls": [
+    {
+      "selector": "lbl-sync-title",
+      "name": "자료 동기화",
+      "type": "Text"
+    },
+    {
+      "selector": "btn-sync-icon",
+      "name": "동기화 상태",
+      "type": "Button"
+    },
+    {
+      "selector": "tip-sync",
+      "name": "",
+      "type": "ToolTip",
+      "offscreen": true
+    },
+    {
+      "selector": "lst-sync-files",
+      "name": "동기화 폴더",
+      "type": "List",
+      "children": [
+        {
+          "selector": "row-sync-1",
+          "name": "계약서",
+          "type": "ListItem"
+        },
+        {
+          "selector": "row-sync-2",
+          "name": "회의록",
+          "type": "ListItem"
+        }
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "on": {
+        "selector": "btn-sync-icon",
+        "action": "hover"
+      },
+      "set": [
+        {
+          "selector": "tip-sync",
+          "offscreen": false,
+          "name": "마지막 동기화: 오늘 09:40, 대기 중인 파일 2개"
+        }
+      ],
+      "record": "tooltip"
+    },
+    {
+      "on": {
+        "selector": "btn-sync-icon",
+        "action": "invoke"
+      },
+      "set": [
+        {
+          "selector": "lbl-sync-title",
+          "name": "자료 동기화 (다시 동기화하는 중)"
+        }
+      ],
+      "record": "resync"
+    }
+  ]
+}

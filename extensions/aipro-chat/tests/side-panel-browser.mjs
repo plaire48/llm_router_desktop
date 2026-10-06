@@ -115,7 +115,7 @@ try {
   await targetPage.bringToFront();
   await executor(`window.skillRequests = []; window.fetch = async (url, options) => {
     const body = JSON.parse(options.body); window.skillRequests.push(body);
-    const last = body.messages.at(-1);
+    const last = body.messages.findLast(m => !(m.role === 'user' && typeof m.content === 'string' && m.content.startsWith('Current run state from the host.')));
     const response = last.role !== 'tool'
       ? {choices:[{delta:{tool_calls:[{index:0,id:'panel-inspect',type:'function',function:{name:'inspect_dom',arguments:'{}'}}]},finish_reason:'tool_calls'}]}
       : {choices:[{delta:{content:'페이지 스킬 완료'},finish_reason:'stop'}]};

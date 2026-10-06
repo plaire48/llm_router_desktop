@@ -7,6 +7,9 @@ import {inspectModelList} from '../core.js';
 import {contextBudget} from '../context-manager.js';
 import {BUILTIN_SKILLS, browserTools} from '../skills.js';
 import {connection, models, protocol, conversation, toolReply, messageReply, probeReply, nativeResponse} from './fixtures/fabrix.mjs';
+// The host appends this run's state (plan, last operation) as the final message;
+// these tests read the message before it.
+const lastMessage = messages => messages.findLast(message => !(message?.role === 'user' && typeof message.content === 'string' && message.content.startsWith('Current run state from the host.')));
 
 const tools = browserTools(null, BUILTIN_SKILLS[0], connection.modelId, {autoConnect: true, vision: false});
 const request = extra => ({model: connection.modelId, messages: [{role: 'system', content: 'Keep task instructions.'}, {role: 'user', content: '페이지를 확인하세요.'}], max_tokens: 1024, ...extra});
@@ -109,9 +112,9 @@ test('FabriX uses the same Pi loop, validates arguments, keeps tool results and 
     assert.equal(body.llmConfig.max_new_tokens, 4096);
     let text;
     if (round === 1) text = toolReply(body, 'read_page_storage', {area: 'cookies', keys: []});
-    else if (round === 2) {assert.equal(JSON.parse(messages.at(-1).content).error, 'tool_arguments_invalid'); text = toolReply(body, 'inspect_dom');}
-    else if (round === 3) {assert.deepEqual(JSON.parse(messages.at(-1).content), {fields: [{id: 'f1'}], analysis_evidence_id: 'ev_1'}); text = toolReply(body, 'fill_form', {fields: [{field_id: 'f1', value: '테스트'}]});}
-    else {assert.equal(JSON.parse(messages.at(-1).content).verified, true); text = messageReply(body, '입력을 확인했습니다.');}
+    else if (round === 2) {assert.equal(JSON.parse(lastMessage(messages).content).error, 'tool_arguments_invalid'); text = toolReply(body, 'inspect_dom');}
+    else if (round === 3) {assert.deepEqual(JSON.parse(lastMessage(messages).content), {fields: [{id: 'f1'}], analysis_evidence_id: 'ev_1'}); text = toolReply(body, 'fill_form', {fields: [{field_id: 'f1', value: '테스트'}]});}
+    else {assert.equal(JSON.parse(lastMessage(messages).content).verified, true); text = messageReply(body, '입력을 확인했습니다.');}
     return nativeResponse(text, {stream: true, usage: measure});
   });
   const result = await completeChat({provider: 'fabrix', credentialReceivedAt: 10, modelId: connection.modelId, model: {name: connection.modelId, maxOutputTokens: 4096}, messages: [{role: 'user', content: '입력해줘'}], tools}, new AbortController().signal, undefined, undefined, undefined, undefined,

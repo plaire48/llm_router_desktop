@@ -12,9 +12,20 @@ const profile = await realpath(await mkdtemp(resolve(tmpdir(), 'nubi-build-proof
 let extension = resolve(profile, 'extension-v1');
 const required = ['background.js', 'task-plan.js'];
 let child, browser;
+// A signal-exited child has exitCode=null too. Never wait for an exit event
+// that already happened, or let CDP disconnect hide the original test failure.
+const within = async (promise, ms) => {
+  let timer;
+  try {return await Promise.race([promise.then(()=>true), new Promise(resolve=>{timer=setTimeout(()=>resolve(false),ms);})]);}
+  finally {clearTimeout(timer);}
+};
 const stop = async () => {
-  await browser?.close().catch(() => {}); browser = null;
-  if (child?.exitCode === null) {const ended = once(child, 'exit'); child.kill(); await ended;}
+  const closing=browser?.close().catch(() => {}); browser=null;
+  if(closing)await within(closing,5000);
+  if(child && child.exitCode===null && child.signalCode===null) {
+    const ended=once(child,'exit'); child.kill('SIGTERM');
+    if(!await within(ended,5000)){child.kill('SIGKILL');if(!await within(ended,5000))throw Error('evaluation_chrome_cleanup_pending');}
+  }
 };
 const start = async () => {
   const server = createServer(); await new Promise(done => server.listen(0, '127.0.0.1', done));
@@ -46,11 +57,13 @@ try {
   await writeFile(resolve(extension, 'manifest.json'), JSON.stringify({manifest_version: 3, name: 'Nubi evaluation build regression', version: '1.0.0', background: {service_worker: 'background.js', type: 'module'}}));
   await writeFile(resolve(extension, 'background.js'), "import {revision} from './task-plan.js'; globalThis.buildRevision = revision; chrome.runtime.onMessage.addListener((_message, _sender, respond) => respond({revision}));");
   await writeFile(resolve(extension, 'task-plan.js'), 'export const revision = 1;');
+  console.log('START initial Chrome');
   let session = await start();
   const first = await inspectEvaluationBuild(browser, session.worker, extension, required);
-  assert.equal(first.verified, true, JSON.stringify(first));
+  assert.equal(first.verified, true, JSON.stringify(first));console.log('PASS initial executed hashes');
   await stop();
   await writeFile(resolve(extension, 'task-plan.js'), 'export const revision = 2;');
+  console.log('START upgraded Chrome');
   session = await start();
   const before = await inspectEvaluationBuild(browser, session.worker, extension, required);
   if (!before.verified) await assert.rejects(() => prepareEvaluationBuild(browser, session.context, session.worker, extension, required), /evaluation_build_mismatch/);

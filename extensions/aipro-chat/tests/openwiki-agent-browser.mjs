@@ -24,7 +24,9 @@ try {
     const traces=[], childCalls=[], reports=[], reads=[];
     const authChecks=[];
     for(const auth of [{wiki:'internal',message:'unauthorized',status:401},{wiki:'external',message:'forbidden'}]) {
-      const parent=new AbortController();let mainCalls=0,researchCalls=0,sourceReads=0,peerAborted=false,releasePeer,timer;
+      const parent=new AbortController();let mainCalls=0,researchCalls=0,sourceReads=0,peerAborted=false,releasePeer,
+        authFailed=false,callsAfterAuthFailure=0,peerAbortCount=0,startedAtFailure=0;
+      const timers=new Set();
       const peerStarted=new Promise(resolve=>{releasePeer=resolve;});
       let failure;
       try {
@@ -32,21 +34,28 @@ try {
           execute:async()=>{sourceReads++;return {wikiId:`${auth.wiki}:auth-test`,sourceComplete:true,documents:Array.from({length:6},(_,i)=>({id:`doc-${i}`,kind:auth.wiki==='internal'?'site':'folder',path:`doc-${i}.md`,title:'Policy',text:'Source policy'}))};},
           complete:async()=>{mainCalls++;return mainCalls===1?{content:'',calls:[{id:'wiki-auth',function:{name:'ask_openwiki',arguments:JSON.stringify({wiki:auth.wiki,question:'Read all policies'})}}]}:{content:'Unexpected model round'};},
           completeAnalysis:async(messages,_tools,scope)=>{
+            if(authFailed)callsAfterAuthFailure++;
             if(messages.some(m=>m.role==='system' && m.content.includes('Plan OpenWiki research')))return {content:JSON.stringify({mode:'comprehensive',questions:['Read all']})};
             researchCalls++;
-            if(researchCalls===1){await peerStarted;throw Object.assign(new Error(auth.message),auth.status?{status:auth.status}:{});}
+            if(researchCalls===1){await peerStarted;authFailed=true;startedAtFailure=researchCalls;throw Object.assign(new Error(auth.message),auth.status?{status:auth.status}:{});}
             releasePeer();
             return new Promise((resolve,reject)=>{
-              const abort=()=>{peerAborted=true;clearTimeout(timer);reject(new Error('cancelled'));};
+              let timer;
+              const abort=()=>{peerAborted=true;peerAbortCount++;clearTimeout(timer);reject(new Error('cancelled'));};
               scope.signal.addEventListener('abort',abort,{once:true});if(scope.signal.aborted)return abort();
               timer=setTimeout(()=>{scope.signal.removeEventListener('abort',abort);resolve({content:JSON.stringify({status:'blocked',answer:'No result',findings:[],uncertainties:['Pending']})});},1000);
+              timers.add(timer);
             });
           },
         });
       } catch(error) {failure={message:error.message,status:error.status};}
-      finally {clearTimeout(timer);}
-      if(failure?.message!==auth.message || failure.status!==auth.status || mainCalls!==1 || researchCalls!==2 || sourceReads!==1 || !peerAborted || parent.signal.aborted)throw Error('Wiki authentication did not stop at its scope');
-      authChecks.push({wiki:auth.wiki,error:failure,mainCalls,researchCalls,sourceReads,peerAborted,parentCancelled:parent.signal.aborted});
+      finally {for(const timer of timers)clearTimeout(timer);}
+      // The shared Wiki engine now allows four workers. Runtime scheduling can
+      // start two to four before the first rejection; none may start afterwards.
+      if(failure?.message!==auth.message || failure.status!==auth.status || mainCalls!==1 || researchCalls<2 || researchCalls>4 ||
+        sourceReads!==1 || !peerAborted || callsAfterAuthFailure!==0 || startedAtFailure!==researchCalls ||
+        peerAbortCount!==researchCalls-1 || parent.signal.aborted)throw Error('Wiki authentication did not stop at its scope');
+      authChecks.push({wiki:auth.wiki,error:failure,mainCalls,researchCalls,sourceReads,peerAborted,peerAbortCount,callsAfterAuthFailure,parentCancelled:parent.signal.aborted});
     }
     const table='# 비용 기준\n\n| 항목 | 금액 (원/일) |\n| --- | --- |\n'+'| 일반 | 100 |\n'.repeat(1000)+'| 특별지역 | 270 |\n';
     const corpus=await wikiProbe.createQuestionCorpus([{id:'table',kind:'folder',path:'table.md',title:'비용',text:table}],wikiProbe.createWikiQuestionSearch());

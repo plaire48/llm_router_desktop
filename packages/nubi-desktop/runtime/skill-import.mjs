@@ -14,10 +14,11 @@ const portable = value => {
   if(value.split('/').length>SKILL_IMPORT_LIMITS.depth || value.split('/').some(p=>/[<>:"|?*\x00-\x1f]/.test(p)||/[. ]$/.test(p)||/^(con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])(?:\.|$)/i.test(p)))fail('skill_import_path');
   return value;
 };
+export {portable as skillRelativePath};
 const ignored = value => value.split('/').some(p=>p==='.DS_Store'||p==='__MACOSX');
 
 // Use bounded streams; never extract archive paths directly onto the filesystem.
-export async function readSkillPackage(source) {
+export async function readSkillPackage(source,{validateMetadata=true}={}) {
   if(typeof source!=='string'||!path.isAbsolute(source)||source.length>4000)fail('skill_import_path');
   const info=await lstat(source);
   if(info.isSymbolicLink())fail('skill_import_path');
@@ -57,6 +58,18 @@ export async function readSkillPackage(source) {
       }
     }
     await walk(base);
+  } else if(info.isFile()&&path.extname(source).toLowerCase()==='.md') {
+    let bytes=await bytesAt(source,32768);
+    if(!isUtf8(bytes)||bytes.includes(0))fail('skill_invalid');
+    const text=bytes.toString('utf8');
+    if(!/^\uFEFF?---\r?\n/.test(text)){
+      if(!text.trim())fail('skill_invalid');
+      const stem=path.basename(source,path.extname(source)),slug=stem.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,54).replace(/-+$/,'');
+      const name=slug&&stem.toUpperCase()!=='SKILL'?slug:'custom-skill-'+hash(stem).replace(/^sha256:/,'').slice(0,10);
+      const description=text.split(/\r?\n/).map(line=>line.replace(/^\s*[#>*-]+\s*/,'').trim()).find(Boolean)?.slice(0,240)||stem;
+      bytes=Buffer.from(`---\nname: ${name}\ndescription: ${JSON.stringify(description)}\n---\n\n${text}`,'utf8');
+    }
+    reserve('SKILL.md');add('SKILL.md',bytes);
   } else if(info.isFile()&&path.extname(source).toLowerCase()==='.zip') {
     let zip;
     try {
@@ -81,20 +94,21 @@ export async function readSkillPackage(source) {
       }
     } catch(error) { if(error.message.startsWith('skill_'))throw error;fail('skill_archive_invalid'); }
     finally { zip?.close(); }
-  } else fail('skill_archive_invalid');
+  } else fail('skill_import_type');
   const roots=[...files.keys()].filter(p=>path.posix.basename(p)==='SKILL.md');
   if(roots.length!==1)fail('skill_entry_required');
   const entry=roots[0],prefix=entry.slice(0,-'SKILL.md'.length),bytes=files.get(entry);
-  if(!isUtf8(bytes)||bytes.includes(0))fail('skill_invalid');
-  const metadata=parseSkill(bytes.toString('utf8'));
-  portable(metadata.name);
+  if(validateMetadata&&(!isUtf8(bytes)||bytes.includes(0)))fail('skill_invalid');
+  const metadata=validateMetadata?parseSkill(bytes.toString('utf8')):{};
+  if(validateMetadata)portable(metadata.name);
   if([...files.keys()].some(p=>!p.startsWith(prefix)))fail('skill_entry_required');
   const normalized=new Map([...files].map(([p,b])=>[p.slice(prefix.length),b]));
   const directories=folders.filter(p=>p.startsWith(prefix)&&p.length>prefix.length).map(p=>p.slice(prefix.length));
-  return {metadata,files:normalized,directories,totalBytes:total};
+  const title=info.isFile()&&path.extname(source).toLowerCase()==='.md'&&path.basename(source).toUpperCase()!=='SKILL.MD'?path.basename(source,path.extname(source)):undefined;
+  return {metadata,files:normalized,directories,totalBytes:total,...(title?{title}:{})};
 }
 
-async function directory(root,rel) {
+export async function skillDirectory(root,rel) {
   let at=root;
   for(const part of rel.split('/')) {
     at=path.join(at,part);await mkdir(at).catch(e=>{if(e.code!=='EEXIST')throw e;});
@@ -112,18 +126,65 @@ function packageDirectories(packet) {
   return [...dirs].sort();
 }
 
-async function verifyInstalled(target,packet) {
+export async function verifyInstalled(target,packet) {
   let installed;
   try { installed=await readSkillPackage(target); } catch { fail('skill_exists'); }
   if(installed.files.size!==packet.files.size||JSON.stringify(packageDirectories(installed))!==JSON.stringify(packageDirectories(packet)))fail('skill_exists');
   for(const [file,bytes] of packet.files)if(!installed.files.has(file)||hash(installed.files.get(file))!==hash(bytes))fail('skill_exists');
 }
 
-async function registration(root,rel,packet,noChange) {
+export function skillPackageHash(packet){return hash(JSON.stringify({files:[...packet.files].sort(([a],[b])=>a.localeCompare(b)).map(([file,bytes])=>[file,hash(bytes)]),directories:[...packet.directories].sort()}));}
+
+export async function removeSkill({taskId,name,expectedHash,preview=false}={}){
+  this.ready();if(this.skillImportBusy||this.agent?.running||this.unsettledOperations?.size)fail('agent_busy');
+  if(typeof name!=='string'||!(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).test(name)||name.length>64)fail('input_invalid');
+  this.skillImportBusy=true;
+  try{
+    const root=await this.target(taskId),key='registered-skill:'+hash(root)+':'+name,record=this.store.get(key);
+    if(record?.state!=='registered')fail('skill_import_changed');
+    const parent=await skillDirectory(root,'.agents/skills'),target=path.join(parent,name),packet=await readSkillPackage(target,{validateMetadata:false}),actualHash=skillPackageHash(packet);
+    if(preview===true)return {name,title:record.title||name,packageHash:actualHash,fileCount:packet.files.size};
+    if(actualHash!==expectedHash)fail('skill_import_changed');
+    const backup='.removed-'+randomUUID(),trashKey='skill-trash:'+hash(root)+':'+backup,removed={...record,hash:actualHash,backup,fileCount:packet.files.size};this.store.set(key,{...removed,state:'removing'});this.store.set(trashKey,{...removed,state:'removing'});
+    await rename(target,path.join(parent,backup));
+    if(skillPackageHash(await readSkillPackage(path.join(parent,backup),{validateMetadata:false}))!==actualHash)fail('skill_import_changed');
+    const receipt={...removed,state:'removed',removedAt:new Date().toISOString()};this.store.set(key,receipt);this.store.set(trashKey,receipt);return {removed:true,name};
+  }finally{this.skillImportBusy=false;}
+}
+
+async function registration(root,rel,packet,noChange,store) {
   const catalog=await skillCatalog(root),registered=catalog.skills.find(s=>s.path===rel+'/SKILL.md');
   if(!registered)fail(catalog.truncated?'skill_catalog_full':'skill_import_changed');
   if(registered.hash!==hash(packet.files.get('SKILL.md')))fail('skill_import_changed');
-  return {...registered,fileCount:packet.files.size,totalBytes:packet.totalBytes,state:'registered',execution:'not_started',noChange};
+  const company=store?.get('marketplace-skill:'+hash(root)+':'+registered.name);
+  if(store&&(!company||company.state==='removed'))store.set('registered-skill:'+hash(root)+':'+registered.name,{name:registered.name,title:packet.title||registered.name,description:registered.description,hash:skillPackageHash(packet),state:'registered',registeredAt:new Date().toISOString()});
+  return {...registered,title:packet.title||registered.name,fileCount:packet.files.size,totalBytes:packet.totalBytes,state:'registered',execution:'not_started',noChange};
+}
+
+export async function skillTrash({taskId,operation='list',name,trashId,expectedHash}={}){
+  this.ready();const root=await this.target(taskId),prefix='registered-skill:'+hash(root)+':',trashPrefix='skill-trash:'+hash(root)+':';
+  if(operation==='list'){
+    const receipts=this.store.list(trashPrefix),legacy=this.store.list(prefix).filter(record=>record.state==='removed'&&!receipts.some(item=>item.backup===record.backup));
+    return {items:[...receipts,...legacy].filter(record=>record.state==='removed').sort((a,b)=>(b.removedAt||'').localeCompare(a.removedAt||'')).map(record=>({id:record.backup,name:record.name,title:record.title||record.name,description:record.description||'',removedAt:record.removedAt,packageHash:record.hash,fileCount:record.fileCount}))};
+  }
+  if(operation!=='restore'||typeof name!=='string'||!(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).test(name)||name.length>64)fail('input_invalid');
+  if(this.skillImportBusy||this.agent?.running||this.unsettledOperations?.size)fail('agent_busy');
+  this.skillImportBusy=true;
+  try{
+    const key=prefix+name,id=trashId||this.store.get(key)?.backup;
+    if(!/^\.removed-[a-f0-9-]{36}$/.test(id||''))fail('skill_import_changed');
+    const trashKey=trashPrefix+id,record=this.store.get(trashKey)||this.store.get(key);
+    if(record?.name!==name||record.backup!==id||record.state!=='removed'||record.hash!==expectedHash)fail('skill_import_changed');
+    const parent=await skillDirectory(root,'.agents/skills'),target=path.join(parent,name),backup=path.join(parent,record.backup);
+    try{await lstat(target);fail('skill_exists');}catch(error){if(error.code!=='ENOENT')throw error;}
+    const packet=await readSkillPackage(backup,{validateMetadata:false});if(skillPackageHash(packet)!==expectedHash)fail('skill_import_changed');
+    const catalog=await skillCatalog(root);if(catalog.truncated||catalog.capacityUsed>=MAX_SKILLS)fail('skill_catalog_full');
+    await skillDirectory(root,'.agents/skills');
+    try{await lstat(target);fail('skill_exists');}catch(error){if(error.code!=='ENOENT')throw error;}
+    this.store.set(trashKey,{...record,state:'restoring'});await rename(backup,target);
+    if(skillPackageHash(await readSkillPackage(target,{validateMetadata:false}))!==expectedHash)fail('skill_import_changed');
+    const restoredAt=new Date().toISOString();this.store.set(key,{...record,state:'registered',backup:null,restoredAt});this.store.set(trashKey,{...record,state:'restored',restoredAt});return {restored:true,name};
+  }finally{this.skillImportBusy=false;}
 }
 
 export async function importSkill({source,taskId}={}) {
@@ -137,14 +198,14 @@ export async function importSkill({source,taskId}={}) {
     let exists=false;
     try { await lstat(target);exists=true; } catch(e) { if(e.code!=='ENOENT')throw e; }
     if(exists) {
-      await directory(root,'.agents/skills');
+      await skillDirectory(root,'.agents/skills');
       // Reconcile a lost response or explicit repeat by reading actual bytes. No write/replay.
       await verifyInstalled(target,packet);
-      return registration(root,rel,packet,true);
+      return registration(root,rel,packet,true,this.store);
     }
     const catalog=await skillCatalog(root);
     if(catalog.truncated||catalog.capacityUsed>=MAX_SKILLS)fail('skill_catalog_full');
-    const parent=await directory(root,'.agents/skills');
+    const parent=await skillDirectory(root,'.agents/skills');
     pending=path.join(parent,'.pending-'+randomUUID());await mkdir(pending);
     for(const dir of packet.directories)await mkdir(path.join(pending,dir),{recursive:true});
     for(const [file,bytes] of packet.files) {
@@ -153,10 +214,10 @@ export async function importSkill({source,taskId}={}) {
       if(hash(await bytesAt(destination,SKILL_IMPORT_LIMITS.fileBytes))!==hash(bytes))fail('skill_import_changed');
     }
     if(this.disposed)fail('skill_import_changed');
-    await directory(root,'.agents/skills');
+    await skillDirectory(root,'.agents/skills');
     try { await lstat(target);fail('skill_exists'); } catch(e) { if(e.code!=='ENOENT')throw e; }
     await rename(pending,target);pending=null;
     await verifyInstalled(target,packet);
-    return registration(root,rel,packet,false);
+    return registration(root,rel,packet,false,this.store);
   } finally { try { if(pending)await rm(pending,{recursive:true,force:true}); } finally { this.skillImportBusy=false; } }
 }

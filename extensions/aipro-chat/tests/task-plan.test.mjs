@@ -4,6 +4,9 @@ import {initialPlan, normalizePlan, taskProgress, updateTaskPlan, planDifference
 import {runAgent} from '../agent-runtime.js';
 import {browserTools, BUILTIN_SKILLS} from '../skills.js';
 import {taskReceipt, pauseTask} from '../context-state.js';
+// The host appends this run's state (plan, last operation) as the final message;
+// these tests read the message before it.
+const lastMessage = messages => messages.findLast(message => !(message?.role === 'user' && typeof message.content === 'string' && message.content.startsWith('Current run state from the host.')));
 
 const plan = [{text: '신청 조건 확인', status: 'in_progress'}, {text: '요청 내용 확인', status: 'pending'}];
 const tools = browserTools({}, BUILTIN_SKILLS[0]);
@@ -146,7 +149,7 @@ test('public action labels follow execution and never change operation arguments
   await runAgent({...base(), resumePlan: plan, onStep: step => trace.push(step), complete: async messages => {
     round++;
     if (round < 3) return {content: round === 1 ? '제목 입력란을 확인했습니다. 초안을 반영하겠습니다.' : '', reasoning: 'PRIVATE_REASONING', calls: [call('fill_form', {fields: [{field_id: 'observed', value: '교육'}], progress: round === 1 ? '교육 제목 입력' : '다른 설명으로 중복 시도'})]};
-    if (round === 3) {assert.equal(JSON.parse(messages.at(-1).content).error, 'action_already_handled'); return {calls: [call('verify_page', {checks: [{kind: 'text_present', expected: '교육'}], progress: '입력한 제목 확인'})]};}
+    if (round === 3) {assert.equal(JSON.parse(lastMessage(messages).content).error, 'action_already_handled'); return {calls: [call('verify_page', {checks: [{kind: 'text_present', expected: '교육'}], progress: '입력한 제목 확인'})]};}
     return {content: '확인했습니다.'};
   }, execute: async (name, args) => {assert(!Object.hasOwn(args, 'progress')); actions.push(name); return {ok: true, verified: true, applied: 1};}});
   assert.deepEqual(actions, ['fill_form', 'verify_page']);

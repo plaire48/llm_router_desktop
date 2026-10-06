@@ -1,9 +1,11 @@
+import {toolException} from './tool-errors.js';
 import {completeChat} from './src/api.js';
 import {normalizeTrace} from './agent-trace.js';
 import {activityDeadline} from './model-recovery.js';
 import {CHAT_TIMEOUT_MS} from './chat-contract.js';
 import {ERROR_TEXT} from './core.js';
 import {runReplay, replayAnswer} from './browser-replay.js';
+import {checkReportedFacts} from './delegation-facts.js';
 
 // One live executor per lease. Views are observers, never execution owners.
 // Checkpoints live in the host; a terminated worker is paused, not replayed.
@@ -71,12 +73,37 @@ export function createBackgroundRunner({call, publish, compareImages, keepAlive 
     };
     const executeTool = async (name, args, extra = {}) => {
       if (abort.signal.aborted) throw new Error('cancelled');
+      if(name==='open_site_procedure') {
+        const prepared=await invoke('RUN_TOOL',{name,args});
+        if(!prepared.prepared || !prepared.procedureToken)return prepared;
+        if(abort.signal.aborted || job.steering)return {error:'interrupted',actionIssued:false};
+        const primitiveArgs={ref:prepared.ref},index=`procedure-open-${crypto.randomUUID()}`;
+        progress({index,tool:'click_element',status:'running'});
+        let result;try {result=await executeTool('click_element',primitiveArgs,{procedureToken:prepared.procedureToken});}
+        catch(error){result=toolException(error,{mutating:true});}
+        progress({index,tool:'click_element',status:result.cancelled?'cancelled':result.error || result.ok===false?'error':'done'});
+        const {siteProcedurePrimitive,...receipt}=result;
+        return {...receipt,siteProcedureExecution:{tool:'click_element',args:siteProcedurePrimitive?.args || primitiveArgs,before:siteProcedurePrimitive?.before || prepared.observation,procedure_id:prepared.procedure_id}};
+      }
+      if (name === 'fill_site_procedure') {
+        const prepared=await invoke('RUN_TOOL',{name,args});
+        if (!prepared.prepared || !prepared.procedureToken) return prepared;
+        if (abort.signal.aborted || job.steering) return {error:'interrupted',actionIssued:false};
+        const primitiveArgs={fields:prepared.fields};
+        const index=`procedure-fill-${crypto.randomUUID()}`;progress({index,tool:'fill_form',status:'running'});
+        let result;
+        try {result=await executeTool('fill_form',primitiveArgs,{procedureToken:prepared.procedureToken});}
+        catch(error){result=toolException(error,{mutating:true});}
+        progress({index,tool:'fill_form',status:result.cancelled?'cancelled':result.error || result.ok===false?'error':'done'});
+        const {siteProcedurePrimitive,...receipt}=result;
+        return {...receipt,siteProcedureExecution:{tool:'fill_form',args:siteProcedurePrimitive?.args || primitiveArgs,before:siteProcedurePrimitive?.before || prepared.observation,procedure_id:prepared.procedure_id},procedureChecks:prepared.checks};
+      }
       setPhase(name === 'update_plan' ? 'planning' : ['verify_page', 'verify_form'].includes(name) ? 'verifying' : name === 'read_page' ? 'reading' : 'acting');
       const traceId = trace.findLast(step => step.tool === name && step.status === 'running')?.id;
       // Publish before entering the serialized, potentially long tool call.
       // Otherwise captures can arrive while observers still see an older step.
       await flush().catch(() => {});
-      let result = await invoke('RUN_TOOL', {name, args, traceId, ...(Number.isInteger(extra.replayIndex) ? {replayIndex: extra.replayIndex} : {})});
+      let result = await invoke('RUN_TOOL', {name, args, traceId, ...(extra.procedureToken ? {procedureToken:extra.procedureToken} : {}), ...(Number.isInteger(extra.replayIndex) ? {replayIndex: extra.replayIndex} : {})});
       if (abort.signal.aborted) throw new Error('cancelled');
       if (name === 'inspect_images' && !result.error) result = await compareImages(result, abort.signal);
       if (!result.planId) return result;
@@ -118,7 +145,17 @@ export function createBackgroundRunner({call, publish, compareImages, keepAlive 
       const result = await completeChat(request, abort.signal,
         text => {touch(); content = text; update();}, value => {usage = value;}, setPhase, value => {finishReason = value;},
         executeTool, progress, measurement => invoke('RECORD_USAGE', measurement), update => invoke('SAVE_CONTEXT', update), diagnostic => invoke('MODEL_DIAGNOSTIC', diagnostic),
-        {onAgentDiagnostic: diagnostic => invoke('MODEL_DIAGNOSTIC', diagnostic), saveAnalysisHandoff: record => invoke('SAVE_CONTEXT',{kind:'analysis_handoff',record}), saveResearchHandoff: record => invoke('SAVE_CONTEXT',{kind:'research_handoff',record}), takeInput: async () => {
+        {onAgentDiagnostic: diagnostic => invoke('MODEL_DIAGNOSTIC', diagnostic), saveAnalysisHandoff: record => invoke('SAVE_CONTEXT',{kind:'analysis_handoff',record}), saveResearchHandoff: record => invoke('SAVE_CONTEXT',{kind:'research_handoff',record}),
+          researchBrowser: async operation => {if(abort.signal.aborted && operation.operation!=='close')throw new Error('cancelled');return invoke('RESEARCH_OPERATION',operation);},
+          // Facts for the Nubi that sent this task, checked against the pages this run read.
+          saveFacts: async (args, evidence) => {
+            const checked = checkReportedFacts(args, evidence);
+            if (checked.error) return {error: checked.error};
+            const facts = checked.facts;
+            await invoke('SAVE_CONTEXT', {kind: 'delegation_facts', facts});
+            const unchecked = facts.filter(fact => !fact.checked).map(fact => fact.name);
+            return {ok: true, reported: facts.length, unchecked, instruction: unchecked.length ? 'These quotes were not found on a page read in this run. Read that page and report its exact words, or answer and they are sent as unchecked.' : 'Recorded. They are sent with your final answer.'};
+          }, takeInput: async () => {
           if (job.fill) return null;
           const revision = job.inputRevision, item = await invoke('TAKE_AGENT_INPUT');
           if (revision === job.inputRevision) job.steering = false;
@@ -132,7 +169,7 @@ export function createBackgroundRunner({call, publish, compareImages, keepAlive 
       await flush().catch(() => {});
       await invoke('FINISH_CHAT', {content: error.suppressPartial ? '' : error.partial || content, error: code, traceSequence,
         trace: normalizeTrace(trace.map(step => step.status === 'running' ? {...step, status: abort.signal.aborted ? 'cancelled' : 'error'} : step)), status: error.status || 0});
-    } finally {clearTimeout(timer); clearInterval(keepAliveTimer); timeout.stop(); job.fill?.finish(false);}
+    } finally {await invoke('RESEARCH_OPERATION',{operation:'close_owner'}).catch(()=>{});clearTimeout(timer); clearInterval(keepAliveTimer); timeout.stop(); job.fill?.finish(false);}
   }
   return {
     start, has: id => jobs.has(id),

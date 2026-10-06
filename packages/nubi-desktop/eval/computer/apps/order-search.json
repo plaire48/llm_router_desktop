@@ -1,0 +1,81 @@
+{
+  "id": "order-search",
+  "title": "주문 조회",
+  "window": {
+    "hwnd": 4101,
+    "processId": 5101,
+    "processName": "OrderDesk.exe",
+    "title": "주문 조회 - OrderDesk",
+    "width": 900,
+    "height": 640
+  },
+  "controls": [
+    {
+      "selector": "txt-order-search",
+      "name": "주문 번호 검색",
+      "type": "Edit",
+      "value": ""
+    },
+    {
+      "selector": "lbl-search-hint",
+      "name": "주문 번호를 입력하고 Enter를 누르면 검색합니다",
+      "type": "Text"
+    },
+    {
+      "selector": "lst-results",
+      "name": "검색 결과",
+      "type": "List",
+      "children": [
+        {
+          "selector": "row-result-1",
+          "name": "검색 전",
+          "type": "ListItem"
+        }
+      ]
+    },
+    {
+      "selector": "lbl-order-status",
+      "name": "배송 상태: -",
+      "type": "Text"
+    }
+  ],
+  "rules": [
+    {
+      "on": {
+        "selector": "txt-order-search",
+        "action": "key:enter"
+      },
+      "when": {
+        "txt-order-search": "^\\s*SKU-0613\\s*$"
+      },
+      "set": [
+        {
+          "selector": "row-result-1",
+          "name": "SKU-0613 김하나 85,400원"
+        },
+        {
+          "selector": "lbl-order-status",
+          "name": "배송 상태: 배송 중 (9월 29일 출고)"
+        }
+      ],
+      "record": "searched"
+    },
+    {
+      "on": {
+        "selector": "txt-order-search",
+        "action": "key:enter"
+      },
+      "set": [
+        {
+          "selector": "row-result-1",
+          "name": "검색 결과 없음"
+        },
+        {
+          "selector": "lbl-order-status",
+          "name": "배송 상태: -"
+        }
+      ],
+      "record": "searched-other"
+    }
+  ]
+}

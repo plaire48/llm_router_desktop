@@ -92,3 +92,15 @@ test('deflated ZIP preserves resources and checks the combined expanded byte bud
   await writeFile(source,zip([...entries,...[1,2,3].map(i=>[`assets/large-${i}.bin`,Buffer.alloc(8*1024*1024)])],{deflate:true}));
   assert.ok((await stat(source)).size<1024*1024);await assert.rejects(readSkillPackage(source),/skill_import_limit/);
 });
+
+test('registered folder deletion uses a persisted whole-package receipt and keeps a recovery copy',async t=>{
+  const {service,root,directory}=await fixture(t);await service.importSkill({source:await folder(directory)});const skill=(await service.listSkills()).skills[0];assert.equal(skill.managed,true);
+  const removed=await service.removeSkill({name:skill.name,expectedHash:skill.packageHash});assert.equal(removed.removed,true);assert.equal((await service.listSkills()).skills.length,0);
+  const trash=(await service.skillTrash({operation:'list'})).items;assert.equal(trash[0]?.name,skill.name,'the deleted skill waits in the trash');
+  assert.equal(await readFile(path.join(root,'.agents/skills',trash[0].id,'references/세부/guide.md'),'utf8'),'회사 문서의 핵심 결론을 먼저 작성합니다.');
+});
+test('registered deletion refuses edited resources, stale receipts and arbitrary source paths',async t=>{
+  const {service,root,directory}=await fixture(t);await service.importSkill({source:await folder(directory)});const skill=(await service.listSkills()).skills[0];
+  await assert.rejects(service.removeSkill({name:'../outside',expectedHash:skill.packageHash}),/input_invalid/);await assert.rejects(service.removeSkill({name:skill.name,expectedHash:'wrong'}),/skill_import_changed/);
+  const file=path.join(root,'.agents/skills',skill.name,'references/세부/guide.md');await writeFile(file,'Human edit');await assert.rejects(service.removeSkill({name:skill.name,expectedHash:skill.packageHash}),/skill_import_changed/);assert.equal(await readFile(file,'utf8'),'Human edit');
+});

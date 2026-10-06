@@ -14,11 +14,11 @@ import {WORKFLOWS} from './agent-capabilities.mjs';
 export const LEAN_INPUT_TOKENS=20000;
 
 // discover_capabilities stays: the system guidance asks for it on a new task.
-export const LEAN_TOOLS=Object.freeze(['update_plan','ask_user','select_tools','discover_capabilities','read_source','source_search','wiki_query','ask_openwiki','read_conversation','read_analysis_evidence']);
+export const LEAN_TOOLS=Object.freeze(['update_plan','ask_user','select_tools','discover_capabilities','open_workspace_page','read_source','source_search','wiki_query','personal_mail_query','read_personal_mail','ask_openwiki','read_conversation','read_analysis_evidence']);
 // Tools that no workflow names, grouped by what they are for.
-const EXTRA={'source-change':['inspect_path','propose_edit','inspect_workspace_changes'],skills:['use_skill','read_skill','list_skill_resources'],analysis:['delegate_analysis','collect_analysis','read_analysis_handoff','cancel_analysis'],documents:['analyze_documents','read_document_analysis']};
-const PURPOSE={skills:'프로젝트 스킬 찾기와 읽기 project skills procedure',analysis:'하위 분석 에이전트 위임과 수집 delegate parallel analysis',documents:'대용량 문서 분석 large documents'};
-export const LEAN_GUIDANCE='The input window of this model is small, so a request offers only some tools. The tools of the workflows in your plan are offered once the plan is recorded. select_tools adds others by group or query; call it together with the operation that needs them.';
+const EXTRA={mail:['personal_mail_query','read_personal_mail'],'source-change':['inspect_path','propose_edit','inspect_workspace_changes'],skills:['use_skill','read_skill','list_skill_resources'],analysis:['delegate_analysis','collect_analysis','read_analysis_handoff','cancel_analysis'],documents:['analyze_documents','read_document_analysis']};
+const PURPOSE={mail:'사내 메일 personal mail email attachment',skills:'프로젝트 스킬 찾기와 읽기 project skills procedure',analysis:'하위 분석 에이전트 위임과 수집 delegate parallel analysis',documents:'대용량 문서 분석 large documents'};
+export const LEAN_GUIDANCE='A request offers only some tools, so its fixed part stays small. The tools of the workflows in your plan are offered once the plan is recorded. select_tools adds others by group or query; call it together with the operation that needs them.';
 export const SELECT_TOOLS={type:'function',function:{name:'select_tools',description:'Offer more tools from the next request on: groups by workflow id, or a query of a few words (Korean or English) for up to five matching tools. A tool asked for in the same response runs as usual. Offering is not permission; host checks and approvals are unchanged.',
   parameters:{type:'object',additionalProperties:false,properties:{groups:{type:'array',maxItems:6,uniqueItems:true,items:{type:'string',minLength:1,maxLength:40}},query:{type:'string',minLength:1,maxLength:300}}}}};
 

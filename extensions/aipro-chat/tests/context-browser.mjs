@@ -40,6 +40,8 @@ try {
     else if(mode==='browser') {
       const result=body.messages.findLast(m=>m.role==='tool');
       if(stage===0) response=reply('','update_plan',{steps:[{text:'메일 초안 작성',status:'in_progress'},{text:'저장된 제목 확인',status:'pending'}]});
+      // The host reads the page right after a first plan given alone; no second read is asked for.
+      if(stage===1&&result?.content?.includes?.('제목')) stage=2;
       if(stage===1) response=reply('','browser_snapshot');
       if(stage===2) {assert(result?.content.includes('제목')); response=reply('','run_playwright',{code:"await page.getByRole('textbox',{name:'제목',exact:true}).fill('9월 교육'); return await page.getByLabel('제목').inputValue();"});}
       if(stage===3) {assert.equal(JSON.parse(result.content).value,'9월 교육');stage++;await new Promise(r=>{releaseHeld=r;});return route.abort().catch(()=>{});}
@@ -55,10 +57,14 @@ try {
     await route.fulfill({contentType:'application/json',body:response});
   }catch(error){failure=error;await route.fulfill({status:500,body:'fixture assertion failed'}).catch(()=>{});}});
   worker=context.serviceWorkers()[0]||await context.waitForEvent('serviceworker');
+  // GET_STATE waits for worker boot and history migration before fixture writes.
+  // A serviceworker event alone does not mean migration has finished.
+  ui=await context.newPage();ui.on('pageerror',e=>errors.push(e.message));await ui.setViewportSize({width:360,height:800});
+  await ui.goto(`chrome-extension://${new URL(worker.url()).hostname}/index.html`);await state();
   const original=Array.from({length:6},(_,i)=>({id:`m${i}`,role:i%2?'assistant':'user',content:i<4?(i%2?'old evidence '.repeat(1800):`old question ${i}`):(i%2?'최근 답':'최근 질문'),...(i%2?{state:'done'}:{})}));
   await worker.evaluate(async ({token,original})=>{await chrome.storage.local.set({chat:{messages:original,draft:''}});await chrome.storage.session.set({credential:{provider:'aipro',mode:'browser',token,receivedAt:1}});},{token,original});
-  ui=await context.newPage();ui.on('pageerror',e=>errors.push(e.message));await ui.setViewportSize({width:360,height:800});
-  await ui.goto(`chrome-extension://${new URL(worker.url()).hostname}/index.html`);await poll(async()=>(await state()).catalog?.models?.length,1);
+  await ui.reload();await poll(async()=>(await state()).catalog?.models?.length,1);
+  assert.deepEqual((await state()).chat.messages,original,'history fixture must survive startup before testing compaction');
   await send('초안 조건으로 기억해줘. 제목은 9월 교육이고 보내면 안 돼.');await poll(async()=>(await state()).chat.messages.at(-1)?.state,'done');
   let current=await state();assert.deepEqual(current.chat.messages.slice(0,6),original);assert.equal(current.chat.memory.throughId,'m3');assert(current.chat.contextStats.afterTokens<current.chat.contextStats.beforeTokens);
   assert.equal(current.usage.total.aipro.calls,requests.length);assert.equal(current.usage.total.aipro.total,requests.length*110);

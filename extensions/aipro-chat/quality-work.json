@@ -749,6 +749,121 @@
       "acceptance": "현재 후보와 사용자 선택 모델의 실계정 실행에서 첫 계획 및 전체 요구사항을 독립 확인. HTTP 성공이나 합성 회귀를 완주로 계산하지 않음",
       "checks": [],
       "nextAction": "우선 쉬운 E-01~E-10을 같은 후보/선택 모델에서 계획 전체 완료, 최종 답변 표시, 독립 채점까지 10/10 통과. docs/EASY10-QUALITY-2026-09-27.md에 실패→수정→재검증 기록. 이후 전체30개24개 이상 목표로 확대"
+    },
+    {
+      "id": "NQ-51",
+      "title": "최종 검토에서 하위 분석 실행 근거 보존",
+      "state": "implemented",
+      "order": 57,
+      "acceptance": "문맥 정리 뒤 배정/전달/실제 원문 열람 범위가 남고 partial/실패/미열람은 완료로 승격하지 않음. 모델 한도 부족은 검토 불가로 반환",
+      "checks": [
+        "unit",
+        "analysis-delivery-browser",
+        "analysis-retention-browser",
+        "review-recovery-browser"
+      ],
+      "nextAction": "동일 후보 핵심 회귀와 comparison-continuation-browser 후 H-07 및 고정 7/30과제의 실제 모델 결과 별도 측정"
+    },
+    {
+      "id": "NQ-52",
+      "title": "Wiki 인증 중단 회귀와 현재 동시성 계약 일치",
+      "state": "implemented",
+      "order": 58,
+      "acceptance": "현재 4개 연구 슬롯 안에서 시작된 모든 동료 중지, 인증 실패 뒤 새 모델 호출/원문 재조회 0, 부모와 다른 Wiki 유지. 런타임별 정확한 시작 수를 고정하지 않음",
+      "checks": [
+        "unit",
+        "openwiki-agent-browser"
+      ],
+      "nextAction": "공유 Wiki 엔진의 동시성 변경 시 동일 후보의 인증 격리 회귀를 확인"
+    },
+    {
+      "id": "NQ-53",
+      "title": "자동 비교 근거 유실의 분석 배정 격리",
+      "state": "implemented",
+      "order": 59,
+      "acceptance": "원문 유실을 숨겨 빈 배정이나 불완전한 규칙/예외 비교를 시작하지 않고 미확인 상태와 복구 방법을 주 실행기에 전달. 정상 동료 출처의 배정과 기존 동시성/승인/취소 유지",
+      "checks": [
+        "unit",
+        "analysis-retention-browser",
+        "research-source-browser"
+      ],
+      "nextAction": "docs/HARNESS-ADMISSION-2026-10-01.md의 실패 재현과 comparison-continuation-browser 및 동일 후보 핵심 회귀 확인. 모델 완료율과 지연 개선은 고정 7/30과제 별도 실측"
+    },
+    {
+      "id": "NQ-54",
+      "order": 60,
+      "title": "자동 출처 분석의 원래 요청과 뒤쪽 제외 조건 보존",
+      "state": "implemented",
+      "acceptance": "2,000자 요청 전체가 모든 하위 입력과 재조회/복구 기록에 보존된다. 초과 요청은 잘라 위임하지 않고 주 실행기에 남긴다. 출처/버전/승인 경계 유지",
+      "checks": [
+        "unit",
+        "research-source-browser",
+        "analysis-retention-browser"
+      ],
+      "nextAction": "comparison-continuation-browser 3회 및 같은 후보 핵심 회귀 확인 후 예외 조건 과제의 실모델 결과를 독립 채점. 입력 보존을 의미 정확도 향상으로 대신하지 않음"
+    },
+    {
+      "id": "NQ-55",
+      "order": 61,
+      "title": "긴 웹 원문의 해시 결합 구간 안내",
+      "state": "implemented",
+      "acceptance": "Markdown AST의 원문 구간/중첩/말미 위치를 제공하되 읽기/인용/완료로 승격하지 않음. 해시 변경, 코드 블록 가짜 제목, 생략, UTF-16 좌표와 기존 권한 유지",
+      "checks": [
+        "unit",
+        "source-reference-browser",
+        "analysis-retention-browser"
+      ],
+      "nextAction": "docs/HARNESS-FINAL-2026-10-01.md의 동일 후보 핵심 회귀 및 별도 page-content-browser/comparison-continuation-browser 3회 확인. Luna/Sol H-07과 고정 과제는 별도 독립 채점"
+    },
+    {
+      "id": "NQ-56",
+      "order": 62,
+      "title": "미열람 범위 검토의 원래 요구 범위 유지",
+      "state": "not_selected",
+      "acceptance": "사실별 정확한 근거와 미열람 범위 설명을 분리하며 요청하지 않은 전체 문단 번호 감사를 강제하지 않음. 명시적 전체 읽기/정확한 구간 요청과 원래 금지 조건은 유지",
+      "checks": [],
+      "nextAction": "실모델에서 미실행 하위 분석과 미열람 예외에도 완료한 반례를 보존. 지침 후보는 소스에서 제거했으며 실제 실행/원문 영수증의 완료 계약을 강화한 후 별도 재검토"
+    },
+    {
+      "id": "NQ-57",
+      "order": 63,
+      "title": "독립 조사 탭의 원문 인용과 미확정 정리 복구",
+      "state": "implemented",
+      "acceptance": "기존 허용 origin과 정확한 GET 경로만 사용. 두 조사 탭의 규칙/예외 근거와 미확인을 주 실행기에 전달. 정리 실패 시 기록/보호 규칙 보존 후 실제 탭 부재 확인 뒤 해제. 모델 재시작/개인 탭 삭제/쓰기 권한 확대 없음",
+      "checks": [
+        "unit",
+        "research-workers-browser",
+        "selection-state-browser"
+      ],
+      "nextAction": "동일 후보 quality-baseline-v10 전체 회귀와 고정 30과제 실모델/독립 채점은 별도 확인. 인용 문자열 확인은 의미 정확도나 서버 무변경 보장이 아님"
+    },
+    {
+      "id": "NQ-58",
+      "order": 64,
+      "title": "분석 원문 검색의 탐색 정보 격리",
+      "state": "implemented",
+      "acceptance": "page_content의 실제 반환 Markdown 구간만 query 후보로 사용. 목차/경계/도구 안내의 일치가 원문 조회를 대체하지 않음. 원본 JSON wire UTF-16 좌표와 해시/인용 검증 및 기존 다른 출처 계약 유지",
+      "checks": [
+        "unit",
+        "comparison-continuation-browser",
+        "page-content-browser",
+        "analysis-retention-browser"
+      ],
+      "nextAction": "quality-baseline-v10 동일 후보 전체 회귀. 메타데이터-only 질의 0개 후보와 실제 예외 인용 전달 확인. 실모델 정확도 향상은 별도"
+    },
+    {
+      "id": "NQ-59",
+      "order": 65,
+      "title": "검토한 정보 링크 절차의 현재 화면 재검증과 재사용",
+      "state": "implemented",
+      "acceptance": "검토한 단일 정보 링크만 값 없이 저장. 현재 URL/제목/고유 대상/목적지/위키 버전 재검증과 단회 토큰. 변경 또는 hover 목적지 교체는 클릭 전 차단. 실제 primitive 근거와 단계/최종 검토 유지",
+      "checks": [
+        "unit",
+        "site-link-procedures-browser",
+        "site-procedures-browser",
+        "browser-wiki-browser"
+      ],
+      "nextAction": "동일 후보 3개 Chrome 프로필 회귀와 시간/모델 도구/내부 primitive/실제 상태 성공 전후 비교. 합성 모델과 실제 모델 성능을 구분"
     }
   ]
 }

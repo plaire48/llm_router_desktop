@@ -71,6 +71,13 @@ export const ERROR_TEXT = {
   capture_save_failed: '이미지를 보관하지 못했습니다. 다시 요청해 주세요.',
   capture_too_large: '페이지가 커서 구간별 캡처가 필요합니다.',
   capture_incomplete: '캡처 범위가 달라 화면을 다시 확인해야 합니다.',
+  capture_timeout: '화면 캡처가 지연됐습니다. 현재 페이지를 다시 확인합니다.',
+  debugger_unavailable: '이 브라우저에서 조작 연결 기능을 사용할 수 없습니다.',
+  debugger_conflict: '다른 디버거와 충돌했습니다. 해당 탭의 개발자 도구나 다른 자동화를 닫고 다시 연결해주세요.',
+  debugger_policy_blocked: '브라우저 정책이 조작 연결을 제한했습니다.',
+  debugger_protocol_unsupported: '이 브라우저가 필요한 조작 기능을 지원하지 않습니다.',
+  debugger_attach_failed: '브라우저 조작 연결에 실패했습니다. 현재 페이지와 연결 상태를 확인해주세요.',
+  debugger_disconnected: '브라우저 조작 연결이 끊겼습니다. 이전 동작의 결과를 확인한 뒤 다시 연결해주세요.',
   scroll_target_required: '이동할 스크롤 영역을 확인해야 합니다.',
   scroll_not_moved: '스크롤이 이동하지 않았습니다. 현재 영역을 다시 확인합니다.',
   capture_storage_full: '이미지 보관 공간이 가득 찼습니다. 필요한 이미지를 다운로드한 뒤 새 대화를 시작해 주세요.',
@@ -119,7 +126,7 @@ export const ERROR_TEXT = {
   origin_not_allowed: '허용되지 않은 페이지의 콜백입니다.',
   method_not_allowed: '지원하지 않는 콜백 요청입니다.',
   callback_missing: '콜백은 감지했지만 지원하는 인증값 필드가 없습니다.',
-  login_timeout: '5분 안에 콜백이 도착하지 않았습니다. 회사망과 로그인 경로를 확인하세요.',
+  login_timeout: '로그인 응답이 도착하지 않았어요. 새 로그인을 시작해 주세요.',
   login_closed: '로그인 창이 닫혔습니다. 다시 로그인할 수 있습니다.',
   bridge_failed: '로그인 연결 코드에서 전달을 완료하지 못했습니다.',
   no_credential: '로그인이 필요합니다.',
@@ -169,6 +176,8 @@ export const ERROR_TEXT = {
   workspace_loading: '누비 작업 페이지가 아직 열리는 중입니다. 잠시 후 이어서 진행해 주세요.',
   fill_invalid: '입력란이 변경되었거나 지원하지 않는 값입니다. 다시 확인해 주세요.',
   fill_not_retained: '사이트에서 입력값을 유지하지 않았습니다. 페이지를 확인해 주세요.',
+  fill_format_unsupported: '이 입력란은 서식 있는 글을 받지 않습니다. 일반 글로 입력합니다.',
+  observe_timeout: '페이지가 응답하지 않아 화면을 읽지 못했습니다. 다른 주소로 이동해 다시 시도합니다.',
   agent_stalled: '같은 작업이 반복되어 중단했습니다. 요청이나 페이지 상태를 확인해 주세요.',
   verification_required: '작업 결과를 아직 확인하지 못했습니다. 현재 상태에서 이어서 확인할 수 있습니다.',
   replay_unavailable: '다시 실행할 기록이 없습니다. 모델과 함께 다시 요청해 주세요.',
@@ -202,6 +211,19 @@ export const ERROR_TEXT = {
   callback_jwt_missing: '로그인 결과에서 JWT를 받지 못했습니다. 다시 로그인해 주세요.',
   login_failed: '로그인을 완료하지 못했습니다. 다시 시도해 주세요.',
 };
+// The model's context window in tokens. AI Pro's model list has named it
+// context_length and, in its open_api entries, context (glm-5.2 524288,
+// qwen3.8-27b 262144, gpt-oss-120b 131072); vLLM names it max_model_len. Unread,
+// the window was unknown: the context gauge stayed empty and history was
+// summarized by the default budget instead of the model's own. Never taken
+// from max_input_tokens, which is a separate limit.
+export const windowTokens = model => {
+  for (const value of [model?.context_length, model?.context, model?.context_window, model?.max_model_len, model?.max_context_length]) {
+    const tokens = typeof value === 'string' && /^\d{4,8}$/.test(value.trim()) ? Number(value) : value;
+    if (Number.isSafeInteger(tokens) && tokens > 0) return tokens;
+  }
+  return null;
+};
 export function inspectModelList(payload) {
   if (!Array.isArray(payload?.modelList) || payload.ok === false || payload.success === false) fail('models_invalid');
   const summary = {received: payload.modelList.length, usable: 0, excluded: {target: 0, agent: 0, name: 0, duplicate: 0}};
@@ -212,7 +234,7 @@ export function inspectModelList(payload) {
     if (!validName(m)) { summary.excluded.name++; return false; }
     return true;
   })
-    .map(m => ({name: m.name.trim(), displayName: typeof m.display_name === 'string' && m.display_name.trim() ? m.display_name.trim().slice(0, 200) : m.name.trim(), ...(typeof m.supports_images === 'boolean' ? {supportsImages: m.supports_images} : {}), sortSeq: Number.isFinite(m.sort_seq) ? m.sort_seq : Number.MAX_SAFE_INTEGER, maxInputTokens: Number.isSafeInteger(m.max_input_tokens) && m.max_input_tokens > 0 ? m.max_input_tokens : null, contextLength: Number.isSafeInteger(m.context_length) && m.context_length > 0 ? m.context_length : null, ...(Number.isSafeInteger(m.max_output_tokens) && m.max_output_tokens > 0 ? {maxOutputTokens: m.max_output_tokens} : {})}))
+    .map(m => ({name: m.name.trim(), displayName: typeof m.display_name === 'string' && m.display_name.trim() ? m.display_name.trim().slice(0, 200) : m.name.trim(), ...(typeof m.supports_images === 'boolean' ? {supportsImages: m.supports_images} : {}), sortSeq: Number.isFinite(m.sort_seq) ? m.sort_seq : Number.MAX_SAFE_INTEGER, maxInputTokens: Number.isSafeInteger(m.max_input_tokens) && m.max_input_tokens > 0 ? m.max_input_tokens : null, contextLength: windowTokens(m), ...(Number.isSafeInteger(m.max_output_tokens) && m.max_output_tokens > 0 ? {maxOutputTokens: m.max_output_tokens} : {})}))
     .sort((a, b) => a.sortSeq - b.sortSeq || a.displayName.localeCompare(b.displayName))
     .filter(m => {if (seen.has(m.name)) { summary.excluded.duplicate++; return false; } seen.add(m.name); return true;});
   summary.usable = models.length;

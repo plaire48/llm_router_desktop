@@ -95,7 +95,7 @@ try {
   assert.equal((await state()).chat.messages.find(m=>m.id===reply.id).question.answer.text,'오른쪽 위');
   check('missing evidence produces a concise free-text question with no invented multiple-choice answers');
   const probe=async(name,args={})=>ui.evaluate(async({sourceTab,name,args})=>(await(await import(chrome.runtime.getURL('browser-agent.js'))).runBrowserAgent('choice-probe',{tabId:sourceTab},name,args,{vision:true,onImage:async(image,payload)=>({id:image.id,availableInChat:true,data:payload.data})})).result,{sourceTab,name,args});
-  const found=await probe('find_images');const sprite=found.images.find(i=>i.label==='스프라이트');assert(sprite);
+  const found=await probe('find_images');assert(Array.isArray(found.images),JSON.stringify(found));const sprite=found.images.find(i=>i.label==='스프라이트');assert(sprite);
   const attached=await probe('attach_images',{refs:[sprite.ref]});assert(attached.attachments[0].availableInChat);const exported=Buffer.from(attached.attachments[0].data,'base64').toString('utf8');assert(!exported.includes('<use'));assert(exported.includes('M5 8h14'));assert.match(exported,/rgb\(24, 155, 176\)/);
   const stale=found.images.find(i=>i.label==='쇼핑');await tab.locator('#first path').first().evaluate(el=>el.setAttribute('d','M0 0h5v5Z'));assert.equal((await probe('attach_images',{refs:[stale.ref]})).error,'browser_stale');
   check('local SVG sprites resolve to geometry and changed icon geometry invalidates old candidate refs');

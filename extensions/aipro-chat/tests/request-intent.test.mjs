@@ -17,7 +17,7 @@ test('requests that change a page, and unusable input, are not information reque
   for (const goal of ['제목에 가을 교육, 본문에 다음 두 줄을 입력해 줘. 등록은 하지 마.', '알림을 켜진 상태로 맞춰 줘. 설정을 변경해도 돼.',
     '메일을 열고 받는 사람, 제목, 본문을 작성해줘. 발송하지 마.', '이 글을 삭제해 줘.', '출처를 본문에 붙여 넣고 저장해 줘.', 'Save the draft and post it.',
     '자료 카드를 보관함으로 옮겨줘. 삭제하지 마.', '알림을 켜진 상태로 맞춰 줘. 이미 켜져 있으면 그대로 둬.', '담당 팀을 개발팀으로 선택해 줘.',
-    '이 화면에서 계속 진행해.', '수정일을 오늘로 수정해 줘.', '작성자 이름을 입력하고 알려줘.', '직원 검색에서 Alice Kim을 선택하고 확인해줘. 보내지는 마.', '직원 검색에서 김민지를 키보드로 선택하고 부서를 알려줘.', '필터를 적용해서 결과를 알려줘.', '교육 과정을 신청하고 결과를 알려줘.', 'Move the card to the archive and tell me the result.', 'Turn on notifications.',
+    '이 화면에서 계속 진행해.', '받은 편지함에서 인사팀이 보낸 10월 교육 일정 안내 메일을 중요 표시하고, 열어서 교육 날짜와 장소를 알려줘. 다른 메일은 건드리지 마.', '이 메일을 읽음 처리하고 제목을 알려줘.', '수정일을 오늘로 수정해 줘.', '작성자 이름을 입력하고 알려줘.', '직원 검색에서 Alice Kim을 선택하고 확인해줘. 보내지는 마.', '직원 검색에서 김민지를 키보드로 선택하고 부서를 알려줘.', '필터를 적용해서 결과를 알려줘.', '교육 과정을 신청하고 결과를 알려줘.', 'Move the card to the archive and tell me the result.', 'Turn on notifications.',
     '', '   ', '자료 '.repeat(1200), null, undefined, 3]) assert.equal(isInformationRequest(goal), false, String(goal).slice(0, 40));
 });
 

@@ -13,6 +13,7 @@ import {createHash} from 'node:crypto';
 const visits = {a: 0, b: 0}, checks = [], actions = [], phases = [];
 const output = process.env.NUBI_VERIFICATION_DIR || 'verification/research-source';
 const server = createServer((req, res) => {
+  if (req.url === '/late') {res.setHeader('Content-Type','text/html; charset=utf-8');res.end('<html><head><title></title></head><body><main id=late></main></body></html>');return;}
   const key = req.url === '/b' ? 'b' : 'a';
   if (req.url === '/a' || req.url === '/b') visits[key]++;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -28,7 +29,7 @@ try {
   manifest.host_permissions.push(`${origin}/*`);
   await writeFile(resolve(extension, 'manifest.json'), JSON.stringify(manifest));
   await appendFile(resolve(extension, 'background.js'), '\nglobalThis.sourceProbe={runBrowserAgent,stopBrowserAgent,ready:serial(()=>Promise.resolve())};\n');
-  context = await chromium.launchPersistentContext(profile, {headless: true, executablePath: process.env.CHROME_BINARY,
+  context = await chromium.launchPersistentContext(profile, {headless: true, ...(process.env.CHROME_BINARY ? {executablePath:process.env.CHROME_BINARY} : {channel:'chromium'}),
     args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`]});
   const page = await context.newPage(); await page.goto(`${origin}/a`);
   const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
@@ -47,7 +48,10 @@ try {
       const id=assignment.evidence[0].evidence_id;
       if(!wire.some(message=>message.role==='tool'))return call('read_analysis_evidence',{evidence_id:id});
       workerReads.add(id);
-      return {content:JSON.stringify({status:'complete',summary:'배정한 원문의 비용과 마감 확인',findings:[{text:'비용과 신청 마감이 원문에 명시되어 있습니다.',evidence_ids:[id]}],uncertainties:[],next_step:''})};
+      const packet=JSON.parse(wire.findLast(message=>message.role==='tool').content);
+      const content=JSON.parse(packet.text).result;
+      const quote=content.ranges[0].markdown.match(/원문 [AB]의 비용은[^\n]+/)[0].slice(0,200);
+      return {content:JSON.stringify({status:'complete',summary:'배정한 원문의 비용과 마감 확인',findings:[{text:'비용과 신청 마감이 원문에 명시되어 있습니다.',evidence_ids:[id],quotes:[{evidence_id:id,quote}]}],uncertainties:[],next_step:''})};
     },
     complete:async messages=>{
       const payload=JSON.parse(messages.findLast(message=>message.role==='tool')?.content||'{}');
@@ -100,6 +104,21 @@ try {
   assert(!scripted.error);
   assert(Number.isFinite(Date.parse(scripted.observation.frames[0].observedAt)));
   checks.push('static DOM, Playwright observation and preserved content carry host read timestamps independently of source text dates');
+  await page.goto(`${origin}/late`);
+  const delayedEvidence=[];let delayedReads=0;
+  const delayed=createResearchSourceCapture({enabled:false,preserveReadSources:true,
+    tools:browserTools({},BUILTIN_SKILLS.find(skill=>skill.id==='browser-agent')),signal:new AbortController().signal,
+    evidence:delayedEvidence,onStep:()=>{},execute:async(name,args)=>{delayedReads++;return run(name,args);}});
+  const empty=await run('browser_snapshot',{}),delayedDocument=empty.frames[0].documentId;
+  assert.equal((await delayed('browser_snapshot',empty,true)).source_capture.status,'unavailable');assert.equal(delayedEvidence.length,0);
+  await delayed('browser_snapshot',await run('browser_snapshot',{}),true);assert.equal(delayedReads,1);
+  await page.evaluate(()=>{document.querySelector('#late').textContent='10월 예외: 예약 없이 방문할 수 없습니다.';});
+  const verified=await run('verify_page',{checks:[{kind:'text_present',expected:'10월 예외: 예약 없이 방문할 수 없습니다.'}]});
+  assert.equal(verified.verified,true);assert.equal(verified.observation.frames[0].documentId,delayedDocument);
+  assert.equal((await delayed('verify_page',verified,true)).source_capture.status,'observed');assert.equal(delayedReads,2);
+  assert.equal(delayedEvidence.length,1);assert(delayedEvidence[0].result.ranges.some(range=>range.markdown.includes('예약 없이')));
+  await delayed('verify_page',verified,true);assert.equal(delayedReads,2);
+  checks.push('an actual empty Chrome source recovers only after a passed fresh check in the same document; repeated unchecked snapshots do not reread');
   const hashes={};
   for(const file of ['agent-runtime.js','research-source-capture.js','dist/background.js'])hashes[file]=createHash('sha256').update(await readFile(file)).digest('hex');
   console.log(checks.join('\n'));await mkdir(output,{recursive:true});

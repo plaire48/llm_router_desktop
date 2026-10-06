@@ -147,6 +147,45 @@ export function pointerBlocker(el) {
   const name = clean(kind === 'dialog' ? accessible(dialog) || layerName(dialog) : labelOf(node) || ownText(node, 60), 60);
   return {kind, tag: node.localName, role: getRole(node) || '', ...(name && !secret(node, name) ? {name} : {})};
 }
+// A fixed or sticky bar that covers the target at every point, with no dialog,
+// page cover or control of the target's own row involved: a side quick menu, a
+// header, a chat button. Measured on a library site (H-06): a quick menu fixed to
+// the right edge, 180px wide and as tall as the window, covered the footer's "GO"
+// button at every scroll position, and four clicks were refused. The bar lets
+// this one pointer through (pointer-events: none until restoreBars) only when
+// live hit testing then reaches the target itself. Returns that point or null.
+const passedBars = () => globalThis.__nubiPassedBars ||= new Map();
+const putBack = saved => {
+  for (const {node, value, priority} of saved.reverse()) value ? node.style.setProperty('pointer-events', value, priority) : node.style.removeProperty('pointer-events');
+};
+export function passBars(el, token) {
+  const saved = [];
+  for (let round = 0; round < 4 && !pointerPosition(el); round++) {
+    const sample = pointSamples(el).next().value;
+    if (!sample?.hit) break;
+    const node = sample.owner || sample.hit, box = sample.hit.getBoundingClientRect();
+    if (el.contains(node) || itemOf(el)?.contains(node) || node.closest('dialog[open],[role="dialog"],[role="alertdialog"],[aria-modal="true"]') ||
+      box.width * box.height >= innerWidth * innerHeight * .8) break;
+    let layer = null;
+    for (let at = sample.hit; at && at !== at.ownerDocument.body; at = parent(at)) if (['fixed', 'sticky'].includes(getComputedStyle(at).position)) {layer = at; break;}
+    if (!layer || layer.contains(el)) break;
+    // A part of the bar that sets pointer-events again still takes the pointer.
+    const pass = saved.some(item => item.node === layer) ? sample.hit : layer;
+    if (saved.some(item => item.node === pass)) break;
+    saved.push({node: pass, value: pass.style.getPropertyValue('pointer-events'), priority: pass.style.getPropertyPriority('pointer-events')});
+    pass.style.setProperty('pointer-events', 'none', 'important');
+  }
+  const position = saved.length ? pointerPosition(el) : null;
+  if (position) {passedBars().set(String(token), saved); return position;}
+  putBack(saved);
+  return null;
+}
+export function restoreBars(el, token) {
+  const saved = passedBars().get(String(token));
+  if (!saved) return false;
+  passedBars().delete(String(token)); putBack(saved);
+  return true;
+}
 
 function hoverSurfaces(el) {
   const roots = new Set([el.getRootNode(), el.ownerDocument]);
@@ -498,6 +537,24 @@ function contextOf(el, cache) {
   }
   return result;
 }
+// Fields a choice reveals: hidden now, inside a shown form or dialog (M-08: the
+// email field appears after choosing online; one model asked three runs in a row
+// whether the field existed). Names only, never values or secret fields.
+function conditionalFields(isHidden) {
+  const found = [], seen = new Set();
+  const containers = [...document.querySelectorAll('form,dialog,[role="dialog"],[role="form"]')].filter(el => !isHidden(el)).slice(0, 20);
+  for (const container of containers) {
+    for (const el of container.querySelectorAll('input:not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]):not([type="password"]),textarea,select')) {
+      if (found.length >= 12) return found;
+      if (!isHidden(el) || seen.has(el)) continue;
+      seen.add(el);
+      const name = clean(el.labels?.[0]?.textContent || el.getAttribute('aria-label') || el.getAttribute('placeholder') || el.getAttribute('title') || '', 60);
+      if (!name || /비밀번호|password|passwd|pin\b|인증번호|otp|secret|token/i.test(`${name} ${el.name} ${el.id} ${el.autocomplete}`)) continue;
+      found.push({name, tag: el.tagName.toLowerCase(), ...(el.type && el.tagName === 'INPUT' ? {type: el.type} : {}), ...(layerName(container) ? {in: layerName(container)} : {})});
+    }
+  }
+  return found;
+}
 export function collectSnapshot(input) {
   const options = typeof input === 'object' && input ? input : null;
   const regionRef = options?.region_ref;
@@ -583,6 +640,9 @@ export function collectSnapshot(input) {
         ...(el.id ? {id: clean(el.id)} : {}), ...(el.getAttribute('data-testid') ? {testId: clean(el.getAttribute('data-testid'))} : {}),
         type: info.type, disabled: info.disabled, ...(info.focused ? {focused: true} : {}), ...(field ? {editable: info.editable} : {}),
         ...widgetRelations(el), ...(context.length ? {context} : {}), ...(column ? {column} : {}),
+        ...(field ? {inputLimits:Object.fromEntries(['min','max','step','minlength','maxlength','pattern'].flatMap(key=>{
+          const value=el.getAttribute(key);return value!==null && value.length<=240 ? [[key,value]] : [];
+        }))} : {}),
         ...(field || ['combobox', 'textbox', 'searchbox', 'spinbutton', 'listbox'].includes(role) ? {required: !!el.required || el.getAttribute('aria-required') === 'true', readonly: !!el.readOnly || el.getAttribute('aria-readonly') === 'true', invalid: el.getAttribute('aria-invalid') === 'true' || el.validity?.valid === false} : {}),
         ...(choices ? {options: choices} : {}),
         ...state,
@@ -735,9 +795,9 @@ export function collectSnapshot(input) {
   const ordered = query ? ranked.map(hit => ({...candidates[hit.id], match: hit.match})) :
     candidates.length > limit ? candidates.sort((a, b) => orderOf(a) - orderOf(b)) : candidates;
   const chosen = ordered.slice(0, limit), elements = chosen.map(item => item.el);
-  // Help texts and validation messages tell a field's rule; models here read
-  // 256K tokens or more, so more of them are kept (was 6000).
-  let detailBudget = 16000, omittedControlDetails = 0;
+  // Help texts and validation messages tell a field's rule. Every observation is
+  // sent with each model call, so they stay bounded; read_page has the rest.
+  let detailBudget = 6000, omittedControlDetails = 0;
   const descriptors = chosen.map(({descriptor, match}) => {
     const {description, validationMessage, constraints, ...base} = descriptor;
     const details = {...(description ? {description} : {}), ...(validationMessage ? {validationMessage} : {}), ...(constraints ? {constraints} : {})};
@@ -806,7 +866,11 @@ export function collectSnapshot(input) {
     omittedControls: regionRead ? ordered.length : ordered.length - chosen.length,
     ...(regionRead ? {region_scope: {region_ref: regionRef, region_index: Number(regionRef.slice(regionRef.lastIndexOf('-') + 1)), read_only: true, partial: domTruncated || textPartial,
       instruction: 'Visible text reread only inside this observed DOM region. It may contain several cards or dates; region membership does not prove label/value association, freshness or completion. No action refs are granted.'}} : {})};
-  if (!regionRead) globalThis.__nubiBrowserRegionsV1 = {url: location.href, refs: retainedRegions};
+  if (!regionRead) {
+    const waiting = conditionalFields(isHidden);
+    if (waiting.length) result.hiddenFields = {fields: waiting, instruction: 'These fields exist in a shown form or dialog but are hidden now; a choice in it (an option, a checkbox, a tab) usually shows them. Make that choice first instead of asking whether the field exists.'};
+    globalThis.__nubiBrowserRegionsV1 = {url: location.href, refs: retainedRegions};
+  }
   if (options?.nonce) {
     const refs = new Map();
     result.descriptors = descriptors.map((descriptor, index) => {

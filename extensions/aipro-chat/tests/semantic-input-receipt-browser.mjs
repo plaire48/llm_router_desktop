@@ -3,14 +3,14 @@ import {chromium} from 'playwright';
 import {mkdtemp,cp,copyFile,readFile,writeFile,appendFile,rm,mkdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {resolve} from 'node:path';
-import {createReviewExecution} from '../review-execution.js';
+import {createReviewExecution,projectReviewExecution} from '../review-execution.js';
 
 const profile=await mkdtemp(resolve(tmpdir(),'nubi-semantic-receipt-')),extension=resolve(profile,'extension');
 const checks=[],errors=[];let context;
 const check=text=>{checks.push(text);console.log(`PASS ${text}`);};
 const fixture=`<title>Search interaction evidence</title><style>input,button{display:block;margin:15px;padding:8px}</style>
 <form role="search"><label>Search<input type="search" id="query"></label><button type="submit">Search</button></form><h1 id="result">Not searched</h1>
-<label>Replacement<input id="replace"></label><label>Readonly<input id="readonly" readonly></label>
+<label>Attendance<select id="attendance"><option>Onsite</option><option>Online</option></select></label><label>Replacement<input id="replace"></label><label>Readonly<input id="readonly" readonly></label>
 <label>Redirect<input id="redirect"></label><label>Other<input id="other"></label><label>Password<input id="secret" type="password"></label>
 <script>document.querySelector('form').onsubmit=e=>{e.preventDefault();result.textContent='Museum results';};
 replace.oninput=()=>replace.replaceWith(replace.cloneNode(true));redirect.onfocus=()=>other.focus();</script>`;
@@ -24,7 +24,11 @@ try {
   const manifest=JSON.parse(await readFile(resolve(extension,'manifest.json'),'utf8'));
   manifest.host_permissions.push('https://*/*','http://*/*');await writeFile(resolve(extension,'manifest.json'),JSON.stringify(manifest));
   await appendFile(resolve(extension,'background.js'),'\nglobalThis.receiptTest={runBrowserAgent,stopBrowserAgent,ready:()=>serial(()=>{})};\n');
-  await appendFile(resolve(extension,'browser-agent.js'),'\nglobalThis.receiptTargetCount=()=>active?.scriptReceiptTargets?.size||0;\n');
+  await appendFile(resolve(extension,'browser-agent.js'),`\nglobalThis.receiptTargetCount=()=>active?.scriptReceiptTargets?.size||0;
+globalThis.cancelAfterSemanticFill=ref=>{
+  const requestId=active.id,handle=active.refs.get(ref).handle,fill=handle.fill.bind(handle);
+  handle.fill=async(...args)=>{const result=await fill(...args);void stopBrowserAgent(requestId);return result;};
+};\n`);
   context=await chromium.launchPersistentContext(profile,{headless:true,executablePath:process.env.CHROME_BINARY,
     args:[`--disable-extensions-except=${extension}`,`--load-extension=${extension}`]});
   context.on('page',page=>page.on('pageerror',error=>errors.push(error.message)));
@@ -56,9 +60,21 @@ try {
   assert.equal(await page.locator('#result').innerText(),'Museum results');
   check('Enter dispatch uses the same historical control across refreshed refs; result success is checked separately');
 
+  snapshot=await run('browser_snapshot');result=await run('select_option',{ref:byId(snapshot,'attendance').ref,values:['Online']});
+  assert.equal(result.selectionTargetReceipt.status,'observed',JSON.stringify(result));
+  assert.equal(result.selectionTargetReceipt.target.tag,'select');
+  assert.equal(await page.locator('#attendance').inputValue(),'Online');
+  const choiceLedger=createReviewExecution({taskStartObserved:true});choiceLedger.complete(choiceLedger.record('select_option'),result);
+  assert.equal(projectReviewExecution(choiceLedger.snapshot()).interactionTargetCoverage,'complete');
+  check('semantic selection records the real select target while selected value and submission remain separate checks');
+
   snapshot=await run('browser_snapshot');const old=byId(snapshot,'query').ref;await run('browser_snapshot');
   result=await run('fill_form',{fields:[{field_id:old,value:'DO_NOT_WRITE'}]});
   assert.equal(result.actionIssued,false);assert.equal(result.reason,'browser_stale');assert.equal(result.inputExecution.commands.length,0);
+  // The kind of staleness tells the model which correction applies.
+  assert.equal(result.staleReason,'earlier_observation');assert.match(result.instruction,/earlier observation/);
+  const invented=await run('fill_form',{fields:[{field_id:'c-00000000-0000-0000-0000-000000000000-0',value:'DO_NOT_WRITE'}]});
+  assert.equal(invented.reason,'browser_stale');assert.equal(invented.staleReason,'unknown_ref');assert.match(invented.instruction,/character for character/);
   assert.equal(await page.locator('#query').inputValue(),'museum');
   check('stale semantic refs fail without input dispatch or a fabricated receipt');
 
@@ -85,10 +101,12 @@ try {
 
   snapshot=await run('browser_snapshot');const first=byId(snapshot,'query').ref,second=byId(snapshot,'readonly').ref;
   const partialArgs={fields:[{field_id:first,value:'first retained'},{field_id:second,value:'MUST_NOT_WRITE'}]};
-  const pending=run('fill_form',partialArgs);
-  await page.locator('#query').evaluate(node=>new Promise(resolve=>{if(node.value==='first retained')return resolve();const poll=setInterval(()=>{if(node.value==='first retained'){clearInterval(poll);resolve();}},10);}));
-  await new Promise(resolve=>setTimeout(resolve,300));await worker.evaluate(()=>receiptTest.stopBrowserAgent('receipt'));
-  result=await pending;assert.equal(result.error,'cancelled');assert.equal(await page.locator('#readonly').inputValue(),'');
+  // Cancel at the actual first fill return, before dispatch can reach the next
+  // field. A wall-clock sleep races that field's independent stale rejection.
+  await worker.evaluate(ref=>cancelAfterSemanticFill(ref),first);
+  result=await run('fill_form',partialArgs);
+  assert.equal(result.error,'cancelled');assert.equal(await page.locator('#query').inputValue(),'first retained');
+  assert.equal(await page.locator('#readonly').inputValue(),'');
   const partialId=ledger.record('fill_form');ledger.complete(partialId,result);assert.equal(await ledger.bindInputArguments(partialId,partialArgs),false);
   assert.equal(ledger.reviewSnapshot().historicalInputValues.length,1);
   assert.equal(await worker.evaluate(()=>receiptTargetCount()),0);

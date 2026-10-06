@@ -145,6 +145,31 @@ test('checkpoint marks an interrupted write unknown, bounds receipts, and exclud
   const prompt = resumeMessage(task).content;
   assert(prompt.includes('verify it instead of replaying')); assert(!prompt.includes('private code')); assert(!prompt.includes('secret=x'));
 });
+
+test('synthetic host state cannot summarize the latest unread tool batch', async () => {
+  const fresh = 'CURRENT SOURCE LINE\n'.repeat(1000);
+  const old = pair('old', 'old text '.repeat(8000));
+  const first = pair('latest', fresh), second = pair('second', 'second current result');
+  const batch = [{...first[0], tool_calls: [...first[0].tool_calls, ...second[0].tool_calls]}, first[1], second[1]];
+  const state = {role: 'user', contextOnly: true, content: 'Current host plan: inspect the returned result'};
+  for (const force of [false, true]) {
+    const context = createRunContext({model, tools: [], goal: summary.goal, invoke: summarize, signal: signal()});
+    const wire = [{role: 'system', content: 'instructions'}, ...old, ...batch, state];
+    const packed = await context.prepare(wire, force);
+    validPairs(packed);
+    assert.equal(packed.find(m => m.tool_call_id === 'latest')?.content, fresh);
+    assert.equal(packed.at(-1).content, state.content);
+    assert(!packed.some(m => m.tool_call_id === 'old'));
+  }
+});
+
+test('oversized unread tool result reaches overflow recovery instead of disappearing behind host state', async () => {
+  const wire = [{role: 'system', content: 'instructions'}, ...pair('too-large', 'source line '.repeat(12000)),
+    {role: 'user', contextOnly: true, content: 'Current host plan'}];
+  const context = createRunContext({model, tools: [], invoke: summarize, signal: signal()});
+  await assert.rejects(context.prepare(wire), /context_input_too_large/);
+  assert.equal(wire[2].tool_call_id, 'too-large');
+});
 function provider(t, fetchImpl, type = 'aipro') {
   const before = {chrome: globalThis.chrome, fetch: globalThis.fetch};
   t.after(() => Object.assign(globalThis, before));

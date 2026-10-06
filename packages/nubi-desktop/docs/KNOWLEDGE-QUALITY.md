@@ -131,7 +131,7 @@ FK는 `{"schema":"APP","table":"CUSTOMERS","from":["CUSTOMER_ID"],"to":["ID"]}` 
 | [node-sql-parser](https://github.com/taozhi8833998/node-sql-parser) | Apache-2.0. 정규식 대신 AST로 DDL 구조 추출. 문법 오류/미지원 구문은 별도 표시 |
 | [Graphology](https://graphology.github.io/) | MIT. 방향·다중 관계·제한된 이웃 탐색에 실제 도입. 네트워크 그래프 DB 운영 비용 없이 로컬 사용 |
 | [DBHub](https://github.com/bytebase/dbhub) | MIT. 여러 DB를 같은 도구로 묶는 후보로 실제 인터페이스 확인. 서버 전체와 범용 SQL 실행 기능을 더하는 대신 현재는 수집 라이브러리를 직접 사용 |
-| [OpenMetadata](https://docs.open-metadata.org/latest/connectors/database) / [DataHub lineage](https://docs.datahub.com/docs/features/feature-guides/lineage/) | 조직 규모의 카탈로그·실행 lineage 연계 후보. 서버·인프라를 Desktop에 묶지 않음. 표준화된 입력 포트만 구현; 직접 API 커넥터는 후속 |
+| [OpenMetadata](https://docs.open-metadata.org/latest/connectors/database) / [DataHub lineage](https://docs.datahub.com/docs/features/feature-guides/lineage/) | 조직 규모의 카탈로그·실행 lineage 연계 후보. 서버·인프라를 Desktop에 묶지 않음. 외부 메타데이터 입력 계약만 유지. 사용자 결정(2026-10-01)으로 OpenMetadata 도입은 현재 범위에서 제외 |
 | Ajv, YAML, 기존 Nubi QuestionForm/Pi/OpenWiki | 기존 의존성과 공통 UI 재사용. 엄격한 계약 검증과 질문 재개에 적용. 별도 질문 UI 복제 없음 |
 
 ## 다음 평가 기준

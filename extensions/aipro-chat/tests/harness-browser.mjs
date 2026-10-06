@@ -107,8 +107,9 @@ try {
   assert.equal(state.chat.task.verification.status, 'passed');
   assert.equal(await page.evaluate(() => window.value), '9월 교육'); assert.equal(await page.evaluate(() => window.saves), 3);
   assert.equal(await page.evaluate(() => window.body), '신청합니다.'); assert.equal(await page.evaluate(() => window.titleWrites), 1);
-  // Stage 1 revise, stage 1 complete, stage 2 complete, then the final review.
-  assert.equal(reviews, 4); assert.equal(state.chat.task.goalReview.status, 'complete'); assert.equal(state.chat.task.goalReview.checks, 3);
+  // Stage 1 revise, stage 1 complete, then the final review: the last stage made no change of its own.
+  assert.equal(reviews, 3); assert.equal(state.chat.task.goalReview.status, 'complete'); assert.equal(state.chat.task.goalReview.checks, 3);
+  // The trace also shows the intermediate checkpoint.
   assert.equal(state.chat.messages.at(-1).trace.filter(step => step.tool === 'review_task').length, 4);
   check('dynamic tool selection reaches AI Pro, actual input/save failure is observed, corrected once and independently verified');
   check('independent requirement review catches an omitted body, repairs only that field and rechecks the full request without repeating title input');
@@ -133,6 +134,9 @@ try {
   const changed = await rpc('RUN_TOOL', {requestId: request.requestId, name: 'fill_form', args: {fields: [{field_id: ref(observed, '제목'), value: '다음 교육'}]}});
   assert.equal(changed.ok, true, JSON.stringify(changed));
   assert.equal(await page.locator('input').inputValue(), '다음 교육');
+  // The fill read back what it wrote: that is its check. A save click is a change of its own.
+  assert.deepEqual({status: (await rpc('GET_STATE')).chat.task.verification.status, source: (await rpc('GET_STATE')).chat.task.verification.source}, {status: 'passed', source: 'fill_readback'});
+  await rpc('RUN_TOOL', {requestId: request.requestId, name: 'click_element', args: {ref: ref(await rpc('RUN_TOOL', {requestId: request.requestId, name: 'browser_snapshot', args: {}}), '초안 저장')}});
   assert.equal((await rpc('GET_STATE')).chat.task.verification.status, 'pending');
   await rpc('FINISH_CHAT', {requestId: request.requestId, content: '검증 없이 완료', status: 200});
   const guarded = await rpc('GET_STATE'); assert.equal(guarded.chat.messages.at(-1).error, 'verification_required');

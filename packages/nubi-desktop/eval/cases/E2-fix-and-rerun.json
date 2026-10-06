@@ -1,0 +1,58 @@
+{
+  "id": "E2-fix-and-rerun",
+  "title": "실패한 테스트를 고치고 다시 실행해 확인",
+  "suite": "command",
+  "split": "dev",
+  "corpus": "order-failing",
+  "request": "테스트가 실패한다는 보고가 있어. 테스트를 실행해서 원인을 찾고, 코드를 고친 다음 다시 실행해서 모두 통과하는지 확인해 줘.",
+  "approvals": [
+    "patch",
+    "command"
+  ],
+  "commands": [
+    "npm(?:\\.cmd)? (?:run )?test(?: .+)?",
+    "node --test(?: .+)?",
+    "(?:node|npm)(?:\\.cmd)? (?:--version|-v)",
+    "git (?:status|diff|log)(?: [\\w./=@-]+)*"
+  ],
+  "expect": {
+    "state": "review",
+    "commands": {
+      "match": [
+        "re:npm(?:\\.cmd)? (?:run )?test",
+        "re:node --test"
+      ],
+      "min": 1,
+      "lastExitCode": 0
+    },
+    "answer_includes": [
+      [
+        "통과",
+        "pass"
+      ]
+    ],
+    "files": [
+      {
+        "path": "test/shipping.test.mjs",
+        "includes": [
+          "assert.equal(shippingFee(49999, 'seoul'), 3000);",
+          "assert.equal(shippingFee(50000, 'seoul'), 0);"
+        ]
+      }
+    ],
+    "test": {
+      "files": {
+        "test/eval-hidden.test.mjs": "import {test} from 'node:test';\nimport assert from 'node:assert/strict';\nimport {shippingFee, FREE_SHIPPING_MIN} from '../src/shipping.mjs';\ntest('hidden check', () => {\n  assert.equal(FREE_SHIPPING_MIN, 50000);\n  assert.equal(shippingFee(49999, 'seoul'), 3000);\n  assert.equal(shippingFee(50000, 'seoul'), 0);\n  assert.equal(shippingFee(30000, 'jeju'), 7500);\n});\n"
+      },
+      "command": [
+        "node",
+        "--test",
+        "test/eval-hidden.test.mjs"
+      ]
+    },
+    "unchanged_except": [
+      "src/shipping.mjs",
+      "test/shipping.test.mjs"
+    ]
+  }
+}

@@ -1,4 +1,5 @@
-import test from 'node:test';
+import {featureTest} from './beta-feature.mjs';
+const test=featureTest('computerUse');
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
 import {fixture} from './fixtures.mjs';

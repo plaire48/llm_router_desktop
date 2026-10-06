@@ -1,5 +1,5 @@
 import {createHash} from 'node:crypto';
-import {realpath, lstat, readFile} from 'node:fs/promises';
+import {realpath, lstat, readFile, readdir} from 'node:fs/promises';
 import path from 'node:path';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
@@ -44,7 +44,7 @@ export async function readSource(root, rel) {
 export async function listFiles(root, {within} = {}) {
   if(within)relativeFile(within);
   // Narrow at Git enumeration, before the cap, so a large repository remains searchable.
-  const raw = await git(root, ['--literal-pathspecs', 'ls-files', '-z', '--cached', '--others', '--exclude-standard', ...(within?['--',within]:[])]);
+  let raw;try {raw = await git(root, ['--literal-pathspecs', 'ls-files', '-z', '--cached', '--others', '--exclude-standard', ...(within?['--',within]:[])]);}catch(error){if(gitOpenFailure(error)!=='not_git_repository'&&gitOpenFailure(error)!=='git_unavailable')throw error;const paths=[];async function walk(dir,base=''){for(const entry of await readdir(dir,{withFileTypes:true})){const rel=base+entry.name;if(privatePath(rel)||/(^|\/)(?:dist|build|coverage|verification|\.next)(\/|$)/.test(rel))continue;if(paths.length>=20001)return;if(entry.isDirectory())await walk(path.join(dir,entry.name),rel+'/');else if(entry.isFile())paths.push(rel);}}await walk(root);raw=paths.filter(p=>!within||p.startsWith(within+'/')||p===within).join('\0');}
   const all = [...new Set(raw.split('\0').filter(Boolean))].filter(p => !privatePath(p) && !/(^|\/)(?:dist|build|coverage|verification|\.next)(\/|$)/.test(p));
   return {paths: all.slice(0, 20000), truncated: all.length > 20000};
 }

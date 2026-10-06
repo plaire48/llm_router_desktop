@@ -20,6 +20,10 @@ export const CORPORA=Object.freeze({
   'order-service':{source:path.join(here,'corpus-src','order-service'),include:['.']},
   // Rules of the simulated expense app, for app control that acts on an OpenWiki answer.
   'expense-office':{source:path.join(here,'corpus-src','expense-office'),include:['.']},
+  // The command suite: the order service with a free-shipping threshold that breaks its tests,
+  // and with a product list whose check writes a long log.
+  'order-failing':{source:path.join(here,'corpus-src','order-failing'),include:['.']},
+  'order-catalog':{source:path.join(here,'corpus-src','order-catalog'),include:['.']},
 });
 const IGNORED=new Set(['node_modules','dist','.git','.DS_Store']);
 const fail=code=>{throw new Error(code);};

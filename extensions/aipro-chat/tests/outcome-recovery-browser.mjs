@@ -75,7 +75,8 @@ try {
     }
     if (current === 4) {
       assert.equal(result.reason, 'browser_stale'); reasons.push(result.reason); assert.equal(checkpoints, 1);
-      assert.match(body.messages[0].content, /failures without changed evidence: 2/);
+      // Recovery guidance is run state: it travels in the host's run-state message.
+      assert(body.messages.some(message => message.role === 'user' && typeof message.content === 'string' && message.content.startsWith('Current run state from the host.') && /failures without changed evidence: 2/.test(message.content)));
       name = 'fill_form'; args = {fields: [{field_id: ref(result, '검색어'), value: '표준 안내'}]};
       content = '페이지가 갱신되어 대상을 다시 확인했습니다. 검색어를 입력하고 결과를 확인하겠습니다.';
     }
@@ -83,7 +84,7 @@ try {
     if (current === 6) {name = 'verify_page'; args = {checks: [{kind: 'text_present', expected: '표준 안내 문서 1건'}]};}
     if (current === 7) {
       assert.equal(result.error, 'verification_failed'); reasons.push(result.error);
-      assert.match(body.messages[0].content, /Compare the failed checks/);
+      assert(body.messages.some(message => message.role === 'user' && typeof message.content === 'string' && message.content.startsWith('Current run state from the host.') && /Compare the failed checks/.test(message.content)));
       name = 'select_option'; args = {ref: ref(result, '검색 범위'), values: ['all']};
       content = '최근 문서에서는 결과가 없습니다. 전체 문서로 범위를 바꿔 다시 확인하겠습니다.';
     }
@@ -113,7 +114,8 @@ try {
   await until(async () => ['done', 'error'].includes((await state()).chat.messages.at(-1)?.state));
   const saved = await state(), answer = saved.chat.messages.at(-1);
   assert.equal(answer.state, 'done', JSON.stringify(answer)); assert.equal(stage, 12); assert.equal(checkpoints, 1); assert.equal(analystCalls, 2);
-  assert.deepEqual(reviewPhases, [['plan_step', 11], ['plan_step', 12], ['final', 12]]);
+  // The last stage only reports what the reviewed stage did: the final review judges it.
+  assert.deepEqual(reviewPhases, [['plan_step', 11], ['final', 12]]);
   assert.deepEqual(reasons, ['browser_stale', 'browser_stale', 'verification_failed']);
   const events = await target.evaluate(() => window.events);
   assert.deepEqual(events.filter(event => event.kind === 'input'), [{kind: 'input', trusted: true}]);

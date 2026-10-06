@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import {runAgent} from '../agent-runtime.js';
 import {browserTools, BUILTIN_SKILLS} from '../skills.js';
 import {goalReviewMessages, replacesPageContent} from '../goal-review.js';
+// The host appends this run's state (plan, last operation) as the final message;
+// these tests read the message before it.
+const lastMessage = messages => messages.findLast(message => !(message?.role === 'user' && typeof message.content === 'string' && message.content.startsWith('Current run state from the host.')));
 
 // Measured on candidate 41 with GPT-5.6 Sol (H-04, H-06): research answers
 // were released as limited because (1) an audit that found a gap needing a new
@@ -40,7 +43,7 @@ async function run(correctionTarget) {
   await runAgent({goal, messages: [{role: 'user', content: goal}], resumePlan: plan, tools, harness: true, signal: new AbortController().signal,
     complete: async wire => {
       rounds++;
-      const last = wire.findLast(message => message.role === 'user');
+      const last = wire.findLast(message => message.role === 'user' && !(typeof message.content === 'string' && message.content.startsWith('Current run state from the host.')));
       const text = typeof last?.content === 'string' ? last.content : JSON.stringify(last?.content || '');
       if (text.includes('Independent requirement review found gaps')) notes.push(text);
       if (rounds === 1) return call('read_page');
@@ -81,7 +84,7 @@ async function searched(reviews) {
     complete: async (wire, selected) => {
       assert(++rounds < 14);
       if (rounds === 1) return call('update_plan', {steps: [{text: '운영시간 확인', status: 'in_progress', expected_outcome: '운영시간을 출처와 함께 제시'}]});
-      const text = JSON.stringify(wire.at(-1));
+      const text = JSON.stringify(lastMessage(wire));
       calls.push({tools: selected.length, text});
       if (rounds === 2 || text.includes('needs new evidence')) return call('read_page');
       return {content: text.includes('DELETE every statement') ? '서울도서관 운영시간은 공식 안내에서 확인하지 못했습니다.' : '서울도서관 운영시간은 평일 09:00~21:00입니다.'};

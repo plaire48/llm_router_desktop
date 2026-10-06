@@ -10,6 +10,14 @@ const answer={content:JSON.stringify({status:'partial',summary:'앞부분 확인
 const brief={role:'research',task:'긴 문서의 조건 비교 '+ '세부 기준 '.repeat(80),constraints:'원문을 수정하지 말고 예외를 보존하세요',done_when:'각 조건의 근거와 미해결 항목 반환',effort:'standard'};
 const record=(n=1)=>({version:1,id:`handoff_00000000-0000-4000-8000-${String(n).padStart(12,'0')}`,status:'running',brief,
  documents:[{id:'doc1',hash}],ranges:[{document_id:'doc1',hash,start:0,end:6}],progress:[{document_id:'doc1',hash,start:0,end:6,read:[{start:0,end:3}],remaining:[{start:3,end:6}],review_needed:true}],sources:[]});
+test('durable recovery preserves a full 2000-character task and rejects an oversized brief', () => {
+ const tail='로그인 전용 서비스 제외';
+ const task='조건 비교'.padEnd(2000-tail.length,'x')+tail;
+ const saved=storeAnalysisHandoff(null,{...record(),brief:{...brief,task}});
+ assert.equal(saved.records[0].brief.task,task);
+ assert.equal(readAnalysisHandoff(saved,record().id,[{id:'doc1',hash}]).record.brief.task,task);
+ assert.equal(normalizeAnalysisHandoff({...record(),brief:{...brief,task:task+'x'}}),null);
+});
 test('durable handoff retains full constraints/ranges and rejects changed or missing document versions without executing',()=>{
  const original=record();original.secret='PRIVATE';const state=storeAnalysisHandoff(null,original);
  assert.equal(state.records[0].brief.task,brief.task);assert.equal(state.records[0].brief.constraints,brief.constraints);assert(!JSON.stringify(state).includes('PRIVATE'));

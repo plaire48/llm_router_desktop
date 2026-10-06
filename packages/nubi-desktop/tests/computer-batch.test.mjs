@@ -5,7 +5,8 @@
 // steps in order, checks every target before its input, reads the value or
 // state back and stops at the first step that cannot be carried out as it
 // was approved.
-import {test} from 'node:test';
+import {featureTest} from './beta-feature.mjs';
+const test=featureTest('computerUse');
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {fixture} from './fixtures.mjs';

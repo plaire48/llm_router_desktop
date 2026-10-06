@@ -5,7 +5,8 @@ const observations = new Set(['read_page', 'browser_snapshot', 'inspect_dom', 'n
 // Observe each opened source once. This never navigates, grants permissions,
 // claims full coverage, or retries a failed/uncertain browser action.
 export function createResearchSourceCapture({enabled, preserveReadSources = false, tools, execute, signal, onStep, evidence, analyses, onSource}) {
-  const seen = new Set();
+  const seen = new Set(), attempts = new Map();
+  let sequence = 0;
   // A view kept right after the click that turned it may still have been
   // loading. It is read once more when a later observation of the same view
   // is permitted, and replaced only if its content changed.
@@ -43,9 +44,19 @@ export function createResearchSourceCapture({enabled, preserveReadSources = fals
     const key = sourceIdentity(url, documentId, 0, top.page_view);
     if (!url || observation.metadata_only || !Array.isArray(observation.frames) || !observation.frames.some(frame => !frame.unavailable) || seen.has(key) ||
         turned && provisional.has(key) || seen.size + provisional.size >= 16 && !provisional.has(key)) return result;
+    const count = attempts.get(key) || 0;
+    // A failed read cannot become a cache hit. Repeat only after a new passed
+    // host page check, once; unchecked observations and uncertain writes cannot
+    // spend a retry. Provisional counted views keep their existing one refresh.
+    if (count >= 2 || count && !(provisional.get(key) > 0) && !(name === 'verify_page' && result.verified === true)) {
+      return {...result, source_capture: {status:'unavailable', reason:count >= 2 ? 'capture_recovery_exhausted' : 'capture_requires_verified_observation',
+        instruction:'The prior source read did not establish reference evidence. Use an explicit focused read of the observed source or a grounded alternative. Do not treat failed capture as absence or full coverage.'}};
+    }
+    if (!count && attempts.size >= 16) return result;
+    attempts.set(key, count + 1);
     const kept = provisional.get(key);
-    if (turned) provisional.set(key, 0); else {provisional.delete(key); seen.add(key);}
-    const index = `research-source-${seen.size + provisional.size}`;
+    if (turned) provisional.set(key, 0); else provisional.delete(key);
+    const index = `research-source-${++sequence}`;
     onStep({index, tool: 'read_page', status: 'running', label: '출처 본문 확보'});
     let content;
     try {content = await execute('read_page', {mode: 'content'});}
@@ -57,6 +68,7 @@ export function createResearchSourceCapture({enabled, preserveReadSources = fals
       onStep({index, tool: 'read_page', status: 'error', label: '출처 본문 확인 필요'});
       return {...result, source_capture: {status: 'unavailable', instruction: 'The opened source was not captured as reference evidence. Use a focused read_page content request or inspect the observed frame; do not treat missing text as absence.'}};
     }
+    if (!turned) seen.add(key);
     const same = kept && evidence.find(item => item.id === kept && item.usable && !item.superseded && item.result?.content_hash === content.content_hash);
     if (same) {
       onStep({index, tool: 'read_page', status: 'done', label: '출처 본문 확보'});

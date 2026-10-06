@@ -10,9 +10,13 @@ import {resolve} from 'node:path';
 const profile = await mkdtemp(resolve(tmpdir(), 'nubi-relink-')), extension = resolve(profile, 'extension');
 const html = `<!doctype html><html lang="ko"><title>검색 결과</title><body><main><h1>검색 결과</h1>
 <ul id="list">${Array.from({length: 5}, (_, i) => `<li><a href="/dest/${i}?from=list">결과 제목 ${i}</a></li>`).join('')}</ul>
-<div id="box"><button type="button" id="more">더보기</button></div></main>
+<div id="box"><button type="button" id="more">더보기</button></div><div id="plain"><button type="button">목록</button></div></main>
 <script>
-window.rerender = () => {const list = document.getElementById('list'); list.innerHTML = list.innerHTML; const box = document.getElementById('box'); box.innerHTML = box.innerHTML;};
+window.clicks = [];
+document.addEventListener('click', e => {if (e.target.closest('button')) clicks.push(e.target.closest('button').textContent);});
+window.rerender = () => {const list = document.getElementById('list'); list.innerHTML = list.innerHTML; const box = document.getElementById('box'); box.innerHTML = box.innerHTML; const plain = document.getElementById('plain'); plain.innerHTML = plain.innerHTML;};
+window.twice = () => {window.rerender(); document.getElementById('box').insertAdjacentHTML('beforeend', '<button type="button" id="more">더보기</button>');};
+window.anonymous = () => {document.getElementById('box').innerHTML = '<button type="button">더보기</button>';};
 window.duplicate = () => {window.rerender(); document.getElementById('list').insertAdjacentHTML('beforeend', '<li><a href="/dest/2?from=list">결과 제목 2</a></li>');};
 window.retarget = () => {window.rerender(); document.querySelector('a[href^="/dest/2"]').setAttribute('href', '/dest/9?from=list');};
 window.retitle = () => {window.rerender(); document.querySelector('a[href^="/dest/2"]').textContent = '다른 제목';};
@@ -40,12 +44,12 @@ try {
     const run = async (tool, args = {}) => (await worker.evaluate(({id, tabId, tool, args}) => contentTest.runBrowserAgent(id, {tabId}, tool, args), {id, tabId, tool, args})).result;
     // attach=true observes through the debugger, false through the page script.
     if (attach) assert.equal((await run('verify_page', {checks: [{kind: 'link_destination', ref: 'none', expected}]})).verified, false);
-    const snapshot = await run('browser_snapshot', {query: '결과 제목 더보기'});
+    const snapshot = await run('browser_snapshot', {query: '결과 제목 더보기 목록'});
     const elements = snapshot.frames.flatMap(frame => frame.elements || []);
-    const link = elements.find(el => el.name === '결과 제목 2'), button = elements.find(el => el.id === 'more');
-    assert(link?.ref && button?.ref, JSON.stringify(elements).slice(0, 300));
+    const link = elements.find(el => el.name === '결과 제목 2'), button = elements.find(el => el.id === 'more'), plain = elements.find(el => el.name === '목록');
+    assert(link?.ref && button?.ref && plain?.ref, JSON.stringify(elements).slice(0, 300));
     await tab.evaluate(change);
-    return {tab, run, link, button, close: async () => {await worker.evaluate(id => contentTest.stopBrowserAgent(id), id).catch(() => {}); await tab.close();}};
+    return {tab, run, link, button, plain, close: async () => {await worker.evaluate(id => contentTest.stopBrowserAgent(id), id).catch(() => {}); await tab.close();}};
   }
   for (const attach of [true, false]) {
     let s = await scenario('rerender', 'window.rerender()', attach);
@@ -68,11 +72,25 @@ try {
       await s.close();
       pass(`${attach ? 'debugger' : 'page script'} observation: ${label} stays stale`);
     }
+    // A button the page re-drew by itself is not pressed from the old observation,
+    // even with the same id: the model decides again from a fresh one.
     s = await scenario('button', 'window.rerender()', attach);
     const button = await s.run('click_element', {ref: s.button.ref});
     assert.equal(button.error, 'browser_stale', JSON.stringify({error: button.error}));
+    // A debugger observation holds the node itself (gone); a page-script one finds it again by mark (not found).
+    assert.equal(button.staleReason, attach ? 'target_gone' : 'target_not_found', JSON.stringify({staleReason: button.staleReason}));
+    const plain = await s.run('click_element', {ref: s.plain.ref});
+    assert.equal(plain.error, 'browser_stale', JSON.stringify({error: plain.error}));
+    assert.deepEqual(await s.tab.evaluate(() => clicks), []);
     await s.close();
-    pass(`${attach ? 'debugger' : 'page script'} observation: a re-rendered button is never followed`);
+    pass(`${attach ? 'debugger' : 'page script'} observation: a button the page re-drew by itself stays stale, with or without a stable id`);
+    for (const [name, change, label] of [['twice', 'window.twice()', 'two buttons with that id'], ['anonymous', 'window.anonymous()', 'a button that lost its id']]) {
+      s = await scenario(name, change, attach);
+      const refused = await s.run('click_element', {ref: s.button.ref});
+      assert.equal(refused.error, 'browser_stale', `${label}: ${JSON.stringify({error: refused.error})}`); assert.deepEqual(await s.tab.evaluate(() => clicks), []);
+      await s.close();
+      pass(`${attach ? 'debugger' : 'page script'} observation: ${label} stays stale`);
+    }
   }
   console.log(`DONE ${count}`);
 } finally {

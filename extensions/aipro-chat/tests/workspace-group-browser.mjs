@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
-import {mkdtemp, cp, readFile, writeFile, appendFile, rm} from 'node:fs/promises';
+import {mkdtemp, cp, readFile, writeFile, appendFile, rm, mkdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {resolve} from 'node:path';
 import {chromium} from 'playwright';
@@ -11,6 +11,7 @@ await new Promise(done => server.listen(0, '127.0.0.1', done));
 const origin = `http://127.0.0.1:${server.address().port}`;
 let context;
 try {
+  await mkdir('verification/browser-30', {recursive: true});
   await cp('dist', extension, {recursive: true});
   const manifest = JSON.parse(await readFile(resolve(extension, 'manifest.json')));
   manifest.host_permissions.push('http://127.0.0.1/*');

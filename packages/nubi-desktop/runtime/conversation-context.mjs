@@ -1,13 +1,6 @@
 import {createHash,randomUUID} from 'node:crypto';
 import {compactHistory,contextBudget,contextTokens} from '../../../extensions/aipro-chat/context-manager.js';
-
-// Providers currently reserve up to 4096 output tokens even for summaries.
-// Do not budget a smaller reply merely because the prompt asks for one.
-export function conversationModel(model={}) {
-  if (!Number.isSafeInteger(model.contextLength)||model.contextLength<=0) return model;
-  if (model.contextLength<5120) throw new Error('context_input_too_large');
-  return {...model,maxInputTokens:Math.min(model.maxInputTokens||Infinity,model.contextLength-4096)};
-}
+export {conversationModel} from '../context-policy.mjs';
 
 export function conversationMessages(task) {
   const seen=new Set(['request:'+task.id]);

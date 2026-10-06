@@ -544,6 +544,7 @@ export function evidenceReader(
 }
 
 /** Portable OpenWiki research core. The host supplies its current model. */
+const RESEARCH_WORKERS = 4;
 export async function runWikiQuestion(
   inputValue: QuestionInput,
   options: {
@@ -1019,8 +1020,10 @@ export async function runWikiQuestion(
       missing.push({ ...assignment.range, start: at });
     return missing;
   }
-  // Two independent workers; recovery inherits the same slot and never replays
-  // a successful read. New contexts contain only the original task and its gap.
+  // Four independent workers (user decision 2026-09-30, was two: a whole-Wiki
+  // review of about 100 reads outran a 20-minute task). Recovery inherits the
+  // same slot and never replays a successful read. New contexts contain only
+  // the original task and its gap.
   async function worker() {
     while (cursor < assignments.length) {
       const taskId = cursor++,
@@ -1066,7 +1069,7 @@ export async function runWikiQuestion(
     }
     return level.length === 1 ? level[0] : reduce(level);
   }
-  await Promise.all([worker(), worker()]);
+  await Promise.all(Array.from({ length: RESEARCH_WORKERS }, () => worker()));
   progress("synthesizing");
   const seen = new Set([...corpus.evidence.keys()]);
   async function reduce(group: Report[]): Promise<Report> {

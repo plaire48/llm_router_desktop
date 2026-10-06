@@ -14,6 +14,7 @@ import {resolve} from 'node:path';
 const page = `<!doctype html><html lang="ko"><title>신청 설정</title><body><form aria-label="신청 설정">
 <label>참석 유형 <select id="kind"><option value="onsite">현장</option><option value="online">온라인</option></select></label>
 <label>현장 메모 <input id="memo" value="기존 현장 안내"></label></form>
+<button id="alert" type="button" role="switch" aria-checked="true">알림</button><button id="query" type="button" disabled>조회</button><button id="save" type="button">저장</button>
 <div class="mails">${Array.from({length: 4}, (_, i) => `<div class="row" data-row="${i}"><button type="button" class="star" title="중요">☆</button><span>보낸사람${i} 교육 안내 ${i}</span></div>`).join('')}</div>
 <script>for (const star of document.querySelectorAll('.star')) star.addEventListener('click', () => star.closest('.row').classList.toggle('starred'));</script></body></html>`;
 const server = createServer((req, res) => {res.setHeader('Content-Type', 'text/html; charset=utf-8'); res.end(page);});
@@ -42,13 +43,22 @@ try {
 
   let latest = await run('browser_snapshot'), {kind, memo} = refs(latest);
   assert.deepEqual(kind.options.map(option => [option.value, option.label]), [['onsite', '현장'], ['online', '온라인']], 'the select lists option values and labels');
-  latest = await run('verify_page', {checks: [{kind: 'control_state', ref: kind.ref, expected: '현장'}, {kind: 'field_value', ref: memo.ref, expected: '기존 현장 안내'}]});
+  // Measured with two models: a select's chosen option was checked as control_state
+  // three times in a row and refused each time. It is judged as the chosen option.
+  latest = await run('verify_page', {checks: [{kind: 'control_state', ref: kind.ref, expected: '현장'}, {kind: 'control_state', ref: kind.ref, expected: 'onsite'}, {kind: 'field_value', ref: memo.ref, expected: '기존 현장 안내'}]});
+  assert.equal(latest.error, undefined, JSON.stringify(latest).slice(0, 300)); assert.equal(latest.verified, true, JSON.stringify(latest.checks));
+  assert.deepEqual(latest.checks.slice(0, 2).map(check => check.checkedAs), ['chosen_option', 'chosen_option']);
+  ({kind, memo} = refs(latest));
+  latest = await run('verify_page', {checks: [{kind: 'control_state', ref: kind.ref, expected: '온라인'}]});
+  assert.equal(latest.verified, false); assert.equal(latest.checks[0].passed, false);
+  pass('a control_state check on a select is judged by its chosen option, by label or value');
+  ({kind, memo} = refs(latest));
+  latest = await run('verify_page', {checks: [{kind: 'control_state', ref: kind.ref, expected: 'x'.repeat(201)}, {kind: 'field_value', ref: memo.ref, expected: '기존 현장 안내'}]});
   assert.equal(latest.error, 'tool_arguments_invalid'); assert.equal(latest.reason, 'check_invalid');
   assert.deepEqual(latest.invalidChecks.map(item => [item.index, item.kind]), [[0, 'control_state']], JSON.stringify(latest.invalidChecks));
-  assert.match(latest.invalidChecks[0].problem, /field_value with that option's value/);
   assert.match(latest.instruction, /Correct only those/); assert.doesNotMatch(latest.instruction, /small script/);
   assert(latest.observation?.frames?.length, 'a fresh observation comes with the error');
-  pass('a control_state check on a select names that check and says to use field_value with the option value');
+  pass('a malformed control_state check is still named and refused before any check runs');
 
   ({kind, memo} = refs(latest));
   latest = await run('verify_page', {checks: [{kind: 'field_value', ref: kind.ref, expected: 'onsite'}, {kind: 'field_value', ref: memo.ref, expected: '기존 현장 안내'}]});
@@ -77,6 +87,18 @@ try {
   assert.deepEqual(latest.checks.map(check => check.passed), [true, false], JSON.stringify(latest.checks));
   assert.equal(latest.checks[1].reason, undefined, 'an unstarred row is a failed check, not an incompatible one');
   pass('control_state with the state word checks the starred row and fails for another row');
+
+  // Measured with Luna (E-10, M-10): a switch with aria-checked="true" checked as
+  // "on" failed, and a button checked as "enabled" was refused.
+  const control = name => (latest.observation || latest).frames.flatMap(frame => frame.elements || []).find(el => el.name === name);
+  latest = await run('browser_snapshot');
+  latest = await run('verify_page', {checks: [{kind: 'control_state', ref: control('알림').ref, expected: 'on'}, {kind: 'control_state', ref: control('알림').ref, expected: 'checked'},
+    {kind: 'control_state', ref: control('조회').ref, expected: 'disabled'}, {kind: 'control_state', ref: control('저장').ref, expected: 'enabled'}]});
+  assert.equal(latest.verified, true, JSON.stringify(latest.checks));
+  assert.deepEqual(latest.checks.map(check => check.checkedAs), ['state', 'state', 'disabled_state', 'disabled_state']);
+  latest = await run('verify_page', {checks: [{kind: 'control_state', ref: control('알림').ref, expected: 'off'}, {kind: 'control_state', ref: control('조회').ref, expected: 'enabled'}]});
+  assert.deepEqual(latest.checks.map(check => check.passed), [false, false], JSON.stringify(latest.checks));
+  pass('an ARIA switch is judged "on" by aria-checked, and a button "enabled" or "disabled" by its disabled state');
   console.log(`DONE ${count}`);
 } finally {
   await context?.close().catch(() => {}); server.close(); await rm(profile, {recursive: true, force: true});

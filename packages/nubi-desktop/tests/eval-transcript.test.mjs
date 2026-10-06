@@ -5,6 +5,14 @@ import {recordingProviders,leaderEntries,leaderToolResults} from '../eval/transc
 const status=()=>({provider:'chatgpt',model:'fixture',connected:true,models:[{id:'fixture',contextLength:200000,maxOutputTokens:4096},{id:'other',contextLength:64000}]});
 const tools=[{type:'function',function:{name:'read_source'}}];
 
+test('normal evaluation preserves provider-specific 256K, 512K and 1M windows',()=>{
+  for(const contextLength of [256000,262144,272000,512000,524288,1000000,1048576]){
+    const catalog={provider:'aipro',model:'fixture',connected:true,models:[{id:'fixture',contextLength,maxInputTokens:contextLength-4096,maxOutputTokens:4096}]};
+    const recorded=recordingProviders({status:()=>catalog,complete:async()=>({})});
+    assert.deepEqual(recorded.status(),catalog);
+  }
+});
+
 test('each call is recorded with full messages, tool names and the response',async()=>{
   const entries=[],providers=recordingProviders({status,complete:async()=>({content:'답변',calls:[{id:'c',function:{name:'read_source',arguments:'{"path":"a"}'}}],finishReason:'tool_calls',usage:{prompt_tokens:5,completion_tokens:1}})},{write:entry=>entries.push(entry)});
   const messages=[{role:'system',content:'You are Nubi Desktop.'},{role:'user',content:'질문'}];
@@ -71,4 +79,12 @@ test('calls of the OpenWiki agent are counted apart and have their own limit',as
   await assert.rejects(providers.complete(leader,[]),/evaluation_model_budget/);
   assert.deepEqual(entries.map(entry=>entry.delegated===true),[false,true,true,true,false]);
   assert.deepEqual(entries.map(entry=>entry.sequence),[1,2,3,4,5]);
+});
+
+test('each call records its longest wait between two signs of model activity',async()=>{
+  const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms)),entries=[];
+  const providers={status:()=>({model:'fixture'}),async complete(messages,tools,signal,onText){onText('a');await pause(60);onText('b');await pause(5);return {content:'끝',calls:[]};}};
+  const recorded=recordingProviders(providers,{write:entry=>entries.push(entry)});
+  await recorded.complete([{role:'system',content:'You are Nubi Desktop.'}],[]);
+  assert.equal(entries[0].activity.events,2);assert.ok(entries[0].activity.longestGapMs>=55,String(entries[0].activity.longestGapMs));
 });

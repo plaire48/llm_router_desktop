@@ -5,6 +5,9 @@ import {normalizePlan, initialPlan} from '../task-plan.js';
 import {reviewEvidence, goalReviewMessages, parseGoalReview} from '../goal-review.js';
 import {browserTools, BUILTIN_SKILLS} from '../skills.js';
 import {resumedVerification, taskReceipt} from '../context-state.js';
+// The host appends this run's state (plan, last operation) as the final message;
+// these tests read the message before it.
+const lastMessage = messages => messages.findLast(message => !(message?.role === 'user' && typeof message.content === 'string' && message.content.startsWith('Current run state from the host.')));
 
 const tools=browserTools({},BUILTIN_SKILLS.find(skill=>skill.id==='browser-agent'),'QWEN3.8-27B-FP8-256K');
 const call=(name,args={})=>({calls:[{id:crypto.randomUUID(),type:'function',function:{name,arguments:JSON.stringify(args)}}]});
@@ -28,7 +31,7 @@ test('a passing unrelated check cannot advance an outcome-bearing plan and the m
       if(round===1)return call('fill_form',{fields:[{field_id:'title',value:'제목'}]});
       if(round===2||round===5)return call('verify_page',{checks:[{kind:'text_present',expected:round===2?'페이지 제목':'작성된 본문'}]});
       if(round===3||round===6)return call('update_plan',{steps:closing});
-      if(round===4){assert.equal(JSON.parse(messages.at(-1).content).deferred,true);return call('fill_form',{fields:[{field_id:'body',value:'본문'}]});}
+      if(round===4){assert.equal(JSON.parse(lastMessage(messages).content).deferred,true);return call('fill_form',{fields:[{field_id:'body',value:'본문'}]});}
       return {content:'초안을 작성했습니다.'};
     },
     execute:async(name,args)=>{executed.push([name,args]);return name==='update_plan'?{ok:true,plan:args.steps}:{ok:true,verified:true,applied:1};},

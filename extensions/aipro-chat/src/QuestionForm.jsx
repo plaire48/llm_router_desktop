@@ -1,6 +1,6 @@
 import React, {useEffect, useId, useLayoutEffect, useRef, useState} from 'react';
 import {CxButton, CxTextarea, CxField, CxNotice, Icon} from '@e2e/cx-design-system';
-import {QUESTION_TEXT_LIMIT} from '../user-question.js';
+import {QUESTION_TEXT_LIMIT, questionDisplayOptions} from '../user-question.js';
 import {ERROR_TEXT} from '../core.js';
 import {InteractionSurface} from './InteractionSurface.jsx';
 
@@ -39,7 +39,10 @@ export function QuestionForm({question, disabled, onChoose, onDraft, children, h
   }, [value, expanded, question.inputMode]);
   const answered = !!question.answer, blocked = disabled || busy || answered;
   const multiline = question.inputMode === 'long_text' || /[\r\n]/.test(value);
-  const hasChoices = question.options.length > 0;
+  // Direct entry already follows the choices. Keep original option IDs when
+  // hiding redundant entry buttons, including questions saved by older clients.
+  const options = questionDisplayOptions(question, {allowText});
+  const hasChoices = options.length > 0;
   const inputHint = typeof question.inputPlaceholder === 'string' ? question.inputPlaceholder.trim() : '';
   function change(next) {
     setValue(next); setError('');
@@ -69,19 +72,18 @@ export function QuestionForm({question, disabled, onChoose, onDraft, children, h
   }
   return <InteractionSurface className="question-card" aria-label="질문" data-answered={answered} aria-busy={busy} title={question.text} titleId={`${id}-title`} headingClassName="image-question" headingAction={headingAction}
     >
-    {!answered && hasChoices && <p className="question-instruction" id={`${id}-choice-hint`}>선택하면 답변을 보냅니다.</p>}
     {typeof children === 'function' ? children({onChoose: choose, disabled: blocked}) : children}
-    {!answered && question.kind === 'choice' && <div className="question-options" role="group" aria-labelledby={`${id}-title`} aria-describedby={error ? `${id}-answer-error` : `${id}-choice-hint`}>
-      {question.options.map((option, index) => <CxButton key={option.id} className="question-option" disabled={blocked} title="선택하면 답변을 보냅니다" onClick={() => choose({optionId: option.id})}>
+    {!answered && question.kind === 'choice' && hasChoices && <div className="question-options" role="group" aria-labelledby={`${id}-title`} aria-describedby={error ? `${id}-answer-error` : undefined}>
+      {options.map((option, index) => <CxButton key={option.id} className="question-option" disabled={blocked} onClick={() => choose({optionId: option.id})}>
         <span className="question-option-index" aria-hidden="true">{index + 1}</span>
         <span className="question-option-copy"><strong>{option.label}</strong>{option.description && <span>{option.description}</span>}</span>
         <Icon name="arrowRight" size={16}/>
       </CxButton>)}
     </div>}
     {!answered && allowText && <form className="interaction-input" id={`${id}-form`} onSubmit={submit}>
-      <CxField label={hasChoices ? '또는 직접 답변' : '답변'} id={`${id}-answer`} error={error || undefined}>
-      {React.createElement(CxTextarea, {ref: input, value, 'aria-label': '직접 답변', 'aria-describedby': `${id}-title${inputHint ? ` ${id}-input-hint` : ''}`,
-        placeholder: inputHint ? undefined : (multiline ? '내용과 조건을 자유롭게 적어주세요.' : hasChoices ? '선택지에 없다면 직접 적어주세요.' : '답변을 적어주세요.'), maxLength, disabled: blocked,
+      <div className="interaction-entry"><span className="interaction-entry-icon" aria-hidden="true"><Icon name="pencil" size={18}/></span><CxField label="직접 답변" id={`${id}-answer`} error={error || undefined}>
+      {React.createElement(CxTextarea, {ref: input, value, 'aria-describedby': `${id}-title`,
+        placeholder: inputHint || (multiline ? '예: 포함할 내용과 원하는 분위기' : hasChoices ? '예: 다른 답변이나 추가 조건' : '예: 원하는 내용이나 조건'), maxLength, disabled: blocked,
         rows: multiline ? 3 : 1, onChange: event => change(event.target.value), onKeyDown: keydown,
         onPaste: event => {
           const text = event.clipboardData.getData('text/plain').replace(/\r\n?/g, '\n');
@@ -99,10 +101,9 @@ export function QuestionForm({question, disabled, onChoose, onDraft, children, h
             focusInput();
           }
         }})}
-      </CxField>
-      {inputHint && <p className="question-input-hint" id={`${id}-input-hint`}>{inputHint}</p>}
+      </CxField></div>
       <div className="interaction-input-actions">
-        {hasMore && <CxButton type="button" className="question-more" aria-expanded={expanded} aria-controls={`${id}-answer`} disabled={blocked} onClick={() => {setExpanded(current => !current); focusInput();}}>{expanded ? '접기' : '더 보기'}</CxButton>}
+        {hasMore && <CxButton type="button" className="question-more" title={expanded ? '답변 입력 줄이기' : '답변 입력 펼치기'} aria-expanded={expanded} aria-controls={`${id}-answer`} disabled={blocked} onClick={() => {setExpanded(current => !current); focusInput();}}><Icon name={expanded ? 'minimize' : 'maximize'} size={16}/>{expanded ? '접기' : '더 보기'}</CxButton>}
         {value.length > maxLength * .9 && <span className="interaction-count" role="status">{value.length.toLocaleString()} / {maxLength.toLocaleString()}</span>}
         <CxButton type="submit" variant="primary" className="question-send" aria-label="답변 보내기" title="답변 보내기 (Ctrl/⌘+Enter)" disabled={blocked || !value.trim()} busy={busy}><Icon name="arrowUp" size={18}/></CxButton>
       </div>

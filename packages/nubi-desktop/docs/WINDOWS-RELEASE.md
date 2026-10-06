@@ -52,6 +52,12 @@ The user-approved product name is 누비 workspace and its display version is be
 
 This release's workflow upgrades the SHA-256-pinned 0.1.1 verified installer from build run 35864493370, with read-only Actions access. The matching previous release remains archived in AI Workspace. CI artifacts expire: for later releases, update this baseline to an accessible verified release or a retained successful run and checksum. Do not remove the upgrade gate.
 
+## 1.1.1
+
+Display version beta 1.1.1. The shared runtime, OpenWiki-SDS and the Office worker files stay at their 1.1.0 release versions; only the Desktop changes. "프로젝트 열기" runs the folder command that every platform enables, and each reason a folder cannot open has its own message. A folder without Git or outside a Git repository shows a setup card with the exact commands, run after one approval: a per-user winget install of Git (the new git.exe is found and added to the running app's PATH), or `git init` with an empty first commit whose author is "누비 workspace" only when Git has no user name. When an install fails, the model reads the output and proposes another command, again for approval; an administrator command is shown for the user to run. The folder then opens and a first task prepares its environment (dependencies, build, test) with the usual approvals. The bird stays above its sparkles.
+
+The upgrade gate installs the verified 1.1.0 installer (run 36651590466, draft release `nubi-desktop-v1.1.0-run-36651590466` of plaire48/llm-router, SHA-256 `107933dc1fdb19e3949a0817ee89bff2d330d209e1d04551b0248c48dd1c4e86`) and then this candidate over it; keep that draft release while it is the baseline. `scripts/check-project-setup.mjs` opens a folder outside a repository in the actual Theia app and creates the repository through the card.
+
 ## 1.1.0
 
 Display version beta 1.1.0; package locks, the installed Electron version and Windows file metadata agree on 1.1.0. The name, app ID, executable and state paths are unchanged, so 1.0.0 installations upgrade in place.

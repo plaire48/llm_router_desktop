@@ -47,10 +47,13 @@ try{
   assert.equal(await ui.evaluate(async()=>(await chrome.runtime.sendMessage({type:'GET_STATE'})).data.nativeDialog?.id),promptQuestion.id);
  }
  checks.push('mixed cancel/text and invalid prompt values are rejected without consuming the live question');
+ // A person may take longer than the locator timeout. Require the uncertain
+ // receipt instead of treating a late accepted prompt as an instant success.
+ await new Promise(resolve=>setTimeout(resolve,8000));
  await card.getByRole('textbox',{name:'직접 답변'}).fill('사용자가 작성한 메모');await ui.screenshot({path:'verification/native-dialog-approval/prompt.png'});await card.getByRole('button',{name:'답변 보내기',exact:true}).click();result=await pending;
- console.log('STAGE prompt returned');assert.equal(result.ok,true,JSON.stringify(result));assert.equal(await page.evaluate(()=>answer),'사용자가 작성한 메모');assert.equal(await page.evaluate(()=>clicks),2);
+ console.log('STAGE prompt returned');assert.equal(result.error,'script_timeout',JSON.stringify(result));assert.equal(result.actionIssued,true);assert.equal(result.observation.nativeDialogs[0].disposition,'accepted');assert.equal(await page.evaluate(()=>answer),'사용자가 작성한 메모');assert.equal(await page.evaluate(()=>clicks),2);
  const persisted=await worker.evaluate(async()=>JSON.stringify([await chrome.storage.local.get(null),await chrome.storage.session.get(null)]));assert(!persisted.includes('사용자가 작성한 메모'));assert(!persisted.includes('PRIVATE_DEFAULT'));assert(!persisted.includes('메모를 입력하세요'));
- console.log('STAGE prompt storage checked');checks.push('prompt input reaches the pending native dialog without entering storage or model receipts');
+ console.log('STAGE prompt storage checked');checks.push('a long-wait prompt stays uncertain without replay; independent page read confirms the exact input once, and private text never enters storage or model receipts');
  await worker.evaluate(id=>nativeApprovalProbe.stop(id),requestId);requestId='cancel-run';await seed(requestId);await page.evaluate(()=>{window.flood=true;});console.log('STAGE flood armed');snapshot=await run('browser_snapshot');pending=run('click_element',{ref:target(snapshot,'confirm')});card=ui.locator('.question-card').filter({hasText:'검토한 내용을 반영할까요?'});await card.waitFor();await card.getByRole('button',{name:/취소/}).click();result=await pending;console.log('STAGE cancel returned');assert.equal(result.error,'browser_dialog');assert.deepEqual(await page.evaluate(()=>({clicks,accepted})),{clicks:3,accepted:1});
  assert.equal(result.nativeDialogs.length,8);assert(result.nativeDialogs.every(d=>d.type==='alert'));
  snapshot=await run('browser_snapshot');const blocked=await run('click_element',{ref:target(snapshot,'confirm')});

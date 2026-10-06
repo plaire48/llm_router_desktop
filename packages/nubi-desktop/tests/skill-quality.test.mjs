@@ -104,3 +104,11 @@ test('Pi routes resource paging, binary facts and changed-reference recovery wit
   assert.equal(service.task(task.id).state,'review');assert.ok(service.task(task.id).trace.some(e=>e.tool==='list_skill_resources'&&e.status==='done'));
   assert.equal(service.state().processes.length,0);assert.equal(service.state().proposals.length,0);
 });
+
+
+test('skill activation retains compatibility and preparation instructions without running scripts',async t=>{
+  const {service,root,directory}=await fixture(t),folder=await source(directory);
+  await writeFile(path.join(folder,'SKILL.md'),markdown('writing').replace('description:', 'compatibility: Requires PowerShell 5.1 and Python 3.12\ndescription:'));
+  await service.importSkill({source:folder});const catalog=await skillCatalog(root),active=await useSkill(root,catalog,args(catalog));
+  assert.equal(active.compatibility,'Requires PowerShell 5.1 and Python 3.12');assert.match(active.instruction,/not installed or executed/);assert.match(active.instruction,/propose_setup_action/);assert.equal(active.editObservation,false);
+});

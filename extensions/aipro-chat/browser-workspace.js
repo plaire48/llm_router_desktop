@@ -47,12 +47,25 @@ export async function openChatTab({senderTabId, sourceWindowId, hash = ''} = {})
   return {tab: await chrome.tabs.create({url: base + targetHash}), reused: false, hash: targetHash};
 }
 
-export async function readyWorkspaceTab(workspace, tabId, cancelled = () => false) {
+export async function readyWorkspaceTab(workspace, tabId, cancelled = () => false, {committedOnly = false} = {}) {
   const until = Date.now() + 12000;
   for (;;) {
     if (cancelled()) throw new Error('cancelled');
     const tab = await workspaceTab(workspace, tabId);
-    if (/^https?:\/\//.test(tab.url || '') && tab.status !== 'loading') return tab;
+    if (/^https?:\/\//.test(tab.url || '') && (committedOnly || tab.status !== 'loading')) return tab;
+    if (Date.now() >= until) throw new Error('workspace_loading');
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+}
+
+// tabs.create resolves before the first HTTP document necessarily commits.
+// pendingUrl is an intention, never a readable document or permission grant.
+export async function readyCreatedTab(tabId, cancelled = () => false, {waitMs = 12000} = {}) {
+  const until = Date.now() + waitMs;
+  for (;;) {
+    if (cancelled()) throw new Error('cancelled');
+    const tab = await chrome.tabs.get(tabId);
+    if (/^https?:\/\//.test(tab.url || '')) return tab;
     if (Date.now() >= until) throw new Error('workspace_loading');
     await new Promise(resolve => setTimeout(resolve, 100));
   }

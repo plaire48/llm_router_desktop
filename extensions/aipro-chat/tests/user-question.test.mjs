@@ -1,8 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {questionArgs, textQuestionArgs, makeQuestion, questionAnswer, questionContext, QUESTION_TEXT_LIMIT} from '../user-question.js';
+import {questionArgs, textQuestionArgs, makeQuestion, questionAnswer, questionContext, questionDisplayOptions, QUESTION_TEXT_LIMIT} from '../user-question.js';
 import {runAgent} from '../agent-runtime.js';
 import {browserTools, BUILTIN_SKILLS} from '../skills.js';
+
+test('visible choice numbers match model context without changing saved IDs or special dialogs', () => {
+  const question = makeQuestion('어떤 형식인가요?', [], [], {choices:[{label:'요약'}, {label:'기타 (직접 입력)'}, {label:'보고서'}]});
+  assert.deepEqual(questionDisplayOptions(question).map(({id,label})=>({id,label})), [{id:'option-1',label:'요약'},{id:'option-3',label:'보고서'}]);
+  assert.match(questionContext({question}), /1\. 요약\n2\. 보고서/);
+  assert.doesNotMatch(questionContext({question}), /기타/);
+  assert.equal(questionAnswer(question,{questionId:question.id,optionId:'option-3'}),'보고서');
+  assert.equal(questionDisplayOptions(question,{allowText:false}),question.options);
+  assert.equal(questionDisplayOptions({...question,kind:'image'}),question.options);
+  assert.equal(questionDisplayOptions({...question,kind:'approval'}),question.options);
+  for (const label of ['기타','직접 입력','직접 답변','Other','Other (please specify)']) assert.equal(questionDisplayOptions({...question,options:[{id:'o',label}]}).length,0);
+  assert.equal(questionDisplayOptions({...question,options:[{id:'o',label:'기타 업무팀'}]}).length,1);
+});
 
 test('short answer cues survive planner normalization and persistence without becoming answers', () => {
   const wire = {question: '어느 팀의 안내문인가요?', input_placeholder: '팀 이름만 적어주세요.'};

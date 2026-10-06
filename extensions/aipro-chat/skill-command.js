@@ -1,7 +1,7 @@
 // A portable name, never a script or an authorization grant.
-export function skillCommand(skill) {
+export function skillCommand(skill, reserved = ['compact','wiki','plan']) {
   const name = String(skill?.name || '').normalize('NFKC').toLowerCase().trim().replace(/[^\p{L}\p{N}_-]+/gu, '-').replace(/^-+|-+$/g, '').slice(0, 64) || 'skill';
-  return ['compact','wiki','plan'].includes(name) ? `skill-${name}` : name;
+  return reserved.includes(name) ? `skill-${name}` : name;
 }
 export function skillCommandOptions(skills, text) {
   const match = /^\/([^\s/]*)$/.exec(text);

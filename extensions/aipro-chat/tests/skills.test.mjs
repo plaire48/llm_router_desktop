@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import {importSkill, exportSkill, normalizeSkill, allSkills, browserTools, BUILTIN_SKILLS} from '../skills.js';
 import {completeChat} from '../src/api.js';
 import {chatMessages} from '../chat-contract.js';
+// The host appends this run's state (plan, last operation) as the final message;
+// these tests read the message before it.
+const lastMessage = messages => messages.findLast(message => !(message?.role === 'user' && typeof message.content === 'string' && message.content.startsWith('Current run state from the host.')));
 
 test('Markdown skills keep instructions as text and never grant executable tools on import', () => {
   const skill = importSkill('---\nname: "리뷰"\nallowed-tools: Bash\n---\nReview DOM.\n```js\nalert(1)\n```');
@@ -63,9 +66,9 @@ test('fragmented tool calls execute in order and tool-role results reach the fin
   assert.equal(result, '입력했습니다.');
   assert.equal(bodies[0].tool_choice, 'auto');
   assert.deepEqual(executed.map(call => call.name), ['inspect_dom', 'fill_form']);
-  assert.equal(bodies[2].messages.at(-1).role, 'tool');
-  assert.equal(bodies[2].messages.at(-1).tool_call_id, 'call-fill');
-  assert.deepEqual(JSON.parse(bodies[2].messages.at(-1).content), {ok: true, applied: 1, analysis_evidence_id: 'ev_2'});
+  assert.equal(lastMessage(bodies[2].messages).role, 'tool');
+  assert.equal(lastMessage(bodies[2].messages).tool_call_id, 'call-fill');
+  assert.deepEqual(JSON.parse(lastMessage(bodies[2].messages).content), {ok: true, applied: 1, analysis_evidence_id: 'ev_2'});
   assert.equal(usage.total_tokens, 105);
   assert.equal(request.messages.length, 1);
 });
@@ -97,8 +100,8 @@ test('the chat adapter keeps read-only skill calls interactive without enabling 
     assert(!body.tools.some(tool => ['fill_form', 'verify_page', 'run_playwright'].includes(tool.function.name)));
     if (++round === 1) return Response.json({choices: [{message: {content: '마감일을 확인하겠습니다.', tool_calls: ['read_page', 'inspect_dom'].map(name => ({id: name, type: 'function', function: {name, arguments: '{}'}}))}, finish_reason: 'tool_calls'}]});
     assert.deepEqual(executed, ['read_page']);
-    assert.equal(JSON.parse(body.messages.at(-1).content).deferred, true);
-    assert.match(body.messages[0].content, /Compare the actual input and output/);
+    assert.equal(JSON.parse(lastMessage(body.messages).content).deferred, true);
+    assert.match(body.messages.at(-1).content, /Compare the actual input and output/); assert.doesNotMatch(body.messages[0].content, /Last operation:/);
     return Response.json({choices: [{message: {content: '마감일은 10월 8일입니다.'}, finish_reason: 'stop'}]});
   };
   const result = await completeChat(request, new AbortController().signal, undefined, undefined, phase => phases.push(phase), undefined, async name => {executed.push(name); return {text: '마감일 10월 8일'};});

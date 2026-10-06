@@ -5,6 +5,9 @@
 // intermediate reviews. This never grants permission for an operation.
 const CHANGE_WORD = '작성|수정|편집|입력|등록|저장|전송|발송|게시|발행|업로드|다운로드|삭제|구매|결제|예약|배포|제출|변경|생성|채우|채워|넣어|붙여|보내|올려|고쳐|바꿔|반영' +
   '|옮겨|옮기|드래그|끌어|맞춰|토글|켜\\s*줘|꺼\\s*줘|켜\\s*주|꺼\\s*주|신청|가입|로그인|로그아웃' +
+  // Marking a mail or an item changes it: "중요 표시하고 열어서 알려줘" asks for a
+  // change and a finding (measured: W-02 was taken for a lookup).
+  '|(?:중요|읽음|안\\s*읽음|별표|스팸)\\s*(?:표시|처리)' +
   // An action form of these verbs, not the adnominal form in "선택한 폴더" or "설정된 값".
   '|(?:선택|체크|해제|설정|이동|추가|제거|취소|승인|적용|실행)(?:해|하고|하여|하세요|하라|하기|시켜|시키)';
 const CHANGE = new RegExp(`${CHANGE_WORD}|\\b(?:write|edit|save|submit|publish|post|upload|delete|purchase|book|move|drag|set|select|toggle|enable|disable|turn\\s+(?:on|off)|apply|sign\\s+(?:in|up)|log\\s+(?:in|out)|approve|cancel|add|remove)\\b`, 'i');

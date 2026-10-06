@@ -265,3 +265,36 @@ test('a click that turns a counted list keeps that page before its check has pas
  await other.capture('click_element',view(2),false,false);
  assert.equal(other.evidence.length,0);
 });
+
+test('a failed source capture is not a successful cache hit; one later verified observation may recover it',async()=>{
+ const url='https://example.test/late';let reads=0;
+ const state=setup(async()=>++reads===1?{error:'page_read_unavailable'}:content(url,'10월 예외: 예약 없이 방문할 수 없습니다.'));
+ assert.equal((await state.capture('browser_snapshot',page(url),true)).source_capture.status,'unavailable');
+ await state.capture('browser_snapshot',page(url),true);assert.equal(reads,1,'Repeating an unchecked snapshot is not new recovery authority');
+ await state.capture('verify_page',{...page(url),verified:false},true);assert.equal(reads,1);
+ const recovered=await state.capture('verify_page',{...page(url),verified:true},true);
+ assert.equal(reads,2);assert.equal(recovered.source_capture.status,'observed');assert.equal(state.evidence.length,1);assert.equal(state.sources.length,1);
+ assert.equal(new Set(state.events.filter(event=>event.status==='running').map(event=>event.index)).size,2,'Recovery cannot overwrite the failed attempt progress row');
+ await state.capture('verify_page',{...page(url),verified:true},true);assert.equal(reads,2,'A successful source remains cached');
+});
+test('failed capture recovery is bounded and cannot cross uncertain action or document identity',async()=>{
+ const url='https://example.test/recovery';let reads=0;
+ const state=setup(async()=>{reads++;return {...content(url),source_document_id:'different-document'};});
+ await state.capture('browser_snapshot',page(url),true);
+ await state.capture('verify_page',{...page(url),verified:true},false);assert.equal(reads,1);
+ assert.equal((await state.capture('verify_page',{...page(url),verified:true},true)).source_capture.status,'unavailable');
+ for(let i=0;i<4;i++)await state.capture('verify_page',{...page(url),verified:true},true);
+ assert.equal(reads,2);assert.equal(state.evidence.length,0);assert.equal(state.sources.length,0);
+});
+
+test('a failed provisional counted view needs a passed check too; explicit valid reads end automatic recovery',async()=>{
+ const url='https://example.test/counted',view={current:2,total:3};let reads=0;
+ const state=setup(async()=>++reads===1?{error:'page_read_unavailable'}:{...content(url),page_view:view});
+ const observation={...page(url),actionIssued:true,observation:{...page(url).observation,frames:[{frame:0,documentId:url,text:'内容',page_view:view}]}};
+ await state.capture('click_element',observation,false,true);
+ await state.capture('browser_snapshot',observation,true);assert.equal(reads,1);
+ assert.equal((await state.capture('verify_page',{...observation,verified:true},true)).source_capture.status,'observed');assert.equal(reads,2);
+ const explicit=setup(async()=>{reads++;return {error:'page_read_unavailable'};});
+ await explicit.capture('browser_snapshot',page(url),true);const before=reads;
+ await explicit.capture('read_page',content(url),true);await explicit.capture('verify_page',{...page(url),verified:true},true);assert.equal(reads,before);
+});

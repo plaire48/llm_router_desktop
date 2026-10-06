@@ -24,7 +24,7 @@ def font(size):
 
 def text_of(control):
     kind, name = control["type"], control["name"]
-    if kind == "Edit":
+    if kind in ("Edit", "Document"):
         value = "●●●●●●" if control.get("password") else control.get("value", "")
         return f"{name}: [{value}]" + ("  (읽기 전용)" if control.get("readOnly") else "")
     if kind == "ComboBox":

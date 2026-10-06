@@ -1,4 +1,4 @@
-import {ContainerModule, injectable} from '@theia/core/shared/inversify';
+import {ContainerModule, injectable,inject} from '@theia/core/shared/inversify';
 import {AbstractViewContribution, bindViewContribution} from '@theia/core/lib/browser/shell/view-contribution';
 import {FrontendApplicationContribution} from '@theia/core/lib/browser/frontend-application-contribution';
 import {FrontendApplication} from '@theia/core/lib/browser/frontend-application';
@@ -7,16 +7,41 @@ import {MessageLoop, Widget} from '@theia/core/lib/browser/widgets';
 import {WebSocketConnectionProvider} from '@theia/core/lib/browser/messaging/ws-connection-provider';
 import {NUBI_SERVICE_PATH,NubiService} from '../common/protocol';
 import {NubiWidget} from './nubi-widget';
+import URI from '@theia/core/lib/common/uri';
+import {EditorOpenerOptions,EditorManager} from '@theia/editor/lib/browser/editor-manager';
+import {StatusBarImpl} from '@theia/core/lib/browser/status-bar/status-bar';
 import '@e2e/cx-design-system/styles.css';
 import './style/style.css';
 import './workbench.css';
 
 @injectable()
+class NubiEditorManager extends EditorManager {
+  override async open(uri:URI,options:EditorOpenerOptions={}) {
+    const agent=this.shell.getWidgetById(NubiWidget.ID);
+    if(agent&&!options.widgetOptions){
+      const editor=this.all.find(widget=>this.shell.getAreaFor(widget)==='main');
+      options={...options,widgetOptions:{area:'main',mode:editor?'tab-after':'split-right',ref:editor||agent}};
+    }
+    return super.open(uri,options);
+  }
+}
+@injectable()
 class NubiContribution extends AbstractViewContribution<NubiWidget> implements FrontendApplicationContribution {
+  @inject(StatusBarImpl) protected readonly statusBar!:StatusBarImpl;
   private layoutObserver?:ResizeObserver;
   constructor(){super({widgetId:NubiWidget.ID,widgetName:'누비 workspace',defaultWidgetOptions:{area:'main'},toggleCommandId:'nubi.open',toggleKeybinding:'ctrlcmd+alt+n'});}
   async initializeLayout(){await this.openView({activate:true});}
+  override toggleView(){return this.openView({activate:true});}
+  override async closeView(){return this.openView({activate:true});}
   onDidInitializeLayout(app:FrontendApplication){
+    // Nubi's rail owns navigation. Native panels and their keyboard commands remain available.
+    for(const handler of [app.shell.leftPanelHandler,app.shell.rightPanelHandler]){
+      // Hide the whole duplicate activity rail; its content panels stay native.
+      handler.container.widgets.find(widget=>widget.hasClass('theia-app-sidebar-container'))?.hide();
+    }
+    const updateStatus=()=>this.statusBar.setHidden(app.shell.currentWidget?.id===NubiWidget.ID||!app.shell.currentWidget);
+    updateStatus();app.shell.onDidChangeCurrentWidget(updateStatus);
+    void this.openView().then(widget=>{const tabs=app.shell.getTabBarFor(widget);if(tabs)tabs.tabsMovable=false;});
     // A restored dock can retain the pre-sidebar width. Synchronize the main
     // dock with its vertical split parent's live allocation, then re-fit children.
     const parent=app.shell.mainPanel.parent;if(!parent)return;
@@ -26,7 +51,9 @@ class NubiContribution extends AbstractViewContribution<NubiWidget> implements F
   }
   onStop(){this.layoutObserver?.disconnect();}
 }
-export default new ContainerModule(bind=>{
+export default new ContainerModule((bind,_unbind,_isBound,rebind)=>{
+  rebind(EditorManager).to(NubiEditorManager).inSingletonScope();
+  bind<()=>EditorManager>('NubiEditor').toFactory(ctx=>()=>ctx.container.get(EditorManager));
   bind(NubiService).toDynamicValue(ctx=>ctx.container.get(WebSocketConnectionProvider).createProxy<NubiService>(NUBI_SERVICE_PATH)).inSingletonScope();
   bind(NubiWidget).toSelf();
   bind(WidgetFactory).toDynamicValue(ctx=>({id:NubiWidget.ID,createWidget:()=>ctx.container.get(NubiWidget)})).inSingletonScope();

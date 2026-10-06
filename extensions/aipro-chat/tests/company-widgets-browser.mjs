@@ -97,7 +97,7 @@ try {
   await cp(process.env.NUBI_DIST || 'dist', extension, {recursive: true});
   const manifest = JSON.parse(await readFile(resolve(extension, 'manifest.json'), 'utf8')); manifest.host_permissions.push(`${origin}/*`);
   await writeFile(resolve(extension, 'manifest.json'), JSON.stringify(manifest));
-  await appendFile(resolve(extension, 'background.js'), '\nglobalThis.contentTest={runBrowserAgent,stopBrowserAgent,ready:serial(()=>Promise.resolve())};\n');
+  await appendFile(resolve(extension, 'background.js'), '\nglobalThis.contentTest={runBrowserAgent,runApprovedAction,stopBrowserAgent,ready:serial(()=>Promise.resolve())};\n');
   context = await chromium.launchPersistentContext(profile, {headless: true, executablePath: process.env.CHROME_BINARY, viewport: {width: 1100, height: 800},
     args: [`--load-extension=${extension}`, `--disable-extensions-except=${extension}`]});
   const first = await context.newPage(); await first.goto(origin + '/start');
@@ -106,7 +106,8 @@ try {
   await first.close();
   const url = `${origin}/draft`, tab = await context.newPage(); await tab.goto(url);
   const tabId = await worker.evaluate(async url => (await chrome.tabs.query({})).find(t => t.url === url).id, url);
-  const run = (name, args = {}) => worker.evaluate(({tabId, name, args}) => contentTest.runBrowserAgent('widgets', {tabId}, name, args).then(v => v.result), {tabId, name, args});
+  let requestId = 'widgets';
+  const run = (name, args = {}) => worker.evaluate(({requestId,tabId, name, args}) => contentTest.runBrowserAgent(requestId, {tabId}, name, args).then(v => v.result), {requestId,tabId, name, args});
   const log = () => tab.evaluate(() => window.log.splice(0));
   const elements = snap => (snap.observation || snap).frames.flatMap(f => f.elements || []);
   let snap = await run('browser_snapshot');
@@ -136,7 +137,7 @@ try {
   r = await run('click_element', {ref: named('달력').ref});
   assert.deepEqual(await log(), ['달력']);
   assert.equal(r.effect?.none, undefined, JSON.stringify(r.effect));
-  assert.deepEqual(r.effect.fieldsChanged.first.map(field => field.name), ['시행 일자']);
+  assert.deepEqual(r.effect.fieldsChanged.first.map(field => field.name), ['시행 일자']); assert.match(r.effect.fieldsChanged.first[0].ref, /^e-/, 'the changed field is named by its fresh ref');
   pass('a date picker click reports its field changed, without the value');
 
   snap = await run('browser_snapshot');
@@ -152,15 +153,27 @@ try {
   pass('a layer popup without a dialog role is observed as a dialog, and the page controls behind its overlay as covered, in view or not');
 
   r = await run('click_element', {ref: pageOk.ref});
-  assert.equal(r.error, 'script_obscured'); assert.deepEqual(await log(), []);
+  // Generic confirmation is ambiguous even inside a layer. Each actual target
+  // needs its own approval; placement never authorizes the click.
+  assert.equal(r.error, 'approval_required'); assert.deepEqual(await log(), []);
   snap = await run('browser_snapshot');
   r = await run('fill_form', {fields: [{field_id: named('김철수 팀장').ref, value: 'true'}]});
   assert.equal(r.verified, true, JSON.stringify(r).slice(0, 300));
   snap = await run('browser_snapshot');
   r = await run('click_element', {ref: byId('layerOk').ref});
+  assert.equal(r.error, 'approval_required'); assert.equal(r.actionIssued, false);
+  assert.deepEqual(await log(), [], 'The layer confirmation is not pressed before approval');
+  snap = await run('browser_snapshot');
+  r = await worker.evaluate(async ({requestId,tabId,ref}) => (await contentTest.runBrowserAgent(requestId,{tabId},'click_element',{ref},
+    {onApproval:async record => {globalThis.widgetApproval=record;return {requiresUserInput:true};}})).result,
+    {requestId,tabId,ref:byId('layerOk').ref});
+  assert.equal(r.requiresUserInput,true); assert.deepEqual(await log(), []);
+  r = await worker.evaluate(async ({requestId,tabId}) => (await contentTest.runApprovedAction(requestId,{tabId},widgetApproval)).result,{requestId,tabId});
+  assert.equal(r.ok,true,JSON.stringify(r).slice(0,300));
   assert.deepEqual(await log(), ['결재선 확인 p1']);
   assert.deepEqual(r.effect.dialogsClosed, ['dialog "결재선 지정"'], JSON.stringify(r.effect));
-  pass('the covered page button is not pressed; the layer check box and its 확인 are');
+  pass('the covered page button is not pressed; the layer confirmation waits for its own approval and is then issued once');
+  await worker.evaluate(requestId => contentTest.stopBrowserAgent(requestId),requestId); requestId='widgets-native';
 
   await tab.evaluate(() => document.getElementById('confirm').showModal());
   snap = await run('browser_snapshot');

@@ -63,7 +63,9 @@ try{
   }
   assert(body.instructions.includes('누비'));assert.equal(body.store,false);assert.equal(body.stream,true);assert(!JSON.stringify(body).includes('company-private-history'));
   if(mode==='forbidden')return route.fulfill({status:403,body:'synthetic-private-body'});
-  const last=body.input.at(-1);
+  if(mode==='stream_failure')return route.fulfill({contentType:'text/event-stream',body:`event: response.failed\ndata: ${JSON.stringify({type:'response.failed',response:{id:'resp_failed',status:'failed',error:{code:'bad_gateway',message:'synthetic-private-detail'}}})}\n\n`});
+  // The host's run state follows the latest results; the synthetic model reads past it.
+  const last=body.input.findLast(item=>!(item.role==='user'&&JSON.stringify(item.content).includes('Current run state from the host.')));
   const response=mode==='tools'&&last?.type!=='function_call_output'?responsesSSE({tool:{name:'read_page',arguments:{}}}):responsesSSE({text:mode==='tools'?'페이지 내용을 확인했습니다.':'ChatGPT로 연결되었습니다.'});
   if(mode==='tools'&&last?.type==='function_call_output'){assert(last.output.includes('Synthetic form'), last.output);assert.equal(last.call_id,'call_synthetic');}
   return route.fulfill({contentType:'text/event-stream',body:response});
@@ -115,6 +117,12 @@ try{
  await rpc('DISCONNECT_PAGE');mode='forbidden';await send('권한 오류 테스트');
  await poll(async()=>(await state()).chat.messages.at(-1)?.error,'forbidden');assert(!(await ui.locator('body').innerText()).includes('synthetic-private-body'));
  check('account model restriction is reported safely without replay');
+ mode='stream_failure';await send('스트림 오류 테스트');
+ await poll(async()=>(await state()).chat.messages.at(-1)?.error,'upstream');
+ const failure=(await state()).events.findLast(item=>item.event==='model_request_rejected');
+ assert.deepEqual({reason:failure?.reason,status:failure?.status,code:failure?.code},{reason:'stream_error',status:200,code:'bad_gateway'},JSON.stringify(failure));
+ assert(!JSON.stringify((await state()).events).includes('synthetic-private'));
+ check('a ChatGPT stream failure is kept for the connection diagnostics with its code, never its text');
  await ui.getByRole('button', {name: '설정', exact: true}).click();
   await ui.getByRole('button',{name:'로그아웃',exact:true}).click();mode='wrong-state';const count=exchanges;
  await ui.getByRole('dialog',{name:'모델 선택',exact:true}).getByRole('tab',{name:'ChatGPT',exact:true}).click();await ui.getByRole('dialog',{name:'모델 선택',exact:true}).getByRole('button',{name:'로그인',exact:true}).click();await poll(async()=>(await state()).report.error,'chatgpt_callback_invalid');

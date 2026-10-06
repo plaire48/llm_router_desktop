@@ -19,58 +19,41 @@ export function approvalTarget(el, operation = {}) {
   // navigational-looking label. Never let a caption exempt those commands.
   if (operation.method === 'press' && /(?:Control|Meta|ControlOrMeta)\+(?:Shift\+)?[sS]$/.test(key)) return {label: '변경 내용 저장', action: '저장'};
   if (operation.method === 'press' && /(?:Control|Meta|ControlOrMeta)\+(?:Shift\+)?Enter$/.test(key)) return {label: label || '양식 제출', action: '제출'};
-  if (/^(?:임시\s*저장|초안\s*저장|save\s+draft|preview|미리\s*보기)(?:하기)?$/i.test(label)) return null;
-  // Opening an application history or registration form is a preparation
-  // step. Do not mistake the subject of a clearly navigational link for its
-  // final action. Bare submit/send/delete labels still require approval.
-  const submitsForm = control.form && ['submit', 'image'].includes(control.type);
-  // Navigation may be implemented by a button as well as an anchor. Keep a
-  // real form submit guarded even when its caption sounds like navigation.
-  const informationalLink = control.matches('a,[role="link"]') && /안내(?:\s*(?:보기|열기))?$/.test(label);
-  if (operation.method !== 'press' && !submitsForm && !/(?:하고|\s후\s|\s및\s|\band\b|\bthen\b|&)/i.test(label) && (informationalLink || /(?:(?:내역|목록|상세|화면|페이지|양식|설정)(?:\s*(?:보기|열기))?|조회|작성(?:하기)?|(?:view|open)\s+.*(?:history|details?|form|page)|(?:history|details?|form)\s+(?:view|page))$/i.test(label))) return null;
-  const actions = [['배포', /배포|deploy\b|release\b/i], ['게시', /게시|발행|publish\b/i], ['발송', /보내기|발송|전송|send\b/i], ['등록', /등록|register\b/i], ['제출', /제출|submit\b/i], ['신청', /신청|apply\b/i], ['삭제', /삭제|delete\b/i], ['결제', /결제|구매|purchase\b|pay\b/i], ['저장', /^(?:저장|저장하기|(?:변경|설정)\s*저장|save(?: changes)?)$/i]];
-  const editable = el.isContentEditable || el.matches('textarea,input:not([type=submit]):not([type=button]):not([type=image])');
-  // The last Korean action is the verb: "신청 내역 삭제" means deletion,
-  // while "삭제 신청" means application. English captions put it first.
-  // Company work systems commit with these verbs. Only as the last word: "최종
-  // 반영" and "일괄 승인" act, while menus such as "승인 현황" and "반영 이력" open
-  // a list. Reported from a work system whose "최종 반영" was not recognized.
-  const endOnly = [['반영', /반영/], ['승인', /승인|approve/i], ['확정', /확정|finali[sz]e/i], ['결재', /결재/], ['상신', /상신|(?:승인|결재|반영)\s*요청/]];
-  // A link or a clickable row opens something; its words describe it. Measured
-  // on a mail app: a mail whose subject held "신청" was taken for a final
-  // action, the click was held for approval and draft verification, and every
-  // retry (a fresh ref, then Enter) was held the same way. For these, only a
-  // short caption that ends with the verb ("삭제", "신청하기") is an action.
-  // Buttons keep the full rule, so "초안 저장 후 게시" still needs approval.
-  const buttonLike = control.matches('button,[role="button"],input[type="submit"],input[type="button"],input[type="image"],[role="menuitem"]');
-  const opener = !buttonLike && control.matches('a,[role="link"],[role="row"],[role="gridcell"],[role="option"],[role="listitem"],[role="treeitem"],li,tr,td,div,span,article,section');
-  const ending = ([, pattern]) => new RegExp(`(?:${pattern.source})(?:하기)?$`, 'i').test(label);
-  const action = !editable && (opener
-    ? label.length <= 20 && [...actions, ...endOnly].find(ending)
-    : [...actions, ...endOnly].find(ending) || actions.find(([, pattern]) => pattern.test(label)));
-  if (action) return {label, action: action[0]};
-  // A search Enter is navigation, not a final business submission. Require
-  // observed GET/search semantics and a search input, never a caption alone.
-  // Preserve the shortcut and destructive-action checks above this exception.
-  // A GET form retrieves; it does not change anything on the server. It counts
-  // as a search when it has exactly one enabled query field, that field or the
-  // form is marked as search, and no other field could carry user data. Many
-  // sites use type=text for the query, so the type alone does not decide.
-  const form = control.form || el.form;
-  const fields = [...form?.elements || []];
-  const queries = fields.filter(field => field.tagName === 'INPUT' && ['search', 'text'].includes(field.type) && !field.disabled);
-  const marked = field => !!field && (field.type === 'search' || field.getAttribute('role') === 'searchbox' ||
-    /^(?:q|query|search|keyword|kwd|searchword|search_query)$/i.test(field.name || '') ||
-    /검색|search/i.test(`${field.getAttribute('aria-label') || ''} ${field.placeholder || ''} ${field.title || ''}`));
-  const searchForm = !!form && String(form.method).toLowerCase() === 'get' && queries.length === 1 &&
-    (form.getAttribute('role') === 'search' || !!form.closest('[role="search"]') || marked(queries[0])) &&
-    (form.getAttribute('role') === 'search' || !!form.closest('[role="search"]') ? queries[0].type === 'search' || marked(queries[0]) : true) &&
-    fields.every(field => (field.tagName === 'FIELDSET' || field.tagName === 'BUTTON' || ['search','text','hidden','submit','button','image'].includes(field.type)) && !field.hasAttribute('formmethod'));
-  if (searchForm && (operation.method === 'press' && key === 'Enter' && el === queries[0] ||
-      operation.method !== 'press' && /^(?:(?:AI|통합|전체|웹)\s*)?(?:검색|찾기|search|find)$/i.test(label))) return null;
-  if (control.form && ['submit', 'image'].includes(control.type) && !/^(?:검색|찾기|search|find)$/i.test(label)) return {label: label || '양식 제출', action: '제출'};
-  if (operation.method === 'press' && key === 'Enter' && el.matches('input') && el.form) return {label: label || '양식 제출', action: '제출'};
-  return null;
+  // A field is not a button: text typed into it never names an action. Enter in
+  // a field submits its form as the form's first submit button would.
+  const editable = control.isContentEditable || control.matches('textarea,input:not([type=submit]):not([type=button]):not([type=image]):not([type=reset])');
+  // A button's name can be long ("이번 분기 전체 신청 내역을 영구 삭제"); a link or a
+  // row with a long caption is a mail subject or a title, not a command.
+  const button = control.matches('button,[role="button"],input[type="submit"],input[type="button"],input[type="image"]');
+  // Placement is not authority: a dialog's generic confirmation can commit a
+  // purchase or delete data. Bind ambiguous confirmation to its own approval;
+  // an earlier click's grant does not authorize a newly presented target.
+  if (!editable) return finalAction(label, button ? 40 : 12);
+  return operation.method === 'press' && key === 'Enter' && el.matches('input') && el.form
+    ? finalAction(name([...el.form.elements].find(field => ['submit', 'image'].includes(field.type))), 40) : null;
+  // A final action is named by its button, as the user reads it: a short caption
+  // that ends with the verb (저장, 메일 보내기, 최종 반영) or, in English, starts
+  // with it (Save, Send email). Reported by the user: guesses from form structure,
+  // search forms and words inside long captions held ordinary clicks (닫기 in a
+  // page-wide form, a search Enter, a mail subject) and asked for draft checks, and
+  // "a click that works matters more". The approval card shows the draft itself.
+  function finalAction(caption, limit) {
+    const text = String(caption || '').replace(/\s+/g, ' ').trim();
+    if (!text || /^(?:임시\s*저장|초안\s*저장|save\s+draft|preview|미리\s*보기)(?:하기)?$/i.test(text)) return null;
+    // "확인" alone confirms; "결과 확인" or "예약 확인" looks something up.
+    if (/^(?:확인(?:하기)?|ok|okay)$/i.test(text)) return {label: text, action: '확인'};
+    const korean = [['저장', /저장/], ['발송', /전송|발송|보내기/], ['등록', /등록/], ['제출', /제출/], ['신청', /신청/], ['게시', /게시|발행/], ['삭제', /삭제/],
+      ['결제', /결제|구매/], ['반영', /반영/], ['승인', /승인/], ['확정', /확정/], ['결재', /결재/], ['상신', /상신|(?:승인|결재|반영)\s*요청/], ['배포', /배포/]];
+    const english = [['저장', /save(?: changes)?/], ['발송', /send/], ['제출', /submit/], ['게시', /post|publish/], ['삭제', /delete|remove/],
+      ['결제', /pay|purchase|buy|checkout|place\s+order/], ['등록', /register/], ['승인', /approve/], ['배포', /deploy|release/], ['확인', /confirm/]];
+    // "등록 후 목록 보기" registers first: each part of a joined caption is read.
+    for (const part of text.split(/\s*(?:하고|\s후\s|\s및\s|,|&|\band\b|\bthen\b)\s*/i).filter(Boolean)) {
+      const found = part.length <= limit && korean.find(([, pattern]) => new RegExp(`(?:${pattern.source})(?:하기|합니다)?$`).test(part)) ||
+        part.length <= Math.max(limit, 24) && english.find(([, pattern]) => new RegExp(`^(?:${pattern.source})\\b`, 'i').test(part));
+      if (found) return {label: text, action: found[0]};
+    }
+    return null;
+  }
 }
 
 export function approvalPresentation(record) {
@@ -78,7 +61,7 @@ export function approvalPresentation(record) {
   const action = record.action || '실행';
   // A keyboard shortcut acts on a field; its label is not the command name.
   return {buttonLabel: !['press','upload','download'].includes(record.operation?.method) && label && label.length <= 32 ? label : action,
-    text: /^(?:배포|게시|발송|등록|제출|신청|삭제|결제|저장|반영|승인|확정|결재|상신|실행|업로드|다운로드)$/.test(action) ? `${action}할까요?` : '이 동작을 실행할까요?'};
+    text: /^(?:배포|게시|발송|등록|제출|신청|삭제|결제|저장|반영|승인|확정|결재|상신|실행|업로드|다운로드|확인)$/.test(action) ? `${action}할까요?` : '이 동작을 실행할까요?'};
 }
 
 function pageApproval({nonce, mode}) {

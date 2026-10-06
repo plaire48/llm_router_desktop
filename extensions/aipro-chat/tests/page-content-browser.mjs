@@ -44,6 +44,14 @@ try {
   assert(!overview.frames[0].text.includes('정기배포 승인 담당자는 품질팀'));assert(overview.frames[0].truncated);
   const first = await run('read_page', {mode:'content'});assert.equal(first.ok,true,JSON.stringify(first));
   assert.equal(first.method,'main_landmark');assert(first.ranges[0].markdown.startsWith('# 배포 기준 안내'));
+  assert.equal(first.outline.content_hash, first.content_hash);
+  const approvalSection = first.outline.sections.find(section => section.heading.includes('정기배포 승인'));
+  assert(approvalSection && approvalSection.start > first.ranges[0].end);
+  const located = await run('read_page', {mode:'content',offset:approvalSection.start,content_hash:first.content_hash});
+  assert.match(located.ranges[0].markdown, /정기배포 승인 담당자는 품질팀/);
+  assert.equal(located.outline, undefined);
+  assert(!JSON.stringify(first.outline).includes('PRIVATE_'));
+  check('hash-bound outline locates a late section without marking its body read or exposing excluded page content');
   const ranges = [...first.ranges];let next=first.next_offset;
   while(next!==null) {assert(ranges.length<20);const part=await run('read_page',{mode:'content',offset:next,content_hash:first.content_hash});assert.equal(part.ok,true,JSON.stringify(part));ranges.push(...part.ranges);next=part.next_offset;}
   const full=ranges.map(r=>r.markdown).join('\n');

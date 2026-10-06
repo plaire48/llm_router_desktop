@@ -1,0 +1,107 @@
+{
+  "name": "order-catalog",
+  "schema": 1,
+  "createdAt": "2026-09-30T10:04:08.503Z",
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "6d8c958eb2b637053cd65250753772cbf044c54664b35e0180cfc4db63c6cbd8",
+      "bytes": 396
+    },
+    {
+      "path": "README.md",
+      "sha256": "f8bf6369b16e06fc3b8fb609591494da39cd7875badc30165365d73f9791bf3e",
+      "bytes": 296
+    },
+    {
+      "path": "catalog/items.json",
+      "sha256": "06279aa4908a27093515cfc9a336a9b65b7273b5afb2072a7ccde1511370e3d8",
+      "bytes": 75649
+    },
+    {
+      "path": "openwiki/architecture/modules.md",
+      "sha256": "1573c0da27e9fd4f58dc805f42acd0e27fd60124872a249c6b9ecccbcc5e1e90",
+      "bytes": 679
+    },
+    {
+      "path": "openwiki/concepts/catalog.md",
+      "sha256": "bc9e8d8e918eb7105365b7f9feac96a07dce58751910b3b34e123100ed0108b7",
+      "bytes": 1100
+    },
+    {
+      "path": "openwiki/concepts/discount-policy.md",
+      "sha256": "d8ddcbaecf37034cd082aa6965986121ca9dc4522a3ebc5d8a565f50222633c3",
+      "bytes": 947
+    },
+    {
+      "path": "openwiki/concepts/order-status.md",
+      "sha256": "4ff1bc74b87436c5061906a6b0b8c8588a22f47d3ec0bfd742d9b331c63b2d55",
+      "bytes": 766
+    },
+    {
+      "path": "openwiki/concepts/shipping-policy.md",
+      "sha256": "163e86607003e9f690d7c6be4a332cb25f57ed9519a5d00fb14a64d26af1804d",
+      "bytes": 992
+    },
+    {
+      "path": "openwiki/operations/release-rules.md",
+      "sha256": "d909447033c21dbb06d4d9c53c6f8c49d6ed496718cc5714205ce76c70cd660d",
+      "bytes": 520
+    },
+    {
+      "path": "openwiki/quickstart.md",
+      "sha256": "e458bd28393f7337e560e00f7be8e25f61959fb6ff6938f808f849a6a253db2e",
+      "bytes": 870
+    },
+    {
+      "path": "package.json",
+      "sha256": "bc60f20ff8454cfb8ff9094800eff445efefc04e9f09ab1a48dcada555d9995b",
+      "bytes": 184
+    },
+    {
+      "path": "scripts/check-catalog.mjs",
+      "sha256": "d4bfb7c4726d2cd0257574a098a086fd1c4c3cd4f1f3211d96eb91602eef27f4",
+      "bytes": 1312
+    },
+    {
+      "path": "src/discount.mjs",
+      "sha256": "e965fd4603a4780ea8bb9b23c6235b9a71c58a71d70aaaa38c0018938187a3c1",
+      "bytes": 553
+    },
+    {
+      "path": "src/legacy/export.mjs",
+      "sha256": "eedda5d2463ccb066fbef9a517d143df3e309ff655660b1f488361b7a0ae9106",
+      "bytes": 338
+    },
+    {
+      "path": "src/order.mjs",
+      "sha256": "389bea371dcd7598e71194e8b206177efa3da120681137ba1ed1742ff51bf6ec",
+      "bytes": 529
+    },
+    {
+      "path": "src/shipping.mjs",
+      "sha256": "ff4aca93023cd888dbf9bdc8a9b4ab063db2141e4c02d71a1cd3e5a3a403de56",
+      "bytes": 542
+    },
+    {
+      "path": "src/status.mjs",
+      "sha256": "f7212f62f6614dc894abed37e8890b0a591c8df65ebc7de238848d5752a3ce2b",
+      "bytes": 386
+    },
+    {
+      "path": "test/discount.test.mjs",
+      "sha256": "30212484346f14fff5e95441984bba05300a4c1689cbd9901acba37cffa6a54f",
+      "bytes": 704
+    },
+    {
+      "path": "test/order.test.mjs",
+      "sha256": "def2b3b9956d0b4eeeb52c4727f9c71c5c413e64cbc60f0b2b5c74285212de99",
+      "bytes": 1060
+    },
+    {
+      "path": "test/shipping.test.mjs",
+      "sha256": "3de489763bce7e12adeb00a48e4ec54bb29ab675786afd717063e65f2e81946f",
+      "bytes": 444
+    }
+  ]
+}

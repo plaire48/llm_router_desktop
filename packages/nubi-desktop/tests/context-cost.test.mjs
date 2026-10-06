@@ -2,6 +2,8 @@
 // the same 200-character explanation of its progress argument, about 9,000
 // characters in each model request. Desktop states the rule once instead.
 import {test} from 'node:test';
+import {featureTest} from './beta-feature.mjs';
+const computerTest=featureTest('computerUse');
 import assert from 'node:assert/strict';
 import {fixture} from './fixtures.mjs';
 import {progressTools,PROGRESS_RULE} from '../../../extensions/aipro-chat/agent-runtime.js';
@@ -29,7 +31,8 @@ test('Desktop sends the progress rule once and no per-tool copy',async t=>{
   const task=await service.createTask({request:'app.txt를 확인해 줘'});await service.startAgent({taskId:task.id});await service.agent.promise;
   assert.equal(service.task(task.id).state,'review',service.task(task.id).error);
   const withProgress=request.tools.filter(item=>item.function.parameters.properties.progress);
-  assert.ok(withProgress.length>30,String(withProgress.length));
+  // 32 tools carried it until the two VOC tools left the agent (user decision 2026-09-30).
+  assert.ok(withProgress.length>=30,String(withProgress.length));
   for(const item of withProgress)assert.deepEqual(item.function.parameters.properties.progress,{type:'string',maxLength:100},item.function.name);
   const system=request.messages.filter(message=>message.role==='system').map(message=>message.content).join('\n');
   assert.equal(system.split(PROGRESS_RULE).length-1,1,'the rule appears exactly once');
@@ -55,10 +58,11 @@ test('a host that cannot control apps offers no app tools and no app guidance',a
   assert.ok(!system.includes(COMPUTER_GUIDANCE));
   for(const name of ['wiki_query','read_source','source_search','analyze_documents','record_change_plan','propose_patch','ask_user','update_plan'])assert.ok(names.includes(name),name);
   // Measured 26,748 characters on 2026-09-29, down from 39,500.
-  assert.ok(size<28000,'tool definitions: '+size);
+  // 28,000 before the user decision of 2026-09-30 on large windows; clearer descriptions may use the room.
+  assert.ok(size<40000,'tool definitions: '+size);
 });
 
-test('a host that can control apps keeps every app tool and the guidance',async t=>{
+computerTest('a host that can control apps keeps every app tool and the guidance',async t=>{
   const {names,system}=await firstRequest(t,service=>{service.computerAdapter=new WinappComputer({platform:'win32',runner:async()=>({})});});
   assert.deepEqual(names.filter(name=>APP_TOOLS.includes(name)).sort(),[...APP_TOOLS].sort());
   assert.ok(system.includes(COMPUTER_GUIDANCE));

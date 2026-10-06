@@ -14,6 +14,6 @@
     "target": "ES2022",
     "allowJs": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/agent/enterprise/*.js"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.mjs", "src/agent/enterprise/*.js"],
   "exclude": ["src/visualize/client.ts"]
 }

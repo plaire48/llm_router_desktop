@@ -2,7 +2,7 @@ import {takeFieldMarks, fieldScope} from './field-marks.js';
 import {rankEvidence} from './evidence-search.js';
 import {pageScript} from './page-script.js';
 import {collectSnapshot} from './generated/browser-dom.js';
-export {collectSnapshot, inspectTarget, clickTarget, controlState, valueMark, pointerPosition, pointerCover, pointerBlocker, fieldMarks, prepareHoverReveal, waitForHoverReveal, stateWords} from './generated/browser-dom.js';
+export {collectSnapshot, inspectTarget, clickTarget, controlState, valueMark, pointerPosition, pointerCover, pointerBlocker, fieldMarks, prepareHoverReveal, waitForHoverReveal, stateWords, passBars, restoreBars} from './generated/browser-dom.js';
 
 // Some pages put a whole configuration document into an iframe's name. The
 // attribute identifies the frame; its first characters are enough for that.
@@ -18,7 +18,7 @@ export async function topDocumentId(tabId) {
 export async function observedDocumentScope(tabId) {
   try {
     return await pageScript({target: {tabId, allFrames: true}, world: 'ISOLATED',
-      func: () => ({url: location.href, owner: frameElement ? {tag: frameElement.tagName.toLowerCase(), id: frameElement.id, name: frameElement.getAttribute('name'), title: frameElement.getAttribute('title')} : null})});
+      func: () => ({url: location.href, contentType: document.contentType, title: document.title, owner: frameElement ? {tag: frameElement.tagName.toLowerCase(), id: frameElement.id, name: frameElement.getAttribute('name'), title: frameElement.getAttribute('title')} : null})});
   } catch {return [];}
 }
 
@@ -64,6 +64,29 @@ async function referenceCall(entry, operation, marker, relink = false) {
     args: [{operation, nonce: entry.nonce, ref: entry.ref, marker, relink}]}).catch(() => {throw new Error('browser_stale');});
   if (!result?.result?.ok) throw new Error('browser_stale');
   return result.result;
+}
+// The observed control, innermost, that holds a point of the top document, from
+// the page-script observation's own reference table (refs without a debugger handle).
+function pointedReference({nonce, x, y}) {
+  const state = globalThis.__nubiBrowserObservationV1;
+  if (!state || state.nonce !== nonce || state.url !== location.href) return null;
+  const hit = document.elementFromPoint(x, y);
+  if (!hit) return null;
+  let best = null, nearest = Infinity;
+  for (const [ref, element] of state.refs) {
+    if (!element?.isConnected || element !== hit && !element.contains(hit)) continue;
+    let depth = 0; for (let node = hit; node && node !== element; node = node.parentElement) depth++;
+    if (depth < nearest) {nearest = depth; best = ref;}
+  }
+  return best;
+}
+export async function pointedObservedRef(task, x, y) {
+  const top = await topDocumentId(task.tabId).catch(() => null);
+  const source = [...task.observedDocuments?.values() || []].find(item => item.documentId === top);
+  if (!source) return null;
+  const [record] = await pageScript({target: {tabId: source.tabId, documentIds: [source.documentId]}, world: 'ISOLATED', func: pointedReference, args: [{nonce: source.nonce, x, y}]}).catch(() => []);
+  const ref = record?.result;
+  return typeof ref === 'string' && task.refs.has(ref) ? ref : null;
 }
 export async function releaseObservedRefs(entries) {
   const documents = new Map();
@@ -133,8 +156,17 @@ export function selectControls(descriptors, hint) {
   return [...picked].sort((a, b) => a - b);
 }
 export async function readWithoutDebugger(task, query, safeURL, cancelled, expectedTexts) {
-  const metadata = await pageScript({target: {tabId: task.tabId, allFrames: true}, world: 'ISOLATED',
+  const readMetadata = () => pageScript({target: {tabId: task.tabId, allFrames: true}, world: 'ISOLATED',
     func: () => ({url: location.href, title: document.title, owner: frameElement ? {tag: frameElement.tagName.toLowerCase(), id: frameElement.id, name: frameElement.getAttribute('name'), title: frameElement.getAttribute('title')} : null})});
+  // A document being replaced, or a busy browser, can leave the page without an
+  // answer for a moment; that is not a restricted page. Measured in the release
+  // gate: a first read right after opening a page came back without frames.
+  let metadata = await readMetadata().catch(() => []);
+  if (!metadata.some(item => item.frameId === 0 && item.result)) {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    if (cancelled()) throw new Error('cancelled');
+    metadata = await readMetadata();
+  }
   const top = metadata.find(item => item.frameId === 0)?.result;
   const topId = metadata.find(item => item.frameId === 0)?.documentId;
   if (!top || !safeURL(top.url)) throw new Error('page_restricted');
@@ -152,7 +184,7 @@ export async function readWithoutDebugger(task, query, safeURL, cancelled, expec
         throw new Error('cancelled');
       }
       if (!record?.result || record.result.error) throw new Error('browser_stale');
-      const {descriptors: returned, text, textFiltered, textChecks, truncated: pageTruncated, regions, headings, retrieval, alerts, omittedControls: pageOmitted, pageState, surfaces, tables, tableCoverage, coverage: pageCoverage, page_view, queryUnmatched} = record.result;
+      const {descriptors: returned, text, textFiltered, textChecks, truncated: pageTruncated, regions, headings, retrieval, alerts, omittedControls: pageOmitted, pageState, surfaces, tables, tableCoverage, coverage: pageCoverage, page_view, queryUnmatched, hiddenFields} = record.result;
       // The page may return up to 600 controls; the budget and the user's request choose among them here.
       const descriptors = query ? returned : selectControls(returned, task.goalHint).map(index => returned[index]);
       const dropped = returned.length - descriptors.length, truncated = pageTruncated || dropped > 0, omittedControls = (pageOmitted || 0) + dropped;
@@ -163,7 +195,7 @@ export async function readWithoutDebugger(task, query, safeURL, cancelled, expec
       for (const {descriptor, fieldKey} of taken) {
         task.refs.set(descriptor.ref, {ref: descriptor.ref, descriptor, ...(fieldKey ? {fieldKey} : {}), tabId: task.tabId, documentId: meta.documentId, nonce});
       }
-      frames.push({frame, observedAt: new Date().toISOString(), url: url || safeURL(top.url), ...(meta.result.owner ? {owner: frameOwner(meta.result.owner)} : {}), ...(meta.documentId ? {documentId: meta.documentId} : {}), elements: visible, text, textFiltered, ...(textChecks ? {textChecks} : {}), truncated, regions, headings, ...(retrieval ? {retrieval} : {}), alerts, omittedControls, pageState, surfaces, tables, tableCoverage, coverage, ...(page_view ? {page_view} : {}), ...(queryUnmatched ? {queryUnmatched} : {})});
+      frames.push({frame, observedAt: new Date().toISOString(), url: url || safeURL(top.url), ...(meta.result.owner ? {owner: frameOwner(meta.result.owner)} : {}), ...(meta.documentId ? {documentId: meta.documentId} : {}), elements: visible, text, textFiltered, ...(textChecks ? {textChecks} : {}), truncated, regions, headings, ...(retrieval ? {retrieval} : {}), alerts, omittedControls, pageState, surfaces, tables, tableCoverage, coverage, ...(page_view ? {page_view} : {}), ...(queryUnmatched ? {queryUnmatched} : {}), ...(hiddenFields ? {hiddenFields} : {})});
     } catch (error) {if (cancelled()) throw new Error('cancelled'); frames.push({frame, url, unavailable: true});}
   }
   if (cancelled()) throw new Error('cancelled');

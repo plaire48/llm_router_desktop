@@ -1,0 +1,62 @@
+{
+  "id": "sales-chart",
+  "title": "매출 차트",
+  "window": {
+    "hwnd": 4701,
+    "processId": 5701,
+    "processName": "ChartDesk.exe",
+    "title": "월별 매출 - ChartDesk",
+    "width": 900,
+    "height": 640
+  },
+  "controls": [
+    {
+      "selector": "lbl-chart-month",
+      "name": "9월 매출: 1,240만 원",
+      "type": "Text"
+    },
+    {
+      "selector": "cnv-next-month",
+      "name": "다음 달",
+      "type": "Custom"
+    },
+    {
+      "selector": "cnv-prev-month",
+      "name": "이전 달",
+      "type": "Custom"
+    },
+    {
+      "selector": "lbl-chart-note",
+      "name": "차트 위의 화살표로 달을 넘깁니다",
+      "type": "Text"
+    }
+  ],
+  "rules": [
+    {
+      "on": {
+        "selector": "cnv-next-month",
+        "action": "pointer_click"
+      },
+      "set": [
+        {
+          "selector": "lbl-chart-month",
+          "name": "10월 매출: 1,385만 원"
+        }
+      ],
+      "record": "next-month"
+    },
+    {
+      "on": {
+        "selector": "cnv-prev-month",
+        "action": "pointer_click"
+      },
+      "set": [
+        {
+          "selector": "lbl-chart-month",
+          "name": "8월 매출: 1,102만 원"
+        }
+      ],
+      "record": "prev-month"
+    }
+  ]
+}

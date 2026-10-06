@@ -1,6 +1,6 @@
 // Durable conversation memory contains summaries and action receipts, never
 // browser handles, executable continuations, screenshots or raw tool payloads.
-import {MUTATING_TOOLS, requiresVerification, hasReliableUnissuedReceipt} from './agent-harness.js';
+import {MUTATING_TOOLS, requiresVerification, hasReliableUnissuedReceipt, hostVerifiedFill} from './agent-harness.js';
 import {SCRIPT_FAILURES} from './script-feedback.js';
 import {activePlanStep} from './task-plan.js';
 import {unresolvedReconciliations} from './restart-reconciliation.js';
@@ -65,11 +65,18 @@ export function taskReceipt(task, tool, phase, result, page) {
   let target;
   try {const url = new URL(page?.url); if (['http:', 'https:'].includes(url.protocol)) target = {title: clean(page.title).slice(0, 180), url: url.origin + url.pathname};} catch { /* No page snapshot. */ }
   const {verificationPrior, ...baseTask} = originalTask;
+  let pendingDownload=baseTask.pendingDownload;
+  delete baseTask.pendingDownload;
   let verification = task.verification;
-  if (phase === 'start' && requiresVerification(tool)) verification = {status: 'pending'};
-  if (phase === 'end' && tool === 'verify_page') verification = {status: result?.ok === true && result?.verified === true ? 'passed' : 'failed', at: Date.now(), checks: Array.isArray(result?.checks) ? result.checks.length : 0};
+  if (phase === 'start' && requiresVerification(tool)) {verification = {status: 'pending'};pendingDownload=undefined;}
+  if(phase==='end' && tool==='apply_approved_action' && result?.ok===true && !result.error && result.transfer?.kind==='download' &&
+      typeof result.transfer.transfer_id==='string' && result.transfer.transfer_id.length<=100 && !['pending','failed'].includes(verificationPrior?.status))pendingDownload=result.transfer.transfer_id;
+  if(phase==='end' && tool==='download_status' && pendingDownload && result?.dataKind==='download_status' && result.transfer_id===pendingDownload &&
+      result.state==='complete' && result.completionVerified===true && !result.error){verification={status:'passed',source:'chrome_download_completion',at:Date.now(),checks:1};pendingDownload=undefined;}
+  if (phase === 'end' && tool === 'verify_page') verification = {status: result?.ok === true && result?.verified === true && !result?.unresolvedAction && !pendingDownload ? 'passed' : 'failed', at: Date.now(), checks: Array.isArray(result?.checks) ? result.checks.length : 0};
+  if (phase === 'end' && hostVerifiedFill(tool, result)) verification = {status: 'passed', at: Date.now(), checks: result.applied, source: 'fill_readback'};
   if (phase === 'end' && !requiresVerification(tool, result) && hasReliableUnissuedReceipt(tool)) verification = verificationPrior || {status: 'not_required'};
-  return {...baseTask, ...(pendingReconciliation ? {pendingReconciliation} : {}), ...(verification ? {verification} : {}), ...(phase === 'start' && task.goalReview ? {goalReview: {status: 'running', checks: 0}} : {}), ...(phase === 'start' && hasReliableUnissuedReceipt(tool) ? {verificationPrior: task.verification || {status: 'not_required'}} : {}), steps: steps.slice(-32), ...(target ? {page: target} : {}), updatedAt: Date.now()};
+  return {...baseTask, ...(pendingDownload ? {pendingDownload} : {}), ...(pendingReconciliation ? {pendingReconciliation} : {}), ...(verification ? {verification} : {}), ...(phase === 'start' && task.goalReview ? {goalReview: {status: 'running', checks: 0}} : {}), ...(phase === 'start' && (hasReliableUnissuedReceipt(tool) || tool==='apply_approved_action') ? {verificationPrior: task.verification || {status: 'not_required'}} : {}), steps: steps.slice(-32), ...(target ? {page: target} : {}), updatedAt: Date.now()};
 }
 export function pauseTask(task) {
   return task ? {...task, status: 'paused', steps: (task.steps || []).map(step => step.status === 'running' ? {...step, status: 'unknown'} : step), updatedAt: Date.now()} : task;

@@ -1,0 +1,27 @@
+{
+  "id": "A19-context-menu-copy",
+  "title": "오른쪽 클릭 메뉴로 복사",
+  "app": "file-browser",
+  "corpus": "order-service",
+  "approve": {
+    "deny": [
+      "mnu-delete",
+      "mnu-rename"
+    ]
+  },
+  "request": "공유 문서 창에서 '분기 보고서.xlsx'의 복사본을 만들어 줘.",
+  "expect": {
+    "state": "review",
+    "app": {
+      "events": {
+        "includes": [
+          "copied-report"
+        ],
+        "excludes": [
+          "deleted",
+          "copied-other"
+        ]
+      }
+    }
+  }
+}

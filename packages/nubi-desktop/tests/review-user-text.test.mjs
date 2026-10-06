@@ -36,6 +36,10 @@ test('the review is told what the entry proves and what it does not',()=>{
   assert.match(REVIEW_PROMPT,/evidence entry "user"/);
   assert.match(REVIEW_PROMPT,/never proves the state of files, tests or systems/);
   assert.match(REVIEW_PROMPT,/empty list/);
+  // E1 (S26, 2026-09-30): the failed checks and their expected and actual values passed as the cause.
+  assert.match(REVIEW_PROMPT,/A cause \(why a check fails\) needs a read showing it in code, configuration or data/);
+  // User decision 2026-10-01 (E6: the review asked to run the wrong command the user named, then faulted its correction).
+  assert.match(REVIEW_PROMPT,/A command the user names is a means: when it is wrong, the result of a corrected command the user approved answers the request; never ask to run a known-wrong command/);
   // Measured 3,019 characters before this change.
   assert.ok(REVIEW_PROMPT.length<3700,String(REVIEW_PROMPT.length));
 });

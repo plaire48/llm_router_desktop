@@ -6,6 +6,34 @@ const observations = new Set(['read_page', 'inspect_dom', 'browser_snapshot']);
 const parse = value => {try {return JSON.parse(value);} catch {return null;}};
 const cacheableReads = new Set([...observations, 'observe_computer', 'wiki_query', 'wiki_search', 'wiki_read', 'source_search', 'read_source', 'search_documents', 'read_document']);
 
+// Navigation/action results can carry a second copy of a frozen article. The
+// ordinary read cache does not touch those receipts. Remove only that nested
+// copy, after the owner proves an exact, complete original is still readable.
+export function clearCapturedSourceCopies(wire, matchesOriginal) {
+  if (JSON.stringify(wire).length <= 32000) return wire;
+  const candidates = [];
+  for (const [index, message] of wire.entries()) {
+    if (message.role !== 'tool' || typeof message.content !== 'string') continue;
+    const result = parse(message.content), capture = result?.source_capture, reference = capture?.reference;
+    if (!reference || reference.contextCleared || reference.dataKind !== 'page_content' ||
+        capture.status !== 'observed' || result.error || result.ok === false || result.cancelled ||
+        result.uncertain || result.unresolvedAction || result.requiresApproval || result.requiresUserInput ||
+        result.image || reference.image || !/^ev_[1-9]\d*$/.test(capture.analysis_evidence_id || '') ||
+        JSON.stringify(reference).length < 2048 || !matchesOriginal(capture.analysis_evidence_id, reference)) continue;
+    candidates.push({index, result, capture, reference});
+  }
+  const edits = new Map();
+  for (const {index, result, capture, reference} of candidates.slice(0, -2)) {
+    const kept = {contextCleared: true, reason: 'cached_source_capture', source_path: 'result',
+      analysis_evidence_id: capture.analysis_evidence_id, url: reference.url, content_hash: reference.content_hash,
+      frame: reference.frame, source_document_id: reference.source_document_id,
+      instruction: 'Frozen source text remains in this run. Read read_analysis_evidence with this ID and query/offset for the exact original. This reference proves no current DOM, action, approval, full coverage or task completion.'};
+    const content = JSON.stringify({...result, source_capture: {...capture, reference: kept}});
+    if (content.length < wire[index].content.length) edits.set(index, {...wire[index], content});
+  }
+  return edits.size ? wire.map((message, index) => edits.get(index) || message) : wire;
+}
+
 // Clear only large, successful reads whose complete original still exists in
 // the current run's evidence store. The Pi transcript and tool pairs stay intact.
 // Recent observations, uncertain failures and visual results remain complete.

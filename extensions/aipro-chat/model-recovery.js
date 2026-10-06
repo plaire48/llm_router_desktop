@@ -4,6 +4,10 @@ import isNetworkError from 'is-network-error';
 export {retryAfterMs} from './http-retry.js';
 // Attempt limits belong to inference, never the number of browser actions.
 export const MODEL_WAIT_POLICY = Object.freeze({idleMs: 120000, attemptMs: 300000, slowMs: 15000});
+// Image encoding/prefill can stall without producing a single usable delta.
+// Keep active streaming's normal ceiling, but do not resend the same expensive
+// image request automatically after silence. The existing task recovery owns it.
+export const IMAGE_MODEL_WAIT_POLICY = Object.freeze({idleMs: 30000, attemptMs: 300000, slowMs: 8000, retries: 0});
 const serverDelay = error => ([429, 503].includes(error?.status) || error?.retryable === true && ['rate_limited', 'upstream'].includes(error.message)) && Number.isFinite(error.retryAfterMs) && error.retryAfterMs >= 0 ? error.retryAfterMs : 0;
 async function waitForRetry(ms, signal) {
   if (signal.aborted) throw new Error('cancelled');

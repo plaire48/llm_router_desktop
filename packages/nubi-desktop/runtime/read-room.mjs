@@ -11,6 +11,9 @@
 // remaining reads of that response wait for the next one: a whole range later
 // serves better than a sliver now.
 export const READ_FLOOR=600;
+// Lines of one read_source call. The model windows are 256K to 512K (user decision 2026-09-30): with 200 lines,
+// 52 of 92 reads of the live run S16 were cut and continued. The room above still bounds a read in a small window.
+export const READ_LINES=1000;
 export function resultRoom({window,fixed,last,spent=0}) {
   const free=limit=>Math.floor((window.input-limit)*.8)-1024-spent;
   const room=Math.max(free(last),free(fixed+window.summaryOutput));

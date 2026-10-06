@@ -72,7 +72,8 @@ try{
   result=await run('wait_page',{condition:{kind:'url_is',expected:url},timeout_ms:1000});
   assert.equal(result.wait?.matched,true,JSON.stringify(result));
   result=await run('wait_page',{condition:{kind:'text_present',expected:'x'},timeout_ms:20000});
-  assert.equal(result.error,'tool_arguments_invalid');
+  assert.equal(result.error,'wait_arguments_invalid');
+  assert.equal(result.reason,'wait_arguments_invalid');assert.equal(result.wait,undefined);assert.equal(posts,1);
   checks.push('Conditional waiting handles an update after 1.2s, reports missing evidence on timeout, and never claims final verification or replays writes');
   const waiting=run('wait_page',{condition:{kind:'text_present',expected:'Never appears'},timeout_ms:15000});
   await new Promise(resolve=>setTimeout(resolve,300));
