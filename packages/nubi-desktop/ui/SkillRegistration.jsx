@@ -2,11 +2,11 @@ import React,{useEffect,useRef,useState} from 'react';
 import {CxButton,Icon} from '@e2e/cx-design-system';
 import {FolderMark} from './marks.jsx';
 import {notifyWorkspaceToast} from './WorkspaceToast.jsx';
-import {skillRegistrationErrors} from './skill-registration-state.mjs';
+import {skillRegistrationErrors,separateFolderPicker} from './skill-registration-state.mjs';
 
 export function SkillRegistration({api,taskId,onRegistered,onBusy}){
   const [busy,setBusy]=useState(false),[dragging,setDragging]=useState(false);
-  const live=useRef(true),lock=useRef(false);
+  const live=useRef(true),lock=useRef(false),separateFolder=separateFolderPicker(typeof window!=='undefined'?window.nubi?.platform:undefined);
   useEffect(()=>{live.current=true;return()=>{live.current=false;};},[]);
   async function register(read){
     if(lock.current)return;lock.current=true;setBusy(true);onBusy(true);
@@ -25,7 +25,8 @@ export function SkillRegistration({api,taskId,onRegistered,onBusy}){
     <div className="nubi-skill-dropzone" data-dragging={dragging} aria-busy={busy} onDrop={drop} onDragOver={event=>{event.preventDefault();event.dataTransfer.dropEffect='copy';setDragging(true);}} onDragLeave={event=>{if(!event.currentTarget.contains(event.relatedTarget))setDragging(false);}}>
       <span className="nubi-skill-import-mark" aria-hidden="true"><FolderMark size={28}/></span>
       <strong>스킬을 끌어 놓으세요.</strong><p>폴더, ZIP 또는 Markdown 파일</p>
-      <div className="nubi-skill-import-actions"><CxButton variant="primary" disabled={busy} onClick={()=>void register(()=>api('chooseSkillPackage',{taskId}))}><Icon name="file" size={16}/>선택</CxButton></div>
+      {/* macOS takes files and folders in one dialog. Windows and Linux cannot, so a folder gets its own button (2026-10-07). */}
+      <div className="nubi-skill-import-actions"><CxButton variant="primary" disabled={busy} onClick={()=>void register(()=>api('chooseSkillPackage',{taskId}))}><Icon name="file" size={16}/>{separateFolder?'파일 선택':'선택'}</CxButton>{separateFolder&&<CxButton disabled={busy} onClick={()=>void register(()=>api('chooseSkillPackage',{taskId,kind:'folder'}))}><FolderMark size={16}/>폴더 선택</CxButton>}</div>
     </div>
     {busy&&<p role="status" className="nubi-muted">스킬을 등록하고 있어요.</p>}
   </div>;

@@ -75,5 +75,14 @@ try{
     await new Promise(resolve=>setTimeout(resolve,500));result.stalePointerCleared=await readFile(path.join(storage,'last-project.json'),'utf8').then(()=>false,()=>true);assert.equal(result.stalePointerCleared,true,'the stale pointer is removed');}
   finally{await app.close();}
 }
+// 7. A busy local web port: the window still loads and the fault is recorded (2026-10-07; the app hung before).
+{
+  const {createServer}=await import('node:net');const blocker=createServer();await new Promise(resolve=>blocker.listen(0,'127.0.0.1',resolve));const port=blocker.address().port;
+  await writeFile(path.join(storage,'last-project.json'),JSON.stringify({root}));await rm(path.join(storage,'last-host-fault.json'),{force:true});
+  const app=await electron.launch({executablePath:require('electron'),args:['electron-app'],env:{...env,NUBI_WEB_PORT:String(port)}});
+  try{const page=await app.firstWindow();await page.getByRole('navigation',{name:'프로젝트 도구'}).waitFor({timeout:30000});
+    const fault=JSON.parse(await readFile(path.join(storage,'last-host-fault.json'),'utf8'));assert.equal(fault.component,'web-host');assert.equal(fault.reason,'launch-failed');result.busyWebPort={windowLoaded:true,fault:fault.reason};}
+  finally{await app.close();await new Promise(resolve=>blocker.close(resolve));}
+}
 await rm(temporary,{recursive:true,force:true});
 console.log(JSON.stringify(result));

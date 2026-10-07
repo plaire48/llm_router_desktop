@@ -42,4 +42,4 @@ OpenCode write의 비교 대상은 2026-09-23 조회한 dev 소스입니다. 파
 
 `tests/project-rules-new-files.test.mjs`에서 실제 Git 파일, 파서, SQLite와 Pi 합성 응답을 사용합니다. 경로별 규칙 우선순위와 fallback, 외부 링크/크기 제한, 새 규칙으로 인한 무효화, 현재 실행의 생성 관찰과 계획, 잘못된 문법, 동일 내용의 파일 충돌, 생성 중단, readback과 재열기, Wiki 생성 대기 상태를 확인합니다.
 
-`scripts/check-ui.mjs`는 실제 Theia와 Chrome에서 기존 편집 보호와 함께 새 파일 비교/반영, 실제 파일, 화면 재열기, 충돌과 규칙 변경 차단, 좁은 레이아웃을 확인합니다. 최신 통과 수와 로그는 [검증 기록](VERIFICATION.md)에 남깁니다. 합성 모델 도구 연결은 실모델 품질 측정이 아닙니다.
+`scripts/check-ui.mjs`(Theia 검사, 2026-10-07 제거. Electron에서는 `check-electron-shell.mjs`와 `check-electron-skills.mjs`가 같은 흐름을 검사한다)는 실제 Theia와 Chrome에서 기존 편집 보호와 함께 새 파일 비교/반영, 실제 파일, 화면 재열기, 충돌과 규칙 변경 차단, 좁은 레이아웃을 확인합니다. 최신 통과 수와 로그는 [검증 기록](VERIFICATION.md)에 남깁니다. 합성 모델 도구 연결은 실모델 품질 측정이 아닙니다.

@@ -152,7 +152,8 @@ app.whenReady().then(async()=>{
    if(typeof args.source!=='string'||!path.isAbsolute(args.source)||args.source.length>4000||args.taskId!==undefined&&args.taskId!==null&&typeof args.taskId!=='string')throw Error('skill_import_path');
    return await invoke('importSkill',{source:args.source,taskId:args.taskId});
  }catch(error){return {__nubiError:/^[a-z_]+$/.test(error.message)?error.message:'operation_failed'};}});
- if(process.env.NUBI_WEB_PORT){webHost=await startWebHost({frontend,dispatch:(method,args)=>dispatch(method,args,'web'),port:Number(process.env.NUBI_WEB_PORT)});console.log(`Nubi live workspace: ${webHost.origin}`);}
+ // The local web host is optional: a busy port is recorded and the window still loads (2026-10-07; it hung before).
+ if(process.env.NUBI_WEB_PORT){try{webHost=await startWebHost({frontend,dispatch:(method,args)=>dispatch(method,args,'web'),port:Number(process.env.NUBI_WEB_PORT)});console.log(`Nubi live workspace: ${webHost.origin}`);}catch(error){recordFault('web-host',{reason:'launch-failed',code:error.code||error.message});console.error('누비 로컬 웹을 열지 못했어요: '+(error.code||error.message));}}
  await window.loadURL('app://bundle/index.html');
 });
 app.on('window-all-closed',()=>app.quit());
