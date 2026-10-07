@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {clearDuplicateObservations, continuityMessage} from '../context-evidence.js';
+import {clearDuplicateObservations, continuityMessage, clearCachedToolResults} from '../context-evidence.js';
 import {createRunContext, contextTokens, contextBudget} from '../context-manager.js';
 
 const pair = (id, name, result, args = {}) => [{role: 'assistant', content: '', tool_calls: [{id, type: 'function', function: {name, arguments: JSON.stringify(args)}}]}, {role: 'tool', tool_call_id: id, content: JSON.stringify(result)}];
@@ -397,4 +397,21 @@ test('research budget drops advisory notes before source locators and reports th
   assert.equal(work.document_refs.length,6);assert.equal(work.omittedDocuments,0);assert.equal(work.unread_ranges.length,1);assert.equal(work.omittedUnreadRanges,0);
   assert(work.omittedUncertainties>0);assert.equal(work.uncertainties.length+work.omittedUncertainties,3);
   assert.equal(work.truncatedUncertainties,work.uncertainties.length);assert(JSON.stringify(work).length<=2000);
+});
+
+test('a host keeps the results of its verbatim tools word for word while other cached reads still become references', () => {
+  const read = i => ({analysis_evidence_id: `ev_${i}`, results: [{evidenceId: `w${i}`, excerpt: 'wiki text '.repeat(400)}]});
+  const sources = Object.fromEntries(Array.from({length: 8}, (_, i) => [`ev_${i + 1}`, {evidence_id: `ev_${i + 1}`, tool: i % 2 ? 'wiki_query' : 'read_source', truncated: false, has_image: false, source_status: 'observed'}]));
+  const wire = [{role: 'system', content: 'rules'}, {role: 'user', content: '질문'},
+    ...Array.from({length: 8}, (_, i) => pair(`c${i + 1}`, i % 2 ? 'wiki_query' : 'read_source', read(i + 1), {query: 'q'})).flat()];
+  const metadata = id => sources[id] || null;
+  const pruned = clearCachedToolResults(wire, metadata);
+  assert.equal(pruned.filter(m => m.content.includes?.('cached_tool_result')).length, 6, 'without the option the older six of eight reads become references');
+  const kept = clearCachedToolResults(wire, metadata, {verbatim: new Set(['wiki_query'])});
+  const wikiStubs = kept.filter((m, i) => wire[i].tool_call_id && ['c2', 'c4', 'c6', 'c8'].includes(wire[i].tool_call_id) && m.content.includes('cached_tool_result'));
+  assert.equal(wikiStubs.length, 0, 'wiki_query results stay word for word');
+  assert.equal(kept.filter(m => m.content.includes?.('cached_tool_result')).length, 2, 'the older read_source results still become references');
+  const bounded = clearCachedToolResults(wire, metadata, {verbatim: new Set(['wiki_query']), verbatimMaxChars: 100});
+  assert.equal(bounded.filter(m => m.content.includes?.('cached_tool_result')).length, 6, 'a result above the verbatim bound is pruned like any other');
+  assert.deepEqual(wire.map(m => m.content), wire.map(m => m.content), 'the wire itself is untouched');
 });

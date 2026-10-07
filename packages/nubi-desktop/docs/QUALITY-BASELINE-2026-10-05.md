@@ -109,7 +109,6 @@
 | 후보 | 이유 | 비고 |
 |---|---|---|
 | 스킬 등록 Electron 자동 검사 | 스킬 관리가 작성창(모델 로그인 뒤)에서만 열린다 | 검사용 합성 모델 제공자가 있어야 가능 |
-| 공유 압축기의 Wiki 근거 보존 | Desktop이 결과를 되돌리는 방식(B12) | 공유 `context-evidence.js` 수정은 브라우저 세션과 조율 |
 | 분석 이력 섹션의 trace 중복 | 분석 작업자 단계를 trace에서 뺐으므로 중복은 없으나, 이전 실행(activityHistory)의 분석 기록은 섹션의 '이전 분석'에만 보인다 | 실행별로 나눠 보여 줄지는 설계 결정 |
 
 ## 7. 2026-10-07 개선: 부족하거나 매끄럽지 않던 동작
@@ -129,3 +128,9 @@
 ### 7.1 프로젝트 설정 흐름 제거 (사용자 요청 2026-10-07)
 
 09-30 결정으로 만든 "Git이 없거나 저장소가 아닌 폴더는 승인된 설정 뒤에 연다" 흐름(`runtime/project-setup.mjs`의 명령 제안과 실행, `ui/ProjectSetup.jsx`의 프로젝트 준비 카드, `setupStatus`/`setupRun`/`setupRetry`/`setupSuggest` 메서드)은 10-04 결정(Git 없는 폴더도 바로 연다) 뒤로 어떤 경로에서도 시작되지 않았다. `open()`이 `git_unavailable`과 `not_git_repository`를 그대로 통과시키고 설정 대기 상태를 비우므로 카드가 뜰 조건이 없었다. 파일 세 개(런타임, 화면, 시험)와 Workbench의 상태, 허용 메서드 목록을 지웠다. **에이전트의 실행 준비 승인(`runtime/setup-actions.mjs`, `ui/SetupActions.jsx`, `setupBusy`)은 다른 기능이라 그대로 둔다.** 프로젝트 열기 시험(`project-open`)과 실행 준비 승인 시험(`setup-actions`)은 변함없이 통과한다.
+
+### 7.2 공유 압축기의 Wiki 근거 보존 (사용자 요청 2026-10-07)
+
+전: 공유 실행기의 읽기 캐시(`extensions/aipro-chat/context-evidence.js`의 `clearCachedToolResults`)가 2,048자를 넘는 오래된 `wiki_query` 결과를 참조로 바꾸면, Desktop의 `prepareContext`가 처음 본 원문을 기억해 두었다가 되돌려 넣는 우회(`keepWikiVerbatim`)로 B8h/B12 결정(압축된 대화에 원문 그대로 남은 Wiki 근거는 인정)을 지켰다.
+
+후: 공유 압축기가 호스트가 지정한 도구 결과를 참조로 바꾸지 않는 옵션을 받는다. `clearCachedToolResults(wire, metadata, {verbatim, verbatimMaxChars})`, `createAnalysisCoordinator`와 `runAgent`의 `verbatimTools`, `verbatimMaxChars`. Desktop은 `verbatimTools:['wiki_query','ask_openwiki']`, `verbatimMaxChars:12000`을 넘기고 우회 코드를 지웠다. 옵션을 넘기지 않는 브라우저 누비는 전과 같이 동작한다(공유 시험 94개, 새 시험 1개 통과). Desktop의 끝에서 끝 시험(`compaction-wiki-evidence`: 압축 뒤에도 변경 계획이 Wiki 근거를 인용)은 공유 경로로 그대로 통과한다. 공유 파일은 정확한 문자열 치환으로만 고쳤다.

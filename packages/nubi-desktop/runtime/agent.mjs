@@ -301,21 +301,10 @@ export function installAgent(ProjectService) {
       const names=new Map();for(const message of wire)for(const item of message.tool_calls||[])names.set(item.id,item.function?.name);
       return wire.map(message=>message.role==='tool'&&clearedResults.has(message.tool_call_id)&&typeof message.content==='string'&&!message.content.startsWith('{"contextCleared":true')?{...message,content:clearedResult(names.get(message.tool_call_id),message.content)}:message);
     };
-    // Wiki evidence stays word for word (user decision 2026-09-30, B8h and B12): a change plan cites only a Wiki result
-    // the conversation still shows whole. The shared runner turns older cached reads into references before this step,
-    // and since the citations of 2026-10-04 a wiki_query result passes its 2,048-character line. Found 2026-10-05: the
-    // plan was refused, the Wiki queried again, and the run compacted again (the loop of case L1, S16). The result the
-    // run first saw is kept here and put back in place of such a reference; a result cleared for its size is not.
-    const wikiVerbatim=new Map(),WIKI_VERBATIM_CHARS=12000;
-    const keepWikiVerbatim=wire=>{
-      const names=new Map();for(const message of wire)for(const item of message.tool_calls||[])names.set(item.id,item.function?.name);
-      return wire.map(message=>{
-        if(message.role!=='tool'||!['wiki_query','ask_openwiki'].includes(names.get(message.tool_call_id))||typeof message.content!=='string')return message;
-        if(!message.content.startsWith('{"contextCleared":true')){if(message.content.length<=WIKI_VERBATIM_CHARS&&wikiVerbatim.size<64)wikiVerbatim.set(message.tool_call_id,message.content);return message;}
-        const original=message.content.startsWith('{"contextCleared":true,"reason":"cached_tool_result"')?wikiVerbatim.get(message.tool_call_id):undefined;
-        return original?{...message,content:original}:message;
-      });
-    };
+    // Wiki evidence (wiki_query, ask_openwiki) stays word for word through the shared read cache (user decision
+    // 2026-09-29, B8h/B12): the shared compactor keeps these results up to WIKI_VERBATIM_CHARS instead of turning them
+    // into references, so a change plan can cite them after a compaction (case L1, S16; 2026-10-07 root fix).
+    const WIKI_VERBATIM_CHARS=12000;
     const fitted=async(wire,force,definitions)=>{
       let attempt=0;
       for(;;){
@@ -616,7 +605,8 @@ export function installAgent(ProjectService) {
           spent+=contextTokens([{role:'tool',content:JSON.stringify(sourced)}]);return sourced;
         }, stepwise:true, harness:false, clarifyOnStall:true, compactProgress:true, readTogether:READ_TOGETHER,
       completeAnalysis: reviewRecovery?undefined:(wire, definitions, scope) => invokeModel(wire, definitions, scope.signal, 'analysis'),
-      prepareContext: async (wire,definitions) => {wire=keepWikiVerbatim(wire);lastSource=structuredClone(wire);const advertised=toolSet.advertised(definitions);return reobserve(await fitted(wire,false,reviewRecovery?reviewRecoveryTools(advertised):advertised));}, onStep: event => { const entry={...event,runId,id:runId+':'+round+':'+event.index,at:new Date().toISOString()};saveRoleProgress(this.store,taskId,runId,entry);const at=task.trace.findIndex(item=>item.id===entry.id);if(at<0)task.trace=[...task.trace.slice(-79),entry];else task.trace=task.trace.map((item,index)=>index===at?entry:item); persistTask(); },
+      verbatimTools:['wiki_query','ask_openwiki'], verbatimMaxChars:WIKI_VERBATIM_CHARS,
+      prepareContext: async (wire,definitions) => {lastSource=structuredClone(wire);const advertised=toolSet.advertised(definitions);return reobserve(await fitted(wire,false,reviewRecovery?reviewRecoveryTools(advertised):advertised));}, onStep: event => { const entry={...event,runId,id:runId+':'+round+':'+event.index,at:new Date().toISOString()};saveRoleProgress(this.store,taskId,runId,entry);const at=task.trace.findIndex(item=>item.id===entry.id);if(at<0)task.trace=[...task.trace.slice(-79),entry];else task.trace=task.trace.map((item,index)=>index===at?entry:item); persistTask(); },
       onRound: () => { this.store.event('agent_round', {taskId}); }
     });}});}).then(result => {
       if (controller.signal.aborted) return;

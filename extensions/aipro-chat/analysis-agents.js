@@ -106,7 +106,7 @@ function documentProgress(job, report = job.report) {
   });
 }
 
-export function createAnalysisCoordinator({signal, modelId, complete, execute, run, tools = [], documents = [], observationSources = {}, onStep = () => {}, onEvidence = () => {}, onDelivery = () => {}, onHandoff, handoffs, readTimeoutMs = REFERENCE_READ_TIMEOUT_MS}) {
+export function createAnalysisCoordinator({signal, modelId, complete, execute, run, tools = [], documents = [], observationSources = {}, onStep = () => {}, onEvidence = () => {}, onDelivery = () => {}, onHandoff, handoffs, readTimeoutMs = REFERENCE_READ_TIMEOUT_MS, verbatimTools = [], verbatimMaxChars}) {
   const sources = new Map(), jobs = new Map();
   const contentReadNamespace=crypto.randomUUID().replaceAll('-','').slice(0,16);
   const definitions = analysisToolDefinitions();
@@ -607,7 +607,7 @@ export function createAnalysisCoordinator({signal, modelId, complete, execute, r
       // Exact equality prevents a stale/mismatched ID from discarding the only
       // copy of another URL, hash, range, coverage field or document version.
       try {return JSON.stringify(JSON.parse(source.text).result) === JSON.stringify(reference);} catch {return false;}
-    }), id => sources.has(id) ? meta(sources.get(id)) : null),
+    }), id => sources.has(id) ? meta(sources.get(id)) : null, {verbatim: new Set(verbatimTools), ...(verbatimMaxChars ? {verbatimMaxChars} : {})}),
     pageContentReference: id => sources.get(id)?.contentRef,
     resolvePageContentRead(args) {
       check();

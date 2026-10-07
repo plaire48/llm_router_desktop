@@ -39,7 +39,9 @@ export function clearCapturedSourceCopies(wire, matchesOriginal) {
 // Recent observations, uncertain failures and visual results remain complete.
 // Verified fills and witnessed key commands retain every execution field; an older DOM may
 // reference its complete original. This never changes review/host evidence.
-export function clearCachedToolResults(wire, sourceMetadata) {
+// `verbatim`: tool names whose results a host keeps word for word up to `verbatimMaxChars` (the Desktop keeps Wiki
+// evidence a change plan cites, user decision 2026-09-29 B8h/B12). Other hosts pass nothing and prune as before.
+export function clearCachedToolResults(wire, sourceMetadata, {verbatim = new Set(), verbatimMaxChars = Infinity} = {}) {
   if (JSON.stringify(wire).length <= 32000) return wire;
   const calls = new Map(), reads = [], verifications = [], failedVerifications = [], fills = [], presses = [], domResults = [];
   for (const [index, message] of wire.entries()) {
@@ -94,6 +96,7 @@ export function clearCachedToolResults(wire, sourceMetadata) {
       continue;
     }
     if (!cacheableReads.has(name)) continue;
+    if (verbatim.has(name) && message.content.length <= verbatimMaxChars) continue;
     if (!result || result.contextCleared || result.error || result.ok === false || result.cancelled || result.actionIssued === true || result.requiresApproval || result.requiresUserInput) continue;
     const source = sourceMetadata(result.analysis_evidence_id);
     if (!source || source.truncated || source.has_image || source.source_status !== 'observed') continue;

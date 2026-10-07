@@ -201,7 +201,7 @@ function limitedReviewNote({checks, opinion}, rounds) {
     ...(text ? [`검토 의견: ${text}`] : [])].join('\n');
 }
 
-export async function runAgent({messages, goal: taskGoal, tools, inputBudget, documents = [], observationSources = {}, modelId = 'aipro', signal, complete, completeAnalysis, execute, onStep = () => {}, onDiagnostic = () => {}, onAnalysisHandoff, analysisHandoffs, onResearchHandoff, researchHandoffs, onDelegated, onRound = () => {}, prepareContext, preparePlan, resumePlan, requirePlanOutcomes = false, harness: useHarness = false, stepwise = useHarness, parallelReads = false, referenceImageEnabled = false, clarifyOnStall = false, compactProgress = false, readTogether, reviewGoal, reviewPlanScope, assessCompletion, resumeVerification = false, resumeUncertainAction = false, resumedObservation, interruptedAction, approvedActionReceipt, takeInput, onFacts, researchBrowser, researchOnInput}) {
+export async function runAgent({messages, goal: taskGoal, tools, inputBudget, documents = [], observationSources = {}, modelId = 'aipro', signal, complete, completeAnalysis, execute, onStep = () => {}, onDiagnostic = () => {}, onAnalysisHandoff, analysisHandoffs, onResearchHandoff, researchHandoffs, onDelegated, onRound = () => {}, prepareContext, preparePlan, resumePlan, requirePlanOutcomes = false, harness: useHarness = false, stepwise = useHarness, parallelReads = false, referenceImageEnabled = false, clarifyOnStall = false, compactProgress = false, readTogether, reviewGoal, reviewPlanScope, assessCompletion, resumeVerification = false, resumeUncertainAction = false, resumedObservation, interruptedAction, approvedActionReceipt, takeInput, onFacts, researchBrowser, researchOnInput, verbatimTools = [], verbatimMaxChars}) {
   const dispatch = createReviewExecution({taskStartObserved:!resumePlan && !resumeVerification && !resumedObservation && !resumeUncertainAction && !interruptedAction});
   const readTools = new Set(['read_analysis_evidence', ...PROJECT_TOOL_NAMES, ...DOCUMENT_TOOL_NAMES]);
   const parallel = parallelReads === true && !stepwise && !useHarness && !completeAnalysis && tools.length > 0 && tools.every(tool => readTools.has(tool.function.name));
@@ -210,7 +210,7 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
   const evidence = resumedObservation ? [reviewEvidence(1, 'browser_snapshot', {}, resumedObservation)] : [];
   let lastAnalysisEvidenceId, lastActionAnalysisEvidenceId, pendingReviewRepair, pendingActionRepair;
   const analyses = completeAnalysis && execute && supportsAnalysis(tools) ? createAnalysisCoordinator({
-    signal, modelId, complete: completeAnalysis, execute, run: runAgent, tools, documents, observationSources, onStep, onHandoff:onAnalysisHandoff, handoffs:analysisHandoffs,
+    signal, modelId, complete: completeAnalysis, execute, run: runAgent, tools, documents, observationSources, onStep, onHandoff:onAnalysisHandoff, handoffs:analysisHandoffs, verbatimTools, verbatimMaxChars,
     onDelivery: result => {if (useHarness || assessCompletion) evidence.push(reviewEvidence(evidence.length + 1, 'analysis_receipt', {}, result));},
     onEvidence: (name, args, result) => {if (useHarness || assessCompletion) evidence.push(reviewEvidence(evidence.length + 1, name, args, result));},
   }) : null;
