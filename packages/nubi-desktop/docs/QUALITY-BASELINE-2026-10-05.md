@@ -108,7 +108,6 @@
 
 | 후보 | 이유 | 비고 |
 |---|---|---|
-| `runtime/project-setup.mjs`, `ui/ProjectSetup.jsx`, `setup-actions` 흐름 제거 | Git 없는 폴더도 열리므로 `setup`이 채워지지 않아 화면에 닿지 않는다 | Codex의 설계 의도 확인 뒤 제거. 시험 `tests/project-setup.test.mjs`와 함께 |
 | 스킬 등록 Electron 자동 검사 | 스킬 관리가 작성창(모델 로그인 뒤)에서만 열린다 | 검사용 합성 모델 제공자가 있어야 가능 |
 | 공유 압축기의 Wiki 근거 보존 | Desktop이 결과를 되돌리는 방식(B12) | 공유 `context-evidence.js` 수정은 브라우저 세션과 조율 |
 | 분석 이력 섹션의 trace 중복 | 분석 작업자 단계를 trace에서 뺐으므로 중복은 없으나, 이전 실행(activityHistory)의 분석 기록은 섹션의 '이전 분석'에만 보인다 | 실행별로 나눠 보여 줄지는 설계 결정 |
@@ -126,3 +125,7 @@
 | 머리글 주석 노출 | 10-07 오전에 넣은 프로젝트 라벨 수정이 JSX 글자 자리에 주석을 두어 프로젝트가 없을 때 `/* … */` 문구가 머리글에 보였다(실제 앱 탐침으로 발견) | 주석을 중괄호 안으로 옮겼고, 공유 UI 검사와 셸 검사가 화면에 `/*`가 없는지 확인한다 |
 
 탐침으로 확인하고 손대지 않은 것: 지난 프로젝트 폴더가 없을 때의 오류 토스트는 이미 떠 있었다(2초 뒤 사라짐). 모델이 없을 때의 시작 화면은 모델 선택 화면이며 프로젝트 카드는 모델 연결 뒤에 나온다.
+
+### 7.1 프로젝트 설정 흐름 제거 (사용자 요청 2026-10-07)
+
+09-30 결정으로 만든 "Git이 없거나 저장소가 아닌 폴더는 승인된 설정 뒤에 연다" 흐름(`runtime/project-setup.mjs`의 명령 제안과 실행, `ui/ProjectSetup.jsx`의 프로젝트 준비 카드, `setupStatus`/`setupRun`/`setupRetry`/`setupSuggest` 메서드)은 10-04 결정(Git 없는 폴더도 바로 연다) 뒤로 어떤 경로에서도 시작되지 않았다. `open()`이 `git_unavailable`과 `not_git_repository`를 그대로 통과시키고 설정 대기 상태를 비우므로 카드가 뜰 조건이 없었다. 파일 세 개(런타임, 화면, 시험)와 Workbench의 상태, 허용 메서드 목록을 지웠다. **에이전트의 실행 준비 승인(`runtime/setup-actions.mjs`, `ui/SetupActions.jsx`, `setupBusy`)은 다른 기능이라 그대로 둔다.** 프로젝트 열기 시험(`project-open`)과 실행 준비 승인 시험(`setup-actions`)은 변함없이 통과한다.

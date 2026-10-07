@@ -35,7 +35,6 @@ import {Processes, shellProfiles} from './processes.mjs';
 import {preferredShell} from './environment-inspection.mjs';
 import {git, gitOpenFailure, hash, fail, readSource, listFiles, scopedFile, relativeFile, snapshot} from './files.mjs';
 import {READ_LINES} from './read-room.mjs';
-import {createProjectSetup, findGit, runSetupCommand, initializeRepository, suggestionPlan, SETUP_PROMPT} from './project-setup.mjs';
 import {modelTransport} from './recovery.mjs';
 import {wikiUpdate} from './wiki-update.mjs';
 import {inspectWorkspaceChanges} from './workspace-changes.mjs';
@@ -44,13 +43,12 @@ const exec = promisify(execFile);
 const id = () => randomUUID();
 const limited = (value, max = 16000) => typeof value === 'string' && value.trim() && value.length <= max ? value.trim() : fail('input_invalid');
 export class ProjectService {
-  constructor({storageRoot = path.join(os.homedir(), '.nubi-desktop'), recoveryOptions = {}} = {}) { this.storageRoot = storageRoot; this.recoveryOptions=recoveryOptions; this.projectSetup=createProjectSetup(); this.setupTools={run:runSetupCommand,findGit}; }
+  constructor({storageRoot = path.join(os.homedir(), '.nubi-desktop'), recoveryOptions = {}} = {}) { this.storageRoot = storageRoot; this.recoveryOptions=recoveryOptions; }
   async open(root, {kind='project',initializeWiki=true}={}) {
     // Each reason a folder cannot be opened has its own code for the "프로젝트 열기" message.
     const resolved = await realpath(limited(root, 2000)).catch(error => fail(['EACCES', 'EPERM'].includes(error?.code) ? 'project_path_denied' : 'project_path_missing'));
-    // Without Git, or outside a repository, the folder waits for an approved setup (user decision 2026-09-30).
+    // A folder without Git, or outside a repository, opens as it is (user decision 2026-10-04); the setup flow of 2026-09-30 is gone (2026-10-07).
     const top = await git(resolved, ['rev-parse', '--show-toplevel']).then(output => realpath(output.trim()), async error => {const code = gitOpenFailure(error); if (['git_unavailable', 'not_git_repository'].includes(code)) return resolved; fail(code);});
-    this.projectSetup.clear();
     if (this.root === top && this.store?.db.isOpen) {if(initializeWiki){this.wikiInitEnabled=true;await this.initializeWiki();}return this.overview();}
     if (this.skillImportBusy || this.vocBusy || this.computerBusy || this.newFileBusy || this.setupBusy || this.processes?.active.size || this.processes?.pending.size || this.unsettledOperations?.size || this.reconciling || this.agent?.running || this.recordingKnowledge || this.databaseBusy || this.collaborationBusy) fail('project_busy');
     const projectId = hash(top).slice(7, 31), store = new Store(path.join(this.storageRoot, projectId));
@@ -134,36 +132,6 @@ export class ProjectService {
       if (count < lines.length) { lines.length = count; end = start + count - 1; limited = 'size'; }
     }
     return {...file, content: lines.join('\n'), start, end, truncated: start !== 1 || end < file.lines, nextStart: end < file.lines ? end + 1 : null, ...(limited ? {limited: {by: limited, ...(requestedEnd === undefined ? {} : {requestedEnd})}} : {}), uri: pathToFileURL(path.join(root, rel)).href};
-  }
-  async setupStatus() { return this.projectSetup.view(); }
-  // Runs the approved command, then opens the folder when Git answers. environment asks the UI to prepare the project.
-  async setupRun({id} = {}) {
-    const plan = this.projectSetup.approved(id), {root} = this.projectSetup.pending;
-    if (plan.kind === 'init_repository') {
-      try { await initializeRepository(root); }
-      catch (error) { return {setup: this.projectSetup.record({command: plan.command, exitCode: null, error: 'setup_failed', output: String(error.stderr || error.message), source: plan.source})}; }
-      return {opened: await this.open(root), environment: true};
-    }
-    const result = await this.setupTools.run(plan, {cwd: root});
-    const found = await this.setupTools.findGit();
-    if (found.available) return {opened: await this.open(root), git: found.version, environment: true};
-    return {setup: this.projectSetup.record({command: plan.command, ...result, ...(result.exitCode === 0 ? {error: 'git_not_found_after_setup'} : {}), source: plan.source})};
-  }
-  // After the user installed Git or created the repository themselves: find a new Git and open the folder again.
-  async setupRetry() {
-    const pending = this.projectSetup.pending; if (!pending) fail('setup_plan_changed');
-    await this.setupTools.findGit();
-    return {opened: await this.open(pending.root), environment: true};
-  }
-  // The model reads the failed attempts and proposes one more command, shown for approval like the first.
-  async setupSuggest() {
-    const pending = this.projectSetup.pending;
-    if (!pending || pending.reason !== 'git_unavailable' || !pending.attempts.length) fail('setup_plan_changed');
-    if (!this.providers?.status?.().connected) fail('provider_missing');
-    const invoke = modelTransport(this, {signal: new AbortController().signal});
-    const tried = pending.attempts.map(({command, exitCode, error, output}) => ({command, exitCode, error, output: output.slice(-4000)}));
-    const result = await invoke([{role: 'system', content: SETUP_PROMPT}, {role: 'user', content: JSON.stringify({platform: process.platform, shell: process.platform === 'win32' ? 'powershell' : 'bash', tried})}], [], undefined, 'setup');
-    return this.projectSetup.offer(suggestionPlan(result.content));
   }
   async inspectPath({taskId,path}) {return inspectNewPath(await this.target(taskId),path);}
   async proposeNewFile(args) {return proposeNewFile.call(this,args);}
@@ -322,7 +290,7 @@ export class ProjectService {
   }
   async mail(args) {return mail.call(this,args);}
   async invoke(method, args = {}) {
-    const allowed = new Set(['previewFile','browseDirectory','terminalCommand','projectPath','proposalText','artifactText','initializeWiki','wikiInitialization','saveSource','commitHistory','mailDocument','mail','setupStatus','setupRun','setupRetry','setupSuggest','wikiUpdate','analysisHistory','listSkills','removeSkill','skillMarketplace','connectSkillMarketplace','disconnectSkillMarketplace','importSkill','importVoc','queryVoc','readVoc','computer','applyNewFile','decideSetupAction','collaboration','codeOutline','recoverySnapshot','resumeAgent','diagnoseProcess','applyCommandRepair','knowledgeMap','knowledgeQuery','initializeKnowledgeCatalog','exportKnowledgeMap','databaseConnection','open','knowledgeStatus','recordKnowledge','comparison','connectKnowledge','overview','state','setShellPreference','read','search','wikiQuery','createTask','exportRequirement','createWorktree','propose','prepareProposal','proposalArtifacts','confirmProposal','mergeProposal','diff','run','exportReport','compare','provider','fabrix','agentInput','startAgent','answerAgent','saveQuestionDraft','stopAgent','deleteTask','approvalPolicy','setApprovalMode','allowCommand','removeAllowedCommand','autoApprovals']);
+    const allowed = new Set(['previewFile','browseDirectory','terminalCommand','projectPath','proposalText','artifactText','initializeWiki','wikiInitialization','saveSource','commitHistory','mailDocument','mail','wikiUpdate','analysisHistory','listSkills','removeSkill','skillMarketplace','connectSkillMarketplace','disconnectSkillMarketplace','importSkill','importVoc','queryVoc','readVoc','computer','applyNewFile','decideSetupAction','collaboration','codeOutline','recoverySnapshot','resumeAgent','diagnoseProcess','applyCommandRepair','knowledgeMap','knowledgeQuery','initializeKnowledgeCatalog','exportKnowledgeMap','databaseConnection','open','knowledgeStatus','recordKnowledge','comparison','connectKnowledge','overview','state','setShellPreference','read','search','wikiQuery','createTask','exportRequirement','createWorktree','propose','prepareProposal','proposalArtifacts','confirmProposal','mergeProposal','diff','run','exportReport','compare','provider','fabrix','agentInput','startAgent','answerAgent','saveQuestionDraft','stopAgent','deleteTask','approvalPolicy','setApprovalMode','allowCommand','removeAllowedCommand','autoApprovals']);
     allowed.add('usage');allowed.add('editorSource');allowed.add('regenerateAnswer');allowed.add('skillTrash');
     if (method === 'poll') { this.ready(); return this.processes.poll(args.id); }
     if (method === 'stop') { this.ready(); return this.processes.stop(args.id); }
