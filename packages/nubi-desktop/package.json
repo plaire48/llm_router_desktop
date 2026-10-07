@@ -17,7 +17,7 @@
     "test": "node --test --test-concurrency=1 tests/*.test.mjs",
     "test:ui": "node scripts/check-electron-shell.mjs",
     "test:lifecycle": "node scripts/check-electron-lifecycle.mjs",
-    "test:gates": "npm test && npm run design:check && npm run test:forms-ui && npm run test:mail-ui && npm run test:modals-ui && npm run test:shared-ui && npm run build:electron && npm run test:ui && npm run test:skills-ui && npm run test:live-web && npm run test:lifecycle",
+    "test:gates": "npm test && npm run design:check && npm run test:forms-ui && npm run test:mail-ui && npm run test:modals-ui && npm run test:shared-ui && npm run build:electron && npm run test:ui && npm run test:skills-ui && npm run test:agent-ui && npm run test:live-web && npm run test:lifecycle",
     "test:shared-ui": "node scripts/check-shared-ui.mjs",
     "package:windows": "node scripts/package-windows.mjs",
     "test:electron": "node scripts/check-electron-shell.mjs",
@@ -30,7 +30,8 @@
     "preview:web": "node scripts/start-web.mjs",
     "preview:mock": "node scripts/preview-web.mjs",
     "test:skills-ui": "node scripts/check-electron-skills.mjs",
-    "test:live-web": "node scripts/check-live-web.mjs"
+    "test:live-web": "node scripts/check-live-web.mjs",
+    "test:agent-ui": "node scripts/check-electron-agent.mjs"
   },
   "devDependencies": {
     "@types/node": "24.10.1",

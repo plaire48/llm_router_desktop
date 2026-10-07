@@ -8,7 +8,7 @@ import {_electron as electron} from 'playwright';
 import {createRequire} from 'node:module';
 import {mkdtemp,mkdir,writeFile,readFile,rm,realpath,access} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
-import {createServer} from 'node:http';
+import {startFixtureModel} from './fixture-model.mjs';
 import os from 'node:os';import path from 'node:path';import assert from 'node:assert/strict';
 import {zip} from '../tests/skill-zip-fixture.mjs';
 const require=createRequire(import.meta.url),SENTINEL='SENTINEL_SKILL_7F3A';
@@ -23,37 +23,17 @@ await writeFile(path.join(packages,'zipped-skill.zip'),zip([['zipped-skill/SKILL
 await writeFile(path.join(packages,'quick-note.md'),'# 빠른 메모\n\n메모 형식으로 답한다.\n');
 const exists=file=>access(file).then(()=>true,()=>false),installed=(...parts)=>path.join(root,'.agents','skills',...parts);
 
-// The fixture model: a scripted OpenAI-compatible stream. It discovers the skill, loads it with the hash the discovery
-// returned, and answers with the sentinel once the loaded instruction carried it. Every request is recorded for the report.
-const seen=[],calls=[],planned=[],reviewProblems=[];let loadedInstruction=false;
-const usage={prompt_tokens:120,completion_tokens:12,total_tokens:132};
-const chunk=(delta,finish=null,withUsage)=>({id:'fixture',object:'chat.completion.chunk',model:'fixture-model',choices:[{index:0,delta,finish_reason:finish}],...(withUsage?{usage}:{})});
-const text=content=>[chunk({role:'assistant',content:''}),chunk({content}),chunk({},'stop',true)];
-const call=(name,args)=>{calls.push(name);return [chunk({role:'assistant',tool_calls:[{index:0,id:'call_'+calls.length,type:'function',function:{name,arguments:JSON.stringify(args)}}]}),chunk({},'tool_calls',true)];};
-function decide(body){
-  const messages=body.messages||[],first=String(messages[0]?.content||''),tools=(body.tools||[]).map(tool=>tool.function?.name);
-  seen.push({system:first.slice(0,48),last:messages.at(-1)?.role,tools:tools.length});
-  if(first.startsWith("You are Nubi Desktop's work planner")){/* the host plans before the first tool runs; the plan names the skill the catalog offers */let payload={};try{payload=JSON.parse(messages[1]?.content||'{}');}catch{}const offered=payload.capabilities?.skills?.find(item=>item.name==='fixture-skill');planned.push(!!offered);return text(JSON.stringify({intent:{goal:'요청을 한 줄로 요약한다',constraints:[],outcomes:['스킬 지침대로 한 줄 요약'],workflowIds:[],skillPaths:offered?[offered.path]:[]},explanation:'검사용 계획',steps:[{text:'스킬을 찾아 불러온다',expected_outcome:'fixture-skill 지침을 읽는다',status:'in_progress'},{text:'지침대로 요약한다',expected_outcome:'표식이 있는 한 줄 요약',status:'pending'}]}));}
-  if(first.startsWith('Nubi Desktop independent result review')){/* the review wants a verdict for every requirement with observed evidence; a tool envelope on the retry */const retry=first.indexOf('Problems found:');if(retry>=0)reviewProblems.push(first.slice(retry,retry+300));let data={};try{data=JSON.parse(messages[1]?.content||'{}');}catch{}const evidenceIds=(data.evidence||[]).filter(item=>item.usable).map(item=>item.id).slice(0,16);const verdict={status:'ready',nextStep:'',checks:(data.requirements||[{id:'request'}]).map(item=>({requirementId:item.id,state:'supported',evidenceIds,detail:'use_skill 결과의 지침대로 표식을 적은 한 줄 요약이다.'}))};return tools.includes('report_desktop_review')?call('report_desktop_review',verdict):text(JSON.stringify(verdict));}
-  if(first.startsWith('Summarize conversation'))return text(JSON.stringify({goal:'검사',constraints:[],decisions:[],completed:[],pending:[],references:[]}));
-  const results=messages.filter(message=>message.role==='tool').map(message=>{try{return JSON.parse(message.content);}catch{return {};}});
+// The fixture model (scripts/fixture-model.mjs): discovers the skill, loads it with the hash the discovery returned, and
+// answers with the sentinel once the loaded instruction carried it.
+let loadedInstruction=false;
+const fixture=await startFixtureModel({planSkill:'fixture-skill',respond({results,tools,calls,text,call}){
   if(results.some(result=>JSON.stringify(result).includes(SENTINEL))){loadedInstruction=true;return text(`${SENTINEL} 검사용 스킬 지침대로 요청을 한 줄로 요약했어요.`);}
   const discovered=results.find(result=>Array.isArray(result?.results)),skill=discovered?.results.find(item=>item.kind==='skill'&&item.name==='fixture-skill');
   if(skill&&calls.filter(name=>name==='use_skill').length<2)return call('use_skill',{path:skill.path,expectedHash:skill.hash});
   if(!discovered&&tools.includes('discover_capabilities'))return call('discover_capabilities',{query:'fixture'});
   return text('검사 응답입니다. 스킬을 찾지 못했어요.');
-}
-const server=createServer((request,response)=>{
-  if(request.method!=='POST'||!request.url.endsWith('/chat/completions')){response.writeHead(404).end();return;}
-  if(request.headers.authorization!=='Bearer fixture-token'){response.writeHead(401).end();return;}
-  let raw='';request.on('data',part=>{raw+=part;});request.on('end',()=>{
-    let body;try{body=JSON.parse(raw);}catch{response.writeHead(400).end();return;}
-    response.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache'});
-    for(const frame of decide(body))response.write('data: '+JSON.stringify(frame)+'\n\n');
-    response.write('data: [DONE]\n\n');response.end();
-  });
-});
-await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const port=server.address().port;
+}});
+const {calls,requests:seen,reviewProblems,planned}=fixture;
 
 const checks=[];let app,page;const stage=name=>{console.log('stage',checks.length,name);checks.push(name);};
 const launch=()=>electron.launch({executablePath:require('electron'),args:['electron-app'],env:{...process.env,NUBI_STORAGE_ROOT:storage,ELECTRON_RUN_AS_NODE:undefined}});
@@ -62,7 +42,7 @@ async function open(){
   app=await launch();page=await app.firstWindow();page.setDefaultTimeout(15000);page.on('pageerror',error=>console.log('PAGE ERROR:',error.message));
   await page.getByRole('navigation',{name:'프로젝트 도구'}).waitFor({timeout:30000});
   const startup=page.getByText('메일을 연결해 주세요');if(await startup.count()){await page.keyboard.press('Escape');await startup.waitFor({state:'hidden',timeout:5000});}
-  const status=await request('provider',{action:'connect',input:{provider:'compatible',baseUrl:`http://127.0.0.1:${port}/v1`,token:'fixture-token',model:'fixture-model'}});
+  const status=await request('provider',{action:'connect',input:fixture.connection});
   assert.equal(status.connected,true,'the compatible provider connects to the fixture: '+JSON.stringify(status.__nubiError||status.provider));
   await trigger().waitFor({timeout:20000});/* the Workbench polls the provider status and shows the composer */
 }
@@ -120,4 +100,4 @@ try{
   await writeFile('verification/electron-skills.json',JSON.stringify({platform:process.platform,checks,modelRequests:seen,toolCalls:calls,plannerOfferedSkill:planned,reviewProblems,boundary:'Local Electron with a scripted loopback model. No real provider login, marketplace or Windows installation.'},null,2));
   console.log(JSON.stringify({checks,toolCalls:calls,modelRequests:seen.length}));
 }catch(error){await mkdir('verification',{recursive:true});await page?.screenshot({path:'verification/electron-skills-failure.png'}).catch(()=>{});console.log('model requests:',JSON.stringify(seen));console.log('tool calls:',JSON.stringify(calls));console.log('review problems:',JSON.stringify(reviewProblems));console.log(await page?.locator('.nubi-feedback-toast,.desktop-error,.nubi-error').allTextContents().catch(()=>[]));throw error;}
-finally{await app?.close().catch(()=>{});server.close();await rm(temporary,{recursive:true,force:true});}
+finally{await app?.close().catch(()=>{});fixture.close();await rm(temporary,{recursive:true,force:true});}
