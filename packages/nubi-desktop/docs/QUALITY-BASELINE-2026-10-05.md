@@ -134,3 +134,15 @@
 전: 공유 실행기의 읽기 캐시(`extensions/aipro-chat/context-evidence.js`의 `clearCachedToolResults`)가 2,048자를 넘는 오래된 `wiki_query` 결과를 참조로 바꾸면, Desktop의 `prepareContext`가 처음 본 원문을 기억해 두었다가 되돌려 넣는 우회(`keepWikiVerbatim`)로 B8h/B12 결정(압축된 대화에 원문 그대로 남은 Wiki 근거는 인정)을 지켰다.
 
 후: 공유 압축기가 호스트가 지정한 도구 결과를 참조로 바꾸지 않는 옵션을 받는다. `clearCachedToolResults(wire, metadata, {verbatim, verbatimMaxChars})`, `createAnalysisCoordinator`와 `runAgent`의 `verbatimTools`, `verbatimMaxChars`. Desktop은 `verbatimTools:['wiki_query','ask_openwiki']`, `verbatimMaxChars:12000`을 넘기고 우회 코드를 지웠다. 옵션을 넘기지 않는 브라우저 누비는 전과 같이 동작한다(공유 시험 94개, 새 시험 1개 통과). Desktop의 끝에서 끝 시험(`compaction-wiki-evidence`: 압축 뒤에도 변경 계획이 Wiki 근거를 인용)은 공유 경로로 그대로 통과한다. 공유 파일은 정확한 문자열 치환으로만 고쳤다.
+
+### 7.3 긴 프로젝트 규칙이 읽기와 실행을 막던 결함 (사용자 보고 2026-10-07)
+
+증상: AGENTS.md나 CLAUDE.md가 32 KiB를 넘는 프로젝트(llm_router 56 KB, nubi-desktop 70 KB, nubi-office 34 KB)에서 실행 시작, `read_source`, 새 파일 검사가 전부 `rules_limit`("프로젝트 규칙이 너무 길어요")로 실패했다. 원인: `runtime/project-rules.mjs`가 파일당 32 KiB, 합계 64 KiB, 디렉터리 깊이 20단계를 넘으면 예외를 던졌다(설계 당시 "잘라서 성공으로 전달하지 않는다"는 결정이 프로젝트 전체를 못 쓰게 만들었다).
+
+수정: 한도를 넘는 규칙은 줄 단위로 앞부분만 싣고 같은 항목에 `truncated`, 실린 줄 수와 전체 줄 수와 바이트, 생략된 제목과 줄 번호(최대 40개), 나머지를 read_source로 읽으라는 안내를 붙인다. 생략을 모델에 드러낸다는 원칙은 유지한다. 해시와 fingerprint는 파일 전체 기준 그대로라 규칙이 바뀌면 전과 같이 `project_rules_changed`가 난다. 깊이 제한은 뺐다. `rules_limit` 문구와 도구 안내는 지웠다. 설계 문서 `docs/PROJECT-RULES-AND-NEW-FILES.md`의 한도 문장을 바꿨다.
+
+검증: `tests/project-rules-new-files.test.mjs`(한글 줄 경계에서 자르고 글자 중간은 자르지 않음, 생략된 제목과 줄 번호, 합계 예산, 25단계 경로), 전체 단위 시험 783건 중 588 통과와 195 건너뜀, 실패 0. Electron 셸 검사에 60 KB AGENTS.md를 둔 프로젝트에서 파일 읽기가 규칙을 부분 수록으로 답하는 단계를 추가했다. 실행 중이던 앱은 이전 묶음을 쓰므로 다시 시작해야 수정이 반영된다.
+
+### 7.4 검사 인스턴스가 실행 중인 Workspace의 단일 실행 잠금에 막히던 문제 (2026-10-07)
+
+사용자가 `npm run start:electron`으로 띄운 창이 있는 동안 Electron 검사(`test:ui`, `test:lifecycle`)의 인스턴스가 시작하자마자 종료됐다(`electron.launch: Target page, context or browser has been closed`). 10-05의 단일 실행 잠금이 기본 userData 경로에 묶여 있고, 검사가 주는 저장 루트(`NUBI_STORAGE_ROOT`)를 보지 않았다. 수정: 저장 루트가 주어지면 그 아래 `app/`을 userData로 삼은 뒤 잠금을 요청한다(`electron-app/main.cjs`). 검사와 평가 실행은 자기 프로필을 쓰므로 실행 중인 앱과 경쟁하지 않고 실제 앱의 Chromium 프로필도 건드리지 않는다. 저장 루트 없이 시작하는 제품 실행은 전과 같다. 검증: 사용자 창이 떠 있는 상태에서 수명주기 검사 6개 시나리오(두 번째 인스턴스 종료 포함)와 셸 검사 통과.

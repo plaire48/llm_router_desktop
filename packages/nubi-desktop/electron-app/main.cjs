@@ -16,6 +16,9 @@ configureSystemTrust();disableHostedTracing(process.env);
 app.setName('누비 Workspace');if(process.platform==='win32')app.setAppUserModelId('nubi.workspace');
 // One running Workspace (2026-10-05): a second start, a double-click on the shortcut, brings the first window forward
 // instead of opening a second window and a second worker on the same project state (project_locked).
+// A storage root of its own (checks, evaluation runs) is its own instance and its own Chromium profile: it never competes
+// with the running Workspace for the lock, which is keyed on userData (2026-10-07). The product start has no root and is unchanged.
+if(process.env.NUBI_STORAGE_ROOT)app.setPath('userData',path.join(process.env.NUBI_STORAGE_ROOT,'app'));
 const primary=app.requestSingleInstanceLock();
 if(!primary)app.quit();
 app.on('second-instance',()=>{if(!window||window.isDestroyed())return;if(window.isMinimized())window.restore();window.show();window.focus();});

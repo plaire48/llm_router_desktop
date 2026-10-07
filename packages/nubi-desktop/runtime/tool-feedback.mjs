@@ -18,7 +18,6 @@ const GUIDANCE=Object.freeze({
   parent_missing:UNCHANGED+'The parent directory is missing. Creating it requires a separate user-approved setup command.',
   project_rules_changed:UNCHANGED+'Project rules changed. Read the source or inspect_path again, then refresh the change plan.',
   rules_unavailable:'Project rules could not be read. Inspect the path and report the missing rules instead of assuming them.',
-  rules_limit:'Project rules exceed the readable size. Read the needed part with read_source.',
   setup_invalid:'Propose ONE exact command with observed evidence hashes, expected effects and a verification step.',
   setup_changed:'The evidence for this setup proposal changed. Inspect the environment again before proposing.',
   search_unavailable:'Search is unavailable. Use read_source or inspect_path on known paths.',

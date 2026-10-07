@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {mkdir,writeFile,readFile,symlink,unlink} from 'node:fs/promises';
 import path from 'node:path';
 import {fixture} from './fixtures.mjs';
-import {projectRules} from '../runtime/project-rules.mjs';
+import {projectRules,RULES_LIMITS} from '../runtime/project-rules.mjs';
+import {hash} from '../runtime/files.mjs';
 import {SourceObservations} from '../runtime/source-edits.mjs';
 import {recordChangePlan,requirePlannedEdit} from '../runtime/change-plan.mjs';
 import {collectKnowledge} from '../runtime/knowledge-records.mjs';
@@ -23,9 +24,21 @@ test('project rules use directory precedence, CLAUDE fallback and isolate siblin
   const next=await projectRules(root,'src/new.ts');assert.notEqual(next.fingerprint,rules.fingerprint);assert.deepEqual(next.files.map(f=>f.content),['Root rules','Preferred scoped rules']);
 });
 
-test('rule reads reject outside links and oversized guidance without truncation',async t=>{
+test('rule reads reject outside links; oversized guidance is shown in part with its omitted headings',async t=>{
   const {root,directory}=await fixture(t);await writeFile(path.join(directory,'outside.md'),'Outside');await symlink(path.join(directory,'outside.md'),path.join(root,'AGENTS.md'));
-  await assert.rejects(projectRules(root),/rules_unavailable/);await unlink(path.join(root,'AGENTS.md'));await writeFile(path.join(root,'AGENTS.md'),'a'.repeat(32769));await assert.rejects(projectRules(root),/rules_limit/);
+  await assert.rejects(projectRules(root),/rules_unavailable/);await unlink(path.join(root,'AGENTS.md'));
+  const head='# 규칙\n'+'가나다라 마바사아 자차카타.\n'.repeat(1500),tail='## 뒤쪽 절\n'+'x'.repeat(100)+'\n### 더 뒤쪽\n끝\n',whole=head+tail;
+  await writeFile(path.join(root,'AGENTS.md'),whole);
+  const [file]=(await projectRules(root)).files;
+  assert.equal(file.truncated,true);assert.ok(Buffer.byteLength(file.content)<=RULES_LIMITS.fileBytes);assert.ok(file.content.endsWith('.\n')&&!file.content.includes('\uFFFD'),'cut at a line boundary, never inside a character');
+  assert.equal(file.shownLines,file.content.split('\n').length-1);assert.equal(file.totalLines,whole.split('\n').length);assert.equal(file.totalBytes,Buffer.byteLength(whole));
+  assert.deepEqual(file.omittedHeadings.map(h=>h.heading),['## 뒤쪽 절','### 더 뒤쪽']);assert.equal(file.omittedHeadings[0].line,1502);assert.match(file.note,/read_source/);
+  assert.equal(file.hash,hash(Buffer.from(whole)),'the hash that edits are checked against covers the whole file');
+  await mkdir(path.join(root,'src'));await writeFile(path.join(root,'src/AGENTS.md'),'b'.repeat(40000));
+  const scoped=await projectRules(root,'src/new.ts');assert.deepEqual(scoped.files.map(f=>f.path),['AGENTS.md','src/AGENTS.md']);
+  assert.ok(scoped.files.reduce((sum,f)=>sum+Buffer.byteLength(f.content),0)<=RULES_LIMITS.totalBytes,'the chain stays within the total budget');assert.equal(scoped.files[1].truncated,true);assert.deepEqual(scoped.files[1].omittedHeadings,[]);
+  const deep=Array.from({length:25},(_,i)=>'d'+i).join('/');await mkdir(path.join(root,deep),{recursive:true});await writeFile(path.join(root,deep,'AGENTS.md'),'Deep rule');
+  assert.equal((await projectRules(root,deep+'/file.ts')).files.at(-1).content,'Deep rule','a deep path walks every level');
 });
 
 test('newly added rules invalidate observed plans and pending existing-file proposals',async t=>{
