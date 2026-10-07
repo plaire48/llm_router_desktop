@@ -52,3 +52,9 @@
 
 - `npm run test:skills-ui`, `npm run test:ui`, `npm run test:lifecycle`은 Workspace 창이 떠 있어도 돈다. 검사는 자기 저장 루트 아래 프로필을 쓰므로 단일 실행 잠금과 충돌하지 않는다.
 - `test:skills-ui`는 루프백 모델 픽스처를 쓴다. 회사 모델이나 로그인이 필요 없다. 실패하면 `verification\electron-skills-failure.png`와 콘솔의 model requests, tool calls, review problems를 본다.
+
+## 설정 (2026-10-07 추가)
+
+| 확인 | 요청 | 기대 |
+|---|---|---|
+| 기본 터미널 저장 | 설정 → 기본 터미널을 cmd나 Git Bash로 바꾼 뒤 앱을 껐다 켠다 | 다시 열어도 같은 값이고, 도구 추가 → 터미널이 그 셸로 열린다(머리글에 셸 이름) |

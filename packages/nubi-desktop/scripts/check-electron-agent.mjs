@@ -18,7 +18,7 @@ await writeFile(path.join(storage,'last-project.json'),JSON.stringify({root}));
 // The scenario moves through phases the check sets: edit (read, plan, propose, hand over), verify (after the user
 // applied the proposal), and answer (after the server was down).
 const scenario={phase:'edit'};
-const fixture=await startFixtureModel({respond({results,calls,text,call}){
+const fixture=await startFixtureModel({respond({results,user,calls,text,call}){
   if(scenario.phase==='edit'){
     const read=results.find(result=>result?.path==='example.js'&&typeof result.content==='string'&&result.hash);
     if(!read)return call('read_source',{path:'example.js'});
@@ -27,6 +27,10 @@ const fixture=await startFixtureModel({respond({results,calls,text,call}){
     return text('example.js의 value를 2로 바꾸는 제안을 올렸어요. 반영해 주세요.');
   }
   if(scenario.phase==='verify')return text('반영을 확인했어요. value는 이제 2예요.');
+  if(scenario.phase==='ask'){/* one concrete decision, then the answer the user chose is in the conversation */
+    if(!scenario.asked){scenario.asked=true;return call('ask_user',{question:'어떤 값으로 바꿀까요?',choices:[{label:'둘',description:'value를 2로'},{label:'셋',description:'value를 3으로'}],input_mode:'text'});}
+    return text(user.some(content=>content.includes('셋'))?'셋을 골라 주셨어요. value를 3으로 바꾸는 쪽으로 진행할게요.':'답을 받지 못했어요.');
+  }
   return text('모델이 다시 연결돼 답했어요.');
 }});
 const checks=[];let app,page;const stage=name=>{console.log('stage',checks.length,name);checks.push(name);};
@@ -53,6 +57,9 @@ try{
   fixture.setFailing(true);const followUp=page.getByRole('textbox',{name:'추가 요청'});await followUp.fill('한 줄로 다시 답해 줘');await page.getByRole('button',{name:'전송',exact:true}).click();
   await toast(/분석이 멈췄어요|모델 사용량 제한/).waitFor({timeout:60000});await page.getByRole('button',{name:'이어서 진행',exact:true}).waitFor({timeout:15000});stage('a model server failure ends the run with a readable message');
   fixture.setFailing(false);scenario.phase='answer';await page.getByRole('button',{name:'이어서 진행',exact:true}).click();await page.getByText('모델이 다시 연결돼 답했어요.').waitFor({timeout:90000});stage('the run resumes once the model is back');
+  scenario.phase='ask';await followUp.fill('값을 하나 더 고를게요');await page.getByRole('button',{name:'전송',exact:true}).click();
+  const question=page.getByRole('region',{name:'질문',exact:true});await question.getByText('어떤 값으로 바꿀까요?').waitFor({timeout:60000});await question.getByRole('button',{name:/^셋/}).click();
+  await page.getByText('셋을 골라 주셨어요').waitFor({timeout:90000});assert.equal(await question.count(),0,'the answered question leaves the conversation');stage('a question from the run is answered with a choice and the run continues');
   await mkdir('verification',{recursive:true});await page.screenshot({path:'verification/electron-agent.png'});
   await writeFile('verification/electron-agent.json',JSON.stringify({platform:process.platform,checks,toolCalls:fixture.calls,modelRequests:fixture.requests,reviewProblems:fixture.reviewProblems,boundary:'Local Electron with a scripted loopback model and a temporary Git project. No real provider login.'},null,2));
   console.log(JSON.stringify({checks,toolCalls:fixture.calls,modelRequests:fixture.requests.length}));
