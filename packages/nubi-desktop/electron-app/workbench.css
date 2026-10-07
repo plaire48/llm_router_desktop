@@ -1,5 +1,11 @@
-@import './agent-deck.css';
-@import './nubi-shared.css';
+@import '../../../extensions/aipro-chat/design/agent-deck.css';
+/* The shared Nubi cascade in the order the Theia-era build concatenated it (mascot frames and motion included). */
+@import '../../../extensions/aipro-chat/src/app.css';
+@import '../../../extensions/aipro-chat/src/surfaces.css';
+@import '../../../extensions/aipro-chat/src/code.css';
+@import '../../../extensions/aipro-chat/src/interaction-forms.css';
+@import '../../../extensions/aipro-chat/src/approval.css';
+@import '../../../extensions/aipro-chat/src/deck-surfaces.css';
 /* The supplied deck is the source of brand colors, typography and motion. */
 :root { --cx-font-family: "Pretendard Variable", Pretendard, "Noto Sans KR", -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
 .nubi-widget { background: var(--deck-background); color: var(--deck-ink); overflow: auto; }

@@ -2,7 +2,8 @@ import React from 'react';
 import {createRoot} from 'react-dom/client';
 import {KnowledgeMap} from '../ui/KnowledgeMap.jsx';
 import '@e2e/cx-design-system/styles.css';
-import '../extension/lib/browser/style/style.css';
+import '../electron-app/workbench.css';
+import '../design/workspace-identity.css';
 window.dbCalls=[];window.dbFail=false;window.dbStatusFail=false;window.vocCalls=[];window.vocFail=false;window.formNotices=[];window.formErrors=[];
 const connections=[];
 async function api(method,args){

@@ -189,7 +189,7 @@
 
 - Workspace Computer Use는 MUST 기존 로그인 모델과 기본 선택을 유지한다. 이미지 분석은 현재 인증 카탈로그와 브라우저 공통 Qwen 라우팅으로 같은 제공자의 이미지 모델에 한정해 별도 호출하고, 주 대화/문맥을 바꾸거나 인증을 로컬 파서에 전달하지 않는다. Agent S3의 판단/grounding 분리와 실제 결과 검토, UIA의 연속 결과 확인을 사용한다. 별도 LLM/GPU 서버를 기본 요구사항으로 추가하지 않으며 시각 힌트는 관찰/승인/실행 권한이 아니다. 범위는 packages/nubi-desktop/docs/COMPUTER-PERCEPTION-2026-10-01.md를 따른다.
 
-- Visual checks MUST rebuild the generated shared stylesheet before reading screenshots; `extension/lib/browser/style/style.css` is a build output. Workspace-only icon actions reuse `WorkspaceIconAction` for identical CX glyphs, accessible names and keyboard hints. Keep welcome atmosphere separate from the calm conversation surface and run `node scripts/check-design-tone.mjs` after the VS Code host build.
+- Visual checks read the Electron renderer stylesheet: `electron-app/workbench.css` imports the shared cascade and `design/workspace-identity.css` directly, and `npm run build:electron` writes `electron-app/lib/frontend/renderer.css` (the Theia-era generated `extension/lib/browser/style/style.css` is gone, 2026-10-07). Workspace-only icon actions reuse `WorkspaceIconAction` for identical CX glyphs, accessible names and keyboard hints. Keep welcome atmosphere separate from the calm conversation surface; the design gates are `npm run design:check` and `npm run test:modals-ui`.
 
 - 사용자 결정 2026-10-01: Electron 화면은 웹 미리보기로 먼저 확인한다. 기존 누비 색감과 공통 캐릭터를 유지하고 새 뒤 배경의 경계 없는 유영 모션만 추가한다. 큰 글자 설정은 상단이 아니라 설정에서 제공한다. 미리보기 예시 데이터와 실제 로그인/모델 실행을 MUST 구분한다.
 

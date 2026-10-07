@@ -14,12 +14,12 @@ import {BrowserPane} from './BrowserPane.jsx';
 import {MailProgress} from '../ui/MailProgress.jsx';
 import {MailMatchText} from '../ui/MailMatchText.jsx';
 import {StartupConnections} from '../ui/StartupConnections.jsx';
-import {auxiliaryMenu} from '../ui/auxiliary-menu.js';
 import {ToolsMenu} from './ToolsMenu.jsx';
 import {FolderMark,BrowserMark,BranchMark,TerminalMark} from '../ui/marks.jsx';
 import {CxButton,CxInput,CxTextarea,ActionButton,Icon} from '@e2e/cx-design-system';
 import '@e2e/cx-design-system/styles.css';
-import '../extension/lib/browser/style/style.css';
+import './workbench.css';
+import '../design/workspace-identity.css';
 import './shell.css';
 import './ios-tokens.css';
 const Editor=lazy(()=>import('./editor.jsx')),GitDiff=lazy(()=>import('./editor.jsx').then(module=>({default:module.GitDiff})));
@@ -103,7 +103,7 @@ function App(){
    const item=await obtain(proposal.path,proposal.taskId);if(item.dirty)throw Error('editor_dirty');const version=item.model.getVersionId(),actual=await digest(item.model.getValue());if(item.dirty||item.model.getVersionId()!==version||actual!==proposal.expectedHash)throw Error('source_stale');
    item.model.pushStackElement();item.model.pushEditOperations([],[{range:item.model.getFullModelRange(),text:proposal.content}],()=>null);item.model.pushStackElement();await save(item);activateBuffer(item);return api('confirmProposal',{proposalId:id});
  }
- async function view(name){if(name==='terminal'){openTerminal();return;}if(paneRef.current===name||(['files','changes'].includes(name)&&auxiliaryMenu(paneRef.current)===name)){setPane(null);return;}setFilter('');setPatch(null);setRows([]);setPane(name);if(name==='changes'){const result=await api('workspaceChanges');setRows(result.entries);}}
+ async function view(name){if(name==='terminal'){openTerminal();return;}/* A rail button shows its own view; it closes the dock only when that view is already shown. Pressing '파일' from the search, terminal or an open file switches to the tree instead of closing (2026-10-07). */if(paneRef.current===name){setPane(null);return;}setFilter('');setPatch(null);setRows([]);setPane(name);if(name==='changes'){const result=await api('workspaceChanges');setRows(result.entries);}}
  async function openMailDocument(id,attachmentId,reference={}){const value=await api('mailDocument',{id,attachmentId,expectedSourceHash:reference.sourceHash,expectedAttachmentHash:reference.attachmentHash});const location=reference.location,segment=location?value.segments?.find(item=>location.page&&item.page===location.page||location.slide&&item.slide===location.slide||location.sheet&&item.sheet===location.sheet):null;if(location&&!segment)throw Error('mail_source_changed');if(reference.canPresent&&!reference.canPresent())return;setMailDocument({...value,id,attachmentId,sourceHash:value.sourceHash||reference.sourceHash,attachmentHash:value.attachmentHash||reference.attachmentHash,searchQuery:reference.query||'',...(segment?{citationLocation:location,citationText:segment.text}:{})});setPane('document');}
  async function openTeamWorkspace(options={}){
   if(paneRef.current==='team-workspace'&&!options.refresh){setPane(null);return {hidden:true};}

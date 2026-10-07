@@ -4,7 +4,8 @@ import {ComputerUiFixture,ComputerControlUiFixture,ComputerPointerUiFixture,Comp
 import {createRoot} from 'react-dom/client';
 import {Workbench} from '../ui/Workbench.jsx';
 import '@e2e/cx-design-system/styles.css';
-import '../extension/lib/browser/style/style.css';
+import '../electron-app/workbench.css';
+import '../design/workspace-identity.css';
 let selected='aipro',connected=false,pending=null,model='qwen-fixture';
 const models=[{id:'qwen-fixture',label:'Qwen fixture',contextLength:32000},{id:'second-exact-id',label:'Second fixture',contextLength:64000}];
 // A project whose OpenWiki exists: without wiki files or a running initialization the Workbench shows the project start screen instead of the composer (2026-10-05).
@@ -49,6 +50,13 @@ if(new URLSearchParams(location.search).get('document')==='history-handoff'){
 }
 const modalMail={connected:false,autoWiki:true,serverProfile:'company',counts:{received:0,queued:0,saved:0,attention:0},messages:[],total:0,activeModel:{provider:'aipro',model:'qwen-fixture'},storageRoot:'/fixture/personal'};
 if(new URLSearchParams(location.search).has('modals')){project.wikiFiles=['openwiki/업무-지침.md'];project.defaultShell='bash';}
+let ghes={state:'guest',connected:false,profile:null};
+const ghesAccount=async operation=>{// the company account dialog of the Electron rail: guest, a device code while connecting, and back (2026-10-07)
+  if(operation==='login')ghes={state:'connecting',connected:false,profile:null,device:{code:'NUBI-1234'}};
+  else if(operation==='cancel'||operation==='logout')ghes={state:'guest',connected:false,profile:null};
+  return structuredClone(ghes);
+};
+const modalsVariant=new URLSearchParams(location.search).has('modals');
 async function api(method,args={}){
   if(new URLSearchParams(location.search).has('modals')){
     if(method==='mail'){// the mail page searches and loads facets on open (2026-10-02)
@@ -58,6 +66,7 @@ async function api(method,args={}){
     }
     if(method==='listSkills')return {skills:[{name:'보고서 작성',description:'회사 양식과 출처를 확인해 보고서를 작성해요.',path:'.agents/skills/report/SKILL.md'}],issues:[],truncated:false};
     if(method==='skillTrash')return {items:[]};// the custom skill view loads the trash with the list (2026-10-02)
+    if(method==='skillMarketplace')return {credentialsReady:true,loginRequired:false,items:[{id:'simple-addition',name:'simple-addition',title:'간단 덧셈',version:'1.2.0',description:'두 수를 더하고 계산 과정을 설명해요.',state:'installed',updateAvailable:true,commit:'c1'},{id:'report-review',name:'report-review',title:'보고서 검토',version:'1.0.0',description:'보고서의 근거와 양식을 확인해요.',state:'available',commit:'c1'}],installed:[{id:'simple-addition',name:'simple-addition',version:'1.0.0',state:'installed'}]};// the AI Workspace tab lists the company catalog beside what this project installed (2026-10-07)
     if(method==='wikiUpdate'){const state=window.modalWikiState||'current';return {status:{state:state==='current'?'current':'outdated',lastUpdate:{updatedAt:'2026-10-01'},changedFiles:['src/index.ts'],uncommitted:['draft.txt'],stalePages:[{path:'openwiki/업무-지침.md',freshness:'source_changed'}]},updates:['ready','failed'].includes(state)?[{id:'fixture-update',state,changes:[{path:'openwiki/업무-지침.md',change:'modified'}],error:'model_unavailable'}]:[]};}
     if(method==='knowledgeStatus')return {state:'none'};
   }
@@ -122,4 +131,4 @@ async function api(method,args={}){
     task.workPlan={runId,steps:[{text:'현재 문구 확인',expected_outcome:'변경할 문구와 유지할 조건을 확인합니다.',status:'in_progress'},{text:'수정안과 확인 결과 정리',expected_outcome:'변경안과 아직 확인하지 못한 결과를 구분합니다.',status:'pending'}]};if(args.answer)task.messages.push({role:'user',content:args.answer,runId});task.messages.push({role:'assistant',content:'**핵심 내용을 먼저 보여줍니다.**\n\n이 응답은 화면 흐름 검증용 합성 응답입니다. **실제 모델 결과가 아닙니다.**',runId});task.state='review';return {taskId:task.id,state:'review'};}
   throw new Error('fixture_method_invalid');
 }
-createRoot(document.getElementById('root')).render(new URLSearchParams(location.search).has('pointer')?<ComputerPointerUiFixture/>:new URLSearchParams(location.search).has('keyboard')?<ComputerKeyboardUiFixture/>:new URLSearchParams(location.search).has('controls')?<ComputerControlUiFixture/>:new URLSearchParams(location.search).has('computer')?<ComputerUiFixture/>:<Workbench hostLayout={new URLSearchParams(location.search).has('integrated')?'integrated':undefined} workspaceView={['solution','modals','integrated'].some(key=>new URLSearchParams(location.search).has(key))?async view=>{(window.nativeViewCalls||=[]).push(view);}:undefined} api={api} openCurrent={async()=>new URLSearchParams(location.search).has('noproject')?null:project} chooseFolder={()=>{}} openPath={()=>{}} review={()=>{}} apply={async id=>{const proposal=project.proposals.find(p=>p.id===id);if(proposal)proposal.state='applied';}} openURI={()=>{}} openBrowser={()=>{}} cloneRepository={async url=>{(window.cloneCalls||=[]).push(url);return {cancelled:true};}}/>);
+createRoot(document.getElementById('root')).render(new URLSearchParams(location.search).has('pointer')?<ComputerPointerUiFixture/>:new URLSearchParams(location.search).has('keyboard')?<ComputerKeyboardUiFixture/>:new URLSearchParams(location.search).has('controls')?<ComputerControlUiFixture/>:new URLSearchParams(location.search).has('computer')?<ComputerUiFixture/>:<Workbench hostLayout={new URLSearchParams(location.search).has('integrated')?'integrated':undefined} workspaceView={['solution','modals','integrated'].some(key=>new URLSearchParams(location.search).has(key))?async view=>{(window.nativeViewCalls||=[]).push(view);}:undefined} api={api} openCurrent={async()=>new URLSearchParams(location.search).has('noproject')?null:project} chooseFolder={()=>{}} openPath={()=>{}} review={()=>{}} apply={async id=>{const proposal=project.proposals.find(p=>p.id===id);if(proposal)proposal.state='applied';}} openURI={()=>{}} openBrowser={()=>{}} cloneRepository={async url=>{(window.cloneCalls||=[]).push(url);return {cancelled:true};}} ghesAccount={modalsVariant?ghesAccount:undefined} ghesUpdate={modalsVariant?async()=>({state:'unchecked'}):undefined} ghesRepositories={modalsVariant?async()=>({cancelled:true}):undefined}/>);

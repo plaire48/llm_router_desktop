@@ -2,6 +2,7 @@ import {build} from 'esbuild';
 import {mkdir,copyFile,cp,readFile,rm,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
+import {rendererBundleOptions} from './renderer-bundle.mjs';
 
 // Both standalone Wiki tests and the packaged host resolve the same locked
 // framework copies. NODE_PATH alone would prefer an optional OpenWiki install.
@@ -81,7 +82,6 @@ const updateSources=Object.keys(updateBuild.metafile.inputs).filter(p=>!p.includ
 const updateHash=createHash('sha256');for(const file of updateSources){updateHash.update(file.replaceAll('\\','/'));updateHash.update(await readFile(file));}
 await writeFile('generated/runtime-provenance.json',JSON.stringify({openwiki:{name:wikiPackage.name,version:wikiPackage.version,sourceSha256:wikiHash.digest('hex'),sourceFiles:wikiSources.length,scope:'Bundled retrieval, Claims, read-only document research, repository evidence and pairing. Not the full CLI.'},openwikiUpdate:{sourceSha256:updateHash.digest('hex'),sourceFiles:updateSources.length,scope:'The repository update runner (openwiki --update), run with the Desktop model on the user\'s approval. A separate file loaded only for an update.'},documentResearch:{dependencyLock:'extensions/aipro-chat/package-lock.json',dependencies:researchDependencies}},null,2)+'\n');
 await mkdir('extension/lib/node',{recursive:true});
-await copyFile('extension/src/node/theia-host.cjs','extension/lib/node/theia-host.cjs');
 await copyFile('extension/src/node/git-askpass.cjs','extension/lib/node/git-askpass.cjs');
 await copyFile('runtime/computer-pointer.ps1','extension/lib/node/computer-pointer.ps1');
 await copyFile('runtime/office-document.ps1','extension/lib/node/office-document.ps1');
@@ -97,13 +97,10 @@ assertFrameworkSources(runtimeBuild.metafile);
 if(Object.keys(runtimeBuild.metafile.inputs).some(file=>path.resolve(file)===path.resolve('generated/openwiki.mjs')))throw Error('research_prebundle_duplicate');
 if(!Object.keys(runtimeBuild.metafile.inputs).some(file=>file.replaceAll('\\','/').endsWith('/openwiki/src/agent/wiki-question.ts')))throw Error('research_core_missing');
 if(Object.keys(runtimeBuild.metafile.inputs).some(file=>file.replaceAll('\\','/').endsWith('/openwiki/src/agent/repository-runner.ts')))throw Error('wiki_update_must_remain_deferred');
-const uiBuild=await build({metafile:true,entryPoints:['ui/Workbench.jsx'],outfile:'extension/lib/browser/workbench.js',bundle:true,platform:'browser',nodePaths:[path.resolve('node_modules')],format:'cjs',target:'chrome110',external:['react','react-dom','react-dom/client','react/jsx-runtime'],alias:{'@e2e/cx-design-system':path.resolve('node_modules/@e2e/cx-design-system')},define:{__APP_VERSION__:JSON.stringify(JSON.parse(await readFile('package.json','utf8')).version)},legalComments:'eof'});
-await mkdir('extension/lib/browser/style',{recursive:true});
-await writeFile('extension/lib/browser/style/style.css',(await readFile('extension/src/browser/style.css','utf8'))+'\n'+await readFile('design/workspace-identity.css','utf8'));
-await copyFile('../../extensions/aipro-chat/design/agent-deck.css','extension/lib/browser/style/agent-deck.css');
-// Reuse the complete shared Nubi cascade, including mascot frames and motion.
-const shared=await Promise.all(['app','surfaces','code','interaction-forms','approval','deck-surfaces'].map(name=>readFile('../../extensions/aipro-chat/src/'+name+'.css','utf8')));
-await writeFile('extension/lib/browser/style/nubi-shared.css',shared.join('\n'));
+// The Electron renderer is analysed here without being written (scripts/build-electron.mjs writes it), so one compile
+// records every bundle input for the release snapshot and keeps A2A authentication out of the window. The Theia
+// extension bundle and its style outputs are gone: the renderer imports the workbench styles itself (2026-10-07).
+const uiBuild=await build({...rendererBundleOptions(),outdir:'generated/renderer-analysis',write:false});
 
 
 if(Object.keys(uiBuild.metafile.inputs).some(file=>/@a2a-js\/sdk|nubi-a2a\/(?:client|server)\.mjs/.test(file.replaceAll('\\','/'))))throw Error('a2a_auth_must_remain_in_host');

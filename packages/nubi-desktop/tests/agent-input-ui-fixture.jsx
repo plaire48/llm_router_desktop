@@ -2,7 +2,7 @@ import React from 'react';
 import {createRoot} from 'react-dom/client';
 import {Workbench} from '../ui/Workbench.jsx';
 import '@e2e/cx-design-system/styles.css';
-import '../extension/lib/browser/style/style.css';
+import '../electron-app/workbench.css';
 import '../../nubi-vscode/design/host.css';
 import '../design/workspace-identity.css';
 async function api(method,args={}){

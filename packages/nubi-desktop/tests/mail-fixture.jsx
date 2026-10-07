@@ -4,7 +4,8 @@ import {DetailPanel,CxButton} from '@e2e/cx-design-system';
 import {MailLibrary} from '../ui/MailLibrary.jsx';
 import {WorkspaceToast} from '../ui/WorkspaceToast.jsx';
 import '@e2e/cx-design-system/styles.css';
-import '../extension/lib/browser/style/style.css';
+import '../electron-app/workbench.css';
+import '../design/workspace-identity.css';
 // The '메일 설정' dialog of the Workbench: MailLibrary inside a DetailPanel, with the toast host that shows its action errors.
 window.mailCalls=[];window.mailFail=false;window.mailSlow=false;
 const status={serverProfile:'company',connected:false,connecting:false,autoWiki:true,watchPaused:false,checking:false,summarizing:false,readingAttachments:false,counts:{received:0,queued:0,saved:0,attention:0},messages:[],storageRoot:'/fixture/personal',wikiRoot:'/fixture/personal/wiki',rawRoot:'/fixture/personal/raw',baselineCount:0,catalogs:[{provider:'aipro',models:[{id:'fixture',label:'Fixture'}]}],destination:null};

@@ -14,7 +14,7 @@ for(const [name,value]of Object.entries(reference.palette)) {
   const deckValue=deck.match(new RegExp(`--deck-${name}:\\s*([^;]+);`))?.[1].trim();
   assert(defined.every(found=>found===value)&&(defined.length>0||deckValue===value),`HTML palette changed: ${name} (deck ${deckValue}, identity ${defined.join(', ')||'none'})`);
 }
-const css=await readFile('extension/src/browser/style.css','utf8');
+const css=await readFile('electron-app/workbench.css','utf8');
 for(const family of ['Pretendard Variable','Noto Sans KR','Malgun Gothic'])assert(css.includes(family),`Missing local font fallback: ${family}`);
 assert(!/--(?:brand-action|brand-ink|cx-button-primary|color-bg-primary):\s*#/.test(css),'Use shared deck aliases rather than per-screen brand overrides');
 const uiFiles=await readdir('ui',{recursive:true});
@@ -23,13 +23,13 @@ for(const file of uiFiles.filter(file=>file.endsWith('.jsx')&&file!=='Collaborat
   for(const match of source.matchAll(/<DetailPanel\b[^>]*>/g))assert(/className="[^"]*deck-dialog/.test(match[0]),`${file}: modal must use deck-dialog`);
   assert(!/style=\{\{[^}]*\b(?:fontSize|fontFamily|color|backgroundColor)\s*:/.test(source),`${file}: typography and brand styling belong in shared tokens`);
 }
-for(const file of ['extension/src/browser/style.css',...uiFiles.filter(file=>file.endsWith('.css')).map(file=>'ui/'+file)]){
+for(const file of ['electron-app/workbench.css',...uiFiles.filter(file=>file.endsWith('.css')).map(file=>'ui/'+file)]){
   const source=(await readFile(file,'utf8')).replace(/\/\*[\s\S]*?\*\//g,'');
   assert(!/(?:^|[;{])\s*font(?:-size)?\s*:[^;{}]*\b\d+(?:\.\d+)?px/.test(source),`${file}: use typography tokens, not fixed screen font sizes`);
   assert(!/(?:^|[;{])\s*(?:color|background(?:-color)?|border(?:-color)?|fill|stroke|box-shadow|filter)\s*:[^;{}]*#[\da-f]{3,8}\b/i.test(source),`${file}: raw colors belong in the identity token layer`);
 }
-const build=await readFile('scripts/build-runtime.mjs','utf8');
-assert(build.includes('design/workspace-identity.css'),'Desktop identity must be included in both application builds');
+const renderer=await readFile('electron-app/renderer.jsx','utf8');
+assert(renderer.includes('design/workspace-identity.css')&&renderer.includes('./workbench.css'),'the Electron renderer must import the workbench styles and the Desktop identity layer');
 const referencePath=process.env.NUBI_DESIGN_REFERENCE;
 if(referencePath)assert.equal(createHash('sha256').update(await readFile(referencePath)).digest('hex'),reference.sha256,'Supplied HTML changed; review the reference tokens');
 console.log('Desktop identity: HTML palette, fonts, portal classes and build inclusion verified.');
