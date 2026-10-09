@@ -36,7 +36,7 @@ export function MailProgress({api,wiki}){
     {showCounts&&<span className="nubi-mail-progress-counts">{progress.completed>0&&<span>완료 <b>{progress.completed}</b></span>}{pending>0&&<span>{stopped?'보류':progress.remaining==null?'정리 대기':'남음'} <b>{pending}</b></span>}{progress.attention>0&&<span>확인 필요 <b>{progress.attention}</b></span>}</span>}
     {!stopped&&progress.timing&&<ResponseTime timing={progress.timing} label={progress.timing.kind==='saving'?'저장':'정리'} live/>}
     {(stopped||!progress.timing)&&progress.lastTiming&&<ResponseTime timing={progress.lastTiming} label={progress.lastTiming.kind==='saving'?'직전 저장':'직전 정리'}/>}
-    {!stopped&&progress.attachment&&<span className="nubi-mail-progress-next">첨부 {progress.attachment.completed}/{progress.attachment.total}</span>}
+    {!stopped&&progress.attachment&&<span className="nubi-mail-progress-attachment">첨부 {progress.attachment.completed}/{progress.attachment.total}</span>}
     <MailTimestamp at={progress.lastAppliedAt}/>
     {next&&<span className="nubi-mail-progress-next">다음 확인 {next}</span>}
   </footer>;

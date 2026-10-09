@@ -1,7 +1,7 @@
 /* Desktop adaptation of the supplied HTML. Palette and shared components
    come from agent-deck.css; this layer closes host and portal differences. */
 :root {
-  --nubi-note-ink: #6B7684;
+  --nubi-note-ink: #596574;
   /* Desktop surfaces and shared controls resolve to the same identity tokens. */
   --deck-muted: var(--nubi-note-ink);
   --deck-secondary: var(--deck-sub);
@@ -28,8 +28,15 @@
   --deck-green: #148A5C;
   --deck-green-soft: #E6F6EE;
   --cx-success: color-mix(in srgb, var(--deck-green) 86%, var(--deck-ink));
-  --nubi-font-family: "Pretendard Variable", Pretendard, "Noto Sans KR", -apple-system, "Apple SD Gothic Neo", sans-serif;
-  --nubi-reading-size: 15px;
+  --nubi-font-family: "Pretendard Variable", Pretendard, "Noto Sans KR", -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --deck-type-body: .9375rem;
+  --deck-type-caption: .875rem;
+  --deck-type-heading: 1.125rem;
+  --deck-type-title: 1.5rem;
+  --deck-line-body: 1.6;
+  --deck-line-heading: 1.45;
+  --deck-line-caption: 1.5;
+  --nubi-reading-size: 1rem;
   --nubi-reading-leading: 1.75;
   --nubi-welcome-title: clamp(29px,4.2vw,50px);
   --nubi-welcome-copy: clamp(15px,1.75vw,19px);
@@ -242,9 +249,9 @@
 .desktop-shell .desktop-pane > header .desktop-pane-expand.cx-kit-button:hover { background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
 .desktop-shell .desktop-pane > header .desktop-pane-expand.cx-kit-button:focus-visible { outline:2px solid var(--deck-blue); outline-offset:-2px; }
 :root:has(.nubi-workbench[data-large-text=true]) {
-  --nubi-reading-size: 17px;
-  --deck-type-body: 16px;
-  --deck-line-body: 26px;
+  --nubi-reading-size: 1.125rem;
+  --deck-type-body: 1.0625rem;
+  --deck-type-caption: 1rem;
   --deck-field-height: 40px;
 }
 .nubi-workbench { font: var(--deck-font-body); color: var(--deck-ink); -webkit-font-smoothing: antialiased; }
@@ -1250,7 +1257,11 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-mail-progress-state>.status-spinner { width:12px; height:12px; flex:none; }
 .nubi-mail-progress-counts { gap:var(--cx-space-3); white-space:nowrap; }
 .nubi-mail-progress-counts b { color:var(--deck-ink); font-weight:650; font-variant-numeric:tabular-nums; }
+/* The latest-applied time sits at the right end of the bar, the next check beside it; the attachment counter stays with the progress on the left (user request 2026-10-09). */
+.nubi-mail-progress-attachment { white-space:nowrap; }
+.desktop-mail-progress .nubi-mail-timestamp { margin-left:auto; white-space:nowrap; }
 .nubi-mail-progress-next { margin-left:auto; white-space:nowrap; }
+.nubi-mail-timestamp + .nubi-mail-progress-next { margin-left:0; }
 .desktop-shell:has(>.desktop-mail-progress) .desktop-pane[data-expanded=true] { bottom:var(--nubi-mail-footer-height); height:auto; }
 .desktop-shell:has(>.desktop-mail-progress)[data-layout='overlay'] .desktop-pane { height:calc(100% - var(--nubi-mail-footer-height)); }
 @media(max-width:1000px){.desktop-shell { --nubi-mail-footer-height:64px; }.desktop-mail-progress { flex-wrap:wrap; align-content:center; gap:var(--cx-space-1) var(--cx-space-3); }}

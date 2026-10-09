@@ -178,3 +178,9 @@
 - 셸 검사 13단계: `openBrowser`로 루프백 페이지를 열면 내장 브라우저 창이 탭 제목과 주소 입력란의 주소를 보이고, '페이지에서 찾기'로 찾기 막대가 열린다. 창은 오른쪽 사이드바 닫기로 닫힌다.
 - `npm audit --omit=dev`: 낮음 2(monaco-editor가 쓰는 dompurify), 보통 2(tedious가 쓰는 sprintf-js). 고치려면 monaco-editor와 tedious의 주 버전을 올려야 해 이번에는 두지 않았다. tedious는 데이터베이스 스키마 조사(`runtime/database-schema.mjs`)의 MSSQL 드라이버다.
 - 설정의 기본 터미널 저장은 macOS에서는 프로필이 Bash 하나라 자동으로 확인할 수 없다. Windows 점검표에 항목을 더했다.
+
+### 7.9 복사 실패, 하단 막대의 최근 반영 위치 (사용자 보고 2026-10-09)
+
+- **복사 버튼이 늘 "복사 실패. 다시 눌러주세요."로 끝남.** 원인은 `electron-app/main.cjs`의 권한 요청 처리기가 모든 권한을 거부해 사용자 동작에서 나오는 클립보드 쓰기(`clipboard-sanitized-write`)까지 막은 것이다. 공유 `CopyButton`은 `navigator.clipboard.writeText`를 쓰므로 Electron에서만 실패했다. 이제 그 권한만 허용하고 매체, 알림, 위치, 클립보드 읽기는 전과 같이 거부한다. 에이전트 검사 8단계에 '내 메시지 복사'가 실제 시스템 클립보드에 쓰는지 확인하는 단계를 넣었다(검사 전 클립보드 글은 끝나고 되돌린다).
+- **하단 막대의 '최근 반영'이 가운데에 남음.** 막대는 flex인데 '다음 확인'에만 `margin-left:auto`가 있어 '최근 반영' 시각이 왼쪽 그룹 뒤에 붙어 있었다. 이제 '최근 반영'이 오른쪽 끝으로 가고 '다음 확인'이 그 옆에 붙는다. 첨부 카운터는 자기 클래스(`nubi-mail-progress-attachment`)로 왼쪽 진행 그룹에 남는다(`design/workspace-identity.css`, `ui/MailProgress.jsx`).
+- 메일의 Electron 수준 검사는 두지 않았다. 메일은 서버 프로필의 고정 호스트로 POP3 over TLS를 쓰므로 루프백 픽스처는 제품 훅 없이 화면을 거쳐 연결할 수 없다. 런타임은 단위 시험 11건과 메일 UI 검사가 덮는다.
