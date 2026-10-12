@@ -3,21 +3,28 @@ productName: 누비 Workspace
 executableName: Nubi Workspace
 artifactName: Nubi-Workspace-beta-${version}-${arch}-Setup.${ext}
 electronVersion: 42.11.10
-asar: false
+asar: true
+asarUnpack:
+  - node_modules/node-pty/**/*
+  - node_modules/@vscode/ripgrep-*/**/*
+  - "**/*.node"
 npmRebuild: false
 nodeGypRebuild: false
 directories:
   output: ../release/windows
   buildResources: resources
 files:
+  - "!node_modules/node-pty/**/*.pdb"
+  - "!node_modules/node-pty/{src,deps,third_party,scripts,typings}/**/*"
+  - "!node_modules/node-pty/prebuilds/{darwin-*,win32-arm64}/**/*"
   - lib/**/*
   - launcher.cjs
   - package.json
 extraResources:
+  - from: resources/git
+    to: git
   - from: resources/nubi.png
     to: nubi-icon.png
-  - from: ../generated/winapp
-    to: winapp
   - from: ../THIRD-PARTY-NOTICES.md
     to: THIRD-PARTY-NOTICES.md
   - from: ../vendor/licenses
@@ -28,12 +35,18 @@ win:
     - target: nsis
       arch: [x64]
 nsis:
+  include: nubi-installer.nsh
+  installerHeader: nsis-generated/installer-header.bmp
+  installerSidebar: nsis-generated/installer-sidebar.bmp
+  uninstallerSidebar: nsis-generated/installer-sidebar.bmp
+  installerLanguages: [ko_KR]
+  language: "1042"
   oneClick: false
   perMachine: false
   allowElevation: false
   allowToChangeInstallationDirectory: true
-  runAfterFinish: false
+  runAfterFinish: true
   createDesktopShortcut: true
   shortcutName: 누비 Workspace
-  uninstallDisplayName: 누비 Workspace beta ${version}
+  uninstallDisplayName: 누비 Workspace Beta ${version}
 publish: null

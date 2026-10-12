@@ -84,12 +84,22 @@ export async function chatGPTLogin({openBrowser = openLoginBrowser, fetchImpl = 
 
 export function createProviders(deps = {}) {
   const api = {fetchImpl: fetch, startLogin, chatGPTLogin, chatGPTModels, completeChatGPT, refreshChatGPTToken, fabrixModels, fabrixCompletion, ...deps};
+  const connectionIds = new WeakMap(); let connectionSequence = 0;
+  const connectionId = session => {if(!session)return null;if(!connectionIds.has(session))connectionIds.set(session,++connectionSequence);return connectionIds.get(session);};
   const sessions = new Map(); let active = 'aipro', pending = null, loginError = null, generation = 0;
   let loginPhase=null,loginDiagnostics=[];
   // The model the user chose for each provider. A new login or connection keeps it while the account still lists it,
   // as the browser Nubi does; otherwise the default rule applies. Kept in memory for the life of the worker.
   // Display labels belong to the UI; every host sends canonical API effort IDs.
   const chosen = new Map(), chosenReasoning = new Map();
+  let persistence=Promise.resolve(),persistenceError=null;
+  const persist=provider=>{
+    if(!api.onConnectionChange)return Promise.resolve();
+    const session=sessions.get(provider),record=session?structuredClone({version:1,provider,credential:session.credential,model:session.model,reasoningEffort:session.reasoningEffort}):null;
+    persistence=persistence.catch(()=>{}).then(()=>api.onConnectionChange(provider,record)).then(()=>{persistenceError=null;},()=>{persistenceError=record?'connection_not_saved':'connection_not_removed';});return persistence;
+  };
+  const persistActive=()=>{if(api.onActiveProvider){const value=active;persistence=persistence.catch(()=>{}).then(()=>api.onActiveProvider(value)).catch(()=>{persistenceError='connection_not_saved';});}};
+
   const reasoningOptions = (provider, session = sessions.get(provider)) => {
     if (provider === 'aipro') return ['low','medium','xhigh'];
     if (provider !== 'chatgpt') return [];
@@ -102,11 +112,11 @@ export function createProviders(deps = {}) {
     const fallback=session?.models.find(item=>item.id===session.model)?.defaultReasoning;
     return allowed.includes(preferred)?preferred:allowed.includes(fallback)?fallback:allowed.includes('medium')?'medium':allowed[0]||null;
   };
-  const status = () => ({providers: Object.entries(PROVIDERS).map(([id, label]) => ({id, label, connected: sessions.has(id)})), provider: active,
+  const status = () => ({providers: Object.entries(PROVIDERS).map(([id, label]) => ({id, label, connected: sessions.has(id), connectionId: connectionId(sessions.get(id))})), provider: active,
     connected: sessions.has(active), vision:active!=='fabrix'&&sessions.get(active)?.models.find(m=>m.id===sessions.get(active)?.model)?.supportsImages===true, models: sessions.get(active)?.models || [], model: sessions.get(active)?.model || '', verified: !!sessions.get(active)?.verified,
     reasoningEffort: sessions.get(active)?.reasoningEffort || startReasoning(active), reasoningOptions: reasoningOptions(active),
     modelCatalog: sessions.get(active)?.modelCatalog || null,completionDiagnostic:sessions.get(active)?.completionDiagnostic||null, pending: pending?.provider || null, loginError,
-    pendingPhase:pending?.phase||null,loginPhase,loginDiagnostics:loginDiagnostics.map(item=>({...item}))});
+    persistenceError,pendingPhase:pending?.phase||null,loginPhase,loginDiagnostics:loginDiagnostics.map(item=>({...item}))});
   const catalogs = () => [...sessions].filter(([id]) => ['aipro','chatgpt','fabrix'].includes(id)).map(([provider, session]) => ({provider,models:session.models.map(item=>({...item})),model:session.model}));
   const usageStatus = () => {
     const chatgpt = sessions.get('chatgpt');
@@ -117,7 +127,7 @@ export function createProviders(deps = {}) {
     if (force || session.credential.expiresAt <= Date.now()+60000) {
       // Quota reads and inference share one refresh, including rotated tokens.
       session.refreshing ||= api.refreshChatGPTToken(session.credential,{signal:AbortSignal.timeout(15000),fetchImpl:api.fetchImpl})
-        .then(result=>{if(sessions.get('chatgpt')!==session)throw Error('no_credential');session.credential=result.credential;})
+        .then(result=>{if(sessions.get('chatgpt')!==session)throw Error('no_credential');session.credential=result.credential;return persist('chatgpt');})
         .finally(()=>{session.refreshing=null;});
       await session.refreshing;
     }
@@ -143,7 +153,7 @@ export function createProviders(deps = {}) {
     try {await session.quotaLoading;} finally {session.quotaLoading=null;}
     return usageStatus();
   }
-  const select = provider => { if (!Object.hasOwn(PROVIDERS, provider)) throw new Error('invalid_provider'); active = provider; return status(); };
+  const select = provider => { if (!Object.hasOwn(PROVIDERS, provider)) throw new Error('invalid_provider'); active = provider; persistActive(); return status(); };
   async function connect(input) {
     const provider = input.provider; if (!['fabrix', 'aipro-cli', 'compatible'].includes(provider)) throw new Error('invalid_provider');
     let session;
@@ -151,7 +161,7 @@ export function createProviders(deps = {}) {
       const credential = cleanFabrixCredentials(input); const result = await api.fabrixModels(credential, {fetchImpl: api.fetchImpl, signal: AbortSignal.timeout(20000)});
       session = {credential, models: catalog(result.payload)}; if (!session.models.length) throw new Error('models_invalid');
     } else { const manual = manualConnection(input); session = {credential: manual, models: manual.models}; }
-    sessions.set(provider, {...session, model: startModel(provider, session.models), reasoningEffort: startReasoning(provider), verified: false}); active = provider; return status();
+    sessions.set(provider, {...session, model: startModel(provider, session.models), reasoningEffort: startReasoning(provider), verified: false}); active = provider; await persist(provider);persistActive(); return status();
   }
   async function login(provider) {
     if (!['aipro', 'chatgpt'].includes(provider) || pending) throw new Error('login_busy');
@@ -169,18 +179,20 @@ export function createProviders(deps = {}) {
         const models = provider === 'aipro' ? result.models : catalog(received.payload);
         if(!models.length)throw Error('models_invalid');
         sessions.set(provider, {credential: provider === 'aipro' ? {token: result.token, mode: 'browser'} : result, models, model: startModel(provider, models), reasoningEffort: startReasoning(provider), verified: false,
-          modelCatalog: provider === 'aipro' && result.diagnostics ? {diagnostics: result.diagnostics, fetchedAt: result.fetchedAt} : received?.source==='account'?{source:'account',fetchedAt:received.fetchedAt}:null}); sessions.get(provider).reasoningEffort=startReasoning(provider,sessions.get(provider)); pending = null;loginPhase='ready';
+          modelCatalog: provider === 'aipro' && result.diagnostics ? {diagnostics: result.diagnostics, fetchedAt: result.fetchedAt} : received?.source==='account'?{source:'account',fetchedAt:received.fetchedAt}:null}); sessions.get(provider).reasoningEffort=startReasoning(provider,sessions.get(provider)); pending = null;loginPhase='ready';void persist(provider);persistActive();
       }).catch(error => { if (attempt === generation) { if(loginPhase!=='failed')onProgress({phase:'failed',failedStage:loginPhase,status:error.status,error:safeError(error),at:Date.now()});pending = null; loginError = safeError(error); } });
     } catch (error) { if (attempt === generation) { onProgress({phase:'failed',failedStage:loginPhase,error:safeError(error)});pending = null; loginError = safeError(error); } }
     return status();
   }
   function cancelLogin() { generation++; pending?.cancel(); pending = null; loginError = null;loginPhase=null;loginDiagnostics=[]; return status(); }
-  function disconnect(provider = active) { if (pending?.provider === provider) cancelLogin(); sessions.delete(provider); return status(); }
-  function model(id) { const s = sessions.get(active); if (!s?.models.some(m => m.id === id)) throw new Error('invalid_model'); s.model = id; chosen.set(active, id); s.reasoningEffort=startReasoning(active,s); return status(); }
-  function reasoning(effort) { const s = sessions.get(active), allowed = reasoningOptions(active); effort=effort==='ultra'?'max':effort; if (!s || !allowed.includes(effort)) throw new Error('invalid_reasoning_effort'); s.reasoningEffort = effort; chosenReasoning.set(active, effort); return status(); }
+  function disconnect(provider = active) { if (pending?.provider === provider) cancelLogin(); sessions.delete(provider);void persist(provider); return status(); }
+  function model(id) { const s = sessions.get(active); if (!s?.models.some(m => m.id === id)) throw new Error('invalid_model'); s.model = id; chosen.set(active, id); s.reasoningEffort=startReasoning(active,s);void persist(active); return status(); }
+  function reasoning(effort) { const s = sessions.get(active), allowed = reasoningOptions(active); effort=effort==='ultra'?'max':effort; if (!s || !allowed.includes(effort)) throw new Error('invalid_reasoning_effort'); s.reasoningEffort = effort; chosenReasoning.set(active, effort);void persist(active); return status(); }
   async function refreshModels({provider=active}={}) {
     const session = sessions.get(provider);
     if (!session) throw new Error('no_credential');
+    if(session.catalogLoading){await session.catalogLoading;return status();}
+    session.catalogLoading=(async()=>{
     const signal = AbortSignal.timeout(20000);
     const received = provider === 'aipro' ? await fetchModelCatalog(session.credential.token, api.fetchImpl, signal) : provider==='chatgpt'?await api.chatGPTModels({credential:session.credential,fetchImpl:api.fetchImpl,signal}):null;
     const models = provider === 'aipro' ? received.models
@@ -189,6 +201,32 @@ export function createProviders(deps = {}) {
       : session.models;
     if (!models.length) throw new Error('models_invalid');
     if (sessions.get(provider) === session) { session.models = models; if (received?.source==='account') session.modelCatalog={source:'account',fetchedAt:received.fetchedAt}; else if(received?.diagnostics)session.modelCatalog = {diagnostics: received.diagnostics, fetchedAt: received.fetchedAt}; if (!models.some(item => item.id === session.model)) session.model = defaultOfficeModel(models); session.reasoningEffort=startReasoning(provider,session); }
+    })();
+    try{await session.catalogLoading;}finally{session.catalogLoading=null;}
+    return status();
+  }
+  // Opt-in only: Desktop supplies an OS-protected store. Office remains memory-only.
+  async function restoreConnections(records,selected) {
+    if(!api.onConnectionChange)return status();
+    for(const record of records||[]){
+      if(record?.version!==1||!['aipro','chatgpt','fabrix'].includes(record.provider)||!record.credential||typeof record.credential!=='object')continue;
+      const provider=record.provider,session={credential:record.credential,models:[],model:record.model,reasoningEffort:record.reasoningEffort,verified:false};
+      if(sessions.has(provider))continue;
+      sessions.set(provider,session);chosen.set(provider,record.model);chosenReasoning.set(provider,record.reasoningEffort);
+      try{
+        if(provider==='chatgpt')await prepareChatGPT(session,AbortSignal.timeout(20000));
+        await refreshModels({provider});
+        if(sessions.get(provider)!==session)continue;
+        await persist(provider);
+      }catch(error){
+        if(sessions.get(provider)!==session)continue;
+        sessions.delete(provider);
+        if([401,403].includes(error.status)||['no_credential','credential_expired','refresh_failed','unauthorized','forbidden'].includes(error.message))await persist(provider);
+        loginError=safeError(error);
+      }
+    }
+    if(sessions.has(selected))active=selected;
+    else if(sessions.size)active=sessions.keys().next().value;
     return status();
   }
   // onActivity is called for every streamed model event (text, reasoning, tool call arguments): the caller's wait renews.
@@ -210,6 +248,7 @@ export function createProviders(deps = {}) {
       session={...authenticated,model:wanted.id};
     }
     let result, httpFailure, inferenceDiagnostic, usageRequest, reportedUsage;
+    const toolChoice=tools.length&&options.toolChoice==='required'&&provider!=='fabrix'?'required':'auto';
     if(provider==='chatgpt'&&!reasoningOptions(provider,session).includes(session.reasoningEffort))session={...session,reasoningEffort:startReasoning(provider,session)};
     const inferenceFetch=async(...args)=>{
       const response=await api.fetchImpl(...args);
@@ -221,7 +260,7 @@ export function createProviders(deps = {}) {
     try {
     if (provider === 'chatgpt') {
       session.credential = await prepareChatGPT(authenticated,signal);
-      result = await api.completeChatGPT({fetchImpl:api.fetchImpl,onDiagnostic:detail=>{inferenceDiagnostic={...detail,model:session.model};},messages, tools, modelId: session.model,modelMetadata:api.accountCatalog===true?authenticated.models.find(m=>m.id===session.model):undefined, reasoningEffort: session.reasoningEffort, credential: session.credential, signal, onText, onPhase, onActivity});
+      result = await api.completeChatGPT({fetchImpl:api.fetchImpl,onMeasurement:value=>{reportedUsage=value;},onDiagnostic:detail=>{inferenceDiagnostic={...detail,model:session.model};},messages, tools, toolChoice, modelId: session.model,modelMetadata:api.accountCatalog===true?authenticated.models.find(m=>m.id===session.model):undefined, reasoningEffort: session.reasoningEffort, credential: session.credential, signal, onText, onPhase, onActivity});
     } else {
       // The model server counts the tokens of every request (user, 2026-09-30). An OpenAI-compatible stream (vLLM behind
       // AI Pro) reports them in a last chunk only when asked: stream_options.include_usage, as the browser runtime asks
@@ -231,13 +270,16 @@ export function createProviders(deps = {}) {
       const format = options.responseFormat && provider !== 'fabrix' ? options.responseFormat : undefined;
       const send = maxTokens => {
         const reasoning = provider === 'aipro' && session.reasoningEffort && session.reasoningEffort !== 'xhigh' ? {reasoning_effort: session.reasoningEffort} : {};
-        const body = {model: session.model, messages, stream: true, max_tokens: maxTokens, ...reasoning, ...(session.usageRefused ? {} : {stream_options: {include_usage: true}}), ...(format && !session.formatRefused ? {response_format: format} : {}), ...(tools.length ? {tools, tool_choice: 'auto'} : {})};
+        const body = {model: session.model, messages, stream: true, max_tokens: maxTokens, ...reasoning, ...(session.usageRefused ? {} : {stream_options: {include_usage: true}}), ...(format && !session.formatRefused ? {response_format: format} : {}), ...(tools.length ? {tools, tool_choice: toolChoice} : {})};
         return provider === 'fabrix'
           ? api.fabrixCompletion(body, {...session.credential, modelId: session.model}, {signal, fetchImpl: inferenceFetch})
           : inferenceFetch(provider === 'aipro' ? endpoint('browser') : session.credential.endpoint, {method: 'POST', redirect: 'error', signal,
             headers: {'Content-Type': 'application/json', Accept: 'text/event-stream', Authorization: `Bearer ${session.credential.token}`, ...(provider === 'aipro-cli' ? {'User-Agent': 'AIPROCLI'} : {})}, body: JSON.stringify(body)});
       };
-      let maxTokens = outputTokens(session), response = await send(maxTokens);
+      // Summaries use a smaller per-call budget. Never change the interactive
+      // session's output setting when the host limits this one request.
+      const callLimit=Number.isSafeInteger(options.maxTokens)&&options.maxTokens>0?options.maxTokens:Infinity;
+      let maxTokens = Math.min(outputTokens(session),callLimit), response = await send(maxTokens);
       // A refused option is dropped for the rest of the session and the request is sent again, at most three times: the
       // usage option, the output format, then an answer size the server does not accept.
       for (let attempt = 0; attempt < 3 && [400, 422].includes(response.status); attempt++) {
@@ -273,5 +315,5 @@ export function createProviders(deps = {}) {
       throw Object.assign(new Error(signal.aborted?'cancelled':facts.status===413?'context_overflow':safeError(error)),facts,...(inferenceDiagnostic?[{apiDiagnostic:authenticated.completionDiagnostic}]:[]));
     } finally {try {api.onUsageFinish?.(usageRequest,result?.usage||reportedUsage);} catch {}}
   }
-  return {status, catalogs, usageStatus, accountUsage, select, connect, login, cancelLogin, disconnect, model, reasoning, refreshModels, complete, dispose: () => {cancelLogin(); sessions.clear();}};
+  return {status, restoreConnections, flushConnections:()=>persistence, catalogs, usageStatus, accountUsage, select, connect, login, cancelLogin, disconnect, model, reasoning, refreshModels, complete, dispose: () => {cancelLogin(); sessions.clear();}};
 }

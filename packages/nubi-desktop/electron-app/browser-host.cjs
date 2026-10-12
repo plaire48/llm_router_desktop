@@ -38,10 +38,13 @@ class BrowserHost {
  }
  changed() {if(this.disposed||this.updateTimer)return;this.updateTimer=setTimeout(()=>{this.updateTimer=null;this.publish();},80);}
  forget(row,{returnToApp=false}={}) {
+  // Chromium may close the authentication view itself. Returning from that
+  // last tab must not leave an empty browser with the old callback address.
+  const closedActiveAuthentication=row.authentication&&this.active===row.id;
   if(!this.tabs.delete(row.id))return;
   if(!this.window.isDestroyed())this.window.contentView.removeChildView(row.view);
   if(this.active===row.id)this.active=[...this.tabs.keys()].at(-1)||null;
-  if(!this.disposed){this.layout();this.publish('closed',{returnToApp});}
+  if(!this.disposed){this.layout();this.publish('closed',{returnToApp:returnToApp||Boolean(closedActiveAuthentication&&!this.active)});}
  }
  closeTab(id,{returnToApp=false}={}) {
   const row=this.tabs.get(id);if(!row)return;

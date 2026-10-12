@@ -29,11 +29,11 @@ test('the scenarios are valid, name known corpora and cover every probe kind',as
   assert.deepEqual(validateScenario({...scenarios[0],probes:[{kind:'other',question:'q',expect:[['a']]}]}),['probes[0].kind']);
 });
 
-test('a scenario runs every step through the service, is compacted and is probed without tools',async t=>{
+test('a scenario fitting the advertised lean tools is probed without unnecessary compaction',async t=>{
   const parent=await mkdtemp(path.join(os.tmpdir(),'nubi-compaction-test-'));t.after(()=>rm(parent,{recursive:true,force:true}));
   const [scenario]=await loadScenarios(),providers=scripted(),result=await runScenario({scenario,providers,parent});
   assert.equal(result.error,null);assert.deepEqual(result.stepFailures,[],'every replayed step succeeded');
-  assert.equal(result.compacted,true);assert.ok(result.compactions.length>0&&providers.seen.summaries===result.summaries.length);
+  assert.equal(result.compacted,false,'unused tool schemas must not trigger history compaction');assert.equal(result.compactions.length,0);assert.equal(providers.seen.summaries,0);assert.equal(result.summaries.length,0);
   assert.equal(result.probes.length,scenario.probes.length);assert.equal(providers.seen.probes.length,scenario.probes.length);
   assert.ok(providers.seen.probes.every(question=>question.startsWith('[평가 질문]')));
   assert.equal(result.kept.length,4);

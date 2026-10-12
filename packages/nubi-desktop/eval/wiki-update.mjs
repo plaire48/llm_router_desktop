@@ -6,7 +6,7 @@
 // AGENTS.md managed section, so the Wiki starts current. Then one source change
 // is committed, and Desktop's flow runs: status, propose, run, apply.
 //
-// Usage: node eval/wiki-update.mjs --socket <path> --out <directory>
+// Usage: node eval/wiki-update.mjs --socket <path> --out <directory> [--change committed|uncommitted] [--keep]
 import {mkdir,readFile,rm,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {createWorkspace} from './corpus.mjs';
@@ -14,7 +14,8 @@ import {connectRelayProviders} from './relay.mjs';
 import {candidateIdentity} from './candidate.mjs';
 
 const option=name=>{const at=process.argv.indexOf('--'+name);return at>0?process.argv[at+1]:undefined;};
-const socketPath=option('socket'),outputDir=option('out');
+const socketPath=option('socket'),outputDir=option('out'),change=option('change')||'committed',keep=process.argv.includes('--keep');
+if(!['committed','uncommitted'].includes(change)){console.error('--change committed|uncommitted');process.exit(2);}
 if(!socketPath||!outputDir){console.error('사용법: node eval/wiki-update.mjs --socket <경로> --out <폴더>');process.exit(2);}
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const RUN_LIMIT_MS=40*60*1000;
@@ -32,7 +33,7 @@ const requests={ok:0,rejected:0};
 const providers={status:()=>relay.status(),dispose:()=>relay.dispose?.(),async complete(...args){try{const result=await relay.complete(...args);requests.ok++;return result;}catch(error){if(error.message==='response_invalid')requests.rejected++;throw error;}}};
 const counted=()=>{const value={...requests};requests.ok=0;requests.rejected=0;return value;};
 const root=workspace.root,service=new ProjectService({storageRoot:workspace.stateRoot});
-const report={corpus:workspace.corpus,corpusHash:workspace.corpusHash,candidate:await candidateIdentity(),model:providers.status().model,steps:{}};
+const report={corpus:workspace.corpus,corpusHash:workspace.corpusHash,candidate:await candidateIdentity(),model:providers.status().model,change,steps:{}};
 const summary=metrics=>({modelCalls:metrics.summary.modelCalls,retries:metrics.summary.retries,promptTokens:metrics.summary.promptTokens,completionTokens:metrics.summary.completionTokens,elapsedMs:metrics.summary.elapsedMs});
 const commit=async message=>{await git(root,['add','-A']);await git(root,['commit','-qm',message]);return (await git(root,['rev-parse','HEAD'])).trim();};
 try{
@@ -54,7 +55,8 @@ try{
   const replace=async(rel,pairs)=>{let text=await readFile(path.join(root,rel),'utf8');for(const [from,to] of pairs){if(!text.includes(from))throw Error('change_missing:'+rel);text=text.replaceAll(from,to);}await writeFile(path.join(root,rel),text);};
   await replace('src/shipping.mjs',[['REMOTE_EXTRA = 4500','REMOTE_EXTRA = 5500']]);
   await replace('test/shipping.test.mjs',[["'jeju'), 7500","'jeju'), 8500"],["'island'), 4500","'island'), 5500"]]);
-  await commit('Remote surcharge 5,500 won');
+  // --change uncommitted: the edit stays in the working tree, as a developer's edits do before a commit (2026-10-12).
+  if(change==='committed')await commit('Remote surcharge 5,500 won');
 
   // 3. Desktop's flow.
   const stale=(await service.invoke('wikiUpdate',{method:'status'})).status;
@@ -82,8 +84,9 @@ try{
 finally{
   await mkdir(path.resolve(outputDir),{recursive:true});
   await writeFile(path.join(path.resolve(outputDir),'report.json'),JSON.stringify(report,null,2)+'\n');
-  console.log(JSON.stringify({init:report.steps.init&&{pages:report.steps.init.pages.length,modelCalls:report.steps.init.modelCalls,rejected:report.steps.init.requests.rejected,seconds:Math.round(report.steps.init.elapsedMs/1000)},initial:report.steps.initialStatus?.state,stale:report.steps.staleStatus&&{changed:report.steps.staleStatus.changedFiles,pages:report.steps.staleStatus.stalePages?.length},run:report.steps.run&&{state:report.steps.run.state,modelCalls:report.steps.run.modelCalls,rejected:report.steps.run.requests.rejected,seconds:Math.round(report.steps.run.elapsedMs/1000),changes:report.steps.run.changes.length},after:report.steps.afterApply?.state,content:report.steps.content,error:report.error||null},null,1));
+  console.log(JSON.stringify({change,init:report.steps.init&&{pages:report.steps.init.pages.length,modelCalls:report.steps.init.modelCalls,rejected:report.steps.init.requests.rejected,seconds:Math.round(report.steps.init.elapsedMs/1000)},initial:report.steps.initialStatus?.state,stale:report.steps.staleStatus&&{changed:report.steps.staleStatus.changedFiles,pages:report.steps.staleStatus.stalePages?.length},run:report.steps.run&&{state:report.steps.run.state,modelCalls:report.steps.run.modelCalls,rejected:report.steps.run.requests.rejected,seconds:Math.round(report.steps.run.elapsedMs/1000),changes:report.steps.run.changes.length},after:report.steps.afterApply?.state,content:report.steps.content,error:report.error||null},null,1));
   try{service.dispose();service.store?.close();}catch{/* Already closed. */}
   relay.dispose?.();
-  if(!report.error)await workspace.dispose();
+  // --keep leaves the workspace for reading the pages (2026-10-12: whether an old amount is history or a stale statement).
+  if(!report.error&&!keep)await workspace.dispose();else console.log('workspace kept at '+workspace.directory);
 }

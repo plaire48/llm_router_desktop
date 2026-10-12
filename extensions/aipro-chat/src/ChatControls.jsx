@@ -4,7 +4,7 @@ import {AgentTabs} from './AgentTabs.jsx';
 import {ERROR_TEXT, PROVIDER_LABELS} from '../core.js';
 import {compactTokens, contextPercent, contextUsage, formatTokens} from '../usage.js';
 
-const providerIcons = {aipro: 'aipro.svg', chatgpt: 'openai.svg', fabrix: 'fabrix.svg'};
+const providerIcons = {aipro: 'aipro.svg', chatgpt: 'openai.svg', fabrix: 'fabrix.svg', claude: 'claude.svg'};
 export function ProviderIcon({provider}) {
   if (provider === 'aipro-cli' || provider === 'compatible') return <Icon name="code" size={20} className="connection-logo"/>;
   return <img className="connection-logo" src={`./icons/${providerIcons[provider] || providerIcons.aipro}`} alt="" width="20" height="20"/>;
@@ -22,7 +22,7 @@ export function ModelPicker({data, loading, disabled, open, onOpen, onRefresh, s
   </div>;
 }
 
-export function ModelSelection({title='모델 선택', data, initialProvider, loading, disabled, onProviderSelect, onSelect, onRefresh, onLogin, onLogout, onCancelLogin, onClose, showProviderNames = false, providerLabels = PROVIDER_LABELS, embedded = false, autoRefresh = true, onError}) {
+export function ModelSelection({title='모델 선택', data, initialProvider, loading, disabled, onProviderSelect, onSelect, onRefresh, onLogin, onLogout, onCancelLogin, onClose, showProviderNames = false, providerLabels = PROVIDER_LABELS, embedded = false, autoRefresh = true, selectWhileLoading = false, onError, showActionLabels = false}) {
   const [provider, setProvider] = useState(initialProvider || data.activeProvider);
   const [query, setQuery] = useState(''), [saving, setSaving] = useState(false), [error, setError] = useState('');
   const rows = useRef(null), providerTabs = useRef(null), restoreTabFocus = useRef(false);
@@ -104,9 +104,9 @@ export function ModelSelection({title='모델 선택', data, initialProvider, lo
   const problem = error || (pending || !connected ? data.report.provider === provider && data.report.error !== 'login_closed' && ERROR_TEXT[data.report.error] : current ? catalog?.errorMessage || ERROR_TEXT[catalog?.error] : '');
   useEffect(()=>{if(problem&&onError)onError(problem);},[problem,onError]);
   const accountActions=(connected || connection.present) && <div className="provider-account-actions" role="group" aria-label="모델 연결 관리">
-        {connected && (current || data.catalogs) && <ActionButton action="refresh" iconOnly label="모델 목록 새로고침" busy={loading} disabled={blocked || loading} onClick={() => refreshModels()}/>}
-        {connected && provider === 'fabrix' && <ActionButton action="edit" iconOnly label="FabriX 연결 편집" disabled={blocked} onClick={connect}/>}
-        {connection.present && <ActionButton action="logout" iconOnly label={`${providerLabels[provider]} 로그아웃`} disabled={blocked} onClick={disconnect}/>}
+        {connected && (current || data.catalogs) && <ActionButton action="refresh" iconOnly={!showActionLabels} label={showActionLabels?'새로고침':'모델 목록 새로고침'} aria-label="모델 목록 새로고침" busy={loading} disabled={blocked || loading} onClick={() => refreshModels()}/>}
+        {connected && provider === 'fabrix' && <ActionButton action="edit" iconOnly={!showActionLabels} label={showActionLabels?'연결 편집':'FabriX 연결 편집'} aria-label="FabriX 연결 편집" disabled={blocked} onClick={connect}/>}
+        {connection.present && <ActionButton action="logout" iconOnly={!showActionLabels} label={showActionLabels?(provider==='claude'?'연결 해제':'로그아웃'):`${providerLabels[provider]} ${provider==='claude'?'연결 해제':'로그아웃'}`} aria-label={`${providerLabels[provider]} ${provider==='claude'?'연결 해제':'로그아웃'}`} disabled={blocked} onClick={disconnect}/>}
     </div>;
   const content=<>
     <div className="provider-toolbar">
@@ -116,7 +116,7 @@ export function ModelSelection({title='모델 선택', data, initialProvider, lo
       {problem && !onError && <CxNotice tone="danger">{problem}</CxNotice>}
       {pending ? <div className="provider-connect-state" role="status"><span className="status-spinner" aria-hidden="true"/><span>{data.pending.phase === 'exchanging' ? '인증 확인 중' : '로그인 대기 중'}</span><ActionButton action="cancel" label="로그인 취소" onClick={onCancelLogin}/></div> : !connected ? <div className="provider-connect-state">{(connection.expired || connection.rejected) && <p>다시 연결해 주세요.</p>}<ActionButton action="login" className="provider-connect-button" data-provider={provider} label="연결" title={`${providerLabels[provider]} 연결`} disabled={blocked} onClick={connect}/></div> : <>
         {searchable && <div className="model-search-row"><SearchInput><CxInput id="model-search" aria-label="모델 검색" placeholder="모델 검색" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => {if (e.key === 'ArrowDown') {e.preventDefault(); rows.current?.querySelector('button:not(:disabled)')?.focus();}}}/></SearchInput></div>}
-        {loading && <div className="model-catalog-status" role="status">목록 불러오는 중</div>}
+        {loading && !searchable && <div className="model-catalog-status" role="status">목록 불러오는 중</div>}
         <div className="model-options" ref={rows} role="group" aria-label="사용 가능한 모델" onKeyDown={e => {
           if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
           const buttons = [...rows.current.querySelectorAll('button:not(:disabled)')], index = buttons.indexOf(document.activeElement);
@@ -124,8 +124,8 @@ export function ModelSelection({title='모델 선택', data, initialProvider, lo
           e.preventDefault();
           buttons[e.key === 'Home' ? 0 : e.key === 'End' ? buttons.length - 1 : (index + (e.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length]?.focus();
         }}>
-          {visible.map(model => <CxButton key={model.name} className="model-option" aria-pressed={model.name === selectedModel} aria-label={model.displayName} title={`${model.displayName}${provider === 'fabrix' ? '' : `\n${model.name}`}\n컨텍스트 ${formatTokens(model.contextLength)} 토큰\n최대 입력 ${formatTokens(model.maxInputTokens)} 토큰`} disabled={blocked || loading} onClick={() => select(model.name)}>
-            <span className="model-option-text">{model.displayName}</span>
+          {visible.map(model => <CxButton key={model.name} className="model-option" aria-pressed={model.name === selectedModel} aria-label={model.displayName} title={`${model.displayName}${provider === 'fabrix' ? '' : `\n${model.name}`}\n컨텍스트 ${formatTokens(model.contextLength)} 토큰\n최대 입력 ${formatTokens(model.maxInputTokens)} 토큰`} disabled={blocked || (loading && !selectWhileLoading)} onClick={() => select(model.name)}>
+            {showActionLabels&&<Icon name="layers" size={18}/>}<span className="model-option-text">{model.displayName}</span>
             {model.name === selectedModel && <Icon name="check" size={18}/>}
           </CxButton>)}
           {!visible.length && <p className="model-empty" role="status">{loading ? '모델 불러오는 중' : query.trim() ? '검색 결과가 없습니다.' : catalog?.error ? '목록을 다시 불러오세요.' : catalog?.diagnostics?.summary?.received > 0 ? '모델 이름을 읽지 못했습니다.' : '사용 가능한 모델이 없습니다.'}</p>}
@@ -139,7 +139,7 @@ export function ModelSelection({title='모델 선택', data, initialProvider, lo
   </DetailPanel>;
 }
 
-export function ContextMeter({dialogTitle='컨텍스트', messages, draft, model, busy, partial, promptContext, memory, stats, task, onCompact, usageInfo}) {
+export function ContextMeter({dialogTitle='컨텍스트', messages, draft, model, busy, partial, promptContext, memory, stats, task, onCompact, usageInfo, showActionLabels = false, showTokenCount = false}) {
   const [open, setOpen] = useState(false);
   const estimatedInfo = useMemo(() => contextUsage(messages, draft, model, busy, partial, promptContext), [messages, draft, model, busy, partial, promptContext]);
   const info = usageInfo || estimatedInfo;
@@ -150,8 +150,8 @@ export function ContextMeter({dialogTitle='컨텍스트', messages, draft, model
   const progress = Math.min(100, Math.max(0, (info.ratio || 0) * 100));
   const ringLabel = info.ratio === null ? '—' : String(Math.round(progress));
   return <>
-    <CxButton className="context-trigger" aria-label="컨텍스트 사용량" aria-haspopup="dialog" aria-expanded={open} title={title} onClick={() => setOpen(true)}>
-      <svg className="context-ring" viewBox="0 0 40 40" aria-hidden="true"><circle className="context-track" cx="20" cy="20" r="15"/><circle cx="20" cy="20" r="15" pathLength="100" strokeDasharray={`${progress} 100`} transform="rotate(-90 20 20)"/><text x="20" y="20" textAnchor="middle" dominantBaseline="middle">{ringLabel}</text></svg>
+    <CxButton className="context-trigger" data-token-count={showTokenCount || undefined} aria-label="컨텍스트 사용량" aria-haspopup="dialog" aria-expanded={open} title={title} onClick={() => setOpen(true)}>
+      <svg className="context-ring" viewBox="0 0 40 40" aria-hidden="true"><circle className="context-track" cx="20" cy="20" r="15"/><circle cx="20" cy="20" r="15" pathLength="100" strokeDasharray={`${progress} 100`} transform="rotate(-90 20 20)"/><text x="20" y="20" textAnchor="middle" dominantBaseline="middle">{ringLabel}</text></svg>{showTokenCount&&<span className="context-token-count">{estimated?'≈':''}{compactTokens(info.used)}</span>}{showActionLabels&&<span className="nubi-action-label">문맥</span>}
     </CxButton>
     {open && <DetailPanel title={dialogTitle} variant="modal" className="deck-dialog context-dialog" hideHelp onClose={() => setOpen(false)}>
       <div className="context-summary">

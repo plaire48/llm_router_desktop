@@ -260,5 +260,5 @@ test('an OpenWiki answer that does not settle the question sends the main agent 
   const settled=wikiAnswer(given).delivered;
   assert.doesNotMatch(settled.desktop.note,/did not settle/);
   const {desktop,...rest}=settled;assert.deepEqual(rest,given,'nothing of the answer is changed');
-  assert.match(REVIEW_PROMPT,/for a question about code or behavior that includes the source, not only the Wiki/);
+  assert.match(REVIEW_PROMPT,/For behavior\/code questions verify relevant source, not only Wiki/);
 });

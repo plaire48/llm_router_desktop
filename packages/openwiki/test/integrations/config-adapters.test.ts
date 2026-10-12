@@ -49,6 +49,14 @@ const KIRO_ENTRY: HostMcpServerCommand = {
   command: "openwiki",
   args: ["mcp", "--host", "kiro"],
 };
+const COPILOT_ENTRY: HostMcpServerCommand = {
+  command: "openwiki",
+  args: ["mcp", "--host", "copilot"],
+};
+const OMP_ENTRY: HostMcpServerCommand = {
+  command: "openwiki",
+  args: ["mcp", "--host", "omp"],
+};
 const OPENCODE_SHAPE = {
   type: "local",
   command: ["openwiki", "mcp", "--host", "opencode"],
@@ -234,6 +242,27 @@ describe("JSON MCP config ownership", () => {
     });
   });
 
+  test("round-trips a Copilot entry in .copilot/mcp-config.json", async () => {
+    const root = await createRoot();
+    const filePath = path.join(root, ".copilot", "mcp-config.json");
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await writeFile(
+      filePath,
+      `${JSON.stringify({ mcpServers: { other: { command: "other" } } })}\n`,
+      "utf8",
+    );
+
+    await expect(installJsonMcpEntry(filePath, COPILOT_ENTRY)).resolves.toBe(
+      true,
+    );
+    expect(JSON.parse(await readFile(filePath, "utf8"))).toMatchObject({
+      mcpServers: { other: { command: "other" }, openwiki: COPILOT_ENTRY },
+    });
+    await expect(uninstallJsonMcpEntry(filePath, COPILOT_ENTRY)).resolves.toBe(
+      true,
+    );
+  });
+
   test("round-trips a Kiro entry in .kiro/settings/mcp.json", async () => {
     const root = await createRoot();
     const filePath = path.join(root, ".kiro", "settings", "mcp.json");
@@ -252,6 +281,49 @@ describe("JSON MCP config ownership", () => {
       "installed",
     );
     await expect(uninstallJsonMcpEntry(filePath, KIRO_ENTRY)).resolves.toBe(
+      true,
+    );
+    expect(JSON.parse(await readFile(filePath, "utf8"))).toMatchObject({
+      mcpServers: { other: { command: "other" } },
+    });
+  });
+
+  test("round-trips an omp entry in .omp/mcp.json", async () => {
+    const root = await createRoot();
+    const filePath = path.join(root, ".omp", "mcp.json");
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await writeFile(
+      filePath,
+      `${JSON.stringify({ mcpServers: { other: { command: "other" } } })}\n`,
+      "utf8",
+    );
+
+    await expect(installJsonMcpEntry(filePath, OMP_ENTRY)).resolves.toBe(true);
+    expect(JSON.parse(await readFile(filePath, "utf8"))).toMatchObject({
+      mcpServers: { other: { command: "other" }, openwiki: OMP_ENTRY },
+    });
+    await expect(getJsonMcpEntryStatus(filePath, OMP_ENTRY)).resolves.toBe(
+      "installed",
+    );
+
+    await writeFile(
+      filePath,
+      `${JSON.stringify({ mcpServers: { openwiki: { command: "other-openwiki", args: [] } } })}\n`,
+      "utf8",
+    );
+    await expect(getJsonMcpEntryStatus(filePath, OMP_ENTRY)).resolves.toBe(
+      "modified",
+    );
+    await expect(
+      uninstallJsonMcpEntry(filePath, OMP_ENTRY),
+    ).rejects.toMatchObject({ code: "conflict" });
+
+    await writeFile(
+      filePath,
+      `${JSON.stringify({ mcpServers: { other: { command: "other" }, openwiki: OMP_ENTRY } })}\n`,
+      "utf8",
+    );
+    await expect(uninstallJsonMcpEntry(filePath, OMP_ENTRY)).resolves.toBe(
       true,
     );
     expect(JSON.parse(await readFile(filePath, "utf8"))).toMatchObject({

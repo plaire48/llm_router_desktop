@@ -111,7 +111,8 @@ test("AI Pro CLI uses the configured URL, token and model through the compatible
         body: { model: "company-model" },
       });
     }
-    expect(observed[1].body.tools).toEqual([tool]);
+    // Upstream 0.7.2 explicitly retains optional fields on compatible gateways.
+    expect(observed[1].body.tools).toEqual([{...tool,function:{...tool.function,strict:false}}]);
     expect(observed[1].body).not.toHaveProperty("max_tokens");
   } finally {
     server.closeAllConnections();

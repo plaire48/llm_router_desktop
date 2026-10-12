@@ -1,4 +1,5 @@
 import {build} from 'esbuild';
+import {DESKTOP_FEATURES} from '../runtime/beta-features.mjs';
 import {mkdir,copyFile,cp,readFile,rm,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
@@ -84,10 +85,11 @@ await writeFile('generated/runtime-provenance.json',JSON.stringify({openwiki:{na
 await mkdir('extension/lib/node',{recursive:true});
 await copyFile('extension/src/node/git-askpass.cjs','extension/lib/node/git-askpass.cjs');
 await copyFile('runtime/computer-pointer.ps1','extension/lib/node/computer-pointer.ps1');
-await copyFile('runtime/office-document.ps1','extension/lib/node/office-document.ps1');
+if(DESKTOP_FEATURES.mailAttachmentReading)await copyFile('runtime/office-document.ps1','extension/lib/node/office-document.ps1');
+else for(const file of ['office-document.ps1','mail-attachment-worker.mjs','document-extract.mjs','pdf.worker.mjs'])await rm('extension/lib/node/'+file,{force:true});
 await rm('extension/lib/node/openwiki-update',{recursive:true,force:true});
 await cp('generated/openwiki-update','extension/lib/node/openwiki-update',{recursive:true});
-for (const worker of ['schema-worker','database-worker','code-analysis-worker','mail-worker','mail-attachment-worker']) await build({entryPoints:[`runtime/${worker}.mjs`],outfile:`extension/lib/node/${worker}.mjs`,bundle:true,platform:'node',format:'esm',target:'node24',external:['knex','knex-schema-inspector','typescript','jsonc-parser','./document-extract.mjs'],banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);"}});
+for (const worker of ['schema-worker','database-worker','code-analysis-worker','mail-worker',...(DESKTOP_FEATURES.mailAttachmentReading?['mail-attachment-worker']:[])]) await build({entryPoints:[`runtime/${worker}.mjs`],outfile:`extension/lib/node/${worker}.mjs`,bundle:true,platform:'node',format:'esm',target:'node24',external:['knex','knex-schema-inspector','typescript','jsonc-parser','./document-extract.mjs'],banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);"}});
 const sourceWiki={name:'nubi-source-wiki',setup(builder){builder.onResolve({filter:/openwiki\.mjs$/},args=>path.resolve(args.resolveDir,args.path)===path.resolve('generated/openwiki.mjs')?{path:path.resolve('runtime/openwiki-source.ts')}:undefined);}};
 // The host imports the update runner from the folder next to it.
 const deferredDocuments={name:'nubi-deferred-documents',setup(builder){builder.onResolve({filter:/document-extract\.mjs$/},args=>path.resolve(args.resolveDir,args.path)===path.resolve('runtime/document-extract.mjs')?{path:'./document-extract.mjs',external:true}:undefined);}};
@@ -101,16 +103,20 @@ if(Object.keys(runtimeBuild.metafile.inputs).some(file=>file.replaceAll('\\','/'
 // records every bundle input for the release snapshot and keeps A2A authentication out of the window. The Theia
 // extension bundle and its style outputs are gone: the renderer imports the workbench styles itself (2026-10-07).
 const uiBuild=await build({...rendererBundleOptions(),outdir:'generated/renderer-analysis',write:false});
+// Main-process shared login helpers are also part of the release source closure.
+const mainBuild=await build({metafile:true,entryPoints:['electron-app/main.cjs'],outfile:'generated/main-analysis.cjs',write:false,platform:'node',bundle:true,format:'cjs',target:'node24',external:['electron']});
 
 
 if(Object.keys(uiBuild.metafile.inputs).some(file=>/@a2a-js\/sdk|nubi-a2a\/(?:client|server)\.mjs/.test(file.replaceAll('\\','/'))))throw Error('a2a_auth_must_remain_in_host');
 // Release snapshots copy the actual shared source dependency closure rather
 // than silently taking unrelated in-progress Office/browser changes. Modules the
 // build replaces (nubi-*: namespaces) are not files.
-await writeFile('generated/source-inputs.json',JSON.stringify([...new Set([wikiBuild,updateBuild,runtimeBuild,uiBuild].flatMap(bundle=>Object.keys(bundle.metafile.inputs)).filter(file=>!file.includes('node_modules')&&!/^nubi-[a-z-]+:/.test(file)))].sort(),null,2)+'\n');
+await writeFile('generated/source-inputs.json',JSON.stringify([...new Set([wikiBuild,updateBuild,runtimeBuild,uiBuild,mainBuild].flatMap(bundle=>Object.keys(bundle.metafile.inputs)).filter(file=>!file.includes('node_modules')&&!/^nubi-[a-z-]+:/.test(file)))].sort(),null,2)+'\n');
 
+if(DESKTOP_FEATURES.mailAttachmentReading){
 await build({entryPoints:['runtime/document-extract.mjs'],outfile:'extension/lib/node/document-extract.mjs',bundle:true,platform:'node',format:'esm',target:'node24',banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);"}});
 await copyFile('../../extensions/aipro-chat/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs','extension/lib/node/pdf.worker.mjs');
+}
 
 await copyFile('../../extensions/aipro-chat/public/icons/agent-128.png','extension/lib/node/auth-bird.png');
 await copyFile('../openwiki/src/auth/aipro-callback-fonts.css','extension/lib/node/auth-fonts.css');

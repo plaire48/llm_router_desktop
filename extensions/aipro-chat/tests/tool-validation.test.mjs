@@ -14,6 +14,17 @@ const args = value => ({fields: [{field_id: 'ref-1', value}]});
 const tools = [{type: 'function', function: {name: 'fill_form', description: 'Observed form', parameters}}];
 const call = (args, id) => ({calls: [{id, type: 'function', function: {name: 'fill_form', arguments: JSON.stringify(args)}}]});
 
+test('scalar repair returns declared types, enum choices and bounds without the rejected command',()=>{
+  const schema={type:'object',properties:{kind:{type:'string',enum:['inspect','start','verify']},script:{type:'string',maxLength:16},references:{type:'array',minItems:1}},required:['kind','script','references']};
+  const input={kind:'PRIVATE_KIND',script:['PRIVATE_COMMAND'],references:[]};
+  const issues=toolArgumentIssues(schema,input);
+  assert.deepEqual(issues.find(i=>i.path==='/kind').valueSchemas,[{type:'string',enum:['inspect','start','verify']}]);
+  assert.deepEqual(issues.find(i=>i.path==='/script').valueSchemas,[{type:'string',maxLength:16}]);
+  assert.deepEqual(issues.find(i=>i.path==='/references').valueSchemas,[{type:'array',minItems:1}]);
+  assert(!JSON.stringify(issues).includes('PRIVATE'));
+  assert.deepEqual(input.script,['PRIVATE_COMMAND']);
+});
+
 test('safe schema issues identify nested invalid fields without coercing or altering inputs', () => {
   for (const [value, path, rule] of [[args(42), '/fields/0/value', 'type'], [args('x'.repeat(30)), '/fields/0/value', 'maxLength'],
     [{fields: [{field_id: 'PRIVATE_BAD_REF', value: 'ok'}]}, '/fields/0/field_id', 'pattern'],

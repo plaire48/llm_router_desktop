@@ -13,10 +13,11 @@ const reply=()=>({content:'기록을 확인했습니다. 전체 완료 조건은
 const wait=async check=>{for(let i=0;i<300;i++){if(check())return;await new Promise(r=>setTimeout(r,10));}assert.fail('state did not settle');};
 
 test('transient inference retries preserve the completed source read and operation checkpoint',async t=>{
-  const {service}=await fixture(t);service.recoveryOptions={model:{minTimeout:1}};let calls=0,reads=0;const read=service.read.bind(service);service.read=async args=>{reads++;return read(args);};
-  service.providers={status,dispose(){},complete:async()=>{if(++calls===1)return call('read_source',{path:'app.txt'});if(calls<4)throw Object.assign(new Error('upstream'),{status:503});return reply();}};
+  const {service}=await fixture(t);service.recoveryOptions={model:{minTimeout:1}};let calls=0,reads=0,failures=0;const read=service.read.bind(service);service.read=async args=>{reads++;return read(args);};
+  // Isolate transport retry from the separately tested small-window compaction path.
+  service.providers={status:()=>({...status(),models:[{id:'fixture',contextLength:128000}]}),dispose(){},complete:async()=>{if(++calls===1)return call('read_source',{path:'app.txt'});if(calls<4){failures++;throw Object.assign(new Error('upstream'),{status:503});}return reply();}};
   const task=await service.createTask({request:'Keep original request',criteria:['Keep original acceptance']});await service.startAgent({taskId:task.id});await service.agent.promise;
-  assert.equal(calls,4);assert.equal(reads,1);assert.equal(service.task(task.id).state,'review');assert.equal(service.store.list('operation:')[0].state,'completed');assert.equal(service.task(task.id).criteria[0].state,'unknown');
+  assert.equal(failures,2);assert.equal(reads,1);assert.equal(service.task(task.id).state,'review');assert.equal(service.store.list('operation:')[0].state,'completed');assert.equal(service.task(task.id).criteria[0].state,'unknown');
 });
 
 test('silent inference pauses with saved state; explicit resume rechecks current disk and never executes old tools',async t=>{
@@ -104,4 +105,17 @@ test('provider context overflow uses shared compaction once and preserves the or
     if(++calls===1)throw new Error('context_overflow');assert.match(JSON.stringify(messages),/Original recovery objective/);assert.match(JSON.stringify(messages),/ORIGINAL_ACCEPTANCE/);return reply();
   }};
   await service.startAgent({taskId:task.id});await service.agent.promise;assert.equal(calls,2);assert.ok(summaries>0);assert.equal(service.task(task.id).state,'review');
+});
+
+// Measured 2026-10-12 (S29): for an hour the ChatGPT backend answered some large requests with a stream error in about
+// a second (response_invalid; 2 of 6 identical requests at the worst). The shared policy retries only network, timeout,
+// 429 and 5xx, so one such answer paused the run, while the OpenWiki agent of the same run survived two in a row.
+test('a response the connection rejects is asked for again within the retry budget; three in a row still pause',async t=>{
+  const {service}=await fixture(t);service.recoveryOptions={model:{minTimeout:1}};let calls=0;
+  service.providers={status,dispose(){},complete:async()=>{if(++calls===1)return call('read_source',{path:'app.txt'});if(calls===2)throw new Error('response_invalid');return reply();}};
+  const task=await service.createTask({request:'Keep original request'});await service.startAgent({taskId:task.id});await service.agent.promise;
+  assert.equal(calls,3,'the rejected answer is asked for once more');assert.equal(service.task(task.id).state,'review');
+  calls=0;service.providers.complete=async()=>{calls++;throw new Error('response_invalid');};
+  const again=await service.createTask({request:'Keep original request'});await service.startAgent({taskId:again.id});await service.agent.promise;
+  assert.equal(calls,3,'the request and two more');assert.equal(service.task(again.id).state,'paused');assert.equal(service.task(again.id).error,'response_invalid');
 });

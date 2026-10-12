@@ -106,10 +106,10 @@ try {
   check('provider icons/text align in shared columns even while loading; login and modal fit three viewport sizes with a visible footer');
   await ui.setViewportSize({width: 360, height: 800}); await ui.getByRole('button', {name: 'FabriX', exact: true}).click();
   const dialog = ui.getByRole('dialog', {name: 'FabriX 연결'});
-  for (const [label, value] of [['Endpoint', connection.endpoint], ['Client Key', connection.clientKey], ['API Token', connection.token]]) await dialog.getByLabel(label).fill(value);
-  assert.equal(await dialog.getByLabel('API Token').getAttribute('type'), 'password');
+  for (const [label, value] of [['Endpoint', connection.endpoint], ['x-fabrix-client', connection.clientKey], ['x-openapi-token', connection.token]]) await dialog.getByLabel(label).fill(value);
+  assert.equal(await dialog.getByLabel('x-openapi-token').getAttribute('type'), 'password');
   mode = 'failure'; await dialog.getByRole('button', {name: '연결 테스트', exact: true}).click();
-  await dialog.getByText('Client Key와 API Token을 확인해 주세요.', {exact: true}).waitFor();
+  await dialog.getByText('x-fabrix-client와 x-openapi-token을 확인해 주세요.', {exact: true}).waitFor();
   assert(await dialog.getByRole('button', {name: '연결', exact: true}).isDisabled()); assert.equal((await state()).auth.present, false);
   check('failed credentials keep the user in the modal and cannot enable Connect');
   mode = 'models'; heldModelCheck = new Promise(resolve => {releaseModelCheck = resolve;});
@@ -125,9 +125,9 @@ try {
   assert.equal(checkingType.weight, '400'); await assertModalTypography(dialog);
   check('connection checking and completion share the same 14/22px font and weight');
   assert(!(await dialog.getByRole('button', {name: '연결', exact: true}).isDisabled())); await capture('tested');
-  await dialog.getByLabel('Client Key').fill('changed');
+  await dialog.getByLabel('x-fabrix-client').fill('changed');
   assert(await dialog.getByRole('button', {name: '연결', exact: true}).isDisabled());
-  await dialog.getByLabel('Client Key').fill(connection.clientKey);
+  await dialog.getByLabel('x-fabrix-client').fill(connection.clientKey);
   await dialog.getByRole('button', {name: '연결 테스트', exact: true}).click();
   await dialog.getByText('테스트 통과', {exact: true}).waitFor();
   await dialog.getByRole('button', {name: '연결', exact: true}).click();

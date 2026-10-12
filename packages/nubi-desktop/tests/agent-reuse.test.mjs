@@ -100,3 +100,42 @@ test('repeated unchanged source failure asks a durable focused question and resu
   answered=true;await service.answerAgent({taskId:task.id,answer:'app.txt'});await service.agent.promise;
   const resumed=service.task(task.id);assert.equal(resumed.request,task.request);assert.equal(resumed.criteria[0].text,'Preserve current behavior');assert.equal(resumed.questionHistory[0].answer.text,'app.txt');assert.equal(resumed.state,'review');
 });
+
+test('two isolated mail analysts receive only assigned original and Personal Wiki evidence and are collected', {timeout:15000}, async t=>{
+  const {service}=await fixture(t,{scriptedReview:true});
+  const ids=['a'.repeat(64),'b'.repeat(64)],packets=[],children=new Set();let parentStage=0,starts=0,release;
+  const concurrent=new Promise(resolve=>{release=resolve;});
+  service.mail=async args=>{
+    assert.ok(ids.includes(args.id),'only selected mail is accessed');
+    if(args.action==='evidence')return {id:args.id,sourceHash:args.id,title:args.id[0]};
+    assert.equal(args.action,'read');assert.equal(args.includeKnowledge,true);
+    return {id:args.id,sourceHash:args.id,mail:{subject:`Selected ${args.id[0]}`,text:`ORIGINAL_${args.id[0]}`,attachments:[]},knowledge:{kind:'openwiki',state:'current',sourceHash:args.id,hash:'note-hash',text:`PERSONAL_${args.id[0]}`,truncated:false}};
+  };
+  service.providers={status,dispose(){},async complete(messages,tools){
+    if(messages[0].content.startsWith(REVIEW_PROMPT)){
+      const handoffs=JSON.parse(messages[1].content).advisoryHandoffs;
+      assert.equal(handoffs.length,2);assert.ok(handoffs.every(h=>h.collected));return fixtureReview(messages);
+    }
+    if(messages[0].content.includes('isolated research analyst')){
+      const brief=JSON.parse(messages[1].content),last=messages.findLast(m=>m.role==='tool');
+      assert.equal(brief.evidence.length,1);assert.equal(brief.evidence[0].kind,'mail');
+      assert.ok(tools.every(tool=>['read_analysis_evidence','read_source','source_search','wiki_query'].includes(tool.function.name)));
+      if(!last){if(++starts===2)release();await concurrent;return call('read_analysis_evidence',{evidence_id:brief.evidence[0].evidence_id});}
+      const read=JSON.parse(last.content),source=JSON.parse(read.text).result;
+      assert.equal(source.knowledge.text,`PERSONAL_${source.id[0]}`);assert.equal(source.mail.text,`ORIGINAL_${source.id[0]}`);
+      assert.ok(!read.text.includes(`ORIGINAL_${source.id===ids[0]?'b':'a'}`));children.add(source.id);
+      return {content:JSON.stringify({status:'complete',summary:`메일 ${source.id[0]}의 원문과 개인 위키 대조`,findings:[{text:'원문과 정리 내용 확인',evidence_ids:[read.evidence_id]}],uncertainties:[],next_step:''}),calls:[]};
+    }
+    const last=messages.findLast(m=>m.role==='tool');
+    if(parentStage<2){if(last)packets.push(JSON.parse(last.content));return call('read_personal_mail',{id:ids[parentStage++]});}
+    if(parentStage++===2){packets.push(JSON.parse(last.content));assert.ok(packets.every(p=>p.analysis_evidence_id));return call('delegate_analysis',{tasks:packets.map((p,i)=>({role:'research',task:`선택 메일 ${i+1}의 개인 위키와 원문 대조`,done_when:'일치하는 내용과 차이를 근거와 함께 반환',evidence_ids:[p.analysis_evidence_id]}))});}
+    if(!JSON.stringify(messages).includes('메일 b의 원문과 개인 위키 대조')||!JSON.stringify(messages).includes('메일 a의 원문과 개인 위키 대조'))return call('collect_analysis',{wait:true});
+    return {content:'두 담당의 결과를 원문과 대조했습니다.',calls:[]};
+  }};
+  const task=await service.createTask({request:'선택한 두 메일의 원문과 개인 위키를 나눠 확인하고 비교해 주세요.',mailReferences:ids.map(id=>({id,sourceHash:id}))});
+  await service.startAgent({taskId:task.id});await service.agent.promise;
+  assert.equal(starts,2);assert.equal(children.size,2);assert.equal(service.task(task.id).state,'review',service.task(task.id).error);
+  const roles=service.analysisHistory({taskId:task.id}).records.find(r=>r.kind==='roles');
+  assert.equal(roles.workers.length,2);assert.ok(roles.workers.every(w=>w.status==='done'&&w.analysis.delivered&&w.analysis.reads===1));
+  assert.ok(roles.workers.every(w=>w.analysis.sources.length===1&&w.analysis.sources[0].tool==='read_personal_mail'&&w.analysis.sources[0].read));
+});

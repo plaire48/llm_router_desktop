@@ -4,7 +4,7 @@
 // second approval, and only under openwiki/. OpenWiki's code is not changed.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdir,writeFile,readFile,access} from 'node:fs/promises';
+import {mkdir,writeFile,readFile,access,rm} from 'node:fs/promises';
 import path from 'node:path';
 import {fixture} from './fixtures.mjs';
 import {git,hash} from '../runtime/files.mjs';
@@ -30,9 +30,11 @@ async function generated(t){
 }
 const commit=async(root,file,content)=>{await writeFile(path.join(root,file),content);await git(root,['add','-A']);await git(root,['commit','-qm','change '+file]);};
 
-test('a Wiki without a generation record is unknown, and a current one is current',async t=>{
+test('an existing Wiki without a generation record can recover through an approved update, and a current one is current',async t=>{
   const plain=await fixture(t);
-  assert.equal((await wikiUpdateStatus(plain.root)).state,'unknown');
+  assert.equal((await wikiUpdateStatus(plain.root)).state,'stale');
+  assert.equal((await wikiUpdateStatus(plain.root)).reason,'no_generation_record');
+  assert.equal((await plain.service.wikiUpdate({method:'propose'})).state,'proposed');
   const {root}=await generated(t);
   const status=await wikiUpdateStatus(root);
   assert.equal(status.state,'current',JSON.stringify(status));assert.deepEqual(status.changedFiles,[]);assert.deepEqual(status.stalePages,[]);
@@ -46,7 +48,7 @@ test('a committed source change after the last update makes the Wiki stale and n
   assert.equal(status.state,'stale');
   assert.deepEqual(status.changedFiles,['app.txt'],'what changed since the last update, without the Wiki itself');
   assert.deepEqual(status.stalePages,[{path:'openwiki/home.md',freshness:'source_changed'}]);
-  assert.deepEqual(status.uncommitted,['notes.txt'],'uncommitted changes are named apart: the update does not see them');
+  assert.deepEqual(status.uncommitted,['notes.txt'],'uncommitted changes are named; without a checkpoint of the last run they only count through Claims');
   assert.equal(status.lastUpdate.status,'complete');
 });
 
@@ -95,7 +97,8 @@ test('a proposal runs nothing; an approved run changes only a copy; an approved 
   await service.wikiUpdate({method:'run',id:proposal.id,fingerprint:proposal.fingerprint});
   const ready=await settle(service,proposal.id);
   assert.equal(ready.state,'ready',ready.error);
-  assert.deepEqual(ready.changes,[{path:'openwiki/home.md',change:'modified'},{path:'openwiki/new-page.md',change:'added'}]);
+  assert.deepEqual(ready.changes.filter(change=>change.path.endsWith('.md')),[{path:'openwiki/home.md',change:'modified'},{path:'openwiki/new-page.md',change:'added'}]);
+  assert.ok(ready.changes.some(change=>change.path==='openwiki/.nubi-sources.json'&&change.change==='added'),'the checkpoint names the sources the run read (2026-10-12)');
   assert.deepEqual(ready.outside,['AGENTS.md'],'changes outside the Wiki are shown and left out');
   assert.equal(await readFile(path.join(root,'openwiki','home.md'),'utf8'),before,'the workspace is unchanged until the result is approved');
   assert.ok(ready.events.some(event=>event.type==='page'));
@@ -215,9 +218,14 @@ test('a response rejected by the model connection is asked for again, with a req
   assert.equal(result.skipped,false);assert.equal(attempts,2);
   assert.notEqual(sent[0].at(-1).content,TEXT_REPLY.content,'the first request is as the runner made it');
   assert.deepEqual(sent[1].at(-1),TEXT_REPLY,'the second asks for a short reply when no tool call is needed');
-  let rejected=0;service.providers.complete=async()=>{rejected++;throw new Error('response_invalid');};
-  await assert.rejects(defaultWikiUpdater(service,{load})({root,signal:new AbortController().signal,onEvent(){},updateId:'u4'}),/response_invalid/,'a third rejection ends the run');
-  assert.equal(rejected,3,'the request and two more');
+  // Measured 2026-10-12 (S29 diagnosis): three rejections in a row ended a five-minute generation. The request is
+  // asked up to three more times; the fourth rejection ends the run.
+  let rejected=0;service.providers.complete=async()=>{rejected++;if(rejected<=3)throw new Error('response_invalid');return {content:'done',calls:[]};};
+  assert.equal((await defaultWikiUpdater(service,{load})({root,signal:new AbortController().signal,onEvent(){},updateId:'u4'})).skipped,false,'three rejections are survived');
+  assert.equal(rejected,4,'the request and three more');
+  rejected=0;service.providers.complete=async()=>{rejected++;throw new Error('response_invalid');};
+  await assert.rejects(defaultWikiUpdater(service,{load})({root,signal:new AbortController().signal,onEvent(){},updateId:'u5'}),/response_invalid/,'a fourth rejection ends the run');
+  assert.equal(rejected,4,'the request and three more, then the error');
 });
 
 // The agent is told when the Wiki is behind its sources, from Git alone, so an
@@ -234,4 +242,32 @@ test('host receipts say when the Wiki is behind its sources',async t=>{
   const second=await service.createTask({request:'Wiki를 확인해 줘'});await service.startAgent({taskId:second.id});await service.agent.promise;
   assert.equal(receipts.wikiUpdate.state,'stale');assert.equal(receipts.wikiUpdate.changedFiles,1);assert.deepEqual(receipts.wikiUpdate.sample,['app.txt']);
   assert.match(receipts.wikiUpdate.instruction,/project materials panel/);assert.match(receipts.wikiUpdate.instruction,/cannot run the update/);
+});
+
+
+test('overview counts ignored Wiki pages and empty generation is distinct from missing metadata',async t=>{
+  const {service,root}=await fixture(t);
+  await git(root,['rm','--cached','openwiki/home.md']);
+  await writeFile(path.join(root,'.gitignore'),'openwiki/\n');
+  await mkdir(path.join(root,'openwiki/guides'));
+  await writeFile(path.join(root,'openwiki/guides/start.md'),'# Start\n');
+  await mkdir(path.join(root,'openwiki/.claims'));
+  await writeFile(path.join(root,'openwiki/.claims/internal.md'),'internal metadata');
+  const overview=await service.overview();
+  assert(!overview.files.includes('openwiki/home.md'),'Git source inventory excludes ignored Wiki');
+  assert.deepEqual(overview.wikiFiles,['openwiki/guides/start.md','openwiki/home.md']);
+  assert.equal((await wikiUpdateStatus(root)).reason,'no_generation_record');
+  await rm(path.join(root,'openwiki'),{recursive:true});
+  assert.deepEqual((await service.overview()).wikiFiles,[]);
+  assert.deepEqual(await wikiUpdateStatus(root),{state:'unknown',reason:'no_wiki_pages'});
+});
+
+// The runner turns a page worker's failure into a skipped page, so the host saw an empty Wiki and named no cause
+// (2026-10-12). The connection's last failure now reaches the host as an event.
+test('a model failure during a run is reported to the host as a model_error event before the run fails',async t=>{
+  const {service,root}=await generated(t);const events=[];
+  service.providers={status:()=>({connected:true,model:'fixture-model',models:[{id:'fixture-model',contextLength:200000}]}),dispose(){},async complete(){throw new Error('unauthorized');}};
+  const load=async()=>({NubiOpenWikiModel:(await import('../generated/openwiki.mjs')).NubiOpenWikiModel,async runNativeRepositoryGeneration(options){await options.model.invoke('plan the update');return {skipped:false};}});
+  await assert.rejects(defaultWikiUpdater(service,{load})({root,signal:new AbortController().signal,onEvent:event=>events.push(event),updateId:'u6'}),/unauthorized/);
+  assert.deepEqual(events.filter(event=>event.type==='model_error'),[{type:'model_error',code:'unauthorized'}]);
 });

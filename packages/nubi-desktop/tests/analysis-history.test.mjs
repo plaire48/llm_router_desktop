@@ -89,3 +89,10 @@ test('early unresolved assignments survive many later reports and overflow stays
   assert.ok(overflow.items.every(item=>!item.id.startsWith('success-')));
   assert.equal(service.analysisHistory({taskId:task.id}).records[0].workers.length,34,'Selection does not discard stored work');
 });
+
+test('review lifecycle receipts contain host status but never child conclusions',async()=>{
+ const {roleExecutionReceipts}=await import('../runtime/analysis-history.mjs');
+ const record={workers:[{id:'a',tool:'analysis_research',status:'done',analysis:{delivered:true,reads:2,calls:3,summary:'UNVERIFIED_CHILD_CLAIM',outcome:'complete'}},{id:'b',tool:'analysis_research',status:'error',analysis:{delivered:false,reads:0,calls:1}}]};
+ const store={get:key=>key==='analysis-history:t:roles:run'?record:null};
+ const receipt=roleExecutionReceipts(store,'t','run');assert.equal(receipt.items[0].delivered,true);assert.equal(receipt.items[0].reads,2);assert.equal(receipt.items[1].state,'error');assert.doesNotMatch(JSON.stringify(receipt),/UNVERIFIED_CHILD_CLAIM|outcome/);assert.equal(roleExecutionReceipts(store,'t','other').items.length,0);
+});

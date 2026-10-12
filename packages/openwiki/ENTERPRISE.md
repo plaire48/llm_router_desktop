@@ -1,20 +1,20 @@
 # openwiki-SDS
 
-OpenWiki 0.5.2의 고정 소스에 사내 제공자를 추가한 **openwiki-SDS 0.6.0** (`openwiki-sds`) 패키지입니다. 공식 OpenWiki 배포본과 구분하며, 원본 커밋은 `UPSTREAM.json`에 기록합니다. OpenAI API 키와 ChatGPT 브라우저 로그인은 기존 구현을 유지합니다.
+OpenWiki 0.7.2의 고정 소스에 사내 제공자를 추가한 **openwiki-SDS 0.7.2** (`openwiki-sds`) 패키지입니다. 공식 OpenWiki 배포본과 구분하며, 원본 커밋은 `UPSTREAM.json`에 기록합니다. OpenAI API 키와 ChatGPT 브라우저 로그인은 기존 구현을 유지합니다.
 
 ## 설치와 첫 실행
 
 Node.js 22.22 이상을 준비한 뒤, 받은 파일이 있는 폴더에서 실행합니다. 설치에는 npm 의존성을 내려받을 수 있는 네트워크가 필요합니다.
 
 ```sh
-npm install -g ./openwiki-SDS-0.6.0.tgz
+npm install -g ./openwiki-SDS-0.7.2.tgz
 ```
 
 기존 `@llm-router/openwiki` 전역 설치본이 있다면 이름이 변경되었으므로 아래 순서로 교체합니다. 인증과 Wiki는 패키지 폴더 밖의 기존 위치를 사용합니다.
 
 ```sh
 npm uninstall -g @llm-router/openwiki
-npm install -g ./openwiki-SDS-0.6.0.tgz
+npm install -g ./openwiki-SDS-0.7.2.tgz
 ```
 
 실행 명령은 `openwiki` 그대로입니다. 문서화할 프로젝트 폴더에서 실행합니다.
@@ -28,7 +28,7 @@ openwiki --init
 기존 전역 `openwiki` 명령과 충돌한다면 강제 덮어쓰기 대신 로컬로 설치할 수 있습니다.
 
 ```sh
-npm install --prefix ./openwiki-tools ./openwiki-SDS-0.6.0.tgz
+npm install --prefix ./openwiki-tools ./openwiki-SDS-0.7.2.tgz
 ```
 
 문서화할 프로젝트 폴더에서 `openwiki-tools/node_modules/openwiki-sds/dist/cli/cli.js`의 실제 경로를 `node`에 전달합니다.
@@ -85,7 +85,7 @@ OpenWiki가 자체 로그인을 수행하며 기존 Chrome 확장의 인증값�
 
 Base URL은 `AIPRO_CLI_BASE_URL`, 토큰은 `AIPRO_CLI_TOKEN`, 모델은 `OPENWIKI_MODEL_ID`로 저장합니다. Browser SSO의 `AIPRO_ACCESS_TOKEN`을 가져오거나 덮어쓰지 않습니다. 토큰은 JWT 형식으로 제한하지 않으며 `Bearer ` 접두사를 포함해 붙여넣어도 한 번만 붙여 전송합니다. 만료·폐기된 토큰은 같은 설정에서 교체합니다.
 
-이전 배포에서 CLI 설정 중 **“AI Pro 모델 조회에 실패했습니다. Enter로 다시 조회하거나 Esc로 돌아가 로그인하세요.”**가 나왔다면 CLI에 Browser SSO 모델 조회가 잘못 연결된 문제입니다. `openwiki-SDS-0.6.0.tgz`로 업데이트하고 `openwiki --init`에서 세 값을 설정하세요. 0.5.3은 모델 목록 API를 호출하지 않으므로 이 조회 실패로 설정이 막히지 않습니다.
+이전 배포에서 CLI 설정 중 **“AI Pro 모델 조회에 실패했습니다. Enter로 다시 조회하거나 Esc로 돌아가 로그인하세요.”**가 나왔다면 CLI에 Browser SSO 모델 조회가 잘못 연결된 문제입니다. `openwiki-SDS-0.7.2.tgz`로 업데이트하고 `openwiki --init`에서 세 값을 설정하세요. 0.5.3은 모델 목록 API를 호출하지 않으므로 이 조회 실패로 설정이 막히지 않습니다.
 
 임의의 로컬 Base URL로 실제 Node HTTP 요청을 보내 주소·토큰·모델·헤더, 일반 OpenAI-compatible와 동일한 요청 본문, 도구 왕복과 SSE를 검증합니다. 실제 회사망 AI Pro CLI 호출은 아직 검증하지 않았습니다.
 

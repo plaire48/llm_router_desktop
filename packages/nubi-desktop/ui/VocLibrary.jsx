@@ -25,7 +25,7 @@ export function VocLibrary({api,openPath,onError,onNotice}){
       <input ref={input} hidden type="file" accept=".json,application/json" aria-label="VOC JSON 파일" onChange={e=>{const file=e.target.files?.[0];e.target.value='';void upload(file);}}/>
     </form>
     {readError&&<CxNotice tone="danger">{readError}</CxNotice>}
-    {result?.results.map(row=><CxButton key={row.id} className="nubi-search-result nubi-voc-result" onClick={()=>run(()=>openPath(row.path))}><strong>{row.key} {row.title}</strong><span>{row.excerpt}</span></CxButton>)}
+    {result?.results.map(row=><CxButton key={row.id} className="nubi-search-result nubi-voc-result" onClick={()=>run(()=>openPath(row.path))}><Icon name="message" size={16}/><strong>{row.key} {row.title}</strong><span>{row.excerpt}</span></CxButton>)}
     {result&&!result.results.length&&<p className="nubi-muted">일치하는 자료가 없어요.</p>}
     {(result?.unavailable>0||result?.omitted>0||result?.hasMore)&&<p className="nubi-muted">일부 자료만 표시합니다. 검색어를 좁히거나 원본을 확인해 주세요.</p>}
   </DeckDisclosure>;

@@ -1,4 +1,4 @@
-import {DriftLabel} from './DriftLabel.jsx';
+import {pickerWidth} from './picker-width.mjs';
 import React, {useEffect, useId, useLayoutEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {CxButton, Icon} from '@e2e/cx-design-system';
@@ -35,7 +35,7 @@ export function WorkspaceSkillMenu({api, taskId, onMarketplace, onManage, onSele
     const place = () => {
       const anchor = trigger.current?.getBoundingClientRect(), menu = dialog.current;
       if (!anchor || !menu) return;
-      const inset = 12, gap = 8, width = Math.min(360, innerWidth - inset * 2);
+      const inset = 12, gap = 8, width = pickerWidth(innerWidth - inset * 2);
       const maxHeight = Math.min(440, innerHeight - inset * 2), height = Math.min(menu.scrollHeight, maxHeight);
       const above = anchor.top - gap - height;
       setPosition(previous => {
@@ -58,27 +58,27 @@ export function WorkspaceSkillMenu({api, taskId, onMarketplace, onManage, onSele
   }
   const skills = catalog?.skills || [];
   return <div className="nubi-skill-menu-anchor nubi-composer-skill-anchor">
-    <CxButton ref={trigger} className="composer-icon nubi-composer-skill-trigger" aria-label="스킬 관리" title="스킬 관리" aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined} onClick={() => { if (open) close(); else {setLoading(true); setFailed(false); setOpen(true);} }}><Icon name="plus" size={18}/></CxButton>
+    <CxButton ref={trigger} className="composer-icon nubi-composer-skill-trigger" data-icon-only aria-label="스킬 관리" title="스킬 관리" aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined} onClick={() => { if (open) close(); else {setLoading(true); setFailed(false); setOpen(true);} }}><Icon name="plus" size={18}/></CxButton>
     {open && createPortal(<div ref={dialog} id={id} className="nubi-skill-menu nubi-composer-skill-menu" role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} style={{...position, visibility:position ? 'visible' : 'hidden'}} onKeyDown={handleKeys}>
       <div className="nubi-skill-menu-header"><strong id={`${id}-title`}>스킬 목록</strong><CxButton ref={closeButton} className="nubi-skill-menu-close nubi-modal-close" aria-label="스킬 메뉴 닫기" title="닫기" onClick={close}><Icon name="xClose" size={18}/></CxButton></div>
-      {!loading && skills.length > 0 && <div className="nubi-skill-menu-section" id={`${id}-registered`}>등록한 스킬<span>{skills.length}</span></div>}
+      
       <div className="nubi-skill-menu-list" role="list" aria-label="등록한 스킬" aria-busy={loading}>
         {loading && <p className="nubi-skill-menu-empty" role="status"><span className="status-spinner" aria-hidden="true"/>스킬 확인 중</p>}
-        {!loading && failed && <div className="nubi-skill-menu-unavailable"><p className="nubi-skill-menu-empty">목록을 확인하지 못했어요.</p><CxButton className="nubi-skill-menu-retry" onClick={() => setRevision(value => value + 1)}><Icon name="refresh" size={14}/>다시 확인</CxButton></div>}
-        {!loading && !failed && !skills.length && <p className="nubi-skill-menu-empty" role="status">등록한 스킬이 없어요.</p>}
+        {!loading && failed && <div className="nubi-skill-menu-unavailable"><p className="nubi-skill-menu-empty">불러오기 실패</p><CxButton className="nubi-skill-menu-retry" onClick={() => setRevision(value => value + 1)}><Icon name="refresh" size={14}/>다시 확인</CxButton></div>}
+        {!loading && !failed && !skills.length && <p className="nubi-skill-menu-empty" role="status">스킬이 없어요.</p>}
         {!loading && skills.map(skill => <div role="listitem" key={skill.path || skill.name}><CxButton className="nubi-skill-menu-row" aria-label={`${skill.title||skill.name} 스킬 사용`} title={skill.description || skill.name} onClick={() => { try {
           if (!onSelect) throw Error('selection_unavailable');
           onSelect(skill); setOpen(false);
           notifyWorkspaceToast(`${skill.title||skill.name} 스킬을 요청에 추가했습니다.`, {success:true});
         } catch { notifyWorkspaceToast('스킬을 요청에 추가하지 못했습니다. 다시 선택해 주세요.', {error:true}); } }}>
-          <span className="nubi-skill-menu-icon" aria-hidden="true"><Icon name="layers" size={18}/></span><span className="nubi-skill-menu-copy"><DriftLabel as="strong">{skill.title||skill.name}</DriftLabel>{skill.description && <small>{skill.description}</small>}</span>
+          <span className="nubi-skill-menu-icon" aria-hidden="true"><Icon name="layers" size={18}/></span><span className="nubi-skill-menu-copy"><strong>{skill.title||skill.name}</strong></span>
         </CxButton></div>)}
       </div>
-      {!loading && (catalog?.truncated || catalog?.issues?.length > 0) && <p className="nubi-skill-menu-status">일부 스킬은 커스텀 관리에서 확인해 주세요.</p>}
+      {!loading && (catalog?.truncated || catalog?.issues?.length > 0) && <p className="nubi-skill-menu-status">일부 스킬 확인 필요</p>}
       <div className="nubi-skill-menu-add" role="group" aria-label="스킬 추가 및 관리">
-        <div className="nubi-skill-menu-section">추가 및 관리</div>
-        {onMarketplace && <CxButton className="nubi-skill-menu-marketplace" onClick={() => openManagement(onMarketplace)}><span className="nubi-skill-menu-icon" aria-hidden="true"><Icon name="layers" size={18}/></span><span className="nubi-skill-menu-copy"><strong>AI Workspace</strong><small>새 스킬 확인</small></span><Icon name="chevronRight" size={14}/></CxButton>}
-        {onManage && <CxButton className="nubi-skill-menu-marketplace" onClick={() => openManagement(onManage)}><span className="nubi-skill-menu-icon" aria-hidden="true"><FolderMark size={18}/></span><span className="nubi-skill-menu-copy"><strong>커스텀 관리</strong><small>내 스킬 등록과 수정</small></span><Icon name="chevronRight" size={14}/></CxButton>}
+        
+        {onMarketplace && <CxButton className="nubi-skill-menu-marketplace" onClick={() => openManagement(onMarketplace)}><span className="nubi-skill-menu-icon" aria-hidden="true"><Icon name="layers" size={18}/></span><span className="nubi-skill-menu-copy"><strong>AI Workspace</strong></span><Icon name="chevronRight" size={14}/></CxButton>}
+        {onManage && <CxButton className="nubi-skill-menu-marketplace" onClick={() => openManagement(onManage)}><span className="nubi-skill-menu-icon" aria-hidden="true"><FolderMark size={18}/></span><span className="nubi-skill-menu-copy"><strong>내 스킬</strong></span><Icon name="chevronRight" size={14}/></CxButton>}
       </div>
     </div>, document.body)}
   </div>;

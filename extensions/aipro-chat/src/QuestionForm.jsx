@@ -4,7 +4,7 @@ import {QUESTION_TEXT_LIMIT, questionDisplayOptions} from '../user-question.js';
 import {ERROR_TEXT} from '../core.js';
 import {InteractionSurface} from './InteractionSurface.jsx';
 
-export function QuestionForm({question, disabled, onChoose, onDraft, children, headingAction, maxLength = QUESTION_TEXT_LIMIT, allowText = true, formatError = cause => ERROR_TEXT[cause?.message]}) {
+export function QuestionForm({showActionLabels = false,question, disabled, onChoose, onDraft, children, headingAction, maxLength = QUESTION_TEXT_LIMIT, allowText = true, formatError = cause => ERROR_TEXT[cause?.message]}) {
   const [value, setValue] = useState(question.draft || '');
   const [expanded, setExpanded] = useState(false), [hasMore, setHasMore] = useState(false);
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
@@ -105,7 +105,7 @@ export function QuestionForm({question, disabled, onChoose, onDraft, children, h
       <div className="interaction-input-actions">
         {hasMore && <CxButton type="button" className="question-more" title={expanded ? '답변 입력 줄이기' : '답변 입력 펼치기'} aria-expanded={expanded} aria-controls={`${id}-answer`} disabled={blocked} onClick={() => {setExpanded(current => !current); focusInput();}}><Icon name={expanded ? 'minimize' : 'maximize'} size={16}/>{expanded ? '접기' : '더 보기'}</CxButton>}
         {value.length > maxLength * .9 && <span className="interaction-count" role="status">{value.length.toLocaleString()} / {maxLength.toLocaleString()}</span>}
-        <CxButton type="submit" variant="primary" className="question-send" aria-label="답변 보내기" title="답변 보내기 (Ctrl/⌘+Enter)" disabled={blocked || !value.trim()} busy={busy}><Icon name="arrowUp" size={18}/></CxButton>
+        <CxButton type="submit" variant="primary" className="question-send" aria-label="답변 보내기" title="답변 보내기 (Ctrl/⌘+Enter)" disabled={blocked || !value.trim()} busy={busy}><Icon name="arrowUp" size={18}/>{showActionLabels&&<span>답변 보내기</span>}</CxButton>
       </div>
     </form>}
     {error && !answered && !allowText && <div id={`${id}-answer-error`}><CxNotice tone="danger">{error}</CxNotice></div>}

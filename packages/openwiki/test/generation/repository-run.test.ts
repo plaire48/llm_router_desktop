@@ -95,6 +95,7 @@ vi.mock("../../src/generation/run-state.js", async (importOriginal) => {
   };
 });
 
+import type { OpenWikiRunEvent } from "../../src/agent/types.ts";
 import { ensureCodeModeRepoSetup } from "../../src/ingestion/code-mode.ts";
 import { ClaimsPersistenceError } from "../../src/claims/core/errors.ts";
 import { ClaimsStore } from "../../src/claims/brains/code/store.ts";
@@ -109,6 +110,7 @@ import {
   finishRepositoryRun,
   inspectRepositoryPageClaims,
   nextRepositoryPage,
+  restoreRepositoryPage,
   skipRepositoryPage,
   submitRepositoryPage,
   submitRepositoryPlan,
@@ -365,6 +367,48 @@ test("restores the exact pending Markdown and Claims snapshot", async () => {
     gitHead: successfulMetadata.gitHead,
     status: "interrupted",
   });
+});
+
+test("restores a page snapshot without skipping the pending job", async () => {
+  const root = await createRepository(["testing.md"]);
+  const page = "/openwiki/testing.md";
+  const store = new ClaimsStore(root);
+  const originalClaims = {
+    schemaVersion: 1 as const,
+    pageVersion: await store.hashPage(page),
+    claims: [],
+  };
+  await store.writePage(page, originalClaims);
+
+  const run = await beginForcedUpdate(root);
+  await submitRepositoryPlan(run, {
+    pages: [
+      {
+        path: page,
+        title: "Testing",
+        purpose: "Update testing documentation.",
+      },
+    ],
+  });
+  const next = await nextRepositoryPage(run);
+  if (next.status !== "pending") throw new Error("Expected pending page.");
+  const snapshot = await captureRepositoryPageSnapshot(run, next.job.id);
+
+  await run.backend.write(page, validPage("Rewritten"));
+  await store.writePage(page, {
+    schemaVersion: 1 as const,
+    pageVersion: await store.hashPage(page),
+    claims: [],
+  });
+
+  await restoreRepositoryPage(run, snapshot);
+
+  expect(await readFile(path.join(root, "openwiki/testing.md"), "utf8")).toBe(
+    validPage("testing"),
+  );
+  expect(await store.loadPage(page)).toEqual(originalClaims);
+  expect(run.state.plan?.pages[0]?.status).toBe("pending");
+  expect(await nextRepositoryPage(run)).toMatchObject({ status: "pending" });
 });
 
 test("preserves prior page coverage when a worker is skipped", async () => {
@@ -632,7 +676,7 @@ describe("beginRepositoryRun", () => {
       claims: [{ id: "claim_stale" }],
     });
     expect(() => inspectRepositoryPageClaims(run, randomUUID())).toThrow(
-      "Only the current pending OpenWiki page job's Claims may be inspected",
+      "Only a pending OpenWiki page job may be inspected",
     );
   });
 
@@ -1429,7 +1473,7 @@ describe("repository page queue", () => {
     ).rejects.toMatchObject({ code: "invalid_state" });
   });
 
-  test("rejects out-of-order submission but repairs invalid frontmatter", async () => {
+  test("accepts any pending job by id and repairs invalid frontmatter", async () => {
     const root = await createRepository(["second.md"]);
     const run = await beginForcedUpdate(root);
     await submitRepositoryPlan(run, {
@@ -1448,9 +1492,27 @@ describe("repository page queue", () => {
     });
     const jobs = run.state.plan?.pages ?? [];
 
+    // Queue order is a resume discipline, not an ownership rule: a worker may
+    // complete the later job while the earlier one is still owned elsewhere.
+    await run.backend.write(jobs[1].path, validPage("Second"));
     await expect(
-      submitRepositoryPage(run, { jobId: jobs[1].id, claims: [] }),
-    ).rejects.toThrow("Only the current pending");
+      submitRepositoryPage(run, {
+        jobId: jobs[1].id,
+        claims: [
+          {
+            statement: "The repository has a README.",
+            evidence: [{ resource: "repo://README.md" }],
+          },
+        ],
+      }),
+    ).resolves.toMatchObject({ status: "complete", remaining: 1 });
+    expect(run.state.plan?.pages.map(({ status }) => status)).toEqual([
+      "pending",
+      "complete",
+    ]);
+    await expect(
+      submitRepositoryPage(run, { jobId: randomUUID(), claims: [] }),
+    ).rejects.toThrow("Unknown OpenWiki page job");
 
     await run.backend.write(jobs[0].path, "# Missing frontmatter\n");
     await expect(
@@ -1470,6 +1532,212 @@ describe("repository page queue", () => {
     );
     expect(validateOkfFrontmatter(repaired)).toEqual({ valid: true });
     expect(repaired).toContain("# Missing frontmatter");
+  });
+
+  test("hands out distinct pending jobs to concurrent workers", async () => {
+    const root = await createRepository(["second.md", "third.md"]);
+    const run = await beginForcedUpdate(root);
+    await submitRepositoryPlan(run, {
+      pages: [
+        { path: "/openwiki/quickstart.md", title: "Q", purpose: "Refresh." },
+        { path: "/openwiki/second.md", title: "S", purpose: "Refresh." },
+        { path: "/openwiki/third.md", title: "T", purpose: "Refresh." },
+      ],
+    });
+    const jobs = run.state.plan?.pages ?? [];
+    const claimed = new Set<string>();
+
+    const first = await nextRepositoryPage(run, { exclude: claimed });
+    if (first.status !== "pending") throw new Error("Expected first job.");
+    claimed.add(first.job.id);
+    const second = await nextRepositoryPage(run, { exclude: claimed });
+    if (second.status !== "pending") throw new Error("Expected second job.");
+    claimed.add(second.job.id);
+    const third = await nextRepositoryPage(run, { exclude: claimed });
+    if (third.status !== "pending") throw new Error("Expected third job.");
+    claimed.add(third.job.id);
+
+    expect(new Set([first.job.id, second.job.id, third.job.id]).size).toBe(3);
+    expect(claimed).toEqual(new Set(jobs.map(({ id }) => id)));
+    await expect(
+      nextRepositoryPage(run, { exclude: claimed }),
+    ).resolves.toEqual({ status: "complete" });
+    // Without an exclusion list the queue still reports its first pending job.
+    await expect(nextRepositoryPage(run)).resolves.toMatchObject({
+      status: "pending",
+      job: { id: jobs[0].id },
+    });
+  });
+
+  test("serializes concurrent page submissions into one durable checkpoint", async () => {
+    const root = await createRepository(["second.md", "third.md"]);
+    const run = await beginForcedUpdate(root);
+    await submitRepositoryPlan(run, {
+      pages: [
+        { path: "/openwiki/quickstart.md", title: "Q", purpose: "Refresh." },
+        { path: "/openwiki/second.md", title: "S", purpose: "Refresh." },
+        { path: "/openwiki/third.md", title: "T", purpose: "Refresh." },
+      ],
+    });
+    const jobs = run.state.plan?.pages ?? [];
+    for (const job of jobs) {
+      await run.backend.write(job.path, validPage(job.title));
+    }
+
+    const results = await Promise.all(
+      jobs.map((job, index) =>
+        submitRepositoryPage(run, {
+          jobId: job.id,
+          claims: [
+            {
+              statement: `Statement ${index} about the README.`,
+              evidence: [{ resource: "repo://README.md" }],
+            },
+          ],
+        }),
+      ),
+    );
+
+    expect(results.map(({ status }) => status)).toEqual([
+      "complete",
+      "complete",
+      "complete",
+    ]);
+    expect(results.map(({ remaining }) => remaining).sort()).toEqual([0, 1, 2]);
+    expect(run.state.plan?.pages.map(({ status }) => status)).toEqual([
+      "complete",
+      "complete",
+      "complete",
+    ]);
+    expect(
+      (await readRepositoryRunState(root))?.plan?.pages.map(
+        ({ status }) => status,
+      ),
+    ).toEqual(["complete", "complete", "complete"]);
+    const manifest = await readRepositoryPageManifest(root);
+    for (const job of jobs) {
+      expect(manifest.pages[job.path]).toMatchObject({
+        completedRunId: run.state.runId,
+        completedBy: ACTOR.producerActor,
+      });
+      const persisted = await new ClaimsStore(root).loadPage(job.path);
+      expect(persisted?.claims.map(({ statement }) => statement)).toEqual([
+        `Statement ${jobs.indexOf(job)} about the README.`,
+      ]);
+    }
+    await expect(finishRepositoryRun(run)).resolves.toEqual({
+      status: "complete",
+    });
+  });
+
+  test("leaves another pending job's page and sidecar untouched on submit", async () => {
+    const root = await createRepository(["second.md"]);
+    const run = await beginForcedUpdate(root);
+    await submitRepositoryPlan(run, {
+      pages: [
+        { path: "/openwiki/quickstart.md", title: "Q", purpose: "Refresh." },
+        { path: "/openwiki/second.md", title: "S", purpose: "Refresh." },
+      ],
+    });
+    const jobs = run.state.plan?.pages ?? [];
+    const headJob = jobs.find(({ path }) => path === "/openwiki/second.md");
+    const tailJob = jobs.find(({ path }) => path === "/openwiki/quickstart.md");
+    if (!headJob || !tailJob) throw new Error("Expected both plan jobs.");
+
+    // A concurrent worker owns quickstart and has written partial content.
+    const partial = "---\ntype: Guide\ntitle: Partial\n---\n\n# Half written\n";
+    await run.backend.write(tailJob.path, partial);
+    const sidecarPath = path.join(
+      root,
+      "openwiki",
+      ".claims",
+      "quickstart.json",
+    );
+    const sidecarBefore = await readFile(sidecarPath, "utf8");
+
+    await run.backend.write(headJob.path, validPage("Second"));
+    await submitRepositoryPage(run, {
+      jobId: headJob.id,
+      claims: [
+        {
+          statement: "The repository has a README.",
+          evidence: [{ resource: "repo://README.md" }],
+        },
+      ],
+    });
+
+    // Neither the in-flight Markdown nor its sidecar was restamped by the
+    // sibling's finalization; only the submitting page became durable.
+    await expect(
+      readFile(path.join(root, "openwiki", "quickstart.md"), "utf8"),
+    ).resolves.toBe(partial);
+    await expect(readFile(sidecarPath, "utf8")).resolves.toBe(sidecarBefore);
+    expect(run.state.plan?.pages.map(({ status }) => status)).toEqual([
+      "complete",
+      "pending",
+    ]);
+  });
+
+  test("skips one owned job while another worker completes its own", async () => {
+    const root = await createRepository(["second.md"]);
+    const run = await beginForcedUpdate(root);
+    await submitRepositoryPlan(run, {
+      pages: [
+        { path: "/openwiki/quickstart.md", title: "Q", purpose: "Refresh." },
+        { path: "/openwiki/second.md", title: "S", purpose: "Refresh." },
+      ],
+    });
+    // The plan sorts quickstart last, so it is the non-head job here.
+    const jobs = run.state.plan?.pages ?? [];
+    const headJob = jobs.find(({ path }) => path === "/openwiki/second.md");
+    const tailJob = jobs.find(({ path }) => path === "/openwiki/quickstart.md");
+    if (!headJob || !tailJob) throw new Error("Expected both plan jobs.");
+    expect(jobs.map(({ id }) => id)).toEqual([headJob.id, tailJob.id]);
+    const original = await readFile(
+      path.join(root, "openwiki", "quickstart.md"),
+      "utf8",
+    );
+
+    // Both workers snapshot before starting; the tail job is not the queue
+    // head, which the positional model used to reject.
+    const headSnapshot = await captureRepositoryPageSnapshot(run, headJob.id);
+    const tailSnapshot = await captureRepositoryPageSnapshot(run, tailJob.id);
+    expect(headSnapshot.jobId).toBe(headJob.id);
+    expect(tailSnapshot.jobId).toBe(tailJob.id);
+
+    await run.backend.write(tailJob.path, "# Partial worker output\n");
+    await run.backend.write(headJob.path, validPage("Second"));
+    await Promise.all([
+      skipRepositoryPage(run, tailSnapshot),
+      submitRepositoryPage(run, {
+        jobId: headJob.id,
+        claims: [
+          {
+            statement: "The repository has a README.",
+            evidence: [{ resource: "repo://README.md" }],
+          },
+        ],
+      }),
+    ]);
+
+    expect(run.state.plan?.pages.map(({ status }) => status)).toEqual([
+      "complete",
+      "skipped",
+    ]);
+    expect(
+      (await readRepositoryRunState(root))?.plan?.pages.map(
+        ({ status }) => status,
+      ),
+    ).toEqual(["complete", "skipped"]);
+    await expect(
+      readFile(path.join(root, "openwiki", "quickstart.md"), "utf8"),
+    ).resolves.toBe(original);
+    await expect(skipRepositoryPage(run, tailSnapshot)).rejects.toThrow(
+      "no longer owns a pending job",
+    );
+    await expect(
+      finishRepositoryRun(run, { skippedPageSnapshots: [tailSnapshot] }),
+    ).resolves.toEqual({ status: "complete" });
   });
 });
 
@@ -1524,6 +1792,42 @@ describe("finishRepositoryRun", () => {
     expect(
       manifestAfterSecond.pages["/openwiki/second.md"]?.sourceFingerprint,
     ).not.toBe(quickstartAfterFirst.sourceFingerprint);
+  });
+
+  test("surfaces frontmatter signals as a run-completion text event", async () => {
+    const root = await createRepository();
+    // No OKF front matter at all: the deterministic finalize pass migrates
+    // this page and stamps it `openwiki_generated: true`, in addition to the
+    // baseline `quickstart.md` page (from `createRepository`/`validPage`)
+    // that already has no `description`. Both should be reported.
+    await writeWikiPage(root, "legacy.md", "# Legacy\n\nBody.\n");
+    await git(root, ["add", "."]);
+    await git(root, ["commit", "--quiet", "-m", "add legacy page"]);
+
+    const run = await beginForcedUpdate(root);
+    await submitRepositoryPlan(run, {
+      pages: [
+        {
+          path: "/openwiki/quickstart.md",
+          title: "Quickstart",
+          purpose: "Refresh the entry point.",
+        },
+      ],
+    });
+    await completeCurrentPage(run, "Quickstart");
+
+    const events: OpenWikiRunEvent[] = [];
+    await finishRepositoryRun(run, { onEvent: (event) => events.push(event) });
+
+    const reportText = events
+      .filter((event) => event.type === "text")
+      .map((event) => event.text)
+      .find((text) => text.includes("openwiki_generated"));
+
+    expect(reportText).toBeDefined();
+    expect(reportText).toContain("legacy.md");
+    expect(reportText).toContain("no description yet");
+    expect(reportText).toContain("quickstart.md");
   });
 
   test("refreshes an untouched page version changed by finalization", async () => {

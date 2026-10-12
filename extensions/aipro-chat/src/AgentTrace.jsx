@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {ActionButton, Icon} from '@e2e/cx-design-system';
 import {displayTrace, isAnalysisStep, SCRIPT_FAILURES, TOOL_LABELS} from '../agent-trace.js';
 import {SubagentProgress} from './SubagentProgress.jsx';
@@ -83,9 +83,11 @@ function TraceJournal({owner, read, live, diagnostics = false}) {
   </details>;
 }
 
-export function AgentTrace({debugMode = false, steps, captures = [], question, completed, verified = false, live = false, journalOwner, readJournal, diagnosticOwner, readDiagnostics, traceOptions, preserveNotes = false, recentCompleted = 0, awaitingUser = false, stopped = false, defaultExpanded, idleLabel = '다음 단계 확인 중'}) {
+export function AgentTrace({summaryTitle, summaryAside, compactStatuses = false, debugMode = false, steps, captures = [], question, completed, verified = false, live = false, journalOwner, readJournal, diagnosticOwner, readDiagnostics, traceOptions, preserveNotes = false, preserveCompleted = false, recentCompleted = 0, awaitingUser = false, stopped = false, defaultExpanded, idleLabel = '다음 단계 확인 중'}) {
   const [expanded, setExpanded] = useState(null), [showAll, setShowAll] = useState(false);
   const [opened, setOpened] = useState(() => new Set());
+  const stepList=useRef(null),followSteps=useRef(true);
+  useLayoutEffect(()=>{if(preserveCompleted&&live&&followSteps.current&&stepList.current)stepList.current.scrollTop=stepList.current.scrollHeight;},[steps,preserveCompleted,live]);
   steps = displayTrace(steps, completed, traceOptions).filter(step => step.tool !== 'update_plan');
   const toolLabels = traceOptions?.toolLabels || TOOL_LABELS;
   const analyses = debugMode ? steps.filter(isAnalysisStep) : [];
@@ -104,27 +106,27 @@ export function AgentTrace({debugMode = false, steps, captures = [], question, c
   const visible = debugMode
     ? live && !showAll ? ordinary.filter((step, index) => step.status === 'running' || opened.has(step.id) || index >= ordinary.length - 4) : ordinary
     : ordinary.filter(step => ['running', 'queued', 'waiting', 'error', 'cancelled', 'deferred'].includes(step.status) ||
-      ['partial', 'blocked'].includes(step.analysis?.outcome) || step === latestNote || preserveNotes && step.tool === 'progress_note' || recent.has(step) || screenshots.some(capture => capture.traceId === step.id));
+      ['partial', 'blocked'].includes(step.analysis?.outcome) || step === latestNote || preserveNotes && step.tool === 'progress_note' || preserveCompleted && ['done','recovered'].includes(step.status) || recent.has(step) || screenshots.some(capture => capture.traceId === step.id));
   if (!visible.length && !analyses.length && !screenshots.length && !live && !(debugMode && (journalOwner || diagnosticOwner))) return null;
   const toggleCapture = (id, open) => {
     setOpened(previous => {const next = new Set(previous); if (open) next.add(id); else next.delete(id); return next;});
     // Keep the reader's place if a new tool starts or the answer completes.
     if (open) setExpanded(true);
   };
-  return <TraceSurface open={expanded ?? defaultExpanded ?? (live || preserveNotes)} onOpenChange={setExpanded} live={live} running={running} waiting={waiting} stopped={stopped} attention={attention && !verified} title={!debugMode ? '진행 상황' : analyses.length && verified ? '메인 에이전트 완료' : undefined}>
-    <ol>{!!analyses.length && <li className="subagent-section"><SubagentProgress steps={analyses} live={live}/></li>}{visible.map((step, index) => {
+  return <TraceSurface open={expanded ?? defaultExpanded ?? (live || preserveNotes)} onOpenChange={setExpanded} live={live} running={running} waiting={waiting} stopped={stopped} attention={attention && !verified} summaryAside={summaryAside} title={summaryTitle || (!debugMode ? '진행 상황' : analyses.length && verified ? '메인 에이전트 완료' : undefined)}>
+    <ol ref={stepList} onScroll={event=>{const list=event.currentTarget;followSteps.current=list.scrollHeight-list.clientHeight-list.scrollTop<24;}}>{!!analyses.length && <li className="subagent-section"><SubagentProgress steps={analyses} live={live}/></li>}{visible.map((step, index) => {
       const key = step.id || `legacy-${steps.indexOf(step)}`;
       if (step.tool === 'progress_note') return <li key={key} className="agent-progress-note"><Icon name="message" size={14}/><MessageBody content={step.content} compact/></li>;
       const reason = SCRIPT_FAILURES[step.reason]?.[0];
-      const label = step.status === 'error' ? reason || statusText.error : step.status === 'waiting' && step.tool === 'ask_user' ? '답변 대기' : statusText[step.status];
+      const label = step.status === 'error' ? traceOptions?.errorLabels?.[step.reason] || reason || traceOptions?.toolErrorLabels?.[step.tool] || statusText.error : step.status === 'waiting' && step.tool === 'ask_user' ? '답변 대기' : statusText[step.status];
       const images = step.id ? screenshots.filter(capture => capture.traceId === step.id) : [];
-      const content = <TraceStep status={step.status} label={step.status === 'recovered' && reason ? `${reason} 이후 결과 검증 완료` : label}>{step.planStep && step.planStep !== visible[index - 1]?.planStep && <span className="agent-trace-plan"><InlineMarkdown content={step.planStep}/></span>}{step.label ? <InlineMarkdown content={step.label}/> : toolLabels[step.tool]}<span className="agent-tool-state"> {step.status === 'running' ? '중' : label}</span></TraceStep>;
+      const content = <TraceStep status={step.status} label={step.status === 'recovered' && reason ? `${reason} 이후 결과 검증 완료` : label}>{step.planStep && step.planStep !== visible[index - 1]?.planStep && <span className="agent-trace-plan"><InlineMarkdown content={step.planStep}/></span>}{step.label ? <InlineMarkdown content={step.label}/> : toolLabels[step.tool]}<span className={compactStatuses&&['running','done'].includes(step.status)?'visually-hidden':'agent-tool-state'}> {step.status === 'running' ? '중' : label}</span></TraceStep>;
       return <li key={key} data-tool={step.tool} data-status={step.status} data-step-id={step.id}>
         {images.length ? <CaptureStep captures={images} onToggle={open => toggleCapture(step.id, open)}>{content}</CaptureStep> : content}
       </li>;
     })}
       {!!unlinked.length && <li className="agent-unlinked-captures"><CaptureStep captures={unlinked} onToggle={open => {if (open) setExpanded(true);}}><span className="agent-tool-label">브라우저 캡처</span></CaptureStep></li>}
-      {live && !running && !waiting && <li className="agent-next-step"><span className="status-spinner" aria-hidden="true"/>{idleLabel}</li>}
+      {live && !running && !waiting && !(compactStatuses && summaryTitle === idleLabel) && <li className="agent-next-step"><span className="status-spinner" aria-hidden="true"/>{idleLabel}</li>}
       {debugMode && live && steps.length > 4 && <li className="agent-trace-more"><ActionButton action={showAll ? 'collapse' : 'more'} iconOnly label={showAll ? '최근 단계 접기' : '최근 단계 펼치기'} onClick={() => setShowAll(!showAll)}/></li>}
       {debugMode && journalOwner && readJournal && <li><TraceJournal key={journalOwner.requestId} owner={journalOwner} read={readJournal} live={live}/></li>}
       {debugMode && diagnosticOwner && readDiagnostics && <li><TraceJournal key={JSON.stringify(diagnosticOwner)} owner={diagnosticOwner} read={readDiagnostics} live={live} diagnostics/></li>}

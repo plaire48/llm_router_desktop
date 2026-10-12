@@ -22,3 +22,5 @@ These are command transport and display changes. Windows system locale, executio
 - [PowerShell console host source](https://github.com/PowerShell/PowerShell/blob/master/src/Microsoft.PowerShell.ConsoleHost/host/msh/ConsoleHost.cs): ErrorFormat selects XML for an encoded noninteractive command with redirected errors when output format was not specified. Explicit Text uses the existing public CLI contract. The framework source is reviewed, not copied or bundled.
 
 Verification: source review and Electron build only, per the user's no-tests decision. No commands, administrator/UAC operations, Windows PowerShell 5.1, PowerShell 7 or Windows installation checks were executed on this macOS host. Build success is not proof of every Windows/legacy executable's Korean output.
+
+Follow-up 2026-10-12: marked CLIXML display normalization and directory-access diagnostics are now documented in `POWERSHELL-CLIXML-2026-10-12.md`; the explicit Text/UTF-8 launcher contract above remains.

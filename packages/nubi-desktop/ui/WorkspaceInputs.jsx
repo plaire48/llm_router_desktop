@@ -15,7 +15,7 @@ export function WorkspaceInputs({task,busy,onAction,onEdit,onSource,kind='queue'
   </span>;
   if(!items.length)return null;
   return <>
-    {kind==='steer'&&items.filter(item=>item.mode==='steer').map(item=><article key={item.id} className="message message-user nubi-message user agent-input-pending" aria-label="반영 대기 메시지"><MessageBody role="user" content={item.text}/><MailEvidenceChips references={item.mailReferences} onOpen={onSource}/><span className="agent-input-mode">{running&&!blocked?'반영 대기':'보류'}</span>{actions(item)}</article>)}
-    {kind==='queue'&&items.some(item=>item.mode==='queue')&&<QueuedInputs items={items} busy={busy} hideSteering onReorder={args=>onAction('reorder',args)}>{(item,index)=><><span className="agent-input-order">{index+1}</span><span className="nubi-queued-content"><span className="agent-input-text" title={item.text}>{item.text}</span><MailEvidenceChips references={item.mailReferences} onOpen={onSource}/></span>{actions(item)}</>}</QueuedInputs>}
+    {kind==='steer'&&items.filter(item=>item.mode==='steer').map(item=><article key={item.id} className="message message-user nubi-message user agent-input-pending" aria-label="반영 대기 메시지"><div className="nubi-user-bubble"><MessageBody role="user" content={item.text}/><MailEvidenceChips references={item.mailReferences} onOpen={onSource}/></div><div className="nubi-pending-footer"><span className="agent-input-mode">{running&&!blocked?'반영 대기':'보류'}</span>{actions(item)}</div></article>)}
+    {kind==='queue'&&items.some(item=>item.mode==='queue')&&<QueuedInputs items={items} busy={busy} hideSteering onReorder={args=>onAction('reorder',args)}>{item=><><span className="nubi-queued-content"><span className="agent-input-text" title={item.text}>{item.text}</span><MailEvidenceChips references={item.mailReferences} onOpen={onSource}/></span>{actions(item)}</>}</QueuedInputs>}
   </>;
 }

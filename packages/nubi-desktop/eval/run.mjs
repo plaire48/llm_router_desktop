@@ -7,6 +7,7 @@ import {mkdir,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {fileURLToPath,pathToFileURL} from 'node:url';
+import {reliabilitySummary} from './reliability.mjs';
 
 const {runCase,EVALUATION_LIMITS}=await import('./driver.mjs');
 const {gradeCase}=await import('./grade.mjs');
@@ -66,6 +67,8 @@ export async function evaluate({providers,cases,trials=1,outputDir,limits=EVALUA
   const status=providers.status(),corpora={};
   for(const name of new Set(cases.map(item=>item.corpus)))corpora[name]=(await corpusManifest(name,corpusDirectory)).hash;
   const report={kind:REPORT_KIND,schema:1,runId:randomUUID(),provider:status.provider,model:status.model,candidate:candidate||await candidateIdentity(),corpora,limits:{...EVALUATION_LIMITS,...limits},trials,tools:leanTools?'lean':'auto',startedAt:new Date().toISOString(),results:[],limitations:LIMITATIONS};
+  if(status.reasoningEffort)report.reasoningEffort=status.reasoningEffort;
+  report.modelConfiguration={...status.models?.find(item=>item.id===status.model),requestedEffort:status.reasoningEffort||null,appliedEffort:null};
   // A missing or lost model session is "not run": it must not look like a model failure.
   let stopped=status.connected===true?null:'model_session_not_connected';
   for(const testCase of cases)for(let trial=1;trial<=trials;trial++){
@@ -84,7 +87,7 @@ export async function evaluate({providers,cases,trials=1,outputDir,limits=EVALUA
     report.results.push(result);onResult(result);
     if(run.error==='worker_disconnected')stopped='model_session_lost';
   }
-  report.summary=summarize(report.results);report.finishedAt=new Date().toISOString();
+  report.summary={...summarize(report.results),reliability:reliabilitySummary(report.results,trials)};report.finishedAt=new Date().toISOString();
   await writeFile(path.join(outputDir,'report.json'),JSON.stringify(report,null,2)+'\n');
   return report;
 }

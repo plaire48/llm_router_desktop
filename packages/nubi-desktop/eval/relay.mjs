@@ -21,8 +21,8 @@ export const defaultSocketPath=()=>posix?join(tmpdir(),`nubi-desktop-eval-${user
 
 const positive=value=>Number.isSafeInteger(value)&&value>0?value:undefined;
 // Desktop budgets context from these limits, so they travel with the status.
-const publicModel=model=>({id:model.id,label:model.label,contextLength:positive(model.contextLength),maxInputTokens:positive(model.maxInputTokens),maxOutputTokens:positive(model.maxOutputTokens),...(typeof model.supportsImages==='boolean'?{supportsImages:model.supportsImages}:{})});
-export const publicStatus=status=>({provider:status.provider,model:status.model,connected:status.connected===true,models:(status.models||[]).map(publicModel)});
+const publicModel=model=>({id:model.id,label:model.label,contextLength:positive(model.contextLength),maxInputTokens:positive(model.maxInputTokens),maxOutputTokens:positive(model.maxOutputTokens),...(typeof model.supportsImages==='boolean'?{supportsImages:model.supportsImages}:{}),...(typeof model.resolvedModel==='string'?{resolvedModel:model.resolvedModel}:{})});
+export const publicStatus=status=>({provider:status.provider,model:status.model,connected:status.connected===true,models:(status.models||[]).map(publicModel),...(['low','medium','high','xhigh','max'].includes(status.reasoningEffort)?{reasoningEffort:status.reasoningEffort}:{})});
 const publicResult=result=>({content:result.content??'',calls:(result.calls||[]).map(call=>({id:call.id,type:call.type,function:{name:call.function?.name,arguments:call.function?.arguments}})),finishReason:result.finishReason,...(result.usage?{usage:result.usage}:{})});
 const publicError=error=>({code:safeError(error),...(Number.isInteger(error?.status)?{status:error.status}:{}),...(Number.isFinite(error?.retryAfterMs)?{retryAfterMs:error.retryAfterMs}:{})});
 

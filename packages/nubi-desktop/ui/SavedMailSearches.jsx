@@ -1,5 +1,6 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {CxButton,CxInput,ActionButton,DetailPanel,Icon} from '@e2e/cx-design-system';
+import {CxButton, CxInput, DetailPanel, Icon} from '@e2e/cx-design-system';
+import {WorkspaceAction as ActionButton} from './WorkspaceAction.jsx';
 import {notifyWorkspaceToast} from './WorkspaceToast.jsx';
 export function SavedMailSearches({api,query,filters,sort,onApply,onClose}){
  const [name,setName]=useState(''),[items,setItems]=useState([]),[loading,setLoading]=useState(true),[failed,setFailed]=useState(false),[busy,setBusy]=useState(false);

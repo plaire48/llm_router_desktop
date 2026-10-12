@@ -156,7 +156,7 @@ try {
   await fabrix.getByRole('button', {name: '닫기', exact: true}).click();
   await picker().waitFor(); assert.equal(await tab('FabriX').getAttribute('aria-selected'), 'true');
   await picker().getByRole('button', {name: '연결', exact: true}).click();
-  for (const [name, value] of [['Endpoint', connection.endpoint], ['Client Key', connection.clientKey], ['API Token', connection.token]]) await fabrix.getByLabel(name).fill(value);
+  for (const [name, value] of [['Endpoint', connection.endpoint], ['x-fabrix-client', connection.clientKey], ['x-openapi-token', connection.token]]) await fabrix.getByLabel(name).fill(value);
   await fabrix.getByRole('button', {name: '연결 테스트', exact: true}).click();
   await fabrix.getByText('테스트 통과', {exact: true}).waitFor();
   await fabrix.getByRole('button', {name: '연결', exact: true}).click();

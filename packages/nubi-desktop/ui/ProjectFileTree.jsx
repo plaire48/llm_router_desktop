@@ -46,7 +46,7 @@ export function ProjectFileTree({items, selected, onSelect, disabled=false, rend
     <div className="nubi-file-tree-filter"><Icon name="search" size={14}/><CxInput aria-label="파일 필터링" placeholder="파일 필터링…" value={query} onChange={event => {setQuery(event.target.value); setLimit(500); setCollapsed(new Set());}}/></div>
     <nav className="nubi-file-tree-scroll" aria-label={`${label} 폴더 구조`}>{children(root)}
       {!matches.length && <p className="nubi-file-tree-empty">{query ? '일치하는 파일이 없어요.' : '표시할 파일이 없어요.'}</p>}
-      {matches.length > limit && <CxButton className="nubi-file-tree-more" onClick={() => setLimit(value => value + 500)}>파일 {Math.min(500,matches.length-limit)}개 더보기</CxButton>}
+      {matches.length > limit && <CxButton className="nubi-file-tree-more" onClick={() => setLimit(value => value + 500)}><Icon name="chevronDown" size={16}/>파일 {Math.min(500,matches.length-limit)}개 더보기</CxButton>}
     </nav>
   </section>;
 }

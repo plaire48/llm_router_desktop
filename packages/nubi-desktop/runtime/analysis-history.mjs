@@ -64,3 +64,9 @@ export function saveReviewProgress(store,taskId,record){
   const {id,runId,round,state,checks,nextStep,advisoryCount,omittedHandoffs,omittedUnresolvedHandoffs}=record;
   store.set(key,{kind:'review',id,taskId,runId,round,state,checks,nextStep,advisoryCount,omittedHandoffs,omittedUnresolvedHandoffs,createdAt:previous?.createdAt||now,updatedAt:now});
 }
+
+// Coordinator-owned lifecycle facts prove execution/collection only, never a child's claims.
+export function roleExecutionReceipts(store,taskId,runId){
+ const workers=store.get(prefix(taskId)+'roles:'+runId)?.workers||[];
+ return {runId,scope:'Only assignment lifecycle and delivered reports; not verified report content or business completion.',items:workers.slice(0,12).map(worker=>({id:worker.id,role:worker.tool,state:worker.status,delivered:worker.analysis?.delivered===true,reads:Number.isSafeInteger(worker.analysis?.reads)?worker.analysis.reads:0,calls:Number.isSafeInteger(worker.analysis?.calls)?worker.analysis.calls:0})),omitted:Math.max(0,workers.length-12)};
+}

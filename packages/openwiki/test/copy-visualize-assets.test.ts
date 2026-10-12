@@ -72,8 +72,9 @@ test("fails when the copied asset lands empty", async () => {
 });
 
 test("declares the visualizer stylesheet, copied from src into dist", () => {
-  expect(ASSETS).toHaveLength(1);
-  const [stylesheet] = ASSETS;
+  expect(ASSETS).toHaveLength(2);
+  const stylesheet = ASSETS.find(asset=>asset.source.endsWith("styles.css"))!;
+  expect(ASSETS.some(asset=>asset.source.endsWith("aipro-callback-fonts.css")&&asset.destination.endsWith("aipro-callback-fonts.css"))).toBe(true);
   expect(stylesheet.source).toMatch(/src[\\/]visualize[\\/]styles\.css$/);
   expect(stylesheet.destination).toMatch(/dist[\\/]visualize[\\/]styles\.css$/);
 });

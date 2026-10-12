@@ -1,5 +1,6 @@
 import React,{useState} from 'react';
-import {ActionButton,CxButton,CxNotice} from '@e2e/cx-design-system';
+import {CxButton, CxNotice} from '@e2e/cx-design-system';
+import {WorkspaceAction as ActionButton} from './WorkspaceAction.jsx';
 import {QuestionForm} from '../../../extensions/aipro-chat/src/QuestionForm.jsx';
 
 const connectionErrors={computer_unavailable:'Windows 실행기 연결이 필요해요.',computer_command_failed:'열린 창을 찾지 못했어요. 앱이 열려 있는지 확인하고 다시 찾아 주세요.',computer_target_changed:'창이 바뀌었어요. 열린 앱을 다시 찾아 선택해 주세요.',computer_connection_changed:'연결 요청이 바뀌었어요. 현재 요청을 다시 확인해 주세요.',computer_app_changed:'실행 파일이 바뀌었어요. 앱 파일을 다시 선택해 주세요.',computer_busy:'앱 작업이 진행 중이에요. 끝난 뒤 다시 선택해 주세요.'};

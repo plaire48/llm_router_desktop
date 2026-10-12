@@ -28,7 +28,7 @@ main IPC는 같은 창의 최상위 `app://bundle/index.html` frame만 허용한
 
 Wiki가 없으면 로그인 대기 상태를 기록하고 현재 선택한 제공자/모델 연결 후 실행한다. OpenWiki-SDS 실제 init runner를 임시 프로젝트 snapshot에서 실행한다. `파일 읽기`, `구성 분석`, `문서 작성`, `저장 확인` 상태를 별도로 표시한다. 처리 수를 모르는 구성 분석에는 %를 만들지 않는다. 문서 시작 이벤트는 완료 문서 수에 포함하지 않는다.
 
-원본 소스 hash를 재검사하고 새 Markdown 페이지만 exclusive 쓰기/readback 후 게시한다. 기존 Wiki와 사용자 편집은 덮어쓰지 않으며 generator가 임시 폴더에 만든 AGENTS/workflow는 프로젝트에 반영하지 않는다. 임시 저장소 Claims는 프로젝트 근거로 옮기지 않는다. 기존 Wiki가 있으면 init을 건너뛰고 기존 승인형 갱신 흐름을 사용한다. 실행 중 취소/모델 변경/소스 변경/중단은 attention 또는 cancelled로 남기고 자동 재실행하지 않는다. 현재 자동 init은 읽을 수 있는 UTF-8 소스 범위이며 바이너리/OCR 전체 분석은 아니다.
+원본 소스 hash를 재검사하고 새 Markdown 페이지만 exclusive 쓰기/readback 후 게시한다. 기존 Wiki와 사용자 편집은 덮어쓰지 않으며 generator가 임시 폴더에 만든 AGENTS/workflow는 프로젝트에 반영하지 않는다. 임시 저장소 Claims는 프로젝트 근거로 옮기지 않는다. (2026-10-12 변경: 이제 Claims, `.last-update.json`, `.page-manifest.json`과 원본 체크포인트를 페이지와 함께 발행한다. `docs/WIKI-BRIDGE-RECOVERY-2026-10-12.md`, `docs/OPENWIKI-GAPS-2026-10-12.md`.) 기존 Wiki가 있으면 init을 건너뛰고 기존 승인형 갱신 흐름을 사용한다. 실행 중 취소/모델 변경/소스 변경/중단은 attention 또는 cancelled로 남기고 자동 재실행하지 않는다. 현재 자동 init은 읽을 수 있는 UTF-8 소스 범위이며 바이너리/OCR 전체 분석은 아니다.
 
 ## 메일 첨부
 

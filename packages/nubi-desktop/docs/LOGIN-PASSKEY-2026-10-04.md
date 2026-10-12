@@ -19,3 +19,9 @@ Google은 개발자가 제어하는 내장 user-agent의 OAuth를 제한한다. 
 - [Electron app API](https://github.com/electron/electron/blob/main/docs/api/app.md): platform authenticators and passkey entitlements. Installed 42.11.10 type declarations were separately checked.
 
 Electron build completed. No automated tests or real-account authentication were executed. Source fixes do not prove Google passkey support. Restarting the running app is pending user approval because its mail account is currently connected in memory.
+
+## Samsung Browser compatibility clarification (2026-10-12)
+
+The user identified https://browser.samsung.com as the intended Samsung Browser product. It is a compatibility target, not permission to switch the existing internal-only login policy. Chromium engine compatibility does not imply shared login cookies: BrowserHost uses a separate session partition. An external-browser authorization handoff could use the OS default browser and the existing validated callback instead of hard-coding Chrome, but this alternative is not enabled. No browser profile, cookies or passkeys are imported.
+
+Samsung documents a browser-profile passkey policy at https://developer.samsung.com/browser/policy/password-manager-passkeys-enabled.html. This is not evidence that the current Nubi embedded session can access Samsung Browser passkeys, or that a particular account callback works. Windows Samsung Browser login reuse, passkey completion, callback delivery, cancellation and expiry remain real-environment verification requirements. The current macOS Electron checks do not establish Samsung Browser compatibility.

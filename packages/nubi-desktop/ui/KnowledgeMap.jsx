@@ -1,6 +1,8 @@
 import {DriftLabel} from './DriftLabel.jsx';
 import React,{useEffect,useRef,useState} from 'react';
-import {ActionButton,CxButton,CxInput,CxSelect,CxNotice, Icon} from '@e2e/cx-design-system';
+import {CxButton, CxInput, CxNotice, Icon} from '@e2e/cx-design-system';
+import {CxSelect} from './WorkspaceSelect.jsx';
+import {WorkspaceAction as ActionButton} from './WorkspaceAction.jsx';
 import {DeckDisclosure,DeckStatus} from '../../../extensions/aipro-chat/src/DeckSurfaces.jsx';
 
 const kinds={concept:'업무 개념',source:'소스',wiki:'위키',requirement:'요구사항',document:'문서',database:'DB',table:'테이블',column:'컬럼'};

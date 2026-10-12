@@ -10,8 +10,10 @@ import {
 import { fetchAiproModels, loginWithAipro } from "../../auth/aipro.js";
 import { PROVIDER_CONFIGS } from "../../config/constants.js";
 import { runOAuthAuth } from "../../auth/oauth.js";
+import { createEntraTokenProvider } from "../../agent/entra-auth.js";
 import {
   DEFAULT_PROVIDER,
+  DEFAULT_OPENAI_COMPATIBLE_ENTRA_SCOPE,
   DEFAULT_VERTEX_LOCATION,
   getDefaultModelId,
   getProviderApiKeyEnvKey,
@@ -23,11 +25,14 @@ import {
   getProviderRegionEnvKeys,
   getProviderSecretKeyEnvKey,
   OPENWIKI_MODEL_ID_ENV_KEY,
+  OPENAI_COMPATIBLE_ENTRA_SCOPE_ENV_KEY,
   OPENWIKI_PROVIDER_ENV_KEY,
   OPENWIKI_REASONING_EFFORT_ENV_KEY,
   type OpenWikiProvider,
   providerUsesExternalCliAuth,
   resolveConfiguredProvider,
+  resolveOpenAICompatibleAuthMode,
+  type OpenAICompatibleAuthMode,
   resolveProviderRegion,
   SELECTABLE_OPENWIKI_PROVIDERS,
 } from "../../config/constants.js";
@@ -123,6 +128,7 @@ import {
   FINAL_OPTIONS,
   LANGSMITH_REGION_OPTIONS,
   ONBOARDING_TEMPLATES,
+  OPENAI_COMPATIBLE_AUTH_OPTIONS,
   POWER_MODE_OPTIONS,
   RUN_MODE_OPTIONS,
   SOURCE_CONTINUE_OPTIONS,
@@ -180,8 +186,14 @@ export function useInitSetup({
   }
   const [selectedMode, setSelectedMode] = useState<OpenWikiRunMode>(mode);
   const [provider, setProvider] = useState<OpenWikiProvider>(initialProvider);
+  const [authMode, setAuthMode] = useState<OpenAICompatibleAuthMode>(() =>
+    initialProvider === "openai-compatible"
+      ? resolveOpenAICompatibleAuthMode()
+      : "api-key",
+  );
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [baseUrl, setBaseUrl] = useState<string | null>(null);
+  const [entraScope, setEntraScope] = useState<string | null>(null);
   const [secretKey, setSecretKey] = useState<string | null>(null);
   const [region, setRegion] = useState<string | null>(null);
   const [gcpProject, setGcpProject] = useState<string | null>(null);
@@ -225,6 +237,12 @@ export function useInitSetup({
   const [secretInputIndex, setSecretInputIndex] = useState(0);
   const [providerSelectionIndex, setProviderSelectionIndex] = useState(() =>
     getProviderSelectionIndex(initialProvider),
+  );
+  const [authModeSelectionIndex, setAuthModeSelectionIndex] = useState(() =>
+    initialProvider === "openai-compatible" &&
+    resolveOpenAICompatibleAuthMode() === "entra-id"
+      ? 1
+      : 0,
   );
   const [modelSelectionIndex, setModelSelectionIndex] = useState(() =>
     getModelSelectionIndex(
@@ -514,6 +532,7 @@ export function useInitSetup({
             provider,
             selectedMode,
             allowModeSelection,
+            authMode,
           ) ??
           getNextStepAfterApiKey(
             provider,
@@ -635,6 +654,9 @@ export function useInitSetup({
       case "provider":
         setProviderSelectionIndex(getProviderSelectionIndex(provider));
         break;
+      case "auth-mode":
+        setAuthModeSelectionIndex(authMode === "entra-id" ? 1 : 0);
+        break;
       case "run-mode":
         setRunModeSelectionIndex(getRunModeSelectionIndex(selectedMode));
         break;
@@ -717,6 +739,13 @@ export function useInitSetup({
         setInput(baseUrl ?? (envKey ? (getSavedEnvValue(envKey) ?? "") : ""));
         break;
       }
+      case "entra-scope":
+        setInput(
+          entraScope ??
+            getSavedEnvValue(OPENAI_COMPATIBLE_ENTRA_SCOPE_ENV_KEY) ??
+            DEFAULT_OPENAI_COMPATIBLE_ENTRA_SCOPE,
+        );
+        break;
       case "region": {
         const envKey = getProviderRegionEnvKey(provider);
         setInput(region ?? (envKey ? (getSavedEnvValue(envKey) ?? "") : ""));
@@ -818,6 +847,9 @@ export function useInitSetup({
         break;
       case "base-url":
         if (trimmed) setBaseUrl(trimmed);
+        break;
+      case "entra-scope":
+        if (trimmed) setEntraScope(trimmed);
         break;
       case "region":
         if (trimmed) setRegion(trimmed);
@@ -959,6 +991,19 @@ export function useInitSetup({
             index,
             key.upArrow ? -1 : 1,
             SELECTABLE_OPENWIKI_PROVIDERS.length,
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (step === "auth-mode") {
+      handleMenuInput(key, () =>
+        setAuthModeSelectionIndex((index) =>
+          moveSelectionIndex(
+            index,
+            key.upArrow ? -1 : 1,
+            OPENAI_COMPATIBLE_AUTH_OPTIONS.length,
           ),
         ),
       );
@@ -1306,9 +1351,16 @@ export function useInitSetup({
       setProviderConfirmed(true);
 
       if (switchedProvider) {
+        const nextAuthMode =
+          selectedProvider === "openai-compatible"
+            ? resolveOpenAICompatibleAuthMode()
+            : "api-key";
+        setAuthMode(nextAuthMode);
+        setAuthModeSelectionIndex(nextAuthMode === "entra-id" ? 1 : 0);
         setApiKey(null);
         setSecretKey(null);
         setBaseUrl(null);
+        setEntraScope(null);
         setRegion(null);
         setGcpProject(null);
         setGcpLocation(null);
@@ -1335,6 +1387,7 @@ export function useInitSetup({
           selectedProvider,
           selectedMode,
           allowModeSelection,
+          authMode,
         ) ??
         getNextStepAfterProvider(
           selectedProvider,
@@ -1377,6 +1430,27 @@ export function useInitSetup({
       return;
     }
 
+    if (step === "auth-mode") {
+      const selectedAuthMode =
+        OPENAI_COMPATIBLE_AUTH_OPTIONS[authModeSelectionIndex]?.id ?? "api-key";
+      setAuthMode(selectedAuthMode);
+      if (selectedAuthMode === "entra-id") {
+        setApiKey(null);
+      }
+      const nextStep = nextSetupStep(
+        "auth-mode",
+        provider,
+        selectedMode,
+        allowModeSelection,
+        selectedAuthMode,
+      );
+      if (nextStep) {
+        seedInputForStep(nextStep);
+        setStep(nextStep);
+      }
+      return;
+    }
+
     if (step === "api-key" || step === "external-cli-auth") {
       const trimmedInput = input.trim();
       const usesExternalCli = step === "external-cli-auth";
@@ -1393,7 +1467,7 @@ export function useInitSetup({
       if (
         nextApiKey === null &&
         !(usesExternalCli && externalCliAuth.kind === "detected") &&
-        !isCredentialConfigured(provider)
+        !isCredentialConfigured(provider, authMode)
       ) {
         setError(
           `${getProviderApiKeyEnvKey(provider) ?? "API key"} is required.`,
@@ -1406,7 +1480,13 @@ export function useInitSetup({
       }
       setInput("");
       const nextStep =
-        nextSetupStep(step, provider, selectedMode, allowModeSelection) ??
+        nextSetupStep(
+          step,
+          provider,
+          selectedMode,
+          allowModeSelection,
+          authMode,
+        ) ??
         getNextStepAfterApiKey(
           provider,
           modelIdOverride,
@@ -1462,6 +1542,7 @@ export function useInitSetup({
           provider,
           selectedMode,
           allowModeSelection,
+          authMode,
         ) ??
         getNextStepAfterSecretKey(
           provider,
@@ -1521,7 +1602,13 @@ export function useInitSetup({
       }
       setInput("");
       const nextStep =
-        nextSetupStep("region", provider, selectedMode, allowModeSelection) ??
+        nextSetupStep(
+          "region",
+          provider,
+          selectedMode,
+          allowModeSelection,
+          authMode,
+        ) ??
         getNextStepAfterRegion(
           provider,
           modelIdOverride,
@@ -1599,6 +1686,7 @@ export function useInitSetup({
           provider,
           selectedMode,
           allowModeSelection,
+          authMode,
         ) ??
         getNextStepAfterGcpLocation(
           provider,
@@ -1651,11 +1739,28 @@ export function useInitSetup({
         setError(`Enter a valid base URL: ${baseUrlWarnings.join(", ")}.`);
         return;
       }
+      if (provider === "openai-compatible" && authMode === "entra-id") {
+        try {
+          createEntraTokenProvider(
+            trimmedInput,
+            DEFAULT_OPENAI_COMPATIBLE_ENTRA_SCOPE,
+          );
+        } catch (validationError) {
+          setError(getErrorMessage(validationError));
+          return;
+        }
+      }
 
       setBaseUrl(trimmedInput);
       setInput("");
       const nextStep =
-        nextSetupStep("base-url", provider, selectedMode, allowModeSelection) ??
+        nextSetupStep(
+          "base-url",
+          provider,
+          selectedMode,
+          allowModeSelection,
+          authMode,
+        ) ??
         getNextStepAfterBaseUrl(
           provider,
           modelIdOverride,
@@ -1686,6 +1791,28 @@ export function useInitSetup({
         nextProvider: provider,
         runMode: selectedMode,
       });
+      return;
+    }
+
+    if (step === "entra-scope") {
+      const nextEntraScope =
+        input.trim() || DEFAULT_OPENAI_COMPATIBLE_ENTRA_SCOPE;
+      setEntraScope(nextEntraScope);
+      setInput("");
+      const nextStep = nextSetupStep(
+        "entra-scope",
+        provider,
+        selectedMode,
+        allowModeSelection,
+        authMode,
+      );
+      if (nextStep) {
+        setIsCustomModelInput(
+          nextStep === "model" && shouldStartWithCustomModelInput(provider),
+        );
+        seedInputForStep(nextStep);
+        setStep(nextStep);
+      }
       return;
     }
 
@@ -2396,6 +2523,13 @@ export function useInitSetup({
       const updates = buildCredentialEnvUpdates(
         {
           ...options,
+          nextAuthMode:
+            options.nextProvider === "openai-compatible" ? authMode : null,
+          nextEntraScope:
+            options.nextProvider === "openai-compatible" &&
+            authMode === "entra-id"
+              ? (entraScope ?? DEFAULT_OPENAI_COMPATIBLE_ENTRA_SCOPE)
+              : null,
           // Preserve the original default-param semantics: an omitted
           // (undefined) field falls back to the current oauth tokens, but an
           // explicit null stays null.
@@ -2712,12 +2846,15 @@ export function useInitSetup({
     selectedMode,
     provider,
     providerConfirmed,
+    authMode,
+    authModeSelectionIndex,
     apiKey,
     oauthTokens,
     secretKey,
     gcpProject,
     gcpLocation,
     baseUrl,
+    entraScope,
     region,
     modelId,
     modelIdOverride,

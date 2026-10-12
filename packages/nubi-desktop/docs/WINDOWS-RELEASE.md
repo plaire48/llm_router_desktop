@@ -1,4 +1,18 @@
+> 2026-10-12 후속 범위: Beta 메일 첨부 내용 읽기/미리보기/AI 분석은 지원하지 않는다. 본문과 메타데이터, 첨부 파일명 검색 및 원본 다운로드는 유지한다. 첨부 파서/worker/Office 읽기 스크립트를 설치본에서 제외하며 `mail-beta-scope.test.mjs`와 설치 파일 검사가 이를 확인한다.
+
 # Windows installer verification
+
+## Current standalone Electron build (2026-10-12)
+
+The current target is `electron-app` with Electron 42.11.10, not Theia. `npm run package:windows` requires a Windows x64 host and creates a per-user NSIS installer. The current product label is **누비 Workspace Beta**; the package version remains 1.1.1.
+
+`prepare-app-icon.mjs` copies the existing transparent `extensions/aipro-chat/design/brand/bird-master.png` master without redesign. The window and macOS development Dock use the same icon; electron-builder generates the executable and NSIS icon from that master. Desktop and Start menu links reference the installed executable. [Official electron-builder icon configuration](https://www.electron.build/docs/features/icons-and-images/).
+
+Computer Use and external A2A remain disabled. The inactive winapp driver is omitted, and packaging refuses a future Computer Use enablement until driver packaging is reviewed. No Office installer is built.
+
+The workflow builds locked sources on Windows, tests connection storage and lifecycle contracts, then checks the installed standalone app through `check-electron-shell.mjs` using `NUBI_TEST_EXECUTABLE`. It verifies the approved icon source, extracts the executable icon, reads Unicode shortcuts, upgrades the SHA-256 pinned 1.1.0 baseline, reinstalls and uninstalls. Only a successful installer is saved to a private draft with native reports and SHA-256. No public release is performed by this workflow. Windows runner results are not Windows 11/Office 2016/NASCA or real-model quality measurements.
+
+The sections below preserve historical Theia releases and must not be used as the current build procedure.
 
 > A2A는 사용자 요청으로 보류했습니다. 기존 실험 코드는 참고용이며 현재 앱과 설치 파일에 연결 UI나 전송 실행 경로를 포함하지 않습니다.
 

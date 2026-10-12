@@ -1,6 +1,7 @@
 import {useLayoutEffect, useRef, useState} from 'react';
+import {WORKSPACE_LAYOUT} from '../electron-app/workspace-layout.cjs';
 
-const DEFAULT_WIDTH = 300, MIN_WIDTH = 284, MAX_WIDTH = 420;
+const DEFAULT_WIDTH = WORKSPACE_LAYOUT.projects, MIN_WIDTH = WORKSPACE_LAYOUT.minimumProjects, MAX_WIDTH = 420;
 const STORAGE_KEY = 'nubi-workspace-sidebar-width';
 const clamp = (width, min, max) => Math.round(Math.max(min, Math.min(max, width)));
 function savedWidth(storageKey, minWidth, maxWidth) {

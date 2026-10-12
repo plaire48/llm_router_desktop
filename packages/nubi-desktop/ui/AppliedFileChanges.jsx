@@ -1,3 +1,4 @@
+import {pickerWidth} from './picker-width.mjs';
 import React,{useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {CxButton,Icon} from '@e2e/cx-design-system';
@@ -23,7 +24,7 @@ export function AppliedFileChanges({api,taskId,receipts,onOpen}){
     if(!open){setPosition(null);return;}
     const place=()=>{
       const anchor=trigger.current?.getBoundingClientRect(),menu=dialog.current;if(!anchor||!menu)return;
-      const inset=12,gap=8,width=Math.min(360,innerWidth-inset*2),maxHeight=Math.min(320,innerHeight-inset*2),height=Math.min(menu.scrollHeight,maxHeight),above=anchor.top-gap-height;
+      const inset=12,gap=8,width=pickerWidth(innerWidth-inset*2),maxHeight=Math.min(320,innerHeight-inset*2),height=Math.min(menu.scrollHeight,maxHeight),above=anchor.top-gap-height;
       const next={width,maxHeight,left:Math.max(inset,Math.min(anchor.left,innerWidth-width-inset)),top:Math.max(inset,Math.min(above>=inset?above:anchor.bottom+gap,innerHeight-height-inset))};
       setPosition(previous=>previous&&Object.keys(next).every(key=>previous[key]===next[key])?previous:next);
     };

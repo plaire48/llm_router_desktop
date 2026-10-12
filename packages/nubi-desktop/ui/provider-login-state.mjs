@@ -1,4 +1,8 @@
 const reasons={
+  claude_login_failed:'Claude 로그인을 마치지 못했어요. 다시 연결해 주세요.',
+  claude_login_required:'Claude 인증을 확인하지 못했어요. 다시 로그인해 주세요.',
+  claude_cli_timeout:'Claude 로그인 시간이 초과됐어요. 다시 연결해 주세요.',
+  browser_unavailable:'로그인 페이지를 열지 못했어요. 다시 연결해 주세요.',
   tls_untrusted:'회사 인증서를 확인하지 못했어요. Windows의 회사 인증서 등록 상태를 확인해 주세요.',
   tls_expired:'인증서 유효기간을 확인해 주세요. PC 날짜와 서버 인증서가 맞아야 합니다.',
   tls_hostname:'서버 주소와 인증서가 다릅니다. 연결 주소를 확인해 주세요.',
@@ -22,6 +26,8 @@ export function providerLoginDiagnostics(state){
   }).join('\n');
 }
 export function providerLoginError(state){
+  if(state?.persistenceError==='connection_not_removed')return '로그아웃했지만 보관한 인증을 지우지 못했어요. 다시 시도해 주세요.';
+  if(state?.persistenceError)return '로그인은 완료됐지만 안전하게 보관하지 못했어요. 앱을 다시 열면 로그인이 필요합니다.';
   if(!state?.loginError)return null;
   const stage=state.loginDiagnostics?.findLast(item=>item.phase==='failed')?.failedStage;
   const prefix=stage==='loading_models'?'모델 목록 조회 실패. ':stage==='exchanging'?'인증 확인 실패. ':'';

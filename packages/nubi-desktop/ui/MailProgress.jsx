@@ -35,7 +35,6 @@ export function MailProgress({api,wiki}){
     <span className="nubi-mail-progress-state" role="status">{active.has(stage)||(background&&stage==='watching')?<span className={`status-spinner${stage==='watching'?' nubi-mail-watching-spinner':''}`} aria-hidden="true"/>:<Icon name={stage==='attention'?'alertCircle':'mail'} size={14}/>}<strong>{background?'백그라운드 / ':''}{unavailable?'상태 확인 중':stages[stage]||'메일 처리 중'}</strong></span>
     {showCounts&&<span className="nubi-mail-progress-counts">{progress.completed>0&&<span>완료 <b>{progress.completed}</b></span>}{pending>0&&<span>{stopped?'보류':progress.remaining==null?'정리 대기':'남음'} <b>{pending}</b></span>}{progress.attention>0&&<span>확인 필요 <b>{progress.attention}</b></span>}</span>}
     {!stopped&&progress.timing&&<ResponseTime timing={progress.timing} label={progress.timing.kind==='saving'?'저장':'정리'} live/>}
-    {(stopped||!progress.timing)&&progress.lastTiming&&<ResponseTime timing={progress.lastTiming} label={progress.lastTiming.kind==='saving'?'직전 저장':'직전 정리'}/>}
     {!stopped&&progress.attachment&&<span className="nubi-mail-progress-attachment">첨부 {progress.attachment.completed}/{progress.attachment.total}</span>}
     <MailTimestamp at={progress.lastAppliedAt}/>
     {next&&<span className="nubi-mail-progress-next">다음 확인 {next}</span>}

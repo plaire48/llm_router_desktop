@@ -9,7 +9,7 @@ export function WikiEvidence({packet,onOpen}){
   return <section className="nubi-wiki-evidence" aria-label="위키 검색 결과">
     <h3><Icon name="bookmark" size={16}/>위키 근거 {packet.results.length}개</h3>
     {!packet.results.length&&<p className="nubi-muted">관련 문서를 찾지 못했어요. 업무 용어나 파일 이름으로 다시 찾아보세요.</p>}
-    {packet.results.map(row=><CxButton key={row.evidenceId} className="nubi-search-result" onClick={()=>onOpen(row.path)}>
+    {packet.results.map(row=><CxButton key={row.evidenceId} className="nubi-search-result" onClick={()=>onOpen(row.path)}><Icon name="file" size={16}/>
       <span className="nubi-result-head"><DriftLabel as="strong">{row.title}</DriftLabel><span className="nubi-pill" data-tone={tone[row.freshness]}>{labels[row.freshness]||labels.unverified}</span></span>
       <span className="nubi-wiki-excerpt">{row.excerpt.length>280?row.excerpt.slice(0,280)+'…':row.excerpt}</span>
       <small className="nubi-result-path">{row.path}:{row.provenance.start}–{row.provenance.end}{row.relation?` / ${row.relation.label}에서 연결`:''}</small>

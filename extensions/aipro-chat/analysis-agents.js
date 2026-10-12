@@ -140,7 +140,7 @@ export function createAnalysisCoordinator({signal, modelId, complete, execute, r
   const meta = source => ({evidence_id: source.id, tool: source.tool, kind: source.kind, observed_at: source.at, ...(source.contentRef?{content_ref:source.contentRef}:{}),
     source_status: source.status, ...(source.error ? {source_error: source.error} : {}),
     ...(source.kind === 'page' ? {page_revision: source.revision, stale: source.revision !== revision, requires_fresh_check: true} : {}),
-    ...(source.kind === 'computer' ? {observation_revision:source.revision,historical:source.historical,stale:source.historical||source.revision!==revision,requires_fresh_check:true} : {}),
+    ...(['computer','mail'].includes(source.kind) ? {observation_revision:source.revision,historical:source.historical,stale:source.historical||source.revision!==revision,requires_fresh_check:true} : {}),
     ...(source.provenance ? {provenance: source.provenance} : {}), characters: source.text.length, truncated: source.truncated, has_image: !!source.image});
   function persistHandoff(job) {
     if (!onHandoff) return;
@@ -182,7 +182,7 @@ export function createAnalysisCoordinator({signal, modelId, complete, execute, r
     const id = `ev_${++sequence}`;
     const image = result?.image?.mimeType === 'image/png' && typeof result.image.data === 'string' && result.image.data.length <= 6000000 ? {...result.image} : null;
     const failed = !result || typeof result !== 'object' || result.error || result.ok === false || result.cancelled;
-    const source = {id, tool: name, kind: nativeSources.has(name)?'computer':DOCUMENT_TOOL_NAMES.has(name) ? 'document' : PROJECT_TOOL_NAMES.has(name) ? 'project' : 'page', historical:nativeSources.has(name)&&nativeSources.get(name)!=='live', revision, at: Date.now(), text: raw.slice(0, 200000), truncated: raw.length > 200000, image,
+    const source = {id, tool: name, kind: nativeSources.has(name)?(['read_personal_mail','personal_mail_query'].includes(name)?'mail':'computer'):DOCUMENT_TOOL_NAMES.has(name) ? 'document' : PROJECT_TOOL_NAMES.has(name) ? 'project' : 'page', historical:nativeSources.has(name)&&nativeSources.get(name)!=='live', revision, at: Date.now(), text: raw.slice(0, 200000), truncated: raw.length > 200000, image,
       prefetchable: !failed && !result.metadata_only && !image,
       binding:{projectId:typeof result?.projectId==='string'?result.projectId:'',url:(()=>{try{const u=new URL(result?.url);return ['http:','https:'].includes(u.protocol)?u.origin+u.pathname:'';}catch{return '';}})(),resource:name==='wiki_read'&&typeof args?.id==='string'?args.id:''},
       status: failed ? 'error' : result.metadata_only ? 'metadata' : 'observed', error: failed ? /^[a-z_]{1,64}$/.test(result?.error || '') ? result.error : 'source_read_failed' : null,

@@ -1,5 +1,6 @@
 import React from 'react';
-import {ActionButton, CxButton} from '@e2e/cx-design-system';
+import {CxButton} from '@e2e/cx-design-system';
+import {WorkspaceAction as ActionButton} from './WorkspaceAction.jsx';
 
 export function SessionTabs({tasks, ids, selected, disabled = false, onSelect, onClose}) {
   const open = ids.map(id => tasks.find(task => task.id === id)).filter(Boolean);
