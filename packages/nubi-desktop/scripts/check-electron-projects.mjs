@@ -18,7 +18,7 @@ async function menu(name){
  await row(name).locator('.nubi-sidebar-project-row .nubi-actions-disclosure>summary').click();
  const actions=page.getByRole('group',{name:name+' 프로젝트 관리',exact:true});await actions.waitFor();
  // Editor focus/scroll updates are unrelated to the sidebar anchor.
- await page.locator('.monaco-editor .inputarea').first().dispatchEvent('scroll');
+ if(await page.locator('.monaco-editor .inputarea').count())await page.locator('.monaco-editor .inputarea').first().dispatchEvent('scroll');
  assert.equal(await actions.isVisible(),true,'unrelated editor scrolling keeps the menu open');
 }
 async function resize(width,height){await app.evaluate(({BrowserWindow},size)=>BrowserWindow.getAllWindows()[0].setContentSize(size.width,size.height),{width,height});await page.waitForFunction(width=>innerWidth===width,width);}
