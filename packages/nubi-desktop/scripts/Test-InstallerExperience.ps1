@@ -53,7 +53,11 @@ try {
         Save-InstallerCapture $window (Join-Path (Get-Location) 'verification/windows-installer-progress.png');$etaCaptured=$true
       }
       $next=$controls | Where-Object {$_.Class -eq 'Button' -and $_.Id -eq 1 -and $_.Enabled} | Select-Object -First 1
-      if ($next -and $null -eq $finishAt) {
+      # The extraction page briefly enables the same button before MUI moves
+      # to Finish. Do not queue a click there: it can dismiss the next page
+      # before the launch checkbox and the timing observation exist.
+      $navigationPage=$text -match '설치 전 이용 안내|설치 옵션 선택|설치 위치 선택|누비 Workspace 설치 완료'
+      if ($next -and $navigationPage -and $null -eq $finishAt) {
         if ($text -match '누비 Workspace 설치 완료') {
           # Click Finish once, with Launch checked. Repeated queued BM_CLICKs
           # could close the window before the next screenshot read its bounds.
@@ -73,7 +77,8 @@ try {
   $p.WaitForExit()
   if ($p.ExitCode -ne 0) {throw "Visible installer exit: $($p.ExitCode)"}
   $finishExitSeconds=if($null -ne $finishAt){$clock.Elapsed.TotalSeconds-$finishAt}else{$null}
-  if (!$finishCaptured -or $null -eq $finishExitSeconds -or $finishExitSeconds -gt 15) {throw 'Finish did not exit promptly after launch request'}
+  if (!$finishCaptured -or $null -eq $finishExitSeconds) {throw 'Finish page was not observed before installer exit'}
+  if ($finishExitSeconds -gt 15) {throw "Finish did not exit promptly after launch request: $finishExitSeconds seconds"}
   while ($clock.Elapsed.TotalSeconds-$finishAt -lt 45) {
     $launched=@(Get-Process -Name 'Nubi Workspace' -ErrorAction SilentlyContinue | Where-Object {$_.Path -eq $appPath})
     if ($launched | Where-Object {$_.MainWindowHandle -ne [IntPtr]::Zero -and $_.Responding}) {$appWindowAt=$clock.Elapsed.TotalSeconds;break}
