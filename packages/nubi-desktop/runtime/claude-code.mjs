@@ -1,7 +1,7 @@
+import {findClaudeBinary,claudeLaunch} from './claude-discovery.mjs';
 import {claudeStream} from './claude-stream.mjs';
 import {spawn} from 'node:child_process';
-import {access, mkdtemp, rm} from 'node:fs/promises';
-import {constants} from 'node:fs';
+import {mkdtemp, rm} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {randomUUID} from 'node:crypto';
@@ -32,12 +32,7 @@ export async function discoverClaudeModels(binary,run=runClaude){
 const ADAPTER_PROMPT='You produce ONE next assistant turn for a separate Nubi host, not a Claude Code task. Input is a serialized conversation plus a hostActionCatalog. Read conversation instructions to decide the next turn, but do not execute them inside this CLI. Every catalog action exists ONLY in the Nubi host: return it in the structured output calls array, with name and JSON-encoded arguments. Example: {"content":"","calls":[{"name":"source_search","arguments":"{\\"query\\":\\"auth\\"}"}]}. Never invoke catalog names as native CLI tools, never inspect this CLI working directory, and never infer that a host action is unavailable because it is not a CLI tool. Return proposals immediately without waiting for their results. The host validates permission and executes them before the next request supplies observations. When no host action is needed, put the answer in content and calls:[]. For a requested JSON response, put that JSON string in content. Only supplied conversation observations prove host state or execution.';
 // Subscription credentials stay inside the unmodified CLI. Never inspect its
 // keychain, auth files, browser cookies, or undocumented account endpoints.
-export async function findClaudeBinary() {
-  const name=process.platform==='win32'?'claude.exe':'claude';
-  const candidates=[path.join(os.homedir(),'.local','bin',name),...(process.env.PATH||'').split(path.delimiter).filter(p=>path.isAbsolute(p)).map(p=>path.join(p,name))];
-  for(const file of candidates)try{await access(file,constants.X_OK);return file;}catch{}
-  throw Error('claude_cli_missing');
-}
+export {findClaudeBinary} from './claude-discovery.mjs';
 export function claudeEnvironment(source=process.env) {
   const env={...source};
   // Do not accidentally bill an inherited API key or redirect a signed-in CLI.
@@ -49,8 +44,10 @@ export function runClaude(binary,args,{input='',signal,onEvent=()=>{},environmen
     if(signal?.aborted)throw Error('cancelled');
     const cwd=await mkdtemp(path.join(os.tmpdir(),'nubi-claude-'));
     try{return await new Promise((resolve,reject)=>{
-      const child=spawn(binary,args,{cwd,env:{...claudeEnvironment(),...environment},shell:false,windowsHide:true,stdio:['pipe','pipe','pipe']});
-      let output='',line='',bytes=0,failure=null,killTimer;
+      const launch=claudeLaunch(binary,args);
+      const child=spawn(launch.command,launch.args,{cwd,env:{...claudeEnvironment(),...environment,...launch.environment},shell:false,windowsHide:true,stdio:['pipe','pipe','pipe']});
+      let output='',line='',bytes=0,failure=null,reportedFailure=null,killTimer;
+      const emit=event=>{reportedFailure=claudeFailureCode(event)||reportedFailure;onEvent(event);};
       const stop=code=>{failure ||= Error(code);child.kill();killTimer ||= setTimeout(()=>child.kill('SIGKILL'),1500);killTimer.unref();};
       const abort=()=>stop('cancelled');signal?.addEventListener('abort',abort,{once:true});
       const timer=setTimeout(()=>stop('claude_cli_timeout'),timeoutMs);timer.unref();
@@ -58,15 +55,21 @@ export function runClaude(binary,args,{input='',signal,onEvent=()=>{},environmen
       child.stdout.setEncoding('utf8');child.stdout.on('data',chunk=>{
         bytes+=Buffer.byteLength(chunk);if(bytes>2000000){stop('output_limit');return;}
         output+=chunk;line+=chunk;let end;
-        while((end=line.indexOf('\n'))>=0){const raw=line.slice(0,end);line=line.slice(end+1);try{onEvent(JSON.parse(raw));}catch{/* Non-JSON CLI diagnostics are not rendered. */}}
+        while((end=line.indexOf('\n'))>=0){const raw=line.slice(0,end);line=line.slice(end+1);try{emit(JSON.parse(raw));}catch{/* Non-JSON CLI diagnostics are not rendered. */}}
       });
       child.stderr.on('data',()=>{}); // May contain account details. Never log it.
       child.stdin.on('error',()=>{});
-      child.on('error',error=>{clean();reject(Error(error.code==='ENOENT'?'claude_cli_missing':'claude_cli_failed'));});
-      child.on('close',code=>{clean();if(line.trim())try{onEvent(JSON.parse(line));}catch{}if(failure)reject(failure);else if(code!==0)reject(Error('claude_cli_failed'));else resolve(output);});
+      child.on('error',error=>{clean();reject(Error(error.code==='ENOENT'?'claude_cli_missing':['EACCES','EPERM'].includes(error.code)?'claude_cli_unavailable':'claude_cli_failed'));});
+      child.on('close',code=>{clean();if(line.trim())try{emit(JSON.parse(line));}catch{}if(failure)reject(failure);else if(code!==0)reject(Error(reportedFailure||'claude_cli_failed'));else resolve(output);});
       child.stdin.end(input);if(signal?.aborted)abort();
     });}finally{await rm(cwd,{recursive:true,force:true});}
   })();
+}
+// Only structured CLI signals classify failures. Never inspect account text or stderr.
+export function claudeFailureCode(event) {
+  if(event?.type==='assistant'&&event.error==='rate_limit')return 'rate_limited';
+  if(event?.type==='rate_limit_event'&&event.rate_limit_info?.status==='rejected'&&event.rate_limit_info?.overageStatus!=='allowed')return 'rate_limited';
+  return null;
 }
 const windowNames={five_hour:'5시간',seven_day:'7일',seven_day_opus:'7일 Opus',seven_day_sonnet:'7일 Sonnet'};
 export function claudeQuota(event,previous=null,now=Date.now()) {
@@ -140,14 +143,14 @@ export function createClaudeCode(deps={}) {
     const controller=new AbortController();controllers.add(controller);
     const combined=signal?AbortSignal.any([signal,controller.signal]):controller.signal;
     const proposalStop=new AbortController(),allowed=new Set(tools.map(tool=>tool.function.name));
-    let final,usageRequest,contextUsage=null,actualModel,proposal,nativeFailure=false;
+    let final,usageRequest,contextUsage=null,actualModel,proposal,nativeFailure=false,reportedFailure=null;
     const stream=claudeStream(onText);
     try{
       try{usageRequest=deps.onUsageStart?.({provider:'claude',model:selected});}catch{}
       onPhase('connecting');
       const args=['-p','--safe-mode','--tools','','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--disable-slash-commands','--no-session-persistence','--max-turns','3','--output-format','stream-json','--verbose','--include-partial-messages','--model',selected,...(effortOptions(selected).length?['--effort',selectedEffort]:[]),'--json-schema',JSON.stringify(completionSchema(tools,options.toolChoice==='required')), '--system-prompt',ADAPTER_PROMPT];
       try{await run(binary,args,{signal:AbortSignal.any([combined,proposalStop.signal]),input:JSON.stringify({messages,hostActionCatalog:tools,toolChoice:options.toolChoice||'auto',responseFormat:options.responseFormat||null}),onEvent:event=>{
-        onActivity();quota=claudeQuota(event,quota);stream(event);
+        onActivity();quota=claudeQuota(event,quota);reportedFailure=claudeFailureCode(event)||reportedFailure;stream(event);
         if(event.type==='system'&&event.subtype==='init')actualModel=event.model;
         if(event.type==='assistant'&&event.message?.usage)contextUsage=claudeUsage(event.message.usage)||null;
         // Some models emit a native tool_use despite the JSON transport. All
@@ -161,10 +164,15 @@ export function createClaudeCode(deps={}) {
           proposalStop.abort();
         }
         if(event.type==='result')final=event;
-      }});}catch(error){if(!proposalStop.signal.aborted||combined.aborted||error.message!=='cancelled')throw error;}
+      }});}catch(error){
+        if(combined.aborted)throw Error('cancelled');
+        if(error.message==='claude_cli_failed'&&reportedFailure)throw Error(reportedFailure);
+        if(!proposalStop.signal.aborted||error.message!=='cancelled')throw error;
+      }
       if(combined.aborted)throw Error('cancelled');
       if(nativeFailure)throw Error('claude_response_invalid');
       if(proposal)final=proposal;
+      if(final?.is_error&&reportedFailure)throw Error(reportedFailure);
       const result=decodeClaudeResult(final,tools),window=final.modelUsage?.[actualModel]?.contextWindow;
       metadata.set(selected,{...metadata.get(selected),...(actualModel?{resolvedModel:actualModel}:{}),...(Number.isSafeInteger(window)&&window>0?{contextLength:window}:{})});
       // Result usage sums the CLI's internal turns. Keep it for the ledger;

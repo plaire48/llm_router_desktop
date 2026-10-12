@@ -14,7 +14,13 @@ const checks=[],errors=[];let app,page;
 async function launch(){app=await electron.launch({executablePath:process.env.NUBI_TEST_EXECUTABLE||require('electron'),args:process.env.NUBI_TEST_EXECUTABLE?[]:[process.env.NUBI_TEST_APP||'electron-app'],env:{...process.env,NUBI_STORAGE_ROOT:storage,ELECTRON_RUN_AS_NODE:undefined}});page=await app.firstWindow();page.setDefaultTimeout(15000);page.on('pageerror',e=>errors.push(e.message));await page.locator('.desktop-shell[data-startup-ready="true"]').waitFor({timeout:60000});if(await page.getByText('메일을 연결해 주세요').count())await page.keyboard.press('Escape');await page.locator('.nubi-sidebar-project').first().waitFor({timeout:60000});}
 const row=name=>page.locator('.nubi-saved-project').filter({has:page.locator('.nubi-sidebar-project-name',{hasText:name})});
 async function openA(){const target=row('업무 자료');if(await target.getAttribute('data-current')!=='true')await target.locator('.nubi-sidebar-project').click();await page.getByRole('button',{name:task.request,exact:true}).click();await page.locator('.nubi-cited-sources .nubi-answer-source').waitFor();}
-async function menu(name){await row(name).locator('.nubi-sidebar-project-row .nubi-actions-disclosure>summary').click();}
+async function menu(name){
+ await row(name).locator('.nubi-sidebar-project-row .nubi-actions-disclosure>summary').click();
+ const actions=page.getByRole('group',{name:name+' 프로젝트 관리',exact:true});await actions.waitFor();
+ // Editor focus/scroll updates are unrelated to the sidebar anchor.
+ await page.locator('.monaco-editor .inputarea').first().dispatchEvent('scroll');
+ assert.equal(await actions.isVisible(),true,'unrelated editor scrolling keeps the menu open');
+}
 async function resize(width,height){await app.evaluate(({BrowserWindow},size)=>BrowserWindow.getAllWindows()[0].setContentSize(size.width,size.height),{width,height});await page.waitForFunction(width=>innerWidth===width,width);}
 try{
  await launch();await resize(1480,960);await page.getByRole('button',{name:task.request,exact:true}).click();
@@ -22,13 +28,13 @@ try{
  assert.equal(await plan.getAttribute('open'),null,'result plan starts collapsed');
  const traceDetails=trace;
  assert.equal(await traceDetails.getAttribute('open'),null,'result trace starts collapsed');await traceDetails.locator(':scope > summary').click();assert.notEqual(await traceDetails.getAttribute('open'),null,'user can reopen finished progress');
- await page.locator('.nubi-cited-sources .nubi-answer-source').click();await page.getByRole('tab',{name:/notes\.md/}).waitFor();assert.match(await page.locator('.monaco-editor .view-lines').first().innerText(),/Original\s+evidence/);checks.push('saved answer opens original source at the correct project with hash protection; finished progress can reopen');
+ await page.locator('.nubi-cited-sources .nubi-answer-source').click();await page.getByRole('tab',{name:/notes\.md/}).waitFor();await page.waitForFunction(()=>/Original\s+evidence/.test(document.querySelector('.monaco-editor .view-lines')?.textContent||''));assert.match(await page.locator('.monaco-editor .view-lines').first().innerText(),/Original\s+evidence/);checks.push('saved answer opens original source at the correct project with hash protection; finished progress can reopen');
  // A restored window can use the narrow overlay layout on a Windows runner.
  // Return to the conversation through the same close control the user has.
  if(await page.locator('.desktop-shell').getAttribute('data-layout')==='overlay')await page.getByRole('button',{name:'오른쪽 사이드바 닫기',exact:true}).click();
  await page.getByText('참고 자료 1개',{exact:true}).click();
  await page.locator('.nubi-consulted-sources .nubi-answer-source').click();await page.getByRole('tab',{name:/home\.md/}).waitFor();
- assert.match(await page.locator('.monaco-editor .view-lines').first().innerText(),/Project\s+wiki/);
+ await page.waitForFunction(()=>/Project\s+wiki/.test(document.querySelector('.monaco-editor .view-lines')?.textContent||''));assert.match(await page.locator('.monaco-editor .view-lines').first().innerText(),/Project\s+wiki/);
  checks.push('consulted Wiki opens from the reference disclosure in the same project with original hash validation');
  if(await page.locator('.desktop-shell').getAttribute('data-layout')==='overlay')await page.getByRole('button',{name:'오른쪽 사이드바 닫기',exact:true}).click();
  await page.locator('.nubi-cited-sources .nubi-answer-source').click();await page.getByRole('tab',{name:/notes\.md/}).waitFor();

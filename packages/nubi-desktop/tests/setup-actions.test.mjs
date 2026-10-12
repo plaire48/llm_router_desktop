@@ -89,7 +89,7 @@ test('Pi prepares observed commands; explicit host approval runs them and feeds 
   service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:32000}]}),dispose(){},complete:async messages=>{
     if(++round===1)return call('read_source',{path:'app.txt'});
     if(round===2)return call('propose_setup_action',spec(JSON.parse(messages.findLast(m=>m.role==='tool').content)));
-    if(round>=4){sawReceipt=true;assert.match(JSON.stringify(messages),/completed/);return {content:'실행 기록을 확인했습니다. 완료 조건은 별도 검증합니다.',calls:[]};}
+    if(round>=3){sawReceipt=true;assert.match(JSON.stringify(messages),/completed/);return {content:'실행 기록을 확인했습니다. 완료 조건은 별도 검증합니다.',calls:[]};}
     return {content:'준비한 명령을 승인해 주세요.',calls:[]};
   }};
   await service.startAgent({taskId:task.id});await service.agent.promise;
@@ -173,4 +173,16 @@ test('the same command proposed again keeps waiting for the new fix; after its r
   service.store.set('setup-action:'+rerun.id,{...rerun,state:'attention'});
   assert.equal((await prepareSetupAction(service,task.id,spec(source),observations)).id,rerun.id);
   assert.equal(await readFile(path.join(root,'setup-result.txt'),'utf8'),'once\n');
+});
+
+
+test('setup recovery identifies only the missing or stale prerequisite and issues no action',async t=>{
+ const {service,root}=await fixture(t),task=await service.createTask({request:'Inspect app'}),source=await service.read({taskId:task.id,path:'app.txt'}),observations=new SourceObservations();
+ const check=(code,reason)=>error=>{assert.equal(error.message,code);assert.deepEqual(error.details,{path:'app.txt',reason});assert.equal(error.actionIssued,false);return true;};
+ await assert.rejects(prepareSetupAction(service,task.id,spec(source),observations),check('source_read_required','not_read_in_this_run'));
+ observations.observe(source);
+ await assert.rejects(prepareSetupAction(service,task.id,spec({...source,hash:'invented'}),observations),check('source_read_required','hash_mismatch'));
+ await writeFile(path.join(root,'app.txt'),'changed');
+ await assert.rejects(prepareSetupAction(service,task.id,spec(source),observations),check('source_stale','file_changed'));
+ assert.equal(service.store.list('setup-action:').length,0);assert.equal(service.store.list('process:').length,0);
 });

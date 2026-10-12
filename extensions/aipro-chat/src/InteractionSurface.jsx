@@ -4,12 +4,12 @@ import './interaction-forms.css';
 import './approval.css';
 
 // Presentational only: each host retains its own answers, approvals and receipts.
-export function InteractionSurface({className = '', title, titleId, icon = 'message', headingClassName = '', headingAction, children, ...props}) {
+export function InteractionSurface({className = '', hideHeading = false, title, titleId, icon = 'message', headingClassName = '', headingAction, children, ...props}) {
   return <section className={`interaction-card ${className}`} {...props}>
-    <div className={`interaction-heading ${headingClassName}`}>
+    {!hideHeading && <div className={`interaction-heading ${headingClassName}`}>
       <span className="interaction-symbol" aria-hidden="true"><Icon name={icon} size={18}/></span>
       <p id={titleId}>{title}</p>{headingAction}
-    </div>
+    </div>}
     {children}
   </section>;
 }

@@ -4,7 +4,7 @@
 
 ## nuri에 넣을 파일
 
-- **Releases**: 버전별 `Nubi-Workspace-beta-1.1.2-x64-Setup.exe`
+- **Releases**: 버전별 `Nubi-Workspace-beta-1.1.3-x64-Setup.exe`
 - **latest/windows-x64.json**: 현재 배포 버전을 가리키는 작은 JSON 파일
 
 EXE를 latest 폴더에 넣거나 기존 EXE를 덮어쓰지 않습니다. 프로젝트 소스, 위키, 스킬 폴더는 변경하지 않습니다.
@@ -22,7 +22,7 @@ gh auth login --hostname code.sdsdev.co.kr
 4. PowerShell에서 배포합니다.
 
 ```powershell
-.\Publish-NubiUpdate.ps1 -Installer .\Nubi-Workspace-beta-1.1.2-x64-Setup.exe -Version 1.1.2 -NotesFile .\release-notes.txt
+.\Publish-NubiUpdate.ps1 -Installer .\Nubi-Workspace-beta-1.1.3-x64-Setup.exe -Version 1.1.3 -NotesFile .\release-notes.txt
 ```
 
 이 스크립트는 Release에 EXE를 올리고 다시 다운로드해 SHA-256을 대조한 다음 마지막에 `latest/windows-x64.json`을 갱신합니다. 로컬에도 같은 JSON을 남깁니다. 계정/토큰을 JSON에 넣지 않습니다. 실패 시 오류 단계만 확인하고, EXE를 같은 버전의 다른 내용으로 덮어쓰지 마세요. 문제가 있는 버전의 수정은 더 높은 버전으로 배포합니다.
@@ -34,13 +34,13 @@ gh auth login --hostname code.sdsdev.co.kr
 ```json
 {
   "schemaVersion": 1,
-  "version": "1.1.2",
+  "version": "1.1.3",
   "platform": "win32",
   "arch": "x64",
   "repository": "Manufacturing-IT/nuri",
-  "tag": "nubi-desktop-v1.1.2",
+  "tag": "nubi-desktop-v1.1.3",
   "assetId": 12345,
-  "filename": "Nubi-Workspace-beta-1.1.2-x64-Setup.exe",
+  "filename": "Nubi-Workspace-beta-1.1.3-x64-Setup.exe",
   "size": 123456789,
   "sha256": "실제 EXE의 SHA-256 64자리",
   "notes": "메일 표와 공유 자료 화면 개선"

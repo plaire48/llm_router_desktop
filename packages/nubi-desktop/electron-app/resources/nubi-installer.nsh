@@ -172,8 +172,8 @@
 !macroend
 
 !macro customInit
-  System::Call 'kernel32::GetTickCount() i .s'
-  Pop $NubiStarted
+  ; Reading the notice and choosing a folder are not installation work.
+  StrCpy $NubiStarted 0
   CreateDirectory "$LOCALAPPDATA\Nubi Workspace\Installer"
   FileOpen $NubiLog "$LOCALAPPDATA\Nubi Workspace\Installer\last-install.log" w
   FileClose $NubiLog
@@ -188,6 +188,9 @@
   StrCpy $NubiPhase "${TEXT}"
   System::Call 'kernel32::GetTickCount() i .s'
   Pop $NubiPhaseStarted
+  ${If} $NubiStarted == 0
+    StrCpy $NubiStarted $NubiPhaseStarted
+  ${EndIf}
   ${IfNot} ${Silent}
     Call NubiTick
   ${EndIf}

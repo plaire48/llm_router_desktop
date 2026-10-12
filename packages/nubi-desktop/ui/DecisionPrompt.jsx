@@ -2,32 +2,26 @@ import React,{useEffect,useRef,useState} from 'react';
 import {CxButton,DetailPanel,Icon} from '@e2e/cx-design-system';
 import {TerminalMark} from './marks.jsx';
 
-// Only one pending decision claims focus. Closing postpones the decision;
-// it never answers a question, rejects a proposal or grants permission.
+// Notifications never take focus, answer questions or approve an action.
+// Only a deliberate click opens a decision, and only one can be open at once.
 let activeDecision=null;
-const changed='nubi-decision-available';
-export function DecisionPrompt({id,title,summary,icon='helpCircle',label='확인하기',pending=true,blocked=false,children}){
- const [open,setOpen]=useState(false),seen=useRef(new Set()),owner=useRef(Symbol('decision')),trigger=useRef(null);
- const release=()=>{if(activeDecision===owner.current){activeDecision=null;document.dispatchEvent(new Event(changed));}};
- useEffect(()=>{
-  if(!pending){setOpen(false);release();return;}
-  if(blocked)return;
-  let frame=0;
-  const check=()=>{
-   if(seen.current.has(id)||activeDecision||document.visibilityState==='hidden')return;
-   if([...document.querySelectorAll('[aria-modal="true"]')].some(node=>node.getClientRects().length&&!node.closest('[inert],[hidden]')))return;
-   activeDecision=owner.current;seen.current.add(id);setOpen(true);
-  };
-  const schedule=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(check);};
-  const observer=new MutationObserver(schedule);observer.observe(document.body,{childList:true});
-  document.addEventListener(changed,schedule);document.addEventListener('visibilitychange',schedule);schedule();
-  return()=>{observer.disconnect();cancelAnimationFrame(frame);document.removeEventListener(changed,schedule);document.removeEventListener('visibilitychange',schedule);};
- },[id,pending,blocked]);
- useEffect(()=>()=>release(),[]);
+export function DecisionPrompt({id,title,summary,icon='helpCircle',label='확인하기',pending=true,blocked=false,questionSheet=false,captionHint,children}){
+ const [open,setOpen]=useState(false),owner=useRef(Symbol('decision')),trigger=useRef(null),latest=useRef(null);
+ const release=()=>{if(activeDecision===owner.current)activeDecision=null;};
  const close=()=>{setOpen(false);release();requestAnimationFrame(()=>trigger.current?.focus({preventScroll:true}));};
- return <div className="nubi-decision-prompt">
-  <span className="nubi-decision-summary">{icon==='terminal'?<TerminalMark size={18}/>:<Icon name={icon} size={18}/>}<span title={summary}>{summary}</span></span>
-  <CxButton ref={trigger} className="nubi-text-button" disabled={blocked} onClick={()=>{if(open){close();return;}if(activeDecision&&activeDecision!==owner.current)return;seen.current.add(id);activeDecision=owner.current;setOpen(true);}}><Icon name="arrowRight" size={16}/>{label}</CxButton>
-  {open&&<DetailPanel title={title} variant="modal" className="deck-dialog nubi-panel nubi-decision-dialog" onClose={close} busy={blocked} initialFocus=".cx-panel-header button[data-action=close]">{children}</DetailPanel>}
+ const reveal=()=>{if(!pending||blocked||(activeDecision&&activeDecision!==owner.current))return;activeDecision=owner.current;setOpen(true);};
+ latest.current={reveal};
+ useEffect(()=>{setOpen(false);release();},[id,pending]);
+ useEffect(()=>{
+  const openRequested=event=>{if(event.detail===id)latest.current.reveal();};
+  document.addEventListener('nubi-open-decision',openRequested);
+  return()=>document.removeEventListener('nubi-open-decision',openRequested);
+ },[id]);
+ useEffect(()=>()=>release(),[]);
+ const mark=icon==='terminal'?<TerminalMark size={18}/>:<Icon name={icon} size={18}/>;
+ return <div className="nubi-decision-prompt" data-decision-id={id}>
+  <span className="nubi-decision-summary">{mark}<span title={summary}>{summary}</span></span>
+  <CxButton ref={trigger} className="nubi-text-button" disabled={blocked} onClick={()=>open?close():reveal()}><Icon name="arrowRight" size={16}/>{label}</CxButton>
+  {open&&<DetailPanel className="deck-dialog nubi-panel nubi-decision-dialog" title={questionSheet?<><span className="nubi-question-caption" aria-hidden="true"><Icon name="helpCircle" size={16}/>질문</span>{captionHint&&<span className="nubi-question-caption-hint" aria-hidden="true">{captionHint}</span>}<span className="visually-hidden">{title}</span></>:title} hideHelp={questionSheet} variant="modal" onClose={close} busy={blocked} initialFocus=".cx-panel-header button[data-action=close]">{typeof children==='function'?children({onDefer:close}):children}</DetailPanel>}
  </div>;
 }

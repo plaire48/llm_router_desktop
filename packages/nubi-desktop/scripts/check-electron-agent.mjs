@@ -68,7 +68,8 @@ try{
   await toast(/분석이 멈췄어요|모델 사용량 제한/).waitFor({timeout:60000});await page.getByRole('button',{name:'이어서 진행',exact:true}).waitFor({timeout:15000});stage('a model server failure ends the run with a readable message');
   fixture.setFailing(false);scenario.phase='answer';await page.getByRole('button',{name:'이어서 진행',exact:true}).click();await page.getByText('모델이 다시 연결돼 답했어요.').waitFor({timeout:90000});stage('the run resumes once the model is back');
   scenario.phase='ask';await followUp.fill('값을 하나 더 고를게요');await page.getByRole('button',{name:'전송',exact:true}).click();
-  const question=page.getByRole('region',{name:'질문',exact:true});await question.getByText('어떤 값으로 바꿀까요?').waitFor({timeout:60000});await question.getByRole('button',{name:/^셋/}).click();
+  await page.locator('.nubi-decision-prompt').getByRole('button',{name:'답변하기',exact:true}).click({timeout:60000});
+  const question=page.getByRole('region',{name:'질문',exact:true});await page.getByRole('dialog',{name:'어떤 값으로 바꿀까요?',exact:true}).waitFor({timeout:60000});await question.getByRole('checkbox',{name:/^셋/}).click();await question.getByRole('button',{name:'답변 보내기',exact:true}).click();
   await page.getByText('셋을 골라 주셨어요').waitFor({timeout:90000});assert.equal(await question.count(),0,'the answered question leaves the conversation');stage('a question from the run is answered with a choice and the run continues');
   await mkdir('verification',{recursive:true});await page.screenshot({path:'verification/electron-agent.png'});
   await writeFile('verification/electron-agent.json',JSON.stringify({platform:process.platform,checks,toolCalls:fixture.calls,modelRequests:fixture.requests,reviewProblems:fixture.reviewProblems,boundary:'Local Electron with a scripted loopback model and a temporary Git project. No real provider login.'},null,2));

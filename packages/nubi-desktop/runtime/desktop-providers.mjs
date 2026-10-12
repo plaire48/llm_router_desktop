@@ -30,7 +30,7 @@ export function createDesktopProviders(deps={}) {
         await claude.connect();if(loginAttempt!==attempt)return;
         await remember();if(loginAttempt!==attempt)return;
         await select('claude');
-      }catch(error){if(loginAttempt===attempt)loginError=['browser_unavailable','claude_cli_missing','claude_cli_timeout','claude_login_required'].includes(error.message)?error.message:'claude_login_failed';}
+      }catch(error){if(loginAttempt===attempt)loginError=['browser_unavailable','claude_cli_unavailable','claude_cli_missing','claude_cli_timeout','claude_login_required'].includes(error.message)?error.message:'claude_login_failed';}
       finally{if(loginAttempt===attempt)loginAttempt=null;}
     })();
     return status();

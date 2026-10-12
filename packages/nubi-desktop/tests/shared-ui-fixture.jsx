@@ -139,7 +139,7 @@ async function api(method,args={}){
 
   if(decisionFixture){
    if(method==='saveQuestionDraft'){project.tasks[0].question.draft=args.draft;return {saved:true};}
-   if(method==='answerAgent'){window.decisionCalls.push({method,...args});project.tasks[0].question=null;project.tasks[0].state='review';return {accepted:true};}
+   if(method==='answerAgent'){if(window.decisionSendFailure)throw Error('model_unavailable');window.decisionCalls.push({method,...args});project.tasks[0].question=null;project.tasks[0].state='review';return {accepted:true};}
    if(method==='decideSetupAction')window.decisionCalls.push({method,...args});
   }
   if(method==='conversationHistory')return args.taskId?structuredClone(project.tasks.find(task=>task.id===args.taskId)):searchConversations(project.tasks,args);

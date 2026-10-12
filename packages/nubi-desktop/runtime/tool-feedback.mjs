@@ -86,5 +86,6 @@ export const computerInstruction=(code,details)=>{
 const FALLBACK=UNCHANGED+'Inspect the error, correct the input and do not repeat the same call unchanged.';
 
 export function recoveryInstruction(code,tool,readTools=new Set(['read_source','source_search','inspect_path','code_outline','wiki_query','knowledge_query','read_conversation','inspect_workspace_changes'])){
+  if(tool==='propose_setup_action'&&['source_read_required','source_stale'].includes(code))return 'No command was executed and no approval card was created. Read the exact configuration or script in details.path with read_source now. Use its returned path/hash in references, then propose the same unexecuted command. Do not invent hashes or reread unrelated files. Existing successful or uncertain commands must not be replayed.';
   return (readTools.has(tool)?READ_FAILED:'')+(GUIDANCE[code]||FALLBACK);
 }

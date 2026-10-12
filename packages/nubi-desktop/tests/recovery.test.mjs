@@ -42,14 +42,14 @@ test('failed Bash automatically reaches Pi diagnosis; an approved repaired comma
     const receipts=JSON.stringify(messages);round++;
     if(round===1){assert.match(receipts,/command_not_found/);return call('recovery_snapshot');}
     if(round===2){const snapshot=JSON.parse(messages.findLast(m=>m.role==='tool').content);return call('propose_command_repair',{processId:snapshot.processes[0].id,profile:'bash',script:"printf 'once\n' >> recovered.txt; printf 'RECOVERY_OK'",reason:'명령이 없어 실행에 실패했습니다. 프로젝트의 확인 명령으로 바꾸고 출력을 확인합니다.'});}
-    if(round>=4){assert.match(receipts,/RECOVERY_OK/);assert.match(receipts,/completed/);}
+    if(round>=3){assert.match(receipts,/RECOVERY_OK/);assert.match(receipts,/completed/);}
     return reply();
   }};
   const process=await service.run({taskId:task.id,script:'nubi_missing_command_for_fixture',profile:'bash'});
   await wait(()=>service.store.list('command-repair:').length===1&&!service.agent?.running);
   assert.equal(service.processes.poll(process.id).state,'failed');await assert.rejects(access(path.join(root,'recovered.txt')));
   const repair=service.store.list('command-repair:')[0];await Promise.all([service.applyCommandRepair({id:repair.id}),service.applyCommandRepair({id:repair.id})]);
-  await wait(()=>round>=4&&!service.agent?.running&&service.processes.active.size===0);
+  await wait(()=>round>=3&&!service.agent?.running&&service.processes.active.size===0);
   assert.equal(await readFile(path.join(root,'recovered.txt'),'utf8'),'once\n');assert.equal(service.store.list('process:').length,2);assert.equal(service.task(task.id).criteria[0].state,'unknown');
   const knowledge=await service.recordKnowledge({taskId:task.id}),document=await readFile(path.join(root,knowledge.path),'utf8');
   assert.match(document,/복구 기록/);assert.match(document,/propose_command_repair/);assert.doesNotMatch(document,/RECOVERY_OK|printf|nubi_missing_command_for_fixture/);

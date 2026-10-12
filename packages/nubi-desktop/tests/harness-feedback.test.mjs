@@ -351,7 +351,8 @@ test('the executor and the review are told that a question goes through ask_user
   // E5 (S27, 2026-09-30): the command the user named failed and the run stopped without the corrected command.
   // User decision 2026-10-01: the goal, not the words of the command; a command known to be wrong is not run.
   // K1 (S28, 2026-10-01): a correct answer named no file it rested on.
-  assert.match(system,/Name the files or Wiki pages an answer rests on, with path and lines when known\./);
+  assert.match(system,/inline citations/);
+  assert.match(system,/omit repeated summaries, source\/skill inventories/);
   assert.match(system,/When the command asked for is wrong[^.]*whether its run failed or project files show it[^.]*do not stop at reporting it: propose the corrected command[^.]*do not run a command known to be wrong/);
   assert.match(continued,/call ask_user/);
   assert.match(REVIEW_PROMPT,/user decision is needed[^.]*ask_user/);

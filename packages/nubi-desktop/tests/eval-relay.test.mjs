@@ -73,3 +73,17 @@ test('a missing session and an overlong socket path fail with clear codes',{skip
   await assert.rejects(connectRelayProviders({socketPath:long}),/socket_path_too_long/);
   await assert.rejects(startRelayServer({providers:{status,complete:async()=>({})},socketPath:long}),/socket_path_too_long/);
 });
+
+test('evaluation forwards structured response and required tool options without arbitrary settings',async t=>{
+  let received,activity=0;
+  const {client}=await session(t,{status,async complete(messages,tools,signal,text,phase,onActivity,options){received=options;onActivity();return {content:'ok'};}});
+  await client.complete([],[],undefined,()=>{},()=>{},()=>activity++,{toolChoice:'required',responseFormat:{type:'json_object'},maxTokens:1234,token:'never-forward'});
+  assert.deepEqual(received,{toolChoice:'required',responseFormat:{type:'json_object'},maxTokens:1234});
+  assert.equal(activity,1);
+});
+
+test('CLI current-context usage is preserved separately from cumulative billing usage',async t=>{
+ const usage={prompt_tokens:200,completion_tokens:10},contextUsage={prompt_tokens:80,completion_tokens:5};
+ const {client}=await session(t,{status,async complete(){return {content:'ok',usage,contextUsage};}});
+ const result=await client.complete([],[]);assert.deepEqual(result.usage,usage);assert.deepEqual(result.contextUsage,contextUsage);
+});

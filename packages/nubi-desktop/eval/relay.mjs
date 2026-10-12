@@ -23,8 +23,11 @@ const positive=value=>Number.isSafeInteger(value)&&value>0?value:undefined;
 // Desktop budgets context from these limits, so they travel with the status.
 const publicModel=model=>({id:model.id,label:model.label,contextLength:positive(model.contextLength),maxInputTokens:positive(model.maxInputTokens),maxOutputTokens:positive(model.maxOutputTokens),...(typeof model.supportsImages==='boolean'?{supportsImages:model.supportsImages}:{}),...(typeof model.resolvedModel==='string'?{resolvedModel:model.resolvedModel}:{})});
 export const publicStatus=status=>({provider:status.provider,model:status.model,connected:status.connected===true,models:(status.models||[]).map(publicModel),...(['low','medium','high','xhigh','max'].includes(status.reasoningEffort)?{reasoningEffort:status.reasoningEffort}:{})});
-const publicResult=result=>({content:result.content??'',calls:(result.calls||[]).map(call=>({id:call.id,type:call.type,function:{name:call.function?.name,arguments:call.function?.arguments}})),finishReason:result.finishReason,...(result.usage?{usage:result.usage}:{})});
+const publicResult=result=>({content:result.content??'',calls:(result.calls||[]).map(call=>({id:call.id,type:call.type,function:{name:call.function?.name,arguments:call.function?.arguments}})),finishReason:result.finishReason,...(result.usage?{usage:result.usage}:{}),...(result.contextUsage?{contextUsage:result.contextUsage}:{})});
 const publicError=error=>({code:safeError(error),...(Number.isInteger(error?.status)?{status:error.status}:{}),...(Number.isFinite(error?.retryAfterMs)?{retryAfterMs:error.retryAfterMs}:{})});
+// Preserve the product's structured-output/tool-choice contract in evaluation.
+// Credentials and arbitrary provider settings never cross this relay.
+export const completionOptions=value=>({...(value?.toolChoice==='required'?{toolChoice:'required'}:{}),...(value?.responseFormat?.type==='json_object'?{responseFormat:{type:'json_object'}}:{}),...(positive(value?.maxTokens)?{maxTokens:value.maxTokens}:{})});
 
 export async function startRelayServer({providers,socketPath}){
   checkPath(socketPath);
@@ -53,7 +56,7 @@ export async function startRelayServer({providers,socketPath}){
       const controller=new AbortController();pending.set(id,controller);
       // The run's idle clock needs model activity; forward it without content.
       let last=0;const activity=()=>{const now=Date.now();if(now-last<ACTIVITY_INTERVAL_MS||!pending.has(id))return;last=now;send({id,event:'activity'});};
-      Promise.resolve().then(()=>providers.complete(request.messages,request.tools,controller.signal,activity,activity))
+      Promise.resolve().then(()=>providers.complete(request.messages,request.tools,controller.signal,activity,activity,activity,completionOptions(request.options)))
         .then(result=>send({id,ok:true,result:publicResult(result)}),error=>send({id,ok:false,error:controller.signal.aborted?{code:'cancelled'}:publicError(error)}))
         .finally(()=>pending.delete(id));
     });
@@ -87,9 +90,9 @@ export async function connectRelayProviders({socketPath}){
   const status=await request(randomUUID(),'status');
   return{
     status:()=>structuredClone(status),
-    complete(messages,tools=[],signal,onText=()=>{}){
+    complete(messages,tools=[],signal,onText=()=>{},onPhase=()=>{},onActivity=()=>{},options={}){
       if(signal?.aborted)return Promise.reject(new Error('cancelled'));
-      const id=randomUUID(),result=request(id,'complete',{messages,tools},()=>onText());
+      const id=randomUUID(),result=request(id,'complete',{messages,tools,options:completionOptions(options)},()=>{onText();onActivity();});
       const abort=()=>{
         const waiting=pending.get(id);if(!waiting)return;
         pending.delete(id);waiting.reject(new Error('cancelled'));

@@ -1,0 +1,1817 @@
+[
+  {
+    "id": "bash-01",
+    "category": "bash",
+    "title": "매출 합계",
+    "request": "Bash로 매출 합계을 확인해 줘. 먼저 제공된 보고서 도구의 목록을 실행해 해당 데이터 ID를 찾고, 그 ID로 계산을 실행해서 결과를 알려 줘. 파일은 바꾸지 마.",
+    "expected": [
+      [
+        "53000",
+        "5만3000",
+        "5만3천"
+      ]
+    ],
+    "operation": "sum",
+    "data": [
+      12000,
+      18000,
+      23000
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "bash-02",
+    "category": "bash",
+    "title": "실패 작업 수",
+    "request": "Bash로 실패 작업 수을 확인해 줘. 먼저 제공된 보고서 도구의 목록을 실행해 해당 데이터 ID를 찾고, 그 ID로 계산을 실행해서 결과를 알려 줘. 파일은 바꾸지 마.",
+    "expected": [
+      [
+        "3"
+      ]
+    ],
+    "operation": "count",
+    "data": [
+      "success",
+      "failed",
+      "success",
+      "failed",
+      "failed"
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "bash-03",
+    "category": "bash",
+    "title": "최대 지연 구간",
+    "request": "Bash로 최대 지연 구간을 확인해 줘. 먼저 제공된 보고서 도구의 목록을 실행해 해당 데이터 ID를 찾고, 그 ID로 계산을 실행해서 결과를 알려 줘. 파일은 바꾸지 마.",
+    "expected": [
+      [
+        "부산"
+      ],
+      [
+        "82"
+      ]
+    ],
+    "operation": "max",
+    "data": [
+      {
+        "name": "서울",
+        "value": 45
+      },
+      {
+        "name": "부산",
+        "value": 82
+      },
+      {
+        "name": "제주",
+        "value": 61
+      }
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "bash-04",
+    "category": "bash",
+    "title": "최근 배포 파일",
+    "request": "Bash로 최근 배포 파일을 확인해 줘. 먼저 제공된 보고서 도구의 목록을 실행해 해당 데이터 ID를 찾고, 그 ID로 계산을 실행해서 결과를 알려 줘. 파일은 바꾸지 마.",
+    "expected": [
+      [
+        "beta.zip"
+      ]
+    ],
+    "operation": "latest",
+    "data": [
+      {
+        "name": "alpha.zip",
+        "date": "2026-10-01"
+      },
+      {
+        "name": "beta.zip",
+        "date": "2026-10-11"
+      },
+      {
+        "name": "gamma.zip",
+        "date": "2026-10-07"
+      }
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "bash-05",
+    "category": "bash",
+    "title": "부족 재고",
+    "request": "Bash로 부족 재고을 확인해 줘. 먼저 제공된 보고서 도구의 목록을 실행해 해당 데이터 ID를 찾고, 그 ID로 계산을 실행해서 결과를 알려 줘. 파일은 바꾸지 마.",
+    "expected": [
+      [
+        "연필"
+      ],
+      [
+        "지우개"
+      ]
+    ],
+    "operation": "low",
+    "data": [
+      {
+        "name": "연필",
+        "value": 3
+      },
+      {
+        "name": "공책",
+        "value": 18
+      },
+      {
+        "name": "지우개",
+        "value": 2
+      }
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "bash-06",
+    "category": "bash",
+    "title": "평균 처리 시간",
+    "request": "Bash로 평균 처리 시간을 확인해 줘. 먼저 제공된 보고서 도구의 목록을 실행해 해당 데이터 ID를 찾고, 그 ID로 계산을 실행해서 결과를 알려 줘. 파일은 바꾸지 마.",
+    "expected": [
+      [
+        "25"
+      ]
+    ],
+    "operation": "average",
+    "data": [
+      10,
+      20,
+      30,
+      40
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "bash-07",
+    "category": "bash",
+    "title": "누락된 필수 파일",
+    "request": "Bash로 누락된 필수 파일을 확인해 줘. 먼저 제공된 보고서 도구의 목록을 실행해 해당 데이터 ID를 찾고, 그 ID로 계산을 실행해서 결과를 알려 줘. 파일은 바꾸지 마.",
+    "expected": [
+      [
+        "config.json"
+      ]
+    ],
+    "operation": "missing",
+    "data": {
+      "required": [
+        "README.md",
+        "config.json",
+        "LICENSE"
+      ],
+      "actual": [
+        "README.md",
+        "LICENSE"
+      ]
+    },
+    "evaluationVersion": 2
+  },
+  {
+    "id": "bash-08",
+    "category": "bash",
+    "title": "중복 주문 식별자",
+    "request": "Bash로 중복 주문 식별자을 확인해 줘. 먼저 제공된 보고서 도구의 목록을 실행해 해당 데이터 ID를 찾고, 그 ID로 계산을 실행해서 결과를 알려 줘. 파일은 바꾸지 마.",
+    "expected": [
+      [
+        "ORD-A"
+      ],
+      [
+        "ORD-C"
+      ]
+    ],
+    "operation": "duplicates",
+    "data": [
+      "ORD-A",
+      "ORD-B",
+      "ORD-A",
+      "ORD-C",
+      "ORD-C"
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "bash-09",
+    "category": "bash",
+    "title": "분 단위 시간 합계",
+    "request": "Bash로 분 단위 시간 합계을 확인해 줘. 먼저 제공된 보고서 도구의 목록을 실행해 해당 데이터 ID를 찾고, 그 ID로 계산을 실행해서 결과를 알려 줘. 파일은 바꾸지 마. 원본 값의 단위는 초이며, 합계를 분으로 알려 줘.",
+    "expected": [
+      [
+        "10분",
+        "10 분"
+      ]
+    ],
+    "operation": "minutes",
+    "data": [
+      120,
+      180,
+      300
+    ],
+    "evaluationVersion": 2,
+    "inputUnit": "seconds",
+    "outputUnit": "minutes"
+  },
+  {
+    "id": "bash-10",
+    "category": "bash",
+    "title": "기본료 포함 배송비",
+    "request": "Bash로 기본료 포함 배송비을 확인해 줘. 먼저 제공된 보고서 도구의 목록을 실행해 해당 데이터 ID를 찾고, 그 ID로 계산을 실행해서 결과를 알려 줘. 파일은 바꾸지 마.",
+    "expected": [
+      [
+        "7500",
+        "7천500",
+        "7천5백"
+      ]
+    ],
+    "operation": "shipping",
+    "data": {
+      "base": 3000,
+      "extra": 4500
+    },
+    "evaluationVersion": 2
+  },
+  {
+    "id": "bash-11",
+    "category": "bash",
+    "title": "마지막 성공 작업",
+    "request": "Bash로 마지막 성공 작업을 확인해 줘. 먼저 제공된 보고서 도구의 목록을 실행해 해당 데이터 ID를 찾고, 그 ID로 계산을 실행해서 결과를 알려 줘. 파일은 바꾸지 마.",
+    "expected": [
+      [
+        "job-12"
+      ]
+    ],
+    "operation": "lastSuccess",
+    "data": [
+      {
+        "name": "job-11",
+        "status": "success"
+      },
+      {
+        "name": "job-12",
+        "status": "success"
+      },
+      {
+        "name": "job-13",
+        "status": "failed"
+      }
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "bash-12",
+    "category": "bash",
+    "title": "검사 통과 비율",
+    "request": "Bash로 검사 통과 비율을 확인해 줘. 먼저 제공된 보고서 도구의 목록을 실행해 해당 데이터 ID를 찾고, 그 ID로 계산을 실행해서 결과를 알려 줘. 파일은 바꾸지 마.",
+    "expected": [
+      [
+        "90"
+      ]
+    ],
+    "operation": "rate",
+    "data": {
+      "pass": 18,
+      "total": 20
+    },
+    "evaluationVersion": 2
+  },
+  {
+    "id": "bash-13",
+    "category": "bash",
+    "title": "고객별 최다 매출",
+    "request": "Bash로 고객별 최다 매출을 확인해 줘. 먼저 제공된 보고서 도구의 목록을 실행해 해당 데이터 ID를 찾고, 그 ID로 계산을 실행해서 결과를 알려 줘. 파일은 바꾸지 마.",
+    "expected": [
+      [
+        "솔빛"
+      ],
+      [
+        "38000",
+        "3만8000",
+        "3만8천"
+      ]
+    ],
+    "operation": "topCustomer",
+    "data": [
+      {
+        "name": "솔빛",
+        "value": 20000
+      },
+      {
+        "name": "바다",
+        "value": 25000
+      },
+      {
+        "name": "솔빛",
+        "value": 18000
+      }
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "bash-14",
+    "category": "bash",
+    "title": "좌석 잔여 수",
+    "request": "Bash로 좌석 잔여 수을 확인해 줘. 먼저 제공된 보고서 도구의 목록을 실행해 해당 데이터 ID를 찾고, 그 ID로 계산을 실행해서 결과를 알려 줘. 파일은 바꾸지 마.",
+    "expected": [
+      [
+        "27"
+      ]
+    ],
+    "operation": "remaining",
+    "data": {
+      "capacity": 80,
+      "booked": 53
+    },
+    "evaluationVersion": 2
+  },
+  {
+    "id": "bash-15",
+    "category": "bash",
+    "title": "두 환경 버전 차이",
+    "request": "Bash로 두 환경 버전 차이을 확인해 줘. 먼저 제공된 보고서 도구의 목록을 실행해 해당 데이터 ID를 찾고, 그 ID로 계산을 실행해서 결과를 알려 줘. 파일은 바꾸지 마.",
+    "expected": [
+      [
+        "2.4.1"
+      ],
+      [
+        "2.3.0"
+      ]
+    ],
+    "operation": "versions",
+    "data": {
+      "development": "2.4.1",
+      "production": "2.3.0"
+    },
+    "evaluationVersion": 2
+  },
+  {
+    "id": "bash-16",
+    "category": "bash",
+    "title": "검사 합계와 실패 수",
+    "request": "Bash로 검사 합계와 실패 수을 확인해 줘. 먼저 제공된 보고서 도구의 목록을 실행해 해당 데이터 ID를 찾고, 그 ID로 계산을 실행해서 결과를 알려 줘. 파일은 바꾸지 마.",
+    "expected": [
+      [
+        "11"
+      ],
+      [
+        "3"
+      ]
+    ],
+    "operation": "testSummary",
+    "data": [
+      {
+        "pass": 5,
+        "fail": 1
+      },
+      {
+        "pass": 4,
+        "fail": 0
+      },
+      {
+        "pass": 2,
+        "fail": 2
+      }
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "bash-17",
+    "category": "bash",
+    "title": "담당자 없는 작업",
+    "request": "Bash로 담당자 없는 작업을 확인해 줘. 먼저 제공된 보고서 도구의 목록을 실행해 해당 데이터 ID를 찾고, 그 ID로 계산을 실행해서 결과를 알려 줘. 파일은 바꾸지 마.",
+    "expected": [
+      [
+        "문서 정리"
+      ],
+      [
+        "백업 확인"
+      ]
+    ],
+    "operation": "unassigned",
+    "data": [
+      {
+        "name": "로그 점검",
+        "owner": "김민수"
+      },
+      {
+        "name": "문서 정리",
+        "owner": null
+      },
+      {
+        "name": "백업 확인",
+        "owner": null
+      }
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "bash-18",
+    "category": "bash",
+    "title": "실측과 기준 차이",
+    "request": "Bash로 실측과 기준 차이을 확인해 줘. 먼저 제공된 보고서 도구의 목록을 실행해 해당 데이터 ID를 찾고, 그 ID로 계산을 실행해서 결과를 알려 줘. 파일은 바꾸지 마.",
+    "expected": [
+      [
+        "35"
+      ]
+    ],
+    "operation": "difference",
+    "data": {
+      "actual": 135,
+      "baseline": 100
+    },
+    "evaluationVersion": 2
+  },
+  {
+    "id": "bash-19",
+    "category": "bash",
+    "title": "교집합 사용자",
+    "request": "Bash로 교집합 사용자을 확인해 줘. 먼저 제공된 보고서 도구의 목록을 실행해 해당 데이터 ID를 찾고, 그 ID로 계산을 실행해서 결과를 알려 줘. 파일은 바꾸지 마.",
+    "expected": [
+      [
+        "서준"
+      ],
+      [
+        "하린"
+      ]
+    ],
+    "operation": "intersection",
+    "data": {
+      "left": [
+        "지민",
+        "서준",
+        "하린"
+      ],
+      "right": [
+        "서준",
+        "하린",
+        "도윤"
+      ]
+    },
+    "evaluationVersion": 2
+  },
+  {
+    "id": "bash-20",
+    "category": "bash",
+    "title": "주문 담당자 연결",
+    "request": "Bash로 주문 담당자 연결을 확인해 줘. 먼저 제공된 보고서 도구의 목록을 실행해 해당 데이터 ID를 찾고, 그 ID로 계산을 실행해서 결과를 알려 줘. 파일은 바꾸지 마.",
+    "expected": [
+      [
+        "ORD-7"
+      ],
+      [
+        "이바다"
+      ]
+    ],
+    "operation": "join",
+    "data": {
+      "orders": [
+        {
+          "id": "ORD-7",
+          "ownerId": "U2"
+        }
+      ],
+      "users": [
+        {
+          "id": "U1",
+          "name": "김하늘"
+        },
+        {
+          "id": "U2",
+          "name": "이바다"
+        }
+      ]
+    },
+    "evaluationVersion": 2
+  },
+  {
+    "id": "mail-01",
+    "category": "mail",
+    "title": "출시 일정",
+    "request": "/mail 출시 일정 관련 메일들을 대조해서 출시일과 장소의 최종 확정 내용을 알려 줘. 근거 메일을 함께 표시해 줘.",
+    "expected": [
+      [
+        "11월 12일",
+        "11-12",
+        "11/12"
+      ],
+      [
+        "솔빛룸"
+      ]
+    ],
+    "mails": [
+      "초기 출시일은 11월 10일, 장소는 새싹룸입니다.",
+      "출시일을 11월 12일로 변경합니다. 장소는 별도 최종 안내를 따릅니다.",
+      "최종 장소는 솔빛룸입니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "mail-02",
+    "category": "mail",
+    "title": "교육 참석",
+    "request": "/mail 교육 참석 관련 메일들을 대조해서 교육 최종 참석 인원과 담당자를 알려 줘. 근거 메일을 함께 표시해 줘.",
+    "expected": [
+      [
+        "15"
+      ],
+      [
+        "김하늘"
+      ]
+    ],
+    "mails": [
+      "교육 신청 인원은 12명입니다.",
+      "교육 참석 3명이 추가되어 최종 15명입니다.",
+      "교육 담당자는 김하늘입니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "mail-03",
+    "category": "mail",
+    "title": "견적 합계",
+    "request": "/mail 견적 합계 관련 메일들을 대조해서 장비와 설치 비용의 합계, 부가세 포함 여부를 알려 줘. 근거 메일을 함께 표시해 줘.",
+    "expected": [
+      [
+        "150000",
+        "15만"
+      ],
+      [
+        "포함"
+      ]
+    ],
+    "mails": [
+      "장비 견적은 120000원입니다.",
+      "설치 견적은 30000원입니다.",
+      "두 견적은 모두 부가세 포함 금액입니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "mail-04",
+    "category": "mail",
+    "title": "배송 주소",
+    "request": "/mail 배송 주소 관련 메일들을 대조해서 최종 배송지와 수령 담당자를 알려 줘. 근거 메일을 함께 표시해 줘.",
+    "expected": [
+      [
+        "별관"
+      ],
+      [
+        "2층"
+      ],
+      [
+        "박서준"
+      ]
+    ],
+    "mails": [
+      "배송지는 본관으로 신청했습니다.",
+      "배송지를 별관 2층으로 변경합니다.",
+      "수령 담당자는 박서준입니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "mail-05",
+    "category": "mail",
+    "title": "점검 시간",
+    "request": "/mail 점검 시간 관련 메일들을 대조해서 점검 시작 시각과 예상 소요 시간을 알려 줘. 근거 메일을 함께 표시해 줘.",
+    "expected": [
+      [
+        "21:00",
+        "오후 9",
+        "21시"
+      ],
+      [
+        "40분"
+      ]
+    ],
+    "mails": [
+      "점검 시작은 오후 9시입니다.",
+      "점검 시간은 40분으로 확정했습니다.",
+      "서비스 중단은 점검 시간 동안에만 발생합니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "mail-06",
+    "category": "mail",
+    "title": "회의 결정",
+    "request": "/mail 회의 결정 관련 메일들을 대조해서 회의에서 채택한 안과 보류한 안을 구분해 줘. 근거 메일을 함께 표시해 줘.",
+    "expected": [
+      [
+        "B안"
+      ],
+      [
+        "채택"
+      ],
+      [
+        "A안"
+      ],
+      [
+        "보류"
+      ]
+    ],
+    "mails": [
+      "초안은 A안과 B안을 모두 검토합니다.",
+      "회의에서 B안을 채택했습니다.",
+      "A안은 예산 검토가 끝날 때까지 보류합니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "mail-07",
+    "category": "mail",
+    "title": "문서 제출",
+    "request": "/mail 문서 제출 관련 메일들을 대조해서 최종 제출 기한과 수신 팀을 알려 줘. 근거 메일을 함께 표시해 줘.",
+    "expected": [
+      [
+        "10월 20일",
+        "10-20",
+        "10/20"
+      ],
+      [
+        "품질팀"
+      ]
+    ],
+    "mails": [
+      "제출 기한은 10월 18일입니다.",
+      "제출 기한을 10월 20일로 연장했습니다.",
+      "최종 문서는 품질팀으로 보내 주세요."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "mail-08",
+    "category": "mail",
+    "title": "행사 예산",
+    "request": "/mail 행사 예산 관련 메일들을 대조해서 총예산과 집행액을 비교해 잔액을 알려 줘. 근거 메일을 함께 표시해 줘.",
+    "expected": [
+      [
+        "300000",
+        "30만"
+      ]
+    ],
+    "mails": [
+      "행사 총예산은 500000원입니다.",
+      "장소 대여비 120000원을 집행했습니다.",
+      "물품 구매비 80000원을 집행했습니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "mail-09",
+    "category": "mail",
+    "title": "출장 예약",
+    "request": "/mail 출장 예약 관련 메일들을 대조해서 확정된 출발일과 호텔명을 알려 줘. 근거 메일을 함께 표시해 줘.",
+    "expected": [
+      [
+        "11월 4일",
+        "11-04",
+        "11/4"
+      ],
+      [
+        "해솔호텔"
+      ]
+    ],
+    "mails": [
+      "출장 출발은 11월 3일입니다.",
+      "출발일을 11월 4일로 확정했습니다.",
+      "숙소는 해솔호텔로 예약 완료했습니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "mail-10",
+    "category": "mail",
+    "title": "승인 현황",
+    "request": "/mail 승인 현황 관련 메일들을 대조해서 보안 검토와 예산 검토의 현재 승인 여부를 구분해 줘. 근거 메일을 함께 표시해 줘.",
+    "expected": [
+      [
+        "보안"
+      ],
+      [
+        "승인"
+      ],
+      [
+        "예산"
+      ],
+      [
+        "대기"
+      ]
+    ],
+    "mails": [
+      "두 검토를 요청했습니다.",
+      "보안 검토는 승인되었습니다.",
+      "예산 검토는 아직 대기 중입니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "mail-11",
+    "category": "mail",
+    "title": "자료 버전",
+    "request": "/mail 자료 버전 관련 메일들을 대조해서 사용할 최종 자료 버전과 폐기할 버전을 알려 줘. 근거 메일을 함께 표시해 줘.",
+    "expected": [
+      [
+        "v1.3"
+      ],
+      [
+        "v1.2"
+      ],
+      [
+        "중지",
+        "폐기",
+        "사용하지"
+      ]
+    ],
+    "mails": [
+      "자료 v1.2를 배포합니다.",
+      "v1.3이 최종이며 v1.2는 사용 중지합니다.",
+      "발표에는 v1.3만 사용해 주세요."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "mail-12",
+    "category": "mail",
+    "title": "고객 답변",
+    "request": "/mail 고객 답변 관련 메일들을 대조해서 고객이 원하는 기능과 약속한 답변 기한을 알려 줘. 근거 메일을 함께 표시해 줘.",
+    "expected": [
+      [
+        "엑셀"
+      ],
+      [
+        "10월 22일",
+        "10-22",
+        "10/22"
+      ]
+    ],
+    "mails": [
+      "고객은 엑셀 내보내기 기능을 요청했습니다.",
+      "추가 요구는 없습니다. 엑셀 내보내기가 우선입니다.",
+      "10월 22일까지 가능 여부를 답변하기로 했습니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "mail-13",
+    "category": "mail",
+    "title": "면접 일정",
+    "request": "/mail 면접 일정 관련 메일들을 대조해서 확정 시각과 면접 방식을 알려 줘. 근거 메일을 함께 표시해 줘.",
+    "expected": [
+      [
+        "오전 11",
+        "11:00",
+        "11시"
+      ],
+      [
+        "화상"
+      ]
+    ],
+    "mails": [
+      "면접은 오전 10시 대면 예정입니다.",
+      "시각을 오전 11시로 변경합니다.",
+      "방식은 화상 면접으로 확정합니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "mail-14",
+    "category": "mail",
+    "title": "장애 조치",
+    "request": "/mail 장애 조치 관련 메일들을 대조해서 원인과 완료된 조치를 구분해 알려 줘. 근거 메일을 함께 표시해 줘.",
+    "expected": [
+      [
+        "캐시"
+      ],
+      [
+        "만료"
+      ],
+      [
+        "초기화"
+      ]
+    ],
+    "mails": [
+      "로그인 장애가 접수되었습니다.",
+      "원인은 캐시 만료 오류로 확인했습니다.",
+      "캐시 초기화와 정상 로그인 확인을 완료했습니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "mail-15",
+    "category": "mail",
+    "title": "구매 수량",
+    "request": "/mail 구매 수량 관련 메일들을 대조해서 노트북과 모니터 최종 구매 수량을 각각 알려 줘. 근거 메일을 함께 표시해 줘.",
+    "expected": [
+      [
+        "노트북"
+      ],
+      [
+        "7"
+      ],
+      [
+        "모니터"
+      ],
+      [
+        "5"
+      ]
+    ],
+    "mails": [
+      "노트북 5대와 모니터 5대를 요청합니다.",
+      "노트북을 7대로 늘립니다.",
+      "모니터는 5대를 유지합니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "mail-16",
+    "category": "mail",
+    "title": "프로젝트 인계",
+    "request": "/mail 프로젝트 인계 관련 메일들을 대조해서 새 담당자와 인계 대상 문서를 알려 줘. 근거 메일을 함께 표시해 줘.",
+    "expected": [
+      [
+        "이하린"
+      ],
+      [
+        "운영매뉴얼"
+      ],
+      [
+        "점검표"
+      ]
+    ],
+    "mails": [
+      "기존 담당자는 김지민입니다.",
+      "새 담당자는 이하린입니다.",
+      "인계 대상은 운영매뉴얼과 점검표입니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "mail-17",
+    "category": "mail",
+    "title": "지급 일정",
+    "request": "/mail 지급 일정 관련 메일들을 대조해서 계약금과 잔금 지급일을 각각 알려 줘. 근거 메일을 함께 표시해 줘.",
+    "expected": [
+      [
+        "10월 15일",
+        "10-15",
+        "10/15"
+      ],
+      [
+        "10월 25일",
+        "10-25",
+        "10/25"
+      ]
+    ],
+    "mails": [
+      "계약금은 10월 15일 지급합니다.",
+      "잔금은 검수 이후 지급합니다.",
+      "검수 완료에 따라 잔금은 10월 25일 지급 확정입니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "mail-18",
+    "category": "mail",
+    "title": "참석 회신",
+    "request": "/mail 참석 회신 관련 메일들을 대조해서 참석과 불참을 각각 구분해 줘. 근거 메일을 함께 표시해 줘.",
+    "expected": [
+      [
+        "김하늘"
+      ],
+      [
+        "박서준"
+      ],
+      [
+        "이바다"
+      ],
+      [
+        "불참"
+      ]
+    ],
+    "mails": [
+      "김하늘은 참석합니다.",
+      "이바다는 불참합니다.",
+      "박서준은 참석합니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "mail-19",
+    "category": "mail",
+    "title": "서버 이전",
+    "request": "/mail 서버 이전 관련 메일들을 대조해서 이전 대상과 변경된 작업일을 알려 줘. 근거 메일을 함께 표시해 줘.",
+    "expected": [
+      [
+        "개발서버"
+      ],
+      [
+        "10월 19일",
+        "10-19",
+        "10/19"
+      ]
+    ],
+    "mails": [
+      "이전 대상은 개발서버이며 10월 16일 작업합니다.",
+      "운영서버는 이번 대상이 아닙니다.",
+      "개발서버 이전을 10월 19일로 변경합니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "mail-20",
+    "category": "mail",
+    "title": "행사 취소",
+    "request": "/mail 행사 취소 관련 메일들을 대조해서 행사 진행 여부와 환불 여부를 알려 줘. 근거 메일을 함께 표시해 줘.",
+    "expected": [
+      [
+        "취소"
+      ],
+      [
+        "전액"
+      ],
+      [
+        "환불"
+      ]
+    ],
+    "mails": [
+      "행사는 예정대로 준비 중입니다.",
+      "기상 악화로 행사를 취소합니다.",
+      "참가비는 전액 환불합니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "skill-01",
+    "category": "skill",
+    "title": "로그인 장애 보고",
+    "request": "프로젝트에서 이 작업에 맞는 스킬을 찾아 적용해서 정리해 줘. 로그인 오류로 150명이 영향을 받았습니다. 원인은 캐시 만료로 확인됐고 다음 조치는 캐시 초기화입니다.",
+    "expected": [
+      [
+        "P1"
+      ],
+      [
+        "영향"
+      ],
+      [
+        "원인"
+      ],
+      [
+        "다음 조치"
+      ],
+      [
+        "캐시"
+      ]
+    ],
+    "skill": "incident-brief",
+    "forbidden": [],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "skill-02",
+    "category": "skill",
+    "title": "검색 장애 보고",
+    "request": "프로젝트에서 이 작업에 맞는 스킬을 찾아 적용해서 정리해 줘. 검색 지연으로 20명이 영향을 받았습니다. 원인은 아직 모르며 다음 조치는 로그 확인입니다.",
+    "expected": [
+      [
+        "P2"
+      ],
+      [
+        "영향"
+      ],
+      [
+        "다음 조치"
+      ],
+      [
+        "로그"
+      ]
+    ],
+    "skill": "incident-brief",
+    "forbidden": [],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "skill-03",
+    "category": "skill",
+    "title": "회의 할 일 정리",
+    "request": "프로젝트에서 이 작업에 맞는 스킬을 찾아 적용해서 정리해 줘. 김하늘이 운영 문서를 10월 20일까지 수정하기로 했습니다.",
+    "expected": [
+      [
+        "담당자"
+      ],
+      [
+        "김하늘"
+      ],
+      [
+        "할 일"
+      ],
+      [
+        "기한"
+      ],
+      [
+        "20"
+      ]
+    ],
+    "skill": "meeting-actions",
+    "forbidden": [],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "skill-04",
+    "category": "skill",
+    "title": "미정 기한 회의",
+    "request": "프로젝트에서 이 작업에 맞는 스킬을 찾아 적용해서 정리해 줘. 이바다가 테스트를 맡았습니다. 마감일은 정하지 않았습니다.",
+    "expected": [
+      [
+        "이바다"
+      ],
+      [
+        "테스트"
+      ],
+      [
+        "기한"
+      ],
+      [
+        "미정"
+      ]
+    ],
+    "skill": "meeting-actions",
+    "forbidden": [],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "skill-05",
+    "category": "skill",
+    "title": "검색 배포 안내",
+    "request": "프로젝트에서 이 작업에 맞는 스킬을 찾아 적용해서 정리해 줘. 검색 속도를 개선했습니다. 단위 검사는 통과했고 Windows 검사는 아직 실행하지 않았습니다.",
+    "expected": [
+      [
+        "변경"
+      ],
+      [
+        "확인"
+      ],
+      [
+        "남은 확인"
+      ],
+      [
+        "Windows"
+      ]
+    ],
+    "skill": "release-notes",
+    "forbidden": [],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "skill-06",
+    "category": "skill",
+    "title": "메일 배포 안내",
+    "request": "프로젝트에서 이 작업에 맞는 스킬을 찾아 적용해서 정리해 줘. 메일 정렬을 추가했습니다. 화면 검사는 통과했고 사내 메일 연결은 미확인입니다. 산출물은 배포 안내문이며, 배포 안내 스킬 형식으로 작성해 줘.",
+    "expected": [
+      [
+        "변경"
+      ],
+      [
+        "확인"
+      ],
+      [
+        "남은 확인"
+      ],
+      [
+        "사내"
+      ]
+    ],
+    "skill": "release-notes",
+    "forbidden": [],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "skill-07",
+    "category": "skill",
+    "title": "전화번호 가림",
+    "request": "프로젝트에서 이 작업에 맞는 스킬을 찾아 적용해서 정리해 줘. 김하늘(010-1234-5678)이 모니터 교체를 요청했습니다.",
+    "expected": [
+      [
+        "제목"
+      ],
+      [
+        "요약"
+      ],
+      [
+        "[비공개]"
+      ],
+      [
+        "모니터"
+      ]
+    ],
+    "skill": "privacy-summary",
+    "forbidden": [
+      "010-1234-5678"
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "skill-08",
+    "category": "skill",
+    "title": "이메일 주소 가림",
+    "request": "프로젝트에서 이 작업에 맞는 스킬을 찾아 적용해서 정리해 줘. 담당자 연락처는 mina@example.test입니다. 이번 주 교육 자료를 요청했습니다.",
+    "expected": [
+      [
+        "제목"
+      ],
+      [
+        "요약"
+      ],
+      [
+        "[비공개]"
+      ],
+      [
+        "교육"
+      ]
+    ],
+    "skill": "privacy-summary",
+    "forbidden": [
+      "mina@example.test"
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "skill-09",
+    "category": "skill",
+    "title": "로그인 문의 답변",
+    "request": "프로젝트에서 이 작업에 맞는 스킬을 찾아 적용해서 정리해 줘. 고객이 로그인이 안 된다고 합니다. 확인된 안내는 VPN 연결 후 재시도입니다. 아직 해결 여부는 모릅니다.",
+    "expected": [
+      [
+        "답변 초안"
+      ],
+      [
+        "VPN"
+      ],
+      [
+        "재시도"
+      ]
+    ],
+    "skill": "support-reply",
+    "forbidden": [],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "skill-10",
+    "category": "skill",
+    "title": "저장 문의 답변",
+    "request": "프로젝트에서 이 작업에 맞는 스킬을 찾아 적용해서 정리해 줘. 고객이 저장 실패를 신고했습니다. 다른 이름으로 저장하면 되는지 확인을 요청하려 합니다. 해결 여부는 미확인입니다. 산출물은 고객에게 보낼 답변 초안만 필요해. 고객 응대 스킬을 활용해 줘.",
+    "expected": [
+      [
+        "답변 초안"
+      ],
+      [
+        "다른 이름"
+      ],
+      [
+        "저장"
+      ]
+    ],
+    "skill": "support-reply",
+    "forbidden": [],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "skill-11",
+    "category": "skill",
+    "title": "행사 잔액 검토",
+    "request": "프로젝트에서 이 작업에 맞는 스킬을 찾아 적용해서 정리해 줘. 예산은 100000원이고 집행액은 65000원입니다.",
+    "expected": [
+      [
+        "예산"
+      ],
+      [
+        "집행"
+      ],
+      [
+        "잔액"
+      ],
+      [
+        "35000",
+        "3만5000",
+        "3만5천"
+      ]
+    ],
+    "skill": "budget-check",
+    "forbidden": [],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "skill-12",
+    "category": "skill",
+    "title": "예산 초과 검토",
+    "request": "프로젝트에서 이 작업에 맞는 스킬을 찾아 적용해서 정리해 줘. 예산은 80000원이고 집행액은 95000원입니다.",
+    "expected": [
+      [
+        "예산"
+      ],
+      [
+        "집행"
+      ],
+      [
+        "잔액"
+      ],
+      [
+        "15000",
+        "1만5000",
+        "1만5천"
+      ],
+      [
+        "초과"
+      ]
+    ],
+    "skill": "budget-check",
+    "forbidden": [],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "skill-13",
+    "category": "skill",
+    "title": "필수 조건 대안 비교",
+    "request": "프로젝트에서 이 작업에 맞는 스킬을 찾아 적용해서 정리해 줘. 필수 조건은 오프라인 지원입니다. A안은 10000원이며 오프라인을 지원하지 않습니다. B안은 15000원이며 지원합니다.",
+    "expected": [
+      [
+        "추천"
+      ],
+      [
+        "B안"
+      ],
+      [
+        "이유"
+      ],
+      [
+        "제외 사유"
+      ]
+    ],
+    "skill": "option-compare",
+    "forbidden": [],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "skill-14",
+    "category": "skill",
+    "title": "동일 조건 가격 비교",
+    "request": "프로젝트에서 이 작업에 맞는 스킬을 찾아 적용해서 정리해 줘. 필수 조건은 엑셀 출력입니다. A안은 8000원, B안은 12000원이고 둘 다 엑셀 출력을 지원합니다.",
+    "expected": [
+      [
+        "추천"
+      ],
+      [
+        "A안"
+      ],
+      [
+        "이유"
+      ],
+      [
+        "제외 사유"
+      ]
+    ],
+    "skill": "option-compare",
+    "forbidden": [],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "skill-15",
+    "category": "skill",
+    "title": "버튼 오류 재현",
+    "request": "프로젝트에서 이 작업에 맞는 스킬을 찾아 적용해서 정리해 줘. 설정을 열고 저장을 누르면 흰 화면이 됩니다. 기대한 결과는 설정 저장입니다.",
+    "expected": [
+      [
+        "재현 순서"
+      ],
+      [
+        "기대 결과"
+      ],
+      [
+        "실제 결과"
+      ],
+      [
+        "흰 화면"
+      ]
+    ],
+    "skill": "bug-report",
+    "forbidden": [],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "skill-16",
+    "category": "skill",
+    "title": "정렬 오류 재현",
+    "request": "프로젝트에서 이 작업에 맞는 스킬을 찾아 적용해서 정리해 줘. 메일 목록에서 날짜를 누르면 목록이 비어 버립니다. 날짜순 정렬이 되어야 합니다.",
+    "expected": [
+      [
+        "재현 순서"
+      ],
+      [
+        "기대 결과"
+      ],
+      [
+        "실제 결과"
+      ],
+      [
+        "날짜"
+      ]
+    ],
+    "skill": "bug-report",
+    "forbidden": [],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "skill-17",
+    "category": "skill",
+    "title": "배포 위험 검토",
+    "request": "프로젝트에서 이 작업에 맞는 스킬을 찾아 적용해서 정리해 줘. 배포 중 중단의 발생 확률은 높고 영향도 높습니다. 대응은 백업 확보입니다.",
+    "expected": [
+      [
+        "위험도"
+      ],
+      [
+        "높음"
+      ],
+      [
+        "근거"
+      ],
+      [
+        "대응"
+      ],
+      [
+        "백업"
+      ]
+    ],
+    "skill": "risk-register",
+    "forbidden": [],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "skill-18",
+    "category": "skill",
+    "title": "교육 위험 검토",
+    "request": "프로젝트에서 이 작업에 맞는 스킬을 찾아 적용해서 정리해 줘. 교육 자료 지연의 확률은 낮고 영향은 높습니다. 대응은 예비 자료 준비입니다.",
+    "expected": [
+      [
+        "위험도"
+      ],
+      [
+        "중간"
+      ],
+      [
+        "근거"
+      ],
+      [
+        "대응"
+      ],
+      [
+        "예비"
+      ]
+    ],
+    "skill": "risk-register",
+    "forbidden": [],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "skill-19",
+    "category": "skill",
+    "title": "담당자 있는 인계",
+    "request": "프로젝트에서 이 작업에 맞는 스킬을 찾아 적용해서 정리해 줘. 문서는 완료됐고 검수는 진행 중입니다. 다음 담당자는 박서준입니다.",
+    "expected": [
+      [
+        "완료"
+      ],
+      [
+        "진행"
+      ],
+      [
+        "다음 담당자"
+      ],
+      [
+        "박서준"
+      ]
+    ],
+    "skill": "handoff-note",
+    "forbidden": [],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "skill-20",
+    "category": "skill",
+    "title": "담당자 미정 인계",
+    "request": "프로젝트에서 이 작업에 맞는 스킬을 찾아 적용해서 정리해 줘. 개발은 완료됐고 배포는 진행 중입니다. 다음 담당자는 정하지 않았습니다.",
+    "expected": [
+      [
+        "완료"
+      ],
+      [
+        "진행"
+      ],
+      [
+        "다음 담당자"
+      ],
+      [
+        "미정"
+      ]
+    ],
+    "skill": "handoff-note",
+    "forbidden": [],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "wiki-01",
+    "category": "wiki",
+    "title": "휴가 신청",
+    "request": "/code OpenWiki에서 휴가 신청 기한과 승인 담당자는 누구야? 근거 문서를 함께 표시해 줘.",
+    "expected": [
+      [
+        "3일"
+      ],
+      [
+        "김하늘"
+      ]
+    ],
+    "pages": [
+      "휴가는 사용일 3일 전까지 신청합니다.",
+      "승인 담당자는 김하늘입니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "wiki-02",
+    "category": "wiki",
+    "title": "출장 정산",
+    "request": "/code OpenWiki에서 출장 정산 기한과 영수증 제출 여부를 알려 줘. 근거 문서를 함께 표시해 줘.",
+    "expected": [
+      [
+        "7일"
+      ],
+      [
+        "영수증"
+      ]
+    ],
+    "pages": [
+      "출장 정산은 복귀 후 7일 이내입니다.",
+      "모든 비용에 영수증을 제출해야 합니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "wiki-03",
+    "category": "wiki",
+    "title": "장비 대여",
+    "request": "/code OpenWiki에서 노트북 대여 기간과 반납 장소를 알려 줘. 근거 문서를 함께 표시해 줘.",
+    "expected": [
+      [
+        "14일"
+      ],
+      [
+        "지원센터"
+      ]
+    ],
+    "pages": [
+      "노트북 대여는 최대 14일입니다.",
+      "반납 장소는 지원센터입니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "wiki-04",
+    "category": "wiki",
+    "title": "회의실 예약",
+    "request": "/code OpenWiki에서 예약 가능한 최대 시간과 취소 기한을 알려 줘. 근거 문서를 함께 표시해 줘.",
+    "expected": [
+      [
+        "2시간"
+      ],
+      [
+        "30분"
+      ]
+    ],
+    "pages": [
+      "회의실 예약은 최대 2시간입니다.",
+      "예약 시작 30분 전까지 취소합니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "wiki-05",
+    "category": "wiki",
+    "title": "암호 정책",
+    "request": "/code OpenWiki에서 최소 암호 길이와 변경 주기를 알려 줘. 근거 문서를 함께 표시해 줘.",
+    "expected": [
+      [
+        "12자"
+      ],
+      [
+        "90일"
+      ]
+    ],
+    "pages": [
+      "암호는 최소 12자입니다.",
+      "변경 주기는 90일입니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "wiki-06",
+    "category": "wiki",
+    "title": "배포 절차",
+    "request": "/code OpenWiki에서 배포 전 필수 검사와 승인 담당 팀은? 근거 문서를 함께 표시해 줘.",
+    "expected": [
+      [
+        "회귀"
+      ],
+      [
+        "운영팀"
+      ]
+    ],
+    "pages": [
+      "배포 전 회귀 검사가 필요합니다.",
+      "운영팀 승인을 받은 뒤 배포합니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "wiki-07",
+    "category": "wiki",
+    "title": "장애 보고",
+    "request": "/code OpenWiki에서 긴급 장애 보고 채널과 담당 팀을 알려 줘. 근거 문서를 함께 표시해 줘.",
+    "expected": [
+      [
+        "장애상황실"
+      ],
+      [
+        "플랫폼팀"
+      ]
+    ],
+    "pages": [
+      "긴급 장애는 장애상황실 채널에 보고합니다.",
+      "초기 대응은 플랫폼팀이 맡습니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "wiki-08",
+    "category": "wiki",
+    "title": "백업 보관",
+    "request": "/code OpenWiki에서 백업 주기와 보관 기간을 알려 줘. 근거 문서를 함께 표시해 줘.",
+    "expected": [
+      [
+        "매일"
+      ],
+      [
+        "30일"
+      ]
+    ],
+    "pages": [
+      "백업은 매일 수행합니다.",
+      "백업 보관 기간은 30일입니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "wiki-09",
+    "category": "wiki",
+    "title": "로그 보관",
+    "request": "/code OpenWiki에서 접속 로그와 오류 로그의 보관 기간은? 근거 문서를 함께 표시해 줘.",
+    "expected": [
+      [
+        "90일"
+      ],
+      [
+        "14일"
+      ]
+    ],
+    "pages": [
+      "접속 로그는 90일 보관합니다.",
+      "오류 로그는 14일 보관합니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "wiki-10",
+    "category": "wiki",
+    "title": "지원 시간",
+    "request": "/code OpenWiki에서 지원센터 운영 시간과 휴무일은? 근거 문서를 함께 표시해 줘.",
+    "expected": [
+      [
+        "9시"
+      ],
+      [
+        "6시"
+      ],
+      [
+        "토요일"
+      ],
+      [
+        "일요일"
+      ]
+    ],
+    "pages": [
+      "지원센터는 오전 9시부터 오후 6시까지 운영합니다.",
+      "토요일과 일요일은 휴무입니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "wiki-11",
+    "category": "wiki",
+    "title": "교육 수료",
+    "request": "/code OpenWiki에서 수료 기준 점수와 출석률은? 근거 문서를 함께 표시해 줘.",
+    "expected": [
+      [
+        "80점"
+      ],
+      [
+        "90%"
+      ]
+    ],
+    "pages": [
+      "수료 시험은 80점 이상이어야 합니다.",
+      "출석률은 90% 이상이어야 합니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "wiki-12",
+    "category": "wiki",
+    "title": "문서 검토",
+    "request": "/code OpenWiki에서 문서 검토 담당자와 최종 저장 위치는? 근거 문서를 함께 표시해 줘.",
+    "expected": [
+      [
+        "이하린"
+      ],
+      [
+        "docs/final"
+      ]
+    ],
+    "pages": [
+      "문서 검토 담당자는 이하린입니다.",
+      "최종본은 docs/final에 저장합니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "wiki-13",
+    "category": "wiki",
+    "title": "식대 기준",
+    "request": "/code OpenWiki에서 하루 식대 한도와 주류 포함 가능 여부는? 근거 문서를 함께 표시해 줘.",
+    "expected": [
+      [
+        "20000",
+        "2만"
+      ],
+      [
+        "주류"
+      ],
+      [
+        "지원하지"
+      ]
+    ],
+    "pages": [
+      "하루 식대 한도는 20000원입니다.",
+      "주류 비용은 지원하지 않습니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "wiki-14",
+    "category": "wiki",
+    "title": "주차 등록",
+    "request": "/code OpenWiki에서 주차 등록 담당 팀과 방문자 가능 여부는? 근거 문서를 함께 표시해 줘.",
+    "expected": [
+      [
+        "총무팀"
+      ],
+      [
+        "사전"
+      ]
+    ],
+    "pages": [
+      "주차 등록은 총무팀이 처리합니다.",
+      "방문자는 사전 신청하면 등록할 수 있습니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "wiki-15",
+    "category": "wiki",
+    "title": "API 제한",
+    "request": "/code OpenWiki에서 분당 요청 한도와 초과 시 응답 코드는? 근거 문서를 함께 표시해 줘.",
+    "expected": [
+      [
+        "60회"
+      ],
+      [
+        "429"
+      ]
+    ],
+    "pages": [
+      "API는 분당 60회까지 허용합니다.",
+      "초과하면 HTTP 429를 반환합니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "wiki-16",
+    "category": "wiki",
+    "title": "버전 정책",
+    "request": "/code OpenWiki에서 안정 버전과 실험 버전을 구분하는 표시는? 근거 문서를 함께 표시해 줘.",
+    "expected": [
+      [
+        "stable"
+      ],
+      [
+        "preview"
+      ]
+    ],
+    "pages": [
+      "안정 버전은 stable 채널로 표시합니다.",
+      "실험 버전은 preview 채널로 표시합니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "wiki-17",
+    "category": "wiki",
+    "title": "소스 검토",
+    "request": "/code OpenWiki에서 필수 리뷰어 수와 병합 조건은? 근거 문서를 함께 표시해 줘.",
+    "expected": [
+      [
+        "2명"
+      ],
+      [
+        "자동 검사"
+      ]
+    ],
+    "pages": [
+      "소스 변경에는 리뷰어 2명이 필요합니다.",
+      "자동 검사를 모두 통과한 뒤 병합합니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "wiki-18",
+    "category": "wiki",
+    "title": "파일 제한",
+    "request": "/code OpenWiki에서 업로드 크기 한도와 허용 파일 형식은? 근거 문서를 함께 표시해 줘.",
+    "expected": [
+      [
+        "20MB"
+      ],
+      [
+        "PDF"
+      ],
+      [
+        "TXT"
+      ]
+    ],
+    "pages": [
+      "업로드 크기 한도는 20MB입니다.",
+      "허용 형식은 PDF와 TXT입니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "wiki-19",
+    "category": "wiki",
+    "title": "구매 승인",
+    "request": "/code OpenWiki에서 추가 승인 금액 기준과 승인 팀은? 근거 문서를 함께 표시해 줘.",
+    "expected": [
+      [
+        "1000000",
+        "100만",
+        "백만"
+      ],
+      [
+        "재무팀"
+      ]
+    ],
+    "pages": [
+      "1000000원 이상 구매는 추가 승인이 필요합니다.",
+      "추가 승인은 재무팀에서 합니다."
+    ],
+    "evaluationVersion": 2
+  },
+  {
+    "id": "wiki-20",
+    "category": "wiki",
+    "title": "복구 목표",
+    "request": "/code OpenWiki에서 복구 시간 목표와 데이터 손실 허용 시간은? 근거 문서를 함께 표시해 줘.",
+    "expected": [
+      [
+        "2시간"
+      ],
+      [
+        "15분"
+      ]
+    ],
+    "pages": [
+      "복구 시간 목표 RTO는 2시간입니다.",
+      "데이터 손실 허용 시간 RPO는 15분입니다."
+    ],
+    "evaluationVersion": 2
+  }
+]

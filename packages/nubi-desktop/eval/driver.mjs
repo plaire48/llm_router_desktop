@@ -30,7 +30,7 @@ async function settleCommand(service,processId,expired){
 const waiting=(service,taskId)=>{const state=service.state();return [...state.proposals,...(state.setupActions||[]),...(state.commandRepairs||[])].some(item=>item.taskId===taskId&&item.state==='proposed');};
 const commandRecord=p=>({script:p.script,profile:p.profile,state:p.state,exitCode:p.exitCode??null,execution:p.execution||'unknown',startedAt:p.startedAt,...(p.fault?{fault:p.fault}:{}),...(p.setupActionId?{setupActionId:p.setupActionId}:{}),...(p.repairOf?{repairOf:p.repairOf}:{})});
 
-export async function runCase({testCase,providers,limits={},parent,corpusDirectory,leanTools=false}){
+export async function runCase({testCase,providers,limits={},parent,corpusDirectory,leanTools=false,prepareWorkspace,configureService}){
   const budget={...EVALUATION_LIMITS,...limits};
   if(Object.values(budget).some(value=>!Number.isSafeInteger(value)||value<1))throw new Error('evaluation_invalid_budget');
   const workspace=await createWorkspace({corpus:testCase.corpus,parent,directory:corpusDirectory});
@@ -39,7 +39,11 @@ export async function runCase({testCase,providers,limits={},parent,corpusDirecto
   const service=new ProjectService({storageRoot:workspace.stateRoot}),user=createUser(testCase);service.leanTools=leanTools===true;
   let taskId,error=null,needsHuman=false,asked=false,interactions=0,expired=false,timer;
   try{
+    // Evaluation-only registered fixtures. These hooks never enter the product
+    // runtime and keep answer keys outside the agent workspace.
+    await prepareWorkspace?.(workspace);
     await service.open(workspace.root);service.providers=recorded;
+    await configureService?.(service,workspace);
     taskId=(await service.createTask({request:testCase.request,criteria:testCase.criteria||[]})).id;
     timer=setTimeout(()=>{expired=true;service.stopAgent({taskId}).catch(()=>{});},budget.timeoutMs);
     const turns=[...(testCase.followUps||[])];
@@ -85,13 +89,14 @@ export async function runCase({testCase,providers,limits={},parent,corpusDirecto
     if(!error&&!needsHuman&&service.task(taskId).state==='review')await applyProposals({service,taskId,user,root:workspace.root});
   }catch(cause){error=expired?'evaluation_case_timeout':safe(cause);}
   finally{clearTimeout(timer);}
-  let task=null,metrics={events:[],summary:null},commands=[];
-  try{if(taskId){task=service.task(taskId);metrics=readRunMetrics(service.store,{taskId});commands=service.store.list('process:').filter(p=>p.taskId===taskId).map(commandRecord).sort((a,b)=>String(a.startedAt).localeCompare(String(b.startedAt)));}}catch{/* The result still reports the error below. */}
+  let task=null,metrics={events:[],summary:null},commands=[],operations=[];
+  try{if(taskId){task=service.task(taskId);metrics=readRunMetrics(service.store,{taskId});commands=service.store.list('process:').filter(p=>p.taskId===taskId).map(commandRecord).sort((a,b)=>String(a.startedAt).localeCompare(String(b.startedAt)));operations=service.store.list('operation:').filter(p=>p.taskId===taskId);}}catch{/* The result still reports the error below. */}
   try{service.dispose();for(let wait=0;wait<100&&service.processes?.active.size;wait++)await pause(30);service.store?.close();}catch{/* Already closed. */}
   return{
     id:testCase.id,root:workspace.root,dispose:workspace.dispose,corpusHash:workspace.corpusHash,
     state:task?.state||null,answer:task?.messages?.findLast(message=>message.role==='assistant')?.content||'',
     asked,needsHuman,error,reviewStatus:task?.resultReview?.status||null,reviewHandoff:task?.resultReview?.handoff||null,compactions:metrics.summary?.compactions||0,
-    elapsedMs:Date.now()-started,modelCalls:recorded.modelCalls(),delegatedCalls:recorded.delegatedCalls(),interactions,user:user.log,transcript,metrics,commands,
+    elapsedMs:Date.now()-started,modelCalls:recorded.modelCalls(),delegatedCalls:recorded.delegatedCalls(),interactions,user:user.log,transcript,metrics,commands,operations,
+    sourceReferences:task?.messages?.findLast(message=>message.role==='assistant')?.sourceReferences||[],
   };
 }

@@ -38,8 +38,8 @@ export async function prepareSetupAction(service,taskId,args,observations) {
   args={...args,references:[...references.values()]};
   for(const ref of args.references){
     const observed=observations?.files.get(ref.path)?.hash===ref.hash?observations.files.get(ref.path):observations?.environment?.get(ref.path);
-    if(!observed||observed.hash!==ref.hash)fail('source_read_required');
-    if((await readSource(workspace,ref.path)).hash!==ref.hash)fail('source_stale');
+    if(!observed||observed.hash!==ref.hash)throw Object.assign(Error('source_read_required'),{actionIssued:false,details:{path:ref.path,reason:observations?.files.has(ref.path)||observations?.environment?.has(ref.path)?'hash_mismatch':'not_read_in_this_run'}});
+    if((await readSource(workspace,ref.path)).hash!==ref.hash)throw Object.assign(Error('source_stale'),{actionIssued:false,details:{path:ref.path,reason:'file_changed'}});
   }
   // A command proposed after file proposals of the same run is meant to run on them, such as a test after its fix
   // (2026-09-30, the command suite): the host holds it until each of them is applied.

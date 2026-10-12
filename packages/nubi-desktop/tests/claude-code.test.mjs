@@ -142,3 +142,39 @@ test('background model effort follows that model and discovery is coalesced and 
  let finish;const pendingAdapter=createClaudeCode({...f,run:async(b,a,o)=>{if(a.includes('--input-format'))await new Promise(r=>finish=r);return f.run(b,a,o);}});
  const pending=pendingAdapter.connect();while(!finish)await new Promise(r=>setImmediate(r));pendingAdapter.disconnect();finish();await assert.rejects(pending,/cancelled/);assert.equal(pendingAdapter.status().connected,false);
 });
+
+test('structured quota rejection is actionable; warnings and recovered replies are not failures',async()=>{
+  for(const kind of ['rejected-exit','assistant-error','rejected-result','warning','recovered','cancelled','generic']){
+    const f=fixture(),controller=new AbortController();
+    const adapter=createClaudeCode({...f,run:async(b,a,o)=>{
+      if(a[0]==='--help'||a[0]==='auth'||a.includes('--input-format'))return f.run(b,a,o);
+      o.onEvent({type:'rate_limit_event',rate_limit_info:{status:kind==='warning'?'allowed_warning':'rejected',rateLimitType:'five_hour',utilization:1,resetsAt:2000000000}});
+      if(kind==='assistant-error')o.onEvent({type:'assistant',error:'rate_limit',message:{content:[]}});
+      if(kind==='generic')throw Error('network_error');
+      if(kind==='cancelled'){controller.abort();throw Error('claude_cli_failed');}
+      if(kind==='rejected-exit'||kind==='assistant-error')throw Error('claude_cli_failed');
+      o.onEvent({...result(),is_error:kind==='rejected-result'});return '';
+    }});
+    await adapter.connect();const pending=adapter.complete([],[],controller.signal);
+    if(['warning','recovered'].includes(kind))assert.equal((await pending).content,'확인했습니다.');
+    else await assert.rejects(pending,{message:kind==='cancelled'?'cancelled':kind==='generic'?'network_error':'rate_limited'});
+    assert.equal(adapter.quota().windows[0].resetsAt,2000000000000);
+    assert.equal(adapter.status().connected,true,'quota is not lost authentication');
+  }
+});
+
+test('process exit maps only structured rejection, never stderr or diagnostic prose',async()=>{
+  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-cli-quota-')),script=path.join(root,'cli.cjs');
+  try{
+    for(const [event,code] of [
+      [{type:'assistant',error:'rate_limit'},'rate_limited'],
+      [{type:'rate_limit_event',rate_limit_info:{status:'rejected'}},'rate_limited'],
+      [{type:'rate_limit_event',rate_limit_info:{status:'allowed_warning'}},'claude_cli_failed'],
+      [{type:'rate_limit_event',rate_limit_info:{status:'rejected',overageStatus:'allowed'}},'claude_cli_failed'],
+      [{type:'assistant',message:{content:[{type:'text',text:'rate_limit secret account'}]}},'claude_cli_failed']
+    ]){
+      await writeFile(script,`process.stdout.write(${JSON.stringify(JSON.stringify(event))});process.stderr.write('secret account rate_limit');process.exitCode=1;`);
+      await assert.rejects(runClaude(process.execPath,[script]),{message:code});
+    }
+  }finally{await rm(root,{recursive:true,force:true});}
+});
