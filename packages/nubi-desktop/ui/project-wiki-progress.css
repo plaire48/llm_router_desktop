@@ -1,0 +1,23 @@
+.nubi-project-wiki-progress {
+ --nubi-preparing-size:112px;
+ --nubi-preparing-cycle:1.6s;
+ position:absolute;
+ inset:0;
+ z-index:2;
+ display:grid;
+ place-items:center;
+ overflow:auto;
+ padding:var(--cx-space-6);
+ background:var(--nubi-surface-inset);
+}
+.nubi-project-wiki-progress-body {display:flex;flex-direction:column;align-items:center;gap:var(--cx-space-4);width:min(100%,480px);}
+.nubi-project-wiki-progress h2 {margin:0;font-size:var(--cx-type-title);font-weight:600;color:var(--nubi-text-primary);}
+.nubi-project-wiki-progress p {margin:0;font-size:var(--cx-type-caption);color:var(--nubi-text-secondary);text-align:center;}
+.nubi-project-wiki-progress .nubi-wiki-initialization {width:100%;}
+.nubi-main[data-wiki-chat-blocked] > :not(.nubi-project-wiki-progress) {visibility:hidden;}
+.nubi-wiki-project-identity {display:flex;align-items:center;gap:var(--cx-space-2);min-width:0;max-width:100%;color:var(--nubi-text-primary);font-size:var(--cx-type-body);}
+.nubi-wiki-project-identity > svg {flex:none;color:var(--deck-blue);}
+.nubi-wiki-project-identity strong {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;}
+.nubi-wiki-progress-dialog .nubi-wiki-project-identity {margin-bottom:var(--cx-space-4);}
+.nubi-project-wiki-state {display:inline-flex;align-items:center;gap:6px;flex:none;margin-left:auto;white-space:nowrap;font-size:var(--cx-type-caption);color:var(--deck-blue);font-weight:500;}
+.nubi-project-wiki-state .status-spinner {width:12px;height:12px;flex:none;}

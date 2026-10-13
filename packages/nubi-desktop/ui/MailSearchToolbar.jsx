@@ -1,9 +1,10 @@
+import {mailRoleLabel} from '../runtime/mail-presentation.mjs';
 import React,{useEffect,useRef,useState} from 'react';
 import {CxButton, CxInput, DetailPanel, Icon} from '@e2e/cx-design-system';
 import {FileKindIcon} from './FileKindIcon.jsx';
 import {CxSelect} from './WorkspaceSelect.jsx';
 import {notifyWorkspaceToast} from './WorkspaceToast.jsx';
-export const DEFAULT_MAIL_FILTERS={period:'all',from:'',to:'',dateField:'date',senders:[],attachment:'all',types:[],filename:'',locations:[],states:[],pinned:false,tags:[],confirmed:'all'};
+export const DEFAULT_MAIL_FILTERS={subject:'',roles:[],period:'all',from:'',to:'',dateField:'date',senders:[],attachment:'all',types:[],filename:'',locations:[],states:[],pinned:false,tags:[],confirmed:'all'};
 const periodNames={all:'전체 기간',7:'최근 7일',30:'최근 30일',custom:'기간 지정',unknown:'날짜 미확인'};
 const typeNames={pdf:'PDF',word:'Word',excel:'Excel',powerpoint:'PowerPoint',other:'기타 첨부'};
 const stateNames={queued:'정리 대기',saved:'정리됨',attention:'읽기 실패 또는 확인 필요'};
@@ -34,6 +35,8 @@ export function MailFilterDialog({filters,facets,initial,onApply,onClose}){
 }
 export function mailFilterChips(filters){
   const f={...DEFAULT_MAIL_FILTERS,...filters},chips=[];
+  if(f.subject)chips.push({label:`제목 ${f.subject}`,patch:{subject:''}});
+  for(const role of f.roles||[])chips.push({label:mailRoleLabel(role),patch:{roles:f.roles.filter(value=>value!==role)}});
   if(f.period!=='all')chips.push({label:f.period==='custom'?`${f.from||'처음'} ~ ${f.to||'오늘'}`:periodNames[f.period],patch:{period:'all',from:'',to:''}});
   if(f.dateField!=='date')chips.push({label:'수신 시각 기준',patch:{dateField:'date'}});
   for(const field of ['senders','types','locations','states','tags'])for(const value of f[field])chips.push({label:({types:typeNames,locations:locationNames,states:stateNames}[field]||{})[value]||value,patch:{[field]:f[field].filter(item=>item!==value)}});

@@ -66,3 +66,11 @@ test('table sorting covers all filtered results before pagination and mailbox ne
  const inbox=await search.search({filters:{mailbox:'inbox'}});assert.deepEqual(inbox.results.map(r=>r.id),['one']);assert.equal(inbox.results[0].recipientRole,'cc');assert.equal(inbox.results[0].senderLabel,'김누비 / nubi@example.test');
  assert.deepEqual((await search.search({filters:{mailbox:'sent'}})).results.map(r=>r.id),['two']);
 });
+
+
+test('column title and recipient filters apply to all rows before paging and sort',async()=>{
+ const {search,rows,sources}=fixture();rows[0].recipientRole='cc';rows[1].recipientRole='to';sources.one.subject='예산 검토';sources.two.subject='분기 계획';
+ assert.deepEqual((await search.search({filters:{roles:['cc']},limit:1,sort:'subject-asc'})).results.map(row=>row.id),['one']);
+ assert.deepEqual((await search.search({filters:{subject:'계획'}})).results.map(row=>row.id),['two']);
+ assert.equal((await search.search({query:'마지막',filters:{subject:'예산',roles:['to']}})).total,0);
+});

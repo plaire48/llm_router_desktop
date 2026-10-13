@@ -1,0 +1,21 @@
+.nubi-people-picker { position:relative; display:grid; gap:var(--cx-space-2); min-width:0; }
+.nubi-person-chips { display:flex; gap:var(--cx-space-2); overflow-x:auto; padding-block:var(--cx-space-1); }
+.nubi-person-chip { display:inline-flex; align-items:center; gap:var(--cx-space-1); flex:none; max-width:100%; padding:var(--cx-space-1) var(--cx-space-2); border-radius:var(--cx-space-5); background:var(--nubi-surface-selected); color:var(--nubi-text-action); font:var(--deck-font-caption); }
+.nubi-person-chip strong { font-weight:var(--nubi-weight-emphasis); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.nubi-person-chip button { display:grid; place-items:center; flex:none; width:28px; height:28px; border:0; background:transparent; color:inherit; border-radius:50%; cursor:pointer; }
+.nubi-person-chip button:hover { background:var(--deck-blue-soft); }
+.nubi-person-photo { width:28px; height:28px; flex:none; display:grid; place-items:center; border-radius:50%; overflow:hidden; background:var(--nubi-surface-inset); color:var(--nubi-text-secondary); }
+.nubi-person-photo img { width:100%; height:100%; object-fit:cover; }
+.nubi-person-search { display:flex; align-items:center; gap:var(--cx-space-2); background:var(--nubi-surface-inset); border-radius:var(--nubi-work-control-radius); padding-inline:var(--cx-space-3); min-height:var(--nubi-work-control-height); color:var(--nubi-text-secondary); }
+.nubi-person-search:focus-within { outline:2px solid var(--nubi-text-action); outline-offset:2px; }
+.nubi-person-search input { flex:1; min-width:0; width:100%; border:0; outline:none; background:transparent; color:var(--nubi-text-primary); font:var(--deck-font-body); padding-block:var(--cx-space-2); }
+.nubi-person-results { border-radius:var(--nubi-work-control-radius); background:var(--nubi-surface-base);  padding:var(--cx-space-1); }
+.nubi-person-results [role=listbox] { max-height:240px; overflow-y:auto; }
+.nubi-person-results button { display:flex; align-items:center; gap:var(--cx-space-3); width:100%; min-width:0; text-align:left; border:0; border-radius:var(--nubi-work-control-radius); padding:var(--cx-space-2); background:transparent; color:var(--nubi-text-primary); cursor:pointer; }
+.nubi-person-results button[aria-selected=true],.nubi-person-results button:hover { background:var(--nubi-surface-selected); }
+.nubi-person-info { display:flex; align-items:baseline; gap:var(--cx-space-2); flex:1; min-width:0; }
+.nubi-person-info strong { flex:none; max-width:45%; font:var(--deck-font-body); font-weight:var(--nubi-weight-emphasis); }
+.nubi-person-info small { min-width:0; font:var(--deck-font-caption); color:var(--nubi-text-secondary); }
+.nubi-person-info strong,.nubi-person-info small { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.nubi-person-results p { margin:var(--cx-space-2); font:var(--deck-font-caption); color:var(--nubi-text-secondary); }
+

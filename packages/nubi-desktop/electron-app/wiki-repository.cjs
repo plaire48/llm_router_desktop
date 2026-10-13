@@ -9,13 +9,24 @@ const MAX_BYTES=20*1024*1024,MAX_FILES=500;
 const fail=code=>{throw Error(code);},digest=bytes=>createHash('sha256').update(bytes).digest('hex');
 const safePath=value=>typeof value==='string'&&value.length<=400&&!/[\\:\x00-\x1f<>"|?*]/.test(value)&&value.split('/').every(part=>part&&part!=='.'&&part!=='..'&&!part.startsWith('.')&&!/[. ]$/.test(part)&&!/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(part));
 const nextVersion=(a,b)=>a.split('.').some((v,i)=>+v!==+b.split('.')[i])&&a.split('.').reduce((result,v,i)=>result||Math.sign(+v-+b.split('.')[i]),0)>0;
+function audience(value){
+ const a=value===undefined?{scope:'repository',readers:[]}:value;
+ if(!a||!['repository','selected'].includes(a.scope)||!Array.isArray(a.readers)||a.readers.length>100||a.readers.some(name=>typeof name!=='string'||!LOGIN.test(name)))fail('wiki_share_fields');
+ const readers=[...new Set(a.readers.map(name=>name.toLowerCase()))];
+ if(a.scope==='selected'&&!readers.length)fail('wiki_share_fields');
+ return {scope:a.scope,readers:a.scope==='repository'?[]:readers};
+}
+function canView(item,actor,permissions){
+ const a=audience(item.audience),login=actor.toLowerCase();
+ return a.scope==='repository'||permissions.admin||item.createdBy.toLowerCase()===login||item.managers.some(name=>name.toLowerCase()===login)||a.readers.includes(login);
+}
 function fields(value){
  if(!value||!['code','personal'].includes(value.mode)||!VERSION.test(value.version||''))fail('wiki_share_fields');
  const title=typeof value.title==='string'?value.title.trim():'',description=typeof value.description==='string'?value.description.trim():'';
  if(!title||title.length>100||!description||description.length>500)fail('wiki_share_fields');
  if(value.managers!==undefined&&!Array.isArray(value.managers))fail('wiki_share_fields');
  const managers=[...new Set(value.managers||[])];if(managers.length>10||managers.some(name=>!LOGIN.test(name)))fail('wiki_share_fields');
- return {title,description,mode:value.mode,version:value.version,managers};
+ return {title,description,mode:value.mode,version:value.version,managers,audience:audience(value.audience)};
 }
 function catalog(document){
  if(document?.schemaVersion!==1||!Array.isArray(document.items)||document.items.length>2000)fail('wiki_share_invalid');
@@ -41,23 +52,56 @@ class WikiRepository{
  constructor({account,confirmSave=async()=>false,now=()=>new Date().toISOString()}){this.account=account;this.confirmSave=confirmSave;this.now=now;this.staged=new Map();this.busy=false;this.progress=null;}
  async session(){const credential=await this.account.credential();const active=()=>{if(credential.generation!==this.account.generation||this.account.state!=='connected')fail('ghes_session_changed');};
   const request=async(route,{method='GET',body}={})=>{active();let response;try{response=await this.account.fetcher(ORIGIN+route,{method,cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.any([this.account.accessController.signal,AbortSignal.timeout(30000)]),headers:{Accept:'application/vnd.github+json',Authorization:'Bearer '+credential.token,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});}catch{active();fail('wiki_share_network');}active();
-   if(!response.ok){if(response.status===401){await this.account.invalidate('ghes_session_expired');fail('ghes_session_expired');}const error=Error(({403:'wiki_share_permission',404:'wiki_share_missing',409:'wiki_share_changed',422:'wiki_share_changed'})[response.status]||'wiki_share_network');error.status=response.status;throw error;}
+   if(!response.ok){if(response.status===401){await this.account.invalidate('ghes_session_expired');fail('ghes_session_expired');}const readFailure=[409,422].includes(response.status)&&method==='GET';const error=Error(readFailure?'wiki_share_read_failed':({403:'wiki_share_permission',404:'wiki_share_missing',409:'wiki_share_changed',422:'wiki_share_changed'})[response.status]||'wiki_share_network');error.status=response.status;throw error;}
    let size=0,parts=[];for await(const chunk of response.body){size+=chunk.length;if(size>MAX_BYTES*2)fail('wiki_share_limit');parts.push(Buffer.from(chunk));}active();try{return JSON.parse(Buffer.concat(parts).toString('utf8'));}catch{fail('wiki_share_invalid');}};
   const meta=await request(API);if(typeof meta.default_branch!=='string'||!meta.default_branch||meta.default_branch.length>200)fail('wiki_share_invalid');
-  return {request,active,actor:this.account.profile.login,permissions:meta.permissions||{},branch:meta.default_branch,generation:credential.generation};
+  return {request,active,avatar:async id=>this.account.avatar?this.account.avatar(new URL(`/avatars/u/${id}`,ORIGIN),credential.token,this.account.accessController.signal,AbortSignal.timeout(1500)):null,actor:this.account.profile.login,permissions:meta.permissions||{},branch:meta.default_branch,generation:credential.generation};
  }
- async document(s,file,head,{missing=false}={}){let item;try{item=await s.request(`${API}/contents/${file.split('/').map(encodeURIComponent).join('/')}?ref=${encodeURIComponent(head)}`);}catch(e){if(missing&&e.status===404)return null;throw e;}if(!SHA.test(item.sha||''))fail('wiki_share_invalid');if(item.encoding==='none')item=await s.request(API+'/git/blobs/'+item.sha);if(item.encoding!=='base64'||typeof item.content!=='string')fail('wiki_share_invalid');const bytes=Buffer.from(item.content.replace(/\s/g,''),'base64');if(createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0')).update(bytes).digest('hex')!==item.sha)fail('wiki_share_changed');try{return JSON.parse(bytes.toString('utf8'));}catch{fail('wiki_share_invalid');}}
- async snapshot(s){const head=(await s.request(API+'/git/ref/heads/'+encodeURIComponent(s.branch))).object?.sha;if(!SHA.test(head||''))fail('wiki_share_invalid');const doc=await this.document(s,'wiki/catalog.json',head,{missing:true});return {head,document:doc?catalog(doc):{schemaVersion:1,items:[]}};}
- async list(){const s=await this.session(),value=await this.snapshot(s);return {...value,repository:REPOSITORY,branch:s.branch,actor:s.actor,canUpload:!!s.permissions.push,items:value.document.items.map(item=>({...item,canEdit:canEdit(item,s.actor,s.permissions)}))};}
+ async document(s,file,head,{missing=false}={}){let item;try{item=await s.request(`${API}/contents/${file.split('/').map(encodeURIComponent).join('/')}?ref=${encodeURIComponent(head)}`);}catch(e){if(missing&&e.status===404)return null;throw e;}if(!SHA.test(item.sha||''))fail('wiki_share_invalid');if(item.encoding==='none')item=await s.request(API+'/git/blobs/'+item.sha);if(item.encoding!=='base64'||typeof item.content!=='string')fail('wiki_share_invalid');const bytes=Buffer.from(item.content.replace(/\s/g,''),'base64');if(createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0')).update(bytes).digest('hex')!==item.sha)fail('wiki_share_integrity');try{return JSON.parse(bytes.toString('utf8'));}catch{fail('wiki_share_invalid');}}
+ async snapshot(s){
+  // GHES can reject the low-level ref route while its branch endpoint works.
+  // Resolve only the repository's declared branch, never a guessed main/master.
+  let head,lastError;
+  const readers=[
+   [API+'/git/ref/heads/'+s.branch.split('/').map(encodeURIComponent).join('/'),value=>value.object?.sha],
+   [API+'/commits/'+encodeURIComponent(s.branch),value=>value.sha],
+   [API+'/branches/'+encodeURIComponent(s.branch),value=>value.commit?.sha],
+  ];
+  for(const [route,sha] of readers){
+   try{head=sha(await s.request(route));if(!SHA.test(head||''))fail('wiki_share_invalid');break;}
+   catch(error){if(![404,409,422].includes(error.status))throw error;lastError=error;}
+  }
+  if(!head){const error=Error('wiki_share_read_failed');error.status=lastError?.status;throw error;}
+  if(!SHA.test(head||''))fail('wiki_share_invalid');const doc=await this.document(s,'wiki/catalog.json',head,{missing:true});return {head,document:doc?catalog(doc):{schemaVersion:1,items:[]}};
+ }
+ async list(){const s=await this.session(),value=await this.snapshot(s);return {head:value.head,repository:REPOSITORY,branch:s.branch,actor:s.actor,canUpload:!!s.permissions.push,items:value.document.items.filter(item=>canView(item,s.actor,s.permissions)).map(item=>({...item,audience:audience(item.audience),canEdit:canEdit(item,s.actor,s.permissions)}))};}
+ async people({query}={}){
+  if(typeof query!=='string'||query.trim().length>100||/[\x00-\x1f]/.test(query))fail('wiki_share_fields');
+  const term=query.trim();if(!term)return {items:[],incomplete:false};
+  const s=await this.session(),result=await s.request('/api/v3/search/users?q='+encodeURIComponent(JSON.stringify(term)+' in:login,fullname,email type:user')+'&per_page=8');
+  if(!Array.isArray(result.items))fail('wiki_share_invalid');
+  const found=result.items.filter(user=>user.type==='User'&&LOGIN.test(user.login)&&Number.isSafeInteger(user.id)&&user.id>0).slice(0,8),items=[];
+  // Profile fields and photos are display-only and fetched from fixed same-GHES routes.
+  for(let start=0;start<found.length;start+=4){
+   const batch=await Promise.all(found.slice(start,start+4).map(async user=>{
+    let profile=user;try{const detail=await s.request('/api/v3/users/'+encodeURIComponent(user.login));if(detail.id===user.id&&detail.login.toLowerCase()===user.login.toLowerCase())profile=detail;}catch(error){if(['ghes_session_changed','ghes_session_expired'].includes(error.message))throw error;}
+    const clean=value=>typeof value==='string'?value.replace(/[\x00-\x1f]/g,' ').trim().slice(0,200):'';
+    const avatar=await s.avatar(user.id);s.active();
+    return {login:user.login,name:clean(profile.name)||user.login,email:clean(profile.email),company:clean(profile.company),avatar};
+   }));items.push(...batch);
+  }
+  s.active();return {items,incomplete:result.incomplete_results===true||result.total_count>items.length};
+ }
  async stage(directory){const packet=await collectWiki(directory);const id=randomUUID();this.staged.clear();this.staged.set(id,{...packet,generation:this.account.generation,createdAt:Date.now()});return {id,files:packet.files.map(({path,size})=>({path,size}))};}
  cancel(){this.staged.clear();}
- async publish({stageId,paths,metadata,id,expectedHead,archive=false}={}){
+ async publish({stageId,paths,metadata,id,expectedHead,archive=false,audienceOnly=false}={}){
   if(this.busy)fail('wiki_share_busy');this.busy=true;
   try{const s=await this.session(),latest=await this.snapshot(s);if(latest.head!==expectedHead)fail('wiki_share_changed');if(id&&!UUID.test(id))fail('wiki_share_fields');const previous=latest.document.items.find(item=>item.id===id);if(id&&!previous)fail('wiki_share_missing');if(!canEdit(previous,s.actor,s.permissions))fail('wiki_share_permission');
    let item,changes=[];const now=this.now();
-   if(archive){if(!previous)fail('wiki_share_missing');item={...previous,archived:!previous.archived,updatedAt:now,updatedBy:s.actor};}
+   if(audienceOnly){if(!previous)fail('wiki_share_missing');item={...previous,audience:audience(metadata?.audience),updatedAt:now,updatedBy:s.actor};}
+   else if(archive){if(!previous)fail('wiki_share_missing');item={...previous,archived:!previous.archived,updatedAt:now,updatedBy:s.actor};}
    else{
-    const values=fields(metadata),stage=this.staged.get(stageId);if(!stage||stage.generation!==s.generation||Date.now()-stage.createdAt>30*60*1000)fail('wiki_share_stage_expired');
+    const values=fields({...metadata,audience:metadata?.audience??previous?.audience}),stage=this.staged.get(stageId);if(!stage||stage.generation!==s.generation||Date.now()-stage.createdAt>30*60*1000)fail('wiki_share_stage_expired');
     if(previous&&(previous.mode!==values.mode||!nextVersion(values.version,previous.version)||previous.releases.some(r=>r.version===values.version)))fail('wiki_share_version');
     if(previous&&previous.createdBy!==s.actor&&!s.permissions.admin&&JSON.stringify(values.managers)!==JSON.stringify(previous.managers))fail('wiki_share_permission');
     if(!Array.isArray(paths)||!paths.length||paths.length>MAX_FILES||new Set(paths).size!==paths.length)fail('wiki_share_empty');
@@ -72,35 +116,35 @@ class WikiRepository{
     changes.push({path:`wiki/${wikiId}/manifest.json`,content:JSON.stringify(item,null,2)+'\n'});
    }
    const document={schemaVersion:1,items:previous?latest.document.items.map(row=>row.id===id?item:row):[...latest.document.items,item]};catalog(document);
-   if(archive)changes.push({path:`wiki/${item.id}/manifest.json`,content:JSON.stringify(item,null,2)+'\n'});
+   if(archive||audienceOnly)changes.push({path:`wiki/${item.id}/manifest.json`,content:JSON.stringify(item,null,2)+'\n'});
    changes.push({path:'wiki/catalog.json',content:JSON.stringify(document,null,2)+'\n'});
    // Native approval occurs before any remote write, with the exact repository and files.
-   if(!await this.confirmSave({repository:REPOSITORY,branch:s.branch,message:`위키 ${archive?(item.archived?'공유 중단':'공유 재개'):previous?'새 버전 등록':'등록'}: ${item.title} ${item.version}`,files:changes.map(c=>c.path)}))return {cancelled:true};
+   if(!await this.confirmSave({repository:REPOSITORY,branch:s.branch,message:`위키 ${audienceOnly?'표시 대상 변경':archive?(item.archived?'공유 중단':'공유 재개'):previous?'새 버전 등록':'등록'}: ${item.title} ${item.version}`,files:changes.map(c=>c.path)}))return {cancelled:true};
    s.active();if((await this.snapshot(s)).head!==latest.head)fail('wiki_share_changed');
    const parent=await s.request(API+'/git/commits/'+latest.head);if(!SHA.test(parent.tree?.sha||''))fail('wiki_share_invalid');
    this.progress={phase:'upload',completed:0,total:changes.length};const entries=[];for(let offset=0;offset<changes.length;offset+=4){const batch=await Promise.all(changes.slice(offset,offset+4).map(async change=>{const blob=await s.request(API+'/git/blobs',{method:'POST',body:{encoding:'utf-8',content:change.content}});if(!SHA.test(blob.sha||''))fail('wiki_share_invalid');if(this.progress)this.progress.completed++;return {path:change.path,mode:'100644',type:'blob',sha:blob.sha};}));entries.push(...batch);}
    this.progress={phase:'save',completed:0,total:1};const tree=await s.request(API+'/git/trees',{method:'POST',body:{base_tree:parent.tree.sha,tree:entries}});if(!SHA.test(tree.sha||''))fail('wiki_share_invalid');
-   const commit=await s.request(API+'/git/commits',{method:'POST',body:{message:`wiki: ${archive?'visibility':previous?'release':'add'} ${item.id} ${item.version}`,tree:tree.sha,parents:[latest.head]}});if(!SHA.test(commit.sha||''))fail('wiki_share_invalid');
+   const commit=await s.request(API+'/git/commits',{method:'POST',body:{message:`wiki: ${audienceOnly?'audience':archive?'visibility':previous?'release':'add'} ${item.id} ${item.version}`,tree:tree.sha,parents:[latest.head]}});if(!SHA.test(commit.sha||''))fail('wiki_share_invalid');
    // Never retry a ref update whose response is lost. A new list resolves the outcome.
    try{await s.request(API+'/git/refs/heads/'+encodeURIComponent(s.branch),{method:'PATCH',body:{sha:commit.sha,force:false}});}catch(e){if(e.message==='wiki_share_network')fail('wiki_share_unconfirmed');throw e;}
    const saved=await this.document(s,'wiki/catalog.json',commit.sha);if(JSON.stringify(saved)!==JSON.stringify(document))fail('wiki_share_unconfirmed');this.staged.delete(stageId);return {saved:true,item,commit:commit.sha};
   }finally{this.busy=false;this.progress=null;}
  }
  async detail({id,version}){
-  if(!UUID.test(id)||!VERSION.test(version||''))fail('wiki_share_fields');const s=await this.session(),snapshot=await this.snapshot(s),item=snapshot.document.items.find(row=>row.id===id&&!row.archived),release=item?.releases.find(row=>row.version===version);if(!release)fail('wiki_share_missing');
+  if(!UUID.test(id)||!VERSION.test(version||''))fail('wiki_share_fields');const s=await this.session(),snapshot=await this.snapshot(s),item=snapshot.document.items.find(row=>row.id===id&&!row.archived),release=item?.releases.find(row=>row.version===version);if(!release||!canView(item,s.actor,s.permissions))fail('wiki_share_missing');
   const manifest=await this.document(s,`wiki/${id}/versions/${version}/manifest.json`,snapshot.head);if(digest(Buffer.from(JSON.stringify(manifest,null,2)+'\n'))!==release.hash||manifest.id!==id||manifest.version!==version||!Array.isArray(manifest.files))fail('wiki_share_invalid');
   return {item,manifest};
  }
  async download({id,version},directory){
-  if(!UUID.test(id)||!VERSION.test(version||''))fail('wiki_share_fields');const s=await this.session(),snapshot=await this.snapshot(s),item=snapshot.document.items.find(row=>row.id===id&&!row.archived),release=item?.releases.find(row=>row.version===version);if(!release)fail('wiki_share_missing');
+  if(!UUID.test(id)||!VERSION.test(version||''))fail('wiki_share_fields');const s=await this.session(),snapshot=await this.snapshot(s),item=snapshot.document.items.find(row=>row.id===id&&!row.archived),release=item?.releases.find(row=>row.version===version);if(!release||!canView(item,s.actor,s.permissions))fail('wiki_share_missing');
   const prefix=`wiki/${id}/versions/${version}`,manifest=await this.document(s,prefix+'/manifest.json',snapshot.head);
   if(digest(Buffer.from(JSON.stringify(manifest,null,2)+'\n'))!==release.hash||manifest.id!==id||manifest.version!==version||manifest.mode!==item.mode||!Array.isArray(manifest.files)||!manifest.files.length||manifest.files.length>MAX_FILES)fail('wiki_share_invalid');
   const seen=new Set();let size=0;for(const file of manifest.files){if(!safePath(file.path)||!/\.md$/i.test(file.path)||!HASH.test(file.hash)||!Number.isSafeInteger(file.size)||file.size<0||file.size>2*1024*1024||(size+=file.size)>MAX_BYTES||seen.has(file.path.normalize('NFC').toLowerCase()))fail('wiki_share_invalid');seen.add(file.path.normalize('NFC').toLowerCase());}
-  const files=[];for(const file of manifest.files){const entry=await s.request(`${API}/contents/${(prefix+'/pages/'+file.path).split('/').map(encodeURIComponent).join('/')}?ref=${snapshot.head}`);const blob=entry.encoding==='none'?await s.request(API+'/git/blobs/'+entry.sha):entry;if(blob.encoding!=='base64'||typeof blob.content!=='string')fail('wiki_share_invalid');const bytes=Buffer.from(blob.content.replace(/\s/g,''),'base64');if(bytes.length!==file.size||digest(bytes)!==file.hash)fail('wiki_share_changed');files.push({...file,bytes});}
+  const files=[];for(const file of manifest.files){const entry=await s.request(`${API}/contents/${(prefix+'/pages/'+file.path).split('/').map(encodeURIComponent).join('/')}?ref=${snapshot.head}`);const blob=entry.encoding==='none'?await s.request(API+'/git/blobs/'+entry.sha):entry;if(blob.encoding!=='base64'||typeof blob.content!=='string')fail('wiki_share_invalid');const bytes=Buffer.from(blob.content.replace(/\s/g,''),'base64');if(bytes.length!==file.size||digest(bytes)!==file.hash)fail('wiki_share_integrity');files.push({...file,bytes});}
   s.active();const parent=await realpath(directory),target=path.join(parent,`wiki-${id}-${version}`);try{await mkdir(target);}catch(e){if(e.code==='EEXIST')fail('wiki_share_exists');throw e;}
   // Exclusive destination: originals are never overwritten, and partial failures are not called success.
   for(const file of files){const output=path.join(target,item.mode==='code'?'openwiki':'personal',file.path);await mkdir(path.dirname(output),{recursive:true});await writeFile(output,file.bytes,{flag:'wx',mode:0o600});if(digest(await readFile(output))!==file.hash)fail('wiki_share_download_unconfirmed');}
   await writeFile(path.join(target,'wiki-share.json'),JSON.stringify({...manifest,repository:REPOSITORY,commit:snapshot.head},null,2),{flag:'wx',mode:0o600});return {saved:true,path:target,version,mode:item.mode};
  }
 }
-module.exports={WikiRepository,collectWiki,catalog,fields,safePath,canEdit,REPOSITORY};
+module.exports={WikiRepository,collectWiki,catalog,fields,safePath,canEdit,canView,audience,REPOSITORY};

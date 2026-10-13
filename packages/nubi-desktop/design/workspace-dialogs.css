@@ -174,13 +174,11 @@
 
 /* A decision is a compact message dialog using the same modal tokens. */
 :root:has(.desktop-shell) .cx-panel-backdrop>.nubi-decision-dialog { width:min(580px,100%); }
-:root:has(.desktop-shell) .nubi-decision-dialog .question-option-copy { display:flex; flex-direction:row; align-items:center; gap:var(--cx-space-3); min-width:0; }
-:root:has(.desktop-shell) .nubi-decision-dialog .question-option-copy strong { flex:none; white-space:nowrap; }
-:root:has(.desktop-shell) .nubi-decision-dialog .question-option-copy>span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--nubi-text-secondary); }
-:root:has(.desktop-shell) .nubi-decision-dialog .question-option.cx-kit-button { min-height:44px; padding:var(--cx-space-2) var(--cx-space-3); gap:var(--cx-space-2); }
-:root:has(.desktop-shell) .nubi-decision-dialog .question-option-index { display:none; }
-:root:has(.desktop-shell) .nubi-decision-dialog .interaction-input { padding:var(--cx-space-2); }
-:root:has(.desktop-shell) .nubi-decision-dialog .interaction-input:focus-within { box-shadow:none; border-color:var(--deck-line); }
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .question-option-copy { display:flex; flex-direction:row; align-items:center; gap:var(--cx-space-3); min-width:0; }
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .question-option-copy strong { flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .question-option-copy>span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--nubi-text-secondary); }
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .question-option.cx-kit-button { min-height:44px; padding:var(--cx-space-2) var(--cx-space-3); gap:var(--cx-space-2); }
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .question-option-index { display:none; }
 :root:has(.desktop-shell) .nubi-decision-dialog .nubi-approval-bar { flex-wrap:nowrap; gap:var(--cx-space-2); }
 :root:has(.desktop-shell) .nubi-decision-dialog .nubi-approval-bar>.cx-kit-button { min-width:0; padding-inline:var(--cx-space-2); }
 
@@ -257,3 +255,74 @@
 :root:has(.desktop-shell) .nubi-mail-filter-form .nubi-filter-choice[aria-pressed=false] .nubi-filter-choice-check { visibility:hidden; }
 :root:has(.desktop-shell) .nubi-mail-filter-form .desktop-file-icon { flex:none; display:inline-flex; align-items:center; justify-content:center; width:24px; }
 :root:has(.desktop-shell) .nubi-filter-active { margin-left:var(--cx-space-2); color:var(--nubi-text-action); font:var(--deck-font-caption); font-weight:var(--nubi-weight-emphasis); }
+
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .question-option-copy { flex:1; }
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .question-option>svg { flex:none; }
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .question-send { gap:var(--cx-space-2); white-space:nowrap; }
+
+
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .question-selection-hint { color:var(--nubi-text-secondary); font-size:var(--cx-type-caption); }
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .question-other-label { display:block; color:var(--nubi-text-primary); font-weight:600; margin:var(--cx-space-4) 0 var(--cx-space-2); }
+
+/* Borderless question surfaces: selection uses tone and a check, not nested frames. */
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .question-card { border:0; box-shadow:none; padding:0; background:transparent; }
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .question-option.cx-kit-button,
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .question-option.cx-kit-button:not(:disabled):hover { border:0; box-shadow:none; transform:none; padding:var(--cx-space-3); }
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .question-option.cx-kit-button { background:var(--deck-tint); }
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .question-option.cx-kit-button[aria-checked=true] { background:var(--deck-blue-soft); }
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .question-option[aria-checked=true] strong { color:var(--deck-blue-deep); }
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .interaction-input,
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .interaction-input:focus-within { border:0; box-shadow:none; background:transparent; padding:0; margin-top:0; }
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .interaction-entry { padding:var(--cx-space-3); background:var(--deck-tint); border-radius:var(--cx-radius-control); }
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .interaction-entry textarea.cx-kit-textarea,
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .interaction-entry textarea.cx-kit-textarea:focus { border:0; outline:0; box-shadow:none; background:transparent; padding:0; }
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .interaction-entry-icon { padding-top:2px; color:var(--deck-sub); }
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .question-select-indicator { display:grid; place-items:center; width:18px; height:18px; flex:none; border:0; background:var(--deck-line); border-radius:5px; }
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) [aria-checked=true] .question-select-indicator { background:var(--deck-blue); color:var(--deck-card); }
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .question-option:focus-visible { outline:2px solid var(--deck-blue-deep); outline-offset:3px; }
+
+/* Codex-style question sheet: one heading and one flat choice list. */
+:root:has(.desktop-shell) .nubi-decision-dialog:has(.nubi-question-form) { width:min(740px,100%); }
+:root:has(.desktop-shell) .nubi-question-form .question-card { display:grid; gap:var(--cx-space-3); margin:0; }
+:root:has(.desktop-shell) .nubi-question-form .question-selection-hint { margin:0; color:var(--deck-sub); }
+:root:has(.desktop-shell) .nubi-question-form .question-options { margin:0; gap:var(--cx-space-1); }
+:root:has(.desktop-shell) .nubi-question-form .question-option.cx-kit-button { background:transparent; padding:var(--cx-space-3); min-height:44px; gap:var(--cx-space-3); }
+:root:has(.desktop-shell) .nubi-question-form .question-option.cx-kit-button:not(:disabled):hover { background:var(--deck-tint); }
+:root:has(.desktop-shell) .nubi-question-form .question-option.cx-kit-button[aria-checked=true] { background:var(--deck-blue-soft); }
+:root:has(.desktop-shell) .nubi-question-form .question-other-label { margin:var(--cx-space-2) 0 calc(-1 * var(--cx-space-1)); color:var(--deck-sub); font-weight:500; }
+:root:has(.desktop-shell) .nubi-question-form .interaction-entry-icon { display:none; }
+:root:has(.desktop-shell) .nubi-question-form .interaction-entry textarea.cx-kit-textarea { min-height:32px; }
+:root:has(.desktop-shell) .nubi-question-form .interaction-input-actions { margin-top:var(--cx-space-4); }
+:root:has(.desktop-shell) .nubi-question-form .question-send { min-height:36px; padding:var(--cx-space-2) var(--cx-space-4); }
+:root:has(.desktop-shell) .nubi-question-form .question-send>svg { display:none; }
+
+/* User reference: quiet caption, numbered rows, then one input/action row. */
+:root:has(.desktop-shell) .nubi-decision-dialog:has(.nubi-question-form) > .cx-panel-header { padding:var(--cx-space-3) var(--nubi-modal-inset) var(--cx-space-2); }
+:root:has(.desktop-shell) .nubi-decision-dialog:has(.nubi-question-form) > .cx-panel-body { padding:0 var(--nubi-modal-inset) var(--cx-space-4); }
+:root:has(.desktop-shell) .nubi-question-caption { display:inline-flex; align-items:center; gap:var(--cx-space-2); font:var(--deck-font-caption); color:var(--nubi-text-secondary); font-weight:var(--nubi-weight-regular); }
+:root:has(.desktop-shell) .nubi-question-form .nubi-question-prompt { margin:0 0 var(--cx-space-4); font:var(--deck-font-body); font-weight:var(--nubi-weight-label); color:var(--nubi-text-primary); overflow-wrap:anywhere; }
+:root:has(.desktop-shell) .nubi-question-form .question-card--compact { max-width:none; gap:var(--cx-space-2); }
+:root:has(.desktop-shell) .nubi-question-caption-hint { margin-left:var(--cx-space-4); color:var(--nubi-text-secondary); font:var(--deck-font-caption); font-weight:var(--nubi-weight-regular); }
+:root:has(.desktop-shell) .question-card--compact .question-selection-hint { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+:root:has(.desktop-shell) .nubi-question-form .question-card--compact .question-option { padding:var(--cx-space-2) 0; gap:var(--cx-space-3); }
+:root:has(.desktop-shell) .nubi-question-form .question-card--compact .question-option:hover:not(:disabled) { padding:var(--cx-space-2) 0; }
+:root:has(.desktop-shell) .nubi-question-form .question-card--compact .question-option-index { display:grid; place-items:center; width:24px; height:24px; border-radius:var(--cx-space-1); color:var(--nubi-text-secondary); background:var(--nubi-surface-inset); font:var(--deck-font-caption); }
+:root:has(.desktop-shell) .nubi-question-form .question-card--compact [aria-checked=true] .question-option-index { background:var(--deck-blue); color:var(--nubi-surface-base); }
+:root:has(.desktop-shell) .nubi-question-form .question-card--compact .question-option-copy strong { font-weight:var(--nubi-weight-regular); }
+:root:has(.desktop-shell) .nubi-question-form .question-card--compact [aria-checked=true] .question-option-copy strong { font-weight:var(--nubi-weight-emphasis); }
+:root:has(.desktop-shell) .nubi-question-form .question-card--compact .interaction-input { display:flex; align-items:flex-start; gap:var(--cx-space-3); margin-top:var(--cx-space-3); }
+:root:has(.desktop-shell) .nubi-question-form .question-card--compact .interaction-entry { flex:1; min-width:0; align-items:flex-start; padding:var(--cx-space-2) 0; background:transparent; }
+:root:has(.desktop-shell) .nubi-question-form .question-card--compact .interaction-entry-icon { display:inline-flex; align-items:center; height:24px; padding:0; }
+:root:has(.desktop-shell) .nubi-question-form .question-card--compact .interaction-entry textarea.cx-kit-textarea { min-height:24px; line-height:24px; }
+:root:has(.desktop-shell) .nubi-question-form .question-card--compact .interaction-input-actions { flex:none; margin:0; gap:var(--cx-space-2); }
+:root:has(.desktop-shell) .nubi-question-form .question-card--compact .question-defer { background:transparent; color:var(--nubi-text-secondary); border:0; }
+:root:has(.desktop-shell) .nubi-question-form .question-card--compact .question-send { margin:0; }
+@media (max-width:480px) {
+ :root:has(.desktop-shell) .nubi-question-form .question-card--compact .question-option-copy>span { display:none; }
+ :root:has(.desktop-shell) .nubi-question-form .question-card--compact .interaction-input { gap:var(--cx-space-2); }
+ :root:has(.desktop-shell) .nubi-question-form .question-card--compact .question-defer { padding-inline:var(--cx-space-2); }
+ :root:has(.desktop-shell) .nubi-question-form .question-card--compact .question-send { padding-inline:var(--cx-space-3); }
+}
+
+/* The composed people search owns a single focus ring around icon and input. */
+:root:has(.desktop-shell) .deck-dialog .nubi-person-search input:focus-visible { outline:none; box-shadow:none; }

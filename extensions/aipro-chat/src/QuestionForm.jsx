@@ -4,8 +4,10 @@ import {QUESTION_TEXT_LIMIT, questionDisplayOptions} from '../user-question.js';
 import {ERROR_TEXT} from '../core.js';
 import {InteractionSurface} from './InteractionSurface.jsx';
 
-export function QuestionForm({showActionLabels = false,question, disabled, onChoose, onDraft, children, headingAction, maxLength = QUESTION_TEXT_LIMIT, allowText = true, formatError = cause => ERROR_TEXT[cause?.message]}) {
+export function QuestionForm({showActionLabels = false, confirmChoices = false, selectionMode = 'multiple', hideHeading = false, compact = false, onDefer, selectionDraft = [], onSelectionDraft, question, disabled, onChoose, onDraft, children, headingAction, maxLength = QUESTION_TEXT_LIMIT, allowText = true, formatError = cause => ERROR_TEXT[cause?.message]}) {
   const [value, setValue] = useState(question.draft || '');
+  const [selected, setSelected] = useState(selectionDraft);
+  const deferred = confirmChoices && question.kind === 'choice';
   const [expanded, setExpanded] = useState(false), [hasMore, setHasMore] = useState(false);
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
   const [focusRequest, setFocusRequest] = useState(0);
@@ -46,6 +48,7 @@ export function QuestionForm({showActionLabels = false,question, disabled, onCho
   const inputHint = typeof question.inputPlaceholder === 'string' ? question.inputPlaceholder.trim() : '';
   function change(next) {
     setValue(next); setError('');
+    if (deferred && selectionMode === 'single') setSelected([]);
     const current = ++revision.current;
     // Save independently of the composer, including before a popup is closed.
     Promise.resolve().then(() => onDraft(next)).catch(cause => {
@@ -63,27 +66,41 @@ export function QuestionForm({showActionLabels = false,question, disabled, onCho
   }
   function submit(event) {
     event?.preventDefault();
-    if (value.trim()) void choose({text: value});
+    if (deferred && selectionMode === 'single') {
+      if (options.some(option=>option.id===selected[0])) void choose({optionId:selected[0]});
+      else if (value.trim()) void choose({text:value});
+    } else if (deferred) {
+      const labels = options.filter(option => selected.includes(option.id)).map(option => option.label);
+      const text = [...labels, ...(value.trim() ? [labels.length ? `기타: ${value.trim()}` : value.trim()] : [])].join('\n');
+      if (text) void choose({text});
+    } else if (value.trim()) void choose({text: value});
   }
   function keydown(event) {
     if (event.nativeEvent.isComposing || event.keyCode === 229) {if (event.key === 'Enter') event.preventDefault(); return;}
     // A model-selected short input must not submit an unfinished paragraph.
     if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) submit(event);
   }
-  return <InteractionSurface className="question-card" aria-label="질문" data-answered={answered} aria-busy={busy} title={question.text} titleId={`${id}-title`} headingClassName="image-question" headingAction={headingAction}
+  return <InteractionSurface hideHeading={hideHeading} className={`question-card${compact?' question-card--compact':''}`} aria-label="질문" data-answered={answered} aria-busy={busy} title={question.text} titleId={`${id}-title`} data-confirm-choices={deferred} headingClassName="image-question" headingAction={headingAction}
     >
     {typeof children === 'function' ? children({onChoose: choose, disabled: blocked}) : children}
-    {!answered && question.kind === 'choice' && hasChoices && <div className="question-options" role="group" aria-labelledby={`${id}-title`} aria-describedby={error ? `${id}-answer-error` : undefined}>
-      {options.map((option, index) => <CxButton key={option.id} className="question-option" disabled={blocked} onClick={() => choose({optionId: option.id})}>
-        <span className="question-option-index" aria-hidden="true">{index + 1}</span>
+    {!answered && deferred && selectionMode !== 'single' && hasChoices && <span className="question-selection-hint">여러 개 선택 가능</span>}
+    {!answered && question.kind === 'choice' && hasChoices && <div className="question-options" role={deferred && selectionMode === 'single' ? 'radiogroup' : 'group'} aria-label={hideHeading ? question.text : undefined} aria-labelledby={hideHeading ? undefined : `${id}-title`} aria-describedby={error ? `${id}-answer-error` : undefined}>
+      {options.map((option, index) => <CxButton key={option.id} className="question-option" disabled={blocked} role={deferred ? (selectionMode === 'single' ? 'radio' : 'checkbox') : undefined} aria-checked={deferred ? selected.includes(option.id) : undefined} title={[option.label, option.description].filter(Boolean).join(' — ')} onClick={() => {
+        if (!deferred) return choose({optionId: option.id});
+        const next = selected.includes(option.id) ? selected.filter(id => id !== option.id) : selectionMode === 'single' ? [option.id] : [...selected, option.id];
+        setSelected(next); onSelectionDraft?.(next);
+      }}>
+        {deferred&&!compact&&<span className="question-select-indicator" aria-hidden="true">{selected.includes(option.id)&&<Icon name="check" size={14}/>}</span>}
+        <span className="question-option-index" aria-hidden="true">{compact&&selected.includes(option.id)?<Icon name="check" size={14}/>:index + 1}</span>
         <span className="question-option-copy"><strong>{option.label}</strong>{option.description && <span>{option.description}</span>}</span>
-        <Icon name="arrowRight" size={16}/>
+        {!deferred&&<Icon name="arrowRight" size={16}/>}
       </CxButton>)}
     </div>}
-    {!answered && allowText && <form className="interaction-input" id={`${id}-form`} onSubmit={submit}>
-      <div className="interaction-entry"><span className="interaction-entry-icon" aria-hidden="true"><Icon name="pencil" size={18}/></span><CxField label="직접 답변" id={`${id}-answer`} error={error || undefined}>
-      {React.createElement(CxTextarea, {ref: input, value, 'aria-describedby': `${id}-title`,
-        placeholder: inputHint || (multiline ? '예: 포함할 내용과 원하는 분위기' : hasChoices ? '예: 다른 답변이나 추가 조건' : '예: 원하는 내용이나 조건'), maxLength, disabled: blocked,
+    {!answered && deferred && allowText && !compact && <span className="question-other-label" aria-hidden="true">기타</span>}
+    {!answered && (allowText || deferred) && <form className="interaction-input" id={`${id}-form`} onSubmit={submit}>
+      {allowText && <div className="interaction-entry"><span className="interaction-entry-icon" aria-hidden="true"><Icon name="pencil" size={18}/></span><CxField label={deferred ? '기타' : '직접 답변'} id={`${id}-answer`} error={error || undefined}>
+      {React.createElement(CxTextarea, {ref: input, value, 'aria-describedby': hideHeading ? undefined : `${id}-title`,
+        placeholder: inputHint || (compact ? '또는 직접 답변을 작성하세요' : deferred ? '직접 입력' : multiline ? '예: 포함할 내용과 원하는 분위기' : hasChoices ? '예: 다른 답변이나 추가 조건' : '예: 원하는 내용이나 조건'), maxLength, disabled: blocked,
         rows: multiline ? 3 : 1, onChange: event => change(event.target.value), onKeyDown: keydown,
         onPaste: event => {
           const text = event.clipboardData.getData('text/plain').replace(/\r\n?/g, '\n');
@@ -101,11 +118,12 @@ export function QuestionForm({showActionLabels = false,question, disabled, onCho
             focusInput();
           }
         }})}
-      </CxField></div>
+      </CxField></div>}
       <div className="interaction-input-actions">
         {hasMore && <CxButton type="button" className="question-more" title={expanded ? '답변 입력 줄이기' : '답변 입력 펼치기'} aria-expanded={expanded} aria-controls={`${id}-answer`} disabled={blocked} onClick={() => {setExpanded(current => !current); focusInput();}}><Icon name={expanded ? 'minimize' : 'maximize'} size={16}/>{expanded ? '접기' : '더 보기'}</CxButton>}
         {value.length > maxLength * .9 && <span className="interaction-count" role="status">{value.length.toLocaleString()} / {maxLength.toLocaleString()}</span>}
-        <CxButton type="submit" variant="primary" className="question-send" aria-label="답변 보내기" title="답변 보내기 (Ctrl/⌘+Enter)" disabled={blocked || !value.trim()} busy={busy}><Icon name="arrowUp" size={18}/>{showActionLabels&&<span>답변 보내기</span>}</CxButton>
+        {onDefer&&<CxButton type="button" className="question-defer" disabled={blocked} onClick={onDefer}>나중에</CxButton>}
+        <CxButton type="submit" variant="primary" className="question-send" aria-label="답변 보내기" title="답변 보내기 (Ctrl/⌘+Enter)" disabled={blocked || (!value.trim() && !(deferred && options.some(option => selected.includes(option.id))))} busy={busy}><Icon name="arrowUp" size={18}/>{(showActionLabels || deferred)&&<span>{compact?'보내기':'답변 보내기'}</span>}</CxButton>
       </div>
     </form>}
     {error && !answered && !allowText && <div id={`${id}-answer-error`}><CxNotice tone="danger">{error}</CxNotice></div>}

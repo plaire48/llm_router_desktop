@@ -25,7 +25,7 @@ export function recordingProviders(providers,{write=()=>{},maxModelCalls=Infinit
     delegatedCalls:()=>handed,
     // The relay connection belongs to the runner and outlives one case.
     dispose(){},
-    async complete(messages,tools=[],signal,onText,onPhase){
+    async complete(messages,tools=[],signal,onText,onPhase,onActivity,options={}){
       const research=delegated(messages);
       if(research?handed>=maxDelegatedCalls:own>=maxModelCalls)throw Object.assign(new Error(research?'evaluation_delegated_budget':'evaluation_model_budget'),{retryable:false});
       if(research)handed++;else own++;
@@ -36,7 +36,7 @@ export function recordingProviders(providers,{write=()=>{},maxModelCalls=Infinit
       const tick=()=>{const now=Date.now();longest=Math.max(longest,now-last);last=now;events++;};
       const activity={events:()=>events,longest:()=>Math.max(longest,Date.now()-last)};
       try{
-        const result=await providers.complete(messages,tools,signal,(...args)=>{tick();return onText?.(...args);},(...args)=>{tick();return onPhase?.(...args);});
+        const result=await providers.complete(messages,tools,signal,(...args)=>{tick();return onText?.(...args);},(...args)=>{tick();return onPhase?.(...args);},(...args)=>{tick();return onActivity?.(...args);},options);
         entry.elapsedMs=Date.now()-started;entry.activity={events:activity.events(),longestGapMs:activity.longest()};
         entry.response={content:result.content??'',calls:(result.calls||[]).map(call=>({name:call.function?.name,arguments:call.function?.arguments})),finishReason:result.finishReason,...(result.usage?{usage:structuredClone(result.usage)}:{})};
         record(entry);return result;
@@ -48,9 +48,9 @@ export function recordingProviders(providers,{write=()=>{},maxModelCalls=Infinit
 }
 
 const LEADER='You are Nubi Desktop';
-const systemText=entry=>entry.request.messages.find(message=>message.role==='system')?.content;
 // The main agent's requests only. Planner, reviewer, summarizer and child analysts use other system prompts.
-export const leaderEntries=entries=>entries.filter(entry=>typeof systemText(entry)==='string'&&systemText(entry).startsWith(LEADER));
+// Slash-command scope guards may precede the main system message.
+export const leaderEntries=entries=>entries.filter(entry=>entry.request.messages.some(message=>message.role==='system'&&typeof message.content==='string'&&message.content.startsWith(LEADER)));
 // Text of every tool result the main agent received, in order, without duplicates.
 export function leaderToolResults(entries){
   const seen=new Set(),results=[];

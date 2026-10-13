@@ -38,7 +38,10 @@
   --deck-line-heading: 1.45;
   --deck-line-caption: 1.5;
   --nubi-reading-size: 1rem;
-  --nubi-reading-leading: 1.75;
+  --nubi-reading-leading: 1.8;
+  --nubi-prose-paragraph-gap: 1em;
+  --nubi-prose-section-gap: 1.5em;
+  --nubi-prose-list-gap: .5em;
   --nubi-welcome-title: clamp(29px,4.2vw,50px);
   --nubi-welcome-copy: clamp(15px,1.75vw,19px);
   --nubi-terminal-surface: #17171C;
@@ -49,6 +52,14 @@
   --nubi-terminal-accent: #80B7FF;
   --nubi-terminal-danger: #FFADB4;
   --nubi-terminal-selection: #294B75;
+  /* Quiet copy controls: the check changes shape, not size or surface. */
+  --nubi-copy-control-size: 1.5rem;
+  --nubi-copy-icon-size: .875rem;
+  --nubi-copy-touch-size: 2.75rem;
+  --nubi-copy-gap: var(--cx-space-2);
+  --nubi-copy-radius: var(--deck-control-radius);
+  --nubi-copy-ink: var(--nubi-text-secondary);
+  --nubi-copy-hover-ink: var(--nubi-text-primary);
   --nubi-pointer-ink: #171717;
   --nubi-pointer-shadow: drop-shadow(0 1px 1px #0008);
   --nubi-modal-inset: var(--cx-space-6);
@@ -104,7 +115,7 @@
   --nubi-dialog-footer-inset: var(--cx-space-6);
   --nubi-dialog-field-gap: var(--cx-space-2);
   --nubi-dialog-symbol-size: var(--nubi-work-control-height);
-  --nubi-chat-width: 700px;
+  --nubi-chat-width: clamp(700px, 84cqi, 1120px);
   --nubi-reading-width: calc(var(--nubi-chat-width) + var(--nubi-page-inset) * 2);
   --nubi-scrollbar-size: 4px;
   --nubi-scrollbar-inset: var(--cx-space-2);
@@ -155,6 +166,8 @@
 .desktop-git-history .desktop-git-commit { display:flex; width:100%; align-items:center; gap:var(--cx-space-3); min-height:0; height:auto; padding:8px 12px; border:0; box-shadow:none; border-radius:8px; background:transparent; color:var(--deck-ink); text-align:left; white-space:nowrap; font:var(--deck-font-body); }
 .desktop-git-history .desktop-git-commit:hover { background:var(--deck-blue-soft); }
 .desktop-git-commit > svg { flex:none; margin-top:0; color:var(--deck-sub); }
+.desktop-git-commit > svg:first-child { color:var(--deck-blue-deep); }
+.desktop-git-commit > svg:last-child { color:var(--deck-muted); }
 .desktop-git-commit-copy { flex:1; min-width:0; }
 .desktop-git-commit-copy > strong { display:block; width:100%; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .desktop-git-commit-copy small, .desktop-git-summary p { display:flex; flex-wrap:nowrap; align-items:center; gap:var(--cx-space-2); margin:var(--cx-space-1) 0 0; font:var(--deck-font-caption); color:var(--deck-sub); white-space:nowrap; min-width:0; }
@@ -167,7 +180,10 @@
 .desktop-git-refs > span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .desktop-git-summary { padding:var(--cx-space-3) var(--cx-space-2) var(--cx-space-4); }
 .desktop-git-summary h3 { margin:0; font-size:var(--deck-type-body); line-height:var(--deck-line-heading); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.desktop-git-summary p > span { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.desktop-git-summary-title { display:flex; align-items:center; gap:var(--cx-space-2); min-width:0; }
+.desktop-git-summary-title > svg { flex:none; color:var(--deck-blue-deep); }
+.desktop-git-summary-title > h3 { min-width:0; flex:1; }
+.desktop-git-summary p > span { min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; }
 .desktop-git-summary p > :is(code,time) { flex:none; font-variant-numeric:tabular-nums; }
 .desktop-git-pagination { display:flex; align-items:center; justify-content:flex-end; flex:none; gap:var(--cx-space-2); padding:var(--cx-space-2) var(--cx-space-4); border-top:1px solid var(--deck-line); color:var(--deck-sub); font:var(--deck-font-caption); font-variant-numeric:tabular-nums; }
 .desktop-git-history .desktop-git-pagination .cx-kit-button { width:36px; min-width:36px; height:36px; min-height:36px; padding:0; border:0; background:transparent; color:var(--deck-sub); box-shadow:none; border-radius:var(--deck-control-radius); }
@@ -180,7 +196,17 @@
 .desktop-git-history .desktop-git-file-heading { display:flex; width:100%; align-items:center; justify-content:flex-start; gap:var(--cx-space-2); padding:var(--cx-space-3); border:0; box-shadow:none; border-radius:var(--deck-control-radius); font:var(--deck-font-label); background:var(--deck-section-surface); color:var(--deck-ink); }
 .desktop-git-file-heading > svg { flex:none; color:var(--deck-sub); }
 .desktop-git-file-heading > .nubi-drift-label { flex:1; min-width:0; text-align:left; }
-.desktop-git-history .desktop-git-file-heading:is(:hover,[aria-expanded=true]) { background:var(--deck-blue-soft); color:var(--deck-ink); }
+.desktop-git-history .desktop-git-file-heading { font-weight:600; }
+.desktop-git-history .desktop-git-file-heading > svg { color:var(--deck-blue-deep); }
+.desktop-git-loading { display:flex; align-items:center; gap:var(--cx-space-3); padding:var(--cx-space-4); color:var(--deck-sub); font:var(--deck-font-caption); white-space:nowrap; }
+.desktop-git-loading > span:first-child { flex:none; }
+.desktop-git-loading > span:last-child { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.desktop-git-history .nubi-file-tree-file.cx-kit-button { min-height:36px; font:var(--deck-font-body); }
+.desktop-git-history .nubi-file-tree-file > svg { color:var(--deck-sub); }
+.desktop-git-history .nubi-file-tree-file[aria-current=true] { font-weight:600; }
+.desktop-git-state[data-state=A] { color:var(--deck-green); }
+.desktop-git-state[data-state=D] { color:var(--deck-red); }
+.desktop-git-state[data-state=M] { color:var(--deck-blue-deep); }
 .desktop-git-counts { display:inline-flex; align-items:center; gap:var(--cx-space-2); flex:none; font:var(--deck-font-caption); font-weight:600; font-variant-numeric:tabular-nums; }
 .desktop-git-counts .desktop-git-added { color:var(--deck-green); }
 .desktop-git-counts .desktop-git-removed { color:var(--deck-red); }
@@ -293,7 +319,9 @@
 .desktop-browser-find > small { color:var(--deck-muted); font:var(--deck-font-caption); }
 .desktop-browser-viewport { position:relative; flex:1; min-height:0; overflow:hidden; }
 .desktop-browser-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; height:100%; gap:var(--cx-space-3); padding:var(--cx-space-4); box-sizing:border-box; color:var(--deck-muted); font:var(--deck-font-body); }
-.desktop-browser-load-error { padding:var(--cx-space-3); color:var(--deck-sub); font:var(--deck-font-body); }
+.desktop-browser-load-error { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--cx-space-3); padding:var(--cx-space-4); color:var(--deck-sub); font:var(--deck-font-body); text-align:center; }
+.desktop-browser-load-error strong { color:var(--deck-ink); font-weight:var(--nubi-weight-emphasis); }
+.desktop-browser-load-error p { max-width:36em; margin:0; }
 .desktop-browser[hidden],.desktop-browser-empty[hidden],.desktop-terminal[hidden] { display:none; }
 .desktop-shell .desktop-pane:not([data-expanded=true]):not([data-team-workspace=true]) { width:var(--desktop-pane-width,420px); min-width:0; max-width:calc(100% - var(--nubi-rail-width,52px)); }
 /* Only visible sidebars occupy space; closing either returns it to the agent. */
@@ -810,7 +838,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 /* Keep the conversation in one reading column with its composer at the bottom. */
 .nubi-workbench { height:100vh; overflow:hidden; }
 .nubi-workbench-layout { height:100%; min-height:0; }
-.nubi-workbench-content { display:flex; flex-direction:column; min-height:0; }
+.nubi-workbench-content { display:flex; flex-direction:column; min-height:0; container-type:inline-size; container-name:nubi-chat-area; }
 .nubi-workbench .nubi-main { flex:1; min-height:0; width:100%; max-width:var(--nubi-reading-width); overflow-y:auto; scrollbar-width:none; scrollbar-gutter:auto; padding:var(--nubi-page-block) var(--nubi-page-inset) var(--cx-space-6); }
 .nubi-workbench .nubi-task { display:flex; flex-direction:column; min-height:100%; }
 .nubi-workbench .nubi-task > .nubi-enter { display:flex; flex:1; flex-direction:column; }
@@ -1569,3 +1597,19 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 /* Git empty results share the existing Nubi mascot and readable CX tokens. */
 .nubi-git-empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--cx-space-4); min-height:196px; padding:var(--cx-space-5) var(--cx-space-3); box-sizing:border-box; }
 .nubi-git-empty-state > strong { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:var(--deck-font-label); font-weight:600; color:var(--deck-ink); text-align:center; }
+
+/* Diff counts retain signs as well as semantic color. */
+.nubi-diff-counts { display:inline-flex; align-items:center; gap:8px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.nubi-diff-added { color:var(--nubi-text-success); font-weight:600; }
+.nubi-diff-removed { color:var(--nubi-text-danger); font-weight:600; }
+
+.nubi-proposal-quality { color:var(--nubi-note-ink); font-size:var(--nubi-font-size-meta,14px); }
+.nubi-proposal-quality[data-state="passed"] { display:inline-flex; align-items:center; color:var(--nubi-text-success); }
+.nubi-proposal-quality[data-state="blocked"] { color:var(--nubi-text-danger); font-weight:600; }
+
+:root { --nubi-account-status-font:12px; --nubi-account-status-profile-font:17px; }
+
+/* A citation is a persistent whole-line marker, separate from the editing caret. */
+.desktop-editor .monaco-editor .nubi-source-highlight { background:var(--deck-blue-soft); }
+.desktop-editor .monaco-editor .nubi-source-line-number { color:var(--deck-blue-deep) !important; font-weight:var(--nubi-weight-emphasis); }
+.nubi-answer-source > .desktop-file-icon { width:24px; }

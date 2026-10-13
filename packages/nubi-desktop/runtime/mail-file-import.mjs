@@ -1,0 +1,44 @@
+import {mailFileKind} from './mail-file-kinds.mjs';
+import {opendir,lstat,realpath,open} from 'node:fs/promises';
+import {constants} from 'node:fs';
+import path from 'node:path';
+export const MAIL_FILE_EXTENSIONS=new Set(['.eml','.mysingle','.mhtml','.mht']);
+const MAX_FILE=10*1024*1024,MAX_TOTAL=500*1024*1024;
+const check=signal=>{if(signal?.aborted)throw Error('mail_cancelled');};
+// Only the native folder picker supplies this root. Never follow links out of it.
+export async function scanMailFolder(directory,{signal,onScan=()=>{}}={}){
+ if(typeof directory!=='string'||!path.isAbsolute(directory))throw Error('mail_input_invalid');
+ const root=await realpath(directory),info=await lstat(directory);
+ if(info.isSymbolicLink()||!info.isDirectory())throw Error('mail_import_folder');
+ const files=[],failures=[];let visited=0,total=0;
+ async function walk(folder,depth){
+  check(signal);if(depth>20)throw Error('mail_import_limit');
+  const entries=await opendir(folder);
+  for await(const entry of entries){
+   check(signal);if(++visited>10000)throw Error('mail_import_limit');
+   const file=path.join(folder,entry.name),relative=path.relative(root,file);
+   if(entry.isSymbolicLink()){failures.push({file:relative,error:'mail_import_link'});continue;}
+   if(entry.isDirectory()){await walk(file,depth+1);continue;}
+   if(!entry.isFile()||!MAIL_FILE_EXTENSIONS.has(path.extname(entry.name).toLowerCase()))continue;
+   const stat=await lstat(file);
+   if(stat.size>MAX_FILE){failures.push({file:relative,error:'mail_size_limit'});continue;}
+   total+=stat.size;if(files.length>=1000||total>MAX_TOTAL)throw Error('mail_import_limit');
+   files.push({file,relative,size:stat.size,kind:mailFileKind(file)});onScan(files.length);
+  }
+ }
+ await walk(root,0);return {root,files,failures};
+}
+export async function readMailImportFile(root,item,signal){
+ check(signal);const resolved=await realpath(item.file);
+ if(resolved!==item.file||path.relative(root,resolved).split(path.sep).includes('..'))throw Error('mail_source_changed');
+ const handle=await open(item.file,constants.O_RDONLY|(constants.O_NOFOLLOW||0));
+ try{
+  const before=await handle.stat();if(!before.isFile()||before.size>MAX_FILE)throw Error('mail_size_limit');
+  const chunks=[];let length=0;
+  while(true){check(signal);const buffer=Buffer.alloc(65536),{bytesRead}=await handle.read(buffer);if(!bytesRead)break;length+=bytesRead;if(length>MAX_FILE)throw Error('mail_size_limit');chunks.push(buffer.subarray(0,bytesRead));}
+  const after=await handle.stat();if(before.size!==after.size||before.mtimeMs!==after.mtimeMs||before.ctimeMs!==after.ctimeMs||await realpath(item.file)!==resolved)throw Error('mail_source_changed');
+  const raw=Buffer.concat(chunks);if(raw.subarray(0,32).toString('ascii').startsWith('<## NASCA DRM'))throw Error('mail_import_protected');
+  if(!raw.length||!/(?:^|\r?\n)(?:Subject|From|To|MIME-Version|Content-Type|X-DESTTOP-MSG-UNIQUEID):/i.test(raw.subarray(0,65536).toString('latin1')))throw Error('mail_parse_failed');
+  return raw;
+ }finally{await handle.close();}
+}

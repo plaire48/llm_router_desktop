@@ -11,8 +11,8 @@ export function TraceSurface({open, onOpenChange, live, running, waiting, attent
   </details>;
 }
 
-export function TraceStep({status, label, children}) {
+export function TraceStep({status, label, elapsed, children}) {
   return <><span className={`agent-step-status agent-step-${status}`} title={label}>
-    {status === 'running' ? <span className="status-spinner" aria-hidden="true"/> : <Icon name={status === 'done' ? 'check' : status === 'error' ? 'alertCircle' : status === 'recovered' ? 'refresh' : ['waiting', 'queued'].includes(status) ? 'clock' : 'minus'} size={14}/>}
+    {status === 'running' ? <><span className="status-spinner" aria-hidden="true"/>{elapsed}</> : <Icon name={status === 'done' ? 'check' : status === 'error' ? 'alertCircle' : status === 'recovered' ? 'refresh' : ['waiting', 'queued'].includes(status) ? 'clock' : 'minus'} size={14}/>}
   </span><span className="agent-tool-label">{children}</span></>;
 }

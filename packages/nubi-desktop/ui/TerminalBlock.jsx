@@ -14,10 +14,11 @@ export function promptFor(profile = '', workspace = '') {
 export function TerminalBlock({profile, workspace, command, output, label = '명령', status, copyOutput = true}) {
   const lines = command ? String(command).split('\n') : [], powershell = /powershell|pwsh/i.test(profile || '');
   return <figure className="nubi-terminal" aria-label={label}>
-    <figcaption className="nubi-terminal-bar"><span className="nubi-terminal-shell"><TerminalMark size={14}/>{profile}</span>{workspace && <DriftLabel className="nubi-terminal-cwd" title={workspace}>{workspace}</DriftLabel>}{status && <span className="nubi-terminal-status">{status}</span>}</figcaption>
+    <figcaption className="nubi-terminal-bar"><span className="nubi-terminal-shell"><TerminalMark size={14}/>{profile}</span>{workspace && <DriftLabel className="nubi-terminal-cwd" title={workspace}>{workspace}</DriftLabel>}<span className="nubi-terminal-header-copy"><CopyButton text={[command,copyOutput&&output].filter(Boolean).join('\n\n')} label={command&&copyOutput&&output?'명령과 결과 복사':command?'명령어 복사':'실행 결과 복사'} successMessage="복사했습니다."/></span></figcaption>
     <div className="nubi-terminal-body">
-      {command&&<div className="nubi-terminal-section" data-terminal-part="command"><pre><code>{lines.map((line,index)=><span key={index} className="nubi-terminal-line"><span className="nubi-terminal-prompt" aria-hidden="true">{index===0?promptFor(profile,workspace):powershell?'>>':'>'}</span> {line}{index<lines.length-1?'\n':''}</span>)}</code></pre><div className="nubi-terminal-copy"><CopyButton text={String(command)} label="명령어 복사" successMessage="명령어를 복사했습니다."/></div></div>}
-      {output&&<div className="nubi-terminal-section" data-terminal-part="output"><pre><samp className="nubi-terminal-output">{output}</samp></pre>{copyOutput&&<div className="nubi-terminal-copy"><CopyButton text={String(output)} label="실행 결과 복사" successMessage="실행 결과를 복사했습니다."/></div>}</div>}
+      {command&&<div className="nubi-terminal-section" data-terminal-part="command"><pre><code>{lines.map((line,index)=><span key={index} className="nubi-terminal-line"><span className="nubi-terminal-prompt" aria-hidden="true">{index===0?promptFor(profile,workspace):powershell?'>>':'>'}</span> {line}{index<lines.length-1?'\n':''}</span>)}</code></pre>{output&&copyOutput&&<div className="nubi-terminal-copy"><CopyButton text={String(command)} label="명령어 복사" successMessage="명령어를 복사했습니다."/></div>}</div>}
+      {output&&<div className="nubi-terminal-section" data-terminal-part="output"><pre><samp className="nubi-terminal-output">{output}</samp></pre>{command&&copyOutput&&<div className="nubi-terminal-copy"><CopyButton text={String(output)} label="실행 결과 복사" successMessage="실행 결과를 복사했습니다."/></div>}</div>}
     </div>
+    {status&&<div className="nubi-terminal-receipt" role="status">{status}</div>}
   </figure>;
 }

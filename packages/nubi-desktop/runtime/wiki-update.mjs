@@ -80,9 +80,13 @@ export function defaultWikiUpdater(service,{load=()=>import('../generated/openwi
   return async({root,language,signal,onEvent,updateId,mode='update'})=>{
     const status=service.providers?.status?.();
     if(!status?.connected)fail('model_unavailable');
-    const {runNativeRepositoryGeneration,NubiOpenWikiModel,syncBundledSkills}=await load();
+    onEvent?.({type:'progress',stage:'preparing_runtime'});
+    let runtime;
+    try{runtime=await load();}catch(error){if(['ENOENT','ERR_MODULE_NOT_FOUND'].includes(error?.code))fail('wiki_runtime_missing');throw error;}
+    const {runNativeRepositoryGeneration,NubiOpenWikiModel,syncBundledSkills}=runtime;
     // As `openwiki --update` does: the runner's agents read the skills from the OpenWiki home.
-    await syncBundledSkills?.();
+    onEvent?.({type:'progress',stage:'preparing_skills'});
+    try{await syncBundledSkills?.();}catch(error){if(error?.code==='ENOENT')fail('wiki_skills_missing');throw error;}
     const invoke=modelTransport(service,{signal,metrics:createRunMetrics({store:service.store,taskId:'wiki-update:'+updateId,runId:updateId})});
     const complete=async(wire,tools,options={})=>{
       const active=service.providers.status();if(!active.connected||active.model!==status.model||active.provider!==status.provider||active.connectionId!==status.connectionId)fail('provider_changed');
@@ -230,7 +234,7 @@ export async function wikiUpdate({method='status',id,fingerprint}={}){
     await rm(path.join(copy,'openwiki'),{recursive:true,force:true});
     await writeWikiSnapshot(copy,originalWiki);
     const controller=new AbortController(),events=[];
-    this.wikiUpdateRun={id:value.id,controller};
+    this.wikiUpdateRun={id:value.id,controller,owner};
     const running=save(this,{...value,state:'running',copy,startedAt:new Date().toISOString(),events:[]});
     const runner=this.wikiUpdater||defaultWikiUpdater(this);
     const finish=async patch=>{

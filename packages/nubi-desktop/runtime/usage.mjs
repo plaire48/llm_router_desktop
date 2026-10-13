@@ -51,7 +51,12 @@ export class DesktopUsage {
     const frame = recordUsage(previous, {requestId, round:1, provider, phase:'finish', usage});
     this.add(frame, previous);
   }
-  summary() {return {usage:usageSummary(this.ledger), usageError:this.error};}
+  summary() {
+    const usage=usageSummary(this.ledger),empty=newLedger().total.aipro;
+    // Claude is a Desktop-only provider. The shared browser ledger keeps its
+    // default catalog, but both Desktop periods must include an idle Claude.
+    return {usage:{...usage,today:{claude:{...empty},...usage.today},total:{claude:{...empty},...usage.total}},usageError:this.error};
+  }
   close() {this.closed = true; this.calls.clear(); this.store.close();}
 }
 

@@ -1,0 +1,27 @@
+.nubi-question-inline { box-sizing:border-box; width:100%; max-width:100%; min-width:0; margin-block:var(--cx-space-3); padding:var(--cx-space-4); border:1px solid var(--deck-line); border-radius:var(--deck-inset-radius); background:var(--nubi-surface-base); }
+.nubi-question-inline>.nubi-question-caption { margin-bottom:var(--cx-space-3,12px); }
+.nubi-question-inline .question-card { border:0; box-shadow:none; background:transparent; padding:0; }
+.nubi-question-inline .question-option-copy { min-width:0; }
+.nubi-question-inline .question-option-copy strong { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* Grid tracks must shrink with long labels, rather than push Send off screen. */
+:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline :is(.question-card,.question-options) { grid-template-columns:minmax(0,1fr); min-width:0; max-width:100%; }
+:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline :is(.question-option,.interaction-input,.cx-kit-field) { min-width:0; max-width:100%; box-sizing:border-box; }
+:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .nubi-question-prompt { white-space:normal; overflow-wrap:anywhere; font-weight:var(--nubi-weight-emphasis); }
+:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-option-copy>span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-card--compact .interaction-entry { flex:1 1 0; }
+:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-card--compact .question-send { flex:none; min-height:40px; }
+:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-option-index svg { display:block; flex:none; }
+:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .interaction-input-actions { flex-shrink:0; }
+.nubi-question-choice-hint { position:fixed; z-index:1600; box-sizing:border-box; max-height:min(240px,40vh); overflow:auto; padding:var(--cx-space-3) var(--cx-space-4); border:1px solid var(--deck-line); border-radius:var(--deck-control-radius); box-shadow:var(--deck-shadow-tile); background:var(--nubi-surface-base); color:var(--deck-ink); font:var(--deck-font-body); white-space:normal; overflow-wrap:anywhere; }
+
+:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-card--compact .question-send:not(:disabled) { background:var(--deck-blue); color:var(--nubi-surface-base); border-color:transparent; }
+
+:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-card--compact .question-option.cx-kit-button,
+:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-card--compact .question-option.cx-kit-button:hover:not(:disabled) {
+ padding:var(--cx-space-2) var(--cx-space-3); min-height:44px; gap:var(--cx-space-3); border-radius:var(--deck-control-radius); overflow:hidden; transform:none;
+}
+:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-card--compact .question-option-index {
+ box-sizing:border-box; display:grid; place-items:center; flex:0 0 20px; width:20px; height:20px; margin:0; padding:0; border:0; border-radius:var(--cx-space-1); line-height:1; align-self:center;
+}
+:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-card--compact .question-option-index svg { width:14px; height:14px; margin:0; }

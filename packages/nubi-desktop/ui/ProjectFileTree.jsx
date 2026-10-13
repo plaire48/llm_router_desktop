@@ -21,7 +21,7 @@ const fileKind = name => ({js:'JS',mjs:'JS',cjs:'JS',jsx:'JS',ts:'TS',tsx:'TS',j
 
 // The same folder hierarchy serves browsing and commit review. Diff counts are
 // supplied only by the commit view, never inferred for ordinary source files.
-export function ProjectFileTree({items, selected, onSelect, disabled=false, renderTrailing, label='프로젝트 파일', defaultFilter=''}) {
+export function ProjectFileTree({items, selected, onSelect, disabled=false, renderTrailing, label='프로젝트 파일', defaultFilter='', documentIcons=false}) {
   const [query, setQuery] = useState(defaultFilter), [collapsed, setCollapsed] = useState(new Set()), [limit, setLimit] = useState(500);
   const matches = useMemo(() => items.filter(item => item.path.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())), [items,query]);
   const root = useMemo(() => treeOf(matches.slice(0,limit)), [matches,limit]);
@@ -37,7 +37,7 @@ export function ProjectFileTree({items, selected, onSelect, disabled=false, rend
         </CxButton>{expanded && children(group)}</li>;
       })}
       {[...node.files].sort((a,b) => compare(a.name,b.name)).map(item => <li key={item.path}><CxButton className="nubi-file-tree-row nubi-file-tree-file" aria-current={selected === item.path ? 'true' : undefined} title={item.path} onClick={() => onSelect(item)} disabled={disabled}>
-        {fileKind(item.name) ? <span className="nubi-file-kind" data-kind={fileKind(item.name)} aria-hidden="true">{fileKind(item.name)}</span> : <Icon name="file" size={14}/>}
+        {!documentIcons&&fileKind(item.name) ? <span className="nubi-file-kind" data-kind={fileKind(item.name)} aria-hidden="true">{fileKind(item.name)}</span> : <Icon name="file" size={documentIcons?16:14}/>}
         <DriftLabel>{item.name}</DriftLabel>{renderTrailing?.(item)}
       </CxButton></li>)}
     </ul>;

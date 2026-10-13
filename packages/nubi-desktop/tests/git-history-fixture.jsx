@@ -12,6 +12,7 @@ const commits=Array.from({length:53},(_,i)=>({id:(i+1).toString(16).padStart(40,
 const api=async(method,args)=>{
   window.historyCalls.push({...args});await new Promise(resolve=>setTimeout(resolve,window.historyDelay||30));
   if(window.historyFailure)throw Error('fixture_read_failed');
+  if(args.path)return {path:args.path,before:'unchanged fixture',after:'unchanged fixture'};
   if(args.commit&&window.historyEmptyCommit)return {commit:{...commits.find(c=>c.id===args.commit),parents:[]},files:[],totalFiles:0};
   if(window.historyEmpty)return {commits:[],branches:[],currentBranch:'main',tip:null,limit:25,hasMore:false};
   if(args.commit)return {commit:{...commits.find(c=>c.id===args.commit),parents:[]},files:[{path:'src/example.js',status:'M',added:5,removed:2}],totalFiles:1};

@@ -1,3 +1,4 @@
+import {desktopTestWindow} from './electron-test-window.mjs';
 import {_electron as electron} from 'playwright';
 import {createRequire} from 'node:module';
 import {mkdtemp,mkdir,writeFile,readFile,rm} from 'node:fs/promises';
@@ -16,11 +17,11 @@ async function capture(name){
  const dock=page.locator('.desktop-dock-header');if(await dock.count())assert(await dock.evaluate(header=>{const tabs=header.querySelector('.desktop-file-tabs').getBoundingClientRect(),plus=header.querySelector('.desktop-tools-anchor').getBoundingClientRect();return Math.abs((tabs.top+tabs.bottom)/2-(plus.top+plus.bottom)/2)<2;}),name+': tabs and plus remain on one line');
  await page.screenshot({path:path.join(captures,name+'.png'),animations:'disabled',scale:'css',timeout:30000});console.log('capture complete',name);
 }
-try{page=await app.firstWindow();page.setDefaultTimeout(10000);page.on('crash',()=>console.log('RENDERER CRASH'));page.on('pageerror',e=>{pageErrors.push(e.message);console.log('PAGE ERROR:',e.message);});await page.getByRole('navigation',{name:'프로젝트 도구'}).waitFor({timeout:20000});const firstScreenMs=Date.now()-started;assert.doesNotMatch(await page.locator('body').innerText(),/\/\*|\*\//,'no source comment leaks into the screen');
+try{page=await desktopTestWindow(app);await page.bringToFront();page.setDefaultTimeout(process.platform==='win32'?30000:10000);page.on('crash',()=>console.log('RENDERER CRASH'));page.on('pageerror',e=>{pageErrors.push(e.message);console.log('PAGE ERROR:',e.message);});await page.getByRole('navigation',{name:'프로젝트 도구'}).waitFor({timeout:60000});const firstScreenMs=Date.now()-started;assert.doesNotMatch(await page.locator('body').innerText(),/\/\*|\*\//,'no source comment leaks into the screen');
  // The startup mail prompt (renderer.jsx startupConnections) opens on every launch; the check closes it as a user would.
  await page.locator('.desktop-shell[data-startup-ready="true"]').waitFor({timeout:60000});
  const startup=page.getByText('메일을 연결해 주세요');if(await startup.count()){await page.keyboard.press('Escape');await startup.waitFor({state:'hidden',timeout:5000});checks.push('startup prompt closed');}
- /* The rail mounts before the native project finishes opening. Readiness is separate from a click's timeout. */await page.waitForFunction(()=>document.querySelector('button[aria-label="파일"]')?.disabled===false,null,{timeout:60000});const projectReadyMs=Date.now()-started;console.log('project ready',projectReadyMs);if(process.env.NUBI_TEST_WITHOUT_GIT){const gitStatus=await page.evaluate(()=>window.nubi.request('gitAvailability'));assert.equal(gitStatus.available,true,'bundled Git works without system Git');checks.push('bundled Git without system PATH');}await page.getByRole('button',{name:'Git 변경',exact:true}).click();await page.locator('.desktop-list .nubi-git-empty-state').getByText('표시할 변경이 없어요',{exact:true}).waitFor();await page.waitForFunction(()=>[...document.querySelectorAll('.nubi-git-empty-state img')].every(img=>img.complete&&img.naturalWidth>0));await capture('git-empty');checks.push('clean Git working tree uses the Nubi empty illustration');await page.getByRole('button',{name:'파일',exact:true}).click();await page.getByRole('tree',{name:'폴더의 파일 목록'}).getByRole('treeitem',{name:'example.js',exact:true}).dblclick();/* one click selects, a double click opens the tab (user decision 2026-10-04) */await page.getByRole('tab',{name:/example\.js/}).waitFor();await page.locator('.monaco-editor').first().waitFor();/* the file opens as a tab (2026-10-04) */console.log('stage',checks.length);checks.push('file editor');await capture('file-editor');
+ /* The rail mounts before the native project finishes opening. Readiness is separate from a click's timeout. */await page.waitForFunction(()=>document.querySelector('button[aria-label="파일"]')?.disabled===false,null,{timeout:60000,polling:100});const projectReadyMs=Date.now()-started;console.log('project ready',projectReadyMs);if(process.env.NUBI_TEST_WITHOUT_GIT){const gitStatus=await page.evaluate(()=>window.nubi.request('gitAvailability'));console.log('bundled Git readiness',JSON.stringify(gitStatus));assert.equal(gitStatus.available,true,'bundled Git works without system Git: '+JSON.stringify(gitStatus));checks.push('bundled Git without system PATH');}await page.getByRole('button',{name:'Git 변경',exact:true}).click();await page.locator('.desktop-list .nubi-git-empty-state').getByText('표시할 변경이 없어요',{exact:true}).waitFor();await page.waitForFunction(()=>[...document.querySelectorAll('.nubi-git-empty-state img')].every(img=>img.complete&&img.naturalWidth>0));await capture('git-empty');checks.push('clean Git working tree uses the Nubi empty illustration');await page.getByRole('button',{name:'파일',exact:true}).click();await page.getByRole('tree',{name:'폴더의 파일 목록'}).getByRole('treeitem',{name:'example.js',exact:true}).dblclick();/* one click selects, a double click opens the tab (user decision 2026-10-04) */await page.getByRole('tab',{name:/example\.js/}).waitFor();await page.locator('.monaco-editor').first().waitFor();/* the file opens as a tab (2026-10-04) */console.log('stage',checks.length);checks.push('file editor');await capture('file-editor');
  await page.getByRole('button',{name:'파일',exact:true}).click();/* back from the editor view to the tree: one press (2026-10-07) */const tree=page.getByRole('tree',{name:'폴더의 파일 목록'});await tree.waitFor();await capture('file-explorer');await tree.getByRole('treeitem',{name:'binary.txt',exact:true}).dblclick();await page.locator('.nubi-feedback-toast').filter({hasText:'이 파일은 코드 편집기로 열 수 없어요.'}).waitFor();await tree.getByRole('treeitem',{name:'big.txt',exact:true}).dblclick();await page.locator('.nubi-feedback-toast').filter({hasText:'이 파일은 미리보기 한도보다 커요.'}).waitFor();assert.equal(await page.getByRole('tab',{name:/binary\.txt|big\.txt/}).count(),0,'refused files open no tab');await page.getByRole('tab',{name:/example\.js/}).click();await page.locator('.desktop-editor .inputarea').first().waitFor();console.log('stage',checks.length);checks.push('binary and oversized files are refused with a reason');
  await page.locator('.desktop-editor .inputarea').first().focus();await page.keyboard.press('ControlOrMeta+A');await page.keyboard.type('export const value = 2;\n');await page.getByRole('button',{name:'파일 저장',exact:true}).click();await page.locator('.desktop-dirty').waitFor({state:'detached'});assert.equal(await readFile(path.join(root,'example.js'),'utf8'),'export const value = 2;\n');console.log('stage',checks.length);checks.push('save/readback');
  await page.getByRole('button',{name:'Git 변경',exact:true}).click();await page.locator('.desktop-list').getByRole('button',{name:'example.js'}).click();await page.waitForFunction(()=>/value\s*=\s*2/.test(document.querySelector('.desktop-list .desktop-change-diff .desktop-git-diff')?.textContent||''));/* the working change is an inline Monaco diff in the changes pane (2026-10-07) */console.log('stage',checks.length);checks.push('Git patch');await capture('git-changes');
@@ -29,18 +30,18 @@ try{page=await app.firstWindow();page.setDefaultTimeout(10000);page.on('crash',(
  await page.getByRole('button',{name:'파일',exact:true}).click();await page.getByRole('button',{name:'새 탭',exact:true}).click();await capture('tools-menu');assert.equal(await page.getByRole('menuitem',{name:'검색',exact:true}).count(),0);await page.keyboard.press('Escape');await page.keyboard.press('ControlOrMeta+Shift+P');await page.locator('.desktop-list').getByRole('button',{name:'검색',exact:true}).click();await page.getByRole('textbox',{name:'내용 검색',exact:true}).fill('export const value');await page.locator('.desktop-pane form').getByRole('button',{name:'검색',exact:true}).click();await page.locator('.desktop-list').getByRole('button',{name:/example.js/}).waitFor();await capture('source-search');checks.push('source search and tools menu');
  const ruled=await page.evaluate(async()=>{const r=await window.nubi.request('read',{path:'example.js'});return {error:r.__nubiError,content:r.content,rules:r.projectRules?.files?.map(f=>({path:f.path,truncated:f.truncated,shownLines:f.shownLines,totalLines:f.totalLines,headings:f.omittedHeadings?.map(h=>h.heading)}))};});assert.equal(ruled.error,undefined,'a long AGENTS.md no longer refuses the read');assert.equal(ruled.content,'export const value = 2;\n');assert.deepEqual(ruled.rules,[{path:'AGENTS.md',truncated:true,shownLines:ruled.rules[0].shownLines,totalLines:1604,/* 1603 lines, each ending in a newline, split into 1604 pieces */headings:['## 뒤쪽 절']}]);assert.equal(ruled.rules[0].shownLines,819,'the heading and 818 lines of 40 bytes fill the 32 KiB budget');console.log('stage',checks.length);checks.push('long project rules read in part');
  /* The rail reaches the mail page and its account dialog, the library and the settings without a model (2026-10-07). */
- await page.getByRole('button',{name:'메일',exact:true}).click();await page.getByRole('heading',{name:'메일',exact:true}).waitFor();await page.locator('.desktop-pane').waitFor({state:'hidden'});await page.getByRole('button',{name:'메일 연결',exact:true}).click();await page.getByRole('dialog',{name:'메일 설정',exact:true}).getByRole('form',{name:'메일 계정'}).waitFor();await page.keyboard.press('Escape');await page.getByRole('dialog',{name:'메일 설정',exact:true}).waitFor({state:'hidden'});await page.getByRole('button',{name:'홈',exact:true}).click();await page.getByRole('heading',{name:'메일',exact:true}).waitFor({state:'hidden'});
- await page.getByRole('button',{name:'위키',exact:true}).click();await page.getByRole('dialog',{name:'프로젝트 자료',exact:true}).waitFor();await page.keyboard.press('Escape');await page.getByRole('dialog',{name:'프로젝트 자료',exact:true}).waitFor({state:'hidden'});
+ await page.getByRole('button',{name:'메일',exact:true}).click();await page.getByRole('heading',{name:'메일',exact:true}).waitFor();await page.locator('.desktop-pane').waitFor({state:'hidden'});await page.getByRole('button',{name:'포털 로그인',exact:true}).click();await page.getByRole('dialog',{name:'메일 설정',exact:true}).getByRole('button',{name:'포털 로그인',exact:true}).waitFor();await page.keyboard.press('Escape');await page.getByRole('dialog',{name:'메일 설정',exact:true}).waitFor({state:'hidden'});await page.getByRole('button',{name:'홈',exact:true}).click();await page.getByRole('heading',{name:'메일',exact:true}).waitFor({state:'hidden'});
+ await page.getByRole('button',{name:'위키 관리',exact:true}).click();await page.getByRole('dialog',{name:'프로젝트 자료',exact:true}).waitFor();await page.keyboard.press('Escape');await page.getByRole('dialog',{name:'프로젝트 자료',exact:true}).waitFor({state:'hidden'});
  // Record the real native API calls on Windows; macOS has different window controls.
- if(process.platform==='win32')await app.evaluate(({BrowserWindow})=>{const win=BrowserWindow.getAllWindows()[0],apply=win.setTitleBarOverlay.bind(win);win.captionUpdates=[];win.setTitleBarOverlay=options=>{win.captionUpdates.push(options);return apply(options);};});
+ if(process.platform==='win32')await (await app.browserWindow(page)).evaluate(win=>{const apply=win.setTitleBarOverlay.bind(win);win.captionUpdates=[];win.setTitleBarOverlay=options=>{win.captionUpdates.push(options);return apply(options);};});
  await page.getByRole('button',{name:'설정',exact:true}).click();await page.getByRole('dialog',{name:'설정',exact:true}).getByLabel('기본 터미널').waitFor();
  if(process.platform==='win32'){
   const {captionColors}=await import('../electron-app/titlebar-colors.cjs');
   const style=await page.evaluate(()=>{const toolbar=getComputedStyle(document.querySelector('.nubi-window-toolbar'));return {background:toolbar.backgroundColor,symbol:toolbar.getPropertyValue('--deck-sub').trim(),layers:[...document.querySelectorAll('.cx-panel-backdrop')].filter(node=>node.checkVisibility()).map(node=>getComputedStyle(node).backgroundColor)};});
   const expected={...captionColors(style.background,style.symbol,style.layers),height:48};
   assert.notEqual(expected.color,captionColors(style.background,style.symbol).color,'settings has a visible scrim; a fallback color must not pass');
-  for(let i=0;i<30;i++){const current=await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].captionUpdates.at(-1));if(JSON.stringify(current)===JSON.stringify(expected))break;await new Promise(resolve=>setTimeout(resolve,100));}
-  assert.deepEqual(await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].captionUpdates.at(-1)),expected,'settings scrim reaches native minimize/maximize/close controls');
+  for(let i=0;i<30;i++){const current=await (await app.browserWindow(page)).evaluate(win=>win.captionUpdates.at(-1));if(JSON.stringify(current)===JSON.stringify(expected))break;await new Promise(resolve=>setTimeout(resolve,100));}
+  assert.deepEqual(await (await app.browserWindow(page)).evaluate(win=>win.captionUpdates.at(-1)),expected,'settings scrim reaches native minimize/maximize/close controls');
   await page.screenshot({path:path.join(captures,'settings-caption.png')});
  }
  await page.keyboard.press('Escape');await page.getByRole('dialog',{name:'설정',exact:true}).waitFor({state:'hidden'});
@@ -48,11 +49,11 @@ try{page=await app.firstWindow();page.setDefaultTimeout(10000);page.on('crash',(
   const {captionColors}=await import('../electron-app/titlebar-colors.cjs');
   const style=await page.evaluate(()=>{const s=getComputedStyle(document.querySelector('.nubi-window-toolbar'));return {background:s.backgroundColor,symbol:s.getPropertyValue('--deck-sub').trim()};});
   const expected={...captionColors(style.background,style.symbol),height:48};
-  for(let i=0;i<30;i++){const current=await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].captionUpdates.at(-1));if(JSON.stringify(current)===JSON.stringify(expected))break;await new Promise(resolve=>setTimeout(resolve,100));}
-  assert.deepEqual(await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].captionUpdates.at(-1)),expected,'closing settings restores native caption colors');checks.push('native caption follows settings scrim and restores');
+  for(let i=0;i<30;i++){const current=await (await app.browserWindow(page)).evaluate(win=>win.captionUpdates.at(-1));if(JSON.stringify(current)===JSON.stringify(expected))break;await new Promise(resolve=>setTimeout(resolve,100));}
+  assert.deepEqual(await (await app.browserWindow(page)).evaluate(win=>win.captionUpdates.at(-1)),expected,'closing settings restores native caption colors');checks.push('native caption follows settings scrim and restores');
  }
  console.log('stage',checks.length);checks.push('mail page, library and settings');
- assert.equal(await app.evaluate(({BrowserWindow})=>{const p=BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences();return p.sandbox&&p.contextIsolation&&!p.nodeIntegration;}),true);console.log('stage',checks.length);checks.push('sandbox');
+ assert.equal(await (await app.browserWindow(page)).evaluate(win=>{const p=win.webContents.getLastWebPreferences();return p.sandbox&&p.contextIsolation&&!p.nodeIntegration;}),true);console.log('stage',checks.length);checks.push('sandbox');
  await page.getByRole('button',{name:'파일',exact:true}).click();await page.getByRole('button',{name:'오른쪽 사이드바 닫기'}/* the auxiliary pane closes from its header (2026-10-02) */).click();assert.equal(await page.locator('.nubi-workbench').count(),1);console.log('stage',checks.length);checks.push('permanent agent');
  await page.getByRole('button',{name:'파일',exact:true}).click();await page.getByRole('button',{name:'새 탭',exact:true}).click();await page.getByRole('menuitem',{name:'터미널',exact:true}).click();/* the terminal opens from the file dock's tools menu (2026-10-02) */const terminalRegion=page.getByRole('region',{name:'프로젝트 터미널'});await page.locator('.desktop-terminal[data-terminal-state=running]').waitFor();
  const shellInput=terminalRegion.locator('.xterm-helper-textarea');await shellInput.focus();
@@ -62,8 +63,16 @@ try{page=await app.firstWindow();page.setDefaultTimeout(10000);page.on('crash',(
  assert.equal(await terminalRegion.locator('.desktop-terminal-input').count(),0,'commands are entered in the actual PTY');
  assert.equal(await terminalRegion.evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(23, 23, 28)');
  await page.evaluate(()=>{window.terminalCopies=[];Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>window.terminalCopies.push(text)}});});
- await terminalRegion.hover();await terminalRegion.getByRole('button',{name:'터미널 내용 복사',exact:true}).click();
+ await terminalRegion.hover();
+ // Measure the transient toast in one renderer call; it can disappear between
+ // waitFor() and a later evaluate() on a busy Windows runner.
+ const [toastPosition]=await Promise.all([
+  page.waitForFunction(()=>{const toast=document.querySelector('.cx-toast');if(!toast?.textContent.includes('터미널 내용을 복사했습니다.'))return null;const rect=toast.getBoundingClientRect();return rect.height?{top:rect.top,titlebarBottom:document.querySelector('.desktop-titlebar').getBoundingClientRect().bottom}:null;},null,{polling:50}),
+  terminalRegion.getByRole('button',{name:'터미널 내용 복사',exact:true}).click()
+ ]);
  assert.match((await page.evaluate(()=>window.terminalCopies))[0],/nubi-terminal-ok/);
+ const toastBounds=await toastPosition.jsonValue();await toastPosition.dispose();
+ assert(toastBounds.top>=toastBounds.titlebarBottom,'copy notification stays below the titlebar and cannot intercept its controls');
  checks.push('interactive PTY keeps variables between commands, has inline input and copies visible output');await shellInput.focus();await capture('terminal');await terminalRegion.screenshot({path:path.join(captures,'terminal-detail.png')});
 
  const toolbar=page.getByRole('banner',{name:'Workspace 상단 메뉴'});
@@ -72,23 +81,39 @@ try{page=await app.firstWindow();page.setDefaultTimeout(10000);page.on('crash',(
  checks.push('sidebar toggle follows brand and opens/closes the sidebar');
 // The shell, not the renderer, handles read prompts and cancellation.
  await shellInput.focus();await page.keyboard.type(process.platform==='win32'?"$answer=Read-Host 'input-value'":"read -p 'input-value: ' answer");await page.keyboard.press('Enter');
- await page.waitForFunction(()=>document.querySelector('.desktop-terminal .xterm-rows')?.textContent.includes('input-value'));
+ // The command echo also contains "input-value". Wait for the actual prompt:
+ // input sent earlier can be consumed by PSReadLine before Read-Host owns it.
+ await page.waitForFunction(()=>{const rows=[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].map(row=>row.textContent).filter(text=>text.trim());return /^input-value:\s*$/.test(rows.at(-1)||'');},null,{polling:100});
  await page.keyboard.type('session-answer');await page.keyboard.press('Enter');
+ await page.waitForFunction(windows=>{const rows=[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].map(row=>row.textContent).filter(text=>text.trim());return (windows?/>\s*$/:/[$#]\s*$/).test(rows.at(-1)||'');},process.platform==='win32',{polling:100});
  await page.keyboard.type(process.platform==='win32'?"Write-Output $answer":"printf '%s\\n' \"$answer\"");await page.keyboard.press('Enter');
- await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='session-answer'));
+ await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='session-answer'),null,{polling:100});
  await page.keyboard.type(process.platform==='win32'?"Write-Output 'sleep-started'; Start-Sleep 30":"printf '%s\\n' sleep-started; sleep 30");await page.keyboard.press('Enter');
- await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='sleep-started'));
+ await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='sleep-started'),null,{polling:100});
+ lastAction='interrupt running shell';await shellInput.focus();const interruptStarted=Date.now();console.log('action',lastAction);
  await page.keyboard.press('Control+C');
  // ConPTY/PowerShell discards input while handling Ctrl+C. Wait for the real
  // returned prompt before sending the next command, as an interactive user does.
- await page.waitForFunction(windows=>{const rows=[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].map(row=>row.textContent).filter(text=>text.trim());return (windows?/>\s*$/:/[$#]\s*$/).test(rows.at(-1)||'');},process.platform==='win32');
+ await page.waitForFunction(windows=>{const rows=[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].map(row=>row.textContent).filter(text=>text.trim());return (windows?/>\s*$/:/[$#]\s*$/).test(rows.at(-1)||'');},process.platform==='win32',{polling:100});
+ const interruptMs=Date.now()-interruptStarted;console.log('shell interrupt returned',interruptMs);assert(interruptMs<15000,'Ctrl+C returns before the 30-second command completes naturally');
  await page.keyboard.type(process.platform==='win32'?"Write-Output ('after-'+'interrupt')":"printf '%s\\n' after-interrupt");await page.keyboard.press('Enter');
- await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='after-interrupt'));
+ await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='after-interrupt'),null,{polling:100});
  checks.push('interactive input and Ctrl+C return to the live shell');
  await mkdir(path.join(root,'한글 폴더'));await page.keyboard.insertText(process.platform==='win32'?"Set-Location -LiteralPath './한글 폴더'":"cd './한글 폴더'");await page.keyboard.press('Enter');
  await page.keyboard.type(process.platform==='win32'?"Split-Path -Leaf (Get-Location).Path":"printf '%s\\n' \"${PWD##*/}\"");await page.keyboard.press('Enter');
- await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='한글 폴더'));
+ await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='한글 폴더'),null,{polling:100});
  await page.keyboard.type('cd ..');await page.keyboard.press('Enter');checks.push('Korean input and directory changes persist in the interactive session');
+ if(process.platform==='win32'){
+  await writeFile(path.join(root,'utf8-korean.txt'),'한글 본문 확인\n','utf8');
+  await page.keyboard.type("Get-Content -LiteralPath './utf8-korean.txt'");await page.keyboard.press('Enter');
+  await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='한글 본문 확인'),null,{polling:100});
+  // A raw native stdin/stdout echo avoids pager or PowerShell-child input semantics.
+  await writeFile(path.join(root,'native-utf8-echo.cjs'),'process.stdin.pipe(process.stdout);\n');
+  const reader=process.execPath.replaceAll("'","''");
+  await page.keyboard.insertText("'파이프 한글 확인' | & '"+reader+"' './native-utf8-echo.cjs'");await page.keyboard.press('Enter');
+  await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='파이프 한글 확인'),null,{polling:100});
+  checks.push('interactive PowerShell reads BOM-less UTF-8 files and sends Korean to native stdin');
+ }
  const terminalTabs=await page.getByRole('button',{name:/터미널 탭 닫기$/}).count();await page.getByRole('button',{name:'메일',exact:true}).click();await page.locator('.desktop-pane').waitFor({state:'hidden'});await page.getByRole('button',{name:'홈',exact:true}).click();await page.getByRole('button',{name:'파일',exact:true}).click();assert.equal(await page.getByRole('button',{name:/터미널 탭 닫기$/}).count(),terminalTabs,'mail navigation preserves terminal sessions without creating another');
 
  // Manual browsing may leave the project, while model operations keep their original root.
@@ -117,9 +142,9 @@ try{page=await app.firstWindow();page.setDefaultTimeout(10000);page.on('crash',(
  }catch(error){
  console.error('SHELL_FAILURE',lastAction,error.stack||String(error));
  await mkdir('verification',{recursive:true});
- const failure={action:lastAction,message:error.message,stack:error.stack,checks,pageErrors,appStderr};
+ const projectRestore=await readFile(path.join(storage,'last-project-restore.json'),'utf8').then(JSON.parse).catch(()=>null);console.error('PROJECT_RESTORE_DIAGNOSTIC',JSON.stringify(projectRestore));const failure={action:lastAction,message:error.message,stack:error.stack,checks,pageErrors,appStderr,projectRestore};
  await writeFile('verification/electron-shell-failure.json',JSON.stringify(failure,null,2));
  try{await page?.screenshot({path:'verification/electron-shell-failure.png',timeout:5000});}catch(captureError){console.log('FAILURE_CAPTURE_UNAVAILABLE',captureError.message);}
- try{console.log('SHELL_DIAGNOSTICS',JSON.stringify(await page?.locator('body').evaluate(()=>({viewport:{width:innerWidth,height:innerHeight},pane:document.querySelector('.desktop-pane')?.innerText,diffs:[...document.querySelectorAll('.desktop-git-diff')].map(node=>({text:node.textContent,rect:node.getBoundingClientRect().toJSON()}))}),null,{timeout:5000})));}catch(diagnosticError){console.log('FAILURE_DOM_UNAVAILABLE',diagnosticError.message);}
+ try{console.log('SHELL_DIAGNOSTICS',JSON.stringify(await page?.locator('body').evaluate(()=>({viewport:{width:innerWidth,height:innerHeight},visibility:document.visibilityState,active:document.activeElement?.className,terminalRows:[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].map(row=>row.textContent),navigation:[...document.querySelectorAll('.nubi-workspace-navigation button')].map(button=>({label:button.getAttribute('aria-label'),disabled:button.disabled})),pane:document.querySelector('.desktop-pane')?.innerText,diffs:[...document.querySelectorAll('.desktop-git-diff')].map(node=>({text:node.textContent,rect:node.getBoundingClientRect().toJSON()}))}),null,{timeout:5000})));}catch(diagnosticError){console.log('FAILURE_DOM_UNAVAILABLE',diagnosticError.message);}
  throw error;
 }finally{await app.close();await rm(temporary,{recursive:true,force:true});}

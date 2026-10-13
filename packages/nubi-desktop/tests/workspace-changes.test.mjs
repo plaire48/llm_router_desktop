@@ -1,8 +1,9 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile,writeFile,symlink} from 'node:fs/promises';
+import {readFile,writeFile,symlink,mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import {randomUUID} from 'node:crypto';
+import {git} from '../runtime/files.mjs';
 import {fixture} from './fixtures.mjs';
 import {inspectWorkspaceChanges} from '../runtime/workspace-changes.mjs';
 import {ProjectService} from '../runtime/project-service.mjs';
@@ -68,4 +69,21 @@ test('Pi can inspect pre-existing Git changes through a read-only tool before su
   assert.equal(turn,3);
   assert.equal(await readFile(path.join(root,'app.txt'),'utf8'),changed);
   assert.equal(service.state().proposals.length,0);
+});
+
+
+test('plain local folders return unknown change state without creating Git metadata',async t=>{
+ const {directory}=await fixture(t),root=path.join(directory,'plain');await mkdir(root);await writeFile(path.join(root,'notes.txt'),'local source');
+ const result=await inspectWorkspaceChanges({target:async()=>root});
+ assert.equal(result.repositoryState,'not_git_repository');assert.equal(result.dirty,null);assert.equal(result.head,null);assert.deepEqual(result.entries,[]);
+ await assert.rejects(readFile(path.join(root,'.git','HEAD')),e=>e.code==='ENOENT');
+ assert.match(result.instruction,/not clean/);
+});
+test('unborn Git status and staged additions work without inventing a HEAD',async t=>{
+ const {directory}=await fixture(t),root=path.join(directory,'unborn');await mkdir(root);await git(root,['init','-q']);await writeFile(path.join(root,'hello.txt'),'첫 파일\n');
+ const service={target:async()=>root};const fresh=await inspectWorkspaceChanges(service);assert.equal(fresh.repositoryState,'unborn');assert.equal(fresh.entries[0].state,'untracked');assert.equal(fresh.head,null);
+ await git(root,['add','hello.txt']);const detail=await inspectWorkspaceChanges(service,{path:'hello.txt'});
+ assert.equal(detail.state,'added');assert.equal(detail.before,'');assert.equal(detail.after,'첫 파일\n');assert.match(detail.patch,/첫 파일/);
+ await writeFile(path.join(root,'hello.txt'),'스테이징 뒤 수정\n');const latest=await inspectWorkspaceChanges(service,{path:'hello.txt'});assert.equal(latest.after,'스테이징 뒤 수정\n');assert.match(latest.patch,/스테이징 뒤 수정/);assert.doesNotMatch(latest.patch,/첫 파일/);
+ await writeFile(path.join(root,'hello.txt'),Buffer.from([0,1,2]));const binary=await inspectWorkspaceChanges(service,{path:'hello.txt'});assert.equal(binary.binary,true);assert.equal(binary.after,undefined);
 });

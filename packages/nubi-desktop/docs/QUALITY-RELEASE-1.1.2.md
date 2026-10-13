@@ -2,6 +2,7 @@
 
 ## Changes
 
+- Windows installation shows a concise usage notice first and detailed installation/removal progress by default, without a details toggle. Time spent reading the notice is excluded from installation timing.
 - Windows app-scoped official MinGit, pinned SHA-256 and retained upstream licenses. No system PATH or global Git changes. Missing/denied/timeout/ownership failures have actionable messages. Code Wiki checks Git before reading sources.
 - Skills Team/Personal and Wiki Code/Personal share tabs and SSO entry. Mail uses sortable sender/subject/recipient-role/date columns with the reader below. POP3 sent-mail collection remains unsupported.
 - Clipped file names animate only while hovered/focused and stop when the name fits or reduced motion is requested.
@@ -15,7 +16,7 @@ Local Node regression: 965 cases, 767 passed, 198 explicit skips (176 computer-u
 
 Real Claude CLI Opus 5.5 medium streaming transport: first text 2219 ms, 33 partials, total 5215 ms. This is transport evidence, not a general answer-quality score.
 
-Windows CI run 38252790474 passed at commit 7ef528357e32779e7751c703fdb0671383b05d39 on Microsoft Windows Server 2025 Datacenter. Packaged and installed shell/project checks, native OpenWiki initialization/update without system Git, upgrade from 1.1.0, reinstall, silent update/relaunch and uninstall passed. The installer observed actual extraction percentage/remaining time and 54 old-uninstaller elapsed updates. Finish-to-responsive-app-window was 2.80 seconds in this runner. Reinstall was 12.16 seconds. These are runner measurements, not promised user-PC timings. The EXE is unsigned; real Windows 11 remains a separate acceptance check. GHES SSO, corporate POP3 and corporate publishing remain unverified here. Fixture mail data is synthetic. Beta attachment body parsing remains disabled.
+Windows CI run 38254384560 passed at commit 00f394bbdd1a30817db63f5efa870de6dee18118 on Microsoft Windows Server 2025 Datacenter. Packaged and installed shell/project checks, native OpenWiki initialization/update without system Git, upgrade from 1.1.0, reinstall, silent update/relaunch and uninstall passed. The installer observed actual extraction percentage/remaining time and 113 old-uninstaller elapsed updates. The pre-install notice and default-visible detail list passed native UI checks. Finish-to-responsive-app-window was 4.18 seconds in this runner. Reinstall was 18.51 seconds. These are runner measurements, not promised user-PC timings. The EXE is unsigned; real Windows 11 remains a separate acceptance check. GHES SSO, corporate POP3 and corporate publishing remain unverified here. Fixture mail data is synthetic. Beta attachment body parsing remains disabled.
 
 ## Method choices
 
@@ -23,7 +24,7 @@ Reuse official MinGit rather than implementing Git behavior or modifying system 
 
 ## Delivered build
 
-- Installer: `Nubi-Workspace-beta-1.1.2-x64-Setup.exe` (167883159 bytes)
-- SHA-256: `e1b41f174424d7f14ff959647d3b97be12cb0c3bd7ed447f49ea320ad02ba1a4`
-- CI: https://github.com/plaire48/llm-router/actions/runs/38252790474
+- Installer: `Nubi-Workspace-beta-1.1.2-x64-Setup.exe` (167883737 bytes)
+- SHA-256: `8dd93a8d8f262334f6e9045ad5aec69ea9fc3f2e3919102f972e800a9890516b`
+- CI: https://github.com/plaire48/llm-router/actions/runs/38254384560
 - Corporate deployment: `scripts/Publish-NubiUpdate.ps1` and `docs/WINDOWS-UPDATE-DEPLOYMENT.md`. Actual nuri publishing has not been performed.

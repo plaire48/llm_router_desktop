@@ -52,6 +52,17 @@ export default function Editor({buffer,diff,onReady}){
   let instance;if(diff){instance=monaco.editor.createDiffEditor(element.current,{...options,readOnly:true});const original=monaco.editor.createModel(diff.before,'plaintext'),modified=monaco.editor.createModel(diff.after,'plaintext');instance.setModel({original,modified});return()=>{instance.dispose();original.dispose();modified.dispose();};}
   instance=monaco.editor.create(element.current,{...options,readOnly:!!buffer.readOnly,model:buffer.model});activeEditor.current=instance;if(buffer.viewState)instance.restoreViewState(buffer.viewState);onReady?.(instance);return()=>{buffer.viewState=instance.saveViewState();activeEditor.current=null;instance.dispose();};
  },[buffer,diff]);
- useEffect(()=>{const line=buffer?.sourceSelection?.line,instance=activeEditor.current;if(!instance||!Number.isSafeInteger(line)||line<1)return;const observed=Math.min(line,buffer.model.getLineCount());instance.setPosition({lineNumber:observed,column:1});instance.revealLineInCenter(observed);instance.focus();},[buffer,buffer?.sourceSelection]);
+ useEffect(()=>{
+  const selection=buffer?.sourceSelection,instance=activeEditor.current,model=buffer?.model;
+  if(!instance||!model||!Number.isSafeInteger(selection?.line)||selection.line<1)return;
+  const start=Math.min(selection.line,model.getLineCount());
+  const end=Number.isSafeInteger(selection.endLine)?Math.min(Math.max(start,selection.endLine),model.getLineCount()):start;
+  const range=new monaco.Range(start,1,end,model.getLineMaxColumn(end));
+  const decorations=instance.createDecorationsCollection([{range,options:{isWholeLine:true,className:'nubi-source-highlight',lineNumberClassName:'nubi-source-line-number',hoverMessage:{value:'답변에 참고한 원문'},stickiness:monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges}}]);
+  instance.setPosition({lineNumber:start,column:1});instance.revealRangeInCenter(range);instance.focus();
+  // Once edited, the displayed text is no longer the hash-verified citation.
+  const edited=instance.onDidChangeModelContent(()=>{decorations.clear();buffer.sourceSelection=null;});
+  return()=>{edited.dispose();decorations.clear();};
+ },[buffer,buffer?.sourceSelection]);
  return <div ref={element} className="desktop-editor" aria-label={diff?'변경 비교':'파일 편집기'}/>;
 }

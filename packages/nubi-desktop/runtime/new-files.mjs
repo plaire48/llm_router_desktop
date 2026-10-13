@@ -46,6 +46,7 @@ export async function prepareNewFile(proposal) {
   if(proposal.state!=='proposed')fail('write_unconfirmed');
   await inspectNewPath(root,proposal.path);await validateProjectRules(root,proposal.path,proposal.rulesFingerprint);
   proposal.quality=await checkCodeQuality(proposal.path,'',proposal.content);requireCodeQuality(proposal.quality);
+  if(this.store.get('proposal:'+proposal.id)?.state!=='proposed')fail('proposal_missing');
   this.store.set('proposal:'+proposal.id,proposal);
   return {...proposal,uri,alreadyApplied:false};
 }
@@ -63,6 +64,7 @@ export async function applyNewFile({proposalId}) {
     const ready=await prepareNewFile.call(this,proposal),root=await this.target(proposal.taskId);
     if(this.computerBusy||this.disposed||this.task(proposal.taskId).state==='cancelled')fail('setup_cancelled');
     await inspectNewPath(root,proposal.path);await validateProjectRules(root,proposal.path,proposal.rulesFingerprint);
+    if(this.store.get('proposal:'+proposalId)?.state!=='proposed')fail('proposal_missing');
     proposal.state='creating';this.store.set('proposal:'+proposalId,proposal);
     try{await writeFile(path.join(root,proposal.path),proposal.content,{flag:'wx'});}
     catch(error){proposal.state=error.code==='EEXIST'?'conflicted':'attention';this.store.set('proposal:'+proposalId,proposal);fail(error.code==='EEXIST'?'file_exists':'write_unconfirmed');}

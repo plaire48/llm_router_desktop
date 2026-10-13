@@ -46,5 +46,67 @@ test('archive hides downloads and restore retains immutable history',async t=>{c
 test('concurrent final ref changes cannot overwrite a colleague commit',async t=>{const f=await fixture(t);f.remote.beforePatch(()=>f.remote.concurrent());await assert.rejects(f.service.publish(f.input),/wiki_share_changed/);assert.equal((await f.service.list()).items.length,0);});
 test('session changes during approval prevent publication',async t=>{let remote;const f=await fixture(t,{confirmSave:async()=>{remote.account.generation++;return true;}});remote=f.remote;await assert.rejects(f.service.publish(f.input),/ghes_session_changed/);assert.equal(f.remote.calls.filter(x=>x.method!=='GET').length,0);});
 test('personal mode requires a real selection and keeps a separate download root',async t=>{const f=await fixture(t);await assert.rejects(f.service.publish({...f.input,paths:[],metadata:{...f.input.metadata,mode:'personal'}}),/wiki_share_empty/);const first=await f.service.publish({...f.input,metadata:{...f.input.metadata,mode:'personal'}});const saved=await f.service.download({id:first.item.id,version:'1.0.0'},f.root);assert.equal(await readFile(path.join(saved.path,'personal','quickstart.md'),'utf8'),'# Wiki\n');});
-test('tampered contents fail hash verification before creating a download folder',async t=>{const f=await fixture(t),first=await f.service.publish(f.input);f.remote.blobs.set(gitBlob('# Wiki\n'),'tampered');const dest=path.join(f.root,'dest');await mkdir(dest);await assert.rejects(f.service.download({id:first.item.id,version:'1.0.0'},dest),/wiki_share_changed/);assert.deepEqual(await readdir(dest),[]);});
+test('tampered contents fail hash verification before creating a download folder',async t=>{const f=await fixture(t),first=await f.service.publish(f.input);f.remote.blobs.set(gitBlob('# Wiki\n'),'tampered');const dest=path.join(f.root,'dest');await mkdir(dest);await assert.rejects(f.service.download({id:first.item.id,version:'1.0.0'},dest),/wiki_share_integrity/);assert.deepEqual(await readdir(dest),[]);});
 test('unsafe paths and symlinks are rejected',async t=>{for(const name of ['../secret.md','C:/x.md','a\\b.md','CON.md','.env','a/../b.md'])assert.equal(safePath(name),false);const f=await fixture(t);await symlink(path.join(f.source,'quickstart.md'),path.join(f.source,'link.md'));await assert.rejects(collectWiki(f.source),/wiki_share_symlink/);});
+
+
+test('read-only ref failures fall back once to the commit API without writing',async()=>{
+ const f=mock(),original=f.account.fetcher,reads=[];
+ f.account.fetcher=async(url,init)=>{assert.equal(init.method,'GET');const route=new URL(url).pathname;reads.push(route);if(route.includes('/git/ref/heads/'))return new Response('{}',{status:409});if(route.endsWith('/commits/main'))return new Response(JSON.stringify({sha:f.head()}));return original(url,init);};
+ const service=new WikiRepository({account:f.account});assert.equal((await service.list()).head,f.head());assert.equal(reads.filter(route=>route.endsWith('/commits/main')).length,1);assert(!f.calls.some(call=>call.method!=='GET'));
+});
+test('persistent read failure is not reported as a competing save',async()=>{
+ const f=mock(),original=f.account.fetcher;
+ f.account.fetcher=async(url,init)=>{if(new URL(url).pathname.includes('/git/ref/')||new URL(url).pathname.endsWith('/commits/main')||new URL(url).pathname.endsWith('/branches/main'))return new Response('{}',{status:409});return original(url,init);};
+ await assert.rejects(new WikiRepository({account:f.account}).list(),/wiki_share_read_failed/);assert(!f.calls.some(call=>call.method!=='GET'));
+});
+
+// A read failure is recoverable without modifying refs or creating a first commit.
+test('branch endpoint recovers rejected refs and commits and pins catalog reads to its SHA',async()=>{
+ const f=mock(),original=f.account.fetcher,reads=[];
+ f.account.fetcher=async(url,init)=>{assert.equal(init.method,'GET');const route=new URL(url).pathname;reads.push(route);if(route.includes('/git/ref/heads/'))return new Response('{}',{status:404});if(route.endsWith('/commits/main'))return new Response('{}',{status:422});if(route.endsWith('/branches/main'))return new Response(JSON.stringify({commit:{sha:f.head()}}));if(route.includes('/contents/'))assert.equal(new URL(url).searchParams.get('ref'),f.head());return original(url,init);};
+ const result=await new WikiRepository({account:f.account}).list();assert.equal(result.head,f.head());assert.deepEqual(result.items,[]);assert.equal(reads.filter(route=>route.endsWith('/branches/main')).length,1);
+});
+test('permission failure never falls through to alternative branch reads',async()=>{
+ const f=mock(),original=f.account.fetcher;let count=0;
+ f.account.fetcher=async(url,init)=>{if(new URL(url).pathname.includes('/git/ref/')){count++;return new Response('{}',{status:403});}if(new URL(url).pathname.includes('/commits/')||new URL(url).pathname.includes('/branches/'))assert.fail('permission errors must be preserved');return original(url,init);};
+ await assert.rejects(new WikiRepository({account:f.account}).list(),/wiki_share_permission/);assert.equal(count,1);
+});
+
+test('app audience applies to Code and Personal lists, details and downloads without leaking the full catalog',async t=>{
+ for(const mode of ['code','personal']){
+  const f=await fixture(t),saved=await f.service.publish({...f.input,metadata:{...f.input.metadata,mode,audience:{scope:'selected',readers:['Bob']}}});
+  f.remote.account.profile.login='charlie';const hidden=await f.service.list();assert.equal(hidden.items.length,0);assert.equal(hidden.document,undefined);
+  await assert.rejects(f.service.detail({id:saved.item.id,version:'1.0.0'}),/wiki_share_missing/);
+  await assert.rejects(f.service.download({id:saved.item.id,version:'1.0.0'},f.root),/wiki_share_missing/);
+  f.remote.account.profile.login='bob';assert.equal((await f.service.list()).items.length,1);assert.equal((await f.service.detail({id:saved.item.id,version:'1.0.0'})).item.id,saved.item.id);
+  f.remote.account.profile.login='alice';assert.equal((await f.service.list()).items[0].canEdit,true);
+ }
+});
+test('audience updates preserve upload date and every version, require edit permission and CAS',async t=>{
+ const f=await fixture(t),saved=await f.service.publish(f.input),metadata={audience:{scope:'selected',readers:['bob']}};
+ f.remote.account.profile.login='charlie';await assert.rejects(f.service.publish({id:saved.item.id,expectedHead:f.remote.head(),audienceOnly:true,metadata}),/wiki_share_permission/);
+ f.remote.account.profile.login='alice';const changed=await f.service.publish({id:saved.item.id,expectedHead:f.remote.head(),audienceOnly:true,metadata});
+ assert.equal(changed.item.createdAt,saved.item.createdAt);assert.deepEqual(changed.item.releases,saved.item.releases);
+ assert.equal((await f.service.detail({id:saved.item.id,version:'1.0.0'})).manifest.version,'1.0.0');
+ await assert.rejects(f.service.publish({id:saved.item.id,expectedHead:f.snapshot.head,audienceOnly:true,metadata}),/wiki_share_changed/);
+ await assert.rejects(f.service.publish({id:saved.item.id,expectedHead:f.remote.head(),audienceOnly:true,metadata:{audience:{scope:'selected',readers:[]}}}),/wiki_share_fields/);
+});
+
+test('people lookup searches name/login/public email, uses fixed profile routes and returns display fields only',async()=>{
+ const f=mock(),original=f.account.fetcher;let searched='';f.account.fetcher=async(url,init)=>{
+  const u=new URL(url);assert.equal(u.origin,'https://code.sdsdev.co.kr');
+  if(u.pathname==='/api/v3/search/users'){searched=u.searchParams.get('q');return Response.json({items:[{id:12,login:'bob',type:'User',avatar_url:'https://external.invalid/photo'},{id:13,login:'team',type:'Organization'}],total_count:2});}
+  if(u.pathname==='/api/v3/users/bob')return Response.json({id:12,login:'bob',name:'김누비',email:'bob@example.test',company:'개발팀',token:'DO_NOT_DISPLAY'});
+  return original(url,init);
+ };
+ const service=new WikiRepository({account:f.account}),found=await service.people({query:'bob@example.test'});
+ assert.equal(searched,'"bob@example.test" in:login,fullname,email type:user');assert.equal(found.items[0].name,'김누비');assert.equal(found.items[0].email,'bob@example.test');assert.equal(found.items.length,1);assert.doesNotMatch(JSON.stringify(found),/DO_NOT_DISPLAY|external.invalid/);
+ assert.deepEqual(await service.people({query:' '}),{items:[],incomplete:false});await assert.rejects(service.people({query:'a\nb'}),/wiki_share_fields/);
+});
+test('logout during a people lookup discards the result',async()=>{
+ const f=mock(),original=f.account.fetcher;f.account.fetcher=async(url,init)=>{
+  if(new URL(url).pathname==='/api/v3/search/users'){await f.account.invalidate();return Response.json({items:[]});}return original(url,init);
+ };
+ await assert.rejects(new WikiRepository({account:f.account}).people({query:'alice'}),/ghes_session_changed/);
+});

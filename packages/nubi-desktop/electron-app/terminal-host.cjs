@@ -3,12 +3,16 @@ const {access}=require('node:fs/promises');
 const path=require('node:path');
 const {promisify}=require('node:util');
 const exec=promisify(execFile);
+const {POWERSHELL_UTF8_PREFIX}=require('../runtime/powershell-encoding.mjs');
+// Initialize only this interactive shell. Query its actual version for the
+// banner; keep the normal prompt and never change system locale or profiles.
+const powershellStartup=POWERSHELL_UTF8_PREFIX+"Write-Host ('PowerShell ' + $PSVersionTable.PSVersion.ToString())";
 async function interactiveShell(profile,{platform=process.platform,env=process.env,exists=access,lookup=exec}={}){
  if(profile==='powershell'&&platform==='win32'){
   const candidates=[path.win32.join(env.ProgramFiles||'C:\\Program Files','PowerShell','7','pwsh.exe')];
   try{const result=await lookup('where.exe',['pwsh.exe'],{windowsHide:true,timeout:2000});candidates.push(...result.stdout.trim().split(/\r?\n/));}catch{}
   candidates.push(path.win32.join(env.SystemRoot||'C:\\Windows','System32','WindowsPowerShell','v1.0','powershell.exe'));
-  for(const executable of candidates){try{await exists(executable);return {executable,argv:['-NoProfile']};}catch{}}
+  for(const executable of candidates){try{await exists(executable);return {executable,argv:['-NoLogo','-NoProfile','-NoExit','-OutputFormat','Text','-EncodedCommand',Buffer.from(powershellStartup,'utf16le').toString('base64')]};}catch{}}
  }else if(profile==='cmd'&&platform==='win32')return {executable:path.win32.join(env.SystemRoot||'C:\\Windows','System32','cmd.exe'),argv:['/D']};
  return null;
 }

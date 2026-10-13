@@ -26,7 +26,7 @@ export function WikiUpdate({api,openPath,initialization,onApplied}){
   if(!data)return null;
   const view=wikiUpdateView({status:data.status,update,initialization});
   const act=async fn=>{if(busy)return;setBusy(true);setError('');try{await fn();await load();}catch(e){setError(errors[e.message]||'갱신 작업을 마치지 못했어요.');await load();}finally{setBusy(false);}};
-  const run=()=>act(async()=>{const proposal=await api('wikiUpdate',{method:'propose'});await api('wikiUpdate',{method:'run',id:proposal.id,fingerprint:proposal.fingerprint});});
+  const run=()=>act(async()=>{const proposal=await api('wikiUpdate',{method:'propose'});await api('wikiUpdate',{method:'run',id:proposal.id,fingerprint:proposal.fingerprint});await onApplied?.();});
   const [lead,...rest]=view.lines,modelUse=rest.find(line=>MODEL_USE.test(line)),notes=rest.filter(line=>line!==modelUse);
   const progress=update?.state==='running'?[...(update.events||[])].reverse().find(event=>event.type==='progress'):null;
   const completed=progress?.stage==='generating'&&progress.total>0?Math.max(0,Math.min(progress.total,progress.index-1)):null;

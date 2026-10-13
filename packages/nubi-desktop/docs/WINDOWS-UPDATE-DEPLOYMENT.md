@@ -4,7 +4,7 @@
 
 ## nuri에 넣을 파일
 
-- **Releases**: 버전별 `Nubi-Workspace-beta-1.1.2-x64-Setup.exe`
+- **Releases**: 버전별 `Nubi-Workspace-beta-1.1.3-x64-Setup.exe`
 - **latest/windows-x64.json**: 현재 배포 버전을 가리키는 작은 JSON 파일
 
 EXE를 latest 폴더에 넣거나 기존 EXE를 덮어쓰지 않습니다. 프로젝트 소스, 위키, 스킬 폴더는 변경하지 않습니다.
@@ -22,7 +22,7 @@ gh auth login --hostname code.sdsdev.co.kr
 4. PowerShell에서 배포합니다.
 
 ```powershell
-.\Publish-NubiUpdate.ps1 -Installer .\Nubi-Workspace-beta-1.1.2-x64-Setup.exe -Version 1.1.2 -NotesFile .\release-notes.txt
+.\Publish-NubiUpdate.ps1 -Installer .\Nubi-Workspace-beta-1.1.3-x64-Setup.exe -Version 1.1.3 -NotesFile .\release-notes.txt
 ```
 
 이 스크립트는 Release에 EXE를 올리고 다시 다운로드해 SHA-256을 대조한 다음 마지막에 `latest/windows-x64.json`을 갱신합니다. 로컬에도 같은 JSON을 남깁니다. 계정/토큰을 JSON에 넣지 않습니다. 실패 시 오류 단계만 확인하고, EXE를 같은 버전의 다른 내용으로 덮어쓰지 마세요. 문제가 있는 버전의 수정은 더 높은 버전으로 배포합니다.
@@ -34,13 +34,13 @@ gh auth login --hostname code.sdsdev.co.kr
 ```json
 {
   "schemaVersion": 1,
-  "version": "1.1.2",
+  "version": "1.1.3",
   "platform": "win32",
   "arch": "x64",
   "repository": "Manufacturing-IT/nuri",
-  "tag": "nubi-desktop-v1.1.2",
+  "tag": "nubi-desktop-v1.1.3",
   "assetId": 12345,
-  "filename": "Nubi-Workspace-beta-1.1.2-x64-Setup.exe",
+  "filename": "Nubi-Workspace-beta-1.1.3-x64-Setup.exe",
   "size": 123456789,
   "sha256": "실제 EXE의 SHA-256 64자리",
   "notes": "메일 표와 공유 자료 화면 개선"
@@ -51,7 +51,9 @@ gh auth login --hostname code.sdsdev.co.kr
 
 - 앱의 사내 Github SSO 로그인과 nuri 읽기 권한을 사용합니다. 새 인증 프로그램은 필요하지 않습니다.
 - 앱 시작 시와 매시간 확인합니다. 설정 → 업데이트 확인에서도 바로 확인할 수 있습니다.
-- 새 버전이 있으면 상단에 업데이트 버튼이 표시됩니다. 클릭하면 모달에 실제 다운로드 비율, MB, 추정 남은 시간이 표시됩니다.
+- 새 버전이 있으면 왼쪽 메뉴의 AI Workspace 바로 위에 원형 다운로드 아이콘이 표시됩니다. 클릭하면 모달에 실제 다운로드 비율, MB, 추정 남은 시간이 표시됩니다.
+- 현재 버전과 같거나 이전 버전이면 원형 업데이트 아이콘은 표시하지 않습니다. 설정에는 현재 버전과 `최신 버전이에요.`가 표시되며, `업데이트 확인`은 조회만 하고 파일을 다운로드하지 않습니다.
+- 별도 업데이트 URL을 사용자가 입력할 필요는 없습니다. 관리자가 배포 스크립트로 nuri 채널을 등록하고, 사용자는 사내망에서 앱의 사내 Github SSO에 로그인하면 됩니다. 로그인하지 않았거나 채널을 읽지 못하면 최신 버전으로 단정하지 않고 설정에서 필요한 조치를 안내합니다.
 - 검증 후 기존 NSIS 설치기의 업데이트 모드로 자동 설치하고 재실행합니다. 진행 중인 에이전트/위키/메일 처리, 열린 터미널 또는 미저장 파일이 있으면 설치를 보류합니다. 다운로드는 유지합니다.
 - 설치 중의 %를 다운로드 %로 꾸며 표시하지 않습니다. 검증 이후 모달은 설치와 재시작 안내를 표시하고, 앱이 종료된 동안 기존 설치기가 교체합니다.
 - SHA-256 검증은 전송 파일의 무결성 확인입니다. 공인 코드 서명을 대신하지 않습니다. 현재 Beta 서명/보안 경고의 한계는 별도입니다.

@@ -1,0 +1,10 @@
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import {QuestionDecision} from '../ui/QuestionDecision.jsx';
+import '@e2e/cx-design-system/styles.css';
+import '../electron-app/workbench.css';
+import '../design/workspace-identity.css';import '../electron-app/shell.css';import '../electron-app/ios-tokens.css';
+import '../design/workspace-typography.css';
+import '../design/workspace-density.css';import '../design/workspace-dialogs.css';
+window.answers=[];
+createRoot(document.getElementById('root')).render(<><div className="desktop-shell" hidden style={{display:'none'}}/><main className="nubi-workbench" style={{maxWidth:720,margin:'32px auto',padding:16}}><QuestionDecision question={{id:'alignment',text:'어떤 내용으로 정리할까요? '+ '긴 질문에서도 답변 버튼과 선택 내용이 화면 안에 남아 있어야 합니다. '.repeat(8),kind:'choice',inputMode:'long_text',inputPlaceholder:'예: 핵심 내용만 간단하게',options:[{id:'summary',label:'핵심 요약 '+ '매우긴선택지의전체내용을확인합니다'.repeat(18),description:'전체 조건은 선택 전에 확인해야 합니다.'},{id:'detail',label:'자세한 설명'}]}} onDraft={async()=>{}} onChoose={async answer=>{window.answers.push(answer);return true;}}/></main></>);

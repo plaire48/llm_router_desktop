@@ -11,10 +11,10 @@
 .nubi-account-control { flex:none; }
 .nubi-account-diagnostic { display:flex; align-items:center; gap:var(--cx-space-2); margin:0; color:var(--deck-sub); font-size:var(--cx-type-caption); white-space:nowrap; }
 .nubi-account-diagnostic > svg { flex:none; }
-.nubi-account-avatar { display:inline-flex; align-items:center; justify-content:center; flex:none; width:var(--nubi-account-avatar-size); height:var(--nubi-account-avatar-size); border-radius:50%; background:var(--deck-blue-soft); overflow:hidden; font-size:var(--cx-type-caption); font-weight:var(--cx-weight-medium); color:var(--deck-blue-deep); }
-.nubi-account-avatar img { width:100%; height:100%; object-fit:cover; }
+.nubi-account-avatar { display:inline-flex; align-items:center; justify-content:center; flex:none; width:var(--nubi-account-avatar-size); height:var(--nubi-account-avatar-size); border-radius:50%; background:var(--deck-blue-soft); position:relative; overflow:visible; font-size:var(--cx-type-caption); font-weight:var(--cx-weight-medium); color:var(--deck-blue-deep); }
+.nubi-account-avatar-photo img { width:100%; height:100%; object-fit:cover; }
 .nubi-workspace-rail .nubi-account-button { padding:var(--cx-space-1); }
-.nubi-workspace-navigation.nubi-workspace-rail .nubi-account-button .nubi-account-avatar { position:static; width:var(--nubi-account-avatar-size); height:var(--nubi-account-avatar-size); margin:0; clip-path:none; white-space:normal; }
+.nubi-workspace-navigation.nubi-workspace-rail .nubi-account-button .nubi-account-avatar { position:relative; width:var(--nubi-account-avatar-size); height:var(--nubi-account-avatar-size); margin:0; clip-path:none; white-space:normal; }
 .nubi-account-profile { display:flex; align-items:center; gap:var(--cx-space-3); margin:0; min-width:0; }
 .nubi-account-profile .nubi-account-avatar { width:var(--nubi-account-profile-size); height:var(--nubi-account-profile-size); font-size:var(--cx-type-title); }
 .nubi-account-profile > div { min-width:0; overflow-wrap:anywhere; }
@@ -85,3 +85,7 @@
 .nubi-toolbar-account .nubi-account-button > span:not(.nubi-account-avatar) { max-width:160px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-weight:500; }
 
 .nubi-account-button[data-connected="false"] .nubi-account-avatar { background:transparent; color:var(--nubi-text-primary,var(--deck-ink)); }
+
+.nubi-account-avatar-photo { display:inline-flex; align-items:center; justify-content:center; width:100%; height:100%; overflow:hidden; border-radius:50%; }
+.nubi-account-status-emoji { position:absolute; right:-4px; bottom:-3px; display:grid; place-items:center; width:18px; height:18px; border-radius:50%; background:var(--deck-card); box-shadow:0 0 0 2px var(--deck-card); font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif; font-size:var(--nubi-account-status-font); line-height:1; }
+.nubi-account-profile .nubi-account-status-emoji { right:-2px; bottom:-2px; width:24px; height:24px; font-size:var(--nubi-account-status-profile-font); }

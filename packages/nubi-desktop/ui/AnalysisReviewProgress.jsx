@@ -1,6 +1,7 @@
 import React, {useState} from 'react';
 import {Icon} from '@e2e/cx-design-system';
 const labels={ready:'확인할 내용이 남아 있어요',revise:'보완할 결과가 있어요',failed:'결과 검토를 마치지 못했어요',interrupted:'결과 검토가 중단됐어요',cancelled:'결과 검토가 중지됐어요'};
+const failureReasons={review_json_invalid:'AI의 검토 응답 형식이 맞지 않아요.',review_schema_invalid:'AI의 검토 항목과 근거가 맞지 않아요.',review_envelope_invalid:'AI가 검토 결과 대신 다른 응답을 보냈어요.',review_output_limit:'AI의 검토 응답이 길이 제한으로 끊겼어요.',unauthorized:'AI 연결이 만료됐어요. 다시 로그인해 주세요.',model_unavailable:'AI 연결을 확인하지 못했어요.',model_timeout:'AI의 검토 응답을 제시간에 받지 못했어요.',context_input_too_large:'검토할 내용이 모델의 문맥 한도를 넘었어요.'};
 const checkLabels={supported:'근거 확인',pending:'승인 또는 진행 대기',unknown:'미확인'};
 function ReviewCheck({check}) {
   return <li className="nubi-review-check" data-check={check.state}>
@@ -16,6 +17,7 @@ export function AnalysisReviewProgress({review,running}){
   if(supported)return <details className="nubi-review-evidence" aria-label="확인한 근거"><summary><Icon name="check" size={14}/>확인한 근거 {checks.length}개<Icon name="chevronDown" size={14}/></summary><ol>{checks.map(check=><li key={check.requirementId}>{check.detail}</li>)}</ol></details>;
   return <section className="nubi-document-progress nubi-result-review" aria-label="분석 결과 검토" data-state={review.state} data-tone={active?'active':['failed','interrupted'].includes(review.state)?'danger':'warning'}>
     <div className="nubi-document-progress-heading" role="status"><Icon name={active?'search':'alertCircle'} size={18}/><strong>{active?'답변과 근거를 대조하고 있어요':labels[review.state]||'검토 응답 미확인'}</strong></div>
+    {review.state==='failed'&&<p>{failureReasons[review.reason]||'검토 응답을 받지 못했어요.'} 요청과 실행 기록은 보관했습니다. 아래 복구 버튼으로 이어갈 수 있어요.</p>}
     {!active&&unresolved.length>0&&<ul className="nubi-review-open-items" aria-label="남은 확인">{unresolved.map(check=><ReviewCheck key={check.requirementId} check={check}/>)}</ul>}
     {review.nextStep&&<p className="nubi-review-next"><strong>다음 단계</strong><span>{review.nextStep}</span></p>}
       {review.omittedUnresolvedHandoffs>0&&<p className="nubi-document-attention">제외된 분석 중 미해결 분담 {review.omittedUnresolvedHandoffs}개</p>}
@@ -25,7 +27,8 @@ export function AnalysisReviewProgress({review,running}){
       {review.advisoryCount>0&&<p>하위 분석 {review.advisoryCount}개를 검토 입력에 포함했습니다.</p>}
       {review.omittedHandoffs>0&&<p className="nubi-document-attention">문맥 한도로 제외한 하위 분석 {review.omittedHandoffs}개</p>}
       <ol>{checks.filter(check=>active||check.state==='supported').map(check=><ReviewCheck key={check.requirementId} check={check}/>)}</ol>
-      {!checks.length&&!active&&<p>검토 결과가 없어 완료 여부를 판단하지 않았습니다.</p>}
+      {review.reason&&<p className="nubi-muted">오류 코드: <code>{review.reason}</code></p>}
+      {!checks.length&&!active&&<p>완료 여부는 아직 확인되지 않았어요.</p>}
     </details>
   </section>;
 }

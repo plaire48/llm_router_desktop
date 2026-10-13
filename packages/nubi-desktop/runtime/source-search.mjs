@@ -8,22 +8,31 @@ const MAX_EXCERPTS_PER_FILE=3,MAX_EXCERPTS=40;
 // Characters of one search excerpt (500 before the user decision of 2026-09-30 on large windows).
 export const SEARCH_EXCERPT=1500;
 
-export async function searchSource({query,kind='all',mode='content',within,taskId,signal}){
+export async function searchSource({query,kind='all',mode='content',within,taskId,signal},{resolveSearch=async()=>{const {rgPath}=await import('@vscode/ripgrep');return rgPath;},executeSearch=exec}={}){
   this.ready();
-  if(typeof query!=='string'||!query.trim()||query.length>500||!['all','wiki'].includes(kind)||!['content','path'].includes(mode))fail('input_invalid');
-  query=query.trim();if(within)relativeFile(within);
+  if(typeof query!=='string'||!query.trim()||query.length>500||query.includes('\0')||!['all','wiki'].includes(kind)||!['content','path'].includes(mode))fail('input_invalid');
+  query=query.trim();
+  if(within){
+    if(typeof within!=='string')fail('input_invalid');
+    // Models often copy Windows separators or use '.' for the current project.
+    // Normalize only relative notation; traversal/private/absolute checks stay.
+    if(['.','./','.\\'].includes(within))within=undefined;
+    else {within=within.replaceAll('\\','/');if(within.startsWith('/'))fail('path_scope');within=within.replace(/^\.\//,'').replace(/\/+$/,'');relativeFile(within);}
+  }
   const root=await this.target(taskId),listed=await listFiles(root,{within}),files=listed.paths.filter(p=>(kind!=='wiki'||/^(openwiki|docs|openspec)\//.test(p))&&(!within||p===within||p.startsWith(within+'/')));
   if(mode==='path'){
     const matches=files.filter(p=>p.toLowerCase().includes(query.toLowerCase()));
     return {results:matches.slice(0,100).map(path=>({path,kind:'path'})),scanned:files.length,skipped:0,total:files.length,truncated:listed.truncated||matches.length>100,engine:'git-paths',instruction:'Path candidates only. Read current source before planning or editing.'};
   }
-  let rgPath;try{({rgPath}=await import('@vscode/ripgrep'));}catch{fail('search_unavailable');}
+  let rgPath,fallback;try{rgPath=await resolveSearch();}catch{fallback='search_unavailable';}
   // Native search runs outside Electron's virtual archive, including promisified execFile.
-  if(process.versions.electron)rgPath=rgPath.replace(/([\\/])app\.asar([\\/])/,'$1app.asar.unpacked$2');
+  if(rgPath&&process.versions.electron)rgPath=rgPath.replace(/([\\/])app\.asar([\\/])/,'$1app.asar.unpacked$2');
   // Excerpts are capped per file so a few files cannot crowd out the rest;
   // `matched` still counts every file, which keeps the breadth visible.
   // When one file holds every match, the search is a search within it and shows its matches up to the whole limit.
   const results=[],matched=new Map(),found=[],deadline=Date.now()+10000;let scanned=0,skipped=0,limited=false,omittedExcerpts=0;
+  const remember=(rel,line)=>{const file=matched.get(rel)||{path:rel,matches:0,shown:0};matched.set(rel,file);file.matches++;if(file.matches<=MAX_EXCERPTS)found.push({rel,line});};
+  const scanFiles=async files=>{for(const rel of files){if(signal?.aborted)throw Error('cancelled');if(Date.now()>=deadline||matched.size>=200){limited=true;break;}try{const file=await readSource(root,rel),lines=file.content.split('\n'),needle=query.toLowerCase();let count=0;for(let line=0;line<lines.length;line++)if(lines[line].toLowerCase().includes(needle)){remember(rel,line+1);if(++count>=MAX_EXCERPTS)break;}}catch{skipped++;}}};
   for(let offset=0;offset<files.length;offset+=128){
     if(signal?.aborted)throw new Error('cancelled');
     if(Date.now()>=deadline||matched.size>=200){limited=true;break;}
@@ -37,17 +46,17 @@ export async function searchSource({query,kind='all',mode='content',within,taskI
     if(!safe.length)continue;
     if(signal?.aborted)throw new Error('cancelled');
     if(Date.now()>=deadline){limited=true;break;}
+    if(fallback){await scanFiles(safe);continue;}
     let stdout;
-    try{({stdout}=await exec(rgPath,['--json','--fixed-strings','--ignore-case','--no-config','--no-ignore','--hidden','--threads','1','--max-count','40','--max-filesize','1M','-e',query,'--',...safe],{cwd:root,encoding:'utf8',maxBuffer:2*1024*1024,timeout:Math.max(1,deadline-Date.now()),signal,windowsHide:true}));}
-    catch(error){if(signal?.aborted)throw new Error('cancelled');if(error.code===1)stdout=error.stdout;else if(error.code==='ENOENT')fail('search_unavailable');else{stdout=error.stdout||'';limited=true;}}
+    try{({stdout}=await executeSearch(rgPath,['--json','--fixed-strings','--ignore-case','--no-config','--no-ignore','--hidden','--threads','1','--max-count','40','--max-filesize','1M','-e',query,'--',...safe],{cwd:root,encoding:'utf8',maxBuffer:2*1024*1024,timeout:Math.max(1,deadline-Date.now()),signal,windowsHide:true}));}
+    catch(error){if(signal?.aborted)throw new Error('cancelled');if(error.code===1)stdout=error.stdout||'';else if(['ENOENT','EACCES','EPERM','ENOEXEC'].includes(error.code)){fallback=error.code==='ENOENT'?'search_unavailable':'search_execution_denied';await scanFiles(safe);continue;}else{stdout=error.stdout||'';limited=true;}}
     const candidates=new Set(safe);
     for(const line of stdout.split('\n')){
       let record;try{record=JSON.parse(line);}catch{continue;}
       if(record.type!=='match')continue;
       const data=record.data,rel=data.path?.text?.replaceAll('\\','/');
       if(!candidates.has(rel))continue;
-      const file=matched.get(rel)||{path:rel,matches:0,shown:0};matched.set(rel,file);file.matches++;
-      if(file.matches<=MAX_EXCERPTS)found.push({rel,line:data.line_number});
+      remember(rel,data.line_number);
     }
   }
   const perFile=matched.size===1?MAX_EXCERPTS:MAX_EXCERPTS_PER_FILE,cache=new Map();
@@ -72,5 +81,5 @@ export async function searchSource({query,kind='all',mode='content',within,taskI
       if(lines<=READ_LINES)readWhole={path:within,lines,instruction:`${within} has ${lines} lines, which one read_source holds: read it whole (no start or end) for its facts. A search misses text written differently, such as in another language.`};}
     catch{}
   }
-  return {results,files:[...matched.values()].sort((a,b)=>a.path<b.path?-1:1),...(readWhole?{readWhole}:{}),omittedExcerpts,scanned,skipped,total:files.length,truncated:listed.truncated||limited||scanned<files.length||skipped>0||omittedExcerpts>0,engine:'ripgrep',instruction:'Static search candidates with current file hashes, not executed behavior or edit authorization. files lists every file with a match and its count. When several files match, at most 3 excerpts per file are shown: compare the listed files, then read one or search within it to see all of its matches. If truncated, narrow within to a directory or use a more specific query. mode=path finds filenames before reading them.'};
+  return {results,files:[...matched.values()].sort((a,b)=>a.path<b.path?-1:1),...(readWhole?{readWhole}:{}),omittedExcerpts,scanned,skipped,total:files.length,truncated:listed.truncated||limited||scanned<files.length||skipped>0||omittedExcerpts>0,engine:fallback?'filesystem':'ripgrep',...(fallback?{fallback:{from:'ripgrep',reason:fallback}}:{}),instruction:'Static search candidates with current file hashes, not executed behavior or edit authorization. files lists every file with a match and its count. When several files match, at most 3 excerpts per file are shown: compare the listed files, then read one or search within it to see all of its matches. If truncated, narrow within to a directory or use a more specific query. mode=path finds filenames before reading them.'};
 }

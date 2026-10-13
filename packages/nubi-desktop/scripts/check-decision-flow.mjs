@@ -15,38 +15,58 @@ const server=createServer(async(req,res)=>{try{const requested=path.resolve(dir,
 
 
 
+
 let browser,p;const errors=[];
 try{
  browser=await chromium.launch({channel:'chrome',headless:true});p=await browser.newPage({viewport:{width:1280,height:900}});p.on('pageerror',error=>errors.push(error.message));await p.addInitScript(()=>localStorage.removeItem('nubi-session-tabs-v1:fixture'));
  const origin='http://127.0.0.1:'+server.address().port;
  for(const width of [1280,440,360]){
-  await p.setViewportSize({width,height:800});
+  await p.setViewportSize({width,height:900});
   for(const kind of ['question','command']){
    await p.goto(origin+'/?integrated&modals&toolbar&decision='+kind);
    const reveal=p.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await reveal.count())await reveal.click();
    await p.locator('.nubi-session-select').filter({hasText:'요청한 결과를 확인해 주세요.'}).click();
-   const dialog=p.getByRole('dialog',{name:kind==='question'?'확인이 필요해요':'이 명령을 실행할까요?',exact:true});await dialog.waitFor();
-   assert.equal(await p.locator('[aria-modal="true"]').count(),1);
-   assert(await dialog.evaluate(node=>{const rect=node.getBoundingClientRect();return rect.left>=0&&rect.right<=innerWidth&&rect.top>=0&&rect.bottom<=innerHeight;}));
-   assert.equal(await p.getByText('실행 후 확인 방법',{exact:true}).count(),0);
-   assert.equal(await p.evaluate(()=>window.decisionCalls.length),0);
-   if(kind==='question')await dialog.getByRole('textbox',{name:'직접 답변',exact:true}).fill('중요한 항목부터 정리');
-   await p.screenshot({path:path.join(dir,kind+'-'+width+'.png'),animations:'disabled'});
-   await p.keyboard.press('Escape');await dialog.waitFor({state:'hidden'});
-   await p.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
-   assert.equal(await p.locator('[aria-modal="true"]').count(),0,'dismissed decisions do not reopen');
-   const trigger=p.getByRole('button',{name:kind==='question'?'답변하기':'확인하고 실행',exact:true});assert(await trigger.evaluate(node=>document.activeElement===node));await trigger.click();await dialog.waitFor();
+   const form=p.locator(kind==='question'?'.nubi-question-inline':'.nubi-approval-form');await form.waitFor();
+   assert.equal(await p.locator('[aria-modal="true"]').count(),0);
+   assert.equal(await p.locator('.nubi-decision-toast').count(),0);
+   assert.equal(await p.evaluate(()=>window.decisionCalls.length),0,'rendering never approves');
+   const send=form.getByRole('button',{name:kind==='question'?'답변 보내기':'실행 승인',exact:true});
+   await send.scrollIntoViewIfNeeded();
+   const geometry=await form.evaluate(node=>[node,...node.querySelectorAll('*')].filter(e=>e.scrollWidth>e.clientWidth+1).slice(0,12).map(e=>({class:e.className,width:e.clientWidth,scroll:e.scrollWidth,css:getComputedStyle(e).margin,left:e.getBoundingClientRect().left})));assert(await form.evaluate(node=>{const rect=node.getBoundingClientRect();return rect.left>=0&&rect.right<=innerWidth&&node.scrollWidth<=node.clientWidth+1;}),JSON.stringify(geometry));
+   assert(await send.evaluate(node=>{const rect=node.getBoundingClientRect();return rect.left>=0&&rect.right<=innerWidth;}));
    if(kind==='question'){
-    assert.equal(await dialog.getByRole('textbox',{name:'직접 답변',exact:true}).inputValue(),'중요한 항목부터 정리');
-    await dialog.getByRole('button',{name:/표로 정리/}).click();
-    await dialog.waitFor({state:'hidden'});assert.equal(await p.evaluate(()=>window.decisionCalls[0].method),'answerAgent');
+    assert(await send.isDisabled());await form.getByRole('checkbox',{name:/표로 정리/}).click();
+    await form.getByRole('textbox',{name:'기타',exact:true}).fill('중요한 항목부터 정리');
    }else{
-    await dialog.getByRole('button',{name:'실행',exact:true}).click();await dialog.waitFor({state:'hidden'});
-    assert.equal(await p.evaluate(()=>window.decisionCalls[0].decision),'approve');
+    assert(await form.getByRole('button',{name:'취소',exact:true}).isVisible());
+    const copy=form.locator('.nubi-terminal-bar').getByRole('button',{name:'명령어 복사',exact:true});
+    await p.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>window.copiedCommand=text}}));
+    await copy.click();await form.locator('.nubi-terminal-bar').getByRole('button',{name:'명령어 복사 완료',exact:true}).waitFor();
+    assert.equal(await p.evaluate(()=>window.copiedCommand),'node --version');
    }
-   assert.equal(await p.evaluate(()=>window.decisionCalls.length),1,'exactly one explicit decision');
+   assert.equal(await p.evaluate(()=>window.decisionCalls.length),0);
+   await form.screenshot({path:path.join(dir,kind+'-'+width+'.png'),animations:'disabled'});
+   await send.click();await form.waitFor({state:'hidden'});
+   assert.equal(await p.evaluate(()=>window.decisionCalls.length),1);
+   assert.equal(await p.evaluate(()=>window.decisionCalls[0].method),kind==='question'?'answerAgent':'decideSetupAction');
   }
-  console.log('PASS '+width+'px: one decision modal, bounds, defer/reopen, draft preserved, explicit answer/approval only.');
+  console.log('PASS '+width+'px inline question/command, safe bounds, visible actions, copying never executes, explicit submission only.');
  }
+ await p.addInitScript(()=>{
+  window.nativeNotices=[];window.nativeNoticeListeners=new Set();
+  window.nubi={desktop:true,platform:'win32',request:async(method,args)=>{if(method==='decisionNotice')window.nativeNotices.push(args);return {};},onHostEvent:callback=>{window.nativeNoticeListeners.add(callback);return()=>window.nativeNoticeListeners.delete(callback);}};
+ });
+ await p.goto(origin+'/?integrated&modals&toolbar&decision=command');
+ await p.waitForFunction(()=>window.nativeNotices.some(row=>row.action==='show'));
+ const noticeId=await p.evaluate(()=>window.nativeNotices.find(row=>row.action==='show').id);
+ await p.evaluate(id=>window.nativeNoticeListeners.forEach(callback=>callback({type:'decision_open',id})),noticeId);
+ const form=p.locator('.nubi-approval-form');await form.waitFor();
+ await p.waitForFunction(()=>document.activeElement?.matches('.nubi-approval-form'));
+ assert.equal(await p.evaluate(()=>window.decisionCalls.length),0,'OS click only reveals inline form');
+ assert.equal(await p.locator('[aria-modal="true"]').count(),0);
+ await form.getByRole('button',{name:'취소',exact:true}).click();await form.waitFor({state:'hidden'});
+ assert.equal(await p.evaluate(()=>window.decisionCalls[0].decision),'reject');
+ await p.waitForFunction(id=>window.nativeNotices.some(row=>row.action==='clear'&&row.id===id),noticeId);
+ console.log('PASS native-event bridge focuses inline approval and cancellation clears notice. OS delivery mocked.');
  assert.deepEqual(errors,[]);
 } catch(error){if(p)await p.screenshot({path:path.join(dir,'failure.png')});throw error;} finally{await browser?.close();server.close();}

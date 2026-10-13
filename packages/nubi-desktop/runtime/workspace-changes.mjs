@@ -1,5 +1,8 @@
 import {lstat, readFile} from 'node:fs/promises';
 import path from 'node:path';
+import {createTwoFilesPatch} from 'diff';
+import {isUtf8} from 'node:buffer';
+import {gitFailure} from './git-runtime.mjs';
 import {git,hash,fail,privatePath,relativeFile,scopedFile} from './files.mjs';
 
 const MAX_ENTRIES = 100;
@@ -28,15 +31,22 @@ export async function inspectWorkspaceChanges(service, {taskId, path: rel} = {})
     relativeFile(rel);
     if (excluded(rel)) fail('path_scope');
   }
-  const [head, branch, raw] = await Promise.all([
-    git(root, ['rev-parse', '--verify', 'HEAD']),
-    git(root, ['rev-parse', '--abbrev-ref', 'HEAD']),
-    git(root, ['-c', 'core.fsmonitor=false', '-c', 'status.renames=false', '--literal-pathspecs', 'status', '--porcelain=v1', '-z', '--untracked-files=all', ...(rel ? ['--', rel] : [])]),
-  ]);
+  // HEAD is optional in an unborn repository. Status remains useful before
+  // the first commit; a plain folder must never be reported as a clean tree.
+  let head=null,branch=null,raw;
+  try {
+    raw=await git(root,['-c','core.fsmonitor=false','-c','status.renames=false','--literal-pathspecs','status','--porcelain=v1','-z','--untracked-files=all',...(rel?['--',rel]:[])]);
+    head=await git(root,['rev-parse','--verify','--quiet','HEAD']).catch(error=>{if(error.code===1&&!String(error.stderr||'').trim())return null;throw error;});
+    branch=await git(root,['symbolic-ref','--quiet','--short','HEAD']).catch(error=>{if(error.code===1&&!String(error.stderr||'').trim())return 'HEAD';throw error;});
+  } catch(error) {
+    const code=gitFailure(error);
+    if(code!=='not_git_repository')throw Error(code==='git_history_failed'?'workspace_status_failed':code);
+    return {scope:'task_workspace',repositoryState:'not_git_repository',head:null,branch:null,dirty:null,entries:[],visibleCount:0,excludedCount:0,truncated:false,...(rel?{path:rel,state:'unavailable',patch:null,patchUnavailable:'not_git_repository'}:{}),instruction:'This folder has no Git history. Change status is unknown, not clean. Read current files with source_search/read_source and stored operation receipts. Do not initialize or commit the original folder just to inspect it.'};
+  }
   const all = parseStatus(raw);
   if (rel && all.some(item => item.path !== rel)) fail('path_scope');
   const visible = all.filter(item => !excluded(item.path) && (() => { try { relativeFile(item.path); return true; } catch { return false; } })());
-  const base = {head: head.trim(), branch: branch.trim(), dirty: all.length > 0, statusFingerprint: hash(raw), scope: 'task_workspace'};
+  const base = {head: head?.trim()||null, branch: branch?.trim()||null, repositoryState:head?'ready':'unborn', dirty: all.length > 0, statusFingerprint: hash(raw), scope: 'task_workspace'};
   if (!rel) return {...base, entries: visible.slice(0, MAX_ENTRIES).map(item => ({...item, state: state(item.code)})), visibleCount: visible.length, excludedCount: all.length - visible.length, truncated: visible.length > MAX_ENTRIES,
     instruction: 'Read-only Git status at this moment. Untracked files need read_source; status does not authorize edits or prove who made a change. Narrow to one file for a bounded diff.'};
 
@@ -60,7 +70,10 @@ export async function inspectWorkspaceChanges(service, {taskId, path: rel} = {})
   if (!item) return {...summary, patch: '', patchTruncated: false, instruction: 'No Git change at this moment. A clean status is not test evidence or source-edit authorization.'};
   if (currentSize > MAX_FILE_BYTES || previousSize > MAX_FILE_BYTES) return {...summary, patch: null, patchTruncated: true, patchUnavailable: 'file_size_limit',
     instruction: 'Git change exists, but the file exceeds the bounded diff size. Do not infer its full content from status.'};
-  const diff = await git(root, ['--literal-pathspecs', 'diff', 'HEAD', '--no-ext-diff', '--no-textconv', '--no-renames', '--no-color', '--unified=3', '--', rel]);
+  const unbornBytes=!head?(item.code.includes('D')?Buffer.alloc(0):await readFile(path.join(root,rel))):null;
+  const unbornBinary=unbornBytes&&(unbornBytes.includes(0)||!isUtf8(unbornBytes));
+  // No HEAD means an empty baseline, including edits made after staging.
+  const diff = head?await git(root, ['--literal-pathspecs', 'diff', 'HEAD', '--no-ext-diff', '--no-textconv', '--no-renames', '--no-color', '--unified=3', '--', rel]):unbornBinary?'Binary file (no text diff)':createTwoFilesPatch('/dev/null',rel,'',unbornBytes.toString('utf8'),'','',{context:3});
   const bytes = Buffer.from(diff), truncated = bytes.length > MAX_PATCH_BYTES;
   let end = MAX_PATCH_BYTES;
   if (truncated) {
@@ -69,10 +82,10 @@ export async function inspectWorkspaceChanges(service, {taskId, path: rel} = {})
   }
   // The screen shows the change as an inline diff (as the commit history does): both texts travel with the patch when the
   // file is text within the bounded size. Binary files keep only the patch summary.
-  const binary = /^Binary files .* differ$/m.test(diff);
+  const binary = !!unbornBinary || /^Binary files .* differ$/m.test(diff);
   const contents = binary ? {} : {
-    before: item.code.includes('A') ? '' : await git(root, ['show', `HEAD:${rel}`]).catch(() => ''),
-    after: item.code.includes('D') ? '' : await readFile(path.join(root, rel), 'utf8').catch(() => ''),
+    before: !head || item.code.includes('A') ? '' : await git(root, ['show', `HEAD:${rel}`]).catch(() => ''),
+    after: unbornBytes?unbornBytes.toString('utf8'):item.code.includes('D') ? '' : await readFile(path.join(root, rel), 'utf8').catch(() => ''),
   };
   return {...summary, ...contents, binary, patch: truncated ? bytes.subarray(0, end).toString('utf8') : diff, patchBytes: bytes.length, patchHash: hash(bytes), patchTruncated: truncated,
     instruction: truncated ? 'Only the first part of this diff is shown. Read current source and inspect the remaining change before claiming complete review. Git diff is not edit authorization or a passed test.' : 'Read-only HEAD-to-worktree diff. Read current source before editing; Git diff does not grant edit authority or prove tests passed.'};

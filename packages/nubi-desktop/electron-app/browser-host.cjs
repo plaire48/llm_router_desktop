@@ -13,6 +13,7 @@ function address(input) {
 function displayAddress(value){
  try{const url=new URL(value);for(const key of [...url.searchParams.keys()])if(/^(code|token|access_token|id_token|refresh_token)$/i.test(key))url.searchParams.delete(key);if(/(?:^|[&#])(code|token|access_token|id_token|refresh_token)=/i.test(url.hash))url.hash='';return url.href;}catch{return value;}
 }
+function loadFailure(code){return code===-105?'browser_dns_failed':code===-106?'browser_offline':code===-7?'browser_timeout':code<=-200&&code>=-299?'browser_certificate_failed':'browser_load_failed';}
 class BrowserHost {
  constructor(window,{loginCode=()=>null,onFault=()=>{}}={}) {
   this.loginCode=loginCode;
@@ -59,17 +60,25 @@ class BrowserHost {
   const [w,h]=this.window.getContentSize(),b=this.bounds;
   const x=Math.max(48,Math.min(w,Math.round(b.x))),y=Math.max(64,Math.min(h,Math.round(b.y)));
   const width=Math.max(0,Math.min(w-x,Math.round(b.width))),height=Math.max(0,Math.min(h-y,Math.round(b.height)));
-  for(const row of this.tabs.values()) {if(row.view.webContents.isDestroyed())continue;const active=row.id===this.active&&width>0&&height>0;row.view.setVisible(active);if(active)row.view.setBounds({x,y,width,height});}
+  for(const row of this.tabs.values()) {if(row.view.webContents.isDestroyed())continue;const active=row.id===this.active&&!row.error&&width>0&&height>0;row.view.setVisible(active);if(active)row.view.setBounds({x,y,width,height});}
  }
- create(url='about:blank',{authentication=false,companyLogin=false}={}) {
+ create(url='about:blank',{authentication=false,companyLogin=false,popupOptions=null,load=true,loadOptions={}}={}) {
   if(this.tabs.size>=12)throw Error('browser_tab_limit');
-  const target=address(url),view=new WebContentsView({webPreferences:{session:this.session,sandbox:true,contextIsolation:true,nodeIntegration:false,webSecurity:true,allowRunningInsecureContent:false}});
-  const row={id:randomUUID(),view,title:'웹 페이지',url:displayAddress(target),authentication:authentication===true,companyLogin:companyLogin===true,loading:false,error:null};this.tabs.set(row.id,row);this.window.contentView.addChildView(view);view.setVisible(false);view.setBackgroundColor('#FFFFFF');this.active=row.id;
+  const target=address(url),view=new WebContentsView({...(popupOptions?.webContents?{webContents:popupOptions.webContents}:{}),webPreferences:{...popupOptions?.webPreferences,session:this.session,sandbox:true,contextIsolation:true,nodeIntegration:false,webSecurity:true,allowRunningInsecureContent:false}});
+  const row={id:randomUUID(),view,title:'웹 페이지',url:displayAddress(target),authentication:authentication===true,companyLogin:companyLogin===true,popup:!!popupOptions,contentReady:false,loading:false,error:null};this.tabs.set(row.id,row);this.window.contentView.addChildView(view);view.setVisible(false);view.setBackgroundColor('#FFFFFF');this.active=row.id;
   const wc=view.webContents;
   const permitted=url=>{try{const parsed=new URL(url);return url==='about:blank'||(['http:','https:'].includes(parsed.protocol)&&!parsed.username&&!parsed.password);}catch{return false;}};
   wc.on('will-navigate',(event,url)=>{if(row.authentication&&url==='nubi-workspace://auth-return'){event.preventDefault();this.closeTab(row.id,{returnToApp:true});return;}if(!permitted(url))event.preventDefault();});
   wc.on('will-redirect',(event,url)=>{if(!permitted(url))event.preventDefault();});
-  wc.setWindowOpenHandler(({url})=>{if(permitted(url)&&this.tabs.size<12){this.create(url,{authentication:row.authentication,companyLogin:row.companyLogin});this.window.webContents.send('nubi:browser-event',{type:'opened',state:this.status()});}return {action:'deny'};});
+  wc.setWindowOpenHandler(details=>{
+   if(!permitted(details.url)||this.tabs.size>=12)return {action:'deny'};
+   // Electron owns popup navigation, opener linkage and form POST delivery.
+   // Reopening the URL as GET breaks pages which populate a blank child window.
+   return {action:'allow',createWindow:options=>{
+    const child=this.create(details.url,{authentication:row.authentication,companyLogin:row.companyLogin,popupOptions:options,load:details.disposition==='background-tab',loadOptions:{httpReferrer:details.referrer,...(details.postBody?{postData:details.postBody.data,extraHeaders:'Content-Type: '+details.postBody.contentType+(details.postBody.boundary?'; boundary='+details.postBody.boundary:'')}: {})}});
+    this.publish('opened');return child.view.webContents;
+   }};
+  });
   wc.on('before-input-event',(event,input)=>{
    if(input.type!=='keyDown'||!(input.control||input.meta)||input.alt)return;
    const key=input.key.toLowerCase();if(!['l','f','r','t','w'].includes(key))return;event.preventDefault();
@@ -77,17 +86,18 @@ class BrowserHost {
    else if(key==='r')wc.reload();else if(key==='t'){try{this.create();}catch(error){this.window.webContents.send('nubi:browser-event',{type:'error',error:error.message});}}else void this.request({action:'close',id:row.id}).catch(()=>{});
   });
   wc.on('page-title-updated',(_event,title)=>{row.title=title.slice(0,240);this.changed();});
-  wc.on('did-start-loading',()=>{row.loading=true;row.error=null;this.changed();});
+  wc.on('did-start-loading',()=>{row.loading=true;row.error=null;this.layout();this.changed();});
+  wc.on('dom-ready',()=>{row.contentReady=true;this.changed();});
   wc.on('did-stop-loading',()=>{row.loading=false;this.changed();});
   wc.on('did-navigate',(_event,url)=>{row.url=displayAddress(url);if(!row.authentication&&url!=='about:blank'&&row.url===url){this.history=this.history.filter(item=>item.url!==url);this.history.unshift({url,title:row.title,date:Date.now()});this.history=this.history.slice(0,100);}this.changed();});
   wc.on('did-navigate-in-page',(_event,url,isMain)=>{if(isMain){row.url=displayAddress(url);this.changed();}});
-  wc.on('did-fail-load',(_event,code,_description,_url,isMain)=>{if(isMain&&code!==-3){row.loading=false;row.error='browser_load_failed';this.changed();}});
+  wc.on('did-fail-load',(_event,code,_description,_url,isMain)=>{if(isMain&&code!==-3){row.loading=false;row.error=loadFailure(code);this.layout();this.changed();}});
   wc.on('found-in-page',(_event,result)=>{this.find={matches:result.matches,active:result.activeMatchOrdinal};this.changed();});
   wc.on('destroyed',()=>this.forget(row));
-  wc.on('render-process-gone',(_event,details)=>{row.loading=false;row.error='browser_process_gone';this.onFault('browser_renderer',details);this.changed();});
-  void wc.loadURL(target).catch(()=>{row.loading=false;row.error='browser_load_failed';this.changed();});this.layout();this.changed();return row;
+  wc.on('render-process-gone',(_event,details)=>{row.loading=false;row.error='browser_process_gone';this.layout();this.onFault('browser_renderer',details);this.changed();});
+  if(load)void wc.loadURL(target,loadOptions).catch(error=>{if(error?.code==='ERR_ABORTED'||error?.errno===-3)return;row.loading=false;row.error ||=loadFailure(error?.errno);this.layout();this.changed();});this.layout();this.changed();return row;
  }
- status() {return {active:this.active,tabs:[...this.tabs.values()].filter(row=>!row.view.webContents.isDestroyed()).map(row=>({id:row.id,title:row.title,url:row.url,loginCode:row.companyLogin?this.loginCode():null,loading:row.loading,error:row.error,back:row.view.webContents.navigationHistory.canGoBack(),forward:row.view.webContents.navigationHistory.canGoForward(),zoom:Math.round(row.view.webContents.getZoomFactor()*100)})),find:this.find,history:this.history.map(item=>({...item})),downloads:this.downloads.map(({file,...item})=>item)};}
+ status() {return {active:this.active,tabs:[...this.tabs.values()].filter(row=>!row.view.webContents.isDestroyed()).map(row=>({id:row.id,title:row.title,url:row.url,loginCode:row.companyLogin?this.loginCode():null,loading:row.loading,error:row.error,popup:row.popup,contentReady:row.contentReady,back:row.view.webContents.navigationHistory.canGoBack(),forward:row.view.webContents.navigationHistory.canGoForward(),zoom:Math.round(row.view.webContents.getZoomFactor()*100)})),find:this.find,history:this.history.map(item=>({...item})),downloads:this.downloads.map(({file,...item})=>item)};}
  menu({kind='main',x,y}={}) {
   const wc=this.tab().view.webContents;
   const downloadItems=this.downloads.map(item=>({label:`${item.name.slice(0,80)}${item.state==='completed'?' (폴더에서 보기)':' (다운로드 중)'}`,enabled:item.state==='completed',click:()=>shell.showItemInFolder(item.file)}));
@@ -114,7 +124,7 @@ class BrowserHost {
   else if(action==='menu')return this.menu({x,y,kind});
   else {
    const row=this.tab(id),wc=row.view.webContents;
-   if(action==='navigate'){row.error=null;const target=address(url);row.url=displayAddress(target);void wc.loadURL(target).catch(()=>{row.error='browser_load_failed';});}
+   if(action==='navigate'){row.error=null;const target=address(url);row.url=displayAddress(target);void wc.loadURL(target).catch(error=>{if(error?.code==='ERR_ABORTED'||error?.errno===-3)return;row.loading=false;row.error ||=loadFailure(error?.errno);this.layout();this.changed();});}
    else if(action==='back'){if(wc.navigationHistory.canGoBack())wc.navigationHistory.goBack();}
    else if(action==='forward'){if(wc.navigationHistory.canGoForward())wc.navigationHistory.goForward();}
    else if(action==='reload')wc.reload();

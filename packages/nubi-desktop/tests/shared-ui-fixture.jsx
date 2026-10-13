@@ -16,11 +16,22 @@ import '../electron-app/ios-tokens.css';
 import '../design/workspace-typography.css';
 import '../design/workspace-density.css';
 import '../design/workspace-dialogs.css';
+const wikiChatFixture=new URLSearchParams(location.search).has('wiki-chat');if(wikiChatFixture)window.wikiChatCalls=[];
 let selected='aipro',connected=false,pending=null,model='qwen-fixture',catalogAt=1;
 if(new URLSearchParams(location.search).has('catalog')){connected=true;window.catalogCalls=0;window.catalogDelay=0;window.catalogFailure=false;}
 const models=[{id:'qwen-fixture',label:'Qwen fixture',contextLength:32000},{id:'second-exact-id',label:'Second fixture',contextLength:64000}];
 // A project whose OpenWiki exists: without wiki files or a running initialization the Workbench shows the project start screen instead of the composer (2026-10-05).
 const project={projectId:'fixture',name:'검증 프로젝트',branch:'main',files:[],wikiFiles:['openwiki/업무-지침.md'],tasks:[],proposals:[],processes:[],comparisons:[],profiles:[{id:'bash',label:'Bash'}]};
+const proposalFixture=new URLSearchParams(location.search).get('proposal-review');
+if(proposalFixture){
+ connected=true;window.proposalCalls=[];
+ project.tasks=[{id:'proposal-task',request:'변경 제안 검증',criteria:[],state:proposalFixture==='running'?'running':'review',messages:[{role:'assistant',content:'요청한 변경을 준비했습니다.'}],trace:[]}];
+ project.proposals=[{id:'proposal-file',taskId:'proposal-task',path:'src/example.mjs',reason:'요청한 내용 반영',kind:'create',state:['attention','cancelled','applied'].includes(proposalFixture)?proposalFixture:'proposed',stats:{state:'counted',added:11,removed:0},quality:{state:'passed'}}];
+ window.finishProposalReview=()=>{project.tasks[0].state='review';};
+}
+if(wikiChatFixture){project.backgroundProjects=[{projectId:'background-wiki',root:'/fixture/background',running:false,wikiChatJob:{id:'background-job',projectId:'background-wiki',kind:'update',state:'running',percent:50}}];window.wikiProjectSwitches=[];}
+const reviewFailureFixture=new URLSearchParams(location.search).get('review-failure');
+if(reviewFailureFixture){connected=true;project.tasks=[{id:'review-failure-task',request:'요구사항과 결과를 확인해 주세요.',state:'paused',checkpoint:{runId:'review-failed-run'},criteria:[],messages:[],trace:[],resultReview:{status:'error',reason:reviewFailureFixture},reviewDraft:{content:'검토 전 보관된 답변입니다.'}}];}
 const decisionFixture=new URLSearchParams(location.search).get('decision');
 if(decisionFixture){
  connected=true;window.decisionCalls=[];
@@ -120,8 +131,11 @@ const sendTransition=new URLSearchParams(location.search).has('send-transition')
 if(sendTransition){connected=true;const saved=sessionStorage.getItem('send-fixture');if(saved)Object.assign(project,JSON.parse(saved));window.saveSendFixture=()=>sessionStorage.setItem('send-fixture',JSON.stringify(project));window.sendCalls=[];window.sendGate={};window.finishSend=()=>{const task=project.tasks[0];task.state='review';task.messages.push({id:'finished',role:'assistant',content:'확인한 결과입니다.',at:new Date().toISOString()});};}
 async function waitForSendGate(kind){await new Promise((resolve,reject)=>{window.sendGate[kind]={release:resolve,reject:()=>reject(Error('network'))};});}
 async function api(method,args={}){
+  if(proposalFixture&&method==='cancelProposal'){window.proposalCalls.push({method,...args});project.proposals.find(p=>p.id===args.proposalId).state='cancelled';return {state:'cancelled'};}
+
+  if(wikiChatFixture&&['createTask','startAgent','agentInput','regenerateAnswer'].includes(method)){window.wikiChatCalls.push(method);if(window.wikiSilentLock)throw Error('wiki_chat_blocked');}
   if(sendTransition&&['createTask','startAgent','agentInput'].includes(method)){
-    window.sendCalls.push({method,args});await waitForSendGate(method);
+    window.sendCalls.push({method,args});if(method==='startAgent'&&project.tasks.find(item=>item.id===args.taskId)?.state==='running')throw Error('agent_busy');await waitForSendGate(method);
     if(method==='createTask'){const task={id:'sent-task',request:args.request,requestMailReferences:args.mailReferences,createdAt:new Date().toISOString(),criteria:[],state:'draft',messages:[],trace:[]};project.tasks.push(task);return structuredClone(task);}
     const task=project.tasks.find(item=>item.id===args.taskId);
     if(method==='agentInput'){task.inbox=[...(task.inbox||[]),{id:args.id,text:args.text,mode:'queue',createdAt:new Date().toISOString()}];return structuredClone(task);}
@@ -139,7 +153,7 @@ async function api(method,args={}){
 
   if(decisionFixture){
    if(method==='saveQuestionDraft'){project.tasks[0].question.draft=args.draft;return {saved:true};}
-   if(method==='answerAgent'){window.decisionCalls.push({method,...args});project.tasks[0].question=null;project.tasks[0].state='review';return {accepted:true};}
+   if(method==='answerAgent'){if(window.decisionSendFailure)throw Error('model_unavailable');window.decisionCalls.push({method,...args});project.tasks[0].question=null;project.tasks[0].state='review';return {accepted:true};}
    if(method==='decideSetupAction')window.decisionCalls.push({method,...args});
   }
   if(method==='conversationHistory')return args.taskId?structuredClone(project.tasks.find(task=>task.id===args.taskId)):searchConversations(project.tasks,args);
@@ -187,6 +201,7 @@ async function api(method,args={}){
     return structuredClone(project.computer);
   }
   if(method==='analysisHistory'){
+    if(reviewFailureFixture)return {records:[{kind:'review',id:'review-failure',runId:'review-failed-run',state:'failed',reason:reviewFailureFixture}],next:null};
     const mode=new URLSearchParams(location.search).get('document');
     if(mode==='history-error'&&historyFailure){historyFailure=false;throw Error('fixture_history_failure');}
     const task=project.tasks.find(item=>item.id===args.taskId);
@@ -254,5 +269,5 @@ if(new URLSearchParams(location.search).has('integrated')&&!fixtureRoot.closest(
 // Exercise the real titlebar portal as well as the rail fallback.
 if(new URLSearchParams(location.search).has('toolbar')&&!document.getElementById('toolbar')){const shell=fixtureRoot.closest('.desktop-shell');shell.dataset.toolbar='true';shell.dataset.platform='darwin';const toolbar=document.createElement('div');toolbar.id='toolbar';toolbar.className='desktop-titlebar';shell.prepend(toolbar);}
 const wikiFixture=new URLSearchParams(location.search).has('wiki-progress')?{id:'wiki-fixture',state:'running',stage:'generating',startedAt:new Date(Date.now()-60000).toISOString(),stageStartedAt:new Date(Date.now()-30000).toISOString(),completed:3,total:10,percent:30}:undefined;
-function WorkbenchFixture(){useModalDismissalPolicy();const [sources,setSources]=useState(null),[wiki,setWiki]=useState(wikiFixture);window.setWikiFixture=setWiki;return <><Workbench showAnalysisHistory={new URLSearchParams(location.search).has('document')} wikiInitialization={wiki} openTeamWorkspace={async()=>{(window.nativeViewCalls||=[]).push('team-workspace');}} openMailSources={mailFlow?references=>{window.mailSourceCalls=references;setSources(references);}:undefined} toolbarHost={document.getElementById("toolbar")} hostLayout={new URLSearchParams(location.search).has('integrated')?'integrated':undefined} workspaceView={['solution','modals','integrated'].some(key=>new URLSearchParams(location.search).has(key))?async view=>{(window.nativeViewCalls||=[]).push(view);}:undefined} api={api} openCurrent={async()=>new URLSearchParams(location.search).has('noproject')?null:(sendTransition||new URLSearchParams(location.search).has('wiki-inventory'))?structuredClone(project):project} chooseFolder={()=>{}} openPath={()=>{}} review={()=>{}} apply={async id=>{const proposal=project.proposals.find(p=>p.id===id);if(proposal)proposal.state='applied';}} openURI={()=>{}} openBrowser={()=>{}} cloneRepository={async url=>{(window.cloneCalls||=[]).push(url);return {cancelled:true};}} ghesAccount={modalsVariant?ghesAccount:undefined} ghesUpdate={modalsVariant?async()=>({state:'unchecked'}):undefined} ghesRepositories={modalsVariant?async()=>({cancelled:true}):undefined}/>{sources&&createPortal(<aside className="desktop-pane"><header><strong>메일 원문</strong><WorkspaceAction action="close" label="원문 닫기" onClick={()=>setSources(null)}/></header><MailSourcePane references={sources} api={api}/></aside>,fixtureRoot.parentElement)}</>;}
+function WorkbenchFixture(){useModalDismissalPolicy();const [sources,setSources]=useState(null),[wiki,setWiki]=useState(wikiFixture);window.setWikiFixture=setWiki;if(wikiChatFixture)window.setWikiChatJob=job=>{project.wikiChatBlocked=!!job;project.wikiChatJob=job;setWiki(job);};return <><Workbench projects={wikiChatFixture?[{id:'fixture',name:'검증 프로젝트',root:'/fixture/current'},{id:'background-wiki',name:'백그라운드 프로젝트',root:'/fixture/background'}]:[]} switchProject={wikiChatFixture?async id=>{window.wikiProjectSwitches.push(id);}:undefined} showAnalysisHistory={new URLSearchParams(location.search).has('document')} wikiInitialization={wiki} openTeamWorkspace={async()=>{(window.nativeViewCalls||=[]).push('team-workspace');}} openMailSources={mailFlow?references=>{window.mailSourceCalls=references;setSources(references);}:undefined} toolbarHost={document.getElementById("toolbar")} hostLayout={new URLSearchParams(location.search).has('integrated')?'integrated':undefined} workspaceView={['solution','modals','integrated'].some(key=>new URLSearchParams(location.search).has(key))?async view=>{(window.nativeViewCalls||=[]).push(view);}:undefined} api={api} openCurrent={async()=>new URLSearchParams(location.search).has('noproject')?null:(sendTransition||new URLSearchParams(location.search).has('wiki-inventory'))?structuredClone(project):project} chooseFolder={()=>{}} openPath={()=>{}} review={()=>{}} apply={async id=>{const proposal=project.proposals.find(p=>p.id===id);if(proposal)proposal.state='applied';}} openURI={()=>{}} openBrowser={()=>{}} cloneRepository={async url=>{(window.cloneCalls||=[]).push(url);return {cancelled:true};}} ghesAccount={modalsVariant?ghesAccount:undefined} ghesUpdate={modalsVariant?async()=>({state:'unchecked'}):undefined} ghesRepositories={modalsVariant?async()=>({cancelled:true}):undefined}/>{sources&&createPortal(<aside className="desktop-pane"><header><strong>메일 원문</strong><WorkspaceAction action="close" label="원문 닫기" onClick={()=>setSources(null)}/></header><MailSourcePane references={sources} api={api}/></aside>,fixtureRoot.parentElement)}</>;}
 createRoot(fixtureRoot).render(new URLSearchParams(location.search).has('pointer')?<ComputerPointerUiFixture/>:new URLSearchParams(location.search).has('keyboard')?<ComputerKeyboardUiFixture/>:new URLSearchParams(location.search).has('controls')?<ComputerControlUiFixture/>:new URLSearchParams(location.search).has('computer')?<ComputerUiFixture/>:<WorkbenchFixture/>);

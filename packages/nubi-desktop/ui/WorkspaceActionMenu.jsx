@@ -23,7 +23,7 @@ export function WorkspaceActionMenu({label='관리',inline=false,children}){
  useEffect(()=>{
   const popup=panel.current;
   const sync=event=>{if(event.newState==='closed')root.current.open=false;};
-  const dismiss=event=>{if(!(event.target instanceof Node)||!popup.contains(event.target))close();};
+  const dismiss=event=>{const target=event.target;if(event.type==='resize'||target===document||target===window||(target instanceof Node&&target.contains(trigger.current)&&!popup.contains(target)))close();};
   popup.addEventListener('beforetoggle',sync);
   window.addEventListener('resize',dismiss);document.addEventListener('scroll',dismiss,true);
   return()=>{popup.removeEventListener('beforetoggle',sync);window.removeEventListener('resize',dismiss);document.removeEventListener('scroll',dismiss,true);};

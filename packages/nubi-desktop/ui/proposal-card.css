@@ -1,0 +1,22 @@
+.nubi-proposal-card { min-width:0; padding:var(--cx-space-4); border:1px solid var(--deck-line); border-radius:var(--deck-inset-radius); background:var(--nubi-surface-base); margin-block:var(--cx-space-3); font:var(--deck-font-body); }
+.nubi-proposal-card header,.nubi-proposal-card footer,.nubi-proposal-secondary,.nubi-proposal-decisions,.nubi-proposal-counts { display:flex; align-items:center; gap:var(--cx-space-2); min-width:0; flex-wrap:nowrap; }
+.nubi-proposal-file { display:flex; align-items:center; gap:var(--cx-space-2); min-width:0; flex:1; padding:0; border:0; background:transparent; color:var(--deck-ink); font:inherit; cursor:pointer; text-align:left; }
+.nubi-proposal-file strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:var(--nubi-weight-emphasis); }
+.nubi-proposal-file>svg,.nubi-proposal-file>.desktop-file-icon { flex:none; }
+.nubi-proposal-counts { flex:none; font:var(--deck-font-caption); }
+.nubi-proposal-counts b { font-weight:var(--nubi-weight-emphasis); }
+.nubi-proposal-path { margin:var(--cx-space-1) 0; color:var(--nubi-text-secondary); font:var(--deck-font-caption); overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.nubi-proposal-reason { margin:var(--cx-space-3) 0; color:var(--deck-sub); overflow-wrap:anywhere; }
+.nubi-proposal-card footer { justify-content:space-between; margin-top:var(--cx-space-4); }
+.nubi-proposal-card footer .cx-kit-button { white-space:nowrap; flex:none; min-height:40px; gap:var(--cx-space-2); padding-inline:var(--cx-space-3); }
+.nubi-proposal-check { display:inline-flex; color:var(--deck-sub); font:var(--deck-font-caption); overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.nubi-proposal-preview { margin-top:var(--cx-space-3); max-height:260px; overflow:auto; border-radius:var(--deck-control-radius); background:var(--nubi-surface-inset); }
+.nubi-proposal-preview pre { margin:0; padding:var(--cx-space-3); font:var(--deck-font-caption); font-family:var(--deck-mono); white-space:pre; }
+.nubi-proposal-preview [data-change=added] { color:var(--deck-green); }
+.nubi-proposal-preview [data-change=removed] { color:var(--deck-red); }
+@media(max-width:500px) { .nubi-proposal-secondary { gap:var(--cx-space-1); } .nubi-proposal-check { display:none; } .nubi-proposal-card footer .cx-kit-button { padding-inline:var(--cx-space-2); } }
+
+.nubi-review-draft { border:1px solid var(--deck-line); border-radius:var(--deck-inset-radius); padding:var(--cx-space-4); margin-block:var(--cx-space-3); min-width:0; }
+.nubi-review-draft summary { display:flex; align-items:center; gap:var(--cx-space-2); color:var(--deck-sub); cursor:pointer; font:var(--deck-font-body); }
+.nubi-review-draft summary>span { flex:1; font-weight:var(--nubi-weight-emphasis); }
+.nubi-review-draft>p { font:var(--deck-font-caption); color:var(--deck-sub); }

@@ -88,3 +88,17 @@ test('each call records its longest wait between two signs of model activity',as
   await recorded.complete([{role:'system',content:'You are Nubi Desktop.'}],[]);
   assert.equal(entries[0].activity.events,2);assert.ok(entries[0].activity.longestGapMs>=55,String(entries[0].activity.longestGapMs));
 });
+
+test('recording preserves completion options and activity instead of changing the product contract',async()=>{
+  const options={toolChoice:'required',responseFormat:{type:'json_object'},maxTokens:1024};let received,active=0;
+  const recorded=recordingProviders({status,async complete(messages,tools,signal,text,phase,onActivity,configuration){received=configuration;onActivity();return {content:'ok'};}});
+  await recorded.complete([],[],undefined,undefined,undefined,()=>active++,options);
+  assert.deepEqual(received,options);assert.equal(active,1);
+});
+
+test('a slash scope prelude does not hide real main-agent evidence from evaluation',()=>{
+ const request={messages:[{role:'system',content:'Search only the current project Code OpenWiki.'},{role:'system',content:'You are Nubi Desktop. Reply in Korean.'},{role:'tool',tool_call_id:'source',content:'{"path":"openwiki/policy.md"}'}]};
+ assert.equal(leaderEntries([{request}]).length,1);
+ assert.deepEqual(leaderToolResults([{request}]),['{"path":"openwiki/policy.md"}']);
+ assert.equal(leaderEntries([{request:{messages:[{role:'user',content:'You are Nubi Desktop.'}]}}]).length,0);
+});

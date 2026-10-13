@@ -70,7 +70,9 @@ test('quota preserves independent windows, rejects guessed percentages, and keep
   const first=claudeQuota(event({unifiedWindows:{five_hour:{utilization:.2,resetsAt:3000},seven_day:{utilization:.6,resetsAt:5000}}}),null,1000);
   assert.deepEqual(first.windows.map(w=>w.remaining),[80,40]);
   const next=claudeQuota(event({rateLimitType:'five_hour',status:'allowed'}),first,2000);
-  assert.equal(next.windows[0].remaining,null);assert.equal(next.windows[1].fetchedAt,1000);
+  assert.equal(next.windows[0].remaining,80);assert.equal(next.windows[0].fetchedAt,1000);assert.equal(next.windows[1].fetchedAt,1000);
+  assert.equal(claudeQuota(event({rateLimitType:'five_hour',status:'allowed',resetsAt:4000}),first,2000).windows[0].remaining,null);
+  assert.equal(claudeQuota(event({rateLimitType:'five_hour',status:'allowed'}),first,3000001).windows[0].remaining,null);
   for(const utilization of [-1,2,'0.5',NaN])assert.equal(claudeQuota(event({rateLimitType:'five_hour',utilization})).windows[0].remaining,null);
 });
 test('adapter does not pass inherited credentials or endpoint overrides to the CLI',()=>{
@@ -105,6 +107,30 @@ test('Opus 5.5 is pinned and all five effort values are passed literally to the 
 test('Claude usage is retained alongside other Desktop providers',async()=>{
   const root=await mkdtemp(path.join(os.tmpdir(),'nubi-claude-usage-'));const ledger=new DesktopUsage(root);
   try{const id=ledger.start({provider:'claude'});ledger.finish(id,{prompt_tokens:4,completion_tokens:6,total_tokens:10});assert.equal(ledger.summary().usage.total.claude.total,10);}finally{ledger.close();await rm(root,{recursive:true,force:true});}
+});
+test('Claude is visible before its first request and on days without calls',async()=>{
+  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-claude-idle-'));let ledger=new DesktopUsage(root);
+  try{
+    assert.equal(ledger.summary().usage.today.claude.calls,0);assert.equal(ledger.summary().usage.total.claude.total,0);
+    const id=ledger.start({provider:'claude'});ledger.finish(id,{prompt_tokens:4,completion_tokens:6,total_tokens:10});
+    const previous=structuredClone(ledger.ledger),today=Object.keys(previous.days)[0];
+    previous.days['2000-01-01']=previous.days[today];delete previous.days[today];ledger.store.set('usage:ledger',previous);
+    ledger.close();ledger=new DesktopUsage(root);
+    assert.equal(ledger.summary().usage.today.claude.calls,0);assert.equal(ledger.summary().usage.total.claude.total,10);
+    assert.equal(ledger.summary().usage.total.claude.measured,1);
+  }finally{ledger.close();await rm(root,{recursive:true,force:true});}
+});
+test('Claude adapter counters including cached input reach the saved Desktop usage ledger',async()=>{
+  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-claude-counters-'));let ledger=new DesktopUsage(root);
+  try{
+    const adapter=createClaudeCode({...fixture(result([],{input_tokens:10,cache_creation_input_tokens:20,cache_read_input_tokens:30,output_tokens:4})),onUsageStart:meta=>ledger.start(meta),onUsageFinish:(id,usage)=>ledger.finish(id,usage)});
+    await adapter.connect();await adapter.complete([],[]);
+    const stats=ledger.summary().usage.total.claude;
+    assert.equal(stats.input,60);assert.equal(stats.output,4);assert.equal(stats.total,64);assert.equal(stats.cached,30);assert.equal(stats.calls,1);assert.equal(stats.pending,0);assert.equal(stats.measured,1);
+    ledger.close();ledger=new DesktopUsage(root);assert.deepEqual(ledger.summary().usage.total.claude,stats);
+    const id=ledger.start({provider:'claude'});ledger.finish(id);
+    const missing=ledger.summary().usage.total.claude;assert.equal(missing.calls,2);assert.equal(missing.measured,1);assert.equal(missing.total,64);assert.equal(missing.pending,0);
+  }finally{ledger.close();await rm(root,{recursive:true,force:true});}
 });
 test('real process runner supports split JSON, cancellation and bounded output',async()=>{
   const root=await mkdtemp(path.join(os.tmpdir(),'nubi-cli-fixture-')),script=path.join(root,'cli.cjs');
@@ -141,4 +167,40 @@ test('background model effort follows that model and discovery is coalesced and 
  const args=f.invocations.at(-1).args;assert.equal(args[args.indexOf('--effort')+1],'high');
  let finish;const pendingAdapter=createClaudeCode({...f,run:async(b,a,o)=>{if(a.includes('--input-format'))await new Promise(r=>finish=r);return f.run(b,a,o);}});
  const pending=pendingAdapter.connect();while(!finish)await new Promise(r=>setImmediate(r));pendingAdapter.disconnect();finish();await assert.rejects(pending,/cancelled/);assert.equal(pendingAdapter.status().connected,false);
+});
+
+test('structured quota rejection is actionable; warnings and recovered replies are not failures',async()=>{
+  for(const kind of ['rejected-exit','assistant-error','rejected-result','warning','recovered','cancelled','generic']){
+    const f=fixture(),controller=new AbortController();
+    const adapter=createClaudeCode({...f,run:async(b,a,o)=>{
+      if(a[0]==='--help'||a[0]==='auth'||a.includes('--input-format'))return f.run(b,a,o);
+      o.onEvent({type:'rate_limit_event',rate_limit_info:{status:kind==='warning'?'allowed_warning':'rejected',rateLimitType:'five_hour',utilization:1,resetsAt:2000000000}});
+      if(kind==='assistant-error')o.onEvent({type:'assistant',error:'rate_limit',message:{content:[]}});
+      if(kind==='generic')throw Error('network_error');
+      if(kind==='cancelled'){controller.abort();throw Error('claude_cli_failed');}
+      if(kind==='rejected-exit'||kind==='assistant-error')throw Error('claude_cli_failed');
+      o.onEvent({...result(),is_error:kind==='rejected-result'});return '';
+    }});
+    await adapter.connect();const pending=adapter.complete([],[],controller.signal);
+    if(['warning','recovered'].includes(kind))assert.equal((await pending).content,'확인했습니다.');
+    else await assert.rejects(pending,{message:kind==='cancelled'?'cancelled':kind==='generic'?'network_error':'rate_limited'});
+    assert.equal(adapter.quota().windows[0].resetsAt,2000000000000);
+    assert.equal(adapter.status().connected,true,'quota is not lost authentication');
+  }
+});
+
+test('process exit maps only structured rejection, never stderr or diagnostic prose',async()=>{
+  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-cli-quota-')),script=path.join(root,'cli.cjs');
+  try{
+    for(const [event,code] of [
+      [{type:'assistant',error:'rate_limit'},'rate_limited'],
+      [{type:'rate_limit_event',rate_limit_info:{status:'rejected'}},'rate_limited'],
+      [{type:'rate_limit_event',rate_limit_info:{status:'allowed_warning'}},'claude_cli_failed'],
+      [{type:'rate_limit_event',rate_limit_info:{status:'rejected',overageStatus:'allowed'}},'claude_cli_failed'],
+      [{type:'assistant',message:{content:[{type:'text',text:'rate_limit secret account'}]}},'claude_cli_failed']
+    ]){
+      await writeFile(script,`process.stdout.write(${JSON.stringify(JSON.stringify(event))});process.stderr.write('secret account rate_limit');process.exitCode=1;`);
+      await assert.rejects(runClaude(process.execPath,[script]),{message:code});
+    }
+  }finally{await rm(root,{recursive:true,force:true});}
 });

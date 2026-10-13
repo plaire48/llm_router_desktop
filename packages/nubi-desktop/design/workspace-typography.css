@@ -142,3 +142,11 @@ body {
   line-height:inherit;
   color:inherit;
 }
+
+/* Readable prose rhythm, without increasing the size of control rows. */
+.desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) :is(p,ul,ol) { margin-block:0 var(--nubi-prose-paragraph-gap); }
+.desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) li + li { margin-top:var(--nubi-prose-list-gap); }
+.desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) li > p { margin-block:0 .5em; }
+.desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) :is(h1,h2,h3,h4) { margin-block:var(--nubi-prose-section-gap) .65em; line-height:var(--deck-line-heading); }
+.desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) > :first-child { margin-top:0; }
+.desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) > :last-child { margin-bottom:0; }

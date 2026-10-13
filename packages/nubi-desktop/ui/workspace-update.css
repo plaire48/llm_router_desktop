@@ -12,3 +12,6 @@
 .nubi-update-progress>div { display:flex; justify-content:space-between; gap:16px; font-variant-numeric:tabular-nums; color:var(--nubi-text-action); font-weight:600; }
 .nubi-update-progress progress { width:100%; accent-color:var(--deck-blue); }
 .nubi-update-progress p,.nubi-update-progress>span { font:var(--deck-font-caption); color:var(--nubi-text-secondary); margin:0; }
+
+.desktop-shell .nubi-workspace-navigation.nubi-workspace-rail .nubi-update-rail-button.cx-kit-button { border-radius:50%; background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
+.desktop-shell .nubi-workspace-navigation.nubi-workspace-rail .nubi-update-rail-button.cx-kit-button:hover { background:var(--deck-blue); color:white; }

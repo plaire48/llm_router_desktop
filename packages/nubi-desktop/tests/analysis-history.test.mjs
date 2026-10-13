@@ -96,3 +96,12 @@ test('review lifecycle receipts contain host status but never child conclusions'
  const store={get:key=>key==='analysis-history:t:roles:run'?record:null};
  const receipt=roleExecutionReceipts(store,'t','run');assert.equal(receipt.items[0].delivered,true);assert.equal(receipt.items[0].reads,2);assert.equal(receipt.items[1].state,'error');assert.doesNotMatch(JSON.stringify(receipt),/UNVERIFIED_CHILD_CLAIM|outcome/);assert.equal(roleExecutionReceipts(store,'t','other').items.length,0);
 });
+
+
+test('failed review retains a safe diagnostic code across refresh and restart',async t=>{
+ const {service,root}=await fixture(t),task=await service.createTask({request:'검토 실패 원인'});
+ saveReviewProgress(service.store,task.id,{id:'failed-review',runId:'run',round:1,state:'failed',reason:'review_schema_invalid'});
+ assert.equal(service.analysisHistory({taskId:task.id}).records.find(r=>r.kind==='review').reason,'review_schema_invalid');
+ service.store.close();await service.open(root);
+ assert.equal(service.analysisHistory({taskId:task.id}).records.find(r=>r.kind==='review').reason,'review_schema_invalid');
+});

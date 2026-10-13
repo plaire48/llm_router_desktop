@@ -35,7 +35,7 @@ try{
   await page.getByRole('navigation',{name:'프로젝트 도구'}).waitFor({timeout:30000});
   await dismissStartup(page);
   // The renderer opens the last project itself; openCurrent returns that project once it is open.
-  await page.waitForFunction(()=>document.querySelector('button[aria-label="파일"]')?.disabled===false,null,{timeout:60000});
+  await page.waitForFunction(()=>document.querySelector('button[aria-label="파일"]')?.disabled===false,null,{timeout:60000,polling:100});
   const overview=await page.evaluate(()=>window.nubi.request('overview',{}));assert.equal(overview?.root,root,JSON.stringify(overview));
   // 1. The worker is killed: a child of the Electron process this check started.
   const mainPid=app.process().pid;
@@ -59,15 +59,15 @@ try{
   assert.equal(result.secondInstanceExit,0);
   assert.equal((await page.evaluate(()=>window.nubi.request('overview',{}))).root,root,'the first instance still answers');
   // 3. The window is moved and resized, closed, and comes back there.
-  await app.evaluate(({BrowserWindow})=>{BrowserWindow.getAllWindows()[0].setBounds({x:60,y:80,width:1000,height:700});});
+  result.requested=await app.evaluate(({BrowserWindow,screen})=>{const area=screen.getPrimaryDisplay().workArea;const bounds={x:area.x+20,y:area.y+20,width:Math.min(1000,area.width-40),height:Math.min(700,area.height-40)};/* portal authentication owns hidden windows (2026-10-14): resize the visible workspace window */(BrowserWindow.getAllWindows().find(w=>w.isVisible())||BrowserWindow.getAllWindows()[0]).setBounds(bounds);return bounds;});
   await new Promise(resolve=>setTimeout(resolve,900));
 }finally{await app.close();}
-result.saved=JSON.parse(await readFile(path.join(storage,'window-state.json'),'utf8'));assert.equal(result.saved.width,1000);assert.equal(result.saved.height,700);
+result.saved=JSON.parse(await readFile(path.join(storage,'window-state.json'),'utf8'));assert.equal(result.saved.width,result.requested.width);assert.equal(result.saved.height,result.requested.height);
 const again=await launch();
 try{
   const page=await again.firstWindow();await page.getByRole('navigation',{name:'프로젝트 도구'}).waitFor({timeout:30000});
-  result.bounds=await again.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].getBounds());
-  assert.equal(result.bounds.width,1000);assert.equal(result.bounds.height,700);assert.equal(result.bounds.x,60);
+  result.bounds=await again.evaluate(({BrowserWindow})=>(BrowserWindow.getAllWindows().find(w=>w.isVisible())||BrowserWindow.getAllWindows()[0]).getBounds());
+  assert.equal(result.bounds.width,result.requested.width);assert.equal(result.bounds.height,result.requested.height);assert.equal(result.bounds.x,result.requested.x);
   result.workerLog=(await readFile(path.join(storage,'worker.log'),'utf8').catch(()=>'')).length;
 }finally{await again.close();}
 // 6. A last project whose folder is gone: the start screen opens and the stale pointer is cleared (2026-10-07).

@@ -90,6 +90,7 @@
     "cronstrue": "3.27.0",
     "deepagents": "1.13.2",
     "google-auth-library": "^11.0.2",
+    "html-to-text": "10.0.1",
     "ink": "^5.2.1",
     "jsonc-parser": "^3.3.1",
     "langchain": "^1.5.10",

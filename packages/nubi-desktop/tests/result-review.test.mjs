@@ -1,3 +1,4 @@
+import {parseReviewJSON} from '../runtime/result-review.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -102,7 +103,7 @@ test('malformed reviews repair once and pause without publishing an unchecked an
   const task=await service.createTask({request:'확인해 주세요.'});await service.startAgent({taskId:task.id});await service.agent.promise;
   // The structured repair asks once more for valid JSON (2 calls); the read-only recovery of 2026-10-02 then runs the
   // executor again and reviews once more (2 calls) before the pause.
-  assert.equal(reviews,4);assert.equal(service.task(task.id).state,'paused');assert.equal(service.task(task.id).error,'goal_review_failed');assert.equal(service.task(task.id).messages.length,0);assert.equal(service.task(task.id).resultReview.status,'error');
+  assert.equal(reviews,4);assert.equal(service.task(task.id).state,'paused');assert.equal(service.task(task.id).error,'goal_review_failed');assert.equal(service.task(task.id).messages.length,0);assert.equal(service.task(task.id).resultReview.status,'error');assert.equal(service.task(task.id).reviewDraft.content,'모두 성공했습니다.');assert.equal(service.task(task.id).reviewDraft.reason,'review_json_invalid');
 });
 
 test('a pending user question bypasses result review and preserves the same task',async t=>{
@@ -235,3 +236,27 @@ test('the review keeps the newest user messages within its share and counts the 
   const limit=reviewInputLimit(model);assert.deepEqual(boundedCorrections(['a','b'],limit),{kept:['a','b'],omitted:0});
   const cut=boundedCorrections(['x'.repeat(200000)],1000);assert.equal(cut.omitted,0);assert.match(cut.kept[0],/이후 생략/);assert.ok(cut.kept[0].length<4000);
 });
+
+test('review accepts a complete inline JSON fence without extracting prose',()=>{
+ assert.deepEqual(parseReviewJSON('```json {"status":"ready"}```'),{status:'ready'});
+ assert.throws(()=>parseReviewJSON('검토 결과: {"status":"ready"}'));
+});
+
+test('tool-incompatible reviewer repairs as plain JSON without executing or weakening checks',async()=>{
+ let calls=0;
+ const result=await reviewResult({task:{request:'요약',messages:[],criteria:[]},evidence:[],receipts:{},candidate:'제공된 내용의 요약입니다.',model:{id:'fixture',contextLength:32000},signal:new AbortController().signal,invoke:async(messages,tools)=>{
+  calls++;
+  if(calls===1)return reply('{broken');
+  if(calls===2){assert.equal(tools[0].function.name,'report_desktop_review');throw Error('request_format');}
+  assert.deepEqual(tools,[]);const input=JSON.parse(messages[1].content);
+  return reply(JSON.stringify({status:'ready',nextStep:'',checks:input.requirements.map(item=>({requirementId:item.id,state:'unknown',evidenceIds:[],detail:'아직 확인하지 못한 결과입니다.'}))}));
+ }});
+ assert.equal(calls,3);assert.equal(result.status,'ready');assert.equal(result.checks[0].state,'unknown');
+});
+
+ test('prose approval requests need a real host form even when review labels them unknown',async()=>{
+ const input={task:{request:'필요한 명령을 실행해 줘'},candidate:'명령 실행을 승인해 주세요.',evidence:[],model:{contextLength:32000},signal:new AbortController().signal,receipts:{proposals:[],setupActions:[],processes:[],computer:{actions:[],omittedActions:0,unresolvedCount:0}},invoke:async messages=>decision(messages)};
+ assert.equal((await reviewResult(input)).normalized,'missing_host_boundary');
+ assert.equal((await reviewResult({...input,candidate:'> 명령 실행을 승인해 주세요.\n\n이 문구의 맞춤법을 확인했습니다.'})).normalized,undefined);
+ assert.equal((await reviewResult({...input,receipts:{...input.receipts,setupActions:[{id:'command',state:'proposed'}]}})).normalized,undefined);
+ });

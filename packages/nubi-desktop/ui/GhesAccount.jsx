@@ -9,8 +9,15 @@ import './ghes-account.css';
 import {ghesMessages,ghesDiagnosticLabel} from './ghes-account-state.mjs';
 const updateLabel={unchecked:'최신 버전 확인',current:'최신 버전',update_available:'업데이트 설치',installing:'설치 중',restart_required:'누비 다시 시작',installed_verified:'설치 확인됨',attention:'다시 확인'};
 const failureText=code=>ghesMessages[code]||'회사 계정을 확인하지 못했어요. 다시 시도해 주세요.';
-function Avatar({profile}){const [failed,setFailed]=useState(false);useEffect(()=>setFailed(false),[profile?.avatar]);
-  return <span className="nubi-account-avatar" aria-hidden="true">{profile?.avatar&&!failed?<img src={profile.avatar} alt="" onError={()=>setFailed(true)}/>:profile?(profile.name||profile.login).slice(0,2).toUpperCase():<Icon name="githubMark" size={20}/>}</span>;}
+export function GhesAvatar({profile}){
+ const [failed,setFailed]=useState(false),[now,setNow]=useState(Date.now);
+ useEffect(()=>setFailed(false),[profile?.avatar]);
+ const status=profile?.status,expires=Date.parse(status?.expiresAt);
+ useEffect(()=>{if(!Number.isFinite(expires)||expires<=now)return;const timer=setTimeout(()=>setNow(Date.now()),Math.min(expires-Date.now()+1,2147483647));return()=>clearTimeout(timer);},[expires,now]);
+ const visible=status?.emoji&&(!status.expiresAt||Number.isFinite(expires)&&expires>Date.now());
+ const label=status?.message||'GitHub 상태';
+ return <span className="nubi-account-avatar"><span className="nubi-account-avatar-photo" aria-hidden="true">{profile?.avatar&&!failed?<img src={profile.avatar} alt="" onError={()=>setFailed(true)}/>:profile?(profile.name||profile.login).slice(0,2).toUpperCase():<Icon name="githubMark" size={20}/>}</span>{visible&&<span className="nubi-account-status-emoji" role="img" aria-label={`${status.emoji} ${label}`} title={label}>{status.emoji}</span>}</span>;
+}
 
 // Profile UI receives display identity and operation states only. Credentials,
 // SAML assertions and installation paths never enter this component.
@@ -51,8 +58,8 @@ export function GhesAccount({account,updates,open,onOpen,onClose,onConnected,onC
   const diagnostic=!error&&state.error?ghesDiagnosticLabel(state.diagnostic):'';
   const updateOperation=update.state==='update_available'?'install':update.state==='restart_required'?'restart':'check';
   return <div className="nubi-account-control">
-    <CxButton ref={buttonRef} className="nubi-account-button" data-connected={!!state.connected} aria-label={state.connected?`${label} 계정 메뉴`:'로그인'} title={state.connected?`${label} (@${state.profile.login})`:'GitHub 사내 SSO 로그인'} aria-haspopup="dialog" aria-expanded={open} onClick={onOpen}><Avatar profile={state.profile}/><span>{label}</span></CxButton>
-    {open&&<DetailPanel className="deck-dialog nubi-panel nubi-ghes-modal" title={state.connected?<span className="nubi-account-profile"><Avatar profile={state.profile}/><span className="nubi-account-heading"><strong title={label}>{label}</strong><small>@{state.profile.login}</small></span></span>:"로그인"} variant="modal" onClose={onClose}>
+    <CxButton ref={buttonRef} className="nubi-account-button" data-connected={!!state.connected} aria-label={state.connected?`${label} 계정 메뉴`:'로그인'} title={state.connected?`${label} (@${state.profile.login})`:'GitHub 사내 SSO 로그인'} aria-haspopup="dialog" aria-expanded={open} onClick={onOpen}><GhesAvatar profile={state.profile}/><span>{label}</span></CxButton>
+    {open&&<DetailPanel className="deck-dialog nubi-panel nubi-ghes-modal" title={state.connected?<span className="nubi-account-profile"><GhesAvatar profile={state.profile}/><span className="nubi-account-heading"><strong title={label}>{label}</strong><small>@{state.profile.login}</small></span></span>:"로그인"} variant="modal" onClose={onClose}>
       {!state.connected&&<header className="nubi-account-login-heading"><AgentMark size={48} mood="idle" lively/><div><h3>AI Workspace</h3>{state.state!=='connecting'&&<p>팀의 AI Agent 경험을 누려보세요.</p>}</div></header>}
       {(error||state.error)&&<CxNotice tone="danger">{failureText(error||state.error)}</CxNotice>}
       {diagnostic&&<p className="nubi-account-diagnostic"><Icon name="infoCircle" size={16}/><span>{diagnostic}</span></p>}

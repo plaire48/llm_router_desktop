@@ -66,3 +66,11 @@ Screenshots in `verification/claude-code` show the actual local Electron UI. The
 - No CLI download or installation runs automatically. The official guide opens in Workspace. A transient probe timeout is not classified as a missing login.
 - Method: use the official [CLI authentication command](https://code.claude.com/docs/en/cli-reference) plus the existing native browser bridge, without new packages. The installed 2.1.296 CLI was checked with an isolated temporary config: it handed off an official claude.com authorization URL whose callback was localhost; cancellation terminated the child. This verifies URL handoff, not a fresh SSO completion or Windows execution.
 - Regression tests cover authorization URL scope, browser failure, temporary cleanup, cancellation/stale completion, duplicate login, preference-only persistence and startup without login. UI fixtures separately cover install/update/login-retry surfaces. Already authenticated Electron connection is checked without a model call.
+
+## Windows npm discovery correction (2026-10-13)
+
+A user reported `claude --version` working after npm installation while Nubi said the CLI was missing. The former resolver searched only `claude.exe` in `.local/bin` and the inherited PATH. It did not follow npm's package bin entry, include the default global npm prefix, or refresh registered Windows PATH after installation.
+
+Reuse the installed official package's `bin.claude` metadata rather than execute a `.cmd` shim through a shell with JSON arguments. Native binaries launch directly. Older npm JavaScript entries use Node argv. Check absolute PATH entries, default native/npm/WinGet directories and read-only current Windows user/system Path registry values. Do not load shell profiles or read Claude credentials. Missing files and denied access have separate recovery text.
+
+Official metadata inspected with `npm view @anthropic-ai/claude-code version bin optionalDependencies --json`: version 2.1.296 declares `bin/claude.exe` and platform optional dependencies. [Official npm installation](https://code.claude.com/docs/en/setup#install-with-npm) documents native package binaries. Windows CI installs that fixed official version in an isolated Korean/spaced directory, discovers it without inherited npm PATH and runs `--version`; this does not prove the user's login or actual model inference.

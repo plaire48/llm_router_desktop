@@ -1,5 +1,5 @@
 export const MAIL_SORTS=['relevance','newest','oldest','subject-asc','subject-desc','sender-asc','sender-desc','role-asc','role-desc'];
-export const mailRoleLabel=value=>({to:'수신',cc:'참조',bcc:'비밀참조',unknown:'미확인'})[value]||'미확인';
+export const mailRoleLabel=value=>({to:'수신',cc:'참조',bcc:'비밀참조',sent:'발신',unknown:'미확인'})[value]||'미확인';
 export function mailAddresses(value){return [...String(value||'').matchAll(/[^\s<>;,"()]+@[^\s<>;,"()]+/g)].map(match=>match[0]);}
 export function recipientRole(mail,recipient){
  if(!recipient||!recipient.includes('@'))return 'unknown';

@@ -1,3 +1,4 @@
+import {requireWikiChatReady} from './wiki-chat-admission.mjs';
 import {processOutputPreview} from './process-output.mjs';
 import {randomUUID} from 'node:crypto';
 import {recoverModel,createModelCooldown} from '../../../extensions/aipro-chat/model-recovery.js';
@@ -14,19 +15,25 @@ export const recoveryCode=error=>safeError(error);
 // already in the transcript are never executed by a transport retry.
 export function modelTransport(service,{signal,onRetry,metrics,onText}){
   const cooldown=createModelCooldown();
+  const batchLimit={role:'system',content:'Host limit: return at most 8 tool calls in one response. Split larger sets across responses; never drop remaining required reads.'};
   // Telemetry reads the model name defensively: it must not add a failure path.
   const modelName=()=>{try{return service.providers.status().model;}catch{return null;}};
   // retries may lower the retries of one call (a large request), never raise them.
   return (messages,tools,childSignal=signal,purpose='actor',{retries,visionModel,maxTokens,toolChoice,responseFormat,retryInvalidResponse=true}={})=>{
     const options={retries:2,...service.recoveryOptions?.model};
+    // Keep the existing system/payload positions used by structured planners.
+    const at=messages.findIndex(message=>message.role==='system'&&typeof message.content==='string');
+    const base=tools.length&&!messages.some(message=>message.role==='system'&&typeof message.content==='string'&&message.content.includes('at most 8 tool calls'))?(at<0?[batchLimit,...messages]:messages.map((message,index)=>index===at?{...message,content:message.content+'\n'+batchLimit.content}:message)):messages;
+    let rejected=false;
     return recoverModel(async ({signal:attemptSignal,activity,attempt})=>{
       if(purpose==='actor')onText?.('');
-      const measured=metrics?.beginModel({purpose,attempt,messages,tools,model:visionModel||modelName()});
-      try{const result=await service.providers.complete(messages,tools,attemptSignal,text=>{activity();if(purpose==='actor'&&typeof text==='string')onText?.(text);},activity,activity,{...(visionModel?{visionModel}:{}),...(Number.isSafeInteger(maxTokens)&&maxTokens>0?{maxTokens}:{}),...(toolChoice==='required'?{toolChoice}:{}),...(responseFormat?.type==='json_object'?{responseFormat:{type:'json_object'}}:{})});measured?.end(result);return result;}
+      const wire=rejected?[...base,{role:'system',content:'The previous response was rejected before dispatch. No tool from the rejected response was executed. Return a smaller batch of valid tool calls, or a nonempty answer in the requested format. Keep completed receipts and unfinished work; never replay completed or uncertain operations.'}]:base;
+      const measured=metrics?.beginModel({purpose,attempt,messages:wire,tools,model:visionModel||modelName()});
+      try{const result=await service.providers.complete(wire,tools,attemptSignal,text=>{activity();if(purpose==='actor'&&typeof text==='string')onText?.(text);},activity,activity,{...(visionModel?{visionModel}:{}),...(Number.isSafeInteger(maxTokens)&&maxTokens>0?{maxTokens}:{}),...(toolChoice==='required'?{toolChoice}:{}),...(responseFormat?.type==='json_object'?{responseFormat:{type:'json_object'}}:{})});measured?.end(result);return result;}
       // A response the connection rejects (response_invalid: a stream error, an empty answer, too many tool calls) is
       // asked for again within this budget: the shared policy retries only network, timeout, 429 and 5xx, and one
       // server-side stream error ended a run (measured 2026-10-12, S29: 2 of 6 identical requests for an hour).
-      catch(error){const code=safeError(error);measured?.fail(code);throw Object.assign(new Error(({network_error:'network',network_timeout:'model_timeout'})[code]||code),{status:error.status,retryAfterMs:error.retryAfterMs,...(code==='response_invalid'?{retryable:retryInvalidResponse}:{}),...(error.apiDiagnostic?{apiDiagnostic:error.apiDiagnostic}:{})});}
+      catch(error){const code=safeError(error);if(code==='response_invalid')rejected=true;measured?.fail(code);throw Object.assign(new Error(({network_error:'network',network_timeout:'model_timeout'})[code]||code),{status:error.status,retryAfterMs:error.retryAfterMs,...(code==='response_invalid'?{retryable:retryInvalidResponse}:{}),...(error.apiDiagnostic?{apiDiagnostic:error.apiDiagnostic}:{})});}
     },{signal:childSignal,cooldown,...options,...(Number.isSafeInteger(retries)?{retries:Math.min(retries,options.retries)}:{}),onRetry});
   };
 }
@@ -64,6 +71,7 @@ export async function recoverySnapshot({taskId}){
 export function installRecovery(ProjectService){
   ProjectService.prototype.recoverySnapshot=recoverySnapshot;
   ProjectService.prototype.resumeAgent=async function({taskId}){
+    requireWikiChatReady(this);
     const task=this.task(taskId);if(this.computerBusy||this.agent?.running||this.reconciling)fail('agent_busy');if(task.question)fail('question_pending');
     if(!['paused','failed','interrupted'].includes(task.state))fail('recovery_changed');
     const recoveryProcessId=task.recovery?.processId;
@@ -107,6 +115,12 @@ export function installRecovery(ProjectService){
     const previous=this.store.list('command-repair:').find(r=>r.fingerprint===fingerprint&&r.state==='proposed');if(previous)return previous;
     const value={id:randomUUID(),taskId,processId,profile,script,reason,workspace:await this.target(taskId),fingerprint,state:'proposed',createdAt:now()};
     this.store.set('command-repair:'+value.id,value);return value;
+  };
+  ProjectService.prototype.rejectCommandRepair=async function({id}){
+    const value=this.store.get('command-repair:'+id);if(!value)fail('repair_invalid');
+    if(value.state==='rejected')return value;
+    if(value.state!=='proposed')fail('recovery_changed');
+    value.state='rejected';value.rejectedAt=now();this.store.set('command-repair:'+id,value);return value;
   };
   ProjectService.prototype.applyCommandRepair=async function({id}){
     const value=this.store.get('command-repair:'+id);if(!value)fail('repair_invalid');

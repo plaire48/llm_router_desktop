@@ -23,5 +23,9 @@ export function gitFailure(error){
  if(/not a git repository/i.test(detail))return 'not_git_repository';
  return 'git_history_failed';
 }
-export async function gitAvailability(){try{const {stdout}=await runGit(['--version'],{timeout:5000});return {available:true,version:stdout.trim()};}catch(error){return {available:false,error:gitFailure(error)};}}
+// Cold starts after Windows installation can exceed a five-second probe.
+// Use the same bounded, asynchronous budget as ordinary Git commands; a slow
+// executable must not be reported as absent. Never cache a failed probe.
+export async function checkGitAvailability(run=runGit){try{const {stdout}=await run(['--version'],{timeout:20000});return {available:true,version:stdout.trim()};}catch(error){return {available:false,error:gitFailure(error)};}}
+export async function gitAvailability(){return checkGitAvailability();}
 export async function requireWikiGit(){const status=await gitAvailability();if(!status.available)throw Error(status.error==='git_unavailable'?'wiki_git_required':status.error);}

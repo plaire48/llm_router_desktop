@@ -124,7 +124,6 @@ const commandFlow=script=>{let round=0;return ({messages,result})=>{
   switch(round++){
     case 0:return call('inspect_environment',{});
     case 1:return setupCall(script,result.references.find(item=>item.path==='package.json').hash);
-    case 2:return {content:'승인하면 테스트를 실행합니다.',calls:[]};
     default:{const [latest]=receiptsOf(messages).processes;return {content:`실행 결과 ${latest.state}, 종료 코드 ${latest.exitCode}`,calls:[]};}
   }};};
 
@@ -155,7 +154,6 @@ test('allowed file proposals are applied before the command, so the command sees
       case 2:return call('propose_patch',{path:'src/shipping.mjs',expectedHash:hash,edits:[{oldText:'REMOTE_EXTRA = 4500',newText:'REMOTE_EXTRA = 5000'}],reason:'요청 반영'});
       case 3:return call('inspect_environment',{});
       case 4:return setupCall('node --test test/shipping.test.mjs',result.references.find(item=>item.path==='package.json').hash);
-      case 5:return {content:'수정안을 반영한 뒤 검사를 실행합니다.',calls:[]};
       default:{const [latest]=receiptsOf(messages).processes;return {content:`실행 결과 ${latest.state}, 종료 코드 ${latest.exitCode}`,calls:[]};}
     }};
   const testCase={...commandCase,request:'제주 추가 요금을 5,000원으로 올리고 배송 검사를 돌려 줘.',approvals:['patch','command'],expect:{...commandCase.expect,commands:{match:['re:node --test'],min:1,lastExitCode:1}}};
@@ -180,9 +178,7 @@ test('E5: a command the project does not have is repaired and the corrected comm
     switch(round++){
       case 0:return call('inspect_environment',{});
       case 1:return setupCall('npm run test:discount',result.references.find(item=>item.path==='package.json').hash);
-      case 2:return {content:'승인하면 할인 검사를 실행합니다.',calls:[]};
-      case 3:{const [failed]=receiptsOf(messages).processes;return call('propose_command_repair',{processId:failed.id,profile:failed.profile,script:'node --test test/discount.test.mjs',reason:'package.json에 test:discount 스크립트가 없어 할인 검사 파일을 직접 실행합니다.'});}
-      case 4:return {content:'고친 명령을 승인하면 실행합니다.',calls:[]};
+      case 2:{const [failed]=receiptsOf(messages).processes;return call('propose_command_repair',{processId:failed.id,profile:failed.profile,script:'node --test test/discount.test.mjs',reason:'package.json에 test:discount 스크립트가 없어 할인 검사 파일을 직접 실행합니다.'});}
       default:return {content:'할인 검사가 모두 통과했습니다. package.json에 test:discount 스크립트가 없어 node --test test/discount.test.mjs로 실행했습니다.',calls:[]};
     }};
   const result=await runCase({testCase,providers:scripted(actor),parent:base,corpusDirectory});t.after(result.dispose);
@@ -209,13 +205,12 @@ test('the review is told a wrong command is unfinished until a corrected command
     switch(round++){
       case 0:return call('inspect_environment',{});
       case 1:return setupCall('npm run test:discount',result.references.find(item=>item.path==='package.json').hash);
-      case 2:return {content:'승인하면 실행합니다.',calls:[]};
-      case 3:{if(!repair)return {content:'test:discount 스크립트가 없어 할인 검사는 실행되지 않았습니다.',calls:[]};const [failed]=receiptsOf(messages).processes;return call('propose_command_repair',{processId:failed.id,profile:failed.profile,script:'node --test test/discount.test.mjs',reason:'스크립트가 없어 할인 검사 파일을 직접 실행합니다.'});}
-      default:return {content:'고친 명령을 승인하면 실행합니다.',calls:[]};
+      case 2:{if(!repair)return {content:'test:discount 스크립트가 없어 할인 검사는 실행되지 않았습니다.',calls:[]};const [failed]=receiptsOf(messages).processes;return call('propose_command_repair',{processId:failed.id,profile:failed.profile,script:'node --test test/discount.test.mjs',reason:'스크립트가 없어 할인 검사 파일을 직접 실행합니다.'});}
+      default:return {content:'고친 명령의 실제 실행 결과를 확인했습니다.',calls:[]};
     }};};
   const alone=reviewing(flow(false)),stopped=await runCase({testCase,providers:alone.providers,parent:base,corpusDirectory});t.after(stopped.dispose);
   assert.deepEqual(stopped.commands.map(item=>[item.script,item.exitCode]),[['npm run test:discount',1]]);
-  assert.equal(alone.reviewed[0].includes('host:command'),false,'no command had failed at the first review');
+  assert.equal(alone.reviewed.length,1,'approval waits are not final answer reviews');
   assert.ok(alone.reviewed.at(-1).includes('host:command'),JSON.stringify(alone.reviewed));
   const repaired=reviewing(flow(true)),fixed=await runCase({testCase,providers:repaired.providers,parent:base,corpusDirectory});t.after(fixed.dispose);
   assert.deepEqual(fixed.commands.map(item=>[item.script,item.exitCode]),[['npm run test:discount',1],['node --test test/discount.test.mjs',0]]);
@@ -232,7 +227,6 @@ test('as in the editor, applying the last proposal continues the task once, and 
       case 3:return {content:'수정안을 반영하면 검사를 실행하겠습니다.',calls:[]};
       case 4:resumed=true;return call('inspect_environment',{});
       case 5:return setupCall('node --test test/shipping.test.mjs',result.references.find(item=>item.path==='package.json').hash);
-      case 6:return {content:'검사 실행을 승인해 주세요.',calls:[]};
       default:{const [latest]=receiptsOf(messages).processes;return {content:`실행 결과 ${latest.state}, 종료 코드 ${latest.exitCode}`,calls:[]};}
     }};
   const testCase={...commandCase,request:'제주 추가 요금을 5,000원으로 올리고 배송 검사를 돌려 줘.',approvals:['patch','command']};

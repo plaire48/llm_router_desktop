@@ -19,3 +19,13 @@ Build-only delivery follows the user's instruction. This does not establish live
 The mail connection entry also had a rendering fault: the Gmail helper used an unsupported CX icon name, `externalLink`. Clicking Mail connection mounted that helper and threw `Unknown icon: externalLink`, blanking the app before credential entry. It now reuses BrowserMark. The failure was observed through the localhost UI without entering credentials; POP3 authentication is a separate result.
 
 After the Electron build and owned-app restart, opening Mail → Mail connection in the localhost renderer displayed the Gmail address, app password and connect controls normally. No credentials were entered and no automated suite was run. The captured view is `verification/mail-connect-render-fixed-detail-2026-10-02.png`.
+
+## Blank popup repair (2026-10-13)
+
+A local Electron 42 reproduction confirmed that denying `window.open()` and loading only its URL in a new view returned `null` to the opener. A child populated using `document.write` stayed blank; a form with `target=_blank` and POST arrived as GET with no body. This is a reproduced compatibility defect, not a confirmed diagnosis of the user's unavailable internal site.
+
+The host now uses Electron's supported `createWindow(options)` callback and adopts its WebContents into the existing sandboxed WebContentsView tabs. Chromium retains the opener, initial navigation and POST semantics. Deferred background tabs load their URL with the supplied referrer/post data. HTTP/HTTPS and blank child windows are allowed; protocol restrictions, isolated session, tab limit, context isolation, sandbox, disabled Node and TLS verification remain intact. Popup `about:blank` can contain a real document and is no longer hidden by the renderer's new-tab empty state.
+
+A failed native view is hidden so it cannot cover the renderer's recovery message. Fixed DNS/offline/timeout/certificate/crash messages offer a reload action without displaying server response bodies or callback parameters. Loading again restores the view. Abort-on-navigation is not marked as a load failure.
+
+Validation: `scripts/check-browser-popup.mjs` uses an isolated temporary Electron profile and a localhost server. Before: opener unavailable, child body empty, POST converted to GET. After: opener available, child text rendered, POST body preserved; web preferences retained, failed view hidden and reload restored visibility. `tests/browser-auth-return.test.mjs` retains all three close/return scenarios. This does not establish live internal-site or Windows compatibility. No running user session was restarted.
