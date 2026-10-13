@@ -51,6 +51,23 @@ async function bytes(stream,max){
   // Latin1 round-trip preserves MIME bytes, including legacy Korean encodings.
   return Buffer.from(Buffer.concat(chunks).toString('latin1').replace(/(^|\r\n)\.\./g,'$1.'),'latin1');
 }
+// node-pop3's generic command() trims the entire wire line, including password
+// bytes. Authentication uses its existing TLS socket and response events, but
+// writes the validated credential verbatim. Keep only the command name in error
+// metadata; USER must not leak an account name either.
+async function authenticate(client,user,password){
+  await client.connect();
+  for(const [name,value] of [['USER',user],['PASS',password]]){
+    await new Promise((resolve,reject)=>{
+      const cleanup=()=>{client.removeListener('response',accepted);client.removeListener('error',rejected);};
+      const accepted=()=>{cleanup();resolve();};
+      const rejected=error=>{cleanup();reject(error);};
+      client._command=name;
+      client.once('response',accepted);client.once('error',rejected);
+      try{client._socket.write(`${name} ${value}\r\n`,'utf8');}catch(error){rejected(error);}
+    });
+  }
+}
 export function classifyPop3Error(error,endpoint=POP3_SERVER){
   if(['mail_size_limit','mail_uidl_invalid','mail_uidl_characters','mail_uidl_id_length','mail_uidl_format','mail_uidl_number_conflict','mail_protocol','mail_cancelled','mail_timeout'].includes(error?.message))return error.message;
   const code=String(error?.code||error?.cause?.code||'');
@@ -63,6 +80,9 @@ export function classifyPop3Error(error,endpoint=POP3_SERVER){
   if(code==='ETIMEDOUT'||error?.eventName==='timeout')return 'mail_timeout';
   if(error?.eventName==='bad-server-response')return 'mail_protocol';
   if(error?.command?.startsWith('PASS')||error?.command?.startsWith('USER')){
+    // RFC 2449: an occupied maildrop is not a bad credential. Only a known
+    // response code is classified; arbitrary server prose stays private.
+    if(/^\[IN-USE\](?:\s|$)/i.test(String(error.message||'')))return 'mail_mailbox_busy';
     // Classify only known Gmail replies. Never return server text or credentials.
     if(endpoint.host==='pop.gmail.com'){
       const reply=String(error.message||'');
@@ -71,7 +91,7 @@ export function classifyPop3Error(error,endpoint=POP3_SERVER){
       if(/POP.*(?:disabled|not enabled)|not enabled.*POP/i.test(reply))return 'mail_gmail_pop_disabled';
       if(/username and password not accepted|invalid credentials|authentication failed|badcredentials/i.test(reply))return 'mail_gmail_credentials_invalid';
     }
-    return 'mail_auth_failed';
+    return error.command.startsWith('USER')?'mail_auth_user_rejected':'mail_auth_login_rejected';
   }
   if(error?.command==='UIDL')return 'mail_listing_failed';
   if(error?.command?.startsWith('RETR'))return 'mail_retrieval_failed';
@@ -87,7 +107,7 @@ export async function pullPop3({user,password,known=null,skip=[],signal,endpoint
   try{
     if(signal?.aborted)throw new Error('mail_cancelled');
     return await Promise.race([cancelled,(async()=>{
-      await client._connect();
+      await authenticate(client,user,password);
       let delay=60;
       // CAPA is optional in POP3. Only -ERR means unsupported; transport errors fail.
       try{const [,stream]=await client.command('CAPA');const text=(await bytes(stream,65536)).toString('ascii');const value=text.match(/^LOGIN-DELAY\s+(\d+)/im)?.[1];if(value){const seconds=Number(value);if(!Number.isSafeInteger(seconds)||seconds>2147483)throw new Error('mail_protocol');delay=Math.max(60,seconds);}}

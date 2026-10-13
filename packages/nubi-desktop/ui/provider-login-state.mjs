@@ -1,4 +1,7 @@
 const reasons={
+  claude_cli_failed:'Claude Code는 찾았지만 실행하지 못했어요. 터미널에서 claude --version을 확인해 주세요.',
+  claude_cli_unavailable:'Claude Code 실행 권한을 확인해 주세요.',
+  claude_cli_missing:'Claude Code의 설치 경로를 확인해 주세요.',
   claude_login_failed:'Claude 로그인을 마치지 못했어요. 다시 연결해 주세요.',
   claude_login_required:'Claude 인증을 확인하지 못했어요. 다시 로그인해 주세요.',
   claude_cli_timeout:'Claude 로그인 시간이 초과됐어요. 다시 연결해 주세요.',

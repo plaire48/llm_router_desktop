@@ -19,7 +19,7 @@ test('connection failures distinguish TLS, transport, authentication, listing an
     [{code:'ERR_TLS_CERT_ALTNAME_INVALID'},'mail_tls_hostname'],[{code:'CERT_HAS_EXPIRED'},'mail_tls_expired'],
     [{cause:{code:'SELF_SIGNED_CERT_IN_CHAIN'}},'mail_tls_untrusted'],[{code:'ERR_SSL_WRONG_VERSION_NUMBER'},'mail_tls_error'],
     [{code:'ENOTFOUND'},'mail_dns_failed'],[{code:'ECONNREFUSED'},'mail_connection_refused'],[{code:'ETIMEDOUT'},'mail_timeout'],
-    [{command:'USER private-account'},'mail_auth_failed'],[{command:'PASS private-password'},'mail_auth_failed'],
+    [{command:'USER private-account'},'mail_auth_user_rejected'],[{command:'PASS private-password'},'mail_auth_login_rejected'],
     [{command:'UIDL'},'mail_listing_failed'],[{command:'RETR 1'},'mail_retrieval_failed'],
     [{eventName:'bad-server-response'},'mail_protocol'],[{},'mail_connection_failed'],
   ];
@@ -27,4 +27,10 @@ test('connection failures distinguish TLS, transport, authentication, listing an
   for(const code of ['mail_uidl_format','mail_uidl_id_length','mail_uidl_characters','mail_uidl_number_conflict'])assert.equal(classifyPop3Error(Error(code)),code);
   assert.equal(mailConnectionDiagnostic('private-password'),null);
   assert(!JSON.stringify(mailConnectionErrors).includes('POP3 사용 설정'));
+});
+test('a standard occupied-mailbox reply is separated from authentication without exposing reply prose',()=>{
+  const code=classifyPop3Error({command:'PASS ***',message:'[IN-USE] private-account private-server'});
+  assert.equal(code,'mail_mailbox_busy');assert(mailConnectionErrors[code]);
+  assert(!mailConnectionDiagnostic(code).includes('private'));
+  assert.equal(classifyPop3Error({command:'PASS ***',message:'private prose mentions IN-USE'}),'mail_auth_login_rejected');
 });

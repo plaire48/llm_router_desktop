@@ -14,13 +14,13 @@ class PersonalMail extends BasePersonalMail{constructor(host,options){super(host
 async function fixture(t){
  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-pop3-'));
  execFileSync('openssl',['req','-x509','-newkey','rsa:2048','-nodes','-keyout',path.join(root,'key.pem'),'-out',path.join(root,'cert.pem'),'-subj','/CN=localhost','-addext','subjectAltName=DNS:localhost','-days','1'],{stdio:'ignore'});
- const cert=await readFile(path.join(root,'cert.pem')),commands=[],mailbox=[],sockets=new Set();let authFail=false,uidlFail=false,uidlText=null;
+ const cert=await readFile(path.join(root,'cert.pem')),commands=[],mailbox=[],sockets=new Set();let authFail=false,userFail=false,expectedPassword=null,uidlFail=false,uidlText=null;
  const server=createServer({key:await readFile(path.join(root,'key.pem')),cert},socket=>{
   sockets.add(socket);socket.on('close',()=>sockets.delete(socket));socket.on('error',()=>{});socket.write('+OK fixture\r\n');let buffer='';
   async function multi(content){socket.write(Buffer.concat([Buffer.from('+OK\r\n'),Buffer.from(content),Buffer.from('\r\n')]));socket.write('.');await new Promise(r=>setTimeout(r,4));socket.write('\r');await new Promise(r=>setTimeout(r,4));socket.write('\n');}
   socket.on('data',chunk=>{buffer+=chunk.toString();while(buffer.includes('\r\n')){const at=buffer.indexOf('\r\n'),line=buffer.slice(0,at);buffer=buffer.slice(at+2);const [cmd,arg]=line.split(' ');commands.push(cmd);
-   if(cmd==='USER')socket.write('+OK\r\n');
-   else if(cmd==='PASS')socket.write(authFail?'-ERR secret-from-server\r\n':'+OK\r\n');
+   if(cmd==='USER')socket.write(userFail?'-ERR account-private\r\n':'+OK\r\n');
+   else if(cmd==='PASS')socket.write(authFail||(expectedPassword!==null&&line.slice(5)!==expectedPassword)?'-ERR secret-from-server\r\n':'+OK\r\n');
    else if(cmd==='CAPA')void multi('UIDL\r\nLOGIN-DELAY 65');
    else if(cmd==='UIDL')uidlFail?socket.write('-ERR unsupported\r\n'):void multi(uidlText??mailbox.map((m,i)=>`${i+1} ${m.uidl}`).join('\r\n'));
    else if(cmd==='RETR')void multi(mailbox[Number(arg)-1].raw);
@@ -28,7 +28,7 @@ async function fixture(t){
   }});
  });await new Promise(r=>server.listen(0,'127.0.0.1',r));
  t.after(async()=>{for(const socket of sockets)socket.destroy();await new Promise(r=>server.close(r));await rm(root,{recursive:true,force:true});});
- return {root,commands,mailbox,endpoint:{host:'127.0.0.1',port:server.address().port,servername:'localhost',tlsOptions:{ca:cert}},auth:value=>authFail=value,uidl:value=>uidlFail=value,listing:value=>uidlText=value};
+ return {root,commands,mailbox,endpoint:{host:'127.0.0.1',port:server.address().port,servername:'localhost',tlsOptions:{ca:cert}},auth:value=>authFail=value,userAuth:value=>userFail=value,expectPassword:value=>expectedPassword=value,uidl:value=>uidlFail=value,listing:value=>uidlText=value};
 }
 // The company profile: automatic Wiki summaries stay on by default, and the password is taken as typed. The Gmail test
 // profile (the default of a new install, 2026-10-04) starts with summaries off and takes an address and a 16-character
@@ -49,7 +49,7 @@ test('TLS, split terminator, Korean MIME, attachment bytes, stable UIDL and no D
  result=await pullPop3({...credentials,endpoint:f.endpoint,known:['old','new']});assert.equal(result.mails.length,0);assert(!f.commands.includes('DELE'));
  await assert.rejects(pullPop3({...credentials,endpoint:{...f.endpoint,tlsOptions:{}}}),/mail_tls_untrusted/);
  await assert.rejects(pullPop3({...credentials,endpoint:{...f.endpoint,servername:'wrong.example.test'}}),/mail_tls_hostname/);
- f.auth(true);await assert.rejects(pullPop3({...credentials,endpoint:f.endpoint}),/mail_auth_failed/);f.auth(false);
+ f.auth(true);await assert.rejects(pullPop3({...credentials,endpoint:f.endpoint}),/mail_auth_login_rejected/);f.auth(false);
  f.uidl(true);await assert.rejects(pullPop3({...credentials,endpoint:f.endpoint}),/mail_listing_failed/);
  await assert.rejects(pullPop3({...credentials,user:'bad\r\nDELE 1',endpoint:f.endpoint}),/mail_input_invalid/);
 });
@@ -135,7 +135,7 @@ test('a model failure is retried on the next polls, three times in all, and a ma
 test('bundled host worker performs TLS retrieval with sanitized failures and no stdout/stderr',async t=>{
  const f=await fixture(t);f.auth(true);
  const worker=new Worker(new URL('../extension/lib/node/mail-worker.mjs',import.meta.url),{workerData:{...credentials,endpoint:f.endpoint},stdout:true,stderr:true});let output='';worker.stdout.on('data',chunk=>output+=chunk);worker.stderr.on('data',chunk=>output+=chunk);
- t.after(()=>worker.terminate());const message=await new Promise((resolve,reject)=>{worker.once('message',resolve);worker.once('error',reject);});assert.deepEqual(message,{error:'mail_auth_failed'});assert.equal(output,'');
+ t.after(()=>worker.terminate());const message=await new Promise((resolve,reject)=>{worker.once('message',resolve);worker.once('error',reject);});assert.deepEqual(message,{error:'mail_auth_login_rejected'});assert.equal(output,'');
 });
 
 // User decision 2026-10-04: OFF stops collection as well as summaries; ON or a reconnect fetches what the server still holds.
@@ -155,4 +155,15 @@ test('Wiki OFF during synthesis keeps the original and queue without saving a la
  const host={storageRoot:path.join(f.root,'state'),providers:{catalogs:()=>CATALOGS,status:()=>({connected:true,...destination}),complete:async()=>{calls++;return new Promise(r=>release=r);}}};
  const mail=new PersonalMail(host,{personalRoot:path.join(f.root,'personal'),pull:input=>pullPop3({...input,endpoint:f.endpoint})});t.after(()=>mail.dispose());await mail.call({action:'connect',requestId:'base',...credentials,destination});f.mailbox.push({uidl:'one',raw:simple('one')});await mail.cycle();for(let i=0;i<100&&!release;i++)await new Promise(r=>setTimeout(r,10));assert(release);
  await mail.call({action:'setAutoWiki',enabled:false});release({content:JSON.stringify(answer)});await settled(mail);assert.equal(calls,1);assert.equal(mail.status().counts.saved,0);assert.equal(mail.status().counts.queued,1);assert.equal(mail.status().counts.attention,0);assert.match((await mail.read(mail.rows()[0].id)).mail.text,/계약/);
+});
+
+test('POP3 authentication preserves password whitespace and separates USER from PASS rejection',async t=>{
+ const f=await fixture(t);
+ for(const password of ['  leading and trailing  ','trailing\t','only-special-!#$%&+\\']){
+  f.expectPassword(password);
+  const result=await pullPop3({...credentials,password,endpoint:f.endpoint});assert.deepEqual(result.uidls,[]);
+ }
+ f.userAuth(true);await assert.rejects(pullPop3({...credentials,endpoint:f.endpoint}),error=>error.message==='mail_auth_user_rejected');
+ f.userAuth(false);f.auth(true);await assert.rejects(pullPop3({...credentials,endpoint:f.endpoint}),error=>error.message==='mail_auth_login_rejected');
+ assert(!f.commands.includes('DELE'));
 });

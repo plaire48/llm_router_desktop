@@ -2,6 +2,9 @@
 const listing='로그인은 완료됐어요. 메일 목록을 읽는 단계에서 멈췄어요.';
 export const mailConnectionErrors={
   mail_auth_failed:{title:'서버가 로그인을 거절했어요',detail:'연결은 됐지만 메일 서버가 인증을 허용하지 않았어요.'},
+  mail_auth_user_rejected:{title:'서버가 로그인 이름을 거절했어요',detail:'정상 수신되는 메일 앱의 사용자 이름과 같은 형식으로 입력해 주세요.'},
+  mail_auth_login_rejected:{title:'서버가 로그인을 완료하지 못했어요',detail:'사용자 이름 요청은 통과했지만 비밀번호 확인 단계에서 거절됐어요. 비밀번호 오류와 서버 정책은 아직 구분되지 않았어요.'},
+  mail_mailbox_busy:{title:'다른 앱이 메일함을 사용 중이에요',detail:'다른 메일 앱의 수신을 마친 뒤 다시 연결해 주세요.'},
   mail_tls_untrusted:{title:'메일 서버 인증서를 신뢰하지 못해요',detail:'Windows의 사내 인증서 설치 상태를 확인해 주세요.'},
   mail_tls_hostname:{title:'인증서의 서버 주소가 달라요',detail:'메일 관리자에게 서버 인증서의 주소 확인을 요청해 주세요.'},
   mail_tls_expired:{title:'서버 인증서의 유효기간을 확인해 주세요',detail:'PC 날짜가 맞으면 메일 관리자에게 인증서 확인을 요청해 주세요.'},
