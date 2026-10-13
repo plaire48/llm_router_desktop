@@ -46,5 +46,17 @@ test('archive hides downloads and restore retains immutable history',async t=>{c
 test('concurrent final ref changes cannot overwrite a colleague commit',async t=>{const f=await fixture(t);f.remote.beforePatch(()=>f.remote.concurrent());await assert.rejects(f.service.publish(f.input),/wiki_share_changed/);assert.equal((await f.service.list()).items.length,0);});
 test('session changes during approval prevent publication',async t=>{let remote;const f=await fixture(t,{confirmSave:async()=>{remote.account.generation++;return true;}});remote=f.remote;await assert.rejects(f.service.publish(f.input),/ghes_session_changed/);assert.equal(f.remote.calls.filter(x=>x.method!=='GET').length,0);});
 test('personal mode requires a real selection and keeps a separate download root',async t=>{const f=await fixture(t);await assert.rejects(f.service.publish({...f.input,paths:[],metadata:{...f.input.metadata,mode:'personal'}}),/wiki_share_empty/);const first=await f.service.publish({...f.input,metadata:{...f.input.metadata,mode:'personal'}});const saved=await f.service.download({id:first.item.id,version:'1.0.0'},f.root);assert.equal(await readFile(path.join(saved.path,'personal','quickstart.md'),'utf8'),'# Wiki\n');});
-test('tampered contents fail hash verification before creating a download folder',async t=>{const f=await fixture(t),first=await f.service.publish(f.input);f.remote.blobs.set(gitBlob('# Wiki\n'),'tampered');const dest=path.join(f.root,'dest');await mkdir(dest);await assert.rejects(f.service.download({id:first.item.id,version:'1.0.0'},dest),/wiki_share_changed/);assert.deepEqual(await readdir(dest),[]);});
+test('tampered contents fail hash verification before creating a download folder',async t=>{const f=await fixture(t),first=await f.service.publish(f.input);f.remote.blobs.set(gitBlob('# Wiki\n'),'tampered');const dest=path.join(f.root,'dest');await mkdir(dest);await assert.rejects(f.service.download({id:first.item.id,version:'1.0.0'},dest),/wiki_share_integrity/);assert.deepEqual(await readdir(dest),[]);});
 test('unsafe paths and symlinks are rejected',async t=>{for(const name of ['../secret.md','C:/x.md','a\\b.md','CON.md','.env','a/../b.md'])assert.equal(safePath(name),false);const f=await fixture(t);await symlink(path.join(f.source,'quickstart.md'),path.join(f.source,'link.md'));await assert.rejects(collectWiki(f.source),/wiki_share_symlink/);});
+
+
+test('read-only ref failures fall back once to the commit API without writing',async()=>{
+ const f=mock(),original=f.account.fetcher,reads=[];
+ f.account.fetcher=async(url,init)=>{assert.equal(init.method,'GET');const route=new URL(url).pathname;reads.push(route);if(route.includes('/git/ref/heads/'))return new Response('{}',{status:409});if(route.endsWith('/commits/main'))return new Response(JSON.stringify({sha:f.head()}));return original(url,init);};
+ const service=new WikiRepository({account:f.account});assert.equal((await service.list()).head,f.head());assert.equal(reads.filter(route=>route.endsWith('/commits/main')).length,1);assert(!f.calls.some(call=>call.method!=='GET'));
+});
+test('persistent read failure is not reported as a competing save',async()=>{
+ const f=mock(),original=f.account.fetcher;
+ f.account.fetcher=async(url,init)=>{if(new URL(url).pathname.includes('/git/ref/')||new URL(url).pathname.endsWith('/commits/main'))return new Response('{}',{status:409});return original(url,init);};
+ await assert.rejects(new WikiRepository({account:f.account}).list(),/wiki_share_read_failed/);assert(!f.calls.some(call=>call.method!=='GET'));
+});

@@ -10,7 +10,7 @@ export function MailSourcePane({references,api,onDocument,onAsk}){
  useEffect(()=>{setIndex(0);},[references]);
  const reference=references[index]||references[0];
  useEffect(()=>{let live=true;setSource(null);setFailed(false);void (async()=>{
-  try{await api('mail',{...reference,action:'evidence'});const value=await api('mail',{action:'read',id:reference.id});if(value.sourceHash!==reference.sourceHash)throw Error('mail_source_changed');if(live)setSource(value);}
+  try{await api('mail',{...reference,action:'evidence'});const value=await api('mail',{action:'read',id:reference.id,includePresentation:true});if(value.sourceHash!==reference.sourceHash)throw Error('mail_source_changed');if(live)setSource(value);}
   catch{if(live)setFailed(true);}
  })();return()=>{live=false;};},[reference,api,retry]);
  return <section className="desktop-mail-source" aria-label="질문에 연결한 메일 원문">

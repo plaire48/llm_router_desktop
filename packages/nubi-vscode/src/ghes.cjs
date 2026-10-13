@@ -40,10 +40,11 @@ function wait(ms,signal){return new Promise((resolve,reject)=>{
 // SAML belongs to the GHES browser login. No password, assertion or client secret
 // enters this host, the webview, project state or model messages.
 class GhesAccount {
-  constructor({secrets,openExternal,copyCode,clientId=CLIENT_ID,fetcher=fetch,waiter=wait,now=Date.now,onInvalidated=async()=>{}}){
+  constructor({secrets,openExternal,copyCode,clientId=CLIENT_ID,fetcher=fetch,avatarFetcher,waiter=wait,now=Date.now,onInvalidated=async()=>{}}){
     this.secrets=secrets;this.openExternal=openExternal;this.clientId=clientId;this.fetcher=fetcher;this.waiter=waiter;this.now=now;this.onInvalidated=onInvalidated;
     this.state='guest';this.generation=0;this.loaded=false;this.writes=Promise.resolve();this.accessController=new AbortController();
     this.copyCode=copyCode;
+    this.avatarFetcher=avatarFetcher;
   }
   view(){return {host:ORIGIN,state:this.state,connected:this.state==='connected',profile:this.profile||null,device:this.device||null,error:this.failure||null,diagnostic:this.failureDiagnostic||null};}
   write(fn){const next=this.writes.then(fn,fn);this.writes=next.catch(()=>{});return next;}
@@ -84,7 +85,7 @@ class GhesAccount {
     const value=await this.request('/api/v3/user',{token:record.token,signal});
     if(!Number.isSafeInteger(value.id)||value.id<=0||typeof value.login!=='string'||!value.login||value.login.length>100)error('ghes_identity_invalid');
     const name=typeof value.name==='string'?value.name.trim().slice(0,200):'';
-    const url=safeUrl(value.html_url),avatar=safeUrl(value.avatar_url);
+    const url=safeUrl(value.html_url),avatar=safeUrl(value.avatar_url)||(!value.avatar_url?new URL(`/avatars/u/${value.id}`,ORIGIN):null);
     const company=typeof value.company==='string'?value.company.trim().slice(0,200):'';
     const email=typeof value.email==='string'&&value.email.length<=254&&/^[^\s@<>]+@[^\s@<>]+$/.test(value.email)?value.email:null;
     const bio=typeof value.bio==='string'?value.bio.trim().slice(0,500):'';
@@ -92,22 +93,25 @@ class GhesAccount {
     return {id:value.id,login:value.login,name:name||value.login,...(bio?{bio}:{}),...(location?{location}:{}),...(company?{company}:{}),...(email?{email}:{}),...(url?{url:url.href}:{}),avatar:avatar?await this.avatar(avatar,record.token,signal):null};
   }
   async avatar(url,token,signal){
+    if(!safeUrl(url.href))return null;
     // Protected company avatars become bounded image bytes. External avatar URLs
     // fall back to the person glyph; never send a GHES token to Gravatar/CDNs.
-    try{
+    for(const browser of this.avatarFetcher?[false,true]:[false])try{
       const deadline=AbortSignal.any([...(signal?[signal]:[]),AbortSignal.timeout(5000)]);
       let target=new URL(url.href),response;target.searchParams.set('s','128');
       for(let redirects=0;;redirects++){
-        response=await this.fetcher(target.href,{redirect:'manual',cache:'no-store',credentials:'omit',headers:{Authorization:'Bearer '+token},signal:deadline});
+        response=await (browser?this.avatarFetcher:this.fetcher)(target.href,{redirect:'manual',cache:'no-store',credentials:browser?'include':'omit',headers:browser?{}:{Authorization:'Bearer '+token},signal:deadline});
         if(![301,302,303,307,308].includes(response.status))break;
         const location=response.headers.get('location'),next=location&&safeUrl(new URL(location,target).href);
         await response.body?.cancel();
-        if(!next||redirects>=2)return null;target=next;
+        if(!next||redirects>=2)throw Error('avatar_redirect');target=next;
       }
-      if(!response.ok)return null;const bytes=await bounded(response,256*1024),mime=(response.headers.get('content-type')||'').split(';')[0].trim().toLowerCase();
-      const valid=mime==='image/png'&&bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))||mime==='image/jpeg'&&bytes[0]===255&&bytes[1]===216&&bytes[2]===255||mime==='image/gif'&&/^GIF8[79]a$/.test(bytes.subarray(0,6).toString())||mime==='image/webp'&&bytes.subarray(0,4).toString()==='RIFF'&&bytes.subarray(8,12).toString()==='WEBP';
-      return valid?'data:'+mime+';base64,'+bytes.toString('base64'):null;
-    }catch{return null;}
+      if(!response.ok){await response.body?.cancel();continue;}
+      const bytes=await bounded(response,1024*1024),declared=(response.headers.get('content-type')||'').split(';')[0].trim().toLowerCase();
+      const mime=bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))?'image/png':bytes[0]===255&&bytes[1]===216&&bytes[2]===255?'image/jpeg':/^GIF8[79]a$/.test(bytes.subarray(0,6).toString())?'image/gif':bytes.subarray(0,4).toString()==='RIFF'&&bytes.subarray(8,12).toString()==='WEBP'?'image/webp':null;
+      if(mime&&(!declared||declared===mime||declared==='application/octet-stream'))return 'data:'+mime+';base64,'+bytes.toString('base64');
+    }catch{active(signal);}
+    return null;
   }
   async invalidate(code='ghes_session_expired'){
     ++this.generation;this.controller?.abort();this.accessController.abort();this.record=null;this.profile=null;this.device=null;this.failure=code;this.failureDiagnostic=null;this.state='guest';

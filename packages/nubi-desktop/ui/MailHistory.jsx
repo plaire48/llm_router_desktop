@@ -33,7 +33,7 @@ export function MailHistory({api,onDocument,onAsk,onAskSearch,onSettings,connect
  async function open(id,expectedHash,context={}){
   const attempt=++selection.current;setLoading(true);
   try{
-   const value=await api('mail',{action:'read',id});if(expectedHash&&value.sourceHash!==expectedHash)throw Error('mail_source_changed');
+   const value=await api('mail',{action:'read',id,includePresentation:true});if(expectedHash&&value.sourceHash!==expectedHash)throw Error('mail_source_changed');
    if(!alive.current||attempt!==selection.current)return false;
    setSource({...value,match:context.match,searchQuery:context.query||''});
    if(viewState)viewState.current={...viewState.current,source:{id,sourceHash:value.sourceHash,query:context.query||'',match:context.match}};

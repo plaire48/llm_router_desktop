@@ -19,6 +19,7 @@ import {WorkspaceInputs} from './WorkspaceInputs.jsx';
 import {WorkspaceActivity} from './WorkspaceActivity.jsx';
 import {conversationActivity} from './conversation-activity.mjs';
 import {MailLibrary} from './MailLibrary.jsx';
+import {NubiPreparing} from './NubiPreparing.jsx';
 
 
 import {incomingRequests,badgeText} from './agent-connections.mjs';
@@ -209,6 +210,7 @@ export function Workbench({api,installUpdate,showAnalysisHistory=false,projects=
   useEffect(()=>{if(!project)return;setOutgoing(items=>{const next=items.filter(item=>item.projectId!==project.projectId||!deliveryRecorded(item,project.tasks?.find(task=>task.id===item.taskId)));return next.length===items.length?items:next;});},[project,setOutgoing]);
   const dismissOutgoing=id=>setOutgoing(items=>items.filter(item=>item.id!==id));
   const [submitting,setSubmitting]=useState(false),submitLock=useRef(false);
+  const [mailConnecting,setMailConnecting]=useState(false);
   const [busy,setBusy]=useState(false),[error,setError]=useState(''),[panel,setPanel]=useState(null);
   const [claudeChecking,setClaudeChecking]=useState(false),[claudeIssue,setClaudeIssue]=useState(null);
   const usageButton=useRef(null),usageRead=useRef(0),usageAccountPending=useRef(null);
@@ -262,7 +264,7 @@ export function Workbench({api,installUpdate,showAnalysisHistory=false,projects=
   function closePanel(trigger){setPanel(null);requestAnimationFrame(()=>trigger.current?.focus());}
   function openChildPanel(next){panelOrigin.current={panel,trigger:document.activeElement};setPanel(next);}
   function returnToPanel(){const origin=panelOrigin.current;panelOrigin.current=null;setPanel(origin?.panel||null);requestAnimationFrame(()=>{const name=origin?.trigger?.getAttribute('data-panel-link');if(name)document.querySelector(`[data-panel-link="${name}"]`)?.focus();});}
-  const panelBack=panelOrigin.current?<div className="nubi-panel-navigation"><ActionButton action="back" className="nubi-panel-back" label={`${panelOrigin.current?.panel==='settings'?'설정으로':'프로젝트 자료로'} 돌아가기`} onClick={returnToPanel}/></div>:null;
+  const panelBack=panelOrigin.current?<div className="nubi-panel-navigation"><ActionButton action="back" className="nubi-panel-back" label={`${panelOrigin.current?.panel==='settings'?'설정으로':'프로젝트 자료로'} 돌아가기`} disabled={panel==='mail'&&mailConnecting} onClick={returnToPanel}/></div>:null;
   const searchRun=useRef(0),libraryButton=useRef(null),appButton=useRef(null),settingsButton=useRef(null),agentButton=useRef(null),composer=useRef(null),mounted=useRef(true),polling=useRef(false),actionLock=useRef(false),autoTried=useRef(new Set()),autoSteps=useRef(new Map()),taskErrorToast=useRef('');
   const task=projectPicker?null:project?.tasks?.find(t=>t.id===taskId), proposals=project?.proposals?.filter(p=>p.taskId===taskId&&p.state!=='superseded')||[];
   const pendingProposals=proposals.filter(item=>item.state!=='applied'),appliedProposals=proposals.filter(item=>item.state==='applied');
@@ -581,7 +583,7 @@ export function Workbench({api,installUpdate,showAnalysisHistory=false,projects=
     </div></header>}
     {project&&workspaceView&&hostLayout!=='integrated'&&<WorkspaceNavigation settingsRef={settingsButton} onSettings={()=>setPanel('settings')} onView={view=>perform(()=>openWorkspaceView(view))}/>}
     <main className="nubi-main">
-      {!task&&!provider&&<div className="nubi-connecting" role="status">누비를 준비하고 있어요.</div>}
+      {!task&&!provider&&<NubiPreparing/>}
       {!task&&provider&&!provider.connected&&!projectPicker&&!(!project&&projects.length>0)&&<NubiLogin checkingProvider={claudeChecking?'claude':null} providerLabels={providerLabels} mood={provider.pending||claudeChecking?'working':provider.loginError?'sad':resting} intro={intro} pending={modelData.pending} onLogin={login} onCancel={()=>modelAction('cancel')}>
         {!!mailReferences.length&&<div className="nubi-mail-login-context"><p>선택한 메일은 연결 후 질문할 수 있어요.</p>{mailEvidence}</div>}
         {provider.loginError&&provider.loginDiagnostics?.length>0&&<DeckDisclosure title="연결 진단" icon="link"><pre>{providerLoginDiagnostics(provider)}</pre></DeckDisclosure>}
@@ -652,7 +654,7 @@ export function Workbench({api,installUpdate,showAnalysisHistory=false,projects=
     {panel==='claude'&&<ClaudeConnection initialIssue={claudeIssue} api={api} onConnected={async()=>{await refreshProvider();returnToPanel();}} onClose={returnToPanel} openWebPage={openWebPage}/>}
     {panel==='models'&&<ModelSelection title={panelTitle('list','모델 선택')} data={modelData} autoRefresh={false} selectWhileLoading showProviderNames providerLabels={providerLabels} disabled={submitting||!!activeTask||busy} loading={catalogLoading===provider?.provider} onError={showError} onProviderSelect={selected=>modelAction('select',{provider:selected})} onSelect={model=>modelAction('model',{model})} onRefresh={refreshCatalog} onLogin={login} onLogout={selected=>modelAction('disconnect',{provider:selected})} onCancelLogin={()=>modelAction('cancel')} onClose={closeModels}/>}
     {panel==='fabrix'&&<FabrixConnection title={panelTitle('logIn','FabriX 연결')} rpc={fabrixRpc} showActionLabels onError={showError} onNotice={notifyWorkspaceToast} requestPermission={()=>Promise.resolve(true)} onClose={returnToPanel} onConnected={async()=>{await refreshProvider();returnToPanel();}}/>}
-    {panel==='mail'&&<DetailPanel className="deck-dialog nubi-panel" title={panelTitle('mail','메일 설정')} variant="modal" onClose={()=>panelOrigin.current?returnToPanel():closePanel(mailButton)}>{panelBack}<MailLibrary api={api} provider={provider} onProviderLogin={login} onProviderAction={modelAction} providerBusy={busy||!!activeTask} openWebPage={openWebPage?async url=>{await openWebPage(url);setPanel(null);}:undefined}/></DetailPanel>}
+    {panel==='mail'&&<DetailPanel className="deck-dialog nubi-panel" title={panelTitle('mail','메일 설정')} variant="modal" busy={mailConnecting} onClose={()=>panelOrigin.current?returnToPanel():closePanel(mailButton)}>{panelBack}<MailLibrary api={api} onConnectionBusy={setMailConnecting} provider={provider} onProviderLogin={login} onProviderAction={modelAction} providerBusy={busy||!!activeTask} openWebPage={openWebPage?async url=>{await openWebPage(url);setPanel(null);}:undefined}/></DetailPanel>}
     {panel==='analysis-history'&&task&&<DetailPanel variant="modal" className="deck-dialog nubi-panel" title={panelTitle('clock','작업 기록')} onClose={()=>setPanel(null)}><AnalysisHistory api={api} task={task} showHistory/></DetailPanel>}
     <WorkspaceUpdateProgress update={workspaceUpdate}/>
     {panel==='settings'&&<DetailPanel className="deck-dialog nubi-panel" title={panelTitle('sliders','설정')} variant="modal" onClose={()=>closePanel(settingsButton)}><div className="nubi-settings">{project?<div className="nubi-settings-field"><label htmlFor="nubi-default-shell"><TerminalMark size={18}/>기본 터미널</label><CxSelect id="nubi-default-shell" value={project.defaultShell||''} disabled={busy||!!activeTask} onChange={e=>perform(async()=>{await api('setShellPreference',{profile:e.target.value});setShell('');await refresh();})}>{project.profiles.map(profile=><option key={profile.id} value={profile.id}>{profile.label}</option>)}</CxSelect></div>:<p className="nubi-muted">프로젝트를 열면 기본 터미널을 설정할 수 있어요.</p>}{task&&<CxButton onClick={()=>setPanel('analysis-history')}><Icon name="clock" size={16}/>작업 기록</CxButton>}<WorkspaceUpdate update={workspaceUpdate} onInstall={installUpdate}/></div></DetailPanel>}

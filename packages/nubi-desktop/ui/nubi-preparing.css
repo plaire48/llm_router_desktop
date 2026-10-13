@@ -1,0 +1,27 @@
+.nubi-workbench .nubi-preparing {
+ --nubi-preparing-size:112px;
+ --nubi-preparing-cycle:1.6s;
+ display:grid;
+ place-items:center;
+ flex:1;
+ min-height:min(420px,calc(100dvh - 180px));
+ width:100%;
+}
+.nubi-preparing-emblem {
+ position:relative;
+ display:grid;
+ place-items:center;
+ width:var(--nubi-preparing-size);
+ height:var(--nubi-preparing-size);
+}
+.nubi-preparing-orbit {
+ position:absolute;
+ inset:0;
+ border:2px solid var(--deck-blue-soft,#E8F1FE);
+ border-top-color:var(--deck-blue,#3182F6);
+ border-right-color:var(--deck-blue,#3182F6);
+ border-radius:50%;
+ animation:nubi-preparing-turn var(--nubi-preparing-cycle) linear infinite;
+}
+@keyframes nubi-preparing-turn { to { transform:rotate(360deg); } }
+@media(prefers-reduced-motion:reduce) { .nubi-preparing-orbit { animation:none; } }

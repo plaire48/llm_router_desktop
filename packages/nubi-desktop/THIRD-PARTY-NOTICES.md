@@ -109,3 +109,5 @@ Nubi invokes this executable without modifying it or linking Git code into the a
 HTML-to-text 10.0.1, MIT, https://github.com/html-to-text/node-html-to-text — converts the MIME HTML body when the plain-text alternative is empty. Already used by MailParser; now a pinned direct dependency. License: third-party/pop3/html-to-text-LICENSE.txt. No remote images or HTML execution.
 
 POP3/MIME and HTML-to-text license texts are also included in the installed resources/licenses/pop3 directory.
+
+DOMPurify 3.4.15 (Apache-2.0 OR MPL-2.0) also sanitizes the Desktop email presentation. The upstream Apache license is retained in `vendor/licenses/DOMPurify-LICENSE.txt`. No new sanitizer package is installed.

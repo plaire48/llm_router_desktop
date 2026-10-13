@@ -9,6 +9,9 @@ import {BrowserMark,PersonMark,FolderMark} from './marks.jsx';
 import {ModelSelection,ProviderIcon} from '../../../extensions/aipro-chat/src/ChatControls.jsx';
 import {mailPassword} from '../runtime/mail-credentials.mjs';
 import {mailConnectionErrors,mailConnectionDiagnostic} from './mail-connection-error.mjs';
+import {AgentMark} from '../../../extensions/aipro-chat/src/AgentMark.jsx';
+import './nubi-preparing.css';
+import './mail-body.css';
 const labels=DESKTOP_PROVIDER_LABELS;
 const errors={mail_input_invalid:'아이디와 비밀번호를 확인해 주세요.',mail_model_missing:'정리할 모델을 먼저 선택해 주세요.',mail_model_changed:'선택한 모델의 연결을 확인해 주세요.',mail_check_wait:'다음 확인 시간이 되면 새 메일을 가져와요.',mail_busy:'진행 중인 작업이 끝난 뒤 다시 눌러 주세요.',mail_not_connected:'메일 계정을 먼저 연결해 주세요.',mail_source_changed:'보관한 원문이 바뀌었어요. 원문을 확인해 주세요.',mail_summary_failed:'메일을 정리하는 중 모델 응답을 받지 못했어요. 다시 시도해 주세요.',mail_storage_failed:'정리한 내용을 저장하지 못했어요. 저장 공간을 확인한 뒤 다시 시도해 주세요.',mail_file_conflict:'정리한 메일 파일이 바뀌어 저장하지 않았어요. 다시 정리해 주세요.',mail_size_limit:'메일이 너무 커요. 11 MB까지 처리할 수 있어요.',mail_missing:'메일을 찾을 수 없어요. 목록을 새로고침해 주세요.'};
 Object.assign(errors,{mail_gmail_app_password_required:'Google이 앱 비밀번호를 요구했어요. 계정 비밀번호 대신 앱 비밀번호를 입력해 주세요.',mail_gmail_web_login_required:'Google에서 웹 로그인을 확인해야 해요. Gmail에 로그인한 뒤 다시 연결해 주세요.',mail_gmail_pop_disabled:'Google이 POP 사용이 꺼져 있다고 응답했어요. Gmail의 POP 설정을 확인해 주세요.',mail_gmail_credentials_invalid:'Google이 주소 또는 앱 비밀번호를 거절했어요. 앱 비밀번호를 발급한 계정과 Gmail 주소가 같은지 확인해 주세요.'});
@@ -28,7 +31,13 @@ function MailStorage({api,status}){
     </div>)}</dl>
   </details>;
 }
-export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProviderAction,providerBusy=false}){
+function MailConnectionProgress(){
+ const [started]=useState(()=>Date.now()),[elapsed,setElapsed]=useState(0);
+ useEffect(()=>{const timer=setInterval(()=>setElapsed(Math.floor((Date.now()-started)/1000)),1000);return()=>clearInterval(timer);},[started]);
+ const duration=elapsed>=60?`${Math.floor(elapsed/60)}분 ${elapsed%60}초`:`${elapsed}초`;
+ return <div className="nubi-mail-connection-progress" role="status"><div className="nubi-preparing-emblem" aria-hidden="true"><span className="nubi-preparing-orbit"/><AgentMark size={30} mood="still"/></div><div><strong>메일 서버 연결 확인 중</strong><time>진행 {duration}</time></div></div>;
+}
+export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProviderAction,providerBusy=false,onConnectionBusy}){
   const [status,setStatus]=useState(null),[user,setUser]=useState(''),[password,setPassword]=useState(''),[busy,setBusy]=useState(false),[chosen,setChosen]=useState('');
   const [modelOpen,setModelOpen]=useState(false),[connectionError,setConnectionError]=useState(null),[passwordRevision,setPasswordRevision]=useState(0);
   const [formStage,setFormStage]=useState(0),[settingsRevealed,setSettingsRevealed]=useState(false);
@@ -45,6 +54,10 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
   const destination=models.find(item=>modelKey(item)===chosen),autoWiki=status?.autoWiki===true;
   const selectedServer='company',gmailTest=false;
   const connectionBusy=busy||status?.connecting===true;
+  const [connecting,setConnecting]=useState(false);
+  const connectionPending=connecting||status?.connecting===true;
+  useEffect(()=>{onConnectionBusy?.(connectionPending);},[connectionPending,onConnectionBusy]);
+  useEffect(()=>()=>onConnectionBusy?.(false),[onConnectionBusy]);
   const userReady=!!user.trim()&&user.length<=320&&!/[\r\n\0]/.test(user)&&(!gmailTest||/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.trim()));
   let passwordReady=false;
   try{passwordReady=!!password&&password.length<=2048&&(gmailTest||!/[\r\n\0]/.test(password))&&!!mailPassword(selectedServer,password);}catch{}
@@ -58,8 +71,8 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
     finally{lock.current=false;if(alive.current)setBusy(false);}
   }
   async function connect(event){
-    event.preventDefault();if(connectionBusy||!userReady||!passwordReady)return;setConnectionError(null);cancelledConnect.current=false;await act(async()=>{const normalizedPassword=mailPassword(selectedServer,password),requestId=crypto.randomUUID();pending.current=requestId;
-      try{const value=await api('mail',{action:'connect',requestId,user,password:normalizedPassword,serverProfile:selectedServer,destination:destination?{provider:destination.provider,model:destination.model}:null});if(alive.current){setPassword('');if(value?.connected)notifyWorkspaceToast(gmailTest?'Gmail을 연결했어요.':'메일을 연결했어요.',{success:true});}return value;}finally{pending.current=null;if(alive.current){setPassword('');setPasswordRevision(value=>value+1);}}});
+    event.preventDefault();if(connectionBusy||!userReady||!passwordReady)return;setConnecting(true);onConnectionBusy?.(true);setConnectionError(null);cancelledConnect.current=false;try{await act(async()=>{const normalizedPassword=mailPassword(selectedServer,password),requestId=crypto.randomUUID();pending.current=requestId;
+      try{const value=await api('mail',{action:'connect',requestId,user,password:normalizedPassword,serverProfile:selectedServer,destination:destination?{provider:destination.provider,model:destination.model}:null});if(alive.current){setPassword('');if(value?.connected)notifyWorkspaceToast(gmailTest?'Gmail을 연결했어요.':'메일을 연결했어요.',{success:true});}return value;}finally{pending.current=null;if(alive.current){setPassword('');setPasswordRevision(value=>value+1);}}});}finally{if(alive.current)setConnecting(false);}
   }
   async function cancelConnection(){
     cancelledConnect.current=true;
@@ -83,7 +96,7 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
     connections:Object.fromEntries((provider?.providers||[]).map(item=>[item.id,{present:item.connected}])),
     pending:provider?.pending?{provider:provider.pending,phase:provider.pendingPhase||'waiting'}:null,
     report:{provider:provider?.provider,error:provider?.loginError}};
-  const activity=status?.connecting?'메일 서버 연결 확인 중':status?.readingAttachments?'첨부 읽는 중':status?.summarizing?'메일 정리 중':status?.checking?'새 메일 확인 중':null;
+  const activity=status?.readingAttachments?'첨부 읽는 중':status?.summarizing?'메일 정리 중':status?.checking?'새 메일 확인 중':null;
   const selectedModel=status?.destination||destination;
   const selectedCatalogModel=models.find(item=>modelKey(item)===modelKey(selectedModel));
   const selectedConnected=selectedModel&&provider?.providers?.some(item=>item.id===selectedModel.provider&&item.connected);
@@ -100,9 +113,10 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
           {formStage>=1&&<label htmlFor="nubi-mail-password"><span id="nubi-mail-password-title" className="nubi-mail-field-title"><Icon name="logIn" size={16}/>{gmailTest?'앱 비밀번호':'비밀번호'}</span><CxInput key={passwordRevision} ref={passwordInput} id="nubi-mail-password" type="password" value={password} onChange={event=>setPassword(event.target.value)} autoComplete="off" required maxLength={2048} disabled={connectionBusy} aria-labelledby="nubi-mail-password-title" aria-describedby={gmailTest?'nubi-mail-password-help':undefined}/>{gmailTest&&<small id="nubi-mail-password-help" className="nubi-muted">Google에서 생성한 16자리 코드</small>}</label>}
         </div>
         <details className="nubi-mail-help nubi-mail-server-info"><summary>연결 정보</summary><p><code>pop3.samsung.net:995</code> / SSL/TLS</p></details>
-        {(formStage>=2||status?.connecting)&&<div className="nubi-mail-connect-actions"><CxButton type="submit" variant="primary" className="nubi-mail-connect" disabled={connectionBusy||!status||!userReady||!passwordReady}>{status?.connecting?<span className="status-spinner" aria-hidden="true"/>:<Icon name="logIn" size={16}/>}<span>{status?.connecting||pending.current?'메일 연결 중…':'메일 연결'}</span></CxButton>
-          {status?.connecting&&<ActionButton action="cancel" label="연결 취소" onClick={cancelConnection}/>}
+        {(formStage>=2||connectionPending)&&<div className="nubi-mail-connect-actions"><CxButton type="submit" variant="primary" className="nubi-mail-connect" disabled={connectionBusy||!status||!userReady||!passwordReady}>{connectionPending?<span className="status-spinner" aria-hidden="true"/>:<Icon name="logIn" size={16}/>}<span>{connectionPending?'메일 연결 중…':'메일 연결'}</span></CxButton>
+          {connectionPending&&<ActionButton action="cancel" label="연결 취소" onClick={cancelConnection}/>}
         </div>}
+        {connectionPending&&<MailConnectionProgress/>}
         {formStage>=1&&gmailTest&&openWebPage&&<details className="nubi-mail-help"><summary>앱 비밀번호 발급 방법</summary><p className="nubi-muted">Google 계정에서 앱 비밀번호를 발급한 뒤 위에 입력해 주세요. 일반 계정 비밀번호로는 연결할 수 없어요.</p><CxButton type="button" className="nubi-text-button" disabled={busy} onClick={()=>act(async()=>{await openWebPage('https://myaccount.google.com/apppasswords');return api('mail',{action:'status'});})}><BrowserMark size={16}/>Google 앱 비밀번호 열기</CxButton></details>}
       </form>:null}
       {failure&&<details className="nubi-mail-connection-error" key={connectionCode}>

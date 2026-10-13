@@ -113,7 +113,12 @@ app.whenReady().then(async()=>{
   catch(error){hostEvent({type:'worker_failed',...details,error:/^[a-z_]+$/.test(error.message)?error.message:'operation_failed'});}
  });
  worker.start();
- host=new ElectronHost({keyStore,invoke,helperPath:path.join(__dirname,'git-askpass.cjs'),openBrowser:url=>openWorkspacePage(url,{authentication:true,companyLogin:host.account.device?.uri===url}),confirmWorkspaceSave:async change=>{
+ host=new ElectronHost({keyStore,invoke,helperPath:path.join(__dirname,'git-askpass.cjs'),avatarFetcher:(url,options)=>{
+  if(new URL(url).origin!=='https://code.sdsdev.co.kr'||!browserHost)throw Error('ghes_avatar_unavailable');
+  // Use normal requests in the app's authenticated browser session. No cookie
+  // extraction, external browser storage or token forwarding is involved.
+  return browserHost.session.fetch(url,options);
+ },openBrowser:url=>openWorkspacePage(url,{authentication:true,companyLogin:host.account.device?.uri===url}),confirmWorkspaceSave:async change=>{
   const result=await dialog.showMessageBox(window,{type:'question',title:'AI Workspace에 저장',message:`${change.repository}에 변경을 저장할까요?`,detail:`브랜치: ${change.branch}\n${change.message}\n\n${change.files.slice(0,24).join('\n')}${change.files.length>24?`\n외 ${change.files.length-24}개 파일`:''}`,buttons:['저장','취소'],defaultId:1,cancelId:1,noLink:true});return result.response===0;
  }});
  const {screen}=require('electron'),windowState=restoreWindowState(await loadWindowState(),screen.getAllDisplays());
