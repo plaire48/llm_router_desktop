@@ -171,7 +171,7 @@ app.whenReady().then(async()=>{
    let saved;try{saved=JSON.parse(await readFile(path.join(storage,'last-project.json'),'utf8'));}catch{return null;}
    if(!saved?.root)return null;
    // A last project whose folder is gone opens the start screen once; the stale pointer goes so the next start is clean.
-   try{return await restoreSavedProject(()=>openProject(saved.root,saved.kind==='conversation'?'conversation':'project',{initializeWiki:false}),{onEvent:async event=>{await mkdir(storage,{recursive:true});await writeFile(path.join(storage,'last-project-restore.json'),JSON.stringify({at:new Date().toISOString(),...event}),{mode:0o600}).catch(()=>{});}});}
+   try{return await restoreSavedProject(()=>openProject(saved.root,saved.kind==='conversation'?'conversation':'project',{initializeWiki:false}),{existing:()=>currentRoot?invoke('overview'):undefined,onEvent:async event=>{await mkdir(storage,{recursive:true});await writeFile(path.join(storage,'last-project-restore.json'),JSON.stringify({at:new Date().toISOString(),...event}),{mode:0o600}).catch(()=>{});}});}
    catch(error){if(error.message==='project_path_missing')await rm(path.join(storage,'last-project.json'),{force:true}).catch(()=>{});throw error;}
   }
   if(method==='startConversation'){const root=path.join(storage,'conversations');await mkdir(root,{recursive:true});return await openProject(root,'conversation');}
