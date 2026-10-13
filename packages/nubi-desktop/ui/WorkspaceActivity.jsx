@@ -10,7 +10,7 @@ const toolLabels = Object.freeze({...TOOL_LABELS, ...{inspect_environment:'실�
   ground_computer_target:'조작할 위치 확인',verify_computer_outcome:'앱 동작 결과 대조',
   personal_mail_query:'메일과 개인 위키 검색',read_personal_mail:'메일 원문과 개인 위키 조회',
   ask_openwiki:'프로젝트 자료 조사'});
-const traceOptions = Object.freeze({toolLabels, toolErrorLabels:{propose_setup_action:"준비안 확인 필요"}, errorLabels:{input_invalid:'입력 확인 필요',path_scope:'경로 확인 필요',search_unavailable:'검색기 연결 필요',source_missing:'소스 위치 확인 필요',source_unavailable:'파일 접근 확인 필요',tool_timeout:'조회 시간 초과',project_changed:'프로젝트 확인 필요',search_scope:'자료 범위 확인 필요',tool_arguments_invalid:"입력 형식 수정 필요",plan_json_invalid:"응답 형식 확인 필요",plan_arguments_invalid:"계획 항목 확인 필요",plan_tool_calls:"계획 응답 확인 필요",plan_output_limit:"응답 길이 초과",plan_request_format:"요청 형식 확인 필요",plan_request_failed:"모델 연결 확인 필요"}, normalizeId(value) {
+const traceOptions = Object.freeze({toolLabels, toolErrorLabels:{review_task:"검토 확인 필요",propose_setup_action:"준비안 확인 필요"}, errorLabels:{review_json_invalid:'검토 응답 형식 확인 필요',review_schema_invalid:'검토 항목 확인 필요',review_envelope_invalid:'검토 응답 확인 필요',review_output_limit:'검토 응답 길이 초과',input_invalid:'입력 확인 필요',path_scope:'경로 확인 필요',search_unavailable:'검색기 연결 필요',source_missing:'소스 위치 확인 필요',source_unavailable:'파일 접근 확인 필요',tool_timeout:'조회 시간 초과',project_changed:'프로젝트 확인 필요',search_scope:'자료 범위 확인 필요',tool_arguments_invalid:"입력 형식 수정 필요",plan_json_invalid:"응답 형식 확인 필요",plan_arguments_invalid:"계획 항목 확인 필요",plan_tool_calls:"계획 응답 확인 필요",plan_output_limit:"응답 길이 초과",plan_request_format:"요청 형식 확인 필요",plan_request_failed:"모델 연결 확인 필요"}, normalizeId(value) {
   if (normalizeTraceId(value)) return value;
   if (typeof value !== 'string' || value.length > 160) return null;
   const [runId, round, ...index] = value.split(':');

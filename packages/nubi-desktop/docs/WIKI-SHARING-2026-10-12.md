@@ -24,3 +24,13 @@ The existing common modal typography, semantic colors, controls and scroll/focus
 Native unit tests use an in-memory GHES Git API. Electron rendering checks use the production component with clearly synthetic wiki records at 1000 and 440 px plus enlarged text. These do not establish real corporate GHES publication or Windows installer success. No user wiki content was published during development.
 
 GitHub Git Data API tree/commit and non-forced reference update patterns were adopted from the existing marketplace and official GHES REST documentation. No new library or authentication mechanism was added.
+
+## App audience (2026-10-13)
+
+The user selected app-only visibility, not GitHub source access control. Code and Personal use the same `audience: {scope: repository|selected, readers: login[]}` catalog field. Existing entries without it remain visible to repository readers. The uploader, managers and repository administrators remain visible. Native list, detail and download apply the current audience; catalog writes retain native approval, HEAD/CAS checks and immutable version manifests. An audience-only update does not require another upload or change the original upload date. A new version preserves audience when legacy callers omit the field.
+
+The picker searches GHES names, logins and public email addresses. It shows a photo, name and `(email)`; a missing public email uses `(@login)`. Enter adds the highlighted result as a chip, while Save persists the audience after the existing native confirmation. Free text is not treated as a verified user. Duplicate selections are prevented, stale search responses ignored, and removal is an explicit chip button. Only display identity reaches the renderer; same-host photo fetching reuses the existing bounded avatar reader. Search does not grant repository membership.
+
+Method reference: [GitHub user search](https://docs.github.com/en/search-github/searching-on-github/searching-users) supports login/fullname/public email qualifiers. Hidden email addresses are not inferred. List and detail display host-stamped upload date/time; source access is still governed by GHES repository permissions.
+
+Picker layout correction: the input is followed by matching people as a list (GHES photo, name, email in parentheses). Selecting a result by mouse or Enter adds a chip **below** the result list. Chips do not precede or occupy the search input. The 1100px/440px fixture checks the relative element positions and saved payload.

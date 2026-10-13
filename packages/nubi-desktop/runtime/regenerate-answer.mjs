@@ -1,10 +1,12 @@
 import {randomUUID} from 'node:crypto';
+import {requireWikiChatReady} from './wiki-chat-admission.mjs';
 import {conversationMessages} from './conversation-context.mjs';
 
 // Redo the latest request through the ordinary agent, including tools and review.
 // Superseded answers are archived separately; operation receipts are never erased.
 export async function regenerateAnswer({taskId,messageId}={}){
   this.ready();
+  requireWikiChatReady(this);
   if (this.agent?.running || this.skillImportBusy || this.computerBusy || this.newFileBusy || this.setupBusy || this.reconciling) throw Error('agent_busy');
   if (this.unsettledOperations?.size) throw Error('tool_unsettled');
   const provider = this.providers?.status();

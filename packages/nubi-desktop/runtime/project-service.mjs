@@ -4,6 +4,7 @@ import {installDesktopFeatures} from './desktop-features.mjs';
 import {appliedFileSummary} from './applied-file-summary.mjs';
 import {installProjectBrowser} from './project-browser.mjs';
 import {agentInput} from './agent-input.mjs';
+import {wikiChatBlocked,wikiChatJob,requireWikiChatReady} from './wiki-chat-admission.mjs';
 import {validateMailReferences} from './mail-evidence.mjs';
 import {mail} from './mail.mjs';
 const collaborationRows=()=>[],peerRows=()=>[],peerLinks=()=>[];
@@ -107,12 +108,12 @@ export class ProjectService {
     const [files, branch, status, profiles, wikiPages] = await Promise.all([listFiles(this.root), git(this.root, ['branch', '--show-current']).catch(()=> 'Git 없음'), git(this.root, ['status', '--short']).catch(()=> ''), shellProfiles(),listWikiPages(this.root)]);
     if(this.store!==owner||this.projectId!==projectId)fail('project_changed');
     return {projectId: this.projectId, root: this.root, kind:this.workspaceKind||'project', name:this.workspaceKind==='conversation'?'개인 대화':path.basename(this.root), branch: branch.trim() || 'detached', dirty: !!status,
-      files: files.paths, truncated: files.truncated, wikiInitialization:this.workspaceKind==='conversation'?null:this.store.get('wiki-init'), wikiFiles: wikiPages,
+      files: files.paths, truncated: files.truncated, wikiChatBlocked:wikiChatBlocked(this), wikiChatJob:wikiChatJob(this), wikiInitialization:this.workspaceKind==='conversation'?null:this.store.get('wiki-init'), wikiFiles: wikiPages,
       computer:computerState(this),setupActions:this.store.list('setup-action:').slice(0,50), collaborations:collaborationRows(this),peerTasks:peerRows(this),peerLinks:peerLinks(this), tasks: this.displayTasks(taskId), proposals: this.store.list('proposal:').slice(0, 50), processes: this.store.list('process:').slice(0, 20), comparisons: this.store.list('comparison:').slice(0, 20), commandRepairs:this.store.list('command-repair:').slice(0,30), profiles,defaultShell:preferredShell(profiles,process.platform,this.shellPreference())};
   }
   async workspaceChanges(args={}) {return inspectWorkspaceChanges(this,args);}
   async appliedFileSummary(args={}) {return appliedFileSummary(this,args);}
-  state({taskId}={}) { this.ready(); return {computer:computerState(this),setupActions:this.store.list('setup-action:').slice(0,50), collaborations:collaborationRows(this),peerTasks:peerRows(this),peerLinks:peerLinks(this), tasks: this.displayTasks(taskId), proposals: this.store.list('proposal:').slice(0,50), processes: this.store.list('process:').slice(0,20), comparisons: this.store.list('comparison:').slice(0,20),commandRepairs:this.store.list('command-repair:').slice(0,30)}; }
+  state({taskId}={}) { this.ready(); return {wikiChatBlocked:wikiChatBlocked(this),wikiChatJob:wikiChatJob(this),computer:computerState(this),setupActions:this.store.list('setup-action:').slice(0,50), collaborations:collaborationRows(this),peerTasks:peerRows(this),peerLinks:peerLinks(this), tasks: this.displayTasks(taskId), proposals: this.store.list('proposal:').slice(0,50), processes: this.store.list('process:').slice(0,20), comparisons: this.store.list('comparison:').slice(0,20),commandRepairs:this.store.list('command-repair:').slice(0,30)}; }
   displayTasks(taskId){const tasks=this.store.list('task:').slice(0,50);if(taskId&&!tasks.some(task=>task.id===taskId)){const selected=this.store.get('task:'+taskId);if(selected)tasks.push(selected);}return tasks.map(task=>this.displayTask(task));}
   conversationHistory(args={}) {this.ready();if(args.taskId){if(typeof args.taskId!=='string')fail('task_missing');return this.displayTask(this.task(args.taskId));}return searchConversations(this.store.list('task:'),args);}
   displayTask(task){const run=this.agentForTask(task.id);return run?.running&&run.timing?{...task,streamingAnswer:run.streamingAnswer||'',responseTiming:{...run.timing.snapshot(),runId:run.runId}}:task;}
@@ -190,9 +191,10 @@ export class ProjectService {
   async collaboration() {fail('a2a_disabled');}
 
   async createTask({request, criteria = [],mailReferences=[]}) {
-    this.ready(); request = limited(request);
+    this.ready(); requireWikiChatReady(this); request = limited(request);
     if (!Array.isArray(criteria) || criteria.length > 30) fail('criteria_invalid');
     const references=await validateMailReferences(this,mailReferences);
+    requireWikiChatReady(this);
     const key = id(), task = {id: key, request, mailReferences:references,requestMailReferences:references,criteria: criteria.map((text, i) => ({id: 'AC-' + (i + 1), text: limited(text, 1000), state: 'unknown'})), state: 'draft', createdAt: new Date().toISOString(), messages: [], trace: [], requirementId: 'REQ-' + key.slice(0, 8)};
     this.store.set('task:' + key, task); this.store.event('task_created', {id: key}); return task;
   }
@@ -263,15 +265,31 @@ export class ProjectService {
     return proposal;
   }
   async proposalArtifacts({proposalId}) { const proposal=this.store.get('proposal:'+proposalId);if(!proposal)fail('proposal_missing');return {...proposal,beforeUri:pathToFileURL(proposal.before).href,afterUri:pathToFileURL(proposal.after).href}; }
+  cancelProposal({proposalId}) {
+    this.ready();
+    const proposal=this.store.get('proposal:'+proposalId);if(!proposal)fail('proposal_missing');
+    if(proposal.state==='cancelled')return proposal;
+    if(proposal.state!=='proposed')fail('proposal_missing');
+    if(this.agent?.running||this.newFileBusy||this.setupBusy||this.computerBusy||this.unsettledOperations?.size)fail('agent_busy');
+    const task=this.task(proposal.taskId);if(task.question)fail('question_pending');
+    if(['running','stopping'].includes(task.state))fail('agent_busy');
+    const decidedAt=new Date().toISOString(),cancelled={...proposal,state:'cancelled',decidedAt};
+    this.store.set('proposal:'+proposalId,cancelled);
+    // A check prepared for this exact edit must not run after its prerequisite is rejected.
+    for(const action of this.store.list('setup-action:').filter(row=>row.taskId===proposal.taskId&&row.state==='proposed'&&row.afterProposals?.includes(proposalId)))this.store.set('setup-action:'+action.id,{...action,state:'rejected',decidedAt,reasonCode:'proposal_cancelled'});
+    this.store.event('proposal_cancelled',{proposalId,taskId:proposal.taskId});
+    return cancelled;
+  }
   async prepareProposal({proposalId}) {
     const proposal = this.store.get('proposal:' + proposalId); if (!proposal) fail('proposal_missing');
+    if(!['proposed','applied'].includes(proposal.state))fail('proposal_missing');
     if(proposal.kind==='create')return prepareNewFile.call(this,proposal);
     const root = await this.target(proposal.taskId), current = await readSource(root, proposal.path);
     if(proposal.state!=='applied')await validateProjectRules(root,proposal.path,proposal.rulesFingerprint);
     if (proposal.state === 'applied' && current.hash !== proposal.afterHash) fail('applied_changed');
     if(current.hash===proposal.afterHash)return {...await this.confirmProposal({proposalId}),alreadyApplied:true,uri:pathToFileURL(path.join(root,proposal.path)).href};
     if (proposal.state !== 'applied' && current.hash !== proposal.expectedHash) fail('source_stale');
-    if(proposal.state!=='applied'){proposal.quality=await checkCodeQuality(proposal.path,current.content,proposal.content);this.store.set('proposal:'+proposalId,proposal);requireCodeQuality(proposal.quality);}
+    if(proposal.state!=='applied'){proposal.quality=await checkCodeQuality(proposal.path,current.content,proposal.content);if(this.store.get('proposal:'+proposalId)?.state!=='proposed')fail('proposal_missing');this.store.set('proposal:'+proposalId,proposal);requireCodeQuality(proposal.quality);}
     return {...proposal, alreadyApplied: proposal.state === 'applied', uri: pathToFileURL(path.join(root, proposal.path)).href, beforeUri: pathToFileURL(proposal.before).href, afterUri: pathToFileURL(proposal.after).href};
   }
   async confirmProposal({proposalId}) {
@@ -313,7 +331,7 @@ export class ProjectService {
     if(this.appUpdateLocked)fail('update_installing');
     if(method==='prepareAppUpdate')return this.prepareAppUpdate();
     const allowed = new Set(['previewFile','browseDirectory','terminalCommand','projectPath','proposalText','artifactText','initializeWiki','wikiInitialization','saveSource','commitHistory','mailDocument','mail','wikiUpdate','analysisHistory','listSkills','removeSkill','skillMarketplace','connectSkillMarketplace','disconnectSkillMarketplace','importSkill','importVoc','queryVoc','readVoc','computer','applyNewFile','decideSetupAction','collaboration','codeOutline','recoverySnapshot','resumeAgent','diagnoseProcess','applyCommandRepair','knowledgeMap','knowledgeQuery','initializeKnowledgeCatalog','exportKnowledgeMap','databaseConnection','open','knowledgeStatus','recordKnowledge','comparison','connectKnowledge','overview','state','setShellPreference','read','search','wikiQuery','createTask','exportRequirement','createWorktree','propose','prepareProposal','proposalArtifacts','confirmProposal','mergeProposal','diff','run','exportReport','compare','provider','fabrix','agentInput','startAgent','answerAgent','saveQuestionDraft','stopAgent','deleteTask','approvalPolicy','setApprovalMode','allowCommand','removeAllowedCommand','autoApprovals']);
-    allowed.add('gitAvailability');allowed.add('conversationHistory');allowed.add('usage');allowed.add('editorSource');allowed.add('regenerateAnswer');allowed.add('skillTrash');
+    allowed.add('cancelProposal');allowed.add('gitAvailability');allowed.add('conversationHistory');allowed.add('usage');allowed.add('editorSource');allowed.add('regenerateAnswer');allowed.add('skillTrash');
     if (method === 'poll') { this.ready(); return this.processes.poll(args.id); }
     if (method === 'stop') { this.ready(); return this.processes.stop(args.id); }
     if (method === 'events') { this.ready(); return this.store.events(args.after); }

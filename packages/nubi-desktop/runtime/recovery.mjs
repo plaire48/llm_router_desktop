@@ -1,3 +1,4 @@
+import {requireWikiChatReady} from './wiki-chat-admission.mjs';
 import {processOutputPreview} from './process-output.mjs';
 import {randomUUID} from 'node:crypto';
 import {recoverModel,createModelCooldown} from '../../../extensions/aipro-chat/model-recovery.js';
@@ -70,6 +71,7 @@ export async function recoverySnapshot({taskId}){
 export function installRecovery(ProjectService){
   ProjectService.prototype.recoverySnapshot=recoverySnapshot;
   ProjectService.prototype.resumeAgent=async function({taskId}){
+    requireWikiChatReady(this);
     const task=this.task(taskId);if(this.computerBusy||this.agent?.running||this.reconciling)fail('agent_busy');if(task.question)fail('question_pending');
     if(!['paused','failed','interrupted'].includes(task.state))fail('recovery_changed');
     const recoveryProcessId=task.recovery?.processId;

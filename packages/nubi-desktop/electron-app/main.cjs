@@ -9,6 +9,7 @@ const {ElectronHost}=require('./native-host.cjs');
 const {browseLocalDirectory,readLocalFile}=require('./local-file-view.cjs');
 const {startWebHost}=require('./web-host.cjs');
 const {BrowserHost}=require('./browser-host.cjs');
+const {MailPortal}=require('./mail-portal.cjs');
 const {TerminalHost}=require('./terminal-host.cjs');
 const {shellProfiles}=require('../runtime/processes.mjs');
 const {DEFAULT_TITLEBAR,applyCaptionColors}=require('./titlebar-colors.cjs');
@@ -31,7 +32,7 @@ if(!primary)app.quit();
 app.on('second-instance',()=>{if(!window||window.isDestroyed())return;if(window.isMinimized())window.restore();window.show();window.focus();});
 protocol.registerSchemesAsPrivileged([{scheme:'app',privileges:{standard:true,secure:true,supportFetchAPI:true}}]);
 let terminalHost,updater,installingUpdate=false;
-let window,worker,host,webHost,browserHost,currentRoot=null,currentKind='project';const launchId=randomUUID();
+let window,worker,host,webHost,browserHost,mailPortal,currentRoot=null,currentKind='project';const launchId=randomUUID();
 const storage=process.env.NUBI_STORAGE_ROOT||path.join(app.getPath('userData'),'workspace');
 const {ProjectCatalog}=require('./project-catalog.cjs');
 const projectCatalog=new ProjectCatalog(storage);
@@ -42,6 +43,7 @@ function recordFault(component,details={}){
  void mkdir(storage,{recursive:true}).then(()=>writeFile(path.join(storage,'last-host-fault.json'),JSON.stringify(record),{mode:0o600})).catch(()=>{});
 }
 process.on('uncaughtExceptionMonitor',()=>recordFault('main'));
+async function portalMailStatus(){void mailPortal.restore();const status=await invoke('mail',{action:'status'}),portal=mailPortal.status();return {...status,protocol:'portal',serverProfile:'portal',connected:portal.connected,connecting:portal.connecting,checking:portal.checking,error:portal.error||status.error,folders:portal.folders.length?portal.folders:status.folders,portal,progress:{...status.progress,stage:portal.connecting?'connecting':portal.checking?'checking':!portal.connected?'disconnected':status.progress.stage,lastCheckedAt:portal.lastCheckedAt}};}
 function invoke(method,args={}){if(!worker)return Promise.reject(Error('host_disconnected'));return worker.invoke(method,args);}
 // What the window needs to hear from the host itself (the worker restarted, or gave up): nubi:host-event.
 function hostEvent(event){if(window&&!window.isDestroyed()&&!window.webContents.isDestroyed())window.webContents.send('nubi:host-event',event);}
@@ -138,6 +140,7 @@ app.whenReady().then(async()=>{
   catch{}finally{unresponsive=null;}
  });
  window.on('responsive',()=>unresponsive?.abort());
+ mailPortal=new MailPortal({BrowserWindow,invoke,parent:window});
  browserHost=new BrowserHost(window,{onFault:recordFault,loginCode:()=>{const device=host.account.device;return device&&device.expiresAt>Date.now()?device.code:null;}});
  window.webContents.setWindowOpenHandler(({url})=>{
   openPageLink(url);
@@ -154,9 +157,9 @@ app.whenReady().then(async()=>{
    if(args.action==='cancel')return updater.cancel();
    if(args.action==='install'){
     if(!app.isPackaged||process.platform!=='win32')throw Error('update_windows_only');
-    if(terminalHost?.sessions.size||terminalHost?.opens.size||openingProject||host.wikis?.busy)throw Error('update_work_active');
+    if(mailPortal?.status().checking||mailPortal?.status().connecting||terminalHost?.sessions.size||terminalHost?.opens.size||openingProject||host.wikis?.busy)throw Error('update_work_active');
     const installer=await updater.installer();
-    if(terminalHost?.sessions.size||terminalHost?.opens.size||openingProject||host.wikis?.busy)throw Error('update_work_active');
+    if(mailPortal?.status().checking||mailPortal?.status().connecting||terminalHost?.sessions.size||terminalHost?.opens.size||openingProject||host.wikis?.busy)throw Error('update_work_active');
     installingUpdate=true;
     try{await invoke('prepareAppUpdate');}catch(error){installingUpdate=false;throw error;}
     // NSIS's existing update mode skips the wizard and restarts after success.
@@ -167,7 +170,7 @@ app.whenReady().then(async()=>{
   }
   if(method==='decisionNotice'){if(source!=='electron')throw Error('decision_desktop_only');return decisionNotices.request(args);}
   if(method==='titlebarAppearance'){if(source!=='electron')throw Error('titlebar_desktop_only');applyCaptionColors(window,args);return {updated:true};}
-  if(method==='startupConnections'){let mail=null;try{mail=await invoke('mail',{action:'status'});}catch{}return {launchId,mailPrompt:startupMailPrompt(mail)};}
+  if(method==='startupConnections'){let mail=null;try{mail=await portalMailStatus();}catch{}return {launchId,mailPrompt:startupMailPrompt(mail)};}
   if(method==='browser'){if(source!=='electron')throw Error('browser_desktop_only');return await browserHost.request(args);}
   if(method==='openWorkspacePage')return openWorkspacePage(args.url);
   if(!DESKTOP_FEATURES.computerUse&&method==='chooseComputerApp')throw Error('computer_beta_disabled');
@@ -186,7 +189,7 @@ app.whenReady().then(async()=>{
    if(args.action&&args.action!=='list')throw Error('method_invalid');
    return await projectCatalog.list();
   }
-  if(method==='switchProject'){const saved=await projectCatalog.get(args.id);return await openProject(saved.root);}
+  if(method==='switchProject'){const saved=await projectCatalog.get(args.id);return await openProject(saved.root,saved.kind==='conversation'?'conversation':'project');}
   if(method==='chooseFolder'){const root=await choose(['openDirectory'],'프로젝트 폴더 열기');return root?await openProject(root):{cancelled:true};}
   if(['browseLocalDirectory','readLocalFile'].includes(method)){const owner=await invoke('projectPath',{projectId:args.projectId});const value=await (method==='browseLocalDirectory'?browseLocalDirectory:readLocalFile)(args.path);if(currentRoot!==owner.path)throw Error('project_changed');return value;}
   if(method==='copyProjectPath'){const result=await invoke('projectPath',args);clipboard.writeText(result.path);return result;}
@@ -197,7 +200,20 @@ app.whenReady().then(async()=>{
    await writeFile(saved.filePath,bytes,{mode:0o600});if(createHash('sha256').update(await readFile(saved.filePath)).digest('hex')!==packet.sha256)throw Error('mail_download_unconfirmed');
    return {saved:true,filename:path.basename(saved.filePath)};
   }
-  if(method==='mail'&&args.action==='download')throw Error('method_invalid');
+  if(method==='mail'){
+   if(['connect','setIdentity'].includes(args.action))throw Error('mail_portal_only');
+   if(/^portal(?:Connect|Import|Folders|Known|Rejected|Document)$/.test(args.action||'')||args.action==='download')throw Error('method_invalid');
+   if(args.action==='approvals')return mailPortal.approvals(args);
+   if(args.action==='approvalRead')return mailPortal.approvalRead(args);
+   if(args.action==='portalLogin'){
+    if(source!=='electron')throw Error('mail_portal_desktop_only');mailPortal.requestId=args.requestId;await mailPortal.connect(args);return portalMailStatus();
+   }
+   if(args.action==='cancelConnect'&&args.requestId===mailPortal.requestId){await mailPortal.disconnect();return portalMailStatus();}
+   if(args.action==='disconnect'){await mailPortal.disconnect();return portalMailStatus();}
+   if(args.action==='portalSync'||['check','retryDownloads'].includes(args.action)&&mailPortal.status().connected){await mailPortal.sync({manual:true});return portalMailStatus();}
+   if(['pauseWatch','resumeWatch'].includes(args.action)){await invoke('mail',args);if(args.action==='pauseWatch')clearTimeout(mailPortal.timer);else if(mailPortal.status().connected)void mailPortal.sync().catch(()=>{});return portalMailStatus();}
+   if(args.action==='status'||args.action===undefined)return portalMailStatus();
+  }
   if(method==='copyMailStoragePath'){
    if(!['raw','wiki'].includes(args.kind))throw Error('mail_storage_kind_invalid');
    const status=await invoke('mail',{action:'status'}),storagePath=args.kind==='raw'?status.rawRoot:status.wikiRoot;
@@ -214,6 +230,7 @@ app.whenReady().then(async()=>{
    if(source!=='electron')throw Error('wiki_share_desktop_only');
    const service=host.wikiRepository;
    if(args.action==='list')return await service.list();
+   if(args.action==='people')return await service.people(args);
    if(args.action==='detail')return await service.detail(args);
    if(args.action==='progress')return service.progress;
    if(args.action==='cancel'){service.cancel();return {cancelled:true};}
@@ -241,4 +258,4 @@ app.whenReady().then(async()=>{
 app.on('window-all-closed',()=>app.quit());
 // Quitting waits for the worker to exit (bounded by its kill grace): the worker releases the project store lock with its
 // process, so a relaunch right after quit can open the same project instead of failing with project_locked.
-let quitting=false;app.on('before-quit',event=>{if(quitting)return;quitting=true;event.preventDefault();terminalHost?.dispose();browserHost?.dispose();void webHost?.close();host?.dispose?.();Promise.resolve(worker?.stop()).catch(()=>{}).then(()=>vault.flush()).then(()=>app.quit());});
+let quitting=false;app.on('before-quit',event=>{if(quitting)return;quitting=true;event.preventDefault();terminalHost?.dispose();browserHost?.dispose();mailPortal?.dispose();void webHost?.close();host?.dispose?.();Promise.resolve(worker?.stop()).catch(()=>{}).then(()=>vault.flush()).then(()=>app.quit());});

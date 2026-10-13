@@ -40,8 +40,12 @@ export function claudeQuota(event,previous=null,now=Date.now()) {
     if(!windowNames[id]||!value)continue;
     const used=value.utilization,reset=value.resetsAt;
     // A status of "allowed" alone says nothing about remaining percentage.
-    const remaining=typeof used==='number'&&Number.isFinite(used)&&used>=0&&used<=1?100-used*100:null;
-    windows.set(id,{id,label:windowNames[id],remaining,resetsAt:typeof reset==='number'&&Number.isFinite(reset)&&reset>0?reset*1000:null,fetchedAt:now});
+    const valid=typeof used==='number'&&Number.isFinite(used)&&used>=0&&used<=1;
+    const resetsAt=typeof reset==='number'&&Number.isFinite(reset)&&reset>0?reset*1000:null,prior=windows.get(id);
+    // Status-only events are not a new percentage measurement. Keep the last
+    // observation in the same unexpired window, with its original timestamp.
+    if(!valid&&used===undefined&&prior&&(!prior.resetsAt||prior.resetsAt>now)&&(!resetsAt||resetsAt===prior.resetsAt))continue;
+    windows.set(id,{id,label:windowNames[id],remaining:valid?100-used*100:null,resetsAt,fetchedAt:now});
   }
   return {windows:[...windows.values()],fetchedAt:now};
 }

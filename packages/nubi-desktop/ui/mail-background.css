@@ -1,0 +1,21 @@
+.nubi-mail-background-title,.nubi-mail-background-loading { display:inline-flex; align-items:center; gap:var(--cx-space-2); }
+.nubi-mail-background-summary { display:flex; align-items:center; gap:var(--cx-space-2); min-height:var(--nubi-work-control-height); }
+.nubi-mail-background-summary>strong { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--nubi-text-primary); font-weight:var(--nubi-weight-emphasis); }
+.nubi-mail-background-items { min-width:0; }
+.nubi-mail-background-item { display:flex; align-items:center; gap:var(--cx-space-3); padding-block:var(--cx-space-3); border-bottom:1px solid var(--deck-line); }
+.nubi-mail-background-item>svg { flex:none; color:var(--nubi-text-secondary); }
+.nubi-mail-background-copy { display:grid; gap:var(--cx-space-1); flex:1; min-width:0; }
+.nubi-mail-background-copy :is(strong,span) { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.nubi-mail-background-copy strong { color:var(--nubi-text-primary); font-size:var(--cx-type-body); font-weight:var(--nubi-weight-emphasis); }
+.nubi-mail-background-copy span { color:var(--nubi-text-secondary); font-size:var(--cx-type-caption); }
+.nubi-mail-background-actions,.nubi-mail-background-pages { display:flex; align-items:center; gap:var(--cx-space-2); flex:none; }
+.nubi-mail-background-actions button { white-space:nowrap; color:var(--nubi-text-action); }
+.nubi-mail-background-pages { justify-content:flex-end; width:100%; }
+.nubi-mail-background-pages>span { color:var(--nubi-text-secondary); font-size:var(--cx-type-caption); }
+.nubi-mail-background-notice { display:flex; align-items:center; gap:var(--cx-space-2); padding-block:var(--cx-space-2); color:var(--nubi-text-secondary); font-size:var(--cx-type-caption); }
+.nubi-mail-background-notice>svg { flex:none; color:var(--nubi-text-action); }
+.nubi-mail-background-notice>span { min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.nubi-mail-background-notice>button { flex:none; white-space:nowrap; }
+.desktop-mail-progress .nubi-mail-progress-open { display:inline-flex; align-items:center; gap:var(--cx-space-2); border:0; padding:var(--cx-space-1) var(--cx-space-2); background:transparent; color:inherit; border-radius:var(--nubi-work-control-radius); font:inherit; white-space:nowrap; cursor:pointer; }
+.desktop-mail-progress .nubi-mail-progress-open:hover { background:var(--nubi-surface-selected); color:var(--nubi-text-action); }
+.desktop-mail-progress .nubi-mail-progress-open:focus-visible { outline:2px solid var(--nubi-text-action); outline-offset:2px; }

@@ -1,6 +1,14 @@
 // Fixed diagnostics only. Server replies may contain account or message data.
 const listing='로그인은 완료됐어요. 메일 목록을 읽는 단계에서 멈췄어요.';
 export const mailConnectionErrors={
+  mail_portal_only:{title:'포털 로그인으로 연결해 주세요',detail:'메일 연결은 사내 포털을 사용합니다. 아이디와 비밀번호를 누비 설정에 입력하지 않아도 됩니다.'},
+  mail_portal_login:{title:'포털에 로그인해 주세요',detail:'로그인되어 있지 않거나 세션이 만료됐어요. 포털 로그인 버튼으로 다시 연결해 주세요.'},
+  mail_portal_identity:{title:'포털 사용자 정보를 확인해 주세요',detail:'로그인은 열렸지만 메일과 결재를 조회할 사용자 정보를 확인하지 못했어요. 다시 로그인해 주세요.'},
+  mail_portal_format:{title:'포털 응답을 확인하지 못했어요',detail:'목록이나 원문 형식이 예상과 달라요. 다시 불러와 주세요.'},
+  mail_portal_request:{title:'사내 포털에 연결하지 못했어요',detail:'회사망이나 VPN 연결을 확인한 뒤 다시 시도해 주세요.'},
+  mail_portal_timeout:{title:'포털 응답이 늦어요',detail:'로그인 화면을 확인하거나 잠시 후 다시 연결해 주세요.'},
+  mail_portal_page_limit:{title:'메일 목록을 일부만 가져왔어요',detail:'한 번에 확인하는 목록 범위를 넘었어요. 가져온 메일은 보존했습니다.'},
+  mail_portal_desktop_only:{title:'앱에서 포털에 로그인해 주세요',detail:'포털 연결은 설치된 누비 Workspace에서 사용할 수 있어요.'},
   mail_auth_failed:{title:'서버가 로그인을 거절했어요',detail:'연결은 됐지만 메일 서버가 인증을 허용하지 않았어요.'},
   mail_auth_user_rejected:{title:'서버가 로그인 이름을 거절했어요',detail:'정상 수신되는 메일 앱의 사용자 이름과 같은 형식으로 입력해 주세요.'},
   mail_auth_login_rejected:{title:'서버가 로그인을 완료하지 못했어요',detail:'사용자 이름 요청은 통과했지만 비밀번호 확인 단계에서 거절됐어요. 비밀번호 오류와 서버 정책은 아직 구분되지 않았어요.'},

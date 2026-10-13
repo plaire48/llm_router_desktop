@@ -1,5 +1,6 @@
 import React from 'react';
 import {CxButton,Icon} from '@e2e/cx-design-system';
+import {FileKindIcon} from './FileKindIcon.jsx';
 
 export function sourceLocation(source) {
   const location=source.location;
@@ -18,7 +19,7 @@ export function AnswerSources({message,onOpen}) {
     return <CxButton type="button" className="nubi-answer-source" key={source.citationId}
       aria-label={`${source.number?`출처 ${source.number}, `:''}${type}: ${name}${location?`, ${location}`:''}${attention?', 원본 확인 필요':''}, 원문 보기`}
       title={[`${type} 원문 보기`,source.title,source.filename||source.path,location,attention?'원본 확인 필요':null].filter(Boolean).join('\n')} onClick={()=>onOpen?.(source)}>
-      <Icon name={source.kind==='mail'&&!source.attachmentId?'mail':source.kind==='wiki'?'bookmark':'file'} size={16}/>
+      {source.kind==='mail'&&!source.attachmentId?<Icon name="mail" size={16}/>:<FileKindIcon name={source.filename||source.path||source.title} size={16}/>}
       <span className="nubi-source-number" aria-hidden="true">{source.number||'–'}</span>
       <span className="nubi-source-title">{name}</span>
       <span className="nubi-source-meta">{location&&<small>{location}</small>}{attention&&<small className="nubi-source-attention"><Icon name="alertCircle" size={14}/>원본 확인 필요</small>}</span>

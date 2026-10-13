@@ -12,7 +12,7 @@ Mail search covers collected mail: nextCursor marks unread matches; retrieval.in
 Preserve corrections and answered decisions. currentTurn is the latest request: judge requirement turn against it, not an earlier answer. request is supported only when ALL requested parts are answered; missing parts keep request unknown, not only intent:*. The evidence entry "user" represents literal request/currentTurn/corrections/answers and never proves the state of files, tests or systems. Cite it for summarizing/applying user text. intent:* are revisable model interpretations, not user requirements. A suitable different skill or method need not match the plan; do not invent scope or override user constraints.
 A host empty list observes no such task action. beforeLatestUserMessage proposals await approval only if currentTurn still wants that change; corrections require corrected proposals. Check host receipts before claiming a wait, and never replay unknown operations. host.analysisExecutions proves child lifecycle/counts/delivery only, not source facts or business completion; do not rerun children to prove lifecycle. advisoryHandoffs are advisory, not evidence: collected means queued, omitted/missing means unknown. Reconcile disagreements with host/source observations. Never assign task pass scores.`;
 export const RESULT_REVIEW_SCHEMA={type:'object',additionalProperties:false,required:['status','checks','nextStep'],properties:{
-  status:{enum:['ready','revise']},nextStep:{type:'string',maxLength:600},checks:{type:'array',minItems:1,maxItems:64,items:{type:'object',additionalProperties:false,required:['requirementId','state','evidenceIds','detail'],properties:{requirementId:{type:'string',maxLength:120},state:{enum:['supported','pending','unknown']},evidenceIds:{type:'array',maxItems:16,uniqueItems:true,items:{type:'string',maxLength:100}},detail:{type:'string',minLength:1,maxLength:300}}}}
+  status:{type:'string',enum:['ready','revise']},nextStep:{type:'string',maxLength:600},checks:{type:'array',minItems:1,maxItems:64,items:{type:'object',additionalProperties:false,required:['requirementId','state','evidenceIds','detail'],properties:{requirementId:{type:'string',maxLength:120},state:{type:'string',enum:['supported','pending','unknown']},evidenceIds:{type:'array',maxItems:16,uniqueItems:true,items:{type:'string',maxLength:100}},detail:{type:'string',minLength:1,maxLength:300}}}}
 }};
 const validate=new Ajv({allErrors:true}).compile(RESULT_REVIEW_SCHEMA);
 export const RESULT_REVIEW_TOOL={type:'function',function:{name:'report_desktop_review',description:'Return the independent Desktop review in the exact schema. This result envelope performs no action and grants no approval.',parameters:RESULT_REVIEW_SCHEMA}};
@@ -217,8 +217,15 @@ function enforcePendingBoundary(review,data) {
     nextStep:'호스트에 실제 승인 요청이나 실행 중인 작업이 없습니다. 허용된 작업이 남았다면 현재 근거를 확인해 제안 도구로 승인 카드를 준비하세요. 말로만 승인을 기다린다고 끝내지 마세요. 실행할 수 없는 작업이면 제한을 정확히 설명하세요. 완료한 동작이나 미확정 동작은 재실행하지 마세요.'};
 }
 
+// Accept a single complete JSON fence, never extract a guessed object from prose.
+export function parseReviewJSON(content) {
+  if(typeof content!=='string')throw new Error('review_json_invalid');
+  const text=content.trim().replace(/^\uFEFF/,'');
+  const fenced=text.match(/^```(?:json)?\s*\n([\s\S]*?)\n```$/i);
+  return JSON.parse(fenced?fenced[1]:text);
+}
 export async function reviewResult({invoke,signal,...input}) {
-  const {messages,data}=resultReviewInput(input);let problems=[],formatRetries=0,coverageRechecked=false;
+  const {messages,data}=resultReviewInput(input);let problems=[],formatRetries=0,coverageRechecked=false,reason='review_json_invalid';
   // A literal part of the user's request can be mislabeled as an intent-only
   // omission. Confirm coverage once before discarding that follow-up. This is
   // read-only and separate from the single malformed-JSON retry.
@@ -228,17 +235,25 @@ export async function reviewResult({invoke,signal,...input}) {
     const usable=data.evidence.filter(e=>e.usable).map(e=>e.id).join(', ')||'none';
     const repair=problems.length>0;
     const prompt=REVIEW_PROMPT+(coverageRechecked?coverage:'')+(repair?' Previous review JSON was invalid. Return a complete valid object using report_desktop_review with exact requirement IDs and observed evidence IDs. Problems found: '+problems.join(' ')+' Usable evidence IDs: '+usable+'.':'');
-    const response=await invoke([{...messages[0],content:prompt},messages[1]],repair?[RESULT_REVIEW_TOOL]:[]);
+    let response;
+    try{response=await invoke([{...messages[0],content:prompt},messages[1]],repair?[RESULT_REVIEW_TOOL]:[]);}
+    catch(error){
+      if(signal.aborted)throw new Error('cancelled');
+      if(!['response_invalid','output_limit'].includes(error.message))throw error;
+      reason=error.message==='output_limit'?'review_output_limit':'review_json_invalid';
+      problems=['The review response was empty, malformed or truncated. Return a concise complete review. No action was executed.'];
+      if(formatRetries++>=1)break;continue;
+    }
     if(signal.aborted)throw new Error('cancelled');
-    let result,review,original;try{result=reviewEnvelope(response,RESULT_REVIEW_TOOL);original=JSON.parse(result.content);review=settleVerdict(resolveQuotedEvidence(original,data));}catch{}
-    if(!result){problems=['The response was not the expected review envelope. No tool was executed.'];if(formatRetries++>=1)break;continue;}
+    let result,review,original;try{result=reviewEnvelope(response,RESULT_REVIEW_TOOL);original=parseReviewJSON(result.content);review=settleVerdict(resolveQuotedEvidence(original,data));}catch{}
+    if(!result){reason='review_envelope_invalid';problems=['The response was not the expected review envelope. No tool was executed.'];if(formatRetries++>=1)break;continue;}
     problems=reviewProblems(result,review,data);
-    if(problems.length){if(formatRetries++>=1)break;continue;}
+    if(problems.length){reason=result.finishReason==='length'?'review_output_limit':!review?'review_json_invalid':'review_schema_invalid';if(formatRetries++>=1)break;continue;}
     if(interpretationOnly(original)&&!coverageRechecked){coverageRechecked=true;continue;}
     review=enforcePendingBoundary(enforceEvidenceBoundary(review,original),data);
     return {...review,...(coverageRechecked?{coverageRechecked:true}:{}),requirements:data.requirements,candidateHash:createHash('sha256').update(input.candidate).digest('hex'),evidence:data.evidence,omittedEvidence:data.omittedEvidence,advisoryHandoffs:data.advisoryHandoffs,omittedHandoffs:data.omittedHandoffs,omittedUnresolvedHandoffs:data.omittedUnresolvedHandoffs};
   }
-  throw new Error('goal_review_failed');
+  throw Object.assign(new Error('goal_review_failed'),{reviewReason:reason});
 }
 
 // A changed wording, operation ID, query or timestamp is not new evidence.

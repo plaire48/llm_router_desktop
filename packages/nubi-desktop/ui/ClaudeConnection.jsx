@@ -16,13 +16,13 @@ export function ClaudeConnection({api,onConnected,onClose,openWebPage,initialIss
     {error&&<p className="claude-connection-error" role="alert">{error}</p>}
   </DetailPanel>;
 }
-export function ClaudeAccountUsage({data,now=Date.now()}) {
+export function ClaudeAccountUsage({data,now=Date.now(),openWebPage}) {
   const connected=data.connections?.claude?.present,quota=data.claudeAccountUsage;
   return <section className="usage-account claude-account" aria-label="Claude 잔여 한도">
-    <div className="usage-row"><h3><ProviderIcon provider="claude"/>Claude 잔여 한도</h3></div>
-    {!connected?<p className="usage-caption">Claude Code 연결 후 확인할 수 있습니다.</p>:!quota?.windows?.length?<p className="usage-caption">아직 한도 정보가 없습니다. Claude 응답 후 갱신됩니다.</p>:quota.windows.map(item=>{
-      const expired=item.resetsAt&&item.resetsAt<=now,stale=now-item.fetchedAt>300000,remaining=expired||stale?null:item.remaining;
-      return <div className="usage-window" key={item.id}><div className="usage-row"><span>{item.label}</span><strong>{remaining==null?expired||stale?'갱신 필요':'미제공':`${remaining.toLocaleString('ko-KR',{maximumFractionDigits:1})}% 남음`}</strong></div>
+    <div className="usage-row"><h3><ProviderIcon provider="claude"/>Claude 잔여 한도</h3>{openWebPage&&<CxButton data-icon-only aria-label="Claude 계정 사용량 보기" title="Claude 계정 사용량 보기" onClick={()=>openWebPage('https://claude.ai/settings/usage')}><Icon name="linkExternal" size={16}/></CxButton>}</div>
+    {!connected?<p className="usage-caption">Claude Code 연결 후 확인할 수 있습니다.</p>:!quota?.windows?.length?<p className="usage-caption">한도 정보 수신 대기. Claude 응답 후 확인합니다.</p>:quota.windows.map(item=>{
+      const expired=item.resetsAt&&item.resetsAt<=now,stale=now-item.fetchedAt>300000,remaining=expired?null:item.remaining;
+      return <div className="usage-window" key={item.id}><div className="usage-row"><span>{item.label}</span><strong>{remaining==null?expired?'초기화 후 확인 필요':'비율 미제공':`${stale?'마지막 확인 ':''}${remaining.toLocaleString('ko-KR',{maximumFractionDigits:1})}%${stale?'':' 남음'}`}</strong></div>
         {remaining!=null&&<div className="context-bar" role="meter" aria-label={`Claude ${item.label} 잔여 한도`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={remaining}><span style={{width:`${remaining}%`}}/></div>}
         {item.resetsAt&&<span className="usage-caption usage-metadata">{new Date(item.resetsAt).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})} 초기화</span>}
       </div>;

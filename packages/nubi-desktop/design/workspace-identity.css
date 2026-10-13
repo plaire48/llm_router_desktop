@@ -104,7 +104,7 @@
   --nubi-dialog-footer-inset: var(--cx-space-6);
   --nubi-dialog-field-gap: var(--cx-space-2);
   --nubi-dialog-symbol-size: var(--nubi-work-control-height);
-  --nubi-chat-width: 700px;
+  --nubi-chat-width: clamp(700px, 84cqi, 1120px);
   --nubi-reading-width: calc(var(--nubi-chat-width) + var(--nubi-page-inset) * 2);
   --nubi-scrollbar-size: 4px;
   --nubi-scrollbar-inset: var(--cx-space-2);
@@ -308,7 +308,9 @@
 .desktop-browser-find > small { color:var(--deck-muted); font:var(--deck-font-caption); }
 .desktop-browser-viewport { position:relative; flex:1; min-height:0; overflow:hidden; }
 .desktop-browser-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; height:100%; gap:var(--cx-space-3); padding:var(--cx-space-4); box-sizing:border-box; color:var(--deck-muted); font:var(--deck-font-body); }
-.desktop-browser-load-error { padding:var(--cx-space-3); color:var(--deck-sub); font:var(--deck-font-body); }
+.desktop-browser-load-error { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--cx-space-3); padding:var(--cx-space-4); color:var(--deck-sub); font:var(--deck-font-body); text-align:center; }
+.desktop-browser-load-error strong { color:var(--deck-ink); font-weight:var(--nubi-weight-emphasis); }
+.desktop-browser-load-error p { max-width:36em; margin:0; }
 .desktop-browser[hidden],.desktop-browser-empty[hidden],.desktop-terminal[hidden] { display:none; }
 .desktop-shell .desktop-pane:not([data-expanded=true]):not([data-team-workspace=true]) { width:var(--desktop-pane-width,420px); min-width:0; max-width:calc(100% - var(--nubi-rail-width,52px)); }
 /* Only visible sidebars occupy space; closing either returns it to the agent. */
@@ -825,7 +827,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 /* Keep the conversation in one reading column with its composer at the bottom. */
 .nubi-workbench { height:100vh; overflow:hidden; }
 .nubi-workbench-layout { height:100%; min-height:0; }
-.nubi-workbench-content { display:flex; flex-direction:column; min-height:0; }
+.nubi-workbench-content { display:flex; flex-direction:column; min-height:0; container-type:inline-size; container-name:nubi-chat-area; }
 .nubi-workbench .nubi-main { flex:1; min-height:0; width:100%; max-width:var(--nubi-reading-width); overflow-y:auto; scrollbar-width:none; scrollbar-gutter:auto; padding:var(--nubi-page-block) var(--nubi-page-inset) var(--cx-space-6); }
 .nubi-workbench .nubi-task { display:flex; flex-direction:column; min-height:100%; }
 .nubi-workbench .nubi-task > .nubi-enter { display:flex; flex:1; flex-direction:column; }
@@ -1584,3 +1586,19 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 /* Git empty results share the existing Nubi mascot and readable CX tokens. */
 .nubi-git-empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--cx-space-4); min-height:196px; padding:var(--cx-space-5) var(--cx-space-3); box-sizing:border-box; }
 .nubi-git-empty-state > strong { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:var(--deck-font-label); font-weight:600; color:var(--deck-ink); text-align:center; }
+
+/* Diff counts retain signs as well as semantic color. */
+.nubi-diff-counts { display:inline-flex; align-items:center; gap:8px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.nubi-diff-added { color:var(--nubi-text-success); font-weight:600; }
+.nubi-diff-removed { color:var(--nubi-text-danger); font-weight:600; }
+
+.nubi-proposal-quality { color:var(--nubi-note-ink); font-size:var(--nubi-font-size-meta,14px); }
+.nubi-proposal-quality[data-state="passed"] { display:inline-flex; align-items:center; color:var(--nubi-text-success); }
+.nubi-proposal-quality[data-state="blocked"] { color:var(--nubi-text-danger); font-weight:600; }
+
+:root { --nubi-account-status-font:12px; --nubi-account-status-profile-font:17px; }
+
+/* A citation is a persistent whole-line marker, separate from the editing caret. */
+.desktop-editor .monaco-editor .nubi-source-highlight { background:var(--deck-blue-soft); }
+.desktop-editor .monaco-editor .nubi-source-line-number { color:var(--deck-blue-deep) !important; font-weight:var(--nubi-weight-emphasis); }
+.nubi-answer-source > .desktop-file-icon { width:24px; }

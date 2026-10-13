@@ -24,3 +24,45 @@ Windows baseline verification: [run 38195857852](https://github.com/plaire48/llm
 The user reported `project_changed` after opening 참고 자료. Current source and the existing release staging checkout both include the earlier projectId fix; the installed version was not supplied, so the exact installed-binary cause remains unconfirmed. The native Electron regression now covers both explicit code citations and a Wiki in `consultedSources`, as well as changed-Wiki rejection and an actual project-switch rejection. `check-electron-projects.mjs --sources-only` passed four checks using isolated folders and a saved answer. Missing project IDs remain rejected. An unrelated existing full navigation check timed out at the project rename menu; this focused run does not claim that full suite passed.
 
 `ask_openwiki` delegates research over project Wiki snapshots, then `groundWikiAnswer` re-reads and validates the returned evidence against real pages. The final answer can cite those verified pages, direct source reads, and original personal mail. A Wiki-derived answer is not proof of current code behavior, and personal notes do not replace mail originals. Wiki references now have a bookmark icon and a Wiki-specific accessible label/tooltip; the source hash and navigation contract remain unchanged. No live company account, Windows installed build, release or real-model result was verified in this follow-up.
+
+## Direct project navigation (2026-10-13)
+
+Saved-project clicks hydrate the newly mounted Workbench from the host's completed
+open result. Conversation tabs and the selected conversation are restored before
+first paint. The app-scoped provider status is reused while its normal status
+refresh runs. This removes the redundant `openCurrent` call and the transient
+folder/Git setup page on every project switch. An opened project without Wiki
+pages is still an opened project; only an explicit project-add action or no open
+project displays ProjectStart. Saved personal-conversation projects retain their
+kind when selected from the catalog.
+
+Per-project draft storage and editor view restoration are reused. Failed opens
+keep the previous view; unsaved file and active terminal guards are unchanged.
+Background agents and Wiki jobs keep their existing project-scoped services.
+No new dependency or extra transition animation was introduced.
+
+Verification: `check-project-direct-navigation.mjs` passed three native Electron
+flow checks (three round trips, empty-Wiki project, failed-open preservation)
+with no renderer errors. Seven session-navigation/project-service tests passed,
+including a running agent retaining its own project during another project's
+work. Identity checks and the Electron build passed. The broader existing
+`check-electron-projects.mjs` run stopped before its scenarios because this Mac's
+native window stayed at 1024px instead of the requested 1480px; its full file-tab,
+dirty-editor and narrow-layout suite is not reported as passed. No Windows
+installation, app restart for the user, upload or release was performed.
+
+## Citation range and file icons (2026-10-13)
+
+Code/Wiki source navigation now forwards both start and end lines after the
+existing project/hash/dirty-buffer checks. Monaco scrolls to that range and
+marks its full lines with the shared blue-soft token and emphasized line numbers.
+The marker remains after focus moves; switching references replaces it and
+editing clears it because the text no longer matches the cited snapshot.
+Source rows reuse FileKindIcon from the explorer for extension-specific symbols;
+mail bodies retain the mail icon. The fixed icon column accommodates PDF badges
+without shifting source numbers or titles.
+
+The isolated native Electron check `check-source-highlight.mjs` passed five
+checks: two-line range, Wiki range replacement, repeated opening, edit cleanup,
+and Markdown icon. Four answer-source integrity tests and the Electron build
+passed. No live model, Windows installed build or release was verified here.

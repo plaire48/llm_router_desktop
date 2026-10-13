@@ -17,10 +17,21 @@ export function installDesktopFeatures(Service){
   Service.prototype.gitAvailability=gitAvailability;
   Service.prototype.proposalText=async function({proposalId}){this.ready();const p=this.store.get('proposal:'+proposalId);if(!p)fail('proposal_missing');return {before:p.kind==='create'?'':await readFile(p.before,'utf8'),after:await readFile(p.after,'utf8')};};
   Service.prototype.artifactText=async function({uri}){this.ready();let file;try{file=fileURLToPath(uri);}catch{fail('path_scope');}const reports=path.join(this.store.directory,'reports');if(path.dirname(file)!==reports||!(await lstat(file)).isFile()||(await lstat(file)).isSymbolicLink())fail('path_scope');return {content:await readFile(file,'utf8')};};
-  Service.prototype.saveSource=async function({path:rel,taskId,expectedHash,content}){
+  Service.prototype.saveSource=async function({path:rel,taskId,expectedHash,content,proposalId}){
     this.ready();if(typeof content!=='string'||Buffer.byteLength(content)>1024*1024)fail('file_too_large');
     const root=await this.target(taskId),current=await readSource(root,rel);if(current.hash!==expectedHash)fail('source_stale');
-    const file=await scopedFile(root,rel);await writeFile(file,content);const saved=await readSource(root,rel);if(saved.hash!==hash(content))fail('write_unconfirmed');return saved;
+    const file=await scopedFile(root,rel);
+    let proposal;
+    if(proposalId){
+      proposal=this.store.get('proposal:'+proposalId);
+      if(!proposal||proposal.state!=='proposed'||proposal.taskId!==taskId||proposal.path!==rel||proposal.expectedHash!==expectedHash||proposal.afterHash!==hash(content))fail('proposal_missing');
+      if(this.agent?.running||this.newFileBusy||this.setupBusy||this.computerBusy)fail('agent_busy');
+      // Reserve before the asynchronous write. A cancellation cannot race a save.
+      this.newFileBusy=true;this.store.set('proposal:'+proposalId,{...proposal,state:'creating'});
+    }
+    try{await writeFile(file,content);const saved=await readSource(root,rel);if(saved.hash!==hash(content))fail('write_unconfirmed');return saved;}
+    catch(error){if(proposal)this.store.set('proposal:'+proposalId,{...proposal,state:'attention'});throw error;}
+    finally{if(proposal)this.newFileBusy=false;}
   };
   Service.prototype.commitHistory=function(args={}){return inspectCommitHistory(this,args);};
   Service.prototype.wikiInitialization=function({action='status'}={}){

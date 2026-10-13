@@ -1,4 +1,5 @@
 import {skillCatalog} from './agent-capabilities.mjs';
+import {wikiChatBlocked,requireWikiChatReady} from './wiki-chat-admission.mjs';
 import {resolveAgentCommand} from './agent-commands.mjs';
 import {randomUUID} from 'node:crypto';
 import {validateMailReferences,mergeMailReferences,sameMailReferences} from './mail-evidence.mjs';
@@ -26,7 +27,7 @@ export function takeAgentInput(service,task){
   current.messages=task.messages;current.mailReferences=task.mailReferences;service.store.set('task:'+task.id,current);return item;
 }
 export function canDrainInputs(service,task){
-  return !service.disposed&&!service.agent?.running&&task.state==='review'&&task.resultReview?.status==='ready'&&!task.question&&!task.peerWait&&!['pending','connected'].includes(task.computerConnectionRequest?.state)&&!service.unsettledOperations?.size&&
+  return !wikiChatBlocked(service)&&!service.disposed&&!service.agent?.running&&task.state==='review'&&task.resultReview?.status==='ready'&&!task.question&&!task.peerWait&&!['pending','connected'].includes(task.computerConnectionRequest?.state)&&!service.unsettledOperations?.size&&
     !['proposal:','setup-action:','command-repair:','computer-action:'].some(prefix=>service.store.list(prefix).some(row=>row.taskId===task.id&&row.state==='proposed'))&&
     !service.store.list('process:').some(row=>row.taskId===task.id&&['running','stopping','checking'].includes(row.state));
 }
@@ -36,6 +37,7 @@ export async function drainAgentInputs(service,taskId,chain){
   if(item)await service.startAgent({taskId,answer:item.text,queuedInputId:item.id});
 }
 export async function agentInput({taskId,action='enqueue',id,text,mode='queue',runId,overId,order,mailReferences=[]}={}){
+  if(['enqueue','steer','start'].includes(action))requireWikiChatReady(this);
   this.ready();const task=this.task(taskId),binding=inputBinding(this,taskId),inbox=task.inbox||[];
   if(action==='enqueue'){
     const spoken=task.messages?.find(row=>row.inputId===id);
@@ -43,6 +45,7 @@ export async function agentInput({taskId,action='enqueue',id,text,mode='queue',r
     if(!inputOpen(this,task)||runId!==this.agent.runId)throw Error('agent_input_closed');
     if(typeof text==='string'&&text.trim().startsWith('/')){const catalog=await skillCatalog(this.root);const shortcut=resolveAgentCommand(text,catalog.skills);if(shortcut?.action)throw Error('agent_command_ui_only');}
     const references=await validateMailReferences(this,mailReferences);
+    requireWikiChatReady(this);
     // Validate before admission, then recheck when a queued input starts.
     if(!inputOpen(this,task)||runId!==this.agent.runId)throw Error('agent_input_closed');
     Object.assign(task,this.task(taskId));
@@ -53,6 +56,7 @@ export async function agentInput({taskId,action='enqueue',id,text,mode='queue',r
     if(!inputOpen(this,task)||runId!==this.agent.runId)throw Error('agent_input_closed');
     const item=inbox.find(row=>row.id===id);if(!item||!inputMatches(item,{...binding,runId:this.agent.inputChain}))throw Error('agent_input_changed');
     if(item.text.startsWith('/')){const catalog=await skillCatalog(this.root);const shortcut=resolveAgentCommand(item.text,catalog.skills);if(shortcut?.action)throw Error('agent_command_ui_only');if(!inputOpen(this,task)||runId!==this.agent.runId)throw Error('agent_input_closed');}
+    requireWikiChatReady(this);
     task.inbox=inbox.map(row=>row.id===id?{...row,mode:'steer'}:row);mode='steer';
   }else if(action==='reorder')task.inbox=reorderInput(inbox,{id,overId,order},binding);
   else if(action==='remove'){

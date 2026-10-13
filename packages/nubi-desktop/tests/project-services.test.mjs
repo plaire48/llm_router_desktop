@@ -61,3 +61,18 @@ test('account, mail, marketplace and usage ownership survive folder switches and
  const call=ledger.start({provider:'aipro'});ledger.finish(call,{inputTokens:12,outputTokens:4});assert.deepEqual(desktopUsage(pool.current).summary(),ledger.summary());
  pool.dispose();assert.equal(providers,1);assert.equal(mail,1);assert.equal(ledger.closed,true);pool.dispose();assert.equal(providers,1);assert.equal(mail,1);
 });
+
+test('background Wiki status identifies its owning project and clears after completion or abort',async t=>{
+ const {a,b,service,pool,open}=await fixture(t);await open(a);
+ const owner=service.projectId;service.wikiInitController=new AbortController();service.wikiInitOwner=service.store;
+ service.store.set('wiki-init',{id:'wiki-a',projectId:owner,state:'running',stage:'reading',completed:2,total:10,percent:20});
+ await open(b);let state=await pool.invoke('state');
+ assert.equal(state.backgroundProjects[0].projectId,owner);assert.equal(state.backgroundProjects[0].root,a);
+ assert.equal(state.backgroundProjects[0].running,false,'Wiki work is distinct from an agent turn');
+ assert.equal(state.backgroundProjects[0].wikiChatJob.id,'wiki-a');assert.equal(state.backgroundProjects[0].wikiChatJob.percent,20);
+ service.wikiInitController.abort();assert.equal((await pool.invoke('state')).backgroundProjects[0].wikiChatJob,null);
+ service.wikiInitController=null;service.wikiUpdateRun={id:'update-a',controller:new AbortController(),owner:service.store};
+ service.store.set('wiki-update:update-a',{id:'update-a',state:'running',events:[{type:'progress',stage:'generating',index:3,total:4}]});
+ state=await pool.invoke('state');assert.equal(state.backgroundProjects[0].wikiChatJob.kind,'update');assert.equal(state.backgroundProjects[0].wikiChatJob.projectId,owner);
+ service.store.set('wiki-update:update-a',{id:'update-a',state:'completed'});assert.equal((await pool.invoke('state')).backgroundProjects[0].wikiChatJob,null);
+});

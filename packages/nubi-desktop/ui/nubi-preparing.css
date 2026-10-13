@@ -3,10 +3,14 @@
  --nubi-preparing-cycle:1.6s;
  display:grid;
  place-items:center;
- flex:1;
- min-height:min(420px,calc(100dvh - 180px));
- width:100%;
+ position:absolute;
+ inset:0;
+ z-index:2;
+ min-height:0;
+ width:auto;
+ background:var(--nubi-surface-inset);
 }
+.nubi-workbench .nubi-main { position:relative; }
 .nubi-preparing-emblem {
  position:relative;
  display:grid;

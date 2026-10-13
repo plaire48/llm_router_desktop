@@ -70,7 +70,9 @@ test('quota preserves independent windows, rejects guessed percentages, and keep
   const first=claudeQuota(event({unifiedWindows:{five_hour:{utilization:.2,resetsAt:3000},seven_day:{utilization:.6,resetsAt:5000}}}),null,1000);
   assert.deepEqual(first.windows.map(w=>w.remaining),[80,40]);
   const next=claudeQuota(event({rateLimitType:'five_hour',status:'allowed'}),first,2000);
-  assert.equal(next.windows[0].remaining,null);assert.equal(next.windows[1].fetchedAt,1000);
+  assert.equal(next.windows[0].remaining,80);assert.equal(next.windows[0].fetchedAt,1000);assert.equal(next.windows[1].fetchedAt,1000);
+  assert.equal(claudeQuota(event({rateLimitType:'five_hour',status:'allowed',resetsAt:4000}),first,2000).windows[0].remaining,null);
+  assert.equal(claudeQuota(event({rateLimitType:'five_hour',status:'allowed'}),first,3000001).windows[0].remaining,null);
   for(const utilization of [-1,2,'0.5',NaN])assert.equal(claudeQuota(event({rateLimitType:'five_hour',utilization})).windows[0].remaining,null);
 });
 test('adapter does not pass inherited credentials or endpoint overrides to the CLI',()=>{

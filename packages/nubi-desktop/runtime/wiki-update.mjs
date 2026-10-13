@@ -234,7 +234,7 @@ export async function wikiUpdate({method='status',id,fingerprint}={}){
     await rm(path.join(copy,'openwiki'),{recursive:true,force:true});
     await writeWikiSnapshot(copy,originalWiki);
     const controller=new AbortController(),events=[];
-    this.wikiUpdateRun={id:value.id,controller};
+    this.wikiUpdateRun={id:value.id,controller,owner};
     const running=save(this,{...value,state:'running',copy,startedAt:new Date().toISOString(),events:[]});
     const runner=this.wikiUpdater||defaultWikiUpdater(this);
     const finish=async patch=>{

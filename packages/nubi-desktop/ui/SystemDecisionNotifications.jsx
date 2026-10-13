@@ -8,7 +8,7 @@ export function SystemDecisionNotifications({decisions,onOpen}){
   if(!window.nubi?.desktop)return;
   const next=new Map(latest.current.decisions.map(row=>[row.id,row]));
   for(const id of sent.current.keys())if(!next.has(id))void window.nubi.request('decisionNotice',{id,action:'clear'}).catch(()=>{});
-  for(const [id,row] of next)if(!sent.current.has(id))void window.nubi.request('decisionNotice',{id,kind:row.kind,action:'show'}).catch(()=>{});
+  for(const [id,row] of next)if(!sent.current.has(id))void window.nubi.request('decisionNotice',{id,kind:row.kind,projectName:row.projectName,taskTitle:row.taskTitle,summary:row.summary,action:'show'}).catch(()=>{});
   sent.current=next;
  },[signature]);
  useEffect(()=>{

@@ -67,3 +67,7 @@
 .nubi-wiki-detail-copy p { font:var(--deck-font-body); line-height:var(--deck-line-body); }
 .nubi-wiki-metadata dd { font-weight:500; color:var(--nubi-text-primary); }
 .nubi-team-loading { padding:var(--cx-space-4); color:var(--nubi-text-secondary); font:var(--deck-font-body); }
+
+.nubi-wiki-audience-fields { display:grid; gap:var(--cx-space-3); min-width:0; }
+.nubi-wiki-audience-fields p { margin:0; font:var(--deck-font-caption); }
+.nubi-wiki-audience-names { display:block; color:var(--nubi-text-secondary); }

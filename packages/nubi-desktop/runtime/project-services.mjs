@@ -1,4 +1,5 @@
 import {humanDecisions} from '../ui/human-decisions.mjs';
+import {wikiChatJob} from './wiki-chat-admission.mjs';
 
 const active=service=>!!(service.skillImportBusy||service.marketplaceBusy||service.vocBusy||service.computerBusy||service.newFileBusy||service.setupBusy||service.processes?.active.size||service.processes?.pending.size||service.unsettledOperations?.size||service.reconciling||service.agent?.running||service.recordingKnowledge||service.databaseBusy||service.collaborationBusy||service.wikiUpdateRun||service.wikiInitController&&!service.wikiInitController.signal.aborted&&service.store?.get('wiki-init')?.state==='running');
 
@@ -15,7 +16,7 @@ export class ProjectServices{
   service.mail=args=>primary.mail(args);
   return service;
  }
- background(){return [...this.projects.values()].filter(service=>service!==this.current).map(service=>({projectId:service.projectId,root:service.root,running:!!service.agent?.running,decisions:humanDecisions({...service.state(),projectId:service.projectId}).map(decision=>({...decision,projectId:service.projectId}))}));}
+ background(){return [...this.projects.values()].filter(service=>service!==this.current).map(service=>({projectId:service.projectId,root:service.root,running:!!service.agent?.running,wikiChatJob:wikiChatJob(service),decisions:humanDecisions({...service.state(),projectId:service.projectId}).map(decision=>({...decision,projectId:service.projectId}))}));}
  async invoke(method,args={}){
   if(this.updateLocked)throw Error('update_installing');
   if(method==='projectActivity')return this.activity(args.projectId);

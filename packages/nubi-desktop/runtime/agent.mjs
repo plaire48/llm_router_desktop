@@ -1,3 +1,4 @@
+import {requireWikiChatReady} from './wiki-chat-admission.mjs';
 import {AnswerSources,SOURCE_GUIDANCE,reviewCitationIntegrity} from './answer-sources.mjs';
 import {resolveAgentCommand,commandGuidance,PLAN_READ_TOOLS,commandAllowsTool,commandTools,searchScope} from './agent-commands.mjs';
 import {continuationBinding,continueCommandPlan} from './command-continuation.mjs';
@@ -165,12 +166,13 @@ export function installAgent(ProjectService) {
   };
   // peerResultId: the task delegated to the browser whose end starts this run (collaboration.mjs).
   ProjectService.prototype.startAgent = async function ({taskId, answer, recoveryProcessId, computerReviewId, computerConnectionRequestId, computerConnectionAnswer, peerResultId,queuedInputId,mailReferences=[]}) {
-    this.ready(); if (this.skillImportBusy||this.computerBusy||this.newFileBusy||this.setupBusy||this.agent?.running||this.reconciling) throw new Error('agent_busy');
+    this.ready(); requireWikiChatReady(this); if (this.skillImportBusy||this.computerBusy||this.newFileBusy||this.setupBusy||this.agent?.running||this.reconciling) throw new Error('agent_busy');
     if(this.unsettledOperations?.size)throw new Error('tool_unsettled');
     if (!this.providers?.status().connected) throw new Error('provider_missing');
     const task = this.task(taskId);
     const redoRequested=task.replyRegeneration?.state==='requested';
     const selectedMail=await validateMailReferences(this,queuedInputId?task.inbox?.find(item=>item.id===queuedInputId)?.mailReferences||[]:mailReferences.length?mailReferences:task.state==='draft'?task.requestMailReferences||[]:[]);
+    requireWikiChatReady(this);
     if(this.agent?.running)throw Error('agent_busy');
     task.mailReferences=mergeMailReferences(task.mailReferences,selectedMail);
     const readMailSources=new Map(),answerSources=new AnswerSources();
@@ -626,7 +628,7 @@ export function installAgent(ProjectService) {
           const reviewProgress={id:runId+':'+(reviewRound+1),runId,round:reviewRound+1,state:'running'};saveReviewProgress(this.store,taskId,reviewProgress);
           const entry={id:runId+':review:'+reviewRound,runId,tool:'review_task',status:'running',label:'요구사항과 결과 확인',at:new Date().toISOString()};task.trace=[...task.trace.slice(-79),entry];persistTask();
           try{const citationIntegrity=answerSources.review(input.candidate);const result=await reviewResult({...input,receipts:{...input.receipts,citationIntegrity},invoke:(wire,definitions)=>invokeModel(wire,definitions,undefined,'reviewer')});entry.status='done';return reviewCitationIntegrity(result,citationIntegrity);}
-          catch(error){entry.status=controller.signal.aborted?'cancelled':'error';task.resultReview={runId,status:entry.status};saveReviewProgress(this.store,taskId,{...reviewProgress,state:entry.status==='cancelled'?'cancelled':'failed'});throw error;}
+          catch(error){entry.status=controller.signal.aborted?'cancelled':'error';entry.reason=['review_json_invalid','review_schema_invalid','review_envelope_invalid','review_output_limit'].includes(error.reviewReason)?error.reviewReason:recoveryCode(error);task.resultReview={runId,status:entry.status,reason:entry.reason};saveReviewProgress(this.store,taskId,{...reviewProgress,state:entry.status==='cancelled'?'cancelled':'failed'});throw error;}
           finally{task.trace=task.trace.map(item=>item.id===entry.id?entry:item);persistTask();}
         },
         onReview:async(outcome,round)=>{
@@ -684,6 +686,7 @@ export function installAgent(ProjectService) {
     task.question.draft=draft;this.store.set('task:'+taskId,task);return {saved:true};
   };
   ProjectService.prototype.answerAgent = async function ({taskId,answer,choice}) {
+    requireWikiChatReady(this);
     const task=this.task(taskId);
     if(task.state!=='waiting_input'||!task.question||this.agent?.running)throw new Error('question_changed');
     if(!this.providers?.status().connected)throw new Error('provider_missing');
