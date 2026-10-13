@@ -98,8 +98,10 @@ try{page=await app.firstWindow();await page.bringToFront();page.setDefaultTimeou
   await writeFile(path.join(root,'utf8-korean.txt'),'한글 본문 확인\n','utf8');
   await page.keyboard.type("Get-Content -LiteralPath './utf8-korean.txt'");await page.keyboard.press('Enter');
   await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='한글 본문 확인'));
-  const reader=Buffer.from('[Console]::InputEncoding=[System.Text.UTF8Encoding]::new($false);[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new($false);[Console]::WriteLine([Console]::ReadLine())','utf16le').toString('base64');
-  await page.keyboard.insertText("'파이프 한글 확인' | & (Get-Process -Id $PID).Path -NoProfile -NonInteractive -EncodedCommand '"+reader+"'");await page.keyboard.press('Enter');
+  // A raw native stdin/stdout echo avoids pager or PowerShell-child input semantics.
+  await writeFile(path.join(root,'native-utf8-echo.cjs'),'process.stdin.pipe(process.stdout);\n');
+  const reader=process.execPath.replaceAll("'","''");
+  await page.keyboard.insertText("'파이프 한글 확인' | & '"+reader+"' './native-utf8-echo.cjs'");await page.keyboard.press('Enter');
   await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='파이프 한글 확인'));
   checks.push('interactive PowerShell reads BOM-less UTF-8 files and sends Korean to native stdin');
  }
