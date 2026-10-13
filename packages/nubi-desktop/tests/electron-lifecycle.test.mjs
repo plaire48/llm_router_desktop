@@ -90,3 +90,10 @@ test('the worker log never grows past its bound',async()=>{
     assert.ok((await stat(file)).size<=40);
   }finally{await rm(directory,{recursive:true,force:true});}
 });
+
+const {restoreSavedProject}=require('../electron-app/project-restore.cjs');
+test('startup retries a transient Git timeout once and records recovery without reopening twice after success',async()=>{let calls=0;const events=[],waits=[];const value=await restoreSavedProject(async()=>{if(++calls===1)throw Error('git_timeout');return {projectId:'same-project'};},{wait:async ms=>waits.push(ms),onEvent:async event=>events.push(event)});assert.equal(value.projectId,'same-project');assert.equal(calls,2);assert.deepEqual(waits,[300]);assert.deepEqual(events,[{state:'failed',attempt:1,error:'git_timeout'},{state:'recovered',attempt:2}]);});
+test('startup never retries access failures or an uncertain worker response and bounds repeated timeouts',async()=>{for(const code of ['git_access_denied','git_unsafe_directory','host_timeout','host_disconnected','project_path_missing']){let calls=0;await assert.rejects(restoreSavedProject(async()=>{calls++;throw Error(code);}),new RegExp(code));assert.equal(calls,1);}let calls=0;await assert.rejects(restoreSavedProject(async()=>{calls++;throw Error('git_timeout');},{wait:async()=>{}}),/git_timeout/);assert.equal(calls,2);});
+test('startup diagnostic excludes arbitrary error text and successful opens are not retried',async()=>{const events=[];await assert.rejects(restoreSavedProject(async()=>{throw Error('private file or account detail');},{onEvent:async e=>events.push(e)}));assert.deepEqual(events,[{state:'failed',attempt:1,error:'operation_failed'}]);let calls=0;assert.equal(await restoreSavedProject(async()=>{calls++;return 42;}),42);assert.equal(calls,1);});
+
+test('startup diagnostics cannot break a recovered project',async()=>{let calls=0;assert.equal(await restoreSavedProject(async()=>{if(++calls===1)throw Error('git_timeout');return 'ready';},{wait:async()=>{},onEvent:async()=>{throw Error('disk_full');}}),'ready');});

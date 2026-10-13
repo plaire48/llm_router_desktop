@@ -117,7 +117,7 @@ try{page=await app.firstWindow();page.setDefaultTimeout(10000);page.on('crash',(
  }catch(error){
  console.error('SHELL_FAILURE',lastAction,error.stack||String(error));
  await mkdir('verification',{recursive:true});
- const failure={action:lastAction,message:error.message,stack:error.stack,checks,pageErrors,appStderr};
+ const projectRestore=await readFile(path.join(storage,'last-project-restore.json'),'utf8').then(JSON.parse).catch(()=>null);console.error('PROJECT_RESTORE_DIAGNOSTIC',JSON.stringify(projectRestore));const failure={action:lastAction,message:error.message,stack:error.stack,checks,pageErrors,appStderr,projectRestore};
  await writeFile('verification/electron-shell-failure.json',JSON.stringify(failure,null,2));
  try{await page?.screenshot({path:'verification/electron-shell-failure.png',timeout:5000});}catch(captureError){console.log('FAILURE_CAPTURE_UNAVAILABLE',captureError.message);}
  try{console.log('SHELL_DIAGNOSTICS',JSON.stringify(await page?.locator('body').evaluate(()=>({viewport:{width:innerWidth,height:innerHeight},pane:document.querySelector('.desktop-pane')?.innerText,diffs:[...document.querySelectorAll('.desktop-git-diff')].map(node=>({text:node.textContent,rect:node.getBoundingClientRect().toJSON()}))}),null,{timeout:5000})));}catch(diagnosticError){console.log('FAILURE_DOM_UNAVAILABLE',diagnosticError.message);}
