@@ -1,20 +1,53 @@
-# Nubi Workspace Beta 1.1.3 release candidate
+# 누비 Workspace Beta 1.1.3 검증 결과
 
-## Changes
+## 반영한 개선
 
-- Agent transport communicates the actual host tool-batch limit and repairs rejected response structure before dispatch. Command continuation reuses only freshly hash-checked prerequisites and fully read skill instructions; each new command still requires its own approval.
-- Answer review receives registered source identities, decisive source guidance and process timestamps. Unknown citation identities are corrected through the existing bounded review loop rather than silently treated as valid.
-- Windows Claude discovery supports native, npm and WinGet install locations plus current user/system PATH entries. Official npm package metadata identifies its executable; legacy JavaScript entries use Node argv without a shell. Credentials and login remain owned by the installed Claude CLI. Installation, access failure and authentication remain different states.
-- Windows HITL uses real system notifications and the product question form. Beta excludes attachment body reading and external A2A/Computer Use.
+- Git 준비 확인은 실제 6초 지연 프로세스를 포함해 검증했다. 비동기 20초 범위를 쓰며 실패를 캐시하지 않고 시간 초과·권한 거부·파일 없음을 구분한다.
+- Windows의 공식 npm, 네이티브, WinGet Claude 설치와 현재 사용자/시스템 PATH를 탐색한다. 공식 npm 실행 파일을 검증하고 필요한 경우 Node에 직접 인자를 넘긴다. 설치, 실행 권한, 로그인 실패를 구분한다.
+- 잘못된 도구 응답은 실행 전에 수정 요청한다. 성공 명령 뒤 필요한 작은 참조 파일을 현재 해시로 재검증하고, 이미 읽은 스킬 지침을 같은 작업에서 이어 쓴다. 명령별 승인과 편집 권한 경계는 유지한다.
+- 최종 검토에 실제 출처 ID와 핵심 입력·정책·정정 근거를 전달한다. 존재하지 않는 인용은 기존 제한된 검토 경로에서 수정하며 임의 링크를 만들지 않는다.
+- 새 버전이 있으면 AI Workspace 바로 위에 원형 업데이트 아이콘을 표시한다. 최신 버전은 숨긴다. 다운로드 %, 크기 및 계산 가능한 남은 시간을 표시하고 무결성 확인 뒤 설치·재실행한다.
+- 프로젝트 메뉴가 관계없는 편집기 스크롤 때문에 닫히던 문제를 수정했다. 설치 화면은 진행 내역을 기본 표시하며 새 이미지, 사전 이용 안내, 실제 처리량 및 시간을 제공한다.
 
-## Evaluation boundary
+## 실제 모델 평가
 
-The completed matched hard-task comparison used 10 business scenarios across Bash, mail, skills and OpenWiki (40 tasks). Real ChatGPT GPT-5.6 Sol medium, fixed synthetic sources, macOS, one trial per case. Delivery improved from 22/40 to 40/40; source-audited pass improved from 20/40 to 33/40. Raw automatic pass was 18/40 to 32/40. This is not a general product score, real corporate mail test or repeat reliability result. Subsequent targeted retests are reported separately in HARD40-EVALUATION-2026-10-13.md.
+같은 고정 과제의 원문 대조 통과가 **20/40 → 39/40**으로 개선됐다. 자동 원점수는 **18/40 → 38/40**, 응답 전달은 **22/40 → 40/40**이다.
 
-## Release evidence
+| 영역 | 최종 자동 검사 | 최종 원문 대조 |
+|---|---:|---:|
+| Bash | 9/10 | 10/10 |
+| 메일 | 10/10 | 10/10 |
+| 스킬 | 10/10 | 10/10 |
+| OpenWiki | 9/10 | 9/10 |
 
-Pending final Windows build and installed-app verification. Do not treat this file as a successful release record until CI run, commit and checksum are filled in.
+실제 ChatGPT GPT-5.6 Sol medium으로 Mac의 합성 업무 자료를 사용했다. 10개 업무 시나리오를 네 경로에서 실행한 총 40문항이며 각 1회다. 대형 저장소, 수만 건의 메일, 실회사 계정이나 반복 신뢰도 성적이 아니다. 원문 감사자는 이 작업의 Codex이며 외부 사람 감사가 아니다.
 
-## Corporate deployment
+**남은 실패:** 위키 복구 문제에서 계산·출처는 맞지만 요청한 RESTORE 요약 행을 만들지 않았다. Bash의 자동 실패 1건은 올바른 `미확정(not_run)` 표현을 채점기가 인식하지 못한 오탐이다. 자동 점수는 변경하지 않았다. 긴 표, 중복 출처 목록, 불필요한 검증 불확실성 문구와 자료 검색은 개선 과제로 남는다. 일반 제품 품질 100점이나 완벽한 정확도로 표시하지 않는다.
 
-The build repository is private `plaire48/llm_router_desktop`. Internal publishing to `code.sdsdev.co.kr/Manufacturing-IT/nuri` must be performed on the company PC using `Publish-NubiUpdate.ps1`; `latest/windows-x64.json` is updated only after the uploaded EXE is downloaded and hash-verified. No source or credentials belong in that channel file.
+평가 해시 `6fc9e2da88fae9811856fca77c6bd9610252903a76e64b2005cfab3d25ade49a`. 평가 중 변경 없음. 이후 원형 버튼과 Windows Git 준비 확인 제한(5초→20초) 및 프로젝트 시작 시 일시적 Git 시간 초과의 1회 복구와 복사 알림의 상단 메뉴 겹침 수정을 반영했다. Agent 계획·실행·검토·제공자 코드는 평가 후보와 동일하며, 후속 Git 진단 변경은 실제 지연 프로세스 검사와 Windows 설치 검증으로 구분한다. 상세는 `HARD40-EVALUATION-2026-10-13.md`에 있다.
+
+## 로컬 회귀 검사
+
+- 최종 전체 단위 검사: 833개 통과, 실패 0개, 198개 명시적 건너뜀. 비활성 A2A/앱 조작 검사를 성공으로 세지 않았다.
+- 최종 업데이트 단위 검사 8건, 업데이트 화면 8건, 전체 화면 115건 통과.
+- 최종 Electron 빌드 및 디자인 기준 검사 통과. 복사 알림이 제목 표시줄을 가리지 않는 위치와 실제 버튼 클릭을 포함한 로컬 앱 22개 검사 통과.
+- UI 평가는 실제 Electron 렌더링과 합성 상태를 사용한다. 다운로드 서버나 실제 사내 계정 성공으로 확대 해석하지 않는다.
+
+## Windows 릴리즈 증거
+
+- 빌드 [38329192497](https://github.com/plaire48/llm_router_desktop/actions/runs/38329192497), 커밋 `698e3fa0fe1d2be4e36810b4460fd1806882b80f`, 전체 workflow 성공.
+- 실행 OS: Microsoft Windows Server 2025 Datacenter. Windows 11 사용자 PC 검증과 구분한다.
+- 공식 npm Claude Code 2.1.296 탐색 통과: 상속된 npm PATH 없이 실행, 한글·공백 경로, 인자 보존. 실제 Claude 로그인·답변은 이 Windows 검사에 포함하지 않았다.
+- 실제 설치본 앱 검사 24개, 프로젝트/출처/전환/재시작 보존 8개 통과. PowerShell 한글·변수·입력 대기·Ctrl+C·복사 및 알림과 상단 메뉴 겹침을 검사했다.
+- 1.1.2 → 1.1.3 업그레이드, 실행, 재설치·재실행, 무인 업데이트·재실행, 제거 모두 통과. 시스템 Git을 PATH에서 제외해 번들 Git으로 검사했다.
+- 이 CI의 업그레이드 34.2초, 재설치 25.1초, 제거 5.0초. 마침 이후 앱 창 3.9초. 사용자 PC의 예상 시간을 보장하는 값이 아니다.
+- 상세 내역 기본 표시, 이용 안내, 이전 설치 정리 중 시간 갱신, 실제 파일 풀기 % 및 추정 남은 시간, 누비 새 이미지 확인.
+- EXE: `Nubi-Workspace-beta-1.1.3-x64-Setup.exe`, 166,392,192 bytes (약 158.7 MiB).
+- SHA-256: `459b8d78a93082c1cd2e926df5f392e7eb72a6106335b7aa93e0515e180799f0`. 릴리즈에서 내려받은 EXE와 첨부된 해시 일치.
+- 공인 서명: 없음 (`NotSigned`). 설치 이미지와 JSON 원본 보고서를 릴리즈에 첨부했다.
+
+## 지원 범위와 배포
+
+Windows x64 Beta. 첨부파일 본문 읽기와 외부 A2A/Computer Use는 비활성이다. 공인 코드 서명이 없다. 회사 SSO/POP3, Office2016/NASCA 및 사용자 Windows11 PC의 실계정 검증은 별도다.
+
+비공개 GitHub `plaire48/llm_router_desktop`에 게시한다. 사내 `Manufacturing-IT/nuri` 업로드는 사내 PC에서 수행한다. EXE는 버전별 Release, `latest/windows-x64.json`은 현재 배포 정보다. 함께 제공한 `Publish-NubiUpdate.ps1`이 업로드 후 다시 다운로드해 해시를 대조한 다음 채널을 갱신한다. 자세한 절차는 `INSTALL-AND-UPDATE-1.1.3.md`와 `WINDOWS-UPDATE-DEPLOYMENT.md`를 따른다.

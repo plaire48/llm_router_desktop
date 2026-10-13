@@ -1,6 +1,6 @@
 # 고난도 40문항 실모델 평가
 
-상태: 기준선 40문항 완료, 개선판 재측정 준비.
+상태: 기준선, 2차 후보, 최종 1.1.3 Agent 후보 각각 40문항 완료. 최종 응답 전달 40/40, 자동 통과 38/40, 원문 대조 후 39/40. 아래 33/40은 이전 후보 성적이다.
 
 ## 기준선 결과
 
@@ -80,3 +80,24 @@ Seven remaining source-audit failures: mail-02/03/06 and wiki-01/02/06/07. Most 
 The third candidate tested 10 selected cases: all seven previous failures plus Bash command continuation, a skill control and the restore-synonym case. Candidate remained unchanged. Nine passed, including the invented Wiki citation and GPU correction; mail-06 still omitted the paid-ledger and version-selection policy links despite correct totals. This is a 9/10 targeted result, not a replacement 40-task score. Extra unrelated caveats and repeated prose still occur.
 
 The next candidate gives material source coverage an explicit independent review requirement, instead of burying it inside a general request check. This follows the observed mail-06 omission. Windows Claude discovery and unrelated-scroll menu fixes are included separately and require their own host/UI tests.
+
+## 최종 1.1.3 후보 전체 40문항
+
+| 영역 | 기준선 원문 대조 | 최종 자동 검사 | 최종 원문 대조 | 응답 전달 |
+|---|---:|---:|---:|---:|
+| Bash | 9/10 | 9/10 | 10/10 | 10/10 |
+| 메일 | 0/10 | 10/10 | 10/10 | 10/10 |
+| 스킬 | 10/10 | 10/10 | 10/10 | 10/10 |
+| OpenWiki | 1/10 | 9/10 | 9/10 | 10/10 |
+| 합계 | 20/40 | 38/40 | 39/40 | 40/40 |
+
+최종 Agent 후보 해시 `6fc9e2da88fae9811856fca77c6bd9610252903a76e64b2005cfab3d25ade49a`(476파일). 평가 동안 변경 없음. 동일 모델과 고정 벤치마크로 먼저 3문항을 실행한 뒤 같은 결과 폴더에서 나머지 37문항을 재개했다. 디렉터리 이름에 targeted가 남아 있지만 최종 결과는 전체 40문항이다.
+
+- 자동 실패 bash-09: 요청한 RESTORE 행과 계산은 맞고 업무 정상성 `미확정(not_run)`은 유효한 표현이다. 채점기의 동의어 오탐이므로 자동 점수는 유지하고 감사에서만 통과로 구분했다.
+- **실제 실패 wiki-09:** 최신 체인 B1→I1, 13:55, RPO17분, 목표 미충족과 미확정 정상성은 맞지만 요청한 RESTORE 요약 행 대신 백업 ID별 표를 작성했다. 요청 형식 미준수로 실패를 유지한다.
+- 메일과 위키의 핵심 입력·정책·정정 출처 누락 및 허위 출처 ID 문제는 이 최종 회차에서 재발하지 않았다. 반복 신뢰도나 모든 입력에 대한 보장은 아니다.
+- 긴 출처 대응 목록, 넓은 표, 승인된 순차 실행도 미확인이라고 덧붙이는 설명이 남았다. wiki-10에는 불필요한 Personal 메일 검색까지 있었다. 가독성과 검색 효율은 완성으로 표시하지 않는다.
+
+주 모델584회, 위임65회. Bash 모델 호출은289→204회로 줄었지만 완료시간 중앙값은227.5→245초로 늘었다. 호출 감소를 속도 개선으로 주장하지 않는다. 전체 기준선은18문항을 조기 실패했으므로 전체 소요시간 평균으로 성능을 비교하지 않는다.
+
+근거: `verification/eval-live/hard40-v4-targeted-20261013/report.json`, `source-audit.json`, `diagnostics.json`, `comparison.json`. 자동 원점수와 원문 감사를 분리하여 보존했다. 평가 후 원형 업데이트 버튼, 설치 검사와 Windows Git 준비 확인 제한(5초→20초) 및 프로젝트 시작 시 일시적 Git 시간 초과의 1회 복구을 반영했다. Agent 계획·실행·검토·제공자 코드는 유지했다. 후속 Git 진단 수정은 별도 회귀와 Windows 설치 검사로 검증하며 40문항 재측정으로 표시하지 않는다. Windows 검사와 합성 입력 기반 Mac 실모델 평가는 별도다.

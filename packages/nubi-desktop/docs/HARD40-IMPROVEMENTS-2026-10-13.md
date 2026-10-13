@@ -37,3 +37,19 @@
 The completed second candidate delivered 40/40 and passed source audit on 33/40 (raw automatic 32/40). Candidate wiki-06 invented a citation identity, while the previous finalizer only marked it unresolved. The release candidate routes this defect through the existing bounded review before delivery. The reviewer receives the actual observed citation registry, and asks for missing decisive inputs and rules together. Failed repair remains an unresolved review, never successful evidence. The UI warning remains as the final boundary.
 
 Completed process receipts now include real start/finish timestamps. Revalidated command prerequisites and skill instructions reach the review as well as the actor; neither grants new execution or editing authority. These changes address false requests to repeat known reads or to prove command order with absent timestamps. No new framework or dependency was added.
+
+## Release verification update
+
+The source repair candidate's targeted 10-case retest passed 9. Mail-06 retained missing decisive links; this prompted an explicit `host:sources` review requirement rather than more general system-prompt text. Targeted retests do not revise the recorded full 40-case score.
+
+Latest complete unit run: 1023 total, 825 passed, 0 failed, 198 explicit skips. Build and design identity passed. Actual native project navigation passed 8 checks after correcting a production popover bug: editor scroll events were dismissing unrelated project menus. Window-state testing now selects bounds within the actual display work area and still requires exact saved/restored equality, rather than assuming a 700px height fits every host display.
+
+## 최종 감사에서 남은 과제
+
+실행 결과와 인용이 맞는 답변에도 넓은 표, 출처 전체 목록, 이미 확인한 순서를 다시 미확인이라고 쓰는 보조 문장이 남았다. 위키 복구 문제는 정확한 최신 체인과 RPO를 제시했지만 요청한 RESTORE 요약 행을 만들지 않았다. 이 실패는 동의어 채점 오탐과 분리하며 성공으로 바꾸지 않는다.
+
+다음 개선에서는 요청된 행과 열, 실제 승인 및 실행 영수증, 필수 근거를 별도 완료 계약으로 검증한다. 요약 행을 우선 표시하고 다른 후보와 원본 대응 목록은 필요할 때 펼치는 방식으로 다룬다. 간결함을 위해 정책·정정 출처를 제거하지 않는다. 이 문단은 후속 과제이며 현재 릴리즈에 구현됐다는 뜻이 아니다.
+
+## 최종 설치 안정성 회귀
+
+최종 전체 단위 검사는1,031건 중 833개 통과,실패 0개,198개 명시적 건너뜀이다. 원형 업데이트 화면 8건, 전체 화면 115건과 최종 Electron 프로젝트 전환8건을 통과했다. Windows 초기 Git 준비 확인을 비동기 20초로 맞추고, 시작 시 `git_timeout`만 1회 재시도한다. 권한 오류와 미확정 worker 오류는 재시도하지 않고, 대기 중 새로 선택한 프로젝트를 덮어쓰지 않는다. 오류 진단 저장 실패도 정상 복원을 깨뜨리지 않는다. 실제 6초 지연 프로세스와 오류/경합 회귀를 따로 검사했다. 이 플랫폼 후속 수정은 앞의40문항 재측정으로 표시하지 않는다.
