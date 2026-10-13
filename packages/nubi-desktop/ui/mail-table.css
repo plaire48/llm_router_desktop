@@ -3,8 +3,8 @@
 .desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-history-detail { display:block; flex:1 0 240px; min-height:240px; max-height:none; overflow:visible; margin-top:16px; padding:16px 0 0; border:0; border-top:1px solid var(--deck-line); border-radius:0; }
 .desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-results { display:block; overflow:auto; min-height:100px; max-height:clamp(200px,34vh,440px); padding:0; border:1px solid var(--deck-line); border-radius:var(--nubi-work-control-radius); }
 .desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-search { overflow:visible; gap:8px; }
-.desktop-shell .nubi-mail-table { border-collapse:separate; border-spacing:0; width:100%; min-width:840px; table-layout:fixed; color:var(--nubi-text-primary); font:var(--deck-font-body); }
-.nubi-mail-table .mail-check-col { width:48px; }.nubi-mail-table .mail-subject-col { width:auto; }.nubi-mail-table .mail-sender-col { width:27%; }.nubi-mail-table .mail-role-col { width:88px; }.nubi-mail-table .mail-date-col { width:172px; }
+.desktop-shell .nubi-mail-table { border-collapse:separate; border-spacing:0; width:100%; min-width:920px; table-layout:fixed; color:var(--nubi-text-primary); font:var(--deck-font-body); }
+.nubi-mail-table .mail-check-col { width:48px; }.nubi-mail-table .mail-subject-col { width:auto; }.nubi-mail-table .mail-sender-col { width:27%; }.nubi-mail-table .mail-role-col { width:132px; }.nubi-mail-table .mail-date-col { width:200px; }
 .desktop-shell .nubi-mail-table th { position:sticky; top:0; z-index:1; background:var(--nubi-surface-base); border-bottom:1px solid var(--deck-line); color:var(--nubi-text-secondary); text-align:left; font-weight:500; }
 .desktop-shell .nubi-mail-table :is(th,td) { padding:8px 12px; vertical-align:middle; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; height:48px; }
 .desktop-shell .nubi-mail-table :is(th,td):first-child { padding-inline:12px; }

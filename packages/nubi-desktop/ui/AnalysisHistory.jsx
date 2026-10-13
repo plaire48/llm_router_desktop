@@ -4,6 +4,7 @@ import {mergeRoleHistory} from './analysis-history-state.mjs';
 import React, {useEffect, useRef, useState} from 'react';
 import {CxButton, Icon} from '@e2e/cx-design-system';
 import {DocumentAnalysisProgress} from './DocumentAnalysisProgress.jsx';
+import {ResponseTime} from './ResponseTime.jsx';
 
 const labels = {analysis_research:'자료 조사',analysis_review:'독립 검토',analysis_recovery:'실패 원인 확인',analysis_page:'화면 근거 분석'};
 const sourceLabels={read_personal_mail:'메일 원문과 개인 위키',personal_mail_query:'메일 검색 결과',ask_openwiki:'프로젝트 위키 조사',read_process_output:'실행 기록',read_computer_result:'앱 동작 결과',observe_computer:'앱 화면',read_source:'소스 원문',wiki_query:'위키 조회',analyze_documents:'문서 분석',read_document_analysis:'저장된 문서 분석'};
@@ -22,7 +23,7 @@ function RoleProgress({analysis,taskRunning,showWork=false}) {
     <details open={open} onToggle={event=>{if(event.target===event.currentTarget&&event.currentTarget.open!==open)setExpanded(event.currentTarget.open);}}>
       <summary className="nubi-document-progress-heading" aria-label="분담과 결과"><Icon name="layers" size={18}/><strong>{showWork?'서브에이전트':running?'역할을 나눠 확인하고 있어요':states[analysis.state]||'응답 미확인'}</strong><span title={`응답 ${received}/${workers.length}`}>{showWork&&!running&&analysis.state!=='complete'&&states[analysis.state]?states[analysis.state]:`응답 ${received}/${workers.length}`}</span><Icon name="chevronDown" size={14}/></summary>
       <ol>{workers.map((worker,index)=><li key={worker.id} data-tool={worker.tool} data-status={worker.status}>
-        <div className="nubi-document-worker-heading"><strong><Icon name={worker.tool==='analysis_review'?'check':'search'} size={16}/>{labels[worker.tool]||'하위 분석'} {index+1}</strong><span>{running&&worker.status==='running'&&<span className="status-spinner" aria-hidden="true"/>}{status(worker)}</span></div>
+        <div className="nubi-document-worker-heading"><strong><Icon name={worker.tool==='analysis_review'?'check':'search'} size={16}/>{labels[worker.tool]||'하위 분석'} {index+1}</strong><span>{running&&worker.status==='running'&&<><span className="status-spinner" aria-hidden="true"/><ResponseTime timing={{startedAt:worker.startedAt||worker.at}} live showIcon={false} label="" title="이 분석의 경과 시간"/></>}{status(worker)}</span></div>
         {worker.analysis?.task&&<p className="nubi-document-question">{worker.analysis.task}</p>}
         {worker.analysis?.delivered&&['partial','blocked'].includes(worker.analysis?.outcome)&&<small>메인에 전달됨</small>}
         {(worker.analysis?.uncertainties?.length>0||worker.analysis?.nextStep||worker.analysis?.error)&&<div className="nubi-document-attention" aria-label="남은 확인"><strong>남은 확인</strong>

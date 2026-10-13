@@ -13,7 +13,7 @@ import {AgentMark} from '../../../extensions/aipro-chat/src/AgentMark.jsx';
 import './nubi-preparing.css';
 import './mail-body.css';
 const labels=DESKTOP_PROVIDER_LABELS;
-const errors={mail_input_invalid:'아이디와 비밀번호를 확인해 주세요.',mail_model_missing:'정리할 모델을 먼저 선택해 주세요.',mail_model_changed:'선택한 모델의 연결을 확인해 주세요.',mail_check_wait:'다음 확인 시간이 되면 새 메일을 가져와요.',mail_busy:'진행 중인 작업이 끝난 뒤 다시 눌러 주세요.',mail_not_connected:'메일 계정을 먼저 연결해 주세요.',mail_source_changed:'보관한 원문이 바뀌었어요. 원문을 확인해 주세요.',mail_summary_failed:'메일을 정리하는 중 모델 응답을 받지 못했어요. 다시 시도해 주세요.',mail_storage_failed:'정리한 내용을 저장하지 못했어요. 저장 공간을 확인한 뒤 다시 시도해 주세요.',mail_file_conflict:'정리한 메일 파일이 바뀌어 저장하지 않았어요. 다시 정리해 주세요.',mail_size_limit:'메일이 너무 커요. 11 MB까지 처리할 수 있어요.',mail_missing:'메일을 찾을 수 없어요. 목록을 새로고침해 주세요.'};
+const errors={mail_identity_invalid:'본인 메일 주소를 확인해 주세요.',mail_input_invalid:'아이디와 비밀번호를 확인해 주세요.',mail_model_missing:'정리할 모델을 먼저 선택해 주세요.',mail_model_changed:'선택한 모델의 연결을 확인해 주세요.',mail_check_wait:'다음 확인 시간이 되면 새 메일을 가져와요.',mail_busy:'진행 중인 작업이 끝난 뒤 다시 눌러 주세요.',mail_not_connected:'메일 계정을 먼저 연결해 주세요.',mail_source_changed:'보관한 원문이 바뀌었어요. 원문을 확인해 주세요.',mail_summary_failed:'메일을 정리하는 중 모델 응답을 받지 못했어요. 다시 시도해 주세요.',mail_storage_failed:'정리한 내용을 저장하지 못했어요. 저장 공간을 확인한 뒤 다시 시도해 주세요.',mail_file_conflict:'정리한 메일 파일이 바뀌어 저장하지 않았어요. 다시 정리해 주세요.',mail_size_limit:'메일이 너무 커요. 11 MB까지 처리할 수 있어요.',mail_missing:'메일을 찾을 수 없어요. 목록을 새로고침해 주세요.'};
 Object.assign(errors,{mail_gmail_app_password_required:'Google이 앱 비밀번호를 요구했어요. 계정 비밀번호 대신 앱 비밀번호를 입력해 주세요.',mail_gmail_web_login_required:'Google에서 웹 로그인을 확인해야 해요. Gmail에 로그인한 뒤 다시 연결해 주세요.',mail_gmail_pop_disabled:'Google이 POP 사용이 꺼져 있다고 응답했어요. Gmail의 POP 설정을 확인해 주세요.',mail_gmail_credentials_invalid:'Google이 주소 또는 앱 비밀번호를 거절했어요. 앱 비밀번호를 발급한 계정과 Gmail 주소가 같은지 확인해 주세요.'});
 const modelKey=value=>value?`${value.provider}:${value.model}`:'';
 Object.assign(errors,{mail_storage_permission:'로그인은 확인했지만 개인 메일 폴더 권한을 설정하지 못했어요. PC 보안 정책이나 저장 위치 권한을 확인해 주세요.'});
@@ -41,6 +41,7 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
   const [status,setStatus]=useState(null),[user,setUser]=useState(''),[password,setPassword]=useState(''),[busy,setBusy]=useState(false),[chosen,setChosen]=useState('');
   const [modelOpen,setModelOpen]=useState(false),[connectionError,setConnectionError]=useState(null),[passwordRevision,setPasswordRevision]=useState(0);
   const [formStage,setFormStage]=useState(0),[settingsRevealed,setSettingsRevealed]=useState(false);
+  const [recipientAddress,setRecipientAddress]=useState('');
   const passwordInput=useRef(null);
   const modelSummary=useRef(null);
   const alive=useRef(true),pending=useRef(null),lock=useRef(false),cancelledConnect=useRef(false);
@@ -72,7 +73,7 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
   }
   async function connect(event){
     event.preventDefault();if(connectionBusy||!userReady||!passwordReady)return;setConnecting(true);onConnectionBusy?.(true);setConnectionError(null);cancelledConnect.current=false;try{await act(async()=>{const normalizedPassword=mailPassword(selectedServer,password),requestId=crypto.randomUUID();pending.current=requestId;
-      try{const value=await api('mail',{action:'connect',requestId,user,password:normalizedPassword,serverProfile:selectedServer,destination:destination?{provider:destination.provider,model:destination.model}:null});if(alive.current){setPassword('');if(value?.connected)notifyWorkspaceToast(gmailTest?'Gmail을 연결했어요.':'메일을 연결했어요.',{success:true});}return value;}finally{pending.current=null;if(alive.current){setPassword('');setPasswordRevision(value=>value+1);}}});}finally{if(alive.current)setConnecting(false);}
+      try{const value=await api('mail',{action:'connect',requestId,user,password:normalizedPassword,serverProfile:selectedServer,recipientAddress:recipientAddress.trim()||(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.trim())?user.trim():undefined),destination:destination?{provider:destination.provider,model:destination.model}:null});if(alive.current){setPassword('');if(value?.connected)notifyWorkspaceToast(gmailTest?'Gmail을 연결했어요.':'메일을 연결했어요.',{success:true});}return value;}finally{pending.current=null;if(alive.current){setPassword('');setPasswordRevision(value=>value+1);}}});}finally{if(alive.current)setConnecting(false);}
   }
   async function cancelConnection(){
     cancelledConnect.current=true;
@@ -121,9 +122,16 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
       </form>:null}
       {failure&&<details className="nubi-mail-connection-error" key={connectionCode}>
         <summary><Icon name="alertCircle" size={16}/><strong role="status" title={failure.title}>{failure.title}</strong><Icon name="chevronDown" size={16}/></summary>
-        <p>{failure.detail}</p><div className="nubi-mail-error-code"><code>{connectionCode}</code><CopyButton label="연결 오류 복사" text={mailConnectionDiagnostic(connectionCode)}/></div>
+        <p>{failure.detail}</p><div className="nubi-mail-error-code"><code>{connectionCode}</code><CopyButton label="연결 오류 복사" text={mailConnectionDiagnostic(connectionCode,status?.protocol||'pop3')}/></div>
       </details>}
     </section>
+    {status?.connected&&<details className="nubi-mail-help nubi-mail-identity" open={!status.identityConfigured}>
+      <summary><PersonMark size={16}/>수신 구분</summary>
+      <form onSubmit={event=>{event.preventDefault();void act(()=>api('mail',{action:'setIdentity',address:recipientAddress}));}}>
+       <label htmlFor="nubi-recipient-address">본인 메일 주소</label><div><CxInput id="nubi-recipient-address" type="email" placeholder="메일 주소" value={recipientAddress} disabled={connectionBusy} onChange={event=>setRecipientAddress(event.target.value)} autoComplete="off" maxLength={320}/><CxButton type="submit" disabled={connectionBusy||!recipientAddress.trim()}>적용</CxButton></div>
+       <small className="nubi-muted">주소를 기준으로 수신과 참조를 구분해요. 비밀참조는 원문에 있을 때 표시해요.</small>
+      </form>
+    </details>}
     {showSettings&&<><section className="nubi-mail-section nubi-mail-organize" aria-label="자동 정리 설정"><div className="nubi-mail-switch-row"><div>{sectionTitle('sliders','자동 정리')}<small>끄면 새 수집과 정리를 멈춰요.</small></div>
       <button type="button" role="switch" aria-label="메일 자동 정리" aria-checked={autoWiki} className="nubi-ios-switch" disabled={connectionBusy||!status} onClick={()=>act(()=>api('mail',{action:'setAutoWiki',enabled:!autoWiki,destination:destination?{provider:destination.provider,model:destination.model}:null}))}><span aria-hidden="true"/></button>
     </div><details className="nubi-mail-help"><summary>수집 범위</summary><p>다시 켜면 서버에 남은 미수신 메일과 첨부를 가져와요. 기존 자료는 보존해요.</p></details></section>

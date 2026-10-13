@@ -26,7 +26,7 @@ export function AnswerSources({message,onOpen}) {
     </CxButton>;
   };
   return <div className="nubi-answer-sources" aria-label="답변 근거">
-    {!!cited.length&&<div className="nubi-cited-sources"><span className="nubi-source-label">원문 출처</span>{cited.map(row)}</div>}
+    {!!cited.length&&<div className="nubi-cited-sources"><span className="nubi-source-label"><Icon name="file" size={14}/>원문 출처</span>{cited.map(row)}</div>}
     {!!consulted.length&&<details><summary><Icon name="file" size={13}/>참고 자료 {consulted.length}개<Icon name="chevronDown" size={12}/></summary><div className="nubi-consulted-sources">{consulted.map(row)}</div></details>}
     {message.unresolvedCitations&&<small className="nubi-muted">확인하지 못한 출처가 있어요.</small>}
   </div>;

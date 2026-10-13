@@ -8,7 +8,8 @@ export async function submitTaskMessage(api,{taskId,text,mailReferences=[],input
     const state=await api('state',{taskId});onState(state);
     const task=state.tasks?.find(item=>item.id===taskId);
     if(task?.question)throw Error('question_pending');
-    if(task?.state!=='running'||!task.checkpoint?.runId||task.replyRegeneration?.state==='running')throw error;
-    return api('agentInput',{taskId,action:'enqueue',runId:task.checkpoint.runId,id:inputId,text,mode:'queue',mailReferences});
+    const runId=task?.responseTiming?.runId||task?.checkpoint?.runId;
+    if(task?.state!=='running'||!runId)throw error;
+    return api('agentInput',{taskId,action:'enqueue',runId,id:inputId,text,mode:'queue',mailReferences});
   }
 }

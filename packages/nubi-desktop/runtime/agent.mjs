@@ -658,10 +658,15 @@ export function installAgent(ProjectService) {
           const citations=rows.map(row=>{const entry=delivered.evidence?.find(item=>item.id===row.openwikiId);if(!entry?.excerpt)return null;const offset=entry.excerptTruncated?Math.max(0,entry.excerptStart-(result.evidence.find(item=>item.id===row.openwikiId)?.start||0)):0;const start=row.provenance.start+row.excerpt.slice(0,offset).split('\n').length-1;return answerSources.file({...row,excerpt:entry.excerpt,provenance:{...row.provenance,start,end:start+entry.excerpt.split('\n').length-1}},'wiki');}).filter(Boolean);
           const sourced=citations.length?{...delivered,citations}:delivered;
           spent+=contextTokens([{role:'tool',content:JSON.stringify(sourced)}]);return sourced;
-        }, stepwise:true, harness:false, clarifyOnStall:true, compactProgress:true, readTogether:READ_TOGETHER,
+        }, stepwise:true, harness:false, clarifyOnStall:true, compactProgress:true, readTogether:READ_TOGETHER, traceErrorCodes:['input_invalid','path_scope','search_unavailable','source_missing','source_unavailable','tool_arguments_invalid','tool_timeout','project_changed','search_scope'],
       completeAnalysis: reviewRecovery?undefined:(wire, definitions, scope) => {researchBudget.admit(scope,wire);return invokeModel(wire, definitions, scope.signal, 'analysis');},
       verbatimTools:['wiki_query','ask_openwiki'], verbatimMaxChars:WIKI_VERBATIM_CHARS,
-      prepareContext: async (wire,definitions) => {lastSource=structuredClone(wire);const advertised=commandTools(requestCommand,toolSet.advertised(definitions));return reobserve(await fitted(wire,false,reviewRecovery?reviewRecoveryTools(advertised):advertised));}, onStep: event => { const entry={...event,runId,id:runId+':'+round+':'+event.index,at:new Date().toISOString()};saveRoleProgress(this.store,taskId,runId,entry);const at=task.trace.findIndex(item=>item.id===entry.id);if(at<0)task.trace=[...task.trace.slice(-79),entry];else task.trace=task.trace.map((item,index)=>index===at?entry:item); persistTask(); },
+      prepareContext: async (wire,definitions) => {lastSource=structuredClone(wire);const advertised=commandTools(requestCommand,toolSet.advertised(definitions));return reobserve(await fitted(wire,false,reviewRecovery?reviewRecoveryTools(advertised):advertised));}, onStep: event => {
+        const id=runId+':'+round+':'+event.index,at=new Date().toISOString(),previous=task.trace.find(item=>item.id===id);
+        const startedAt=previous?.startedAt||(event.status==='running'?at:undefined);
+        const entry={...event,runId,id,at,...(startedAt?{startedAt}:{})};saveRoleProgress(this.store,taskId,runId,entry);
+        const index=task.trace.findIndex(item=>item.id===id);if(index<0)task.trace=[...task.trace.slice(-79),entry];else task.trace=task.trace.map((item,i)=>i===index?entry:item);persistTask();
+      },
       onDiagnostic: diagnostic => {if(diagnostic?.phase==='tool_result'&&diagnostic.error==='tool_arguments_invalid')this.store.event('agent_tool_schema_rejected',{taskId,tool:diagnostic.tool,issues:diagnostic.issues||[]});},
       onRound: () => { this.store.event('agent_round', {taskId}); }
     });}});}).then(result => {

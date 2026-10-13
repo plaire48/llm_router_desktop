@@ -22,7 +22,7 @@ class ElectronHost{
   constructor({keyStore,invoke,helperPath,fetcher,avatarFetcher,openBrowser=missingWorkspaceBrowser,confirmWorkspaceSave,platform=process.platform,spawnProcess=spawn}){
     this.invoke=invoke;this.helperPath=helperPath;this.platform=platform;this.spawnProcess=spawnProcess;this.repositories=new Map();this.children=new Set();
     this.confirmWorkspaceSave=confirmWorkspaceSave;
-    this.account=new GhesAccount({fetcher,avatarFetcher,openExternal:openBrowser,copyCode:async()=>{},
+    this.account=new GhesAccount({fetcher,avatarFetcher,cacheAvatars:true,openExternal:openBrowser,copyCode:async()=>{},
       secrets:{get:key=>keyStore.getPassword(SECRET_SERVICE,key),store:(key,value)=>keyStore.setPassword(SECRET_SERVICE,key,value),delete:key=>keyStore.deletePassword(SECRET_SERVICE,key)},
       onInvalidated:async()=>{this.workspace?.close();this.workspace=null;this.wikis?.cancel();this.repositories.clear();for(const child of this.children)child.kill();await invoke('disconnectSkillMarketplace').catch(()=>{});}});
   }

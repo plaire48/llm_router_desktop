@@ -51,11 +51,37 @@ test('redo replaces the answer and performs fresh tool work while retaining prio
 test('redo preflight failure preserves original answer and approval guards',async t=>{
  const {service}=await fixture(t);service.providers={status,dispose(){},complete:async()=>reply('unused')};
  const task=await service.createTask({request:'다시 확인'});service.store.set('task:'+task.id,{...task,state:'review',messages:[{id:'old',role:'assistant',content:'보존할 답변'}]});
- service.store.set('proposal:pending',{id:'pending',taskId:task.id,state:'proposed'});
+ service.store.set('proposal:pending',{id:'pending',taskId:task.id,state:'starting'});
  await assert.rejects(service.regenerateAnswer({taskId:task.id,messageId:'old'}),/approval_pending/);service.store.delete('proposal:pending');
  service.startAgent=async()=>{throw Error('provider_missing');};
  await assert.rejects(service.regenerateAnswer({taskId:task.id,messageId:'old'}),/provider_missing/);
  assert.equal(service.task(task.id).messages.at(-1).content,'보존할 답변');assert.equal(service.store.list('answer-revision:').length,0);
+});
+
+test('redo replaces only this answer’s unapproved proposals and restores them if admission fails',async t=>{
+ const {service}=await fixture(t);service.providers={status,dispose(){},complete:async()=>reply('새 답변')};
+ const task=await service.createTask({request:'다시 확인'});service.store.set('task:'+task.id,{...task,state:'review',messages:[{id:'old',role:'assistant',content:'이전 답변'}]});
+ const pending={id:'pending',taskId:task.id,state:'proposed',path:'app.txt'};
+ service.store.set('proposal:pending',pending);service.store.set('setup-action:pending-command',{id:'pending-command',taskId:task.id,state:'proposed'});
+ service.store.set('proposal:other',{id:'other',taskId:'other-task',state:'proposed'});service.store.set('proposal:applied',{id:'applied',taskId:task.id,state:'applied'});
+ const set=service.store.set.bind(service.store);let failWrite=true;
+ service.store.set=(key,value)=>{if(failWrite&&key==='setup-action:pending-command'&&value.state==='superseded'){failWrite=false;throw Error('fixture_storage_failed');}return set(key,value);};
+ await assert.rejects(service.regenerateAnswer({taskId:task.id,messageId:'old'}),/fixture_storage_failed/);
+ assert.deepEqual(service.store.get('proposal:pending'),pending);assert.equal(service.store.list('answer-revision:').length,0);assert.equal(service.task(task.id).messages.at(-1).content,'이전 답변');
+ const start=service.startAgent;service.startAgent=async()=>{throw Error('provider_missing');};
+ await assert.rejects(service.regenerateAnswer({taskId:task.id,messageId:'old'}),/provider_missing/);
+ assert.deepEqual(service.store.get('proposal:pending'),pending);assert.equal(service.store.get('setup-action:pending-command').state,'proposed');assert.equal(service.task(task.id).messages.at(-1).content,'이전 답변');
+ service.startAgent=start;await service.regenerateAnswer({taskId:task.id,messageId:'old'});await service.agentForTask(task.id).promise;
+ assert.equal(service.store.get('proposal:pending').state,'superseded');assert.equal(service.store.get('setup-action:pending-command').state,'superseded');assert.equal(service.store.get('proposal:other').state,'proposed');assert.equal(service.store.get('proposal:applied').state,'applied');
+ assert.equal(service.store.list('process:').length,0);assert.equal(service.task(task.id).messages.at(-1).content,'새 답변');assert.equal(service.store.list('answer-revision:')[0].supersededActions.length,2);
+});
+
+test('redo identifies a running shell without erasing its receipt or old answer',async t=>{
+ const {service}=await fixture(t);service.providers={status,dispose(){},complete:async()=>reply('unused')};
+ const task=await service.createTask({request:'결과 확인'});service.store.set('task:'+task.id,{...task,state:'review',messages:[{id:'old',role:'assistant',content:'보존할 답변'}]});
+ const receipt={id:'executing',taskId:task.id,state:'running',script:'approved command'};service.store.set('process:executing',receipt);
+ await assert.rejects(service.regenerateAnswer({taskId:task.id,messageId:'old'}),/regeneration_process_active/);
+ assert.deepEqual(service.store.get('process:executing'),receipt);assert.equal(service.task(task.id).messages.at(-1).content,'보존할 답변');assert.equal(service.store.list('answer-revision:').length,0);
 });
 
 

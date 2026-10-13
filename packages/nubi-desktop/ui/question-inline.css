@@ -1,4 +1,4 @@
-.nubi-question-inline { width:100%; min-width:0; margin-block:var(--cx-space-3,12px); padding:var(--cx-space-4,16px); border:0; border-radius:var(--nubi-work-control-radius,16px); background:var(--nubi-surface-base,#fff); }
+.nubi-question-inline { width:100%; min-width:0; margin-block:var(--cx-space-3,12px); padding:var(--cx-space-4,16px); border:0; border-radius:var(--nubi-work-control-radius,16px); background:var(--nubi-surface-base); }
 .nubi-question-inline>.nubi-question-caption { margin-bottom:var(--cx-space-3,12px); }
 .nubi-question-inline .question-card { border:0; box-shadow:none; background:transparent; padding:0; }
 .nubi-question-inline .question-option-copy { min-width:0; }

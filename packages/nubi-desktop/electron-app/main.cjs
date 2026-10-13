@@ -77,7 +77,7 @@ async function openProject(root,kind='project',{initializeWiki=true,exactRoot=fa
  return overview;
  }finally{openingProject=false;}
 }
-const forbidden=new Set(['prepareAppUpdate','open','importSkill','connectSkillMarketplace','disconnectSkillMarketplace','initializeWiki','collaboration']);
+const forbidden=new Set(['projectActivity','prepareAppUpdate','open','importSkill','connectSkillMarketplace','disconnectSkillMarketplace','initializeWiki','collaboration']);
 app.whenReady().then(async()=>{
  if(!primary)return;
  const appIcon=path.join(__dirname,'nubi-icon.png');
@@ -182,7 +182,7 @@ app.whenReady().then(async()=>{
   if(method==='startConversation'){const root=path.join(storage,'conversations');await mkdir(root,{recursive:true});return await openProject(root,'conversation');}
   if(method==='projectCatalog'){
    if(args.action==='rename')return await projectCatalog.rename(args.id,args.name);
-   if(args.action==='remove'){if((await projectCatalog.list()).some(project=>project.id===args.id&&project.root===currentRoot))throw Error('project_active');return await projectCatalog.remove(args.id);}
+   if(args.action==='remove'){if((await projectCatalog.list()).some(project=>project.id===args.id&&project.root===currentRoot)||(await invoke('projectActivity',{projectId:args.id})).active)throw Error('project_active');return await projectCatalog.remove(args.id);}
    if(args.action&&args.action!=='list')throw Error('method_invalid');
    return await projectCatalog.list();
   }

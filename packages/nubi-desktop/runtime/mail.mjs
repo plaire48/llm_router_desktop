@@ -16,8 +16,8 @@ import {modelTransport} from './recovery.mjs';
 import {synthesizePersonalMail,retrieveWikiEvidence,resolveOpenWikiHomeDir} from '../generated/openwiki.mjs';
 
 const sha=value=>createHash('sha256').update(value).digest('hex'),now=()=>new Date().toISOString();
-const servers=Object.freeze({company:Object.freeze({host:'pop3.samsung.net',port:995,tls:true}),gmail_test:Object.freeze({host:'pop.gmail.com',port:995,tls:true})});
-const errors=new Set(['mail_input_invalid','mail_auth_failed','mail_auth_user_rejected','mail_auth_login_rejected','mail_mailbox_busy','mail_gmail_app_password_format','mail_gmail_app_password_required','mail_gmail_web_login_required','mail_gmail_pop_disabled','mail_gmail_credentials_invalid','mail_tls_error','mail_tls_untrusted','mail_tls_expired','mail_tls_hostname','mail_tls_unavailable','mail_dns_failed','mail_connection_refused','mail_listing_failed','mail_retrieval_failed','mail_timeout','mail_connection_failed','mail_uidl_invalid','mail_uidl_format','mail_uidl_id_length','mail_uidl_characters','mail_uidl_number_conflict','mail_protocol','mail_size_limit','mail_cancelled','mail_parse_failed','mail_summary_invalid','mail_source_changed','mail_model_changed','mail_model_missing','mail_file_conflict','mail_storage_failed','mail_storage_permission','mail_summary_failed']);
+const servers=Object.freeze({company:Object.freeze({host:'pop3.samsung.net',port:995,tls:true,protocol:'pop3'}),gmail_test:Object.freeze({host:'pop.gmail.com',port:995,tls:true})});
+const errors=new Set(['mail_identity_invalid','mail_input_invalid','mail_auth_failed','mail_auth_user_rejected','mail_auth_login_rejected','mail_mailbox_busy','mail_gmail_app_password_format','mail_gmail_app_password_required','mail_gmail_web_login_required','mail_gmail_pop_disabled','mail_gmail_credentials_invalid','mail_tls_error','mail_tls_untrusted','mail_tls_expired','mail_tls_hostname','mail_tls_unavailable','mail_dns_failed','mail_connection_refused','mail_listing_failed','mail_retrieval_failed','mail_timeout','mail_connection_failed','mail_uidl_invalid','mail_uidl_format','mail_uidl_id_length','mail_uidl_characters','mail_uidl_number_conflict','mail_protocol','mail_size_limit','mail_cancelled','mail_parse_failed','mail_summary_invalid','mail_source_changed','mail_model_changed','mail_model_missing','mail_file_conflict','mail_storage_failed','mail_storage_permission','mail_summary_failed']);
 const code=error=>errors.has(error?.message)?error.message:'mail_storage_failed';
 export const MAIL_SUMMARY_RETRIES=3;
 const model=host=>{const value=host.providers?.status();return value?.connected&&value.model?{provider:value.provider,model:value.model}:null;};
@@ -40,7 +40,8 @@ export class PersonalMail {
     this.store=new Store(path.join(host.storageRoot,'personal-mail'));
     this.contentCache=new Map();
     this.serverProfile=Object.hasOwn(servers,this.store.get('setting:server-profile'))?this.store.get('setting:server-profile'):'company';
-    this.autoWiki=this.store.get('setting:auto-wiki')??(this.serverProfile==='company');this.watchPaused=this.store.get('setting:watch-paused')===true;
+    if(this.store.get('setting:server-profile')==='company_imap')this.store.set('setting:server-profile','company');
+    this.autoWiki=this.store.get('setting:auto-wiki')??(this.serverProfile!=='gmail_test');this.watchPaused=this.store.get('setting:watch-paused')===true;
     for(const row of this.rows().filter(row=>row.state==='summarizing'))this.store.set('mail:'+row.id,{...row,state:'attention',error:'mail_summary_interrupted'});
     for(const row of this.rows().filter(row=>row.attachmentState==='reading'))this.store.set('mail:'+row.id,{...row,attachmentState:'queued'});
     if(DESKTOP_FEATURES.mailAttachmentReading&&process.platform==='win32'&&this.store.get('setting:office-reader-version')!==1){
@@ -137,7 +138,7 @@ export class PersonalMail {
     const pendingServer=account?.pendingServer??null,completed=rows.filter(row=>row.state==='saved').length;
     const attention=rows.filter(row=>row.state==='attention'||DESKTOP_FEATURES.mailAttachmentReading&&row.attachmentState==='attention').length+(account?.rejected?.length||0);
     const queued=rows.filter(row=>['queued','summarizing'].includes(row.state)&&(!DESKTOP_FEATURES.mailAttachmentReading||row.attachmentState!=='attention')).length;
-    const stage=this.connecting?'connecting':!this.credentials?'disconnected':!this.autoWiki?'off':this.error?'attention':this.checking?'checking':this.attachmentRead?'attachments':this.synthesis?'organizing':queued&&!this.modelAvailable(this.destination)?'waiting_model':queued&&(this.host.agent?.running||this.host.wikiUpdating)?'waiting_agent':queued?'queued':this.watchPaused?'paused':attention?'attention':'watching';
+    const stage=this.connecting?'connecting':!this.credentials?'disconnected':!this.autoWiki?'off':this.error?'attention':this.checking?'checking':this.attachmentRead?'attachments':this.synthesis?'organizing':queued&&!this.modelAvailable(this.destination)?'waiting_model':queued&&(this.host.isAnyProjectBusy?.()||this.host.agent?.running||this.host.wikiUpdating)?'waiting_agent':queued?'queued':this.watchPaused?'paused':attention?'attention':'watching';
     const attachment=DESKTOP_FEATURES.mailAttachmentReading?rows.find(row=>row.attachmentState==='reading')?.attachmentProgress||null:null;
     const saved=rows.filter(row=>row.state==='saved').sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')));
     const lastTiming=saved.find(row=>row.summaryTiming?.state==='completed')?.summaryTiming||null;
@@ -145,12 +146,13 @@ export class PersonalMail {
   }
   status(){
     this.resumeProcessing();
-    const rows=this.rows();return {server:servers[this.serverProfile],serverProfile:this.serverProfile,connected:!!this.credentials,connecting:!!this.connecting,checking:!!this.checking,paused:this.paused,autoWiki:this.autoWiki,watchPaused:this.watchPaused,summarizing:!!this.synthesis,lastCheckedAt:this.lastCheckedAt||null,nextCheckAt:this.nextCheckAt||null,error:this.error||null,baselineCount:this.baselineCount||0,storageRoot:this.root,rawRoot:path.join(this.root,'raw'),wikiRoot:this.wikiRoot,rejected:this.store.get('account:'+this.account)?.rejected||[],destination:this.destination,activeModel:model(this.host),catalogs:this.host.providers?.catalogs?.()||[],readingAttachments:!!this.attachmentRead,progress:this.progress(),recentChecks:this.store.get('mail-checks:'+this.account)||[],counts:{received:rows.length,queued:rows.filter(r=>r.state==='queued').length,saved:rows.filter(r=>r.state==='saved').length,attachmentAttention:DESKTOP_FEATURES.mailAttachmentReading?rows.filter(r=>r.attachmentState==='attention').length:0,attention:rows.filter(r=>r.state==='attention').length},messages:rows.slice(0,50).map(({id,subject,from,date,fetchedAt,state,error,path:wikiPath})=>({id,subject,from,date,fetchedAt,state,error,wikiPath}))};
+    const rows=this.rows();return {server:servers[this.serverProfile],serverProfile:this.serverProfile,protocol:servers[this.serverProfile].protocol||'pop3',connected:!!this.credentials,identityConfigured:!!(this.store.get('mail-identities:'+this.account)||[]).length,identityRevision:this.store.get('mail-identity-revision:'+this.account)||0,connecting:!!this.connecting,checking:!!this.checking,paused:this.paused,autoWiki:this.autoWiki,watchPaused:this.watchPaused,summarizing:!!this.synthesis,lastCheckedAt:this.lastCheckedAt||null,nextCheckAt:this.nextCheckAt||null,error:this.error||null,baselineCount:this.baselineCount||0,storageRoot:this.root,rawRoot:path.join(this.root,'raw'),wikiRoot:this.wikiRoot,rejected:this.store.get('account:'+this.account)?.rejected||[],destination:this.destination,activeModel:model(this.host),catalogs:this.host.providers?.catalogs?.()||[],readingAttachments:!!this.attachmentRead,progress:this.progress(),recentChecks:this.store.get('mail-checks:'+this.account)||[],counts:{received:rows.length,queued:rows.filter(r=>r.state==='queued').length,saved:rows.filter(r=>r.state==='saved').length,attachmentAttention:DESKTOP_FEATURES.mailAttachmentReading?rows.filter(r=>r.attachmentState==='attention').length:0,attention:rows.filter(r=>r.state==='attention').length},messages:rows.slice(0,50).map(({id,subject,from,date,fetchedAt,state,error,path:wikiPath})=>({id,subject,from,date,fetchedAt,state,error,wikiPath}))};
   }
   async call(args){
     if(this.disposed)throw new Error('mail_cancelled');
     const {action='status'}=args;
     if(action==='status')return this.status();
+    if(action==='setIdentity'){if(!this.account||!this.credentials)throw Error('mail_not_connected');this.saveIdentity(this.account,args.address);return this.status();}
     if(action==='history'){const query=typeof args.query==='string'?args.query.trim().toLocaleLowerCase():'';if(query.length>500)throw new Error('mail_input_invalid');const rows=this.rows().filter(row=>(row.subject+' '+row.from).toLocaleLowerCase().includes(query)).sort((a,b)=>String(b.date||b.fetchedAt).localeCompare(String(a.date||a.fetchedAt)));const offset=Number.isSafeInteger(args.offset)&&args.offset>=0?args.offset:0;return {total:rows.length,messages:rows.slice(offset,offset+100).map(({id,subject,from,date,fetchedAt,state,error,attachmentState,attachmentProgress,summaryTiming})=>({id,subject,from,date,fetchedAt,state,error,attachmentState,attachmentProgress,summaryTiming}))};}
     if(action==='cancelConnect'){if(args.requestId===this.connecting?.id||args.requestId===this.activeRequestId)this.disconnect();return this.status();}
     if(action==='disconnect'){this.disconnect();return this.status();}
@@ -197,18 +199,19 @@ export class PersonalMail {
     if(!Object.hasOwn(servers,serverProfile))throw new Error('mail_input_invalid');
     const server=servers[serverProfile],gmailTest=serverProfile==='gmail_test';
     if(typeof args.requestId!=='string'||!/^[\w-]{1,80}$/.test(args.requestId)||typeof args.user!=='string'||!args.user.trim()||args.user.length>320||typeof args.password!=='string'||!args.password||args.password.length>2048||/[\r\n\0]/.test(args.user)||(!gmailTest&&/[\r\n\0]/.test(args.password)))throw new Error('mail_input_invalid');
+    if(args.recipientAddress&&(typeof args.recipientAddress!=='string'||args.recipientAddress.length>320||!/^([^\s<>@]+)@([^\s<>@]+\.[^\s<>@]+)$/.test(args.recipientAddress.trim())))throw Error('mail_identity_invalid');
     const password=mailPassword(serverProfile,args.password);
     if(args.destination)this.selectedModel(args.destination);
-    if(this.nextCheckAt&&Date.now()<Date.parse(this.nextCheckAt))throw new Error('mail_check_wait');
+    if(serverProfile===this.serverProfile&&this.nextCheckAt&&Date.now()<Date.parse(this.nextCheckAt))throw new Error('mail_check_wait');
     if(gmailTest&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(args.user.trim()))throw new Error('mail_input_invalid');
     this.disconnect();this.serverProfile=serverProfile;this.error=null;
     const generation=this.generation,credentials={user:args.user.trim(),password,endpoint:server},id=sha(server.host+'\0'+credentials.user);
     const attempt={id:args.requestId};this.connecting=attempt;const previous=this.store.get('account:'+id);
     try{
-      const result=await this.pull({...credentials,known:this.autoWiki?this.rows().filter(row=>row.account===id).map(row=>row.uidl):null,skip:[]});
+      const result=await this.pull({...credentials,known:this.autoWiki?this.knownUids(id):null,skip:[]});
       if(generation!==this.generation)throw new Error('mail_cancelled');
       await this.prepare();if(generation!==this.generation)throw new Error('mail_cancelled');
-      this.credentials=credentials;this.account=id;this.baselineCount=previous?(previous.baselineCount??previous.seen.length):result.uidls.length;
+      this.credentials=credentials;this.account=id;if(args.recipientAddress)this.saveIdentity(id,args.recipientAddress);this.baselineCount=previous?(previous.baselineCount??previous.seen.length):result.uidls.length;
       this.serverProfile=serverProfile;this.store.set('setting:server-profile',serverProfile);
       if(!previous)this.store.set('account:'+id,{seen:[],baselineCount:result.uidls.length,baselineAt:now()});
       this.paused=!this.autoWiki;this.destination=args.destination||this.destination||model(this.host);this.store.set('setting:destination',this.destination);this.error=null;
@@ -216,11 +219,19 @@ export class PersonalMail {
     }catch(error){if(generation===this.generation){this.credentials=null;this.error=code(error);}throw new Error(code(error));}
     finally{if(this.connecting===attempt)this.connecting=null;credentials.password=this.credentials===credentials?credentials.password:'';}
   }
-  recipientRole(mail,row){
-    if(row.account===this.account&&this.credentials)return classifyRecipient(mail,this.credentials.user);
-    for(const role of ['to','cc','bcc'])for(const address of mailAddresses(mail[role]))if(Object.values(servers).some(server=>sha(server.host+'\0'+address)===row.account))return role;
-    return 'unknown';
+  saveIdentity(account,address){
+    if(typeof address!=='string'||address.length>320||!/^([^\s<>@]+)@([^\s<>@]+\.[^\s<>@]+)$/.test(address.trim()))throw Error('mail_identity_invalid');
+    this.store.set('mail-identities:'+account,[sha(address.trim().toLowerCase())]);this.store.set('mail-identity-revision:'+account,Date.now());
   }
+  recipientRole(mail,row){
+    if(row.mailbox==='sent')return 'sent';
+    const keys=this.store.get('mail-identities:'+row.account)||[];
+    if(keys.length){for(const role of ['to','cc','bcc'])if(mailAddresses(mail[role]).some(address=>keys.includes(sha(address.trim().toLowerCase()))))return role;return 'unknown';}
+    if(row.account===this.account&&this.credentials){const role=classifyRecipient(mail,this.credentials.user);if(role!=='unknown')return role;}
+    for(const role of ['to','cc','bcc'])for(const address of mailAddresses(mail[role]))if(Object.values(servers).some(server=>sha(server.host+'\0'+address)===row.account))return role;
+    return row.recipientRole&&row.recipientRole!=='unknown'?row.recipientRole:'unknown';
+  }
+  knownUids(account){return this.rows().filter(row=>row.account===account).map(row=>row.uidl);}
   async prepare(){await privateDir(this.root);await privateDir(path.join(this.root,'raw'));await privateDir(this.wikiRoot);}
   pull(input){
     if(this.pullOverride)return this.pullOverride(input);
@@ -237,7 +248,7 @@ export class PersonalMail {
   async cycle(){
     if(this.checking||!this.credentials||!this.autoWiki||this.disposed)return;this.checking=true;clearTimeout(this.timer);this.recordCheckWindow(this.pollDelay);const generation=this.generation;let delay=this.pollDelay;
     try{
-      const account=this.store.get('account:'+this.account);const result=await this.pull({...this.credentials,known:this.rows().filter(row=>row.account===this.account).map(row=>row.uidl),skip:(account.rejected||[]).map(item=>item.uidl)});
+      const account=this.store.get('account:'+this.account);const result=await this.pull({...this.credentials,known:this.knownUids(this.account),skip:(account.rejected||[]).map(item=>item.uidl)});
       if(generation!==this.generation)return;delay=result.delaySeconds;await this.intake(result,generation);this.error=result.failed?.[0]?.error||null;
       // A model failure is retried on the next polls, three times in all; a manual retry resets the count (retry action).
       for(const row of this.rows().filter(r=>r.account===this.account&&r.state==='attention'&&r.error==='mail_summary_failed'&&(r.summaryAttempts||0)<MAIL_SUMMARY_RETRIES))this.store.set('mail:'+row.id,{...row,state:'queued',error:null});
@@ -247,7 +258,7 @@ export class PersonalMail {
   }
   recordActivity(event){if(this.account)this.store.set('mail-checks:'+this.account,[{...event,at:now()},...(this.store.get('mail-checks:'+this.account)||[])].slice(0,12));}
   recordListing(result){
-    const account=this.store.get('account:'+this.account),seen=new Set(this.rows().filter(row=>row.account===this.account).map(row=>row.uidl));
+    const account=this.store.get('account:'+this.account),seen=new Set(this.knownUids(this.account));
     const rejected=new Set((account?.rejected||[]).map(row=>row.uidl));
     this.store.set('account:'+this.account,{...account,serverCount:result.uidls.length,pendingServer:result.uidls.filter(uid=>!seen.has(uid)&&!rejected.has(uid)).length,listingAt:now()});
     this.recordActivity({kind:'checked',received:this.autoWiki?result.mails.length:0,pendingServer:this.store.get('account:'+this.account).pendingServer,attention:result.failed?.length||0});
@@ -265,7 +276,7 @@ export class PersonalMail {
       if(manifest){if(manifest.sourceHash!==sourceHash||manifest.id!==id)throw new Error('mail_source_changed');}
       else{manifest={version:1,id,uidl:mail.uidl,sourceHash,fetchedAt:now(),mail:mail.normalized};await exclusive(path.join(directory,'manifest.json'),JSON.stringify(manifest));}
       if(generation!==this.generation||!this.autoWiki)throw new Error('mail_cancelled');
-      if(!this.store.get('mail:'+id))this.store.set('mail:'+id,{id,account:this.account,mailbox:'inbox',recipientRole:classifyRecipient(manifest.mail,this.credentials?.user),uidl:mail.uidl,subject:manifest.mail.subject,from:manifest.mail.from,date:manifest.mail.date,fetchedAt:manifest.fetchedAt,sourceHash,manifestHash:sha(JSON.stringify(manifest)),state:'queued',attachmentState:manifest.mail.attachments.length?(DESKTOP_FEATURES.mailAttachmentReading?'queued':'unsupported'):'complete'});
+      if(!this.store.get('mail:'+id))this.store.set('mail:'+id,{id,account:this.account,mailbox:'inbox',protocol:'pop3',recipientRole:this.recipientRole(manifest.mail,{account:this.account}),uidl:mail.uidl,subject:manifest.mail.subject,from:manifest.mail.from,date:manifest.mail.date,fetchedAt:manifest.fetchedAt,sourceHash,manifestHash:sha(JSON.stringify(manifest)),state:'queued',attachmentState:manifest.mail.attachments.length?(DESKTOP_FEATURES.mailAttachmentReading?'queued':'unsupported'):'complete'});
       } catch(error) {if(created&&!this.store.get('mail:'+id))await rm(directory,{recursive:true,force:true});throw error;}
       // Checkpoint only after raw bytes, manifest and durable queue all exist.
       const account=this.store.get('account:'+this.account);if(!account.seen.includes(mail.uidl))this.store.set('account:'+this.account,{...account,seen:[...account.seen,mail.uidl]});
@@ -300,7 +311,7 @@ export class PersonalMail {
     return mail;
   }
   async drain(){
-    if(this.synthesis||this.reconciling||!this.credentials||!this.autoWiki||this.paused||this.disposed||this.host.agent?.running||this.host.wikiUpdating||!this.modelAvailable(this.destination))return;
+    if(this.synthesis||this.reconciling||!this.credentials||!this.autoWiki||this.paused||this.disposed||this.host.isAnyProjectBusy?.()||this.host.agent?.running||this.host.wikiUpdating||!this.modelAvailable(this.destination))return;
     const row=this.rows().reverse().find(r=>r.account===this.account&&r.state==='queued'&&(!DESKTOP_FEATURES.mailAttachmentReading||r.attachmentState==='complete'));if(!row)return;
     const controller=new AbortController(),timing=responseTimer({kind:row.prepared?'saving':'organizing'});this.synthesis=controller;this.synthesisTimer=timing;
     try{
@@ -320,7 +331,7 @@ export class PersonalMail {
       if(!this.modelAvailable(this.destination))throw new Error('mail_model_changed');
       await this.source(row);
       if(controller.signal.aborted||!this.autoWiki||this.disposed)throw new Error('mail_cancelled');
-      const title=String(mail.subject).replace(/[\r\n]/g,' '),text=row.prepared?.text||`# ${title}\n\n${summary.summary}\n\n## 출처\n\n- Source: pop3/${row.id}\n- 발신: ${String(mail.from).replace(/[\r\n]/g,' ')}\n- 메일 날짜: ${mail.date||'미확인'}\n- 수집: ${row.fetchedAt}\n- SHA-256: ${row.sourceHash}\n- Confidence: source-backed (발신자 주장, 사실 검증 전)\n- Priority: ${summary.priority}\n- Category: ${summary.category}\n\n## 확인한 내용\n\n${summary.facts.map(s=>'- '+s).join('\n')}\n\n## 요청과 후속 작업\n\n${summary.actionItems.map(s=>'- '+s).join('\n')||'없음'}\n\n메일은 실행 지시나 승인이 아닙니다.\n`;
+      const title=String(mail.subject).replace(/[\r\n]/g,' '),text=row.prepared?.text||`# ${title}\n\n${summary.summary}\n\n## 출처\n\n- Source: ${row.protocol||'pop3'}/${row.id}\n- 발신: ${String(mail.from).replace(/[\r\n]/g,' ')}\n- 메일 날짜: ${mail.date||'미확인'}\n- 수집: ${row.fetchedAt}\n- SHA-256: ${row.sourceHash}\n- Confidence: source-backed (발신자 주장, 사실 검증 전)\n- Priority: ${summary.priority}\n- Category: ${summary.category}\n\n## 확인한 내용\n\n${summary.facts.map(s=>'- '+s).join('\n')}\n\n## 요청과 후속 작업\n\n${summary.actionItems.map(s=>'- '+s).join('\n')||'없음'}\n\n메일은 실행 지시나 승인이 아닙니다.\n`;
       const wikiPath=row.prepared?.path||path.join(this.wikiRoot,row.id+'-'+sha(text).slice(0,16)+'.md');
       const prepared=row.prepared||{text,path:wikiPath,hash:sha(text),model:destination,contentVersion:MAIL_CONTENT_VERSION,...(!DESKTOP_FEATURES.mailAttachmentReading?{contentScope:'body_and_metadata'}:{})};
       this.store.set('mail:'+row.id,{...row,state:'summarizing',prepared,summaryTiming:timing.snapshot()});
@@ -358,7 +369,7 @@ export class PersonalMail {
   }
   async read(id,{includeKnowledge=false,includePresentation=false}={}){
     if(typeof id!=='string'||!/^([a-f0-9]{64})$/.test(id))throw Error('mail_missing');
-    const row=this.store.get('mail:'+id);if(!row)throw Error('mail_missing');const mail=await this.source(row);
+    const row=this.store.get('mail:'+id);if(!row)throw Error('mail_missing');const mail=await this.source(row);mail.recipientRole=this.recipientRole(mail,row);
     if(mail.truncated){const bytes=await readFile(path.join(this.root,'raw',id,'message.eml'));if(sha(bytes)!==row.sourceHash)throw Error('mail_source_changed');const parsed=await parsePop3Content(bytes);mail.text=parsed.text.slice(0,500000);mail.truncated=parsed.text.length>500000;}
     mail.attachments=mail.attachments.map(attachment=>{if(!DESKTOP_FEATURES.mailAttachmentReading)return {id:attachment.id,filename:attachment.filename,contentType:attachment.contentType,size:attachment.size,sha256:attachment.sha256,contentState:'unsupported',text:'',segments:[]};const record=this.store.get('attachment:'+id+':'+attachment.id);const nativeRequired=process.platform==='win32'&&!!officeDocumentFormat(attachment.filename,attachment.contentType),validReader=!nativeRequired||record?.reader==='office_com';return record?.sourceHash===row.sourceHash&&record.sha256===attachment.sha256?{...attachment,text:validReader?record.text||'':'',segments:validReader?record.segments||[]:[],contentState:record.state==='complete'&&validReader?'document_read':'document_attention',coverage:validReader?record.coverage||null:null,reader:record.reader||null,officeVersion:record.officeVersion||null,error:validReader?record.error||null:'document_office_required'}:attachment;});
     // Presentation is opt-in for the reader only. Search, Personal Wiki and

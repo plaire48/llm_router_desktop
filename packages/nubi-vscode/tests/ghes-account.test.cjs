@@ -1,6 +1,6 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const {GhesAccount,ORIGIN,CLIENT_ID,SECRET_KEY}=require('../src/ghes.cjs');
-const profile={id:42,login:'nubi-user',name:'누비 사용자',html_url:ORIGIN+'/nubi-user'};
+const profile={id:42,login:'nubi-user',name:'누비 사용자',html_url:ORIGIN+'/nubi-user',avatar_url:'https://avatars.external.invalid/u/42'};
 const device={device_code:'DEVICE_PRIVATE',user_code:'ABCD-EFGH',verification_uri:ORIGIN+'/login/device',expires_in:900,interval:5};
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 function fixture({responses=[],stored,waiter,fetcher}={}){

@@ -1,6 +1,11 @@
-.nubi-mail-html-body { display:block; width:100%; min-width:0; border:0; background:#fff; color-scheme:light; margin:var(--nubi-group-gap,16px) 0; }
+.nubi-mail-html-body { display:block; width:100%; min-width:0; border:0; background:var(--nubi-surface-base); color-scheme:light; margin:var(--nubi-group-gap) 0; }
 .nubi-mail-connection-progress { display:flex; align-items:center; gap:var(--cx-space-3,12px); padding-block:var(--cx-space-3,12px); min-width:0; }
 .nubi-mail-connection-progress .nubi-preparing-emblem { flex:none; --nubi-preparing-size:44px; --nubi-preparing-cycle:1.6s; }
 .nubi-mail-connection-progress>div:last-child { display:grid; gap:4px; min-width:0; }
-.nubi-mail-connection-progress strong { color:var(--deck-ink); font-size:15px; font-weight:600; }
-.nubi-mail-connection-progress time { color:var(--deck-sub); font-size:14px; font-variant-numeric:tabular-nums; }
+.nubi-mail-connection-progress strong { color:var(--deck-ink); font-size:var(--cx-type-body); font-weight:var(--nubi-weight-emphasis); }
+.nubi-mail-connection-progress time { color:var(--deck-sub); font-size:var(--cx-type-caption); font-variant-numeric:tabular-nums; }
+
+.nubi-mail-identity summary { display:flex; align-items:center; gap:8px; }
+.nubi-mail-identity form { display:grid; gap:8px; margin-top:12px; }
+.nubi-mail-identity form>div { display:flex; align-items:center; gap:8px; }
+.nubi-mail-identity input { flex:1; min-width:0; }

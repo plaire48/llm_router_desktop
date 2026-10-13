@@ -21,6 +21,14 @@ try{
   await page.getByRole('button',{name:'다음 커밋 페이지',exact:true}).click();await page.getByText('26–50',{exact:true}).waitFor();
   await page.getByRole('button',{name:'다음 커밋 페이지',exact:true}).click();await page.getByText('51–53',{exact:true}).waitFor();assert.equal(await rows.count(),3);assert(await page.getByRole('button',{name:'다음 커밋 페이지',exact:true}).isDisabled());
   await rows.first().click();await page.getByRole('region',{name:'커밋 변경 파일',exact:true}).waitFor();assert.equal(await page.evaluate(()=>window.historyCalls.filter(call=>call.path).length),0,'commit selection does not read file contents');assert.equal(await page.locator('.desktop-git-diff').count(),0);
+  await page.evaluate(()=>window.historyDelay=700);
+  const fileRow=page.getByRole('button',{name:/example.js/});assert.equal(await fileRow.locator('svg').count(),1,'changed file uses a document icon');
+  await fileRow.click();await page.getByRole('status').filter({hasText:'변경 내용 불러오는 중'}).waitFor();
+  assert(await page.locator('.desktop-git-loading').evaluate(node=>{const icon=node.firstElementChild.getBoundingClientRect(),text=node.lastElementChild.getBoundingClientRect();return Math.abs(icon.y+icon.height/2-text.y-text.height/2)<2&&node.scrollWidth<=node.clientWidth;}),'loading icon and text align without overflow');
+  await page.screenshot({path:path.join(dir,`file-loading-${width}.png`)});
+  await page.getByText('파일 내용은 동일해요.',{exact:true}).waitFor();await page.screenshot({path:path.join(dir,`files-${width}.png`)});
+  await page.evaluate(()=>window.historyDelay=30);
+
   await page.getByRole('button',{name:'커밋 목록으로',exact:true}).click();await page.getByText('51–53',{exact:true}).waitFor();
   await page.getByRole('button',{name:'검증용 이력 토글'}).click();await page.evaluate(()=>window.historyDelay=800);await page.getByRole('button',{name:'검증용 이력 토글'}).click();assert.equal(await rows.count(),25,'reopening shows the cached first page while checking freshness');
   checks.push(`${width}px: readable rows, static titles, bounded pages, lazy file reading, cached reopen`);

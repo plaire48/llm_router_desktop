@@ -201,7 +201,7 @@ function limitedReviewNote({checks, opinion}, rounds) {
     ...(text ? [`검토 의견: ${text}`] : [])].join('\n');
 }
 
-export async function runAgent({messages, goal: taskGoal, tools, inputBudget, documents = [], observationSources = {}, modelId = 'aipro', signal, complete, completeAnalysis, execute, onStep = () => {}, onDiagnostic = () => {}, onAnalysisHandoff, analysisHandoffs, onResearchHandoff, researchHandoffs, onDelegated, onRound = () => {}, prepareContext, preparePlan, resumePlan, requirePlanOutcomes = false, harness: useHarness = false, stepwise = useHarness, parallelReads = false, referenceImageEnabled = false, clarifyOnStall = false, compactProgress = false, readTogether, reviewGoal, reviewPlanScope, assessCompletion, resumeVerification = false, resumeUncertainAction = false, resumedObservation, interruptedAction, approvedActionReceipt, takeInput, onFacts, researchBrowser, researchOnInput, verbatimTools = [], verbatimMaxChars}) {
+export async function runAgent({messages, goal: taskGoal, tools, inputBudget, documents = [], observationSources = {}, modelId = 'aipro', signal, complete, completeAnalysis, execute, onStep = () => {}, onDiagnostic = () => {}, onAnalysisHandoff, analysisHandoffs, onResearchHandoff, researchHandoffs, onDelegated, onRound = () => {}, prepareContext, preparePlan, resumePlan, requirePlanOutcomes = false, harness: useHarness = false, stepwise = useHarness, parallelReads = false, referenceImageEnabled = false, clarifyOnStall = false, compactProgress = false, readTogether, traceErrorCodes = [], reviewGoal, reviewPlanScope, assessCompletion, resumeVerification = false, resumeUncertainAction = false, resumedObservation, interruptedAction, approvedActionReceipt, takeInput, onFacts, researchBrowser, researchOnInput, verbatimTools = [], verbatimMaxChars}) {
   const dispatch = createReviewExecution({taskStartObserved:!resumePlan && !resumeVerification && !resumedObservation && !resumeUncertainAction && !interruptedAction});
   const readTools = new Set(['read_analysis_evidence', ...PROJECT_TOOL_NAMES, ...DOCUMENT_TOOL_NAMES]);
   const parallel = parallelReads === true && !stepwise && !useHarness && !completeAnalysis && tools.length > 0 && tools.every(tool => readTools.has(tool.function.name));
@@ -1166,7 +1166,7 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
         return;
       }
       onStep({index, tool: tools.some(tool => tool.function.name === event.toolName) ? event.toolName : 'recover_tool', status: signal.aborted || result?.cancelled || result?.error === 'cancelled' ? 'cancelled' : result?.requiresUserInput ? 'waiting' : result?.error === 'tool_replan_required' ? 'deferred' : result?.error || result?.ok === false ? 'error' : 'done',
-        ...(planStep ? {planStep} : {}), ...(label ? {label} : {}), ...(Object.hasOwn(SCRIPT_FAILURES, result?.reason) ? {reason: result.reason} : {})});
+        ...(planStep ? {planStep} : {}), ...(label ? {label} : {}), ...(Object.hasOwn(SCRIPT_FAILURES, result?.reason) ? {reason: result.reason} : Array.isArray(traceErrorCodes)&&traceErrorCodes.includes(result?.error)?{reason:result.error}:{})});
       const failed = !!result?.error || result?.ok === false;
       // A successful unrelated read does not repair a malformed verification.
       // Track schema failures independently of argument values and UI labels.

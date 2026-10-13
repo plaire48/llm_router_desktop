@@ -106,6 +106,30 @@ test('Claude usage is retained alongside other Desktop providers',async()=>{
   const root=await mkdtemp(path.join(os.tmpdir(),'nubi-claude-usage-'));const ledger=new DesktopUsage(root);
   try{const id=ledger.start({provider:'claude'});ledger.finish(id,{prompt_tokens:4,completion_tokens:6,total_tokens:10});assert.equal(ledger.summary().usage.total.claude.total,10);}finally{ledger.close();await rm(root,{recursive:true,force:true});}
 });
+test('Claude is visible before its first request and on days without calls',async()=>{
+  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-claude-idle-'));let ledger=new DesktopUsage(root);
+  try{
+    assert.equal(ledger.summary().usage.today.claude.calls,0);assert.equal(ledger.summary().usage.total.claude.total,0);
+    const id=ledger.start({provider:'claude'});ledger.finish(id,{prompt_tokens:4,completion_tokens:6,total_tokens:10});
+    const previous=structuredClone(ledger.ledger),today=Object.keys(previous.days)[0];
+    previous.days['2000-01-01']=previous.days[today];delete previous.days[today];ledger.store.set('usage:ledger',previous);
+    ledger.close();ledger=new DesktopUsage(root);
+    assert.equal(ledger.summary().usage.today.claude.calls,0);assert.equal(ledger.summary().usage.total.claude.total,10);
+    assert.equal(ledger.summary().usage.total.claude.measured,1);
+  }finally{ledger.close();await rm(root,{recursive:true,force:true});}
+});
+test('Claude adapter counters including cached input reach the saved Desktop usage ledger',async()=>{
+  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-claude-counters-'));let ledger=new DesktopUsage(root);
+  try{
+    const adapter=createClaudeCode({...fixture(result([],{input_tokens:10,cache_creation_input_tokens:20,cache_read_input_tokens:30,output_tokens:4})),onUsageStart:meta=>ledger.start(meta),onUsageFinish:(id,usage)=>ledger.finish(id,usage)});
+    await adapter.connect();await adapter.complete([],[]);
+    const stats=ledger.summary().usage.total.claude;
+    assert.equal(stats.input,60);assert.equal(stats.output,4);assert.equal(stats.total,64);assert.equal(stats.cached,30);assert.equal(stats.calls,1);assert.equal(stats.pending,0);assert.equal(stats.measured,1);
+    ledger.close();ledger=new DesktopUsage(root);assert.deepEqual(ledger.summary().usage.total.claude,stats);
+    const id=ledger.start({provider:'claude'});ledger.finish(id);
+    const missing=ledger.summary().usage.total.claude;assert.equal(missing.calls,2);assert.equal(missing.measured,1);assert.equal(missing.total,64);assert.equal(missing.pending,0);
+  }finally{ledger.close();await rm(root,{recursive:true,force:true});}
+});
 test('real process runner supports split JSON, cancellation and bounded output',async()=>{
   const root=await mkdtemp(path.join(os.tmpdir(),'nubi-cli-fixture-')),script=path.join(root,'cli.cjs');
   try{

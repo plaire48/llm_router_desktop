@@ -44,6 +44,10 @@ import {inspectWorkspaceChanges} from './workspace-changes.mjs';
 const exec = promisify(execFile);
 const id = () => randomUUID();
 const limited = (value, max = 16000) => typeof value === 'string' && value.trim() && value.length <= max ? value.trim() : fail('input_invalid');
+export async function resolveProjectFolder(root){
+ const resolved=await realpath(limited(root,2000)).catch(error=>fail(['EACCES','EPERM'].includes(error?.code)?'project_path_denied':'project_path_missing'));
+ return git(resolved,['rev-parse','--show-toplevel']).then(output=>realpath(output.trim()),async error=>{const code=gitOpenFailure(error);if(['git_unavailable','not_git_repository'].includes(code))return resolved;fail(code);});
+}
 export class ProjectService {
   constructor({storageRoot = path.join(os.homedir(), '.nubi-desktop'), recoveryOptions = {}} = {}) { this.storageRoot = storageRoot; this.recoveryOptions=recoveryOptions; }
   get agent(){return [...(this.agentRuns?.values()||[])].find(run=>run.running)||this.lastAgent||null;}
@@ -53,7 +57,7 @@ export class ProjectService {
     // Each reason a folder cannot be opened has its own code for the "프로젝트 열기" message.
     const resolved = await realpath(limited(root, 2000)).catch(error => fail(['EACCES', 'EPERM'].includes(error?.code) ? 'project_path_denied' : 'project_path_missing'));
     // A folder without Git, or outside a repository, opens as it is (user decision 2026-10-04); the setup flow of 2026-09-30 is gone (2026-10-07).
-    const top = await git(resolved, ['rev-parse', '--show-toplevel']).then(output => realpath(output.trim()), async error => {const code = gitOpenFailure(error); if (['git_unavailable', 'not_git_repository'].includes(code)) return resolved; fail(code);});
+    const top = await resolveProjectFolder(resolved);
     if(exactRoot&&top!==resolved)fail('clone_root_mismatch');
     if (this.root === top && this.store?.db.isOpen) {if(initializeWiki){this.wikiInitEnabled=true;await this.initializeWiki();}return this.overview();}
     if (this.skillImportBusy || this.vocBusy || this.computerBusy || this.newFileBusy || this.setupBusy || this.processes?.active.size || this.processes?.pending.size || this.unsettledOperations?.size || this.reconciling || this.agent?.running || this.recordingKnowledge || this.databaseBusy || this.collaborationBusy) fail('project_busy');

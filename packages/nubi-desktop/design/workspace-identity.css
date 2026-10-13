@@ -155,6 +155,8 @@
 .desktop-git-history .desktop-git-commit { display:flex; width:100%; align-items:center; gap:var(--cx-space-3); min-height:0; height:auto; padding:8px 12px; border:0; box-shadow:none; border-radius:8px; background:transparent; color:var(--deck-ink); text-align:left; white-space:nowrap; font:var(--deck-font-body); }
 .desktop-git-history .desktop-git-commit:hover { background:var(--deck-blue-soft); }
 .desktop-git-commit > svg { flex:none; margin-top:0; color:var(--deck-sub); }
+.desktop-git-commit > svg:first-child { color:var(--deck-blue-deep); }
+.desktop-git-commit > svg:last-child { color:var(--deck-muted); }
 .desktop-git-commit-copy { flex:1; min-width:0; }
 .desktop-git-commit-copy > strong { display:block; width:100%; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .desktop-git-commit-copy small, .desktop-git-summary p { display:flex; flex-wrap:nowrap; align-items:center; gap:var(--cx-space-2); margin:var(--cx-space-1) 0 0; font:var(--deck-font-caption); color:var(--deck-sub); white-space:nowrap; min-width:0; }
@@ -167,7 +169,10 @@
 .desktop-git-refs > span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .desktop-git-summary { padding:var(--cx-space-3) var(--cx-space-2) var(--cx-space-4); }
 .desktop-git-summary h3 { margin:0; font-size:var(--deck-type-body); line-height:var(--deck-line-heading); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.desktop-git-summary p > span { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.desktop-git-summary-title { display:flex; align-items:center; gap:var(--cx-space-2); min-width:0; }
+.desktop-git-summary-title > svg { flex:none; color:var(--deck-blue-deep); }
+.desktop-git-summary-title > h3 { min-width:0; flex:1; }
+.desktop-git-summary p > span { min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; }
 .desktop-git-summary p > :is(code,time) { flex:none; font-variant-numeric:tabular-nums; }
 .desktop-git-pagination { display:flex; align-items:center; justify-content:flex-end; flex:none; gap:var(--cx-space-2); padding:var(--cx-space-2) var(--cx-space-4); border-top:1px solid var(--deck-line); color:var(--deck-sub); font:var(--deck-font-caption); font-variant-numeric:tabular-nums; }
 .desktop-git-history .desktop-git-pagination .cx-kit-button { width:36px; min-width:36px; height:36px; min-height:36px; padding:0; border:0; background:transparent; color:var(--deck-sub); box-shadow:none; border-radius:var(--deck-control-radius); }
@@ -180,7 +185,17 @@
 .desktop-git-history .desktop-git-file-heading { display:flex; width:100%; align-items:center; justify-content:flex-start; gap:var(--cx-space-2); padding:var(--cx-space-3); border:0; box-shadow:none; border-radius:var(--deck-control-radius); font:var(--deck-font-label); background:var(--deck-section-surface); color:var(--deck-ink); }
 .desktop-git-file-heading > svg { flex:none; color:var(--deck-sub); }
 .desktop-git-file-heading > .nubi-drift-label { flex:1; min-width:0; text-align:left; }
-.desktop-git-history .desktop-git-file-heading:is(:hover,[aria-expanded=true]) { background:var(--deck-blue-soft); color:var(--deck-ink); }
+.desktop-git-history .desktop-git-file-heading { font-weight:600; }
+.desktop-git-history .desktop-git-file-heading > svg { color:var(--deck-blue-deep); }
+.desktop-git-loading { display:flex; align-items:center; gap:var(--cx-space-3); padding:var(--cx-space-4); color:var(--deck-sub); font:var(--deck-font-caption); white-space:nowrap; }
+.desktop-git-loading > span:first-child { flex:none; }
+.desktop-git-loading > span:last-child { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.desktop-git-history .nubi-file-tree-file.cx-kit-button { min-height:36px; font:var(--deck-font-body); }
+.desktop-git-history .nubi-file-tree-file > svg { color:var(--deck-sub); }
+.desktop-git-history .nubi-file-tree-file[aria-current=true] { font-weight:600; }
+.desktop-git-state[data-state=A] { color:var(--deck-green); }
+.desktop-git-state[data-state=D] { color:var(--deck-red); }
+.desktop-git-state[data-state=M] { color:var(--deck-blue-deep); }
 .desktop-git-counts { display:inline-flex; align-items:center; gap:var(--cx-space-2); flex:none; font:var(--deck-font-caption); font-weight:600; font-variant-numeric:tabular-nums; }
 .desktop-git-counts .desktop-git-added { color:var(--deck-green); }
 .desktop-git-counts .desktop-git-removed { color:var(--deck-red); }

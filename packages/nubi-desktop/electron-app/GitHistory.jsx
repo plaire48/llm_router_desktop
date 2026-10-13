@@ -18,6 +18,9 @@ function Counts({added, removed}) {
     {added === null ? <span>바이너리</span> : <><span className="desktop-git-added">+{added ?? 0}</span><span className="desktop-git-removed">−{removed ?? 0}</span></>}
   </span>;
 }
+function Loading({children}) {
+  return <div className="desktop-git-loading" role="status"><span className="status-spinner" aria-hidden="true"/><span>{children}</span></div>;
+}
 
 export function GitHistory({api, onError, projectId}) {
   const cache=catalogCache(api),[offset,setOffset]=useState(0);
@@ -72,33 +75,33 @@ export function GitHistory({api, onError, projectId}) {
           <Icon name="gitCommit" size={16}/><span className="desktop-git-commit-copy"><strong title={row.subject}>{row.subject}</strong>
             <small><span className="desktop-git-author" title={row.author}>{row.author}</span><code title={row.id}>{row.id.slice(0,7)}</code><time dateTime={row.date} title={fullDate(row.date)}>{dateLabel(row.date)}</time></small>
             {catalog.branches.some(ref=>ref.tip===row.id)&&<span className="desktop-git-refs" title={catalog.branches.filter(ref=>ref.tip===row.id).map(ref=>ref.name).join(', ')}><BranchMark size={14}/><span>{catalog.branches.find(ref=>ref.tip===row.id).name}</span>{catalog.branches.filter(ref=>ref.tip===row.id).length>1&&<small>+{catalog.branches.filter(ref=>ref.tip===row.id).length-1}</small>}</span>}
-          </span>
+          </span><Icon name="chevronRight" size={16}/>
         </CxButton>)}
         {!busy && !failed && !catalog?.commits.length && <GitEmptyState title="아직 커밋이 없어요"/>}
 
       </div>}
       {selected && <>
-        <div className="desktop-git-summary"><h3 title={selected.subject}>{selected.subject}</h3><p><code>{selected.id.slice(0,7)}</code><span title={selected.author}>{selected.author}</span><time dateTime={selected.date} title={fullDate(selected.date)}>{dateLabel(selected.date)}</time></p>
+        <div className="desktop-git-summary"><div className="desktop-git-summary-title"><Icon name="gitCommit" size={18}/><h3 title={selected.subject}>{selected.subject}</h3></div><p><span title={selected.author}>{selected.author}</span><code title={selected.id}>{selected.id.slice(0,7)}</code><time dateTime={selected.date} title={fullDate(selected.date)}>{dateLabel(selected.date)}</time></p>
           {detail?.totalFiles > 0 && <div className="desktop-git-summary-count"><span>{detail.totalFiles}개 파일</span><Counts {...totals}/></div>}
           {detail?.commit.parents.length > 1 && <p className="desktop-git-caption">첫 번째 부모 커밋과 비교</p>}
           {detail?.excludedCount > 0 && <p className="desktop-git-caption">보호 경로 {detail.excludedCount}개 제외</p>}
           {detail?.truncated && <p className="desktop-git-caption">처음 {detail.files.length}개 파일의 변경량을 표시합니다.</p>}
         </div>
-        {detail?.files.length > 0 && <ProjectFileTree key={selected.id} items={detail.files} selected={file?.path} onSelect={row=>chooseFile(row)} label="커밋 변경 파일" renderTrailing={row=><Counts added={row.added} removed={row.removed}/>}/>}
+        {detail?.files.length > 0 && <ProjectFileTree key={selected.id} items={detail.files} selected={file?.path} onSelect={row=>chooseFile(row)} label="커밋 변경 파일" documentIcons renderTrailing={row=><Counts added={row.added} removed={row.removed}/>}/>}
         {file && <section className="desktop-git-file">
           <div className="desktop-git-file-heading">
-            <Icon name="file" size={16}/><DriftLabel>{file.path}</DriftLabel><span className="desktop-git-state">{states[file.status] || '변경'}</span>
+            <Icon name="file" size={18}/><DriftLabel>{file.path}</DriftLabel><span className="desktop-git-state" data-state={file.status}>{states[file.status] || '변경'}</span>
           </div>
           <div id="desktop-commit-diff" className="desktop-git-file-content">
-            {busy === 'file' && <p className="desktop-git-empty" role="status">변경 내용 불러오는 중</p>}
+            {busy === 'file' && <Loading>변경 내용 불러오는 중</Loading>}
             {content?.unavailable && <p className="desktop-git-empty">{unavailable[content.unavailable] || '코드 비교를 표시할 수 없어요.'}</p>}
             {content && !content.unavailable && content.before === content.after && <p className="desktop-git-empty">{content.beforeMode !== content.afterMode ? `파일 권한 변경: ${content.beforeMode} → ${content.afterMode}` : '파일 내용은 동일해요.'}</p>}
-            {content && !content.unavailable && content.before !== content.after && <Suspense fallback={<p className="desktop-git-empty" role="status">변경 비교 준비 중</p>}><Diff diff={content}/></Suspense>}
+            {content && !content.unavailable && content.before !== content.after && <Suspense fallback={<Loading>변경 비교 준비 중</Loading>}><Diff diff={content}/></Suspense>}
           </div>
         </section>}
         {detail && !detail.totalFiles && <GitEmptyState title="이 커밋에는 변경이 없어요"/>}
       </>}
-      {['list','commit'].includes(busy) && <p className="desktop-git-empty" role="status">커밋 이력 불러오는 중</p>}
+      {['list','commit'].includes(busy) && <Loading>{busy==='commit'?'변경 파일 불러오는 중':'커밋 이력 불러오는 중'}</Loading>}
       {failed && <p className="desktop-git-empty" role="alert">{gitErrors[failed]||gitErrors.git_history_failed}</p>}
       {failed && <CxButton className="desktop-git-retry" onClick={() => selected ? (file ? chooseFile(file) : chooseCommit(selected)) : (tipRef.current=null,setOffset(0),setReload(value => value + 1))}><Icon name="refresh" size={16}/>다시 불러오기</CxButton>}
     </div>

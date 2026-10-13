@@ -19,13 +19,14 @@ function preferredSize(){try{const value=Number(localStorage.getItem(sizeKey));r
 export function MailKnowledgeSearch({api,query,onQuery,lastAppliedAt,revision,selectedId,onOpen,onAskSearch,onAskSelected,onResults,viewState,mailbox='all'}){
   const [filters,setFilters]=useState(()=>viewState?.current?.search?.filters||defaults),[size,setSize]=useState(preferredSize),[sort,setSort]=useState(()=>viewState?.current?.search?.sort||'auto'),[navigation,setNavigation]=useState(()=>viewState?.current?.search?.navigation||{page:1,cursor:null}),[pageDraft,setPageDraft]=useState('1');
   const [packet,setPacket]=useState(null),[pending,setPending]=useState(true),[failed,setFailed]=useState(false),[savedOpen,setSavedOpen]=useState(false),[tags,setTags]=useState([]),[asking,setAsking]=useState(false);
+  const [columnFacets,setColumnFacets]=useState({senders:[]});
   const [selected,setSelected]=useState(()=>viewState?.current?.search?.selected||[]),[selecting,setSelecting]=useState(false);
   const [density,setDensity]=useState(()=>{try{return localStorage.getItem('nubi-mail-density')==='compact'?'compact':'comfortable';}catch{return 'comfortable';}});
   const resultsRef=useRef(null),shownView=useRef(null),initialScroll=useRef(viewState?.current?.search?.scrollTop||0),selectionLock=useRef(false);
   useLayoutEffect(()=>{if(viewState)viewState.current={...viewState.current,search:{...viewState.current?.search,filters,sort,navigation,selected}};},[filters,sort,navigation,selected,viewState]);
   const term=query.trim(),wire={...filters,mailbox};
   const attachmentChoice=filters.types[0]||filters.attachment;
-  useEffect(()=>{let live=true;void api('mail',{action:'facets'}).then(value=>{if(live)setTags(value.tags||[]);}).catch(()=>{});return()=>{live=false;};},[api,revision]);
+  useEffect(()=>{let live=true;void api('mail',{action:'facets'}).then(value=>{if(live){setTags(value.tags||[]);setColumnFacets(value);}}).catch(()=>{});return()=>{live=false;};},[api,revision]);
   const signature=JSON.stringify([term,wire,size,sort]);
   const currentPage=packet?.page||1,totalPages=packet?.totalPages||1;
   const invalidRange=filters.period==='custom'&&(!filters.from||!filters.to||filters.from>filters.to);
@@ -111,7 +112,7 @@ export function MailKnowledgeSearch({api,query,onQuery,lastAppliedAt,revision,se
       </div>
     </div>
     <div ref={resultsRef} className="nubi-mail-results" role="region" tabIndex={0} aria-label="메일 검색 결과" aria-busy={pending} onScroll={event=>{if(viewState)viewState.current={...viewState.current,search:{...viewState.current?.search,scrollTop:event.currentTarget.scrollTop}};}}>
-      {invalidRange?<p className="nubi-mail-search-hint">시작 날짜와 끝 날짜를 확인해 주세요.</p>:failed?<DeckEmpty title="검색을 완료하지 못했어요" description="검색어나 조건을 바꿔 다시 확인해 주세요."/>:packet&&<MailTable rows={packet.results} selected={selected} selectedId={selectedId} blocked={blocked} selecting={selecting} toggle={toggle} togglePage={togglePage} allSelected={allSelected} sort={sort} onSort={value=>{setSort(value);resetPage();}} onOpen={onOpen} query={term}/>}
+      {invalidRange?<p className="nubi-mail-search-hint">시작 날짜와 끝 날짜를 확인해 주세요.</p>:failed?<DeckEmpty title="검색을 완료하지 못했어요" description="검색어나 조건을 바꿔 다시 확인해 주세요."/>:packet&&<MailTable filters={filters} facets={columnFacets} onFilters={changeFilters} rows={packet.results} selected={selected} selectedId={selectedId} blocked={blocked} selecting={selecting} toggle={toggle} togglePage={togglePage} allSelected={allSelected} sort={sort} onSort={value=>{setSort(value);resetPage();}} onOpen={onOpen} query={term}/>}
 
       {!pending&&!failed&&!invalidRange&&packet&&!packet.results.length&&<DeckEmpty title={term||chips.length?'검색 결과가 없어요':mailbox==='sent'?'보낸메일이 없어요':'수신한 메일이 없어요'} description={term||chips.length?'검색어나 조건을 바꿔 보세요.':mailbox==='sent'?'':'메일 연결에서 수집 상태를 확인해 주세요.'}/>}
     </div>

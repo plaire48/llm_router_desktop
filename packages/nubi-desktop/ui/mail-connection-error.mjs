@@ -11,7 +11,7 @@ export const mailConnectionErrors={
   mail_tls_unavailable:{title:'Windows 인증서를 불러오지 못했어요',detail:'앱을 다시 시작해 주세요. 계속되면 아래 오류 코드를 알려주세요.'},
   mail_tls_error:{title:'보안 연결을 완료하지 못했어요',detail:'TLS 연결이 실패했어요. 인증서 검증은 유지됩니다.'},
   mail_dns_failed:{title:'메일 서버 주소를 찾지 못했어요',detail:'회사망 연결과 DNS 설정을 확인해 주세요.'},
-  mail_connection_refused:{title:'메일 서버가 연결을 거절했어요',detail:'회사망에서 서버의 995 포트 연결을 확인해 주세요.'},
+  mail_connection_refused:{title:'메일 서버가 연결을 거절했어요',detail:'회사망에서 서버의 메일 포트 연결을 확인해 주세요.'},
   mail_connection_failed:{title:'메일 서버 연결이 끊겼어요',detail:'다시 연결해 주세요. 계속되면 아래 오류 코드를 알려주세요.'},
   mail_timeout:{title:'메일 서버 응답이 늦어지고 있어요',detail:'잠시 후 다시 연결해 주세요.'},
   mail_protocol:{title:'서버 응답을 읽지 못했어요',detail:'POP3 응답 형식을 처리하지 못했어요. 아래 오류 코드를 알려주세요.'},

@@ -17,9 +17,9 @@
 .nubi-preparing-orbit {
  position:absolute;
  inset:0;
- border:2px solid var(--deck-blue-soft,#E8F1FE);
- border-top-color:var(--deck-blue,#3182F6);
- border-right-color:var(--deck-blue,#3182F6);
+ border:2px solid var(--deck-blue-soft);
+ border-top-color:var(--deck-blue);
+ border-right-color:var(--deck-blue);
  border-radius:50%;
  animation:nubi-preparing-turn var(--nubi-preparing-cycle) linear infinite;
 }

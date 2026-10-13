@@ -59,3 +59,10 @@ test('distinct uncertainty suffixes survive display and repeated normalization',
   assert.equal(step.analysis.uncertaintiesOmitted,undefined);
   assert.deepEqual(normalizeTrace([step]),[step]);
 });
+
+test('host opt-in preserves fixed tool error codes and strips unknown server text',()=>{
+ const labels={source_search:'프로젝트 파일 검색'},errorLabels={path_scope:'경로 확인 필요'};
+ const [known,privateError]=normalizeTrace([{tool:'source_search',status:'error',reason:'path_scope'},{tool:'source_search',status:'error',reason:'private server account response'}],{toolLabels:labels,errorLabels});
+ assert.equal(known.reason,'path_scope');assert.equal(privateError.reason,undefined);
+ assert.equal(normalizeTrace([{tool:'source_search',status:'error',reason:'path_scope'}],{toolLabels:labels})[0].reason,undefined,'shared hosts without an explicit map retain existing filtering');
+});

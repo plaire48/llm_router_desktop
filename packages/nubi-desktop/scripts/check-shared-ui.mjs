@@ -268,7 +268,7 @@ try{
  checks.push('document analysis exposes real worker roles, ranges, partial response and synthesis phase; stop never marks pending work successful');
  await p.setViewportSize({width:1280,height:950});/* the shared layout has no sidebar opener at 440px; Electron's integrated layout does (check-modals) */await p.goto(page('document=partial'));
  await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/긴 업무 문서의 요구사항/}).click();
- await documentProgress.getByText('일부만 확인됨',{exact:true}).waitFor();await documentProgress.getByText('읽지 못한 구간 1개가 남아 있어요.',{exact:true}).waitFor();
+ await documentProgress.getByText('문서 미열람 구간 있음',{exact:true}).waitFor();await documentProgress.getByText('읽지 못한 구간 1개가 남아 있어요.',{exact:true}).waitFor();
  assert.equal(await documentProgress.locator('details').first().getAttribute('open'),null);
  await documentProgress.locator('details > summary').first().click();await documentProgress.getByText('남은 구간',{exact:true}).click();
  await documentProgress.getByText('문자 12,001–18,000',{exact:true}).waitFor();

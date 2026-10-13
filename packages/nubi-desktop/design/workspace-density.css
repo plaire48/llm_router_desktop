@@ -797,8 +797,9 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .desktop-shell .nubi-workbench .nubi-review-open-items { list-style:none; padding:0; margin:var(--cx-space-2) 0; }
 .desktop-shell .nubi-workbench .nubi-review-open-items>li { padding:var(--cx-space-2) 0; }
 .desktop-shell .nubi-workbench .nubi-review-open-items p { margin:var(--cx-space-1) 0 0; color:var(--nubi-text-primary); }
-.desktop-shell .nubi-workbench .nubi-review-next { display:flex; align-items:baseline; gap:var(--cx-space-2); }
-.desktop-shell .nubi-workbench .nubi-review-next>strong { flex:none; font-weight:var(--nubi-weight-label); color:var(--nubi-text-action); }
+.desktop-shell .nubi-workbench .nubi-review-next { display:grid; grid-template-columns:max-content minmax(0,1fr); align-items:baseline; column-gap:var(--cx-space-3); margin-block:var(--cx-space-3); }
+.desktop-shell .nubi-workbench .nubi-review-next>strong { white-space:nowrap; font-weight:var(--nubi-weight-label); color:var(--nubi-text-action); }
+.desktop-shell .nubi-workbench .nubi-review-next>span { min-width:0; overflow-wrap:anywhere; color:var(--nubi-text-primary); }
 .desktop-shell .nubi-workbench .nubi-result-review[data-tone=warning]>.nubi-document-progress-heading { color:var(--nubi-text-warning); }
 .desktop-shell .nubi-workbench .nubi-result-review[data-tone=danger]>.nubi-document-progress-heading { color:var(--nubi-text-danger); }
 .desktop-shell .nubi-workbench .nubi-result-review>.nubi-document-progress-heading>strong { color:inherit; }
@@ -915,3 +916,30 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 }
 
 :root:has(.desktop-shell) .claude-setup-steps > li[hidden] { display:none; }
+
+/* Working changes use the same document rows as commit review. */
+.desktop-shell .desktop-pane .desktop-change-list > .cx-kit-button { display:flex; align-items:center; gap:var(--cx-space-3); min-width:0; white-space:nowrap; font:var(--deck-font-body); }
+.desktop-change-list > .cx-kit-button > svg { flex:none; color:var(--deck-blue-deep); }
+.desktop-change-path { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; font-weight:600; }
+.desktop-change-list > .cx-kit-button > small { flex:none; margin:0; font:var(--deck-font-caption); color:var(--deck-sub); }
+.desktop-change-list .desktop-git-file-heading { display:flex; align-items:center; gap:var(--cx-space-2); padding:var(--cx-space-3); color:var(--deck-ink); background:var(--deck-section-surface); }
+.desktop-change-list .desktop-git-file-heading > svg { flex:none; color:var(--deck-blue-deep); }
+.desktop-change-list .desktop-git-file-heading > strong { min-width:0; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font:var(--deck-font-body); font-weight:600; }
+.desktop-change-list .desktop-git-file-heading > small { flex:none; margin:0; font:var(--deck-font-caption); }
+
+/* Chat status icons share a baseline and leave the message body uncluttered. */
+.desktop-shell .nubi-source-label { display:inline-flex; align-items:center; gap:var(--cx-space-2); }
+.desktop-shell .nubi-document-progress > p.nubi-document-attention { display:flex; align-items:flex-start; gap:var(--cx-space-2); }
+.desktop-shell .nubi-document-progress > p.nubi-document-attention > svg { flex:none; margin-top:calc((var(--deck-type-body) * var(--deck-line-body) - 16px) / 2); }
+.desktop-shell .nubi-document-progress > p.nubi-document-attention > span { min-width:0; }
+.desktop-shell .nubi-document-progress[data-state=partial] > .nubi-document-progress-heading > svg { color:var(--nubi-warning-ink); }
+.desktop-shell .nubi-document-progress summary:has(> svg ~ svg) > svg:first-of-type { margin-left:0; transform:none; flex:none; }
+
+/* Seconds sit beside the spinner and never force a control onto another row. */
+.desktop-shell .nubi-workbench .agent-step-status:has(>.nubi-response-time) { display:inline-flex; align-items:center; gap:var(--cx-space-2); width:auto; flex:none; }
+.desktop-shell .nubi-workbench .nubi-response-time { white-space:nowrap; font-variant-numeric:tabular-nums; }
+.desktop-shell .nubi-launch-progress { display:flex; align-items:center; gap:var(--cx-space-2); color:var(--deck-sub); font:var(--deck-font-body); }
+.desktop-shell .nubi-launch-progress > .status-spinner { flex:none; }
+.desktop-shell .nubi-delivery-status > .nubi-response-time { flex:none; margin:0; }
+.desktop-shell .nubi-delivery-status > span:last-child { min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.desktop-shell .nubi-document-worker-heading .nubi-response-time { flex:none; margin:0; }

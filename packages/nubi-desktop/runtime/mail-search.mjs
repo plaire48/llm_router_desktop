@@ -13,7 +13,7 @@ const day=value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&Num
 const one=(value,allowed,fallback)=>allowed.includes(value)?value:fallback;
 export function mailFilters(value={}) {
   if(!value||typeof value!=='object'||Array.isArray(value))throw Error('mail_input_invalid');
-  const filters={mailbox:one(value.mailbox,['all','inbox','sent'],'all'),period:one(value.period,['all','7','30','custom','unknown'],'all'),from:day(value.from),to:day(value.to),dateField:one(value.dateField,['date','fetchedAt'],'date'),senders:list(value.senders).map(v=>v.slice(0,200)),attachment:one(value.attachment,['all','with','without'],'all'),types:list(value.types).filter(v=>['pdf','word','excel','powerpoint','other'].includes(v)),filename:clean(value.filename).slice(0,200),locations:list(value.locations).filter(v=>['subject','metadata','body','attachment','knowledge'].includes(v)),states:list(value.states).filter(v=>['queued','saved','attention'].includes(v)),pinned:value.pinned===true,tags:list(value.tags,20).map(v=>v.slice(0,50)),confirmed:one(value.confirmed,['all','yes','no'],'all')};
+  const filters={subject:clean(value.subject).slice(0,500),roles:list(value.roles).filter(role=>['to','cc','bcc','sent','unknown'].includes(role)),mailbox:one(value.mailbox,['all','inbox','sent'],'all'),period:one(value.period,['all','7','30','custom','unknown'],'all'),from:day(value.from),to:day(value.to),dateField:one(value.dateField,['date','fetchedAt'],'date'),senders:list(value.senders).map(v=>v.slice(0,200)),attachment:one(value.attachment,['all','with','without'],'all'),types:list(value.types).filter(v=>['pdf','word','excel','powerpoint','other'].includes(v)),filename:clean(value.filename).slice(0,200),locations:list(value.locations).filter(v=>['subject','metadata','body','attachment','knowledge'].includes(v)),states:list(value.states).filter(v=>['queued','saved','attention'].includes(v)),pinned:value.pinned===true,tags:list(value.tags,20).map(v=>v.slice(0,50)),confirmed:one(value.confirmed,['all','yes','no'],'all')};
   if(value.period==='custom'&&((value.from&&!filters.from)||(value.to&&!filters.to)||(filters.from&&filters.to&&filters.from>filters.to)))throw Error('mail_input_invalid');
   return filters;
 }
@@ -24,6 +24,8 @@ export const attachmentKind=attachment=>{
 const addresses=value=>[...new Set((String(value||'').match(/[^\s<>;,"()]+@[^\s<>;,"()]+/g)||[]).map(lower))];
 function fits(entry,filters,user) {
   const {mail,row}=entry,date=Date.parse(row[filters.dateField]);
+  if(filters.subject&&!lower(mail.subject).includes(lower(filters.subject)))return false;
+  if(filters.roles.length&&!filters.roles.includes(entry.recipientRole||'unknown'))return false;
   if(filters.mailbox!=='all'&&(row.mailbox||'inbox')!==filters.mailbox)return false;
   if(filters.period==='unknown'){if(Number.isFinite(date))return false;}
   else if(filters.period!=='all'){
@@ -85,7 +87,7 @@ export class MailSearch {
             // The durable index contains collected evidence only, never credentials.
             this.store.set('mail-index:'+row.id,entry);
           }else entry={...entry,row};
-          entries.push(entry);
+          entries.push({...entry,recipientRole:this.owner.recipientRole?.(entry.mail,row)||row.recipientRole||'unknown'});
         }catch{unavailable.push(row.id);}
       }
       return {entries,unavailable};
@@ -127,13 +129,13 @@ export class MailSearch {
       const {row,mail}=entry,hits=groups.get(row.id).sort((a,b)=>b.score-a.score),unique=[];
       for(const hit of hits)if(!unique.some(other=>other.kind===hit.kind&&other.attachmentId===hit.attachmentId&&other.page===hit.page&&other.slide===hit.slide&&other.sheet===hit.sheet)){unique.push(hit);}
       const match=(query?unique[0]:null)||{kind:'body',excerpt:excerpt(mail.text,[]),start:0};
-      return {id:row.id,sourceId:row.id,sourceHash:row.sourceHash,title:mail.subject,subject:mail.subject,from:mail.from,senderLabel:mailSender(mail),recipientRole:row.recipientRole||this.owner.recipientRole?.(mail,row)||'unknown',mailbox:row.mailbox||'inbox',date:mail.date,fetchedAt:row.fetchedAt,state:row.state,attachmentState:row.attachmentState,attachmentCount:mail.attachments.length,unreadAttachments:mail.attachments.filter(a=>!['document_read','text_read'].includes(a.contentState)).length,bodyTruncated:mail.truncated===true,summaryTiming:row.summaryTiming,local:userState(this.store,row.id),match,matches:unique.slice(0,8),moreLocations:unique.length>8,excerpt:match.excerpt,bodyExcerpt:excerpt(mail.text,terms),preview:mailPreview(mail,terms,match),score:hits[0]?.score||0,sourceState:match.sourceState||'indexed',mail:{from:mail.from,date:mail.date,savedAt:row.savedAt||null},provenance:{kind:match.kind,start:match.start||0,...(match.attachmentId?{attachmentId:match.attachmentId}:{}),...(match.page?{page:match.page}:{})}};
+      return {id:row.id,sourceId:row.id,sourceHash:row.sourceHash,title:mail.subject,subject:mail.subject,from:mail.from,senderLabel:mailSender(mail),recipientRole:entry.recipientRole||'unknown',mailbox:row.mailbox||'inbox',date:mail.date,fetchedAt:row.fetchedAt,state:row.state,attachmentState:row.attachmentState,attachmentCount:mail.attachments.length,unreadAttachments:mail.attachments.filter(a=>!['document_read','text_read'].includes(a.contentState)).length,bodyTruncated:mail.truncated===true,summaryTiming:row.summaryTiming,local:userState(this.store,row.id),match,matches:unique.slice(0,8),moreLocations:unique.length>8,excerpt:match.excerpt,bodyExcerpt:excerpt(mail.text,terms),preview:mailPreview(mail,terms,match),score:hits[0]?.score||0,sourceState:match.sourceState||'indexed',mail:{from:mail.from,date:mail.date,savedAt:row.savedAt||null},provenance:{kind:match.kind,start:match.start||0,...(match.attachmentId?{attachmentId:match.attachmentId}:{}),...(match.page?{page:match.page}:{})}};
     });
     const stamp=row=>Number.isFinite(Date.parse(row.date))?Date.parse(row.date):Date.parse(row.fetchedAt)||0;
     const column=sort.startsWith('subject-')?'title':sort.startsWith('sender-')?'senderLabel':sort.startsWith('role-')?'recipientRole':null;
     const value=row=>column==='recipientRole'?mailRoleLabel(row[column]):String(row[column]||'');
     results.sort((a,b)=>(column?value(a).localeCompare(value(b),'ko',{numeric:true})*(sort.endsWith('-desc')?-1:1):sort==='relevance'?b.score-a.score:0)||(sort==='oldest'?stamp(a)-stamp(b):stamp(b)-stamp(a))||a.id.localeCompare(b.id));
-    const fingerprint=digest([query,filters,sort,results.map(row=>[row.id,row.sourceHash,row.state,row.local]),eligible.map(entry=>entry.signature)]);
+    const fingerprint=digest([query,filters,sort,results.map(row=>[row.id,row.sourceHash,row.state,row.local,row.recipientRole]),eligible.map(entry=>entry.signature)]);
     let offset=0,reset=false;
     if(cursor){try{const value=JSON.parse(Buffer.from(cursor,'base64url').toString('utf8'));if(!Number.isSafeInteger(value.offset)||value.offset<0)throw Error();if(value.fingerprint===fingerprint)offset=value.offset;else reset=true;}catch{throw Error('mail_input_invalid');}}
     const total=results.length,totalPages=Math.ceil(total/limit),encode=at=>Buffer.from(JSON.stringify({offset:at,fingerprint})).toString('base64url');

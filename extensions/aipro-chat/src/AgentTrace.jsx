@@ -83,7 +83,7 @@ function TraceJournal({owner, read, live, diagnostics = false}) {
   </details>;
 }
 
-export function AgentTrace({summaryTitle, summaryAside, compactStatuses = false, debugMode = false, steps, captures = [], question, completed, verified = false, live = false, journalOwner, readJournal, diagnosticOwner, readDiagnostics, traceOptions, preserveNotes = false, preserveCompleted = false, recentCompleted = 0, awaitingUser = false, stopped = false, defaultExpanded, idleLabel = '다음 단계 확인 중'}) {
+export function AgentTrace({summaryTitle, summaryAside, renderStepElapsed, idleElapsed, compactStatuses = false, debugMode = false, steps, captures = [], question, completed, verified = false, live = false, journalOwner, readJournal, diagnosticOwner, readDiagnostics, traceOptions, preserveNotes = false, preserveCompleted = false, recentCompleted = 0, awaitingUser = false, stopped = false, defaultExpanded, idleLabel = '다음 단계 확인 중'}) {
   const [expanded, setExpanded] = useState(null), [showAll, setShowAll] = useState(false);
   const [opened, setOpened] = useState(() => new Set());
   const stepList=useRef(null),followSteps=useRef(true);
@@ -120,13 +120,13 @@ export function AgentTrace({summaryTitle, summaryAside, compactStatuses = false,
       const reason = SCRIPT_FAILURES[step.reason]?.[0];
       const label = step.status === 'error' ? traceOptions?.errorLabels?.[step.reason] || reason || traceOptions?.toolErrorLabels?.[step.tool] || statusText.error : step.status === 'waiting' && step.tool === 'ask_user' ? '답변 대기' : statusText[step.status];
       const images = step.id ? screenshots.filter(capture => capture.traceId === step.id) : [];
-      const content = <TraceStep status={step.status} label={step.status === 'recovered' && reason ? `${reason} 이후 결과 검증 완료` : label}>{step.planStep && step.planStep !== visible[index - 1]?.planStep && <span className="agent-trace-plan"><InlineMarkdown content={step.planStep}/></span>}{step.label ? <InlineMarkdown content={step.label}/> : toolLabels[step.tool]}<span className={compactStatuses&&['running','done'].includes(step.status)?'visually-hidden':'agent-tool-state'}> {step.status === 'running' ? '중' : label}</span></TraceStep>;
+      const content = <TraceStep status={step.status} elapsed={live&&step.status==='running'?renderStepElapsed?.(step):null} label={step.status === 'recovered' && reason ? `${reason} 이후 결과 검증 완료` : label}>{step.planStep && step.planStep !== visible[index - 1]?.planStep && <span className="agent-trace-plan"><InlineMarkdown content={step.planStep}/></span>}{step.label ? <InlineMarkdown content={step.label}/> : toolLabels[step.tool]}<span className={compactStatuses&&['running','done'].includes(step.status)?'visually-hidden':'agent-tool-state'} title={step.status==='error'&&step.reason?step.reason:undefined}> {step.status === 'running' ? '중' : label}</span></TraceStep>;
       return <li key={key} data-tool={step.tool} data-status={step.status} data-step-id={step.id}>
         {images.length ? <CaptureStep captures={images} onToggle={open => toggleCapture(step.id, open)}>{content}</CaptureStep> : content}
       </li>;
     })}
       {!!unlinked.length && <li className="agent-unlinked-captures"><CaptureStep captures={unlinked} onToggle={open => {if (open) setExpanded(true);}}><span className="agent-tool-label">브라우저 캡처</span></CaptureStep></li>}
-      {live && !running && !waiting && !(compactStatuses && summaryTitle === idleLabel) && <li className="agent-next-step"><span className="status-spinner" aria-hidden="true"/>{idleLabel}</li>}
+      {live && !running && !waiting && !(compactStatuses && summaryTitle === idleLabel) && <li className="agent-next-step"><span className="status-spinner" aria-hidden="true"/>{idleElapsed}{idleLabel}</li>}
       {debugMode && live && steps.length > 4 && <li className="agent-trace-more"><ActionButton action={showAll ? 'collapse' : 'more'} iconOnly label={showAll ? '최근 단계 접기' : '최근 단계 펼치기'} onClick={() => setShowAll(!showAll)}/></li>}
       {debugMode && journalOwner && readJournal && <li><TraceJournal key={journalOwner.requestId} owner={journalOwner} read={readJournal} live={live}/></li>}
       {debugMode && diagnosticOwner && readDiagnostics && <li><TraceJournal key={JSON.stringify(diagnosticOwner)} owner={diagnosticOwner} read={readDiagnostics} live={live} diagnostics/></li>}
