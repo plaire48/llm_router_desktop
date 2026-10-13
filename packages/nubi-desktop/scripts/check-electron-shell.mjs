@@ -83,33 +83,35 @@ try{page=await desktopTestWindow(app);await page.bringToFront();page.setDefaultT
  await shellInput.focus();await page.keyboard.type(process.platform==='win32'?"$answer=Read-Host 'input-value'":"read -p 'input-value: ' answer");await page.keyboard.press('Enter');
  // The command echo also contains "input-value". Wait for the actual prompt:
  // input sent earlier can be consumed by PSReadLine before Read-Host owns it.
- await page.waitForFunction(()=>{const rows=[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].map(row=>row.textContent).filter(text=>text.trim());return /^input-value:\s*$/.test(rows.at(-1)||'');});
+ await page.waitForFunction(()=>{const rows=[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].map(row=>row.textContent).filter(text=>text.trim());return /^input-value:\s*$/.test(rows.at(-1)||'');},null,{polling:100});
  await page.keyboard.type('session-answer');await page.keyboard.press('Enter');
- await page.waitForFunction(windows=>{const rows=[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].map(row=>row.textContent).filter(text=>text.trim());return (windows?/>\s*$/:/[$#]\s*$/).test(rows.at(-1)||'');},process.platform==='win32');
+ await page.waitForFunction(windows=>{const rows=[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].map(row=>row.textContent).filter(text=>text.trim());return (windows?/>\s*$/:/[$#]\s*$/).test(rows.at(-1)||'');},process.platform==='win32',{polling:100});
  await page.keyboard.type(process.platform==='win32'?"Write-Output $answer":"printf '%s\\n' \"$answer\"");await page.keyboard.press('Enter');
- await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='session-answer'));
+ await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='session-answer'),null,{polling:100});
  await page.keyboard.type(process.platform==='win32'?"Write-Output 'sleep-started'; Start-Sleep 30":"printf '%s\\n' sleep-started; sleep 30");await page.keyboard.press('Enter');
- await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='sleep-started'));
+ await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='sleep-started'),null,{polling:100});
+ lastAction='interrupt running shell';await shellInput.focus();const interruptStarted=Date.now();console.log('action',lastAction);
  await page.keyboard.press('Control+C');
  // ConPTY/PowerShell discards input while handling Ctrl+C. Wait for the real
  // returned prompt before sending the next command, as an interactive user does.
- await page.waitForFunction(windows=>{const rows=[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].map(row=>row.textContent).filter(text=>text.trim());return (windows?/>\s*$/:/[$#]\s*$/).test(rows.at(-1)||'');},process.platform==='win32');
+ await page.waitForFunction(windows=>{const rows=[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].map(row=>row.textContent).filter(text=>text.trim());return (windows?/>\s*$/:/[$#]\s*$/).test(rows.at(-1)||'');},process.platform==='win32',{polling:100});
+ const interruptMs=Date.now()-interruptStarted;console.log('shell interrupt returned',interruptMs);assert(interruptMs<15000,'Ctrl+C returns before the 30-second command completes naturally');
  await page.keyboard.type(process.platform==='win32'?"Write-Output ('after-'+'interrupt')":"printf '%s\\n' after-interrupt");await page.keyboard.press('Enter');
- await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='after-interrupt'));
+ await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='after-interrupt'),null,{polling:100});
  checks.push('interactive input and Ctrl+C return to the live shell');
  await mkdir(path.join(root,'한글 폴더'));await page.keyboard.insertText(process.platform==='win32'?"Set-Location -LiteralPath './한글 폴더'":"cd './한글 폴더'");await page.keyboard.press('Enter');
  await page.keyboard.type(process.platform==='win32'?"Split-Path -Leaf (Get-Location).Path":"printf '%s\\n' \"${PWD##*/}\"");await page.keyboard.press('Enter');
- await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='한글 폴더'));
+ await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='한글 폴더'),null,{polling:100});
  await page.keyboard.type('cd ..');await page.keyboard.press('Enter');checks.push('Korean input and directory changes persist in the interactive session');
  if(process.platform==='win32'){
   await writeFile(path.join(root,'utf8-korean.txt'),'한글 본문 확인\n','utf8');
   await page.keyboard.type("Get-Content -LiteralPath './utf8-korean.txt'");await page.keyboard.press('Enter');
-  await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='한글 본문 확인'));
+  await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='한글 본문 확인'),null,{polling:100});
   // A raw native stdin/stdout echo avoids pager or PowerShell-child input semantics.
   await writeFile(path.join(root,'native-utf8-echo.cjs'),'process.stdin.pipe(process.stdout);\n');
   const reader=process.execPath.replaceAll("'","''");
   await page.keyboard.insertText("'파이프 한글 확인' | & '"+reader+"' './native-utf8-echo.cjs'");await page.keyboard.press('Enter');
-  await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='파이프 한글 확인'));
+  await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='파이프 한글 확인'),null,{polling:100});
   checks.push('interactive PowerShell reads BOM-less UTF-8 files and sends Korean to native stdin');
  }
  const terminalTabs=await page.getByRole('button',{name:/터미널 탭 닫기$/}).count();await page.getByRole('button',{name:'메일',exact:true}).click();await page.locator('.desktop-pane').waitFor({state:'hidden'});await page.getByRole('button',{name:'홈',exact:true}).click();await page.getByRole('button',{name:'파일',exact:true}).click();assert.equal(await page.getByRole('button',{name:/터미널 탭 닫기$/}).count(),terminalTabs,'mail navigation preserves terminal sessions without creating another');
@@ -143,6 +145,6 @@ try{page=await desktopTestWindow(app);await page.bringToFront();page.setDefaultT
  const projectRestore=await readFile(path.join(storage,'last-project-restore.json'),'utf8').then(JSON.parse).catch(()=>null);console.error('PROJECT_RESTORE_DIAGNOSTIC',JSON.stringify(projectRestore));const failure={action:lastAction,message:error.message,stack:error.stack,checks,pageErrors,appStderr,projectRestore};
  await writeFile('verification/electron-shell-failure.json',JSON.stringify(failure,null,2));
  try{await page?.screenshot({path:'verification/electron-shell-failure.png',timeout:5000});}catch(captureError){console.log('FAILURE_CAPTURE_UNAVAILABLE',captureError.message);}
- try{console.log('SHELL_DIAGNOSTICS',JSON.stringify(await page?.locator('body').evaluate(()=>({viewport:{width:innerWidth,height:innerHeight},visibility:document.visibilityState,navigation:[...document.querySelectorAll('.nubi-workspace-navigation button')].map(button=>({label:button.getAttribute('aria-label'),disabled:button.disabled})),pane:document.querySelector('.desktop-pane')?.innerText,diffs:[...document.querySelectorAll('.desktop-git-diff')].map(node=>({text:node.textContent,rect:node.getBoundingClientRect().toJSON()}))}),null,{timeout:5000})));}catch(diagnosticError){console.log('FAILURE_DOM_UNAVAILABLE',diagnosticError.message);}
+ try{console.log('SHELL_DIAGNOSTICS',JSON.stringify(await page?.locator('body').evaluate(()=>({viewport:{width:innerWidth,height:innerHeight},visibility:document.visibilityState,active:document.activeElement?.className,terminalRows:[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].map(row=>row.textContent),navigation:[...document.querySelectorAll('.nubi-workspace-navigation button')].map(button=>({label:button.getAttribute('aria-label'),disabled:button.disabled})),pane:document.querySelector('.desktop-pane')?.innerText,diffs:[...document.querySelectorAll('.desktop-git-diff')].map(node=>({text:node.textContent,rect:node.getBoundingClientRect().toJSON()}))}),null,{timeout:5000})));}catch(diagnosticError){console.log('FAILURE_DOM_UNAVAILABLE',diagnosticError.message);}
  throw error;
 }finally{await app.close();await rm(temporary,{recursive:true,force:true});}
