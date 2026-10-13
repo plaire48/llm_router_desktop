@@ -7,10 +7,11 @@ const {ProjectService,resolveProjectFolder}=await import('./project-service.mjs'
 const {ProjectServices}=await import('./project-services.mjs');
 const {installAgent}=await import('./agent.mjs');
 installAgent(ProjectService);
-const service = new ProjectService({storageRoot:process.env.NUBI_STORAGE_ROOT});
+// Conversation memory runs in the product only; evaluations and tests measure runs without it.
+const service = new ProjectService({storageRoot:process.env.NUBI_STORAGE_ROOT});service.memoryExtraction=true;service.mailFacts=true;
 installWorkspaceBrowser(service);
 installConnectionVault(service);
-const projects=new ProjectServices({service,createService:()=>new ProjectService({storageRoot:process.env.NUBI_STORAGE_ROOT}),resolveRoot:resolveProjectFolder});
+const projects=new ProjectServices({service,createService:()=>Object.assign(new ProjectService({storageRoot:process.env.NUBI_STORAGE_ROOT}),{memoryExtraction:true,mailFacts:true}),resolveRoot:resolveProjectFolder});
 process.on('message', async message => {
   if (!message || typeof message.id !== 'string' || typeof message.method !== 'string') return;
   try {process.send?.({id:message.id,result:await projects.invoke(message.method,message.args)});}

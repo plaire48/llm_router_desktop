@@ -1,7 +1,7 @@
 import {normalizeUsage} from './usage.js';
 
 const providers = ['aipro', 'chatgpt', 'fabrix'];
-const empty = () => ({calls: 0, measured: 0, pending: 0, input: 0, output: 0, total: 0, inputReports: 0, outputReports: 0, cached: 0, reasoning: 0});
+const empty = () => ({calls: 0, measured: 0, pending: 0, input: 0, output: 0, total: 0, inputReports: 0, outputReports: 0, cached: 0, reasoning: 0, costUsd: 0});
 const pair = () => Object.fromEntries(providers.map(provider => [provider, empty()]));
 const dayKey = time => {const date = new Date(time); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;};
 const metric = receipt => {
@@ -10,7 +10,7 @@ const metric = receipt => {
   return {calls: 1, measured: u?.total_tokens != null ? 1 : 0, pending: receipt.finished || u?.total_tokens != null ? 0 : 1,
     input: u?.prompt_tokens || 0, output: u?.completion_tokens || 0, total: u?.total_tokens || 0,
     inputReports: u?.prompt_tokens != null ? 1 : 0, outputReports: u?.completion_tokens != null ? 1 : 0,
-    cached: u?.prompt_tokens_details?.cached_tokens || 0, reasoning: u?.completion_tokens_details?.reasoning_tokens || 0};
+    cached: u?.prompt_tokens_details?.cached_tokens || 0, reasoning: u?.completion_tokens_details?.reasoning_tokens || 0, costUsd: u?.cost_usd || 0};
 };
 function update(ledger, previous, next) {
   const before = metric(previous), after = metric(next);
@@ -18,7 +18,7 @@ function update(ledger, previous, next) {
   ledger.total[next.provider] ||= empty();
   ledger.days[next.day][next.provider] ||= empty();
   for (const target of [ledger.total[next.provider], ledger.days[next.day][next.provider]]) {
-    for (const key of Object.keys(after)) target[key] = Math.max(0, target[key] + after[key] - before[key]);
+    for (const key of Object.keys(after)) target[key] = Math.max(0, Math.round(((target[key] || 0) + after[key] - before[key]) * 1e6) / 1e6);
   }
 }
 export function newLedger(now = Date.now()) {return {version: 1, startedAt: now, total: pair(), days: {}, active: null};}

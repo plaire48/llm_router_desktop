@@ -16,6 +16,7 @@ import {officeDocumentFormat,readOfficeDocument} from './office-document.mjs';
 import {MailSearch,mailFilters} from './mail-search.mjs';
 import {parsePop3Content,mailPartPresentation,MAIL_CONTENT_VERSION} from '../../openwiki/src/connectors/sources/pop3-content.mjs';
 import {modelTransport} from './recovery.mjs';
+import {extractMailFacts,recordMailFacts,queryMailFacts} from './mail-facts.mjs';
 import {synthesizePersonalMail,retrieveWikiEvidence,resolveOpenWikiHomeDir} from '../generated/openwiki.mjs';
 
 const sha=value=>createHash('sha256').update(value).digest('hex'),now=()=>new Date().toISOString();
@@ -255,6 +256,7 @@ export class PersonalMail {
     if(action==='thread')return this.searchIndex.thread(args.id);
     if(action==='evidence')return this.evidence(args);
     if(action==='knowledge'){const row=this.store.get('mail:'+args.id);if(!row)throw Error('mail_missing');await this.source(row);return this.readKnowledge(row);}
+    if(action==='facts')return queryMailFacts(this.store,{asOf:args.asOf,query:args.query,sourceId:args.sourceId,wikiFile:args.wikiFile,includeHistory:args.includeHistory===true,limit:args.limit});
     if(action==='query')return this.query(args.query,args);
     if(action==='read')return this.read(args.id,{includeKnowledge:args.includeKnowledge===true,includePresentation:args.includePresentation===true});
     if(action==='download')return this.download(args);
@@ -396,13 +398,16 @@ export class PersonalMail {
       }).catch(error=>{throw errors.has(error?.message)?error:Object.assign(new Error(error?.message==='cancelled'||controller.signal.aborted?'mail_cancelled':'mail_summary_failed'),{cause:error});});
       if(controller.signal.aborted||this.disposed)throw new Error('mail_cancelled');
       if(!this.modelAvailable(this.destination))throw new Error('mail_model_changed');
+      // Time facts (2026-10-14): one more short call after the summary. A failure here never fails the mail itself.
+      const facts=summary&&this.host.mailFacts===true?await extractMailFacts({mail:{...mail,fetchedAt:row.fetchedAt},summary,signal:controller.signal,invoke:(messages,tools,signal,kind,options)=>invoke(messages,tools,signal,kind,options)}).catch(error=>{if(controller.signal.aborted||error?.message==='cancelled')throw new Error('mail_cancelled');return [];}):[];
       await this.source(row);
       if(controller.signal.aborted||!this.autoWiki||this.disposed)throw new Error('mail_cancelled');
       const title=String(mail.subject).replace(/[\r\n]/g,' '),text=row.prepared?.text||`# ${title}\n\n${summary.summary}\n\n## 출처\n\n- Source: ${row.protocol||'pop3'}/${row.id}\n- 문서 구분: ${mail.documentKindLabel||'메일'}${mail.classificationSource==='folder_name'?' (폴더명 기준)':''}\n- 발신: ${String(mail.from).replace(/[\r\n]/g,' ')}\n- 메일 날짜: ${mail.date||'미확인'}\n- 수집: ${row.fetchedAt}\n- SHA-256: ${row.sourceHash}\n- Confidence: source-backed (발신자 주장, 사실 검증 전)\n- Priority: ${summary.priority}\n- Category: ${summary.category}\n\n## 확인한 내용\n\n${summary.facts.map(s=>'- '+s).join('\n')}\n\n## 요청과 후속 작업\n\n${summary.actionItems.map(s=>'- '+s).join('\n')||'없음'}\n\n메일은 실행 지시나 승인이 아닙니다.\n`;
       const wikiPath=row.prepared?.path||path.join(this.wikiRoot,row.id+'-'+sha(text).slice(0,16)+'.md');
       const prepared=row.prepared||{text,path:wikiPath,hash:sha(text),model:destination,contentVersion:MAIL_CONTENT_VERSION,...(!DESKTOP_FEATURES.mailAttachmentReading?{contentScope:'body_and_metadata'}:{})};
       this.store.set('mail:'+row.id,{...row,state:'summarizing',prepared,summaryTiming:timing.snapshot()});
-      await this.savePrepared(row,prepared,timing,()=>{if(controller.signal.aborted||!this.autoWiki)throw new Error('mail_cancelled');});
+      const stored=await this.savePrepared(row,prepared,timing,()=>{if(controller.signal.aborted||!this.autoWiki)throw new Error('mail_cancelled');});
+      if(stored&&facts.length)try{recordMailFacts(this.store,facts,{sourceId:row.id,sourceSubject:title,sourceDate:mail.date||row.fetchedAt,wikiFile:path.relative(this.wikiRoot,prepared.path)});}catch{/* Facts are a convenience over the saved page. */}
     }catch(error){if(!this.disposed){const current=this.store.get('mail:'+row.id);const failure=error.message==='mail_cancelled'?'mail_summary_interrupted':!this.modelAvailable(this.destination)?'mail_model_changed':code(error);this.store.set('mail:'+row.id,controller.signal.aborted?{...current,state:'queued',error:null,summaryTiming:timing.finish('cancelled')}:{...current,state:'attention',summaryTiming:timing.finish('interrupted'),error:failure,...(failure==='mail_summary_failed'?{summaryAttempts:(current?.summaryAttempts||0)+1}:{})});}}
     finally{this.synthesis=null;this.synthesisTimer=null;if(!this.disposed)queueMicrotask(()=>void this.drain());}
   }

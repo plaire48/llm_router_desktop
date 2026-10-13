@@ -28,7 +28,7 @@ export class DesktopUsage {
         for (const target of [this.ledger.total, this.ledger.days[day]]) {
           target[provider] ||= Object.fromEntries(Object.keys(stats).map(key => [key, 0]));
           for (const [key, value] of Object.entries(stats)) {
-            target[provider][key] = Math.max(0, target[provider][key] + value - (previous?.days?.[day]?.[provider]?.[key] || 0));
+            target[provider][key] = Math.max(0, Math.round(((target[provider][key] || 0) + value - (previous?.days?.[day]?.[provider]?.[key] || 0)) * 1e6) / 1e6);
           }
         }
       }
@@ -55,7 +55,9 @@ export class DesktopUsage {
     const usage=usageSummary(this.ledger),empty=newLedger().total.aipro;
     // Claude is a Desktop-only provider. The shared browser ledger keeps its
     // default catalog, but both Desktop periods must include an idle Claude.
-    return {usage:{...usage,today:{claude:{...empty},...usage.today},total:{claude:{...empty},...usage.total}},usageError:this.error};
+    // The last seven days, for the dollar figure an Enterprise console shows per seat (user decision 2026-10-14).
+    const week={};const since=Date.now()-6*86400000;for(const [day,providers] of Object.entries(this.ledger.days||{})){if(Date.parse(day+'T00:00:00')<since-86400000)continue;for(const [provider,stats] of Object.entries(providers)){week[provider]||={...empty};for(const [key,value] of Object.entries(stats))week[provider][key]=Math.round(((week[provider][key]||0)+value)*1e6)/1e6;}}
+    return {usage:{...usage,today:{claude:{...empty},...usage.today},week:{claude:{...empty},...week},total:{claude:{...empty},...usage.total}},usageError:this.error};
   }
   close() {this.closed = true; this.calls.clear(); this.store.close();}
 }

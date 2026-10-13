@@ -48,7 +48,10 @@ export function claudeQuota(event,previous=null,now=Date.now()) {
     windows.set(id,{id,label:windowNames[id],remaining:valid?100-used*100:null,resetsAt,fetchedAt:now});
   }
   // Extra usage (overage) is an organisation policy on Team and Enterprise plans.
-  const extra=typeof info.overageStatus==='string'||typeof info.isUsingOverage==='boolean'?{status:typeof info.overageStatus==='string'?info.overageStatus.slice(0,40):null,active:info.isUsingOverage===true,reason:typeof info.overageDisabledReason==='string'?info.overageDisabledReason.slice(0,60):null}:previous?.extra||null;
+  // Enterprise seats may also report extra usage in dollars; every scalar overage field is kept as it arrives.
+  const known=new Set(['status','resetsAt','rateLimitType','unifiedWindows','overageStatus','overageDisabledReason','isUsingOverage']);
+  const fields=Object.fromEntries(Object.entries(info).filter(([key,value])=>!known.has(key)&&/overage|extra|credit|usd|dollar|spend|budget|limit/i.test(key)&&(typeof value==='number'&&Number.isFinite(value)||typeof value==='string'&&value.length<=60||typeof value==='boolean')).slice(0,20));
+  const extra=typeof info.overageStatus==='string'||typeof info.isUsingOverage==='boolean'||Object.keys(fields).length?{status:typeof info.overageStatus==='string'?info.overageStatus.slice(0,40):null,active:info.isUsingOverage===true,reason:typeof info.overageDisabledReason==='string'?info.overageDisabledReason.slice(0,60):null,fields}:previous?.extra||null;
   return {windows:[...windows.values()],extra,fetchedAt:now};
 }
 export function completionSchema(tools=[],required=false) {
@@ -68,10 +71,12 @@ export function decodeClaudeResult(result,tools=[]) {
   });
   return {content:data.content,calls,usage:claudeUsage(result.usage),finishReason:calls.length?'tool_calls':'stop'};
 }
-export function claudeUsage(u) {
+export function claudeUsage(u,cost) {
   const valid=n=>typeof n==='number'&&Number.isSafeInteger(n)&&n>=0;
   const input=u&&[u.input_tokens,u.cache_creation_input_tokens??0,u.cache_read_input_tokens??0].every(valid)?u.input_tokens+(u.cache_creation_input_tokens||0)+(u.cache_read_input_tokens||0):null;
-  return input!==null&&input!==undefined&&valid(u?.output_tokens)?{prompt_tokens:input,completion_tokens:u.output_tokens,total_tokens:input+u.output_tokens,prompt_tokens_details:{cached_tokens:u.cache_read_input_tokens||0}}:undefined;
+  // The CLI prices each result in dollars; Enterprise consoles report seats the same way.
+  const priced=typeof cost==='number'&&Number.isFinite(cost)&&cost>=0?{cost_usd:cost}:{};
+  return input!==null&&input!==undefined&&valid(u?.output_tokens)?{prompt_tokens:input,completion_tokens:u.output_tokens,total_tokens:input+u.output_tokens,prompt_tokens_details:{cached_tokens:u.cache_read_input_tokens||0},...priced}:undefined;
 }
 export function createClaudeCode(deps={}) {
   const run=deps.run||runClaude,find=deps.findBinary||findClaudeBinary;
@@ -145,7 +150,7 @@ export function createClaudeCode(deps={}) {
       // Result usage sums the CLI's internal turns. Keep it for the ledger;
       // the context gauge uses the last reported turn, or an honest estimate.
       result.contextUsage=contextUsage;verified=true;onText(result.content);return result;
-    }finally{controllers.delete(controller);try{deps.onUsageFinish?.(usageRequest,claudeUsage(final?.usage));}catch{try{deps.onUsageFinish?.(usageRequest);}catch{}}}
+    }finally{controllers.delete(controller);try{deps.onUsageFinish?.(usageRequest,claudeUsage(final?.usage,final?.total_cost_usd));}catch{try{deps.onUsageFinish?.(usageRequest);}catch{}}}
   }
   // Rate limits arrive only with model responses. One short request on the
   // cheapest available model refreshes them on demand, outside any conversation.
@@ -157,7 +162,7 @@ export function createClaudeCode(deps={}) {
     try{
       await run(binary,['-p','--safe-mode','--tools','','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--disable-slash-commands','--no-session-persistence','--max-turns','1','--output-format','stream-json','--verbose','--model',probe],{timeoutMs:60000,input:'Reply with the single word OK.',onEvent:event=>{quota=claudeQuota(event,quota);if(event.type==='result')final=event;}});
     }catch(error){if(quota===before)throw error;}
-    finally{try{deps.onUsageFinish?.(usageRequest,claudeUsage(final?.usage));}catch{try{deps.onUsageFinish?.(usageRequest);}catch{}}}
+    finally{try{deps.onUsageFinish?.(usageRequest,claudeUsage(final?.usage,final?.total_cost_usd));}catch{try{deps.onUsageFinish?.(usageRequest);}catch{}}}
     return quota;
   }
   return {status,connect,complete,refreshQuota,quota:()=>quota,model:value=>{value=modelId(value);if(!models.some(m=>m.id===value))throw Error('invalid_model');model=value;if(!effortOptions(model).includes(effort))effort=effortOptions(model).includes('medium')?'medium':effortOptions(model)[0]||null;return status();},reasoning:value=>{if(!effortOptions(model).includes(value))throw Error('invalid_reasoning');effort=value;return status();},disconnect:()=>{generation++;connecting=null;for(const controller of controllers)controller.abort();connected=false;verified=false;quota=null;plan=null;connectionId=null;return status();}};

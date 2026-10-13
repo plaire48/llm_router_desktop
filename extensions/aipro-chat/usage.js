@@ -17,7 +17,8 @@ export function normalizeUsage(value) {
   if (prompt_tokens === null && completion_tokens === null && total_tokens === null) return null;
   const reasoning = count(value.completion_tokens_details?.reasoning_tokens);
   const cached = count(value.prompt_tokens_details?.cached_tokens);
-  return {prompt_tokens, completion_tokens, total_tokens,
+  const cost = typeof value.cost_usd === 'number' && Number.isFinite(value.cost_usd) && value.cost_usd >= 0 ? Math.round(value.cost_usd * 1e6) / 1e6 : null;
+  return {prompt_tokens, completion_tokens, total_tokens, ...(cost !== null ? {cost_usd: cost} : {}),
     ...(cached !== null && prompt_tokens !== null && cached <= prompt_tokens ? {prompt_tokens_details: {cached_tokens: cached}} : {}),
     ...(reasoning !== null && completion_tokens !== null && reasoning <= completion_tokens ? {completion_tokens_details: {reasoning_tokens: reasoning}} : {})};
 }

@@ -57,9 +57,9 @@ jobs:
           if ($parseErrors.Count) { throw ($parseErrors | Out-String) }
       - name: Build standalone Electron installer with bird icon
         run: npm run package:windows
-      - name: Verify 1.1.7 fixes
+      - name: Verify 1.2.0 fixes
         run: |
-          node --test tests/decision-notices.test.mjs tests/human-decisions.test.mjs tests/project-services.test.mjs tests/review-format-recovery.test.mjs tests/ghes-profile-status.test.mjs tests/wiki-repository.test.mjs tests/browser-auth-return.test.mjs tests/mail-portal.test.mjs tests/portal-mail-metadata.test.mjs tests/mail-file-import.test.mjs tests/workspace-community.test.mjs tests/wiki-library.test.mjs tests/result-review.test.mjs
+          node --test tests/decision-notices.test.mjs tests/human-decisions.test.mjs tests/project-services.test.mjs tests/review-format-recovery.test.mjs tests/ghes-profile-status.test.mjs tests/wiki-repository.test.mjs tests/browser-auth-return.test.mjs tests/mail-portal.test.mjs tests/portal-mail-metadata.test.mjs tests/mail-file-import.test.mjs tests/workspace-community.test.mjs tests/wiki-library.test.mjs tests/result-review.test.mjs tests/memory.test.mjs tests/mail-facts.test.mjs tests/wiki-graph.test.mjs tests/wiki-frontmatter.test.mjs tests/openai-shim.test.mjs tests/judge.test.mjs tests/claude-code.test.mjs tests/conversation-activity.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify Nubi skill scope and manual external file browsing
         run: |
@@ -106,10 +106,10 @@ jobs:
         run: |
           $baseline = Join-Path $env:RUNNER_TEMP 'nubi-desktop-baseline'
           New-Item $baseline -ItemType Directory -Force | Out-Null
-          gh release download nubi-desktop-v1.1.6 --repo $env:GITHUB_REPOSITORY --pattern '*-Setup.exe' --dir $baseline
+          gh release download nubi-desktop-v1.1.7 --repo $env:GITHUB_REPOSITORY --pattern '*-Setup.exe' --dir $baseline
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $previous = (Get-ChildItem $baseline/*-Setup.exe | Select-Object -First 1).FullName
-          if ((Get-FileHash $previous -Algorithm SHA256).Hash.ToLower() -ne 'ad15c9bf17bfed37a4c253fceef22ed5055aeb77075b85e099d0caf63a198a48') { throw 'Baseline checksum mismatch' }
+          if ((Get-FileHash $previous -Algorithm SHA256).Hash.ToLower() -ne '481d26c4ca58197e2093f3a973efc5b0801c0a9c0a8baf2cee652e0577bda91a') { throw 'Baseline checksum mismatch' }
           "NUBI_BASELINE_INSTALLER=$previous" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Verify installed app, icon, upgrade, reinstall and uninstall
         timeout-minutes: 25

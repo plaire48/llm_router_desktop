@@ -211,14 +211,15 @@ test('status carries the plan and last quota; a quota probe is one short request
     if(args[0]==='--help'||args[0]==='auth'||args.includes('--input-format'))return f.run(binary,args,options);
     probes.push({args,input:options.input});options.onEvent({type:'rate_limit_event',rate_limit_info:limits});
     if(probes.length===2)throw Error('claude_cli_failed');
-    options.onEvent(result([],{input_tokens:5,output_tokens:1}));return '';
+    options.onEvent({...result([],{input_tokens:5,output_tokens:1}),total_cost_usd:0.0123});return '';
   };
-  const adapter=createClaudeCode({...f,run,onUsageStart:()=>'probe',onUsageFinish:(id,value)=>usage.push([id,value?.total_tokens??null])});
+  const adapter=createClaudeCode({...f,run,onUsageStart:()=>'probe',onUsageFinish:(id,value)=>usage.push([id,value?.total_tokens??null,value?.cost_usd??null])});
   await adapter.connect();assert.equal(adapter.status().plan,'enterprise');assert.equal(adapter.status().quota,null);
   const quota=await adapter.refreshQuota();
   assert.equal(probes.length,1);assert.equal(probes[0].args[probes[0].args.indexOf('--max-turns')+1],'1');assert.equal(probes[0].args[probes[0].args.indexOf('--model')+1],'claude-haiku-4-5');assert.equal(probes[0].input,'Reply with the single word OK.');
-  assert.deepEqual(quota.windows.map(w=>[w.label,w.remaining]),[['5시간',60],['7일',90]]);assert.deepEqual(quota.extra,{status:'rejected',active:false,reason:'org_level_disabled'});
-  assert.equal(adapter.status().quota.windows.length,2);assert.deepEqual(usage,[['probe',6]]);
+  assert.deepEqual(quota.windows.map(w=>[w.label,w.remaining]),[['5시간',60],['7일',90]]);assert.deepEqual(quota.extra,{status:'rejected',active:false,reason:'org_level_disabled',fields:{}});
+  const seat=claudeQuota({type:'rate_limit_event',rate_limit_info:{...limits,overageUsedUsd:12.5,overageLimitUsd:50,overageResetsAt:'2026-11-01',nested:{x:1},secretToken:'abc'}},null,1000);assert.deepEqual(seat.extra.fields,{overageUsedUsd:12.5,overageLimitUsd:50,overageResetsAt:'2026-11-01'},'scalar extra-usage fields are kept, nothing else');
+  assert.equal(adapter.status().quota.windows.length,2);assert.deepEqual(usage,[['probe',6,0.0123]],'the dollar cost of the probe reaches the ledger');
   // A failed probe that still reported limits keeps them; one without any report fails.
   assert.equal((await adapter.refreshQuota()).windows.length,2);
   const silent=createClaudeCode({...f,run:async(binary,args,options)=>{if(args[0]==='--help'||args[0]==='auth'||args.includes('--input-format'))return f.run(binary,args,options);throw Error('claude_cli_failed');}});

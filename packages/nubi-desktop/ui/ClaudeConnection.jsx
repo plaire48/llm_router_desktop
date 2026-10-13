@@ -27,20 +27,19 @@ export function ClaudeQuotaPill({quota,plan,now=Date.now(),onClick}){
   return <button type="button" className="nubi-claude-quota" data-level={remaining<=10?'critical':remaining<=25?'low':'ok'} aria-label={`Claude 잔여 한도 ${window.label} ${percent(remaining)}% 남음`} title={`Claude 잔여 한도${plan?` (${PLAN_LABELS[plan]||plan})`:''}\n${detail}`} onClick={onClick}><ProviderIcon provider="claude"/><b>{percent(remaining)}%</b><i aria-hidden="true"><span style={{width:`${remaining}%`}}/></i></button>;
 }
 export function ClaudeAccountUsage({data,now=Date.now(),openWebPage,onRefresh}) {
-  const connected=data.connections?.claude?.present,quota=data.claudeAccountUsage,plan=data.claudePlan,extra=quota?.extra;
+  // Same shape as the ChatGPT block above it (user decision 2026-10-14, "keep it simple"): title, one refresh icon, a meter per window, the time it was read.
+  const connected=data.connections?.claude?.present,quota=data.claudeAccountUsage;
   const [checking,setChecking]=useState(false),[checkError,setCheckError]=useState('');
-  const extraLabel=!extra?null:extra.active?'추가 사용 중':extra.status==='allowed'?'추가 사용 가능':extra.reason==='org_level_disabled'?'조직 정책으로 꺼짐':extra.status==='rejected'?'사용 안 함':null;
-  async function check(){if(!onRefresh||checking)return;setChecking(true);setCheckError('');try{await onRefresh();}catch(error){setCheckError(error?.message==='claude_login_required'?'Claude Code에 다시 연결해 주세요.':'한도를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.');}finally{setChecking(false);}}
+  async function check(){if(!onRefresh||checking)return;setChecking(true);setCheckError('');try{await onRefresh();}catch(error){setCheckError(error?.message==='claude_login_required'?'Claude Code에 다시 연결해 주세요.':'한도를 읽지 못했어요. 잠시 후 다시 시도해 주세요.');}finally{setChecking(false);}}
   return <section className="usage-account claude-account" aria-label="Claude 잔여 한도">
-    <div className="usage-row"><h3><ProviderIcon provider="claude"/>Claude 잔여 한도{plan&&<span className="claude-plan">{PLAN_LABELS[plan]||plan}</span>}</h3><span className="claude-account-actions">{connected&&onRefresh&&<CxButton busy={checking} disabled={checking} aria-label="Claude 한도 확인" title="짧은 확인 요청 1회를 보내 현재 한도를 읽어요" onClick={check}><Icon name="refresh" size={16}/><span>{quota?.windows?.length?'다시 확인':'한도 확인'}</span></CxButton>}{openWebPage&&<CxButton data-icon-only aria-label="Claude 계정 사용량 보기" title="Claude 계정 사용량 보기" onClick={()=>openWebPage('https://claude.ai/settings/usage')}><Icon name="linkExternal" size={16}/></CxButton>}</span></div>
-    {!connected?<p className="usage-caption">Claude Code 연결 후 확인할 수 있습니다.</p>:!quota?.windows?.length?<p className="usage-caption">{onRefresh?'한도 확인을 누르면 짧은 요청 1회로 읽어요.':'한도 정보 수신 대기. Claude 응답 후 확인합니다.'}</p>:quota.windows.map(item=>{
+    <div className="usage-row"><h3><ProviderIcon provider="claude"/>Claude 잔여 한도</h3><span className="claude-account-actions">{onRefresh&&<CxButton data-icon-only busy={checking} disabled={!connected||checking} aria-label="Claude 한도 새로고침" title={quota?.fetchedAt?`Claude 한도 새로고침\n${new Date(quota.fetchedAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})} 읽음`:'Claude 한도 새로고침'} onClick={check}><Icon name="refresh" size={16}/></CxButton>}{openWebPage&&<CxButton data-icon-only aria-label="Claude 계정 사용량 보기" title="Claude 계정 사용량 보기" onClick={()=>openWebPage('https://claude.ai/settings/usage')}><Icon name="linkExternal" size={16}/></CxButton>}</span></div>
+    {!connected?<p className="usage-caption">Claude Code 연결 후 확인할 수 있습니다.</p>:!quota?.windows?.length?<p className="usage-caption" role="status">{checking?'읽는 중':'아직 읽은 한도가 없어요.'}</p>:quota.windows.map(item=>{
       const expired=item.resetsAt&&item.resetsAt<=now,stale=now-item.fetchedAt>300000,remaining=expired?null:item.remaining;
       return <div className="usage-window" key={item.id}><div className="usage-row"><span>{item.label}</span><strong>{remaining==null?expired?'초기화 후 확인 필요':'비율 미제공':`${stale?'마지막 확인 ':''}${remaining.toLocaleString('ko-KR',{maximumFractionDigits:1})}%${stale?'':' 남음'}`}</strong></div>
         {remaining!=null&&<div className="context-bar" role="meter" aria-label={`Claude ${item.label} 잔여 한도`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={remaining}><span style={{width:`${remaining}%`}}/></div>}
         {item.resetsAt&&<span className="usage-caption usage-metadata">{new Date(item.resetsAt).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})} 초기화</span>}
       </div>;
     })}
-    {connected&&extraLabel&&<p className="usage-caption">추가 사용: {extraLabel}</p>}
     {checkError&&<p className="usage-caption claude-connection-error" role="alert">{checkError}</p>}
     {connected&&quota?.windows?.length>0&&<p className="usage-caption">Claude 응답 기준 {new Date(quota.fetchedAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</p>}
   </section>;

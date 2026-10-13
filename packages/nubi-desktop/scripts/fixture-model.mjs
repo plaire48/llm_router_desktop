@@ -24,6 +24,9 @@ export async function startFixtureModel({respond,planSkill,token='fixture-token'
       return tools.includes('report_desktop_review')?call('report_desktop_review',verdict):text(JSON.stringify(verdict));
     }
     if(first.startsWith('Summarize conversation'))return text(JSON.stringify({goal:'검사',constraints:[],decisions:[],completed:[],pending:[],references:[]}));
+    // Memory and mail-fact extraction (2026-10-14) ask for a JSON decision after the answer; the fixture remembers nothing.
+    if(first.startsWith('You maintain a short memory'))return text(JSON.stringify({add:[],update:[],delete:[]}));
+    if(first.startsWith('Extract facts that can change over time'))return text(JSON.stringify({facts:[]}));
     const results=messages.filter(message=>message.role==='tool').map(message=>parse(message.content));
     const user=messages.filter(message=>message.role==='user').map(message=>String(message.content||''));
     return respond({messages,results,user,tools,calls,text,call})||text('검사 응답입니다.');
