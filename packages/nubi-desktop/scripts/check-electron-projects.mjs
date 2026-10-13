@@ -21,7 +21,7 @@ async function menu(name){
  if(await page.locator('.monaco-editor .inputarea').count())await page.locator('.monaco-editor .inputarea').first().dispatchEvent('scroll');
  assert.equal(await actions.isVisible(),true,'unrelated editor scrolling keeps the menu open');
 }
-async function resize(width,height){await app.evaluate(({BrowserWindow},size)=>BrowserWindow.getAllWindows()[0].setContentSize(size.width,size.height),{width,height});await page.waitForFunction(width=>innerWidth===width,width);}
+async function resize(width,height){await (await app.browserWindow(page)).evaluate((win,size)=>win.setContentSize(size.width,size.height),{width,height});await page.waitForFunction(width=>innerWidth===width,width,{polling:100});}
 try{
  await launch();await resize(1480,960);await page.getByRole('button',{name:task.request,exact:true}).click();
  const plan=page.locator('.nubi-agent-activity .task-plan details[data-plan-overview]'),trace=page.locator('.nubi-agent-activity .agent-trace');

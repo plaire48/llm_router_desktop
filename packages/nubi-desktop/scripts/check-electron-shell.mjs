@@ -32,15 +32,15 @@ try{page=await app.firstWindow();await page.bringToFront();page.setDefaultTimeou
  await page.getByRole('button',{name:'메일',exact:true}).click();await page.getByRole('heading',{name:'메일',exact:true}).waitFor();await page.locator('.desktop-pane').waitFor({state:'hidden'});await page.getByRole('button',{name:'포털 로그인',exact:true}).click();await page.getByRole('dialog',{name:'메일 설정',exact:true}).getByRole('button',{name:'포털 로그인',exact:true}).waitFor();await page.keyboard.press('Escape');await page.getByRole('dialog',{name:'메일 설정',exact:true}).waitFor({state:'hidden'});await page.getByRole('button',{name:'홈',exact:true}).click();await page.getByRole('heading',{name:'메일',exact:true}).waitFor({state:'hidden'});
  await page.getByRole('button',{name:'위키 관리',exact:true}).click();await page.getByRole('dialog',{name:'프로젝트 자료',exact:true}).waitFor();await page.keyboard.press('Escape');await page.getByRole('dialog',{name:'프로젝트 자료',exact:true}).waitFor({state:'hidden'});
  // Record the real native API calls on Windows; macOS has different window controls.
- if(process.platform==='win32')await app.evaluate(({BrowserWindow})=>{const win=BrowserWindow.getAllWindows()[0],apply=win.setTitleBarOverlay.bind(win);win.captionUpdates=[];win.setTitleBarOverlay=options=>{win.captionUpdates.push(options);return apply(options);};});
+ if(process.platform==='win32')await (await app.browserWindow(page)).evaluate(win=>{const apply=win.setTitleBarOverlay.bind(win);win.captionUpdates=[];win.setTitleBarOverlay=options=>{win.captionUpdates.push(options);return apply(options);};});
  await page.getByRole('button',{name:'설정',exact:true}).click();await page.getByRole('dialog',{name:'설정',exact:true}).getByLabel('기본 터미널').waitFor();
  if(process.platform==='win32'){
   const {captionColors}=await import('../electron-app/titlebar-colors.cjs');
   const style=await page.evaluate(()=>{const toolbar=getComputedStyle(document.querySelector('.nubi-window-toolbar'));return {background:toolbar.backgroundColor,symbol:toolbar.getPropertyValue('--deck-sub').trim(),layers:[...document.querySelectorAll('.cx-panel-backdrop')].filter(node=>node.checkVisibility()).map(node=>getComputedStyle(node).backgroundColor)};});
   const expected={...captionColors(style.background,style.symbol,style.layers),height:48};
   assert.notEqual(expected.color,captionColors(style.background,style.symbol).color,'settings has a visible scrim; a fallback color must not pass');
-  for(let i=0;i<30;i++){const current=await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].captionUpdates.at(-1));if(JSON.stringify(current)===JSON.stringify(expected))break;await new Promise(resolve=>setTimeout(resolve,100));}
-  assert.deepEqual(await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].captionUpdates.at(-1)),expected,'settings scrim reaches native minimize/maximize/close controls');
+  for(let i=0;i<30;i++){const current=await (await app.browserWindow(page)).evaluate(win=>win.captionUpdates.at(-1));if(JSON.stringify(current)===JSON.stringify(expected))break;await new Promise(resolve=>setTimeout(resolve,100));}
+  assert.deepEqual(await (await app.browserWindow(page)).evaluate(win=>win.captionUpdates.at(-1)),expected,'settings scrim reaches native minimize/maximize/close controls');
   await page.screenshot({path:path.join(captures,'settings-caption.png')});
  }
  await page.keyboard.press('Escape');await page.getByRole('dialog',{name:'설정',exact:true}).waitFor({state:'hidden'});
@@ -48,11 +48,11 @@ try{page=await app.firstWindow();await page.bringToFront();page.setDefaultTimeou
   const {captionColors}=await import('../electron-app/titlebar-colors.cjs');
   const style=await page.evaluate(()=>{const s=getComputedStyle(document.querySelector('.nubi-window-toolbar'));return {background:s.backgroundColor,symbol:s.getPropertyValue('--deck-sub').trim()};});
   const expected={...captionColors(style.background,style.symbol),height:48};
-  for(let i=0;i<30;i++){const current=await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].captionUpdates.at(-1));if(JSON.stringify(current)===JSON.stringify(expected))break;await new Promise(resolve=>setTimeout(resolve,100));}
-  assert.deepEqual(await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].captionUpdates.at(-1)),expected,'closing settings restores native caption colors');checks.push('native caption follows settings scrim and restores');
+  for(let i=0;i<30;i++){const current=await (await app.browserWindow(page)).evaluate(win=>win.captionUpdates.at(-1));if(JSON.stringify(current)===JSON.stringify(expected))break;await new Promise(resolve=>setTimeout(resolve,100));}
+  assert.deepEqual(await (await app.browserWindow(page)).evaluate(win=>win.captionUpdates.at(-1)),expected,'closing settings restores native caption colors');checks.push('native caption follows settings scrim and restores');
  }
  console.log('stage',checks.length);checks.push('mail page, library and settings');
- assert.equal(await app.evaluate(({BrowserWindow})=>{const p=BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences();return p.sandbox&&p.contextIsolation&&!p.nodeIntegration;}),true);console.log('stage',checks.length);checks.push('sandbox');
+ assert.equal(await (await app.browserWindow(page)).evaluate(win=>{const p=win.webContents.getLastWebPreferences();return p.sandbox&&p.contextIsolation&&!p.nodeIntegration;}),true);console.log('stage',checks.length);checks.push('sandbox');
  await page.getByRole('button',{name:'파일',exact:true}).click();await page.getByRole('button',{name:'오른쪽 사이드바 닫기'}/* the auxiliary pane closes from its header (2026-10-02) */).click();assert.equal(await page.locator('.nubi-workbench').count(),1);console.log('stage',checks.length);checks.push('permanent agent');
  await page.getByRole('button',{name:'파일',exact:true}).click();await page.getByRole('button',{name:'새 탭',exact:true}).click();await page.getByRole('menuitem',{name:'터미널',exact:true}).click();/* the terminal opens from the file dock's tools menu (2026-10-02) */const terminalRegion=page.getByRole('region',{name:'프로젝트 터미널'});await page.locator('.desktop-terminal[data-terminal-state=running]').waitFor();
  const shellInput=terminalRegion.locator('.xterm-helper-textarea');await shellInput.focus();
