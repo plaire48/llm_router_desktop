@@ -35,7 +35,7 @@ try{
   await page.getByRole('navigation',{name:'프로젝트 도구'}).waitFor({timeout:30000});
   await dismissStartup(page);
   // The renderer opens the last project itself; openCurrent returns that project once it is open.
-  await page.waitForFunction(()=>document.querySelector('button[aria-label="파일"]')?.disabled===false,null,{timeout:60000});
+  await page.waitForFunction(()=>document.querySelector('button[aria-label="파일"]')?.disabled===false,null,{timeout:60000,polling:100});
   const overview=await page.evaluate(()=>window.nubi.request('overview',{}));assert.equal(overview?.root,root,JSON.stringify(overview));
   // 1. The worker is killed: a child of the Electron process this check started.
   const mainPid=app.process().pid;
