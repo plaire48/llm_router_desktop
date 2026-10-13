@@ -43,6 +43,7 @@ class BrowserHost {
   // last tab must not leave an empty browser with the old callback address.
   const closedActiveAuthentication=row.authentication&&this.active===row.id;
   if(!this.tabs.delete(row.id))return;
+  if(row.onClosed){const notify=row.onClosed;row.onClosed=null;try{notify();}catch{}}
   if(!this.window.isDestroyed())this.window.contentView.removeChildView(row.view);
   if(this.active===row.id)this.active=[...this.tabs.keys()].at(-1)||null;
   if(!this.disposed){this.layout();this.publish('closed',{returnToApp:returnToApp||Boolean(closedActiveAuthentication&&!this.active)});}
@@ -62,10 +63,12 @@ class BrowserHost {
   const width=Math.max(0,Math.min(w-x,Math.round(b.width))),height=Math.max(0,Math.min(h-y,Math.round(b.height)));
   for(const row of this.tabs.values()) {if(row.view.webContents.isDestroyed())continue;const active=row.id===this.active&&!row.error&&width>0&&height>0;row.view.setVisible(active);if(active)row.view.setBounds({x,y,width,height});}
  }
- create(url='about:blank',{authentication=false,companyLogin=false,popupOptions=null,load=true,loadOptions={}}={}) {
+ // A tab may carry its own persistent session (the mail portal login keeps its cookies for silent restore) and
+ // report when the person closes it, so the login waiting on it can stop (2026-10-14).
+ create(url='about:blank',{authentication=false,companyLogin=false,popupOptions=null,load=true,loadOptions={},session=null,onClosed=null}={}) {
   if(this.tabs.size>=12)throw Error('browser_tab_limit');
-  const target=address(url),view=new WebContentsView({...(popupOptions?.webContents?{webContents:popupOptions.webContents}:{}),webPreferences:{...popupOptions?.webPreferences,session:this.session,sandbox:true,contextIsolation:true,nodeIntegration:false,webSecurity:true,allowRunningInsecureContent:false}});
-  const row={id:randomUUID(),view,title:'웹 페이지',url:displayAddress(target),authentication:authentication===true,companyLogin:companyLogin===true,popup:!!popupOptions,contentReady:false,loading:false,error:null};this.tabs.set(row.id,row);this.window.contentView.addChildView(view);view.setVisible(false);view.setBackgroundColor('#FFFFFF');this.active=row.id;
+  const target=address(url),view=new WebContentsView({...(popupOptions?.webContents?{webContents:popupOptions.webContents}:{}),webPreferences:{...popupOptions?.webPreferences,session:session||this.session,sandbox:true,contextIsolation:true,nodeIntegration:false,webSecurity:true,allowRunningInsecureContent:false}});
+  const row={id:randomUUID(),view,title:'웹 페이지',url:displayAddress(target),authentication:authentication===true,companyLogin:companyLogin===true,popup:!!popupOptions,session,onClosed:typeof onClosed==='function'?onClosed:null,contentReady:false,loading:false,error:null};this.tabs.set(row.id,row);this.window.contentView.addChildView(view);view.setVisible(false);view.setBackgroundColor('#FFFFFF');this.active=row.id;
   const wc=view.webContents;
   const permitted=url=>{try{const parsed=new URL(url);return url==='about:blank'||(['http:','https:'].includes(parsed.protocol)&&!parsed.username&&!parsed.password);}catch{return false;}};
   wc.on('will-navigate',(event,url)=>{if(row.authentication&&url==='nubi-workspace://auth-return'){event.preventDefault();this.closeTab(row.id,{returnToApp:true});return;}if(!permitted(url))event.preventDefault();});
@@ -75,7 +78,7 @@ class BrowserHost {
    // Electron owns popup navigation, opener linkage and form POST delivery.
    // Reopening the URL as GET breaks pages which populate a blank child window.
    return {action:'allow',createWindow:options=>{
-    const child=this.create(details.url,{authentication:row.authentication,companyLogin:row.companyLogin,popupOptions:options,load:details.disposition==='background-tab',loadOptions:{httpReferrer:details.referrer,...(details.postBody?{postData:details.postBody.data,extraHeaders:'Content-Type: '+details.postBody.contentType+(details.postBody.boundary?'; boundary='+details.postBody.boundary:'')}: {})}});
+    const child=this.create(details.url,{authentication:row.authentication,companyLogin:row.companyLogin,session:row.session,popupOptions:options,load:details.disposition==='background-tab',loadOptions:{httpReferrer:details.referrer,...(details.postBody?{postData:details.postBody.data,extraHeaders:'Content-Type: '+details.postBody.contentType+(details.postBody.boundary?'; boundary='+details.postBody.boundary:'')}: {})}});
     this.publish('opened');return child.view.webContents;
    }};
   });
@@ -89,7 +92,7 @@ class BrowserHost {
   wc.on('did-start-loading',()=>{row.loading=true;row.error=null;this.layout();this.changed();});
   wc.on('dom-ready',()=>{row.contentReady=true;this.changed();});
   wc.on('did-stop-loading',()=>{row.loading=false;this.changed();});
-  wc.on('did-navigate',(_event,url)=>{row.url=displayAddress(url);if(!row.authentication&&url!=='about:blank'&&row.url===url){this.history=this.history.filter(item=>item.url!==url);this.history.unshift({url,title:row.title,date:Date.now()});this.history=this.history.slice(0,100);}this.changed();});
+  wc.on('did-navigate',(_event,url)=>{row.url=displayAddress(url);if(!row.authentication&&!row.session&&url!=='about:blank'&&row.url===url){this.history=this.history.filter(item=>item.url!==url);this.history.unshift({url,title:row.title,date:Date.now()});this.history=this.history.slice(0,100);}this.changed();});
   wc.on('did-navigate-in-page',(_event,url,isMain)=>{if(isMain){row.url=displayAddress(url);this.changed();}});
   wc.on('did-fail-load',(_event,code,_description,_url,isMain)=>{if(isMain&&code!==-3){row.loading=false;row.error=loadFailure(code);this.layout();this.changed();}});
   wc.on('found-in-page',(_event,result)=>{this.find={matches:result.matches,active:result.activeMatchOrdinal};this.changed();});

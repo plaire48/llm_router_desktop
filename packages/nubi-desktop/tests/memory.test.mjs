@@ -1,7 +1,7 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import {mkdtemp,rm} from 'node:fs/promises';import os from 'node:os';import path from 'node:path';
 import {Store} from '../runtime/store.mjs';
-import {memoryStores,listMemories,saveMemory,updateMemory,deleteMemory,rankMemories,memoryGuidance,parseMemoryDecision,rememberExchange,secretLike,memoryEnabled,installMemory,MEMORY_LIMITS} from '../runtime/memory.mjs';
-async function setup(t){const dir=await mkdtemp(path.join(os.tmpdir(),'nubi-memory-'));t.after(()=>rm(dir,{recursive:true,force:true}));const project=new Store(path.join(dir,'project'));t.after(()=>project.close());return {dir,service:{store:project,storageRoot:dir}};}
+import {memoryStores,listMemories,saveMemory,updateMemory,deleteMemory,rankMemories,memoryGuidance,parseMemoryDecision,rememberExchange,secretLike,memoryEnabled,installMemory,MEMORY_LIMITS,closeUserMemoryStore} from '../runtime/memory.mjs';
+async function setup(t){const dir=await mkdtemp(path.join(os.tmpdir(),'nubi-memory-'));const project=new Store(path.join(dir,'project'));t.after(async()=>{project.close();closeUserMemoryStore(dir);await rm(dir,{recursive:true,force:true,maxRetries:5});});return {dir,service:{store:project,storageRoot:dir}};}
 test('memories live in two scopes, dedupe by text and never hold secrets',async t=>{
   const {service}=await setup(t),stores=memoryStores(service);
   assert.equal(stores.userIsProject,false);

@@ -1,7 +1,9 @@
 const {ORIGIN,foldersOf,identityOf,portalFetch}=require('./mail-portal-contract.cjs');
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 class MailPortal {
- constructor({BrowserWindow,invoke,parent}){this.BrowserWindow=BrowserWindow;this.invoke=invoke;this.parent=parent;this.state={connected:false,connecting:false,checking:false,folders:[],error:null};this.epoch=0;}
+ // Login happens in the app's own browser tab (openPage/closePage) when the host offers one; the hidden window only
+ // runs the read-only portal fetches on the same persistent session (user request 2026-10-14: no separate popup).
+ constructor({BrowserWindow,invoke,parent,openPage=null,closePage=null}){this.BrowserWindow=BrowserWindow;this.invoke=invoke;this.parent=parent;this.openPage=openPage;this.closePage=closePage;this.page=null;this.state={connected:false,connecting:false,checking:false,folders:[],error:null};this.epoch=0;}
  status(){return {...this.state};}
  async identify(){
   let identity;try{identity=identityOf(await this.read('identity'));}catch(error){if(!['mail_portal_identity','mail_portal_format','mail_portal_request','mail_portal_login'].includes(error.message))throw error;}
@@ -26,9 +28,12 @@ class MailPortal {
    this.window.webContents.setWindowOpenHandler(({url})=>{try{if(new URL(url).protocol==='https:'){void this.window.loadURL(url);}}catch{}return {action:'deny'};});
    this.window.webContents.on('will-navigate',(event,url)=>{try{if(new URL(url).protocol!=='https:')event.preventDefault();}catch{event.preventDefault();}});
    this.window.on('closed',()=>{this.window=null;this.epoch++;this.state={...this.state,connected:false,connecting:false,error:null};clearTimeout(this.timer);void this.invoke('mail',{action:'disconnect'}).catch(()=>{});});
-   if(show)this.window.show();await this.window.loadURL(ORIGIN);
-  }else if(show)this.window.show();return this.window;
+   if(show&&!this.openPage)this.window.show();await this.window.loadURL(ORIGIN);
+  }else if(show&&!this.openPage)this.window.show();
+  if(show&&this.openPage&&!this.page){const epoch=this.epoch;this.page=this.openPage(ORIGIN,{onClosed:()=>{if(this.page&&epoch===this.epoch){this.page=null;if(this.state.connecting)this.epoch++;}}});}
+  return this.window;
  }
+ closeLoginPage(){const page=this.page;this.page=null;if(page&&this.closePage){try{this.closePage(page.tabId);}catch{}}this.window?.hide();}
  async read(operation,input={}){
   if(!this.window||this.window.isDestroyed())throw Error('mail_portal_login');
   return this.window.webContents.executeJavaScript(`(${portalFetch.toString()})(${JSON.stringify({operation,...input})})`);
@@ -46,10 +51,10 @@ class MailPortal {
    if(epoch!==this.epoch)throw Error('mail_cancelled');if(!identity||!folders)throw Error('mail_portal_timeout');
    await this.invoke('mail',{action:'portalConnect',identity:identity.id,email:identity.email,folders,destination:args.destination});
    if(epoch!==this.epoch)throw Error('mail_cancelled');
-   this.approvalCache=new Map();this.approvalCacheBytes=0;this.identity=identity;this.state={connected:true,connecting:false,checking:false,folders,error:null};this.window.hide();
+   this.approvalCache=new Map();this.approvalCacheBytes=0;this.identity=identity;this.state={connected:true,connecting:false,checking:false,folders,error:null};this.closeLoginPage();
    // Return after login; collection stays outside the UI's admission call.
    void this.sync().catch(()=>{});return this.status();
-  }catch(error){if(epoch===this.epoch)this.state={...this.state,connecting:false,connected:false,error:/^mail_/.test(error.message)?error.message:'mail_portal_request'};throw Error(epoch!==this.epoch?'mail_cancelled':this.state.error);}
+  }catch(error){this.closeLoginPage();if(epoch===this.epoch)this.state={...this.state,connecting:false,connected:false,error:/^mail_/.test(error.message)?error.message:'mail_portal_request'};throw Error(epoch!==this.epoch?'mail_cancelled':this.state.error);}
  }
  sync(input={}){
   if(this.syncing)return this.syncing;
@@ -104,7 +109,7 @@ class MailPortal {
   const bytes=[...item.result].some(char=>char.charCodeAt(0)>255)?Buffer.from(item.result,'utf8'):Buffer.from(item.result,'latin1');
   const epoch=this.epoch,parsed=await this.invoke('mail',{action:'portalDocument',raw:bytes.toString('base64')});if(epoch!==this.epoch)throw Error('mail_cancelled');return {id:args.id,subject:item.subject||parsed.mail.subject,...parsed};
  }
- async disconnect(){++this.epoch;this.syncing=null;clearTimeout(this.timer);this.approvalCache?.clear();this.state={...this.state,connected:false,connecting:false,checking:false,error:null};this.window?.hide();await this.invoke('mail',{action:'disconnect'});return this.status();}
- dispose(){++this.epoch;clearTimeout(this.timer);this.window?.destroy();}
+ async disconnect(){++this.epoch;this.syncing=null;clearTimeout(this.timer);this.approvalCache?.clear();this.state={...this.state,connected:false,connecting:false,checking:false,error:null};this.closeLoginPage();await this.invoke('mail',{action:'disconnect'});return this.status();}
+ dispose(){++this.epoch;clearTimeout(this.timer);this.closeLoginPage();this.window?.destroy();}
 }
 module.exports={MailPortal};

@@ -176,7 +176,8 @@
 :root:has(.desktop-shell) .cx-panel-backdrop>.nubi-decision-dialog { width:min(580px,100%); }
 :root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .question-option-copy { display:flex; flex-direction:row; align-items:center; gap:var(--cx-space-3); min-width:0; }
 :root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .question-option-copy strong { flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .question-option-copy>span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--nubi-text-secondary); }
+/* Sentences wrap to two lines instead of being cut at one (user report 2026-10-14). */
+:root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .question-option-copy>span { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; white-space:normal; overflow:hidden; overflow-wrap:anywhere; color:var(--nubi-text-secondary); }
 :root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .question-option.cx-kit-button { min-height:44px; padding:var(--cx-space-2) var(--cx-space-3); gap:var(--cx-space-2); }
 :root:has(.desktop-shell) :is(.nubi-decision-dialog,.nubi-question-form) .question-option-index { display:none; }
 :root:has(.desktop-shell) .nubi-decision-dialog .nubi-approval-bar { flex-wrap:nowrap; gap:var(--cx-space-2); }
@@ -230,7 +231,7 @@
 :root:has(.desktop-shell) .deck-dialog .nubi-custom-skill-list { padding-block:var(--cx-space-2) 0; }
 :root:has(.desktop-shell) .deck-dialog .nubi-custom-skill-row { gap:var(--cx-space-3); padding:var(--cx-space-3) var(--cx-space-2); border-radius:var(--nubi-work-control-radius); background:var(--nubi-surface-inset); }
 :root:has(.desktop-shell) .deck-dialog .nubi-custom-skill-mark { color:var(--nubi-text-action); }
-:root:has(.desktop-shell) .deck-dialog .nubi-custom-skill-copy p { flex:1; min-width:0; margin:0; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+:root:has(.desktop-shell) .deck-dialog .nubi-custom-skill-copy p { flex:1; min-width:0; margin:0; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; white-space:normal; overflow:hidden; overflow-wrap:anywhere; }
 :root:has(.desktop-shell) .nubi-wiki-update[data-current=true] { padding-block:var(--cx-space-4); }
 :root:has(.desktop-shell) .nubi-wiki-update[data-current=true] .nubi-action-head { align-items:center; margin:0; }
 :root:has(.desktop-shell) .nubi-wiki-update[data-current=true] .nubi-action-head h3 { margin:0; }

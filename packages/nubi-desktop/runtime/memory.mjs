@@ -15,6 +15,8 @@ export const secretLike=text=>SECRET.test(String(text||''));
 const fingerprint=text=>createHash('sha256').update(normalizeMemory(text).toLocaleLowerCase()).digest('hex').slice(0,16);
 
 // One shared Store per app for the 'user' scope. Stores lock their folder per process, so projects share one handle.
+// Tests and shutdown close the shared store before its folder is removed (Windows refuses to unlink an open database).
+export function closeUserMemoryStore(storageRoot){const directory=path.join(storageRoot,'memory'),store=shared.get(directory);if(!store)return;shared.delete(directory);try{store.close();}catch{}}
 export function openUserMemoryStore(storageRoot){
   const directory=path.join(storageRoot,'memory');
   if(!shared.has(directory))shared.set(directory,new Store(directory));

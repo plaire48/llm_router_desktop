@@ -1,7 +1,7 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import {mkdtemp,rm} from 'node:fs/promises';import os from 'node:os';import path from 'node:path';
 import {Store} from '../runtime/store.mjs';
 import {parseFactDecision,extractMailFacts,recordMailFacts,queryMailFacts,listMailFacts,factIdentity} from '../runtime/mail-facts.mjs';
-async function setup(t){const dir=await mkdtemp(path.join(os.tmpdir(),'nubi-facts-'));t.after(()=>rm(dir,{recursive:true,force:true}));const store=new Store(dir);t.after(()=>store.close());return store;}
+async function setup(t){const dir=await mkdtemp(path.join(os.tmpdir(),'nubi-facts-'));const store=new Store(dir);t.after(async()=>{store.close();await rm(dir,{recursive:true,force:true,maxRetries:5});});return store;}
 test('the model answer is parsed strictly into short facts',async()=>{
   assert.equal(parseFactDecision('nope'),null);assert.equal(parseFactDecision('{"facts":"x"}'),null);
   const facts=parseFactDecision('```json\n{"facts":[{"subject":" A 프로젝트 ","predicate":"납기","value":"2026-11-30","validFrom":"2026-10-02"},{"subject":"","predicate":"x","value":"y"},{"subject":"B","predicate":"담당자","value":"김민수","validFrom":"언제"}]}\n```');

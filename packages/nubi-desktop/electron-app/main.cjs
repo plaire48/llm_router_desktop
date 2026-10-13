@@ -1,4 +1,4 @@
-const {app,BrowserWindow,protocol,net,ipcMain,dialog,clipboard,Menu,Notification}=require('electron');
+const {app,BrowserWindow,protocol,net,ipcMain,dialog,clipboard,Menu,Notification,session}=require('electron');
 const {fork,spawn}=require('node:child_process');
 const {WorkspaceUpdater}=require('./workspace-updater.cjs');
 const {readFile,writeFile,mkdir,realpath,rm}=require('node:fs/promises');
@@ -145,7 +145,7 @@ app.whenReady().then(async()=>{
   catch{}finally{unresponsive=null;}
  });
  window.on('responsive',()=>unresponsive?.abort());
- mailPortal=new MailPortal({BrowserWindow,invoke,parent:window});
+ mailPortal=new MailPortal({BrowserWindow,invoke,parent:window,openPage:(url,options)=>openWorkspacePage(url,{...options,session:session.fromPartition('persist:nubi-mail-portal')}),closePage:tabId=>{if(browserHost?.tabs.has(tabId))browserHost.closeTab(tabId,{returnToApp:true});}});
  browserHost=new BrowserHost(window,{onFault:recordFault,loginCode:()=>{const device=host.account.device;return device&&device.expiresAt>Date.now()?device.code:null;}});
  window.webContents.setWindowOpenHandler(({url})=>{
   openPageLink(url);

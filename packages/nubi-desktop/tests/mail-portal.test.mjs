@@ -58,3 +58,15 @@ test('receivedAddress identifies the logged-in mailbox even without profile fiel
  host.read=async(operation)=>operation==='identity'?{}:operation==='folders'?[folders[0]]:operation==='list'?{liteHeaderVOs:[{mailSeq:9}]}:{receivedAddress:'owner@example.test',toRecipients:[{email:'owner@example.test',userID:'owner-id'}]};
  const result=await host.identify();assert.equal(result.identity.email,'owner@example.test');assert.equal(result.identity.userId,'owner-id');assert.equal(result.identity.id,'owner-id');host.dispose();
 });
+test('portal login opens inside the app browser tab, closes it after identification, and a closed tab cancels the wait',async()=>{
+ class Window{constructor(){this.webContents={session:{setPermissionRequestHandler(){}},setWindowOpenHandler(){},on(){},executeJavaScript(){}};}isDestroyed(){return false;}on(){}async loadURL(){}show(){throw Error('separate window must not open');}hide(){}destroy(){}}
+ const pages=[],closed=[];let onClosed=null;
+ const host=new MailPortal({BrowserWindow:Window,invoke:async()=>({}),openPage:(url,options)=>{pages.push({url,session:options.session});onClosed=options.onClosed;return {opened:true,tabId:'tab-'+pages.length};},closePage:id=>closed.push(id)});
+ host.read=async op=>op==='identity'?{userId:'fixture-user',email:'owner@example.test'}:op==='folders'?folders:{liteHeaderVOs:[{mailSeq:9}]};
+ host.sync=async()=>{};
+ const status=await host.connect({});assert.equal(status.connected,true);assert.equal(pages.length,1);assert.match(pages[0].url,/^https:\/\/kor3\.samsung\.net/);assert.deepEqual(closed,['tab-1']);
+ await host.disconnect();assert.equal(host.page,null);
+ host.read=async()=>{throw Error('mail_portal_login');};
+ const pending=host.connect({});await settled(()=>pages.length===2);onClosed();
+ await assert.rejects(pending,/mail_cancelled/);assert.equal(host.page,null);assert.deepEqual(closed,['tab-1']);host.dispose();
+});
