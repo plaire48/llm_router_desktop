@@ -20,18 +20,31 @@ export function conversationActivity(task) {
   const anchors = new Map();
   for (const message of messages) if (message.role === 'assistant' && message.runId && !anchors.has(message.runId)) anchors.set(message.runId, message);
   const add = (map, message, run) => map.set(message, [...(map.get(message) || []), run]);
+  // A run that stopped at an approval or a failure and went on in the next run belongs to the same request: it has
+  // no answer and no question of its own and it followed the same message. Such runs become predecessors of the run
+  // that continued them, so one request shows one plan and one record (2026-10-14). A run nobody continued keeps
+  // its place after its message.
+  const index = new Map(messages.map((message, at) => [message.id, at]));
+  const requestOf = at => {for (let i = Math.min(at, messages.length - 1); i >= 0; i--) if (messages[i].role === 'user') return messages[i].id; return null;};
+  const pending = new Map();
+  const takePredecessors = key => {const runs = pending.get(key) || []; pending.delete(key); return runs;};
   for (const run of task?.activityHistory || []) {
     if (run.runId === runId) continue;
     const questionAnchor = run.question?.id && messages.findLast(message => message.role === 'assistant' &&
       message.questionId === run.question.id && (!message.runId || message.runId === run.runId));
     const preceding = messages.find(message => message.id === run.afterMessageId);
     const anchor = questionAnchor || (!run.question?.id || !preceding ? anchors.get(run.runId) : null);
-    if (anchor) add(before, anchor, run);
-    else if (preceding) add(after, preceding, run);
-    else root.push(run);
+    if (!anchor && !run.question?.id && preceding) {pending.set(run.afterMessageId, [...(pending.get(run.afterMessageId) || []), run]); continue;}
+    const predecessors = anchor ? takePredecessors(requestOf(index.get(anchor.id) - 1)) : [];
+    const placed = predecessors.length ? {...run, predecessors} : run;
+    if (anchor) add(before, anchor, placed);
+    else if (preceding) add(after, preceding, placed);
+    else root.push(placed);
   }
   // Keep pending progress directly above its form. An unanchored question goes
   // to the transcript foot together with current progress, never into history.
   const anchor = question ? questionMessage || null : anchors.get(runId);
-  return {runId, before, after, root, anchor, questionMessage};
+  const predecessors = runId ? takePredecessors(anchor ? requestOf(index.get(anchor.id) - 1) : requestOf(messages.length - 1)) : [];
+  for (const [key, runs] of pending) {const preceding = messages.find(message => message.id === key); for (const run of runs) {if (preceding) add(after, preceding, run); else root.push(run);}}
+  return {runId, before, after, root, anchor, questionMessage, predecessors};
 }

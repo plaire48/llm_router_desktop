@@ -150,3 +150,16 @@ body {
 .desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) :is(h1,h2,h3,h4) { margin-block:var(--nubi-prose-section-gap) .65em; line-height:var(--deck-line-heading); }
 .desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) > :first-child { margin-top:0; }
 .desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) > :last-child { margin-bottom:0; }
+
+/* Reading rhythm (user request 2026-10-14): one leading for paragraphs, lists and tables, Pretendard's slightly
+   tighter tracking, and clearer emphasis. The shell's control line-height no longer leaks into prose paragraphs
+   (they rendered at 1.6 while the tables beside them took the reading leading). */
+:root:has(.desktop-shell), .desktop-shell .nubi-workbench { --nubi-reading-leading: 1.7; --nubi-prose-paragraph-gap: .75em; --nubi-prose-list-gap: .35em; --nubi-prose-section-gap: 1.25em; }
+.desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) { letter-spacing:-.01em; }
+.desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) :is(p,li,td,th,blockquote) { line-height:var(--nubi-reading-leading); letter-spacing:inherit; }
+.desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) :is(strong,b) { font-weight:700; }
+.desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) :is(td,th) { padding-block:.35em; }
+/* A table, a code block or a quote ends a thought like a paragraph does: the same gap below it as above it
+   (user, 2026-10-14: the text under a table sat on it). */
+.desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) :is(table,pre,blockquote) { margin-block:0 var(--nubi-prose-paragraph-gap); }
+.desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) > :last-child { margin-bottom:0; }

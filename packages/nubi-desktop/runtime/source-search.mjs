@@ -21,8 +21,11 @@ export async function searchSource({query,kind='all',mode='content',within,taskI
   }
   const root=await this.target(taskId),listed=await listFiles(root,{within}),files=listed.paths.filter(p=>(kind!=='wiki'||/^(openwiki|docs|openspec)\//.test(p))&&(!within||p===within||p.startsWith(within+'/')));
   if(mode==='path'){
-    const matches=files.filter(p=>p.toLowerCase().includes(query.toLowerCase()));
-    return {results:matches.slice(0,100).map(path=>({path,kind:'path'})),scanned:files.length,skipped:0,total:files.length,truncated:listed.truncated||matches.length>100,engine:'git-paths',instruction:'Path candidates only. Read current source before planning or editing.'};
+    const matches=files.filter(p=>p.toLowerCase().includes(query.toLowerCase())),found=matches.slice(0,100);
+    // The size travels with the name (2026-10-14): what files exist, and which is largest, is answered from the
+    // listing instead of a shell command that needs approval.
+    const sizes=await Promise.all(found.map(async rel=>{try{const stat=await lstat(await scopedFile(root,rel));return stat.isFile()?stat.size:null;}catch{return null;}}));
+    return {results:found.map((path,at)=>({path,kind:'path',...(sizes[at]===null?{}:{bytes:sizes[at]})})),scanned:files.length,skipped:0,total:files.length,truncated:listed.truncated||matches.length>100,engine:'git-paths',instruction:'Path candidates only, with the current size in bytes. Read current source before planning or editing.'};
   }
   let rgPath,fallback;try{rgPath=await resolveSearch();}catch{fallback='search_unavailable';}
   // Native search runs outside Electron's virtual archive, including promisified execFile.

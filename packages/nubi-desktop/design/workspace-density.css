@@ -995,3 +995,9 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .desktop-shell .nubi-workbench .nubi-result-review>p:not(.nubi-review-next) { color:var(--nubi-text-secondary); line-height:var(--deck-line-body); }
 .desktop-shell .nubi-workbench .nubi-result-review code { color:var(--nubi-text-secondary); font-family:var(--nubi-code-family); font-size:var(--deck-type-caption); }
 .desktop-shell .nubi-workbench .nubi-approval-form header>strong,.desktop-shell .nubi-workbench .nubi-action-effect>strong { font-weight:var(--nubi-weight-emphasis); }
+
+/* Progress notes the model wrote while working read as its own words in the conversation; the tool record stays in
+   the folded trace below them (user decision 2026-10-14). */
+.desktop-shell .nubi-workbench .nubi-agent-activity .nubi-activity-narration { list-style:none; margin:0; padding:0; display:grid; gap:var(--cx-space-1); color:var(--layout-muted); font:var(--deck-font-body); }
+.desktop-shell .nubi-workbench .nubi-agent-activity .nubi-activity-narration li { display:flex; gap:var(--cx-space-2); align-items:flex-start; }
+.desktop-shell .nubi-workbench .nubi-agent-activity .nubi-activity-narration li > svg { flex:none; margin-top:4px; }
