@@ -16,9 +16,15 @@ import {
   openWikiSkillsDir,
 } from "../config/openwiki-home.js";
 
-const bundledSkillsDir = fileURLToPath(
+const bundledSkillsPath = fileURLToPath(
   new URL("../../skills", import.meta.url),
 );
+const bundledSkillsDir = process.versions.electron
+  ? bundledSkillsPath.replace(/\.asar([\\/])/g, ".asar.unpacked$1")
+  : bundledSkillsPath;
+// Desktop ships these files outside ASAR: fs.cp's native directory handling
+// cannot reliably copy virtual archive directories in the pinned Electron.
+// Ordinary CLI/Nix sources retain their original path and atomic install.
 
 /** Copies bundled skills into the OpenWiki home while preserving other skills. */
 export async function syncBundledSkills(): Promise<void> {

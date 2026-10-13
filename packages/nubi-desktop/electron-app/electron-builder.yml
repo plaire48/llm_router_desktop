@@ -5,6 +5,7 @@ artifactName: Nubi-Workspace-beta-${version}-${arch}-Setup.${ext}
 electronVersion: 42.11.10
 asar: true
 asarUnpack:
+  - lib/backend/openwiki-update/openwiki/skills/**/*
   - node_modules/node-pty/**/*
   - node_modules/@vscode/ripgrep-*/**/*
   - "**/*.node"

@@ -1,8 +1,8 @@
 // What the OpenWiki update card shows. Text only: no input, no state.
 const FRESHNESS={source_changed:'원본이 바뀜',unavailable:'원본이 없음',document_changed:'페이지가 직접 바뀜'};
 const CHANGE={modified:'수정',added:'추가',deleted:'삭제'};
-const STAGE={planning:'계획',replanning:'계획 다시 세움',generating:'페이지 작성',finalizing:'마무리',noop:'바뀐 페이지 없음'};
-const ERROR={model_unavailable:'모델에 연결되어 있지 않아 갱신하지 못했어요. 로그인 상태를 확인해 주세요.',wiki_update_failed:'갱신을 마치지 못했어요. 작업 공간은 그대로입니다.',wiki_update_interrupted:'갱신이 중간에 멈췄어요. 앱이 종료되었거나 프로젝트가 바뀌었어요. 작업 공간은 그대로이니 다시 갱신해 주세요.'};
+const STAGE={preparing_runtime:'실행기 확인',preparing_skills:'준비 파일 연결',planning:'계획',replanning:'계획 다시 세움',generating:'페이지 작성',finalizing:'마무리',noop:'바뀐 페이지 없음'};
+const ERROR={wiki_runtime_missing:'위키 실행 파일을 찾지 못했어요. 최신 누비 설치 파일로 복구해 주세요.',wiki_skills_missing:'위키 준비 파일을 찾지 못했어요. 최신 누비 설치 파일로 복구해 주세요.',model_unavailable:'모델에 연결되어 있지 않아 갱신하지 못했어요. 로그인 상태를 확인해 주세요.',wiki_update_failed:'갱신을 마치지 못했어요. 작업 공간은 그대로입니다.',wiki_update_interrupted:'갱신이 중간에 멈췄어요. 앱이 종료되었거나 프로젝트가 바뀌었어요. 작업 공간은 그대로이니 다시 갱신해 주세요.'};
 const day=value=>value?String(value).slice(0,10):'알 수 없음';
 
 export function wikiUpdateView({status,update,initialization}){

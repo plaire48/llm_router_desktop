@@ -1,5 +1,5 @@
 import Pop3 from 'node-pop3';
-import {simpleParser} from 'mailparser';
+import {parsePop3Content,mailPartPresentation} from './pop3-content.mjs';
 import {createHash} from 'node:crypto';
 
 export const POP3_SERVER=Object.freeze({host:'pop3.samsung.net',port:995,tls:true});
@@ -120,7 +120,7 @@ export async function pullPop3({user,password,known=null,skip=[],signal,endpoint
         const [,retr]=await client.command('RETR',entry.number);
         let raw;try{raw=await bytes(retr,MAX_MAIL);}catch(error){if(error.message!=='mail_size_limit')throw error;failed.push({...entry,error:'mail_size_limit'});terminated=true;stop();break;}total+=raw.length;if(total>25*1024*1024)break;
         try{
-          const parsed=await simpleParser(raw,{skipTextToHtml:true,maxHtmlLengthToParse:MAX_MAIL});
+          const parsed=await parsePop3Content(raw);
           const address=value=>value?.text?.slice(0,2000)||'';
           if(parsed.attachments.length>100)throw new Error('mail_size_limit');
           let attachmentBudget=16000;
@@ -130,10 +130,10 @@ export async function pullPop3({user,password,known=null,skip=[],signal,endpoint
             if(/^(?:text\/(?:plain|csv|markdown)|application\/json)$/.test(a.contentType)&&attachmentBudget>0){
               try{const charset=a.headers.get('content-type')?.params?.charset||'utf-8';text=new TextDecoder(charset,{fatal:true}).decode(a.content).slice(0,attachmentBudget);attachmentBudget-=text.length;contentState=new TextDecoder(charset,{fatal:true}).decode(a.content).length===text.length?'text_read':'text_read_partial';}catch{contentState='encoding_unreadable';}
             }
-            return {id:String(index).padStart(3,'0')+'-'+sha256.slice(0,16),filename,contentType:a.contentType,size:a.size,sha256,content:a.content,text,contentState};
+            return {id:String(index).padStart(3,'0')+'-'+sha256.slice(0,16),filename,contentType:a.contentType,size:a.size,sha256,content:a.content,text,contentState,presentation:mailPartPresentation(a,parsed.html)};
           });
           const text=(parsed.text||'').slice(0,32000);
-          mails.push({...entry,raw,attachments,normalized:{subject:(parsed.subject||'(제목 없음)').slice(0,1000),from:address(parsed.from),to:address(parsed.to),cc:address(parsed.cc),bcc:address(parsed.bcc),sender:parsed.from?.value?.length===1?{name:parsed.from.value[0].name||'',address:parsed.from.value[0].address||''}:undefined,date:parsed.date?.toISOString()||null,messageId:(parsed.messageId||'').slice(0,1000)||null,inReplyTo:(parsed.inReplyTo||'').slice(0,1000)||null,references:[].concat(parsed.references||[]).slice(0,200).map(value=>String(value).slice(0,1000)),text,truncated:(parsed.text||'').length>text.length,attachments:attachments.map(({content,...metadata})=>metadata)}});
+          mails.push({...entry,raw,attachments,normalized:{subject:(parsed.subject||'(제목 없음)').slice(0,1000),from:address(parsed.from),to:address(parsed.to),cc:address(parsed.cc),bcc:address(parsed.bcc),sender:parsed.from?.value?.length===1?{name:parsed.from.value[0].name||'',address:parsed.from.value[0].address||''}:undefined,date:parsed.date?.toISOString()||null,messageId:(parsed.messageId||'').slice(0,1000)||null,inReplyTo:(parsed.inReplyTo||'').slice(0,1000)||null,references:[].concat(parsed.references||[]).slice(0,200).map(value=>String(value).slice(0,1000)),text,bodySource:parsed.bodySource,contentVersion:parsed.contentVersion,truncated:(parsed.text||'').length>text.length,attachments:attachments.map(({content,...metadata})=>metadata)}});
         }catch{failed.push({...entry,error:'mail_parse_failed'});}
       }
       if(!terminated)await client.command('QUIT');
