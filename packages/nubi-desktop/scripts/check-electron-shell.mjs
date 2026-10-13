@@ -64,6 +64,8 @@ try{page=await app.firstWindow();page.setDefaultTimeout(10000);page.on('crash',(
  await page.evaluate(()=>{window.terminalCopies=[];Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>window.terminalCopies.push(text)}});});
  await terminalRegion.hover();await terminalRegion.getByRole('button',{name:'터미널 내용 복사',exact:true}).click();
  assert.match((await page.evaluate(()=>window.terminalCopies))[0],/nubi-terminal-ok/);
+ const copyToast=page.locator('.cx-toast');await copyToast.waitFor();
+ assert(await copyToast.evaluate(el=>el.getBoundingClientRect().top>=document.querySelector('.desktop-titlebar').getBoundingClientRect().bottom),'copy notification stays below the titlebar and cannot intercept its controls');
  checks.push('interactive PTY keeps variables between commands, has inline input and copies visible output');await shellInput.focus();await capture('terminal');await terminalRegion.screenshot({path:path.join(captures,'terminal-detail.png')});
 
  const toolbar=page.getByRole('banner',{name:'Workspace 상단 메뉴'});
