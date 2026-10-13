@@ -109,7 +109,6 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
       {!status?.connected&&<div className="nubi-mail-import-options" role="group" aria-label="메일 가져오는 방법">
         <div className="nubi-mail-import-card" data-recommended="true"><div className="nubi-mail-import-heading"><span className="nubi-mail-import-icon" aria-hidden="true"><BrowserMark size={22}/></span><div><strong>사내 포털로 연결<span className="nubi-mail-import-badge">추천</span></strong><small>로그인 한 번으로 새 메일과 결재를 자동으로 가져와요.</small></div></div><div className="nubi-mail-import-card-action"><CxButton variant="primary" className="nubi-mail-connect" disabled={connectionBusy||!status} onClick={connectPortal}><Icon name="logIn" size={18}/><span>포털 로그인</span></CxButton></div></div>
         {fileImport}
-        <p className="nubi-mail-import-note"><Icon name="infoCircle" size={14}/><span>둘 다 함께 쓸 수 있어요.</span></p>
       </div>}
       {failure&&<details className="nubi-mail-connection-error" key={connectionCode}>
         <summary><Icon name="alertCircle" size={16}/><strong role="status" title={failure.title}>{failure.title}</strong><Icon name="chevronDown" size={16}/></summary>

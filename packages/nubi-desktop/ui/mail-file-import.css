@@ -22,7 +22,5 @@
 .nubi-mail-import-card[data-recommended=true] .nubi-mail-import-icon { background:var(--deck-blue); color:var(--deck-card); }
 .nubi-mail-import-badge { display:inline-block; padding:1px var(--cx-space-2); border-radius:999px; background:var(--deck-blue); color:var(--deck-card); font:var(--deck-font-caption); font-weight:700; }
 .nubi-mail-import-card-action .cx-kit-button { display:inline-flex; align-items:center; justify-content:center; gap:var(--cx-space-2); width:100%; font-weight:700; }
-.nubi-mail-import-note { display:flex; align-items:center; gap:var(--cx-space-2); margin:0; color:var(--deck-sub); font:var(--deck-font-caption); }
-.nubi-mail-import-note>svg { flex:none; color:var(--deck-blue-deep); }
 .nubi-mail-import-card { transition:background-color .15s ease; }
 .nubi-mail-import-card:hover { background:var(--deck-blue-soft); }
