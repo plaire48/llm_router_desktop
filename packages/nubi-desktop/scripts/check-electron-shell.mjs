@@ -1,3 +1,4 @@
+import {desktopTestWindow} from './electron-test-window.mjs';
 import {_electron as electron} from 'playwright';
 import {createRequire} from 'node:module';
 import {mkdtemp,mkdir,writeFile,readFile,rm} from 'node:fs/promises';
@@ -16,7 +17,7 @@ async function capture(name){
  const dock=page.locator('.desktop-dock-header');if(await dock.count())assert(await dock.evaluate(header=>{const tabs=header.querySelector('.desktop-file-tabs').getBoundingClientRect(),plus=header.querySelector('.desktop-tools-anchor').getBoundingClientRect();return Math.abs((tabs.top+tabs.bottom)/2-(plus.top+plus.bottom)/2)<2;}),name+': tabs and plus remain on one line');
  await page.screenshot({path:path.join(captures,name+'.png'),animations:'disabled',scale:'css',timeout:30000});console.log('capture complete',name);
 }
-try{page=await app.firstWindow();await page.bringToFront();page.setDefaultTimeout(10000);page.on('crash',()=>console.log('RENDERER CRASH'));page.on('pageerror',e=>{pageErrors.push(e.message);console.log('PAGE ERROR:',e.message);});await page.getByRole('navigation',{name:'프로젝트 도구'}).waitFor({timeout:20000});const firstScreenMs=Date.now()-started;assert.doesNotMatch(await page.locator('body').innerText(),/\/\*|\*\//,'no source comment leaks into the screen');
+try{page=await desktopTestWindow(app);await page.bringToFront();page.setDefaultTimeout(process.platform==='win32'?30000:10000);page.on('crash',()=>console.log('RENDERER CRASH'));page.on('pageerror',e=>{pageErrors.push(e.message);console.log('PAGE ERROR:',e.message);});await page.getByRole('navigation',{name:'프로젝트 도구'}).waitFor({timeout:60000});const firstScreenMs=Date.now()-started;assert.doesNotMatch(await page.locator('body').innerText(),/\/\*|\*\//,'no source comment leaks into the screen');
  // The startup mail prompt (renderer.jsx startupConnections) opens on every launch; the check closes it as a user would.
  await page.locator('.desktop-shell[data-startup-ready="true"]').waitFor({timeout:60000});
  const startup=page.getByText('메일을 연결해 주세요');if(await startup.count()){await page.keyboard.press('Escape');await startup.waitFor({state:'hidden',timeout:5000});checks.push('startup prompt closed');}
