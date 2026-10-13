@@ -107,3 +107,5 @@ Dependency sources: https://github.com/git-for-windows/MSYS2-packages and https:
 Nubi invokes this executable without modifying it or linking Git code into the application. No global PATH, credential store or Git configuration is installed.
 
 HTML-to-text 10.0.1, MIT, https://github.com/html-to-text/node-html-to-text — converts the MIME HTML body when the plain-text alternative is empty. Already used by MailParser; now a pinned direct dependency. License: third-party/pop3/html-to-text-LICENSE.txt. No remote images or HTML execution.
+
+POP3/MIME and HTML-to-text license texts are also included in the installed resources/licenses/pop3 directory.

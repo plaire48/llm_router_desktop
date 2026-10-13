@@ -22,6 +22,8 @@ files:
   - launcher.cjs
   - package.json
 extraResources:
+  - from: ../third-party/pop3
+    to: licenses/pop3
   - from: resources/git
     to: git
   - from: resources/nubi.png
