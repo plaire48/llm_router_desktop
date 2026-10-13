@@ -1625,3 +1625,10 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .desktop-editor .monaco-editor .nubi-source-highlight { background:var(--deck-blue-soft); }
 .desktop-editor .monaco-editor .nubi-source-line-number { color:var(--deck-blue-deep) !important; font-weight:var(--nubi-weight-emphasis); }
 .nubi-answer-source > .desktop-file-icon { width:24px; }
+
+/* The model-use note of the Wiki update card: one collapsed line with an icon, the full sentence inside. */
+.nubi-wiki-update-detail { color:var(--deck-sub); font:var(--deck-font-caption); }
+.nubi-wiki-update-detail>summary { display:flex; align-items:center; gap:var(--cx-space-1); width:fit-content; padding:var(--cx-space-1) 0; cursor:pointer; list-style:none; }
+.nubi-wiki-update-detail>summary::-webkit-details-marker { display:none; }
+.nubi-wiki-update-detail>summary>svg { flex:none; color:var(--deck-blue-deep); }
+.nubi-wiki-update-detail>p { margin:var(--cx-space-2) 0 0; line-height:1.6; }

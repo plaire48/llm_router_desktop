@@ -39,7 +39,7 @@ export function WikiUpdate({api,openPath,initialization,onApplied}){
     {error&&<CxNotice tone="danger">{error}</CxNotice>}
     {notes.map((line,index)=><p key={index} className="nubi-muted">{line}</p>)}
 
-    {modelUse&&<><p className="nubi-action-note"><Icon name="infoCircle" size={16}/><span>저장소 내용을 현재 모델에 전달해요. 결과 확인 후 반영합니다.</span></p><details className="nubi-wiki-update-detail"><summary>모델 호출과 반영 범위</summary><p>{modelUse}</p></details></>}
+    {modelUse&&<details className="nubi-wiki-update-detail"><summary><Icon name="infoCircle" size={14}/>모델 호출과 반영 범위</summary><p>{modelUse}</p></details>}
     {view.pages.length>0&&<ul className="nubi-page-chips">{view.pages.map(page=><li key={page.path}><CxButton className="nubi-page-chip" title={page.path} onClick={()=>openPath?.(page.path)}><Icon name="file" size={14}/><span>{page.path}</span><span className="nubi-page-change">{page.label}</span></CxButton></li>)}</ul>}
     {view.actions.includes('run')&&<ApprovalBar approveLabel="갱신" approveIcon="refresh" disabled={busy} onApprove={run}/>}
     {view.actions.some(action=>['cancel','discard','apply'].includes(action))&&<div className="nubi-approval-bar">

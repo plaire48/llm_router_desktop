@@ -9,8 +9,8 @@ test('a stale Wiki offers an update and says what it costs and what it sends',()
   const view=wikiUpdateView({status:stale,update:null});
   assert.equal(view.title,'위키 갱신 제안');
   assert.deepEqual(view.pages,[{path:'openwiki/home.md',label:'원본이 바뀜'},{path:'openwiki/old.md',label:'원본이 없음'}]);
-  assert.match(view.lines.join('\n'),/마지막 갱신 뒤 바뀐 파일 2개/);
-  assert.match(view.lines.join('\n'),/커밋하지 않은 변경 1개도 현재 파일 그대로 갱신에 들어가요/);
+  assert.match(view.lines.join('\n'),/바뀐 파일 2개/);
+  assert.match(view.lines.join('\n'),/커밋하지 않은 변경 1개 포함/);
   assert.match(view.lines.join('\n'),/저장소 내용이 모델에 전달/);assert.match(view.lines.join('\n'),/결과를 확인한 뒤에 반영/);
   assert.deepEqual(view.actions,['run']);
 });
@@ -35,11 +35,11 @@ test('a finished update lists the pages to apply and what is left out',()=>{
   const empty=wikiUpdateView({status:stale,update:{state:'ready',changes:[],outside:[]}});
   assert.match(empty.lines.join(' '),/바뀐 페이지가 없어요/);assert.deepEqual(empty.actions,['discard']);
   const skipped=wikiUpdateView({status:stale,update:{state:'ready',changes:[{path:'openwiki/.last-update.json',change:'modified'}],outside:[],result:{skipped:true}}});
-  assert.match(skipped.lines.join(' '),/다시 쓸 페이지가 없다고 판단/,'a run that OpenWiki found unnecessary says so');
+  assert.match(skipped.lines.join(' '),/다시 쓸 페이지 없음/,'a run that OpenWiki found unnecessary says so');
   assert.deepEqual(skipped.pages,[],'internal provenance files are not shown as pages');
   assert.deepEqual(skipped.actions,['apply','discard'],'a metadata-only update can still be applied');
   const cited=wikiUpdateView({status:stale,update:{state:'ready',changes:[{path:'openwiki/home.md',change:'modified'}],outside:['AGENTS.md'],outsideEvidence:[{page:'openwiki/home.md',path:'AGENTS.md'}]}});
-  assert.match(cited.lines.join(' '),/근거로 인용한 페이지가 있어요.*openwiki\/home\.md\(AGENTS\.md\)/,'pages that cite a file that is not applied are named');
+  assert.match(cited.lines.join(' '),/인용한 페이지.*openwiki\/home\.md\(AGENTS\.md\)/,'pages that cite a file that is not applied are named');
 });
 
 test('the end of an update is said plainly',()=>{

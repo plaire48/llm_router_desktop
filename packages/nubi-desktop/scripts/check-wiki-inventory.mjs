@@ -18,14 +18,14 @@ try{
   browser=await chromium.launch({channel:process.platform==='win32'?'msedge':'chrome',headless:true});
   const p=await browser.newPage({viewport:{width:1280,height:900}});p.on('pageerror',e=>errors.push(e.message));
   await p.goto('http://127.0.0.1:'+server.address().port+'/?context&modals&integrated&wiki-inventory');
-  await p.getByRole('button',{name:'위키',exact:true}).click();
+  await p.getByRole('button',{name:'위키 설정',exact:true}).click();
   const dialog=p.getByRole('dialog',{name:'위키 설정',exact:true});await dialog.waitFor();
   await dialog.getByText('아직 위키가 생성되지 않았어요.',{exact:true}).waitFor();
   assert.equal(await dialog.getByText('위키 0개',{exact:true}).count(),0);
   await p.evaluate(()=>window.setWikiFixture({id:'inventory-job',state:'running',stage:'scanning',startedAt:new Date().toISOString()}));
-  await dialog.getByText('위키를 만들고 있어요. 완료되면 문서가 여기에 표시돼요.',{exact:true}).waitFor();
+  await dialog.getByText('위키를 만들고 있어요.',{exact:true}).waitFor();
   await p.evaluate(()=>window.setWikiFixture({id:'inventory-job',state:'attention',stage:'reading',error:'wiki_source_missing',finishedAt:new Date().toISOString()}));
-  await dialog.getByText('위키 생성이 중단됐어요. 오류를 확인한 뒤 다시 시도해 주세요.',{exact:true}).waitFor();
+  await dialog.getByText('위키 생성이 중단됐어요. 오류를 확인하고 다시 시도해 주세요.',{exact:true}).waitFor();
   await p.screenshot({path:path.join(dir,'failed.png'),animations:'disabled'});
   await p.evaluate(()=>{window.setWikiPages(['openwiki/home.md','openwiki/guides/start.md']);window.setWikiFixture({id:'inventory-job',state:'completed',stage:'completed',finishedAt:new Date().toISOString()});});
   await dialog.getByText('위키 2개',{exact:true}).waitFor();
@@ -35,7 +35,7 @@ try{
   await p.screenshot({path:path.join(dir,'completed.png'),animations:'disabled'});
   await p.keyboard.press('Escape');
   await p.evaluate(()=>window.setWikiPages(['openwiki/home.md','openwiki/guides/start.md','openwiki/new.md']));
-  await p.getByRole('button',{name:'위키',exact:true}).click();
+  await p.getByRole('button',{name:'위키 설정',exact:true}).click();
   await dialog.getByText('위키 3개',{exact:true}).waitFor();
   assert.deepEqual(errors,[]);
   console.log('PASS: absent, running, failed and completed Wiki states update in the open dialog; reopening refreshes actual pages.');
