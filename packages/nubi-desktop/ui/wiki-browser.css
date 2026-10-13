@@ -30,7 +30,7 @@
 .nubi-wiki-loading{display:flex;align-items:center;gap:var(--cx-space-2);margin:0;padding:var(--cx-space-6);color:var(--deck-sub)}
 /* Reader */
 .nubi-wiki-document{margin-top:var(--cx-space-1);padding:var(--cx-space-5) var(--cx-space-6) var(--cx-space-6);border-radius:var(--nubi-work-control-radius);background:var(--nubi-surface-base);box-shadow:var(--cx-shadow-card);min-width:0;scroll-margin-top:12px}
-.nubi-wiki-document>header{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:var(--cx-space-3) var(--cx-space-4);margin-bottom:var(--cx-space-4)}
+.nubi-wiki-document-content>header{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:var(--cx-space-3) var(--cx-space-4);margin-bottom:var(--cx-space-4)}
 .nubi-wiki-document-heading{display:grid;gap:var(--cx-space-2);min-width:0;flex:1 1 320px}
 .nubi-wiki-document h2{font-size:var(--deck-type-heading);font-weight:700;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nubi-wiki-document-meta{display:flex;flex-wrap:wrap;align-items:center;gap:var(--cx-space-2) var(--cx-space-3);color:var(--deck-sub);font:var(--deck-font-caption)}.nubi-wiki-document-meta>*{display:inline-flex;align-items:center;gap:var(--cx-space-1)}.nubi-wiki-document-meta code{font:var(--deck-font-caption);color:var(--deck-sub)}
