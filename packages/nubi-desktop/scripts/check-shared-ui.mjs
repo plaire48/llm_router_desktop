@@ -194,7 +194,7 @@ try{
  const checkCard=p.getByRole('region',{name:'실행 준비 승인',exact:true});await checkCard.waitFor();
  assert.equal(await checkCard.getByRole('button',{name:'실행 승인',exact:true}).isDisabled(),true);assert.equal(await p.getByRole('dialog',{name:'이 명령을 실행할까요?',exact:true}).count(),0);
  await checkCard.getByText('수정안을 반영하면 실행할 수 있어요.',{exact:true}).waitFor();await checkCard.screenshot({path:'verification/ui-command-waits-for-fix.png'});
- await p.locator('.nubi-file-card').getByRole('button',{name:'반영',exact:true}).click();
+ await p.locator('.nubi-proposal-card').getByRole('button',{name:'반영',exact:true}).click();
  assert.equal(await p.getByRole('dialog',{name:'이 명령을 실행할까요?',exact:true}).count(),0,'unblocked approval waits for an explicit open');
  const commandDecision=checkCard.locator('.nubi-approval-form');await commandDecision.waitFor();
  await commandDecision.getByRole('button',{name:/항상 허용/}).click();await checkCard.getByText('실행 요청됨',{exact:true}).waitFor();
@@ -231,8 +231,8 @@ try{
  await p.goto(page('apply=1'));
  await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/준비한 두 파일을 반영/}).click();
  assert.equal(await p.getByRole('button',{name:'이어서 진행',exact:true}).count(),0);
- await p.locator('.nubi-file-card').filter({hasText:'first.txt'}).getByRole('button',{name:'반영',exact:true}).click();assert.equal(await p.getByRole('article',{name:/ 답변$/}).count(),0);
- await p.locator('.nubi-file-card').filter({hasText:'second.txt'}).getByRole('button',{name:'반영',exact:true}).click();await p.getByRole('article',{name:/ 답변$/}).getByText(/합성 응답/).waitFor();
+ await p.locator('.nubi-proposal-card').filter({hasText:'first.txt'}).getByRole('button',{name:'반영',exact:true}).click();assert.equal(await p.getByRole('article',{name:/ 답변$/}).count(),0);
+ await p.locator('.nubi-proposal-card').filter({hasText:'second.txt'}).getByRole('button',{name:'반영',exact:true}).click();await p.getByRole('article',{name:/ 답변$/}).getByText(/합성 응답/).waitFor();
  assert.equal(await p.getByRole('button',{name:'반영',exact:true}).count(),0);assert.equal(await p.getByRole('article',{name:/ 답변$/}).count(),1);assert.equal(await p.getByRole('navigation',{name:'작업 보기'}).count(),0);
  checks.push('after all explicit file approvals the same task resumes review once, without a mode switch or extra continue button');assert.deepEqual(errors,[]);
  await p.getByRole('textbox',{name:'추가 요청'}).fill('새로고침 후에도 보존할 초안');await p.reload();
@@ -277,7 +277,7 @@ try{
  await analyses.getByText('이전 분석 1개',{exact:true}).click();
  const roles=p.getByRole('region',{name:'역할별 분석 진행'});
  await roles.getByText('저장 결과 화면을 확인합니다.',{exact:true}).waitFor();
- assert.equal(await roles.getByText('모델 호출 2회 / 근거 읽기 1회',{exact:true}).isVisible(),false);await roles.getByText('결과와 근거',{exact:true}).click();await roles.getByText('모델 호출 2회 / 근거 읽기 1회',{exact:true}).waitFor();await roles.getByText('근거 읽는 중',{exact:true}).waitFor();
+ assert.equal(await roles.getByText('모델 호출 2회 / 근거 읽기 1회',{exact:true}).isVisible(),false);await roles.getByText('결과와 근거',{exact:true}).click();await roles.getByText('모델 호출 2회 / 근거 읽기 1회',{exact:true}).waitFor();await roles.locator('.nubi-document-worker-heading>span').filter({hasText:'근거 읽는 중'}).waitFor();
 
  await roles.getByText('화면 캡처 열람',{exact:true}).waitFor();await roles.getByText('이전 기록',{exact:true}).waitFor();
  assert.equal(await p.locator('[data-tool="analysis_page"]').count(),1);

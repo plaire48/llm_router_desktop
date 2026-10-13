@@ -30,6 +30,8 @@ if(proposalFixture){
  window.finishProposalReview=()=>{project.tasks[0].state='review';};
 }
 if(wikiChatFixture){project.backgroundProjects=[{projectId:'background-wiki',root:'/fixture/background',running:false,wikiChatJob:{id:'background-job',projectId:'background-wiki',kind:'update',state:'running',percent:50}}];window.wikiProjectSwitches=[];}
+const reviewFailureFixture=new URLSearchParams(location.search).get('review-failure');
+if(reviewFailureFixture){connected=true;project.tasks=[{id:'review-failure-task',request:'요구사항과 결과를 확인해 주세요.',state:'paused',checkpoint:{runId:'review-failed-run'},criteria:[],messages:[],trace:[],resultReview:{status:'error',reason:reviewFailureFixture},reviewDraft:{content:'검토 전 보관된 답변입니다.'}}];}
 const decisionFixture=new URLSearchParams(location.search).get('decision');
 if(decisionFixture){
  connected=true;window.decisionCalls=[];
@@ -199,6 +201,7 @@ async function api(method,args={}){
     return structuredClone(project.computer);
   }
   if(method==='analysisHistory'){
+    if(reviewFailureFixture)return {records:[{kind:'review',id:'review-failure',runId:'review-failed-run',state:'failed',reason:reviewFailureFixture}],next:null};
     const mode=new URLSearchParams(location.search).get('document');
     if(mode==='history-error'&&historyFailure){historyFailure=false;throw Error('fixture_history_failure');}
     const task=project.tasks.find(item=>item.id===args.taskId);
