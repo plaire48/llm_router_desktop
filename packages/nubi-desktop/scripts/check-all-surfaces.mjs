@@ -69,7 +69,7 @@ try{
   await p.setViewportSize({width,height:950});
   await load('screen=workbench&integrated&context&modals');await chooseTask();
   await audit('conversation-'+width);
-  const rail=await p.locator('.nubi-workspace-rail').evaluate(e=>{const team=e.querySelector('.nubi-rail-team'),r=e.getBoundingClientRect(),b=team.getBoundingClientRect();return {last:e.lastElementChild===team,text:team.textContent.trim(),bottomGap:r.bottom-b.bottom,label:team.getAttribute('aria-label')};});assert(rail.last&&rail.text===''&&rail.label==='AI Workspace'&&rail.bottomGap<32,'AI Workspace is an icon at the bottom of the rail');
+  const rail=await p.locator('.nubi-workspace-rail').evaluate(e=>{const team=e.querySelector('.nubi-rail-team'),r=e.getBoundingClientRect(),b=team.getBoundingClientRect();return {last:e.lastElementChild===team.parentElement&&team.parentElement.classList.contains('nubi-rail-footer')&&team.parentElement.lastElementChild===team,text:team.textContent.trim(),bottomGap:r.bottom-b.bottom,label:team.getAttribute('aria-label')};});assert(rail.last&&rail.text===''&&rail.label==='AI Workspace'&&rail.bottomGap<32,'AI Workspace is an icon at the bottom of the rail');
   await load('screen=workbench&integrated&context&modals&chat-preview');await chooseTask();await audit('chat-preview-'+width);
   await load('screen=workbench&integrated&context&modals');await chooseTask();
   for(const [button,title,key] of [['설정','설정','settings'],['위키','프로젝트 자료','library'],['토큰 사용량','사용량','usage'],['컨텍스트 사용량','컨텍스트 사용량','context'],['모델 변경','모델 선택','models'],['추론 정도','추론 정도 조절','reasoning'],['스킬 관리','스킬 목록','skill-menu']]){
