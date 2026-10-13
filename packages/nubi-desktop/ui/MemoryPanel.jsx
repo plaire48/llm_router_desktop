@@ -5,6 +5,7 @@ import {WorkspaceAction} from './WorkspaceAction.jsx';
 import {PersonMark,FolderMark} from './marks.jsx';
 import {notifyWorkspaceToast} from './WorkspaceToast.jsx';
 import './memory-panel.css';
+import {ShowMore} from './ShowMore.jsx';
 
 // What the agent remembers from this person's words: a switch, the list, and a trash can per line (confirmed).
 export function MemoryPanel({api}){
@@ -17,7 +18,7 @@ export function MemoryPanel({api}){
  return <div className="nubi-memory-panel">
   <div className="nubi-mail-switch-row"><div><strong>기억 사용</strong><small>대화에서 말한 선호와 사실을 이 PC에만 저장해요. 비밀번호와 토큰은 저장하지 않아요.</small></div>
    <button type="button" role="switch" aria-label="기억 사용" aria-checked={enabled} className="nubi-ios-switch" disabled={busy} onClick={()=>act({action:'setEnabled',enabled:!enabled})}><span aria-hidden="true"/></button></div>
-  {data.items.length?<ul className="nubi-memory-list" aria-label="기억한 내용">{data.items.map(row=><li key={row.id}><span className="nubi-memory-scope" title={row.scope==='user'?'내 기억: 모든 프로젝트에서 씀':'프로젝트 기억: 이 프로젝트에서만 씀'} aria-label={row.scope==='user'?'내 기억':'프로젝트 기억'}>{row.scope==='user'?<PersonMark size={16}/>:<FolderMark size={16}/>}</span><span className="nubi-memory-text">{row.text}</span><WorkspaceAction action="delete" iconOnly label={`${row.text.slice(0,20)} 삭제`} title="삭제" disabled={busy} onClick={()=>setConfirm(row)}/></li>)}</ul>
+  {data.items.length?<ShowMore items={data.items} step={10}>{rows=><ul className="nubi-memory-list" aria-label="기억한 내용">{rows.map(row=><li key={row.id}><span className="nubi-memory-scope" title={row.scope==='user'?'내 기억: 모든 프로젝트에서 씀':'프로젝트 기억: 이 프로젝트에서만 씀'} aria-label={row.scope==='user'?'내 기억':'프로젝트 기억'}>{row.scope==='user'?<PersonMark size={16}/>:<FolderMark size={16}/>}</span><span className="nubi-memory-text">{row.text}</span><WorkspaceAction action="delete" iconOnly label={`${row.text.slice(0,20)} 삭제`} title="삭제" disabled={busy} onClick={()=>setConfirm(row)}/></li>)}</ul>}</ShowMore>
   :<p className="nubi-muted nubi-memory-empty"><Icon name="lightbulb" size={16}/>아직 기억한 내용이 없어요. 대화에서 선호나 사실을 말하면 여기에 쌓여요.</p>}
   {confirm&&<DeckConfirmation className="nubi-delete-memory" title="기억을 삭제할까요?" message={<><strong>{confirm.text}</strong></>} confirmLabel="삭제" confirmIcon="check" showActionLabels busy={busy} onCancel={()=>setConfirm(null)} onConfirm={async()=>{await act({action:'delete',id:confirm.id});setConfirm(null);}}/>}
  </div>;

@@ -19,6 +19,7 @@
 .desktop-shell .nubi-mail-table .nubi-mail-result>span { display:flex; align-items:center; gap:8px; min-width:0; }
 .desktop-shell .nubi-mail-table .nubi-mail-result strong { display:block; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .desktop-shell .nubi-mail-table .nubi-mail-result svg { flex:none; color:var(--nubi-text-secondary); }
+.desktop-shell .nubi-mail-table .nubi-mail-result svg.nubi-mail-pinned-mark { color:var(--deck-blue-deep); fill:var(--deck-blue-deep); }
 .desktop-shell .nubi-mail-table .nubi-mail-result small { display:block; font:var(--deck-font-caption); color:var(--nubi-text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:4px; }
 .desktop-shell .nubi-mail-table time { color:var(--nubi-text-secondary); font:var(--deck-font-caption); font-variant-numeric:tabular-nums; }
 .desktop-shell .nubi-mail-table .nubi-mail-select { min-width:24px; width:24px; height:32px; display:flex; align-items:center; justify-content:center; padding:0; margin:0; }

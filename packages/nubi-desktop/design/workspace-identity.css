@@ -1418,14 +1418,22 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-mail-search { display:flex; flex-direction:column; width:100%; min-height:0; gap:var(--cx-space-2); }
 .nubi-mail-search .cx-search-field { flex:none; }
 .nubi-mail-filters { flex:none; font:var(--deck-font-caption); }
-.nubi-mail-filters>summary { display:flex; align-items:center; gap:var(--cx-space-2); padding:6px 8px; border-radius:var(--deck-control-radius); color:var(--deck-sub); cursor:pointer; list-style:none; }
+.nubi-mail-filters>summary { display:flex; align-items:center; gap:var(--cx-space-2); min-height:36px; padding:var(--cx-space-1) var(--cx-space-3); border-radius:var(--nubi-work-control-radius,12px); color:var(--deck-ink); font-weight:600; cursor:pointer; list-style:none; transition:background .18s ease,color .18s ease; }
+.nubi-mail-filters>summary>svg:first-child { color:var(--deck-blue-deep); flex:none; }
+.nubi-mail-filters-count { display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 var(--cx-space-2); border-radius:999px; background:var(--deck-blue); color:var(--deck-card); font-weight:700; font-variant-numeric:tabular-nums; }
 .nubi-mail-filters>summary>svg:last-child { margin-left:auto; }
 .nubi-mail-filters>summary:hover,.nubi-mail-filters[open]>summary { background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
-.nubi-mail-filter-fields { display:grid; gap:var(--cx-space-2); padding:var(--cx-space-2); background:var(--deck-tint); border-radius:var(--deck-control-radius); }
-.nubi-mail-filter-fields label { display:grid; grid-template-columns:76px minmax(0,1fr); align-items:center; gap:var(--cx-space-2); }
-.nubi-mail-filter-fields label>span { display:flex; align-items:center; gap:var(--cx-space-1); color:var(--deck-sub); }
-.nubi-mail-search select { min-width:0; max-width:100%; height:32px; padding:4px 24px 4px 8px; border:0; border-radius:8px; background:var(--deck-surface,#fff); color:var(--deck-sub); font:var(--deck-font-caption); }
-.nubi-mail-filter-fields .cx-kit-input { width:100%; min-width:0; height:32px; padding:4px 8px; font:var(--deck-font-caption); }
+.nubi-mail-filters[open]>summary>svg:last-child { transform:rotate(180deg); }
+.nubi-mail-filters>summary>svg:last-child { transition:transform .18s ease; }
+.nubi-mail-filter-fields { display:grid; gap:var(--cx-space-2); padding:var(--cx-space-3); margin-top:var(--cx-space-1); background:var(--deck-tint); border-radius:var(--nubi-work-control-radius,12px); }
+.nubi-mail-filter-fields label { display:grid; grid-template-columns:92px minmax(0,1fr); align-items:center; gap:var(--cx-space-2); min-height:36px; }
+.nubi-mail-filter-fields label>span { display:flex; align-items:center; gap:var(--cx-space-2); color:var(--deck-ink); font-weight:500; white-space:nowrap; }
+.nubi-mail-filter-fields label>span>svg,.nubi-mail-extra-filters>summary>svg:first-child,.nubi-mail-page-label>svg { flex:none; color:var(--deck-blue-deep); }
+.nubi-mail-search select { min-width:0; max-width:100%; height:36px; padding:4px 28px 4px var(--cx-space-3); border:0; border-radius:var(--nubi-work-control-radius,12px); background:var(--deck-card); color:var(--deck-ink); font:var(--deck-font-caption); font-weight:500; box-shadow:none; transition:background .18s ease,box-shadow .18s ease; }
+.nubi-mail-search select:hover { background:var(--deck-blue-soft); }
+.nubi-mail-search select:focus-visible { outline:2px solid var(--deck-blue-deep); outline-offset:1px; }
+.nubi-mail-filter-fields .cx-kit-input { width:100%; min-width:0; height:36px; padding:4px var(--cx-space-3); border:0; border-radius:var(--nubi-work-control-radius,12px); background:var(--deck-card); font:var(--deck-font-caption); }
+.nubi-mail-filter-fields .cx-kit-input:focus-visible { outline:2px solid var(--deck-blue-deep); outline-offset:1px; border-color:transparent; }
 .nubi-mail-date-range { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:var(--cx-space-1); }
 .nubi-mail-filter-chips { display:flex; flex-wrap:wrap; gap:var(--cx-space-1); }
 .nubi-mail-filter-chips>span { display:inline-flex; align-items:center; max-width:100%; gap:var(--cx-space-1); background:var(--deck-blue-soft); color:var(--deck-blue-deep); border-radius:var(--deck-pill-radius); padding:2px 4px 2px 9px; font:var(--deck-font-caption); overflow-wrap:anywhere; }
@@ -1559,6 +1567,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-mail-search-input-row .cx-search-field { flex:1; min-width:0; }
 .nubi-mail-saved-trigger.cx-kit-button,.nubi-mail-local-action.cx-kit-button { display:inline-flex; align-items:center; justify-content:center; flex:none; min-width:30px; min-height:30px; padding:6px; border:0; box-shadow:none; background:transparent; color:var(--deck-sub); border-radius:var(--deck-control-radius); }
 .nubi-mail-saved-trigger:hover,.nubi-mail-local-action:hover,.nubi-mail-local-action[aria-pressed=true] { background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
+.nubi-mail-local-action[aria-pressed=true]>svg,.nubi-mail-pin-filter[aria-pressed=true]>svg:first-child { fill:currentColor; }
 .nubi-mail-filters[open]>.nubi-mail-filter-fields { max-height:none; overflow:visible; }
 .nubi-mail-search:has(>.nubi-mail-filters[open]) { overflow-y:auto; }
 .nubi-mail-search:has(>.nubi-mail-filters[open])>.nubi-mail-results { min-height:180px; }
@@ -1566,10 +1575,15 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
  .nubi-mail-filters>.nubi-mail-filter-fields,.nubi-mail-extra-filters>div { grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:var(--cx-space-4); }
  .nubi-mail-extra-filters { grid-column:1/-1; }
 }
-.nubi-mail-extra-filters>summary { display:flex; align-items:center; justify-content:space-between; gap:var(--cx-space-2); padding:6px 0; cursor:pointer; color:var(--deck-sub); }
+.nubi-mail-extra-filters>summary { display:flex; align-items:center; gap:var(--cx-space-2); min-height:36px; padding:var(--cx-space-1) var(--cx-space-2); border-radius:var(--nubi-work-control-radius,12px); cursor:pointer; color:var(--deck-ink); font-weight:500; list-style:none; transition:background .18s ease; }
+.nubi-mail-extra-filters>summary>svg:last-child { margin-left:auto; color:var(--deck-sub); transition:transform .18s ease; }
+.nubi-mail-extra-filters[open]>summary>svg:last-child { transform:rotate(180deg); }
+.nubi-mail-extra-filters>summary:hover { background:var(--deck-blue-soft); }
 .nubi-mail-extra-filters>div { display:grid; gap:var(--cx-space-2); padding-top:var(--cx-space-1); }
-.nubi-mail-pin-filter.cx-kit-button { justify-self:start; display:flex; align-items:center; gap:var(--cx-space-1); padding:5px 8px; border:0; box-shadow:none; background:transparent; color:var(--deck-sub); font:var(--deck-font-caption); }
-.nubi-mail-pin-filter[aria-pressed=true],.nubi-mail-pin-filter:hover { background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
+.nubi-mail-pin-filter.cx-kit-button { justify-self:start; display:flex; align-items:center; gap:var(--cx-space-2); min-height:36px; padding:var(--cx-space-1) var(--cx-space-3); border:0; border-radius:999px; box-shadow:none; background:var(--deck-card); color:var(--deck-ink); font:var(--deck-font-caption); font-weight:500; transition:background .18s ease,color .18s ease; }
+.nubi-mail-pin-filter.cx-kit-button>svg:first-child { color:var(--deck-blue-deep); }
+.nubi-mail-pin-filter[aria-pressed=true],.nubi-mail-pin-filter:hover { background:var(--deck-blue-soft); color:var(--deck-blue-deep); font-weight:600; }
+.nubi-mail-page-label { display:inline-flex; align-items:center; gap:var(--cx-space-2); color:var(--deck-ink); font-weight:500; white-space:nowrap; }
 .nubi-mail-result strong>svg { margin-right:5px; vertical-align:middle; color:var(--deck-blue-deep); }
 .nubi-mail-local-tags { display:flex; flex-wrap:wrap; gap:var(--cx-space-1); margin-bottom:var(--cx-space-2); }
 .nubi-mail-local-tags>span { display:inline-flex; align-items:center; gap:4px; border-radius:var(--deck-pill-radius); padding:3px 8px; color:var(--deck-blue-deep); background:var(--deck-blue-soft); font:var(--deck-font-caption); overflow-wrap:anywhere; }
@@ -1638,3 +1652,8 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-wiki-update-detail>summary::-webkit-details-marker { display:none; }
 .nubi-wiki-update-detail>summary>svg { flex:none; color:var(--deck-blue-deep); }
 .nubi-wiki-update-detail>p { margin:var(--cx-space-2) 0 0; line-height:1.6; }
+
+/* Long lists grow one page at a time (2026-10-14). */
+.nubi-show-more.cx-kit-button { justify-self:start; display:inline-flex; align-items:center; gap:var(--cx-space-2); min-height:36px; margin-top:var(--cx-space-2); padding:var(--cx-space-1) var(--cx-space-3); border:0; border-radius:999px; box-shadow:none; background:var(--deck-tint); color:var(--deck-blue-deep); font:var(--deck-font-caption); font-weight:600; }
+.nubi-show-more.cx-kit-button:hover { background:var(--deck-blue-soft); }
+.nubi-show-more.cx-kit-button small { color:var(--deck-sub); font-weight:500; font-variant-numeric:tabular-nums; }

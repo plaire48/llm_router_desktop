@@ -1,5 +1,6 @@
 .nubi-workspace-update { display:flex; flex-direction:column; align-items:flex-start; gap:8px; padding-top:16px; border-top:1px solid var(--deck-line); font:var(--deck-font-body); }
 .nubi-update-heading { display:flex; align-items:center; gap:8px; }
+.nubi-update-heading > .agent-mark { flex:none; }
 .nubi-update-heading strong { font-weight:600; }.nubi-update-heading span,.nubi-update-meta { font:var(--deck-font-caption); color:var(--nubi-text-secondary); }
 .nubi-workspace-update button { display:inline-flex; align-items:center; gap:8px; white-space:nowrap; }
 .nubi-workspace-update p { font:var(--deck-font-caption); color:var(--nubi-text-secondary); white-space:pre-line; margin:0; }
@@ -15,3 +16,6 @@
 
 .desktop-shell .nubi-workspace-navigation.nubi-workspace-rail .nubi-update-rail-button.cx-kit-button { border-radius:50%; background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
 .desktop-shell .nubi-workspace-navigation.nubi-workspace-rail .nubi-update-rail-button.cx-kit-button:hover { background:var(--deck-blue); color:white; }
+
+/* The technical version beside the product name: bold and accented (user decision 2026-10-14). */
+.nubi-update-heading > .nubi-update-version { font-weight:700; color:var(--deck-blue-deep); font-variant-numeric:tabular-nums; }

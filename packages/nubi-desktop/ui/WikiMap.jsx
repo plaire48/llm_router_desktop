@@ -29,12 +29,12 @@ export function WikiMap({graph,selectedPath,onOpen,disabled}){
  return <section className="nubi-wiki-map" aria-label="위키 관계 지도">
   <div className="nubi-wiki-map-tools">
    <SearchField label="지도에서 문서 찾기" placeholder="지도에서 문서 찾기" maxLength={200} value={query} onChange={setQuery}/>
-   <div className="nubi-wiki-map-stats" aria-label="위키 요약"><span><BookMark size={14}/>문서 {graph.nodes.length}</span><span><Icon name="link" size={14}/>연결 {graph.links.length}</span><span data-attention={graph.orphans.length>0}><Icon name="alertCircle" size={14}/>고립 {graph.orphans.length}</span></div>
+   <div className="nubi-wiki-map-stats" aria-label="위키 요약"><span title={`문서 ${graph.nodes.length}개`}><BookMark size={16}/><span className="visually-hidden">문서 </span>{graph.nodes.length}</span><span title={`연결 ${graph.links.length}개`}><Icon name="link" size={16}/><span className="visually-hidden">연결 </span>{graph.links.length}</span><span data-attention={graph.orphans.length>0} title={`고립 문서 ${graph.orphans.length}개`}><Icon name="alertCircle" size={16}/><span className="visually-hidden">고립 문서 </span>{graph.orphans.length}</span></div>
    <div className="nubi-wiki-map-zoom" role="group" aria-label="지도 확대"><CxButton data-icon-only aria-label="축소" title="축소" onClick={()=>zoom(1/1.25)}><Icon name="minus" size={16}/></CxButton><CxButton data-icon-only aria-label="확대" title="확대" onClick={()=>zoom(1.25)}><Icon name="plus" size={16}/></CxButton><CxButton data-icon-only aria-label="전체 보기" title="전체 보기" onClick={()=>setView({x:0,y:0,k:1})}><Icon name="fitView" size={16}/></CxButton></div>
   </div>
   <div className="nubi-wiki-map-legend" role="group" aria-label="분류별 표시">
    {graph.sections.map(entry=><button type="button" key={entry.id||'(root)'} aria-pressed={!hidden.has(entry.id)} onClick={()=>setHidden(current=>{const next=new Set(current);if(next.has(entry.id))next.delete(entry.id);else next.add(entry.id);return next;})}><i style={{background:colors.get(entry.id)}} aria-hidden="true"/>{sectionLabel(entry.id)}<small>{entry.count}</small></button>)}
-   {graph.orphans.length>0&&<button type="button" className="nubi-wiki-map-orphans" aria-pressed={orphans} aria-label={`고립 문서 ${orphans?'숨기기':'표시'}`} title={`고립 문서 ${orphans?'숨기기':'표시'}`} onClick={()=>setOrphans(value=>!value)}><Icon name={orphans?'eye':'alertCircle'} size={14}/>고립<small>{graph.orphans.length}</small></button>}
+   {graph.orphans.length>0&&<button type="button" className="nubi-wiki-map-orphans" aria-pressed={orphans} aria-label={`고립 문서 ${orphans?'숨기기':'표시'}`} title={`고립 문서 ${orphans?'숨기기':'표시'}`} onClick={()=>setOrphans(value=>!value)}><Icon name="alertCircle" size={16}/><small>{graph.orphans.length}</small></button>}
   </div>
   <div className="nubi-wiki-map-body">
    <div ref={frame} className="nubi-wiki-map-frame" data-dragging={!!drag.current}>
@@ -55,9 +55,9 @@ export function WikiMap({graph,selectedPath,onOpen,disabled}){
     {hover&&focusNode&&<div className="nubi-wiki-map-card" role="status"><strong>{focusNode.title}</strong><span>{[focusNode.type,sectionLabel(focusNode.section),`연결 ${focusNode.degree}개`].filter(Boolean).join(' / ')}</span>{focusNode.description&&<p>{focusNode.description}</p>}</div>}
    </div>
    <aside className="nubi-wiki-map-side">
-    <h3><Icon name="link" size={14}/>연결이 많은 문서</h3>
+    <h3><Icon name="link" size={16}/>연결 많은 문서</h3>
     <ol>{graph.hubs.map(path=>{const node=byPath.get(path);return <li key={path}><button type="button" disabled={disabled} aria-pressed={selectedPath===path} onClick={()=>onOpen(path)}><span>{node.title}</span><small>{node.degree}</small></button></li>;})}{!graph.hubs.length&&<li className="nubi-muted">아직 연결된 문서가 없어요.</li>}</ol>
-    {graph.orphans.length>0&&<><h3><Icon name="alertCircle" size={14}/>고립 문서 {graph.orphans.length}개</h3><ul>{graph.orphans.slice(0,8).map(path=><li key={path}><button type="button" disabled={disabled} aria-pressed={selectedPath===path} onClick={()=>onOpen(path)}><span>{byPath.get(path).title}</span></button></li>)}{graph.orphans.length>8&&<li className="nubi-muted">목록에서 고립 문서 필터로 모두 볼 수 있어요.</li>}</ul></>}
+    {graph.orphans.length>0&&<><h3 title={`고립 문서 ${graph.orphans.length}개`} data-orphan="true"><Icon name="alertCircle" size={16}/><span className="visually-hidden">고립 문서 </span><small>{graph.orphans.length}</small></h3><ul>{graph.orphans.slice(0,8).map(path=><li key={path}><button type="button" disabled={disabled} aria-pressed={selectedPath===path} onClick={()=>onOpen(path)}><span>{byPath.get(path).title}</span></button></li>)}{graph.orphans.length>8&&<li className="nubi-muted">목록에서 고립 문서 필터로 모두 볼 수 있어요.</li>}</ul></>}
    </aside>
   </div>
  </section>;

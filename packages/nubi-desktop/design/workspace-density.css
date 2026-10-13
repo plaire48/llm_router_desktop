@@ -267,7 +267,8 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .nubi-mail-page-options>summary { display:flex; align-items:center; gap:calc(var(--cx-space-1) * 1.5); padding:var(--cx-space-2); list-style:none; cursor:pointer; border-radius:var(--cx-space-2); font-variant-numeric:tabular-nums; }
 .nubi-mail-page-options>summary:hover { background:var(--deck-blue-soft); }
 .nubi-mail-page-popover { position:absolute; right:0; top:100%; z-index:12; width:230px; max-width:calc(100vw - 40px); padding:var(--cx-space-4); display:grid; gap:var(--nubi-mail-row-block); background:var(--deck-card); border:1px solid var(--deck-line); border-radius:var(--deck-control-radius); box-shadow:var(--deck-shadow); }
-.nubi-mail-page-popover>label { display:flex; align-items:center; justify-content:space-between; gap:var(--nubi-action-gap); }
+.nubi-mail-page-popover>label { display:flex; align-items:center; justify-content:space-between; gap:var(--nubi-action-gap); min-height:36px; }
+.nubi-mail-page-popover>label>select { max-width:150px; }
 .nubi-mail-select { width:var(--nubi-mail-selection-size); min-width:var(--nubi-mail-selection-size); min-height:var(--nubi-mail-selection-size); display:flex; align-items:center; justify-content:center; cursor:pointer; }
 .nubi-mail-select input { width:17px; height:17px; accent-color:var(--deck-blue); cursor:pointer; }
 .nubi-mail-select:has(input:focus-visible) { outline:2px solid var(--deck-blue-deep); outline-offset:-3px; border-radius:var(--cx-space-2); }

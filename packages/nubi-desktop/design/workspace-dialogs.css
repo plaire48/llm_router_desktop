@@ -200,8 +200,9 @@
 :root:has(.desktop-shell) .nubi-mail-filter-form section { display:grid; gap:var(--cx-space-2); min-width:0; }
 :root:has(.desktop-shell) .nubi-mail-filter-form>section { grid-template-columns:88px minmax(0,1fr); align-items:center; column-gap:var(--cx-space-3); }
 :root:has(.desktop-shell) .nubi-mail-filter-form h3 { display:flex; align-items:center; gap:var(--cx-space-2); margin:0; white-space:nowrap; }
-:root:has(.desktop-shell) .nubi-mail-filter-form h3>svg { flex:none; color:var(--nubi-text-secondary); }
-:root:has(.desktop-shell) .nubi-mail-filter-form :is(input,select) { width:100%; background-color:var(--nubi-surface-base); border:1px solid var(--deck-line); }
+:root:has(.desktop-shell) .nubi-mail-filter-form h3>svg { flex:none; color:var(--deck-blue-deep); }
+:root:has(.desktop-shell) .nubi-mail-filter-form :is(input,select) { width:100%; background-color:var(--deck-tint); border:1px solid transparent; }
+:root:has(.desktop-shell) .nubi-mail-filter-form :is(input,select):focus-visible { border-color:transparent; outline:2px solid var(--deck-blue-deep); outline-offset:1px; }
 :root:has(.desktop-shell) .nubi-mail-filter-form select { appearance:auto; padding-right:var(--cx-space-2); }
 :root:has(.desktop-shell) .nubi-mail-filter-form form { display:flex; align-items:center; gap:var(--cx-space-2); }
 :root:has(.desktop-shell) .nubi-mail-filter-form form input { flex:1; min-width:0; }

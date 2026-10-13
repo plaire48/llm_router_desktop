@@ -11,10 +11,14 @@ export const WIKI_COLUMNS=[['title','제목'],['section','분류'],['type','종�
 export const WIKI_PAGE_SIZES=[10,20,50,100];
 export const EMPTY_WIKI_FILTERS=Object.freeze({sections:[],types:[],link:'all',period:'all'});
 export const WIKI_SORT_LABELS={'title-asc':'제목 오름차순','title-desc':'제목 내림차순','section-asc':'분류 오름차순','section-desc':'분류 내림차순','type-asc':'종류 오름차순','type-desc':'종류 내림차순','links-desc':'연결 많은 순','links-asc':'연결 적은 순','updated-desc':'최근 수정 순','updated-asc':'오래된 수정 순'};
-const LINK_CHOICES=[['all','전체 문서'],['linked','연결된 문서'],['orphan','고립 문서']],PERIOD_CHOICES=[['all','전체 기간'],['7','최근 7일'],['30','최근 30일']];
+const LINK_CHOICES=[['all','전체 문서','file'],['linked','연결된 문서','link'],['orphan','고립 문서','alertCircle']],PERIOD_CHOICES=[['all','전체 기간'],['7','최근 7일'],['30','최근 30일']];
 export function wikiDate(value){const at=Date.parse(value||'');if(!Number.isFinite(at))return '';const date=new Date(at),pad=n=>String(n).padStart(2,'0');return `${date.getFullYear()}.${pad(date.getMonth()+1)}.${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;}
 export function activeWikiFilter(field,filters){return field==='section'?filters.sections.length>0:field==='type'?filters.types.length>0:field==='links'?filters.link!=='all':field==='updated'?filters.period!=='all':false;}
 
+function SelectAll({options,draft,onChange}){
+ const all=options.length>0&&options.every(option=>draft.includes(option)),count=options.filter(option=>draft.includes(option)).length;
+ return <label className="nubi-mail-column-all"><input type="checkbox" checked={all} ref={node=>{if(node)node.indeterminate=count>0&&!all;}} onChange={()=>onChange(all?[]:options)}/><span>전체 선택</span><small>{count} / {options.length}</small></label>;
+}
 function ColumnFilter({field,label,filters,facets,disabled,onChange}){
  const [open,setOpen]=useState(false),[draft,setDraft]=useState(filters),[position,setPosition]=useState({top:0,left:0});
  const trigger=useRef(null),popup=useRef(null),active=activeWikiFilter(field,filters);
@@ -28,12 +32,12 @@ function ColumnFilter({field,label,filters,facets,disabled,onChange}){
  const toggle=(key,value)=>setDraft(current=>({...current,[key]:current[key].includes(value)?current[key].filter(item=>item!==value):[...current[key],value]}));
  const patch=()=>field==='section'?{sections:draft.sections}:field==='type'?{types:draft.types}:field==='links'?{link:draft.link}:{period:draft.period};
  const reset=()=>{onChange(field==='section'?{sections:[]}:field==='type'?{types:[]}:field==='links'?{link:'all'}:{period:'all'});close();};
- return <><button ref={trigger} type="button" className="nubi-mail-column-filter" data-active={active} aria-label={`${label} 필터`} title={`${label} 필터${active?' 적용 중':''}`} aria-haspopup="dialog" aria-expanded={open} disabled={disabled} onClick={()=>{if(open)close();else{setDraft({...filters});setOpen(true);}}}><Icon name="filter" size={15}/></button>
+ return <><button ref={trigger} type="button" className="nubi-mail-column-filter" data-active={active} aria-label={`${label} 필터`} title={`${label} 필터${active?' 적용 중':''}`} aria-haspopup="dialog" aria-expanded={open} disabled={disabled} onClick={()=>{if(open)close();else{setDraft({...filters});setOpen(true);}}}><Icon name="filter" size={15}/>{active&&<i aria-hidden="true"/>}</button>
  {open&&createPortal(<div ref={popup} role="dialog" aria-label={`${label} 필터 설정`} className="nubi-mail-column-popover" style={position} onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();close();}}}>
-  <header><strong>{label}</strong><CxButton aria-label="필터 닫기" title="필터 닫기" onClick={close}><Icon name="xClose" size={16}/></CxButton></header>
-  {field==='section'&&<div className="nubi-mail-column-values">{(facets?.sections||[]).map(item=><label key={item.id}><input type="checkbox" checked={draft.sections.includes(item.id)} onChange={()=>toggle('sections',item.id)}/><span>{sectionLabel(item.id)} ({item.count})</span></label>)}{!facets?.sections?.length&&<p className="nubi-muted">분류가 없어요.</p>}</div>}
-  {field==='type'&&<div className="nubi-mail-column-values">{(facets?.types||[]).map(item=><label key={item.id}><input type="checkbox" checked={draft.types.includes(item.id)} onChange={()=>toggle('types',item.id)}/><span>{item.id} ({item.count})</span></label>)}{!facets?.types?.length&&<p className="nubi-muted">종류가 적힌 문서가 없어요.</p>}</div>}
-  {field==='links'&&<div className="nubi-mail-column-values">{LINK_CHOICES.map(([value,text])=><label key={value}><input type="radio" name="wiki-link-filter" checked={draft.link===value} onChange={()=>setDraft(current=>({...current,link:value}))}/><span>{text}</span></label>)}</div>}
+  <header><span className="nubi-mail-column-popover-title"><Icon name={({section:'layers',type:'tag',links:'link',updated:'clock'})[field]||'filter'} size={16}/><strong>{label}</strong></span><CxButton aria-label="필터 닫기" title="필터 닫기" onClick={close}><Icon name="xClose" size={16}/></CxButton></header>
+  {field==='section'&&<div className="nubi-mail-column-values">{facets?.sections?.length>0&&<SelectAll options={facets.sections.map(item=>item.id)} draft={draft.sections} onChange={sections=>setDraft(current=>({...current,sections}))}/>}{(facets?.sections||[]).map(item=><label key={item.id}><input type="checkbox" checked={draft.sections.includes(item.id)} onChange={()=>toggle('sections',item.id)}/><span>{sectionLabel(item.id)} ({item.count})</span></label>)}{!facets?.sections?.length&&<p className="nubi-muted">분류가 없어요.</p>}</div>}
+  {field==='type'&&<div className="nubi-mail-column-values">{facets?.types?.length>0&&<SelectAll options={facets.types.map(item=>item.id)} draft={draft.types} onChange={types=>setDraft(current=>({...current,types}))}/>}{(facets?.types||[]).map(item=><label key={item.id}><input type="checkbox" checked={draft.types.includes(item.id)} onChange={()=>toggle('types',item.id)}/><span>{item.id} ({item.count})</span></label>)}{!facets?.types?.length&&<p className="nubi-muted">종류가 적힌 문서가 없어요.</p>}</div>}
+  {field==='links'&&<div className="nubi-mail-column-values">{LINK_CHOICES.map(([value,text,icon])=><label key={value}><input type="radio" name="wiki-link-filter" checked={draft.link===value} onChange={()=>setDraft(current=>({...current,link:value}))}/><span className="nubi-mail-column-choice" data-choice={value}><Icon name={icon} size={14}/>{text}</span></label>)}</div>}
   {field==='updated'&&<div className="nubi-mail-column-values">{PERIOD_CHOICES.map(([value,text])=><label key={value}><input type="radio" name="wiki-period-filter" checked={draft.period===value} onChange={()=>setDraft(current=>({...current,period:value}))}/><span>{text}</span></label>)}</div>}
   <footer><CxButton onClick={reset}>초기화</CxButton><CxButton variant="primary" onClick={()=>{onChange(patch());close();}}>적용</CxButton></footer>
  </div>,document.body)}</>;
@@ -48,7 +52,7 @@ export function WikiTable({rows,selectedPath,sort,onSort,onOpen,filters,facets,o
   <td><button type="button" className="nubi-wiki-result" disabled={disabled} aria-pressed={selectedPath===row.path} title={row.path}><span><strong>{row.title}</strong>{drafts?.has(row.path)&&<span className="nubi-wiki-draft-mark" aria-label="저장 전">●</span>}</span><small>{row.description||row.path}</small></button></td>
   <td title={sectionLabel(row.section)}><span className="nubi-wiki-section">{colors?.has(row.section)&&<i style={{background:colors.get(row.section)}} aria-hidden="true"/>}{sectionLabel(row.section)}</span></td>
   <td>{row.type?<span className="nubi-wiki-type">{row.type}</span>:<span className="nubi-muted">—</span>}</td>
-  <td><span className="nubi-wiki-degree" data-orphan={!row.degree} title={row.degree?`연결된 문서 ${row.degree}개`:'연결된 문서 없음'}>{row.degree?<><Icon name="link" size={13}/>{row.degree}</>:<><Icon name="alertCircle" size={13}/>고립</>}</span></td>
+  <td><span className="nubi-wiki-degree" data-orphan={!row.degree} title={row.degree?`연결된 문서 ${row.degree}개`:'연결된 문서 없음'}>{row.degree?<><Icon name="link" size={14}/>{row.degree}</>:<><Icon name="alertCircle" size={16}/><span className="visually-hidden">고립 문서</span></>}</span></td>
   <td><time dateTime={row.updatedAt||undefined}>{wikiDate(row.updatedAt)}</time></td>
  </tr>)}</tbody></table>;
 }
