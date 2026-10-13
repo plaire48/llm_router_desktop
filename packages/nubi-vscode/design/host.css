@@ -1,5 +1,35 @@
-/* The Nubi surface keeps the supplied HTML identity inside VS Code. The
-   surrounding editor theme, code fonts and OS dialogs remain host-owned. */
-html,body,#root { min-height:100%; margin:0; padding:0; }
+/* The built-in Nubi Light theme continues the reference into the editor.
+   Explicit user themes, code fonts and accessibility preferences stay owned
+   by VS Code. Its semantic colors also reach webview portals. */
+html,body,#root { height:100%; min-height:0; margin:0; padding:0; }
 body { color:var(--deck-ink); background:var(--deck-background); }
-.nubi-workbench { min-height:100vh; }
+.nubi-workbench[data-host-layout="integrated"] { height:100%; min-height:0; overflow:hidden; }
+.nubi-workbench[data-host-layout="integrated"] .nubi-workbench-layout { height:100%; min-height:0; }
+.nubi-workbench[data-host-layout="integrated"] .nubi-workbench-content { height:100%; overflow-y:auto; }
+.nubi-workbench[data-host-layout="integrated"] .nubi-sidebar { height:100%; min-height:0; }
+body:is(.vscode-dark,.vscode-high-contrast,.vscode-high-contrast-light) {
+  --deck-background:var(--vscode-editor-background);
+  --deck-card:var(--vscode-editor-background);
+  --deck-ink:var(--vscode-editor-foreground);
+  --deck-sub:var(--vscode-foreground);
+  --deck-line:var(--vscode-contrastBorder,var(--vscode-widget-border));
+  --deck-tint:var(--vscode-sideBar-background);
+  --deck-section-surface:var(--vscode-sideBar-background);
+  --deck-blue-deep:var(--vscode-textLink-foreground);
+  --deck-blue:var(--vscode-focusBorder);
+  --deck-blue-soft:var(--vscode-editor-selectionBackground);
+  --deck-red:var(--vscode-errorForeground);
+  --deck-green:var(--vscode-foreground);
+  --deck-green-soft:var(--vscode-sideBar-background);
+  --deck-shadow:none;
+  --deck-shadow-file:none;
+  --cx-input-border:var(--vscode-input-border,var(--vscode-focusBorder));
+  --cx-button-primary:var(--vscode-button-background);
+  --color-bg-primary:var(--vscode-button-background);
+  --color-bg-primary-hover:var(--vscode-button-hoverBackground);
+}
+body:is(.vscode-dark,.vscode-high-contrast,.vscode-high-contrast-light) .deck-ambient { display:none; }
+body:is(.vscode-dark,.vscode-high-contrast,.vscode-high-contrast-light) :is(.nubi-workbench,.deck-dialog) .cx-button--primary { background:var(--vscode-button-background); color:var(--vscode-button-foreground); }
+body:is(.vscode-high-contrast,.vscode-high-contrast-light) :is(button,input,select,textarea,summary):focus-visible { outline:2px solid var(--vscode-focusBorder); outline-offset:2px; }
+
+.nubi-workbench[data-host-layout="integrated"] .nubi-bar { flex-wrap:wrap; }

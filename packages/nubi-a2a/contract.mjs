@@ -1,5 +1,5 @@
 export const CONTRACT='nubi-collaboration-v1';
-export const ROLE_NAMES={browser:'브라우저',office:'Office'};
+export const ROLE_NAMES={browser:'브라우저',office:'Office', 'office-excel':'Excel', 'office-word':'Word', 'office-powerpoint':'PowerPoint'};
 export const fail=code=>{throw new Error(code);};
 export function invitation(value,role){
   let url;try{url=new URL(value);}catch{fail('a2a_address');}
