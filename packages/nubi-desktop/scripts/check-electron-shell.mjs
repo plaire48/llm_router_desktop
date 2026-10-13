@@ -74,8 +74,11 @@ try{page=await app.firstWindow();page.setDefaultTimeout(10000);page.on('crash',(
  checks.push('sidebar toggle follows brand and opens/closes the sidebar');
 // The shell, not the renderer, handles read prompts and cancellation.
  await shellInput.focus();await page.keyboard.type(process.platform==='win32'?"$answer=Read-Host 'input-value'":"read -p 'input-value: ' answer");await page.keyboard.press('Enter');
- await page.waitForFunction(()=>document.querySelector('.desktop-terminal .xterm-rows')?.textContent.includes('input-value'));
+ // The command echo also contains "input-value". Wait for the actual prompt:
+ // input sent earlier can be consumed by PSReadLine before Read-Host owns it.
+ await page.waitForFunction(()=>{const rows=[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].map(row=>row.textContent).filter(text=>text.trim());return /^input-value:\s*$/.test(rows.at(-1)||'');});
  await page.keyboard.type('session-answer');await page.keyboard.press('Enter');
+ await page.waitForFunction(windows=>{const rows=[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].map(row=>row.textContent).filter(text=>text.trim());return (windows?/>\s*$/:/[$#]\s*$/).test(rows.at(-1)||'');},process.platform==='win32');
  await page.keyboard.type(process.platform==='win32'?"Write-Output $answer":"printf '%s\\n' \"$answer\"");await page.keyboard.press('Enter');
  await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='session-answer'));
  await page.keyboard.type(process.platform==='win32'?"Write-Output 'sleep-started'; Start-Sleep 30":"printf '%s\\n' sleep-started; sleep 30");await page.keyboard.press('Enter');
