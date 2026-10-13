@@ -1,5 +1,7 @@
 import {lstat, readFile} from 'node:fs/promises';
 import path from 'node:path';
+import {createTwoFilesPatch} from 'diff';
+import {isUtf8} from 'node:buffer';
 import {gitFailure} from './git-runtime.mjs';
 import {git,hash,fail,privatePath,relativeFile,scopedFile} from './files.mjs';
 
@@ -68,7 +70,10 @@ export async function inspectWorkspaceChanges(service, {taskId, path: rel} = {})
   if (!item) return {...summary, patch: '', patchTruncated: false, instruction: 'No Git change at this moment. A clean status is not test evidence or source-edit authorization.'};
   if (currentSize > MAX_FILE_BYTES || previousSize > MAX_FILE_BYTES) return {...summary, patch: null, patchTruncated: true, patchUnavailable: 'file_size_limit',
     instruction: 'Git change exists, but the file exceeds the bounded diff size. Do not infer its full content from status.'};
-  const diff = await git(root, ['--literal-pathspecs', 'diff', ...(head?['HEAD']:['--cached']), '--no-ext-diff', '--no-textconv', '--no-renames', '--no-color', '--unified=3', '--', rel]);
+  const unbornBytes=!head?(item.code.includes('D')?Buffer.alloc(0):await readFile(path.join(root,rel))):null;
+  const unbornBinary=unbornBytes&&(unbornBytes.includes(0)||!isUtf8(unbornBytes));
+  // No HEAD means an empty baseline, including edits made after staging.
+  const diff = head?await git(root, ['--literal-pathspecs', 'diff', 'HEAD', '--no-ext-diff', '--no-textconv', '--no-renames', '--no-color', '--unified=3', '--', rel]):unbornBinary?'Binary file (no text diff)':createTwoFilesPatch('/dev/null',rel,'',unbornBytes.toString('utf8'),'','',{context:3});
   const bytes = Buffer.from(diff), truncated = bytes.length > MAX_PATCH_BYTES;
   let end = MAX_PATCH_BYTES;
   if (truncated) {
@@ -77,10 +82,10 @@ export async function inspectWorkspaceChanges(service, {taskId, path: rel} = {})
   }
   // The screen shows the change as an inline diff (as the commit history does): both texts travel with the patch when the
   // file is text within the bounded size. Binary files keep only the patch summary.
-  const binary = /^Binary files .* differ$/m.test(diff);
+  const binary = !!unbornBinary || /^Binary files .* differ$/m.test(diff);
   const contents = binary ? {} : {
     before: !head || item.code.includes('A') ? '' : await git(root, ['show', `HEAD:${rel}`]).catch(() => ''),
-    after: item.code.includes('D') ? '' : await readFile(path.join(root, rel), 'utf8').catch(() => ''),
+    after: unbornBytes?unbornBytes.toString('utf8'):item.code.includes('D') ? '' : await readFile(path.join(root, rel), 'utf8').catch(() => ''),
   };
   return {...summary, ...contents, binary, patch: truncated ? bytes.subarray(0, end).toString('utf8') : diff, patchBytes: bytes.length, patchHash: hash(bytes), patchTruncated: truncated,
     instruction: truncated ? 'Only the first part of this diff is shown. Read current source and inspect the remaining change before claiming complete review. Git diff is not edit authorization or a passed test.' : 'Read-only HEAD-to-worktree diff. Read current source before editing; Git diff does not grant edit authority or prove tests passed.'};

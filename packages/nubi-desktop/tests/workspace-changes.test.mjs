@@ -84,4 +84,6 @@ test('unborn Git status and staged additions work without inventing a HEAD',asyn
  const service={target:async()=>root};const fresh=await inspectWorkspaceChanges(service);assert.equal(fresh.repositoryState,'unborn');assert.equal(fresh.entries[0].state,'untracked');assert.equal(fresh.head,null);
  await git(root,['add','hello.txt']);const detail=await inspectWorkspaceChanges(service,{path:'hello.txt'});
  assert.equal(detail.state,'added');assert.equal(detail.before,'');assert.equal(detail.after,'첫 파일\n');assert.match(detail.patch,/첫 파일/);
+ await writeFile(path.join(root,'hello.txt'),'스테이징 뒤 수정\n');const latest=await inspectWorkspaceChanges(service,{path:'hello.txt'});assert.equal(latest.after,'스테이징 뒤 수정\n');assert.match(latest.patch,/스테이징 뒤 수정/);assert.doesNotMatch(latest.patch,/첫 파일/);
+ await writeFile(path.join(root,'hello.txt'),Buffer.from([0,1,2]));const binary=await inspectWorkspaceChanges(service,{path:'hello.txt'});assert.equal(binary.binary,true);assert.equal(binary.after,undefined);
 });

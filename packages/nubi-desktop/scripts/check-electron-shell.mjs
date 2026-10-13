@@ -98,7 +98,8 @@ try{page=await app.firstWindow();await page.bringToFront();page.setDefaultTimeou
   await writeFile(path.join(root,'utf8-korean.txt'),'한글 본문 확인\n','utf8');
   await page.keyboard.type("Get-Content -LiteralPath './utf8-korean.txt'");await page.keyboard.press('Enter');
   await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='한글 본문 확인'));
-  await page.keyboard.insertText("'파이프 한글 확인' | & $env:ComSpec /d /c 'chcp 65001 >nul & more'");await page.keyboard.press('Enter');
+  const reader=Buffer.from('[Console]::InputEncoding=[System.Text.UTF8Encoding]::new($false);[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new($false);[Console]::WriteLine([Console]::ReadLine())','utf16le').toString('base64');
+  await page.keyboard.insertText("'파이프 한글 확인' | & (Get-Process -Id $PID).Path -NoProfile -NonInteractive -EncodedCommand '"+reader+"'");await page.keyboard.press('Enter');
   await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='파이프 한글 확인'));
   checks.push('interactive PowerShell reads BOM-less UTF-8 files and sends Korean to native stdin');
  }
