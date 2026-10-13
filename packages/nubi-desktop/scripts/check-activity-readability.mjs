@@ -49,6 +49,9 @@ try{
   assert.equal(await commandCopy.evaluate(e=>getComputedStyle(e.closest('.nubi-terminal-copy')).opacity),'1');
   const terminalStyle=await terminal.evaluate(el=>({background:getComputedStyle(el).backgroundColor,shadow:getComputedStyle(el).boxShadow,dots:el.querySelectorAll('.nubi-terminal-dots').length}));
   assert.equal(terminalStyle.background,'rgb(23, 23, 28)');assert.equal(terminalStyle.shadow,'none');assert.equal(terminalStyle.dots,0);
+  const header=terminal.locator('.nubi-terminal-bar');assert.equal(await header.locator('.nubi-terminal-state').count(),0);
+  await header.getByRole('button',{name:'명령과 결과 복사',exact:true}).click();await header.getByRole('button',{name:'명령과 결과 복사 완료',exact:true}).waitFor();
+  const headerText=await p.evaluate(()=>window.copiedTerminal.shift());assert.equal(headerText,'Get-ChildItem -Name\n\n'+await terminal.locator('.nubi-terminal-output').innerText());
   await commandCopy.click();await outputCopy.click();
   const copied=await p.evaluate(()=>window.copiedTerminal);assert.equal(copied[0],'Get-ChildItem -Name');
   assert.equal(copied[1],await terminal.locator('.nubi-terminal-output').innerText());assert(!copied[0].startsWith('PS '),'decorative shell prompt is not copied');

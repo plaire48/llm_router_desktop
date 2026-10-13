@@ -94,6 +94,14 @@ try{page=await app.firstWindow();await page.bringToFront();page.setDefaultTimeou
  await page.keyboard.type(process.platform==='win32'?"Split-Path -Leaf (Get-Location).Path":"printf '%s\\n' \"${PWD##*/}\"");await page.keyboard.press('Enter');
  await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='한글 폴더'));
  await page.keyboard.type('cd ..');await page.keyboard.press('Enter');checks.push('Korean input and directory changes persist in the interactive session');
+ if(process.platform==='win32'){
+  await writeFile(path.join(root,'utf8-korean.txt'),'한글 본문 확인\n','utf8');
+  await page.keyboard.type("Get-Content -LiteralPath './utf8-korean.txt'");await page.keyboard.press('Enter');
+  await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='한글 본문 확인'));
+  await page.keyboard.insertText("'파이프 한글 확인' | & $env:ComSpec /d /c 'chcp 65001 >nul & more'");await page.keyboard.press('Enter');
+  await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-terminal .xterm-rows>div')].some(row=>row.textContent.trim()==='파이프 한글 확인'));
+  checks.push('interactive PowerShell reads BOM-less UTF-8 files and sends Korean to native stdin');
+ }
  const terminalTabs=await page.getByRole('button',{name:/터미널 탭 닫기$/}).count();await page.getByRole('button',{name:'메일',exact:true}).click();await page.locator('.desktop-pane').waitFor({state:'hidden'});await page.getByRole('button',{name:'홈',exact:true}).click();await page.getByRole('button',{name:'파일',exact:true}).click();assert.equal(await page.getByRole('button',{name:/터미널 탭 닫기$/}).count(),terminalTabs,'mail navigation preserves terminal sessions without creating another');
 
  // Manual browsing may leave the project, while model operations keep their original root.

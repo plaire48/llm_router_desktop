@@ -27,6 +27,8 @@ try {
   await row('project-a').locator('.nubi-sidebar-project').click();
   await page.getByRole('textbox',{name:'추가 요청',exact:true}).waitFor();
   assert.equal(await page.getByRole('textbox',{name:'추가 요청',exact:true}).inputValue(),'A 프로젝트에 남겨 둔 초안');
+  await page.locator('.nubi-cited-sources .nubi-answer-source').waitFor({state:'attached'});
+  if(!await page.locator('.nubi-cited-sources .nubi-answer-source').isVisible())await page.locator('.nubi-cited-disclosure>summary').click();
   await page.locator('.nubi-cited-sources .nubi-answer-source').waitFor();
   assert.equal(await row('project-a').getAttribute('data-current'),'true');
   if(attempt<2){await row('project-b').locator('.nubi-sidebar-project').click();await page.waitForFunction(()=>document.querySelector('.nubi-saved-project[data-current="true"] .nubi-sidebar-project-name')?.textContent==='project-b');assert.equal(await page.locator('.nubi-project-start').count(),0);}

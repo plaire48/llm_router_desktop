@@ -119,3 +119,11 @@ test('a response the connection rejects is asked for again within the retry budg
   const again=await service.createTask({request:'Keep original request'});await service.startAgent({taskId:again.id});await service.agent.promise;
   assert.equal(calls,3,'the request and two more');assert.equal(service.task(again.id).state,'paused');assert.equal(service.task(again.id).error,'response_invalid');
 });
+
+ test('declining a command repair is idempotent and cannot execute later',async t=>{
+ const {service}=await fixture(t);const task=await service.createTask({request:'수정한 명령 확인'});let runs=0;service.run=async()=>{runs++;};
+ service.store.set('command-repair:decline',{id:'decline',taskId:task.id,state:'proposed',script:'never run'});
+ const rejected=await service.invoke('rejectCommandRepair',{id:'decline'});assert.equal(rejected.state,'rejected');assert.equal((await service.invoke('rejectCommandRepair',{id:'decline'})).rejectedAt,rejected.rejectedAt);
+ assert.equal((await service.applyCommandRepair({id:'decline'})).state,'rejected');assert.equal(runs,0);
+ service.store.set('command-repair:started',{id:'started',taskId:task.id,state:'starting'});await assert.rejects(service.invoke('rejectCommandRepair',{id:'started'}),/recovery_changed/);
+ });

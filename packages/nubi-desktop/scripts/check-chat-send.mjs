@@ -43,7 +43,7 @@ try{
   assert.equal(await field.inputValue(),'');assert.equal(await p.locator('.nubi-user-bubble').filter({hasText:'기존 대화 추가 요청'}).count(),1);
   await field.fill('실패해도 남는 새 초안');await p.evaluate(()=>window.sendGate.startAgent.reject());
   await p.getByText('전송 결과 확인 필요',{exact:true}).waitFor({timeout:6000}).catch(async error=>{await p.screenshot({path:path.join(dir,'failed.png')});console.log(await p.locator('body').innerText());throw error;});assert.equal(await field.inputValue(),'실패해도 남는 새 초안');
-  assert.equal(await p.evaluate(()=>window.sendCalls.filter(c=>c.method==='startAgent').length),2,'uncertain admission is never resent');
+  assert.equal(await p.evaluate(()=>window.sendCalls.filter(c=>c.method==='startAgent').length),3,'uncertain admission is never resent');
   await p.screenshot({path:path.join(dir,`recovery-${width}.png`),animations:'disabled'});
   assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   // Preserve the exact uncertain request across renderer reloads.

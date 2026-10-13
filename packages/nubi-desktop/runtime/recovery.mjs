@@ -116,6 +116,12 @@ export function installRecovery(ProjectService){
     const value={id:randomUUID(),taskId,processId,profile,script,reason,workspace:await this.target(taskId),fingerprint,state:'proposed',createdAt:now()};
     this.store.set('command-repair:'+value.id,value);return value;
   };
+  ProjectService.prototype.rejectCommandRepair=async function({id}){
+    const value=this.store.get('command-repair:'+id);if(!value)fail('repair_invalid');
+    if(value.state==='rejected')return value;
+    if(value.state!=='proposed')fail('recovery_changed');
+    value.state='rejected';value.rejectedAt=now();this.store.set('command-repair:'+id,value);return value;
+  };
   ProjectService.prototype.applyCommandRepair=async function({id}){
     const value=this.store.get('command-repair:'+id);if(!value)fail('repair_invalid');
     if(value.state!=='proposed')return value; // A lost response cannot launch twice.

@@ -38,7 +38,10 @@
   --deck-line-heading: 1.45;
   --deck-line-caption: 1.5;
   --nubi-reading-size: 1rem;
-  --nubi-reading-leading: 1.75;
+  --nubi-reading-leading: 1.8;
+  --nubi-prose-paragraph-gap: 1em;
+  --nubi-prose-section-gap: 1.5em;
+  --nubi-prose-list-gap: .5em;
   --nubi-welcome-title: clamp(29px,4.2vw,50px);
   --nubi-welcome-copy: clamp(15px,1.75vw,19px);
   --nubi-terminal-surface: #17171C;

@@ -1,4 +1,4 @@
-import React,{useState} from 'react';
+import React,{useState,useRef,useEffect} from 'react';
 import {CxButton,Icon} from '@e2e/cx-design-system';
 import {diffLines} from 'diff';
 import {FileKindIcon} from './FileKindIcon.jsx';
@@ -9,6 +9,8 @@ import './proposal-card.css';
 
 export function ProposalCard({proposal:p,api,busy,onCompare,onRebase,onCancel,onApply}) {
  const [open,setOpen]=useState(false),[preview,setPreview]=useState(null),[loading,setLoading]=useState(false),[failed,setFailed]=useState(false);
+ const form=useRef(null);
+ useEffect(()=>{const focus=event=>{if(event.detail===p.id){form.current?.scrollIntoView({block:'center'});form.current?.focus({preventScroll:true});}};document.addEventListener('nubi-open-decision',focus);return()=>document.removeEventListener('nubi-open-decision',focus);},[p.id]);
  async function toggle(){
   setOpen(value=>!value);
   if(open||preview||loading)return;
@@ -21,7 +23,7 @@ export function ProposalCard({proposal:p,api,busy,onCompare,onRebase,onCancel,on
   }catch{setFailed(true);}finally{setLoading(false);}
  }
  const name=p.path.split(/[\\/]/).at(-1);
- return <article className="nubi-proposal-card" aria-label={`${name} 변경 제안`}>
+ return <article ref={form} tabIndex={-1} data-decision-id={p.id} className="nubi-proposal-card" aria-label={`${name} 변경 제안`}>
   <header><button className="nubi-proposal-file" title={p.path} aria-expanded={open} onClick={toggle}>
    <FileKindIcon name={p.path} size={20}/><strong>{name}</strong><Icon name={open?'chevronDown':'chevronRight'} size={16}/>
   </button><span className="nubi-proposal-counts" aria-label={p.stats?.state==='counted'?`추가 ${p.stats.added}줄, 삭제 ${p.stats.removed}줄`:undefined}>

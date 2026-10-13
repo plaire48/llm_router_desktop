@@ -205,7 +205,11 @@ function enforceEvidenceBoundary(review,original) {
 // Only complete host lists can disprove that boundary. Never turn an unknown
 // or already-started operation into permission to issue it again.
 function enforcePendingBoundary(review,data) {
-  if(review.status!=='ready'||!review.checks.some(check=>check.state==='pending'))return review;
+  // Also catch a prose-only approval request mislabeled as supported/unknown
+  // by the reviewer. Quoted examples and code are not a request to the user.
+  const prose=String(data.candidate||'').replace(/```[\s\S]*?```/g,'').split('\n').filter(line=>!/^\s*>/.test(line)).join('\n');
+  const asksApproval=/(?:승인(?:해|해\s*주|해주|을\s*해|을)\s*(?:주세요|주시면|주실|해\s*주세요)|승인(?:을)?\s*기다리|진행해도\s*(?:될까요|괜찮)|실행해도\s*(?:될까요|괜찮)|please\s+approve|awaiting\s+your\s+approval)/i.test(prose);
+  if(review.status!=='ready'||!asksApproval&&!review.checks.some(check=>check.state==='pending'))return review;
   const entry=data.evidence.find(e=>e.id==='host');
   if(!entry?.usable||entry.truncated)return review;
   const host=entry.result,lists=[host?.proposals,host?.setupActions,host?.processes,host?.computer?.actions];

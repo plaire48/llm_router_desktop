@@ -4,11 +4,11 @@ import {createRequire} from 'node:module';
 const {interactiveShell,TerminalHost}=createRequire(import.meta.url)('../electron-app/terminal-host.cjs');
 test('interactive PowerShell prefers installed 7 and retains its real startup banner',async()=>{
  const shell=await interactiveShell('powershell',{platform:'win32',env:{ProgramFiles:'C:\\Program Files'},lookup:async()=>{throw Error();},exists:async file=>{assert.equal(file,'C:\\Program Files\\PowerShell\\7\\pwsh.exe');}});
- assert.match(shell.executable,/pwsh\.exe$/);assert.deepEqual(shell.argv,['-NoProfile']);
+ assert.match(shell.executable,/pwsh\.exe$/);assert(shell.argv.includes('-NoExit'));const startup=Buffer.from(shell.argv.at(-1),'base64').toString('utf16le');assert.match(startup,/Console.*OutputEncoding/);assert.match(startup,/PSVersionTable.PSVersion/);assert.match(startup,/Get-Content:Encoding/);assert.doesNotMatch(startup,/ExecutionPolicy|Set-Culture|Set-WinSystemLocale/);
 });
 test('PowerShell falls back to the installed Windows shell, never a fabricated version',async()=>{
  const shell=await interactiveShell('powershell',{platform:'win32',env:{SystemRoot:'C:\\Windows'},lookup:async()=>{throw Error();},exists:async file=>{if(file.includes('pwsh.exe'))throw Error();}});
- assert.equal(shell.executable,'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe');assert.deepEqual(shell.argv,['-NoProfile']);
+ assert.equal(shell.executable,'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe');assert(shell.argv.includes('-NoExit'));const startup=Buffer.from(shell.argv.at(-1),'base64').toString('utf16le');assert.match(startup,/Console.*OutputEncoding/);assert.match(startup,/PSVersionTable.PSVersion/);assert.match(startup,/Get-Content:Encoding/);assert.doesNotMatch(startup,/ExecutionPolicy|Set-Culture|Set-WinSystemLocale/);
 });
 test('a project change during terminal setup refuses spawning',async()=>{
  let reads=0,spawns=0;const host=new TerminalHost({notify:()=>{},profiles:async()=>[{id:'bash',executable:'/bin/bash'}],invoke:async method=>{

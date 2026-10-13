@@ -6,6 +6,11 @@ const READ_FAILED='The read failed. Inspect the error and choose a narrower rang
 const UNCHANGED='No source was changed and no proposal was created. ';
 const PLAN='Use record_change_plan with the corrected input. ';
 const GUIDANCE=Object.freeze({
+  workspace_status_failed:'Git could not read the current change status. Continue from source files and stored receipts; do not report a clean tree or repeat commands to recreate evidence.',
+  git_unavailable:'Git is unavailable. Continue with source_search/read_source and stored receipts where sufficient. Do not invent a diff.',
+  git_timeout:'Git status timed out. Use a specific relative file path or current source and receipts. Do not repeat an unchanged full scan.',
+  git_access_denied:'Git could not access this folder. Preserve the work, explain the access issue and use other available evidence.',
+  git_unsafe_directory:'Git refused this folder ownership. Do not change global trust configuration automatically. Ask the user to check the folder ownership.',
   preview_source_required:'Read source or recovery_snapshot to find exact local server URLs, or ask if they cannot be determined.',
   preview_scope:'Compare only loopback URLs confirmed from this project. Read source or recovery_snapshot to find them.',
   preview_http_error:'Inspect the server output and propose setup only through user approval.',

@@ -253,3 +253,10 @@ test('tool-incompatible reviewer repairs as plain JSON without executing or weak
  }});
  assert.equal(calls,3);assert.equal(result.status,'ready');assert.equal(result.checks[0].state,'unknown');
 });
+
+ test('prose approval requests need a real host form even when review labels them unknown',async()=>{
+ const input={task:{request:'필요한 명령을 실행해 줘'},candidate:'명령 실행을 승인해 주세요.',evidence:[],model:{contextLength:32000},signal:new AbortController().signal,receipts:{proposals:[],setupActions:[],processes:[],computer:{actions:[],omittedActions:0,unresolvedCount:0}},invoke:async messages=>decision(messages)};
+ assert.equal((await reviewResult(input)).normalized,'missing_host_boundary');
+ assert.equal((await reviewResult({...input,candidate:'> 명령 실행을 승인해 주세요.\n\n이 문구의 맞춤법을 확인했습니다.'})).normalized,undefined);
+ assert.equal((await reviewResult({...input,receipts:{...input.receipts,setupActions:[{id:'command',state:'proposed'}]}})).normalized,undefined);
+ });

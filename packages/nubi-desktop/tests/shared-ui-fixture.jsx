@@ -133,7 +133,7 @@ async function api(method,args={}){
 
   if(wikiChatFixture&&['createTask','startAgent','agentInput','regenerateAnswer'].includes(method)){window.wikiChatCalls.push(method);if(window.wikiSilentLock)throw Error('wiki_chat_blocked');}
   if(sendTransition&&['createTask','startAgent','agentInput'].includes(method)){
-    window.sendCalls.push({method,args});await waitForSendGate(method);
+    window.sendCalls.push({method,args});if(method==='startAgent'&&project.tasks.find(item=>item.id===args.taskId)?.state==='running')throw Error('agent_busy');await waitForSendGate(method);
     if(method==='createTask'){const task={id:'sent-task',request:args.request,requestMailReferences:args.mailReferences,createdAt:new Date().toISOString(),criteria:[],state:'draft',messages:[],trace:[]};project.tasks.push(task);return structuredClone(task);}
     const task=project.tasks.find(item=>item.id===args.taskId);
     if(method==='agentInput'){task.inbox=[...(task.inbox||[]),{id:args.id,text:args.text,mode:'queue',createdAt:new Date().toISOString()}];return structuredClone(task);}
