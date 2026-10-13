@@ -72,13 +72,13 @@ try{
   const rail=await p.locator('.nubi-workspace-rail').evaluate(e=>{const team=e.querySelector('.nubi-rail-team'),r=e.getBoundingClientRect(),b=team.getBoundingClientRect();return {last:e.lastElementChild===team.parentElement&&team.parentElement.classList.contains('nubi-rail-footer')&&team.parentElement.lastElementChild===team,text:team.textContent.trim(),bottomGap:r.bottom-b.bottom,label:team.getAttribute('aria-label')};});assert(rail.last&&rail.text===''&&rail.label==='AI Workspace'&&rail.bottomGap<32,'AI Workspace is an icon at the bottom of the rail');
   await load('screen=workbench&integrated&context&modals&chat-preview');await chooseTask();await audit('chat-preview-'+width);
   await load('screen=workbench&integrated&context&modals');await chooseTask();
-  for(const [button,title,key] of [['설정','설정','settings'],['위키','위키 설정','library'],['토큰 사용량','사용량','usage'],['컨텍스트 사용량','컨텍스트 사용량','context'],['모델 변경','모델 선택','models'],['추론 정도','추론 정도 조절','reasoning'],['스킬 관리','스킬 목록','skill-menu']]){
+  for(const [button,title,key] of [['설정','설정','settings'],['위키 설정','위키 설정','library'],['토큰 사용량','사용량','usage'],['컨텍스트 사용량','컨텍스트 사용량','context'],['모델 변경','모델 선택','models'],['추론 정도','추론 정도 조절','reasoning'],['스킬 관리','스킬 목록','skill-menu']]){
    await p.getByRole('button',{name:button,exact:true}).click();await p.getByRole('dialog',{name:title,exact:true}).waitFor();await audit(key+'-'+width);await close();
   }
   await p.getByRole('button',{name:/매번 확인/}).click();await p.getByRole('dialog',{name:'승인 방식',exact:true}).waitFor();await audit('approval-'+width);await close();
   await p.getByRole('button',{name:'모델 변경',exact:true}).click();await p.getByRole('tab',{name:'FabriX',exact:true}).click();await p.getByRole('button',{name:'연결',exact:true}).click();await p.getByRole('dialog',{name:'FabriX 연결'}).waitFor();await audit('fabrix-'+width);await close();await close();
   await p.getByRole('button',{name:'메일',exact:true}).click();await p.getByRole('heading',{name:'메일',exact:true}).waitFor();await audit('mail-empty-'+width);
-  await p.getByRole('button',{name:'메일 연결',exact:true}).click();await p.getByRole('textbox',{name:'아이디',exact:true}).waitFor();await audit('mail-connect-'+width);await close();
+  await p.locator('.nubi-mail-connect-link').click();await p.getByRole('group',{name:'메일 가져오는 방법'}).waitFor();await audit('mail-connect-'+width);await close();
   await load('screen=workbench&integrated&noproject');await p.getByRole('button',{name:'AI Pro',exact:true}).waitFor();await audit('login-'+width);await p.getByRole('button',{name:'AI Pro',exact:true}).click();await p.getByRole('region',{name:'프로젝트 열기'}).waitFor();await audit('project-start-'+width);
   for(const [screen,wait] of [['claude-install','Claude Code 연결'],['claude-login','Claude Code 연결'],['claude-update','Claude Code 연결'],['startup','메일을 연결해 주세요'],['usage','사용량'],['models-long','모델 선택'],['mail-settings','메일 설정'],['registration','스킬 등록'],['skills','스킬 관리'],['marketplace','스킬 관리'],['account','검토 계정 @review']]){
    await load('screen='+screen);await (screen==='account'?p.locator('.nubi-ghes-modal'):p.getByRole('dialog',{name:wait,exact:true})).waitFor();
@@ -90,7 +90,7 @@ try{
    if(screen==='models-long'){assert.equal(await p.getByRole('tab',{name:'Claude',exact:true}).count(),1,'Desktop provider tabs include Claude');}
    if(screen==='skills'){
     assert.equal(await p.getByRole('navigation',{name:'내 스킬 페이지 이동'}).count(),0,'single page has no redundant pager');
-    await p.getByRole('button',{name:'보고서 작성 삭제',exact:true}).click();await p.getByRole('alertdialog').waitFor();await audit('custom-skill-delete-'+width);await close();
+    await p.locator('[aria-label="보고서 작성 관리"]').first().click();await p.getByRole('button',{name:'보고서 작성 삭제',exact:true}).click();await p.getByRole('alertdialog').waitFor();await audit('custom-skill-delete-'+width);await close();
     assert.equal(await p.getByRole('button',{name:/휴지통 보기/}).count(),0,'removed trash entry stays out of skill management');
    }
    if(screen==='marketplace'){

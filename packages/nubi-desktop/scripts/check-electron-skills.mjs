@@ -80,7 +80,8 @@ try{
   const issues=skillsDialog().locator('details.nubi-skill-info');await issues.locator('summary').click();await issues.getByRole('button',{name:'.nubi/skill/zipped-skill/SKILL.md'}).waitFor();
   await writeFile(zipped,intact);await refresh();await row('zipped-skill').waitFor();assert.equal(await row('zipped-skill').getByText('지침을 확인해 주세요.').count(),0);assert.equal(await issues.count(),0,'a repaired instruction leaves no issue');
   stage('malformed instruction disclosed and recovered');
-  await row('zipped-skill').getByRole('button',{name:'zipped-skill 삭제'}).click();await page.getByText('스킬을 삭제할까요?').waitFor();await page.getByRole('alertdialog').getByRole('button',{name:'삭제',exact:true}).click();
+  // The delete action moved into the row's action menu (2026-10).
+  await row('zipped-skill').locator('[aria-label="zipped-skill 관리"]').first().click();await row('zipped-skill').getByRole('button',{name:'zipped-skill 삭제'}).click();await page.getByText('스킬을 삭제할까요?').waitFor();await page.getByRole('alertdialog').getByRole('button',{name:'삭제',exact:true}).click();
   await row('zipped-skill').waitFor({state:'detached'});assert.equal(await exists(zipped),false,'a deleted skill leaves the project');
   assert.equal(await skillsDialog().getByRole('button',{name:/휴지통/}).count(),0);
   stage('remove skill with no trash browser in My Skills');
@@ -93,7 +94,7 @@ try{
   const state=await request('state');const answered=state.tasks.flatMap(task=>task.messages||[]).find(message=>message.role==='assistant'&&message.content.includes(SENTINEL));assert.ok(answered,'the answer is in the conversation');
   assert.equal(await page.locator('.nubi-feedback-toast[data-tone="error"], .nubi-error').count(),0);
   stage('a skill chosen in the composer is discovered, loaded and followed in a run');
-  await openManagement();await row('fixture-skill').getByRole('button',{name:'fixture-skill 수정'}).click();await skillsDialog().waitFor({state:'hidden'});
+  await openManagement();await row('fixture-skill').locator('[aria-label="fixture-skill 관리"]').first().click();await row('fixture-skill').getByRole('button',{name:'fixture-skill 수정'}).click();await skillsDialog().waitFor({state:'hidden'});
   await page.getByRole('tab',{name:/SKILL\.md/}).waitFor();await page.waitForFunction(sentinel=>document.querySelector('.desktop-editor')?.textContent.includes(sentinel),SENTINEL);
   stage('the instruction opens in the editor');
   await mkdir('verification',{recursive:true});await page.screenshot({path:'verification/electron-skills.png'});

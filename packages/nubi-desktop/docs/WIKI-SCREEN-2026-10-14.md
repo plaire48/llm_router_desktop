@@ -1,4 +1,4 @@
-# 위키 화면 재구성과 메일·한도 UI 정돈 — 2026-10-14
+# 위키 화면 재구성과 메일, 한도 UI 정돈 — 2026-10-14
 
 사용자 요청(10-14 새벽) 여덟 건을 1.1.7 작업 트리에 반영한 기록이다. 모두 Electron 데스크톱 화면과 실행기 변경이며 OpenWiki 코어는 건드리지 않았다.
 
@@ -18,8 +18,8 @@
 ## 위키 화면 (요청 6)
 
 - **구조**: 메일 화면처럼 위아래 구조. 머리글 → 자료 탭(프로젝트 위키, 메일 위키) → 보기 탭(문서 목록, 관계 지도) → 목록 또는 지도 → 아래에 선택한 문서.
-- **문서 목록**: 검색(제목, 설명, 태그, 경로), 표(제목+설명, 분류, 종류, 연결 수, 수정일), 열마다 정렬과 필터(분류 체크, 종류 체크, 연결 상태 전체/연결됨/고립, 기간 전체/7일/30일), 페이지네이션(페이지 이동, 10·20·50·100개씩, 정렬 선택). 필터는 메일과 같은 팝오버 패턴 (`ui/WikiTable.jsx`).
-- **관계 지도**: OpenWiki가 검증하는 Markdown 링크와 앞머리(type, description, tags)로 그래프를 만든다. 원 크기는 연결 수, 색은 분류(최상위 폴더), 선 굵기는 관계 강도. 강도는 서로 참조(+1), 태그 공유(최대 +1), 같은 분류(+0.5), 이웃 문서 공유 비율(최대 +1)로 1~4점. 검색 강조, 분류별 숨김, 고립 문서 표시 전환, 확대·축소·전체 보기, 끌어서 이동, 문서 카드, 옆 칸에 "연결이 많은 문서"와 "고립 문서" (`ui/WikiMap.jsx`, `ui/wiki-graph.mjs`). 배치는 분류별 고리에서 시작하는 결정적 힘 기반 배치로, 큰 위키도 화면을 막지 않게 프레임마다 조금씩 진행한다.
+- **문서 목록**: 검색(제목, 설명, 태그, 경로), 표(제목+설명, 분류, 종류, 연결 수, 수정일), 열마다 정렬과 필터(분류 체크, 종류 체크, 연결 상태 전체/연결됨/고립, 기간 전체/7일/30일), 페이지네이션(페이지 이동, 10, 20, 50, 100개씩, 정렬 선택). 필터는 메일과 같은 팝오버 패턴 (`ui/WikiTable.jsx`).
+- **관계 지도**: OpenWiki가 검증하는 Markdown 링크와 앞머리(type, description, tags)로 그래프를 만든다. 원 크기는 연결 수, 색은 분류(최상위 폴더), 선 굵기는 관계 강도. 강도는 서로 참조(+1), 태그 공유(최대 +1), 같은 분류(+0.5), 이웃 문서 공유 비율(최대 +1)로 1~4점. 검색 강조, 분류별 숨김, 고립 문서 표시 전환, 확대, 축소, 전체 보기, 끌어서 이동, 문서 카드, 옆 칸에 "연결이 많은 문서"와 "고립 문서" (`ui/WikiMap.jsx`, `ui/wiki-graph.mjs`). 배치는 분류별 고리에서 시작하는 결정적 힘 기반 배치로, 큰 위키도 화면을 막지 않게 프레임마다 조금씩 진행한다.
 - **문서**: 앞머리를 본문에서 분리해 종류 칩, 분류, 수정 시각, 글자 수, 연결 수, 경로로 보여 주고(이전에는 YAML이 본문 첫 문단으로 그대로 보였다), 설명은 인용 상자로, 태그는 칩으로. 수정은 그대로(textarea, 저장, 취소, 링크 추가). "다시 작성 요청"은 OpenWiki 에이전트에게 보낼 요청문을 작성기 초안에 넣고 대화로 돌아간다(문서 자체는 바꾸지 않음). "원본 열기"는 프로젝트 위키 파일을 편집기로 연다. 연결된 문서는 방향(서로, 이 문서가, 이 문서를)과 이유(태그 공유, 같은 분류, 이웃 공유), 강도 막대와 함께 보여 준다.
 - **자료**: `electron-app/wiki-library.cjs`의 목록이 각 문서의 앞머리(type, description, tags), 글자 수, 수정 시각을 함께 준다. 앞머리 파서는 `electron-app/wiki-frontmatter.cjs` 하나를 실행기와 화면이 같이 쓴다. 관계 데이터는 저장하지 않고 화면에서 계산한다.
 - **배경**: 목록, 지도, 문서를 카드 면 위에 두고 지도 바탕에는 점 격자를 깔았다.
@@ -34,7 +34,7 @@ Logseq는 `pages/`, `journals/` 구조와 `[[페이지]]` 참조만 이해하고
 
 - 단위: `tests/wiki-frontmatter.test.mjs`, `tests/wiki-graph.test.mjs` 신설, `tests/wiki-library.test.mjs`와 `tests/claude-code.test.mjs` 확장. 전체 스위트 결과는 아래 "결과"에.
 - 화면 검사 이름 변경: `scripts/check-electron-wiki-library.mjs`, `scripts/check-community-wiki-ui.mjs`(관계 지도 탭, 자료 탭, 검색 필드), `scripts/check-electron-shell.mjs`와 `scripts/check-wiki-inventory.mjs`, `scripts/check-all-surfaces.mjs`, `scripts/build-surface-gallery.mjs`, `tests/surface-audit-fixture.jsx`, `scripts/check-modals.mjs`의 "프로젝트 자료" → "위키 설정".
-- `scripts/check-modals.mjs`의 메일 흐름("사내 메일" 행 → "메일 연결" → 아이디)은 이미 1.1.7 메일 UI와 맞지 않는 묵은 검사라 제목만 바꿨다(Codex 인계 항목).
+- 묵은 검사 갱신(10-14 새벽, 사용자 요청 "언급했으나 반영 안 한 것 진행"): `scripts/check-modals.mjs`는 위키 설정 버튼으로 패널을 열고, 메일 흐름은 메일 화면의 포털 로그인 링크 → 메일 설정 대화상자로, 위키 준비 모달은 현재 정책(준비 중에는 도구줄에서 열고, 확인 필요일 때만 스스로 열림)으로. `scripts/check-mail-ui.mjs`와 `tests/mail-fixture.jsx`는 POP3 폼 대신 포털 로그인과 파일 가져오기 카드(실패 코드 세 가지, 연결, 자동 정리 스위치, 폴더 가져오기, 로그아웃, 대기 중 취소)로 다시 썼다. `scripts/check-all-surfaces.mjs`는 위키 설정과 메일 설정 링크, 스킬 관리 메뉴(삭제가 행 메뉴 안으로 이동)로, `scripts/check-wiki-inventory.mjs`와 `scripts/check-electron-skills.mjs`(수정과 삭제가 행 메뉴 안으로), `scripts/check-electron-agent.mjs`(제안 카드 선택자 `nubi-proposal-card`, 질문은 대화 안 인라인 답변)도 같은 이유로 고쳤다. 여섯 검사 모두 다시 통과. README의 위키 화면과 메일 연결 설명, `docs/VISUAL-IDENTITY.md`와 `docs/TASK-FIRST-WORKSPACE.md`의 패널 이름도 갱신.
 
 ## 결과 (2026-10-14 02:10, macOS 개발 PC)
 
@@ -44,7 +44,7 @@ Logseq는 `pages/`, `journals/` 구조와 `[[페이지]]` 참조만 이해하고
 | `npm run design:check` | 통과 (원색과 px 글꼴을 토큰으로 바꾼 뒤) |
 | `scripts/check-shared-ui.mjs`, `check-form-clarity.mjs`, `check-activity-readability.mjs` | 통과 |
 | `scripts/check-community-wiki-ui.mjs` (웹 fixture, 1100/440/360px) | 통과: 직접 열기, 마지막 문서 복원, 관련 문서 이동, Enter 검색, 초안 유지, 관계 지도 탭과 옆 목록 선택 |
-| `scripts/check-electron-wiki-library.mjs` (실제 Electron) | 통과: 수정·저장·읽기, 관계 지도, 문서 목록 표, EML 가져오기와 중복 제외 |
+| `scripts/check-electron-wiki-library.mjs` (실제 Electron) | 통과: 수정, 저장, 읽기, 관계 지도, 문서 목록 표, EML 가져오기와 중복 제외 |
 | `scripts/check-electron-shell.mjs` (실제 Electron, `test:ui`) | 통과 (위키 설정 이름 반영) |
 | 화면 캡처 | 스크래치 `shots-after/`: 시작 모달, 위키 설정, 사용량, 문서 목록, 정렬, 필터, 수정, 관계 지도, 지도 선택, 메일 화면, 메일 설정 |
 
