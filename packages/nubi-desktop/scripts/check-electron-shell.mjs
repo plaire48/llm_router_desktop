@@ -62,10 +62,16 @@ try{page=await app.firstWindow();await page.bringToFront();page.setDefaultTimeou
  assert.equal(await terminalRegion.locator('.desktop-terminal-input').count(),0,'commands are entered in the actual PTY');
  assert.equal(await terminalRegion.evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(23, 23, 28)');
  await page.evaluate(()=>{window.terminalCopies=[];Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>window.terminalCopies.push(text)}});});
- await terminalRegion.hover();await terminalRegion.getByRole('button',{name:'터미널 내용 복사',exact:true}).click();
+ await terminalRegion.hover();
+ // Measure the transient toast in one renderer call; it can disappear between
+ // waitFor() and a later evaluate() on a busy Windows runner.
+ const [toastPosition]=await Promise.all([
+  page.waitForFunction(()=>{const toast=document.querySelector('.cx-toast');if(!toast?.textContent.includes('터미널 내용을 복사했습니다.'))return null;const rect=toast.getBoundingClientRect();return rect.height?{top:rect.top,titlebarBottom:document.querySelector('.desktop-titlebar').getBoundingClientRect().bottom}:null;},null,{polling:50}),
+  terminalRegion.getByRole('button',{name:'터미널 내용 복사',exact:true}).click()
+ ]);
  assert.match((await page.evaluate(()=>window.terminalCopies))[0],/nubi-terminal-ok/);
- const copyToast=page.locator('.cx-toast');await copyToast.waitFor();
- assert(await copyToast.evaluate(el=>el.getBoundingClientRect().top>=document.querySelector('.desktop-titlebar').getBoundingClientRect().bottom),'copy notification stays below the titlebar and cannot intercept its controls');
+ const toastBounds=await toastPosition.jsonValue();await toastPosition.dispose();
+ assert(toastBounds.top>=toastBounds.titlebarBottom,'copy notification stays below the titlebar and cannot intercept its controls');
  checks.push('interactive PTY keeps variables between commands, has inline input and copies visible output');await shellInput.focus();await capture('terminal');await terminalRegion.screenshot({path:path.join(captures,'terminal-detail.png')});
 
  const toolbar=page.getByRole('banner',{name:'Workspace 상단 메뉴'});
