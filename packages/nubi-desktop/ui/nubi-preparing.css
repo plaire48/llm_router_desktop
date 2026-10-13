@@ -29,3 +29,7 @@
 }
 @keyframes nubi-preparing-turn { to { transform:rotate(360deg); } }
 @media(prefers-reduced-motion:reduce) { .nubi-preparing-orbit { animation:none; } }
+
+/* The startup screen covers the whole workbench right of the rail, not only the centred reading column (user report 2026-10-14). */
+.nubi-workbench .nubi-main:has(> .nubi-preparing) { position:static; max-width:none; }
+.nubi-workbench .nubi-preparing { left:var(--nubi-rail-width,0px); }

@@ -12,7 +12,7 @@ MYSINGLE is parsed as MIME with X-DESTTOP-MSG-UNIQUEID and X-MsgFlags preserved.
 
 Original bytes, attachment metadata and queue receipts are durable before a file is counted as imported. SHA-256 plus folder category prevents duplicate import in the same category, even when copied/renamed. Different categories retain separate source contexts. Re-import resumes missing files without rewriting stored sources. App restart preserves completed intake and a marker for interrupted intake. Stop cancels collection; previously collected files remain. Automatic organization is controlled separately.
 
-At most 1,000 supported files, 500 MiB per selection, 10 MiB per file, 10,000 scanned entries and 20 nested levels. Unsupported extensions are ignored; directory links are not followed. Only native folder-picker paths enter the private import action. Parsing runs in the existing resource-limited MIME worker. Original file changes are checked and rejected. Remote/public upload is a separate Wiki sharing action with the existing approval.
+At most 20,000 supported files, 4 GiB per selection, 50 MiB per file, 200,000 scanned entries and 20 nested levels (raised 2026-10-14: folder imports are usually bulk exports; files are still read one at a time). Unsupported extensions are ignored; directory links are not followed. Only native folder-picker paths enter the private import action. Parsing runs in the existing resource-limited MIME worker. Original file changes are checked and rejected. Remote/public upload is a separate Wiki sharing action with the existing approval.
 
 ## Verification
 

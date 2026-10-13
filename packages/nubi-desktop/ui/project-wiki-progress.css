@@ -21,3 +21,6 @@
 .nubi-wiki-progress-dialog .nubi-wiki-project-identity {margin-bottom:var(--cx-space-4);}
 .nubi-project-wiki-state {display:inline-flex;align-items:center;gap:6px;flex:none;margin-left:auto;white-space:nowrap;font-size:var(--cx-type-caption);color:var(--deck-blue);font-weight:500;}
 .nubi-project-wiki-state .status-spinner {width:12px;height:12px;flex:none;}
+/* While the wiki is being written the overlay spans from the sidebar (or the rail when the sidebar is closed) to the window edge, so no workbench margin shows beside it (user report 2026-10-14). */
+.nubi-workbench .nubi-main[data-wiki-chat-blocked] {position:static;max-width:none;}
+.nubi-workbench .nubi-project-wiki-progress {left:var(--nubi-rail-width,0px);}

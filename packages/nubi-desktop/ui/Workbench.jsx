@@ -439,7 +439,7 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
     const text=request,references=[...mailReferences],scope=draftScope.current,projectId=project?.projectId,id=crypto.randomUUID();
     const item={id,projectId,taskId:taskId??null,text,references,phase:'sending',at:new Date().toISOString(),inputId:id,messageCount:task?.messages?.length||0};
     submitLock.current=true;setSubmitting(true);setOutgoing(items=>[...items,item]);setRequest('');setMailReferences([]);
-    conversationScroll.followNewTurn();requestAnimationFrame(()=>composer.current?.focus());
+    conversationScroll.followLatest();requestAnimationFrame(()=>composer.current?.focus());
     const currentProject=()=>mounted.current&&projectRefForSubmit.current===projectId;
     let accepted=false,createdTaskId=null;
     const refreshTask=async selectedId=>{const selectedScope=JSON.stringify([projectId,selectedId]);const value=await api('state',{taskId:selectedId});if(currentProject()&&draftScope.current===selectedScope)setProject(current=>({...current,...value}));};
@@ -470,7 +470,7 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
 
   async function inputAction(action,args={}){
     if(inputLock.current||wikiChatBlocked&&['enqueue','steer','start'].includes(action))return;inputLock.current=true;setInputBusy(true);setError('');
-    try{const result=await api('agentInput',{taskId,action,runId:task.checkpoint?.runId,...args});await refresh();if(['enqueue','steer','start'].includes(action))conversationScroll.followNewTurn();return result;}
+    try{const result=await api('agentInput',{taskId,action,runId:task.checkpoint?.runId,...args});await refresh();if(['enqueue','steer','start'].includes(action))conversationScroll.followLatest();return result;}
     catch(e){setError(failure(e));}
     finally{inputLock.current=false;if(mounted.current)setInputBusy(false);}
   }
@@ -481,7 +481,7 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
     const id=inputAttempt.current.id;
     inputLock.current=true;setInputBusy(true);setError('');
     setOutgoing(items=>[...items.filter(item=>item.id!==id),{id,inputId:id,projectId,taskId,text,references,queued:true,phase:'sending',at:new Date().toISOString(),messageCount:task.messages?.length||0}]);
-    setRequest('');setMailReferences([]);conversationScroll.followNewTurn();requestAnimationFrame(()=>composer.current?.focus());
+    setRequest('');setMailReferences([]);conversationScroll.followLatest();requestAnimationFrame(()=>composer.current?.focus());
     let accepted=false;
     try{
       const updated=await submitTaskMessage(api,{taskId,text,mailReferences:references,inputId:id,onState:value=>{if(mounted.current&&draftScope.current===scope)setProject(current=>({...current,...value}));}});
@@ -517,7 +517,7 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
   async function regenerateResponse(message){
     if(wikiChatBlocked)return;
     if(!provider?.connected){openModels();return;}
-    await perform(async()=>{await launchTask(taskId,()=>api('regenerateAnswer',{taskId,messageId:message.id}));await refresh();conversationScroll.followNewTurn();});
+    await perform(async()=>{await launchTask(taskId,()=>api('regenerateAnswer',{taskId,messageId:message.id}));await refresh();conversationScroll.followLatest();});
   }
   async function login(selected){if(selected==='claude'){
     if(actionLock.current)return;
@@ -688,7 +688,7 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
     {panel==='claude'&&<ClaudeConnection initialIssue={claudeIssue} api={api} onConnected={async()=>{await refreshProvider();returnToPanel();quotaProbe.current=Date.now();void refreshClaudeQuota().catch(()=>{});}} onClose={returnToPanel} openWebPage={openWebPage}/>}
     {panel==='models'&&<ModelSelection title={panelTitle('list','모델 선택')} data={modelData} autoRefresh={false} selectWhileLoading showProviderNames providerLabels={providerLabels} disabled={submitting||!!activeTask||project?.backgroundActive||busy} loading={catalogLoading===provider?.provider} onError={showError} onProviderSelect={selected=>modelAction('select',{provider:selected})} onSelect={model=>modelAction('model',{model})} onRefresh={refreshCatalog} onLogin={login} onLogout={selected=>modelAction('disconnect',{provider:selected})} onCancelLogin={()=>modelAction('cancel')} onClose={closeModels}/>}
     {panel==='fabrix'&&<FabrixConnection title={panelTitle('logIn','FabriX 연결')} rpc={fabrixRpc} showActionLabels onError={showError} onNotice={notifyWorkspaceToast} requestPermission={()=>Promise.resolve(true)} onClose={returnToPanel} onConnected={async()=>{await refreshProvider();returnToPanel();}}/>}
-    {panel==='mail'&&<DetailPanel className="deck-dialog nubi-panel" title={panelTitle('mail','메일 설정')} variant="modal" busy={mailConnecting} onClose={()=>panelOrigin.current?returnToPanel():closePanel(mailButton)}>{panelBack}<MailLibrary api={api} onConnectionBusy={setMailConnecting} provider={provider} onProviderLogin={login} onProviderAction={modelAction} providerBusy={busy||!!activeTask||project?.backgroundActive} openWebPage={openWebPage?async url=>{await openWebPage(url);setPanel(null);}:undefined}/></DetailPanel>}
+    {panel==='mail'&&<DetailPanel className="deck-dialog nubi-panel" title={panelTitle('mail','메일 설정')} variant="modal" onClose={()=>panelOrigin.current?returnToPanel():closePanel(mailButton)}>{panelBack}<MailLibrary api={api} onConnectionBusy={setMailConnecting} provider={provider} onProviderLogin={login} onProviderAction={modelAction} providerBusy={busy||!!activeTask||project?.backgroundActive} openWebPage={openWebPage?async url=>{await openWebPage(url);setPanel(null);}:undefined}/></DetailPanel>}
     {panel==='memories'&&<DetailPanel variant="modal" className="deck-dialog nubi-panel" title={panelTitle('lightbulb','기억')} onClose={()=>setPanel('settings')}><MemoryPanel api={api}/></DetailPanel>}
     {panel==='analysis-history'&&task&&<DetailPanel variant="modal" className="deck-dialog nubi-panel" title={panelTitle('clock','작업 기록')} onClose={()=>setPanel(null)}><AnalysisHistory api={api} task={task} showHistory/></DetailPanel>}
     <WorkspaceUpdateProgress update={workspaceUpdate}/>

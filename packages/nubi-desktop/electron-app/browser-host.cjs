@@ -65,12 +65,14 @@ class BrowserHost {
  }
  // A tab may carry its own persistent session (the mail portal login keeps its cookies for silent restore) and
  // report when the person closes it, so the login waiting on it can stop (2026-10-14).
- create(url='about:blank',{authentication=false,companyLogin=false,popupOptions=null,load=true,loadOptions={},session=null,onClosed=null}={}) {
+ create(url='about:blank',{authentication=false,companyLogin=false,popupOptions=null,load=true,loadOptions={},session=null,onClosed=null,ownerId=null,httpsOnly=false}={}) {
   if(this.tabs.size>=12)throw Error('browser_tab_limit');
-  const target=address(url),view=new WebContentsView({...(popupOptions?.webContents?{webContents:popupOptions.webContents}:{}),webPreferences:{...popupOptions?.webPreferences,session:session||this.session,sandbox:true,contextIsolation:true,nodeIntegration:false,webSecurity:true,allowRunningInsecureContent:false}});
+  const target=address(url);if(httpsOnly&&target!=='about:blank'&&new URL(target).protocol!=='https:')throw Error('browser_url_invalid');
+  const view=new WebContentsView({...(popupOptions?.webContents?{webContents:popupOptions.webContents}:{}),webPreferences:{...popupOptions?.webPreferences,session:session||this.session,sandbox:true,contextIsolation:true,nodeIntegration:false,webSecurity:true,allowRunningInsecureContent:false}});
   const row={id:randomUUID(),view,title:'웹 페이지',url:displayAddress(target),authentication:authentication===true,companyLogin:companyLogin===true,popup:!!popupOptions,session,onClosed:typeof onClosed==='function'?onClosed:null,contentReady:false,loading:false,error:null};this.tabs.set(row.id,row);this.window.contentView.addChildView(view);view.setVisible(false);view.setBackgroundColor('#FFFFFF');this.active=row.id;
+  row.ownerId=ownerId||row.id;row.httpsOnly=httpsOnly;
   const wc=view.webContents;
-  const permitted=url=>{try{const parsed=new URL(url);return url==='about:blank'||(['http:','https:'].includes(parsed.protocol)&&!parsed.username&&!parsed.password);}catch{return false;}};
+  const permitted=url=>{try{const parsed=new URL(url);return url==='about:blank'||((httpsOnly?parsed.protocol==='https:':['http:','https:'].includes(parsed.protocol))&&!parsed.username&&!parsed.password);}catch{return false;}};
   wc.on('will-navigate',(event,url)=>{if(row.authentication&&url==='nubi-workspace://auth-return'){event.preventDefault();this.closeTab(row.id,{returnToApp:true});return;}if(!permitted(url))event.preventDefault();});
   wc.on('will-redirect',(event,url)=>{if(!permitted(url))event.preventDefault();});
   wc.setWindowOpenHandler(details=>{
@@ -78,7 +80,7 @@ class BrowserHost {
    // Electron owns popup navigation, opener linkage and form POST delivery.
    // Reopening the URL as GET breaks pages which populate a blank child window.
    return {action:'allow',createWindow:options=>{
-    const child=this.create(details.url,{authentication:row.authentication,companyLogin:row.companyLogin,session:row.session,popupOptions:options,load:details.disposition==='background-tab',loadOptions:{httpReferrer:details.referrer,...(details.postBody?{postData:details.postBody.data,extraHeaders:'Content-Type: '+details.postBody.contentType+(details.postBody.boundary?'; boundary='+details.postBody.boundary:'')}: {})}});
+    const child=this.create(details.url,{authentication:row.authentication,companyLogin:row.companyLogin,session:row.session,ownerId:row.ownerId,httpsOnly,popupOptions:options,load:details.disposition==='background-tab',loadOptions:{httpReferrer:details.referrer,...(details.postBody?{postData:details.postBody.data,extraHeaders:'Content-Type: '+details.postBody.contentType+(details.postBody.boundary?'; boundary='+details.postBody.boundary:'')}: {})}});
     this.publish('opened');return child.view.webContents;
    }};
   });
@@ -127,7 +129,7 @@ class BrowserHost {
   else if(action==='menu')return this.menu({x,y,kind});
   else {
    const row=this.tab(id),wc=row.view.webContents;
-   if(action==='navigate'){row.error=null;const target=address(url);row.url=displayAddress(target);void wc.loadURL(target).catch(error=>{if(error?.code==='ERR_ABORTED'||error?.errno===-3)return;row.loading=false;row.error ||=loadFailure(error?.errno);this.layout();this.changed();});}
+   if(action==='navigate'){const target=address(url);if(row.httpsOnly&&target!=='about:blank'&&new URL(target).protocol!=='https:')throw Error('browser_url_invalid');row.error=null;row.url=displayAddress(target);void wc.loadURL(target).catch(error=>{if(error?.code==='ERR_ABORTED'||error?.errno===-3)return;row.loading=false;row.error ||=loadFailure(error?.errno);this.layout();this.changed();});}
    else if(action==='back'){if(wc.navigationHistory.canGoBack())wc.navigationHistory.goBack();}
    else if(action==='forward'){if(wc.navigationHistory.canGoForward())wc.navigationHistory.goForward();}
    else if(action==='reload')wc.reload();

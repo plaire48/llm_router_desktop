@@ -16,10 +16,12 @@ let browser;try{
  await page.goto('http://127.0.0.1:'+server.address().port);await page.locator('.message-user').first().waitFor();
  await page.evaluate(()=>window.scrollFixture.send());await page.locator('[data-message-key="new"]').waitFor();
  const offset=()=>page.locator('[data-message-key="new"]').evaluate(node=>node.getBoundingClientRect().top-document.querySelector('.viewport').getBoundingClientRect().top);
- await page.waitForFunction(()=>Math.abs(document.querySelector('[data-message-key="new"]').getBoundingClientRect().top-document.querySelector('.viewport').getBoundingClientRect().top-24)<2);
- const before=await offset();for(let i=0;i<4;i++){await page.evaluate(()=>window.scrollFixture.grow());await page.waitForFunction(count=>document.querySelectorAll('.viewport p').length===count,(i+1)*10);await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));assert(Math.abs(await offset()-before)<2);}
- await page.evaluate(()=>window.scrollFixture.receipt());await page.getByText('이어서 요청 접수됨',{exact:true}).waitFor();assert(Math.abs(await offset()-before)<2);
- await page.locator('.viewport').hover();await page.mouse.wheel(0,-300);await page.waitForFunction(()=>document.querySelector('.viewport').scrollTop<1100);const reading=await page.locator('.viewport').evaluate(el=>el.scrollTop);
+ // The sent turn stays in view at the bottom and the viewport keeps following as progress grows (2026-10-14).
+ const atBottom=()=>page.locator('.viewport').evaluate(el=>el.scrollHeight-el.clientHeight-el.scrollTop<2);
+ await page.waitForFunction(()=>{const el=document.querySelector('.viewport');return el.scrollHeight-el.clientHeight-el.scrollTop<2;});assert((await offset())>0&&(await offset())<500);
+ for(let i=0;i<4;i++){await page.evaluate(()=>window.scrollFixture.grow());await page.waitForFunction(count=>document.querySelectorAll('.viewport p').length===count,(i+1)*10);await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));assert(await atBottom());}
+ await page.evaluate(()=>window.scrollFixture.receipt());await page.getByText('이어서 요청 접수됨',{exact:true}).waitFor();assert(await atBottom());
+ const bottom=await page.locator('.viewport').evaluate(el=>el.scrollTop);await page.locator('.viewport').hover();await page.mouse.wheel(0,-300);await page.waitForFunction(limit=>document.querySelector('.viewport').scrollTop<limit,bottom-100);const reading=await page.locator('.viewport').evaluate(el=>el.scrollTop);
  await page.evaluate(()=>window.scrollFixture.grow());await page.waitForFunction(()=>document.querySelectorAll('.viewport p').length===50);await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));assert(Math.abs(await page.locator('.viewport').evaluate(el=>el.scrollTop)-reading)<2);
- await page.getByRole('button',{name:'최신으로'}).click();assert(await page.locator('.viewport').evaluate(el=>el.scrollHeight-el.clientHeight-el.scrollTop<2));assert.deepEqual(errors,[]);console.log('PASS new turn stays anchored through streaming and admission; manual reading stays put; explicit latest resumes.');
+ await page.getByRole('button',{name:'최신으로'}).click();assert(await page.locator('.viewport').evaluate(el=>el.scrollHeight-el.clientHeight-el.scrollTop<2));assert.deepEqual(errors,[]);console.log('PASS new turn follows the bottom through streaming and admission; manual reading stays put; explicit latest resumes.');
 }finally{await browser?.close();server.close();}

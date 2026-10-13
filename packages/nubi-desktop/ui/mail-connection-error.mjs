@@ -3,6 +3,7 @@ const listing='로그인은 완료됐어요. 메일 목록을 읽는 단계에�
 export const mailConnectionErrors={
   mail_portal_only:{title:'포털 로그인으로 연결해 주세요',detail:'메일 연결은 사내 포털을 사용합니다. 아이디와 비밀번호를 누비 설정에 입력하지 않아도 됩니다.'},
   mail_portal_login:{title:'포털에 로그인해 주세요',detail:'로그인되어 있지 않거나 세션이 만료됐어요. 포털 로그인 버튼으로 다시 연결해 주세요.'},
+  mail_portal_sso:{title:'포털 로그인 페이지에서 오류가 발생했어요',detail:'메일 연결을 완료하지 못했어요. 포털 로그인을 다시 열어 주세요. 계속되면 일반 브라우저에서도 kor3.samsung.net이 열리는지 확인해 주세요.'},
   mail_portal_identity:{title:'포털 사용자 정보를 확인해 주세요',detail:'로그인은 열렸지만 메일과 결재를 조회할 사용자 정보를 확인하지 못했어요. 다시 로그인해 주세요.'},
   mail_portal_format:{title:'포털 응답을 확인하지 못했어요',detail:'목록이나 원문 형식이 예상과 달라요. 다시 불러와 주세요.'},
   mail_portal_request:{title:'사내 포털에 연결하지 못했어요',detail:'회사망이나 VPN 연결을 확인한 뒤 다시 시도해 주세요.'},
@@ -31,6 +32,8 @@ export const mailConnectionErrors={
   mail_uidl_number_conflict:{title:'메일 목록의 번호가 중복됐어요',detail:listing},
   mail_retrieval_failed:{title:'서버가 메일 본문 요청을 거절했어요',detail:'로그인과 목록 조회는 완료됐어요. 본문을 받는 단계에서 멈췄어요.'},
 };
-export function mailConnectionDiagnostic(code){
-  return Object.hasOwn(mailConnectionErrors,code)?`누비 Workspace Beta\nPOP3 / pop3.samsung.net:995 / SSL/TLS\n${code}`:null;
+export function mailConnectionDiagnostic(code,protocol){
+  if(!Object.hasOwn(mailConnectionErrors,code))return null;
+  const connection=protocol==='portal'||code.startsWith('mail_portal_')?'메일 포털 / kor3.samsung.net / HTTPS':'POP3 / pop3.samsung.net:995 / SSL/TLS';
+  return `누비 Workspace Beta\n${connection}\n${code}`;
 }

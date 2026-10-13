@@ -1657,3 +1657,12 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-show-more.cx-kit-button { justify-self:start; display:inline-flex; align-items:center; gap:var(--cx-space-2); min-height:36px; margin-top:var(--cx-space-2); padding:var(--cx-space-1) var(--cx-space-3); border:0; border-radius:999px; box-shadow:none; background:var(--deck-tint); color:var(--deck-blue-deep); font:var(--deck-font-caption); font-weight:600; }
 .nubi-show-more.cx-kit-button:hover { background:var(--deck-blue-soft); }
 .nubi-show-more.cx-kit-button small { color:var(--deck-sub); font-weight:500; font-variant-numeric:tabular-nums; }
+
+/* A running record breathes: the summary icon spins and the title pulses while the model works, whether a tool is
+   running or it is thinking (user report 2026-10-14: the wait must read as activity). */
+.nubi-agent-activity[aria-busy=true] .agent-trace > summary > svg:first-child { color:var(--deck-blue-deep); animation:nubi-live-spin 1.4s linear infinite; }
+.nubi-agent-activity[aria-busy=true] .agent-trace > summary > .agent-trace-title { animation:nubi-live-breathe 1.8s ease-in-out infinite; }
+.nubi-agent-activity .agent-next-step .status-spinner,.nubi-launch-progress .status-spinner { color:var(--deck-blue-deep); }
+@keyframes nubi-live-breathe { 0%,100% { opacity:1; } 50% { opacity:.55; } }
+@keyframes nubi-live-spin { to { transform:rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .nubi-agent-activity[aria-busy=true] .agent-trace > summary > svg:first-child,.nubi-agent-activity[aria-busy=true] .agent-trace > summary > .agent-trace-title { animation:none; } }

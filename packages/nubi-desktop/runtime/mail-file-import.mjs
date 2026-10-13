@@ -3,7 +3,8 @@ import {opendir,lstat,realpath,open} from 'node:fs/promises';
 import {constants} from 'node:fs';
 import path from 'node:path';
 export const MAIL_FILE_EXTENSIONS=new Set(['.eml','.mysingle','.mhtml','.mht']);
-const MAX_FILE=10*1024*1024,MAX_TOTAL=500*1024*1024;
+// Folder imports are usually bulk exports; the caps keep one import bounded, not small (user decision 2026-10-14: 50 MB per file, 20,000 files or 4 GB per folder). Files are read one at a time.
+const MAX_FILE=50*1024*1024,MAX_TOTAL=4*1024*1024*1024,MAX_FILES=20000,MAX_VISITED=200000;
 const check=signal=>{if(signal?.aborted)throw Error('mail_cancelled');};
 // Only the native folder picker supplies this root. Never follow links out of it.
 export async function scanMailFolder(directory,{signal,onScan=()=>{}}={}){
@@ -15,14 +16,14 @@ export async function scanMailFolder(directory,{signal,onScan=()=>{}}={}){
   check(signal);if(depth>20)throw Error('mail_import_limit');
   const entries=await opendir(folder);
   for await(const entry of entries){
-   check(signal);if(++visited>10000)throw Error('mail_import_limit');
+   check(signal);if(++visited>MAX_VISITED)throw Error('mail_import_limit');
    const file=path.join(folder,entry.name),relative=path.relative(root,file);
    if(entry.isSymbolicLink()){failures.push({file:relative,error:'mail_import_link'});continue;}
    if(entry.isDirectory()){await walk(file,depth+1);continue;}
    if(!entry.isFile()||!MAIL_FILE_EXTENSIONS.has(path.extname(entry.name).toLowerCase()))continue;
    const stat=await lstat(file);
    if(stat.size>MAX_FILE){failures.push({file:relative,error:'mail_size_limit'});continue;}
-   total+=stat.size;if(files.length>=1000||total>MAX_TOTAL)throw Error('mail_import_limit');
+   total+=stat.size;if(files.length>=MAX_FILES||total>MAX_TOTAL)throw Error('mail_import_limit');
    files.push({file,relative,size:stat.size,kind:mailFileKind(file)});onScan(files.length);
   }
  }

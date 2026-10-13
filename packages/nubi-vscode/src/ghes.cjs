@@ -57,12 +57,14 @@ class GhesAccount {
   }
   view(){return {host:ORIGIN,state:this.state,connected:this.state==='connected',profile:this.profile||null,device:this.device||null,error:this.failure||null,diagnostic:this.failureDiagnostic||null};}
   write(fn){const next=this.writes.then(fn,fn);this.writes=next.catch(()=>{});return next;}
-  async request(route,{token,signal,body,limit=1024*1024,accept='application/vnd.github+json',allowRedirect=false}={}){
+  // `method` lets catalog writes use PATCH (git ref update); without it the verb still follows the body (2026-10-14).
+  async request(route,{token,signal,body,limit=1024*1024,accept='application/vnd.github+json',allowRedirect=false,method=null}={}){
+    if(method!==null&&!['GET','POST','PATCH','PUT','DELETE'].includes(method))error('method_invalid');
     let url=safeUrl(ORIGIN+route);if(!url||!route.startsWith('/')||route.startsWith('//'))error('ghes_url_invalid');
     if(token&&token===this.record?.token)signal=AbortSignal.any([...(signal?[signal]:[]),this.accessController.signal]);
     active(signal);let response;
     for(let redirects=0;;redirects++){
-      try{response=await this.fetcher(url.href,{method:body?'POST':'GET',redirect:allowRedirect?'manual':'error',cache:'no-store',credentials:'omit',signal:AbortSignal.any([...(signal?[signal]:[]),AbortSignal.timeout(30000)]),headers:{Accept:accept,'X-GitHub-Api-Version':'2022-11-28',...(token?{Authorization:'Bearer '+token}:{}),...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});}
+      try{response=await this.fetcher(url.href,{method:method||(body?'POST':'GET'),redirect:allowRedirect?'manual':'error',cache:'no-store',credentials:'omit',signal:AbortSignal.any([...(signal?[signal]:[]),AbortSignal.timeout(30000)]),headers:{Accept:accept,'X-GitHub-Api-Version':'2022-11-28',...(token?{Authorization:'Bearer '+token}:{}),...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});}
       catch{active(signal);error('ghes_network');}
       if(![301,302,303,307,308].includes(response.status))break;
       const location=response.headers.get('location');let next;

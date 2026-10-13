@@ -145,7 +145,7 @@ app.whenReady().then(async()=>{
   catch{}finally{unresponsive=null;}
  });
  window.on('responsive',()=>unresponsive?.abort());
- mailPortal=new MailPortal({BrowserWindow,invoke,parent:window,openPage:(url,options)=>openWorkspacePage(url,{...options,session:session.fromPartition('persist:nubi-mail-portal')}),closePage:tabId=>{if(browserHost?.tabs.has(tabId))browserHost.closeTab(tabId,{returnToApp:true});}});
+ mailPortal=new MailPortal({BrowserWindow,invoke,parent:window,openPage:(url,options)=>openWorkspacePage(url,{...options,authentication:true,httpsOnly:true,session:session.fromPartition('persist:nubi-mail-portal')}),getPageContents:tabId=>[...(browserHost?.tabs.values()||[])].filter(row=>row.ownerId===tabId).map(row=>row.view.webContents),closePage:tabId=>{for(const row of [...(browserHost?.tabs.values()||[])].reverse())if(row.ownerId===tabId)browserHost.closeTab(row.id,{returnToApp:true});}});
  browserHost=new BrowserHost(window,{onFault:recordFault,loginCode:()=>{const device=host.account.device;return device&&device.expiresAt>Date.now()?device.code:null;}});
  window.webContents.setWindowOpenHandler(({url})=>{
   openPageLink(url);

@@ -45,7 +45,7 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
   const [settingsRevealed,setSettingsRevealed]=useState(false);
   const [cancelling,setCancelling]=useState(false);
   const modelSummary=useRef(null);
-  const alive=useRef(true),pending=useRef(null),lock=useRef(false),cancelledConnect=useRef(false);
+  const alive=useRef(true),pending=useRef(null),lock=useRef(false),cancelledConnect=useRef(false),importing=useRef(false);
   useEffect(()=>{
     alive.current=true;let reading=false;
     const refresh=async()=>{if(reading)return;reading=true;try{const value=await api('mail',{action:'status'});if(alive.current){setStatus(value);setChosen(current=>current||modelKey(value.destination||value.activeModel));}}catch{if(alive.current)notifyWorkspaceToast('메일 설정을 읽지 못했어요. 다시 열어 주세요.',{error:true});}finally{reading=false;}};
@@ -69,7 +69,9 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
   }
   async function connectPortal(){
     if(connectionBusy)return;setConnecting(true);onConnectionBusy?.(true);setConnectionError(null);cancelledConnect.current=false;
-    try{await act(async()=>{pending.current=crypto.randomUUID();try{return await api('mail',{action:'portalLogin',requestId:pending.current,destination:destination?{provider:destination.provider,model:destination.model}:null});}finally{pending.current=null;}});}finally{if(alive.current)setConnecting(false);}
+    try{pending.current=crypto.randomUUID();const value=await api('mail',{action:'portalLogin',requestId:pending.current,destination:destination?{provider:destination.provider,model:destination.model}:null});if(alive.current){setStatus(value);setConnectionError(null);}}
+    catch(error){if(alive.current&&!(error.message==='mail_cancelled'&&cancelledConnect.current)){if(error.message==='mail_cancelled')notifyWorkspaceToast('포털 로그인 요청이 중단됐어요. 다시 연결해 주세요.');else if(Object.hasOwn(mailConnectionErrors,error.message))setConnectionError(error.message);else notifyWorkspaceToast(errors[error.message]||('메일 설정을 완료하지 못했어요.'+(/^mail_[a-z_]+$/.test(error.message)?` (${error.message})`:'')),{error:true});}}
+    finally{pending.current=null;if(alive.current)setConnecting(false);}
   }
   async function cancelConnection(){
     if(cancelling)return;setCancelling(true);
@@ -100,7 +102,9 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
   const selectedConnected=selectedModel&&provider?.providers?.some(item=>item.id===selectedModel.provider&&item.connected);
   const modelSummaryLabel=selectedModel?selectedCatalogModel?.displayName||selectedModel.model:'모델 선택';
   const connectionCode=connectionBusy?null:connectionError||status?.error;
-  const fileImport=<MailFileImport card={!status?.connected} progress={status?.localImport} busy={busy||!status} onChoose={()=>act(async()=>{const value=await api('importMailFolder');return value.cancelled?status:value;})} onCancel={()=>act(()=>api('mail',{action:'cancelImport'}))}/>;
+  // The import runs in the worker with its own progress and stop; the dialog must not lock for its duration.
+  async function importFolder(){if(importing.current)return;importing.current=true;try{const value=await api('importMailFolder');if(alive.current&&!value.cancelled){setStatus(value);setConnectionError(null);}}catch(error){if(alive.current)notifyWorkspaceToast(errors[error.message]||('메일 파일을 가져오지 못했어요.'+(/^mail_[a-z_]+$/.test(error.message)?` (${error.message})`:'')),{error:true});}finally{importing.current=false;}}
+  const fileImport=<MailFileImport card={!status?.connected} progress={status?.localImport} busy={!status} onChoose={()=>void importFolder()} onCancel={()=>act(()=>api('mail',{action:'cancelImport'}))}/>;
   const failure=Object.hasOwn(mailConnectionErrors,connectionCode)?mailConnectionErrors[connectionCode]:null;
   return <div className="nubi-mail-library nubi-mail-settings" aria-busy={connectionPending}>
     <div className="nubi-mail-settings-content" inert={connectionPending||undefined}>

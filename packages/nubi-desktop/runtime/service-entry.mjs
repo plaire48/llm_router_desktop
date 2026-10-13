@@ -8,7 +8,7 @@ const {ProjectServices}=await import('./project-services.mjs');
 const {installAgent}=await import('./agent.mjs');
 installAgent(ProjectService);
 // Conversation memory runs in the product only; evaluations and tests measure runs without it.
-const service = new ProjectService({storageRoot:process.env.NUBI_STORAGE_ROOT});service.memoryExtraction=true;service.mailFacts=true;
+const service = new ProjectService({storageRoot:process.env.NUBI_STORAGE_ROOT});service.memoryExtraction=true;service.mailFacts=true;service.progressNarration=true;
 installWorkspaceBrowser(service);
 installConnectionVault(service);
 const projects=new ProjectServices({service,createService:()=>Object.assign(new ProjectService({storageRoot:process.env.NUBI_STORAGE_ROOT}),{memoryExtraction:true,mailFacts:true}),resolveRoot:resolveProjectFolder});

@@ -4,7 +4,8 @@
 // makes the server answer 500 so a check can watch the app fail and recover. No real provider, login or network.
 import {createServer} from 'node:http';
 const USAGE={prompt_tokens:120,completion_tokens:12,total_tokens:132};
-export async function startFixtureModel({respond,planSkill,token='fixture-token',model='fixture-model'}){
+// `delayMs` holds each main-model reply so a check can watch the running state (2026-10-14).
+export async function startFixtureModel({respond,planSkill,token='fixture-token',model='fixture-model',delayMs=0}){
   const requests=[],calls=[],reviewProblems=[],planned=[];let failing=false;
   const chunk=(delta,finish=null,withUsage)=>({id:'fixture',object:'chat.completion.chunk',model,choices:[{index:0,delta,finish_reason:finish}],...(withUsage?{usage:USAGE}:{})});
   const text=content=>[chunk({role:'assistant',content:''}),chunk({content}),chunk({},'stop',true)];
@@ -38,8 +39,8 @@ export async function startFixtureModel({respond,planSkill,token='fixture-token'
       if(failing){response.writeHead(500,{'Content-Type':'application/json'});response.end('{"error":{"message":"fixture model down"}}');return;}
       let body;try{body=JSON.parse(raw);}catch{response.writeHead(400).end();return;}
       response.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache'});
-      for(const frame of decide(body))response.write('data: '+JSON.stringify(frame)+'\n\n');
-      response.write('data: [DONE]\n\n');response.end();
+      const frames=decide(body);const write=()=>{for(const frame of frames)response.write('data: '+JSON.stringify(frame)+'\n\n');response.write('data: [DONE]\n\n');response.end();};
+      if(delayMs>0&&typeof body?.messages?.at(-1)?.content==='string'&&!/^(Nubi Desktop independent result review|Summarize conversation|You maintain a short memory|Extract facts)/.test(String(body.messages[0]?.content||'')))setTimeout(write,delayMs);else write();
     });
   });
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));

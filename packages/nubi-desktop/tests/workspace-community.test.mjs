@@ -7,3 +7,38 @@ test('unconfirmed writes survive service restart and only verify on retry',async
 test('app listing verifies blob integrity and validates web URLs',async t=>{const {service,account}=await fixture(t);const document={schemaVersion:1,items:[{id:randomUUID(),title:'팀 앱',description:'도움',url:'https://intranet.example/app',createdBy:'nubi',updatedAt:'2026-10-13'}]},bytes=Buffer.from(JSON.stringify(document)),sha=createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0')).update(bytes).digest('hex');account.request=async route=>route.endsWith('ai_workspace')?{default_branch:'main'}:route.includes('/commits/')?{sha:'a'.repeat(40)}:{sha,encoding:'base64',content:bytes.toString('base64')};assert.equal((await service.call({action:'apps'})).items[0].url,'https://intranet.example/app');await assert.rejects(service.call({action:'app',id:randomUUID()}),/community_missing/);assert.throws(()=>webUrl('javascript:alert(1)'),/input/);assert.throws(()=>webUrl('https://user:secret@example.test'),/input/);});
 
 test('confirmed mutations are not duplicated by a repeated nonce after restart',async t=>{const {service,account,calls}=await fixture(t);const args={action:'post',nonce:randomUUID(),title:'한 번만',body:'동일 요청',category:'general'};await service.call(args);const next=new WorkspaceCommunity({account,outboxFile:service.outboxFile});assert.equal((await next.call(args)).saved,true);assert.equal(calls.filter(c=>c.body.query.includes('NubiTalkCreate')).length,1);assert.deepEqual((await next.call({action:'setup'})).pending,[]);});
+
+test('app icons pass through, read back verified, and registration commits catalog and icon on the default branch',async t=>{
+ const {service,account}=await fixture(t);
+ const png=Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),Buffer.from([0,0,0,13]),Buffer.from('IHDR'),Buffer.from([0,0,0,64,0,0,0,64,8,6,0,0,0]),Buffer.from([1,2,3,4])]);
+ const hash=createHash('sha256').update(png).digest('hex'),iconPath=`data/workspace/icons/${hash}.json`;
+ const iconDocument={schemaVersion:1,hash,mime:'image/png',content:png.toString('base64')};
+ const catalog={schemaVersion:1,items:[{id:randomUUID(),title:'아이콘 앱',description:'첫 줄\n둘째 줄',url:'https://intranet.example/icon',icon:{hash,path:iconPath,mime:'image/png',size:png.length},createdBy:'nubi',updatedBy:'nubi',createdAt:'2026-10-13T00:00:00Z',updatedAt:'2026-10-13T00:00:00Z',maintainers:[],editors:[]}]};
+ const blob=value=>{const bytes=Buffer.from(JSON.stringify(value));return {sha:createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0')).update(bytes).digest('hex'),encoding:'base64',content:bytes.toString('base64')};};
+ const writes=[];let head='a'.repeat(40);
+ account.request=async(route,{body,method}={})=>{
+  if(route.endsWith('ai_workspace'))return {default_branch:'main'};
+  if(route.includes('/commits/main'))return {sha:head};
+  if(route.includes('/contents/data/workspace/catalog.json'))return blob(catalog);
+  if(route.includes('/contents/data/workspace/icons/'+hash))return blob(iconDocument);
+  if(route.includes('/contents/data/workspace/icons/'))throw Error('ghes_resource_missing');
+  if(route.endsWith('/git/commits/'+head))return {sha:head,tree:{sha:'b'.repeat(40)}};
+  if(route.endsWith('/git/blobs')){writes.push({kind:'blob',body});return {sha:createHash('sha1').update(body.content).digest('hex')};}
+  if(route.endsWith('/git/trees')){writes.push({kind:'tree',body});return {sha:'c'.repeat(40)};}
+  if(route.endsWith('/git/commits')){writes.push({kind:'commit',body});return {sha:'d'.repeat(40)};}
+  if(route.endsWith('/git/refs/heads/main')){writes.push({kind:'ref',body,method});return {object:{sha:body.sha}};}
+  throw Error('unexpected '+route);
+ };
+ const listed=(await service.call({action:'apps'})).items[0];assert.deepEqual(listed.icon,{hash,path:iconPath,mime:'image/png',size:png.length});assert.equal(listed.description,'첫 줄\n둘째 줄');
+ assert.equal((await service.call({action:'appIcon',id:listed.id})).dataUrl,'data:image/png;base64,'+png.toString('base64'));
+ const other=Buffer.concat([png.subarray(0,32),Buffer.from([9])]),otherHash=createHash('sha256').update(other).digest('hex');
+ const result=await service.call({action:'registerApp',title:'  새 앱 ',url:'https://intranet.example/new',description:'설명\n\n줄바꿈 유지',icon:other.toString('base64')});
+ assert.equal(result.saved,true);assert.equal(result.item.title,'새 앱');assert.equal(result.item.description,'설명\n\n줄바꿈 유지');assert.equal(result.item.icon.hash,otherHash);
+ const blobs=writes.filter(w=>w.kind==='blob');assert.equal(blobs.length,2);
+ const written=JSON.parse(blobs.find(w=>w.body.content.includes('"schemaVersion": 1')&&w.body.content.includes('"items"')).body.content);assert.equal(written.items.length,2);assert.equal(written.items[1].createdBy,'nubi');assert.deepEqual(written.items[1].icon,{hash:otherHash,path:`data/workspace/icons/${otherHash}.json`,mime:'image/png',size:other.length});
+ const iconWrite=JSON.parse(blobs.find(w=>w.body.content.includes('"content"')).body.content);assert.equal(iconWrite.hash,otherHash);
+ const tree=writes.find(w=>w.kind==='tree');assert.deepEqual(tree.body.tree.map(entry=>entry.path).sort(),['data/workspace/catalog.json',`data/workspace/icons/${otherHash}.json`]);
+ const ref=writes.find(w=>w.kind==='ref');assert.equal(ref.method,'PATCH');assert.equal(ref.body.force,false);assert.equal(ref.body.sha,'d'.repeat(40));
+ await assert.rejects(service.call({action:'registerApp',title:'x',url:'javascript:alert(1)',description:'y'}),/community_input/);
+ await assert.rejects(service.call({action:'registerApp',title:'x',url:'https://intranet.example/z',description:'y',icon:Buffer.from('not an image at all, really').toString('base64')}),/community_icon/);
+});

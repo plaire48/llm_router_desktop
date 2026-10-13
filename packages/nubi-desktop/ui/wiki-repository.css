@@ -71,3 +71,5 @@
 .nubi-wiki-audience-fields { display:grid; gap:var(--cx-space-3); min-width:0; }
 .nubi-wiki-audience-fields p { margin:0; font:var(--deck-font-caption); }
 .nubi-wiki-audience-names { display:block; color:var(--nubi-text-secondary); }
+
+.nubi-wiki-repo-heading { justify-content:flex-end; }

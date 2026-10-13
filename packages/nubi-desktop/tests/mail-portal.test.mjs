@@ -68,5 +68,40 @@ test('portal login opens inside the app browser tab, closes it after identificat
  await host.disconnect();assert.equal(host.page,null);
  host.read=async()=>{throw Error('mail_portal_login');};
  const pending=host.connect({});await settled(()=>pages.length===2);onClosed();
- await assert.rejects(pending,/mail_cancelled/);assert.equal(host.page,null);assert.deepEqual(closed,['tab-1']);host.dispose();
+ await assert.rejects(pending,/mail_cancelled/);assert.equal(host.page,null);assert.deepEqual(closed,['tab-1','tab-2']);host.dispose();
+});
+
+function loginFixture({whiteLabel=false,backgroundExpired=false}={}){
+ const events=[],pages=[],handlers={},calls=[];
+ const reply=operation=>operation==='identity'?{userId:'fixture-user',email:'owner@example.test'}:folders;
+ function contents(url,{background=false,errorPage=false}={}){return {
+  getURL:()=>url,isDestroyed:()=>false,isLoadingMainFrame:()=>false,stop:()=>events.push('stop'),
+  session:{setPermissionRequestHandler(){}},on:(name,handler)=>{if(background)handlers[name]=handler;},setWindowOpenHandler:handler=>{if(background)handlers.popup=handler;},
+  async executeJavaScript(source){
+   if(source.includes('document.body'))return vm.runInNewContext(source,{document:{body:{innerText:errorPage?'Whitelabel Error Page\nThis application has no explicit mapping for /error, so you are seeing this as a fallback.\nstatus=404':'Sign in'}}});
+   const operation=JSON.parse(source.slice(source.lastIndexOf(')(')+2,-1)).operation;events.push((background?'reader:':'page:')+operation);
+   if(background&&backgroundExpired)throw Error('mail_portal_login');return reply(operation);
+  }
+ };}
+ class Window{constructor(){this.webContents=contents('https://kor3.samsung.net',{background:true});}isDestroyed(){return false;}on(){}async loadURL(url){events.push('load:'+url);}hide(){}show(){throw Error('unexpected popup');}destroy(){}}
+ const portal=contents('https://kor3.samsung.net/portal'),sso=contents('https://sso.example.test/signin',{errorPage:whiteLabel});
+ const host=new MailPortal({BrowserWindow:Window,invoke:async(_method,args)=>{calls.push(args);return {};},openPage:(url,options)=>{events.push('login:'+url);pages.push({url,options});return {tabId:'login'};},getPageContents:()=>whiteLabel?[sso]:[sso,portal],closePage:()=>events.push('close-login')});host.sync=async()=>{};
+ return {host,events,pages,handlers,calls,contents};
+}
+test('interactive portal login preserves the browser flow before creating the background reader',async()=>{
+ const {host,events,handlers,calls}=loginFixture();
+ await host.connect({});assert.equal(host.status().connected,true);
+ assert.deepEqual(events,['stop','load:about:blank','login:https://kor3.samsung.net','page:identity','page:folders','load:https://kor3.samsung.net','reader:folders','close-login']);
+ assert.equal(calls.filter(c=>c.action==='portalConnect').length,1);
+ const count=events.length;assert.deepEqual(handlers.popup({url:'https://sso.example.test/callback',postBody:{data:[{bytes:Buffer.from('fixture')}]}}),{action:'deny'});assert.equal(events.length,count,'background popup is never replayed as a GET');
+ let prevented=false;handlers['will-redirect']({preventDefault(){prevented=true;}},'https://sso.example.test/login');assert.equal(prevented,true);host.dispose();
+});
+test('a visible login is not marked connected when the background session remains expired',async()=>{
+ const {host,calls}=loginFixture({backgroundExpired:true});await assert.rejects(host.connect({}),/mail_portal_login/);assert.equal(host.status().connected,false);assert(!calls.some(c=>c.action==='portalConnect'));host.dispose();
+});
+test('Whitelabel login errors return a fixed error without collecting page contents or waiting five minutes',async()=>{
+ const {host,calls}=loginFixture({whiteLabel:true});await assert.rejects(host.connect({}),/mail_portal_sso/);assert.equal(host.status().error,'mail_portal_sso');assert(!calls.some(c=>c.action==='portalConnect'));assert(!JSON.stringify(host.status()).includes('404'));host.dispose();
+});
+test('a portal login retry starts from kor3 and clears the failed reader document',async()=>{
+ const {host,events}=loginFixture({whiteLabel:true});await assert.rejects(host.connect({}),/mail_portal_sso/);await assert.rejects(host.connect({}),/mail_portal_sso/);assert.equal(events.filter(x=>x==='login:https://kor3.samsung.net').length,2);assert.equal(events.filter(x=>x==='load:about:blank').length,2);host.dispose();
 });

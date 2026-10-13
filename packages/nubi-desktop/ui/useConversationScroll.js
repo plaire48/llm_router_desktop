@@ -1,6 +1,7 @@
 import {useCallback,useLayoutEffect,useRef,useState} from 'react';
 
-// Pin a newly sent turn while progress and approval forms grow beneath it.
+// A newly sent turn follows the bottom as progress and the answer grow beneath it (user decision 2026-10-14:
+// the request must not jump to the top). `followNewTurn` keeps the pinned mode for callers that want it.
 // Reading older content never resumes following just because a queue changes.
 export function useConversationScroll(conversationId) {
   const viewport=useRef(null),content=useRef(null),mode=useRef('latest'),anchor=useRef(null),beforeSend=useRef(null),programmatic=useRef(null),frame=useRef(null);
