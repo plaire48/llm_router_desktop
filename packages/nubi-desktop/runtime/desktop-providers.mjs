@@ -8,7 +8,7 @@ export function createDesktopProviders(deps={}) {
   let activeClaude=false,persistence=Promise.resolve(),persistenceError=null,loginAttempt=null,loginError=null;
   const remember=()=>{const s=claude.status();persistence=persistence.catch(()=>{}).then(()=>deps.onConnectionChange?.('claude',s.connected?{version:1,provider:'claude',model:s.model,reasoningEffort:s.reasoningEffort}:null)).then(()=>{persistenceError=null;},()=>{persistenceError=s.connected?'connection_not_saved':'connection_not_removed';});return persistence;};
   const status=()=>{const b=base.status(),c=claude.status();return {...b,...(activeClaude?c:{}),...(activeClaude?{pending:loginAttempt?'claude':null,loginError}:{}),...(persistenceError?{persistenceError}:{}),providers:[...b.providers,{id:'claude',label:'Claude',connected:c.connected,connectionId:c.connectionId}]};};
-  const usageStatus=()=>{const b=base.usageStatus();return {...b,auth:activeClaude?{provider:'claude',present:claude.status().connected}:b.auth,connections:{...b.connections,claude:{present:claude.status().connected}},claudeAccountUsage:claude.quota()};};
+  const usageStatus=()=>{const b=base.usageStatus();return {...b,auth:activeClaude?{provider:'claude',present:claude.status().connected}:b.auth,connections:{...b.connections,claude:{present:claude.status().connected}},claudeAccountUsage:claude.quota(),claudePlan:claude.status().plan};};
   const select=async provider=>{if(provider==='claude'){if(!claude.status().connected)throw Error('claude_login_required');activeClaude=true;try{await deps.onActiveProvider?.('claude');}catch{persistenceError='connection_not_saved';}}else{await base.select(provider);activeClaude=false;}return status();};
   const connect=async input=>{if(input.provider==='claude'){await claude.connect();await remember();return select('claude');}await base.connect(input);activeClaude=false;return status();};
   function cancelLogin(){const attempt=loginAttempt;loginAttempt=null;attempt?.abort();loginError=null;base.cancelLogin?.();return status();}
@@ -46,6 +46,7 @@ export function createDesktopProviders(deps={}) {
     refreshModels:async input=>{if(activeClaude)await claude.connect();else await base.refreshModels(input);return status();},
     disconnect:async provider=>{if(provider==='claude'){cancelLogin();claude.disconnect();await remember();}else await base.disconnect(provider);return status();},
     accountUsage:async input=>{await base.accountUsage(input);return usageStatus();},
+    quota:async()=>{if(!claude.status().connected)throw Error('claude_login_required');await claude.refreshQuota();return status();},
     complete:(...args)=>{const provider=args[6]?.backgroundModel?.provider||(activeClaude?'claude':base.status().provider);return (provider==='claude'?claude:base).complete(...args);},
     dispose:()=>{cancelLogin();claude.disconnect();base.dispose();}
   };

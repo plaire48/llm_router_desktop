@@ -19,7 +19,7 @@ try{
   const p=await browser.newPage({viewport:{width:1280,height:900}});p.on('pageerror',e=>errors.push(e.message));
   await p.goto('http://127.0.0.1:'+server.address().port+'/?context&modals&integrated&wiki-inventory');
   await p.getByRole('button',{name:'위키',exact:true}).click();
-  const dialog=p.getByRole('dialog',{name:'프로젝트 자료',exact:true});await dialog.waitFor();
+  const dialog=p.getByRole('dialog',{name:'위키 설정',exact:true});await dialog.waitFor();
   await dialog.getByText('아직 위키가 생성되지 않았어요.',{exact:true}).waitFor();
   assert.equal(await dialog.getByText('위키 0개',{exact:true}).count(),0);
   await p.evaluate(()=>window.setWikiFixture({id:'inventory-job',state:'running',stage:'scanning',startedAt:new Date().toISOString()}));

@@ -33,16 +33,16 @@ try{
   await p.locator('.nubi-wiki-document h2').filter({hasText:'배포 절차'}).waitFor();
   await p.getByRole('button',{name:'대화로 돌아가기',exact:true}).click();await p.getByRole('button',{name:'위키 다시 열기',exact:true}).click();
   await p.locator('.nubi-wiki-document h2').filter({hasText:'배포 절차'}).waitFor();
-  await p.getByRole('textbox',{name:'위키 문서 검색'}).fill('서비스');await p.getByRole('textbox',{name:'위키 문서 검색'}).press('Enter');
+  await p.getByRole('searchbox',{name:'위키 문서 검색'}).fill('서비스');await p.getByRole('searchbox',{name:'위키 문서 검색'}).press('Enter');
   await p.locator('.nubi-wiki-document h2').filter({hasText:'서비스 운영'}).waitFor();
-  await p.getByRole('textbox',{name:'위키 문서 검색'}).fill('');
+  await p.getByRole('searchbox',{name:'위키 문서 검색'}).fill('');
   await p.getByRole('button',{name:'위키 수정',exact:true}).click();await p.getByRole('textbox',{name:'위키 본문'}).fill('# 저장 전 메모');
-  await p.getByRole('button',{name:'메일',exact:true}).click();await p.locator('.nubi-wiki-document h2').waitFor();
-  await p.getByRole('button',{name:'업무 프로젝트',exact:true}).click();await p.getByRole('textbox',{name:'위키 본문'}).waitFor();
+  await p.getByRole('tab',{name:'메일',exact:true}).click();await p.locator('.nubi-wiki-document h2').waitFor();
+  await p.getByRole('tab',{name:'업무 프로젝트',exact:true}).click();await p.getByRole('textbox',{name:'위키 본문'}).waitFor();
   assert.equal(await p.getByRole('textbox',{name:'위키 본문'}).inputValue(),'# 저장 전 메모','scope switch preserves unsaved text and selected document');
   await p.getByRole('button',{name:'수정 취소',exact:true}).click();
   await p.screenshot({animations:'disabled',path:path.join(dir,'wiki-reading-'+width+'.png')});
-  await p.getByRole('button',{name:'위키 수정',exact:true}).click();await p.getByRole('textbox',{name:'위키 본문'}).fill('# 사람이 보완한 운영 지침');await p.getByRole('button',{name:'위키 저장',exact:true}).click();await p.getByText('저장했어요. 다음 위키 조회에 반영됩니다.',{exact:true}).waitFor();await p.getByRole('button',{name:'문서 연결 보기',exact:true}).click();await p.getByRole('img',{name:'2개 문서의 연결'}).waitFor();await p.screenshot({animations:'disabled',path:path.join(dir,'wiki-'+width+'.png')});
+  await p.getByRole('button',{name:'위키 수정',exact:true}).click();await p.getByRole('textbox',{name:'위키 본문'}).fill('# 사람이 보완한 운영 지침');await p.getByRole('button',{name:'위키 저장',exact:true}).click();await p.getByText('저장했어요. 다음 위키 조회에 반영됩니다.',{exact:true}).waitFor();await p.getByRole('tab',{name:'관계 지도',exact:true}).click();await p.getByRole('img',{name:'2개 문서의 연결'}).waitFor();await p.locator('.nubi-wiki-map-side').getByRole('button',{name:/^배포 절차/}).click();await p.locator('.nubi-wiki-document h2').filter({hasText:'배포 절차'}).waitFor();await p.screenshot({animations:'disabled',path:path.join(dir,'wiki-'+width+'.png')});
   assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
  }
  assert.deepEqual(errors,[]);console.log('Workspace tabs, app opening, Talk grid/feed/post/comment, Wiki edit/save/graph: fixture 1100/440/360px passed, with direct opening, last document restoration, related navigation, Enter search and draft retention.');

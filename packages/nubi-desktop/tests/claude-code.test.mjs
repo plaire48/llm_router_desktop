@@ -204,3 +204,27 @@ test('process exit maps only structured rejection, never stderr or diagnostic pr
     }
   }finally{await rm(root,{recursive:true,force:true});}
 });
+test('status carries the plan and last quota; a quota probe is one short request on the cheapest model',async()=>{
+  const probes=[],limits={status:'allowed',rateLimitType:'five_hour',overageStatus:'rejected',overageDisabledReason:'org_level_disabled',isUsingOverage:false,unifiedWindows:{five_hour:{utilization:.4,resetsAt:2000000000},seven_day:{utilization:.1,resetsAt:2000500000}}};
+  const f=fixture(result(),{loggedIn:true,subscriptionType:'enterprise'}),usage=[];
+  const run=async(binary,args,options)=>{
+    if(args[0]==='--help'||args[0]==='auth'||args.includes('--input-format'))return f.run(binary,args,options);
+    probes.push({args,input:options.input});options.onEvent({type:'rate_limit_event',rate_limit_info:limits});
+    if(probes.length===2)throw Error('claude_cli_failed');
+    options.onEvent(result([],{input_tokens:5,output_tokens:1}));return '';
+  };
+  const adapter=createClaudeCode({...f,run,onUsageStart:()=>'probe',onUsageFinish:(id,value)=>usage.push([id,value?.total_tokens??null])});
+  await adapter.connect();assert.equal(adapter.status().plan,'enterprise');assert.equal(adapter.status().quota,null);
+  const quota=await adapter.refreshQuota();
+  assert.equal(probes.length,1);assert.equal(probes[0].args[probes[0].args.indexOf('--max-turns')+1],'1');assert.equal(probes[0].args[probes[0].args.indexOf('--model')+1],'claude-haiku-4-5');assert.equal(probes[0].input,'Reply with the single word OK.');
+  assert.deepEqual(quota.windows.map(w=>[w.label,w.remaining]),[['5시간',60],['7일',90]]);assert.deepEqual(quota.extra,{status:'rejected',active:false,reason:'org_level_disabled'});
+  assert.equal(adapter.status().quota.windows.length,2);assert.deepEqual(usage,[['probe',6]]);
+  // A failed probe that still reported limits keeps them; one without any report fails.
+  assert.equal((await adapter.refreshQuota()).windows.length,2);
+  const silent=createClaudeCode({...f,run:async(binary,args,options)=>{if(args[0]==='--help'||args[0]==='auth'||args.includes('--input-format'))return f.run(binary,args,options);throw Error('claude_cli_failed');}});
+  await silent.connect();await assert.rejects(silent.refreshQuota(),/claude_cli_failed/);assert.equal(silent.status().quota,null);
+  assert.equal(adapter.disconnect().plan,null);
+  const providers=createDesktopProviders({...f,run,onConnectionChange:()=>{},onActiveProvider:()=>{}});
+  await assert.rejects(providers.quota(),/claude_login_required/);
+  await providers.connect({provider:'claude'});const status=await providers.quota();assert.equal(status.provider,'claude');assert.equal(status.quota.windows.length,2);assert.equal(status.plan,'enterprise');
+});

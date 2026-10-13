@@ -1,0 +1,50 @@
+# 위키 화면 재구성과 메일·한도 UI 정돈 — 2026-10-14
+
+사용자 요청(10-14 새벽) 여덟 건을 1.1.7 작업 트리에 반영한 기록이다. 모두 Electron 데스크톱 화면과 실행기 변경이며 OpenWiki 코어는 건드리지 않았다.
+
+## 반영한 것
+
+| 번호 | 요청 | 반영 |
+| --- | --- | --- |
+| 1 | 시작 메일 모달의 "메일 비밀번호는 저장하지 않아요" 삭제 | `ui/StartupConnections.jsx`에서 문장 제거. 같은 뜻은 메일 설정의 포털 카드 설명 한 줄로 옮김 |
+| 2 | 메일 가져오는 두 방법을 직관적으로 | 메일 설정의 연결 전 화면을 카드 두 장으로 재구성: "사내 포털로 연결"(추천 표시, 아이콘 배지, 채운 버튼)과 "파일에서 가져오기"(폴더 아이콘, 테두리 버튼). 아래에 "두 방법은 함께 쓸 수 있어요" 안내. 연결 뒤에는 파일 카드만 남는다 (`ui/MailLibrary.jsx`, `ui/MailFileImport.jsx`, `ui/mail-file-import.css`) |
+| 3 | Claude 잔여 한도가 안 보임(기업용) | 창 상단 도구줄에 한도 알약(가장 빠듯한 창의 남은 비율과 막대, 25% 이하 주황, 10% 이하 빨강, 누르면 사용량 패널). 사용량 패널 Claude 항목에 요금제(Max, Team, Enterprise), 추가 사용 정책(조직에서 꺼짐 등), "한도 확인" 버튼. 한도는 모델 응답에만 실려 오므로 확인 버튼은 가장 싼 모델로 짧은 요청 1회를 보낸다 (`runtime/claude-code.mjs` `refreshQuota`, `runtime/desktop-providers.mjs` `quota`, `runtime/agent.mjs` provider `quota` 액션, `ui/ClaudeConnection.jsx`, `design/workspace-density.css`) |
+| 4 | 프로젝트 자료의 "파일 내용과 위키 검색" 상자 삭제 | 검색 폼과 결과 상태, `WikiEvidence` 표시를 `ui/Workbench.jsx`에서 제거. 에이전트의 검색 도구는 그대로 |
+| 5 | 사내 메일과 위키가 동등하게 보이도록 | 위키 화면 머리글을 메일 화면과 같은 구조로(배지 아이콘, 제목과 개수, 새로고침, 새 문서, "위키 설정" 링크). "프로젝트 자료" 패널은 "위키 설정"으로 이름을 바꾸고 안의 "사내 메일" 행을 뺐다(메일은 자기 화면과 메일 설정을 가진다). 도구줄 책갈피 버튼도 "위키 설정" |
+| 6 | 책 모양 위키 화면 재구성 | 아래 절 |
+| 7 | 메일 화면의 "포털에 로그인하면 메일과 결재를 가져올 수 있어요" 삭제 | `ui/MailHistory.jsx`에서 제거, 스타일도 삭제 |
+| 8 | "최근 수집" 시각 가독성 | 접힘 머리글에 펼침 화살표, 안에는 "최근 반영 / 서버 확인" 두 줄을 아이콘과 라벨, 시각으로 나눠 표시. 시각은 "10월 12일 01:34" 형식(초와 오전/오후 제거). 수집 기록 목록도 아이콘 + 내용 + 시각의 두 줄 (`ui/MailTimestamp.jsx`, `design/workspace-identity.css`) |
+
+## 위키 화면 (요청 6)
+
+- **구조**: 메일 화면처럼 위아래 구조. 머리글 → 자료 탭(프로젝트 위키, 메일 위키) → 보기 탭(문서 목록, 관계 지도) → 목록 또는 지도 → 아래에 선택한 문서.
+- **문서 목록**: 검색(제목, 설명, 태그, 경로), 표(제목+설명, 분류, 종류, 연결 수, 수정일), 열마다 정렬과 필터(분류 체크, 종류 체크, 연결 상태 전체/연결됨/고립, 기간 전체/7일/30일), 페이지네이션(페이지 이동, 10·20·50·100개씩, 정렬 선택). 필터는 메일과 같은 팝오버 패턴 (`ui/WikiTable.jsx`).
+- **관계 지도**: OpenWiki가 검증하는 Markdown 링크와 앞머리(type, description, tags)로 그래프를 만든다. 원 크기는 연결 수, 색은 분류(최상위 폴더), 선 굵기는 관계 강도. 강도는 서로 참조(+1), 태그 공유(최대 +1), 같은 분류(+0.5), 이웃 문서 공유 비율(최대 +1)로 1~4점. 검색 강조, 분류별 숨김, 고립 문서 표시 전환, 확대·축소·전체 보기, 끌어서 이동, 문서 카드, 옆 칸에 "연결이 많은 문서"와 "고립 문서" (`ui/WikiMap.jsx`, `ui/wiki-graph.mjs`). 배치는 분류별 고리에서 시작하는 결정적 힘 기반 배치로, 큰 위키도 화면을 막지 않게 프레임마다 조금씩 진행한다.
+- **문서**: 앞머리를 본문에서 분리해 종류 칩, 분류, 수정 시각, 글자 수, 연결 수, 경로로 보여 주고(이전에는 YAML이 본문 첫 문단으로 그대로 보였다), 설명은 인용 상자로, 태그는 칩으로. 수정은 그대로(textarea, 저장, 취소, 링크 추가). "다시 작성 요청"은 OpenWiki 에이전트에게 보낼 요청문을 작성기 초안에 넣고 대화로 돌아간다(문서 자체는 바꾸지 않음). "원본 열기"는 프로젝트 위키 파일을 편집기로 연다. 연결된 문서는 방향(서로, 이 문서가, 이 문서를)과 이유(태그 공유, 같은 분류, 이웃 공유), 강도 막대와 함께 보여 준다.
+- **자료**: `electron-app/wiki-library.cjs`의 목록이 각 문서의 앞머리(type, description, tags), 글자 수, 수정 시각을 함께 준다. 앞머리 파서는 `electron-app/wiki-frontmatter.cjs` 하나를 실행기와 화면이 같이 쓴다. 관계 데이터는 저장하지 않고 화면에서 계산한다.
+- **배경**: 목록, 지도, 문서를 카드 면 위에 두고 지도 바탕에는 점 격자를 깔았다.
+- **디자인 기준(사용자, 10-14)**: iOS 느낌. 간소함, 직관, 편의. 글은 줄이고 뜻은 아이콘과 배치로, 구분은 선이 아니라 면과 여백으로. 머리글 동작(새로고침, 새 문서, 위키 설정)과 문서 동작(수정, 다시 작성 요청, 원본 열기)은 아이콘만 두고 이름은 접근성 라벨과 툴팁으로. 목록, 지도, 문서 면은 테두리 없이 흰 면과 옅은 그림자, 표 안 구분선은 가장 옅은 색. 메일 설정 카드도 테두리 없이 면 색으로 구분(추천 카드는 파란 면). 목록이나 지도에서 문서를 고르면 아래 문서가 보이도록 따라간다.
+
+## 왜 외부 도구를 쓰지 않았나
+
+Logseq는 `pages/`, `journals/` 구조와 `[[페이지]]` 참조만 이해하고 편집 시 글머리 형식으로 다시 쓰므로 OpenWiki 문서를 망가뜨린다. SilverBullet은 Deno 서버와 위키 폴더 안 색인 파일, `[[링크]]` 형식이 필요하다. OpenWiki 자체 시각화는 jsDelivr와 Google Fonts에서 라이브러리를 받아 사내 PC에서 열리지 않는다. 사용자 결정(10-14): 두 도구는 적용하지 않는다.
+
+## 검사
+
+- 단위: `tests/wiki-frontmatter.test.mjs`, `tests/wiki-graph.test.mjs` 신설, `tests/wiki-library.test.mjs`와 `tests/claude-code.test.mjs` 확장. 전체 스위트 결과는 아래 "결과"에.
+- 화면 검사 이름 변경: `scripts/check-electron-wiki-library.mjs`, `scripts/check-community-wiki-ui.mjs`(관계 지도 탭, 자료 탭, 검색 필드), `scripts/check-electron-shell.mjs`와 `scripts/check-wiki-inventory.mjs`, `scripts/check-all-surfaces.mjs`, `scripts/build-surface-gallery.mjs`, `tests/surface-audit-fixture.jsx`, `scripts/check-modals.mjs`의 "프로젝트 자료" → "위키 설정".
+- `scripts/check-modals.mjs`의 메일 흐름("사내 메일" 행 → "메일 연결" → 아이디)은 이미 1.1.7 메일 UI와 맞지 않는 묵은 검사라 제목만 바꿨다(Codex 인계 항목).
+
+## 결과 (2026-10-14 02:10, macOS 개발 PC)
+
+| 검사 | 결과 |
+| --- | --- |
+| 단위 전체 `npm test` | 1,138개 중 940 통과, 0 실패, 198 건너뜀 (마지막 외형 손질 전 실행, 이후 `wiki-graph` 4개 재실행 통과) |
+| `npm run design:check` | 통과 (원색과 px 글꼴을 토큰으로 바꾼 뒤) |
+| `scripts/check-shared-ui.mjs`, `check-form-clarity.mjs`, `check-activity-readability.mjs` | 통과 |
+| `scripts/check-community-wiki-ui.mjs` (웹 fixture, 1100/440/360px) | 통과: 직접 열기, 마지막 문서 복원, 관련 문서 이동, Enter 검색, 초안 유지, 관계 지도 탭과 옆 목록 선택 |
+| `scripts/check-electron-wiki-library.mjs` (실제 Electron) | 통과: 수정·저장·읽기, 관계 지도, 문서 목록 표, EML 가져오기와 중복 제외 |
+| `scripts/check-electron-shell.mjs` (실제 Electron, `test:ui`) | 통과 (위키 설정 이름 반영) |
+| 화면 캡처 | 스크래치 `shots-after/`: 시작 모달, 위키 설정, 사용량, 문서 목록, 정렬, 필터, 수정, 관계 지도, 지도 선택, 메일 화면, 메일 설정 |
+
+확인하지 않은 것: Windows 설치판, 실제 OpenWiki가 만든 큰 위키(500개 근처)의 지도 배치 시간, Claude 실계정의 한도 확인 요청(어댑터 단위 테스트로만 확인), 메일 포털 실계정.

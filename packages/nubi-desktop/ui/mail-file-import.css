@@ -10,3 +10,19 @@
 .nubi-mail-file-import ul { list-style:none; padding:0; max-height:180px; overflow:auto; }
 .nubi-mail-file-import li { display:flex; align-items:center; gap:var(--cx-space-2); padding-block:var(--cx-space-1); }
 .nubi-mail-file-import li>span { flex:1; }.nubi-mail-file-import li>small { flex:none; }
+
+/* Two ways in, side by side in weight: the portal (recommended) and files. */
+.nubi-mail-import-options { display:grid; gap:var(--cx-space-3); }
+.nubi-mail-import-card { display:grid; gap:var(--cx-space-3); padding:var(--cx-space-4); border:0; border-radius:var(--nubi-work-control-radius); background:var(--deck-tint); }
+.nubi-mail-import-card[data-recommended=true] { background:var(--deck-blue-soft); }
+.nubi-mail-import-card .nubi-mail-import-heading { align-items:flex-start; gap:var(--cx-space-3); }
+.nubi-mail-import-card .nubi-mail-import-heading strong { display:flex; align-items:center; flex-wrap:wrap; gap:var(--cx-space-2); font:var(--deck-font-body); font-weight:700; color:var(--deck-ink); }
+.nubi-mail-import-card .nubi-mail-import-heading small { line-height:1.6; white-space:normal; }
+.nubi-mail-import-icon { display:inline-grid; place-items:center; flex:none; width:40px; height:40px; border-radius:var(--nubi-work-control-radius); background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
+.nubi-mail-import-card[data-recommended=true] .nubi-mail-import-icon { background:var(--deck-blue); color:var(--deck-card); }
+.nubi-mail-import-badge { display:inline-block; padding:1px var(--cx-space-2); border-radius:999px; background:var(--deck-blue); color:var(--deck-card); font:var(--deck-font-caption); font-weight:700; }
+.nubi-mail-import-card-action .cx-kit-button { display:inline-flex; align-items:center; justify-content:center; gap:var(--cx-space-2); width:100%; font-weight:700; }
+.nubi-mail-import-note { display:flex; align-items:center; gap:var(--cx-space-2); margin:0; color:var(--deck-sub); font:var(--deck-font-caption); }
+.nubi-mail-import-note>svg { flex:none; color:var(--deck-blue-deep); }
+.nubi-mail-import-card { transition:background-color .15s ease; }
+.nubi-mail-import-card:hover { background:var(--deck-blue-soft); }

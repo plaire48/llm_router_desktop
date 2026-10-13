@@ -6,6 +6,5 @@ export function StartupConnections({onConnect,onClose}){
     <div className="nubi-startup-options">
       <CxButton onClick={()=>onConnect('mail')}><span className="nubi-mail-section-icon"><Icon name="mail" size={20}/></span><span><strong>메일 연결</strong></span><Icon name="chevronRight" size={16}/></CxButton>
     </div>
-    <p className="nubi-muted">메일 비밀번호는 저장하지 않아요.</p>
   </DetailPanel>;
 }

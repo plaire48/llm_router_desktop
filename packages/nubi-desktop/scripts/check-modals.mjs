@@ -36,7 +36,7 @@ try{
   await selectTask();
   const suffix=`${variant.width}`;
   await p.getByRole('button',{name:'설정',exact:true}).click();await inspect('설정','settings-'+suffix);await p.keyboard.press('Escape');await p.waitForFunction(()=>document.activeElement?.getAttribute('aria-label')==='설정');
-  await p.getByRole('button',{name:'위키',exact:true}).click();await inspect('프로젝트 자료','library-'+suffix);
+  await p.getByRole('button',{name:'위키',exact:true}).click();await inspect('위키 설정','library-'+suffix);
   // The mail page replaced the mail dialog (2026-10-02): its '메일 연결' opens the account dialog, and Escape returns focus to that control.
   await p.getByRole('button',{name:'사내 메일',exact:true}).click();await p.getByRole('button',{name:'메일 연결',exact:true}).click();await p.getByLabel('아이디',{exact:true}).waitFor();await inspect('메일 설정','mail-'+suffix);await p.keyboard.press('Escape');await p.waitForFunction(()=>document.activeElement?.classList.contains('nubi-mail-connect-link'));
   await selectTask();

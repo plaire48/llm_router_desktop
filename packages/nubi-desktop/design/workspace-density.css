@@ -1001,3 +1001,19 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .desktop-shell .nubi-workbench .nubi-agent-activity .nubi-activity-narration { list-style:none; margin:0; padding:0; display:grid; gap:var(--cx-space-1); color:var(--layout-muted); font:var(--deck-font-body); }
 .desktop-shell .nubi-workbench .nubi-agent-activity .nubi-activity-narration li { display:flex; gap:var(--cx-space-2); align-items:flex-start; }
 .desktop-shell .nubi-workbench .nubi-agent-activity .nubi-activity-narration li > svg { flex:none; margin-top:4px; }
+
+/* Claude remaining quota in the window toolbar: the window closest to its limit at a glance. */
+.nubi-claude-quota { display:inline-flex; align-items:center; gap:var(--cx-space-2); height:var(--nubi-work-control-height,32px); padding:0 var(--cx-space-3); border:0; border-radius:999px; background:var(--provider-claude-soft); color:var(--provider-claude-ink); font:var(--deck-font-caption); font-weight:700; font-variant-numeric:tabular-nums; cursor:pointer; }
+.nubi-claude-quota:hover { filter:brightness(.97); }
+.nubi-claude-quota:focus-visible { outline:2px solid var(--provider-claude-ink); outline-offset:2px; }
+.nubi-claude-quota > :is(img,svg) { width:16px; height:16px; }
+.nubi-claude-quota b { font-weight:700; }
+.nubi-claude-quota i { display:block; width:40px; height:var(--cx-space-1); border-radius:999px; background:var(--deck-card); overflow:hidden; }
+.nubi-claude-quota i > span { display:block; height:100%; background:var(--provider-claude); }
+.nubi-claude-quota[data-level="low"] { background:var(--deck-orange-soft); color:var(--deck-orange); }
+.nubi-claude-quota[data-level="low"] i > span { background:var(--deck-orange); }
+.nubi-claude-quota[data-level="critical"] { background:var(--deck-red-soft); color:var(--deck-red); }
+.nubi-claude-quota[data-level="critical"] i > span { background:var(--deck-red); }
+.claude-plan { display:inline-block; margin-left:var(--cx-space-2); padding:1px 8px; border-radius:999px; background:var(--provider-claude-soft); color:var(--provider-claude-ink); font:var(--deck-font-caption); font-weight:600; }
+.claude-account-actions { display:inline-flex; align-items:center; gap:var(--cx-space-1); }
+.claude-account-actions .cx-kit-button { display:inline-flex; align-items:center; gap:var(--cx-space-1); white-space:nowrap; }

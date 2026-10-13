@@ -82,7 +82,7 @@ function Samples(){
  if(screen==='models-long')return <ModelSelection showActionLabels data={{activeProvider:'aipro',connections:{aipro:{present:true}},catalogs:{aipro:{models:modelRows}},selectedModels:{aipro:'model-0'}}} title="모델 선택" showProviderNames providerLabels={DESKTOP_PROVIDER_LABELS} onClose={no} onSelect={async()=>{}} onRefresh={no} onProviderSelect={no} onLogin={no}/>;
  if(screen==='usage')return <UsagePanel showActionLabels data={{auth:{provider:'aipro',present:true},connections:{},usage:{today:{aipro:{calls:3,measured:2,total:18300,input:18000,output:300}},total:{aipro:{calls:5,measured:4,total:32200,input:31600,output:600}}}}} scopeLabel="이 앱에서 사용한 토큰" onClose={no}/>;
  if(screen==='question')return <QuestionForm showActionLabels question={{id:'question',kind:'choice',text:'어떤 문서를 기준으로 정리할까요?',options:[{id:'current',label:'현재 보고서'},{id:'template',label:'회사 양식'}],inputPlaceholder:'다른 기준을 입력해 주세요'}} onChoose={no}/>;
- if(screen==='wiki')return dialog('프로젝트 자료',<WikiUpdate api={api} openPath={no}/>);
+ if(screen==='wiki')return dialog('위키 설정',<WikiUpdate api={api} openPath={no}/>);
  if(screen==='analysis')return <AnalysisHistory api={api} task={{id:'sample',state:'review',trace:[],documentAnalysis:analysis}}/>;
  if(screen==='setup')return <SetupActions actions={[{id:'command',taskId:'sample',title:'테스트 실행',reason:'수정한 파일을 테스트로 확인합니다.',script:'npm test',profile:'bash',workspace:'/sample/project',effects:'현재 프로젝트의 테스트를 실행합니다.',verification:'종료 코드와 실패 건수를 확인합니다.',fingerprint:'sample',state:'proposed',references:[]}]} proposals={[]} onAlways={no} onDecision={no} onResult={no}/>;
  if(screen==='applied')return <AppliedFileChanges api={api} taskId="sample" receipts={[{id:'sample',path:'src/업무.js'}]} onOpen={no}/>;

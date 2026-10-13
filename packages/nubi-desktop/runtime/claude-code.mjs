@@ -47,7 +47,9 @@ export function claudeQuota(event,previous=null,now=Date.now()) {
     if(!valid&&used===undefined&&prior&&(!prior.resetsAt||prior.resetsAt>now)&&(!resetsAt||resetsAt===prior.resetsAt))continue;
     windows.set(id,{id,label:windowNames[id],remaining:valid?100-used*100:null,resetsAt,fetchedAt:now});
   }
-  return {windows:[...windows.values()],fetchedAt:now};
+  // Extra usage (overage) is an organisation policy on Team and Enterprise plans.
+  const extra=typeof info.overageStatus==='string'||typeof info.isUsingOverage==='boolean'?{status:typeof info.overageStatus==='string'?info.overageStatus.slice(0,40):null,active:info.isUsingOverage===true,reason:typeof info.overageDisabledReason==='string'?info.overageDisabledReason.slice(0,60):null}:previous?.extra||null;
+  return {windows:[...windows.values()],extra,fetchedAt:now};
 }
 export function completionSchema(tools=[],required=false) {
   return {type:'object',additionalProperties:false,required:['content','calls'],properties:{content:{type:'string'},calls:{type:'array',maxItems:16,...(tools.length&&required?{minItems:1}:{}),items:{type:'object',additionalProperties:false,required:['name','arguments'],properties:{name:{type:'string',...(tools.length?{enum:tools.map(t=>t.function.name)}:{})},arguments:{type:'string',description:'JSON-encoded arguments matching the named tool schema.'}}},...(tools.length?{}:{maxItems:0})}}};
@@ -73,12 +75,12 @@ export function claudeUsage(u) {
 }
 export function createClaudeCode(deps={}) {
   const run=deps.run||runClaude,find=deps.findBinary||findClaudeBinary;
-  let binary,connected=false,model='sonnet',effort='medium',verified=false,connectionId=null,quota=null,models=[],connecting=null,generation=0;
+  let binary,connected=false,model='sonnet',effort='medium',verified=false,connectionId=null,quota=null,plan=null,models=[],connecting=null,generation=0;
   const modelId=value=>models.find(item=>item.id===value)?.id||models.find(item=>item.aliases.includes(value))?.id||value;
   const effortOptions=value=>models.find(item=>item.id===modelId(value))?.reasoningOptions||[];
   const metadata=new Map();
   const controllers=new Set();
-  const status=()=>({provider:'claude',connected,model,models:connected?models.map(item=>({...item,...metadata.get(item.id)})):[],reasoningEffort:effortOptions(model).length?effort:null,reasoningOptions:effortOptions(model),vision:false,verified,connectionId,modelCatalog:{source:'cli_initialize'},pending:null,loginError:null});
+  const status=()=>({provider:'claude',connected,model,models:connected?models.map(item=>({...item,...metadata.get(item.id)})):[],reasoningEffort:effortOptions(model).length?effort:null,reasoningOptions:effortOptions(model),vision:false,verified,connectionId,modelCatalog:{source:'cli_initialize'},pending:null,loginError:null,plan,quota:connected?quota:null});
   function connect(){
     if(connecting)return connecting;
     const pending=connectNow();connecting=pending;
@@ -92,6 +94,7 @@ export function createClaudeCode(deps={}) {
     if(!help.includes('--safe-mode')||!help.includes('--json-schema'))throw Error('claude_cli_update');
     let auth;try{auth=JSON.parse(await run(binary,['auth','status'],{timeoutMs:15000}));}catch(error){connected=false;if(error.message==='claude_cli_failed')throw Error('claude_login_required');if(error instanceof SyntaxError)throw Error('claude_response_invalid');throw error;}
     if(auth.loggedIn!==true){connected=false;throw Error('claude_login_required');}
+    plan=typeof auth.subscriptionType==='string'?auth.subscriptionType.slice(0,40):null;
     const catalog=await discoverClaudeModels(binary,run);
     if(current!==generation)throw Error('cancelled');
     models=catalog;model=modelId(model);
@@ -144,5 +147,18 @@ export function createClaudeCode(deps={}) {
       result.contextUsage=contextUsage;verified=true;onText(result.content);return result;
     }finally{controllers.delete(controller);try{deps.onUsageFinish?.(usageRequest,claudeUsage(final?.usage));}catch{try{deps.onUsageFinish?.(usageRequest);}catch{}}}
   }
-  return {status,connect,complete,quota:()=>quota,model:value=>{value=modelId(value);if(!models.some(m=>m.id===value))throw Error('invalid_model');model=value;if(!effortOptions(model).includes(effort))effort=effortOptions(model).includes('medium')?'medium':effortOptions(model)[0]||null;return status();},reasoning:value=>{if(!effortOptions(model).includes(value))throw Error('invalid_reasoning');effort=value;return status();},disconnect:()=>{generation++;connecting=null;for(const controller of controllers)controller.abort();connected=false;verified=false;quota=null;connectionId=null;return status();}};
+  // Rate limits arrive only with model responses. One short request on the
+  // cheapest available model refreshes them on demand, outside any conversation.
+  async function refreshQuota(){
+    if(!connected)throw Error('no_credential');
+    const probe=models.find(item=>item.aliases.includes('haiku'))?.id||model,before=quota;
+    let usageRequest,final;
+    try{usageRequest=deps.onUsageStart?.({provider:'claude',model:probe});}catch{}
+    try{
+      await run(binary,['-p','--safe-mode','--tools','','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--disable-slash-commands','--no-session-persistence','--max-turns','1','--output-format','stream-json','--verbose','--model',probe],{timeoutMs:60000,input:'Reply with the single word OK.',onEvent:event=>{quota=claudeQuota(event,quota);if(event.type==='result')final=event;}});
+    }catch(error){if(quota===before)throw error;}
+    finally{try{deps.onUsageFinish?.(usageRequest,claudeUsage(final?.usage));}catch{try{deps.onUsageFinish?.(usageRequest);}catch{}}}
+    return quota;
+  }
+  return {status,connect,complete,refreshQuota,quota:()=>quota,model:value=>{value=modelId(value);if(!models.some(m=>m.id===value))throw Error('invalid_model');model=value;if(!effortOptions(model).includes(effort))effort=effortOptions(model).includes('medium')?'medium':effortOptions(model)[0]||null;return status();},reasoning:value=>{if(!effortOptions(model).includes(value))throw Error('invalid_reasoning');effort=value;return status();},disconnect:()=>{generation++;connecting=null;for(const controller of controllers)controller.abort();connected=false;verified=false;quota=null;plan=null;connectionId=null;return status();}};
 }

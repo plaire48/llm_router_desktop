@@ -100,18 +100,23 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
   const selectedConnected=selectedModel&&provider?.providers?.some(item=>item.id===selectedModel.provider&&item.connected);
   const modelSummaryLabel=selectedModel?selectedCatalogModel?.displayName||selectedModel.model:'모델 선택';
   const connectionCode=connectionBusy?null:connectionError||status?.error;
+  const fileImport=<MailFileImport card={!status?.connected} progress={status?.localImport} busy={busy||!status} onChoose={()=>act(async()=>{const value=await api('importMailFolder');return value.cancelled?status:value;})} onCancel={()=>act(()=>api('mail',{action:'cancelImport'}))}/>;
   const failure=Object.hasOwn(mailConnectionErrors,connectionCode)?mailConnectionErrors[connectionCode]:null;
   return <div className="nubi-mail-library nubi-mail-settings" aria-busy={connectionPending}>
     <div className="nubi-mail-settings-content" inert={connectionPending||undefined}>
     <section className="nubi-mail-section" aria-label="메일 계정 설정">
       {status?.connected&&<header className="nubi-mail-section-heading">{sectionTitle('mail','사내 포털 연결됨')}<ActionButton action="logout" iconOnly label="메일 로그아웃" title="메일 로그아웃" disabled={busy} onClick={()=>act(()=>api('mail',{action:'disconnect'}))}/></header>}
-      {!status?.connected&&<div className="nubi-mail-portal-login"><p className="nubi-muted">사내 포털에 로그인하면 메일함을 가져옵니다.</p><CxButton variant="primary" className="nubi-mail-connect" disabled={connectionBusy||!status} onClick={connectPortal}><BrowserMark size={18}/><span>포털 로그인</span></CxButton></div>}
+      {!status?.connected&&<div className="nubi-mail-import-options" role="group" aria-label="메일 가져오는 방법">
+        <div className="nubi-mail-import-card" data-recommended="true"><div className="nubi-mail-import-heading"><span className="nubi-mail-import-icon" aria-hidden="true"><BrowserMark size={22}/></span><div><strong>사내 포털로 연결<span className="nubi-mail-import-badge">추천</span></strong><small>로그인 한 번으로 새 메일과 결재를 자동으로 가져와요.</small></div></div><div className="nubi-mail-import-card-action"><CxButton variant="primary" className="nubi-mail-connect" disabled={connectionBusy||!status} onClick={connectPortal}><Icon name="logIn" size={18}/><span>포털 로그인</span></CxButton></div></div>
+        {fileImport}
+        <p className="nubi-mail-import-note"><Icon name="infoCircle" size={14}/><span>둘 다 함께 쓸 수 있어요.</span></p>
+      </div>}
       {failure&&<details className="nubi-mail-connection-error" key={connectionCode}>
         <summary><Icon name="alertCircle" size={16}/><strong role="status" title={failure.title}>{failure.title}</strong><Icon name="chevronDown" size={16}/></summary>
         <p>{failure.detail}</p><div className="nubi-mail-error-code"><code>{connectionCode}</code><CopyButton label="연결 오류 복사" text={mailConnectionDiagnostic(connectionCode,status?.protocol||'pop3')}/></div>
       </details>}
     </section>
-    <MailFileImport progress={status?.localImport} busy={busy||!status} onChoose={()=>act(async()=>{const value=await api('importMailFolder');return value.cancelled?status:value;})} onCancel={()=>act(()=>api('mail',{action:'cancelImport'}))}/>
+    {status?.connected&&fileImport}
     {showSettings&&<><section className="nubi-mail-section nubi-mail-organize" aria-label="자동 정리 설정"><div className="nubi-mail-switch-row"><div>{sectionTitle('sliders','자동 정리')}<small>받은 메일과 보낸 메일을 AI로 정리해요.</small></div>
       <button type="button" role="switch" aria-label="메일 자동 정리" aria-checked={autoWiki} className="nubi-ios-switch" disabled={connectionBusy||!status} onClick={()=>act(()=>api('mail',{action:'setAutoWiki',enabled:!autoWiki,destination:destination?{provider:destination.provider,model:destination.model}:null}))}><span aria-hidden="true"/></button>
     </div><details className="nubi-mail-help"><summary>수집 범위</summary><p>메일함은 포털에서 가져와요. 임시보관함과 스팸함은 자동 AI 정리에서 제외해요.</p></details></section>

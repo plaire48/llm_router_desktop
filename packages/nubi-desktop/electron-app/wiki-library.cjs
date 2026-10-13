@@ -3,6 +3,7 @@ const {constants}=require('node:fs');
 const path=require('node:path');
 const {createHash,randomUUID}=require('node:crypto');
 const hash=text=>createHash('sha256').update(text).digest('hex');
+const {describeWikiPage}=require('./wiki-frontmatter.cjs');
 const fail=code=>{throw Error(code);};
 const LIMIT=1024*1024;
 function valid(name){return typeof name==='string'&&name.length<=500&&/\.md$/i.test(name)&&!/[\\:\x00-\x1f<>"|?*]/.test(name)&&name.split('/').every(p=>p&&!p.startsWith('.')&&!/[. ]$/.test(p)&&!/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(p));}
@@ -48,7 +49,7 @@ class WikiLibrary{
     for(const f of files.sort((a,b)=>a.name.localeCompare(b.name))){if(++entries>10000||items.length>=500||bytes>20*LIMIT){truncated=true;break;}
      if(f.name.startsWith('.')||['nubi-evidence','nubi-map','node_modules'].includes(f.name)||f.isSymbolicLink())continue;
      const name=rel?rel+'/'+f.name:f.name;if(f.isDirectory()){if(name.split('/').length<=15)await walk(name);else truncated=true;}
-     else if(f.isFile()&&valid(name)){try{const doc=await read(scope.root,name);bytes+=Buffer.byteLength(doc.content);if(bytes>20*LIMIT){truncated=true;break;}items.push({...doc,title:doc.content.match(/^#\s+(.+)$/m)?.[1]?.trim().slice(0,160)||path.posix.basename(name,'.md')});}catch{skipped.push(name);}}
+     else if(f.isFile()&&valid(name)){try{const doc=await read(scope.root,name);bytes+=Buffer.byteLength(doc.content);if(bytes>20*LIMIT){truncated=true;break;}const page=describeWikiPage(doc.content,name);items.push({...doc,title:page.title,type:page.type,description:page.description,tags:page.tags,size:doc.content.length});}catch{skipped.push(name);}}
     }
    }
    await walk();const paths=new Set(items.map(i=>i.path)),edges=items.flatMap(i=>documentLinks(i.content,i.path,paths).map(to=>({from:i.path,to})));

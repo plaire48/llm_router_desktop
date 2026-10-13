@@ -145,12 +145,12 @@ export function installAgent(ProjectService) {
       const selected=this.providers.status();
       if(input.expectedProvider!==undefined&&input.expectedProvider!==selected.provider||input.expectedModel!==undefined&&input.expectedModel!==selected.model)throw Error('reasoning_changed');
     }
-    const actions = {status: () => this.providers.status(), login: () => this.providers.login(input.provider), cancel: () => this.providers.cancelLogin(), connect: () => this.providers.connect(input), select: () => this.providers.select(input.provider), model: () => this.providers.model(input.model), reasoning: () => this.providers.reasoning(input.effort), refresh: () => this.providers.refreshModels(input), verify:async()=>{await this.providers.complete([{role:'user',content:'Reply with OK.'}],[],AbortSignal.timeout(30000));return this.providers.status();}, disconnect: () => this.providers.disconnect(input.provider)};
+    const actions = {status: () => this.providers.status(), login: () => this.providers.login(input.provider), cancel: () => this.providers.cancelLogin(), connect: () => this.providers.connect(input), select: () => this.providers.select(input.provider), model: () => this.providers.model(input.model), reasoning: () => this.providers.reasoning(input.effort), refresh: () => this.providers.refreshModels(input), verify:async()=>{await this.providers.complete([{role:'user',content:'Reply with OK.'}],[],AbortSignal.timeout(30000));return this.providers.status();}, quota: () => this.providers.quota(), disconnect: () => this.providers.disconnect(input.provider)};
     if (!actions[action]) throw new Error('provider_action');
     let status = await actions[action]();
     if(action!=='status'){await this.providers.flushConnections?.();status=this.providers.status();}
     this.personalMail?.resumeProcessing();
-    if(!['status','refresh'].includes(action))this.inputEpoch=(this.inputEpoch||0)+1;
+    if(!['status','refresh','quota'].includes(action))this.inputEpoch=(this.inputEpoch||0)+1;
     const wikiConnection=status.providers?.find(item=>item.id===status.provider)?.connectionId;
     if(status.connected&&this.store&&(action!=='status'||this.lastWikiProviderStore!==this.store||this.lastWikiProviderConnection!==wikiConnection)){this.lastWikiProviderStore=this.store;this.lastWikiProviderConnection=wikiConnection;void this.initializeWiki().catch(()=>{});}
     if(this.wikiInitController&&!status.connected)this.wikiInitController.abort();
