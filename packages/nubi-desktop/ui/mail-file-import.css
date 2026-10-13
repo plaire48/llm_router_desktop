@@ -1,0 +1,12 @@
+.nubi-mail-import-heading,.nubi-mail-import-status>div { display:flex; align-items:center; gap:var(--cx-space-2); min-width:0; }
+.nubi-mail-import-heading>div { display:grid; gap:var(--cx-space-1); flex:1; min-width:0; }
+.nubi-mail-file-import strong { font:var(--deck-font-body); font-weight:var(--nubi-weight-emphasis); color:var(--nubi-text-primary); }
+.nubi-mail-file-import small,.nubi-mail-import-status>span { font:var(--deck-font-caption); color:var(--nubi-text-secondary); }
+.nubi-mail-file-import button { flex:none; white-space:nowrap; }
+.nubi-mail-import-status { display:grid; gap:var(--cx-space-2); margin-top:var(--cx-space-3); }
+.nubi-mail-import-status progress { width:100%; accent-color:var(--nubi-text-action); }
+.nubi-mail-import-status>span,.nubi-mail-file-import li>span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+.nubi-mail-file-import details { margin-top:var(--cx-space-2); font:var(--deck-font-caption); }
+.nubi-mail-file-import ul { list-style:none; padding:0; max-height:180px; overflow:auto; }
+.nubi-mail-file-import li { display:flex; align-items:center; gap:var(--cx-space-2); padding-block:var(--cx-space-1); }
+.nubi-mail-file-import li>span { flex:1; }.nubi-mail-file-import li>small { flex:none; }

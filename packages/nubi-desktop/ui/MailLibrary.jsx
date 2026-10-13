@@ -1,3 +1,4 @@
+import {MailFileImport} from './MailFileImport.jsx';
 import {DESKTOP_PROVIDER_LABELS} from './provider-labels.mjs';
 import {CopyButton} from '../../../extensions/aipro-chat/src/CopyButton.jsx';
 import React,{useEffect,useRef,useState} from 'react';
@@ -110,6 +111,7 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
         <p>{failure.detail}</p><div className="nubi-mail-error-code"><code>{connectionCode}</code><CopyButton label="연결 오류 복사" text={mailConnectionDiagnostic(connectionCode,status?.protocol||'pop3')}/></div>
       </details>}
     </section>
+    <MailFileImport progress={status?.localImport} busy={busy||!status} onChoose={()=>act(async()=>{const value=await api('importMailFolder');return value.cancelled?status:value;})} onCancel={()=>act(()=>api('mail',{action:'cancelImport'}))}/>
     {showSettings&&<><section className="nubi-mail-section nubi-mail-organize" aria-label="자동 정리 설정"><div className="nubi-mail-switch-row"><div>{sectionTitle('sliders','자동 정리')}<small>받은 메일과 보낸 메일을 AI로 정리해요.</small></div>
       <button type="button" role="switch" aria-label="메일 자동 정리" aria-checked={autoWiki} className="nubi-ios-switch" disabled={connectionBusy||!status} onClick={()=>act(()=>api('mail',{action:'setAutoWiki',enabled:!autoWiki,destination:destination?{provider:destination.provider,model:destination.model}:null}))}><span aria-hidden="true"/></button>
     </div><details className="nubi-mail-help"><summary>수집 범위</summary><p>메일함은 포털에서 가져와요. 임시보관함과 스팸함은 자동 AI 정리에서 제외해요.</p></details></section>

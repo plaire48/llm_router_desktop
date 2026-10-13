@@ -388,7 +388,7 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 @media (pointer:coarse) { .nubi-actions-disclosure-body[popover] :is(.cx-button,.cx-kit-button) { min-height:44px; } }
 
 /* Source rows share fixed icon/number tracks; the heading never offsets row one. */
-.desktop-shell .nubi-answer-sources { margin-top:16px; }
+.desktop-shell .nubi-answer-sources { margin-top:var(--cx-space-2); }
 .desktop-shell :is(.nubi-cited-sources,.nubi-consulted-sources) { display:grid; grid-template-columns:minmax(0,1fr); gap:6px; align-items:stretch; }
 .desktop-shell .nubi-source-label { margin:0 0 2px; color:var(--deck-sub); font-weight:600; }
 .desktop-shell .nubi-workbench .nubi-answer-sources .nubi-answer-source { display:grid; grid-template-columns:24px 2ch minmax(0,1fr) auto 14px; align-items:center; justify-content:stretch; gap:10px; width:100%; min-width:0; min-height:38px; padding:8px 12px; text-align:left; background:transparent; color:var(--deck-blue-deep); }
@@ -943,3 +943,9 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .desktop-shell .nubi-delivery-status > .nubi-response-time { flex:none; margin:0; }
 .desktop-shell .nubi-delivery-status > span:last-child { min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .desktop-shell .nubi-document-worker-heading .nubi-response-time { flex:none; margin:0; }
+
+/* Compact adjacent reference/plan disclosures without hiding their content. */
+.desktop-shell .nubi-conversation-content>.nubi-enter>.deck-disclosure { margin-top:var(--cx-space-1); padding:var(--cx-space-2) var(--cx-space-3); }
+.desktop-shell .nubi-conversation-content>.nubi-enter>.deck-disclosure>summary { min-height:var(--cx-space-6); }
+.desktop-shell .nubi-answer-sources summary { margin-top:0; min-height:var(--cx-space-6); padding-block:var(--cx-space-1); }
+.desktop-shell .nubi-answer-sources details[open]>summary { margin-bottom:var(--cx-space-1); }

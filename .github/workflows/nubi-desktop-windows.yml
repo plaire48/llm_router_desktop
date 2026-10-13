@@ -45,10 +45,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test ../nubi-vscode/tests/ghes-account.test.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Verify 1.1.7 fixes
-        run: |
-          node --test tests/decision-notices.test.mjs tests/human-decisions.test.mjs tests/project-services.test.mjs tests/review-format-recovery.test.mjs tests/ghes-profile-status.test.mjs tests/wiki-repository.test.mjs tests/browser-auth-return.test.mjs tests/mail-portal.test.mjs tests/portal-mail-metadata.test.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify official npm Claude discovery without inherited npm PATH
         run: node scripts/check-windows-claude.mjs
       - name: Verify Unicode shortcut inspection
@@ -61,6 +57,10 @@ jobs:
           if ($parseErrors.Count) { throw ($parseErrors | Out-String) }
       - name: Build standalone Electron installer with bird icon
         run: npm run package:windows
+      - name: Verify 1.1.7 fixes
+        run: |
+          node --test tests/decision-notices.test.mjs tests/human-decisions.test.mjs tests/project-services.test.mjs tests/review-format-recovery.test.mjs tests/ghes-profile-status.test.mjs tests/wiki-repository.test.mjs tests/browser-auth-return.test.mjs tests/mail-portal.test.mjs tests/portal-mail-metadata.test.mjs tests/mail-file-import.test.mjs tests/workspace-community.test.mjs tests/wiki-library.test.mjs tests/result-review.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify Nubi skill scope and manual external file browsing
         run: |
           node --test tests/agent-capabilities.test.mjs tests/skill-import.test.mjs tests/skill-marketplace.test.mjs tests/local-file-view.test.mjs tests/workspace-updater.test.mjs tests/agent-question-placeholder.test.mjs
@@ -78,6 +78,8 @@ jobs:
           node scripts/check-electron-projects.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/check-project-direct-navigation.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/check-electron-wiki-library.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/check-source-highlight.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

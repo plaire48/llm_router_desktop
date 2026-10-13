@@ -1,6 +1,7 @@
 const {ORIGIN,SECRET_KEY}=require('../../nubi-vscode/src/ghes.cjs');
 const {DesktopGhesAccount}=require('./ghes-profile-status.cjs');
 const {chooseRepository}=require('../../nubi-vscode/src/ghes-git.cjs');
+const {WorkspaceCommunity}=require('./workspace-community.cjs');
 const {WikiRepository}=require('./wiki-repository.cjs');
 const {startTeamWorkspace}=require('./team-workspace.cjs');
 const {spawn}=require('node:child_process');
@@ -20,13 +21,14 @@ function remote(input){
   return url;
 }
 class ElectronHost{
-  constructor({keyStore,invoke,helperPath,fetcher,avatarFetcher,openBrowser=missingWorkspaceBrowser,confirmWorkspaceSave,platform=process.platform,spawnProcess=spawn}){
+  constructor({keyStore,storage,invoke,helperPath,fetcher,avatarFetcher,openBrowser=missingWorkspaceBrowser,confirmWorkspaceSave,platform=process.platform,spawnProcess=spawn}){
     this.invoke=invoke;this.helperPath=helperPath;this.platform=platform;this.spawnProcess=spawnProcess;this.repositories=new Map();this.children=new Set();
-    this.confirmWorkspaceSave=confirmWorkspaceSave;
+    this.confirmWorkspaceSave=confirmWorkspaceSave;this.storage=storage;
     this.account=new DesktopGhesAccount({fetcher,avatarFetcher,cacheAvatars:true,openExternal:openBrowser,copyCode:async()=>{},
       secrets:{get:key=>keyStore.getPassword(SECRET_SERVICE,key),store:(key,value)=>keyStore.setPassword(SECRET_SERVICE,key,value),delete:key=>keyStore.deletePassword(SECRET_SERVICE,key)},
       onInvalidated:async()=>{this.workspace?.close();this.workspace=null;this.wikis?.cancel();this.repositories.clear();for(const child of this.children)child.kill();await invoke('disconnectSkillMarketplace').catch(()=>{});}});
   }
+  get community(){return this.communities??=new WorkspaceCommunity({account:this.account,outboxFile:path.join(this.storage||os.tmpdir(),'community-outbox.json')});}
   get wikiRepository(){return this.wikis??=new WikiRepository({account:this.account,confirmSave:this.confirmWorkspaceSave});}
   async accountAction(operation){return this.account.action(operation);}
   async openTeamWorkspace({refresh=false}={}){

@@ -19,3 +19,5 @@ export const SignpostMark = ({size}) => <Mark size={size}><path d="M12 3v18M5 5h
 export function RecoveryStatus() {
   return <span className="nubi-recovery-status" role="status" aria-label="복구 대기" title="복구 대기"><SignpostMark size={14}/></span>;
 }
+
+export const BookMark = ({size}) => <Mark size={size}><path d="M12 5C9 3 5 3 2.5 4.5v15C5 18 9 18 12 20c3-2 7-2 9.5-.5v-15C19 3 15 3 12 5Zm0 0v15"/></Mark>;

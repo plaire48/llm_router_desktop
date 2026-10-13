@@ -221,11 +221,11 @@ function enforcePendingBoundary(review,data) {
 export function parseReviewJSON(content) {
   if(typeof content!=='string')throw new Error('review_json_invalid');
   const text=content.trim().replace(/^\uFEFF/,'');
-  const fenced=text.match(/^```(?:json)?\s*\n([\s\S]*?)\n```$/i);
+  const fenced=text.match(/^```(?:json)?[ \t\r\n]*([\s\S]*?)[ \t\r\n]*```$/i);
   return JSON.parse(fenced?fenced[1]:text);
 }
 export async function reviewResult({invoke,signal,...input}) {
-  const {messages,data}=resultReviewInput(input);let problems=[],formatRetries=0,coverageRechecked=false,reason='review_json_invalid';
+  const {messages,data}=resultReviewInput(input);let problems=[],formatRetries=0,coverageRechecked=false,plainRepair=false,reason='review_json_invalid';
   // A literal part of the user's request can be mislabeled as an intent-only
   // omission. Confirm coverage once before discarding that follow-up. This is
   // read-only and separate from the single malformed-JSON retry.
@@ -236,9 +236,14 @@ export async function reviewResult({invoke,signal,...input}) {
     const repair=problems.length>0;
     const prompt=REVIEW_PROMPT+(coverageRechecked?coverage:'')+(repair?' Previous review JSON was invalid. Return a complete valid object using report_desktop_review with exact requirement IDs and observed evidence IDs. Problems found: '+problems.join(' ')+' Usable evidence IDs: '+usable+'.':'');
     let response;
-    try{response=await invoke([{...messages[0],content:prompt},messages[1]],repair?[RESULT_REVIEW_TOOL]:[]);}
+    try{response=await invoke([{...messages[0],content:prompt},messages[1]],repair&&!plainRepair?[RESULT_REVIEW_TOOL]:[]);}
     catch(error){
       if(signal.aborted)throw new Error('cancelled');
+      // Some OpenAI-compatible servers reject tool envelopes on the review-only
+      // repair. Fall back once to plain JSON with the same schema and evidence.
+      if(repair&&!plainRepair&&['request_format','request_rejected','tools_unsupported'].includes(error.message)){
+        plainRepair=true;problems=['Return plain JSON only, not a tool call. Schema: '+JSON.stringify(RESULT_REVIEW_SCHEMA)];continue;
+      }
       if(!['response_invalid','output_limit'].includes(error.message))throw error;
       reason=error.message==='output_limit'?'review_output_limit':'review_json_invalid';
       problems=['The review response was empty, malformed or truncated. Return a concise complete review. No action was executed.'];
@@ -315,11 +320,15 @@ export async function runReviewedAgent({messages,run,review,snapshot,signal,onRe
     let verdict;
     try{verdict=await review({...facts,candidate:result.content,signal});}
     catch(error){
-      if(signal.aborted||repairUsed||round>=REVIEW_ROUNDS||!reviewCanRecover(error))throw error;
+      if(signal.aborted)throw error;
+      if(repairUsed||round>=REVIEW_ROUNDS||!reviewCanRecover(error)){
+        // Preserve the candidate for inspection, never mark it reviewed/ready.
+        error.reviewCandidate=result.content;throw error;
+      }
       // A malformed review says nothing about whether an action succeeded.
       // One read-only repair preserves the candidate and exact host receipts.
       repairUsed=true;recovering=true;
-      await onReviewRecovery({candidate:result.content,round,error:error.message});
+      await onReviewRecovery({candidate:result.content,round,error:error.message,reason:error.reviewReason});
       const revision=[{role:'assistant',content:result.content},{role:'user',contextOnly:true,content:DESKTOP_REVIEW_RECOVERY_GUIDANCE}];
       onContinue(revision);messages=[...continuation(),...revision];continue;
     }

@@ -97,8 +97,8 @@ export function QuestionForm({showActionLabels = false, confirmChoices = false, 
       </CxButton>)}
     </div>}
     {!answered && deferred && allowText && !compact && <span className="question-other-label" aria-hidden="true">기타</span>}
-    {!answered && allowText && <form className="interaction-input" id={`${id}-form`} onSubmit={submit}>
-      <div className="interaction-entry"><span className="interaction-entry-icon" aria-hidden="true"><Icon name="pencil" size={18}/></span><CxField label={deferred ? '기타' : '직접 답변'} id={`${id}-answer`} error={error || undefined}>
+    {!answered && (allowText || deferred) && <form className="interaction-input" id={`${id}-form`} onSubmit={submit}>
+      {allowText && <div className="interaction-entry"><span className="interaction-entry-icon" aria-hidden="true"><Icon name="pencil" size={18}/></span><CxField label={deferred ? '기타' : '직접 답변'} id={`${id}-answer`} error={error || undefined}>
       {React.createElement(CxTextarea, {ref: input, value, 'aria-describedby': hideHeading ? undefined : `${id}-title`,
         placeholder: inputHint || (compact ? '또는 직접 답변을 작성하세요' : deferred ? '직접 입력' : multiline ? '예: 포함할 내용과 원하는 분위기' : hasChoices ? '예: 다른 답변이나 추가 조건' : '예: 원하는 내용이나 조건'), maxLength, disabled: blocked,
         rows: multiline ? 3 : 1, onChange: event => change(event.target.value), onKeyDown: keydown,
@@ -118,7 +118,7 @@ export function QuestionForm({showActionLabels = false, confirmChoices = false, 
             focusInput();
           }
         }})}
-      </CxField></div>
+      </CxField></div>}
       <div className="interaction-input-actions">
         {hasMore && <CxButton type="button" className="question-more" title={expanded ? '답변 입력 줄이기' : '답변 입력 펼치기'} aria-expanded={expanded} aria-controls={`${id}-answer`} disabled={blocked} onClick={() => {setExpanded(current => !current); focusInput();}}><Icon name={expanded ? 'minimize' : 'maximize'} size={16}/>{expanded ? '접기' : '더 보기'}</CxButton>}
         {value.length > maxLength * .9 && <span className="interaction-count" role="status">{value.length.toLocaleString()} / {maxLength.toLocaleString()}</span>}

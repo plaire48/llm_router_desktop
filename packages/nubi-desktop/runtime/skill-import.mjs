@@ -136,7 +136,7 @@ export async function verifyInstalled(target,packet) {
 export function skillPackageHash(packet){return hash(JSON.stringify({files:[...packet.files].sort(([a],[b])=>a.localeCompare(b)).map(([file,bytes])=>[file,hash(bytes)]),directories:[...packet.directories].sort()}));}
 
 export async function removeSkill({taskId,name,expectedHash,preview=false}={}){
-  this.ready();if(this.skillImportBusy||this.agent?.running||this.unsettledOperations?.size)fail('agent_busy');
+  this.ready();if(this.skillImportBusy||this.unsettledOperations?.size)fail('agent_busy');
   if(typeof name!=='string'||!(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).test(name)||name.length>64)fail('input_invalid');
   this.skillImportBusy=true;
   try{
@@ -168,7 +168,7 @@ export async function skillTrash({taskId,operation='list',name,trashId,expectedH
     return {items:[...receipts,...legacy].filter(record=>record.state==='removed').sort((a,b)=>(b.removedAt||'').localeCompare(a.removedAt||'')).map(record=>({id:record.backup,name:record.name,title:record.title||record.name,description:record.description||'',removedAt:record.removedAt,packageHash:record.hash,fileCount:record.fileCount}))};
   }
   if(operation!=='restore'||typeof name!=='string'||!(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).test(name)||name.length>64)fail('input_invalid');
-  if(this.skillImportBusy||this.agent?.running||this.unsettledOperations?.size)fail('agent_busy');
+  if(this.skillImportBusy||this.unsettledOperations?.size)fail('agent_busy');
   this.skillImportBusy=true;
   try{
     const key=prefix+name,id=trashId||this.store.get(key)?.backup;
@@ -189,7 +189,7 @@ export async function skillTrash({taskId,operation='list',name,trashId,expectedH
 
 export async function importSkill({source,taskId}={}) {
   this.ready();
-  if(this.skillImportBusy||this.agent?.running||this.unsettledOperations?.size)fail('agent_busy');
+  if(this.skillImportBusy||this.unsettledOperations?.size)fail('agent_busy');
   this.skillImportBusy=true;
   let pending;
   try {

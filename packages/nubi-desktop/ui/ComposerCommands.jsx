@@ -19,10 +19,17 @@ export function useComposerCommands({api,taskId,value,inputRef,onChange,onComman
   useEffect(()=>{setSelected(0);},[value,signature]);
   useLayoutEffect(()=>{
     if(!visible)return;
-    const place=()=>{const field=inputRef.current?.closest('form');if(!field)return;const rect=field.getBoundingClientRect(),width=Math.min(rect.width,window.innerWidth-24);setPosition({left:Math.max(12,Math.min(rect.left,window.innerWidth-width-12)),bottom:Math.max(12,window.innerHeight-rect.top+8),width,maxHeight:Math.max(100,Math.min(420,rect.top-20))});};
+    const place=()=>{const field=inputRef.current?.closest('form');if(!field)return;const rect=field.getBoundingClientRect(),width=Math.min(rect.width,window.innerWidth-24);setPosition({left:Math.max(12,Math.min(rect.left,window.innerWidth-width-12)),bottom:Math.max(12,window.innerHeight-rect.top+8),width,maxHeight:Math.max(100,Math.min(500,rect.top-20))});};
     place();window.addEventListener('resize',place);window.addEventListener('scroll',place,true);
     return()=>{window.removeEventListener('resize',place);window.removeEventListener('scroll',place,true);};
   },[visible,inputRef]);
+  useLayoutEffect(()=>{
+    if(!visible||!menu.current)return;
+    const list=menu.current;
+    const measure=()=>{const rows=[...list.querySelectorAll('[role=option]')].slice(0,10);if(rows.length){const first=rows[0].getBoundingClientRect(),last=rows.at(-1).getBoundingClientRect();list.style.maxHeight=`${Math.ceil(last.bottom-first.top)}px`;}};
+    const observer=new ResizeObserver(measure);observer.observe(list);measure();
+    return()=>observer.disconnect();
+  },[visible,signature,position?.width]);
   useEffect(()=>{menu.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({block:'nearest'});},[selected]);
   function choose(item) {
     if(item.action){onChange({target:{value:''}});onCommand?.(item.action);}

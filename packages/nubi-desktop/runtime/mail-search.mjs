@@ -1,3 +1,4 @@
+import {LOCAL_MAIL_KINDS,APPROVAL_KINDS} from './mail-file-kinds.mjs';
 import {MAIL_SORTS,mailSender,mailRoleLabel} from './mail-presentation.mjs';
 import {DESKTOP_FEATURES} from './beta-features.mjs';
 import MiniSearch from 'minisearch';
@@ -13,7 +14,7 @@ const day=value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&Num
 const one=(value,allowed,fallback)=>allowed.includes(value)?value:fallback;
 export function mailFilters(value={}) {
   if(!value||typeof value!=='object'||Array.isArray(value))throw Error('mail_input_invalid');
-  const filters={subject:clean(value.subject).slice(0,500),roles:list(value.roles).filter(role=>['to','cc','bcc','sent','unknown'].includes(role)),mailbox:typeof value.mailbox==='string'&&/^folder:\d{1,15}$/.test(value.mailbox||'')?value.mailbox:one(value.mailbox,['all','inbox','sent','draft','spam','trash','other'],'all'),period:one(value.period,['all','7','30','custom','unknown'],'all'),from:day(value.from),to:day(value.to),dateField:one(value.dateField,['date','fetchedAt'],'date'),senders:list(value.senders).map(v=>v.slice(0,200)),attachment:one(value.attachment,['all','with','without'],'all'),types:list(value.types).filter(v=>['pdf','word','excel','powerpoint','other'].includes(v)),filename:clean(value.filename).slice(0,200),locations:list(value.locations).filter(v=>['subject','metadata','body','attachment','knowledge'].includes(v)),states:list(value.states).filter(v=>['queued','saved','attention'].includes(v)),pinned:value.pinned===true,tags:list(value.tags,20).map(v=>v.slice(0,50)),confirmed:one(value.confirmed,['all','yes','no'],'all')};
+  const filters={subject:clean(value.subject).slice(0,500),roles:list(value.roles).filter(role=>['to','cc','bcc','sent','unknown'].includes(role)),mailbox:typeof value.mailbox==='string'&&/^folder:\d{1,15}$/.test(value.mailbox||'')?value.mailbox:one(value.mailbox,['all','mail','inbox','sent','draft','spam','trash','other',...Object.keys(LOCAL_MAIL_KINDS).map(kind=>'local:'+kind)],'all'),period:one(value.period,['all','7','30','custom','unknown'],'all'),from:day(value.from),to:day(value.to),dateField:one(value.dateField,['date','fetchedAt'],'date'),senders:list(value.senders).map(v=>v.slice(0,200)),attachment:one(value.attachment,['all','with','without'],'all'),types:list(value.types).filter(v=>['pdf','word','excel','powerpoint','other'].includes(v)),filename:clean(value.filename).slice(0,200),locations:list(value.locations).filter(v=>['subject','metadata','body','attachment','knowledge'].includes(v)),states:list(value.states).filter(v=>['queued','saved','attention'].includes(v)),pinned:value.pinned===true,tags:list(value.tags,20).map(v=>v.slice(0,50)),confirmed:one(value.confirmed,['all','yes','no'],'all')};
   if(value.period==='custom'&&((value.from&&!filters.from)||(value.to&&!filters.to)||(filters.from&&filters.to&&filters.from>filters.to)))throw Error('mail_input_invalid');
   return filters;
 }
@@ -26,7 +27,9 @@ function fits(entry,filters,user) {
   const {mail,row}=entry,date=Date.parse(row[filters.dateField]);
   if(filters.subject&&!lower(mail.subject).includes(lower(filters.subject)))return false;
   if(filters.roles.length&&!filters.roles.includes(entry.recipientRole||'unknown'))return false;
-  if(filters.mailbox!=='all'&&(filters.mailbox.startsWith('folder:')?String(row.folderId)!==filters.mailbox.slice(7):(row.mailbox||'inbox')!==filters.mailbox))return false;
+  if(filters.mailbox==='mail'&&APPROVAL_KINDS.includes(row.mailbox))return false;
+  if(filters.mailbox.startsWith('local:')&&(row.protocol!=='local'||row.mailbox!==filters.mailbox.slice(6)))return false;
+  if(!['all','mail'].includes(filters.mailbox)&&!filters.mailbox.startsWith('local:')&&(filters.mailbox.startsWith('folder:')?String(row.folderId)!==filters.mailbox.slice(7):(row.mailbox||'inbox')!==filters.mailbox))return false;
   if(filters.period==='unknown'){if(Number.isFinite(date))return false;}
   else if(filters.period!=='all'){
     if(!Number.isFinite(date))return false;
@@ -46,7 +49,7 @@ function fits(entry,filters,user) {
 }
 const plainWiki=value=>String(value||'').replace(/^---\n[\s\S]*?\n---\n/,'').replace(/^#{1,6}\s+/gm,'').replace(/\[([^\]]+)\]\([^)]*\)/g,'$1').replace(/[*_`]/g,'');
 function documents(entry,user,includeUrlParameters=false) {
-  const {row,mail,knowledge}=entry,items=[{kind:'subject',text:mail.subject+'\n'+mail.from},{kind:'metadata',text:[mail.to,mail.cc,mail.date,...user.tags].filter(Boolean).join('\n')},{kind:'body',text:mail.text||''}];
+  const {row,mail,knowledge}=entry,items=[{kind:'subject',text:mail.subject+'\n'+mail.from},{kind:'metadata',text:[mail.to,mail.cc,mail.date,mail.documentKindLabel,mail.sourceFilename,mail.sourceFolder,...user.tags].filter(Boolean).join('\n')},{kind:'body',text:mail.text||''}];
   for(const attachment of mail.attachments){
     items.push({kind:'attachment',attachmentId:attachment.id,filename:attachment.filename,text:attachment.filename||'',filenameOnly:true});
     if(!DESKTOP_FEATURES.mailAttachmentReading)continue;

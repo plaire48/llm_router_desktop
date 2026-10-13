@@ -64,9 +64,9 @@ test('missing or ambiguous entrypoint, invalid metadata, folder links and linked
   await mkdir(path.join(root,'.nubi'));await symlink(directory,path.join(root,'.nubi/skill'),process.platform==='win32'?'junction':'dir');await assert.rejects(service.importSkill({source:await archive(directory)}),/skill_import_path/);
 });
 
-test('registration cannot race an agent or change projects while copying',async t=>{
+test('registration works during an agent run but serializes skill writes',async t=>{
   const {service,directory}=await fixture(t),source=await folder(directory);
-  service.agent={running:true};await assert.rejects(service.importSkill({source}),/agent_busy/);service.agent=null;
+  service.agent={running:true};const registered=await service.importSkill({source});assert.equal(registered.state,'registered');service.agent=null;
   const pending=service.importSkill({source});assert.equal(service.skillImportBusy,true);await assert.rejects(service.importSkill({source}),/agent_busy/);await assert.rejects(service.startAgent({taskId:'unused'}),/agent_busy/);await pending;assert.equal(service.skillImportBusy,false);
 });
 
@@ -103,4 +103,13 @@ test('registered deletion refuses edited resources, stale receipts and arbitrary
   const {service,root,directory}=await fixture(t);await service.importSkill({source:await folder(directory)});const skill=(await service.listSkills()).skills[0];
   await assert.rejects(service.removeSkill({name:'../outside',expectedHash:skill.packageHash}),/input_invalid/);await assert.rejects(service.removeSkill({name:skill.name,expectedHash:'wrong'}),/skill_import_changed/);
   const file=path.join(root,'.nubi/skill',skill.name,'references/세부/guide.md');await writeFile(file,'Human edit');await assert.rejects(service.removeSkill({name:skill.name,expectedHash:skill.packageHash}),/skill_import_changed/);assert.equal(await readFile(file,'utf8'),'Human edit');
+});
+
+test('Personal deletion preview and removal do not wait for an unrelated AI run',async t=>{
+ const {service,directory}=await fixture(t);const skill=await service.importSkill({source:await folder(directory)});
+ service.agent={running:true};
+ const preview=await service.removeSkill({name:skill.name,preview:true});
+ assert.equal((await service.removeSkill({name:skill.name,expectedHash:preview.packageHash})).removed,true);
+ service.agent=null;
+ assert.equal((await service.listSkills()).skills.length,0);
 });

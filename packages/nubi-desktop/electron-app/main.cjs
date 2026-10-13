@@ -36,6 +36,11 @@ let window,worker,host,webHost,browserHost,mailPortal,currentRoot=null,currentKi
 const storage=process.env.NUBI_STORAGE_ROOT||path.join(app.getPath('userData'),'workspace');
 const {ProjectCatalog}=require('./project-catalog.cjs');
 const projectCatalog=new ProjectCatalog(storage);
+const {WikiLibrary}=require('./wiki-library.cjs');
+const wikiLibrary=new WikiLibrary({backupRoot:path.join(storage,'wiki-revisions'),roots:async()=>{
+ const projects=await projectCatalog.list(),mail=await invoke('mail',{action:'status'});
+ return [...projects.map(p=>({id:p.id,name:p.name,kind:'project',root:path.join(p.root,'openwiki')})),{id:'personal-mail',name:'메일',kind:'mail',root:mail.wikiRoot}];
+},canWrite:async scope=>scope.kind==='mail'?!(await invoke('mail',{action:'status'})).summarizing:!(await invoke('projectActivity',{projectId:scope.id})).active});
 let openingProject=false;
 function recordFault(component,details={}){
  const reason=['clean-exit','abnormal-exit','killed','crashed','oom','launch-failed','integrity-failure'].includes(details.reason)?details.reason:'unexpected';
@@ -43,7 +48,7 @@ function recordFault(component,details={}){
  void mkdir(storage,{recursive:true}).then(()=>writeFile(path.join(storage,'last-host-fault.json'),JSON.stringify(record),{mode:0o600})).catch(()=>{});
 }
 process.on('uncaughtExceptionMonitor',()=>recordFault('main'));
-async function portalMailStatus(){void mailPortal.restore();const status=await invoke('mail',{action:'status'}),portal=mailPortal.status();return {...status,protocol:'portal',serverProfile:'portal',connected:portal.connected,connecting:portal.connecting,checking:portal.checking,error:portal.error||status.error,folders:portal.folders.length?portal.folders:status.folders,portal,progress:{...status.progress,stage:portal.connecting?'connecting':portal.checking?'checking':!portal.connected?'disconnected':status.progress.stage,lastCheckedAt:portal.lastCheckedAt}};}
+async function portalMailStatus(){void mailPortal.restore();const status=await invoke('mail',{action:'status'}),portal=mailPortal.status();return {...status,protocol:'portal',serverProfile:'portal',connected:portal.connected,connecting:portal.connecting,checking:portal.checking,error:portal.error||status.error,folders:portal.folders.length?portal.folders:status.folders,portal,progress:{...status.progress,stage:portal.connecting?'connecting':portal.checking?'checking':!portal.connected&&!status.localCount?'disconnected':status.progress.stage,lastCheckedAt:portal.lastCheckedAt}};}
 function invoke(method,args={}){if(!worker)return Promise.reject(Error('host_disconnected'));return worker.invoke(method,args);}
 // What the window needs to hear from the host itself (the worker restarted, or gave up): nubi:host-event.
 function hostEvent(event){if(window&&!window.isDestroyed()&&!window.webContents.isDestroyed())window.webContents.send('nubi:host-event',event);}
@@ -115,7 +120,7 @@ app.whenReady().then(async()=>{
   catch(error){hostEvent({type:'worker_failed',...details,error:/^[a-z_]+$/.test(error.message)?error.message:'operation_failed'});}
  });
  worker.start();
- host=new ElectronHost({keyStore,invoke,helperPath:path.join(__dirname,'git-askpass.cjs'),avatarFetcher:(url,options)=>{
+ host=new ElectronHost({storage,keyStore,invoke,helperPath:path.join(__dirname,'git-askpass.cjs'),avatarFetcher:(url,options)=>{
   if(new URL(url).origin!=='https://code.sdsdev.co.kr'||!browserHost)throw Error('ghes_avatar_unavailable');
   // Use normal requests in the app's authenticated browser session. No cookie
   // extraction, external browser storage or token forwarding is involved.
@@ -200,9 +205,10 @@ app.whenReady().then(async()=>{
    await writeFile(saved.filePath,bytes,{mode:0o600});if(createHash('sha256').update(await readFile(saved.filePath)).digest('hex')!==packet.sha256)throw Error('mail_download_unconfirmed');
    return {saved:true,filename:path.basename(saved.filePath)};
   }
+  if(method==='importMailFolder'){if(source!=='electron')throw Error('mail_portal_desktop_only');const directory=await choose(['openDirectory'],'메일 파일 폴더 선택');return directory?invoke('mail',{action:'importFolder',directory}):{cancelled:true};}
   if(method==='mail'){
    if(['connect','setIdentity'].includes(args.action))throw Error('mail_portal_only');
-   if(/^portal(?:Connect|Import|Folders|Known|Rejected|Document)$/.test(args.action||'')||args.action==='download')throw Error('method_invalid');
+   if(/^portal(?:Connect|Import|Folders|Known|Rejected|Document)$/.test(args.action||'')||['download','importFolder'].includes(args.action))throw Error('method_invalid');
    if(args.action==='approvals')return mailPortal.approvals(args);
    if(args.action==='approvalRead')return mailPortal.approvalRead(args);
    if(args.action==='portalLogin'){
@@ -226,6 +232,9 @@ app.whenReady().then(async()=>{
   if(method==='ghesRepositories')return host.listRepositories();
   if(method==='connectMarketplace')return host.connectMarketplace();
   if(method==='openTeamWorkspace')return host.openTeamWorkspace(args);
+  if(method==='workspaceCommunity'){if(source!=='electron')throw Error('wiki_share_desktop_only');return host.community.call(args);}
+  if(method==='openWorkspaceApp'){if(source!=='electron')throw Error('wiki_share_desktop_only');const item=await host.community.call({action:'app',id:args.id});if(item.kind==='link')return openWorkspacePage(item.url);const workspace=await host.openTeamWorkspace();return openWorkspacePage(workspace.url+'#workspace/site='+item.id);}
+  if(method==='wikiLibrary'){if(source!=='electron')throw Error('wiki_share_desktop_only');return wikiLibrary.call(args);}
   if(method==='wikiRepository'){
    if(source!=='electron')throw Error('wiki_share_desktop_only');
    const service=host.wikiRepository;

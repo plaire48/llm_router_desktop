@@ -14,7 +14,7 @@ let browser;
 try {
  browser=await chromium.launch({channel:'chrome',headless:true});const page=await browser.newPage({reducedMotion:'reduce'});
  const measurements=[];
- for(const width of [900,440]){
+ for(const width of [900,440,360]){
   await page.setViewportSize({width,height:850});await page.goto('http://127.0.0.1:'+server.address().port);await page.getByRole('textbox').waitFor();await page.evaluate(()=>document.fonts.ready);
   for(const text of ['', '첫 번째 줄\n두 번째 줄\n세 번째 줄']){
    await page.getByRole('textbox').fill(text);
@@ -22,7 +22,14 @@ try {
    measurements.push({width,multiline:!!text,...geometry});
    if(!process.argv.includes('--baseline')){assert(geometry.offset<=1,JSON.stringify(geometry));assert.equal(geometry.overflow,false);}
   }
-  await page.getByRole('textbox').fill('');await page.screenshot({path:dir+'/'+width+(process.argv.includes('--baseline')?'-before':'-after')+'.png'});
+  await page.getByRole('textbox').fill('');
+  const choice=page.getByRole('checkbox').first();await choice.click();assert.equal(await choice.getAttribute('aria-checked'),'true');
+  const tick=await choice.locator('.question-option-index').boundingBox(),row=await choice.boundingBox();assert(tick.x-row.x>=11,'Check has a safe left inset');assert(Math.abs(tick.y+tick.height/2-(row.y+row.height/2))<1,'Check is centered');assert.equal(tick.width,20);assert.equal(tick.height,20);
+  const send=page.getByRole('button',{name:'답변 보내기',exact:true});assert(await send.isEnabled());
+  const rect=await send.boundingBox();assert(rect.x>=0&&rect.x+rect.width<=width,'Send must remain visible');
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  await choice.hover();await page.getByRole('tooltip').waitFor();assert((await page.getByRole('tooltip').innerText()).includes('전체 조건'));await send.click();assert.equal(await page.evaluate(()=>window.answers.length),1);
+  await page.screenshot({path:dir+'/'+width+(process.argv.includes('--baseline')?'-before':'-after')+'.png'});
  }
  console.log(JSON.stringify(measurements));
 }finally{await browser?.close();await new Promise(r=>server.close(r));}

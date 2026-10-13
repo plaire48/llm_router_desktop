@@ -15,6 +15,7 @@ async function launch(){app=await electron.launch({executablePath:process.env.NU
 const row=name=>page.locator('.nubi-saved-project').filter({has:page.locator('.nubi-sidebar-project-name',{hasText:name})});
 try {
  await launch();await page.getByRole('button',{name:task.request,exact:true}).click();
+ assert.equal(await page.locator('.nubi-cited-disclosure').getAttribute('open'),null);await page.getByText('원문 출처',{exact:true}).click();
  assert.equal(await page.locator('.nubi-cited-sources .nubi-file-kind').textContent(),'MD');
  await page.locator('.nubi-cited-sources .nubi-answer-source').click();
  await page.waitForFunction(()=>document.querySelectorAll('.desktop-editor .nubi-source-highlight').length===2);
