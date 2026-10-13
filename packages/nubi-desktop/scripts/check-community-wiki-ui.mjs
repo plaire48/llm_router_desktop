@@ -18,7 +18,7 @@ const server=createServer(async(req,res)=>{try{const requested=path.resolve(dir,
 let browser;const errors=[];
 try{
  browser=await chromium.launch({channel:'chrome',headless:true});const p=await browser.newPage({viewport:{width:1100,height:950},reducedMotion:'reduce'});p.on('pageerror',e=>{errors.push(e.message);console.error(e.message);});const origin='http://127.0.0.1:'+server.address().port;
- for(const width of [1100,440]){
+ for(const width of [1100,440,360]){
   await p.setViewportSize({width,height:950});await p.goto(origin);
   const tabs=p.getByRole('tablist',{name:'AI Workspace 영역'});await tabs.getByRole('tab').first().waitFor();assert.deepEqual(await tabs.getByRole('tab').allTextContents(),['스킬','위키','앱','Talk']);
   await tabs.getByRole('tab',{name:'앱',exact:true}).click();await p.getByRole('button',{name:/업무 현황/}).click();assert((await p.evaluate(()=>window.calls)).some(c=>c.method==='openWorkspaceApp'&&c.id==='app1'));
@@ -26,8 +26,24 @@ try{
   await p.getByRole('button',{name:'줄글 보기'}).click();await p.getByRole('button',{name:/실무에서 써 본/}).click();await p.getByRole('textbox',{name:'댓글 내용'}).fill('다음 업무에 활용해 볼게요.');await p.getByRole('button',{name:'댓글 등록'}).click();await p.getByText('댓글을 등록했어요.',{exact:true}).waitFor();
   await p.getByRole('button',{name:'글쓰기',exact:true}).click();const d=p.getByRole('dialog',{name:'Talk 글쓰기'});await assertDesktopDialog(d,{});await d.getByRole('textbox',{name:'글 제목'}).fill('경험 공유');await d.getByRole('textbox',{name:'글 내용'}).fill('유용한 내용을 정리했습니다.');await p.screenshot({animations:'disabled',path:path.join(dir,'talk-compose-'+width+'.png')});await d.getByRole('button',{name:'게시하기'}).click();await d.waitFor({state:'hidden'});
   assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
-  await p.goto(origin+'/?wiki');await p.getByRole('button',{name:/서비스 운영/}).click();await p.getByRole('button',{name:'위키 수정',exact:true}).click();await p.getByRole('textbox',{name:'위키 본문'}).fill('# 사람이 보완한 운영 지침');await p.getByRole('button',{name:'위키 저장',exact:true}).click();await p.getByText('저장했어요. 다음 위키 조회에 반영됩니다.',{exact:true}).waitFor();await p.getByRole('button',{name:'연결',exact:true}).click();await p.getByRole('img',{name:'2개 문서의 연결'}).waitFor();await p.screenshot({animations:'disabled',path:path.join(dir,'wiki-'+width+'.png')});
+  await p.goto(origin+'/?wiki');
+  await p.locator('.nubi-wiki-document h2').filter({hasText:'서비스 운영'}).waitFor();
+  assert.equal((await p.evaluate(()=>window.calls)).filter(c=>c.action==='read').length,1,'entry opens the project home without another click');
+  await p.getByRole('navigation',{name:''}).filter({has:p.getByRole('button',{name:'배포 절차'})}).getByRole('button',{name:'배포 절차'}).click();
+  await p.locator('.nubi-wiki-document h2').filter({hasText:'배포 절차'}).waitFor();
+  await p.getByRole('button',{name:'대화로 돌아가기',exact:true}).click();await p.getByRole('button',{name:'위키 다시 열기',exact:true}).click();
+  await p.locator('.nubi-wiki-document h2').filter({hasText:'배포 절차'}).waitFor();
+  await p.getByRole('textbox',{name:'위키 문서 검색'}).fill('서비스');await p.getByRole('textbox',{name:'위키 문서 검색'}).press('Enter');
+  await p.locator('.nubi-wiki-document h2').filter({hasText:'서비스 운영'}).waitFor();
+  await p.getByRole('textbox',{name:'위키 문서 검색'}).fill('');
+  await p.getByRole('button',{name:'위키 수정',exact:true}).click();await p.getByRole('textbox',{name:'위키 본문'}).fill('# 저장 전 메모');
+  await p.getByRole('button',{name:'메일',exact:true}).click();await p.locator('.nubi-wiki-document h2').waitFor();
+  await p.getByRole('button',{name:'업무 프로젝트',exact:true}).click();await p.getByRole('textbox',{name:'위키 본문'}).waitFor();
+  assert.equal(await p.getByRole('textbox',{name:'위키 본문'}).inputValue(),'# 저장 전 메모','scope switch preserves unsaved text and selected document');
+  await p.getByRole('button',{name:'수정 취소',exact:true}).click();
+  await p.screenshot({animations:'disabled',path:path.join(dir,'wiki-reading-'+width+'.png')});
+  await p.getByRole('button',{name:'위키 수정',exact:true}).click();await p.getByRole('textbox',{name:'위키 본문'}).fill('# 사람이 보완한 운영 지침');await p.getByRole('button',{name:'위키 저장',exact:true}).click();await p.getByText('저장했어요. 다음 위키 조회에 반영됩니다.',{exact:true}).waitFor();await p.getByRole('button',{name:'문서 연결 보기',exact:true}).click();await p.getByRole('img',{name:'2개 문서의 연결'}).waitFor();await p.screenshot({animations:'disabled',path:path.join(dir,'wiki-'+width+'.png')});
   assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
  }
- assert.deepEqual(errors,[]);console.log('Workspace tabs, app opening, Talk grid/feed/post/comment, Wiki edit/save/graph: fixture 1100/440px passed.');
+ assert.deepEqual(errors,[]);console.log('Workspace tabs, app opening, Talk grid/feed/post/comment, Wiki edit/save/graph: fixture 1100/440/360px passed, with direct opening, last document restoration, related navigation, Enter search and draft retention.');
 }finally{await browser?.close();server.close();}
