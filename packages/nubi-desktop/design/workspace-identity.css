@@ -52,6 +52,14 @@
   --nubi-terminal-accent: #80B7FF;
   --nubi-terminal-danger: #FFADB4;
   --nubi-terminal-selection: #294B75;
+  /* Quiet copy controls: the check changes shape, not size or surface. */
+  --nubi-copy-control-size: 1.5rem;
+  --nubi-copy-icon-size: .875rem;
+  --nubi-copy-touch-size: 2.75rem;
+  --nubi-copy-gap: var(--cx-space-2);
+  --nubi-copy-radius: var(--deck-control-radius);
+  --nubi-copy-ink: var(--nubi-text-secondary);
+  --nubi-copy-hover-ink: var(--nubi-text-primary);
   --nubi-pointer-ink: #171717;
   --nubi-pointer-shadow: drop-shadow(0 1px 1px #0008);
   --nubi-modal-inset: var(--cx-space-6);

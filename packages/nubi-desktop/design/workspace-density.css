@@ -963,6 +963,19 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .nubi-approval-form .nubi-approval-bar>button { min-width:0; padding-inline:var(--cx-space-2); white-space:nowrap; }
 .nubi-terminal-header-copy { margin-left:auto; display:flex; align-items:center; flex:none; }
 .nubi-terminal-header-copy button { color:var(--nubi-terminal-ink); }
+/* One quiet copy token contract for conversation, dialogs and terminal surfaces. */
+:root:has(.desktop-shell) .copy-control .cx-action-button.cx-icon-button[data-icon-only=true] {
+ width:var(--nubi-copy-control-size); min-width:var(--nubi-copy-control-size); height:var(--nubi-copy-control-size); min-height:var(--nubi-copy-control-size);
+ padding:0; border:0; border-radius:var(--nubi-copy-radius); box-shadow:none; color:var(--nubi-copy-ink); background:transparent;
+}
+:root:has(.desktop-shell) .copy-control .cx-action-button.cx-icon-button[data-icon-only=true]:is(:hover,:focus-visible) { color:var(--nubi-copy-hover-ink); background:transparent; }
+:root:has(.desktop-shell) .copy-control .cx-action-button.cx-icon-button[data-icon-only=true] svg { width:var(--nubi-copy-icon-size); height:var(--nubi-copy-icon-size); }
+:root:has(.desktop-shell) :is(.nubi-terminal,.desktop-terminal) { --nubi-copy-ink:var(--nubi-terminal-muted); --nubi-copy-hover-ink:var(--nubi-terminal-ink); }
+:root:has(.desktop-shell) :is(.desktop-shell,.nubi-decision-dialog) .nubi-terminal-section { padding-right:calc(var(--nubi-copy-control-size) + var(--nubi-copy-gap)); }
+@media(pointer:coarse) {
+ :root:has(.desktop-shell) { --nubi-copy-control-size:var(--nubi-copy-touch-size); }
+}
+
 .nubi-terminal-receipt { display:flex; align-items:center; justify-content:flex-end; gap:var(--cx-space-2); padding:var(--cx-space-2) var(--cx-space-3); color:var(--nubi-terminal-muted); background:var(--nubi-terminal-bar); font:var(--deck-font-caption); }
 
 .nubi-workbench .nubi-conversation-content { overflow-anchor:none; }
