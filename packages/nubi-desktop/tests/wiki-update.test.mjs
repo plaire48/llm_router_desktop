@@ -200,7 +200,7 @@ test('the default runner is the OpenWiki update runner, with the model the user 
   assert.deepEqual(order,['skills','run'],'the bundled skills are installed first, as openwiki --update does');
   assert.equal(calls.length,1,'the model call went through the Desktop transport');
   assert.ok(requests[0].some(message=>message.role==='system'&&message.content===CALL_LIMIT.content),'the request states the limit of 8 tool calls');
-  assert.deepEqual(events,[{type:'progress',stage:'generating',page:'openwiki/home.md',index:1,total:1}],'only progress facts, no page text');
+  assert.deepEqual(events,[{type:'progress',stage:'preparing_runtime'},{type:'progress',stage:'preparing_skills'},{type:'progress',stage:'generating',page:'openwiki/home.md',index:1,total:1}],'preparation and generation progress facts only, no page text');
   const {readRunMetrics}=await import('../runtime/run-metrics.mjs'),{summary}=readRunMetrics(service.store,{taskId:'wiki-update:u1'});
   assert.equal(summary.byPurpose.wiki_update.calls,1,'model calls are counted under wiki_update');
   service.providers={status:()=>({connected:false}),dispose(){}};
