@@ -108,4 +108,5 @@ class WorkspaceCommunity{
   }finally{this.busy=false;}
  }
 }
-module.exports={WorkspaceCommunity,decode,webUrl};
+function workspaceAppUrl(base,id){if(!/^[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}$/i.test(id||''))fail('community_input');const url=new URL(webUrl(base));url.hash='workspace/site='+id;return url.href;}
+module.exports={WorkspaceCommunity,decode,webUrl,workspaceAppUrl};

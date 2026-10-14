@@ -1,3 +1,4 @@
+import {LOOKUP_GUIDANCE} from '../runtime/knowledge-guidance.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {taskCapabilities} from '../runtime/agent-capabilities.mjs';
@@ -56,9 +57,10 @@ test('matching Wiki pages retain freshness and source references beside their or
 });
 
 test('the real planning boundary receives the active mail scope and pending tools before a query executes',async t=>{
- const {service}=await fixture(t,{scriptedPlanning:true});let planned=false,queried=false;
+ const {service}=await fixture(t,{scriptedPlanning:true});let planned=false,queried=false,sawLookup=false;
  service.mail=async args=>{assert(planned);assert.equal(args.query,'일정');queried=true;return {scope:'personal-mail',results:[],total:0,retrieval:{incomplete:false,scope:'collected_personal_mail'}};};
  service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:32000}]}),dispose(){},complete:async messages=>{
+  if(messages.some(m=>m.role==='system'&&m.content.startsWith(LOOKUP_GUIDANCE)))sawLookup=true;
   if(messages[0].content.startsWith(WORK_PLAN_PROMPT)){
    const data=JSON.parse(messages[1].content);
    assert.equal(data.routing.searchScope,'mail');assert.deepEqual(data.routing.proposedTools,['personal_mail_query']);
@@ -68,6 +70,6 @@ test('the real planning boundary receives the active mail scope and pending tool
   return queried?{content:'수집된 메일에서 일정을 찾지 못했습니다.',calls:[]}:{content:'',calls:[{id:crypto.randomUUID(),type:'function',function:{name:'personal_mail_query',arguments:JSON.stringify({query:'일정'})}}]};
  }};
  const task=await service.createTask({request:'/mail 일정 찾아줘'});await service.startAgent({taskId:task.id});await service.agent.promise;
- assert(planned&&queried);assert.equal(service.task(task.id).error,null);
+ assert(planned&&queried);assert(sawLookup);assert.equal(service.task(task.id).error,null);
  assert(!service.store.list('operation:').some(row=>['read_source','ask_openwiki','propose_setup_action'].includes(row.tool)));
 });

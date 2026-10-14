@@ -77,7 +77,7 @@
 :root:has(.desktop-shell) .deck-dialog > .cx-panel-body > :last-child { margin-bottom:0; }
 :root:has(.desktop-shell) .deck-dialog :is(.nubi-library,.nubi-settings,.fabrix-fields,.fabrix-form) { gap:var(--nubi-modal-section-gap); }
 :root:has(.desktop-shell) .deck-dialog :is(.deck-field-label,.nubi-settings-field>label,.nubi-mail-field-title) {
-  gap:var(--nubi-dialog-field-gap); font-weight:var(--nubi-weight-emphasis); color:var(--nubi-text-primary);
+  gap:var(--nubi-dialog-field-gap); font-weight:var(--nubi-weight-label); color:var(--nubi-text-primary);
 }
 :root:has(.desktop-shell) .deck-dialog :is(button[aria-selected="true"],button[aria-checked="true"],[role="tab"][aria-selected="true"]) { font-weight:var(--nubi-weight-emphasis); }
 :root:has(.desktop-shell) .deck-dialog :is(.deck-field-label,.nubi-settings-field>label,.nubi-mail-field-title) svg { width:var(--nubi-icon-small); height:var(--nubi-icon-small); flex:none; }
@@ -88,6 +88,21 @@
 }
 :root:has(.desktop-shell) .deck-dialog :is(.cx-kit-input,.cx-input-shell,select):focus-within {
   border-color:var(--deck-blue); outline:2px solid var(--nubi-surface-selected); outline-offset:2px;
+}
+/* Surface background shorthands reset the CX chevron geometry. Keep the
+   shared open/closed icon, but draw it once at the trailing edge. */
+:root:has(.desktop-shell) select[data-cx-select],
+:root:has(.desktop-shell) .deck-dialog select[data-cx-select] {
+  background-repeat:no-repeat;
+  background-position:right var(--cx-space-3) center;
+  background-size:var(--cx-field-icon,16px);
+  padding-right:calc(var(--cx-space-3) * 2 + var(--cx-field-icon,16px));
+}
+:root:has(.desktop-shell) select[data-cx-select]:not([aria-expanded=true]):not(:disabled) {
+  background-image:var(--cx-select-chevron);
+}
+:root:has(.desktop-shell) select[data-cx-select]:disabled {
+  background-image:var(--cx-select-chevron-disabled);
 }
 /* Ordinary actions have one geometry. Choice rows, switches and page chips
    retain their own layout and accessible interaction semantics. */
@@ -229,20 +244,44 @@
 /* Explain skill scope once and keep list actions beside their target. */
 :root:has(.desktop-shell) .deck-dialog .nubi-skill-purpose { margin:0 0 var(--cx-space-4); color:var(--nubi-text-secondary); font:var(--deck-font-body); }
 :root:has(.desktop-shell) .deck-dialog .nubi-custom-skill-list { padding-block:var(--cx-space-2) 0; }
-:root:has(.desktop-shell) .deck-dialog .nubi-custom-skill-row { gap:var(--cx-space-3); padding:var(--cx-space-3) var(--cx-space-2); border-radius:var(--nubi-work-control-radius); background:var(--nubi-surface-inset); }
-:root:has(.desktop-shell) .deck-dialog .nubi-custom-skill-mark { color:var(--nubi-text-action); }
-:root:has(.desktop-shell) .deck-dialog .nubi-custom-skill-copy p { flex:1; min-width:0; margin:0; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; white-space:normal; overflow:hidden; overflow-wrap:anywhere; }
+:root:has(.desktop-shell) .deck-dialog .nubi-custom-skill-row { gap:var(--cx-space-3); padding:var(--cx-space-3); border-radius:var(--nubi-work-control-radius); background:var(--nubi-surface-inset); }
+:root:has(.desktop-shell) .deck-dialog .nubi-custom-skill-mark { display:grid; place-items:center; flex:none; width:var(--nubi-work-control-height); height:var(--nubi-work-control-height); border-radius:var(--nubi-work-control-radius); background:var(--nubi-surface-selected); color:var(--nubi-text-action); }
+:root:has(.desktop-shell) .deck-dialog .nubi-custom-skill-mark svg { width:var(--nubi-work-control-icon); height:var(--nubi-work-control-icon); }
+:root:has(.desktop-shell) .deck-dialog .nubi-custom-skill-copy { flex-direction:column; align-items:stretch; gap:var(--cx-space-1); }
+:root:has(.desktop-shell) .deck-dialog .nubi-custom-skill-copy p { flex:none; min-width:0; margin:0; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font:var(--deck-font-caption); color:var(--nubi-text-secondary); }
+:root:has(.desktop-shell) .deck-dialog .nubi-custom-skill-actions { align-self:center; margin:0; }
 :root:has(.desktop-shell) .nubi-wiki-update[data-current=true] { padding-block:var(--cx-space-4); }
 :root:has(.desktop-shell) .nubi-wiki-update[data-current=true] .nubi-action-head { align-items:center; margin:0; }
 :root:has(.desktop-shell) .nubi-wiki-update[data-current=true] .nubi-action-head h3 { margin:0; }
 :root:has(.desktop-shell) .nubi-wiki-update[data-current=true] .nubi-action-head p { margin:var(--cx-space-1) 0 0; color:var(--nubi-text-secondary); font:var(--deck-font-caption); }
 :root:has(.desktop-shell) .nubi-wiki-update[data-current=true] .nubi-action-tile { color:var(--nubi-text-success); background:var(--nubi-surface-success); }
 
-:root:has(.desktop-shell) .deck-dialog .nubi-custom-skill-copy strong { flex:0 0 auto; max-width:50%; }
+:root:has(.desktop-shell) .deck-dialog .nubi-custom-skill-copy strong { flex:0 0 auto; max-width:100%; }
 @media(max-width:600px) {
  :root:has(.desktop-shell) .deck-dialog .nubi-custom-skill-copy p { display:none; }
  :root:has(.desktop-shell) .deck-dialog .nubi-custom-skill-copy strong { max-width:100%; }
 }
+
+/* Group upload guidance as one unit instead of accumulating paragraph and
+   action margins. Keep a generous drop target and the existing native pickers. */
+:root:has(.desktop-shell) .deck-dialog .nubi-skill-dropzone {
+ display:grid; grid-template-columns:var(--nubi-work-control-height) minmax(0,1fr);
+ align-items:center; column-gap:var(--cx-space-3); row-gap:var(--cx-space-4);
+ padding:var(--cx-space-4);
+}
+:root:has(.desktop-shell) .deck-dialog .nubi-skill-import-mark { display:grid; place-items:center; margin:0; width:var(--nubi-work-control-height); height:var(--nubi-work-control-height); background:var(--nubi-surface-selected); border-radius:var(--nubi-work-control-radius); }
+:root:has(.desktop-shell) .deck-dialog .nubi-skill-import-mark svg { width:var(--nubi-icon-large); height:var(--nubi-icon-large); }
+:root:has(.desktop-shell) .deck-dialog .nubi-skill-import-copy { display:grid; gap:var(--cx-space-1); min-width:0; }
+:root:has(.desktop-shell) .deck-dialog .nubi-skill-import-copy p { margin:0; }
+:root:has(.desktop-shell) .deck-dialog .nubi-skill-import-actions { grid-column:1 / -1; justify-content:flex-end; flex-wrap:nowrap; gap:var(--nubi-work-control-gap); margin:0; }
+/* A section within a dialog aligns with its siblings, not a second card inset. */
+:root:has(.desktop-shell) .deck-dialog .nubi-knowledge-record {
+ padding:var(--cx-space-4) 0 0; border-top:1px solid var(--deck-line); border-radius:0;
+ display:grid; gap:var(--cx-space-3);
+}
+:root:has(.desktop-shell) .deck-dialog .nubi-knowledge-record h2 { font:var(--deck-font-body); font-weight:var(--nubi-weight-emphasis); }
+:root:has(.desktop-shell) .deck-dialog .nubi-knowledge-record p { margin:0; font:var(--deck-font-caption); color:var(--nubi-text-secondary); }
+:root:has(.desktop-shell) .deck-dialog .nubi-knowledge-record .nubi-task-actions { margin-block:0; }
 
 /* A filter chip keeps its label and state mark in a stable, single row. */
 :root:has(.desktop-shell) .nubi-mail-filter-form .nubi-filter-choice.cx-kit-button {
@@ -328,3 +367,31 @@
 
 /* The composed people search owns a single focus ring around icon and input. */
 :root:has(.desktop-shell) .deck-dialog .nubi-person-search input:focus-visible { outline:none; box-shadow:none; }
+
+/* Provider setup uses the same compact modal and reading hierarchy as account
+   dialogs. Brand color identifies the provider, not a separate layout. */
+:root:has(.desktop-shell) .cx-panel-backdrop > .claude-connection { width:min(var(--nubi-dialog-width-compact),100%); }
+:root:has(.desktop-shell) .claude-connection-summary { display:grid; gap:var(--cx-space-1); }
+:root:has(.desktop-shell) .claude-connection-summary > strong { font:var(--deck-font-body); font-weight:var(--nubi-weight-emphasis); }
+:root:has(.desktop-shell) .claude-connection-summary > p { margin:0; color:var(--nubi-text-secondary); font:var(--deck-font-caption); }
+:root:has(.desktop-shell) .claude-connection-help { margin:0; padding:0; border:0; background:transparent; }
+:root:has(.desktop-shell) .claude-connection-help > summary { display:flex; align-items:center; gap:var(--nubi-work-control-gap); min-height:var(--nubi-work-control-height); color:var(--nubi-text-secondary); font:var(--deck-font-caption); font-weight:var(--nubi-weight-label); cursor:pointer; list-style:none; }
+:root:has(.desktop-shell) .claude-connection-help > summary::-webkit-details-marker { display:none; }
+:root:has(.desktop-shell) .claude-connection-help > summary > svg { flex:none; width:var(--nubi-icon-small); height:var(--nubi-icon-small); }
+:root:has(.desktop-shell) .claude-connection-help > summary > svg:last-child { margin-left:auto; }
+:root:has(.desktop-shell) .claude-connection-help[open] > summary > svg:last-child { transform:rotate(180deg); }
+:root:has(.desktop-shell) .claude-connection-help > p { margin:var(--cx-space-2) 0; font:var(--deck-font-caption); color:var(--nubi-text-secondary); }
+:root:has(.desktop-shell) .claude-connection .claude-login-command { display:flex; align-items:center; justify-content:space-between; gap:var(--cx-space-3); border-radius:var(--nubi-work-control-radius); padding:var(--cx-space-2) var(--cx-space-3); border:0; background:var(--nubi-surface-inset); }
+:root:has(.desktop-shell) .claude-connection .claude-login-command code { min-width:0; overflow:auto; white-space:nowrap; font-family:var(--nubi-code-family); font-size:var(--deck-type-caption); }
+:root:has(.desktop-shell) .claude-connection .claude-connection-error { display:flex; align-items:flex-start; gap:var(--cx-space-2); margin:0; font:var(--deck-font-caption); color:var(--nubi-text-danger); }
+:root:has(.desktop-shell) .claude-connection-error > svg { flex:none; margin-top:var(--cx-space-1); }
+:root:has(.desktop-shell) .claude-connection .cx-panel-footer .claude-install-guide { margin-right:auto; border-color:transparent; }
+
+/* The shared usage panel has a bare heading icon. Give it the same semantic
+   frame as other Desktop titles, without changing the browser/Office panel. */
+:root:has(.desktop-shell) .deck-dialog.usage-dialog .nubi-panel-title > svg {
+ width:var(--nubi-dialog-symbol-size); height:var(--nubi-dialog-symbol-size);
+ padding:calc((var(--nubi-dialog-symbol-size) - var(--nubi-work-control-icon)) / 2);
+ box-sizing:border-box; border-radius:var(--nubi-work-control-radius);
+ color:var(--nubi-text-action); background:var(--nubi-surface-selected);
+}

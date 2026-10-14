@@ -1,12 +1,15 @@
 import {WorkspaceApps,WorkspaceTalk} from './WorkspaceCommunity.jsx';
-import {AiWorkspaceEmbed} from './AiWorkspaceEmbed.jsx';
-import {InquiryHeaderSlot} from './ai-workspace/ServiceDesk.jsx';
+import {LoadingNote} from './LoadingNote.jsx';
+import {InquiryHeaderSlot} from './ai-workspace/InquiryHeaderSlot.js';
 import {teamWorkspaceMark} from './TeamWorkspaceMark.js';
 import React,{useEffect,useRef,useState} from 'react';
 import {SkillLibrary} from './SkillLibrary.jsx';
 import {Icon} from '@e2e/cx-design-system';
 import {AgentTabs} from '../../../extensions/aipro-chat/src/AgentTabs.jsx';
 import {WikiRepository} from './WikiRepository.jsx';
+
+const DeferredWorkspace=React.lazy(()=>import('./AiWorkspaceEmbed.jsx').then(module=>({default:module.AiWorkspaceEmbed})));
+function AiWorkspaceEmbed(props){return <React.Suspense fallback={<LoadingNote>불러오는 중</LoadingNote>}><DeferredWorkspace {...props}/></React.Suspense>;}
 
 // The page and composer dialog share the same registration and management flow.
 // In the desktop app the apps and Talk sections are the ai_workspace screens themselves (user decision 2026-10-14); the web

@@ -36,6 +36,6 @@ test('a standard occupied-mailbox reply is separated from authentication without
 });
 
 test('portal connection diagnostics identify HTTPS instead of obsolete POP3 settings',()=>{
- for(const code of ['mail_portal_login','mail_portal_sso','mail_portal_request']){const diagnostic=mailConnectionDiagnostic(code);assert.match(diagnostic,/kor3\.samsung\.net \/ HTTPS/);assert.doesNotMatch(diagnostic,/POP3|995/);}
+ for(const code of ['mail_portal_login','mail_portal_sso','mail_portal_request']){const diagnostic=mailConnectionDiagnostic(code);assert.match(diagnostic,/kor3\.samsung\.net/);assert.doesNotMatch(diagnostic,/POP3|995|HTTPS/);}
  assert.match(mailConnectionDiagnostic('mail_timeout','portal'),/kor3\.samsung\.net/);
 });

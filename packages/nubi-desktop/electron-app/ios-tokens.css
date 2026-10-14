@@ -330,8 +330,14 @@
 .desktop-shell .nubi-sidebar[data-open=true] { view-transition-name:nubi-sidebar; }
 .desktop-shell .nubi-workbench .nubi-main { view-transition-name:nubi-main; }
 .desktop-shell .desktop-pane { view-transition-name:nubi-pane; }
-.desktop-shell .nubi-window-toolbar { view-transition-name:nubi-toolbar; }
+/* Leave navigation live: a captured root makes its descendants unhittable even
+   when the snapshot overlay has pointer-events:none in Chromium. */
+:root { view-transition-name:none; }
+.desktop-shell .nubi-window-toolbar { view-transition-name:none; }
 ::view-transition-group(*) { animation-duration:var(--nubi-morph,.42s); animation-timing-function:var(--nubi-spring,cubic-bezier(.32,.72,0,1)); }
+/* Snapshots are visual only. Live controls remain reachable during the morph. */
+::view-transition { pointer-events:none; }
+::view-transition-group(*), ::view-transition-image-pair(*), ::view-transition-old(*), ::view-transition-new(*) { pointer-events:none; }
 ::view-transition-old(root), ::view-transition-new(root) { animation-duration:.24s; animation-timing-function:ease-out; }
 ::view-transition-old(nubi-main), ::view-transition-new(nubi-main), ::view-transition-old(nubi-pane), ::view-transition-new(nubi-pane) { height:100%; width:100%; object-fit:cover; object-position:left top; animation-duration:.28s; }
 ::view-transition-old(nubi-toolbar), ::view-transition-new(nubi-toolbar) { animation:none; }
@@ -347,17 +353,7 @@
 /* The view transition already moves the pane in; its own enter animation would play twice. */
 @supports (view-transition-name: a) { .desktop-shell .desktop-pane { animation:none; } }
 
-/* Side panel tabs as compact icons (user request 2026-10-14: "각 탭 작게 아이콘만"). The name stays for screen readers
-   and appears on hover (title); close and the unsaved dot sit on the icon's corner. */
-.desktop-shell .desktop-file-tabs .desktop-workspace-tab { position:relative; flex:none; display:flex; }
-.desktop-shell .desktop-file-tabs .desktop-tab-select { flex:none; width:34px; min-width:34px; max-width:34px; min-height:32px; padding:0; justify-content:center; gap:0; border-radius:var(--nubi-work-control-radius); }
-.desktop-shell .desktop-file-tabs .desktop-tab-select > span:not(.desktop-dirty):not(.status-spinner) { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
-.desktop-shell .desktop-file-tabs .desktop-tab-select > .desktop-dirty { position:absolute; top:3px; left:4px; font-size:8px; line-height:1; color:var(--deck-blue-deep); }
-.desktop-shell .desktop-file-tabs .desktop-tab-select > .status-spinner { position:absolute; bottom:3px; right:3px; width:8px; height:8px; }
-.desktop-shell .desktop-file-tabs .desktop-tab-close { position:absolute; top:-3px; right:-3px; z-index:1; width:16px; min-width:16px; height:16px; min-height:16px; padding:0; border-radius:50%; background:var(--deck-card); box-shadow:0 1px 3px rgba(15,23,42,.18); opacity:0; transform:scale(.6); transition:opacity .16s ease, transform .22s var(--nubi-spring,cubic-bezier(.32,.72,0,1)); }
-.desktop-shell .desktop-file-tabs .desktop-tab-close svg { width:10px; height:10px; }
-.desktop-shell .desktop-file-tabs .desktop-workspace-tab:is(:hover,:focus-within) .desktop-tab-close { opacity:1; transform:scale(1); }
-.desktop-shell .desktop-file-tabs { gap:var(--cx-space-1); padding-block:4px; }
+/* Dock tab geometry is owned by workspace-tabs.css. */
 
 /* iOS-like touch feedback across the app (user request 2026-10-14: the reasoning knob's "통통" swell, everywhere).
    Presses sink a little and spring back; knobs swell while held; checks pop; menus grow from their anchor. Transform
@@ -457,3 +453,6 @@ body.nubi-desktop-host {
 /* The page's rail icon heads AI Workspace and 문의 instead of a back arrow (user request 2026-10-14). */
 .desktop-shell .nubi-page-mark { display:inline-flex; align-items:center; justify-content:center; flex:none; width:32px; height:32px; border-radius:10px; background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
 .desktop-shell .nubi-page-mark .nubi-team-mark { width:22px; height:22px; }
+/* A ported AI Workspace screen that failed to render: its own notice, not the whole window (2026-10-15). */
+.nubi-embed-crash { display:grid; gap:var(--cx-space-3); justify-items:start; padding:var(--cx-space-5); color:var(--deck-ink); }
+.nubi-embed-crash p { margin:0; color:var(--deck-sub); font:var(--deck-font-caption); overflow-wrap:anywhere; }

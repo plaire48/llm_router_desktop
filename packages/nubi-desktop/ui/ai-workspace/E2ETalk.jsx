@@ -23,6 +23,7 @@ import {isDiscussionKey,discussionCategoryIcon,discussionCategoryEmoji} from './
 import {refreshTalkNotifications} from './talkNotificationRefresh';
 import {createTalkMediaClient} from './talkMedia';
 import {TALK_LIMITS,talkOwner,talkCanManage,talkModerator,talkPermalink,decodeTalkBody,sortTalkPosts} from './talkModel';
+import {talkBase} from './hostFetch.js';
 import {sanitizeTalkHtml,markdownToTalkHtml,talkExcerpt} from './talkRichText';
 import {relativeNotificationTime} from './notificationTime';
 import {TalkContent} from './TalkContent';
@@ -59,7 +60,7 @@ function TalkFeedItem({post,media,onOpen,onLike,onCopy,reaction,busy,liking,gall
     measure();const observer=new ResizeObserver(measure);observer.observe(element);return()=>observer.disconnect();
   },[view]);
   const excerpt=useMemo(()=>{const parsed=decodeTalkBody(post.body);return talkExcerpt(parsed.html,parsed.format);},[post.body]);
-  const href=talkPermalink(location.href,post.permalinkId),likes=reaction?.count??post.likes,liked=reaction?.mine??post.viewerHasLiked;
+  const href=talkPermalink(talkBase(),post.permalinkId),likes=reaction?.count??post.likes,liked=reaction?.mine??post.viewerHasLiked;
   const navigate=event=>{if(!event.metaKey&&!event.ctrlKey&&!event.shiftKey&&!event.altKey&&event.button===0){event.preventDefault();onOpen(post);}};
   return <li className={post.pinned?'is-pinned':''}>
     <article ref={card} className={`talk-feed-item${excerpt.media.length?' has-media':''}`} aria-labelledby={`talk-card-${post.number}`}>
@@ -187,7 +188,7 @@ export default function E2ETalk({user,role='user',onPendingChange=ignorePending,
       setReaction({count:value.post.likes,mine:null});if(client.signedIn){try{const reactions=await client.reactions(number);if(seq===sequence.current)setReaction(reactions);}catch(e){if(seq===sequence.current)notifyToast(e,{source:'talk-likes',error:true});}}}).catch(e=>{if(seq===sequence.current)setError(e.message);}).finally(()=>{if(seq===sequence.current)setLoading(false);});
   },[client,target,selectedNumber,listRevision]);
   const authenticated=(intent='write')=>{if(!user?.login||!client?.signedIn){setLogin(intent);return false;}return true;};
-  const open=async (post,options={})=>{if(pending.saving||busy)return;if(pending.dirty&&!await confirmAction({kind:'leave',...(pending.leaveMessage?{message:pending.leaveMessage}:{})}))return;focusComments.current=Boolean(options.comments);sequence.current++;if(active)setFeedReactions(current=>({...current,[active.number]:reaction}));if(post&&feedRef.current)feedPosition.current={top:feedRef.current.scrollTop,id:String(post.permalinkId)};if(active)setPosts(current=>current.map(item=>item.number===active.number?{...active,comments:comments.length,likes:reaction.count}:item));setActive(null);setEditingComment(null);setPending({dirty:false,saving:false});setTarget(post?String(post.permalinkId):'');setError('');history.replaceState(null,'',post?talkPermalink(location.href,post.permalinkId):new URL(agentContext?agentFeedbackHash({id:agentContext.id,title:agentContext.title}):skillContext?skillTalkHash(skillContext):'#talk',location.href));};
+  const open=async (post,options={})=>{if(pending.saving||busy)return;if(pending.dirty&&!await confirmAction({kind:'leave',...(pending.leaveMessage?{message:pending.leaveMessage}:{})}))return;focusComments.current=Boolean(options.comments);sequence.current++;if(active)setFeedReactions(current=>({...current,[active.number]:reaction}));if(post&&feedRef.current)feedPosition.current={top:feedRef.current.scrollTop,id:String(post.permalinkId)};if(active)setPosts(current=>current.map(item=>item.number===active.number?{...active,comments:comments.length,likes:reaction.count}:item));setActive(null);setEditingComment(null);setPending({dirty:false,saving:false});setTarget(post?String(post.permalinkId):'');setError('');history.replaceState(null,'',post?talkPermalink(talkBase(),post.permalinkId):new URL(agentContext?agentFeedbackHash({id:agentContext.id,title:agentContext.title}):skillContext?skillTalkHash(skillContext):'#talk',location.href));};
   const beginCompose=async()=>{if(!authenticated()||pending.saving||busy)return;if(pending.dirty&&!await confirmAction({kind:'leave',...(pending.leaveMessage?{message:pending.leaveMessage}:{})}))return;if(feedRef.current)feedPosition.current={top:feedRef.current.scrollTop};setPending({dirty:false,saving:false});setCompose({draft:agentContext?agentFeedbackDraft(agentContext):query===(skillContext?skillTalkTag(skillContext.name):'')?skillTalkDraft(skillContext):null});};
   const replacePost=saved=>{setPosts(current=>current.map(post=>post.number===saved.number?saved:post));setActive(saved);};
   const mutate=async action=>{if(mutationLock.current)return;mutationLock.current=true;setBusy(true);try{await action();}catch(e){notifyToast(e,{source:'talk',error:true});}finally{mutationLock.current=false;if(mounted.current)setBusy(false);}};
@@ -202,7 +203,7 @@ export default function E2ETalk({user,role='user',onPendingChange=ignorePending,
       setPosts(values=>values.map(value=>value.number===post.number?{...value,likes:next.count}:value));
     }finally{feedLikeLock.current=false;if(mounted.current)setLiking(null);}});
   };
-  const copy=async post=>{try{await navigator.clipboard.writeText(talkPermalink(location.href,post.permalinkId));notifyToast('글 링크를 복사했습니다.',{source:'talk'});}catch{notifyToast('링크를 복사하지 못했습니다. 주소창에서 복사하세요.',{source:'talk',error:true});}};
+  const copy=async post=>{try{await navigator.clipboard.writeText(talkPermalink(talkBase(),post.permalinkId));notifyToast('글 링크를 복사했습니다.',{source:'talk'});}catch{notifyToast('링크를 복사하지 못했습니다. 주소창에서 복사하세요.',{source:'talk',error:true});}};
   const loadStatus=<CommunityStatus loading={loading} error={error} className={`talk-load-status${error?' talk-error':''}`}/>;
   if(compose&&client)return <Composer key={compose.post?.number||'new'} post={compose.post} agentContext={agentContext} draft={compose.draft} client={client} media={media} onClose={()=>setCompose(null)} onPending={setPending} onSaved={saved=>{setCompose(null);setActive(saved);setPending({dirty:false,saving:false});setPosts(current=>[saved,...current.filter(post=>post.number!==saved.number)]);setTarget(String(saved.permalinkId));history.replaceState(null,'',talkPermalink(location.href,saved.permalinkId));}}/>;
   return <div className={`talk-workspace${target?' is-reading':''}`}>

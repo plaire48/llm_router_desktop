@@ -1,0 +1,10 @@
+import {readFile,writeFile} from 'node:fs/promises';
+import path from 'node:path';
+const base=path.resolve(process.argv[2]||'verification/openwiki-quality-2026-10-15');
+const reports=await Promise.all([1,2,3].map(i=>readFile(path.join(base,`final-${i}/report.json`),'utf8').then(JSON.parse)));
+if(new Set(reports.map(r=>r.candidate.hash)).size!==1||new Set(reports.map(r=>r.benchmarkHash)).size!==1)throw Error('mixed_evaluation_candidates');
+const results=new Map();for(const report of reports)for(const r of report.results)if(r.outcome!=='not_run'){const key=r.id+':'+r.trial;if(results.has(key))throw Error('duplicate_trial');results.set(key,r);}
+const rows=[...results.values()],quantile=(values,q)=>values.length?[...values].sort((a,b)=>a-b)[Math.ceil(values.length*q)-1]:null;
+const categories=Object.fromEntries(['code','personal'].map(category=>{const r=rows.filter(row=>row.category===category);return [category,{planned:60,executed:r.length,automatedPassed:r.filter(x=>x.automatedPass).length,failed:r.filter(x=>!x.automatedPass).length,notRun:60-r.length,allThreePassed:[...new Set(r.map(x=>x.id))].filter(id=>r.filter(x=>x.id===id&&x.automatedPass).length===3).length,p50Ms:quantile(r.map(x=>x.elapsedMs),.5),p95Ms:quantile(r.map(x=>x.elapsedMs),.95),modelCalls:r.reduce((s,x)=>s+x.modelCalls,0),delegatedCalls:r.reduce((s,x)=>s+x.delegatedCalls,0),repeatedReads:r.reduce((s,x)=>s+x.repeatedReads,0)}];}));
+const report={candidate:reports[0].candidate,benchmarkHash:reports[0].benchmarkHash,model:reports[0].model,updatedAt:new Date().toISOString(),categories,failures:rows.filter(r=>!r.automatedPass),completed:rows.length===120,manualReviewRequired:true,limitations:[...reports[0].limitations,'Up to three concurrent cases share the provider; elapsed times include contention.']};
+await writeFile(path.join(base,'summary.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify({completed:report.completed,categories,failures:report.failures.map(r=>({id:r.id,trial:r.trial,checks:r.checks,error:r.error}))},null,2));

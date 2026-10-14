@@ -1,6 +1,6 @@
 /* Opening scene seen through the bird's eyes (2026-10-14): a continuous flight drawn on a canvas (ui/introFlight.js)
    over the distant view ahead, accelerating to warp; the light floods in and we come out over calm air, where the
-   title rises over a progress bar. Timeline: cruise to 2s, exponential rush to 4.7s, light grows from 2.9s, logo at 4.7s once the light has bloomed, bar from 5.5s. */
+   title fades in over white. Timeline: flight to 4.7s, white settles at 4.85s, logo at 5s, bar at 5.2s. */
 .nubi-intro { position:fixed; inset:0; z-index:2147483000; overflow:hidden; background:rgb(243 230 216); cursor:pointer; }
 .nubi-intro-cut { position:absolute; inset:0; overflow:hidden; opacity:0; }
 .nubi-intro-image { position:absolute; inset:-8%; background-size:cover; background-position:center; will-change:transform; }
@@ -31,16 +31,18 @@
   animation:nubi-intro-bloom 2.2s cubic-bezier(.45,0,.3,1) 2.9s both; }
 @keyframes nubi-intro-bloom { 0%{opacity:0;transform:scale(.12)} 25%{opacity:.55} 65%{opacity:.95;transform:scale(.9)} 100%{opacity:.7;transform:scale(1.15)} }
 
-/* Title page: the brand rises, then a progress bar fills while the app finishes getting ready. */
+/* End on white first; the brand appears at its final size without a zoom or bounce. */
+.nubi-intro-whiteout { position:absolute; inset:0; background:#fff; opacity:0; animation:nubi-intro-whiteout .65s cubic-bezier(.4,0,.2,1) 4.2s both; }
+@keyframes nubi-intro-whiteout { from{opacity:0} to{opacity:1} }
 .nubi-intro-title { position:absolute; left:50%; top:50%; display:grid; justify-items:center; gap:28px; transform:translate(-50%,-50%); opacity:0;
-  animation:nubi-intro-title 1s cubic-bezier(.34,1.3,.5,1) 4.7s both; }
+  animation:nubi-intro-title .8s cubic-bezier(.4,0,.2,1) 5s both; }
 .nubi-intro-brand { display:flex; align-items:center; gap:14px; color:var(--deck-blue-deep); font-size:calc(var(--cx-type-title) * 1.6); font-weight:600; letter-spacing:.01em; }
 .nubi-intro-brand img.nubi-wordmark { height:48px; width:auto; }
 .nubi-intro-brand-bird { display:inline-flex; animation:nubi-intro-brand-bird 2.4s ease-in-out 6s infinite; }
 @keyframes nubi-intro-brand-bird { 0%,100%{transform:translateY(0) rotate(0)} 50%{transform:translateY(-6px) rotate(-4deg)} }
-/* The logo comes out of the vanishing point toward us while we are still accelerating. */
-@keyframes nubi-intro-title { 0%{opacity:0;transform:translate(calc(-50% - 7vw),-50%) scale(.12)} 25%{opacity:1} 100%{opacity:1;transform:translate(-50%,-50%) scale(1)} }
-.nubi-intro-progress { opacity:0; animation:nubi-intro-show-bar .5s ease-out 5.5s forwards; position:relative; width:min(320px,60vw); height:6px; border-radius:999px; overflow:hidden; background:rgba(255,255,255,.55); box-shadow:inset 0 1px 2px rgba(30,58,138,.12); }
+@keyframes nubi-intro-title { from{opacity:0} to{opacity:1} }
+.nubi-intro[data-mode="full"] .nubi-intro-brand-bird { animation:none; }
+.nubi-intro-progress { opacity:0; animation:nubi-intro-show-bar .6s ease-out 5.2s both; position:relative; width:min(320px,60vw); height:6px; border-radius:999px; overflow:hidden; background:var(--deck-line,#E5E8EB); }
 .nubi-intro-progress > span { position:absolute; inset:0; border-radius:inherit; transform-origin:0 50%; transform:scaleX(0);
   background:linear-gradient(90deg,var(--deck-teal),var(--deck-blue)); animation:nubi-intro-fill 2.4s cubic-bezier(.3,.6,.3,1) 5.6s both; }
 .nubi-intro-progress > span::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent); transform:translateX(-100%); animation:nubi-intro-shine 1.4s ease-in-out 5.8s infinite; }
@@ -49,10 +51,10 @@
 @keyframes nubi-intro-shine { to{transform:translateX(100%)} }
 .nubi-intro[data-phase="complete"] .nubi-intro-progress > span, .nubi-intro[data-phase="leave"] .nubi-intro-progress > span { animation:none; transform:scaleX(1); transition:transform .38s cubic-bezier(.2,.8,.2,1); }
 
-/* Hand-over: the sky drifts up and dissolves while the app settles in underneath. */
+/* The white title screen dissolves into the ready app without changing scale. */
 .nubi-intro[data-phase="leave"] { pointer-events:none; animation:nubi-intro-leave .62s cubic-bezier(.4,0,.2,1) both; }
-@keyframes nubi-intro-leave { to{opacity:0;transform:scale(1.04) translateY(-1.5%)} }
-@media (prefers-reduced-motion: reduce) { .nubi-intro { display:none; } }
+@keyframes nubi-intro-leave { from{opacity:1} to{opacity:0} }
+
 
 /* Later launches: only the logo and the progress bar on the app's own background, no sky (user decision 2026-10-14). */
 .nubi-intro[data-mode="brief"] { background:var(--nubi-workspace-gradient,var(--deck-card)); }
@@ -70,3 +72,9 @@ body:has(.nubi-intro) .nubi-preparing { visibility:hidden; }
 .nubi-intro[data-mode][data-phase="complete"] .nubi-intro-progress > span, .nubi-intro[data-mode][data-phase="leave"] .nubi-intro-progress > span { animation:none; transform:scaleX(1); transition:transform .38s cubic-bezier(.2,.8,.2,1); }
 /* Until the scene starts it holds its first frame (startup work first, then the flight in real time). */
 .nubi-intro:not([data-started]), .nubi-intro:not([data-started]) *, .nubi-intro:not([data-started]) *::before, .nubi-intro:not([data-started]) *::after { animation-play-state:paused !important; }
+
+@media (prefers-reduced-motion: reduce) {
+ .nubi-intro,.nubi-intro *,.nubi-intro *::after { animation:none !important; transition:none !important; }
+ .nubi-intro .nubi-intro-title { opacity:1; transform:translate(-50%,-50%); }
+ .nubi-intro .nubi-intro-progress { opacity:1; }
+}

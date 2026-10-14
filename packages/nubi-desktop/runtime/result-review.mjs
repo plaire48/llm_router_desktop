@@ -1,3 +1,4 @@
+import {TEMPORAL_GUIDANCE} from './knowledge-guidance.mjs';
 import Ajv from 'ajv';
 import {createHash} from 'node:crypto';
 import {contextBudget,contextTokens} from '../../../extensions/aipro-chat/context-manager.js';
@@ -11,6 +12,9 @@ For behavior/code questions verify relevant source, not only Wiki. Reporting wha
 Mail search covers collected mail: nextCursor marks unread matches; retrieval.incomplete marks missing/truncated sources. collected is inventory, not relevant unread mail: do not require reading unrelated items. Zero hits never prove server-wide absence. Body claims need read_personal_mail, not search hits; distinguish Personal Wiki notes. OpenWiki desktop.grounding.unmatched/currentPageMatched=false excerpts cannot support facts. Even matched pages with freshness=source_changed or unverified need source confirmation for current behavior; delegated answers do not replace grounding.
 Preserve corrections and answered decisions. currentTurn is the latest request: judge requirement turn against it, not an earlier answer. request is supported only when ALL requested parts are answered; missing parts keep request unknown, not only intent:*. The evidence entry "user" represents literal request/currentTurn/corrections/answers and never proves the state of files, tests or systems. Cite it for summarizing/applying user text. intent:* are revisable model interpretations, not user requirements. A suitable different skill or method need not match the plan; do not invent scope or override user constraints.
 A host empty list observes no such task action. beforeLatestUserMessage proposals await approval only if currentTurn still wants that change; corrections require corrected proposals. Check host receipts before claiming a wait, and never replay unknown operations. host.analysisExecutions proves child lifecycle/counts/delivery only, not source facts or business completion; do not rerun children to prove lifecycle. advisoryHandoffs are advisory, not evidence: collected means queued, omitted/missing means unknown. Reconcile disagreements with host/source observations. Never assign task pass scores.`;
+// Live knowledge evaluation exposed necessary/sufficient and missing/absent overclaims.
+export const CLAIM_REVIEW_GUIDANCE='Check material entailment, not just quoted words: "only if X" states a necessary condition; it does not prove X alone is sufficient or the only condition. Missing authority/owner/approval information does not prove no authority/owner/approval exists. An observation or arrival date is not an effective date. A later message does not override a conflicting decision without supersession or authority evidence. Reject these overclaims with revise and a precise wording correction; do not ask for unrelated investigation. Accept a narrowly attributed statement that preserves the actual condition or unknown.';
+const KNOWLEDGE_TOOLS=new Set(['wiki_query','ask_openwiki','knowledge_query','read_wiki','read_personal_mail','mail_facts']);
 export const RESULT_REVIEW_SCHEMA={type:'object',additionalProperties:false,required:['status','checks','nextStep'],properties:{
   status:{type:'string',enum:['ready','revise']},nextStep:{type:'string',maxLength:600},checks:{type:'array',minItems:1,maxItems:64,items:{type:'object',additionalProperties:false,required:['requirementId','state','evidenceIds','detail'],properties:{requirementId:{type:'string',maxLength:120},state:{type:'string',enum:['supported','pending','unknown']},evidenceIds:{type:'array',maxItems:16,uniqueItems:true,items:{type:'string',maxLength:100}},detail:{type:'string',minLength:1,maxLength:300}}}}
 }};
@@ -93,7 +97,9 @@ export function resultReviewInput({task,evidence,receipts,candidate,model,histor
   const protectedData={requirements,...(turn?{currentTurn:turnText}:{}),workPlan:task.workPlan||null,answeredQuestions:task.questionHistory||[],corrections:corrections.kept,...(corrections.omitted?{omittedCorrections:corrections.omitted}:{}),candidate};
   const unresolved=item=>item.state!=='done'||item.outcome!=='complete'||item.collected!==true||!!item.uncertainties?.length;
   const data={...protectedData,evidence:[],omittedEvidence:entries.length,duplicateEvidence:0,advisoryHandoffs:[],omittedHandoffs:handoffs.items.length+handoffs.omitted,omittedUnresolvedHandoffs:handoffs.items.filter(unresolved).length+(handoffs.omittedUnresolved||0)};
-  const messages=()=>[{role:'system',content:REVIEW_PROMPT},{role:'user',content:JSON.stringify(data)}];
+  // Reserve conditional guidance in the same budget before admitting evidence.
+  const prompt=REVIEW_PROMPT+(evidence.some(item=>KNOWLEDGE_TOOLS.has(item.tool))?'\n'+CLAIM_REVIEW_GUIDANCE+'\n'+TEMPORAL_GUIDANCE:'');
+  const messages=()=>[{role:'system',content:prompt},{role:'user',content:JSON.stringify(data)}];
   if(contextTokens(messages())>limit-512)throw new Error('context_input_too_large');
   // What the user wrote is given once, in the fields above. This entry gives the review an ID to cite for it.
   const said={id:'user',tool:'user_messages',result:{standsFor:['requirements.request','currentTurn','corrections','answeredQuestions'],scope:'What the user wrote in this task. Not evidence of files, tests or systems.'}};
@@ -238,7 +244,7 @@ export async function reviewResult({invoke,signal,...input}) {
     if(signal.aborted)throw new Error('cancelled');
     const usable=data.evidence.filter(e=>e.usable).map(e=>e.id).join(', ')||'none';
     const repair=problems.length>0;
-    const prompt=REVIEW_PROMPT+(coverageRechecked?coverage:'')+(repair?' Previous review JSON was invalid. Return a complete valid object using report_desktop_review with exact requirement IDs and observed evidence IDs. Problems found: '+problems.join(' ')+' Usable evidence IDs: '+usable+'.':'');
+    const prompt=messages[0].content+(coverageRechecked?coverage:'')+(repair?' Previous review JSON was invalid. Return a complete valid object using report_desktop_review with exact requirement IDs and observed evidence IDs. Problems found: '+problems.join(' ')+' Usable evidence IDs: '+usable+'.':'');
     let response;
     try{response=await invoke([{...messages[0],content:prompt},messages[1]],repair&&!plainRepair?[RESULT_REVIEW_TOOL]:[]);}
     catch(error){
@@ -311,7 +317,8 @@ export function awaitsApproval(outcome,receipts) {
 // without new evidence hand it over the same way (user decision 2026-09-29):
 // a question in its place asked the user to settle the review's instruction.
 export const REVIEW_ROUNDS=4;
-export async function runReviewedAgent({messages,run,review,snapshot,signal,onReview,waiting,continuation,onContinue=()=>{},onReviewRecovery=()=>{},hasInput=()=>false}) {
+// maxRounds: a run that only read (no proposal, command or app action) is reviewed once (bundle 3.4, 2026-10-15).
+export async function runReviewedAgent({messages,run,review,snapshot,signal,onReview,waiting,continuation,onContinue=()=>{},onReviewRecovery=()=>{},hasInput=()=>false,maxRounds=()=>REVIEW_ROUNDS}) {
   let stalled=createReviewProgress(),round=0,boundary=0,held='',repairUsed=false,recovering=false;
   while(true){
     if(signal.aborted)throw new Error('cancelled');
@@ -325,7 +332,7 @@ export async function runReviewedAgent({messages,run,review,snapshot,signal,onRe
     try{verdict=await review({...facts,candidate:result.content,signal});}
     catch(error){
       if(signal.aborted)throw error;
-      if(repairUsed||round>=REVIEW_ROUNDS||!reviewCanRecover(error)){
+      if(repairUsed||round>=maxRounds()||!reviewCanRecover(error)){
         // Preserve the candidate for inspection, never mark it reviewed/ready.
         error.reviewCandidate=result.content;throw error;
       }
@@ -344,7 +351,7 @@ export async function runReviewedAgent({messages,run,review,snapshot,signal,onRe
     const waits=awaitsApproval(verdict,facts.receipts),open=waits?openApprovals(facts.receipts).join('|'):'';
     boundary=!waits?0:open===held?boundary+1:1;held=open;
     const stall=boundary<2&&verdict.status==='revise'&&stalled(facts.evidence);
-    const outcome=boundary>=2?{...verdict,status:'ready',handoff:'approval_boundary'}:verdict.status==='revise'&&round>=REVIEW_ROUNDS?{...verdict,handoff:'review_limit'}:stall?{...verdict,handoff:'review_stalled'}:verdict;
+    const outcome=boundary>=2?{...verdict,status:'ready',handoff:'approval_boundary'}:verdict.status==='revise'&&round>=maxRounds()?{...verdict,handoff:'review_limit'}:stall?{...verdict,handoff:'review_stalled'}:verdict;
     await onReview(outcome,round);
     if(outcome.status==='ready'||outcome.handoff)return result;
     // The answer under revision and the review's feedback are what this round works from.

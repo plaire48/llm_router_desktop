@@ -6,7 +6,7 @@ export function cropCapture(shot,rect){
     const image=new Image();
     image.onload=()=>{
       try{
-        const scale=shot.width/Math.max(1,window.innerWidth);
+        const scale=rect.imagePixels?1:shot.width/Math.max(1,window.innerWidth);
         const x=Math.max(0,Math.round(rect.x*scale)),y=Math.max(0,Math.round(rect.y*scale));
         const width=Math.max(1,Math.min(shot.width-x,Math.round(rect.width*scale))),height=Math.max(1,Math.min(shot.height-y,Math.round(rect.height*scale)));
         const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;

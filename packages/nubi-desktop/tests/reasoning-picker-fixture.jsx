@@ -25,7 +25,7 @@ function CopySample(){
 function Sample(){
  if(new URLSearchParams(location.search).has('copy'))return <CopySample/>;
  const setup=new URLSearchParams(location.search).get('setup');
- if(setup)return <main className="desktop-shell"><ClaudeConnection initialIssue={setup} api={async()=>{throw Error('claude_login_required');}} onConnected={()=>{}} onClose={()=>{}} openWebPage={async url=>{window.setupGuideUrl=url;}}/></main>;
+ if(setup)return <main className="desktop-shell"><ClaudeConnection initialIssue={setup} api={async()=>{throw Error('claude_login_required');}} onConnected={()=>{}} onClose={()=>{}} openWebPage={async url=>{if(window.failSetupGuide)throw Error('unavailable');window.setupGuideUrl=url;}}/></main>;
  const [provider,setProvider]=useState({provider:id,model:id+'-fixture',connected:true,reasoningEffort:'medium',reasoningOptions:catalog[id]});
  const api=async(_,{input})=>{const next={...provider,reasoningEffort:input.effort};setProvider(next);return next;};
  return <main className="desktop-shell"><div className="nubi-workbench" style={{padding:'220px 100px 100px'}}><h1 style={{position:'absolute',top:50,left:100,display:'flex',alignItems:'center',gap:12,fontSize:20}}><ProviderIcon provider={id}/>{{aipro:'AI Pro',chatgpt:'OpenAI',claude:'Claude'}[id]}</h1><div className="nubi-compose-card"><ReasoningPicker provider={provider} api={api}/></div></div></main>;

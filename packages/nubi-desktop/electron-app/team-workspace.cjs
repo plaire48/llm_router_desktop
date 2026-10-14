@@ -1,3 +1,4 @@
+const {WORKSPACE_BLOB_LIMIT,workspaceTransferLimit}=require('./workspace-transfer.cjs');
 const {createServer}=require('node:http');
 const {createHash,randomBytes,timingSafeEqual}=require('node:crypto');
 
@@ -57,6 +58,7 @@ async function startTeamWorkspace({account,confirmSave=async()=>false}){
     active();let url;try{url=new URL(message.url);}catch{throw failure('team_workspace_scope',403);}
     if(url.origin!==GHES||url.username||url.password||url.hash||url.href.length>5000)throw failure('team_workspace_scope',403);
     const method=message.method||'GET',route=url.pathname,path=route.startsWith(REPO)?route.slice(REPO.length):null;
+    if(message.body!=null&&Buffer.byteLength(String(message.body))>workspaceTransferLimit(route,MAX))throw failure('team_workspace_limit',413);
     let body;try{body=message.body?JSON.parse(message.body):null;}catch{throw failure('team_workspace_invalid',400);}
     if(!['GET','POST','PATCH'].includes(method))throw failure('team_workspace_scope',403);
     const readable=route==='/api/v3/user'||/^\/api\/v3\/user\/\d+$/.test(route)||/^\/api\/v3\/users\/[a-z\d-]+$/i.test(route)||route==='/api/v3/search/users'||/^\/api\/v3\/orgs\/Manufacturing-IT\/(?:members(?:\/[a-z\d-]+)?|teams(?:\/[a-z\d-]+(?:\/members(?:\/[a-z\d-]+)?|\/memberships\/[a-z\d-]+)?)?)$/i.test(route)||path!==null&&(path===''||/^\/(?:contents\/|git\/(?:ref\/heads\/|refs\/heads\/|commits\/|trees\/|blobs\/)|commits(?:\/|$)|compare\/|branches(?:\/|$)|collaborators(?:\/|$)|assignees(?:\/|$))/.test(path));
@@ -90,7 +92,7 @@ async function startTeamWorkspace({account,confirmSave=async()=>false}){
       active();let response;
       try{response=await account.fetcher(url.href,{method,cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.any([account.accessController.signal,AbortSignal.timeout(30000)]),headers:{Accept:['application/vnd.github+json','application/vnd.github.object+json'].includes(message.accept)?message.accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28',Authorization:'Bearer '+credential.token,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});}
       catch{throw failure('team_workspace_network');}
-      const raw=(await bytes(response)).toString('utf8');active();
+      const raw=(await bytes(response,workspaceTransferLimit(route,MAX))).toString('utf8');active();
       if(response.status===401){await account.invalidate('ghes_session_expired');throw failure('ghes_session_changed',401);}
       if(response.ok&&(method==='GET'&&['/git/ref/heads/main','/git/refs/heads/main'].includes(path)||method==='PATCH')){
         let result;try{result=JSON.parse(raw);}catch{throw failure('team_workspace_invalid');}
@@ -126,7 +128,7 @@ async function startTeamWorkspace({account,confirmSave=async()=>false}){
       if(rel==='__workspace/api'){
         const supplied=req.headers['x-nubi-workspace'];
         if(req.method!=='POST'||req.headers.origin!==origin||req.headers['content-type']!=='application/json'||typeof supplied!=='string'||supplied.length!==key.length||!timingSafeEqual(Buffer.from(supplied),Buffer.from(key)))throw failure('team_workspace_scope',403);
-        let size=0,parts=[];for await(const part of req){size+=part.length;if(size>MAX)throw failure('team_workspace_limit',413);parts.push(part);}
+        let size=0,parts=[];for await(const part of req){size+=part.length;if(size>WORKSPACE_BLOB_LIMIT+1024*1024)throw failure('team_workspace_limit',413);parts.push(part);}
         let message;try{message=JSON.parse(Buffer.concat(parts).toString());}catch{throw failure('team_workspace_invalid',400);}
         const result=await api(message);res.writeHead(200,{...headers,'Content-Type':'application/json'}).end(JSON.stringify(result));return;
       }

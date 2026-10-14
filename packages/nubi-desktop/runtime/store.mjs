@@ -13,6 +13,9 @@ export class Store {
       this.owner.exec('PRAGMA busy_timeout=0; BEGIN IMMEDIATE');
       this.db = new DatabaseSync(path.join(directory, 'workspace.db'));
       this.db.exec('PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS records (key TEXT PRIMARY KEY, value TEXT NOT NULL); CREATE TABLE IF NOT EXISTS events (sequence INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, kind TEXT NOT NULL, value TEXT NOT NULL);');
+      // SQLite LIKE uses NOCASE by default; the binary primary key cannot serve
+      // these prefix reads, so otherwise each status field scans all history.
+      this.db.exec('CREATE INDEX IF NOT EXISTS records_prefix ON records(key COLLATE NOCASE)');
     } catch (error) {
       this.db?.close(); this.owner.close();
       if (error.errcode === 5 || error.errcode === 6) throw new Error('project_locked');
@@ -21,7 +24,13 @@ export class Store {
   }
   get(key) { const row = this.db.prepare('SELECT value FROM records WHERE key=?').get(key); return row ? JSON.parse(row.value) : null; }
   set(key, value) { this.db.prepare('INSERT INTO records VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run(key, JSON.stringify(value)); return value; }
-  list(prefix) { return this.db.prepare('SELECT value FROM records WHERE key LIKE ? ORDER BY rowid DESC').all(prefix + '%').map(row => JSON.parse(row.value)); }
+  list(prefix, {limit} = {}) {
+    if(limit!==undefined&&(!Number.isSafeInteger(limit)||limit<0))throw new TypeError('store_list_limit');
+    // Apply the visible limit in SQLite before allocating and parsing old history.
+    const sql='SELECT value FROM records WHERE key LIKE ? ORDER BY rowid DESC';
+    const rows=limit===undefined?this.db.prepare(sql).all(prefix+'%'):this.db.prepare(sql+' LIMIT ?').all(prefix+'%',limit);
+    return rows.map(row=>JSON.parse(row.value));
+  }
   delete(key) { this.db.prepare('DELETE FROM records WHERE key=?').run(key); }
   entries(prefix) { return this.db.prepare('SELECT key, value FROM records WHERE key LIKE ? ORDER BY rowid DESC').all(prefix + '%').map(row => ({key: row.key, value: JSON.parse(row.value)})); }
   event(kind, value) { this.db.prepare('INSERT INTO events (at,kind,value) VALUES (?,?,?)').run(new Date().toISOString(), kind, JSON.stringify(value)); }

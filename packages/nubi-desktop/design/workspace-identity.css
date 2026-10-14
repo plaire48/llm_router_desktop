@@ -1780,3 +1780,6 @@ html[data-project-switching] .nubi-workbench .nubi-main, html[data-project-switc
 .nubi-capture-missing { display:inline-flex; align-items:center; gap:6px; padding:8px 10px; color:var(--deck-sub); font:var(--deck-font-caption); }
 .nubi-capture-chip .nubi-capture-remove { position:absolute; top:-7px; right:-7px; width:22px; height:22px; min-width:0; padding:0; border-radius:999px; background:var(--deck-card); box-shadow:0 1px 4px rgba(15,23,42,.2); }
 .nubi-user-bubble .nubi-capture-chips { margin:8px 0 0; }
+
+/* Keep relationship hints subordinate to the linked document title. */
+.nubi-wiki-links .nubi-wiki-relation-label{display:block;color:var(--deck-sub);font:var(--deck-font-caption);font-weight:400;margin-top:var(--cx-space-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}

@@ -9,7 +9,7 @@ import {MailBody} from './MailBody.jsx';
 import {mailTableDate} from '../runtime/mail-presentation.mjs';
 import './approval-history.css';
 import {LoadingNote} from './LoadingNote.jsx';
-const reasons={mail_portal_login:'포털에 로그인해 주세요.',mail_portal_identity:'결재용 사용자 정보를 확인하지 못했어요. 포털에 다시 로그인해 주세요.',mail_portal_timeout:'포털 응답이 늦어요. 다시 불러와 주세요.',mail_portal_format:'결재 응답 형식을 확인하지 못했어요.',mail_cancelled:'조회가 중단됐어요.'};
+const reasons={mail_portal_login:'포털에 로그인해 주세요.',mail_portal_approval_login:'결재 목록 요청이 로그인 페이지로 돌아왔어요. 메일은 연결돼 있지만 결재 서비스가 세션을 받지 않았어요. 포털에서 결재 화면을 한 번 연 뒤 새로고침해 주세요. (approvals)',mail_portal_identity:'결재용 사용자 정보를 확인하지 못했어요. 포털에 다시 로그인해 주세요.',mail_portal_timeout:'포털 응답이 늦어요. 다시 불러와 주세요.',mail_portal_format:'결재 응답 형식을 확인하지 못했어요.',mail_cancelled:'조회가 중단됐어요.'};
 function PortalApprovalHistory({api,onSettings}){
  const [page,setPage]=useState(1),[data,setData]=useState(null),[document,setDocument]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const read=useRef(0),selected=useRef(0),alive=useRef(true);

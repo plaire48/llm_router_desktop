@@ -162,3 +162,31 @@ test('a commit made during initialization is published for the snapshot commit a
   const job=service.wikiInitialization();assert.equal(job.state,'completed',JSON.stringify(job));assert.equal(job.changedDuringRun,0);await access(path.join(root,'openwiki/home.md'));await assert.rejects(access(copy));
   assert.equal((await wikiUpdateStatus(root)).state,'current','an empty commit changed no source');
 });
+
+test('refresh uses folder history, applies only Wiki and skips an unchanged second run',async t=>{
+ const {root,service}=await setup(t);const history=path.join(service.store.directory,'wiki-folder-history');const first=(await git(history,['rev-parse','HEAD'])).trim();
+ await writeFile(path.join(root,'app.txt'),'new source\n');let calls=0;
+ service.wikiUpdater=async({root:copy})=>{calls++;assert.equal(await readFile(path.join(copy,'app.txt'),'utf8'),'new source\n');assert.equal((await git(copy,['rev-list','--count','HEAD'])).trim(),'2');await publish(copy,'# App\n\nnew source\n');return {};};
+ const result=await service.wikiUpdate({method:'refresh'});assert(result.update);const ready=await settle(service,result.update.id);assert.equal(ready.state,'ready');await service.wikiUpdate({method:'apply',id:ready.id,fingerprint:ready.fingerprint});
+ assert.notEqual((await git(history,['rev-parse','HEAD'])).trim(),first);await assert.rejects(access(path.join(root,'.git')));
+ assert.equal((await service.wikiUpdate({method:'refresh'})).update,null);assert.equal(calls,1);
+});
+test('refresh aborts on a failed upstream and never starts a model with stale sources',async t=>{
+ const {root,service}=await setup(t,{gitProject:true});await git(root,['remote','add','origin',path.join(root,'missing')]);let calls=0;service.wikiUpdater=async()=>{calls++;};
+ await assert.rejects(service.wikiUpdate({method:'refresh'}),/git_upstream_missing/);assert.equal(calls,0);assert.equal(service.wikiRefreshOwner,null);
+});
+test('refresh initializes absent Wiki instead of claiming it is already current',async t=>{
+ const {root,service}=await setup(t);await rm(path.join(root,'openwiki'),{recursive:true});
+ const result=await service.wikiUpdate({method:'refresh'});assert.equal(result.initialization.state,'running');await service.wikiInitPromise;assert.equal(service.wikiInitialization().state,'completed');
+});
+test('remote refresh updates code first and the model reads that remote revision',async t=>{
+ const {root,service}=await setup(t,{gitProject:true});const remote=path.join(path.dirname(root),'remote');await git(path.dirname(root),['clone','-q',root,remote]);const branch=(await git(root,['branch','--show-current'])).trim();await git(root,['remote','add','origin',remote]);await git(root,['config',`branch.${branch}.remote`,'origin']);await git(root,['config',`branch.${branch}.merge`,'refs/heads/'+branch]);
+ await writeFile(path.join(remote,'app.txt'),'remote source\n');await git(remote,['add','app.txt']);await git(remote,['-c','user.name=Fixture','-c','user.email=fixture@localhost','-c','commit.gpgSign=false','commit','-qm','Remote update']);const remoteHead=(await git(remote,['rev-parse','HEAD'])).trim();
+ service.wikiUpdater=async({root:copy})=>{assert.equal((await git(copy,['rev-parse','HEAD'])).trim(),remoteHead);assert.equal(await readFile(path.join(copy,'app.txt'),'utf8'),'remote source\n');await publish(copy,'# App\nremote source\n');return {};};
+ const result=await service.wikiUpdate({method:'refresh'});assert.equal(result.pulled.ok,true);assert.equal(await readFile(path.join(root,'app.txt'),'utf8'),'remote source\n');const ready=await settle(service,result.update.id);assert.equal(ready.state,'ready');await service.wikiUpdate({method:'apply',id:ready.id,fingerprint:ready.fingerprint});assert.equal((await wikiUpdateStatus(root)).state,'current');
+});
+test('folder-open with existing Git follows local history even when a remote exists',async t=>{
+ const {root,service}=await setup(t,{gitProject:true});const head=(await git(root,['rev-parse','HEAD'])).trim();await git(root,['remote','add','origin','/not-contacted']);await service.open(root,{initializeWiki:false,sourceKind:'local'});await service.open(root,{initializeWiki:false});assert.equal(service.store.get('setting:wiki-source').mode,'local');
+ await writeFile(path.join(root,'app.txt'),'local edit\n');service.wikiUpdater=async({root:copy})=>{assert.equal((await git(copy,['rev-parse','HEAD'])).trim(),head);assert.equal(await readFile(path.join(copy,'app.txt'),'utf8'),'local edit\n');await publish(copy,'# Local');return {};};
+ const result=await service.wikiUpdate({method:'refresh'});assert.equal(result.pulled.reason,'local_project');assert.equal((await settle(service,result.update.id)).state,'ready');assert.equal((await git(root,['rev-parse','HEAD'])).trim(),head);assert.match(await git(root,['status','--short']),/app.txt/);
+});

@@ -1,0 +1,15 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createInAppPlaywright} from '../runtime/playwright-mcp.mjs';
+test('official catalog is lazy, bounded and preserves approval and tab binding',async t=>{
+ const calls=[];const client=await createInAppPlaywright(async(action,args)=>{calls.push({action,args});return {tabs:[]};});t.after(()=>client.close());
+ const {tools}=await client.listTools();assert.equal(calls.length,0,'catalog must not attach or launch a browser');
+ assert.equal(tools.length,12);assert.equal(tools.some(tool=>/evaluate|run_code|file_upload|cookie|network/.test(tool.name)),false);
+ const click=tools.find(tool=>tool.name==='browser_click');assert.equal(click.annotations.readOnlyHint,false);assert.ok(click.inputSchema.required.includes('documentId'));assert.ok(click.inputSchema.required.includes('tabId'));
+ assert.equal(tools.find(tool=>tool.name==='browser_snapshot').inputSchema.properties.filename,undefined);
+ await client.callTool({name:'browser_tabs'});assert.equal(calls.length,1);
+ await assert.rejects(client.callTool({name:'browser_click',arguments:{tabId:'a',target:'e1'}}),/browser_document_required/);
+ await assert.rejects(client.callTool({name:'browser_snapshot',arguments:{tabId:'a',filename:'/tmp/leak'}}),/browser_file_access_denied/);
+ const controller=new AbortController();controller.abort();await assert.rejects(client.callTool({name:'browser_open',arguments:{url:'https://example.com'}},undefined,{signal:controller.signal}),{name:'AbortError'});
+ assert.equal(calls.length,1);
+});

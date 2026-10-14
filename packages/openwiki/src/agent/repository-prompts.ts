@@ -167,6 +167,20 @@ matter for this topic. Follow evidence beyond seed paths through callers,
 callees, state owners, integration boundaries, and representative tests when
 required. Do not turn the page into a source-file inventory.
 
+Before writing, audit the strength of each important assertion against the
+implementation and inspected tests. Describe implemented guards, not intended
+behavior inferred from comments, names or a few passing examples. A test covers
+its inputs, not every possible input. Scope claims to validated input domains.
+For universal assertions (always, never, all unknown inputs, cannot throw,
+exact arithmetic, immutable), trace relevant failure paths and boundary behavior:
+coercion and inherited properties in dynamic lookups, non-finite/unsafe numeric
+intermediates, and shallow versus deep mutation. Do not infer numerical exactness
+merely from integer input checks. If the evidence does not establish a universal,
+narrow the statement to observed behavior or explicitly name the unverified bound.
+Distinguish recommendations from existing validation and source observations from
+live operational guarantees. Distinguish reading test code from running its checks.
+Lead each page with the core behavior; avoid repeated inventories and boilerplate.
+
 Write only ${job.path}. Do not create, edit, or delete another wiki page. After
 writing it, call submit_page with only the sparse Claim decisions required by
 your edits: confirmedClaimIds for rechecked issue Claims that remain unchanged,

@@ -6,7 +6,8 @@ import {FileExplorer} from './FileExplorer.jsx';
 const Editor=lazy(()=>import('./editor.jsx'));
 
 export function FileWorkspace({api,project,buffer,revealRequest,cwd,onDirectory,onOpen,onSave,onReady,onError,visible,pinned,loading=false}) {
- const element=useRef(null),lastReveal=useRef(null),tabOpen=useRef(0),[compact,setCompact]=useState(false),[treeOpen,setTreeOpen]=useState(true);
+ const element=useRef(null),breadcrumbs=useRef(null),lastReveal=useRef(null),tabOpen=useRef(0),[compact,setCompact]=useState(false),[treeOpen,setTreeOpen]=useState(true);
+ useLayoutEffect(()=>{if(visible&&breadcrumbs.current)breadcrumbs.current.scrollLeft=breadcrumbs.current.scrollWidth;},[visible,pinned,buffer?.key,cwd]);
  useLayoutEffect(()=>{const node=element.current;if(!node)return;const update=()=>{const width=node.getBoundingClientRect().width;if(width)setCompact(width<640);};update();const observer=new ResizeObserver(update);observer.observe(node);return()=>observer.disconnect();},[]);
  useLayoutEffect(()=>{
   if(!visible)return;
@@ -20,7 +21,7 @@ export function FileWorkspace({api,project,buffer,revealRequest,cwd,onDirectory,
  async function openInTab(path){const request=++tabOpen.current,item=await onOpen(path);if(item&&request===tabOpen.current&&element.current&&!element.current.hidden)setTreeOpen(false);}
  return <section ref={element} className="desktop-file-workspace" hidden={!visible} data-compact={compact} data-editor={!!file||loading} data-tree-open={treeOpen} aria-label="프로젝트 파일 작업">
   <div className="desktop-file-location">
-   <nav className="desktop-breadcrumbs" aria-label="현재 파일 경로">
+   <nav ref={breadcrumbs} className="desktop-breadcrumbs" aria-label="현재 파일 경로" tabIndex={0}>
     <CxButton title={fileRoot} onClick={()=>navigate('')}>{projectName}</CxButton>
     {parts.map((part,index)=><React.Fragment key={parts.slice(0,index+1).join('/')}><Icon name="chevronRight" size={12}/>{(external||file&&index===parts.length-1)?<span aria-current="page" title={file?.absolute||file?.path||cwd}>{part}</span>:<CxButton onClick={()=>navigate(parts.slice(0,index+1).join('/'))}>{part}</CxButton>}</React.Fragment>)}
    </nav>

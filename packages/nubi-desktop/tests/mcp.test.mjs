@@ -66,3 +66,25 @@ test('invalid registrations are refused and a failed connection reports its stat
   await assert.rejects(registry.connect('broken'),/mcp_connect_failed|mcp_connect_timeout/);
   assert.equal((await registry.list())[0].state,'failed');
 });
+
+test('built-in Playwright is default, is not overwritten, and stays disabled after restart',async t=>{
+ const root=await temp(t),file=path.join(root,'mcp.json');let connections=0,closed=0;
+ const playwright=async()=>{connections++;return {listTools:async()=>({tools:[{name:'browser_tabs',inputSchema:{type:'object',properties:{}},annotations:{readOnlyHint:true}},{name:'browser_click',inputSchema:{type:'object',properties:{tabId:{type:'string'}}},annotations:{readOnlyHint:false}}]}),callTool:async()=>({content:[{type:'text',text:'tabs'}]}),close:async()=>{closed++;}};};
+ const registry=new McpRegistry({file,playwright});t.after(()=>registry.dispose());
+ await Promise.all([registry.load(),registry.load()]);assert.equal((await registry.list()).length,1);
+ await Promise.all([registry.connect('playwright'),registry.connect('playwright')]);assert.equal(connections,1);
+ assert.equal(registry.tool('mcp__playwright__browser_click').readOnly,false);
+ assert.equal((await registry.call('mcp__playwright__browser_tabs')).text,'tabs');
+ await assert.rejects(registry.save({id:'playwright',transport:'stdio',command:'wrong'}),/mcp_server_invalid/);
+ await registry.remove({id:'playwright'});assert.equal(closed,1);
+ const restored=new McpRegistry({file,playwright});t.after(()=>restored.dispose());
+ await restored.connectEnabled();assert.equal(connections,1);assert.equal((await restored.list())[0].enabled,false);
+});
+
+test('disconnect during built-in startup closes the late client without resurrecting it',async t=>{
+ const root=await temp(t);let finish,closed=0;
+ const registry=new McpRegistry({file:path.join(root,'mcp.json'),playwright:()=>new Promise(resolve=>{finish=()=>resolve({listTools:async()=>({tools:[]}),close:async()=>{closed++;}});})});
+ await registry.load();const pending=registry.connect('playwright');await new Promise(resolve=>setImmediate(resolve));
+ await registry.disconnect('playwright');finish();await assert.rejects(pending,/mcp_disconnected/);
+ assert.equal(registry.definitions().length,0);assert.ok(closed>=1);
+});

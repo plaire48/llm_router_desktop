@@ -23,13 +23,16 @@ export function workIntent(input,capabilities){
   if(!validateIntent(input)||input.workflowIds.some(id=>!capabilities.workflows.some(w=>w.id===id))||input.skillPaths.some(path=>!capabilities.skills.some(s=>s.path===path)))throw new Error('work_plan_invalid');
   return structuredClone(input);
 }
-export const WORK_PLAN_SCHEMA={type:'object',additionalProperties:false,required:['steps'],properties:{intent:WORK_INTENT_SCHEMA,explanation:{type:'string',maxLength:600},steps:{type:'array',minItems:1,maxItems:5,items:{type:'object',additionalProperties:false,required:['text','expected_outcome','status'],properties:{text:{type:'string',minLength:1,maxLength:100},expected_outcome:{type:'string',minLength:1,maxLength:240},status:{enum:['pending','in_progress']}}}}}};
+export const WORK_PLAN_SCHEMA={type:'object',additionalProperties:false,required:['steps'],properties:{intent:WORK_INTENT_SCHEMA,explanation:{type:'string',maxLength:600},steps:{type:'array',minItems:1,maxItems:5,items:{type:'object',additionalProperties:false,required:['text','expected_outcome','status'],properties:{text:{type:'string',minLength:1,maxLength:100},expected_outcome:{type:'string',minLength:1,maxLength:240},status:{enum:['pending','in_progress','completed']}}}}}};
 export const WORK_PLANNING_TOOL={type:'function',function:{name:'update_plan',description:'Return the provisional work plan and intent as data only. No project action or approval.',parameters:{...WORK_PLAN_SCHEMA,required:['intent','steps']}}};
 const validate=new Ajv().compile(WORK_PLAN_SCHEMA);
 export function workPlanSteps(input,{initial=false}={}){
   if(!validate(input))throw new Error('work_plan_invalid');
   const steps=normalizePlan(input.steps);
   if(!steps||steps.filter(s=>s.status==='in_progress').length!==1||new Set(steps.map(s=>s.text)).size!==steps.length)throw new Error('work_plan_invalid');
+  // The model may mark earlier steps completed (bundle 3.2, 2026-10-15); a completed step after the current one is not a plan.
+  const active=steps.findIndex(s=>s.status==='in_progress');
+  if(steps.some((s,i)=>s.status==='completed'&&i>active))throw new Error('work_plan_invalid');
   return initial?initialPlan(steps):steps;
 }
 // An initial plan with every step pending (or all statuses omitted) has no
@@ -121,4 +124,16 @@ export async function prepareWorkPlan({task,history,model,invoke,signal,capabili
   // Keep Desktop's intent/capability checks: unlike a browser lookup, this plan
   // can gate file writes and local execution. Never invent or relax its intent.
   const error=new Error('work_plan_invalid');error.planningDiagnostic={phase:'planning',attempts:2,reasons:failures};throw error;
+}
+
+// The review confirms a step the model marked completed (verified) or reopens it when its check is not supported
+// (bundle 3.2, 2026-10-15); a supported check also completes a step the model left open. Reopened steps go back to
+// pending so the plan keeps one step in progress.
+export function reviewPlanSteps(steps,outcome){
+  return steps.map((step,index)=>{
+    const check=outcome.checks?.find(item=>item.requirementId==='intent:step:'+index);
+    if(check?.state==='supported'&&check.evidenceIds?.length)return {...step,status:'completed',verified:true};
+    if(step.status==='completed'&&outcome.status==='revise'&&check&&check.state!=='supported')return {...step,status:'pending',verified:false};
+    return step;
+  });
 }

@@ -1,6 +1,17 @@
+/** Evidence rules shared by canonical synthesis and immutable source summaries. */
+export function createSourceEvidencePolicy(): string {
+  return `
+- Time-scope mutable states to their source date. An old pending request or approval records what was reported then, not what is true now. Distinguish source/arrival time, explicit effective time and collection time; never invent an effective date or use today's ingestion date as confirmation. Missing later information means later state is unknown, not still pending or cancelled. Do not promote a necessary condition into sufficient approval. Preserve corrections and conflicting authority with their sources.
+- A timestamp without an explicit meaning is only quoted source text, not a confirmed decision or effective time. A body date later than arrival is not by itself an invalid date or contradiction; it could refer to a future event. Do not invent its meaning.
+- Distinguish confirmed, source-backed, contested, watchlist and saved-context evidence. When credible sources disagree and no ground truth settles it, preserve both claims with source and date as contested. Never resolve a contested fact by recency alone.
+- These limits apply to the lead summary itself, not only the facts below it. In Korean, prefer "본문에는 …라고 적혀 있습니다. 이 자료로는 최종 결정을 확인할 수 없습니다" for unresolved conflicting reports. Do not write "결정되지 않았습니다" or "승인되지 않았습니다" merely because the evidence is missing or conflicting. Quote an unexplained timestamp as "본문 표기" instead of saying an event happened at that time.
+`.trim();
+}
+
 export function createSourceSynthesisPolicy(connector: {id: string}): string {
   return `
 - Synthesize into canonical cross-source files when relevant: /open-questions.md for unresolved memory/wiki questions, /themes.md for recurring trends, /commitments.md for work tasks/follow-ups, /personal-logistics.md for non-work life-admin items, /quickstart.md for high-level navigation/current status, and /sources/${connector.id}.md for compact source evidence.
+${createSourceEvidencePolicy()}
 - Apply confidence labels: confirmed, source-backed, contested, watchlist, or saved-context. Keep weak/watchlist items out of /quickstart.md unless they materially affect current status.
 - When credible sources disagree and no ground truth settles it, label the fact contested and preserve both claims with source and date in a ## Contested section on the canonical page instead of overwriting one side. Never resolve a contested fact by recency alone.
 - Deduplicate with stable topic keys. Update existing themes, open questions, and commitments instead of repeating the same fact in several source pages.

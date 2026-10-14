@@ -74,3 +74,14 @@ test('column title and recipient filters apply to all rows before paging and sor
  assert.deepEqual((await search.search({filters:{subject:'계획'}})).results.map(row=>row.id),['two']);
  assert.equal((await search.search({query:'마지막',filters:{subject:'예산',roles:['to']}})).total,0);
 });
+
+test('relatedTo exposes grounded candidates, preserves filters and does not alter normal search',async()=>{
+ const {search,rows,sources}=fixture();
+ sources.two.from=sources.one.from;sources.two.date='2026-10-12';sources.two.subject='RE: 분기 계획';
+ let found=await search.search({query:'',relatedTo:'one'});assert.deepEqual(found.results.map(r=>r.id),['two']);
+ assert.equal(found.results[0].relationship.confidence,'candidate');assert.equal(found.results[0].relationship.evidence[1].hash,'hash-two');
+ assert.equal((await search.search({relatedTo:'one',filters:{senders:['missing@example.test']}})).total,0);
+ assert.equal((await search.search({query:''})).total,2);
+ rows[1].account='another';assert.equal((await search.search({relatedTo:'one'})).total,0);
+ await assert.rejects(search.search({relatedTo:'missing'}),/mail_missing/);
+});

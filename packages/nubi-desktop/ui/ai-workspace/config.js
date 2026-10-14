@@ -9,7 +9,10 @@ export const GHES_CONFIG = Object.freeze({
   clientId: env.VITE_GHES_OAUTH_CLIENT_ID || 'f939f199317d39998278',
   scope: env.VITE_GHES_OAUTH_SCOPE || 'repo',
   masterPath: env.VITE_MASTER_PATH || 'data/masters/work-items.json',
-  branch: env.VITE_MASTER_BRANCH?.trim() || 'main'
+  branch: env.VITE_MASTER_BRANCH?.trim() || 'main',
+  // Where the AI Workspace web app is served; Talk permalinks point here when the screens run inside Nubi Workspace
+  // (file: or app: origin), where location.href is not a web address (user report 2026-10-15: '게시판 주소를 확인하세요').
+  siteUrl: env.VITE_SITE_URL || `https://${env.VITE_GHES_HOST || 'code.sdsdev.co.kr'}/pages/${env.VITE_GHES_OWNER || 'Manufacturing-IT'}/${env.VITE_GHES_REPO || 'ai_workspace'}/`
 });
 
 export const SESSION_KEYS = Object.freeze([

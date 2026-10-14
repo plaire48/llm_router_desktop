@@ -29,3 +29,7 @@ test('mail pages with the same thread form a chain ordered by date',()=>{
     {path:'mail/d.md',thread:'',date:'2026-10-03T01:00:00Z'}]);
   assert.deepEqual(edges,[{from:'mail/a.md',to:'mail/b.md',kind:'thread'}]);
 });
+test('legacy mail source metadata and category are recovered without rewriting source',()=>{
+ const content='# 과거 메일\n\n## 출처\n\n- Source: portal/old\n- 발신: a@example.test\n- 메일 날짜: 2026-10-10\n- Category: 배포\n';
+ const p=describeWikiPage(content,'old.md');assert.equal(p.type,'Mail');assert.equal(p.category,'배포');assert.equal(p.date,'2026-10-10');assert.equal(p.from,'a@example.test');assert.equal(p.body,content);
+});

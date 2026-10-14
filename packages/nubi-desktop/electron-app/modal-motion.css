@@ -7,13 +7,16 @@
    ones, so this single place replaces the older per-dialog entrances (claude-connection, GHES) instead of stacking
    a second animation on top of them. */
 :root {
-  --nubi-modal-open:280ms;
+  --nubi-modal-open:360ms;
   --nubi-modal-close:220ms;
-  --nubi-modal-spring:cubic-bezier(.32,.72,0,1);
+  --nubi-modal-spring:cubic-bezier(.22,1.28,.36,1);
+  --nubi-modal-resize:360ms;
+  --nubi-modal-resize-ease:cubic-bezier(.22,1.12,.36,1);
   --nubi-modal-drop:cubic-bezier(.3,0,.8,.15);
 }
 @media (prefers-reduced-motion: no-preference) {
   @layer nubi-modal-motion {
+    :root[data-modal-motion] .cx-detail-panel.nubi-modal-morphing { background:transparent !important; box-shadow:none !important; animation:none !important; position:relative; z-index:1; }
     /* Enter. */
     :root[data-modal-motion] .cx-panel-backdrop { animation:nubi-modal-scrim-in var(--nubi-modal-open) var(--nubi-modal-spring) backwards !important; }
     :root[data-modal-motion] .cx-panel-backdrop:is(.is-modal,.is-confirmation) > .cx-detail-panel { animation:nubi-modal-sheet-in var(--nubi-modal-open) var(--nubi-modal-spring) backwards !important; }
@@ -25,13 +28,15 @@
     :root[data-modal-motion] .cx-panel-backdrop[data-modal-motion="leaving"] { animation:nubi-modal-scrim-out var(--nubi-modal-close) linear forwards !important; }
     :root[data-modal-motion] .cx-panel-backdrop[data-modal-motion="leaving"]:is(.is-modal,.is-confirmation) > .cx-detail-panel { animation:nubi-modal-sheet-out var(--nubi-modal-close) var(--nubi-modal-drop) forwards !important; }
     :root[data-modal-motion] .cx-panel-backdrop[data-modal-motion="leaving"]:not(.is-modal,.is-confirmation) > .cx-detail-panel { animation:nubi-modal-drawer-out var(--nubi-modal-close) var(--nubi-modal-drop) forwards !important; }
+    /* Removing the transient transparent surface must not restart an entrance. */
+    :root[data-modal-motion] .cx-panel-backdrop:not([data-modal-motion="leaving"]) > .cx-detail-panel.cx-detail-panel[data-modal-settled] { animation:none !important; }
   }
 }
 /* The leaving copy is only a picture: clicks fall through to the app underneath. */
 .cx-panel-backdrop[data-modal-motion="leaving"], .cx-panel-backdrop[data-modal-motion="leaving"] * { pointer-events:none !important; }
 @keyframes nubi-modal-scrim-in { from { opacity:0; } }
 @keyframes nubi-modal-scrim-out { to { opacity:0; } }
-@keyframes nubi-modal-sheet-in { from { transform:translate3d(0,36px,0) scale(.96); } }
+@keyframes nubi-modal-sheet-in { from { transform:translate3d(0,18px,0) scale(.965); } }
 @keyframes nubi-modal-sheet-out { to { transform:translate3d(0,28px,0) scale(.97); } }
 @keyframes nubi-modal-drawer-in { from { transform:translate3d(100%,0,0); } }
 @keyframes nubi-modal-drawer-out { to { transform:translate3d(100%,0,0); } }
@@ -43,3 +48,6 @@
 :root[data-modal-motion] .cx-panel-backdrop:not(:has(~ .cx-panel-backdrop)) { view-transition-name:nubi-modal; }
 ::view-transition-group(nubi-modal), ::view-transition-new(nubi-modal) { animation:none; }
 ::view-transition-old(nubi-modal) { display:none; }
+
+.nubi-modal-morph-surface { position:fixed; pointer-events:none; transform-origin:top left; z-index:0; }
+@media (prefers-reduced-motion: reduce) { .nubi-modal-morph-surface { display:none; } }

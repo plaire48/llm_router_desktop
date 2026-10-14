@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {installModalResizeMotion} from './modalResizeMotion.js';
 
 // iOS-like dialog motion (user request 2026-10-14): dialogs rise in like a sheet and drop away on close instead of
 // popping in and vanishing. The enter motion is pure CSS (electron-app/modal-motion.css), keyed on
@@ -24,6 +25,7 @@ export function installModalMotion(){
   const allowed=()=>!(typeof navigator!=='undefined'&&navigator.webdriver)&&!reduced?.matches;
   const sync=()=>{if(allowed())html.dataset.modalMotion='on';else delete html.dataset.modalMotion;};
   sync();reduced?.addEventListener?.('change',sync);
+  const stopResize=installModalResizeMotion(()=>!!html.dataset.modalMotion&&!document.hidden);
 
   // A node taken out of the document loses its scroll offset; remember offsets inside dialogs so the leaving copy
   // keeps showing what the person was looking at.
@@ -35,7 +37,7 @@ export function installModalMotion(){
   document.addEventListener('scroll',remember,{capture:true,passive:true});
 
   const leaving=new Set(),timers=new Set();
-  const finish=node=>{if(leaving.delete(node))node.remove();};
+  const finish=node=>{if(leaving.delete(node)){node.remove();for(const element of offsets.keys())if(node.contains(element))offsets.delete(element);}};
   const leave=(node,record)=>{
     node.dataset.modalMotion='leaving';
     node.inert=true;node.setAttribute('aria-hidden','true');
@@ -64,6 +66,7 @@ export function installModalMotion(){
     const gone=removed.filter(([node])=>!node.isConnected),fresh=added.filter(node=>node.isConnected&&!removed.some(([old])=>old===node));
     // One dialog replacing another in the same update (settings -> memories) is navigation inside the sheet: the
     // new panel fades in over a steady scrim and the old one leaves no copy behind.
+    if(fresh.length)for(const node of leaving)finish(node);
     if(gone.length&&fresh.length)for(const node of fresh)node.dataset.modalMotion='swap';
     else if(!document.hidden)for(const [node,record] of gone)leave(node,record);
     // Leaving copies have restored their offsets by now; forget dialogs that are gone for good.
@@ -72,6 +75,7 @@ export function installModalMotion(){
   observer.observe(document.body,{childList:true});
 
   return()=>{
+    stopResize();
     observer.disconnect();
     document.removeEventListener('scroll',remember,{capture:true});
     reduced?.removeEventListener?.('change',sync);

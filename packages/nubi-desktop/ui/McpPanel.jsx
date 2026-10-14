@@ -87,15 +87,15 @@ export function McpPanel({api}){
    {data.map(server=><li key={server.id} className="nubi-mcp-item" data-state={server.state}>
     <div className="nubi-mcp-head">
      <span className="nubi-mcp-kind" aria-hidden="true">{server.transport==='stdio'?<TerminalMark size={18}/>:<BrowserMark size={18}/>}</span>
-     <div className="nubi-mcp-title"><strong>{server.name||server.id}</strong><small>{server.transport==='stdio'?[server.command,...(server.args||[])].join(' '):server.url}</small></div>
+     <div className="nubi-mcp-title"><strong>{server.name||server.id}</strong><small>{server.transport==='builtin'?`인앱 웹 탭 / ${server.version}`:server.transport==='stdio'?[server.command,...(server.args||[])].join(' '):server.url}</small></div>
      <span className="nubi-mcp-state" data-state={server.state}><Icon name={server.state==='connected'?'check':server.state==='failed'?'alertCircle':server.state==='connecting'?'refresh':'minus'} size={14}/><span>{server.state==='connected'?`도구 ${server.tools.length}개`:server.state==='failed'?(errors[server.error]||'연결 실패'):server.state==='connecting'?'연결 중':server.enabled?'연결 안 됨':'자동 연결 끔'}</span></span>
      <span className="nubi-mcp-actions">
-      {server.state==='connected'?<WorkspaceAction action="logout" label="연결 끊기" disabled={busy} onClick={()=>act({action:'disconnect',id:server.id})}/>:<WorkspaceAction action="login" label="연결" disabled={busy} onClick={()=>act({action:'connect',id:server.id},()=>notifyWorkspaceToast('MCP 서버에 연결했어요.',{success:true}))}/>}
-      <WorkspaceAction action="edit" label="편집" disabled={busy} onClick={()=>setForm(toForm(server))}/>
-      <WorkspaceAction action="delete" label="삭제" disabled={busy} onClick={()=>act({action:'remove',id:server.id},()=>notifyWorkspaceToast('MCP 서버를 삭제했어요.'))}/>
+      {server.state==='connected'?<WorkspaceAction action="logout" label="연결 끊기" disabled={busy} onClick={()=>act({action:server.transport==='builtin'?'remove':'disconnect',id:server.id})}/>:<WorkspaceAction action="login" label="연결" disabled={busy} onClick={()=>act({action:'connect',id:server.id},()=>notifyWorkspaceToast('MCP 서버에 연결했어요.',{success:true}))}/>}
+      {server.transport!=='builtin'&&<WorkspaceAction action="edit" label="편집" disabled={busy} onClick={()=>setForm(toForm(server))}/>}
+      {server.transport!=='builtin'&&<WorkspaceAction action="delete" label="삭제" disabled={busy} onClick={()=>act({action:'remove',id:server.id},()=>notifyWorkspaceToast('MCP 서버를 삭제했어요.'))}/>}
      </span>
     </div>
-    {server.tools.length>0&&<details className="nubi-mcp-toolbox" open={data.length===1||undefined}><summary><Icon name="layers" size={14}/><span>도구 {server.tools.length}개</span><small>읽기 전용은 바로 실행, 그 밖에는 실행 전에 물어봐요</small><Icon name="chevronDown" size={14}/></summary>
+    {server.tools.length>0&&<details className="nubi-mcp-toolbox" open={server.transport!=='builtin'&&data.filter(item=>item.transport!=='builtin').length===1||undefined}><summary><Icon name="layers" size={14}/><span>도구 {server.tools.length}개</span><small>읽기 전용은 바로 실행, 그 밖에는 실행 전에 물어봐요</small><Icon name="chevronDown" size={14}/></summary>
      <ul className="nubi-mcp-tool-list">{server.tools.map(tool=><li key={tool.name}>
       <div className="nubi-mcp-tool-head"><span className="nubi-mcp-tool-kind" data-read={tool.readOnly||undefined} title={tool.readOnly?'읽기 전용':'실행 전 확인'}><Icon name={tool.readOnly?'eye':'pencil'} size={14}/></span><code>{tool.name}</code>{tool.title&&<span className="nubi-mcp-tool-title">{tool.title}</span>}</div>
       {tool.description&&<p className="nubi-mcp-tool-desc" title={tool.description}>{tool.description}</p>}

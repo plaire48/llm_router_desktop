@@ -30,7 +30,7 @@ test('a claimed approval wait without any host action resumes preparation instea
 });
 
 test('independent review resumes the same Pi task, preserves corrections and records evidence without granting passes',async t=>{
-  const {service,root}=await fixture(t,{scriptedReview:true});let executor=0,reviews=0;
+  const {service,root}=await fixture(t,{scriptedReview:true});service.readOnlyReviewRounds=4;let executor=0,reviews=0;
   service.providers={status,dispose(){},complete:async(messages,tools)=>{
     if(isReview(messages)){
       reviews++;assert.deepEqual(tools,[]);
@@ -63,7 +63,7 @@ test('independent review resumes the same Pi task, preserves corrections and rec
 // host replaced the answer with a question that quoted the review's
 // instruction to the executor.
 test('three unchanged review failures hand the answer over with its open checks, not unlimited answer retries',async t=>{
-  const {service}=await fixture(t,{scriptedReview:true});let reviews=0,executor=0;
+  const {service}=await fixture(t,{scriptedReview:true});service.readOnlyReviewRounds=4;let reviews=0,executor=0;
   service.providers={status,dispose(){},complete:async messages=>{if(isReview(messages)){reviews++;return decision(messages,'revise');}executor++;return reply('근거 없이 같은 답변');}};
   const task=await service.createTask({request:'현재 소스에서 확인해 주세요.'});await service.startAgent({taskId:task.id});await service.agent.promise;
   const saved=service.task(task.id);assert.equal(executor,3);assert.equal(reviews,3);
@@ -75,7 +75,7 @@ test('three unchanged review failures hand the answer over with its open checks,
 });
 
 test('review corrects an applied claim to a pending proposal without applying or duplicating it',async t=>{
-  const {service,root}=await fixture(t,{scriptedReview:true});let executor=0,reviews=0,hash;
+  const {service,root}=await fixture(t,{scriptedReview:true});service.readOnlyReviewRounds=4;let executor=0,reviews=0,hash;
   service.providers={status,dispose(){},complete:async messages=>{
     if(isReview(messages)){
       reviews++;const data=JSON.parse(messages[1].content),host=data.evidence.find(e=>e.id==='host').result;
@@ -98,7 +98,7 @@ test('review corrects an applied claim to a pending proposal without applying or
 });
 
 test('malformed reviews repair once and pause without publishing an unchecked answer',async t=>{
-  const {service}=await fixture(t,{scriptedReview:true});let reviews=0;
+  const {service}=await fixture(t,{scriptedReview:true});service.readOnlyReviewRounds=4;let reviews=0;
   service.providers={status,dispose(){},complete:async messages=>{if(isReview(messages)){reviews++;return reply('{broken');}return reply('모두 성공했습니다.');}};
   const task=await service.createTask({request:'확인해 주세요.'});await service.startAgent({taskId:task.id});await service.agent.promise;
   // The structured repair asks once more for valid JSON (2 calls); the read-only recovery of 2026-10-02 then runs the
@@ -107,14 +107,14 @@ test('malformed reviews repair once and pause without publishing an unchecked an
 });
 
 test('a pending user question bypasses result review and preserves the same task',async t=>{
-  const {service}=await fixture(t,{scriptedReview:true});let reviews=0;
+  const {service}=await fixture(t,{scriptedReview:true});service.readOnlyReviewRounds=4;let reviews=0;
   service.providers={status,dispose(){},complete:async messages=>{if(isReview(messages)){reviews++;return decision(messages);}return call('ask_user',{question:'어떤 문구로 바꿀까요?',input_mode:'long_text'});}};
   const task=await service.createTask({request:'문구 변경'});await service.startAgent({taskId:task.id});await service.agent.promise;
   assert.equal(reviews,0);assert.equal(service.task(task.id).state,'waiting_input');
 });
 
 test('cancellation during independent review never publishes a result or starts another executor',async t=>{
-  const {service}=await fixture(t,{scriptedReview:true});let start;const started=new Promise(resolve=>{start=resolve;});let executor=0;
+  const {service}=await fixture(t,{scriptedReview:true});service.readOnlyReviewRounds=4;let start;const started=new Promise(resolve=>{start=resolve;});let executor=0;
   service.providers={status,dispose(){},complete:async(messages,tools,signal)=>{if(isReview(messages)){start();await new Promise((resolve,reject)=>signal.addEventListener('abort',()=>reject(new Error('cancelled')),{once:true}));}executor++;return reply('검토 전 답변');}};
   const task=await service.createTask({request:'확인'});await service.startAgent({taskId:task.id});await started;await service.stopAgent({taskId:task.id});
   assert.equal(executor,1);assert.equal(service.task(task.id).state,'cancelled');assert.equal(service.task(task.id).messages.length,0);
@@ -260,3 +260,14 @@ test('tool-incompatible reviewer repairs as plain JSON without executing or weak
  assert.equal((await reviewResult({...input,candidate:'> 명령 실행을 승인해 주세요.\n\n이 문구의 맞춤법을 확인했습니다.'})).normalized,undefined);
  assert.equal((await reviewResult({...input,receipts:{...input.receipts,setupActions:[{id:'command',state:'proposed'}]}})).normalized,undefined);
  });
+
+// Bundle 3.4 (2026-10-15): a run that only read is reviewed once; its revise verdict is handed over with the answer.
+test('maxRounds of one hands a revise verdict over after a single review',async()=>{
+  const outcomes=[];let runs=0;
+  const answer=await runReviewedAgent({messages:[],signal:new AbortController().signal,waiting:()=>false,continuation:()=>[],maxRounds:()=>1,
+    run:async()=>{runs++;return reply('파일을 읽었습니다.');},
+    snapshot:()=>({task:{request:'읽어 줘'},evidence:[],receipts:{proposals:[],setupActions:[]}}),
+    review:async()=>({status:'revise',checks:[{requirementId:'request',state:'unknown',evidenceIds:[],detail:'근거 없음'}],nextStep:'근거를 읽는다'}),
+    onReview:async outcome=>outcomes.push(outcome)});
+  assert.equal(runs,1);assert.equal(outcomes.length,1);assert.equal(outcomes[0].handoff,'review_limit');assert.equal(answer.content,'파일을 읽었습니다.');
+});

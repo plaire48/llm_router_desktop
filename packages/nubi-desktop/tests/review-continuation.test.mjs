@@ -16,7 +16,7 @@ const model={id:'fixture',contextLength:32000};
 const copies=(text,part)=>text.split(part).length-1;
 
 test('a revision after a review sends the step guidance once, as the first request did',async t=>{
-  const {service}=await fixture(t,{scriptedReview:true});const systems=[];let reviews=0;
+  const {service}=await fixture(t,{scriptedReview:true});service.readOnlyReviewRounds=4;const systems=[];let reviews=0;
   service.providers={status:()=>({connected:true,model:'fixture',models:[model]}),dispose(){},async complete(messages){
     if(messages[0].content.startsWith(REVIEW_PROMPT)){
       const ready=++reviews>2,data=JSON.parse(messages[1].content);

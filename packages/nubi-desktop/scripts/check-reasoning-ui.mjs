@@ -35,8 +35,18 @@ try {
   else {assert.equal(await guide.isVisible(),true);assert.equal(await login.isVisible(),false);await guide.click();assert.equal(await page.evaluate(()=>window.setupGuideUrl),'https://code.claude.com/docs/en/setup');}
   await page.screenshot({path:path.join(out,issue+'.png')});
   if(issue==='claude_cli_missing'){
+    const help=dialog.locator('.claude-connection-help');assert.equal(await help.getAttribute('open'),null,'installation troubleshooting is optional');
+    await help.locator('summary').click();
+    await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>{window.copiedCommand=value;}}}));
+    await dialog.getByRole('button',{name:'버전 확인 명령 복사',exact:true}).click();
+    await dialog.getByRole('button',{name:'버전 확인 명령 복사 완료',exact:true}).waitFor();
+    assert.equal(await page.evaluate(()=>window.copiedCommand),'claude --version');
+    await page.screenshot({path:path.join(out,'claude-install-expanded.png')});
+    await page.evaluate(()=>{window.failSetupGuide=true;});await guide.click();
+    await dialog.getByRole('alert').waitFor();
+    assert.equal(await dialog.getByRole('alert').locator('svg').getAttribute('data-icon'),'infoCircle');
     await dialog.getByRole('button',{name:'연결 확인',exact:true}).click();
-    await login.waitFor({state:'visible'});assert.equal(await guide.isVisible(),false,'installed but signed-out retry only shows login');
+    await login.waitFor({state:'visible'});assert.equal(await guide.isVisible(),false,'installed but signed-out retry only shows login');assert.equal(await dialog.locator('[role=alert]').count(),0,'stage change does not repeat its status as an error');
   }
   records.push({setup:issue,stageSpecificGuide:true});
  }

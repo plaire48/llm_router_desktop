@@ -120,3 +120,5 @@
 .nubi-wiki-map-side button>.nubi-wiki-map-count{order:0}
 
 .nubi-wiki-map-side button{justify-content:flex-start}
+
+.nubi-wiki-map line[data-candidate]{stroke-dasharray:4 4}

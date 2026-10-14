@@ -18,6 +18,8 @@ Versions are pinned in the package lock. Original source notices and installed p
 | Zod (through OpenWiki) | 4.4.3 | MIT | Existing OpenWiki Claims validator; full license in vendor/licenses/Zod-LICENSE.txt |
 | MiniSearch | 7.2.0 | MIT | OpenWiki structural BM25 retrieval |
 | Playwright | 1.58.2 | Apache-2.0 | Local browser verification |
+| @playwright/mcp | 0.0.83 | Apache-2.0 | Official MCP tools for scoped in-app web tabs; bundles playwright/core 1.64.0-alpha-1790635538000 |
+| ws | 8.22.0 | MIT | Loopback capability endpoint for one Electron web tab |
 | pixelmatch | 7.1.0 | ISC | Pixel difference |
 | PNGJS | 7.0.0 | MIT | Screenshot artifacts |
 | react-markdown / remark-gfm / lowlight | 10.1.0 / 4.0.1 / 3.3.0 | MIT | Shared message rendering |

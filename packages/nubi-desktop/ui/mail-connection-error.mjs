@@ -34,6 +34,6 @@ export const mailConnectionErrors={
 };
 export function mailConnectionDiagnostic(code,protocol){
   if(!Object.hasOwn(mailConnectionErrors,code))return null;
-  const connection=protocol==='portal'||code.startsWith('mail_portal_')?'메일 포털 / kor3.samsung.net / HTTPS':'POP3 / pop3.samsung.net:995 / SSL/TLS';
+  const connection=protocol==='portal'||code.startsWith('mail_portal_')?'메일 포털 / kor3.samsung.net':'POP3 / pop3.samsung.net:995 / SSL/TLS';
   return `누비 Workspace Beta\n${connection}\n${code}`;
 }

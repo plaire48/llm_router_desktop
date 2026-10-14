@@ -200,6 +200,7 @@ try{
    for(const width of [1280,1000,900,760,620,520,440]){await p.setViewportSize({width,height:950});await p.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));await audit('composer-'+(running?'running':'idle')+'-'+width);}
    await p.setViewportSize({width:760,height:950});await p.evaluate(()=>document.documentElement.style.fontSize='200%');await audit('composer-'+(running?'running':'idle')+'-200pct');
   }
+
  }
  if(process.env.NUBI_NAV_ONLY){
   await p.setViewportSize({width:1280,height:950});await load('integrated&modals&toolbar&context');

@@ -126,7 +126,7 @@ test('a long pasted message does not stop a run in a small window',async t=>{
 // request before compaction.
 test('a revision after a compaction continues without losing or breaking messages',async t=>{
   const {fixture:make}=await import('./fixtures.mjs'),{REVIEW_PROMPT}=await import('../runtime/result-review.mjs');
-  const {service,root}=await make(t,{scriptedReview:true});
+  const {service,root}=await make(t,{scriptedReview:true});service.readOnlyReviewRounds=4;
   await mkdir(path.join(root,'docs'));
   await writeFile(path.join(root,'docs','big.md'),Array.from({length:900},(_,i)=>`line ${i+1} `+'reference text for the measurement of compaction. '.repeat(2)).join('\n'));
   await git(root,['add','-A']);await git(root,['commit','-qm','big document']);
@@ -167,7 +167,7 @@ test('a revision after a compaction continues without losing or breaking message
 // leaves it to the summary, the largest first.
 test('protected messages that the window cannot hold are left to the summary instead of stopping the run',async t=>{
   const {fixture:make}=await import('./fixtures.mjs'),{REVIEW_PROMPT}=await import('../runtime/result-review.mjs');
-  const {service,root}=await make(t,{scriptedReview:true});
+  const {service,root}=await make(t,{scriptedReview:true});service.readOnlyReviewRounds=4;
   await mkdir(path.join(root,'docs'));
   await writeFile(path.join(root,'docs','big.md'),Array.from({length:900},(_,i)=>`line ${i+1} `+'reference text for the measurement of compaction. '.repeat(2)).join('\n'));
   await git(root,['add','-A']);await git(root,['commit','-qm','big document']);

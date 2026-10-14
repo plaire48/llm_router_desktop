@@ -24,10 +24,10 @@ export function wikiUpdateView({status,update,initialization}){
   if(status?.reason==='no_wiki_pages'){
     const state=initialization?.state;
     const line=state==='running'?'위키를 만들고 있어요.':state==='attention'?'위키 생성이 중단됐어요. 오류를 확인하고 다시 시도해 주세요.':state==='cancelled'?'위키 생성을 중지했어요.':state==='waiting_model'?'모델을 연결하면 위키를 만들 수 있어요.':'아직 위키가 생성되지 않았어요.';
-    return {title:'위키 문서',lines:[...notice,line],pages:[],actions:[]};
+    return {title:'위키 문서',lines:[...notice,line],pages:[],actions:state==='running'?[]:['run']};
   }
   if(!status||status.state==='unknown')return {title:'위키 갱신',lines:[...notice,'생성 기록이 없어 갱신을 제안하지 않아요.'],pages:[],actions:[]};
-  if(status.state==='current')return {title:'위키가 최신이에요',lines:[...notice,`마지막 갱신 ${day(status.lastUpdate?.updatedAt)}`],pages:[],actions:[]};
+  if(status.state==='current')return {title:'현재 파일과 일치해요',lines:[...notice,`마지막 갱신 ${day(status.lastUpdate?.updatedAt)}`],pages:[],actions:['run']};
   const lines=[...notice,`마지막 갱신 ${day(status.lastUpdate?.updatedAt)}, 바뀐 파일 ${status.changedFiles?.length||0}개`];
   if(status.reason==='no_generation_record')lines[notice.length]='갱신 기록 없음. 기존 위키를 읽어 기록을 복구해요.';
   if(status.sourceMode==='folder')lines.push('폴더 파일 기준(Git 없음)');

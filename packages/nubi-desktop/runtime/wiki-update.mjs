@@ -1,5 +1,6 @@
 import {requireWikiGit} from './git-runtime.mjs';
 import {pullSources} from './wiki-refresh.mjs';
+import {snapshotFolderHistory} from './wiki-folder-history.mjs';
 // OpenWiki update, proposed by Desktop and run on approval (user decision 2026-09-29).
 //
 // The status is read without a model: the source changed since the generation
@@ -11,7 +12,7 @@ import {randomUUID} from 'node:crypto';
 import {mkdir,readFile,writeFile,rm,unlink} from 'node:fs/promises';
 import path from 'node:path';
 import {git,hash,fail,readSource,scopedFile,gitOpenFailure,privatePath} from './files.mjs';
-import {wikiSources,wikiFiles,listWikiPages,listWikiSourceFiles,writeWikiSnapshot,initializeWikiSnapshotGit,checkpointSnapshotWiki,readWikiSource,WIKI_CHECKPOINT} from './wiki-snapshot.mjs';
+import {wikiSources,wikiFiles,listWikiPages,listWikiSourceFiles,writeWikiSnapshot,checkpointSnapshotWiki,readWikiSource,WIKI_CHECKPOINT} from './wiki-snapshot.mjs';
 import {stalePages} from './wiki-evidence.mjs';
 import {OpenWikiIgnore,RepositoryEvidenceResolver,parseRepositoryEvidenceResource} from '../generated/openwiki.mjs';
 import {modelTransport} from './recovery.mjs';
@@ -191,6 +192,7 @@ export async function wikiUpdate({method='status',id,fingerprint}={}){
   if(method==='status')return {status:await wikiUpdateStatus(root),updates:records(this).slice(0,KEPT).map(visible)};
   if(method==='propose'){
     const status=await wikiUpdateStatus(root);
+    if(this.store!==owner||this.root!==root)fail('project_changed');
     if(status.state!=='stale')fail(status.state==='unknown'?'wiki_update_unavailable':'wiki_update_not_needed');
     const value={id:randomUUID(),state:'proposed',createdAt:new Date().toISOString(),status};
     value.fingerprint=hash(JSON.stringify([value.id,status.head,status.changedFiles,status.stalePages]));
@@ -199,14 +201,37 @@ export async function wikiUpdate({method='status',id,fingerprint}={}){
   // "오픈위키 갱신" from the conversation or /wiki_update (user request 2026-10-14): pull the git remote when there is
   // one, then propose and run the update as the 위키 갱신 button does. Nothing to update is a plain result, not an error.
   if(method==='refresh'){
-    if(this.wikiUpdateRun)fail('wiki_update_busy');
-    const pulled=await pullSources(root);
-    const status=await wikiUpdateStatus(root);
-    if(status.state!=='stale')return {pulled,status,update:null};
-    const proposal=await wikiUpdate.call(this,{method:'propose'});
-    const update=await wikiUpdate.call(this,{method:'run',id:proposal.id,fingerprint:proposal.fingerprint});
-    return {pulled,status,update};
+    if(this.wikiUpdateRun||this.wikiRefreshOwner||this.wikiInitController||this.agent?.running||this.processes?.active.size)fail('wiki_update_busy');
+    this.wikiRefreshOwner=owner;
+    const controller=new AbortController();
+    this.wikiRefreshJob={id:randomUUID(),projectId:this.projectId,kind:'update',state:'running',stage:'syncing',startedAt:new Date().toISOString(),percent:null,controller};
+    try{
+      const sourceMode=owner.get('setting:wiki-source')?.mode;
+      const pulled=sourceMode==='local'?{attempted:false,reason:'local_project'}:await (this.syncWikiSources||pullSources)(root,{signal:controller.signal});
+      if(sourceMode==='remote'&&!pulled.attempted)fail('git_upstream_missing');
+      if(controller.signal.aborted)fail('wiki_refresh_cancelled');
+      if(this.store!==owner||this.root!==root)fail('project_changed');
+      if(pulled.attempted&&!pulled.ok)fail(pulled.reason);
+      if(!pulled.attempted&&!['no_remote','not_git_repository','local_project'].includes(pulled.reason))fail(pulled.reason);
+      const status=await wikiUpdateStatus(root);
+      if(this.store!==owner||this.root!==root)fail('project_changed');
+      if(controller.signal.aborted)fail('wiki_refresh_cancelled');
+      if(status.reason==='no_wiki_pages'){
+        this.wikiInitEnabled=true;owner.set('wiki-init',null);
+        const initialization=await this.initializeWiki();
+        return {pulled,status,update:null,initialization};
+      }
+      if(status.state==='unknown')fail('wiki_update_unavailable');
+      if(status.state!=='stale')return {pulled,status,update:null};
+      const proposal=await wikiUpdate.call(this,{method:'propose'});
+      if(controller.signal.aborted)fail('wiki_refresh_cancelled');
+      if(pulled.attempted)save(this,{...proposal,sourceBasis:'remote'});
+      this.wikiRefreshProposalId=proposal.id;
+      const update=await wikiUpdate.call(this,{method:'run',id:proposal.id,fingerprint:proposal.fingerprint});
+      return {pulled,status,update};
+    }finally{if(this.wikiRefreshOwner===owner){this.wikiRefreshOwner=null;this.wikiRefreshJob=null;this.wikiRefreshProposalId=null;}}
   }
+  if(method==='cancel'&&this.wikiRefreshOwner===owner&&id===this.wikiRefreshJob?.id){this.wikiRefreshJob.controller.abort();return {id,state:'cancelled'};}
   const value=this.store.get('wiki-update:'+id);
   if(!value)fail('wiki_update_missing');
   if(method==='cancel'){this.wikiUpdateRun?.id===id&&this.wikiUpdateRun.controller.abort();return visible(value);}
@@ -216,6 +241,7 @@ export async function wikiUpdate({method='status',id,fingerprint}={}){
     return save(this,{...value,state:'discarded',finishedAt:new Date().toISOString()});
   }
   if(method==='run'){
+    if(this.wikiRefreshOwner&&this.wikiRefreshProposalId!==id)fail('wiki_update_busy');
     await requireWikiGit();
     if(value.state!=='proposed')fail('wiki_update_state');
     if(value.fingerprint!==fingerprint)fail('wiki_update_changed');
@@ -232,7 +258,7 @@ export async function wikiUpdate({method='status',id,fingerprint}={}){
       // reach the Wiki before a commit, and the status that proposed this update read those same files. A file the
       // snapshot would not read (private, binary, too large) keeps its committed version.
       const ignore=await OpenWikiIgnore.load(root);
-      for(const rel of (await statusPaths(root)).map(row=>row.path).filter(counted(ignore)).filter(rel=>!privatePath(rel))){
+      for(const rel of (value.sourceBasis==='remote'?[]:await statusPaths(root)).map(row=>row.path).filter(counted(ignore)).filter(rel=>!privatePath(rel))){
         let file=null,absent=false;try{file=await readWikiSource(root,rel);}catch(error){if(error.message==='source_stale')absent=true;else if(!['file_too_large','binary_file','file_encoding'].includes(error.message))throw error;}
         if(file){await writeWikiSnapshot(copy,[file]);overlay.set(rel,file.hash);}
         else if(absent){await rm(path.join(copy,rel),{force:true});overlay.set(rel,null);}
@@ -240,11 +266,13 @@ export async function wikiUpdate({method='status',id,fingerprint}={}){
       // Files the snapshot never reads (.env, keys, credentials) leave the copy too, as the initialization snapshot leaves them out.
       for(const rel of (await git(copy,['ls-files','-z'])).split('\0').filter(Boolean).filter(privatePath)){await rm(path.join(copy,rel),{force:true});overlay.set(rel,null);}
     }
-    else{folderSources=await wikiSources(root);await mkdir(copy,{recursive:true});await writeWikiSnapshot(copy,folderSources);await initializeWikiSnapshotGit(copy);}
+    else{folderSources=await wikiSources(root);await snapshotFolderHistory(owner.directory,folderSources,copy);}
     // Newly generated or edited Wiki files may not be committed. Give OpenWiki
     // the current pages and provenance, never an older/empty HEAD copy.
     await rm(path.join(copy,'openwiki'),{recursive:true,force:true});
     await writeWikiSnapshot(copy,originalWiki);
+    if(this.wikiRefreshJob?.controller.signal.aborted){await removeCopy(root,copy);fail('wiki_refresh_cancelled');}
+    if(this.store!==owner||this.root!==root){await removeCopy(root,copy);fail('project_changed');}
     const controller=new AbortController(),events=[];
     this.wikiUpdateRun={id:value.id,controller,owner};
     const running=save(this,{...value,state:'running',copy,startedAt:new Date().toISOString(),events:[]});

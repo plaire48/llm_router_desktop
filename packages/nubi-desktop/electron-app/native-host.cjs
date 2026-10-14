@@ -61,10 +61,21 @@ class ElectronHost{
     const address=remote(url),directory=await realpath(parent),name=address.pathname.split('/').at(-1).replace(/\.git$/,'');
     if(!/^[\w.-]+$/.test(name)||['.','..'].includes(name))throw Error('remote_invalid');
     const target=path.join(directory,name);
-    const credential=address.origin===ORIGIN&&(await this.account.status()).connected?await this.account.credential():null;
     // Allocate the destination exclusively. A failed/uncertain clone is kept
     // for inspection; retries never overwrite or remove its files.
     await mkdir(target).catch(error=>{throw Error(error.code==='EEXIST'?'clone_target_exists':'clone_failed');});
+    return this.withGitAccess(address,async({env,credential})=>{
+      await new Promise((resolve,reject)=>{
+        const child=this.spawnProcess(this.platform==='win32'&&process.env.NUBI_BUNDLED_GIT||'git',[...(credential?['-c','credential.helper=']:[]),...(this.platform==='win32'?['-c','http.sslBackend=schannel']:[]),'-c','http.sslVerify=true','clone','--',address.href,target],{env,stdio:['ignore','pipe','pipe'],windowsHide:true});this.children.add(child);
+        child.stdout.on('data',()=>{});child.stderr.on('data',()=>{});
+        child.once('error',()=>{this.children.delete(child);reject(Error('clone_failed'));});
+        child.once('exit',code=>{this.children.delete(child);code===0?resolve():reject(Error('clone_failed'));});
+      });
+      return {cloned:true,root:target};
+    });
+  }
+  async withGitAccess(address,operation){
+    const credential=address.origin===ORIGIN&&(await this.account.status()).connected?await this.account.credential():null;
     const temp=await mkdtemp(path.join(os.tmpdir(),'nubi-git-'));
     const socketPath=this.platform==='win32'?'\\\\.\\pipe\\nubi-git-'+randomUUID():path.join(temp,'socket');
     const nonce=randomBytes(32).toString('hex');let server;
@@ -88,15 +99,20 @@ class ElectronHost{
       await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(socketPath,resolve);});
       const env={...process.env,ELECTRON_RUN_AS_NODE:'1',GIT_TERMINAL_PROMPT:'0',GIT_ASKPASS:askpass,NUBI_GIT_SOCKET:socketPath,NUBI_GIT_NONCE:nonce};
       for(const key of Object.keys(env))if(/^GIT_TRACE|^GIT_CURL_VERBOSE$|^GIT_SSL_NO_VERIFY$/.test(key))delete env[key];
-      await new Promise((resolve,reject)=>{
-        const child=this.spawnProcess(this.platform==='win32'&&process.env.NUBI_BUNDLED_GIT||'git',[...(credential?['-c','credential.helper=']:[]),...(this.platform==='win32'?['-c','http.sslBackend=schannel']:[]),'-c','http.sslVerify=true','clone','--',address.href,target],{env,stdio:['ignore','pipe','pipe'],windowsHide:true});this.children.add(child);
-        child.stdout.on('data',()=>{});child.stderr.on('data',()=>{});
-        child.once('error',()=>{this.children.delete(child);reject(Error('clone_failed'));});
-        child.once('exit',code=>{this.children.delete(child);code===0?resolve():reject(Error('clone_failed'));});
-      });
+      const result=await operation({env,credential});
       if(credential&&credential.generation!==this.account.generation)throw Error('ghes_session_changed');
-      return {cloned:true,root:target};
-    }finally{if(server)await new Promise(resolve=>{server.close(resolve);});await rm(temp,{recursive:true,force:true});}
+      return result;
+    }finally{if(server)await new Promise(resolve=>server.close(resolve));await rm(temp,{recursive:true,force:true});}
+  }
+  async syncWikiSources(root,{signal}={}){
+    const {git}=require('../runtime/files.mjs');
+    const {pullSources}=require('../runtime/wiki-refresh.mjs');
+    const branch=(await git(root,['symbolic-ref','--quiet','--short','HEAD']).catch(()=>'' )).trim();
+    const name=branch&&(await git(root,['config','--get',`branch.${branch}.remote`]).catch(()=>'' )).trim();
+    const url=name&&(await git(root,['remote','get-url',name]).catch(()=>'' )).trim();
+    let address;try{address=remote(url);}catch{return pullSources(root,{signal});}
+    if(address.origin!==ORIGIN)return pullSources(root,{signal});
+    return this.withGitAccess(address,({env,credential})=>pullSources(root,{signal,run:(directory,args,options={})=>git(directory,[...(credential?['-c','credential.helper=']:[]),...(this.platform==='win32'?['-c','http.sslBackend=schannel']:[]),'-c','http.sslVerify=true',...args],{...options,env})}));
   }
   dispose(){this.wikis?.cancel();this.workspace?.close();this.workspace=null;this.account.dispose();for(const child of this.children)child.kill();this.repositories.clear();}
 }

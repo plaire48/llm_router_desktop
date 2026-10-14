@@ -17,29 +17,37 @@ let browser;const errors=[];
 try{
  browser=await chromium.launch({channel:'chrome',headless:true});const p=await browser.newPage();p.on('pageerror',e=>errors.push(e.message));
  for(const width of [1280,440,360]){
-  await p.setViewportSize({width,height:1050});await p.goto('http://127.0.0.1:'+server.address().port+'/?integrated&progress&activity-readability');
+  await p.setViewportSize({width,height:1050});await p.goto('http://127.0.0.1:'+server.address().port+'/?integrated&progress&activity-readability&timeline');
   const opener=p.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await opener.count())await opener.click();
   await p.getByRole('button',{name:'대화 검색',exact:true}).click();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').first().click();
   const closer=p.getByRole('button',{name:'사이드바 접기',exact:true});if(await closer.count())await closer.click();
   const activity=p.locator('.nubi-agent-activity'),trace=activity.locator('.agent-trace'),plan=activity.locator('[data-plan-overview]');
   assert.equal(await p.locator('.context-token-count').count(),0,'context count stays inside details');
-  await activity.waitFor();await trace.locator('summary').getByText('메일 원문과 프로젝트 자료를 대조하고 있어요',{exact:true}).waitFor();
-  // A running run shows its record, plan and step details open (user request 2026-10-14).
-  assert.equal(await trace.getAttribute('open'),'');assert.equal(await plan.getAttribute('open'),'');assert.equal(await plan.locator('.task-plan-context').getAttribute('open'),'','a running plan shows its step details');
-  assert(await trace.locator('summary .nubi-response-time').isVisible());
-  /* While running the header swaps its icon for a spinner; only the visible items are compared. */const geometry=await trace.locator(':scope > summary').evaluate(row=>{const boxes=[...row.children].map(el=>el.getBoundingClientRect()).filter(box=>box.width&&box.height);return {centers:boxes.map(b=>(b.top+b.bottom)/2),fits:row.scrollWidth<=row.clientWidth};});
-  assert(geometry.fits);assert(Math.max(...geometry.centers)-Math.min(...geometry.centers)<2,JSON.stringify(geometry));
-  assert.equal(await trace.locator('li[data-tool]').count(),6);
+  await activity.waitFor();
+  const record=activity.locator('.nubi-activity-record');
+  assert.equal(await record.getAttribute('open'),'');
+  assert.equal(await plan.getAttribute('open'),null,'plan is available without crowding the journal');
+  assert.equal(await trace.locator(':scope[open]').count(),0);
+  assert.equal(await activity.locator('.nubi-response-time').count(),1,'one elapsed timer per run');
+  assert.deepEqual(await activity.locator('[data-timeline-kind]').evaluateAll(rows=>rows.map(row=>row.dataset.timelineKind)),['note','tools','note','tools']);
   await p.evaluate(()=>document.fonts.ready);
-  const steps=await trace.locator('li[data-tool]').evaluateAll(rows=>rows.map(row=>{
-   const slot=row.querySelector('.agent-step-status'),mark=slot.querySelector('svg,.status-spinner'),text=row.querySelector('.agent-tool-label');
-   const icon=mark.getBoundingClientRect(),label=text.getBoundingClientRect(),style=getComputedStyle(text),inline=text.querySelector('.progress-inline');
-   return {gap:label.left-slot.getBoundingClientRect().right,center:Math.abs((icon.top+icon.bottom)/2-(label.top+parseFloat(style.lineHeight)/2)),font:style.fontSize,inlineFont:inline?getComputedStyle(inline).fontSize:style.fontSize};
+  const geometry=await trace.locator(':scope > summary').evaluateAll(rows=>rows.map(row=>{
+    const boxes=[...row.children].map(el=>el.getBoundingClientRect()).filter(b=>b.width&&b.height);
+    return {centers:boxes.map(b=>(b.top+b.bottom)/2),fits:row.scrollWidth<=row.clientWidth};
   }));
-  assert(steps.every(row=>row.gap===8&&row.center<1&&row.font===row.inlineFont),JSON.stringify(steps));
-  await p.screenshot({path:path.join(dir,`aligned-rows-${width}.png`),animations:'disabled'});
-  await trace.locator(':scope > summary').click();assert.equal(await trace.getAttribute('open'),null,'the reader can fold the running record');
-  await plan.getByText('메일 원문 확인',{exact:true}).waitFor();await plan.getByText('메일과 프로젝트 자료의 차이 확인',{exact:true}).waitFor();await plan.locator('.task-plan-context summary').click();assert.equal(await plan.locator('.task-plan-context').getAttribute('open'),null);await plan.locator(':scope > summary').click();assert.equal(await plan.getAttribute('open'),null,'the reader can fold the running plan');
+  assert(geometry.every(row=>row.fits&&Math.max(...row.centers)-Math.min(...row.centers)<2),JSON.stringify(geometry));
+  await record.locator(':scope > summary').evaluate(el=>el.scrollIntoView({block:'start'}));
+  await p.waitForFunction(()=>{const r=document.querySelector('.nubi-activity-record>summary').getBoundingClientRect();return r.top>=0&&r.bottom<innerHeight;});
+  await p.screenshot({path:path.join(dir,`running-${width}.png`),animations:'disabled'});
+  for(const row of await trace.locator(':scope > summary').all())await row.click();
+  assert.equal(await trace.locator('li[data-tool]').count(),6);
+  assert(await trace.locator('li[data-tool]').first().isVisible());
+  await plan.locator(':scope > summary').click();
+  await plan.getByText('메일 원문 확인',{exact:true}).waitFor();
+  await plan.locator('.task-plan-context summary').click();
+  await plan.getByText('메일과 프로젝트 자료의 차이 확인',{exact:true}).waitFor();
+  await plan.locator(':scope > summary').click();
+  for(const row of await trace.locator(':scope > summary').all())await row.click();
   assert.equal(await p.locator('.nubi-worker-detail').count(),2);assert.equal(await p.locator('.nubi-worker-detail[open]').count(),0);
   await p.locator('.nubi-worker-detail summary').first().click();await p.getByText('메일 1 대조 결과',{exact:true}).waitFor();await p.locator('.nubi-worker-detail summary').first().click();
   await p.screenshot({path:path.join(dir,`running-${width}.png`),animations:'disabled'});
@@ -62,6 +70,16 @@ await p.screenshot({path:path.join(dir,`execution-${width}.png`),animations:'dis
   await p.evaluate(()=>window.activityState('paused'));await trace.locator('li[data-status=error]').waitFor();assert(await trace.locator('li[data-status=error]').isVisible());
   await p.screenshot({path:path.join(dir,`attention-${width}.png`),animations:'disabled'});
   assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await p.reload();
+  const reopen=p.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await reopen.count())await reopen.click();
+  await p.getByRole('button',{name:'대화 검색',exact:true}).click();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').first().click();
+  const reclose=p.getByRole('button',{name:'사이드바 접기',exact:true});if(await reclose.count())await reclose.click();
+  await activity.waitFor();
+  await p.evaluate(()=>window.activityState('review'));
+  await p.waitForFunction(()=>!document.querySelector('.nubi-activity-record')?.open);
+  await record.locator(':scope > summary').click();
+  assert.equal(await activity.locator('[data-timeline-kind=note]').count(),2,'updates remain available after completion');
+  await p.screenshot({path:path.join(dir,`completed-${width}.png`),animations:'disabled'});
  }
  await p.setViewportSize({width:1280,height:1050});
  await p.goto('http://127.0.0.1:'+server.address().port+'/?integrated&document=history-handoff');
@@ -87,5 +105,5 @@ await p.screenshot({path:path.join(dir,`execution-${width}.png`),animations:'dis
  await p.locator('.nubi-process .nubi-terminal-state[data-state=completed]').waitFor();
  await p.locator('.nubi-process .nubi-terminal-output').getByText('실행 완료 확인',{exact:true}).waitFor();
  console.log('PASS: running agent plus command uses one state snapshot per cycle and presents final output.');
- assert.deepEqual(errors,[]);console.log('PASS: 1280/440/360px aligned activity heading and trace rows, single-line summary/time, all records and plan criteria accessible, compact worker results, automatic error expansion. Synthetic Workbench flow.');
+ assert.deepEqual(errors,[]);console.log('PASS: 1280/440/360px aligned activity heading and trace rows, chronological notes/tools, one timer, folded tools and plan criteria accessible, compact worker results, automatic error expansion. Synthetic Workbench flow.');
 }finally{await browser?.close();server.close();}

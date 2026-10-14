@@ -301,8 +301,11 @@ try{
  checks.push('resumed task keeps prior interrupted worker stopped despite retained running trace; old worker is never presented as active');
  await p.goto(page('progress'));
  await openSidebar();await p.getByRole('button',{name:'선택 메일 확인',exact:true}).click();
- const recordedProgress=p.locator('.nubi-agent-activity .agent-trace');
- if(await recordedProgress.getAttribute('open')===null)await recordedProgress.locator(':scope > summary').click();
+ /* The journal folds once the answer is out (2026-10-15) and groups tools in blocks: open it, then every block, before counting. */
+ const recordedActivity=p.locator('.nubi-agent-activity').first(),recordedJournal=recordedActivity.locator('.nubi-activity-record');
+ if(await recordedJournal.getAttribute('open')===null)await recordedJournal.locator(':scope > summary').click();
+ const recordedProgress=recordedActivity.locator('.nubi-activity-timeline');
+ for(const block of await recordedProgress.locator('.agent-trace').all())if(await block.getAttribute('open')===null)await block.locator(':scope > summary').click();
  assert.equal(await recordedProgress.locator('li[data-tool]').count(),6,'completed source reads remain visible beyond the former recent-three limit');
  await recordedProgress.getByText('메일과 개인 위키 검색',{exact:true}).waitFor();
  assert.equal(await recordedProgress.getByText('메일 원문과 개인 위키 조회',{exact:true}).count(),2);

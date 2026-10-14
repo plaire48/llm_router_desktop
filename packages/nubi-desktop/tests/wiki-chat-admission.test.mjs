@@ -54,3 +54,8 @@ test('writer admission is rechecked after asynchronous mail validation before cr
   service.wikiInitController.abort();service.store.set('wiki-init',{state:'cancelled'});
   await assert.rejects(service.startAgent({taskId:task.id,answer:'불허할 후속 질문',mailReferences:[reference]}),/wiki_chat_blocked/);assert.deepEqual(service.task(task.id),task);
 });
+test('source synchronization blocks only its owning project and cancellation releases admission',async t=>{
+ const {service}=await fixture(t);const controller=new AbortController();service.wikiRefreshOwner=service.store;service.wikiRefreshJob={id:'refresh',kind:'update',state:'running',stage:'syncing',startedAt:new Date().toISOString(),controller};
+ assert.equal(wikiChatBlocked(service),true);assert.equal(wikiChatJob(service).stage,'syncing');assert.equal('controller' in wikiChatJob(service),false);
+ await service.wikiUpdate({method:'cancel',id:'refresh'});assert(controller.signal.aborted);assert.equal(wikiChatBlocked(service),false);
+});

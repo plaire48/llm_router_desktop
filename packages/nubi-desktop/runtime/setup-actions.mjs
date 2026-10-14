@@ -8,12 +8,12 @@ import {toolArgumentIssues} from '../../../extensions/aipro-chat/tool-validation
 const text = maxLength => ({type:'string',minLength:1,maxLength});
 export const SETUP_ACTION_SCHEMA = {
   type:'object',additionalProperties:false,
-  properties:{title:{...text(120),description:'Short approval card title.'},kind:{type:'string',enum:['inspect','install','configure','build','start','verify'],description:'Use start for running an app/server, verify for tests, inspect for a version check.'},
-    profile:{...text(40),description:'Omit to use inspect_environment.shell, the user\'s chosen shell; another ID is refused. Do not send null.'},
-    script:{...text(16000),description:'ONE exact shell command as a string, not an array/object. This field is script, not command. Use the selected shell syntax.'},
-    reason:{...text(1000),description:'Why this command is needed, as a string.'},effects:{...text(1500),description:'Downloads, hooks, changes and their scope, as one string, not a list.'},verification:{...text(1000),description:'How its result will be checked, as one string, not an object or list.'},
-    privilege:{type:'string',enum:['user','administrator'],description:'Omit for ordinary execution. Administrator requires separate consent.'},privilegeReason:text(1000),
-    references:{type:'array',minItems:0,maxItems:10,description:'Copy path/hash pairs from this run\'s inspect_environment.references or read_source results. Never invent a hash. Use [] only when the command is independent of project files, such as an explicit host/version check. If it depends on a project script/configuration, read and reference that file.',items:{type:'object',additionalProperties:false,properties:{path:text(1000),hash:text(100)},required:['path','hash']}}},
+  properties:{title:{...text(120),description:'Short approval card title.'},kind:{type:'string',enum:['inspect','install','configure','build','start','verify'],description:'start runs an app or server, verify runs tests, inspect checks a version.'},
+    profile:{...text(40),description:'Omit: the user\'s chosen shell is used; another id is refused.'},
+    script:{...text(16000),description:'ONE exact shell command string in the selected shell syntax.'},
+    reason:{...text(1000),description:'Why it is needed.'},effects:{...text(1500),description:'Downloads, hooks and changes, one string.'},verification:{...text(1000),description:'How the result is checked, one string.'},
+    privilege:{type:'string',enum:['user','administrator'],description:'Omit normally; administrator needs separate consent.'},privilegeReason:text(1000),
+    references:{type:'array',minItems:0,maxItems:10,description:'path/hash pairs copied from this run\'s inspect_environment.references or read_source; [] only for a host-only check.',items:{type:'object',additionalProperties:false,properties:{path:text(1000),hash:text(100)},required:['path','hash']}}},
   required:['title','kind','script','reason','effects','verification','references']
 };
 

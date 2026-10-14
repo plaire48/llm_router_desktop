@@ -908,15 +908,6 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 :root:has(.desktop-shell) .provider-switcher[data-provider="claude"] [data-provider="claude"] { opacity:1; color:var(--provider-claude-ink); }
 :root:has(.desktop-shell) .claude-account h3 { display:flex; align-items:center; gap:var(--cx-space-2); white-space:nowrap; }
 :root:has(.desktop-shell) .claude-account .context-bar > span { background:var(--provider-claude); }
-:root:has(.desktop-shell) .claude-login-command { display:flex; align-items:center; justify-content:space-between; gap:var(--cx-space-3); padding:var(--cx-space-3) var(--cx-space-4); border-radius:var(--cx-radius-control); background:var(--deck-surface); }
-:root:has(.desktop-shell) .claude-login-command code { min-width:0; overflow:auto; white-space:nowrap; font-size:var(--cx-type-body); }
-:root:has(.desktop-shell) .claude-connection-error { color:var(--cx-danger); }
-:root:has(.desktop-shell) .claude-setup-steps { display:grid; gap:var(--cx-space-4); padding:0; margin:0; list-style:none; }
-:root:has(.desktop-shell) .claude-setup-steps > li { display:grid; gap:var(--cx-space-2); min-width:0; }
-:root:has(.desktop-shell) .claude-setup-heading { display:flex; align-items:center; justify-content:space-between; gap:var(--cx-space-3); }
-:root:has(.desktop-shell) .claude-setup-heading > strong { display:inline-flex; align-items:center; gap:var(--cx-space-2); white-space:nowrap; font-weight:var(--nubi-weight-label); }
-:root:has(.desktop-shell) .claude-setup-heading > strong > svg { color:var(--provider-claude-ink); flex:none; }
-:root:has(.desktop-shell) .claude-setup-heading > :is(button,span) { flex:none; white-space:nowrap; }
 .desktop-shell .provider-switcher .agent-tab { min-width:0; white-space:nowrap; }
 
 :root:has(.desktop-shell) .model-dialog .provider-switcher[data-provider="claude"] .provider-tabs [aria-selected="true"] { color:var(--provider-claude-ink); }
@@ -933,11 +924,8 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 
 /* Continue the existing login entrance sequence for the fourth provider. */
 .desktop-shell .provider-options > .provider-button:nth-child(4) { animation-delay:calc(var(--deck-step) * 3 + var(--deck-stagger) * 3); }
-@media (prefers-reduced-motion:no-preference) {
-  :root:has(.desktop-shell) .cx-panel-backdrop.is-modal > .deck-dialog.claude-connection { animation:deck-surface-enter var(--deck-pop) var(--deck-ease) !important; }
-}
 
-:root:has(.desktop-shell) .claude-setup-steps > li[hidden] { display:none; }
+
 
 /* Working changes use the same document rows as commit review. */
 .desktop-shell .desktop-pane .desktop-change-list > .cx-kit-button { display:flex; align-items:center; gap:var(--cx-space-3); min-width:0; white-space:nowrap; font:var(--deck-font-body); }
@@ -1065,3 +1053,25 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .desktop-shell .nubi-workbench .nubi-thought-live .status-spinner { flex:none; width:12px; height:12px; margin-top:4px; }
 .desktop-shell .nubi-workbench .nubi-setup-summary .nubi-terminal { margin-top:var(--cx-space-1); }
 .desktop-shell .nubi-workbench .nubi-command-receipt .status-spinner { width:12px; height:12px; }
+
+/* Conversation journal: explanation and evidence in the order they happened. */
+.desktop-shell .nubi-workbench .nubi-activity-record { min-width:0; }
+.desktop-shell .nubi-workbench .nubi-activity-record>summary { display:flex; align-items:center; gap:6px; list-style:none; color:var(--deck-sub); cursor:pointer; padding:6px 0; }
+.desktop-shell .nubi-workbench .nubi-activity-record>summary::-webkit-details-marker { display:none; }
+.desktop-shell .nubi-workbench .nubi-activity-record>summary>svg { margin-left:auto; transition:transform var(--deck-feedback,240ms) var(--deck-ease,ease); }
+.desktop-shell .nubi-workbench .nubi-activity-record[open]>summary>svg { transform:rotate(180deg); }
+.desktop-shell .nubi-workbench .nubi-activity-timeline { display:grid; gap:var(--cx-space-3); min-width:0; padding:var(--cx-space-2) 0; }
+.desktop-shell .nubi-workbench .nubi-activity-note { min-width:0; color:var(--deck-ink); font:var(--deck-font-body); line-height:1.75; overflow-wrap:anywhere; }
+.desktop-shell .nubi-workbench .nubi-agent-activity .nubi-activity-note .message-body { font:inherit; color:inherit; }
+.desktop-shell .nubi-workbench .nubi-activity-note .message-body>:last-child { margin-bottom:0; }
+.desktop-shell .nubi-workbench .nubi-activity-tools { min-width:0; }
+.desktop-shell .nubi-workbench .nubi-activity-tools .agent-trace>summary::before { display:none; }
+.desktop-shell .nubi-workbench .nubi-activity-tools .agent-trace>summary>svg:first-child { display:block; }
+.desktop-shell .nubi-workbench .nubi-activity-tools .agent-trace>summary>.agent-trace-title { animation:none; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.desktop-shell .nubi-workbench .nubi-activity-tools .agent-trace[data-state=running]>summary { color:var(--deck-sub); }
+.desktop-shell .nubi-workbench .nubi-activity-current { display:flex; align-items:center; gap:var(--cx-space-2); min-width:0; color:var(--deck-sub); font:var(--deck-font-body); }
+.desktop-shell .nubi-workbench .nubi-activity-current>span:last-child { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.desktop-shell .nubi-workbench .nubi-activity-current>.status-spinner { flex:none; }
+@media (prefers-reduced-motion:reduce) { .desktop-shell .nubi-workbench .nubi-activity-record>summary>svg { transition:none; } }
+/* A step the model marked completed but the review has not confirmed: a lighter check (bundle 3.2, 2026-10-15). */
+.desktop-shell .nubi-workbench .task-plan li[data-status='completed']:not([data-verified]) .task-plan-marker { opacity:.45; }

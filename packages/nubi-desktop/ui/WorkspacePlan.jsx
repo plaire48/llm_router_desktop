@@ -2,7 +2,7 @@ import React from 'react';
 import {TaskPlan} from '../../../extensions/aipro-chat/src/TaskPlan.jsx';
 
 // Host evidence supplies progress. A finished answer never completes plan steps.
-export function WorkspacePlan({task,trace,historical=false,answered=false}) {
+export function WorkspacePlan({task,trace,historical=false,answered=false,compact=false}) {
   // Browser plan history uses epoch milliseconds; Desktop persisted ISO dates.
   // Adapt the host format so shared additions/removals and reasons stay visible.
   const updates=(task.workPlan?.updates||[]).map(update=>({...update,at:typeof update.at==='number'?update.at:Date.parse(update.at)}));
@@ -13,5 +13,5 @@ export function WorkspacePlan({task,trace,historical=false,answered=false}) {
   const label=answered?'답변 받음':waiting?(task.peerWait?'연결한 누비 응답 대기':task.computerConnectionRequest?'앱 연결 대기':'답변 대기'):task.state==='review'?(task.resultReview?.status==='ready'?(task.resultReview.checks?.some(check=>check.state==='pending')?'반영 대기':'응답 확인됨'):'결과 확인 필요'):task.state==='cancelled'?'중지됨':undefined;
   // Open while the run works so its progress can be watched; folded once the answer is delivered and in history
   // (user request 2026-10-14). The key remounts at that boundary, so a reader's toggle holds until then.
-  return <TaskPlan compactOverview overviewClassName="nubi-work-plan" defaultExpanded={!collapsed} contextExpanded={!collapsed} key={`${task.workPlan?.runId||task.id}:${collapsed?'result':'active'}`} progress={{plan:task.workPlan?.steps,updates,status,review:task.resultReview?.status}} trace={trace} question={task.question} phase={task.context?.phase} statusLabel={label}/>;
+  return <TaskPlan compactOverview overviewClassName="nubi-work-plan" defaultExpanded={!compact&&!collapsed} contextExpanded={!compact&&!collapsed} key={`${task.workPlan?.runId||task.id}:${collapsed?'result':'active'}`} stepAttributes={index=>task.workPlan?.steps?.[index]?.verified?{'data-verified':'true'}:{}} progress={{plan:task.workPlan?.steps,updates,status,review:task.resultReview?.status}} trace={trace} question={task.question} phase={task.context?.phase} statusLabel={label}/>;
 }

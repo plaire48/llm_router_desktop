@@ -10,14 +10,15 @@ export const WIKI_SECTION_PALETTE=['#3182F6','#F04452','#00A86B','#F59E0B','#8B5
 export const sectionColors=graph=>new Map((graph?.sections||[]).map((entry,i)=>[entry.id,WIKI_SECTION_PALETTE[i%WIKI_SECTION_PALETTE.length]]));
 const round=value=>Math.round(value*100)/100;
 export function buildWikiGraph(items=[],edges=[]){
-  const nodes=new Map(items.map(item=>[item.path,{...item,title:item.title||item.path,type:item.type||'',description:item.description||'',tags:Array.isArray(item.tags)?item.tags:[],section:typeof item.section==='string'?item.section:wikiSection(item.path),links:[],backlinks:[]}]));
+  const nodes=new Map(items.map(item=>[item.path,{...item,title:item.title||item.path,type:item.type?.toLowerCase()==='mail'?(item.category||'메일'):item.type||'',description:item.description||'',tags:Array.isArray(item.tags)?item.tags:[],section:typeof item.section==='string'?item.section:wikiSection(item.path),links:[],backlinks:[]}]));
   const pairs=new Map();
   for(const edge of edges){
     const from=nodes.get(edge?.from),to=nodes.get(edge?.to);
     if(!from||!to||edge.from===edge.to)continue;
     if(!from.links.includes(edge.to))from.links.push(edge.to);
     if(!to.backlinks.includes(edge.from))to.backlinks.push(edge.from);
-    const [a,b]=[edge.from,edge.to].sort(),key=a+'\n'+b,pair=pairs.get(key)||{a,b,ab:false,ba:false};
+    const [a,b]=[edge.from,edge.to].sort(),key=a+'\n'+b,pair=pairs.get(key)||{a,b,ab:false,ba:false,relations:[]};
+    if(edge.kind)pair.relations.push(edge);
     if(edge.from===a)pair.ab=true;else pair.ba=true;
     pairs.set(key,pair);
   }
@@ -28,9 +29,11 @@ export function buildWikiGraph(items=[],edges=[]){
     const sharedTags=a.tags.filter(tag=>b.tags.includes(tag)),sameSection=a.section===b.section;
     const na=neighbors(pair.a),nb=neighbors(pair.b);na.delete(pair.b);nb.delete(pair.a);
     const common=[...na].filter(path=>nb.has(path)).length,union=new Set([...na,...nb]).size,overlap=union?round(common/union):0;
-    const strength=round(Math.min(4,1+(mutual?1:0)+Math.min(1,sharedTags.length*0.5)+(sameSection?0.5:0)+overlap));
-    const reasons=[mutual?'서로 참조':pair.ab?'앞 문서가 참조':'뒤 문서가 참조',...(sharedTags.length?[`태그 ${sharedTags.length}개 공유`]:[]),...(sameSection?['같은 분류']:[]),...(overlap>=0.3?['이웃 문서 공유']:[])];
-    return {from:pair.a,to:pair.b,mutual,sharedTags,sameSection,overlap,strength,reasons};
+    const relation=pair.relations.find(r=>r.confidence==='header')||pair.relations[0];
+    const computedStrength=round(Math.min(4,1+(mutual?1:0)+Math.min(1,sharedTags.length*0.5)+(sameSection?0.5:0)+overlap));
+    const strength=relation?.confidence==='candidate'?1.5:relation?.confidence==='header'?3:computedStrength;
+    const reasons=relation?.label?[relation.label,...(relation.reasons||[]),...(relation.chronology?[`${relation.chronology.days}일 간격 (인과관계 미확인)`]:[])]:[mutual?'서로 참조':pair.ab?'앞 문서가 참조':'뒤 문서가 참조',...(sharedTags.length?[`태그 ${sharedTags.length}개 공유`]:[]),...(sameSection?['같은 분류']:[]),...(overlap>=0.3?['이웃 문서 공유']:[])];
+    return {from:pair.a,to:pair.b,relationship:relation||null,mutual,sharedTags,sameSection,overlap,strength,reasons};
   }).sort((x,y)=>y.strength-x.strength||x.from.localeCompare(y.from)||x.to.localeCompare(y.to));
   const count=(key)=>{const map=new Map();for(const node of nodes.values()){const id=node[key];map.set(id,(map.get(id)||0)+1);}return [...map].map(([id,total])=>({id,count:total})).sort((x,y)=>y.count-x.count||String(x.id).localeCompare(String(y.id)));};
   const list=[...nodes.values()];
@@ -42,7 +45,7 @@ export function relatedDocuments(graph,path){
   if(!byPath.has(path))return [];
   return graph.links.filter(link=>link.from===path||link.to===path).map(link=>{
     const other=link.from===path?link.to:link.from,node=byPath.get(other),outgoing=byPath.get(path).links.includes(other),incoming=byPath.get(path).backlinks.includes(other);
-    return {path:other,title:node.title,section:node.section,type:node.type,direction:outgoing&&incoming?'both':outgoing?'out':'in',strength:link.strength,reasons:[outgoing&&incoming?'서로 참조':outgoing?'이 문서가 참조':'이 문서를 참조',...link.reasons.slice(1)]};
+    return {path:other,title:node.title,date:node.date,relationship:link.relationship,section:node.section,type:node.type,direction:outgoing&&incoming?'both':outgoing?'out':'in',strength:link.strength,reasons:link.relationship?.label?link.reasons:[outgoing&&incoming?'서로 참조':outgoing?'이 문서가 참조':'이 문서를 참조',...link.reasons.slice(1)]};
   }).sort((x,y)=>y.strength-x.strength||x.title.localeCompare(y.title));
 }
 // Table helpers: one filtered, sorted and paged view over the graph's nodes.

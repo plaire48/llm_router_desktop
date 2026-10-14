@@ -14,7 +14,7 @@ test('the Electron renderer installs dialog motion and its styles',async()=>{
 
 test('dialog motion is compositor-only, timed like a sheet and off for reduced motion',async()=>{
   const css=await read('electron-app/modal-motion.css');
-  assert.match(css,/--nubi-modal-open:280ms;/);
+  assert.match(css,/--nubi-modal-open:360ms;/);
   assert.match(css,/--nubi-modal-close:220ms;/);
   assert.match(css,/@media \(prefers-reduced-motion: no-preference\) \{\s*@layer nubi-modal-motion \{/);
   for(const [,body] of css.matchAll(/@keyframes nubi-modal-[\w-]+ \{([^}]*\})\s*\}/g)){

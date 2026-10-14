@@ -36,12 +36,12 @@ test('portal EML is stored and searched with folder isolation, original hashes a
 });
 test('portal session restores without opening a login window, and expired sessions request login',async()=>{
  const calls=[];class Window{constructor(){this.webContents={session:{setPermissionRequestHandler(){}},setWindowOpenHandler(){},on(){},executeJavaScript(){}};}isDestroyed(){return false;}on(){}async loadURL(){}show(){calls.push('show');}hide(){}destroy(){}}
- const host=new MailPortal({BrowserWindow:Window,invoke:async(method,args)=>{calls.push(args.action);if(args.action==='portalKnown')return {uids:folders.map(folder=>`portal:${folder.folderID}:9`)};return {};}});
+ const host=new MailPortal({fetchSession:(session,url,options)=>session.fetch(url,options),BrowserWindow:Window,invoke:async(method,args)=>{calls.push(args.action);if(args.action==='portalKnown')return {uids:folders.map(folder=>`portal:${folder.folderID}:9`)};return {};}});
  host.read=async op=>op==='identity'?{userId:'fixture-user'}:op==='folders'?folders:{liteHeaderVOs:[{mailSeq:9}]};await host.restore();await settled(()=>!host.state.checking);assert.equal(host.status().connected,true);assert(!calls.includes('show'));assert(calls.includes('portalConnect'));
  host.read=async()=>{throw Error('mail_portal_login');};await assert.rejects(host.sync(),/mail_portal_login/);assert.equal(host.status().connected,false);assert.equal(host.status().error,'mail_portal_login');host.dispose();
 });
 test('approval reads use the portal session and the requested source, with no approval mutation endpoint',async()=>{
- const host=new MailPortal({invoke:async(method,args)=>{assert.equal(args.action,'portalDocument');return {mail:{subject:'Approval',text:'Read-only body'}};}});host.state.connected=true;host.identity={userId:'fixture-user'};
+ const host=new MailPortal({fetchSession:(session,url,options)=>session.fetch(url,options),invoke:async(method,args)=>{assert.equal(args.action,'portalDocument');return {mail:{subject:'Approval',text:'Read-only body'}};}});host.state.connected=true;host.identity={userId:'fixture-user'};
  const calls=[];host.read=async(op,args)=>{calls.push({op,args});if(op==='approvals')return {totalCount:1,data:[{apId:'approval-1',aplnId:'line-1',sbmDt:'2026-10-13T09:00:00Z'}]};return [{subject:'Approval contract',result:eml.toString('latin1')}];};
  const list=await host.approvals();assert.equal(list.items[0].subject,'Approval contract');const document=await host.approvalRead({id:'approval-1',lineId:'line-1'});assert.equal(document.mail.text,'Read-only body');assert.equal(calls.filter(call=>call.op==='approvalItem').length,1);assert(calls.every(call=>['approvals','approvalItem'].includes(call.op)));await assert.rejects(host.approvalRead({id:'../other',lineId:'line-1'}),/mail_input_invalid/);host.dispose();
 });
@@ -50,19 +50,19 @@ test('MIME alternatives retain useful HTML text and attachment names while keepi
  const mail=await normalizePortalMail(raw,{includePresentation:true});assert.match(mail.normalized.text,/Body table/);assert.equal(mail.attachments[0].presentation,'inline');assert.equal(mail.attachments[1].filename,'contract.pdf');assert.deepEqual(mail.presentation.images,[]);
 });
 test('the authenticated profile and own sent-mail metadata identify the account without a manual recipient form',async()=>{
- const host=new MailPortal({invoke:async()=>{}}),calls=[];
+ const host=new MailPortal({fetchSession:(session,url,options)=>session.fetch(url,options),invoke:async()=>{}}),calls=[];
  host.read=async(operation,args)=>{calls.push({operation,args});if(operation==='identity')return {email:'owner@example.test'};if(operation==='folders')return folders;if(operation==='list')return {liteHeaderVOs:[{mailSeq:9}]};return {from:{userID:'fixture-user',email:'owner@example.test'}};};
  const result=await host.identify();assert.equal(result.identity.userId,'fixture-user');assert.equal(result.identity.id,'fixture-user');assert.equal(result.identity.email,'owner@example.test');assert.equal(calls.find(call=>call.operation==='summary').args.folderId,'2');host.dispose();
 });
 test('receivedAddress identifies the logged-in mailbox even without profile fields or sent mail',async()=>{
- const host=new MailPortal({invoke:async()=>{}});
+ const host=new MailPortal({fetchSession:(session,url,options)=>session.fetch(url,options),invoke:async()=>{}});
  host.read=async(operation)=>operation==='identity'?{}:operation==='folders'?[folders[0]]:operation==='list'?{liteHeaderVOs:[{mailSeq:9}]}:{receivedAddress:'owner@example.test',toRecipients:[{email:'owner@example.test',userID:'owner-id'}]};
  const result=await host.identify();assert.equal(result.identity.email,'owner@example.test');assert.equal(result.identity.userId,'owner-id');assert.equal(result.identity.id,'owner-id');host.dispose();
 });
 test('portal login opens inside the app browser tab, closes it after identification, and a closed tab cancels the wait',async()=>{
  class Window{constructor(){this.webContents={session:{setPermissionRequestHandler(){}},setWindowOpenHandler(){},on(){},executeJavaScript(){}};}isDestroyed(){return false;}on(){}async loadURL(){}show(){throw Error('separate window must not open');}hide(){}destroy(){}}
  const pages=[],closed=[];let onClosed=null;
- const host=new MailPortal({BrowserWindow:Window,invoke:async()=>({}),openPage:(url,options)=>{pages.push({url,session:options.session});onClosed=options.onClosed;return {opened:true,tabId:'tab-'+pages.length};},closePage:id=>closed.push(id)});
+ const host=new MailPortal({fetchSession:(session,url,options)=>session.fetch(url,options),BrowserWindow:Window,invoke:async()=>({}),openPage:(url,options)=>{pages.push({url,session:options.session});onClosed=options.onClosed;return {opened:true,tabId:'tab-'+pages.length};},closePage:id=>closed.push(id)});
  host.read=async op=>op==='identity'?{userId:'fixture-user',email:'owner@example.test'}:op==='folders'?folders:{liteHeaderVOs:[{mailSeq:9}]};
  host.sync=async()=>{};
  const status=await host.connect({});assert.equal(status.connected,true);assert.equal(pages.length,1);assert.equal(pages[0].url,LOGIN_URL);assert.deepEqual(closed,['tab-1']);
@@ -72,17 +72,17 @@ test('portal login opens inside the app browser tab, closes it after identificat
  await assert.rejects(pending,/mail_cancelled/);assert.equal(host.page,null);assert.deepEqual(closed,['tab-1','tab-2']);host.dispose();
 });
 
-function loginFixture({whiteLabel=false,backgroundExpired=false,homeOnly=false,backgroundBlocked=false,passwordField=false}={}){
+function loginFixture({whiteLabel=false,backgroundExpired=false,homeOnly=false,backgroundBlocked=false,passwordField=false,authenticated=true}={}){
  const events=[],pages=[],handlers={},calls=[];
  const reply=operation=>operation==='identity'?{userId:'fixture-user',email:'owner@example.test'}:folders;
  function contents(url,{background=false,errorPage=false}={}){return {
   getURL:()=>url,isDestroyed:()=>false,isLoadingMainFrame:()=>false,stop:()=>events.push('stop'),
-  session:{setPermissionRequestHandler(){}},on:(name,handler)=>{if(background)handlers[name]=handler;},setWindowOpenHandler:handler=>{if(background)handlers.popup=handler;},
+  session:{setPermissionRequestHandler(){},async fetch(url){const operation=Object.entries(require('../electron-app/mail-portal-contract.cjs').PATHS).find(([,route])=>route===new URL(url).pathname)?.[0];events.push('reader:'+operation);return new Response(JSON.stringify(reply(operation)),{status:backgroundExpired||whiteLabel||!authenticated?401:200});}},on:(name,handler)=>{if(background)handlers[name]=handler;},setWindowOpenHandler:handler=>{if(background)handlers.popup=handler;},
   async executeJavaScript(source){
    if(source.includes('document.querySelectorAll'))return vm.runInNewContext(source,{document:{body:{},querySelectorAll:()=>passwordField?[{getClientRects:()=>[1]}]:[]}});
    if(source.includes('document.body'))return vm.runInNewContext(source,{document:{body:{innerText:errorPage?'Whitelabel Error Page\nThis application has no explicit mapping for /error, so you are seeing this as a fallback.\nstatus=404':'Sign in'}}});
    const operation=JSON.parse(source.slice(source.lastIndexOf(')(')+2,-1)).operation;events.push((background?'reader:':'page:')+operation);
-   if(background&&backgroundExpired)throw Error('mail_portal_login');return reply(operation);
+   if(!authenticated||background&&backgroundExpired)throw Error('mail_portal_login');return reply(operation);
   }
  };}
  // Like a real window: a load moves the page, except the mail origin while signed out, whose SSO redirect the guard blocks.
@@ -90,13 +90,13 @@ function loginFixture({whiteLabel=false,backgroundExpired=false,homeOnly=false,b
  const portal=contents(`${ORIGIN}/portal`),sso=contents('https://sso.example.test/signin',{errorPage:whiteLabel}),home=contents(LOGIN_URL);
  // The login tab follows a navigation the host asks for, as the interactive browser does.
  home.loadURL=async url=>{events.push('tab-load:'+url);home.getURL=()=>url;};
- const host=new MailPortal({BrowserWindow:Window,invoke:async(_method,args)=>{calls.push(args);return {};},openPage:(url,options)=>{events.push('login:'+url);pages.push({url,options});return {tabId:'login'};},getPageContents:()=>whiteLabel?[sso]:homeOnly?[home]:[sso,portal],closePage:()=>events.push('close-login')});host.sync=async()=>{};
- return {host,events,pages,handlers,calls,contents};
+ const host=new MailPortal({fetchSession:(session,url,options)=>session.fetch(url,options),BrowserWindow:Window,invoke:async(_method,args)=>{calls.push(args);return {};},openPage:(url,options)=>{events.push('login:'+url);pages.push({url,options});return {tabId:'login'};},getPageContents:()=>whiteLabel?[sso]:homeOnly?[home]:[sso,portal],closePage:()=>events.push('close-login')});host.sync=async()=>{};
+ return {host,events,pages,handlers,calls,contents,authenticate:()=>authenticated=true};
 }
 test('interactive portal login preserves the browser flow before creating the background reader',async()=>{
  const {host,events,handlers,calls}=loginFixture();
  await host.connect({});assert.equal(host.status().connected,true);
- assert.deepEqual(events,['stop','load:about:blank',`login:${LOGIN_URL}`,'page:identity','page:folders',`load:${ORIGIN}`,'reader:folders','close-login']);
+ assert.deepEqual(events,['stop','load:about:blank',`login:${LOGIN_URL}`,'page:identity','page:folders','reader:folders','close-login']);
  assert.equal(calls.filter(c=>c.action==='portalConnect').length,1);
  const count=events.length;assert.deepEqual(handlers.popup({url:'https://sso.example.test/callback',postBody:{data:[{bytes:Buffer.from('fixture')}]}}),{action:'deny'});assert.equal(events.length,count,'background popup is never replayed as a GET');
  let prevented=false;handlers['will-redirect']({preventDefault(){prevented=true;}},'https://sso.example.test/login');assert.equal(prevented,true);host.dispose();
@@ -111,22 +111,44 @@ test('a portal login retry starts from kor3 and clears the failed reader documen
  const {host,events}=loginFixture({whiteLabel:true});await assert.rejects(host.connect({}),/mail_portal_sso/);await assert.rejects(host.connect({}),/mail_portal_sso/);assert.equal(events.filter(x=>x===`login:${LOGIN_URL}`).length,2);assert.equal(events.filter(x=>x==='load:about:blank').length,2);host.dispose();
 });
 
-// Signing in on the portal home leaves the tab there, never on the mail origin (user report 2026-10-14); the background
-// window shares the session and confirms the login from the mail origin.
-test('a login that ends on the portal home is confirmed through the background window',async()=>{
- const {host,events,calls}=loginFixture({homeOnly:true});const status=await host.connect({});
- assert.equal(status.connected,true);assert.ok(events.includes(`load:${ORIGIN}`));assert.ok(events.includes('reader:identity'));assert.ok(!events.some(event=>event.startsWith('page:')),'nothing is injected into the portal home');
- assert.equal(calls.filter(c=>c.action==='portalConnect').length,1);host.dispose();
+// Login completion must be verified by mail APIs, never guessed from a home page without password fields.
+test('an idle portal home connects automatically after the shared session authenticates without navigating to mail',async()=>{
+ const {host,events,calls,pages,authenticate}=loginFixture({homeOnly:true,authenticated:false});
+ const pending=host.connect();await settled(()=>pages.length===1);await sleep(2200);
+ assert.equal(host.status().connected,false);assert.equal(host.status().loginStage,'authenticating');
+ assert(!events.includes(`load:${ORIGIN}`));assert(!events.some(event=>event.startsWith('tab-load:')));assert(!calls.some(c=>c.action==='portalConnect'));
+ authenticate();await pending;assert.equal(host.status().connected,true);
+ assert(!events.includes(`load:${ORIGIN}`),'no mailbox-page navigation required');assert(!events.some(event=>event.startsWith('tab-load:')));host.dispose();
+});
+test('a password page is not moved automatically',async()=>{
+ const {host,events,pages}=loginFixture({homeOnly:true,passwordField:true,authenticated:false});
+ const pending=host.connect();await settled(()=>pages.length===1);await sleep(2200);
+ assert(!events.some(event=>event.startsWith('tab-load:')));assert(!events.includes(`load:${ORIGIN}`));
+ await host.disconnect();await assert.rejects(pending,/mail_cancelled/);host.dispose();
 });
 
-// The mail origin needs its own SSO round trip that only the interactive tab may make; once the tab shows a signed-in
-// company page it is sent there (user report 2026-10-14: "확인 중" never finished after signing in).
-test('a signed-in portal home tab is sent to the mail origin when the background window cannot sign in',async()=>{
- const {host,events}=loginFixture({homeOnly:true,backgroundBlocked:true});const status=await host.connect({});
- assert.equal(status.connected,true);assert.ok(events.includes(`tab-load:${ORIGIN}`));assert.ok(events.includes('page:identity'));host.dispose();
+test('closing login clears connecting state and a fresh attempt can connect immediately',async()=>{
+ const {host,pages}=loginFixture();const identify=host.identify.bind(host);let rejectOld;
+ host.identify=()=>new Promise((_resolve,reject)=>{rejectOld=reject;});
+ const old=host.connect();await settled(()=>!!rejectOld);pages[0].options.onClosed();
+ assert.equal(host.status().connecting,false);assert.equal(host.status().connected,false);
+ host.identify=identify;await host.connect();assert.equal(host.status().connected,true);
+ rejectOld(Error('mail_portal_login'));await assert.rejects(old,/mail_cancelled/);
+ assert.equal(host.status().connected,true,'old cancellation must not overwrite the replacement connection');host.dispose();
 });
-test('a tab still asking for a password is never moved',async()=>{
- const {host,events}=loginFixture({homeOnly:true,backgroundBlocked:true,passwordField:true});
- const pending=host.connect({});await new Promise(resolve=>setTimeout(resolve,2500));
- assert.ok(!events.some(event=>event.startsWith('tab-load:')));await host.disconnect().catch(()=>{});await pending.catch(()=>{});host.dispose();
+
+test('a late failure from the previous mailbox cannot disconnect a new session',async()=>{
+ const calls=[],host=new MailPortal({fetchSession:(session,url,options)=>session.fetch(url,options),invoke:async(_method,args)=>{calls.push(args.action);return {};}});host.state.connected=true;host.identity={id:'old',setCd:''};
+ let rejectRead;host.read=()=>new Promise((_resolve,reject)=>{rejectRead=reject;});
+ const pending=host.sync();await settled(()=>!!rejectRead);await host.disconnect();calls.length=0;
+ host.state={...host.state,connected:true};host.identity={id:'new',setCd:''};rejectRead(Error('mail_portal_login'));
+ await assert.rejects(pending,/mail_cancelled/);assert.equal(host.status().connected,true);assert(!calls.includes('disconnect'));host.dispose();
+});
+
+test('a late folder list cannot overwrite the replacement mailbox folders',async()=>{
+ const calls=[],host=new MailPortal({fetchSession:(session,url,options)=>session.fetch(url,options),invoke:async(_method,args)=>{calls.push(args.action);return {};}});host.state.connected=true;host.identity={id:'old',setCd:''};
+ let finishRead;host.read=()=>new Promise(resolve=>{finishRead=resolve;});
+ const pending=host.sync();await settled(()=>!!finishRead);await host.disconnect();calls.length=0;
+ host.state={...host.state,connected:true,folders:[{id:'new'}]};host.identity={id:'new',setCd:''};finishRead(folders);
+ await assert.rejects(pending,/mail_cancelled/);assert.deepEqual(host.status().folders,[{id:'new'}]);assert(!calls.includes('portalFolders'));host.dispose();
 });

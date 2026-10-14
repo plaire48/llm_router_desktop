@@ -1,7 +1,13 @@
+import {GHES_CONFIG} from './config.js';
 // The ai_workspace sources fetch GitHub directly with a token from localStorage. In Nubi the SSO token stays in the
 // main process, so every GitHub call goes through the host, which adds the credential and bounds the response.
 const decode=value=>{const binary=atob(value||'');const bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);return bytes;};
 const encode=bytes=>{let binary='';for(let i=0;i<bytes.length;i+=32768)binary+=String.fromCharCode(...bytes.subarray(i,i+32768));return btoa(binary);};
+// The base of Talk permalinks: this page when it is a web address, otherwise the published AI Workspace site.
+export function talkBase(){
+  const href=globalThis.location?.href||'';
+  return /^https?:/i.test(href)?href:GHES_CONFIG.siteUrl;
+}
 export async function ghesFetch(input,options={}){
  const url=typeof input==='string'?input:input?.url||String(input);
  const headers={};for(const [key,value] of new Headers(options.headers||{}).entries())if(key.toLowerCase()!=='authorization')headers[key]=value;
@@ -17,7 +23,7 @@ export async function ghesFetch(input,options={}){
  if(result?.__nubiError)throw Object.assign(new Error(result.__nubiError),{code:result.__nubiError});
  if(options.signal?.aborted)throw new DOMException('aborted','AbortError');
  const bytes=result.body?decode(result.body):new Uint8Array(0);
- const response=new Response(bytes,{status:result.status,statusText:result.statusText||'',headers:result.headers||{}});
+ const response=new Response([204,205,304].includes(result.status)?null:bytes,{status:result.status,statusText:result.statusText||'',headers:result.headers||{}});
  Object.defineProperty(response,'url',{value:result.url||url});
  return response;
 }

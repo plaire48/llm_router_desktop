@@ -58,6 +58,7 @@ export function mailFrontMatter({title,summary,thread,mail={},documentKind='ë©”ì
   if(thread)lines.push(`thread: ${yaml(thread)}`);
   if(mail.messageId)lines.push(`message_id: ${yaml(mail.messageId)}`);
   if(mail.inReplyTo)lines.push(`in_reply_to: ${yaml(mail.inReplyTo)}`);
+  if(mail.references?.length)lines.push(`references: [${[].concat(mail.references).slice(0,30).map(yaml).join(', ')}]`);
   if(mail.from)lines.push(`from: ${yaml(mail.from)}`);
   if(mail.to)lines.push(`to: ${yaml(Array.isArray(mail.to)?mail.to.join(', '):mail.to)}`);
   if(mail.cc)lines.push(`cc: ${yaml(Array.isArray(mail.cc)?mail.cc.join(', '):mail.cc)}`);

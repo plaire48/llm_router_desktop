@@ -129,7 +129,7 @@ test('a refused review is asked again with the exact problems and the valid IDs'
       body.checks[1]={...body.checks[1],state:'supported',evidenceIds:[]};
     });
   }});
-  assert.equal(prompts.length,2);assert.equal(prompts[0],REVIEW_PROMPT);
+  assert.equal(prompts.length,2);assert.equal(prompts[0],resultReviewInput(reviewInput()).messages[0].content);
   assert.match(prompts[1],/Unknown evidence IDs: "fake"/);
   assert.match(prompts[1],/supported needs at least one evidence ID: criterion:AC-1/);
   assert.match(prompts[1],/Usable evidence IDs: host, user, tool:0\./,'usable IDs are listed, unusable ones are not');
@@ -158,7 +158,7 @@ const verdict=(messages,status,state,nextStep='')=>({content:JSON.stringify({sta
 const fixtureStatus=()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:200000}]});
 
 test('a prepared proposal that only waits for the user is handed over at the second review',async t=>{
-  const {service}=await fixture(t,{scriptedReview:true});let reviews=0,executorRounds=0;const flow=patchFlow();
+  const {service}=await fixture(t,{scriptedReview:true});service.readOnlyReviewRounds=4;let reviews=0,executorRounds=0;const flow=patchFlow();
   service.providers={status:fixtureStatus,dispose(){},async complete(messages){
     if(messages[0].content.startsWith(REVIEW_PROMPT)){reviews++;return verdict(messages,'revise','pending','승인 후 적용하고 검증하세요.');}
     return flow(messages,()=>{executorRounds++;return {content:'수정안을 준비했습니다. 반영 승인을 기다립니다.',calls:[]};});
@@ -173,7 +173,7 @@ test('a prepared proposal that only waits for the user is handed over at the sec
 });
 
 test('without anything waiting for approval the review keeps its own verdict',async t=>{
-  const {service}=await fixture(t,{scriptedReview:true});let reviews=0;
+  const {service}=await fixture(t,{scriptedReview:true});service.readOnlyReviewRounds=4;let reviews=0;
   service.providers={status:fixtureStatus,dispose(){},async complete(messages){
     if(messages[0].content.startsWith(REVIEW_PROMPT)){reviews++;return verdict(messages,'revise','pending','현재 파일을 읽으세요.');}
     return {content:'확인했습니다.',calls:[]};
@@ -186,7 +186,7 @@ test('without anything waiting for approval the review keeps its own verdict',as
 });
 
 test('unverified items with new evidence arriving are not handed over early',async t=>{
-  const {service}=await fixture(t,{scriptedReview:true});let reviews=0,reads=0;const flow=patchFlow();
+  const {service}=await fixture(t,{scriptedReview:true});service.readOnlyReviewRounds=4;let reviews=0,reads=0;const flow=patchFlow();
   const call=(name,args)=>({content:'',calls:[{id:crypto.randomUUID(),type:'function',function:{name,arguments:JSON.stringify(args)}}]});
   service.providers={status:fixtureStatus,dispose(){},async complete(messages){
     if(messages[0].content.startsWith(REVIEW_PROMPT)){reviews++;return reviews<4?verdict(messages,'revise','unknown','관련 문서를 더 확인하세요.'):verdict(messages,'ready','unknown');}
@@ -203,7 +203,7 @@ test('unverified items with new evidence arriving are not handed over early',asy
 // new evidence" never held and the handover came at the sixth review. What
 // matters is whether the list waiting for the user changed.
 test('side work between reviews does not postpone the handover; a new proposal does',async t=>{
-  const {service,root}=await fixture(t,{scriptedReview:true});let reviews=0,round=0,hash,second;
+  const {service,root}=await fixture(t,{scriptedReview:true});service.readOnlyReviewRounds=4;let reviews=0,round=0,hash,second;
   const {writeFile}=await import('node:fs/promises'),path=await import('node:path');
   await writeFile(path.join(root,'other.txt'),'alpha\nbeta\n');
   const call=(name,args)=>({content:'',calls:[{id:crypto.randomUUID(),type:'function',function:{name,arguments:JSON.stringify(args)}}]});
@@ -283,7 +283,7 @@ test('an open user requirement or criterion still returns the work to the execut
 // review returned it, the executor replied only "the explanation is complete,
 // runtime is unverified", and that short note was all the user received.
 test('an answer returned by review is rewritten in full, because only the last reply is delivered',async t=>{
-  const {service}=await fixture(t,{scriptedReview:true});let reviews=0;const continuations=[];
+  const {service}=await fixture(t,{scriptedReview:true});service.readOnlyReviewRounds=4;let reviews=0;const continuations=[];
   service.providers={status:fixtureStatus,dispose(){},async complete(messages){
     if(messages[0].content.startsWith(REVIEW_PROMPT)){reviews++;return reviews===1?verdict(messages,'revise','unknown','검증 범위를 밝히세요.'):verdict(messages,'ready','unknown');}
     const feedback=messages.findLast(message=>message.role==='user'&&String(message.content).startsWith('Independent review found unfinished work'));
@@ -316,7 +316,7 @@ test('unusable evidence is set aside and never counts as support',async()=>{
 // Found in B2 cases D2 and D3: each round read a new range, so the review
 // never stalled, and ten reviews later the time ran out with no answer at all.
 test('after four reviews that still ask for more, the answer is handed over with its open checks',async t=>{
-  const {service}=await fixture(t,{scriptedReview:true});let reviews=0,answers=0,line=0;
+  const {service}=await fixture(t,{scriptedReview:true});service.readOnlyReviewRounds=4;let reviews=0,answers=0,line=0;
   const call=(name,args)=>({content:'',calls:[{id:crypto.randomUUID(),type:'function',function:{name,arguments:JSON.stringify(args)}}]});
   let reading=true;
   service.providers={status:fixtureStatus,dispose(){},async complete(messages){
@@ -339,7 +339,7 @@ test('after four reviews that still ask for more, the answer is handed over with
 // Found in B2 case C5: the executor wrote its question in the final answer,
 // the review accepted it, and the task ended without waiting for the user.
 test('the executor and the review are told that a question goes through ask_user',async t=>{
-  const {service}=await fixture(t,{scriptedReview:true});let system='',continued='',reviews=0;
+  const {service}=await fixture(t,{scriptedReview:true});service.readOnlyReviewRounds=4;let system='',continued='',reviews=0;
   service.providers={status:fixtureStatus,dispose(){},async complete(messages){
     if(messages[0].content.startsWith(REVIEW_PROMPT)){reviews++;return reviews===1?verdict(messages,'revise','unknown','인상 폭을 확인하세요.'):verdict(messages,'ready','unknown');}
     system||=messages.filter(message=>message.role==='system').map(message=>message.content).join('\n');

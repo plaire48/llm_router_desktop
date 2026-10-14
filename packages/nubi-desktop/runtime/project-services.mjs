@@ -1,7 +1,7 @@
 import {humanDecisions} from '../ui/human-decisions.mjs';
 import {wikiChatJob} from './wiki-chat-admission.mjs';
 
-const active=service=>!!(service.skillImportBusy||service.marketplaceBusy||service.vocBusy||service.computerBusy||service.newFileBusy||service.setupBusy||service.processes?.active.size||service.processes?.pending.size||service.unsettledOperations?.size||service.reconciling||service.agent?.running||service.recordingKnowledge||service.databaseBusy||service.collaborationBusy||service.wikiUpdateRun||service.wikiInitController&&!service.wikiInitController.signal.aborted&&service.store?.get('wiki-init')?.state==='running');
+const active=service=>!!(service.skillImportBusy||service.marketplaceBusy||service.vocBusy||service.computerBusy||service.newFileBusy||service.setupBusy||service.processes?.active.size||service.processes?.pending.size||service.unsettledOperations?.size||service.reconciling||service.agent?.running||service.recordingKnowledge||service.databaseBusy||service.collaborationBusy||service.wikiUpdateRun||service.wikiRefreshOwner||service.wikiInitController&&!service.wikiInitController.signal.aborted&&service.store?.get('wiki-init')?.state==='running');
 
 // Each service owns an immutable project while work is in flight. Switching
 // changes the selected service, never the store/root referenced by an agent.
@@ -12,7 +12,7 @@ export class ProjectServices{
  share(service){
   const primary=this.primary;
   for(const name of ['providers','providerRestoring','personalMail','usageLedger','marketplaceToken','marketplaceReader','marketplaceConnected','marketplaceCatalog','marketplaceAuthRequired','marketplaceRevision','marketplaceController'])Object.defineProperty(service,name,{configurable:true,get:()=>primary[name],set:value=>{primary[name]=value;}});
-  for(const name of ['connectionVault','openWorkspacePage','closeWorkspaceAuthPage'])service[name]=primary[name];
+  for(const name of ['connectionVault','openWorkspacePage','closeWorkspaceAuthPage','syncWikiSources','playwrightRequest','captureWorkspacePage','captureWorkspaceWindow'])service[name]=primary[name];
   service.mail=args=>primary.mail(args);
   return service;
  }

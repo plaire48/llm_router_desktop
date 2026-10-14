@@ -1,5 +1,5 @@
+import {wikiRefreshErrors,wikiRefreshNotice} from './wiki-refresh-view.mjs';
 import {ProposalCard} from './ProposalCard.jsx';
-import {WikiBrowser} from './WikiBrowser.jsx';
 import {WorkspaceUpdate,WorkspaceUpdateProgress,useWorkspaceUpdate} from './WorkspaceUpdate.jsx';
 import {DESKTOP_PROVIDER_LABELS} from './provider-labels.mjs';
 import {ClaudeConnection,ClaudeAccountUsage,ClaudeQuotaPill} from './ClaudeConnection.jsx';
@@ -15,13 +15,11 @@ import {AGENT_COMMANDS,desktopSkillCommand} from '../runtime/agent-commands.mjs'
 import {MessageTimestamp} from './MessageTimestamp.jsx';
 import {UsagePanel} from '../../../extensions/aipro-chat/src/UsagePanel.jsx';
 import {ResponseTime} from './ResponseTime.jsx';
-import {MailHistory} from './MailHistory.jsx';
 import {AppliedFileChanges} from './AppliedFileChanges.jsx';
 import {MailEvidenceChips,useMailDraftReferences,appendMailReferences,removeMailReference} from './MailEvidence.jsx';
 import {WorkspaceInputs} from './WorkspaceInputs.jsx';
 import {WorkspaceActivity} from './WorkspaceActivity.jsx';
 import {conversationActivity} from './conversation-activity.mjs';
-import {MailLibrary} from './MailLibrary.jsx';
 import {NubiPreparing} from './NubiPreparing.jsx';
 
 
@@ -38,9 +36,7 @@ import {ghesMessages} from './ghes-account-state.mjs';
 import {providerLoginError,providerLoginDiagnostics} from './provider-login-state.mjs';
 import {closeSession, openSession, restoreSessionNavigation, saveSessionNavigation} from './session-navigation.mjs';
 import {flushSync} from 'react-dom';
-import {SkillManager} from './SkillManager.jsx';
 import {SkillLibrary} from './SkillLibrary.jsx';
-import {SkillRegistration} from './SkillRegistration.jsx';
 import {ComputerConnectionForm} from './ComputerConnectionForm.jsx';
 import {ComputerUse} from './ComputerUse.jsx';
 import {SetupActions} from './SetupActions.jsx';
@@ -52,7 +48,6 @@ import {humanDecisions} from './human-decisions.mjs';
 import {SystemDecisionNotifications} from './SystemDecisionNotifications.jsx';
 import {NotificationBell} from './NotificationCenter.jsx';
 import {animatedSetter} from './viewTransition.js';
-import {McpPanel} from './McpPanel.jsx';
 import {ProjectStart} from './ProjectStart.jsx';
 import {WikiInitializationProgress} from './WikiInitializationProgress.jsx';
 import {TerminalBlock} from './TerminalBlock.jsx';
@@ -61,6 +56,13 @@ import {ApprovalModeControl} from './ApprovalMode.jsx';
 import {WORKSPACE_LAYOUT} from '../electron-app/workspace-layout.cjs';
 import {ApprovalBar} from './ApprovalBar.jsx';
 import React, {useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo} from 'react';
+import {deferredScreen} from './deferred-screen.jsx';
+const WikiBrowser=deferredScreen(()=>import('./WikiBrowser.jsx'),'WikiBrowser');
+const MailHistory=deferredScreen(()=>import('./MailHistory.jsx'),'MailHistory');
+const SkillManager=deferredScreen(()=>import('./SkillManager.jsx'),'SkillManager');
+const MailLibrary=deferredScreen(()=>import('./MailLibrary.jsx'),'MailLibrary');
+const McpPanel=deferredScreen(()=>import('./McpPanel.jsx'),'McpPanel');
+const SkillRegistration=deferredScreen(()=>import('./SkillRegistration.jsx'),'SkillRegistration');
 import {CxButton, CxInput, CxNotice, CxCheckbox, DetailPanel, SearchInput, Icon} from '@e2e/cx-design-system';
 import {CxSelect} from './WorkspaceSelect.jsx';
 import {WorkspaceAction as ActionButton} from './WorkspaceAction.jsx';
@@ -155,7 +157,7 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
   // A light poll keeps the rail's mail icon honest about collection and organisation in progress (2026-10-14).
   const [projectPicker,setProjectPicker]=useState(false),[personalStart,setPersonalStart]=useState(false),[reviewSlot,setReviewSlot]=useState(null);
   // Screenshots of the Workspace window attached to the next message (user request 2026-10-14).
-  const [draftCaptures,setDraftCaptures]=useState([]),[capturing,setCapturing]=useState(false);
+  const [draftCaptures,setDraftCaptures]=useState([]),[capturing,setCapturing]=useState(false),[capturePreview,setCapturePreview]=useState(null);
   useEffect(()=>{configureCaptureReader(api);},[api]);
   const [skillImportBusy,setSkillImportBusy]=useState(false),skillRegistrationOrigin=useRef(null);
   const [ghesState,setGhesState]=useState(null);
@@ -328,7 +330,7 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
   const inboxTurnStart=task?.messages?.findIndex(message=>message.inputId)??-1;
   const historyMessages=inboxTurnStart<0?task?.messages||[]:task.messages.slice(0,inboxTurnStart);
   const inboxMessages=inboxTurnStart<0?[]:task.messages.slice(inboxTurnStart);
-  const activityLayout=conversationActivity(task),activityRunId=activityLayout.runId,activityAnswer=activityLayout.anchor;
+  const activityLayout=useMemo(()=>conversationActivity(task),[task]),activityRunId=activityLayout.runId,activityAnswer=activityLayout.anchor;
   // The analysis history (document and role analyses with ranges, partial outcomes and unread ranges) follows the current
   // run's activity; the per-run refactor of 2026-10-04 had dropped it although the runtime still records it.
   // A command stays in the turn it was approved in, right after that run's record, with its output in place (user
@@ -478,7 +480,7 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
   const [launchingTask,setLaunchingTask]=useState(null);
   async function launchTask(id,operation){setLaunchingTask({id,startedAt:new Date().toISOString(),elapsedMs:0});try{return await operation();}finally{if(mounted.current)setLaunchingTask(null);}}
   async function submit(event){event.preventDefault();if(wikiChatBlocked)return;
-    const shortcut=/^\/(skills|model|usage|wiki_update)\s*$/.exec(request.trim());
+    const shortcut=/^\/(capture|capture_web|skills|model|usage|wiki_update)\s*$/.exec(request.trim());
     if(shortcut){setRequest('');runComposerCommand(AGENT_COMMANDS.find(item=>item.command===shortcut[1]).action);return;}
     if(running){await sendRunningInput();return;}
     if(!request.trim()||busy||submitLock.current||task?.question||connectionRequest)return;
@@ -627,16 +629,17 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
       void perform(async()=>{const observed=await api('mail',{...source,action:'evidence'});if(openMailSources){if(source.attachmentId&&openMailDocument)await openMailDocument(source.id,source.attachmentId,source);else openMailSources([observed]);}else{setMailSourceTarget({...source,key:crypto.randomUUID()});setWikiPage(false);setMailPage(true);}setPanel(null);});
     }else void perform(async()=>{const sourceProjectId=project?.projectId;const current=await api('editorSource',{projectId:sourceProjectId,path:source.path,taskId});if(!mounted.current)return;if(current.hash!==source.hash)throw Error('answer_source_changed');await openPath(source.path,taskId,{projectId:sourceProjectId,line:source.start,endLine:source.end,expectedHash:source.hash,canPresent:()=>mounted.current});});
   }
-  function runComposerCommand(action){if(action==='model')openModels();else if(action==='skills')openSkillPanel('installed');else if(action==='usage')setPanel('usage');else if(action==='wiki-update')refreshWiki();}
+  function runComposerCommand(action){if(action==='capture'){if(draftCaptures.length>=CAPTURE_LIMIT)return;setCapturePreview(null);setCapturing(true);}else if(action==='capture-web')void startWebCapture();else if(action==='model')openModels();else if(action==='skills')openSkillPanel('installed');else if(action==='usage')setPanel('usage');else if(action==='wiki-update')refreshWiki();}
   // /wiki_update (user request 2026-10-14): pull the git remote when there is one, then the same update the 위키 갱신 button runs.
-  function refreshWiki(){return perform(async()=>{const result=await api('wikiUpdate',{method:'refresh'});await refresh();showNotice(result.update?'위키 갱신을 시작했어요.':result.pulled?.attempted&&!result.pulled.ok?'git 갱신에 실패했어요. 위키는 바뀐 것이 없어요.':'위키가 이미 최신이에요.');});}
+  function refreshWiki(){return perform(async()=>{try{const result=await api('wikiUpdate',{method:'refresh'});await refresh();showNotice(wikiRefreshNotice(result));}catch(error){showError(wikiRefreshErrors[error.message]||failure(error));}});}
   const mailEvidence=<><MailEvidenceChips references={mailReferences} onRemove={item=>setMailReferences(current=>removeMailReference(current,item))} onOpen={source=>openAnswerSource({...source,kind:'mail'})}/><CaptureChips captures={draftCaptures} onRemove={id=>setDraftCaptures(current=>current.filter(item=>item.id!==id))}/></>;
   // Capture part of the Workspace window and attach it (user request 2026-10-14). The overlay leaves the screen before
   // the host takes the picture, so the picture shows the app as it is.
-  const captureControl=<CxButton type="button" className="nubi-icon-button nubi-capture-button" data-icon-only aria-label="화면 캡처" title={draftCaptures.length>=CAPTURE_LIMIT?`캡처는 ${CAPTURE_LIMIT}장까지 첨부할 수 있어요`:'Workspace 화면을 캡처해 첨부'} disabled={capturing||draftCaptures.length>=CAPTURE_LIMIT} onClick={()=>setCapturing(true)}><Icon name="image" size={18}/></CxButton>;
+  async function startWebCapture(){if(draftCaptures.length>=CAPTURE_LIMIT)return;try{const shot=await api('captureWorkspace',{target:'page'});setCapturePreview(shot);setCapturing(true);}catch{showError('열린 웹페이지를 캡처하지 못했어요. 페이지가 표시된 뒤 다시 시도해 주세요.');}}
+  const captureControl=<CxButton type="button" className="nubi-icon-button nubi-capture-button" data-icon-only aria-label="화면 캡처" title={draftCaptures.length>=CAPTURE_LIMIT?`캡처는 ${CAPTURE_LIMIT}장까지 첨부할 수 있어요`:'Workspace 화면을 캡처해 첨부'} disabled={capturing||draftCaptures.length>=CAPTURE_LIMIT} onClick={()=>{setCapturePreview(null);setCapturing(true);}}><Icon name="image" size={18}/></CxButton>;
   const captureSelected=async rect=>{
     setCapturing(false);await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-    try{const shot=await api('captureWorkspace');const item=await cropCapture(shot,rect);setDraftCaptures(current=>[...current,item].slice(0,CAPTURE_LIMIT));requestAnimationFrame(()=>composer.current?.focus());}
+    try{const shot=capturePreview||await api('captureWorkspace');const item=await cropCapture(shot,rect);setDraftCaptures(current=>[...current,item].slice(0,CAPTURE_LIMIT));requestAnimationFrame(()=>composer.current?.focus());}
     catch{setError('화면을 캡처하지 못했어요. 다시 시도해 주세요.');}
   };
   const waitingRequests=incomingRequests(project).length;
@@ -654,7 +657,7 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
   const choosingProject=projectPicker||!project||defaultPicker;
   const companyAccount=ghesAccount&&<GhesAccount account={ghesAccount} onState={setGhesState} updates={ghesUpdate} repositories={ghesRepositories} open={accountOpen} loginRequest={accountLoginRequest} onOpen={()=>{if(ghesState?.connected)setAccountOpen(true);else startCompanySignIn();}} onClose={()=>{setAccountOpen(false);restoreMarketplacePanel(pendingMarketplace.current);}} onConnected={accountConnected} onCancelled={cancelCompanyConnection} buttonRef={accountButton}/>;
   return <div ref={workbenchNode} className="nubi-workbench" style={{'--nubi-chat-min-width':`${minimumAgentWidth}px`}} data-compact={compact} data-large-text={false} data-host-layout={hostLayout} data-workspace-screen={wikiPage?'wiki':mailPage||panel==='mail'?'mail':skillsPage?'skills':task?'conversation':'welcome'}><AmbientScene/><SystemDecisionNotifications decisions={decisions} onOpen={openHumanDecision} onAnswer={answerDecisionFromToast}/>{toastHost&&<WorkspaceToast/>}
-    <WorkspaceToolbar layoutRoot={workbenchNode} accountControl={<>{hostLayout!=='integrated'&&<WorkspaceUpdate compact update={workspaceUpdate}/>}{hostLayout==='integrated'&&!compact&&<WorkspaceIconAction icon="mail" iconOnly label="메일 설정" className="nubi-toolbar-mail" aria-haspopup="dialog" aria-pressed={panel==='mail'} onClick={()=>{panelOrigin.current=null;setPanel('mail');}}/>}{!compact&&<NotificationBell/>}{companyAccount}</>} host={hostLayout==='integrated'?toolbarHost:null} title={wikiPage?'위키':mailPage?'메일':skillsPage?'AI Workspace':task?.request||projects.find(entry=>entry.id===project?.projectId)?.name||project?.name||'시작하기'} status={task&&task.state!=='review'&&(task.state==='paused'&&!connectionRequest?<RecoveryStatus/>:<DeckStatus tone={running?'active':'neutral'}>{connectionRequest?'앱 연결 대기':task.state==='waiting_input'&&task.peerWait&&!task.question?'연결한 누비 응답 대기':task.state==='running'&&Number.isFinite(task.responseTiming?.elapsedMs)?<ResponseTime timing={task.responseTiming} label="진행" live/>:stateLabel[task.state]||task.state}</DeckStatus>)} project={project} sidebarOpen={sidebarOpen} onToggleSidebar={()=>setSidebarOpen(value=>!value)} disabled={busy} onNew={()=>{setMailPage(false);setSkillsPage(false);setWikiPage(false);selectSession(null);if(compact)setSidebarOpen(false);requestAnimationFrame(()=>composer.current?.focus());}}>
+    <WorkspaceToolbar layoutRoot={workbenchNode} accountControl={<>{hostLayout!=='integrated'&&<WorkspaceUpdate compact update={workspaceUpdate}/>}{hostLayout==='integrated'&&!compact&&<WorkspaceIconAction icon="mail" iconOnly label="메일 설정" className="nubi-toolbar-mail" aria-haspopup="dialog" aria-pressed={panel==='mail'} onClick={()=>{panelOrigin.current=null;setPanel('mail');}}/>}{!compact&&<NotificationBell/>}{companyAccount}</>} host={hostLayout==='integrated'?toolbarHost:null} title={wikiPage?'위키':mailPage?'메일':skillsPage?'AI Workspace':task?.request||projects.find(entry=>entry.id===project?.projectId)?.name||project?.name||'시작하기'} status={task&&task.state!=='review'&&!(task.state==='running'&&activityRunId)&&(task.state==='paused'&&!connectionRequest?<RecoveryStatus/>:<DeckStatus tone={running?'active':'neutral'}>{connectionRequest?'앱 연결 대기':task.state==='waiting_input'&&task.peerWait&&!task.question?'연결한 누비 응답 대기':task.state==='running'&&Number.isFinite(task.responseTiming?.elapsedMs)?<ResponseTime timing={task.responseTiming} label="진행" live/>:stateLabel[task.state]||task.state}</DeckStatus>)} project={project} sidebarOpen={sidebarOpen} onToggleSidebar={()=>setSidebarOpen(value=>!value)} disabled={busy} onNew={()=>{setMailPage(false);setSkillsPage(false);setWikiPage(false);selectSession(null);if(compact)setSidebarOpen(false);requestAnimationFrame(()=>composer.current?.focus());}}>
       {provider?.provider==='claude'&&provider.quota?.windows?.length>0&&<ClaudeQuotaPill quota={provider.quota} plan={provider.plan} onClick={()=>setPanel('usage')}/>}
       <WorkspaceIconAction ref={toolbarHost?usageButton:undefined} icon="chartColumn" iconOnly label="토큰 사용량" aria-haspopup="dialog" onClick={()=>setPanel('usage')}/>
       {project&&<WorkspaceIconAction icon="bookmark" iconOnly indicator={wikiInitialization?.state==='running'&&<span className="status-spinner" aria-label="위키 준비 중"/>} label="위키 설정" title={wikiInitialization?.state==='running'?'프로젝트 위키 준비 중':'프로젝트 위키'} aria-busy={wikiInitialization?.state==='running'||undefined} onClick={()=>setPanel(wikiInitialization?.state==='running'?'wiki-progress':'library')}/>}
@@ -663,10 +666,10 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
     {workspaceView&&hostLayout==='integrated'&&<WorkspaceNavigation activeView={activeView} homeActive={!wikiPage&&!mailPage&&!skillsPage&&!taskId&&!activeView} onMail={()=>{setWikiPage(false);setMailPage(true);setPanel(null);if(activeView)void workspaceView(null);}} mailActive={mailPage&&!wikiPage} mailBusy={mailBusy} onWiki={()=>{setWikiPage(true);setMailPage(false);setSkillsPage(false);setPanel(null);if(activeView)void workspaceView(null);}} wikiActive={wikiPage} rail disabled={!project} homeDisabled={busy} settingsRef={settingsButton} onHome={()=>{if(!busy){setMailPage(false);setWikiPage(false);selectSession(null);requestAnimationFrame(()=>composer.current?.focus());}}} onSidebarToggle={()=>setSidebarOpen(value=>!value)} sidebarOpen={sidebarOpen} onView={view=>perform(()=>openWorkspaceView(view))} onSettings={()=>setPanel('settings')} skillsRef={skillsButton} skillsActive={skillsPage&&skillTab==='installed'} teamActive={skillsPage&&skillTab==='marketplace'} onInquiry={hostLayout==='integrated'?enterInquiry:undefined} inquiryActive={skillsPage&&skillTab==='support'} onSkills={()=>{panelOrigin.current=null;setPanel(null);setSkillTab('installed');setWikiPage(false);setSkillsPage(true);if(compact)setSidebarOpen(false);}} onTeamWorkspace={hostLayout==='integrated'?enterTeamWorkspace:undefined} accountControl={toolbarHost?null:companyAccount} updateControl={<WorkspaceUpdate rail update={workspaceUpdate}/>}/>}
     {<SessionSidebar projects={projects} onSwitchProject={switchProject&&((id)=>perform(()=>switchProject(id)))} onRenameProject={renameProject&&((id,name)=>perform(()=>renameProject(id,name)))} onRemoveProject={removeProject&&((id)=>perform(()=>removeProject(id)))} filesMode={hostLayout!=='integrated'&&['files','file'].includes(activeView)} activeFile={activeFile} onOpenFile={openPath?path=>perform(async()=>{await openPath(path);if(compact)setSidebarOpen(false);}):undefined} brand={hostLayout==='integrated'&&!toolbarHost} compactAt={sidebarBreakpoint} compact={compact} project={project} wikiJob={wikiChatBlocked?wikiChatJob:null} selected={taskId} open={sidebarOpen} disabled={busy} onToggle={()=>setSidebarOpen(value=>!value)} onChooseProject={showProjectStart} onSearch={event=>{historyTrigger.current=event.currentTarget;setPanel('history');}} onCopyProjectPath={copyProjectPath} onNew={()=>{setMailPage(false);setWikiPage(false);selectSession(null);if(compact)setSidebarOpen(false);requestAnimationFrame(()=>composer.current?.focus());}} onSelect={id=>{setMailPage(false);setWikiPage(false);selectSession(id);if(compact)setSidebarOpen(false);}} onDelete={deleteSession}/>}
     {resizeSidebar&&<div className="nubi-sidebar-resize" {...sidebarResize}/>}
-    {capturing&&<CaptureOverlay onSelect={captureSelected} onCancel={()=>setCapturing(false)}/>}
+    {capturing&&<CaptureOverlay preview={capturePreview} onSelect={captureSelected} onCancel={()=>setCapturing(false)}/>}
     <div className="nubi-workbench-content">
     {wikiPage?<WikiBrowser api={api} projectId={project?.projectId} onBack={()=>setWikiPage(false)} onSettings={()=>setPanel('library')} onRewrite={askWikiRewrite} openPath={openPath?openLibraryPath:undefined}/>:mailPage?<MailHistory viewState={mailViewState} onReturn={mailSourceTarget?()=>{closeMailDocument?.();setMailPage(false);setMailSourceTarget(null);requestAnimationFrame(()=>composer.current?.focus());}:undefined} sourceTarget={mailSourceTarget} onSettings={openMailConnection} connectionRef={mailButton} api={api} provider={provider} onDocument={openMailDocument} onAsk={askFromMail} onAskSearch={askMailSearch}/>:skillsPage?<SkillManager account={ghesState} accountRevision={accountRevision} onSignIn={startCompanySignIn} key={`${project?.projectId}:${skillTab}:${skillRevision}`} api={api} openWebPage={openWebPage} initialTab={skillTab} openPath={openPath} onRegister={registerSkill} connectMarketplace={connectMarketplace&&connectCompanyMarketplace}  onBack={()=>{setSkillsPage(false);requestAnimationFrame(()=>skillsButton.current?.focus());}}/>:<>
-    {!toolbarHost&&<header className="nubi-bar">{hostLayout==='integrated'&&project?<DriftLabel className="nubi-conversation-title" title={task?.request||undefined}>{task?.request||''}</DriftLabel>:<NubiLogo size={hostLayout==='integrated'?24:32} product="Workspace" versionLabel="Beta" mood={activeTask?'working':'idle'}/>}{/* no project, no empty label (user decision 2026-09-30) */project?.name&&<DriftLabel className="nubi-project-label">{project.name}</DriftLabel>}{task&&task.state!=='review'&&(task.state==='paused'&&!connectionRequest?<RecoveryStatus/>:<DeckStatus tone={running?'active':'neutral'}>{connectionRequest?'앱 연결 대기':task.state==='waiting_input'&&task.peerWait&&!task.question?'연결한 누비 응답 대기':task.state==='running'&&Number.isFinite(task.responseTiming?.elapsedMs)?<ResponseTime timing={task.responseTiming} label="진행" live/>:stateLabel[task.state]||task.state}</DeckStatus>)}<div className="nubi-header-actions">
+    {!toolbarHost&&<header className="nubi-bar">{hostLayout==='integrated'&&project?<DriftLabel className="nubi-conversation-title" title={task?.request||undefined}>{task?.request||''}</DriftLabel>:<NubiLogo size={hostLayout==='integrated'?24:32} product="Workspace" versionLabel="Beta" mood={activeTask?'working':'idle'}/>}{/* no project, no empty label (user decision 2026-09-30) */project?.name&&<DriftLabel className="nubi-project-label">{project.name}</DriftLabel>}{task&&task.state!=='review'&&!(task.state==='running'&&activityRunId)&&(task.state==='paused'&&!connectionRequest?<RecoveryStatus/>:<DeckStatus tone={running?'active':'neutral'}>{connectionRequest?'앱 연결 대기':task.state==='waiting_input'&&task.peerWait&&!task.question?'연결한 누비 응답 대기':task.state==='running'&&Number.isFinite(task.responseTiming?.elapsedMs)?<ResponseTime timing={task.responseTiming} label="진행" live/>:stateLabel[task.state]||task.state}</DeckStatus>)}<div className="nubi-header-actions">
       {provider?.provider==='claude'&&provider.quota?.windows?.length>0&&<ClaudeQuotaPill quota={provider.quota} plan={provider.plan} onClick={()=>setPanel('usage')}/>}<CxButton ref={usageButton} className="nubi-icon-button" aria-label="토큰 사용량" title="토큰 사용량" aria-haspopup="dialog" onClick={()=>setPanel('usage')}><Icon name="chartColumn" size={18}/><span>사용량</span></CxButton>
       {DESKTOP_FEATURES.computerUse&&task&&<CxButton ref={appButton} className="nubi-icon-button" aria-label="앱 연결" title="앱 연결" onClick={()=>setPanel('computer')}><WindowMark size={18}/></CxButton>}{project&&<WorkspaceIconAction icon="bookmark" iconOnly indicator={wikiInitialization?.state==='running'&&<span className="status-spinner" aria-label="위키 준비 중"/>} label="위키 설정" title={wikiInitialization?.state==='running'?'프로젝트 위키 준비 중':'프로젝트 위키'} aria-busy={wikiInitialization?.state==='running'||undefined} onClick={()=>setPanel(wikiInitialization?.state==='running'?'wiki-progress':'library')}/>}
     </div></header>}
@@ -722,6 +725,8 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
             <TerminalBlock profile={r.profile} workspace={r.workspace} command={r.script} label="수정한 명령"/>
             {r.state==='proposed'?<ApprovalBar approveLabel="실행 승인" rejectLabel="취소" disabled={busy||running||!!task.question} onApprove={()=>runRepair(false)} onReject={()=>perform(async()=>{await api('rejectCommandRepair',{id:r.id});await refresh();})} onAlways={()=>runRepair(true)}/>:<p className="nubi-muted">{r.state==='started'?'실행 결과는 대화에서 확인해 주세요.':'실행 상태를 확인해 주세요. 같은 명령을 자동으로 반복하지 않습니다.'}</p>}
           </DecisionPrompt>;})}
+          {/* The run stopped at its call or time budget (bundle 3.3, 2026-10-15): say so and offer to go on. */}
+          {task.runBudget?.reached&&!running&&<CxNotice>호출 {task.runBudget.calls}회, {Math.max(1,Math.round(task.runBudget.elapsedMs/60000))}분에 닿아 여기서 정리했어요. <CxButton disabled={busy||!!task.question} onClick={()=>perform(async()=>{await api('startAgent',{taskId,answer:'이어서 진행해 주세요.'});await refresh();})}><Icon name="play" size={16}/>이어서 진행</CxButton></CxNotice>}
           {task.recovery?.state==='retrying'&&<CxNotice>로그인 상태를 다시 확인합니다. ({task.recovery.attempt}회)</CxNotice>}
           {['paused','interrupted'].includes(task.state)&&<p className="nubi-muted">{task.error==='work_plan_invalid'?'계획 응답을 확인하지 못해 멈췄어요. 요청과 기록은 보관했습니다.':'진행 내용을 저장했어요. 현재 파일을 확인하고 이어갑니다.'}</p>}
           {launchingTask?.id===taskId&&!running&&<p className="nubi-launch-progress" role="status"><span className="status-spinner" aria-hidden="true"/><ResponseTime timing={launchingTask} label="" showIcon={false} live/><span>시작하는 중</span></p>}

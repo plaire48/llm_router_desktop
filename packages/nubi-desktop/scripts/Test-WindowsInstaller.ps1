@@ -41,6 +41,8 @@ $stopwatch.Restart()
 $durations.upgradeSeconds=$stopwatch.Elapsed.TotalSeconds
 $exe = Join-Path $target 'Nubi Workspace.exe'
 if (!(Test-Path $exe)) { throw 'Installed executable missing' }
+$installationMarker = Join-Path $target 'nubi-installation.id'
+$firstInstallationId = [Guid]::Parse((Get-Content $installationMarker -Raw).Trim())
 node scripts/check-installed-archive.mjs $target
 if ($LASTEXITCODE -ne 0) {throw 'Installed archive checks failed'}
 Stage 'branding'
@@ -85,12 +87,16 @@ $stopwatch.Restart()
 $p = Start-Process $installer.FullName -ArgumentList @('/S', "/D=$target") -Wait -PassThru
 if ($p.ExitCode -ne 0) { throw 'Reinstall failed' }
 $durations.reinstallSeconds=$stopwatch.Elapsed.TotalSeconds
+$reinstallationId = [Guid]::Parse((Get-Content $installationMarker -Raw).Trim())
+if ($reinstallationId -eq $firstInstallationId) { throw 'Reinstall did not rotate the opening-scene marker' }
 Stage 'second-launch'
 node scripts/check-electron-shell.mjs
 if ($LASTEXITCODE -ne 0) { throw 'Reinstalled app smoke failed' }
 Stage 'silent-update-and-relaunch'
 $p = Start-Process $installer.FullName -ArgumentList @('/S', '--updated', '--force-run', "/D=$target") -Wait -PassThru
 if ($p.ExitCode -ne 0) { throw 'Silent update failed' }
+$updateInstallationId = [Guid]::Parse((Get-Content $installationMarker -Raw).Trim())
+if ($updateInstallationId -eq $reinstallationId) { throw 'Silent update did not rotate the opening-scene marker' }
 $launched = $null
 for ($i=0; $i -lt 30 -and !$launched; $i++) {
   $launched = @(Get-Process | Where-Object { $_.Path -eq $exe })

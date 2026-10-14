@@ -55,17 +55,17 @@ export class ProjectService {
   get agent(){return [...(this.agentRuns?.values()||[])].find(run=>run.running)||this.lastAgent||null;}
   set agent(run){this.agentRuns ||= new Map();if(!run){this.agentRuns.clear();this.lastAgent=null;return;}if(run.taskId)this.agentRuns.set(run.taskId,run);this.lastAgent=run;}
   agentForTask(taskId){return this.agentRuns?.get(taskId)||(this.lastAgent&&!this.lastAgent.taskId?this.lastAgent:null);}
-  async open(root, {kind='project',initializeWiki=true,exactRoot=false}={}) {
+  async open(root, {kind='project',initializeWiki=true,exactRoot=false,sourceKind}={}) {
     // Each reason a folder cannot be opened has its own code for the "프로젝트 열기" message.
     const resolved = await realpath(limited(root, 2000)).catch(error => fail(['EACCES', 'EPERM'].includes(error?.code) ? 'project_path_denied' : 'project_path_missing'));
     // A folder without Git, or outside a repository, opens as it is (user decision 2026-10-04); the setup flow of 2026-09-30 is gone (2026-10-07).
     const top = await resolveProjectFolder(resolved);
     if(exactRoot&&top!==resolved)fail('clone_root_mismatch');
-    if (this.root === top && this.store?.db.isOpen) {if(initializeWiki){this.wikiInitEnabled=true;await this.initializeWiki();}return this.overview();}
+    if (this.root === top && this.store?.db.isOpen) {if(['local','remote'].includes(sourceKind))this.store.set('setting:wiki-source',{mode:sourceKind});if(initializeWiki){this.wikiInitEnabled=true;await this.initializeWiki();}return this.overview();}
     if (this.skillImportBusy || this.vocBusy || this.computerBusy || this.newFileBusy || this.setupBusy || this.processes?.active.size || this.processes?.pending.size || this.unsettledOperations?.size || this.reconciling || this.agent?.running || this.recordingKnowledge || this.databaseBusy || this.collaborationBusy) fail('project_busy');
     const projectId = hash(top).slice(7, 31), store = new Store(path.join(this.storageRoot, projectId));
     await this.collaborationServer?.close();this.collaborationServer=null;this.knowledge?.server.close(); this.knowledge=null; this.store?.close(); this.root = top; this.projectId = projectId; this.agentRuns?.clear();this.lastAgent=null;
-    this.wikiInitController?.abort();this.wikiUpdateRun?.controller.abort();this.store = store;this.workspaceKind=kind==='conversation'?'conversation':'project';this.wikiInitEnabled=initializeWiki!==false;
+    this.wikiInitController?.abort();this.wikiUpdateRun?.controller.abort();this.wikiRefreshJob?.controller.abort();this.store = store;this.workspaceKind=kind==='conversation'?'conversation':'project';this.wikiInitEnabled=initializeWiki!==false;if(['local','remote'].includes(sourceKind))store.set('setting:wiki-source',{mode:sourceKind});
     interruptDocumentResearch(this.store);
     restoreAnalysisHistory(this.store);
     this.localPerception?.dispose();delete this.localPerception;this.computerPointer?.dispose();this.computerPointer=null;this.computerFallback=null;this.computerAdapter?.dispose?.();this.computerAdapter=null;this.computerLauncher?.dispose?.();this.computerLauncher=null;this.computerApps=new Map();this.databaseConnections=new Map();this.computerBinding=null;this.computerObservation=null;
@@ -110,12 +110,12 @@ export class ProjectService {
     if(this.store!==owner||this.projectId!==projectId)fail('project_changed');
     return {projectId: this.projectId, root: this.root, kind:this.workspaceKind||'project', name:this.workspaceKind==='conversation'?'개인 대화':path.basename(this.root), branch: branch.trim() || 'detached', dirty: !!status,
       files: files.paths, truncated: files.truncated, wikiChatBlocked:wikiChatBlocked(this), wikiChatJob:wikiChatJob(this), wikiInitialization:this.workspaceKind==='conversation'?null:this.store.get('wiki-init'), wikiFiles: wikiPages,
-      computer:computerState(this),setupActions:this.store.list('setup-action:').slice(0,50), collaborations:collaborationRows(this),peerTasks:peerRows(this),peerLinks:peerLinks(this), tasks: this.displayTasks(taskId), proposals: this.store.list('proposal:').slice(0, 50), processes: this.store.list('process:').slice(0, 20), comparisons: this.store.list('comparison:').slice(0, 20), commandRepairs:this.store.list('command-repair:').slice(0,30), profiles,defaultShell:preferredShell(profiles,process.platform,this.shellPreference())};
+      computer:computerState(this),setupActions:this.store.list('setup-action:',{limit:50}), collaborations:collaborationRows(this),peerTasks:peerRows(this),peerLinks:peerLinks(this), tasks: this.displayTasks(taskId), proposals: this.store.list('proposal:',{limit:50}), processes: this.store.list('process:',{limit:20}), comparisons: this.store.list('comparison:',{limit:20}), commandRepairs:this.store.list('command-repair:',{limit:30}), profiles,defaultShell:preferredShell(profiles,process.platform,this.shellPreference())};
   }
   async workspaceChanges(args={}) {return inspectWorkspaceChanges(this,args);}
   async appliedFileSummary(args={}) {return appliedFileSummary(this,args);}
-  state({taskId}={}) { this.ready(); return {wikiChatBlocked:wikiChatBlocked(this),wikiChatJob:wikiChatJob(this),computer:computerState(this),setupActions:this.store.list('setup-action:').slice(0,50), collaborations:collaborationRows(this),peerTasks:peerRows(this),peerLinks:peerLinks(this), tasks: this.displayTasks(taskId), proposals: this.store.list('proposal:').slice(0,50), processes: this.store.list('process:').slice(0,20), comparisons: this.store.list('comparison:').slice(0,20),commandRepairs:this.store.list('command-repair:').slice(0,30)}; }
-  displayTasks(taskId){const tasks=this.store.list('task:').slice(0,50);if(taskId&&!tasks.some(task=>task.id===taskId)){const selected=this.store.get('task:'+taskId);if(selected)tasks.push(selected);}return tasks.map(task=>this.displayTask(task));}
+  state({taskId}={}) { this.ready(); return {wikiChatBlocked:wikiChatBlocked(this),wikiChatJob:wikiChatJob(this),computer:computerState(this),setupActions:this.store.list('setup-action:',{limit:50}), collaborations:collaborationRows(this),peerTasks:peerRows(this),peerLinks:peerLinks(this), tasks: this.displayTasks(taskId), proposals: this.store.list('proposal:',{limit:50}), processes: this.store.list('process:',{limit:20}), comparisons: this.store.list('comparison:',{limit:20}),commandRepairs:this.store.list('command-repair:',{limit:30})}; }
+  displayTasks(taskId){const tasks=this.store.list('task:',{limit:50});if(taskId&&!tasks.some(task=>task.id===taskId)){const selected=this.store.get('task:'+taskId);if(selected)tasks.push(selected);}return tasks.map(task=>this.displayTask(task));}
   conversationHistory(args={}) {this.ready();if(args.taskId){if(typeof args.taskId!=='string')fail('task_missing');return this.displayTask(this.task(args.taskId));}return searchConversations(this.store.list('task:'),args);}
   displayTask(task){const run=this.agentForTask(task.id);return run?.running&&run.timing?{...task,streamingAnswer:run.streamingAnswer||'',streamingReasoning:run.streamingReasoning||'',responseTiming:{...run.timing.snapshot(),runId:run.runId}}:task;}
   task(taskId) { const task = this.store.get('task:' + taskId); if (!task) fail('task_missing'); return task; }
@@ -190,7 +190,7 @@ export class ProjectService {
   // A screenshot the user attached from the Workspace window (user request 2026-10-14); the window capture itself
   // comes from the app host through the browser bridge.
   capture({id}={}){this.ready();const record=readCapture(this,id);return {id:record.id,image:record.image,width:record.width,height:record.height};}
-  async captureWorkspace(){this.ready();if(typeof this.captureWorkspaceWindow!=='function')fail('browser_unavailable');const shot=await this.captureWorkspaceWindow();return {image:shot.image,width:shot.width,height:shot.height,title:shot.title||''};}
+  async captureWorkspace(options={}){this.ready();if(typeof this.captureWorkspaceWindow!=='function')fail('browser_unavailable');const shot=options.target==='page'?await this.captureWorkspacePage(options):await this.captureWorkspaceWindow(options);return {image:shot.image,width:shot.width,height:shot.height,title:shot.title||''};}
   async decideSetupAction(args) {return decideSetupAction.call(this,args);}
 
   async collaboration() {fail('a2a_disabled');}
@@ -329,7 +329,7 @@ export class ProjectService {
   async mail(args) {return mail.call(this,args);}
   prepareAppUpdate(){
     const mail=this.personalMail;
-    if(this.skillImportBusy||this.marketplaceBusy||this.vocBusy||this.computerBusy||this.newFileBusy||this.setupBusy||this.processes?.active.size||this.processes?.pending.size||this.unsettledOperations?.size||this.reconciling||this.agent?.running||[...this.agentRuns?.values()||[]].some(run=>run.running)||this.recordingKnowledge||this.databaseBusy||this.collaborationBusy||this.wikiInitController&&!this.wikiInitController.signal.aborted&&this.store?.get('wiki-init')?.state==='running'||this.wikiUpdateRun||mail?.checking||mail?.connecting||mail?.synthesis||mail?.attachmentRead)fail('update_work_active');
+    if(this.skillImportBusy||this.marketplaceBusy||this.vocBusy||this.computerBusy||this.newFileBusy||this.setupBusy||this.processes?.active.size||this.processes?.pending.size||this.unsettledOperations?.size||this.reconciling||this.agent?.running||[...this.agentRuns?.values()||[]].some(run=>run.running)||this.recordingKnowledge||this.databaseBusy||this.collaborationBusy||this.wikiInitController&&!this.wikiInitController.signal.aborted&&this.store?.get('wiki-init')?.state==='running'||this.wikiUpdateRun||this.wikiRefreshOwner||mail?.checking||mail?.connecting||mail?.synthesis||mail?.attachmentRead)fail('update_work_active');
     this.appUpdateLocked=true;clearInterval(mail?.processingTimer);mail?.disconnect();return {ready:true};
   }
   async invoke(method, args = {}) {
@@ -341,9 +341,9 @@ export class ProjectService {
     if (method === 'stop') { this.ready(); return this.processes.stop(args.id); }
     if (method === 'events') { this.ready(); return this.store.events(args.after); }
     if ((!allowed.has(method)&&!['workspaceChanges','appliedFileSummary'].includes(method)) || typeof this[method] !== 'function') fail('method_invalid');
-    return method==='open'?this.open(args.root,{kind:args.kind,initializeWiki:args.initializeWiki,exactRoot:args.exactRoot}):this[method](args);
+    return method==='open'?this.open(args.root,{kind:args.kind,initializeWiki:args.initializeWiki,exactRoot:args.exactRoot,sourceKind:args.sourceKind}):this[method](args);
   }
-  dispose() { void this.mcpInstance?.dispose();this.usageLedger?.close(); this.wikiInitController?.abort(); this.wikiUpdateRun?.controller.abort(); this.localPerception?.dispose();this.marketplaceController?.abort();this.marketplaceToken=null;this.marketplaceConnected=false;this.marketplaceCatalog=null;this.personalMail?.dispose();this.computerPointer?.dispose();this.computerLauncher?.dispose?.();this.computerAdapter?.dispose?.();void this.collaborationServer?.close();this.disposed=true;this.recoveryQueue?.clear();this.databaseWorker?.terminate(); this.databaseConnections?.clear(); this.knowledge?.server.close(); for(const run of this.agentRuns?.values()||[])run.controller?.abort();this.lastAgent?.controller?.abort(); this.providers?.dispose(); for(const entry of this.fabrixTests?.values()||[])entry.provider.dispose();this.fabrixTests?.clear(); this.processes?.dispose(); }
+  dispose() { void this.mcpInstance?.dispose();this.usageLedger?.close(); this.wikiInitController?.abort(); this.wikiUpdateRun?.controller.abort(); this.wikiRefreshJob?.controller.abort(); this.localPerception?.dispose();this.marketplaceController?.abort();this.marketplaceToken=null;this.marketplaceConnected=false;this.marketplaceCatalog=null;this.personalMail?.dispose();this.computerPointer?.dispose();this.computerLauncher?.dispose?.();this.computerAdapter?.dispose?.();void this.collaborationServer?.close();this.disposed=true;this.recoveryQueue?.clear();this.databaseWorker?.terminate(); this.databaseConnections?.clear(); this.knowledge?.server.close(); for(const run of this.agentRuns?.values()||[])run.controller?.abort();this.lastAgent?.controller?.abort(); this.providers?.dispose(); for(const entry of this.fabrixTests?.values()||[])entry.provider.dispose();this.fabrixTests?.clear(); this.processes?.dispose(); }
 }
 
 installDesktopFeatures(ProjectService);

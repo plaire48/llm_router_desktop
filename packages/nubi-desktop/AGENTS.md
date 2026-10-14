@@ -392,4 +392,21 @@
 
 - 사용자 후속 결정 2026-10-13: 실행/수정 명령 승인과 취소는 MUST 대화 안의 폼에 바로 표시한다. 시스템 알림 클릭은 소유 대화의 폼으로 이동할 뿐 승인하지 않는다. 터미널 상단 복사는 명령과 실제 출력만 복사하고 실행 상태/종료 코드는 별도로 보존한다. 대화형 PowerShell도 기존 UTF-8 설정을 재사용하되 시스템 정책과 사용자 프로필은 변경하지 않는다.
 
-- 포털 SSO 복구 2026-10-14: 메일 로그인은 MUST 누비 BrowserHost의 POST/opener 보존 경로 하나로 열고 소유 팝업도 같은 세션으로 묶는다. 숨은 조회 창은 인증 전에 별도 SSO를 시작하거나 팝업 URL을 GET으로 재생하지 않는다. 실제 포털 사용자/메일함과 백그라운드 세션을 확인한 뒤 연결 완료로 전환한다. Whitelabel 오류는 고정 코드만 전달하고 인증 URL/폼/페이지 본문은 진단에 수집하지 않는다. 사내 실계정 검증은 로컬 모의 SSO와 구분한다.
+- 포털 SSO 복구 2026-10-14: 메일 로그인은 MUST 기본 포털 홈 `http://kor3.samsung.net/portalapp/home`에서 시작하고 누비 BrowserHost의 POST/opener와 `persist:nubi-company` 세션을 유지한다. 별도 메일 화면 이동을 요구하지 않으며 포털 홈 로그인 뒤 같은 Chromium 세션의 고정 읽기 API로 사용자/메일함을 확인한다. 숨은 창은 about:blank에 유지하고 API의 로그인 리다이렉트는 NEVER 따라가지 않는다. 같은 호스트와 경로의 HTTPS 전환만 허용하며 쿠키를 추출하거나 외부 브라우저 저장소를 읽지 않는다. Whitelabel 오류는 고정 코드만 전달하고 인증 URL/폼/페이지 본문은 진단에 수집하지 않는다. 사내 실계정 검증은 로컬 모의 SSO와 구분한다. `docs/MAIL-AUTH-SESSION-FIX-2026-10-14.md`를 따른다.
+
+- 성능 보강 2026-10-14: 시작 번들은 메일/위키/스킬 관리/MCP 설정/스킬 등록과 AI Workspace 앱/문의 구현을 해당 화면에서 지연 로딩하며 공유 헤더 context가 무거운 화면 모듈을 가져오지 않게 한다. 공통 브랜드 PNG는 배포 시 원본 그대로 한 파일로 내보낸다. 화면 상태 조회의 개수 제한은 SQLite에서 적용하되 오래된 선택 대화/전체 검색/승인 기록을 보존한다. 기존 모션을 제거해 성능 개선으로 표시하지 않으며 `docs/PERFORMANCE-2026-10-14.md`의 측정 경계를 따른다.
+
+- 하네스 보강 2026-10-15: `discover_capabilities`와 `select_tools`의 메타데이터 조회만 초기 계획보다 먼저 허용한다. 실제 프로젝트 도구와 혼합된 호출은 MUST 기존 계획/범위/승인 검증을 거치며 도구 노출을 실행 권한이나 원문 근거로 간주하지 않는다. 공개 Codex 방법론 비교와 검증 경계는 `docs/CODEX-HARNESS-BENCHMARK-2026-10-15.md`를 따른다.
+
+- Desktop modal size changes use `ui/modalResizeMotion.js` with an inert surface and compositor transforms; live text, focus and approval state MUST remain immediate. Keep reduced-motion and rapid-close cleanup. Auxiliary file/web/terminal tabs use `electron-app/workspace-tabs.css` for single-line icon/name/close layout and reveal the full active tab after title or width changes. Evidence: `docs/MOTION-TABS-2026-10-15.md`.
+- Screen transitions MUST leave root/navigation out of snapshots and preserve subsequent input. Polled JSON state reuses unchanged nested records through `ui/mergeSnapshot.js`; never mutate the retained records or drop approval/question updates for performance. Evidence: `docs/SMOOTH-PERFORMANCE-2026-10-15.md`.
+
+- 사용자 결정 2026-10-15: 위키 갱신 버튼과 `/wiki_update`는 MUST 같은 연결별 갱신 경로를 사용한다. 원격 연결은 추적 브랜치 fetch/fast-forward 뒤 해당 리비전으로 작성하고 로컬 변경/앞선 커밋/갈라진 이력을 덮어쓰지 않는다. 폴더 연결의 기존 Git은 현재 이력과 미커밋 변경을 보존한다. Git 없는 폴더는 앱 전용 `wiki-folder-history`에 허용 소스만 증분 커밋하며 사용자 폴더를 초기화하거나 push하지 않는다. 사내 Git 인증은 clone과 같은 main의 일시적 askpass를 재사용하고 워커/모델/로그에 인증값을 전달하지 않는다. 생성 결과의 기존 반영 승인과 충돌 보호를 유지한다. 상세: `docs/WIKI-REFRESH-2026-10-15.md`.
+
+- 사용자 결정 2026-10-15: 기본 Playwright MCP는 공식 `@playwright/mcp`를 버전 고정해 번들하고 인앱 BrowserHost의 일반 웹 탭만 제어한다. 앱 전체 remote debugging 포트를 열거나 별도 브라우저를 실행하지 않는다. 탭 ID와 문서 revision으로 승인 대상을 고정하고 로그인/인증 탭과 임의 JavaScript, 쿠키, 파일 접근 도구는 제외한다. 연결/카탈로그는 재사용하며 실제 MCP 지연과 LLM/사내 서버/Windows 검증을 구분한다. `docs/PLAYWRIGHT-MCP-2026-10-15.md`를 따른다.
+
+- 캡처 후속 2026-10-15: `/capture`와 `/capture_web` 및 에이전트 캡처 도구는 영역을 먼저 자르고 크기를 제한한다. 같은 제공자의 현 카탈로그에서 지원이 확인된 이미지 모델을 요청 단위로 사용하며 기본 모델 선택은 변경하지 않는다. GLM에는 분석 텍스트만 반환하며 이미지 미지원/취소/실패를 실제 화면 확인으로 표시하지 않는다.
+
+- 메일 관계 보강 2026-10-15: Personal 위키와 relatedTo 메일 검색은 같은 관계 판정을 사용한다. 회신 헤더와 주제 유사 후보를 구분하고 원문 ID/해시/날짜/연결 근거를 보존한다. 날짜 순서나 같은 분류만으로 인과관계/최신 상태를 확정하지 않으며 모델은 양쪽 원문을 확인한다. 조회는 기존 페이지를 덮어쓰지 않는다. `docs/MAIL-RELATIONS-2026-10-15.md` 참조.
+
+- 사용자 결정 2026-10-15: Windows 설치 완료마다 컷신 재생 기준을 새로 만든다. 같은 버전 재설치와 자동 업데이트도 첫 실행에서 전체 컷신을 표시하며 평소 재실행은 짧은 시작 화면을 유지한다. 설치 직후 실행하지 않아도 다음 실행에서 적용하고 완료/사용자 건너뛰기 전에 재생 기록을 소비하지 않는다. 시스템 모션 감소는 정적인 시작 화면으로 유지한다. `docs/INSTALLATION-CUTSCENE-2026-10-15.md` 참조.

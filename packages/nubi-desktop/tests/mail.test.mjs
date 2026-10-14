@@ -167,3 +167,13 @@ test('POP3 authentication preserves password whitespace and separates USER from 
  f.userAuth(false);f.auth(true);await assert.rejects(pullPop3({...credentials,endpoint:f.endpoint}),error=>error.message==='mail_auth_login_rejected');
  assert(!f.commands.includes('DELE'));
 });
+
+test('mail organization stores grounded statements and exposes coverage through the facts tool',async t=>{
+ const f=await fixture(t);f.mailbox.push({uidl:'quoted',raw:simple('source-quote')});
+ const host={mailFacts:true,storageRoot:path.join(f.root,'state'),providers:{catalogs:()=>CATALOGS,status:()=>({connected:true,...destination}),complete:async messages=>({content:JSON.stringify(messages[0].content.startsWith('Extract time-dependent')?{facts:[{subject:'계약',predicate:'요청',value:'계약 검토 요청',quote:'계약 검토 요청'}]}:answer)})}};
+ const mail=new PersonalMail(host,{personalRoot:path.join(f.root,'personal'),pull:input=>pullPop3({...input,endpoint:f.endpoint})});t.after(()=>mail.dispose());
+ await mail.call({action:'connect',requestId:'quoted',...credentials,destination});await settled(mail);
+ assert.equal(mail.status().counts.saved,1);
+ const result=await mail.call({action:'facts',query:'계약'});
+ assert.equal(result.facts[0].value,'계약 검토 요청');assert.equal(result.facts[0].grounding,'source_excerpt');assert.equal(result.coverage[0].complete,true);
+});

@@ -3,7 +3,7 @@ import {createAdminClient} from './adminClient.js';
 import {getServiceDeskSession} from './serviceDeskClient.js';
 import {isTalkPost,talkError,TALK_UUID,TALK_LOGIN,talkPermalink} from './talkModel.js';
 import {isDiscussionKey} from './discussionModel.js';
-import {ghesFetch} from './hostFetch.js';
+import {ghesFetch,talkBase} from './hostFetch.js';
 
 export const TALK_TEAMS=Object.freeze([
  {slug:E2E_USER_TEAM,label:'사용자'},
@@ -16,7 +16,7 @@ export function teamNoticeTargets(body){
  if(!match||!TALK_UUID.test(match[1]))return [];
  const slugs=match[2].split(',');return slugs.length<=3&&new Set(slugs).size===slugs.length&&slugs.every(slug=>TALK_TEAMS.some(team=>team.slug===slug)&&String(body).includes(`@${GHES_CONFIG.owner}/${slug}`))?slugs:[];
 }
-export function createTalkTeamNoticeClient({session=getServiceDeskSession(),config=TALK_CONFIG,role='user',fetchImpl=ghesFetch,baseUrl=globalThis.location?.href||'https://localhost/',discussionClient=null}={}){
+export function createTalkTeamNoticeClient({session=getServiceDeskSession(),config=TALK_CONFIG,role='user',fetchImpl=ghesFetch,baseUrl=talkBase(),discussionClient=null}={}){
  const api=`https://${GHES_CONFIG.host}/api/v3`,root=`${api}/repos/${encodeURIComponent(config.owner)}/${encodeURIComponent(config.repo)}`,org=`${api}/orgs/${encodeURIComponent(GHES_CONFIG.owner)}`,uncertain=new Set(),locks=new Map();
  const pending=()=>Object.assign(talkError('알림 등록 결과를 확인하지 못했습니다. 결과 확인을 눌러 확인하세요.',-1),{uncertain:true});
  const attempts=new Map();

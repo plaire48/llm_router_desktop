@@ -15,9 +15,9 @@ test('a stale Wiki offers an update and says what it costs and what it sends',()
   assert.deepEqual(view.actions,['run']);
 });
 
-test('a current Wiki and a Wiki without a generation record offer nothing to run',()=>{
-  assert.deepEqual(wikiUpdateView({status:{state:'current',lastUpdate:{updatedAt:'2026-09-29T00:00:00.000Z'}},update:null}).actions,[]);
-  assert.match(wikiUpdateView({status:{state:'current',lastUpdate:{updatedAt:'2026-09-29T00:00:00.000Z'}},update:null}).title,/최신/);
+test('a locally current Wiki still offers remote synchronization',()=>{
+  assert.deepEqual(wikiUpdateView({status:{state:'current',lastUpdate:{updatedAt:'2026-09-29T00:00:00.000Z'}},update:null}).actions,['run']);
+  assert.match(wikiUpdateView({status:{state:'current',lastUpdate:{updatedAt:'2026-09-29T00:00:00.000Z'}},update:null}).title,/현재 파일과 일치/);
   const unknown=wikiUpdateView({status:{state:'unknown'},update:null});
   assert.deepEqual(unknown.actions,[]);assert.match(unknown.lines.join(' '),/생성 기록이 없어/);
 });
@@ -56,7 +56,7 @@ test('absent Wiki pages explain initialization state without claiming lost gener
     const view=wikiUpdateView({status:{state:'unknown',reason:'no_wiki_pages'},initialization:{state}});
     assert.match(view.lines.join(' '),pattern);
     assert.doesNotMatch(view.lines.join(' '),/생성 기록이 없어/);
-    assert.deepEqual(view.actions,[]);
+    assert.deepEqual(view.actions,state==='running'?[]:['run']);
   }
   const recovery=wikiUpdateView({status:{state:'stale',reason:'no_generation_record'}});
   assert.deepEqual(recovery.actions,['run']);

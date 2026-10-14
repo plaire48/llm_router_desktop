@@ -1,7 +1,7 @@
 import {CxSelect} from './CxSelect';
 import { ActionButton, ActionLink } from './ActionButton';
 import {useFeedback, ToastNotice} from './Toast';
-import React, { createContext, lazy, Suspense, useContext, useEffect, useId, useRef, useState } from 'react';
+import React, { lazy, Suspense, useContext, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { HelpTrigger } from './HelpTrigger';
 import {CommunityStatus} from './CommunityStatus';
@@ -30,7 +30,8 @@ const loadInquiryTypes=async()=>{const definition={path:'data/masters/inquiry-ty
 
 // Nubi: a host page that already shows the 문의 title offers its header row here; the inquiry controls (sidebar toggle,
 // back, help, actions) then sit in that one row instead of a second header (user request 2026-10-14).
-export const InquiryHeaderSlot=createContext(null);
+import {InquiryHeaderSlot} from './InquiryHeaderSlot.js';
+export {InquiryHeaderSlot} from './InquiryHeaderSlot.js';
 export function InquiryPage({children, actions, onClose, busy, composing=false, sidebar, sidebarId, sidebarCollapsed=false, onToggleSidebar, showList=false}) {
   const [help,setHelp]=useState(false), heading=useRef(null), id=useId(), slot=useContext(InquiryHeaderSlot);
   useEffect(()=>{heading.current?.focus();},[]);

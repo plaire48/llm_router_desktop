@@ -3,6 +3,7 @@ const {constants}=require('node:fs');
 const path=require('node:path');
 const {createHash,randomUUID}=require('node:crypto');
 const hash=text=>createHash('sha256').update(text).digest('hex');
+const {mailRelations}=require('../runtime/mail-relations.cjs');
 const {describeWikiPage,threadEdges}=require('./wiki-frontmatter.cjs');
 const fail=code=>{throw Error(code);};
 const LIMIT=1024*1024;
@@ -49,12 +50,13 @@ class WikiLibrary{
     for(const f of files.sort((a,b)=>a.name.localeCompare(b.name))){if(++entries>50000||items.length>=3000||bytes>120*LIMIT){truncated=true;break;}
      if(f.name.startsWith('.')||['nubi-evidence','nubi-map','node_modules'].includes(f.name)||f.isSymbolicLink())continue;
      const name=rel?rel+'/'+f.name:f.name;if(f.isDirectory()){if(name.split('/').length<=15)await walk(name);else truncated=true;}
-     else if(f.isFile()&&valid(name)){try{const doc=await read(scope.root,name);bytes+=Buffer.byteLength(doc.content);if(bytes>120*LIMIT){truncated=true;break;}const page=describeWikiPage(doc.content,name);items.push({...doc,title:page.title,type:page.type,description:page.description,tags:page.tags,thread:page.thread,messageId:page.messageId,date:page.date,size:doc.content.length});}catch{skipped.push(name);}}
+     else if(f.isFile()&&valid(name)){try{const doc=await read(scope.root,name);bytes+=Buffer.byteLength(doc.content);if(bytes>120*LIMIT){truncated=true;break;}const page=describeWikiPage(doc.content,name);items.push({...doc,title:page.title,type:page.type,category:page.category,description:page.description,tags:page.tags,thread:page.thread,messageId:page.messageId,inReplyTo:page.inReplyTo,references:page.references,from:page.from,to:page.to,cc:page.cc,date:page.date,size:doc.content.length});}catch{skipped.push(name);}}
     }
    }
    await walk();const paths=new Set(items.map(i=>i.path)),edges=items.flatMap(i=>documentLinks(i.content,i.path,paths).map(to=>({from:i.path,to})));
-   for(const edge of threadEdges(items))if(!edges.some(e=>e.from===edge.from&&e.to===edge.to))edges.push(edge);
-   return {items:items.map(({content,...i})=>i),edges,skipped,truncated};
+   const mailLinks=mailRelations(items.filter(i=>i.type?.toLowerCase()==='mail'));
+   for(const edge of [...mailLinks.edges,...threadEdges(items.filter(i=>i.type?.toLowerCase()!=='mail'))])if(!edges.some(e=>e.from===edge.from&&e.to===edge.to))edges.push(edge);
+   return {items:items.map(({content,...i})=>i),edges,skipped,truncated,relationsTruncated:mailLinks.truncated};
   }
   if(args.action!=='save')fail('wiki_library_action');
   if(scope.kind==='mail'&&(args.expectedHash===null||typeof args.content==='string'&&args.content.length>60000))fail('wiki_library_mail_limit');

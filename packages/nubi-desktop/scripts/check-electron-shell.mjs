@@ -13,9 +13,11 @@ async function capture(name){
  lastAction=`capture ${name}`;console.log('capture start',name);
  /* Toasts stay thirty seconds (2026-10-14); a capture closes any open one instead of waiting it out. */
  if(await page.locator('.nubi-feedback-toast').count()){await page.locator('.nubi-feedback-toast').getByRole('button',{name:'알림 닫기'}).click().catch(()=>{});await page.locator('.nubi-feedback-toast').waitFor({state:'hidden'});}
+ if(await page.locator('.cx-toast').count()){await page.locator('.cx-toast .cx-toast-close').click();await page.locator('.cx-toast').waitFor({state:'hidden'});}
  const tiny=await page.locator('.desktop-pane').evaluate(root=>[...root.querySelectorAll('*')].filter(e=>e.checkVisibility()&&!e.closest('svg,.monaco-editor,.xterm,[aria-hidden="true"],.visually-hidden')&&[...e.childNodes].some(n=>n.nodeType===Node.TEXT_NODE&&n.textContent.trim())&&parseFloat(getComputedStyle(e).fontSize)<14).map(e=>({class:e.className,text:e.textContent.slice(0,40),size:getComputedStyle(e).fontSize})));
  assert.deepEqual(tiny,[],name+': auxiliary text meets the caption scale');
  const dock=page.locator('.desktop-dock-header');if(await dock.count())assert(await dock.evaluate(header=>{const tabs=header.querySelector('.desktop-file-tabs').getBoundingClientRect(),plus=header.querySelector('.desktop-tools-anchor').getBoundingClientRect();return Math.abs((tabs.top+tabs.bottom)/2-(plus.top+plus.bottom)/2)<2;}),name+': tabs and plus remain on one line');
+ if(await dock.count())assert(await dock.evaluate(header=>{const strip=header.querySelector('.desktop-file-tabs'),active=strip.querySelector('[aria-selected="true"]');if(!active)return true;const bounds=strip.getBoundingClientRect(),item=(active.closest('.desktop-workspace-tab')||active).getBoundingClientRect();return item.left>=bounds.left-1&&item.right<=bounds.right+1;}),name+': the active tab, including its close button, stays fully visible');
  await page.screenshot({path:path.join(captures,name+'.png'),animations:'disabled',scale:'css',timeout:30000});console.log('capture complete',name);
 }
 try{page=await desktopTestWindow(app);await page.bringToFront();page.setDefaultTimeout(process.platform==='win32'?30000:10000);page.on('crash',()=>console.log('RENDERER CRASH'));page.on('pageerror',e=>{pageErrors.push(e.message);console.log('PAGE ERROR:',e.message);});await page.getByRole('navigation',{name:'프로젝트 도구'}).waitFor({timeout:60000});const firstScreenMs=Date.now()-started;assert.doesNotMatch(await page.locator('body').innerText(),/\/\*|\*\//,'no source comment leaks into the screen');
@@ -131,6 +133,11 @@ try{page=await desktopTestWindow(app);await page.bringToFront();page.setDefaultT
  /* The in-app browser (2026-10-07): a loopback page opens in the pane with its address, the find bar appears, and the pane closes. */
  const site=createServer((request,response)=>{response.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});response.end('<!doctype html><title>누비 검사 페이지</title><h1>검사 문장</h1>');});await new Promise(resolve=>site.listen(0,'127.0.0.1',resolve));const siteUrl=`http://127.0.0.1:${site.address().port}/`;
  try{await page.getByRole('textbox',{name:'인터넷 주소 또는 검색어'}).fill(siteUrl);await page.getByRole('textbox',{name:'인터넷 주소 또는 검색어'}).press('Enter');await page.getByRole('textbox',{name:'인터넷 주소 또는 검색어'}).waitFor();await page.waitForFunction(url=>document.querySelector('[aria-label="인터넷 주소 또는 검색어"]')?.value===url,siteUrl,{timeout:15000});await page.getByRole('tab',{name:/누비 검사 페이지/}).waitFor();await page.getByRole('button',{name:'페이지에서 찾기',exact:true}).click();await page.getByRole('textbox',{name:'페이지에서 찾을 텍스트',exact:true}).fill('검사');await page.keyboard.press('Enter');await page.getByRole('button',{name:'다음 검색 결과',exact:true}).waitFor();console.log('stage',checks.length);checks.push('in-app browser opens a page with its address and find bar');await capture('browser');}finally{await new Promise(resolve=>site.close(resolve));}
+ await page.getByRole('button',{name:'보조 영역 넓게 보기',exact:true}).click();
+ await page.getByRole('tab',{name:/example\.js/}).click();await capture('tabs-expanded');
+ await page.locator('.desktop-pane').screenshot({path:path.join(captures,'tabs-detail.png'),animations:'disabled'});
+ await page.getByRole('button',{name:'3분할로 돌아가기',exact:true}).click();
+ checks.push('expanded dock preserves file, terminal and web tabs with readable names and path');
  // A retained web tab must not measure layout on every chat/DOM update when hidden.
  await page.getByRole('button',{name:'오른쪽 사이드바 닫기',exact:true}).click();
  const layoutReads=await page.evaluate(async()=>{

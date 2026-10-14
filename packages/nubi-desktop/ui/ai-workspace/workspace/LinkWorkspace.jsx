@@ -92,10 +92,11 @@ function WorkspaceForm({item,snapshot,client,user,role,onClose,onSaved,onPending
   </DetailPanel>;
 }
 
-export function LinkWorkspace({client:suppliedClient,user,role,onPendingChange=noop}) {
+export function LinkWorkspace({client:suppliedClient,user,role,onPendingChange=noop,onOpen}) {
   const client=useMemo(()=>suppliedClient||createWorkspaceClient(),[suppliedClient]);
   const [snapshot,setSnapshot]=useState(null),[loading,setLoading]=useState(true),[error,setError]=useState(''),[query,setQuery]=useState(''),[dialog,setDialog]=useState(null),[removing,setRemoving]=useState(false);
-  const sequence=useRef(0),removeLock=useRef(false);
+  const sequence=useRef(0),removeLock=useRef(false),openLock=useRef(false);
+  const open=async(event,item)=>{if(!onOpen)return;event.preventDefault();if(openLock.current)return;openLock.current=true;try{await onOpen(item);}catch{setError('앱을 열지 못했어요. 연결을 확인하고 다시 시도해 주세요.');}finally{openLock.current=false;}};
   const load=useCallback(async()=>{
     const id=++sequence.current;setLoading(true);setError('');
     try{const result=await client.list();if(id===sequence.current)setSnapshot(result);}
@@ -122,7 +123,7 @@ export function LinkWorkspace({client:suppliedClient,user,role,onPendingChange=n
     {error&&<div className="workspace-load-error" role="alert"><p>{error}</p><ActionButton action="refresh" label="다시 불러오기" iconOnly={false} onClick={load}/></div>}
     <div className="workspace-content" aria-busy={loading}>
       {loading&&!snapshot?<p className="workspace-status" role="status">앱을 불러오는 중…</p>:!error&&!items.length?<div className="workspace-empty"><h2>{query?'검색 결과가 없습니다.':'등록된 앱이 없습니다.'}</h2>{query&&<ActionButton action="clearSearch" label="검색 지우기" iconOnly={false} onClick={()=>setQuery('')}/>}</div>:<ul className="workspace-grid" aria-label="앱 목록">{items.map(item=><li key={item.id} className="workspace-card">
-        <a className="workspace-card-link" href={item.kind==='site'?workspaceSiteHash(item.id):item.url} target="_blank" rel="noopener noreferrer" aria-label={`${item.title} 새 탭에서 열기`}><div className="workspace-card-top"><div className="workspace-card-title"><WorkspaceIcon icon={item.icon} client={client}/><h2 title={item.title}>{item.title}</h2></div><Icon name="linkExternal" size={18}/></div><p>{item.description}</p></a>
+        <a className="workspace-card-link" onClick={event=>void open(event,item)} href={item.kind==='site'?workspaceSiteHash(item.id):item.url} target="_blank" rel="noopener noreferrer" aria-label={`${item.title} 새 탭에서 열기`}><div className="workspace-card-top"><div className="workspace-card-title"><WorkspaceIcon icon={item.icon} client={client}/><h2 title={item.title}>{item.title}</h2></div><Icon name="linkExternal" size={18}/></div><p>{item.description}</p></a>
         <footer className="workspace-card-footer"><div className="workspace-card-managers"><span>관리자</span><div><ProfileIdentity user={{login:workspaceManagerLogins(item)[0]}} resolve/></div></div><div className="workspace-card-actions">{canEditWorkspace(item,user,role)&&<ActionButton action="edit" label={`${item.title} 앱 수정`} disabled={disabled} onClick={()=>setDialog({item})}/>} {canOwnWorkspace(item,user,role)&&<ActionButton action="delete" label={`${item.title} 앱 삭제`} disabled={disabled} onClick={()=>remove(item)}/>}</div></footer>
       </li>)}</ul>}
     </div>

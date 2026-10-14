@@ -119,6 +119,10 @@ if(new URLSearchParams(location.search).has('activity-readability')){
  const task=project.tasks[0],runId=task.checkpoint.runId;task.messages=task.messages.filter(message=>message.role!=='user');
  task.workPlan={runId,steps:[{text:'메일 원문 확인',status:'completed',expected_outcome:'선택한 원문과 출처 확인'},{text:'관련 자료 대조',status:'in_progress',expected_outcome:'메일과 프로젝트 자료의 차이 확인'},{text:'결과 정리',status:'pending',expected_outcome:'핵심 결과와 다음 행동 안내'}]};
  task.trace.forEach(row=>{delete row.label;});
+ if(new URLSearchParams(location.search).has('timeline')) {
+  task.trace.splice(0,0,{id:runId+':0:note1',runId,tool:'progress_note',status:'done',content:'**메일과 프로젝트 자료를 비교하겠습니다.** 먼저 원문을 확인하고 차이가 있는 항목을 정리하겠습니다.'});
+  task.trace.splice(3,0,{id:runId+':0:note2',runId,tool:'progress_note',status:'done',content:'메일에서 변경된 일정을 확인했습니다. 관련 소스와 대조해 **실제 반영 여부**를 확인하겠습니다.'});
+ }
  window.activityState=state=>{task.state=state;task.trace.at(-1).status=state==='running'?'running':state==='paused'?'error':'done';task.trace.at(-1).label=state==='running'?'메일 원문과 프로젝트 자료를 대조하고 있어요':'답변과 근거 확인';task.responseTiming={elapsedMs:12500,startedAt:new Date().toISOString()};};
  window.activityState('running');
  project.processes=[{id:'activity-process',taskId:task.id,profile:'powershell',cwd:'C:/repo/project',script:'Get-ChildItem -Name',state:'completed',exitCode:0,output:'src\nREADME.md\npackage.json'}];

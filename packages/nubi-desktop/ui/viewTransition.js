@@ -2,9 +2,9 @@ import {flushSync} from 'react-dom';
 
 // Sidebar, side pane and screen changes morph instead of jumping (user request 2026-10-14: "liquid", iOS-like). The
 // browser's View Transitions capture the old and new layout and animate between them on the compositor, so the work
-// per frame stays small. Updates made in the same tick share one transition; an update that arrives while a
-// transition is running (a follow-up effect) joins the live new state instead of starting another one, which would
-// cut the first short. Reduced motion, hidden windows and automated checks get the plain update.
+// per frame stays small. Same-tick updates share one transition. New input skips
+// stale snapshots immediately; it never waits for an animation to accept input.
+// Reduced motion, hidden windows and automated checks get the plain update.
 let queue=null,running=null;
 const canAnimate=()=>typeof document!=='undefined'&&typeof document.startViewTransition==='function'&&!document.hidden
   &&!(typeof navigator!=='undefined'&&navigator.webdriver)
@@ -14,16 +14,24 @@ const canAnimate=()=>typeof document!=='undefined'&&typeof document.startViewTra
   &&!document.querySelector('.cx-panel-backdrop');
 const quiet=promise=>{promise?.catch?.(()=>{});};
 export function transitioned(update){
-  if(running||!canAnimate()){update();return;}
+  if(running){running.flush();running.transition.skipTransition();update();return;}
+  if(!canAnimate()){update();return;}
   if(queue){queue.push(update);return;}
   queue=[update];
   queueMicrotask(()=>{
     const updates=queue;queue=null;
-    let transition;
-    try{transition=document.startViewTransition(()=>flushSync(()=>{for(const run of updates)run();}));}
-    catch{for(const run of updates)run();return;}
-    running=transition;quiet(transition.ready);quiet(transition.updateCallbackDone);
-    const done=()=>{if(running===transition)running=null;};
+    let transition,applied=false;
+    const flush=()=>{if(applied)return;applied=true;flushSync(()=>{for(const run of updates)run();});};
+    // Recheck at the microtask boundary: a modal or reduced-motion preference
+    // may have changed since the action was queued.
+    if(!canAnimate()){flush();return;}
+    try{transition=document.startViewTransition(flush);}
+    catch{flush();return;}
+    const record={transition,flush};running=record;quiet(transition.ready);quiet(transition.updateCallbackDone);
+    const interrupt=()=>transition.skipTransition();
+    const events=['pointerdown','keydown','wheel','visibilitychange'];
+    for(const event of events)document.addEventListener(event,interrupt,{capture:true,passive:true});
+    const done=()=>{for(const event of events)document.removeEventListener(event,interrupt,{capture:true});if(running===record)running=null;};
     transition.finished.then(done,done);
   });
 }

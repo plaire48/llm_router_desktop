@@ -15,9 +15,9 @@ if(!ProjectService.prototype.startAgent)installAgent(ProjectService);
 
 const calls=list=>({content:'',calls:list.map(([name,args])=>({id:crypto.randomUUID(),type:'function',function:{name,arguments:JSON.stringify(args)}}))});
 async function run(t,{contextLength=22000,workflowIds=[],steps=[],leanTools=false}={}){
-  const {service}=await fixture(t,{scriptedPlanning:true});const requests=[];let at=0;service.leanTools=leanTools;
+  const {service}=await fixture(t,{scriptedPlanning:true});const requests=[],plans=[];let at=0;service.leanTools=leanTools;
   service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength}]}),dispose(){},async complete(messages,tools){
-    if(String(messages[0].content).startsWith(WORK_PLAN_PROMPT))return {content:JSON.stringify({intent:{goal:'요청 확인',constraints:[],outcomes:['요청한 내용을 확인한다'],workflowIds,skillPaths:[]},steps:[{text:'확인',expected_outcome:'요청한 내용을 확인한다',status:'in_progress'}]}),calls:[]};
+    if(String(messages[0].content).startsWith(WORK_PLAN_PROMPT)){plans.push(messages);return {content:JSON.stringify({intent:{goal:'요청 확인',constraints:[],outcomes:['요청한 내용을 확인한다'],workflowIds,skillPaths:[]},steps:[{text:'확인',expected_outcome:'요청한 내용을 확인한다',status:'in_progress'}]}),calls:[]};}
     const names=new Map();for(const message of messages)for(const call of message.tool_calls||[])names.set(call.id,call.function.name);
     const results=messages.filter(message=>message.role==='tool'&&names.get(message.tool_call_id)!=='update_plan').map(message=>({tool:names.get(message.tool_call_id),result:JSON.parse(message.content)}));
     requests.push({names:tools.map(item=>item.function.name),size:JSON.stringify(tools).length,system:messages.filter(message=>message.role==='system').map(message=>message.content).join('\n'),results});
@@ -26,8 +26,45 @@ async function run(t,{contextLength=22000,workflowIds=[],steps=[],leanTools=fals
   const task=await service.createTask({request:'app.txt를 확인해 줘'});
   await service.startAgent({taskId:task.id});await service.agent.promise;
   assert.equal(service.task(task.id).state,'review',service.task(task.id).error);
-  return {requests,service,task};
+  return {requests,service,task,plans};
 }
+
+test('capability and tool discovery do not need a speculative model plan',async t=>{
+  const {requests,plans,service,task}=await run(t,{steps:[
+    ()=>calls([['discover_capabilities',{query:'스킬'}]]),
+    ()=>calls([['select_tools',{groups:['analysis']}]]),
+  ]});
+  assert.equal(plans.length,0);
+  assert.equal(service.task(task.id).workPlan,undefined);
+  assert.equal(requests[1].results[0].tool,'discover_capabilities');
+  assert.notEqual(requests[1].results[0].result.ok,false);
+  assert.ok(requests[2].names.includes('delegate_analysis'));
+  assert.ok(requests[2].results.at(-1).result.connected.includes('collect_analysis'));
+});
+
+test('discovery does not waive the plan for the next project operation',async t=>{
+  const {requests,plans,service,task}=await run(t,{steps:[
+    ()=>calls([['select_tools',{groups:['source-change']}]]),
+    ()=>calls([['read_source',{path:'app.txt'}]]),
+  ]});
+  assert.equal(plans.length,1);
+  const payload=JSON.parse(plans[0][1].content);
+  assert.deepEqual(payload.routing.proposedTools,['read_source']);
+  assert.equal(requests[2].results.at(-1).tool,'read_source');
+  assert.notEqual(requests[2].results.at(-1).result.ok,false);
+  const trace=service.task(task.id).trace.filter(item=>item.status==='done').map(item=>item.tool);
+  assert.ok(trace.indexOf('select_tools')<trace.indexOf('update_plan'),trace.join(','));
+  assert.ok(trace.indexOf('update_plan')<trace.indexOf('read_source'),trace.join(','));
+});
+
+test('a mixed discovery and operation batch still plans before any project read',async t=>{
+  const {plans,service,task}=await run(t,{steps:[
+    ()=>calls([['select_tools',{groups:['source-change']}],['read_source',{path:'app.txt'}]]),
+  ]});
+  assert.equal(plans.length,1);
+  const trace=service.task(task.id).trace.filter(item=>item.status==='done').map(item=>item.tool);
+  assert.ok(trace.indexOf('update_plan')<trace.indexOf('read_source'),trace.join(','));
+});
 
 // The recovery group's tools this host offers: the Windows app tools are absent without the Windows driver.
 const RECOVERY_CONNECTED=['recovery_snapshot','propose_command_repair'];

@@ -207,5 +207,15 @@
 !macroend
 
 !macro customInstall
+  ; Rotate after payload installation, including same-version and silent reinstalls.
+  Push $0
+  Push $1
+  System::Call 'ole32::CoCreateGuid(g .s)'
+  Pop $0
+  FileOpen $1 "$INSTDIR\nubi-installation.id" w
+  FileWrite $1 "$0"
+  FileClose $1
+  Pop $1
+  Pop $0
   !insertmacro NubiStage "설치 완료"
 !macroend

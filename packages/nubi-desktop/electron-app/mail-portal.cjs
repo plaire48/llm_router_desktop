@@ -1,27 +1,35 @@
-const {ORIGIN,LOGIN_URL,foldersOf,identityOf,portalFetchSource}=require('./mail-portal-contract.cjs');
+const {mailSessionFetch}=require('./mail-session-fetch.cjs');
+const {ORIGIN,LOGIN_URL,portalOrigin,foldersOf,identityOf,portalFetch,portalFetchSource}=require('./mail-portal-contract.cjs');
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 class MailPortal {
  // Login happens in the app's own browser tab (openPage/closePage) when the host offers one; the hidden window only
  // runs the read-only portal fetches on the same persistent session (user request 2026-10-14: no separate popup).
- constructor({BrowserWindow,invoke,parent,openPage=null,closePage=null,getPageContents=null}){this.BrowserWindow=BrowserWindow;this.invoke=invoke;this.parent=parent;this.openPage=openPage;this.closePage=closePage;this.getPageContents=getPageContents;this.page=null;this.state={connected:false,connecting:false,checking:false,folders:[],error:null};this.epoch=0;}
+ constructor({BrowserWindow,invoke,parent,openPage=null,closePage=null,getPageContents=null,fetchSession=mailSessionFetch}){this.fetchSession=fetchSession;this.BrowserWindow=BrowserWindow;this.invoke=invoke;this.parent=parent;this.openPage=openPage;this.closePage=closePage;this.getPageContents=getPageContents;this.page=null;this.state={connected:false,connecting:false,checking:false,folders:[],error:null};this.epoch=0;this.origin=ORIGIN;this.access=new AbortController();}
  status(){return {...this.state};}
- async identify(){
-  let identity;try{identity=identityOf(await this.read('identity'));}catch(error){if(!['mail_portal_identity','mail_portal_format','mail_portal_request','mail_portal_login'].includes(error.message))throw error;}
-  const folders=foldersOf(await this.read('folders',{setCd:identity?.setCd||''}));
-  if(!identity?.email||!identity?.userId){const sent=folders.find(folder=>folder.mailbox==='sent');if(sent){const list=await this.read('list',{folderId:sent.id,setCd:identity?.setCd||''});const row=list?.liteHeaderVOs?.[0];if(row&&/^\d{1,20}$/.test(String(row.mailSeq))){const summary=await this.read('summary',{folderId:sent.id,seq:String(row.mailSeq)}),from=summary?.from||{};const userId=identity?.userId||from.userID||from.epID;const email=identity?.email||(typeof from.email==='string'&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(from.email)?from.email:null);if(!identity&&(typeof userId==='string'||email))identity={id:typeof userId==='string'?userId:email,setCd:''};if(identity)identity={...identity,email,userId:typeof userId==='string'?userId:null};}}}
-  if(!identity?.email){const inbox=folders.find(folder=>folder.mailbox==='inbox');if(inbox){const list=await this.read('list',{folderId:inbox.id,setCd:identity?.setCd||''}),row=list?.liteHeaderVOs?.[0];if(row&&/^\d{1,20}$/.test(String(row.mailSeq))){const message=await this.read('summary',{folderId:inbox.id,seq:String(row.mailSeq)}),received=message?.receivedAddress;
+ async identify(epoch=this.epoch){
+  const read=async(...args)=>{if(epoch!==this.epoch)throw Error('mail_cancelled');const result=await this.read(...args);if(epoch!==this.epoch)throw Error('mail_cancelled');return result;};
+  let identity;try{identity=identityOf(await read('identity'));}catch(error){if(!['mail_portal_identity','mail_portal_format','mail_portal_request','mail_portal_login'].includes(error.message))throw error;}
+  const folders=foldersOf(await read('folders',{setCd:identity?.setCd||''}));
+  if(!identity?.email||!identity?.userId){const sent=folders.find(folder=>folder.mailbox==='sent');if(sent){const list=await read('list',{folderId:sent.id,setCd:identity?.setCd||''});const row=list?.liteHeaderVOs?.[0];if(row&&/^\d{1,20}$/.test(String(row.mailSeq))){const summary=await read('summary',{folderId:sent.id,seq:String(row.mailSeq)}),from=summary?.from||{};const userId=identity?.userId||from.userID||from.epID;const email=identity?.email||(typeof from.email==='string'&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(from.email)?from.email:null);if(!identity&&(typeof userId==='string'||email))identity={id:typeof userId==='string'?userId:email,setCd:''};if(identity)identity={...identity,email,userId:typeof userId==='string'?userId:null};}}}
+  if(!identity?.email){const inbox=folders.find(folder=>folder.mailbox==='inbox');if(inbox){const list=await read('list',{folderId:inbox.id,setCd:identity?.setCd||''}),row=list?.liteHeaderVOs?.[0];if(row&&/^\d{1,20}$/.test(String(row.mailSeq))){const message=await read('summary',{folderId:inbox.id,seq:String(row.mailSeq)}),received=message?.receivedAddress;
     const email=typeof received==='string'?received:received?.email||received?.address;if(typeof email==='string'&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){const recipients=[...(Array.isArray(message.toRecipients)?message.toRecipients:[]),...(Array.isArray(message.ccRecipients)?message.ccRecipients:[]),...(Array.isArray(message.bccRecipients)?message.bccRecipients:[])];const own=recipients.find(person=>(person?.email||person?.address||person?.emailAddress?.address||'').toLowerCase()===email.toLowerCase()),userId=identity?.userId||own?.userID||own?.epID;identity={...identity,id:identity?.id||email,email,userId:typeof userId==='string'?userId:null,setCd:identity?.setCd||''};}
    }}}
   if(!identity)throw Error('mail_portal_identity');identity={...identity,id:identity.userId||identity.email||identity.id};return {identity,folders};
  }
- async restore(){
-  if(this.restored)return;this.restored=true;const epoch=this.epoch;
-  try{await this.windowForLogin();const {identity,folders}=await this.identify();if(epoch!==this.epoch)return;
+ restore(){
+  if(this.restored||this.state.connecting)return this.restoring;
+  this.restored=true;const epoch=this.epoch;
+  const pending=this.restoreSession(epoch);this.restoring=pending;
+  void pending.finally(()=>{if(this.restoring===pending)this.restoring=null;}).catch(()=>{});return pending;
+ }
+ async restoreSession(epoch){
+  try{await this.windowForLogin(false,epoch);if(epoch!==this.epoch)return;
+   const {identity,folders}=await this.identify(epoch);if(epoch!==this.epoch)return;
    await this.invoke('mail',{action:'portalConnect',identity:identity.id,email:identity.email,folders});if(epoch!==this.epoch)return;
    this.approvalCache=new Map();this.approvalCacheBytes=0;this.identity=identity;this.state={...this.state,connected:true,folders,error:null};void this.sync().catch(()=>{});
-  }catch{} // Not logged in: show the login action, never force a browser popup.
+  }catch{} // Silent restore never opens interactive SSO. Explicit login owns the next attempt.
  }
- async windowForLogin(show=false){
+ async windowForLogin(show=false,epoch=this.epoch){
   if(!this.window||this.window.isDestroyed()){
    this.window=new this.BrowserWindow({parent:this.parent,width:1050,height:780,show:false,title:'누비 메일 로그인',webPreferences:{partition:'persist:nubi-company',nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true}});
    // The session is shared with the in-app company login tabs: their copy buttons need clipboard-sanitized-write.
@@ -29,73 +37,64 @@ class MailPortal {
    // The background reader must never start or replay an SSO popup as a GET.
    // Interactive authentication belongs to BrowserHost, which preserves POST/opener.
    this.window.webContents.setWindowOpenHandler(()=>({action:'deny'}));
-   this.window.webContents.on('will-redirect',(event,url)=>{try{if(new URL(url).origin!==ORIGIN)event.preventDefault();}catch{event.preventDefault();}});
-   this.window.webContents.on('will-navigate',(event,url)=>{try{if(new URL(url).origin!==ORIGIN)event.preventDefault();}catch{event.preventDefault();}});
+   const guard=(event,url)=>{const origin=portalOrigin(url,this.origin);if(!origin)event.preventDefault();else this.origin=origin;};
+   this.window.webContents.on('will-redirect',guard);
+   this.window.webContents.on('will-navigate',guard);
    this.window.on('closed',()=>{this.window=null;this.epoch++;this.state={...this.state,connected:false,connecting:false,error:null};clearTimeout(this.timer);void this.invoke('mail',{action:'disconnect'}).catch(()=>{});});
   }
   if(show){
    if(!this.openPage)throw Error('mail_portal_desktop_only');
    this.window.webContents.stop?.();await this.window.loadURL('about:blank');
-  }else await this.window.loadURL(ORIGIN);
-  if(show&&this.openPage&&!this.page){const epoch=this.epoch;this.page=this.openPage(LOGIN_URL,{onClosed:()=>{if(this.page&&epoch===this.epoch){const closed=this.page;this.page=null;if(this.state.connecting)this.epoch++;try{this.closePage?.(closed.tabId);}catch{}}}});}
+  }else await this.window.loadURL('about:blank');
+  if(epoch!==this.epoch)throw Error('mail_cancelled');
+  if(show&&this.openPage&&!this.page){this.page=this.openPage(LOGIN_URL,{onClosed:()=>{if(this.page&&epoch===this.epoch)void this.disconnect().catch(()=>{});}});}
   return this.window;
  }
  closeLoginPage(){const page=this.page;this.page=null;if(page&&this.closePage){try{this.closePage(page.tabId);}catch{}}this.window?.hide();}
  async readContents(contents,operation,input={}){
   if(!contents||contents.isDestroyed?.())throw Error('mail_portal_login');
-  try{return await contents.executeJavaScript(`(${portalFetchSource()})(${JSON.stringify({operation,...input})})`);}
+  const origin=portalOrigin(contents.getURL(),this.origin);if(!origin)throw Error('mail_portal_login');this.origin=origin;
+  try{return await contents.executeJavaScript(`(${portalFetchSource(origin)})(${JSON.stringify({operation,...input})})`);}
   catch(error){throw Error(/^mail_[a-z_]+$/.test(error.message)?error.message:'mail_portal_request');}
  }
  async read(operation,input={}){
   if(!this.window||this.window.isDestroyed())throw Error('mail_portal_login');
   if(this.page&&this.getPageContents){
    // Probe only the authenticated portal, never inject mail requests into the SSO provider.
-   let failure;
-   for(const contents of [...this.getPageContents(this.page.tabId)].reverse()){
+   const rows=[...this.getPageContents(this.page.tabId)].filter(contents=>!contents.isDestroyed());
+   if(rows.some(contents=>contents.isLoadingMainFrame())||(rows.length>1&&!portalOrigin(rows.at(-1).getURL(),this.origin)))throw Error('mail_portal_login');
+   for(const contents of rows.reverse()){
     if(contents.isDestroyed()||contents.isLoadingMainFrame())continue;
-    let portal=false;try{portal=new URL(contents.getURL()).origin===ORIGIN;}catch{}
-    if(portal){try{return await this.readContents(contents,operation,input);}catch(error){if(!['mail_portal_login','mail_portal_request','mail_portal_format'].includes(error.message))throw error;failure=error;}}
+    const portal=portalOrigin(contents.getURL(),this.origin);
+    if(portal){try{return await this.readContents(contents,operation,input);}catch(error){if(!['mail_portal_login','mail_portal_request','mail_portal_format'].includes(error.message))throw error;}}
    }
-   // Signing in starts on the portal home (LOGIN_URL), so the tab may never reach the mail origin (user report
-   // 2026-10-14: login finished but checking never began). The background window shares the company session and opens
-   // the mail origin itself; its navigation guard keeps it on that origin.
-   try{return await this.readBackground(operation,input);}catch(error){if(!['mail_portal_login','mail_portal_request','mail_portal_format'].includes(error.message))throw error;failure=failure||error;}
-   throw failure||Error('mail_portal_login');
+   // API probes use the same cookie jar without navigating another document into SSO.
+   return this.readSession(operation,input);
   }
-  return this.readContents(this.window.webContents,operation,input);
+  return this.readSession(operation,input);
  }
- async readBackground(operation,input={}){
-  const contents=this.window?.webContents;if(!contents||contents.isDestroyed?.())throw Error('mail_portal_login');
-  const onPortal=()=>{try{return new URL(contents.getURL()).origin===ORIGIN&&!contents.isLoadingMainFrame();}catch{return false;}};
-  if(!onPortal()){
-   // At most one attempt every 6 s while the person signs in.
-   const now=Date.now();if(now-(this.backgroundAttempt||0)<6000)throw Error('mail_portal_login');this.backgroundAttempt=now;
-   try{await this.window.loadURL(ORIGIN);}catch{}
-   if(!onPortal())throw Error('mail_portal_login');
-  }
-  return this.readContents(contents,operation,input);
- }
- // After signing in on the portal home the mail origin still needs its own SSO round trip, which only the interactive
- // tab may make (user report 2026-10-14: login done, "확인 중" forever). Once the tab is on a company page that is not a
- // sign-in step (no password or one-time code field, no sign-in path), it is sent to the mail origin. Reads a fixed
- // boolean only; never collects the page. At most once every 8 s.
- async advanceLoginTab(){
-  if(!this.page||!this.getPageContents)return false;
-  const now=Date.now();if(now-(this.advanceAttempt||0)<8000)return false;
-  let company='';try{company=new URL(LOGIN_URL).hostname.replace(/^www\./,'');}catch{return false;}
-  const rows=[...this.getPageContents(this.page.tabId)].filter(contents=>!contents.isDestroyed()&&!contents.isLoadingMainFrame());
-  for(const contents of rows){try{if(new URL(contents.getURL()).origin===ORIGIN)return false;}catch{}}
-  for(const contents of rows.reverse()){
-   let url;try{url=new URL(contents.getURL());}catch{continue;}
-   if(!['http:','https:'].includes(url.protocol)||!(url.hostname===company||url.hostname.endsWith('.'+company)))continue;
-   if(/(login|logon|signin|sso|auth|otp|cert|mfa|password)/i.test(url.pathname+url.search))continue;
-   let signedIn=false;
-   try{signedIn=await contents.executeJavaScript(`(()=>{const visible=e=>!!(e&&e.getClientRects&&e.getClientRects().length);return ![...document.querySelectorAll('input[type="password"],input[autocomplete="one-time-code"]')].some(visible)&&!!document.body;})()`)===true;}catch{}
-   if(!signedIn)continue;
-   this.advanceAttempt=now;try{await contents.loadURL(ORIGIN);}catch{}
-   return true;
-  }
-  return false;
+ async readSession(operation,input={}){
+  const session=this.window?.webContents.session;if(!session)throw Error('mail_portal_request');
+  const epoch=this.epoch;
+  const fetch=async(url,options)=>{
+   if(epoch!==this.epoch)throw Error('mail_cancelled');
+   let response=await this.fetchSession(session,url,{...options,redirect:'manual'});
+   if(epoch!==this.epoch)throw Error('mail_cancelled');
+   if(response.status>=300&&response.status<400){
+    const original=new URL(url);let target;try{target=new URL(response.headers.get('location'),url);}catch{}
+    const origin=target&&portalOrigin(target.href,this.origin);
+    const upgrade=origin&&original.protocol==='http:'&&target.protocol==='https:'&&target.pathname===original.pathname&&target.search===original.search&&!target.hash;
+    await response.body?.cancel();
+    // Follow only an exact same-host HTTPS upgrade of this fixed read-only API.
+    // Login redirects are never followed or replayed as GET/POST in the background.
+    if(!upgrade)throw Error('mail_portal_login');
+    this.origin=origin;response=await this.fetchSession(session,target.href,{...options,redirect:'manual'});
+    if(epoch!==this.epoch)throw Error('mail_cancelled');
+    if(response.status>=300&&response.status<400){await response.body?.cancel();throw Error('mail_portal_login');}
+   }
+   return response;
+  };
+  return portalFetch({operation,...input},{origin:this.origin,fetch,signal:this.access.signal});
  }
  async loginPageFailed(){
   if(!this.page||!this.getPageContents)return false;
@@ -108,28 +107,30 @@ class MailPortal {
  }
  async connect(args={}){
   if(this.state.connecting||this.state.checking)throw Error('mail_busy');
-  const epoch=++this.epoch;this.state={...this.state,connecting:true,error:null};
+  const epoch=++this.epoch;this.access.abort();this.access=new AbortController();this.restored=true;clearTimeout(this.timer);this.syncing=null;this.state={...this.state,connected:false,connecting:true,loginStage:'preparing',error:null};
   try{
-   await this.windowForLogin(true);let identity,folders;
+   // Finish an invalidated restore before starting the interactive session. No overlapping SSO requests.
+   this.window?.webContents.stop?.();await this.restoring;if(epoch!==this.epoch)throw Error('mail_cancelled');
+   await this.windowForLogin(true,epoch);this.state.loginStage='authenticating';let identity,folders;
    const deadline=Date.now()+5*60*1000;
    while(epoch===this.epoch&&Date.now()<deadline){
-    try{({identity,folders}=await this.identify());break;}
-    catch(error){if(await this.loginPageFailed())throw Error('mail_portal_sso');if(!['mail_portal_login','mail_portal_request','mail_portal_format'].includes(error.message))throw error;if(epoch!==this.epoch)break;await this.advanceLoginTab();await wait(2000);}
+    try{({identity,folders}=await this.identify(epoch));break;}
+    catch(error){if(await this.loginPageFailed())throw Error('mail_portal_sso');if(!['mail_portal_login','mail_portal_request','mail_portal_format'].includes(error.message))throw error;if(epoch!==this.epoch)break;await wait(2000);}
    }
    if(epoch!==this.epoch)throw Error('mail_cancelled');if(!identity||!folders)throw Error('mail_portal_timeout');
    if(this.page&&this.getPageContents){
-    // Start the background document only after interactive authentication succeeds.
-    // Verify the shared session before closing the login tab or claiming a connection.
-    await this.window.loadURL(ORIGIN);
-    folders=foldersOf(await this.readContents(this.window.webContents,'folders',{setCd:identity.setCd}));
+    // Verify the shared session through the fixed mail API. The hidden window stays blank;
+    // no second SSO navigation or manual visit to the mailbox page is needed.
+    this.state.loginStage='verifying';
+    folders=foldersOf(await this.readSession('folders',{setCd:identity.setCd}));
     if(epoch!==this.epoch)throw Error('mail_cancelled');
    }
    await this.invoke('mail',{action:'portalConnect',identity:identity.id,email:identity.email,folders,destination:args.destination});
    if(epoch!==this.epoch)throw Error('mail_cancelled');
-   this.approvalCache=new Map();this.approvalCacheBytes=0;this.identity=identity;this.state={connected:true,connecting:false,checking:false,folders,error:null};this.closeLoginPage();
+   this.approvalCache=new Map();this.approvalCacheBytes=0;this.identity=identity;this.state={connected:true,connecting:false,checking:false,loginStage:'connected',folders,error:null};this.closeLoginPage();
    // Return after login; collection stays outside the UI's admission call.
    void this.sync().catch(()=>{});return this.status();
-  }catch(error){this.closeLoginPage();if(epoch===this.epoch)this.state={...this.state,connecting:false,connected:false,error:/^mail_/.test(error.message)?error.message:'mail_portal_request'};throw Error(epoch!==this.epoch?'mail_cancelled':this.state.error);}
+  }catch(error){if(epoch===this.epoch){this.closeLoginPage();this.state={...this.state,connecting:false,connected:false,loginStage:null,error:/^mail_/.test(error.message)?error.message:'mail_portal_request'};}throw Error(epoch!==this.epoch?'mail_cancelled':this.state.error);}
  }
  sync(input={}){
   if(this.syncing)return this.syncing;
@@ -141,19 +142,19 @@ class MailPortal {
   if(!this.state.connected)throw Error('mail_portal_login');if(this.state.checking)return this.status();
   const epoch=this.epoch;const settings=await this.invoke('mail',{action:'status'});if(epoch!==this.epoch)throw Error('mail_cancelled');if(settings?.watchPaused&&!manual)return this.status();clearTimeout(this.timer);this.state={...this.state,checking:true,error:null,completed:0,total:null};
   try{
-   const folders=foldersOf(await this.read('folders',{setCd:this.identity.setCd}));this.state.folders=folders;
-   await this.invoke('mail',{action:'portalFolders',folders});
-   const known=new Set((await this.invoke('mail',{action:'portalKnown'})).uids);
+   const folders=foldersOf(await this.read('folders',{setCd:this.identity.setCd}));if(epoch!==this.epoch)throw Error('mail_cancelled');this.state.folders=folders;
+   await this.invoke('mail',{action:'portalFolders',folders});if(epoch!==this.epoch)throw Error('mail_cancelled');
+   const known=new Set((await this.invoke('mail',{action:'portalKnown'})).uids);if(epoch!==this.epoch)throw Error('mail_cancelled');
    let completed=0,discovered=0;
    for(const folder of folders){let cursor=0;const seen=new Set();
     for(let page=0;page<200;page++){
      if(epoch!==this.epoch)throw Error('mail_cancelled');
-     const result=await this.read('list',{folderId:folder.id,cursor,setCd:this.identity.setCd});if(!Array.isArray(result?.liteHeaderVOs))throw Error('mail_portal_format');
+     const result=await this.read('list',{folderId:folder.id,cursor,setCd:this.identity.setCd});if(epoch!==this.epoch)throw Error('mail_cancelled');if(!Array.isArray(result?.liteHeaderVOs))throw Error('mail_portal_format');
      const fresh=result.liteHeaderVOs.filter(item=>!seen.has(String(item.mailSeq)));
      if(!fresh.length)break;
      for(const item of fresh){const seq=String(item.mailSeq);if(!/^\d{1,20}$/.test(seq))throw Error('mail_portal_format');seen.add(seq);const uid=`portal:${folder.id}:${seq}`;discovered++;
       if(known.has(uid))continue;if(epoch!==this.epoch)throw Error('mail_cancelled');
-      try{const metadata={...item,...await this.read('summary',{folderId:folder.id,seq})};const packet=await this.read('eml',{folderId:folder.id,seq});if(epoch!==this.epoch)throw Error('mail_cancelled');await this.invoke('mail',{action:'portalImport',uid,raw:packet.raw,size:packet.size,folder,metadata});known.add(uid);completed++;}
+      try{const metadata={...item,...await this.read('summary',{folderId:folder.id,seq})};if(epoch!==this.epoch)throw Error('mail_cancelled');const packet=await this.read('eml',{folderId:folder.id,seq});if(epoch!==this.epoch)throw Error('mail_cancelled');await this.invoke('mail',{action:'portalImport',uid,raw:packet.raw,size:packet.size,folder,metadata});if(epoch!==this.epoch)throw Error('mail_cancelled');known.add(uid);completed++;}
       catch(error){if(epoch!==this.epoch||['mail_portal_login','mail_cancelled','mail_portal_request','mail_portal_timeout'].includes(error.message))throw error;await this.invoke('mail',{action:'portalRejected',uid,error:error.message});}
       this.state={...this.state,completed,total:folders.reduce((sum,f)=>sum+(f.total||0),0)||null};
      }
@@ -163,11 +164,14 @@ class MailPortal {
    }
    if(epoch!==this.epoch)throw Error('mail_cancelled');this.state={...this.state,checking:false,lastCheckedAt:new Date().toISOString(),discovered};
    this.timer=setTimeout(()=>void this.sync().catch(()=>{}),5*60*1000);this.timer.unref?.();return this.status();
-  }catch(error){if(epoch===this.epoch)this.state={...this.state,checking:false,error:/^mail_/.test(error.message)?error.message:'mail_portal_request',connected:error.message==='mail_portal_login'?false:this.state.connected};if(epoch===this.epoch&&this.state.connected){this.timer=setTimeout(()=>void this.sync().catch(()=>{}),5*60*1000);this.timer.unref?.();}if(error.message==='mail_portal_login')await this.invoke('mail',{action:'disconnect'}).catch(()=>{});throw error;}
+  }catch(error){if(epoch!==this.epoch)throw Error('mail_cancelled');if(epoch===this.epoch)this.state={...this.state,checking:false,error:/^mail_/.test(error.message)?error.message:'mail_portal_request',connected:error.message==='mail_portal_login'?false:this.state.connected};if(epoch===this.epoch&&this.state.connected){this.timer=setTimeout(()=>void this.sync().catch(()=>{}),5*60*1000);this.timer.unref?.();}if(error.message==='mail_portal_login')await this.invoke('mail',{action:'disconnect'}).catch(()=>{});throw error;}
  }
  async approvals({page=1}={}){
   if(!this.state.connected)throw Error('mail_portal_login');if(!this.identity?.userId)throw Error('mail_portal_identity');if(!Number.isSafeInteger(page)||page<1||page>10000)throw Error('mail_input_invalid');
-  const epoch=this.epoch,result=await this.read('approvals',{page,userId:this.identity.userId});if(!Array.isArray(result?.data))throw Error('mail_portal_format');
+  // A login page from the approval endpoint while mail is connected is its own code (user report 2026-10-15: the list
+  // said '로그인하세요' after a normal login), so the screen can say which request was refused.
+  const epoch=this.epoch;let result;try{result=await this.read('approvals',{page,userId:this.identity.userId});}catch(error){throw Error(error.message==='mail_portal_login'?'mail_portal_approval_login':error.message);}
+  if(epoch!==this.epoch)throw Error('mail_cancelled');if(!Array.isArray(result?.data))throw Error('mail_portal_format');
   this.approvalCache=new Map();this.approvalCacheBytes=0;const rows=result.data.slice(0,100).map(item=>({id:String(item.apId),lineId:String(item.aplnId),subject:String(item.subject||item.apTitle||'').slice(0,1000),submittedAt:item.sbmDt||null,completedAt:item.cplDt||null,status:String(item.apActStatsCd||'').slice(0,60)}));
   let next=0;await Promise.all(Array.from({length:Math.min(4,rows.length)},async()=>{while(next<rows.length){const row=rows[next++];if(epoch!==this.epoch)throw Error('mail_cancelled');try{const item=await this.approvalItem(row);row.subject=String(item.subject||row.subject||'(제목 없음)').slice(0,1000);}catch(error){row.subject=row.subject||'(제목 확인 필요)';row.error=error.message;}}}));
   if(epoch!==this.epoch)throw Error('mail_cancelled');this.approvalPageSize=Math.max(this.approvalPageSize||0,rows.length);const total=Number.isSafeInteger(result.totalCount)?result.totalCount:rows.length;return {page,total,hasNext:rows.length>0&&page*this.approvalPageSize<total,items:rows};
@@ -179,12 +183,12 @@ class MailPortal {
   const item=result?.[0];if(!item||typeof item!=='object')throw Error('mail_portal_format');this.approvalCache ||=new Map();const bytes=Buffer.byteLength(typeof item.result==='string'?item.result:'','utf8')+1024;if(this.approvalCache.size<100&&(this.approvalCacheBytes||0)+bytes<=8*1024*1024){this.approvalCache.set(key,item);this.approvalCacheBytes=(this.approvalCacheBytes||0)+bytes;}return item;
  }
  async approvalRead(args){
-  if(!this.state.connected)throw Error('mail_portal_login');const item=await this.approvalItem(args);
+  if(!this.state.connected)throw Error('mail_portal_login');const epoch=this.epoch,item=await this.approvalItem(args);if(epoch!==this.epoch)throw Error('mail_cancelled');
   if(typeof item.result!=='string'||!item.result.trim()||item.result.length>10*1024*1024)throw Error('mail_portal_format');
   const bytes=[...item.result].some(char=>char.charCodeAt(0)>255)?Buffer.from(item.result,'utf8'):Buffer.from(item.result,'latin1');
-  const epoch=this.epoch,parsed=await this.invoke('mail',{action:'portalDocument',raw:bytes.toString('base64')});if(epoch!==this.epoch)throw Error('mail_cancelled');return {id:args.id,subject:item.subject||parsed.mail.subject,...parsed};
+  const parsed=await this.invoke('mail',{action:'portalDocument',raw:bytes.toString('base64')});if(epoch!==this.epoch)throw Error('mail_cancelled');return {id:args.id,subject:item.subject||parsed.mail.subject,...parsed};
  }
- async disconnect(){++this.epoch;this.syncing=null;clearTimeout(this.timer);this.approvalCache?.clear();this.state={...this.state,connected:false,connecting:false,checking:false,error:null};this.closeLoginPage();await this.invoke('mail',{action:'disconnect'});return this.status();}
- dispose(){++this.epoch;clearTimeout(this.timer);this.closeLoginPage();this.window?.destroy();}
+ async disconnect(){++this.epoch;this.access.abort();this.access=new AbortController();this.syncing=null;clearTimeout(this.timer);this.approvalCache?.clear();this.state={...this.state,connected:false,connecting:false,checking:false,loginStage:null,error:null};this.closeLoginPage();await this.invoke('mail',{action:'disconnect'});return this.status();}
+ dispose(){++this.epoch;this.access.abort();clearTimeout(this.timer);this.closeLoginPage();this.window?.destroy();}
 }
 module.exports={MailPortal};

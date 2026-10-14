@@ -1,5 +1,6 @@
 const {WebContentsView,session,Menu,dialog,shell}=require('electron');
 const {randomUUID}=require('node:crypto');
+const {captureImage}=require('./capture-image.cjs');
 const {writeFile}=require('node:fs/promises');
 
 function address(input) {
@@ -106,11 +107,13 @@ class BrowserHost {
   if(load)void wc.loadURL(target,loadOptions).catch(error=>{if(error?.code==='ERR_ABORTED'||error?.errno===-3)return;row.loading=false;row.error ||=loadFailure(error?.errno);this.layout();this.changed();});this.layout();this.changed();return row;
  }
  // A bounded PNG of one tab for the agent's page inspection (2026-10-14): at most 1600 px wide, never the app window.
- async capture(id=this.active) {
-  const row=this.tab(id),wc=row.view.webContents;if(row.error||!row.contentReady)throw Error('browser_capture_unavailable');
-  let image=await wc.capturePage();const size=image.getSize();if(size.width>1600)image=image.resize({width:1600});const png=image.toPNG();if(png.length>6*1024*1024)throw Error('browser_capture_limit');
-  const final=image.getSize();return {image:png.toString('base64'),width:final.width,height:final.height,url:row.url,title:row.title};
+ async capture(id=this.active,options={}) {
+  const row=this.tab(id),wc=row.view.webContents;if(row.authentication||row.companyLogin||row.session)throw Error('browser_auth_protected');if(row.error||!row.contentReady)throw Error('browser_capture_unavailable');
+  const revision=wc.getURL(),shot=captureImage(await wc.capturePage(),options,row.view.getBounds());
+  if(wc.isDestroyed()||wc.getURL()!==revision)throw Error('browser_document_changed');
+  return {...shot,tabId:row.id,url:row.url,title:row.title};
  }
+
  status() {return {active:this.active,tabs:[...this.tabs.values()].filter(row=>!row.view.webContents.isDestroyed()).map(row=>({id:row.id,title:row.title,url:row.url,loginCode:row.companyLogin?this.loginCode():null,loading:row.loading,error:row.error,popup:row.popup,contentReady:row.contentReady,back:row.view.webContents.navigationHistory.canGoBack(),forward:row.view.webContents.navigationHistory.canGoForward(),zoom:Math.round(row.view.webContents.getZoomFactor()*100)})),find:this.find,history:this.history.map(item=>({...item})),downloads:this.downloads.map(({file,...item})=>item)};}
  menu({kind='main',x,y}={}) {
   const wc=this.tab().view.webContents;

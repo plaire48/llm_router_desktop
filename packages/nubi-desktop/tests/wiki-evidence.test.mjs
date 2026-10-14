@@ -148,3 +148,28 @@ test('Wiki records preserve requirement citations and notice later cited documen
   const record=await service.recordKnowledge({taskId:task.id});const content=await readFile(path.join(root,record.path),'utf8');assert.match(content,/## 계획에 사용한 Wiki/);assert.match(content,/openwiki\/home.md:1/);assert.match(content,/연결한 요구사항: Welcome change/);
   assert.equal((await service.knowledgeStatus({taskId:task.id})).state,'matching');await writeFile(path.join(root,'openwiki/home.md'),'# Welcome\nHuman update');assert.equal((await service.knowledgeStatus({taskId:task.id})).state,'outdated');
 });
+
+test('full-corpus ranking finds a late page and reuses unchanged bodies without hiding edits or deletions',async t=>{
+  const {root,service}=await fixture(t);
+  for(let i=0;i<410;i++)await writeFile(path.join(root,'openwiki',String(i).padStart(4,'0')+'.md'),'# General handbook\n\nUnrelated onboarding information.\n');
+  const rel='openwiki/zz-incident.md';await writeFile(path.join(root,rel),'# Quartz incident\n\nQUARTZ_813 recovery requires a lease reset.\n');
+  const first=await service.wikiQuery({query:'QUARTZ_813'});
+  assert.ok(first.scanned>400);assert.ok(first.results.some(r=>r.path===rel));
+  const repeat=await service.wikiQuery({query:'QUARTZ_813'});
+  assert.equal(repeat.retrieval.index.loaded,0);assert.equal(repeat.retrieval.index.reused,repeat.scanned);
+  await writeFile(path.join(root,rel),'# Cobalt incident\n\nCOBALT_918 recovery requires token rotation.\n');
+  assert.equal((await service.wikiQuery({query:'QUARTZ_813'})).results.length,0);
+  assert.ok((await service.wikiQuery({query:'COBALT_918'})).results.some(r=>r.path===rel));
+  await writeFile(path.join(root,'.openwikiignore'),rel+'\n');
+  assert.equal((await service.wikiQuery({query:'COBALT_918'})).results.length,0);
+  await unlink(path.join(root,'.openwikiignore'));await unlink(path.join(root,rel));
+  assert.equal((await service.wikiQuery({query:'COBALT_918'})).results.length,0);
+});
+
+test('a matching page after four MiB remains searchable',async t=>{
+ const {root,service}=await fixture(t),noise='# Unrelated\n\n'+('Parking information for visitors.\n'.repeat(4000));
+ for(let i=0;i<34;i++)await writeFile(path.join(root,'openwiki',String(i).padStart(3,'0')+'.md'),noise);
+ await writeFile(path.join(root,'openwiki/zz-limit.md'),'# CAPACITY_729\n\nCAPACITY_729 uses 512 MiB.\n');
+ const result=await service.wikiQuery({query:'CAPACITY_729'});
+ assert.ok(result.retrieval.index.bytes>4*1024*1024);assert.ok(result.results.some(row=>row.path==='openwiki/zz-limit.md'));
+});

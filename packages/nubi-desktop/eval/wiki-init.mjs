@@ -81,11 +81,13 @@ try{
   }
 }catch(error){report.error=String(error?.message||error).slice(0,300);}
 finally{
+  // Evaluation-only: preserve this synthetic workspace for claim-by-claim audit.
+  if(process.argv.includes('--keep'))report.workspaceRoot=workspace.root;
   await mkdir(path.resolve(outputDir),{recursive:true});
   await writeFile(path.join(path.resolve(outputDir),'report.json'),JSON.stringify(report,null,2)+'\n');
   const init=report.steps.init,q=report.steps.question;
   console.log(JSON.stringify({source,init:init&&{state:init.state,stage:init.stage,error:init.error,pages:init.pages.length,claims:init.claims,record:init.record,manifest:init.manifest,modelCalls:init.modelCalls,rejected:init.requests.rejected,seconds:Math.round(init.elapsedMs/1000)},folder:report.steps.folder,status:report.steps.status&&{state:report.steps.status.state,reason:report.steps.status.reason||null,stalePages:report.steps.status.stalePages?.length},question:q&&{state:q.state,error:q.error,answerIncludes:q.answerIncludes,modelCalls:q.modelCalls,seconds:Math.round(q.elapsedMs/1000),tools:q.tools},error:report.error||null},null,1));
   try{service?.dispose();service?.store?.close();}catch{/* Already closed. */}
   relay.dispose?.();
-  if(!report.error)await workspace.dispose();
+  if(!report.error&&!process.argv.includes('--keep'))await workspace.dispose();
 }

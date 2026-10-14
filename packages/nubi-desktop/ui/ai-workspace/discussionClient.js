@@ -1,4 +1,4 @@
-import {ghesFetch} from './hostFetch.js';
+import {ghesFetch,talkBase} from './hostFetch.js';
 import {GHES_CONFIG,TALK_CONFIG} from './config.js';
 import {createTalkClient} from './talkClient.js';
 import {TALK_LIMITS,TALK_UUID,talkError,talkOwner,talkCanManage,talkPermalink,talkModerator} from './talkModel.js';
@@ -29,7 +29,7 @@ export function createDiscussionClient(options={}) {
   const legacy=options.legacy||createTalkClient(options),{session,signedIn}=legacy;
   // Nubi: GitHub calls go through the host, which holds the SSO token (a direct fetch carried only the placeholder and
   // failed: "게시판 응답을 확인하지 못했습니다", user report 2026-10-14).
-  const config=options.config||TALK_CONFIG,fetchImpl=options.fetchImpl||ghesFetch,baseUrl=options.baseUrl||globalThis.location?.href||'https://localhost/';
+  const config=options.config||TALK_CONFIG,fetchImpl=options.fetchImpl||ghesFetch,baseUrl=options.baseUrl||talkBase();
   const variables={owner:config.owner,name:config.repo},uncertain=new Map(),locks=new Set();
   const pinStore=options.pinStore||createDiscussionPinStore({host:GHES_CONFIG.host,owner:config.owner,repo:config.repo,branch:config.branch||GHES_CONFIG.branch,token:session?.token,fetchImpl});
   let pinOverrides=new Map();

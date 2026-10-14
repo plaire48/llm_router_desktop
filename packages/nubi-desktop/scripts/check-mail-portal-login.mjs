@@ -9,25 +9,27 @@ const require=createRequire(import.meta.url),temporary=await mkdtemp(path.join(o
 await writeFile(entry,`
 const {app,BrowserWindow,session}=require('electron');
 app.setPath('userData',${JSON.stringify(path.join(temporary,'state'))});
+process.env.NUBI_MAIL_PORTAL_ORIGIN='https://mail.example.invalid';
+process.env.NUBI_MAIL_PORTAL_LOGIN_URL='https://home.example.invalid';
 app.whenReady().then(async()=>{
  const {BrowserHost}=require(${JSON.stringify(path.resolve('electron-app/browser-host.cjs'))});
  const {MailPortal}=require(${JSON.stringify(path.resolve('electron-app/mail-portal.cjs'))});
  const win=new BrowserWindow({show:false,width:1100,height:800,webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}});await win.loadURL('about:blank');
  global.events=[];let authenticated=false;
- const portalSession=session.fromPartition('persist:nubi-mail-portal');
+ const portalSession=session.fromPartition('persist:nubi-company');
  await portalSession.protocol.handle('https',async request=>{
   const url=new URL(request.url);global.events.push({host:url.hostname,path:url.pathname,method:request.method});
   if(url.hostname==='sso.example.invalid'&&url.pathname==='/authenticate'){
    const body=await request.text();if(request.method!=='POST'||body!=='proof=fixture')return new Response('Whitelabel Error Page',{status:404});
-   authenticated=true;return new Response('<script>window.opener.location="https://kor3.samsung.net/portal";window.close();</script>',{headers:{'content-type':'text/html'}});
+   authenticated=true;return new Response('<script>window.opener.location="https://mail.example.invalid/portal";window.close();</script>',{headers:{'content-type':'text/html'}});
   }
-  if(url.origin!=='https://kor3.samsung.net')return new Response('',{status:403});
+  if(!['https://mail.example.invalid','https://home.example.invalid'].includes(url.origin))return new Response('',{status:403});
   if(url.pathname.startsWith('/mail/rest/')){
    if(!authenticated)return new Response('',{status:401});
    const value=url.pathname.endsWith('/userinfo/read')?{userId:'fixture-user',email:'owner@example.test'}:[{folderID:1,folderName:'받은메일함',mailCount:0}];
    return new Response(JSON.stringify(value),{headers:{'content-type':'application/json'}});
   }
-  return new Response(authenticated?'<h1>Portal ready</h1>':'<form action="https://sso.example.invalid/authenticate" method="post" target="_blank"><input name="proof" value="fixture"><button id="login">Fixture login</button></form>',{headers:{'content-type':'text/html'}});
+  return new Response(authenticated?'<h1>Portal ready</h1>':'<form action="https://sso.example.invalid/authenticate" method="post" target="_blank" rel="opener"><input name="proof" value="fixture"><button id="login">Fixture login</button></form>',{headers:{'content-type':'text/html'}});
  });
  global.host=new BrowserHost(win);
  global.other=global.host.create('about:blank').id;
@@ -50,7 +52,8 @@ try{
  const result=await app.evaluate(({BrowserWindow})=>({result:global.result,events:global.events,status:global.portal.status(),tabs:[...global.host.tabs.keys()],other:global.other,windows:BrowserWindow.getAllWindows().length}));
  assert.deepEqual(result.result,{ok:true});assert.equal(result.status.connected,true);assert.deepEqual(result.tabs,[result.other],'only owned authentication tabs close');assert.equal(result.windows,2,'SSO does not create another native popup window');
  const requests=result.events.filter(e=>e.host==='sso.example.invalid');assert.deepEqual(requests,[{host:'sso.example.invalid',path:'/authenticate',method:'POST'}]);
- assert.equal(result.events.filter(e=>e.host==='kor3.samsung.net'&&e.path==='/').length,2,'one interactive root and one background root after authentication');
+ assert.ok(result.events.some(e=>e.host==='home.example.invalid'),'login begins at the configured home');
+ assert.ok(result.events.some(e=>e.host==='mail.example.invalid'&&e.path.endsWith('/folders')),'the background reader verifies the mail API');
  console.log(JSON.stringify({passed:true,checks:['POST popup and opener preserved','same persistent session','verified background mail reader','no separate login popup','owned tab cleanup','HTTPS-only login navigation'],boundary:'Local Electron with isolated mock HTTPS protocol; not company SSO or Windows verification.'}));
 }finally{await app?.close();await rm(temporary,{recursive:true,force:true});}
 async function until(check){for(let i=0;i<150;i++){try{if(await check())return;}catch{}await new Promise(r=>setTimeout(r,100));}throw Error('portal fixture timed out');}

@@ -5,12 +5,12 @@ import {GHES_CONFIG,TALK_CONFIG,STATUS_CONFIG,SERVICE_DESK_CONFIG} from './confi
 import {getServiceDeskSession,serviceDeskLinks} from './serviceDeskClient.js';
 import {profileEmail} from './profileEmail.js';
 import {TALK_LOGIN,TALK_UUID,TALK_PIN_LABEL,TALK_LIMITS,encodeTalkBody,talkPost,talkComment,talkError,talkOwner,talkModerator,talkPermalink,isTalkPost} from './talkModel.js';
-import {ghesFetch} from './hostFetch.js';
+import {ghesFetch,talkBase} from './hostFetch.js';
 
 export function talkConfigured(config=TALK_CONFIG) {
   return /^[a-z\d][\w.-]*$/i.test(config.owner||'')&&/^[a-z\d][\w.-]*$/i.test(config.repo||'');
 }
-export function createTalkClient({session=getServiceDeskSession(),config=TALK_CONFIG,role='user',fetchImpl=ghesFetch,baseUrl=globalThis.location?.href||'https://localhost/'}={}) {
+export function createTalkClient({session=getServiceDeskSession(),config=TALK_CONFIG,role='user',fetchImpl=ghesFetch,baseUrl=talkBase()||'https://localhost/'}={}) {
   if(!talkConfigured(config))throw talkError('AI Talk 저장소를 연결하세요. 설치 방법은 도움말에서 확인할 수 있습니다.');
   const host=GHES_CONFIG.host,root=serviceDeskLinks({host,...config}).api.replace(/\/issues$/,'');
   const signedIn=Boolean(session?.token?.trim()&&!['null','undefined'].includes(session.token.trim())&&session.host===host&&Number.isSafeInteger(session.user?.id)&&TALK_LOGIN.test(session.user?.login||''));

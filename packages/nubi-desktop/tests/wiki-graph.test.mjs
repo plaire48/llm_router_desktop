@@ -49,3 +49,7 @@ test('layout is deterministic, stays inside the frame and settles clusters by se
   assert(distance('orders/flow.md','orders/states.md')<distance('orders/flow.md','ops/monitoring.md'),'linked pages in one section sit closer than an orphan elsewhere');
   assert.equal(advanceWikiLayout(createWikiLayout(buildWikiGraph([],[])),5),true);
 });
+test('mail candidate reasons are not relabelled as proven document references',()=>{
+ const graph=buildWikiGraph([{path:'a',title:'예산',type:'Mail'},{path:'b',title:'회신',type:'Mail',date:'2026-10-12'}],[{from:'a',to:'b',kind:'similar_topic',label:'비슷한 주제',confidence:'candidate',reasons:['공통 주제: 누비, 예산']}]);
+ const related=relatedDocuments(graph,'a')[0];assert.equal(related.reasons[0],'비슷한 주제');assert.equal(related.strength,1.5);assert.equal(related.date,'2026-10-12');assert(!related.reasons.includes('이 문서가 참조'));
+});

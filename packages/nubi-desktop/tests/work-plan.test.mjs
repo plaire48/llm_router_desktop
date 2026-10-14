@@ -32,7 +32,29 @@ test('invalid automatic plan is repaired once and no project tool is dispatched'
   service.read=async()=>{reads++;throw Error('must not execute');};
   service.providers={status,dispose(){},complete:async messages=>{if(messages[0].content.startsWith(WORK_PLAN_PROMPT)){plans++;return reply('{}');}return call('read_source',{path:'app.txt'});}};
   const task=await service.createTask({request:'파일 확인'});await service.startAgent({taskId:task.id});await service.agent.promise;
-  assert.equal(plans,2);assert.equal(reads,0);assert.equal(service.task(task.id).state,'paused');assert.equal(service.task(task.id).error,'work_plan_invalid');
+  // The fallback planner gets a second chance after the model got work_plan_required once (bundle 3.1, 2026-10-15): two
+  // planner attempts of two calls each, still no read, then the run pauses as before.
+  assert.equal(plans,4);assert.equal(reads,0);assert.equal(service.task(task.id).state,'paused');assert.equal(service.task(task.id).error,'work_plan_invalid');
+});
+
+test('a planning failure after discovery preserves discovery and never starts project work',async t=>{
+  const {service}=await fixture(t,{scriptedPlanning:true});let plans=0,reads=0,round=0;
+  service.leanTools=true;
+  service.read=async()=>{reads++;throw Error('must not execute');};
+  service.providers={status,dispose(){},complete:async messages=>{
+    if(messages[0].content.startsWith(WORK_PLAN_PROMPT)){plans++;return reply('{}');}
+    if(++round===1)return call('select_tools',{groups:['source-change']});
+    // Round 2 sees the discovery result; round 3 sees work_plan_required from the planner's first failure (bundle 3.1).
+    if(round===2){const discovery=JSON.parse(messages.findLast(message=>message.role==='tool').content);
+    assert.equal(discovery.ok,true);
+    assert.ok(discovery.connected.includes('propose_patch'));
+    assert.equal(plans,0,'discovery must not depend on the planner');}
+    return call('read_source',{path:'app.txt'});
+  }};
+  const task=await service.createTask({request:'파일 확인'});await service.startAgent({taskId:task.id});await service.agent.promise;
+  const saved=service.task(task.id);
+  assert.equal(plans,4);assert.equal(reads,0);assert.equal(saved.state,'paused');assert.equal(saved.error,'work_plan_invalid');
+  assert.ok(saved.trace.some(item=>item.tool==='select_tools'&&item.status==='done'));
 });
 
 test('cancellation while planning never dispatches the pending tool',async t=>{
@@ -79,4 +101,16 @@ test('invented comparison URLs return actionable feedback before any capture is 
   const {service}=await fixture(t);let round=0,captures=0;service.compare=async()=>{captures++;throw Error('unexpected');};
   service.providers={status,dispose(){},complete:async messages=>{if(++round===1)return call('compare_local_pages',{beforeUrl:'http://localhost:9991/',afterUrl:'http://localhost:9992/'});assert.match(messages.findLast(m=>m.role==='tool').content,/preview_source_required/);return reply('실행 주소를 먼저 확인해야 합니다.');}};
   const task=await service.createTask({request:'로컬 화면 비교'});await service.startAgent({taskId:task.id});await service.agent.promise;assert.equal(captures,0);assert.equal(service.task(task.id).state,'review');
+});
+
+// Bundle 3.2 (2026-10-15): the model may mark earlier steps completed; the review confirms or reopens them.
+test('completed steps are accepted before the step in progress and refused after it',async()=>{
+  const {workPlanSteps,reviewPlanSteps}=await import('../runtime/work-plan.mjs');
+  const plan=[{text:'읽기',expected_outcome:'파일을 읽는다',status:'completed'},{text:'설명',expected_outcome:'내용을 설명한다',status:'in_progress'}];
+  assert.equal(workPlanSteps({steps:plan})[0].status,'completed');
+  assert.throws(()=>workPlanSteps({steps:[{...plan[1]},{...plan[0]}]}),/work_plan_invalid/);
+  const verified=reviewPlanSteps(plan,{status:'ready',checks:[{requirementId:'intent:step:0',state:'supported',evidenceIds:['tool:1']},{requirementId:'intent:step:1',state:'supported',evidenceIds:['tool:2']}]});
+  assert.deepEqual(verified.map(step=>[step.status,step.verified]),[['completed',true],['completed',true]]);
+  const reopened=reviewPlanSteps(plan,{status:'revise',checks:[{requirementId:'intent:step:0',state:'unknown',evidenceIds:[]}]});
+  assert.deepEqual(reopened.map(step=>[step.status,step.verified]),[['pending',false],['in_progress',undefined]]);
 });

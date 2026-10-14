@@ -24,7 +24,7 @@ export function SkillRegistration({api,taskId,onRegistered,onBusy}){
   return <div className="nubi-skill-registration">
     <div className="nubi-skill-dropzone" data-dragging={dragging} aria-busy={busy} onDrop={drop} onDragOver={event=>{event.preventDefault();event.dataTransfer.dropEffect='copy';setDragging(true);}} onDragLeave={event=>{if(!event.currentTarget.contains(event.relatedTarget))setDragging(false);}}>
       <span className="nubi-skill-import-mark" aria-hidden="true"><FolderMark size={28}/></span>
-      <strong>스킬을 끌어 놓으세요.</strong><p>폴더, ZIP 또는 Markdown 파일</p>
+      <div className="nubi-skill-import-copy"><strong>스킬을 끌어 놓으세요.</strong><p>폴더, ZIP 또는 Markdown 파일</p></div>
       {/* macOS takes files and folders in one dialog. Windows and Linux cannot, so a folder gets its own button (2026-10-07). */}
       <div className="nubi-skill-import-actions"><CxButton variant="primary" disabled={busy} onClick={()=>void register(()=>api('chooseSkillPackage',{taskId}))}><Icon name="file" size={16}/>{separateFolder?'파일 선택':'선택'}</CxButton>{separateFolder&&<CxButton disabled={busy} onClick={()=>void register(()=>api('chooseSkillPackage',{taskId,kind:'folder'}))}><FolderMark size={16}/>폴더 선택</CxButton>}</div>
     </div>
