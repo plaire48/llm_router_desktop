@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "masterType": "inquiry-types",
+  "updatedAt": null,
+  "updatedBy": null,
+  "items": [
+    {"id":"ERROR","label":"오류 신고","active":true,"sortOrder":1},
+    {"id":"IMPROVEMENT","label":"개선 요청","active":true,"sortOrder":2},
+    {"id":"QUESTION","label":"사용 문의","active":true,"sortOrder":3}
+  ]
+}

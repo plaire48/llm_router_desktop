@@ -53,9 +53,9 @@
 .nubi-file-card strong { font-size:var(--cx-type-body); }
 .nubi-file-card p { margin:4px 0; color:var(--deck-sub); font-size:var(--cx-type-body); }
 .nubi-file-card small { color:var(--deck-sub); font-size:var(--cx-type-caption); }
-.nubi-workbench .deck-disclosure { margin:16px 0; border:0; border-radius:var(--deck-inset-radius); background:color-mix(in srgb,var(--deck-card) 75%,transparent); }
-.nubi-workbench .deck-disclosure summary { padding:14px 16px; font-size:var(--cx-type-body); }
-.nubi-workbench .deck-disclosure-body { padding:0 18px 18px; }
+.nubi-workbench .deck-disclosure { margin:4px 0; border:0; border-radius:var(--deck-inset-radius); background:color-mix(in srgb,var(--deck-card) 75%,transparent); }
+.nubi-workbench .deck-disclosure summary { padding:8px 12px; font-size:var(--cx-type-body); }
+.nubi-workbench .deck-disclosure-body { padding:0 14px 12px; }
 .nubi-checks { margin:0; padding:0; list-style:none; }
 .nubi-checks li,.nubi-trace { display:flex; justify-content:space-between; gap:14px; padding:10px 0; font-size:var(--cx-type-body); }
 .nubi-inline { display:flex; gap:8px; align-items:center; }

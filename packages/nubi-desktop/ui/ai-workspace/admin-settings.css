@@ -1,0 +1,106 @@
+.admin-settings {min-width:0;}
+.app-shell .admin-settings {flex:1 1 0;min-height:320px;}
+.admin-count {color:var(--brand-ink);font-variant-numeric:tabular-nums;}
+.admin-team-names {display:flex;flex-direction:column;gap:4px;font-size:12px;overflow-wrap:anywhere;}
+.admin-table-wrap {overflow:auto;min-height:0;flex:1;scrollbar-width:thin;}
+.admin-table thead {position:sticky;top:0;z-index:1;}
+.admin-table {width:100%;border-collapse:collapse;table-layout:fixed;font-size:14px;}
+.admin-table th {text-align:left;background:var(--layout-table-head);font-size:12px;font-weight:500;color:var(--layout-muted);height:var(--cx-table-head-height);padding:4px var(--cx-cell-inline);}
+.admin-table td {padding:var(--cx-cell-block) var(--cx-cell-inline);border-bottom:1px solid var(--layout-row-border);height:var(--cx-row-height);}
+.admin-table th:last-child,.admin-table td:last-child {width:64px;text-align:center;padding:8px;}
+.admin-role-table th:last-child,.admin-role-table td:last-child {width:176px;text-align:left;padding:8px var(--cx-gap-sm);}
+.admin-role {font-size:14px;line-height:1.6;color:var(--layout-text);}
+.admin-role.has-issue {color:var(--cx-danger);}
+.admin-identity {display:flex;gap:var(--cx-gap-xs);align-items:center;min-width:0;font-size:14px;line-height:1.6;color:var(--brand-ink);font-weight:500;}
+.admin-identity>span {overflow-wrap:anywhere;}
+.admin-identity .github-avatar {flex:none;}
+.admin-user-table .admin-identity {align-items:flex-start;}
+.admin-user-table .admin-person-details {display:grid;gap:2px;min-width:0;}
+.admin-user-table .admin-person-name {line-height:20px;}
+.admin-person-edit {display:block;max-width:100%;padding:0;border:0;background:transparent;color:inherit;font:inherit;text-align:left;overflow-wrap:anywhere;cursor:pointer;}
+.admin-person-edit:hover:not(:disabled) {text-decoration:underline;text-underline-offset:3px;}
+.admin-person-edit:focus-visible {outline:2px solid var(--brand-ink);outline-offset:2px;border-radius:var(--cx-radius-control);}
+.admin-person-edit:disabled {cursor:default;opacity:.55;}
+.admin-directory-table :is(.admin-identity,.admin-role,.admin-directory-login,.admin-directory-email) {font-size:var(--cx-type-body);line-height:20px;}
+.admin-directory-table .admin-person-name {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.admin-directory-email {color:var(--layout-muted);overflow-wrap:anywhere;}
+.admin-directory-table tbody tr:hover {background:var(--brand-surface);}
+.admin-settings :is(.admin-action-header,.table-pagination,.admin-note,.admin-empty) {flex-shrink:0;}
+.admin-settings .table-pagination {border-top:1px solid var(--layout-row-border);margin-top:var(--cx-gap-sm);}
+.admin-directory-table .admin-role {font-size:var(--cx-type-body);line-height:20px;font-weight:var(--cx-weight-regular);}
+.admin-user-table .admin-role {color:var(--layout-text);}
+.admin-user-table .admin-role.has-issue {color:var(--cx-danger);}
+.admin-enabled {display:flex;align-items:center;gap:8px;margin:4px 0 var(--cx-gap-sm);font-size:14px;}
+.admin-enabled input {width:18px;height:18px;accent-color:var(--brand-ink);}
+.admin-add-row {padding:8px;}
+.admin-note {margin:var(--cx-gap-sm) 0 0;font-size:var(--cx-type-caption);color:var(--layout-muted);line-height:1.7;word-break:keep-all;overflow-wrap:anywhere;}
+.admin-empty {padding:var(--cx-gap-md) var(--cx-gap-sm);text-align:center;font-size:14px;color:var(--layout-muted);}
+.admin-account-modal {width:min(520px,calc(100vw - 32px));}
+.admin-account-search {display:flex;align-items:flex-end;gap:8px;}
+.admin-account-search .field {flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;}
+.admin-account-search button {flex:none;}
+.admin-account-result {margin-top:var(--cx-gap-md);padding:var(--cx-gap-sm);background:var(--brand-surface);border:1px solid var(--layout-border);border-radius:var(--cx-radius-card);}
+.admin-directory {list-style:none;margin:var(--cx-gap-sm) 0 0;padding:0;max-height:280px;overflow:auto;}
+.admin-directory li+li {border-top:1px solid var(--layout-row-border);}
+.admin-directory button {width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;padding:var(--cx-gap-xs);border:0;background:var(--layout-surface);border-radius:var(--cx-radius-control);font:inherit;cursor:pointer;}
+.admin-directory button:hover,.admin-directory button.is-selected {background:var(--brand-soft);}
+.admin-directory button:disabled {opacity:.55;cursor:default;}
+.admin-directory button>span:last-child:not(.admin-identity) {font-size:12px;color:var(--layout-muted);white-space:nowrap;}
+@media(max-width:600px) {
+ .admin-role-table th:last-child,.admin-role-table td:last-child {width:136px;padding:8px;}
+ .admin-table td,.admin-table th {padding-left:var(--cx-gap-xs);padding-right:var(--cx-gap-xs);}
+ .admin-account-search {flex-wrap:wrap;}
+ .admin-account-search .field {flex-basis:100%;}
+ .admin-account-search input {font-size:16px;}
+ .admin-account-search button {margin-left:auto;}
+}
+
+.admin-email {display:block;font-size:12px;line-height:1.6;color:var(--layout-muted);font-weight:400;overflow-wrap:anywhere;}
+.admin-settings > .admin-content {padding:0 var(--cx-gap-md) var(--cx-gap-md);display:flex;flex-direction:column;flex:1;min-width:0;min-height:0;}
+.app-shell .admin-settings .admin-directory-viewport {margin:0;max-height:none;min-height:0;flex:1;}
+@media(max-width:600px) {
+ .admin-settings > .admin-content {padding:0 var(--cx-gap-sm) var(--cx-gap-sm);}
+}
+
+@media(max-width:600px) {
+ .admin-role-table,.admin-role-table thead,.admin-role-table tbody {display:block;width:100%;}
+ .admin-role-table thead tr {display:block;}
+ .admin-role-table thead th {display:block;width:100%;}
+ .admin-role-table thead th:not(:first-child) {display:none;}
+ .admin-role-table tbody tr {display:grid;grid-template-columns:minmax(0,1fr);border-bottom:1px solid var(--layout-row-border);}
+ .admin-role-table tbody td {border:0;height:auto;padding:var(--cx-gap-xs);min-width:0;}
+ .admin-role-table tbody td:not(:first-child) {display:flex;align-items:center;justify-content:space-between;gap:var(--cx-gap-xs);width:auto;padding:0 var(--cx-gap-xs) var(--cx-gap-xs);}
+ .admin-role-table tbody td:not(:first-child)::before {content:attr(data-label);font-size:12px;color:var(--layout-muted);flex:none;}
+}
+
+.admin-role-table :is(th,td).admin-edit-column {width:calc(var(--cx-control) + 16px);padding:var(--cx-cell-block) 8px;text-align:right}
+.admin-row-actions {display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+
+@media(max-width:600px) {
+ .admin-role-table tbody tr {grid-template-columns:minmax(0,1fr) var(--cx-control);}
+ .admin-role-table tbody td:first-child {grid-column:1;grid-row:1;}
+ .admin-role-table tbody td.admin-edit-column {grid-column:2;grid-row:1;align-self:center;justify-content:center;width:auto;padding:0;}
+ .admin-role-table tbody td.admin-edit-column::before {display:none;}
+}
+
+.team-assignment-panel .cx-panel-body {display:flex;flex-direction:column;gap:var(--cx-gap-sm);}
+.team-assignment-search {display:flex;gap:8px;align-items:center;}
+.team-assignment-search .cx-search-field {flex:1;min-width:0;}
+.team-assignment-person {display:flex;flex-direction:column;gap:8px;padding:8px;background:var(--brand-surface);border:1px solid var(--layout-border);border-radius:var(--cx-radius-control);}
+.team-current-role {font-size:12px;color:var(--layout-muted);display:flex;gap:8px;align-items:baseline;}
+.team-current-role strong {font-size:14px;color:var(--layout-text);font-weight:500;}
+.team-assignment-choices {padding:0;border:0;margin:4px 0 0;min-width:0;}
+.team-assignment-choices legend {font-size:12px;color:var(--layout-muted);padding:0 0 8px;}
+.team-assignment-choices label {display:flex;align-items:center;gap:10px;padding:6px 8px;min-height:var(--cx-control);border-bottom:1px solid var(--layout-row-border);font-size:14px;}
+.team-assignment-choices input {width:16px;height:16px;accent-color:var(--brand-ink);flex:none;}
+.team-assignment-choices small {margin-left:auto;font-size:12px;color:var(--layout-muted);}
+.team-assignment-result {padding:12px;border:1px solid var(--layout-border);border-radius:var(--cx-radius-control);font-size:14px;line-height:1.7;}
+.team-assignment-result p {margin:8px 0;overflow-wrap:anywhere;}
+.team-assignment-result strong {font-weight:500;}
+.team-assignment-panel .admin-note {margin:0;}
+
+.team-assignment-person-heading {display:flex;align-items:center;justify-content:space-between;gap:8px;}
+
+.app-shell .work-list-table.admin-directory-table .admin-edit-column {width:56px;text-align:center;padding:var(--cx-cell-block) 8px;}
+.admin-directory-table .admin-identity {align-items:center;}
+.admin-history-note {margin:var(--cx-gap-xs) 0 0;font-size:var(--cx-type-caption);line-height:1.6;color:var(--layout-muted);}

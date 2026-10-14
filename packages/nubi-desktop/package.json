@@ -52,6 +52,7 @@
     "@e2e/cx-design-system": "file:../../extensions/aipro-chat/vendor/e2e-cx-design-system-0.5.4.tgz",
     "@earendil-works/pi-agent-core": "0.86.1",
     "@earendil-works/pi-ai": "0.86.1",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "@tiptap/core": "^3.31.3",
     "@tiptap/extension-code-block-lowlight": "^3.31.3",
     "@tiptap/extension-highlight": "^3.31.3",

@@ -14,7 +14,7 @@ function decisionNoticeContent({kind,projectName,taskTitle,summary}={}){
 function createDecisionNotices({Notification,getWindow,send,icon,platform=process.platform}){
  const notices=new Map();
  return {
-  request({id,action,kind,projectName,taskTitle,summary}={}){
+  request({id,action,kind,projectName,taskTitle,summary,choices,allowText,placeholder}={}){
    if(typeof id!=='string'||!id||id.length>300||!['show','clear'].includes(action))throw Error('decision_notice_invalid');
    if(action==='clear'){
     const entry=notices.get(id);notices.delete(id);entry?.notice.close();return {cleared:true};
@@ -24,7 +24,9 @@ function createDecisionNotices({Notification,getWindow,send,icon,platform=proces
    // Bound references even if a renderer reload loses its cleanup callbacks.
    if(notices.size>=20){const oldest=notices.keys().next().value;const entry=notices.get(oldest);notices.delete(oldest);entry.notice.close();}
    try{
-    const notice=new Notification({...decisionNoticeContent({kind,projectName,taskTitle,summary}),icon,silent:true});
+    const buttons=Array.isArray(choices)?choices.filter(item=>typeof item==='string'&&item.trim()).slice(0,4).map(item=>preview(item,40)):[];
+    const reply=allowText===true;
+    const notice=new Notification({...decisionNoticeContent({kind,projectName,taskTitle,summary}),icon,silent:true,...(buttons.length?{actions:buttons.map(text=>({type:'button',text}))}:{}),...(reply?{hasReply:true,replyPlaceholder:preview(placeholder,40)||'답변 입력'}:{})});
     const entry={notice};notices.set(id,entry);
     notice.on('click',()=>{
      if(notices.get(id)!==entry)return;
@@ -32,6 +34,8 @@ function createDecisionNotices({Notification,getWindow,send,icon,platform=proces
      if(current.isMinimized())current.restore();current.show();current.focus();
      send({type:'decision_open',id});
     });
+    notice.on('action',(_event,index)=>{if(notices.get(id)!==entry)return;const choice=buttons[index];if(choice===undefined)return;notices.delete(id);send({type:'decision_answer',id,choice});});
+    notice.on('reply',(_event,text)=>{if(notices.get(id)!==entry)return;const value=preview(text,2000);if(!value)return;notices.delete(id);send({type:'decision_answer',id,text:value});});
     notice.on('failed',()=>{});notice.show();return {shown:true};
    }catch{return {shown:false};}
   },

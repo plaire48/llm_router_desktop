@@ -28,7 +28,8 @@ export function createToolSet({tools,lean,planned=()=>[]}) {
     .map(([id,list])=>[id,[...new Set(list)].filter(name=>names.has(name))]).filter(([,list])=>list.length));
   const purpose=id=>WORKFLOWS.find(workflow=>workflow.id===id)?.description||PURPOSE[id]||'';
   const enabled=new Set(LEAN_TOOLS);
-  const offered=name=>enabled.has(name)||(planned()||[]).some(id=>groups[id]?.includes(name));
+  // MCP tools are always offered: the user registered the server for the model to use them.
+  const offered=name=>enabled.has(name)||name.startsWith('mcp__')||(planned()||[]).some(id=>groups[id]?.includes(name));
   return {
     lean,
     advertised:definitions=>lean?definitions.filter(item=>offered(item.function.name)):definitions,

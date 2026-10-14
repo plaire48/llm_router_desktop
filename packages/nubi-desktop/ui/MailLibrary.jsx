@@ -6,7 +6,7 @@ import {CxButton, CxInput, Icon} from '@e2e/cx-design-system';
 import {CxSelect} from './WorkspaceSelect.jsx';
 import {WorkspaceAction as ActionButton} from './WorkspaceAction.jsx';
 import {notifyWorkspaceToast} from './WorkspaceToast.jsx';
-import {BrowserMark,PersonMark,FolderMark} from './marks.jsx';
+import {BrowserMark,PersonMark,FolderMark,LockMark} from './marks.jsx';
 import {ModelSelection,ProviderIcon} from '../../../extensions/aipro-chat/src/ChatControls.jsx';
 import {mailConnectionErrors,mailConnectionDiagnostic} from './mail-connection-error.mjs';
 import {AgentMark} from '../../../extensions/aipro-chat/src/AgentMark.jsx';
@@ -110,7 +110,7 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
   return <div className="nubi-mail-library nubi-mail-settings" aria-busy={connectionPending}>
     <div className="nubi-mail-settings-content" inert={connectionPending||undefined}>
     <section className="nubi-mail-section" aria-label="메일 계정 설정">
-      {status?.connected&&<header className="nubi-mail-section-heading">{sectionTitle('mail','사내 포털 연결됨')}<ActionButton action="logout" iconOnly label="메일 로그아웃" title="메일 로그아웃" disabled={busy} onClick={()=>act(()=>api('mail',{action:'disconnect'}))}/></header>}
+      {status?.connected&&<header className="nubi-mail-section-heading">{sectionTitle('mail','사내 포털 연결됨')}{status.encryption?.state==='on'&&<span className="nubi-mail-lock" role="img" aria-label="메일 위키 암호화 저장 켜짐" title="메일 위키 암호화 저장 켜짐"><LockMark size={16}/></span>}{status.encryption?.state==='unavailable'&&<span className="nubi-mail-lock" data-state="unavailable" role="img" aria-label="이 PC에서는 암호화 저장을 사용할 수 없어요" title="이 PC에서는 암호화 저장을 사용할 수 없어요"><LockMark size={16}/></span>}<ActionButton action="logout" iconOnly label="메일 로그아웃" title="메일 로그아웃" disabled={busy} onClick={()=>act(()=>api('mail',{action:'disconnect'}))}/></header>}
       {!status?.connected&&<div className="nubi-mail-import-options" role="group" aria-label="메일 가져오는 방법">
         <div className="nubi-mail-import-card" data-recommended="true"><div className="nubi-mail-import-heading"><span className="nubi-mail-import-icon" aria-hidden="true"><BrowserMark size={22}/></span><div><strong>사내 포털로 연결<span className="nubi-mail-import-badge">추천</span></strong><small>로그인 한 번으로 새 메일과 결재를 자동으로 가져와요.</small></div></div><div className="nubi-mail-import-card-action"><CxButton variant="primary" className="nubi-mail-connect" disabled={connectionBusy||!status} onClick={connectPortal}><Icon name="logIn" size={18}/><span>포털 로그인</span></CxButton></div></div>
         {fileImport}

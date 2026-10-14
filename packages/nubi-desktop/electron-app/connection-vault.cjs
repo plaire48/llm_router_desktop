@@ -1,13 +1,14 @@
 const fs=require('node:fs/promises');
 const path=require('node:path');
 const {randomUUID}=require('node:crypto');
-const KEYS=new Set(['provider:aipro','provider:chatgpt','provider:fabrix','provider:claude','provider:active','nubi.ghes.code.sdsdev.co.kr']);
+const KEYS=new Set(['provider:aipro','provider:chatgpt','provider:fabrix','provider:claude','provider:active','nubi.ghes.code.sdsdev.co.kr','mail-wiki-key']);
 
 // Only the trusted main/worker pair can access these records. Never expose
 // vault operations through renderer RPC, snapshots, logs or model tools.
 function connectionVault({directory,safeStorage,platform=process.platform,cryptoTimeoutMs=10000}){
  let queue=Promise.resolve();
- const check=key=>{if(!KEYS.has(key))throw Error('secret_scope');};
+ // mcp:<server id> holds one MCP server's secret values (environment values or HTTP headers), 2026-10-14.
+ const check=key=>{if(!KEYS.has(key)&&!/^mcp:[a-z][a-z0-9-]{1,39}$/.test(key))throw Error('secret_scope');};
  // The synchronous Keychain calls can freeze Electron's main thread while
  // macOS waits for the user. Never fall back to them or plaintext encryption.
  const cryptoCall=async fn=>{

@@ -21,7 +21,7 @@ const plain=script=>typeof script==='string'?script.trim():'';
 
 export function approvalPolicy(store){
   const value=store.get(KEY);
-  return {mode:APPROVAL_MODES.includes(value?.mode)?value.mode:'ask',allowedCommands:Array.isArray(value?.allowedCommands)?value.allowedCommands:[]};
+  return {mode:APPROVAL_MODES.includes(value?.mode)?value.mode:'ask',allowedCommands:Array.isArray(value?.allowedCommands)?value.allowedCommands:[],allowedMcpTools:Array.isArray(value?.allowedMcpTools)?value.allowedMcpTools:[]};
 }
 export function setApprovalMode(store,mode){
   if(!APPROVAL_MODES.includes(mode))fail('approval_mode_invalid');
@@ -37,6 +37,21 @@ export function allowCommand(store,{profile,script,privilege}){
     if(policy.allowedCommands.length>=ALLOWED_LIMIT)fail('approval_command_limit');
     store.set(KEY,{...policy,allowedCommands:[...policy.allowedCommands,{profile,script:plain(script),addedAt:new Date().toISOString()}]});
   }
+  return approvalPolicy(store);
+}
+export const mcpToolAllowed=(policy,{serverId,tool})=>(policy.allowedMcpTools||[]).some(item=>item.serverId===serverId&&item.tool===tool);
+export function allowMcpTool(store,{serverId,tool}){
+  if(typeof serverId!=='string'||!serverId||typeof tool!=='string'||!tool)fail('approval_mcp_invalid');
+  const policy=approvalPolicy(store);
+  if(!mcpToolAllowed(policy,{serverId,tool})){
+    if(policy.allowedMcpTools.length>=ALLOWED_LIMIT)fail('approval_command_limit');
+    store.set(KEY,{...policy,allowedMcpTools:[...policy.allowedMcpTools,{serverId,tool,addedAt:new Date().toISOString()}]});
+  }
+  return approvalPolicy(store);
+}
+export function removeAllowedMcpTool(store,{serverId,tool}){
+  const policy=approvalPolicy(store);
+  store.set(KEY,{...policy,allowedMcpTools:policy.allowedMcpTools.filter(item=>!(item.serverId===serverId&&item.tool===tool))});
   return approvalPolicy(store);
 }
 export function removeAllowedCommand(store,{profile,script}){
@@ -93,5 +108,6 @@ export function installApprovalPolicy(ProjectService){
     return allowCommand(this.store,value);
   };
   ProjectService.prototype.removeAllowedCommand=function({profile,script}){this.ready();return removeAllowedCommand(this.store,{profile,script});};
+  ProjectService.prototype.removeAllowedMcpTool=function({serverId,tool}){this.ready();return removeAllowedMcpTool(this.store,{serverId,tool});};
   ProjectService.prototype.autoApprovals=function({taskId}){this.ready();return autoApprovals(this,{taskId});};
 }

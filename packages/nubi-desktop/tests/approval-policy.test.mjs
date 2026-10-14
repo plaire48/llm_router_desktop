@@ -33,7 +33,7 @@ async function setup(t){
 
 test('the mode is kept for the project; always allow never takes an administrator command',async t=>{
   const {service,action}=await setup(t);
-  assert.deepEqual(service.approvalPolicy(),{mode:'ask',allowedCommands:[]});
+  assert.deepEqual(service.approvalPolicy(),{mode:'ask',allowedCommands:[],allowedMcpTools:[]});
   assert.throws(()=>service.setApprovalMode({mode:'everything'}),/approval_mode_invalid/);
   assert.equal(service.setApprovalMode({mode:'edits'}).mode,'edits');assert.equal(approvalPolicy(service.store).mode,'edits');
   const admin=action('Set-ExecutionPolicy RemoteSigned',{privilege:'administrator',profile:'powershell'});

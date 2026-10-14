@@ -45,3 +45,17 @@ test('notification previews flatten control characters and bound long text',()=>
  const content=decisionNoticeContent({kind:'question',projectName:'p'.repeat(200),taskTitle:'t'.repeat(500),summary:'\x1b[31m예시\u202e\n'+ '가'.repeat(1000)});
  assert(Array.from(content.title).length<60);const lines=content.body.split('\n');assert.equal(lines.length,2);assert.equal(Array.from(lines[0]).length,55);assert.equal(Array.from(lines[1]).length,160);assert(!/[\x1b\u202e]/.test(content.body));
 });
+
+test('a Windows question notification carries the choices and a reply box, and answers come back as events',()=>{
+ const f=fixture();
+ assert.deepEqual(f.notices.request({id:'q2',action:'show',kind:'question',summary:'어떤 값으로 바꿀까요?',choices:['둘','셋'],allowText:true,placeholder:'답변 입력'}),{shown:true});
+ const notice=f.created.at(-1);
+ assert.deepEqual(notice.options.actions,[{type:'button',text:'둘'},{type:'button',text:'셋'}]);assert.equal(notice.options.hasReply,true);assert.equal(notice.options.replyPlaceholder,'답변 입력');
+ notice.emit('action',{},1);assert.deepEqual(f.events,[{type:'decision_answer',id:'q2',choice:'셋'}]);
+ notice.emit('action',{},0);assert.equal(f.events.length,1,'a notification answers once');
+ assert.deepEqual(f.notices.request({id:'q3',action:'show',kind:'question',summary:'이름은?',allowText:true}),{shown:true});
+ const typed=f.created.at(-1);assert.equal(typed.options.actions,undefined);
+ typed.emit('reply',{},'  누비  ');assert.deepEqual(f.events.at(-1),{type:'decision_answer',id:'q3',text:'누비'});
+ assert.deepEqual(f.notices.request({id:'q4',action:'show',kind:'command',summary:'npm test'}),{shown:true});
+ assert.equal(f.created.at(-1).options.hasReply,undefined,'approvals open the form instead of taking a reply');
+});

@@ -33,7 +33,8 @@ import {SETUP_ACTION_SCHEMA,prepareSetupAction} from './setup-actions.mjs';
 import {randomUUID} from 'node:crypto';
 import {installRecovery,modelTransport,boundedRead,READ_TOOLS,beginOperation,endOperation,recoveryCode} from './recovery.mjs';
 import {installMemory,memoryStores,memoryEnabled,listMemories,rankMemories,memoryGuidance,rememberExchange} from './memory.mjs';
-import {installApprovalPolicy} from './approval-policy.mjs';
+import {installApprovalPolicy,approvalPolicy,mcpToolAllowed,allowMcpTool} from './approval-policy.mjs';
+import {installMcp,parseMcpToolName} from './mcp.mjs';
 import {runAgent,progressTools} from '../../../extensions/aipro-chat/agent-runtime.js';
 import {createRunContext,contextBudget,contextTokens} from '../../../extensions/aipro-chat/context-manager.js';
 import {createContextUsage} from '../context-usage.mjs';
@@ -125,7 +126,7 @@ const READ_TOGETHER=new Set(['personal_mail_query','read_personal_mail','read_so
 const ASK_OPENWIKI='Delegate a synthesis or how/why question to OpenWiki. It researches openwiki/ separately and returns sources and gaps. Simple documented facts can use wiki_query/current pages directly. Use the Wiki language (wiki.language). Default to targeted search; exhaustive review is only for an explicit whole-Wiki request and costs many calls. Wiki may be stale (wiki.updatedAt) or omit code details: check current source when the claim needs it or evidence is missing.';
 export function installAgent(ProjectService) {
   installMemory(ProjectService);
-  installRecovery(ProjectService);installApprovalPolicy(ProjectService);
+  installRecovery(ProjectService);installApprovalPolicy(ProjectService);installMcp(ProjectService);
   ProjectService.prototype.regenerateAnswer = regenerateAnswer;
   ProjectService.prototype.compare = compare; ProjectService.prototype.fabrix = fabrix;
   ProjectService.prototype.provider = async function ({action = 'status', input = {}} = {}) {
@@ -263,6 +264,8 @@ export function installAgent(ProjectService) {
     const peerAllowed=new Set(['read_source','source_search','code_outline','knowledge_query','wiki_query','ask_openwiki','analyze_documents','select_tools','read_document_analysis','update_plan','read_conversation','ask_user','report_source_facts']);
     // report_source_facts (peer-facts.mjs) is offered only to a run of a request another Nubi sent, as in the browser.
     if(task.peerReadOnly)tools=[...tools.filter(item=>peerAllowed.has(item.function.name)),REPORT_FACTS_TOOL];
+    // Tools of connected MCP servers (user request 2026-10-14); a peer's read-only run never sees them.
+    else tools=[...tools,...await this.mcpDefinitions()];
     // A run that delegated waits for that task: it ends without review, and the task's end continues the conversation.
     let delegations=0;const waitingPeer=()=>delegations>0&&!!pendingPeer(this,task);
     const invokeModel = modelTransport(this,{signal:controller.signal,metrics,onText:text=>{if(this.providers.status().provider==='claude'&&!controller.signal.aborted&&this.agent?.runId===runId)this.agent.streamingAnswer=text.slice(0,100000);},onRetry:(attempt,facts)=>{task.recovery={state:'retrying',attempt,...facts,at:new Date().toISOString()};persistTask();}});
@@ -514,6 +517,21 @@ export function installAgent(ProjectService) {
         result = await this.propose({taskId,path:args.path,expectedHash:args.expectedHash,content,reason:args.reason,signal,rulesFingerprint:current.projectRules.fingerprint});
       }
       else if (name === 'ask_user') { const parsed=textQuestionArgs(args);showQuestion(makeQuestion(parsed.question,[],[],{choices:parsed.choices||[],inputMode:parsed.input_mode||'text',inputPlaceholder:parsed.input_placeholder})); result = {requiresUserInput: true}; }
+      else if(parseMcpToolName(name)){
+        const registry=this.mcpRegistry(),found=registry.tool(name);
+        if(!found)throw new Error('tool_unavailable');
+        const fingerprint=registry.fingerprint(name,args);
+        // Read-only tools run; others need the user's answer once per call, or an "always allow" for the server's tool.
+        const allowed=found.readOnly||mcpToolAllowed(approvalPolicy(this.store),{serverId:found.serverId,tool:found.tool.name})||(task.mcpApprovals||[]).includes(fingerprint);
+        if(!allowed){
+          task.pendingMcp={name,args:args??{},fingerprint,serverId:found.serverId,tool:found.tool.name};
+          showQuestion(makeQuestion(`MCP 도구 ${found.serverId}/${found.tool.name}을(를) 실행할까요? 인자: ${JSON.stringify(args??{}).slice(0,300)}`,[],[],{choices:[{label:'실행',description:'이번 한 번 실행'},{label:'항상 허용',description:'이 서버의 이 도구는 앞으로 묻지 않음'},{label:'취소',description:'실행하지 않음'}],inputMode:'none'}));
+          result={requiresUserInput:true};
+        }else{
+          const outcome=await registry.call(name,args??{},{signal:childSignal||signal});
+          result={ok:outcome.ok,server:found.serverId,tool:found.tool.name,text:outcome.text,...(outcome.structured!==undefined?{structured:outcome.structured}:{})};
+        }
+      }
       else throw new Error('tool_unavailable');
       } catch (error) {
         if(error.code==='ENOENT')error=new Error('source_missing');
@@ -704,6 +722,10 @@ export function installAgent(ProjectService) {
     if(!this.providers?.status().connected)throw new Error('provider_missing');
     const text=typeof task.question==='string' ? answer : questionAnswer(task.question,choice||{questionId:task.question.id,text:answer});
     if(typeof text!=='string'||!text.trim()||text.length>QUESTION_TEXT_LIMIT)throw new Error('answer_invalid');
+    if(task.pendingMcp){
+      const pending=task.pendingMcp;task.pendingMcp=null;
+      if(text==='실행'||text==='항상 허용'){task.mcpApprovals=[...(task.mcpApprovals||[]).slice(-49),pending.fingerprint];if(text==='항상 허용')allowMcpTool(this.store,{serverId:pending.serverId,tool:pending.tool});}
+    }
     task.questionHistory=[...(task.questionHistory||[]),{...(typeof task.question==='string'?{text:task.question}:task.question),draft:undefined,answer:{text,at:new Date().toISOString()}}];
     task.question=null;task.state='ready';this.store.set('task:'+taskId,task);
     return this.startAgent({taskId,answer:text});

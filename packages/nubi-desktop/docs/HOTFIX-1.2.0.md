@@ -45,7 +45,7 @@ Desktop A2A는 지원하지 않습니다. 첨부파일 내용 분석은 1.2.1부
 - **위키 라이브러리 상한**: 목록 걷기의 두 바이트 검사를 모두 120MB로.
 - **로딩 오버레이**: `nubi-preparing`, `project-wiki-progress`가 `--nubi-chat-surround` 그라데이션으로 뒤 내용을 가린다.
 - **아이콘 이름 검사** `scripts/check-icons.mjs`: 화면이 쓰는 모든 `<Icon name>`을 실제로 렌더해 없는 이름을 빌드 전에 잡는다(`folder`, `terminal` 사례). `build:electron` 앞에 `check:tdz`, `check:icons`가 돈다.
-- **알림 센터** (`ui/notice-store.js`, `ui/NotificationCenter.jsx`): 레일의 종 아이콘에 미확인 점. 목록에는 토스트, Windows 결정 알림, 호스트 이벤트가 쌓이고 각 알림의 동작(열기)이 남는다. 결정 요청은 앱 안 토스트에도 '열기' 버튼으로 나온다. 토스트 유지 시간은 30초. 토스트 안에서 객관식·입력까지 하는 HITL은 다음 단계(설계 필요: ask_user 질문 봉투를 토스트에 싣고 답을 대화로 돌려보내는 통로).
+- **알림 센터** (`ui/notice-store.js`, `ui/NotificationCenter.jsx`): 레일의 종 아이콘에 미확인 점. 목록에는 토스트, Windows 결정 알림, 호스트 이벤트가 쌓이고 각 알림의 동작(열기)이 남는다. 결정 요청은 앱 안 토스트에도 '열기' 버튼으로 나온다. 토스트 유지 시간은 3초(사용자 결정, 30초에서 되돌림). 토스트 안에서 객관식·입력까지 하는 HITL은 다음 단계(설계 필요: ask_user 질문 봉투를 토스트에 싣고 답을 대화로 돌려보내는 통로).
 - **너비**: `--nubi-chat-width: clamp(700px, 94cqi, 1480px)`, 스킬 화면 1200px. 컨테이너 단위라 사이드바·보조 영역이 생기면 자동으로 줄어든다.
 - **내장 브라우저 너비 조절**: 네이티브 뷰가 손잡이 폭만큼 왼쪽을 비워 두고, 끄는 동안(`data-pane-resizing`) 뷰를 숨긴다. 3분할 복귀 아이콘은 `chevronsRight`.
 - **내장 브라우저 클립보드**: 세션이 `clipboard-sanitized-write`만 허용(회사 AI Workspace 로그인 화면의 코드 복사).
@@ -54,3 +54,11 @@ Desktop A2A는 지원하지 않습니다. 첨부파일 내용 분석은 1.2.1부
 - **첨부 읽기 켬** (`runtime/beta-features.mjs` `mailAttachmentReading:true`, 사용자 결정 2026-10-14): PDF, DOCX, PPTX, XLSX, 텍스트 첨부를 메일 본문과 함께 읽어 요약·사실·검색에 쓴다. 정책 검사 `tests/mail-beta-scope.test.mjs`는 게이트가 열렸는지와 다운로드 바이트 일치를 본다. HWP와 이미지 첨부는 아직 읽지 않는다(§8 검토).
 - **첨부 읽기 순서** (사용자 결정 2026-10-14): 파서 먼저, Office 2016 COM은 파서가 못 읽는 바이트(NASCA 등)에만. `docs/OFFICE-ATTACHMENT-READING-2026-10-05.md` 머리말 참조.
 - **이미지 첨부 읽기** (`runtime/mail-attachment-image.mjs`, 사용자 요청 2026-10-14): PNG, JPEG, GIF, WebP, BMP 첨부는 연결된 이미지 입력 모델(화면 캡처 분석과 같은 경로, AI Pro는 Qwen)이 글과 내용을 한국어로 적어 첨부 본문이 된다. 6MB 초과는 `document_limit`, 이미지 모델이 없으면 `document_vision_unavailable`로 표시. 이미지 글은 자료이지 지시가 아니라는 안내를 프롬프트에 둔다.
+- **메일 위키 암호화 저장** (사용자 결정 2026-10-14, 메일 자료만): `runtime/mail-wiki-vault.mjs`. 키는 연결 보관소(`safeStorage`)의 `mail-wiki-key`, 페이지는 `.md.enc`(AES-256-GCM). 실행 중 세션 사본(`session-wiki/`, 사용자 전용)을 읽고 종료·다음 시작 때 지운다. 기존 평문은 첫 실행 때 암호화 후 삭제. `safeStorage`를 못 쓰는 PC는 `encryption.state='unavailable'`(평문 유지). 메일 설정에 자물쇠 표시. 다음: 메일 원본과 검색 색인. 설계 `docs/WIKI-ENCRYPTION-2026-10-14.md`.
+- **설치판 보호와 설치 속도** (사용자 결정 2026-10-14): 실행기·메인 번들 최소화(`NUBI_MINIFY=0`으로 해제), Electron 퓨즈(NODE_OPTIONS·--inspect 차단, asar 무결성, asar만 로드, runAsNode는 유지), 설치 파일 `compression: store`(복사 설치). `docs/PACKAGING-SECURITY-2026-10-14.md` 적용 절.
+- **문의 화면 포팅** (사용자 요청 2026-10-14): ai_workspace의 서비스 데스크(목록, 작성, 담당자·수신자 지정, 완료 처리, 관리자 설정) 22개 파일을 `ui/ai-workspace/`에 추가. AI Workspace 페이지의 '문의' 구역과 레일 맨 아래 문의 아이콘. 데이터는 같은 ai_workspace 저장소 Issues(GHES 프록시 허용 경로 그대로). 첨부 저장소(`VITE_SERVICE_DESK_ATTACHMENT_*`)는 비어 있어 첨부 업로드는 꺼짐. 실제 문의 왕복은 회사 PC에서 확인.
+- **터미널 출력 묶음 쓰기**: 한 프레임 안의 출력 조각을 모아 한 번 쓰고 한 번 ack. **시작 화면 프로젝트 목록**: 8개 + 더 보기.
+- **알림 양식 위치**: 질문의 선택지 버튼과 답변 입력은 Windows 알림(우측 하단)에 싣는다. 앱 안 토스트는 '열기'만 있는 간단한 알림이다(사용자 설명 2026-10-14). `WorkspaceToast`의 `actions`/`input` 지원은 남겨 두되 질문에는 쓰지 않는다. 토스트 영역은 `pointer-events:none`, 토스트만 받는다.
+- **MCP 서버 연결** (사용자 결정 2026-10-14, stdio와 HTTP 모두): `docs/MCP-2026-10-14.md`. 설정의 'MCP 서버', 도구는 `mcp__<서버>__<도구>`, 쓰기 도구는 질문 승인(실행/항상 허용/취소).
+- **Windows 알림 양식**: 질문 알림에 선택지 버튼과 답변 입력이 실려 알림에서 바로 답한다(`decision-notices.cjs` actions/hasReply → `decision_answer`). 앱 안 토스트는 '열기'만 있는 간단한 알림(사용자 설명: 양식은 Windows 알림에).
+- **대화 행 간격**: 작업 계획·확인한 자료·변경 파일 행의 여백을 줄임(workbench.css deck-disclosure margin 4px, summary padding 8px 12px).

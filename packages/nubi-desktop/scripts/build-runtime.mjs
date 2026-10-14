@@ -4,6 +4,8 @@ import {mkdir,copyFile,cp,readFile,rm,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {rendererBundleOptions} from './renderer-bundle.mjs';
+// Release protection (user decision 2026-10-14): shipped runtime bundles are minified; NUBI_MINIFY=0 keeps them readable for local debugging.
+const MINIFY=process.env.NUBI_MINIFY!=='0';
 
 // Both standalone Wiki tests and the packaged host resolve the same locked
 // framework copies. NODE_PATH alone would prefer an optional OpenWiki install.
@@ -64,7 +66,7 @@ const assertFrameworkSources=metafile=>{
     if(frameworkPattern.test(bare)&&!path.resolve(input).startsWith(path.join(sharedRoot,'node_modules')+path.sep))throw Error('research_dependency_duplicate');
   }
 };
-const wikiBuild=await build({metafile:true,plugins:[pinnedFramework],entryPoints:['runtime/openwiki-source.ts'],outfile:'generated/openwiki.mjs',bundle:true,platform:'node',nodePaths:[path.resolve('node_modules')],format:'esm',target:'node24',external:['minisearch','yaml'],banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);"},legalComments:'eof'});
+const wikiBuild=await build({metafile:true,plugins:[pinnedFramework],entryPoints:['runtime/openwiki-source.ts'],outfile:'generated/openwiki.mjs',bundle:true,minify:MINIFY,keepNames:true,platform:'node',nodePaths:[path.resolve('node_modules')],format:'esm',target:'node24',external:['minisearch','yaml'],banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);"},legalComments:'eof'});
 assertFrameworkSources(wikiBuild.metafile);
 const wikiPackage=JSON.parse(await readFile('../openwiki/package.json','utf8'));
 if(wikiPackage.name!=='openwiki-sds')throw Error('openwiki_sds_source_required');
@@ -74,7 +76,7 @@ const wikiHash=createHash('sha256');for(const file of wikiSources){wikiHash.upda
 // The update runner is its own folder, loaded when the user runs an update, so the host does not load it at start.
 const updateExternal=['jsonc-parser','@vscode/ripgrep','knex','knex-schema-inspector','@earendil-works/pi-agent-core','@earendil-works/pi-ai','playwright','pixelmatch','pngjs','minisearch'];
 await rm('generated/openwiki-update',{recursive:true,force:true});
-const updateBuild=await build({metafile:true,plugins:[unbundledProviders,wikiLayout,pinnedFramework],entryPoints:['runtime/openwiki-update-source.ts'],outfile:'generated/openwiki-update/index.mjs',bundle:true,platform:'node',nodePaths:[path.resolve('node_modules')],format:'esm',target:'node24',external:updateExternal,banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);"},legalComments:'eof'});
+const updateBuild=await build({metafile:true,plugins:[unbundledProviders,wikiLayout,pinnedFramework],entryPoints:['runtime/openwiki-update-source.ts'],outfile:'generated/openwiki-update/index.mjs',bundle:true,minify:MINIFY,keepNames:true,platform:'node',nodePaths:[path.resolve('node_modules')],format:'esm',target:'node24',external:updateExternal,banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);"},legalComments:'eof'});
 assertFrameworkSources(updateBuild.metafile);
 if(Object.keys(updateBuild.metafile.inputs).some(file=>/node_modules\/(?:\.pnpm\/)?(?:posthog-node|mermaid|jsdom)@/.test(file.replaceAll('\\','/'))))throw Error('openwiki_update_excluded_bundled');
 for(const file of WIKI_FILES)await cp(path.join(OPENWIKI_ROOT,file),path.join('generated/openwiki-update/openwiki',file),{recursive:true});
@@ -89,12 +91,12 @@ if(DESKTOP_FEATURES.mailAttachmentReading)await copyFile('runtime/office-documen
 else for(const file of ['office-document.ps1','mail-attachment-worker.mjs','document-extract.mjs','pdf.worker.mjs'])await rm('extension/lib/node/'+file,{force:true});
 await rm('extension/lib/node/openwiki-update',{recursive:true,force:true});
 await cp('generated/openwiki-update','extension/lib/node/openwiki-update',{recursive:true});
-for (const worker of ['schema-worker','database-worker','code-analysis-worker','mail-worker','mail-portal-worker',...(DESKTOP_FEATURES.mailAttachmentReading?['mail-attachment-worker']:[])]) await build({entryPoints:[`runtime/${worker}.mjs`],outfile:`extension/lib/node/${worker}.mjs`,bundle:true,platform:'node',format:'esm',target:'node24',external:['knex','knex-schema-inspector','typescript','jsonc-parser','./document-extract.mjs'],banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);"}});
+for (const worker of ['schema-worker','database-worker','code-analysis-worker','mail-worker','mail-portal-worker',...(DESKTOP_FEATURES.mailAttachmentReading?['mail-attachment-worker']:[])]) await build({entryPoints:[`runtime/${worker}.mjs`],outfile:`extension/lib/node/${worker}.mjs`,bundle:true,minify:MINIFY,keepNames:true,platform:'node',format:'esm',target:'node24',external:['knex','knex-schema-inspector','typescript','jsonc-parser','./document-extract.mjs'],banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);"}});
 const sourceWiki={name:'nubi-source-wiki',setup(builder){builder.onResolve({filter:/openwiki\.mjs$/},args=>path.resolve(args.resolveDir,args.path)===path.resolve('generated/openwiki.mjs')?{path:path.resolve('runtime/openwiki-source.ts')}:undefined);}};
 // The host imports the update runner from the folder next to it.
 const deferredDocuments={name:'nubi-deferred-documents',setup(builder){builder.onResolve({filter:/document-extract\.mjs$/},args=>path.resolve(args.resolveDir,args.path)===path.resolve('runtime/document-extract.mjs')?{path:'./document-extract.mjs',external:true}:undefined);}};
 const deferredUpdate={name:'nubi-deferred-wiki-update',setup(builder){builder.onResolve({filter:/openwiki-update\/index\.mjs$/},args=>path.resolve(args.resolveDir,args.path)===path.resolve('generated/openwiki-update/index.mjs')?{path:'./openwiki-update/index.mjs',external:true}:undefined);}};
-const runtimeBuild=await build({metafile:true,plugins:[pinnedFramework,sourceWiki,deferredUpdate,deferredDocuments],entryPoints:['runtime/service-entry.mjs'],outfile:'extension/lib/node/service-entry.mjs',bundle:true,platform:'node',nodePaths:[path.resolve('node_modules')],format:'esm',target:'node24',banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);"},external:['jsonc-parser','@vscode/ripgrep','knex','knex-schema-inspector','@earendil-works/pi-agent-core','@earendil-works/pi-ai','playwright','pixelmatch','pngjs','minisearch'],legalComments:'eof'});
+const runtimeBuild=await build({metafile:true,plugins:[pinnedFramework,sourceWiki,deferredUpdate,deferredDocuments],entryPoints:['runtime/service-entry.mjs'],outfile:'extension/lib/node/service-entry.mjs',bundle:true,minify:MINIFY,keepNames:true,platform:'node',nodePaths:[path.resolve('node_modules')],format:'esm',target:'node24',banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);"},external:['jsonc-parser','@vscode/ripgrep','knex','knex-schema-inspector','@earendil-works/pi-agent-core','@earendil-works/pi-ai','playwright','pixelmatch','pngjs','minisearch'],legalComments:'eof'});
 assertFrameworkSources(runtimeBuild.metafile);
 if(Object.keys(runtimeBuild.metafile.inputs).some(file=>path.resolve(file)===path.resolve('generated/openwiki.mjs')))throw Error('research_prebundle_duplicate');
 if(!Object.keys(runtimeBuild.metafile.inputs).some(file=>file.replaceAll('\\','/').endsWith('/openwiki/src/agent/wiki-question.ts')))throw Error('research_core_missing');
@@ -114,7 +116,7 @@ if(Object.keys(uiBuild.metafile.inputs).some(file=>/@a2a-js\/sdk|nubi-a2a\/(?:cl
 await writeFile('generated/source-inputs.json',JSON.stringify([...new Set([wikiBuild,updateBuild,runtimeBuild,uiBuild,mainBuild].flatMap(bundle=>Object.keys(bundle.metafile.inputs)).filter(file=>!file.includes('node_modules')&&!/^nubi-[a-z-]+:/.test(file)))].sort(),null,2)+'\n');
 
 if(DESKTOP_FEATURES.mailAttachmentReading){
-await build({entryPoints:['runtime/document-extract.mjs'],outfile:'extension/lib/node/document-extract.mjs',bundle:true,platform:'node',format:'esm',target:'node24',banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);"}});
+await build({entryPoints:['runtime/document-extract.mjs'],outfile:'extension/lib/node/document-extract.mjs',bundle:true,minify:MINIFY,keepNames:true,platform:'node',format:'esm',target:'node24',banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);"}});
 await copyFile('../../extensions/aipro-chat/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs','extension/lib/node/pdf.worker.mjs');
 }
 

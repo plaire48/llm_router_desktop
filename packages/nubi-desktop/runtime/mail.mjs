@@ -13,6 +13,7 @@ import {Store} from './store.mjs';
 import {protectMailDirectory} from './mail-directory.mjs';
 import {mailPassword} from './mail-credentials.mjs';
 import {officeDocumentFormat,readOfficeDocument} from './office-document.mjs';
+import {MailWikiVault} from './mail-wiki-vault.mjs';
 import {imageAttachmentType,readImageAttachment} from './mail-attachment-image.mjs';
 import {MailSearch,mailFilters} from './mail-search.mjs';
 import {parsePop3Content,mailPartPresentation,MAIL_CONTENT_VERSION} from '../../openwiki/src/connectors/sources/pop3-content.mjs';
@@ -42,7 +43,9 @@ async function exclusive(file,data){
 }
 export class PersonalMail {
   constructor(host,{personalRoot,wikiRoot,workerFile=new URL('./mail-worker.mjs',import.meta.url),pull}={}){
-    this.host=host;this.root=personalRoot||path.join(resolveOpenWikiHomeDir(),'connectors','pop3');this.wikiRoot=wikiRoot||(personalRoot?path.join(personalRoot,'wiki'):path.join(resolveOpenWikiHomeDir(),'wiki','sources','pop3'));this.workerFile=workerFile;this.pullOverride=pull;this.generation=0;this.paused=true;this.watchPaused=false;
+    this.host=host;this.root=personalRoot||path.join(resolveOpenWikiHomeDir(),'connectors','pop3');this.wikiRoot=wikiRoot||(personalRoot?path.join(personalRoot,'wiki'):path.join(resolveOpenWikiHomeDir(),'wiki','sources','pop3'));
+    // Mail wiki pages are encrypted at rest (user decision 2026-10-14); the session copy becomes wikiRoot in ensureWiki().
+    this.wikiStoreRoot=this.wikiRoot;this.wikiVault=new MailWikiVault({storeRoot:this.wikiStoreRoot,sessionRoot:path.join(this.root,'session-wiki'),secrets:host?.connectionVault||null,protect:protectMailDirectory,log:(...args)=>host?.log?.('mail_wiki_vault',...args)});this.workerFile=workerFile;this.pullOverride=pull;this.generation=0;this.paused=true;this.watchPaused=false;
     this.store=new Store(path.join(host.storageRoot,'personal-mail'));
     this.contentCache=new Map();
     this.serverProfile=Object.hasOwn(servers,this.store.get('setting:server-profile'))?this.store.get('setting:server-profile'):'company';
@@ -158,7 +161,7 @@ export class PersonalMail {
   }
   status(){
     this.resumeProcessing();
-    const rows=this.rows();return {localImport:this.importProgress||this.store.get('setting:local-import')||null,localCount:rows.filter(row=>row.protocol==='local').length,localKinds:[...new Set(rows.filter(row=>row.protocol==='local').map(row=>row.mailbox))],folders:this.store.get('portal-folders:'+this.account)||[],server:servers[this.serverProfile],serverProfile:this.serverProfile,protocol:servers[this.serverProfile].protocol||'pop3',connected:!!this.credentials,identityConfigured:!!(this.store.get('mail-identities:'+this.account)||[]).length,identityRevision:this.store.get('mail-identity-revision:'+this.account)||0,connecting:!!this.connecting,checking:!!this.checking,paused:this.paused,autoWiki:this.autoWiki,watchPaused:this.watchPaused,summarizing:!!this.synthesis,lastCheckedAt:this.lastCheckedAt||null,nextCheckAt:this.nextCheckAt||null,error:this.error||null,baselineCount:this.baselineCount||0,storageRoot:this.root,rawRoot:path.join(this.root,'raw'),wikiRoot:this.wikiRoot,rejected:this.store.get('account:'+this.account)?.rejected||[],destination:this.destination,activeModel:model(this.host),catalogs:this.host.providers?.catalogs?.()||[],readingAttachments:!!this.attachmentRead,progress:this.progress(),recentChecks:this.store.get('mail-checks:'+this.account)||[],counts:{received:rows.length,queued:rows.filter(r=>r.state==='queued').length,saved:rows.filter(r=>r.state==='saved').length,attachmentAttention:DESKTOP_FEATURES.mailAttachmentReading?rows.filter(r=>r.attachmentState==='attention').length:0,attention:rows.filter(r=>r.state==='attention').length},messages:rows.slice(0,50).map(({id,subject,from,date,fetchedAt,state,error,path:wikiPath})=>({id,subject,from,date,fetchedAt,state,error,wikiPath}))};
+    const rows=this.rows();return {localImport:this.importProgress||this.store.get('setting:local-import')||null,localCount:rows.filter(row=>row.protocol==='local').length,localKinds:[...new Set(rows.filter(row=>row.protocol==='local').map(row=>row.mailbox))],folders:this.store.get('portal-folders:'+this.account)||[],server:servers[this.serverProfile],serverProfile:this.serverProfile,protocol:servers[this.serverProfile].protocol||'pop3',connected:!!this.credentials,identityConfigured:!!(this.store.get('mail-identities:'+this.account)||[]).length,identityRevision:this.store.get('mail-identity-revision:'+this.account)||0,connecting:!!this.connecting,checking:!!this.checking,paused:this.paused,autoWiki:this.autoWiki,watchPaused:this.watchPaused,summarizing:!!this.synthesis,lastCheckedAt:this.lastCheckedAt||null,nextCheckAt:this.nextCheckAt||null,error:this.error||null,baselineCount:this.baselineCount||0,storageRoot:this.root,rawRoot:path.join(this.root,'raw'),wikiRoot:this.wikiRoot,encryption:{state:this.wikiVault?.state||'off'},rejected:this.store.get('account:'+this.account)?.rejected||[],destination:this.destination,activeModel:model(this.host),catalogs:this.host.providers?.catalogs?.()||[],readingAttachments:!!this.attachmentRead,progress:this.progress(),recentChecks:this.store.get('mail-checks:'+this.account)||[],counts:{received:rows.length,queued:rows.filter(r=>r.state==='queued').length,saved:rows.filter(r=>r.state==='saved').length,attachmentAttention:DESKTOP_FEATURES.mailAttachmentReading?rows.filter(r=>r.attachmentState==='attention').length:0,attention:rows.filter(r=>r.state==='attention').length},messages:rows.slice(0,50).map(({id,subject,from,date,fetchedAt,state,error,path:wikiPath})=>({id,subject,from,date,fetchedAt,state,error,wikiPath}))};
   }
   async parsePortal(raw,{includePresentation=false,filename=''}={}){if(typeof raw!=='string'||raw.length>14*1024*1024)throw Error('mail_size_limit');return await new Promise((resolve,reject)=>{const worker=new Worker(new URL('./mail-portal-worker.mjs',import.meta.url),{workerData:{raw,includePresentation,filename},resourceLimits:{maxOldGenerationSizeMb:192},execArgv:[]});const timer=setTimeout(()=>{worker.terminate();reject(Error('mail_timeout'));},30000);const finish=()=>{clearTimeout(timer);worker.terminate();};worker.once('message',value=>{finish();value.error?reject(Error(value.error)):resolve(value.result);});worker.once('error',()=>{finish();reject(Error('mail_parse_failed'));});worker.once('exit',exit=>{if(exit!==0){clearTimeout(timer);reject(Error('mail_parse_failed'));}});});}
   async startFolderImport(directory){
@@ -196,6 +199,7 @@ export class PersonalMail {
   }
   async call(args){
     if(this.disposed)throw new Error('mail_cancelled');
+    await this.ensureWiki();
     const {action='status'}=args;
     if(action==='status')return this.status();
     if(action==='importFolder')return this.startFolderImport(args.directory);
@@ -307,7 +311,11 @@ export class PersonalMail {
     return row.recipientRole&&row.recipientRole!=='unknown'?row.recipientRole:'unknown';
   }
   knownUids(account){return this.rows().filter(row=>row.account===account).map(row=>row.uidl);}
-  async prepare(){await privateDir(this.root);await privateDir(path.join(this.root,'raw'));await privateDir(this.wikiRoot);}
+  async prepare(){await privateDir(this.root);await privateDir(path.join(this.root,'raw'));await this.ensureWiki();await privateDir(this.wikiRoot);}
+  // Once per runtime: unlock the encrypted store and rebuild the plain session copy that readers use.
+  ensureWiki(){if(!this.wikiVault)return Promise.resolve();return this.wikiReady ||=(async()=>{await privateDir(this.root);if(await this.wikiVault.ready()){await this.wikiVault.hydrate();this.wikiRoot=this.wikiVault.sessionRoot;}})().catch(error=>{this.wikiReady=null;throw error;});}
+  // Rows written before encryption point into the old plain folder; pages are resolved by name under the current root.
+  pagePath(file){return this.wikiVault?.active?path.join(this.wikiRoot,path.basename(String(file||''))):file;}
   pull(input){
     if(this.pullOverride)return this.pullOverride(input);
     return new Promise((resolve,reject)=>{
@@ -421,10 +429,10 @@ export class PersonalMail {
   // The saving stage: the prepared text becomes the Wiki file (or is verified against the file already there), then
   // the receipt. `check` throws when the caller's run was cancelled between the steps.
   async savePrepared(row,prepared,timing,check=()=>{}){
-    await exclusive(prepared.path,prepared.text);
+    await exclusive(this.pagePath(prepared.path),prepared.text);if(this.wikiVault)await this.wikiVault.persist(path.basename(prepared.path),prepared.text);
     if(this.disposed)return false;
     check();
-    if(sha(await readFile(prepared.path))!==prepared.hash)throw new Error('mail_file_conflict');
+    if(sha(await readFile(this.pagePath(prepared.path)))!==prepared.hash)throw new Error('mail_file_conflict');
     if(this.disposed)return false;
     check();
     const {prepared:unused,...record}=row;this.store.set('mail:'+row.id,{...record,state:'saved',path:prepared.path,wikiHash:prepared.hash,model:prepared.model,contentScope:prepared.contentScope||null,contentVersion:prepared.contentVersion||null,savedAt:now(),error:null,summaryTiming:timing.finish()});this.recordActivity({kind:'organized',completed:1,durationMs:timing.snapshot().durationMs});
@@ -504,8 +512,8 @@ export class PersonalMail {
     if(!row.path||row.state!=='saved')return {text:'',changed:false};
     if(row.contentVersion!==MAIL_CONTENT_VERSION&&(await this.source(row)).bodyRecovered)return {text:'',changed:false};
     if(!DESKTOP_FEATURES.mailAttachmentReading&&row.contentScope!=='body_and_metadata'&&(await this.source(row)).attachments.length)return {text:'',changed:false};
-    const relative=path.relative(this.wikiRoot,row.path);if(relative.startsWith('..')||path.isAbsolute(relative))throw Error('mail_source_changed');
-    try{if((await lstat(row.path)).isSymbolicLink())throw Error('mail_source_changed');const text=await readFile(row.path,'utf8');if(text.length>60000)throw Error('mail_size_limit');return {text,changed:sha(text)!==row.wikiHash};}catch(error){if(error.code==='ENOENT')return {text:'',changed:true};throw error;}
+    const pageFile=this.pagePath(row.path),relative=path.relative(this.wikiRoot,pageFile);if(relative.startsWith('..')||path.isAbsolute(relative))throw Error('mail_source_changed');
+    try{if((await lstat(pageFile)).isSymbolicLink())throw Error('mail_source_changed');const text=await readFile(pageFile,'utf8');if(text.length>60000)throw Error('mail_size_limit');return {text,changed:sha(text)!==row.wikiHash};}catch(error){if(error.code==='ENOENT')return {text:'',changed:true};throw error;}
   }
   async evidence({id,sourceHash,attachmentId,attachmentHash,location,scope}={}){
     if(attachmentId&&!DESKTOP_FEATURES.mailAttachmentReading)throw Error('mail_attachment_beta_disabled');
@@ -518,6 +526,6 @@ export class PersonalMail {
   }
   async query(query,args={}){this.searchIndex ||=new MailSearch(this);return this.searchIndex.search({...args,query,limit:args.limit||10});}
   disconnect(){this.paused=true;this.generation++;clearTimeout(this.timer);this.cancelPull?.();this.attachmentRead?.abort();this.synthesis?.abort();if(this.credentials)this.credentials.password='';this.credentials=null;this.connecting=null;this.activeRequestId=null;}
-  dispose(){this.importController?.abort();clearInterval(this.processingTimer);this.disconnect();this.contentCache.clear();this.disposed=true;for(const controller of this.documentReaders||[])controller.abort();this.store.close();}
+  dispose(){this.importController?.abort();clearInterval(this.processingTimer);this.disconnect();this.contentCache.clear();this.disposed=true;for(const controller of this.documentReaders||[])controller.abort();this.store.close();this.wikiDisposed=this.wikiVault?this.wikiVault.dispose().catch(()=>{}):Promise.resolve();}
 }
 export async function mail(args){this.personalMail ||=new PersonalMail(this,this.mailOptions);return this.personalMail.call(args);}

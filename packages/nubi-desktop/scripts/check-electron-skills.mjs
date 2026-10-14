@@ -63,6 +63,7 @@ async function register(file,expected){
 async function refresh(){await skillsDialog().getByRole('button',{name:'목록 새로고침',exact:true}).click();await skillsDialog().getByRole('status').filter({hasText:'스킬을 확인하고 있어요.'}).waitFor({state:'detached'});}
 try{
   await open();stage('fixture model connected through the compatible provider');
+  await page.getByRole('button',{name:'문의',exact:true}).click();await page.getByRole('tab',{name:'문의',exact:true}).waitFor();assert.equal(await page.getByRole('tab',{name:'문의',exact:true}).getAttribute('aria-selected'),'true');await page.getByRole('region',{name:'문의'}).getByText('팀의 AI Agent 경험을 누려보세요.').waitFor();/* a thirty-second toast may sit over the header: close it before using the back button */await page.locator('.nubi-feedback-toast').getByRole('button',{name:'알림 닫기'}).click().catch(()=>{});await page.getByRole('button',{name:'대화로 돌아가기',exact:true}).click();stage('the rail inquiry button opens the inquiry section with the company sign-in prompt');
   await openManagement();await skillsDialog().getByText('등록한 스킬이 없어요.').waitFor();
   await register(path.join(packages,'fixture-skill'),'스킬을 등록했어요.');await row('fixture-skill').waitFor();
   assert.equal(await readFile(installed('fixture-skill','SKILL.md'),'utf8'),instructions);assert.equal(await exists(installed('fixture-skill','scripts','run.mjs')),true,'bundled resources are copied');

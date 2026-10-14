@@ -7,7 +7,7 @@ export function humanDecisions(project,{computerUse=false}={}){
   if(['running','cancelled'].includes(task.state))continue;
   let decision;
   const found=(rows,predicate)=>rows?.find(row=>row.taskId===task.id&&predicate(row));
-  if(task.state==='waiting_input'&&task.question)decision={kind:'question',localId:task.question.id||task.id,summary:typeof task.question==='string'?task.question:task.question.text};
+  if(task.state==='waiting_input'&&task.question)decision={kind:'question',localId:task.question.id||task.id,summary:typeof task.question==='string'?task.question:task.question.text,question:typeof task.question==='string'?null:task.question};
   else if(computerUse&&['pending','connected'].includes(task.computerConnectionRequest?.state))decision={kind:'computer',localId:task.computerConnectionRequest.id+':'+task.computerConnectionRequest.state};
   else {
    const proposal=found(project.proposals,row=>row.state==='proposed');

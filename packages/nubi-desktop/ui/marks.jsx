@@ -12,6 +12,7 @@ export const StopMark = ({size}) => <Mark size={size}><rect x="6" y="6" width="1
 export const PointerMark = ({size}) => <Mark size={size}><path d="M5.5 3.5 18 10.2l-5.6 1.6-2.3 5.6z"/><path d="m12.6 12 5 5"/></Mark>;
 export const KeyboardMark = ({size}) => <Mark size={size}><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M8 14.5h8"/></Mark>;
 
+export const LockMark = ({size}) => <Mark size={size}><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3M12 14.5v2.5"/></Mark>;
 export const HomeMark = ({size}) => <Mark size={size}><path d="m3 10 9-7 9 7M5 9v11h5v-6h4v6h5V9"/></Mark>;
 export const PersonMark = ({size}) => <Mark size={size}><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></Mark>;
 export const CompanyMark = ({size}) => <Mark size={size}><path d="M5 21V3h14v18M3 21h18M9 7h1m4 0h1M9 11h1m4 0h1M9 15h1m4 0h1M10 21v-3h4v3"/></Mark>;

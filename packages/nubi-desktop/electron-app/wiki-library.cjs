@@ -68,7 +68,8 @@ class WikiLibrary{
    if((previous?.hash||null)!==args.expectedHash)fail('wiki_library_changed');
    if(previous?.content===args.content)return previous;
    // Preserve the exact before-image outside the project and AI source tree.
-   if(previous){await fs.mkdir(this.backupRoot,{recursive:true});await fs.writeFile(path.join(this.backupRoot,randomUUID()+'.json'),JSON.stringify({scopeId:scope.id,...previous}),{mode:0o600,flag:'wx'});}
+   // Mail pages are encrypted at rest; a plain before-image outside the mail store would undo that (2026-10-14).
+   if(previous&&scope.kind!=='mail'){await fs.mkdir(this.backupRoot,{recursive:true});await fs.writeFile(path.join(this.backupRoot,randomUUID()+'.json'),JSON.stringify({scopeId:scope.id,...previous}),{mode:0o600,flag:'wx'});}
    temporary=file+'.'+randomUUID()+'.tmp';await fs.writeFile(temporary,args.content,{mode:0o600,flag:'wx'});
    if(!(await this.canWrite(scope)))fail('wiki_library_busy');
    if(previous){if((await read(scope.root,args.path)).hash!==previous.hash)fail('wiki_library_changed');await target(scope.root,args.path);await fs.rename(temporary,file);}

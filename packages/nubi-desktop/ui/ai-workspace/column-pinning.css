@@ -1,0 +1,30 @@
+/* Titles pin a contiguous range from the left. Sorting and filtering stay separate. */
+.list-column-notice { margin:12px 0 0; color:var(--brand-ink); font-size:var(--cx-type-caption); line-height:20px; }
+.work-list-table .cx-column-pin { display:flex; flex:1; align-items:center; min-width:0; min-height:32px; padding:0; border:0; border-radius:3px; background:none; color:inherit; font:inherit; font-weight:500; text-align:left; cursor:pointer; }
+.work-list-table .cx-column-pin > span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.work-list-table .cx-column-pin:hover { color:var(--brand-ink); }
+.work-list-table .cx-column-pin:focus-visible { outline:2px solid var(--layout-accent); outline-offset:2px; }
+.work-list-table .cx-column-sort { flex:0 0 28px; width:28px; min-width:28px; padding:0; justify-content:center; }
+.work-list-table .cx-column-sort > .ui-icon { margin:0; }
+:is(.app-shell,.cx-detail-panel) .work-list-table.has-frozen-columns .selection-column { position:sticky; left:0; z-index:4; }
+:is(.app-shell,.cx-detail-panel) .work-list-table [data-column-pinned="true"] { position:sticky; z-index:4; border-right:1px solid var(--brand-border); }
+:is(.app-shell,.cx-detail-panel) .work-list-table td[data-column-pinned="true"] { background:var(--layout-surface); }
+:is(.app-shell,.cx-detail-panel) .work-list-table thead [data-column-pinned="true"] { z-index:6; background:var(--brand-soft); color:var(--brand-ink); box-shadow:inset 0 2px var(--layout-accent); }
+:is(.app-shell,.cx-detail-panel) .work-list-table.has-frozen-columns thead .selection-column { z-index:6; }
+:is(.app-shell,.cx-detail-panel) .work-list-table.compact-frozen-columns td.list-row-actions { position:static; }
+:is(.app-shell,.cx-detail-panel) .work-list-table.compact-frozen-columns th.list-row-actions { right:auto; }
+:is(.app-shell,.cx-detail-panel) .work-list-table.compact-frozen-columns :is(th,td).selection-column { padding-inline:8px; }
+:is(.app-shell,.cx-detail-panel) .work-list-table.compact-frozen-columns [data-column-pinned="true"] { padding-inline:6px; }
+:is(.app-shell,.cx-detail-panel) .work-list-table.compact-frozen-columns [data-column-pinned="true"] .table-th-content { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0; }
+:is(.app-shell,.cx-detail-panel) .work-list-table.compact-frozen-columns [data-column-pinned="true"] .cx-column-pin { grid-column:1/-1; }
+:is(.app-shell,.cx-detail-panel) .work-list-table.compact-frozen-columns [data-column-pinned="true"] :is(.cx-column-sort,.table-column-filter) { width:100%; min-width:0; }
+:is(.app-shell,.cx-detail-panel) .work-list-table.compact-frozen-columns [data-column-pinned="true"] .cx-column-pin > span { white-space:normal; overflow-wrap:anywhere; }
+:is(.app-shell,.cx-detail-panel) .work-list-table.compact-frozen-columns td[data-column-pinned="true"] :is(.list-value-text,.list-derived-value) { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; white-space:normal; overflow:hidden; overflow-wrap:anywhere; line-height:1.5; }
+@media(max-width:600px) {
+  .work-list-table .cx-column-pin { min-height:44px; }
+  .work-list-table .cx-column-sort { min-height:44px; }
+  .work-list-table .table-column-filter { min-height:44px; }
+  /* A fixed action column would cover header filters on narrow screens. */
+  :is(.app-shell,.cx-detail-panel) .work-list-table td.list-row-actions { position:static; }
+  :is(.app-shell,.cx-detail-panel) .work-list-table th.list-row-actions { right:auto; }
+}

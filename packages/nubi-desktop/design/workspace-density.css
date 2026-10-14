@@ -964,7 +964,7 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .desktop-shell .nubi-document-worker-heading .nubi-response-time { flex:none; margin:0; }
 
 /* Compact adjacent reference/plan disclosures without hiding their content. */
-.desktop-shell .nubi-conversation-content>.nubi-enter>.deck-disclosure { margin-top:var(--cx-space-1); padding:var(--cx-space-2) var(--cx-space-3); }
+.desktop-shell .nubi-conversation-content>.nubi-enter>.deck-disclosure { margin-top:2px; margin-bottom:2px; padding:0 var(--cx-space-2); }
 .desktop-shell .nubi-conversation-content>.nubi-enter>.deck-disclosure+.deck-disclosure,.desktop-shell .nubi-conversation-content>.nubi-enter>.nubi-agent-activity+.deck-disclosure { margin-top:0; }
 .desktop-shell .nubi-workbench .nubi-setup-summary .deck-disclosure,.desktop-shell .nubi-workbench .nubi-process { margin-top:var(--cx-space-1); }
 .desktop-shell .nubi-conversation-content>.nubi-enter>.deck-disclosure>summary { min-height:var(--cx-space-6); }

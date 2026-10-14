@@ -418,8 +418,8 @@
 .nubi-skill-path code { display:block; margin-top:var(--cx-space-1); overflow-wrap:anywhere; font:var(--deck-font-caption); color:var(--deck-sub); }
 .nubi-panel .deck-subsection { padding: var(--cx-space-3); background: var(--deck-section-surface); border-radius: var(--deck-control-radius); }
 .nubi-panel .deck-subsection p { margin-bottom: 0; }
-.nubi-feedback-region { position:fixed; z-index:10000; top:max(16px,env(safe-area-inset-top)); left:50%; width:max-content; max-width:min(520px,calc(100vw - 32px)); transform:translateX(-50%); pointer-events:none; }
-.nubi-feedback-toast { display:grid; grid-template-columns:minmax(0,1fr); align-items:center; gap:var(--cx-space-3); padding:var(--cx-space-3) var(--cx-space-4); border:0; border-radius:var(--deck-panel-radius); background:var(--deck-card); color:var(--deck-ink); box-shadow:var(--deck-shadow); font:var(--deck-font-body); pointer-events:auto; }
+.nubi-feedback-region { pointer-events:none; position:fixed; z-index:10000; top:max(16px,env(safe-area-inset-top)); left:50%; width:max-content; max-width:min(520px,calc(100vw - 32px)); transform:translateX(-50%); pointer-events:none; }
+.nubi-feedback-toast { pointer-events:auto; display:grid; grid-template-columns:minmax(0,1fr); align-items:center; gap:var(--cx-space-3); padding:var(--cx-space-3) var(--cx-space-4); border:0; border-radius:var(--deck-panel-radius); background:var(--deck-card); color:var(--deck-ink); box-shadow:var(--deck-shadow); font:var(--deck-font-body); pointer-events:auto; }
 .nubi-feedback-message { display:flex; align-items:center; min-width:0; gap:var(--cx-space-3); }
 .nubi-feedback-close { flex:none; display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; margin-left:var(--cx-space-1); padding:0; border:0; border-radius:50%; background:transparent; color:inherit; opacity:.7; cursor:pointer; }
 .nubi-feedback-close:hover,.nubi-feedback-close:focus-visible { opacity:1; background:color-mix(in srgb,currentColor 12%,transparent); }
@@ -1718,3 +1718,15 @@ html[data-project-switching] .nubi-workbench .nubi-main, html[data-project-switc
 .nubi-notice-text { min-width:0; font-size:var(--cx-type-body); color:var(--nubi-text-primary); overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
 .nubi-notice-time { flex:none; font-size:var(--cx-type-caption); color:var(--nubi-text-secondary); white-space:nowrap; }
 .nubi-notice-footer { display:flex; justify-content:flex-end; margin-top:var(--cx-space-2); }
+
+/* Encrypted mail wiki storage mark beside the connected heading (2026-10-14). */
+.nubi-mail-lock { display:inline-flex; align-items:center; margin-left:var(--cx-space-2); color:var(--deck-blue-deep); }
+.nubi-mail-lock[data-state="unavailable"] { color:var(--nubi-text-secondary); opacity:.7; }
+
+/* Toast decisions: the choices of a question and its free-text answer (2026-10-14). */
+.nubi-feedback-toast .nubi-feedback-message { flex-wrap:wrap; }
+.nubi-feedback-actions { display:inline-flex; flex-wrap:wrap; gap:var(--cx-space-1); margin-left:var(--cx-space-1); }
+.nubi-feedback-action[data-choice] { background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
+.nubi-feedback-input { display:flex; align-items:center; gap:var(--cx-space-1); flex-basis:100%; margin-top:var(--cx-space-1); }
+.nubi-feedback-input input { flex:1; min-width:0; height:28px; padding:0 var(--cx-space-2); border:1px solid var(--deck-line); border-radius:var(--deck-pill-radius); background:var(--deck-card); color:inherit; font:var(--deck-font-caption); }
+.nubi-feedback-input .nubi-feedback-action { margin-left:0; padding:0 var(--cx-space-2); height:28px; display:inline-flex; align-items:center; }

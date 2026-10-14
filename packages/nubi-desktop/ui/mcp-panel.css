@@ -1,0 +1,24 @@
+.nubi-mcp-panel { display:grid; gap:var(--cx-space-3); }
+.nubi-mcp-panel > p { margin:0; }
+.nubi-mcp-empty { display:flex; align-items:center; gap:var(--cx-space-2); margin:0; color:var(--nubi-text-secondary); }
+.nubi-mcp-list { list-style:none; margin:0; padding:0; display:grid; gap:var(--cx-space-2); }
+.nubi-mcp-item { padding:var(--cx-space-2) var(--cx-space-3); border-radius:var(--nubi-work-control-radius); background:var(--deck-section-surface); }
+.nubi-mcp-head { display:flex; align-items:center; gap:var(--cx-space-2); min-width:0; }
+.nubi-mcp-state { display:inline-flex; color:var(--nubi-text-secondary); }
+.nubi-mcp-item[data-state="connected"] .nubi-mcp-state { color:var(--deck-green); }
+.nubi-mcp-item[data-state="failed"] .nubi-mcp-state { color:var(--nubi-text-danger); }
+.nubi-mcp-title { display:grid; min-width:0; flex:1; }
+.nubi-mcp-title strong { font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.nubi-mcp-title small { color:var(--nubi-text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:var(--nubi-code-family,monospace); }
+.nubi-mcp-badge { flex:none; font-size:var(--cx-type-caption); color:var(--nubi-text-secondary); white-space:nowrap; }
+.nubi-mcp-actions { display:inline-flex; gap:2px; flex:none; }
+.nubi-mcp-tools { list-style:none; margin:var(--cx-space-2) 0 0; padding:0; display:flex; flex-wrap:wrap; gap:var(--cx-space-1); }
+.nubi-mcp-tools li { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; background:var(--deck-card); font-size:var(--cx-type-caption); color:var(--nubi-text-primary); }
+.nubi-mcp-form { display:grid; gap:var(--cx-space-3); padding:var(--cx-space-3); border-radius:var(--nubi-work-control-radius); background:var(--deck-section-surface); }
+.nubi-mcp-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:var(--cx-space-2); }
+.nubi-mcp-form label { display:grid; gap:4px; font-size:var(--cx-type-caption); color:var(--nubi-text-secondary); }
+.nubi-mcp-secrets { display:grid; gap:var(--cx-space-2); }
+.nubi-mcp-secrets small { color:var(--nubi-text-secondary); }
+.nubi-mcp-enabled { display:flex !important; align-items:center; gap:var(--cx-space-2); color:var(--nubi-text-primary) !important; }
+.nubi-mcp-form-actions { display:flex; justify-content:flex-end; gap:var(--cx-space-2); }
+.nubi-mcp-add { display:flex; justify-content:flex-end; }

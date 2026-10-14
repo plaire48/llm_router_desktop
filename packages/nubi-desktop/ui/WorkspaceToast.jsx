@@ -3,16 +3,19 @@ import {createPortal} from 'react-dom';
 import {recordNotice} from './notice-store.js';
 
 // Adapt E2E Report's single-notice store and shared countdown clock. Desktop
-// keeps a thirty-second duration (user decision 2026-10-14, was two seconds) and Nubi identity without a dependency.
+// keeps a three-second duration (user decision 2026-10-14) and Nubi identity without a dependency.
 let current = null, sequence = 0;
 const listeners = new Set();
 const subscribe = listener => { listeners.add(listener); return () => listeners.delete(listener); };
 const snapshot = () => current;
 const emit = () => listeners.forEach(listener => listener());
-export function notifyWorkspaceToast(message, {error = false, success = false, action = null} = {}) {
+// A toast may carry several actions (the choices of a question) and a text input (its free-text answer), so a
+// decision can be taken from the toast itself (user request 2026-10-14).
+export function notifyWorkspaceToast(message, {error = false, success = false, action = null, actions = null, input = null} = {}) {
   const text = String(message || '').trim();
   if (!text) return;
-  current = {id: ++sequence, message: text, error, success, action: action && typeof action.onClick === 'function' && action.label ? action : null};
+  const valid = item => item && typeof item.onClick === 'function' && item.label;
+  current = {id: ++sequence, message: text, error, success, action: valid(action) ? action : null, actions: Array.isArray(actions) ? actions.filter(valid).slice(0, 4) : [], input: input && typeof input.onSubmit === 'function' ? {placeholder: input.placeholder || '답변 입력', onSubmit: input.onSubmit} : null};
   recordNotice({text, error, success, action: current.action, kind: 'info', source: 'toast'});
   emit();
 }
@@ -56,7 +59,7 @@ export function WorkspaceToast() {
   useLayoutEffect(() => {
     if (!item) return;
     if (clock.current.id !== item.id) clock.current = {id: item.id, elapsed: 0};
-    const countdown = clock.current, started = performance.now(), duration = 30000, fillDuration = 29500;
+    const countdown = clock.current, started = performance.now(), duration = 3000, fillDuration = 2900;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const paint = elapsed => {
       const fraction = Math.min(fillDuration, elapsed) / fillDuration;
@@ -93,6 +96,8 @@ export function WorkspaceToast() {
         </svg>
         <span>{item.message}</span>
         {item.action&&<button type="button" className="nubi-feedback-action" onClick={()=>{try{item.action.onClick();}finally{dismiss();}}}>{item.action.label}</button>}
+        {item.actions.length>0&&<span className="nubi-feedback-actions">{item.actions.map(entry=><button key={entry.label} type="button" className="nubi-feedback-action" data-choice onClick={()=>{try{entry.onClick();}finally{dismiss();}}}>{entry.label}</button>)}</span>}
+        {item.input&&<form className="nubi-feedback-input" onSubmit={event=>{event.preventDefault();const value=new FormData(event.currentTarget).get('answer');const text=typeof value==='string'?value.trim():'';if(!text)return;try{item.input.onSubmit(text);}finally{dismiss();}}}><input name="answer" aria-label={item.input.placeholder} placeholder={item.input.placeholder} autoComplete="off" maxLength={2000}/><button type="submit" className="nubi-feedback-action" aria-label="답변 보내기" title="답변 보내기"><svg aria-hidden="true" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 8h11M9 4l4 4-4 4"/></svg></button></form>}
         <button type="button" className="nubi-feedback-close" aria-label="알림 닫기" title="알림 닫기" onClick={dismiss}><svg aria-hidden="true" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
       </div>
     </div>

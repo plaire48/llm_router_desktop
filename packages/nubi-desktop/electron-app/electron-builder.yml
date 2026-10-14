@@ -10,6 +10,19 @@ asarUnpack:
   - node_modules/@vscode/ripgrep-*/**/*
   - "**/*.node"
 npmRebuild: false
+# Fastest installation (user decision 2026-10-14): the installer stores files without compression, so setup is a copy,
+# not an extraction. The download is larger; the intranet mirror absorbs that.
+compression: store
+# Release protection: no Node mode from the command line, no NODE_OPTIONS or --inspect against the app, the asar
+# header is validated and only the asar is loaded. runAsNode stays on because the runtime worker is forked with
+# ELECTRON_RUN_AS_NODE (electron-app/main.cjs).
+electronFuses:
+  runAsNode: true
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
 nodeGypRebuild: false
 directories:
   output: ../release/windows

@@ -21,6 +21,8 @@ export default function TerminalPanel({sessionId,project,cwd,profileId,onError,v
   const addon=new FitAddon();view.loadAddon(addon);view.open(node.current);view.textarea?.setAttribute('aria-label',`${profile?.label||'셸'} 터미널 입력`);terminal.current=view;fit.current=addon;
   const send=(action,args={})=>request({...scope,action,...args});
   const write=(data,ack=false)=>view.write(data,()=>{if(alive&&ack)void send('ack',{length:data.length}).catch(()=>{});});
+  let burst='',burstFrame=0;const flush=()=>{burstFrame=0;const data=burst;burst='';if(data)write(data,true);};
+  const writeBatched=data=>{burst+=data;if(!burstFrame)burstFrame=requestAnimationFrame(flush);};
   // A local server announced in this terminal opens in the app browser once, with a notice for every new origin
   // (user request 2026-10-14: a dev server must be visible and checkable without hunting for the address).
   const servers={seen:new Set(),tail:'',opened:false};
@@ -28,7 +30,7 @@ export default function TerminalPanel({sessionId,project,cwd,profileId,onError,v
   const receive=event=>{
    if(!alive||event.id!==sessionId)return;
    if(!attached){queued.push(event);return;}
-   if(event.type==='data'){write(event.data,true);announce(String(event.data||''));}
+   if(event.type==='data'){writeBatched(String(event.data||''));announce(String(event.data||''));}
    else{ready.current=false;setState(event.type==='exit'?'exited':'disconnected');view.writeln(event.type==='exit'?`\r\n[셸 종료 ${event.exitCode}]`:'\r\n[터미널 연결이 끊겼어요.]');}
   };
   const unsubscribe=window.nubi.onTerminalEvent(receive);
@@ -50,7 +52,7 @@ export default function TerminalPanel({sessionId,project,cwd,profileId,onError,v
    queued.length=0;attached=true;ready.current=result.state==='running';setState(result.state);write(result.output||'');
    addon.fit();void send('resize',{cols:view.cols,rows:view.rows}).catch(()=>{});if(shown.current)view.focus();
   }).catch(error=>{if(alive){attached=true;setState('failed');errors.current(error);}});
-  return()=>{alive=false;ready.current=false;cancelAnimationFrame(frame);observer.disconnect();unsubscribe();input.dispose();selection.dispose();view.dispose();terminal.current=null;void send('detach').catch(()=>{});};
+  return()=>{alive=false;ready.current=false;cancelAnimationFrame(frame);cancelAnimationFrame(burstFrame);burst='';observer.disconnect();unsubscribe();input.dispose();selection.dispose();view.dispose();terminal.current=null;void send('detach').catch(()=>{});};
  },[sessionId,project.projectId]);
  useEffect(()=>{if(visible){fit.current?.fit();terminal.current?.focus();}},[visible]);
  return <section className="desktop-terminal" hidden={!visible} aria-label="프로젝트 터미널" data-terminal-state={state}>
