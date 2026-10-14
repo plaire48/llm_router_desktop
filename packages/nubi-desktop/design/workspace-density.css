@@ -366,10 +366,17 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
  :root:has(.desktop-shell) .welcome-emblem > .agent-mark[data-mood="celebrate"],
  :root:has(.desktop-shell) .welcome-art:hover .agent-mark:is([data-mood="idle"],[data-mood="sleep"],[data-mood="celebrate"]) { animation:nubi-bird-dance var(--nubi-bird-greeting) ease-in-out infinite; transform-origin:50% 65%; }
  :root:has(.desktop-shell) .welcome-emblem > .agent-mark[data-mood="sleep"] { animation:bird-breathe 3.6s ease-in-out infinite; }
+ /* A sleeping bird startles awake when hovered (user request 2026-10-14): a quick jump with open eyes, then the greeting dance. */
+ :root:has(.desktop-shell) .welcome-art:hover .agent-mark[data-mood="sleep"] { animation:nubi-bird-startle 560ms cubic-bezier(.2,1.5,.4,1) 1, nubi-bird-dance var(--nubi-bird-greeting) ease-in-out 560ms infinite; transform-origin:50% 65%; }
+ :root:has(.desktop-shell) .welcome-art:hover .agent-mark[data-mood="sleep"] .bird-base { animation:nubi-bird-startle-eyes 560ms steps(1,end) 1; }
+ :root:has(.desktop-shell) .welcome-art:hover .agent-mark[data-mood="sleep"] .bird-smile { animation:nubi-bird-startle-smile 560ms steps(1,end) 1; }
  :root:has(.desktop-shell) .welcome-emblem > .agent-mark[data-mood="sad"] { animation:bird-sigh 2.8s ease-in-out 1; }
 }
 @keyframes nubi-bird-flight { 0%,100% { transform:translate(0,0); } 20% { transform:translate(4px,-8px); } 50% { transform:translate(0,-4px); } 75% { transform:translate(-4px,-6px); } }
 @keyframes nubi-bird-dance { 0%,100% { transform:rotate(0); } 25% { transform:rotate(-4deg); } 75% { transform:rotate(4deg); } }
+@keyframes nubi-bird-startle { 0% { transform:translateY(0) scale(1); } 18% { transform:translateY(-14%) scale(1.08,.94) rotate(-6deg); } 40% { transform:translateY(-4%) scale(.96,1.06) rotate(5deg); } 62% { transform:translateY(-6%) rotate(-3deg); } 100% { transform:translateY(0) scale(1) rotate(0); } }
+@keyframes nubi-bird-startle-eyes { 0%,99% { opacity:1; } 100% { opacity:0; } }
+@keyframes nubi-bird-startle-smile { 0%,99% { opacity:0; } 100% { opacity:1; } }
 :root:has(.desktop-shell):is([data-motion="paused"],[data-motion-visibility="hidden"]) .desktop-shell :is(.welcome-emblem,.agent-mark[data-mood],.agent-mark[data-mood] *),
 :root:has(.desktop-shell):has(.cx-panel-backdrop) .desktop-shell :is(.welcome-emblem,.agent-mark[data-mood],.agent-mark[data-mood] *) { animation-play-state:paused; }
 @media(prefers-reduced-motion:reduce) { :root:has(.desktop-shell) .agent-mark[data-mood] > img { transition:none; } }
