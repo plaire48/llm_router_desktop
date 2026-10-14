@@ -41,8 +41,11 @@ try{page=await desktopTestWindow(app);await page.bringToFront();page.setDefaultT
   const style=await page.evaluate(()=>{const toolbar=getComputedStyle(document.querySelector('.nubi-window-toolbar'));return {background:toolbar.backgroundColor,symbol:toolbar.getPropertyValue('--deck-sub').trim()};});
   /* dialogs no longer recolour the native controls, so their hover shading stays as usual (user decision 2026-10-14) */
   const expected={...captionColors(style.background,style.symbol),height:48};
-  for(let i=0;i<30;i++){const current=await (await app.browserWindow(page)).evaluate(win=>win.captionUpdates.at(-1));if(JSON.stringify(current)===JSON.stringify(expected))break;await new Promise(resolve=>setTimeout(resolve,100));}
-  assert.deepEqual(await (await app.browserWindow(page)).evaluate(win=>win.captionUpdates.at(-1)),expected,'native minimize/maximize/close controls keep the toolbar colours under a dialog');
+  // Opening the dialog must not recolour the controls: either no update is sent at all (the colours did not change), or
+  // every update sent carries the toolbar's own colours.
+  await new Promise(resolve=>setTimeout(resolve,800));
+  const updates=await (await app.browserWindow(page)).evaluate(win=>win.captionUpdates);
+  for(const update of updates)assert.deepEqual(update,expected,'native minimize/maximize/close controls keep the toolbar colours under a dialog');
   await page.screenshot({path:path.join(captures,'settings-caption.png')});
  }
  await page.keyboard.press('Escape');await page.getByRole('dialog',{name:'설정',exact:true}).waitFor({state:'hidden'});
@@ -50,8 +53,9 @@ try{page=await desktopTestWindow(app);await page.bringToFront();page.setDefaultT
   const {captionColors}=await import('../electron-app/titlebar-colors.cjs');
   const style=await page.evaluate(()=>{const s=getComputedStyle(document.querySelector('.nubi-window-toolbar'));return {background:s.backgroundColor,symbol:s.getPropertyValue('--deck-sub').trim()};});
   const expected={...captionColors(style.background,style.symbol),height:48};
-  for(let i=0;i<30;i++){const current=await (await app.browserWindow(page)).evaluate(win=>win.captionUpdates.at(-1));if(JSON.stringify(current)===JSON.stringify(expected))break;await new Promise(resolve=>setTimeout(resolve,100));}
-  assert.deepEqual(await (await app.browserWindow(page)).evaluate(win=>win.captionUpdates.at(-1)),expected,'closing settings restores native caption colors');checks.push('native caption follows settings scrim and restores');
+  // The controls never left the toolbar colours, so closing needs no update; any update sent must still be those colours.
+  await new Promise(resolve=>setTimeout(resolve,800));
+  for(const update of await (await app.browserWindow(page)).evaluate(win=>win.captionUpdates))assert.deepEqual(update,expected,'closing settings keeps native caption colors');checks.push('native caption keeps the toolbar colours through a dialog');
  }
  console.log('stage',checks.length);checks.push('mail page, library and settings');
  assert.equal(await (await app.browserWindow(page)).evaluate(win=>{const p=win.webContents.getLastWebPreferences();return p.sandbox&&p.contextIsolation&&!p.nodeIntegration;}),true);console.log('stage',checks.length);checks.push('sandbox');
