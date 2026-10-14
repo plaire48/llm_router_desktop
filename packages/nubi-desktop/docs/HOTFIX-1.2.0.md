@@ -64,3 +64,4 @@ Desktop A2A는 지원하지 않습니다. 첨부파일 내용 분석은 1.2.1부
 - **대화 행 간격**: 작업 계획·확인한 자료·변경 파일 행의 여백을 줄임(workbench.css deck-disclosure margin 4px, summary padding 8px 12px).
 - **CI 빌드 수정**: `document-extract.mjs`의 exceljs를 nubi-desktop 의존성(4.4.0)으로. Windows CI는 nubi-desktop과 aipro-chat만 설치한다(실행 38504035117 실패 원인).
 - **CI 수정 2**: `enableNodeCliInspectArguments` 퓨즈를 켜 둠. Playwright가 `--inspect`로 붙지 못해 패키지 검사가 멈췄다(실행 38504518097).
+- **CI 수정 3**: `scripts/check-installed-archive.mjs`가 첨부 읽기 파일의 '미포함'을 단언하던 Beta 규칙을 플래그 기준으로 바꿈(켜짐이면 포함 필수).
