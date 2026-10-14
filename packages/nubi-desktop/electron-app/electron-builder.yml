@@ -13,14 +13,15 @@ npmRebuild: false
 # Fastest installation (user decision 2026-10-14): the installer stores files without compression, so setup is a copy,
 # not an extraction. The download is larger; the intranet mirror absorbs that.
 compression: store
-# Release protection: no Node mode from the command line, no NODE_OPTIONS or --inspect against the app, the asar
-# header is validated and only the asar is loaded. runAsNode stays on because the runtime worker is forked with
-# ELECTRON_RUN_AS_NODE (electron-app/main.cjs).
+# Release protection: no NODE_OPTIONS against the app, the asar header is validated and only the asar is loaded.
+# runAsNode stays on because the runtime worker is forked with ELECTRON_RUN_AS_NODE (electron-app/main.cjs).
+# --inspect stays allowed: the packaged and installed app are verified by Playwright, which attaches through it
+# (CI run 38504518097 timed out with the fuse off). docs/PACKAGING-SECURITY-2026-10-14.md lists the follow-up.
 electronFuses:
   runAsNode: true
   enableCookieEncryption: true
   enableNodeOptionsEnvironmentVariable: false
-  enableNodeCliInspectArguments: false
+  enableNodeCliInspectArguments: true
   enableEmbeddedAsarIntegrityValidation: true
   onlyLoadAppFromAsar: true
 nodeGypRebuild: false
