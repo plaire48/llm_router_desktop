@@ -10,9 +10,8 @@ asarUnpack:
   - node_modules/@vscode/ripgrep-*/**/*
   - "**/*.node"
 npmRebuild: false
-# Fastest installation (user decision 2026-10-14): the installer stores files without compression, so setup is a copy,
-# not an extraction. The download is larger; the intranet mirror absorbs that.
-compression: store
+# Compressed installer (user decision 2026-10-14, after measuring 1.2.2: an uncompressed 671MB installer was not faster
+# to install on CI than the 173MB compressed one, so the default compression stays).
 # Release protection: no NODE_OPTIONS against the app, the asar header is validated and only the asar is loaded.
 # runAsNode stays on because the runtime worker is forked with ELECTRON_RUN_AS_NODE (electron-app/main.cjs).
 # --inspect stays allowed: the packaged and installed app are verified by Playwright, which attaches through it
@@ -53,7 +52,6 @@ win:
       arch: [x64]
 nsis:
   include: nubi-installer.nsh
-  differentialPackage: false
   installerHeader: nsis-generated/installer-header.bmp
   installerSidebar: nsis-generated/installer-sidebar.bmp
   uninstallerSidebar: nsis-generated/installer-sidebar.bmp
