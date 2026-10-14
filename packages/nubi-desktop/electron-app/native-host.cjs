@@ -25,7 +25,8 @@ class ElectronHost{
     this.invoke=invoke;this.helperPath=helperPath;this.platform=platform;this.spawnProcess=spawnProcess;this.repositories=new Map();this.children=new Set();
     this.confirmWorkspaceSave=confirmWorkspaceSave;this.storage=storage;
     this.account=new DesktopGhesAccount({fetcher,avatarFetcher,cacheAvatars:true,openExternal:openBrowser,copyCode:async()=>{},
-      secrets:{get:key=>keyStore.getPassword(SECRET_SERVICE,key),store:(key,value)=>keyStore.setPassword(SECRET_SERVICE,key,value),delete:key=>keyStore.deletePassword(SECRET_SERVICE,key)},
+      // A key-store write failure reads as its own code (ghes_storage), not a bare login failure (2026-10-14).
+      secrets:{get:key=>keyStore.getPassword(SECRET_SERVICE,key),store:async(key,value)=>{try{return await keyStore.setPassword(SECRET_SERVICE,key,value);}catch{throw Error('ghes_storage');}},delete:key=>keyStore.deletePassword(SECRET_SERVICE,key)},
       onInvalidated:async()=>{this.workspace?.close();this.workspace=null;this.wikis?.cancel();this.repositories.clear();for(const child of this.children)child.kill();await invoke('disconnectSkillMarketplace').catch(()=>{});}});
   }
   get community(){return this.communities??=new WorkspaceCommunity({account:this.account,outboxFile:path.join(this.storage||os.tmpdir(),'community-outbox.json')});}

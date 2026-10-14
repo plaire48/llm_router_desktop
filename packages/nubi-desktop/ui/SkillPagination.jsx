@@ -1,5 +1,5 @@
 import React,{useState} from 'react';
-import {WorkspaceAction} from './WorkspaceAction.jsx';
+import {PageNumbers} from './PageNumbers.jsx';
 
 const pageSize=10;
 export function useSkillPagination(items,key){
@@ -12,11 +12,8 @@ export function useSkillPagination(items,key){
   const start=(page-1)*pageSize;
   return {page,pages,total:items.length,start,items:items.slice(start,start+pageSize),go:next=>setPosition({key,page:Math.max(1,Math.min(pages,next))})};
 }
+// The numbered pager of E2E Report (user request 2026-10-14), shared with the mail and wiki lists.
 export function SkillPagination({pagination:p,label,busy}){
   if(p.pages<=1)return null;
-  return <nav className="nubi-skill-pagination" aria-label={`${label} 페이지 이동`}>
-    <span role="status" aria-atomic="true">{p.start+1}–{p.start+p.items.length} / {p.total}</span>
-    <WorkspaceAction action="previousMedia" iconOnly label={`${label} 이전 페이지`} disabled={busy||p.page===1} onClick={()=>p.go(p.page-1)}/>
-    <WorkspaceAction action="nextMedia" iconOnly label={`${label} 다음 페이지`} disabled={busy||p.page===p.pages} onClick={()=>p.go(p.page+1)}/>
-  </nav>;
+  return <PageNumbers page={p.page} totalPages={p.pages} disabled={busy} label={label} onPage={next=>p.go(next)}/>;
 }

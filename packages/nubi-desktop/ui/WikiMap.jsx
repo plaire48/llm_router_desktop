@@ -9,7 +9,7 @@ const radiusOf=degree=>5+Math.min(11,degree*1.5);
 const text=value=>String(value||'').toLocaleLowerCase();
 export function WikiMap({graph,selectedPath,onOpen,disabled}){
  const frame=useRef(null),[size,setSize]=useState({width:640,height:420}),[positions,setPositions]=useState(()=>new Map());
- const [query,setQuery]=useState(''),[hidden,setHidden]=useState(()=>new Set()),[orphans,setOrphans]=useState(true),[hover,setHover]=useState(null),[view,setView]=useState({x:0,y:0,k:1}),[expanded,setExpanded]=useState(false);
+ const [query,setQuery]=useState(''),[hidden,setHidden]=useState(()=>new Set()),[orphans,setOrphans]=useState(true),[hover,setHover]=useState(null),[view,setView]=useState({x:0,y:0,k:1}),[expanded,setExpanded]=useState(false),[sideOpen,setSideOpen]=useState(true);
  const drag=useRef(null);
  // Re-layout only when the frame really changes width; scrollbars toggling a few pixels must not restart the animation.
  useEffect(()=>{if(!frame.current)return;const measure=()=>{const width=Math.max(320,Math.round(frame.current.clientWidth)),height=Math.max(320,Math.round(frame.current.clientHeight));setSize(current=>Math.abs(current.width-width)<=8&&Math.abs(current.height-height)<=8?current:{width,height});};const observer=new ResizeObserver(measure);observer.observe(frame.current);measure();return()=>observer.disconnect();},[]);
@@ -42,7 +42,7 @@ export function WikiMap({graph,selectedPath,onOpen,disabled}){
  const labelled=path=>{const node=byPath.get(path);return path===focus||matches?.has(path)||(near?.has(path)&&near.size<=12)||(rendered.length<=40)||(!crowded&&node.degree>=2)||(crowded&&!large&&node.degree>=4&&view.k>=0.8)||(large&&node.degree>=8&&view.k>=1.2);};
  const inView=links.filter(link=>onScreen(link.from)||onScreen(link.to));
  const drawn=large?inView.filter(link=>link.strength>=2||(near&&(near.has(link.from)||near.has(link.to)))):inView;
- return <section className="nubi-wiki-map" aria-label="위키 관계 지도" data-expanded={expanded||undefined} data-large={large||undefined}>
+ return <section className="nubi-wiki-map" aria-label="위키 관계 지도" data-expanded={expanded||undefined} data-side-closed={!sideOpen||undefined} data-large={large||undefined}>
   <div className="nubi-wiki-map-tools">
    <SearchField label="지도에서 문서 찾기" placeholder="지도에서 문서 찾기" maxLength={200} value={query} onChange={setQuery}/>
    <div className="nubi-wiki-map-stats" aria-label="위키 요약"><span title={`문서 ${graph.nodes.length}개`}><BookMark size={16}/><span className="visually-hidden">문서 </span>{graph.nodes.length}</span><span title={`연결 ${graph.links.length}개`}><Icon name="link" size={16}/><span className="visually-hidden">연결 </span>{graph.links.length}</span><span data-attention={graph.orphans.length>0} title={`고립 문서 ${graph.orphans.length}개`}><Icon name="alertCircle" size={16}/><span className="visually-hidden">고립 문서 </span>{graph.orphans.length}</span></div>
@@ -70,11 +70,12 @@ export function WikiMap({graph,selectedPath,onOpen,disabled}){
     <div className="nubi-wiki-map-zoom" role="group" aria-label="지도 확대"><CxButton data-icon-only aria-label="확대" title="확대 (휠)" onClick={()=>zoom(1.25)}><Icon name="plus" size={16}/></CxButton><CxButton data-icon-only aria-label="축소" title="축소 (휠)" onClick={()=>zoom(1/1.25)}><Icon name="minus" size={16}/></CxButton><CxButton data-icon-only aria-label="전체 보기" title="전체 보기" onClick={()=>setView(fitted())}><Icon name="fitView" size={16}/></CxButton><CxButton data-icon-only aria-label={expanded?'기본 크기':'넓게 보기'} title={expanded?'기본 크기':'넓게 보기'} aria-pressed={expanded} onClick={()=>setExpanded(value=>!value)}><Icon name={expanded?'minimize':'maximize'} size={16}/></CxButton></div>
     {hover&&focusNode&&<div className="nubi-wiki-map-card" role="status"><strong>{focusNode.title}</strong><span>{[focusNode.type,sectionLabel(focusNode.section),`연결 ${focusNode.degree}개`].filter(Boolean).join(' / ')}</span>{focusNode.description&&<p>{focusNode.description}</p>}</div>}
    </div>
-   <aside className="nubi-wiki-map-side">
-    <details open><summary><h3><Icon name="link" size={16}/>연결 많은 문서</h3><Icon name="chevronDown" size={14}/></summary>
-    <ol>{graph.hubs.map(path=>{const node=byPath.get(path);return <li key={path}><button type="button" disabled={disabled} aria-pressed={selectedPath===path} title={`${node.title} (${sectionLabel(node.section)}, 연결 ${node.degree}개)`} onClick={()=>onOpen(path)}><i className="nubi-wiki-map-dot" aria-hidden="true" style={{background:colors.get(node.section)}}/><span>{node.title}</span><small className="nubi-wiki-map-count">{node.degree}</small></button></li>;})}{!graph.hubs.length&&<li className="nubi-muted">아직 연결된 문서가 없어요.</li>}</ol></details>
+   {sideOpen?<aside className="nubi-wiki-map-side">
+    {/* One control folds the panel (user standard 2026-10-14: no duplicate buttons); it sits in the first header. */}
+    <div className="nubi-wiki-map-side-head"><h3><Icon name="link" size={16}/>연결 많은 문서</h3><button type="button" className="nubi-wiki-map-side-toggle" aria-label="목록 접기" title="목록 접기" onClick={()=>setSideOpen(false)}><Icon name="chevronsRight" size={16}/></button></div>
+    <ol>{graph.hubs.map(path=>{const node=byPath.get(path);return <li key={path}><button type="button" disabled={disabled} aria-pressed={selectedPath===path} title={`${node.title} (${sectionLabel(node.section)}, 연결 ${node.degree}개)`} aria-label={`${node.title}, 연결 ${node.degree}개`} onClick={()=>onOpen(path)}><i className="nubi-wiki-map-dot" aria-hidden="true" style={{background:colors.get(node.section)}}/><small className="nubi-wiki-map-count">{node.degree}</small><span>{node.title}</span></button></li>;})}{!graph.hubs.length&&<li className="nubi-muted">아직 연결된 문서가 없어요.</li>}</ol>
     {graph.orphans.length>0&&<details open><summary><h3 title={`고립 문서 ${graph.orphans.length}개`} data-orphan="true"><Icon name="alertCircle" size={16}/><span className="visually-hidden">고립 문서 </span><small>{graph.orphans.length}</small></h3><Icon name="chevronDown" size={14}/></summary><ul>{graph.orphans.slice(0,8).map(path=><li key={path}><button type="button" disabled={disabled} aria-pressed={selectedPath===path} title={`${byPath.get(path).title} (${sectionLabel(byPath.get(path).section)})`} onClick={()=>onOpen(path)}><i className="nubi-wiki-map-dot" aria-hidden="true" style={{background:colors.get(byPath.get(path).section)}}/><span>{byPath.get(path).title}</span></button></li>)}{graph.orphans.length>8&&<li className="nubi-muted">목록에서 고립 문서 필터로 모두 볼 수 있어요.</li>}</ul></details>}
-   </aside>
+   </aside>:<button type="button" className="nubi-wiki-map-side-open" aria-label="연결 많은 문서 목록 펼치기" title="연결 많은 문서 목록 펼치기" onClick={()=>setSideOpen(true)}><Icon name="chevronsLeft" size={16}/></button>}
   </div>
  </section>;
 }

@@ -38,11 +38,11 @@ try{page=await desktopTestWindow(app);await page.bringToFront();page.setDefaultT
  await page.getByRole('button',{name:'설정',exact:true}).click();await page.getByRole('dialog',{name:'설정',exact:true}).getByLabel('기본 터미널').waitFor();
  if(process.platform==='win32'){
   const {captionColors}=await import('../electron-app/titlebar-colors.cjs');
-  const style=await page.evaluate(()=>{const toolbar=getComputedStyle(document.querySelector('.nubi-window-toolbar'));return {background:toolbar.backgroundColor,symbol:toolbar.getPropertyValue('--deck-sub').trim(),layers:[...document.querySelectorAll('.cx-panel-backdrop')].filter(node=>node.checkVisibility()).map(node=>getComputedStyle(node).backgroundColor)};});
-  const expected={...captionColors(style.background,style.symbol,style.layers),height:48};
-  assert.notEqual(expected.color,captionColors(style.background,style.symbol).color,'settings has a visible scrim; a fallback color must not pass');
+  const style=await page.evaluate(()=>{const toolbar=getComputedStyle(document.querySelector('.nubi-window-toolbar'));return {background:toolbar.backgroundColor,symbol:toolbar.getPropertyValue('--deck-sub').trim()};});
+  /* dialogs no longer recolour the native controls, so their hover shading stays as usual (user decision 2026-10-14) */
+  const expected={...captionColors(style.background,style.symbol),height:48};
   for(let i=0;i<30;i++){const current=await (await app.browserWindow(page)).evaluate(win=>win.captionUpdates.at(-1));if(JSON.stringify(current)===JSON.stringify(expected))break;await new Promise(resolve=>setTimeout(resolve,100));}
-  assert.deepEqual(await (await app.browserWindow(page)).evaluate(win=>win.captionUpdates.at(-1)),expected,'settings scrim reaches native minimize/maximize/close controls');
+  assert.deepEqual(await (await app.browserWindow(page)).evaluate(win=>win.captionUpdates.at(-1)),expected,'native minimize/maximize/close controls keep the toolbar colours under a dialog');
   await page.screenshot({path:path.join(captures,'settings-caption.png')});
  }
  await page.keyboard.press('Escape');await page.getByRole('dialog',{name:'설정',exact:true}).waitFor({state:'hidden'});

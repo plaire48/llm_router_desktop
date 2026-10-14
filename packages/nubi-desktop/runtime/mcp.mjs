@@ -36,6 +36,7 @@ function normalizeServer(input={},existing=null){
   }else fail('mcp_server_invalid');
   return row;
 }
+const toolInfo=tool=>{const schema=tool.inputSchema&&typeof tool.inputSchema==='object'?tool.inputSchema:{};const required=new Set(Array.isArray(schema.required)?schema.required:[]);return {name:tool.name,title:typeof tool.title==='string'?tool.title.slice(0,120):undefined,description:String(tool.description||'').slice(0,600),readOnly:tool.annotations?.readOnlyHint===true,params:Object.entries(schema.properties||{}).slice(0,16).map(([key,value])=>({name:key,type:typeof value?.type==='string'?value.type:Array.isArray(value?.type)?value.type.join('|'):'',required:required.has(key),description:String(value?.description||'').slice(0,200)}))};};
 const clip=(text,limit)=>{const value=String(text??'');return value.length>limit?value.slice(0,limit)+`\n…[${value.length-limit}자 생략]`:value;};
 // Tool results are text for the model: text parts joined, other parts described, the whole bounded.
 export function describeToolResult(result){
@@ -62,7 +63,7 @@ export class McpRegistry{
   }
   async list(){
     const servers=await this.load();
-    return servers.map(row=>{const connection=this.connections.get(row.id);return {...row,state:connection?.state||'disconnected',error:connection?.error||null,tools:(connection?.tools||[]).map(tool=>({name:tool.name,description:tool.description||'',readOnly:tool.annotations?.readOnlyHint===true}))};});
+    return servers.map(row=>{const connection=this.connections.get(row.id);return {...row,state:connection?.state||'disconnected',error:connection?.error||null,tools:(connection?.tools||[]).map(toolInfo)};});
   }
   // Secrets (env values, headers) come in with the save call and go to the vault; the file keeps only their names.
   async save(input){
@@ -131,7 +132,7 @@ export class McpRegistry{
     })();
     return entry.promise;
   }
-  describe(row){const connection=this.connections.get(row.id);return {id:row.id,name:row.name,transport:row.transport,state:connection?.state||'disconnected',error:connection?.error||null,tools:(connection?.tools||[]).map(tool=>({name:tool.name,description:tool.description||'',readOnly:tool.annotations?.readOnlyHint===true}))};}
+  describe(row){const connection=this.connections.get(row.id);return {id:row.id,name:row.name,transport:row.transport,state:connection?.state||'disconnected',error:connection?.error||null,tools:(connection?.tools||[]).map(toolInfo)};}
   async disconnect(id){
     const entry=this.connections.get(id);if(!entry)return {id,state:'disconnected'};
     this.connections.delete(id);

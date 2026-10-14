@@ -300,7 +300,7 @@ export function createProviders(deps = {}) {
       const completionResponse={ok:response.ok,status:response.status,headers:response.headers,body:response.body,json:async()=>{
         try{return await response.json();}catch(error){if(error instanceof SyntaxError)throw new Error('response_json_invalid');throw error;}
       }};
-      const content = await readCompletion(completionResponse, onText, value => {usage = reportedUsage = value;}, onPhase, value => {finishReason = value;}, value => {calls = value;}, undefined, onActivity);
+      const content = await readCompletion(completionResponse, onText, value => {usage = reportedUsage = value;}, onPhase, value => {finishReason = value;}, value => {calls = value;}, undefined, onActivity, typeof options.onReasoning === 'function' ? {onReasoning: options.onReasoning} : undefined);
       result = {content, calls, usage, finishReason};
     }
     if (signal.aborted) throw new Error('cancelled');

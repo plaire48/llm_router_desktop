@@ -28,7 +28,8 @@ test('missing CLI login and unsupported safe-mode fail before any model call',as
 test('native host proposals stop the inner CLI loop and return through Nubi approval boundaries',async()=>{
   const f=fixture(),usage=[],adapter=createClaudeCode({...f,onUsageFinish:(_id,value)=>usage.push(value),run:async(binary,args,options)=>{
     if(args[0]==='--help'||args[0]==='auth'||args.includes('--input-format'))return f.run(binary,args,options);
-    assert.equal(args[args.indexOf('--max-turns')+1],'3');
+    // Still a small bounded loop; 6 leaves room for the CLI's structured-output retries (2026-10-14: Sonnet 5.5 hit 3).
+    assert.equal(args[args.indexOf('--max-turns')+1],'6');
     assert.equal(JSON.parse(options.input).hostActionCatalog[0].function.name,'source_search');
     options.onEvent({type:'assistant',message:{content:[{type:'tool_use',name:'source_search',input:{query:'auth'}}],usage:{input_tokens:12,output_tokens:3}}});
     assert.equal(options.signal.aborted,true,'no native tool-error retry loop');throw Error('cancelled');
@@ -228,4 +229,25 @@ test('status carries the plan and last quota; a quota probe is one short request
   const providers=createDesktopProviders({...f,run,onConnectionChange:()=>{},onActiveProvider:()=>{}});
   await assert.rejects(providers.quota(),/claude_login_required/);
   await providers.connect({provider:'claude'});const status=await providers.quota();assert.equal(status.provider,'claude');assert.equal(status.quota.windows.length,2);assert.equal(status.plan,'enterprise');
+});
+
+test('tool arguments may come back as an object or as a JSON string',async()=>{
+  const {decodeClaudeResult}=await import('../runtime/claude-code.mjs');
+  const tools=[{function:{name:'source_search'}}];
+  const asObject=decodeClaudeResult({subtype:'success',structured_output:{content:'',calls:[{name:'source_search',arguments:{query:'TODO'}}]}},tools);
+  const asString=decodeClaudeResult({subtype:'success',structured_output:{content:'',calls:[{name:'source_search',arguments:'{"query":"TODO"}'}]}},tools);
+  assert.equal(asObject.calls[0].function.arguments,'{"query":"TODO"}');assert.equal(asString.calls[0].function.arguments,'{"query":"TODO"}');
+  assert.throws(()=>decodeClaudeResult({subtype:'success',structured_output:{content:'',calls:[{name:'source_search',arguments:'[1]'}]}},tools),/claude_response_invalid/);
+});
+
+// Context windows come from the Models API with the Claude Code sign-in, so the meter shows before the first reply
+// (user request 2026-10-14).
+test('model context windows from the Models API fill the catalog without blocking the connection',async()=>{
+  const {claudeContextWindows,baseModelId}=await import('../runtime/claude-context-windows.mjs');
+  const calls=[];
+  const windows=await claudeContextWindows({readToken:async()=>'fixture-token',fetchImpl:async(url,init)=>{calls.push({url,init});return new Response(JSON.stringify({data:[{id:'claude-opus-5-5',max_input_tokens:1000000},{id:'bad',max_input_tokens:-1}]}),{status:200});}});
+  assert.deepEqual([...windows],[['claude-opus-5-5',1000000]]);
+  assert.equal(calls[0].init.headers.Authorization,'Bearer fixture-token');assert.equal(calls[0].init.headers['anthropic-version'],'2023-06-01');
+  assert.equal(baseModelId('claude-opus-5-5[1m]'),'claude-opus-5-5');
+  const refused=await claudeContextWindows({readToken:async()=>'t',fetchImpl:async()=>new Response('{}',{status:401})});assert.equal(refused.size,0);
 });

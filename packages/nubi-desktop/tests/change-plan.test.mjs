@@ -4,7 +4,9 @@ import {writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {fixture} from './fixtures.mjs';
 import {SourceObservations} from '../runtime/source-edits.mjs';
-import {recordChangePlan,requirePlannedEdit} from '../runtime/change-plan.mjs';
+import {CHANGE_PLAN_SCHEMA,normalizeChangePlanArgs,recordChangePlan,requirePlannedEdit} from '../runtime/change-plan.mjs';
+import {repairToolArguments} from '../../../extensions/aipro-chat/tool-argument-repair.js';
+import {toolArgumentIssues} from '../../../extensions/aipro-chat/tool-validation.js';
 import {ProjectService} from '../runtime/project-service.mjs';
 import {installAgent} from '../runtime/agent.mjs';
 import {makeQuestion} from '../../../extensions/aipro-chat/user-question.js';
@@ -70,4 +72,21 @@ for (const mode of ['choice','text']) test(`request-only task clarifies by ${mod
   assert.equal(service.state().proposals.length,0);
   service.store.close();await service.open(root);
   assert.equal(service.task(task.id).changePlan.checks[0].state,'not_run');assert.equal(service.task(task.id).questionHistory[0].answer.text,answer);
+});
+
+// A plan written in the model's own words reaches validation in the schema's words (user report 2026-10-14: change
+// plan input refused). Links between requirements, targets and checks are never invented.
+test('change plan input in other shapes and words is mapped onto the schema',()=>{
+  const raw={summary:'x'.repeat(1300),requirements:['Required result'],
+    targets:[{file:'app.txt',why:'Observed behavior',requirement_ids:'R1',action:'Modify'}],
+    checks:JSON.stringify([{requirement:'R1',type:'unit test',steps:['run','assert']}])};
+  const plan=normalizeChangePlanArgs(repairToolArguments(CHANGE_PLAN_SCHEMA,raw));
+  assert.equal(toolArgumentIssues(CHANGE_PLAN_SCHEMA,plan),null);
+  assert.deepEqual(plan.requirements,[{id:'R1',text:'Required result'}]);
+  assert.deepEqual(plan.targets,[{path:'app.txt',reason:'Observed behavior',requirementIds:['R1'],action:'edit'}]);
+  assert.deepEqual(plan.checks,[{requirementId:'R1',method:'test',description:'run\nassert'}]);
+  assert.deepEqual(plan.assumptions,[]);assert.equal(plan.summary.length,1200);
+  // An unknown method word stays as written and is refused with the valid choices.
+  const unknown=normalizeChangePlanArgs({...plan,checks:[{requirementId:'R1',method:'ask a friend',description:'d'}]});
+  assert.equal(unknown.checks[0].method,'ask a friend');assert.ok(toolArgumentIssues(CHANGE_PLAN_SCHEMA,unknown));
 });

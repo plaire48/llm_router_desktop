@@ -35,6 +35,15 @@ export function installWorkspaceBrowser(service){
       process.send({workspaceCaptureRequest:{id}},error=>{if(!error)return;const item=pending.get(id);if(item){clearTimeout(item.timer);pending.delete(id);reject(Error('browser_unavailable'));}});
     });
   };
+  // One PNG of Nubi's own window (2026-10-14), for questions about what the app itself shows.
+  service.captureWorkspaceWindow=async()=>{
+    const id=randomUUID();
+    return new Promise((resolve,reject)=>{
+      const timer=setTimeout(()=>{pending.delete(id);reject(Error('browser_capture_unavailable'));},20000);
+      pending.set(id,{resolve,reject,timer});
+      process.send({workspaceCaptureRequest:{id,target:'window'}},error=>{if(!error)return;const item=pending.get(id);if(item){clearTimeout(item.timer);pending.delete(id);reject(Error('browser_unavailable'));}});
+    });
+  };
   service.closeWorkspaceAuthPage=async tabId=>{
     if(typeof tabId!=='string')return;
     process.send({workspaceAuthPageClose:{tabId}});

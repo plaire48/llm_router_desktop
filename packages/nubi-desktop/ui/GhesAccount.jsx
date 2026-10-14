@@ -6,36 +6,42 @@ import {WorkspaceAction as ActionButton} from './WorkspaceAction.jsx';
 import {AgentMark} from '../../../extensions/aipro-chat/src/AgentMark.jsx';
 import './ghes-account.css';
 
-import {ghesMessages,ghesDiagnosticLabel} from './ghes-account-state.mjs';
+import {ghesFailureText,ghesBrowserFailures,ghesDiagnosticLabel} from './ghes-account-state.mjs';
+import {ghesImageUrl} from './ai-workspace/ghesImage.js';
 const updateLabel={unchecked:'최신 버전 확인',current:'최신 버전',update_available:'업데이트 설치',installing:'설치 중',restart_required:'누비 다시 시작',installed_verified:'설치 확인됨',attention:'다시 확인'};
-const failureText=code=>ghesMessages[code]||`회사 계정을 확인하지 못했어요. 다시 시도해 주세요.${/^[a-z_]+$/.test(String(code||''))?` (${code})`:''}`;
+const failureText=ghesFailureText;
 export function GhesAvatar({profile}){
  const [failed,setFailed]=useState(false),[now,setNow]=useState(Date.now);
  useEffect(()=>setFailed(false),[profile?.avatar]);
  const status=profile?.status,expires=Date.parse(status?.expiresAt);
  useEffect(()=>{if(!Number.isFinite(expires)||expires<=now)return;const timer=setTimeout(()=>setNow(Date.now()),Math.min(expires-Date.now()+1,2147483647));return()=>clearTimeout(timer);},[expires,now]);
- const visible=status?.emoji&&(!status.expiresAt||Number.isFinite(expires)&&expires>Date.now());
+ const [imageFailed,setImageFailed]=useState(false);useEffect(()=>setImageFailed(false),[status?.image]);
+ // A custom company emoji arrives as an image address on the company hosts and loads through nubi-ghes:, never as HTML.
+ const visible=(status?.emoji||status?.image&&!imageFailed)&&(!status.expiresAt||Number.isFinite(expires)&&expires>Date.now());
  const label=status?.message||'GitHub 상태';
- return <span className="nubi-account-avatar"><span className="nubi-account-avatar-photo" aria-hidden="true">{profile?.avatar&&!failed?<img src={profile.avatar} alt="" onError={()=>setFailed(true)}/>:profile?(profile.name||profile.login).slice(0,2).toUpperCase():<Icon name="githubMark" size={20}/>}</span>{visible&&<span className="nubi-account-status-emoji" role="img" aria-label={`${status.emoji} ${label}`} title={label}>{status.emoji}</span>}</span>;
+ return <span className="nubi-account-avatar"><span className="nubi-account-avatar-photo" aria-hidden="true">{profile?.avatar&&!failed?<img src={profile.avatar} alt="" onError={()=>setFailed(true)}/>:profile?(profile.name||profile.login).slice(0,2).toUpperCase():<Icon name="githubMark" size={20}/>}</span>{visible&&<span className="nubi-account-status-emoji" role="img" aria-label={`${status.emoji||status.name||'상태'} ${label}`} title={label}>{status.emoji||<img src={ghesImageUrl(status.image)} alt="" referrerPolicy="no-referrer" onError={()=>setImageFailed(true)}/>}</span>}</span>;
 }
 
 // Profile UI receives display identity and operation states only. Credentials,
 // SAML assertions and installation paths never enter this component.
-export function GhesAccount({account,updates,open,onOpen,onClose,onConnected,onCancelled,buttonRef,loginRequest=0}){
+export function GhesAccount({account,updates,open,onOpen,onClose,onConnected,onCancelled,onState,buttonRef,loginRequest=0}){
   const [state,setState]=useState({state:'guest',profile:null}),[update,setUpdate]=useState({state:'unchecked'}),[busy,setBusy]=useState(false),[error,setError]=useState('');
+  // A failed background status read clears itself on the next good read; it used to stay on screen until an action.
+  const [readError,setReadError]=useState('');
   const mounted=useRef(false),request=useRef(0),connected=useRef(false),previousOpen=useRef(false),handledLogin=useRef(0);
   const onConnectedRef=useRef(onConnected);onConnectedRef.current=onConnected;
+  const onStateRef=useRef(onState);onStateRef.current=onState;
   const stateRef=useRef(state);stateRef.current=state;
   const accept=async value=>{
-    if(!mounted.current)return;setState(value);
+    if(!mounted.current)return;setState(value);onStateRef.current?.(value);
     if(value.connected&&!connected.current){connected.current=true;await onConnectedRef.current?.();}
     if(!value.connected)connected.current=false;
   };
   useEffect(()=>{
     mounted.current=true;let active=true,timer;
     const read=async()=>{
-      try{const value=await account('status');if(active){await accept(value);if(updates)setUpdate(await updates('status'));}}
-      catch(e){if(active)setError(e.message);}
+      try{const value=await account('status');if(active){setReadError('');await accept(value);if(updates)setUpdate(await updates('status'));}}
+      catch(e){if(active)setReadError(e.message);}
       if(active&&document.visibilityState!=='hidden')timer=setTimeout(read,stateRef.current.state==='connecting'?1500:30000);
     };
     const visibility=()=>{clearTimeout(timer);if(document.visibilityState!=='hidden')void read();};
@@ -55,19 +61,20 @@ export function GhesAccount({account,updates,open,onOpen,onClose,onConnected,onC
   },[loginRequest,busy]);
   async function nativeOperation(fn){if(busy)return;setBusy(true);setError('');try{await fn();}catch(e){if(mounted.current)setError(e.message);}finally{if(mounted.current)setBusy(false);}}
   const label=state.connected?state.profile?.name||state.profile?.login:'로그인';
-  const diagnostic=!error&&state.error?ghesDiagnosticLabel(state.diagnostic):'';
+  const failure=error||readError||state.error;
+  const diagnostic=!error&&!readError&&state.error?ghesDiagnosticLabel(state.diagnostic):'';
   const updateOperation=update.state==='update_available'?'install':update.state==='restart_required'?'restart':'check';
   return <div className="nubi-account-control">
     <CxButton ref={buttonRef} className="nubi-account-button" data-connected={!!state.connected} aria-label={state.connected?`${label} 계정 메뉴`:'로그인'} title={state.connected?`${label} (@${state.profile.login})`:'GitHub 사내 SSO 로그인'} aria-haspopup="dialog" aria-expanded={open} onClick={onOpen}><GhesAvatar profile={state.profile}/><span>{label}</span></CxButton>
     {open&&<DetailPanel className="deck-dialog nubi-panel nubi-ghes-modal" title={state.connected?<span className="nubi-account-profile"><GhesAvatar profile={state.profile}/><span className="nubi-account-heading"><strong title={label}>{label}</strong><small>@{state.profile.login}</small></span></span>:"로그인"} variant="modal" onClose={onClose}>
       {!state.connected&&<header className="nubi-account-login-heading"><AgentMark size={48} mood="idle" lively/><div><h3>AI Workspace</h3>{state.state!=='connecting'&&<p>팀의 AI Agent 경험을 누려보세요.</p>}</div></header>}
-      {(error||state.error)&&<CxNotice tone="danger">{failureText(error||state.error)}</CxNotice>}
+      {failure&&<CxNotice tone="danger">{failureText(failure)}</CxNotice>}
       {diagnostic&&<p className="nubi-account-diagnostic"><Icon name="infoCircle" size={16}/><span>{diagnostic}</span></p>}
       {state.state==='connecting'?<div className="nubi-account-device" role="status">
         <p>브라우저에서 사내 Github SSO로 로그인한 뒤 코드를 입력해 주세요.</p>
         {state.device?<><div className="nubi-account-code"><strong>{state.device.code}</strong><CopyButton label="로그인 코드 복사" disabled={busy} resetKey={state.device.code} onCopy={()=>account('copy')}/></div><CxButton disabled={busy} onClick={()=>action('browser')}><Icon name="linkExternal" size={16}/>로그인 페이지 열기</CxButton></>:<p>로그인 페이지를 준비하고 있어요.</p>}
         <CxButton disabled={busy} onClick={()=>action('cancel')}><Icon name="xClose" size={16}/>로그인 취소</CxButton>
-      </div>:!state.connected?<div className="nubi-account-signin"><CxButton variant="primary" disabled={busy} onClick={()=>action('login')}><Icon name="githubMark" size={20}/>사내 SSO로 로그인</CxButton>{['ghes_sso_required','ghes_network'].includes(error||state.error)&&<CxButton disabled={busy} onClick={()=>action('browser')}><Icon name="linkExternal" size={16}/>회사 로그인 열기</CxButton>}{state.state==='attention'&&<CxButton disabled={busy} onClick={()=>action('retry')}><Icon name="refresh" size={16}/>연결 다시 확인</CxButton>}</div>:<>
+      </div>:!state.connected?<div className="nubi-account-signin"><CxButton variant="primary" disabled={busy} onClick={()=>action('login')}><Icon name="githubMark" size={20}/>사내 SSO로 로그인</CxButton>{ghesBrowserFailures.has(failure)&&<CxButton disabled={busy} onClick={()=>action('browser')}><Icon name="linkExternal" size={16}/>회사 로그인 열기</CxButton>}{state.state==='attention'&&<CxButton disabled={busy} onClick={()=>action('retry')}><Icon name="refresh" size={16}/>연결 다시 확인</CxButton>}</div>:<>
         {state.profile?.bio&&<p className="nubi-account-bio">{state.profile.bio}</p>}
         {(state.profile?.company||state.profile?.email||state.profile?.location)&&<section className="nubi-account-info" aria-label="기본 정보"><h3>기본 정보</h3><dl>
           {state.profile.company&&<div><dt><CompanyMark size={16}/><span>소속</span></dt><dd title={state.profile.company}>{state.profile.company}</dd></div>}

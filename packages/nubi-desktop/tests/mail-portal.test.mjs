@@ -7,7 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {PersonalMail} from '../runtime/mail.mjs';
 import {normalizePortalMail} from '../runtime/mail-portal-content.mjs';
-import {ORIGIN,portalFetchSource} from '../electron-app/mail-portal-contract.cjs';
+import {ORIGIN,LOGIN_URL,portalFetchSource} from '../electron-app/mail-portal-contract.cjs';
 const require=createRequire(import.meta.url),{MailPortal}=require('../electron-app/mail-portal.cjs'),{portalFetch,foldersOf,identityOf}=require('../electron-app/mail-portal-contract.cjs');
 const eml=Buffer.from('Subject: Portal contract\r\nFrom: Alice <alice@example.test>\r\nTo: owner@example.test\r\nCc: team@example.test\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<table><tr><td>Verified body</td></tr></table><img src="https://example.invalid/track.png">');
 const folders=[{folderID:1,folderName:'받은메일함',mailCount:1},{folderID:2,folderName:'보낸메일함',mailCount:1},{folderID:3,folderName:'임시보관함',mailCount:1},{folderID:4,folderName:'스팸함',mailCount:1}];
@@ -65,7 +65,7 @@ test('portal login opens inside the app browser tab, closes it after identificat
  const host=new MailPortal({BrowserWindow:Window,invoke:async()=>({}),openPage:(url,options)=>{pages.push({url,session:options.session});onClosed=options.onClosed;return {opened:true,tabId:'tab-'+pages.length};},closePage:id=>closed.push(id)});
  host.read=async op=>op==='identity'?{userId:'fixture-user',email:'owner@example.test'}:op==='folders'?folders:{liteHeaderVOs:[{mailSeq:9}]};
  host.sync=async()=>{};
- const status=await host.connect({});assert.equal(status.connected,true);assert.equal(pages.length,1);assert.match(pages[0].url,new RegExp('^'+ORIGIN.replace(/[.*+?^${}()|[\]\\/]/g,'\\$&')));assert.deepEqual(closed,['tab-1']);
+ const status=await host.connect({});assert.equal(status.connected,true);assert.equal(pages.length,1);assert.equal(pages[0].url,LOGIN_URL);assert.deepEqual(closed,['tab-1']);
  await host.disconnect();assert.equal(host.page,null);
  host.read=async()=>{throw Error('mail_portal_login');};
  const pending=host.connect({});await settled(()=>pages.length===2);onClosed();
@@ -92,7 +92,7 @@ function loginFixture({whiteLabel=false,backgroundExpired=false}={}){
 test('interactive portal login preserves the browser flow before creating the background reader',async()=>{
  const {host,events,handlers,calls}=loginFixture();
  await host.connect({});assert.equal(host.status().connected,true);
- assert.deepEqual(events,['stop','load:about:blank',`login:${ORIGIN}`,'page:identity','page:folders',`load:${ORIGIN}`,'reader:folders','close-login']);
+ assert.deepEqual(events,['stop','load:about:blank',`login:${LOGIN_URL}`,'page:identity','page:folders',`load:${ORIGIN}`,'reader:folders','close-login']);
  assert.equal(calls.filter(c=>c.action==='portalConnect').length,1);
  const count=events.length;assert.deepEqual(handlers.popup({url:'https://sso.example.test/callback',postBody:{data:[{bytes:Buffer.from('fixture')}]}}),{action:'deny'});assert.equal(events.length,count,'background popup is never replayed as a GET');
  let prevented=false;handlers['will-redirect']({preventDefault(){prevented=true;}},'https://sso.example.test/login');assert.equal(prevented,true);host.dispose();
@@ -104,5 +104,5 @@ test('Whitelabel login errors return a fixed error without collecting page conte
  const {host,calls}=loginFixture({whiteLabel:true});await assert.rejects(host.connect({}),/mail_portal_sso/);assert.equal(host.status().error,'mail_portal_sso');assert(!calls.some(c=>c.action==='portalConnect'));assert(!JSON.stringify(host.status()).includes('404'));host.dispose();
 });
 test('a portal login retry starts from kor3 and clears the failed reader document',async()=>{
- const {host,events}=loginFixture({whiteLabel:true});await assert.rejects(host.connect({}),/mail_portal_sso/);await assert.rejects(host.connect({}),/mail_portal_sso/);assert.equal(events.filter(x=>x===`login:${ORIGIN}`).length,2);assert.equal(events.filter(x=>x==='load:about:blank').length,2);host.dispose();
+ const {host,events}=loginFixture({whiteLabel:true});await assert.rejects(host.connect({}),/mail_portal_sso/);await assert.rejects(host.connect({}),/mail_portal_sso/);assert.equal(events.filter(x=>x===`login:${LOGIN_URL}`).length,2);assert.equal(events.filter(x=>x==='load:about:blank').length,2);host.dispose();
 });

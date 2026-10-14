@@ -162,7 +162,7 @@ try{
  const sent=await p.evaluate(()=>window.mailFlowCalls.find(call=>call.method==='createTask'));assert.equal(sent.mailReferences.length,3);assert(sent.mailReferences.every(item=>item.sourceHash==='a'.repeat(64)));
 
  await p.setViewportSize({width:1280,height:950});await load('screen=skills&many');
- await p.getByRole('button',{name:'내 스킬 다음 페이지'}).click();await p.getByText('스킬 11',{exact:true}).waitFor();assert.equal(await p.locator('.nubi-custom-skill-row').count(),1);await p.getByRole('button',{name:'내 스킬 이전 페이지'}).click();await p.getByText('스킬 1',{exact:true}).waitFor();assert.equal(await p.locator('.nubi-custom-skill-row').count(),10);
+ await p.getByRole('navigation',{name:'내 스킬 이동'}).getByRole('button',{name:'다음 페이지',exact:true}).click();await p.getByText('스킬 11',{exact:true}).waitFor();assert.equal(await p.locator('.nubi-custom-skill-row').count(),1);await p.getByRole('navigation',{name:'내 스킬 이동'}).getByRole('button',{name:'이전 페이지',exact:true}).click();await p.getByText('스킬 1',{exact:true}).waitFor();assert.equal(await p.locator('.nubi-custom-skill-row').count(),10);
  await p.setViewportSize({width:1280,height:950});await load('integrated&modals&toolbar&mail-flow&mail-disconnected');
  await p.getByRole('button',{name:'메일',exact:true}).click();await p.locator('.nubi-mail-results[aria-busy="false"]').waitFor();
  await p.locator('.nubi-mail-results tbody input[type=checkbox]').nth(0).check();await p.locator('.nubi-mail-results tbody input[type=checkbox]').nth(1).check();await p.getByRole('button',{name:'AI에 질문',exact:true}).click();

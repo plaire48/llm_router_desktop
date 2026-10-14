@@ -1041,3 +1041,6 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .claude-plan { display:inline-block; margin-left:var(--cx-space-2); padding:1px 8px; border-radius:999px; background:var(--provider-claude-soft); color:var(--provider-claude-ink); font:var(--deck-font-caption); font-weight:600; }
 .claude-account-actions { display:inline-flex; align-items:center; gap:var(--cx-space-1); }
 .claude-account-actions .cx-kit-button { display:inline-flex; align-items:center; gap:var(--cx-space-1); white-space:nowrap; }
+
+/* Top-right icons share one size and padding so the row reads evenly (user feedback 2026-10-14). */
+.desktop-shell .nubi-window-toolbar :is(.nubi-toolbar-actions,.nubi-toolbar-account) > .cx-kit-button:is([data-icon-only],.nubi-icon-button) { width:36px; min-width:36px; height:36px; padding:0; justify-content:center; }

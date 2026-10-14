@@ -59,3 +59,11 @@ test('a Windows question notification carries the choices and a reply box, and a
  assert.deepEqual(f.notices.request({id:'q4',action:'show',kind:'command',summary:'npm test'}),{shown:true});
  assert.equal(f.created.at(-1).options.hasReply,undefined,'approvals open the form instead of taking a reply');
 });
+
+test('a question with several possible answers opens the app instead of answering from the notification',()=>{
+ const f=fixture();
+ assert.deepEqual(f.notices.request({id:'q5',action:'show',kind:'question',summary:'어느 파일을 고칠까요?',openLabel:'열어서 답하기',choices:['a','b'],allowText:true}),{shown:true});
+ const notice=f.created.at(-1);
+ assert.deepEqual(notice.options.actions,[{type:'button',text:'열어서 답하기'}]);assert.equal(notice.options.hasReply,undefined);
+ notice.emit('action',{},0);assert.deepEqual(f.events.at(-1),{type:'decision_open',id:'q5'});assert.ok(f.calls.includes('focus'));
+});

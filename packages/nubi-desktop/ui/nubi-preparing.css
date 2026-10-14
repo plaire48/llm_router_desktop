@@ -34,3 +34,16 @@
 /* The startup screen covers the whole workbench right of the rail, not only the centred reading column (user report 2026-10-14). */
 .nubi-workbench .nubi-main:has(> .nubi-preparing) { position:static; max-width:none; }
 .nubi-workbench .nubi-preparing { left:var(--nubi-rail-width,0px); }
+
+/* The logo and a progress bar on the app's background (2026-10-14), like later launches' opening. */
+.nubi-workbench .nubi-preparing { align-content:center; justify-items:center; gap:26px; overflow:hidden; }
+.nubi-workbench .nubi-preparing { isolation:isolate; }
+.nubi-preparing-brand { display:flex; align-items:center; gap:12px; color:var(--deck-blue-deep); font-size:calc(var(--cx-type-title) * 1.4); font-weight:600; animation:nubi-preparing-rise .45s ease-out both; }
+.nubi-preparing-brand img.nubi-wordmark { height:42px; width:auto; }
+.nubi-preparing-bar { position:relative; width:min(300px,60%); height:6px; border-radius:999px; overflow:hidden; background:var(--deck-line); }
+.nubi-preparing-bar > span { position:absolute; inset:0; width:40%; border-radius:inherit; background:linear-gradient(90deg,var(--deck-teal),var(--deck-blue)); animation:nubi-preparing-run 1.3s cubic-bezier(.45,0,.55,1) infinite; }
+@keyframes nubi-preparing-run { from{transform:translateX(-100%)} to{transform:translateX(250%)} }
+@keyframes nubi-preparing-rise { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+.nubi-preparing[data-leaving] { pointer-events:none; animation:nubi-sky-out .5s ease-in both; }
+@keyframes nubi-sky-out { to { opacity:0; } }
+@media(prefers-reduced-motion:reduce) { .nubi-preparing-brand,.nubi-preparing-bar > span,.nubi-preparing[data-leaving] { animation:none; } }

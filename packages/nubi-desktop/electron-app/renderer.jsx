@@ -8,6 +8,7 @@ import {WorkspaceToast,notifyWorkspaceToast} from '../ui/WorkspaceToast.jsx';
 import {Workbench} from '../ui/Workbench.jsx';
 import {useSidebarResize} from '../ui/useSidebarResize.js';
 import {useModalDismissalPolicy} from '../ui/useModalDismissalPolicy.js';
+import {useModalMotion} from '../ui/modalMotion.js';
 import {useNativeTitlebar} from './useNativeTitlebar.js';
 import {useWorkspacePageLinks} from '../ui/useWorkspacePageLinks.js';
 import {WORKSPACE_LAYOUT,workspaceSlots} from './workspace-layout.cjs';
@@ -32,6 +33,10 @@ import './ios-tokens.css';
 import '../design/workspace-typography.css';
 import '../design/workspace-density.css';
 import '../design/workspace-dialogs.css';
+import './modal-motion.css';
+import {animatedSetter} from '../ui/viewTransition.js';
+import {CinematicIntro} from '../ui/CinematicIntro.jsx';
+import {FirstRunTour} from '../ui/FirstRunTour.jsx';
 const Editor=lazy(()=>import('./editor.jsx')),GitDiff=lazy(()=>import('./editor.jsx').then(module=>({default:module.GitDiff})));
 const TerminalPanel=lazy(()=>import('./TerminalPanel.jsx'));
 const showError=message=>notifyWorkspaceToast(message,{error:true});
@@ -44,19 +49,21 @@ const projectRelative=(root,value)=>{if(!root)return null;const canonical=text=>
 const digest=async text=>'sha256:'+Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text))),b=>b.toString(16).padStart(2,'0')).join('');
 function App(){
  useModalDismissalPolicy();
+ useModalMotion();
  useNativeTitlebar(request);
  useWorkspacePageLinks(url=>request('openWorkspacePage',{url}),()=>showError('페이지를 열지 못했어요. 다시 시도해 주세요.'));
  const [teamWorkspace,setTeamWorkspace]=useState(null);
  const [teamSection,setTeamSection]=useState('workspace');
  const [projects,setProjects]=useState([]),catalogRevision=useRef(0);
  const projectViews=useRef(new Map()),switching=useRef(false);
- const [startupReady,setStartupReady]=useState(false),[startupOpen,setStartupOpen]=useState(false),[startupRequest,setStartupRequest]=useState(null);
- const [paneExpanded,setPaneExpanded]=useState(false);
+ const [introDone,setIntroDone]=useState(false),[startupReady,setStartupReady]=useState(false),[startupOpen,setStartupOpen]=useState(false),[startupRequest,setStartupRequest]=useState(null);
+ const [paneExpanded,setPaneExpandedRaw]=useState(false);
  const shellNode=useRef(null),paneToggle=useRef(null),expandedRef=useRef(false);expandedRef.current=paneExpanded;
  const [toolbarHost,setToolbarHost]=useState(null);
  const [mailSourceReferences,setMailSourceReferences]=useState([]);
  const [changesLoad,setChangesLoad]=useState('idle'),[changesRepository,setChangesRepository]=useState(null),changesRequest=useRef(0);
- const [generation,setGeneration]=useState(0),[project,setProject]=useState(null),[pane,setPane]=useState(null),[buffer,setBuffer]=useState(null),[diff,setDiff]=useState(null),[revision,setRevision]=useState(0),[rows,setRows]=useState([]),[patch,setPatch]=useState(null),[filter,setFilter]=useState(''),[wiki,setWiki]=useState(null),[shellProfile,setShellProfile]=useState(''),[mailDocument,setMailDocument]=useState(null),[mailQuestion,setMailQuestion]=useState('핵심 내용을 정리해 줘.'),[mailBusy,setMailBusy]=useState(false),[mailSaving,setMailSaving]=useState(false),[mailDraftRequest,setMailDraftRequest]=useState(null);
+ const [generation,setGeneration]=useState(0),[project,setProject]=useState(null),[pane,setPaneRaw]=useState(null),[buffer,setBuffer]=useState(null),[diff,setDiff]=useState(null),[revision,setRevision]=useState(0),[rows,setRows]=useState([]),[patch,setPatch]=useState(null),[filter,setFilter]=useState(''),[wiki,setWiki]=useState(null),[shellProfile,setShellProfile]=useState(''),[mailDocument,setMailDocument]=useState(null),[mailQuestion,setMailQuestion]=useState('핵심 내용을 정리해 줘.'),[mailBusy,setMailBusy]=useState(false),[mailSaving,setMailSaving]=useState(false),[mailDraftRequest,setMailDraftRequest]=useState(null);
+ const setPane=useMemo(()=>animatedSetter(setPaneRaw),[]),setPaneExpanded=useMemo(()=>animatedSetter(setPaneExpandedRaw),[]);
  const [fileTabs,setFileTabs]=useState([]),[directory,setDirectory]=useState(''),[terminalTabs,setTerminalTabs]=useState([]),[activeTerminal,setActiveTerminal]=useState(null),[toolsOpen,setToolsOpen]=useState(false),[browserMounted,setBrowserMounted]=useState(false);
  const terminalStatus=useRef(new Map()),terminalTabsRef=useRef([]),fileTabsRef=useRef([]),activeTerminalRef=useRef(null),directoryRef=useRef('');terminalTabsRef.current=terminalTabs;fileTabsRef.current=fileTabs;activeTerminalRef.current=activeTerminal;directoryRef.current=directory;
  const [browserCatalog,setBrowserCatalog]=useState({tabs:[],active:null});const browserController=useRef(null);
@@ -160,7 +167,7 @@ function App(){
   const changes=new MutationObserver(update);if(sidebar)changes.observe(sidebar,{attributes:true,attributeFilter:['data-open']});
   return()=>{observer.disconnect();changes.disconnect();content.inert=previousInert;shell.style.removeProperty('--desktop-expanded-left');};
  },[paneExpanded,!!pane,generation]);
- useEffect(()=>{if(!project)return;let busy=false;const refresh=async()=>{if(busy)return;busy=true;try{const status=await api('wikiInitialization');if(!alive.current||projectRef.current?.projectId!==project.projectId)return;setWiki(previous=>JSON.stringify(previous)===JSON.stringify(status)?previous:status);if(status?.state==='completed'&&wiki?.state!=='completed')await api('overview');}catch{}finally{busy=false;}};void refresh();const timer=setInterval(refresh,wiki?.state==='running'?500:1200);return()=>clearInterval(timer);},[project?.projectId,wiki?.state]);
+ useEffect(()=>{if(!project)return;let busy=false;const refresh=async()=>{if(busy)return;busy=true;try{const status=await api('wikiInitialization');if(!alive.current||projectRef.current?.projectId!==project.projectId)return;setWiki(previous=>JSON.stringify(previous)===JSON.stringify(status)?previous:status);if(status?.state==='completed'&&wiki?.state!=='completed')await api('overview');}catch{}finally{busy=false;}};void refresh();/* A finished or idle setup changes only through an action that refreshes it, so it is checked rarely (2026-10-14: background work). */const timer=setInterval(refresh,wiki?.state==='running'?500:['completed','existing','cancelled','attention'].includes(wiki?.state)?15000:1200);return()=>clearInterval(timer);},[project?.projectId,wiki?.state]);
 
  useEffect(()=>()=>{alive.current=false;for(const b of buffers.current.values())b.model?.dispose();},[]);
  const fileDock=['files','file','browser','terminal'].includes(pane);
@@ -179,13 +186,13 @@ function App(){
  }
  const title=({files:'파일',file:buffer?.path,changes:'Git 변경',history:'커밋 이력',search:'검색',terminal:'터미널',diff:'변경 비교',commands:'도구',repositories:'회사 저장소',document:mailDocument?.title||'첨부 문서','mail-source':'메일 원문','team-workspace':'AI Workspace'})[pane];
 
- return <div ref={shellNode} className="desktop-shell" data-startup-ready={startupReady} data-toolbar="true" data-platform={window.nubi?.platform} data-layout={slots.split?'split':'overlay'}><div className="desktop-titlebar" ref={setToolbarHost}/><div className="desktop-workspace-body"><div className="desktop-agent"><Workbench initialProject={project} initialProvider={providerSnapshot.current} projects={projects} key={generation} hostLayout="integrated" toolbarHost={toolbarHost} onMinimumAgentWidth={setMinimumAgentWidth} toastHost={false} {...ports} startupRequest={startupRequest} onStartupHandled={()=>setStartupRequest(null)} mailDraftRequest={mailDraftRequest} onMailDraftHandled={()=>setMailDraftRequest(null)} wikiInitialization={wiki} activeView={pane} activeFile={buffer?.path}/></div>
+ return <div ref={shellNode} className="desktop-shell" data-startup-ready={startupReady} data-toolbar="true" data-platform={window.nubi?.platform} data-layout={slots.split?'split':'overlay'}><div className="desktop-titlebar" ref={setToolbarHost}/><CinematicIntro ready={startupReady} onFinish={()=>setIntroDone(true)}/><FirstRunTour active={introDone&&startupReady}/><div className="desktop-workspace-body"><div className="desktop-agent"><Workbench initialProject={project} initialProvider={providerSnapshot.current} projects={projects} key={generation} hostLayout="integrated" toolbarHost={toolbarHost} onMinimumAgentWidth={setMinimumAgentWidth} toastHost={false} {...ports} startupRequest={startupRequest} onStartupHandled={()=>setStartupRequest(null)} mailDraftRequest={mailDraftRequest} onMailDraftHandled={()=>setMailDraftRequest(null)} wikiInitialization={wiki} activeView={pane} activeFile={buffer?.path}/></div>
  {(pane||teamWorkspace||project||browserMounted)&&<aside id="nubi-auxiliary-pane" className="desktop-pane" data-expanded={paneExpanded||undefined} data-team-workspace={pane==='team-workspace'||undefined} hidden={!pane} aria-label="보조 작업 영역"><header className={fileDock?'desktop-dock-header':undefined}>
 
  {fileDock?<div ref={dockStrip} className="desktop-file-tabs" onKeyDown={event=>{if(!['ArrowLeft','ArrowRight'].includes(event.key))return;const tabs=[...event.currentTarget.querySelectorAll('[role="tab"]')],index=tabs.indexOf(document.activeElement);if(index<0)return;event.preventDefault();const next=tabs[(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length];next.focus();next.click();}} role="tablist" aria-label="파일, 브라우저, 터미널"><CxButton role="tab" aria-label="파일 탐색기" title="파일 탐색기" aria-selected={pane==='files'} onClick={()=>setPane('files')}><FolderMark size={18}/><span>파일</span></CxButton>{orderedDockKeys.map(key=>{const tab=dockTab(key);return tab&&<span className="desktop-workspace-tab" key={key}><CxButton className="desktop-tab-select" role="tab" aria-selected={tab.selected} title={tab.title} onClick={tab.select} onKeyDown={event=>{if(event.key==='Delete'){event.preventDefault();tab.close();}}} onAuxClick={event=>{if(event.button===1){event.preventDefault();tab.close();}}}>{tab.icon}<span>{tab.label}</span>{tab.dirty&&<span className="desktop-dirty" aria-label="저장하지 않은 변경">●</span>}{tab.loading&&<span className="status-spinner" aria-label="페이지 불러오는 중"/>}</CxButton><CxButton className="desktop-tab-close" aria-label={tab.closeLabel} title="탭 닫기" onClick={event=>{event.stopPropagation();tab.close();}}><Icon name="xClose" size={12}/></CxButton></span>;})}</div>:['changes','history'].includes(pane)?<span className="desktop-git-heading" aria-label={title} title={title}><BranchMark size={18}/>{pane==='history'&&<span>{title}</span>}</span>:pane==='team-workspace'?<span className="desktop-team-heading" role="img" aria-label={title} title={title}><img src={teamWorkspaceMark} alt=""/></span>:<strong>{title}</strong>}
  {pane==='team-workspace'&&<ActionButton action="refresh" iconOnly label="AI Workspace 새로고침" title="GHES의 최신 화면 불러오기" onClick={()=>{if(window.confirm('화면을 다시 불러올까요? 저장하지 않은 편집 내용은 사라집니다.'))void act(()=>openTeamWorkspace({refresh:true}));}}/>}
  {fileDock&&<ToolsMenu profiles={project?.profiles} defaultShell={project?.defaultShell} projectReady={!!project} onOpenChange={setToolsOpen} onTerminal={openTerminal} onFiles={()=>setPane('files')} onWeb={()=>void act(newWebTab)}/>}
- <div className="desktop-pane-controls"><CxButton ref={paneToggle} className="desktop-pane-expand desktop-pane-left-control" aria-label={paneExpanded?'3분할로 돌아가기':'보조 영역 넓게 보기'} title={paneExpanded?'3분할로 돌아가기':'보조 영역 넓게 보기'} aria-pressed={paneExpanded} aria-controls="nubi-auxiliary-pane" onClick={()=>setPaneExpanded(value=>!value)}><Icon name={paneExpanded?'chevronsRight':'panelLeft'} size={18}/></CxButton>
+ <div className="desktop-pane-controls"><CxButton ref={paneToggle} className="desktop-pane-expand desktop-pane-left-control" aria-label={paneExpanded?'3분할로 돌아가기':'보조 영역 넓게 보기'} title={paneExpanded?'3분할로 돌아가기':'보조 영역 넓게 보기'} aria-pressed={paneExpanded} aria-controls="nubi-auxiliary-pane" onClick={()=>setPaneExpanded(value=>!value)}><Icon name={paneExpanded?'panelLeftClose':'panelLeft'} size={18}/></CxButton>
  {!paneExpanded&&<CxButton className="desktop-pane-expand desktop-pane-right-control" aria-label="오른쪽 사이드바 닫기" title="오른쪽 사이드바 닫기" aria-controls="nubi-auxiliary-pane" onClick={()=>setPane(null)}><Icon name="panelLeftClose" size={18}/></CxButton>}</div></header>
  {paneResizable&&<div className="desktop-pane-resize" title="드래그해 너비 조절. 더블클릭해 기본 너비로 복원" aria-controls="nubi-auxiliary-pane" {...paneResize}/>}
  {teamWorkspace&&<div className="desktop-team-workspace" hidden={pane!=='team-workspace'}><nav className="nubi-team-sections" role="tablist" aria-label="AI Workspace 영역"><CxButton role="tab" aria-selected={teamSection==='workspace'} onClick={()=>setTeamSection('workspace')}><Icon name="layoutGrid02" size={16}/>Workspace</CxButton><CxButton role="tab" aria-selected={teamSection==='wiki'} onClick={()=>setTeamSection('wiki')}><Icon name="bookmark" size={16}/>위키</CxButton></nav>{teamSection==='wiki'&&<WikiRepository api={api}/>}{teamWorkspace.url&&<iframe hidden={teamSection!=='workspace'} key={teamWorkspace.url} title="AI Workspace" src={teamWorkspace.url} sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-downloads" referrerPolicy="no-referrer"/>}{!teamWorkspace.url&&teamSection==='workspace'&&<p className="nubi-team-loading" role="status">{teamWorkspace.loading?'Workspace를 불러오는 중':'Workspace 화면을 불러오지 못했어요. 위키 메뉴에서 공유 저장소를 열 수 있어요.'}</p>}<div hidden={!teamWorkspace.url||teamSection!=='workspace'} className="desktop-team-workspace-source" title={`GHES 화면 버전 ${teamWorkspace.revision||''}`}><FolderMark size={13}/><span>{teamWorkspace.repository}</span><code>{teamWorkspace.revision?.slice(0,7)}</code></div></div>}

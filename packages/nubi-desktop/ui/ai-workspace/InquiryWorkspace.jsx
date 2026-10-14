@@ -25,6 +25,7 @@ import {confirmAction} from './confirmAction';
 import {notifyToast} from './Toast';
 import {refreshInquiryNotifications} from './inquiryNotificationRefresh';
 import './inquiry.css';
+import {ghesImageUrl} from './ghesImage.js';
 const readRoute=()=>location.hash==='#support=new'?'new':/^#support=([1-9]\d*)$/.exec(location.hash)?.[1]||'list';
 const noPending=()=>{};
 const empty={dirty:false,saving:false};
@@ -49,7 +50,7 @@ function InquirySidebar({id,posts,rows,pagination,query,setQuery,mine,setMine,st
           <span className="inquiry-feed-meta"><span className={`inquiry-status is-${state.key}`}>{state.label}</span><span className="inquiry-feed-type">{post.type}</span><small>#{post.number}</small></span>
           <span className="inquiry-post-link">{post.title}</span>
           {excerpts.get(post.number)&&<span className="inquiry-excerpt">{excerpts.get(post.number)}</span>}
-          <span className="inquiry-feed-bottom"><span className="inquiry-list-author" title={`${name} (${post.user.login})`}>{post.user.avatar_url?<img src={post.user.avatar_url} alt="" loading="lazy" referrerPolicy="no-referrer"/>:<Icon name="user" size={18}/>}<span>{name}</span></span><span className="inquiry-comment-count" aria-label={`답변 ${post.comments}개`}><Icon name="message" size={14}/>{post.comments}</span><time dateTime={post.updatedAt} title={new Date(post.updatedAt).toLocaleString('ko-KR')}>{Number.isFinite(Date.parse(post.updatedAt))?new Date(post.updatedAt).toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit'}):''}</time></span>
+          <span className="inquiry-feed-bottom"><span className="inquiry-list-author" title={`${name} (${post.user.login})`}>{post.user.avatar_url?<img src={ghesImageUrl(post.user.avatar_url)} alt="" loading="lazy" referrerPolicy="no-referrer"/>:<Icon name="user" size={18}/>}<span>{name}</span></span><span className="inquiry-comment-count" aria-label={`답변 ${post.comments}개`}><Icon name="message" size={14}/>{post.comments}</span><time dateTime={post.updatedAt} title={new Date(post.updatedAt).toLocaleString('ko-KR')}>{Number.isFinite(Date.parse(post.updatedAt))?new Date(post.updatedAt).toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit'}):''}</time></span>
         </button>
       </li>;})}</ol>
       {!pagination.rows.length&&!failure&&<p className="inquiry-empty">{posts.length?'조건에 맞는 문의가 없습니다.':'등록된 문의가 없습니다.'}</p>}

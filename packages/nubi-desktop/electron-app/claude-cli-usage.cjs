@@ -30,6 +30,34 @@ function window(entry){
  const used=percent(entry.utilization);if(used==null)return null;
  return {used,remaining:Math.round((100-used)*10)/10,resetsAt:typeof entry.resets_at==='string'?entry.resets_at:null};
 }
+// Money arrives in minor units: spend as {amount_minor,currency,exponent}, extra_usage as cents with decimal_places.
+// Enterprise plans are limited by spend in dollars, often with no 5-hour or 7-day window (user report 2026-10-14;
+// llm_router's dashboard reads the same fields).
+function money(value){
+ if(!value||typeof value!=='object'||!Number.isFinite(value.amount_minor))return null;
+ const exponent=Number.isInteger(value.exponent)?value.exponent:2;
+ return {amount:value.amount_minor/10**exponent,currency:typeof value.currency==='string'?value.currency:'USD'};
+}
+function spending(data){
+ const spend=data?.spend;
+ if(spend&&typeof spend==='object'){
+  const used=money(spend.used),limit=money(spend.limit)||money(spend.cap);
+  if(used&&(spend.enabled||limit||used.amount>0))return {used:used.amount,limit:limit?limit.amount:null,remaining:limit?Math.max(0,limit.amount-used.amount):null,currency:used.currency,percent:percent(spend.percent)};
+ }
+ const extra=data?.extra_usage;
+ if(extra&&typeof extra==='object'&&Number.isFinite(extra.monthly_limit)){
+  const scale=10**(Number.isInteger(extra.decimal_places)?extra.decimal_places:2),used=(Number(extra.used_credits)||0)/scale,limit=extra.monthly_limit/scale;
+  return {used,limit,remaining:Math.max(0,limit-used),currency:typeof extra.currency==='string'?extra.currency:'USD',percent:percent(extra.utilization)};
+ }
+ return null;
+}
+// Weekly limits for one model (e.g. "Fable") come only in the limits list.
+function scopedWindows(data){
+ return (Array.isArray(data?.limits)?data.limits:[]).filter(item=>item?.kind==='weekly_scoped'&&percent(item.percent)!=null).slice(0,6).map(item=>{
+  const used=percent(item.percent),name=String(item.scope?.model?.display_name||item.scope?.surface||'').slice(0,40);
+  return {label:name?`7일 한도 (${name})`:'7일 한도 (범위)',used,remaining:Math.round((100-used)*10)/10,resetsAt:typeof item.resets_at==='string'?item.resets_at:null};
+ });
+}
 function createClaudeCliUsage({fetchImpl=globalThis.fetch,platform=process.platform,env=process.env,now=Date.now}={}){
  let last=null;
  return {
@@ -41,9 +69,9 @@ function createClaudeCliUsage({fetchImpl=globalThis.fetch,platform=process.platf
    if(response.status===401||response.status===403)throw code('claude_cli_expired');
    if(!response.ok)throw code('claude_cli_request');
    const data=await response.json().catch(()=>null);
-   const fiveHour=window(data?.five_hour),sevenDay=window(data?.seven_day);
-   if(!fiveHour&&!sevenDay)throw code('claude_cli_format');
-   last={source:'claude_cli',fiveHour,sevenDay,readAt:new Date(now()).toISOString()};
+   const fiveHour=window(data?.five_hour),sevenDay=window(data?.seven_day),scoped=scopedWindows(data),spend=spending(data);
+   if(!fiveHour&&!sevenDay&&!scoped.length&&!spend)throw code('claude_cli_format');
+   last={source:'claude_cli',fiveHour,sevenDay,scoped,spend,readAt:new Date(now()).toISOString()};
    return last;
   },
   status(){return last;},

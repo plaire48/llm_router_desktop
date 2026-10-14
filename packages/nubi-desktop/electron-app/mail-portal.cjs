@@ -1,4 +1,4 @@
-const {ORIGIN,foldersOf,identityOf,portalFetchSource}=require('./mail-portal-contract.cjs');
+const {ORIGIN,LOGIN_URL,foldersOf,identityOf,portalFetchSource}=require('./mail-portal-contract.cjs');
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 class MailPortal {
  // Login happens in the app's own browser tab (openPage/closePage) when the host offers one; the hidden window only
@@ -37,7 +37,7 @@ class MailPortal {
    if(!this.openPage)throw Error('mail_portal_desktop_only');
    this.window.webContents.stop?.();await this.window.loadURL('about:blank');
   }else await this.window.loadURL(ORIGIN);
-  if(show&&this.openPage&&!this.page){const epoch=this.epoch;this.page=this.openPage(ORIGIN,{onClosed:()=>{if(this.page&&epoch===this.epoch){const closed=this.page;this.page=null;if(this.state.connecting)this.epoch++;try{this.closePage?.(closed.tabId);}catch{}}}});}
+  if(show&&this.openPage&&!this.page){const epoch=this.epoch;this.page=this.openPage(LOGIN_URL,{onClosed:()=>{if(this.page&&epoch===this.epoch){const closed=this.page;this.page=null;if(this.state.connecting)this.epoch++;try{this.closePage?.(closed.tabId);}catch{}}}});}
   return this.window;
  }
  closeLoginPage(){const page=this.page;this.page=null;if(page&&this.closePage){try{this.closePage(page.tabId);}catch{}}this.window?.hide();}

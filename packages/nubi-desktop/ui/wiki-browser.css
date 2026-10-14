@@ -1,6 +1,11 @@
 /* Wiki screen: the mail screen's bones (header, scope tabs, list box, reader
-   below) with a map view. Surfaces sit on cards over the ambient background. */
-.nubi-wiki-browser{height:100%;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:var(--cx-space-3);padding:22px 28px;color:var(--deck-ink);font-family:var(--deck-font-body)}
+   below) with a map view. Like the mail page it sits on one solid card surface that
+   covers the ambient blobs; the list, map and reader are separated by hairlines
+   instead of shadowed cards floating over the pattern (user request 2026-10-14). */
+.nubi-wiki-browser{height:100%;min-height:0;box-sizing:border-box;overflow:auto;display:flex;flex-direction:column;gap:var(--cx-space-3);padding:22px 28px;background:var(--deck-card);color:var(--deck-ink);font-family:var(--deck-font-body)}
+/* Like the mail page's tabs, the view tabs keep their own height: the shared catalog rule (flex:1) otherwise
+   stretches them into an empty band on short pages, and no section shrinks under a long document. */
+.nubi-wiki-browser>*{flex-shrink:0}:is(:root:has(.desktop-shell),:root) .nubi-wiki-browser>.nubi-catalog-tabs{flex:none}
 .nubi-wiki-bar{display:flex;align-items:center;flex-wrap:wrap;gap:var(--cx-space-3);min-height:38px;padding-bottom:var(--cx-space-1)}
 .nubi-wiki-badge{display:inline-grid;place-items:center;flex:none;width:40px;height:40px;border-radius:var(--nubi-work-control-radius);background:var(--deck-blue-soft);color:var(--deck-blue-deep)}
 .nubi-wiki-bar h1{font-size:var(--deck-type-heading);line-height:var(--deck-line-heading);font-weight:600;margin:0}
@@ -10,7 +15,7 @@
 .nubi-wiki-error{color:var(--deck-red);margin:0}.nubi-wiki-saved{color:var(--deck-green);margin:0}
 /* List */
 .nubi-wiki-list{display:flex;flex-direction:column;gap:var(--cx-space-2);min-width:0}
-.nubi-wiki-results{overflow:auto;min-height:120px;max-height:clamp(220px,40vh,520px);border-radius:var(--nubi-work-control-radius);background:var(--nubi-surface-base);box-shadow:var(--cx-shadow-card)}
+.nubi-wiki-results{overflow:auto;min-height:120px;max-height:clamp(220px,40vh,520px);border:1px solid var(--deck-line);border-radius:var(--nubi-work-control-radius);background:var(--nubi-surface-base)}
 .nubi-wiki-table{border-collapse:separate;border-spacing:0;width:100%;min-width:760px;table-layout:fixed;color:var(--nubi-text-primary);font:var(--deck-font-body)}
 .nubi-wiki-table .wiki-title-col{width:auto}.nubi-wiki-table .wiki-section-col{width:150px}.nubi-wiki-table .wiki-type-col{width:136px}.nubi-wiki-table .wiki-links-col{width:92px}.nubi-wiki-table .wiki-date-col{width:168px}
 .nubi-wiki-table th{position:sticky;top:0;z-index:1;background:var(--nubi-surface-base);border-bottom:1px solid var(--deck-tint);color:var(--nubi-text-secondary);text-align:left;font-weight:500}
@@ -27,9 +32,9 @@
 .nubi-wiki-degree{display:inline-flex;align-items:center;gap:var(--cx-space-1);font-variant-numeric:tabular-nums}.nubi-wiki-degree[data-orphan=true]{color:var(--deck-red)}.nubi-wiki-degree[data-orphan=true] svg{color:var(--deck-red)}.nubi-wiki-map-side h3[data-orphan=true] svg,.nubi-wiki-map-orphans svg{color:var(--deck-red);flex:none}.nubi-wiki-map-side h3 small{font-weight:700;color:var(--deck-ink);font-variant-numeric:tabular-nums}
 .nubi-wiki-table time{color:var(--nubi-text-secondary);font:var(--deck-font-caption);font-variant-numeric:tabular-nums}
 .nubi-wiki-empty-rows{display:grid;justify-items:center;align-content:center;gap:var(--cx-space-2);min-height:160px;padding:var(--cx-space-6);text-align:center;color:var(--deck-sub)}.nubi-wiki-empty-rows svg{color:var(--deck-blue)}.nubi-wiki-empty-rows strong{color:var(--deck-ink);font-weight:600}.nubi-wiki-empty-rows p{margin:0;font:var(--deck-font-caption)}
-.nubi-wiki-loading{display:flex;align-items:center;gap:var(--cx-space-2);margin:0;padding:var(--cx-space-6);color:var(--deck-sub)}
+.nubi-wiki-loading{margin:12px 0}
 /* Reader */
-.nubi-wiki-document{margin-top:var(--cx-space-1);padding:var(--cx-space-5) var(--cx-space-6) var(--cx-space-6);border-radius:var(--nubi-work-control-radius);background:var(--nubi-surface-base);box-shadow:var(--cx-shadow-card);min-width:0;scroll-margin-top:12px}
+.nubi-wiki-document{margin-top:var(--cx-space-3);padding:var(--cx-space-4) 0 var(--cx-space-6);border-top:1px solid var(--deck-line);background:transparent;min-width:0;scroll-margin-top:12px}
 .nubi-wiki-document-content>header{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:var(--cx-space-3) var(--cx-space-4);margin-bottom:var(--cx-space-4)}
 .nubi-wiki-document-heading{display:grid;gap:var(--cx-space-2);min-width:0;flex:1 1 320px}
 .nubi-wiki-document h2{font-size:var(--deck-type-heading);font-weight:700;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -54,10 +59,10 @@
 .nubi-wiki-map-stats{display:flex;flex-wrap:wrap;gap:var(--cx-space-3);color:var(--deck-sub);font:var(--deck-font-caption)}.nubi-wiki-map-stats span{display:inline-flex;align-items:center;gap:var(--cx-space-1);font-variant-numeric:tabular-nums}.nubi-wiki-map-stats span[data-attention=true]{color:var(--deck-red)}
 .nubi-wiki-map-zoom{position:absolute;right:var(--cx-space-3);bottom:var(--cx-space-3);display:flex;flex-direction:column;gap:2px;padding:2px;border-radius:12px;background:var(--deck-card);box-shadow:var(--cx-shadow-card)}.nubi-wiki-map-zoom .cx-kit-button{width:32px;height:32px;min-height:32px;padding:0;justify-content:center;border:0;box-shadow:none;background:transparent;color:var(--deck-blue-deep)}.nubi-wiki-map-zoom .cx-kit-button:hover,.nubi-wiki-map-zoom .cx-kit-button[aria-pressed=true]{background:var(--deck-blue-soft)}
 .nubi-wiki-map-legend{display:flex;flex-wrap:wrap;gap:var(--cx-space-2)}
-.nubi-wiki-map-legend button{display:inline-flex;align-items:center;gap:var(--cx-space-2);padding:var(--cx-space-1) var(--cx-space-3);border:0;border-radius:999px;background:var(--nubi-surface-base);color:var(--deck-ink);font:var(--deck-font-caption);font-weight:600;cursor:pointer;box-shadow:var(--cx-shadow-card)}.nubi-wiki-map-orphans{color:var(--deck-red)}
+.nubi-wiki-map-legend button{display:inline-flex;align-items:center;gap:var(--cx-space-2);padding:var(--cx-space-1) var(--cx-space-3);border:0;border-radius:999px;background:var(--deck-tint);color:var(--deck-ink);font:var(--deck-font-caption);font-weight:600;cursor:pointer}.nubi-wiki-map-orphans{color:var(--deck-red)}
 .nubi-wiki-map-legend button[aria-pressed=false]{opacity:.45;text-decoration:line-through}.nubi-wiki-map-legend i{width:10px;height:10px;border-radius:50%;flex:none}.nubi-wiki-map-legend small{color:var(--deck-sub)}
 .nubi-wiki-map-body{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:var(--cx-space-3)}.nubi-wiki-map[data-expanded]>.nubi-wiki-map-body{grid-template-columns:minmax(0,1fr)}.nubi-wiki-map[data-expanded] .nubi-wiki-map-side{display:none}
-.nubi-wiki-map-frame{position:relative;height:clamp(420px,62vh,880px);min-height:320px;overflow:hidden;border-radius:var(--nubi-work-control-radius);background:var(--nubi-surface-base) radial-gradient(var(--deck-line) 1px,transparent 1px) 0 0/18px 18px;box-shadow:var(--cx-shadow-card)}
+.nubi-wiki-map-frame{position:relative;height:clamp(420px,62vh,880px);min-height:320px;overflow:hidden;border:1px solid var(--deck-line);border-radius:var(--nubi-work-control-radius);background:var(--nubi-surface-base) radial-gradient(var(--deck-line) 1px,transparent 1px) 0 0/18px 18px}
 .nubi-wiki-map[data-expanded] .nubi-wiki-map-frame{height:calc(100vh - 230px);min-height:480px}.nubi-wiki-map-frame svg{display:block;width:100%;height:100%;cursor:grab;touch-action:none;user-select:none}.nubi-wiki-map[data-large] .nubi-wiki-map-frame svg{shape-rendering:optimizeSpeed}.nubi-wiki-map[data-large] .nubi-wiki-map-frame circle{stroke-width:1}.nubi-wiki-map-frame[data-dragging=true] svg{cursor:grabbing}
 .nubi-wiki-map line{stroke:var(--deck-sub);stroke-opacity:.35;stroke-linecap:round}.nubi-wiki-map line[data-strong]{stroke:var(--deck-blue);stroke-opacity:.95}.nubi-wiki-map line[data-dim]{stroke-opacity:.08}
 .nubi-wiki-map g[role=button]{cursor:pointer;outline:none}.nubi-wiki-map g[role=button][data-dim]{opacity:.25}
@@ -66,12 +71,12 @@
 .nubi-wiki-map-card{position:absolute;left:12px;bottom:12px;max-width:min(360px,calc(100% - 24px));padding:var(--cx-space-3) var(--cx-space-3);border-radius:10px;background:var(--nubi-surface-base);box-shadow:var(--deck-shadow);display:grid;gap:var(--cx-space-1);pointer-events:none}
 .nubi-wiki-map-card strong{font-weight:700}.nubi-wiki-map-card span{color:var(--deck-sub);font:var(--deck-font-caption)}.nubi-wiki-map-card p{margin:0;font:var(--deck-font-caption);color:var(--deck-ink);line-height:1.5}
 .nubi-wiki-map-note{position:absolute;top:12px;left:12px;right:12px;margin:0;color:var(--deck-sub);font:var(--deck-font-caption)}
-.nubi-wiki-map-side{display:grid;align-content:start;gap:var(--cx-space-2);padding:var(--cx-space-3);border-radius:var(--nubi-work-control-radius);background:var(--nubi-surface-base);box-shadow:var(--cx-shadow-card);min-width:0}
+.nubi-wiki-map-side{display:grid;align-content:start;gap:var(--cx-space-2);padding:var(--cx-space-3);border:1px solid var(--deck-line);border-radius:var(--nubi-work-control-radius);background:var(--nubi-surface-base);min-width:0}
 .nubi-wiki-map-side h3{display:flex;align-items:center;gap:var(--cx-space-2);margin:0;color:var(--deck-sub);font:var(--deck-font-caption);font-weight:600}.nubi-wiki-map-side details>summary{display:flex;align-items:center;justify-content:space-between;gap:var(--cx-space-2);list-style:none;cursor:pointer;padding:var(--cx-space-1) var(--cx-space-1);border-radius:8px}.nubi-wiki-map-side details>summary::-webkit-details-marker{display:none}.nubi-wiki-map-side details>summary:hover{background:var(--deck-blue-soft)}.nubi-wiki-map-side details>summary>svg:last-child{color:var(--deck-sub);transition:transform .18s ease}.nubi-wiki-map-side details[open]>summary>svg:last-child{transform:rotate(180deg)}.nubi-wiki-map-side details>:is(ol,ul){margin-top:var(--cx-space-1)}
 .nubi-wiki-map-side ol,.nubi-wiki-map-side ul{list-style:none;margin:0;padding:0;display:grid;gap:2px}
 .nubi-wiki-map-side{max-height:clamp(420px,62vh,880px);overflow:auto}.nubi-wiki-map-side button{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--cx-space-2);width:100%;padding:var(--cx-space-2) var(--cx-space-2);border:0;border-radius:8px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;min-width:0}.nubi-wiki-map-side button>span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;white-space:normal;line-height:1.4}.nubi-wiki-map-side button>small{flex:none;font-variant-numeric:tabular-nums}
 .nubi-wiki-map-side button:hover,.nubi-wiki-map-side button[aria-pressed=true]{background:var(--deck-blue-soft);color:var(--deck-blue-deep)}.nubi-wiki-map-side small{color:var(--deck-sub);font-variant-numeric:tabular-nums}
-@media(max-width:860px){.nubi-wiki-browser{padding:var(--cx-space-3)}.nubi-wiki-map-body{grid-template-columns:1fr}.nubi-wiki-scope{flex-wrap:wrap}.nubi-wiki-scope>.cx-select,.nubi-wiki-scope>select{width:100%;max-width:none}.nubi-wiki-document{padding:var(--cx-space-4)}}
+@media(max-width:860px){.nubi-wiki-browser{padding:var(--cx-space-3)}.nubi-wiki-map-body{grid-template-columns:1fr}.nubi-wiki-scope{flex-wrap:wrap}.nubi-wiki-scope>.cx-select,.nubi-wiki-scope>select{width:100%;max-width:none}.nubi-wiki-document{padding:var(--cx-space-4) 0}}
 /* Motion: short fades when a view or a document changes, eased hover and emphasis; nothing moves on its own. */
 @keyframes nubi-wiki-fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .nubi-wiki-list,.nubi-wiki-map,.nubi-wiki-document-content,.nubi-wiki-empty{animation:nubi-wiki-fade .22s ease-out}
@@ -100,3 +105,18 @@
 .nubi-wiki-map-dot{flex:none;width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 1px var(--nubi-surface-base)}
 .nubi-wiki-map-count{flex:none;min-width:22px;padding:1px 7px;border-radius:999px;background:var(--deck-blue-soft);color:var(--deck-blue-deep);font-weight:600;text-align:center}
 .nubi-wiki-map-side button[aria-pressed=true] .nubi-wiki-map-count{background:var(--deck-blue-deep);color:var(--deck-card)}
+
+/* Side list folds away; rows start with the colour dot and the count, the title truncates with a hover tooltip (2026-10-14). */
+.nubi-wiki-map-side{position:relative;overflow-x:hidden}
+.nubi-wiki-map-side-toggle,.nubi-wiki-map-side-open{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;border:0;border-radius:var(--nubi-work-control-radius);background:transparent;color:var(--deck-sub);cursor:pointer}
+/* The fold control lives in the first header row; the row-button rule must not stretch it. */
+.nubi-wiki-map-side-head{display:flex;align-items:center;justify-content:space-between;gap:var(--cx-space-2);min-height:28px}
+.nubi-wiki-map-side .nubi-wiki-map-side-head>.nubi-wiki-map-side-toggle{flex:none;width:28px;height:28px;padding:0;justify-content:center;align-items:center;border-radius:var(--nubi-work-control-radius)}
+/* A selected row keeps its count readable: a white chip on the soft blue row. */
+.nubi-wiki-map .nubi-wiki-map-side button[aria-pressed=true]>.nubi-wiki-map-count{background:var(--deck-card);color:var(--deck-blue-deep)}
+.nubi-wiki-map-side-toggle:hover,.nubi-wiki-map-side-open:hover{background:var(--deck-blue-soft);color:var(--deck-blue-deep)}
+.nubi-wiki-map[data-side-closed]>.nubi-wiki-map-body{grid-template-columns:minmax(0,1fr) auto}
+.nubi-wiki-map-side-open{align-self:start;border:1px solid var(--deck-line);background:var(--nubi-surface-base)}
+.nubi-wiki-map-side button>.nubi-wiki-map-count{order:0}
+
+.nubi-wiki-map-side button{justify-content:flex-start}

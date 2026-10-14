@@ -1727,9 +1727,40 @@ html[data-project-switching] .nubi-workbench .nubi-main, html[data-project-switc
 .nubi-mail-lock[data-state="unavailable"] { color:var(--nubi-text-secondary); opacity:.7; }
 
 /* Toast decisions: the choices of a question and its free-text answer (2026-10-14). */
-.nubi-feedback-toast .nubi-feedback-message { flex-wrap:wrap; }
+.nubi-feedback-toast .nubi-feedback-message { flex-wrap:nowrap; }
+.nubi-feedback-message > span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .nubi-feedback-actions { display:inline-flex; flex-wrap:wrap; gap:var(--cx-space-1); margin-left:var(--cx-space-1); }
 .nubi-feedback-action[data-choice] { background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
 .nubi-feedback-input { display:flex; align-items:center; gap:var(--cx-space-1); flex-basis:100%; margin-top:var(--cx-space-1); }
 .nubi-feedback-input input { flex:1; min-width:0; height:28px; padding:0 var(--cx-space-2); border:1px solid var(--deck-line); border-radius:var(--deck-pill-radius); background:var(--deck-card); color:inherit; font:var(--deck-font-caption); }
 .nubi-feedback-input .nubi-feedback-action { margin-left:0; padding:0 var(--cx-space-2); height:28px; display:inline-flex; align-items:center; }
+
+/* Live reasoning while the model thinks (2026-10-14): muted, the latest lines only. */
+.nubi-live-reasoning { display:grid; gap:var(--cx-space-1); margin:var(--cx-space-2) 0; padding:var(--cx-space-2) var(--cx-space-3); border-left:2px solid var(--deck-blue-soft); color:var(--nubi-text-secondary); }
+.nubi-live-reasoning-head { display:inline-flex; align-items:center; gap:var(--cx-space-2); font-size:var(--cx-type-caption); font-weight:600; color:var(--deck-blue-deep); }
+.nubi-live-reasoning-head .status-spinner { width:12px; height:12px; }
+.nubi-live-reasoning p { margin:0; font-size:var(--cx-type-caption); line-height:1.6; white-space:pre-wrap; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; }
+
+/* Progress folds smoothly (user request 2026-10-14): the plan, its step details and the run record open
+   while the run works and fold once the answer is delivered; a reader's own toggle opens and folds with a short ease.
+   Reduced motion keeps the plain toggle. */
+@media (prefers-reduced-motion: no-preference) {
+  .nubi-workbench .nubi-agent-activity :is(.agent-trace, [data-plan-overview], .task-plan-context) { interpolate-size:allow-keywords; }
+  .nubi-workbench .nubi-agent-activity :is(.agent-trace, [data-plan-overview], .task-plan-context)::details-content { block-size:0; opacity:0; overflow:clip; transition:block-size var(--deck-feedback, 240ms) var(--deck-ease, ease), opacity var(--deck-feedback, 240ms) var(--deck-ease, ease), content-visibility var(--deck-feedback, 240ms) allow-discrete; }
+  .nubi-workbench .nubi-agent-activity :is(.agent-trace, [data-plan-overview], .task-plan-context)[open]::details-content { block-size:auto; opacity:1; }
+}
+
+/* A narrow composer (the follow-up box too) shows the reasoning control as an icon, so the two button groups never
+   overlap; the desktop shell has its own sizes in workspace-density.css. */
+@container workspace-composer (max-width:460px) {
+ .nubi-workbench .nubi-compose-card .nubi-reasoning-label { display:none; }
+ .nubi-workbench .nubi-compose-card .nubi-reasoning-trigger.cx-kit-button { width:32px; min-width:32px; padding:0; justify-content:center; }
+ .nubi-workbench .nubi-compose-card :is(.composer-bottom,.composer-leading,.composer-tools) { gap:4px; }
+ .nubi-workbench .nubi-compose-card .composer-bottom :is(.composer-leading,.composer-tools) > .cx-kit-button:not(.context-trigger) { width:32px; min-width:32px; padding:0; }
+ .nubi-workbench .nubi-compose-card .composer-bottom .context-trigger.cx-kit-button { padding-inline:4px; }
+}
+/* Very narrow: the right-hand group wraps onto its own line instead of overlapping. */
+@container workspace-composer (max-width:330px) {
+ .nubi-workbench .nubi-compose-card .composer-bottom { flex-wrap:wrap; row-gap:6px; }
+ .nubi-workbench .nubi-compose-card .composer-bottom .composer-tools { margin-left:auto; }
+}

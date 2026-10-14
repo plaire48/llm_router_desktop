@@ -38,6 +38,10 @@ export function validateToken(token) {
 // 256K: compaction came too early for glm-5.2, and past the window of gpt-oss-120b.
 export const windowTokens = catalogWindowTokens;
 export const HIDDEN_MODELS = new Set(['Qwen3-Coder_rag', 'aipro-fast-model']);
+// The catalog names a model by its ID (name) and by what people see (display_name); either one hides it. Matching only
+// the ID let Qwen3-Coder_rag through, since its ID is QWEN3-CODER-480B-A35B-INSTRUCT-FP8-128K_rag (user report 2026-10-14).
+const HIDDEN_KEYS = new Set([...HIDDEN_MODELS].map(name => name.toLowerCase()));
+export const hiddenModel = item => [item?.name, item?.display_name].some(name => typeof name === 'string' && HIDDEN_KEYS.has(name.trim().toLowerCase()));
 export async function fetchModelCatalog(token, fetchImpl = fetch, signal) {
   const response = await fetchImpl(`${ORIGIN}/api/models`, { headers: { Accept: 'application/json', Authorization: `Bearer ${validateToken(token)}`, 'X-REASONING': 'true' }, credentials:'omit',cache: 'no-store', redirect: 'error', signal: AbortSignal.any([AbortSignal.timeout(15000), ...(signal ? [signal] : [])]) });
   const body = await json(response);
@@ -48,7 +52,7 @@ export async function fetchModelCatalog(token, fetchImpl = fetch, signal) {
     const id = typeof item?.name === 'string' ? item.name.trim() : '';
     if (!id || id.length > 200 || /[\x00-\x1f\x7f]/.test(id)) {summary.excluded.name++; return [];}
     // Administrator-facing entries in the shared catalog stay out of the picker (user decision 2026-10-14).
-    if (HIDDEN_MODELS.has(id)) {summary.excluded.hidden++; return [];}
+    if (hiddenModel(item)) {summary.excluded.hidden++; return [];}
     if (seen.has(id)) {summary.excluded.duplicate++; return [];}
     seen.add(id);
     return [{ id, ...(typeof item.supports_images==='boolean'?{supportsImages:item.supports_images}:{}), label: typeof item.display_name === 'string' && item.display_name.trim() ? item.display_name.trim().slice(0, 200) : id,

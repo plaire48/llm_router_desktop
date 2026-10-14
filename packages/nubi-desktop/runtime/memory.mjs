@@ -23,7 +23,8 @@ export function openUserMemoryStore(storageRoot){
   return shared.get(directory);
 }
 export function memoryStores(service){
-  if(!service.store)return null;
+  // Settings opened before any project still list the person's memories (user report 2026-10-14).
+  if(!service.store){const user=service.userMemoryStore||(service.storageRoot?openUserMemoryStore(service.storageRoot):null);return user?{project:user,user,userIsProject:true}:null;}
   const user=service.userMemoryStore||(service.storageRoot?openUserMemoryStore(service.storageRoot):null);
   return {project:service.store,user:user||service.store,userIsProject:!user};
 }

@@ -321,3 +321,127 @@
  .desktop-shell .nubi-workbench[data-workspace-screen="conversation"] .nubi-workbench-content {background:Canvas}
  .desktop-shell .nubi-workbench .nubi-followup-stack::before {display:none}
 }
+
+/* Liquid, iOS-like screen changes (user request 2026-10-14). viewTransition.js wraps sidebar, side-pane and screen
+   changes in View Transitions; these names let the sidebar, the main column and the side pane morph as separate
+   layers while the rest cross-fades. Everything runs on the compositor (snapshots, transform, opacity). */
+/* On :root so the view-transition pseudo-elements (children of html) see them; slightly shorter for a quicker feel (2026-10-14). */
+:root { --nubi-spring:cubic-bezier(.32,.72,0,1); --nubi-morph:.36s; --nubi-morph-out:.26s; }
+.desktop-shell .nubi-sidebar[data-open=true] { view-transition-name:nubi-sidebar; }
+.desktop-shell .nubi-workbench .nubi-main { view-transition-name:nubi-main; }
+.desktop-shell .desktop-pane { view-transition-name:nubi-pane; }
+.desktop-shell .nubi-window-toolbar { view-transition-name:nubi-toolbar; }
+::view-transition-group(*) { animation-duration:var(--nubi-morph,.42s); animation-timing-function:var(--nubi-spring,cubic-bezier(.32,.72,0,1)); }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration:.24s; animation-timing-function:ease-out; }
+::view-transition-old(nubi-main), ::view-transition-new(nubi-main), ::view-transition-old(nubi-pane), ::view-transition-new(nubi-pane) { height:100%; width:100%; object-fit:cover; object-position:left top; animation-duration:.28s; }
+::view-transition-old(nubi-toolbar), ::view-transition-new(nubi-toolbar) { animation:none; }
+::view-transition-new(nubi-sidebar):only-child { animation:nubi-vt-in-left var(--nubi-morph,.42s) var(--nubi-spring) both; }
+::view-transition-old(nubi-sidebar):only-child { animation:nubi-vt-out-left var(--nubi-morph-out,.3s) var(--nubi-spring) both; }
+::view-transition-new(nubi-pane):only-child { animation:nubi-vt-in-right var(--nubi-morph,.42s) var(--nubi-spring) both; }
+::view-transition-old(nubi-pane):only-child { animation:nubi-vt-out-right var(--nubi-morph-out,.3s) var(--nubi-spring) both; }
+@keyframes nubi-vt-in-left { from { transform:translateX(-24px); opacity:0; } to { transform:none; opacity:1; } }
+@keyframes nubi-vt-out-left { from { transform:none; opacity:1; } to { transform:translateX(-24px); opacity:0; } }
+@keyframes nubi-vt-in-right { from { transform:translateX(32px); opacity:0; } to { transform:none; opacity:1; } }
+@keyframes nubi-vt-out-right { from { transform:none; opacity:1; } to { transform:translateX(32px); opacity:0; } }
+@media (prefers-reduced-motion: reduce) { ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation:none !important; } }
+/* The view transition already moves the pane in; its own enter animation would play twice. */
+@supports (view-transition-name: a) { .desktop-shell .desktop-pane { animation:none; } }
+
+/* Side panel tabs as compact icons (user request 2026-10-14: "각 탭 작게 아이콘만"). The name stays for screen readers
+   and appears on hover (title); close and the unsaved dot sit on the icon's corner. */
+.desktop-shell .desktop-file-tabs .desktop-workspace-tab { position:relative; flex:none; display:flex; }
+.desktop-shell .desktop-file-tabs .desktop-tab-select { flex:none; width:34px; min-width:34px; max-width:34px; min-height:32px; padding:0; justify-content:center; gap:0; border-radius:var(--nubi-work-control-radius); }
+.desktop-shell .desktop-file-tabs .desktop-tab-select > span:not(.desktop-dirty):not(.status-spinner) { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+.desktop-shell .desktop-file-tabs .desktop-tab-select > .desktop-dirty { position:absolute; top:3px; left:4px; font-size:8px; line-height:1; color:var(--deck-blue-deep); }
+.desktop-shell .desktop-file-tabs .desktop-tab-select > .status-spinner { position:absolute; bottom:3px; right:3px; width:8px; height:8px; }
+.desktop-shell .desktop-file-tabs .desktop-tab-close { position:absolute; top:-3px; right:-3px; z-index:1; width:16px; min-width:16px; height:16px; min-height:16px; padding:0; border-radius:50%; background:var(--deck-card); box-shadow:0 1px 3px rgba(15,23,42,.18); opacity:0; transform:scale(.6); transition:opacity .16s ease, transform .22s var(--nubi-spring,cubic-bezier(.32,.72,0,1)); }
+.desktop-shell .desktop-file-tabs .desktop-tab-close svg { width:10px; height:10px; }
+.desktop-shell .desktop-file-tabs .desktop-workspace-tab:is(:hover,:focus-within) .desktop-tab-close { opacity:1; transform:scale(1); }
+.desktop-shell .desktop-file-tabs { gap:var(--cx-space-1); padding-block:4px; }
+
+/* iOS-like touch feedback across the app (user request 2026-10-14: the reasoning knob's "통통" swell, everywhere).
+   Presses sink a little and spring back; knobs swell while held; checks pop; menus grow from their anchor. Transform
+   and opacity only, so the compositor does the work. Reduced motion turns all of it off. */
+:root { --nubi-bounce:cubic-bezier(.34,1.56,.64,1); --nubi-motion-pressed-scale:.96; }
+.nubi-desktop-host :is(.cx-kit-button,.cx-action-button) { transition-property:background,box-shadow,color,transform; transition-duration:var(--nubi-motion-hover),var(--nubi-motion-hover),var(--nubi-motion-hover),.32s; transition-timing-function:var(--nubi-motion-ease),var(--nubi-motion-ease),var(--nubi-motion-ease),var(--nubi-bounce); }
+.nubi-desktop-host :is(.cx-kit-button,.cx-action-button):active:not(:disabled) { transition-duration:var(--nubi-motion-hover),var(--nubi-motion-hover),var(--nubi-motion-hover),.09s; }
+/* Rows and cards a person taps: mail, wiki, skills, tasks, projects, menu items. */
+.desktop-shell :is(.nubi-mail-result,.nubi-mail-history-row,.nubi-custom-skill-row,.nubi-marketplace-row,.nubi-wiki-row,.nubi-task-row,.nubi-project-row,[role="menuitem"],[role="option"],[role="tab"]) { transition:transform .32s var(--nubi-bounce), background-color .2s var(--nubi-motion-ease); }
+.desktop-shell :is(.nubi-mail-result,.nubi-mail-history-row,.nubi-custom-skill-row,.nubi-marketplace-row,.nubi-wiki-row,.nubi-task-row,.nubi-project-row,[role="menuitem"],[role="option"]):active:not(:disabled):not([aria-disabled="true"]) { transform:scale(.985); transition-duration:.09s; }
+/* Slider knobs swell while held, then settle. */
+.nubi-desktop-host input[type="range"]::-webkit-slider-thumb { transition:transform .32s var(--nubi-bounce), box-shadow .2s var(--nubi-motion-ease); }
+.nubi-desktop-host input[type="range"]:active::-webkit-slider-thumb { transform:scale(1.28); box-shadow:0 3px 10px color-mix(in srgb,var(--deck-ink) 18%,transparent); }
+/* Checks and radios pop when they change. */
+.nubi-desktop-host :is(input[type="checkbox"],input[type="radio"]) { transition:transform .3s var(--nubi-bounce); }
+.nubi-desktop-host :is(input[type="checkbox"],input[type="radio"]):active:not(:disabled) { transform:scale(.86); }
+.nubi-desktop-host :is(input[type="checkbox"],input[type="radio"]):checked { animation:nubi-pop .34s var(--nubi-bounce); }
+.nubi-desktop-host [role="switch"][aria-checked] { transition:transform .3s var(--nubi-bounce), background-color .2s var(--nubi-motion-ease); }
+.nubi-desktop-host [role="switch"]:active { transform:scale(.94); }
+@keyframes nubi-pop { 0%{transform:scale(.8)} 60%{transform:scale(1.12)} 100%{transform:scale(1)} }
+/* Menus and popovers grow from where they open. */
+.desktop-shell :is([role="menu"],[role="listbox"],.cx-popover,.nubi-popover) { animation:nubi-menu-in .26s var(--nubi-spring,cubic-bezier(.32,.72,0,1)) both; transform-origin:top center; }
+@keyframes nubi-menu-in { from{opacity:0;transform:scale(.94) translateY(-4px)} to{opacity:1;transform:none} }
+/* Icon-only toolbar buttons get a small bounce on release. */
+.desktop-shell .nubi-icon-button:active:not(:disabled) svg { transform:scale(.88); }
+.desktop-shell .nubi-icon-button svg { transition:transform .34s var(--nubi-bounce); }
+@media (prefers-reduced-motion: reduce) {
+  .nubi-desktop-host *, .nubi-desktop-host *::-webkit-slider-thumb { animation:none !important; transition-duration:0s !important; }
+  .nubi-desktop-host :is(.cx-kit-button,.cx-action-button,input,[role="switch"],[role="menuitem"],[role="option"]):active { transform:none !important; }
+}
+
+/* The start screen's gradient keeps drifting while the person types (user request 2026-10-14: "그라데이션이 움직였으면").
+   Elsewhere typing still quiets the backdrop. Wider, slower drift; transform only. Dialogs, a hidden window, a paused
+   motion setting and reduced motion still stop it. */
+:root:not([data-motion='paused']):not([data-motion-visibility='hidden']):not(:has(.cx-panel-backdrop)) .desktop-shell:has(.nubi-start.is-empty) .deck-blob { animation-play-state:running; opacity:.3 !important; }
+.desktop-shell:has(.nubi-start.is-empty) .deck-blob-blue { animation:nubi-start-drift-a 26s cubic-bezier(.45,0,.55,1) infinite alternate; }
+.desktop-shell:has(.nubi-start.is-empty) .deck-blob-violet { animation:nubi-start-drift-b 31s cubic-bezier(.45,0,.55,1) infinite alternate; animation-delay:-11s; }
+.desktop-shell:has(.nubi-start.is-empty) .deck-blob-teal { animation:nubi-start-drift-c 23s cubic-bezier(.45,0,.55,1) infinite alternate; animation-delay:-6s; }
+@keyframes nubi-start-drift-a { 0%{transform:translate3d(-6vw,-4vh,0) scale(.95)} 50%{transform:translate3d(14vw,10vh,0) scale(1.15)} 100%{transform:translate3d(4vw,22vh,0) scale(1.02)} }
+@keyframes nubi-start-drift-b { 0%{transform:translate3d(8vw,6vh,0) scale(1.05)} 50%{transform:translate3d(-16vw,-12vh,0) scale(.92)} 100%{transform:translate3d(-4vw,-24vh,0) scale(1.12)} }
+@keyframes nubi-start-drift-c { 0%{transform:translate3d(-4vw,14vh,0) scale(.94)} 50%{transform:translate3d(-20vw,-6vh,0) scale(1.18)} 100%{transform:translate3d(6vw,-10vh,0) scale(1)} }
+@media (prefers-reduced-motion: reduce) { .desktop-shell .deck-blob { animation:none !important; } }
+
+/* Soft, squishy UI (user request 2026-10-14: "iOS 느낌의 부드러움과 말랑한 느낌, 전체적인 UI가 말랑하게").
+   Rounder corners, layered soft shadows, a small lift on hover, a soft glow on focus and a jelly press. Set on the
+   desktop body so dialogs rendered outside the shell get it too. The shared extension keeps its own values. */
+body.nubi-desktop-host {
+  --deck-control-radius:14px; --deck-inset-radius:20px; --deck-panel-radius:28px;
+  --nubi-action-radius:22px; --nubi-field-radius:20px; --nubi-content-radius:24px; --nubi-surface-radius:30px; --nubi-box-radius:16px;
+  --deck-shadow:0 1px 2px rgba(25,31,40,.04), 0 10px 30px rgba(25,31,40,.07), 0 30px 70px rgba(25,31,40,.05);
+  --deck-shadow-tile:0 1px 2px rgba(25,31,40,.03), 0 8px 22px rgba(25,31,40,.05);
+  --nubi-surface-shadow:0 2px 6px color-mix(in srgb,var(--deck-blue-deep) 5%,transparent), 0 18px 44px color-mix(in srgb,var(--deck-blue-deep) 9%,transparent);
+  --nubi-soft-glow:0 0 0 4px color-mix(in srgb,var(--deck-blue,#3b82f6) 16%,transparent);
+}
+/* Cards and rows lift a little under the pointer and settle with a spring. */
+@media (hover:hover) and (pointer:fine) {
+  .desktop-shell :is(.nubi-mail-result,.nubi-custom-skill-row,.nubi-marketplace-row,.nubi-mcp-item,.nubi-wiki-table tbody tr,.usage-account,.nubi-server-notice):hover { transform:translateY(-1px); }
+  .desktop-shell .nubi-icon-button:hover:not(:disabled) svg, .desktop-shell .nubi-workspace-rail button:hover:not(:disabled) svg { transform:scale(1.08); }
+}
+.desktop-shell :is(.nubi-mail-result,.nubi-custom-skill-row,.nubi-marketplace-row,.nubi-mcp-item,.usage-account,.nubi-server-notice) { transition:transform .38s var(--nubi-bounce), box-shadow .25s var(--nubi-motion-ease), background-color .2s var(--nubi-motion-ease); }
+.desktop-shell .nubi-workspace-rail button svg { transition:transform .34s var(--nubi-bounce); }
+.desktop-shell .nubi-workbench .composer { transition:box-shadow .3s var(--nubi-motion-ease), transform .38s var(--nubi-bounce); }
+/* Jelly press on the primary send and action buttons: a squash, then a springy release. */
+.nubi-desktop-host .cx-kit-button[data-variant="primary"]:active:not(:disabled), .nubi-desktop-host .cx-kit-button.cx-kit-button--primary:active:not(:disabled) { transform:scale(.93,.9); }
+@media (prefers-reduced-motion: reduce) { .desktop-shell :is(.nubi-mail-result,.nubi-custom-skill-row,.nubi-marketplace-row,.nubi-mcp-item,.usage-account,.nubi-server-notice):hover { transform:none; } }
+
+/* 위키 설정: less padding inside (user feedback 2026-10-14: "콘텐츠 안에 패딩이 너무 많아"). */
+.nubi-panel--wide .cx-panel-body:has(> .nubi-library) { padding:12px 18px 16px; gap:10px; }
+.nubi-library { gap:8px; }
+.nubi-library .nubi-wiki-update { padding:12px 14px; gap:6px; }
+.nubi-library .nubi-wiki-update .nubi-action-tile { width:32px; height:32px; min-width:32px; }
+.nubi-library .nubi-wiki-update .nubi-action-tile svg { width:16px; height:16px; }
+.nubi-library .nubi-wiki-update .nubi-action-head { gap:10px; }
+.nubi-library .nubi-wiki-update .nubi-action-head p { margin-top:2px; }
+
+/* Top-right icons read as one row of five (user feedback 2026-10-14: "3 2로 따로 놀아"): the space between the action
+   group and the account group equals the 8px inside each group (toolbar gap 12px minus 4px). */
+.desktop-shell .nubi-window-toolbar > .nubi-toolbar-actions + .nubi-toolbar-account, .desktop-shell .nubi-window-toolbar .nubi-toolbar-account { margin-left:-4px; }
+
+/* No focus ring on the message boxes (user feedback 2026-10-14: "추가 메시지 입력인데 왜 챗 창에 보더링"): typing keeps the
+   box as it was; the caret shows where the focus is. Forced-colors mode keeps its system outline. */
+.desktop-shell .nubi-workbench .nubi-composer-surface.nubi-composer-surface:focus-within, .desktop-shell .nubi-workbench .composer.composer:focus-within { border-color:var(--deck-line); box-shadow:none; }
+@media(forced-colors:active) { .desktop-shell .nubi-workbench .nubi-composer-surface:focus-within { outline:2px solid Highlight; } }
+
+/* A short message gets a small bubble (user report 2026-10-14: "안녕" sat in a wide bubble): the bubble fits its own
+   text instead of stretching to the time-and-copy row under it. */
+.desktop-shell .nubi-user-bubble { width:fit-content; max-width:100%; margin-left:auto; }

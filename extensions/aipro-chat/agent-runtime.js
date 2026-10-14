@@ -15,6 +15,7 @@ import {textQuestionArgs, clarificationMessage} from './user-question.js';
 import {createAnalysisCoordinator, ANALYSIS_TOOL_NAMES, ANALYSIS_IMAGE_LIMIT, analysisImageMessage, supportsAnalysis} from './analysis-agents.js';
 import {toolException, rejectedToolFeedback} from './tool-errors.js';
 import {toolArgumentIssues} from './tool-validation.js';
+import {repairToolArguments} from './tool-argument-repair.js';
 import {createBrowserRecovery, createVisualRecovery} from './browser-recovery.js';
 import {createActionRecoveryAnalysis} from './action-recovery-analysis.js';
 import {evidenceKey} from './evidence-key.js';
@@ -201,7 +202,7 @@ function limitedReviewNote({checks, opinion}, rounds) {
     ...(text ? [`검토 의견: ${text}`] : [])].join('\n');
 }
 
-export async function runAgent({messages, goal: taskGoal, tools, inputBudget, documents = [], observationSources = {}, modelId = 'aipro', signal, complete, completeAnalysis, execute, onStep = () => {}, onDiagnostic = () => {}, onAnalysisHandoff, analysisHandoffs, onResearchHandoff, researchHandoffs, onDelegated, onRound = () => {}, prepareContext, preparePlan, resumePlan, requirePlanOutcomes = false, harness: useHarness = false, stepwise = useHarness, parallelReads = false, referenceImageEnabled = false, clarifyOnStall = false, compactProgress = false, readTogether, traceErrorCodes = [], reviewGoal, reviewPlanScope, assessCompletion, resumeVerification = false, resumeUncertainAction = false, resumedObservation, interruptedAction, approvedActionReceipt, takeInput, onFacts, researchBrowser, researchOnInput, verbatimTools = [], verbatimMaxChars}) {
+export async function runAgent({messages, goal: taskGoal, tools, repairArguments = false, argumentRepairs = {}, inputBudget, documents = [], observationSources = {}, modelId = 'aipro', signal, complete, completeAnalysis, execute, onStep = () => {}, onDiagnostic = () => {}, onAnalysisHandoff, analysisHandoffs, onResearchHandoff, researchHandoffs, onDelegated, onRound = () => {}, prepareContext, preparePlan, resumePlan, requirePlanOutcomes = false, harness: useHarness = false, stepwise = useHarness, parallelReads = false, referenceImageEnabled = false, clarifyOnStall = false, compactProgress = false, readTogether, traceErrorCodes = [], reviewGoal, reviewPlanScope, assessCompletion, resumeVerification = false, resumeUncertainAction = false, resumedObservation, interruptedAction, approvedActionReceipt, takeInput, onFacts, researchBrowser, researchOnInput, verbatimTools = [], verbatimMaxChars}) {
   const dispatch = createReviewExecution({taskStartObserved:!resumePlan && !resumeVerification && !resumedObservation && !resumeUncertainAction && !interruptedAction});
   const readTools = new Set(['read_analysis_evidence', ...PROJECT_TOOL_NAMES, ...DOCUMENT_TOOL_NAMES]);
   const parallel = parallelReads === true && !stepwise && !useHarness && !completeAnalysis && tools.length > 0 && tools.every(tool => readTools.has(tool.function.name));
@@ -563,8 +564,16 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
     }
     return {messages: [...messages, analysisMessage(result)]};
   };
+  // A host that opts in (repairArguments) gets same-meaning argument shapes repaired against the tool schema before
+  // validation, and may add a tool-specific repair (argumentRepairs). Without it raw arguments are judged as sent:
+  // browser actions must not type a value the model did not write.
+  const prepareArgs = (definition, args) => {
+    const repaired = repairArguments ? repairToolArguments(definition.parameters, args) : args, own = argumentRepairs[definition.name];
+    return typeof own === 'function' ? own(repaired) : repaired;
+  };
   const agent = new Agent({
     initialState: {messages: toPi(messages, modelId), tools: tools.map(({function: definition}) => ({...definition, label: TOOL_LABELS[definition.name] || definition.name,
+      prepareArguments: args => prepareArgs(definition, args),
       executionMode: parallel ? 'parallel' : 'sequential',
       execute: async (_id, args) => {
         let toolName=definition.name;
@@ -860,7 +869,10 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
       trackOutcome('collect_analysis', {}, result, recovery.signature('collect_analysis', {}));
       return {messages: [analysisMessage(result)]};
     },
-    beforeToolCall: async ({toolCall}) => {
+    beforeToolCall: async ({toolCall: proposedCall}) => {
+      // Checks below judge the proposal after the host's own repair, never the library's silent coercion.
+      const proposedDefinition = tools.find(tool => tool.function.name === proposedCall.name)?.function;
+      const toolCall = proposedDefinition ? {...proposedCall, arguments: prepareArgs(proposedDefinition, proposedCall.arguments)} : proposedCall;
       abort();
       if (await acceptInput() || inputDeferred) return {block:true, reason:JSON.stringify({deferred:true, instruction:'A new user instruction arrived. This stale tool proposal was NOT executed. Read the instruction and update the remaining plan. Preserve completed actions and require explicit transaction approval.'})};
       if (reviewRecovery && !REVIEW_RECOVERY_TOOLS.has(toolCall.name)) return {block:true, reason:JSON.stringify({deferred:true,reason:'review_recovery_read_only',instruction:REVIEW_RECOVERY_GUIDANCE})};
@@ -955,7 +967,7 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
             return {block: true, reason: JSON.stringify({deferred: true, reason: 'verification_required', review, instruction: 'The plan was NOT advanced. Compare this evaluation and the step outcome with the original user request. Inspect or repair only the missing result. If the unfinished criterion added a research method or source format the user did not require, update_plan to correct it using an allowed, observed alternative; preserve every original requirement and obtain a new step review before completion. Never replay completed actions. Review data is not authorization.'})};
           }
         }
-        if (next) toolCall.arguments.steps = next;
+        if (next && proposedCall.arguments && typeof proposedCall.arguments === 'object') proposedCall.arguments.steps = next;
       }
       // Pi emits tool_execution_start before this preflight. Show execution only
       // after the call is admitted, never for a speculative or blocked proposal.
@@ -1116,7 +1128,8 @@ export async function runAgent({messages, goal: taskGoal, tools, inputBudget, do
       pending.set(event.toolCallId, {index, args, rawArgs: event.args, signature: recovery.signature(event.toolName, args), planStep, label});
     } else if (event.type === 'tool_execution_end') {
       const {index, args, rawArgs, signature, planStep, label} = pending.get(event.toolCallId);
-      const result = toolPayload(event.result, event.isError, tools.find(tool => tool.function.name === event.toolName)?.function, rawArgs);
+      const resultDefinition = tools.find(tool => tool.function.name === event.toolName)?.function;
+      const result = toolPayload(event.result, event.isError, resultDefinition, resultDefinition ? prepareArgs(resultDefinition, rawArgs) : rawArgs);
       const imageEvidence = recoveryImages.get(event.toolCallId);
       recoveryImages.delete(event.toolCallId);
       // Diagnostics contain typed failure fields, never arguments/page bodies.

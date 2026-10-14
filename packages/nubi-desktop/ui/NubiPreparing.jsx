@@ -1,15 +1,18 @@
-import React,{useRef} from 'react';
+import React,{useEffect,useRef,useState} from 'react';
 import {useWorkbenchEdge} from './ProjectWikiProgress.jsx';
-import {AgentMark} from '../../../extensions/aipro-chat/src/AgentMark.jsx';
+import {AgentMark,NubiWordmark} from '../../../extensions/aipro-chat/src/AgentMark.jsx';
 import './nubi-preparing.css';
 
-// The startup screen spans the workbench from the rail (or sidebar) to the window edge, below the toolbar (user report 2026-10-14).
-export function NubiPreparing(){
- const node=useRef(null),edge=useWorkbenchEdge(node);
- return <div ref={node} className="nubi-connecting nubi-preparing" style={edge||undefined} role="status" aria-label="누비 준비 중" aria-busy="true">
-  <div className="nubi-preparing-emblem" aria-hidden="true">
-   <span className="nubi-preparing-orbit"/>
-   <AgentMark size={76} mood="still"/>
-  </div>
+// While Nubi gets ready: the logo and a progress bar on the app's own background (user decisions 2026-10-14: no lone
+// bird, no sky on later launches). It fades out when ready; automated runs and reduced motion skip that.
+const quick=()=>typeof navigator!=='undefined'&&navigator.webdriver||typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+export function NubiPreparing({ready=false}){
+ const node=useRef(null),edge=useWorkbenchEdge(node),[gone,setGone]=useState(ready);
+ useEffect(()=>{if(!ready){setGone(false);return;}if(quick()){setGone(true);return;}const timer=setTimeout(()=>setGone(true),700);return()=>clearTimeout(timer);},[ready]);
+ if(gone)return null;
+ // The whole workbench from the rail (or sidebar) to the window edge, below the toolbar (user report 2026-10-14).
+ return <div ref={node} className="nubi-connecting nubi-preparing" data-leaving={ready||undefined} style={edge||undefined} role="status" aria-label="누비 준비 중" aria-busy={!ready}>
+  <div className="nubi-preparing-brand" aria-hidden="true"><AgentMark size={56} mood="idle" lively/><NubiWordmark/><span>Workspace</span></div>
+  <div className="nubi-preparing-bar" aria-hidden="true"><span/></div>
  </div>;
 }

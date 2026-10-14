@@ -4,8 +4,10 @@ import {normalizePlan, planDifference, planUpdateHistory} from '../task-plan.js'
 import {TOOL_LABELS} from '../agent-trace.js';
 import {InlineMarkdown} from './MessageBody.jsx';
 
-export function TaskPlan({compactOverview = false, className = '', overviewClassName, debugMode = false, progress, trace = [], phase, question, detailsId, countId, countSuffix = '', stepAttributes, statusLabel, defaultExpanded = true}) {
+export function TaskPlan({compactOverview = false, className = '', overviewClassName, debugMode = false, progress, trace = [], phase, question, detailsId, countId, countSuffix = '', stepAttributes, statusLabel, defaultExpanded = true, contextExpanded = false}) {
   const [expanded, setExpanded] = useState(null);
+  // The step details follow the host's default until the reader toggles them; a remount (new key) restores the default.
+  const [contextOpen, setContextOpen] = useState(null);
   const Overview=overviewClassName?'div':React.Fragment;
   const plan = normalizePlan(progress?.plan);
   if (!plan) return null;
@@ -27,7 +29,7 @@ export function TaskPlan({compactOverview = false, className = '', overviewClass
   const recent = current && trace.findLast(step => step.planStep === current.text && !['update_plan', 'progress_note'].includes(step.tool) && TOOL_LABELS[step.tool]);
   const executionStatus = {running: '실행 중', done: '도구 실행 완료', error: '실행 실패', cancelled: '취소', waiting: '확인 대기', recovered: '복구 확인', deferred: '보류'};
 
-  const stepContext = current && <details className="task-plan-context"><summary><Icon name="infoCircle" size={14}/><span>단계 상세</span><Icon name="chevronDown" size={14}/></summary>
+  const stepContext = current && <details className="task-plan-context" open={contextOpen ?? contextExpanded} onToggle={event => {if(event.target===event.currentTarget && event.currentTarget.open !== (contextOpen ?? contextExpanded))setContextOpen(event.currentTarget.open);}}><summary><Icon name="infoCircle" size={14}/><span>단계 상세</span><Icon name="chevronDown" size={14}/></summary>
       <dl>
         <div><dt><Icon name="check" size={14}/>완료 기준</dt><dd>{current.expected_outcome || '구체적인 완료 기준이 아직 없습니다.'}</dd></div>
         {recent && <div><dt><Icon name="clock" size={14}/>최근 실행</dt><dd><InlineMarkdown content={recent.label || TOOL_LABELS[recent.tool]}/><span className="task-plan-tool">{executionStatus[recent.status] || '상태 미확인'}</span></dd></div>}

@@ -1,4 +1,4 @@
-import React,{useState} from 'react';
+import React,{useEffect,useState} from 'react';
 import {DetailPanel,CxButton,Icon} from '@e2e/cx-design-system';
 import {ProviderIcon} from '../../../extensions/aipro-chat/src/ChatControls.jsx';
 
@@ -26,14 +26,43 @@ export function ClaudeQuotaPill({quota,plan,now=Date.now(),onClick}){
   const detail=(quota.windows||[]).map(item=>`${item.label} ${item.remaining==null?'확인 필요':`${percent(item.remaining)}% 남음`}${item.resetsAt?` (${new Date(item.resetsAt).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})} 초기화)`:''}`).join('\n');
   return <button type="button" className="nubi-claude-quota" data-level={remaining<=10?'critical':remaining<=25?'low':'ok'} aria-label={`Claude 잔여 한도 ${window.label} ${percent(remaining)}% 남음`} title={`Claude 잔여 한도${plan?` (${PLAN_LABELS[plan]||plan})`:''}\n${detail}`} onClick={onClick}><ProviderIcon provider="claude"/><b>{percent(remaining)}%</b><i aria-hidden="true"><span style={{width:`${remaining}%`}}/></i></button>;
 }
-export function ClaudeAccountUsage({data,now=Date.now(),openWebPage,onRefresh}) {
-  // Same shape as the ChatGPT block above it (user decision 2026-10-14, "keep it simple"): title, one refresh icon, a meter per window, the time it was read.
-  const connected=data.connections?.claude?.present,quota=data.claudeAccountUsage;
-  const [checking,setChecking]=useState(false),[checkError,setCheckError]=useState('');
-  async function check(){if(!onRefresh||checking)return;setChecking(true);setCheckError('');try{await onRefresh();}catch(error){setCheckError(error?.message==='claude_login_required'?'Claude Code에 다시 연결해 주세요.':'한도를 읽지 못했어요. 잠시 후 다시 시도해 주세요.');}finally{setChecking(false);}}
+const CLI_ERRORS={claude_cli_login:'Claude Code 로그인을 찾지 못했어요. 터미널에서 claude를 실행해 로그인해 주세요.',claude_cli_expired:'Claude Code 로그인이 만료됐어요. Claude Code를 한 번 실행한 뒤 새로고침해 주세요.',claude_cli_credentials:'Claude Code 로그인 정보를 읽지 못했어요.',claude_cli_format:'한도 응답 형식이 바뀌었어요.',claude_cli_request:'한도를 읽지 못했어요. 잠시 후 다시 시도해 주세요.'};
+// The Claude Code sign-in's usage read (5-hour and 7-day windows) in the same shape as limits seen in Claude responses.
+export function cliWindows(cli){
+  if(!cli)return [];const fetchedAt=Date.parse(cli.readAt)||Date.now();
+  const rows=[['five_hour','5시간 한도',cli.fiveHour],['seven_day','7일 한도',cli.sevenDay],...(cli.scoped||[]).map((value,index)=>['scoped-'+index,value.label,value])];
+  return rows.filter(([,,value])=>value).map(([id,label,value])=>({id,label,remaining:value.remaining,resetsAt:value.resetsAt?Date.parse(value.resetsAt)||null:null,fetchedAt}));
+}
+// Dollars as llm_router's dashboard writes them: $12.34, more digits only for tiny amounts; other currencies by locale.
+export function formatMoney(amount,currency='USD'){
+  if(!Number.isFinite(amount))return '—';
+  if(currency==='USD'){const digits=amount>0&&amount<.0001?6:amount>0&&amount<.01?4:2;return `$${amount.toFixed(digits)}`;}
+  try{return new Intl.NumberFormat('ko-KR',{style:'currency',currency}).format(amount);}catch{return `${amount.toFixed(2)} ${currency}`;}
+}
+function SpendMeter({spend}){
+  const used=formatMoney(spend.used,spend.currency),limit=spend.limit!=null?formatMoney(spend.limit,spend.currency):null;
+  const share=spend.limit?Math.max(0,Math.min(100,spend.percent??spend.used/spend.limit*100)):null;
+  return <div className="usage-window"><div className="usage-row"><span>사용 금액</span><strong>{limit?`${formatMoney(spend.remaining,spend.currency)} 남음`:`${used} 사용`}</strong></div>
+    {share!=null&&<div className="context-bar" role="meter" aria-label="Claude 사용 금액 한도" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(share)}><span style={{width:`${100-share}%`}}/></div>}
+    {limit&&<span className="usage-caption usage-metadata">{used} / {limit}</span>}
+  </div>;
+}
+export function ClaudeAccountUsage({data,now=Date.now(),onRefresh,readCliUsage}) {
+  // One block (user decision 2026-10-14: "하나만 보여야"): the Claude Code sign-in is read when the panel opens and on
+  // refresh, so limits show before any Claude call; limits from recent Claude responses are used when newer.
+  const quota=data.claudeAccountUsage;
+  const [checking,setChecking]=useState(false),[checkError,setCheckError]=useState(''),[cli,setCli]=useState(null);
+  const readCli=async()=>{if(!readCliUsage)return false;try{const value=await readCliUsage();setCli(value);setCheckError('');return true;}catch(error){setCheckError(CLI_ERRORS[error?.message]||CLI_ERRORS.claude_cli_request);return false;}};
+  useEffect(()=>{let live=true;if(readCliUsage){setChecking(true);void readCli().finally(()=>{if(live)setChecking(false);});}return()=>{live=false;};},[readCliUsage]);
+  async function check(){if(checking)return;setChecking(true);setCheckError('');try{const read=await readCli();if(!read&&onRefresh&&data.connections?.claude?.present)await onRefresh();}catch(error){setCheckError(error?.message==='claude_login_required'?'Claude Code에 다시 연결해 주세요.':'한도를 읽지 못했어요. 잠시 후 다시 시도해 주세요.');}finally{setChecking(false);}}
+  const fromCli=cliWindows(cli),fromResponses=quota?.windows||[];
+  const newest=list=>Math.max(0,...list.map(item=>item.fetchedAt||0));
+  const windows=fromCli.length&&newest(fromCli)>=newest(fromResponses)?fromCli:fromResponses.length?fromResponses:fromCli;
+  const readAt=newest(windows);
   return <section className="usage-account claude-account" aria-label="Claude 잔여 한도">
-    <div className="usage-row"><h3><ProviderIcon provider="claude"/>Claude 잔여 한도</h3><span className="claude-account-actions">{onRefresh&&<CxButton data-icon-only busy={checking} disabled={!connected||checking} aria-label="Claude 한도 새로고침" title={quota?.fetchedAt?`Claude 한도 새로고침\n${new Date(quota.fetchedAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})} 읽음`:'Claude 한도 새로고침'} onClick={check}><Icon name="refresh" size={16}/></CxButton>}{openWebPage&&<CxButton data-icon-only aria-label="Claude 계정 사용량 보기" title="Claude 계정 사용량 보기" onClick={()=>openWebPage('https://claude.ai/settings/usage')}><Icon name="linkExternal" size={16}/></CxButton>}</span></div>
-    {!connected?<p className="usage-caption">Claude Code 연결 후 확인할 수 있습니다.</p>:!quota?.windows?.length?<p className="usage-caption" role="status">{checking?'읽는 중':'아직 읽은 한도가 없어요.'}</p>:quota.windows.map(item=>{
+    <div className="usage-row"><h3><ProviderIcon provider="claude"/>Claude 잔여 한도</h3><span className="claude-account-actions"><CxButton data-icon-only busy={checking} disabled={checking} aria-label="Claude 한도 새로고침" title={readAt?`Claude 한도 새로고침\n${new Date(readAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})} 읽음`:'Claude 한도 새로고침'} onClick={()=>void check()}><Icon name="refresh" size={16}/></CxButton></span></div>
+    {cli?.spend&&<SpendMeter spend={cli.spend}/>}
+    {!windows.length?cli?.spend?null:<p className="usage-caption" role="status">{checking?'읽는 중':checkError?'':'Claude Code에 로그인하면 한도를 읽어요.'}</p>:windows.map(item=>{
       const expired=item.resetsAt&&item.resetsAt<=now,stale=now-item.fetchedAt>300000,remaining=expired?null:item.remaining;
       return <div className="usage-window" key={item.id}><div className="usage-row"><span>{item.label}</span><strong>{remaining==null?expired?'초기화 후 확인 필요':'비율 미제공':`${stale?'마지막 확인 ':''}${remaining.toLocaleString('ko-KR',{maximumFractionDigits:1})}%${stale?'':' 남음'}`}</strong></div>
         {remaining!=null&&<div className="context-bar" role="meter" aria-label={`Claude ${item.label} 잔여 한도`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={remaining}><span style={{width:`${remaining}%`}}/></div>}
@@ -41,6 +70,6 @@ export function ClaudeAccountUsage({data,now=Date.now(),openWebPage,onRefresh}) 
       </div>;
     })}
     {checkError&&<p className="usage-caption claude-connection-error" role="alert">{checkError}</p>}
-    {connected&&quota?.windows?.length>0&&<p className="usage-caption">Claude 응답 기준 {new Date(quota.fetchedAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</p>}
+    {(readAt>0||cli?.readAt)&&<p className="usage-caption">{new Date(readAt||Date.parse(cli.readAt)).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})} 기준</p>}
   </section>;
 }

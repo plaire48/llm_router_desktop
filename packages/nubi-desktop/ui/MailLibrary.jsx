@@ -20,13 +20,17 @@ Object.assign(errors,{mail_storage_permission:'로그인은 확인했지만 개�
 errors.mail_gmail_app_password_format='Google에서 생성한 16자리 앱 비밀번호를 입력해 주세요. 일반 계정 비밀번호로는 연결할 수 없어요.';
 const pickerError=message=>notifyWorkspaceToast(message,{error:true});
 const sectionTitle=(icon,text)=><span className="nubi-mail-section-title"><span className="nubi-mail-section-icon" aria-hidden="true"><Icon name={icon} size={18}/></span><strong>{text}</strong></span>;
-function MailStorage({api,status}){
+const storageErrors={mail_busy:'메일을 정리하는 중이에요. 끝난 뒤 다시 바꿔 주세요.',mail_storage_not_empty:'비어 있는 폴더를 골라 주세요.',mail_storage_nested:'지금 위치 안이나 바깥 상위 폴더는 고를 수 없어요.',mail_input_invalid:'폴더를 다시 골라 주세요.'};
+function MailStorage({api,status,onStatus}){
+  const [moving,setMoving]=React.useState(false);
+  const move=async()=>{if(moving)return;setMoving(true);try{const value=await api('chooseMailRawRoot');if(!value?.cancelled){onStatus?.(value);notifyWorkspaceToast('원본을 새 위치로 옮겼어요.',{success:true});}}catch(error){notifyWorkspaceToast(storageErrors[error.message]||'원본 위치를 바꾸지 못했어요.',{error:true});}finally{setMoving(false);}};
   const paths=[{kind:'raw',label:'메일과 첨부 원본',path:status?.rawRoot},{kind:'wiki',label:'정리한 위키',path:status?.wikiRoot}];
   return <details className="nubi-mail-storage">
     <summary><span className="nubi-mail-field-title"><FolderMark size={16}/>저장 위치</span><Icon name="chevronDown" size={16}/></summary>
     <dl aria-label="메일 저장 경로">{paths.map(item=><div className="nubi-mail-storage-row" key={item.kind}>
       <dt>{item.label}</dt><dd><code>{item.path||(status?'경로를 확인하지 못했어요.':'불러오는 중…')}</code>
         <CopyButton label={`${item.label} 경로 복사`} resetKey={item.path} disabled={!item.path} onCopy={()=>api('copyMailStoragePath',{kind:item.kind})}/>
+        {item.kind==='raw'&&<ActionButton action="edit" iconOnly label="원본 위치 변경" title="원본 위치 변경" disabled={!status||moving||status.checking||status.summarizing||status.readingAttachments} onClick={()=>void move()}/>}
       </dd>
     </div>)}</dl>
   </details>;
@@ -132,7 +136,7 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
     </details>}
     {status?.connected&&autoWiki&&status.watchPaused&&<CxButton disabled={busy||status.checking} onClick={()=>act(()=>api('mail',{action:'resumeWatch'}))}><Icon name="refresh" size={16}/>수집 재개</CxButton>}
     {(status?.counts.attachmentAttention>0||status?.counts.attention>0)&&<CxButton disabled={busy||!autoWiki||status.readingAttachments||status.summarizing} onClick={()=>act(()=>api('mail',{action:'retry'}))}><Icon name="refresh" size={16}/>읽기와 정리 다시 시도</CxButton>}
-    <MailStorage api={api} status={status}/></>}
+    <MailStorage api={api} status={status} onStatus={setStatus}/></>}
     </div>
     {connectionPending&&<MailConnectionProgress onCancel={cancelConnection} cancelling={cancelling}/>}
   </div>;

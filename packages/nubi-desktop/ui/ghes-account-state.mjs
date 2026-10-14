@@ -15,8 +15,25 @@ export const ghesMessages={
   ghes_release_missing:'이 PC용 업데이트 파일을 찾지 못했어요.',ghes_release_changed:'릴리스가 바뀌었어요. 최신 버전을 다시 확인해 주세요.',
   ghes_checksum_mismatch:'업데이트 파일의 해시가 다릅니다. 설치하지 않았어요.',ghes_checksum_invalid:'업데이트 해시 파일을 확인하지 못했어요. 설치하지 않았어요.',
   ghes_package_invalid:'누비 업데이트 파일의 이름과 버전을 확인하지 못했어요. 설치하지 않았어요.',ghes_install_unconfirmed:'설치 결과를 먼저 확인해 주세요. 같은 설치를 반복하지 않습니다.',
-  ghes_redirect_refused:'허용한 회사 서버 밖으로 연결되어 중단했어요.',ghes_browser_unavailable:'로그인 페이지를 열지 못했어요. 다시 열어 주세요.',
+  ghes_redirect_refused:'허용한 회사 서버 밖으로 연결되어 중단했어요. 회사 로그인을 연 뒤 다시 확인해 주세요.',ghes_browser_unavailable:'로그인 페이지를 열지 못했어요. 다시 열어 주세요.',
+  // Codes that used to fall through to the bare '회사 계정을 확인하지 못했어요' (user report 2026-10-14): each says what to do.
+  ghes_response_invalid:'회사 서버가 계정 정보 대신 다른 페이지를 보냈어요. 회사 로그인을 연 뒤 다시 확인해 주세요.',
+  ghes_storage_read:'저장된 로그인을 읽지 못했어요. 잠시 뒤 자동으로 다시 확인해요. 계속되면 다시 로그인해 주세요.',
+  ghes_login_failed:'로그인을 마치지 못했어요. 다시 로그인해 주세요.',ghes_identity_invalid:'계정 정보를 읽지 못했어요. 다시 로그인해 주세요.',
+  ghes_device_invalid:'로그인 코드를 받지 못했어요. 다시 로그인해 주세요.',ghes_response_limit:'회사 서버 응답이 너무 커요. 잠시 후 다시 확인해 주세요.',
+  ghes_cancelled:'확인이 중단됐어요. 연결을 다시 확인해 주세요.',ghes_url_invalid:'회사 서버 주소가 올바르지 않아요. 관리자에게 알려 주세요.',
+  secret_unavailable:'이 PC의 보안 저장소를 쓰지 못했어요. 잠시 후 다시 로그인해 주세요.',
+  browser_unavailable:'로그인 페이지를 열지 못했어요. 다시 열어 주세요.',update_installing:'업데이트를 설치하는 중이에요. 끝난 뒤 다시 확인해 주세요.',
 };
+// What the account panel shows for a failure code: a known code says what to do; anything else still says what to do
+// and keeps the short code for a report.
+export function ghesFailureText(code){
+  const value=String(code||'');
+  if(Object.hasOwn(ghesMessages,value))return ghesMessages[value];
+  return `회사 계정을 확인하지 못했어요. 사내망 연결을 확인하고 '연결 다시 확인' 또는 다시 로그인해 주세요.${/^[a-z_]{1,64}$/.test(value)?` (${value})`:''}`;
+}
+// Failures where opening the company login page in the app can help.
+export const ghesBrowserFailures=new Set(['ghes_sso_required','ghes_network','ghes_response_invalid','ghes_redirect_refused']);
 
 const stages={device_code:'로그인 코드 발급',authorization:'로그인 승인 확인',identity:'계정 확인',repositories:'저장소 조회',request:'회사 서비스 연결'};
 export function ghesDiagnosticLabel(value){

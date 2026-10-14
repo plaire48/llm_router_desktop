@@ -64,6 +64,14 @@ async function refresh(){await skillsDialog().getByRole('button',{name:'목록 �
 try{
   await open();stage('fixture model connected through the compatible provider');
   await page.getByRole('button',{name:'문의',exact:true}).click();await page.getByRole('heading',{name:'문의',exact:true}).waitFor();assert.equal(await page.getByRole('tab',{name:'Talk',exact:true}).count(),0,'the inquiry page has no Workspace section tabs');await page.getByRole('region',{name:'문의'}).getByText('팀의 AI Agent 경험을 누려보세요.').waitFor();/* a thirty-second toast may sit over the header: close it before using the back button */await page.locator('.nubi-feedback-toast').getByRole('button',{name:'알림 닫기'}).click().catch(()=>{});await page.getByRole('button',{name:'대화로 돌아가기',exact:true}).click();stage('the rail inquiry button opens the inquiry section with the company sign-in prompt');
+  /* MCP from the tools menu: paste another app's config, the server starts over stdio and its tools are listed (2026-10-14) */
+  {await page.locator('.nubi-feedback-toast').getByRole('button',{name:'알림 닫기'}).click().catch(()=>{});
+   await trigger().click();await page.getByRole('dialog',{name:'도구 목록',exact:true}).getByRole('button',{name:/^MCP 서버/}).click();
+   const mcp=page.getByRole('dialog',{name:'MCP 서버',exact:true});await mcp.getByRole('button',{name:'설정 붙여넣기',exact:true}).click();
+   await mcp.getByRole('textbox',{name:'MCP 설정 JSON'}).fill(JSON.stringify({mcpServers:{'fixture tools':{command:process.execPath,args:[path.resolve('tests/mcp-fixture-server.mjs'),'stdio']}}}));
+   await mcp.getByRole('button',{name:'추가하고 연결',exact:true}).click();
+   await mcp.getByText('도구 2개',{exact:true}).first().waitFor({timeout:30000});await mcp.getByText('echo',{exact:true}).waitFor();await mcp.getByText('add_note',{exact:true}).waitFor();
+   await page.keyboard.press('Escape');await mcp.waitFor({state:'hidden'});stage('an MCP config pasted from another app connects over stdio and lists its tools');}
   await openManagement();await skillsDialog().getByText('등록한 스킬이 없어요.').waitFor();
   await register(path.join(packages,'fixture-skill'),'스킬을 등록했어요.');await row('fixture-skill').waitFor();
   assert.equal(await readFile(installed('fixture-skill','SKILL.md'),'utf8'),instructions);assert.equal(await exists(installed('fixture-skill','scripts','run.mjs')),true,'bundled resources are copied');

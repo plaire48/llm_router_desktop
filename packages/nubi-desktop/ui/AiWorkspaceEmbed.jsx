@@ -13,7 +13,9 @@ const VIEW_LABEL={talk:'Talk',support:'문의',apps:'앱 목록'};
 // themselves, mounted here with the host's SSO session (user decision 2026-10-14: the same screens, not a copy).
 export function AiWorkspaceEmbed({view,account,onSignIn}){
  const profile=account?.connected?account.profile:null;
- const user=useMemo(()=>profile?.login?{id:profile.id,login:profile.login,name:profile.name||profile.login,avatar_url:profile.avatar||undefined,html_url:profile.url||undefined,email:profile.email||undefined}:null,[profile?.id,profile?.login,profile?.name,profile?.avatar,profile?.email,profile?.url]);
+ // The signed-in person's GHES status emoji rides along so their own photo shows it too (2026-10-14).
+ const statusEmoji=profile?.status?.emoji||'',statusMessage=profile?.status?.message||'';
+ const user=useMemo(()=>profile?.login?{id:profile.id,login:profile.login,name:profile.name||profile.login,avatar_url:profile.avatar||undefined,html_url:profile.url||undefined,email:profile.email||undefined,...(statusEmoji?{status:{emoji:statusEmoji,message:statusMessage}}:{})}:null,[profile?.id,profile?.login,profile?.name,profile?.avatar,profile?.email,profile?.url,statusEmoji,statusMessage]);
  useEffect(()=>{setHostSession(user);return()=>setHostSession(null);},[user]);
  const [role,setRole]=useState(null);
  useEffect(()=>{let active=true;setRole(null);if(!user?.login)return;try{createAdminClient().role().then(value=>{if(active)setRole(value);}).catch(()=>{if(active)setRole('user');});}catch{setRole('user');}return()=>{active=false;};},[user?.id,user?.login]);

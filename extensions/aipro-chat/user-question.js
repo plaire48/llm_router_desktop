@@ -4,9 +4,9 @@ export const QUESTION_GUIDANCE = 'Ask only for information that changes the next
 
 // Planner/reviewer questions can use text choices, never fabricated image refs.
 export function textQuestionArgs(args) {
-  const {question, refs, choices, inputMode, inputPlaceholder} = questionArgs(args);
+  const {question, refs, choices, inputMode, inputPlaceholder, selection} = questionArgs(args);
   if (refs.length) throw new Error('tool_arguments_invalid');
-  return {question, ...(choices.length ? {choices} : {}), ...(inputMode === 'long_text' ? {input_mode: inputMode} : {}), ...(inputPlaceholder ? {input_placeholder: inputPlaceholder} : {})};
+  return {question, ...(choices.length ? {choices, ...(selection ? {selection} : {})} : {}), ...(inputMode === 'long_text' ? {input_mode: inputMode} : {}), ...(inputPlaceholder ? {input_placeholder: inputPlaceholder} : {})};
 }
 
 export function clarificationMessage({reason, review, plan}) {
@@ -23,22 +23,25 @@ export function questionArgs(args) {
       refs.some(ref => typeof ref !== 'string' || !ref.startsWith('img-'))) throw new Error('tool_arguments_invalid');
   const choices = args?.choices || [], inputMode = args?.input_mode || 'text';
   const inputPlaceholder = args?.input_placeholder;
+  // A choice question is answered with one choice (single) or several (multiple); without choices it is free text.
+  const selection = args?.selection;
+  if (selection !== undefined && !['single', 'multiple'].includes(selection)) throw new Error('tool_arguments_invalid');
   if (inputPlaceholder !== undefined && (typeof inputPlaceholder !== 'string' || !inputPlaceholder.trim() || inputPlaceholder.length > 100 || /[\r\n]/.test(inputPlaceholder))) throw new Error('tool_arguments_invalid');
   if (!['text', 'long_text'].includes(inputMode) || !Array.isArray(choices) ||
       (choices.length && (refs.length || choices.length < 2 || choices.length > 4)) ||
       choices.some(item => !item || typeof item.label !== 'string' || !item.label.trim() || item.label.length > 80 ||
         (item.description !== undefined && (typeof item.description !== 'string' || item.description.length > 160))) ||
       new Set(choices.map(item => item.label.trim())).size !== choices.length) throw new Error('tool_arguments_invalid');
-  return {question, refs, choices: choices.map(item => ({label: item.label.trim(), ...(item.description?.trim() ? {description: item.description.trim()} : {})})), inputMode, ...(inputPlaceholder ? {inputPlaceholder: inputPlaceholder.trim()} : {})};
+  return {question, refs, choices: choices.map(item => ({label: item.label.trim(), ...(item.description?.trim() ? {description: item.description.trim()} : {})})), inputMode, ...(inputPlaceholder ? {inputPlaceholder: inputPlaceholder.trim()} : {}), ...(selection ? {selection} : {})};
 }
-export function makeQuestion(text, attachments, captures, {choices = [], inputMode = 'text', inputPlaceholder} = {}) {
+export function makeQuestion(text, attachments, captures, {choices = [], inputMode = 'text', inputPlaceholder, selection} = {}) {
   const options = choices.length ? choices.map((item, index) => ({...item, id: `option-${index + 1}`})) : attachments.map((item, index) => {
     const capture = captures.find(capture => capture.id === item.id && capture.source === 'page-image');
     if (!item.availableInChat || !capture) throw new Error('image_unavailable');
     return {id: capture.id, label: capture.label || `이미지 ${index + 1}`};
   });
   if (new Set(options.map(option => option.id)).size !== options.length) throw new Error('tool_arguments_invalid');
-  return {id: crypto.randomUUID(), text, options, kind: choices.length ? 'choice' : options.length ? 'image' : 'text', inputMode, ...(inputPlaceholder ? {inputPlaceholder} : {})};
+  return {id: crypto.randomUUID(), text, options, kind: choices.length ? 'choice' : options.length ? 'image' : 'text', inputMode, ...(inputPlaceholder ? {inputPlaceholder} : {}), ...(choices.length && selection ? {selection} : {})};
 }
 export function questionAnswer(question, choice) {
   if (!question || question.answer || choice?.questionId !== question.id) throw new Error('question_changed');

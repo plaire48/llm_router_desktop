@@ -1,10 +1,11 @@
+import {ghesImageUrl} from './ghesImage.js';
 // Presentation is derived from the current public GHES profile, never saved into the post.
 export function fillMentionIdentity(element,login,user) {
  const valid=user?.login?.toLowerCase()===login.toLowerCase(),name=valid&&user.name?.trim();
  element.textContent='';
  const avatar=document.createElement('span');avatar.className='cx-mention-avatar';avatar.textContent=(name||login).slice(0,1).toUpperCase();avatar.setAttribute('aria-hidden','true');element.append(avatar);
  if(valid&&user.avatar_url){try{const url=new URL(user.avatar_url);if(url.protocol==='https:'){
-  const img=document.createElement('img');img.src=url.href;img.alt='';img.referrerPolicy='no-referrer';img.addEventListener('error',()=>img.replaceWith(avatar));avatar.replaceWith(img);
+  const img=document.createElement('img');img.src=ghesImageUrl(url.href);img.alt='';img.referrerPolicy='no-referrer';img.addEventListener('error',()=>img.replaceWith(avatar));avatar.replaceWith(img);
  }}catch{/* Keep the compact avatar fallback. */}}
  const text=document.createElement('span');text.className='cx-mention-name';text.textContent=name||`@${login}`;element.append(text);
  if(name){const id=document.createElement('span');id.className='cx-mention-login';id.textContent=`(${login})`;element.append(id);}

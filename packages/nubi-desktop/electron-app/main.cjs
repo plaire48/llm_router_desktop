@@ -6,6 +6,7 @@ const path=require('node:path');
 const {randomUUID,createHash}=require('node:crypto');
 const {pathToFileURL}=require('node:url');
 const {ElectronHost}=require('./native-host.cjs');
+const {ghesImageTarget,fetchGhesImage}=require('./ghes-image.cjs');
 const {browseLocalDirectory,readLocalFile}=require('./local-file-view.cjs');
 const {startWebHost}=require('./web-host.cjs');
 const {BrowserHost}=require('./browser-host.cjs');
@@ -31,7 +32,7 @@ if(process.env.NUBI_STORAGE_ROOT)app.setPath('userData',path.join(process.env.NU
 const primary=app.requestSingleInstanceLock();
 if(!primary)app.quit();
 app.on('second-instance',()=>{if(!window||window.isDestroyed())return;if(window.isMinimized())window.restore();window.show();window.focus();});
-protocol.registerSchemesAsPrivileged([{scheme:'app',privileges:{standard:true,secure:true,supportFetchAPI:true}}]);
+protocol.registerSchemesAsPrivileged([{scheme:'app',privileges:{standard:true,secure:true,supportFetchAPI:true}},{scheme:'nubi-ghes',privileges:{standard:true,secure:true,supportFetchAPI:true}}]);
 let terminalHost,updater,installingUpdate=false;
 let window,worker,host,webHost,browserHost,mailPortal,claudeWeb,currentRoot=null,currentKind='project';const launchId=randomUUID();
 let claudeCliUsage=null;const {createClaudeCliUsage}=require('./claude-cli-usage.cjs');
@@ -66,6 +67,9 @@ async function choose(properties,title,filters){const result=await dialog.showOp
 // Company pages (portal reader and login, company GitHub login) share one persistent session, so one SSO login serves all of them (user decision 2026-10-14).
 const COMPANY_PARTITION='persist:nubi-company';
 function companySession(){const value=session.fromPartition(COMPANY_PARTITION);if(!value.nubiCompanyReady){value.nubiCompanyReady=true;value.setPermissionRequestHandler((_wc,permission,callback)=>callback(permission==='clipboard-sanitized-write'));value.setPermissionCheckHandler((_wc,permission)=>permission==='clipboard-sanitized-write');}return value;}
+// One bounded PNG of Nubi's own window for the agent (user request 2026-10-14: "인앱 내에서라도" screen capture), so a
+// question about what the app shows can be answered from the screen. Only this app's window, never the desktop.
+async function captureAppWindow(){if(!window||window.isDestroyed())throw Error('browser_unavailable');let image=await window.webContents.capturePage();const size=image.getSize();if(!size.width)throw Error('browser_capture_unavailable');if(size.width>1600)image=image.resize({width:1600});const png=image.toPNG();if(png.length>6*1024*1024)throw Error('browser_capture_limit');const final=image.getSize();return {image:png.toString('base64'),width:final.width,height:final.height,url:'nubi://workspace',title:window.getTitle()||'누비 Workspace'};}
 function openWorkspacePage(url,options={}){if(!browserHost||!window||window.isDestroyed())throw Error('browser_unavailable');const tab=browserHost.create(workspacePageUrl(url),options);window.webContents.send('nubi:browser-event',{type:'opened',state:browserHost.status()});return {opened:true,tabId:tab.id,userInteractionRequired:true};}
 function openPageLink(url){try{openWorkspacePage(url);}catch(error){window.webContents.send('nubi:browser-event',{type:'error',error:/^[a-z_]+$/.test(error.message)?error.message:'browser_url_invalid'});}}
 const {createDecisionNotices}=require('./decision-notices.cjs');
@@ -95,6 +99,18 @@ app.whenReady().then(async()=>{
  const appIcon=path.join(__dirname,'nubi-icon.png');
  if(process.platform==='darwin')app.dock?.setIcon(appIcon);
  const frontend=await realpath(path.join(__dirname,'frontend'));
+ // Company GitHub images for the embedded AI Workspace screens: the renderer has no company session, so the host reads
+ // the image with the signed-in token, or the company session's own cookies, and hands back image bytes only.
+ // Photos on the avatars host of the same server (subdomain isolation) and redirects between those hosts are followed:
+ // the token only on the main host (Node fetch, redirects checked one by one), the company session with its cookies
+ // otherwise. Electron's session fetch rejects redirect:'manual', which made every redirected photo fail (2026-10-14).
+ protocol.handle('nubi-ghes',async request=>{try{
+  const url=new URL(request.url),target=ghesImageTarget(url.searchParams.get('u')||'');
+  if(request.method!=='GET'||!target)return new Response('',{status:403});
+  const token=host?.account?.state==='connected'&&host.account.record?.token||null;
+  const image=await fetchGhesImage(target,{token,apiFetch:token?fetch:null,sessionFetch:(href,options)=>companySession().fetch(href,options),signal:AbortSignal.timeout(15000)});
+  return image?new Response(image.bytes,{headers:{'content-type':image.type,'cache-control':'private, max-age=600','x-content-type-options':'nosniff'}}):new Response('',{status:404});
+ }catch{return new Response('',{status:400});}});
  protocol.handle('app',async request=>{try{const url=new URL(request.url);if(url.host!=='bundle'||request.method!=='GET'||request.initiatorOrigin&&request.initiatorOrigin!=='app://bundle')return new Response('',{status:403});const target=await realpath(path.resolve(frontend,'.'+decodeURIComponent(url.pathname)));const rel=path.relative(frontend,target);if(!rel||rel.startsWith('..')||path.isAbsolute(rel))return new Response('',{status:403});return net.fetch(pathToFileURL(target).href);}catch{return new Response('',{status:404});}});
  // The service worker, restarted when it dies (lifecycle.cjs): its errors go to a bounded log for a report, never its
  // requests. The window keeps its project: the new worker opens it again before the next request is answered.
@@ -113,7 +129,7 @@ app.whenReady().then(async()=>{
    }catch{worker.send({connectionSecretReply:{id,error:'secret_unavailable'}});}})();return;
   }
   if(message?.workspaceAuthPageClose){const tabId=message.workspaceAuthPageClose.tabId;if(typeof tabId==='string'&&browserHost?.tabs.get(tabId)?.authentication)browserHost.closeTab(tabId,{returnToApp:true});return;}
-  if(message?.workspaceCaptureRequest){const {id}=message.workspaceCaptureRequest;if(typeof id!=='string')return;(async()=>{try{if(!browserHost)throw Error('browser_unavailable');const result=await browserHost.capture();worker.send({workspaceCaptureReply:{id,...result}});}catch(error){worker.send({workspaceCaptureReply:{id,error:/^[a-z_]+$/.test(error.message)?error.message:'browser_capture_unavailable'}});}})();return;}
+  if(message?.workspaceCaptureRequest){const {id,target}=message.workspaceCaptureRequest;if(typeof id!=='string')return;(async()=>{try{if(target==='window'){worker.send({workspaceCaptureReply:{id,...await captureAppWindow()}});return;}if(!browserHost)throw Error('browser_unavailable');const result=await browserHost.capture();worker.send({workspaceCaptureReply:{id,...result}});}catch(error){worker.send({workspaceCaptureReply:{id,error:/^[a-z_]+$/.test(error.message)?error.message:'browser_capture_unavailable'}});}})();return;}
   if(!message?.workspacePageRequest)return;const {id,url,authentication}=message.workspacePageRequest;if(typeof id!=='string')return;
   try{const result=openWorkspacePage(url,{authentication:authentication===true});worker.send({workspacePageReply:{id,...result}});}
   catch(error){worker.send({workspacePageReply:{id,error:/^[a-z_]+$/.test(error.message)?error.message:'browser_unavailable'}});}
@@ -127,10 +143,10 @@ app.whenReady().then(async()=>{
  });
  worker.start();
  host=new ElectronHost({storage,keyStore,invoke,helperPath:path.join(__dirname,'git-askpass.cjs'),avatarFetcher:(url,options)=>{
-  if(new URL(url).origin!=='https://code.sdsdev.co.kr'||!browserHost)throw Error('ghes_avatar_unavailable');
+  if(!ghesImageTarget(url))throw Error('ghes_avatar_unavailable');
   // Use normal requests in the app's authenticated browser session. No cookie
   // extraction, external browser storage or token forwarding is involved.
-  return browserHost.session.fetch(url,options);
+  return companySession().fetch(url,options);
  },openBrowser:url=>openWorkspacePage(url,{authentication:true,companyLogin:host.account.device?.uri===url,session:companySession()}),confirmWorkspaceSave:async change=>{
   const result=await dialog.showMessageBox(window,{type:'question',title:'AI Workspace에 저장',message:`${change.repository}에 변경을 저장할까요?`,detail:`브랜치: ${change.branch}\n${change.message}\n\n${change.files.slice(0,24).join('\n')}${change.files.length>24?`\n외 ${change.files.length-24}개 파일`:''}`,buttons:['저장','취소'],defaultId:1,cancelId:1,noLink:true});return result.response===0;
  }});
@@ -230,6 +246,9 @@ app.whenReady().then(async()=>{
    if(['pauseWatch','resumeWatch'].includes(args.action)){await invoke('mail',args);if(args.action==='pauseWatch')clearTimeout(mailPortal.timer);else if(mailPortal.status().connected)void mailPortal.sync().catch(()=>{});return portalMailStatus();}
    if(args.action==='status'||args.action===undefined)return portalMailStatus();
   }
+  // The person picks where mail and attachment originals live; the mail runtime moves what is already there.
+  if(method==='chooseMcpFolder'){if(source!=='electron')throw Error('mcp_desktop_only');const directory=await choose(['openDirectory'],'MCP 서버 작업 폴더');return directory?{path:directory}:{cancelled:true};}
+  if(method==='chooseMailRawRoot'){if(source!=='electron')throw Error('mail_desktop_only');const directory=await choose(['openDirectory','createDirectory'],'메일과 첨부 원본을 둘 폴더');if(!directory)return {cancelled:true};return await invoke('mail',{action:'setRawRoot',directory});}
   if(method==='copyMailStoragePath'){
    if(!['raw','wiki'].includes(args.kind))throw Error('mail_storage_kind_invalid');
    const status=await invoke('mail',{action:'status'}),storagePath=args.kind==='raw'?status.rawRoot:status.wikiRoot;

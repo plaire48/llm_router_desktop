@@ -26,6 +26,9 @@ export function WorkspaceActivity({task,run,historical=false,predecessors=run?.p
   const runId = run?.runId || currentActivityRunId(task);
   if (!runId) return null;
   const live = !historical&&task.state === 'running';
+  // The record stays open while the run works (also stopped, failed or waiting for the user) and folds only once the
+  // answer is delivered, or in history (user request 2026-10-14). The trace key remounts at that boundary, so a
+  // reader's own toggle is kept until then and the record folds exactly once.
   const collapsed=historical||['review','completed'].includes(task.state);
   const answered = !!task.question?.id&&questions.some(question=>question.id===task.question.id&&question.answer?.text);
   const waiting = task.state === 'waiting_input'&&!answered;
@@ -60,7 +63,8 @@ export function WorkspaceActivity({task,run,historical=false,predecessors=run?.p
   // below them, folded once the run ends (user decision 2026-10-14: as Codex shows it).
   const notes=trace.filter(event=>event.tool==='progress_note'),steps=trace.filter(event=>event.tool!=='progress_note');
   const currentStep=steps.findLast(event=>event.status==='running'&&event.tool!=='update_plan');
-  const needsAttention=steps.some(event=>['error','waiting','cancelled'].includes(event.status));
+  // A failed, cancelled or waiting step reopens a record the reader folded while the run is still open: once, when it appears.
+  const needsAttention=!collapsed&&steps.some(event=>['error','waiting','cancelled'].includes(event.status));
   // The plan and the host's own result review are not tools the model used.
   const toolCount=steps.filter(event=>!['update_plan','review_task','result_review','goal_review'].includes(event.tool)).length;
   const workedMs=[...predecessors.map(previous=>previous.responseTiming?.durationMs),task.responseTiming?.runId===runId?task.responseTiming?.durationMs:null].filter(Number.isFinite).reduce((sum,value)=>sum+value,0);
@@ -71,6 +75,6 @@ export function WorkspaceActivity({task,run,historical=false,predecessors=run?.p
     {currentPlan?.steps?.length > 0 && <WorkspacePlan task={{...task,workPlan:currentPlan}} historical={historical} answered={answered} trace={trace.map(event => ({...event,label:event.label || toolLabels[event.tool]}))}/>}
     {notes.length>0&&<ul className="nubi-activity-narration" aria-label="진행 중 전한 말">{notes.map((note,at)=><li key={note.id||at}><Icon name="message" size={14}/><MessageBody content={note.content} compact/></li>)}</ul>}
     <AgentTrace compactStatuses renderStepElapsed={step=><ResponseTime key={step.id} timing={{startedAt:rawSteps.get(step.id)?.startedAt||rawSteps.get(step.id)?.at}} live showIcon={false} label="" title="이 단계의 경과 시간"/>} idleElapsed={live?<ResponseTime timing={task.responseTiming} live showIcon={false} label=""/>:null} summaryTitle={summaryTitle} summaryAside={live?<ResponseTime timing={task.responseTiming} label="" live/>:null} key={`${runId}:${collapsed?'result':'active'}:${needsAttention?'attention':'normal'}`} steps={steps} traceOptions={traceOptions} live={live} question={task.question}
-      preserveNotes preserveCompleted defaultExpanded={!collapsed&&needsAttention} completed={verified} verified={verified} awaitingUser={waiting} stopped={['paused','interrupted','cancelled','failed'].includes(task.state)} idleLabel={idleLabel}/>
+      preserveNotes preserveCompleted defaultExpanded={!collapsed} completed={verified} verified={verified} awaitingUser={waiting} stopped={['paused','interrupted','cancelled','failed'].includes(task.state)} idleLabel={idleLabel}/>
   </section>;
 }

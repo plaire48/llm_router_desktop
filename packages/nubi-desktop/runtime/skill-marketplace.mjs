@@ -105,7 +105,15 @@ async function installedState(service,root){
   return items;
 }
 
-export async function skillMarketplace({operation='status',taskId,id,expectedCommit,expectedVersion}={}){
+// Refreshing only reads the catalog, so it runs while a task works and a second refresh joins the first (user report
+// 2026-10-14: opening AI Workspace said "진행 중인 작업을 마친 뒤 다시 시도해 주세요"). Installs and removals still wait.
+export async function skillMarketplace(input={}){
+  if(input?.operation!=='refresh')return await marketplaceOperation.call(this,input);
+  if(this.marketplaceRefreshing)return await this.marketplaceRefreshing;
+  const run=marketplaceOperation.call(this,input);this.marketplaceRefreshing=run;
+  try{return await run;}finally{if(this.marketplaceRefreshing===run)this.marketplaceRefreshing=null;}
+}
+async function marketplaceOperation({operation='status',taskId,id,expectedCommit,expectedVersion}={}){
   this.ready();if(taskId)this.task(taskId);const root=this.root;
   if(!['status','refresh','install','remove','reconcile'].includes(operation))fail('input_invalid');
   const response=async()=>{
@@ -116,7 +124,8 @@ export async function skillMarketplace({operation='status',taskId,id,expectedCom
   };
   if(operation==='status')return await response();
   if(['refresh','install'].includes(operation)&&(!(this.marketplaceToken||this.marketplaceReader)||this.marketplaceAuthRequired))fail('ghes_login_required');
-  if(this.skillImportBusy||this.agent?.running||this.unsettledOperations?.size)fail('agent_busy');
+  if(operation==='refresh'&&this.skillImportBusy)return await response();
+  if(this.skillImportBusy||operation!=='refresh'&&(this.agent?.running||this.unsettledOperations?.size))fail('agent_busy');
   this.skillImportBusy=true;let staging;
   const connectionRevision=this.marketplaceRevision||0;
   try{

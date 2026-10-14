@@ -15,10 +15,61 @@ export const CHANGE_PLAN_SCHEMA=object({
   assumptions:list(text(500),10,0)
 });
 const validate=new Ajv({allErrors:true}).compile(CHANGE_PLAN_SCHEMA);
+// Models describe the same plan in their own words (user report 2026-10-14: change plan input refused): "unit test" for
+// test, "modify" for edit, "file" for path, a requirement as plain text, a description longer than the limit. These are
+// mapped onto the schema before validation. Ids, paths and links between them are never invented or changed.
+const METHOD_WORDS={test:['test','tests','unit','unit_test','unittest','automated','automated_test','pytest','jest','vitest','junit','integration','integration_test','regression','test_run','run_tests'],
+  browser:['browser','e2e','ui','ui_test','playwright','screenshot','visual','manual_browser','browser_check','end_to_end'],
+  inspection:['inspection','inspect','review','code_review','manual','manual_review','static','static_analysis','lint','read','reading','diff_review']};
+const ACTION_WORDS={edit:['edit','modify','update','change','patch','fix','replace','edit_file','modify_file'],create:['create','add','new','new_file','create_file','write']};
+const word=value=>typeof value==='string'?value.trim().toLowerCase().replace(/[\s-]+/g,'_'):value;
+const pick=(table,value)=>{const key=word(value);return Object.keys(table).find(name=>table[name].includes(key))??value;};
+const rename=(row,aliases)=>{
+  if(!row||typeof row!=='object'||Array.isArray(row))return row;
+  const out={...row};
+  for(const [from,to] of Object.entries(aliases))if(Object.hasOwn(out,from)&&!Object.hasOwn(out,to)){out[to]=out[from];delete out[from];}
+  return out;
+};
+const fit=(value,max)=>typeof value==='string'&&value.length>max?value.slice(0,max-1)+'…':value;
+const asList=value=>value===undefined||value===null?value:Array.isArray(value)?value:[value];
+export function normalizeChangePlanArgs(input){
+  if(!input||typeof input!=='object'||Array.isArray(input))return input;
+  const plan={...input};
+  if(Array.isArray(plan.requirements))plan.requirements=plan.requirements.map((row,index)=>{
+    const value=typeof row==='string'?{id:`R${index+1}`,text:row}:rename(row,{requirement:'text',description:'text',criterion:'criterionId',evidence:'evidenceIds'});
+    if(!value||typeof value!=='object')return value;
+    const out={...value,text:fit(value.text,1000)};
+    if(out.evidenceIds!==undefined)out.evidenceIds=asList(out.evidenceIds);
+    return out;
+  });
+  if(Array.isArray(plan.targets))plan.targets=plan.targets.map(row=>{
+    const value=rename(rename(row,{file:'path',filePath:'path',file_path:'path',why:'reason',description:'reason',requirements:'requirementIds'}),{requirementId:'requirementIds'});
+    if(!value||typeof value!=='object')return value;
+    const out={...value,reason:fit(value.reason,1000)};
+    if(out.requirementIds!==undefined)out.requirementIds=asList(out.requirementIds);
+    if(out.action!==undefined)out.action=pick(ACTION_WORDS,out.action);
+    return out;
+  });
+  if(Array.isArray(plan.checks))plan.checks=plan.checks.map(row=>{
+    const value=rename(row,{requirement:'requirementId',type:'method',kind:'method',how:'description',detail:'description',details:'description',text:'description',steps:'description'});
+    if(!value||typeof value!=='object')return value;
+    const out={...value,description:Array.isArray(value.description)?value.description.join('\n'):value.description};
+    out.description=fit(out.description,1000);
+    if(out.method!==undefined)out.method=pick(METHOD_WORDS,out.method);
+    // With exactly one requirement there is only one thing a check can verify.
+    if(out.requirementId===undefined&&Array.isArray(plan.requirements)&&plan.requirements.length===1&&plan.requirements[0]?.id)out.requirementId=plan.requirements[0].id;
+    return out;
+  });
+  if(typeof plan.summary==='string')plan.summary=fit(plan.summary,1200);
+  if(plan.assumptions===undefined||plan.assumptions===null)plan.assumptions=[];
+  else plan.assumptions=asList(plan.assumptions).map(item=>fit(item,500));
+  return plan;
+}
 // A refusal names what was wrong and what is valid, so the next call can be corrected.
 const refuse=(code,details)=>{throw Object.assign(new Error(code),{details});};
 
 export async function recordChangePlan(service,task,input,observations,runId){
+  input=normalizeChangePlanArgs(input);
   if(!validate(input))refuse('plan_invalid',{problems:validate.errors.slice(0,8).map(e=>((e.instancePath||'/')+' '+e.message+(e.params?.missingProperty?': '+e.params.missingProperty:e.params?.allowedValues?': '+e.params.allowedValues.join(', '):e.params?.additionalProperty?': '+e.params.additionalProperty:'')).slice(0,200))});
   const ids=new Set(input.requirements.map(r=>r.id)),problems=[];
   if(ids.size!==input.requirements.length)problems.push('requirement ids must be unique');

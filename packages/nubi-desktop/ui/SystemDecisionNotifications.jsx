@@ -12,7 +12,7 @@ export function SystemDecisionNotifications({decisions,onOpen,onAnswer}){
   for(const id of sent.current.keys())if(!next.has(id))void window.nubi.request('decisionNotice',{id,action:'clear'}).catch(()=>{});
   for(const [id,row] of next)if(!sent.current.has(id)){
    const notifyQuestion=row.kind==='question'&&row.question?row.question:null;
-   void window.nubi.request('decisionNotice',{id,kind:row.kind,projectName:row.projectName,taskTitle:row.taskTitle,summary:row.summary,action:'show',...(notifyQuestion?{choices:(notifyQuestion.options||[]).slice(0,4).map(option=>option.label),allowText:notifyQuestion.inputMode!=='none',placeholder:notifyQuestion.inputPlaceholder||'답변 입력'}:{})}).catch(()=>{});
+   void window.nubi.request('decisionNotice',{id,kind:row.kind,projectName:row.projectName,taskTitle:row.taskTitle,summary:row.summary,action:'show',...(notifyQuestion?((notifyQuestion.options||[]).length&&notifyQuestion.selection!=='single'?{openLabel:'열어서 답하기'}:{choices:(notifyQuestion.options||[]).slice(0,4).map(option=>option.label),allowText:notifyQuestion.inputMode!=='none',placeholder:notifyQuestion.inputPlaceholder||'답변 입력'}):{})}).catch(()=>{});
    // The same request shows in the app: a toast with an open action, and a notice the bell keeps (user request 2026-10-14).
    const text=`${DECISION_LABEL[row.kind]||DECISION_LABEL.question}: ${String((row.kind==='question'?row.summary:row.taskTitle)||row.summary||'대화를 확인해 주세요.').replace(/\s+/g,' ').slice(0,120)}`;
    const open=()=>{const current=latest.current.decisions.find(item=>item.id===id);if(current)void latest.current.onOpen(current);};

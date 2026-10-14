@@ -94,7 +94,7 @@ export function WorkspaceToast() {
           <circle ref={tip} className="nubi-feedback-tip" cx="16" cy="3" r="2.5"/>
           {item.error ? <><path d="M16 10v8"/><circle cx="16" cy="22" r="1" fill="currentColor" stroke="none"/></> : item.success ? <path d="m10 16 4 4 8-9"/> : <><path d="M16 16v6"/><circle cx="16" cy="10" r="1" fill="currentColor" stroke="none"/></>}
         </svg>
-        <span>{item.message}</span>
+        <span title={item.message}>{item.message}</span>
         {item.action&&<button type="button" className="nubi-feedback-action" onClick={()=>{try{item.action.onClick();}finally{dismiss();}}}>{item.action.label}</button>}
         {item.actions.length>0&&<span className="nubi-feedback-actions">{item.actions.map(entry=><button key={entry.label} type="button" className="nubi-feedback-action" data-choice onClick={()=>{try{entry.onClick();}finally{dismiss();}}}>{entry.label}</button>)}</span>}
         {item.input&&<form className="nubi-feedback-input" onSubmit={event=>{event.preventDefault();const value=new FormData(event.currentTarget).get('answer');const text=typeof value==='string'?value.trim():'';if(!text)return;try{item.input.onSubmit(text);}finally{dismiss();}}}><input name="answer" aria-label={item.input.placeholder} placeholder={item.input.placeholder} autoComplete="off" maxLength={2000}/><button type="submit" className="nubi-feedback-action" aria-label="답변 보내기" title="답변 보내기"><svg aria-hidden="true" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 8h11M9 4l4 4-4 4"/></svg></button></form>}

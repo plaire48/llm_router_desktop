@@ -39,7 +39,7 @@ test('uninstall verifies absence from the agent catalog and keeps a recovery cop
   const {service,root}=await fixture(t),item=await refresh(service);await install(service,item);const result=await service.skillMarketplace({operation:'remove',id});assert.equal(result.installed.length,0);assert.equal((await service.listSkills()).skills.length,0);const backup=(await readdir(path.join(root,'.nubi/skill'))).find(p=>p.startsWith('.removed-'));assert.match(await readFile(path.join(root,'.nubi/skill',backup,'SKILL.md'),'utf8'),/1.0.0/);assert.equal((await install(service,item)).installed.length,1);
 });
 test('stale selections, running agents and unsettled outcomes refuse mutations',async t=>{
-  const {service}=await fixture(t),old=await refresh(service);await refresh(service,remote('2.0.0'));await assert.rejects(install(service,old),/marketplace_changed/);service.agent={running:true};await assert.rejects(service.skillMarketplace({operation:'refresh'}),/agent_busy/);service.agent=null;service.unsettledOperations=new Set(['unknown']);await assert.rejects(service.skillMarketplace({operation:'remove',id}),/agent_busy/);
+  const {service}=await fixture(t),old=await refresh(service);await refresh(service,remote('2.0.0'));await assert.rejects(install(service,old),/marketplace_changed/);service.agent={running:true};assert.equal((await service.skillMarketplace({operation:'refresh'})).connected,true,'a catalog read runs during a task');await assert.rejects(install(service,old),/agent_busy/);service.agent=null;service.unsettledOperations=new Set(['unknown']);await assert.rejects(service.skillMarketplace({operation:'remove',id}),/agent_busy/);
 });
 test('preexisting local skills and linked destination cannot be overwritten by a marketplace install',async t=>{
   const {service,root,directory}=await fixture(t),item=await refresh(service);await mkdir(path.join(root,'.nubi/skill',name),{recursive:true});await writeFile(path.join(root,'.nubi/skill',name,'SKILL.md'),'Human file');await assert.rejects(install(service,item),/skill_exists/);
@@ -82,4 +82,12 @@ test('Nubi downloads are project scoped even from a task worktree, and legacy re
  await assert.rejects(readFile(path.join(service.task(task.id).workspace,'.nubi/skill',name,'SKILL.md')),{code:'ENOENT'});
  assert.equal((await service.listSkills({taskId:task.id})).skills[0].path,'.nubi/skill/simple-addition/SKILL.md');
  assert.equal((await service.skillMarketplace()).installed.length,1);
+});
+
+// Opening AI Workspace may ask for the catalog twice; the second request shares the first read (user report 2026-10-14).
+test('two refreshes at once share one catalog read',async t=>{
+  const {service}=await fixture(t),reader=remote();let trees=0;
+  service.marketplaceReader={...reader,async tree(...args){trees++;await new Promise(resolve=>setTimeout(resolve,20));return reader.tree(...args);}};
+  const [first,second]=await Promise.all([service.skillMarketplace({operation:'refresh'}),service.skillMarketplace({operation:'refresh'})]);
+  assert.equal(trees,1);assert.deepEqual(second,first);assert.equal(service.skillImportBusy,false);
 });

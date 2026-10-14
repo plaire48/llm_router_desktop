@@ -11,10 +11,8 @@ export function useNativeTitlebar(request) {
    pending=0;
    const toolbar=document.querySelector('.nubi-window-toolbar');if(!toolbar)return;
    const style=getComputedStyle(toolbar),symbol=style.getPropertyValue('--deck-sub').trim();
-   const layers=[...document.querySelectorAll('.cx-panel-backdrop')].filter(node=>{
-    const rect=node.getBoundingClientRect();return node.checkVisibility()&&rect.top<=24&&rect.bottom>24&&rect.right>=innerWidth-1;
-   }).sort((a,b)=>(Number(getComputedStyle(a).zIndex)||0)-(Number(getComputedStyle(b).zIndex)||0)).map(node=>getComputedStyle(node).backgroundColor);
-   const colors=captionColors(style.backgroundColor,symbol,layers),key=JSON.stringify(colors);
+   // Dialog scrims do not recolour the native controls any more (user decision 2026-10-14: their hover shading vanished).
+   const colors=captionColors(style.backgroundColor,symbol,[]),key=JSON.stringify(colors);
    if(key===last)return;last=key;
    void request('titlebarAppearance',colors).catch(()=>{if(last===key)last='';});
   };

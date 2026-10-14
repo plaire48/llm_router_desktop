@@ -6,6 +6,7 @@ import {CopyButton} from '../../../extensions/aipro-chat/src/CopyButton.jsx';
 import {TerminalMark} from '../ui/marks.jsx';
 import '@xterm/xterm/css/xterm.css';
 import {notifyWorkspaceToast} from '../ui/WorkspaceToast.jsx';
+import {guardShellMouse} from './terminal-mouse.mjs';
 const request=async args=>{const result=await window.nubi.terminal(args);if(result?.__nubiError)throw Error(result.__nubiError);return result;};
 function transcript(view){const buffer=view?.buffer.active;if(!buffer)return '';const lines=[];for(let i=0;i<buffer.length;i++)lines.push(buffer.getLine(i)?.translateToString(true)||'');return lines.join('\n').trimEnd();}
 export default function TerminalPanel({sessionId,project,cwd,profileId,onError,visible=true}){
@@ -17,7 +18,10 @@ export default function TerminalPanel({sessionId,project,cwd,profileId,onError,v
   let alive=true,frame=0,lastSize='',attached=false;const queued=[];
   const scope={id:sessionId,projectId:project.projectId};
   const style=getComputedStyle(node.current),color=name=>style.getPropertyValue(name).trim();
-  const view=new Terminal({cursorBlink:true,cursorStyle:'bar',scrollback:3000,fontFamily:style.getPropertyValue('--nubi-code-family').trim()||style.fontFamily,fontSize:parseFloat(style.fontSize),theme:{background:color('--nubi-terminal-surface'),foreground:color('--nubi-terminal-ink'),cursor:color('--nubi-terminal-accent'),selectionBackground:color('--nubi-terminal-selection')}});
+  // A plain click only focuses or selects. Alt+click cursor moves are off: they type arrow keys, and an Up/Down arrow
+  // recalls history in PowerShell and cmd (user report 2026-10-14: a click filled the prompt with arrows).
+  const view=new Terminal({cursorBlink:true,cursorStyle:'bar',altClickMovesCursor:false,scrollback:3000,fontFamily:style.getPropertyValue('--nubi-code-family').trim()||style.fontFamily,fontSize:parseFloat(style.fontSize),theme:{background:color('--nubi-terminal-surface'),foreground:color('--nubi-terminal-ink'),cursor:color('--nubi-terminal-accent'),selectionBackground:color('--nubi-terminal-selection')}});
+  const mouse=guardShellMouse(view);
   const addon=new FitAddon();view.loadAddon(addon);view.open(node.current);view.textarea?.setAttribute('aria-label',`${profile?.label||'셸'} 터미널 입력`);terminal.current=view;fit.current=addon;
   const send=(action,args={})=>request({...scope,action,...args});
   const write=(data,ack=false)=>view.write(data,()=>{if(alive&&ack)void send('ack',{length:data.length}).catch(()=>{});});
@@ -52,7 +56,7 @@ export default function TerminalPanel({sessionId,project,cwd,profileId,onError,v
    queued.length=0;attached=true;ready.current=result.state==='running';setState(result.state);write(result.output||'');
    addon.fit();void send('resize',{cols:view.cols,rows:view.rows}).catch(()=>{});if(shown.current)view.focus();
   }).catch(error=>{if(alive){attached=true;setState('failed');errors.current(error);}});
-  return()=>{alive=false;ready.current=false;cancelAnimationFrame(frame);cancelAnimationFrame(burstFrame);burst='';observer.disconnect();unsubscribe();input.dispose();selection.dispose();view.dispose();terminal.current=null;void send('detach').catch(()=>{});};
+  return()=>{alive=false;ready.current=false;cancelAnimationFrame(frame);cancelAnimationFrame(burstFrame);burst='';observer.disconnect();unsubscribe();input.dispose();selection.dispose();mouse.dispose();view.dispose();terminal.current=null;void send('detach').catch(()=>{});};
  },[sessionId,project.projectId]);
  useEffect(()=>{if(visible){fit.current?.fit();terminal.current?.focus();}},[visible]);
  return <section className="desktop-terminal" hidden={!visible} aria-label="프로젝트 터미널" data-terminal-state={state}>

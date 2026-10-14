@@ -13,7 +13,7 @@ export const recoveryCode=error=>safeError(error);
 
 // Reuse Nubi's p-retry transport. Only inference is repeated; tool receipts
 // already in the transcript are never executed by a transport retry.
-export function modelTransport(service,{signal,onRetry,metrics,onText}){
+export function modelTransport(service,{signal,onRetry,metrics,onText,onReasoning}){
   const cooldown=createModelCooldown();
   const batchLimit={role:'system',content:'Host limit: return at most 8 tool calls in one response. Split larger sets across responses; never drop remaining required reads.'};
   // Telemetry reads the model name defensively: it must not add a failure path.
@@ -29,7 +29,7 @@ export function modelTransport(service,{signal,onRetry,metrics,onText}){
       if(purpose==='actor')onText?.('');
       const wire=rejected?[...base,{role:'system',content:'The previous response was rejected before dispatch. No tool from the rejected response was executed. Return a smaller batch of valid tool calls, or a nonempty answer in the requested format. Keep completed receipts and unfinished work; never replay completed or uncertain operations.'}]:base;
       const measured=metrics?.beginModel({purpose,attempt,messages:wire,tools,model:visionModel||modelName()});
-      try{const result=await service.providers.complete(wire,tools,attemptSignal,text=>{activity();if(purpose==='actor'&&typeof text==='string')onText?.(text);},activity,activity,{...(visionModel?{visionModel}:{}),...(Number.isSafeInteger(maxTokens)&&maxTokens>0?{maxTokens}:{}),...(toolChoice==='required'?{toolChoice}:{}),...(responseFormat?.type==='json_object'?{responseFormat:{type:'json_object'}}:{})});measured?.end(result);return result;}
+      try{const result=await service.providers.complete(wire,tools,attemptSignal,text=>{activity();if(purpose==='actor'&&typeof text==='string')onText?.(text);},activity,activity,{...(purpose==='actor'&&onReasoning?{onReasoning:text=>{activity();onReasoning(text);}}:{}),...(visionModel?{visionModel}:{}),...(Number.isSafeInteger(maxTokens)&&maxTokens>0?{maxTokens}:{}),...(toolChoice==='required'?{toolChoice}:{}),...(responseFormat?.type==='json_object'?{responseFormat:{type:'json_object'}}:{})});measured?.end(result);return result;}
       // A response the connection rejects (response_invalid: a stream error, an empty answer, too many tool calls) is
       // asked for again within this budget: the shared policy retries only network, timeout, 429 and 5xx, and one
       // server-side stream error ended a run (measured 2026-10-12, S29: 2 of 6 identical requests for an hour).

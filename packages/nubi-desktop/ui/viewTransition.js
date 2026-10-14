@@ -1,0 +1,31 @@
+import {flushSync} from 'react-dom';
+
+// Sidebar, side pane and screen changes morph instead of jumping (user request 2026-10-14: "liquid", iOS-like). The
+// browser's View Transitions capture the old and new layout and animate between them on the compositor, so the work
+// per frame stays small. Updates made in the same tick share one transition; an update that arrives while a
+// transition is running (a follow-up effect) joins the live new state instead of starting another one, which would
+// cut the first short. Reduced motion, hidden windows and automated checks get the plain update.
+let queue=null,running=null;
+const canAnimate=()=>typeof document!=='undefined'&&typeof document.startViewTransition==='function'&&!document.hidden
+  &&!(typeof navigator!=='undefined'&&navigator.webdriver)
+  &&!(typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches)
+  // An open or leaving dialog covers the layout with its scrim and has its own motion (modalMotion.js); morphing the
+  // page underneath would animate the dialog a second time inside the root snapshot.
+  &&!document.querySelector('.cx-panel-backdrop');
+const quiet=promise=>{promise?.catch?.(()=>{});};
+export function transitioned(update){
+  if(running||!canAnimate()){update();return;}
+  if(queue){queue.push(update);return;}
+  queue=[update];
+  queueMicrotask(()=>{
+    const updates=queue;queue=null;
+    let transition;
+    try{transition=document.startViewTransition(()=>flushSync(()=>{for(const run of updates)run();}));}
+    catch{for(const run of updates)run();return;}
+    running=transition;quiet(transition.ready);quiet(transition.updateCallbackDone);
+    const done=()=>{if(running===transition)running=null;};
+    transition.finished.then(done,done);
+  });
+}
+// A state setter whose changes animate.
+export const animatedSetter=setter=>value=>transitioned(()=>setter(value));

@@ -4,6 +4,7 @@ export {claudeEnvironment,claudeFailureCode} from './claude-process-signals.mjs'
 export {findClaudeBinary,runClaude} from './claude-platform.mjs';
 import {claudeStream} from './claude-stream.mjs';
 import {randomUUID} from 'node:crypto';
+import {claudeContextWindows,baseModelId} from './claude-context-windows.mjs';
 
 const EFFORTS=['low','medium','high','xhigh','max'];
 export function claudeModels(rows){
@@ -55,7 +56,7 @@ export function claudeQuota(event,previous=null,now=Date.now()) {
   return {windows:[...windows.values()],extra,fetchedAt:now};
 }
 export function completionSchema(tools=[],required=false) {
-  return {type:'object',additionalProperties:false,required:['content','calls'],properties:{content:{type:'string'},calls:{type:'array',maxItems:16,...(tools.length&&required?{minItems:1}:{}),items:{type:'object',additionalProperties:false,required:['name','arguments'],properties:{name:{type:'string',...(tools.length?{enum:tools.map(t=>t.function.name)}:{})},arguments:{type:'string',description:'JSON-encoded arguments matching the named tool schema.'}}},...(tools.length?{}:{maxItems:0})}}};
+  return {type:'object',additionalProperties:false,required:['content','calls'],properties:{content:{type:'string'},calls:{type:'array',maxItems:16,...(tools.length&&required?{minItems:1}:{}),items:{type:'object',additionalProperties:false,required:['name','arguments'],properties:{name:{type:'string',...(tools.length?{enum:tools.map(t=>t.function.name)}:{})},arguments:{anyOf:[{type:'object'},{type:'string'}],description:'Arguments matching the named tool schema, as an object (or JSON-encoded string).'}}},...(tools.length?{}:{maxItems:0})}}};
 }
 export function decodeClaudeResult(result,tools=[]) {
   if(result?.is_error||result?.subtype!=='success')throw Error('claude_cli_failed');
@@ -64,10 +65,11 @@ export function decodeClaudeResult(result,tools=[]) {
   if(!data||typeof data.content!=='string'||!Array.isArray(data.calls)||data.calls.length>16)throw Error('claude_response_invalid');
   const allowed=new Set(tools.map(t=>t.function.name));
   const calls=data.calls.map(call=>{
-    if(!allowed.has(call.name)||typeof call.arguments!=='string')throw Error('claude_response_invalid');
-    let args;try{args=JSON.parse(call.arguments);}catch{throw Error('claude_response_invalid');}
+    if(!allowed.has(call.name))throw Error('claude_response_invalid');
+    let args=call.arguments;
+    if(typeof args==='string'){try{args=JSON.parse(args);}catch{throw Error('claude_response_invalid');}}
     if(!args||Array.isArray(args)||typeof args!=='object')throw Error('claude_response_invalid');
-    return {id:randomUUID(),type:'function',function:{name:call.name,arguments:call.arguments}};
+    return {id:randomUUID(),type:'function',function:{name:call.name,arguments:JSON.stringify(args)}};
   });
   return {content:data.content,calls,usage:claudeUsage(result.usage),finishReason:calls.length?'tool_calls':'stop'};
 }
@@ -80,6 +82,8 @@ export function claudeUsage(u,cost) {
 }
 export function createClaudeCode(deps={}) {
   const run=deps.run||runClaude,find=deps.findBinary||findClaudeBinary;
+  // Injected fixtures (deps.run) never reach the network unless they pass contextWindows themselves.
+  const contextWindows=deps.contextWindows??(deps.run?null:claudeContextWindows);
   let binary,connected=false,model='sonnet',effort='medium',verified=false,connectionId=null,quota=null,plan=null,models=[],connecting=null,generation=0;
   const modelId=value=>models.find(item=>item.id===value)?.id||models.find(item=>item.aliases.includes(value))?.id||value;
   const effortOptions=value=>models.find(item=>item.id===modelId(value))?.reasoningOptions||[];
@@ -103,6 +107,8 @@ export function createClaudeCode(deps={}) {
     const catalog=await discoverClaudeModels(binary,run);
     if(current!==generation)throw Error('cancelled');
     models=catalog;model=modelId(model);
+    // Context windows arrive in the background so connecting stays fast; a window reported by a reply is kept.
+    if(contextWindows)void contextWindows().then(windows=>{if(current!==generation)return;for(const item of models){const size=windows.get(baseModelId(item.id));if(size&&!metadata.get(item.id)?.contextLength)metadata.set(item.id,{...metadata.get(item.id),contextLength:size});}}).catch(()=>{});
     if(!models.some(item=>item.id===model))model=models.find(item=>item.aliases.includes('sonnet'))?.id||models[0].id;
     if(!effortOptions(model).includes(effort))effort=effortOptions(model).includes('medium')?'medium':effortOptions(model)[0]||null;
     connected=true;connectionId ||= randomUUID();return status();
@@ -116,11 +122,11 @@ export function createClaudeCode(deps={}) {
     const combined=signal?AbortSignal.any([signal,controller.signal]):controller.signal;
     const proposalStop=new AbortController(),allowed=new Set(tools.map(tool=>tool.function.name));
     let final,usageRequest,contextUsage=null,actualModel,proposal,nativeFailure=false,reportedFailure=null;
-    const stream=claudeStream(onText);
+    const stream=claudeStream(onText,typeof options.onReasoning==='function'?options.onReasoning:undefined);
     try{
       try{usageRequest=deps.onUsageStart?.({provider:'claude',model:selected});}catch{}
       onPhase('connecting');
-      const args=['-p','--safe-mode','--tools','','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--disable-slash-commands','--no-session-persistence','--max-turns','3','--output-format','stream-json','--verbose','--include-partial-messages','--model',selected,...(effortOptions(selected).length?['--effort',selectedEffort]:[]),'--json-schema',JSON.stringify(completionSchema(tools,options.toolChoice==='required')), '--system-prompt',ADAPTER_PROMPT];
+      const args=['-p','--safe-mode','--tools','','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--disable-slash-commands','--no-session-persistence','--max-turns','6','--output-format','stream-json','--verbose','--include-partial-messages','--model',selected,...(effortOptions(selected).length?['--effort',selectedEffort]:[]),'--json-schema',JSON.stringify(completionSchema(tools,options.toolChoice==='required')), '--system-prompt',ADAPTER_PROMPT];
       try{await run(binary,args,{signal:AbortSignal.any([combined,proposalStop.signal]),input:JSON.stringify({messages,hostActionCatalog:tools,toolChoice:options.toolChoice||'auto',responseFormat:options.responseFormat||null}),onEvent:event=>{
         onActivity();quota=claudeQuota(event,quota);reportedFailure=claudeFailureCode(event)||reportedFailure;stream(event);
         if(event.type==='system'&&event.subtype==='init')actualModel=event.model;

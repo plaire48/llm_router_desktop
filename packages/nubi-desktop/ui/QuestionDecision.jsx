@@ -25,7 +25,7 @@ export function QuestionDecision({question,disabled,blocked,onChoose,onDraft}){
   onPointerOver={showChoice} onFocusCapture={showChoice} onKeyDownCapture={event=>{if(event.key==='Escape')setHint(null);}}
   onPointerLeave={event=>{if(!tip.current?.contains(event.relatedTarget))setHint(null);}} onBlurCapture={()=>setHint(null)}>
   <span className="nubi-question-caption"><Icon name="helpCircle" size={16}/>질문</span>
-  <p className="nubi-question-prompt">{question.text}</p><QuestionForm compact hideHeading confirmChoices showActionLabels selectionDraft={selection} onSelectionDraft={setSelection} question={{...question,draft}} disabled={disabled||blocked||answering} onDraft={value=>{setDraft(value);return onDraft(value);}} onChoose={async choice=>{setAnswering(true);try{return await onChoose(choice);}finally{setAnswering(false);}}}/>
+  <p className="nubi-question-prompt">{question.text}</p><QuestionForm compact hideHeading confirmChoices showActionLabels selectionMode={question.selection==='multiple'?'multiple':'single'} selectionDraft={selection} onSelectionDraft={setSelection} question={{...question,draft}} disabled={disabled||blocked||answering} onDraft={value=>{setDraft(value);return onDraft(value);}} onChoose={async choice=>{setAnswering(true);try{return await onChoose(choice);}finally{setAnswering(false);}}}/>
   {hint&&createPortal(<div ref={tip} role="tooltip" className="nubi-question-choice-hint" style={{left:hint.left,width:hint.width,top:hint.top,bottom:hint.bottom}} onPointerLeave={()=>setHint(null)}>{hint.text}</div>,document.body)}
  </section>;
 }

@@ -14,11 +14,15 @@ export function partialContent(json){
  }
  return '';
 }
-export function claudeStream(onText){
- let block=null,json='',shown='';
+// Thinking reaches a separate reasoning view when the caller asks for it (user request 2026-10-14: show reasoning
+// while Claude works, as Codex does); it never becomes answer text.
+export function claudeStream(onText,onReasoning){
+ let block=null,json='',shown='',thinkingBlock=null,thinking='';
  return event=>{
   const data=event?.type==='stream_event'?event.event:null;if(!data)return;
-  if(data.type==='message_start'){block=null;json='';shown='';return;}
+  if(data.type==='message_start'){block=null;json='';shown='';thinkingBlock=null;return;}
+  if(onReasoning&&data.type==='content_block_start'&&data.content_block?.type==='thinking'){thinkingBlock=data.index;if(thinking)thinking+='\n\n';return;}
+  if(onReasoning&&data.type==='content_block_delta'&&data.index===thinkingBlock&&data.delta?.type==='thinking_delta'&&typeof data.delta.thinking==='string'){thinking=(thinking+data.delta.thinking).slice(-20000);onReasoning(thinking);return;}
   if(data.type==='content_block_start'&&data.content_block?.type==='tool_use'&&data.content_block.name==='StructuredOutput'){block=data.index;json='';shown='';}
   if(data.type==='content_block_delta'&&data.index===block&&data.delta?.type==='input_json_delta'){
    json+=data.delta.partial_json||'';if(json.length>600000)throw Error('output_limit');

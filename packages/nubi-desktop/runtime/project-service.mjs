@@ -116,7 +116,7 @@ export class ProjectService {
   state({taskId}={}) { this.ready(); return {wikiChatBlocked:wikiChatBlocked(this),wikiChatJob:wikiChatJob(this),computer:computerState(this),setupActions:this.store.list('setup-action:').slice(0,50), collaborations:collaborationRows(this),peerTasks:peerRows(this),peerLinks:peerLinks(this), tasks: this.displayTasks(taskId), proposals: this.store.list('proposal:').slice(0,50), processes: this.store.list('process:').slice(0,20), comparisons: this.store.list('comparison:').slice(0,20),commandRepairs:this.store.list('command-repair:').slice(0,30)}; }
   displayTasks(taskId){const tasks=this.store.list('task:').slice(0,50);if(taskId&&!tasks.some(task=>task.id===taskId)){const selected=this.store.get('task:'+taskId);if(selected)tasks.push(selected);}return tasks.map(task=>this.displayTask(task));}
   conversationHistory(args={}) {this.ready();if(args.taskId){if(typeof args.taskId!=='string')fail('task_missing');return this.displayTask(this.task(args.taskId));}return searchConversations(this.store.list('task:'),args);}
-  displayTask(task){const run=this.agentForTask(task.id);return run?.running&&run.timing?{...task,streamingAnswer:run.streamingAnswer||'',responseTiming:{...run.timing.snapshot(),runId:run.runId}}:task;}
+  displayTask(task){const run=this.agentForTask(task.id);return run?.running&&run.timing?{...task,streamingAnswer:run.streamingAnswer||'',streamingReasoning:run.streamingReasoning||'',responseTiming:{...run.timing.snapshot(),runId:run.runId}}:task;}
   task(taskId) { const task = this.store.get('task:' + taskId); if (!task) fail('task_missing'); return task; }
   async target(taskId) {
     if (!taskId) return this.root;

@@ -24,11 +24,12 @@ try{
   const activity=p.locator('.nubi-agent-activity'),trace=activity.locator('.agent-trace'),plan=activity.locator('[data-plan-overview]');
   assert.equal(await p.locator('.context-token-count').count(),0,'context count stays inside details');
   await activity.waitFor();await trace.locator('summary').getByText('메일 원문과 프로젝트 자료를 대조하고 있어요',{exact:true}).waitFor();
-  assert.equal(await trace.getAttribute('open'),null);assert.equal(await plan.getAttribute('open'),null);
+  // A running run shows its record, plan and step details open (user request 2026-10-14).
+  assert.equal(await trace.getAttribute('open'),'');assert.equal(await plan.getAttribute('open'),'');assert.equal(await plan.locator('.task-plan-context').getAttribute('open'),'','a running plan shows its step details');
   assert(await trace.locator('summary .nubi-response-time').isVisible());
-  const geometry=await trace.locator(':scope > summary').evaluate(row=>{const boxes=[...row.children].map(el=>el.getBoundingClientRect());return {centers:boxes.map(b=>(b.top+b.bottom)/2),fits:row.scrollWidth<=row.clientWidth};});
+  /* While running the header swaps its icon for a spinner; only the visible items are compared. */const geometry=await trace.locator(':scope > summary').evaluate(row=>{const boxes=[...row.children].map(el=>el.getBoundingClientRect()).filter(box=>box.width&&box.height);return {centers:boxes.map(b=>(b.top+b.bottom)/2),fits:row.scrollWidth<=row.clientWidth};});
   assert(geometry.fits);assert(Math.max(...geometry.centers)-Math.min(...geometry.centers)<2,JSON.stringify(geometry));
-  await trace.locator(':scope > summary').click();assert.equal(await trace.locator('li[data-tool]').count(),6);
+  assert.equal(await trace.locator('li[data-tool]').count(),6);
   await p.evaluate(()=>document.fonts.ready);
   const steps=await trace.locator('li[data-tool]').evaluateAll(rows=>rows.map(row=>{
    const slot=row.querySelector('.agent-step-status'),mark=slot.querySelector('svg,.status-spinner'),text=row.querySelector('.agent-tool-label');
@@ -37,8 +38,8 @@ try{
   }));
   assert(steps.every(row=>row.gap===8&&row.center<1&&row.font===row.inlineFont),JSON.stringify(steps));
   await p.screenshot({path:path.join(dir,`aligned-rows-${width}.png`),animations:'disabled'});
-  await trace.locator(':scope > summary').click();await plan.locator(':scope > summary').click();
-  await plan.getByText('메일 원문 확인',{exact:true}).waitFor();await plan.locator('.task-plan-context summary').click();await plan.getByText('메일과 프로젝트 자료의 차이 확인',{exact:true}).waitFor();await plan.locator(':scope > summary').click();
+  await trace.locator(':scope > summary').click();assert.equal(await trace.getAttribute('open'),null,'the reader can fold the running record');
+  await plan.getByText('메일 원문 확인',{exact:true}).waitFor();await plan.getByText('메일과 프로젝트 자료의 차이 확인',{exact:true}).waitFor();await plan.locator('.task-plan-context summary').click();assert.equal(await plan.locator('.task-plan-context').getAttribute('open'),null);await plan.locator(':scope > summary').click();assert.equal(await plan.getAttribute('open'),null,'the reader can fold the running plan');
   assert.equal(await p.locator('.nubi-worker-detail').count(),2);assert.equal(await p.locator('.nubi-worker-detail[open]').count(),0);
   await p.locator('.nubi-worker-detail summary').first().click();await p.getByText('메일 1 대조 결과',{exact:true}).waitFor();await p.locator('.nubi-worker-detail summary').first().click();
   await p.screenshot({path:path.join(dir,`running-${width}.png`),animations:'disabled'});

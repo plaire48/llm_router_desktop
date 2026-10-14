@@ -2,7 +2,7 @@ import {httpError} from './core.js';
 import {normalizeUsage} from './usage.js';
 import {completionStreamError} from './completion-errors.js';
 
-export async function readCompletion(response, onText = () => {}, onUsage = () => {}, onPhase = () => {}, onFinish = () => {}, onTools, onMeasurement = () => {}, onActivity = () => {}, {drainMs = 1000} = {}) {
+export async function readCompletion(response, onText = () => {}, onUsage = () => {}, onPhase = () => {}, onFinish = () => {}, onTools, onMeasurement = () => {}, onActivity = () => {}, {drainMs = 1000, onReasoning} = {}) {
   if (!response.ok) throw Object.assign(new Error(httpError(response.status)), {status: response.status});
   const toolParts = new Map();
   function validateFinish(reason, hasTools = false) {
@@ -52,7 +52,7 @@ export async function readCompletion(response, onText = () => {}, onUsage = () =
   }
   if (!response.body) throw new Error('response_invalid');
   const reader = response.body.getReader(), decoder = new TextDecoder();
-  let pending = '', content = '', complete = false, doneFrame = false, usage = null, finishReason = null, phase = '', finishedAt = null;
+  let pending = '', content = '', reasoning = '', complete = false, doneFrame = false, usage = null, finishReason = null, phase = '', finishedAt = null;
   function progress(next) {
     if (phase === 'responding' || phase === next) return;
     phase = next; onPhase(next);
@@ -75,7 +75,11 @@ export async function readCompletion(response, onText = () => {}, onUsage = () =
     const delta = choice?.delta;
     if ([delta?.content, delta?.reasoning, delta?.reasoning_content].some(value => typeof value === 'string' && value.length) ||
         delta?.tool_calls?.some(part => [part.id, part.function?.name, part.function?.arguments].some(value => typeof value === 'string' && value.length))) onActivity();
-    if (choice?.delta?.reasoning || choice?.delta?.reasoning_content) progress('thinking');
+    if (choice?.delta?.reasoning || choice?.delta?.reasoning_content) {
+      progress('thinking');
+      const piece = [choice.delta.reasoning, choice.delta.reasoning_content].find(value => typeof value === 'string');
+      if (piece && reasoning.length < 200000) { reasoning += piece; onReasoning?.(reasoning); }
+    }
     if (typeof choice?.delta?.content === 'string' && choice.delta.content) { content += choice.delta.content; progress('responding'); onText(content); }
     if (content.length > 400000) throw new Error('too_long');
     if (choice?.finish_reason) {complete = true; finishReason = choice.finish_reason; finishedAt ??= performance.now();}

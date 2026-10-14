@@ -31,6 +31,7 @@ async function portalFetch(input){
   try{const data=JSON.parse(new TextDecoder().decode(bytes));if(input.operation!=='identity')return data;const identity={};for(const value of [data,data?.data,data?.userInfo,data?.userinfo,data?.user]){if(!value||typeof value!=='object')continue;for(const key of ['epUserId','epUserID','userId','userID','epId','epID','usrId','email','emailAddress','receivedAddress','setCd','domainSet'])if(typeof value[key]==='string'&&!identity[key])identity[key]=value[key].slice(0,320);}return identity;}catch{throw Error('mail_portal_format');}
  }catch(error){if(error.name==='AbortError')throw Error('mail_portal_timeout');if(/^mail_/.test(error.message))throw error;throw Error('mail_portal_request');}finally{clearTimeout(timer);}
 }
+const LOGIN_URL=(()=>{const value=String(process.env.NUBI_MAIL_PORTAL_LOGIN_URL||'http://samsung.net');try{const url=new URL(value);if(['http:','https:'].includes(url.protocol)&&!url.username&&!url.password)return url.href;}catch{}return 'http://samsung.net/';})();
 // Source text for the page: the configured origin takes the placeholder's place (the function is serialised, so it cannot close over ORIGIN).
 const portalFetchSource=()=>portalFetch.toString().replace("'__NUBI_PORTAL_ORIGIN__'",JSON.stringify(ORIGIN));
-module.exports={ORIGIN,PATHS,folderKind,foldersOf,identityOf,portalFetch,portalFetchSource};
+module.exports={ORIGIN,LOGIN_URL,PATHS,folderKind,foldersOf,identityOf,portalFetch,portalFetchSource};
