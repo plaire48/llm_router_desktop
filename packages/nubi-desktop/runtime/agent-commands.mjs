@@ -7,6 +7,7 @@ export const AGENT_COMMANDS = [
   {command:'code',title:'코드 검색',description:'현재 프로젝트의 Code 위키와 코드 검색',icon:'code'},
   {command:'plan',title:'계획 세우기',description:'자료를 읽고 실행 전 계획 정리',icon:'taskList'},
   {command:'bash',title:'명령 실행',description:'설정한 터미널에서 승인 후 실행',icon:'terminal'},
+  {command:'wiki_update',title:'위키 갱신',description:'git을 받은 뒤 OpenWiki 갱신 (위키 갱신 버튼과 같음)',icon:'refresh',action:'wiki-update'},
   {command:'skills',title:'스킬 관리',description:'AI Workspace와 커스텀 스킬',icon:'layers',action:'skills'},
   {command:'model',title:'모델 선택',description:'모델과 연결 변경',icon:'agent',action:'model'},
   {command:'usage',title:'사용량',description:'이 앱에서 사용한 토큰 확인',icon:'chartColumn',action:'usage'},

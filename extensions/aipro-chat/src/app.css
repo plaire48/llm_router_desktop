@@ -28,6 +28,13 @@ body { margin: 0; background: var(--layout-surface); }
 .agent-mark[data-mood='celebrate'] { animation: bird-happy 900ms var(--deck-ease) 2; }
 .agent-mark[data-mood='sleep'] { transform-origin: 50% 80%; animation: bird-breathe 3.6s ease-in-out infinite; }
 .agent-mark[data-mood='sad'] { animation: bird-sigh 2.8s ease-in-out 1; }
+/* Woken from sleep: a jump and a wobble, eyes open, an exclamation mark that fades (user request 2026-10-14). */
+.agent-mark[data-mood='startle'] { transform-origin: 50% 80%; animation: bird-startle 1.1s cubic-bezier(.2,.9,.3,1.2) 1; }
+.agent-mark[data-mood='startle'] .bird-base { opacity: 1; }
+.agent-mark .bird-alert { grid-area: 1 / 1; width: 100%; height: 100%; opacity: 0; color: var(--deck-orange); pointer-events: none; }
+.agent-mark[data-mood='startle'] .bird-alert { animation: bird-alert 1.1s ease-out 1; }
+@keyframes bird-startle { 0% { transform: translateY(1px) rotate(4deg) scale(1); } 12% { transform: translateY(-14px) rotate(-10deg) scale(1.12, .9); } 24% { transform: translateY(-5px) rotate(9deg) scale(.95, 1.08); } 38% { transform: translateY(-9px) rotate(-6deg) scale(1.02, .98); } 52% { transform: translateY(0) rotate(4deg); } 68% { transform: translateY(-2px) rotate(-2deg); } 100% { transform: translateY(0) rotate(0) scale(1); } }
+@keyframes bird-alert { 0% { opacity: 0; transform: translateY(6px) scale(.4); } 18% { opacity: 1; transform: translateY(-3px) scale(1.15); } 70% { opacity: 1; transform: translateY(-3px) scale(1); } 100% { opacity: 0; transform: translateY(-9px) scale(.8); } }
 .agent-mark > .bird-dream, .agent-mark > .bird-joy { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0; color: var(--brand-ink); }
 .agent-mark[data-mood='sleep'] .bird-dream { opacity: 1; }
 .agent-mark[data-mood='sleep'] .bird-z { animation: bird-dream 3.2s ease-in-out infinite; }
@@ -302,7 +309,7 @@ h1 { font-size: var(--cx-type-title); font-weight: 900; letter-spacing: -.02em; 
   .provider-tab-highlight, .agent-tab-highlight i, .provider-tab-icon { transition: none; }
   .provider-model-panel { animation: none; }
   .provider-tabs [role='tab']:is(:hover, :active, [aria-selected='true']) .provider-tab-icon { transform: none; }
-  .agent-mark[data-mood], .agent-mark[data-mood] :is(.bird-base, .bird-frame, .bird-z, .bird-tear, .bird-joy) { animation: none; }
+  .agent-mark[data-mood], .agent-mark[data-mood] :is(.bird-base, .bird-frame, .bird-z, .bird-tear, .bird-joy, .bird-alert) { animation: none; }
   .welcome-reserve { visibility: visible; }
   .welcome-typed { visibility: hidden; }
   .welcome-cursor { transition: none; }

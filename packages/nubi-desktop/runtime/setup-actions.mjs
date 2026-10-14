@@ -9,7 +9,7 @@ const text = maxLength => ({type:'string',minLength:1,maxLength});
 export const SETUP_ACTION_SCHEMA = {
   type:'object',additionalProperties:false,
   properties:{title:{...text(120),description:'Short approval card title.'},kind:{type:'string',enum:['inspect','install','configure','build','start','verify'],description:'Use start for running an app/server, verify for tests, inspect for a version check.'},
-    profile:{...text(40),description:'Exact availableShells ID from inspect_environment, e.g. powershell, cmd or bash. Omit to use the host default; do not send null.'},
+    profile:{...text(40),description:'Omit to use inspect_environment.shell, the user\'s chosen shell; another ID is refused. Do not send null.'},
     script:{...text(16000),description:'ONE exact shell command as a string, not an array/object. This field is script, not command. Use the selected shell syntax.'},
     reason:{...text(1000),description:'Why this command is needed, as a string.'},effects:{...text(1500),description:'Downloads, hooks, changes and their scope, as one string, not a list.'},verification:{...text(1000),description:'How its result will be checked, as one string, not an object or list.'},
     privilege:{type:'string',enum:['user','administrator'],description:'Omit for ordinary execution. Administrator requires separate consent.'},privilegeReason:text(1000),
@@ -40,11 +40,19 @@ export function normalizeSetupArgs(args){
   }
   return out;
 }
+// The shell the user picked in settings wins over the model's choice (user report 2026-10-14: CMD chosen, PowerShell used).
+// A command written for another shell is sent back to be rewritten, not run in a shell it was not written for. Only an
+// administrator action keeps PowerShell, the one shell that can ask Windows for elevation here.
+export function requireChosenShell(profiles,chosen,profile,elevated=false){
+  if(elevated||!chosen||profile===chosen||!profiles.some(p=>p.id===chosen))return;
+  throw Object.assign(Error('shell_not_selected'),{details:{selectedShell:chosen,instruction:'The user chose this shell in settings. Rewrite the command in its syntax and omit profile.'},actionIssued:false});
+}
 export async function prepareSetupAction(service,taskId,args,observations) {
   args=normalizeSetupArgs(args);
   if(!validate(args))throw Object.assign(Error('setup_invalid'),{details:{issues:toolArgumentIssues(SETUP_ACTION_SCHEMA,args)},actionIssued:false});
   if(service.task(taskId).question)fail('question_pending');
   const profiles=await shellProfiles();args={...args,profile:args.profile||preferredShell(profiles,process.platform,service.shellPreference())};
+  requireChosenShell(profiles,service.shellPreference(),args.profile,args.privilege==='administrator');
   if(args.privilege==='administrator'){
     if(process.platform!=='win32'||args.profile!=='powershell')fail('elevation_unavailable');
     if(!args.privilegeReason||args.script.length>3000||args.kind==='start')fail('elevation_command_limit');
@@ -77,7 +85,8 @@ export async function prepareSetupAction(service,taskId,args,observations) {
     service.store.set('setup-action:'+previous.id,merged);return merged;
   }
   if(previous)return previous;
-  const value={...args,id:randomUUID(),taskId,workspace,fingerprint,state:'proposed',createdAt:new Date().toISOString(),...(afterProposals.length?{afterProposals}:{})};
+  // The run that proposed it places the card in that turn of the conversation (user request 2026-10-14).
+  const value={...args,id:randomUUID(),taskId,workspace,fingerprint,state:'proposed',createdAt:new Date().toISOString(),...(runId?{runId}:{}),...(afterProposals.length?{afterProposals}:{})};
   service.store.set('setup-action:'+value.id,value);return value;
 }
 

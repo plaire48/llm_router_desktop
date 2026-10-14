@@ -53,6 +53,18 @@ export async function hasWikiPages(root){
   }
   return visit(path.join(root,'openwiki'),'openwiki');
 }
+// How many pages the folder's OpenWiki already holds, for the folder-open prompt (user request 2026-10-14).
+export async function countWikiPages(root){
+  let count=0;
+  async function visit(directory,relative){
+    let entries;try{entries=await readdir(directory,{withFileTypes:true});}catch(error){if(error.code==='ENOENT')return;throw error;}
+    for(const entry of entries){
+      if(entry.isFile()&&entry.name.endsWith('.md'))count++;
+      else if(entry.isDirectory()&&!NUBI_RECORD_DIRECTORIES.has(relative+'/'+entry.name))await visit(path.join(directory,entry.name),relative+'/'+entry.name);
+    }
+  }
+  await visit(path.join(root,'openwiki'),'openwiki');return count;
+}
 export async function wikiSources(root){
   root=await realpath(root);
   const listed=await listWikiSourceFiles(root);if(listed.truncated)fail('wiki_source_limit');

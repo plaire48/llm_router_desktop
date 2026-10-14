@@ -1764,3 +1764,19 @@ html[data-project-switching] .nubi-workbench .nubi-main, html[data-project-switc
  .nubi-workbench .nubi-compose-card .composer-bottom { flex-wrap:wrap; row-gap:6px; }
  .nubi-workbench .nubi-compose-card .composer-bottom .composer-tools { margin-left:auto; }
 }
+
+/* Capture part of the Workspace window and attach it (2026-10-14): a crosshair overlay, the dragged rectangle, and
+   thumbnails in the composer and the sent bubble. */
+.nubi-capture-overlay { position:fixed; inset:0; z-index:2147482000; cursor:crosshair; background:rgba(15,23,42,.08); user-select:none; touch-action:none; }
+.nubi-capture-overlay[data-dragging] { background:transparent; }
+.nubi-capture-rect { position:absolute; box-sizing:border-box; border:2px solid var(--deck-blue); border-radius:4px; background:transparent; box-shadow:0 0 0 9999px rgba(15,23,42,.18); pointer-events:none; }
+.nubi-capture-hint { position:absolute; left:50%; top:16px; transform:translateX(-50%); margin:0; padding:6px 12px; border-radius:999px; background:var(--deck-card); color:var(--deck-ink); font:var(--deck-font-caption); box-shadow:0 4px 16px rgba(15,23,42,.15); pointer-events:none; white-space:nowrap; }
+.nubi-capture-chips { display:flex; flex-wrap:wrap; gap:10px; min-width:0; margin:0 0 6px; }
+.nubi-capture-chip { position:relative; display:inline-flex; align-items:flex-start; max-width:100%; }
+.nubi-capture-thumb { display:block; padding:0; border:1px solid var(--deck-line); border-radius:8px; background:var(--deck-card); cursor:zoom-in; overflow:hidden; }
+.nubi-capture-thumb img { display:block; width:auto; height:72px; max-width:200px; object-fit:cover; }
+.nubi-capture-chip[data-open] .nubi-capture-thumb { cursor:zoom-out; }
+.nubi-capture-chip[data-open] .nubi-capture-thumb img { height:auto; max-width:min(100%,720px); max-height:70vh; object-fit:contain; }
+.nubi-capture-missing { display:inline-flex; align-items:center; gap:6px; padding:8px 10px; color:var(--deck-sub); font:var(--deck-font-caption); }
+.nubi-capture-chip .nubi-capture-remove { position:absolute; top:-7px; right:-7px; width:22px; height:22px; min-width:0; padding:0; border-radius:999px; background:var(--deck-card); box-shadow:0 1px 4px rgba(15,23,42,.2); }
+.nubi-user-bubble .nubi-capture-chips { margin:8px 0 0; }

@@ -1,4 +1,5 @@
 import {requireWikiGit} from './git-runtime.mjs';
+import {pullSources} from './wiki-refresh.mjs';
 // OpenWiki update, proposed by Desktop and run on approval (user decision 2026-09-29).
 //
 // The status is read without a model: the source changed since the generation
@@ -194,6 +195,17 @@ export async function wikiUpdate({method='status',id,fingerprint}={}){
     const value={id:randomUUID(),state:'proposed',createdAt:new Date().toISOString(),status};
     value.fingerprint=hash(JSON.stringify([value.id,status.head,status.changedFiles,status.stalePages]));
     return save(this,value);
+  }
+  // "오픈위키 갱신" from the conversation or /wiki_update (user request 2026-10-14): pull the git remote when there is
+  // one, then propose and run the update as the 위키 갱신 button does. Nothing to update is a plain result, not an error.
+  if(method==='refresh'){
+    if(this.wikiUpdateRun)fail('wiki_update_busy');
+    const pulled=await pullSources(root);
+    const status=await wikiUpdateStatus(root);
+    if(status.state!=='stale')return {pulled,status,update:null};
+    const proposal=await wikiUpdate.call(this,{method:'propose'});
+    const update=await wikiUpdate.call(this,{method:'run',id:proposal.id,fingerprint:proposal.fingerprint});
+    return {pulled,status,update};
   }
   const value=this.store.get('wiki-update:'+id);
   if(!value)fail('wiki_update_missing');

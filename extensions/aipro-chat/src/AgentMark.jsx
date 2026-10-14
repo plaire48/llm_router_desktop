@@ -11,7 +11,7 @@ export function NubiLogo({mood = 'idle', product, title, versionLabel = 'beta', 
 // The mascot identifies the agent. Provider buttons keep their own logos.
 export function AgentMark({size = 28, className = '', mood = 'still', lively = false}) {
   const previous = useRef(mood), [celebrating, setCelebrating] = useState(false);
-  const [greeting, setGreeting] = useState(false);
+  const [greeting, setGreeting] = useState(false), [startled, setStartled] = useState(false);
   useEffect(() => {
     if (!greeting) return;
     const timer = setTimeout(() => setGreeting(false), 1800);
@@ -22,15 +22,19 @@ export function AgentMark({size = 28, className = '', mood = 'still', lively = f
     if (previous.current === 'working' && mood === 'done') {
       setCelebrating(true); timer = setTimeout(() => setCelebrating(false), 4200);
     } else setCelebrating(false);
+    // Woken from sleep by something happening in the app: a quick startle before the new mood (user request 2026-10-14).
+    let startle;
+    if (previous.current === 'sleep' && mood !== 'sleep') {setStartled(true); startle = setTimeout(() => setStartled(false), 1100);}
     previous.current = mood;
-    return () => clearTimeout(timer);
+    return () => {clearTimeout(timer); clearTimeout(startle);};
   }, [mood]);
-  const state = ['sad', 'error'].includes(mood) ? 'sad' : mood === 'working' ? 'working' : celebrating || greeting ? 'celebrate' : mood === 'sleep' ? 'sleep' : mood === 'idle' || lively ? 'idle' : 'still';
+  const state = startled ? 'startle' : ['sad', 'error'].includes(mood) ? 'sad' : mood === 'working' ? 'working' : celebrating || greeting ? 'celebrate' : mood === 'sleep' ? 'sleep' : mood === 'idle' || lively ? 'idle' : 'still';
   return <span className={`agent-mark ${className}`} data-mood={state} aria-hidden="true" style={{'--agent-size': `${size}px`}} onPointerEnter={() => {if (lively && ['idle', 'done', 'sleep'].includes(mood)) setGreeting(true);}} onPointerLeave={() => setGreeting(false)}>
     <img className="bird-base" src="./icons/agent-bird.webp" alt="" width={size} height={size} draggable="false"/>
     {['blink', 'wing', 'smile', 'sad'].map(frame => <img className={`bird-frame bird-${frame}`} key={frame} src={`./icons/agent-${frame}.webp`} alt="" width={size} height={size} draggable="false"/>)}
     <svg className="bird-dream" viewBox="0 0 1280 1280" fill="none" stroke="currentColor" strokeWidth="32" strokeLinecap="round" strokeLinejoin="round"><path className="bird-z bird-z-one" d="M800 170h110l-110 95h110"/><path className="bird-z bird-z-two" d="M985 35h130l-130 112h130"/></svg>
     <span className="bird-tear bird-tear-left"/><span className="bird-tear bird-tear-right"/>
+    <svg className="bird-alert" viewBox="0 0 1280 1280" fill="currentColor"><path d="M985 120h150l-40 460h-70Z"/><circle cx="1060" cy="700" r="62"/></svg>
     <svg className="bird-joy" viewBox="0 0 1280 1280" fill="currentColor"><path d="M1040 80q8 66 65 70q-57 8-65 70q-8-62-65-70q57-4 65-70Z"/><path d="M1180 260q6 38 36 42q-30 6-36 42q-6-36-36-42q30-4 36-42Z"/></svg>
   </span>;
 }

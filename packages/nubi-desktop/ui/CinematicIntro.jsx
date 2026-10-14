@@ -12,10 +12,11 @@ import {startIntroFlight} from './introFlight.js';
 // motion never show it.
 const SCENES=5400,TITLE_MIN=900,COMPLETE=420,LEAVE=620,LONGEST=11000;
 let played=false;
-// The full scene plays once, on the first launch after installing (user decision 2026-10-14); later launches show only
-// the logo and the progress bar. Remembered per viewer in local storage; if storage is unavailable the short form shows.
-const SEEN_KEY='nubi-opening-scene-v1';
-const firstLaunch=()=>{try{if(localStorage.getItem(SEEN_KEY))return false;localStorage.setItem(SEEN_KEY,'seen');return true;}catch{return false;}};
+// The full scene plays once per installed version: on the first launch after installing, and again after installing a
+// newer version (user requests 2026-10-14); later launches show only the logo and the progress bar. Remembered per
+// viewer in local storage as the version that played; if storage is unavailable the short form shows.
+const SEEN_KEY='nubi-opening-scene-v1',VERSION=typeof __NUBI_VERSION__==='string'&&__NUBI_VERSION__||'installed';
+const firstLaunch=()=>{try{if(localStorage.getItem(SEEN_KEY)===VERSION)return false;localStorage.setItem(SEEN_KEY,VERSION);return true;}catch{return false;}};
 const skipped=()=>typeof navigator!=='undefined'&&navigator.webdriver||typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
 export function CinematicIntro({ready=false,onFinish}){
   const [mode]=useState(()=>played||skipped()?'none':firstLaunch()?'full':'brief');

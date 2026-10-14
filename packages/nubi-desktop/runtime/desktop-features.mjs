@@ -10,7 +10,7 @@ import {modelTransport} from './recovery.mjs';
 import {inspectCommitHistory} from './commit-history.mjs';
 import {DESKTOP_FEATURES} from './beta-features.mjs';
 import {mailImagePreview} from './mail-image.mjs';
-import {wikiFiles,hasWikiPages,listWikiSourceFiles,readWikiSource,initializeWikiSnapshotGit,checkpointSnapshotWiki,wikiSourceHead,prepareWikiHistory,removeWikiHistory} from './wiki-snapshot.mjs';
+import {wikiFiles,hasWikiPages,countWikiPages,listWikiSourceFiles,readWikiSource,initializeWikiSnapshotGit,checkpointSnapshotWiki,wikiSourceHead,prepareWikiHistory,removeWikiHistory} from './wiki-snapshot.mjs';
 import {wikiInitializationError} from './wiki-initialization-error.mjs';
 
 export function installDesktopFeatures(Service){
@@ -35,7 +35,21 @@ export function installDesktopFeatures(Service){
   };
   Service.prototype.commitHistory=function(args={}){return inspectCommitHistory(this,args);};
   Service.prototype.wikiInitialization=function({action='status'}={}){
-    this.ready();if(action==='cancel'){this.wikiInitController?.abort();const v=this.store.get('wiki-init');if(v)this.store.set('wiki-init',{...v,state:'cancelled',percent:null,finishedAt:new Date().toISOString()});}
+    this.ready();
+    // The folder-open prompt's "지우고 다시 만들기" (user request 2026-10-14): the OpenWiki the folder came with is removed
+    // and the initialization starts again from the sources. Only when nothing wiki-related is running.
+    if(action==='reset'){
+      if(this.wikiInitController||this.wikiInitAdmission||this.wikiUpdateRun)fail('wiki_busy');
+      if(this.workspaceKind==='conversation'||!this.root)fail('wiki_unavailable');
+      const store=this.store,root=this.root;
+      return (async()=>{
+        await rm(path.join(root,'openwiki'),{recursive:true,force:true});
+        if(this.store!==store)fail('project_changed');
+        this.wikiInitEnabled=true;store.set('wiki-init',null);
+        void this.initializeWiki().catch(()=>{if(this.store===store&&store.db.isOpen)store.set('wiki-init',{state:'attention',percent:null,error:'wiki_failed'});});
+        return store.get('wiki-init');
+      })();
+    }if(action==='cancel'){this.wikiInitController?.abort();const v=this.store.get('wiki-init');if(v)this.store.set('wiki-init',{...v,state:'cancelled',percent:null,finishedAt:new Date().toISOString()});}
     if(action==='retry'){if(this.wikiInitController||this.wikiInitAdmission)fail('wiki_busy');this.wikiInitEnabled=true;this.store.set('wiki-init',null);const store=this.store;void this.initializeWiki().catch(()=>{if(this.store===store&&store.db.isOpen)store.set('wiki-init',{state:'attention',percent:null,error:'wiki_failed'});});}
     return this.store.get('wiki-init');
   };
@@ -52,7 +66,7 @@ export function installDesktopFeatures(Service){
     const status=this.providers?.status();
     if(!status?.connected||this.wikiInitEnabled===false){
       const existing=await hasWikiPages(root);if(this.store!==store||this.root!==root||this.disposed)return;
-      const v=existing?(previous?.state==='completed'?previous:{state:'existing',percent:null}):{state:status?.connected?'waiting_source':'waiting_model',percent:null};store.set('wiki-init',v);return v;
+      const v=existing?(previous?.state==='completed'?previous:{state:'existing',percent:null,pages:await countWikiPages(root)}):{state:status?.connected?'waiting_source':'waiting_model',percent:null};store.set('wiki-init',v);return v;
     }
     const controller=new AbortController();this.wikiInitController=controller;this.wikiInitOwner=store;const signal=controller.signal;
     const job={id:randomUUID(),projectId:this.projectId,startedAt:new Date().toISOString(),state:'running',stage:'scanning',stageStartedAt:new Date().toISOString(),percent:null,completed:0,total:0,model:status.model,provider:status.provider};store.set('wiki-init',job);
@@ -60,7 +74,7 @@ export function installDesktopFeatures(Service){
     const persist=()=>{const key=`${job.state}:${job.stage}:${job.percent}`;if(key===lastKey&&Date.now()-lastSaved<250)return;if(this.store===store&&store.db.isOpen){store.set('wiki-init',{...job});lastKey=key;lastSaved=Date.now();}};
     const check=()=>{signal.throwIfAborted();if(this.store!==store||this.root!==root)fail('project_changed');const active=this.providers.status();if(!active.connected||active.model!==job.model||active.provider!==job.provider)fail('provider_changed');};
     this.wikiInitPromise=(async()=>{let temporary,sourceHead;const published=[];try{
-      if(await hasWikiPages(root)){check();Object.assign(job,previous?.state==='completed'?previous:{state:'existing',percent:null,finishedAt:new Date().toISOString()});persist();return;}
+      if(await hasWikiPages(root)){check();Object.assign(job,previous?.state==='completed'?previous:{state:'existing',percent:null,pages:await countWikiPages(root),finishedAt:new Date().toISOString()});persist();return;}
       await requireWikiGit();check();sourceHead=await wikiSourceHead(root);const cleanHead=sourceHead&&!(await git(root,['status','--porcelain','--untracked-files=all'])).trim();const files=await listWikiSourceFiles(root,this.wikiSourceLister||listFiles);check();
       if(files.truncated)fail('wiki_source_limit');
       temporary=await mkdtemp(path.join(os.tmpdir(),'nubi-wiki-init-'));const sources=[];

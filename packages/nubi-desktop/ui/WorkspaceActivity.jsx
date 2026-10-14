@@ -70,11 +70,19 @@ export function WorkspaceActivity({task,run,historical=false,predecessors=run?.p
   const workedMs=[...predecessors.map(previous=>previous.responseTiming?.durationMs),task.responseTiming?.runId===runId?task.responseTiming?.durationMs:null].filter(Number.isFinite).reduce((sum,value)=>sum+value,0);
   const worked=workedMs>0?durationLabel(workedMs):null;
   const summaryTitle=live?(currentStep?.label||toolLabels[currentStep?.tool]||idleLabel):waiting?'확인 대기':worked?`${worked} 작업${toolCount?`, 도구 ${toolCount}회`:''}`:'진행 기록';
-  if (!currentPlan?.steps?.length && !trace.length && !live) return null;
+  // What the model thought, round by round, stays in this record and folds with it (user request 2026-10-14: thoughts
+  // pile up in the middle of the conversation and are grouped once the answer is out). The current thought streams last.
+  const thoughts=[...predecessors.flatMap(previous=>previous.thoughts||[]),...(task.thoughts||[]).filter(thought=>thought.runId===runId)];
+  const thinking=live&&task.streamingReasoning?task.streamingReasoning.slice(-600).replace(/^\S*\s/,''):'';
+  if (!currentPlan?.steps?.length && !trace.length && !live && !thoughts.length) return null;
   return <section className="nubi-agent-activity" data-run-id={runId} data-historical={historical||undefined} aria-label="계획과 진행 상황" aria-busy={live}>
     {currentPlan?.steps?.length > 0 && <WorkspacePlan task={{...task,workPlan:currentPlan}} historical={historical} answered={answered} trace={trace.map(event => ({...event,label:event.label || toolLabels[event.tool]}))}/>}
     {notes.length>0&&<ul className="nubi-activity-narration" aria-label="진행 중 전한 말">{notes.map((note,at)=><li key={note.id||at}><Icon name="message" size={14}/><MessageBody content={note.content} compact/></li>)}</ul>}
     <AgentTrace compactStatuses renderStepElapsed={step=><ResponseTime key={step.id} timing={{startedAt:rawSteps.get(step.id)?.startedAt||rawSteps.get(step.id)?.at}} live showIcon={false} label="" title="이 단계의 경과 시간"/>} idleElapsed={live?<ResponseTime timing={task.responseTiming} live showIcon={false} label=""/>:null} summaryTitle={summaryTitle} summaryAside={live?<ResponseTime timing={task.responseTiming} label="" live/>:null} key={`${runId}:${collapsed?'result':'active'}:${needsAttention?'attention':'normal'}`} steps={steps} traceOptions={traceOptions} live={live} question={task.question}
       preserveNotes preserveCompleted defaultExpanded={!collapsed} completed={verified} verified={verified} awaitingUser={waiting} stopped={['paused','interrupted','cancelled','failed'].includes(task.state)} idleLabel={idleLabel}/>
+    {(thoughts.length>0||thinking)&&<details className="nubi-thoughts" key={`${runId}:${collapsed?'result':'active'}`} open={!collapsed} aria-label="모델이 생각한 내용">
+      <summary><Icon name="lightbulb" size={14}/>{thinking?'생각하는 중':`생각한 내용 ${thoughts.length}개`}<Icon name="chevronDown" size={14}/></summary>
+      <ol>{thoughts.map(thought=><li key={thought.id}><p>{thought.content}</p></li>)}{thinking&&<li className="nubi-thought-live" aria-live="polite"><span className="status-spinner" aria-hidden="true"/><p>{thinking}</p></li>}</ol>
+    </details>}
   </section>;
 }

@@ -186,3 +186,22 @@ test('setup recovery identifies only the missing or stale prerequisite and issue
  await assert.rejects(prepareSetupAction(service,task.id,spec(source),observations),check('source_stale','file_changed'));
  assert.equal(service.store.list('setup-action:').length,0);assert.equal(service.store.list('process:').length,0);
 });
+
+test('the shell chosen in settings wins over the model choice (CMD chosen, PowerShell sent)', async()=>{
+  const {requireChosenShell}=await import('../runtime/setup-actions.mjs');
+  const profiles=[{id:'powershell'},{id:'cmd'}];
+  assert.throws(()=>requireChosenShell(profiles,'cmd','powershell'),error=>error.message==='shell_not_selected'&&error.details.selectedShell==='cmd'&&error.actionIssued===false);
+  assert.doesNotThrow(()=>requireChosenShell(profiles,'cmd','cmd'));
+  assert.doesNotThrow(()=>requireChosenShell(profiles,undefined,'powershell'),'no choice in settings keeps the model choice');
+  assert.doesNotThrow(()=>requireChosenShell(profiles,'bash','powershell'),'a chosen shell missing on this PC is not enforced');
+  assert.doesNotThrow(()=>requireChosenShell(profiles,'cmd','powershell',true),'administrator actions need PowerShell');
+});
+
+test('a command proposed during a run remembers that run, so its card stays in that turn',async t=>{
+  const {service}=await fixture(t),task=await service.createTask({request:'app.txt를 확인해 줘.'});
+  const source=await service.read({taskId:task.id,path:'app.txt'}),observations=new SourceObservations();observations.observe(source);
+  service.agent={running:true,taskId:task.id,runId:'run-turn'};
+  const action=await prepareSetupAction(service,task.id,spec(source),observations);service.agent=null;
+  assert.equal(action.runId,'run-turn');
+  assert.equal(service.store.get('setup-action:'+action.id).runId,'run-turn');
+});

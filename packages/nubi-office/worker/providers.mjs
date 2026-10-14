@@ -46,9 +46,11 @@ const catalog = payload => (payload?.modelList || []).map(m => ({
 }));
 // Prefer the enterprise catalog's actual Qwen 3.8 27B ID. Never fabricate a
 // public model ID/context size, filter alternatives, or replace a user choice.
+// GLM first on AI Pro (user decision 2026-10-14), then the catalog's Qwen 3.8 27B, then the first listed.
 export function defaultOfficeModel(models) {
+  const glm=value=>/(?:^|[^a-z])glm(?:[^a-z]|$)/i.test(value||'');
   const match=value=>/qwen[\s_.-]*3[\s_.-]*8[\s_.-]*27b(?:\b|[_-])/i.test(value||'');
-  return models.find(m=>match(m.id)||match(m.label))?.id||models[0]?.id||'';
+  return models.find(m=>glm(m.id)||glm(m.label))?.id||models.find(m=>match(m.id)||match(m.label))?.id||models[0]?.id||'';
 }
 export function manualConnection(input) {
   const url = new URL(String(input.baseUrl || '').trim());

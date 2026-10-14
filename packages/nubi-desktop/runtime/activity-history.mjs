@@ -7,7 +7,8 @@ export function rememberActivity(task, runId) {
   if (!workPlan?.steps?.length && !trace.length) return;
   const history = task.activityHistory || [];
   const previous = history.find(run => run.runId === runId);
-  const run = structuredClone({runId, state:task.state, trace,
+  const thoughts = (task.thoughts || []).filter(thought => thought.runId === runId);
+  const run = structuredClone({runId, state:task.state, trace, ...(thoughts.length ? {thoughts} : {}),
     ...(workPlan ? {workPlan:{...workPlan, updates:(workPlan.updates || []).filter(update => !update.runId || update.runId === runId)}} : {}),
     ...(task.resultReview?.runId === runId ? {resultReview:task.resultReview} : {}),
     ...(task.responseTiming?.runId === runId ? {responseTiming:task.responseTiming} : {}),

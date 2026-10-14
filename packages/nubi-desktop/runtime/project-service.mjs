@@ -40,6 +40,7 @@ import {git, gitOpenFailure, hash, fail, readSource, listFiles, scopedFile, rela
 import {READ_LINES} from './read-room.mjs';
 import {modelTransport} from './recovery.mjs';
 import {wikiUpdate} from './wiki-update.mjs';
+import {storeCaptures,readCapture} from './captures.mjs';
 import {inspectWorkspaceChanges} from './workspace-changes.mjs';
 
 const exec = promisify(execFile);
@@ -186,16 +187,20 @@ export class ProjectService {
 
   async computer(args) {return computer.call(this,args);}
   async wikiUpdate(args) {return wikiUpdate.call(this,args);}
+  // A screenshot the user attached from the Workspace window (user request 2026-10-14); the window capture itself
+  // comes from the app host through the browser bridge.
+  capture({id}={}){this.ready();const record=readCapture(this,id);return {id:record.id,image:record.image,width:record.width,height:record.height};}
+  async captureWorkspace(){this.ready();if(typeof this.captureWorkspaceWindow!=='function')fail('browser_unavailable');const shot=await this.captureWorkspaceWindow();return {image:shot.image,width:shot.width,height:shot.height,title:shot.title||''};}
   async decideSetupAction(args) {return decideSetupAction.call(this,args);}
 
   async collaboration() {fail('a2a_disabled');}
 
-  async createTask({request, criteria = [],mailReferences=[]}) {
+  async createTask({request, criteria = [],mailReferences=[],captures=[]}) {
     this.ready(); requireWikiChatReady(this); request = limited(request);
     if (!Array.isArray(criteria) || criteria.length > 30) fail('criteria_invalid');
     const references=await validateMailReferences(this,mailReferences);
     requireWikiChatReady(this);
-    const key = id(), task = {id: key, request, mailReferences:references,requestMailReferences:references,criteria: criteria.map((text, i) => ({id: 'AC-' + (i + 1), text: limited(text, 1000), state: 'unknown'})), state: 'draft', createdAt: new Date().toISOString(), messages: [], trace: [], requirementId: 'REQ-' + key.slice(0, 8)};
+    const key = id(), attached=storeCaptures(this,key,captures), task = {id: key, request, mailReferences:references,requestMailReferences:references,...(attached.length?{requestCaptures:attached}:{}),criteria: criteria.map((text, i) => ({id: 'AC-' + (i + 1), text: limited(text, 1000), state: 'unknown'})), state: 'draft', createdAt: new Date().toISOString(), messages: [], trace: [], requirementId: 'REQ-' + key.slice(0, 8)};
     this.store.set('task:' + key, task); this.store.event('task_created', {id: key}); return task;
   }
   async exportRequirement({taskId}) {
@@ -330,7 +335,7 @@ export class ProjectService {
   async invoke(method, args = {}) {
     if(this.appUpdateLocked)fail('update_installing');
     if(method==='prepareAppUpdate')return this.prepareAppUpdate();
-    const allowed = new Set(['previewFile','browseDirectory','terminalCommand','projectPath','proposalText','artifactText','initializeWiki','wikiInitialization','saveSource','commitHistory','mailDocument','mail','wikiUpdate','analysisHistory','memories','listSkills','removeSkill','skillMarketplace','connectSkillMarketplace','disconnectSkillMarketplace','importSkill','importVoc','queryVoc','readVoc','computer','applyNewFile','decideSetupAction','collaboration','codeOutline','recoverySnapshot','resumeAgent','diagnoseProcess','applyCommandRepair','knowledgeMap','knowledgeQuery','initializeKnowledgeCatalog','exportKnowledgeMap','databaseConnection','open','knowledgeStatus','recordKnowledge','comparison','connectKnowledge','overview','state','setShellPreference','read','search','wikiQuery','createTask','exportRequirement','createWorktree','propose','prepareProposal','proposalArtifacts','confirmProposal','mergeProposal','diff','run','exportReport','compare','provider','fabrix','agentInput','startAgent','answerAgent','saveQuestionDraft','stopAgent','deleteTask','approvalPolicy','setApprovalMode','allowCommand','removeAllowedCommand','autoApprovals']);
+    const allowed = new Set(['capture','captureWorkspace','previewFile','browseDirectory','terminalCommand','projectPath','proposalText','artifactText','initializeWiki','wikiInitialization','saveSource','commitHistory','mailDocument','mail','wikiUpdate','analysisHistory','memories','listSkills','removeSkill','skillMarketplace','connectSkillMarketplace','disconnectSkillMarketplace','importSkill','importVoc','queryVoc','readVoc','computer','applyNewFile','decideSetupAction','collaboration','codeOutline','recoverySnapshot','resumeAgent','diagnoseProcess','applyCommandRepair','knowledgeMap','knowledgeQuery','initializeKnowledgeCatalog','exportKnowledgeMap','databaseConnection','open','knowledgeStatus','recordKnowledge','comparison','connectKnowledge','overview','state','setShellPreference','read','search','wikiQuery','createTask','exportRequirement','createWorktree','propose','prepareProposal','proposalArtifacts','confirmProposal','mergeProposal','diff','run','exportReport','compare','provider','fabrix','agentInput','startAgent','answerAgent','saveQuestionDraft','stopAgent','deleteTask','approvalPolicy','setApprovalMode','allowCommand','removeAllowedCommand','autoApprovals']);
     allowed.add('mcp');allowed.add('removeAllowedMcpTool');allowed.add('rejectCommandRepair');allowed.add('cancelProposal');allowed.add('gitAvailability');allowed.add('conversationHistory');allowed.add('usage');allowed.add('editorSource');allowed.add('regenerateAnswer');allowed.add('skillTrash');
     if (method === 'poll') { this.ready(); return this.processes.poll(args.id); }
     if (method === 'stop') { this.ready(); return this.processes.stop(args.id); }

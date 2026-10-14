@@ -1053,3 +1053,15 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .desktop-shell .nubi-workbench .nubi-review-fold[open]>summary .nubi-document-progress-heading>svg:last-child { transform:rotate(180deg); }
 .desktop-shell .nubi-workbench .nubi-result-review[data-folded]>.nubi-review-next { margin-block-end:0; }
 .nubi-review-slot:empty { display:none; }
+/* The model's thoughts inside a run's record: quiet, folded with the record once the answer is out. */
+.desktop-shell .nubi-workbench .nubi-thoughts { margin:var(--cx-space-2) 0 0; color:var(--nubi-text-secondary); }
+.desktop-shell .nubi-workbench .nubi-thoughts>summary { display:flex; align-items:center; gap:var(--cx-space-2); width:fit-content; cursor:pointer; list-style:none; padding:var(--cx-space-1) 0; font-size:var(--deck-type-caption); font-weight:var(--nubi-weight-label); }
+.desktop-shell .nubi-workbench .nubi-thoughts>summary::-webkit-details-marker { display:none; }
+.desktop-shell .nubi-workbench .nubi-thoughts>summary>svg:last-child { transition:transform .2s ease; }
+.desktop-shell .nubi-workbench .nubi-thoughts[open]>summary>svg:last-child { transform:rotate(180deg); }
+.desktop-shell .nubi-workbench .nubi-thoughts>ol { list-style:none; margin:0; padding:0 0 0 var(--cx-space-5); display:grid; gap:var(--cx-space-2); }
+.desktop-shell .nubi-workbench .nubi-thoughts p { margin:0; font-size:var(--deck-type-caption); line-height:1.6; white-space:pre-wrap; overflow-wrap:anywhere; color:var(--nubi-text-secondary); }
+.desktop-shell .nubi-workbench .nubi-thought-live { display:flex; gap:var(--cx-space-2); align-items:flex-start; }
+.desktop-shell .nubi-workbench .nubi-thought-live .status-spinner { flex:none; width:12px; height:12px; margin-top:4px; }
+.desktop-shell .nubi-workbench .nubi-setup-summary .nubi-terminal { margin-top:var(--cx-space-1); }
+.desktop-shell .nubi-workbench .nubi-command-receipt .status-spinner { width:12px; height:12px; }

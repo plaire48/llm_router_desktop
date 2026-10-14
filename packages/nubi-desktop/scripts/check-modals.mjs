@@ -179,12 +179,20 @@ try{
  /* The AI Workspace page has no back arrow any more (user request 2026-10-14); Escape returns to the conversation. */await p.locator('.nubi-skill-page h1').focus();await p.keyboard.press('Escape');assert.equal(await input.inputValue(),'보존할 대화 초안');
  await p.mouse.move(1,1);await input.blur();const surface=p.locator('.nubi-composer-surface').first();const calm=await surface.evaluate(el=>getComputedStyle(el).borderColor);await surface.hover();assert.equal(await surface.evaluate(el=>getComputedStyle(el).borderColor),calm);
  await input.focus();const focus=await surface.evaluate(el=>({border:getComputedStyle(el).borderColor,shadow:getComputedStyle(el).boxShadow}));/* No focus ring on the message box (user decision 2026-10-14): typing keeps its calm border and adds no shadow. */assert.equal(focus.border,calm);assert.equal(focus.shadow,'none');await p.screenshot({path:path.join(dir,'composer-soft-focus.png'),animations:'disabled'});
- checks.push('Nubi-only skill catalog, search during direct download, installed state, no embedded website, draft preservation and quiet composer hover/focus');
+ /* Capture part of the Workspace and attach it to the message (user request 2026-10-14). */
+ await p.getByRole('button',{name:'화면 캡처',exact:true}).first().click();const overlay=p.locator('.nubi-capture-overlay');await overlay.waitFor();
+ await p.mouse.move(300,200);await p.mouse.down();await p.mouse.move(500,330,{steps:4});await p.mouse.up();await overlay.waitFor({state:'hidden'});
+ const chip=p.locator('.nubi-capture-chip');await chip.waitFor();assert.equal(await p.evaluate(()=>window.captureCalls),1);
+ const size=await chip.locator('img').evaluate(img=>[img.naturalWidth,img.naturalHeight]);assert(size[0]>=195&&size[0]<=205&&size[1]>=125&&size[1]<=135,'crop follows the dragged rectangle '+size);
+ await chip.locator('button').first().click();assert.equal(await chip.getAttribute('data-open'),'true');await chip.locator('button').first().click();
+ await chip.getByRole('button',{name:/빼기/}).click();await chip.waitFor({state:'hidden'});
+ await p.keyboard.press('Escape');
+ checks.push('Nubi-only skill catalog, search during direct download, installed state, no embedded website, draft preservation and quiet composer hover/focus, workspace capture chip (drag, crop, enlarge, remove)');
  for(const phase of ['running','paused']){
   await p.setViewportSize({width:1280,height:900});await p.goto(origin+'/?command&command-analysis='+phase+'&modals&integrated');
   await openSidebar();await p.getByRole('button',{name:'대화 검색',exact:true}).click();await p.getByRole('dialog',{name:'대화 검색'}).locator('.nubi-history-item').first().click();
   const card=p.getByRole('region',{name:'실행 준비 승인'});await card.getByText(phase==='running'?'결과 확인 중':'결과 확인 중단',{exact:true}).waitFor();
-  const output=card.getByRole('button',{name:'실행 결과 보기',exact:true});assert(await output.isEnabled());await output.click();await p.getByText('결과 확인용 출력',{exact:true}).waitFor();
+  /* The output reads in place under the command (user request 2026-10-14); there is no '실행 결과 보기' button any more. */assert.equal(await card.getByRole('button',{name:'실행 결과 보기'}).count(),0);await card.getByText('결과 확인용 출력',{exact:true}).waitFor();assert.equal(await card.getByText('명령 상세',{exact:true}).count(),0);
   if(phase==='paused'){await p.getByText('응답 형식 확인 필요',{exact:false}).first().waitFor();assert.equal(await p.getByText('실행 실패',{exact:true}).count(),0);}
   await p.screenshot({path:path.join(dir,'command-analysis-'+phase+'.png'),animations:'disabled'});
   checks.push('command analysis '+phase+': actual state label, readable output during analysis, planning failure distinguished from shell failure');

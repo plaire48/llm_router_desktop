@@ -5,6 +5,8 @@ import {recoverModel,createModelCooldown} from '../../../extensions/aipro-chat/m
 import {safeError} from '../../nubi-office/worker/connection-errors.mjs';
 import {hash,fail} from './files.mjs';
 import {shellProfiles} from './processes.mjs';
+import {preferredShell} from './environment-inspection.mjs';
+import {requireChosenShell} from './setup-actions.mjs';
 
 export const READ_TOOLS=new Set(['personal_mail_query','read_personal_mail','ask_openwiki','inspect_environment','inspect_workspace_changes','read_process_output','read_document_analysis','analyze_documents','list_skill_resources','discover_capabilities','use_skill','read_skill','read_conversation','computer_checkpoint','read_computer_result','list_computer_apps','inspect_path','code_outline','source_search','read_source','wiki_query','knowledge_query','recovery_snapshot']);
 const recoverableProcesses=new Set(['failed','timed_out','interrupted']);
@@ -110,7 +112,8 @@ export function installRecovery(ProjectService){
   ProjectService.prototype.proposeCommandRepair=async function({taskId,processId,profile,script,reason}){
     const process=this.processes.poll(processId);
     if(process.taskId!==taskId||!recoverableProcesses.has(process.state)||typeof script!=='string'||!script.trim()||script.length>16000||typeof reason!=='string'||!reason.trim()||reason.length>1000)fail('repair_invalid');
-    if(!(await shellProfiles()).some(p=>p.id===profile))fail('shell_unavailable');
+    const profiles=await shellProfiles();profile=profile||preferredShell(profiles,process.platform,this.shellPreference());
+    if(!profiles.some(p=>p.id===profile))fail('shell_unavailable');requireChosenShell(profiles,this.shellPreference(),profile);
     const fingerprint=hash(JSON.stringify([processId,profile,script]));
     const previous=this.store.list('command-repair:').find(r=>r.fingerprint===fingerprint&&r.state==='proposed');if(previous)return previous;
     const value={id:randomUUID(),taskId,processId,profile,script,reason,workspace:await this.target(taskId),fingerprint,state:'proposed',createdAt:now()};

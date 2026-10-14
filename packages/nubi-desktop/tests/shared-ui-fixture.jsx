@@ -131,6 +131,10 @@ const sendTransition=new URLSearchParams(location.search).has('send-transition')
 if(sendTransition){connected=true;const saved=sessionStorage.getItem('send-fixture');if(saved)Object.assign(project,JSON.parse(saved));window.saveSendFixture=()=>sessionStorage.setItem('send-fixture',JSON.stringify(project));window.sendCalls=[];window.sendGate={};window.finishSend=()=>{const task=project.tasks[0];task.state='review';task.messages.push({id:'finished',role:'assistant',content:'확인한 결과입니다.',at:new Date().toISOString()});};}
 async function waitForSendGate(kind){await new Promise((resolve,reject)=>{window.sendGate[kind]={release:resolve,reject:()=>reject(Error('network'))};});}
 async function api(method,args={}){
+  // Workspace capture (2026-10-14): the window picture is a canvas the size of the viewport with one blue block.
+  if(method==='captureWorkspace'){const canvas=document.createElement('canvas');canvas.width=innerWidth;canvas.height=innerHeight;const ctx=canvas.getContext('2d');ctx.fillStyle='#dbeafe';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#1d4ed8';ctx.fillRect(40,40,200,120);const url=canvas.toDataURL('image/png');window.captureCalls=(window.captureCalls||0)+1;return {image:url.slice(url.indexOf(',')+1),width:canvas.width,height:canvas.height,title:'fixture'};}
+  if(method==='capture'){const record=(window.captureRecords||{})[args.id];if(!record)throw Error('capture_missing');return record;}
+  if(['createTask','startAgent','agentInput'].includes(method)&&Array.isArray(args.captures)&&args.captures.length){window.sentCaptures=[...(window.sentCaptures||[]),...args.captures.map(item=>({width:item.width,height:item.height,bytes:item.image.length}))];}
   if(proposalFixture&&method==='cancelProposal'){window.proposalCalls.push({method,...args});project.proposals.find(p=>p.id===args.proposalId).state='cancelled';return {state:'cancelled'};}
 
   if(wikiChatFixture&&['createTask','startAgent','agentInput','regenerateAnswer'].includes(method)){window.wikiChatCalls.push(method);if(window.wikiSilentLock)throw Error('wiki_chat_blocked');}

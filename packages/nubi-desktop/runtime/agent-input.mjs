@@ -3,6 +3,7 @@ import {wikiChatBlocked,requireWikiChatReady} from './wiki-chat-admission.mjs';
 import {resolveAgentCommand} from './agent-commands.mjs';
 import {randomUUID} from 'node:crypto';
 import {validateMailReferences,mergeMailReferences,sameMailReferences} from './mail-evidence.mjs';
+import {storeCaptures} from './captures.mjs';
 import {enqueueInput,nextInput,reorderInput,inputMatches} from '../../../extensions/aipro-chat/agent-inbox.js';
 
 // Browser inbox semantics, scoped to a Desktop task and this worker's connection.
@@ -36,7 +37,7 @@ export async function drainAgentInputs(service,taskId,chain){
   const item=nextInput(task.inbox,inputBinding(service,taskId,chain));
   if(item)await service.startAgent({taskId,answer:item.text,queuedInputId:item.id});
 }
-export async function agentInput({taskId,action='enqueue',id,text,mode='queue',runId,overId,order,mailReferences=[]}={}){
+export async function agentInput({taskId,action='enqueue',id,text,mode='queue',runId,overId,order,mailReferences=[],captures=[]}={}){
   if(['enqueue','steer','start'].includes(action))requireWikiChatReady(this);
   this.ready();const task=this.task(taskId),binding=inputBinding(this,taskId),inbox=task.inbox||[];
   if(action==='enqueue'){
@@ -51,7 +52,9 @@ export async function agentInput({taskId,action='enqueue',id,text,mode='queue',r
     Object.assign(task,this.task(taskId));
     const previous=task.inbox?.find(item=>item.id===id);
     if(previous&&!sameMailReferences(previous.mailReferences,references))throw Error('agent_input_changed');
-    task.inbox=enqueueInput(task.inbox||[],{id,text,mode},{...binding,runId:this.agent.inputChain}).map(item=>item.id===id?{...item,mailReferences:references}:item);
+    // Screenshots ride with the queued message once; a resend of the same message keeps the ones stored first.
+    const attached=previous?.captures||storeCaptures(this,taskId,captures);
+    task.inbox=enqueueInput(task.inbox||[],{id,text,mode},{...binding,runId:this.agent.inputChain}).map(item=>item.id===id?{...item,mailReferences:references,...(attached.length?{captures:attached}:{})}:item);
   }else if(action==='steer'){
     if(!inputOpen(this,task)||runId!==this.agent.runId)throw Error('agent_input_closed');
     const item=inbox.find(row=>row.id===id);if(!item||!inputMatches(item,{...binding,runId:this.agent.inputChain}))throw Error('agent_input_changed');

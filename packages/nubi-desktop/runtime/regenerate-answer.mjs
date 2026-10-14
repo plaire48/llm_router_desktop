@@ -24,7 +24,7 @@ export async function regenerateAnswer({taskId,messageId}={}){
   conversationMessages(task);
   const priorRun=source.runId||task.responseTiming?.runId;
   const next={...task,messages:task.messages.slice(0,-1),state:'ready',error:null,workPlan:null,resultReview:null,trace:[],sources:[],changePlan:null,checkpoint:null,responseTiming:null,recovery:null,
-    activityHistory:(task.activityHistory||[]).filter(run=>run.runId!==priorRun),
+    activityHistory:(task.activityHistory||[]).filter(run=>run.runId!==priorRun),thoughts:(task.thoughts||[]).filter(thought=>thought.runId!==priorRun),
     replyRegeneration:{state:'requested',revisionId,messageId:source.id},context:{...task.context,phase:'ready'}};
   // The old answer and its unapproved proposals move together. A storage
   // failure must not leave half of a redo visible or erase execution receipts.
