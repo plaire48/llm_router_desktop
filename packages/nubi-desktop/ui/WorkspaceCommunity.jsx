@@ -1,4 +1,5 @@
-import React,{useEffect,useId,useRef,useState} from 'react';
+import React,{createContext,useContext,useEffect,useId,useLayoutEffect,useRef,useState} from 'react';
+import {createPortal} from 'react-dom';
 import {CxButton,CxInput,Icon} from '@e2e/cx-design-system';
 import DOMPurify from 'dompurify';
 import {MessageBody} from '../../../extensions/aipro-chat/src/MessageBody.jsx';
@@ -28,7 +29,30 @@ async function importIcon(file){
   const bytes=new Uint8Array(await blob.arrayBuffer());if(bytes.length>128*1024)throw Error('아이콘은 128KB 이하여야 해요.');const content=toBase64(bytes);return {content,preview:'data:image/png;base64,'+content};
  }finally{URL.revokeObjectURL(source);}
 }
-function Avatar({person}){const [failed,setFailed]=useState(false);useEffect(()=>setFailed(false),[person?.avatarUrl]);const initials=String(person?.name||person?.login||'?').trim().slice(0,2).toUpperCase();return <span className="nubi-talk-avatar" aria-hidden="true">{person?.avatarUrl&&!failed?<img src={person.avatarUrl} alt="" onError={()=>setFailed(true)}/>:initials}</span>;}
+// GHES avatars are protected; the host reads them through the SSO session and hands back image bytes, and the
+// same lookup fills the hover card (user request 2026-10-14). Results are shared across the Talk screens.
+const PeopleContext=createContext(null);
+const people=new Map();
+function usePerson(api,login){
+ const [value,setValue]=useState(()=>login?people.get(login.toLowerCase())?.value||null:null);
+ useEffect(()=>{if(!login)return;const key=login.toLowerCase(),known=people.get(key);let live=true;
+  if(known?.value){setValue(known.value);return;}
+  const pending=known?.pending||api('workspaceCommunity',{action:'person',login}).then(v=>{const entry={value:v&&typeof v==='object'&&v.login?v:null};people.set(key,entry);return entry.value;}).catch(()=>{people.delete(key);return null;});
+  if(!known)people.set(key,{pending});
+  pending.then(v=>{if(live)setValue(v);});return()=>{live=false;};},[api,login]);
+ return value;
+}
+function Avatar({person,profile,size}){const [failed,setFailed]=useState(false);const src=profile?.avatar||person?.avatarUrl||null;useEffect(()=>setFailed(false),[src]);const initials=String(profile?.name||person?.name||person?.login||'?').trim().slice(0,2).toUpperCase();return <span className="nubi-talk-avatar" data-size={size} aria-hidden="true">{src&&!failed?<img src={src} alt="" onError={()=>setFailed(true)}/>:initials}</span>;}
+function PersonCard({person,profile,anchor,id}){
+ const [position,setPosition]=useState(null),card=useRef(null);
+ useLayoutEffect(()=>{const place=()=>{const box=anchor.current?.getBoundingClientRect();if(!box)return;const width=Math.min(300,window.innerWidth-24),height=card.current?.getBoundingClientRect().height||140;const top=box.bottom+8+height<=window.innerHeight?box.bottom+8:Math.max(12,box.top-height-8);setPosition({left:Math.max(12,Math.min(box.left,window.innerWidth-width-12)),top,width});};place();window.addEventListener('resize',place);window.addEventListener('scroll',place,true);return()=>{window.removeEventListener('resize',place);window.removeEventListener('scroll',place,true);};},[anchor]);
+ const name=profile?.name||person?.name||person?.login||'사용자',login=profile?.login||person?.login||'',email=profile?.email||person?.email||null;
+ return createPortal(<div id={id} role="tooltip" ref={card} className="nubi-person-card" style={position||{visibility:'hidden'}}>
+  <div className="nubi-person-card-head"><Avatar person={person} profile={profile} size="lg"/><div><strong>{name}</strong>{login&&login!==name&&<small>@{login}</small>}</div></div>
+  {(email||profile?.company||profile?.location)&&<dl>{email&&<div><dt><Icon name="mail" size={14}/><span className="visually-hidden">이메일</span></dt><dd>{email}</dd></div>}{profile?.company&&<div><dt><Icon name="organization" size={14}/><span className="visually-hidden">소속</span></dt><dd>{profile.company}</dd></div>}{profile?.location&&<div><dt><Icon name="pin" size={14}/><span className="visually-hidden">위치</span></dt><dd>{profile.location}</dd></div>}</dl>}
+  {profile===null&&!email&&<p className="nubi-muted">프로필을 읽는 중</p>}
+ </div>,document.body);
+}
 function AppIcon({api,item}){
  const [src,setSrc]=useState(()=>item.icon?iconCache.get(item.icon.hash)||null:null);
  useEffect(()=>{let live=true;if(!item.icon){setSrc(null);return;}const cached=iconCache.get(item.icon.hash);if(cached){setSrc(cached);return;}api('workspaceCommunity',{action:'appIcon',id:item.id}).then(v=>{if(live&&v?.dataUrl){iconCache.set(item.icon.hash,v.dataUrl);setSrc(v.dataUrl);}}).catch(()=>{});return()=>{live=false;};},[api,item.id,item.icon?.hash]);
@@ -56,7 +80,13 @@ function AppRegisterForm({api,draft,onChange,onClose,onSaved}){
  </section>;
 }
 const plain=body=>String(body||'').replace(/<[^>]*>/g,'').replace(/[#*`\[\]]/g,'').slice(0,180);
-function Author({person,at}){const name=String(person?.name||'').trim()||person?.login||'사용자';return <span className="nubi-talk-author"><Avatar person={person}/><span className="nubi-talk-person"><strong>{name}</strong>{person?.email&&<small>{person.email}</small>}</span><time dateTime={at} title={date(at)}>{relativeTime(at)}</time></span>;}
+function Author({person,at}){
+ const api=useContext(PeopleContext),profile=usePerson(api,person?.login),[open,setOpen]=useState(false),anchor=useRef(null),timer=useRef(null),id=useId();
+ const name=String(profile?.name||person?.name||'').trim()||person?.login||'사용자',email=profile?.email||person?.email||null;
+ const show=()=>{clearTimeout(timer.current);timer.current=setTimeout(()=>setOpen(true),180);},hide=()=>{clearTimeout(timer.current);timer.current=setTimeout(()=>setOpen(false),120);};
+ useEffect(()=>()=>clearTimeout(timer.current),[]);
+ return <span className="nubi-talk-author"><span ref={anchor} className="nubi-talk-person" tabIndex={0} aria-describedby={open?id:undefined} onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide}><Avatar person={person} profile={profile}/><strong>{name}</strong>{email&&<small>{email}</small>}</span><time dateTime={at} title={date(at)}>{relativeTime(at)}</time>{open&&<PersonCard person={person} profile={profile} anchor={anchor} id={id}/>}</span>;
+}
 function TalkBody({item}){return item.format==='html'?<div className="nubi-talk-html" dangerouslySetInnerHTML={{__html:DOMPurify.sanitize(item.body,{ALLOWED_TAGS:['p','br','strong','em','s','blockquote','ul','ol','li','h2','h3','pre','code','a'],ALLOWED_ATTR:['href','title']})}}/>:<MessageBody role="assistant" content={item.body}/>;}
 export function WorkspaceApps({api,onSignIn}){
  const [items,setItems]=useState([]),[query,setQuery]=useState(''),[loading,setLoading]=useState(false),[error,setError]=useState(''),[login,setLogin]=useState(false),[opening,setOpening]=useState(null),[register,setRegister]=useState(null),[notice,setNotice]=useState(''),live=useRef(true);
@@ -91,15 +121,15 @@ export function WorkspaceTalk({api,onSignIn}){
    {error&&<p role="alert" className="nubi-community-error">{error}</p>}
   </div>
  </section>;
- return <section className="nubi-community" aria-label="Talk">
+ return <PeopleContext.Provider value={api}><section className="nubi-community" aria-label="Talk">
  {login?<CompanySkillSignIn onConnect={onSignIn} busy={loading}/>:<>
  {error&&<p role="alert" className="nubi-community-error">{error}</p>}{notice&&<p role="status" className="nubi-community-notice">{notice}</p>}{pending&&<div className="nubi-talk-pending"><Icon name="infoCircle" size={18}/><span>게시 여부를 먼저 확인해 주세요.</span><CxButton onClick={verify} disabled={busy}>확인하기</CxButton></div>}
- <div className="nubi-talk-toolbar">{!detail&&<label className="nubi-community-search"><Icon name="search" size={16}/><CxInput aria-label="Talk 검색" placeholder="현재 목록에서 찾기" value={query} onChange={e=>setQuery(e.target.value)}/></label>}{!detail&&<div role="group" aria-label="Talk 보기"><CxButton aria-label="줄글 보기" title="줄글 보기" aria-pressed={view==='feed'} onClick={()=>setView('feed')}><Icon name="list" size={18}/></CxButton><CxButton aria-label="격자 보기" title="격자 보기" aria-pressed={view==='grid'} onClick={()=>setView('grid')}><Icon name="layoutGrid02" size={18}/></CxButton></div>}{!detail&&<CxButton aria-pressed={legacy} onClick={()=>{const next=!legacy;setLegacy(next);setIndex(0);setPages([null]);void load(null,next);}}>이전 글</CxButton>}<WorkspaceAction action="refresh" label="Talk 새로고침" disabled={loading||busy} onClick={()=>detail?open(detail.item.key):load()}/><CxButton variant="primary" disabled={!setup?.categories?.length||busy||!!pending} onClick={()=>setComposer({title:'',body:'',category:setup.categories[0]?.id,nonce:crypto.randomUUID()})}><Icon name="pencil" size={16}/>글쓰기</CxButton></div>
- {detail?<article className="nubi-talk-detail"><WorkspaceAction action="back" label="Talk 목록" disabled={busy} onClick={()=>{setDetail(null);void load();}}/><h3>{detail.item.title}</h3><Author person={detail.item.author} at={detail.item.createdAt}/><TalkBody item={detail.item}/><section className="nubi-talk-comments" aria-label="댓글"><h4><Icon name="message" size={18}/>댓글</h4>{detail.comments.items.map(c=><article key={c.id}><Author person={c.author} at={c.createdAt}/><MessageBody role="assistant" content={c.body}/>{c.replies?.map(r=><blockquote key={r.id}><Author person={r.author} at={r.createdAt}/><MessageBody role="assistant" content={r.body}/></blockquote>)}{c.moreReplies&&<p className="nubi-muted">답글은 먼저 50개까지 표시했어요.</p>}</article>)}{detail.comments.cursor&&<CxButton onClick={moreComments} disabled={busy}>댓글 더 보기</CxButton>}{!detail.item.locked&&<form onSubmit={e=>{e.preventDefault();void publish('comment');}}><textarea aria-label="댓글 내용" placeholder="의견을 나눠 보세요." value={comment} maxLength={4000} disabled={busy||!!pending} onChange={e=>setComment(e.target.value)}/><CxButton type="submit" variant="primary" disabled={!comment.trim()||busy||!!pending}><Icon name="send" size={16}/>댓글 등록</CxButton></form>}</section></article>:<>
+ <div className="nubi-talk-toolbar">{detail&&<WorkspaceAction action="back" label="Talk 목록" disabled={busy} onClick={()=>{setDetail(null);void load();}}/>}{!detail&&<label className="nubi-community-search"><Icon name="search" size={16}/><CxInput aria-label="Talk 검색" placeholder="현재 목록에서 찾기" value={query} onChange={e=>setQuery(e.target.value)}/></label>}{!detail&&<div role="group" aria-label="Talk 보기"><CxButton aria-label="줄글 보기" title="줄글 보기" aria-pressed={view==='feed'} onClick={()=>setView('feed')}><Icon name="list" size={18}/></CxButton><CxButton aria-label="격자 보기" title="격자 보기" aria-pressed={view==='grid'} onClick={()=>setView('grid')}><Icon name="layoutGrid02" size={18}/></CxButton></div>}{!detail&&<CxButton aria-pressed={legacy} onClick={()=>{const next=!legacy;setLegacy(next);setIndex(0);setPages([null]);void load(null,next);}}>이전 글</CxButton>}<WorkspaceAction action="refresh" label="Talk 새로고침" disabled={loading||busy} onClick={()=>detail?open(detail.item.key):load()}/><CxButton variant="primary" disabled={!setup?.categories?.length||busy||!!pending} onClick={()=>setComposer({title:'',body:'',category:setup.categories[0]?.id,nonce:crypto.randomUUID()})}><Icon name="pencil" size={16}/>글쓰기</CxButton></div>
+ {detail?<article className="nubi-talk-detail"><h3>{detail.item.title}</h3><Author person={detail.item.author} at={detail.item.createdAt}/><TalkBody item={detail.item}/><section className="nubi-talk-comments" aria-label="댓글"><h4><Icon name="message" size={18}/>댓글</h4>{detail.comments.items.map(c=><article key={c.id}><Author person={c.author} at={c.createdAt}/><MessageBody role="assistant" content={c.body}/>{c.replies?.map(r=><blockquote key={r.id}><Author person={r.author} at={r.createdAt}/><MessageBody role="assistant" content={r.body}/></blockquote>)}{c.moreReplies&&<p className="nubi-muted">답글은 먼저 50개까지 표시했어요.</p>}</article>)}{detail.comments.cursor&&<CxButton onClick={moreComments} disabled={busy}>댓글 더 보기</CxButton>}{!detail.item.locked&&<form onSubmit={e=>{e.preventDefault();void publish('comment');}}><textarea aria-label="댓글 내용" placeholder="의견을 나눠 보세요." value={comment} maxLength={4000} disabled={busy||!!pending} onChange={e=>setComment(e.target.value)}/><CxButton type="submit" variant="primary" disabled={!comment.trim()||busy||!!pending}><Icon name="send" size={16}/>댓글 등록</CxButton></form>}</section></article>:<>
  <div className="nubi-talk-list" data-view={view} aria-busy={loading}>{items.filter(i=>(i.title+' '+plain(i.body)).toLocaleLowerCase().includes(query.toLocaleLowerCase())).map(item=><button key={item.key} onClick={()=>open(item.key)}><Author person={item.author} at={item.updatedAt}/><strong>{item.title}</strong><span className="nubi-talk-excerpt">{plain(item.body)}</span><small><span>{item.category.name}</span><span><Icon name="message" size={14}/>{item.comments}</span></small></button>)}</div>
  {!loading&&!items.length&&!error&&<p className="nubi-muted">아직 글이 없어요.</p>}<nav className="nubi-community-pagination" aria-label="Talk 페이지"><CxButton aria-label="이전 페이지" disabled={!index||loading} onClick={()=>{setIndex(index-1);void load(pages[index-1]);}}><Icon name="chevronLeft" size={16}/></CxButton><span>{index+1}</span><CxButton aria-label="다음 페이지" disabled={!cursor||loading} onClick={()=>{setPages([...pages.slice(0,index+1),cursor]);setIndex(index+1);void load(cursor);}}><Icon name="chevronRight" size={16}/></CxButton></nav>
  </>}{loading&&<p role="status"><span className="status-spinner"/> 불러오는 중</p>}
  </>}
 
- </section>;
+ </section></PeopleContext.Provider>;
 }

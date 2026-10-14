@@ -1,6 +1,7 @@
 const {createHash,randomUUID}=require('node:crypto');
 const {readFile,writeFile,mkdir,rename}=require('node:fs/promises');
 const path=require('node:path');
+const {ORIGIN:GHES_ORIGIN,safeUrl}=require('../../nubi-vscode/src/ghes.cjs');
 const REPO='/api/v3/repos/Manufacturing-IT/ai_workspace',vars={owner:'Manufacturing-IT',name:'ai_workspace'};
 const UUID=/^[a-f\d]{8}-[a-f\d]{4}-4[a-f\d]{3}-[89ab][a-f\d]{3}-[a-f\d]{12}$/i;
 const SHA=/^[a-f\d]{40}$/;
@@ -11,7 +12,7 @@ const hash=value=>createHash('sha256').update(value).digest('hex');
 function decode(body){return String(body||'').replace(/^<!-- e2e-talk:v[12]:[a-f\d-]+ -->\n?/i,'').split('\n<!-- /e2e-talk -->')[0].replace(/\n\n\[AI Talk에서 보기\]\([^\n]+\)[^]*$/,'').replace(/<!-- e2e-(?:discussion|talk)-comment:[^>]+ -->/g,'').trim();}
 function post(row,legacy=false){return {key:(legacy?'i':'d')+row.number,number:row.number,title:String(row.title||'').replace(/^\[(?:AI Workspace|Skill Hub|E2E Report)\]\[Talk\]\s*/,''),body:decode(row.body),rawBody:row.body||'',format:/^<!-- e2e-talk:v1:/.test(row.body||'')?'html':'markdown',author:legacy?{login:row.user?.login,name:row.user?.name,avatarUrl:row.user?.avatar_url}:row.author,createdAt:row.createdAt||row.created_at,updatedAt:row.updatedAt||row.updated_at,comments:legacy?row.comments:row.comments?.totalCount||0,locked:!!row.locked,category:row.category||{name:'이전 글'},legacy};}
 function number(key){if(!/^[di][1-9]\d{0,9}$/.test(key||''))fail('community_input');return Number(key.slice(1));}
-const ICON_LIMIT=128*1024,ICON_MIMES=['image/png','image/x-icon'],LOGIN=/^[a-z\d](?:[a-z\d-]{0,37}[a-z\d])?$/i;
+const ICON_LIMIT=128*1024,ICON_MIMES=['image/png','image/x-icon'],LOGIN=/^[a-z\d](?:[a-z\d._-]{0,62}[a-z\d])?$/i;
 const iconPath=h=>`data/workspace/icons/${h}.json`;
 // Same descriptor and file contract as ai_workspace src/workspace/workspaceIcon.js, so apps registered here appear on the page unchanged.
 function iconDescriptor(icon){if(!icon||typeof icon!=='object')return null;if(!/^[a-f\d]{64}$/.test(icon.hash||'')||icon.path!==iconPath(icon.hash)||!ICON_MIMES.includes(icon.mime)||!Number.isSafeInteger(icon.size)||icon.size<22||icon.size>ICON_LIMIT)return null;return {hash:icon.hash,path:icon.path,mime:icon.mime,size:icon.size};}
@@ -30,7 +31,7 @@ class WorkspaceCommunity{
   const active=()=>{if(c.generation!==this.account.generation||this.account.state!=='connected')fail('ghes_session_changed');};
   const request=async(route,body,options={})=>{active();const v=await this.account.request(route,{token:c.token,body,limit:8*1024*1024,...options});active();return v;};
   const gql=async(query,variables)=>{const v=await request('/api/graphql',{query,variables:{...vars,...variables}});if(v.errors?.length||!v.data)fail('community_graphql');return v.data;};
-  return {request,gql,active,actor};
+  return {request,gql,active,actor,token:c.token};
  }
  async pending(){try{const v=JSON.parse(await readFile(this.outboxFile,'utf8'));return Array.isArray(v)?v:[];}catch(e){if(e.code==='ENOENT')return [];fail('community_storage');}}
  async record(items){await mkdir(path.dirname(this.outboxFile),{recursive:true});const temp=this.outboxFile+'.'+randomUUID()+'.tmp';await writeFile(temp,JSON.stringify(items),{mode:0o600,flag:'wx'});await rename(temp,this.outboxFile);}
@@ -66,10 +67,21 @@ class WorkspaceCommunity{
   try{await s.request(REPO+'/git/refs/heads/'+encodeURIComponent(c.branch),{sha:commit.sha,force:false},{method:'PATCH'});}catch(e){if(/^ghes_(session|login|sso|network|rate)/.test(e.message))throw e;fail('community_changed');}
   return {saved:true,item:this.item(item)};
  }
+ async person(s,login){
+  if(typeof login!=='string'||!LOGIN.test(login))fail('community_input');
+  this.people??=new Map();const cached=this.people.get(login.toLowerCase());if(cached&&Date.now()-cached.at<10*60*1000)return cached.value;
+  const user=await s.request('/api/v3/users/'+encodeURIComponent(login));if(typeof user?.login!=='string')fail('community_format');
+  const text=(value,limit=200)=>typeof value==='string'&&value.trim()?value.trim().slice(0,limit):null;
+  const source=safeUrl(String(user.avatar_url||''))||(Number.isSafeInteger(user.id)?new URL(`/avatars/u/${user.id}`,GHES_ORIGIN):null);
+  let avatar=null;if(source&&typeof this.account.avatar==='function'){try{avatar=await this.account.avatar(source,s.token,undefined,AbortSignal.timeout(5000));}catch{avatar=null;}}
+  const value={login:user.login,name:text(user.name),email:text(user.email,320),company:text(user.company),location:text(user.location),bio:text(user.bio,400),url:safeUrl(String(user.html_url||''))?.href||null,avatar:typeof avatar==='string'&&avatar.startsWith('data:image/')&&avatar.length<700000?avatar:null};
+  this.people.set(login.toLowerCase(),{at:Date.now(),value});return value;
+ }
  async call(a={}){
   const s=await this.session();
   if(a.action==='apps')return this.apps(s);
   if(a.action==='appIcon')return this.appIcon(s,a.id);
+  if(a.action==='person')return this.person(s,a.login);
   if(a.action==='registerApp')return this.registerApp(s,a);
   if(a.action==='app'){const item=(await this.apps(s)).items.find(i=>i.id===a.id);if(!item)fail('community_missing');return item;}
   if(a.action==='setup'){const m=await this.metadata(s);return {categories:m.discussionCategories.nodes,pending:(await this.pending()).filter(p=>p.actor===s.actor&&p.state!=='saved').map(({nonce,action,key})=>({nonce,action,key}))};}

@@ -8,7 +8,7 @@
  z-index:2;
  min-height:0;
  width:auto;
- background:var(--nubi-surface-inset);
+ background:transparent;
 }
 .nubi-workbench .nubi-main { position:relative; }
 .nubi-preparing-emblem {

@@ -42,3 +42,12 @@ test('app icons pass through, read back verified, and registration commits catal
  await assert.rejects(service.call({action:'registerApp',title:'x',url:'javascript:alert(1)',description:'y'}),/community_input/);
  await assert.rejects(service.call({action:'registerApp',title:'x',url:'https://intranet.example/z',description:'y',icon:Buffer.from('not an image at all, really').toString('base64')}),/community_icon/);
 });
+
+test('a person lookup returns the profile with the avatar read through the session, cached per login',async t=>{
+ const {service,account}=await fixture(t);let avatarCalls=0,userCalls=0;
+ account.request=async route=>{if(route.startsWith('/api/v3/users/')){userCalls++;return {login:'kim.nubi',id:7,name:'김누비',email:'kim.nubi@example.test',company:'제조IT',location:'수원',avatar_url:'https://code.sdsdev.co.kr/avatars/u/7'};}throw Error('unexpected '+route);};
+ account.avatar=async(url,token)=>{avatarCalls++;assert.equal(token,'fixture');assert.match(url.href,/\/avatars\/u\/7/);return 'data:image/png;base64,iVBORw0KGgo=';};
+ const first=await service.call({action:'person',login:'kim.nubi'});assert.equal(first.name,'김누비');assert.equal(first.email,'kim.nubi@example.test');assert.equal(first.company,'제조IT');assert.equal(first.avatar,'data:image/png;base64,iVBORw0KGgo=');
+ await service.call({action:'person',login:'KIM.nubi'});assert.equal(userCalls,1);assert.equal(avatarCalls,1);
+ await assert.rejects(service.call({action:'person',login:'../x'}),/community_input/);
+});

@@ -8,7 +8,8 @@
  place-items:center;
  overflow:auto;
  padding:var(--cx-space-6);
- background:var(--nubi-surface-inset);
+ /* The workbench gradient shows through, as on the home screen (user request 2026-10-14). */
+ background:transparent;
 }
 .nubi-project-wiki-progress-body {display:flex;flex-direction:column;align-items:center;gap:var(--cx-space-4);width:min(100%,480px);}
 .nubi-project-wiki-progress h2 {margin:0;font-size:var(--cx-type-title);font-weight:600;color:var(--nubi-text-primary);}
