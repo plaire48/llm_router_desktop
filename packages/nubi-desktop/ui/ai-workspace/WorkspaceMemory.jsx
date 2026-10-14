@@ -3,6 +3,9 @@ import React, { createContext, useContext, useLayoutEffect, useRef, useState } f
 // Keep view preferences in this app session, without retaining stale remote data
 // or putting work-item contents or credentials into browser storage.
 const Memory = createContext(null);
+// Screens shown inside the desktop app have no WorkspaceMemory around them; they share one app-wide map instead of
+// failing on a missing provider (user report 2026-10-14: opening 문의 said "Cannot read properties of null (reading 'has')").
+const sharedMemory = new Map();
 
 // The main area scrolls inside the header/footer frame at every viewport size.
 export function workspaceScroller(main) {
@@ -15,7 +18,7 @@ export function WorkspaceMemory({ children }) {
 }
 
 export function useWorkspaceState(key, initial) {
-  const memory = useContext(Memory);
+  const memory = useContext(Memory) || sharedMemory;
   const [value, setValue] = useState(() => memory.has(key) ? memory.get(key) : typeof initial === 'function' ? initial() : initial);
   const update = (next) => setValue((current) => {
     const result = typeof next === 'function' ? next(current) : next;
@@ -26,7 +29,7 @@ export function useWorkspaceState(key, initial) {
 }
 
 export function TableViewport({ memoryKey, resetKey, className, children }) {
-  const memory = useContext(Memory);
+  const memory = useContext(Memory) || sharedMemory;
   const element = useRef(null);
   const previousReset = useRef(resetKey);
   useLayoutEffect(() => {

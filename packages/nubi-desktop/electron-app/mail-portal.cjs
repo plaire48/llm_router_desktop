@@ -56,9 +56,24 @@ class MailPortal {
     let portal=false;try{portal=new URL(contents.getURL()).origin===ORIGIN;}catch{}
     if(portal){try{return await this.readContents(contents,operation,input);}catch(error){if(!['mail_portal_login','mail_portal_request','mail_portal_format'].includes(error.message))throw error;failure=error;}}
    }
+   // Signing in starts on the portal home (LOGIN_URL), so the tab may never reach the mail origin (user report
+   // 2026-10-14: login finished but checking never began). The background window shares the company session and opens
+   // the mail origin itself; its navigation guard keeps it on that origin.
+   try{return await this.readBackground(operation,input);}catch(error){if(!['mail_portal_login','mail_portal_request','mail_portal_format'].includes(error.message))throw error;failure=failure||error;}
    throw failure||Error('mail_portal_login');
   }
   return this.readContents(this.window.webContents,operation,input);
+ }
+ async readBackground(operation,input={}){
+  const contents=this.window?.webContents;if(!contents||contents.isDestroyed?.())throw Error('mail_portal_login');
+  const onPortal=()=>{try{return new URL(contents.getURL()).origin===ORIGIN&&!contents.isLoadingMainFrame();}catch{return false;}};
+  if(!onPortal()){
+   // At most one attempt every 6 s while the person signs in.
+   const now=Date.now();if(now-(this.backgroundAttempt||0)<6000)throw Error('mail_portal_login');this.backgroundAttempt=now;
+   try{await this.window.loadURL(ORIGIN);}catch{}
+   if(!onPortal())throw Error('mail_portal_login');
+  }
+  return this.readContents(contents,operation,input);
  }
  async loginPageFailed(){
   if(!this.page||!this.getPageContents)return false;

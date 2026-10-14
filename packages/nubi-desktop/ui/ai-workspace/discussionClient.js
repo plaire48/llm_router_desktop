@@ -30,7 +30,7 @@ export function createDiscussionClient(options={}) {
   const variables={owner:config.owner,name:config.repo},uncertain=new Map(),locks=new Set();
   const pinStore=options.pinStore||createDiscussionPinStore({host:GHES_CONFIG.host,owner:config.owner,repo:config.repo,branch:config.branch||GHES_CONFIG.branch,token:session?.token,fetchImpl});
   let pinOverrides=new Map();
-  const pinState=id=>({pinned:pinOverrides.has(id)?pinOverrides.get(id):Boolean(settings?.pins.has(id)),pinOrder:settings?.pins.get(id)});
+  const pinState=id=>({pinned:pinOverrides.has(id)?pinOverrides.get(id):Boolean(settings?.pins?.has(id)),pinOrder:settings?.pins?.get(id)});
   let warnings=[],settings=null;
   const auth=()=>{if(!signedIn)throw Object.assign(talkError('게시글을 보려면 로그인하세요.',401),{publicReadBlocked:true});};
   const request=async(query,values={},signal,{allowMissingDiscussion=false}={})=>{

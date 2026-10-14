@@ -72,7 +72,7 @@ test('portal login opens inside the app browser tab, closes it after identificat
  await assert.rejects(pending,/mail_cancelled/);assert.equal(host.page,null);assert.deepEqual(closed,['tab-1','tab-2']);host.dispose();
 });
 
-function loginFixture({whiteLabel=false,backgroundExpired=false}={}){
+function loginFixture({whiteLabel=false,backgroundExpired=false,homeOnly=false}={}){
  const events=[],pages=[],handlers={},calls=[];
  const reply=operation=>operation==='identity'?{userId:'fixture-user',email:'owner@example.test'}:folders;
  function contents(url,{background=false,errorPage=false}={}){return {
@@ -84,9 +84,10 @@ function loginFixture({whiteLabel=false,backgroundExpired=false}={}){
    if(background&&backgroundExpired)throw Error('mail_portal_login');return reply(operation);
   }
  };}
- class Window{constructor(){this.webContents=contents(ORIGIN,{background:true});}isDestroyed(){return false;}on(){}async loadURL(url){events.push('load:'+url);}hide(){}show(){throw Error('unexpected popup');}destroy(){}}
- const portal=contents(`${ORIGIN}/portal`),sso=contents('https://sso.example.test/signin',{errorPage:whiteLabel});
- const host=new MailPortal({BrowserWindow:Window,invoke:async(_method,args)=>{calls.push(args);return {};},openPage:(url,options)=>{events.push('login:'+url);pages.push({url,options});return {tabId:'login'};},getPageContents:()=>whiteLabel?[sso]:[sso,portal],closePage:()=>events.push('close-login')});host.sync=async()=>{};
+ // Like a real window: a load moves the page, except the mail origin while signed out, whose SSO redirect the guard blocks.
+ class Window{constructor(){this.webContents=contents(ORIGIN,{background:true});}isDestroyed(){return false;}on(){}async loadURL(url){events.push('load:'+url);if(!(url===ORIGIN&&whiteLabel))this.webContents.getURL=()=>url;}hide(){}show(){throw Error('unexpected popup');}destroy(){}}
+ const portal=contents(`${ORIGIN}/portal`),sso=contents('https://sso.example.test/signin',{errorPage:whiteLabel}),home=contents(LOGIN_URL);
+ const host=new MailPortal({BrowserWindow:Window,invoke:async(_method,args)=>{calls.push(args);return {};},openPage:(url,options)=>{events.push('login:'+url);pages.push({url,options});return {tabId:'login'};},getPageContents:()=>whiteLabel?[sso]:homeOnly?[home]:[sso,portal],closePage:()=>events.push('close-login')});host.sync=async()=>{};
  return {host,events,pages,handlers,calls,contents};
 }
 test('interactive portal login preserves the browser flow before creating the background reader',async()=>{
@@ -105,4 +106,12 @@ test('Whitelabel login errors return a fixed error without collecting page conte
 });
 test('a portal login retry starts from kor3 and clears the failed reader document',async()=>{
  const {host,events}=loginFixture({whiteLabel:true});await assert.rejects(host.connect({}),/mail_portal_sso/);await assert.rejects(host.connect({}),/mail_portal_sso/);assert.equal(events.filter(x=>x===`login:${LOGIN_URL}`).length,2);assert.equal(events.filter(x=>x==='load:about:blank').length,2);host.dispose();
+});
+
+// Signing in on the portal home leaves the tab there, never on the mail origin (user report 2026-10-14); the background
+// window shares the session and confirms the login from the mail origin.
+test('a login that ends on the portal home is confirmed through the background window',async()=>{
+ const {host,events,calls}=loginFixture({homeOnly:true});const status=await host.connect({});
+ assert.equal(status.connected,true);assert.ok(events.includes(`load:${ORIGIN}`));assert.ok(events.includes('reader:identity'));assert.ok(!events.some(event=>event.startsWith('page:')),'nothing is injected into the portal home');
+ assert.equal(calls.filter(c=>c.action==='portalConnect').length,1);host.dispose();
 });
