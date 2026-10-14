@@ -1,4 +1,4 @@
-const ORIGIN='https://kor3.samsung.net';
+const ORIGIN=(()=>{const value=String(process.env.NUBI_MAIL_PORTAL_ORIGIN||'http://kor3.samsung.net');try{const url=new URL(value);if(['http:','https:'].includes(url.protocol)&&!url.username&&!url.password)return url.origin;}catch{}return 'http://kor3.samsung.net';})();
 const PATHS={summary:'/mail/rest/v1/mails/desktop/read/simple',identity:'/mail/rest/v1/mails/userinfo/read',folders:'/mail/rest/v1/mails/desktop/folders',list:'/mail/rest/v1/mails/desktop/list/byfolder/new',eml:'/mail/rest/v1/mails/eml/download',approvals:'/approval/rest/v1/desktop/list/getDeskTopApList',approvalItem:'/approval/rest/v1/desktop/getDeskTopApItem'};
 function folderKind(name){return /보낸|sent/i.test(name)?'sent':/임시|draft/i.test(name)?'draft':/스팸|spam|junk/i.test(name)?'spam':/휴지통|삭제|trash|deleted/i.test(name)?'trash':/받은|inbox/i.test(name)?'inbox':'other';}
 function foldersOf(data){
@@ -13,7 +13,7 @@ function identityOf(data){
 // Runs in the logged-in portal's own renderer. No cookie/token read or copy.
 // Only the fixed read-only mail endpoints are admitted, with bounded bodies.
 async function portalFetch(input){
- const origin='https://kor3.samsung.net',paths={summary:'/mail/rest/v1/mails/desktop/read/simple',identity:'/mail/rest/v1/mails/userinfo/read',folders:'/mail/rest/v1/mails/desktop/folders',list:'/mail/rest/v1/mails/desktop/list/byfolder/new',eml:'/mail/rest/v1/mails/eml/download',approvals:'/approval/rest/v1/desktop/list/getDeskTopApList',approvalItem:'/approval/rest/v1/desktop/getDeskTopApItem'};
+ const origin='__NUBI_PORTAL_ORIGIN__',paths={summary:'/mail/rest/v1/mails/desktop/read/simple',identity:'/mail/rest/v1/mails/userinfo/read',folders:'/mail/rest/v1/mails/desktop/folders',list:'/mail/rest/v1/mails/desktop/list/byfolder/new',eml:'/mail/rest/v1/mails/eml/download',approvals:'/approval/rest/v1/desktop/list/getDeskTopApList',approvalItem:'/approval/rest/v1/desktop/getDeskTopApItem'};
  if(location.origin!==origin)throw Error('mail_portal_login');
  const route=paths[input.operation];if(!route)throw Error('mail_portal_action');
  const raw=input.operation==='eml';
@@ -31,4 +31,6 @@ async function portalFetch(input){
   try{const data=JSON.parse(new TextDecoder().decode(bytes));if(input.operation!=='identity')return data;const identity={};for(const value of [data,data?.data,data?.userInfo,data?.userinfo,data?.user]){if(!value||typeof value!=='object')continue;for(const key of ['epUserId','epUserID','userId','userID','epId','epID','usrId','email','emailAddress','receivedAddress','setCd','domainSet'])if(typeof value[key]==='string'&&!identity[key])identity[key]=value[key].slice(0,320);}return identity;}catch{throw Error('mail_portal_format');}
  }catch(error){if(error.name==='AbortError')throw Error('mail_portal_timeout');if(/^mail_/.test(error.message))throw error;throw Error('mail_portal_request');}finally{clearTimeout(timer);}
 }
-module.exports={ORIGIN,PATHS,folderKind,foldersOf,identityOf,portalFetch};
+// Source text for the page: the configured origin takes the placeholder's place (the function is serialised, so it cannot close over ORIGIN).
+const portalFetchSource=()=>portalFetch.toString().replace("'__NUBI_PORTAL_ORIGIN__'",JSON.stringify(ORIGIN));
+module.exports={ORIGIN,PATHS,folderKind,foldersOf,identityOf,portalFetch,portalFetchSource};

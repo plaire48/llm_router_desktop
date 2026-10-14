@@ -9,6 +9,14 @@ export function discussionNumber(key) {
   return number;
 }
 export const nodeId = value => typeof value==='string'&&value.length>0&&value.length<256;
+// The emoji the category owner picked in GHES, as a unicode character (emojiHTML wraps it in <g-emoji>); empty when
+// only a :shortcode: is known, in which case the icon table below applies (user request 2026-10-14).
+export function discussionCategoryEmoji(category) {
+  const fromHtml=String(category?.emojiHTML||'').replace(/<[^>]*>/g,'').trim();
+  if(fromHtml&&!/^:[\w+-]+:$/.test(fromHtml))return fromHtml.slice(0,8);
+  const raw=String(category?.emoji||'').trim();
+  return raw&&!/^:[\w+-]+:$/.test(raw)?raw.slice(0,8):'';
+}
 export function discussionCategoryIcon(category) {
   const key=String(category?.slug||category?.name||'').toLowerCase().replace(/[\s_&-]/g,'');
   if(['announcement','announcements','공지','공지사항','안내'].includes(key))return 'megaphone';

@@ -35,6 +35,7 @@ import {installRecovery,modelTransport,boundedRead,READ_TOOLS,beginOperation,end
 import {installMemory,memoryStores,memoryEnabled,listMemories,rankMemories,memoryGuidance,rememberExchange} from './memory.mjs';
 import {installApprovalPolicy,approvalPolicy,mcpToolAllowed,allowMcpTool} from './approval-policy.mjs';
 import {installMcp,parseMcpToolName} from './mcp.mjs';
+import {normalizeSearchArgs} from './search-args.mjs';
 import {runAgent,progressTools} from '../../../extensions/aipro-chat/agent-runtime.js';
 import {createRunContext,contextBudget,contextTokens} from '../../../extensions/aipro-chat/context-manager.js';
 import {createContextUsage} from '../context-usage.mjs';
@@ -478,7 +479,7 @@ export function installAgent(ProjectService) {
       else if(name==='read_document_analysis'){const record=this.store.get('document-analysis:'+args.id);if(record?.taskId!==taskId)throw Error('document_result_unavailable');result=documentAnalysisResult(record,args.evidenceId);}
       else if(name==='ask_openwiki')result=await read(async()=>wikiSnapshot({root:await this.target(taskId),pages:await wikiPages(await this.target(taskId)),projectId:this.projectId,signal}));
       else if(name==='analyze_documents')result=await analyzeWorkspaceDocuments({root:await this.target(taskId),args,signal,modelId:this.providers.status().model,complete:(wire,definitions,scope)=>invokeModel(wire,definitions,scope.signal,'document'),taskId,runId,store:this.store,onRecord:record=>{const {result,...progress}=record;task.documentAnalysis=structuredClone(progress);persistTask();}});
-      else if (name === 'source_search') result = await read(()=>this.search({...args, taskId,signal}));
+      else if (name === 'source_search') result = await read(()=>this.search({...normalizeSearchArgs(args), taskId,signal}));
       else if (name === 'inspect_workspace_changes') result = await read(()=>inspectWorkspaceChanges(this,{...args,taskId}));
       else if (name === 'code_outline') result = await read(()=>this.codeOutline({...args,taskId,signal}));
       else if(name==='inspect_path'){result=await read(()=>this.inspectPath({...args,taskId}));observations.observeMissing(result);result={...result,projectRules:referRules(result.projectRules,rootRules)};}

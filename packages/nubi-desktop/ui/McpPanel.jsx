@@ -1,67 +1,87 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {CxButton,CxInput,Icon} from '@e2e/cx-design-system';
-import {CxSelect} from './WorkspaceSelect.jsx';
 import {WorkspaceAction} from './WorkspaceAction.jsx';
+import {TerminalMark,BrowserMark} from './marks.jsx';
 import {notifyWorkspaceToast} from './WorkspaceToast.jsx';
 import {LoadingNote} from './LoadingNote.jsx';
 import './mcp-panel.css';
 
-// MCP servers (user request 2026-10-14): a list with connection state and tools, and one form for a stdio command or a
-// Streamable HTTP address. Secret values (environment values, headers) go to the host vault and are never shown back.
-const EMPTY={id:'',name:'',transport:'stdio',command:'',args:'',cwd:'',envKeys:'',url:'',headerKeys:'',secrets:{},enabled:true};
-const errors={mcp_server_invalid:'입력을 확인해 주세요. 아이디는 영문 소문자와 숫자, 하이픈 2~40자이고 명령 또는 http(s) 주소가 필요해요.',mcp_server_limit:'MCP 서버는 16개까지 등록할 수 있어요.',mcp_server_missing:'서버를 찾지 못했어요.',secret_unavailable:'이 PC에서는 비밀값을 안전하게 보관할 수 없어요.',mcp_connect_failed:'서버에 연결하지 못했어요. 명령 또는 주소와 로그를 확인해 주세요.',mcp_connect_timeout:'서버가 제때 응답하지 않았어요.'};
-const splitList=value=>String(value||'').split(/[\s,]+/).map(item=>item.trim()).filter(Boolean);
+// MCP servers (user request 2026-10-14): the list with state and tools, and one form that reads top to bottom:
+// how to connect, what to run or where, then secret values as name/value rows. The id is derived from the name.
+// The form has a single primary action (user feedback 2026-10-14: no stray cancel icon beside save).
+const errors={mcp_server_invalid:'입력을 확인해 주세요. 이름과 명령(또는 http/https 주소)이 필요해요.',mcp_server_limit:'MCP 서버는 16개까지 등록할 수 있어요.',mcp_server_missing:'서버를 찾지 못했어요.',secret_unavailable:'이 PC에서는 비밀값을 안전하게 보관할 수 없어요.',mcp_connect_failed:'서버에 연결하지 못했어요. 명령 또는 주소와 로그를 확인해 주세요.',mcp_connect_timeout:'서버가 제때 응답하지 않았어요.'};
 const splitArgs=value=>{const out=[];const re=/"([^"]*)"|'([^']*)'|(\S+)/g;let match;while((match=re.exec(String(value||''))))out.push(match[1]??match[2]??match[3]);return out;};
+const quote=item=>/\s/.test(item)?`"${item}"`:item;
+const slug=name=>String(name||'').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40);
+const idFor=name=>{const base=slug(name);return /^[a-z][a-z0-9-]{1,39}$/.test(base)?base:'';};
+const blank=transport=>({id:'',name:'',transport,commandLine:'',cwd:'',url:'',entries:[],enabled:true,existing:false});
+const toForm=server=>({id:server.id,name:server.name||server.id,transport:server.transport,commandLine:server.transport==='stdio'?[server.command,...(server.args||[])].map(quote).join(' '):'',cwd:server.cwd||'',url:server.url||'',entries:(server.transport==='stdio'?server.envKeys:server.headerKeys)?.map(key=>({key,value:''}))||[],enabled:server.enabled!==false,existing:true});
 export function McpPanel({api}){
  const [data,setData]=useState(null),[busy,setBusy]=useState(false),[form,setForm]=useState(null),live=useRef(true);
  const load=async()=>{try{const value=await api('mcp',{action:'list'});if(live.current)setData(value.servers||[]);}catch{if(live.current)notifyWorkspaceToast('MCP 서버 목록을 읽지 못했어요.',{error:true});}};
  useEffect(()=>{live.current=true;void load();return()=>{live.current=false;};},[api]);
  const act=async(args,done)=>{if(busy)return;setBusy(true);try{const value=await api('mcp',args);if(live.current){await load();done?.(value);}}catch(error){if(live.current)notifyWorkspaceToast(errors[error.message]||`MCP 서버 작업을 마치지 못했어요. (${error.message})`,{error:true});}finally{if(live.current)setBusy(false);}};
- const edit=server=>setForm(server?{...EMPTY,...server,args:(server.args||[]).map(item=>/\s/.test(item)?`"${item}"`:item).join(' '),envKeys:(server.envKeys||[]).join(', '),headerKeys:(server.headerKeys||[]).join(', '),secrets:{}}:{...EMPTY});
- const keys=form?.transport==='stdio'?splitList(form.envKeys):splitList(form?.headerKeys);
+ const update=patch=>setForm(current=>({...current,...patch}));
+ const setEntry=(index,patch)=>update({entries:form.entries.map((row,i)=>i===index?{...row,...patch}:row)});
  const submit=event=>{
   event.preventDefault();if(!form)return;
-  const secrets=Object.fromEntries(keys.filter(key=>typeof form.secrets[key]==='string'&&form.secrets[key]).map(key=>[key,form.secrets[key]]));
-  const server=form.transport==='stdio'?{id:form.id.trim(),name:form.name.trim(),transport:'stdio',command:form.command.trim(),args:splitArgs(form.args),cwd:form.cwd.trim()||null,envKeys:keys,enabled:form.enabled,...(Object.keys(secrets).length?{secrets}:{})}:{id:form.id.trim(),name:form.name.trim(),transport:'http',url:form.url.trim(),headerKeys:keys,enabled:form.enabled,...(Object.keys(secrets).length?{secrets}:{})};
+  const id=form.existing?form.id:idFor(form.name);
+  if(!id){notifyWorkspaceToast('이름에 영문이나 숫자를 넣어 주세요. 아이디는 이름에서 만들어져요.',{error:true});return;}
+  const keys=form.entries.map(row=>row.key.trim()).filter(Boolean);
+  const secrets=Object.fromEntries(form.entries.filter(row=>row.key.trim()&&row.value).map(row=>[row.key.trim(),row.value]));
+  const tokens=splitArgs(form.commandLine);
+  const server=form.transport==='stdio'?{id,name:form.name.trim(),transport:'stdio',command:tokens[0]||'',args:tokens.slice(1),cwd:form.cwd.trim()||null,envKeys:keys,enabled:form.enabled,...(Object.keys(secrets).length?{secrets}:{})}:{id,name:form.name.trim(),transport:'http',url:form.url.trim(),headerKeys:keys,enabled:form.enabled,...(Object.keys(secrets).length?{secrets}:{})};
   void act({action:'save',server},()=>{setForm(null);notifyWorkspaceToast('MCP 서버를 저장했어요.',{success:true});});
  };
  if(!data)return <LoadingNote>MCP 서버를 불러오는 중</LoadingNote>;
+ if(form){
+  const stdio=form.transport==='stdio',derived=idFor(form.name);
+  return <form className="nubi-mcp-form" onSubmit={submit} aria-label={form.existing?'MCP 서버 편집':'MCP 서버 등록'}>
+   <header className="nubi-mcp-form-head"><WorkspaceAction action="back" label="목록으로 돌아가기" onClick={()=>setForm(null)}/><h3>{form.existing?'서버 편집':'새 MCP 서버'}</h3></header>
+   <div className="nubi-mcp-field"><label htmlFor="nubi-mcp-name">이름</label><CxInput id="nubi-mcp-name" value={form.name} onChange={event=>update({name:event.target.value})} placeholder="예: 사내 GHES 도구" autoFocus required/><small>{form.existing?`아이디 ${form.id}`:derived?`아이디 ${derived}`:'아이디는 이름에서 만들어져요.'}</small></div>
+   <div className="nubi-mcp-field"><span className="nubi-mcp-label">연결 방식</span>
+    <div className="nubi-mcp-choice" role="radiogroup" aria-label="연결 방식">
+     <button type="button" role="radio" aria-checked={stdio} data-selected={stdio||undefined} disabled={form.existing} onClick={()=>update({transport:'stdio'})}><TerminalMark size={20}/><span><strong>명령 실행</strong><small>이 PC에서 명령을 띄워 연결 (stdio)</small></span></button>
+     <button type="button" role="radio" aria-checked={!stdio} data-selected={!stdio||undefined} disabled={form.existing} onClick={()=>update({transport:'http'})}><BrowserMark size={20}/><span><strong>서버 주소</strong><small>사내 서버의 MCP 주소로 연결 (HTTP)</small></span></button>
+    </div></div>
+   {stdio?<>
+    <div className="nubi-mcp-field"><label htmlFor="nubi-mcp-command">명령</label><CxInput id="nubi-mcp-command" className="nubi-mcp-mono" value={form.commandLine} onChange={event=>update({commandLine:event.target.value})} placeholder="npx -y @scope/mcp-server --flag" required/><small>터미널에 치듯 한 줄로 적어요. 공백이 든 경로는 따옴표로 묶어요.</small></div>
+    <div className="nubi-mcp-field"><label htmlFor="nubi-mcp-cwd">작업 폴더 <em>선택</em></label><CxInput id="nubi-mcp-cwd" className="nubi-mcp-mono" value={form.cwd} onChange={event=>update({cwd:event.target.value})} placeholder="비우면 기본 폴더"/></div>
+   </>:<div className="nubi-mcp-field"><label htmlFor="nubi-mcp-url">주소</label><CxInput id="nubi-mcp-url" className="nubi-mcp-mono" value={form.url} onChange={event=>update({url:event.target.value})} placeholder="https://mcp.company.local/mcp" required/></div>}
+   <div className="nubi-mcp-field">
+    <span className="nubi-mcp-label">{stdio?'환경 변수':'헤더'} <em>선택</em></span>
+    <small>{stdio?'토큰 같은 값은 환경 변수로 넘겨요.':'인증 토큰은 헤더로 넘겨요 (예: Authorization).'} 값은 이 PC의 보관소에만 저장되고 다시 보여 주지 않아요. 편집할 때 비워 두면 기존 값을 유지해요.</small>
+    {form.entries.length>0&&<ul className="nubi-mcp-entries">
+     {form.entries.map((row,index)=><li key={index}>
+      <CxInput aria-label={stdio?'환경 변수 이름':'헤더 이름'} className="nubi-mcp-mono" value={row.key} onChange={event=>setEntry(index,{key:stdio?event.target.value.toUpperCase().replace(/[^A-Z0-9_]/g,'_'):event.target.value})} placeholder={stdio?'API_TOKEN':'Authorization'}/>
+      <CxInput aria-label="값" type="password" autoComplete="off" value={row.value} onChange={event=>setEntry(index,{value:event.target.value})} placeholder={stdio?'값':'Bearer …'}/>
+      <WorkspaceAction action="delete" label={`${row.key||'항목'} 삭제`} onClick={()=>update({entries:form.entries.filter((_,i)=>i!==index)})}/>
+     </li>)}
+    </ul>}
+    <CxButton type="button" className="nubi-mcp-add-entry" onClick={()=>update({entries:[...form.entries,{key:'',value:''}]})}><Icon name="plus" size={16}/><span>{stdio?'환경 변수 추가':'헤더 추가'}</span></CxButton>
+   </div>
+   <div className="nubi-mail-switch-row nubi-mcp-switch"><div><strong>자동 연결</strong><small>앱을 켜면 이 서버에 바로 연결해요.</small></div><button type="button" role="switch" aria-label="자동 연결" aria-checked={form.enabled} className="nubi-ios-switch" onClick={()=>update({enabled:!form.enabled})}><span aria-hidden="true"/></button></div>
+   <div className="nubi-mcp-form-actions"><CxButton type="submit" variant="primary" disabled={busy}><Icon name="save" size={16}/><span>저장</span></CxButton></div>
+  </form>;
+ }
  return <div className="nubi-mcp-panel">
   <p className="nubi-muted">MCP 서버의 도구를 에이전트가 쓸 수 있어요. 읽기 전용 도구는 바로 실행하고, 그 밖의 도구는 실행 전에 물어봐요.</p>
-  {data.length===0&&!form&&<p className="nubi-mcp-empty"><Icon name="infoCircle" size={16}/><span>등록한 MCP 서버가 없어요.</span></p>}
+  {data.length===0&&<p className="nubi-mcp-empty"><Icon name="infoCircle" size={16}/><span>등록한 MCP 서버가 없어요.</span></p>}
   <ul className="nubi-mcp-list">
    {data.map(server=><li key={server.id} className="nubi-mcp-item" data-state={server.state}>
     <div className="nubi-mcp-head">
-     <span className="nubi-mcp-state" aria-hidden="true"><Icon name={server.state==='connected'?'check':server.state==='failed'?'alertCircle':server.state==='connecting'?'refresh':'minus'} size={16}/></span>
-     <div className="nubi-mcp-title"><strong>{server.name||server.id}</strong><small>{server.transport==='stdio'?`${server.command} ${(server.args||[]).join(' ')}`.trim():server.url}</small></div>
-     <span className="nubi-mcp-badge">{server.state==='connected'?`도구 ${server.tools.length}개`:server.state==='failed'?(errors[server.error]||'연결 실패'):server.state==='connecting'?'연결 중':server.enabled?'연결 안 됨':'사용 안 함'}</span>
+     <span className="nubi-mcp-kind" aria-hidden="true">{server.transport==='stdio'?<TerminalMark size={18}/>:<BrowserMark size={18}/>}</span>
+     <div className="nubi-mcp-title"><strong>{server.name||server.id}</strong><small>{server.transport==='stdio'?[server.command,...(server.args||[])].join(' '):server.url}</small></div>
+     <span className="nubi-mcp-state" data-state={server.state}><Icon name={server.state==='connected'?'check':server.state==='failed'?'alertCircle':server.state==='connecting'?'refresh':'minus'} size={14}/><span>{server.state==='connected'?`도구 ${server.tools.length}개`:server.state==='failed'?(errors[server.error]||'연결 실패'):server.state==='connecting'?'연결 중':server.enabled?'연결 안 됨':'자동 연결 끔'}</span></span>
      <span className="nubi-mcp-actions">
       {server.state==='connected'?<WorkspaceAction action="logout" label="연결 끊기" disabled={busy} onClick={()=>act({action:'disconnect',id:server.id})}/>:<WorkspaceAction action="login" label="연결" disabled={busy} onClick={()=>act({action:'connect',id:server.id},()=>notifyWorkspaceToast('MCP 서버에 연결했어요.',{success:true}))}/>}
-      <WorkspaceAction action="edit" label="편집" disabled={busy} onClick={()=>edit(server)}/>
+      <WorkspaceAction action="edit" label="편집" disabled={busy} onClick={()=>setForm(toForm(server))}/>
       <WorkspaceAction action="delete" label="삭제" disabled={busy} onClick={()=>act({action:'remove',id:server.id},()=>notifyWorkspaceToast('MCP 서버를 삭제했어요.'))}/>
      </span>
     </div>
     {server.tools.length>0&&<ul className="nubi-mcp-tools">{server.tools.map(tool=><li key={tool.name} title={tool.description}><Icon name={tool.readOnly?'eye':'pencil'} size={14}/><span>{tool.name}</span></li>)}</ul>}
    </li>)}
   </ul>
-  {form?<form className="nubi-mcp-form" onSubmit={submit} aria-label="MCP 서버 등록">
-   <div className="nubi-mcp-grid">
-    <label>아이디<CxInput value={form.id} disabled={!!data.find(server=>server.id===form.id&&form.name!==undefined&&server.addedAt&&form.addedAt)} onChange={event=>setForm({...form,id:event.target.value.toLowerCase()})} placeholder="ghes-tools" required/></label>
-    <label>이름<CxInput value={form.name} onChange={event=>setForm({...form,name:event.target.value})} placeholder="사내 GHES 도구"/></label>
-    <label>연결 방식<CxSelect value={form.transport} onChange={event=>setForm({...form,transport:event.target.value})}><option value="stdio">명령 실행 (stdio)</option><option value="http">HTTP 서버 (Streamable HTTP)</option></CxSelect></label>
-   </div>
-   {form.transport==='stdio'?<div className="nubi-mcp-grid">
-    <label>명령<CxInput value={form.command} onChange={event=>setForm({...form,command:event.target.value})} placeholder="npx 또는 C:\\...\\node.exe" required/></label>
-    <label>인자<CxInput value={form.args} onChange={event=>setForm({...form,args:event.target.value})} placeholder="-y @scope/mcp-server --flag"/></label>
-    <label>작업 폴더<CxInput value={form.cwd} onChange={event=>setForm({...form,cwd:event.target.value})} placeholder="비우면 기본 폴더"/></label>
-    <label>환경 변수 이름<CxInput value={form.envKeys} onChange={event=>setForm({...form,envKeys:event.target.value})} placeholder="API_TOKEN, BASE_URL"/></label>
-   </div>:<div className="nubi-mcp-grid">
-    <label>주소<CxInput value={form.url} onChange={event=>setForm({...form,url:event.target.value})} placeholder="https://mcp.company.local/mcp" required/></label>
-    <label>헤더 이름<CxInput value={form.headerKeys} onChange={event=>setForm({...form,headerKeys:event.target.value})} placeholder="Authorization"/></label>
-   </div>}
-   {keys.length>0&&<div className="nubi-mcp-secrets"><small>{form.transport==='stdio'?'환경 변수 값':'헤더 값'}은 이 PC의 보관소에만 저장되고 다시 보여 주지 않아요. 비우면 기존 값을 유지해요.</small>{keys.map(key=><label key={key}>{key}<CxInput type="password" value={form.secrets[key]||''} autoComplete="off" onChange={event=>setForm({...form,secrets:{...form.secrets,[key]:event.target.value}})}/></label>)}</div>}
-   <label className="nubi-mcp-enabled"><input type="checkbox" checked={form.enabled} onChange={event=>setForm({...form,enabled:event.target.checked})}/>앱을 시작하면 자동으로 연결</label>
-   <div className="nubi-mcp-form-actions"><WorkspaceAction action="cancel" label="취소" visibleLabel onClick={()=>setForm(null)}/><CxButton type="submit" variant="primary" disabled={busy}><Icon name="save" size={16}/><span>저장</span></CxButton></div>
-  </form>:<div className="nubi-mcp-add"><CxButton variant="primary" disabled={busy} onClick={()=>edit(null)}><Icon name="plus" size={16}/><span>MCP 서버 추가</span></CxButton></div>}
+  <div className="nubi-mcp-add"><CxButton variant="primary" disabled={busy} onClick={()=>setForm(blank('stdio'))}><Icon name="plus" size={16}/><span>MCP 서버 추가</span></CxButton></div>
  </div>;
 }

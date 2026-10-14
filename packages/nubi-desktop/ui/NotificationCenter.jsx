@@ -1,5 +1,6 @@
 import React,{useState} from 'react';
 import {CxButton,DetailPanel,Icon} from '@e2e/cx-design-system';
+import {WorkspaceIconAction} from './WorkspaceIconAction.jsx';
 import {useNotices,markNoticesRead,clearNotices} from './notice-store.js';
 import {relativeTime} from './relative-time.js';
 const KIND_ICON={decision:'decision',mail:'mail',host:'infoCircle',info:'infoCircle'};
@@ -9,7 +10,7 @@ export function NotificationBell(){
   const {notices,unread}=useNotices(),[open,setOpen]=useState(false);
   const show=()=>{setOpen(true);markNoticesRead();};
   return <>
-    <CxButton data-tone="blue" className="nubi-rail-notice" aria-label={unread?`알림 ${unread}개`:'알림'} title={unread?`확인할 알림 ${unread}개`:'알림'} aria-pressed={open} data-icon-only onClick={show}><Icon name={unread?'bell':'bellOff'} size={18}/>{unread>0&&<i className="nubi-rail-notice-dot" aria-hidden="true"/>}</CxButton>
+    <WorkspaceIconAction icon="bell" iconOnly label={unread?`알림 ${unread}개`:'알림'} title={unread?`확인할 알림 ${unread}개`:'알림'} className="nubi-rail-notice" aria-haspopup="dialog" aria-pressed={open} indicator={unread>0?<i className="nubi-rail-notice-dot" aria-hidden="true"/>:null} onClick={show}/>
     {open&&<DetailPanel className="deck-dialog nubi-panel nubi-notice-panel" variant="modal" title={<span className="nubi-panel-title"><span className="nubi-panel-title-icon"><Icon name="bell" size={20}/></span><span>알림</span></span>} onClose={()=>setOpen(false)}>
       {notices.length===0?<p className="nubi-notice-empty"><Icon name="bellOff" size={18}/><span>받은 알림이 없어요.</span></p>:<>
         <ul className="nubi-notice-list">

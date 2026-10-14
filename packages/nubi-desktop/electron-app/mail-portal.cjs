@@ -1,4 +1,4 @@
-const {ORIGIN,foldersOf,identityOf,portalFetch}=require('./mail-portal-contract.cjs');
+const {ORIGIN,foldersOf,identityOf,portalFetchSource}=require('./mail-portal-contract.cjs');
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 class MailPortal {
  // Login happens in the app's own browser tab (openPage/closePage) when the host offers one; the hidden window only
@@ -23,8 +23,9 @@ class MailPortal {
  }
  async windowForLogin(show=false){
   if(!this.window||this.window.isDestroyed()){
-   this.window=new this.BrowserWindow({parent:this.parent,width:1050,height:780,show:false,title:'누비 메일 로그인',webPreferences:{partition:'persist:nubi-mail-portal',nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true}});
-   this.window.webContents.session.setPermissionRequestHandler((_contents,_permission,reply)=>reply(false));
+   this.window=new this.BrowserWindow({parent:this.parent,width:1050,height:780,show:false,title:'누비 메일 로그인',webPreferences:{partition:'persist:nubi-company',nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true}});
+   // The session is shared with the in-app company login tabs: their copy buttons need clipboard-sanitized-write.
+   this.window.webContents.session.setPermissionRequestHandler((_contents,permission,reply)=>reply(permission==='clipboard-sanitized-write'));
    // The background reader must never start or replay an SSO popup as a GET.
    // Interactive authentication belongs to BrowserHost, which preserves POST/opener.
    this.window.webContents.setWindowOpenHandler(()=>({action:'deny'}));
@@ -42,7 +43,7 @@ class MailPortal {
  closeLoginPage(){const page=this.page;this.page=null;if(page&&this.closePage){try{this.closePage(page.tabId);}catch{}}this.window?.hide();}
  async readContents(contents,operation,input={}){
   if(!contents||contents.isDestroyed?.())throw Error('mail_portal_login');
-  try{return await contents.executeJavaScript(`(${portalFetch.toString()})(${JSON.stringify({operation,...input})})`);}
+  try{return await contents.executeJavaScript(`(${portalFetchSource()})(${JSON.stringify({operation,...input})})`);}
   catch(error){throw Error(/^mail_[a-z_]+$/.test(error.message)?error.message:'mail_portal_request');}
  }
  async read(operation,input={}){

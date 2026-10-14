@@ -30,7 +30,7 @@ export function providerLoginDiagnostics(state){
 }
 export function providerLoginError(state){
   if(state?.persistenceError==='connection_not_removed')return '로그아웃했지만 보관한 인증을 지우지 못했어요. 다시 시도해 주세요.';
-  if(state?.persistenceError)return '로그인은 완료됐지만 안전하게 보관하지 못했어요. 앱을 다시 열면 로그인이 필요합니다.';
+  if(state?.persistenceError)return `로그인은 완료됐지만 안전하게 보관하지 못했어요. 앱을 다시 열면 로그인이 필요합니다.${/^[a-z_]+$/.test(String(state.persistenceError))?` (${state.persistenceError})`:''}`;
   if(!state?.loginError)return null;
   const stage=state.loginDiagnostics?.findLast(item=>item.phase==='failed')?.failedStage;
   const prefix=stage==='loading_models'?'모델 목록 조회 실패. ':stage==='exchanging'?'인증 확인 실패. ':'';

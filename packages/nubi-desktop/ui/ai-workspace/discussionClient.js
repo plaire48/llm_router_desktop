@@ -11,7 +11,7 @@ import {githubRequestDiagnostic} from './githubRequestDiagnostic.js';
 const actor='login avatarUrl ... on User { databaseId name }';
 const pageInfo='pageInfo { hasNextPage endCursor }';
 export const DISCUSSION_FIELDS=`id number title body url createdAt updatedAt locked closed isAnswered answer { id }
- author { ${actor} } category { id name slug emoji description isAnswerable }
+ author { ${actor} } category { id name slug emoji emojiHTML description isAnswerable }
  comments(first:0) { totalCount } reactionGroups { content viewerHasReacted reactors(first:0) { totalCount } }
  viewerCanUpdate viewerCanDelete viewerCanReact viewerSubscription
  poll { id question totalVoteCount viewerCanVote viewerHasVoted options(first:100) { nodes { id option totalVoteCount viewerHasVoted } pageInfo { hasNextPage } } }`;
@@ -77,7 +77,7 @@ export function createDiscussionClient(options={}) {
   };
   const metadata=async()=>{
     const data=await request(`query E2EDiscussionSetup($owner:String!,$name:String!) { repository(owner:$owner,name:$name) {
-      id hasDiscussionsEnabled viewerPermission discussionCategories(first:100) { nodes { id name slug emoji description isAnswerable } ${pageInfo} }
+      id hasDiscussionsEnabled viewerPermission discussionCategories(first:100) { nodes { id name slug emoji emojiHTML description isAnswerable } ${pageInfo} }
       pinnedDiscussions(first:100) { nodes { discussion { id } } ${pageInfo} }
     } }`,variables);
     const repo=data.repository;

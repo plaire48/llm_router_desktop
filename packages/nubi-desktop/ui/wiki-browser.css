@@ -94,3 +94,9 @@
 .nubi-wiki-bar .cx-action-button svg,.nubi-wiki-bar .cx-kit-button svg,.nubi-wiki-document-meta>*>svg,.nubi-wiki-degree svg,.nubi-wiki-map-stats span>svg,.nubi-wiki-facts h3 svg,.nubi-wiki-links h3 svg,.nubi-wiki-map-side h3 svg{color:var(--deck-blue-deep)}
 .nubi-wiki-map-stats span[data-attention=true]>svg{color:var(--deck-red)}
 .nubi-wiki-table th:not([aria-sort=none]) button svg{color:var(--deck-blue-deep)}
+
+/* Side list rows: one line, colour dot in front, shaded count (2026-10-14). */
+.nubi-wiki-map-side button{align-items:center}.nubi-wiki-map-side button>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+.nubi-wiki-map-dot{flex:none;width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 1px var(--nubi-surface-base)}
+.nubi-wiki-map-count{flex:none;min-width:22px;padding:1px 7px;border-radius:999px;background:var(--deck-blue-soft);color:var(--deck-blue-deep);font-weight:600;text-align:center}
+.nubi-wiki-map-side button[aria-pressed=true] .nubi-wiki-map-count{background:var(--deck-blue-deep);color:var(--deck-card)}

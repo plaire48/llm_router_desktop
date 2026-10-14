@@ -395,7 +395,9 @@
 .nubi-panel .nubi-search { display:flex; align-items:center; gap:var(--cx-space-2); }
 .nubi-panel .nubi-search > .cx-input-shell { flex:1; min-width:0; }
 .nubi-panel .nubi-search > .cx-action-button { position:absolute; right:var(--cx-space-1); top:50%; transform:translateY(-50%); }
-.nubi-panel :is(.nubi-library,.nubi-settings) { display:grid; gap:var(--cx-space-4); }
+.nubi-panel :is(.nubi-library,.nubi-settings) { display:grid; gap:var(--cx-space-2); }
+.nubi-panel .nubi-library :is(h3,h4,p) { margin-block:0; }
+.nubi-panel .nubi-library .deck-subsection { padding:var(--cx-space-2) var(--cx-space-3); }
 .nubi-library > :is(.nubi-search,.nubi-wiki-update,.deck-disclosure,.nubi-knowledge-record) { margin-block:0; }
 .deck-confirmation-content p { font:var(--deck-font-body); }
 .deck-confirmation-content .nubi-deletion-note { display:inline-flex; align-items:center; gap:var(--cx-space-1); color:var(--deck-muted,#8B95A1); font-weight:400; }
@@ -1664,7 +1666,8 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 
 /* A running record breathes: the summary icon spins and the title pulses while the model works, whether a tool is
    running or it is thinking (user report 2026-10-14: the wait must read as activity). */
-.nubi-agent-activity[aria-busy=true] .agent-trace > summary > svg:first-child { color:var(--deck-blue-deep); animation:nubi-live-spin 1.4s linear infinite; }
+.nubi-agent-activity[aria-busy=true] .agent-trace > summary > svg:first-child { display:none; }
+.nubi-agent-activity[aria-busy=true] .agent-trace > summary::before { content:''; flex:none; width:14px; height:14px; margin-right:var(--cx-space-2); border:2px solid var(--deck-blue-soft); border-top-color:var(--deck-blue-deep); border-radius:50%; animation:nubi-live-spin .9s linear infinite; }
 .nubi-agent-activity[aria-busy=true] .agent-trace > summary > .agent-trace-title { animation:nubi-live-breathe 1.8s ease-in-out infinite; }
 .nubi-agent-activity .agent-next-step .status-spinner,.nubi-launch-progress .status-spinner { color:var(--deck-blue-deep); }
 @keyframes nubi-live-breathe { 0%,100% { opacity:1; } 50% { opacity:.55; } }

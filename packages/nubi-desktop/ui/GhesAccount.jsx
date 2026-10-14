@@ -8,7 +8,7 @@ import './ghes-account.css';
 
 import {ghesMessages,ghesDiagnosticLabel} from './ghes-account-state.mjs';
 const updateLabel={unchecked:'최신 버전 확인',current:'최신 버전',update_available:'업데이트 설치',installing:'설치 중',restart_required:'누비 다시 시작',installed_verified:'설치 확인됨',attention:'다시 확인'};
-const failureText=code=>ghesMessages[code]||'회사 계정을 확인하지 못했어요. 다시 시도해 주세요.';
+const failureText=code=>ghesMessages[code]||`회사 계정을 확인하지 못했어요. 다시 시도해 주세요.${/^[a-z_]+$/.test(String(code||''))?` (${code})`:''}`;
 export function GhesAvatar({profile}){
  const [failed,setFailed]=useState(false),[now,setNow]=useState(Date.now);
  useEffect(()=>setFailed(false),[profile?.avatar]);

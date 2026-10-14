@@ -39,6 +39,13 @@ export function createProfileClient({session=getServiceDeskSession(),fetchImpl=g
     if(!response.ok){await response.body?.cancel().catch(()=>{});throw fail(({401:'로그인이 만료되었습니다. 다시 로그인하세요.',403:'프로필 조회 권한을 확인하세요.',404:'프로필을 찾을 수 없거나 조회 권한이 없습니다.',429:'요청이 많습니다. 잠시 후 다시 시도하세요.'})[response.status]||'프로필을 불러오지 못했습니다. 다시 시도하세요.',response.status);}
     try{return await response.json();}catch{throw fail('프로필 응답을 확인하지 못했습니다.');}
   };
+  const profileStatus=async(login,signal)=>{
+    const response=await fetchImpl(`https://${config.host}/api/graphql`,{method:'POST',cache:'no-store',credentials:'omit',signal:signal?AbortSignal.any([signal,AbortSignal.timeout(10000)]):AbortSignal.timeout(10000),headers:{Accept:'application/json','Content-Type':'application/json',Authorization:`Bearer ${session.token}`},body:JSON.stringify({query:'query($login:String!){user(login:$login){status{emojiHTML message}}}',variables:{login}})});
+    if(!response.ok)return null;
+    const value=(await response.json().catch(()=>null))?.data?.user?.status;
+    const emoji=String(value?.emojiHTML||'').replace(/<[^>]*>/g,'').trim().slice(0,8);
+    return emoji?{emoji,message:String(value?.message||'').slice(0,120)}:null;
+  };
   const role=async(login,own,signal)=>{
     if(!signedIn)return null;
     const repo=async settings=>{
@@ -64,6 +71,8 @@ export function createProfileClient({session=getServiceDeskSession(),fetchImpl=g
         const profile=githubProfile(await request(`/users/${encodeURIComponent(account.login)}`,controller.signal),config.host);
         if(profile.login.toLowerCase()===account.login.toLowerCase()&&(account.id===undefined||profile.id===account.id))value=profile;
       } catch { /* Keep the original login and avatar when public lookup is unavailable. */ }
+      // The status emoji the person set in GHES, shown small under the photo (user request 2026-10-14). Best effort.
+      if(value&&signedIn){try{const status=await profileStatus(account.login,controller.signal);if(status)value={...value,status};}catch{}}
       if(controller.signal.aborted)return null;
       identities.set(key,{value,until:now()+(value?300000:15000)});
       while(identities.size>100)identities.delete(identities.keys().next().value);

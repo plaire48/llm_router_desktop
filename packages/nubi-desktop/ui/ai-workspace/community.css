@@ -108,3 +108,6 @@
  .talk-board {overflow:auto}
  .talk-board>.talk-feed {min-height:180px;overflow:visible}
 }
+
+/* The category emoji chosen in GHES, shown as itself at icon size (2026-10-14). */
+.discussion-category-emoji { display:inline-block; font-size:14px; line-height:1; }

@@ -41,7 +41,7 @@ try{
   // The mail page owns its settings (2026-10-14): the rail opens the page, its '포털 로그인' link opens the mail settings dialog, and Escape returns focus to that control.
   await p.getByRole('button',{name:'메일',exact:true}).first().click();await p.locator('.nubi-mail-connect-link').click();await inspect('메일 설정','mail-'+suffix);await p.keyboard.press('Escape');await p.waitForFunction(()=>document.activeElement?.classList.contains('nubi-mail-connect-link'));
   await selectTask();
-  await p.getByRole('button',{name:'스킬 관리',exact:true}).click();await p.getByRole('dialog',{name:'스킬 목록',exact:true}).getByRole('button',{name:/^내 스킬/}).click();await p.getByText('보고서 작성',{exact:true}).waitFor();const skillDialog=await inspect('스킬 관리','skills-'+suffix);
+  await p.getByRole('button',{name:'스킬 관리',exact:true}).click();await p.getByRole('dialog',{name:'도구 목록',exact:true}).getByRole('button',{name:/^내 스킬/}).click();await p.getByText('보고서 작성',{exact:true}).waitFor();const skillDialog=await inspect('스킬 관리','skills-'+suffix);
   const skillControls=await skillDialog.locator('.nubi-skill-tabs button').evaluateAll(items=>items.filter(e=>e.checkVisibility()).map(e=>{const r=e.getBoundingClientRect();return {center:r.y+r.height/2,left:r.x,right:r.right};}));
   assert(skillControls.every(r=>Math.abs(r.center-skillControls[0].center)<2),'skill tabs and actions stay on one row');
   assert.equal(await skillDialog.getByText('휴지통 0',{exact:true}).count(),0);
@@ -123,7 +123,7 @@ try{
  for(const variant of [{width:1280,height:720},{width:800,height:600},{width:440,height:500},{width:440,height:500,noProject:true},{width:1280,height:720,connected:true},{width:440,height:600,connected:true}]){
   await p.setViewportSize({width:variant.width,height:variant.height});
   await p.goto(origin+'/?context&modals&integrated&toolbar'+(variant.noProject?'&noproject':'')+(variant.connected?'&company-connected':''));
-  const account=p.locator('.nubi-toolbar-account button');await account.waitFor();
+  const account=p.locator('.nubi-toolbar-account .nubi-account-button');await account.waitFor();
   assert.equal(await p.locator('.nubi-account-button').count(),1,'one account controller, without duplicate polling or dialogs');
   assert.equal(await account.locator(':scope > span:not(.nubi-account-avatar)').innerText(),variant.connected?'긴 이름의 회사 계정 화면 검토 사용자':'로그인');
   assert.equal(await account.locator('.nubi-account-avatar').isVisible(),true,'avatar remains visible at every toolbar width');
@@ -138,7 +138,7 @@ try{
   checks.push(`company titlebar entry and login dialog: ${variant.width}x${variant.height}, ${variant.connected?'connected':variant.noProject?'no project':'guest'}`);
  }
  await p.setViewportSize({width:440,height:700});await p.goto(origin+'/?context&modals&integrated&toolbar&company-login-error');
- await p.locator('.nubi-toolbar-account button').click();
+ await p.locator('.nubi-toolbar-account .nubi-account-button').click();
  const loginError=p.getByRole('dialog',{name:'로그인',exact:true});await loginError.getByRole('button',{name:'사내 SSO로 로그인',exact:true}).click();
  await loginError.getByText('로그인 코드 발급 / HTTP 404',{exact:true}).waitFor();
  assert.match(await loginError.innerText(),/회사 로그인 경로를 찾지 못했어요/);assert.doesNotMatch(await loginError.innerText(),/저장소를 읽을 수 없어요|code\.sdsdev\.co\.kr/);

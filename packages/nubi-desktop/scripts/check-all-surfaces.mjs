@@ -72,7 +72,7 @@ try{
   const rail=await p.locator('.nubi-workspace-rail').evaluate(e=>{const team=e.querySelector('.nubi-rail-team'),r=e.getBoundingClientRect(),b=team.getBoundingClientRect();return {last:e.lastElementChild===team.parentElement&&team.parentElement.classList.contains('nubi-rail-footer')&&team.parentElement.lastElementChild===team,text:team.textContent.trim(),bottomGap:r.bottom-b.bottom,label:team.getAttribute('aria-label')};});assert(rail.last&&rail.text===''&&rail.label==='AI Workspace'&&rail.bottomGap<32,'AI Workspace is an icon at the bottom of the rail');
   await load('screen=workbench&integrated&context&modals&chat-preview');await chooseTask();await audit('chat-preview-'+width);
   await load('screen=workbench&integrated&context&modals');await chooseTask();
-  for(const [button,title,key] of [['설정','설정','settings'],['위키 설정','위키 설정','library'],['토큰 사용량','사용량','usage'],['컨텍스트 사용량','컨텍스트 사용량','context'],['모델 변경','모델 선택','models'],['추론 정도','추론 정도 조절','reasoning'],['스킬 관리','스킬 목록','skill-menu']]){
+  for(const [button,title,key] of [['설정','설정','settings'],['위키 설정','위키 설정','library'],['토큰 사용량','사용량','usage'],['컨텍스트 사용량','컨텍스트 사용량','context'],['모델 변경','모델 선택','models'],['추론 정도','추론 정도 조절','reasoning'],['스킬 관리','도구 목록','skill-menu']]){
    await p.getByRole('button',{name:button,exact:true}).click();await p.getByRole('dialog',{name:title,exact:true}).waitFor();await audit(key+'-'+width);await close();
   }
   await p.getByRole('button',{name:/매번 확인/}).click();await p.getByRole('dialog',{name:'승인 방식',exact:true}).waitFor();await audit('approval-'+width);await close();
@@ -188,7 +188,7 @@ try{
  if(process.env.NUBI_PICKER_ONLY){
   for(const width of [1280,440]){
    await p.setViewportSize({width,height:950});await load('integrated&modals&toolbar&context');
-   for(const [button,title,key] of [['추론 정도','추론 정도 조절','reasoning'],['스킬 관리','스킬 목록','skill-menu'],[/매번 확인/,'승인 방식','approval']]){
+   for(const [button,title,key] of [['추론 정도','추론 정도 조절','reasoning'],['스킬 관리','도구 목록','skill-menu'],[/매번 확인/,'승인 방식','approval']]){
     await p.getByRole('button',{name:button,exact:typeof button==='string'}).click();await p.getByRole('dialog',{name:title,exact:true}).waitFor();await audit(key+'-'+width);if(key==='reasoning'){assert(await p.locator('.nubi-reasoning-heading strong').evaluate(e=>{const r=e.getBoundingClientRect();return e.contains(document.elementFromPoint(r.left+2,r.top+r.height/2));}),'reasoning heading is not clipped by the rail');}await close();
    }
   }

@@ -6,9 +6,11 @@ import path from 'node:path';
 const SKIP=new Set(['node_modules','lib','dist','ai-workspace','verification']);
 function files(dir){const out=[];for(const name of readdirSync(dir)){if(SKIP.has(name)||name.startsWith('.'))continue;const full=path.join(dir,name);if(statSync(full).isDirectory())out.push(...files(full));else if(/\.(jsx|js|mjs)$/.test(name))out.push(full);}return out;}
 const used=new Map();
-for(const file of ['ui','electron-app'].flatMap(files)){
+for(const file of [...['ui','electron-app'].flatMap(files),path.resolve('runtime/mail-file-kinds.mjs')]){
   const text=readFileSync(file,'utf8');
   for(const match of text.matchAll(/<Icon\b[^>]*?\bname=(?:"([^"]+)"|'([^']+)'|\{'([^']+)'\}|\{"([^"]+)"\})/g)){const name=match[1]||match[2]||match[3]||match[4];if(!used.has(name))used.set(name,file);}
+  // Data tables: icon:'name' entries are rendered by several screens (the mail kinds table had 'folder', 2026-10-14).
+  for(const match of text.matchAll(/\bicon\s*:\s*(?:'([A-Za-z]+)'|"([A-Za-z]+)")/g)){const name=match[1]||match[2];if(!used.has(name))used.set(name,file);}
   // Conditional names: name={cond?'a':'b'} — collect every quoted word inside the braces.
   for(const match of text.matchAll(/<Icon\b[^>]*?\bname=\{([^}]*)\}/g)){// Comparison operands (state==='running') are not icon names.
   for(const word of match[1].replace(/[!=]==?\s*(?:'[A-Za-z]+'|"[A-Za-z]+")/g,'').matchAll(/'([A-Za-z]+)'|"([A-Za-z]+)"/g)){const name=word[1]||word[2];if(!used.has(name))used.set(name,file);}}

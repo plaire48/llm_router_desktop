@@ -1,6 +1,5 @@
 import {useEffect,useRef} from 'react';
 import {recordNotice} from './notice-store.js';
-import {notifyWorkspaceToast} from './WorkspaceToast.jsx';
 const DECISION_LABEL={question:'답변 요청',proposal:'변경 승인 요청',command:'실행 승인 요청',computer:'앱 동작 확인'};
 
 // Windows owns notification placement and dismissal. This component renders nothing.
@@ -18,8 +17,7 @@ export function SystemDecisionNotifications({decisions,onOpen,onAnswer}){
    const text=`${DECISION_LABEL[row.kind]||DECISION_LABEL.question}: ${String((row.kind==='question'?row.summary:row.taskTitle)||row.summary||'대화를 확인해 주세요.').replace(/\s+/g,' ').slice(0,120)}`;
    const open=()=>{const current=latest.current.decisions.find(item=>item.id===id);if(current)void latest.current.onOpen(current);};
    recordNotice({text,kind:'decision',source:'decision',action:{label:'열기',onClick:open}});
-   // The in-app toast is a plain notice with '열기'; the choices and reply box are on the Windows notification (user clarification 2026-10-14).
-   notifyWorkspaceToast(text,{action:{label:'열기',onClick:open}});
+   // No in-app toast for decisions (user decision 2026-10-14): the Windows notification carries the form, the bell keeps the notice.
   }
   sent.current=next;
  },[signature]);

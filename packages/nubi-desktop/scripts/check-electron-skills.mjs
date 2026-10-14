@@ -52,7 +52,7 @@ async function open(){
 const trigger=()=>page.locator('.nubi-composer-skill-trigger'),skillsDialog=()=>page.getByRole('dialog',{name:'스킬 관리',exact:true}),toast=text=>page.locator('.nubi-feedback-toast').filter({hasText:text});
 const row=name=>skillsDialog().locator('.nubi-custom-skill-row').filter({has:page.locator('strong',{hasText:name})});
 const pick=file=>app.evaluate(({dialog},file)=>{dialog.showOpenDialog=async()=>file?{canceled:false,filePaths:[file]}:{canceled:true,filePaths:[]};},file);
-async function openManagement(){await trigger().click();await page.getByRole('dialog',{name:'스킬 목록',exact:true}).getByRole('button',{name:/^내 스킬/}).click();await skillsDialog().waitFor();}
+async function openManagement(){await trigger().click();await page.getByRole('dialog',{name:'도구 목록',exact:true}).getByRole('button',{name:/^내 스킬/}).click();await skillsDialog().waitFor();}
 const pickerName=file=>process.platform==='darwin'?'선택':file&&!path.extname(file)?'폴더 선택':'파일 선택';/* one picker on macOS; a file and a folder picker elsewhere */
 async function register(file,expected){
   await pick(file);await skillsDialog().getByRole('button',{name:'등록',exact:true}).click();
@@ -63,7 +63,7 @@ async function register(file,expected){
 async function refresh(){await skillsDialog().getByRole('button',{name:'목록 새로고침',exact:true}).click();await skillsDialog().getByRole('status').filter({hasText:'스킬을 확인하고 있어요.'}).waitFor({state:'detached'});}
 try{
   await open();stage('fixture model connected through the compatible provider');
-  await page.getByRole('button',{name:'문의',exact:true}).click();await page.getByRole('tab',{name:'문의',exact:true}).waitFor();assert.equal(await page.getByRole('tab',{name:'문의',exact:true}).getAttribute('aria-selected'),'true');await page.getByRole('region',{name:'문의'}).getByText('팀의 AI Agent 경험을 누려보세요.').waitFor();/* a thirty-second toast may sit over the header: close it before using the back button */await page.locator('.nubi-feedback-toast').getByRole('button',{name:'알림 닫기'}).click().catch(()=>{});await page.getByRole('button',{name:'대화로 돌아가기',exact:true}).click();stage('the rail inquiry button opens the inquiry section with the company sign-in prompt');
+  await page.getByRole('button',{name:'문의',exact:true}).click();await page.getByRole('heading',{name:'문의',exact:true}).waitFor();assert.equal(await page.getByRole('tab',{name:'Talk',exact:true}).count(),0,'the inquiry page has no Workspace section tabs');await page.getByRole('region',{name:'문의'}).getByText('팀의 AI Agent 경험을 누려보세요.').waitFor();/* a thirty-second toast may sit over the header: close it before using the back button */await page.locator('.nubi-feedback-toast').getByRole('button',{name:'알림 닫기'}).click().catch(()=>{});await page.getByRole('button',{name:'대화로 돌아가기',exact:true}).click();stage('the rail inquiry button opens the inquiry section with the company sign-in prompt');
   await openManagement();await skillsDialog().getByText('등록한 스킬이 없어요.').waitFor();
   await register(path.join(packages,'fixture-skill'),'스킬을 등록했어요.');await row('fixture-skill').waitFor();
   assert.equal(await readFile(installed('fixture-skill','SKILL.md'),'utf8'),instructions);assert.equal(await exists(installed('fixture-skill','scripts','run.mjs')),true,'bundled resources are copied');
@@ -87,7 +87,7 @@ try{
   assert.equal(await skillsDialog().getByRole('button',{name:/휴지통/}).count(),0);
   stage('remove skill with no trash browser in My Skills');
   await page.keyboard.press('Escape');await skillsDialog().waitFor({state:'hidden'});
-  await trigger().click();await page.getByRole('dialog',{name:'스킬 목록',exact:true}).getByRole('button',{name:'fixture-skill 스킬 사용'}).click();await toast('스킬을 요청에 추가했습니다').waitFor();
+  await trigger().click();await page.getByRole('dialog',{name:'도구 목록',exact:true}).getByRole('button',{name:'fixture-skill 스킬 사용'}).click();await toast('스킬을 요청에 추가했습니다').waitFor();
   const composer=page.getByRole('textbox',{name:'작업 요청'});assert.match(await composer.inputValue(),/^\/fixture-skill /,'the command leads the draft');
   await composer.click();await page.keyboard.press('End');await page.keyboard.type('요약해 줘');await page.getByRole('button',{name:'전송',exact:true}).click();
   await page.getByText(new RegExp(SENTINEL)).first().waitFor({timeout:90000});

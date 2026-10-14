@@ -42,3 +42,8 @@
 .profile-empty-actions {display:flex;justify-content:flex-end;margin-top:12px;}
 .profile-section-actions .profile-github-link {margin:0;}
 @media(min-width:1281px) {.app-shell .agent-topbar .profile-name {max-width:240px;}}
+
+/* Profile status emoji badge at the bottom right of the photo (2026-10-14). */
+.github-avatar-wrap { position:relative; display:inline-flex; flex:none; }
+.github-avatar-status { position:absolute; right:-3px; bottom:-3px; display:inline-flex; align-items:center; justify-content:center; min-width:16px; height:16px; padding:0 2px; border-radius:999px; background:var(--layout-surface); box-shadow:0 0 0 1px var(--layout-border); font-size:11px; line-height:1; }
+.profile-hero .github-avatar-status { min-width:22px; height:22px; font-size:15px; right:-2px; bottom:-2px; }

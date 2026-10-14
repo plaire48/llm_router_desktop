@@ -1,5 +1,6 @@
 import React,{useEffect,useId,useRef} from 'react';
 import {Icon} from '@e2e/cx-design-system';
+import {WorkspaceAction} from './WorkspaceAction.jsx';
 
 // The native top layer escapes sidebar/modal clipping without moving the row.
 export function WorkspaceActionMenu({label='관리',inline=false,children}){

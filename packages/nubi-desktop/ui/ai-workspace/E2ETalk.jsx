@@ -19,7 +19,7 @@ import {useBeforeUnload} from './useBeforeUnload';
 import {confirmAction} from './confirmAction';
 import {notifyToast} from './Toast';
 import {createDiscussionClient} from './discussionClient';
-import {isDiscussionKey,discussionCategoryIcon} from './discussionModel';
+import {isDiscussionKey,discussionCategoryIcon,discussionCategoryEmoji} from './discussionModel';
 import {refreshTalkNotifications} from './talkNotificationRefresh';
 import {createTalkMediaClient} from './talkMedia';
 import {TALK_LIMITS,talkOwner,talkCanManage,talkModerator,talkPermalink,decodeTalkBody,sortTalkPosts} from './talkModel';
@@ -80,7 +80,7 @@ function TalkFeedItem({post,media,onOpen,onLike,onCopy,reaction,busy,liking,gall
   </li>;
 }
 function DiscussionMeta({post}) {
-  return post.category?<div className="discussion-meta">{post.closed&&<span className="discussion-awaiting">종료</span>}<span className="discussion-category" role="img" aria-label={`카테고리: ${post.category.name}`} title={`카테고리: ${post.category.name}`}><Icon name={discussionCategoryIcon(post.category)} size={14}/></span>{post.category.isAnswerable&&<span className={post.isAnswered?'discussion-answer':'discussion-awaiting'}>{post.isAnswered&&<Icon name="check" size={14}/>} {post.isAnswered?'답변 채택':'답변 대기'}</span>}</div>:null;
+  return post.category?<div className="discussion-meta">{post.closed&&<span className="discussion-awaiting">종료</span>}<span className="discussion-category" role="img" aria-label={`카테고리: ${post.category.name}`} title={`카테고리: ${post.category.name}`}>{discussionCategoryEmoji(post.category)?<span className="discussion-category-emoji">{discussionCategoryEmoji(post.category)}</span>:<Icon name={discussionCategoryIcon(post.category)} size={14}/>}</span>{post.category.isAnswerable&&<span className={post.isAnswered?'discussion-answer':'discussion-awaiting'}>{post.isAnswered&&<Icon name="check" size={14}/>} {post.isAnswered?'답변 채택':'답변 대기'}</span>}</div>:null;
 }
 function DiscussionPoll({post,disabled,onVote}) {
   const [selection,setSelection]=useState('');

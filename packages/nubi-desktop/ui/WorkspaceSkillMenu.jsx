@@ -8,13 +8,19 @@ import {useAnchoredModal} from './useAnchoredModal.js';
 
 // Registered skills are request shortcuts, not installation or tool approval.
 // Discovery and file management stay separate from choosing a skill to use.
-export function WorkspaceSkillMenu({api, taskId, onMarketplace, onManage, onSelect}) {
-  const [open, setOpen] = useState(false), [catalog, setCatalog] = useState(null);
+export function WorkspaceSkillMenu({api, taskId, onMarketplace, onManage, onManageMcp, onSelect}) {
+  const [open, setOpen] = useState(false), [catalog, setCatalog] = useState(null), [mcp, setMcp] = useState(null);
   const [loading, setLoading] = useState(false), [failed, setFailed] = useState(false), [revision, setRevision] = useState(0);
   const [position, setPosition] = useState(null);
   const trigger = useRef(null), dialog = useRef(null), closeButton = useRef(null), id = useId();
   useAnchoredModal(dialog, trigger, open && !!position, '.nubi-skill-menu-close');
   useEffect(() => { setOpen(false); setCatalog(null); }, [taskId]);
+  useEffect(() => {
+    if (!open || !onManageMcp) return;
+    let live = true;
+    Promise.resolve().then(() => api('mcp', {action:'list'})).then(value => { if (live) setMcp(Array.isArray(value?.servers) ? value.servers : []); }).catch(() => { if (live) setMcp([]); });
+    return () => { live = false; };
+  }, [open, api, onManageMcp]);
   useEffect(() => {
     if (!open) return;
     let live = true;
@@ -60,7 +66,7 @@ export function WorkspaceSkillMenu({api, taskId, onMarketplace, onManage, onSele
   return <div className="nubi-skill-menu-anchor nubi-composer-skill-anchor">
     <CxButton ref={trigger} className="composer-icon nubi-composer-skill-trigger" data-icon-only aria-label="스킬 관리" title="스킬 관리" aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined} onClick={() => { if (open) close(); else {setLoading(true); setFailed(false); setOpen(true);} }}><Icon name="plus" size={18}/></CxButton>
     {open && createPortal(<div ref={dialog} id={id} className="nubi-skill-menu nubi-composer-skill-menu" role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} style={{...position, visibility:position ? 'visible' : 'hidden'}} onKeyDown={handleKeys}>
-      <div className="nubi-skill-menu-header"><strong id={`${id}-title`}>스킬 목록</strong><CxButton ref={closeButton} className="nubi-skill-menu-close nubi-modal-close" aria-label="스킬 메뉴 닫기" title="닫기" onClick={close}><Icon name="xClose" size={18}/></CxButton></div>
+      <div className="nubi-skill-menu-header"><strong id={`${id}-title`}>도구 목록</strong><CxButton ref={closeButton} className="nubi-skill-menu-close nubi-modal-close" aria-label="스킬 메뉴 닫기" title="닫기" onClick={close}><Icon name="xClose" size={18}/></CxButton></div>
       
       <div className="nubi-skill-menu-list" role="list" aria-label="등록한 스킬" aria-busy={loading}>
         {loading && <p className="nubi-skill-menu-empty" role="status"><span className="status-spinner" aria-hidden="true"/>스킬 확인 중</p>}
@@ -80,6 +86,10 @@ export function WorkspaceSkillMenu({api, taskId, onMarketplace, onManage, onSele
         {onMarketplace && <CxButton className="nubi-skill-menu-marketplace" onClick={() => openManagement(onMarketplace)}><span className="nubi-skill-menu-icon" aria-hidden="true"><Icon name="layers" size={18}/></span><span className="nubi-skill-menu-copy"><strong>AI Workspace</strong></span><Icon name="chevronRight" size={14}/></CxButton>}
         {onManage && <CxButton className="nubi-skill-menu-marketplace" onClick={() => openManagement(onManage)}><span className="nubi-skill-menu-icon" aria-hidden="true"><FolderMark size={18}/></span><span className="nubi-skill-menu-copy"><strong>내 스킬</strong></span><Icon name="chevronRight" size={14}/></CxButton>}
       </div>
+      {onManageMcp && <div className="nubi-skill-menu-mcp" role="group" aria-label="MCP 서버">
+        {(mcp || []).map(server => <div key={server.id} className="nubi-skill-menu-mcp-row" data-state={server.state}><span className="nubi-skill-menu-mcp-dot" aria-hidden="true"/><strong>{server.name || server.id}</strong><span>{server.state === 'connected' ? `도구 ${server.tools.length}개` : server.state === 'failed' ? '연결 실패' : '연결 안 됨'}</span></div>)}
+        <CxButton className="nubi-skill-menu-marketplace" onClick={() => openManagement(onManageMcp)}><span className="nubi-skill-menu-icon" aria-hidden="true"><Icon name="workflow" size={18}/></span><span className="nubi-skill-menu-copy"><strong>MCP 서버</strong>{mcp && <small>{mcp.length ? `${mcp.length}개 등록` : '등록된 서버 없음'}</small>}</span><Icon name="chevronRight" size={14}/></CxButton>
+      </div>}
     </div>, document.body)}
   </div>;
 }

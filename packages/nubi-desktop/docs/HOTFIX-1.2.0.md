@@ -66,3 +66,20 @@ Desktop A2A는 지원하지 않습니다. 첨부파일 내용 분석은 1.2.1부
 - **CI 수정 2**: `enableNodeCliInspectArguments` 퓨즈를 켜 둠. Playwright가 `--inspect`로 붙지 못해 패키지 검사가 멈췄다(실행 38504518097).
 - **CI 수정 3**: `scripts/check-installed-archive.mjs`가 첨부 읽기 파일의 '미포함'을 단언하던 Beta 규칙을 플래그 기준으로 바꿈(켜짐이면 포함 필수).
 - **1.2.2**: `nsis.differentialPackage: false`. 차등 패키징이 압축을 normal로 강제해(`differentialUpdateInfoBuilder.js`) 1.2.1의 `compression: store`가 무시됐다(173MB). 차등 패키징을 끄면 store가 적용된다. 업데이터는 블록맵을 쓰지 않는다.
+- **Talk 카테고리 이모지**: GHES 토론 카테고리의 `emojiHTML`에서 유니코드 이모지를 꺼내 그대로 표시한다(이전에는 항상 아이콘으로 대체). 사용자 질문 2026-10-14.
+- **문의 전용 페이지** (사용자 설명 2026-10-14): 레일의 문의 아이콘은 Workspace 탭이 아니라 '문의' 머리글만 있는 전용 페이지를 연다. Workspace 탭은 스킬/위키/앱/Talk.
+- **회사 계정 오류 코드**: `GhesAccount`의 알 수 없는 오류 문구 끝에 코드를 붙인다('회사 계정을 확인하지 못했어요. … (코드)'). 회사 PC에서 난 오류의 원인을 보고할 수 있게.
+- **프로필 상태 이모지**: GHES `user.status`의 이모지를 사진 우하단 배지로(`GithubAvatar`, `profileClient`). **알림 종 위치**: 우측 상단 툴바, 아이콘은 항상 bell. **회사 세션 통합**: `persist:nubi-company`를 포털 읽기·포털 로그인·회사 GitHub 로그인이 공유. **folder 아이콘**: `mail-file-kinds.mjs` other.icon을 `file`로, check-icons가 `icon:'…'` 표도 검사.
+- **MCP 위치와 폼**: 작성기 '+' 도구 목록 맨 아래(등록 서버와 상태, 'MCP 서버'로 관리 패널). 폼은 이름→연결 방식 카드→명령 한 줄/주소→이름·값 행→자동 연결→저장 하나. **위키 설정 여백** 축소. **Claude 패널**은 잔여 한도 한 줄만. **상단 진행선**은 1.5초 이상 대기 때만.
+- **포털 주소 http**: `mail-portal-contract.cjs` ORIGIN 기본값 `http://kor3.samsung.net`(환경 변수 `NUBI_MAIL_PORTAL_ORIGIN`로 변경). 로그인 탭은 주소가 https일 때만 https 고정. 흐름: 포털 로그인 → 앱 안 탭에 포털 로그인 페이지(회사 세션) → 로그인되면 2초마다 확인하던 읽기 창이 계정을 인식 → 연결·탭 닫힘·수집 시작(최대 5분 대기).
+- **WorkspaceAction is not defined**: `ui/WorkspaceActionMenu.jsx`에 import 누락(1.2.1에서 보고). **시작 화면**: 등록한 프로젝트 목록 제거(사이드바 중복). **Claude 잔여 한도**: Claude Code 로그인 토큰으로 `api/oauth/usage` 읽기(`electron-app/claude-cli-usage.cjs`, 사용자 승인 2026-10-14; 토큰은 반환·기록하지 않음), 5시간·7일 잔여 %만 표시, CLI 로그인이 없으면 claude.ai 앱 안 로그인으로 대체. **상단 메일 아이콘**: 메일 설정 모달(레일은 메일 이력).
+- **관계 지도**: 휠 확대는 non-passive 리스너(페이지 스크롤 방지), 보조 목록 한 줄+구역 색 점+연결 수 배지. **로딩 통일**: 포팅 화면의 `CommunityStatus`도 `LoadingNote`. **포털 http** 등은 위 항목 참조.
+- **관계 지도 뷰포트 렌더링**: 캔버스는 문서 수에 비례(40개당 프레임 면적 하나, 최대 6배), 보이는 영역(+80px)의 노드와 연결만 렌더. 시작 뷰는 중앙, 전체 보기는 캔버스 전체 맞춤, 최소 배율은 캔버스 전체가 들어가는 값.
+- **포털 주소 주입**: `portalFetch`는 페이지에 소스로 주입되므로 `'__NUBI_PORTAL_ORIGIN__'` 자리표시자를 `portalFetchSource()`가 ORIGIN으로 바꿔 넣는다. 메일 픽스처에 '기타 문서' 종류 추가. 설정 머리글과 업데이트 버튼 시작선 정렬.
+- **상단 아이콘**: 메일·알림도 `WorkspaceIconAction`(같은 호버 음영), 오른쪽 묶음 한 줄. **GHES 재로그인**: 보관 실패 문구에 코드 표시. 토큰은 `safeStorage` 보관소에서 복원되며 GHES 장치 토큰은 만료가 없어 정상이면 재시작 뒤에도 유지된다. 회사 PC에서 재로그인이 반복되면 그 코드를 보고.
+- **시작 화면 작성기 너비**: 760px 고정을 풀고 대화 열 너비(`--nubi-chat-width`)까지.
+- **진행 중 표시**: 요약 줄의 아이콘 회전 대신 원형 선 스피너(`summary::before`).
+- **source_search 인자 정규화**: 모델별 별칭(pattern, path, glob, files…)을 검증 전에 접음(Claude Code Sonnet 5.5 보고).
+- **결정 알림**: 앱 안 토스트 없음. Windows 알림(버튼+답변 입력, 입력 위치는 OS 고정, 다중 선택 불가)과 종 목록.
+- **상단 아이콘 간격**: 동작 묶음과 계정 묶음의 gap을 같게(창 툴바 2px, 일반 space-2).
+- **좁은 창**: compact 배치에서는 상단 메일·종을 렌더하지 않음(계정 버튼 가시성 검사; CSS 숨김은 `.cx-kit-button` 규칙에 밀림).

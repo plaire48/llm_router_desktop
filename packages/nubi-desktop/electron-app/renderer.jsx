@@ -36,7 +36,7 @@ const Editor=lazy(()=>import('./editor.jsx')),GitDiff=lazy(()=>import('./editor.
 const TerminalPanel=lazy(()=>import('./TerminalPanel.jsx'));
 const showError=message=>notifyWorkspaceToast(message,{error:true});
 let inflight=0,busyTimer=null;
-const markBusy=()=>{if(++inflight===1&&!busyTimer)busyTimer=setTimeout(()=>{busyTimer=null;if(inflight>0)document.documentElement.setAttribute('data-host-busy','true');},400);};
+const markBusy=()=>{if(++inflight===1&&!busyTimer)busyTimer=setTimeout(()=>{busyTimer=null;if(inflight>0)document.documentElement.setAttribute('data-host-busy','true');},1500);};
 const clearBusy=()=>{if(--inflight<=0){inflight=0;if(busyTimer){clearTimeout(busyTimer);busyTimer=null;}document.documentElement.removeAttribute('data-host-busy');}};
 const request=async(method,args)=>{markBusy();try{const result=await window.nubi.request(method,args);if(result?.__nubiError)throw Error(result.__nubiError);return result;}finally{clearBusy();}};
 const absolutePath=value=>/^(?:[A-Za-z]:[\\/]|[\\/]|~[\\/])/.test(value||'');

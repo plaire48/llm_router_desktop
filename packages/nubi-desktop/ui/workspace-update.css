@@ -19,3 +19,6 @@
 
 /* The technical version beside the product name: bold and accented (user decision 2026-10-14). */
 .nubi-update-heading > .nubi-update-version { font-weight:700; color:var(--deck-blue-deep); font-variant-numeric:tabular-nums; }
+
+/* The heading starts where the button's label starts (user feedback 2026-10-14: the two looked offset). */
+.nubi-workspace-update:not(.is-compact) .nubi-update-heading { padding-left:var(--cx-space-3); }
