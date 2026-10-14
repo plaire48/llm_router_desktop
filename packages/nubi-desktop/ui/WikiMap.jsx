@@ -13,7 +13,7 @@ export function WikiMap({graph,selectedPath,onOpen,disabled}){
  const drag=useRef(null);
  // Re-layout only when the frame really changes width; scrollbars toggling a few pixels must not restart the animation.
  useEffect(()=>{if(!frame.current)return;const measure=()=>{const width=Math.max(320,Math.round(frame.current.clientWidth)),height=Math.max(320,Math.round(frame.current.clientHeight));setSize(current=>Math.abs(current.width-width)<=8&&Math.abs(current.height-height)<=8?current:{width,height});};const observer=new ResizeObserver(measure);observer.observe(frame.current);measure();return()=>observer.disconnect();},[]);
- useEffect(()=>{const layout=createWikiLayout(graph,size);let id=0;const tick=()=>{const done=advanceWikiLayout(layout,8);setPositions(wikiLayoutPositions(layout));if(!done)id=requestAnimationFrame(tick);};tick();setView({x:0,y:0,k:1});return()=>cancelAnimationFrame(id);},[graph,size.width,size.height]);
+ useEffect(()=>{const layout=createWikiLayout(graph,size);let id=0;const count=graph.nodes.length,steps=count>400?1:count>200?2:count>100?4:8;let frame=0;const tick=()=>{const done=advanceWikiLayout(layout,steps);if(done||count<=200||frame++%2===0)setPositions(wikiLayoutPositions(layout));if(!done)id=requestAnimationFrame(tick);};tick();setView({x:0,y:0,k:1});return()=>cancelAnimationFrame(id);},[graph,size.width,size.height]);
  const colors=useMemo(()=>sectionColors(graph),[graph]);
  const byPath=useMemo(()=>new Map(graph.nodes.map(node=>[node.path,node])),[graph]);
  const visible=graph.nodes.filter(node=>!hidden.has(node.section)&&(orphans||node.degree>0));
@@ -58,9 +58,9 @@ export function WikiMap({graph,selectedPath,onOpen,disabled}){
     {hover&&focusNode&&<div className="nubi-wiki-map-card" role="status"><strong>{focusNode.title}</strong><span>{[focusNode.type,sectionLabel(focusNode.section),`연결 ${focusNode.degree}개`].filter(Boolean).join(' / ')}</span>{focusNode.description&&<p>{focusNode.description}</p>}</div>}
    </div>
    <aside className="nubi-wiki-map-side">
-    <h3><Icon name="link" size={16}/>연결 많은 문서</h3>
-    <ol>{graph.hubs.map(path=>{const node=byPath.get(path);return <li key={path}><button type="button" disabled={disabled} aria-pressed={selectedPath===path} onClick={()=>onOpen(path)}><span>{node.title}</span><small>{node.degree}</small></button></li>;})}{!graph.hubs.length&&<li className="nubi-muted">아직 연결된 문서가 없어요.</li>}</ol>
-    {graph.orphans.length>0&&<><h3 title={`고립 문서 ${graph.orphans.length}개`} data-orphan="true"><Icon name="alertCircle" size={16}/><span className="visually-hidden">고립 문서 </span><small>{graph.orphans.length}</small></h3><ul>{graph.orphans.slice(0,8).map(path=><li key={path}><button type="button" disabled={disabled} aria-pressed={selectedPath===path} onClick={()=>onOpen(path)}><span>{byPath.get(path).title}</span></button></li>)}{graph.orphans.length>8&&<li className="nubi-muted">목록에서 고립 문서 필터로 모두 볼 수 있어요.</li>}</ul></>}
+    <details open><summary><h3><Icon name="link" size={16}/>연결 많은 문서</h3><Icon name="chevronDown" size={14}/></summary>
+    <ol>{graph.hubs.map(path=>{const node=byPath.get(path);return <li key={path}><button type="button" disabled={disabled} aria-pressed={selectedPath===path} title={node.title} onClick={()=>onOpen(path)}><span>{node.title}</span><small>{node.degree}</small></button></li>;})}{!graph.hubs.length&&<li className="nubi-muted">아직 연결된 문서가 없어요.</li>}</ol></details>
+    {graph.orphans.length>0&&<details open><summary><h3 title={`고립 문서 ${graph.orphans.length}개`} data-orphan="true"><Icon name="alertCircle" size={16}/><span className="visually-hidden">고립 문서 </span><small>{graph.orphans.length}</small></h3><Icon name="chevronDown" size={14}/></summary><ul>{graph.orphans.slice(0,8).map(path=><li key={path}><button type="button" disabled={disabled} aria-pressed={selectedPath===path} title={byPath.get(path).title} onClick={()=>onOpen(path)}><span>{byPath.get(path).title}</span></button></li>)}{graph.orphans.length>8&&<li className="nubi-muted">목록에서 고립 문서 필터로 모두 볼 수 있어요.</li>}</ul></details>}
    </aside>
   </div>
  </section>;

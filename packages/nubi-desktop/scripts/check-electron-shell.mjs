@@ -11,7 +11,8 @@ const started=Date.now(),app=await electron.launch({executablePath:process.env.N
 const captures=path.resolve('verification/native-surfaces');await mkdir(captures,{recursive:true});
 async function capture(name){
  lastAction=`capture ${name}`;console.log('capture start',name);
- if(await page.locator('.nubi-feedback-toast').count())await page.locator('.nubi-feedback-toast').waitFor({state:'hidden'});
+ /* Toasts stay thirty seconds (2026-10-14); a capture closes any open one instead of waiting it out. */
+ if(await page.locator('.nubi-feedback-toast').count()){await page.locator('.nubi-feedback-toast').getByRole('button',{name:'알림 닫기'}).click().catch(()=>{});await page.locator('.nubi-feedback-toast').waitFor({state:'hidden'});}
  const tiny=await page.locator('.desktop-pane').evaluate(root=>[...root.querySelectorAll('*')].filter(e=>e.checkVisibility()&&!e.closest('svg,.monaco-editor,.xterm,[aria-hidden="true"],.visually-hidden')&&[...e.childNodes].some(n=>n.nodeType===Node.TEXT_NODE&&n.textContent.trim())&&parseFloat(getComputedStyle(e).fontSize)<14).map(e=>({class:e.className,text:e.textContent.slice(0,40),size:getComputedStyle(e).fontSize})));
  assert.deepEqual(tiny,[],name+': auxiliary text meets the caption scale');
  const dock=page.locator('.desktop-dock-header');if(await dock.count())assert(await dock.evaluate(header=>{const tabs=header.querySelector('.desktop-file-tabs').getBoundingClientRect(),plus=header.querySelector('.desktop-tools-anchor').getBoundingClientRect();return Math.abs((tabs.top+tabs.bottom)/2-(plus.top+plus.bottom)/2)<2;}),name+': tabs and plus remain on one line');

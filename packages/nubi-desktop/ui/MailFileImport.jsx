@@ -3,7 +3,7 @@ import {CxButton,Icon} from '@e2e/cx-design-system';
 import {ResponseTime} from './ResponseTime.jsx';
 import {FolderMark} from './marks.jsx';
 import './mail-file-import.css';
-const failures={mail_import_protected:'보호된 파일',mail_import_link:'바로가기 제외',mail_import_empty:'읽을 본문 없음',mail_size_limit:'50 MB 초과',mail_parse_failed:'메일 형식 확인 필요',mail_source_changed:'파일 변경됨',mail_import_read:'읽기 권한 확인 필요',mail_import_limit:'폴더당 20,000개 또는 4 GB 초과',mail_import_folder:'원본 폴더를 선택해 주세요.'};
+const failures={mail_import_protected:'보호된 파일',mail_import_link:'바로가기 제외',mail_import_empty:'본문 없음 (첨부만 있거나 읽을 수 없는 형식)',mail_size_limit:'2 GB 초과',mail_parse_failed:'메일 형식 확인 필요',mail_source_changed:'파일 변경됨',mail_import_read:'읽기 권한 확인 필요',mail_import_limit:'폴더당 20,000개 또는 4 GB 초과',mail_import_folder:'원본 폴더를 선택해 주세요.'};
 export function MailFileImport({progress,busy,onChoose,onCancel,card=false}){
  const active=['scanning','importing'].includes(progress?.state);
  const choose=<CxButton disabled={busy||active} onClick={onChoose}><FolderMark size={16}/><span>폴더 선택</span></CxButton>;

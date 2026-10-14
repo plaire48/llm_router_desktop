@@ -1,0 +1,19 @@
+/* Shared action geometry takes precedence over legacy page-specific icon sizes. */
+/* Keep hidden button labels inside scrollable cells without overriding positioned controls. */
+:where(.cx-action-button) { position:relative; }
+:is(button,a).cx-action-button.cx-action-button { box-sizing:border-box; min-height:var(--cx-control); height:var(--cx-control); padding-block:0; gap:8px; font:inherit; font-size:var(--cx-type-body,14px); line-height:20px; }
+:is(button,a).cx-action-button.cx-icon-button.cx-action-button { width:var(--cx-control); min-width:var(--cx-control); height:var(--cx-control); padding:0; flex-shrink:0; border-radius:var(--cx-radius-control,5px); }
+:is(button,a).cx-action-button.cx-action-button.cx-action-button > .ui-icon { width:20px; height:20px; flex-shrink:0; }
+.cx-action-button:focus-visible { outline:2px solid var(--brand-ink); outline-offset:-3px; }
+.cx-action-button[aria-pressed="true"] { color:var(--brand-ink); background:var(--brand-soft); }
+.cx-action-button[data-action="delete"]:hover:not(:disabled) { color:var(--cx-danger); background:var(--cx-error-surface); }
+:is(button,a).cx-action-button.cx-action-button:is(.login-button,[data-action="logout"],.service-desk-trigger) {width:auto;min-width:var(--cx-control);height:var(--cx-control);padding:0 8px;flex-shrink:0;border-color:transparent;background:transparent;color:var(--layout-muted);}
+:is(button,a).cx-action-button.cx-action-button:is(.login-button,[data-action="logout"],.service-desk-trigger):hover:not(:disabled) {background:var(--brand-surface);color:var(--brand-ink);}
+.cx-action-tooltip { position:fixed; z-index:10000; max-width:min(280px,calc(100vw - 16px)); padding:8px var(--cx-gap-xs); border-radius:var(--cx-radius-control,5px); color:#fff; background:var(--layout-text,#1c273b); box-shadow:0 3px 12px #15223a1a; font-family:var(--cx-font-family); font-size:12px; line-height:20px; overflow-wrap:anywhere; pointer-events:none; }
+
+a.cx-action-link {display:inline-flex;align-items:center;justify-content:center;text-decoration:none;vertical-align:middle;}
+a.cx-action-link[aria-disabled="true"] {opacity:.5;cursor:default;}
+
+/* Quiet actions sit naturally beside catalog headings and supporting content. */
+:is(button,a).cx-action-button.cx-action-button[data-tone="quiet"] { border-color:transparent; background:transparent; box-shadow:none; color:var(--brand-ink); }
+:is(button,a).cx-action-button.cx-action-button[data-tone="quiet"]:hover:not(:disabled):not([aria-disabled="true"]) { background:var(--brand-surface); }

@@ -14,6 +14,8 @@ import {describeWikiPage} from '../electron-app/wiki-frontmatter.cjs';
 import {mailTableDate} from '../runtime/mail-presentation.mjs';
 import './wiki-browser.css';
 import {ShowMore} from './ShowMore.jsx';
+import {LoadingNote} from './LoadingNote.jsx';
+import {PageNumbers} from './PageNumbers.jsx';
 const errors={wiki_library_mail_limit:'메일 위키는 기존 문서를 60,000자까지 수정할 수 있어요.',wiki_library_changed:'원문이 바뀌었어요. 작성한 내용은 보관했으니 원문과 비교해 주세요.',wiki_library_busy:'이 자료를 갱신하고 있어요. 읽기는 가능하며 작업이 끝나면 저장할 수 있어요.',wiki_library_scope:'이 위키 안의 Markdown 문서를 선택해 주세요.',wiki_library_limit:'문서 한 개는 1MB까지 편집할 수 있어요.',wiki_library_encoding:'UTF-8 Markdown 문서만 편집할 수 있어요.',wiki_library_unconfirmed:'저장 결과를 확인하지 못했어요. 원문을 다시 확인해 주세요.'};
 const sizeKey='nubi-wiki-page-size-v1';
 function preferredSize(){try{const value=Number(localStorage.getItem(sizeKey));return WIKI_PAGE_SIZES.includes(value)?value:20;}catch{return 20;}}
@@ -41,7 +43,7 @@ export function WikiBrowser({api,projectId,onBack,onSettings,onRewrite,openPath}
  function cancelEdit(){wikiDrafts.delete(scope+':'+doc.path);touchDrafts();setText(doc.content);setEditing(false);if(!doc.hash)setDoc(null);}
  function create(){const name=(newName||'').trim().replace(/\.md$/i,'')+'.md';if(!name||name==='.md'||name.includes('/')||name.includes('\\')){setError('문서 이름을 입력해 주세요.');return;}const base={path:name,hash:null,content:''};setDoc(base);setText('# '+name.slice(0,-3)+'\n');setEditing(true);wikiDrafts.set(scope+':'+name,{base,text:'# '+name.slice(0,-3)+'\n'});touchDrafts();wikiLastDocuments.set(scope,name);setNewName(null);}
  function connect(){if(!link||!doc)return;const parts=doc.path.split('/').slice(0,-1),to=link.split('/');while(parts.length&&to.length&&parts[0]===to[0]){parts.shift();to.shift();}const rel=[...parts.map(()=> '..'),...to].map(p=>encodeURIComponent(p)).join('/');const title=list.items.find(i=>i.path===link)?.title?.replace(/[\[\]\n]/g,'')||link;setEditing(true);change(text.trimEnd()+`\n\n[${title}](${rel})\n`);setLink('');}
- const graph=useMemo(()=>{const drafts=[...wikiDrafts.entries()].filter(([key,draft])=>key.startsWith(scope+':')&&draft.base.hash===null&&!list.items.some(item=>item.path===draft.base.path)).map(([,draft])=>({...draft.base,title:draft.base.path,updatedAt:new Date().toISOString()}));return buildWikiGraph([...list.items,...drafts],list.edges);},[list,scope,draftRevision]);
+ const graph=useMemo(()=>{const drafts=[...wikiDrafts.entries()].filter(([key,draft])=>key.startsWith(scope+':')&&draft.base.hash===null&&!list.items.some(item=>item.path===draft.base.path)).map(([,draft])=>({...draft.base,title:draft.base.path,updatedAt:new Date().toISOString()}));const items=scope===roots.find(r=>r.kind==='mail')?.id?list.items.map(item=>{const at=new Date(item.updatedAt||'');return Number.isFinite(+at)?{...item,section:`${at.getFullYear()}-${String(at.getMonth()+1).padStart(2,'0')}`}:item;}):list.items;return buildWikiGraph([...items,...drafts],list.edges);},[list,scope,draftRevision,roots]);
  const filtered=useMemo(()=>filterWikiRows(graph.nodes,{query,...filters}),[graph,query,filters]);
  const paged=pageWikiRows(sortWikiRows(filtered,sort),page,size);
  const facets={sections:graph.sections,types:graph.types},colors=useMemo(()=>sectionColors(graph),[graph]);
@@ -72,9 +74,10 @@ export function WikiBrowser({api,projectId,onBack,onSettings,onRewrite,openPath}
    <div className="nubi-wiki-results">
     {paged.rows.length>0&&<WikiTable rows={paged.rows} selectedPath={doc?.path} sort={sort} onSort={value=>{setSort(value);setPage(1);}} onOpen={path=>{void open(path,{reveal:true});}} filters={filters} facets={facets} onFilters={changeFilters} disabled={saving} colors={colors} drafts={new Set([...wikiDrafts.keys()].filter(key=>key.startsWith(scope+':')).map(key=>key.slice(scope.length+1)))}/>}
     {!paged.rows.length&&!loading&&<div className="nubi-wiki-empty-rows"><Icon name={query||chips.length?'search':'file'} size={28}/><strong>{query||chips.length?'조건에 맞는 문서가 없어요.':'아직 위키 문서가 없어요.'}</strong><p>{query||chips.length?'검색어나 필터를 바꿔 보세요.':isMail?'메일을 가져오면 정리한 위키가 여기에 쌓여요.':'위키를 준비하거나 새 문서를 작성해 보세요.'}</p></div>}
-    {!paged.rows.length&&loading&&<p className="nubi-wiki-loading" role="status"><span className="status-spinner"/> 불러오는 중</p>}
+    {!paged.rows.length&&loading&&<LoadingNote className="nubi-wiki-loading">위키를 불러오는 중</LoadingNote>}
    </div>
-   {(list.truncated||list.skipped?.length>0)&&<p className="nubi-muted">읽을 수 있는 문서만 표시했어요. 최대 500개, 20MB입니다.</p>}
+   <PageNumbers page={paged.page} totalPages={paged.totalPages} disabled={loading} label="위키 문서" onPage={value=>setPage(value)}/>
+   {(list.truncated||list.skipped?.length>0)&&<p className="nubi-muted nubi-note"><Icon name="infoCircle" size={14}/>읽을 수 있는 문서만 표시했어요. 최대 3,000개, 120MB입니다.</p>}
   </div>}
   <article ref={reader} className="nubi-wiki-document" aria-label="위키 문서" aria-busy={loading}>
    {doc?<div className="nubi-wiki-document-content" key={doc.path}>

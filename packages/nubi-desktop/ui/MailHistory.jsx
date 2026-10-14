@@ -13,6 +13,7 @@ import {durationLabel} from '../runtime/response-timing.mjs';
 import {mailTableDate} from '../runtime/mail-presentation.mjs';
 import {notifyWorkspaceToast} from './WorkspaceToast.jsx';
 import {FolderMark} from './marks.jsx';
+import {LoadingNote} from './LoadingNote.jsx';
 
 export function MailHistory({api,onDocument,onAsk,onAskSearch,onSettings,connectionRef,sourceTarget,onReturn,viewState}){
  const [portalView,setPortalView]=useState('mail');
@@ -72,7 +73,7 @@ export function MailHistory({api,onDocument,onAsk,onAskSearch,onSettings,connect
    <div ref={listRoot} className="nubi-mail-history-list"><MailKnowledgeSearch key={mailbox} mailbox={mailbox} api={api} query={query} onQuery={setQuery} lastAppliedAt={status?.progress?.lastAppliedAt} revision={revision} selectedId={source?.id} onOpen={open} onAskSearch={onAskSearch} onAskSelected={onAsk} onResults={setNavigation} viewState={viewState}/></div>
    <article className="nubi-mail-history-detail" aria-label="메일 본문" aria-busy={loading}>
     {(source||loading)&&<div className="nubi-mail-reader-navigation"><ActionButton action="back" label="메일 목록으로" onClick={closeReader}/><span>{position>=0?`${navigation.offset+position+1} / ${navigation.total}`:''}</span><ActionButton action="previousMedia" iconOnly label="이전 메일" disabled={loading||navigation?.blocked||position<0||(position===0&&navigation.page<=1)} onClick={()=>adjacent(-1)}/><ActionButton action="nextMedia" iconOnly label="다음 메일" disabled={loading||navigation?.blocked||position<0||(position===navigation.results.length-1&&navigation.page>=navigation.totalPages)} onClick={()=>adjacent(1)}/></div>}
-    {loading?<p role="status">메일 읽는 중</p>:source?<MailReader key={source.id} source={source} api={api} onDocument={onDocument} onAsk={onAsk} onLocalChange={(id,local)=>{setSource(current=>current?.id===id?{...current,local}:current);setSearchRevision(value=>value+1);}}/>:<div className="nubi-mail-reader-empty"><AgentMark size={64} mood="idle"/><strong>선택된 항목이 없습니다.</strong><p>목록에서 항목을 선택하세요.</p></div>}
+    {loading?<LoadingNote>메일 읽는 중</LoadingNote>:source?<MailReader key={source.id} source={source} api={api} onDocument={onDocument} onAsk={onAsk} onLocalChange={(id,local)=>{setSource(current=>current?.id===id?{...current,local}:current);setSearchRevision(value=>value+1);}}/>:<div className="nubi-mail-reader-empty"><AgentMark size={64} mood="idle"/><strong>선택된 항목이 없습니다.</strong><p>목록에서 항목을 선택하세요.</p></div>}
    </article>
   </div>
   {(checkedAt||status?.progress?.lastAppliedAt||status?.recentChecks?.length>0)&&<details className="nubi-mail-recent"><summary><Icon name="clock" size={14}/>최근 수집<Icon name="chevronDown" size={12}/></summary>

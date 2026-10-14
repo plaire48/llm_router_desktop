@@ -66,7 +66,7 @@ test('raw CP949 display headers and MIME-encoded Korean retain readable text',as
  const parsed=await normalizePortalMail(raw,{filename:'one.mysingle'});assert.equal(parsed.normalized.subject,'안녕');assert.match(parsed.normalized.from,/안녕/);assert.equal(parsed.normalized.text,'안녕');assert.deepEqual(parsed.raw,raw);
 });
 test('never follows directory links, rejects oversized files, and cancellation stops collection',async t=>{
- const {root,input,mail}=await fixture(t);await put(input,'AUTO_INBOX/one.eml',eml('one'));await put(input,'large.eml',Buffer.alloc(1024));await truncate(path.join(input,'large.eml'),50*1024*1024+1);/* sparse: the cap is 50 MiB since 2026-10-14 */
+ const {root,input,mail}=await fixture(t);await put(input,'AUTO_INBOX/one.eml',eml('one'));await put(input,'large.eml',Buffer.alloc(1024));await truncate(path.join(input,'large.eml'),2*1024*1024*1024+1);/* sparse: only files above the 2 GiB hard limit are refused (2026-10-14); larger-than-50 MiB files are read up to their first 24 MiB */
  const outside=path.join(root,'outside');await mkdir(outside);await put(outside,'secret.eml',eml('outside'));
  await symlink(outside,path.join(input,'linked'),'junction');const scanned=await scanMailFolder(input);assert.equal(scanned.files.length,1);assert.deepEqual(new Set(scanned.failures.map(row=>row.error)),new Set(['mail_import_link','mail_size_limit']));
  const controller=new AbortController();controller.abort();await assert.rejects(readMailImportFile(scanned.root,scanned.files[0],controller.signal),/mail_cancelled/);

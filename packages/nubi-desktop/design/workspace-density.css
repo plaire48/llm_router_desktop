@@ -644,7 +644,7 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 :root:has(.desktop-shell) .nubi-skill-tabs .agent-tab-controls [role=tab] { flex:none; width:auto; min-height:44px; padding:8px 16px; border-radius:var(--deck-control-radius); font:var(--deck-font-body); font-weight:500; color:var(--deck-sub); }
 :root:has(.desktop-shell) .nubi-skill-tabs .agent-tab-controls [role=tab][aria-selected=true] { color:var(--deck-blue-deep); background:var(--deck-blue-soft); }
 :root:has(.desktop-shell) .nubi-skill-tabs .nubi-skill-tab-label { min-height:0; gap:8px; }
-:root:has(.desktop-shell) .nubi-skill-page { --nubi-skill-page-width:920px; }
+:root:has(.desktop-shell) .nubi-skill-page { --nubi-skill-page-width:1200px; }
 :root:has(.desktop-shell) .nubi-skill-page-header { max-width:var(--nubi-skill-page-width); margin:auto; padding:20px var(--nubi-page-inset) 8px; border:0; }
 :root:has(.desktop-shell) .nubi-skill-page-body { max-width:var(--nubi-skill-page-width); padding:16px var(--nubi-page-inset) 32px; }
 :root:has(.desktop-shell) .nubi-marketplace-card .nubi-skill-name strong { font-weight:500; line-height:var(--deck-line-body); }
@@ -708,7 +708,8 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 
 /* Conversation activity: one aligned heading, quiet history, visible exceptions. */
 .desktop-shell .nubi-workbench { --nubi-activity-icon:18px; --nubi-activity-line:calc(1em * var(--deck-line-body)); --nubi-activity-gap:var(--cx-space-2); }
-.desktop-shell .nubi-workbench .nubi-agent-activity { gap:4px; margin-block:16px; }
+/* Blocks in one turn sit close together: plan, sources, command detail (user report 2026-10-14). */
+.desktop-shell .nubi-workbench .nubi-agent-activity { gap:4px; margin-block:var(--cx-space-2); }
 .desktop-shell .nubi-workbench .nubi-agent-activity .task-plan { padding:0; background:transparent; }
 .desktop-shell .nubi-workbench :is(.nubi-agent-activity,.nubi-analysis-history) summary { min-height:32px; font:var(--deck-font-body); font-weight:400; white-space:nowrap; }
 .desktop-shell .nubi-workbench .nubi-agent-activity :is(.agent-trace>summary,[data-plan-overview]>summary) { display:flex; flex-wrap:nowrap; align-items:center; width:100%; gap:var(--nubi-activity-gap); padding:4px 0; color:var(--deck-sub); }
@@ -883,6 +884,16 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 :root:has(.desktop-shell) { --provider-claude: #D97757; --provider-claude-ink: #8E422C; --provider-claude-soft: #F9EDE7; }
 .desktop-shell .model-trigger[data-provider="claude"] { --nubi-model-surface:var(--provider-claude-soft); --nubi-model-ink:var(--provider-claude-ink); }
 :root:has(.desktop-shell) :is(.provider-button,.provider-connect-button)[data-provider="claude"] { --provider-surface:var(--provider-claude-soft); --provider-ink:var(--provider-claude-ink); }
+/* AI Pro and FabriX get the same soft connected surface as ChatGPT and Claude (user report 2026-10-14). */
+:root:has(.desktop-shell) { --provider-aipro-soft:var(--deck-blue-soft); --provider-aipro-ink:var(--deck-blue-deep); --provider-fabrix-soft:color-mix(in srgb, var(--provider-fabrix-start) 18%, var(--deck-card)); }
+.desktop-shell .model-trigger[data-provider="aipro"] { --nubi-model-surface:var(--provider-aipro-soft); --nubi-model-ink:var(--provider-aipro-ink); }
+.desktop-shell .model-trigger[data-provider="fabrix"] { --nubi-model-surface:var(--provider-fabrix-soft); --nubi-model-ink:var(--provider-fabrix-ink); }
+:root:has(.desktop-shell) :is(.provider-button,.provider-connect-button)[data-provider="aipro"] { --provider-surface:var(--provider-aipro-soft); --provider-ink:var(--provider-aipro-ink); }
+:root:has(.desktop-shell) :is(.provider-button,.provider-connect-button)[data-provider="fabrix"] { --provider-surface:var(--provider-fabrix-soft); --provider-ink:var(--provider-fabrix-ink); }
+:root:has(.desktop-shell) .agent-tab-highlight [data-provider="aipro"] { background:var(--provider-aipro-soft); }
+:root:has(.desktop-shell) .agent-tab-highlight [data-provider="fabrix"] { background:var(--provider-fabrix-soft); }
+:root:has(.desktop-shell) .model-dialog .provider-switcher[data-provider="aipro"] .provider-tabs [aria-selected="true"] { color:var(--provider-aipro-ink); }
+:root:has(.desktop-shell) .model-dialog .provider-switcher[data-provider="fabrix"] .provider-tabs [aria-selected="true"] { color:var(--provider-fabrix-ink); }
 :root:has(.desktop-shell) .agent-tab-highlight [data-provider="claude"] { background:var(--provider-claude-soft); }
 :root:has(.desktop-shell) .provider-switcher[data-provider="claude"] [data-provider="claude"] { opacity:1; color:var(--provider-claude-ink); }
 :root:has(.desktop-shell) .claude-account h3 { display:flex; align-items:center; gap:var(--cx-space-2); white-space:nowrap; }
@@ -947,6 +958,8 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 
 /* Compact adjacent reference/plan disclosures without hiding their content. */
 .desktop-shell .nubi-conversation-content>.nubi-enter>.deck-disclosure { margin-top:var(--cx-space-1); padding:var(--cx-space-2) var(--cx-space-3); }
+.desktop-shell .nubi-conversation-content>.nubi-enter>.deck-disclosure+.deck-disclosure,.desktop-shell .nubi-conversation-content>.nubi-enter>.nubi-agent-activity+.deck-disclosure { margin-top:0; }
+.desktop-shell .nubi-workbench .nubi-setup-summary .deck-disclosure,.desktop-shell .nubi-workbench .nubi-process { margin-top:var(--cx-space-1); }
 .desktop-shell .nubi-conversation-content>.nubi-enter>.deck-disclosure>summary { min-height:var(--cx-space-6); }
 .desktop-shell .nubi-answer-sources summary { margin-top:0; min-height:var(--cx-space-6); padding-block:var(--cx-space-1); }
 .desktop-shell .nubi-answer-sources details[open]>summary { margin-bottom:var(--cx-space-1); }

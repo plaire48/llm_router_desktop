@@ -1,0 +1,3 @@
+/* The vendored screens keep their own layout; this frame only removes the page chrome they expect from the site. */
+.nubi-ai-workspace-embed { min-width:0; }
+.nubi-ai-workspace-embed .workspace-heading, .nubi-ai-workspace-embed .talk-heading { margin-top:0; }

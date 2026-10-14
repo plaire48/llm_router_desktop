@@ -1,0 +1,2 @@
+// '방금 전', 'N분 전' style labels shared by Talk comments and the notification list.
+export function relativeTime(value,now=Date.now()){const time=Date.parse(value);if(!Number.isFinite(time))return '';const seconds=Math.max(0,Math.floor((now-time)/1000));if(seconds<60)return '방금 전';if(seconds<3600)return `${Math.floor(seconds/60)}분 전`;if(seconds<86400)return `${Math.floor(seconds/3600)}시간 전`;return `${Math.floor(seconds/86400)}일 전`;}

@@ -50,7 +50,8 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
     alive.current=true;let reading=false;
     const refresh=async()=>{if(reading)return;reading=true;try{const value=await api('mail',{action:'status'});if(alive.current){setStatus(value);setChosen(current=>current||modelKey(value.destination||value.activeModel));}}catch{if(alive.current)notifyWorkspaceToast('메일 설정을 읽지 못했어요. 다시 열어 주세요.',{error:true});}finally{reading=false;}};
     void refresh();const timer=setInterval(refresh,3000);
-    return()=>{alive.current=false;clearInterval(timer);if(pending.current)void api('mail',{action:'cancelConnect',requestId:pending.current}).catch(()=>{});};
+    // The login continues in the host while the panel is closed (the app browser tab opens over it); only an explicit cancel stops it (2026-10-14).
+    return()=>{alive.current=false;clearInterval(timer);};
   },[api]);
   const models=(status?.catalogs||[]).flatMap(catalog=>catalog.models.map(item=>({provider:catalog.provider,model:item.id,displayName:item.label||item.id,label:`${labels[catalog.provider]||catalog.provider} / ${item.label||item.id}`})));
   const destination=models.find(item=>modelKey(item)===chosen),autoWiki=status?.autoWiki===true;

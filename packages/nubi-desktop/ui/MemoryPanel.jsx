@@ -6,6 +6,7 @@ import {PersonMark,FolderMark} from './marks.jsx';
 import {notifyWorkspaceToast} from './WorkspaceToast.jsx';
 import './memory-panel.css';
 import {ShowMore} from './ShowMore.jsx';
+import {LoadingNote} from './LoadingNote.jsx';
 
 // What the agent remembers from this person's words: a switch, the list, and a trash can per line (confirmed).
 export function MemoryPanel({api}){
@@ -13,7 +14,7 @@ export function MemoryPanel({api}){
  const load=async()=>{try{const value=await api('memories',{action:'list'});if(live.current)setData(value);}catch{if(live.current)notifyWorkspaceToast('기억 목록을 읽지 못했어요.',{error:true});}};
  useEffect(()=>{live.current=true;void load();return()=>{live.current=false;};},[api]);
  const act=async args=>{if(busy)return;setBusy(true);try{const value=await api('memories',args);if(live.current)setData(value);}catch{if(live.current)notifyWorkspaceToast('기억을 바꾸지 못했어요. 다시 시도해 주세요.',{error:true});}finally{if(live.current)setBusy(false);}};
- if(!data)return <p className="nubi-muted" role="status">불러오는 중</p>;
+ if(!data)return <LoadingNote>기억을 불러오는 중</LoadingNote>;
  const enabled=data.enabled!==false;
  return <div className="nubi-memory-panel">
   <div className="nubi-mail-switch-row"><div><strong>기억 사용</strong><small>대화에서 말한 선호와 사실을 이 PC에만 저장해요. 비밀번호와 토큰은 저장하지 않아요.</small></div>

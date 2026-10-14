@@ -8,8 +8,8 @@
  place-items:center;
  overflow:auto;
  padding:var(--cx-space-6);
- /* The workbench gradient shows through, as on the home screen (user request 2026-10-14). */
- background:transparent;
+ /* Opaque, painted with the home-screen gradient, so the content behind it is covered (user report 2026-10-14). */
+ background:var(--nubi-chat-surround,var(--nubi-workspace-gradient,var(--nubi-surface-base)));
 }
 .nubi-project-wiki-progress-body {display:flex;flex-direction:column;align-items:center;gap:var(--cx-space-4);width:min(100%,480px);}
 .nubi-project-wiki-progress h2 {margin:0;font-size:var(--cx-type-title);font-weight:600;color:var(--nubi-text-primary);}

@@ -1,5 +1,5 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import {createRequire} from 'node:module';
-const {splitFrontmatter,firstHeading,describeWikiPage}=createRequire(import.meta.url)('../electron-app/wiki-frontmatter.cjs');
+const {splitFrontmatter,firstHeading,describeWikiPage,threadEdges}=createRequire(import.meta.url)('../electron-app/wiki-frontmatter.cjs');
 test('front matter is split from the body and known fields are typed',()=>{
   const page='---\ntype: Process\ntitle: "주문 흐름"\ndescription: 장바구니에서 결제까지\ntags: [order, state]\n---\n# 주문 흐름\n\n본문';
   const {meta,body,frontmatter}=splitFrontmatter(page);
@@ -17,4 +17,15 @@ test('a page is described by front matter, then its first heading, then its file
   assert.deepEqual(describeWikiPage('---\ntype: Policy\ndescription: 환불 기간\ntags: [payment]\n---\n# 환불 규칙\n','payments/refund.md'),{title:'환불 규칙',type:'Policy',description:'환불 기간',tags:['payment'],body:'# 환불 규칙\n',frontmatter:'---\ntype: Policy\ndescription: 환불 기간\ntags: [payment]\n---\n'});
   assert.equal(describeWikiPage('본문만','ops/monitoring.md').title,'monitoring');
   assert.equal(describeWikiPage('---\ntitle: '+'가'.repeat(200)+'\n---\n','a.md').title.length,160);
+});
+
+test('mail pages with the same thread form a chain ordered by date',()=>{
+  const page=describeWikiPage('---\ntype: Mail\ntitle: "Re: 일정"\nthread: "abc"\nmessage_id: "<2@x>"\nin_reply_to: "<1@x>"\ndate: "2026-10-02T01:00:00Z"\n---\n# Re: 일정\n','mail/2026-10/re-일정.md');
+  assert.equal(page.thread,'abc');assert.equal(page.messageId,'<2@x>');assert.equal(page.inReplyTo,'<1@x>');assert.equal(page.date,'2026-10-02T01:00:00Z');
+  const edges=threadEdges([
+    {path:'mail/b.md',thread:'abc',date:'2026-10-02T01:00:00Z'},
+    {path:'mail/a.md',thread:'abc',date:'2026-10-01T01:00:00Z'},
+    {path:'mail/c.md',thread:'other',date:'2026-10-03T01:00:00Z'},
+    {path:'mail/d.md',thread:'',date:'2026-10-03T01:00:00Z'}]);
+  assert.deepEqual(edges,[{from:'mail/a.md',to:'mail/b.md',kind:'thread'}]);
 });

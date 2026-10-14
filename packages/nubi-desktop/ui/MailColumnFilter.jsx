@@ -2,6 +2,7 @@ import React,{useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {CxButton,CxInput,Icon,SearchField} from '@e2e/cx-design-system';
 import {mailRoleLabel} from '../runtime/mail-presentation.mjs';
+import {WorkspaceAction} from './WorkspaceAction.jsx';
 import './mail-column-filter.css';
 
 // E2E Report pattern (TableControls.ColumnFilter): filters live next to their column with an active dot,
@@ -33,6 +34,6 @@ export function MailColumnFilter({field,label,filters,facets,disabled,onChange})
   {field==='sender'&&<><SearchField className="nubi-mail-column-search" label="보낸 사람 필터 검색" placeholder="이름 또는 주소" value={query} onChange={setQuery}/><SelectAll options={senderOptions.map(item=>item.address)} draft={draft.senders} onChange={senders=>setDraft(current=>({...current,senders}))}/><div className="nubi-mail-column-values">{senderOptions.map(item=><label key={item.address} title={item.label}><input type="checkbox" checked={draft.senders.includes(item.address)} onChange={()=>toggle('senders',item.address)}/><span>{item.label||item.address}</span></label>)}{!senderOptions.length&&<p className="nubi-mail-column-empty">일치하는 값이 없어요.</p>}</div></>}
   {field==='role'&&<div className="nubi-mail-column-values"><SelectAll options={['to','cc','bcc','sent','unknown']} draft={draft.roles||[]} onChange={roles=>setDraft(current=>({...current,roles}))}/>{['to','cc','bcc','sent','unknown'].map(role=><label key={role}><input type="checkbox" checked={(draft.roles||[]).includes(role)} onChange={()=>toggle('roles',role)}/><span>{mailRoleLabel(role)}</span></label>)}</div>}
   {field==='date'&&<><div className="nubi-mail-column-values">{[['all','전체 기간'],['7','최근 7일'],['30','최근 30일'],['custom','기간 지정'],['unknown','날짜 미확인']].map(([value,text])=><label key={value}><input type="radio" name="mail-date-period" checked={draft.period===value} onChange={()=>setDraft(current=>({...current,period:value}))}/><span>{text}</span></label>)}</div>{draft.period==='custom'&&<div className="nubi-mail-column-dates"><CxInput type="date" aria-label="시작 날짜" value={draft.from} onChange={event=>setDraft(current=>({...current,from:event.target.value}))}/><CxInput type="date" aria-label="종료 날짜" value={draft.to} onChange={event=>setDraft(current=>({...current,to:event.target.value}))}/></div>}</>}
-  <footer><CxButton onClick={reset}>초기화</CxButton><CxButton variant="primary" disabled={field==='date'&&draft.period==='custom'&&(!draft.from||!draft.to||draft.from>draft.to)} onClick={()=>{onChange(patch());close();}}>적용</CxButton></footer>
+  <footer><WorkspaceAction action="clearFilters" iconOnly={false} label="필터 초기화" visibleLabel="초기화" onClick={reset}/><WorkspaceAction action="apply" iconOnly={false} label="필터 적용" visibleLabel="적용" className="nubi-filter-apply" disabled={field==='date'&&draft.period==='custom'&&(!draft.from||!draft.to||draft.from>draft.to)} onClick={()=>{onChange(patch());close();}}/></footer>
  </div>,document.body)}</>;
 }

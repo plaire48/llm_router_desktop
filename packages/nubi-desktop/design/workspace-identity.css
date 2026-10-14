@@ -115,7 +115,7 @@
   --nubi-dialog-footer-inset: var(--cx-space-6);
   --nubi-dialog-field-gap: var(--cx-space-2);
   --nubi-dialog-symbol-size: var(--nubi-work-control-height);
-  --nubi-chat-width: clamp(700px, 84cqi, 1120px);
+  --nubi-chat-width: clamp(700px, 94cqi, 1480px);
   --nubi-reading-width: calc(var(--nubi-chat-width) + var(--nubi-page-inset) * 2);
   --nubi-scrollbar-size: 4px;
   --nubi-scrollbar-inset: var(--cx-space-2);
@@ -338,6 +338,8 @@
   .desktop-pane-resize:is(:hover,:focus-visible)::after,.desktop-shell[data-pane-resizing=true] .desktop-pane-resize::after { background:Highlight; }
 }
 .desktop-shell[data-pane-resizing=true],.desktop-shell[data-pane-resizing=true] * { cursor:col-resize!important; user-select:none!important; }
+/* The native browser view hides during a pane drag; its place shows the section surface until the drag ends. */
+.desktop-shell[data-pane-resizing=true] .desktop-browser-viewport { background:var(--deck-section-surface); }
 .desktop-shell[data-pane-resizing=true] .desktop-pane { animation:none; }
 .desktop-shell[data-pane-resizing=true] .desktop-pane > :not(.desktop-pane-resize) { pointer-events:none; }
 .desktop-shell .desktop-pane[data-expanded=true] { position:absolute; z-index:20; top:0; bottom:0; left:var(--desktop-expanded-left,48px); right:0; height:100%; width:auto; min-width:0; max-width:none; animation:none; }
@@ -419,6 +421,8 @@
 .nubi-feedback-region { position:fixed; z-index:10000; top:max(16px,env(safe-area-inset-top)); left:50%; width:max-content; max-width:min(520px,calc(100vw - 32px)); transform:translateX(-50%); pointer-events:none; }
 .nubi-feedback-toast { display:grid; grid-template-columns:minmax(0,1fr); align-items:center; gap:var(--cx-space-3); padding:var(--cx-space-3) var(--cx-space-4); border:0; border-radius:var(--deck-panel-radius); background:var(--deck-card); color:var(--deck-ink); box-shadow:var(--deck-shadow); font:var(--deck-font-body); pointer-events:auto; }
 .nubi-feedback-message { display:flex; align-items:center; min-width:0; gap:var(--cx-space-3); }
+.nubi-feedback-close { flex:none; display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; margin-left:var(--cx-space-1); padding:0; border:0; border-radius:50%; background:transparent; color:inherit; opacity:.7; cursor:pointer; }
+.nubi-feedback-close:hover,.nubi-feedback-close:focus-visible { opacity:1; background:color-mix(in srgb,currentColor 12%,transparent); }
 .nubi-feedback-message > span { min-width:0; overflow-wrap:anywhere; white-space:pre-line; }
 .nubi-feedback-icon { display:block; flex:none; width:28px; height:28px; color:var(--deck-blue-deep); }
 .nubi-feedback-track { stroke:var(--deck-blue-soft); stroke-width:3; fill:var(--deck-tint); }
@@ -979,7 +983,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-skill-page h1 { margin:0; font:600 var(--cx-type-section)/var(--deck-line-heading) var(--cx-font-family); }
 .nubi-skill-page h1:focus { outline:none; }
 .nubi-skill-page-actions { display:flex; align-items:center; gap:var(--cx-space-1); margin-left:auto; }
-.nubi-skill-page-body { max-width:800px; margin:0 auto; padding:var(--cx-space-6) var(--nubi-page-inset); }
+.nubi-skill-page-body { max-width:1200px; margin:0 auto; padding:var(--cx-space-6) var(--nubi-page-inset); }
 .nubi-skill-page-controls { display:flex; align-items:center; flex-wrap:wrap; gap:var(--cx-space-4); margin-bottom:var(--cx-space-6); }
 .nubi-skill-page-tabs { display:flex; gap:var(--cx-space-1); }
 .nubi-skill-page-tabs .cx-kit-button { border:0; background:transparent; color:var(--deck-sub); }
@@ -1666,3 +1670,51 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 @keyframes nubi-live-breathe { 0%,100% { opacity:1; } 50% { opacity:.55; } }
 @keyframes nubi-live-spin { to { transform:rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .nubi-agent-activity[aria-busy=true] .agent-trace > summary > svg:first-child,.nubi-agent-activity[aria-busy=true] .agent-trace > summary > .agent-trace-title { animation:none; } }
+
+/* Any host request slower than 400 ms shows a moving line under the toolbar so a wait reads as work, not a freeze (2026-10-14). */
+html[data-host-busy] .desktop-shell::after { content:''; position:fixed; left:0; right:0; top:var(--desktop-toolbar-height,48px); height:2px; z-index:40; pointer-events:none; background:linear-gradient(90deg,transparent 0%,var(--deck-blue) 50%,transparent 100%); background-size:40% 100%; animation:nubi-host-busy 1.1s linear infinite; }
+@keyframes nubi-host-busy { from { background-position:-40% 0; } to { background-position:140% 0; } }
+@media (prefers-reduced-motion: reduce) { html[data-host-busy] .desktop-shell::after { animation:none; background:var(--deck-blue-soft); } }
+
+/* While another project opens, the current workbench fades instead of sitting frozen; the next one fades in (2026-10-14). */
+.nubi-workbench .nubi-main, .nubi-workbench .nubi-sidebar { transition:opacity .22s ease, filter .22s ease; }
+html[data-project-switching] .nubi-workbench .nubi-main, html[data-project-switching] .nubi-workbench .nubi-sidebar { opacity:.45; filter:saturate(.6); pointer-events:none; }
+@media (prefers-reduced-motion: reduce) { .nubi-workbench .nubi-main, .nubi-workbench .nubi-sidebar { transition:none; } }
+
+/* A toast may carry one action, such as opening a local server in the app browser (2026-10-14). */
+.nubi-feedback-action { flex:none; margin-left:var(--cx-space-2); padding:var(--cx-space-1) var(--cx-space-3); border:0; border-radius:999px; background:var(--deck-blue); color:var(--deck-card); font:var(--deck-font-caption); font-weight:600; cursor:pointer; }
+.nubi-feedback-action:hover { filter:brightness(1.08); }
+
+.nubi-server-notice { display:flex; align-items:center; gap:var(--cx-space-3); margin-top:var(--cx-space-2); padding:var(--cx-space-3); border-radius:var(--nubi-work-control-radius,12px); background:var(--deck-blue-soft); }
+.nubi-server-notice>div { flex:1; min-width:0; display:grid; gap:2px; }
+.nubi-server-notice strong { font:var(--deck-font-body); font-weight:600; }
+.nubi-server-notice small { font:var(--deck-font-caption); color:var(--deck-sub); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.nubi-server-notice-icon { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; background:var(--deck-card); color:var(--deck-blue-deep); flex:none; }
+
+.nubi-process-fold>summary { display:flex; align-items:center; gap:var(--cx-space-2); min-height:36px; padding:var(--cx-space-1) var(--cx-space-2); border-radius:var(--nubi-work-control-radius,12px); list-style:none; cursor:pointer; color:var(--deck-ink); font:var(--deck-font-caption); font-weight:600; }
+.nubi-process-fold>summary::-webkit-details-marker { display:none; }
+.nubi-process-fold>summary:hover { background:var(--deck-tint); }
+.nubi-process-fold>summary>small { color:var(--deck-sub); font-weight:500; }
+.nubi-process-fold>summary>.status-spinner { color:var(--deck-blue-deep); }
+.nubi-process-fold>summary>svg:last-child { margin-left:auto; color:var(--deck-sub); transition:transform .18s ease; }
+.nubi-process-fold[open]>summary>svg:last-child { transform:rotate(180deg); }
+.nubi-process-fold-icon { display:inline-flex; color:var(--deck-blue-deep); }
+
+.nubi-note { display:flex; align-items:center; gap:var(--cx-space-2); }
+.nubi-note > svg { flex:none; color:var(--deck-blue-deep); }
+.nubi-rail-mail { position:relative; }
+.nubi-rail-mail-spinner { position:absolute; right:4px; bottom:4px; width:10px; height:10px; color:var(--deck-blue-deep); }
+
+/* Notification bell in the rail and the notice list (user request 2026-10-14). */
+.nubi-rail-notice { position:relative; }
+.nubi-rail-notice-dot { position:absolute; top:6px; right:6px; width:8px; height:8px; border-radius:50%; background:var(--deck-blue-deep); box-shadow:0 0 0 2px var(--deck-card); }
+.nubi-notice-panel .nubi-notice-empty { display:flex; align-items:center; gap:var(--cx-space-2); margin:0; color:var(--nubi-text-secondary); font-size:var(--cx-type-body); }
+.nubi-notice-list { list-style:none; margin:0; padding:0; display:grid; gap:var(--cx-space-1); max-height:min(60vh,520px); overflow:auto; }
+.nubi-notice-item { display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; align-items:center; gap:var(--cx-space-2); padding:var(--cx-space-2) var(--cx-space-2); border-radius:var(--nubi-work-control-radius); }
+.nubi-notice-item:hover { background:var(--deck-section-surface); }
+.nubi-notice-icon { display:inline-flex; color:var(--deck-blue-deep); }
+.nubi-notice-item[data-error] .nubi-notice-icon { color:var(--deck-red,#C8102E); }
+.nubi-notice-item[data-success] .nubi-notice-icon { color:var(--deck-green-deep,#1B7A3F); }
+.nubi-notice-text { min-width:0; font-size:var(--cx-type-body); color:var(--nubi-text-primary); overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+.nubi-notice-time { flex:none; font-size:var(--cx-type-caption); color:var(--nubi-text-secondary); white-space:nowrap; }
+.nubi-notice-footer { display:flex; justify-content:flex-end; margin-top:var(--cx-space-2); }

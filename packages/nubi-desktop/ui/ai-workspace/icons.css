@@ -1,0 +1,29 @@
+.ui-icon {
+  display: inline-block;
+  flex: 0 0 auto;
+  vertical-align: middle;
+  color: inherit;
+}
+.topbar .menu-button { gap: 8px; }
+.topbar .menu-button .ui-icon { opacity: .9; }
+.topbar .menu-button.is-active .ui-icon { opacity: 1; }
+.topbar .topbar-actions > .btn { gap: 7px; }
+.input-with-icon { position: relative; display: block; width: 100%; }
+.input-with-icon > .ui-icon {
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  transform: translateY(-50%);
+  color: var(--layout-muted);
+  pointer-events: none;
+}
+.app-shell .workspace-filters .input-with-icon > .text-input { padding-left: 34px; }
+.app-shell .filter-reset { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.table-edit-button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.modal-close { display: inline-flex; align-items: center; justify-content: center; }
+@media (pointer: coarse) {
+  .app-shell .topbar .btn, .app-shell .topbar .icon-button, .app-shell .filter-reset, .table-edit-button, .modal-close, .dialog__close {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

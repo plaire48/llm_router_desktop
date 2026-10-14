@@ -37,15 +37,18 @@ export function validateToken(token) {
 // The browser runtime reads the same names (extensions/aipro-chat/core.js). Unread, Office took every open_api model as
 // 256K: compaction came too early for glm-5.2, and past the window of gpt-oss-120b.
 export const windowTokens = catalogWindowTokens;
+export const HIDDEN_MODELS = new Set(['Qwen3-Coder_rag', 'aipro-fast-model']);
 export async function fetchModelCatalog(token, fetchImpl = fetch, signal) {
   const response = await fetchImpl(`${ORIGIN}/api/models`, { headers: { Accept: 'application/json', Authorization: `Bearer ${validateToken(token)}`, 'X-REASONING': 'true' }, credentials:'omit',cache: 'no-store', redirect: 'error', signal: AbortSignal.any([AbortSignal.timeout(15000), ...(signal ? [signal] : [])]) });
   const body = await json(response);
   if (body?.success === false || body?.ok === false || !Array.isArray(body?.modelList)) throw new Error('models_invalid');
-  const summary = {received: body.modelList.length, usable: 0, excluded: {name: 0, duplicate: 0, target: 0, agent: 0}};
+  const summary = {received: body.modelList.length, usable: 0, excluded: {name: 0, duplicate: 0, target: 0, agent: 0, hidden: 0}};
   const seen = new Set();
   const models = body.modelList.flatMap(item => {
     const id = typeof item?.name === 'string' ? item.name.trim() : '';
     if (!id || id.length > 200 || /[\x00-\x1f\x7f]/.test(id)) {summary.excluded.name++; return [];}
+    // Administrator-facing entries in the shared catalog stay out of the picker (user decision 2026-10-14).
+    if (HIDDEN_MODELS.has(id)) {summary.excluded.hidden++; return [];}
     if (seen.has(id)) {summary.excluded.duplicate++; return [];}
     seen.add(id);
     return [{ id, ...(typeof item.supports_images==='boolean'?{supportsImages:item.supports_images}:{}), label: typeof item.display_name === 'string' && item.display_name.trim() ? item.display_name.trim().slice(0, 200) : id,

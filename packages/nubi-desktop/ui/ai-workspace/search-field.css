@@ -1,0 +1,17 @@
+/* One search anatomy for pages, drawers and selection popovers. */
+.cx-input-shell.cx-search-field {
+  display:grid;grid-template-columns:18px minmax(0,1fr);align-items:center;gap:8px;min-width:0;
+  height:var(--cx-field-height);min-height:var(--cx-field-height);
+  padding:0 2px 0 var(--cx-field-padding);border:1px solid var(--cx-input-border);
+  border-radius:var(--cx-radius-control);background:var(--layout-surface);
+  font:400 var(--cx-field-font)/var(--cx-field-line) var(--cx-font-family);box-sizing:border-box;
+}
+.cx-input-shell.cx-search-field:has(>[data-action=clearSearch]) {grid-template-columns:18px minmax(0,1fr) var(--cx-control)}
+.cx-input-shell.cx-search-field>input {grid-column:2;width:100%;min-width:0;height:100%;margin:0;padding:0;border:0;background:transparent;font:inherit;color:var(--layout-text);box-shadow:none;appearance:none}
+.cx-input-shell.cx-search-field>svg {grid-column:1;position:static;width:18px;height:18px;margin:0;transform:none;color:var(--layout-muted);pointer-events:none}
+.cx-input-shell.cx-search-field>input::placeholder {color:var(--layout-muted);opacity:1}
+.cx-input-shell.cx-search-field:has(input:disabled) {background:var(--layout-soft)}
+.cx-input-shell.cx-search-field>input:focus-visible {outline:none;box-shadow:none}
+.cx-input-shell.cx-search-field>input::-webkit-search-cancel-button {display:none}
+.cx-input-shell.cx-search-field:focus-within {border-color:var(--brand-mid);outline:2px solid var(--brand-soft);outline-offset:0;box-shadow:none}
+.cx-input-shell.cx-search-field>[data-action=clearSearch] {grid-column:3;position:static;width:var(--cx-control);min-width:var(--cx-control);margin:0;transform:none}

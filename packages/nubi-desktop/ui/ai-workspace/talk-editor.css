@@ -1,0 +1,80 @@
+/* Shared editor: CX tabs, a compact neutral toolbar and one writing surface. */
+.talk-editor {border:1px solid var(--cx-input-border);border-radius:var(--cx-radius-control);background:var(--layout-surface);position:relative;min-width:0;color:var(--layout-text);font:var(--cx-weight-regular) var(--cx-type-body)/var(--cx-line-body) var(--cx-font-family)}
+.talk-editor-heading {display:flex;align-items:center;border-bottom:1px solid var(--layout-border);padding-right:var(--cx-gap-xs);min-width:0}
+.talk-editor-modes.cx-tabs {flex:1;min-width:0;padding:0 var(--cx-space-4);gap:var(--cx-space-6);background:var(--layout-surface)}
+.talk-editor-modes.cx-tabs > button {font-size:var(--cx-type-body)}
+.talk-editor-toolbar {display:flex;align-items:center;gap:var(--cx-space-1);flex-wrap:wrap;flex-shrink:0;padding:var(--cx-space-1) var(--cx-space-2);border-bottom:1px solid var(--layout-row-border);background:var(--layout-soft)}
+.talk-tool-group {display:inline-flex;gap:0;border-left:1px solid var(--layout-border);padding-left:var(--cx-space-1);align-items:center}
+.talk-history-tools {margin-left:auto}
+.talk-editor-toolbar :is(.cx-action-button[aria-pressed='true'],[data-action=more][aria-expanded=true]) {background:var(--brand-selected);color:var(--brand-ink);border-color:transparent}
+.talk-editor-toolbar .native-select {width:auto;min-width:80px;max-width:120px;font-size:var(--cx-field-font)}
+.talk-editor-extra {background:var(--layout-surface)}
+.talk-editor-extra > .talk-tool-group:first-child {border-left:0;padding-left:0}
+.talk-color {position:relative;display:grid;place-items:center;width:var(--cx-control);height:var(--cx-control);color:var(--layout-muted);border-radius:var(--cx-radius-control);overflow:hidden}
+.talk-color input {position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.talk-color:focus-within {outline:2px solid var(--brand-action);outline-offset:2px}
+@media(max-width:700px) {
+ .talk-editor-modes.cx-tabs {padding-inline:var(--cx-space-3);gap:var(--cx-space-3)}
+ .talk-editor-toolbar {gap:0;padding:var(--cx-space-1);flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin}
+ .talk-editor-toolbar > * {flex-shrink:0}
+ .talk-history-tools {margin-left:0}
+ .talk-tool-group {padding-left:0}
+ .talk-editor-toolbar .native-select {min-width:76px;max-width:104px}
+}
+.talk-rich-content {font:var(--cx-weight-regular) var(--cx-type-body)/1.75 var(--cx-font-family);overflow-wrap:anywhere;word-break:normal;color:var(--layout-text);min-width:0}
+.talk-editor .talk-rich-content {padding:var(--cx-space-4);outline:0;overscroll-behavior:contain}
+.talk-rich-content > :first-child {margin-top:0}
+.talk-rich-content > :last-child {margin-bottom:0}
+.talk-rich-content p {margin:0 0 12px}
+.talk-rich-content h2 {font:var(--cx-weight-bold) var(--cx-type-panel-title)/1.5 var(--cx-font-family);margin:24px 0 12px}
+.talk-rich-content h3 {font:var(--cx-weight-medium) var(--cx-type-section)/1.5 var(--cx-font-family);margin:20px 0 8px}
+.talk-rich-content ul,.talk-rich-content ol {padding-left:24px;margin:8px 0 16px}
+.talk-rich-content li {margin:4px 0}
+.talk-rich-content li p {margin:0}
+.talk-rich-content ul[data-type='taskList'] {list-style:none;padding-left:0}
+.talk-rich-content :is(li[data-type='taskItem'],ul[data-type='taskList']>li) {display:flex;align-items:flex-start;gap:8px}
+.talk-rich-content :is(li[data-type='taskItem'],ul[data-type='taskList']>li) > label {display:flex;flex:0 0 auto;line-height:1}
+.talk-rich-content :is(li[data-type='taskItem'],ul[data-type='taskList']>li) > div {min-width:0;flex:1}
+.talk-rich-content input[type='checkbox'] {appearance:auto;accent-color:var(--brand-action);margin:5px 0 0;width:16px;height:16px}
+.talk-rich-content blockquote {border-left:3px solid var(--brand-action);padding:12px 16px;margin:16px 0;background:var(--brand-surface);border-radius:0 4px 4px 0}
+.talk-rich-content code {font:13px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace;background:var(--layout-soft);border-radius:3px;padding:2px 4px}
+.talk-rich-content pre {max-width:100%;overflow:auto;background:var(--layout-soft);padding:16px;border:1px solid var(--layout-border);border-radius:var(--cx-radius-control);white-space:pre}
+.talk-rich-content pre code {padding:0}
+.talk-rich-content .talk-code-language {display:block;border-bottom:1px solid var(--layout-border);margin:-16px -16px 14px;padding:8px 16px;color:var(--layout-muted);font:500 12px/20px var(--cx-font-family);white-space:normal}
+.talk-code-block {margin:16px 0;border:1px solid var(--layout-border);border-radius:var(--cx-radius-control);background:var(--layout-soft);overflow:hidden}
+.talk-code-header {display:flex;align-items:center;border-bottom:1px solid var(--layout-border);padding:var(--cx-space-1) var(--cx-space-3)}
+.talk-code-header .native-select {width:160px;max-width:100%;font:500 var(--cx-type-body)/20px var(--cx-font-family);background:var(--layout-surface)}
+.talk-rich-content .talk-code-block pre {position:relative;border:0;border-radius:0;margin:0}
+.talk-code-block pre[data-placeholder]:before {position:absolute;content:attr(data-placeholder);color:var(--layout-muted);font:var(--cx-weight-regular) var(--cx-type-body)/1.7 var(--cx-font-family);white-space:normal;pointer-events:none}
+.talk-code-block pre>[data-node-view-content-react] {display:block;min-height:1.7em}
+.talk-rich-content img,.talk-rich-content video {display:block;max-width:100%;height:auto;max-height:65dvh;margin:16px auto;border-radius:6px;object-fit:contain}
+.talk-rich-content video {background:#172033;width:100%}
+.talk-rich-content table {border-collapse:collapse;table-layout:fixed;width:100%;margin:16px 0;font-size:var(--cx-type-body)}
+.talk-rich-content td,.talk-rich-content th {border:1px solid var(--layout-border);padding:8px 12px;min-width:60px;position:relative;vertical-align:top}
+.talk-rich-content th {background:var(--layout-table-head);font-weight:500}
+.talk-rich-content .selectedCell:after {position:absolute;inset:0;background:var(--brand-surface);opacity:.6;content:'';pointer-events:none}
+.talk-rich-content a {color:var(--brand-action);text-decoration:underline;text-underline-offset:3px}
+.talk-rich-content hr {margin:24px 0;border:0;border-top:1px solid var(--layout-border)}
+.talk-rich-content a[data-type='attachment'] {display:block;width:fit-content;max-width:100%;padding:10px 14px;border:1px solid var(--layout-border);border-radius:var(--cx-radius-control);background:var(--layout-soft);font:500 var(--cx-type-body)/22px var(--cx-font-family);color:var(--brand-action);text-decoration:none;margin:12px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-sizing:border-box}
+.talk-rich-content .talk-file-link { display:block; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.talk-rich-content a[data-type='attachment']:before {content:'↓';margin-right:10px;font-size:18px}
+.talk-code-tools {padding:6px 12px;border-bottom:1px solid var(--layout-row-border);background:var(--layout-soft)}
+.talk-code-tools label {display:flex;gap:8px;align-items:center;color:var(--layout-muted);font:400 12px/20px var(--cx-font-family)}
+.talk-code-tools .native-select {width:160px}
+.talk-rich-content .hljs-keyword,.talk-rich-content .hljs-selector-tag,.talk-rich-content .hljs-built_in {color:#244bba}
+.talk-rich-content .hljs-string,.talk-rich-content .hljs-attr,.talk-rich-content .hljs-addition {color:#087f68}
+.talk-rich-content .hljs-number,.talk-rich-content .hljs-literal,.talk-rich-content .hljs-symbol {color:#9a5111}
+.talk-rich-content .hljs-title,.talk-rich-content .hljs-function,.talk-rich-content .hljs-type {color:#6846ae}
+.talk-rich-content .hljs-comment,.talk-rich-content .hljs-quote {color:#69778a;font-style:italic}
+.talk-rich-content .hljs-deletion,.talk-rich-content .hljs-tag {color:#b22e48}
+.talk-rich-content .is-editor-empty:first-child:not(.node-codeBlock):before {content:attr(data-placeholder);color:var(--layout-muted);float:left;height:0;pointer-events:none}
+.talk-source {display:block;box-sizing:border-box;border:0;background:transparent;width:100%;padding:var(--cx-space-4);font:14px/1.75 ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--layout-text);outline:0}
+.talk-table-tools {display:flex;gap:4px;flex-wrap:wrap;padding:4px 8px;background:var(--brand-surface)}
+.talk-table-tools .cx-action-button { color:var(--brand-ink); }
+.talk-upload-status {display:flex;align-items:center;gap:8px;padding:8px 16px;font-size:var(--cx-type-caption);background:var(--layout-soft)}
+.cx-panel-backdrop.is-modal>.cx-detail-panel.talk-link-dialog {width:min(480px,100%)}
+@media(max-width:700px),(pointer:coarse) {
+ .talk-editor .talk-rich-content,.talk-source {font-size:var(--cx-field-font);padding:var(--cx-space-3)}
+ .talk-rich-content th,.talk-rich-content td {padding:var(--cx-space-2)}
+ .talk-rich-content pre {padding:var(--cx-space-3)}
+}

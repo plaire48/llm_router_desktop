@@ -27,6 +27,18 @@ function describeWikiPage(content,path=''){
  const {meta,body,frontmatter}=splitFrontmatter(content);
  const name=String(path).split('/').pop().replace(/\.md$/i,'');
  const text=value=>typeof value==='string'?value.trim().slice(0,160):'';
- return {title:text(meta.title)||firstHeading(body).slice(0,160)||name,type:text(meta.type),description:text(meta.description).slice(0,300),tags:(meta.tags||[]).slice(0,20),body,frontmatter};
+ return {title:text(meta.title)||firstHeading(body).slice(0,160)||name,type:text(meta.type),description:text(meta.description).slice(0,300),tags:(meta.tags||[]).slice(0,20),...(text(meta.thread)?{thread:text(meta.thread),messageId:text(meta.message_id),inReplyTo:text(meta.in_reply_to),date:text(meta.date)}:{}),body,frontmatter};
 }
-module.exports={splitFrontmatter,firstHeading,describeWikiPage};
+// Pages with the same `thread` front matter form a chain ordered by date (then path), each page linking to the next.
+function threadEdges(items){
+ const groups=new Map();
+ for(const item of items){if(!item.thread)continue;const list=groups.get(item.thread)||[];list.push(item);groups.set(item.thread,list);}
+ const edges=[];
+ for(const list of groups.values()){
+  if(list.length<2)continue;
+  list.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||String(a.path).localeCompare(String(b.path)));
+  for(let i=1;i<list.length;i++)edges.push({from:list[i-1].path,to:list[i].path,kind:'thread'});
+ }
+ return edges;
+}
+module.exports={splitFrontmatter,firstHeading,describeWikiPage,threadEdges};

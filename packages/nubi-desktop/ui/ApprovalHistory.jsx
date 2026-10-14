@@ -8,6 +8,7 @@ import {AgentMark} from '../../../extensions/aipro-chat/src/AgentMark.jsx';
 import {MailBody} from './MailBody.jsx';
 import {mailTableDate} from '../runtime/mail-presentation.mjs';
 import './approval-history.css';
+import {LoadingNote} from './LoadingNote.jsx';
 const reasons={mail_portal_login:'포털에 로그인해 주세요.',mail_portal_identity:'결재용 사용자 정보를 확인하지 못했어요. 포털에 다시 로그인해 주세요.',mail_portal_timeout:'포털 응답이 늦어요. 다시 불러와 주세요.',mail_portal_format:'결재 응답 형식을 확인하지 못했어요.',mail_cancelled:'조회가 중단됐어요.'};
 function PortalApprovalHistory({api,onSettings}){
  const [page,setPage]=useState(1),[data,setData]=useState(null),[document,setDocument]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
@@ -22,7 +23,7 @@ function PortalApprovalHistory({api,onSettings}){
   <div className="nubi-approval-list" aria-busy={busy}>
    {data?.items.length>0&&<table><thead><tr><th>제목</th><th>상신</th><th>완료</th></tr></thead><tbody>{data.items.map(row=><tr key={row.id+'|'+row.lineId} data-selected={document?.id===row.id||undefined}><td><CxButton disabled={busy} onClick={()=>open(row)} title={row.subject}><Icon name="clipboardCheck" size={18}/><strong>{row.subject}</strong></CxButton></td><td><time>{mailTableDate(row.submittedAt)}</time></td><td>{row.completedAt?<time>{mailTableDate(row.completedAt)}</time>:<span className="nubi-muted">—</span>}</td></tr>)}</tbody></table>}
    {!busy&&data?.items.length===0&&<div className="nubi-approval-empty"><AgentMark size={64} mood="still"/><p>표시할 결재가 없어요.</p></div>}
-   {busy&&<div className="nubi-approval-loading" role="status"><span className="status-spinner"/><span>결재를 불러오는 중</span></div>}
+   {busy&&<LoadingNote className="nubi-approval-loading">결재를 불러오는 중</LoadingNote>}
   </div>
   <nav aria-label="결재 페이지"><CxButton data-icon-only aria-label="이전 결재 페이지" disabled={busy||page===1} onClick={()=>setPage(page-1)}><Icon name="chevronLeft" size={16}/></CxButton><span>{page}</span><CxButton data-icon-only aria-label="다음 결재 페이지" disabled={busy||!data?.hasNext} onClick={()=>setPage(page+1)}><Icon name="chevronRight" size={16}/></CxButton></nav>
   {document?<article className="nubi-approval-document"><h2><Icon name="clipboardCheck" size={20}/>{document.subject}</h2><MailBody text={document.mail.text} presentation={document.mail.presentation}/></article>:<p className="nubi-muted nubi-approval-selection">목록에서 결재를 선택하세요.</p>}

@@ -22,7 +22,7 @@ export function MailLocalControls({api,source,onChange}){
   {editing&&<DetailPanel variant="modal" className="deck-dialog nubi-panel nubi-mail-tags-dialog" title={<span className="nubi-panel-title"><span className="nubi-panel-title-icon"><Icon name="tag" size={18}/></span>메일 태그</span>} busy={busy} onClose={()=>setEditing(false)}>
    <form className="nubi-mail-tag-input" onSubmit={event=>{event.preventDefault();add();}}><CxInput aria-label="새 태그" placeholder="태그 이름" maxLength={50} value={input} disabled={busy} onChange={event=>setInput(event.target.value)}/><ActionButton action="add" label="태그 추가" type="submit" disabled={busy||!input.trim()}/></form>
    <div className="nubi-mail-filter-chips" aria-label="메일 태그 목록">{draft.map(tag=><span key={tag}>{tag}<ActionButton action="clearSearch" label={`${tag} 태그 제거`} disabled={busy} onClick={()=>setDraft(current=>current.filter(value=>value!==tag))}/></span>)}</div>
-   <p className="nubi-muted">고정과 태그는 누비에서만 관리해요.</p>
+   <p className="nubi-muted nubi-note"><Icon name="infoCircle" size={14}/>고정과 태그는 누비에서만 관리해요.</p>
    <footer className="nubi-mail-dialog-actions"><ActionButton action="save" iconOnly={false} label="저장" busy={busy} disabled={busy||tagsToSave.length>20} onClick={async()=>{if(await update({tags:tagsToSave}))setEditing(false);}}/></footer>
   </DetailPanel>}
  </>;

@@ -10,6 +10,7 @@ import {DEFAULT_MAIL_FILTERS,mailFilterChips} from './MailSearchToolbar.jsx';
 import {cleanMailPreview} from '../runtime/mail-preview.mjs';
 import {SavedMailSearches} from './SavedMailSearches.jsx';
 import {CxSelect} from './WorkspaceSelect.jsx';
+import {PageNumbers} from './PageNumbers.jsx';
 
 const defaults=DEFAULT_MAIL_FILTERS;
 const periods={all:'전체 기간','7':'최근 7일','30':'최근 30일',custom:'기간 지정',unknown:'날짜 미확인'};
@@ -117,6 +118,7 @@ export function MailKnowledgeSearch({api,query,onQuery,lastAppliedAt,revision,se
 
       {!pending&&!failed&&!invalidRange&&packet&&!packet.results.length&&<DeckEmpty title={term||chips.length?'검색 결과가 없어요':mailbox.startsWith('local:')?'가져온 문서가 없어요':mailbox==='sent'?'보낸메일이 없어요':'수신한 메일이 없어요'} description={term||chips.length?'검색어나 조건을 바꿔 보세요.':mailbox.startsWith('local:')?'다른 분류를 선택하거나 파일을 가져와 주세요.':mailbox==='sent'?'':'메일 연결에서 수집 상태를 확인해 주세요.'}/>}
     </div>
+    <PageNumbers page={currentPage} totalPages={totalPages} disabled={blocked} label="메일" onPage={goPage}/>
     {packet&&(packet.unreadAttachments>0||packet.bodyTruncated>0||packet.unavailable?.length>0)&&<details className="nubi-mail-search-coverage"><summary><Icon name="infoCircle" size={13}/>검색 범위 확인</summary>{packet.unreadAttachments>0&&<p>첨부는 파일명으로만 검색해요.</p>}{packet.bodyTruncated>0&&<p>긴 본문 일부가 검색에서 빠진 메일 {packet.bodyTruncated}개가 있어요.</p>}{packet.unavailable?.length>0&&<p>원문을 확인할 수 없는 메일 {packet.unavailable.length}개는 제외했어요.</p>}</details>}
     {savedOpen&&<SavedMailSearches api={api} query={query} filters={wire} sort={sort} onApply={item=>{setFilters({...defaults,...item.filters});setSort(item.sort||'auto');onQuery(item.query||'');resetPage();}} onClose={()=>setSavedOpen(false)}/>}
   </div>;

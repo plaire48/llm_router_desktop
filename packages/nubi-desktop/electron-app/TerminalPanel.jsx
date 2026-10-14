@@ -5,6 +5,7 @@ import {CxButton,Icon} from '@e2e/cx-design-system';
 import {CopyButton} from '../../../extensions/aipro-chat/src/CopyButton.jsx';
 import {TerminalMark} from '../ui/marks.jsx';
 import '@xterm/xterm/css/xterm.css';
+import {notifyWorkspaceToast} from '../ui/WorkspaceToast.jsx';
 const request=async args=>{const result=await window.nubi.terminal(args);if(result?.__nubiError)throw Error(result.__nubiError);return result;};
 function transcript(view){const buffer=view?.buffer.active;if(!buffer)return '';const lines=[];for(let i=0;i<buffer.length;i++)lines.push(buffer.getLine(i)?.translateToString(true)||'');return lines.join('\n').trimEnd();}
 export default function TerminalPanel({sessionId,project,cwd,profileId,onError,visible=true}){
@@ -20,10 +21,14 @@ export default function TerminalPanel({sessionId,project,cwd,profileId,onError,v
   const addon=new FitAddon();view.loadAddon(addon);view.open(node.current);view.textarea?.setAttribute('aria-label',`${profile?.label||'셸'} 터미널 입력`);terminal.current=view;fit.current=addon;
   const send=(action,args={})=>request({...scope,action,...args});
   const write=(data,ack=false)=>view.write(data,()=>{if(alive&&ack)void send('ack',{length:data.length}).catch(()=>{});});
+  // A local server announced in this terminal opens in the app browser once, with a notice for every new origin
+  // (user request 2026-10-14: a dev server must be visible and checkable without hunting for the address).
+  const servers={seen:new Set(),tail:'',opened:false};
+  const announce=chunk=>{const text=(servers.tail+chunk).slice(-4000);servers.tail=text.slice(-200);for(const match of text.matchAll(/https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(?::\d{2,5})?(?:\/[^\s'"`<>)\]]*)?/g)){let url;try{url=new URL(match[0]);}catch{continue;}if(url.hostname==='0.0.0.0')url.hostname='localhost';const origin=url.origin;if(servers.seen.has(origin))continue;servers.seen.add(origin);const first=!servers.opened;servers.opened=true;if(first)void window.nubi.request('openWorkspacePage',{url:url.href}).catch(()=>{});notifyWorkspaceToast(`로컬 서버가 열렸어요: ${origin}`,{action:{label:'앱 브라우저로 열기',onClick:()=>void window.nubi.request('openWorkspacePage',{url:url.href}).catch(()=>{})}});}};
   const receive=event=>{
    if(!alive||event.id!==sessionId)return;
    if(!attached){queued.push(event);return;}
-   if(event.type==='data')write(event.data,true);
+   if(event.type==='data'){write(event.data,true);announce(String(event.data||''));}
    else{ready.current=false;setState(event.type==='exit'?'exited':'disconnected');view.writeln(event.type==='exit'?`\r\n[셸 종료 ${event.exitCode}]`:'\r\n[터미널 연결이 끊겼어요.]');}
   };
   const unsubscribe=window.nubi.onTerminalEvent(receive);

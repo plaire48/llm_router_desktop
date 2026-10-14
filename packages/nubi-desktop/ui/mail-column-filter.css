@@ -25,4 +25,5 @@
 .nubi-mail-column-dates { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 .nubi-mail-column-dates input { width:100%; min-width:0; }
 .nubi-mail-column-popover footer button { min-height:36px; border:0; border-radius:var(--nubi-work-control-radius,12px); padding-inline:16px; }
-.nubi-mail-column-popover footer button:last-child { background:var(--deck-blue); color:var(--nubi-surface-base); font-weight:var(--nubi-weight-emphasis); }
+.nubi-mail-column-popover footer .nubi-filter-apply { background:var(--deck-blue); color:var(--nubi-surface-base); font-weight:var(--nubi-weight-emphasis); }
+.nubi-mail-column-popover footer .cx-action-button { display:inline-flex; align-items:center; gap:var(--cx-space-1); }

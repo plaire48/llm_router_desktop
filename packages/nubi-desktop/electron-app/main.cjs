@@ -10,6 +10,7 @@ const {browseLocalDirectory,readLocalFile}=require('./local-file-view.cjs');
 const {startWebHost}=require('./web-host.cjs');
 const {BrowserHost}=require('./browser-host.cjs');
 const {MailPortal}=require('./mail-portal.cjs');
+const {ClaudeWeb}=require('./claude-web.cjs');
 const {TerminalHost}=require('./terminal-host.cjs');
 const {shellProfiles}=require('../runtime/processes.mjs');
 const {DEFAULT_TITLEBAR,applyCaptionColors}=require('./titlebar-colors.cjs');
@@ -32,7 +33,7 @@ if(!primary)app.quit();
 app.on('second-instance',()=>{if(!window||window.isDestroyed())return;if(window.isMinimized())window.restore();window.show();window.focus();});
 protocol.registerSchemesAsPrivileged([{scheme:'app',privileges:{standard:true,secure:true,supportFetchAPI:true}}]);
 let terminalHost,updater,installingUpdate=false;
-let window,worker,host,webHost,browserHost,mailPortal,currentRoot=null,currentKind='project';const launchId=randomUUID();
+let window,worker,host,webHost,browserHost,mailPortal,claudeWeb,currentRoot=null,currentKind='project';const launchId=randomUUID();
 const storage=process.env.NUBI_STORAGE_ROOT||path.join(app.getPath('userData'),'workspace');
 const {ProjectCatalog}=require('./project-catalog.cjs');
 const projectCatalog=new ProjectCatalog(storage);
@@ -108,6 +109,7 @@ app.whenReady().then(async()=>{
    }catch{worker.send({connectionSecretReply:{id,error:'secret_unavailable'}});}})();return;
   }
   if(message?.workspaceAuthPageClose){const tabId=message.workspaceAuthPageClose.tabId;if(typeof tabId==='string'&&browserHost?.tabs.get(tabId)?.authentication)browserHost.closeTab(tabId,{returnToApp:true});return;}
+  if(message?.workspaceCaptureRequest){const {id}=message.workspaceCaptureRequest;if(typeof id!=='string')return;(async()=>{try{if(!browserHost)throw Error('browser_unavailable');const result=await browserHost.capture();worker.send({workspaceCaptureReply:{id,...result}});}catch(error){worker.send({workspaceCaptureReply:{id,error:/^[a-z_]+$/.test(error.message)?error.message:'browser_capture_unavailable'}});}})();return;}
   if(!message?.workspacePageRequest)return;const {id,url,authentication}=message.workspacePageRequest;if(typeof id!=='string')return;
   try{const result=openWorkspacePage(url,{authentication:authentication===true});worker.send({workspacePageReply:{id,...result}});}
   catch(error){worker.send({workspacePageReply:{id,error:/^[a-z_]+$/.test(error.message)?error.message:'browser_unavailable'}});}
@@ -145,6 +147,7 @@ app.whenReady().then(async()=>{
   catch{}finally{unresponsive=null;}
  });
  window.on('responsive',()=>unresponsive?.abort());
+ claudeWeb=new ClaudeWeb({BrowserWindow,parent:window,openPage:(url,options)=>openWorkspacePage(url,{...options,authentication:true,httpsOnly:true,session:session.fromPartition('persist:nubi-claude-web')}),closePage:tabId=>{if(browserHost?.tabs.has(tabId))browserHost.closeTab(tabId,{returnToApp:true});}});
  mailPortal=new MailPortal({BrowserWindow,invoke,parent:window,openPage:(url,options)=>openWorkspacePage(url,{...options,authentication:true,httpsOnly:true,session:session.fromPartition('persist:nubi-mail-portal')}),getPageContents:tabId=>[...(browserHost?.tabs.values()||[])].filter(row=>row.ownerId===tabId).map(row=>row.view.webContents),closePage:tabId=>{for(const row of [...(browserHost?.tabs.values()||[])].reverse())if(row.ownerId===tabId)browserHost.closeTab(row.id,{returnToApp:true});}});
  browserHost=new BrowserHost(window,{onFault:recordFault,loginCode:()=>{const device=host.account.device;return device&&device.expiresAt>Date.now()?device.code:null;}});
  window.webContents.setWindowOpenHandler(({url})=>{
@@ -212,7 +215,9 @@ app.whenReady().then(async()=>{
    if(args.action==='approvals')return mailPortal.approvals(args);
    if(args.action==='approvalRead')return mailPortal.approvalRead(args);
    if(args.action==='portalLogin'){
-    if(source!=='electron')throw Error('mail_portal_desktop_only');mailPortal.requestId=args.requestId;await mailPortal.connect(args);return portalMailStatus();
+    if(source!=='electron')throw Error('mail_portal_desktop_only');mailPortal.requestId=args.requestId;
+    try{await mailPortal.connect(args);}catch(error){if(error.message!=='mail_cancelled')hostEvent({type:'mail_portal_failed',error:/^mail_[a-z_]+$/.test(error.message)?error.message:'mail_portal_request'});throw error;}
+    hostEvent({type:'mail_portal_connected'});return portalMailStatus();
    }
    if(args.action==='cancelConnect'&&args.requestId===mailPortal.requestId){await mailPortal.disconnect();return portalMailStatus();}
    if(args.action==='disconnect'){await mailPortal.disconnect();return portalMailStatus();}
@@ -229,10 +234,29 @@ app.whenReady().then(async()=>{
   if(method==='importProject'){const file=await choose(['openFile'],'프로젝트 ZIP 업로드',[{name:'ZIP',extensions:['zip']}]);if(!file)return {cancelled:true};const parent=await choose(['openDirectory'],'프로젝트를 저장할 폴더');if(!parent)return {cancelled:true};return await openProject((await importProjectZip(file,parent)).root);}
   if(method==='cloneRepository'){const parent=await choose(['openDirectory'],'프로젝트를 저장할 폴더');if(!parent)return {cancelled:true};return await openProject((await host.clone({...args,parent})).root,'project',{exactRoot:true});}
   if(method==='ghesAccount'){const state=await host.accountAction(args.operation);if(args.operation==='copy'){if(!state.device?.code)throw Error('copy_unavailable');clipboard.writeText(state.device.code);}return state;}
+  if(method==='claudeWeb'){if(source!=='electron')throw Error('claude_web_desktop_only');if(args.action==='connect')return claudeWeb.connect();if(args.action==='refresh')return claudeWeb.refresh();if(args.action==='disconnect')return claudeWeb.disconnect();return claudeWeb.status();}
   if(method==='ghesRepositories')return host.listRepositories();
   if(method==='connectMarketplace')return host.connectMarketplace();
   if(method==='openTeamWorkspace')return host.openTeamWorkspace(args);
   if(method==='workspaceCommunity'){if(source!=='electron')throw Error('wiki_share_desktop_only');return host.community.call(args);}
+  // The vendored AI Workspace screens (apps, Talk) call company GitHub through the SSO session kept here: only the
+  // ai_workspace repository, users and GraphQL routes, bounded bodies, the caller's Authorization dropped (2026-10-14).
+  if(method==='ghesFetch'){
+   if(source!=='electron')throw Error('ghes_desktop_only');
+   const GHES_ORIGIN='https://code.sdsdev.co.kr';let target;try{target=new URL(String(args.url||''));}catch{throw Error('ghes_url_invalid');}
+   if(target.origin!==GHES_ORIGIN||target.username||target.password)throw Error('ghes_url_invalid');
+   const route=target.pathname;const allowed=/^\/api\/v3\/repos\/Manufacturing-IT\/ai_workspace(?:\/|$)/.test(route)||route==='/api/graphql'||route==='/api/v3/user'||/^\/api\/v3\/users\/[^/]+(?:\/|$)/.test(route)||/^\/api\/v3\/search\/users$/.test(route)||/^\/api\/v3\/orgs\/Manufacturing-IT\//.test(route)||/^\/api\/v3\/user\/orgs$/.test(route);
+   if(!allowed)throw Error('ghes_route_denied');
+   const methodName=String(args.method||'GET').toUpperCase();if(!['GET','POST','PUT','PATCH','DELETE'].includes(methodName))throw Error('method_invalid');
+   const credential=(await host.account.status()).connected?await host.account.credential():null;if(!credential?.token)throw Error('ghes_login_required');
+   const headers={};for(const [key,value] of Object.entries(args.headers||{}))if(typeof value==='string'&&!/^(authorization|cookie|host)$/i.test(key))headers[key]=value;
+   headers.Authorization='Bearer '+credential.token;if(!headers.Accept&&!headers.accept)headers.Accept='application/vnd.github+json';
+   let body;if(args.body!=null){const text=String(args.body);if(text.length>24*1024*1024)throw Error('ghes_body_limit');body=args.bodyEncoding==='base64'?Buffer.from(text,'base64'):text;}
+   const response=await fetch(target.href,{method:methodName,headers,body,redirect:args.redirect==='manual'?'manual':'follow',cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(60000)});
+   const chunks=[];let size=0;const reader=response.body?.getReader();if(reader){while(true){const next=await reader.read();if(next.done)break;size+=next.value.length;if(size>32*1024*1024){await reader.cancel();throw Error('ghes_response_limit');}chunks.push(next.value);}}
+   const out={};for(const [key,value] of response.headers.entries())if(!/^set-cookie$/i.test(key))out[key]=value;
+   return {status:response.status,statusText:response.statusText,headers:out,url:response.url,body:Buffer.concat(chunks.map(c=>Buffer.from(c))).toString('base64')};
+  }
   if(method==='openWorkspaceApp'){if(source!=='electron')throw Error('wiki_share_desktop_only');const item=await host.community.call({action:'app',id:args.id});if(item.kind==='link')return openWorkspacePage(item.url);const workspace=await host.openTeamWorkspace();return openWorkspacePage(workspace.url+'#workspace/site='+item.id);}
   if(method==='wikiLibrary'){if(source!=='electron')throw Error('wiki_share_desktop_only');return wikiLibrary.call(args);}
   if(method==='wikiRepository'){
@@ -267,4 +291,4 @@ app.whenReady().then(async()=>{
 app.on('window-all-closed',()=>app.quit());
 // Quitting waits for the worker to exit (bounded by its kill grace): the worker releases the project store lock with its
 // process, so a relaunch right after quit can open the same project instead of failing with project_locked.
-let quitting=false;app.on('before-quit',event=>{if(quitting)return;quitting=true;event.preventDefault();terminalHost?.dispose();browserHost?.dispose();mailPortal?.dispose();void webHost?.close();host?.dispose?.();Promise.resolve(worker?.stop()).catch(()=>{}).then(()=>vault.flush()).then(()=>app.quit());});
+let quitting=false;app.on('before-quit',event=>{if(quitting)return;quitting=true;event.preventDefault();terminalHost?.dispose();browserHost?.dispose();mailPortal?.dispose();claudeWeb?.dispose();void webHost?.close();host?.dispose?.();Promise.resolve(worker?.stop()).catch(()=>{}).then(()=>vault.flush()).then(()=>app.quit());});

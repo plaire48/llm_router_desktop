@@ -8,7 +8,8 @@
  z-index:2;
  min-height:0;
  width:auto;
- background:transparent;
+ /* Opaque, with the home-screen gradient, so the content behind it is covered (user report 2026-10-14). */
+ background:var(--nubi-chat-surround,var(--nubi-workspace-gradient,var(--nubi-surface-base)));
 }
 .nubi-workbench .nubi-main { position:relative; }
 .nubi-preparing-emblem {

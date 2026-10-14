@@ -3,13 +3,14 @@
 // front matter. Relationship strength is computed here, not stored anywhere.
 export function wikiSection(path){const at=String(path||'').indexOf('/');return at<0?'':path.slice(0,at);}
 export const ROOT_SECTION_LABEL='루트';
-export const sectionLabel=id=>id||ROOT_SECTION_LABEL;
+// Mail pages are grouped by the month they were collected ('2026-10' reads as 2026년 10월).
+export const sectionLabel=id=>/^\d{4}-\d{2}$/.test(id||'')?`${id.slice(0,4)}년 ${Number(id.slice(5,7))}월`:(id||ROOT_SECTION_LABEL);
 // One colour per section, in the graph's section order, shared by the map and the table.
 export const WIKI_SECTION_PALETTE=['#3182F6','#F04452','#00A86B','#F59E0B','#8B5CF6','#0EA5E9','#EC4899','#64748B','#14B8A6','#A16207'];
 export const sectionColors=graph=>new Map((graph?.sections||[]).map((entry,i)=>[entry.id,WIKI_SECTION_PALETTE[i%WIKI_SECTION_PALETTE.length]]));
 const round=value=>Math.round(value*100)/100;
 export function buildWikiGraph(items=[],edges=[]){
-  const nodes=new Map(items.map(item=>[item.path,{...item,title:item.title||item.path,type:item.type||'',description:item.description||'',tags:Array.isArray(item.tags)?item.tags:[],section:wikiSection(item.path),links:[],backlinks:[]}]));
+  const nodes=new Map(items.map(item=>[item.path,{...item,title:item.title||item.path,type:item.type||'',description:item.description||'',tags:Array.isArray(item.tags)?item.tags:[],section:typeof item.section==='string'?item.section:wikiSection(item.path),links:[],backlinks:[]}]));
   const pairs=new Map();
   for(const edge of edges){
     const from=nodes.get(edge?.from),to=nodes.get(edge?.to);

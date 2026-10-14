@@ -9,17 +9,22 @@ const clean=value=>String(value||'').replace(/\s+/g,' ').trim().slice(0,FACT_LIM
 export const factIdentity=(subject,predicate)=>(clean(subject)+'|'+clean(predicate)).toLocaleLowerCase().replace(/[^\p{L}\p{N}|]+/gu,'');
 const isoDate=value=>{const at=Date.parse(String(value||''));return Number.isFinite(at)?new Date(at).toISOString():null;};
 
-const EXTRACT_GUIDANCE='Extract facts that can change over time from one email: owners and contacts, dates and deadlines, amounts, quantities, statuses, decisions, versions. Each fact is {"subject":"who or what","predicate":"which attribute","value":"the value","validFrom":"YYYY-MM-DD or null"} in short Korean phrases (subject and predicate under 40 characters, value under 120). Use the mail date when the mail does not say since when the value holds. Skip opinions, greetings and anything that is not a checkable fact. Return only JSON: {"facts":[...]} with at most 8 facts, or {"facts":[]}.';
+const EXTRACT_GUIDANCE='Extract facts that can change over time from one email: owners and contacts, dates and deadlines, amounts, quantities, statuses, decisions, requests, approvals, versions. Each fact is {"subject":"who or what","predicate":"which attribute","value":"the value","validFrom":"YYYY-MM-DD or null","kind":"deadline|approval|request|owner|amount|status|decision|other","quote":"the exact words from the excerpt that state this fact, copied verbatim, under 160 characters"} in short Korean phrases (subject and predicate under 40 characters, value under 120). Use the mail date when the mail does not say since when the value holds. The quote must appear in the excerpt as written; without such words, leave the fact out. Skip opinions, greetings and anything that is not a checkable fact. Return only JSON: {"facts":[...]} with at most 8 facts, or {"facts":[]}.';
+export const FACT_KINDS=new Set(['deadline','approval','request','owner','amount','status','decision','other']);
+export const STRICT_KINDS=new Set(['deadline','approval','request','amount']);
+const flat=value=>String(value||'').replace(/\s+/g,' ').trim().toLocaleLowerCase();
+// A fact is grounded when its quote is found in the mail text (whitespace folded); the quote is kept with the record.
+export function groundFacts(facts,text){const haystack=flat(text);return (facts||[]).filter(fact=>{const quote=flat(fact.quote).slice(0,160);const grounded=quote.length>=4&&haystack.includes(quote);if(!grounded&&STRICT_KINDS.has(fact.kind))return false;if(!grounded)delete fact.quote;return true;});}
 export function parseFactDecision(content){
   let data;try{data=JSON.parse(String(content||'').replace(/^```(?:json)?\s*|\s*```$/g,''));}catch{return null;}
   if(!data||typeof data!=='object'||Array.isArray(data)||!Array.isArray(data.facts))return null;
-  return data.facts.map(item=>({subject:clean(item?.subject).slice(0,40),predicate:clean(item?.predicate).slice(0,40),value:clean(item?.value).slice(0,120),validFrom:isoDate(item?.validFrom)})).filter(item=>item.subject&&item.predicate&&item.value).slice(0,FACT_LIMITS.perMail);
+  return data.facts.map(item=>({subject:clean(item?.subject).slice(0,40),predicate:clean(item?.predicate).slice(0,40),value:clean(item?.value).slice(0,120),validFrom:isoDate(item?.validFrom),...(FACT_KINDS.has(item?.kind)?{kind:item.kind}:{}),...(typeof item?.quote==='string'&&item.quote.trim()?{quote:item.quote.replace(/\s+/g,' ').trim().slice(0,160)}:{})})).filter(item=>item.subject&&item.predicate&&item.value).slice(0,FACT_LIMITS.perMail);
 }
 // One model call per organised mail. `invoke(messages, tools, signal, kind)` is the mail run's transport.
 export async function extractMailFacts({mail,summary,invoke,signal}){
   const wire=[{role:'system',content:EXTRACT_GUIDANCE},{role:'user',content:JSON.stringify({subject:clean(mail.subject),from:clean(mail.from),date:isoDate(mail.date)||isoDate(mail.fetchedAt)||null,summary:clean(summary?.summary).slice(0,1500),listedFacts:(summary?.facts||[]).slice(0,12).map(clean),excerpt:String(mail.text||'').slice(0,FACT_LIMITS.excerpt)})}];
-  const result=await invoke(wire,[],signal,'mail_facts',{toolChoice:'auto',retryInvalidResponse:false,maxTokens:1024,responseFormat:{type:'json_object'}});
-  return parseFactDecision(result?.content)||[];
+  const result=await invoke(wire,[],signal,'mail_facts',{toolChoice:'auto',retryInvalidResponse:false,maxTokens:1280,responseFormat:{type:'json_object'}});
+  return groundFacts(parseFactDecision(result?.content)||[],String(mail.text||''));
 }
 export const listMailFacts=store=>store.list('mailfact:');
 // Records the facts of one mail. A fact that repeats the current value is not stored twice; a changed value closes
@@ -32,7 +37,7 @@ export function recordMailFacts(store,facts,{sourceId,sourceSubject='',sourceDat
     const current=open[0];
     if(current&&clean(current.value)===clean(fact.value)){if(!current.sources?.some(source=>source.id===sourceId)){store.set(factKey(current.id),{...current,sources:[...(current.sources||[]),{id:sourceId,subject:clean(sourceSubject),date:at,wikiFile}].slice(-10)});}continue;}
     if(current&&String(current.validFrom)>validFrom)continue; // an older mail organised later never overrides a newer value
-    const row={id:randomUUID(),identity,subject:clean(fact.subject),predicate:clean(fact.predicate),value:clean(fact.value),validFrom,invalidAt:null,supersedes:current?.id||null,supersededBy:null,sources:[{id:sourceId,subject:clean(sourceSubject),date:at,wikiFile}],createdAt:new Date().toISOString()};
+    const row={id:randomUUID(),identity,subject:clean(fact.subject),predicate:clean(fact.predicate),value:clean(fact.value),...(fact.kind?{kind:fact.kind}:{}),...(fact.quote?{quote:String(fact.quote).slice(0,160)}:{}),validFrom,invalidAt:null,supersedes:current?.id||null,supersededBy:null,sources:[{id:sourceId,subject:clean(sourceSubject),date:at,wikiFile}],createdAt:new Date().toISOString()};
     for(const previous of open){const done={...previous,invalidAt:validFrom,supersededBy:row.id};store.set(factKey(previous.id),done);closed.push(done);existing[existing.indexOf(previous)]=done;}
     store.set(factKey(row.id),row);saved.push(row);existing.push(row);
   }

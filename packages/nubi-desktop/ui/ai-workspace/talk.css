@@ -1,0 +1,202 @@
+.talk-workspace.talk-workspace {overflow:hidden}
+.talk-title-line {display:flex;align-items:baseline;gap:8px;min-width:0}
+.talk-title-line>h2 {min-width:0}
+.discussion-meta {display:inline-flex;align-items:center;flex:0 0 auto;flex-wrap:wrap;gap:4px 8px;max-width:50%;font:400 var(--cx-type-caption)/18px var(--cx-font-family);color:var(--layout-muted)}
+.discussion-category {display:inline-flex;align-items:center;justify-content:center;flex:0 0 22px;width:22px;height:22px;color:var(--brand-action);background:var(--brand-surface);border:1px solid var(--brand-border);border-radius:var(--cx-radius-control);box-sizing:border-box}
+.discussion-answer,.discussion-category-note {display:inline-flex;align-items:center;gap:4px;color:var(--brand-action);font:500 var(--cx-type-caption)/18px var(--cx-font-family)}
+.discussion-awaiting {color:var(--layout-muted)}
+.talk-post-header>.talk-title-line {margin-bottom:16px}
+.talk-post-header>.talk-title-line>h2 {margin:0}
+.talk-compose-category {display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:var(--cx-space-3) var(--cx-space-4);border-bottom:1px solid var(--layout-row-border);font:400 var(--cx-type-body)/20px var(--cx-font-family)}
+.talk-compose-category>label {color:var(--layout-muted);font-size:var(--cx-type-caption)}
+.talk-compose-category .native-select {width:220px;max-width:100%}
+.talk-category-filter.native-select {width:150px}
+.talk-answer-filter.native-select {width:112px}
+.discussion-locked {padding:8px 12px;margin:8px 0;color:var(--layout-muted);background:var(--layout-soft);border-radius:var(--cx-radius-control);font:400 var(--cx-type-body)/20px var(--cx-font-family)}
+.talk-comment-head>.discussion-answer {flex-shrink:0;justify-content:center;width:22px;height:22px;border:1px solid var(--brand-border);border-radius:50%;background:var(--brand-surface)}
+.talk-workspace .comment-entry:has(>.talk-comment-head>.discussion-answer) {padding:8px 12px;border-left:2px solid var(--brand-mid);border-radius:var(--cx-radius-control);background:var(--brand-surface)}
+.talk-workspace .talk-comment-head {flex-wrap:wrap;gap:4px}
+.talk-workspace .talk-comment-head>.talk-author {margin-right:auto;min-width:0}
+.discussion-poll {border:1px solid var(--layout-border);border-radius:var(--cx-radius-card);padding:var(--cx-space-4);margin:var(--cx-space-4) 0;max-width:100%;font:400 var(--cx-type-body)/20px var(--cx-font-family)}
+.discussion-poll h3 {margin:0 0 12px;font-size:var(--cx-type-body);font-weight:600;overflow-wrap:anywhere}
+.discussion-poll fieldset {border:0;padding:0;margin:0;display:grid;gap:8px;min-width:0}
+.discussion-poll label {position:relative;display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--layout-border);border-radius:var(--cx-radius-control);background:linear-gradient(to right,var(--brand-surface) var(--poll-percent),var(--layout-surface) var(--poll-percent));cursor:pointer;min-width:0}
+.discussion-poll label>span {flex:1;overflow-wrap:anywhere;min-width:0}
+.discussion-poll input {accent-color:var(--brand-action);flex-shrink:0;margin:0}
+.discussion-poll .is-selected {border-color:var(--brand-border);color:var(--brand-action)}
+.discussion-poll footer {display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px}
+.discussion-poll small {font:400 var(--cx-type-caption)/18px var(--cx-font-family);color:var(--layout-muted);white-space:nowrap}
+.talk-workspace>.talk-heading {flex-shrink:0}
+.talk-board {display:flex;flex-direction:column;flex:1;min-height:0;gap:var(--cx-space-4);overflow:hidden}
+.talk-board>.talk-toolbar {flex-shrink:0;padding:0 2px}
+.talk-board>.table-pagination {flex-shrink:0;border-top:1px solid var(--layout-row-border)}
+.talk-workspace .talk-filter-tools {flex:1;min-width:0;justify-content:flex-end}
+.talk-workspace .talk-search {margin-right:auto;width:min(360px,50%)}
+.talk-heading,.talk-title,.talk-heading-actions,.talk-toolbar,.talk-filter-tools,.talk-feed-filters,.talk-post-meta,.talk-post-tools {display:flex;align-items:center;gap:8px;min-width:0}
+.talk-title>svg {color:var(--brand-action)}
+.talk-heading-actions .cx-button {gap:6px}
+.talk-toolbar {justify-content:space-between;gap:12px;flex-wrap:wrap}
+.talk-feed-filters {gap:4px}
+.talk-feed-filters button {padding:6px 12px;min-height:var(--cx-control);border:1px solid transparent;background:transparent;border-radius:var(--cx-radius-control);color:var(--layout-muted);font:500 var(--cx-type-body)/20px var(--cx-font-family);cursor:pointer}
+.talk-feed-filters button[aria-pressed='true'] {background:var(--brand-surface);color:var(--brand-action);border-color:var(--brand-border,var(--layout-border))}
+.talk-filter-tools {flex-wrap:wrap;justify-content:flex-end}
+.talk-workspace .talk-search input::-webkit-search-cancel-button {display:none}
+.talk-sort.native-select {width:auto;min-width:100px}
+.talk-feed {flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+.talk-feed>ol,.talk-comment-list {list-style:none;padding:0;margin:0}
+.talk-feed>ol {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:4px;grid-auto-flow:row;align-items:start;gap:var(--cx-space-4);padding:2px 2px var(--cx-space-3)}
+.talk-feed>ol>li {grid-row-end:span var(--talk-span,20);min-width:0;background:var(--layout-surface);border:1px solid var(--layout-border);border-radius:var(--cx-radius-card);overflow:hidden}
+.talk-feed>ol>li:focus-within {border-color:var(--brand-border)}
+.talk-view-toggle {display:flex;align-self:flex-start;flex-shrink:0;gap:2px;border:1px solid var(--layout-border);padding:2px;border-radius:var(--cx-radius-control);margin-left:auto}
+.talk-view-toggle [aria-pressed=true] {background:var(--brand-surface);color:var(--brand-action)}
+.talk-preview {min-width:0}
+.talk-feed.is-posts>ol {display:flex;flex-direction:column;gap:0}
+.talk-feed.is-posts>ol>li {width:100%;border:0;border-bottom:1px solid var(--layout-border);border-radius:0}
+.talk-feed.is-posts>ol>li:first-child {border-top:1px solid var(--layout-border)}
+.talk-feed.is-posts .talk-preview {display:flex;flex-direction:row-reverse;align-items:flex-start;padding:0 var(--cx-space-4);gap:var(--cx-space-4)}
+.talk-feed.is-posts .talk-post-link {flex:1;min-width:0;padding:0 0 var(--cx-space-4)}
+.talk-feed.is-posts .talk-post-link h2 {font-size:18px;line-height:28px}
+.talk-feed.is-posts .talk-feed-media {width:160px;flex:none;overflow:hidden;border:1px solid var(--layout-row-border);border-radius:var(--cx-radius-control);margin-bottom:var(--cx-space-4)}
+.talk-feed.is-posts .talk-feed-counts {border-top:0;padding-top:0}
+.talk-feed.is-posts .talk-feed-card-header {padding-block:var(--cx-space-4) var(--cx-space-3)}
+.talk-feed.is-posts .talk-feed-card-header .talk-author time {margin-left:0}
+@media(max-width:600px) {
+ .talk-feed.is-posts .talk-preview {padding-inline:var(--cx-space-3);gap:var(--cx-space-3)}
+ .talk-feed.is-posts .talk-feed-media {width:88px}
+ .talk-feed.is-posts .talk-post-link h2 {font-size:16px;line-height:24px}
+ .talk-feed.is-posts .talk-excerpt {-webkit-line-clamp:2}
+}
+.talk-feed>ol>li.is-pinned {background:var(--brand-surface);border-radius:var(--cx-radius-card);border-bottom-color:var(--brand-border)}
+.talk-feed-item {display:flex;flex-direction:column;min-width:0}
+.talk-feed-card-header {display:flex;align-items:center;justify-content:space-between;gap:12px;padding:var(--cx-space-4)}
+.talk-feed-card-header .talk-author {min-width:0;gap:6px 8px}
+.talk-feed-card-header .talk-author time {margin-left:auto}
+.talk-feed-card-header .talk-author {flex:1}
+.talk-feed-card-header .profile-identity-button {min-width:0}
+.talk-feed-card-header .profile-identity-button strong {font-size:var(--cx-type-body)}
+.talk-feed-card-header .talk-pin-label {align-self:flex-start;margin-top:5px}
+.talk-author {min-width:0}
+.talk-author {display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:var(--cx-type-caption);color:var(--layout-muted)}
+.talk-author strong {font:500 var(--cx-type-body)/20px var(--cx-font-family);color:var(--brand-action);overflow-wrap:anywhere}
+.talk-author time {font:400 12px/18px var(--cx-font-family);color:var(--layout-muted)}
+.talk-post-link {display:grid;gap:8px;padding:var(--cx-space-4);color:var(--layout-text);text-decoration:none;max-width:100%;border-radius:var(--cx-radius-control)}
+.talk-post-link:focus-visible {outline:2px solid var(--brand-action);outline-offset:4px}
+.talk-post-link:hover {color:var(--brand-action)}
+.talk-post-link h2 {font:var(--cx-weight-medium) var(--cx-type-section)/24px var(--cx-font-family);margin:0;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.talk-pin-label {display:inline-flex;gap:4px;align-items:center;flex-shrink:0;color:var(--brand-action);font:500 12px/20px var(--cx-font-family)}
+.talk-excerpt {margin:0;color:var(--layout-muted);font:400 var(--cx-type-body)/23px var(--cx-font-family);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.talk-feed-counts {display:flex;gap:16px;align-items:center;color:var(--layout-muted);font-size:var(--cx-type-caption);font-variant-numeric:tabular-nums;margin:0 var(--cx-space-4);padding:var(--cx-space-2) 0 var(--cx-space-3);border-top:1px solid var(--layout-row-border)}
+.talk-feed-counts>[data-action=copy] {margin-left:auto}
+.talk-feed-counts [data-action=like][aria-pressed=true] {color:var(--brand-action);background:var(--brand-surface)}
+.talk-feed-counts [data-action=like][aria-pressed=true] svg {fill:currentColor}
+.talk-feed-media {margin:0;border-block:1px solid var(--layout-row-border);background:var(--layout-soft)}
+.talk-feed-media-stage {aspect-ratio:16/9;min-width:0;touch-action:pan-y}
+.talk-feed-media-stage>a,.talk-feed-media-stage .talk-rich-content {display:block;width:100%;height:100%;margin:0}
+.talk-feed-media-stage .talk-rich-content :is(img,video) {display:block;width:100%;height:100%;max-height:none;object-fit:contain;margin:0;border:0;border-radius:0}
+.talk-feed-media-controls {display:flex;align-items:center;justify-content:center;gap:12px;padding:4px;border-top:1px solid var(--layout-row-border);background:var(--layout-surface)}
+.talk-feed-media-controls>span {min-width:40px;text-align:center;font:400 var(--cx-type-caption)/20px var(--cx-font-family);font-variant-numeric:tabular-nums;color:var(--layout-muted)}
+@media(min-width:1700px) {.talk-feed>ol {grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:900px) {.talk-feed>ol {grid-template-columns:minmax(0,1fr);grid-auto-rows:auto;grid-auto-flow:row}.talk-feed>ol>li {grid-row:auto}}
+.talk-empty {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:48px 20px;min-height:220px;color:var(--layout-muted);text-align:center}
+.talk-empty>svg {color:var(--brand-action)}
+.talk-empty p {max-width:560px;margin:0;line-height:1.7}
+.talk-feed>.talk-load-status {margin:0 2px var(--cx-space-4)}
+.talk-post {flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;background:var(--layout-surface);border:1px solid var(--layout-border);border-radius:var(--cx-radius-card);padding:clamp(20px,3vw,40px) clamp(20px,6vw,96px);width:100%;box-sizing:border-box}
+.talk-post.is-pinned {border-top:3px solid var(--brand-mid)}
+.talk-post>.talk-rich-content,.talk-post-header,.talk-reactions,.talk-comments {width:100%;max-width:none;margin-left:auto;margin-right:auto}
+.talk-post-header {border-bottom:1px solid var(--layout-row-border);padding-bottom:var(--cx-space-4);margin-bottom:var(--cx-space-6)}
+.talk-post-header h2 {outline:none;font:700 var(--cx-type-title)/var(--line-height-h3) var(--cx-font-family);margin:0 0 16px;overflow-wrap:anywhere}
+.talk-post-meta {justify-content:space-between;flex-wrap:wrap;gap:12px}
+.talk-post-header>.talk-pin-label {margin-bottom:8px}
+.talk-post>.talk-rich-content {line-height:1.85}
+.talk-post-tools {flex-wrap:wrap}
+.talk-reactions {display:flex;align-items:center;gap:20px;margin-top:var(--cx-space-6);padding:var(--cx-space-4) 0;border-top:1px solid var(--layout-row-border);border-bottom:1px solid var(--layout-row-border)}
+.talk-like {display:inline-flex;align-items:center;gap:8px;min-height:var(--cx-control);padding:6px 10px;border:1px solid var(--layout-border);border-radius:var(--cx-radius-control);background:var(--layout-surface);color:var(--layout-muted);font:500 var(--cx-type-body)/20px var(--cx-font-family);cursor:pointer}
+.talk-like.is-liked {color:var(--brand-action);background:var(--brand-surface);border-color:var(--brand-border)}
+.talk-like.is-liked svg {fill:currentColor}
+.talk-comment-count {display:inline-flex;gap:6px;align-items:center;font-size:var(--cx-type-caption);color:var(--layout-muted)}
+.talk-comments {padding-top:16px}
+.talk-comments h3 {outline:none;margin:0 0 12px;font:500 var(--cx-type-section)/24px var(--cx-font-family)}
+.talk-comments h3 span {font-weight:400;color:var(--layout-muted);margin-left:4px}
+.talk-comment-login {background:var(--layout-soft);color:var(--layout-muted)}
+.talk-comment-form {background:var(--layout-surface);border:1px solid var(--cx-input-border);border-radius:var(--cx-radius-control);padding:8px 10px}
+.talk-comment-submit {display:flex;justify-content:flex-end;gap:12px;align-items:center;margin-top:4px}
+.talk-comment-add {margin-right:auto}
+.talk-comment-submit small,.talk-compose-count {font:400 12px/20px var(--cx-font-family);color:var(--layout-muted)}
+.talk-comment-list>li {padding:var(--cx-space-3) 0;border-bottom:1px solid var(--layout-row-border)}
+.talk-comment-head {display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.talk-comment-list .talk-rich-content {font-size:var(--cx-type-body);white-space:normal}
+.talk-form-error {color:var(--cx-danger);font:400 var(--cx-type-body)/22px var(--cx-font-family);margin:8px 0 0}
+.cx-panel-backdrop.is-modal>.cx-detail-panel.talk-login-panel {width:min(420px,100%)}
+.talk-login-copy {display:flex;align-items:center;gap:16px;padding:8px 0}
+.talk-login-copy p {margin:0;font:400 var(--cx-type-body)/24px var(--cx-font-family)}
+@media(max-width:700px) {
+ .talk-title {gap:var(--cx-space-2)}
+ .talk-heading-actions {margin-left:auto}
+ .talk-toolbar {align-items:stretch}
+ .talk-filter-tools {width:100%;justify-content:flex-start}
+ .talk-search {flex:1;min-width:0}
+ .talk-search input {width:100%}
+ .talk-filter-tools {display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px}
+ .talk-workspace .talk-search {grid-column:1/-1;width:auto;margin:0}
+ .talk-workspace .talk-filter-tools:not(:has([data-action=myPosts])) {grid-template-columns:minmax(0,1fr) auto}
+ .talk-feed-card-header,.talk-post-link {padding:var(--cx-space-3)}
+ .talk-feed-counts {margin-inline:var(--cx-space-3)}
+ .talk-filter-tools .table-page-size {margin-left:auto}
+ .talk-sort.native-select {min-width:0;width:100%}
+ .talk-toolbar:has(.talk-category-filter) {display:grid;grid-template-columns:var(--cx-control) minmax(0,1fr) minmax(128px,1.2fr);gap:8px}
+ .talk-workspace .talk-filter-tools:has(.talk-category-filter) {display:contents}
+ .talk-toolbar:has(.talk-category-filter) .talk-search {grid-column:1/-1;grid-row:1;width:calc(100% - 80px);margin:0}
+ .talk-toolbar:has(.talk-category-filter) .talk-view-toggle {grid-column:3;grid-row:1;justify-self:end;margin:0}
+ .talk-toolbar:has(.talk-category-filter):not(:has([data-action=myPosts])) .talk-sort {grid-column:1/3}
+ .talk-toolbar .talk-category-filter {grid-column:3;width:100%;min-width:0}
+ .talk-toolbar .talk-answer-filter {grid-column:1/3;width:100%;min-width:0}
+ .talk-toolbar:has(.talk-category-filter) .table-page-size {grid-column:3;justify-self:end;margin:0}
+ .talk-author {gap:var(--cx-space-2)}
+ .talk-author time {padding-left:0}
+ .talk-post-meta {align-items:flex-start}
+ .talk-post-tools {margin-left:auto}
+ .talk-post {padding:var(--cx-space-4)}
+ .talk-post-header h2 {outline:none;font-size:var(--cx-type-panel-title);line-height:var(--cx-line-panel-title)}
+ .talk-reactions {gap:var(--cx-space-3)}
+}
+
+.talk-like-group {display:inline-flex;align-items:center;gap:6px;}
+.talk-like-group>strong {font:500 var(--cx-type-body)/20px var(--cx-font-family);color:var(--layout-muted);font-variant-numeric:tabular-nums;}
+
+@media(max-width:700px) {
+ .talk-board>.table-pagination {position:relative;display:flex;justify-content:center;min-height:44px;padding:4px 0}
+ .talk-board>.table-pagination :is(.table-page-range,.table-page-selection) {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+}
+
+.talk-workspace .talk-search {height:var(--cx-control);box-sizing:border-box}
+@media(max-width:700px) {.talk-workspace .talk-search {height:var(--cx-control)}}
+
+/* Replies keep a single, compact level at every viewport width. */
+
+.comment-reply-target {display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 8px;background:var(--brand-surface);border-radius:4px;font-size:var(--cx-type-caption)}
+.comment-reply-target strong {color:var(--brand-action);font-weight:var(--cx-weight-medium)}
+.comment-reply-caption {margin:4px 0 8px;color:var(--layout-muted);font-size:var(--cx-type-caption)}
+.talk-comment-head>.talk-author {margin-right:auto}
+
+
+.comment-thread-toggle {display:flex;align-items:center;gap:6px;min-height:var(--cx-control);padding:4px 0;margin-top:8px;border:0;background:transparent;color:var(--brand-action);font:500 var(--cx-type-caption)/20px var(--cx-font-family);cursor:pointer;}
+.comment-thread-toggle:focus-visible,.comment-entry:focus-visible {outline:2px solid var(--brand-action);outline-offset:3px;border-radius:4px;}
+.comment-thread-region {margin:4px 0 0 20px;padding-left:12px;border-left:2px solid var(--brand-border);}
+.comment-replies {list-style:none;margin:0;padding:0;}
+.comment-replies>li {padding:12px 0;}
+.comment-replies>li+li {border-top:1px solid var(--layout-row-border);}
+.comment-older-replies {margin:4px 0;font-size:var(--cx-type-caption);}
+@media(max-width:600px){.comment-thread-region{margin-left:10px;padding-left:10px}.comment-thread-toggle{min-height:var(--cx-control)}}
+
+.talk-comment-attachments { display:grid; gap:var(--cx-gap-xs); margin:0; padding:0; list-style:none; }
+.talk-comment-attachments li { display:flex; align-items:center; gap:var(--cx-gap-sm); font-size:var(--cx-type-body); }
+.talk-comment-attachments li > span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+.talk-comment-attachments li > button { flex-shrink:0; }
+
+.talk-comment-reactions { display:flex; align-items:center; gap:4px; margin-top:8px; color:var(--layout-muted); font-size:var(--cx-type-caption); }
+.talk-comment-reactions .is-liked { color:var(--brand-action); background:var(--brand-surface); }
+.talk-comment-reactions .is-liked svg { fill:currentColor; }
+.comment-entry.is-popular { border-left:3px solid var(--brand-action); padding-left:12px; background:var(--brand-surface); border-radius:var(--cx-radius-control); }
+.comment-popular-label { display:inline-flex; align-items:center; gap:4px; margin-bottom:8px; color:var(--brand-ink); font-size:var(--cx-type-caption); font-weight:500; }
+.talk-context-label { color:var(--layout-muted); font-size:var(--cx-type-body); overflow-wrap:anywhere; }

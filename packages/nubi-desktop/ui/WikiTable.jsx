@@ -39,7 +39,7 @@ function ColumnFilter({field,label,filters,facets,disabled,onChange}){
   {field==='type'&&<div className="nubi-mail-column-values">{facets?.types?.length>0&&<SelectAll options={facets.types.map(item=>item.id)} draft={draft.types} onChange={types=>setDraft(current=>({...current,types}))}/>}{(facets?.types||[]).map(item=><label key={item.id}><input type="checkbox" checked={draft.types.includes(item.id)} onChange={()=>toggle('types',item.id)}/><span>{item.id} ({item.count})</span></label>)}{!facets?.types?.length&&<p className="nubi-muted">종류가 적힌 문서가 없어요.</p>}</div>}
   {field==='links'&&<div className="nubi-mail-column-values">{LINK_CHOICES.map(([value,text,icon])=><label key={value}><input type="radio" name="wiki-link-filter" checked={draft.link===value} onChange={()=>setDraft(current=>({...current,link:value}))}/><span className="nubi-mail-column-choice" data-choice={value}><Icon name={icon} size={14}/>{text}</span></label>)}</div>}
   {field==='updated'&&<div className="nubi-mail-column-values">{PERIOD_CHOICES.map(([value,text])=><label key={value}><input type="radio" name="wiki-period-filter" checked={draft.period===value} onChange={()=>setDraft(current=>({...current,period:value}))}/><span>{text}</span></label>)}</div>}
-  <footer><CxButton onClick={reset}>초기화</CxButton><CxButton variant="primary" onClick={()=>{onChange(patch());close();}}>적용</CxButton></footer>
+  <footer><WorkspaceAction action="clearFilters" iconOnly={false} label="필터 초기화" visibleLabel="초기화" onClick={reset}/><WorkspaceAction action="apply" iconOnly={false} label="필터 적용" visibleLabel="적용" className="nubi-filter-apply" onClick={()=>{onChange(patch());close();}}/></footer>
  </div>,document.body)}</>;
 }
 

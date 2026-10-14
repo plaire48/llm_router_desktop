@@ -1,0 +1,110 @@
+/* Talk and inquiries share CX page, form and reading geometry. */
+:is(.talk-workspace, .talk-compose-page, .service-desk-page) {
+  --community-inset: var(--cx-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--cx-space-4);
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  color: var(--layout-text);
+  font: var(--cx-weight-regular) var(--cx-type-body)/var(--cx-line-body) var(--cx-font-family);
+}
+:is(.talk-heading, .talk-compose-heading, .service-desk-page-header) {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  gap: var(--cx-space-3);
+  min-height: var(--cx-control);
+}
+:is(.talk-title, .talk-compose-heading-title, .service-desk-page-title, .service-desk-page-actions) {
+  display: flex;
+  align-items: center;
+  gap: var(--cx-space-2);
+  min-width: 0;
+}
+:is(.talk-title, .talk-compose-heading-title, .service-desk-page-title) h1 {
+  margin: 0;
+  outline: none;
+  font: var(--cx-weight-bold) var(--cx-type-title)/var(--line-height-h3) var(--cx-font-family);
+  word-break: keep-all;
+}
+.service-desk-page-actions { margin-left: auto; }
+:is(.talk-compose-surface, .service-desk-page-body) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--layout-border);
+  border-radius: var(--cx-radius-card);
+  background: var(--layout-surface);
+}
+.service-desk-page-body { padding: var(--community-inset); }
+:is(.talk-compose-page, .service-desk-page) { overflow: hidden; }
+.service-desk-page.is-composing .service-desk-page-body { padding: 0; }
+.service-desk-form { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.service-desk-fields { padding: var(--community-inset); }
+.talk-title-field { display: grid; gap: var(--cx-space-2); padding: var(--community-inset); flex-shrink: 0; }
+.talk-title-field .text-input { width: 100%; min-width: 0; }
+:is(.talk-compose-surface, .service-desk-form) > .talk-editor {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  border: 0;
+  border-top: 1px solid var(--layout-border);
+  border-radius: 0 0 var(--cx-radius-card) var(--cx-radius-card);
+  box-shadow: none;
+}
+.talk-editor-body { display: flex; flex-direction: column; flex: 1; min-width: 0; min-height: 240px; }
+.talk-editor-document:not([hidden]) { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.talk-editor-document > div { display: flex; flex-direction: column; flex: 1; }
+.talk-editor-document .talk-rich-content { flex: 1; min-height: 240px; max-height: none; overflow: visible; }
+.talk-editor-body > :is(.talk-source, .talk-editor-preview) { flex: 1; min-height: 240px; max-height: none; resize: none; }
+.community-editor-status { display: flex; justify-content: flex-end; padding: var(--cx-space-2) var(--community-inset); border-top: 1px solid var(--layout-row-border); color: var(--layout-muted); font-size: var(--cx-type-caption); font-variant-numeric: tabular-nums; }
+.talk-form-error, .service-desk-form > .service-desk-field-error { margin: 0; padding: var(--cx-space-2) var(--community-inset); }
+@media (max-width: 700px) {
+  :is(.talk-workspace, .talk-compose-page, .service-desk-page) { --community-inset: var(--cx-space-3); gap: var(--cx-space-3); }
+  :is(.talk-title, .talk-compose-heading-title, .service-desk-page-title) h1 { font-size: 20px; line-height: 28px; }
+}
+
+.community-compose-title { font-weight:var(--cx-weight-medium); }
+.community-load-status {display:flex;flex:0 0 auto;align-items:center;gap:var(--cx-space-2);min-width:0;color:var(--layout-muted);font:var(--cx-weight-regular) var(--cx-type-body)/var(--cx-line-body) var(--cx-font-family)}
+.community-load-status p {flex:1;min-width:0;margin:0;overflow-wrap:anywhere}
+.community-load-status>.ui-icon,.community-load-status>.status-spinner {flex-shrink:0}
+.community-load-status.is-error>.ui-icon {color:var(--cx-danger)}
+.service-desk-editor-loading {padding:var(--community-inset)}
+
+/* Writing keeps a clear title, tools, and a separate scrolling document. */
+.talk-compose-page .talk-compose-surface {overflow:hidden}
+.talk-compose-page .talk-title-field {padding:var(--cx-space-3) var(--cx-space-4)}
+.talk-compose-page .talk-editor-body {min-height:0;overflow:auto;overscroll-behavior:contain}
+.talk-compose-page .talk-editor-document .talk-rich-content {padding:var(--cx-space-4)}
+@media(max-width:700px) {
+ .talk-compose-page .talk-title-field {padding:var(--cx-space-3) var(--cx-space-4)}
+ .talk-compose-page .talk-editor-document .talk-rich-content {padding:var(--cx-space-4)}
+}
+
+/* The writing surface and comment box use the same CX states as text fields. */
+.cx-editor-field {border:1px solid var(--cx-input-border);border-radius:var(--cx-radius-control);background:var(--layout-surface);color:var(--layout-text);box-shadow:var(--cx-shadow-card)}
+.talk-editor-body.cx-editor-field {margin:var(--cx-space-3) var(--community-inset,var(--cx-space-4))}
+.cx-editor-field:hover:where(:not(:focus-within,[aria-disabled=true],[aria-invalid=true])) {border-color:var(--layout-muted)}
+.cx-editor-field:focus-within {border-color:var(--brand-mid);outline:2px solid var(--brand-soft);outline-offset:0;box-shadow:none}
+.cx-editor-field[aria-invalid=true] {border-color:var(--cx-danger);background:var(--cx-error-surface)}
+.cx-editor-field[aria-disabled=true] {border-color:var(--layout-border);background:var(--layout-soft);color:var(--cx-disabled);box-shadow:none}
+.cx-editor-field[aria-disabled=true] :is([role=textbox],.talk-source) {color:var(--cx-disabled)}
+.cx-editor-field :is(.talk-rich-content[contenteditable],.talk-source):focus-visible {outline:none;box-shadow:none}
+@media(max-height:560px) {
+ .talk-compose-page .talk-compose-surface {overflow:auto}
+ .talk-compose-page .talk-editor-body {min-height:180px;overflow:visible}
+ .talk-board {overflow:auto}
+ .talk-board>.talk-feed {min-height:180px;overflow:visible}
+}

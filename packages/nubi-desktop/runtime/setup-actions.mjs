@@ -20,7 +20,28 @@ export const SETUP_ACTION_SCHEMA = {
 const validate=new Ajv().compile(SETUP_ACTION_SCHEMA);
 
 // Approval is not a shell sandbox. Keep model-described effects and the exact command visible.
+// Models often send a list where one string is asked, null for an omitted field, or an extra field. Those shapes carry
+// the same meaning, so they are normalised before validation instead of stopping the run (user report 2026-10-14).
+export function normalizeSetupArgs(args){
+  if(!args||typeof args!=='object'||Array.isArray(args))return args;
+  // Unknown fields pass through untouched so the schema still rejects them (that rule is tested).
+  const out={};for(const key of Object.keys(args))if(!(key in SETUP_ACTION_SCHEMA.properties))out[key]=args[key];
+  const text=value=>typeof value==='string'?value:Array.isArray(value)&&value.every(item=>typeof item==='string'||typeof item==='number')?value.map(String).join('; '):value&&typeof value==='object'?JSON.stringify(value):typeof value==='number'?String(value):value;
+  for(const key of Object.keys(SETUP_ACTION_SCHEMA.properties)){
+    let value=args[key];if(value===null||value===undefined)continue;
+    if(key==='script'){if(Array.isArray(value)&&value.every(item=>typeof item==='string')&&value.length===1)value=value[0];}
+    else if(['title','reason','effects','verification','privilegeReason','profile'].includes(key))value=text(value);
+    else if(key==='references'){if(!Array.isArray(value))value=[];value=value.filter(item=>item&&typeof item==='object'&&typeof item.path==='string'&&typeof item.hash==='string').map(item=>({path:item.path,hash:item.hash}));}
+    else if(key==='kind'&&typeof value==='string')value=value.trim().toLowerCase();
+    else if(key==='privilege'&&typeof value==='string')value=value.trim().toLowerCase();
+    if(typeof value==='string')value=value.trim();
+    if(value===''||value===undefined)continue;
+    out[key]=value;
+  }
+  return out;
+}
 export async function prepareSetupAction(service,taskId,args,observations) {
+  args=normalizeSetupArgs(args);
   if(!validate(args))throw Object.assign(Error('setup_invalid'),{details:{issues:toolArgumentIssues(SETUP_ACTION_SCHEMA,args)},actionIssued:false});
   if(service.task(taskId).question)fail('question_pending');
   const profiles=await shellProfiles();args={...args,profile:args.profile||preferredShell(profiles,process.platform,service.shellPreference())};

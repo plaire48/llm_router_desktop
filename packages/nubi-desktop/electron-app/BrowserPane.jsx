@@ -32,8 +32,9 @@ export function BrowserPane({api,visible,obscured=false,onError,onState,controll
   const node=viewport.current;let last='',frame=0;
   const updateBounds=()=>{
    frame=0;
-   if(document.hidden||hasOpenDialog()){if(last!=='hidden'){last='hidden';hide();}return;}
-   const rect=node.getBoundingClientRect(),bounds={x:rect.left,y:rect.top,width:rect.width,height:rect.height};
+   if(document.hidden||hasOpenDialog()||document.querySelector('.desktop-shell[data-pane-resizing="true"]')){if(last!=='hidden'){last='hidden';hide();}return;}
+   const rect=node.getBoundingClientRect(),handle=document.querySelector('.desktop-pane-resize')?.getBoundingClientRect(),inset=handle&&handle.width>0&&handle.right>rect.left&&handle.left<rect.left+handle.width?Math.max(0,handle.right-rect.left):0;
+   const bounds={x:rect.left+inset,y:rect.top,width:Math.max(0,rect.width-inset),height:rect.height};
    const show=!!node.getClientRects().length,key=JSON.stringify({bounds,show});
    if(key===last)return;last=key;void api('browser',{action:'layout',bounds,visible:show}).catch(()=>{});
   };
@@ -44,7 +45,7 @@ export function BrowserPane({api,visible,obscured=false,onError,onState,controll
    else schedule();
   };
   updateBounds();const size=new ResizeObserver(schedule);size.observe(node);
-  const changes=new MutationObserver(guard);changes.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-modal','role','hidden','aria-hidden','inert']});
+  const changes=new MutationObserver(guard);changes.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-modal','role','hidden','aria-hidden','inert','data-pane-resizing']});
   document.addEventListener('visibilitychange',guard);window.addEventListener('resize',schedule);
   return()=>{cancelAnimationFrame(frame);size.disconnect();changes.disconnect();document.removeEventListener('visibilitychange',guard);window.removeEventListener('resize',schedule);hide();};
  },[api,native,visible,obscured,current?.id,current?.url,current?.popup,find]);

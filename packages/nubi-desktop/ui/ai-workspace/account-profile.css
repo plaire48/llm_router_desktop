@@ -1,0 +1,44 @@
+.cx-detail-panel.account-profile-panel { width:min(480px,100vw); }
+.account-profile-panel .cx-panel-body { padding:var(--cx-panel-inset); }
+.account-profile-panel .cx-panel-body .profile-hero { display:flex; align-items:center; gap:16px; margin:0; }
+.account-profile-panel .profile-hero > .github-avatar { width:72px; height:72px; flex:0 0 72px; border:1px solid var(--layout-border); }
+.account-profile-panel .profile-hero > .profile-heading { display:grid; gap:4px; min-width:0; }
+.profile-heading h3 { margin:0; color:var(--layout-text); font-size:22px; line-height:1.4; font-weight:600; overflow-wrap:anywhere; }
+.profile-heading .profile-login { font-size:14px; color:var(--layout-muted); }
+.account-profile-panel .profile-heading .profile-role { display:inline-flex; width:fit-content; align-items:center; margin-top:4px; border-radius:var(--cx-radius-control); padding:3px 8px; background:var(--brand-surface); color:var(--layout-accent); font-size:12px; line-height:18px; font-weight:500; }
+.account-profile-panel .cx-panel-body .account-bio { margin:12px 0 0; color:var(--layout-text); font-size:14px; line-height:1.75; white-space:pre-wrap; overflow-wrap:anywhere; }
+.profile-section { margin-top:16px; padding-top:12px; border-top:1px solid var(--layout-border); }
+.profile-section-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px; }
+.profile-section h3 { margin:0; font-size:var(--cx-type-body); line-height:22px; font-weight:var(--cx-weight-medium); }
+.profile-facts { display:grid; gap:8px; margin:0; }
+.profile-facts > div { display:grid; grid-template-columns:76px minmax(0,1fr); gap:12px; align-items:baseline; }
+.profile-facts dt { color:var(--layout-muted); font-size:12px; line-height:22px; }
+.profile-facts dd { margin:0; font-size:14px; line-height:22px; white-space:pre-wrap; overflow-wrap:anywhere; }
+.profile-facts a,.profile-social-list a { color:var(--layout-accent); text-decoration:none; }
+.profile-facts a:hover,.profile-social-list a:hover { text-decoration:underline; }
+.profile-social-list { list-style:none; padding:0; margin:0; display:grid; gap:8px; }
+.profile-social-list a { display:flex; align-items:center; gap:var(--cx-space-2); min-height:var(--cx-control); border:1px solid var(--layout-border); border-radius:var(--cx-radius-control); padding:var(--cx-option-block) var(--cx-space-2); font-size:14px; line-height:22px; }
+.profile-social-list a > span { min-width:0; flex:1; overflow-wrap:anywhere; }
+.profile-social-list a small { display:block; font-size:12px; color:var(--layout-muted); }
+.profile-note { margin:12px 0 0; color:var(--layout-muted); font-size:12px; line-height:1.6; }
+.profile-feedback { display:flex; align-items:center; gap:10px; margin-top:12px; font-size:14px; line-height:1.6; }
+.profile-feedback.is-error { color:var(--cx-danger); }
+.profile-feedback p { margin:0; flex:1; }
+.profile-github-link { display:inline-flex; align-items:center; gap:6px; margin-top:24px; color:var(--layout-accent); font-size:12px; line-height:20px; text-decoration:none; }
+.profile-github-link:hover { text-decoration:underline; }
+.profile-identity-button { display:inline-flex; align-items:center; gap:8px; padding:0; border:0; background:transparent; color:var(--layout-text); font:inherit; text-align:left; cursor:pointer; min-width:0; }
+.profile-identity-button { max-width:100%; }
+.profile-identity-button:hover .cx-person-name { color:var(--brand-ink); text-decoration:underline; text-underline-offset:3px; }
+.profile-identity-button:focus-visible { outline:2px solid var(--layout-accent); outline-offset:4px; border-radius:var(--cx-radius-control); }
+@media(max-width:600px) {
+  .account-profile-panel .cx-panel-body { padding:var(--cx-panel-inset); }
+  .account-profile-panel .profile-hero > .github-avatar { width:64px; height:64px; flex-basis:64px; }
+  .profile-heading h3 { font-size:20px; }
+  .profile-identity-button { min-height:var(--cx-control); }
+  .profile-social-list a { min-height:var(--cx-control); }
+}
+
+.profile-section-actions {display:flex;align-items:center;gap:4px;}
+.profile-empty-actions {display:flex;justify-content:flex-end;margin-top:12px;}
+.profile-section-actions .profile-github-link {margin:0;}
+@media(min-width:1281px) {.app-shell .agent-topbar .profile-name {max-width:240px;}}

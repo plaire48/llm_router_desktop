@@ -1,0 +1,5 @@
+.cx-upload-menu { position:fixed; z-index:1200; box-sizing:border-box; padding:var(--cx-option-block); border:1px solid var(--cx-popup-border); border-radius:var(--cx-popup-radius); background:var(--cx-popup-background); box-shadow:var(--cx-shadow-overlay); color:var(--layout-text); }
+.cx-upload-menu > button { display:flex; align-items:center; gap:var(--cx-gap-sm); width:100%; min-height:var(--cx-touch); padding:var(--cx-gap-xs) var(--cx-gap-sm); border:0; border-radius:var(--cx-radius-control); background:transparent; color:inherit; text-align:left; font:var(--cx-weight-regular) var(--cx-type-body)/var(--cx-field-line) var(--cx-font-family); cursor:pointer; }
+.cx-upload-menu > button:is(:hover,:focus-visible) { background:var(--cx-popup-hover); outline:1px solid var(--brand-mid); outline-offset:-1px; }
+.cx-upload-menu > button > svg { flex-shrink:0; color:var(--brand-ink); }
+.cx-upload-menu > button:disabled { color:var(--cx-disabled); cursor:default; }

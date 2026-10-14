@@ -59,3 +59,27 @@
 3. 대화 메모리의 **저장 범위와 승인**: 개인 PC 로컬만, 프로젝트별 분리, 저장 전 확인 여부.
 4. 시간 사실 기록을 **메일 위키에만** 먼저 적용하는 데 동의하는가.
 5. 평가용 사내 샘플(메일, PDF, 위키)을 로컬 전용으로 제공할 수 있는가. 공개 코퍼스만으로는 표 깨짐과 사실 변경 사례가 부족하다.
+
+## 6. CodeGraphContext (코드 호출·참조 그래프) — 2026-10-14 추가
+
+사용자 제안: 프로젝트를 위키화할 때 OpenWiki는 설명과 탐색을 맡고, 코드의 호출·참조 관계는 분석기에서 가져온다. Graphiti는 나중에 메일과 코드 사이의 기능 연결에 쓴다.
+
+- **무엇인가**: CodeGraphContext(MIT)는 Python MCP 서버다. tree-sitter로 소스를 읽어 함수, 클래스, 호출, import 관계를 **Neo4j 또는 FalkorDB**에 넣고, `find_callers`, `find_dead_code`, `analyze_code_relationships` 같은 질의를 MCP 도구로 준다.
+- **회사 PC 제약**: Python과 Docker가 없고 그래프 DB를 띄울 수 없다. 서버 자체는 제품에 넣을 수 없다. 개발 PC에서 **비교 기준**으로는 쓸 수 있다(같은 저장소를 넣고 호출 관계 수와 정확도를 누비 분석기와 대조).
+- **누비가 지금 가진 것**: `runtime/code-analysis-core.mjs`가 TypeScript 컴파일러 API로 JS/TS의 **선언과 import 문자열**만 뽑는다(`code_outline`). 호출 관계, 참조 해석은 없다. Java, Python, C#은 구조 분석이 없다.
+- **추천 (CodeGraphContext의 모델을 Node로)**:
+  1. **분석기**: `web-tree-sitter`(WASM, Python 불필요)와 언어 문법(JS/TS, Java, Python, C#)으로 파일마다 정의(함수, 클래스, 메서드)와 호출, import를 뽑는다. 결과는 프로젝트 저장소(SQLite)의 `code_symbols`, `code_edges(kind: calls | imports | extends)`에 둔다. 이름 해석은 같은 파일 → 같은 모듈 import → 전체 이름 순의 보수적 규칙으로 하고, 못 푼 호출은 `unresolved`로 남겨 과장하지 않는다.
+  2. **OpenWiki와 역할 분담**: 위키 초기화 때 분석기가 모듈별 "호출 지도" 페이지(`code/<module>.md`: 정의 목록, 호출하는 곳, 호출당하는 곳, 진입점)를 **front matter와 함께 미리 써 두고**, OpenWiki는 그 페이지를 자료로 읽어 설명·탐색 문서를 만든다. OpenWiki 코어는 수정하지 않는다. 지도 화면은 `code_edges`를 `kind:'calls'` 간선으로 받아 메일 thread 사슬과 같은 방식으로 그린다.
+  3. **에이전트 도구**: `code_outline` 옆에 `code_callers(symbol)`, `code_callees(symbol)`를 추가한다. 결과에는 파일과 줄만 넣고 "편집 승인이 아니다"라는 같은 안내를 붙인다.
+  4. **Graphiti 연결(나중)**: 메일 위키의 사실(요청, 결정, 기한)과 코드 심볼을 같은 그래프의 노드로 두고, "이 결재가 바꾼 기능"처럼 메일 ↔ 코드 관계를 시간 사실로 기록한다. §3의 시간 사실 기록이 먼저 있어야 한다.
+- **작업량**: 분석기 1주(언어 4개, 테스트 저장소로 정확도 측정), 위키 페이지와 지도 3일, 도구 2일. 먼저 JS/TS와 Java만 하고 측정 뒤 넓히는 편이 안전하다.
+- **결정 필요**: ① 언어 순서(JS/TS → Java 제안), ② 호출 지도 페이지를 위키 초기화에 기본 포함할지(크기가 큰 저장소는 페이지 수가 수백 개로 늘어난다 → 모듈 단위 묶음 제안), ③ 개발 PC에서 CodeGraphContext를 비교 기준으로 설치할지(Neo4j Docker 필요).
+
+## 7. MCP 서버 연결 — 2026-10-14 추가
+
+사용자 질문: 누비가 MCP 서버에 연결할 수 있는가. 지금은 없다(Claude CLI 경로는 `--mcp-config '{"mcpServers":{}}'`로 오히려 막아 둔 상태).
+
+- **가능한 방식**: npm `@modelcontextprotocol/sdk`(Node, MIT)의 클라이언트로 stdio(로컬 명령)와 Streamable HTTP(사내 서버) 두 전송을 받는다. 설정 화면에 서버 목록(이름, 명령 또는 URL, 환경 변수 키 이름)을 두고, 연결하면 서버의 `tools/list`를 읽어 에이전트 도구로 `mcp_<서버>_<도구>` 이름으로 노출한다. 호출은 지금의 승인 게이트(읽기 도구는 자유, 쓰기 도구는 실행 승인)에 그대로 태운다. 결과는 도구 응답 길이 상한과 같은 규칙으로 자른다.
+- **제약**: 사내 PC는 Python이 없으므로 Python 기반 MCP 서버(mcp-atlassian 등)는 못 띄운다. Node 또는 사내 HTTP 서버만 대상. 토큰은 `.env`가 아니라 세션 메모리에만 두는 현재 원칙을 유지한다.
+- **작업량**: 클라이언트와 도구 노출 3일, 설정 화면 2일, 검사 1일.
+- **결정 필요**: 첫 대상 서버(사내 GHES? JSM?)와 쓰기 도구 승인 수준.

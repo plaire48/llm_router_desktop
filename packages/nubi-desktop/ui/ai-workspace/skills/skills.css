@@ -1,0 +1,180 @@
+/* Reuse E2E Report's WorkList frame, table density and action geometry. */
+.app-shell .skill-workspace { width:100%; min-width:0; }
+.app-shell .skill-workspace .list-heading h1 { font-size:24px; line-height:1.5; font-weight:600; }
+.app-shell .skill-workspace .work-list-table td { min-height:var(--cx-row-height); padding-block:10px; }
+.skill-table .cx-person-login { display:none; }
+.skill-table .skill-version-label { font-size:var(--cx-type-body); }
+.skill-list-panel { display:flex; flex-direction:column; flex:1 0 120px; height:0; min-height:120px; }
+/* Keep search, scope and actions in their own tracks regardless of shared list styles. */
+.skill-toolbar { display:grid; grid-template-columns:minmax(0,1fr) auto; grid-template-areas:"scope actions" "search search" "selection selection"; align-items:center; gap:var(--cx-gap-xs) var(--cx-gap-md); margin-top:var(--cx-gap-md); }
+.skill-toolbar:not(:has(.skill-toolbar-selection)) { grid-template-areas:"scope actions" "search search"; }
+.skill-toolbar-scope { grid-area:scope; min-width:0; }
+.skill-toolbar .skill-toolbar-search { grid-area:search; width:100%; min-width:0; }
+.skill-toolbar-actions { grid-area:actions; display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:var(--cx-space-1); min-width:0; }
+.skill-toolbar-actions > * { flex:0 0 auto; }
+.skill-toolbar-selection { grid-area:selection; display:flex; align-items:center; flex-wrap:wrap; gap:var(--cx-gap-xs); min-width:0; font-size:var(--cx-type-body); }
+.skill-toolbar-selection strong { color:var(--brand-ink); font-weight:var(--cx-weight-medium); }
+.skill-card .table-active-filters { margin-top:var(--cx-gap-xs); padding-top:0; }
+.app-shell .skill-table { width:100%; }
+.skill-manager-identities { display:flex; flex-direction:column; align-items:flex-start; gap:var(--cx-gap-xs); min-width:0; }
+.skill-table :is([data-field=maintainers],[data-field=updatedBy]) .profile-identity-button { max-width:100%; }
+.skill-table :is([data-field=maintainers],[data-field=updatedBy]) .profile-identity-button strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:var(--cx-weight-medium); }
+.skill-table.compact-frozen-columns [data-column-pinned=true] .skill-title-link { white-space:nowrap; }
+.skill-title-link { display:block; max-width:100%; padding:0; border:0; background:none; color:var(--layout-text); font:inherit; font-weight:600; text-align:left; cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.skill-title-link:hover { color:var(--brand-ink); text-decoration:underline; text-underline-offset:3px; }
+.skill-row-description { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; white-space:normal; line-height:1.6; word-break:keep-all; overflow-wrap:anywhere; }
+.skill-version-label { color:var(--layout-muted); font-size:var(--cx-type-caption); }
+.skill-tags { display:flex; flex-wrap:wrap; align-items:center; gap:var(--cx-gap-xs); min-width:0; }
+.skill-tag { display:inline-flex; align-items:center; justify-content:center; min-width:0; max-width:100%; min-height:28px; padding:2px var(--cx-space-2); border:1px solid transparent; border-radius:var(--cx-radius-card); background:var(--layout-soft); color:var(--layout-muted); font:var(--cx-type-body)/1.5 var(--cx-font-family); white-space:normal; overflow-wrap:anywhere; }
+button.skill-tag { cursor:pointer; }
+button.skill-tag:hover { color:var(--brand-heading); background:var(--brand-soft); border-color:var(--brand-mid); }
+button.skill-tag[aria-pressed='true'] { color:var(--brand-on-action); background:var(--brand-action); border-color:var(--brand-action); }
+.skill-row-actions { display:flex; align-items:center; justify-content:flex-end; gap:var(--cx-space-1); }
+.skill-row-actions .cx-icon-button { flex-shrink:0; }
+.skill-row-actions .cx-button { flex-shrink:0; }
+.skill-empty { flex:1; min-height:280px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--cx-gap-md); padding:var(--cx-gap-2xl); text-align:center; }
+.skill-empty-mark { display:grid; place-items:center; width:56px; height:56px; border-radius:var(--cx-radius-card); background:var(--brand-surface); color:var(--brand-ink); }
+.skill-empty h2 { font-size:var(--cx-type-section); line-height:var(--line-height-h5); font-weight:var(--cx-weight-medium); margin:0; }
+.skill-empty p { margin:0; max-width:440px; color:var(--layout-muted); overflow-wrap:anywhere; }
+.skill-detail-meta { display:flex; gap:var(--cx-gap-sm); align-items:center; flex-wrap:wrap; font-size:var(--cx-type-caption); line-height:var(--cx-line-caption); color:var(--layout-muted); }
+.skill-people { display:grid; gap:var(--cx-gap-xs); margin:var(--cx-gap-sm) 0 0; }
+.skill-people > div { display:grid; grid-template-columns:76px minmax(0,1fr); align-items:center; gap:var(--cx-gap-xs); }
+.skill-people dt { color:var(--layout-muted); font-size:var(--cx-type-caption); }
+.skill-people dd { display:flex; flex-wrap:wrap; align-items:center; gap:var(--cx-gap-sm); margin:0; min-width:0; font-size:var(--cx-type-body); }
+.skill-people .profile-identity-button strong { font-weight:var(--cx-weight-medium); }
+.skill-detail-description { margin:var(--cx-gap-md) 0 var(--cx-gap-xl); padding-bottom:var(--cx-gap-md); border-bottom:1px solid var(--layout-border); white-space:pre-wrap; overflow-wrap:anywhere; }
+.skill-detail .cx-tabs { margin-top:var(--cx-gap-md); }
+.skill-tab-body { padding-top:var(--cx-gap-md); }
+.skill-release-list { list-style:none; padding:0; margin:var(--cx-gap-md) 0; }
+.skill-release-list li { padding:var(--cx-gap-md); border:1px solid var(--layout-border); border-radius:var(--cx-radius-control); margin-top:var(--cx-gap-sm); }
+.skill-release-list li[aria-current] { border-color:var(--brand-border); background:var(--brand-soft); box-shadow:inset 3px 0 var(--brand-mid); }
+.skill-release-list li[aria-current] .skill-title-link { color:var(--brand-ink); }
+.skill-release-list li > div { display:flex; align-items:baseline; justify-content:space-between; gap:var(--cx-gap-sm); flex-wrap:wrap; }
+.skill-release-list span { color:var(--layout-muted); font-size:var(--cx-type-caption); }
+.skill-release-list p { margin:var(--cx-gap-xs) 0 0; white-space:pre-wrap; overflow-wrap:anywhere; }
+.skill-version-notice { color:var(--brand-ink); font-size:var(--cx-type-caption); }
+/* Document typography, links, code, quotes and tables come from AI Talk.
+   SKILL.md may also contain heading levels not exposed by the Talk editor. */
+.skill-markdown h1 { font:var(--cx-weight-bold) var(--cx-type-panel-title)/1.5 var(--cx-font-family); margin:var(--cx-gap-xl) 0 var(--cx-gap-sm); }
+.skill-markdown :is(h4,h5,h6) { font:var(--cx-weight-medium) var(--cx-type-body)/1.5 var(--cx-font-family); margin:var(--cx-gap-lg) 0 var(--cx-gap-xs); }
+.skill-markdown { overflow-x:auto; }
+.skill-markdown > :first-child { margin-top:0; }
+.skill-files { border-top:1px solid var(--layout-border); padding:var(--cx-gap-sm) 0; margin-top:var(--cx-gap-sm); }
+.skill-files summary { cursor:pointer; font-weight:var(--cx-weight-medium); }
+.skill-files > ul { list-style:none; padding:0; margin:var(--cx-gap-sm) 0 0; max-height:220px; overflow:auto; }
+.skill-files > ul > li { display:flex; gap:var(--cx-gap-xs); align-items:center; padding:var(--cx-space-1) 0; }
+.skill-files > ul > li > span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.skill-files > ul > li > svg,.skill-files > ul > li > small { flex-shrink:0; }
+.skill-files > ul > li > small { font-size:var(--cx-type-caption); color:var(--layout-muted); white-space:nowrap; }
+.skill-form { display:flex; flex-direction:column; gap:var(--cx-gap-md); }
+.skill-import-preview { display:grid; min-width:0; gap:var(--cx-gap-xs); }
+.skill-import-preview > span { color:var(--layout-muted); font-size:var(--cx-type-caption); }
+.skill-import-preview > strong,.skill-upload-copy > strong,.skill-install-file > span,.skill-detail .cx-panel-header h2 { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.skill-form label:not(.skill-upload-field) { display:flex; flex-direction:column; gap:var(--cx-gap-xs); font-weight:var(--cx-weight-regular); }
+.skill-form label:not(.skill-upload-field) > span { font-size:var(--cx-type-caption); line-height:var(--cx-line-body); color:var(--layout-muted); }
+.skill-form-pair { display:grid; grid-template-columns:minmax(0,1fr) 160px; gap:var(--cx-gap-md); }
+.skill-tag-picker { display:grid; gap:var(--cx-gap-xs); min-width:0; }
+.skill-tag-picker-heading { display:flex; align-items:center; justify-content:space-between; color:var(--layout-muted); font-size:var(--cx-type-caption); }
+.skill-tag-picked,.skill-tag-suggestions ul { display:flex; flex-wrap:wrap; gap:var(--cx-gap-xs); list-style:none; padding:0; margin:0; min-width:0; }
+.skill-tag-picked .skill-tag { min-height:var(--cx-control); padding:0 0 0 var(--cx-space-2); gap:var(--cx-space-1); }
+.skill-tag-picked .skill-tag > span { min-width:0; }
+.skill-tag-picked .cx-action-button { flex-shrink:0; }
+.skill-tag-suggestions { display:grid; gap:var(--cx-gap-xs); min-width:0; }
+.skill-tag-suggestions > span { font-size:var(--cx-type-caption); color:var(--layout-muted); }
+.skill-tag-suggestions ul { max-height:120px; overflow:auto; padding:2px; }
+.skill-tag-suggestions li { max-width:100%; }
+.skill-tag-suggestions .skill-tag { min-height:var(--cx-control); }
+.skill-maintainers { display:grid; gap:var(--cx-gap-xs); min-width:0; }
+.skill-maintainers-heading { display:flex; align-items:center; justify-content:space-between; color:var(--layout-muted); font-size:var(--cx-type-caption); }
+.skill-maintainers-heading label { flex:1; }
+.skill-tag-hint,.skill-maintainers-hint,.skill-maintainer-results p { margin:0; font-size:var(--cx-type-caption); color:var(--layout-muted); line-height:var(--cx-line-body); }
+.skill-maintainer-results { display:grid; gap:var(--cx-gap-xs); padding:var(--cx-gap-xs); border:1px solid var(--layout-border); border-radius:var(--cx-radius-control); }
+.skill-maintainer-results ul,.skill-maintainer-selected { list-style:none; padding:0; margin:0; }
+.skill-maintainer-results ul { max-height:240px; overflow:auto; }
+.skill-maintainer-result { display:flex; align-items:center; gap:var(--cx-gap-sm); width:100%; min-height:var(--cx-touch); padding:var(--cx-gap-xs); border:0; border-radius:var(--cx-radius-control); background:transparent; color:var(--layout-text); text-align:left; cursor:pointer; }
+.skill-maintainer-result:hover:not(:disabled),.skill-maintainer-result:focus-visible { background:var(--brand-surface); }
+.skill-maintainer-result:disabled { cursor:default; color:var(--layout-muted); }
+.skill-maintainer-person { flex:1; min-width:0; display:grid; gap:4px; }
+.skill-maintainer-email { padding-left:32px; overflow-wrap:anywhere; color:var(--layout-muted); font-size:var(--cx-type-caption); }
+.skill-maintainer-role { flex-shrink:0; font-size:var(--cx-type-caption); }
+.skill-maintainer-selected { display:flex; flex-wrap:wrap; gap:var(--cx-gap-xs); }
+.skill-maintainer-selected li { display:flex; align-items:center; min-width:0; max-width:100%; padding-left:var(--cx-gap-xs); border:1px solid var(--brand-border); border-radius:var(--cx-radius-control); background:var(--brand-soft); color:var(--brand-ink); }
+.skill-maintainer-selected .profile-identity-button { min-width:0; }
+.skill-maintainer-selected [data-action=clearSelection] { flex-shrink:0; }
+.skill-maintainer-owner { padding:0 var(--cx-gap-xs); color:var(--layout-muted); font-size:var(--cx-type-caption); white-space:nowrap; }
+.skill-maintainer-error { display:flex; align-items:center; gap:var(--cx-gap-xs); }
+.skill-maintainer-error p { flex:1; color:var(--cx-danger); }
+.skill-upload-field { display:flex; flex-wrap:wrap; align-items:center; gap:var(--cx-gap-sm); min-width:0; min-height:76px; padding:var(--cx-gap-sm); border:1px dashed var(--brand-border); border-radius:var(--cx-radius-control); background:var(--brand-surface); overflow-wrap:anywhere; }
+.skill-upload-copy { flex:1; min-width:0; display:flex; flex-direction:column; gap:var(--cx-space-1); }
+.skill-upload-field > svg { flex-shrink:0; }
+.skill-upload-field strong { max-width:100%; font-size:var(--cx-type-body); font-weight:var(--cx-weight-medium); }
+.skill-upload-field:hover,.skill-upload-field:focus-within { border-color:var(--brand-action); background:var(--brand-soft); }
+.skill-upload-field:focus-within { outline:2px solid var(--brand-action); outline-offset:3px; }
+.skill-upload-field > svg { color:var(--brand-mid); }
+.skill-upload-copy > span { color:var(--layout-muted); font-size:var(--cx-type-caption); }
+.skill-upload-field.has-file { border-style:solid; border-color:var(--brand-border); background:var(--brand-surface); }
+.skill-upload-field:has(input:disabled) { cursor:wait; }
+.skill-file-summary { display:flex; flex-wrap:wrap; justify-content:space-between; gap:var(--cx-gap-sm); color:var(--layout-muted); font-size:var(--cx-type-caption); }
+.skill-file-summary code { color:var(--brand-ink); overflow-wrap:anywhere; }
+.skill-footer-spacer,.skill-footer-meta { margin-right:auto; }
+.skill-inline-meta { display:inline-flex; flex-wrap:wrap; align-items:center; gap:var(--cx-gap-xs); }
+.skill-footer-meta { color:var(--layout-muted); font-size:var(--cx-type-caption); }
+.skill-form-error,.skill-error { color:var(--cx-danger); margin:0; overflow-wrap:anywhere; }
+.skill-status { padding:var(--cx-gap-xl) 0; color:var(--layout-muted); }
+.skill-conflict { padding:var(--cx-gap-md); border:1px solid var(--layout-border); border-radius:var(--cx-radius-control); background:var(--layout-soft); }
+.skill-conflict dl { display:grid; grid-template-columns:120px minmax(0,1fr); gap:var(--cx-gap-xs); }
+.skill-conflict dd { margin:0; white-space:pre-wrap; overflow-wrap:anywhere; }
+.skill-conflict > .btn { white-space:normal; text-align:left; }
+@media(max-width:520px) {
+  .skill-toolbar { grid-template-columns:minmax(0,1fr); grid-template-areas:"scope" "search" "actions" "selection"; }
+  .skill-toolbar:not(:has(.skill-toolbar-selection)) { grid-template-areas:"scope" "search" "actions"; }
+  .skill-toolbar-actions { gap:0; }
+}
+@media(max-width:600px) {
+  .skill-form-pair { grid-template-columns:minmax(0,1fr) 100px; gap:var(--cx-gap-sm); }
+  .skill-empty { padding:var(--cx-gap-xl) var(--cx-gap-md); min-height:280px; }
+  .skill-conflict dl { grid-template-columns:minmax(0,1fr); }
+  .skill-card .table-page-selection { display:none; }
+}
+@media(pointer:coarse) {
+  button.skill-tag { min-height:var(--cx-touch); display:inline-flex; align-items:center; }
+  .skill-title-link { min-height:var(--cx-touch); align-items:center; }
+  .skill-files summary { min-height:var(--cx-touch); align-content:center; }
+}
+
+/* Installation uses shared controls and readable, action-first steps. */
+.cx-panel-backdrop.is-modal > .cx-detail-panel.skill-install-panel { width:min(420px,100%); }
+.skill-install-content,.skill-install-guide { display:grid; gap:var(--cx-gap-md); }
+.skill-install-content { line-height:1.65; word-break:keep-all; overflow-wrap:anywhere; }
+.skill-install-content p { margin:0; font:inherit; }
+.skill-install-copy { min-width:0; }
+.skill-install-copy > .skill-error { margin-top:var(--cx-gap-xs); }
+.skill-install-path { display:flex; align-items:center; gap:var(--cx-gap-xs); padding-left:var(--cx-gap-xs); border:1px solid var(--brand-border); border-radius:var(--cx-radius-control); background:var(--brand-surface); color:var(--brand-ink); }
+.skill-install-path code { flex:1; min-width:0; overflow-wrap:anywhere; user-select:all; }
+.skill-install-note { color:var(--layout-muted); }
+.skill-install-feedback { display:flex; align-items:center; gap:var(--cx-gap-xs); }
+.skill-install-feedback > p { flex:1; min-width:0; }
+
+.skill-install-download { display:grid; gap:var(--cx-gap-xs); }
+.skill-install-file { display:flex; align-items:center; gap:var(--cx-gap-sm); }
+.skill-install-file > span { flex:1; min-width:0; font-weight:var(--cx-weight-medium); overflow-wrap:anywhere; }
+.skill-app-request { display:grid; gap:var(--cx-gap-xs); }
+.skill-app-request-actions { display:flex; align-items:center; gap:var(--cx-gap-xs); }
+.skill-app-request-actions > strong { flex:1; min-width:0; }
+.skill-install-manual-section { padding-top:var(--cx-gap-sm); border-top:1px solid var(--layout-border); }
+.skill-install-manual-section > summary { display:flex; align-items:center; justify-content:space-between; gap:var(--cx-gap-xs); min-height:var(--cx-touch); color:var(--layout-text); font-weight:var(--cx-weight-bold); cursor:pointer; list-style:none; }
+.skill-install-manual-section > summary::-webkit-details-marker { display:none; }
+.skill-install-manual-section > summary svg { flex-shrink:0; color:var(--layout-muted); }
+.skill-install-manual-section[open] > summary svg { transform:rotate(180deg); }
+.skill-install-manual-body { display:grid; gap:var(--cx-gap-md); margin-top:var(--cx-gap-md); }
+.skill-app-request .text-area { height:auto; min-height:120px; resize:vertical; }
+
+.skill-install-target { display:grid; gap:var(--cx-gap-xs); }
+.skill-install-target > span { color:var(--layout-muted); font-size:var(--cx-type-caption); }
+
+.skill-install-steps { margin:0; padding-left:1.35em; display:grid; gap:var(--cx-gap-lg); }
+.skill-install-steps li { padding-left:var(--cx-gap-xs); min-width:0; }
+.skill-install-steps li::marker { color:var(--layout-text); font-weight:var(--cx-weight-bold); }
+.skill-install-step-title { display:block; color:var(--layout-text); font-weight:var(--cx-weight-bold); }
+.skill-install-steps li > :not(:first-child) { margin-top:var(--cx-gap-xs); }
+.skill-install-steps code { overflow-wrap:anywhere; }

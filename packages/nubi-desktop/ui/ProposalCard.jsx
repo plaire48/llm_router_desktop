@@ -6,6 +6,7 @@ import {WorkspaceActionMenu} from './WorkspaceActionMenu.jsx';
 import {WorkspaceAction} from './WorkspaceAction.jsx';
 import {qualityLabel} from '../runtime/quality-status.mjs';
 import './proposal-card.css';
+import {LoadingNote} from './LoadingNote.jsx';
 
 export function ProposalCard({proposal:p,api,busy,onCompare,onRebase,onCancel,onApply}) {
  const [open,setOpen]=useState(false),[preview,setPreview]=useState(null),[loading,setLoading]=useState(false),[failed,setFailed]=useState(false);
@@ -32,7 +33,7 @@ export function ProposalCard({proposal:p,api,busy,onCompare,onRebase,onCancel,on
   <p className="nubi-proposal-path" title={p.path}>{p.path}</p>
   {p.reason&&<p className="nubi-proposal-reason">{p.reason}</p>}
   {open&&<div className="nubi-proposal-preview" aria-label="변경 내용" aria-busy={loading}>
-   {loading?<p role="status">변경 내용 불러오는 중</p>:failed?<CxButton onClick={()=>{setOpen(false);}}>미리보기를 다시 열어 주세요.</CxButton>:preview?.large?<CxButton onClick={onCompare}>전체 비교에서 확인</CxButton>:preview?.parts.length===0?<p>텍스트 변경이 없어요.</p>:<pre tabIndex={0}>{preview?.parts.map((part,index)=><span key={index} data-change={part.added?'added':'removed'}>{part.value.split('\n').filter((line,i,lines)=>i<lines.length-1||line).map(line=>(part.added?'+ ':'− ')+line+'\n').join('')}</span>)}</pre>}
+   {loading?<LoadingNote>변경 내용 불러오는 중</LoadingNote>:failed?<CxButton onClick={()=>{setOpen(false);}}>미리보기를 다시 열어 주세요.</CxButton>:preview?.large?<CxButton onClick={onCompare}>전체 비교에서 확인</CxButton>:preview?.parts.length===0?<p>텍스트 변경이 없어요.</p>:<pre tabIndex={0}>{preview?.parts.map((part,index)=><span key={index} data-change={part.added?'added':'removed'}>{part.value.split('\n').filter((line,i,lines)=>i<lines.length-1||line).map(line=>(part.added?'+ ':'− ')+line+'\n').join('')}</span>)}</pre>}
   </div>}
   <footer><div className="nubi-proposal-secondary"><CxButton disabled={busy} onClick={onCompare}><Icon name="columns" size={16}/>비교</CxButton>
    {p.kind!=='create'&&<WorkspaceActionMenu label={`${name} 추가 작업`} inline><WorkspaceAction action="refresh" label="현재 파일에 다시 맞추기" disabled={busy} onClick={onRebase}/></WorkspaceActionMenu>}

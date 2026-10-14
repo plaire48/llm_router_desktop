@@ -2,6 +2,7 @@ import React,{useEffect,useRef,useState} from 'react';
 import {CxButton, CxInput, DetailPanel, Icon} from '@e2e/cx-design-system';
 import {WorkspaceAction as ActionButton} from './WorkspaceAction.jsx';
 import {notifyWorkspaceToast} from './WorkspaceToast.jsx';
+import {LoadingNote} from './LoadingNote.jsx';
 export function SavedMailSearches({api,query,filters,sort,onApply,onClose}){
  const [name,setName]=useState(''),[items,setItems]=useState([]),[loading,setLoading]=useState(true),[failed,setFailed]=useState(false),[busy,setBusy]=useState(false);
  const alive=useRef(true),locked=useRef(false);
@@ -21,7 +22,7 @@ export function SavedMailSearches({api,query,filters,sort,onApply,onClose}){
  }
  return <DetailPanel variant="modal" className="deck-dialog nubi-panel nubi-mail-saved-dialog" title={<span className="nubi-panel-title"><span className="nubi-panel-title-icon"><Icon name="save" size={18}/></span>저장한 검색</span>} busy={busy} onClose={onClose}>
   <form className="nubi-mail-save-search" onSubmit={save}><CxInput aria-label="검색 이름" placeholder="현재 검색 이름" maxLength={50} value={name} disabled={busy} onChange={event=>setName(event.target.value)}/><ActionButton action="save" iconOnly={false} label="저장" type="submit" disabled={!name.trim()||busy||loading} busy={busy}/></form>
-  <p className="nubi-muted">현재 검색어와 조건을 저장해요.</p>
-  <div className="nubi-mail-saved-list" aria-busy={loading}>{loading?<p role="status">검색 목록 읽는 중</p>:failed?<div className="nubi-mail-saved-retry"><p>저장한 검색을 읽지 못했어요.</p><ActionButton action="refresh" label="검색 목록 다시 확인" onClick={()=>void load()}/></div>:items.length?items.map(item=><div key={item.id}><CxButton disabled={busy} onClick={()=>{onApply(item);onClose();}}><Icon name="save" size={16}/><span><strong>{item.name}</strong>{item.query&&<small>{item.query}</small>}</span></CxButton><ActionButton action="delete" label={`${item.name} 저장한 검색 삭제`} disabled={busy} onClick={()=>void remove(item)}/></div>):<p className="nubi-muted">저장한 검색이 없어요.</p>}</div>
+  <p className="nubi-muted nubi-note"><Icon name="infoCircle" size={14}/>현재 검색어와 조건을 저장해요.</p>
+  <div className="nubi-mail-saved-list" aria-busy={loading}>{loading?<LoadingNote>검색 목록 읽는 중</LoadingNote>:failed?<div className="nubi-mail-saved-retry"><p>저장한 검색을 읽지 못했어요.</p><ActionButton action="refresh" label="검색 목록 다시 확인" onClick={()=>void load()}/></div>:items.length?items.map(item=><div key={item.id}><CxButton disabled={busy} onClick={()=>{onApply(item);onClose();}}><Icon name="save" size={16}/><span><strong>{item.name}</strong>{item.query&&<small>{item.query}</small>}</span></CxButton><ActionButton action="delete" label={`${item.name} 저장한 검색 삭제`} disabled={busy} onClick={()=>void remove(item)}/></div>):<p className="nubi-muted">저장한 검색이 없어요.</p>}</div>
  </DetailPanel>;
 }

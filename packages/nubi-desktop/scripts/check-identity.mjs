@@ -17,7 +17,7 @@ for(const [name,value]of Object.entries(reference.palette)) {
 const css=await readFile('electron-app/workbench.css','utf8');
 for(const family of ['Pretendard Variable','Noto Sans KR','Malgun Gothic'])assert(css.includes(family),`Missing local font fallback: ${family}`);
 assert(!/--(?:brand-action|brand-ink|cx-button-primary|color-bg-primary):\s*#/.test(css),'Use shared deck aliases rather than per-screen brand overrides');
-const uiFiles=await readdir('ui',{recursive:true});
+const uiFiles=(await readdir('ui',{recursive:true})).filter(file=>!String(file).replace(/\\/g,'/').startsWith('ai-workspace/'));
 for(const file of uiFiles.filter(file=>file.endsWith('.jsx')&&file!=='Collaboration.jsx')) {
   const source=await readFile('ui/'+file,'utf8');
   for(const match of source.matchAll(/<DetailPanel\b[^>]*>/g))assert(/className="[^"]*deck-dialog/.test(match[0]),`${file}: modal must use deck-dialog`);

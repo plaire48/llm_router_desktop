@@ -15,7 +15,7 @@
 .nubi-project-label { color: var(--deck-sub); font-size: var(--cx-type-body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nubi-header-actions { margin-left: auto; display:flex; gap: 4px; }
 .nubi-icon-button.cx-kit-button { border: 0; padding: 8px; background: transparent; color: var(--deck-sub); }
-.nubi-main { max-width: 1060px; margin: 0 auto; padding: 16px 36px 64px; }
+.nubi-main { max-width: 1480px; margin: 0 auto; padding: 16px 36px 64px; }
 .nubi-welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 620px; gap: 18px; padding-bottom: 60px; }
 .nubi-welcome h1 { margin: 0; color: var(--deck-ink); font-size: var(--nubi-welcome-title); font-weight: 900; line-height: 1.3; letter-spacing: -.02em; }
 .nubi-welcome h1 span { color: var(--deck-blue); }

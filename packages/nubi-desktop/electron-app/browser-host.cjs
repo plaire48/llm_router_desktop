@@ -20,8 +20,11 @@ class BrowserHost {
   this.onFault=onFault;this.disposed=false;this.updateTimer=null;this.lastUpdate='';
   this.window=window;this.tabs=new Map();this.active=null;this.history=[];this.downloads=[];this.visible=false;this.bounds=null;this.find=null;
   this.session=session.fromPartition(`nubi-browser-${randomUUID()}`,{cache:true});
-  this.session.setPermissionRequestHandler((_web,_permission,callback)=>callback(false));
-  this.session.setPermissionCheckHandler(()=>false);
+  // Pages in the in-app browser (the company AI Workspace, login pages) copy codes and links with a copy button; that
+  // write needs clipboard-sanitized-write from a user gesture, as in the main window. Every other permission stays denied
+  // (user report 2026-10-14: '코드를 복사하지 못했습니다' on the login screen inside the app).
+  this.session.setPermissionRequestHandler((_web,permission,callback)=>callback(permission==='clipboard-sanitized-write'));
+  this.session.setPermissionCheckHandler((_web,permission)=>permission==='clipboard-sanitized-write');
   this.session.on('will-download',(_event,item)=>{
    const entry={id:randomUUID(),name:item.getFilename(),state:'progressing',received:0,total:item.getTotalBytes()};this.downloads.unshift(entry);this.downloads=this.downloads.slice(0,50);
    item.setSaveDialogOptions({title:'다운로드 저장',defaultPath:item.getFilename()});
@@ -101,6 +104,12 @@ class BrowserHost {
   wc.on('destroyed',()=>this.forget(row));
   wc.on('render-process-gone',(_event,details)=>{row.loading=false;row.error='browser_process_gone';this.layout();this.onFault('browser_renderer',details);this.changed();});
   if(load)void wc.loadURL(target,loadOptions).catch(error=>{if(error?.code==='ERR_ABORTED'||error?.errno===-3)return;row.loading=false;row.error ||=loadFailure(error?.errno);this.layout();this.changed();});this.layout();this.changed();return row;
+ }
+ // A bounded PNG of one tab for the agent's page inspection (2026-10-14): at most 1600 px wide, never the app window.
+ async capture(id=this.active) {
+  const row=this.tab(id),wc=row.view.webContents;if(row.error||!row.contentReady)throw Error('browser_capture_unavailable');
+  let image=await wc.capturePage();const size=image.getSize();if(size.width>1600)image=image.resize({width:1600});const png=image.toPNG();if(png.length>6*1024*1024)throw Error('browser_capture_limit');
+  const final=image.getSize();return {image:png.toString('base64'),width:final.width,height:final.height,url:row.url,title:row.title};
  }
  status() {return {active:this.active,tabs:[...this.tabs.values()].filter(row=>!row.view.webContents.isDestroyed()).map(row=>({id:row.id,title:row.title,url:row.url,loginCode:row.companyLogin?this.loginCode():null,loading:row.loading,error:row.error,popup:row.popup,contentReady:row.contentReady,back:row.view.webContents.navigationHistory.canGoBack(),forward:row.view.webContents.navigationHistory.canGoForward(),zoom:Math.round(row.view.webContents.getZoomFactor()*100)})),find:this.find,history:this.history.map(item=>({...item})),downloads:this.downloads.map(({file,...item})=>item)};}
  menu({kind='main',x,y}={}) {

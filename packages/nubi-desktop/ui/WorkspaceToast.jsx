@@ -1,17 +1,19 @@
 import React, {useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore} from 'react';
 import {createPortal} from 'react-dom';
+import {recordNotice} from './notice-store.js';
 
 // Adapt E2E Report's single-notice store and shared countdown clock. Desktop
-// keeps the user's two-second duration and Nubi identity without a dependency.
+// keeps a thirty-second duration (user decision 2026-10-14, was two seconds) and Nubi identity without a dependency.
 let current = null, sequence = 0;
 const listeners = new Set();
 const subscribe = listener => { listeners.add(listener); return () => listeners.delete(listener); };
 const snapshot = () => current;
 const emit = () => listeners.forEach(listener => listener());
-export function notifyWorkspaceToast(message, {error = false, success = false} = {}) {
+export function notifyWorkspaceToast(message, {error = false, success = false, action = null} = {}) {
   const text = String(message || '').trim();
   if (!text) return;
-  current = {id: ++sequence, message: text, error, success};
+  current = {id: ++sequence, message: text, error, success, action: action && typeof action.onClick === 'function' && action.label ? action : null};
+  recordNotice({text, error, success, action: current.action, kind: 'info', source: 'toast'});
   emit();
 }
 
@@ -54,7 +56,7 @@ export function WorkspaceToast() {
   useLayoutEffect(() => {
     if (!item) return;
     if (clock.current.id !== item.id) clock.current = {id: item.id, elapsed: 0};
-    const countdown = clock.current, started = performance.now(), duration = 2000, fillDuration = 1900;
+    const countdown = clock.current, started = performance.now(), duration = 30000, fillDuration = 29500;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const paint = elapsed => {
       const fraction = Math.min(fillDuration, elapsed) / fillDuration;
@@ -90,6 +92,8 @@ export function WorkspaceToast() {
           {item.error ? <><path d="M16 10v8"/><circle cx="16" cy="22" r="1" fill="currentColor" stroke="none"/></> : item.success ? <path d="m10 16 4 4 8-9"/> : <><path d="M16 16v6"/><circle cx="16" cy="10" r="1" fill="currentColor" stroke="none"/></>}
         </svg>
         <span>{item.message}</span>
+        {item.action&&<button type="button" className="nubi-feedback-action" onClick={()=>{try{item.action.onClick();}finally{dismiss();}}}>{item.action.label}</button>}
+        <button type="button" className="nubi-feedback-close" aria-label="알림 닫기" title="알림 닫기" onClick={dismiss}><svg aria-hidden="true" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
       </div>
     </div>
   </div>, portalTarget);
