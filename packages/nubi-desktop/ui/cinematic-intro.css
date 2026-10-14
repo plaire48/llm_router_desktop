@@ -68,3 +68,5 @@
 body:has(.nubi-intro) .nubi-preparing { visibility:hidden; }
 /* Completing wins over either form's fill animation. */
 .nubi-intro[data-mode][data-phase="complete"] .nubi-intro-progress > span, .nubi-intro[data-mode][data-phase="leave"] .nubi-intro-progress > span { animation:none; transform:scaleX(1); transition:transform .38s cubic-bezier(.2,.8,.2,1); }
+/* Until the scene starts it holds its first frame (startup work first, then the flight in real time). */
+.nubi-intro:not([data-started]), .nubi-intro:not([data-started]) *, .nubi-intro:not([data-started]) *::before, .nubi-intro:not([data-started]) *::after { animation-play-state:paused !important; }
