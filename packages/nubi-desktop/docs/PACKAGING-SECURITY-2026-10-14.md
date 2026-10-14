@@ -34,7 +34,7 @@
 
 - **최소화**: `scripts/build-runtime.mjs`의 실행기 번들(service-entry, 작업자, document-extract, OpenWiki 번들)과 `scripts/build-electron.mjs`의 메인 번들에 `minify:true, keepNames:true`. `NUBI_MINIFY=0`으로 빌드하면 읽을 수 있는 번들이 나온다(진단용). 렌더러는 이미 최소화돼 있었다.
 - **Electron 퓨즈** (`electron-app/electron-builder.yml` `electronFuses`): `enableNodeOptionsEnvironmentVariable:false`, `enableNodeCliInspectArguments:false`, `enableEmbeddedAsarIntegrityValidation:true`, `onlyLoadAppFromAsar:true`, `enableCookieEncryption:true`. `runAsNode`는 실행기 작업자를 `ELECTRON_RUN_AS_NODE`로 포크하므로 켜 둔다(끄려면 `utilityProcess`로 바꿔야 한다).
-- **설치 속도**: `compression: store`. 설치가 압축 해제가 아니라 복사가 되어 가장 빠르다. 설치 파일은 커진다(압축 기본값 대비 약 1.5~2배 예상). 사내 미러 배포라 크기보다 설치 시간을 택했다.
+- **설치 속도**: `compression: store` + `nsis.differentialPackage: false`(차등 패키징이 켜져 있으면 electron-builder가 압축을 normal로 강제해 1.2.1에서는 적용되지 않았다). 설치가 압축 해제가 아니라 복사가 되어 가장 빠르다. 설치 파일은 커진다(압축 기본값 대비 약 1.5~2배 예상). 사내 미러 배포라 크기보다 설치 시간을 택했다.
 - **`--inspect` 퓨즈는 켜 둠**: CI가 패키지된 앱과 설치된 앱을 Playwright로 검사하는데, Playwright는 `--inspect=0`으로 붙는다. 퓨즈를 끄면 검사가 붙지 못해 멈춘다(실행 38504518097). 끄려면 검사 뒤에 `@electron/fuses`로 이 퓨즈만 뒤집고 NSIS를 한 번 더 만드는 단계가 필요하다(후속).
 - **서명**: 인증서가 없어 미적용. 인증서가 생기면 `win.certificateFile` 또는 사내 서명 도구를 `afterSign`에 건다.
 - **bytenode**: 미적용(2차 실험).

@@ -65,3 +65,4 @@ Desktop A2A는 지원하지 않습니다. 첨부파일 내용 분석은 1.2.1부
 - **CI 빌드 수정**: `document-extract.mjs`의 exceljs를 nubi-desktop 의존성(4.4.0)으로. Windows CI는 nubi-desktop과 aipro-chat만 설치한다(실행 38504035117 실패 원인).
 - **CI 수정 2**: `enableNodeCliInspectArguments` 퓨즈를 켜 둠. Playwright가 `--inspect`로 붙지 못해 패키지 검사가 멈췄다(실행 38504518097).
 - **CI 수정 3**: `scripts/check-installed-archive.mjs`가 첨부 읽기 파일의 '미포함'을 단언하던 Beta 규칙을 플래그 기준으로 바꿈(켜짐이면 포함 필수).
+- **1.2.2**: `nsis.differentialPackage: false`. 차등 패키징이 압축을 normal로 강제해(`differentialUpdateInfoBuilder.js`) 1.2.1의 `compression: store`가 무시됐다(173MB). 차등 패키징을 끄면 store가 적용된다. 업데이터는 블록맵을 쓰지 않는다.
