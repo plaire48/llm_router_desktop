@@ -35,7 +35,7 @@ Windows x64 설치파일을 실행하세요. 앱 이름과 저장 경로를 유�
 
 ## 범위
 
-Beta의 첨부파일 내용 분석과 Desktop A2A는 지원하지 않습니다. 대화 기억과 메일 시간 사실은 제품 실행기에서만 동작하며 평가와 자동 검사는 이를 끄고 잽니다. GHES/포털 실계정, Claude 실계정의 한도 확인, 실제 Windows 11 사용자 PC의 확인은 자동 검사와 구분합니다. 이 설치파일은 공인 코드서명이 없는 Beta입니다.
+Desktop A2A는 지원하지 않습니다. 첨부파일 내용 분석은 1.2.1부터 켭니다(사용자 결정 2026-10-14, 회사 PC의 Office 2016 COM 경로는 실기기 확인 필요). 대화 기억과 메일 시간 사실은 제품 실행기에서만 동작하며 평가와 자동 검사는 이를 끄고 잽니다. GHES/포털 실계정, Claude 실계정의 한도 확인, 실제 Windows 11 사용자 PC의 확인은 자동 검사와 구분합니다. 이 설치파일은 공인 코드서명이 없는 Beta입니다.
 
 ## 2026-10-14 (4차) 초기화 전 접근 오류, 메일 위키 품질
 
@@ -51,3 +51,6 @@ Beta의 첨부파일 내용 분석과 Desktop A2A는 지원하지 않습니다. 
 - **내장 브라우저 클립보드**: 세션이 `clipboard-sanitized-write`만 허용(회사 AI Workspace 로그인 화면의 코드 복사).
 - **검사 갱신**: 메일 가져오기 단위 검사는 2 GiB 상한 기준, 메일 UI 검사는 로그인 중 대화상자 닫기가 로그인을 유지하는 동작 기준.
 - **마스코트**: 자는 상태(`data-mood="sleep"`)에서 호버하면 `nubi-bird-startle`(점프, 눈 뜸)을 한 번 하고 인사 춤으로 이어진다(사용자 요청 2026-10-14).
+- **첨부 읽기 켬** (`runtime/beta-features.mjs` `mailAttachmentReading:true`, 사용자 결정 2026-10-14): PDF, DOCX, PPTX, XLSX, 텍스트 첨부를 메일 본문과 함께 읽어 요약·사실·검색에 쓴다. 정책 검사 `tests/mail-beta-scope.test.mjs`는 게이트가 열렸는지와 다운로드 바이트 일치를 본다. HWP와 이미지 첨부는 아직 읽지 않는다(§8 검토).
+- **첨부 읽기 순서** (사용자 결정 2026-10-14): 파서 먼저, Office 2016 COM은 파서가 못 읽는 바이트(NASCA 등)에만. `docs/OFFICE-ATTACHMENT-READING-2026-10-05.md` 머리말 참조.
+- **이미지 첨부 읽기** (`runtime/mail-attachment-image.mjs`, 사용자 요청 2026-10-14): PNG, JPEG, GIF, WebP, BMP 첨부는 연결된 이미지 입력 모델(화면 캡처 분석과 같은 경로, AI Pro는 Qwen)이 글과 내용을 한국어로 적어 첨부 본문이 된다. 6MB 초과는 `document_limit`, 이미지 모델이 없으면 `document_vision_unavailable`로 표시. 이미지 글은 자료이지 지시가 아니라는 안내를 프롬프트에 둔다.

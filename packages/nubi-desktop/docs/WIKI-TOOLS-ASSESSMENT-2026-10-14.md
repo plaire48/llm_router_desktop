@@ -83,3 +83,21 @@
 - **제약**: 사내 PC는 Python이 없으므로 Python 기반 MCP 서버(mcp-atlassian 등)는 못 띄운다. Node 또는 사내 HTTP 서버만 대상. 토큰은 `.env`가 아니라 세션 메모리에만 두는 현재 원칙을 유지한다.
 - **작업량**: 클라이언트와 도구 노출 3일, 설정 화면 2일, 검사 1일.
 - **결정 필요**: 첫 대상 서버(사내 GHES? JSM?)와 쓰기 도구 승인 수준.
+
+## 8. 메일 첨부 읽기와 Docling — 2026-10-14 추가
+
+사용자 질문: 메일을 처리할 때 첨부 파일도 같이 읽자. Docling은 어떤가.
+
+- **지금 상태**: 첨부는 이미 읽는다. `runtime/mail.mjs`가 첨부마다 작업자 스레드(`mail-attachment-worker.mjs`)로 `extractDocument`를 돌려 PDF(pdf.js 텍스트), DOCX(mammoth), PPTX/XLSX(XML 직접 파싱), 텍스트 계열을 읽고 `attachment:<메일>:<첨부>` 레코드에 본문과 구간을 저장한다. 요약과 사실 추출이 이 본문을 같이 본다. 기능 스위치는 `DESKTOP_FEATURES.mailAttachmentReading`.
+- **빈 곳**: ① **HWP/HWPX**(사내 결재 첨부에 흔함)는 못 읽는다. ② **이미지와 스캔 PDF**는 글자가 없어 비어 있다. ③ **PDF 표**는 줄 텍스트로 풀려 열 구조가 깨진다(§2). ④ 암호 PDF는 `document_password`로 건너뛴다.
+- **Docling**: ③을 가장 잘 푼다(레이아웃 모델, TableFormer). 다만 Python과 PyTorch, 수백 MB 모델이 필요해 회사 PC 설치판에는 못 넣는다(§2와 같은 결론). 쓸 수 있는 길은 두 가지다.
+  - (a) **사내 서버의 docling-serve**(HTTP API, MIT)를 누비가 호출. 파일이 사내망 안에만 머문다. 누비 쪽은 `extractDocument`에 "원격 변환기" 분기 하나(설정에 URL, 실패하면 지금의 로컬 읽기로 되돌아감)를 더하면 된다. 서버를 누가 운영하는지가 결정 사항.
+  - (b) **개발 PC 비교 실험**: 표가 많은 사내 PDF 10개를 pdf.js, Docling으로 변환해 표 복원율을 채점하고, 차이가 크면 (a)를 추진한다.
+- **Docling 없이 바로 할 수 있는 것**:
+  1. 이미지·스캔 PDF 첨부를 **연결된 비전 모델**(`visionRoute`, 화면 캡처 분석과 같은 경로)로 읽어 텍스트로 바꾼다. 모델 호출량이 늘므로 첨부당 상한(장 수, 크기)을 둔다.
+  2. HWPX(zip+XML)는 PPTX처럼 직접 파싱으로 본문을 꺼낼 수 있다. 구형 HWP(바이너리)는 Windows에 한글이 있으면 `office-document.ps1`과 같은 방식의 변환, 없으면 건너뛰고 "읽지 못한 첨부"로 표시.
+  3. PDF 표는 pdf.js의 글자 좌표로 행·열을 묶는 간단한 표 복원을 넣는다(완전하지 않지만 조건 항목 보존에는 효과).
+- **추천**: 1과 2를 먼저(각 2~3일), (b) 실험을 병행해 Docling의 이득을 숫자로 본 뒤 (a)를 결정한다.
+- **결정 필요**: 사내에 docling-serve를 둘 서버가 있는지, 이미지 첨부를 모델에 보내는 것을 허용할지(사내 모델만).
+
+**2026-10-14 반영**: 첨부 읽기를 켰고(파서 먼저, Office COM은 파서가 못 읽는 파일만), 이미지 첨부는 연결된 이미지 모델이 읽는다(`runtime/mail-attachment-image.mjs`). 남은 빈 곳은 HWP와 PDF 표 구조다.

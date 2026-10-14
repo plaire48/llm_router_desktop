@@ -13,6 +13,7 @@ import {Store} from './store.mjs';
 import {protectMailDirectory} from './mail-directory.mjs';
 import {mailPassword} from './mail-credentials.mjs';
 import {officeDocumentFormat,readOfficeDocument} from './office-document.mjs';
+import {imageAttachmentType,readImageAttachment} from './mail-attachment-image.mjs';
 import {MailSearch,mailFilters} from './mail-search.mjs';
 import {parsePop3Content,mailPartPresentation,MAIL_CONTENT_VERSION} from '../../openwiki/src/connectors/sources/pop3-content.mjs';
 import {modelTransport} from './recovery.mjs';
@@ -84,9 +85,12 @@ export class PersonalMail {
     const parentSignal=signal,controller=new AbortController(),cancel=()=>controller.abort();
     this.documentReaders.add(controller);signal.addEventListener('abort',cancel,{once:true});
     try{
-    if(process.platform==='win32'&&officeDocumentFormat(attachment.filename,attachment.contentType))return await readOfficeDocument(bytes,attachment,{signal:controller.signal,directory,restrictDirectory:privateDir});
+    // Images go to the connected image-capable model (user request 2026-10-14); documents to the parser below.
+    if(imageAttachmentType(attachment.filename,attachment.contentType))return await readImageAttachment({bytes,attachment,host:this.host,destination:this.destination?{...this.destination}:null,signal:controller.signal});
+    const officeFallback=process.platform==='win32'&&!!officeDocumentFormat(attachment.filename,attachment.contentType);
     signal=controller.signal;
-    return await new Promise((resolve,reject)=>{
+    // Parser first; Office 2016 COM only for bytes the parser cannot read, such as NASCA-protected files (user decision 2026-10-14).
+    const parsed=await new Promise((resolve,reject)=>{
       if(signal.aborted)return reject(new Error('mail_cancelled'));
       const worker=new Worker(new URL('./mail-attachment-worker.mjs',import.meta.url),{workerData:{bytes,filename:attachment.filename||'',contentType:attachment.contentType||''},resourceLimits:{maxOldGenerationSizeMb:256},execArgv:[],stdout:true,stderr:true});
       worker.stdout.resume();worker.stderr.resume();let settled=false;
@@ -94,7 +98,10 @@ export class PersonalMail {
       const abort=()=>finish('mail_cancelled'),timer=setTimeout(()=>finish('document_timeout'),60000);
       signal.addEventListener('abort',abort,{once:true});
       worker.once('message',value=>{const document=value?.document;finish(value?.error||(!(typeof document?.text==='string'&&document.text.trim()&&document.text.length<=100000&&typeof document.coverage==='string'&&document.coverage.length<=2000)?'document_read_failed':null),document);});worker.once('error',()=>finish('document_read_failed'));worker.once('exit',()=>finish('document_read_failed'));
-    });
+    }).then(document=>({document}),error=>({error}));
+    if(parsed.document)return parsed.document;
+    if(officeFallback&&['document_format','document_read_failed','document_password','document_empty'].includes(parsed.error?.message)&&!controller.signal.aborted)return await readOfficeDocument(bytes,attachment,{signal:controller.signal,directory,restrictDirectory:privateDir});
+    throw parsed.error;
     }finally{this.documentReaders.delete(controller);parentSignal.removeEventListener('abort',cancel);}
   }
   async readAttachments(){
@@ -109,14 +116,13 @@ export class PersonalMail {
       for(const attachment of mail.attachments){
         check();const key='attachment:'+row.id+':'+attachment.id,previous=this.store.get(key);
         try{
-          const nativeRequired=process.platform==='win32'&&!!officeDocumentFormat(attachment.filename,attachment.contentType);
-          if(previous?.sourceHash===row.sourceHash&&previous.sha256===attachment.sha256&&previous.state==='complete'&&(!nativeRequired||previous.reader==='office_com')){completed++;continue;}
+          if(previous?.sourceHash===row.sourceHash&&previous.sha256===attachment.sha256&&previous.state==='complete'){completed++;continue;}
           const bytes=await readFile(path.join(this.root,'raw',row.id,attachment.id+'.bin'));if(sha(bytes)!==attachment.sha256)throw new Error('mail_source_changed');
-          const document=!nativeRequired&&attachment.contentState==='text_read'&&attachment.text?{text:attachment.text,coverage:'첨부 본문 텍스트'}:await this.extractAttachment(bytes,attachment,controller.signal,path.join(this.root,'raw',row.id));
+          const document=attachment.contentState==='text_read'&&attachment.text?{text:attachment.text,coverage:'첨부 본문 텍스트'}:await this.extractAttachment(bytes,attachment,controller.signal,path.join(this.root,'raw',row.id));
           check();await this.source(row);check();
           this.store.set(key,{sourceHash:row.sourceHash,sha256:attachment.sha256,state:'complete',text:document.text,segments:document.segments||[],coverage:document.coverage,reader:document.reader||'document_parser',officeVersion:document.officeVersion||null,readerVersion:3});completed++;
         }catch(error){
-          check();const failure=['document_format','document_empty','document_limit','document_password','document_timeout','document_reader_busy','document_office_required','document_office_missing','document_office_version','document_office_policy','document_office_timeout','document_office_cleanup','document_office_read_failed','mail_source_changed'].includes(error.message)?error.message:'document_read_failed';
+          check();const failure=['document_format','document_empty','document_limit','document_password','document_vision_unavailable','document_timeout','document_reader_busy','document_office_required','document_office_missing','document_office_version','document_office_policy','document_office_timeout','document_office_cleanup','document_office_read_failed','mail_source_changed'].includes(error.message)?error.message:'document_read_failed';
           this.store.set(key,{sourceHash:row.sourceHash,sha256:attachment.sha256,state:'attention',error:failure,readerVersion:1});failures.push({id:attachment.id,filename:attachment.filename,error:failure});
         }
         this.store.set('mail:'+row.id,{...this.store.get('mail:'+row.id),attachmentProgress:{completed,total:mail.attachments.length}});
@@ -133,7 +139,6 @@ export class PersonalMail {
     const bytes=await readFile(path.join(current.attachmentDirectory,attachment.id+'.bin'));
     if(sha(bytes)!==attachment.sha256)throw Error('mail_source_changed');
     if(typeof document?.text!=='string'||!document.text.trim()||document.text.length>100000)throw Error('document_read_failed');
-    if(process.platform==='win32'&&officeDocumentFormat(attachment.filename,attachment.contentType)&&document.reader!=='office_com')throw Error('document_office_required');
     this.store.set('attachment:'+source.id+':'+attachment.id,{sourceHash:current.sourceHash,sha256:attachment.sha256,state:'complete',text:document.text,segments:document.segments||[],coverage:document.coverage,reader:document.reader||'document_parser',officeVersion:document.officeVersion||null,readerVersion:3});
     const row=this.store.get('mail:'+source.id),complete=current.mail.attachments.filter(item=>{const record=this.store.get('attachment:'+source.id+':'+item.id);return record?.state==='complete'&&record.sourceHash===current.sourceHash&&record.sha256===item.sha256&&(process.platform!=='win32'||!officeDocumentFormat(item.filename,item.contentType)||record.reader==='office_com');}).length;
     const finished=complete===current.mail.attachments.length;

@@ -1,5 +1,8 @@
 # Windows Office 첨부 읽기
 
+**2026-10-14 사용자 결정(이 문서의 아래 규칙을 대체):** 첨부는 먼저 누비의 문서 파서(DOCX mammoth, XLSX exceljs, PPTX XML)가 작업자 스레드에서 읽는다. 파서가 읽지 못한 바이트(`document_format`, `document_read_failed`, `document_password`, `document_empty`)만 Windows에서 Office 2016 COM으로 연다. NASCA 보호 파일은 올바른 ZIP이 아니라 파서가 실패하므로 자연히 Office 경로로 간다. 평문 파일은 Office를 열지 않는다. 캐시된 읽기 결과는 어느 읽기기(reader)든 그대로 쓴다.
+
+
 사용자 결정: 회사 NASCA 문서는 Office 2016에서 열어 읽는다. 2026-10-05 사용자가 `Office로 자동 열어 읽기`를 선택했다. 직접 바이너리/ZIP 파싱을 NASCA 지원으로 표시하지 않는다.
 
 ## 실제 연결

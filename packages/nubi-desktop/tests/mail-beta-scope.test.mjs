@@ -9,41 +9,30 @@ import {installDesktopFeatures} from '../runtime/desktop-features.mjs';
 import {DESKTOP_FEATURES} from '../runtime/beta-features.mjs';
 const sha=value=>createHash('sha256').update(value).digest('hex');
 
-test('Beta mail organizes the body without attachment parsing and preserves byte-exact downloads',async t=>{
-  assert.equal(DESKTOP_FEATURES.mailAttachmentReading,false);
+// Attachment reading is on since 1.2.1 (user decision 2026-10-14). The release policy test now checks that the
+// gates are open and that downloads stay byte-exact; the reading itself is covered by mail-knowledge and mail-search.
+test('mail attachment reading is on and the feature gates no longer refuse attachment access',async t=>{
+  assert.equal(DESKTOP_FEATURES.mailAttachmentReading,true);
   const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-beta-'));
-  const requests=[],host={storageRoot:path.join(root,'state'),agent:{running:true},providers:{
+  const host={storageRoot:path.join(root,'state'),agent:{running:true},providers:{
     status:()=>({connected:true,provider:'fixture',model:'fixture'}),
     catalogs:()=>[{provider:'fixture',models:[{id:'fixture'}]}],
-    complete:async messages=>{requests.push(messages);return {content:JSON.stringify({summary:'본문 예산 요청',category:'direct_request',priority:'high',facts:['메일 본문에 예산 요청이 있다.'],actionItems:[]})};}
+    complete:async()=>({content:JSON.stringify({summary:'본문 예산 요청',category:'direct_request',priority:'high',facts:['메일 본문에 예산 요청이 있다.'],actionItems:[]})})
   }};
   const mail=new PersonalMail(host,{personalRoot:path.join(root,'mail')});
   t.after(async()=>{mail.dispose();await rm(root,{recursive:true,force:true});});
   mail.autoWiki=true;mail.paused=false;mail.account='fixture-account';mail.credentials={};mail.destination={provider:'fixture',model:'fixture'};
   mail.store.set('account:'+mail.account,{seen:[]});
   await mkdir(mail.wikiRoot,{recursive:true});
-  const bytes=Buffer.from('ATTACHMENT_PRIVATE_TEXT'),attachment={id:'001-'+sha(bytes).slice(0,16),filename:'Budget.xlsx',contentType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',sha256:sha(bytes),contentState:'text_read',text:bytes.toString(),size:bytes.length};
+  const bytes=Buffer.from('ATTACHMENT_PRIVATE_TEXT'),attachment={id:'001-'+sha(bytes).slice(0,16),filename:'Budget.txt',contentType:'text/plain',sha256:sha(bytes),contentState:'text_read',text:bytes.toString(),size:bytes.length};
   await mail.intake({uidls:['one'],mails:[{uidl:'one',raw:Buffer.from('Original MIME'),attachments:[{...attachment,content:bytes}],normalized:{subject:'예산 확인',from:'sender@example.invalid',text:'본문 예산 요청',attachments:[attachment]}}]},mail.generation);
-  let row=mail.rows()[0];
-  // Simulate a prior release's failed attachment and extracted cache.
-  mail.store.set('mail:'+row.id,{...row,attachmentState:'attention'});
-  mail.store.set('attachment:'+row.id+':'+attachment.id,{sourceHash:row.sourceHash,sha256:attachment.sha256,state:'complete',text:'CACHED_PRIVATE_TEXT',segments:[{sheet:'Sheet1',text:'CACHED_PRIVATE_TEXT'}]});
-  let extractionCalls=0;mail.extractAttachment=async()=>{extractionCalls++;throw Error('must_not_parse');};
-  host.agent.running=false;await mail.readAttachments();await mail.drain();
-  assert.equal(extractionCalls,0);assert.equal(mail.rows()[0].state,'saved',JSON.stringify(mail.rows()[0]));assert.equal(requests.length,1);
-  assert.doesNotMatch(JSON.stringify(requests),/ATTACHMENT_PRIVATE_TEXT|CACHED_PRIVATE_TEXT/);
-  const source=await mail.read(row.id,{includeKnowledge:true});
-  assert.equal(source.mail.text,'본문 예산 요청');assert.equal(source.mail.attachments[0].text,'');assert.deepEqual(source.mail.attachments[0].segments,[]);assert.equal(source.knowledge.state,'current');
-  assert.equal(mail.status().counts.attachmentAttention,0);assert.equal(mail.progress().attention,0);
-  assert.equal((await mail.query('CACHED_PRIVATE_TEXT')).total,0);assert.equal((await mail.query('ATTACHMENT_PRIVATE_TEXT')).total,0);assert.equal((await mail.query('Budget')).total,1);assert.equal((await mail.query('예산 요청')).total,1);
+  host.agent.running=false;for(let i=0;i<200&&(mail.attachmentRead||!mail.store.get('attachment:'+mail.rows()[0].id+':'+attachment.id));i++)await new Promise(r=>setTimeout(r,25));await mail.readAttachments();await mail.drain();
+  const row=mail.rows()[0];
+  assert.equal(mail.store.get('attachment:'+row.id+':'+attachment.id)?.state,'complete','the text attachment is read with the mail');
   const downloaded=await mail.download({id:row.id,attachmentId:attachment.id,kind:'attachment',expectedSourceHash:row.sourceHash});
   assert.deepEqual(Buffer.from(downloaded.bytes,'base64'),bytes);
-  await assert.rejects(mail.evidence({id:row.id,sourceHash:row.sourceHash,attachmentId:attachment.id}),/mail_attachment_beta_disabled/);
   class Host {} installDesktopFeatures(Host);
-  await assert.rejects(new Host().mailDocument({id:row.id,attachmentId:attachment.id}),/mail_attachment_beta_disabled/);
-  await assert.rejects(PersonalMail.prototype.extractAttachment.call(mail,bytes,attachment,new AbortController().signal),/mail_attachment_beta_disabled/);
-  await assert.rejects(mail.rememberAttachmentDocument(source,attachment.id,{text:'blocked'}),/mail_attachment_beta_disabled/);
-  // Preserve prior Wiki files, but do not reuse notes whose attachment scope is unknown.
-  row=mail.rows()[0];const oldText='LEGACY_ATTACHMENT_FACT';await writeFile(row.path,oldText);mail.store.set('mail:'+row.id,{...row,contentScope:null,wikiHash:sha(oldText)});
-  const legacy=await mail.read(row.id,{includeKnowledge:true});assert.equal(legacy.knowledge.state,'unavailable');assert.equal(legacy.knowledge.reason,'legacy_attachment_scope');assert.equal((await mail.query('LEGACY_ATTACHMENT_FACT')).total,0);assert.equal(await readFile(row.path,'utf8'),oldText);
+  await new Host().mailDocument({id:row.id,attachmentId:attachment.id}).catch(error=>assert.notEqual(error.message,'mail_attachment_beta_disabled'));
+  const evidence=await mail.evidence({id:row.id,sourceHash:row.sourceHash,attachmentId:attachment.id});
+  assert.equal(evidence.attachmentId,attachment.id);assert.equal(evidence.attachmentHash,attachment.sha256);
 });
