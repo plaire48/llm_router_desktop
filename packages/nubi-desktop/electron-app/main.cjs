@@ -35,7 +35,7 @@ app.on('second-instance',()=>{if(!window||window.isDestroyed())return;if(window.
 protocol.registerSchemesAsPrivileged([{scheme:'app',privileges:{standard:true,secure:true,supportFetchAPI:true}},{scheme:'nubi-ghes',privileges:{standard:true,secure:true,supportFetchAPI:true}}]);
 let terminalHost,updater,installingUpdate=false;
 let window,worker,host,webHost,browserHost,mailPortal,claudeWeb,currentRoot=null,currentKind='project';const launchId=randomUUID();
-let claudeCliUsage=null;const {createClaudeCliUsage}=require('./claude-cli-usage.cjs');
+let claudeCliUsage=null,ghesCredentialCache=null;const {createClaudeCliUsage}=require('./claude-cli-usage.cjs');
 const storage=process.env.NUBI_STORAGE_ROOT||path.join(app.getPath('userData'),'workspace');
 const {ProjectCatalog}=require('./project-catalog.cjs');
 const projectCatalog=new ProjectCatalog(storage);
@@ -240,7 +240,9 @@ app.whenReady().then(async()=>{
     try{await mailPortal.connect(args);}catch(error){if(error.message!=='mail_cancelled')hostEvent({type:'mail_portal_failed',error:/^mail_[a-z_]+$/.test(error.message)?error.message:'mail_portal_request'});throw error;}
     hostEvent({type:'mail_portal_connected'});return portalMailStatus();
    }
-   if(args.action==='cancelConnect'&&args.requestId===mailPortal.requestId){await mailPortal.disconnect();return portalMailStatus();}
+   // Cancel stops whatever portal connection is running, even when the screen that asked was reopened and no longer
+   // holds the request id (user report 2026-10-14: 연결 취소 kept connecting).
+   if(args.action==='cancelConnect'){if(args.requestId===mailPortal.requestId||mailPortal.status().connecting)await mailPortal.disconnect();return portalMailStatus();}
    if(args.action==='disconnect'){await mailPortal.disconnect();return portalMailStatus();}
    if(args.action==='portalSync'||['check','retryDownloads'].includes(args.action)&&mailPortal.status().connected){await mailPortal.sync({manual:true});return portalMailStatus();}
    if(['pauseWatch','resumeWatch'].includes(args.action)){await invoke('mail',args);if(args.action==='pauseWatch')clearTimeout(mailPortal.timer);else if(mailPortal.status().connected)void mailPortal.sync().catch(()=>{});return portalMailStatus();}
@@ -273,11 +275,20 @@ app.whenReady().then(async()=>{
    const route=target.pathname;const allowed=/^\/api\/v3\/repos\/Manufacturing-IT\/ai_workspace(?:\/|$)/.test(route)||route==='/api/graphql'||route==='/api/v3/user'||/^\/api\/v3\/users\/[^/]+(?:\/|$)/.test(route)||/^\/api\/v3\/search\/users$/.test(route)||/^\/api\/v3\/orgs\/Manufacturing-IT\//.test(route)||/^\/api\/v3\/user\/orgs$/.test(route);
    if(!allowed)throw Error('ghes_route_denied');
    const methodName=String(args.method||'GET').toUpperCase();if(!['GET','POST','PUT','PATCH','DELETE'].includes(methodName))throw Error('method_invalid');
-   const credential=(await host.account.status()).connected?await host.account.credential():null;if(!credential?.token)throw Error('ghes_login_required');
+   // A verified credential is reused for two minutes of the same sign-in: verifying it re-reads the profile, which
+   // doubled every Talk, 문의 and app request and failed them all when that read hiccuped (2026-10-14).
+   let credential=null;
+   if((await host.account.status()).connected){
+    const generation=host.account.generation;
+    if(ghesCredentialCache&&ghesCredentialCache.generation===generation&&Date.now()-ghesCredentialCache.at<120000)credential=ghesCredentialCache;
+    else{credential={...await host.account.credential(),at:Date.now()};ghesCredentialCache=credential;}
+   }else ghesCredentialCache=null;
+   if(!credential?.token)throw Error('ghes_login_required');
    const headers={};for(const [key,value] of Object.entries(args.headers||{}))if(typeof value==='string'&&!/^(authorization|cookie|host)$/i.test(key))headers[key]=value;
    headers.Authorization='Bearer '+credential.token;if(!headers.Accept&&!headers.accept)headers.Accept='application/vnd.github+json';
    let body;if(args.body!=null){const text=String(args.body);if(text.length>24*1024*1024)throw Error('ghes_body_limit');body=args.bodyEncoding==='base64'?Buffer.from(text,'base64'):text;}
    const response=await fetch(target.href,{method:methodName,headers,body,redirect:args.redirect==='manual'?'manual':'follow',cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(60000)});
+   if(response.status===401)ghesCredentialCache=null;
    const chunks=[];let size=0;const reader=response.body?.getReader();if(reader){while(true){const next=await reader.read();if(next.done)break;size+=next.value.length;if(size>32*1024*1024){await reader.cancel();throw Error('ghes_response_limit');}chunks.push(next.value);}}
    const out={};for(const [key,value] of response.headers.entries())if(!/^set-cookie$/i.test(key))out[key]=value;
    return {status:response.status,statusText:response.statusText,headers:out,url:response.url,body:Buffer.concat(chunks.map(c=>Buffer.from(c))).toString('base64')};

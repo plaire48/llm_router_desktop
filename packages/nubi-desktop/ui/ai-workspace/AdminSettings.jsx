@@ -3,7 +3,7 @@ import {TeamAssignment} from './TeamAssignment.jsx';
 import {refreshTeamHistory,mergeTeamHistory} from './teamHistoryRefresh.js';
 import {SearchField} from './SearchField';
 import {createAdminClient, GHES_TEAMS_URL, E2E_ROLES} from './adminClient';
-import {GithubAvatar} from './AccountProfile';
+import {GithubAvatar,StatusEmoji} from './AccountProfile';
 import {githubIdentityLabel} from './githubIdentity';
 import {ActionButton} from './ActionButton';
 import {GithubRequestError} from './GithubRequestError';
@@ -33,7 +33,7 @@ const primaryKeys=['name','login','role'];
 const emptyHistory={items:[],loading:false,note:''};
 const auditPermissionNote='팀 변경 기록은 조직 Owner와 GitHub App의 조직 Administration 읽기 권한이 필요합니다.';
 function Identity({user,nameOnly=false}) {
-  return <span className="admin-identity"><GithubAvatar user={user} size="sm"/><span className="admin-person-name">{nameOnly?String(user.name||'').trim()||'—':githubIdentityLabel(user)}</span></span>;
+  return <span className="admin-identity"><GithubAvatar user={user} size="sm"/><span className="admin-person-name">{nameOnly?String(user.name||'').trim()||'—':githubIdentityLabel(user)}</span><StatusEmoji user={user}/></span>;
 }
 
 export function AdminSettings({user, onPendingChange, client:providedClient, focusLogin}) {

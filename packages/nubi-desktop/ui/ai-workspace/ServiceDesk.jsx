@@ -1,7 +1,8 @@
 import {CxSelect} from './CxSelect';
 import { ActionButton, ActionLink } from './ActionButton';
 import {useFeedback, ToastNotice} from './Toast';
-import React, { lazy, Suspense, useEffect, useId, useRef, useState } from 'react';
+import React, { createContext, lazy, Suspense, useContext, useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { HelpTrigger } from './HelpTrigger';
 import {CommunityStatus} from './CommunityStatus';
 import HelpPanel from './HelpPanel';
@@ -27,9 +28,18 @@ import './community.css';
 const TalkEditor=lazy(()=>import('./TalkEditor'));
 const loadInquiryTypes=async()=>{const definition={path:'data/masters/inquiry-types.json',bundled:inquiryTypesDocument};const remote=await loadGithubJson({...getGithubSession(),path:definition.path});return inquiryTypeOptions(remote?.document||definition.bundled);};
 
+// Nubi: a host page that already shows the 문의 title offers its header row here; the inquiry controls (sidebar toggle,
+// back, help, actions) then sit in that one row instead of a second header (user request 2026-10-14).
+export const InquiryHeaderSlot=createContext(null);
 export function InquiryPage({children, actions, onClose, busy, composing=false, sidebar, sidebarId, sidebarCollapsed=false, onToggleSidebar, showList=false}) {
-  const [help,setHelp]=useState(false), heading=useRef(null), id=useId();
+  const [help,setHelp]=useState(false), heading=useRef(null), id=useId(), slot=useContext(InquiryHeaderSlot);
   useEffect(()=>{heading.current?.focus();},[]);
+  const controls=<>{sidebar&&onToggleSidebar&&<ActionButton className="inquiry-sidebar-toggle" action={sidebarCollapsed?'showSidebar':'hideSidebar'} label={sidebarCollapsed?'문의 내역 펼치기':'문의 내역 접기'} aria-expanded={!sidebarCollapsed} aria-controls={sidebarId} onClick={onToggleSidebar}/>} {onClose&&<ActionButton action="back" aria-label="문의 목록" onClick={onClose} disabled={busy}/>}</>;
+  if(slot)return <section className={`service-desk-page is-slotted${composing?' is-composing':''}${sidebar?' has-inquiry-sidebar':''}${sidebarCollapsed?' is-inquiry-sidebar-collapsed':''}${showList?' is-inquiry-list':''}`} aria-label="문의">
+    {createPortal(<div className="service-desk-slot-controls">{controls}<HelpTrigger onClick={()=>setHelp(true)}/><div className="service-desk-page-actions">{actions}</div></div>,slot)}
+    {sidebar?<div className="inquiry-columns">{sidebar}<div className="service-desk-page-body">{children}</div></div>:<div className="service-desk-page-body">{children}</div>}
+    {help&&<HelpPanel initialTopic="support" onClose={()=>setHelp(false)}/>}
+  </section>;
   return <section className={`service-desk-page${composing?' is-composing':''}${sidebar?' has-inquiry-sidebar':''}${sidebarCollapsed?' is-inquiry-sidebar-collapsed':''}${showList?' is-inquiry-list':''}`} aria-labelledby={id}>
     <header className="service-desk-page-header">
       <div className="service-desk-page-title">{sidebar&&onToggleSidebar&&<ActionButton className="inquiry-sidebar-toggle" action={sidebarCollapsed?'showSidebar':'hideSidebar'} label={sidebarCollapsed?'문의 내역 펼치기':'문의 내역 접기'} aria-expanded={!sidebarCollapsed} aria-controls={sidebarId} onClick={onToggleSidebar}/>} {onClose&&<ActionButton action="back" aria-label="문의 목록" onClick={onClose} disabled={busy}/>}<h1 id={id} ref={heading} tabIndex={-1}>문의</h1><HelpTrigger onClick={()=>setHelp(true)}/></div>

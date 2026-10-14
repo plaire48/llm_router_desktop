@@ -3,7 +3,7 @@ import {createPortal} from 'react-dom';
 import {Icon} from './Icon';
 import {createTalkClient} from './talkClient';
 import {profileEmail} from './profileEmail';
-import {GithubAvatar} from './GithubAvatar';
+import {GithubAvatar,StatusEmoji} from './GithubAvatar';
 import './profile-tooltip.css';
 
 export function ProfileTooltip({id,user,login,anchor,loading,error,onMouseEnter,onMouseLeave}) {
@@ -16,7 +16,7 @@ export function ProfileTooltip({id,user,login,anchor,loading,error,onMouseEnter,
   },[anchor,user,loading,error]);
   return createPortal(<div ref={ref} id={id} role="tooltip" className="cx-profile-tooltip" style={position} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
     <GithubAvatar user={user||{login}}/>
-    <div><div className="cx-profile-tooltip-name"><strong>{user?.name||user?.login||login}</strong>{user?.name&&user.name!==(user.login||login)&&<span>({user?.login||login})</span>}</div>{email&&<div className="cx-profile-tooltip-email"><Icon name="mail" size={14}/><span>{email}</span></div>}{user?.bio&&<p>{user.bio}</p>}{!user&&<p>{loading?'프로필 불러오는 중…':error?'프로필을 불러오지 못했습니다.':'프로필을 찾을 수 없습니다.'}</p>}</div>
+    <div><div className="cx-profile-tooltip-name"><strong>{user?.name||user?.login||login}</strong><StatusEmoji user={user}/>{user?.name&&user.name!==(user.login||login)&&<span>({user?.login||login})</span>}</div>{email&&<div className="cx-profile-tooltip-email"><Icon name="mail" size={14}/><span>{email}</span></div>}{user?.bio&&<p>{user.bio}</p>}{!user&&<p>{loading?'프로필 불러오는 중…':error?'프로필을 불러오지 못했습니다.':'프로필을 찾을 수 없습니다.'}</p>}</div>
   </div>,anchor?.closest('.cx-panel-backdrop, .agent-mobile-layer')||document.body);
 }
 export function usePublicProfileHover(user,profileReader) {

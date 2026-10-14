@@ -323,6 +323,9 @@ try{
  await analyses.getByText('이전 분석 1개',{exact:true}).click();
  const reviewProgress=p.getByRole('region',{name:'분석 결과 검토',exact:true});
  await reviewProgress.getByText('보완할 결과가 있어요',{exact:true}).waitFor();
+ // The finished review is one closed accordion (user request 2026-10-14).
+ assert.equal(await reviewProgress.locator('.nubi-review-fold').getAttribute('open'),null);
+ await reviewProgress.locator('.nubi-review-fold > summary').click();
  assert.equal(await reviewProgress.locator('.nubi-review-open-items [data-check=unknown]').count(),1);
  await reviewProgress.locator('.nubi-review-open-items [data-check=unknown] p').waitFor();
  await reviewProgress.getByText('확인 항목',{exact:true}).click();

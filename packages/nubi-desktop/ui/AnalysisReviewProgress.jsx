@@ -12,16 +12,19 @@ function ReviewCheck({check}) {
 export function AnalysisReviewProgress({review,running}){
   const [expanded,setExpanded]=useState(null);
   const active=running&&review.state==='running',open=expanded??active;
+  const fold=!active&&['revise','ready'].includes(review.state);
   const checks=review.checks||[],unresolved=checks.filter(check=>check.state!=='supported');
   const supported=review.state==='ready'&&checks.length>0&&checks.every(check=>check.state==='supported')&&!review.omittedHandoffs&&!review.omittedUnresolvedHandoffs&&!review.nextStep;
   if(supported)return <details className="nubi-review-evidence" aria-label="확인한 근거"><summary><Icon name="check" size={14}/>확인한 근거 {checks.length}개<Icon name="chevronDown" size={14}/></summary><ol>{checks.map(check=><li key={check.requirementId}>{check.detail}</li>)}</ol></details>;
-  return <section className="nubi-document-progress nubi-result-review" aria-label="분석 결과 검토" data-state={review.state} data-tone={active?'active':['failed','interrupted'].includes(review.state)?'danger':'warning'}>
-    <div className="nubi-document-progress-heading" role="status"><Icon name={active?'search':'alertCircle'} size={18}/><strong>{active?'답변과 근거를 대조하고 있어요':labels[review.state]||'검토 응답 미확인'}</strong></div>
+  const tone=active?'active':['failed','interrupted'].includes(review.state)?'danger':'warning';
+  const heading=<div className="nubi-document-progress-heading" role="status"><Icon name={active?'search':'alertCircle'} size={18}/><strong>{active?'답변과 근거를 대조하고 있어요':labels[review.state]||'검토 응답 미확인'}</strong>{fold&&unresolved.length>0&&<span className="nubi-review-count">{unresolved.length}개</span>}{fold&&<Icon name="chevronDown" size={14}/>}</div>;
+  const next=review.nextStep&&<p className="nubi-review-next"><strong>다음 단계</strong><span>{review.nextStep}</span></p>;
+  const body=<>
     {review.state==='failed'&&<p>{failureReasons[review.reason]||'검토 응답을 받지 못했어요.'} 요청과 실행 기록은 보관했습니다. 아래 복구 버튼으로 이어갈 수 있어요.</p>}
     {!active&&unresolved.length>0&&<ul className="nubi-review-open-items" aria-label="남은 확인">{unresolved.map(check=><ReviewCheck key={check.requirementId} check={check}/>)}</ul>}
-    {review.nextStep&&<p className="nubi-review-next"><strong>다음 단계</strong><span>{review.nextStep}</span></p>}
+    {!fold&&next}
       {review.omittedUnresolvedHandoffs>0&&<p className="nubi-document-attention">제외된 분석 중 미해결 분담 {review.omittedUnresolvedHandoffs}개</p>}
-    <details open={open} onToggle={event=>{if(event.target===event.currentTarget&&event.currentTarget.open!==open)setExpanded(event.currentTarget.open);}}>
+    <details className="nubi-review-detail" open={open} onToggle={event=>{if(event.target===event.currentTarget&&event.currentTarget.open!==open)setExpanded(event.currentTarget.open);}}>
       <summary>확인 항목<Icon name="chevronDown" size={14}/></summary>
       {review.round>1&&<p className="nubi-muted">검토 {review.round}회</p>}
       {review.advisoryCount>0&&<p>하위 분석 {review.advisoryCount}개를 검토 입력에 포함했습니다.</p>}
@@ -30,5 +33,14 @@ export function AnalysisReviewProgress({review,running}){
       {review.reason&&<p className="nubi-muted">오류 코드: <code>{review.reason}</code></p>}
       {!checks.length&&!active&&<p>완료 여부는 아직 확인되지 않았어요.</p>}
     </details>
+  </>;
+  // A finished review that only asks for more work (보완할 결과, 남은 확인) folds into one closed accordion with the next
+  // step shown under it, at the bottom of the conversation (user request 2026-10-14). Failures stay open.
+  if(fold)return <section className="nubi-document-progress nubi-result-review" aria-label="분석 결과 검토" data-state={review.state} data-tone={tone} data-folded="">
+    <details className="nubi-review-fold"><summary>{heading}</summary>{body}</details>
+    {next}
+  </section>;
+  return <section className="nubi-document-progress nubi-result-review" aria-label="분석 결과 검토" data-state={review.state} data-tone={tone}>
+    {heading}{body}
   </section>;
 }

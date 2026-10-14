@@ -1,3 +1,4 @@
+import {createPortal} from 'react-dom';
 import {currentActivityRunId} from './conversation-activity.mjs';
 import {AnalysisReviewProgress} from './AnalysisReviewProgress.jsx';
 import {mergeRoleHistory} from './analysis-history-state.mjs';
@@ -48,7 +49,7 @@ function Record({record,running,showWork}) {
 }
 
 /** Read-only history. Request generations prevent stale pages crossing tasks or unmounts. */
-export function AnalysisHistory({api,task,showHistory=false}) {
+export function AnalysisHistory({api,task,showHistory=false,reviewSlot=null}) {
   const [records,setRecords]=useState([]),[next,setNext]=useState(null),[loading,setLoading]=useState(false),[error,setError]=useState(false);
   const generation=useRef(0),busy=useRef(false),failedCursor=useRef(undefined),paged=useRef(false);
   const running=task.state==='running';
@@ -89,7 +90,7 @@ export function AnalysisHistory({api,task,showHistory=false}) {
   if(showHistory&&!current.length&&merged.length)current.push(merged[0]);
   const earlier=merged.filter(record=>!current.includes(record));
   return <section className="nubi-analysis-history" aria-label="분석 과정과 이력">
-    {current.map(record=><Record key={key(record)} record={record} running={running} showWork={!!runId&&record.runId===runId}/>)}
+    {current.map(record=>{const item=<Record key={key(record)} record={record} running={running} showWork={!!runId&&record.runId===runId}/>;return record.kind==='review'&&reviewSlot&&!(running&&record.state==='running')?createPortal(item,reviewSlot,key(record)):item;})}
     {showHistory&&(earlier.length>0||next)&&<details className="nubi-analysis-older"><summary>이전 분석 {earlier.length?`${earlier.length}개`:''}<Icon name="chevronDown" size={14}/></summary>
       {earlier.map(record=><Record key={key(record)} record={record} running={running}/>)}
       {next&&<CxButton disabled={loading} onClick={()=>fetchPage(next)}><Icon name="chevronDown" size={16}/>이전 분석 더 보기</CxButton>}

@@ -6,9 +6,9 @@ import { githubDisplayIdentity, githubIdentityLabel } from './githubIdentity';
 import {createProfileClient} from './profileClient';
 import {E2E_ROLES} from './adminClient';
 import {ActionButton,ActionLink} from './ActionButton';
-import {GithubAvatar} from './GithubAvatar';
+import {GithubAvatar,StatusEmoji} from './GithubAvatar';
 import {UserIdentity} from './UserIdentity';
-export {GithubAvatar} from './GithubAvatar';
+export {GithubAvatar,StatusEmoji} from './GithubAvatar';
 import './account-profile.css';
 
 const Account = createContext(null);
@@ -57,7 +57,7 @@ export function GithubProfilePanel({account,title='프로필',onClose,client:pro
   const hasBasicInfo=Boolean(profile?.company||profile?.email||profile?.location||profile?.blog);
   const profileActions=profile&&<div className="profile-section-actions"><ActionButton action="refresh" label="프로필 새로고침" onClick={()=>setRevision(value=>value+1)}/>{profile.html_url&&<ActionLink action={profile.own?"edit":"openExternal"} label={profile.own?"GitHub 프로필 수정":"GitHub에서 보기"} className="profile-github-link" href={profile.own?`https://${new URL(profile.html_url).host}/settings/profile`:profile.html_url} target="_blank" rel="noopener noreferrer"/>}</div>;
   return <DetailPanel helpTopic="account" title={title} onClose={onClose} className="account-profile-panel">
-    <div className="profile-hero"><GithubAvatar user={identity} size="lg"/><div className="profile-heading"><h3>{identity?.name||identity?.login}</h3>{identity?.login&&<span className="profile-login">@{identity.login}</span>}{role&&<span className="profile-role">{role}</span>}</div></div>
+    <div className="profile-hero"><GithubAvatar user={identity} size="lg"/><div className="profile-heading"><h3>{identity?.name||identity?.login}<StatusEmoji user={identity}/></h3>{identity?.login&&<span className="profile-login">@{identity.login}</span>}{role&&<span className="profile-role">{role}</span>}</div></div>
     {loading?<div className="profile-feedback" role="status"><span className="status-spinner" aria-hidden="true"/>프로필을 불러오는 중…</div>:error?<div className="profile-feedback is-error" role="alert"><p>{error}</p><ActionButton action="refresh" label="프로필 다시 불러오기" onClick={()=>setRevision(value=>value+1)}/></div>:profile&&<>
       {profile.bio&&<p className="account-bio">{profile.bio}</p>}
       {hasBasicInfo?<section className="profile-section"><div className="profile-section-heading"><h3>기본 정보</h3>{profileActions}</div><dl className="profile-facts">

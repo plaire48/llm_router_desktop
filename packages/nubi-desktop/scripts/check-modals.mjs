@@ -176,7 +176,7 @@ try{
    await p.screenshot({path:path.join(dir,'skill-registration-'+width+'.png'),animations:'disabled'});await p.keyboard.press('Escape');await registration.waitFor({state:'hidden'});
  }
  checks.push('skill pagination across full local/company catalogs, filter reset, visible file/folder buttons, no trash toolbar, wide registration at 440/1280px');
- await p.getByRole('button',{name:'대화로 돌아가기'}).click();assert.equal(await input.inputValue(),'보존할 대화 초안');
+ /* The AI Workspace page has no back arrow any more (user request 2026-10-14); Escape returns to the conversation. */await p.locator('.nubi-skill-page h1').focus();await p.keyboard.press('Escape');assert.equal(await input.inputValue(),'보존할 대화 초안');
  await p.mouse.move(1,1);await input.blur();const surface=p.locator('.nubi-composer-surface').first();const calm=await surface.evaluate(el=>getComputedStyle(el).borderColor);await surface.hover();assert.equal(await surface.evaluate(el=>getComputedStyle(el).borderColor),calm);
  await input.focus();const focus=await surface.evaluate(el=>({border:getComputedStyle(el).borderColor,shadow:getComputedStyle(el).boxShadow}));/* No focus ring on the message box (user decision 2026-10-14): typing keeps its calm border and adds no shadow. */assert.equal(focus.border,calm);assert.equal(focus.shadow,'none');await p.screenshot({path:path.join(dir,'composer-soft-focus.png'),animations:'disabled'});
  checks.push('Nubi-only skill catalog, search during direct download, installed state, no embedded website, draft preservation and quiet composer hover/focus');

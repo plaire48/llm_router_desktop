@@ -24,7 +24,8 @@ export function createTalkClient({session=getServiceDeskSession(),config=TALK_CO
     let response;
     try {response=await fetchImpl(userProfile?`https://${host}/api/v3/users/${encodeURIComponent(path)}`:`${root}${path}`,{method,cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.timeout(30000),
       headers:{Accept:'application/vnd.github+json',...(signedIn?{Authorization:`Bearer ${session.token}`}:{ }),...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});}
-    catch {throw talkError(method==='GET'?'글을 불러오지 못했습니다. 다시 시도하세요.':'반영 결과를 확인하지 못했습니다. 새로고침으로 확인하세요.',-1);}
+    // The host's error code is shown so a failure on the company PC says why (2026-10-14).
+    catch(cause){throw talkError((method==='GET'?'글을 불러오지 못했습니다. 다시 시도하세요.':'반영 결과를 확인하지 못했습니다. 새로고침으로 확인하세요.')+(cause?.code?` (${cause.code})`:cause?.message&&/^[a-z_]+$/.test(cause.message)?` (${cause.message})`:''),-1);}
     if(response.status===404&&allow404){await response.body?.cancel();return null;}
     if(response.status===401&&!signedIn){
       await response.body?.cancel().catch(()=>{});

@@ -445,3 +445,15 @@ body.nubi-desktop-host {
 /* A short message gets a small bubble (user report 2026-10-14: "안녕" sat in a wide bubble): the bubble fits its own
    text instead of stretching to the time-and-copy row under it. */
 .desktop-shell .nubi-user-bubble { width:fit-content; max-width:100%; margin-left:auto; }
+
+/* AI Workspace and 문의 use the whole width (user request 2026-10-14: "좌우 너비 크게, 여백 없애고"). */
+.desktop-shell :is(.nubi-skill-page,.nubi-inquiry-page) > .nubi-skill-page-body { max-width:none; margin:0; padding-inline:var(--cx-space-4); }
+.desktop-shell .nubi-ai-workspace-embed { width:100%; max-width:none; }
+/* 문의 has one header row: its controls, help and actions sit beside the page title (user request 2026-10-14). */
+.desktop-shell .nubi-inquiry-header-slot { flex:1; min-width:0; display:flex; align-items:center; }
+.desktop-shell .service-desk-slot-controls { flex:1; min-width:0; display:flex; align-items:center; gap:var(--cx-space-2); }
+.desktop-shell .service-desk-slot-controls > .service-desk-page-actions { margin-left:auto; display:flex; align-items:center; gap:var(--cx-space-2); }
+.desktop-shell .nubi-inquiry-page .service-desk-page.is-slotted { padding-top:0; }
+/* The page's rail icon heads AI Workspace and 문의 instead of a back arrow (user request 2026-10-14). */
+.desktop-shell .nubi-page-mark { display:inline-flex; align-items:center; justify-content:center; flex:none; width:32px; height:32px; border-radius:10px; background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
+.desktop-shell .nubi-page-mark .nubi-team-mark { width:22px; height:22px; }

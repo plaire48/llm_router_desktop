@@ -1044,3 +1044,12 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 
 /* Top-right icons share one size and padding so the row reads evenly (user feedback 2026-10-14). */
 .desktop-shell .nubi-window-toolbar :is(.nubi-toolbar-actions,.nubi-toolbar-account) > .cx-kit-button:is([data-icon-only],.nubi-icon-button) { width:36px; min-width:36px; height:36px; padding:0; justify-content:center; }
+/* Folded review (보완할 결과): one closed row at the bottom of the conversation; the next step stays visible under it. */
+.desktop-shell .nubi-workbench .nubi-review-fold>summary { list-style:none; cursor:pointer; }
+.desktop-shell .nubi-workbench .nubi-review-fold>summary::-webkit-details-marker { display:none; }
+.desktop-shell .nubi-workbench .nubi-review-fold>summary>.nubi-document-progress-heading { color:var(--nubi-text-warning); }
+.desktop-shell .nubi-workbench .nubi-review-fold>summary .nubi-review-count { color:var(--nubi-text-secondary); font-weight:var(--nubi-weight-label); }
+.desktop-shell .nubi-workbench .nubi-review-fold>summary .nubi-document-progress-heading>svg:last-child { margin-inline-start:auto; transition:transform .2s ease; }
+.desktop-shell .nubi-workbench .nubi-review-fold[open]>summary .nubi-document-progress-heading>svg:last-child { transform:rotate(180deg); }
+.desktop-shell .nubi-workbench .nubi-result-review[data-folded]>.nubi-review-next { margin-block-end:0; }
+.nubi-review-slot:empty { display:none; }

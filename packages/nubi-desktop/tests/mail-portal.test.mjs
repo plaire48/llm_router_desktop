@@ -72,21 +72,24 @@ test('portal login opens inside the app browser tab, closes it after identificat
  await assert.rejects(pending,/mail_cancelled/);assert.equal(host.page,null);assert.deepEqual(closed,['tab-1','tab-2']);host.dispose();
 });
 
-function loginFixture({whiteLabel=false,backgroundExpired=false,homeOnly=false}={}){
+function loginFixture({whiteLabel=false,backgroundExpired=false,homeOnly=false,backgroundBlocked=false,passwordField=false}={}){
  const events=[],pages=[],handlers={},calls=[];
  const reply=operation=>operation==='identity'?{userId:'fixture-user',email:'owner@example.test'}:folders;
  function contents(url,{background=false,errorPage=false}={}){return {
   getURL:()=>url,isDestroyed:()=>false,isLoadingMainFrame:()=>false,stop:()=>events.push('stop'),
   session:{setPermissionRequestHandler(){}},on:(name,handler)=>{if(background)handlers[name]=handler;},setWindowOpenHandler:handler=>{if(background)handlers.popup=handler;},
   async executeJavaScript(source){
+   if(source.includes('document.querySelectorAll'))return vm.runInNewContext(source,{document:{body:{},querySelectorAll:()=>passwordField?[{getClientRects:()=>[1]}]:[]}});
    if(source.includes('document.body'))return vm.runInNewContext(source,{document:{body:{innerText:errorPage?'Whitelabel Error Page\nThis application has no explicit mapping for /error, so you are seeing this as a fallback.\nstatus=404':'Sign in'}}});
    const operation=JSON.parse(source.slice(source.lastIndexOf(')(')+2,-1)).operation;events.push((background?'reader:':'page:')+operation);
    if(background&&backgroundExpired)throw Error('mail_portal_login');return reply(operation);
   }
  };}
  // Like a real window: a load moves the page, except the mail origin while signed out, whose SSO redirect the guard blocks.
- class Window{constructor(){this.webContents=contents(ORIGIN,{background:true});}isDestroyed(){return false;}on(){}async loadURL(url){events.push('load:'+url);if(!(url===ORIGIN&&whiteLabel))this.webContents.getURL=()=>url;}hide(){}show(){throw Error('unexpected popup');}destroy(){}}
+ class Window{constructor(){this.webContents=contents(ORIGIN,{background:true});}isDestroyed(){return false;}on(){}async loadURL(url){events.push('load:'+url);if(!(url===ORIGIN&&(whiteLabel||backgroundBlocked)))this.webContents.getURL=()=>url;}hide(){}show(){throw Error('unexpected popup');}destroy(){}}
  const portal=contents(`${ORIGIN}/portal`),sso=contents('https://sso.example.test/signin',{errorPage:whiteLabel}),home=contents(LOGIN_URL);
+ // The login tab follows a navigation the host asks for, as the interactive browser does.
+ home.loadURL=async url=>{events.push('tab-load:'+url);home.getURL=()=>url;};
  const host=new MailPortal({BrowserWindow:Window,invoke:async(_method,args)=>{calls.push(args);return {};},openPage:(url,options)=>{events.push('login:'+url);pages.push({url,options});return {tabId:'login'};},getPageContents:()=>whiteLabel?[sso]:homeOnly?[home]:[sso,portal],closePage:()=>events.push('close-login')});host.sync=async()=>{};
  return {host,events,pages,handlers,calls,contents};
 }
@@ -114,4 +117,16 @@ test('a login that ends on the portal home is confirmed through the background w
  const {host,events,calls}=loginFixture({homeOnly:true});const status=await host.connect({});
  assert.equal(status.connected,true);assert.ok(events.includes(`load:${ORIGIN}`));assert.ok(events.includes('reader:identity'));assert.ok(!events.some(event=>event.startsWith('page:')),'nothing is injected into the portal home');
  assert.equal(calls.filter(c=>c.action==='portalConnect').length,1);host.dispose();
+});
+
+// The mail origin needs its own SSO round trip that only the interactive tab may make; once the tab shows a signed-in
+// company page it is sent there (user report 2026-10-14: "확인 중" never finished after signing in).
+test('a signed-in portal home tab is sent to the mail origin when the background window cannot sign in',async()=>{
+ const {host,events}=loginFixture({homeOnly:true,backgroundBlocked:true});const status=await host.connect({});
+ assert.equal(status.connected,true);assert.ok(events.includes(`tab-load:${ORIGIN}`));assert.ok(events.includes('page:identity'));host.dispose();
+});
+test('a tab still asking for a password is never moved',async()=>{
+ const {host,events}=loginFixture({homeOnly:true,backgroundBlocked:true,passwordField:true});
+ const pending=host.connect({});await new Promise(resolve=>setTimeout(resolve,2500));
+ assert.ok(!events.some(event=>event.startsWith('tab-load:')));await host.disconnect().catch(()=>{});await pending.catch(()=>{});host.dispose();
 });

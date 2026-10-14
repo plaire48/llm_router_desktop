@@ -33,5 +33,11 @@ async function portalFetch(input){
 }
 const LOGIN_URL=(()=>{const value=String(process.env.NUBI_MAIL_PORTAL_LOGIN_URL||'http://samsung.net');try{const url=new URL(value);if(['http:','https:'].includes(url.protocol)&&!url.username&&!url.password)return url.href;}catch{}return 'http://samsung.net/';})();
 // Source text for the page: the configured origin takes the placeholder's place (the function is serialised, so it cannot close over ORIGIN).
-const portalFetchSource=()=>portalFetch.toString().replace("'__NUBI_PORTAL_ORIGIN__'",JSON.stringify(ORIGIN));
+// The bundler may rewrite the placeholder's quotes, so either quote is matched; a source that kept the placeholder
+// would treat every page as signed out (user report 2026-10-14: login finished, "확인 중" forever), so it fails instead.
+const portalFetchSource=()=>{
+ const source=portalFetch.toString().replace(/(["'`])__NUBI_PORTAL_ORIGIN__\1/,JSON.stringify(ORIGIN));
+ if(source.includes('__NUBI_PORTAL_ORIGIN__'))throw Error('mail_portal_request');
+ return source;
+};
 module.exports={ORIGIN,LOGIN_URL,PATHS,folderKind,foldersOf,identityOf,portalFetch,portalFetchSource};

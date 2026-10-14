@@ -21,7 +21,8 @@ export function createWorkspaceClient({session={...getGithubSession(),user:readG
   const request=async url=>{
     let response;
     try{response=await fetchImpl(url,{cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.timeout(30000),headers:authenticated&&url.startsWith(origin)?{Authorization:`Bearer ${session.token}`,Accept:'application/vnd.github.object+json'}:{}});}
-    catch{throw resourceFailure('연결을 확인하고 다시 불러오세요.');}
+    // The host's error code is shown so a failure on the company PC says why (2026-10-14).
+    catch(cause){throw resourceFailure('연결을 확인하고 다시 불러오세요.'+(cause?.code?` (${cause.code})`:cause?.message&&/^[a-z_]+$/.test(cause.message)?` (${cause.message})`:''));}
     if(!response.ok)throw resourceFailure(({401:'로그인이 만료되었습니다. 다시 로그인하세요.',403:'저장소 접근 권한을 확인하세요.',404:'앱 목록 파일과 브랜치를 확인하세요.'})[response.status]||'앱을 불러오지 못했습니다.',response.status);
     try{return await response.json();}catch{throw resourceFailure('앱 응답 형식을 확인하세요.');}
   };

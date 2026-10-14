@@ -58,19 +58,14 @@ export function WikiTable({rows,selectedPath,sort,onSort,onOpen,filters,facets,o
 }
 
 export function WikiPagination({page,totalPages,total,offset,count,size,onPage,onSize,sort,onSort,disabled}){
- const [pageDraft,setPageDraft]=useState(String(page));
- useEffect(()=>setPageDraft(String(page)),[page]);
- const commit=()=>{const target=Number(pageDraft);if(Number.isInteger(target)&&target>=1)onPage(Math.min(totalPages,target));else setPageDraft(String(page));};
+ // Paging is the numbered pager under the table, as in skills (user request 2026-10-14); this keeps count and sort.
  return <div className="nubi-mail-pagination nubi-wiki-pagination">
   <details className="nubi-mail-page-options" onKeyDown={event=>{if(event.key==='Escape'){event.currentTarget.open=false;event.currentTarget.querySelector('summary').focus();}}}>
    <summary aria-label="위키 페이지 설정" title="페이지 이동과 목록 보기"><span aria-live="polite">{total?`${offset+1}–${offset+count} / ${total}`:'0개'}</span><Icon name="chevronDown" size={12}/></summary>
    <div className="nubi-mail-page-popover">
-    <label>페이지<span className="nubi-mail-page-number"><CxInput aria-label="위키 페이지" inputMode="numeric" value={pageDraft} disabled={disabled} maxLength={6} onChange={event=>{if(/^\d*$/.test(event.target.value))setPageDraft(event.target.value);}} onBlur={commit} onKeyDown={event=>{if(event.nativeEvent.isComposing)return;if(event.key==='Enter'){event.preventDefault();commit();}}}/><span>/ {totalPages}</span></span></label>
     <label>표시 개수<select aria-label="페이지당 문서 수" value={size} onChange={event=>onSize(Number(event.target.value))}>{WIKI_PAGE_SIZES.map(value=><option key={value} value={value}>{value}개씩</option>)}</select></label>
     <label>정렬<select aria-label="위키 정렬" value={sort} onChange={event=>onSort(event.target.value)}>{WIKI_SORTS.map(value=><option key={value} value={value}>{WIKI_SORT_LABELS[value]}</option>)}</select></label>
    </div>
   </details>
-  <ActionButton action="previousMedia" iconOnly label="이전 문서 페이지" disabled={disabled||page<=1} onClick={()=>onPage(page-1)}/>
-  <ActionButton action="nextMedia" iconOnly label="다음 문서 페이지" disabled={disabled||page>=totalPages} onClick={()=>onPage(page+1)}/>
  </div>;
 }

@@ -75,6 +75,28 @@ class MailPortal {
   }
   return this.readContents(contents,operation,input);
  }
+ // After signing in on the portal home the mail origin still needs its own SSO round trip, which only the interactive
+ // tab may make (user report 2026-10-14: login done, "확인 중" forever). Once the tab is on a company page that is not a
+ // sign-in step (no password or one-time code field, no sign-in path), it is sent to the mail origin. Reads a fixed
+ // boolean only; never collects the page. At most once every 8 s.
+ async advanceLoginTab(){
+  if(!this.page||!this.getPageContents)return false;
+  const now=Date.now();if(now-(this.advanceAttempt||0)<8000)return false;
+  let company='';try{company=new URL(LOGIN_URL).hostname.replace(/^www\./,'');}catch{return false;}
+  const rows=[...this.getPageContents(this.page.tabId)].filter(contents=>!contents.isDestroyed()&&!contents.isLoadingMainFrame());
+  for(const contents of rows){try{if(new URL(contents.getURL()).origin===ORIGIN)return false;}catch{}}
+  for(const contents of rows.reverse()){
+   let url;try{url=new URL(contents.getURL());}catch{continue;}
+   if(!['http:','https:'].includes(url.protocol)||!(url.hostname===company||url.hostname.endsWith('.'+company)))continue;
+   if(/(login|logon|signin|sso|auth|otp|cert|mfa|password)/i.test(url.pathname+url.search))continue;
+   let signedIn=false;
+   try{signedIn=await contents.executeJavaScript(`(()=>{const visible=e=>!!(e&&e.getClientRects&&e.getClientRects().length);return ![...document.querySelectorAll('input[type="password"],input[autocomplete="one-time-code"]')].some(visible)&&!!document.body;})()`)===true;}catch{}
+   if(!signedIn)continue;
+   this.advanceAttempt=now;try{await contents.loadURL(ORIGIN);}catch{}
+   return true;
+  }
+  return false;
+ }
  async loginPageFailed(){
   if(!this.page||!this.getPageContents)return false;
   for(const contents of this.getPageContents(this.page.tabId)){
@@ -92,7 +114,7 @@ class MailPortal {
    const deadline=Date.now()+5*60*1000;
    while(epoch===this.epoch&&Date.now()<deadline){
     try{({identity,folders}=await this.identify());break;}
-    catch(error){if(await this.loginPageFailed())throw Error('mail_portal_sso');if(!['mail_portal_login','mail_portal_request','mail_portal_format'].includes(error.message))throw error;await wait(2000);}
+    catch(error){if(await this.loginPageFailed())throw Error('mail_portal_sso');if(!['mail_portal_login','mail_portal_request','mail_portal_format'].includes(error.message))throw error;if(epoch!==this.epoch)break;await this.advanceLoginTab();await wait(2000);}
    }
    if(epoch!==this.epoch)throw Error('mail_cancelled');if(!identity||!folders)throw Error('mail_portal_timeout');
    if(this.page&&this.getPageContents){

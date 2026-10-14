@@ -1,3 +1,4 @@
+import {ghesFetch} from './hostFetch.js';
 import {GHES_CONFIG,TALK_CONFIG} from './config.js';
 import {createTalkClient} from './talkClient.js';
 import {TALK_LIMITS,TALK_UUID,talkError,talkOwner,talkCanManage,talkPermalink,talkModerator} from './talkModel.js';
@@ -26,7 +27,9 @@ const samePost=(a,b)=>a.updatedAt===b.updatedAt&&a.body===b.body&&a.title===b.ti
 // Inquiry continues to use the separate Issues client; no inquiry data is migrated.
 export function createDiscussionClient(options={}) {
   const legacy=options.legacy||createTalkClient(options),{session,signedIn}=legacy;
-  const config=options.config||TALK_CONFIG,fetchImpl=options.fetchImpl||fetch,baseUrl=options.baseUrl||globalThis.location?.href||'https://localhost/';
+  // Nubi: GitHub calls go through the host, which holds the SSO token (a direct fetch carried only the placeholder and
+  // failed: "게시판 응답을 확인하지 못했습니다", user report 2026-10-14).
+  const config=options.config||TALK_CONFIG,fetchImpl=options.fetchImpl||ghesFetch,baseUrl=options.baseUrl||globalThis.location?.href||'https://localhost/';
   const variables={owner:config.owner,name:config.repo},uncertain=new Map(),locks=new Set();
   const pinStore=options.pinStore||createDiscussionPinStore({host:GHES_CONFIG.host,owner:config.owner,repo:config.repo,branch:config.branch||GHES_CONFIG.branch,token:session?.token,fetchImpl});
   let pinOverrides=new Map();
@@ -38,7 +41,8 @@ export function createDiscussionClient(options={}) {
     try {response=await fetchImpl(`https://${GHES_CONFIG.host}/api/graphql`,{method:'POST',credentials:'omit',redirect:'error',cache:'no-store',
       headers:{Authorization:`Bearer ${session.token}`,Accept:'application/json','Content-Type':'application/json'},
       signal:signal?AbortSignal.any([signal,AbortSignal.timeout(30000)]):AbortSignal.timeout(30000),body:JSON.stringify({query,variables:values})});}
-    catch {signal?.throwIfAborted();throw talkError('게시판 응답을 확인하지 못했습니다. 다시 시도하세요.',-1);}
+    // The host's error code is shown so a failure on the company PC says why (2026-10-14).
+    catch(cause){signal?.throwIfAborted();throw talkError('게시판 응답을 확인하지 못했습니다. 다시 시도하세요.'+(cause?.code?` (${cause.code})`:cause?.message&&/^[a-z_]+$/.test(cause.message)?` (${cause.message})`:''),-1);}
     const diagnostic=githubRequestDiagnostic(`https://${GHES_CONFIG.host}/api/graphql`,'POST',response,session.token).diagnosticText;
     const operation=/^(?:query|mutation) (E2E[A-Za-z]+)\(/.exec(query)?.[1]||'확인 불가';
     const diagnose=error=>Object.assign(error,{diagnosticText:`${diagnostic}\n작업: ${operation}`});

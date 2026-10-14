@@ -69,9 +69,11 @@ await p.screenshot({path:path.join(dir,`execution-${width}.png`),animations:'dis
  await p.getByRole('button',{name:'대화 검색',exact:true}).click();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/긴 업무 문서의 요구사항/}).click();
  await p.getByText('이전 분석 1개',{exact:true}).click();
  const review=p.getByRole('region',{name:'분석 결과 검토',exact:true});
+ assert.equal(await review.locator('.nubi-review-fold').getAttribute('open'),null);
+ await review.locator('.nubi-review-fold > summary').click();
  await review.locator('.nubi-review-open-items p').waitFor();
  assert(await review.getByText('파일 재열기 근거가 없습니다.',{exact:true}).isVisible());
- assert.equal(await review.locator('details').getAttribute('open'),null);
+ assert.equal(await review.locator('.nubi-review-detail').getAttribute('open'),null);
  await review.scrollIntoViewIfNeeded();await p.screenshot({path:path.join(dir,'review-next-action.png'),animations:'disabled'});
  await p.goto('http://127.0.0.1:'+server.address().port+'/?integrated&progress&activity-readability&polling-response');
  const pollingOpen=p.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await pollingOpen.count())await pollingOpen.click();
