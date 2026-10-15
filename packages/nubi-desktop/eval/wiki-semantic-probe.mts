@@ -12,7 +12,7 @@ if(!/^wiki-[a-z0-9-]+$/.test(outputName))throw Error('invalid_evaluation_output'
 const out=path.resolve('verification',outputName);await mkdir(out,{recursive:true});
 const cases=[
   {id:'whole-order-page',corpus:'order-service',statement:'createOrder는 할인 후 금액을 shippingFee에 전달합니다.',pageFile:'eval/review-fixtures/order-overclaim.md',sources:['src/order.mjs','src/discount.mjs','src/shipping.mjs','src/status.mjs','src/legacy/export.mjs','package.json','README.md','AGENTS.md','test/order.test.mjs','test/discount.test.mjs','test/shipping.test.mjs'],expected:false},
-  {id:'whole-cache-page',corpus:'cache-retry',statement:'lookup은 캐시 조회 후 미스에서 fetchItem을 호출합니다.',pageFile:'eval/review-fixtures/cache-clock-overclaim.md',sources:['src/cache.mjs','src/retry.mjs','src/service.mjs','test/boundaries.mjs','README.md','package.json','AGENTS.md'],expected:false},
+  {id:'whole-cache-page',corpus:'cache-retry',statement:'lookup은 캐시 조회 후 미스에서 fetchItem을 호출합니다.',pageFile:'eval/review-fixtures/cache-clock-overclaim.md',sources:['src/cache.mjs','src/retry.mjs','src/service.mjs','test/boundaries.mjs','README.md','package.json'],expected:false},
   {id:'function-scoped-only',corpus:'order-service',statement:'applyDiscount 함수 내부에서 invalid_amount를 직접 던지는 조건은 amount가 정수가 아니거나 음수인 경우뿐입니다. 다른 함수에서 발생하는 오류를 설명하는 문장은 아닙니다.',sources:['src/order.mjs','src/discount.mjs','src/shipping.mjs'],expected:true},
   {id:'order-overflow',corpus:'order-service',statement:'applyDiscount가 소계를 검증하므로 실제 createOrder 흐름에서는 shippingFee의 invalid_amount에 도달하지 않습니다.',sources:['src/order.mjs','src/discount.mjs','src/shipping.mjs'],expected:false},
   {id:'order-fractional',corpus:'order-service',statement:'createOrder는 모든 상품의 가격과 수량이 정수인지 개별 검증하여 소수 가격을 항상 거절합니다.',sources:['src/order.mjs','src/discount.mjs'],expected:false},
@@ -26,7 +26,9 @@ const cases=[
 const report:any=process.argv.includes('--append')?JSON.parse(await readFile(path.join(out,'probes.json'),'utf8')):{model:null,results:[]},claude=createClaudeCode({contextWindows:null});
 try{
   await claude.connect();claude.model('opus');claude.reasoning('medium');report.model={id:claude.status().model,effort:claude.status().reasoningEffort};
-  for(const task of process.argv.includes('--state-only')?cases.filter(item=>item.id.startsWith('state-before-failure')):process.argv.includes('--scope-only')?cases.filter(item=>['whole-order-page','function-scoped-only'].includes(item.id)):process.argv.includes('--whole-only')?cases.filter(item=>item.id==='whole-order-page'):cases){
+  const selectedCase=process.argv.find(arg=>arg.startsWith('--case='))?.slice(7);
+  if(selectedCase&&!cases.some(item=>item.id===selectedCase))throw Error('unknown_probe_case');
+  for(const task of selectedCase?cases.filter(item=>item.id===selectedCase):process.argv.includes('--state-only')?cases.filter(item=>item.id.startsWith('state-before-failure')):process.argv.includes('--scope-only')?cases.filter(item=>['whole-order-page','function-scoped-only'].includes(item.id)):process.argv.includes('--whole-only')?cases.filter(item=>item.id==='whole-order-page'):cases){
     const workspace=await createWorkspace({corpus:task.corpus}),controller=new AbortController(),timer=setTimeout(()=>controller.abort(),180000),started=Date.now();
     const row:any={id:task.id,reviewSourceHash:createHash('sha256').update(await readFile('../../packages/openwiki/src/agent/repository-semantic-review.ts')).digest('hex'),expected:task.expected,corpusHash:workspace.corpusHash,transcript:[]};report.results.push(row);
     const model=new NubiOpenWikiModel({signal:controller.signal,modelId:claude.status().model,taskId:null,complete:async(messages:any,tools:any)=>{
