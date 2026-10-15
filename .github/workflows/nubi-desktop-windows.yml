@@ -55,6 +55,8 @@ jobs:
           $parseErrors = $null
           [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path scripts/Publish-NubiUpdate.ps1), [ref]$null, [ref]$parseErrors) | Out-Null
           if ($parseErrors.Count) { throw ($parseErrors | Out-String) }
+      - name: Verify native mail form and SSO recovery
+        run: node scripts/check-mail-inline-sso.mjs
       - name: Build standalone Electron installer with bird icon
         run: npm run package:windows
       - name: Verify 1.2.0 fixes
@@ -73,8 +75,6 @@ jobs:
         run: |
           node --test --test-concurrency=1 tests/process-idle.test.mjs tests/interactive-terminal.test.mjs tests/setup-actions.test.mjs tests/recovery.test.mjs tests/mcp-approval-flow.test.mjs tests/tool-argument-view.test.mjs tests/mail-browser-login.test.mjs tests/workspace-inquiry-flow.test.mjs tests/mail-auth-lifecycle.test.mjs tests/mail-session-recovery.test.mjs tests/mail-attachment-recovery.test.mjs tests/mail-credential-login.test.mjs tests/mail-portal-bundle.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Verify native mail form and SSO recovery
-        run: node scripts/check-mail-inline-sso.mjs
       - name: Check packaged project navigation before installation
         run: |
           $env:NUBI_TEST_EXECUTABLE = (Resolve-Path 'release/windows/win-unpacked/Nubi Workspace.exe').Path
