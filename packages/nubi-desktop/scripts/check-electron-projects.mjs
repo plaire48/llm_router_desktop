@@ -25,10 +25,11 @@ async function menu(name){
 async function resize(width,height){await (await app.browserWindow(page)).evaluate((win,size)=>win.setContentSize(size.width,size.height),{width,height});await page.waitForFunction(width=>innerWidth===width,width,{polling:100});}
 try{
  await launch();await resize(1480,960);await page.getByRole('button',{name:task.request,exact:true}).click();
- const plan=page.locator('.nubi-agent-activity .task-plan details[data-plan-overview]'),trace=page.locator('.nubi-agent-activity .agent-trace');
+ const plan=page.locator('.nubi-agent-activity .task-plan details[data-plan-overview]'),record=page.locator('.nubi-agent-activity .nubi-activity-record').first(),trace=page.locator('.nubi-agent-activity .agent-trace').first();
  assert.equal(await plan.getAttribute('open'),null,'result plan starts collapsed');
- const traceDetails=trace;
- assert.equal(await traceDetails.getAttribute('open'),null,'result trace starts collapsed');await traceDetails.locator(':scope > summary').click();assert.notEqual(await traceDetails.getAttribute('open'),null,'user can reopen finished progress');
+ /* The finished journal folds as one record (2026-10-15): the reader opens it, then a tool block inside it. */
+ assert.equal(await record.getAttribute('open'),null,'result record starts collapsed');await record.locator(':scope > summary').click();assert.notEqual(await record.getAttribute('open'),null,'user can reopen finished progress');
+ if(await trace.count()&&await trace.getAttribute('open')===null)await trace.locator(':scope > summary').click();
  if(!await page.locator('.nubi-cited-sources .nubi-answer-source').isVisible())await page.locator('.nubi-cited-disclosure>summary').click();await page.locator('.nubi-cited-sources .nubi-answer-source').click();await page.getByRole('tab',{name:/notes\.md/}).waitFor();await page.waitForFunction(()=>/Original\s+evidence/.test(document.querySelector('.monaco-editor .view-lines')?.textContent||''));assert.match(await page.locator('.monaco-editor .view-lines').first().innerText(),/Original\s+evidence/);checks.push('saved answer opens original source at the correct project with hash protection; finished progress can reopen');
  // A restored window can use the narrow overlay layout on a Windows runner.
  // Return to the conversation through the same close control the user has.

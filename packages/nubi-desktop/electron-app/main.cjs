@@ -10,7 +10,7 @@ const {ghesImageTarget,fetchGhesImage}=require('./ghes-image.cjs');
 const {browseLocalDirectory,readLocalFile}=require('./local-file-view.cjs');
 const {startWebHost}=require('./web-host.cjs');
 const {installationStamp}=require('./installation-stamp.cjs');
-const {captureImage}=require('./capture-image.cjs');
+const {captureWindow}=require('./window-capture.cjs');
 const {PlaywrightHost}=require('./playwright-host.cjs');
 const {BrowserHost}=require('./browser-host.cjs');
 const {MailPortal}=require('./mail-portal.cjs');
@@ -76,7 +76,7 @@ const COMPANY_PARTITION='persist:nubi-company';
 function companySession(){const value=session.fromPartition(COMPANY_PARTITION);if(!value.nubiCompanyReady){value.nubiCompanyReady=true;value.setPermissionRequestHandler((_wc,permission,callback)=>callback(permission==='clipboard-sanitized-write'));value.setPermissionCheckHandler((_wc,permission)=>permission==='clipboard-sanitized-write');}return value;}
 // One bounded PNG of Nubi's own window for the agent (user request 2026-10-14: "인앱 내에서라도" screen capture), so a
 // question about what the app shows can be answered from the screen. Only this app's window, never the desktop.
-async function captureAppWindow(options={}){if(!window||window.isDestroyed())throw Error('browser_unavailable');const [width,height]=window.getContentSize();return {...captureImage(await window.webContents.capturePage(),options,{width,height}),url:'nubi://workspace',title:window.getTitle()||'누비 Workspace'};}
+async function captureAppWindow(options={}){return captureWindow(window,browserHost,options);}
 function openWorkspacePage(url,options={}){if(!browserHost||!window||window.isDestroyed())throw Error('browser_unavailable');const tab=browserHost.create(workspacePageUrl(url),options);window.webContents.send('nubi:browser-event',{type:'opened',state:browserHost.status()});return {opened:true,tabId:tab.id,userInteractionRequired:true};}
 function openPageLink(url){try{openWorkspacePage(url);}catch(error){window.webContents.send('nubi:browser-event',{type:'error',error:/^[a-z_]+$/.test(error.message)?error.message:'browser_url_invalid'});}}
 const {createDecisionNotices}=require('./decision-notices.cjs');

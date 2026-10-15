@@ -13,3 +13,25 @@ function captureImage(image,{clip,maxWidth=1600}={},viewport=image.getSize()){
  return {image:bytes.toString('base64'),...image.getSize(),viewport:{width:viewport.width,height:viewport.height},...(clip?{clip}:{}),mimeType:'image/png'};
 }
 module.exports={captureImage};
+
+// DOM readiness can precede the first compositor surface. Retry only this
+// transient Electron condition, never arbitrary failures or white page pixels.
+async function captureSurface(contents){
+ let resumeThrottling=false;
+ try{
+  for(let attempt=0;attempt<4;attempt++){
+   if(contents.isDestroyed())throw Error('browser_capture_unavailable');
+   try{return await contents.capturePage();}catch(error){
+    if(!/Current display surface not available for capture/.test(error?.message||''))throw error;
+    if(attempt===3)throw Error('browser_capture_unavailable');
+    // Occluded windows can have a ready DOM but no frame. Allow painting only
+    // during capture, without focusing, showing or navigating the page.
+    if(!resumeThrottling&&contents.getBackgroundThrottling()){
+     contents.setBackgroundThrottling(false);resumeThrottling=true;
+    }
+    await new Promise(resolve=>setTimeout(resolve,50));
+   }
+  }
+ }finally{if(resumeThrottling&&!contents.isDestroyed())contents.setBackgroundThrottling(true);}
+}
+module.exports.captureSurface=captureSurface;

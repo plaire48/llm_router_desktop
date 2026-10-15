@@ -13,8 +13,9 @@ export function CaptureOverlay({onSelect,onCancel,preview=null}){
   },[onCancel]);
   const [viewport,setViewport]=useState({width:window.innerWidth,height:window.innerHeight});
   useEffect(()=>{const resized=()=>{start.current=null;setRect(null);setViewport({width:window.innerWidth,height:window.innerHeight});};window.addEventListener('resize',resized);return()=>window.removeEventListener('resize',resized);},[]);
-  const scale=preview?Math.min((viewport.width-48)/preview.width,(viewport.height-104)/preview.height,1):1;
-  const bounds=preview?{x:(viewport.width-preview.width*scale)/2,y:64,width:preview.width*scale,height:preview.height*scale}:{x:0,y:0,width:viewport.width,height:viewport.height};
+  const windowPreview=preview?.target==='window';
+  const scale=windowPreview?Math.min(viewport.width/preview.width,viewport.height/preview.height):preview?Math.min((viewport.width-48)/preview.width,(viewport.height-104)/preview.height,1):1;
+  const bounds=windowPreview?{x:0,y:0,width:preview.width*scale,height:preview.height*scale}:preview?{x:(viewport.width-preview.width*scale)/2,y:64,width:preview.width*scale,height:preview.height*scale}:{x:0,y:0,width:viewport.width,height:viewport.height};
   const point=event=>({x:Math.max(bounds.x,Math.min(bounds.x+bounds.width,event.clientX)),y:Math.max(bounds.y,Math.min(bounds.y+bounds.height,event.clientY))});
   const box=(a,b)=>({x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),width:Math.abs(a.x-b.x),height:Math.abs(a.y-b.y)});
   return createPortal(<div className="nubi-capture-overlay" role="dialog" aria-label="캡처할 영역 선택" data-dragging={!!rect||undefined}
@@ -26,8 +27,8 @@ export function CaptureOverlay({onSelect,onCancel,preview=null}){
       const chosen=area.width>=MIN&&area.height>=MIN?area:bounds;
       onSelect(preview?{x:(chosen.x-bounds.x)/scale,y:(chosen.y-bounds.y)/scale,width:chosen.width/scale,height:chosen.height/scale,imagePixels:true}:chosen);
     }}>
-    {preview&&<img src={'data:image/png;base64,'+preview.image} alt="캡처할 웹페이지" draggable={false} style={{position:'absolute',left:bounds.x,top:bounds.y,width:bounds.width,height:bounds.height,pointerEvents:'none',borderRadius:8}}/>}
-    <p className="nubi-capture-hint">{rect?`${Math.round(rect.width/scale)} × ${Math.round(rect.height/scale)}`:(preview?'끌어서 영역 선택. 클릭하면 웹페이지 전체, Esc는 취소':'끌어서 영역 선택. 클릭하면 창 전체, Esc는 취소')}</p>
+    {preview&&<img src={'data:image/png;base64,'+preview.image} alt={windowPreview?'캡처할 Workspace 화면':'캡처할 웹페이지'} draggable={false} style={{position:'absolute',left:bounds.x,top:bounds.y,width:bounds.width,height:bounds.height,pointerEvents:'none',borderRadius:windowPreview?0:8}}/>}
+    <p className="nubi-capture-hint">{rect?`${Math.round(rect.width/scale)} × ${Math.round(rect.height/scale)}`:(preview&&!windowPreview?'끌어서 영역 선택. 클릭하면 웹페이지 전체, Esc는 취소':'끌어서 영역 선택. 클릭하면 창 전체, Esc는 취소')}</p>
     {rect&&<div className="nubi-capture-rect" style={{left:rect.x,top:rect.y,width:rect.width,height:rect.height}}/>}
   </div>,document.body);
 }
