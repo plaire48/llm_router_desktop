@@ -1,12 +1,5 @@
 .nubi-mail-login-title { display:inline-flex; align-items:center; gap:var(--cx-space-2); }
 .nubi-mail-login-form { min-width:0; color:var(--nubi-text-primary); }
-.nubi-mail-login-fields { display:grid; grid-template-columns:minmax(0,1fr); gap:var(--cx-space-2); }
-.nubi-mail-login-fields label { font:var(--deck-font-caption); font-weight:var(--nubi-weight-emphasis); }
-.nubi-mail-login-fields label:not(:first-child) { margin-top:var(--cx-space-2); }
-.nubi-mail-login-fields input { min-width:0; width:100%; }
-.nubi-mail-login-actions { display:grid; gap:var(--cx-space-3); margin-top:var(--cx-space-4); }
-.nubi-mail-login-actions small { display:flex; align-items:center; gap:var(--cx-space-2); font:var(--deck-font-caption); color:var(--nubi-text-secondary); }
-.nubi-mail-login-actions button { width:100%; }
 .nubi-mail-login-form p { display:flex; align-items:center; gap:var(--cx-space-2); font:var(--deck-font-caption); line-height:1.6; }
 .nubi-mail-login-form p svg { flex:none; }
 .nubi-mail-login-form [role=alert] { color:var(--nubi-text-danger); }

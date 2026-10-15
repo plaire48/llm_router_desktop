@@ -1,10 +1,10 @@
-const {MailCredentialLogin}=require('./mail-credential-login.cjs');
 const {loginRedirect}=require('./mail-session-recovery.cjs');
 const {mailSessionFetch}=require('./mail-session-fetch.cjs');
 const {ORIGIN,LOGIN_URL,portalOrigin,foldersOf,identityOf,portalFetch,portalFetchSource}=require('./mail-portal-contract.cjs');
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const MAIL_POLL_INTERVAL_MS=5*60*1000;
 const loginLocation=value=>{try{return loginRedirect(new URL(value),LOGIN_URL);}catch{return false;}};
+const homeLocation=value=>{try{const url=new URL(value),home=new URL(LOGIN_URL);return !url.username&&!url.password&&url.hostname===home.hostname&&url.port===home.port&&(url.origin===home.origin||home.protocol==='http:'&&url.protocol==='https:')&&!loginLocation(value);}catch{return false;}};
 class MailPortal {
  // Login happens in the app's own browser tab (openPage/closePage) when the host offers one; the hidden window only
  // runs the read-only portal fetches on the same persistent session (user request 2026-10-14: no separate popup).
@@ -71,7 +71,7 @@ class MailPortal {
    // popup). Leave it open for user input; expired API probes returning 403
    // must not end that interactive login before it returns to the portal.
    const active=rows.at(-1);
-   if(rows.some(contents=>contents.isLoadingMainFrame())||(active&&(!portalOrigin(active.getURL(),this.origin)||loginLocation(active.getURL()))))throw Error('mail_portal_login');
+   if(rows.some(contents=>contents.isLoadingMainFrame())||(active&&(!portalOrigin(active.getURL(),this.origin)&&!homeLocation(active.getURL())||loginLocation(active.getURL()))))throw Error('mail_portal_login');
    for(const contents of rows.reverse()){
     if(contents.isDestroyed()||contents.isLoadingMainFrame())continue;
     const portal=portalOrigin(contents.getURL(),this.origin);
@@ -135,12 +135,7 @@ class MailPortal {
   try{
    // Finish an invalidated restore before starting the interactive session. No overlapping SSO requests.
    this.window?.webContents.stop?.();await this.restoring;if(epoch!==this.epoch)throw Error('mail_cancelled');
-   await this.windowForLogin(!args.credentials,epoch);this.state.loginStage='authenticating';
-   if(args.credentials){
-    const login=new MailCredentialLogin({BrowserWindow:this.BrowserWindow,session:this.window.webContents.session,signal:this.access.signal});
-    await login.run(args.credentials);if(epoch!==this.epoch)throw Error('mail_cancelled');
-   }
-   this.state.loginStage=args.credentials?'verifying':'authenticating';let identity,folders;
+   await this.windowForLogin(true,epoch);this.state.loginStage='authenticating';let identity,folders;
    const deadline=Date.now()+5*60*1000;
    while(epoch===this.epoch&&Date.now()<deadline){
     try{({identity,folders}=await this.identify(epoch));break;}

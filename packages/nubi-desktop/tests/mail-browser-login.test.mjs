@@ -9,3 +9,14 @@ test('missing session uses original interactive portal login without credentials
 test('cancelled session checks and failed logins never replay authentication',async()=>{
  for(const action of ['portalSession','portalLogin']){const calls=[];await assert.rejects(openMailBrowserLogin(async(_method,args)=>{calls.push(args.action);if(args.action===action)throw Error('mail_cancelled');return {connected:false};}),/mail_cancelled/);assert.equal(calls.length,action==='portalSession'?1:2);}
 });
+
+test('browser handoff happens before opening the portal, only for a missing session',async()=>{
+ const events=[];const api=async(_method,args)=>{events.push(args.action);return {connected:args.action==='portalLogin'};};
+ await openMailBrowserLogin(api,{onBrowserOpen:()=>events.push('dismiss-overlay')});
+ assert.deepEqual(events,['portalSession','dismiss-overlay','portalLogin']);
+ events.length=0;await openMailBrowserLogin(async()=>({connected:true}),{onBrowserOpen:()=>events.push('unexpected')});assert.deepEqual(events,[]);
+});
+test('closing the session check never opens a late login tab',async()=>{
+ const actions=[];await assert.rejects(openMailBrowserLogin(async(_method,args)=>{actions.push(args.action);return {connected:false};},{isActive:()=>false}),/mail_cancelled/);
+ assert.deepEqual(actions,['portalSession']);
+});
