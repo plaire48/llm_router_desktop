@@ -1,4 +1,5 @@
 export const ghesMessages={
+  ghes_timeout:'회사 서버 응답이 늦어 확인을 마치지 못했어요. 사내망 연결을 확인하고 다시 시도해 주세요.',
   ghes_network:'회사 서버에 연결하지 못했어요. 사내망이나 VPN을 확인해 주세요.',
   ghes_login_required:'회사 계정을 연결해 주세요.',ghes_session_expired:'로그인이 만료됐어요. 다시 연결해 주세요.',
   ghes_access_denied:'로그인을 승인하지 않았어요. 다시 연결할 수 있습니다.',ghes_device_expired:'로그인 코드가 만료됐어요. 다시 연결해 주세요.',

@@ -2,7 +2,7 @@ import {CopyButton} from '../../../extensions/aipro-chat/src/CopyButton.jsx';
 import React,{useEffect,useLayoutEffect,useRef,useState,useImperativeHandle} from 'react';
 import {CxButton, CxInput, Icon} from '@e2e/cx-design-system';
 import {BrowserMark,StopMark} from '../ui/marks.jsx';
-const hasOpenDialog=()=>[...document.querySelectorAll('[role="dialog"],[aria-modal="true"]')].some(node=>node.getClientRects().length&&!node.closest('[hidden],[aria-hidden="true"],[inert]'));
+const hasOpenDialog=()=>document.documentElement.hasAttribute('data-project-switching')||document.body.hasAttribute('data-nubi-opening')||[...document.querySelectorAll('[role="dialog"],[aria-modal="true"]')].some(node=>node.getClientRects().length&&!node.closest('[hidden],[aria-hidden="true"],[inert]'));
 export function BrowserPane({api,visible,obscured=false,onError,onState,controller}) {
  const [state,setState]=useState({tabs:[],active:null}),[url,setUrl]=useState(''),[find,setFind]=useState(false),[query,setQuery]=useState('');
  const viewport=useRef(null),addressInput=useRef(null),findInput=useRef(null),editing=useRef(false),errors=useRef(onError),sequence=useRef(0),urlRef=useRef('');errors.current=onError;
@@ -45,7 +45,8 @@ export function BrowserPane({api,visible,obscured=false,onError,onState,controll
    else schedule();
   };
   updateBounds();const size=new ResizeObserver(schedule);size.observe(node);
-  const changes=new MutationObserver(guard);changes.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-modal','role','hidden','aria-hidden','inert','data-pane-resizing']});
+  const changes=new MutationObserver(guard);changes.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-modal','role','hidden','aria-hidden','inert','data-pane-resizing','data-nubi-opening']});
+  changes.observe(document.documentElement,{attributes:true,attributeFilter:['data-project-switching']});
   document.addEventListener('visibilitychange',guard);window.addEventListener('resize',schedule);
   return()=>{cancelAnimationFrame(frame);size.disconnect();changes.disconnect();document.removeEventListener('visibilitychange',guard);window.removeEventListener('resize',schedule);hide();};
  },[api,native,visible,obscured,current?.id,current?.url,current?.popup,find]);

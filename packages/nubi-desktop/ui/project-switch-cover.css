@@ -1,0 +1,15 @@
+.nubi-project-switch-cover {
+ display:none;position:fixed;inset:var(--nubi-toolbar-height,48px) 0 0;
+ z-index:2147482000;background:#fff;
+ background-image:var(--nubi-workspace-gradient,none);
+ place-content:center;justify-items:center;gap:26px;
+}
+.nubi-project-switch-cover .nubi-preparing-bar { width:min(300px,60vw); }
+html[data-project-switching] .nubi-project-switch-cover { display:grid; }
+html[data-project-switching] .desktop-workspace-body {
+ opacity:0!important;pointer-events:none!important;
+}
+/* Portalled dialogs from the old project cannot float above the switch cover. */
+html[data-project-switching] body > :not(#root):not(script):not(style):not(link):not(.nubi-intro):not(#nubi-boot-cover) {
+ opacity:0!important;pointer-events:none!important;
+}

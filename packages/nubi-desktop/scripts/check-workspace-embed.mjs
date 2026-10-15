@@ -23,10 +23,26 @@ try{
   await p.getByRole('button',{name:'테스트 Talk',exact:true}).click();await p.waitForFunction(()=>window.calls.some(c=>c.method==='ghesFetch'&&c.body?.includes('E2EDiscussions')));
   await p.getByRole('button',{name:'글쓰기',exact:true}).first().click();await p.getByRole('textbox',{name:'글 제목',exact:true}).waitFor();await p.getByRole('combobox',{name:'글 카테고리'}).selectOption('general');
   await p.screenshot({path:dir+'/talk-'+width+'.png'});assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+  await p.getByRole('button',{name:'테스트 문의',exact:true}).click();
+  await p.getByRole('button',{name:'김누비 계정 메뉴',exact:true}).click();
+  await p.locator('.nubi-ghes-modal').waitFor();
+  assert.equal(await p.getByText(/회사 계정을 확인하지 못했어요/).count(),0);
+  await p.keyboard.press('Escape');
+  await p.getByRole('button',{name:'문의하기',exact:true}).click();
+  await p.getByRole('textbox',{name:'제목',exact:true}).fill('문의 연결 확인');
+  await p.getByRole('textbox',{name:'문의 내용',exact:true}).fill('목록 조회와 등록 후 다시 확인하는 테스트입니다.');
+  await p.getByRole('button',{name:'담당자 선택',exact:true}).click();
+  await p.getByRole('checkbox',{name:'김누비 (nubi) 배정',exact:true}).check();
+  await p.keyboard.press('Escape');
+  await p.getByRole('button',{name:'접수',exact:true}).click();
+  await p.getByRole('heading',{name:'문의 연결 확인',exact:true}).waitFor();
+  await p.getByText('목록 조회와 등록 후 다시 확인하는 테스트입니다.',{exact:true}).last().waitFor();
+  await p.screenshot({path:dir+'/support-'+width+'.png'});
+  assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
   await p.getByRole('button',{name:'테스트 앱',exact:true}).click();await p.getByRole('link',{name:'파일 앱 새 탭에서 열기'}).waitFor();
   await p.getByRole('button',{name:'테스트 로그인 전환'}).click();await p.getByRole('button',{name:'사내 Github SSO 로그인',exact:true}).waitFor();assert.equal(await p.getByRole('link',{name:'파일 앱 새 탭에서 열기'}).count(),0);
   await p.getByRole('button',{name:'사내 Github SSO 로그인',exact:true}).click();await p.getByRole('link',{name:'파일 앱 새 탭에서 열기'}).waitFor();await p.screenshot({path:dir+'/apps-'+width+'.png'});
-  assert.deepEqual(await p.evaluate(()=>window.unhandled),[]);checks.push({width,apps:'list/open/register-file/error/retry/relogin',talk:'real embedded client list and composer'});
+  assert.deepEqual(await p.evaluate(()=>window.unhandled),[]);checks.push({width,apps:'list/open/register-file/error/retry/relogin',talk:'real embedded client list and composer',support:'list/master/create/readback'});
  }
  assert.deepEqual(errors,[]);await writeFile(dir+'/result.json',JSON.stringify({checks,errors,boundary:'Production embedded components and renderer bridge with synthetic GHES responses. No company reads or writes.'},null,2));console.log(JSON.stringify({checks,errors}));
 }catch(error){if(page){console.error(JSON.stringify({errors,text:(await page.locator('body').innerText()).slice(0,2200),calls:await page.evaluate(()=>window.calls.map(c=>({method:c.method,url:c.url,operation:c.body?.match(/(?:query|mutation) [A-Za-z]+/)?.[0]}))),unhandled:await page.evaluate(()=>window.unhandled)}));await page.screenshot({path:dir+'/failure.png'});}throw error;}finally{await browser?.close();await new Promise(r=>server.close(r));}

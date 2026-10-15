@@ -57,7 +57,7 @@
 
 
 /* Later launches: only the logo and the progress bar on the app's own background, no sky (user decision 2026-10-14). */
-.nubi-intro[data-mode="brief"] { background:var(--nubi-workspace-gradient,var(--deck-card)); }
+.nubi-intro[data-mode="brief"] { background:#fff; background-image:var(--nubi-workspace-gradient,none); }
 .nubi-intro[data-mode="brief"] :is(.nubi-intro-horizon,.nubi-intro-echo,.nubi-intro-tunnel,.nubi-intro-flash) { display:none; }
 .nubi-intro[data-mode="brief"] .nubi-intro-progress { background:var(--deck-line); }
 .nubi-intro[data-mode="brief"] .nubi-intro-title { animation:nubi-intro-title-brief .45s ease-out both; }

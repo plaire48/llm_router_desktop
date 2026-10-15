@@ -120,23 +120,6 @@ class MailPortal {
    if(epoch!==this.epoch)throw Error('mail_cancelled');this.identity=identity;this.state={...this.state,connected:true,error:null,folders,connectionState:'connected',nextRetryAt:null};void this.sync().catch(()=>{});return this.status();
   }catch(error){if(epoch!==this.epoch)throw Error('mail_cancelled');if(this.state.connected)await this.failSession(error,epoch);return {...this.status(),requiresLogin:true};}
  }
- async connectCredentials(args){
-  await this.sessionClearing;
-  const {MailCredentialLogin}=require('./mail-credential-login.cjs');
-  const credentials={username:args.username,password:args.password};delete args.username;delete args.password;
-  if(this.state.connecting||this.state.checking){credentials.username='';credentials.password='';throw Error('mail_busy');}
-  const epoch=++this.epoch;this.access.abort();this.access=new AbortController();clearTimeout(this.timer);this.restored=true;
-  this.state={...this.state,connecting:true,error:null,loginStage:'authenticating'};
-  try{
-   await this.restoring;if(epoch!==this.epoch)throw Error('mail_cancelled');await this.windowForLogin(false,epoch);
-   const login=new MailCredentialLogin({BrowserWindow:this.BrowserWindow,session:this.window.webContents.session,signal:this.access.signal});this.credentialLogin=login;
-   await login.run(credentials);if(epoch!==this.epoch)throw Error('mail_cancelled');
-   const {identity,folders}=await this.identify(epoch);if(epoch!==this.epoch)throw Error('mail_cancelled');
-   await this.invoke('mail',{action:'portalConnect',identity:identity.id,email:identity.email,folders});if(epoch!==this.epoch)throw Error('mail_cancelled');
-   this.identity=identity;this.state={...this.state,connected:true,connecting:false,error:null,loginStage:'connected',connectionState:'connected',folders};void this.sync().catch(()=>{});return this.status();
-  }catch(error){if(epoch===this.epoch)await this.failSession(error,epoch);throw Error(epoch!==this.epoch&&error.message==='mail_cancelled'?'mail_cancelled':/^mail_[a-z_]+$/.test(error.message)?error.message:'mail_portal_request');}
-  finally{credentials.username='';credentials.password='';}
- }
  async connect(args={}){
   // A disconnect that lands while the previous session is still being cleared cancels this login too, instead of
   // the login taking a fresh epoch after the cancel and opening a late tab (tests: queued login while restore pends).
@@ -252,7 +235,7 @@ class MailPortal {
   const bytes=[...item.result].some(char=>char.charCodeAt(0)>255)?Buffer.from(item.result,'utf8'):Buffer.from(item.result,'latin1');
   const parsed=await this.invoke('mail',{action:'portalDocument',raw:bytes.toString('base64')});if(epoch!==this.epoch)throw Error('mail_cancelled');return {id:args.id,subject:item.subject||parsed.mail.subject,...parsed};
  }
- async disconnect(){++this.epoch;this.access.abort();this.access=new AbortController();this.credentialLogin?.dispose();this.credentialLogin=null;this.syncing=null;clearTimeout(this.timer);this.approvalCache?.clear();this.state={...this.state,connected:false,connecting:false,checking:false,loginStage:null,error:null,connectionState:'disconnected',nextRetryAt:null};this.restored=true;this.closeLoginPage();await this.invoke('mail',{action:'disconnect'});return this.status();}
- dispose(){++this.epoch;this.credentialLogin?.dispose();this.access.abort();clearTimeout(this.timer);this.closeLoginPage();this.window?.destroy();}
+ async disconnect(){++this.epoch;this.access.abort();this.access=new AbortController();this.syncing=null;clearTimeout(this.timer);this.approvalCache?.clear();this.state={...this.state,connected:false,connecting:false,checking:false,loginStage:null,error:null,connectionState:'disconnected',nextRetryAt:null};this.restored=true;this.closeLoginPage();await this.invoke('mail',{action:'disconnect'});return this.status();}
+ dispose(){++this.epoch;this.access.abort();clearTimeout(this.timer);this.closeLoginPage();this.window?.destroy();}
 }
 module.exports={MailPortal};

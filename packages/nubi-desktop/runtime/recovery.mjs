@@ -1,3 +1,4 @@
+import {installProcessIdle} from './process-idle.mjs';
 import {requireWikiChatReady} from './wiki-chat-admission.mjs';
 import {processOutputPreview} from './process-output.mjs';
 import {randomUUID} from 'node:crypto';
@@ -71,6 +72,7 @@ export async function recoverySnapshot({taskId}){
 }
 
 export function installRecovery(ProjectService){
+  installProcessIdle(ProjectService);
   ProjectService.prototype.recoverySnapshot=recoverySnapshot;
   // A development server deliberately stays alive. Resume the same task after
   // its approved launch, not only on exit. This is NOT a readiness receipt.
@@ -96,12 +98,14 @@ export function installRecovery(ProjectService){
     return this.startAgent({taskId,...(recoveryProcessId?{recoveryProcessId}:{})});
   };
   ProjectService.prototype.processFinished=function(record){
-    if(!record.autoDiagnose||!record.taskId||record.terminal||!['failed','timed_out','completed'].includes(record.state)||this.disposed)return;
+    this.resolveProcessIdle(record,'finished');
+    if(!record.autoDiagnose||!record.taskId||record.terminal||!(['failed','timed_out','completed'].includes(record.state)||record.state==='interrupted'&&record.stopReason==='idle_review')||this.disposed)return;
     this.recoveryQueue ||=new Set();this.recoveryQueue.add(record.id);
     record.recoveryState='queued';this.store.set('process:'+record.id,record);
     this.drainRecovery().catch(()=>{});
   };
   ProjectService.prototype.drainRecovery=async function(){
+    this.drainProcessIdle();
     if(this.computerBusy||this.disposed||this.newFileBusy||this.setupBusy||this.agent?.running||this.reconciling||!this.providers?.status().connected)return;
     for(const id of this.recoveryQueue||[]){
       const record=this.processes.records.get(id)||this.store.get('process:'+id);if(!record){this.recoveryQueue.delete(id);continue;}
@@ -147,7 +151,7 @@ export function installRecovery(ProjectService){
     try{
       if(await this.target(value.taskId)!==value.workspace)fail('workspace_changed');
       const original=this.processes.poll(value.processId);if(!recoverableProcesses.has(original.state))fail('recovery_changed');
-      const process=await this.run({taskId:value.taskId,script:value.script,profile:value.profile,timeoutMs:original.timeoutMs||0,autoDiagnose:true,repairOf:value.processId});
+      const process=await this.run({taskId:value.taskId,script:value.script,profile:value.profile,timeoutMs:original.timeoutMs||0,autoDiagnose:true,idleCheck:original.idleCheck!==false,repairOf:value.processId});
       value.state='started';value.resultProcessId=process.id;this.store.set('command-repair:'+id,value);return value;
     }catch(error){value.state='attention';value.error=safeError(error);this.store.set('command-repair:'+id,value);throw error;}
   };

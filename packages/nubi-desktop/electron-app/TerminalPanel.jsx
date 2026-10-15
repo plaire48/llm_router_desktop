@@ -9,10 +9,12 @@ import {notifyWorkspaceToast} from '../ui/WorkspaceToast.jsx';
 import {guardShellMouse} from './terminal-mouse.mjs';
 const request=async args=>{const result=await window.nubi.terminal(args);if(result?.__nubiError)throw Error(result.__nubiError);return result;};
 function transcript(view){const buffer=view?.buffer.active;if(!buffer)return '';const lines=[];for(let i=0;i<buffer.length;i++)lines.push(buffer.getLine(i)?.translateToString(true)||'');return lines.join('\n').trimEnd();}
-export default function TerminalPanel({sessionId,project,cwd,profileId,onError,visible=true}){
+export default function TerminalPanel({sessionId,project,cwd,profileId,onError,onBusy,visible=true}){
  const node=useRef(null),terminal=useRef(null),fit=useRef(null),errors=useRef(onError),shown=useRef(visible),ready=useRef(false);
  errors.current=onError;shown.current=visible;
  const [state,setState]=useState('opening'),[selected,setSelected]=useState(false);
+ const busyCallback=useRef(onBusy);busyCallback.current=onBusy;
+ useEffect(()=>{busyCallback.current?.(['opening','running'].includes(state));return()=>busyCallback.current?.(false);},[state]);
  const profile=project.profiles.find(item=>item.id===profileId);
  useEffect(()=>{
   let alive=true,frame=0,lastSize='',attached=false;const queued=[];

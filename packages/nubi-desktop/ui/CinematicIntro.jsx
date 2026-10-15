@@ -1,4 +1,5 @@
-import React,{useEffect,useRef,useState} from 'react';
+import {createPortal} from 'react-dom';
+import React,{useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {AgentMark,NubiWordmark} from '../../../extensions/aipro-chat/src/AgentMark.jsx';
 import './cinematic-intro.css';
 import {openingSceneId,needsOpeningScene,rememberOpeningScene} from './opening-scene.mjs';
@@ -21,7 +22,17 @@ export function CinematicIntro({ready=false,onFinish}){
   const [sceneId]=useState(()=>openingSceneId(VERSION,window.nubi?.installationId));
   const [mode]=useState(()=>played||navigator.webdriver?'none':matchMedia('(prefers-reduced-motion: reduce)').matches?'brief':needsOpeningScene(storage,sceneId)?'full':'brief');
   const [phase,setPhase]=useState(()=>mode==='none'?'done':mode==='full'?'scenes':'title');
-  const finished=useRef(false),finish=useRef(onFinish),flight=useRef(null);finish.current=onFinish;
+  const finished=useRef(false),finish=useRef(onFinish),flight=useRef(null),readyRef=useRef(ready);finish.current=onFinish;readyRef.current=ready;
+  const bootGuard=useRef(document.body.hasAttribute('data-nubi-opening'));
+  useLayoutEffect(()=>{
+    if(!bootGuard.current)return;
+    const root=document.getElementById('root');if(root)root.inert=phase!=='done'&&phase!=='leave';
+    if(phase==='done')delete document.body.dataset.nubiOpening;
+    else document.body.dataset.nubiOpening=phase==='leave'?'leaving':'intro';
+    // The scene is committed outside the app root before the static white cover
+    // is removed. No frame can expose the workspace before this hand-over.
+    document.getElementById('nubi-boot-cover')?.remove();
+  },[phase]);
   // The scene holds its first frame until startup work settles, then plays in real time; started during heavy startup on a
   // slower PC it skipped ahead and went by in a flash (user report 2026-10-14). Waits at most 2.5 s.
   const [started,setStarted]=useState(mode!=='full');
@@ -35,8 +46,13 @@ export function CinematicIntro({ready=false,onFinish}){
   useEffect(()=>{if(phase==='done'&&!finished.current){finished.current=true;if(mode!=='none')rememberOpeningScene(storage,sceneId);finish.current?.();}},[phase]);
   useEffect(()=>{
     if(phase==='done'||!started)return;played=true;
-    const timers=[setTimeout(()=>setPhase(current=>current==='scenes'?'title':current),mode==='full'?SCENES:0),setTimeout(()=>setPhase('done'),mode==='full'?LONGEST:6000)];
-    const skip=()=>{setPhase('leave');timers.push(setTimeout(()=>setPhase('done'),260));};
+    const timers=[setTimeout(()=>setPhase(current=>current==='scenes'?'title':current),mode==='full'?SCENES:0),setTimeout(()=>setPhase(current=>current==='scenes'?'title':current),LONGEST)];
+    const skip=()=>{
+      // Skipping the flight does not mean startup has completed. Keep the logo
+      // and bar on an opaque surface until the host reports readiness.
+      if(!readyRef.current){setPhase('title');return;}
+      setPhase('leave');timers.push(setTimeout(()=>setPhase('done'),260));
+    };
     window.addEventListener('pointerdown',skip,{once:true});window.addEventListener('keydown',skip,{once:true});
     return()=>{timers.forEach(clearTimeout);window.removeEventListener('pointerdown',skip);window.removeEventListener('keydown',skip);};
   },[phase==='done',started]);
@@ -51,7 +67,7 @@ export function CinematicIntro({ready=false,onFinish}){
     if(phase==='leave'){const timer=setTimeout(()=>setPhase('done'),LEAVE);return()=>clearTimeout(timer);}
   },[phase]);
   if(phase==='done')return null;
-  return <div className="nubi-intro" data-mode={mode} data-phase={phase} data-started={started||undefined} aria-hidden="true">
+  return createPortal(<div className="nubi-intro" data-mode={mode} data-phase={phase} data-started={started||undefined} aria-hidden="true">
     <div className="nubi-intro-horizon"/><div className="nubi-intro-horizon nubi-intro-echo nubi-intro-echo-1"/><div className="nubi-intro-horizon nubi-intro-echo nubi-intro-echo-2"/>
     {mode==='full'&&<canvas ref={flight} className="nubi-intro-flight"/>}
     <div className="nubi-intro-tunnel"/>
@@ -61,5 +77,5 @@ export function CinematicIntro({ready=false,onFinish}){
       <div className="nubi-intro-brand"><span className="nubi-intro-brand-bird"><AgentMark size={64} mood="idle" lively/></span><NubiWordmark/><span>Workspace</span></div>
       <div className="nubi-intro-progress"><span/></div>
     </div>
-  </div>;
+  </div>,document.body);
 }

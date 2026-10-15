@@ -14,6 +14,33 @@ installAgent(ProjectService);
 const plan=()=>({summary:'Add tested helper',requirements:[{id:'R1',text:'Return two',criterionId:'AC-1'}],targets:[{path:'helper.ts',action:'create',reason:'New helper',requirementIds:['R1']}],checks:[{requirementId:'R1',method:'test',description:'Assert helper returns two'}],assumptions:[]});
 const call=(name,args)=>({content:'',calls:[{id:crypto.randomUUID(),type:'function',function:{name,arguments:JSON.stringify(args)}}]});
 
+test('HTML creation recovers missing inspection and plan without reading or writing an absent file',async t=>{
+  const {service,root}=await fixture(t),task=await service.createTask({request:'HTML 화면 만들기'});
+  const content='<!doctype html>\n<html lang="ko"><meta charset="utf-8"><title>안내</title><body><h1>안녕하세요</h1></body></html>';
+  const input={path:'index.html',content,reason:'요청한 HTML 화면'};
+  const change={summary:'HTML 화면 추가',requirements:[{id:'R1',text:'HTML 화면 만들기'}],targets:[{path:'index.html',action:'create',reason:input.reason,requirementIds:['R1']}],checks:[{requirementId:'R1',method:'browser',description:'브라우저에서 화면 확인'}],assumptions:[]};
+  let turn=0;
+  service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:32000}]}),dispose(){},async complete(messages){
+    const result=JSON.parse(messages.findLast(message=>message.role==='tool')?.content||'{}');
+    switch(turn++){
+      case 0:return call('record_change_plan',change);
+      case 1:assert.equal(result.error,'source_read_required');assert.equal(result.details.action,'create');assert.match(result.instruction,/inspect_path/);return call('propose_new_file',input);
+      case 2:assert.equal(result.error,'source_read_required');assert.equal(result.details.path,'index.html');assert.match(result.instruction,/inspect_path/);return call('inspect_path',{path:input.path});
+      case 3:return call('propose_new_file',input);
+      case 4:assert.equal(result.error,'change_plan_required');assert.match(result.instruction,/action.*create/);return call('record_change_plan',change);
+      case 5:return call('propose_new_file',{file_path:input.path,code:content});
+      default:return {content:'HTML 파일을 제안했습니다. 반영 후 브라우저 확인이 필요합니다.',calls:[]};
+    }
+  }};
+  await service.startAgent({taskId:task.id});await service.agent.promise;
+  assert.equal(turn,7);
+  const [proposal]=service.state().proposals;
+  assert.equal(proposal?.content,content);assert.equal(proposal.state,'proposed');assert.equal(proposal.quality.state,'unsupported','HTML is not falsely marked syntax-verified');
+  assert.ok(service.task(task.id).trace.some(event=>event.tool==='propose_new_file'&&event.reason==='source_read_required'));
+  await assert.rejects(readFile(path.join(root,'index.html')),/ENOENT/);
+  await service.applyNewFile({proposalId:proposal.id});assert.equal(await readFile(path.join(root,'index.html'),'utf8'),content);
+});
+
 test('project rules use directory precedence, CLAUDE fallback and isolate sibling rules',async t=>{
   const {root}=await fixture(t);await mkdir(path.join(root,'src'));await mkdir(path.join(root,'other'));
   await writeFile(path.join(root,'AGENTS.md'),'Root rules');await writeFile(path.join(root,'CLAUDE.md'),'Ignored root');

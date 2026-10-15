@@ -975,6 +975,7 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .nubi-approval-form .nubi-approval-bar>button { min-width:0; padding-inline:var(--cx-space-2); white-space:nowrap; }
 .nubi-terminal-header-copy { margin-left:auto; display:flex; align-items:center; flex:none; }
 .nubi-terminal-header-copy button { color:var(--nubi-terminal-ink); }
+.nubi-terminal-header-copy .nubi-terminal-open { display:inline-flex; align-items:center; gap:var(--cx-space-1); flex:none; white-space:nowrap; background:transparent; border:0; font:var(--deck-font-caption); padding:var(--cx-space-1) var(--cx-space-2); }
 /* One quiet copy token contract for conversation, dialogs and terminal surfaces. */
 :root:has(.desktop-shell) .copy-control .cx-action-button.cx-icon-button[data-icon-only=true] {
  width:var(--nubi-copy-control-size); min-width:var(--nubi-copy-control-size); height:var(--nubi-copy-control-size); min-height:var(--nubi-copy-control-size);

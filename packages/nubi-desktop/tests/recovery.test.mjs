@@ -12,6 +12,14 @@ const call=(name,args={})=>({content:'',calls:[{id:crypto.randomUUID(),type:'fun
 const reply=()=>({content:'기록을 확인했습니다. 전체 완료 조건은 아직 미확인입니다.',calls:[]});
 const wait=async check=>{for(let i=0;i<300;i++){if(check())return;await new Promise(r=>setTimeout(r,10));}assert.fail('state did not settle');};
 
+test('a configured command timeout preserves output and reaches diagnosis without replaying the command',async t=>{
+  const {service}=await fixture(t),task=await service.createTask({request:'Check timed command'});let diagnosed=0;
+  service.providers={status,dispose(){},complete:async messages=>{const receipts=JSON.stringify(messages);assert.match(receipts,/process_timeout/);assert.match(receipts,/BEFORE_TIMEOUT/);diagnosed++;return reply();}};
+  const process=await service.run({taskId:task.id,script:"printf 'BEFORE_TIMEOUT\\n'; sleep 5",profile:'bash',timeoutMs:100});
+  await wait(()=>service.processes.poll(process.id).recoveryState==='review');
+  assert.equal(service.processes.poll(process.id).state,'timed_out');assert.equal(diagnosed,1);assert.equal(service.store.list('process:').length,1);
+});
+
 test('transient inference retries preserve the completed source read and operation checkpoint',async t=>{
   const {service}=await fixture(t);service.recoveryOptions={model:{minTimeout:1}};let calls=0,reads=0,failures=0;const read=service.read.bind(service);service.read=async args=>{reads++;return read(args);};
   // Isolate transport retry from the separately tested small-window compaction path.

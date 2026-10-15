@@ -85,6 +85,17 @@ test('each refusal carries guidance for its own code only',()=>{
   }
 });
 
+test('creation recovery never treats an absent file as an existing edit target',()=>{
+  const create=recoveryInstruction('source_read_required','record_change_plan',undefined,{action:'create'});
+  assert.match(create,/inspect_path/);assert.match(create,/action="create"/);
+  const edit=recoveryInstruction('source_read_required','record_change_plan');
+  assert.match(edit,/read_source/);assert.doesNotMatch(edit,/inspect_path/);
+  const large=recoveryInstruction('content_limit','propose_new_file');
+  assert.match(large,/complete/);assert.match(large,/Do not use propose_patch on an absent file/);
+  assert.match(recoveryInstruction('file_exists','propose_new_file'),/plan an edit/);
+  assert.match(recoveryInstruction('parent_missing','propose_new_file'),/user-approved/);
+});
+
 test('the model receives the details and the short guidance through the real tool loop',async t=>{
   const {service}=await fixture(t);let round=0,hash;const results=[];
   const call=(name,args)=>({content:'',calls:[{id:crypto.randomUUID(),type:'function',function:{name,arguments:JSON.stringify(args)}}]});

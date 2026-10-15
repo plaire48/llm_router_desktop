@@ -36,6 +36,7 @@ const GUIDANCE=Object.freeze({
   source_unavailable:'The path cannot be read. Choose another path in this workspace.',
   repair_invalid:'Propose a corrected command for the failed process of this task, with the observed cause.',
   shell_unavailable:'The selected shell is unavailable on this host. Inspect the environment and choose an available shell.',
+  shell_not_selected:'No command ran. The user changed the default terminal. Inspect the current shell, rewrite the command in that syntax and propose it again with profile omitted. Do not change settings or run the old script in a different shell.',
   plan_invalid:UNCHANGED+'Fix each item in `details.problems`. Every requirement needs a check, and every check and target must name an existing requirement id. '+PLAN,
   plan_criteria_missing:UNCHANGED+'Set criterionId only to an id in `details.validCriteria`, and cover every id in `details.uncoveredCriterionIds` with a requirement. Remove the ids in `details.unknownCriterionIds`. '+PLAN,
   change_plan_required:UNCHANGED+'This run has no recorded change plan. Read the target, then call record_change_plan before proposing an edit.',
@@ -90,7 +91,11 @@ export const computerInstruction=(code,details)=>{
 };
 const FALLBACK=UNCHANGED+'Inspect the error, correct the input and do not repeat the same call unchanged.';
 
-export function recoveryInstruction(code,tool,readTools=new Set(['read_source','source_search','inspect_path','code_outline','wiki_query','knowledge_query','read_conversation','inspect_workspace_changes'])){
+export function recoveryInstruction(code,tool,readTools=new Set(['read_source','source_search','inspect_path','code_outline','wiki_query','knowledge_query','read_conversation','inspect_workspace_changes']),details){
+  const creating=tool==='propose_new_file'||tool==='record_change_plan'&&details?.action==='create';
+  if(creating&&code==='source_read_required')return UNCHANGED+'Call inspect_path for the exact new file path in this run, then record_change_plan with action="create", then propose_new_file. Do not use read_source for an absent file. If its parent is missing, propose a separate setup command for user approval.';
+  if(creating&&['change_plan_required','change_scope_unplanned','change_plan_stale','project_rules_changed'].includes(code))return UNCHANGED+'Call inspect_path again, then record_change_plan with this exact path and action="create", mapped requirements and checks. Submit propose_new_file after the plan succeeds. A proposal is not permission to write or proof of completion.';
+  if(creating&&code==='content_limit')return UNCHANGED+'Provide complete UTF-8 text within 200000 characters and 1 MiB, with no NUL or invalid Unicode. Simplify the file or propose separate complete files with their own inspected paths and create plans. Do not use propose_patch on an absent file or silently truncate content.';
   if(tool==='propose_setup_action'&&['source_read_required','source_stale'].includes(code))return 'No command was executed and no approval card was created. Read the exact configuration or script in details.path with read_source now. Use its returned path/hash in references, then propose the same unexecuted command. Do not invent hashes or reread unrelated files. Existing successful or uncertain commands must not be replayed.';
   return (readTools.has(tool)?READ_FAILED:'')+(GUIDANCE[code]||FALLBACK);
 }

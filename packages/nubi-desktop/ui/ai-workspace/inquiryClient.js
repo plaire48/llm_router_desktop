@@ -1,3 +1,4 @@
+import {ghesMessages} from '../ghes-account-state.mjs';
 import {displayIssueTitle,issueTitle} from './issuePresentation.js';
 import {issueMarkdown,SERVICE_DESK_LIMITS} from './serviceDeskModel.js';
 import {commentText,encodeReply,decodeReply} from './commentThread.js';
@@ -26,8 +27,8 @@ export function createInquiryClient({session=getServiceDeskSession(),config=SERV
     if(method!=='GET'&&!people.signedIn)throw error('로그인 후 작성하세요.',401);
     let response;try{response=await fetchImpl(links.api+path,{method,credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(30000),headers:{Accept:'application/vnd.github+json',...(people.signedIn?{Authorization:`Bearer ${session.token}`}:{ }),...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});}
     // The host's error code is shown so a failure on the company PC says why (2026-10-14).
-    catch(cause){throw error((method==='GET'?'문의를 불러오지 못했습니다. 다시 시도하세요.':'반영 여부를 확인하지 못했습니다. 결과 확인을 누르세요.')+(cause?.code?` (${cause.code})`:cause?.message&&/^[a-z_]+$/.test(cause.message)?` (${cause.message})`:''),-1,method!=='GET');}
-    if(!response.ok){await response.body?.cancel().catch(()=>{});throw error(({401:'다시 로그인하세요.',403:method==='GET'?'문의 저장소 조회 권한을 확인하세요.':'문의 저장소 접근 권한과 GitHub App의 Issues 쓰기 권한을 확인하세요.',404:'문의를 찾을 수 없거나 조회 권한이 없습니다.',422:'입력 내용과 문의의 답변 잠금 상태를 확인하세요.',429:'요청이 많습니다. 잠시 후 다시 시도하세요.'})[response.status]||'문의 처리 결과를 확인하지 못했습니다.',response.status,method!=='GET'&&response.status>=500);}
+    catch(cause){const code=cause?.code||cause?.message,safeCode=/^[a-z][a-z_]{0,63}$/.test(code||'')?code:null;throw error((method==='GET'&&Object.hasOwn(ghesMessages,safeCode)?ghesMessages[safeCode]:method==='GET'?'문의를 불러오지 못했습니다. 다시 시도하세요.':'반영 여부를 확인하지 못했습니다. 결과 확인을 누르세요.')+(safeCode?` (${safeCode})`:''),-1,method!=='GET');}
+    if(!response.ok){await response.body?.cancel().catch(()=>{});throw error(({401:'다시 로그인하세요.',403:method==='GET'?'문의 저장소 조회 권한을 확인하세요.':'문의 저장소 접근 권한과 GitHub App의 Issues 쓰기 권한을 확인하세요.',404:'문의를 찾을 수 없거나 조회 권한이 없습니다.',410:'문의 저장소의 Issues 기능이 꺼져 있습니다. 관리자에게 확인해 주세요.',422:'입력 내용과 문의의 답변 잠금 상태를 확인하세요.',429:'요청이 많습니다. 잠시 후 다시 시도하세요.'})[response.status]||'문의 처리 결과를 확인하지 못했습니다.',response.status,method!=='GET'&&response.status>=500);}
     if(response.status===204){await response.body?.cancel().catch(()=>{});return null;}
     try{return await response.json();}catch{throw error('문의 응답을 확인하지 못했습니다.',-1,method!=='GET');}
   };

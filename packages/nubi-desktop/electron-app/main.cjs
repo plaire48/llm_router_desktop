@@ -171,7 +171,7 @@ app.whenReady().then(async()=>{
  }});
  const {screen}=require('electron'),windowState=restoreWindowState(await loadWindowState(),screen.getAllDisplays());
  const installId=await installationStamp({packaged:app.isPackaged,platform:process.platform,executable:app.getPath('exe')});
- window=new BrowserWindow({icon:appIcon,width:windowState.width,height:windowState.height,...(windowState.x!==undefined?{x:windowState.x,y:windowState.y}:{}),minWidth:620,minHeight:540,title:'누비 Workspace Beta',backgroundColor:'#F1F7FE',titleBarStyle:process.platform==='darwin'?'hiddenInset':'hidden',...(process.platform==='darwin'?{trafficLightPosition:{x:14,y:17}}:{titleBarOverlay:DEFAULT_TITLEBAR}),webPreferences:{additionalArguments:installId?['--nubi-installation='+installId]:[],preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false}});
+ window=new BrowserWindow({icon:appIcon,width:windowState.width,height:windowState.height,...(windowState.x!==undefined?{x:windowState.x,y:windowState.y}:{}),minWidth:620,minHeight:540,title:'누비 Workspace Beta',backgroundColor:'#FFFFFF',titleBarStyle:process.platform==='darwin'?'hiddenInset':'hidden',...(process.platform==='darwin'?{trafficLightPosition:{x:14,y:17}}:{titleBarOverlay:DEFAULT_TITLEBAR}),webPreferences:{additionalArguments:installId?['--nubi-installation='+installId]:[],preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false}});
  window.webContents.on('did-start-navigation',(_event,_url,_inPlace,isMainFrame)=>{if(isMainFrame){decisionNotices.clear();answerNotices.clear();mailLoginNotices.clear();applyCaptionColors(window,DEFAULT_TITLEBAR);}});
  if(windowState.maximized)window.maximize();
  for(const name of ['resize','move','maximize','unmaximize'])window.on(name,saveWindowState);
@@ -256,9 +256,10 @@ app.whenReady().then(async()=>{
    if(/^portal(?:Connect|Import|Folders|Known|Rejected|Document)$/.test(args.action||'')||['download','importFolder'].includes(args.action))throw Error('method_invalid');
    if(args.action==='approvals')return mailPortal.approvals(args);
    if(args.action==='approvalRead')return mailPortal.approvalRead(args);
-   if(['portalSession','portalCredentials'].includes(args.action)){
+   if(args.action==='portalCredentials')throw Error('method_invalid');
+   if(args.action==='portalSession'){
     if(source!=='electron')throw Error('mail_portal_desktop_only');
-    const result=args.action==='portalSession'?await mailPortal.sessionReady():await mailPortal.connectCredentials(args);
+    const result=await mailPortal.sessionReady();
     if(result.connected){mailLoginNotices.clear();hostEvent({type:'mail_portal_connected',requiresStorageSetup:(await invoke('mail',{action:'status',includeMessages:false})).requiresStorageSetup});}
     return {...await portalMailStatus(),requiresLogin:result.requiresLogin===true};
    }

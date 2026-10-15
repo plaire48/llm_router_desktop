@@ -38,3 +38,13 @@ test('disposing the host cancels a pending open before a shell is spawned',async
  const pending=host.request({action:'open',id:'late',projectId:'a'});host.dispose();release();
  await assert.rejects(pending,/terminal_disconnected/);assert.equal(starts,0);
 });
+for(const preference of ['cmd','bash','powershell'])test(`opening a terminal uses saved ${preference} unless the person chooses another shell`,async()=>{
+ const profiles=['cmd','bash','powershell'].map(id=>({id,executable:'/fixture/'+id})),calls=[];
+ const host=new TerminalHost({notify:()=>{},profiles:async()=>profiles,resolveShell:async()=>null,invoke:async method=>method==='projectPath'?{projectId:'a',shellPreference:preference}:{absolute:'/fixture'}});
+ host.call=async(action,args)=>{calls.push(args);return {state:'running'};};
+ await host.request({action:'open',id:'default',projectId:'a'});
+ assert.equal(calls[0].executable,'/fixture/'+preference);
+ const other=preference==='bash'?'cmd':'bash';
+ await host.request({action:'open',id:'explicit',projectId:'a',profile:other});
+ assert.equal(calls[1].executable,'/fixture/'+other);
+});

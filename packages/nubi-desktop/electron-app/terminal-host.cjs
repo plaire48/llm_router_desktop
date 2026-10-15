@@ -17,7 +17,7 @@ async function interactiveShell(profile,{platform=process.platform,env=process.e
  return null;
 }
 class TerminalHost{
- constructor({invoke,notify,workerFile,profiles}){this.profiles=profiles;this.invoke=invoke;this.notify=notify;this.workerFile=workerFile;this.pending=new Map();this.next=0;this.sessions=new Map();this.opens=new Map();this.generation=0;}
+ constructor({invoke,notify,workerFile,profiles,resolveShell=interactiveShell}){this.resolveShell=resolveShell;this.profiles=profiles;this.invoke=invoke;this.notify=notify;this.workerFile=workerFile;this.pending=new Map();this.next=0;this.sessions=new Map();this.opens=new Map();this.generation=0;}
  start(){if(this.worker)return;const child=fork(this.workerFile,[],{env:{...process.env,ELECTRON_RUN_AS_NODE:'1'},stdio:['ignore','ignore','ignore','ipc']});this.worker=child;
   child.on('message',message=>{if(message.event){this.notify(message.event);return;}const pending=this.pending.get(message.requestId);if(!pending)return;this.pending.delete(message.requestId);message.error?pending.reject(Error(message.error)):pending.resolve(message.result);});
   const failed=()=>{if(this.worker!==child)return;this.worker=null;for(const pending of this.pending.values())pending.reject(Error('terminal_disconnected'));this.pending.clear();for(const id of this.sessions.keys())this.notify({id,type:'disconnected'});this.sessions.clear();};child.on('error',failed);child.on('exit',failed);
@@ -38,13 +38,13 @@ class TerminalHost{
  }
  async open(args){
   const {id,projectId}=args,generation=this.generation;
-  await this.invoke('projectPath',{projectId});
+  const configuration=await this.invoke('projectPath',{projectId});
   if(generation!==this.generation)throw Error('terminal_disconnected');
   const existing=this.sessions.get(id);if(existing&&existing!==projectId)throw Error('terminal_session_missing');
   if(existing)return this.call('open',{id,projectId});
   const location=await this.invoke('browseDirectory',{projectId,path:args.path||''});
-  const profile=(await this.profiles()).find(item=>item.id===(args.profile||(process.platform==='win32'?'powershell':'bash')));if(!profile)throw Error('shell_unavailable');
-  const shell=await interactiveShell(profile.id)||{executable:profile.executable,argv:profile.id==='bash'?['--noprofile','--norc','-i']:[]};
+  const profile=(await this.profiles()).find(item=>item.id===(args.profile||configuration.shellPreference||(process.platform==='win32'?'powershell':'bash')));if(!profile)throw Error('shell_unavailable');
+  const shell=await this.resolveShell(profile.id)||{executable:profile.executable,argv:profile.id==='bash'?['--noprofile','--norc','-i']:[]};
   if(!shell.executable)throw Error('shell_unavailable');
   // Folder/model work may have changed while shell discovery was pending.
   await this.invoke('projectPath',{projectId});

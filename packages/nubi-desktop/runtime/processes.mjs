@@ -35,17 +35,18 @@ export async function shellProfiles({platform=process.platform,bashCandidates}={
   for (const executable of candidates) { try { await access(executable); profiles.push({id: 'bash', label: 'Git Bash', executable, args: ['--noprofile', '--norc', '-c']}); break; } catch {} }
   return profiles;
 }
+export const COMMAND_IDLE_MS = 5 * 60 * 1000;
 export class Processes {
-  constructor(store,{onFinished=()=>{},profiles=shellProfiles}={}) { this.store = store; this.active = new Map(); this.records = new Map(); this.pending=new Set();this.preflights=new Map();this.disposed=false;this.onFinished=onFinished;this.profiles=profiles; }
-  async start({cwd, script, profile = hostShell(), taskId, timeoutMs = 0,autoDiagnose=true,repairOf,setupActionId,privilege='user',terminalRequestId,terminalProjectId}) {
+  constructor(store,{onFinished=()=>{},onIdle=()=>{},onActivity=()=>{},idleMs=COMMAND_IDLE_MS,profiles=shellProfiles}={}) { this.store = store; this.active = new Map(); this.records = new Map(); this.pending=new Set();this.preflights=new Map();this.disposed=false;this.onFinished=onFinished;this.onIdle=onIdle;this.onActivity=onActivity;this.idleMs=idleMs;this.idleTimers=new Map();this.profiles=profiles; }
+  async start({cwd, script, profile = hostShell(), taskId, timeoutMs = 0,autoDiagnose=true,repairOf,setupActionId,privilege='user',idleCheck=true,terminalRequestId,terminalProjectId}) {
     if(this.disposed)throw new Error('host_disconnected');
     if(privilege==='administrator')return startElevated(this,{cwd,script,profile,taskId,setupActionId});
     if(privilege!=='user')throw new Error('elevation_approval_required');
     if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 0 || timeoutMs > 86400000) throw new Error('timeout_invalid');
     if (typeof script !== 'string' || !script.trim() || script.length > 16000) throw new Error('command_invalid');
-    const id = randomUUID(), record = {id, taskId, cwd, profile, script,timeoutMs,autoDiagnose:autoDiagnose===true,...(repairOf?{repairOf}:{}),...(setupActionId?{setupActionId}:{}),...(terminalRequestId?{terminal:true,terminalRequestId,terminalProjectId}:{}), startedAt: new Date().toISOString(), state: 'checking', execution:'not_started', output: '', exitCode: null};
+    const id = randomUUID(), record = {id, taskId, cwd, profile, script,timeoutMs,idleCheck,autoDiagnose:autoDiagnose===true,...(repairOf?{repairOf}:{}),...(setupActionId?{setupActionId}:{}),...(terminalRequestId?{terminal:true,terminalRequestId,terminalProjectId}:{}), startedAt: new Date().toISOString(), state: 'checking', execution:'not_started', output: '', exitCode: null};
     const persist=()=>this.store.set('process:'+id,record);
-    const finish=()=>{record.finishedAt=new Date().toISOString();persist();this.store.event('process_finished',{id,state:record.state,exitCode:record.exitCode});try{this.onFinished({...record});}catch{}};
+    const finish=()=>{this.clearIdleWatch(id);record.finishedAt=new Date().toISOString();persist();this.store.event('process_finished',{id,state:record.state,exitCode:record.exitCode});try{this.onFinished({...record});}catch{}};
     mkdirSync(path.join(this.store.directory,'logs'),{recursive:true}); record.logPath=path.join(this.store.directory,'logs',id+'.log');
     try{appendFileSync(record.logPath,'');}catch{record.logIncomplete=true;}
     // Credentials belonging to the host are not inherited by development commands.
@@ -66,17 +67,44 @@ export class Processes {
     this.active.set(id, child); this.records.set(id, record); this.store.set('process:' + id, record);
     const decoders=[new StringDecoder('utf8'),new StringDecoder('utf8')],formatters=[powerShellOutputDecoder(),powerShellOutputDecoder()];
     const retain=text=>{record.output=(record.output+text).slice(-128000);const diagnostic=processOutputDiagnostic({output:text});if(diagnostic)record.outputDiagnostic=diagnostic;else record.outputDiagnostic ||= processOutputDiagnostic(record)||undefined;};
-    const append = (data,index) => { try {appendFileSync(record.logPath,data);} catch {record.logIncomplete=true;} record.lastOutputAt=Date.now();retain(formatters[index].write(decoders[index].write(data))); this.store.set('process:' + id, record); };
+    const append = (data,index) => { try {appendFileSync(record.logPath,data);} catch {record.logIncomplete=true;} record.lastOutputAt=Date.now();this.outputActivity(record);retain(formatters[index].write(decoders[index].write(data))); this.store.set('process:' + id, record); };
     child.stdout.on('data', data=>append(data,0)); child.stderr.on('data', data=>append(data,1));
     let timer;
     if (timeoutMs > 0) timer = setTimeout(() => this.stop(id,'timeout'), timeoutMs);
     child.on('error', error => { record.state = 'failed';record.execution='not_started';record.fault='shell_spawn_failed'; record.output += '\n' + error.code; this.store.set('process:' + id, record); });
-    child.on('close', (code, signal) => { clearTimeout(timer);decoders.forEach((decoder,index)=>retain(formatters[index].write(decoder.end())+formatters[index].end())); record.exitCode = code; record.signal = signal; if (record.stopReason==='timeout'){record.state='timed_out';record.fault='process_timeout';}else if (record.cancellationRequested) record.state='cancelled'; else if (record.state === 'running') record.state = code === 0 ? 'completed' : 'failed';if(record.state==='failed')record.fault ||= code===127?'command_not_found':'command_failed';this.active.delete(id); this.records.delete(id);finish(); });
-    this.store.event('process_started', {id, taskId}); return {...record};
+    child.on('close', (code, signal) => { clearTimeout(timer);decoders.forEach((decoder,index)=>retain(formatters[index].write(decoder.end())+formatters[index].end())); record.exitCode = code; record.signal = signal; if (record.stopReason==='timeout'){record.state='timed_out';record.fault='process_timeout';}else if(record.stopReason==='idle_review'){record.state='interrupted';record.fault='process_idle_stopped';}else if (record.cancellationRequested) record.state='cancelled'; else if (record.state === 'running') record.state = code === 0 ? 'completed' : 'failed';if(record.state==='failed')record.fault ||= code===127?'command_not_found':'command_failed';this.active.delete(id); this.records.delete(id);finish(); });
+    this.watchIdle(record);this.store.event('process_started', {id, taskId}); return {...record};
+  }
+  clearIdleWatch(id) { clearTimeout(this.idleTimers.get(id));this.idleTimers.delete(id); }
+  watchIdle(record) {
+    this.clearIdleWatch(record.id);
+    if(this.disposed||record.state!=='running'||!record.taskId||!record.autoDiagnose||record.terminal||record.idleCheck===false||record.idleRequestedAt)return;
+    const remaining=this.idleMs-(Date.now()-Math.max(record.lastOutputAt,record.idleWaitAt||0));
+    const timer=setTimeout(()=>{
+      this.idleTimers.delete(record.id);
+      if(record.state!=='running'||this.disposed)return;
+      if(Date.now()-Math.max(record.lastOutputAt,record.idleWaitAt||0)<this.idleMs){this.watchIdle(record);return;}
+      record.idleRequestedAt=Date.now();this.store.set('process:'+record.id,record);
+      try{this.onIdle({...record});}catch{}
+    },Math.max(1,remaining));
+    timer.unref();this.idleTimers.set(record.id,timer);
+  }
+  outputActivity(record) {
+    if(!record.idleRequestedAt)return;
+    delete record.idleRequestedAt;
+    try{this.onActivity({...record});}catch{}
+    this.watchIdle(record);
+  }
+  continueWaiting(id) {
+    const record=this.records.get(id);
+    if(!record||record.state!=='running'||!record.idleRequestedAt)throw Error('question_changed');
+    delete record.idleRequestedAt;record.idleWaitAt=Date.now();
+    this.store.set('process:'+id,record);this.watchIdle(record);return {...record};
   }
   poll(id) { const item = this.store.get('process:' + id); if (!item) throw new Error('process_missing'); return {...item,...(item.state==='running'?{quietForMs:Date.now()-item.lastOutputAt}:{})}; }
   input(id, value) { const child = this.active.get(id); if (!child?.stdin || typeof value !== 'string' || value.length > 8000) throw new Error('process_missing'); child.stdin.write(value); return {accepted: true}; }
   stop(id,reason='user') {
+    this.clearIdleWatch(id);
     const preflight=this.preflights.get(id);
     if(preflight){const item=this.records.get(id);item.state='stopping';item.cancellationRequested=true;item.stopReason=reason;this.store.set('process:'+id,item);preflight.abort();return item;}
     const child = this.active.get(id); if (!child) return this.poll(id);

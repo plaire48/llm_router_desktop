@@ -13,3 +13,17 @@ Validation: 3 state/marker tests passed; real React fixture verified first insta
 Ending transition refinement: preserve the flight, fade to full white at 4.85 s, then fade in the fixed-size brand at 5 s and progress track at 5.2 s. Removed the final title zoom and exit scaling/translation. The progress track uses the shared line token for contrast on white. No new dependency.
 
 Validation: the React/Chromium fixture now includes shared styles, fonts and real brand assets. It checks white-before-logo, intermediate opacity and unchanged title bounds at 4.9/5.4/6 s; installation lifecycle and reduced-motion checks passed. Visual evidence: `ending-white.png` and `ending-logo.png` in the verification directory above. Electron bundle build passed. Windows installed playback remains unverified.
+
+## Startup cover (2026-10-15 follow-up)
+
+The initial HTML supplies an opaque white cover and hides the app root before JavaScript loads. The intro is a body portal outside the app's transforms. A layout effect hands off the cover only after the intro is committed; the app root is revealed at the existing leave transition. Native browser views and page view transitions wait until the opening sequence is finished. The shell error boundary releases the cover to show recovery controls if rendering fails. This adds no fixed startup delay and preserves install-version selection, skip and reduced-motion behavior.
+
+The opening-scene UI check now delays module loading by 700 ms and verifies the cover before React, hidden app content during the intro, and visible content after completion across first install, normal relaunch, same-version reinstall, update and reduced motion. Windows installed startup remains a separate check.
+
+## Brief launch and project switching follow-up
+
+Ordinary launches keep their opaque logo/progress surface until startup settles. The former six-second timer no longer declares the opening done; skipping while startup is pending advances to the title instead of exposing the workspace. The critical HTML guard suppresses root opacity and body-level portals, including descendants that explicitly set `visibility:visible`. The root is inert until hand-over, and the renderer error boundary restores interactivity. Brief mode has a white fallback independent of token loading. `NubiPreparing` covers a new not-ready state in the same render, rather than waiting for an effect.
+
+Project navigation sets its guard before awaiting the host and commits the new Workbench synchronously before removing it. Pending view-transition snapshots are cancelled and no new snapshot starts during a project switch. A compact brand/progress cover fills the area below the toolbar; old workspace contents, portalled dialogs and native browser views remain hidden. Cancellation/failure restores the original UI and interactivity. Existing project drafts and view-state storage are retained.
+
+Validation: opening React/Chromium fixture covers delayed JS, explicit visible descendants, high-z-index portals, first install, brief relaunch, reinstall, update, a startup beyond six seconds, early skip and reduced motion. Five opening/transition tests pass. Actual macOS Electron with two temporary local projects verifies the delayed switch frame-by-frame, new project after uncover, and original project on failure (`scripts/check-project-switch-cover.mjs`, `verification/project-switch-cover/result.json`). No company session or user project is used. Windows installed startup/switching remains unverified.
