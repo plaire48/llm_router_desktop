@@ -11,7 +11,8 @@ const outputName=process.argv.find(arg=>arg.startsWith('--output='))?.slice(9)||
 if(!/^wiki-[a-z0-9-]+$/.test(outputName))throw Error('invalid_evaluation_output');
 const out=path.resolve('verification',outputName);await mkdir(out,{recursive:true});
 const cases=[
-  {id:'whole-order-page',corpus:'order-service',statement:'createOrder는 할인 후 금액을 shippingFee에 전달합니다.',pageFile:'verification/wiki-semantic-review-2026-10-16/order-service-3/openwiki/architecture.md',sources:['src/order.mjs','src/discount.mjs','src/shipping.mjs','src/status.mjs','src/legacy/export.mjs','package.json','README.md','AGENTS.md','test/order.test.mjs','test/discount.test.mjs','test/shipping.test.mjs'],expected:false},
+  {id:'whole-order-page',corpus:'order-service',statement:'createOrder는 할인 후 금액을 shippingFee에 전달합니다.',pageFile:'eval/review-fixtures/order-overclaim.md',sources:['src/order.mjs','src/discount.mjs','src/shipping.mjs','src/status.mjs','src/legacy/export.mjs','package.json','README.md','AGENTS.md','test/order.test.mjs','test/discount.test.mjs','test/shipping.test.mjs'],expected:false},
+  {id:'whole-cache-page',corpus:'cache-retry',statement:'lookup은 캐시 조회 후 미스에서 fetchItem을 호출합니다.',pageFile:'eval/review-fixtures/cache-clock-overclaim.md',sources:['src/cache.mjs','src/retry.mjs','src/service.mjs','test/boundaries.mjs','README.md','package.json','AGENTS.md'],expected:false},
   {id:'function-scoped-only',corpus:'order-service',statement:'applyDiscount 함수 내부에서 invalid_amount를 직접 던지는 조건은 amount가 정수가 아니거나 음수인 경우뿐입니다. 다른 함수에서 발생하는 오류를 설명하는 문장은 아닙니다.',sources:['src/order.mjs','src/discount.mjs','src/shipping.mjs'],expected:true},
   {id:'order-overflow',corpus:'order-service',statement:'applyDiscount가 소계를 검증하므로 실제 createOrder 흐름에서는 shippingFee의 invalid_amount에 도달하지 않습니다.',sources:['src/order.mjs','src/discount.mjs','src/shipping.mjs'],expected:false},
   {id:'order-fractional',corpus:'order-service',statement:'createOrder는 모든 상품의 가격과 수량이 정수인지 개별 검증하여 소수 가격을 항상 거절합니다.',sources:['src/order.mjs','src/discount.mjs'],expected:false},
@@ -37,7 +38,7 @@ try{
         if(!task.sources.includes(file.slice(1)))throw Error('probe_scope');
         return readFile(path.join(workspace.root,file.slice(1)),'utf8');
       },signal:controller.signal});
-      row.accepted=result.accepted;row.feedback=result.feedback;row.passed=row.accepted===row.expected;if(task.id==='whole-order-page'){row.targetDetected=result.feedback.includes('때만');row.passed=row.passed&&row.targetDetected;}
+      row.accepted=result.accepted;row.feedback=result.feedback;row.passed=row.accepted===row.expected;if(task.id==='whole-order-page'){row.targetDetected=result.feedback.includes('때만');row.passed=row.passed&&row.targetDetected;}if(task.id==='whole-cache-page'){row.targetDetected=result.feedback.includes('Infinity');row.passed=row.passed&&row.targetDetected;}
     }catch(error:any){row.error=error.message;row.passed=false;}
     finally{clearTimeout(timer);row.elapsedMs=Date.now()-started;await workspace.dispose();}
     await writeFile(path.join(out,'probes.json'),JSON.stringify(report,null,2)+'\n');console.log(`${row.id} passed=${row.passed} ${row.elapsedMs}ms`);

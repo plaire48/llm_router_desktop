@@ -64,7 +64,7 @@ function fixture(args: object = {}, files: Record<string, string> = {}) {
   };
 }
 describe("independent page semantic review", () => {
-  test("compact support omits repeated explanations but retains witnesses", async () => {
+  test("compact support still requires a scope explanation", async () => {
     const f = fixture({
       checks: [],
       supported: [
@@ -74,7 +74,7 @@ describe("independent page semantic review", () => {
         },
       ],
     });
-    expect((await reviewRepositoryPage(f.input)).accepted).toBe(true);
+    await expect(reviewRepositoryPage(f.input)).rejects.toThrow();
   });
   test("groups common support without dropping individual target coverage", async () => {
     const f = fixture({

@@ -190,6 +190,12 @@ retry policy: a failed attempt may already have side effects, and repeating it
 can repeat those effects. Retries alone provide neither rollback nor idempotency. Do not infer numerical exactness
 merely from integer input checks. A validated parameter does not validate other
 operands or values returned by injected callbacks; qualify comparisons accordingly.
+Separate callback values at creation from later invocations. A finite timestamp
+at set time does not constrain future reads. If overflow produces an infinite
+expiry, say it does not expire WHILE subsequent clock readings remain finite;
+if a later reading is Infinity the >= comparison succeeds. TTL zero also needs
+a numeric (not NaN) reading for the equality example. Prefer the actual comparison
+over an unqualified promise about all future states.
 For cancellation, state which signals the wrapper actually passes or checks.
 Distinguish the built-in default task/sleep behavior from an injected callback,
 which may independently observe a captured signal. Do not claim injected work
