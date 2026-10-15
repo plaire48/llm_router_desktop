@@ -123,7 +123,7 @@ jobs:
       - name: Verify independent OpenWiki semantic review
         working-directory: packages/openwiki
         run: |
-          pnpm exec vitest run test/agent/repository-semantic-review.test.ts test/agent/repository-runner.test.ts test/agent/repository-prompts.test.ts test/generation/repository-run.test.ts test/ingestion/code-mode.test.ts
+          pnpm exec vitest run test/agent/repository-semantic-review.test.ts test/agent/repository-runner.test.ts test/agent/repository-prompts.test.ts test/generation/repository-run.test.ts test/ingestion/code-mode.test.ts test/claims/brains/code/store.test.ts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Download verified upgrade baseline
         env:
