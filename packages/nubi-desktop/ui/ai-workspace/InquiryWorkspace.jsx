@@ -72,7 +72,7 @@ export default function InquiryWorkspace({user,role='user',onPendingChange=noPen
   const [assignment]=useState(()=>suppliedAssignment||createInquiryAssignmentClient());
   const [canAssign,setCanAssign]=useState(false),[assigning,setAssigning]=useState(false),[assignBusy,setAssignBusy]=useState(false);
   useEffect(()=>{let active=true;setCanAssign(false);if(role==='editor'||role==='system')assignment.canAssign().then(value=>{if(active)setCanAssign(value);}).catch(()=>{});return()=>{active=false;};},[assignment,role,revision]);
-  const [sidebarCollapsed,setSidebarCollapsed]=useState(false),sidebarId=useId();
+  const sidebarId=useId();
   const sequence=useRef(0),scrollPosition=useRef(0),reader=useRef(null);
   useEffect(()=>{onPendingChange({...pending,dirty:pending.dirty||assigning||Boolean(pendingRemoval)||Boolean(pendingState),saving:pending.saving||assignBusy||mutating});return()=>onPendingChange(empty);},[pending,assigning,assignBusy,mutating,pendingRemoval,pendingState,onPendingChange]);
   const [savedCommentId,setSavedCommentId]=useState(null),[replyTo,setReplyTo]=useState(null);useEffect(()=>setReplyTo(null),[route]);
@@ -126,7 +126,7 @@ export default function InquiryWorkspace({user,role='user',onPendingChange=noPen
   };
   const locked=pending.saving||mutating||Boolean(pendingRemoval)||Boolean(pendingState);
   const sidebar=<InquirySidebar id={sidebarId} posts={posts} rows={scoped} pagination={pagination} query={query} setQuery={setQuery} mine={mine} setMine={setMine} status={status} setStatus={setStatus} category={category} setCategory={setCategory} client={client} selected={route} loading={loading} failure={failure} locked={pending.saving||mutating} refreshLocked={pending.dirty||detailLoading||Boolean(pendingRemoval)||Boolean(pendingState)} onRefresh={refresh} onOpen={open} scrollPosition={scrollPosition}/>;
-  const pageLayout={sidebar,sidebarId,sidebarCollapsed,onToggleSidebar:()=>setSidebarCollapsed(value=>!value),showList:route==='list'};
+  const pageLayout={sidebar,sidebarId,showList:route==='list'};
   const selected=detail?.post.number===Number(route)?detail:null;
   const commentSaved=comment=>{setSavedCommentId(comment.id);setEditingComment(null);setPending(empty);refresh();refreshInquiryNotifications();};
   return <div className="inquiry-workspace">{editingPost?<ServiceDesk key={`edit-${editingPost.number}`} editing={editingPost} page={editingPost.source} session={client.session} onClose={()=>{setEditingPost(null);setPending(empty);}} onPendingChange={setPending} request={({payload,types})=>client.update(editingPost,{title:payload.title,type:payload.type,body:payload.description},types)} onSaved={post=>{setDetail(value=>({...value,post}));setPosts(rows=>rows.map(row=>row.number===post.number?post:row));setEditingPost(null);setPending(empty);refresh();}} media={media} pageLayout={pageLayout} assignmentClient={assignment}/>:route==='new'?<ServiceDesk page={origin.page} onClose={()=>open('list',true)} onPendingChange={setPending} onSaved={receipt=>{refresh();open(String(receipt.number),true);}} media={media} pageLayout={pageLayout} assignmentClient={assignment}/>:<InquiryPage {...pageLayout} onClose={route==='list'?undefined:()=>open('list')} busy={pending.saving||mutating} actions={<><ActionButton className="inquiry-mobile-refresh" action="refresh" disabled={loading||detailLoading||locked||pending.dirty} onClick={refresh}/><ActionButton action="edit" label="문의하기" disabled={locked} onClick={()=>open('new')}/></>}>

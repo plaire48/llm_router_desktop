@@ -28,3 +28,17 @@ test('unrelated confirmation remains manual and does not require a redirect',()=
  assert.equal(mailDialogPending(contents),true);emit('Page.javascriptDialogClosed',{result:false});assert.equal(mailDialogPending(contents),false);
  assert.equal(commands.length,1);contents.debugger.detach();assert.equal(contents.debugger.listenerCount('message'),0);assert.equal(contents.listenerCount('did-start-navigation'),0);
 });
+
+test('a human confirmation can wait beyond five minutes and resumes only after confirmation and navigation',async t=>{
+ const {MailPortal}=await import('../electron-app/mail-portal.cjs');
+ t.mock.timers.enable({apis:['Date'],now:1000});
+ const {contents,emit,commands}=fixture();Object.assign(contents,{getURL:()=> 'https://www.samsung.net/loginapp/abnormal-logout',isDestroyed:()=>false});
+ const host=new MailPortal({getPageContents:()=>[contents],invoke:async()=>({})});t.after(()=>host.dispose());
+ host.page={tabId:'fixture'};host.windowForLogin=async()=>{};host.sync=async()=>{};host.readSession=async()=>[{folderID:'1',folderName:'Inbox'}];let probes=0;
+ host.identify=async()=>{probes++;return {identity:{id:'owner',userId:'owner'},folders:[]};};
+ emit('Page.javascriptDialogOpening',notice);const connecting=host.connect();
+ await new Promise(r=>setTimeout(r,20));t.mock.timers.setTime(11*60*1000);await new Promise(r=>setTimeout(r,300));
+ assert.equal(host.status().connecting,true);assert.equal(host.status().loginStage,'confirmation');assert.equal(probes,0);
+ emit('Page.javascriptDialogClosed',{result:true});contents.emit('did-start-navigation',{},'http://kor3.samsung.net/portalapp/home',false,true);
+ assert.equal((await connecting).connected,true);assert.equal(probes,1);assert.deepEqual(commands,[{method:'Page.enable',args:undefined}]);
+});

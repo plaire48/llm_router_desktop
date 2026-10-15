@@ -116,6 +116,10 @@ jobs:
           $env:Path = $previousPath
           Remove-Item Env:NUBI_BUNDLED_GIT
           if ($wikiExit -ne 0) { exit $wikiExit }
+      - name: Verify selected documents and manual mail confirmation recovery
+        run: |
+          node --test --test-concurrency=1 tests/chat-documents.test.mjs tests/mail-session-dialog.test.mjs tests/mail-portal.test.mjs tests/approval-diagnostics.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify factual Wiki review and current recovery contracts
         run: |
           node --test --test-concurrency=1 tests/development-workflow.test.mjs tests/browser-saml.test.mjs tests/workspace-inquiry-flow.test.mjs tests/mail-attachment-formats.test.mjs tests/mail-attachment-image.test.mjs tests/wiki-chat-admission.test.mjs tests/wiki-code-map.test.mjs

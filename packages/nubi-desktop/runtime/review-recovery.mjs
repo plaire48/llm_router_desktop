@@ -5,7 +5,7 @@ import {REVIEW_RECOVERY_GUIDANCE} from '../../../extensions/aipro-chat/review-re
 export const REVIEW_RECOVERY_TOOLS=new Set([
   'ask_user','update_plan','discover_capabilities','use_skill','read_skill','list_skill_resources',
   'read_conversation','read_source','source_search','inspect_path','code_outline',
-  'wiki_query','knowledge_query','personal_mail_query','read_personal_mail',
+  'wiki_query','knowledge_query','personal_mail_query','read_attached_document','read_personal_mail',
   'inspect_environment','inspect_workspace_changes','read_process_output','read_document_analysis',
   'recovery_snapshot','computer_checkpoint','read_computer_result','observe_computer',
   'verify_computer_value','verify_computer_outcome','list_computer_apps',

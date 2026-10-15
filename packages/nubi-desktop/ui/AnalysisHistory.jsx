@@ -8,7 +8,7 @@ import {DocumentAnalysisProgress} from './DocumentAnalysisProgress.jsx';
 import {ResponseTime} from './ResponseTime.jsx';
 
 const labels = {analysis_research:'자료 조사',analysis_review:'독립 검토',analysis_recovery:'실패 원인 확인',analysis_page:'화면 근거 분석'};
-const sourceLabels={read_personal_mail:'메일 원문과 개인 위키',personal_mail_query:'메일 검색 결과',ask_openwiki:'프로젝트 위키 조사',read_process_output:'실행 기록',read_computer_result:'앱 동작 결과',observe_computer:'앱 화면',read_source:'소스 원문',wiki_query:'위키 조회',analyze_documents:'문서 분석',read_document_analysis:'저장된 문서 분석'};
+const sourceLabels={read_attached_document:'첨부 문서',read_personal_mail:'메일 원문과 개인 위키',personal_mail_query:'메일 검색 결과',ask_openwiki:'프로젝트 위키 조사',read_process_output:'실행 기록',read_computer_result:'앱 동작 결과',observe_computer:'앱 화면',read_source:'소스 원문',wiki_query:'위키 조회',analyze_documents:'문서 분석',read_document_analysis:'저장된 문서 분석'};
 const states = {complete:'응답 정리됨',partial:'일부 확인',interrupted:'분석 중단됨',cancelled:'분석 중지됨',blocked:'확인 필요',failed:'분석 중단됨'};
 const key = record => `${record.kind}:${record.id}`;
 const count = value => Number.isFinite(value) ? Math.max(0,Math.floor(value)).toLocaleString('ko-KR') : '0';

@@ -41,6 +41,7 @@ export class AnswerSources {
     if(tool==='read_source')rows=[this.file(result,result.path?.startsWith('openwiki/')?'wiki':'file')].filter(Boolean);
     if(tool==='wiki_query')rows=(result.results||[]).map(row=>this.file(row,'wiki')).filter(Boolean);
     if(tool==='read_personal_mail')rows=this.mail(result);
+    if(tool==='read_attached_document'&&result.text?.trim())rows=[this.add({kind:'document',id:result.id,sourceHash:result.sourceHash,filename:result.filename,title:result.filename,coverage:result.coverage,location:{offset:result.offset},partial:result.partial})];
     return rows.length?{...result,citations:rows}:result;
   }
   review(content) {

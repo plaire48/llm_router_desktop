@@ -112,7 +112,7 @@ async function openProject(root,kind='project',{initializeWiki=true,exactRoot=fa
  return overview;
  }finally{openingProject=false;}
 }
-const forbidden=new Set(['projectActivity','prepareAppUpdate','open','importSkill','connectSkillMarketplace','disconnectSkillMarketplace','initializeWiki','collaboration']);
+const forbidden=new Set(['importDocumentSelection','projectActivity','prepareAppUpdate','open','importSkill','connectSkillMarketplace','disconnectSkillMarketplace','initializeWiki','collaboration']);
 const restoreCurrentProject=createProjectRestorer(async()=>{
  if(currentRoot)return await invoke('overview');
  let saved;try{saved=JSON.parse(await readFile(path.join(storage,'last-project.json'),'utf8'));}catch{return null;}
@@ -340,6 +340,14 @@ app.whenReady().then(async()=>{
    throw Error('method_invalid');
   }
   if(method==='openBrowser')return openWorkspacePage(args.url);
+  if(method==='chooseChatDocuments'){
+   if(source!=='electron')throw Error('document_scope');
+   const owner=await invoke('projectPath',{projectId:args.projectId});
+   const result=await dialog.showOpenDialog(window,{title:'질문할 문서 선택',properties:['openFile','multiSelections'],filters:[{name:'문서',extensions:['pdf','doc','docx','docm','dotx','dotm','xls','xlsx','xlsm','xltx','xltm','ppt','pptx','pptm','ppsx','ppsm','potx','potm','txt','md','csv','json','xml','html','htm','ics']}]});
+   if(result.canceled)return {cancelled:true};
+   if(currentRoot!==owner.path)throw Error('project_changed');
+   return invoke('importDocumentSelection',{projectId:args.projectId,paths:result.filePaths});
+  }
   if(method==='chooseSkillPackage'){const folder=args.kind==='folder',mixed=!folder&&args.kind!=='zip'&&process.platform==='darwin';const file=await choose(folder?['openDirectory']:mixed?['openFile','openDirectory']:['openFile'],'스킬 등록',folder?undefined:[{name:'스킬',extensions:['zip','md']}]);return file?invoke('importSkill',{source:file,taskId:args.taskId}):{cancelled:true};}
   if(method==='chooseComputerApp'){const file=await choose(['openFile'],'Windows 앱 선택',[{name:'Windows app',extensions:['exe']}]);return file?invoke('computer',{method:'register_app',taskId:args.taskId,file}):{cancelled:true};}
   if(forbidden.has(method))throw Error('method_invalid');return await invoke(method,args);

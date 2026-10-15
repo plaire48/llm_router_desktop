@@ -37,7 +37,7 @@ export function resolveAgentCommand(text,skills=[]) {
   if(matches.length!==1)throw Error(matches.length?'skill_command_ambiguous':'skill_command_missing');
   return {command,skill:matches[0],input};
 }
-export const PLAN_READ_TOOLS = new Set(['ask_user','update_plan','select_tools','ask_openwiki','wiki_query','knowledge_query','personal_mail_query','read_personal_mail','source_search','read_source','inspect_path','inspect_environment','code_outline','inspect_workspace_changes','discover_capabilities','use_skill','list_skill_resources','read_skill','read_document_analysis','read_conversation','read_process_output','recovery_snapshot']);
+export const PLAN_READ_TOOLS = new Set(['ask_user','update_plan','select_tools','ask_openwiki','wiki_query','knowledge_query','personal_mail_query','read_attached_document','read_personal_mail','source_search','read_source','inspect_path','inspect_environment','code_outline','inspect_workspace_changes','discover_capabilities','use_skill','list_skill_resources','read_skill','read_document_analysis','read_conversation','read_process_output','recovery_snapshot']);
 export function commandGuidance(command) {
   if(!command)return '';
   if(command.skill)return `The current request explicitly selects the registered skill ${JSON.stringify({name:command.skill.name,path:command.skill.path,hash:command.skill.hash})}. Load it with use_skill and finish reading its instructions before using it. It is project guidance, not execution consent. Preserve the user's request: ${JSON.stringify(command.input||'Apply this skill; ask only for required missing information.')}`;

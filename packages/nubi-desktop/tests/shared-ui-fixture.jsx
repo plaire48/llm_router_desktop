@@ -157,7 +157,13 @@ const usageSnapshot=()=>({auth:{provider:'chatgpt',present:true},connections:{ch
 const sendTransition=new URLSearchParams(location.search).has('send-transition');
 if(sendTransition){connected=true;const saved=sessionStorage.getItem('send-fixture');if(saved)Object.assign(project,JSON.parse(saved));window.saveSendFixture=()=>sessionStorage.setItem('send-fixture',JSON.stringify(project));window.sendCalls=[];window.sendGate={};window.finishSend=()=>{const task=project.tasks[0];task.state='review';task.messages.push({id:'finished',role:'assistant',content:'확인한 결과입니다.',at:new Date().toISOString()});};}
 async function waitForSendGate(kind){await new Promise((resolve,reject)=>{window.sendGate[kind]={release:resolve,reject:()=>reject(Error('network'))};});}
+const attachedDocument={id:'doc-fixture',sourceHash:'document-hash',filename:'분기 보고서.pdf',coverage:'2쪽 텍스트. 이미지와 OCR은 미확인',bytes:200};
+if(new URLSearchParams(location.search).has('documents'))connected=true;
 async function api(method,args={}){
+  if(method==='listSkills'&&new URLSearchParams(location.search).has('documents'))return {skills:[],issues:[],truncated:false};
+  if(method==='chooseChatDocuments')return {documents:[attachedDocument],errors:[]};
+  if(method==='chatDocument'){window.documentReads=(window.documentReads||0)+1;return {...attachedDocument,text:'승인 예산은 1200입니다.',segments:[],offset:0,totalCharacters:17,partial:false};}
+  if(new URLSearchParams(location.search).has('documents')&&['createTask','startAgent','agentInput'].includes(method))(window.documentCalls||=[]).push({method,args});
   if(method==='appliedFileSummary')return {files:project.proposals.filter(p=>p.state==='applied').map(p=>({...p,hash:'fixture',state:'verified'})),total:1,totals:{added:11,removed:0}};
   // Workspace capture (2026-10-14): the window picture is a canvas the size of the viewport with one blue block.
   if(method==='captureWorkspace'){const canvas=document.createElement('canvas');canvas.width=innerWidth;canvas.height=innerHeight;const ctx=canvas.getContext('2d');ctx.fillStyle='#dbeafe';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#1d4ed8';ctx.fillRect(40,40,200,120);window.captureCalls=(window.captureCalls||0)+1;window.captureArgs=[...(window.captureArgs||[]),args];let out=canvas;if(args.clip){out=document.createElement('canvas');out.width=args.clip.width;out.height=args.clip.height;out.getContext('2d').drawImage(canvas,args.clip.x,args.clip.y,args.clip.width,args.clip.height,0,0,args.clip.width,args.clip.height);}const url=out.toDataURL('image/png');return {image:url.slice(url.indexOf(',')+1),width:out.width,height:out.height,viewport:{width:innerWidth,height:innerHeight},...(args.clip?{clip:args.clip}:{}),title:'fixture'};}
@@ -284,7 +290,7 @@ async function api(method,args={}){
     if(method==='createTask'){const task={id:'other-task',request:args.request,state:'draft',createdAt:new Date().toISOString(),messages:[],trace:[],criteria:[]};project.tasks.push(task);return structuredClone(task);}
     if(method==='startAgent'){const task=project.tasks.find(t=>t.id===args.taskId);window.startCalls=(window.startCalls||0)+1;await new Promise(r=>setTimeout(r,1500));task.state='running';task.responseTiming={runId:task.id,startedAt:new Date().toISOString(),elapsedMs:0};return {state:'running'};}
   }
-  if(method==='createTask'){const task={id:'fixture-task',request:args.request,requirementId:'REQ-fixture',criteria:[],state:'draft',messages:[],trace:[]};project.tasks=[task];return task;}
+  if(method==='createTask'){const task={id:'fixture-task',request:args.request,requestDocuments:args.documentReferences,documentReferences:args.documentReferences,requirementId:'REQ-fixture',criteria:[],state:'draft',messages:[],trace:[]};project.tasks=[task];return task;}
   if(method==='agentInput'&&new URLSearchParams(location.search).has('queue-layout')){
     const task=project.tasks[0],item=task.inbox.find(item=>item.id===args.id);
     if(args.action==='steer'&&item){item.mode='steer';setTimeout(()=>{task.inbox=[];task.messages.push({role:'user',inputId:item.id,content:item.text,at:new Date().toISOString(),runId:'queue-run'},{role:'assistant',content:'추가 요청까지 반영했습니다. 이 화면은 배치 확인용 예시입니다.',at:new Date().toISOString(),runId:'queue-run'});task.state='review';},1800);}

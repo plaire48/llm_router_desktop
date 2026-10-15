@@ -8,7 +8,7 @@ import {useAnchoredModal} from './useAnchoredModal.js';
 
 // Registered skills are request shortcuts, not installation or tool approval.
 // Discovery and file management stay separate from choosing a skill to use.
-export function WorkspaceSkillMenu({api, taskId, onMarketplace, onManage, onManageMcp, onSelect}) {
+export function WorkspaceSkillMenu({api, taskId, onMarketplace, onManage, onManageMcp, onDocuments, onSelect}) {
   const [open, setOpen] = useState(false), [catalog, setCatalog] = useState(null), [mcp, setMcp] = useState(null);
   const [loading, setLoading] = useState(false), [failed, setFailed] = useState(false), [revision, setRevision] = useState(0);
   const [position, setPosition] = useState(null);
@@ -64,10 +64,11 @@ export function WorkspaceSkillMenu({api, taskId, onMarketplace, onManage, onMana
   }
   const skills = catalog?.skills || [];
   return <div className="nubi-skill-menu-anchor nubi-composer-skill-anchor">
-    <CxButton ref={trigger} className="composer-icon nubi-composer-skill-trigger" data-icon-only aria-label="스킬 관리" title="스킬 관리" aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined} onClick={() => { if (open) close(); else {setLoading(true); setFailed(false); setOpen(true);} }}><Icon name="plus" size={18}/></CxButton>
+    <CxButton ref={trigger} className="composer-icon nubi-composer-skill-trigger" data-icon-only aria-label="스킬 관리" title="문서 첨부 및 도구" aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined} onClick={() => { if (open) close(); else {setLoading(true); setFailed(false); setOpen(true);} }}><Icon name="plus" size={18}/></CxButton>
     {open && createPortal(<div ref={dialog} id={id} className="nubi-skill-menu nubi-composer-skill-menu" role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} style={{...position, visibility:position ? 'visible' : 'hidden'}} onKeyDown={handleKeys}>
       <div className="nubi-skill-menu-header"><strong id={`${id}-title`}>도구 목록</strong><CxButton ref={closeButton} className="nubi-skill-menu-close nubi-modal-close" aria-label="스킬 메뉴 닫기" title="닫기" onClick={close}><Icon name="xClose" size={18}/></CxButton></div>
       
+      {onDocuments&&<CxButton className="nubi-skill-menu-marketplace" onClick={()=>openManagement(onDocuments)}><span className="nubi-skill-menu-icon" aria-hidden="true"><Icon name="file" size={18}/></span><span className="nubi-skill-menu-copy"><strong>문서 첨부</strong></span><Icon name="plus" size={16}/></CxButton>}
       <div className="nubi-skill-menu-list" role="list" aria-label="등록한 스킬" aria-busy={loading}>
         {loading && <p className="nubi-skill-menu-empty" role="status"><span className="status-spinner" aria-hidden="true"/>스킬 확인 중</p>}
         {!loading && failed && <div className="nubi-skill-menu-unavailable"><p className="nubi-skill-menu-empty">불러오기 실패</p><CxButton className="nubi-skill-menu-retry" onClick={() => setRevision(value => value + 1)}><Icon name="refresh" size={14}/>다시 확인</CxButton></div>}

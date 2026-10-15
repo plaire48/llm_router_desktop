@@ -15,6 +15,7 @@ class MailPortal {
  async identify(epoch=this.epoch){
   const read=async(...args)=>{if(epoch!==this.epoch)throw Error('mail_cancelled');const result=await this.read(...args);if(epoch!==this.epoch)throw Error('mail_cancelled');return result;};
   let identity;try{identity=identityOf(await read('identity'));}catch(error){if(!['mail_portal_identity','mail_portal_format','mail_portal_request','mail_portal_login'].includes(error.message))throw error;}
+  if(!identity?.userId){try{const policy=identityOf(await read('identityPolicy'));if(policy.userId&&(!identity?.email||!policy.email||identity.email.toLowerCase()===policy.email.toLowerCase()))identity={...identity,...policy,email:identity?.email||policy.email,setCd:identity?.setCd||policy.setCd||''};}catch(error){if(error.message==='mail_cancelled')throw error;}}
   const folders=foldersOf(await read('folders',{setCd:identity?.setCd||''}));
   if(!identity?.email||!identity?.userId){const sent=folders.find(folder=>folder.mailbox==='sent');if(sent){const list=await read('list',{folderId:sent.id,setCd:identity?.setCd||''});const row=list?.liteHeaderVOs?.[0];if(row&&/^\d{1,20}$/.test(String(row.mailSeq))){const summary=await read('summary',{folderId:sent.id,seq:String(row.mailSeq)}),from=summary?.from||{};const userId=identity?.userId||from.userID||from.epID;const email=identity?.email||(typeof from.email==='string'&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(from.email)?from.email:null);if(!identity&&(typeof userId==='string'||email))identity={id:typeof userId==='string'?userId:email,setCd:''};if(identity)identity={...identity,email,userId:typeof userId==='string'?userId:null};}}}
   if(!identity?.email||!identity?.userId){const inbox=folders.find(folder=>folder.mailbox==='inbox');if(inbox){const list=await read('list',{folderId:inbox.id,setCd:identity?.setCd||''}),row=list?.liteHeaderVOs?.[0];if(row&&/^\d{1,20}$/.test(String(row.mailSeq))){const message=await read('summary',{folderId:inbox.id,seq:String(row.mailSeq)}),received=message?.receivedAddress;
@@ -139,20 +140,25 @@ class MailPortal {
    this.window?.webContents.stop?.();await this.restoring;if(epoch!==this.epoch)throw Error('mail_cancelled');
    await this.windowForLogin(true,epoch);this.state.loginStage='authenticating';let identity,folders;
    let deadline=Date.now()+5*60*1000;
-   while(epoch===this.epoch&&Date.now()<deadline){
+   while(epoch===this.epoch){
     const loginContents=()=>this.page&&this.getPageContents?this.getPageContents(this.page.tabId):[];
     const rows=loginContents();
     if(rows.some(mailDialogPending)){
      this.state.loginStage='confirmation';
-     const humanWaiting=rows.some(mailDialogOpen),started=Date.now();
+     const humanWaiting=rows.some(mailDialogOpen);
+     if(humanWaiting)deadline=Date.now()+5*60*1000;
+     else if(Date.now()>=deadline)throw Error('mail_portal_timeout');
      await wait(250);
      // Waiting for the person's decision is not a portal/network timeout.
-     if(humanWaiting)deadline+=Date.now()-started;
+     if(humanWaiting)deadline=Date.now()+5*60*1000;
      continue;
     }
     if(epoch!==this.epoch)break;
+    // Credentials and confirmation are human input, not network inactivity.
+    if(rows.some(contents=>!contents.isDestroyed()&&loginLocation(contents.getURL())))deadline=Date.now()+5*60*1000;
+    if(Date.now()>=deadline)throw Error('mail_portal_timeout');
     this.state.loginStage='authenticating';
-    try{({identity,folders}=await this.identify(epoch));break;}
+    try{({identity,folders}=await this.identify(epoch));if(loginContents().some(mailDialogPending)){deadline=Date.now()+5*60*1000;continue;}break;}
     catch(error){
      if(loginContents().some(mailDialogPending)){await wait(250);continue;}
      if(await this.loginPageFailed())throw Error('mail_portal_sso');
@@ -244,7 +250,14 @@ class MailPortal {
  async approvals({page=1}={}){
   return approvalStep('list',async()=>{
    if(!this.state.connected)throw approvalFailure(Error('mail_portal_login'),'identity');
-   if(!this.identity?.userId)throw approvalFailure(Error('mail_portal_identity'),'identity');
+   if(!this.identity?.userId){
+    const current=this.epoch;const previous=this.identity;
+    const result=await approvalStep('identity',()=>this.identify(current));
+    if(current!==this.epoch)throw Error('mail_cancelled');
+    if(previous?.email&&result.identity.email&&previous.email.toLowerCase()!==result.identity.email.toLowerCase())throw approvalFailure(Error('mail_portal_identity'),'identity');
+    this.identity=result.identity;
+    if(!this.identity.userId)throw approvalFailure(Error('mail_portal_identity'),'identity');
+   }
    if(!Number.isSafeInteger(page)||page<1||page>10000)throw Error('mail_input_invalid');
    const epoch=this.epoch;let result;
    try{result=await this.read('approvals',{page,userId:this.identity.userId});}catch(error){if(error.message==='mail_portal_login'){await this.failSession(error,epoch);const failure=approvalFailure(error,'list');failure.message='mail_portal_approval_login';failure.approvalFailure.code=failure.message;throw failure;}throw error;}

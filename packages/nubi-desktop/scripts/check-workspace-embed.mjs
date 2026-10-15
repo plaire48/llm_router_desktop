@@ -24,6 +24,7 @@ try{
   await p.getByRole('button',{name:'글쓰기',exact:true}).first().click();await p.getByRole('textbox',{name:'글 제목',exact:true}).waitFor();await p.getByRole('combobox',{name:'글 카테고리'}).selectOption('general');
   await p.screenshot({path:dir+'/talk-'+width+'.png'});assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
   await p.getByRole('button',{name:'테스트 문의',exact:true}).click();
+  assert.equal(await p.getByRole('button',{name:/문의 내역 (접기|펼치기)/}).count(),0);
   await p.getByRole('button',{name:'김누비 계정 메뉴',exact:true}).click();
   await p.locator('.nubi-ghes-modal').waitFor();
   assert.equal(await p.getByText(/회사 계정을 확인하지 못했어요/).count(),0);
@@ -37,7 +38,8 @@ try{
   await p.getByRole('button',{name:'접수',exact:true}).click();
   await p.getByRole('heading',{name:'문의 연결 확인',exact:true}).waitFor();
   await p.getByText('목록 조회와 등록 후 다시 확인하는 테스트입니다.',{exact:true}).last().waitFor();
-  await p.screenshot({path:dir+'/support-'+width+'.png'});
+  const alignment=await p.evaluate(()=>{const header=document.querySelector('.nubi-inquiry-page>.nubi-skill-page-header'),columns=document.querySelector('.inquiry-columns');return Math.abs(header.getBoundingClientRect().left+parseFloat(getComputedStyle(header).paddingLeft)-columns.getBoundingClientRect().left);});assert(alignment<2,'Inquiry content aligns with the title inset');assert(await p.locator('.inquiry-columns').evaluate(el=>{const bounds=el.getBoundingClientRect();return bounds.bottom>=innerHeight-40&&bounds.bottom<=innerHeight&&bounds.height>innerHeight*.7;}),'Inquiry list and reader fill the available height');
+  await p.locator('.nubi-inquiry-page').screenshot({path:dir+'/support-'+width+'.png'});
   assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
   await p.getByRole('button',{name:'테스트 앱',exact:true}).click();await p.getByRole('link',{name:'파일 앱 새 탭에서 열기'}).waitFor();
   await p.getByRole('button',{name:'테스트 로그인 전환'}).click();await p.getByRole('button',{name:'사내 Github SSO 로그인',exact:true}).waitFor();assert.equal(await p.getByRole('link',{name:'파일 앱 새 탭에서 열기'}).count(),0);

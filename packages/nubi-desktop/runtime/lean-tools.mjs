@@ -14,7 +14,7 @@ import {WORKFLOWS} from './agent-capabilities.mjs';
 export const LEAN_INPUT_TOKENS=20000;
 
 // Discovery remains available when the task needs registered skills or workflows.
-export const LEAN_TOOLS=Object.freeze(['update_plan','ask_user','select_tools','discover_capabilities','open_workspace_page','read_source','source_search','wiki_query','personal_mail_query','read_personal_mail','ask_openwiki','read_conversation','read_analysis_evidence']);
+export const LEAN_TOOLS=Object.freeze(['update_plan','ask_user','select_tools','discover_capabilities','open_workspace_page','read_attached_document','read_source','source_search','wiki_query','personal_mail_query','read_personal_mail','ask_openwiki','read_conversation','read_analysis_evidence']);
 // Tools that no workflow names, grouped by what they are for.
 const EXTRA={mail:['personal_mail_query','read_personal_mail'],'source-change':['inspect_path','propose_edit','inspect_workspace_changes'],skills:['use_skill','read_skill','list_skill_resources'],analysis:['delegate_analysis','collect_analysis','read_analysis_handoff','cancel_analysis'],documents:['analyze_documents','read_document_analysis']};
 const PURPOSE={mail:'사내 메일 personal mail email attachment',skills:'프로젝트 스킬 찾기와 읽기 project skills procedure',analysis:'하위 분석 에이전트 위임과 수집 delegate parallel analysis',documents:'대용량 문서 분석 large documents'};

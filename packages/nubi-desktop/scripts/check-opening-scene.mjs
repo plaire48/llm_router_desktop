@@ -20,7 +20,7 @@ if(install==='first-install'){
  const fading=await sample(5400);assert(fading.title>0&&fading.title<1);assert(fading.bar>0&&fading.bar<1);
  const final=await sample(6000);assert.equal(final.title,1);assert.equal(final.bar,1);assert.deepEqual(fading.bounds,final.bounds);assert.deepEqual(white.bounds,final.bounds);await page.screenshot({path:path.join(out,'ending-logo.png')});
 }
-}if(mode==='full')await page.getByRole('button',{name:'건너뛰기',exact:true}).click();else await page.keyboard.press('Escape');await page.waitForFunction(()=>window.finished);assert.equal(await page.locator('#workspace-content').evaluate(el=>getComputedStyle(el).visibility),'visible');assert.equal(await page.evaluate(()=>localStorage.getItem('nubi-opening-scene-v1')),`1.2.6:${install}`);results.push({install,mode});}
+}assert.equal(await page.getByRole('button',{name:'건너뛰기',exact:true}).count(),0);await page.keyboard.press('Escape');if(mode==='full')assert.equal(await page.evaluate(()=>Boolean(window.finished)),false);await page.waitForFunction(()=>window.finished);assert.equal(await page.locator('#workspace-content').evaluate(el=>getComputedStyle(el).visibility),'visible');assert.equal(await page.evaluate(()=>localStorage.getItem('nubi-opening-scene-v1')),`1.2.6:${install}`);results.push({install,mode});}
 // A slow ordinary launch must not reveal content at the old six-second deadline,
 // or when the window-opening click/key requests a skip before initialization finishes.
 await page.goto(`http://127.0.0.1:${server.address().port}/index.html?install=silent-update&slow=1`);

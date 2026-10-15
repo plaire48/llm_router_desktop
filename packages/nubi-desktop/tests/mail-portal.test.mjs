@@ -179,3 +179,21 @@ test('approval request errors do not erase a working mail session; actual login 
   assert.equal(host.state.connected,code!=='mail_portal_login',operation+':'+code);assert.equal(calls.includes('disconnect'),code==='mail_portal_login');host.dispose();
  }
 });
+
+test('identity projection accepts nested numeric EP IDs and excludes token and unrelated identities',async()=>{
+ const calls=[];const data={data:{userInfo:{epUserID:123456,receivedAddress:'owner@example.test',domainSet:'DM@company',token:'never return'}},recipients:[{userId:'other'}],accessToken:'secret'};
+ const result=await portalFetch({operation:'identityPolicy'},{origin:ORIGIN,fetch:async(url,args)=>{calls.push({url,args});return new Response(JSON.stringify(data));}});
+ assert.equal(identityOf(result).userId,'123456');assert.equal(identityOf(result).email,'owner@example.test');assert.equal(identityOf(result).setCd,'DM');
+ assert(!JSON.stringify(result).includes('secret'));assert(!JSON.stringify(result).includes('never return'));assert(!JSON.stringify(result).includes('other'));
+ assert.equal(calls[0].url,ORIGIN+'/mail/rest/v1/mails/desktop/auth/policy?svcSectCd=DM');assert.equal(calls[0].args.body,'');
+});
+test('approval retries identity through authenticated policy without forcing a second login',async()=>{
+ const host=new MailPortal({invoke:async()=>({})});host.state.connected=true;host.identity={id:'owner@example.test',email:'owner@example.test'};
+ const calls=[];host.read=async operation=>{calls.push(operation);if(operation==='identity')return {email:'owner@example.test'};if(operation==='identityPolicy')return {epUserId:'owner-id',email:'owner@example.test'};if(operation==='folders')return folders;if(operation==='approvals')return {totalCount:0,data:[]};throw Error('unexpected_read');};
+ assert.deepEqual((await host.approvals()).items,[]);assert.equal(host.identity.userId,'owner-id');assert.equal(host.status().connected,true);assert.deepEqual(calls,['identity','identityPolicy','folders','approvals']);host.dispose();
+});
+test('approval identity failure preserves mail connection and rejects a changed account',async()=>{
+ const host=new MailPortal({invoke:async()=>({})});host.state.connected=true;host.identity={id:'owner@example.test',email:'owner@example.test'};
+ host.identify=async()=>({identity:{id:'other',userId:'other',email:'other@example.test'},folders:[]});
+ await assert.rejects(host.approvals(),/mail_portal_identity/);assert.equal(host.identity.email,'owner@example.test');assert.equal(host.status().connected,true);host.dispose();
+});

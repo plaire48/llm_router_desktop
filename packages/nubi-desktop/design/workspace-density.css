@@ -1110,3 +1110,16 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
  min-width:var(--nubi-work-control-height); min-height:var(--nubi-work-control-height);
  border-radius:var(--nubi-work-control-radius);
 }
+
+/* Inquiry shares the page inset, without the centred skill catalogue width. */
+:root:has(.desktop-shell) .nubi-inquiry-page > :is(.nubi-skill-page-header,.nubi-skill-page-body) { max-width:none; width:100%; margin:0; padding-inline:var(--nubi-page-inset); box-sizing:border-box; }
+:root:has(.desktop-shell) .nubi-inquiry-page > .nubi-skill-page-body { flex:1; min-height:0; display:flex; flex-direction:column; }
+.desktop-shell .nubi-inquiry-page .nubi-ai-workspace-embed { flex:1; min-height:0; }
+.desktop-shell .nubi-inquiry-page .inquiry-select { border-left:0; border-radius:var(--cx-radius-control); }
+@media(min-width:1001px) { .desktop-shell .nubi-inquiry-page:has(.has-inquiry-sidebar:not(.is-composing)) .service-desk-slot-controls > [data-action=back] { display:none; } }
+
+@media(min-width:1001px) { :root:has(.desktop-shell) .nubi-inquiry-page .service-desk-slot-controls .inquiry-mobile-refresh { display:none; } }
+/* Keep inquiry lists and the reader tall; only their contents scroll. */
+:root:has(.desktop-shell) .nubi-inquiry-page { display:flex; flex-direction:column; height:100%; min-height:0; overflow:hidden; }
+:root:has(.desktop-shell) .nubi-inquiry-page > .nubi-skill-page-header { flex:none; }
+:root:has(.desktop-shell) .nubi-inquiry-page > .nubi-skill-page-body { overflow:hidden; padding-bottom:var(--cx-space-4); }

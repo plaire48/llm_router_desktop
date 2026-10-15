@@ -9,7 +9,7 @@ import {MailBody} from './MailBody.jsx';
 import {mailTableDate} from '../runtime/mail-presentation.mjs';
 import './approval-history.css';
 import {LoadingNote} from './LoadingNote.jsx';
-const reasons={mail_portal_login:'포털에 다시 로그인해 주세요.',mail_portal_approval_login:'결재 요청에 로그인 화면이 반환됐어요.',mail_portal_identity:'결재에 필요한 사용자 ID를 확인하지 못했어요.',mail_portal_timeout:'포털 응답 시간이 초과됐어요.',mail_portal_format:'서버 응답이 예상한 결재 형식과 달라요.',mail_cancelled:'조회가 중단됐어요.',mail_portal_approval_request:'결재 서버가 요청 형식을 거부했어요.',mail_portal_approval_forbidden:'결재 서버가 접근을 거부했어요. 조회 권한을 확인해 주세요.',mail_portal_rate_limited:'요청이 많아요. 잠시 후 다시 시도해 주세요.',mail_portal_unavailable:'결재 서버 오류예요. 잠시 후 다시 시도해 주세요.',mail_portal_request:'결재 요청을 완료하지 못했어요.',mail_portal_not_found:'결재 API 경로를 찾지 못했어요.',mail_portal_response:'결재 데이터 대신 웹페이지가 반환됐어요.',mail_portal_redirect:'결재 요청이 다른 페이지로 이동했어요.',mail_tls_error:'서버 인증서를 확인하지 못했어요. 사내망 연결을 확인해 주세요.',mail_size_limit:'결재 원문이 읽기 한도를 넘었어요.',mail_input_invalid:'결재 문서 식별 정보를 확인하지 못했어요.',mail_approval_empty:'서버가 빈 결재 원문을 반환했어요.',mail_approval_parse:'가져온 원문을 문서로 해석하지 못했어요.'};
+const reasons={mail_portal_login:'포털에 다시 로그인해 주세요.',mail_portal_approval_login:'결재 요청에 로그인 화면이 반환됐어요.',mail_portal_identity:'로그인은 유지돼요. 결재 사용자 정보를 다시 확인해 주세요.',mail_portal_timeout:'포털 응답 시간이 초과됐어요.',mail_portal_format:'서버 응답이 예상한 결재 형식과 달라요.',mail_cancelled:'조회가 중단됐어요.',mail_portal_approval_request:'결재 서버가 요청 형식을 거부했어요.',mail_portal_approval_forbidden:'결재 서버가 접근을 거부했어요. 조회 권한을 확인해 주세요.',mail_portal_rate_limited:'요청이 많아요. 잠시 후 다시 시도해 주세요.',mail_portal_unavailable:'결재 서버 오류예요. 잠시 후 다시 시도해 주세요.',mail_portal_request:'결재 요청을 완료하지 못했어요.',mail_portal_not_found:'결재 API 경로를 찾지 못했어요.',mail_portal_response:'결재 데이터 대신 웹페이지가 반환됐어요.',mail_portal_redirect:'결재 요청이 다른 페이지로 이동했어요.',mail_tls_error:'서버 인증서를 확인하지 못했어요. 사내망 연결을 확인해 주세요.',mail_size_limit:'결재 원문이 읽기 한도를 넘었어요.',mail_input_invalid:'결재 문서 식별 정보를 확인하지 못했어요.',mail_approval_empty:'서버가 빈 결재 원문을 반환했어요.',mail_approval_parse:'가져온 원문을 문서로 해석하지 못했어요.'};
 const stages={identity:'사용자 확인',list:'목록 조회',document:'본문 조회',parse:'문서 해석'};
 function approvalNotice(cause,fallback,row=null){
  const detail=cause?.approvalFailure,code=detail?.code||cause?.message;
@@ -17,7 +17,7 @@ function approvalNotice(cause,fallback,row=null){
 }
 function PortalApprovalHistory({api,onSettings}){
  const [page,setPage]=useState(1),[data,setData]=useState(null),[document,setDocument]=useState(null),[busy,setBusy]=useState(''),[failure,setFailure]=useState(null);
- const loginNeeded=['mail_portal_login','mail_portal_approval_login','mail_portal_identity'].includes(failure?.code);
+ const loginNeeded=['mail_portal_login','mail_portal_approval_login'].includes(failure?.code);
  const read=useRef(0),selected=useRef(0),alive=useRef(true);
  useEffect(()=>{alive.current=true;return()=>{alive.current=false;read.current++;selected.current++;};},[]);
  async function hydrate(items,epoch){

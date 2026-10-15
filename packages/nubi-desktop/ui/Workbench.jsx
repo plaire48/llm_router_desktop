@@ -17,6 +17,9 @@ import {submitTaskMessage} from './submit-task-message.mjs';
 import {ConversationSearch} from './ConversationSearch.jsx';
 import {mailSearchDraft} from './mail-search-draft.mjs';
 import {AnswerSources} from './AnswerSources.jsx';
+import {FileKindIcon} from './FileKindIcon.jsx';
+import {DocumentChips} from './DocumentChips.jsx';
+const ChatDocumentPreview=lazy(()=>import('./DocumentPreview.jsx').then(module=>({default:module.DocumentPreview})));
 import {AnalysisReviewProgress} from './AnalysisReviewProgress.jsx';
 import {ProgressDisplaySetting,useProgressDisplay} from './ProgressDisplaySetting.jsx';
 import {AnalysisHistory} from './AnalysisHistory.jsx';
@@ -64,7 +67,7 @@ import {WindowMark,TerminalMark,RecoveryStatus} from './marks.jsx';
 import {ApprovalModeControl} from './ApprovalMode.jsx';
 import {WORKSPACE_LAYOUT} from '../electron-app/workspace-layout.cjs';
 import {ApprovalBar} from './ApprovalBar.jsx';
-import React, {useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo, memo} from 'react';
+import React, {lazy,Suspense,useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo, memo} from 'react';
 import {deferredScreen} from './deferred-screen.jsx';
 const WikiBrowser=deferredScreen(()=>import('./WikiBrowser.jsx'),'WikiBrowser');
 const MailHistory=deferredScreen(()=>import('./MailHistory.jsx'),'MailHistory');
@@ -129,7 +132,7 @@ const ConversationMessage=memo(function ConversationMessage({message,index,conte
   return (
       <article ref={article} className={`message message-${message.role} nubi-message ${message.role}`} data-message-key={message.inputId||message.id||message.at||index} aria-label={assistant?`${modelName} 답변`:'내 메시지'}>
         {assistant&&<div className="answer-model" title={modelName}><AgentMark size={26} className="nubi-answer-mark" mood={markMood} lively={markMood!=='still'}/><span>{modelName}</span></div>}
-        {assistant?body:<div className="nubi-user-bubble">{body}<MailEvidenceChips references={message.mailReferences} onOpen={source=>onSource?.({...source,kind:'mail'},message)}/><CaptureThumbs captures={message.captures}/></div>}
+        {assistant?body:<div className="nubi-user-bubble">{body}<MailEvidenceChips references={message.mailReferences} onOpen={source=>onSource?.({...source,kind:'mail'},message)}/><DocumentChips documents={message.documentReferences} onOpen={source=>onSource?.(source,message)}/><CaptureThumbs captures={message.captures}/></div>}
         {content&&<div className="message-actions">
           <MessageTimestamp at={at} role={message.role}/>
           <CopyButton text={content} label={`${assistant?'답변':'내'} 메시지 복사`} successMessage="메시지를 복사했습니다."/>
@@ -188,6 +191,7 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
   // A light poll keeps the rail's mail icon honest about collection and organisation in progress (2026-10-14).
   const [projectPicker,setProjectPicker]=useState(false),[personalStart,setPersonalStart]=useState(false),[reviewSlot,setReviewSlot]=useState(null);
   // Screenshots of the Workspace window attached to the next message (user request 2026-10-14).
+  const [documentReading,setDocumentReading]=useState(false),[selectedDocument,setSelectedDocument]=useState(null);
   const [draftCaptures,setDraftCaptures]=useState([]),[capturing,setCapturing]=useState(false),[capturePreview,setCapturePreview]=useState(null);
   useEffect(()=>{configureCaptureReader(api);},[api]);
   const [skillImportBusy,setSkillImportBusy]=useState(false),skillRegistrationOrigin=useRef(null);
@@ -275,8 +279,9 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
   const [request,setRequest,readDraft,moveDraft]=useComposerDraft(project?.projectId,taskId);
   const [mailReferences,setMailReferences,readMailReferences,moveMailDraft]=useMailDraftReferences(project?.projectId,taskId);
   const projectRefForSubmit=useRef(project?.projectId);projectRefForSubmit.current=project?.projectId;
+  const [draftDocuments,setDraftDocuments,readDocumentDraft,moveDocumentDraft]=useMailDraftReferences(project?.projectId,taskId,'document');
   const draftScope=useRef(null);draftScope.current=JSON.stringify([project?.projectId,taskId]);
-  useEffect(()=>{setDraftCaptures([]);setCapturing(false);},[taskId,project?.projectId]);
+  useEffect(()=>{setDraftCaptures([]);setCapturing(false);setSelectedDocument(null);},[taskId,project?.projectId]);
   const [inputBusy,setInputBusy]=useState(false),inputLock=useRef(false),inputAttempt=useRef(null),draftLatest=useRef('');draftLatest.current=request;
   const historyTrigger=useRef(null);
   const [outgoing,setOutgoing]=useOutgoingMessages();
@@ -540,34 +545,34 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
     const shortcut=/^\/(capture|capture_web|skills|model|usage|wiki_update|terminal)\s*$/.exec(request.trim());
     if(shortcut){setRequest('');runComposerCommand(AGENT_COMMANDS.find(item=>item.command===shortcut[1]).action);return;}
     if(running){await sendRunningInput();return;}
-    if(!request.trim()||busy||submitLock.current||task?.question||connectionRequest)return;
-    const text=request,references=[...mailReferences],captures=[...draftCaptures],attached=captureAttachments(captures),scope=draftScope.current,projectId=project?.projectId,id=crypto.randomUUID();
-    const item={id,projectId,taskId:taskId??null,text,references,captures,phase:'sending',at:new Date().toISOString(),inputId:id,messageCount:task?.messages?.length||0};
-    submitLock.current=true;setSubmitting(true);setOutgoing(items=>[...items,item]);setRequest('');setMailReferences([]);setDraftCaptures([]);
+    if(!request.trim()||documentReading||busy||submitLock.current||task?.question||connectionRequest)return;
+    const text=request,documents=[...draftDocuments],references=[...mailReferences],captures=[...draftCaptures],attached=captureAttachments(captures),scope=draftScope.current,projectId=project?.projectId,id=crypto.randomUUID();
+    const item={id,projectId,taskId:taskId??null,text,documents,references,captures,phase:'sending',at:new Date().toISOString(),inputId:id,messageCount:task?.messages?.length||0};
+    submitLock.current=true;setSubmitting(true);setOutgoing(items=>[...items,item]);setRequest('');setMailReferences([]);setDraftCaptures([]);setDraftDocuments([]);
     conversationScroll.followLatest();requestAnimationFrame(()=>composer.current?.focus());
     const currentProject=()=>mounted.current&&projectRefForSubmit.current===projectId;
     let accepted=false,createdTaskId=null;
     const refreshTask=async selectedId=>{const selectedScope=JSON.stringify([projectId,selectedId]);const value=await api('state',{taskId:selectedId});if(currentProject()&&draftScope.current===selectedScope)setProject(current=>({...current,...value}));};
     try{
       if(task){
-        const key=JSON.stringify([projectId,taskId,text,references]);
+        const key=JSON.stringify([projectId,taskId,text,references,documents,attached]);
         if(inputAttempt.current?.key!==key)inputAttempt.current={key,id};
         const inputId=inputAttempt.current.id;setOutgoing(items=>items.map(item=>item.id===id?{...item,inputId}:item));
-        await submitTaskMessage(api,{taskId,text,mailReferences:references,captures:attached,inputId:inputAttempt.current.id,onState:value=>{if(currentProject()&&draftScope.current===scope)setProject(current=>({...current,...value}));}});
+        await submitTaskMessage(api,{taskId,text,mailReferences:references,captures:attached,documentReferences:documents,inputId:inputAttempt.current.id,onState:value=>{if(currentProject()&&draftScope.current===scope)setProject(current=>({...current,...value}));}});
         accepted=true;inputAttempt.current=null;await refreshTask(taskId);
       }else{
-        const created=await api('createTask',{request:text,mailReferences:references,captures:attached});createdTaskId=created.id;
+        const created=await api('createTask',{request:text,mailReferences:references,captures:attached,documentReferences:documents});createdTaskId=created.id;
         if(currentProject()){
           setProject(p=>({...p,tasks:[created,...p.tasks.filter(item=>item.id!==created.id)]}));
           setOutgoing(items=>items.map(item=>item.id===id?{...item,taskId:created.id,createdTask:true}:item));
-          if(draftScope.current===scope){moveDraft(created.id);moveMailDraft(created.id);selectSession(created.id);requestAnimationFrame(()=>composer.current?.focus());}
+          if(draftScope.current===scope){moveDraft(created.id);moveMailDraft(created.id);moveDocumentDraft(created.id);selectSession(created.id);requestAnimationFrame(()=>composer.current?.focus());}
         }
         if(!currentProject())throw Error('project_changed');
         if(provider?.connected){await api('startAgent',{taskId:created.id});accepted=true;await refreshTask(created.id);}
       }
       if(mounted.current)setOutgoing(items=>items.filter(item=>item.id!==id));
     }catch(cause){
-      if(mounted.current){if(!accepted)setError(failure(cause));if(cause.message==='wiki_chat_blocked'){if(!createdTaskId&&draftScope.current===scope&&!readDraft()){setRequest(text);setMailReferences(references);}setOutgoing(items=>items.filter(item=>item.id!==id));inputAttempt.current=null;}else setOutgoing(items=>items.map(item=>item.id===id?{...item,phase:accepted?'accepted':'unconfirmed'}:item));
+      if(mounted.current){if(!accepted)setError(failure(cause));if(cause.message==='wiki_chat_blocked'){if(!createdTaskId&&draftScope.current===scope&&!readDraft()){setRequest(text);setMailReferences(references);setDraftDocuments(documents);}setOutgoing(items=>items.filter(item=>item.id!==id));inputAttempt.current=null;}else setOutgoing(items=>items.map(item=>item.id===id?{...item,phase:accepted?'accepted':'unconfirmed'}:item));
         // The bubble preserves uncertain requests. Never put them back in Send automatically.
       }
     }finally{submitLock.current=false;if(mounted.current)setSubmitting(false);}
@@ -580,30 +585,30 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
     finally{inputLock.current=false;if(mounted.current)setInputBusy(false);}
   }
   async function sendRunningInput(){
-    const text=request.trim();if(wikiChatBlocked||!text||busy||inputLock.current||submitLock.current)return;
-    const references=[...mailReferences],captures=[...draftCaptures],attached=captureAttachments(captures),projectId=project?.projectId,scope=draftScope.current,key=JSON.stringify([projectId,taskId,task.checkpoint?.runId,text,references,captures.map(item=>item.id)]);
+    const text=request.trim();if(wikiChatBlocked||documentReading||!text||busy||inputLock.current||submitLock.current)return;
+    const documents=[...draftDocuments],references=[...mailReferences],captures=[...draftCaptures],attached=captureAttachments(captures),projectId=project?.projectId,scope=draftScope.current,key=JSON.stringify([projectId,taskId,task.checkpoint?.runId,text,references,documents,captures.map(item=>item.id)]);
     if(inputAttempt.current?.key!==key)inputAttempt.current={key,id:crypto.randomUUID()};
     const id=inputAttempt.current.id;
     inputLock.current=true;setInputBusy(true);setError('');
-    setOutgoing(items=>[...items.filter(item=>item.id!==id),{id,inputId:id,projectId,taskId,text,references,captures,queued:true,phase:'sending',at:new Date().toISOString(),messageCount:task.messages?.length||0}]);
-    setRequest('');setMailReferences([]);setDraftCaptures([]);conversationScroll.followLatest();requestAnimationFrame(()=>composer.current?.focus());
+    setOutgoing(items=>[...items.filter(item=>item.id!==id),{id,inputId:id,projectId,taskId,text,documents,references,captures,queued:true,phase:'sending',at:new Date().toISOString(),messageCount:task.messages?.length||0}]);
+    setRequest('');setMailReferences([]);setDraftCaptures([]);setDraftDocuments([]);conversationScroll.followLatest();requestAnimationFrame(()=>composer.current?.focus());
     let accepted=false;
     try{
-      const updated=await submitTaskMessage(api,{taskId,text,mailReferences:references,captures:attached,inputId:id,onState:value=>{if(mounted.current&&draftScope.current===scope)setProject(current=>({...current,...value}));}});
+      const updated=await submitTaskMessage(api,{taskId,text,mailReferences:references,captures:attached,documentReferences:documents,inputId:id,onState:value=>{if(mounted.current&&draftScope.current===scope)setProject(current=>({...current,...value}));}});
       accepted=true;inputAttempt.current=null;
       if(mounted.current&&draftScope.current===scope){
         if(updated?.id===taskId)setProject(current=>({...current,tasks:current.tasks.map(item=>item.id===taskId?updated:item)}));
         else {const value=await api('state',{taskId});if(mounted.current&&draftScope.current===scope)setProject(current=>({...current,...value}));}
       }
       if(mounted.current)setOutgoing(items=>items.filter(item=>item.id!==id));
-    }catch(cause){if(mounted.current){if(!accepted)setError(failure(cause));if(cause.message==='wiki_chat_blocked'){if(draftScope.current===scope&&!readDraft()){setRequest(text);setMailReferences(references);}setOutgoing(items=>items.filter(item=>item.id!==id));inputAttempt.current=null;}else setOutgoing(items=>items.map(item=>item.id===id?{...item,phase:accepted?'accepted':'unconfirmed'}:item));}}
+    }catch(cause){if(mounted.current){if(!accepted)setError(failure(cause));if(cause.message==='wiki_chat_blocked'){if(draftScope.current===scope&&!readDraft()){setRequest(text);setMailReferences(references);setDraftDocuments(documents);}setOutgoing(items=>items.filter(item=>item.id!==id));inputAttempt.current=null;}else setOutgoing(items=>items.map(item=>item.id===id?{...item,phase:accepted?'accepted':'unconfirmed'}:item));}}
     finally{inputLock.current=false;if(mounted.current)setInputBusy(false);}
   }
   async function editInput(id){
     if(request.trim()){setError('입력 중인 메시지를 먼저 보내거나 비워 주세요.');return;}
     const item=task.inbox.find(item=>item.id===id);if(!item)return;
     try{appendMailReferences(readMailReferences(),item.mailReferences||[]);}catch(error){setError(failure(error));return;}
-    const result=await inputAction('remove',{id});if(result){const draft=readDraft();setRequest(draft?draft+'\n'+result.text:result.text);setMailReferences(current=>appendMailReferences(current,result.mailReferences||[]));if(draft)showNotice('초안 아래에 편집할 메시지를 넣었어요.');requestAnimationFrame(()=>composer.current?.focus());}
+    const result=await inputAction('remove',{id});if(result){const draft=readDraft();setRequest(draft?draft+'\n'+result.text:result.text);setMailReferences(current=>appendMailReferences(current,result.mailReferences||[]));setDraftDocuments(current=>appendMailReferences(current,result.documentReferences||[]));if(draft)showNotice('초안 아래에 편집할 메시지를 넣었어요.');requestAnimationFrame(()=>composer.current?.focus());}
   }
   async function refreshCatalog(options={}){
     const selected=options.provider||provider?.provider;
@@ -692,7 +697,16 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
     closeMailDocument?.();setMailPage(false);setSkillsPage(false);setProjectPicker(false);setMailSourceTarget(null);
     requestAnimationFrame(()=>composer.current?.focus());
   }
+  async function chooseDocuments(){
+    if(documentReading)return;const scope=draftScope.current;setDocumentReading(true);
+    try{const result=await api('chooseChatDocuments',{projectId:project?.projectId});if(!mounted.current||draftScope.current!==scope||result.cancelled)return;
+      const combined=appendMailReferences(readDocumentDraft(),result.documents||[]);if(combined.length>10)throw Error('chat_document_limit');setDraftDocuments(combined);
+      if(result.errors?.length)showError(result.errors.map(item=>`${item.filename}: ${item.error==='document_empty'?'읽을 텍스트가 없어요. 스캔 이미지 여부를 확인해 주세요.':item.error==='document_limit'?'문서 크기나 읽기 한도를 넘었어요.':'문서를 읽지 못했어요. 파일 형식과 열기 권한을 확인해 주세요.'}`).join('\n'));
+    }catch(error){showError(error.message==='chat_document_limit'?'문서는 한 번에 10개까지 선택해 주세요.':'문서를 첨부하지 못했어요. 다시 선택해 주세요.');}finally{if(mounted.current)setDocumentReading(false);}
+  }
+  async function openDocument(source,offset=source.location?.offset||0){const scope=draftScope.current;try{const value=await api('chatDocument',{id:source.id,sourceHash:source.sourceHash,offset,limit:60000});if(mounted.current&&draftScope.current===scope)setSelectedDocument(value);}catch{showError('첨부한 문서 기록을 읽지 못했어요. 문서를 다시 선택해 주세요.');}}
   function openAnswerSource(source,message) {
+    if(source.kind==='document'){void openDocument(source);return;}
     if(source.kind==='mail'){
       void perform(async()=>{const observed=await api('mail',{...source,action:'evidence'});if(openMailSources){if(source.attachmentId&&openMailDocument)await openMailDocument(source.id,source.attachmentId,source);else openMailSources([observed]);}else{setMailSourceTarget({...source,key:crypto.randomUUID()});setWikiPage(false);setMailPage(true);}setPanel(null);});
     }else void perform(async()=>{const sourceProjectId=project?.projectId;const current=await api('editorSource',{projectId:sourceProjectId,path:source.path,taskId});if(!mounted.current)return;if(current.hash!==source.hash)throw Error('answer_source_changed');await openPath(source.path,taskId,{projectId:sourceProjectId,line:source.start,endLine:source.end,expectedHash:source.hash,canPresent:()=>mounted.current});});
@@ -700,7 +714,7 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
   function runComposerCommand(action){if(action==='terminal'){if(openTerminal)openTerminal();else void workspaceView?.('terminal');}else if(action==='capture'){void startWindowCapture();}else if(action==='capture-web')void startWebCapture();else if(action==='model')openModels();else if(action==='skills')openSkillPanel('installed');else if(action==='usage')setPanel('usage');else if(action==='wiki-update')refreshWiki();}
   // /wiki_update (user request 2026-10-14): pull the git remote when there is one, then the same update the 위키 갱신 button runs.
   function refreshWiki(){return perform(async()=>{try{const result=await api('wikiUpdate',{method:'refresh'});await refresh();showNotice(wikiRefreshNotice(result));}catch(error){showError(wikiRefreshErrors[error.message]||failure(error));}});}
-  const mailEvidence=<><MailEvidenceChips references={mailReferences} onRemove={item=>setMailReferences(current=>removeMailReference(current,item))} onOpen={source=>openAnswerSource({...source,kind:'mail'})}/><CaptureChips captures={draftCaptures} onRemove={id=>setDraftCaptures(current=>current.filter(item=>item.id!==id))}/></>;
+  const mailEvidence=<>{documentReading&&<div className="nubi-mail-evidence-chips" role="status"><span className="status-spinner" aria-hidden="true"/>문서 읽는 중</div>}<DocumentChips documents={draftDocuments} onRemove={id=>setDraftDocuments(items=>items.filter(item=>item.id!==id))} onOpen={openAnswerSource}/><MailEvidenceChips references={mailReferences} onRemove={item=>setMailReferences(current=>removeMailReference(current,item))} onOpen={source=>openAnswerSource({...source,kind:'mail'})}/><CaptureChips captures={draftCaptures} onRemove={id=>setDraftCaptures(current=>current.filter(item=>item.id!==id))}/></>;
   // Freeze the native browser and app together before the selector hides child views.
   async function startWindowCapture(){if(capturing||draftCaptures.length>=CAPTURE_LIMIT)return;try{const shot=await api('captureWorkspace',{maxWidth:2400});setCapturePreview({...shot,target:'window'});setCapturing(true);}catch(error){showError(error?.message==='browser_auth_protected'?'로그인 화면을 닫은 뒤 캡처해 주세요.':'화면을 캡처하지 못했어요. 페이지가 표시된 뒤 다시 시도해 주세요.');}}
   async function startWebCapture(){if(draftCaptures.length>=CAPTURE_LIMIT)return;try{const shot=await api('captureWorkspace',{target:'page',maxWidth:2400});setCapturePreview(shot);setCapturing(true);}catch{showError('열린 웹페이지를 캡처하지 못했어요. 페이지가 표시된 뒤 다시 시도해 주세요.');}}
@@ -742,6 +756,7 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
       {project&&<WorkspaceIconAction icon="bookmark" iconOnly indicator={wikiInitialization?.state==='running'&&<span className="status-spinner" aria-label="위키 준비 중"/>} label="위키 설정" title={wikiInitialization?.state==='running'?'프로젝트 위키 준비 중':'프로젝트 위키'} aria-busy={wikiInitialization?.state==='running'||undefined} onClick={()=>setPanel(wikiInitialization?.state==='running'?'wiki-progress':'library')}/>}
     </WorkspaceToolbar>
     <div className={`nubi-workbench-layout${project?' has-project':''}`}>
+    {selectedDocument&&<DetailPanel className="deck-dialog nubi-panel nubi-panel--wide" title={<span className="nubi-panel-title"><FileKindIcon name={selectedDocument.filename} size={18}/><span>{selectedDocument.filename}</span></span>} variant="modal" hideHelp onClose={()=>setSelectedDocument(null)}><p className="nubi-muted">{selectedDocument.coverage}</p><Suspense fallback={<span className="status-spinner" aria-label="문서 여는 중"/>}><ChatDocumentPreview document={selectedDocument} onRange={offset=>openDocument(selectedDocument,offset)}/></Suspense></DetailPanel>}
     {workspaceView&&hostLayout==='integrated'&&<WorkspaceNavigation activeView={activeView} homeActive={!wikiPage&&!mailPage&&!skillsPage&&!taskId&&!activeView} onMail={()=>{if(mailPage&&!wikiPage){returnHome();return;}setWikiPage(false);setSkillsPage(false);setMailPage(true);setPanel(null);if(activeView)void workspaceView(null);}} mailActive={mailPage&&!wikiPage} mailBusy={mailBusy} onWiki={()=>{if(wikiPage){returnHome();return;}setWikiPage(true);setMailPage(false);setSkillsPage(false);setPanel(null);if(activeView)void workspaceView(null);}} wikiActive={wikiPage} rail disabled={!project} homeDisabled={busy} settingsRef={settingsButton} onHome={()=>{if(!busy)returnHome();}} onSidebarToggle={()=>setSidebarOpen(value=>!value)} sidebarOpen={sidebarOpen} onView={view=>perform(()=>openWorkspaceView(view))} onSettings={()=>setPanel('settings')} skillsRef={skillsButton} skillsActive={skillsPage&&skillTab==='installed'} teamActive={skillsPage&&skillTab==='marketplace'} onInquiry={hostLayout==='integrated'?enterInquiry:undefined} inquiryActive={skillsPage&&skillTab==='support'} onSkills={()=>{panelOrigin.current=null;setPanel(null);setSkillTab('installed');setWikiPage(false);setSkillsPage(true);if(compact)setSidebarOpen(false);}} onTeamWorkspace={hostLayout==='integrated'?enterTeamWorkspace:undefined} accountControl={toolbarHost?null:companyAccount} updateControl={<WorkspaceUpdate rail update={workspaceUpdate}/>}/>}
     {<SessionSidebar projects={projects} onSwitchProject={switchProject&&((id)=>perform(()=>switchProject(id)))} onRenameProject={renameProject&&((id,name)=>perform(()=>renameProject(id,name)))} onRemoveProject={removeProject&&((id)=>perform(()=>removeProject(id)))} filesMode={hostLayout!=='integrated'&&['files','file'].includes(activeView)} activeFile={activeFile} onOpenFile={openPath?path=>perform(async()=>{await openPath(path);if(compact)setSidebarOpen(false);}):undefined} brand={hostLayout==='integrated'&&!toolbarHost} compactAt={sidebarBreakpoint} compact={compact} project={project} wikiJob={wikiChatBlocked?wikiChatJob:null} selected={taskId} open={sidebarOpen} disabled={busy} onToggle={()=>setSidebarOpen(value=>!value)} onChooseProject={showProjectStart} onSearch={event=>{historyTrigger.current=event.currentTarget;setPanel('history');}} onCopyProjectPath={copyProjectPath} onNew={()=>{setMailPage(false);setWikiPage(false);selectSession(null);if(compact)setSidebarOpen(false);requestAnimationFrame(()=>composer.current?.focus());}} onSelect={id=>{setMailPage(false);setWikiPage(false);selectSession(id);if(compact)setSidebarOpen(false);}} onDelete={deleteSession}/>}
     {resizeSidebar&&<div className="nubi-sidebar-resize" {...sidebarResize}/>}
@@ -762,11 +777,11 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
       </NubiLogin>}
       {!task&&(provider?.connected||projectPicker||defaultPicker||!project&&projects.length>0)&&<section className={visibleOutgoing.length?"nubi-task nubi-submit-scene":"nubi-start chat-page is-empty"}>
         {visibleOutgoing.length?<div className="nubi-conversation-wrap"><div className="nubi-conversation-scroll" ref={conversationScroll.viewport} aria-label="대화 내용" tabIndex={0} onScroll={conversationScroll.onScroll} onWheel={conversationScroll.onUserScroll} onTouchStart={conversationScroll.onUserScroll} onKeyDown={e=>{if(['PageUp','PageDown','Home','End','ArrowUp','ArrowDown'].includes(e.key))conversationScroll.onUserScroll();}}><div className="nubi-conversation-content" ref={conversationScroll.content}><OutgoingMessages items={visibleOutgoing} onDismiss={dismissOutgoing} onSource={source=>openAnswerSource({...source,kind:'mail'})}/></div></div></div>:<Welcome animate={!welcomeAnimated&&!request&&!motion.paused} onComplete={setWelcomeAnimated} mood={resting} intro={false} lead="" greeting={choosingProject?'프로젝트를 열어 주세요.':greeting} markSize={200}/>}
-        {choosingProject?<ProjectStart projects={projects} onSelectProject={switchProject&&((id)=>perform(()=>switchProject(id)))} modelControl={modelPicker} onCancel={projectPicker&&project?()=>setProjectPicker(false):undefined} onStartConversation={()=>{setPersonalStart(true);setProjectPicker(false);if(startConversation)void perform(startConversation);}} busy={busy} blocked={false} onOpenFolder={()=>openFolder()} onClone={cloneRepository&&(url=>perform(()=>cloneRepository(url),{propagate:true}))}/>:<WorkspaceComposer commandApi={api} taskId={taskId} onCommand={runComposerCommand} onMinimumWidth={setMinimumAgentWidth} className="nubi-compose-card" modelControl={<><WorkspaceSkillMenu api={api} taskId={taskId} onSelect={addSkillToDraft} onMarketplace={hostLayout==='integrated'?trigger=>openSkillPanel('marketplace',trigger):undefined} onManage={trigger=>openSkillPanel('installed',trigger)} onManageMcp={trigger=>{panelOrigin.current=null;skillsPanelTrigger.current=trigger||null;setPanel('mcp');}}/>{captureControl}{modelPicker}{reasoningControl}</>} contextControl={contextMeter} actionControl={approvalControl} evidenceControl={mailEvidence} onSubmit={submit} inputRef={composer} value={request} onChange={e=>setRequest(e.target.value)} disabled={wikiChatBlocked} placeholder={wikiChatBlocked?wikiChatNotice:"함께할 일을 적어 주세요"} aria-label="작업 요청" sending={submitting} sendDisabled={wikiChatBlocked||!request.trim()||submitting||busy}/>}
+        {choosingProject?<ProjectStart projects={projects} onSelectProject={switchProject&&((id)=>perform(()=>switchProject(id)))} modelControl={modelPicker} onCancel={projectPicker&&project?()=>setProjectPicker(false):undefined} onStartConversation={()=>{setPersonalStart(true);setProjectPicker(false);if(startConversation)void perform(startConversation);}} busy={busy} blocked={false} onOpenFolder={()=>openFolder()} onClone={cloneRepository&&(url=>perform(()=>cloneRepository(url),{propagate:true}))}/>:<WorkspaceComposer commandApi={api} taskId={taskId} onCommand={runComposerCommand} onMinimumWidth={setMinimumAgentWidth} className="nubi-compose-card" modelControl={<><WorkspaceSkillMenu api={api} taskId={taskId} onDocuments={chooseDocuments} onSelect={addSkillToDraft} onMarketplace={hostLayout==='integrated'?trigger=>openSkillPanel('marketplace',trigger):undefined} onManage={trigger=>openSkillPanel('installed',trigger)} onManageMcp={trigger=>{panelOrigin.current=null;skillsPanelTrigger.current=trigger||null;setPanel('mcp');}}/>{captureControl}{modelPicker}{reasoningControl}</>} contextControl={contextMeter} actionControl={approvalControl} evidenceControl={mailEvidence} onSubmit={submit} inputRef={composer} value={request} onChange={e=>setRequest(e.target.value)} disabled={wikiChatBlocked} placeholder={wikiChatBlocked?wikiChatNotice:"함께할 일을 적어 주세요"} aria-label="작업 요청" sending={submitting} sendDisabled={documentReading||wikiChatBlocked||!request.trim()||submitting||busy}/>}
 
       </section>}
       {task&&<section className="nubi-task"><div className="nubi-conversation-wrap"><div className="nubi-conversation-scroll" ref={conversationScroll.viewport} aria-label="대화 내용" tabIndex={0} onScroll={conversationScroll.onScroll} onWheel={conversationScroll.onUserScroll} onTouchStart={conversationScroll.onUserScroll} onKeyDown={e=>{if(['PageUp','PageDown','Home','End','ArrowUp','ArrowDown'].includes(e.key))conversationScroll.onUserScroll();}} onFocusCapture={conversationScroll.onFocusCapture}><div className="nubi-conversation-content" ref={conversationScroll.content}>
-                <article className="message message-user nubi-request" data-message-key={task.id} aria-label="내 메시지"><div className="nubi-user-bubble"><MessageBody role="user" content={task.request}/><MailEvidenceChips references={task.requestMailReferences} onOpen={source=>openAnswerSource({...source,kind:'mail'})}/><CaptureThumbs captures={task.requestCaptures}/></div><div className="message-actions"><MessageTimestamp at={task.createdAt}/><CopyButton text={task.request} label="내 메시지 복사" successMessage="메시지를 복사했습니다."/></div></article>
+                <article className="message message-user nubi-request" data-message-key={task.id} aria-label="내 메시지"><div className="nubi-user-bubble"><MessageBody role="user" content={task.request}/><MailEvidenceChips references={task.requestMailReferences} onOpen={source=>openAnswerSource({...source,kind:'mail'})}/><DocumentChips documents={task.requestDocuments} onOpen={openAnswerSource}/><CaptureThumbs captures={task.requestCaptures}/></div><div className="message-actions"><MessageTimestamp at={task.createdAt}/><CopyButton text={task.request} label="내 메시지 복사" successMessage="메시지를 복사했습니다."/></div></article>
                 {historyWindow.start===0&&activityLayout.root.map(historicalActivity)}
 
         <div className="nubi-enter">
@@ -824,7 +839,7 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
           </div>
         </div></div></div>{conversationScroll.away&&<CxButton className="nubi-jump-latest" aria-label="최신 메시지로 이동" title="최신 메시지로 이동" onClick={conversationScroll.followLatest}><Icon name="arrowDown" size={18}/></CxButton>}</div>
           <div className="composer-stack nubi-followup-stack"><WorkspaceInputs task={task} busy={wikiChatBlocked||busy||inputBusy} onAction={inputAction} onEdit={editInput} onSource={source=>openAnswerSource({...source,kind:'mail'})}/>
-          {!task.question&&!connectionRequest&&<WorkspaceComposer commandApi={api} taskId={taskId} onCommand={runComposerCommand} onMinimumWidth={setMinimumAgentWidth} className="nubi-compose-card nubi-followup" onStop={running?()=>perform(async()=>{await api('stopAgent',{taskId});await refresh();}):undefined} modelControl={<><WorkspaceSkillMenu api={api} taskId={taskId} onSelect={addSkillToDraft} onMarketplace={hostLayout==='integrated'?trigger=>openSkillPanel('marketplace',trigger):undefined} onManage={trigger=>openSkillPanel('installed',trigger)} onManageMcp={trigger=>{panelOrigin.current=null;skillsPanelTrigger.current=trigger||null;setPanel('mcp');}}/>{captureControl}{modelPicker}{reasoningControl}</>} contextControl={contextMeter} actionControl={approvalControl} evidenceControl={mailEvidence} onSubmit={submit} id="followup" inputRef={composer} value={request} onChange={e=>setRequest(e.target.value)} disabled={wikiChatBlocked} placeholder={wikiChatBlocked?wikiChatNotice:running?"추가 메시지 입력":"이어서 요청해 주세요"} aria-label="추가 요청" title={running?"Enter로 대기열에 추가, Shift+Enter로 줄바꿈":""} sending={submitting} sendDisabled={wikiChatBlocked||submitting||!provider?.connected||!request.trim()||busy||inputBusy||!!task.question||!!connectionRequest}/>}</div>
+          {!task.question&&!connectionRequest&&<WorkspaceComposer commandApi={api} taskId={taskId} onCommand={runComposerCommand} onMinimumWidth={setMinimumAgentWidth} className="nubi-compose-card nubi-followup" onStop={running?()=>perform(async()=>{await api('stopAgent',{taskId});await refresh();}):undefined} modelControl={<><WorkspaceSkillMenu api={api} taskId={taskId} onDocuments={chooseDocuments} onSelect={addSkillToDraft} onMarketplace={hostLayout==='integrated'?trigger=>openSkillPanel('marketplace',trigger):undefined} onManage={trigger=>openSkillPanel('installed',trigger)} onManageMcp={trigger=>{panelOrigin.current=null;skillsPanelTrigger.current=trigger||null;setPanel('mcp');}}/>{captureControl}{modelPicker}{reasoningControl}</>} contextControl={contextMeter} actionControl={approvalControl} evidenceControl={mailEvidence} onSubmit={submit} id="followup" inputRef={composer} value={request} onChange={e=>setRequest(e.target.value)} disabled={wikiChatBlocked} placeholder={wikiChatBlocked?wikiChatNotice:running?"추가 메시지 입력":"이어서 요청해 주세요"} aria-label="추가 요청" title={running?"Enter로 대기열에 추가, Shift+Enter로 줄바꿈":""} sending={submitting} sendDisabled={documentReading||wikiChatBlocked||submitting||!provider?.connected||!request.trim()||busy||inputBusy||!!task.question||!!connectionRequest}/>}</div>
 
 
       </section>}
