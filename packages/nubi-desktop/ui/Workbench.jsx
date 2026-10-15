@@ -650,10 +650,9 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
   // /wiki_update (user request 2026-10-14): pull the git remote when there is one, then the same update the 위키 갱신 button runs.
   function refreshWiki(){return perform(async()=>{try{const result=await api('wikiUpdate',{method:'refresh'});await refresh();showNotice(wikiRefreshNotice(result));}catch(error){showError(wikiRefreshErrors[error.message]||failure(error));}});}
   const mailEvidence=<><MailEvidenceChips references={mailReferences} onRemove={item=>setMailReferences(current=>removeMailReference(current,item))} onOpen={source=>openAnswerSource({...source,kind:'mail'})}/><CaptureChips captures={draftCaptures} onRemove={id=>setDraftCaptures(current=>current.filter(item=>item.id!==id))}/></>;
-  // Capture part of the Workspace window and attach it (user request 2026-10-14). The overlay leaves the screen before
-  // the host takes the picture, so the picture shows the app as it is.
+  // Freeze the native browser and app together before the selector hides child views.
   async function startWindowCapture(){if(capturing||draftCaptures.length>=CAPTURE_LIMIT)return;try{const shot=await api('captureWorkspace',{maxWidth:2400});setCapturePreview({...shot,target:'window'});setCapturing(true);}catch(error){showError(error?.message==='browser_auth_protected'?'로그인 화면을 닫은 뒤 캡처해 주세요.':'화면을 캡처하지 못했어요. 페이지가 표시된 뒤 다시 시도해 주세요.');}}
-  async function startWebCapture(){if(draftCaptures.length>=CAPTURE_LIMIT)return;try{const shot=await api('captureWorkspace',{target:'page'});setCapturePreview(shot);setCapturing(true);}catch{showError('열린 웹페이지를 캡처하지 못했어요. 페이지가 표시된 뒤 다시 시도해 주세요.');}}
+  async function startWebCapture(){if(draftCaptures.length>=CAPTURE_LIMIT)return;try{const shot=await api('captureWorkspace',{target:'page',maxWidth:2400});setCapturePreview(shot);setCapturing(true);}catch{showError('열린 웹페이지를 캡처하지 못했어요. 페이지가 표시된 뒤 다시 시도해 주세요.');}}
   // The capture button sits right of the + menu in the composer (user request 2026-10-15).
   const captureControl=<CxButton type="button" className="nubi-icon-button nubi-capture-button" data-icon-only aria-label="화면 캡처" title={draftCaptures.length>=CAPTURE_LIMIT?`캡처는 ${CAPTURE_LIMIT}장까지 첨부할 수 있어요`:'Workspace 화면을 캡처해 첨부'} disabled={capturing||draftCaptures.length>=CAPTURE_LIMIT} onClick={()=>void startWindowCapture()}><Icon name="image" size={18}/></CxButton>;
   async function captureRegion(rect){
@@ -664,10 +663,9 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
   };
 
   const captureSelected=async rect=>{
-    setCapturing(false);await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    setCapturing(false);
     try{
-      // The host crops the chosen region at device resolution (2026-10-15): the region is sent as CSS pixels of the
-      // window, or of the previewed web page (its preview was scaled, so the rectangle is mapped back first).
+      // The selected pixels come from the preview, not a later page revision.
       const item=await captureRegion(rect);
       setDraftCaptures(current=>[...current,item].slice(0,CAPTURE_LIMIT));requestAnimationFrame(()=>composer.current?.focus());}
     catch{setError('화면을 캡처하지 못했어요. 다시 시도해 주세요.');}

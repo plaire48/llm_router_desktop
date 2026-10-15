@@ -124,7 +124,7 @@ class BrowserHost {
    {label:'인쇄',enabled:this.tab().url!=='about:blank',click:()=>wc.print({silent:false})},
    {type:'separator'},
    {label:`확대/축소 ${Math.round(wc.getZoomFactor()*100)}%`,submenu:[{label:'확대',click:()=>{wc.setZoomFactor(Math.min(3,wc.getZoomFactor()+.1));this.changed();}},{label:'축소',click:()=>{wc.setZoomFactor(Math.max(.5,wc.getZoomFactor()-.1));this.changed();}},{label:'100%',click:()=>{wc.setZoomFactor(1);this.changed();}}]},
-   {label:'사진으로 저장',click:async()=>{const result=await dialog.showSaveDialog(this.window,{title:'페이지 사진 저장',defaultPath:'nubi-browser.png',filters:[{name:'PNG',extensions:['png']}]});if(!result.canceled)await writeFile(result.filePath,(await wc.capturePage()).toPNG());}},
+   {label:'사진으로 저장',enabled:!this.tab().authentication&&!this.tab().companyLogin&&!this.tab().session,click:async()=>{try{const shot=await this.capture(this.active,{maxWidth:2400});const result=await dialog.showSaveDialog(this.window,{title:'페이지 사진 저장',defaultPath:'nubi-browser.png',filters:[{name:'PNG',extensions:['png']}]});if(!result.canceled)await writeFile(result.filePath,Buffer.from(shot.image,'base64'));}catch{this.publish('error',{error:'browser_capture_unavailable'});}}},
    {label:'다운로드',submenu:downloadItems.length?downloadItems:[{label:'다운로드가 없어요.',enabled:false}]},
    {label:'방문 기록',submenu:historyItems.length?historyItems:[{label:'방문 기록이 없어요.',enabled:false}]},
    {type:'separator'},

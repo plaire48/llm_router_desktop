@@ -184,7 +184,7 @@ try{
  await p.mouse.move(300,200);await p.mouse.down();await p.mouse.move(500,330,{steps:4});await p.mouse.up();await overlay.waitFor({state:'hidden'});
  const chip=p.locator('.nubi-capture-chip');await chip.waitFor();assert.equal(await p.evaluate(()=>window.captureCalls),1);
  const size=await chip.locator('img').evaluate(img=>[img.naturalWidth,img.naturalHeight]);assert(size[0]>=195&&size[0]<=205&&size[1]>=125&&size[1]<=135,'crop follows the dragged rectangle '+size);
- /* The host cuts the region at device resolution (2026-10-15): the request carries the rectangle, not a whole-window picture to cut later. */const captureArgs=await p.evaluate(()=>window.captureArgs);assert(captureArgs.at(-1)?.clip&&captureArgs.at(-1).maxWidth===2400,'the region is sent as a clip '+JSON.stringify(captureArgs.at(-1)));
+ /* The window is captured once at up to 2400px, with the web view composed in, and the region is cut from that exact frame (2026-10-15). */const captureArgs=await p.evaluate(()=>window.captureArgs);assert(captureArgs.at(-1)?.maxWidth===2400&&!captureArgs.at(-1).clip,'one whole-window capture at 2400px '+JSON.stringify(captureArgs.at(-1)));
  await chip.locator('button').first().click();assert.equal(await chip.getAttribute('data-open'),'true');await chip.locator('button').first().click();
  await chip.getByRole('button',{name:/빼기/}).click();await chip.waitFor({state:'hidden'});
  await p.keyboard.press('Escape');
