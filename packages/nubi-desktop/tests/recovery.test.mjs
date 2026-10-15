@@ -54,10 +54,12 @@ test('failed Bash automatically reaches Pi diagnosis; an approved repaired comma
     return reply();
   }};
   const process=await service.run({taskId:task.id,script:'nubi_missing_command_for_fixture',profile:'bash'});
-  await wait(()=>service.store.list('command-repair:').length===1&&!service.agent?.running);
+  // Git Bash startup and process reaping on Windows can exceed the generic 3 s fixture wait.
+  // Completion is still required; this does not change the command's own timeout or assertions.
+  await wait(()=>service.store.list('command-repair:').length===1&&!service.agent?.running,15000);
   assert.equal(service.processes.poll(process.id).state,'failed');await assert.rejects(access(path.join(root,'recovered.txt')));
   const repair=service.store.list('command-repair:')[0];await Promise.all([service.applyCommandRepair({id:repair.id}),service.applyCommandRepair({id:repair.id})]);
-  await wait(()=>round>=3&&!service.agent?.running&&service.processes.active.size===0);
+  await wait(()=>round>=3&&!service.agent?.running&&service.processes.active.size===0,15000);
   assert.equal(await readFile(path.join(root,'recovered.txt'),'utf8'),'once\n');assert.equal(service.store.list('process:').length,2);assert.equal(service.task(task.id).criteria[0].state,'unknown');
   const knowledge=await service.recordKnowledge({taskId:task.id}),document=await readFile(path.join(root,knowledge.path),'utf8');
   assert.match(document,/복구 기록/);assert.match(document,/propose_command_repair/);assert.doesNotMatch(document,/RECOVERY_OK|printf|nubi_missing_command_for_fixture/);
