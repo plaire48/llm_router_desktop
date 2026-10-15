@@ -60,6 +60,8 @@ function App(){
  const [teamSection,setTeamSection]=useState('workspace');
  const [projects,setProjects]=useState([]),catalogRevision=useRef(0);
  const projectViews=useRef(new Map()),switching=useRef(false);
+ const [cloneProgress,setCloneProgress]=useState(null),cloneRequest=useRef(null);
+ useEffect(()=>window.nubi.onHostEvent?.(event=>{if(event.type==='git_clone_progress'&&event.requestId===cloneRequest.current&&cloneRequest.current)setCloneProgress(previous=>({...event,startedAt:previous?.startedAt||Date.now()}));}),[]);
  const [introDone,setIntroDone]=useState(false),[startupReady,setStartupReady]=useState(false),[startupOpen,setStartupOpen]=useState(false),[startupRequest,setStartupRequest]=useState(null),[wikiPrompt,setWikiPrompt]=useState(null);
  const [paneExpanded,setPaneExpandedRaw]=useState(false);
  const shellNode=useRef(null),paneToggle=useRef(null),expandedRef=useRef(false);expandedRef.current=paneExpanded;
@@ -129,14 +131,16 @@ function App(){
   const body=shellNode.current?.querySelector('.desktop-workspace-body');if(body)body.inert=true;
   cancelViewTransition();
   try{
+   if(method==='cloneRepository'){const progressId=crypto.randomUUID();cloneRequest.current=progressId;args={...args,progressId};setCloneProgress({stage:'destination',percent:null,startedAt:Date.now()});}
    const result=await api(method,args);
    // Commit the new project and its fresh Workbench before uncovering the UI.
    // A queued view-transition snapshot must never replay the previous project.
    if(result?.projectId)flushSync(()=>setGeneration(n=>n+1));
    return result;
-  }finally{switching.current=false;if(body)body.inert=false;document.documentElement.removeAttribute('data-project-switching');}
+  }finally{cloneRequest.current=null;setCloneProgress(null);switching.current=false;if(body)body.inert=false;document.documentElement.removeAttribute('data-project-switching');}
  }
  useEffect(()=>window.nubi.onHostEvent?.(event=>{
+  if(event.type==='wiki_open'){void openWikiNotice(event,{currentProjectId:()=>projectRef.current?.projectId,switchProject:id=>changeProject('switchProject',{id}),present:setStartupRequest}).catch(error=>showError(error.message==='editor_dirty'?'수정 중인 파일을 저장한 뒤 위키를 열어 주세요.':'프로젝트 위키를 열지 못했어요. 프로젝트 목록에서 다시 열어 주세요.'));return;}
   if(event.type!=='answer_open')return;
   void openAnswerNotice(event,{currentProjectId:()=>projectRef.current?.projectId,
    switchProject:(id,kind)=>kind==='conversation'?changeProject('startConversation'):changeProject('switchProject',{id}),readTask:taskId=>api('conversationHistory',{taskId}),
@@ -238,7 +242,7 @@ function App(){
  }
  const title=({files:'파일',file:buffer?.path,changes:'Git 변경',history:'커밋 이력',search:'검색',terminal:'터미널',diff:'변경 비교',commands:'도구',repositories:'회사 저장소',document:mailDocument?.title||'첨부 문서','mail-source':'메일 원문','team-workspace':'AI Workspace'})[pane];
 
- return <div ref={shellNode} className="desktop-shell" data-startup-ready={startupReady} data-toolbar="true" data-platform={window.nubi?.platform} data-layout={slots.split?'split':'overlay'}><div className="desktop-titlebar" ref={setToolbarHost}/><CinematicIntro ready={startupReady} onFinish={()=>setIntroDone(true)}/><FirstRunTour active={introDone&&startupReady}/><ProjectSwitchCover/><div className="desktop-workspace-body"><div className="desktop-agent"><Workbench initialProject={project} initialProvider={providerSnapshot.current} projects={projects} key={generation} hostLayout="integrated" toolbarHost={toolbarHost} onMinimumAgentWidth={setMinimumAgentWidth} toastHost={false} {...ports} startupRequest={startupRequest} onStartupHandled={()=>setStartupRequest(null)} mailDraftRequest={mailDraftRequest} onMailDraftHandled={()=>setMailDraftRequest(null)} wikiInitialization={wiki} activeView={pane} activeFile={buffer?.path}/></div>
+ return <div ref={shellNode} className="desktop-shell" data-startup-ready={startupReady} data-toolbar="true" data-platform={window.nubi?.platform} data-layout={slots.split?'split':'overlay'}><div className="desktop-titlebar" ref={setToolbarHost}/><CinematicIntro ready={startupReady} onFinish={()=>setIntroDone(true)}/><FirstRunTour active={introDone&&startupReady}/><ProjectSwitchCover progress={cloneProgress}/><div className="desktop-workspace-body"><div className="desktop-agent"><Workbench initialProject={project} initialProvider={providerSnapshot.current} projects={projects} key={generation} hostLayout="integrated" toolbarHost={toolbarHost} onMinimumAgentWidth={setMinimumAgentWidth} toastHost={false} {...ports} startupRequest={startupRequest} onStartupHandled={()=>setStartupRequest(null)} mailDraftRequest={mailDraftRequest} onMailDraftHandled={()=>setMailDraftRequest(null)} wikiInitialization={wiki} activeView={pane} activeFile={buffer?.path}/></div>
  {(pane||teamWorkspace||project||browserMounted)&&<aside id="nubi-auxiliary-pane" className="desktop-pane" data-expanded={paneExpanded||undefined} data-team-workspace={pane==='team-workspace'||undefined} hidden={!pane} aria-label="보조 작업 영역"><header className={fileDock?'desktop-dock-header':undefined}>
 
  {fileDock?<div ref={dockStrip} className="desktop-file-tabs" onKeyDown={event=>{if(!['ArrowLeft','ArrowRight'].includes(event.key))return;const tabs=[...event.currentTarget.querySelectorAll('[role="tab"]')],index=tabs.indexOf(document.activeElement);if(index<0)return;event.preventDefault();const next=tabs[(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length];next.focus();next.click();}} role="tablist" aria-label="파일, 브라우저, 터미널"><CxButton role="tab" aria-label="파일 탐색기" title="파일 탐색기" aria-selected={pane==='files'} onClick={()=>setPane('files')}><FolderMark size={18}/><span>파일</span></CxButton>{orderedDockKeys.map(key=>{const tab=dockTab(key);return tab&&<span className="desktop-workspace-tab" key={key}><CxButton className="desktop-tab-select" role="tab" aria-selected={tab.selected} title={tab.title} onClick={tab.select} onKeyDown={event=>{if(event.key==='Delete'){event.preventDefault();tab.close();}}} onAuxClick={event=>{if(event.button===1){event.preventDefault();tab.close();}}}>{tab.icon}<span>{tab.label}</span>{tab.dirty&&<span className="desktop-dirty" aria-label="저장하지 않은 변경">●</span>}{tab.loading&&<span className="status-spinner" aria-label="페이지 불러오는 중"/>}</CxButton><CxButton className="desktop-tab-close" aria-label={tab.closeLabel} title="탭 닫기" onClick={event=>{event.stopPropagation();tab.close();}}><Icon name="xClose" size={12}/></CxButton></span>;})}</div>:['changes','history'].includes(pane)?<span className="desktop-git-heading" aria-label={title} title={title}><BranchMark size={18}/>{pane==='history'&&<span>{title}</span>}</span>:pane==='team-workspace'?<span className="desktop-team-heading" role="img" aria-label={title} title={title}><img src={teamWorkspaceMark} alt=""/></span>:<strong>{title}</strong>}
@@ -277,4 +281,5 @@ class ShellErrorBoundary extends React.Component{
 }
 document.body.classList.add('nubi-desktop-host');
 createRoot(document.getElementById('root')).render(<ShellErrorBoundary><App/></ShellErrorBoundary>);
+import {openWikiNotice} from '../ui/open-wiki-notice.mjs';
 import {openAnswerNotice} from '../ui/open-answer-notice.mjs';

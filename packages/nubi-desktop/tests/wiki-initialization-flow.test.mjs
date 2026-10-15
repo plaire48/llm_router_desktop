@@ -30,7 +30,11 @@ async function setup(t,{gitProject=false}={}){
     await writeFile(path.join(copy,'openwiki/.last-update.json'),JSON.stringify({status:'complete',command:'init',language:'ko',gitHead:commit}));
     await writeFile(path.join(copy,'openwiki/.page-manifest.json'),JSON.stringify({schemaVersion:1,pages:{'openwiki/home.md':{gitHead:commit}}}));
   };
+  const notices=[];service.notifyWiki=value=>{assert.equal(service.store.get('wiki-init').state,'completed');notices.push(value);};
   await service.initializeWiki();await service.wikiInitPromise;
+  assert.equal(notices.length,1);assert.equal(notices[0].phase,'created');
+  await service.initializeWiki();assert.equal(notices.length,1,'reopening existing Wiki never repeats completion');
+  service.notifyWiki=undefined;
   assert.equal(service.wikiInitialization().state,'completed',JSON.stringify(service.wikiInitialization()));return {root:service.root,service};
 }
 async function publish(root,text){

@@ -61,3 +61,29 @@ test('a previously chosen location does not ask again',async t=>{
  const mail=new PersonalMail(makeHost(root),{personalRoot:path.join(root,'mail')});t.after(()=>mail.dispose());
  mail.store.set('setting:raw-root',{path:path.join(root,'chosen')});assert.equal(mail.status().requiresStorageSetup,false);
 });
+
+test('relocation exposes live verified progress while independent status requests stay responsive',async t=>{
+ const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-move-progress-'));t.after(()=>rm(root,{recursive:true,force:true}));
+ const mail=new PersonalMail(makeHost(root),{personalRoot:path.join(root,'mail')});t.after(()=>mail.dispose());await mail.prepare();
+ const bytes=Buffer.alloc(32*1024,65);for(let group=0;group<8;group++){const directory=path.join(mail.rawRoot,'group-'+group);await mkdir(directory);for(let n=0;n<12;n++)await writeFile(path.join(directory,n+'.bin'),bytes);}
+ let done=false;const samples=[];
+ const moving=mail.relocateRaw(path.join(root,'new')).finally(()=>{done=true;});
+ while(!done){const started=performance.now(),value=await mail.call({action:'storageProgress'});samples.push({latency:performance.now()-started,moving:value.moving,...structuredClone(value.progress)});await new Promise(resolve=>setTimeout(resolve,1));}
+ await moving;
+ const copies=samples.filter(value=>value.stage==='copying');assert(copies.length>1,'status remains observable between file I/O steps');assert(copies.some(value=>value.completed>0&&value.completed<96));
+ assert(copies.every(value=>value.total===96&&value.totalBytes===96*bytes.length&&value.bytes===value.completed*bytes.length));
+ for(let n=1;n<copies.length;n++)assert(copies[n].bytes>=copies[n-1].bytes);
+ assert(samples.every(value=>value.latency<1000),'lightweight progress read never waits for full relocation');
+ const result=await mail.call({action:'storageProgress'});assert.equal(result.moving,false);assert.equal(result.progress.state,'completed');assert.equal(result.progress.stage,'complete');
+ const previousRows=mail.rows;mail.rows=()=>assert.fail('progress must not scan all mail');assert.equal((await mail.call({action:'storageProgress'})).moving,false);mail.rows=previousRows;
+});
+
+test('background relocation returns a job before completion and rejects overlapping moves',async t=>{
+ const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-move-job-'));t.after(()=>rm(root,{recursive:true,force:true}));const mail=new PersonalMail(makeHost(root),{personalRoot:path.join(root,'mail')});t.after(()=>mail.dispose());await mail.prepare();
+ await mkdir(path.join(mail.rawRoot,'original'));for(let n=0;n<12;n++)await writeFile(path.join(mail.rawRoot,'original',n+'.eml'),'original '+n);
+ const job=await mail.call({action:'startRawMove',directory:path.join(root,'new'),includeAttachments:false});assert(job.id);assert.equal(job.moving,true);
+ await assert.rejects(mail.call({action:'startRawMove',directory:path.join(root,'overlap')}),/mail_busy/);assert.equal((await mail.call({action:'storageProgress',id:job.id})).progress.id,job.id);
+ await mail.storageMoveTask;const result=await mail.call({action:'storageProgress',id:job.id});assert.equal(result.moving,false);assert.equal(result.progress.state,'completed');assert.equal(result.progress.error,undefined);assert.equal(mail.includeAttachments,false);
+ await assert.rejects(mail.call({action:'storageProgress',id:'old-job'}),/mail_storage_task_changed/);
+ await assert.rejects(mail.call({action:'startRawMove',directory:'relative'}),/mail_input_invalid/);assert.equal(mail.storageProgress.id,job.id);assert.equal(mail.storageProgress.error,undefined);
+});

@@ -30,8 +30,8 @@ export async function wikiInitCheckpoint(store,root,head,sources,options={}){
    if((await wikiPreparationGit(directory,['rev-parse','HEAD'],options,'verify')).trim()!==record.snapshotHead)throw Error('source_stale');
    const canonical=await realpath(directory);
    const expected=record.copySources||sources;
-   for(const source of expected)if((await readWikiSource(canonical,source.path)).hash!==source.hash)throw Error('source_stale');
-   if(record.copySources&&(await wikiSources(canonical)).length!==expected.length)throw Error('source_stale');
+   for(const source of expected){options.signal?.throwIfAborted();if((await readWikiSource(canonical,source.path)).hash!==source.hash)throw Error('source_stale');}
+   if(record.copySources&&(await wikiSources(canonical,{signal:options.signal})).length!==expected.length)throw Error('source_stale');
    return {directory,resumed:true,generated:record.generated===true};
   }catch(error){
    // A slow Git probe is not evidence that saved work is invalid.
@@ -48,7 +48,7 @@ export async function wikiInitCheckpoint(store,root,head,sources,options={}){
 }
 export async function markWikiInitCheckpointReady(store,directory,options={}){
  const record=store.get(KEY);if(location(store,record)!==directory)throw Error('project_changed');
- store.set(KEY,{...record,ready:true,snapshotHead:(await wikiPreparationGit(directory,['rev-parse','HEAD'],options,'verify')).trim(),copySources:(await wikiSources(directory)).map(({path,hash})=>({path,hash}))});
+ store.set(KEY,{...record,ready:true,snapshotHead:(await wikiPreparationGit(directory,['rev-parse','HEAD'],options,'verify')).trim(),copySources:(await wikiSources(directory,{signal:options.signal})).map(({path,hash})=>({path,hash}))});
 }
 export function markWikiInitGenerated(store,directory){
  const record=store.get(KEY);if(location(store,record)!==directory)throw Error('project_changed');

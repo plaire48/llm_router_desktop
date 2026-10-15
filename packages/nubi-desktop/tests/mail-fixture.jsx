@@ -10,12 +10,15 @@ import '../design/workspace-identity.css';
 // Two ways in (2026-10-14): the portal login and a folder of saved mail files. No password field exists any more.
 window.mailCalls=[];window.mailFail=false;window.mailSlow=false;
 const status={serverProfile:'company',protocol:'portal',encryption:{state:'on'},connected:false,connecting:false,autoWiki:true,watchPaused:false,checking:false,summarizing:false,readingAttachments:false,counts:{received:0,queued:0,saved:0,attention:0},messages:[],storageRoot:'/fixture/personal',wikiRoot:'/fixture/personal/wiki',rawRoot:'/fixture/personal/raw',baselineCount:0,catalogs:[{provider:'aipro',models:[{id:'fixture',label:'Fixture'}]}],destination:null,localImport:null,localCount:0,localKinds:[]};
+window.setMailImportFixture=progress=>{status.localImport=progress;};
 async function api(method,args={}){
  if(method==='importMailFolder'){window.mailCalls.push({action:'importMailFolder'});status.localImport={state:'completed',total:1,completed:1,imported:1,duplicates:0,failures:[],startedAt:new Date().toISOString()};status.localCount=1;status.localKinds=['AUTO_INBOX','other'];return structuredClone(status);}
  if(method==='copyMailStoragePath')return {copied:true};
  if(method!=='mail')throw Error('fixture_method');
  if(args.action==='status')return structuredClone(status);
  window.mailCalls.push(structuredClone(args));
+ if(args.action==='resumeImport')status.localImport={...status.localImport,state:'importing',startedAt:new Date().toISOString()};
+ if(args.action==='cancelImport')status.localImport={...status.localImport,state:'cancelled'};
  if(args.action==='portalLogin'){if(window.mailSlow){status.connecting=true;try{await new Promise(r=>window.releaseMail=r);}finally{status.connecting=false;}}if(window.mailFail){status.error=typeof window.mailFail==='string'?window.mailFail:'mail_portal_login';throw Error(status.error);}status.error=null;status.connected=true;status.counts={received:1,saved:1,queued:0,attention:0};status.messages=[{id:'one',subject:'계약 검토',state:'saved',from:'sender@fixture',fetchedAt:new Date().toISOString()}];status.destination=args.destination;status.nextCheckAt=new Date(Date.now()+60000).toISOString();}
  if(args.action==='setAutoWiki')status.autoWiki=args.enabled;
  if(args.action==='disconnect'||args.action==='cancelConnect')status.connected=false;

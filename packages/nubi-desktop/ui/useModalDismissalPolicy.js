@@ -1,9 +1,11 @@
 import {useEffect} from 'react';
+import {installModalStack} from './modalStack.js';
 
 // Keep CX's modal focus/keyboard lifecycle and close guards. The original
 // trigger is the only interactive spot through the otherwise inert backdrop.
 export function useModalDismissalPolicy() {
  useEffect(()=>{
+  const stopStack=installModalStack();
   const triggers=new WeakMap();let lastActivation=null,frame=0;
   const dialogs=()=>[...document.querySelectorAll('[aria-modal="true"]')].filter(node=>node.getClientRects().length&&!node.closest('[inert],[hidden]'));
   const register=()=>{
@@ -42,6 +44,6 @@ export function useModalDismissalPolicy() {
   };
   const events=['pointerdown','mousedown','pointerup','mouseup','click'];
   for(const type of events)document.addEventListener(type,handle,true);
-  return()=>{changes.disconnect();cancelAnimationFrame(frame);for(const type of events)document.removeEventListener(type,handle,true);};
+  return()=>{stopStack();changes.disconnect();cancelAnimationFrame(frame);for(const type of events)document.removeEventListener(type,handle,true);};
  },[]);
 }

@@ -87,6 +87,7 @@ const settle=async(service,id)=>{for(let i=0;i<200;i++){const item=(await servic
 
 test('a proposal runs nothing; an approved run changes only a copy; an approved result reaches only openwiki/',async t=>{
   const {service,root}=await generated(t);service.wikiUpdater=writer();
+  const notices=[];service.notifyWiki=value=>{assert.equal(service.store.get('wiki-update:'+value.jobId).state,value.phase);notices.push(value);};
   const before=await readFile(path.join(root,'openwiki','home.md'),'utf8');
   await assert.rejects(service.wikiUpdate({method:'propose'}),/wiki_update_not_needed/);
   await commit(root,'app.txt','changed source\n');
@@ -106,6 +107,8 @@ test('a proposal runs nothing; an approved run changes only a copy; an approved 
   await service.wikiUpdate({method:'apply',id:proposal.id,fingerprint:ready.fingerprint});
   const applied=(await service.wikiUpdate({method:'status'})).updates.find(update=>update.id===proposal.id);
   assert.equal(applied.state,'applied');
+  assert.deepEqual(notices.map(value=>value.phase),['ready','applied']);
+  await service.wikiUpdate({method:'status'});assert.equal(notices.length,2);
   assert.match(await readFile(path.join(root,'openwiki','home.md'),'utf8'),/changed app\.txt/);
   assert.ok(await exists(path.join(root,'openwiki','new-page.md')));
   assert.equal(await exists(path.join(root,'AGENTS.md')),false,'nothing outside the Wiki was written');

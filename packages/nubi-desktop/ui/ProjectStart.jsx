@@ -18,7 +18,7 @@ export function ProjectStart({projects=[],onSelectProject,busy, blocked=false, m
     if (result?.projectId) setRemote('');
   }
   return <section className="nubi-project-start" aria-label="프로젝트 열기" aria-busy={busy}>
-    {modelControl&&<div className="nubi-start-model">{modelControl}</div>}
+    {modelControl&&<div className="nubi-start-model" inert={busy||blocked||undefined}>{modelControl}</div>}
     
     <div className="nubi-start-choices" data-count={1+Number(!!onClone)}>
       <button type="button" className="nubi-start-card" disabled={busy||blocked} onClick={onOpenFolder}>

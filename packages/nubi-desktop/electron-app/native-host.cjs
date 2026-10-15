@@ -1,3 +1,4 @@
+const {createCloneProgress}=require('./git-clone-progress.cjs');
 const {ORIGIN,SECRET_KEY}=require('../../nubi-vscode/src/ghes.cjs');
 const {DesktopGhesAccount}=require('./ghes-profile-status.cjs');
 const {chooseRepository}=require('../../nubi-vscode/src/ghes-git.cjs');
@@ -56,7 +57,7 @@ class ElectronHost{
     if(generation!==this.account.generation)throw Error('ghes_session_changed');
     this.repositories.clear();return choices.map(item=>{const id=randomUUID();this.repositories.set(id,{url:item.url,generation});return {id,label:item.label,description:item.description};});
   }
-  async clone({url,parent,repositoryId}){
+  async clone({url,parent,repositoryId},onProgress=()=>{}){
     if(repositoryId){const item=this.repositories.get(repositoryId);if(!item||item.generation!==this.account.generation)throw Error('ghes_session_changed');url=item.url;}
     const address=remote(url),directory=await realpath(parent),name=address.pathname.split('/').at(-1).replace(/\.git$/,'');
     if(!/^[\w.-]+$/.test(name)||['.','..'].includes(name))throw Error('remote_invalid');
@@ -64,13 +65,16 @@ class ElectronHost{
     // Allocate the destination exclusively. A failed/uncertain clone is kept
     // for inspection; retries never overwrite or remove its files.
     await mkdir(target).catch(error=>{throw Error(error.code==='EEXIST'?'clone_target_exists':'clone_failed');});
+    onProgress({stage:'connecting',percent:null});
     return this.withGitAccess(address,async({env,credential})=>{
       await new Promise((resolve,reject)=>{
-        const child=this.spawnProcess(this.platform==='win32'&&process.env.NUBI_BUNDLED_GIT||'git',[...(credential?['-c','credential.helper=']:[]),...(this.platform==='win32'?['-c','http.sslBackend=schannel']:[]),'-c','http.sslVerify=true','clone','--',address.href,target],{env,stdio:['ignore','pipe','pipe'],windowsHide:true});this.children.add(child);
-        child.stdout.on('data',()=>{});child.stderr.on('data',()=>{});
+        const child=this.spawnProcess(this.platform==='win32'&&process.env.NUBI_BUNDLED_GIT||'git',[...(credential?['-c','credential.helper=']:[]),...(this.platform==='win32'?['-c','http.sslBackend=schannel']:[]),'-c','http.sslVerify=true','clone','--progress','--',address.href,target],{env:{...env,LC_ALL:'C',LANG:'C'},stdio:['ignore','pipe','pipe'],windowsHide:true});this.children.add(child);
+        const progress=createCloneProgress(onProgress);
+        child.stdout.on('data',()=>{});child.stderr.on('data',chunk=>progress.write(chunk));
         child.once('error',()=>{this.children.delete(child);reject(Error('clone_failed'));});
-        child.once('exit',code=>{this.children.delete(child);code===0?resolve():reject(Error('clone_failed'));});
+        child.once('close',code=>{progress.end();this.children.delete(child);code===0?resolve():reject(Error('clone_failed'));});
       });
+      onProgress({stage:'opening',percent:null});
       return {cloned:true,root:target};
     });
   }

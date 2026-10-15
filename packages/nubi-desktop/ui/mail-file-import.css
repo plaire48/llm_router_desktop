@@ -31,3 +31,9 @@
 .nubi-mail-portal-card .nubi-mail-import-heading small { font:var(--deck-font-caption); color:var(--nubi-text-secondary); line-height:1.6; }
 .nubi-mail-portal-card[data-recommended=true] .nubi-mail-import-icon { background:var(--nubi-surface-base); color:var(--nubi-text-action); }
 .nubi-mail-portal-card .nubi-mail-connect { font-weight:var(--nubi-weight-emphasis); }
+
+.nubi-mail-import-resume { display:flex; align-items:center; justify-content:space-between; gap:var(--cx-space-3); margin-top:var(--cx-space-2); }
+.nubi-mail-import-resume.nubi-mail-import-card-action { display:grid; gap:var(--cx-space-2); }
+.nubi-mail-import-resume button { flex:none; }
+.nubi-mail-import-resume small { color:var(--nubi-text-secondary); font:var(--deck-font-caption); }
+.nubi-mail-import-resume.nubi-mail-import-card-action>button { width:100%; }

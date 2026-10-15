@@ -82,10 +82,12 @@ function openPageLink(url){try{openWorkspacePage(url);}catch(error){window.webCo
 const {createDecisionNotices}=require('./decision-notices.cjs');
 const {createMailLoginNotices}=require('./mail-login-notices.cjs');
 const mailLoginNotices=createMailLoginNotices({Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
+const {createWikiNotices}=require('./wiki-notices.cjs');
+const wikiNotices=createWikiNotices({Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
 const {createAnswerNotices}=require('./answer-notices.cjs');
 const answerNotices=createAnswerNotices({Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
 const decisionNotices=createDecisionNotices({Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
-app.on('before-quit',()=>{decisionNotices.clear();answerNotices.clear();mailLoginNotices.clear();});
+app.on('before-quit',()=>{decisionNotices.clear();answerNotices.clear();wikiNotices.clear();mailLoginNotices.clear();});
 const {connectionVault}=require('./connection-vault.cjs');
 const vault=connectionVault({directory:path.join(storage,'connections-v1'),safeStorage:require('electron').safeStorage});
 function secretScope(service,key){if(service!=='nubi.workspace.electron'||key!=='nubi.ghes.code.sdsdev.co.kr')throw Error('secret_scope');}
@@ -130,6 +132,7 @@ app.whenReady().then(async()=>{
   const child=fork(path.join(__dirname,'backend/service-entry.mjs'),[],{env:{...process.env,ELECTRON_RUN_AS_NODE:'1',NUBI_STORAGE_ROOT:storage},stdio:['ignore','ignore','pipe','ipc']});
   child.stderr.on('data',chunk=>{void workerLog(chunk);});return child;
  },onMessage:message=>{
+  if(message?.wikiCompleted){wikiNotices.show(message.wikiCompleted);return;}
   if(message?.answerCompleted){answerNotices.show(message.answerCompleted);return;}
   if(message?.playwrightRequest){const {id,action,args}=message.playwrightRequest;if(typeof id!=='string'||id.length>80)return;void(async()=>{try{if(!playwrightHost)throw Error('browser_unavailable');const result=await playwrightHost.request(action,args);worker.send({playwrightReply:{id,result}});}catch(error){worker.send({playwrightReply:{id,error:/^[a-z_]+$/.test(error.message)?error.message:'browser_unavailable'}});}})();return;}
   if(message?.wikiGitCancel){wikiGitControllers.get(message.wikiGitCancel.id)?.abort();return;}
@@ -172,7 +175,7 @@ app.whenReady().then(async()=>{
  const {screen}=require('electron'),windowState=restoreWindowState(await loadWindowState(),screen.getAllDisplays());
  const installId=await installationStamp({packaged:app.isPackaged,platform:process.platform,executable:app.getPath('exe')});
  window=new BrowserWindow({icon:appIcon,width:windowState.width,height:windowState.height,...(windowState.x!==undefined?{x:windowState.x,y:windowState.y}:{}),minWidth:620,minHeight:540,title:'누비 Workspace Beta',backgroundColor:'#FFFFFF',titleBarStyle:process.platform==='darwin'?'hiddenInset':'hidden',...(process.platform==='darwin'?{trafficLightPosition:{x:14,y:17}}:{titleBarOverlay:DEFAULT_TITLEBAR}),webPreferences:{additionalArguments:installId?['--nubi-installation='+installId]:[],preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false}});
- window.webContents.on('did-start-navigation',(_event,_url,_inPlace,isMainFrame)=>{if(isMainFrame){decisionNotices.clear();answerNotices.clear();mailLoginNotices.clear();applyCaptionColors(window,DEFAULT_TITLEBAR);}});
+ window.webContents.on('did-start-navigation',(_event,_url,_inPlace,isMainFrame)=>{if(isMainFrame){decisionNotices.clear();answerNotices.clear();wikiNotices.clear();mailLoginNotices.clear();applyCaptionColors(window,DEFAULT_TITLEBAR);}});
  if(windowState.maximized)window.maximize();
  for(const name of ['resize','move','maximize','unmaximize'])window.on(name,saveWindowState);
  window.on('close',()=>{clearTimeout(windowStateTimer);try{require('node:fs').mkdirSync(storage,{recursive:true});require('node:fs').writeFileSync(windowStateFile,JSON.stringify(windowStateOf(window)),{mode:0o600});}catch{}});
@@ -278,7 +281,7 @@ app.whenReady().then(async()=>{
    // holds the request id (user report 2026-10-14: 연결 취소 kept connecting).
    if(args.action==='cancelConnect'){if(args.requestId===mailPortal.requestId||mailPortal.status().connecting)await mailPortal.disconnect();return portalMailStatus();}
    if(args.action==='disconnect'){await mailPortal.disconnect();await mailPortal.clearPortalSession();mailLoginNotices.clear();return portalMailStatus();}
-   if(args.action==='confirmStorage'){if(source!=='electron')throw Error('mail_desktop_only');await invoke('mail',{action:'confirmStorage'});if(mailPortal.status().connected)void mailPortal.sync().catch(()=>{});return portalMailStatus();}
+   if(args.action==='confirmStorage'){if(source!=='electron')throw Error('mail_desktop_only');await invoke('mail',{action:'confirmStorage',includeAttachments:args.includeAttachments});if(mailPortal.status().connected)void mailPortal.sync().catch(()=>{});return portalMailStatus();}
    if(args.action==='portalSync'||['check','retryDownloads'].includes(args.action)&&mailPortal.status().connected){await mailPortal.recheck();return portalMailStatus();}
    if(['pauseWatch','resumeWatch'].includes(args.action)){await invoke('mail',args);if(args.action==='pauseWatch')clearTimeout(mailPortal.timer);else if(mailPortal.status().connected)void mailPortal.sync().catch(()=>{});return portalMailStatus();}
    if(args.action==='attention'){const page=await invoke('mail',args);return {...page,status:await portalMailStatus(page.status)};}
@@ -290,7 +293,10 @@ app.whenReady().then(async()=>{
    if(source!=='electron')throw Error('mail_desktop_only');if(mailPortal.status().checking)throw Error('mail_busy');
    const directory=await choose(['openDirectory','createDirectory'],'메일 원문과 첨부파일 저장 위치');if(!directory)return {cancelled:true};
    if(mailPortal.status().checking)throw Error('mail_busy');clearTimeout(mailPortal.timer);
-   try{await invoke('mail',{action:'setRawRoot',directory});}
+   try{
+    const job=await invoke('mail',{action:'startRawMove',directory,includeAttachments:args.includeAttachments});
+    for(;;){const value=await invoke('mail',{action:'storageProgress',id:job.id});if(!value.moving){if(value.progress?.state!=='completed')throw Error(value.progress?.error||'mail_storage_failed');break;}await new Promise(resolve=>setTimeout(resolve,400));}
+   }
    finally{if(mailPortal.status().connected)void mailPortal.sync().catch(()=>{});}
    return portalMailStatus();
   }
@@ -301,7 +307,7 @@ app.whenReady().then(async()=>{
    clipboard.writeText(storagePath);return {path:storagePath};
   }
   if(method==='importProject'){const file=await choose(['openFile'],'프로젝트 ZIP 업로드',[{name:'ZIP',extensions:['zip']}]);if(!file)return {cancelled:true};const parent=await choose(['openDirectory'],'프로젝트를 저장할 폴더');if(!parent)return {cancelled:true};return await openProject((await importProjectZip(file,parent)).root,'project',{sourceKind:'local'});}
-  if(method==='cloneRepository'){const parent=await choose(['openDirectory'],'프로젝트를 저장할 폴더');if(!parent)return {cancelled:true};return await openProject((await host.clone({...args,parent})).root,'project',{exactRoot:true,sourceKind:'remote'});}
+  if(method==='cloneRepository'){const parent=await choose(['openDirectory'],'프로젝트를 저장할 폴더');if(!parent)return {cancelled:true};return await openProject((await host.clone({...args,parent},progress=>hostEvent({type:'git_clone_progress',requestId:typeof args.progressId==='string'?args.progressId.slice(0,64):null,...progress}))).root,'project',{exactRoot:true,sourceKind:'remote'});}
   if(method==='ghesAccount'){const state=await host.accountAction(args.operation);if(args.operation==='copy'){if(!state.device?.code)throw Error('copy_unavailable');clipboard.writeText(state.device.code);}return state;}
   if(method==='claudeCliUsage'){if(source!=='electron')throw Error('claude_cli_desktop_only');if(args.action==='read')return claudeCliUsage.read();return claudeCliUsage.status();}
   if(method==='claudeWeb'){if(source!=='electron')throw Error('claude_web_desktop_only');if(args.action==='connect')return claudeWeb.connect();if(args.action==='refresh')return claudeWeb.refresh();if(args.action==='disconnect')return claudeWeb.disconnect();return claudeWeb.status();}

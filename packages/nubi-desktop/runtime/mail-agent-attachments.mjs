@@ -8,6 +8,7 @@ export async function readMailAttachmentsForAgent(service,source,references=[],s
   const updates=new Map();
   for(const attachment of targets){
     if(signal?.aborted)throw Error('cancelled');
+    if(attachment.contentState==='not_stored')continue;
     if(['document_read','text_read'].includes(attachment.contentState)&&attachment.text?.trim())continue;
     try{
       const document=await service.mailDocument({id:source.id,attachmentId:attachment.id,expectedSourceHash:source.sourceHash,expectedAttachmentHash:attachment.sha256,action:'analyze',signal});

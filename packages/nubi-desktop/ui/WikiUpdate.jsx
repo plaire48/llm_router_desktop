@@ -16,7 +16,7 @@ const MODEL_USE=/^갱신은 로그인한 모델로/;
 // The card (user decision 2026-09-30): a tile and title with the key line, the pages as chips, the progress as a bar,
 // and one decision row on the right: 갱신 or 반영 filled, stop and discard as icons.
 export function WikiUpdate({api,openPath,initialization,onApplied}){
-  const [data,setData]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),live=useRef(true),revision=useRef(0);
+  const [data,setData]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),live=useRef(true),revision=useRef(0),actionLock=useRef(false);
   const [now,setNow]=useState(Date.now);
   const load=async()=>{const request=++revision.current;try{const value=await api('wikiUpdate',{method:'status'});if(live.current&&request===revision.current){setData(value);setError('');}}catch(e){if(live.current&&request===revision.current)setError(errors[e.message]||'위키 상태를 확인하지 못했어요.');}};
   useEffect(()=>{live.current=true;load();return()=>{live.current=false;revision.current++;};},[api,initialization?.id,initialization?.state,initialization?.finishedAt]);
@@ -27,7 +27,7 @@ export function WikiUpdate({api,openPath,initialization,onApplied}){
   useEffect(()=>{if(update?.state!=='running')return;const timer=setInterval(load,2000);return()=>clearInterval(timer);},[update?.state]);
   if(!data)return null;
   const view=wikiUpdateView({status:data.status,update,initialization});
-  const act=async fn=>{if(busy)return;setBusy(true);setError('');try{await fn();await load();}catch(e){await load();setError(errors[e.message]||'갱신 작업을 마치지 못했어요.');}finally{setBusy(false);}};
+  const act=async fn=>{if(actionLock.current)return;actionLock.current=true;setBusy(true);setError('');try{await fn();await load();}catch(e){await load();setError(errors[e.message]||'갱신 작업을 마치지 못했어요.');}finally{actionLock.current=false;setBusy(false);}};
   const run=()=>act(async()=>{setNotice('');const result=await api('wikiUpdate',{method:'refresh'});setNotice(wikiRefreshNotice(result));await onApplied?.();});
   const [lead,...rest]=view.lines,modelUse=rest.find(line=>MODEL_USE.test(line)),notes=rest.filter(line=>line!==modelUse);
   const progress=update?.state==='running'?[...(update.events||[])].reverse().find(event=>event.type==='progress'):null;
@@ -45,7 +45,7 @@ export function WikiUpdate({api,openPath,initialization,onApplied}){
     {view.detail&&<details className="nubi-wiki-update-detail"><summary><Icon name="infoCircle" size={14}/>중단 이유</summary><p>{view.detail}</p></details>}
 
     {modelUse&&<details className="nubi-wiki-update-detail"><summary><Icon name="infoCircle" size={14}/>모델 호출과 반영 범위</summary><p>{modelUse}</p></details>}
-    {view.pages.length>0&&<ul className="nubi-page-chips">{view.pages.map(page=><li key={page.path}><CxButton className="nubi-page-chip" title={page.path} onClick={()=>openPath?.(page.path)}><Icon name="file" size={14}/><span>{page.path}</span><span className="nubi-page-change">{page.label}</span></CxButton></li>)}</ul>}
+    {view.pages.length>0&&<ul className="nubi-page-chips">{view.pages.map(page=><li key={page.path}><CxButton className="nubi-page-chip" disabled={busy||update?.state==='running'} title={page.path} onClick={()=>openPath?.(page.path)}><Icon name="file" size={14}/><span>{page.path}</span><span className="nubi-page-change">{page.label}</span></CxButton></li>)}</ul>}
     {view.actions.includes('run')&&<ApprovalBar approveLabel="동기화 및 갱신" approveIcon="refresh" disabled={busy} onApprove={run}/>}
     {view.actions.includes('resume')&&<ApprovalBar approveLabel="이어서 갱신" approveIcon="refresh" disabled={busy} onApprove={()=>act(()=>api('wikiUpdate',{method:'resume',id:update.id,fingerprint:update.fingerprint}))}>
       <CxButton className="nubi-icon-button" aria-label="버리기" title="보관한 갱신 작업 버리기" disabled={busy} onClick={()=>act(()=>api('wikiUpdate',{method:'discard',id:update.id}))}><Icon name="trash" size={18}/></CxButton>

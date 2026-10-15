@@ -42,11 +42,14 @@ test('the agent mail tool delivers OpenWiki context with original citations to t
  service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:200000}]}),dispose(){},async complete(messages){
   if(calls++===0)return {content:'선택한 메일과 정리 내용을 확인하겠습니다.',calls:[{id:'mail-read',type:'function',function:{name:'read_personal_mail',arguments:JSON.stringify({id})}}]};
   const result=messages.find(m=>m.role==='tool'&&m.tool_call_id==='mail-read');if(result)delivered=JSON.parse(result.content);
-  return {content:'원문과 정리 내용을 확인했습니다.',calls:[]};
+  return {content:delivered?`원문과 정리 내용을 확인했습니다. [메일](${delivered.citations[0].href})`:'원문과 정리 내용을 확인했습니다.',calls:[]};
  }};
  const task=await service.createTask({request:'선택한 메일만 요약해 줘',mailReferences:[{id,sourceHash:row.sourceHash}]});
  await service.startAgent({taskId:task.id});await service.agent.promise;
  assert.equal(delivered.knowledge.state,'current');assert.match(delivered.knowledge.text,/OpenWiki summary/);assert.equal(delivered.mail.text,'Original message');assert.equal(delivered.citations[0].id,id);
+ const answer=service.task(task.id).messages.findLast(message=>message.role==='assistant');
+ assert(answer.content.includes(`[1](${delivered.citations[0].href})`));
+ assert.equal(answer.sourceReferences[0].number,1);assert.equal(answer.sourceReferences[0].sourceHash,row.sourceHash);
 });
 
 featureTest('mailAttachmentReading')('direct attachment questions consult the same mail notes without replacing the document',async t=>{
