@@ -5,7 +5,7 @@ import path from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {hash,fail,listFiles,readSource,scopedFile,git} from './files.mjs';
-import {defaultWikiUpdater} from './wiki-update.mjs';
+import {defaultWikiUpdater,prepareNativeWikiCopy} from './wiki-update.mjs';
 import {modelTransport} from './recovery.mjs';
 import {inspectCommitHistory} from './commit-history.mjs';
 import {DESKTOP_FEATURES} from './beta-features.mjs';
@@ -97,13 +97,14 @@ export function installDesktopFeatures(Service){
       }
       job.stage='snapshot_git';job.stageStartedAt=new Date().toISOString();job.percent=null;job.total=0;job.completed=0;persist();
       if(!sourceHead)await snapshotFolderHistory(store.directory,sources,temporary,preparation);check();
+      if(!this.wikiInitializer){await prepareNativeWikiCopy(temporary,'init');check();}
       await markWikiInitCheckpointReady(store,temporary,preparation);
       }
       delete job.gitStep;
       job.stage='planning';job.stageStartedAt=new Date().toISOString();job.percent=null;job.completed=0;job.total=0;persist();
       const updater=this.wikiInitializer||defaultWikiUpdater(this);
       if(!checkpoint.generated){
-      await updater({root:temporary,mode:'init',language:'ko',signal,updateId:job.id,onEvent:event=>{check();if(event.type==='model_error'){job.lastModelError=event.code;persist();return;}if(event.type==='model_wait'){job.modelWaiting=event.waiting;persist();return;}if(event.type==='model_retry'){job.modelRetries=(job.modelRetries||0)+1;persist();return;}job.modelWaiting=false;if(job.stage!==event.stage)job.stageStartedAt=new Date().toISOString();job.stage=event.stage;if(event.stage==='generating'&&event.total>0){job.total=event.total;job.completed=Math.max(0,Math.min(event.total,Number.isSafeInteger(event.index)?event.index-1:0));job.percent=Math.floor(100*job.completed/job.total);}else{job.percent=null;job.completed=0;job.total=0;}persist();}});
+      await updater({root:temporary,mode:'init',language:'ko',signal,updateId:job.id,onEvent:event=>{check();if(event.type==='model_error'){job.lastModelError=event.code;persist();return;}if(event.type==='model_wait'){job.modelWaiting=event.waiting;persist();return;}if(event.type==='model_retry'){job.modelRetries=(job.modelRetries||0)+1;persist();return;}job.modelWaiting=false;if(job.stage!==event.stage)job.stageStartedAt=new Date().toISOString();job.stage=event.stage;if(event.stage==='generating'&&event.total>0){job.total=event.total;job.completed=Math.max(0,Math.min(event.total,Number.isSafeInteger(event.completed)?event.completed:0));job.percent=Math.floor(100*job.completed/job.total);}else{job.percent=null;job.completed=0;job.total=0;}persist();}});
       check();markWikiInitGenerated(store,temporary);
       }
       // Sources that moved while the model worked do not discard its work (user decision 2026-10-12): the pages are

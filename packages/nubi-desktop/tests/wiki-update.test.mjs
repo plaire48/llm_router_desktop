@@ -157,12 +157,13 @@ test('a stopped run and a failed run leave the workspace as it was',async t=>{
   await service.wikiUpdate({method:'run',id:stopped.id,fingerprint:stopped.fingerprint});
   await service.wikiUpdate({method:'cancel',id:stopped.id});
   const cancelled=await settle(service,stopped.id);
-  assert.equal(cancelled.state,'cancelled');assert.equal(await exists(cancelled.copy),false);
+  assert.equal(cancelled.state,'cancelled');assert.equal(await exists(cancelled.copy),true);assert.equal(cancelled.canResume,true);
   service.wikiUpdater=async()=>{throw new Error('model_unavailable');};
   const failing=await service.wikiUpdate({method:'propose'});
   await service.wikiUpdate({method:'run',id:failing.id,fingerprint:failing.fingerprint});
   const failed=await settle(service,failing.id);
-  assert.equal(failed.state,'failed');assert.equal(failed.error,'model_unavailable');assert.equal(await exists(failed.copy),false);
+  assert.equal(failed.state,'failed');assert.equal(failed.error,'model_unavailable');assert.equal(await exists(failed.copy),true);assert.equal(failed.canResume,true);
+  await service.wikiUpdate({method:'discard',id:stopped.id});await service.wikiUpdate({method:'discard',id:failing.id});
   assert.equal(await readFile(path.join(root,'openwiki','home.md'),'utf8'),'# Welcome\n\nWelcome uses app.txt.\n');
   assert.equal((await git(root,['worktree','list'])).trim().split('\n').length,1);
 });

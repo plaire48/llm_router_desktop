@@ -11,4 +11,4 @@ export const wikiRefreshErrors={
   git_unavailable:'Git을 실행하지 못했어요. 앱 설치 상태를 확인해 주세요.',
   wiki_update_busy:'이미 위키를 준비하거나 갱신하고 있어요.',
 };
-export const wikiRefreshNotice=result=>result.initialization?(result.initialization.state==='waiting_model'?'모델을 연결하면 위키를 만들 수 있어요.':'위키 생성을 시작했어요.'):result.update?'위키 갱신을 시작했어요.':'확인한 코드와 위키가 일치해요.';
+export const wikiRefreshNotice=result=>result.initialization?(result.initialization.state==='waiting_model'?'모델을 연결하면 위키를 만들 수 있어요.':'위키 생성을 시작했어요.'):result.update?.state==='ready'?'갱신 결과를 확인하고 반영해 주세요.':result.resumed?'보관한 작업을 이어서 갱신해요.':result.update?'위키 갱신을 시작했어요.':'확인한 코드와 위키가 일치해요.';

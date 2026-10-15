@@ -2577,6 +2577,44 @@ describe("update hardening", () => {
     await expect(readFile(unaffectedPath, "utf8")).resolves.toBe(before);
   });
 
+  test("resumes eleven update pages after five durable completions without rewriting them", async () => {
+    const names = Array.from({ length: 10 }, (_, index) => `section-${index}.md`);
+    const root = await createRepository(names);
+    const initial = await beginForcedUpdate(root);
+    await submitRepositoryPlan(initial, {
+      pages: ["quickstart.md", ...names].map((name, index) => ({
+        path: `/openwiki/${name}`,
+        title: `Page ${index}`,
+        purpose: "Describe the repository README.",
+      })),
+    });
+    const completed = new Map<string, string>();
+    for (let index = 0; index < 5; index += 1) {
+      const next = await nextRepositoryPage(initial);
+      if (next.status !== "pending") throw new Error("Expected a page");
+      await completeCurrentPage(initial, `Page ${index}`);
+      completed.set(next.job.path, await readFile(path.join(root, next.job.path), "utf8"));
+    }
+    const resumedResult = await beginRepositoryRun({ root, mode: "update", actor: ACTOR });
+    const resumed = requireActiveRun(resumedResult);
+    expect(resumedResult.view).toMatchObject({ resumed: true, completedPages: 5, totalPages: 11 });
+    for (let index = 0; index < 6; index += 1) {
+      const next = await nextRepositoryPage(resumed);
+      if (next.status !== "pending") throw new Error("Expected a remaining page");
+      expect(completed.has(next.job.path)).toBe(false);
+      await completeCurrentPage(resumed, `Remaining ${index}`);
+    }
+    await expect(nextRepositoryPage(resumed)).resolves.toEqual({ status: "complete" });
+    for (const [page, content] of completed) {
+      expect(await readFile(path.join(root, page), "utf8")).toBe(content);
+    }
+    await expect(finishRepositoryRun(resumed)).resolves.toEqual({ status: "complete" });
+    // Finalization adds provenance frontmatter, but never rewrites the authored body.
+    for (const [page, content] of completed) {
+      expect((await readFile(path.join(root, page), "utf8")).split("---\n").at(-1)).toBe(content.split("---\n").at(-1));
+    }
+  });
+
   test("resumes an interrupted update from its first pending page", async () => {
     const root = await createRepository(["second.md"]);
     const initial = await beginForcedUpdate(root);

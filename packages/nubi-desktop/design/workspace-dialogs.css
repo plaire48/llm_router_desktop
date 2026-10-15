@@ -262,6 +262,17 @@
 :root:has(.desktop-shell) .nubi-wiki-update[data-current=true] .nubi-action-head h3 { margin:0; }
 :root:has(.desktop-shell) .nubi-wiki-update[data-current=true] .nubi-action-head p { margin:var(--cx-space-1) 0 0; color:var(--nubi-text-secondary); font:var(--deck-font-caption); }
 :root:has(.desktop-shell) .nubi-wiki-update[data-current=true] .nubi-action-tile { color:var(--nubi-text-success); background:var(--nubi-surface-success); }
+/* Wiki recovery sits beside the document disclosure. Keep one quiet surface
+   and keep the shared approval row inside the card's token-based padding. */
+:root:has(.desktop-shell) .deck-dialog .nubi-wiki-update {
+  display:grid; gap:var(--cx-space-3); min-width:0;
+  border:0; background:var(--deck-tint);
+}
+:root:has(.desktop-shell) .deck-dialog .nubi-wiki-update>.nubi-approval-bar {
+  margin:0; padding:var(--cx-space-2) 0 0; border:0; border-radius:0;
+  background:transparent; flex-wrap:nowrap; min-width:0;
+}
+:root:has(.desktop-shell) .deck-dialog .nubi-wiki-update-detail { min-width:0; }
 
 :root:has(.desktop-shell) .deck-dialog .nubi-custom-skill-copy strong { flex:0 0 auto; max-width:100%; }
 @media(max-width:600px) {

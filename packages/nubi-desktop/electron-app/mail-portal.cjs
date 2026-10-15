@@ -3,6 +3,7 @@ const {mailSessionFetch}=require('./mail-session-fetch.cjs');
 const {ORIGIN,LOGIN_URL,portalOrigin,foldersOf,identityOf,portalFetch,portalFetchSource}=require('./mail-portal-contract.cjs');
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const MAIL_POLL_INTERVAL_MS=5*60*1000;
+const loginLocation=value=>{try{return loginRedirect(new URL(value),LOGIN_URL);}catch{return false;}};
 class MailPortal {
  // Login happens in the app's own browser tab (openPage/closePage) when the host offers one; the hidden window only
  // runs the read-only portal fetches on the same persistent session (user request 2026-10-14: no separate popup).
@@ -56,7 +57,7 @@ class MailPortal {
  closeLoginPage(){const page=this.page;this.page=null;if(page&&this.closePage){try{this.closePage(page.tabId);}catch{}}this.window?.hide();}
  async readContents(contents,operation,input={}){
   if(!contents||contents.isDestroyed?.())throw Error('mail_portal_login');
-  const origin=portalOrigin(contents.getURL(),this.origin);if(!origin)throw Error('mail_portal_login');this.origin=origin;
+  const origin=portalOrigin(contents.getURL(),this.origin);if(!origin||loginLocation(contents.getURL()))throw Error('mail_portal_login');this.origin=origin;
   try{return await contents.executeJavaScript(`(${portalFetchSource(origin)})(${JSON.stringify({operation,...input})})`);}
   catch(error){throw Error(/^mail_[a-z_]+$/.test(error.message)?error.message:'mail_portal_request');}
  }
@@ -65,7 +66,11 @@ class MailPortal {
   if(this.page&&this.getPageContents){
    // Probe only the authenticated portal, never inject mail requests into the SSO provider.
    const rows=[...this.getPageContents(this.page.tabId)].filter(contents=>!contents.isDestroyed());
-   if(rows.some(contents=>contents.isLoadingMainFrame())||(rows.length>1&&!portalOrigin(rows.at(-1).getURL(),this.origin)))throw Error('mail_portal_login');
+   // The single login tab can itself be abnormal-logout (not only a child
+   // popup). Leave it open for user input; expired API probes returning 403
+   // must not end that interactive login before it returns to the portal.
+   const active=rows.at(-1);
+   if(rows.some(contents=>contents.isLoadingMainFrame())||(active&&(!portalOrigin(active.getURL(),this.origin)||loginLocation(active.getURL()))))throw Error('mail_portal_login');
    for(const contents of rows.reverse()){
     if(contents.isDestroyed()||contents.isLoadingMainFrame())continue;
     const portal=portalOrigin(contents.getURL(),this.origin);

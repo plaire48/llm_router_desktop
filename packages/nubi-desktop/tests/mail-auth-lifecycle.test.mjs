@@ -51,6 +51,33 @@ test('pending child authentication blocks probing the old parent mailbox',async(
  child.loading=false;await assert.rejects(host.read('identity'),/mail_portal_login/);
  assert.equal(scripts.length,0);assert.deepEqual(loads.map(x=>x.url),['about:blank']);host.dispose();
 });
+test('a single abnormal-logout login page stays open until authentication returns to the portal',async t=>{
+ const {host,contents,setRows,scripts,invocations}=fixture();t.after(()=>host.dispose());
+ const login=contents('https://www.samsung.net/loginapp/abnormal-logout');setRows([login]);
+ let probes=0,closed=0;host.closePage=()=>closed++;
+ const pending=host.connect();await tick();
+ host.window.webContents.session.fetch=async()=>{probes++;return new Response('',{status:403});};
+ await tick();assert.equal(host.status().connecting,true);assert.equal(closed,0);
+ await assert.rejects(host.read('folders'),/mail_portal_login/);
+ assert.equal(probes,0);assert.equal(invocations.length,0);
+ assert(scripts.every(source=>source.includes('document.body')),'no mail API or credential script enters the login page');
+ login.url=secure.origin+'/portalapp/home';
+ host.window.webContents.session.fetch=async()=>{probes++;return new Response(JSON.stringify(folders));};
+ await pending;assert.equal(host.status().connected,true);assert.equal(probes,1);assert.equal(closed,1);
+ assert.equal(invocations.filter(row=>row.action==='portalConnect').length,1);
+});
+test('same-origin abnormal logout is also a login page, never a mail API execution target',async()=>{
+ const {host,contents,setRows,scripts}=fixture();await host.windowForLogin(true);
+ const login=contents(secure.origin+'/loginapp/abnormal-logout');setRows([login]);
+ await assert.rejects(host.read('identity'),/mail_portal_login/);
+ await assert.rejects(host.readContents(login,'identity'),/mail_portal_login/);
+ assert.equal(scripts.length,0);host.dispose();
+});
+for(const loginPath of ['abnormal-logout','logout'])test(`background ${loginPath} redirects require login without replaying the request`,async()=>{
+ const {host}=fixture();await host.windowForLogin(true);let calls=0;
+ host.window.webContents.session.fetch=async()=>{calls++;return new Response(null,{status:302,headers:{location:`https://www.samsung.net/loginapp/${loginPath}`}});};
+ await assert.rejects(host.readSession('folders'),{message:'mail_portal_login'});assert.equal(calls,1);host.dispose();
+});
 test('native session probes use cookies and never follow an SSO redirect or request arbitrary endpoints',async()=>{
  const {host}=fixture();await host.windowForLogin(true);const calls=[];
  host.window.webContents.session.fetch=async(url,args)=>{calls.push({url,args});return new Response(null,{status:302,headers:{location:'https://sso.example.invalid/login'}});};

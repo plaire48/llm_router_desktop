@@ -1,7 +1,7 @@
 import {mkdir,mkdtemp,lstat,realpath} from 'node:fs/promises';
 import path from 'node:path';
 import {hash} from './files.mjs';
-import {readWikiSource,removeWikiHistory} from './wiki-snapshot.mjs';
+import {readWikiSource,removeWikiHistory,wikiSources} from './wiki-snapshot.mjs';
 import {wikiPreparationGit} from './wiki-git-preparation.mjs';
 
 const KEY='wiki-init-checkpoint';
@@ -29,7 +29,9 @@ export async function wikiInitCheckpoint(store,root,head,sources,options={}){
    if(!record.ready)return {directory,resumed:false,preparationResumed:true};
    if((await wikiPreparationGit(directory,['rev-parse','HEAD'],options,'verify')).trim()!==record.snapshotHead)throw Error('source_stale');
    const canonical=await realpath(directory);
-   for(const source of sources)if((await readWikiSource(canonical,source.path)).hash!==source.hash)throw Error('source_stale');
+   const expected=record.copySources||sources;
+   for(const source of expected)if((await readWikiSource(canonical,source.path)).hash!==source.hash)throw Error('source_stale');
+   if(record.copySources&&(await wikiSources(canonical)).length!==expected.length)throw Error('source_stale');
    return {directory,resumed:true,generated:record.generated===true};
   }catch(error){
    // A slow Git probe is not evidence that saved work is invalid.
@@ -46,7 +48,7 @@ export async function wikiInitCheckpoint(store,root,head,sources,options={}){
 }
 export async function markWikiInitCheckpointReady(store,directory,options={}){
  const record=store.get(KEY);if(location(store,record)!==directory)throw Error('project_changed');
- store.set(KEY,{...record,ready:true,snapshotHead:(await wikiPreparationGit(directory,['rev-parse','HEAD'],options,'verify')).trim()});
+ store.set(KEY,{...record,ready:true,snapshotHead:(await wikiPreparationGit(directory,['rev-parse','HEAD'],options,'verify')).trim(),copySources:(await wikiSources(directory)).map(({path,hash})=>({path,hash}))});
 }
 export function markWikiInitGenerated(store,directory){
  const record=store.get(KEY);if(location(store,record)!==directory)throw Error('project_changed');

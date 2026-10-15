@@ -65,14 +65,15 @@ test('a model failure behind an empty generation is reported instead of wiki_emp
   const job=service.wikiInitialization();assert.equal(job.state,'attention');assert.equal(job.error,'unauthorized');
 });
 
-test('an update that nothing can reach any more ends as interrupted and its copy is removed',async t=>{
+test('an unreachable legacy update ends as interrupted and retains its copy for explicit discard',async t=>{
   const {service}=await fixture(t);
   const copy=path.join(service.store.directory,'wiki-update','orphan');await mkdir(copy,{recursive:true});await writeFile(path.join(copy,'page.md'),'x');
   service.store.set('wiki-update:orphan',{id:'orphan',state:'running',createdAt:'2026-10-12T00:00:00.000Z',copy,status:{head:null,changedFiles:[],stalePages:[],lastUpdate:{}},events:[]});
   const {updates}=await service.wikiUpdate({method:'status'});
   const record=updates.find(item=>item.id==='orphan');assert.equal(record.state,'failed');assert.equal(record.error,'wiki_update_interrupted');assert(record.finishedAt);
-  await assert.rejects(access(copy));
+  await access(copy);assert.equal(record.canResume,false,'legacy records without a validated source basis cannot resume');
   assert.equal((await service.wikiUpdate({method:'cancel',id:'orphan'})).state,'failed');
+  await service.wikiUpdate({method:'discard',id:'orphan'});await assert.rejects(access(copy));
 });
 
 test('knowledge status in a folder without Git has no base commit and does not fail',async t=>{

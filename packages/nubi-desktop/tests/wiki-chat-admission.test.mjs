@@ -43,9 +43,16 @@ test('cancelled, failed and orphaned runs do not leave chat locked, and reading 
 test('running wiki updates expose only real counts and preserve the queue until the writer finishes',async t=>{
   const {service}=await fixture(t);const task=await service.createTask({request:'요청'}),ready={...task,state:'review',resultReview:{status:'ready'}};
   service.wikiUpdateRun={id:'update',controller:new AbortController(),owner:service.store};
-  service.store.set('wiki-update:update',{id:'update',state:'running',startedAt:new Date().toISOString(),events:[{type:'progress',stage:'generating',index:3,total:5}]});
+  service.store.set('wiki-update:update',{id:'update',state:'running',startedAt:new Date().toISOString(),events:[{type:'progress',stage:'generating',index:5,total:5,completed:2}]});
   assert.equal(wikiChatBlocked(service),true);assert.equal(canDrainInputs(service,ready),false);assert.equal(wikiChatJob(service).percent,40);assert.equal(wikiChatJob(service).kind,'update');
   service.store.set('wiki-update:update',{id:'update',state:'ready'});assert.equal(wikiChatBlocked(service),false);assert.equal(canDrainInputs(service,ready),true);
+});
+test('resume validation reserves the writer before async source checks without claiming page progress',async t=>{
+  const {service}=await fixture(t);
+  service.wikiUpdateRun={id:'update',owner:service.store,controller:new AbortController(),preparing:true,startedAt:new Date().toISOString()};
+  service.store.set('wiki-update:update',{id:'update',state:'failed'});
+  assert.equal(wikiChatBlocked(service),true);assert.equal(wikiChatJob(service).percent,null);
+  service.wikiUpdateRun.controller.abort();assert.equal(wikiChatBlocked(service),false);
 });
 test('writer admission is rechecked after asynchronous mail validation before creating or starting chat',async t=>{
   const {service}=await fixture(t);service.providers={...provider};const task=await service.createTask({request:'보존할 요청'});

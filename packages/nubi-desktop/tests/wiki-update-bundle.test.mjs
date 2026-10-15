@@ -48,6 +48,7 @@ for(const initialReply of ['prose-only','prose-then-plan','invalid-then-plan'])t
   await mkdir(root);await writeFile(path.join(root,'app.txt'),'The app adds two numbers.\n');
   const service=new ProjectService({storageRoot:path.join(temporary,'state')});let planningCalls=0,pageCalls=0;
   try{
+    await writeFile(path.join(root,'AGENTS.md'),'# Existing project instructions\n');
     await service.open(root);
     service.providers={status:()=>({connected:true,provider:'aipro',model:'fixture',models:[{id:'fixture',contextLength:128000}]}),dispose(){},async complete(messages,tools){
       if(tools.some(tool=>tool.function.name==='submit_page')){pageCalls++;throw Object.assign(Error('unauthorized'),{status:401});}
@@ -82,6 +83,25 @@ test('the folder names the OpenWiki package it was built from',async()=>{
   const own=JSON.parse(await readFile(new URL('../generated/openwiki-update/openwiki/package.json',import.meta.url),'utf8'));
   const source=JSON.parse(await readFile(new URL('../../openwiki/package.json',import.meta.url),'utf8'));
   assert.deepEqual({name:own.name,version:own.version},{name:source.name,version:source.version});
+});
+
+test('native existing-Wiki update retains its plan across failure and explicit resume',async t=>{
+  const {fixture}=await import('./fixtures.mjs');const {service}=await fixture(t);
+  let plans=0,pages=0;
+  service.providers={status:()=>({connected:true,provider:'aipro',model:'fixture',models:[{id:'fixture',contextLength:128000}]}),dispose(){},async complete(messages,tools){
+    if(tools.some(tool=>tool.function.name==='submit_page')){pages++;throw Object.assign(Error('unauthorized'),{status:401});}
+    if(messages.some(message=>message.role==='tool'&&message.tool_call_id==='update-plan'))return {content:'Plan saved.',calls:[]};
+    plans++;return {content:'',calls:[{id:'update-plan',type:'function',function:{name:'submit_plan',arguments:JSON.stringify({pages:[{path:'/openwiki/quickstart.md',title:'Quickstart',purpose:'Document app.txt.',seedPaths:['app.txt']}]})}}]};
+  }};
+  const proposal=await service.wikiUpdate({method:'propose'});
+  const settled=async()=>{for(let i=0;i<200;i++){const value=(await service.wikiUpdate({method:'status'})).updates.find(row=>row.id===proposal.id);if(value.state!=='running')return value;await new Promise(r=>setTimeout(r,10));}throw Error('not settled');};
+  await service.wikiUpdate({method:'run',id:proposal.id,fingerprint:proposal.fingerprint});
+  const failed=await settled();assert.equal(failed.error,'unauthorized');assert.equal(failed.canResume,true);
+  assert.deepEqual(failed.pageProgress,{completed:0,total:1},'failed workers are not completed pages');
+  const state=JSON.parse(await readFile(path.join(failed.copy,'openwiki/.run.json'),'utf8'));
+  assert.equal(state.mode,'update');assert.equal(state.plan.pages.length,1);assert.equal(plans,1);
+  await service.wikiUpdate({method:'resume',id:proposal.id,fingerprint:proposal.fingerprint});
+  const again=await settled();assert.equal(again.error,'unauthorized');assert.equal(plans,1,'accepted planning is not replayed');assert.equal(pages,2,'only unfinished page work is retried');
 });
 
 test('Mermaid and jsdom are left out, so no global window is set in the host process',async()=>{
