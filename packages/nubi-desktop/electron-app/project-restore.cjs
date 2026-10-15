@@ -8,4 +8,16 @@ async function restoreSavedProject(open,{wait=ms=>new Promise(resolve=>setTimeou
   catch(error){const code=/^[a-z_]+$/.test(error?.message||'')?error.message:'operation_failed';await emit({state:'failed',attempt,error:code});if(code!=='git_timeout'||attempt===2)throw error;await wait(300);}
  }
 }
-module.exports={restoreSavedProject};
+// App and optional loopback renderers can mount together. Share only their
+// current restoration; do not cache a project after completion or retry errors.
+function createProjectRestorer(restore){
+ let pending=null;
+ return ()=>{
+  if(pending)return pending;
+  const attempt=Promise.resolve().then(restore);pending=attempt;
+  const clear=()=>{if(pending===attempt)pending=null;};
+  void attempt.then(clear,clear);
+  return attempt;
+ };
+}
+module.exports={restoreSavedProject,createProjectRestorer};

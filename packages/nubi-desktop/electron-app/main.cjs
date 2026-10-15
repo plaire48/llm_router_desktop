@@ -1,3 +1,4 @@
+const {safeApprovalFailure}=require('./approval-failure.cjs');
 const {trustedRenderer}=require('./renderer-scope.cjs');
 const {app,BrowserWindow,protocol,net,ipcMain,dialog,clipboard,Menu,Notification,session}=require('electron');
 const {fork,spawn}=require('node:child_process');
@@ -24,7 +25,7 @@ const {importProjectZip}=require('../runtime/project-zip.mjs');
 const {configureSystemTrust,disableHostedTracing}=require('../runtime/worker-environment.mjs');
 const {DESKTOP_FEATURES}=require('../runtime/beta-features.mjs');
 const {workspacePageUrl}=require('../runtime/workspace-browser.mjs');
-const {restoreSavedProject}=require('./project-restore.cjs');
+const {restoreSavedProject,createProjectRestorer}=require('./project-restore.cjs');
 const {WorkerSupervisor,restoreWindowState,windowStateOf,boundedLog,startupMailPrompt}=require('./lifecycle.cjs');
 configureSystemTrust();disableHostedTracing(process.env);
 require('./bundled-git.cjs').configureBundledGit({packaged:app.isPackaged,resourcesPath:process.resourcesPath});
@@ -49,10 +50,11 @@ const storage=process.env.NUBI_STORAGE_ROOT||path.join(app.getPath('userData'),'
 const {ProjectCatalog}=require('./project-catalog.cjs');
 const projectCatalog=new ProjectCatalog(storage);
 const {WikiLibrary}=require('./wiki-library.cjs');
+let resettingData=false;
 const wikiLibrary=new WikiLibrary({backupRoot:path.join(storage,'wiki-revisions'),roots:async()=>{
  const projects=await projectCatalog.list(),mail=await invoke('mail',{action:'status'});
  return [...projects.map(p=>({id:p.id,name:p.name,kind:'project',root:path.join(p.root,'openwiki')})),{id:'personal-mail',name:'메일',kind:'mail',root:mail.wikiRoot}];
-},canWrite:async scope=>scope.kind==='mail'?!(await invoke('mail',{action:'status'})).summarizing:!(await invoke('projectActivity',{projectId:scope.id})).active});
+},canWrite:async scope=>{if(resettingData)return false;if(scope.kind==='mail'){const state=await invoke('mail',{action:'status'});return !state.summarizing&&!state.resetPending;}return !(await invoke('projectActivity',{projectId:scope.id})).active;}});
 let openingProject=false;
 function recordFault(component,details={}){
  const reason=['clean-exit','abnormal-exit','killed','crashed','oom','launch-failed','integrity-failure'].includes(details.reason)?details.reason:'unexpected';
@@ -111,6 +113,13 @@ async function openProject(root,kind='project',{initializeWiki=true,exactRoot=fa
  }finally{openingProject=false;}
 }
 const forbidden=new Set(['projectActivity','prepareAppUpdate','open','importSkill','connectSkillMarketplace','disconnectSkillMarketplace','initializeWiki','collaboration']);
+const restoreCurrentProject=createProjectRestorer(async()=>{
+ if(currentRoot)return await invoke('overview');
+ let saved;try{saved=JSON.parse(await readFile(path.join(storage,'last-project.json'),'utf8'));}catch{return null;}
+ if(!saved?.root)return null;
+ try{return await restoreSavedProject(()=>openProject(saved.root,saved.kind==='conversation'?'conversation':'project',{initializeWiki:false}),{existing:()=>currentRoot?invoke('overview'):undefined,onEvent:async event=>{await mkdir(storage,{recursive:true});await writeFile(path.join(storage,'last-project-restore.json'),JSON.stringify({at:new Date().toISOString(),...event}),{mode:0o600}).catch(()=>{});}});}
+ catch(error){if(error.message==='project_path_missing')await rm(path.join(storage,'last-project.json'),{force:true}).catch(()=>{});throw error;}
+});
 app.whenReady().then(async()=>{
  if(!primary)return;
  const appIcon=path.join(__dirname,'nubi-icon.png');
@@ -231,14 +240,7 @@ app.whenReady().then(async()=>{
   if(method==='browser'){if(source!=='electron')throw Error('browser_desktop_only');return await browserHost.request(args);}
   if(method==='openWorkspacePage')return openWorkspacePage(args.url);
   if(!DESKTOP_FEATURES.computerUse&&method==='chooseComputerApp')throw Error('computer_beta_disabled');
-  if(method==='openCurrent'){
-   if(currentRoot)return await invoke('overview');
-   let saved;try{saved=JSON.parse(await readFile(path.join(storage,'last-project.json'),'utf8'));}catch{return null;}
-   if(!saved?.root)return null;
-   // A last project whose folder is gone opens the start screen once; the stale pointer goes so the next start is clean.
-   try{return await restoreSavedProject(()=>openProject(saved.root,saved.kind==='conversation'?'conversation':'project',{initializeWiki:false}),{existing:()=>currentRoot?invoke('overview'):undefined,onEvent:async event=>{await mkdir(storage,{recursive:true});await writeFile(path.join(storage,'last-project-restore.json'),JSON.stringify({at:new Date().toISOString(),...event}),{mode:0o600}).catch(()=>{});}});}
-   catch(error){if(error.message==='project_path_missing')await rm(path.join(storage,'last-project.json'),{force:true}).catch(()=>{});throw error;}
-  }
+  if(method==='openCurrent')return await restoreCurrentProject();
   if(method==='startConversation'){const root=path.join(storage,'conversations');await mkdir(root,{recursive:true});return await openProject(root,'conversation',{progressId:args.progressId});}
   if(method==='projectCatalog'){
    if(args.action==='rename')return await projectCatalog.rename(args.id,args.name);
@@ -261,9 +263,9 @@ app.whenReady().then(async()=>{
   if(method==='mail'){
    if(['connect','setIdentity'].includes(args.action))throw Error('mail_portal_only');
    if(/^portal(?:Connect|Import|Folders|Known|Rejected|Document)$/.test(args.action||'')||['download','importFolder'].includes(args.action))throw Error('method_invalid');
-   if(args.action==='approvals')return mailPortal.approvals(args);
-   if(args.action==='approvalRead')return mailPortal.approvalRead(args);
-   if(args.action==='approvalTitle')return mailPortal.approvalTitle(args);
+   if(args.action==='approvals')return await mailPortal.approvals(args);
+   if(args.action==='approvalRead')return await mailPortal.approvalRead(args);
+   if(args.action==='approvalTitle')return await mailPortal.approvalTitle(args);
    if(args.action==='portalCredentials')throw Error('method_invalid');
    if(args.action==='portalSession'){
     if(source!=='electron')throw Error('mail_portal_desktop_only');
@@ -279,6 +281,7 @@ app.whenReady().then(async()=>{
    // Cancel stops whatever portal connection is running, even when the screen that asked was reopened and no longer
    // holds the request id (user report 2026-10-14: 연결 취소 kept connecting).
    if(args.action==='cancelConnect'){if(args.requestId===mailPortal.requestId||mailPortal.status().connecting)await mailPortal.disconnect();return portalMailStatus();}
+   if(args.action==='reset'){if(source!=='electron'||args.confirmed!==true)throw Error('mail_reset_confirmation');if(resettingData||wikiLibrary.writes.size)throw Error('mail_busy');resettingData=true;try{await mailPortal.disconnect();await invoke('mail',args);Object.assign(mailPortal.state,{folders:[],lastCheckedAt:null,completed:0,total:null,discovered:0});mailPortal.approvalCacheBytes=0;hostEvent({type:'mail_data_reset'});return await portalMailStatus();}finally{resettingData=false;}}
    if(args.action==='disconnect'){await mailPortal.disconnect();await mailPortal.clearPortalSession();mailLoginNotices.clear();return portalMailStatus();}
    if(args.action==='confirmStorage'){if(source!=='electron')throw Error('mail_desktop_only');await invoke('mail',{action:'confirmStorage',includeAttachments:args.includeAttachments});if(mailPortal.status().connected)void mailPortal.sync().catch(()=>{});return portalMailStatus();}
    if(args.action==='portalSync'||['check','retryDownloads'].includes(args.action)&&mailPortal.status().connected){await mailPortal.recheck();return portalMailStatus();}
@@ -321,6 +324,7 @@ app.whenReady().then(async()=>{
    workspaceFetch??=require('./workspace-fetch.cjs').createWorkspaceFetch(host.account);return workspaceFetch(args);
   }
   if(method==='openWorkspaceApp'){if(source!=='electron')throw Error('wiki_share_desktop_only');const item=await host.community.call({action:'app',id:args.id});if(item.kind==='link')return openWorkspacePage(item.url);const workspace=await host.openTeamWorkspace();return openWorkspacePage(require('./workspace-community.cjs').workspaceAppUrl(workspace.url,item.id));}
+  if(method==='wikiInitialization'&&args.action==='reset'){if(source!=='electron'||args.confirmed!==true)throw Error('wiki_reset_confirmation');if(resettingData||wikiLibrary.writes.size)throw Error('wiki_busy');resettingData=true;try{return await invoke(method,args);}finally{resettingData=false;}}
   if(method==='wikiLibrary'){if(source!=='electron')throw Error('wiki_share_desktop_only');return wikiLibrary.call(args);}
   if(method==='wikiRepository'){
    if(source!=='electron')throw Error('wiki_share_desktop_only');
@@ -339,7 +343,7 @@ app.whenReady().then(async()=>{
   if(method==='chooseSkillPackage'){const folder=args.kind==='folder',mixed=!folder&&args.kind!=='zip'&&process.platform==='darwin';const file=await choose(folder?['openDirectory']:mixed?['openFile','openDirectory']:['openFile'],'스킬 등록',folder?undefined:[{name:'스킬',extensions:['zip','md']}]);return file?invoke('importSkill',{source:file,taskId:args.taskId}):{cancelled:true};}
   if(method==='chooseComputerApp'){const file=await choose(['openFile'],'Windows 앱 선택',[{name:'Windows app',extensions:['exe']}]);return file?invoke('computer',{method:'register_app',taskId:args.taskId,file}):{cancelled:true};}
   if(forbidden.has(method))throw Error('method_invalid');return await invoke(method,args);
- }catch(error){return {__nubiError:/^[a-z_]+$/.test(error.message)?error.message:'operation_failed',...(method==='cloneRepository'&&safeCloneFailure(error.cloneFailure)?{cloneFailure:safeCloneFailure(error.cloneFailure)}:{})};}};
+ }catch(error){return {__nubiError:/^[a-z_]+$/.test(error.message)?error.message:'operation_failed',...(method==='mail'&&['approvals','approvalRead','approvalTitle'].includes(args.action)&&safeApprovalFailure(error.approvalFailure)?{approvalFailure:safeApprovalFailure(error.approvalFailure)}:{}),...(method==='cloneRepository'&&safeCloneFailure(error.cloneFailure)?{cloneFailure:safeCloneFailure(error.cloneFailure)}:{})};}};
  terminalHost=new TerminalHost({invoke,profiles:shellProfiles,workerFile:path.join(__dirname,'terminal-worker.cjs'),notify:event=>{if(window&&!window.isDestroyed()&&!window.webContents.isDestroyed())window.webContents.send('nubi:terminal-event',event);}});
  ipcMain.handle('nubi:terminal',async(event,args)=>{trusted(event);try{if(installingUpdate)throw Error('update_installing');return await terminalHost.request(args);}catch(error){return {__nubiError:/^[a-z_]+$/.test(error.message)?error.message:'terminal_start_failed'};}});
  ipcMain.handle('nubi:request',(event,method,args={})=>{trusted(event);return dispatch(method,args);});

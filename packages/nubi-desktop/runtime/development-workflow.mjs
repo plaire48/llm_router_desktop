@@ -13,7 +13,7 @@ After application, execute relevant tests through propose_setup_action(kind=veri
 Open the observed local URL in the in-app browser with open_workspace_page or the available built-in Playwright browser_open. Select the actual Playwright MCP tools from the catalog, read a fresh snapshot, exercise the requested input/click flow under existing approvals and read the resulting page state. Compare expected with actual behavior, including relevant empty/error cases. Use capture for layout checks, including narrow widths when relevant; opening a tab or a screenshot alone is not behavioral verification. Tests must exercise the changed behavior on the applied version. CLI/library work uses its appropriate execution checks, not an unnecessary web server. If tools, authentication or dependencies block verification, state the exact missing check and preserve the work; never invent a pass.
 Keep command output, process IDs and verification results in this conversation. Leave a healthy preview running for the user and report its observed URL and existing stop control. End with the delivered result first, then concise verified outcomes and material limitations. Continue authorized missing work; do not end with 'development complete' while verification is merely planned.`;
 
-export const DEVELOPMENT_REVIEW_GUIDANCE='For active developmentChecks, match each requested behavior to post-application test output and browser readback as appropriate. A verify command must actually test that behavior; exit zero from echo/version/build is not a test pass. A browser snapshot must show the expected result after the required interaction; opening/navigation/capture alone is insufficient. eligibleEvidenceIds are only provenance candidates, not a semantic pass. Unknown/missing checks require continuing authorized work, or a truthful concrete blocker/approval handoff. Never certify all development checks from one unrelated successful command. Respect currentTurn changes of scope.';
+export const DEVELOPMENT_REVIEW_GUIDANCE='For active developmentChecks, match each requested behavior to post-application test output and browser readback as appropriate. A verify command must actually test that behavior; exit zero from echo/version/build is not a test pass. A browser snapshot must show the expected result after the required interaction; opening/navigation/capture alone is insufficient. eligibleEvidenceIds and eligibleProcessIds are only provenance candidates, not a semantic pass. Use the latest run of each verification, including approved repairs; an earlier pass cannot override a later failure or unfinished run. Unknown/missing checks require continuing authorized work, or a truthful concrete blocker/approval handoff. Never certify all development checks from one unrelated successful command. Respect currentTurn changes of scope.';
 
 export function developmentChecks(task,receipts){
   const plan=task.changePlan;
@@ -28,17 +28,60 @@ export function developmentChecks(task,receipts){
   return plan.checks.filter(c=>['test','browser'].includes(c.method)).map(c=>({method:c.method,requirementId:c.requirementId,description:c.description,after}));
 }
 
+// Only host-created repairOf links carry a verify action through a corrected
+// command. Do not infer this from titles, output text or model claims. Keep
+// independent commands separate, but never resurrect a superseded pass.
+function currentVerifications(host){
+  const processes=host?.processes||[],byId=new Map(processes.map(p=>[p.id,p]));
+  const actions=new Map((host?.setupActions||[]).filter(a=>a.kind==='verify'&&a.state==='started').map(a=>[a.resultProcessId,a]));
+  function origin(process,seen=new Set()){
+    if(!process||seen.has(process.id))return null;
+    seen.add(process.id);
+    if(actions.has(process.id))return actions.get(process.id);
+    return process.repairOf?origin(byId.get(process.repairOf),seen):null;
+  }
+  const runs=processes.map(p=>({process:p,action:origin(p)})).filter(r=>r.action);
+  const superseded=new Set();
+  for(const {process} of runs){
+    const seen=new Set([process.id]);let parent=byId.get(process.repairOf);
+    while(parent&&!seen.has(parent.id)){
+      seen.add(parent.id);superseded.add(parent.id);parent=byId.get(parent.repairOf);
+    }
+  }
+  const groups=new Map();
+  for(const {process:p,action} of runs){
+    const script=p.script||action.script;
+    const key=script?JSON.stringify([p.cwd||action.workspace||'',p.profile||action.profile||'',script]):p.id;
+    const group=groups.get(key)||[];group.push(p);groups.set(key,group);
+  }
+  const current=[];
+  for(const group of groups.values()){
+    // Unknown ordering cannot establish which result is current.
+    if(group.some(p=>!Number.isFinite(Date.parse(p.startedAt))))continue;
+    const latest=Math.max(...group.map(p=>Date.parse(p.startedAt)));
+    const newest=group.filter(p=>Date.parse(p.startedAt)===latest);
+    // A timestamp tie with conflicting states is not a verified pass.
+    if(newest.some(p=>p.state!=='completed'||p.execution!=='started'||p.exitCode!==0))continue;
+    current.push(...newest.filter(p=>!superseded.has(p.id)));
+  }
+  return current;
+}
+
 export function bindDevelopmentEvidence(checks,entries){
   const host=entries.find(e=>e.id==='host'&&e.usable&&!e.truncated)?.result;
+  const verifications=currentVerifications(host);
   return checks.map(check=>{
-    const ids=[];
-    if(check.method==='test'&&check.after!==null&&host?.processes?.some(p=>p.state==='completed'&&p.execution==='started'&&p.exitCode===0&&Date.parse(p.startedAt)>=check.after&&p.output?.trim()&&!p.logIncomplete&&!p.outputTruncated&&host.setupActions?.some(a=>a.kind==='verify'&&a.state==='started'&&a.resultProcessId===p.id)))ids.push('host');
+    const ids=[],processIds=[];
+    if(check.method==='test'&&check.after!==null){
+      processIds.push(...verifications.filter(p=>Date.parse(p.startedAt)>=check.after&&p.output?.trim()&&!p.logIncomplete&&!p.outputTruncated).map(p=>p.id).slice(0,4));
+      if(processIds.length)ids.push('host');
+    }
     // Only fresh, read-back tool results from this run can establish browser
     // observation. The reviewer still checks the interaction and actual result.
     if(check.method==='browser')for(const entry of entries){
       if(entry.usable&&!entry.truncated&&entry.result?.ok===true&&check.after!==null&&Date.parse(entry.observedAt)>=check.after&&entry.tool==='mcp__playwright__'+entry.result?.tool&&entry.result?.server==='playwright'&&['browser_snapshot','browser_wait_for'].includes(entry.result.tool))ids.push(entry.id);
     }
-    return {...check,eligibleEvidenceIds:ids.slice(-4)};
+    return {...check,eligibleEvidenceIds:ids.slice(-4),...(check.method==='test'?{eligibleProcessIds:processIds}:{})};
   });
 }
 

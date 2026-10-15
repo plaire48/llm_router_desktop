@@ -45,6 +45,8 @@ test('running wiki updates expose only real counts and preserve the queue until 
   service.wikiUpdateRun={id:'update',controller:new AbortController(),owner:service.store};
   service.store.set('wiki-update:update',{id:'update',state:'running',startedAt:new Date().toISOString(),events:[{type:'progress',stage:'generating',index:5,total:5,completed:2}]});
   assert.equal(wikiChatBlocked(service),true);assert.equal(canDrainInputs(service,ready),false);assert.equal(wikiChatJob(service).percent,40);assert.equal(wikiChatJob(service).kind,'update');
+  service.store.set('wiki-update:update',{id:'update',state:'running',events:[{type:'progress',stage:'reviewing',index:5,total:5,completed:2}]});
+  assert.equal(wikiChatJob(service).percent,40);assert.equal(wikiChatJob(service).stage,'reviewing');
   service.store.set('wiki-update:update',{id:'update',state:'ready'});assert.equal(wikiChatBlocked(service),false);assert.equal(canDrainInputs(service,ready),true);
 });
 test('resume validation reserves the writer before async source checks without claiming page progress',async t=>{

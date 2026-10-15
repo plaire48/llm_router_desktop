@@ -3,6 +3,7 @@ const safeCodes=new Set(['wiki_runtime_missing','wiki_skills_missing','wiki_snap
 const transport={network:'network_error',model_timeout:'timeout',network_timeout:'timeout',request_failed:'model_failed'};
 for(const code of ['wiki_plan_missing','wiki_plan_invalid','wiki_analysis_limit'])safeCodes.add(code);
 export function wikiInitializationError(error,stage){
+  if(/^wiki_review_/.test(error?.message||''))return ['wiki_review_source_limit','wiki_review_input_limit'].includes(error.message)?'wiki_review_scope':'wiki_review_incomplete';
   if(error?.message==='Repository planning worker exited without submit_plan.')return 'wiki_plan_missing';
   if(error?.name==='GraphRecursionError')return 'wiki_analysis_limit';
   if(['planning','replanning'].includes(stage)&&error?.code==='invalid_input')return 'wiki_plan_invalid';

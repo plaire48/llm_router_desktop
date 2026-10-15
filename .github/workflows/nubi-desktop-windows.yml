@@ -99,7 +99,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/check-source-highlight.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Verify body-only mail Beta scope
+      - name: Verify mail body, attachment scope and search
         run: |
           node --test tests/mail-beta-scope.test.mjs tests/mail-search.test.mjs tests/mail-connection-errors.test.mjs tests/mail-presentation.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -116,6 +116,15 @@ jobs:
           $env:Path = $previousPath
           Remove-Item Env:NUBI_BUNDLED_GIT
           if ($wikiExit -ne 0) { exit $wikiExit }
+      - name: Verify factual Wiki review and current recovery contracts
+        run: |
+          node --test --test-concurrency=1 tests/development-workflow.test.mjs tests/browser-saml.test.mjs tests/workspace-inquiry-flow.test.mjs tests/mail-attachment-formats.test.mjs tests/mail-attachment-image.test.mjs tests/wiki-chat-admission.test.mjs tests/wiki-code-map.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify independent OpenWiki semantic review
+        working-directory: packages/openwiki
+        run: |
+          pnpm exec vitest run test/agent/repository-semantic-review.test.ts test/agent/repository-runner.test.ts test/agent/repository-prompts.test.ts test/generation/repository-run.test.ts test/ingestion/code-mode.test.ts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Download verified upgrade baseline
         env:
           GH_TOKEN: ${{ github.token }}

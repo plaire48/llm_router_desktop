@@ -20,6 +20,7 @@ async function api(method,args={}){
  if(args.action==='resumeImport')status.localImport={...status.localImport,state:'importing',startedAt:new Date().toISOString()};
  if(args.action==='cancelImport')status.localImport={...status.localImport,state:'cancelled'};
  if(args.action==='portalLogin'){if(window.mailSlow){status.connecting=true;try{await new Promise(r=>window.releaseMail=r);}finally{status.connecting=false;}}if(window.mailFail){status.error=typeof window.mailFail==='string'?window.mailFail:'mail_portal_login';throw Error(status.error);}status.error=null;status.connected=true;status.counts={received:1,saved:1,queued:0,attention:0};status.messages=[{id:'one',subject:'계약 검토',state:'saved',from:'sender@fixture',fetchedAt:new Date().toISOString()}];status.destination=args.destination;status.nextCheckAt=new Date(Date.now()+60000).toISOString();}
+ if(args.action==='reset'){if(args.confirmed!==true)throw Error('mail_reset_confirmation');status.connected=false;status.counts={received:0,saved:0,queued:0,attention:0};status.messages=[];status.localImport=null;status.localCount=0;status.localKinds=[];}
  if(args.action==='setAutoWiki')status.autoWiki=args.enabled;
  if(args.action==='disconnect'||args.action==='cancelConnect')status.connected=false;
  return structuredClone(status);

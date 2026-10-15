@@ -6,3 +6,9 @@ export function needsOpeningScene(storage,id){
 export function rememberOpeningScene(storage,id){
  try{storage.setItem(OPENING_SCENE_KEY,id);}catch{/* Failure must not suppress the next opening. */}
 }
+
+export function openingSceneMode({played,automated,installationId,reducedMotion,storage,id}){
+ if(played||automated&&!installationId)return 'none';
+ if(reducedMotion)return 'brief';
+ return needsOpeningScene(storage,id)?'full':'brief';
+}

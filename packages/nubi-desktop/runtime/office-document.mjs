@@ -8,7 +8,7 @@ const mimes={'application/msword':'doc','application/vnd.ms-excel':'xls','applic
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 export function officeDocumentFormat(filename='',contentType=''){
   const suffix=path.extname(String(filename||'')).slice(1).toLowerCase();
-  if(/^(pdf|txt|md|csv|json|xml|html?|png|jpe?g|gif|webp)$/.test(suffix))return null;
+  if(/^(pdf|txt|md|ics|csv|json|xml|html?|png|jpe?g|gif|webp)$/.test(suffix))return null;
   const extension=Object.values(formats).flat().includes(suffix)?suffix:mimes[String(contentType||'').split(';')[0].trim().toLowerCase()];
   const app=Object.keys(formats).find(key=>formats[key].includes(extension));
   return app?{app,extension}:null;
@@ -29,7 +29,7 @@ async function readOfficeDocumentNow(bytes,attachment,{signal,directory,restrict
   if(!format)throw Error('document_format');
   if(signal?.aborted)throw Error('mail_cancelled');
   if(bytes.length>64*1024*1024)throw Error('document_limit');
-  if(!directory||typeof restrictDirectory!=='function')throw Error('document_office_policy');
+  if(!directory||typeof restrictDirectory!=='function')throw Error('document_office_read_failed');
   const parent=await lstat(directory);if(!parent.isDirectory()||parent.isSymbolicLink())throw Error('mail_source_changed');
   let temporary;
   try{
@@ -55,11 +55,7 @@ async function readOfficeDocumentNow(bytes,attachment,{signal,directory,restrict
       child.once('close',code=>{
         if(settled)return;settled=true;clearTimeout(timer);signal?.removeEventListener('abort',abort);
         if(failure)return reject(Error(failure));
-        let value;try{value=JSON.parse(Buffer.concat(chunks).toString('utf8').replace(/^\uFEFF/,''));}catch{return reject(Error('document_office_policy'));}
-        if(value.error||code!==0)return reject(Error(failures.has(value.error)?value.error:'document_office_read_failed'));
-        const document=value.document;
-        if(document?.reader!=='office_com'||!/^16\./.test(document.officeVersion||'')||typeof document?.text!=='string'||!document.text.trim()||document.text.length>2000000||typeof document.coverage!=='string'||document.coverage.length>2000||!Array.isArray(document.segments)||document.segments.length>1000||document.segments.some(segment=>typeof segment.text!=='string'||segment.text.length>2000000))return reject(Error('document_office_read_failed'));
-        resolve(document);
+        try{resolve(parseOfficeDocumentResponse(Buffer.concat(chunks).toString('utf8'),code));}catch(error){reject(error);}
       });
       child.stdin.end(JSON.stringify({file,app:format.app,expectedHash}));
     });
@@ -71,4 +67,14 @@ async function readOfficeDocumentNow(bytes,attachment,{signal,directory,restrict
     // user's Office process or close an unrelated document to force cleanup.
     if(temporary)await rm(temporary,{recursive:true,force:true}).catch(()=>{throw Error('document_office_cleanup');});
   }
+}
+
+// A missing/malformed response does not establish a company policy failure.
+export function parseOfficeDocumentResponse(stdout,code){
+  let value;try{value=JSON.parse(stdout.replace(/^\uFEFF/,''));}catch{throw Error('document_office_read_failed');}
+  if(!value||typeof value!=='object')throw Error('document_office_read_failed');
+  if(value.error||code!==0)throw Error(failures.has(value.error)?value.error:'document_office_read_failed');
+  const document=value.document;
+  if(document?.reader!=='office_com'||!/^16\./.test(document.officeVersion||'')||typeof document?.text!=='string'||!document.text.trim()||document.text.length>2000000||typeof document.coverage!=='string'||document.coverage.length>2000||!Array.isArray(document.segments)||document.segments.length>1000||document.segments.some(segment=>typeof segment?.text!=='string'||segment.text.length>2000000))throw Error('document_office_read_failed');
+  return document;
 }

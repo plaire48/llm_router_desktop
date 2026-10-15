@@ -2,6 +2,7 @@ import path from 'node:path';
 import ts from 'typescript';
 import {parse as parseJSON,printParseErrorCode} from 'jsonc-parser';
 import {parseDocument} from 'yaml';
+import {analyzeRepository} from './wiki-code-map-core.mjs';
 
 export const codeLanguage=file=>/\.[cm]?[jt]sx?$/i.test(file)?'typescript':/\.jsonc?$/i.test(file)?'json':/\.ya?ml$/i.test(file)?'yaml':null;
 const position=(text,offset)=>{const lines=text.slice(0,offset).split('\n');return {line:lines.length,column:lines.at(-1).length+1};};
@@ -48,6 +49,7 @@ function outline(file,content){
   visit(source);return {supported:true,symbols,imports,truncated,scope:'file_syntax_structure_only'};
 }
 export function analyzeCode(input){
+  if(input.mode==='repository')return analyzeRepository(input);
   if(input.mode==='outline')return outline(input.path,input.content);
   return {before:syntax(input.path,input.before),after:syntax(input.path,input.after)};
 }

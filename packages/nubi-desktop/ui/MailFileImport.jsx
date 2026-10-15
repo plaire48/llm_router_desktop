@@ -4,7 +4,7 @@ import {CxButton,Icon} from '@e2e/cx-design-system';
 import {ResponseTime} from './ResponseTime.jsx';
 import {FolderMark} from './marks.jsx';
 import './mail-file-import.css';
-const failures={mail_encryption_key_lost:'암호화 키를 찾지 못했어요. 원래 계정으로 앱을 열어 주세요.',mail_storage_permission:'저장 위치의 쓰기 권한을 확인해 주세요.',mail_encryption_unavailable:'암호화 키를 열지 못했어요. 앱을 다시 열어 주세요.',mail_encryption_integrity:'원문 암호화를 확인하지 못했어요. 기존 파일은 유지됩니다.',mail_import_protected:'보호된 파일',mail_import_link:'바로가기 제외',mail_import_empty:'본문 없음 (첨부만 있거나 읽을 수 없는 형식)',mail_size_limit:'개별 파일 처리 용량 초과',mail_parse_failed:'메일 형식 확인 필요',mail_source_changed:'파일 변경됨',mail_import_read:'읽기 권한 확인 필요',mail_storage_full:'저장 공간을 확보한 뒤 이어 가져오세요.',mail_timeout:'읽는 시간이 오래 걸려요. 다시 시도해 주세요.',mail_import_folder:'원본 폴더를 선택해 주세요.'};
+const failures={mail_attachment_analysis_failed:'첨부를 읽지 못해 완료하지 않았어요. 다시 시도하거나 원본 보관을 켜고 폴더를 다시 선택해 주세요.',mail_encryption_key_lost:'암호화 키를 찾지 못했어요. 원래 계정으로 앱을 열어 주세요.',mail_storage_permission:'저장 위치의 쓰기 권한을 확인해 주세요.',mail_encryption_unavailable:'암호화 키를 열지 못했어요. 앱을 다시 열어 주세요.',mail_encryption_integrity:'원문 암호화를 확인하지 못했어요. 기존 파일은 유지됩니다.',mail_import_protected:'보호된 파일',mail_import_link:'바로가기 제외',mail_import_empty:'본문 없음 (첨부만 있거나 읽을 수 없는 형식)',mail_size_limit:'개별 파일 처리 용량 초과',mail_parse_failed:'메일 형식 확인 필요',mail_source_changed:'파일 변경됨',mail_import_read:'읽기 권한 확인 필요',mail_storage_full:'저장 공간을 확보한 뒤 이어 가져오세요.',mail_timeout:'읽는 시간이 오래 걸려요. 다시 시도해 주세요.',mail_import_folder:'원본 폴더를 선택해 주세요.'};
 export function MailFileImport({progress,busy,onChoose,onCancel,onResume,card=false}){
  const active=['scanning','importing'].includes(progress?.state);
  const resumable=!active&&progress?.directory&&(['cancelled','interrupted','failed'].includes(progress.state)||progress.failures?.length>0);

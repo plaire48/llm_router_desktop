@@ -59,7 +59,6 @@ body {
 .desktop-shell .nubi-workbench .nubi-answer-sources .nubi-answer-source,
 .desktop-shell .nubi-workbench .nubi-mail-ask,
 .desktop-shell .nubi-applied-trigger.cx-kit-button,
-.desktop-shell .nubi-mail-attachment-row .nubi-mail-attachment strong,
 .desktop-shell .desktop-cited-excerpt>strong {
   font-size:var(--deck-type-caption); line-height:var(--deck-line-caption);
 }
@@ -105,7 +104,7 @@ body {
   font-size:var(--deck-type-caption); line-height:var(--deck-line-caption); letter-spacing:normal;
   color:var(--nubi-note-ink);
 }
-:root:has(.desktop-shell) :is(.nubi-skill-name strong,.nubi-custom-skill-copy strong,.nubi-skill-menu-copy strong,.nubi-history-item strong,.nubi-mail-reader-heading h2,.nubi-action-head h3,.nubi-document-progress-heading strong,.nubi-document-worker-heading strong,.nubi-role-worker-heading strong) {
+:root:has(.desktop-shell) :is(.nubi-skill-name strong,.nubi-custom-skill-copy strong,.nubi-skill-menu-copy strong,.nubi-history-item strong,.nubi-action-head h3,.nubi-document-progress-heading strong,.nubi-document-worker-heading strong,.nubi-role-worker-heading strong) {
   font-size:var(--deck-type-body); line-height:var(--deck-line-body); font-weight:600;
 }
 :root:has(.desktop-shell) :is(.usage-stat-value,.context-stat-value) {
@@ -178,3 +177,16 @@ body {
   animation:none;
 }
 .desktop-shell .message-body:focus-within .nubi-answer-piece { animation:none; }
+
+/* Mail source hierarchy follows the same heading/body/caption scale as dialogs. */
+.desktop-shell .nubi-mail-attachment-row .nubi-mail-attachment strong {
+ font-size:var(--deck-type-body); line-height:var(--deck-line-body);
+ font-weight:var(--nubi-weight-emphasis); color:var(--nubi-text-primary);
+}
+.desktop-shell .nubi-mail-attachment-label small {
+ font-size:var(--deck-type-caption); line-height:var(--deck-line-caption);
+ font-weight:var(--nubi-weight-regular); color:var(--nubi-text-secondary);
+}
+.desktop-shell .nubi-mail-attachments h3 {
+ font-size:var(--deck-type-body); line-height:var(--deck-line-body); font-weight:var(--nubi-weight-emphasis);
+}

@@ -16,3 +16,13 @@ test('status is account-scoped, cached and cleared after removal or unsupported 
 test('a late status response cannot restore a logged-out profile',async()=>{
  const f=fixture();let finish;f.account.fetcher=()=>new Promise(resolve=>finish=resolve);const pending=f.account.readProfileStatus();await f.account.logout();finish(Response.json({data:{viewer:{login:'alice',status:{emoji:'😊'}}}}));await pending;assert.equal(f.account.view().profile,null);
 });
+
+test('custom status survives status/view/cache reads and expires without a new request',async()=>{
+ const f=fixture();f.set({data:{viewer:{login:'alice',status:{emoji:':shipit:',emojiHTML:'<img src="https://code.sdsdev.co.kr/images/icons/emoji/shipit.png">',message:'배포 중',expiresAt:new Date(61000).toISOString()}}}});
+ const first=(await f.account.status()).profile.status;
+ assert.equal(first.image,'https://code.sdsdev.co.kr/images/icons/emoji/shipit.png');
+ assert.equal(first.name,'shipit');assert.equal(first.emoji,'');
+ assert.deepEqual(f.account.view().profile.status,first);
+ assert.deepEqual((await f.account.status()).profile.status,first);assert.equal(f.calls(),1);
+ f.advance();assert.equal(f.account.view().profile.status,null);
+});

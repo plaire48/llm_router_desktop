@@ -1,10 +1,11 @@
 // What the OpenWiki update card shows. Text only: no input, no state.
 const FRESHNESS={source_changed:'원본이 바뀜',unavailable:'원본이 없음',document_changed:'페이지가 직접 바뀜'};
 const CHANGE={modified:'수정',added:'추가',deleted:'삭제'};
-const STAGE={preparing_runtime:'실행기 확인',preparing_skills:'준비 파일 연결',planning:'계획',replanning:'계획 다시 세움',generating:'페이지 작성',finalizing:'마무리',noop:'바뀐 페이지 없음'};
+const STAGE={preparing_runtime:'실행기 확인',preparing_skills:'준비 파일 연결',planning:'계획',replanning:'계획 다시 세움',generating:'페이지 작성',reviewing:'내용 검토',finalizing:'마무리',noop:'바뀐 페이지 없음'};
 const ERROR={wiki_runtime_missing:'위키 실행 파일이 없어요. 최신 설치 파일로 복구해 주세요.',wiki_skills_missing:'위키 준비 파일이 없어요. 최신 설치 파일로 복구해 주세요.',model_unavailable:'모델에 연결되지 않아 갱신하지 못했어요.',wiki_update_failed:'갱신을 마치지 못했어요. 작업 공간은 그대로예요.',wiki_update_interrupted:'갱신이 중간에 멈췄어요. 작업 공간은 그대로이니 다시 갱신해 주세요.'};
 Object.assign(ERROR,{timeout:'모델 응답이 지연됐어요. 연결을 확인한 뒤 이어서 갱신해 주세요.',unauthorized:'모델에 다시 로그인한 뒤 이어서 갱신해 주세요.',wiki_plan_missing:'구성을 확정하지 못했어요. 이어서 갱신하면 다시 확인합니다.',wiki_plan_invalid:'구성 형식을 확인하지 못했어요. 이어서 갱신해 주세요.',provider_changed:'모델 연결이 바뀌어 멈췄어요. 사용할 모델을 확인해 주세요.',wiki_update_interrupted:'앱이 종료되어 갱신이 멈췄어요.'});
 const day=value=>value?String(value).slice(0,10):'알 수 없음';
+Object.assign(ERROR,{wiki_review_scope:'문서의 근거 범위가 커서 내용 검토를 마치지 못했어요. 완료된 문서는 유지됩니다.',wiki_review_incomplete:'문서 내용 검토를 마치지 못했어요. 완료된 문서는 유지되며 남은 문서부터 다시 확인합니다.'});
 
 export function wikiUpdateView({status,update,initialization}){
   if(update?.canResume&&['failed','cancelled'].includes(update.state)){

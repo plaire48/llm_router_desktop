@@ -23,3 +23,26 @@ export async function mailForStorage(mail,includeAttachments){
   storage:{mode:'body_only',originalSha256,originalBytes:original.length,storedBytes:raw.length},
   attachments:mail.normalized.attachments.map(part=>['inline','body'].includes(part.presentation)?part:{...part,contentState:'not_stored',text:''})}};
 }
+
+// Storage opt-out removes original payloads, not the evidence needed by Personal
+// Wiki. Extract while bytes are in memory and retain the result in the encrypted,
+// hash-bound manifest. Never acknowledge an unread/discarded attachment as done.
+export async function extractUnstoredMailAttachments(mail,incoming,{extract,check=()=>{}}){
+ if(mail.normalized.storage?.mode!=='body_only')return mail;
+ const attachments=[];
+ for(const part of mail.normalized.attachments){
+  check();
+  if(part.contentState!=='not_stored'){attachments.push(part);continue;}
+  const original=incoming.attachments.find(item=>item.id===part.id);
+  if(!original||createHash('sha256').update(Buffer.from(original.content)).digest('hex')!==part.sha256)throw Error('mail_source_changed');
+  let document;
+  try{document=await extract(Buffer.from(original.content),original);}
+  catch(cause){check();if(cause.message==='mail_cancelled')throw cause;throw Object.assign(Error('mail_attachment_analysis_failed'),{cause});}
+  check();
+  if(!document?.text?.trim())throw Error('mail_attachment_analysis_failed');
+  attachments.push({...part,originalStored:false,contentState:'document_read',text:document.text,
+   segments:document.segments||[],coverage:document.coverage,reader:document.reader||'document_parser',readerVersion:5,
+   officeVersion:document.officeVersion||null});
+ }
+ return {...mail,normalized:{...mail.normalized,attachments}};
+}

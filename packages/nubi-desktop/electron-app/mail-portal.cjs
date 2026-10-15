@@ -1,4 +1,5 @@
-const {confirmLogoutNotice}=require('./mail-logout-confirm.cjs');
+const {approvalStep,approvalFailure}=require('./approval-failure.cjs');
+const {mailDialogPending,mailDialogOpen}=require('./mail-session-dialog.cjs');
 const {loginRedirect}=require('./mail-session-recovery.cjs');
 const {mailSessionFetch}=require('./mail-session-fetch.cjs');
 const {ORIGIN,LOGIN_URL,portalOrigin,foldersOf,identityOf,portalFetch,portalFetchSource}=require('./mail-portal-contract.cjs');
@@ -16,8 +17,8 @@ class MailPortal {
   let identity;try{identity=identityOf(await read('identity'));}catch(error){if(!['mail_portal_identity','mail_portal_format','mail_portal_request','mail_portal_login'].includes(error.message))throw error;}
   const folders=foldersOf(await read('folders',{setCd:identity?.setCd||''}));
   if(!identity?.email||!identity?.userId){const sent=folders.find(folder=>folder.mailbox==='sent');if(sent){const list=await read('list',{folderId:sent.id,setCd:identity?.setCd||''});const row=list?.liteHeaderVOs?.[0];if(row&&/^\d{1,20}$/.test(String(row.mailSeq))){const summary=await read('summary',{folderId:sent.id,seq:String(row.mailSeq)}),from=summary?.from||{};const userId=identity?.userId||from.userID||from.epID;const email=identity?.email||(typeof from.email==='string'&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(from.email)?from.email:null);if(!identity&&(typeof userId==='string'||email))identity={id:typeof userId==='string'?userId:email,setCd:''};if(identity)identity={...identity,email,userId:typeof userId==='string'?userId:null};}}}
-  if(!identity?.email){const inbox=folders.find(folder=>folder.mailbox==='inbox');if(inbox){const list=await read('list',{folderId:inbox.id,setCd:identity?.setCd||''}),row=list?.liteHeaderVOs?.[0];if(row&&/^\d{1,20}$/.test(String(row.mailSeq))){const message=await read('summary',{folderId:inbox.id,seq:String(row.mailSeq)}),received=message?.receivedAddress;
-    const email=typeof received==='string'?received:received?.email||received?.address;if(typeof email==='string'&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){const recipients=[...(Array.isArray(message.toRecipients)?message.toRecipients:[]),...(Array.isArray(message.ccRecipients)?message.ccRecipients:[]),...(Array.isArray(message.bccRecipients)?message.bccRecipients:[])];const own=recipients.find(person=>(person?.email||person?.address||person?.emailAddress?.address||'').toLowerCase()===email.toLowerCase()),userId=identity?.userId||own?.userID||own?.epID;identity={...identity,id:identity?.id||email,email,userId:typeof userId==='string'?userId:null,setCd:identity?.setCd||''};}
+  if(!identity?.email||!identity?.userId){const inbox=folders.find(folder=>folder.mailbox==='inbox');if(inbox){const list=await read('list',{folderId:inbox.id,setCd:identity?.setCd||''}),row=list?.liteHeaderVOs?.[0];if(row&&/^\d{1,20}$/.test(String(row.mailSeq))){const message=await read('summary',{folderId:inbox.id,seq:String(row.mailSeq)}),received=message?.receivedAddress;
+    const email=typeof received==='string'?received:received?.email||received?.address;if(typeof email==='string'&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)&&(!identity?.email||identity.email.toLowerCase()===email.toLowerCase())){const recipients=[...(Array.isArray(message.toRecipients)?message.toRecipients:[]),...(Array.isArray(message.ccRecipients)?message.ccRecipients:[]),...(Array.isArray(message.bccRecipients)?message.bccRecipients:[])];const own=recipients.find(person=>(person?.email||person?.address||person?.emailAddress?.address||'').toLowerCase()===email.toLowerCase()),userId=identity?.userId||own?.userID||own?.epID;identity={...identity,id:identity?.id||email,email,userId:typeof userId==='string'?userId:null,setCd:identity?.setCd||''};}
    }}}
   if(!identity)throw Error('mail_portal_identity');identity={...identity,id:identity.userId||identity.email||identity.id};return {identity,folders};
  }
@@ -53,15 +54,15 @@ class MailPortal {
    this.window.webContents.stop?.();await this.window.loadURL('about:blank');
   }else await this.window.loadURL('about:blank');
   if(epoch!==this.epoch)throw Error('mail_cancelled');
-  if(show&&this.openPage&&!this.page){this.page=this.openPage(LOGIN_URL,{onClosed:()=>{if(this.page&&epoch===this.epoch)void this.disconnect().catch(()=>{});}});}
+  if(show&&this.openPage&&!this.page){this.page=this.openPage(LOGIN_URL,{mailLogin:true,onClosed:()=>{if(this.page&&epoch===this.epoch)void this.disconnect().catch(()=>{});}});}
   return this.window;
  }
  closeLoginPage(){const page=this.page;this.page=null;if(page&&this.closePage){try{this.closePage(page.tabId);}catch{}}this.window?.hide();}
  async readContents(contents,operation,input={}){
-  if(!contents||contents.isDestroyed?.())throw Error('mail_portal_login');
+  if(!contents||contents.isDestroyed?.()||mailDialogPending(contents))throw Error('mail_portal_login');
   const origin=portalOrigin(contents.getURL(),this.origin);if(!origin||loginLocation(contents.getURL()))throw Error('mail_portal_login');this.origin=origin;
-  try{return await contents.executeJavaScript(`(${portalFetchSource(origin)})(${JSON.stringify({operation,...input})})`);}
-  catch(error){throw Error(/^mail_[a-z_]+$/.test(error.message)?error.message:'mail_portal_request');}
+  try{const result=await contents.executeJavaScript(`(${portalFetchSource(origin)})(${JSON.stringify({...input,operation,reportFailure:['approvals','approvalItem'].includes(operation)})})`);if(result?.__nubiPortalError)throw approvalFailure({message:result.__nubiPortalError,httpStatus:result.httpStatus},operation==='approvals'?'list':'document');return result;}
+  catch(error){if(error.approvalFailure)throw error;throw Error(/^mail_[a-z_]+$/.test(error.message)?error.message:'mail_portal_request');}
  }
  async read(operation,input={}){
   if(!this.window||this.window.isDestroyed())throw Error('mail_portal_login');
@@ -72,11 +73,11 @@ class MailPortal {
    // popup). Leave it open for user input; expired API probes returning 403
    // must not end that interactive login before it returns to the portal.
    const active=rows.at(-1);
-   if(rows.some(contents=>contents.isLoadingMainFrame())||(active&&(!portalOrigin(active.getURL(),this.origin)&&!homeLocation(active.getURL())||loginLocation(active.getURL()))))throw Error('mail_portal_login');
+   if(rows.some(contents=>contents.isLoadingMainFrame()||mailDialogPending(contents))||(active&&(!portalOrigin(active.getURL(),this.origin)&&!homeLocation(active.getURL())||loginLocation(active.getURL()))))throw Error('mail_portal_login');
    for(const contents of rows.reverse()){
-    if(contents.isDestroyed()||contents.isLoadingMainFrame())continue;
+    if(contents.isDestroyed()||contents.isLoadingMainFrame()||mailDialogPending(contents))continue;
     const portal=portalOrigin(contents.getURL(),this.origin);
-    if(portal){try{return await this.readContents(contents,operation,input);}catch(error){if(!['mail_portal_login','mail_portal_request','mail_portal_format'].includes(error.message))throw error;}}
+    if(portal){try{return await this.readContents(contents,operation,input);}catch(error){if(error.approvalFailure||!['mail_portal_login','mail_portal_request','mail_portal_format'].includes(error.message))throw error;}}
    }
    // API probes use the same cookie jar without navigating another document into SSO.
    return this.readSession(operation,input);
@@ -109,7 +110,7 @@ class MailPortal {
  async loginPageFailed(){
   if(!this.page||!this.getPageContents)return false;
   for(const contents of this.getPageContents(this.page.tabId)){
-   if(contents.isDestroyed()||contents.isLoadingMainFrame())continue;
+   if(contents.isDestroyed()||contents.isLoadingMainFrame()||mailDialogPending(contents))continue;
    // Return only a fixed boolean. Never collect the URL, login fields or page body.
    try{if(await contents.executeJavaScript(`(()=>{const text=(document.body?.innerText||'').slice(0,8000);return /Whitelabel Error Page/i.test(text)&&/no explicit mapping for \\/error/i.test(text);})()`))return true;}catch{}
   }
@@ -137,11 +138,30 @@ class MailPortal {
    // Finish an invalidated restore before starting the interactive session. No overlapping SSO requests.
    this.window?.webContents.stop?.();await this.restoring;if(epoch!==this.epoch)throw Error('mail_cancelled');
    await this.windowForLogin(true,epoch);this.state.loginStage='authenticating';let identity,folders;
-   const deadline=Date.now()+5*60*1000;
+   let deadline=Date.now()+5*60*1000;
    while(epoch===this.epoch&&Date.now()<deadline){
-    if(this.page&&this.getPageContents){const rows=this.getPageContents(this.page.tabId);await confirmLogoutNotice([...rows].at(-1));if(epoch!==this.epoch)break;}
+    const loginContents=()=>this.page&&this.getPageContents?this.getPageContents(this.page.tabId):[];
+    const rows=loginContents();
+    if(rows.some(mailDialogPending)){
+     this.state.loginStage='confirmation';
+     const humanWaiting=rows.some(mailDialogOpen),started=Date.now();
+     await wait(250);
+     // Waiting for the person's decision is not a portal/network timeout.
+     if(humanWaiting)deadline+=Date.now()-started;
+     continue;
+    }
+    if(epoch!==this.epoch)break;
+    this.state.loginStage='authenticating';
     try{({identity,folders}=await this.identify(epoch));break;}
-    catch(error){if(await this.loginPageFailed())throw Error('mail_portal_sso');if(!['mail_portal_login','mail_portal_request','mail_portal_format','mail_portal_redirect'].includes(error.message))throw error;if(epoch!==this.epoch)break;await wait(2000);}
+    catch(error){
+     if(loginContents().some(mailDialogPending)){await wait(250);continue;}
+     if(await this.loginPageFailed())throw Error('mail_portal_sso');
+     // A dialog may have opened while the read-only error-page check awaited.
+     if(loginContents().some(mailDialogPending)){await wait(250);continue;}
+     if(!['mail_portal_login','mail_portal_request','mail_portal_format','mail_portal_redirect'].includes(error.message))throw error;
+     if(epoch!==this.epoch)break;
+     await wait(2000);
+    }
    }
    if(epoch!==this.epoch)throw Error('mail_cancelled');if(!identity||!folders)throw Error('mail_portal_timeout');
    if(this.page&&this.getPageContents){
@@ -222,33 +242,60 @@ class MailPortal {
   }
  }
  async approvals({page=1}={}){
-  if(!this.state.connected)throw Error('mail_portal_login');if(!this.identity?.userId)throw Error('mail_portal_identity');if(!Number.isSafeInteger(page)||page<1||page>10000)throw Error('mail_input_invalid');
-  // A login page from the approval endpoint while mail is connected is its own code (user report 2026-10-15: the list
-  // said '로그인하세요' after a normal login), so the screen can say which request was refused.
-  const epoch=this.epoch;let result;try{result=await this.read('approvals',{page,userId:this.identity.userId});}catch(error){await this.failSession(error,epoch);throw Error(error.message==='mail_portal_login'?'mail_portal_approval_login':error.message);}
-  if(epoch!==this.epoch)throw Error('mail_cancelled');if(!Array.isArray(result?.data))throw Error('mail_portal_format');
-  this.approvalCache=new Map();this.approvalCacheBytes=0;const rows=result.data.slice(0,100).map(item=>({id:String(item.apId),lineId:String(item.aplnId),subject:String(item.subject||item.apTitle||'').slice(0,1000),submittedAt:item.sbmDt||null,completedAt:item.cplDt||null,status:String(item.apActStatsCd||'').slice(0,60)}));
-  // Show the list immediately. Missing titles are hydrated separately by the
-  // visible page; slow document bodies must not hold the entire list hostage.
-  for(const row of rows){row.titlePending=!row.subject;if(!row.subject)row.subject='결재 문서';}
-  if(epoch!==this.epoch)throw Error('mail_cancelled');this.approvalPageSize=Math.max(this.approvalPageSize||0,rows.length);const total=Number.isSafeInteger(result.totalCount)?result.totalCount:rows.length;return {page,total,hasNext:rows.length>0&&page*this.approvalPageSize<total,items:rows};
+  return approvalStep('list',async()=>{
+   if(!this.state.connected)throw approvalFailure(Error('mail_portal_login'),'identity');
+   if(!this.identity?.userId)throw approvalFailure(Error('mail_portal_identity'),'identity');
+   if(!Number.isSafeInteger(page)||page<1||page>10000)throw Error('mail_input_invalid');
+   const epoch=this.epoch;let result;
+   try{result=await this.read('approvals',{page,userId:this.identity.userId});}catch(error){if(error.message==='mail_portal_login'){await this.failSession(error,epoch);const failure=approvalFailure(error,'list');failure.message='mail_portal_approval_login';failure.approvalFailure.code=failure.message;throw failure;}throw error;}
+   if(epoch!==this.epoch)throw Error('mail_cancelled');
+   if(!Array.isArray(result?.data))throw Error('mail_portal_format');
+   const rows=result.data.map(item=>{
+    const id=String(item?.apId??''),lineId=String(item?.aplnId??'');
+    if(!/^[\w-]{1,100}$/.test(id)||!/^[\w-]{1,100}$/.test(lineId))throw Error('mail_portal_format');
+    return {id,lineId,subject:String(item.subject||item.apTitle||'').slice(0,1000),submittedAt:item.sbmDt||null,completedAt:item.cplDt||null,status:String(item.apActStatsCd||'').slice(0,60)};
+   });
+   // Reset this page's cache; titles and body share the same read-only item request.
+   this.approvalCache=new Map();this.approvalCacheBytes=0;
+   for(const row of rows){row.titlePending=!row.subject;if(!row.subject)row.subject='결재 문서';}
+   const total=typeof result.totalCount==='string'&&/^\d+$/.test(result.totalCount)?Number(result.totalCount):result.totalCount;
+   if(total!==undefined&&(!Number.isSafeInteger(total)||total<0))throw Error('mail_portal_format');
+   this.approvalPageSize=Math.max(this.approvalPageSize||0,rows.length);
+   return {page,total:total??rows.length,hasNext:rows.length>0&&page*this.approvalPageSize<(total??rows.length),items:rows};
+  });
  }
  async approvalTitle({id,lineId}){
-  if(!this.state.connected)throw Error('mail_portal_login');
   const item=await this.approvalItem({id,lineId});
   return {id,lineId,subject:String(item.subject||'(제목 없음)').slice(0,1000)};
  }
  async approvalItem({id,lineId}){
-  if(!/^[\w-]{1,100}$/.test(id)||!/^[\w-]{1,100}$/.test(lineId))throw Error('mail_input_invalid');
-  const key=id+'|'+lineId;if(this.approvalCache?.has(key))return this.approvalCache.get(key);
-  const epoch=this.epoch;let result;try{result=await this.read('approvalItem',{ap:id,ln:lineId});}catch(error){await this.failSession(error,epoch);throw error;}if(epoch!==this.epoch)throw Error('mail_cancelled');
-  const item=result?.[0];if(!item||typeof item!=='object')throw Error('mail_portal_format');this.approvalCache ||=new Map();const bytes=Buffer.byteLength(typeof item.result==='string'?item.result:'','utf8')+1024;if(this.approvalCache.size<100&&(this.approvalCacheBytes||0)+bytes<=8*1024*1024){this.approvalCache.set(key,item);this.approvalCacheBytes=(this.approvalCacheBytes||0)+bytes;}return item;
+  return approvalStep('document',async()=>{
+   if(!this.state.connected)throw Error('mail_portal_login');
+   if(!/^[\w-]{1,100}$/.test(id)||!/^[\w-]{1,100}$/.test(lineId))throw Error('mail_input_invalid');
+   const key=id+'|'+lineId;if(this.approvalCache?.has(key))return this.approvalCache.get(key);
+   const epoch=this.epoch;let result;try{result=await this.read('approvalItem',{ap:id,ln:lineId});}catch(error){if(error.message==='mail_portal_login')await this.failSession(error,epoch);throw error;}
+   if(epoch!==this.epoch)throw Error('mail_cancelled');
+   if(!Array.isArray(result)||result.length!==1||!result[0]||typeof result[0]!=='object'||Array.isArray(result[0]))throw Error('mail_portal_format');
+   const item=result[0];this.approvalCache ||=new Map();const bytes=Buffer.byteLength(typeof item.result==='string'?item.result:'','utf8')+1024;
+   // Empty/invalid bodies must be fetched again on retry, not stuck in the title cache.
+   if(typeof item.result==='string'&&item.result.trim()&&this.approvalCache.size<100&&(this.approvalCacheBytes||0)+bytes<=8*1024*1024){this.approvalCache.set(key,item);this.approvalCacheBytes=(this.approvalCacheBytes||0)+bytes;}
+   return item;
+  });
  }
  async approvalRead(args){
-  if(!this.state.connected)throw Error('mail_portal_login');const epoch=this.epoch,item=await this.approvalItem(args);if(epoch!==this.epoch)throw Error('mail_cancelled');
-  if(typeof item.result!=='string'||!item.result.trim()||item.result.length>10*1024*1024)throw Error('mail_portal_format');
-  const bytes=[...item.result].some(char=>char.charCodeAt(0)>255)?Buffer.from(item.result,'utf8'):Buffer.from(item.result,'latin1');
-  const parsed=await this.invoke('mail',{action:'portalDocument',raw:bytes.toString('base64')});if(epoch!==this.epoch)throw Error('mail_cancelled');return {id:args.id,subject:item.subject||parsed.mail.subject,...parsed};
+  const epoch=this.epoch,item=await this.approvalItem(args);
+  return approvalStep('parse',async()=>{
+   if(epoch!==this.epoch)throw Error('mail_cancelled');
+   if(typeof item.result!=='string')throw Error('mail_portal_format');
+   if(!item.result.trim())throw Error('mail_approval_empty');
+   if(item.result.length>10*1024*1024)throw Error('mail_size_limit');
+   // Same byte reconstruction as the supplied userscript's strToBytes.
+   const bytes=[...item.result].some(char=>char.charCodeAt(0)>255)?Buffer.from(item.result,'utf8'):Buffer.from(item.result,'latin1');
+   const parsed=await this.invoke('mail',{action:'portalDocument',raw:bytes.toString('base64')});
+   if(epoch!==this.epoch)throw Error('mail_cancelled');
+   if(!parsed?.mail||typeof parsed.mail.text!=='string')throw Error('mail_approval_parse');
+   return {...parsed,id:args.id,lineId:args.lineId,subject:item.subject||parsed.mail.subject};
+  }).catch(error=>{this.approvalCache?.delete(args.id+'|'+args.lineId);throw error;});
  }
  async disconnect(){++this.epoch;this.access.abort();this.access=new AbortController();this.syncing=null;clearTimeout(this.timer);this.approvalCache?.clear();this.state={...this.state,connected:false,connecting:false,checking:false,loginStage:null,error:null,connectionState:'disconnected',nextRetryAt:null};this.restored=true;this.closeLoginPage();await this.invoke('mail',{action:'disconnect'});return this.status();}
  dispose(){++this.epoch;this.access.abort();clearTimeout(this.timer);this.closeLoginPage();this.window?.destroy();}

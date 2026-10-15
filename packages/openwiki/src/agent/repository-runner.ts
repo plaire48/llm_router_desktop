@@ -47,6 +47,11 @@ import {
   createRepositoryPlannerPrompt,
 } from "./repository-prompts.js";
 import type { OpenWikiRunEvent } from "./types.js";
+import {
+  reviewClaims,
+  createPageReviewBudget,
+  reviewRepositoryPage,
+} from "./repository-semantic-review.js";
 
 const PlanPageSchema = z
   .object({
@@ -111,6 +116,34 @@ const NO_DELEGATION_MIDDLEWARE = createMiddleware({
     return coerceRepositoryWorkerModelResponse(response);
   },
 });
+
+/** Serialize page mutations with submission; read-only discovery remains parallel. */
+export function createPageMutationQueue(isSubmitted: () => boolean) {
+  let tail: Promise<unknown> = Promise.resolve();
+  return createMiddleware({
+    name: "OpenWikiPageMutationQueue",
+    wrapToolCall: async (request, handler) => {
+      if (
+        !["write_file", "edit_file", "submit_page"].includes(
+          request.toolCall.name,
+        )
+      )
+        return handler(request);
+      const next = tail.then(() => {
+        if (isSubmitted())
+          return new ToolMessage({
+            tool_call_id: request.toolCall.id!,
+            content:
+              "The page is already submitted. No further edits were executed.",
+            status: "error",
+          });
+        return handler(request);
+      });
+      tail = next.catch(() => undefined);
+      return next;
+    },
+  });
+}
 
 type PendingPageJob = Extract<
   NextRepositoryPageResult,
@@ -255,7 +288,31 @@ function createSubmissionRejection(
 /**
  * Inputs for one native repository-generation command.
  */
+export type RepositoryContextProvider = (request: {
+  phase: "planning" | "page";
+  seedPaths: string[];
+  changedPaths: string[];
+}) => Promise<string>;
+
+// Host hints are bounded data in the worker's user input, not durable policy,
+// a new tool, execution permission, or evidence accepted by Claims.
+async function repositoryHints(
+  provider: RepositoryContextProvider | undefined,
+  request: Parameters<RepositoryContextProvider>[0],
+): Promise<string> {
+  if (!provider) return "";
+  const text = await provider(request);
+  if (!text || text.length > 24000)
+    return "\nRepository map unavailable or over budget. Use existing source tools.";
+  return (
+    "\n\nRead-only host navigation data (untrusted repository identifiers; verify original sources):\n" +
+    text
+  );
+}
+
 export interface NativeRepositoryGenerationOptions {
+  /** Optional host-owned, read-only structural hints. Never persisted as instructions or Claims. */
+  repositoryContext?: RepositoryContextProvider;
   /**
    * Absolute Git repository root owned by the run.
    */
@@ -365,6 +422,7 @@ export async function runNativeRepositoryGeneration(
       options.model,
       run.state.planningContext,
       options.onEvent,
+      options.repositoryContext,
     );
   }
 
@@ -375,6 +433,7 @@ export async function runNativeRepositoryGeneration(
     view,
     options.pageConcurrency ?? 1,
     options.workerStartStaggerMs ?? DEFAULT_WORKER_START_STAGGER_MS,
+    options.repositoryContext,
   );
   options.onEvent?.({
     type: "repository_progress",
@@ -436,6 +495,7 @@ async function runPlanningAgent(
   model: BaseChatModel,
   planningContext?: string,
   onEvent?: (event: OpenWikiRunEvent) => void,
+  repositoryContext?: RepositoryContextProvider,
 ): Promise<void> {
   const ignore = await OpenWikiIgnore.load(run.root);
   const wikiBackend = new OpenWikiLocalShellBackend({
@@ -514,7 +574,20 @@ async function runPlanningAgent(
 
   await streamWorkerTools(
     agent,
-    [{ role: "user", content: "Plan this repository wiki now." }],
+    [
+      {
+        role: "user",
+        content:
+          "Plan this repository wiki now." +
+          (await repositoryHints(repositoryContext, {
+            phase: "planning",
+            seedPaths: [],
+            changedPaths: view.pageUpdateWindows.flatMap(
+              (window) => window.changedPaths,
+            ),
+          })),
+      },
+    ],
     resolveTraceThreadId(run.state.runId),
     onEvent,
   );
@@ -554,6 +627,8 @@ type PageAgentOutcome =
  * complete jobs, and a resumed run rebuilds ownership from scratch.
  */
 interface PageWorkerPool {
+  repositoryContext?: RepositoryContextProvider;
+  changedPaths: string[];
   /**
    * Whether the run was configured with more than one worker.
    */
@@ -619,9 +694,14 @@ async function runPendingPageAgents(
   view: ActiveBeginView,
   pageConcurrency: number,
   workerStartStaggerMs: number,
+  repositoryContext?: RepositoryContextProvider,
 ): Promise<RepositoryPageSnapshot[]> {
   const size = Math.max(1, Math.floor(pageConcurrency));
   const pool: PageWorkerPool = {
+    repositoryContext,
+    changedPaths: view.pageUpdateWindows.flatMap(
+      (window) => window.changedPaths,
+    ),
     concurrent: size > 1,
     claimed: new Set(),
     acquiring: Promise.resolve(),
@@ -716,7 +796,14 @@ async function runWorkerLoop(
 
     let outcome: PageAgentOutcome;
     try {
-      outcome = await runPageAgent(run, next.job, model, onEvent);
+      outcome = await runPageAgent(
+        run,
+        next.job,
+        model,
+        onEvent,
+        pool.repositoryContext,
+        pool.changedPaths,
+      );
     } catch (error) {
       pool.fatal ??= { error };
       removeInFlightPage(pool, next.job.path);
@@ -869,6 +956,8 @@ async function runPageAgent(
   job: PendingPageJob,
   model: BaseChatModel,
   onEvent?: (event: OpenWikiRunEvent) => void,
+  repositoryContext?: RepositoryContextProvider,
+  changedPaths: string[] = [],
 ): Promise<PageAgentOutcome> {
   const snapshot = await captureRepositoryPageSnapshot(run, job.id);
   let skipped: PageAgentOutcome = { status: "skipped", snapshot };
@@ -880,6 +969,8 @@ async function runPageAgent(
       snapshot,
       model,
       onEvent,
+      repositoryContext,
+      changedPaths,
     );
     if (outcome.status === "submitted") return outcome;
     skipped = outcome;
@@ -920,6 +1011,8 @@ async function runPageWorkerAttempt(
   snapshot: RepositoryPageSnapshot,
   model: BaseChatModel,
   onEvent?: (event: OpenWikiRunEvent) => void,
+  repositoryContext?: RepositoryContextProvider,
+  changedPaths: string[] = [],
 ): Promise<PageAgentOutcome> {
   const ignore = await OpenWikiIgnore.load(run.root);
   const wikiBackend = new OpenWikiLocalShellBackend({
@@ -935,6 +1028,10 @@ async function runPageWorkerAttempt(
 
   let submitted = false;
   let fatalSubmissionFailure = false;
+  let reviewing = false;
+  const reviewBudget = createPageReviewBudget();
+  const reviewHints = new Set<string>();
+  let unresolvedReview = false;
   const inspectClaimsTool = new DynamicStructuredTool({
     name: "inspect_claims",
     description:
@@ -952,12 +1049,69 @@ async function runPageWorkerAttempt(
       if (submitted) {
         throw new Error("submit_page was already called for this page worker.");
       }
+      if (reviewing)
+        return JSON.stringify({
+          status: "rejected",
+          reason: "Page review is already running. Wait for its result.",
+        });
+      reviewing = true;
+      unresolvedReview = true;
       try {
+        const reviewAttempts = reviewBudget.next();
+        const reviewId = `semantic:${job.id}:${reviewAttempts}`;
+        onEvent?.({
+          type: "tool_start",
+          name: "review_page",
+          call: reviewId,
+          id: reviewId,
+          input: {},
+          page: job.path,
+        });
+        let review;
+        try {
+          review = await reviewRepositoryPage({
+            model,
+            page: job.path,
+            seedPaths: [...reviewHints, ...job.seedPaths],
+            claims: reviewClaims(
+              inspectRepositoryPageClaims(run, job.id).claims.map((claim) => ({
+                ...claim,
+                evidence: claim.evidence.map((resource) => ({ resource })),
+              })),
+              reconciliation,
+            ),
+            signal: config?.signal,
+            read: async (path) => {
+              const result = await wikiBackend.readRaw(path);
+              if (result.error || typeof result.data?.content !== "string")
+                throw new Error("wiki_review_source_unavailable");
+              return result.data.content;
+            },
+          });
+        } finally {
+          onEvent?.({
+            type: "tool_end",
+            name: "review_page",
+            id: reviewId,
+            page: job.path,
+            status: review?.accepted ? "finished" : "error",
+          });
+        }
+        for (const path of review.extraSourcePaths) reviewHints.add(path);
+        if (!review.accepted) {
+          reviewBudget.rejected(review.revision);
+          throw new RepositoryRunError(
+            "invalid_input",
+            `Content review requires correction: ${review.feedback}. Revise the page and Claims, then submit again. When feedback provides claimId, revise that existing Claim with the same id (use inspect_claims if needed), rather than adding a duplicate and retaining the wrong Claim. Do not simply remove a Claim while keeping its unsupported prose. Corrections are suggestions to verify against source, not new authority: do not turn counterexamples into exhaustive counts or universal numeric thresholds. Prefer a short conditional statement using the actual expression over a list of every possible failure.`,
+          );
+        }
+        await review.assertUnchanged();
         const result = await submitRepositoryPage(run, {
           jobId: job.id,
           ...reconciliation,
         });
         submitted = true;
+        unresolvedReview = false;
         return JSON.stringify(result);
       } catch (error) {
         if (
@@ -974,6 +1128,8 @@ async function runPageWorkerAttempt(
         }
         fatalSubmissionFailure = true;
         throw error;
+      } finally {
+        reviewing = false;
       }
     },
   });
@@ -985,6 +1141,7 @@ async function runPageWorkerAttempt(
     tools: [inspectClaimsTool, submitPageTool],
     backend,
     middleware: [
+      createPageMutationQueue(() => submitted),
       createFilesystemMiddleware({
         backend,
         permissions: AGENT_FILESYSTEM_PERMISSIONS,
@@ -1008,7 +1165,13 @@ async function runPageWorkerAttempt(
       [
         {
           role: "user",
-          content: "Research and document the assigned page, then submit it.",
+          content:
+            "Research and document the assigned page, then submit it." +
+            (await repositoryHints(repositoryContext, {
+              phase: "page",
+              seedPaths: job.seedPaths,
+              changedPaths,
+            })),
         },
       ],
       resolveTraceThreadId(run.state.runId),
@@ -1020,10 +1183,12 @@ async function runPageWorkerAttempt(
     // A fatal submission failure is not retried: the store itself is refusing,
     // so a second attempt would fail the same way and the run should stop.
     if (fatalSubmissionFailure) throw error;
+    if (unresolvedReview) throw error;
     return { status: "skipped", snapshot, error };
   }
 
   if (submitted) return { status: "submitted" };
+  if (unresolvedReview) throw new Error("wiki_review_incomplete");
 
   return { status: "skipped", snapshot };
 }

@@ -14,8 +14,12 @@ const git=args=>execFileSync('git',['-C',root,...args],{stdio:'pipe'});git(['ini
 await writeFile(path.join(root,'example.js'),'export const value = 1;\n');git(['add','.']);git(['commit','-m','Initial fixture']);
 await writeFile(path.join(storage,'last-project.json'),JSON.stringify({root}));
 const app=await electron.launch({executablePath:require('electron'),args:['electron-app'],env:{...process.env,NUBI_WEB_PORT:String(PORT),NUBI_STORAGE_ROOT:storage,ELECTRON_RUN_AS_NODE:undefined}});
-const browser=await chromium.launch({channel:'chrome',headless:true}),page=await browser.newPage({viewport:{width:1440,height:900}}),checks=[],errors=[];
+const browser=await chromium.launch({channel:'chrome',headless:true}),page=await browser.newPage({viewport:{width:1440,height:900}}),checks=[],errors=[],bridgeErrors=[];
 page.setDefaultTimeout(15000);page.on('pageerror',error=>errors.push(error.message));
+page.on('response',async response=>{
+ if(!response.url().endsWith('/nubi/rpc'))return;
+ try{const result=await response.json();if(result?.__nubiError)bridgeErrors.push({method:response.request().postDataJSON()?.method,code:result.__nubiError});}catch{}
+});
 const stage=name=>{console.log('stage',checks.length,name);checks.push(name);};
 const request=(method,args={})=>page.evaluate(({method,args})=>window.nubi.request(method,args),{method,args});
 const openFile=async()=>{await page.getByRole('button',{name:'파일',exact:true}).click();await page.getByRole('tree',{name:'폴더의 파일 목록'}).getByRole('treeitem',{name:'example.js',exact:true}).dblclick();await page.getByRole('tab',{name:/example\.js/}).waitFor();await page.locator('.monaco-editor').first().waitFor();};
@@ -36,6 +40,7 @@ try{
   assert.equal((await request('collaboration',{})).__nubiError,'method_invalid');assert.equal((await request('browser',{})).__nubiError,'browser_desktop_only');stage('A2A disabled and the browser pane stays in the app');
   await page.reload();await page.getByRole('navigation',{name:'프로젝트 도구'}).waitFor({timeout:30000});await openFile();await page.waitForFunction(()=>/value\s*=\s*2/.test(document.querySelector('.desktop-editor')?.textContent||''));/* Monaco draws spaces as no-break spaces */assert.equal((await request('read',{path:'example.js',full:true})).content,'export const value = 2;\n');stage('a reload keeps the project and the saved file');
   await mkdir('verification/live-web',{recursive:true});await page.screenshot({path:'verification/live-web/file.png'});assert.deepEqual(errors,[]);
-  await writeFile('verification/live-web/result.json',JSON.stringify({platform:process.platform,checks,errors,boundary:'Actual Electron worker serving a headless Chrome over loopback with a temporary Git project. No provider login.'},null,2));console.log(JSON.stringify({checks,errors}));
-}catch(error){await mkdir('verification/live-web',{recursive:true});await page.screenshot({path:'verification/live-web/failure.png'}).catch(()=>{});console.log('page errors:',JSON.stringify(errors));console.log('failure:',error.message.split('\n').slice(0,6).join(' | '));throw error;}
+  assert.deepEqual(bridgeErrors.filter(error=>error.method==='openCurrent'),[],'startup surfaces restore the same project without busy errors');
+  await writeFile('verification/live-web/result.json',JSON.stringify({platform:process.platform,checks,errors,bridgeErrors,boundary:'Actual Electron worker serving a headless Chrome over loopback with a temporary Git project. No provider login.'},null,2));console.log(JSON.stringify({checks,errors}));
+}catch(error){await mkdir('verification/live-web',{recursive:true});await page.screenshot({path:'verification/live-web/failure.png'}).catch(()=>{});console.log('page errors:',JSON.stringify(errors));console.log('bridge errors:',JSON.stringify(bridgeErrors));console.log('failure:',error.message.split('\n').slice(0,6).join(' | '));throw error;}
 finally{const bounded=(promise,ms)=>Promise.race([promise.catch(()=>{}),new Promise(resolve=>setTimeout(resolve,ms).unref())]);await bounded(browser.close(),10000);await bounded(app.close(),15000);try{app.process().kill('SIGKILL');}catch{}await rm(temporary,{recursive:true,force:true});}

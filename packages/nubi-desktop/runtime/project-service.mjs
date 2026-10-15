@@ -260,7 +260,7 @@ export class ProjectService {
     if(signal?.aborted)fail('cancelled');
     await validateProjectRules(root,rel,rules.fingerprint);
     if((await readSource(root,rel)).hash!==expectedHash)fail('source_stale');
-    const previous=this.store.list('proposal:').find(p=>p.taskId===taskId&&p.path===rel&&p.expectedHash===expectedHash&&p.rulesFingerprint===rules.fingerprint&&p.afterHash===hash(content)&&p.state==='proposed');if(previous){previous.quality=quality;this.store.set('proposal:'+previous.id,previous);return {...previous,reused:true};}
+    const previous=this.store.list('proposal:').find(p=>p.taskId===taskId&&p.path===rel&&p.expectedHash===expectedHash&&p.rulesFingerprint===rules.fingerprint&&p.afterHash===hash(content)&&p.state==='proposed');if(previous){previous.sourceChanged=false;previous.mergeConflicted=false;previous.quality=quality;this.store.set('proposal:'+previous.id,previous);return {...previous,reused:true};}
     const key = id(), folder = path.join(this.store.directory, 'proposals', key); await mkdir(folder, {recursive: true});
     const before = path.join(folder, 'before' + path.extname(rel)), after = path.join(folder, 'after' + path.extname(rel));
     await writeFile(before, current.content); await writeFile(after, content);
@@ -296,7 +296,7 @@ export class ProjectService {
     if(proposal.state!=='applied')await validateProjectRules(root,proposal.path,proposal.rulesFingerprint);
     if (proposal.state === 'applied' && current.hash !== proposal.afterHash) fail('applied_changed');
     if(current.hash===proposal.afterHash)return {...await this.confirmProposal({proposalId}),alreadyApplied:true,uri:pathToFileURL(path.join(root,proposal.path)).href};
-    if (proposal.state !== 'applied' && current.hash !== proposal.expectedHash) fail('source_stale');
+    if (proposal.state !== 'applied' && current.hash !== proposal.expectedHash){this.store.set('proposal:'+proposalId,{...proposal,sourceChanged:true});fail('source_stale');}
     if(proposal.state!=='applied'){proposal.quality=await checkCodeQuality(proposal.path,current.content,proposal.content);if(this.store.get('proposal:'+proposalId)?.state!=='proposed')fail('proposal_missing');this.store.set('proposal:'+proposalId,proposal);requireCodeQuality(proposal.quality);}
     return {...proposal, alreadyApplied: proposal.state === 'applied', uri: pathToFileURL(path.join(root, proposal.path)).href, beforeUri: pathToFileURL(proposal.before).href, afterUri: pathToFileURL(proposal.after).href};
   }
@@ -314,8 +314,8 @@ export class ProjectService {
     let merged, conflicted = false;
     try { merged = (await exec('git', ['merge-file', '-p', '-L', '현재 문서', '-L', '생성 기준', '-L', '누비 제안', ours, proposal.before, proposal.after], {maxBuffer: 2e6})).stdout; }
     catch (error) { if (typeof error.code !== 'number' || error.code < 1 || error.code > 127) throw error; merged = error.stdout; conflicted = true; }
-    if (conflicted) return {conflicted: true, content: merged, currentHash: current.hash};
-    const next=await this.propose({taskId: proposal.taskId, path: proposal.path, expectedHash: current.hash, content: merged, reason: proposal.reason}); proposal.state='superseded'; this.store.set('proposal:'+proposalId,proposal); return {conflicted:false,proposal:next};
+    if (conflicted){this.store.set('proposal:'+proposalId,{...proposal,sourceChanged:true,mergeConflicted:true});return {conflicted:true,content:merged,currentHash:current.hash};}
+    const next=await this.propose({taskId: proposal.taskId, path: proposal.path, expectedHash: current.hash, content: merged, reason: proposal.reason}); if(next.id!==proposalId){proposal.state='superseded';this.store.set('proposal:'+proposalId,proposal);}return {conflicted:false,proposal:next};
   }
   async comparison({id}) { this.ready(); const value=this.store.get('comparison:'+id); if(!value)fail('comparison_missing'); const [before,after,difference]=await Promise.all(['before','after','difference'].map(name=>readFile(path.join(value.directory,name+'.png')))); return {...value,beforeImage:'data:image/png;base64,'+before.toString('base64'),afterImage:'data:image/png;base64,'+after.toString('base64'),diffImage:'data:image/png;base64,'+difference.toString('base64')}; }
   async diff({taskId}) { const root = await this.target(taskId); return {diff: await git(root, ['diff', '--no-ext-diff', '--', '.']), status: await git(root, ['status', '--short']), root}; }

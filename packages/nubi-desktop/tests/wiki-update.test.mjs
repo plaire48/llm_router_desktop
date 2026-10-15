@@ -191,9 +191,11 @@ test('the default runner is the OpenWiki update runner, with the model the user 
   const order=[];
   const load=async()=>({NubiOpenWikiModel:(await import('../generated/openwiki.mjs')).NubiOpenWikiModel,async syncBundledSkills(){order.push('skills');},async runNativeRepositoryGeneration(options){
     order.push('run');
+    assert.equal(typeof options.repositoryContext,'function','Desktop provides read-only structure hints to the native runner');
     Object.assign(seen,{root:options.root,mode:options.mode,language:options.language,modelId:options.modelId});
     await options.model.invoke('plan the update');
     options.onEvent({type:'repository_progress',stage:'generating',page:'openwiki/home.md',pageIndex:1,pageCount:1});
+    options.onEvent({type:'tool_start',name:'review_page',page:'openwiki/home.md'});
     options.onEvent({type:'text',text:'page text that must not leave the run'});
     return {skipped:false};
   }});
@@ -204,7 +206,7 @@ test('the default runner is the OpenWiki update runner, with the model the user 
   assert.deepEqual(order,['skills','run'],'the bundled skills are installed first, as openwiki --update does');
   assert.equal(calls.length,1,'the model call went through the Desktop transport');
   assert.ok(requests[0].some(message=>message.role==='system'&&message.content===CALL_LIMIT.content),'the request states the limit of 8 tool calls');
-  assert.deepEqual(events,[{type:'progress',stage:'preparing_runtime'},{type:'progress',stage:'preparing_skills'},{type:'progress',stage:'generating',page:'openwiki/home.md',index:1,total:1}],'preparation and generation progress facts only, no page text');
+  assert.deepEqual(events,[{type:'progress',stage:'preparing_runtime'},{type:'progress',stage:'preparing_skills'},{type:'progress',stage:'generating',page:'openwiki/home.md',index:1,total:1},{type:'progress',stage:'reviewing',page:'openwiki/home.md',index:1,total:1}],'preparation and generation progress facts only, no page text');
   const {readRunMetrics}=await import('../runtime/run-metrics.mjs'),{summary}=readRunMetrics(service.store,{taskId:'wiki-update:u1'});
   assert.equal(summary.byPurpose.wiki_update.calls,1,'model calls are counted under wiki_update');
   service.providers={status:()=>({connected:false}),dispose(){}};
@@ -230,6 +232,21 @@ test('a response rejected by the model connection is asked for again, with a req
   rejected=0;service.providers.complete=async()=>{rejected++;throw new Error('response_invalid');};
   await assert.rejects(defaultWikiUpdater(service,{load})({root,signal:new AbortController().signal,onEvent(){},updateId:'u5'}),/response_invalid/,'a fourth rejection ends the run');
   assert.equal(rejected,4,'the request and three more, then the error');
+});
+
+test('Claude format rejection repairs inference without losing completed tool receipts and remains bounded',async t=>{
+  const {service,root}=await generated(t);const requests=[],events=[];let count=0;
+  const receipt={role:'tool',tool_call_id:'already-read',content:'source content already read'};
+  service.providers={status:()=>({connected:true,model:'claude-fixture'}),dispose(){},async complete(messages){requests.push(messages);if(++count===1)throw Error('claude_response_invalid');return {content:'done',calls:[]};}};
+  const load=async()=>({NubiOpenWikiModel:class{constructor({complete}){this.complete=complete;}},async runNativeRepositoryGeneration({model}){await model.complete([{role:'user',content:'continue'},receipt],[]);return {skipped:false};}});
+  await defaultWikiUpdater(service,{load})({root,signal:new AbortController().signal,onEvent:event=>events.push(event),updateId:'claude-repair'});
+  assert.equal(count,2);assert.equal(requests[1].filter(row=>row.tool_call_id==='already-read').length,1);
+  assert.ok(requests[1].some(row=>row.content?.includes('before any host tool ran')));
+  assert.ok(events.some(event=>event.type==='model_retry'&&event.code==='claude_response_invalid'));
+  assert.equal(events.some(event=>event.type==='model_error'),false);
+  count=0;service.providers.complete=async()=>{count++;throw Error('claude_response_invalid');};
+  await assert.rejects(defaultWikiUpdater(service,{load})({root,signal:new AbortController().signal,onEvent(){},updateId:'claude-terminal'}),/claude_response_invalid/);
+  assert.equal(count,4);
 });
 
 // The agent is told when the Wiki is behind its sources, from Git alone, so an

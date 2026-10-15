@@ -644,7 +644,7 @@ This repository has a generated \`openwiki/\` evidence index. It is optional jus
 - Treat source code and tests as authoritative. A brief's unknowns and review items are verification gaps, not automatic requirements.
 - Prefer the narrowest quiet validation that proves the changed behavior. Preserve complete failure output.
 
-The scheduled OpenWiki GitHub Actions workflow refreshes the repository wiki. Do not hand-edit generated OpenWiki pages unless explicitly asked; prefer updating source code/docs and letting OpenWiki regenerate.
+A scheduled OpenWiki workflow can refresh the repository wiki when it is configured. This instruction block does not establish that a workflow is installed or running; inspect the actual workflow configuration before documenting automation. Do not hand-edit generated OpenWiki pages unless explicitly asked; prefer updating source code/docs and letting OpenWiki regenerate.
 
 ${OPENWIKI_AGENTS_SNIPPET_END}`;
 }

@@ -15,6 +15,9 @@ test('the bundled mail reader script names the mail origin, not the placeholder'
   const contract=createRequire(import.meta.url)(file);
   const source=contract.portalFetchSource();
   assert.ok(!source.includes('__NUBI_PORTAL_ORIGIN__'));assert.ok(source.includes(JSON.stringify(contract.ORIGIN)));
+  const {runInNewContext}=await import('node:vm');
+  const packet=await runInNewContext(`(${source})({operation:'approvalItem',ap:'a',ln:'l',reportFailure:true})`,{location:{origin:contract.ORIGIN},URLSearchParams,TextDecoder,Uint8Array,AbortController,setTimeout,clearTimeout,fetch:async()=>new Response('private',{status:502})});
+  assert.equal(packet.__nubiPortalError,'mail_portal_unavailable');assert.equal(packet.httpStatus,502);assert(!JSON.stringify(packet).includes('private'));
 });
 
 test('the packaged credential form script has no hidden bundler helper dependencies',async t=>{

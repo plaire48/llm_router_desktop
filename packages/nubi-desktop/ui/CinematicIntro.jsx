@@ -1,8 +1,9 @@
 import {createPortal} from 'react-dom';
+import {CxButton,Icon} from '@e2e/cx-design-system';
 import React,{useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {AgentMark,NubiWordmark} from '../../../extensions/aipro-chat/src/AgentMark.jsx';
 import './cinematic-intro.css';
-import {openingSceneId,needsOpeningScene,rememberOpeningScene} from './opening-scene.mjs';
+import {openingSceneId,openingSceneMode,rememberOpeningScene} from './opening-scene.mjs';
 import {startIntroFlight} from './introFlight.js';
 
 // Opening scene, once per launch (user requests 2026-10-14: "영화의 한 장면처럼", more cuts, a real sky, a progress bar,
@@ -10,7 +11,7 @@ import {startIntroFlight} from './introFlight.js';
 // cloud sea at sunrise, fly into a cloud and burst out into a rushing corridor, climb into the sun's glare, and come out
 // onto white, where the wordmark and progress bar gently fade in. Wingbeats lift the view a little, the view banks into
 // turns, and cloud wisps rush past. The bar completes when the app reports it
-// is ready, then the scene glides away. Transform and opacity only. A click or key skips it; automated runs skip it. Reduced
+// is ready, then the scene glides away. Transform and opacity only. Only the Skip button or Escape skips it. Installed apps never bypass it merely because automation is attached. Reduced
 // motion uses a short, static opening instead of the flight.
 const SCENES=5400,TITLE_MIN=900,COMPLETE=420,LEAVE=620,LONGEST=11000;
 let played=false;
@@ -20,8 +21,9 @@ const VERSION=typeof __NUBI_VERSION__==='string'&&__NUBI_VERSION__||'installed';
 const storage={getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value)};
 export function CinematicIntro({ready=false,onFinish}){
   const [sceneId]=useState(()=>openingSceneId(VERSION,window.nubi?.installationId));
-  const [mode]=useState(()=>played||navigator.webdriver?'none':matchMedia('(prefers-reduced-motion: reduce)').matches?'brief':needsOpeningScene(storage,sceneId)?'full':'brief');
+  const [mode]=useState(()=>openingSceneMode({played,automated:navigator.webdriver,installationId:window.nubi?.installationId,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches,storage,id:sceneId}));
   const [phase,setPhase]=useState(()=>mode==='none'?'done':mode==='full'?'scenes':'title');
+  const skipScene=useRef(null);
   const finished=useRef(false),finish=useRef(onFinish),flight=useRef(null),readyRef=useRef(ready);finish.current=onFinish;readyRef.current=ready;
   const bootGuard=useRef(document.body.hasAttribute('data-nubi-opening'));
   useLayoutEffect(()=>{
@@ -43,9 +45,9 @@ export function CinematicIntro({ready=false,onFinish}){
     return()=>{cancelAnimationFrame(frame);if(typeof cancelIdleCallback==='function')cancelIdleCallback(idle);clearTimeout(idle);};
   },[started]);
   useEffect(()=>{if(!started||!flight.current||mode!=='full')return;return startIntroFlight(flight.current,{length:4700});},[started,phase==='done']);
-  useEffect(()=>{if(phase==='done'&&!finished.current){finished.current=true;if(mode!=='none')rememberOpeningScene(storage,sceneId);finish.current?.();}},[phase]);
+  useEffect(()=>{if(phase==='done'&&!finished.current){finished.current=true;played=true;if(mode!=='none')rememberOpeningScene(storage,sceneId);finish.current?.();}},[phase]);
   useEffect(()=>{
-    if(phase==='done'||!started)return;played=true;
+    if(phase==='done'||!started)return;
     const timers=[setTimeout(()=>setPhase(current=>current==='scenes'?'title':current),mode==='full'?SCENES:0),setTimeout(()=>setPhase(current=>current==='scenes'?'title':current),LONGEST)];
     const skip=()=>{
       // Skipping the flight does not mean startup has completed. Keep the logo
@@ -53,8 +55,10 @@ export function CinematicIntro({ready=false,onFinish}){
       if(!readyRef.current){setPhase('title');return;}
       setPhase('leave');timers.push(setTimeout(()=>setPhase('done'),260));
     };
-    window.addEventListener('pointerdown',skip,{once:true});window.addEventListener('keydown',skip,{once:true});
-    return()=>{timers.forEach(clearTimeout);window.removeEventListener('pointerdown',skip);window.removeEventListener('keydown',skip);};
+    skipScene.current=skip;
+    const onKey=event=>{if(event.key==='Escape'){event.preventDefault();skip();}};
+    window.addEventListener('keydown',onKey);
+    return()=>{skipScene.current=null;timers.forEach(clearTimeout);window.removeEventListener('keydown',onKey);};
   },[phase==='done',started]);
   // The bar completes once the app is ready and the title has been seen, then the scene hands over.
   useEffect(()=>{
@@ -67,7 +71,8 @@ export function CinematicIntro({ready=false,onFinish}){
     if(phase==='leave'){const timer=setTimeout(()=>setPhase('done'),LEAVE);return()=>clearTimeout(timer);}
   },[phase]);
   if(phase==='done')return null;
-  return createPortal(<div className="nubi-intro" data-mode={mode} data-phase={phase} data-started={started||undefined} aria-hidden="true">
+  return createPortal(<div className="nubi-intro" data-mode={mode} data-phase={phase} data-started={started||undefined} role="region" aria-label="누비 시작 화면">
+    {mode==='full'&&<CxButton className="nubi-intro-skip" disabled={!started||phase==='leave'} onClick={()=>skipScene.current?.()} title="건너뛰기 (Esc)"><span>건너뛰기</span><Icon name="chevronRight" size={16}/></CxButton>}
     <div className="nubi-intro-horizon"/><div className="nubi-intro-horizon nubi-intro-echo nubi-intro-echo-1"/><div className="nubi-intro-horizon nubi-intro-echo nubi-intro-echo-2"/>
     {mode==='full'&&<canvas ref={flight} className="nubi-intro-flight"/>}
     <div className="nubi-intro-tunnel"/>

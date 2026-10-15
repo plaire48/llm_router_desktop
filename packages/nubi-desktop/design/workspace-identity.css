@@ -1486,7 +1486,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-mail-attachments h3 { display:flex; align-items:center; gap:var(--cx-space-1); font:var(--deck-font-label); font-weight:650; color:var(--deck-sub); }
 .nubi-mail-attachment-row { display:flex; align-items:center; gap:var(--cx-space-1); border-radius:var(--deck-control-radius); background:var(--deck-tint); margin:6px 0; padding:2px 5px 2px 2px; }
 .desktop-shell .nubi-mail-attachment-row .nubi-mail-attachment { display:flex; align-items:center; gap:var(--cx-space-3); flex:1; min-width:0; padding:8px; margin:0; background:transparent; color:var(--deck-sub); }
-.nubi-mail-attachment-row .nubi-mail-attachment strong { font-size:13px; font-weight:650; }
+.nubi-mail-attachment-row .nubi-mail-attachment strong { font-size:var(--deck-type-caption); font-weight:var(--nubi-weight-emphasis); }
 .nubi-mail-attachment-row .cx-icon-button { flex:none; background:transparent; border:0; }
 .nubi-mail-attachment-row .cx-icon-button>svg,.nubi-mail-reader-heading>.cx-icon-button>svg { width:17px; height:17px; }
 .nubi-mail-original { margin-top:var(--cx-space-3); }
@@ -1620,7 +1620,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 /* Type icons and filenames keep one alignment in both preview and download-only rows. */
 .desktop-shell .nubi-mail-attachment > .desktop-file-icon { flex:0 0 24px; min-width:24px; }
 .desktop-shell .nubi-mail-attachment > .nubi-mail-attachment-label { flex:1; min-width:0; overflow:hidden; }
-.desktop-shell .nubi-mail-attachment-label strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.desktop-shell .nubi-mail-attachment-label :is(strong,small) { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
 /* Destructive confirmation: concise scope, preserved-file note, clear action. */
 .nubi-delete-conversation { width:min(440px,calc(100vw - 32px)); }
@@ -1659,9 +1659,9 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 
 /* The model-use note of the Wiki update card: one collapsed line with an icon, the full sentence inside. */
 .nubi-wiki-update-detail { color:var(--deck-sub); font:var(--deck-font-caption); }
-.nubi-wiki-update-detail>summary { display:flex; align-items:center; gap:var(--cx-space-1); width:fit-content; padding:var(--cx-space-1) 0; cursor:pointer; list-style:none; }
+.nubi-wiki-update-detail>summary { display:flex; align-items:center; gap:var(--nubi-work-control-gap); width:fit-content; padding:var(--cx-space-1) 0; font-weight:var(--nubi-weight-label); cursor:pointer; list-style:none; }
 .nubi-wiki-update-detail>summary::-webkit-details-marker { display:none; }
-.nubi-wiki-update-detail>summary>svg { flex:none; color:var(--deck-blue-deep); }
+.nubi-wiki-update-detail>summary>svg { flex:none; width:var(--nubi-icon-small); height:var(--nubi-icon-small); color:var(--deck-blue-deep); }
 .nubi-wiki-update-detail>p { margin:var(--cx-space-2) 0 0; line-height:1.6; }
 
 /* Long lists grow one page at a time (2026-10-14). */
@@ -1728,7 +1728,8 @@ html[data-project-switching] .nubi-workbench .nubi-main, html[data-project-switc
 .nubi-notice-footer { display:flex; justify-content:flex-end; margin-top:var(--cx-space-2); }
 
 /* Encrypted mail wiki storage mark beside the connected heading (2026-10-14). */
-.nubi-mail-lock { display:inline-flex; align-items:center; margin-left:var(--cx-space-2); color:var(--deck-blue-deep); }
+.nubi-mail-connection-actions { display:inline-flex; align-items:center; flex-shrink:0; gap:var(--cx-space-2); }
+.nubi-mail-lock { display:inline-flex; align-items:center; color:var(--deck-blue-deep); }
 .nubi-mail-lock[data-state="unavailable"] { color:var(--nubi-text-secondary); opacity:.7; }
 
 /* Toast decisions: the choices of a question and its free-text answer (2026-10-14). */
@@ -1820,3 +1821,35 @@ html[data-project-switching] .nubi-workbench .nubi-main, html[data-project-switc
 }
 
 .nubi-progress-estimate { display:block; margin-top:var(--cx-space-2); color:var(--deck-sub); font:var(--deck-font-caption); font-variant-numeric:tabular-nums; }
+
+/* Mail authentication guidance stays outside the native portal viewport. */
+.desktop-browser-login-guide { display:flex; align-items:center; flex:none; gap:var(--cx-space-2); padding:var(--cx-space-2) var(--cx-space-3); background:var(--deck-blue-soft); color:var(--deck-sub); font:var(--deck-font-caption); }
+.desktop-browser-login-guide > svg { flex:none; color:var(--deck-blue); }
+.desktop-browser-login-guide > span { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.desktop-browser-login-guide strong { color:var(--deck-ink); font-weight:var(--nubi-weight-emphasis); margin-right:var(--cx-space-1); }
+
+/* Destructive data cleanup uses the same confirmation and progress rhythm as storage moves. */
+.nubi-data-reset-progress { display:grid; gap:var(--cx-space-2); margin-top:var(--cx-space-3); }
+.nubi-data-reset-progress p { display:flex; align-items:center; justify-content:space-between; gap:var(--cx-space-3); margin:0; color:var(--deck-sub); font:var(--deck-font-caption); }
+.nubi-data-reset-progress time { flex-shrink:0; font-variant-numeric:tabular-nums; }
+.nubi-mail-storage > .cx-button { margin-top:var(--cx-space-3); }
+
+/* SSO failures stay next to the browser toolbar; the original page remains visible. */
+.desktop-browser-auth-notice { flex:0 0 auto; min-width:0; margin:var(--cx-space-2); padding:var(--cx-space-3) var(--cx-space-4); border-radius:var(--deck-control-radius); background:var(--deck-tint); color:var(--deck-ink); font:400 var(--deck-type-caption)/var(--deck-line-caption) var(--nubi-font-family); }
+.desktop-browser-auth-heading { display:flex; align-items:center; gap:var(--cx-space-2); min-width:0; }
+.desktop-browser-auth-heading>svg { flex:none; color:var(--deck-blue); }
+.desktop-browser-auth-heading strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; font-size:var(--deck-type-body); }
+.desktop-browser-auth-heading button { margin-left:auto; flex:none; height:40px; gap:var(--cx-space-2); border:0; background:transparent; color:var(--deck-sub); box-shadow:none; }
+.desktop-browser-auth-notice p { margin:var(--cx-space-1) 0 var(--cx-space-2); color:var(--deck-sub); overflow-wrap:anywhere; }
+.desktop-browser-auth-notice summary { display:flex; align-items:center; gap:var(--cx-space-2); cursor:pointer; min-height:32px; color:var(--deck-sub); list-style:none; }
+.desktop-browser-auth-notice summary::-webkit-details-marker { display:none; }
+.desktop-browser-auth-notice summary>svg { flex:none; transition:transform var(--deck-fast); }
+.desktop-browser-auth-notice details[open] summary>svg { transform:rotate(180deg); }
+.desktop-browser-auth-detail-label { margin-left:auto; }
+.desktop-browser-auth-notice ol { margin:var(--cx-space-2) 0; padding:0; list-style:none; max-height:160px; overflow:auto; }
+.desktop-browser-auth-notice li { display:grid; grid-template-columns:minmax(0,1fr) auto 4em; gap:var(--cx-space-2); padding:var(--cx-space-1) 0; }
+.desktop-browser-auth-notice time { text-align:right; color:var(--deck-sub); font-variant-numeric:tabular-nums; }
+.desktop-browser-auth-code { display:flex; align-items:center; gap:var(--cx-space-2); color:var(--deck-sub); }
+.desktop-browser-auth-code code { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; font:inherit; }
+@media(max-width:480px) { .desktop-browser-auth-heading button span { display:none; } }
+@media(prefers-reduced-motion:reduce) { .desktop-browser-auth-notice summary>svg { transition:none; } }

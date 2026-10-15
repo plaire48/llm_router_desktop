@@ -70,7 +70,7 @@ export class MailWikiVault{
     try{this.watcher=watch(this.sessionRoot,{persistent:false},(_event,name)=>{if(typeof name==='string'&&(pageName(name)))this.touch(name);});this.watcher.on('error',()=>{});}catch{this.watcher=null;}
     this.timer=setInterval(()=>void this.syncAll(),30000);this.timer.unref?.();
   }
-  touch(name){this.pending.add(name);clearTimeout(this.debounce);this.debounce=setTimeout(()=>void this.sync(),500);}
+  touch(name){if(this.disposed)return;this.pending.add(name);clearTimeout(this.debounce);this.debounce=setTimeout(()=>void this.sync(),500);}
   sync(){this.syncing=this.syncing.then(async()=>{const names=[...this.pending];this.pending.clear();for(const name of names)await this.syncOne(name);}).catch(()=>{});return this.syncing;}
   async syncOne(name){
     const file=path.join(this.sessionRoot,name);
@@ -82,6 +82,7 @@ export class MailWikiVault{
   async syncAll(){
     if(!this.active||this.disposed)return;
     let names=[];try{names=(await readdir(this.sessionRoot)).filter(pageName);}catch{return;}
+    if(this.disposed)return;
     for(const name of names)this.pending.add(name);
     await this.sync();
   }

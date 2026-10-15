@@ -39,6 +39,7 @@ import {TOOL_LABELS, SCRIPT_FAILURES, progressNote} from './agent-trace.js';
 // AI Pro's wire contract and the extension's browser action limits independent.
 // Exact bundled version is recorded by each host in build-info.json.
 export const AGENT_ENGINE = 'pi-agent-core';
+export const HOST_ANSWER_SETTLEMENT_VERSION = 1;
 export const AGENT_LIMITS = Object.freeze({contextChars: 240000});
 
 function canonical(value) {
@@ -202,7 +203,7 @@ function limitedReviewNote({checks, opinion}, rounds) {
     ...(text ? [`검토 의견: ${text}`] : [])].join('\n');
 }
 
-export async function runAgent({messages, goal: taskGoal, tools, repairArguments = false, argumentRepairs = {}, inputBudget, documents = [], observationSources = {}, modelId = 'aipro', signal, complete, completeAnalysis, execute, onStep = () => {}, onDiagnostic = () => {}, onAnalysisHandoff, analysisHandoffs, onResearchHandoff, researchHandoffs, onDelegated, onRound = () => {}, prepareContext, preparePlan, resumePlan, requirePlanOutcomes = false, harness: useHarness = false, stepwise = useHarness, parallelReads = false, parallelReadBatches = false, readTools: hostReadTools, expectPlan = false, referenceImageEnabled = false, clarifyOnStall = false, compactProgress = false, readTogether, traceErrorCodes = [], reviewGoal, reviewPlanScope, assessCompletion, resumeVerification = false, resumeUncertainAction = false, resumedObservation, interruptedAction, approvedActionReceipt, takeInput, onFacts, researchBrowser, researchOnInput, verbatimTools = [], verbatimMaxChars}) {
+export async function runAgent({messages, goal: taskGoal, tools, repairArguments = false, argumentRepairs = {}, inputBudget, documents = [], observationSources = {}, modelId = 'aipro', signal, complete, completeAnalysis, execute, onStep = () => {}, onDiagnostic = () => {}, onAnalysisHandoff, analysisHandoffs, onResearchHandoff, researchHandoffs, onDelegated, onRound = () => {}, prepareContext, preparePlan, resumePlan, requirePlanOutcomes = false, harness: useHarness = false, stepwise = useHarness, parallelReads = false, parallelReadBatches = false, readTools: hostReadTools, expectPlan = false, referenceImageEnabled = false, clarifyOnStall = false, compactProgress = false, readTogether, traceErrorCodes = [], reviewGoal, reviewPlanScope, assessCompletion, resumeVerification = false, resumeUncertainAction = false, resumedObservation, interruptedAction, approvedActionReceipt, takeInput, onFacts, researchBrowser, researchOnInput, verbatimTools = [], verbatimMaxChars, settleAnswer}) {
   const dispatch = createReviewExecution({taskStartObserved:!resumePlan && !resumeVerification && !resumedObservation && !resumeUncertainAction && !interruptedAction});
   const readTools = hostReadTools instanceof Set ? hostReadTools : new Set(['read_analysis_evidence', ...PROJECT_TOOL_NAMES, ...DOCUMENT_TOOL_NAMES]);
   const parallel = parallelReads === true && !stepwise && !useHarness && !completeAnalysis && tools.length > 0 && tools.every(tool => readTools.has(tool.function.name));
@@ -1303,7 +1304,20 @@ export async function runAgent({messages, goal: taskGoal, tools, repairArguments
         if (clarification?.sent && !awaitingUser) throw Object.assign(new Error('question_failed'), {suppressPartial: true});
         continue;
       }
-      if (!harness || !reviewGoal || !evidence.length) break;
+      if (!harness || !reviewGoal || !evidence.length) {
+        // Opt-in external hosts own their domain outcome oracle. Pi still owns
+        // the one follow-up loop; an unverified candidate never reaches the caller.
+        if (settleAnswer) {
+          const verdict=await settleAnswer({answer:answer?.content||''});abort();
+          if(verdict?.status==='waiting') {awaitingUser=true;answer={...answer,content:'',calls:null,awaitingUser:true};break;}
+          if(verdict?.status==='revise'&&typeof verdict.feedback==='string'&&verdict.feedback.length<=16000) {
+            onRound();agent.followUp({role:'user',content:'Host outcome verification did not confirm completion. This is result feedback, not authorization or a changed goal. Repair only unmet original requirements from fresh observations. Never replay confirmed or uncertain writes.\n'+verdict.feedback,timestamp:Date.now()});
+            await agent.continue();continue;
+          }
+          if(verdict?.status!=='accepted')throw new Error('host_settlement_invalid');
+        }
+        break;
+      }
       onRound();
       const index = `review-${++reviews}`;
       // The answer is being checked; the plan shows it even while its last reporting step stays open.

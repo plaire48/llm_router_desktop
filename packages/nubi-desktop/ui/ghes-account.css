@@ -82,17 +82,17 @@
 .nubi-account-footer .cx-action-button { width:36px; min-width:36px; height:36px; padding:8px; }
 .nubi-account-footer .cx-action-button:hover { color:var(--deck-blue-deep); background:var(--deck-blue-soft); }
 
-.nubi-toolbar-account .nubi-account-button > span:not(.nubi-account-avatar) { max-width:160px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-weight:500; }
+.nubi-toolbar-account .nubi-account-button > .nubi-account-name-label { max-width:160px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-weight:500; }
 
 .nubi-account-button[data-connected="false"] .nubi-account-avatar { background:transparent; color:var(--nubi-text-primary,var(--deck-ink)); }
 
 .nubi-account-avatar-photo { display:inline-flex; align-items:center; justify-content:center; width:100%; height:100%; overflow:hidden; border-radius:50%; }
-/* Status emoji badge (GitHub-style, lower right of the photo): a small round card with a hairline ring, readable on
-   light and dark because both colors are theme tokens. The font sizes were referenced but never defined (2026-10-14). */
-.nubi-account-control, .nubi-ghes-modal { --nubi-account-status-font:11px; --nubi-account-status-profile-font:15px; }
-.nubi-account-status-emoji { position:static; margin-left:4px; flex:none; vertical-align:middle; right:auto; bottom:auto; display:grid; place-items:center; width:18px; height:18px; border-radius:50%; background:var(--deck-card); box-shadow:0 0 0 1.5px var(--deck-card), 0 0 0 2.5px var(--deck-line); font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif; font-size:var(--nubi-account-status-font); line-height:1; pointer-events:auto; overflow:hidden; }
-.nubi-account-status-emoji > img { width:72%; height:72%; object-fit:contain; }
+/* Status follows the name without entering the truncated text container. */
+.nubi-account-control, .nubi-ghes-modal { --nubi-account-status-font:12px; --nubi-account-status-profile-font:17px; }
+.nubi-account-status-emoji { position:static; margin:0; flex:none; display:grid; place-items:center; width:18px; height:18px; border-radius:50%; background:transparent; box-shadow:none; font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif; font-size:var(--nubi-account-status-font); line-height:1; pointer-events:auto; overflow:hidden; z-index:1; }
+.nubi-account-status-emoji > img { width:78%; height:78%; object-fit:contain; }
 .nubi-account-profile .nubi-account-status-emoji { width:24px; height:24px; font-size:var(--nubi-account-status-profile-font); }
-/* Beside the name the emoji needs no badge circle (2026-10-14). */
-.nubi-account-status-emoji { display:inline-grid; background:transparent; box-shadow:none; }
-.nubi-account-status-emoji[data-text] { width:auto; padding-inline:4px; font:var(--deck-font-caption); color:var(--deck-sub); }
+.nubi-account-status-emoji[data-text] { color:var(--deck-sub); }
+
+.nubi-account-name-row { display:flex; align-items:center; gap:var(--cx-space-1); min-width:0; }
+.nubi-account-name-row strong { min-width:0; }

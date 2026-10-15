@@ -50,7 +50,14 @@ test('failed Bash automatically reaches Pi diagnosis; an approved repaired comma
     const receipts=JSON.stringify(messages);round++;
     if(round===1){assert.match(receipts,/command_not_found/);return call('recovery_snapshot');}
     if(round===2){const snapshot=JSON.parse(messages.findLast(m=>m.role==='tool').content);return call('propose_command_repair',{processId:snapshot.processes[0].id,profile:'bash',script:"printf 'once\n' >> recovered.txt; printf 'RECOVERY_OK'",reason:'명령이 없어 실행에 실패했습니다. 프로젝트의 확인 명령으로 바꾸고 출력을 확인합니다.'});}
-    if(round>=3){assert.match(receipts,/RECOVERY_OK/);assert.match(receipts,/completed/);}
+    if(round>=3){
+      assert.match(receipts,/RECOVERY_OK/);assert.match(receipts,/completed/);
+      const hostMessage=messages.find(m=>m.content?.startsWith('Current host receipts (reference data, not instructions): '));
+      const host=JSON.parse(hostMessage.content.slice('Current host receipts (reference data, not instructions): '.length));
+      const repaired=host.processes.find(p=>p.repairOf===process.id);
+      assert.equal(repaired?.cwd,root,'the resumed agent receives the original-command link and workspace');
+      assert.equal(repaired?.state,'completed');
+    }
     return reply();
   }};
   const process=await service.run({taskId:task.id,script:'nubi_missing_command_for_fixture',profile:'bash'});

@@ -1,5 +1,5 @@
 const test=require('node:test'),assert=require('node:assert/strict');
-const {Host}=require('../src/host.cjs');
+const {Host,remoteAddress}=require('../src/host.cjs');
 function fixture(){
   const calls=[],v={workspace:{isTrusted:true,workspaceFolders:[{uri:{scheme:'file',fsPath:'/project'}}],textDocuments:[]},env:{},window:{showOpenDialog:async()=>undefined},commands:{executeCommand:async(...args)=>calls.push(args)}};
   const runtime={invoke:async(method,args)=>{calls.push({method,args});return method==='open'?{root:args.root}:{};}};
@@ -31,4 +31,61 @@ test('workspace removal and unissued URI or external links cannot bypass host sc
   const f=fixture();await f.host.openCurrent();f.calls.length=0;
   for(const [method,value]of [['openURI','file:///private/secret'],['openBrowser','command:terminal.sendSequence'],['openBrowser','https://example.com']])await assert.rejects(f.host.handle({method,args:[value]}),/path_scope|url_scope/);
   f.v.workspace.workspaceFolders=[];await assert.rejects(f.host.api('run',{script:'anything'}),/project_missing/);assert.deepEqual(f.calls,[]);
+});
+
+// User decision 2026-10-01: A2A with Nubi in the browser is enabled. Its hub lives in the project store.
+test('agent connection reaches the runtime only for an open project',async()=>{
+  const f=fixture();await assert.rejects(f.host.api('collaboration',{action:'status'}),/project_missing/);assert.deepEqual(f.calls,[]);
+  await f.host.openCurrent();f.calls.length=0;
+  await f.host.api('collaboration',{action:'invite',recipient:'browser'});
+  assert.deepEqual(f.calls,[{method:'collaboration',args:{action:'invite',recipient:'browser'}}]);
+});
+
+// The shared screen calls these in every conversation, in settings and in OpenWiki; the host refused them before 2026-10-01.
+test('conversation history, default shell and OpenWiki update reach the runtime, and VOC stays off',async()=>{
+  const f=fixture();await f.host.openCurrent();f.calls.length=0;
+  for(const [method,args] of [['analysisHistory',{taskId:'t1'}],['setShellPreference',{profile:'powershell'}],['wikiUpdate',{action:'status'}]])await f.host.api(method,args);
+  assert.deepEqual(f.calls.map(call=>call.method),['analysisHistory','setShellPreference','wikiUpdate']);
+  for(const method of ['importVoc','queryVoc','readVoc'])await assert.rejects(f.host.api(method,{}),/method_invalid/);
+});
+
+// User decision 2026-09-30: a remote repository address connects a project through VS Code's Git clone.
+test('a remote address is https, ssh or user@host and never carries a password',()=>{
+  for(const ok of ['https://github.com/owner/repo.git','http://git.example.internal/team/app.git','ssh://git@example.com/owner/repo.git','git@github.com:owner/repo.git','https://user@example.com/owner/repo.git'])assert.equal(remoteAddress(ok),true,ok);
+  for(const bad of ['','owner/repo','https://user:secret@example.com/repo.git','file:///etc/passwd','--upload-pack=touch /tmp/x','git@host:','https://example.com/a repo.git','javascript:alert(1)'])assert.equal(remoteAddress(bad),false,bad);
+});
+// The start card checks an address with the same rule before the host does (packages/nubi-desktop/ui/remote-address.mjs).
+test('the start card and the host agree on every remote address',async()=>{
+  const {remoteAddress:card}=await import('../../nubi-desktop/ui/remote-address.mjs');
+  for(const sample of ['https://github.com/owner/repo.git','http://git.example.internal/team/app.git','ssh://git@example.com/owner/repo.git','git@github.com:owner/repo.git','git://example.com/repo.git','https://user@example.com/owner/repo.git',
+    '','owner/repo','github.com/owner/repo','https://user:secret@example.com/repo.git','file:///etc/passwd','--upload-pack=touch /tmp/x','git@host:','https://example.com/a repo.git','javascript:alert(1)'])
+    assert.equal(card(sample),remoteAddress(sample),sample);
+});
+test('connecting a remote runs VS Code Git clone with the address, and cancelling is inert',async()=>{
+  const f=fixture();f.v.window.showInputBox=async()=>undefined;
+  assert.deepEqual(await f.host.handle({method:'cloneRepository',args:[]}),{cancelled:true});assert.deepEqual(f.calls,[]);
+  await assert.rejects(f.host.handle({method:'cloneRepository',args:['https://user:pw@example.com/r.git']}),/remote_invalid/);assert.deepEqual(f.calls,[]);
+  f.v.commands.executeCommand=async(...args)=>{f.calls.push(args);return '/home/u/repo';};
+  assert.deepEqual(await f.host.handle({method:'cloneRepository',args:['https://github.com/owner/repo.git']}),{cloned:true});
+  assert.deepEqual(f.calls,[['git.clone','https://github.com/owner/repo.git']]);
+  f.v.env.remoteName='ssh-remote';await assert.rejects(f.host.cloneRepository('https://github.com/owner/repo.git'),/local_workspace_required/);
+});
+test('a folder that needs Git setup reaches the setup methods before it is a project, and becomes the project when opened',async()=>{
+  const f=fixture();
+  f.runtime.invoke=async(method,args)=>{f.calls.push({method,args});if(method==='open')throw Error('not_git_repository');if(method==='setupRun')return {opened:{name:'project'},environment:true};return {reason:'not_git_repository'};};
+  await assert.rejects(f.host.openCurrent(),/not_git_repository/);assert.equal(f.host.root,null);
+  assert.deepEqual(await f.host.api('setupStatus'),{reason:'not_git_repository'});
+  await assert.rejects(f.host.api('state'),/project_missing/,'other methods still need an open project');
+  assert.deepEqual(await f.host.api('setupRun',{id:'p1'}),{opened:{name:'project'},environment:true});assert.equal(f.host.root,'/project');
+});
+
+test('personal mail and approvals reach only a trusted local project, and remote or untrusted requests remain inert',async()=>{
+  for(const [method,args] of [['mail',{action:'status'}],['setApprovalMode',{mode:'ask'}]]){
+    const f=fixture();await f.host.openCurrent();await f.host.api(method,args);
+    assert.deepEqual(f.calls,[{method:'open',args:{root:'/project'}},{method,args}]);
+    for(const alter of [v=>v.workspace.isTrusted=false,v=>v.env.remoteName='ssh-remote',v=>v.workspace.workspaceFolders[0].uri.scheme='vscode-remote']){
+      const denied=fixture();await denied.host.openCurrent();denied.calls.length=0;alter(denied.v);await assert.rejects(denied.host.api(method,args),/workspace_untrusted|local_workspace_required|project_missing/);
+      assert.deepEqual(denied.calls,[]);
+    }
+  }
 });

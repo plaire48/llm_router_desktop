@@ -1,7 +1,7 @@
 /* Opening scene seen through the bird's eyes (2026-10-14): a continuous flight drawn on a canvas (ui/introFlight.js)
    over the distant view ahead, accelerating to warp; the light floods in and we come out over calm air, where the
    title fades in over white. Timeline: flight to 4.7s, white settles at 4.85s, logo at 5s, bar at 5.2s. */
-.nubi-intro { position:fixed; inset:0; z-index:2147483000; overflow:hidden; background:rgb(243 230 216); cursor:pointer; }
+.nubi-intro { position:fixed; inset:0; z-index:2147483000; overflow:hidden; background:rgb(243 230 216); cursor:default; }
 .nubi-intro-cut { position:absolute; inset:0; overflow:hidden; opacity:0; }
 .nubi-intro-image { position:absolute; inset:-8%; background-size:cover; background-position:center; will-change:transform; }
 /* The distant view ahead: the sun in the cloud corridor, slowly growing as we fly at it. */
@@ -78,3 +78,6 @@ body:has(.nubi-intro) .nubi-preparing { visibility:hidden; }
  .nubi-intro .nubi-intro-title { opacity:1; transform:translate(-50%,-50%); }
  .nubi-intro .nubi-intro-progress { opacity:1; }
 }
+
+.nubi-intro .nubi-intro-skip.cx-kit-button { position:absolute; right:var(--cx-space-4); bottom:var(--cx-space-4); z-index:2; min-height:var(--nubi-work-control-height); border:0; border-radius:var(--nubi-work-control-radius); background:var(--nubi-surface-base); color:var(--nubi-text-secondary); box-shadow:none; font:var(--deck-font-body); gap:var(--cx-space-2); }
+.nubi-intro .nubi-intro-skip:focus-visible { outline:2px solid var(--deck-blue); outline-offset:2px; }

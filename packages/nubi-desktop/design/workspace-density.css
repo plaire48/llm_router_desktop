@@ -137,7 +137,7 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
  :root:has(.desktop-shell) { --nubi-toolbar-height:48px; }
  .nubi-window-toolbar { grid-template-columns:minmax(0,1fr) auto; gap:var(--cx-space-1) var(--cx-space-2); padding-block:var(--cx-space-1); }
  .nubi-window-toolbar .nubi-logo { gap:var(--cx-space-1); }
- .nubi-toolbar-account .nubi-account-button > span:not(.nubi-account-avatar) { display:none; }
+ .nubi-toolbar-account .nubi-account-button > .nubi-account-name-label { display:none; }
  .nubi-toolbar-navigation { grid-column:1; grid-row:1; border:0; }
  .nubi-toolbar-account { grid-column:2; grid-row:1; justify-self:end; }
  .nubi-toolbar-actions { grid-column:2; grid-row:2; justify-self:end; }
@@ -291,7 +291,7 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .nubi-mail-reader-content { min-width:0; }
 .nubi-mail-reader-envelope { display:flex; flex-wrap:wrap; align-items:baseline; gap:var(--cx-space-1) var(--cx-space-3); margin-block:var(--cx-space-3); font:var(--deck-font-caption); color:var(--deck-sub); overflow-wrap:anywhere; }
 .nubi-mail-sender { display:flex; flex-wrap:wrap; align-items:baseline; gap:var(--cx-space-1) var(--cx-space-2); min-width:0; }
-.nubi-mail-sender strong { color:var(--deck-ink); font:var(--deck-font-label); font-weight:700; }
+.nubi-mail-sender strong { color:var(--deck-ink); font:var(--deck-font-label); font-weight:var(--nubi-weight-emphasis); }
 .nubi-mail-sent-at { margin-left:auto; color:var(--deck-sub); }
 .nubi-mail-addresses { flex-basis:100%; display:grid; gap:var(--cx-space-1); margin:0; font:var(--deck-font-caption); color:var(--deck-sub); }
 .nubi-mail-addresses>div { display:grid; grid-template-columns:5em minmax(0,1fr); gap:var(--cx-space-2); }
@@ -303,7 +303,7 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .desktop-shell .nubi-mail-reader-actions .nubi-mail-ask:hover:not(:disabled) { background:var(--deck-blue-soft); }
 .desktop-shell .nubi-mail-reader-utilities .nubi-mail-local-action { min-width:44px; min-height:44px; justify-content:center; }
 .desktop-shell .nubi-mail-reader-utilities .nubi-mail-local-action>span { display:none; }
-.desktop-shell .nubi-mail-reader-heading h2 { font-size:var(--deck-type-heading); line-height:var(--deck-line-heading); }
+.desktop-shell .nubi-mail-reader-heading h2 { font-size:var(--deck-type-heading); line-height:var(--deck-line-heading); font-weight:var(--nubi-weight-emphasis); }
 .desktop-shell .nubi-mail-history-detail { padding:0 var(--cx-space-1) var(--cx-space-4); }
 .desktop-shell .nubi-mail-reader-text { line-height:var(--nubi-reading-leading); }
 .desktop-mail-source { overflow:auto; padding:var(--nubi-group-gap); min-height:0; }
@@ -575,7 +575,7 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .nubi-toolbar-navigation > .nubi-icon-button { margin-left:auto; flex-shrink:0; }
 .nubi-window-toolbar { container:workspace-toolbar / inline-size; }
 @container workspace-toolbar (max-width:52rem) {
- .nubi-toolbar-account .nubi-account-button>span:not(.nubi-account-avatar),
+ .nubi-toolbar-account .nubi-account-button>.nubi-account-name-label,
  .nubi-logo :is(.nubi-logo-product,.nubi-logo-version) { display:none; }
 }
 .desktop-shell .nubi-workbench .nubi-compose-card .composer-bottom { display:flex; flex-flow:row nowrap; align-items:center; gap:6px; }
@@ -894,14 +894,14 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 :root:has(.desktop-shell) { --provider-claude: #D97757; --provider-claude-ink: #8E422C; --provider-claude-soft: #F9EDE7; }
 .desktop-shell .model-trigger[data-provider="claude"] { --nubi-model-surface:var(--provider-claude-soft); --nubi-model-ink:var(--provider-claude-ink); }
 :root:has(.desktop-shell) :is(.provider-button,.provider-connect-button)[data-provider="claude"] { --provider-surface:var(--provider-claude-soft); --provider-ink:var(--provider-claude-ink); }
-/* AI Pro and FabriX get the same soft connected surface as ChatGPT and Claude (user report 2026-10-14). */
-:root:has(.desktop-shell) { --provider-aipro-soft:var(--deck-blue-soft); --provider-aipro-ink:var(--deck-blue-deep); --provider-fabrix-soft:color-mix(in srgb, var(--provider-fabrix-start) 18%, var(--deck-card)); }
+/* Preserve AI Pro softness; restore FabriX's original mint gradient (2026-10-16). */
+:root:has(.desktop-shell) { --provider-aipro-soft:var(--deck-blue-soft); --provider-aipro-ink:var(--deck-blue-deep); --provider-fabrix-soft:var(--provider-fabrix-start); }
 .desktop-shell .model-trigger[data-provider="aipro"] { --nubi-model-surface:var(--provider-aipro-soft); --nubi-model-ink:var(--provider-aipro-ink); }
-.desktop-shell .model-trigger[data-provider="fabrix"] { --nubi-model-surface:var(--provider-fabrix-soft); --nubi-model-ink:var(--provider-fabrix-ink); }
+.desktop-shell .model-trigger[data-provider="fabrix"] { --nubi-model-surface:linear-gradient(120deg,var(--provider-fabrix-start),var(--provider-fabrix-end)); --nubi-model-ink:var(--provider-fabrix-ink); }
 :root:has(.desktop-shell) :is(.provider-button,.provider-connect-button)[data-provider="aipro"] { --provider-surface:var(--provider-aipro-soft); --provider-ink:var(--provider-aipro-ink); }
-:root:has(.desktop-shell) :is(.provider-button,.provider-connect-button)[data-provider="fabrix"] { --provider-surface:var(--provider-fabrix-soft); --provider-ink:var(--provider-fabrix-ink); }
+:root:has(.desktop-shell) :is(.provider-button,.provider-connect-button)[data-provider="fabrix"] { --provider-surface:linear-gradient(112deg,var(--provider-fabrix-start),var(--provider-fabrix-end)); --provider-ink:var(--provider-fabrix-ink); }
 :root:has(.desktop-shell) .agent-tab-highlight [data-provider="aipro"] { background:var(--provider-aipro-soft); }
-:root:has(.desktop-shell) .agent-tab-highlight [data-provider="fabrix"] { background:var(--provider-fabrix-soft); }
+:root:has(.desktop-shell) .agent-tab-highlight [data-provider="fabrix"] { background:linear-gradient(120deg,var(--provider-fabrix-start),var(--provider-fabrix-end)); }
 :root:has(.desktop-shell) .model-dialog .provider-switcher[data-provider="aipro"] .provider-tabs [aria-selected="true"] { color:var(--provider-aipro-ink); }
 :root:has(.desktop-shell) .model-dialog .provider-switcher[data-provider="fabrix"] .provider-tabs [aria-selected="true"] { color:var(--provider-fabrix-ink); }
 :root:has(.desktop-shell) .agent-tab-highlight [data-provider="claude"] { background:var(--provider-claude-soft); }
@@ -1098,3 +1098,15 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 
 .nubi-history-more { display:flex; justify-content:center; margin:8px 0 16px; }
 .nubi-history-more>.cx-kit-button { min-height:36px; gap:8px; background:transparent; border:0; box-shadow:none; color:var(--deck-sub); font-size:var(--deck-type-caption); }
+
+/* One quiet attachment surface; emphasize an action on hover, not every filename. */
+.desktop-shell .nubi-workbench .nubi-mail-attachment-row .nubi-mail-attachment.cx-kit-button {
+ background:transparent; box-shadow:none; color:var(--nubi-text-primary);
+}
+.desktop-shell .nubi-workbench .nubi-mail-attachment-row .nubi-mail-attachment.cx-kit-button:hover:not(:disabled) {
+ background:var(--nubi-surface-selected);
+}
+.desktop-shell .nubi-mail-reader-content .nubi-utility-action {
+ min-width:var(--nubi-work-control-height); min-height:var(--nubi-work-control-height);
+ border-radius:var(--nubi-work-control-radius);
+}

@@ -9,6 +9,7 @@ export function wikiChatBlocked(service){
   return !!(initializing||updating||service.wikiRefreshOwner===service.store&&service.wikiRefreshJob&&!service.wikiRefreshJob.controller.signal.aborted);
 }
 export function requireWikiChatReady(service){
+  if(service.wikiResetting)throw Error('wiki_busy');
   if(wikiChatBlocked(service))throw Error('wiki_chat_blocked');
 }
 export function wikiChatJob(service){
@@ -18,7 +19,7 @@ export function wikiChatJob(service){
   if(service.wikiUpdateRun.preparing)return {id:service.wikiUpdateRun.id,projectId:service.projectId,kind:'update',state:'running',startedAt:service.wikiUpdateRun.startedAt,stage:'preparing_runtime',completed:null,total:null,percent:null};
   const update=service.store.get('wiki-update:'+service.wikiUpdateRun.id);
   const progress=[...(update.events||[])].reverse().find(event=>event.type==='progress');
-  const completed=progress?.stage==='generating'&&progress.total>0&&Number.isSafeInteger(progress.completed)?Math.max(0,Math.min(progress.total,progress.completed)):null;
+  const completed=['generating','reviewing'].includes(progress?.stage)&&progress.total>0&&Number.isSafeInteger(progress.completed)?Math.max(0,Math.min(progress.total,progress.completed)):null;
   return {id:update.id,projectId:service.projectId,kind:'update',state:'running',startedAt:update.startedAt,stage:progress?.stage||'preparing_runtime',
     completed,total:progress?.total,percent:completed===null?null:Math.floor(completed/progress.total*100)};
 }

@@ -20,3 +20,7 @@
 .nubi-review-draft summary { display:flex; align-items:center; gap:var(--cx-space-2); color:var(--deck-sub); cursor:pointer; font:var(--deck-font-body); }
 .nubi-review-draft summary>span { flex:1; font-weight:var(--nubi-weight-emphasis); }
 .nubi-review-draft>p { font:var(--deck-font-caption); color:var(--deck-sub); }
+
+.nubi-proposal-stale { display:flex; align-items:center; gap:var(--cx-space-2); margin:var(--cx-space-3) 0; font:var(--deck-font-caption); color:var(--nubi-text-secondary); }
+.nubi-proposal-stale>svg { flex:none; color:var(--nubi-text-action); }
+.nubi-proposal-stale>span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

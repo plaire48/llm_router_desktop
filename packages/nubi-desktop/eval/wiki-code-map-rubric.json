@@ -1,0 +1,16 @@
+{
+  "corpus": "order-service",
+  "method": "Review generated pages against original source, not the model's declaration. Each item is 0 or 1; absence is a miss. Unsupported certainty is recorded separately. One trial cannot establish general accuracy or latency.",
+  "criteria": [
+    {"id":"flow", "expected":"createOrder calls applyDiscount then shippingFee with the discounted amount; final total adds discounted amount and shipping.", "source":"src/order.mjs"},
+    {"id":"rates", "expected":"normal 0%, silver 3%, gold 7%, vip 12%; unknown grades fail.", "source":"src/discount.mjs"},
+    {"id":"rounding", "expected":"Discounted amount is floored to a multiple of 10, not ordinary rounding.", "source":"src/discount.mjs"},
+    {"id":"threshold", "expected":"Base shipping is 3000 below 50000, zero at or above 50000, evaluated after discount for orders.", "source":"src/shipping.mjs"},
+    {"id":"remote", "expected":"jeju/island add 4500 even when base shipping is free.", "source":"src/shipping.mjs"},
+    {"id":"states", "expected":"received -> paid/cancelled; paid -> shipped/cancelled; shipped -> delivered; delivered/cancelled terminal.", "source":"src/status.mjs"},
+    {"id":"validation", "expected":"empty order, integer nonnegative amount, unknown grade and invalid transition checks are scoped to their actual functions; item fields are not falsely described as fully validated.", "source":"src/order.mjs + src/discount.mjs + src/shipping.mjs + src/status.mjs"},
+    {"id":"legacy", "expected":"exportRow is a separate CSV export of total, shipping, extra, status. Its 4500 constant is independent of shippingFee; it is not called by createOrder.", "source":"src/legacy/export.mjs + src/order.mjs"},
+    {"id":"tests", "expected":"Documents npm test/node --test and test coverage without claiming execution or comprehensive validation.", "source":"package.json + test/*.test.mjs"},
+    {"id":"evidence", "expected":"Behavior is linked to real current source locations/Claims; navigation-map entries alone are not accepted as proof.", "source":"all original source files"}
+  ]
+}

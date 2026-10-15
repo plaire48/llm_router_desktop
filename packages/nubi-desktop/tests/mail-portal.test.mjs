@@ -20,7 +20,9 @@ test('the same-origin adapter admits only the provided read endpoints and never 
  await assert.rejects(run({operation:'eml',folderId:'1',seq:'9'},new Response('<!DOCTYPE html><html><input type="password"></html>')),/mail_portal_login/);
  await assert.rejects(run({operation:'folders'},new Response('denied',{status:403})),/mail_portal_forbidden/);
  const raw=await run({operation:'eml',folderId:'1',seq:'9'},new Response(eml));assert.deepEqual(Buffer.from(raw.raw,'base64'),eml);
- await run({operation:'approvals',userId:'fixture-user',page:2},new Response('{"data":[],"totalCount":0}'));assert.equal(calls.at(-1).url,'/approval/rest/v1/desktop/list/getDeskTopApList?epid=fixture-user&pageNum=2');assert.equal(calls.at(-1).args.headers['X-EpUserID'],'fixture-user');
+ await run({operation:'approvals',userId:'fixture-user',page:2},new Response('{"data":[],"totalCount":0}'));assert.equal(calls.at(-1).url,'/approval/rest/v1/desktop/list/getDeskTopApList?epid=fixture-user&pageNum=2');assert.equal(calls.at(-1).args.headers['X-EpUserID'],'fixture-user');assert.equal(calls.at(-1).args.headers['Content-Type'],undefined);assert.equal(calls.at(-1).args.body,'');
+ await assert.rejects(run({operation:'approvals',userId:'fixture-user'},new Response('',{status:415})),/mail_portal_approval_request/);
+ await assert.rejects(run({operation:'approvals',userId:'fixture-user'},new Response('',{status:403})),/mail_portal_approval_forbidden/);
  assert.deepEqual(foldersOf(folders).map(folder=>folder.mailbox),['inbox','sent','draft','spam']);assert.equal(identityOf({userInfo:{epUserId:'fixture-user',email:'owner@example.test',domainSet:'fixture@host'}}).setCd,'fixture');
 });
 test('portal EML is stored and searched with folder isolation, original hashes and no AI call for drafts/spam',async t=>{
@@ -157,4 +159,23 @@ test('approval list appears before slow document reads and named rows need no hy
  const host=new MailPortal({invoke:async()=>{}});host.state.connected=true;host.identity={userId:'fixture-user'};
  let itemReads=0;host.read=async op=>{if(op==='approvals')return {totalCount:2,data:[{apId:'a',aplnId:'l',subject:'Named approval'},{apId:'b',aplnId:'l'}]};itemReads++;return new Promise(()=>{});};
  try{const list=await host.approvals();assert.equal(itemReads,0);assert.equal(list.items[0].titlePending,false);assert.equal(list.items[1].titlePending,true);assert.equal(list.items.length,2);}finally{host.dispose();}
+});
+
+test('approval identity is recovered from the own inbox even when email is already known',async()=>{
+ const host=new MailPortal({invoke:async()=>{}});
+ host.read=async op=>op==='identity'?{email:'owner@example.test'}:op==='folders'?[folders[0]]:op==='list'?{liteHeaderVOs:[{mailSeq:9}]}:{receivedAddress:'owner@example.test',toRecipients:[{email:'other@example.test',userID:'wrong'},{email:'owner@example.test',userID:'owner-id'}]};
+ const result=await host.identify();assert.equal(result.identity.userId,'owner-id');assert.equal(result.identity.email,'owner@example.test');host.dispose();
+});
+test('a different received mailbox cannot supply the approval identity',async()=>{
+ const host=new MailPortal({invoke:async()=>{}});
+ host.read=async op=>op==='identity'?{email:'owner@example.test'}:op==='folders'?[folders[0]]:op==='list'?{liteHeaderVOs:[{mailSeq:9}]}:{receivedAddress:'other@example.test',toRecipients:[{email:'other@example.test',userID:'wrong'}]};
+ const result=await host.identify();assert.equal(result.identity.userId,null);assert.equal(result.identity.email,'owner@example.test');host.dispose();
+});
+test('approval request errors do not erase a working mail session; actual login expiry still disconnects',async()=>{
+ for(const operation of ['approvals','approvalItem'])for(const code of ['mail_portal_approval_request','mail_portal_approval_forbidden','mail_portal_unavailable','mail_portal_timeout','mail_portal_login']){
+  const calls=[],host=new MailPortal({invoke:async(_method,args)=>{calls.push(args.action);return {};}});host.state.connected=true;host.identity={userId:'fixture-user'};
+  host.read=async()=>{throw Error(code);};
+  await assert.rejects(host[operation](operation==='approvalItem'?{id:'a',lineId:'l'}:{}));
+  assert.equal(host.state.connected,code!=='mail_portal_login',operation+':'+code);assert.equal(calls.includes('disconnect'),code==='mail_portal_login');host.dispose();
+ }
 });

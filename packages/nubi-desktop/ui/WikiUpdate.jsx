@@ -1,3 +1,4 @@
+import {DataResetConfirmation} from './DataResetConfirmation.jsx';
 import {ProgressEstimate} from './ProgressEstimate.jsx';
 import {wikiRefreshErrors,wikiRefreshNotice} from './wiki-refresh-view.mjs';
 import React,{useState,useEffect,useRef} from 'react';
@@ -19,7 +20,7 @@ const MODEL_USE=/^갱신은 로그인한 모델로/;
 // and one decision row on the right: 갱신 or 반영 filled, stop and discard as icons.
 export function WikiUpdate({api,openPath,initialization,onApplied}){
   const [data,setData]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),live=useRef(true),revision=useRef(0),actionLock=useRef(false);
-  const [now,setNow]=useState(Date.now);
+  const [now,setNow]=useState(Date.now),[resetOpen,setResetOpen]=useState(false);
   const loadingStarted=useRef(Date.now());
   const load=async()=>{const request=++revision.current;try{const value=await api('wikiUpdate',{method:'status'});if(live.current&&request===revision.current){setData(value);setError('');}}catch(e){if(live.current&&request===revision.current)setError(errors[e.message]||'위키 상태를 확인하지 못했어요.');}};
   useEffect(()=>{live.current=true;load();return()=>{live.current=false;revision.current++;};},[api,initialization?.id,initialization?.state,initialization?.finishedAt]);
@@ -28,8 +29,9 @@ export function WikiUpdate({api,openPath,initialization,onApplied}){
   useEffect(()=>{if(update?.state!=='running'&&(data||error))return;setNow(Date.now());const timer=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(timer);},[update?.id,update?.state,!!data,!!error]);
   // A running update is read again until it ends.
   useEffect(()=>{if(update?.state!=='running')return;const timer=setInterval(load,2000);return()=>clearInterval(timer);},[update?.state]);
+  const resetControl=<><CxButton disabled={busy||initialization?.state==='running'||data?.updates?.[0]?.state==='running'} onClick={()=>setResetOpen(true)}><Icon name="refresh" size={16}/>위키 다시 만들기</CxButton>{resetOpen&&<DataResetConfirmation kind="wiki" api={api} onClose={()=>setResetOpen(false)} onDone={result=>{setResetOpen(false);setData(null);setError('');void load();void onApplied?.();window.dispatchEvent(new CustomEvent('nubi-wiki-reset',{detail:{scopeId:result.resetProjectId}}));}}/>}</>;
   if(!data)return <section className={`nubi-recovery-card nubi-wiki-update${error?'':' nubi-progress-atmosphere'}`} aria-label="위키 상태 확인" aria-busy={!error}>
-    {error?<><CxNotice tone="danger">{error}</CxNotice><CxButton onClick={()=>{loadingStarted.current=Date.now();setError('');void load();}}><Icon name="refresh" size={16}/>다시 확인</CxButton></>:<>
+    {error?<><CxNotice tone="danger">{error}</CxNotice>{resetControl}<CxButton onClick={()=>{loadingStarted.current=Date.now();setError('');void load();}}><Icon name="refresh" size={16}/>다시 확인</CxButton></>:<>
       <div className="nubi-action-head"><span className="nubi-action-tile" aria-hidden="true"><Icon name="bookmark" size={20}/></span><div><h3>위키 상태를 확인하고 있어요</h3><p role="status">{durationLabel(Math.max(0,now-loadingStarted.current),{keepSeconds:true})}</p></div></div>
       <TaskProgressBar label="위키 상태 불러오는 중" estimate={{identity:"wiki-status"}}/>
     </>}
@@ -65,5 +67,6 @@ export function WikiUpdate({api,openPath,initialization,onApplied}){
       {view.actions.includes('discard')&&<CxButton className="nubi-icon-button" aria-label="버리기" title="갱신 결과 버리기" disabled={busy} onClick={()=>act(()=>api('wikiUpdate',{method:'discard',id:update.id}))}><Icon name="trash" size={18}/></CxButton>}
       {view.actions.includes('apply')&&<CxButton variant="primary" disabled={busy} onClick={()=>act(async()=>{await api('wikiUpdate',{method:'apply',id:update.id,fingerprint:update.fingerprint});await onApplied?.();})}><Icon name="check" size={16}/>반영</CxButton>}
     </div>}
+    {resetControl}
   </section>;
 }

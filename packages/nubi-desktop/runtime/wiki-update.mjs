@@ -21,6 +21,7 @@ import {modelTransport} from './recovery.mjs';
 import {createRunMetrics} from './run-metrics.mjs';
 import {wikiInitializationError} from './wiki-initialization-error.mjs';
 import {wikiPlanPending,WIKI_PLAN_REQUIRED} from './wiki-plan-completion.mjs';
+import {createWikiCodeContext} from './wiki-code-map.mjs';
 
 const WIKI='openwiki/',CLAIMS='openwiki/.claims/',RECORD='openwiki/.last-update.json',KEPT=20,EVENTS=40;
 const inWiki=rel=>rel.startsWith(WIKI);
@@ -122,7 +123,13 @@ export function defaultWikiUpdater(service,{load=()=>import('../generated/openwi
           return result;
         }
         catch(error){
-          if(error.message==='response_invalid'&&retry<3){attempt=[...attempt,planPending?WIKI_PLAN_REQUIRED:TEXT_REPLY];continue;}
+          // Both transports reject malformed proposals before dispatch. Repair
+          // inference only: never repeat an accepted read/write or relax schemas.
+          if(['response_invalid','claude_response_invalid'].includes(error.message)&&retry<3){
+            attempt=[...attempt,...(error.message==='claude_response_invalid'?[{role:'system',content:'The last response was rejected before any host tool ran. Return only advertised host actions in the structured calls array, never native CLI tools. Keep completed host tool results; do not replay them.'}]:[]),planPending?WIKI_PLAN_REQUIRED:TEXT_REPLY];
+            if(error.message==='claude_response_invalid')onEvent?.({type:'model_retry',attempt:retry+1,code:'claude_response_invalid'});
+            continue;
+          }
           // The runner turns a page worker's failure into a skipped page: without this the host saw only an empty Wiki (2026-10-12).
           terminalModelError=error;
           onEvent?.({type:'model_error',code:/^[a-z_]{3,60}$/.test(error?.message||'')?error.message:'model_failed'});throw error;
@@ -130,13 +137,17 @@ export function defaultWikiUpdater(service,{load=()=>import('../generated/openwi
       }
     };
     const model=new NubiOpenWikiModel({complete,signal,modelId:status.model,taskId:null});
+    let pageProgress={};
     const progress=event=>{
       // Native finalization removes .run.json even when a worker was skipped.
       // Stop BEFORE that boundary so accepted plans/pages remain resumable.
       if(event?.type==='repository_progress'&&event.stage==='finalizing'&&terminalModelError)throw terminalModelError;
+      if(event?.type==='repository_progress')pageProgress={...(typeof event.page==='string'?{page:event.page.slice(0,300)}:{}),...(Number.isSafeInteger(event.pageIndex)?{index:event.pageIndex}:{}),...(Number.isSafeInteger(event.pageCount)?{total:event.pageCount}:{}),...(Number.isSafeInteger(event.completedPages)?{completed:event.completedPages}:{})};
+      if(event?.name==='review_page'&&event.type==='tool_start')onEvent?.({type:'progress',stage:'reviewing',...pageProgress,page:String(event.page||pageProgress.page||'').slice(0,300)});
       if(event?.type==='repository_progress')onEvent?.({type:'progress',stage:String(event.stage),...(typeof event.page==='string'?{page:event.page.slice(0,300)}:{}),...(Number.isSafeInteger(event.pageIndex)?{index:event.pageIndex}:{}),...(Number.isSafeInteger(event.pageCount)?{total:event.pageCount}:{}),...(Number.isSafeInteger(event.completedPages)?{completed:event.completedPages}:{})});
     };
-    const result=await runNativeRepositoryGeneration({root,mode,language:language||null,modelId:status.model,model,onEvent:progress});
+    const repositoryContext=createWikiCodeContext(root,{signal});
+    const result=await runNativeRepositoryGeneration({root,mode,language:language||null,modelId:status.model,model,onEvent:progress,repositoryContext});
     // OpenWiki may return after skipping failed pages. Keep the durable run for
     // resume instead of publishing a partial generation as a completed Wiki.
     if(terminalModelError)throw terminalModelError;
@@ -244,8 +255,26 @@ async function removeCopy(root,copy){
   await rm(copy,{recursive:true,force:true});
 }
 
+// Only runtime-owned copies can be removed; never trust a path saved in a record alone.
+export async function clearWikiUpdates(service,owner,root){
+  const entries=owner.entries('wiki-update:');
+  for(const {value} of entries){
+    if(!value.copy)continue;
+    const expected=path.join(owner.directory,'wiki-update',value.id);
+    if(!/^[a-f0-9-]{36}$/.test(value.id)||value.copy!==expected)fail('path_scope');
+    for(const folder of [path.dirname(expected),expected]){
+      try{if((await lstat(folder)).isSymbolicLink()||await realpath(folder)!==path.join(await realpath(owner.directory),path.relative(owner.directory,folder)))fail('path_scope');}catch(error){if(error.code!=='ENOENT')throw error;}
+    }
+  }
+  for(const {key,value} of entries){
+    if(service.store!==owner||service.root!==root)fail('project_changed');
+    if(value.copy)await removeCopy(root,value.copy);
+    owner.delete(key);
+  }
+}
+
 export async function wikiUpdate({method='status',id,fingerprint}={}){
-  this.ready();const root=this.root,owner=this.store,projectId=this.projectId;
+  this.ready();if(this.wikiResetting||this.store.get('wiki-reset-pending'))fail('wiki_busy');const root=this.root,owner=this.store,projectId=this.projectId;
   // An orphaned run retains its private copy and durable native page checkpoints.
   for(const item of records(this).filter(item=>item.state==='running'&&!(item.id===this.wikiUpdateRun?.id&&this.wikiUpdateRun.owner===owner))){save(this,{...item,state:'failed',pageProgress:await retainedPageProgress(item.copy),error:'wiki_update_interrupted',finishedAt:new Date().toISOString()});}
   if(method==='status')return {status:await wikiUpdateStatus(root),updates:records(this).slice(0,KEPT).map(visible)};

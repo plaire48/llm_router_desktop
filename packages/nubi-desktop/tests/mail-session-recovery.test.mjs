@@ -58,6 +58,6 @@ test('a failure from a previous session cannot log out its replacement',async t=
  const {host,actions}=fixture(t);let reject;host.read=()=>new Promise((_r,r)=>reject=r);const pending=host.sync();while(!reject)await Promise.resolve();await host.disconnect();actions.length=0;host.state.connected=true;
  reject(Error('mail_portal_login'));await assert.rejects(pending,/mail_cancelled/);assert.equal(host.status().connected,true);assert(!actions.includes('disconnect'));
 });
-test('an approval connection error also logs out and stops collection',async t=>{
- const {host}=fixture(t);host.identity.userId='fixture';host.read=async()=>{throw Error('mail_portal_timeout');};await assert.rejects(host.approvals(),/mail_portal_timeout/);assert.equal(host.status().connected,false);
+test('an approval timeout does not erase the authenticated mail session',async t=>{
+ const {host}=fixture(t);host.identity.userId='fixture';host.read=async()=>{throw Error('mail_portal_timeout');};await assert.rejects(host.approvals(),/mail_portal_timeout/);assert.equal(host.status().connected,true);
 });

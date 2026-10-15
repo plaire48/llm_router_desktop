@@ -171,6 +171,10 @@ describe("ensureCodeModeRepoSetup agent files", () => {
 
     const content = await readIfPresent(path.join(repo, "AGENTS.md"));
     expect(content, "AGENTS.md should be created").not.toBeNull();
+    expect(content).toContain("when it is configured");
+    expect(content).toContain(
+      "does not establish that a workflow is installed or running",
+    );
     expect(content).toContain(SNIPPET_START);
     expect(content).toContain(SNIPPET_END);
     expect(content).toContain("## OpenWiki");

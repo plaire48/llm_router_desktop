@@ -83,7 +83,7 @@ export async function autoApprovals(service,{taskId}){
   const state=service.state(),open=state.proposals.filter(p=>p.taskId===taskId&&p.state==='proposed').sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
   if(policy.mode!=='ask'&&open.length){
     // The newest proposal of each file, as the editor applies them.
-    const seen=new Set(),proposals=[];for(const p of open)if(!seen.has(p.path)){seen.add(p.path);proposals.push(p.id);}
+    const seen=new Set(),proposals=[];for(const p of open)if(!seen.has(p.path)){seen.add(p.path);if(!p.sourceChanged)proposals.push(p.id);}
     return {...none,proposals};
   }
   const scripts=policy.mode==='commands'?await manifestScripts(await service.target(taskId)):{};

@@ -49,7 +49,7 @@ function Read-Shape($shape, [int]$depth = 0) {
 }
 try {
   $request = [Console]::In.ReadToEnd() | ConvertFrom-Json
-  if ($request.app -notin @('word','excel','powerpoint') -or -not [IO.Path]::IsPathRooted($request.file)) { throw 'document_office_policy' }
+  if ($request.app -notin @('word','excel','powerpoint') -or -not [IO.Path]::IsPathRooted($request.file)) { throw 'document_office_read_failed' }
   if ((Get-FileHash -LiteralPath $request.file -Algorithm SHA256).Hash.ToLowerInvariant() -ne $request.expectedHash) { throw 'mail_source_changed' }
   $processName = @{word='WINWORD';excel='EXCEL';powerpoint='POWERPNT'}[$request.app]
   $beforeProcesses = @(Get-Process -Name $processName -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Id)
@@ -116,7 +116,7 @@ try {
     } finally { Release-Com $slides }
     $coverage = 'Office PowerPoint 슬라이드 텍스트와 표. 노트, 이미지와 서식은 미확인'
   }
-  if (-not [string]::Equals([IO.Path]::GetFullPath([string]$document.FullName), [IO.Path]::GetFullPath([string]$request.file), [StringComparison]::OrdinalIgnoreCase)) { throw 'document_office_policy' }
+  if (-not [string]::Equals([IO.Path]::GetFullPath([string]$document.FullName), [IO.Path]::GetFullPath([string]$request.file), [StringComparison]::OrdinalIgnoreCase)) { throw 'mail_source_changed' }
   $text = ($segments | ForEach-Object { if ($_.sheet) { "시트: $($_.sheet)`n$($_.text)" } elseif ($_.slide) { "슬라이드 $($_.slide)`n$($_.text)" } else { $_.text }) -join "`n`n"
   if ([string]::IsNullOrWhiteSpace($text)) { throw 'document_empty' }
   if ($text.Length -gt 2000000) { throw 'document_limit' }
