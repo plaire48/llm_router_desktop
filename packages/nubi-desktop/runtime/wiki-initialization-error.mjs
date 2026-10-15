@@ -7,7 +7,7 @@ export function wikiInitializationError(error,stage){
   if(['EACCES','EPERM'].includes(error?.code))return 'wiki_permission_denied';
   if(error?.code==='ENOSPC')return 'wiki_disk_full';
   if(error?.code==='EEXIST')return 'wiki_output_conflict';
-  if(stage==='snapshot_git')return error?.code==='ENOENT'?'wiki_git_required':error?.killed?'wiki_git_timeout':'wiki_snapshot_failed';
+  if(stage==='snapshot_git')return error?.code==='ENOENT'?'wiki_git_required':error?.killed||error?.code==='ETIMEDOUT'?'wiki_git_timeout':'wiki_snapshot_failed';
   if(error?.code==='ENOENT')return stage==='snapshot'?'wiki_snapshot_missing':stage==='preparing_runtime'?'wiki_runtime_missing':stage==='preparing_skills'?'wiki_skills_missing':'wiki_source_missing';
   if(error?.killed||error?.name==='TimeoutError')return 'timeout';
   return 'wiki_failed';

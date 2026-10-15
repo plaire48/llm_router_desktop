@@ -1,7 +1,8 @@
 import {mkdir,mkdtemp,lstat,realpath} from 'node:fs/promises';
 import path from 'node:path';
-import {git,hash} from './files.mjs';
+import {hash} from './files.mjs';
 import {readWikiSource,removeWikiHistory} from './wiki-snapshot.mjs';
+import {wikiPreparationGit} from './wiki-git-preparation.mjs';
 
 const KEY='wiki-init-checkpoint';
 const parent=store=>path.join(store.directory,'wiki-preparation');
@@ -20,16 +21,21 @@ export async function discardWikiInitCheckpoint(store,root){
  }
  store.delete(KEY);
 }
-export async function wikiInitCheckpoint(store,root,head,sources){
+export async function wikiInitCheckpoint(store,root,head,sources,options={}){
  const record=store.get(KEY),directory=location(store,record),identity=fingerprint(head,sources);
- if(directory&&record.ready&&record.identity===identity){
+ if(directory&&record.identity===identity){
   try{
    if((await lstat(parent(store))).isSymbolicLink()||(await lstat(directory)).isSymbolicLink())throw Error('path_scope');
-   if((await git(directory,['rev-parse','HEAD'])).trim()!==record.snapshotHead)throw Error('source_stale');
+   if(!record.ready)return {directory,resumed:false,preparationResumed:true};
+   if((await wikiPreparationGit(directory,['rev-parse','HEAD'],options,'verify')).trim()!==record.snapshotHead)throw Error('source_stale');
    const canonical=await realpath(directory);
    for(const source of sources)if((await readWikiSource(canonical,source.path)).hash!==source.hash)throw Error('source_stale');
    return {directory,resumed:true,generated:record.generated===true};
-  }catch{/* Missing, changed, or invalid snapshots must be rebuilt from current sources. */}
+  }catch(error){
+   // A slow Git probe is not evidence that saved work is invalid.
+   if(options.signal?.aborted||error.killed||error.code==='ETIMEDOUT')throw error;
+   /* Missing, changed, or invalid snapshots must be rebuilt from current sources. */
+  }
  }
  await discardWikiInitCheckpoint(store,root);
  await mkdir(parent(store),{recursive:true,mode:0o700});
@@ -38,9 +44,9 @@ export async function wikiInitCheckpoint(store,root,head,sources){
  store.set(KEY,{name:path.basename(created),identity,head,ready:false});
  return {directory:created,resumed:false};
 }
-export async function markWikiInitCheckpointReady(store,directory){
+export async function markWikiInitCheckpointReady(store,directory,options={}){
  const record=store.get(KEY);if(location(store,record)!==directory)throw Error('project_changed');
- store.set(KEY,{...record,ready:true,snapshotHead:(await git(directory,['rev-parse','HEAD'])).trim()});
+ store.set(KEY,{...record,ready:true,snapshotHead:(await wikiPreparationGit(directory,['rev-parse','HEAD'],options,'verify')).trim()});
 }
 export function markWikiInitGenerated(store,directory){
  const record=store.get(KEY);if(location(store,record)!==directory)throw Error('project_changed');

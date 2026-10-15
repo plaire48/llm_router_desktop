@@ -1,6 +1,7 @@
 import {mkdir,readFile,writeFile,readdir,lstat,realpath,rm} from 'node:fs/promises';
 import path from 'node:path';
-import {git,listFiles,readSource,fail,gitOpenFailure,privatePath} from './files.mjs';
+import {git,hash,relativeFile,listFiles,readSource,fail,gitOpenFailure,privatePath} from './files.mjs';
+import {wikiPreparationGit} from './wiki-git-preparation.mjs';
 import {OpenWikiIgnore} from '../generated/openwiki.mjs';
 
 export const WIKI_CHECKPOINT='openwiki/.nubi-sources.json';
@@ -91,8 +92,24 @@ export async function wikiFiles(root){
   }
   await visit(path.join(root,'openwiki'));return result;
 }
-export async function writeWikiSnapshot(directory,files){
-  for(const file of files){const target=path.join(directory,file.path);await mkdir(path.dirname(target),{recursive:true});await writeFile(target,file.content);}
+export async function writeWikiSnapshot(directory,files,{signal,onFile,incremental=false}={}){
+  let completed=0;
+  for(const file of files){
+    signal?.throwIfAborted();relativeFile(file.path);
+    let parent=directory;
+    for(const part of file.path.split('/').slice(0,-1)){
+      parent=path.join(parent,part);await mkdir(parent,{recursive:true});
+      if((await lstat(parent)).isSymbolicLink())fail('path_scope');
+    }
+    const target=path.join(directory,file.path);
+    let unchanged=false;
+    try{
+      if((await lstat(target)).isSymbolicLink())fail('path_scope');
+      if(incremental)unchanged=hash(await readFile(target))===(file.hash||hash(file.content));
+    }catch(error){if(error.code!=='ENOENT')throw error;}
+    if(!unchanged)await writeFile(target,file.content);
+    onFile?.(++completed,files.length);
+  }
 }
 export async function initializeWikiSnapshotGit(directory){
   // OpenWiki's source fingerprint requires Git. Only the private copy is initialized.
@@ -109,10 +126,15 @@ export async function wikiSourceHead(root){
 // A detached, unpopulated worktree retains the clone's actual commits and refs.
 // Only the already admitted source files are copied by the caller. No checkout
 // hooks, filters, private files or changes to the user's index are involved.
-export async function prepareWikiHistory(root,directory,head){
+export async function prepareWikiHistory(root,directory,head,options={}){
   if(!head)return;
-  await git(root,['-c','core.hooksPath='+path.join(directory,'.nubi-no-hooks'),'worktree','add','--detach','--no-checkout',directory,head],{timeout:120000});
-  await git(directory,['read-tree',head]);
+  const run=(cwd,args,step)=>wikiPreparationGit(cwd,args,options,step);
+  let existing=false;try{const entry=await lstat(path.join(directory,'.git'));if(!entry.isFile()||entry.isSymbolicLink())fail('path_scope');existing=true;}catch(error){if(error.code!=='ENOENT')throw error;}
+  if(existing){
+    const common=async cwd=>realpath(path.resolve(cwd,(await run(cwd,['rev-parse','--git-common-dir'],'worktree')).trim()));
+    if(await common(root)!==await common(directory)||(await run(directory,['rev-parse','HEAD'],'worktree')).trim()!==head)fail('source_stale');
+  }else await run(root,['-c','core.hooksPath='+path.join(directory,'.nubi-no-hooks'),'worktree','add','--detach','--no-checkout',directory,head],'worktree');
+  await run(directory,['read-tree',head],'index');
 }
 export async function removeWikiHistory(root,directory,head){
   if(head){try{await git(root,['worktree','remove','--force',directory]);return;}catch{/* Remove only this run's temporary files; never prune other worktrees. */}}

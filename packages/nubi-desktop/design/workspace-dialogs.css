@@ -163,6 +163,13 @@
   :root:has(.desktop-shell) .deck-dialog :is(button,input,select,.cx-input-shell) { border:1px solid ButtonText; }
 }
 
+/* The native caption and app menu stay undimmed. Portaled and stacked dialogs
+   share the same content boundary; hosts without a toolbar retain full coverage. */
+:root:has(.desktop-shell[data-toolbar=true]) { --nubi-dialog-top-inset:var(--nubi-toolbar-height); }
+:root:has(.desktop-shell[data-toolbar=true]) .cx-panel-backdrop { top:var(--nubi-dialog-top-inset); }
+:root:has(.desktop-shell[data-toolbar=true]) .cx-panel-backdrop > .cx-detail-panel {
+  max-height:calc(100dvh - var(--nubi-dialog-top-inset) - 2 * var(--cx-space-3));
+}
 :root:has(.desktop-shell) .cx-panel-backdrop > .deck-dialog { width:min(var(--nubi-dialog-width-standard),100%); }
 :root:has(.desktop-shell) .cx-panel-backdrop > .nubi-panel--wide { width:min(var(--nubi-dialog-width-wide),100%); }
 :root:has(.desktop-shell) .cx-panel-backdrop > :is(.deck-confirmation,.nubi-ghes-modal,.nubi-wiki-progress-dialog) { width:min(var(--nubi-dialog-width-compact),100%); }
@@ -178,7 +185,7 @@
 :root:has(.desktop-shell) .cx-panel-backdrop > .deck-dialog {
   min-width:0; min-height:0;
   max-width:min(100%,calc(100dvw - 2 * var(--cx-space-3)));
-  max-height:calc(100dvh - 2 * var(--cx-space-3));
+  max-height:calc(100dvh - var(--nubi-dialog-top-inset,0px) - 2 * var(--cx-space-3));
 }
 :root:has(.desktop-shell) .deck-dialog > :is(.cx-panel-header,.cx-panel-footer) { flex:0 0 auto; min-width:0; }
 :root:has(.desktop-shell) .deck-dialog > .cx-panel-body { min-width:0; min-height:0; overflow:auto; overscroll-behavior:contain; }

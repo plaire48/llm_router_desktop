@@ -9,6 +9,8 @@ import {RepositoryEvidenceResolver} from '../generated/openwiki.mjs';
 import {wikiUpdateStatus} from '../runtime/wiki-update.mjs';
 import {wikiInitializationError} from '../runtime/wiki-initialization-error.mjs';
 import {listWikiSourceFiles,readWikiSource} from '../runtime/wiki-snapshot.mjs';
+import {stat} from 'node:fs/promises';
+import {WIKI_GIT_PREPARATION_TIMEOUT} from '../runtime/wiki-git-preparation.mjs';
 
 async function setup(t,{gitProject=false}={}){
   const temp=await mkdtemp(path.join(os.tmpdir(),'nubi-wiki-flow-')),root=path.join(temp,'source');await mkdir(root);await writeFile(path.join(root,'app.txt'),'initial source\n');
@@ -32,6 +34,33 @@ async function publish(root,text){
   await writeFile(path.join(root,'openwiki/.claims/home.json'),JSON.stringify({schemaVersion:1,pageVersion:hash(text),claims:[{id:'app',statement:'App source',evidence:[{resource,version:resolved.evidence.version}]}]}));
 }
 async function settle(service,id){for(let i=0;i<200;i++){const value=(await service.wikiUpdate({method:'status'})).updates.find(item=>item.id===id);if(value.state!=='running')return value;await new Promise(resolve=>setTimeout(resolve,10));}throw Error('Wiki update did not settle');}
+
+for(const gitProject of [false,true])test(`Git preparation timeout retains partial work across reopening (${gitProject?'Git':'folder'})`,async t=>{
+ const {root,service}=await setup(t,{gitProject});await rm(path.join(root,'openwiki'),{recursive:true});service.store.set('wiki-init',null);
+ await writeFile(path.join(root,'app.txt'),'new uncommitted source\n');
+ const sourceStatus=gitProject?await git(root,['status','--porcelain']):null;
+ let interrupted=false;
+ service.wikiPreparationGit=async(cwd,args,options)=>{
+   assert.equal(options.timeout,WIKI_GIT_PREPARATION_TIMEOUT);assert(options.signal);
+   const result=await git(cwd,args,options);
+   if(!interrupted&&args.includes(gitProject?'read-tree':'add')){interrupted=true;throw Object.assign(Error('fixture preparation timeout'),{killed:true});}
+   return result;
+ };
+ let modelCalls=0;service.wikiInitializer=async()=>{modelCalls++;};
+ await service.initializeWiki();await service.wikiInitPromise;
+ const failed=service.wikiInitialization();assert.equal(failed.error,'wiki_git_timeout',JSON.stringify(failed));assert.equal(failed.gitStep,'index');assert.equal(failed.canResume,true);assert.equal(modelCalls,0);
+ const record=service.store.get('wiki-init-checkpoint'),copy=path.join(service.store.directory,'wiki-preparation',record.name);assert.equal(record.ready,false);await access(copy);
+ const historyFile=path.join(service.store.directory,'wiki-folder-history/app.txt'),mtime=gitProject?null:(await stat(historyFile)).mtimeMs;
+ const storageRoot=service.storageRoot;service.dispose();service.store.close();
+ const reopened=new ProjectService({storageRoot});t.after(()=>{reopened.dispose();reopened.store?.close();});await reopened.open(root,{initializeWiki:false});
+ reopened.providers={status:()=>({connected:true,provider:'fixture',model:'fixture'}),dispose(){}};
+ reopened.wikiPreparationGit=async(cwd,args,options)=>{assert.equal(args.includes('worktree'),false,'an attached worktree is reused');return git(cwd,args,options);};
+ reopened.wikiInitializer=async({root:current})=>{assert.equal(current,copy);assert.equal(await readFile(path.join(current,'app.txt'),'utf8'),'new uncommitted source\n');await publish(current,'# Resumed Wiki\n');};
+ reopened.wikiInitialization({action:'retry'});await reopened.wikiInitPromise;
+ assert.equal(reopened.wikiInitialization().state,'completed',JSON.stringify(reopened.wikiInitialization()));assert.equal(reopened.wikiInitialization().resumed,true);
+ if(gitProject)assert.equal(await git(root,['status','--porcelain']),sourceStatus+'?? openwiki/\n');
+ else {assert.equal((await stat(historyFile)).mtimeMs,mtime,'unchanged sources are not rewritten on retry');await assert.rejects(access(path.join(root,'.git')));}
+});
 
 test('initialization retains native metadata and Claims without initializing the user folder',async t=>{
   const {root}=await setup(t);
@@ -224,4 +253,21 @@ test('publication retry uses the generated Wiki without calling the model again'
  await rm(path.join(root,'openwiki'),{recursive:true});
  service.wikiInitialization({action:'retry'});await service.wikiInitPromise;
  assert.equal(service.wikiInitialization().state,'completed',JSON.stringify(service.wikiInitialization()));assert.equal(calls,1);
+});
+
+test('retry after Git verification timeout reuses copied history and sources',async t=>{
+ const {root,service}=await setup(t);await rm(path.join(root,'openwiki'),{recursive:true});service.store.set('wiki-init',null);
+ service.wikiPreparationGit=async(cwd,args,options)=>{
+   if(cwd.includes('wiki-preparation')&&args.includes('rev-parse'))throw Object.assign(Error('slow verification'),{killed:true});
+   return git(cwd,args,options);
+ };
+ await service.initializeWiki();await service.wikiInitPromise;
+ assert.equal(service.wikiInitialization().error,'wiki_git_timeout');assert.equal(service.wikiInitialization().gitStep,'verify');
+ const copy=path.join(service.store.directory,'wiki-preparation',service.store.get('wiki-init-checkpoint').name);
+ const receipt=path.join(copy,'.git/nubi-snapshot-head'),source=path.join(copy,'app.txt');
+ const receiptTime=(await stat(receipt)).mtimeMs,sourceTime=(await stat(source)).mtimeMs;
+ service.wikiPreparationGit=git;
+ service.wikiInitializer=async({root:current})=>{assert.equal(current,copy);assert.equal((await stat(receipt)).mtimeMs,receiptTime);assert.equal((await stat(source)).mtimeMs,sourceTime);await publish(copy,'# Wiki\n');};
+ service.wikiInitialization({action:'retry'});await service.wikiInitPromise;
+ assert.equal(service.wikiInitialization().state,'completed',JSON.stringify(service.wikiInitialization()));
 });
