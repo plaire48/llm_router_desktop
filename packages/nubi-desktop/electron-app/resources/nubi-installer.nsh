@@ -11,7 +11,7 @@
 !define MUI_HEADERIMAGE_BITMAP_STRETCH FitControl
 !define MUI_WELCOMEFINISHPAGE_BITMAP_STRETCH FitControl
 !define MUI_WELCOMEPAGE_TITLE "설치 전 이용 안내"
-!define MUI_WELCOMEPAGE_TEXT "누비 Workspace Beta를 설치합니다.$\r$\n$\r$\nAI 계정 연결$\r$\n질문과 선택한 자료는 연결한 AI로 전달돼요.$\r$\n$\r$\n사내 서비스$\r$\n사내 Github SSO와 회사 메일은 회사망 또는 VPN에서 이용해 주세요.$\r$\n$\r$\n메일 지원 범위$\r$\n메일 본문을 지원해요. 첨부파일 내용 읽기는 아직 지원하지 않아요."
+!define MUI_WELCOMEPAGE_TEXT "누비 Workspace Beta를 설치합니다.$\r$\n$\r$\nAI 계정 연결$\r$\n질문과 선택한 자료는 연결한 AI로 전달돼요.$\r$\n$\r$\n사내 서비스$\r$\n사내 Github SSO와 회사 메일은 회사망 또는 VPN에서 이용해 주세요.$\r$\n$\r$\n메일 지원 범위$\r$\n메일 본문과 첨부 문서를 읽어요.$\r$\nOffice 문서는 PC에 Office가 필요해요."
 
 !macro customWelcomePage
   !insertmacro skipPageIfUpdated
