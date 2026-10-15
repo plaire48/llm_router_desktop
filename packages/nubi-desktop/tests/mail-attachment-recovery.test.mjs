@@ -6,7 +6,7 @@ import path from 'node:path';
 import os from 'node:os';
 import JSZip from 'jszip';
 import ExcelJS from 'exceljs';
-import {PersonalMail} from '../runtime/mail.mjs';
+import {PersonalMail} from './helpers-personal-mail.mjs';
 import {readMailAttachmentsForAgent} from '../runtime/mail-agent-attachments.mjs';
 import {AnswerSources} from '../runtime/answer-sources.mjs';
 const sha=value=>createHash('sha256').update(value).digest('hex');
@@ -25,9 +25,9 @@ test('the worker reads Word, Excel and PowerPoint attachment bytes',async()=>{
 test('Windows accepts a verified parser result and local folder attachments work without portal credentials',async t=>{
  const root=await mkdtemp(path.join(os.tmpdir(),'mail-attachment-recovery-'));const mail=new PersonalMail({storageRoot:root},{personalRoot:path.join(root,'mail')});
  t.after(async()=>{mail.dispose();await rm(root,{recursive:true,force:true});});
- mail.autoWiki=true;mail.drain=async()=>{};const id='a'.repeat(64),bytes=Buffer.from('한글 첨부 본문'),attachment={id:'attachment',filename:'letter.txt',sha256:sha(bytes),contentState:'text_read',text:bytes.toString()};
+ mail.autoWiki=true;mail.drain=async()=>{};const id='a'.repeat(64),bytes=Buffer.from('한글 첨부 본문'),attachment={id:'000-'+sha(bytes).slice(0,16),filename:'letter.txt',sha256:sha(bytes),contentState:'text_read',text:bytes.toString()};
  const row={id,protocol:'local',account:'local-folder',state:'queued',sourceHash:'original',attachmentState:'queued'};
- mail.store.set('mail:'+id,row);mail.source=async()=>({subject:'로컬 메일',text:'본문',attachments:[attachment]});await mkdir(path.join(mail.rawRoot,id),{recursive:true});await writeFile(path.join(mail.rawRoot,id,'attachment.bin'),bytes);
+ mail.store.set('mail:'+id,row);mail.source=async()=>({subject:'로컬 메일',text:'본문',attachments:[attachment]});await mkdir(path.join(mail.rawRoot,id),{recursive:true});await writeFile(path.join(mail.rawRoot,id,attachment.id+'.bin'),bytes);
  assert.equal(mail.credentials,undefined);await mail.readAttachments();
  assert.equal(mail.store.get('mail:'+id).attachmentState,'complete');assert.equal((await mail.read(id)).mail.attachments[0].text,'한글 첨부 본문');
  // The Windows-only regression was in cache consumption, not in the parser.

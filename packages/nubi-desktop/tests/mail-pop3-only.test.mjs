@@ -4,7 +4,7 @@ import {mkdtemp,rm,readFile} from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import {Store} from '../runtime/store.mjs';
-import {PersonalMail} from '../runtime/mail.mjs';
+import {PersonalMail} from './helpers-personal-mail.mjs';
 import {parsePop3Content} from '../../openwiki/src/connectors/sources/pop3-content.mjs';
 
 test('withdrawn IMAP settings return to POP3 without changing retained mail records',async t=>{
@@ -32,12 +32,12 @@ test('POP3 reconnect reuses UIDL and raw receipt while retaining HTML and recipi
  const mail=new PersonalMail({storageRoot:path.join(root,'state')},{personalRoot:path.join(root,'mail'),pull:async input=>{packets.push(input);return {uidls:['opaque-pop3-uid'],mails:input.known?.includes('opaque-pop3-uid')?[]:[{uidl:'opaque-pop3-uid',raw,normalized,attachments:[]}],failed:[],delaySeconds:60};}});
  t.after(async()=>{mail.dispose();await rm(root,{recursive:true,force:true});});
  const args={action:'connect',requestId:'first',user:'owner@example.test',password:'fixture',recipientAddress:'owner@example.test'};
- await mail.call(args);const row=mail.rows()[0],file=path.join(mail.root,'raw',row.id,'manifest.json'),receipt=await readFile(file);
+ await mail.call(args);const row=mail.rows()[0],file=path.join(mail.root,'raw',row.id,'manifest.json'),receipt=await mail.rawVault.read(file);
  const result=await mail.call({action:'search',query:'Contract',filters:{mailbox:'inbox',roles:['cc']}});
  assert.equal(result.total,1);assert.equal(result.results[0].recipientRole,'cc');
  assert.match((await mail.read(row.id,{includePresentation:true})).mail.presentation.html,/<table>/);
  mail.disconnect();mail.nextCheckAt=null;await mail.call({...args,requestId:'second'});
  assert(packets[1].known.includes('opaque-pop3-uid'));assert.equal(mail.rows().length,1);
- assert.deepEqual(await readFile(file),receipt);assert.deepEqual(await readFile(path.join(mail.root,'raw',row.id,'message.eml')),raw);
+ assert.deepEqual(await mail.rawVault.read(file),receipt);assert.deepEqual(await mail.rawVault.read(path.join(mail.root,'raw',row.id,'message.eml')),raw);
  assert.equal((await mail.call({action:'search',query:'',filters:{mailbox:'sent'}})).total,0);
 });

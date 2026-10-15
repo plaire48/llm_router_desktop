@@ -1,3 +1,4 @@
+import documentReader from '../electron-app/document-file-reader.cjs';
 import {readdir,lstat,realpath,readFile} from 'node:fs/promises';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -21,13 +22,14 @@ export function installProjectBrowser(Service) {
     requireProject(this,projectId);if(await this.target(taskId)!==root)fail('project_changed');
     return {...source,root,uri:pathToFileURL(path.join(root,input)).href};
   };
-  Service.prototype.previewFile=async function({projectId,path:input}) {
+  Service.prototype.previewFile=async function({projectId,path:input,taskId}) {
     requireProject(this,projectId);
     const mime={'.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.gif':'image/gif','.webp':'image/webp','.ico':'image/x-icon'}[path.extname(input).toLowerCase()];
-    if(!mime)fail('binary_file');const file=await scopedFile(this.root,input),stats=await lstat(file);
-    if(!stats.isFile()||stats.isSymbolicLink()||stats.size>4*1024*1024)fail('file_too_large');
+    const document=documentReader.DOCUMENT_FILE.test(input),root=await this.target(taskId);if(!mime&&!document)fail('binary_file');const file=await scopedFile(root,input),stats=await lstat(file);
+    if(!stats.isFile()||stats.isSymbolicLink()||stats.size>(document?64:4)*1024*1024)fail('file_too_large');
     const bytes=await readFile(file);requireProject(this,projectId);
-    return {path:input,hash:hash(bytes),content:`data:${mime};base64,${bytes.toString('base64')}`};
+    if(document){const preview=await documentReader.readFileDocument(bytes,input,{workerPath:new URL('./mail-attachment-worker.mjs',import.meta.url)});requireProject(this,projectId);if(await this.target(taskId)!==root||hash(await readFile(file))!==hash(bytes))fail('source_stale');return {path:input,root,hash:hash(bytes),document:preview};}
+    return {path:input,root,hash:hash(bytes),content:`data:${mime};base64,${bytes.toString('base64')}`};
   };
   Service.prototype.browseDirectory=async function({projectId,path:input='',taskId}) {
     requireProject(this,projectId);const root=await this.target(taskId),location=await directory(this,input,root);

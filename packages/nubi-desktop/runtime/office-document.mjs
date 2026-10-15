@@ -28,7 +28,7 @@ async function readOfficeDocumentNow(bytes,attachment,{signal,directory,restrict
   const format=officeDocumentFormat(attachment.filename,attachment.contentType);
   if(!format)throw Error('document_format');
   if(signal?.aborted)throw Error('mail_cancelled');
-  if(bytes.length>10*1024*1024)throw Error('document_limit');
+  if(bytes.length>64*1024*1024)throw Error('document_limit');
   if(!directory||typeof restrictDirectory!=='function')throw Error('document_office_policy');
   const parent=await lstat(directory);if(!parent.isDirectory()||parent.isSymbolicLink())throw Error('mail_source_changed');
   let temporary;
@@ -49,7 +49,7 @@ async function readOfficeDocumentNow(bytes,attachment,{signal,directory,restrict
       const abort=()=>stop('mail_cancelled');
       const timer=setTimeout(()=>stop('document_office_timeout'),60000);
       signal?.addEventListener('abort',abort,{once:true});
-      child.stdout.on('data',chunk=>{size+=chunk.length;if(size>1024*1024)stop('document_limit');else chunks.push(chunk);});
+      child.stdout.on('data',chunk=>{size+=chunk.length;if(size>24*1024*1024)stop('document_limit');else chunks.push(chunk);});
       child.stderr.resume();child.stdin.on('error',()=>{});
       child.once('error',()=>{failure ||= 'document_office_missing';});
       child.once('close',code=>{
@@ -58,7 +58,7 @@ async function readOfficeDocumentNow(bytes,attachment,{signal,directory,restrict
         let value;try{value=JSON.parse(Buffer.concat(chunks).toString('utf8').replace(/^\uFEFF/,''));}catch{return reject(Error('document_office_policy'));}
         if(value.error||code!==0)return reject(Error(failures.has(value.error)?value.error:'document_office_read_failed'));
         const document=value.document;
-        if(document?.reader!=='office_com'||!/^16\./.test(document.officeVersion||'')||typeof document?.text!=='string'||!document.text.trim()||document.text.length>100000||typeof document.coverage!=='string'||document.coverage.length>2000||!Array.isArray(document.segments)||document.segments.length>1000||document.segments.some(segment=>typeof segment.text!=='string'||segment.text.length>100000))return reject(Error('document_office_read_failed'));
+        if(document?.reader!=='office_com'||!/^16\./.test(document.officeVersion||'')||typeof document?.text!=='string'||!document.text.trim()||document.text.length>2000000||typeof document.coverage!=='string'||document.coverage.length>2000||!Array.isArray(document.segments)||document.segments.length>1000||document.segments.some(segment=>typeof segment.text!=='string'||segment.text.length>2000000))return reject(Error('document_office_read_failed'));
         resolve(document);
       });
       child.stdin.end(JSON.stringify({file,app:format.app,expectedHash}));

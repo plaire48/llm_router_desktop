@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,writeFile,readFile,rm,symlink,realpath,truncate} from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import {PersonalMail} from '../runtime/mail.mjs';
+import {PersonalMail} from './helpers-personal-mail.mjs';
 import {scanMailFolder,readMailImportFile} from '../runtime/mail-file-import.mjs';
 import {mailFileKind} from '../runtime/mail-file-kinds.mjs';
 import {normalizePortalMail} from '../runtime/mail-portal-content.mjs';
@@ -42,7 +42,7 @@ test('imports MIME, MHTML and mysingle, preserves source bytes, classifies searc
  assert.equal((await mail.call({action:'search',query:'',filters:{mailbox:'mail'}})).total,2);
  const row=mail.rows().find(row=>row.mailbox==='notice'),source=await mail.read(row.id,{includePresentation:true});
  assert.equal(source.mail.desktopMessage.uniqueId,'desktop-fixture');assert.equal(source.mail.desktopMessage.flags,'0-UNSEEN');assert.equal(source.mail.sourceType,'approval');assert.equal(source.mail.documentKindLabel,'결재 문서');assert.equal(source.mail.cc,'team@example.test');assert.match(source.mail.text,/결재 본문/);
- assert.deepEqual(await readFile(path.join(mail.root,'raw',row.id,'message.eml')),single);
+ assert.deepEqual(await mail.rawVault.read(path.join(mail.root,'raw',row.id,'message.eml')),single);
  const original=await mail.download({id:row.id,kind:'raw',expectedSourceHash:row.sourceHash});assert.equal(original.filename,'review.mysingle');assert.deepEqual(Buffer.from(original.bytes,'base64'),single);
  const web=await mail.read(mail.rows().find(row=>row.mailbox==='submitted').id,{includePresentation:true});assert.match(web.mail.text,/기안 근거 MHTML/);assert.deepEqual(web.mail.presentation.images,[]);assert.equal(web.mail.subject,'submission.mhtml');
  await mail.startFolderImport(input);await mail.importTask;assert.equal(mail.status().localImport.imported,0);assert.equal(mail.status().localImport.duplicates,6);
@@ -66,7 +66,7 @@ test('raw CP949 display headers and MIME-encoded Korean retain readable text',as
  const parsed=await normalizePortalMail(raw,{filename:'one.mysingle'});assert.equal(parsed.normalized.subject,'안녕');assert.match(parsed.normalized.from,/안녕/);assert.equal(parsed.normalized.text,'안녕');assert.deepEqual(parsed.raw,raw);
 });
 test('never follows directory links, rejects oversized files, and cancellation stops collection',async t=>{
- const {root,input,mail}=await fixture(t);await put(input,'AUTO_INBOX/one.eml',eml('one'));await put(input,'large.eml',Buffer.alloc(1024));await truncate(path.join(input,'large.eml'),2*1024*1024*1024+1);/* sparse: only files above the 2 GiB hard limit are refused (2026-10-14); larger-than-50 MiB files are read up to their first 24 MiB */
+ const {root,input,mail}=await fixture(t);await put(input,'AUTO_INBOX/one.eml',eml('one'));await put(input,'large.eml',Buffer.alloc(1024));await truncate(path.join(input,'large.eml'),2*1024*1024*1024+1);/* Sparse fixture above the bounded complete-original reader; never accept a truncated prefix as the original. */
  const outside=path.join(root,'outside');await mkdir(outside);await put(outside,'secret.eml',eml('outside'));
  await symlink(outside,path.join(input,'linked'),'junction');const scanned=await scanMailFolder(input);assert.equal(scanned.files.length,1);assert.deepEqual(new Set(scanned.failures.map(row=>row.error)),new Set(['mail_import_link','mail_size_limit']));
  const controller=new AbortController();controller.abort();await assert.rejects(readMailImportFile(scanned.root,scanned.files[0],controller.signal),/mail_cancelled/);

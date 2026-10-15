@@ -88,7 +88,7 @@ try{
   const wiki=p.getByRole('dialog',{name:'위키 준비',exact:true});await p.getByRole('button',{name:'위키 설정',exact:true}).waitFor();await p.waitForTimeout(300);assert.equal(await wiki.count(),0,'running preparation stays in the background');
   await p.getByRole('button',{name:'위키 설정',exact:true}).click();await wiki.waitFor();
   assert.equal(await wiki.getByRole('progressbar').getAttribute('aria-valuenow'),'30');
-  assert.match(await wiki.innerText(),/현재 단계 약/);assert.match(await wiki.innerText(),/진행 (?:[1-9]\d*분(?: [1-9]\d*초)?|[1-9]\d*초)/);
+  assert.match(await wiki.innerText(),/현재 단계 약 .*남음|처리 속도 확인 중/);assert.match(await wiki.innerText(),/진행 (?:[1-9]\d*분(?: [1-9]\d*초)?|[1-9]\d*초)/);
   assert(await wiki.evaluate(e=>e.scrollWidth<=e.clientWidth+1),'wiki progress fits the modal');
   await p.screenshot({path:path.join(dir,`wiki-progress-${width}.png`),animations:'disabled'});
   await wiki.getByRole('button',{name:'백그라운드로',exact:true}).click();await wiki.waitFor({state:'hidden'});
@@ -185,7 +185,7 @@ try{
  const chip=p.locator('.nubi-capture-chip');await chip.waitFor();assert.equal(await p.evaluate(()=>window.captureCalls),1);
  const size=await chip.locator('img').evaluate(img=>[img.naturalWidth,img.naturalHeight]);assert(size[0]>=195&&size[0]<=205&&size[1]>=125&&size[1]<=135,'crop follows the dragged rectangle '+size);
  /* The window is captured once at up to 2400px, with the web view composed in, and the region is cut from that exact frame (2026-10-15). */const captureArgs=await p.evaluate(()=>window.captureArgs);assert(captureArgs.at(-1)?.maxWidth===2400&&!captureArgs.at(-1).clip,'one whole-window capture at 2400px '+JSON.stringify(captureArgs.at(-1)));
- await chip.locator('button').first().click();assert.equal(await chip.getAttribute('data-open'),'true');await chip.locator('button').first().click();
+ await chip.locator('button').first().click();const preview=p.locator('.nubi-capture-preview');await preview.waitFor();await assertDesktopDialog(preview);await p.keyboard.press('Escape');await preview.waitFor({state:'hidden'});
  await chip.getByRole('button',{name:/빼기/}).click();await chip.waitFor({state:'hidden'});
  await p.keyboard.press('Escape');
  checks.push('Nubi-only skill catalog, search during direct download, installed state, no embedded website, draft preservation and quiet composer hover/focus, workspace capture chip (drag, crop, enlarge, remove)');
@@ -193,7 +193,7 @@ try{
   await p.setViewportSize({width:1280,height:900});await p.goto(origin+'/?command&command-analysis='+phase+'&modals&integrated');
   await openSidebar();await p.getByRole('button',{name:'대화 검색',exact:true}).click();await p.getByRole('dialog',{name:'대화 검색'}).locator('.nubi-history-item').first().click();
   const card=p.getByRole('region',{name:'실행 준비 승인'});await card.getByText(phase==='running'?'결과 확인 중':'결과 확인 중단',{exact:true}).waitFor();
-  /* The output reads in place under the command (user request 2026-10-14); there is no '실행 결과 보기' button any more. */assert.equal(await card.getByRole('button',{name:'실행 결과 보기'}).count(),0);await card.getByText('결과 확인용 출력',{exact:true}).waitFor();assert.equal(await card.getByText('명령 상세',{exact:true}).count(),0);
+  /* The record stays open in place (user decision 2026-10-14); the output also opens by process ID in the internal terminal. */assert.equal(await card.locator('.nubi-terminal').count(),1);await card.getByRole('button',{name:'터미널 열기',exact:true}).click();assert.equal(await p.evaluate(()=>window.openedTerminal.processId),'command-result');
   if(phase==='paused'){await p.getByText('응답 형식 확인 필요',{exact:false}).first().waitFor();assert.equal(await p.getByText('실행 실패',{exact:true}).count(),0);}
   await p.screenshot({path:path.join(dir,'command-analysis-'+phase+'.png'),animations:'disabled'});
   checks.push('command analysis '+phase+': actual state label, readable output during analysis, planning failure distinguished from shell failure');

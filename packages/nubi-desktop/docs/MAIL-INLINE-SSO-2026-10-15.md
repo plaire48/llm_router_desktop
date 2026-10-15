@@ -1,5 +1,7 @@
 # Mail inline sign-in and disconnect policy
 
+> Superseded on 2026-10-15 by the user rollback: the active UI uses the original in-app portal login tab. Inline credentials and hidden form submission are disconnected from the product. Existing-session reuse, disconnect notifications, storage setup and collection behavior remain. The notes below describe the former implementation.
+
 ## Latest user decision
 
 2026-10-15: Mail authentication uses an ID/password form in the conversation. A valid existing session requires no credential entry. A disconnected mail session is logged out, background retries stop, and Windows receives a concrete notification leading back to the form. This replaces the automatic recovery/backoff implementation considered earlier in this session. GHES token authentication remains separate.

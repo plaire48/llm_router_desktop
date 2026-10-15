@@ -1,7 +1,7 @@
 const fs=require('node:fs/promises');
 const path=require('node:path');
 const {randomUUID}=require('node:crypto');
-const KEYS=new Set(['provider:aipro','provider:chatgpt','provider:fabrix','provider:claude','provider:active','nubi.ghes.code.sdsdev.co.kr','mail-wiki-key']);
+const KEYS=new Set(['provider:aipro','provider:chatgpt','provider:fabrix','provider:claude','provider:active','nubi.ghes.code.sdsdev.co.kr','mail-wiki-key','mail-raw-key']);
 
 // Only the trusted main/worker pair can access these records. Never expose
 // vault operations through renderer RPC, snapshots, logs or model tools.
@@ -44,4 +44,7 @@ function connectionVault({directory,safeStorage,platform=process.platform,crypto
   flush:()=>queue
  };
 }
-module.exports={connectionVault,KEYS};
+// Keys a worker process may touch: its provider connections, the mail vault keys and MCP server secrets.
+// Company credentials (GHES) stay in the main process.
+const workerKey=key=>/^provider:(?:aipro|chatgpt|fabrix|claude|active)$/.test(key)||key==='mail-wiki-key'||key==='mail-raw-key'||/^mcp:[a-z][a-z0-9-]{1,39}$/.test(key);
+module.exports={connectionVault,KEYS,workerKey};

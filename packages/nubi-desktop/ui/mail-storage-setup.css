@@ -1,14 +1,26 @@
-.nubi-mail-storage-title { display:flex; align-items:center; gap:var(--cx-space-2); }
+.nubi-mail-storage-setup .nubi-mail-storage-title { font:inherit; font-weight:var(--nubi-weight-emphasis); display:flex; align-items:center; gap:var(--cx-space-2); }
 .nubi-mail-storage-title svg { color:var(--nubi-dialog-action); flex:none; }
 .nubi-mail-storage-setup .nubi-mail-storage-intro { margin:0; font:var(--deck-font-body); color:var(--nubi-text-primary); }
-.nubi-mail-storage-setup .nubi-mail-storage-intro strong { font-weight:600; }
+.nubi-mail-storage-setup .nubi-mail-storage-intro strong { font-weight:var(--nubi-weight-emphasis); }
 .nubi-mail-storage-setup .nubi-mail-storage-hint { margin:var(--cx-space-2) 0 var(--cx-space-4); font:var(--deck-font-body); color:var(--nubi-text-secondary); }
 .nubi-mail-storage-location { display:flex; align-items:center; gap:var(--cx-space-3); padding:var(--cx-space-3); margin-bottom:var(--cx-space-3); border-radius:var(--deck-control-radius); background:var(--nubi-surface-selected); }
 .nubi-mail-storage-location>svg { color:var(--nubi-text-action); flex:none; }
 .nubi-mail-storage-location>div { display:grid; gap:var(--cx-space-1); min-width:0; }
-.nubi-mail-storage-location strong { font:var(--deck-font-caption); font-weight:600; color:var(--nubi-text-primary); }
+.nubi-mail-storage-location strong { font:var(--deck-font-caption); font-weight:var(--nubi-weight-emphasis); color:var(--nubi-text-primary); }
 .nubi-mail-storage-location span { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font:var(--deck-font-caption); color:var(--nubi-text-secondary); }
 .nubi-mail-storage-setup small { display:block; font:var(--deck-font-caption); color:var(--nubi-text-secondary); line-height:1.6; }
-.nubi-mail-storage-setup .nubi-mail-storage-progress { display:flex; align-items:center; gap:var(--cx-space-2); font:var(--deck-font-caption); color:var(--nubi-text-secondary); }
+.nubi-mail-storage-setup .nubi-mail-storage-progress { display:grid; gap:var(--cx-space-2); margin-top:var(--cx-space-3); font:var(--deck-font-caption); color:var(--nubi-text-secondary); }
 .nubi-mail-storage-progress time { margin-left:auto; white-space:nowrap; font-variant-numeric:tabular-nums; }
 .nubi-mail-storage-setup [role=alert] { font:var(--deck-font-caption); color:var(--nubi-text-danger); }
+
+.nubi-mail-storage-option { margin:var(--cx-space-4) 0 var(--cx-space-3); display:grid; gap:var(--cx-space-1); }
+.nubi-mail-storage-option label { font:var(--deck-font-body); font-weight:var(--nubi-weight-emphasis); color:var(--nubi-text-primary); }
+
+.nubi-mail-storage-note { margin-top:var(--cx-space-3); }
+
+.nubi-mail-storage-progress>div:first-child { display:flex; align-items:center; gap:var(--cx-space-2); min-width:0; }
+.nubi-mail-storage-progress strong { font-weight:var(--nubi-weight-emphasis); }
+.nubi-mail-storage-progress .nubi-progress { margin-top:0; }
+.nubi-mail-import-status .nubi-progress { margin-top:0; }
+
+.nubi-mail-storage-setup .nubi-mail-storage-count { display:flex; align-items:center; justify-content:space-between; gap:var(--cx-space-2); font-variant-numeric:tabular-nums; }

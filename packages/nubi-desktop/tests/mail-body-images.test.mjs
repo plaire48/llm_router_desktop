@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp,rm} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import {PersonalMail} from '../runtime/mail.mjs';
+import {PersonalMail} from './helpers-personal-mail.mjs';
 import {normalizePortalMail} from '../runtime/mail-portal-content.mjs';
 import {installDesktopFeatures} from '../runtime/desktop-features.mjs';
 import {readMailAttachmentsForAgent} from '../runtime/mail-agent-attachments.mjs';

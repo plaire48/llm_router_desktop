@@ -180,7 +180,7 @@ export class McpRegistry{
     const tool=entry.tools.find(item=>mcpToolName(parsed.serverId,item.name)===name);
     return tool?{serverId:parsed.serverId,tool,readOnly:tool.annotations?.readOnlyHint===true}:null;
   }
-  fingerprint(name,args){return createHash('sha256').update(name+'\n'+JSON.stringify(args??{})).digest('hex').slice(0,24);}
+  fingerprint(name,args){const canonical=JSON.stringify(args??{},(_key,value)=>value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.keys(value).sort().map(key=>[key,value[key]])):value);return createHash('sha256').update(name+'\n'+canonical).digest('hex').slice(0,24);}
   async call(name,args={},{signal}={}){
     const found=this.tool(name);if(!found)fail('mcp_tool_unavailable');
     const text=JSON.stringify(args??{});if(text.length>MCP_LIMITS.argsChars)fail('mcp_arguments_too_large');

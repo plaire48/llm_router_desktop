@@ -1,6 +1,8 @@
+import {notifyWikiCompleted} from './wiki-notification.mjs';
 import {requireWikiGit} from './git-runtime.mjs';
 import {pullSources} from './wiki-refresh.mjs';
 import {snapshotFolderHistory} from './wiki-folder-history.mjs';
+import {wikiPreparationGit} from './wiki-git-preparation.mjs';
 // OpenWiki update, proposed by Desktop and run on approval (user decision 2026-09-29).
 //
 // The status is read without a model: the source changed since the generation
@@ -9,14 +11,16 @@ import {snapshotFolderHistory} from './wiki-folder-history.mjs';
 // when the user approves the result, and only under openwiki/. OpenWiki's
 // code is not changed: the runner is the one OpenWiki uses for `--update`.
 import {randomUUID} from 'node:crypto';
-import {mkdir,readFile,writeFile,rm,unlink} from 'node:fs/promises';
+import {mkdir,readFile,writeFile,rm,unlink,lstat,realpath} from 'node:fs/promises';
 import path from 'node:path';
 import {git,hash,fail,readSource,scopedFile,gitOpenFailure,privatePath} from './files.mjs';
-import {wikiSources,wikiFiles,listWikiPages,listWikiSourceFiles,writeWikiSnapshot,checkpointSnapshotWiki,readWikiSource,WIKI_CHECKPOINT} from './wiki-snapshot.mjs';
+import {wikiSources,wikiFiles,listWikiPages,listWikiSourceFiles,writeWikiSnapshot,checkpointSnapshotWiki,readWikiSource,wikiSourceHead,WIKI_CHECKPOINT} from './wiki-snapshot.mjs';
 import {stalePages} from './wiki-evidence.mjs';
 import {OpenWikiIgnore,RepositoryEvidenceResolver,parseRepositoryEvidenceResource} from '../generated/openwiki.mjs';
 import {modelTransport} from './recovery.mjs';
 import {createRunMetrics} from './run-metrics.mjs';
+import {wikiInitializationError} from './wiki-initialization-error.mjs';
+import {wikiPlanPending,WIKI_PLAN_REQUIRED} from './wiki-plan-completion.mjs';
 
 const WIKI='openwiki/',CLAIMS='openwiki/.claims/',RECORD='openwiki/.last-update.json',KEPT=20,EVENTS=40;
 const inWiki=rel=>rel.startsWith(WIKI);
@@ -40,7 +44,7 @@ export async function wikiUpdateStatus(root){
   let head=null;try{head=(await git(root,['rev-parse','HEAD'])).trim();}catch(error){if(!['not_git_repository','git_unavailable'].includes(gitOpenFailure(error)))throw error;}
   const source=counted(await OpenWikiIgnore.load(root));
   if(!head||!lastUpdate.gitHead){
-    let checkpoint;try{checkpoint=JSON.parse((await readSource(root,WIKI_CHECKPOINT)).content);}catch{}
+    let checkpoint;try{checkpoint=JSON.parse((await readSource(root,WIKI_CHECKPOINT,{maxBytes:64*1024*1024})).content);}catch{}
     const files=await wikiSources(root),current=Object.fromEntries(files.map(file=>[file.path,file.hash]));
     const known=checkpoint?.schemaVersion===1&&checkpoint.files&&typeof checkpoint.files==='object';
     const changedFiles=known?[...new Set([...Object.keys(checkpoint.files),...Object.keys(current)])].filter(rel=>checkpoint.files[rel]!==current[rel]):[];
@@ -77,6 +81,13 @@ const withCallLimit=wire=>{const at=wire.findIndex(message=>message.role!=='syst
 // silent request pauses for explicit resume instead of repeating ten-minute waits.
 export const WIKI_MODEL_WAIT_POLICY=Object.freeze({idleMs:600000,attemptMs:0,slowMs:30000,retryTimeouts:false});
 
+export async function prepareNativeWikiCopy(root,mode='update'){
+  try{
+    const {ensureCodeModeRepoSetup}=await import('../generated/openwiki-update/index.mjs');
+    await ensureCodeModeRepoSetup(root,{createWorkflow:mode==='init'});
+  }catch(error){if(['ENOENT','ERR_MODULE_NOT_FOUND'].includes(error?.code))fail('wiki_runtime_missing');throw error;}
+}
+
 // The runner OpenWiki uses for `openwiki --update`, with the model the user logged in to Desktop.
 // Model calls are counted under the purpose wiki_update. Only progress facts leave the run:
 // stage, page and position, never page text.
@@ -97,11 +108,21 @@ export function defaultWikiUpdater(service,{load=()=>import('../generated/openwi
     const complete=async(wire,tools,options={})=>{
       if(terminalModelError)throw terminalModelError;
       const active=service.providers.status();if(!active.connected||active.model!==status.model||active.provider!==status.provider||active.connectionId!==status.connectionId)fail('provider_changed');
-      const request=withCallLimit(wire);let attempt=request;
+      const request=withCallLimit(wire),planPending=wikiPlanPending(wire,tools);let attempt=request,planRepairs=0;
       for(let retry=0;;retry++){
-        try{return await invoke(attempt,tools,options.signal||signal,'wiki_update',{retryInvalidResponse:false});}
+        try{
+          const result=await invoke(attempt,tools,options.signal||signal,'wiki_update',{retryInvalidResponse:false});
+          if(result.finishReason==='length')fail('output_limit');
+          if(planPending&&!result.calls?.length){
+            if(planRepairs++>=2)fail('wiki_plan_missing');
+            attempt=[...attempt,{role:'assistant',content:result.content||''},WIKI_PLAN_REQUIRED];
+            onEvent?.({type:'model_retry',attempt:planRepairs,code:'wiki_plan_missing'});
+            continue;
+          }
+          return result;
+        }
         catch(error){
-          if(error.message==='response_invalid'&&retry<3){attempt=[...request,TEXT_REPLY];continue;}
+          if(error.message==='response_invalid'&&retry<3){attempt=[...attempt,planPending?WIKI_PLAN_REQUIRED:TEXT_REPLY];continue;}
           // The runner turns a page worker's failure into a skipped page: without this the host saw only an empty Wiki (2026-10-12).
           terminalModelError=error;
           onEvent?.({type:'model_error',code:/^[a-z_]{3,60}$/.test(error?.message||'')?error.message:'model_failed'});throw error;
@@ -109,7 +130,12 @@ export function defaultWikiUpdater(service,{load=()=>import('../generated/openwi
       }
     };
     const model=new NubiOpenWikiModel({complete,signal,modelId:status.model,taskId:null});
-    const progress=event=>{if(event?.type==='repository_progress')onEvent({type:'progress',stage:String(event.stage),...(typeof event.page==='string'?{page:event.page.slice(0,300)}:{}),...(Number.isSafeInteger(event.pageIndex)?{index:event.pageIndex}:{}),...(Number.isSafeInteger(event.pageCount)?{total:event.pageCount}:{})});};
+    const progress=event=>{
+      // Native finalization removes .run.json even when a worker was skipped.
+      // Stop BEFORE that boundary so accepted plans/pages remain resumable.
+      if(event?.type==='repository_progress'&&event.stage==='finalizing'&&terminalModelError)throw terminalModelError;
+      if(event?.type==='repository_progress')onEvent?.({type:'progress',stage:String(event.stage),...(typeof event.page==='string'?{page:event.page.slice(0,300)}:{}),...(Number.isSafeInteger(event.pageIndex)?{index:event.pageIndex}:{}),...(Number.isSafeInteger(event.pageCount)?{total:event.pageCount}:{}),...(Number.isSafeInteger(event.completedPages)?{completed:event.completedPages}:{})});
+    };
     const result=await runNativeRepositoryGeneration({root,mode,language:language||null,modelId:status.model,model,onEvent:progress});
     // OpenWiki may return after skipping failed pages. Keep the durable run for
     // resume instead of publishing a partial generation as a completed Wiki.
@@ -120,7 +146,7 @@ export function defaultWikiUpdater(service,{load=()=>import('../generated/openwi
 
 // The checkpoint of a run names the sources it read (path to hash). Files that differ from it now.
 async function readCheckpoint(root){
-  let checkpoint;try{checkpoint=JSON.parse((await readSource(root,WIKI_CHECKPOINT)).content);}catch{return null;}
+  let checkpoint;try{checkpoint=JSON.parse((await readSource(root,WIKI_CHECKPOINT,{maxBytes:64*1024*1024})).content);}catch{return null;}
   return checkpoint?.schemaVersion===1&&checkpoint.files&&typeof checkpoint.files==='object'?checkpoint:null;
 }
 async function changedSinceCheckpoint(root,checkpoint,paths){
@@ -153,7 +179,32 @@ export async function wikiChangeSummary(root){
 
 const records=service=>service.store.list('wiki-update:').sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
 const save=(service,value)=>{service.store.set('wiki-update:'+value.id,value);return value;};
-const visible=({controller,...value})=>value;
+const visible=({controller,resume,...value})=>({...value,canResume:!!resume&&['failed','cancelled'].includes(value.state)});
+const fileHashes=files=>Object.fromEntries(files.map(file=>[file.path,file.hash]).sort(([a],[b])=>a.localeCompare(b)));
+const sameHashes=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+async function retainedPageProgress(copy){
+  try{
+    const file=await scopedFile(copy,'openwiki/.run.json');
+    if((await lstat(file)).size>2*1024*1024)return null;
+    const pages=JSON.parse(await readFile(file,'utf8'))?.plan?.pages;
+    if(!Array.isArray(pages)||!pages.length)return null;
+    return {completed:pages.filter(page=>page.status==='complete').length,total:pages.length};
+  }catch{return null;}
+}
+async function validateUpdateResume(root,owner,value,{signal}={}){
+  const saved=value.resume;if(saved?.schema!==1)fail('wiki_update_resume_missing');
+  const expected=path.join(owner.directory,'wiki-update',value.id);
+  if(!/^[a-f0-9-]{36}$/.test(value.id)||value.copy!==expected)fail('path_scope');
+  try{
+    for(const directory of [path.dirname(expected),expected])if((await lstat(directory)).isSymbolicLink())fail('path_scope');
+    if(await realpath(expected)!==expected)fail('path_scope');
+    if((await git(expected,['rev-parse','HEAD'])).trim()!==saved.copyHead)fail('wiki_update_resume_changed');
+    if(!sameHashes(fileHashes(await wikiSources(expected,{signal})),saved.copySources))fail('wiki_update_resume_changed');
+  }catch(error){if(error.code==='ENOENT')fail('wiki_update_resume_missing');throw error;}
+  if(await wikiSourceHead(root)!==saved.head||!sameHashes(fileHashes(await wikiSources(root,{signal})),saved.sources))fail('wiki_update_sources_changed');
+  if(!sameHashes(fileHashes(await wikiFiles(root)),saved.wiki))fail('wiki_update_conflict');
+  return expected;
+}
 
 // What a copy holds under openwiki/ that HEAD does not, and what the runner changed outside. The overlay names the
 // working tree's own uncommitted sources in the copy (path to hash, null for a deleted one): those are not the runner's.
@@ -191,14 +242,12 @@ async function fileHash(root,rel){try{return hash(await readFile(await scopedFil
 async function removeCopy(root,copy){
   try{await git(root,['worktree','remove','--force',copy]);}catch{/* Already removed. */}
   await rm(copy,{recursive:true,force:true});
-  try{await git(root,['worktree','prune']);}catch{/* Nothing to prune. */}
 }
 
 export async function wikiUpdate({method='status',id,fingerprint}={}){
-  this.ready();const root=this.root,owner=this.store;
-  // A run that an app exit or a project switch interrupted is still 'running' in its record, with no controller to
-  // reach: it ends here, as a restarted host ends its tasks, and its copy goes (2026-10-12).
-  for(const item of records(this).filter(item=>item.state==='running'&&item.id!==this.wikiUpdateRun?.id)){if(item.copy)await removeCopy(root,item.copy);save(this,{...item,state:'failed',error:'wiki_update_interrupted',finishedAt:new Date().toISOString()});}
+  this.ready();const root=this.root,owner=this.store,projectId=this.projectId;
+  // An orphaned run retains its private copy and durable native page checkpoints.
+  for(const item of records(this).filter(item=>item.state==='running'&&!(item.id===this.wikiUpdateRun?.id&&this.wikiUpdateRun.owner===owner))){save(this,{...item,state:'failed',pageProgress:await retainedPageProgress(item.copy),error:'wiki_update_interrupted',finishedAt:new Date().toISOString()});}
   if(method==='status')return {status:await wikiUpdateStatus(root),updates:records(this).slice(0,KEPT).map(visible)};
   if(method==='propose'){
     const status=await wikiUpdateStatus(root);
@@ -231,6 +280,23 @@ export async function wikiUpdate({method='status',id,fingerprint}={}){
         const initialization=await this.initializeWiki();
         return {pulled,status,update:null,initialization};
       }
+      // Never revive an older failed proposal after a newer result was applied
+      // or discarded. Repeated refresh also keeps a ready result awaiting approval.
+      const latest=records(this)[0];
+      const retained=latest?.resume&&['failed','cancelled','ready'].includes(latest.state)?latest:null;
+      if(retained){
+        let usable=true;
+        try{await validateUpdateResume(root,owner,retained);}catch(error){
+          if(!['wiki_update_sources_changed','wiki_update_conflict','wiki_update_resume_changed','wiki_update_resume_missing'].includes(error.message))throw error;
+          usable=false;
+        }
+        if(usable){
+          if(retained.state==='ready')return {pulled,status,update:visible(retained)};
+          this.wikiRefreshProposalId=retained.id;
+          const update=await wikiUpdate.call(this,{method:'resume',id:retained.id,fingerprint:retained.fingerprint});
+          return {pulled,status,update,resumed:true};
+        }
+      }
       if(status.state==='unknown')fail('wiki_update_unavailable');
       if(status.state!=='stale')return {pulled,status,update:null};
       const proposal=await wikiUpdate.call(this,{method:'propose'});
@@ -246,24 +312,36 @@ export async function wikiUpdate({method='status',id,fingerprint}={}){
   if(!value)fail('wiki_update_missing');
   if(method==='cancel'){this.wikiUpdateRun?.id===id&&this.wikiUpdateRun.controller.abort();return visible(value);}
   if(method==='discard'){
-    if(!['ready','proposed'].includes(value.state))fail('wiki_update_state');
+    if(!['ready','proposed','failed','cancelled'].includes(value.state))fail('wiki_update_state');
+    if(this.wikiUpdateRun?.id===id)fail('wiki_update_busy');
     if(value.copy)await removeCopy(root,value.copy);
     return save(this,{...value,state:'discarded',finishedAt:new Date().toISOString()});
   }
-  if(method==='run'){
+  if(method==='run'||method==='resume'){
+    const resuming=method==='resume';
     if(this.wikiRefreshOwner&&this.wikiRefreshProposalId!==id)fail('wiki_update_busy');
-    await requireWikiGit();
-    if(value.state!=='proposed')fail('wiki_update_state');
+    if(resuming?!['failed','cancelled'].includes(value.state):value.state!=='proposed')fail('wiki_update_state');
     if(value.fingerprint!==fingerprint)fail('wiki_update_changed');
-    if(this.wikiUpdateRun)fail('wiki_update_busy');
+    if(this.wikiUpdateRun||this.wikiInitController||this.agent?.running||this.processes?.active.size)fail('wiki_update_busy');
+    const controller=new AbortController(),events=resuming?[...(value.events||[])]:[];
+    const active={id:value.id,controller,owner,preparing:true,startedAt:new Date().toISOString()};this.wikiUpdateRun=active;
+    let copy=value.copy,running;
+    const check=()=>{controller.signal.throwIfAborted();if(this.store!==owner||this.root!==root)fail('project_changed');};
+    try{
+    await requireWikiGit();check();
     // The proposal holds what was stale. A moved HEAD is a different update.
-    if(value.status.head&&(await git(root,['rev-parse','HEAD'])).trim()!==value.status.head)fail('wiki_update_changed');
-    const copy=path.join(this.store.directory,'wiki-update',value.id);
-    await mkdir(path.dirname(copy),{recursive:true});
-    const originalWiki=await wikiFiles(root);
-    let folderSources;const overlay=new Map();
+    if(!resuming&&value.status.head&&(await git(root,['rev-parse','HEAD'])).trim()!==value.status.head)fail('wiki_update_changed');
+    copy=path.join(owner.directory,'wiki-update',value.id);
+    await mkdir(path.dirname(copy),{recursive:true,mode:0o700});
+    if((await lstat(path.dirname(copy))).isSymbolicLink())fail('path_scope');
+    const originalWiki=resuming?Object.entries(value.resume?.wiki||{}).map(([path,hash])=>({path,hash})):await wikiFiles(root);
+    let folderSources;const overlay=new Map(resuming?value.resume?.overlay:[]);
+    let resume=value.resume;
+    if(resuming){await validateUpdateResume(root,owner,value,{signal:controller.signal});check();}
+    else{
+    const sourceBasis=fileHashes(await wikiSources(root,{signal:controller.signal}));
     if(value.status.head){
-      await git(root,['-c','core.hooksPath='+path.join(copy,'.nubi-no-hooks'),'worktree','add','--detach',copy,value.status.head],{timeout:120000});
+      await wikiPreparationGit(root,['-c','core.hooksPath='+path.join(copy,'.nubi-no-hooks'),'worktree','add','--detach',copy,value.status.head],{signal:controller.signal},'worktree');
       // The copy then holds the sources as the working tree holds them (user decision 2026-10-12): a developer's edits
       // reach the Wiki before a commit, and the status that proposed this update read those same files. A file the
       // snapshot would not read (private, binary, too large) keeps its committed version.
@@ -276,27 +354,41 @@ export async function wikiUpdate({method='status',id,fingerprint}={}){
       // Files the snapshot never reads (.env, keys, credentials) leave the copy too, as the initialization snapshot leaves them out.
       for(const rel of (await git(copy,['ls-files','-z'])).split('\0').filter(Boolean).filter(privatePath)){await rm(path.join(copy,rel),{force:true});overlay.set(rel,null);}
     }
-    else{folderSources=await wikiSources(root);await snapshotFolderHistory(owner.directory,folderSources,copy);}
+    else{folderSources=await wikiSources(root,{signal:controller.signal});await snapshotFolderHistory(owner.directory,folderSources,copy,{signal:controller.signal});}
     // Newly generated or edited Wiki files may not be committed. Give OpenWiki
     // the current pages and provenance, never an older/empty HEAD copy.
     await rm(path.join(copy,'openwiki'),{recursive:true,force:true});
     await writeWikiSnapshot(copy,originalWiki);
-    if(this.wikiRefreshJob?.controller.signal.aborted){await removeCopy(root,copy);fail('wiki_refresh_cancelled');}
-    if(this.store!==owner||this.root!==root){await removeCopy(root,copy);fail('project_changed');}
-    const controller=new AbortController(),events=[];
-    this.wikiUpdateRun={id:value.id,controller,owner};
-    const running=save(this,{...value,state:'running',copy,startedAt:new Date().toISOString(),events:[]});
+    if(!this.wikiUpdater){await prepareNativeWikiCopy(copy);check();}
+    resume={schema:1,head:await wikiSourceHead(root),sources:sourceBasis,wiki:fileHashes(originalWiki),copyHead:(await git(copy,['rev-parse','HEAD'])).trim(),copySources:fileHashes(await wikiSources(copy,{signal:controller.signal})),overlay:[...overlay],generated:false};
+    // Source edits during preparation cannot silently become the resume basis.
+    if(resume.head!==value.status.head||!sameHashes(sourceBasis,fileHashes(await wikiSources(root,{signal:controller.signal}))))fail('wiki_update_sources_changed');
+    }
+    check();
+    if(this.wikiRefreshJob?.controller.signal.aborted)fail('wiki_refresh_cancelled');
+    check();
+    running={...value,state:'running',copy,resume,resumed:resuming,startedAt:new Date().toISOString(),events};
+    delete running.error;delete running.finishedAt;
+    save(this,running);
+    active.preparing=false;
     const runner=this.wikiUpdater||defaultWikiUpdater(this);
     const finish=async patch=>{
-      const current={...running,...(owner.db.isOpen?owner.get('wiki-update:'+value.id):{}),...patch,events:events.slice(-EVENTS),finishedAt:new Date().toISOString()};
-      if(!['ready'].includes(current.state))await removeCopy(root,copy);
-      if(owner.db.isOpen)owner.set('wiki-update:'+value.id,current);if(this.wikiUpdateRun?.id===value.id)this.wikiUpdateRun=null;
+      const pageProgress=await retainedPageProgress(copy);
+      const current={...running,...(owner.db.isOpen?owner.get('wiki-update:'+value.id):{}),...patch,...(pageProgress?{pageProgress}:{}),events:events.slice(-EVENTS),finishedAt:new Date().toISOString()};
+      if(owner.db.isOpen){owner.set('wiki-update:'+value.id,current);notifyWikiCompleted(this,current,{root,projectId});}if(this.wikiUpdateRun===active)this.wikiUpdateRun=null;
     };
     Promise.resolve().then(async()=>{
-      const result=await runner({root:copy,language:value.status.lastUpdate.language,signal:controller.signal,updateId:value.id,onEvent:event=>{events.push({...event,at:new Date().toISOString()});}});
+      let lastSaved=0;
+      const result=resume.generated?resume.result:await runner({root:copy,language:value.status.lastUpdate.language,signal:controller.signal,updateId:value.id,onEvent:event=>{
+        events.push({...event,at:new Date().toISOString()});if(events.length>EVENTS)events.splice(0,events.length-EVENTS);
+        if(owner.db.isOpen&&Date.now()-lastSaved>250){owner.set('wiki-update:'+value.id,{...running,events:[...events]});lastSaved=Date.now();}
+      }});
+      if(!resume.generated){resume={...resume,generated:true,result:result||{},copySources:fileHashes(await wikiSources(copy,{signal:controller.signal}))};running={...running,resume};if(owner.db.isOpen)owner.set('wiki-update:'+value.id,running);}
       if(controller.signal.aborted||this.store!==owner||this.root!==root)return finish({state:'cancelled'});
       // The checkpoint names the sources this run read; the status reads it for uncommitted edits since.
-      if(folderSources)await checkpointSnapshotWiki(copy,folderSources);else await checkpointSnapshotWiki(copy,await wikiSources(copy),{gitHead:value.status.head});
+      // The receipt describes the original sources, not the runner's managed
+      // AGENTS snippets, which are intentionally never applied to the project.
+      await checkpointSnapshotWiki(copy,Object.entries(resume.sources).map(([path,hash])=>({path,hash})),{gitHead:resume.head});
       const {changes,outside}=await changesOf(copy,overlay);
       // Compare with the actual Wiki snapshot, including deletions of pages that
       // were never committed. Capture conflict hashes before the model ran.
@@ -308,8 +400,15 @@ export async function wikiUpdate({method='status',id,fingerprint}={}){
       const ready={state:'ready',changes,outside,outsideEvidence:await outsideEvidence(root,copy,changes,outside),base,result:{skipped:result?.skipped===true,...(result?.sourceChanged?{sourceChanged:true}:{})}};
       ready.fingerprint=hash(JSON.stringify([value.id,changes,base]));
       return finish(ready);
-    }).catch(error=>finish(controller.signal.aborted?{state:'cancelled'}:{state:'failed',error:/^[a-z_]{3,60}$/.test(error?.message||'')?error.message:'wiki_update_failed'}));
+    }).catch(error=>finish(controller.signal.aborted?{state:'cancelled'}:{state:'failed',error:wikiInitializationError(error,'planning')}));
     return visible(running);
+    }catch(error){
+      if(this.wikiUpdateRun===active)this.wikiUpdateRun=null;
+      // Preparation never clears an already retained copy. A failed first
+      // preparation can be explicitly discarded along with the proposal.
+      if(owner.db.isOpen&&!resuming)owner.set('wiki-update:'+value.id,{...value,copy,state:'failed',error:wikiInitializationError(error,'snapshot_git'),finishedAt:new Date().toISOString()});
+      throw error;
+    }
   }
   if(method==='apply'){
     if(value.state!=='ready')fail('wiki_update_state');
@@ -325,7 +424,7 @@ export async function wikiUpdate({method='status',id,fingerprint}={}){
     }
     await removeCopy(root,value.copy);
     this.store.event('wiki_update_applied',{id:value.id,files:value.changes.length});
-    return save(this,{...value,state:'applied',appliedAt:new Date().toISOString()});
+    const applied=save(this,{...value,state:'applied',appliedAt:new Date().toISOString()});notifyWikiCompleted(this,applied,{root,projectId});return applied;
   }
   fail('wiki_update_invalid');
 }

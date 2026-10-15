@@ -4,7 +4,7 @@ function companyPage(value){try{const u=new URL(value);return ['http:','https:']
 // Self-contained code runs in the actual SSO document, not a recreated HTTP authentication endpoint.
 function submitLogin({username,password}){
  if(location.protocol!=='https:'||!/(^|\.)samsung\.(net|com)$/.test(location.hostname))return 'secure_page_required';
- if(!/^\/loginapp\/login\/?$/i.test(location.pathname))return 'waiting';
+ if(!/^\/loginapp\/(?:login|abnormal-logout|logout)\/?$/i.test(location.pathname))return 'waiting';
  const passwords=[...document.querySelectorAll('input[type=password]')].filter(el=>!el.disabled&&el.getClientRects().length>0);
  if(passwords.length!==1)return 'form_required';
  const pass=passwords[0],form=pass.form;if(!form)return 'form_required';
@@ -43,7 +43,7 @@ class MailCredentialLogin{
      const wc=item.webContents;if(item.isDestroyed()||wc.isLoadingMainFrame())continue;
      const url=wc.getURL();if(portalOrigin(url)&&new URL(url).pathname.startsWith('/portalapp/home'))return;
      if(!companyPage(url))throw Error('mail_portal_additional_auth');
-     if(!submitted&&/\/loginapp\/login\/?(?:[?#]|$)/i.test(url)){
+     if(!submitted&&/\/loginapp\/(?:login|abnormal-logout|logout)\/?(?:[?#]|$)/i.test(url)){
       const state=await wc.executeJavaScript(`(${submitLogin.toString()})(${JSON.stringify(credentials)})`);
       if(state==='submitted'){submitted=true;credentials.username='';credentials.password='';}
       else if(state!=='waiting')throw Error(state==='secure_page_required'?'mail_portal_secure_login':'mail_portal_login_form');

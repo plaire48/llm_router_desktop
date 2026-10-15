@@ -28,7 +28,14 @@ test('connection and TLS errors are not authentication failures; cancellation st
 });
 test('only known company login routes count as login redirects',()=>{
  assert(loginRedirect(new URL('http://samsung.net/loginapp/login'),LOGIN_URL));
- for(const url of ['https://samsung.net/error','https://attacker.example/login','https://samsung.net.attacker.example/login','https://x:y@samsung.net/login'])assert.equal(loginRedirect(new URL(url),LOGIN_URL),false);
+ for(const url of ['https://www.samsung.net/loginapp/abnormal-logout','https://www.samsung.net/loginapp/abnormal-logout/?reason=expired','https://samsung.net/loginapp/logout'])assert(loginRedirect(new URL(url),LOGIN_URL));
+ for(const url of ['https://samsung.net/error','https://attacker.example/login','https://samsung.net.attacker.example/login','https://x:y@samsung.net/login','https://samsung.net/loginapp/abnormal-logout-other','https://samsung.net/loginapp/logout-other','https://samsung.net.attacker.example/loginapp/abnormal-logout','file://samsung.net/loginapp/abnormal-logout'])assert.equal(loginRedirect(new URL(url),LOGIN_URL),false);
+});
+test('abnormal logout form HTML requests login rather than reporting an unreadable response',async()=>{
+ for(const action of ['/loginapp/login','/loginapp/logout','/loginapp/abnormal-logout','https://www.samsung.net/loginapp/abnormal-logout?reason=expired']){
+  await assert.rejects(portalFetch({operation:'folders'},{fetch:async()=>new Response(`<html><form action="${action}"></form></html>`)}),{message:'mail_portal_login'});
+ }
+ await assert.rejects(portalFetch({operation:'folders'},{fetch:async()=>new Response('<html><form action="/loginapp/abnormal-logout-other"></form></html>')}),{message:'mail_portal_response'});
 });
 test('a VPN failure logs out once, clears portal cookies and never retries automatically',async t=>{
  t.mock.timers.enable({apis:['setTimeout','Date'],now:1000});const {host,actions}=fixture(t);const notices=[],cleared=[];let reads=0;

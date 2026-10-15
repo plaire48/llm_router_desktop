@@ -85,6 +85,18 @@ function pageJob(
 }
 
 describe("repository worker prompts", () => {
+  test("connects code coverage to grounded workflows without expanding scoped updates", () => {
+    const planner = createRepositoryPlannerPrompt(planningView(), "Only document auth.");
+    expect(planner).toContain("failure/recovery");
+    expect(planner).toContain("omit absent domains");
+    expect(planner).toContain("hard scoped update mandate");
+    const worker = createRepositoryPagePrompt(pageJob(), [pageJob()], "ko");
+    expect(worker).toContain("actual trigger through its handlers");
+    expect(worker).toContain("Cite inspected");
+    expect(worker).toContain("rather than\nlabelling everything Reference");
+    expect(worker).toContain("historical behavior explicitly dated");
+    expect(worker).toContain("Write only /openwiki/auth.md");
+  });
   test("preserves actual user and connector planning context", () => {
     const prompt = createRepositoryPlannerPrompt(
       planningView(),

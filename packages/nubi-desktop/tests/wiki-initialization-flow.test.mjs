@@ -30,7 +30,11 @@ async function setup(t,{gitProject=false}={}){
     await writeFile(path.join(copy,'openwiki/.last-update.json'),JSON.stringify({status:'complete',command:'init',language:'ko',gitHead:commit}));
     await writeFile(path.join(copy,'openwiki/.page-manifest.json'),JSON.stringify({schemaVersion:1,pages:{'openwiki/home.md':{gitHead:commit}}}));
   };
+  const notices=[];service.notifyWiki=value=>{assert.equal(service.store.get('wiki-init').state,'completed');notices.push(value);};
   await service.initializeWiki();await service.wikiInitPromise;
+  assert.equal(notices.length,1);assert.equal(notices[0].phase,'created');
+  await service.initializeWiki();assert.equal(notices.length,1,'reopening existing Wiki never repeats completion');
+  service.notifyWiki=undefined;
   assert.equal(service.wikiInitialization().state,'completed',JSON.stringify(service.wikiInitialization()));return {root:service.root,service};
 }
 async function publish(root,text){
@@ -138,6 +142,10 @@ test('Wiki failure diagnostics preserve actionable codes without raw errors',()=
   assert.equal(wikiInitializationError({code:'ENOSPC'},'publishing'),'wiki_disk_full');
   assert.equal(wikiInitializationError({code:'EEXIST'},'publishing'),'wiki_output_conflict');
   assert.equal(wikiInitializationError(Error('response_invalid'),'planning'),'response_invalid');
+  assert.equal(wikiInitializationError(Error('Repository planning worker exited without submit_plan.'),'planning'),'wiki_plan_missing');
+  assert.equal(wikiInitializationError(Object.assign(Error('private graph state'),{name:'GraphRecursionError'}),'planning'),'wiki_analysis_limit');
+  assert.equal(wikiInitializationError(Object.assign(Error('private plan'),{code:'invalid_input'}),'planning'),'wiki_plan_invalid');
+  assert.equal(wikiInitializationError(Error('request_failed'),'planning'),'model_failed');
   assert.equal(wikiInitializationError(Error('unknown_private_reply'),'planning'),'wiki_failed');
 });
 

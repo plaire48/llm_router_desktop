@@ -14,7 +14,7 @@ test('a project change during terminal setup refuses spawning',async()=>{
  let reads=0,spawns=0;const host=new TerminalHost({notify:()=>{},profiles:async()=>[{id:'bash',executable:'/bin/bash'}],invoke:async method=>{
   if(method==='overview')return {projectId:'a',defaultShell:'bash',profiles:[{id:'bash',executable:'/bin/bash'}]};
   if(method==='browseDirectory')return {absolute:'/fixture'};
-  if(method==='projectPath'){if(++reads>1)throw Error('project_changed');return {projectId:'a',path:'/fixture'};}
+  if(method==='projectPath'){if(++reads>1)throw Error('project_changed');return {projectId:'a',path:'/fixture',shellPreference:'bash'};}
  }});host.call=async()=>{spawns++;};
  await assert.rejects(host.request({action:'open',id:'terminal-a',projectId:'a'}),/project_changed/);assert.equal(reads,2);assert.equal(spawns,0);
 });
@@ -26,7 +26,7 @@ test('terminal control requires the bound project and does not forward arbitrary
 });
 test('pending opens are deduplicated and cannot attach a different project',async()=>{
  let release;const gate=new Promise(resolve=>{release=resolve;});let starts=0;
- const host=new TerminalHost({notify:()=>{},profiles:async()=>[{id:'bash',executable:'/bin/bash'}],invoke:async method=>{if(method==='projectPath'){await gate;return {projectId:'a'};}return {absolute:'/fixture'};}});
+ const host=new TerminalHost({notify:()=>{},profiles:async()=>[{id:'bash',executable:'/bin/bash'}],invoke:async method=>{if(method==='projectPath'){await gate;return {projectId:'a',shellPreference:'bash'};}return {absolute:'/fixture'};}});
  host.call=async()=>{starts++;return {state:'running'};};
  const first=host.request({action:'open',id:'same',projectId:'a'}),second=host.request({action:'open',id:'same',projectId:'a'});
  await assert.rejects(host.request({action:'open',id:'same',projectId:'b'}),/terminal_session_missing/);
@@ -37,4 +37,14 @@ test('disposing the host cancels a pending open before a shell is spawned',async
  const host=new TerminalHost({notify:()=>{},invoke:async()=>{await gate;return {projectId:'a'};}});host.call=async()=>{starts++;};
  const pending=host.request({action:'open',id:'late',projectId:'a'});host.dispose();release();
  await assert.rejects(pending,/terminal_disconnected/);assert.equal(starts,0);
+});
+for(const preference of ['cmd','bash','powershell'])test(`opening a terminal uses saved ${preference} unless the person chooses another shell`,async()=>{
+ const profiles=['cmd','bash','powershell'].map(id=>({id,executable:'/fixture/'+id})),calls=[];
+ const host=new TerminalHost({notify:()=>{},profiles:async()=>profiles,resolveShell:async()=>null,invoke:async method=>method==='projectPath'?{projectId:'a',shellPreference:preference}:{absolute:'/fixture'}});
+ host.call=async(action,args)=>{calls.push(args);return {state:'running'};};
+ await host.request({action:'open',id:'default',projectId:'a'});
+ assert.equal(calls[0].executable,'/fixture/'+preference);
+ const other=preference==='bash'?'cmd':'bash';
+ await host.request({action:'open',id:'explicit',projectId:'a',profile:other});
+ assert.equal(calls[1].executable,'/fixture/'+other);
 });

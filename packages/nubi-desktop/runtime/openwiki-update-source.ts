@@ -7,5 +7,8 @@ import {traceable} from 'langsmith/traceable';
 export const runNativeRepositoryGeneration = traceable(repositoryGeneration, {name:'nubi-wiki-update',tracingEnabled:false});
 // `openwiki --update` installs its bundled skills in the OpenWiki home before the runner reads them.
 export {syncBundledSkills} from '../../openwiki/src/agent/skills';
+// Complete the runner's deterministic setup before Desktop seals the source
+// copy. Its managed AGENTS/CLAUDE snippets must not invalidate a later resume.
+export {ensureCodeModeRepoSetup} from '../../openwiki/src/ingestion/code-mode';
 // From this bundle, so the model and the runner share one LangChain copy.
 export {NubiOpenWikiModel} from '../../../extensions/aipro-chat/openwiki-agent.js';

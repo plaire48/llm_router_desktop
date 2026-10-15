@@ -1,8 +1,9 @@
-import {mkdir,readFile,writeFile,readdir,lstat,realpath,rm} from 'node:fs/promises';
+import {mkdir,readFile,writeFile,readdir,opendir,lstat,realpath,rm} from 'node:fs/promises';
 import path from 'node:path';
-import {git,hash,relativeFile,listFiles,readSource,fail,gitOpenFailure,privatePath} from './files.mjs';
+import {git,hash,relativeFile,readSource,fail,gitOpenFailure,privatePath} from './files.mjs';
 import {wikiPreparationGit} from './wiki-git-preparation.mjs';
 import {OpenWikiIgnore} from '../generated/openwiki.mjs';
+import {wikiSourceInventory} from './wiki-source-inventory.mjs';
 
 export const WIKI_CHECKPOINT='openwiki/.nubi-sources.json';
 // Nubi's own records under openwiki/ are not Wiki pages: they neither make a Wiki nor reach the agent as one (2026-10-12).
@@ -10,12 +11,11 @@ export const NUBI_RECORD_DIRECTORIES=new Set(['openwiki/nubi-evidence','openwiki
 // Generated pages are often gitignored. Count actual local Markdown pages,
 // independently of Git's source inventory, without reading every page body.
 export async function listWikiPages(root,{includeNubi=false}={}){
-  const pages=[];let visited=0;
+  const pages=[];
   async function visit(directory,relative){
     let stat;try{stat=await lstat(directory);}catch(error){if(error.code==='ENOENT')return;throw error;}
     if(stat.isSymbolicLink()||!stat.isDirectory())fail('path_scope');
-    for(const entry of await readdir(directory,{withFileTypes:true})){
-      if(++visited>20000)fail('wiki_source_limit');
+    for await(const entry of await opendir(directory)){
       const rel=relative+'/'+entry.name;
       if(entry.name.startsWith('.')||privatePath(rel)||(!includeNubi&&NUBI_RECORD_DIRECTORIES.has(rel)))continue;
       if(entry.isSymbolicLink())fail('path_scope');
@@ -25,7 +25,8 @@ export async function listWikiPages(root,{includeNubi=false}={}){
   }
   await visit(path.join(root,'openwiki'),'openwiki');return pages.sort();
 }
-export async function listWikiSourceFiles(root,lister=listFiles){
+export async function listWikiSourceFiles(root,lister,options={}){
+  if(!lister)return wikiSourceInventory(root,options);
   const listed=await lister(root);let deleted,index;
   try{[deleted,index]=await Promise.all([git(root,['ls-files','--deleted','-z']),git(root,['ls-files','--stage','-v','-z'])]);}
   catch(error){if(['not_git_repository','git_unavailable'].includes(gitOpenFailure(error)))return listed;throw error;}
@@ -66,13 +67,14 @@ export async function countWikiPages(root){
   }
   await visit(path.join(root,'openwiki'),'openwiki');return count;
 }
-export async function wikiSources(root){
+export async function wikiSources(root,{signal}={}){
   root=await realpath(root);
-  const listed=await listWikiSourceFiles(root);if(listed.truncated)fail('wiki_source_limit');
+  const listed=await listWikiSourceFiles(root,undefined,{signal});if(listed.truncated)fail('wiki_source_limit');
   const ignore=await OpenWikiIgnore.load(root),files=[];
   for(const rel of listed.paths){
+    signal?.throwIfAborted();
     if(rel.startsWith('openwiki/')||ignore.ignores(rel))continue;
-    try{files.push(await readWikiSource(root,rel));}catch(error){if(!['file_too_large','binary_file','file_encoding'].includes(error.message))throw error;}
+    try{const {content,...file}=await readWikiSource(root,rel);files.push({...file,sourceRoot:root});}catch(error){if(!['file_too_large','binary_file','file_encoding'].includes(error.message))throw error;}
   }
   return files;
 }
@@ -86,7 +88,7 @@ export async function wikiFiles(root){
       const rel=base+entry.name;if(entry.isSymbolicLink())fail('path_scope');
       if(entry.isDirectory())await visit(path.join(directory,entry.name),rel+'/');
       else if(entry.isFile()&&(rel.endsWith('.md')||['.last-update.json','.page-manifest.json','.nubi-sources.json'].includes(rel)||rel.startsWith('.claims/')&&rel.endsWith('.json'))){
-        result.push(await readSource(root,'openwiki/'+rel));
+        result.push(await readSource(root,'openwiki/'+rel,{maxBytes:rel==='.nubi-sources.json'||rel==='.page-manifest.json'?64*1024*1024:1024*1024}));
       }
     }
   }
@@ -107,7 +109,12 @@ export async function writeWikiSnapshot(directory,files,{signal,onFile,increment
       if((await lstat(target)).isSymbolicLink())fail('path_scope');
       if(incremental)unchanged=hash(await readFile(target))===(file.hash||hash(file.content));
     }catch(error){if(error.code!=='ENOENT')throw error;}
-    if(!unchanged)await writeFile(target,file.content);
+    if(!unchanged){
+      let content=file.content;
+      if(content===undefined&&file.sourceRoot){const current=await readWikiSource(file.sourceRoot,file.path);if(current.hash!==file.hash)fail('source_stale');content=current.content;}
+      signal?.throwIfAborted();
+      await writeFile(target,content);
+    }
     onFile?.(++completed,files.length);
   }
 }

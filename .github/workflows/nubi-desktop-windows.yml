@@ -55,6 +55,14 @@ jobs:
           $parseErrors = $null
           [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path scripts/Publish-NubiUpdate.ps1), [ref]$null, [ref]$parseErrors) | Out-Null
           if ($parseErrors.Count) { throw ($parseErrors | Out-String) }
+      - name: Verify in-app portal login and SSO recovery
+        run: |
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+            node scripts/check-mail-portal-login.mjs
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          node scripts/check-mail-auth-redirects.mjs --home
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build standalone Electron installer with bird icon
         run: npm run package:windows
       - name: Verify 1.2.0 fixes
@@ -68,6 +76,14 @@ jobs:
       - name: Verify PowerShell Korean text and command follow-up admission
         run: |
           node --test --test-concurrency=1 tests/shell-encoding.test.mjs tests/submit-task-message.test.mjs tests/agent-input.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify 1.2.7 terminal wait and MCP approval recovery
+        run: |
+          node --test --test-concurrency=1 tests/process-idle.test.mjs tests/interactive-terminal.test.mjs tests/setup-actions.test.mjs tests/recovery.test.mjs tests/mcp-approval-flow.test.mjs tests/tool-argument-view.test.mjs tests/mail-browser-login.test.mjs tests/workspace-inquiry-flow.test.mjs tests/mail-auth-lifecycle.test.mjs tests/mail-session-recovery.test.mjs tests/mail-attachment-recovery.test.mjs tests/mail-credential-login.test.mjs tests/mail-portal-bundle.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify resumable mail, large Wiki sources and completion notices
+        run: |
+          node --test --test-concurrency=1 tests/wiki-large-project.test.mjs tests/git-clone-progress.test.mjs tests/mail-import-resume.test.mjs tests/mail-storage-policy.test.mjs tests/mail-raw-root.test.mjs tests/wiki-notifications.test.mjs tests/answer-notifications.test.mjs tests/answer-source-integrity.test.mjs tests/mail-knowledge.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Check packaged project navigation before installation
         run: |
@@ -95,7 +111,7 @@ jobs:
           $previousPath = $env:Path
           $env:NUBI_BUNDLED_GIT = (Resolve-Path 'release/windows/win-unpacked/resources/git/cmd/git.exe').Path
           $env:Path = (Split-Path $env:NUBI_BUNDLED_GIT) + ';' + (Split-Path $node) + ';' + $env:SystemRoot + '\System32'
-          & $node --test tests/wiki-initialization-flow.test.mjs tests/wiki-update-bundle.test.mjs tests/wiki-update.test.mjs tests/wiki-update-view.test.mjs 2>&1 | Tee-Object -FilePath verification/windows-wiki-tests.log
+          & $node --test tests/wiki-initialization-flow.test.mjs tests/wiki-plan-completion.test.mjs tests/wiki-update-bundle.test.mjs tests/wiki-update.test.mjs tests/wiki-update-resume.test.mjs tests/wiki-update-view.test.mjs 2>&1 | Tee-Object -FilePath verification/windows-wiki-tests.log
           $wikiExit = $LASTEXITCODE
           $env:Path = $previousPath
           Remove-Item Env:NUBI_BUNDLED_GIT

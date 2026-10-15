@@ -45,7 +45,7 @@
 /* View Transitions (ui/viewTransition.js) must not animate a dialog a second time. A transition never starts while a
    dialog is open, and a dialog that opens during one is captured as its own live layer with no animation of its own,
    so only the motion above plays. Only the topmost dialog is named because names must be unique. */
-:root[data-modal-motion] .cx-panel-backdrop:not(:has(~ .cx-panel-backdrop)) { view-transition-name:nubi-modal; }
+:root[data-modal-motion] .cx-panel-backdrop[data-modal-top="true"] { view-transition-name:nubi-modal; }
 ::view-transition-group(nubi-modal), ::view-transition-new(nubi-modal) { animation:none; }
 ::view-transition-old(nubi-modal) { display:none; }
 

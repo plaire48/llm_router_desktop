@@ -22,11 +22,20 @@ function createWorkspaceFetch(account,{fetcher=fetch}={}){
    const headers={};for(const [key,value] of Object.entries(args.headers||{}))if(typeof value==='string'&&!/^(authorization|cookie|host)$/i.test(key))headers[key]=value;
    headers.Authorization='Bearer '+credential.token;if(!headers.Accept&&!headers.accept)headers.Accept='application/vnd.github+json';
    let body;if(args.body!=null){const text=String(args.body);if(Buffer.byteLength(text)>workspaceTransferLimit(route,24*1024*1024))throw Error('ghes_body_limit');body=args.bodyEncoding==='base64'?Buffer.from(text,'base64'):text;}
-   const response=await fetcher(target.href,{method:methodName,headers,body,redirect:['manual','error'].includes(args.redirect)?args.redirect:'follow',cache:'no-store',credentials:'omit',signal:AbortSignal.any([account.accessController.signal,AbortSignal.timeout(60000)])});
+   const deadline=AbortSignal.timeout(60000);
+   try{
+   const response=await fetcher(target.href,{method:methodName,headers,body,redirect:['manual','error'].includes(args.redirect)?args.redirect:'follow',cache:'no-store',credentials:'omit',signal:AbortSignal.any([account.accessController.signal,deadline])});
    active();if(response.status===401)ghesCredentialCache=null;
    const chunks=[];let size=0;const reader=response.body?.getReader();if(reader){while(true){const next=await reader.read();if(next.done)break;size+=next.value.length;if(size>workspaceTransferLimit(route,32*1024*1024)){await reader.cancel();throw Error('ghes_response_limit');}chunks.push(next.value);}}
    active();const out={};for(const [key,value] of response.headers.entries())if(!/^set-cookie$/i.test(key))out[key]=value;
    return {status:response.status,statusText:response.statusText,headers:out,url:response.url,body:Buffer.concat(chunks.map(c=>Buffer.from(c))).toString('base64')};
+   }catch(error){
+    active();
+    if(/^ghes_[a-z_]+$/.test(error?.message||''))throw error;
+    // Keep a safe actionable code across IPC, including a response stream that breaks after headers.
+    // Do not retry: a write may already have reached GHES.
+    throw Error(deadline.aborted?'ghes_timeout':'ghes_network');
+   }
  };
 }
 module.exports={createWorkspaceFetch};

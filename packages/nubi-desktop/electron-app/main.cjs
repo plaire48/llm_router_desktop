@@ -1,3 +1,4 @@
+const {trustedRenderer}=require('./renderer-scope.cjs');
 const {app,BrowserWindow,protocol,net,ipcMain,dialog,clipboard,Menu,Notification,session}=require('electron');
 const {fork,spawn}=require('node:child_process');
 const {WorkspaceUpdater}=require('./workspace-updater.cjs');
@@ -6,6 +7,7 @@ const path=require('node:path');
 const {randomUUID,createHash}=require('node:crypto');
 const {pathToFileURL}=require('node:url');
 const {ElectronHost}=require('./native-host.cjs');
+const {safeCloneFailure}=require('./git-clone-error.cjs');
 const {ghesImageTarget,fetchGhesImage}=require('./ghes-image.cjs');
 const {browseLocalDirectory,readLocalFile}=require('./local-file-view.cjs');
 const {startWebHost}=require('./web-host.cjs');
@@ -69,7 +71,7 @@ function saveWindowState(){
  if(!window||window.isDestroyed())return;clearTimeout(windowStateTimer);
  windowStateTimer=setTimeout(()=>{void mkdir(storage,{recursive:true}).then(()=>writeFile(windowStateFile,JSON.stringify(windowStateOf(window)),{mode:0o600})).catch(()=>{});},500);
 }
-function trusted(event){if(event.sender!==window.webContents||event.senderFrame!==window.webContents.mainFrame||event.senderFrame.url!=='app://bundle/index.html')throw Error('ipc_scope');}
+function trusted(event){trustedRenderer(event,window);}
 async function choose(properties,title,filters){const result=await dialog.showOpenDialog(window,{properties,title,filters});return result.canceled?null:result.filePaths[0];}
 // Company pages (portal reader and login, company GitHub login) share one persistent session, so one SSO login serves all of them (user decision 2026-10-14).
 const COMPANY_PARTITION='persist:nubi-company';
@@ -82,11 +84,13 @@ function openPageLink(url){try{openWorkspacePage(url);}catch(error){window.webCo
 const {createDecisionNotices}=require('./decision-notices.cjs');
 const {createMailLoginNotices}=require('./mail-login-notices.cjs');
 const mailLoginNotices=createMailLoginNotices({Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
+const {createWikiNotices}=require('./wiki-notices.cjs');
+const wikiNotices=createWikiNotices({Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
 const {createAnswerNotices}=require('./answer-notices.cjs');
 const answerNotices=createAnswerNotices({Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
 const decisionNotices=createDecisionNotices({Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
-app.on('before-quit',()=>{decisionNotices.clear();answerNotices.clear();mailLoginNotices.clear();});
-const {connectionVault}=require('./connection-vault.cjs');
+app.on('before-quit',()=>{decisionNotices.clear();answerNotices.clear();wikiNotices.clear();mailLoginNotices.clear();});
+const {connectionVault,workerKey}=require('./connection-vault.cjs');
 const vault=connectionVault({directory:path.join(storage,'connections-v1'),safeStorage:require('electron').safeStorage});
 function secretScope(service,key){if(service!=='nubi.workspace.electron'||key!=='nubi.ghes.code.sdsdev.co.kr')throw Error('secret_scope');}
 const keyStore={
@@ -94,12 +98,14 @@ const keyStore={
  async setPassword(service,key,value){secretScope(service,key);return vault.set(key,value);},
  async deletePassword(service,key){secretScope(service,key);return vault.delete(key);}
 };
-async function openProject(root,kind='project',{initializeWiki=true,exactRoot=false,sourceKind}={}){
+function projectOpenProgress(requestId,stage){if(typeof requestId==='string'&&/^[a-zA-Z0-9-]{1,64}$/.test(requestId))hostEvent({type:'project_open_progress',requestId,stage});}
+async function openProject(root,kind='project',{initializeWiki=true,exactRoot=false,sourceKind,progressId}={}){
  if(openingProject)throw Error('project_busy');openingProject=true;
  try{
  // A predecessor that is still exiting (quit or crash) holds the project store for a moment; the single-instance lock
  // rules out a live second instance, so a short retry is safe.
- let overview;for(let attempt=0;;attempt++){try{overview=await invoke('open',{root,kind,initializeWiki,exactRoot,sourceKind});break;}catch(error){if(error.message!=='project_locked'||attempt>=4)throw error;await new Promise(resolve=>setTimeout(resolve,600));}}currentRoot=overview.root;currentKind=kind;
+ let overview;for(let attempt=0;;attempt++){try{projectOpenProgress(progressId,'opening');overview=await invoke('open',{root,kind,initializeWiki,exactRoot,sourceKind});break;}catch(error){if(error.message!=='project_locked'||attempt>=4)throw error;projectOpenProgress(progressId,'waiting_lock');await new Promise(resolve=>setTimeout(resolve,600));}}currentRoot=overview.root;currentKind=kind;
+ projectOpenProgress(progressId,'saving');
  try{await mkdir(storage,{recursive:true});await writeFile(path.join(storage,'last-project.json'),JSON.stringify({root:currentRoot,kind}),{mode:0o600});await projectCatalog.remember(overview);}catch{overview.projectCatalogWarning=true;}
  return overview;
  }finally{openingProject=false;}
@@ -130,6 +136,7 @@ app.whenReady().then(async()=>{
   const child=fork(path.join(__dirname,'backend/service-entry.mjs'),[],{env:{...process.env,ELECTRON_RUN_AS_NODE:'1',NUBI_STORAGE_ROOT:storage},stdio:['ignore','ignore','pipe','ipc']});
   child.stderr.on('data',chunk=>{void workerLog(chunk);});return child;
  },onMessage:message=>{
+  if(message?.wikiCompleted){wikiNotices.show(message.wikiCompleted);return;}
   if(message?.answerCompleted){answerNotices.show(message.answerCompleted);return;}
   if(message?.playwrightRequest){const {id,action,args}=message.playwrightRequest;if(typeof id!=='string'||id.length>80)return;void(async()=>{try{if(!playwrightHost)throw Error('browser_unavailable');const result=await playwrightHost.request(action,args);worker.send({playwrightReply:{id,result}});}catch(error){worker.send({playwrightReply:{id,error:/^[a-z_]+$/.test(error.message)?error.message:'browser_unavailable'}});}})();return;}
   if(message?.wikiGitCancel){wikiGitControllers.get(message.wikiGitCancel.id)?.abort();return;}
@@ -141,9 +148,9 @@ app.whenReady().then(async()=>{
   if(message?.connectionSecretRequest){
    const {id,operation,key,value}=message.connectionSecretRequest;
    if(typeof id!=='string'||id.length>80)return;
-   // A worker can store only its provider connections, never company credentials.
+   // A worker reaches its provider connections, the mail vault keys and MCP secrets, never company credentials.
    void (async()=>{try{
-    if(!['provider:aipro','provider:chatgpt','provider:fabrix','provider:claude','provider:active'].includes(key)||!['get','set','delete'].includes(operation))throw Error('secret_scope');
+    if(!workerKey(key)||!['get','set','delete'].includes(operation))throw Error('secret_scope');
     const result=await vault[operation](key,value);worker.send({connectionSecretReply:{id,value:result??null}});
    }catch{worker.send({connectionSecretReply:{id,error:'secret_unavailable'}});}})();return;
   }
@@ -171,8 +178,8 @@ app.whenReady().then(async()=>{
  }});
  const {screen}=require('electron'),windowState=restoreWindowState(await loadWindowState(),screen.getAllDisplays());
  const installId=await installationStamp({packaged:app.isPackaged,platform:process.platform,executable:app.getPath('exe')});
- window=new BrowserWindow({icon:appIcon,width:windowState.width,height:windowState.height,...(windowState.x!==undefined?{x:windowState.x,y:windowState.y}:{}),minWidth:620,minHeight:540,title:'누비 Workspace Beta',backgroundColor:'#F1F7FE',titleBarStyle:process.platform==='darwin'?'hiddenInset':'hidden',...(process.platform==='darwin'?{trafficLightPosition:{x:14,y:17}}:{titleBarOverlay:DEFAULT_TITLEBAR}),webPreferences:{additionalArguments:installId?['--nubi-installation='+installId]:[],preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false}});
- window.webContents.on('did-start-navigation',(_event,_url,_inPlace,isMainFrame)=>{if(isMainFrame){decisionNotices.clear();answerNotices.clear();mailLoginNotices.clear();applyCaptionColors(window,DEFAULT_TITLEBAR);}});
+ window=new BrowserWindow({icon:appIcon,width:windowState.width,height:windowState.height,...(windowState.x!==undefined?{x:windowState.x,y:windowState.y}:{}),minWidth:620,minHeight:540,title:'누비 Workspace Beta',backgroundColor:'#FFFFFF',titleBarStyle:process.platform==='darwin'?'hiddenInset':'hidden',...(process.platform==='darwin'?{trafficLightPosition:{x:14,y:17}}:{titleBarOverlay:DEFAULT_TITLEBAR}),webPreferences:{additionalArguments:installId?['--nubi-installation='+installId]:[],preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false}});
+ window.webContents.on('did-start-navigation',(_event,_url,_inPlace,isMainFrame)=>{if(isMainFrame){decisionNotices.clear();answerNotices.clear();wikiNotices.clear();mailLoginNotices.clear();applyCaptionColors(window,DEFAULT_TITLEBAR);}});
  if(windowState.maximized)window.maximize();
  for(const name of ['resize','move','maximize','unmaximize'])window.on(name,saveWindowState);
  window.on('close',()=>{clearTimeout(windowStateTimer);try{require('node:fs').mkdirSync(storage,{recursive:true});require('node:fs').writeFileSync(windowStateFile,JSON.stringify(windowStateOf(window)),{mode:0o600});}catch{}});
@@ -232,22 +239,22 @@ app.whenReady().then(async()=>{
    try{return await restoreSavedProject(()=>openProject(saved.root,saved.kind==='conversation'?'conversation':'project',{initializeWiki:false}),{existing:()=>currentRoot?invoke('overview'):undefined,onEvent:async event=>{await mkdir(storage,{recursive:true});await writeFile(path.join(storage,'last-project-restore.json'),JSON.stringify({at:new Date().toISOString(),...event}),{mode:0o600}).catch(()=>{});}});}
    catch(error){if(error.message==='project_path_missing')await rm(path.join(storage,'last-project.json'),{force:true}).catch(()=>{});throw error;}
   }
-  if(method==='startConversation'){const root=path.join(storage,'conversations');await mkdir(root,{recursive:true});return await openProject(root,'conversation');}
+  if(method==='startConversation'){const root=path.join(storage,'conversations');await mkdir(root,{recursive:true});return await openProject(root,'conversation',{progressId:args.progressId});}
   if(method==='projectCatalog'){
    if(args.action==='rename')return await projectCatalog.rename(args.id,args.name);
    if(args.action==='remove'){if((await projectCatalog.list()).some(project=>project.id===args.id&&project.root===currentRoot)||(await invoke('projectActivity',{projectId:args.id})).active)throw Error('project_active');return await projectCatalog.remove(args.id);}
    if(args.action&&args.action!=='list')throw Error('method_invalid');
    return await projectCatalog.list();
   }
-  if(method==='switchProject'){const saved=await projectCatalog.get(args.id);return await openProject(saved.root,saved.kind==='conversation'?'conversation':'project');}
-  if(method==='chooseFolder'){const root=await choose(['openDirectory'],'프로젝트 폴더 열기');return root?await openProject(root,'project',{sourceKind:'local'}):{cancelled:true};}
+  if(method==='switchProject'){const saved=await projectCatalog.get(args.id);return await openProject(saved.root,saved.kind==='conversation'?'conversation':'project',{progressId:args.progressId});}
+  if(method==='chooseFolder'){const root=await choose(['openDirectory'],'프로젝트 폴더 열기');return root?await openProject(root,'project',{sourceKind:'local',progressId:args.progressId}):{cancelled:true};}
   if(['browseLocalDirectory','readLocalFile'].includes(method)){const owner=await invoke('projectPath',{projectId:args.projectId});const value=await (method==='browseLocalDirectory'?browseLocalDirectory:readLocalFile)(args.path);if(currentRoot!==owner.path)throw Error('project_changed');return value;}
   if(method==='copyProjectPath'){const result=await invoke('projectPath',args);clipboard.writeText(result.path);return result;}
   if(method==='downloadMail'){
    const packet=await invoke('mail',{action:'download',id:args.id,kind:args.kind,attachmentId:args.attachmentId,expectedSourceHash:args.expectedSourceHash});
    const bytes=Buffer.from(packet.bytes,'base64');if(bytes.length!==packet.size||createHash('sha256').update(bytes).digest('hex')!==packet.sha256)throw Error('mail_source_changed');
    const saved=await dialog.showSaveDialog(window,{title:'메일 다운로드',defaultPath:path.join(app.getPath('downloads'),packet.filename),buttonLabel:'저장'});if(saved.canceled)return {cancelled:true};
-   await writeFile(saved.filePath,bytes,{mode:0o600});if(createHash('sha256').update(await readFile(saved.filePath)).digest('hex')!==packet.sha256)throw Error('mail_download_unconfirmed');
+   await writeFile(saved.filePath,bytes,{mode:0o600});if(createHash('sha256').update(await readFile(saved.filePath)).digest('hex')!==packet.sha256){await rm(saved.filePath,{force:true}).catch(()=>{});throw Error('mail_download_unconfirmed');}
    return {saved:true,filename:path.basename(saved.filePath)};
   }
   if(method==='importMailFolder'){if(source!=='electron')throw Error('mail_portal_desktop_only');const directory=await choose(['openDirectory'],'메일 파일 폴더 선택');return directory?invoke('mail',{action:'importFolder',directory}):{cancelled:true};}
@@ -256,22 +263,24 @@ app.whenReady().then(async()=>{
    if(/^portal(?:Connect|Import|Folders|Known|Rejected|Document)$/.test(args.action||'')||['download','importFolder'].includes(args.action))throw Error('method_invalid');
    if(args.action==='approvals')return mailPortal.approvals(args);
    if(args.action==='approvalRead')return mailPortal.approvalRead(args);
-   if(['portalSession','portalCredentials'].includes(args.action)){
+   if(args.action==='approvalTitle')return mailPortal.approvalTitle(args);
+   if(args.action==='portalCredentials')throw Error('method_invalid');
+   if(args.action==='portalSession'){
     if(source!=='electron')throw Error('mail_portal_desktop_only');
-    const result=args.action==='portalSession'?await mailPortal.sessionReady():await mailPortal.connectCredentials(args);
+    const result=await mailPortal.sessionReady();
     if(result.connected){mailLoginNotices.clear();hostEvent({type:'mail_portal_connected',requiresStorageSetup:(await invoke('mail',{action:'status',includeMessages:false})).requiresStorageSetup});}
     return {...await portalMailStatus(),requiresLogin:result.requiresLogin===true};
    }
    if(args.action==='portalLogin'){
     if(source!=='electron')throw Error('mail_portal_desktop_only');mailPortal.requestId=args.requestId;
-    try{await mailPortal.connect(args);}catch(error){if(error.message!=='mail_cancelled')hostEvent({type:'mail_portal_failed',error:/^mail_[a-z_]+$/.test(error.message)?error.message:'mail_portal_request'});throw error;}
+    try{await mailPortal.connect({destination:args.destination});}catch(error){if(error.message!=='mail_cancelled')hostEvent({type:'mail_portal_failed',error:/^mail_[a-z_]+$/.test(error.message)?error.message:'mail_portal_request'});throw error;}
     mailLoginNotices.clear();hostEvent({type:'mail_portal_connected',requiresStorageSetup:(await invoke('mail',{action:'status',includeMessages:false})).requiresStorageSetup});return portalMailStatus();
    }
    // Cancel stops whatever portal connection is running, even when the screen that asked was reopened and no longer
    // holds the request id (user report 2026-10-14: 연결 취소 kept connecting).
    if(args.action==='cancelConnect'){if(args.requestId===mailPortal.requestId||mailPortal.status().connecting)await mailPortal.disconnect();return portalMailStatus();}
    if(args.action==='disconnect'){await mailPortal.disconnect();await mailPortal.clearPortalSession();mailLoginNotices.clear();return portalMailStatus();}
-   if(args.action==='confirmStorage'){if(source!=='electron')throw Error('mail_desktop_only');await invoke('mail',{action:'confirmStorage'});if(mailPortal.status().connected)void mailPortal.sync().catch(()=>{});return portalMailStatus();}
+   if(args.action==='confirmStorage'){if(source!=='electron')throw Error('mail_desktop_only');await invoke('mail',{action:'confirmStorage',includeAttachments:args.includeAttachments});if(mailPortal.status().connected)void mailPortal.sync().catch(()=>{});return portalMailStatus();}
    if(args.action==='portalSync'||['check','retryDownloads'].includes(args.action)&&mailPortal.status().connected){await mailPortal.recheck();return portalMailStatus();}
    if(['pauseWatch','resumeWatch'].includes(args.action)){await invoke('mail',args);if(args.action==='pauseWatch')clearTimeout(mailPortal.timer);else if(mailPortal.status().connected)void mailPortal.sync().catch(()=>{});return portalMailStatus();}
    if(args.action==='attention'){const page=await invoke('mail',args);return {...page,status:await portalMailStatus(page.status)};}
@@ -283,7 +292,10 @@ app.whenReady().then(async()=>{
    if(source!=='electron')throw Error('mail_desktop_only');if(mailPortal.status().checking)throw Error('mail_busy');
    const directory=await choose(['openDirectory','createDirectory'],'메일 원문과 첨부파일 저장 위치');if(!directory)return {cancelled:true};
    if(mailPortal.status().checking)throw Error('mail_busy');clearTimeout(mailPortal.timer);
-   try{await invoke('mail',{action:'setRawRoot',directory});}
+   try{
+    const job=await invoke('mail',{action:'startRawMove',directory,includeAttachments:args.includeAttachments});
+    for(;;){const value=await invoke('mail',{action:'storageProgress',id:job.id});if(!value.moving){if(value.progress?.state!=='completed')throw Error(value.progress?.error||'mail_storage_failed');break;}await new Promise(resolve=>setTimeout(resolve,400));}
+   }
    finally{if(mailPortal.status().connected)void mailPortal.sync().catch(()=>{});}
    return portalMailStatus();
   }
@@ -293,8 +305,8 @@ app.whenReady().then(async()=>{
    if(typeof storagePath!=='string'||!path.isAbsolute(storagePath))throw Error('mail_storage_unavailable');
    clipboard.writeText(storagePath);return {path:storagePath};
   }
-  if(method==='importProject'){const file=await choose(['openFile'],'프로젝트 ZIP 업로드',[{name:'ZIP',extensions:['zip']}]);if(!file)return {cancelled:true};const parent=await choose(['openDirectory'],'프로젝트를 저장할 폴더');if(!parent)return {cancelled:true};return await openProject((await importProjectZip(file,parent)).root,'project',{sourceKind:'local'});}
-  if(method==='cloneRepository'){const parent=await choose(['openDirectory'],'프로젝트를 저장할 폴더');if(!parent)return {cancelled:true};return await openProject((await host.clone({...args,parent})).root,'project',{exactRoot:true,sourceKind:'remote'});}
+  if(method==='importProject'){const file=await choose(['openFile'],'프로젝트 ZIP 업로드',[{name:'ZIP',extensions:['zip']}]);if(!file)return {cancelled:true};const parent=await choose(['openDirectory'],'프로젝트를 저장할 폴더');if(!parent)return {cancelled:true};projectOpenProgress(args.progressId,'extracting');return await openProject((await importProjectZip(file,parent)).root,'project',{sourceKind:'local',progressId:args.progressId});}
+  if(method==='cloneRepository'){const parent=await choose(['openDirectory'],'프로젝트를 저장할 폴더');if(!parent)return {cancelled:true};return await openProject((await host.clone({...args,parent},progress=>hostEvent({type:'git_clone_progress',requestId:typeof args.progressId==='string'?args.progressId.slice(0,64):null,...progress}))).root,'project',{exactRoot:true,sourceKind:'remote',progressId:args.progressId});}
   if(method==='ghesAccount'){const state=await host.accountAction(args.operation);if(args.operation==='copy'){if(!state.device?.code)throw Error('copy_unavailable');clipboard.writeText(state.device.code);}return state;}
   if(method==='claudeCliUsage'){if(source!=='electron')throw Error('claude_cli_desktop_only');if(args.action==='read')return claudeCliUsage.read();return claudeCliUsage.status();}
   if(method==='claudeWeb'){if(source!=='electron')throw Error('claude_web_desktop_only');if(args.action==='connect')return claudeWeb.connect();if(args.action==='refresh')return claudeWeb.refresh();if(args.action==='disconnect')return claudeWeb.disconnect();return claudeWeb.status();}
@@ -327,7 +339,7 @@ app.whenReady().then(async()=>{
   if(method==='chooseSkillPackage'){const folder=args.kind==='folder',mixed=!folder&&args.kind!=='zip'&&process.platform==='darwin';const file=await choose(folder?['openDirectory']:mixed?['openFile','openDirectory']:['openFile'],'스킬 등록',folder?undefined:[{name:'스킬',extensions:['zip','md']}]);return file?invoke('importSkill',{source:file,taskId:args.taskId}):{cancelled:true};}
   if(method==='chooseComputerApp'){const file=await choose(['openFile'],'Windows 앱 선택',[{name:'Windows app',extensions:['exe']}]);return file?invoke('computer',{method:'register_app',taskId:args.taskId,file}):{cancelled:true};}
   if(forbidden.has(method))throw Error('method_invalid');return await invoke(method,args);
- }catch(error){return {__nubiError:/^[a-z_]+$/.test(error.message)?error.message:'operation_failed'};}};
+ }catch(error){return {__nubiError:/^[a-z_]+$/.test(error.message)?error.message:'operation_failed',...(method==='cloneRepository'&&safeCloneFailure(error.cloneFailure)?{cloneFailure:safeCloneFailure(error.cloneFailure)}:{})};}};
  terminalHost=new TerminalHost({invoke,profiles:shellProfiles,workerFile:path.join(__dirname,'terminal-worker.cjs'),notify:event=>{if(window&&!window.isDestroyed()&&!window.webContents.isDestroyed())window.webContents.send('nubi:terminal-event',event);}});
  ipcMain.handle('nubi:terminal',async(event,args)=>{trusted(event);try{if(installingUpdate)throw Error('update_installing');return await terminalHost.request(args);}catch(error){return {__nubiError:/^[a-z_]+$/.test(error.message)?error.message:'terminal_start_failed'};}});
  ipcMain.handle('nubi:request',(event,method,args={})=>{trusted(event);return dispatch(method,args);});

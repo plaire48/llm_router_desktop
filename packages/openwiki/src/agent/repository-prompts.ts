@@ -79,6 +79,14 @@ the major systems, behaviors, and relationships are supported by repository
 evidence; avoid exhaustive file-by-file inventory. Page paths are final once
 submitted.
 
+Before finalizing, check coverage of the repository's real entrypoints, runtime
+flows, module ownership, data contracts, external integrations, failure/recovery
+paths, and verification boundaries. These are research questions, not mandatory
+folders or extra pages: omit absent domains and do not fabricate architecture.
+Put relevant uncovered questions and concrete source seeds in the owning page's
+purpose/instructions, within the requested scope. Prefer a useful workflow
+connecting several modules over another disconnected file summary.
+
 Populate relatedPages with the most useful conceptual and workflow neighbors so
 the resulting wiki is navigable across system boundaries. The quickstart must
 route readers through the hierarchy; generated index pages will provide folder
@@ -180,6 +188,18 @@ narrow the statement to observed behavior or explicitly name the unverified boun
 Distinguish recommendations from existing validation and source observations from
 live operational guarantees. Distinguish reading test code from running its checks.
 Lead each page with the core behavior; avoid repeated inventories and boilerplate.
+
+Make relationships useful to someone changing this code. For a workflow, trace
+the actual trigger through its handlers, state or data owner, and observable
+result, including the significant failure or recovery branch. Cite inspected
+source paths and symbols near those steps. Add relative links to relevant
+planned/existing wiki pages and explain the connection (calls, reads/writes,
+configures, or validates); do not label every link as a proven runtime dependency.
+Choose a descriptive type for the page's actual responsibility rather than
+labelling everything Reference. Keep the opening answer short; put mechanics
+and evidence below it. Mention test files as verification entrypoints, never as
+proof that they were run. Keep historical behavior explicitly dated and separate
+from the current implementation. Unresolved paths stay explicit unknowns.
 
 Write only ${job.path}. Do not create, edit, or delete another wiki page. After
 writing it, call submit_page with only the sparse Claim decisions required by

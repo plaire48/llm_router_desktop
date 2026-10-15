@@ -31,5 +31,5 @@ test('automated checks and reduced motion get no motion or close delay',async()=
   assert.match(motion,/if\(!html\.dataset\.modalMotion\)return;/);
   assert.match(motion,/node\.inert=true;node\.setAttribute\('aria-hidden','true'\);/);
   const transitions=await read('ui/viewTransition.js');
-  assert.match(transitions,/!document\.querySelector\('\.cx-panel-backdrop'\)/);
+  assert.match(transitions,/!document\.querySelector\('[^']*\.cx-panel-backdrop'\)/);
 });

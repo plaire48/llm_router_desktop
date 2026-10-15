@@ -13,3 +13,11 @@
 .nubi-mail-settings-content { display:grid; gap:var(--cx-space-4); min-width:0; }
 .nubi-mail-connection-overlay { position:absolute; inset:0; z-index:2; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--cx-space-3); background:var(--nubi-surface-base); border-radius:var(--nubi-work-control-radius); }
 .nubi-mail-connection-overlay .nubi-mail-connection-progress { padding:0; }
+
+.nubi-mail-login-hint { font:var(--deck-font-caption); color:var(--nubi-text-secondary); line-height:1.6; }
+.nubi-mail-connection-overlay { padding:var(--cx-space-4); box-sizing:border-box; }
+.nubi-mail-connection-overlay .nubi-mail-connection-progress { max-width:100%; }
+
+/* Keep the pending form compact instead of covering a full settings page with empty space. */
+.nubi-mail-settings[aria-busy=true] .nubi-mail-settings-content { display:none; }
+.nubi-mail-settings[aria-busy=true] .nubi-mail-connection-overlay { position:relative; min-block-size:180px; }

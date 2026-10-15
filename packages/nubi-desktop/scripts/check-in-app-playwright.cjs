@@ -28,12 +28,23 @@ const {PlaywrightHost}=require('../electron-app/playwright-host.cjs');
  try{
   mcp=await timed('connect',async()=>{await ready;return {callTool:call=>rpc(call),listTools:()=>rpc({name:'__list'}),close:async()=>{await rpc(null,true);worker.disconnect();}};});
   const listed=await mcp.listTools();
-  const opened=await timed('open',()=>mcp.callTool({name:'browser_open',arguments:{url:`http://127.0.0.1:${fixture.address().port}`}}));
-  const {tabId}=JSON.parse(opened.content[0].text);let documentId;
+  const opened=await timed('open',()=>mcp.callTool({name:'browser_open',arguments:{url:`127.0.0.1:${fixture.address().port}`}}));
+  const initial=JSON.parse(opened.content[0].text);if(!initial.snapshot?.includes('textbox'))throw Error('open_snapshot_missing');
+  const {tabId}=initial;let documentId;
+  // An actual Chromium right click must route to the native menu; do not touch the user's clipboard.
+  const {Menu}=require('electron'),originalMenu=Menu.buildFromTemplate;let contextItems;
+  Menu.buildFromTemplate=items=>{contextItems=items;return {popup(){}};};
+  try{
+   const wc=host.tab(tabId).view.webContents;
+   const point=await wc.executeJavaScript('(()=>{const r=document.querySelector("input").getBoundingClientRect();return {x:Math.round(r.x+5),y:Math.round(r.y+5)};})()');
+   const got=new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('context_menu_missing')),3000);wc.once('context-menu',()=>{clearTimeout(timer);resolve();});});
+   wc.sendInputEvent({type:'mouseDown',button:'right',clickCount:1,...point});wc.sendInputEvent({type:'mouseUp',button:'right',clickCount:1,...point});await got;
+   if(!contextItems?.some(item=>item.label==='붙여넣기')||!contextItems.some(item=>item.label==='복사'))throw Error('context_edit_actions_missing');
+  }finally{Menu.buildFromTemplate=originalMenu;}
   const call=(name,args={})=>mcp.callTool({name,arguments:{tabId,documentId,...args}});
   const snapshot=await timed('snapshotCold',()=>call('browser_snapshot'));console.log(JSON.stringify(snapshot));
   documentId=JSON.parse(snapshot.content[0].text).documentId;
-  const text=snapshot.content.map(c=>c.text||'').join('\n');const input=/textbox "검색" \[ref=([^\]]+)/.exec(text)?.[1],button=/button "찾기" \[ref=([^\]]+)/.exec(text)?.[1];
+  const text=snapshot.content.map(c=>c.text||'').join('\n');const input=/textbox "검색"[^\n]*?\[ref=([^\]]+)/.exec(text)?.[1],button=/button "찾기" \[ref=([^\]]+)/.exec(text)?.[1];
   if(!input||!button)throw Error('snapshot_refs_missing');
   const captured=await timed('captureRegion',()=>call('browser_capture',{clip:{x:0,y:0,width:450,height:240},maxWidth:256}));
   if(captured.structuredContent.width!==256||!captured.content.some(part=>part.type==='image'))throw Error('capture_region_failed');
@@ -59,7 +70,14 @@ const {PlaywrightHost}=require('../electron-app/playwright-host.cjs');
   if(!staleBlocked)throw Error('stale_document_not_blocked');
   if(!sessionReused)throw Error('session_not_reused');
   await rpc({name:'__reconnect'});const reconnected=await call('browser_snapshot');if(reconnected.isError)throw Error('reconnect_failed');
+  // A not-yet-running local server keeps an in-app error tab and can recover in place.
+  const pendingServer=createServer((_req,res)=>{res.setHeader('content-type','text/html');res.end('<h1>Server ready</h1>');});
+  await new Promise(resolve=>pendingServer.listen(0,'127.0.0.1',resolve));const delayedPort=pendingServer.address().port;await new Promise(resolve=>pendingServer.close(resolve));
+  let refused=false;try{await bridge.request('open',{url:`localhost:${delayedPort}`});}catch(error){refused=error.message==='browser_connection_refused';}
+  if(!refused)throw Error('local_server_failure_not_reported');
+  const failedTab=host.active;await new Promise(resolve=>pendingServer.listen(delayedPort,'127.0.0.1',resolve));
+  try{const wc=host.tab(failedTab).view.webContents;await host.request({action:'reload',id:failedTab});let recovered=false;for(let i=0;i<50;i++){if(!host.tab(failedTab).error&&await wc.executeJavaScript('document.body?.textContent').catch(()=>null)==='Server ready'){recovered=true;break;}await new Promise(resolve=>setTimeout(resolve,100));}if(!recovered){console.log('recovery',JSON.stringify({error:host.tab(failedTab).error,url:wc.getURL(),body:await wc.executeJavaScript('document.body?.textContent')}));throw Error('local_server_retry_failed');}}finally{pendingServer.closeAllConnections();await new Promise(resolve=>pendingServer.close(resolve));}
   if(BrowserWindow.getAllWindows().length!==1)throw Error('extra_browser_window');
-  const result={passed:true,windowCapture:{width:windowCapture.width,height:windowCapture.height},workerIpc:true,sessionReused,reconnected:true,staleBlocked,tools:listed.tools.map(t=>t.name),timings,protectedAuth};console.log(JSON.stringify(result));await writeFile(path.join(__dirname,'../verification/playwright-mcp-2026-10-15/result.json'),JSON.stringify(result,null,2));
+  const result={passed:true,windowCapture:{width:windowCapture.width,height:windowCapture.height},workerIpc:true,contextMenu:true,initialSnapshot:true,localServerRecovery:true,sessionReused,reconnected:true,staleBlocked,tools:listed.tools.map(t=>t.name),timings,protectedAuth};console.log(JSON.stringify(result));await writeFile(path.join(__dirname,'../verification/playwright-mcp-2026-10-15/result.json'),JSON.stringify(result,null,2));
  }finally{await mcp?.close();bridge.dispose();host.dispose();window.destroy();fixture.close();app.quit();}
 })().catch(error=>{console.error(error);app.exit(1);});

@@ -39,12 +39,13 @@ test('rows filter by text, section, type, link state and period, then sort and p
   const page=pageWikiRows(nodes,3,2);assert.deepEqual([page.page,page.totalPages,page.offset,page.total,page.rows.length],[3,3,4,5,1]);
   assert.equal(pageWikiRows(nodes,0,2).page,1);
 });
-test('layout is deterministic, stays inside the frame and settles clusters by section',()=>{
+test('layout is deterministic, extends beyond the viewport and settles clusters by section',()=>{
   const graph=buildWikiGraph(items,edges);
   const first=createWikiLayout(graph,{width:600,height:400}),second=createWikiLayout(graph,{width:600,height:400});
   while(!advanceWikiLayout(first,25));while(!advanceWikiLayout(second,7));
   assert.deepEqual(wikiLayoutPositions(first),wikiLayoutPositions(second));
-  for(const {x,y} of wikiLayoutPositions(first).values()){assert(x>=28&&x<=572&&y>=28&&y<=372);}
+  for(const {x,y} of wikiLayoutPositions(first).values()){assert(Number.isFinite(x)&&Number.isFinite(y));}
+  assert([...wikiLayoutPositions(first).values()].some(({x,y})=>x<40||x>560||y<40||y>360),'world positions are not clamped to a rectangular viewport');
   const at=wikiLayoutPositions(first),distance=(a,b)=>Math.hypot(at.get(a).x-at.get(b).x,at.get(a).y-at.get(b).y);
   assert(distance('orders/flow.md','orders/states.md')<distance('orders/flow.md','ops/monitoring.md'),'linked pages in one section sit closer than an orphan elsewhere');
   assert.equal(advanceWikiLayout(createWikiLayout(buildWikiGraph([],[])),5),true);

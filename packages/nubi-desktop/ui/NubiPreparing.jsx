@@ -9,7 +9,8 @@ const quick=()=>typeof navigator!=='undefined'&&navigator.webdriver||typeof matc
 export function NubiPreparing({ready=false}){
  const node=useRef(null),edge=useWorkbenchEdge(node),[gone,setGone]=useState(ready);
  useEffect(()=>{if(!ready){setGone(false);return;}if(quick()){setGone(true);return;}const timer=setTimeout(()=>setGone(true),700);return()=>clearTimeout(timer);},[ready]);
- if(gone)return null;
+ // A new loading phase covers content in the same render, before effects run.
+ if(gone&&ready)return null;
  // The whole workbench from the rail (or sidebar) to the window edge, below the toolbar (user report 2026-10-14).
  return <div ref={node} className="nubi-connecting nubi-preparing" data-leaving={ready||undefined} style={edge||undefined} role="status" aria-label="누비 준비 중" aria-busy={!ready}>
   <div className="nubi-preparing-brand" aria-hidden="true"><AgentMark size={56} mood="idle" lively/><NubiWordmark/><span>Workspace</span></div>

@@ -797,6 +797,7 @@ function emitGeneratingProgress(
     page: focusPage,
     pageIndex,
     pageCount: pages.length,
+    completedPages: pages.filter(({ status }) => status === "complete").length,
     ...(pool.concurrent
       ? {
           completedCount: pages.filter(({ status }) => status !== "pending")

@@ -35,7 +35,7 @@ try{
    const geometry=await form.evaluate(node=>[node,...node.querySelectorAll('*')].filter(e=>e.scrollWidth>e.clientWidth+1).slice(0,12).map(e=>({class:e.className,width:e.clientWidth,scroll:e.scrollWidth,css:getComputedStyle(e).margin,left:e.getBoundingClientRect().left})));assert(await form.evaluate(node=>{const rect=node.getBoundingClientRect();return rect.left>=0&&rect.right<=innerWidth&&node.scrollWidth<=node.clientWidth+1;}),JSON.stringify(geometry));
    assert(await send.evaluate(node=>{const rect=node.getBoundingClientRect();return rect.left>=0&&rect.right<=innerWidth;}));
    if(kind==='question'){
-    assert(await send.isDisabled());await form.getByRole('checkbox',{name:/표로 정리/}).click();
+    assert(await send.isDisabled());await form.getByRole('radio',{name:/표로 정리/}).click();
     await form.getByRole('textbox',{name:'기타',exact:true}).fill('중요한 항목부터 정리');
    }else{
     assert(await form.getByRole('button',{name:'취소',exact:true}).isVisible());

@@ -87,6 +87,7 @@ const settle=async(service,id)=>{for(let i=0;i<200;i++){const item=(await servic
 
 test('a proposal runs nothing; an approved run changes only a copy; an approved result reaches only openwiki/',async t=>{
   const {service,root}=await generated(t);service.wikiUpdater=writer();
+  const notices=[];service.notifyWiki=value=>{assert.equal(service.store.get('wiki-update:'+value.jobId).state,value.phase);notices.push(value);};
   const before=await readFile(path.join(root,'openwiki','home.md'),'utf8');
   await assert.rejects(service.wikiUpdate({method:'propose'}),/wiki_update_not_needed/);
   await commit(root,'app.txt','changed source\n');
@@ -106,6 +107,8 @@ test('a proposal runs nothing; an approved run changes only a copy; an approved 
   await service.wikiUpdate({method:'apply',id:proposal.id,fingerprint:ready.fingerprint});
   const applied=(await service.wikiUpdate({method:'status'})).updates.find(update=>update.id===proposal.id);
   assert.equal(applied.state,'applied');
+  assert.deepEqual(notices.map(value=>value.phase),['ready','applied']);
+  await service.wikiUpdate({method:'status'});assert.equal(notices.length,2);
   assert.match(await readFile(path.join(root,'openwiki','home.md'),'utf8'),/changed app\.txt/);
   assert.ok(await exists(path.join(root,'openwiki','new-page.md')));
   assert.equal(await exists(path.join(root,'AGENTS.md')),false,'nothing outside the Wiki was written');
@@ -157,12 +160,13 @@ test('a stopped run and a failed run leave the workspace as it was',async t=>{
   await service.wikiUpdate({method:'run',id:stopped.id,fingerprint:stopped.fingerprint});
   await service.wikiUpdate({method:'cancel',id:stopped.id});
   const cancelled=await settle(service,stopped.id);
-  assert.equal(cancelled.state,'cancelled');assert.equal(await exists(cancelled.copy),false);
+  assert.equal(cancelled.state,'cancelled');assert.equal(await exists(cancelled.copy),true);assert.equal(cancelled.canResume,true);
   service.wikiUpdater=async()=>{throw new Error('model_unavailable');};
   const failing=await service.wikiUpdate({method:'propose'});
   await service.wikiUpdate({method:'run',id:failing.id,fingerprint:failing.fingerprint});
   const failed=await settle(service,failing.id);
-  assert.equal(failed.state,'failed');assert.equal(failed.error,'model_unavailable');assert.equal(await exists(failed.copy),false);
+  assert.equal(failed.state,'failed');assert.equal(failed.error,'model_unavailable');assert.equal(await exists(failed.copy),true);assert.equal(failed.canResume,true);
+  await service.wikiUpdate({method:'discard',id:stopped.id});await service.wikiUpdate({method:'discard',id:failing.id});
   assert.equal(await readFile(path.join(root,'openwiki','home.md'),'utf8'),'# Welcome\n\nWelcome uses app.txt.\n');
   assert.equal((await git(root,['worktree','list'])).trim().split('\n').length,1);
 });

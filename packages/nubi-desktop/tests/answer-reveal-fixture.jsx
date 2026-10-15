@@ -1,6 +1,7 @@
 import React,{useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {MessageBody} from '../../../extensions/aipro-chat/src/MessageBody.jsx';
+import {ProgressDisplaySetting,useProgressDisplay} from '../ui/ProgressDisplaySetting.jsx';
 import {useAnswerReveal} from '../ui/useAnswerReveal.js';
 import '@e2e/cx-design-system/styles.css';
 import '../electron-app/workbench.css';
@@ -12,6 +13,7 @@ const answer='**메일 검색을 개선했습니다.**\n\n제목과 본문을 �
 const initial={id:'task',checkpoint:{runId:'run'},messages:[{id:'old',role:'assistant',runId:'old-run',content:'이전 답변은 바로 표시됩니다.'}]};
 function Fixture(){
   const [task,setTask]=useState(initial),[count,setCount]=useState(0);
+  const [showProgress,setShowProgress]=useProgressDisplay();
   const reveal=useAnswerReveal(task,'project');
   window.deliverAnswer=()=>setTask({...initial,messages:[...initial.messages,{id:'new',role:'assistant',runId:'run',content:answer}]});
   window.switchConversation=()=>setTask(t=>({...t,id:t.id==='other'?'task':'other'}));
@@ -21,6 +23,7 @@ function Fixture(){
   return <main className="desktop-shell" style={{background:'white',minHeight:'100vh',padding:32}} data-tick={count}>
     <div className="nubi-workbench"><div className="nubi-task" style={{width:'min(720px,100%)',margin:'auto'}}>
       <div style={{paddingBottom:24,fontWeight:600}}>누비 Workspace Beta</div>
+      <ProgressDisplaySetting enabled={showProgress} onChange={setShowProgress}/>
       {task?.messages.map(message=><article className="nubi-message" key={message.id} data-id={message.id}>
         <MessageBody content={message.content} textReveal={reveal.has(message.id)} sourceReferences={[{href:'#nubi-cite-1',number:1,title:'메일 원문'}]} onSource={()=>{window.sourceOpened=true;}}/>
       </article>)}

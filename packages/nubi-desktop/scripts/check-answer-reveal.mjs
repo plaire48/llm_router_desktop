@@ -39,6 +39,12 @@ try {
  await page.evaluate(()=>window.switchConversation());assert.equal(await page.locator('.nubi-answer-piece').count(),0);
  await page.evaluate(()=>window.questionAnswer());assert.equal(await page.locator('.nubi-answer-piece').count(),0);
  await page.evaluate(()=>window.clearTask());await page.waitForTimeout(50);
+ // Hiding process details must not disable newly delivered answer presentation.
+ await page.reload();await page.getByRole('switch',{name:'진행 과정 표시'}).click();
+ assert.equal(await page.getByRole('switch').getAttribute('aria-checked'),'false');
+ await page.evaluate(()=>window.deliverAnswer());
+ await page.locator('[data-id="new"] .nubi-answer-piece').first().waitFor({state:'attached'});
+ assert(await page.locator('[data-id="new"] .nubi-answer-piece').evaluateAll(nodes=>nodes.some(node=>node.getAnimations().length>0)));
  await page.emulateMedia({reducedMotion:'reduce'});await page.reload();await page.waitForFunction(()=>!!window.deliverAnswer);await page.evaluate(()=>window.deliverAnswer());
  await page.locator('[data-id="new"]').waitFor();assert.equal(await page.locator('.nubi-answer-piece').evaluateAll(nodes=>nodes.reduce((n,node)=>n+node.getAnimations().length,0)),0);
  await page.setViewportSize({width:440,height:900});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));

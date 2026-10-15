@@ -1,0 +1,7 @@
+.nubi-clone-error { min-width:0; font:var(--deck-font-caption); color:var(--nubi-text-secondary); }
+.nubi-clone-error strong { display:flex; align-items:center; gap:var(--cx-space-2); color:var(--nubi-text-primary); font:var(--deck-font-body); font-weight:var(--nubi-weight-emphasis); }
+.nubi-clone-error svg { flex:none; }
+.nubi-clone-error p { margin:var(--cx-space-2) 0; line-height:1.6; }
+.nubi-clone-error summary { display:flex; align-items:center; gap:var(--cx-space-2); cursor:pointer; min-height:32px; list-style:none; }
+.nubi-clone-error summary::-webkit-details-marker { display:none; }
+.nubi-clone-error pre { margin:var(--cx-space-2) 0 0; font:inherit; white-space:pre-wrap; overflow-wrap:anywhere; }

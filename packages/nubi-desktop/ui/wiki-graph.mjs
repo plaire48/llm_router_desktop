@@ -9,7 +9,7 @@ export const sectionLabel=id=>/^\d{4}-\d{2}$/.test(id||'')?`${id.slice(0,4)}년 
 export const WIKI_SECTION_PALETTE=['#3182F6','#F04452','#00A86B','#F59E0B','#8B5CF6','#0EA5E9','#EC4899','#64748B','#14B8A6','#A16207'];
 export const sectionColors=graph=>new Map((graph?.sections||[]).map((entry,i)=>[entry.id,WIKI_SECTION_PALETTE[i%WIKI_SECTION_PALETTE.length]]));
 const round=value=>Math.round(value*100)/100;
-export function buildWikiGraph(items=[],edges=[]){
+export function buildWikiGraph(items=[],edges=[],{kind}={}){
   const nodes=new Map(items.map(item=>[item.path,{...item,title:item.title||item.path,type:item.type?.toLowerCase()==='mail'?(item.category||'메일'):item.type||'',description:item.description||'',tags:Array.isArray(item.tags)?item.tags:[],section:typeof item.section==='string'?item.section:wikiSection(item.path),links:[],backlinks:[]}]));
   const pairs=new Map();
   for(const edge of edges){
@@ -37,7 +37,7 @@ export function buildWikiGraph(items=[],edges=[]){
   }).sort((x,y)=>y.strength-x.strength||x.from.localeCompare(y.from)||x.to.localeCompare(y.to));
   const count=(key)=>{const map=new Map();for(const node of nodes.values()){const id=node[key];map.set(id,(map.get(id)||0)+1);}return [...map].map(([id,total])=>({id,count:total})).sort((x,y)=>y.count-x.count||String(x.id).localeCompare(String(y.id)));};
   const list=[...nodes.values()];
-  return {nodes:list,links,sections:count('section'),types:count('type').filter(entry=>entry.id),orphans:list.filter(node=>!node.degree).map(node=>node.path).sort(),hubs:list.filter(node=>node.degree>0).sort((x,y)=>y.degree-x.degree||x.title.localeCompare(y.title)).slice(0,8).map(node=>node.path)};
+  return {kind:kind||(items.length&&items.every(item=>item.type?.toLowerCase()==='mail')?'mail':'code'),nodes:list,links,sections:count('section'),types:count('type').filter(entry=>entry.id),orphans:list.filter(node=>!node.degree).map(node=>node.path).sort(),hubs:list.filter(node=>node.degree>0).sort((x,y)=>y.degree-x.degree||x.title.localeCompare(y.title)).slice(0,8).map(node=>node.path)};
 }
 // Neighbours of one page, strongest first, with the reasons a reader can check.
 export function relatedDocuments(graph,path){
@@ -72,40 +72,66 @@ export function pageWikiRows(rows,page=1,size=20){
   const total=rows.length,totalPages=Math.max(1,Math.ceil(total/size)),current=Math.min(Math.max(1,page),totalPages),offset=(current-1)*size;
   return {rows:rows.slice(offset,offset+size),page:current,totalPages,offset,total};
 }
-// Layout: sections start on a ring so clusters are readable before the forces
-// settle. Progressive steps let the screen animate large wikis without blocking.
+// A free canvas: groups have soft centres, not rectangular walls. Positions
+// never clamp to viewport edges. Renderers can cull without changing topology.
 const hash=value=>{let h=2166136261;for(const char of String(value)){h^=char.charCodeAt(0);h=Math.imul(h,16777619)>>>0;}return h/4294967296;};
 export function createWikiLayout(graph,{width=640,height=420,padding=40}={}){
   const nodes=graph.nodes.map(node=>node.path),index=new Map(nodes.map((path,i)=>[path,i]));
-  const sections=[...new Set(graph.nodes.map(node=>node.section))].sort();
-  const centerX=width/2,centerY=height/2,ring=Math.min(width,height)*(sections.length>1?0.3:0);
-  const centers=new Map(sections.map((section,i)=>[section,{x:centerX+ring*Math.cos(2*Math.PI*i/sections.length-Math.PI/2),y:centerY+ring*Math.sin(2*Math.PI*i/sections.length-Math.PI/2)}]));
-  const positions=graph.nodes.map(node=>{const center=centers.get(node.section),angle=hash(node.path)*2*Math.PI,radius=18+hash(node.path+'r')*Math.min(width,height)*0.12;return {x:center.x+radius*Math.cos(angle),y:center.y+radius*Math.sin(angle)};});
-  const links=graph.links.map(link=>({a:index.get(link.from),b:index.get(link.to),weight:0.6+link.strength/4}));
-  const total=Math.max(1,nodes.length),k=Math.sqrt((width-2*padding)*(height-2*padding)/total)*0.85;
-  return {nodes,positions,links,sections:centers,sectionOf:graph.nodes.map(node=>node.section),width,height,padding,k,temperature:Math.max(width,height)/8,steps:0,maxSteps:!nodes.length?0:nodes.length>200?120:nodes.length>60?200:300};
+  const groups=new Map();for(const node of graph.nodes){if(!groups.has(node.section))groups.set(node.section,[]);groups.get(node.section).push(node);}
+  const ordered=[...groups].sort((a,b)=>b[1].length-a[1].length||a[0].localeCompare(b[0]));
+  const centers=new Map(),radii=new Map(),positions=new Array(nodes.length),k=46;let area=0;
+  for(const [group,rows] of ordered){
+    rows.sort((a,b)=>a.path.localeCompare(b.path));
+    const radius=Math.max(65,Math.sqrt(rows.length)*k*.85),angle=centers.size*2.399963229728653;
+    const ring=centers.size?Math.sqrt(area/Math.PI)+radius+80:0;
+    const center={x:width/2+ring*Math.cos(angle),y:height/2+ring*Math.sin(angle)};
+    centers.set(group,center);radii.set(group,radius);area+=Math.PI*(radius+70)**2;
+    rows.forEach((node,i)=>{const theta=i*2.399963229728653+hash(group)*Math.PI*2,r=radius*Math.sqrt((i+.5)/rows.length);positions[index.get(node.path)]={x:center.x+r*Math.cos(theta),y:center.y+r*Math.sin(theta)};});
+  }
+  const links=graph.links.map(link=>({a:index.get(link.from),b:index.get(link.to),weight:.6+link.strength/4})).filter(link=>link.a!==undefined&&link.b!==undefined);
+  return {nodes,positions,links,sections:centers,radii,sectionOf:graph.nodes.map(node=>node.section),width,height,padding,k,temperature:18,steps:0,maxSteps:!nodes.length?0:nodes.length>200?100:180,pairChecks:0};
 }
 export function advanceWikiLayout(layout,steps=1){
-  const {positions,links,k,padding,width,height}=layout;
+  const {positions,links,k}=layout,cutoff=k*3;
   for(let step=0;step<steps&&layout.steps<layout.maxSteps;step++,layout.steps++){
-    const forces=positions.map(()=>({x:0,y:0}));
-    for(let i=0;i<positions.length;i++)for(let j=i+1;j<positions.length;j++){
-      let dx=positions[i].x-positions[j].x,dy=positions[i].y-positions[j].y;const distance=Math.max(1,Math.hypot(dx,dy));
-      if(distance>k*5)continue;
-      const push=k*k/distance/distance;dx*=push;dy*=push;forces[i].x+=dx;forces[i].y+=dy;forces[j].x-=dx;forces[j].y-=dy;
+    const forces=positions.map(()=>({x:0,y:0})),grid=new Map();layout.pairChecks=0;
+    positions.forEach((position,i)=>{const key=Math.floor(position.x/cutoff)+','+Math.floor(position.y/cutoff);if(!grid.has(key))grid.set(key,[]);grid.get(key).push(i);});
+    for(let i=0;i<positions.length;i++){
+      const cx=Math.floor(positions[i].x/cutoff),cy=Math.floor(positions[i].y/cutoff);
+      for(let x=cx-1;x<=cx+1;x++)for(let y=cy-1;y<=cy+1;y++)for(const j of grid.get(x+','+y)||[]){
+        if(j<=i)continue;layout.pairChecks++;
+        let dx=positions[i].x-positions[j].x,dy=positions[i].y-positions[j].y,distance=Math.hypot(dx,dy);if(distance>cutoff)continue;
+        if(distance<.01){dx=.1;dy=.1;distance=Math.hypot(dx,dy);}
+        const push=k*k/(distance*distance)*.35;dx*=push;dy*=push;forces[i].x+=dx;forces[i].y+=dy;forces[j].x-=dx;forces[j].y-=dy;
+      }
     }
     for(const link of links){
       const dx=positions[link.a].x-positions[link.b].x,dy=positions[link.a].y-positions[link.b].y,distance=Math.max(1,Math.hypot(dx,dy));
-      const pull=distance/k*link.weight*0.12;forces[link.a].x-=dx*pull;forces[link.a].y-=dy*pull;forces[link.b].x+=dx*pull;forces[link.b].y+=dy*pull;
+      // Cross-group links remain visible without collapsing separate clusters.
+      const same=layout.sectionOf[link.a]===layout.sectionOf[link.b];
+      const pull=Math.max(0,distance-k*1.5)/distance*link.weight*(same?.025:.001);
+      forces[link.a].x-=dx*pull;forces[link.a].y-=dy*pull;forces[link.b].x+=dx*pull;forces[link.b].y+=dy*pull;
     }
     positions.forEach((position,i)=>{
-      const home=layout.sections.get(layout.sectionOf[i]);forces[i].x+=(home.x-position.x)*0.04+(width/2-position.x)*0.01;forces[i].y+=(home.y-position.y)*0.04+(height/2-position.y)*0.01;
+      const home=layout.sections.get(layout.sectionOf[i]);forces[i].x+=(home.x-position.x)*.008;forces[i].y+=(home.y-position.y)*.008;
       const magnitude=Math.max(1e-6,Math.hypot(forces[i].x,forces[i].y)),limit=Math.min(magnitude,layout.temperature);
-      position.x=Math.min(width-padding,Math.max(padding,position.x+forces[i].x/magnitude*limit));
-      position.y=Math.min(height-padding,Math.max(padding,position.y+forces[i].y/magnitude*limit));
+      position.x+=forces[i].x/magnitude*limit;position.y+=forces[i].y/magnitude*limit;
     });
-    layout.temperature=Math.max(0.8,layout.temperature*0.96);
+    layout.temperature=Math.max(.5,layout.temperature*.97);
   }
   return layout.steps>=layout.maxSteps;
 }
 export function wikiLayoutPositions(layout){return new Map(layout.nodes.map((path,i)=>[path,{x:Math.round(layout.positions[i].x*10)/10,y:Math.round(layout.positions[i].y*10)/10}]));}
+export function wikiPositionBounds(positions,padding=60){
+  let left=Infinity,top=Infinity,right=-Infinity,bottom=-Infinity;
+  for(const at of positions.values()){left=Math.min(left,at.x);top=Math.min(top,at.y);right=Math.max(right,at.x);bottom=Math.max(bottom,at.y);}
+  return Number.isFinite(left)?{left:left-padding,top:top-padding,width:Math.max(1,right-left+padding*2),height:Math.max(1,bottom-top+padding*2)}:{left:0,top:0,width:640,height:420};
+}
+export function wikiViewportItems(graph,positions,view,size,margin=80){
+  const left=-view.x/view.k-margin,top=-view.y/view.k-margin,right=(size.width-view.x)/view.k+margin,bottom=(size.height-view.y)/view.k+margin;
+  const inside=at=>at&&at.x>=left&&at.x<=right&&at.y>=top&&at.y<=bottom;
+  // Segment/rectangle intersection also retains a line crossing the viewport
+  // whose two endpoints are off-screen.
+  const intersects=(a,b)=>{if(!a||!b)return false;if(inside(a)||inside(b))return true;let lo=0,hi=1;const dx=b.x-a.x,dy=b.y-a.y;for(const [p,q] of [[-dx,a.x-left],[dx,right-a.x],[-dy,a.y-top],[dy,bottom-a.y]]){if(!p){if(q<0)return false;continue;}const t=q/p;if(p<0)lo=Math.max(lo,t);else hi=Math.min(hi,t);if(lo>hi)return false;}return true;};
+  return {nodes:graph.nodes.filter(node=>inside(positions.get(node.path))),links:graph.links.filter(link=>intersects(positions.get(link.from),positions.get(link.to)))};
+}

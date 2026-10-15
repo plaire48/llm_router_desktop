@@ -1,6 +1,7 @@
 import React,{useEffect,useRef} from 'react';
 import * as monaco from 'monaco-editor/editor/editor.api.js';
 import 'monaco-editor/basic-languages/monaco.contribution.js';
+import '../node_modules/monaco-editor/esm/vs/base/browser/ui/codicons/codicon/codicon.css';
 self.MonacoEnvironment={getWorker:()=>new Worker(new URL('./editor.worker.js',import.meta.url),{type:'module'})};
 export {monaco};
 export function languageForPath(file) {
@@ -40,11 +41,13 @@ export function GitDiff({diff}) {
    padding:{top:8,bottom:8},scrollbar:{verticalScrollbarSize:8,horizontalScrollbarSize:8},
    domReadOnly:true,links:false,contextmenu:false
   });
+  let revealed=false;
+  const changed=editor.onDidUpdateDiff(()=>{if(diff.applied&&!revealed&&editor.getLineChanges()?.length){revealed=true;editor.revealFirstDiff();}});
   editor.setModel({original,modified});
   // Stop the pending diff before its text models are disposed. Parent status refreshes must not recreate it.
-  return()=>{editor.setModel(null);editor.dispose();original.dispose();modified.dispose();};
+  return()=>{changed.dispose();editor.setModel(null);editor.dispose();original.dispose();modified.dispose();};
  },[diff.path,diff.before,diff.after]);
- return <div ref={element} className="desktop-git-diff" aria-label={`${diff.path} 읽기 전용 변경 비교`}/>;
+ return <div ref={element} className={`desktop-git-diff${diff.applied?' desktop-applied-diff':''}`} aria-label={`${diff.path} 읽기 전용 변경 비교`}/>;
 }
 export default function Editor({buffer,diff,onReady}){
  const element=useRef(null),activeEditor=useRef(null);

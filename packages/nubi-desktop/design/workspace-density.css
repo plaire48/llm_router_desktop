@@ -554,10 +554,10 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 }
 :root:has(.desktop-shell) :is(.nubi-skill-menu-header,.nubi-approval-mode-header,.nubi-reasoning-heading,.nubi-applied-menu>header,.nubi-command-menu-header) { min-height:2.5rem; padding:0 .5rem .5rem; gap:.75rem; }
 :root:has(.desktop-shell) :is(.nubi-skill-menu-header,.nubi-approval-mode-header,.nubi-reasoning-heading,.nubi-applied-menu>header,.nubi-command-menu-header)>strong { font-size:var(--deck-type-body); font-weight:600; color:var(--deck-ink); }
-:root:has(.desktop-shell) :is(.nubi-skill-menu-row,.nubi-skill-menu-marketplace,.nubi-approval-mode-item,.nubi-applied-row,.nubi-command-options>.cx-kit-button) { min-height:var(--nubi-picker-row); padding:.625rem .75rem; gap:.75rem; font-size:var(--deck-type-body); white-space:nowrap; }
-:root:has(.desktop-shell) :is(.nubi-skill-menu-row,.nubi-skill-menu-marketplace,.nubi-approval-mode-item,.nubi-applied-row)>svg { width:1.125rem; height:1.125rem; flex-shrink:0; }
+:root:has(.desktop-shell) :is(.nubi-skill-menu-row,.nubi-skill-menu-marketplace,.nubi-approval-mode-item,.nubi-command-options>.cx-kit-button) { min-height:var(--nubi-picker-row); padding:.625rem .75rem; gap:.75rem; font-size:var(--deck-type-body); white-space:nowrap; }
+:root:has(.desktop-shell) :is(.nubi-skill-menu-row,.nubi-skill-menu-marketplace,.nubi-approval-mode-item)>svg { width:1.125rem; height:1.125rem; flex-shrink:0; }
 :root:has(.desktop-shell) .nubi-approval-mode-item strong { font-size:var(--deck-type-body); font-weight:600; }
-:root:has(.desktop-shell) :is(.nubi-skill-menu-list,.nubi-approval-mode-menu>[role=menu],.nubi-applied-list) { display:flex; flex-direction:column; gap:.25rem; }
+:root:has(.desktop-shell) :is(.nubi-skill-menu-list,.nubi-approval-mode-menu>[role=menu]) { display:flex; flex-direction:column; gap:.25rem; }
 :root:has(.desktop-shell) .nubi-reasoning-menu { max-width:calc(100vw - 32px); }
 :root:has(.desktop-shell) .nubi-reasoning-slider-wrap { margin:.75rem .5rem .5rem; }
 :root:has(.desktop-shell) .nubi-reasoning-heading { display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:.5rem; }
@@ -975,6 +975,7 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .nubi-approval-form .nubi-approval-bar>button { min-width:0; padding-inline:var(--cx-space-2); white-space:nowrap; }
 .nubi-terminal-header-copy { margin-left:auto; display:flex; align-items:center; flex:none; }
 .nubi-terminal-header-copy button { color:var(--nubi-terminal-ink); }
+.nubi-terminal-header-copy .nubi-terminal-open { display:inline-flex; align-items:center; gap:var(--cx-space-1); flex:none; white-space:nowrap; background:transparent; border:0; font:var(--deck-font-caption); padding:var(--cx-space-1) var(--cx-space-2); }
 /* One quiet copy token contract for conversation, dialogs and terminal surfaces. */
 :root:has(.desktop-shell) .copy-control .cx-action-button.cx-icon-button[data-icon-only=true] {
  width:var(--nubi-copy-control-size); min-width:var(--nubi-copy-control-size); height:var(--nubi-copy-control-size); min-height:var(--nubi-copy-control-size);
@@ -1075,3 +1076,25 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 @media (prefers-reduced-motion:reduce) { .desktop-shell .nubi-workbench .nubi-activity-record>summary>svg { transition:none; } }
 /* A step the model marked completed but the review has not confirmed: a lighter check (bundle 3.2, 2026-10-15). */
 .desktop-shell .nubi-workbench .task-plan li[data-status='completed']:not([data-verified]) .task-plan-marker { opacity:.45; }
+
+.desktop-shell .nubi-answer-review:not(:empty) { margin-top:var(--cx-space-2); }
+.desktop-shell .nubi-answer-review .nubi-review-evidence { margin:0; padding:0; }
+
+/* Execution receipts stay compact in the transcript; output lives in the in-app terminal. */
+.nubi-command-record>summary>strong { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:var(--nubi-weight-label); }
+.nubi-command-record>summary>small { flex:none; white-space:nowrap; }
+.nubi-command-record-body { display:grid; min-width:0; gap:var(--cx-space-2); padding:var(--cx-space-2); }
+.nubi-command-record-body>.nubi-terminal { min-width:0; width:100%; margin:0; }
+.nubi-command-record-actions { display:flex; align-items:center; gap:var(--cx-space-2); }
+.nubi-command-record-actions:empty { display:none; }
+.nubi-command-record>summary>svg { flex:none; }
+.nubi-command-record-body .nubi-terminal-body { max-height:320px; overflow:auto; }
+.nubi-workbench .nubi-message[data-message-offscreen] :is(.nubi-answer-mark,.nubi-answer-mark *) { animation-play-state:paused; }
+.nubi-workbench .nubi-message[data-message-offscreen] { box-sizing:border-box; content-visibility:auto; contain-intrinsic-block-size:auto var(--nubi-message-height); }
+.nubi-current-decisions:empty { display:none; }
+.desktop-terminal-process-actions { display:flex; align-items:center; flex:none; gap:var(--cx-space-1); }
+.desktop-terminal-process-actions:empty { display:none; }
+.desktop-terminal-heading>.desktop-terminal-process-state { flex:none; font:var(--deck-font-caption); }
+
+.nubi-history-more { display:flex; justify-content:center; margin:8px 0 16px; }
+.nubi-history-more>.cx-kit-button { min-height:36px; gap:8px; background:transparent; border:0; box-shadow:none; color:var(--deck-sub); font-size:var(--deck-type-caption); }

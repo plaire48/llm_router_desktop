@@ -5,7 +5,7 @@ import {createRequire} from 'node:module';
 import {mkdtemp,rm,readFile} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import {PersonalMail} from '../runtime/mail.mjs';
+import {PersonalMail} from './helpers-personal-mail.mjs';
 import {normalizePortalMail} from '../runtime/mail-portal-content.mjs';
 import {ORIGIN,LOGIN_URL,portalFetchSource} from '../electron-app/mail-portal-contract.cjs';
 const require=createRequire(import.meta.url),{MailPortal}=require('../electron-app/mail-portal.cjs'),{portalFetch,foldersOf,identityOf}=require('../electron-app/mail-portal-contract.cjs');
@@ -31,7 +31,7 @@ test('portal EML is stored and searched with folder isolation, original hashes a
  assert.equal(mail.rows().length,4);assert.equal(mail.status().protocol,'portal');assert.equal(mail.rows().filter(row=>row.state==='collected').length,2);
  for(const id of ['1','2','3','4'])assert.equal((await mail.call({action:'search',query:'Verified',filters:{mailbox:'folder:'+id}})).total,1);
  const sent=(await mail.call({action:'search',query:'',filters:{mailbox:'sent'}})).results[0];assert.equal(sent.recipientRole,'sent');
- const row=mail.rows()[0],read=await mail.read(row.id,{includePresentation:true});assert.equal(read.mail.subject,'Portal metadata contract');assert.equal(read.mail.date,'2026-10-13T03:34:00.000Z');assert.equal(read.mail.recipientRole,'cc');assert.match(read.mail.text,/Verified body/);assert.match(read.mail.presentation.html,/<table>/);assert.deepEqual(read.mail.presentation.images,[]);assert.deepEqual(await readFile(path.join(mail.root,'raw',row.id,'message.eml')),eml);
+ const row=mail.rows()[0],read=await mail.read(row.id,{includePresentation:true});assert.equal(read.mail.subject,'Portal metadata contract');assert.equal(read.mail.date,'2026-10-13T03:34:00.000Z');assert.equal(read.mail.recipientRole,'cc');assert.match(read.mail.text,/Verified body/);assert.match(read.mail.presentation.html,/<table>/);assert.deepEqual(read.mail.presentation.images,[]);assert.deepEqual(await mail.rawVault.read(path.join(mail.root,'raw',row.id,'message.eml')),eml);
  await mail.call({action:'portalImport',uid:'portal:1:9',raw:eml.toString('base64'),size:eml.length,folder:foldersOf(folders)[0]});assert.equal(mail.rows().length,4);assert.equal((await mail.call({action:'portalKnown'})).uids.length,4);
 });
 test('portal session restores without opening a login window, and expired sessions request login',async()=>{
@@ -43,7 +43,7 @@ test('portal session restores without opening a login window, and expired sessio
 test('approval reads use the portal session and the requested source, with no approval mutation endpoint',async()=>{
  const host=new MailPortal({fetchSession:(session,url,options)=>session.fetch(url,options),invoke:async(method,args)=>{assert.equal(args.action,'portalDocument');return {mail:{subject:'Approval',text:'Read-only body'}};}});host.state.connected=true;host.identity={userId:'fixture-user'};
  const calls=[];host.read=async(op,args)=>{calls.push({op,args});if(op==='approvals')return {totalCount:1,data:[{apId:'approval-1',aplnId:'line-1',sbmDt:'2026-10-13T09:00:00Z'}]};return [{subject:'Approval contract',result:eml.toString('latin1')}];};
- const list=await host.approvals();assert.equal(list.items[0].subject,'Approval contract');const document=await host.approvalRead({id:'approval-1',lineId:'line-1'});assert.equal(document.mail.text,'Read-only body');assert.equal(calls.filter(call=>call.op==='approvalItem').length,1);assert(calls.every(call=>['approvals','approvalItem'].includes(call.op)));await assert.rejects(host.approvalRead({id:'../other',lineId:'line-1'}),/mail_input_invalid/);host.dispose();
+ const list=await host.approvals();assert.equal(list.items[0].titlePending,true);assert.equal(calls.filter(call=>call.op==='approvalItem').length,0);const title=await host.approvalTitle(list.items[0]);assert.equal(title.subject,'Approval contract');const document=await host.approvalRead({id:'approval-1',lineId:'line-1'});assert.equal(document.mail.text,'Read-only body');assert.equal(calls.filter(call=>call.op==='approvalItem').length,1);assert(calls.every(call=>['approvals','approvalItem'].includes(call.op)));await assert.rejects(host.approvalRead({id:'../other',lineId:'line-1'}),/mail_input_invalid/);host.dispose();
 });
 test('MIME alternatives retain useful HTML text and attachment names while keeping inline images separate',async()=>{
  const raw=Buffer.from('Subject: Mixed\r\nContent-Type: multipart/related; boundary=b\r\n\r\n--b\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<table><tr><td>Body table</td></tr></table><img src="cid:logo">\r\n--b\r\nContent-Type: image/png\r\nContent-ID: <logo>\r\nContent-Disposition: inline; filename="image001.png"\r\nContent-Transfer-Encoding: base64\r\n\r\nYWJj\r\n--b\r\nContent-Type: application/pdf\r\nContent-Disposition: attachment; filename="contract.pdf"\r\nContent-Transfer-Encoding: base64\r\n\r\nYWJj\r\n--b--');
@@ -151,4 +151,10 @@ test('a late folder list cannot overwrite the replacement mailbox folders',async
  const pending=host.sync();await settled(()=>!!finishRead);await host.disconnect();calls.length=0;
  host.state={...host.state,connected:true,folders:[{id:'new'}]};host.identity={id:'new',setCd:''};finishRead(folders);
  await assert.rejects(pending,/mail_cancelled/);assert.deepEqual(host.status().folders,[{id:'new'}]);assert(!calls.includes('portalFolders'));host.dispose();
+});
+
+test('approval list appears before slow document reads and named rows need no hydration',async()=>{
+ const host=new MailPortal({invoke:async()=>{}});host.state.connected=true;host.identity={userId:'fixture-user'};
+ let itemReads=0;host.read=async op=>{if(op==='approvals')return {totalCount:2,data:[{apId:'a',aplnId:'l',subject:'Named approval'},{apId:'b',aplnId:'l'}]};itemReads++;return new Promise(()=>{});};
+ try{const list=await host.approvals();assert.equal(itemReads,0);assert.equal(list.items[0].titlePending,false);assert.equal(list.items[1].titlePending,true);assert.equal(list.items.length,2);}finally{host.dispose();}
 });

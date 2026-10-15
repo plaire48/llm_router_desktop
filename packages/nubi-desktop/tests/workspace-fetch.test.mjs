@@ -80,3 +80,13 @@ test('the 50 MiB file-app contract fits both transfer layers without enlarging o
  await assert.rejects(request({url:root+'/issues',method:'POST',body}),/ghes_body_limit/);
  assert.equal((await request({url:'https://code.sdsdev.co.kr/api/v3/user/7'})).status,200);
 });
+
+test('Workspace network failures keep a safe code and never retry an uncertain write',async()=>{
+ let calls=0;
+ const account={generation:1,state:'connected',accessController:new AbortController(),status:async()=>({connected:true}),credential:async()=>({generation:1,token:'fixture-token'})};
+ const bridge=createWorkspaceFetch(account,{fetcher:async()=>{calls++;throw TypeError('fetch failed with private gateway details');}});
+ await assert.rejects(bridge({url:'https://code.sdsdev.co.kr/api/v3/repos/Manufacturing-IT/ai_workspace/issues',method:'POST',body:'{}'}),{message:'ghes_network'});
+ assert.equal(calls,1);
+ const streamBridge=createWorkspaceFetch(account,{fetcher:async()=>new Response(new ReadableStream({start(controller){controller.error(TypeError('private stream details'));}}))});
+ await assert.rejects(streamBridge({url:'https://code.sdsdev.co.kr/api/v3/repos/Manufacturing-IT/ai_workspace/issues'}),{message:'ghes_network'});
+});

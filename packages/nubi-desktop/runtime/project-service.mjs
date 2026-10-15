@@ -17,7 +17,7 @@ import {importVoc,queryVoc,readVoc} from './voc.mjs';
 import {computer,computerState} from './computer-use.mjs';
 import {projectRules,validateProjectRules} from './project-rules.mjs';
 import {inspectNewPath,proposeNewFile,prepareNewFile,applyNewFile} from './new-files.mjs';
-import {decideSetupAction} from './setup-actions.mjs';
+import {decideSetupAction,requireChosenShell} from './setup-actions.mjs';
 import {mkdir, realpath, readFile, writeFile, mkdtemp, copyFile, stat} from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
@@ -71,10 +71,11 @@ export class ProjectService {
     this.localPerception?.dispose();delete this.localPerception;this.computerPointer?.dispose();this.computerPointer=null;this.computerFallback=null;this.computerAdapter?.dispose?.();this.computerAdapter=null;this.computerLauncher?.dispose?.();this.computerLauncher=null;this.computerApps=new Map();this.databaseConnections=new Map();this.computerBinding=null;this.computerObservation=null;
     for(const action of this.store.list('computer-action:').filter(v=>v.state==='starting'))this.store.set('computer-action:'+action.id,{...action,state:'attention',execution:'unknown',error:'computer_outcome_unknown'});
     for(const action of this.store.list('computer-action:').filter(v=>v.review?.state==='running'))this.store.set('computer-action:'+action.id,{...action,review:{...action.review,state:'interrupted'}});
-    this.disposed=false;this.recoveryQueue=new Set();
-    this.processes = new Processes(this.store,{onFinished:record=>this.processFinished?.(record)});
+    this.disposed=false;this.recoveryQueue=new Set();this.idleProcessQueue=new Set();
+    this.processes = new Processes(this.store,{onFinished:record=>this.processFinished?.(record),onIdle:record=>this.processIdle?.(record),onActivity:record=>this.resolveProcessIdle?.(record,'output')});
     // A restarted host cannot establish the outcome of an earlier process.
     for (const p of this.store.list('process:').filter(p => ['running','stopping','checking'].includes(p.state))) this.store.set('process:' + p.id, {...p, state: 'interrupted',execution:'unknown',recoveryState:'attention'});
+    for(const task of this.store.list('task:').filter(t=>t.question?.processIdle)){this.resolveProcessIdle(this.store.get('process:'+task.question.processIdle.id),'restart');}
     for(const task of this.store.list('task:').filter(t=>['pending','connected'].includes(t.computerConnectionRequest?.state))){
       const {bindingId,connectedAt,...request}=task.computerConnectionRequest;
       this.store.set('task:'+task.id,{...task,state:task.state==='cancelled'?'cancelled':'waiting_input',computerConnectionRequest:{...request,state:task.state==='cancelled'?'cancelled':'pending'}});
@@ -92,7 +93,7 @@ export class ProjectService {
     this.ready();
     if(projectId!==this.projectId)fail('project_changed');
     if(taskId)this.task(taskId);
-    return {projectId:this.projectId,path:this.root};
+    return {projectId:this.projectId,path:this.root,shellPreference:this.shellPreference()};
   }
   shellPreference() { this.ready(); return this.store.get('setting:shell')?.profile; }
   async setShellPreference({profile}) {
@@ -318,7 +319,7 @@ export class ProjectService {
   }
   async comparison({id}) { this.ready(); const value=this.store.get('comparison:'+id); if(!value)fail('comparison_missing'); const [before,after,difference]=await Promise.all(['before','after','difference'].map(name=>readFile(path.join(value.directory,name+'.png')))); return {...value,beforeImage:'data:image/png;base64,'+before.toString('base64'),afterImage:'data:image/png;base64,'+after.toString('base64'),diffImage:'data:image/png;base64,'+difference.toString('base64')}; }
   async diff({taskId}) { const root = await this.target(taskId); return {diff: await git(root, ['diff', '--no-ext-diff', '--', '.']), status: await git(root, ['status', '--short']), root}; }
-  async run({taskId, script, profile, timeoutMs,autoDiagnose=true,repairOf}) { if(this.computerBusy||this.newFileBusy||this.setupBusy)fail('project_busy');if(this.unsettledOperations?.size)fail('tool_unsettled');if(this.task(taskId).question)fail('question_pending');const cwd = await this.target(taskId); return this.processes.start({cwd, taskId, script, profile:profile||preferredShell(await shellProfiles(),process.platform,this.shellPreference()), timeoutMs,autoDiagnose,repairOf}); }
+  async run({taskId, script, profile, timeoutMs,autoDiagnose=true,repairOf,idleCheck=true}) { if(this.computerBusy||this.newFileBusy||this.setupBusy)fail('project_busy');if(this.unsettledOperations?.size)fail('tool_unsettled');if(this.task(taskId).question)fail('question_pending');const cwd = await this.target(taskId),profiles=await shellProfiles(),chosen=this.shellPreference();profile=profile||preferredShell(profiles,process.platform,chosen);requireChosenShell(profiles,chosen,profile);return this.processes.start({cwd, taskId, script, profile, timeoutMs,autoDiagnose,repairOf,idleCheck}); }
   agentInput(args) { return agentInput.call(this,args); }
   analysisHistory(args) { return analysisHistory.call(this,args); }
 

@@ -93,7 +93,7 @@ export async function recordChangePlan(service,task,input,observations,runId){
   for(const target of input.targets){
     const creating=target.action==='create';
     const current=creating?await service.inspectPath({path:target.path,taskId:task.id}):await service.read({path:target.path,taskId:task.id,full:true}),seen=(creating?observations.newPaths:observations.files).get(target.path);
-    if(!seen||seen.hash!==current.hash)refuse('source_read_required',{path:target.path,reason:seen?'changed_after_read':'not_read_in_this_run'});
+    if(!seen||seen.hash!==current.hash)refuse('source_read_required',{path:target.path,reason:seen?'changed_after_read':'not_read_in_this_run',...(creating?{action:'create'}:{})});
     if(seen.rulesFingerprint!==current.projectRules?.fingerprint)fail('project_rules_changed');
     targets.push({...target,action:creating?'create':'edit',hash:current.hash,rulesFingerprint:current.projectRules?.fingerprint,observedRanges:seen.ranges||[]});
   }

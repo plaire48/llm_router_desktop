@@ -44,6 +44,6 @@ test('mail wiki pages are stored encrypted, served from a session copy and wiped
 
 test('without a usable vault the pages stay plain and the status says unavailable',async t=>{
   const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-plain-'));t.after(()=>rm(root,{recursive:true,force:true}));
-  const mail=await runtime(root,{get:async()=>{throw Error('secret_unavailable');},set:async()=>{}});t.after(()=>{mail.dispose();});
-  assert.equal(mail.status().encryption.state,'unavailable');assert.equal(mail.wikiRoot,mail.wikiStoreRoot);
+  const mail=new PersonalMail(makeHost(root,{get:async()=>{throw Error('secret_unavailable');},set:async()=>{}}),{personalRoot:path.join(root,'mail')});t.after(()=>{mail.dispose();});await mail.ensureWiki();
+  assert.equal(mail.status().encryption.wikiState,'unavailable');assert.equal(mail.wikiRoot,mail.wikiStoreRoot);
 });

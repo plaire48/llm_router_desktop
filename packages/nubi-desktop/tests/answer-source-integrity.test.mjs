@@ -44,3 +44,41 @@ test('failed citation repair remains a limited review, never a ready result',asy
     onReview:async verdict=>{final=verdict;}});
   assert.equal(final.status,'revise');assert.match(final.handoff,/review_(stalled|limit)/);
 });
+
+test('mail, attachment and Wiki share first-use numbers in the saved answer',()=>{
+  const sources=new AnswerSources();
+  const [mail,attachment]=sources.mail({id:'a'.repeat(64),sourceHash:'original',mail:{subject:'일정 안내',text:'금요일 제출',attachments:[
+    {id:'document',filename:'일정.pdf',sha256:'document-hash',text:'오후 3시',segments:[{page:2,text:'오후 3시'}]},
+    {id:'not-read',filename:'제외.pdf',sha256:'excluded',contentState:'not_stored'}
+  ]}});
+  const wiki=sources.file({path:'openwiki/release.md',hash:'wiki-hash',content:'담당자는 개발팀'},'wiki');
+  sources.file({path:'unrelated.md',hash:'other',content:'검토만 한 내용'});
+  const result=sources.finish(`금요일 제출 [메일](${mail.href}), 오후 3시입니다 [99](${attachment.href}). 개발팀이 담당합니다 [위키](${wiki.href}). 일정 재확인 [9](${mail.href}).`);
+  assert.deepEqual(result.sourceReferences.map(s=>[s.number,s.citationId]),[[1,mail.citationId],[2,attachment.citationId],[3,wiki.citationId]]);
+  assert.equal(result.content,`금요일 제출 [1](${mail.href}), 오후 3시입니다 [2](${attachment.href}). 개발팀이 담당합니다 [3](${wiki.href}). 일정 재확인 [1](${mail.href}).`);
+  assert(!result.sourceReferences.some(s=>s.attachmentId==='not-read'));
+  assert(result.consultedSources.some(s=>s.path==='unrelated.md'));
+  assert.equal(sources.finish(result.content).content,result.content);
+});
+
+test('Markdown examples stay untouched while reference-style citations are numbered',()=>{
+  const sources=new AnswerSources(),source=sources.file({path:'rule.md',hash:'h',content:'A rule'});
+  const examples=`\`[예시](${source.href})\`\n\n    [예시](${source.href})\n\n![이미지](${source.href})\n\n\\[문자](${source.href})\n\n~~~md\n[예시](${source.href})\n~~~`;
+  assert.equal(sources.finish(examples).content,examples);
+  assert.equal(sources.finish(examples).sourceReferences.length,0);
+  const result=sources.finish(`${examples}\n\n근거 [설명][ref]\n\n[ref]: ${source.href}`);
+  assert.equal(result.sourceReferences.length,1);
+  assert(result.content.startsWith(examples));
+  assert(result.content.includes(`근거 [1](${source.href})`));
+  assert.deepEqual(sources.finish('[없는 출처][ref]\n\n[ref]: #nubi-cite-fake').unresolvedCitationIds,['fake']);
+});
+
+test('an answer independent of available evidence receives no automatic citation',()=>{
+  const sources=new AnswerSources();sources.file({path:'openwiki/history.md',hash:'old',content:'Earlier research'},'wiki');
+  const content='안녕하세요! 어떤 작업을 도와드릴까요?';
+  const result=sources.finish(content);
+  assert.equal(result.content,content);assert.deepEqual(result.sourceReferences,[]);
+  assert.equal(result.consultedSources.length,1);
+  const ready={status:'ready',checks:[{requirementId:'request',state:'supported'}]};
+  assert.equal(reviewCitationIntegrity(ready,sources.review(content)),ready);
+});

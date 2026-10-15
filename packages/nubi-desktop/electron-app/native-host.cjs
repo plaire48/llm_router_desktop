@@ -1,3 +1,5 @@
+const {createCloneErrorCapture,cloneFailure}=require('./git-clone-error.cjs');
+const {createCloneProgress}=require('./git-clone-progress.cjs');
 const {ORIGIN,SECRET_KEY}=require('../../nubi-vscode/src/ghes.cjs');
 const {DesktopGhesAccount}=require('./ghes-profile-status.cjs');
 const {chooseRepository}=require('../../nubi-vscode/src/ghes-git.cjs');
@@ -7,7 +9,7 @@ const {startTeamWorkspace}=require('./team-workspace.cjs');
 const {spawn}=require('node:child_process');
 const {createServer}=require('node:net');
 const {randomUUID,randomBytes}=require('node:crypto');
-const {mkdtemp,mkdir,writeFile,rm,realpath}=require('node:fs/promises');
+const {mkdtemp,mkdir,writeFile,rm,rmdir,realpath}=require('node:fs/promises');
 const path=require('node:path'),os=require('node:os');
 const SECRET_SERVICE='nubi.workspace.electron';
 const missingWorkspaceBrowser=async()=>{throw Error('ghes_browser_unavailable');};
@@ -18,6 +20,8 @@ function remote(input){
   let url;try{url=new URL(input);}catch{throw Error('remote_invalid');}
   if(!['https:','http:','ssh:','git:'].includes(url.protocol)||!url.hostname||url.password||url.search||url.hash)throw Error('remote_invalid');
   url.pathname=url.pathname.replace(/\/+$/,'');
+  // Company HTTPS clones use the signed-in app identity, not a pasted URL username.
+  if(url.origin===ORIGIN)url.username='';
   return url;
 }
 class ElectronHost{
@@ -56,24 +60,38 @@ class ElectronHost{
     if(generation!==this.account.generation)throw Error('ghes_session_changed');
     this.repositories.clear();return choices.map(item=>{const id=randomUUID();this.repositories.set(id,{url:item.url,generation});return {id,label:item.label,description:item.description};});
   }
-  async clone({url,parent,repositoryId}){
+  async clone({url,parent,repositoryId},onProgress=()=>{}){
     if(repositoryId){const item=this.repositories.get(repositoryId);if(!item||item.generation!==this.account.generation)throw Error('ghes_session_changed');url=item.url;}
-    const address=remote(url),directory=await realpath(parent),name=address.pathname.split('/').at(-1).replace(/\.git$/,'');
+    const address=remote(url);let directory;
+    try{directory=await realpath(parent);}catch(error){throw cloneFailure(['EACCES','EPERM'].includes(error.code)?'clone_permission':'clone_destination_missing',{stage:'destination'});}
+    const name=address.pathname.split('/').at(-1).replace(/\.git$/,'');
     if(!/^[\w.-]+$/.test(name)||['.','..'].includes(name))throw Error('remote_invalid');
-    const target=path.join(directory,name);
-    // Allocate the destination exclusively. A failed/uncertain clone is kept
-    // for inspection; retries never overwrite or remove its files.
-    await mkdir(target).catch(error=>{throw Error(error.code==='EEXIST'?'clone_target_exists':'clone_failed');});
-    return this.withGitAccess(address,async({env,credential})=>{
-      await new Promise((resolve,reject)=>{
-        const child=this.spawnProcess(this.platform==='win32'&&process.env.NUBI_BUNDLED_GIT||'git',[...(credential?['-c','credential.helper=']:[]),...(this.platform==='win32'?['-c','http.sslBackend=schannel']:[]),'-c','http.sslVerify=true','clone','--',address.href,target],{env,stdio:['ignore','pipe','pipe'],windowsHide:true});this.children.add(child);
-        child.stdout.on('data',()=>{});child.stderr.on('data',()=>{});
-        child.once('error',()=>{this.children.delete(child);reject(Error('clone_failed'));});
-        child.once('exit',code=>{this.children.delete(child);code===0?resolve():reject(Error('clone_failed'));});
+    const target=path.join(directory,name);let stage='destination',allocated=false;
+    const report=value=>{stage=value.stage;onProgress(value);};
+    try{
+      await mkdir(target).catch(error=>{throw cloneFailure(error.code==='EEXIST'?'clone_target_exists':error.code==='ENOSPC'?'clone_disk_full':['EACCES','EPERM'].includes(error.code)?'clone_permission':'clone_failed',{stage});});allocated=true;
+      report({stage:'connecting',percent:null});
+      return await this.withGitAccess(address,async({env,credential})=>{
+        await new Promise((resolve,reject)=>{
+          const capture=createCloneErrorCapture(),progress=createCloneProgress(report);let child,settled=false;
+          const fail=(error={},exitCode,signal)=>{if(settled)return;settled=true;progress.end();let code=capture.finish(error);if(signal&&code==='clone_failed')code='clone_interrupted';if(code==='clone_auth'&&address.origin===ORIGIN&&!credential)code='clone_login_required';reject(cloneFailure(code,{stage,exitCode,signal,httpStatus:capture.httpStatus}));};
+          try{child=this.spawnProcess(this.platform==='win32'&&process.env.NUBI_BUNDLED_GIT||'git',[...(credential?['-c','credential.helper=']:[]),...(this.platform==='win32'?['-c','http.sslBackend=schannel','-c','core.longpaths=true']:[]),'-c','http.sslVerify=true','clone','--progress','--',address.href,target],{env:{...env,LC_ALL:'C',LANG:'C'},stdio:['ignore','pipe','pipe'],windowsHide:true});}catch(error){fail(error);return;}
+          this.children.add(child);child.stdout.on('data',()=>{});child.stderr.on('data',chunk=>{progress.write(chunk);capture.write(chunk);});
+          child.once('error',error=>{this.children.delete(child);fail(error);});
+          child.once('close',(code,signal)=>{this.children.delete(child);if(settled)return;if(code!==0){fail({},code,signal);return;}settled=true;progress.end();capture.finish();resolve();});
+        });
+        report({stage:'opening',percent:null});return {cloned:true,root:target};
       });
-      return {cloned:true,root:target};
-    });
+    }catch(error){
+      // Only remove the empty directory allocated by this attempt. Partial files
+      // and pre-existing destinations are never overwritten or recursively removed.
+      let retained=allocated;if(allocated)try{await rmdir(target);retained=false;}catch{}
+      if(error.cloneFailure)throw cloneFailure(error.message,{...error.cloneFailure,retained});
+      if(error.message?.startsWith('ghes_'))throw error;
+      throw cloneFailure(['EACCES','EPERM'].includes(error.code)?'clone_permission':'clone_auth_helper',{stage,retained});
+    }
   }
+
   async withGitAccess(address,operation){
     const credential=address.origin===ORIGIN&&(await this.account.status()).connected?await this.account.credential():null;
     const temp=await mkdtemp(path.join(os.tmpdir(),'nubi-git-'));
@@ -82,7 +100,7 @@ class ElectronHost{
     try{
       const askpass=path.join(temp,this.platform==='win32'?'askpass.cmd':'askpass.sh');
       const executable=process.execPath;
-      if(this.platform==='win32'&&[executable,this.helperPath].some(value=>/["%\r\n]/.test(value)))throw Error('clone_failed');
+      if(this.platform==='win32'&&[executable,this.helperPath].some(value=>/["%\r\n]/.test(value)))throw cloneFailure('clone_auth_helper',{stage:'connecting'});
       await writeFile(askpass,this.platform==='win32'?`@echo off\r\n"${executable}" "${this.helperPath}" %*\r\n`:`#!/bin/sh\nexec ${quote(executable)} ${quote(this.helperPath)} "$@"\n`,{mode:0o700});
       server=createServer(socket=>{
         let raw='';socket.setTimeout(15000,()=>socket.destroy());

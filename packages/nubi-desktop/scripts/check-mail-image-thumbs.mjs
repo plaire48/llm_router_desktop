@@ -14,6 +14,7 @@ let browser;
 try{
  browser=await chromium.launch({channel:'chrome',headless:true});const page=await browser.newPage({viewport:{width:900,height:700}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('http://127.0.0.1:'+server.address().port);
+ assert.equal(await page.locator('.nubi-mail-image-thumb').count(),0);assert.equal(await page.evaluate(()=>window.calls.length),0);await page.locator('.nubi-mail-image-record>summary').click();
  const preview=page.getByRole('button',{name:'출장비 영수증.png 크게 보기'});await preview.waitFor();await page.waitForFunction(()=>document.querySelector('.nubi-mail-image-thumb img')?.naturalWidth===480);
  assert.equal(await page.locator('.nubi-mail-image-thumb').count(),1);assert.equal(await page.evaluate(()=>window.calls.length),1);
  assert.equal(await page.evaluate(()=>window.calls[0].action),'previewImage');
@@ -22,5 +23,7 @@ try{
  await page.setViewportSize({width:420,height:700});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:path.join(dir,'narrow.png')});
  await page.evaluate(()=>window.changeHash());await page.getByRole('button',{name:'출장비 영수증.png 원문 확인'}).waitFor();assert.equal(await page.locator('.nubi-mail-image-thumb img').count(),0);
  await page.getByRole('button',{name:'출장비 영수증.png 원문 확인'}).click();assert.equal(await page.evaluate(()=>window.opened.length),1);assert.deepEqual(errors,[]);
- await writeFile(path.join(dir,'result.json'),JSON.stringify({passed:true,checks:['verified lazy preview','duplicate source deduplication','inline expansion','narrow viewport','changed source clears image','source recovery'],errors},null,2));console.log('Mail image thumbnails passed.');
+ await page.evaluate(()=>window.changeHash('broken'));await page.getByRole('button',{name:'출장비 영수증.png 원문 확인'}).waitFor();assert.equal(await page.locator('.nubi-mail-image-thumb img').count(),0);
+ await page.getByRole('button',{name:'출장비 영수증.png 원문 확인'}).click();assert.equal(await page.evaluate(()=>window.opened.at(-1).attachmentHash),'broken');assert.deepEqual(errors,[]);
+ await writeFile(path.join(dir,'result.json'),JSON.stringify({passed:true,checks:['verified lazy preview','duplicate source deduplication','inline expansion','narrow viewport','changed source clears image','source recovery','corrupt image offers source recovery'],errors},null,2));console.log('Mail image thumbnails passed.');
 }finally{await browser?.close();server.closeAllConnections();await new Promise(r=>server.close(r));stopBuildService();}

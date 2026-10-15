@@ -85,3 +85,12 @@ test('relatedTo exposes grounded candidates, preserves filters and does not alte
  rows[1].account='another';assert.equal((await search.search({relatedTo:'one'})).total,0);
  await assert.rejects(search.search({relatedTo:'missing'}),/mail_missing/);
 });
+
+test('category mailboxes include matching portal and imported mail without mixing approvals',async()=>{
+ const {search,rows}=fixture();Object.assign(rows[0],{mailbox:'sent',folderId:'7',protocol:'portal'});Object.assign(rows[1],{mailbox:'sent',protocol:'local'});
+ assert.equal((await search.search({filters:{mailbox:'sent'}})).total,2);
+ assert.equal((await search.search({filters:{mailbox:'inbox'}})).total,0);
+ rows[1].mailbox='notice';
+ assert.deepEqual((await search.search({filters:{mailbox:'sent'}})).results.map(row=>row.id),['one']);
+ assert.deepEqual((await search.search({filters:{mailbox:'local:notice'}})).results.map(row=>row.id),['two']);
+});

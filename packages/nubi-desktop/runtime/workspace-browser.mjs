@@ -1,10 +1,9 @@
 import {randomUUID} from 'node:crypto';
+import {httpBrowserAddress} from './browser-address.cjs';
 
 export function workspacePageUrl(value){
   if(typeof value!=='string'||value.length>2048)throw Error('browser_url_invalid');
-  let url;try{url=new URL(value);}catch{throw Error('browser_url_invalid');}
-  if(!['http:','https:'].includes(url.protocol)||url.username||url.password)throw Error('browser_url_invalid');
-  return url.href;
+  return httpBrowserAddress(value);
 }
 
 // A page-opening bridge, not browser automation or an authenticated page reader.

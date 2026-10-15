@@ -1,5 +1,6 @@
 import {GHES_CONFIG,isPublicationTarget} from './config.js';
 import {githubReadFailure} from './githubReadFailure.js';
+import {ghesFetch} from './hostFetch.js';
 function githubBase(host) {
   return `https://${String(host).replace(/^https?:\/\//i, '').replace(/\/+$/, '')}/api/v3`;
 }
@@ -33,15 +34,16 @@ function jsonDocument(value) {
 export async function loadGithubJson({ host, owner, repo, token, path, ref: requestedRef = GHES_CONFIG.branch }) {
   let snapshotHead=null;
   if(isPublicationTarget({owner,repo,branch:requestedRef})){
-    const response=await fetch(`${githubBase(host)}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/ref/heads/${encodeURIComponent(requestedRef)}`,{cache:'no-store',headers:githubHeaders(token)});
-    if(!response.ok)throw await githubReadFailure(response,{path,ref:requestedRef,token});
+    const url=`${githubBase(host)}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/ref/heads/${encodeURIComponent(requestedRef)}`;
+    const response=await ghesFetch(url,{cache:'no-store',headers:githubHeaders(token)});
+    if(!response.ok)throw await githubReadFailure(response,{path,ref:requestedRef,url,token});
     snapshotHead=(await response.json())?.object?.sha;
     if(!/^[a-f\d]{40}$/i.test(snapshotHead||''))throw Error('조회할 데이터 버전을 확인하지 못했습니다.');
     requestedRef=snapshotHead;
   }
   const ref = requestedRef ? `?ref=${encodeURIComponent(requestedRef)}` : '';
   const url = `${githubBase(host)}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${path}${ref}`;
-  const response = await fetch(url, { cache: 'no-store', headers: { ...githubHeaders(token), Accept: 'application/vnd.github.object+json' } });
+  const response = await ghesFetch(url, { cache: 'no-store', headers: { ...githubHeaders(token), Accept: 'application/vnd.github.object+json' } });
   if (response.status === 404) return null;
   if (!response.ok) throw await githubReadFailure(response, {path, ref: requestedRef, url, token});
   const data = await response.json();
@@ -50,7 +52,7 @@ export async function loadGithubJson({ host, owner, repo, token, path, ref: requ
   if (!content && data.encoding === 'none' && /^[a-f\d]{40}$/i.test(data.sha || '')) {
     // Read the immutable blob, not the branch again: content must match the SHA used for saving.
     const blobUrl = `${githubBase(host)}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/blobs/${data.sha}`;
-    const blobResponse = await fetch(blobUrl, { cache: 'no-store', headers: githubHeaders(token) });
+    const blobResponse = await ghesFetch(blobUrl, { cache: 'no-store', headers: githubHeaders(token) });
     if (!blobResponse.ok) throw await githubReadFailure(blobResponse, {path, ref: requestedRef, url: blobUrl, token, body: true});
     const blob = await blobResponse.json();
     if (blob.sha !== data.sha || blob.encoding !== 'base64') throw new Error('마스터 본문과 저장 버전이 일치하지 않습니다. 다시 불러오세요.');

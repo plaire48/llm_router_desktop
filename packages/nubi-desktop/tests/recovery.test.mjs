@@ -10,7 +10,15 @@ installAgent(ProjectService);
 const status=()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:32000}]});
 const call=(name,args={})=>({content:'',calls:[{id:crypto.randomUUID(),type:'function',function:{name,arguments:JSON.stringify(args)}}]});
 const reply=()=>({content:'기록을 확인했습니다. 전체 완료 조건은 아직 미확인입니다.',calls:[]});
-const wait=async check=>{for(let i=0;i<300;i++){if(check())return;await new Promise(r=>setTimeout(r,10));}assert.fail('state did not settle');};
+const wait=async(check,timeoutMs=3000)=>{const deadline=Date.now()+timeoutMs;while(Date.now()<deadline){if(check())return;await new Promise(r=>setTimeout(r,10));}assert.fail('state did not settle');};
+
+test('a configured command timeout preserves output and reaches diagnosis without replaying the command',async t=>{
+  const {service}=await fixture(t),task=await service.createTask({request:'Check timed command'});let diagnosed=0;
+  service.providers={status,dispose(){},complete:async messages=>{const receipts=JSON.stringify(messages);assert.match(receipts,/process_timeout/);assert.match(receipts,/BEFORE_TIMEOUT/);diagnosed++;return reply();}};
+  const process=await service.run({taskId:task.id,script:"printf 'BEFORE_TIMEOUT\\n'; sleep 5",profile:'bash',timeoutMs:100});
+  await wait(()=>service.processes.poll(process.id).recoveryState==='review');
+  assert.equal(service.processes.poll(process.id).state,'timed_out');assert.equal(diagnosed,1);assert.equal(service.store.list('process:').length,1);
+});
 
 test('transient inference retries preserve the completed source read and operation checkpoint',async t=>{
   const {service}=await fixture(t);service.recoveryOptions={model:{minTimeout:1}};let calls=0,reads=0,failures=0;const read=service.read.bind(service);service.read=async args=>{reads++;return read(args);};
@@ -46,10 +54,12 @@ test('failed Bash automatically reaches Pi diagnosis; an approved repaired comma
     return reply();
   }};
   const process=await service.run({taskId:task.id,script:'nubi_missing_command_for_fixture',profile:'bash'});
-  await wait(()=>service.store.list('command-repair:').length===1&&!service.agent?.running);
+  // Git Bash startup and process reaping on Windows can exceed the generic 3 s fixture wait.
+  // Completion is still required; this does not change the command's own timeout or assertions.
+  await wait(()=>service.store.list('command-repair:').length===1&&!service.agent?.running,15000);
   assert.equal(service.processes.poll(process.id).state,'failed');await assert.rejects(access(path.join(root,'recovered.txt')));
   const repair=service.store.list('command-repair:')[0];await Promise.all([service.applyCommandRepair({id:repair.id}),service.applyCommandRepair({id:repair.id})]);
-  await wait(()=>round>=3&&!service.agent?.running&&service.processes.active.size===0);
+  await wait(()=>round>=3&&!service.agent?.running&&service.processes.active.size===0,15000);
   assert.equal(await readFile(path.join(root,'recovered.txt'),'utf8'),'once\n');assert.equal(service.store.list('process:').length,2);assert.equal(service.task(task.id).criteria[0].state,'unknown');
   const knowledge=await service.recordKnowledge({taskId:task.id}),document=await readFile(path.join(root,knowledge.path),'utf8');
   assert.match(document,/복구 기록/);assert.match(document,/propose_command_repair/);assert.doesNotMatch(document,/RECOVERY_OK|printf|nubi_missing_command_for_fixture/);
@@ -59,8 +69,10 @@ test('Bash syntax and missing shell are not executed; configured timeout differs
   const {service,root}=await fixture(t),task=await service.createTask({request:'Check shells'});
   const broken=await service.run({taskId:task.id,script:'touch should-not-exist; if then',profile:'bash',autoDiagnose:false});assert.equal(broken.execution,'not_started');assert.equal(broken.fault,'shell_syntax');await assert.rejects(access(path.join(root,'should-not-exist')));
   const absent=await service.run({taskId:task.id,script:'echo x',profile:'not-installed',autoDiagnose:false});assert.equal(absent.fault,'shell_unavailable');assert.equal(absent.execution,'not_started');
-  const timed=await service.run({taskId:task.id,script:'sleep 5',profile:'bash',timeoutMs:30,autoDiagnose:false});await wait(()=>!service.processes.active.size);assert.equal(service.processes.poll(timed.id).state,'timed_out');
-  const stopped=await service.run({taskId:task.id,script:'sleep 5',profile:'bash'});service.processes.stop(stopped.id);await wait(()=>!service.processes.active.size);assert.equal(service.processes.poll(stopped.id).state,'cancelled');assert.equal(service.recoveryQueue.size,0);
+  // Windows taskkill can take several seconds. Keep natural exit well beyond
+  // the assertion deadline so merely waiting out the script cannot pass.
+  const timed=await service.run({taskId:task.id,script:'sleep 30',profile:'bash',timeoutMs:30,autoDiagnose:false});await wait(()=>!service.processes.active.size,10000);assert.equal(service.processes.poll(timed.id).state,'timed_out');
+  const stopped=await service.run({taskId:task.id,script:'sleep 30',profile:'bash'});service.processes.stop(stopped.id);await wait(()=>!service.processes.active.size,10000);assert.equal(service.processes.poll(stopped.id).state,'cancelled');assert.equal(service.recoveryQueue.size,0);
   const missingBinary=new Processes(service.store,{profiles:async()=>[{id:'bash',executable:path.join(root,'no-bash'),args:[]}]});const result=await missingBinary.start({cwd:root,taskId:task.id,script:'echo x',profile:'bash'});assert.equal(result.fault,'shell_executable_missing');
 });
 

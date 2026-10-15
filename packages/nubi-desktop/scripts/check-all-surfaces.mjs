@@ -118,7 +118,7 @@ try{
 
   for(const state of ['current','stale','ready','failed','running']){await load('screen=wiki&state='+state);await p.locator('.nubi-wiki-update').waitFor();await audit('wiki-'+state+'-'+width);}
   for(const screen of ['question','analysis','setup','progress']){await load('screen='+screen);await p.locator('.question-card,.nubi-document-progress,.nubi-setup-summary,.desktop-mail-progress').first().waitFor();await audit(screen+'-'+width);}
-  await load('screen=applied');await p.getByRole('button',{name:'변경한 파일 보기'}).click();await p.getByRole('dialog',{name:'변경한 파일'}).waitFor();await audit('applied-'+width);
+  await load('screen=applied');await p.getByRole('button',{name:/^파일 \d+개 변경됨/}).waitFor();await p.locator('.nubi-applied-list').waitFor();await audit('applied-'+width);
  }
  // Full mail workflow uses real production components in Electron with bounded synthetic sources.
  await p.setViewportSize({width:1600,height:950});await load('integrated&modals&toolbar&mail-flow');

@@ -1,4 +1,6 @@
-const {WebContentsView,session,Menu,dialog,shell}=require('electron');
+const {WebContentsView,session,Menu,dialog,shell,clipboard}=require('electron');
+const {browserContextMenu}=require('./browser-context-menu.cjs');
+const {httpBrowserAddress}=require('../runtime/browser-address.cjs');
 const {randomUUID}=require('node:crypto');
 const {captureImage,captureSurface}=require('./capture-image.cjs');
 const {writeFile}=require('node:fs/promises');
@@ -6,15 +8,15 @@ const {writeFile}=require('node:fs/promises');
 function address(input) {
  if(typeof input!=='string'||input.length>8000)throw Error('browser_url_invalid');
  const value=input.trim();if(!value||value==='about:blank')return 'about:blank';
- const local=/^(?:localhost|127\.\d+\.\d+\.\d+|\[::1\])(?::\d+)?(?:[/?#]|$)/i.test(value);
- const hostname=/^[\w.-]+\.[a-z]{2,}(?::\d+)?(?:[/?#]|$)/i.test(value);
- let url;try{url=new URL(local?`http://${value}`:hostname?`https://${value}`:/^[a-z][a-z\d+.-]*:/i.test(value)?value:`https://www.google.com/search?q=${encodeURIComponent(value)}`);}catch{throw Error('browser_url_invalid');}
- if(!['https:','http:'].includes(url.protocol)||url.username||url.password)throw Error('browser_url_invalid');return url.href;
+ try{return httpBrowserAddress(value);}catch(error){
+  if(/^[a-z][a-z\d+.-]*:/i.test(value)||value.includes('://'))throw error;
+  return `https://www.google.com/search?q=${encodeURIComponent(value)}`;
+ }
 }
 function displayAddress(value){
  try{const url=new URL(value);for(const key of [...url.searchParams.keys()])if(/^(code|token|access_token|id_token|refresh_token)$/i.test(key))url.searchParams.delete(key);if(/(?:^|[&#])(code|token|access_token|id_token|refresh_token)=/i.test(url.hash))url.hash='';return url.href;}catch{return value;}
 }
-function loadFailure(code){return code===-105?'browser_dns_failed':code===-106?'browser_offline':code===-7?'browser_timeout':code<=-200&&code>=-299?'browser_certificate_failed':'browser_load_failed';}
+function loadFailure(code){return code===-102?'browser_connection_refused':code===-105?'browser_dns_failed':code===-106?'browser_offline':code===-7?'browser_timeout':code<=-200&&code>=-299?'browser_certificate_failed':'browser_load_failed';}
 class BrowserHost {
  constructor(window,{loginCode=()=>null,onFault=()=>{}}={}) {
   this.loginCode=loginCode;
@@ -75,7 +77,15 @@ class BrowserHost {
   const view=new WebContentsView({...(popupOptions?.webContents?{webContents:popupOptions.webContents}:{}),webPreferences:{...popupOptions?.webPreferences,session:session||this.session,sandbox:true,contextIsolation:true,nodeIntegration:false,webSecurity:true,allowRunningInsecureContent:false}});
   const row={id:randomUUID(),view,title:'웹 페이지',url:displayAddress(target),authentication:authentication===true,companyLogin:companyLogin===true,popup:!!popupOptions,session,onClosed:typeof onClosed==='function'?onClosed:null,contentReady:false,loading:false,error:null,revision:0};this.tabs.set(row.id,row);this.window.contentView.addChildView(view);view.setVisible(false);view.setBackgroundColor('#FFFFFF');this.active=row.id;
   row.ownerId=ownerId||row.id;row.httpsOnly=httpsOnly;
+  row.lastNavigationUrl=target;
   const wc=view.webContents;
+  wc.on('context-menu',(_event,params)=>{
+   const template=browserContextMenu(wc,params,{
+    copyLink:url=>clipboard.writeText(url),
+    openLink:url=>{try{this.create(url,{authentication:row.authentication,companyLogin:row.companyLogin,session:row.session,ownerId:row.ownerId,httpsOnly:row.httpsOnly});this.publish('opened');}catch(error){this.publish('error',{error:error.message});}},
+   });
+   Menu.buildFromTemplate(template).popup({window:this.window});
+  });
   const permitted=url=>{try{const parsed=new URL(url);return url==='about:blank'||((httpsOnly?parsed.protocol==='https:':['http:','https:'].includes(parsed.protocol))&&!parsed.username&&!parsed.password);}catch{return false;}};
   wc.on('will-navigate',(event,url)=>{if(row.authentication&&url==='nubi-workspace://auth-return'){event.preventDefault();this.closeTab(row.id,{returnToApp:true});return;}if(!permitted(url))event.preventDefault();});
   wc.on('will-redirect',(event,url)=>{if(!permitted(url))event.preventDefault();});
@@ -96,10 +106,10 @@ class BrowserHost {
   });
   wc.on('page-title-updated',(_event,title)=>{row.title=title.slice(0,240);this.changed();});
   wc.on('did-start-loading',()=>{row.loading=true;row.error=null;this.layout();this.changed();});
-  wc.on('did-start-navigation',(_event,_url,inPlace,isMain)=>{if(isMain&&!inPlace){row.revision++;row.contentReady=false;}});
+  wc.on('did-start-navigation',(_event,url,inPlace,isMain)=>{if(isMain&&!inPlace){row.revision++;row.contentReady=false;if(permitted(url))row.lastNavigationUrl=url;}});
   wc.on('dom-ready',()=>{row.contentReady=true;this.changed();});
   wc.on('did-stop-loading',()=>{row.loading=false;this.changed();});
-  wc.on('did-navigate',(_event,url)=>{row.url=displayAddress(url);if(!row.authentication&&!row.session&&url!=='about:blank'&&row.url===url){this.history=this.history.filter(item=>item.url!==url);this.history.unshift({url,title:row.title,date:Date.now()});this.history=this.history.slice(0,100);}this.changed();});
+  wc.on('did-navigate',(_event,url)=>{row.error=null;row.url=displayAddress(url);this.layout();if(!row.authentication&&!row.session&&url!=='about:blank'&&row.url===url){this.history=this.history.filter(item=>item.url!==url);this.history.unshift({url,title:row.title,date:Date.now()});this.history=this.history.slice(0,100);}this.changed();});
   wc.on('did-navigate-in-page',(_event,url,isMain)=>{if(isMain){row.url=displayAddress(url);this.changed();}});
   wc.on('did-fail-load',(_event,code,_description,_url,isMain)=>{if(isMain&&code!==-3){row.loading=false;row.error=loadFailure(code);this.layout();this.changed();}});
   wc.on('found-in-page',(_event,result)=>{this.find={matches:result.matches,active:result.activeMatchOrdinal};this.changed();});
@@ -145,7 +155,13 @@ class BrowserHost {
    if(action==='navigate'){const target=address(url);if(row.httpsOnly&&target!=='about:blank'&&new URL(target).protocol!=='https:')throw Error('browser_url_invalid');row.error=null;row.url=displayAddress(target);void wc.loadURL(target).catch(error=>{if(error?.code==='ERR_ABORTED'||error?.errno===-3)return;row.loading=false;row.error ||=loadFailure(error?.errno);this.layout();this.changed();});}
    else if(action==='back'){if(wc.navigationHistory.canGoBack())wc.navigationHistory.goBack();}
    else if(action==='forward'){if(wc.navigationHistory.canGoForward())wc.navigationHistory.goForward();}
-   else if(action==='reload')wc.reload();
+   else if(action==='reload'){
+    // A failed first navigation may have no committed page for reload(). Keep
+    // the requested URL and retry it explicitly, in the same ordinary tab.
+    // Login/POST windows retain Chromium's own navigation/session semantics.
+    if(row.error&&!row.authentication&&!row.companyLogin&&!row.session)void wc.loadURL(row.lastNavigationUrl).catch(()=>{});
+    else wc.reload();
+   }
    else if(action==='stop')wc.stop();
    else if(action==='find'){if(typeof text!=='string'||text.length>1000)throw Error('input_invalid');if(text)wc.findInPage(text,{forward:forward!==false});else{wc.stopFindInPage('clearSelection');this.find=null;}}
    else throw Error('method_invalid');

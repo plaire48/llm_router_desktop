@@ -1,23 +1,37 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {CxButton,CxInput,Icon} from '@e2e/cx-design-system';
+import {CxButton,DetailPanel,Icon} from '@e2e/cx-design-system';
 import {mailConnectionErrors} from './mail-connection-error.mjs';
+import {durationLabel} from '../runtime/response-timing.mjs';
+import {openMailBrowserLogin} from './mail-browser-login.mjs';
+import {TaskProgressBar} from './TaskProgressBar.jsx';
 import './mail-login-form.css';
-export function MailLoginForm({api,onClose,checkSession=true,initialError=null}){
- const [stage,setStage]=useState(checkSession?'checking':'ready'),[error,setError]=useState(initialError);
- const form=useRef(null),alive=useRef(true),lock=useRef(false);
- useEffect(()=>{alive.current=true;if(checkSession)void api('mail',{action:'portalSession'}).then(value=>{if(!alive.current)return;if(value.connected){onClose();return;}setStage('ready');}).catch(e=>{if(alive.current){setError(e.message);setStage('ready');}});return()=>{alive.current=false;form.current?.reset();};},[]);
- async function submit(event){
-  event.preventDefault();if(lock.current||stage!=='ready')return;lock.current=true;setStage('submitting');setError(null);
-  const elements=form.current.elements,payload={action:'portalCredentials',username:elements.namedItem('username').value,password:elements.namedItem('password').value};
-  elements.namedItem('password').value='';
-  try{await api('mail',payload);if(alive.current)onClose();}catch(e){if(alive.current){setError(e.message);setStage('ready');}}finally{payload.username='';payload.password='';lock.current=false;}
+// This component only checks the session or reports an error. Credentials belong to the portal page.
+export function MailLoginForm({api,onClose}){
+ const [stage,setStage]=useState('checking'),[error,setError]=useState(null),[elapsed,setElapsed]=useState(0);
+ const alive=useRef(true),pending=useRef(null),close=useRef(onClose);close.current=onClose;
+ function begin(){
+  if(pending.current)return pending.current;
+  setStage('checking');setError(null);
+  const operation=openMailBrowserLogin(api,{isActive:()=>alive.current,onBrowserOpen:()=>new Promise(resolve=>{
+   if(alive.current)setStage('browser');requestAnimationFrame(()=>resolve());
+  })});pending.current=operation;
+  void operation.then(()=>{if(alive.current)close.current();},e=>{if(!alive.current)return;if(e.message==='mail_cancelled')close.current();else{setError(e.message);setStage('error');}}).finally(()=>{if(pending.current===operation)pending.current=null;});
+  return operation;
  }
- async function cancel(){if(stage==='submitting')await api('mail',{action:'cancelConnect'}).catch(()=>{});form.current?.reset();onClose();}
- return <section className="nubi-mail-login-form" aria-label="사내 메일 로그인"><header><Icon name="mail" size={18}/><strong>사내 메일 로그인</strong><CxButton aria-label="로그인 닫기" title="로그인 닫기" onClick={()=>void cancel()}><Icon name="xClose" size={16}/></CxButton></header>
-  {stage==='checking'?<p role="status"><span className="status-spinner"/>기존 로그인 확인 중</p>:<form ref={form} onSubmit={submit} autoComplete="off">
-   <div className="nubi-mail-login-fields"><label>아이디<CxInput name="username" autoComplete="off" autoCapitalize="none" spellCheck={false} required maxLength={320} disabled={stage==='submitting'}/></label><label>비밀번호<CxInput name="password" type="password" autoComplete="off" required maxLength={4096} disabled={stage==='submitting'}/></label></div>
-   {error&&<p role="alert">{mailConnectionErrors[error]?.title||'로그인을 완료하지 못했어요. 연결 상태를 확인해 주세요.'}</p>}
-   <footer><small>AI와 대화 기록에 전달하지 않아요.</small><CxButton type="submit" variant="primary" disabled={stage==='submitting'}>{stage==='submitting'?<><span className="status-spinner"/>로그인 중</>:<><Icon name="logIn" size={16}/>로그인</>}</CxButton></footer>
-  </form>}
- </section>;
+ useEffect(()=>{alive.current=true;begin();return()=>{alive.current=false;};},[]);
+ useEffect(()=>{if(stage!=='checking')return;const start=Date.now();setElapsed(0);const timer=setInterval(()=>setElapsed(Date.now()-start),1000);return()=>clearInterval(timer);},[stage]);
+ async function cancel(){alive.current=false;await api('mail',{action:'cancelConnect'}).catch(()=>{});close.current();}
+ // Remove the overlay before the original portal tab opens, so the person can type directly in that page.
+ if(stage==='browser')return null;
+ return <DetailPanel className="deck-dialog nubi-panel nubi-mail-login-dialog" title={<span className="nubi-panel-title"><Icon name="mail" size={18}/>메일 연결</span>} variant="modal" hideHelp onClose={()=>void cancel()} footer={stage==='error'?<>
+  <CxButton onClick={()=>void cancel()}>닫기</CxButton>
+  <CxButton variant="primary" onClick={()=>void begin()}><Icon name="logIn" size={16}/>다시 로그인</CxButton>
+ </>:undefined}>
+  <section className="nubi-mail-login-form" aria-label="메일 연결">
+   {stage==='checking'?<>
+    <div className="nubi-mail-login-message" role="status"><span className="status-spinner"/><strong>로그인 확인 중</strong><time>{durationLabel(elapsed,{keepSeconds:true})}</time></div>
+    <TaskProgressBar label="메일 로그인 확인"/>
+   </>:<div className="nubi-mail-login-message" role="alert"><Icon name="alertCircle" size={16}/><strong>{mailConnectionErrors[error]?.title||'로그인 화면을 열지 못했어요.'}</strong></div>}
+  </section>
+ </DetailPanel>;
 }

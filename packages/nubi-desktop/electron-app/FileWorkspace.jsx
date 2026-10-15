@@ -3,6 +3,8 @@ import {CxButton, Icon} from '@e2e/cx-design-system';
 import {WorkspaceAction as ActionButton} from '../ui/WorkspaceAction.jsx';
 import {FolderMark} from '../ui/marks.jsx';
 import {FileExplorer} from './FileExplorer.jsx';
+const DocumentPreview=lazy(()=>import('../ui/DocumentPreview.jsx').then(m=>({default:m.FileDocumentPreview})));
+const RenderedFile=lazy(()=>import('../ui/DocumentPreview.jsx').then(m=>({default:m.RenderedFile})));
 const Editor=lazy(()=>import('./editor.jsx'));
 
 export function FileWorkspace({api,project,buffer,revealRequest,cwd,onDirectory,onOpen,onSave,onReady,onError,visible,pinned,loading=false}) {
@@ -16,6 +18,8 @@ export function FileWorkspace({api,project,buffer,revealRequest,cwd,onDirectory,
   else if(!pinned)setTreeOpen(true);
  },[buffer?.key,pinned,visible,revealRequest?.id]);
  const file= pinned ? buffer : null;
+ const [sourceKeys,setSourceKeys]=useState(()=>new Set());
+ const canRender=!!file?.model&&/\.(md|html?)$/i.test(file.path),source=sourceKeys.has(file?.key)||!!file?.sourceSelection||!!file?.editSource;
  const fileRoot=project.root,external=file?file.readOnly:/^(?:[A-Za-z]:[\\/]|[\\/]|~[\\/])/.test(cwd||''),parts=external?[(file?.absolute||cwd).split(/[\\/]/).filter(Boolean).at(-1)].filter(Boolean):(file?.path||cwd||'').split('/').filter(Boolean),projectName=fileRoot.split(/[\\/]/).filter(Boolean).at(-1);
  function navigate(path){onDirectory(path);setTreeOpen(true);}
  async function openInTab(path){const request=++tabOpen.current,item=await onOpen(path);if(item&&request===tabOpen.current&&element.current&&!element.current.hidden)setTreeOpen(false);}
@@ -26,12 +30,13 @@ export function FileWorkspace({api,project,buffer,revealRequest,cwd,onDirectory,
     {parts.map((part,index)=><React.Fragment key={parts.slice(0,index+1).join('/')}><Icon name="chevronRight" size={12}/>{(external||file&&index===parts.length-1)?<span aria-current="page" title={file?.absolute||file?.path||cwd}>{part}</span>:<CxButton onClick={()=>navigate(parts.slice(0,index+1).join('/'))}>{part}</CxButton>}</React.Fragment>)}
    </nav>
    <div className="desktop-file-actions">{file?.readOnly&&<span className="desktop-readonly-label">읽기 전용</span>}
+    {canRender&&<CxButton aria-label={source?'미리보기':'원문 편집'} title={source?'미리보기':'원문 편집'} aria-pressed={source} onClick={()=>{file.sourceSelection=null;file.editSource=null;setSourceKeys(previous=>{const next=new Set(previous);source?next.delete(file.key):next.add(file.key);return next;});}}><Icon name={source?'eye':'code'} size={16}/></CxButton>}
     {file?.model&&!file.readOnly&&<ActionButton action="save" iconOnly label="파일 저장" title="저장 (Ctrl+S)" disabled={!file.dirty} onClick={onSave}/>}
     <CxButton className="desktop-explorer-toggle" aria-label={treeOpen?'파일 탐색기 접기':'파일 탐색기 펼치기'} title={treeOpen?'파일 탐색기 접기':'파일 탐색기 펼치기'} aria-expanded={treeOpen} onClick={()=>setTreeOpen(value=>!value)}><FolderMark size={17}/><span>탐색기</span></CxButton>
    </div>
   </div>
   {(file||loading)&&<div className="desktop-file-content" aria-busy={loading}>
-   {file?.preview?<div className="desktop-image-preview"><img src={file.preview} alt={file.path}/></div>:file?<Suspense fallback={<div className="desktop-file-loading" role="status"><span className="status-spinner" aria-hidden="true"/>편집기 준비 중</div>}><Editor buffer={file} onReady={onReady}/></Suspense>:<div className="desktop-file-loading" role="status"><span className="status-spinner" aria-hidden="true"/>파일 여는 중</div>}
+   {file?.document?<Suspense fallback={<span className="status-spinner" aria-label="문서 여는 중"/>}><div className="nubi-document-preview"><DocumentPreview key={file.key} document={file.document}/></div></Suspense>:canRender&&!source?<Suspense fallback={<span className="status-spinner" aria-label="문서 여는 중"/>}><RenderedFile name={file.path} text={file.model.getValue()}/></Suspense>:file?.preview?<div className="desktop-image-preview"><img src={file.preview} alt={file.path}/></div>:file?<Suspense fallback={<div className="desktop-file-loading" role="status"><span className="status-spinner" aria-hidden="true"/>편집기 준비 중</div>}><Editor buffer={file} onReady={onReady}/></Suspense>:<div className="desktop-file-loading" role="status"><span className="status-spinner" aria-hidden="true"/>파일 여는 중</div>}
   </div>}
   <FileExplorer key={`${project.projectId}:${buffer?.taskId||'root'}`} api={api} project={project} taskId={buffer?.taskId} selected={buffer?.absolute||buffer?.path} revealRequest={revealRequest} cwd={cwd} onDirectory={onDirectory} onOpen={openInTab} onError={onError} visible={visible&&treeOpen}/>
  </section>;

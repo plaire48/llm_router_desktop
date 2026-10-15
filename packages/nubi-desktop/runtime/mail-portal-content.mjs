@@ -4,7 +4,7 @@ import {parsePop3Content,mailPartPresentation} from '../../openwiki/src/connecto
 // The portal supplies EML bytes, not HTML previews. Reuse the MIME parser and
 // original-byte hashes so search, source citations and downloads stay identical.
 export async function normalizePortalMail(raw,{includePresentation=false,filename=''}={}){
- if(!Buffer.isBuffer(raw)||!raw.length||raw.length>10*1024*1024)throw Error('mail_size_limit');
+ if(!Buffer.isBuffer(raw)||!raw.length||raw.length>96*1024*1024)throw Error('mail_size_limit');
  const parsed=await parsePop3Content(filename?decodeLocalHeaders(raw):raw),address=value=>value?.text?.slice(0,2000)||'';
  if(parsed.attachments.length>100)throw Error('mail_size_limit');
  const attachments=parsed.attachments.map((part,index)=>{const sha256=createHash('sha256').update(part.content).digest('hex');return {id:String(index).padStart(3,'0')+'-'+sha256.slice(0,16),filename:(part.filename||'').slice(0,500),contentType:part.contentType,size:part.size,sha256,content:part.content,text:'',contentState:'stored_bytes_only',presentation:mailPartPresentation(part,parsed.html)};});

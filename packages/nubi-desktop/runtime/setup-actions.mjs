@@ -107,6 +107,9 @@ export async function decideSetupAction({id,fingerprint,decision,elevationConsen
   value.state='starting';value.decidedAt=new Date().toISOString();this.store.set('setup-action:'+id,value);this.setupBusy=true;
   if(value.privilege==='administrator'){value.elevationConsentAt=value.decidedAt;this.store.set('setup-action:'+id,value);}
   try{
+    // Settings can change while this approval card is waiting. Never run old
+    // syntax in either the old shell or the newly chosen shell implicitly.
+    requireChosenShell(await shellProfiles(),this.shellPreference(),value.profile,value.privilege==='administrator');
     if(await this.target(value.taskId)!==value.workspace)fail('setup_changed');
     for(const ref of value.references){
       const current=(await readSource(value.workspace,ref.path)).hash;
@@ -114,14 +117,14 @@ export async function decideSetupAction({id,fingerprint,decision,elevationConsen
       if(current!==ref.hash&&!this.store.list('proposal:').some(p=>p.taskId===value.taskId&&p.path===ref.path&&p.state==='applied'&&p.expectedHash===ref.hash&&p.afterHash===current))fail('setup_changed');
     }
     if(this.disposed||this.task(value.taskId).state==='cancelled'||this.task(value.taskId).question)fail('setup_cancelled');
-    const process=await this.processes.start({cwd:value.workspace,taskId:value.taskId,script:value.script,profile:value.profile,autoDiagnose:true,setupActionId:value.id,privilege:value.privilege||'user'});
+    const process=await this.processes.start({cwd:value.workspace,taskId:value.taskId,script:value.script,profile:value.profile,autoDiagnose:true,idleCheck:value.kind!=='start',setupActionId:value.id,privilege:value.privilege||'user'});
     value.state='started';value.resultProcessId=process.id;
     this.store.set('setup-action:'+id,value);
     if(value.kind==='start')this.processStarted?.(this.processes.poll(process.id));
     return value;
   }catch(error){
-    value.state=error.message==='setup_changed'?'stale':'attention';
-    value.error=error.message==='setup_changed'?'setup_changed':'setup_execution_unconfirmed';
+    value.state=['setup_changed','shell_not_selected'].includes(error.message)?'stale':'attention';
+    value.error=['setup_changed','shell_not_selected'].includes(error.message)?error.message:'setup_execution_unconfirmed';
     this.store.set('setup-action:'+id,value);throw error;
   }finally{this.setupBusy=false;queueMicrotask(()=>this.drainRecovery?.().catch(()=>{}));}
 }

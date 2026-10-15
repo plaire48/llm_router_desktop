@@ -60,7 +60,7 @@
 .nubi-checks li,.nubi-trace { display:flex; justify-content:space-between; gap:14px; padding:10px 0; font-size:var(--cx-type-body); }
 .nubi-inline { display:flex; gap:8px; align-items:center; }
 .nubi-inline .cx-kit-input { flex:1; min-width:0; }
-.nubi-library { min-height:200px; }
+.nubi-library { min-height:0; }
 .nubi-file-link.cx-kit-button,.nubi-search-result.cx-kit-button,.nubi-history-item.cx-kit-button { width:100%; display:flex; flex-direction:column; gap:4px; align-items:flex-start; text-align:left; white-space:normal; height:auto; padding:12px 14px; border:0; border-radius:var(--deck-control-radius); background:transparent; overflow-wrap:anywhere; }
 .nubi-search-result.cx-kit-button { margin:6px 0; background:var(--deck-card); }
 .nubi-search-result > span:not(.deck-status) { font:400 var(--deck-type-code)/1.5 var(--deck-mono); color:var(--deck-sub); }

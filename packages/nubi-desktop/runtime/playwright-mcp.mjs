@@ -3,6 +3,7 @@ import {mkdtemp,rm} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {createRequire} from 'node:module';
+import {httpBrowserAddress} from './browser-address.cjs';
 const require=createRequire(import.meta.url);
 export const PLAYWRIGHT_MCP_VERSION='0.0.83';
 // 2026-10-15: find (cheap ref search instead of a full snapshot), fill_form (one call per form) and mouse_wheel (lazy
@@ -42,17 +43,31 @@ export async function createInAppPlaywright(request){
  });
  tools.unshift({name:'browser_capture',description:'Capture all or a selected region of a Nubi web tab. The host reads the image with an image-capable model from the same provider, then returns its findings to the original model. Prefer DOM snapshots for ordinary text.',inputSchema:{type:'object',additionalProperties:false,properties:{...CAPTURE_OPTIONS,documentId:{type:'string'},question:{type:'string',maxLength:400}},required:['tabId','documentId']},annotations:{readOnlyHint:true}});
  tools.unshift({name:'browser_tabs',description:'List ordinary Nubi in-app web tabs. Authentication tabs are excluded.',inputSchema:{type:'object',properties:{}},annotations:{readOnlyHint:true}});
- tools.unshift({name:'browser_open',description:'Open an HTTP/HTTPS page in a new Nubi in-app tab and return its tabId.',inputSchema:{type:'object',properties:{url:{type:'string'}},required:['url']},annotations:{readOnlyHint:false}});
+ tools.unshift({name:'browser_open',description:'Open a page in a new Nubi in-app tab. Accepts HTTP/HTTPS or localhost:port. Returns tabId, documentId and a fresh initial snapshot when ready; use its refs directly without another snapshot call.',inputSchema:{type:'object',properties:{url:{type:'string'}},required:['url']},annotations:{readOnlyHint:false}});
  return {
   listTools:async()=>({tools}),
   async callTool({name,arguments:args={} },_schema,{signal}={}){
    if(disposed)throw Error('mcp_tool_unavailable');signal?.throwIfAborted();
    if(name==='browser_capture'){if(typeof args.tabId!=='string'||typeof args.documentId!=='string')throw Error('browser_document_required');const shot=await request('capture',args,{signal});const {image,...metadata}=shot;return {content:[{type:'text',text:JSON.stringify(metadata)},{type:'image',mimeType:'image/png',data:image}],structuredContent:metadata};}
    if(name==='browser_tabs'||name==='browser_open'){
-    const result=await request(name==='browser_tabs'?'tabs':'open',args,{signal});
+    let result=await request(name==='browser_tabs'?'tabs':'open',name==='browser_open'?{...args,url:httpBrowserAddress(args.url)}:args,{signal});
     if(name==='browser_tabs'){const present=new Set(result.tabs.map(row=>row.tabId));for(const [id,entry] of clients)if(!present.has(id)){clients.delete(id);void entry.then(value=>value.close()).catch(()=>{});}}
-    // A tab the agent opened gets its CDP attach started now, so the first snapshot does not pay for it.
-    if(name==='browser_open'&&typeof result?.tabId==='string')void warm(result.tabId).catch(()=>{});
+    // Return the initial DOM with the open receipt: avoid a whole model round trip.
+    // A slow page still opens promptly, and the already-started connection is reused.
+    if(name==='browser_open'&&typeof result?.tabId==='string'){
+     const tabId=result.tabId,entry=warm(tabId);let timer;
+     try{
+      const initial=(async()=>{
+       const connected=await entry,abort=AbortSignal.timeout(1500);
+       const snapshot=await connected.client.callTool({name:'browser_snapshot',arguments:{}},undefined,{signal:signal?AbortSignal.any([signal,abort]):abort});
+       if(snapshot.isError)return null;
+       const binding=await request('check',{tabId,documentId:result.documentId},{signal});
+       return {...binding,snapshot:(snapshot.content||[]).filter(part=>part.type==='text').map(part=>part.text).join('\n')};
+      })();
+      const ready=await Promise.race([initial,new Promise(resolve=>{timer=setTimeout(()=>resolve(null),1500);})]);
+      if(ready)result={...result,...ready};
+     }catch{/* Navigation/auth changes retain the open receipt; never return stale DOM. */}finally{clearTimeout(timer);}
+    }
     return {content:[{type:'text',text:JSON.stringify(result)}]};
    }
    if(!allowed.has(name)||typeof args.tabId!=='string')throw Error('browser_tab_required');
@@ -61,6 +76,7 @@ export async function createInAppPlaywright(request){
    if(args.filename!==undefined)throw Error('browser_file_access_denied');
    if(name==='browser_wait_for'&&Number(args.time)>15)throw Error('browser_wait_too_long');
    const entry=await warm(args.tabId),{tabId,documentId,...input}=args;
+   if(name==='browser_navigate')input.url=httpBrowserAddress(input.url);
    return queued(tabId,async()=>{
     // One binding check right before the call (the tab and document still the ones the model saw), one after.
     await request('check',{tabId,...(mutating?{documentId}:{})},{signal});
@@ -69,7 +85,7 @@ export async function createInAppPlaywright(request){
     const binding=await request('check',{tabId},{signal});
     const content=[{type:'text',text:JSON.stringify(binding)},...(result.content||[])];
     // After an action the new page state comes back inline, so the model needs no second turn to see it.
-    if(mutating&&name!=='browser_navigate_back'&&!result.isError){try{const after=await entry.client.callTool({name:'browser_snapshot',arguments:{}},undefined,{signal});for(const part of after.content||[])if(part?.type==='text')content.push({type:'text',text:'### Snapshot after the action\n'+String(part.text||'')});}catch{}}
+    if(mutating&&!result.isError){try{const after=await entry.client.callTool({name:'browser_snapshot',arguments:{}},undefined,{signal});for(const part of after.content||[])if(part?.type==='text')content.push({type:'text',text:'### Snapshot after the action\n'+String(part.text||'')});}catch{}}
     return {...result,content};
    });
   },

@@ -1,6 +1,11 @@
 // Fixed diagnostics only. Server replies may contain account or message data.
 const listing='로그인은 완료됐어요. 메일 목록을 읽는 단계에서 멈췄어요.';
 export const mailConnectionErrors={
+  mail_encryption_migration:{title:'기존 원문 암호화를 마치지 못했어요',detail:'파일은 유지했습니다. 저장 위치와 권한을 확인한 뒤 다시 시도해 주세요.'},
+  mail_storage_full:{title:'메일 저장 공간이 부족해요',detail:'공간을 확보한 뒤 다시 시도해 주세요. 기존 원문은 유지됩니다.'},
+  mail_encryption_unavailable:{title:'메일 암호화 키를 열지 못했어요',detail:'원문 수집을 멈췄어요. 이 PC의 기존 계정으로 앱을 다시 열어 주세요. 저장된 원문은 유지됩니다.'},
+  mail_encryption_key_lost:{title:'메일 암호화 키를 찾지 못했어요',detail:'저장된 원문은 이 PC의 원래 계정에서만 열 수 있어요. 원문 수집을 멈췄어요.'},
+  mail_encryption_integrity:{title:'암호화한 원문을 확인하지 못했어요',detail:'저장 파일과 암호화 키가 일치하는지 확인해 주세요. 기존 파일은 덮어쓰지 않았어요.'},
   mail_portal_secure_login:{title:'보안 로그인 페이지가 필요해요',detail:'아이디와 비밀번호는 HTTPS 로그인 페이지에만 전달합니다.'},
   mail_portal_login_form:{title:'사내 로그인 폼을 확인해야 해요',detail:'지원하는 로그인 폼을 찾지 못해 비밀번호를 제출하지 않았어요.'},
   mail_portal_additional_auth:{title:'추가 인증이 필요해요',detail:'사내 SSO에서 추가 확인을 요청했거나 로그인이 완료되지 않았어요.'},

@@ -55,6 +55,17 @@ test('changed source invalidates pending approval without executing',async t=>{
   assert.equal(service.state().setupActions[0].state,'stale');assert.equal(service.store.list('process:').length,0);
 });
 
+test('execution rechecks the selected terminal and refuses a pending command written for another shell',async t=>{
+  const {service}=await fixture(t),task=await service.createTask({request:'Check terminal selection'}),action=await prepare(service,task.id);
+  // A saved proposal for another shell must not acquire authority after the setting changed.
+  const old={...action,profile:'powershell'};service.store.set('setup-action:'+action.id,old);
+  await service.setShellPreference({profile:'bash'});
+  await assert.rejects(service.decideSetupAction({id:action.id,fingerprint:action.fingerprint,decision:'approve'}),/shell_not_selected/);
+  const saved=service.store.get('setup-action:'+action.id);assert.equal(saved.state,'stale');assert.equal(saved.error,'shell_not_selected');assert.equal(service.store.list('process:').length,0);
+  await assert.rejects(service.run({taskId:task.id,script:'Write-Output test',profile:'powershell'}),/shell_not_selected/);
+  assert.equal(service.store.list('process:').length,0);
+});
+
 test('a question answer is not approval; pending questions and cancelled tasks block execution',async t=>{
   const {service}=await fixture(t),task=await service.createTask({request:'Choose an environment'}),action=await prepare(service,task.id),args={id:action.id,fingerprint:action.fingerprint,decision:'approve'};
   service.store.set('task:'+task.id,{...task,state:'waiting_input',question:{id:'q'}});

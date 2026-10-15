@@ -212,6 +212,7 @@
 .desktop-git-counts .desktop-git-removed { color:var(--deck-red); }
 .desktop-git-state { color:var(--deck-sub); flex:none; font:var(--deck-font-caption); }
 .desktop-git-diff { height:clamp(240px,45vh,520px); min-width:0; background:var(--nubi-diff-surface); }
+.desktop-applied-diff { flex:1; height:auto; min-height:200px; }
 .desktop-git-history .desktop-git-empty { padding:var(--cx-space-4); margin:0; color:var(--deck-sub); font:var(--deck-font-body); }
 .desktop-git-history .desktop-git-retry { margin:var(--cx-space-3); border:0; background:var(--deck-blue-soft); color:var(--deck-blue-deep); font:var(--deck-font-label); }
 .desktop-git-history button:focus-visible { outline:2px solid var(--deck-blue); outline-offset:-2px; }
@@ -1549,20 +1550,24 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .desktop-shell .nubi-workbench .agent-input-queue .nubi-mail-evidence-chip>.cx-kit-button { height:auto; min-height:24px; padding-block:2px; }
 .agent-input-queue .nubi-mail-evidence-chips { margin:3px 0 0; gap:4px; }
 .agent-input-queue .nubi-mail-evidence-chip>.cx-button { padding-block:3px; }
-.nubi-applied-files { position:relative; width:fit-content; max-width:100%; margin:12px 0; }
-.desktop-shell .nubi-applied-trigger.cx-kit-button { min-height:30px; padding:5px 10px; border:0; border-radius:999px; gap:7px; background:var(--deck-card,#FFF); color:var(--deck-sub,#4E5968); box-shadow:none; font-size:12px; }
-.desktop-shell .nubi-applied-trigger:hover,.nubi-applied-menu .nubi-applied-row:hover { background:var(--deck-blue-soft,#E8F1FE); box-shadow:none; }
-.nubi-applied-counts { display:inline-flex; flex:none; gap:5px; font-size:12px; font-variant-numeric:tabular-nums; font-weight:500; }
+/* Applied receipts stay in the conversation; file clicks open the verified diff. */
+.nubi-applied-files { width:100%; max-width:640px; min-width:0; margin:16px 0; overflow:hidden; border-radius:var(--deck-radius,16px); background:var(--deck-card,#FFF); box-shadow:0 0 0 1px var(--deck-line,#E5E8EB); }
+.nubi-applied-trigger { display:flex; align-items:center; gap:12px; width:100%; min-width:0; min-height:44px; padding:12px 16px; border:0; background:var(--deck-hover,#F9FAFB); color:var(--deck-ink,#191F28); font:inherit; cursor:pointer; text-align:left; }
+.nubi-applied-trigger>strong { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-size:var(--deck-type-body,15px); font-weight:600; }
+.nubi-applied-trigger>svg { flex:none; margin-left:auto; color:var(--deck-muted,#8B95A1); }
+.nubi-applied-counts { display:inline-flex; flex:none; gap:6px; font-size:var(--deck-type-caption,13px); font-variant-numeric:tabular-nums; font-weight:600; white-space:nowrap; }
 .nubi-applied-counts>span:first-child { color:var(--deck-green,#148A5C); }
 .nubi-applied-counts>span:last-child { color:var(--deck-red,#F04452); }
-.nubi-applied-menu { --deck-blue-deep:#1B64DA; --deck-blue-soft:#E8F1FE; position:fixed; z-index:100; display:flex; flex-direction:column; box-sizing:border-box; width:min(360px,calc(100vw - 24px)); padding:8px; overflow:hidden; border:0; border-radius:16px; background:var(--deck-card,#FFF); color:var(--deck-ink,#191F28); box-shadow:var(--deck-shadow,0 8px 28px rgba(25,31,40,.12)); font-family:var(--nubi-font-family); }
-.nubi-applied-menu>header { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:2px 6px 6px; font-size:13px; }
-.nubi-applied-menu>p { display:flex; align-items:center; gap:8px; padding:8px; color:var(--deck-muted,#8B95A1); font-size:12px; }
-.nubi-applied-list { min-height:0; max-height:240px; overflow:auto; scrollbar-gutter:stable; }
-.nubi-applied-menu .nubi-applied-row { display:flex; width:100%; min-width:0; min-height:34px; align-items:center; gap:8px; padding:7px 8px; border:0; border-radius:9px; background:transparent; text-align:left; box-shadow:none; font-size:13px; }
+.nubi-applied-list { min-width:0; }
+.nubi-applied-list>p { display:flex; align-items:center; gap:8px; margin:0; padding:12px 16px; font-size:var(--deck-type-caption,13px); color:var(--deck-sub,#4E5968); }
+.nubi-applied-files .nubi-applied-row,.nubi-applied-files .nubi-applied-more { display:flex; width:100%; min-width:0; min-height:44px; align-items:center; gap:10px; padding:10px 16px; border:0; border-radius:0; background:transparent; color:var(--deck-ink,#191F28); text-align:left; box-shadow:none; font-size:var(--deck-type-body,15px); }
+.nubi-applied-files .nubi-applied-row+.nubi-applied-row { border-top:1px solid var(--deck-line,#E5E8EB); }
+.nubi-applied-files .nubi-applied-row:hover,.nubi-applied-files .nubi-applied-more:hover { background:var(--deck-blue-soft,#E8F1FE); }
 .nubi-applied-row>.nubi-drift-label { flex:1; min-width:0; }
-.nubi-applied-row>svg { flex:none; }
-.nubi-applied-row>small,.nubi-applied-menu>small { color:var(--deck-muted,#8B95A1); font-size:11px; }
+.nubi-applied-row>svg,.nubi-applied-row>small { flex:none; }
+.nubi-applied-row>small { color:var(--deck-muted,#8B95A1); font-size:var(--deck-type-caption,13px); white-space:nowrap; }
+.nubi-applied-files .nubi-applied-more { justify-content:space-between; color:var(--deck-sub,#4E5968); font-size:var(--deck-type-caption,13px); }
+.nubi-applied-trigger:focus-visible { outline:2px solid var(--deck-blue,#3182F6); outline-offset:-3px; }
 @media(max-width:1300px) {
  .desktop-shell:has(.desktop-mail-progress>.nubi-wiki-initialization) { --nubi-mail-footer-height:64px; }
  .desktop-mail-progress:has(>.nubi-wiki-initialization) { flex-wrap:wrap; align-content:center; gap:var(--cx-space-1) var(--cx-space-3); }
@@ -1783,3 +1788,35 @@ html[data-project-switching] .nubi-workbench .nubi-main, html[data-project-switc
 
 /* Keep relationship hints subordinate to the linked document title. */
 .nubi-wiki-links .nubi-wiki-relation-label{display:block;color:var(--deck-sub);font:var(--deck-font-caption);font-weight:400;margin-top:var(--cx-space-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* Quiet loading atmosphere: fixed geometry and compositor-only movement.
+   Decorative light is independent of measured progress and never implies completion. */
+:root {
+  --nubi-progress-drift-duration:8s;
+  --nubi-progress-glow:color-mix(in srgb,var(--deck-blue) 7%,transparent);
+  --nubi-progress-glow-soft:color-mix(in srgb,var(--deck-blue-lite) 22%,transparent);
+}
+.nubi-progress-atmosphere { position:relative; isolation:isolate; }
+.nubi-progress-atmosphere::before {
+  content:""; position:absolute; inset:0 2%; z-index:-1; pointer-events:none;
+  border-radius:var(--deck-control-radius); overflow:hidden;
+  background:radial-gradient(ellipse at 30% 50%,var(--nubi-progress-glow),transparent 68%),radial-gradient(ellipse at 80% 50%,var(--nubi-progress-glow-soft),transparent 64%);
+  animation:nubi-progress-breathe var(--nubi-progress-drift-duration) ease-in-out infinite alternate;
+}
+.nubi-progress[data-active=true] { position:relative; isolation:isolate; }
+.nubi-progress[data-active=true]::before {
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(90deg,transparent,var(--nubi-progress-glow),transparent);
+  animation:nubi-progress-drift var(--nubi-progress-drift-duration) ease-in-out infinite alternate;
+}
+.nubi-progress[data-active=true]>span { position:relative; }
+.desktop-shell .nubi-working-status { width:fit-content; max-width:100%; padding:var(--cx-space-2) var(--cx-space-3); border-radius:var(--deck-control-radius); }
+@keyframes nubi-progress-breathe { from { opacity:.45; transform:translateX(-1%); } to { opacity:1; transform:translateX(1%); } }
+@keyframes nubi-progress-drift { from { transform:translateX(-40%); } to { transform:translateX(40%); } }
+:root[data-motion='paused'] :is(.nubi-progress-atmosphere,.nubi-progress)::before,
+:root[data-motion-visibility='hidden'] :is(.nubi-progress-atmosphere,.nubi-progress)::before { animation-play-state:paused; }
+@media(prefers-reduced-motion:reduce) {
+  .nubi-progress-atmosphere::before,.nubi-progress[data-active=true]::before { animation:none; transform:none; opacity:.65; }
+}
+
+.nubi-progress-estimate { display:block; margin-top:var(--cx-space-2); color:var(--deck-sub); font:var(--deck-font-caption); font-variant-numeric:tabular-nums; }

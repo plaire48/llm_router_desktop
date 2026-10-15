@@ -43,3 +43,7 @@
 @media(max-width:600px) {
   .desktop-shell .nubi-mail-list-update>span { display:none; }
 }
+
+/* Folder labels stay on one line; only this row scrolls on narrow panes. */
+.desktop-shell .nubi-mail-history>.nubi-catalog-tabs[data-layout=compact] { max-width:100%; overflow-x:auto; }
+.desktop-shell .nubi-mail-history>.nubi-catalog-tabs[data-layout=compact]>.agent-tabs { min-width:max-content; }

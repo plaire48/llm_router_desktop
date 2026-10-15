@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import {installWorkspaceBrowser} from '../runtime/workspace-browser.mjs';
 import {fixture} from './fixtures.mjs';
 import {ProjectService} from '../runtime/project-service.mjs';
+import {readCapture} from '../runtime/captures.mjs';
 import {installAgent} from '../runtime/agent.mjs';
 installAgent(ProjectService);
 
@@ -48,5 +49,25 @@ test('inspect_workspace_page sends the capture to the image model and returns it
   assert.match(user.content.find(part=>part.type==='image_url').image_url.url,/^data:image\/png;base64,/);
   assert.match(user.content.find(part=>part.type==='text').text,/localhost:3000/);
   assert.equal(toolResult.ok,true);assert.equal(toolResult.model,'fixture');assert.match(toolResult.analysis,/로그인 폼/);
-  assert.match(service.task(task.id).messages.at(-1).content,/오류는 없습니다/);
+  const saved=service.task(task.id),answer=saved.messages.at(-1);assert.match(answer.content,/오류는 없습니다/);
+  const reference=answer.captures[0];assert.equal(reference.label,'웹 캡처: 정적 서버');assert.equal(reference.width,800);assert.equal(reference.image,undefined);
+  assert.equal(readCapture(service,reference.id).image,PNG);
+  assert.equal(saved.trace.find(row=>row.tool==='inspect_workspace_page').captures[0].id,reference.id);
+  assert.equal(saved.activityHistory.at(-1).trace.find(row=>row.tool==='inspect_workspace_page').captures[0].id,reference.id);
+  assert(!JSON.stringify(saved).includes(PNG),'task and history never contain image bytes');
+});
+
+test('Playwright capture keeps the same PNG on the answer and activity without replaying capture',async t=>{
+ const {McpRegistry}=await import('../runtime/mcp.mjs');const {service,directory}=await fixture(t);let shots=0,turn=0;
+ const registry=new McpRegistry({file:directory+'/mcp.json',playwright:async()=>({listTools:async()=>({tools:[{name:'browser_capture',inputSchema:{type:'object',properties:{question:{type:'string'}}},annotations:{readOnlyHint:true}}]}),callTool:async()=>{shots++;return {content:[{type:'image',mimeType:'image/png',data:PNG}],structuredContent:{width:800,height:600,title:'선택 영역',clip:{x:10,y:10,width:200,height:100}}};},close:async()=>{}})});
+ await registry.connectEnabled();service.mcpRegistry=()=>registry;service.mcpDefinitions=async()=>registry.definitions();t.after(()=>registry.dispose());
+ service.providers={status:()=>({connected:true,provider:'chatgpt',model:'fixture',models:[{id:'fixture',supportsImages:true,contextLength:32000,maxOutputTokens:4096}]}),dispose(){},async complete(messages){
+  if(messages.some(m=>Array.isArray(m.content)))return {content:'선택 영역을 확인했습니다.',calls:[]};
+  if(turn++===0)return {content:'',calls:[{id:crypto.randomUUID(),type:'function',function:{name:'mcp__playwright__browser_capture',arguments:JSON.stringify({question:'버튼을 확인해 주세요'})}}]};
+  return {content:'캡처한 버튼을 확인했습니다.',calls:[]};
+ }};
+ const task=await service.createTask({request:'웹 화면의 버튼을 캡처해서 확인해 주세요'});await service.startAgent({taskId:task.id});await service.agent.promise;
+ const saved=service.task(task.id),ref=saved.messages.at(-1).captures[0];assert.equal(shots,1);assert.equal(ref.region,true);assert.equal(readCapture(service,ref.id).image,PNG);
+ assert.equal(saved.trace.find(row=>row.tool==='mcp__playwright__browser_capture').captures[0].id,ref.id);
+ assert(!JSON.stringify(saved).includes(PNG));
 });

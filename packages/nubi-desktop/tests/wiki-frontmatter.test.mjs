@@ -33,3 +33,7 @@ test('legacy mail source metadata and category are recovered without rewriting s
  const content='# 과거 메일\n\n## 출처\n\n- Source: portal/old\n- 발신: a@example.test\n- 메일 날짜: 2026-10-10\n- Category: 배포\n';
  const p=describeWikiPage(content,'old.md');assert.equal(p.type,'Mail');assert.equal(p.category,'배포');assert.equal(p.date,'2026-10-10');assert.equal(p.from,'a@example.test');assert.equal(p.body,content);
 });
+test('producer cluster and topic fields reach the graph without rewriting the page',()=>{
+ const raw='---\ntype: Mail\ncluster_id: release-1\ncluster_title: 배포 검증\ntopic: 누비\n---\n# 원문';
+ const page=describeWikiPage(raw);assert.equal(page.cluster,'release-1');assert.equal(page.clusterTitle,'배포 검증');assert.equal(page.topic,'누비');assert.equal(page.body,'# 원문');
+});

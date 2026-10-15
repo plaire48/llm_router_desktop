@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp,rm} from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import {PersonalMail} from '../runtime/mail.mjs';
+import {PersonalMail} from './helpers-personal-mail.mjs';
 import {mailAttentionInfo,mailAttentionRowInfo} from '../ui/mail-attention-state.mjs';
 import {parsePop3Content} from '../../openwiki/src/connectors/sources/pop3-content.mjs';
 async function fixture(t,extra={}){

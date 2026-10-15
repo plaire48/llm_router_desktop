@@ -12,7 +12,8 @@ test('local raster previews exclude SVG/HTML and preserve exact bytes',()=>{
  assert.equal(mailImagePreview(png),'data:image/png;base64,'+png.toString('base64'));
  assert.equal(mailImagePreview(Buffer.from('<svg onload="alert(1)"/>')),null);
  assert.equal(mailImagePreview(Buffer.from('<html>not a jpeg</html>')),null);
- assert.throws(()=>mailImagePreview(Buffer.alloc(10*1024*1024+1)),/document_limit/);
+ assert.equal(mailImagePreview(Buffer.alloc(10*1024*1024+1)),null);
+ assert.throws(()=>mailImagePreview(Buffer.concat([png,Buffer.alloc(10*1024*1024)])),/document_limit/);
 });
 featureTest('mailAttachmentReading')('image preview preserves unread evidence and rejects stale source, altered bytes and unavailable vision requests',async()=>{
  const directory=await mkdtemp(path.join(os.tmpdir(),'mail-image-'));

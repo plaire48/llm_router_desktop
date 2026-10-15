@@ -4,7 +4,7 @@ import {mkdtemp,readFile,readdir,rm,symlink} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {randomBytes,createCipheriv,createDecipheriv} from 'node:crypto';
-import {connectionVault} from '../electron-app/connection-vault.cjs';
+import {connectionVault,workerKey} from '../electron-app/connection-vault.cjs';
 import {createProviders} from '../../nubi-office/worker/providers.mjs';
 const signal=()=>new AbortController().signal;
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
@@ -71,4 +71,9 @@ test('a temporary catalog failure preserves encrypted login for the next launch'
 test('vault failure is visible without invalidating the current in-memory login',async()=>{
  const provider=createProviders({onConnectionChange:async()=>{throw Error('secret_unavailable');},chatGPTLogin:async()=>({result:Promise.resolve({token:'token',expiresAt:Date.now()+3600000}),cancel(){}}),chatGPTModels:async()=>({payload:{modelList:[{name:'model'}]}})});
  await provider.login('chatgpt');await tick();await provider.flushConnections();assert.equal(provider.status().connected,true);assert.equal(provider.status().persistenceError,'connection_not_saved');provider.dispose();
+});
+
+test('worker scope covers provider, mail vault and MCP keys but never the company credential',()=>{
+ for(const key of ['provider:aipro','provider:active','mail-wiki-key','mail-raw-key','mcp:playwright'])assert.equal(workerKey(key),true,key);
+ for(const key of ['nubi.ghes.code.sdsdev.co.kr','provider:other','mcp:','mcp:Bad Name','../../password'])assert.equal(workerKey(key),false,key);
 });

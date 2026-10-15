@@ -5,6 +5,14 @@ import {wikiUpdateView} from '../ui/wiki-update-view.mjs';
 
 const stale={state:'stale',lastUpdate:{updatedAt:'2026-09-29T00:00:00.000Z'},changedFiles:['src/a.mjs','src/b.mjs'],stalePages:[{path:'openwiki/home.md',freshness:'source_changed'},{path:'openwiki/old.md',freshness:'unavailable'}],uncommitted:['notes.txt']};
 
+test('retained updates offer explicit resume and discard with honest completed counts',()=>{
+  for(const state of ['failed','cancelled']){
+    const view=wikiUpdateView({status:stale,update:{state,canResume:true,error:'timeout',pageProgress:{completed:5,total:11},events:[{type:'progress',stage:'generating',index:11,total:11}]}});
+    assert.deepEqual(view.actions,['resume','restart','discard']);assert.match(view.lines[0],/5\/11개 문서 완료/);
+    assert.match(view.lines.join(' '),/결과는 확인 후 반영/);
+  }
+});
+
 test('a stale Wiki offers an update and says what it costs and what it sends',()=>{
   const view=wikiUpdateView({status:stale,update:null});
   assert.equal(view.title,'위키 갱신 제안');

@@ -1,0 +1,41 @@
+.nubi-project-switch-cover {
+ display:none;position:fixed;inset:var(--nubi-toolbar-height,48px) 0 0;
+ z-index:2147482000;background:var(--nubi-surface-base);
+ background-image:var(--nubi-workspace-gradient,none);
+ place-content:center;justify-items:center;gap:26px;
+}
+.nubi-project-switch-cover .nubi-preparing-bar { width:min(300px,60vw); }
+html[data-project-switching] .nubi-project-switch-cover { display:grid; }
+html[data-project-switching] .desktop-workspace-body {
+ opacity:0!important;pointer-events:none!important;
+}
+/* Portalled dialogs from the old project cannot float above the switch cover. */
+html[data-project-switching] body > :not(#root):not(script):not(style):not(link):not(.nubi-intro):not(#nubi-boot-cover) {
+ opacity:0!important;pointer-events:none!important;
+}
+
+.nubi-git-clone-progress { width:min(360px,calc(100vw - 48px));color:var(--nubi-text-primary);font-size:var(--cx-type-body); }
+.nubi-git-clone-heading,.nubi-git-clone-stage,.nubi-git-clone-detail { display:flex;align-items:center;gap:var(--cx-space-2);min-width:0; }
+.nubi-git-clone-heading { margin-bottom:var(--cx-space-5); }
+.nubi-git-clone-heading strong { font-weight:var(--nubi-weight-emphasis); }
+.nubi-git-clone-heading time { margin-left:auto;color:var(--nubi-text-secondary);font-size:var(--cx-type-caption);font-variant-numeric:tabular-nums; }
+.nubi-git-clone-stage { justify-content:space-between;margin-bottom:10px; }
+.nubi-git-clone-stage strong { color:var(--deck-blue);font-variant-numeric:tabular-nums; }
+.nubi-git-clone-progress progress { display:block;width:100%;height:6px;border:0;border-radius:999px;overflow:hidden;appearance:none;background:var(--deck-line);accent-color:var(--deck-blue); }
+.nubi-git-clone-progress progress::-webkit-progress-bar { background:var(--deck-line);border-radius:999px; }
+.nubi-git-clone-progress progress::-webkit-progress-value { background:var(--deck-blue);border-radius:999px;transition:width 160ms ease-out; }
+.nubi-git-clone-progress progress:indeterminate { background:linear-gradient(90deg,var(--deck-line),var(--deck-blue),var(--deck-line));background-size:200% 100%;animation:nubi-git-progress 1.8s ease-in-out infinite; }
+.nubi-git-clone-progress progress:indeterminate::-webkit-progress-bar { background:transparent; }
+.nubi-git-clone-detail { justify-content:space-between;flex-wrap:nowrap;min-height:20px;margin-top:10px;color:var(--nubi-text-secondary);font-size:var(--cx-type-caption);font-variant-numeric:tabular-nums; }
+@keyframes nubi-git-progress { to {background-position:200% 0;} }
+@media(prefers-reduced-motion:reduce){.nubi-git-clone-progress progress:indeterminate{animation:none}.nubi-git-clone-progress progress::-webkit-progress-value{transition:none}}
+
+.nubi-git-clone-detail > span { min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+
+.nubi-project-open-progress .nubi-git-clone-heading { margin-bottom:var(--cx-space-3); }
+.nubi-project-open-progress .nubi-git-clone-heading > svg { flex:none; }
+.nubi-project-open-progress .nubi-git-clone-heading strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.nubi-project-open-progress .nubi-git-clone-stage { gap:var(--cx-space-3); }
+.nubi-project-open-progress .nubi-git-clone-stage > span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.nubi-project-open-progress time { flex:none; color:var(--nubi-text-secondary); font-size:var(--cx-type-caption); font-variant-numeric:tabular-nums; }
+.nubi-project-open-wait { margin:var(--cx-space-3) 0 0; color:var(--nubi-text-secondary); font-size:var(--cx-type-caption); line-height:1.6; }

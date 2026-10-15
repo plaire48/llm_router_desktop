@@ -8,8 +8,8 @@ export function useConversationScroll(conversationId) {
   const [away,setAway]=useState(false);
   const position=useCallback(()=>{
     const list=viewport.current,body=content.current;if(!list||!body)return;
-    const users=[...body.querySelectorAll('.message-user')];
     if(mode.current==='turn'){
+      const users=[...body.querySelectorAll('.message-user')];
       const key=anchor.current?.key;
       const current=key?users.find(node=>node.dataset.messageKey===key):users.at(-1);
       if(current&&(anchor.current||current!==beforeSend.current)){
@@ -24,6 +24,14 @@ export function useConversationScroll(conversationId) {
       body.style.paddingBottom='0px';list.scrollTop=list.scrollHeight;programmatic.current=list.scrollTop;
     }
     setAway(list.scrollHeight-list.scrollTop-list.clientHeight>24);
+  },[]);
+  const capturePrepend=useCallback(()=>{
+    const list=viewport.current,body=content.current;if(!list||!body)return()=>{};
+    const top=list.getBoundingClientRect().top;
+    const node=[...body.querySelectorAll('.nubi-message')].find(item=>item.getBoundingClientRect().bottom>top);
+    const before=node?.getBoundingClientRect().top,height=list.scrollHeight;
+    mode.current='reading';anchor.current=null;
+    return()=>{if(viewport.current!==list)return;list.scrollTop+=node?.isConnected?node.getBoundingClientRect().top-before:list.scrollHeight-height;programmatic.current=list.scrollTop;setAway(list.scrollHeight-list.scrollTop-list.clientHeight>24);};
   },[]);
   const followLatest=useCallback(()=>{mode.current='latest';anchor.current=null;position();},[position]);
   const followNewTurn=useCallback(()=>{
@@ -46,5 +54,5 @@ export function useConversationScroll(conversationId) {
     setAway(list.scrollHeight-list.scrollTop-list.clientHeight>24);
   };
   const onFocusCapture=event=>{if(event.target.matches('input,textarea,[data-decision-id]')||event.target.closest('[data-decision-id]'))onUserScroll();};
-  return {viewport,content,away,followLatest,followNewTurn,onScroll,onFocusCapture,onUserScroll};
+  return {viewport,content,away,capturePrepend,followLatest,followNewTurn,onScroll,onFocusCapture,onUserScroll};
 }

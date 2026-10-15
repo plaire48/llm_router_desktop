@@ -23,3 +23,13 @@ test('interrupted transition applies pending updates once and preserves order',a
   target.hidden=true;transitioned(()=>values.push('hidden'));assert.equal(values.at(-1),'hidden');
  }finally{globalThis.document=previousDocument;}
 });
+
+test('project switches suppress old-page snapshots even when a transition was queued',async()=>{
+ const previousDocument=globalThis.document;let switching=false,snapshots=0,updates=0;
+ globalThis.document={hidden:false,documentElement:{hasAttribute:()=>switching},querySelector:()=>null,startViewTransition:()=>{snapshots++;throw Error('must not animate');}};
+ try{
+  transitioned(()=>updates++);switching=true;await Promise.resolve();
+  assert.equal(updates,1);assert.equal(snapshots,0);
+  transitioned(()=>updates++);assert.equal(updates,2);assert.equal(snapshots,0);
+ }finally{globalThis.document=previousDocument;}
+});

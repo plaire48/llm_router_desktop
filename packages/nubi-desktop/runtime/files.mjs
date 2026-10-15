@@ -30,9 +30,9 @@ export async function scopedFile(root, value, {newFile = false} = {}) {
   if (inside.startsWith('..' + path.sep) || inside === '..' || path.isAbsolute(inside) || !inside) fail('path_scope');
   return target;
 }
-export async function readSource(root, rel) {
+export async function readSource(root, rel, {maxBytes = 1024 * 1024} = {}) {
   const target = await scopedFile(root, rel), stat = await lstat(target);
-  if (!stat.isFile() || stat.size > 1024 * 1024) fail('file_too_large');
+  if (!stat.isFile() || stat.size > maxBytes) fail('file_too_large');
   const bytes = await readFile(target);
   if (bytes.includes(0)) fail('binary_file');
   if (!isUtf8(bytes)) fail('file_encoding');

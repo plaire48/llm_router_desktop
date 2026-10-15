@@ -4,7 +4,7 @@ import {mkdtemp,mkdir,writeFile,readFile,rm} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import path from 'node:path';
 import os from 'node:os';
-import {PersonalMail} from '../runtime/mail.mjs';
+import {PersonalMail} from './helpers-personal-mail.mjs';
 import {installDesktopFeatures} from '../runtime/desktop-features.mjs';
 import {DESKTOP_FEATURES} from '../runtime/beta-features.mjs';
 const sha=value=>createHash('sha256').update(value).digest('hex');

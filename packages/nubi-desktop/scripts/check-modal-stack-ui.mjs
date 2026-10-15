@@ -1,0 +1,32 @@
+import {build,stop} from 'esbuild';
+import {mkdir,writeFile,readFile,cp} from 'node:fs/promises';
+import {createServer} from 'node:http';
+import path from 'node:path';import assert from 'node:assert/strict';
+import {chromium} from 'playwright';
+const root=process.cwd(),dir=path.resolve('verification/modal-stack');await mkdir(dir,{recursive:true});
+const contents=`import React,{useState} from 'react';import {createRoot} from 'react-dom/client';import {DetailPanel} from '@e2e/cx-design-system';import {DetailPanel as WorkspacePanel} from '${root}/ui/ai-workspace/DetailPanel.jsx';import {useModalDismissalPolicy} from '${root}/ui/useModalDismissalPolicy.js';import {useModalMotion} from '${root}/ui/modalMotion.js';import '${root}/node_modules/@e2e/cx-design-system/dist/styles.css';import '${root}/design/workspace-identity.css';import '${root}/design/workspace-dialogs.css';import '${root}/electron-app/modal-motion.css';function App(){useModalDismissalPolicy();useModalMotion();const [open,setOpen]=useState([]);window.setOpen=setOpen;const [busy,setBusy]=useState(false);window.setBusy=setBusy;return <main className="desktop-shell" data-toolbar="true"><button onClick={()=>setOpen(['parent'])}>열기</button>{['child','parent','workspace'].map(id=>{const Panel=id==='workspace'?WorkspacePanel:DetailPanel;return open.includes(id)&&<Panel key={id} title={id} variant={id==='parent'?'confirmation':'modal'} className="deck-dialog" hideHelp={id!=='workspace'} busy={id==='workspace'&&busy} onClose={()=>setOpen(v=>v.filter(x=>x!==id))}><button onClick={()=>setOpen(v=>[...v,id==='parent'?'child':'workspace'])}>다음 열기</button><input aria-label={id+' 입력'}/></Panel>})}</main>}createRoot(document.getElementById('root')).render(<App/>);`;
+
+await build({stdin:{contents,resolveDir:root,loader:'jsx'},outfile:path.join(dir,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),loader:{'.woff2':'file','.woff':'file'},define:{__APP_VERSION__:'"fixture"','process.env.NODE_ENV':'"production"'}});
+await cp('../../extensions/aipro-chat/public/icons',path.join(dir,'icons'),{recursive:true});await writeFile(path.join(dir,'index.html'),'<!doctype html><html lang="ko"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="app.css"><div id="root"></div><script type="module" src="app.js"></script></html>');
+const server=createServer(async(req,res)=>{try{const name=path.resolve(dir,'.'+new URL(req.url,'http://localhost').pathname.replace(/\/$/,'/index.html'));if(!name.startsWith(dir+path.sep))throw Error();const data=await readFile(name);res.writeHead(200,{'content-type':({'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.woff2':'font/woff2'})[path.extname(name)]||'application/octet-stream'}).end(data);}catch{res.writeHead(404).end();}});await new Promise(r=>server.listen(0,'127.0.0.1',r));
+let browser;const errors=[];
+try{browser=await chromium.launch({channel:'chrome',headless:true});const page=await browser.newPage({viewport:{width:1000,height:720}});page.on('pageerror',e=>errors.push(e.message));await page.addInitScript(()=>Object.defineProperty(navigator,'webdriver',{get:()=>false}));await page.goto('http://127.0.0.1:'+server.address().port);
+ const panel=name=>page.getByRole('dialog',{name,exact:true});
+ const checkTop=async(name,count)=>{await panel(name).waitFor();await page.waitForTimeout(100);const state=await page.evaluate(()=>{const nodes=[...document.querySelectorAll('[aria-modal="true"]')];const focused=document.activeElement.closest('[aria-modal]');return {count:nodes.length,top:nodes.map(el=>({name:el.querySelector('h2').textContent,z:Number(getComputedStyle(el.parentElement).zIndex),inert:!!el.closest('[inert]')})).sort((a,b)=>b.z-a.z),focus:focused?.querySelector('h2').textContent};});assert.equal(state.count,count,JSON.stringify(state));assert.equal(state.top[0].name,name);assert.equal(state.top[0].inert,false);assert.equal(state.focus,name);assert.equal(await panel(name).evaluate(el=>el.parentElement.dataset.modalTop),'true');assert(state.top.slice(1).every(n=>n.inert));};
+ await page.getByRole('button',{name:'열기',exact:true}).click();await checkTop('parent',1);
+ await panel('parent').getByText('다음 열기').click();await checkTop('child',2);
+ await panel('child').getByText('다음 열기').click();await checkTop('workspace',3);
+ await page.keyboard.press('Tab');await checkTop('workspace',3);
+ await panel('workspace').getByRole('button',{name:'도움말',exact:true}).click();await checkTop('도움말',4);
+ await panel('도움말').locator('h2').focus();await page.keyboard.press('Escape');await checkTop('workspace',3);
+ await page.evaluate(()=>window.setBusy(true));await panel('workspace').getByRole('textbox').focus();await page.keyboard.press('Escape');await checkTop('workspace',3);assert(await panel('workspace').locator('[data-action="close"]').isDisabled());await page.evaluate(()=>window.setBusy(false));
+ await page.screenshot({path:path.join(dir,'stack.png')});
+ await panel('workspace').getByRole('textbox').focus();
+ await page.keyboard.press('Escape');await checkTop('child',2);
+ await page.keyboard.press('Escape');await checkTop('parent',1);
+ await panel('parent').getByText('다음 열기').click();await checkTop('child',2);
+ await page.evaluate(()=>window.setOpen(['child']));await checkTop('child',1);
+ await page.keyboard.press('Escape');await page.getByRole('button',{name:'열기',exact:true}).waitFor();assert.equal(await page.locator('[aria-modal]').count(),0);assert.equal(await page.locator('#root').evaluate(el=>el.inert),false);
+ await page.emulateMedia({reducedMotion:'reduce'});await page.getByRole('button',{name:'열기',exact:true}).click();await checkTop('parent',1);await panel('parent').getByText('다음 열기').click();await checkTop('child',2);await page.evaluate(()=>window.setOpen([]));await page.waitForTimeout(400);assert.equal(await page.locator('.cx-panel-backdrop').count(),0);
+ assert.deepEqual(errors,[]);await writeFile(path.join(dir,'result.json'),JSON.stringify({passed:true,mixedDialogVariants:true,workspaceNested:true,escapeAndFocus:true,reopen:true,parentClosedFirst:true,help:true,busyGuard:true,motion:true,reducedMotion:true,errors},null,2));console.log('Modal stack UI passed.');
+}finally{await browser?.close();server.closeAllConnections();await new Promise(r=>server.close(r));stop();}

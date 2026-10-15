@@ -1,0 +1,11 @@
+.nubi-document-preview,.nubi-document-view{min-width:0;width:100%;box-sizing:border-box}
+.nubi-document-preview{padding:16px 24px;overflow:auto;height:100%}
+.nubi-document-view-tools,.nubi-document-view nav,.nubi-pdf-preview nav{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:nowrap}
+.nubi-document-view-tools{justify-content:flex-end;padding:4px 0 12px}
+.nubi-document-view nav span,.nubi-pdf-preview nav span{color:var(--nubi-text-secondary);font:var(--deck-font-caption);white-space:nowrap;font-variant-numeric:tabular-nums}
+.nubi-document-view-tools button,.nubi-pdf-preview nav button{width:32px;height:32px;min-width:32px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.nubi-document-reading{font:var(--deck-font-body);line-height:1.75;color:var(--nubi-text-primary);white-space:pre-wrap;overflow-wrap:anywhere}
+.nubi-document-reading section+section{margin-top:24px}.nubi-document-reading h3{font:var(--deck-font-caption);font-weight:600;color:var(--nubi-text-secondary);margin:0 0 12px}
+.nubi-document-source{white-space:pre-wrap;overflow-wrap:anywhere;font:var(--deck-font-caption);line-height:1.65}
+.nubi-document-table{overflow:auto;white-space:normal}.nubi-document-table table{border-collapse:collapse;width:100%;font:var(--deck-font-caption)}.nubi-document-table td{padding:8px 12px;border-bottom:1px solid var(--deck-line)}
+.nubi-pdf-preview nav{justify-content:center;margin-bottom:12px}.nubi-pdf-preview canvas{display:block;max-width:100%;margin:auto;background:var(--deck-card)}

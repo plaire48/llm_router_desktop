@@ -56,6 +56,9 @@ export interface RepositoryGenerationProgressEvent {
    */
   completedCount?: number;
 
+  /** Successfully persisted pages, excluding skipped/failed workers. */
+  completedPages?: number;
+
   /**
    * Canonical pages currently owned by in-flight workers, in start order.
    *

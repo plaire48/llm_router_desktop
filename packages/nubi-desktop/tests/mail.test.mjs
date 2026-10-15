@@ -7,7 +7,7 @@ import {mkdtemp,readFile,writeFile,readdir,rm} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {pullPop3} from '../../openwiki/src/connectors/sources/pop3.mjs';
-import {PersonalMail as BasePersonalMail} from '../runtime/mail.mjs';
+import {PersonalMail as BasePersonalMail} from './helpers-personal-mail.mjs';
 // A new install starts with automatic summaries off (user decision 2026-10-04); these scenarios were written for a
 // mailbox whose owner turned them on, so a fresh store here starts on. Scenarios that turn it off do so themselves.
 class PersonalMail extends BasePersonalMail{constructor(host,options){super(host,options);if(this.store.get('setting:auto-wiki')===null){this.store.set('setting:auto-wiki',true);this.autoWiki=true;}}}
@@ -69,7 +69,7 @@ test('durable personal intake, attachments, no secret persistence, restart and u
  // With summaries on, the baseline mail is received and organized as well (user decision 2026-10-04: ON fetches what the server still holds), so two mails are organized once each.
  let status=await mail.call({action:'connect',requestId:'baseline',...credentials,destination});assert.equal(status.baselineCount,1);assert.equal(status.counts.received,1);assert.equal(calls,0);await assert.rejects(mail.call({action:'check'}),/mail_check_wait/);
  f.mailbox.push({uidl:'new',raw:multipart});await mail.cycle();await settled(mail);status=mail.status();assert.equal(status.counts.saved,2);assert.equal(calls,2);
- const id=status.messages.find(message=>message.subject==='project-contract').id,source=await mail.read(id);assert.match(await readFile(path.join(source.attachmentDirectory,source.mail.attachments[0].id+'.bin'),'utf8'),/계약/);assert.ok((await mail.query('계약 검토')).results.some(result=>result.id===id),'the mail with the attachment is found');
+ const id=status.messages.find(message=>message.subject==='project-contract').id,source=await mail.read(id);assert.match(await mail.rawVault.read(path.join(source.attachmentDirectory,source.mail.attachments[0].id+'.bin'),'utf8'),/계약/);assert.ok((await mail.query('계약 검토')).results.some(result=>result.id===id),'the mail with the attachment is found');
  await mail.cycle();await settled(mail);assert.equal(calls,2);
  const saved=status.messages.find(message=>message.id===id).wikiPath;await writeFile(saved,'# 사용자 편집\n계약 직접 확인');assert((await mail.query('계약')).results.find(result=>result.id===id)?.matches.some(match=>match.sourceState==='edited'),'the user-edited Wiki is reported as edited');/* search v2 flags the edited Wiki per match instead of a changed list */await mail.cycle();assert.match(await readFile(saved,'utf8'),/사용자 편집/);
  async function scan(dir){let text='';for(const item of await readdir(dir,{withFileTypes:true})){const file=path.join(dir,item.name);text+=item.isDirectory()?await scan(file):(await readFile(file)).toString('latin1');}return text;}
