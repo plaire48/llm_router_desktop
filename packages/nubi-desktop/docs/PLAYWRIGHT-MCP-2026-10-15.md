@@ -38,3 +38,19 @@
 MCP 이미지와 수동 첨부 모두 같은 `analyzeCapture`를 거친다. 현재 AI Pro 카탈로그에서 이미지 지원이 확인된 모델(기존 Qwen 우선 정책)을 선택하며 GLM을 멀티모달이라고 가정하지 않는다. 요청별 visionModel만 지정하고 설정을 변경하지 않는다. 원래 모델에는 짧은 분석 결과만 전달한다. 오류/취소 시에도 선택 모델은 그대로이며 지원 모델이 없으면 미확인으로 반환한다.
 
 검증: 실제 Electron + worker IPC에서 450×240 CSS 영역을 256px 폭으로 캡처해 PNG 크기를 확인했고 해당 호출은 9ms였다. UI 420/1280px에서 드래그/실제 crop/Esc 확인, 관련 자동 검사 15개 통과. GLM → 이미지 모델 → GLM 연결은 모의 전송 검사이며 사내 AI Pro 실계정 성공으로 간주하지 않는다. 산출물은 `verification/capture-tools-2026-10-15/`에 있다.
+
+## 2026-10-15 오후: 속도와 품질 조정 (Claude)
+
+- 동작 뒤 고정 대기 500ms → 150ms(`timeouts.settle`). 탐색과 요청 대기는 그대로.
+- 동작 응답에 새 스냅숏을 바로 포함(`### Snapshot after the action`). 전에는 모델이 읽을 수 없는 임시 `.yml` 링크만 돌아와 스냅숏을 한 번 더 불러야 했다. 동작의 자체 스냅숏 파일은 만들지 않는다(`snapshot.mode: none`).
+- 생성 코드 절(`### Ran Playwright code`) 제거(`codegen: none`).
+- 도구 추가: `browser_find`(전체 스냅숏 대신 참조 검색), `browser_fill_form`(폼 한 번에), `browser_mouse_wheel`(스크롤). 평가, 코드 실행, 업로드, 쿠키, 네트워크는 계속 제외.
+- 같은 탭의 동시 호출은 거절(`browser_action_in_progress`) 대신 줄 세우기. 병렬 읽기 묶음에서 실패하지 않는다.
+- 호출당 바인딩 확인 IPC 3 → 2. 에이전트가 연 탭은 CDP 연결을 미리 시작한다.
+- `browser_open`은 문서가 준비될 때까지(최대 5초) 기다린 뒤 돌아온다. 첫 스냅숏이 빈 페이지가 아니다.
+- SPA의 해시/pushState 이동은 문서 id를 바꾸지 않는다(`did-start-navigation`의 inPlace).
+- 구조화 결과가 한도를 넘으면 잘린 JSON을 파싱하지 않고 버린다.
+
+실측(`Electron scripts/check-in-app-playwright.cjs`, 같은 고정 페이지, ms): connect 224, open 52(문서 준비 대기 포함, 전 5), snapshotCold 69, type 27, click 208(스냅숏 포함, 전 550), snapshotWarm 3, navigate 26. 도구 15개.
+
+캡처 품질: 사용자가 끌어 고른 영역은 호스트가 기기 해상도에서 자른다(`clip`, 최대 폭 2400). 전에는 1600px로 줄인 창 그림을 다시 잘라 글자가 흐려졌다. 첨부 캡처는 마지막 메시지의 질문으로, 3장은 동시에 읽는다. 이미지 모델 호출은 1회 재시도.

@@ -6,7 +6,7 @@ function preview(value,limit){
  const chars=Array.from(text);return chars.length>limit?chars.slice(0,limit-1).join('')+'…':text;
 }
 function decisionNoticeContent({kind,projectName,taskTitle,summary}={}){
- const labels={question:'답변 요청',proposal:'변경 승인 요청',command:'실행 승인 요청',computer:'앱 동작 확인'};
+ const labels={question:'답변 요청',proposal:'변경 승인 요청',command:'실행 승인 요청',computer:'앱 동작 확인',answer:'답변 완료'};
  const label=labels[kind]||labels.question,project=preview(projectName,40),task=preview(taskTitle,55);
  const detail=preview(summary,160)||({proposal:'제안된 파일 변경을 검토해 주세요.',command:'제안된 명령의 실행 여부를 선택해 주세요.',computer:'연결할 앱과 요청한 동작을 확인해 주세요.'}[kind]||'대화에 추가 질문이 도착했어요.');
  return {title:project?`${project} — ${label}`:`누비 Workspace — ${label}`,body:task&&task!==detail?`${task}\n${detail}`:detail};

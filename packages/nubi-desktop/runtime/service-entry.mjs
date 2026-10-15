@@ -10,6 +10,7 @@ const {installAgent}=await import('./agent.mjs');
 installAgent(ProjectService);
 // Conversation memory runs in the product only; evaluations and tests measure runs without it.
 const service = new ProjectService({storageRoot:process.env.NUBI_STORAGE_ROOT});service.memoryExtraction=true;service.mailFacts=true;service.progressNarration=true;
+service.notifyAnswer=value=>{if(process.connected)process.send?.({answerCompleted:value},()=>{});};
 installWorkspaceBrowser(service);
 installWikiGitBridge(service);
 installConnectionVault(service);

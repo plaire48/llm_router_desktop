@@ -5,7 +5,9 @@ import path from 'node:path';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 export const PLAYWRIGHT_MCP_VERSION='0.0.83';
-const allowed=new Set(['browser_snapshot','browser_click','browser_type','browser_press_key','browser_select_option','browser_hover','browser_navigate','browser_navigate_back','browser_wait_for']);
+// 2026-10-15: find (cheap ref search instead of a full snapshot), fill_form (one call per form) and mouse_wheel (lazy
+// pages need scrolling) added; evaluate, run_code, uploads, cookies and network stay out.
+const allowed=new Set(['browser_snapshot','browser_find','browser_click','browser_type','browser_fill_form','browser_press_key','browser_select_option','browser_hover','browser_mouse_wheel','browser_navigate','browser_navigate_back','browser_wait_for']);
 // Official MCP tools, with an explicit Nubi tab id on every operation. No JS,
 // cookies, network logs, file upload or authentication tabs. Captures are bounded PNGs, never disk files.
 export async function createInAppPlaywright(request){
@@ -13,10 +15,15 @@ export async function createInAppPlaywright(request){
  const [{Client},{InMemoryTransport}]=await Promise.all([import('@modelcontextprotocol/sdk/client/index.js'),import('@modelcontextprotocol/sdk/inMemory.js')]);
  const core=require(require.resolve('playwright-core',{paths:[require.resolve('@playwright/mcp')]}));
  const outputDir=await mkdtemp(path.join(os.tmpdir(),'nubi-playwright-'));
- const clients=new Map(),busy=new Set();let disposed=false;
+ const clients=new Map(),tails=new Map();let disposed=false;
+ // Calls on one tab run one after another instead of failing with browser_action_in_progress (parallel read batches).
+ const queued=(tabId,work)=>{const run=(tails.get(tabId)||Promise.resolve()).then(work);tails.set(tabId,run.catch(()=>{}));return run;};
+ const warm=tabId=>{if(!clients.has(tabId))clients.set(tabId,connection(tabId).catch(error=>{clients.delete(tabId);throw error;}));return clients.get(tabId);};
  async function connection(tabId){
   let browser;
-  const server=await createConnection({timeouts:{action:5000,navigation:15000},saveSession:false,webmcp:false,console:{level:'error'},outputDir},async()=>{
+  // settle 150ms instead of the official 500ms (navigation and request waits still apply); no generated code in replies;
+  // actions take no snapshot of their own (it went to a file the model cannot read): the adapter appends one inline.
+  const server=await createConnection({timeouts:{action:5000,navigation:15000,settle:150},saveSession:false,webmcp:false,console:{level:'error'},outputDir,codegen:'none',snapshot:{mode:'none'},capabilities:['vision']},async()=>{
    if(!tabId)throw Error('browser_tab_required');
    const {endpoint}=await request('attach',{tabId});
    browser=await core.chromium.connectOverCDP(endpoint,{timeout:10000});
@@ -44,6 +51,8 @@ export async function createInAppPlaywright(request){
    if(name==='browser_tabs'||name==='browser_open'){
     const result=await request(name==='browser_tabs'?'tabs':'open',args,{signal});
     if(name==='browser_tabs'){const present=new Set(result.tabs.map(row=>row.tabId));for(const [id,entry] of clients)if(!present.has(id)){clients.delete(id);void entry.then(value=>value.close()).catch(()=>{});}}
+    // A tab the agent opened gets its CDP attach started now, so the first snapshot does not pay for it.
+    if(name==='browser_open'&&typeof result?.tabId==='string')void warm(result.tabId).catch(()=>{});
     return {content:[{type:'text',text:JSON.stringify(result)}]};
    }
    if(!allowed.has(name)||typeof args.tabId!=='string')throw Error('browser_tab_required');
@@ -51,17 +60,18 @@ export async function createInAppPlaywright(request){
    if(mutating&&typeof args.documentId!=='string')throw Error('browser_document_required');
    if(args.filename!==undefined)throw Error('browser_file_access_denied');
    if(name==='browser_wait_for'&&Number(args.time)>15)throw Error('browser_wait_too_long');
-   await request('check',{tabId:args.tabId,...(mutating?{documentId:args.documentId}:{})},{signal});
-   if(!clients.has(args.tabId))clients.set(args.tabId,connection(args.tabId).catch(error=>{clients.delete(args.tabId);throw error;}));
-   const entry=await clients.get(args.tabId),{tabId,documentId,...input}=args;
-   if(busy.has(tabId))throw Error('browser_action_in_progress');busy.add(tabId);
-   try{
-   await request('check',{tabId,...(mutating?{documentId}:{})},{signal});
-   signal?.throwIfAborted();
-   const result=await entry.client.callTool({name,arguments:input},undefined,{signal});
-   const binding=await request('check',{tabId},{signal});
-   return {...result,content:[{type:'text',text:JSON.stringify(binding)},...(result.content||[])]};
-   }finally{busy.delete(tabId);}
+   const entry=await warm(args.tabId),{tabId,documentId,...input}=args;
+   return queued(tabId,async()=>{
+    // One binding check right before the call (the tab and document still the ones the model saw), one after.
+    await request('check',{tabId,...(mutating?{documentId}:{})},{signal});
+    signal?.throwIfAborted();
+    const result=await entry.client.callTool({name,arguments:input},undefined,{signal});
+    const binding=await request('check',{tabId},{signal});
+    const content=[{type:'text',text:JSON.stringify(binding)},...(result.content||[])];
+    // After an action the new page state comes back inline, so the model needs no second turn to see it.
+    if(mutating&&name!=='browser_navigate_back'&&!result.isError){try{const after=await entry.client.callTool({name:'browser_snapshot',arguments:{}},undefined,{signal});for(const part of after.content||[])if(part?.type==='text')content.push({type:'text',text:'### Snapshot after the action\n'+String(part.text||'')});}catch{}}
+    return {...result,content};
+   });
   },
   async close(){disposed=true;await Promise.allSettled([catalog.close(),...[...clients.values()].map(async value=>(await value).close())]);clients.clear();await rm(outputDir,{recursive:true,force:true});}
  };

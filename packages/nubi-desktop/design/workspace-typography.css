@@ -161,3 +161,20 @@ body {
    (user, 2026-10-14: the text under a table sat on it). */
 .desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) :is(table,pre,blockquote) { margin-block:0 var(--nubi-prose-paragraph-gap); }
 .desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) > :last-child { margin-bottom:0; }
+.desktop-shell {
+  --nubi-answer-reveal-duration:180ms;
+}
+/* Short, ordered ink fade. Full Markdown layout is stable from the first frame;
+   no character timers, layout transforms, blinking cursor or repeated parsing. */
+.desktop-shell .nubi-answer-piece {
+  animation:nubi-answer-ink var(--nubi-answer-reveal-duration) ease-out both;
+}
+@keyframes nubi-answer-ink { from { opacity:0; } to { opacity:1; } }
+@media (prefers-reduced-motion:reduce) {
+  .desktop-shell .nubi-answer-piece { animation:none; }
+}
+:root[data-motion='paused'] .nubi-answer-piece,
+:root[data-motion-visibility='hidden'] .nubi-answer-piece {
+  animation:none;
+}
+.desktop-shell .message-body:focus-within .nubi-answer-piece { animation:none; }

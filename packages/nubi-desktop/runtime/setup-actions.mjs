@@ -116,7 +116,9 @@ export async function decideSetupAction({id,fingerprint,decision,elevationConsen
     if(this.disposed||this.task(value.taskId).state==='cancelled'||this.task(value.taskId).question)fail('setup_cancelled');
     const process=await this.processes.start({cwd:value.workspace,taskId:value.taskId,script:value.script,profile:value.profile,autoDiagnose:true,setupActionId:value.id,privilege:value.privilege||'user'});
     value.state='started';value.resultProcessId=process.id;
-    this.store.set('setup-action:'+id,value);return value;
+    this.store.set('setup-action:'+id,value);
+    if(value.kind==='start')this.processStarted?.(this.processes.poll(process.id));
+    return value;
   }catch(error){
     value.state=error.message==='setup_changed'?'stale':'attention';
     value.error=error.message==='setup_changed'?'setup_changed':'setup_execution_unconfirmed';

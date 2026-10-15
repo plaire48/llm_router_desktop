@@ -39,11 +39,13 @@ function normalizeServer(input={},existing=null){
 }
 const toolInfo=tool=>{const schema=tool.inputSchema&&typeof tool.inputSchema==='object'?tool.inputSchema:{};const required=new Set(Array.isArray(schema.required)?schema.required:[]);return {name:tool.name,title:typeof tool.title==='string'?tool.title.slice(0,120):undefined,description:String(tool.description||'').slice(0,600),readOnly:tool.annotations?.readOnlyHint===true,params:Object.entries(schema.properties||{}).slice(0,16).map(([key,value])=>({name:key,type:typeof value?.type==='string'?value.type:Array.isArray(value?.type)?value.type.join('|'):'',required:required.has(key),description:String(value?.description||'').slice(0,200)}))};};
 const clip=(text,limit)=>{const value=String(text??'');return value.length>limit?value.slice(0,limit)+`\n…[${value.length-limit}자 생략]`:value;};
+// Structured content past the bound is dropped rather than parsed from a cut-off string.
+const structuredPart=value=>{if(!value||typeof value!=='object')return undefined;const text=JSON.stringify(value);if(text.length>MCP_LIMITS.resultChars)return undefined;try{return JSON.parse(text);}catch{return undefined;}};
 // Tool results are text for the model: text parts joined, other parts described, the whole bounded.
 export function describeToolResult(result){
   const parts=Array.isArray(result?.content)?result.content:[];
   const text=parts.map(part=>part?.type==='text'?String(part.text??''):part?.type==='image'?`[이미지 ${part.mimeType||''}]`:part?.type==='resource'?`[리소스 ${part.resource?.uri||''}]\n${String(part.resource?.text??'')}`:`[${part?.type||'content'}]`).join('\n').trim();
-  return {ok:result?.isError!==true,text:clip(text,MCP_LIMITS.resultChars),structured:result?.structuredContent&&typeof result.structuredContent==='object'?JSON.parse(clip(JSON.stringify(result.structuredContent),MCP_LIMITS.resultChars).split('\n…[')[0]||'null'):undefined};
+  return {ok:result?.isError!==true,text:clip(text,MCP_LIMITS.resultChars),structured:structuredPart(result?.structuredContent)};
 }
 export class McpRegistry{
   // file: the app-level server list. secrets: the connection vault client ({get,set,delete}) or null. loadSdk: injectable

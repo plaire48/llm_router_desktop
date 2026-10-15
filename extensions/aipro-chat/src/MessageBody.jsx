@@ -4,12 +4,13 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, {defaultSchema} from 'rehype-sanitize';
 import {CodeBlock} from './CodeBlock.jsx';
+import {answerReveal} from './answer-reveal.js';
 
 const markdownComponents = {
   pre: CodeBlock,
-  a: ({href, children}) => /^https?:\/\//i.test(href || '') ? <a href={href} target="_blank" rel="noopener noreferrer">{children}</a> : <span>{children}</span>,
+  a: ({href, children, className, style}) => /^https?:\/\//i.test(href || '') ? <a href={href} className={className} style={style} target="_blank" rel="noopener noreferrer">{children}</a> : <span className={className} style={style}>{children}</span>,
   img: ({alt}) => alt ? <span>{alt}</span> : null,
-  table: ({children}) => <div className="aipro-table"><table>{children}</table></div>,
+  table: ({children,className,style}) => <div className={`aipro-table${className?' '+className:''}`} style={style}><table>{children}</table></div>,
 };
 // HTML that a model writes (a table, line breaks, a folded section) is shown with
 // its format, not dropped: it used to be skipped, and a table written in HTML
@@ -26,18 +27,19 @@ const htmlSchema = {...defaultSchema,
   strip: ['script', 'style', 'iframe', 'object', 'embed', 'noscript', 'template', 'form', 'select', 'textarea', 'button'],
   clobberPrefix: 'user-content-', clobber: ['name', 'id']};
 const htmlPlugins = [rehypeRaw, [rehypeSanitize, htmlSchema]];
-export const MessageBody=memo(function MessageBody({content, role, compact = false, sourceReferences = [], onSource}) {
+const revealPlugins = [...htmlPlugins,answerReveal];
+export const MessageBody=memo(function MessageBody({content, role, compact = false, sourceReferences = [], onSource, textReveal = false}) {
   const sources=useRef(null),open=useRef(onSource);sources.current=new Map(sourceReferences.map(source=>[source.href,source]));open.current=onSource;
   const interactive=!!onSource;
-  const components=useMemo(()=>interactive?{...markdownComponents,a:({href,children})=>{
+  const components=useMemo(()=>interactive?{...markdownComponents,a:({href,children,className,style})=>{
     if(href?.startsWith('#nubi-cite-')) {
       const source=sources.current.get(href);
-      return source?<button type="button" className="nubi-inline-citation" title={source.filename||source.title} aria-label={`출처 ${source.number}: ${source.filename||source.title}`} onClick={()=>open.current?.(source)}>{source.number}</button>:null;
+      return source?<button type="button" className={`nubi-inline-citation${className?' '+className:''}`} style={style} title={source.filename||source.title} aria-label={`출처 ${source.number}: ${source.filename||source.title}`} onClick={()=>open.current?.(source)}>{source.number}</button>:null;
     }
-    return markdownComponents.a({href,children});
+    return markdownComponents.a({href,children,className,style});
   }}:markdownComponents,[interactive]);
   const sourceKey=JSON.stringify(sourceReferences);
-  return useMemo(()=>role === 'user' ? <div className="message-body user-text">{content}</div> : <div className={`message-body${compact ? ' progress-markdown' : ''}`}><Markdown remarkPlugins={[remarkGfm]} rehypePlugins={htmlPlugins} components={components}>{content}</Markdown></div>,[content,role,compact,components,sourceKey]);
+  return useMemo(()=>role === 'user' ? <div className="message-body user-text">{content}</div> : <div className={`message-body${compact ? ' progress-markdown' : ''}`}><Markdown remarkPlugins={[remarkGfm]} rehypePlugins={textReveal?revealPlugins:htmlPlugins} components={components}>{content}</Markdown></div>,[content,role,compact,components,sourceKey,textReveal]);
 });
 export function InlineMarkdown({content}) {
   return <span className="message-body progress-inline"><Markdown remarkPlugins={[remarkGfm]} skipHtml unwrapDisallowed allowedElements={['strong', 'em', 'del', 'code', 'a', 'br']} components={markdownComponents}>{content}</Markdown></span>;

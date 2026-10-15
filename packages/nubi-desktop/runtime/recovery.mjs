@@ -72,6 +72,18 @@ export async function recoverySnapshot({taskId}){
 
 export function installRecovery(ProjectService){
   ProjectService.prototype.recoverySnapshot=recoverySnapshot;
+  // A development server deliberately stays alive. Resume the same task after
+  // its approved launch, not only on exit. This is NOT a readiness receipt.
+  ProjectService.prototype.processStarted=function(record){
+    record=this.processes.records.get(record.id)||record;
+    const action=record.setupActionId&&this.store.get('setup-action:'+record.setupActionId);
+    if(this.disposed||record.terminal||!record.autoDiagnose||record.state!=='running'||record.execution!=='started'||
+      action?.kind!=='start'||action.taskId!==record.taskId||action.state!=='started'||action.resultProcessId!==record.id||record.startContinuationAt)return;
+    record.startContinuationAt=now();record.recoveryState='queued';
+    this.store.set('process:'+record.id,record);
+    this.recoveryQueue ||=new Set();this.recoveryQueue.add(record.id);
+    this.drainRecovery().catch(()=>{});
+  };
   ProjectService.prototype.resumeAgent=async function({taskId}){
     requireWikiChatReady(this);
     const task=this.task(taskId);if(this.computerBusy||this.agent?.running||this.reconciling)fail('agent_busy');if(task.question)fail('question_pending');
@@ -92,7 +104,7 @@ export function installRecovery(ProjectService){
   ProjectService.prototype.drainRecovery=async function(){
     if(this.computerBusy||this.disposed||this.newFileBusy||this.setupBusy||this.agent?.running||this.reconciling||!this.providers?.status().connected)return;
     for(const id of this.recoveryQueue||[]){
-      const record=this.store.get('process:'+id);if(!record){this.recoveryQueue.delete(id);continue;}
+      const record=this.processes.records.get(id)||this.store.get('process:'+id);if(!record){this.recoveryQueue.delete(id);continue;}
       const task=this.task(record.taskId);
       if(task.state==='cancelled'){this.recoveryQueue.delete(id);record.recoveryState='cancelled';this.store.set('process:'+id,record);continue;}
       if(task.question||['pending','connected'].includes(task.computerConnectionRequest?.state))continue;

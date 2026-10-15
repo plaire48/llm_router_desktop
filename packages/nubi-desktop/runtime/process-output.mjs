@@ -2,6 +2,7 @@ import {open,lstat,realpath} from 'node:fs/promises';
 import {constants} from 'node:fs';
 import {isUtf8} from 'node:buffer';
 import path from 'node:path';
+import {setTimeout as wait} from 'node:timers/promises';
 import {hash,fail} from './files.mjs';
 import {processOutputDiagnostic} from './powershell-output.mjs';
 
@@ -55,12 +56,21 @@ function utf8Range(buffer,start,end){
   return {text:bytes.toString('utf8'),start,end,encodingLoss:!isUtf8(bytes)};
 }
 
-export async function readProcessOutput(service,taskId,{processId,offset=0,query,revision}={},signal){
+export async function readProcessOutput(service,taskId,{processId,offset=0,query,revision,waitMs=0}={},signal){
   service.task(taskId);signal?.throwIfAborted();
   if(typeof processId!=='string'||!uuid.test(processId)||!Number.isSafeInteger(offset)||offset<0||query!==undefined&&(typeof query!=='string'||!query.length||query.length>200)||revision!==undefined&&(typeof revision!=='string'||!/^sha256:[a-f0-9]{64}$/.test(revision)))fail('process_log_arguments');
   if(offset>0&&!revision)fail('process_log_revision_required');
-  const record=service.store.get('process:'+processId);
+  if(!Number.isSafeInteger(waitMs)||waitMs<0||waitMs>5000)fail('process_log_arguments');
+  let record=service.store.get('process:'+processId);
   if(!record||record.taskId!==taskId)fail('process_log_missing');
+  // Wait for fresh output or exit without launching another command. Return
+  // the current running state at the deadline; elapsed time is not readiness.
+  const output=record.output,deadline=Date.now()+waitMs;
+  while(record.state==='running'&&record.output===output&&Date.now()<deadline){
+    await wait(Math.min(100,deadline-Date.now()),undefined,{signal});
+    record=service.store.get('process:'+processId);
+    if(!record||record.taskId!==taskId)fail('process_log_missing');
+  }
   // Never accept an arbitrary model path or a persisted logPath override.
   const components=record.privilege==='administrator'?['elevation',processId,'output.log']:['logs',processId+'.log'];
   const root=await realpath(service.store.directory),target=path.join(root,...components);let handle;

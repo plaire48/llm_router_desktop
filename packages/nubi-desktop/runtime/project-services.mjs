@@ -12,7 +12,7 @@ export class ProjectServices{
  share(service){
   const primary=this.primary;
   for(const name of ['providers','providerRestoring','personalMail','usageLedger','marketplaceToken','marketplaceReader','marketplaceConnected','marketplaceCatalog','marketplaceAuthRequired','marketplaceRevision','marketplaceController'])Object.defineProperty(service,name,{configurable:true,get:()=>primary[name],set:value=>{primary[name]=value;}});
-  for(const name of ['connectionVault','openWorkspacePage','closeWorkspaceAuthPage','syncWikiSources','playwrightRequest','captureWorkspacePage','captureWorkspaceWindow'])service[name]=primary[name];
+  for(const name of ['connectionVault','openWorkspacePage','closeWorkspaceAuthPage','syncWikiSources','playwrightRequest','captureWorkspacePage','captureWorkspaceWindow','notifyAnswer'])service[name]=primary[name];
   service.mail=args=>primary.mail(args);
   return service;
  }

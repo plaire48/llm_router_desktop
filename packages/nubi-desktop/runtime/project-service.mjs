@@ -190,7 +190,9 @@ export class ProjectService {
   // A screenshot the user attached from the Workspace window (user request 2026-10-14); the window capture itself
   // comes from the app host through the browser bridge.
   capture({id}={}){this.ready();const record=readCapture(this,id);return {id:record.id,image:record.image,width:record.width,height:record.height};}
-  async captureWorkspace(options={}){this.ready();if(typeof this.captureWorkspaceWindow!=='function')fail('browser_unavailable');const shot=options.target==='page'?await this.captureWorkspacePage(options):await this.captureWorkspaceWindow(options);return {image:shot.image,width:shot.width,height:shot.height,title:shot.title||''};}
+  // clip (CSS pixels) and maxWidth reach the host, which crops at device resolution before any resize (2026-10-15):
+  // a region cut later from a shrunk picture lost its text detail.
+  async captureWorkspace(options={}){this.ready();if(typeof this.captureWorkspaceWindow!=='function')fail('browser_unavailable');const request={...(options.clip?{clip:options.clip}:{}),...(options.maxWidth?{maxWidth:options.maxWidth}:{}),...(options.tabId?{tabId:options.tabId}:{})};const shot=options.target==='page'?await this.captureWorkspacePage(request):await this.captureWorkspaceWindow(request);return {image:shot.image,width:shot.width,height:shot.height,title:shot.title||'',...(shot.viewport?{viewport:shot.viewport}:{}),...(shot.clip?{clip:shot.clip}:{})};}
   async decideSetupAction(args) {return decideSetupAction.call(this,args);}
 
   async collaboration() {fail('a2a_disabled');}
@@ -302,7 +304,7 @@ export class ProjectService {
     if(proposal.kind==='create'&&proposal.state!=='applied')fail('write_unconfirmed');
     const actual = await readSource(await this.target(proposal.taskId), proposal.path);
     if (actual.hash !== proposal.afterHash) fail('write_unconfirmed');
-    proposal.state = 'applied'; this.store.set('proposal:' + proposalId, proposal); this.store.event('proposal_applied', {proposalId, hash: actual.hash}); return proposal;
+    proposal.appliedAt ||= new Date().toISOString(); proposal.state = 'applied'; this.store.set('proposal:' + proposalId, proposal); this.store.event('proposal_applied', {proposalId, hash: actual.hash}); return proposal;
   }
   async mergeProposal({proposalId}) {
     const proposal = this.store.get('proposal:' + proposalId); if (!proposal || proposal.kind==='create' || proposal.state !== 'proposed') fail('proposal_missing');

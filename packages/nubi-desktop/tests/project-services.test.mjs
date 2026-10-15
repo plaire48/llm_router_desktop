@@ -76,3 +76,20 @@ test('background Wiki status identifies its owning project and clears after comp
  state=await pool.invoke('state');assert.equal(state.backgroundProjects[0].wikiChatJob.kind,'update');assert.equal(state.backgroundProjects[0].wikiChatJob.projectId,owner);
  service.store.set('wiki-update:update-a',{id:'update-a',state:'completed'});assert.equal((await pool.invoke('state')).backgroundProjects[0].wikiChatJob,null);
 });
+
+test('saved answers notify from foreground and background services without replaying history',async t=>{
+ const {a,b,service,pool,open}=await fixture(t),notices=[];
+ service.notifyAnswer=notice=>{
+  const owner=[...pool.projects.values()].find(item=>item.projectId===notice.projectId);
+  assert.equal(owner.store.get('task:'+notice.taskId).messages.at(-1).runId,notice.runId,'notification follows saved answer');
+  notices.push(notice);
+ };
+ service.providers={status,dispose(){},complete:async messages=>fixturePlan(messages)||fixtureReview(messages)||{content:'Saved answer',calls:[]}};
+ await open(a);const first=await pool.invoke('createTask',{request:'FIRST'});
+ await open(b);const second=await pool.invoke('createTask',{request:'SECOND'});
+ await service.startAgent({taskId:first.id});await service.agentForTask(first.id).promise;
+ await pool.invoke('startAgent',{taskId:second.id});await pool.current.agentForTask(second.id).promise;
+ assert.equal(notices.length,2);assert.deepEqual(new Set(notices.map(n=>n.taskId)),new Set([first.id,second.id]));
+ assert.equal(notices[0].projectId,service.projectId);assert.equal(notices[1].projectId,pool.current.projectId);
+ await pool.invoke('state');await open(a);await pool.invoke('overview');assert.equal(notices.length,2);
+});

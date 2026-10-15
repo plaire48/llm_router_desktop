@@ -80,8 +80,10 @@ async function captureAppWindow(options={}){if(!window||window.isDestroyed())thr
 function openWorkspacePage(url,options={}){if(!browserHost||!window||window.isDestroyed())throw Error('browser_unavailable');const tab=browserHost.create(workspacePageUrl(url),options);window.webContents.send('nubi:browser-event',{type:'opened',state:browserHost.status()});return {opened:true,tabId:tab.id,userInteractionRequired:true};}
 function openPageLink(url){try{openWorkspacePage(url);}catch(error){window.webContents.send('nubi:browser-event',{type:'error',error:/^[a-z_]+$/.test(error.message)?error.message:'browser_url_invalid'});}}
 const {createDecisionNotices}=require('./decision-notices.cjs');
+const {createAnswerNotices}=require('./answer-notices.cjs');
+const answerNotices=createAnswerNotices({Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
 const decisionNotices=createDecisionNotices({Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
-app.on('before-quit',()=>decisionNotices.clear());
+app.on('before-quit',()=>{decisionNotices.clear();answerNotices.clear();});
 const {connectionVault}=require('./connection-vault.cjs');
 const vault=connectionVault({directory:path.join(storage,'connections-v1'),safeStorage:require('electron').safeStorage});
 function secretScope(service,key){if(service!=='nubi.workspace.electron'||key!=='nubi.ghes.code.sdsdev.co.kr')throw Error('secret_scope');}
@@ -126,6 +128,7 @@ app.whenReady().then(async()=>{
   const child=fork(path.join(__dirname,'backend/service-entry.mjs'),[],{env:{...process.env,ELECTRON_RUN_AS_NODE:'1',NUBI_STORAGE_ROOT:storage},stdio:['ignore','ignore','pipe','ipc']});
   child.stderr.on('data',chunk=>{void workerLog(chunk);});return child;
  },onMessage:message=>{
+  if(message?.answerCompleted){answerNotices.show(message.answerCompleted);return;}
   if(message?.playwrightRequest){const {id,action,args}=message.playwrightRequest;if(typeof id!=='string'||id.length>80)return;void(async()=>{try{if(!playwrightHost)throw Error('browser_unavailable');const result=await playwrightHost.request(action,args);worker.send({playwrightReply:{id,result}});}catch(error){worker.send({playwrightReply:{id,error:/^[a-z_]+$/.test(error.message)?error.message:'browser_unavailable'}});}})();return;}
   if(message?.wikiGitCancel){wikiGitControllers.get(message.wikiGitCancel.id)?.abort();return;}
   if(message?.wikiGitRequest){
@@ -167,7 +170,7 @@ app.whenReady().then(async()=>{
  const {screen}=require('electron'),windowState=restoreWindowState(await loadWindowState(),screen.getAllDisplays());
  const installId=await installationStamp({packaged:app.isPackaged,platform:process.platform,executable:app.getPath('exe')});
  window=new BrowserWindow({icon:appIcon,width:windowState.width,height:windowState.height,...(windowState.x!==undefined?{x:windowState.x,y:windowState.y}:{}),minWidth:620,minHeight:540,title:'누비 Workspace Beta',backgroundColor:'#F1F7FE',titleBarStyle:process.platform==='darwin'?'hiddenInset':'hidden',...(process.platform==='darwin'?{trafficLightPosition:{x:14,y:17}}:{titleBarOverlay:DEFAULT_TITLEBAR}),webPreferences:{additionalArguments:installId?['--nubi-installation='+installId]:[],preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false}});
- window.webContents.on('did-start-navigation',(_event,_url,_inPlace,isMainFrame)=>{if(isMainFrame){decisionNotices.clear();applyCaptionColors(window,DEFAULT_TITLEBAR);}});
+ window.webContents.on('did-start-navigation',(_event,_url,_inPlace,isMainFrame)=>{if(isMainFrame){decisionNotices.clear();answerNotices.clear();applyCaptionColors(window,DEFAULT_TITLEBAR);}});
  if(windowState.maximized)window.maximize();
  for(const name of ['resize','move','maximize','unmaximize'])window.on(name,saveWindowState);
  window.on('close',()=>{clearTimeout(windowStateTimer);try{require('node:fs').mkdirSync(storage,{recursive:true});require('node:fs').writeFileSync(windowStateFile,JSON.stringify(windowStateOf(window)),{mode:0o600});}catch{}});

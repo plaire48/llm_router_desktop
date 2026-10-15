@@ -41,6 +41,9 @@ const {PlaywrightHost}=require('../electron-app/playwright-host.cjs');
   await writeFile(path.join(__dirname,'../verification/capture-tools-2026-10-15/crop.png'),pixels.toPNG());
   const typed=await timed('type',()=>call('browser_type',{element:'검색',target:input,text:'인앱 연결 확인'}));if(typed.isError)throw Error(JSON.stringify(typed));
   const clicked=await timed('click',()=>call('browser_click',{element:'찾기',target:button}));if(clicked.isError)throw Error(JSON.stringify(clicked));
+  // The action reply carries the new page state inline (2026-10-15), so the model needs no second snapshot turn.
+  if(!clicked.content.some(c=>c.text?.includes('Snapshot after the action')&&c.text.includes('인앱 연결 확인')))throw Error('inline_snapshot_missing');
+  if(clicked.content.some(c=>c.text?.includes('Ran Playwright code')))throw Error('codegen_present');
   const warm=await timed('snapshotWarm',()=>call('browser_snapshot'));
   if(!warm.content.some(c=>c.text?.includes('인앱 연결 확인')))throw Error('readback_missing');
   await writeFile(path.join(__dirname,'../verification/playwright-mcp-2026-10-15/in-app.png'),(await host.tab(tabId).view.webContents.capturePage()).toPNG());

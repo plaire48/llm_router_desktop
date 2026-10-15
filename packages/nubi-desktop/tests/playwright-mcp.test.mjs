@@ -4,7 +4,8 @@ import {createInAppPlaywright} from '../runtime/playwright-mcp.mjs';
 test('official catalog is lazy, bounded and preserves approval and tab binding',async t=>{
  const calls=[];const client=await createInAppPlaywright(async(action,args)=>{calls.push({action,args});return {tabs:[]};});t.after(()=>client.close());
  const {tools}=await client.listTools();assert.equal(calls.length,0,'catalog must not attach or launch a browser');
- assert.equal(tools.length,12);assert.equal(tools.some(tool=>/evaluate|run_code|file_upload|cookie|network/.test(tool.name)),false);
+ assert.equal(tools.length,15);assert.equal(tools.some(tool=>/evaluate|run_code|file_upload|cookie|network/.test(tool.name)),false);
+ for(const name of ['browser_find','browser_fill_form','browser_mouse_wheel'])assert.ok(tools.some(tool=>tool.name===name),name+' is offered (2026-10-15)');
  const click=tools.find(tool=>tool.name==='browser_click');assert.equal(click.annotations.readOnlyHint,false);assert.ok(click.inputSchema.required.includes('documentId'));assert.ok(click.inputSchema.required.includes('tabId'));
  assert.equal(tools.find(tool=>tool.name==='browser_snapshot').inputSchema.properties.filename,undefined);
  await client.callTool({name:'browser_tabs'});assert.equal(calls.length,1);

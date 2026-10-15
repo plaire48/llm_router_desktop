@@ -47,6 +47,7 @@ export class Processes {
     const persist=()=>this.store.set('process:'+id,record);
     const finish=()=>{record.finishedAt=new Date().toISOString();persist();this.store.event('process_finished',{id,state:record.state,exitCode:record.exitCode});try{this.onFinished({...record});}catch{}};
     mkdirSync(path.join(this.store.directory,'logs'),{recursive:true}); record.logPath=path.join(this.store.directory,'logs',id+'.log');
+    try{appendFileSync(record.logPath,'');}catch{record.logIncomplete=true;}
     // Credentials belonging to the host are not inherited by development commands.
     const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => !/(TOKEN|SECRET|PASSWORD|API_KEY|AUTHORIZATION|CREDENTIAL)/i.test(name)));
     const preflight=new AbortController();this.preflights.set(id,preflight);this.pending.add(id);this.records.set(id,record);persist();let shell,args;

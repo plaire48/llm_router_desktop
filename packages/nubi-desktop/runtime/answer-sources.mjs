@@ -24,7 +24,7 @@ export class AnswerSources {
     if(value.mail.text?.trim())rows.push(this.add(base));
     for(const attachment of value.mail.attachments||[]) {
       if(!attachment.text?.trim()||!attachment.id||!attachment.sha256)continue;
-      const source={...base,attachmentId:attachment.id,attachmentHash:attachment.sha256,filename:clean(attachment.filename)||'첨부 문서',coverage:attachment.coverage||null};
+      const source={...base,attachmentId:attachment.id,attachmentHash:attachment.sha256,filename:clean(attachment.filename)||'첨부 문서',coverage:attachment.coverage||null,...(attachment.reader==='vision_model'?{preview:'image'}:{})};
       rows.push(this.add(source));
       for(const segment of (attachment.segments||[]).slice(0,30)) {
         if(!segment.text?.trim())continue;

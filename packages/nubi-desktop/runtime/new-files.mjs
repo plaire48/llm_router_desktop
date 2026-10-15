@@ -70,7 +70,7 @@ export async function applyNewFile({proposalId}) {
     catch(error){proposal.state=error.code==='EEXIST'?'conflicted':'attention';this.store.set('proposal:'+proposalId,proposal);fail(error.code==='EEXIST'?'file_exists':'write_unconfirmed');}
     let actual;try{actual=await readSource(root,proposal.path);if(actual.hash!==proposal.afterHash)fail('write_unconfirmed');}
     catch{proposal.state='attention';this.store.set('proposal:'+proposalId,proposal);fail('write_unconfirmed');}
-    proposal.state='applied';this.store.set('proposal:'+proposalId,proposal);this.store.event('proposal_applied',{proposalId,hash:actual.hash,kind:'create'});
+    proposal.appliedAt ||= new Date().toISOString();proposal.state='applied';this.store.set('proposal:'+proposalId,proposal);this.store.event('proposal_applied',{proposalId,hash:actual.hash,kind:'create'});
     return {...proposal,uri:ready.uri};
   }finally{this.newFileBusy=false;queueMicrotask(()=>this.drainRecovery?.().catch(()=>{}));}
 }

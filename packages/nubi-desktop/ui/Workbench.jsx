@@ -1,3 +1,4 @@
+import {MailImageThumbs} from './MailImageThumbs.jsx';
 import {wikiRefreshErrors,wikiRefreshNotice} from './wiki-refresh-view.mjs';
 import {ProposalCard} from './ProposalCard.jsx';
 import {WorkspaceUpdate,WorkspaceUpdateProgress,useWorkspaceUpdate} from './WorkspaceUpdate.jsx';
@@ -90,6 +91,7 @@ import {WorkspaceToast, notifyWorkspaceToast} from './WorkspaceToast.jsx';
 import {DESKTOP_FEATURES} from '../runtime/beta-features.mjs';
 import {ReasoningPicker} from './ReasoningPicker.jsx';
 import {mergeSnapshot} from './mergeSnapshot.js';
+import {useAnswerReveal} from './useAnswerReveal.js';
 
 // After the user applies the last proposal, the task continues once, unless a command waits for its approval:
 // a check proposed with its fix runs when the user approves it (2026-09-30).
@@ -105,7 +107,7 @@ function modelDisplayName(message, provider) {
   return message?.modelName || catalog?.label || catalog?.displayName || catalog?.name || id || providerLabels[provider?.provider] || '모델';
 }
 
-function ConversationMessages({messages,task,provider,beforeMessage,afterMessage,questionMessage,questionControl,onRegenerate,onSource,onForget,regenerateDisabled=false,regenerateTitle}) {
+function ConversationMessages({api,messages,task,provider,beforeMessage,afterMessage,questionMessage,questionControl,onRegenerate,onSource,onForget,regenerateDisabled=false,regenerateTitle,revealAnswers}) {
   const resting = useIdleExpression(task?.state === 'running' || task?.state === 'waiting_input');
   return messages.map((message,index)=>{
     const content=message.displayContent||message.content||'',modelName=modelDisplayName(message,provider);
@@ -118,7 +120,7 @@ function ConversationMessages({messages,task,provider,beforeMessage,afterMessage
     const regenerating = latest && task?.replyRegeneration?.state === 'running';
     const canRegenerate = latest && onRegenerate && task.state === 'review';
     const markMood = regenerating || message.state === 'pending' ? 'working' : message.error === 'cancelled' ? 'still' : message.error ? 'sad' : resting;
-    const body=message===questionMessage?questionControl:<MessageBody role={message.role} content={content} sourceReferences={message.sourceReferences} onSource={source=>onSource?.(source,message)}/>;
+    const body=message===questionMessage?questionControl:<MessageBody role={message.role} content={content} sourceReferences={message.sourceReferences} onSource={source=>onSource?.(source,message)} textReveal={assistant&&revealAnswers?.has(message.id)}/>;
     return <React.Fragment key={message.id||message.inputId||index}>
       {beforeMessage?.(message)}
       <article className={`message message-${message.role} nubi-message ${message.role}`} data-message-key={message.inputId||message.id||message.at||index} aria-label={assistant?`${modelName} 답변`:'내 메시지'}>
@@ -130,6 +132,7 @@ function ConversationMessages({messages,task,provider,beforeMessage,afterMessage
           {assistant&&<ResponseTime timing={timing} label=""/>}
           {canRegenerate&&<ActionButton action="refresh" iconOnly label="다시 응답 받기" title={regenerateTitle||"미반영 제안을 대체하고 다시 응답 받기"} busy={regenerating} disabled={regenerateDisabled} onClick={()=>onRegenerate(message)}/>}
         </div>}
+        {assistant&&<MailImageThumbs message={message} api={api} onOpen={source=>onSource?.(source,message)}/>}
         {assistant&&<AnswerSources message={message} onOpen={source=>onSource?.(source,message)}/>}
         {assistant&&task?.memoryNotes?.filter(note=>note.runId===message.runId).map(note=><MemoryNote key={note.runId} note={note} onForget={onForget}/>)}
       </article>
@@ -307,7 +310,7 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
   useEffect(()=>{if(wikiInitialization?.state==='attention'&&wikiInitialization.id&&shownWikiJob.current!==wikiInitialization.id&&(!panel||panel==='wiki-progress')){shownWikiJob.current=wikiInitialization.id;setPanel('wiki-progress');}},[wikiInitialization?.id,wikiInitialization?.state,panel]);
   function openModels(){modelTrigger.current=document.activeElement;setPanel('models');}
   function openMailConnection(){panelOrigin.current=null;setPanel('mail');}
-  useEffect(()=>{if(!startupRequest)return;if(startupRequest.target==='decision'){if(project?.projectId!==startupRequest.decision.projectId||tabsProject!==project.projectId)return;selectSession(startupRequest.decision.taskId);setOpeningDecision(startupRequest.decision);onStartupHandled?.();return;}if(startupRequest.target==='mail-source'){setPanel(null);setSkillsPage(false);setWikiPage(false);setMailPage(true);setMailSourceTarget({...startupRequest.source,key:startupRequest.id});if(activeView)void workspaceView?.(null);}else if(startupRequest.target==='mail')openMailConnection();else openModels();onStartupHandled?.();},[startupRequest,project?.projectId,tabsProject]);
+  useEffect(()=>{if(!startupRequest)return;if(startupRequest.target==='answer'){if(project?.projectId!==startupRequest.projectId||tabsProject!==project.projectId)return;setProject(current=>({...current,tasks:[startupRequest.task,...(current.tasks||[]).filter(item=>item.id!==startupRequest.task.id)]}));setPanel(null);setWikiPage(false);selectSession(startupRequest.task.id);onStartupHandled?.();requestAnimationFrame(()=>conversationScroll.followLatest());return;}if(startupRequest.target==='decision'){if(project?.projectId!==startupRequest.decision.projectId||tabsProject!==project.projectId)return;selectSession(startupRequest.decision.taskId);setOpeningDecision(startupRequest.decision);onStartupHandled?.();return;}if(startupRequest.target==='mail-source'){setPanel(null);setSkillsPage(false);setWikiPage(false);setMailPage(true);setMailSourceTarget({...startupRequest.source,key:startupRequest.id});if(activeView)void workspaceView?.(null);}else if(startupRequest.target==='mail')openMailConnection();else openModels();onStartupHandled?.();},[startupRequest,project?.projectId,tabsProject]);
   function closeModels(){setPanel(null);requestAnimationFrame(()=>{(modelTrigger.current?.isConnected?modelTrigger.current:composer.current)?.focus();});}
   function closePanel(trigger){setPanel(null);requestAnimationFrame(()=>trigger.current?.focus());}
   function openChildPanel(next){panelOrigin.current={panel,trigger:document.activeElement};setPanel(next);}
@@ -315,6 +318,7 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
   const panelBack=panelOrigin.current?<div className="nubi-panel-navigation"><ActionButton action="back" className="nubi-panel-back" label={`${panelOrigin.current?.panel==='settings'?'설정으로':'위키 설정으로'} 돌아가기`} disabled={panel==='mail'&&mailConnecting} onClick={returnToPanel}/></div>:null;
   const libraryButton=useRef(null),appButton=useRef(null),settingsButton=useRef(null),agentButton=useRef(null),composer=useRef(null),mounted=useRef(true),polling=useRef(false),actionLock=useRef(false),autoTried=useRef(new Set()),autoSteps=useRef(new Map()),taskErrorToast=useRef('');
   const task=projectPicker?null:project?.tasks?.find(t=>t.id===taskId), proposals=project?.proposals?.filter(p=>p.taskId===taskId&&p.state!=='superseded')||[];
+  const revealAnswers=useAnswerReveal(task,project?.projectId);
   const proposalReady=task&&['review','paused','interrupted'].includes(task.state)&&!task.question&&!project?.tasks?.some(item=>['running','stopping'].includes(item.state))&&!project?.wikiChatBlocked;
   const pendingProposals=proposalReady?proposals.filter(item=>item.state==='proposed'):[],uncertainProposals=proposals.filter(item=>['attention','conflicted'].includes(item.state)),appliedProposals=proposals.filter(item=>item.state==='applied');
   const effectiveShell=project?.profiles?.some(p=>p.id===shell)?shell:project?.defaultShell||project?.profiles?.[0]?.id||'';
@@ -636,10 +640,31 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
   // Capture part of the Workspace window and attach it (user request 2026-10-14). The overlay leaves the screen before
   // the host takes the picture, so the picture shows the app as it is.
   async function startWebCapture(){if(draftCaptures.length>=CAPTURE_LIMIT)return;try{const shot=await api('captureWorkspace',{target:'page'});setCapturePreview(shot);setCapturing(true);}catch{showError('열린 웹페이지를 캡처하지 못했어요. 페이지가 표시된 뒤 다시 시도해 주세요.');}}
+  // The capture button sits right of the + menu in the composer (user request 2026-10-15).
   const captureControl=<CxButton type="button" className="nubi-icon-button nubi-capture-button" data-icon-only aria-label="화면 캡처" title={draftCaptures.length>=CAPTURE_LIMIT?`캡처는 ${CAPTURE_LIMIT}장까지 첨부할 수 있어요`:'Workspace 화면을 캡처해 첨부'} disabled={capturing||draftCaptures.length>=CAPTURE_LIMIT} onClick={()=>{setCapturePreview(null);setCapturing(true);}}><Icon name="image" size={18}/></CxButton>;
+  async function captureRegion(rect){
+    const preview=capturePreview,whole=!rect||rect.width<=0||rect.height<=0;
+    const toCss=value=>{if(!preview||!rect.imagePixels)return value;const scale=(preview.viewport?.width||preview.width)/preview.width;return {x:value.x*scale,y:value.y*scale,width:value.width*scale,height:value.height*scale};};
+    const css=whole?null:toCss(rect),viewport=preview?preview.viewport||{width:preview.width,height:preview.height}:{width:window.innerWidth,height:window.innerHeight};
+    const clip=css?{x:Math.max(0,Math.floor(css.x)),y:Math.max(0,Math.floor(css.y)),width:0,height:0}:null;
+    if(clip){clip.width=Math.max(1,Math.min(viewport.width-clip.x,Math.ceil(css.width)));clip.height=Math.max(1,Math.min(viewport.height-clip.y,Math.ceil(css.height)));}
+    const full=clip&&clip.x===0&&clip.y===0&&clip.width>=viewport.width&&clip.height>=viewport.height;
+    try{
+      const shot=await api('captureWorkspace',{...(preview?{target:'page'}:{}),...(clip&&!full?{clip,maxWidth:2400}:{maxWidth:1600})});
+      return {id:crypto.randomUUID(),dataUrl:'data:image/png;base64,'+shot.image,image:shot.image,width:shot.width,height:shot.height};
+    }catch(error){
+      // A host that cannot clip (older fixture, region refused) falls back to cutting the picture here.
+      if(!['capture_region_invalid','capture_size_invalid'].includes(error?.message)&&!(preview&&error?.message==='browser_capture_unavailable'))throw error;
+      const shot=preview||await api('captureWorkspace');return cropCapture(shot,rect);
+    }
+  }
   const captureSelected=async rect=>{
     setCapturing(false);await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-    try{const shot=capturePreview||await api('captureWorkspace');const item=await cropCapture(shot,rect);setDraftCaptures(current=>[...current,item].slice(0,CAPTURE_LIMIT));requestAnimationFrame(()=>composer.current?.focus());}
+    try{
+      // The host crops the chosen region at device resolution (2026-10-15): the region is sent as CSS pixels of the
+      // window, or of the previewed web page (its preview was scaled, so the rectangle is mapped back first).
+      const item=await captureRegion(rect);
+      setDraftCaptures(current=>[...current,item].slice(0,CAPTURE_LIMIT));requestAnimationFrame(()=>composer.current?.focus());}
     catch{setError('화면을 캡처하지 못했어요. 다시 시도해 주세요.');}
   };
   const waitingRequests=incomingRequests(project).length;
@@ -683,7 +708,7 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
       </NubiLogin>}
       {!task&&(provider?.connected||projectPicker||defaultPicker||!project&&projects.length>0)&&<section inert={wikiChatBlocked} className={visibleOutgoing.length?"nubi-task nubi-submit-scene":"nubi-start chat-page is-empty"}>
         {visibleOutgoing.length?<div className="nubi-conversation-wrap"><div className="nubi-conversation-scroll" ref={conversationScroll.viewport} aria-label="대화 내용" tabIndex={0} onScroll={conversationScroll.onScroll} onWheel={conversationScroll.onUserScroll} onTouchStart={conversationScroll.onUserScroll} onKeyDown={e=>{if(['PageUp','PageDown','Home','End','ArrowUp','ArrowDown'].includes(e.key))conversationScroll.onUserScroll();}}><div className="nubi-conversation-content" ref={conversationScroll.content}><OutgoingMessages items={visibleOutgoing} onDismiss={dismissOutgoing} onSource={source=>openAnswerSource({...source,kind:'mail'})}/></div></div></div>:<Welcome animate={!welcomeAnimated&&!request&&!motion.paused} onComplete={setWelcomeAnimated} mood={resting} intro={false} lead="" greeting={choosingProject?'프로젝트를 열어 주세요.':greeting} markSize={200}/>}
-        {choosingProject?<ProjectStart projects={projects} onSelectProject={switchProject&&((id)=>perform(()=>switchProject(id)))} modelControl={modelPicker} onCancel={projectPicker&&project?()=>setProjectPicker(false):undefined} onStartConversation={()=>{setPersonalStart(true);setProjectPicker(false);if(startConversation)void perform(startConversation);}} busy={busy} blocked={false} onOpenFolder={()=>openFolder()} onClone={cloneRepository&&(url=>perform(()=>cloneRepository(url)))}/>:<WorkspaceComposer commandApi={api} taskId={taskId} onCommand={runComposerCommand} onMinimumWidth={setMinimumAgentWidth} className="nubi-compose-card" modelControl={<><WorkspaceSkillMenu api={api} taskId={taskId} onSelect={addSkillToDraft} onMarketplace={hostLayout==='integrated'?trigger=>openSkillPanel('marketplace',trigger):undefined} onManage={trigger=>openSkillPanel('installed',trigger)} onManageMcp={trigger=>{panelOrigin.current=null;skillsPanelTrigger.current=trigger||null;setPanel('mcp');}}/>{modelPicker}{reasoningControl}</>} contextControl={<>{contextMeter}{captureControl}</>} actionControl={approvalControl} evidenceControl={mailEvidence} onSubmit={submit} inputRef={composer} value={request} onChange={e=>setRequest(e.target.value)} disabled={wikiChatBlocked} placeholder={wikiChatBlocked?wikiChatNotice:"함께할 일을 적어 주세요"} aria-label="작업 요청" sending={submitting} sendDisabled={wikiChatBlocked||!request.trim()||submitting||busy}/>}
+        {choosingProject?<ProjectStart projects={projects} onSelectProject={switchProject&&((id)=>perform(()=>switchProject(id)))} modelControl={modelPicker} onCancel={projectPicker&&project?()=>setProjectPicker(false):undefined} onStartConversation={()=>{setPersonalStart(true);setProjectPicker(false);if(startConversation)void perform(startConversation);}} busy={busy} blocked={false} onOpenFolder={()=>openFolder()} onClone={cloneRepository&&(url=>perform(()=>cloneRepository(url)))}/>:<WorkspaceComposer commandApi={api} taskId={taskId} onCommand={runComposerCommand} onMinimumWidth={setMinimumAgentWidth} className="nubi-compose-card" modelControl={<><WorkspaceSkillMenu api={api} taskId={taskId} onSelect={addSkillToDraft} onMarketplace={hostLayout==='integrated'?trigger=>openSkillPanel('marketplace',trigger):undefined} onManage={trigger=>openSkillPanel('installed',trigger)} onManageMcp={trigger=>{panelOrigin.current=null;skillsPanelTrigger.current=trigger||null;setPanel('mcp');}}/>{captureControl}{modelPicker}{reasoningControl}</>} contextControl={contextMeter} actionControl={approvalControl} evidenceControl={mailEvidence} onSubmit={submit} inputRef={composer} value={request} onChange={e=>setRequest(e.target.value)} disabled={wikiChatBlocked} placeholder={wikiChatBlocked?wikiChatNotice:"함께할 일을 적어 주세요"} aria-label="작업 요청" sending={submitting} sendDisabled={wikiChatBlocked||!request.trim()||submitting||busy}/>}
 
       </section>}
       {task&&<section inert={wikiChatBlocked} className="nubi-task"><div className="nubi-conversation-wrap"><div className="nubi-conversation-scroll" ref={conversationScroll.viewport} aria-label="대화 내용" tabIndex={0} onScroll={conversationScroll.onScroll} onWheel={conversationScroll.onUserScroll} onTouchStart={conversationScroll.onUserScroll} onKeyDown={e=>{if(['PageUp','PageDown','Home','End','ArrowUp','ArrowDown'].includes(e.key))conversationScroll.onUserScroll();}} onFocusCapture={conversationScroll.onFocusCapture}><div className="nubi-conversation-content" ref={conversationScroll.content}>
@@ -693,7 +718,7 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
         <div className="nubi-enter">
           {!task.messages.length&&!running&&!connectionRequest&&!provider?.connected&&<p className="nubi-muted">모델을 연결해 분석을 시작하세요.</p>}
 
-          <ConversationMessages onSource={openAnswerSource} onForget={forgetRunMemory} messages={historyMessages} task={task} provider={provider} onRegenerate={regenerateResponse} regenerateTitle={wikiChatBlocked?wikiChatNotice:undefined} regenerateDisabled={wikiChatBlocked||busy||running||!!task.question||!!connectionRequest} beforeMessage={beforeActivityAnswer} afterMessage={afterActivityMessage} questionMessage={activityLayout.questionMessage} questionControl={questionControl}/>
+          <ConversationMessages api={api} revealAnswers={revealAnswers} onSource={openAnswerSource} onForget={forgetRunMemory} messages={historyMessages} task={task} provider={provider} onRegenerate={regenerateResponse} regenerateTitle={wikiChatBlocked?wikiChatNotice:undefined} regenerateDisabled={wikiChatBlocked||busy||running||!!task.question||!!connectionRequest} beforeMessage={beforeActivityAnswer} afterMessage={afterActivityMessage} questionMessage={activityLayout.questionMessage} questionControl={questionControl}/>
           {!running&&task.reviewDraft&&<details className="nubi-review-draft"><summary><Icon name="infoCircle" size={16}/><span>검토 전 답변</span><Icon name="chevronDown" size={16}/></summary><p>검토가 끝나지 않아 정확성과 완료 여부를 확인해야 합니다.</p><MessageBody role="assistant" content={task.reviewDraft.content}/></details>}
           {/* The model's thinking shows inside the run's record (ui/WorkspaceActivity.jsx), where it stays after the run. */}
           {/* No answer bubble while running (user decision 2026-10-14): a half-written answer kept vanishing and reappearing
@@ -711,7 +736,7 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
           {processResult&&['failed','timed_out','interrupted'].includes(processResult.state)&&<section className="nubi-recovery-card" aria-label="실행 오류 복구"><p>{processResult.execution==='not_started'?'실행 전 검사에서 오류를 발견했어요.':'일부 변경이 남아 있을 수 있어요. 실제 결과부터 확인합니다.'}</p><CxButton disabled={busy||running||!!task.question} onClick={()=>provider?.connected?perform(async()=>{await api('diagnoseProcess',{id:processResult.id});await refresh();}):openModels()}><Icon name="search" size={16}/>{provider?.connected?'오류 분석':'로그인 후 오류 분석'}</CxButton></section>}
 
           {comparison&&<div className="nubi-comparison"><div className="nubi-compare-toolbar"><DeckStatus>{comparison.state==='stale'?'기준 변경됨':'캡처됨'}</DeckStatus><CxButton aria-pressed={overlay} onClick={()=>setOverlay(!overlay)}><Icon name="layers" size={16}/>{overlay?'나란히 보기':'겹쳐 보기'}</CxButton></div><div className={`nubi-captures ${overlay?'overlay':''}`}><figure><figcaption>변경 전</figcaption><img src={comparison.beforeImage} alt="변경 전 실제 로컬 화면"/></figure><figure><figcaption>변경 후</figcaption><img src={comparison.afterImage} alt="변경 후 실제 로컬 화면"/></figure></div><p className="nubi-muted">{comparison.note}</p></div>}
-          <ConversationMessages onSource={openAnswerSource} onForget={forgetRunMemory} messages={inboxMessages} task={task} provider={provider} onRegenerate={regenerateResponse} regenerateTitle={wikiChatBlocked?wikiChatNotice:undefined} regenerateDisabled={wikiChatBlocked||busy||running||!!task.question||!!connectionRequest} beforeMessage={beforeActivityAnswer} afterMessage={afterActivityMessage} questionMessage={activityLayout.questionMessage} questionControl={questionControl}/>
+          <ConversationMessages api={api} revealAnswers={revealAnswers} onSource={openAnswerSource} onForget={forgetRunMemory} messages={inboxMessages} task={task} provider={provider} onRegenerate={regenerateResponse} regenerateTitle={wikiChatBlocked?wikiChatNotice:undefined} regenerateDisabled={wikiChatBlocked||busy||running||!!task.question||!!connectionRequest} beforeMessage={beforeActivityAnswer} afterMessage={afterActivityMessage} questionMessage={activityLayout.questionMessage} questionControl={questionControl}/>
           <OutgoingMessages items={visibleOutgoing} onDismiss={dismissOutgoing} task={task} onSource={source=>openAnswerSource({...source,kind:'mail'})}/>
           {!activityAnswer&&activity}
           {!activityLayout.questionMessage&&questionControl}
@@ -737,7 +762,7 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
           <WorkspaceInputs kind="steer" task={task} busy={wikiChatBlocked||busy||inputBusy} onAction={inputAction} onEdit={editInput} onSource={source=>openAnswerSource({...source,kind:'mail'})}/>
         </div></div></div>{conversationScroll.away&&<CxButton className="nubi-jump-latest" aria-label="최신 메시지로 이동" title="최신 메시지로 이동" onClick={conversationScroll.followLatest}><Icon name="arrowDown" size={18}/></CxButton>}</div>
           <div className="composer-stack nubi-followup-stack"><WorkspaceInputs task={task} busy={wikiChatBlocked||busy||inputBusy} onAction={inputAction} onEdit={editInput} onSource={source=>openAnswerSource({...source,kind:'mail'})}/>
-          {!task.question&&!connectionRequest&&<WorkspaceComposer commandApi={api} taskId={taskId} onCommand={runComposerCommand} onMinimumWidth={setMinimumAgentWidth} className="nubi-compose-card nubi-followup" onStop={running?()=>perform(async()=>{await api('stopAgent',{taskId});await refresh();}):undefined} modelControl={<><WorkspaceSkillMenu api={api} taskId={taskId} onSelect={addSkillToDraft} onMarketplace={hostLayout==='integrated'?trigger=>openSkillPanel('marketplace',trigger):undefined} onManage={trigger=>openSkillPanel('installed',trigger)} onManageMcp={trigger=>{panelOrigin.current=null;skillsPanelTrigger.current=trigger||null;setPanel('mcp');}}/>{modelPicker}{reasoningControl}</>} contextControl={<>{contextMeter}{captureControl}</>} actionControl={approvalControl} evidenceControl={mailEvidence} onSubmit={submit} id="followup" inputRef={composer} value={request} onChange={e=>setRequest(e.target.value)} disabled={wikiChatBlocked} placeholder={wikiChatBlocked?wikiChatNotice:running?"추가 메시지 입력":"이어서 요청해 주세요"} aria-label="추가 요청" title={running?"Enter로 대기열에 추가, Shift+Enter로 줄바꿈":""} sending={submitting} sendDisabled={wikiChatBlocked||submitting||!provider?.connected||!request.trim()||busy||inputBusy||!!task.question||!!connectionRequest}/>}</div>
+          {!task.question&&!connectionRequest&&<WorkspaceComposer commandApi={api} taskId={taskId} onCommand={runComposerCommand} onMinimumWidth={setMinimumAgentWidth} className="nubi-compose-card nubi-followup" onStop={running?()=>perform(async()=>{await api('stopAgent',{taskId});await refresh();}):undefined} modelControl={<><WorkspaceSkillMenu api={api} taskId={taskId} onSelect={addSkillToDraft} onMarketplace={hostLayout==='integrated'?trigger=>openSkillPanel('marketplace',trigger):undefined} onManage={trigger=>openSkillPanel('installed',trigger)} onManageMcp={trigger=>{panelOrigin.current=null;skillsPanelTrigger.current=trigger||null;setPanel('mcp');}}/>{captureControl}{modelPicker}{reasoningControl}</>} contextControl={contextMeter} actionControl={approvalControl} evidenceControl={mailEvidence} onSubmit={submit} id="followup" inputRef={composer} value={request} onChange={e=>setRequest(e.target.value)} disabled={wikiChatBlocked} placeholder={wikiChatBlocked?wikiChatNotice:running?"추가 메시지 입력":"이어서 요청해 주세요"} aria-label="추가 요청" title={running?"Enter로 대기열에 추가, Shift+Enter로 줄바꿈":""} sending={submitting} sendDisabled={wikiChatBlocked||submitting||!provider?.connected||!request.trim()||busy||inputBusy||!!task.question||!!connectionRequest}/>}</div>
 
 
       </section>}

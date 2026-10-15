@@ -1,3 +1,4 @@
+import {developmentChecks,bindDevelopmentEvidence,enforceDevelopmentEvidence,DEVELOPMENT_REVIEW_GUIDANCE} from './development-workflow.mjs';
 import {TEMPORAL_GUIDANCE} from './knowledge-guidance.mjs';
 import Ajv from 'ajv';
 import {createHash} from 'node:crypto';
@@ -88,19 +89,22 @@ export function resultReviewInput({task,evidence,receipts,candidate,model,histor
   // answered first request made it look supported while the latest request was not done.
   // Its text is given once, in currentTurn.
   const turn=currentTurn(task,history),requirements=[...reviewRequirements(task),...(receipts?.citationIntegrity?.available?.length?[{id:'host:sources',text:'Every source-based result must cite the observed material inputs and applied rules needed to reproduce it. Check claim-to-source coverage, including deductions, version selection and exceptions, against original evidence. A known citation ID alone does not prove the claim. Missing decisive links require one revision listing them together; unrelated consulted sources need no citation.'}]:[]),...(receipts?.wrongCommand?[{id:'host:command',text:WRONG_COMMAND_REQUIREMENT}]:[]),...(turn?[{id:'turn',text:TURN_REQUIREMENT}]:[])];
+  const development=developmentChecks(task,receipts);
+  if(development.length)requirements.push({id:'host:development',text:'Check the active developmentChecks against actual post-application execution and browser results. Complete authorized missing checks or give a truthful specific blocker/approval handoff; code edits alone are not verified development.'});
   if(requirements.length>64)throw new Error('context_input_too_large');
-  const entries=evidence.map((item,index)=>({id:'tool:'+index,tool:item.tool,result:clean(item.result)}));
+  const entries=evidence.map((item,index)=>({id:'tool:'+index,tool:item.tool,result:clean(item.result),...(item.observedAt?{observedAt:item.observedAt}:{})}));
   const host=clean(receipts);
   const limit=reviewInputLimit(model),share=Math.floor(limit*REVIEW_CORRECTIONS_SHARE);
   const corrections=boundedCorrections(history??(task.messages||[]).filter(m=>m.role==='user').map(m=>m.content),share);
   const turnText=turn&&contextTokens([{role:'user',content:turn}])>share?turn.slice(0,share*3)+' …[이후 생략, 검토 입력 한도]':turn;
-  const protectedData={requirements,...(turn?{currentTurn:turnText}:{}),workPlan:task.workPlan||null,answeredQuestions:task.questionHistory||[],corrections:corrections.kept,...(corrections.omitted?{omittedCorrections:corrections.omitted}:{}),candidate};
+  const protectedData={requirements,...(development.length?{developmentChecks:bindDevelopmentEvidence(development,[])}:{}),...(turn?{currentTurn:turnText}:{}),workPlan:task.workPlan||null,answeredQuestions:task.questionHistory||[],corrections:corrections.kept,...(corrections.omitted?{omittedCorrections:corrections.omitted}:{}),candidate};
   const unresolved=item=>item.state!=='done'||item.outcome!=='complete'||item.collected!==true||!!item.uncertainties?.length;
   const data={...protectedData,evidence:[],omittedEvidence:entries.length,duplicateEvidence:0,advisoryHandoffs:[],omittedHandoffs:handoffs.items.length+handoffs.omitted,omittedUnresolvedHandoffs:handoffs.items.filter(unresolved).length+(handoffs.omittedUnresolved||0)};
   // Reserve conditional guidance in the same budget before admitting evidence.
-  const prompt=REVIEW_PROMPT+(evidence.some(item=>KNOWLEDGE_TOOLS.has(item.tool))?'\n'+CLAIM_REVIEW_GUIDANCE+'\n'+TEMPORAL_GUIDANCE:'');
+  const prompt=REVIEW_PROMPT+(development.length?'\n'+DEVELOPMENT_REVIEW_GUIDANCE:'')+(evidence.some(item=>KNOWLEDGE_TOOLS.has(item.tool))?'\n'+CLAIM_REVIEW_GUIDANCE+'\n'+TEMPORAL_GUIDANCE:'');
   const messages=()=>[{role:'system',content:prompt},{role:'user',content:JSON.stringify(data)}];
-  if(contextTokens(messages())>limit-512)throw new Error('context_input_too_large');
+  const evidenceLimit=limit-512-development.length*80; // Reserve the later provenance bindings.
+  if(contextTokens(messages())>evidenceLimit)throw new Error('context_input_too_large');
   // What the user wrote is given once, in the fields above. This entry gives the review an ID to cite for it.
   const said={id:'user',tool:'user_messages',result:{standsFor:['requirements.request','currentTurn','corrections','answeredQuestions'],scope:'What the user wrote in this task. Not evidence of files, tests or systems.'}};
   // Live host receipts have priority over historical tool excerpts.
@@ -114,9 +118,9 @@ export function resultReviewInput({task,evidence,receipts,candidate,model,histor
     let fitted=true;
     for(const record of parts(whole)){
       const text=JSON.stringify(record.result),truncated=text.length>ENTRY_LIMIT;
-      const entry={id:record.id,tool:record.tool,result:truncated?text.slice(0,ENTRY_LIMIT):record.result,truncated,usable:!truncated&&!record.result?.error&&record.result?.ok!==false&&record.result?.currentPageMatched!==false};
+      const entry={id:record.id,tool:record.tool,...(record.observedAt?{observedAt:record.observedAt}:{}),result:truncated?text.slice(0,ENTRY_LIMIT):record.result,truncated,usable:!truncated&&!record.result?.error&&record.result?.ok!==false&&record.result?.currentPageMatched!==false};
       data.evidence.push(entry);
-      if(contextTokens(messages())>limit-512||data.evidence.length>REVIEW_ENTRIES){data.evidence.pop();fitted=false;break;}
+      if(contextTokens(messages())>evidenceLimit||data.evidence.length>REVIEW_ENTRIES){data.evidence.pop();fitted=false;break;}
     }
     if(fitted&&!['host','user'].includes(whole.id))data.omittedEvidence--;
     if(data.evidence.length>=REVIEW_ENTRIES)break;
@@ -125,9 +129,13 @@ export function resultReviewInput({task,evidence,receipts,candidate,model,histor
   for(const item of handoffs.items){
     const publicItem={id:item.id,role:item.role,state:item.state,collected:item.collected===true,outcome:item.outcome,error:item.error,task:String(item.task||'').slice(0,1800),doneWhen:String(item.doneWhen||'').slice(0,400),summary:String(item.summary||'').slice(0,600),uncertainties:(item.uncertainties||[]).slice(0,3).map(value=>String(value).slice(0,200)),nextStep:String(item.nextStep||'').slice(0,300),advisory:true};
     data.advisoryHandoffs.push(publicItem);
-    if(contextTokens(messages())>limit-512){data.advisoryHandoffs.pop();continue;}
+    if(contextTokens(messages())>evidenceLimit){data.advisoryHandoffs.pop();continue;}
     data.omittedHandoffs--;
     if(unresolved(item))data.omittedUnresolvedHandoffs--;
+  }
+  if(development.length){
+    data.developmentChecks=bindDevelopmentEvidence(development,data.evidence);
+    if(contextTokens(messages())>limit-512)throw new Error('context_input_too_large');
   }
   return {messages:messages(),data};
 }
@@ -265,7 +273,7 @@ export async function reviewResult({invoke,signal,...input}) {
     problems=reviewProblems(result,review,data);
     if(problems.length){reason=result.finishReason==='length'?'review_output_limit':!review?'review_json_invalid':'review_schema_invalid';if(formatRetries++>=1)break;continue;}
     if(interpretationOnly(original)&&!coverageRechecked){coverageRechecked=true;continue;}
-    review=enforcePendingBoundary(enforceEvidenceBoundary(review,original),data);
+    review=enforceDevelopmentEvidence(enforcePendingBoundary(enforceEvidenceBoundary(review,original),data),data);
     return {...review,...(coverageRechecked?{coverageRechecked:true}:{}),requirements:data.requirements,candidateHash:createHash('sha256').update(input.candidate).digest('hex'),evidence:data.evidence,omittedEvidence:data.omittedEvidence,advisoryHandoffs:data.advisoryHandoffs,omittedHandoffs:data.omittedHandoffs,omittedUnresolvedHandoffs:data.omittedUnresolvedHandoffs};
   }
   throw Object.assign(new Error('goal_review_failed'),{reviewReason:reason});

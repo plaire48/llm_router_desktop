@@ -39,3 +39,7 @@
 .desktop-shell .nubi-mail-table th:first-child { z-index:3; }
 .desktop-shell .nubi-mail-table tbody tr:is([data-open=true],[data-selected=true]) td:first-child { background:var(--nubi-surface-selected); }
 .desktop-shell .nubi-mail-table tbody tr:hover td:first-child { background:var(--nubi-surface-hover,var(--deck-blue-soft)); }
+.desktop-shell .nubi-mail-list-update { color:var(--nubi-text-action); gap:6px; white-space:nowrap; flex-shrink:0; }
+@media(max-width:600px) {
+  .desktop-shell .nubi-mail-list-update>span { display:none; }
+}
