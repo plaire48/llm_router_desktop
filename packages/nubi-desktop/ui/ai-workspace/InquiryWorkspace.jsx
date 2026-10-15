@@ -29,14 +29,14 @@ import {ghesImageUrl} from './ghesImage.js';
 const readRoute=()=>location.hash==='#support=new'?'new':/^#support=([1-9]\d*)$/.exec(location.hash)?.[1]||'list';
 const noPending=()=>{};
 const empty={dirty:false,saving:false};
-function InquirySidebar({id,posts,rows,pagination,query,setQuery,mine,setMine,status,setStatus,category,setCategory,client,selected,loading,failure,locked,refreshLocked,onRefresh,onOpen,scrollPosition}) {
+function InquirySidebar({id,posts,rows,pagination,query,setQuery,mine,setMine,status,setStatus,category,setCategory,client,selected,loading,failure,locked,refreshLocked,onRefresh,onOpen,scrollPosition,onCollapse}) {
   const excerpts=useMemo(()=>new Map(pagination.rows.map(post=>[post.number,talkExcerpt(post.body,'markdown').text])),[pagination.rows]);
   const counts=useMemo(()=>Object.fromEntries(['','open','completed','closed'].map(key=>[key,rows.filter(post=>!key||inquiryStatus(post).key===key).length])),[rows]);
   const scroll=useRef(null),scope=useRef(`${query}:${mine}:${status}:${category}:${pagination.page}`);
   useEffect(()=>{if(scroll.current)scroll.current.scrollTop=scrollPosition.current;},[scrollPosition]);
   useEffect(()=>{const next=`${query}:${mine}:${status}:${category}:${pagination.page}`;if(scope.current!==next)scroll.current?.scrollTo({top:0});scope.current=next;},[query,mine,status,category,pagination.page]);
   return <aside id={id} className="inquiry-sidebar" aria-label="문의 목록">
-    <div className="inquiry-sidebar-heading"><h2>문의 목록 <span>{posts.length}</span></h2><ActionButton action="refresh" disabled={loading||locked||refreshLocked} onClick={onRefresh}/></div>
+    <div className="inquiry-sidebar-heading"><h2>문의 목록 <span>{posts.length}</span></h2><ActionButton action="refresh" disabled={loading||locked||refreshLocked} onClick={onRefresh}/>{onCollapse&&<ActionButton className="inquiry-sidebar-toggle" action="hideSidebar" label="문의 내역 접기" aria-expanded={true} aria-controls={id} onClick={onCollapse}/>}</div>
     <CxTabs className="inquiry-status-tabs" label="처리 상태" active={status} onChange={setStatus} idPrefix={`${id}-status`} panelId={`${id}-results`} items={['','open','completed','closed'].map((key,index)=>({key,label:<><span>{['전체','진행 중','완료','종료'][index]}</span><span className="inquiry-tab-count">{counts[key].toLocaleString()}</span></>}))}/>
     <div className="inquiry-toolbar">
       <SearchField label="문의 검색" placeholder="제목, 내용, 작성자 검색" value={query} onChange={setQuery}/>
@@ -125,7 +125,7 @@ export default function InquiryWorkspace({user,role='user',onPendingChange=noPen
     finally{mutation.current=false;setMutating(false);}
   };
   const locked=pending.saving||mutating||Boolean(pendingRemoval)||Boolean(pendingState);
-  const sidebar=<InquirySidebar id={sidebarId} posts={posts} rows={scoped} pagination={pagination} query={query} setQuery={setQuery} mine={mine} setMine={setMine} status={status} setStatus={setStatus} category={category} setCategory={setCategory} client={client} selected={route} loading={loading} failure={failure} locked={pending.saving||mutating} refreshLocked={pending.dirty||detailLoading||Boolean(pendingRemoval)||Boolean(pendingState)} onRefresh={refresh} onOpen={open} scrollPosition={scrollPosition}/>;
+  const sidebar=<InquirySidebar onCollapse={()=>setSidebarCollapsed(true)} id={sidebarId} posts={posts} rows={scoped} pagination={pagination} query={query} setQuery={setQuery} mine={mine} setMine={setMine} status={status} setStatus={setStatus} category={category} setCategory={setCategory} client={client} selected={route} loading={loading} failure={failure} locked={pending.saving||mutating} refreshLocked={pending.dirty||detailLoading||Boolean(pendingRemoval)||Boolean(pendingState)} onRefresh={refresh} onOpen={open} scrollPosition={scrollPosition}/>;
   const pageLayout={sidebar,sidebarId,sidebarCollapsed,onToggleSidebar:()=>setSidebarCollapsed(value=>!value),showList:route==='list'};
   const selected=detail?.post.number===Number(route)?detail:null;
   const commentSaved=comment=>{setSavedCommentId(comment.id);setEditingComment(null);setPending(empty);refresh();refreshInquiryNotifications();};

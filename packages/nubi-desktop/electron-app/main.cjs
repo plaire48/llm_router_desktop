@@ -263,7 +263,7 @@ app.whenReady().then(async()=>{
    // holds the request id (user report 2026-10-14: 연결 취소 kept connecting).
    if(args.action==='cancelConnect'){if(args.requestId===mailPortal.requestId||mailPortal.status().connecting)await mailPortal.disconnect();return portalMailStatus();}
    if(args.action==='disconnect'){await mailPortal.disconnect();return portalMailStatus();}
-   if(args.action==='portalSync'||['check','retryDownloads'].includes(args.action)&&mailPortal.status().connected){await mailPortal.sync({manual:true});return portalMailStatus();}
+   if(args.action==='portalSync'||['check','retryDownloads'].includes(args.action)&&mailPortal.status().connected){await mailPortal.recheck();return portalMailStatus();}
    if(['pauseWatch','resumeWatch'].includes(args.action)){await invoke('mail',args);if(args.action==='pauseWatch')clearTimeout(mailPortal.timer);else if(mailPortal.status().connected)void mailPortal.sync().catch(()=>{});return portalMailStatus();}
    if(args.action==='status'||args.action===undefined)return portalMailStatus();
   }

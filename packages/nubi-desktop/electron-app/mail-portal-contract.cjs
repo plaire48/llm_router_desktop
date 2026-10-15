@@ -32,14 +32,23 @@ async function portalFetch(input,context=null){
   const query=raw||input.operation==='summary'?'?'+new URLSearchParams({folderID:input.folderId,mailSeq:input.seq}):input.operation==='approvals'?'?'+new URLSearchParams({epid:input.userId,pageNum:String(input.page||1)}):'';
   const json=input.operation==='folders'?{topFolderId:'0',setCd:input.setCd||''}:input.operation==='list'?{folderID:Number(input.folderId),refMailSeq:Number(input.cursor||0),topFolderId:'0',setCd:input.setCd||''}:input.operation==='approvalItem'?[{ap:input.ap,ln:input.ln}]:{};
   const response=await (context?.fetch||fetch)((context?origin:'')+route+query,{method:'POST',credentials:context?'include':'same-origin',redirect:'error',signal:context?.signal?AbortSignal.any([context.signal,controller.signal]):controller.signal,headers:{Accept:raw?'application/octet-stream':'application/json',...(!raw?{'Content-Type':'application/json; charset=utf-8'}:{}),...(input.operation==='approvals'?{'X-EpUserID':input.userId}:{})},body:raw||input.operation==='approvals'?'':JSON.stringify(json)});
-  if([401,403].includes(response.status))throw Error('mail_portal_login');if(!response.ok)throw Error('mail_portal_request');
+  if(!response.ok)await response.body?.cancel();
+  if(response.status===401)throw Error('mail_portal_login');
+  if(response.status===403)throw Error('mail_portal_forbidden');
+  if(response.status===429||response.status>=500){
+   const error=Error(response.status===429?'mail_portal_rate_limited':'mail_portal_unavailable');
+   const value=response.headers.get('retry-after'),seconds=value&&/^\d+$/.test(value)?Number(value)*1000:Date.parse(value)-Date.now();
+   if(Number.isFinite(seconds)&&seconds>0)error.retryAfterMs=seconds;
+   throw error;
+  }
+  if(!response.ok)throw Error('mail_portal_request');
   const limit=raw||input.operation==='approvalItem'?10*1024*1024:2*1024*1024,reader=response.body?.getReader();if(!reader)throw Error('mail_portal_format');
   const parts=[];let size=0;while(true){const next=await reader.read();if(next.done)break;size+=next.value.length;if(size>limit){await reader.cancel();throw Error('mail_size_limit');}parts.push(next.value);}
   const bytes=new Uint8Array(size);let offset=0;for(const part of parts){bytes.set(part,offset);offset+=part.length;}
-  const head=new TextDecoder().decode(bytes.subarray(0,512)).trim();if(/^<!doctype\s+html|^<html|^<head|^<form/i.test(head))throw Error('mail_portal_login');
+  const head=new TextDecoder().decode(bytes.subarray(0,8192)).trim();if(/^<!doctype\s+html|^<html|^<head|^<form/i.test(head))throw Error(/<input\b[^>]*\btype\s*=\s*["']?password\b|<form\b[^>]*\baction\s*=\s*["'][^"']*\/loginapp\/login/i.test(head)?'mail_portal_login':'mail_portal_response');
   if(raw){let binary='';for(let i=0;i<bytes.length;i+=32768)binary+=String.fromCharCode(...bytes.subarray(i,i+32768));return {raw:btoa(binary),size};}
   try{const data=JSON.parse(new TextDecoder().decode(bytes));if(input.operation!=='identity')return data;const identity={};for(const value of [data,data?.data,data?.userInfo,data?.userinfo,data?.user]){if(!value||typeof value!=='object')continue;for(const key of ['epUserId','epUserID','userId','userID','epId','epID','usrId','email','emailAddress','receivedAddress','setCd','domainSet'])if(typeof value[key]==='string'&&!identity[key])identity[key]=value[key].slice(0,320);}return identity;}catch{throw Error('mail_portal_format');}
- }catch(error){if(error.name==='AbortError')throw Error('mail_portal_timeout');if(/^mail_/.test(error.message))throw error;throw Error('mail_portal_request');}finally{clearTimeout(timer);}
+ }catch(error){if(context?.signal?.aborted)throw Error('mail_cancelled');if(controller.signal.aborted||error.name==='AbortError')throw Error('mail_portal_timeout');if(/^mail_/.test(error.message))throw error;if(/ERR_CERT_|CERT_|TLS|SSL/i.test(error.message||''))throw Error('mail_tls_error');throw Error('mail_portal_request');}finally{clearTimeout(timer);}
 }
 const LOGIN_URL=(()=>{const value=String(process.env.NUBI_MAIL_PORTAL_LOGIN_URL||new URL('/portalapp/home',ORIGIN).href);try{const url=new URL(value);if(['http:','https:'].includes(url.protocol)&&!url.username&&!url.password)return url.href;}catch{}return new URL('/portalapp/home',ORIGIN).href;})();
 // Source text for the page: the configured origin takes the placeholder's place (the function is serialised, so it cannot close over ORIGIN).

@@ -18,7 +18,12 @@ export async function readImageAttachment({bytes,attachment={},host,destination=
   if(!type)throw Error('document_format');
   if(!bytes?.length)throw Error('document_empty');
   if(bytes.length>MAX_IMAGE_BYTES)throw Error('document_limit');
-  const status=()=>({...host.providers.status(),...(destination||{})});
+  const status=()=>{
+    const active=host.providers.status();
+    if(!destination||destination.provider===active.provider)return {...active,...(destination||{})};
+    const catalog=host.providers.catalogs?.().find(item=>item.provider===destination.provider);
+    return {...active,...destination,connected:!!catalog,models:catalog?.models||[]};
+  };
   const route=visionRoute(status());
   if(!route)throw Error('document_vision_unavailable');
   const model={...(destination||{}),model:route.id};

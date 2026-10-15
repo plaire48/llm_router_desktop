@@ -30,3 +30,10 @@ test('without an image-capable model, oversized or empty images, the attachment 
   await assert.rejects(readImageAttachment({bytes:Buffer.alloc(0),attachment:{filename:'a.png'},host:host([{id:'gpt-vision',supportsImages:true}],[]),destination:null,signal}),/document_empty/);
   await assert.rejects(readImageAttachment({bytes:png,attachment:{filename:'a.txt'},host:host([],[]),destination:null,signal}),/document_format/);
 });
+
+test('background mail vision uses its own provider catalog instead of the active chat model catalog',async()=>{
+ const calls=[],providers=host([{id:'chat-only',supportsImages:false}],calls);
+ providers.providers.catalogs=()=>[{provider:'aipro',models:[{id:'mail-vision',supportsImages:true}]}];
+ await readImageAttachment({bytes:png,attachment:{filename:'receipt.png'},host:providers,destination:{provider:'aipro',model:'mail-vision'},signal:new AbortController().signal});
+ assert.equal(calls[0].options.backgroundModel.provider,'aipro');assert.equal(calls[0].options.visionModel,'mail-vision');
+});

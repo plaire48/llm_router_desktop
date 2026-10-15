@@ -14,17 +14,23 @@ test('local raster previews exclude SVG/HTML and preserve exact bytes',()=>{
  assert.equal(mailImagePreview(Buffer.from('<html>not a jpeg</html>')),null);
  assert.throws(()=>mailImagePreview(Buffer.alloc(10*1024*1024+1)),/document_limit/);
 });
-featureTest('mailAttachmentReading')('image preview preserves unread evidence and rejects stale source, altered bytes and text-only AI requests',async()=>{
+featureTest('mailAttachmentReading')('image preview preserves unread evidence and rejects stale source, altered bytes and unavailable vision requests',async()=>{
  const directory=await mkdtemp(path.join(os.tmpdir(),'mail-image-'));
  try{
  const sha256=createHash('sha256').update(png).digest('hex');
  await writeFile(path.join(directory,'image.bin'),png);
  const source={sourceHash:'mail-hash',attachmentDirectory:directory,mail:{attachments:[{id:'image',filename:'image.png',sha256,contentState:'document_attention'}]}};
- class Host{} installDesktopFeatures(Host);const host=new Host();host.personalMail={generation:1,read:async()=>source,extractAttachment:()=>{throw Error('must_not_extract');},rememberAttachmentDocument:()=>{throw Error('must_not_mark_read');}};
+ class Host{} installDesktopFeatures(Host);const host=new Host();host.personalMail={generation:1,read:async()=>source,extractAttachment:()=>{throw Error('document_vision_unavailable');},rememberAttachmentDocument:()=>{throw Error('must_not_mark_read');}};
  const args={id:'mail',attachmentId:'image',expectedSourceHash:'mail-hash',expectedAttachmentHash:sha256};
  const result=await host.mailDocument(args);assert.equal(result.text,'');assert.ok(result.image.startsWith('data:image/png;'));assert.equal(source.mail.attachments[0].contentState,'document_attention');
+ assert.equal((await host.mailDocument({...args,action:'previewImage'})).image,result.image);
  await assert.rejects(host.mailDocument({...args,expectedSourceHash:'stale'}),/mail_source_changed/);
- await assert.rejects(host.mailDocument({...args,action:'ask',question:'read image'}),/document_image_unread/);
+ await assert.rejects(host.mailDocument({...args,action:'ask',question:'read image'}),/document_vision_unavailable/);
+ host.personalMail.extractAttachment=async()=>({text:'영수증 120,000원',reader:'vision_model',coverage:'이미지 내용',segments:[]});
+ host.personalMail.rememberAttachmentDocument=async(_source,_id,document)=>Object.assign(source.mail.attachments[0],{...document,contentState:'document_read'});
+ const analyzed=await host.mailDocument({...args,action:'analyze'});assert.match(analyzed.text,/120,000/);assert.equal(analyzed.image,result.image);
+ host.personalMail.extractAttachment=()=>assert.fail('cached analysis must not invoke the model again');
+ const preview=await host.mailDocument(args);assert.equal(preview.text,analyzed.text);assert.equal(preview.coverage,'이미지 내용');
  let reads=0;host.personalMail.read=async()=>++reads===1?source:{...source,sourceHash:'changed'};
  await assert.rejects(host.mailDocument(args),/mail_source_changed/);
  host.personalMail.read=async()=>source;await writeFile(path.join(directory,'image.bin'),'changed');

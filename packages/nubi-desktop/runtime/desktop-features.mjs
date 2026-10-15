@@ -114,6 +114,8 @@ export function installDesktopFeatures(Service){
   };
   Service.prototype.mailDocument=async function({id,attachmentId,question,action='read',expectedSourceHash,expectedAttachmentHash,signal}){
     if(!DESKTOP_FEATURES.mailAttachmentReading)fail('mail_attachment_beta_disabled');
+    if(!['read','previewImage','analyze','ask'].includes(action))fail('input_invalid');
+    if(signal?.aborted)fail('mail_cancelled');
     const mailGeneration=this.personalMail?.generation;
     if(!this.personalMail)fail('mail_missing');const source=await this.personalMail.read(id),attachment=source.mail.attachments.find(a=>a.id===attachmentId);if(!attachment)fail('mail_missing');if(expectedSourceHash&&source.sourceHash!==expectedSourceHash||expectedAttachmentHash&&attachment.sha256!==expectedAttachmentHash)fail('mail_source_changed');
     const file=path.join(source.attachmentDirectory,attachment.id+'.bin');
@@ -132,7 +134,7 @@ export function installDesktopFeatures(Service){
     const document=attachment.contentState==='document_read'&&typeof attachment.text==='string'&&attachment.text.trim()&&attachment.text.length<=100000
       ? {text:attachment.text,segments:attachment.segments||[],coverage:attachment.coverage||'첨부 본문 텍스트'}
       : await this.personalMail.extractAttachment(bytes,attachment,signal||new AbortController().signal,source.attachmentDirectory);
-    if(this.personalMail.generation!==mailGeneration)fail('mail_cancelled');
+    if(signal?.aborted||this.personalMail.generation!==mailGeneration)fail('mail_cancelled');
     const observed=await this.personalMail.read(id,{includeKnowledge:action==='ask'});if(observed.sourceHash!==source.sourceHash||hash(await readFile(file))!==hash(bytes))fail('mail_source_changed');
     if(attachment.contentState!=='document_read')await this.personalMail.rememberAttachmentDocument(observed,attachment.id,document);
     const visible={...(image?{image}:{}),title:attachment.filename||'첨부 문서',text:document.text,segments:document.segments||[],coverage:document.coverage,hash:hash(bytes),attachmentHash:attachment.sha256,sourceHash:source.sourceHash};

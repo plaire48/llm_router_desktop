@@ -3,7 +3,7 @@
 export async function readMailAttachmentsForAgent(service,source,references=[],signal){
   if(typeof service.mailDocument!=='function')return source;
   const selected=references.filter(item=>item.attachmentId);
-  const targets=source.mail.attachments.filter(item=>!selected.length||selected.some(ref=>ref.attachmentId===item.id));
+  const targets=(source.mail.attachments||[]).filter(item=>!selected.length||selected.some(ref=>ref.attachmentId===item.id));
   const updates=new Map();
   for(const attachment of targets){
     if(signal?.aborted)throw Error('cancelled');
@@ -16,5 +16,5 @@ export async function readMailAttachmentsForAgent(service,source,references=[],s
       updates.set(attachment.id,{...attachment,text:'',segments:[],contentState:'document_attention',error:/^(document|mail)_[a-z_]+$/.test(error.message)?error.message:'document_read_failed'});
     }
   }
-  return {...source,mail:{...source.mail,attachments:source.mail.attachments.map(item=>updates.get(item.id)||item)}};
+  return {...source,mail:{...source.mail,attachments:(source.mail.attachments||[]).map(item=>updates.get(item.id)||item)}};
 }

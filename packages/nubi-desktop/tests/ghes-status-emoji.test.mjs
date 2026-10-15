@@ -45,3 +45,14 @@ test('a failure that needs the person (expired login) is not retried in the back
  assert.equal((await account.status()).error,'ghes_session_expired');time+=RECHECK_MS*3;
  const view=await account.status();assert.equal(view.state,'guest');assert.equal(userCalls,1);
 });
+
+test('VPN failure preserves the protected credential, recovers on recheck, and logout wins',async()=>{
+ let time=1000,online=false,deleted=0;
+ let stored=JSON.stringify({host:ORIGIN,clientId:CLIENT_ID,token:'fixture-token'});
+ const account=new DesktopGhesAccount({now:()=>time,secrets:{get:async()=>stored,delete:async()=>{deleted++;stored=null;}},fetcher:async url=>{
+  if(!online)throw TypeError('fetch failed');return new URL(url).pathname==='/api/v3/user'?Response.json({id:7,login:'kim'}):Response.json({data:{viewer:{login:'kim',status:null}}});
+ }});
+ assert.equal((await account.status()).error,'ghes_network');assert.equal(deleted,0);assert(stored);
+ online=true;time+=RECHECK_MS;assert.equal((await account.status()).connected,true);assert.equal(deleted,0);
+ await account.logout();time+=RECHECK_MS;assert.equal((await account.status()).connected,false);assert.equal(stored,null);assert.equal(deleted,1);
+});

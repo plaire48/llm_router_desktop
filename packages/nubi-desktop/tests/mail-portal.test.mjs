@@ -17,8 +17,8 @@ test('the same-origin adapter admits only the provided read endpoints and never 
  const calls=[];const run=async(input,response=new Response(JSON.stringify(folders)))=>vm.runInNewContext(`(${portalFetchSource()})(${JSON.stringify(input)})`,{location:{origin:ORIGIN},URLSearchParams,TextDecoder,Uint8Array,AbortController,setTimeout,clearTimeout,btoa,fetch:async(url,args)=>{calls.push({url,args});return response;}});
  assert.deepEqual(JSON.parse(JSON.stringify(await run({operation:'folders'}))),folders);assert.equal(calls[0].args.credentials,'same-origin');assert.equal(calls[0].args.redirect,'error');assert.deepEqual(JSON.parse(calls[0].args.body),{topFolderId:'0',setCd:''});
  await assert.rejects(run({operation:'deleteMail'}),/mail_portal_action/);
- await assert.rejects(run({operation:'eml',folderId:'1',seq:'9'},new Response('<!DOCTYPE html><html>Login</html>')),/mail_portal_login/);
- await assert.rejects(run({operation:'folders'},new Response('denied',{status:403})),/mail_portal_login/);
+ await assert.rejects(run({operation:'eml',folderId:'1',seq:'9'},new Response('<!DOCTYPE html><html><input type="password"></html>')),/mail_portal_login/);
+ await assert.rejects(run({operation:'folders'},new Response('denied',{status:403})),/mail_portal_forbidden/);
  const raw=await run({operation:'eml',folderId:'1',seq:'9'},new Response(eml));assert.deepEqual(Buffer.from(raw.raw,'base64'),eml);
  await run({operation:'approvals',userId:'fixture-user',page:2},new Response('{"data":[],"totalCount":0}'));assert.equal(calls.at(-1).url,'/approval/rest/v1/desktop/list/getDeskTopApList?epid=fixture-user&pageNum=2');assert.equal(calls.at(-1).args.headers['X-EpUserID'],'fixture-user');
  assert.deepEqual(foldersOf(folders).map(folder=>folder.mailbox),['inbox','sent','draft','spam']);assert.equal(identityOf({userInfo:{epUserId:'fixture-user',email:'owner@example.test',domainSet:'fixture@host'}}).setCd,'fixture');

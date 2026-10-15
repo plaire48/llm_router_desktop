@@ -52,7 +52,7 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
   const alive=useRef(true),pending=useRef(null),lock=useRef(false),cancelledConnect=useRef(false),importing=useRef(false);
   useEffect(()=>{
     alive.current=true;let reading=false;
-    const refresh=async()=>{if(reading)return;reading=true;try{const value=await api('mail',{action:'status'});if(alive.current){setStatus(value);setChosen(current=>current||modelKey(value.destination||value.activeModel));}}catch{if(alive.current)notifyWorkspaceToast('메일 설정을 읽지 못했어요. 다시 열어 주세요.',{error:true});}finally{reading=false;}};
+    const refresh=async()=>{if(reading)return;reading=true;try{const value=await api('mail',{action:'status'});if(alive.current){setStatus(value);if(value.portal?.connectionState==='connected'&&!value.error)setConnectionError(null);setChosen(current=>current||modelKey(value.destination||value.activeModel));}}catch{if(alive.current)notifyWorkspaceToast('메일 설정을 읽지 못했어요. 다시 열어 주세요.',{error:true});}finally{reading=false;}};
     void refresh();const timer=setInterval(refresh,3000);
     // The login continues in the host while the panel is closed (the app browser tab opens over it); only an explicit cancel stops it (2026-10-14).
     return()=>{alive.current=false;clearInterval(timer);};
@@ -114,14 +114,14 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
   return <div className="nubi-mail-library nubi-mail-settings" aria-busy={connectionPending}>
     <div className="nubi-mail-settings-content" inert={connectionPending||undefined}>
     <section className="nubi-mail-section" aria-label="메일 계정 설정">
-      {status?.connected&&<header className="nubi-mail-section-heading">{sectionTitle('mail','사내 포털 연결됨')}{status.encryption?.state==='on'&&<span className="nubi-mail-lock" role="img" aria-label="메일 위키 암호화 저장 켜짐" title="메일 위키 암호화 저장 켜짐"><LockMark size={16}/></span>}{status.encryption?.state==='unavailable'&&<span className="nubi-mail-lock" data-state="unavailable" role="img" aria-label="이 PC에서는 암호화 저장을 사용할 수 없어요" title="이 PC에서는 암호화 저장을 사용할 수 없어요"><LockMark size={16}/></span>}<ActionButton action="logout" iconOnly label="메일 로그아웃" title="메일 로그아웃" disabled={busy} onClick={()=>act(()=>api('mail',{action:'disconnect'}))}/></header>}
+      {status?.connected&&<header className="nubi-mail-section-heading">{sectionTitle('mail',status.portal?.connectionState==='retrying'?'포털 재연결 대기':status.portal?.connectionState==='blocked'?'포털 접근 확인 필요':'사내 포털 연결됨')}{status.encryption?.state==='on'&&<span className="nubi-mail-lock" role="img" aria-label="메일 위키 암호화 저장 켜짐" title="메일 위키 암호화 저장 켜짐"><LockMark size={16}/></span>}{status.encryption?.state==='unavailable'&&<span className="nubi-mail-lock" data-state="unavailable" role="img" aria-label="이 PC에서는 암호화 저장을 사용할 수 없어요" title="이 PC에서는 암호화 저장을 사용할 수 없어요"><LockMark size={16}/></span>}<ActionButton action="logout" iconOnly label="메일 로그아웃" title="메일 로그아웃" disabled={busy} onClick={()=>act(()=>api('mail',{action:'disconnect'}))}/></header>}
       {!status?.connected&&<div className="nubi-mail-import-options" role="group" aria-label="메일 가져오는 방법">
         <div className="nubi-mail-import-card" data-recommended="true"><div className="nubi-mail-import-heading"><span className="nubi-mail-import-icon" aria-hidden="true"><BrowserMark size={22}/></span><div><strong>사내 포털로 연결<span className="nubi-mail-import-badge">추천</span></strong><small>로그인 한 번으로 새 메일과 결재를 자동으로 가져와요.</small></div></div><div className="nubi-mail-import-card-action"><CxButton variant="primary" className="nubi-mail-connect" disabled={connectionBusy||!status} onClick={connectPortal}><Icon name="logIn" size={18}/><span>포털 로그인</span></CxButton></div></div>
         {fileImport}
       </div>}
       {failure&&<details className="nubi-mail-connection-error" key={connectionCode}>
         <summary><Icon name="alertCircle" size={16}/><strong role="status" title={failure.title}>{failure.title}</strong><Icon name="chevronDown" size={16}/></summary>
-        <p>{failure.detail}</p><div className="nubi-mail-error-code"><code>{connectionCode}</code><CopyButton label="연결 오류 복사" text={mailConnectionDiagnostic(connectionCode,status?.protocol||'pop3')}/></div>
+        <p>{failure.detail}</p>{status?.portal?.nextRetryAt&&<p>다음 확인 <time dateTime={status.portal.nextRetryAt}>{new Date(status.portal.nextRetryAt).toLocaleTimeString()}</time></p>}{connectionCode!=='mail_portal_login'&&<CxButton disabled={busy||connectionBusy||status?.checking} onClick={()=>act(()=>api('mail',{action:'portalSync'}))}><Icon name="refresh" size={16}/>연결 다시 확인</CxButton>}<div className="nubi-mail-error-code"><code>{connectionCode}</code><CopyButton label="연결 오류 복사" text={mailConnectionDiagnostic(connectionCode,status?.protocol||'pop3')}/></div>
       </details>}
     </section>
     {status?.connected&&fileImport}
