@@ -5,7 +5,7 @@
 .nubi-tool-arguments[open]>summary>svg { transform:rotate(180deg); }
 .nubi-tool-arguments-title { display:flex; align-items:center; gap:var(--cx-space-2); font-weight:var(--nubi-weight-label); }
 .nubi-tool-arguments-title small { font:inherit; font-weight:var(--nubi-weight-regular); color:var(--nubi-text-meta); }
-.nubi-tool-arguments pre { box-sizing:border-box; max-width:100%; max-height:240px; overflow:auto; margin:0 0 var(--cx-space-2); padding:var(--cx-space-3); border:0; border-radius:var(--deck-control-radius); background:var(--nubi-surface-inset); color:var(--nubi-text-secondary); font:13px/1.6 var(--nubi-code-family); tab-size:2; white-space:pre; }
+.nubi-tool-arguments pre { box-sizing:border-box; max-width:100%; max-height:240px; overflow:auto; margin:0 0 var(--cx-space-2); padding:var(--cx-space-3); border:0; border-radius:var(--deck-control-radius); background:var(--nubi-surface-inset); color:var(--nubi-text-secondary); font:var(--deck-type-caption)/var(--deck-line-body) var(--nubi-code-family); tab-size:2; white-space:pre; }
 .nubi-tool-arguments code { font:inherit; }
 .nubi-tool-arguments .json-key { color:var(--nubi-text-primary); font-weight:var(--nubi-weight-emphasis); }
 .nubi-tool-arguments .json-string { color:var(--nubi-text-action); }

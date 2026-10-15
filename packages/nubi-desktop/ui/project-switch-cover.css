@@ -1,6 +1,6 @@
 .nubi-project-switch-cover {
  display:none;position:fixed;inset:var(--nubi-toolbar-height,48px) 0 0;
- z-index:2147482000;background:#fff;
+ z-index:2147482000;background:var(--nubi-surface-base);
  background-image:var(--nubi-workspace-gradient,none);
  place-content:center;justify-items:center;gap:26px;
 }
