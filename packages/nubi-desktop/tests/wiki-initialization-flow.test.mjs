@@ -18,8 +18,10 @@ async function setup(t,{gitProject=false}={}){
   const temp=await mkdtemp(path.join(os.tmpdir(),'nubi-wiki-flow-')),root=path.join(temp,'source');await mkdir(root);await writeFile(path.join(root,'app.txt'),'initial source\n');
   if(gitProject){await git(root,['init','-q']);await git(root,['add','-A']);await git(root,['-c','user.name=Fixture','-c','user.email=fixture@localhost','-c','commit.gpgSign=false','commit','-qm','Source']);}
   const service=new ProjectService({storageRoot:path.join(temp,'state')});
-  // Windows keeps a store file busy for a moment after close: retry the removal instead of failing the test on EBUSY.
-  t.after(async()=>{service.dispose();service.store?.close();await rm(temp,{recursive:true,force:true,maxRetries:10,retryDelay:200});});
+  // Every service opened in the test closes before the temp folder goes; a file Windows still holds (EBUSY, EPERM) is
+  // left to the runner's temp cleanup rather than retried or failed on.
+  const opened=[service];t.openedServices=opened;
+  t.after(async()=>{for(const item of opened.reverse()){try{item.dispose();item.store?.close();}catch{}}await rm(temp,{recursive:true,force:true}).catch(error=>{if(!['EBUSY','EPERM','ENOTEMPTY'].includes(error.code))throw error;});});
   await service.open(root);service.providers={status:()=>({connected:true,provider:'fixture',model:'fixture'}),dispose(){}};
   service.wikiInitializer=async({root:copy})=>{
     assert.match((await git(copy,['rev-parse','HEAD'])).trim(),/^[a-f0-9]{40}$/,'OpenWiki receives its required Git snapshot');
@@ -55,7 +57,7 @@ for(const gitProject of [false,true])test(`Git preparation timeout retains parti
  const record=service.store.get('wiki-init-checkpoint'),copy=path.join(service.store.directory,'wiki-preparation',record.name);assert.equal(record.ready,false);await access(copy);
  const historyFile=path.join(service.store.directory,'wiki-folder-history/app.txt'),mtime=gitProject?null:(await stat(historyFile)).mtimeMs;
  const storageRoot=service.storageRoot;service.dispose();service.store.close();
- const reopened=new ProjectService({storageRoot});t.after(()=>{reopened.dispose();reopened.store?.close();});await reopened.open(root,{initializeWiki:false});
+ const reopened=new ProjectService({storageRoot});t.openedServices.push(reopened);await reopened.open(root,{initializeWiki:false});
  reopened.providers={status:()=>({connected:true,provider:'fixture',model:'fixture'}),dispose(){}};
  reopened.wikiPreparationGit=async(cwd,args,options)=>{assert.equal(args.includes('worktree'),false,'an attached worktree is reused');return git(cwd,args,options);};
  reopened.wikiInitializer=async({root:current})=>{assert.equal(current,copy);assert.equal(await readFile(path.join(current,'app.txt'),'utf8'),'new uncommitted source\n');await publish(current,'# Resumed Wiki\n');};
@@ -231,7 +233,7 @@ for(const gitProject of [false,true])test(`interrupted Wiki keeps its snapshot a
  assert.equal(service.wikiInitialization().error,'timeout');assert.equal(service.wikiInitialization().canResume,true);await access(firstCopy);
  await assert.rejects(access(path.join(root,'openwiki/home.md')),'a partial Wiki is never published');
  const storageRoot=service.storageRoot;service.dispose();service.store.close();
- const reopened=new ProjectService({storageRoot});t.after(()=>{reopened.dispose();reopened.store?.close();});
+ const reopened=new ProjectService({storageRoot});t.openedServices.push(reopened);
  await reopened.open(root,{initializeWiki:false});reopened.providers={status:()=>({connected:true,provider:'fixture',model:'fixture'}),dispose(){}};
  reopened.wikiInitializer=async({root:copy})=>{assert.equal(copy,firstCopy);assert.match(await readFile(path.join(copy,'openwiki/home.md'),'utf8'),/Completed first page/);assert.equal(await readFile(path.join(copy,'openwiki/.run.json'),'utf8'),'checkpoint fixture');await rm(path.join(copy,'openwiki/.run.json'));};
  reopened.wikiInitialization({action:'retry'});await reopened.wikiInitPromise;

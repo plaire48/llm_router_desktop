@@ -88,6 +88,7 @@ jobs:
           node --test tests/mail-beta-scope.test.mjs tests/mail-search.test.mjs tests/mail-connection-errors.test.mjs tests/mail-presentation.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify native OpenWiki initialization and update bridge
+        timeout-minutes: 8
         run: |
           New-Item verification -ItemType Directory -Force | Out-Null
           $node = (Get-Command node).Source
