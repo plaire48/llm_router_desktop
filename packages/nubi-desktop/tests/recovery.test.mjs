@@ -15,8 +15,11 @@ const wait=async(check,timeoutMs=3000)=>{const deadline=Date.now()+timeoutMs;whi
 test('a configured command timeout preserves output and reaches diagnosis without replaying the command',async t=>{
   const {service}=await fixture(t),task=await service.createTask({request:'Check timed command'});let diagnosed=0;
   service.providers={status,dispose(){},complete:async messages=>{const receipts=JSON.stringify(messages);assert.match(receipts,/process_timeout/);assert.match(receipts,/BEFORE_TIMEOUT/);diagnosed++;return reply();}};
-  const process=await service.run({taskId:task.id,script:"printf 'BEFORE_TIMEOUT\\n'; sleep 5",profile:'bash',timeoutMs:100});
-  await wait(()=>service.processes.poll(process.id).recoveryState==='review');
+  // Allow cold Git Bash startup before requiring output. Natural exit remains
+  // later than the assertion deadline; only an actual timeout can pass.
+  const timeoutMs=globalThis.process.platform==='win32'?3000:100;
+  const process=await service.run({taskId:task.id,script:"printf 'BEFORE_TIMEOUT\\n'; sleep 30",profile:'bash',timeoutMs});
+  await wait(()=>service.processes.poll(process.id).recoveryState==='review',15000).catch(error=>{t.diagnostic(JSON.stringify(service.processes.poll(process.id)));throw error;});
   assert.equal(service.processes.poll(process.id).state,'timed_out');assert.equal(diagnosed,1);assert.equal(service.store.list('process:').length,1);
 });
 
