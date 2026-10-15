@@ -28,7 +28,7 @@ export async function wikiInitCheckpoint(store,root,head,sources){
    if((await git(directory,['rev-parse','HEAD'])).trim()!==record.snapshotHead)throw Error('source_stale');
    const canonical=await realpath(directory);
    for(const source of sources)if((await readWikiSource(canonical,source.path)).hash!==source.hash)throw Error('source_stale');
-   return {directory,resumed:true};
+   return {directory,resumed:true,generated:record.generated===true};
   }catch{/* Missing, changed, or invalid snapshots must be rebuilt from current sources. */}
  }
  await discardWikiInitCheckpoint(store,root);
@@ -41,4 +41,8 @@ export async function wikiInitCheckpoint(store,root,head,sources){
 export async function markWikiInitCheckpointReady(store,directory){
  const record=store.get(KEY);if(location(store,record)!==directory)throw Error('project_changed');
  store.set(KEY,{...record,ready:true,snapshotHead:(await git(directory,['rev-parse','HEAD'])).trim()});
+}
+export function markWikiInitGenerated(store,directory){
+ const record=store.get(KEY);if(location(store,record)!==directory)throw Error('project_changed');
+ store.set(KEY,{...record,generated:true});
 }

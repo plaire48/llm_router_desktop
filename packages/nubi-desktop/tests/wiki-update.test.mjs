@@ -271,3 +271,14 @@ test('a model failure during a run is reported to the host as a model_error even
   await assert.rejects(defaultWikiUpdater(service,{load})({root,signal:new AbortController().signal,onEvent:event=>events.push(event),updateId:'u6'}),/unauthorized/);
   assert.deepEqual(events.filter(event=>event.type==='model_error'),[{type:'model_error',code:'unauthorized'}]);
 });
+
+test('a skipped page cannot hide a terminal model failure or repeat it for later pages',async t=>{
+ const {service,root}=await generated(t);let calls=0;
+ service.providers={status:()=>({connected:true,model:'fixture-model'}),dispose(){},async complete(){calls++;throw Error('unauthorized');}};
+ const load=async()=>({NubiOpenWikiModel:(await import('../generated/openwiki.mjs')).NubiOpenWikiModel,async runNativeRepositoryGeneration(options){
+  for(let i=0;i<3;i++)await options.model.invoke('page '+i).catch(()=>{});
+  return {skipped:false};
+ }});
+ await assert.rejects(defaultWikiUpdater(service,{load})({root,signal:new AbortController().signal,onEvent(){},updateId:'terminal'}),/unauthorized/);
+ assert.equal(calls,1);
+});

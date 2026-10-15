@@ -10,10 +10,10 @@ import {modelTransport} from './recovery.mjs';
 import {inspectCommitHistory} from './commit-history.mjs';
 import {DESKTOP_FEATURES} from './beta-features.mjs';
 import {mailImagePreview} from './mail-image.mjs';
-import {wikiFiles,hasWikiPages,countWikiPages,listWikiSourceFiles,readWikiSource,checkpointSnapshotWiki,wikiSourceHead,prepareWikiHistory} from './wiki-snapshot.mjs';
+import {wikiFiles,hasWikiPages,countWikiPages,listWikiSourceFiles,readWikiSource,checkpointSnapshotWiki,wikiSourceHead,prepareWikiHistory,removeWikiHistory} from './wiki-snapshot.mjs';
 import {wikiInitializationError} from './wiki-initialization-error.mjs';
 import {snapshotFolderHistory} from './wiki-folder-history.mjs';
-import {wikiInitCheckpoint,markWikiInitCheckpointReady,discardWikiInitCheckpoint} from './wiki-init-checkpoint.mjs';
+import {wikiInitCheckpoint,markWikiInitCheckpointReady,markWikiInitGenerated,discardWikiInitCheckpoint} from './wiki-init-checkpoint.mjs';
 import {OpenWikiIgnore} from '../generated/openwiki.mjs';
 
 export function installDesktopFeatures(Service){
@@ -99,7 +99,10 @@ export function installDesktopFeatures(Service){
       checkpointReady=true;job.canResume=true;
       job.stage='planning';job.stageStartedAt=new Date().toISOString();job.percent=null;job.completed=0;job.total=0;persist();
       const updater=this.wikiInitializer||defaultWikiUpdater(this);
+      if(!checkpoint.generated){
       await updater({root:temporary,mode:'init',language:'ko',signal,updateId:job.id,onEvent:event=>{check();if(event.type==='model_error'){job.lastModelError=event.code;persist();return;}if(event.type==='model_wait'){job.modelWaiting=event.waiting;persist();return;}if(event.type==='model_retry'){job.modelRetries=(job.modelRetries||0)+1;persist();return;}job.modelWaiting=false;if(job.stage!==event.stage)job.stageStartedAt=new Date().toISOString();job.stage=event.stage;if(event.stage==='generating'&&event.total>0){job.total=event.total;job.completed=Math.max(0,Math.min(event.total,Number.isSafeInteger(event.index)?event.index-1:0));job.percent=Math.floor(100*job.completed/job.total);}else{job.percent=null;job.completed=0;job.total=0;}persist();}});
+      check();markWikiInitGenerated(store,temporary);
+      }
       // Sources that moved while the model worked do not discard its work (user decision 2026-10-12): the pages are
       // published as written for the snapshot, the checkpoint names that snapshot, and the update card then shows the
       // files that changed since. The job carries the count.
@@ -115,7 +118,7 @@ export function installDesktopFeatures(Service){
       for(const rel of output){check();const target=path.join(destination,rel);let parent=destination;for(const segment of rel.split('/').slice(0,-1)){parent=path.join(parent,segment);await mkdir(parent,{recursive:true});if((await lstat(parent)).isSymbolicLink())fail('path_scope');}const text=await readFile(path.join(temporary,'openwiki',rel));await writeFile(target,text,{flag:'wx'});published.push({target,hash:hash(text)});if(hash(await readFile(target))!==hash(text))fail('write_unconfirmed');job.completed++;job.percent=Math.floor(100*job.completed/job.total);persist();}
       check();Object.assign(job,{state:'completed',stage:'finished',percent:100,canResume:false,finishedAt:new Date().toISOString(),sourceFiles:sources.length,excludedFiles:files.paths.length-sources.length+(files.unavailableFiles||0),pages,changedDuringRun});persist();
     }catch(error){for(const file of published.reverse()){try{if(!(await lstat(file.target)).isSymbolicLink()&&hash(await readFile(file.target))===file.hash)await unlink(file.target);}catch{/* Concurrent human changes remain. */}}Object.assign(job,{state:signal.aborted?'cancelled':'attention',percent:null,finishedAt:new Date().toISOString(),error:signal.aborted?'cancelled':wikiInitializationError(error,job.stage)});persist();}
-    finally{try{if(temporary&&(!checkpointReady||job.state==='completed'))await discardWikiInitCheckpoint(store,root);}finally{if(this.wikiInitController===controller){this.wikiInitController=null;this.wikiInitOwner=null;}}}})();return job;
+    finally{try{if(temporary&&(!checkpointReady||job.state==='completed')){if(store.db.isOpen)await discardWikiInitCheckpoint(store,root);else await removeWikiHistory(root,temporary,sourceHead);}}finally{if(this.wikiInitController===controller){this.wikiInitController=null;this.wikiInitOwner=null;}}}})();return job;
     })();
     try{return await admission.promise;}finally{if(this.wikiInitAdmission===admission)this.wikiInitAdmission=null;}
   };

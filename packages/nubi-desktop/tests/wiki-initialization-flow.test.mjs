@@ -216,3 +216,12 @@ test('changed sources discard the saved Wiki snapshot before retry',async t=>{
  service.wikiInitialization({action:'retry'});await service.wikiInitPromise;
  assert.equal(service.wikiInitialization().state,'completed');assert.equal(service.wikiInitialization().resumed,false);
 });
+
+test('publication retry uses the generated Wiki without calling the model again',async t=>{
+ const {root,service}=await setup(t);await rm(path.join(root,'openwiki'),{recursive:true});service.store.set('wiki-init',null);let calls=0;
+ service.wikiInitializer=async({root:copy})=>{calls++;await publish(copy,'# Generated Wiki\n');await mkdir(path.join(root,'openwiki'));await mkdir(path.join(root,'openwiki/home.md'));};
+ await service.initializeWiki();await service.wikiInitPromise;assert.equal(service.wikiInitialization().state,'attention');
+ await rm(path.join(root,'openwiki'),{recursive:true});
+ service.wikiInitialization({action:'retry'});await service.wikiInitPromise;
+ assert.equal(service.wikiInitialization().state,'completed',JSON.stringify(service.wikiInitialization()));assert.equal(calls,1);
+});
