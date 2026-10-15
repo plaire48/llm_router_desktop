@@ -12,11 +12,14 @@ import {listWikiSourceFiles,readWikiSource} from '../runtime/wiki-snapshot.mjs';
 import {stat} from 'node:fs/promises';
 import {WIKI_GIT_PREPARATION_TIMEOUT} from '../runtime/wiki-git-preparation.mjs';
 
+// A Windows checkout may carry CRLF (core.autocrlf): compare source text by its lines.
+const lf=text=>String(text).replace(/\r\n/g,'\n');
 async function setup(t,{gitProject=false}={}){
   const temp=await mkdtemp(path.join(os.tmpdir(),'nubi-wiki-flow-')),root=path.join(temp,'source');await mkdir(root);await writeFile(path.join(root,'app.txt'),'initial source\n');
   if(gitProject){await git(root,['init','-q']);await git(root,['add','-A']);await git(root,['-c','user.name=Fixture','-c','user.email=fixture@localhost','-c','commit.gpgSign=false','commit','-qm','Source']);}
   const service=new ProjectService({storageRoot:path.join(temp,'state')});
-  t.after(async()=>{service.dispose();service.store?.close();await rm(temp,{recursive:true,force:true});});
+  // Windows keeps a store file busy for a moment after close: retry the removal instead of failing the test on EBUSY.
+  t.after(async()=>{service.dispose();service.store?.close();await rm(temp,{recursive:true,force:true,maxRetries:10,retryDelay:200});});
   await service.open(root);service.providers={status:()=>({connected:true,provider:'fixture',model:'fixture'}),dispose(){}};
   service.wikiInitializer=async({root:copy})=>{
     assert.match((await git(copy,['rev-parse','HEAD'])).trim(),/^[a-f0-9]{40}$/,'OpenWiki receives its required Git snapshot');
@@ -211,8 +214,8 @@ test('refresh initializes absent Wiki instead of claiming it is already current'
 test('remote refresh updates code first and the model reads that remote revision',async t=>{
  const {root,service}=await setup(t,{gitProject:true});const remote=path.join(path.dirname(root),'remote');await git(path.dirname(root),['clone','-q',root,remote]);const branch=(await git(root,['branch','--show-current'])).trim();await git(root,['remote','add','origin',remote]);await git(root,['config',`branch.${branch}.remote`,'origin']);await git(root,['config',`branch.${branch}.merge`,'refs/heads/'+branch]);
  await writeFile(path.join(remote,'app.txt'),'remote source\n');await git(remote,['add','app.txt']);await git(remote,['-c','user.name=Fixture','-c','user.email=fixture@localhost','-c','commit.gpgSign=false','commit','-qm','Remote update']);const remoteHead=(await git(remote,['rev-parse','HEAD'])).trim();
- service.wikiUpdater=async({root:copy})=>{assert.equal((await git(copy,['rev-parse','HEAD'])).trim(),remoteHead);assert.equal(await readFile(path.join(copy,'app.txt'),'utf8'),'remote source\n');await publish(copy,'# App\nremote source\n');return {};};
- const result=await service.wikiUpdate({method:'refresh'});assert.equal(result.pulled.ok,true);assert.equal(await readFile(path.join(root,'app.txt'),'utf8'),'remote source\n');const ready=await settle(service,result.update.id);assert.equal(ready.state,'ready');await service.wikiUpdate({method:'apply',id:ready.id,fingerprint:ready.fingerprint});assert.equal((await wikiUpdateStatus(root)).state,'current');
+ service.wikiUpdater=async({root:copy})=>{assert.equal((await git(copy,['rev-parse','HEAD'])).trim(),remoteHead);assert.equal(lf(await readFile(path.join(copy,'app.txt'),'utf8')),'remote source\n');await publish(copy,'# App\nremote source\n');return {};};
+ const result=await service.wikiUpdate({method:'refresh'});assert.equal(result.pulled.ok,true);assert.equal(lf(await readFile(path.join(root,'app.txt'),'utf8')),'remote source\n');const ready=await settle(service,result.update.id);assert.equal(ready.state,'ready');await service.wikiUpdate({method:'apply',id:ready.id,fingerprint:ready.fingerprint});assert.equal((await wikiUpdateStatus(root)).state,'current');
 });
 test('folder-open with existing Git follows local history even when a remote exists',async t=>{
  const {root,service}=await setup(t,{gitProject:true});const head=(await git(root,['rev-parse','HEAD'])).trim();await git(root,['remote','add','origin','/not-contacted']);await service.open(root,{initializeWiki:false,sourceKind:'local'});await service.open(root,{initializeWiki:false});assert.equal(service.store.get('setting:wiki-source').mode,'local');
