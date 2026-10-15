@@ -56,7 +56,11 @@ jobs:
           [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path scripts/Publish-NubiUpdate.ps1), [ref]$null, [ref]$parseErrors) | Out-Null
           if ($parseErrors.Count) { throw ($parseErrors | Out-String) }
       - name: Verify native mail form and SSO recovery
-        run: node scripts/check-mail-inline-sso.mjs
+        run: |
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+            node scripts/check-mail-inline-sso.mjs
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
       - name: Build standalone Electron installer with bird icon
         run: npm run package:windows
       - name: Verify 1.2.0 fixes

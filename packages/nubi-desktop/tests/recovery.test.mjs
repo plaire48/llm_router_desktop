@@ -10,7 +10,7 @@ installAgent(ProjectService);
 const status=()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:32000}]});
 const call=(name,args={})=>({content:'',calls:[{id:crypto.randomUUID(),type:'function',function:{name,arguments:JSON.stringify(args)}}]});
 const reply=()=>({content:'기록을 확인했습니다. 전체 완료 조건은 아직 미확인입니다.',calls:[]});
-const wait=async check=>{for(let i=0;i<300;i++){if(check())return;await new Promise(r=>setTimeout(r,10));}assert.fail('state did not settle');};
+const wait=async(check,timeoutMs=3000)=>{const deadline=Date.now()+timeoutMs;while(Date.now()<deadline){if(check())return;await new Promise(r=>setTimeout(r,10));}assert.fail('state did not settle');};
 
 test('a configured command timeout preserves output and reaches diagnosis without replaying the command',async t=>{
   const {service}=await fixture(t),task=await service.createTask({request:'Check timed command'});let diagnosed=0;
@@ -67,8 +67,10 @@ test('Bash syntax and missing shell are not executed; configured timeout differs
   const {service,root}=await fixture(t),task=await service.createTask({request:'Check shells'});
   const broken=await service.run({taskId:task.id,script:'touch should-not-exist; if then',profile:'bash',autoDiagnose:false});assert.equal(broken.execution,'not_started');assert.equal(broken.fault,'shell_syntax');await assert.rejects(access(path.join(root,'should-not-exist')));
   const absent=await service.run({taskId:task.id,script:'echo x',profile:'not-installed',autoDiagnose:false});assert.equal(absent.fault,'shell_unavailable');assert.equal(absent.execution,'not_started');
-  const timed=await service.run({taskId:task.id,script:'sleep 5',profile:'bash',timeoutMs:30,autoDiagnose:false});await wait(()=>!service.processes.active.size);assert.equal(service.processes.poll(timed.id).state,'timed_out');
-  const stopped=await service.run({taskId:task.id,script:'sleep 5',profile:'bash'});service.processes.stop(stopped.id);await wait(()=>!service.processes.active.size);assert.equal(service.processes.poll(stopped.id).state,'cancelled');assert.equal(service.recoveryQueue.size,0);
+  // Windows taskkill can take several seconds. Keep natural exit well beyond
+  // the assertion deadline so merely waiting out the script cannot pass.
+  const timed=await service.run({taskId:task.id,script:'sleep 30',profile:'bash',timeoutMs:30,autoDiagnose:false});await wait(()=>!service.processes.active.size,10000);assert.equal(service.processes.poll(timed.id).state,'timed_out');
+  const stopped=await service.run({taskId:task.id,script:'sleep 30',profile:'bash'});service.processes.stop(stopped.id);await wait(()=>!service.processes.active.size,10000);assert.equal(service.processes.poll(stopped.id).state,'cancelled');assert.equal(service.recoveryQueue.size,0);
   const missingBinary=new Processes(service.store,{profiles:async()=>[{id:'bash',executable:path.join(root,'no-bash'),args:[]}]});const result=await missingBinary.start({cwd:root,taskId:task.id,script:'echo x',profile:'bash'});assert.equal(result.fault,'shell_executable_missing');
 });
 
