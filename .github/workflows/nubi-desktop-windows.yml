@@ -99,7 +99,7 @@ jobs:
           $previousPath = $env:Path
           $env:NUBI_BUNDLED_GIT = (Resolve-Path 'release/windows/win-unpacked/resources/git/cmd/git.exe').Path
           $env:Path = (Split-Path $env:NUBI_BUNDLED_GIT) + ';' + (Split-Path $node) + ';' + $env:SystemRoot + '\System32'
-          & $node --test tests/wiki-initialization-flow.test.mjs tests/wiki-update-bundle.test.mjs tests/wiki-update.test.mjs tests/wiki-update-view.test.mjs 2>&1 | Tee-Object -FilePath verification/windows-wiki-tests.log
+          & $node --test tests/wiki-initialization-flow.test.mjs tests/wiki-plan-completion.test.mjs tests/wiki-update-bundle.test.mjs tests/wiki-update.test.mjs tests/wiki-update-view.test.mjs 2>&1 | Tee-Object -FilePath verification/windows-wiki-tests.log
           $wikiExit = $LASTEXITCODE
           $env:Path = $previousPath
           Remove-Item Env:NUBI_BUNDLED_GIT

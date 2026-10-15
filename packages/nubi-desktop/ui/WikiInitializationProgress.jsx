@@ -11,6 +11,11 @@ Object.assign(errors,gitErrors,{wiki_runtime_missing:'위키 실행 파일을 �
 function elapsed(start,end){
   return durationLabel(Math.max(0,end-start));
 }
+Object.assign(errors,{
+  wiki_plan_missing:'AI가 위키 구성을 제출하지 못했어요. 준비한 파일은 보관했습니다. 모델을 변경한 뒤 이어서 시도할 수 있어요.',
+  wiki_plan_invalid:'AI가 만든 위키 구성이 형식에 맞지 않아요. 준비한 파일은 유지됩니다. 모델을 변경하거나 다시 시도해 주세요.',
+  wiki_analysis_limit:'구성 분석의 도구 호출 한도에 도달했어요. 준비한 파일은 유지됩니다. 분석 범위를 줄이거나 모델을 변경해 주세요.',
+});
 
 // Counts come from the runner. A clock is a duration, never a synthetic percent.
 export function WikiInitializationProgress({job, inline=false}) {

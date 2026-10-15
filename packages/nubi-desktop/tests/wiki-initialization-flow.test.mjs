@@ -138,6 +138,10 @@ test('Wiki failure diagnostics preserve actionable codes without raw errors',()=
   assert.equal(wikiInitializationError({code:'ENOSPC'},'publishing'),'wiki_disk_full');
   assert.equal(wikiInitializationError({code:'EEXIST'},'publishing'),'wiki_output_conflict');
   assert.equal(wikiInitializationError(Error('response_invalid'),'planning'),'response_invalid');
+  assert.equal(wikiInitializationError(Error('Repository planning worker exited without submit_plan.'),'planning'),'wiki_plan_missing');
+  assert.equal(wikiInitializationError(Object.assign(Error('private graph state'),{name:'GraphRecursionError'}),'planning'),'wiki_analysis_limit');
+  assert.equal(wikiInitializationError(Object.assign(Error('private plan'),{code:'invalid_input'}),'planning'),'wiki_plan_invalid');
+  assert.equal(wikiInitializationError(Error('request_failed'),'planning'),'model_failed');
   assert.equal(wikiInitializationError(Error('unknown_private_reply'),'planning'),'wiki_failed');
 });
 

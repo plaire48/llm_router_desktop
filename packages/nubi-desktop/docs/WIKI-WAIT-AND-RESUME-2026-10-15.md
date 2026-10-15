@@ -28,6 +28,14 @@ The new durable copy applies to initial generation. Update proposals retain thei
 
 ## Verification
 
+### Planning completion and durable failure boundary
+
+An AI Pro-style prose-only completion reproduced `planning / wiki_failed` with the actual bundled OpenWiki planner. The planner requires a validated `submit_plan` call; an explanation alone is not a plan. Desktop now retains the current transcript and asks for the missing tool submission up to twice. Rejected/empty responses during planning use the same submission reminder instead of asking for a short prose sentence. Only a matching native `accepted` tool receipt permits a text-only final response. Persistent omission reports `wiki_plan_missing`; native invalid-plan/recursion failures and transport failures receive distinct sanitized codes. The production user's original server response was unavailable, so this reproduces one confirmed failure path, not every cause of `wiki_failed`.
+
+The real runner also revealed that its finalizer removes `.run.json` after skipped pages. Checking the terminal model error only after the runner returned was too late. Desktop now stops at the native `finalizing` progress boundary before removal. Explicit retry reuses the accepted plan and only retries unfinished page work. Original files are unchanged and cancellation does not restart work. This preserves initial-generation checkpoints; the update-copy limitation above remains.
+
+Verification uses the actual bundled runner with scripted model responses: prose followed by a valid plan, invalid response followed by a plan, persistent omission, and page authentication failure followed by explicit resume. It does not prove the user's live AI Pro server or Windows machine succeeds.
+
 - Fake clock: eight minutes of active model response survive; ten minutes of silence ends once; cancellation interrupts immediately.
 - Desktop integration with synthetic model: local/Git snapshots survive host reopen, changed sources restart, publication retry does not invoke the model again, terminal failures are not swallowed by skipped pages.
 - Real local Git with injected preparation timeouts: both plain-folder and Git partial preparation survive host reopen, use the same analysis directory, preserve original project state and complete on retry. Verification timeout reuses copied Git history and unchanged file mtimes. A real child process verifies cancellation with the longer budget.

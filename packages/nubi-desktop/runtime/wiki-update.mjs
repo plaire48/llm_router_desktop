@@ -17,6 +17,7 @@ import {stalePages} from './wiki-evidence.mjs';
 import {OpenWikiIgnore,RepositoryEvidenceResolver,parseRepositoryEvidenceResource} from '../generated/openwiki.mjs';
 import {modelTransport} from './recovery.mjs';
 import {createRunMetrics} from './run-metrics.mjs';
+import {wikiPlanPending,WIKI_PLAN_REQUIRED} from './wiki-plan-completion.mjs';
 
 const WIKI='openwiki/',CLAIMS='openwiki/.claims/',RECORD='openwiki/.last-update.json',KEPT=20,EVENTS=40;
 const inWiki=rel=>rel.startsWith(WIKI);
@@ -97,11 +98,21 @@ export function defaultWikiUpdater(service,{load=()=>import('../generated/openwi
     const complete=async(wire,tools,options={})=>{
       if(terminalModelError)throw terminalModelError;
       const active=service.providers.status();if(!active.connected||active.model!==status.model||active.provider!==status.provider||active.connectionId!==status.connectionId)fail('provider_changed');
-      const request=withCallLimit(wire);let attempt=request;
+      const request=withCallLimit(wire),planPending=wikiPlanPending(wire,tools);let attempt=request,planRepairs=0;
       for(let retry=0;;retry++){
-        try{return await invoke(attempt,tools,options.signal||signal,'wiki_update',{retryInvalidResponse:false});}
+        try{
+          const result=await invoke(attempt,tools,options.signal||signal,'wiki_update',{retryInvalidResponse:false});
+          if(result.finishReason==='length')fail('output_limit');
+          if(planPending&&!result.calls?.length){
+            if(planRepairs++>=2)fail('wiki_plan_missing');
+            attempt=[...attempt,{role:'assistant',content:result.content||''},WIKI_PLAN_REQUIRED];
+            onEvent?.({type:'model_retry',attempt:planRepairs,code:'wiki_plan_missing'});
+            continue;
+          }
+          return result;
+        }
         catch(error){
-          if(error.message==='response_invalid'&&retry<3){attempt=[...request,TEXT_REPLY];continue;}
+          if(error.message==='response_invalid'&&retry<3){attempt=[...attempt,planPending?WIKI_PLAN_REQUIRED:TEXT_REPLY];continue;}
           // The runner turns a page worker's failure into a skipped page: without this the host saw only an empty Wiki (2026-10-12).
           terminalModelError=error;
           onEvent?.({type:'model_error',code:/^[a-z_]{3,60}$/.test(error?.message||'')?error.message:'model_failed'});throw error;
@@ -109,7 +120,12 @@ export function defaultWikiUpdater(service,{load=()=>import('../generated/openwi
       }
     };
     const model=new NubiOpenWikiModel({complete,signal,modelId:status.model,taskId:null});
-    const progress=event=>{if(event?.type==='repository_progress')onEvent({type:'progress',stage:String(event.stage),...(typeof event.page==='string'?{page:event.page.slice(0,300)}:{}),...(Number.isSafeInteger(event.pageIndex)?{index:event.pageIndex}:{}),...(Number.isSafeInteger(event.pageCount)?{total:event.pageCount}:{})});};
+    const progress=event=>{
+      // Native finalization removes .run.json even when a worker was skipped.
+      // Stop BEFORE that boundary so accepted plans/pages remain resumable.
+      if(event?.type==='repository_progress'&&event.stage==='finalizing'&&terminalModelError)throw terminalModelError;
+      if(event?.type==='repository_progress')onEvent?.({type:'progress',stage:String(event.stage),...(typeof event.page==='string'?{page:event.page.slice(0,300)}:{}),...(Number.isSafeInteger(event.pageIndex)?{index:event.pageIndex}:{}),...(Number.isSafeInteger(event.pageCount)?{total:event.pageCount}:{})});
+    };
     const result=await runNativeRepositoryGeneration({root,mode,language:language||null,modelId:status.model,model,onEvent:progress});
     // OpenWiki may return after skipping failed pages. Keep the durable run for
     // resume instead of publishing a partial generation as a completed Wiki.
