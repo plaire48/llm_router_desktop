@@ -17,7 +17,7 @@ export function MailStorageSetup({api,status,onClose,onDone}){
   }catch(cause){if(alive.current)setError(errors[cause.message]||'저장 위치를 적용하지 못했어요. 기존 원문은 유지됩니다.');}
   finally{lock.current=false;if(alive.current)setBusy(false);}
  }
- return <DetailPanel title={<span className="nubi-mail-storage-title"><FolderMark size={18}/>메일 저장 위치</span>} variant="modal" className="deck-dialog nubi-panel nubi-mail-storage-setup" hideHelp onClose={busy?undefined:onClose} footer={<>
+ return <DetailPanel title={<span className="deck-dialog nubi-mail-storage-title"><FolderMark size={18}/>메일 저장 위치</span>} variant="modal" className="deck-dialog nubi-panel nubi-mail-storage-setup" hideHelp onClose={busy?undefined:onClose} footer={<>
   <CxButton disabled={busy} onClick={()=>void choose(true)}>현재 위치 사용</CxButton>
   <CxButton variant="primary" disabled={busy} onClick={()=>void choose()}><FolderMark size={16}/>폴더 선택</CxButton>
  </>}>
