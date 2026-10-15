@@ -22,10 +22,11 @@ export function GhesStatus({profile}){
  const status=profile?.status,expires=Date.parse(status?.expiresAt);
  useEffect(()=>{if(!Number.isFinite(expires)||expires<=now)return;const timer=setTimeout(()=>setNow(Date.now()),Math.min(expires-Date.now()+1,2147483647));return()=>clearTimeout(timer);},[expires,now]);
  useEffect(()=>setImageFailed(false),[status?.image]);
- const visible=(status?.emoji||status?.image&&!imageFailed)&&(!status.expiresAt||Number.isFinite(expires)&&expires>Date.now());
+ const visible=(status?.emoji||status?.image)&&(!status.expiresAt||Number.isFinite(expires)&&expires>Date.now());
  if(!visible)return null;
  const label=status?.message||'GitHub 상태';
- return <span className="nubi-account-status-emoji" role="img" aria-label={`${status.emoji||status.name||'상태'} ${label}`} title={label}>{status.emoji||<img src={ghesImageUrl(status.image)} alt="" referrerPolicy="no-referrer" onError={()=>setImageFailed(true)}/>}</span>;
+ // A company picture that fails to load leaves its :name: in place rather than nothing (user report 2026-10-15).
+ return <span className="nubi-account-status-emoji" data-text={!status.emoji&&imageFailed?'':undefined} role="img" aria-label={`${status.emoji||status.name||'상태'} ${label}`} title={label}>{status.emoji||(imageFailed?`:${status.name||'status'}:`:<img src={ghesImageUrl(status.image)} alt="" referrerPolicy="no-referrer" onError={()=>setImageFailed(true)}/>)}</span>;
 }
 
 // Profile UI receives display identity and operation states only. Credentials,

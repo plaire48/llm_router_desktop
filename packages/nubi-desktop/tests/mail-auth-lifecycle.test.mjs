@@ -54,7 +54,8 @@ test('pending child authentication blocks probing the old parent mailbox',async(
 test('native session probes use cookies and never follow an SSO redirect or request arbitrary endpoints',async()=>{
  const {host}=fixture();await host.windowForLogin(true);const calls=[];
  host.window.webContents.session.fetch=async(url,args)=>{calls.push({url,args});return new Response(null,{status:302,headers:{location:'https://sso.example.invalid/login'}});};
- await assert.rejects(host.readSession('folders'),/mail_portal_login/);assert.equal(calls.length,1);assert.equal(calls[0].args.credentials,'include');assert.equal(calls[0].args.redirect,'manual');assert.equal(new URL(calls[0].url).pathname,'/mail/rest/v1/mails/desktop/folders');assert(!calls[0].args.headers.Cookie);
+ // A redirect to an unknown SSO host is not a login expiry (mail_portal_redirect, 2026-10-15); only the company login paths are.
+ await assert.rejects(host.readSession('folders'),/mail_portal_redirect/);assert.equal(calls.length,1);assert.equal(calls[0].args.credentials,'include');assert.equal(calls[0].args.redirect,'manual');assert.equal(new URL(calls[0].url).pathname,'/mail/rest/v1/mails/desktop/folders');assert(!calls[0].args.headers.Cookie);
  await assert.rejects(host.readSession('deleteMail'),/mail_portal_action/);assert.equal(calls.length,1);host.dispose();
 });
 test('API HTTPS upgrade keeps the exact fixed path and POST body and pins subsequent requests',async()=>{

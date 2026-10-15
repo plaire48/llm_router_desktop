@@ -1,0 +1,11 @@
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import {MailBody} from '../ui/MailBody.jsx';
+import '@e2e/cx-design-system/styles.css';
+import '../electron-app/workbench.css';
+import '../design/workspace-identity.css';
+import '../design/workspace-typography.css';
+const canvas=document.createElement('canvas');canvas.width=640;canvas.height=280;const ctx=canvas.getContext('2d');ctx.fillStyle='#F1F7FE';ctx.fillRect(0,0,640,280);ctx.fillStyle='#191F28';ctx.font='bold 24px sans-serif';ctx.fillText('Sales report',28,40);ctx.fillStyle='#3182F6';ctx.fillRect(70,130,120,100);ctx.fillRect(270,80,120,150);ctx.fillStyle='#191F28';ctx.font='18px sans-serif';ctx.fillText('Jan 120',70,258);ctx.fillText('Feb 180',270,258);
+const presentation={html:'<p>안녕하세요. 월별 매출 자료를 공유합니다.</p><img src="cid:chart" alt="월별 매출 그래프" onload="parent.mailUnsafe=true"><p><b>2월 매출</b>을 확인해 주세요.</p><script>parent.mailUnsafe=true</script><img src="file:///secret" alt="지원하지 않는 이미지"><img src="https://fixture.invalid/report.png" alt="외부 그래프">',images:[{cid:'chart',src:canvas.toDataURL('image/png')}]};
+window.fixtureImage=presentation.images[0].src;
+createRoot(document.getElementById('root')).render(<main style={{maxWidth:740,margin:'24px auto',padding:24}}><h2>메일 본문</h2><MailBody text="월별 매출" presentation={presentation}/></main>);

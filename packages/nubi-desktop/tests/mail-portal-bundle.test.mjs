@@ -16,3 +16,11 @@ test('the bundled mail reader script names the mail origin, not the placeholder'
   const source=contract.portalFetchSource();
   assert.ok(!source.includes('__NUBI_PORTAL_ORIGIN__'));assert.ok(source.includes(JSON.stringify(contract.ORIGIN)));
 });
+
+test('the packaged credential form script has no hidden bundler helper dependencies',async t=>{
+ const {runInNewContext}=await import('node:vm');
+ const dir=await mkdtemp(path.join(os.tmpdir(),'nubi-credential-bundle-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+ const result=await build({entryPoints:['electron-app/mail-credential-login.cjs'],bundle:true,platform:'node',format:'cjs',minify:true,keepNames:true,write:false,logLevel:'silent'});
+ const file=path.join(dir,'login.cjs');await writeFile(file,result.outputFiles[0].text);const {submitLogin}=createRequire(import.meta.url)(file);
+ assert.equal(runInNewContext(`(${submitLogin.toString()})({username:'fixture',password:'fixture'})`,{location:{protocol:'https:',hostname:'samsung.net',pathname:'/loginapp/login'},document:{querySelectorAll:()=>[]}}),'form_required');
+});

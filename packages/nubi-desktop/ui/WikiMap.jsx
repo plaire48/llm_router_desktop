@@ -1,6 +1,7 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {CxButton,Icon,SearchField} from '@e2e/cx-design-system';
 import {BookMark} from './marks.jsx';
+import {DriftLabel} from './DriftLabel.jsx';
 import {advanceWikiLayout,createWikiLayout,sectionColors,sectionLabel,wikiLayoutPositions} from './wiki-graph.mjs';
 
 // One picture of the whole Wiki: pages as circles sized by how many pages they
@@ -73,7 +74,7 @@ export function WikiMap({graph,selectedPath,onOpen,disabled}){
    {sideOpen?<aside className="nubi-wiki-map-side">
     {/* One control folds the panel (user standard 2026-10-14: no duplicate buttons); it sits in the first header. */}
     <div className="nubi-wiki-map-side-head"><h3><Icon name="link" size={16}/>연결 많은 문서</h3><button type="button" className="nubi-wiki-map-side-toggle" aria-label="목록 접기" title="목록 접기" onClick={()=>setSideOpen(false)}><Icon name="chevronsRight" size={16}/></button></div>
-    <ol>{graph.hubs.map(path=>{const node=byPath.get(path);return <li key={path}><button type="button" disabled={disabled} aria-pressed={selectedPath===path} title={`${node.title} (${sectionLabel(node.section)}, 연결 ${node.degree}개)`} aria-label={`${node.title}, 연결 ${node.degree}개`} onClick={()=>onOpen(path)}><i className="nubi-wiki-map-dot" aria-hidden="true" style={{background:colors.get(node.section)}}/><small className="nubi-wiki-map-count">{node.degree}</small><span>{node.title}</span></button></li>;})}{!graph.hubs.length&&<li className="nubi-muted">아직 연결된 문서가 없어요.</li>}</ol>
+    <ol>{graph.hubs.map(path=>{const node=byPath.get(path);return <li key={path}><button type="button" disabled={disabled} aria-pressed={selectedPath===path} title={`${node.title} (${sectionLabel(node.section)}, 연결 ${node.degree}개)`} aria-label={`${node.title}, 연결 ${node.degree}개`} onClick={()=>onOpen(path)}><i className="nubi-wiki-map-dot" aria-hidden="true" style={{background:colors.get(node.section)}}/><small className="nubi-wiki-map-count">{node.degree}</small><DriftLabel>{node.title}</DriftLabel></button></li>;})}{!graph.hubs.length&&<li className="nubi-muted">아직 연결된 문서가 없어요.</li>}</ol>
     {graph.orphans.length>0&&<details open><summary><h3 title={`고립 문서 ${graph.orphans.length}개`} data-orphan="true"><Icon name="alertCircle" size={16}/><span className="visually-hidden">고립 문서 </span><small>{graph.orphans.length}</small></h3><Icon name="chevronDown" size={14}/></summary><ul>{graph.orphans.slice(0,8).map(path=><li key={path}><button type="button" disabled={disabled} aria-pressed={selectedPath===path} title={`${byPath.get(path).title} (${sectionLabel(byPath.get(path).section)})`} onClick={()=>onOpen(path)}><i className="nubi-wiki-map-dot" aria-hidden="true" style={{background:colors.get(byPath.get(path).section)}}/><span>{byPath.get(path).title}</span></button></li>)}{graph.orphans.length>8&&<li className="nubi-muted">목록에서 고립 문서 필터로 모두 볼 수 있어요.</li>}</ul></details>}
    </aside>:<button type="button" className="nubi-wiki-map-side-open" aria-label="연결 많은 문서 목록 펼치기" title="연결 많은 문서 목록 펼치기" onClick={()=>setSideOpen(true)}><Icon name="chevronsLeft" size={16}/></button>}
   </div>

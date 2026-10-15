@@ -41,3 +41,20 @@ test('failed new imports remain eligible for retry without downloading saved mai
  f.fail(false);await f.host.sync();assert(f.known.has('portal:1:3'));
  assert.deepEqual(f.calls.filter(c=>c.operation==='eml').map(c=>c.seq),['3','3']);
 });
+
+test('automatic collection waits five minutes, imports only arrivals, and stops on disconnect',async t=>{
+ t.mock.timers.enable({apis:['setTimeout','Date'],now:1000});
+ const f=fixture();t.after(()=>f.host.dispose());
+ const checks=()=>f.calls.filter(c=>c.operation==='folders').length;
+ await f.host.sync();assert.equal(checks(),1);
+ f.setRows([4,3,2,1]);
+ t.mock.timers.tick(299999);assert.equal(checks(),1);
+ t.mock.timers.tick(1);await f.host.syncing;
+ assert.equal(checks(),2);assert.deepEqual(f.imports,['portal:1:3','portal:1:2','portal:1:1','portal:1:4']);
+ // A manual check replaces the scheduled check instead of creating another loop.
+ t.mock.timers.tick(60000);await f.host.recheck();assert.equal(checks(),3);
+ t.mock.timers.tick(299999);assert.equal(checks(),3);
+ t.mock.timers.tick(1);await f.host.syncing;assert.equal(checks(),4);
+ assert.equal(f.imports.length,4);
+ await f.host.disconnect();t.mock.timers.tick(600000);assert.equal(checks(),4);
+});

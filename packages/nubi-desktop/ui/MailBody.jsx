@@ -14,8 +14,9 @@ function HtmlMailBody({presentation,query}){
   const resize=()=>setHeight(Math.max(80,Math.min(16000,doc.documentElement.scrollHeight,doc.body.scrollHeight)));
   const observer=new ResizeObserver(resize);observer.observe(doc.body);
   const activate=event=>{if(event.type==='keydown'&&!['Enter',' '].includes(event.key))return;const link=event.target.closest?.('a[data-mail-href]');if(!link)return;event.preventDefault();window.open(link.dataset.mailHref,'_blank','noopener,noreferrer');};
-  doc.addEventListener('click',activate);doc.addEventListener('keydown',activate);resize();
-  cleanup.current=()=>{observer.disconnect();doc.removeEventListener('click',activate);doc.removeEventListener('keydown',activate);};
+  const imageError=event=>{if(event.target.tagName!=='IMG')return;const note=doc.createElement('span');note.className='mail-image-missing';note.textContent=event.target.alt||'이미지를 불러오지 못했어요';event.target.replaceWith(note);resize();};
+  doc.addEventListener('error',imageError,true);doc.addEventListener('click',activate);doc.addEventListener('keydown',activate);resize();
+  cleanup.current=()=>{observer.disconnect();doc.removeEventListener('error',imageError,true);doc.removeEventListener('click',activate);doc.removeEventListener('keydown',activate);};
  }
  return <iframe ref={frame} title="메일 본문" className="nubi-mail-html-body" sandbox="allow-same-origin" referrerPolicy="no-referrer" srcDoc={srcDoc} onLoad={loaded} style={{height}}/>;
 }

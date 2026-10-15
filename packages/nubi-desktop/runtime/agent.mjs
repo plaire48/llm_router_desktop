@@ -1,3 +1,4 @@
+import {mailParts} from './mail-body-images.mjs';
 import {readMailAttachmentsForAgent} from './mail-agent-attachments.mjs';
 import {DEVELOPMENT_GUIDANCE,needsDevelopmentGuidance} from './development-workflow.mjs';
 import {notifyDeliveredAnswer} from './answer-notification.mjs';
@@ -512,7 +513,7 @@ export function installAgent(ProjectService) {
       else if(name==='mail_facts')result=await read(()=>this.mail({...args,action:'facts'}));
       else if(name==='read_personal_mail')result=await read(async()=>{
         const value=await this.mail({action:'read',id:args.id,includeKnowledge:true}),selected=(task.mailReferences||[]).filter(item=>item.id===args.id);
-        if(selected.some(item=>item.sourceHash!==value.sourceHash||item.attachmentId&&!value.mail.attachments.some(attachment=>attachment.id===item.attachmentId&&attachment.sha256===item.attachmentHash)))throw Error('mail_source_changed');
+        if(selected.some(item=>item.sourceHash!==value.sourceHash||item.attachmentId&&!mailParts(value.mail).some(attachment=>attachment.id===item.attachmentId&&attachment.sha256===item.attachmentHash)))throw Error('mail_source_changed');
         if(!DESKTOP_FEATURES.mailAttachmentReading&&selected.some(item=>item.attachmentId))throw Error('mail_attachment_beta_disabled');
         const references=selected.length?selected:[{id:value.id,sourceHash:value.sourceHash,title:value.mail.subject,from:value.mail.from,date:value.mail.date}];
         for(const reference of references)readMailSources.set(`${reference.id}:${reference.attachmentId||''}:${JSON.stringify(reference.location||{})}`,reference);

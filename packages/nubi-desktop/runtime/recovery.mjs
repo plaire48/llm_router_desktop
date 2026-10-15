@@ -15,14 +15,14 @@ export const recoveryCode=error=>safeError(error);
 
 // Reuse Nubi's p-retry transport. Only inference is repeated; tool receipts
 // already in the transcript are never executed by a transport retry.
-export function modelTransport(service,{signal,onRetry,metrics,onText,onReasoning}){
+export function modelTransport(service,{signal,onRetry,onSlow,onResumed,waitPolicy,metrics,onText,onReasoning}){
   const cooldown=createModelCooldown();
   const batchLimit={role:'system',content:'Host limit: return at most 8 tool calls in one response. Split larger sets across responses; never drop remaining required reads.'};
   // Telemetry reads the model name defensively: it must not add a failure path.
   const modelName=()=>{try{return service.providers.status().model;}catch{return null;}};
   // retries may lower the retries of one call (a large request), never raise them.
   return (messages,tools,childSignal=signal,purpose='actor',{retries,visionModel,maxTokens,toolChoice,responseFormat,retryInvalidResponse=true}={})=>{
-    const options={retries:2,...service.recoveryOptions?.model};
+    const options={retries:2,...waitPolicy,...service.recoveryOptions?.model};
     // Keep the existing system/payload positions used by structured planners.
     const at=messages.findIndex(message=>message.role==='system'&&typeof message.content==='string');
     const base=tools.length&&!messages.some(message=>message.role==='system'&&typeof message.content==='string'&&message.content.includes('at most 8 tool calls'))?(at<0?[batchLimit,...messages]:messages.map((message,index)=>index===at?{...message,content:message.content+'\n'+batchLimit.content}:message)):messages;
@@ -36,7 +36,7 @@ export function modelTransport(service,{signal,onRetry,metrics,onText,onReasonin
       // asked for again within this budget: the shared policy retries only network, timeout, 429 and 5xx, and one
       // server-side stream error ended a run (measured 2026-10-12, S29: 2 of 6 identical requests for an hour).
       catch(error){const code=safeError(error);if(code==='response_invalid')rejected=true;measured?.fail(code);throw Object.assign(new Error(({network_error:'network',network_timeout:'model_timeout'})[code]||code),{status:error.status,retryAfterMs:error.retryAfterMs,...(code==='response_invalid'?{retryable:retryInvalidResponse}:{}),...(error.apiDiagnostic?{apiDiagnostic:error.apiDiagnostic}:{})});}
-    },{signal:childSignal,cooldown,...options,...(Number.isSafeInteger(retries)?{retries:Math.min(retries,options.retries)}:{}),onRetry});
+    },{signal:childSignal,cooldown,...options,...(Number.isSafeInteger(retries)?{retries:Math.min(retries,options.retries)}:{}),onRetry,onSlow,onResumed});
   };
 }
 

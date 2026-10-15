@@ -12,6 +12,9 @@
 .nubi-wiki-count{color:var(--deck-sub);font:var(--deck-font-caption);margin-right:auto}
 .nubi-wiki-settings-link.cx-kit-button{display:inline-grid;place-items:center;width:36px;height:36px;padding:0;border:0;border-radius:var(--nubi-work-control-radius);background:var(--deck-blue-soft);color:var(--deck-blue-deep)}
 .nubi-wiki-scope{display:flex;align-items:center;gap:var(--cx-space-3);min-width:0}.nubi-wiki-scope>.nubi-catalog-tabs{flex:1;min-width:0}.nubi-wiki-scope>.cx-select,.nubi-wiki-scope>select{flex:none;width:220px;max-width:40%}
+.nubi-wiki-scope .agent-tabs,.nubi-wiki-scope .agent-tab-controls{min-width:0;max-width:100%}
+:root:has(.desktop-shell) .nubi-wiki-scope .agent-tab-controls [role=tab]{flex:1 1 0%;overflow:hidden}
+.nubi-wiki-scope [role=tab]>.nubi-drift-label{flex:0 1 auto;width:auto;min-width:0}
 .nubi-wiki-error{color:var(--deck-red);margin:0}.nubi-wiki-saved{color:var(--deck-green);margin:0}
 /* List */
 .nubi-wiki-list{display:flex;flex-direction:column;gap:var(--cx-space-2);min-width:0}
@@ -76,6 +79,8 @@
 .nubi-wiki-map-side ol,.nubi-wiki-map-side ul{list-style:none;margin:0;padding:0;display:grid;gap:2px}
 .nubi-wiki-map-side{max-height:clamp(420px,62vh,880px);overflow:auto}.nubi-wiki-map-side button{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--cx-space-2);width:100%;padding:var(--cx-space-2) var(--cx-space-2);border:0;border-radius:8px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;min-width:0}.nubi-wiki-map-side button>span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;white-space:normal;line-height:1.4}.nubi-wiki-map-side button>small{flex:none;font-variant-numeric:tabular-nums}
 .nubi-wiki-map-side button:hover,.nubi-wiki-map-side button[aria-pressed=true]{background:var(--deck-blue-soft);color:var(--deck-blue-deep)}.nubi-wiki-map-side small{color:var(--deck-sub);font-variant-numeric:tabular-nums}
+.nubi-wiki-map-side button>.nubi-drift-label{display:block;-webkit-line-clamp:unset;white-space:nowrap;overflow-wrap:normal}
+.nubi-wiki-map-side :is(ol,ul){grid-template-columns:minmax(0,1fr);min-width:0}.nubi-wiki-map-side li{min-width:0}
 @media(max-width:860px){.nubi-wiki-browser{padding:var(--cx-space-3)}.nubi-wiki-map-body{grid-template-columns:1fr}.nubi-wiki-scope{flex-wrap:wrap}.nubi-wiki-scope>.cx-select,.nubi-wiki-scope>select{width:100%;max-width:none}.nubi-wiki-document{padding:var(--cx-space-4) 0}}
 /* Motion: short fades when a view or a document changes, eased hover and emphasis; nothing moves on its own. */
 @keyframes nubi-wiki-fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}

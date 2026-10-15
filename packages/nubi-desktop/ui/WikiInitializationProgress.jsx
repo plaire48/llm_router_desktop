@@ -34,6 +34,8 @@ export function WikiInitializationProgress({job, inline=false}) {
     {!inline&&percent!==null&&<div className="nubi-progress" role="progressbar" aria-label={`${title} 진행률`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-valuetext={`${percent}%${job.total>0?` (${job.completed}/${job.total})`:''}`}><span style={{width:`${percent}%`}}/></div>}
     {!inline&&running&&job.total>0&&percent!==null&&<small>{job.completed}/{job.total}{['reading','snapshot','publishing'].includes(job.stage)?'개 파일':'개 문서'}</small>}
     {!inline&&running&&remaining!==null&&<small className="nubi-wiki-eta">현재 단계 약 {elapsed(0,remaining*1000)} 남음</small>}
+    {!inline&&running&&job.modelWaiting&&<small role="status">AI 응답을 기다리고 있어요. 받은 결과는 유지됩니다.</small>}
+    {!inline&&job.canResume&&['attention','cancelled'].includes(job.state)&&<small>작업을 보관했어요. 원본이 같으면 완료한 문서를 이어서 사용합니다.</small>}
     {!inline&&job.state==='attention'&&<><small role="alert">{errors[job.error]||`${stages[job.stage]||'위키 준비'} 단계에서 멈췄어요. 아래 오류 코드를 확인해 주세요.`}</small><details className="nubi-wiki-error-detail"><summary>오류 상세</summary><p>{stages[job.stage]||'위키 준비'}{duration?` / 진행 ${duration}`:''}</p><code>{/^[a-z_]{1,80}$/.test(job.error||'')?job.error:'wiki_failed'}</code></details></>}
   </div>;
 }

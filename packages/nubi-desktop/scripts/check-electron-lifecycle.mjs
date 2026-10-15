@@ -20,13 +20,14 @@ async function dismissStartup(page){await page.locator('.desktop-shell[data-star
 {
   const first=await launch();
   try{const page=await first.firstWindow();await page.getByRole('navigation',{name:'프로젝트 도구'}).waitFor({timeout:30000});await new Promise(resolve=>setTimeout(resolve,1500));
-    result.promptOnFreshStore=await page.getByText('메일을 연결해 주세요').count();assert.equal(result.promptOnFreshStore,1,'disconnected mail has startup guidance');await page.keyboard.press('Escape');}
+    /* Startup guidance for a disconnected mailbox: the connection prompt, or (since 2026-10-15) the company mail login form. */
+    result.promptOnFreshStore=await page.getByText(/메일을 연결해 주세요|사내 메일 로그인/).count();assert.equal(result.promptOnFreshStore,1,'disconnected mail has startup guidance');await page.keyboard.press('Escape');}
   finally{await first.close();}
   const {DatabaseSync}=await import('node:sqlite');await mkdir(path.join(storage,'personal-mail'),{recursive:true});
   const db=new DatabaseSync(path.join(storage,'personal-mail','workspace.db'));
   db.exec("PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS records (key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO records VALUES ('setting:auto-wiki','true') ON CONFLICT(key) DO UPDATE SET value=excluded.value;");db.close();
   const second=await launch();
-  try{const page=await second.firstWindow();await page.getByText('메일을 연결해 주세요').waitFor({timeout:30000});result.promptWithSummariesOn=true;await page.keyboard.press('Escape');}
+  try{const page=await second.firstWindow();await page.getByText(/메일을 연결해 주세요|사내 메일 로그인/).first().waitFor({timeout:30000});result.promptWithSummariesOn=true;await page.keyboard.press('Escape');}
   finally{await second.close();}
 }
 const app=await launch();

@@ -73,6 +73,9 @@ export async function wikiUpdateStatus(root){
 export const CALL_LIMIT={role:'system',content:'Host limit: return at most 8 tool calls in one response. Split larger sets of calls across responses.'};
 export const TEXT_REPLY={role:'user',content:'Host note: if no tool call is needed now, reply with one short sentence.'};
 const withCallLimit=wire=>{const at=wire.findIndex(message=>message.role!=='system');return at<0?[...wire,CALL_LIMIT]:[...wire.slice(0,at),CALL_LIMIT,...wire.slice(at)];};
+// Repository reasoning may be slow. Parsed model activity keeps it alive; a
+// silent request pauses for explicit resume instead of repeating ten-minute waits.
+export const WIKI_MODEL_WAIT_POLICY=Object.freeze({idleMs:600000,attemptMs:0,slowMs:30000,retryTimeouts:false});
 
 // The runner OpenWiki uses for `openwiki --update`, with the model the user logged in to Desktop.
 // Model calls are counted under the purpose wiki_update. Only progress facts leave the run:
@@ -89,8 +92,10 @@ export function defaultWikiUpdater(service,{load=()=>import('../generated/openwi
     // As `openwiki --update` does: the runner's agents read the skills from the OpenWiki home.
     onEvent?.({type:'progress',stage:'preparing_skills'});
     try{await syncBundledSkills?.();}catch(error){if(error?.code==='ENOENT')fail('wiki_skills_missing');throw error;}
-    const invoke=modelTransport(service,{signal,metrics:createRunMetrics({store:service.store,taskId:'wiki-update:'+updateId,runId:updateId})});
+    const invoke=modelTransport(service,{signal,waitPolicy:WIKI_MODEL_WAIT_POLICY,onSlow:()=>onEvent?.({type:'model_wait',waiting:true}),onResumed:()=>onEvent?.({type:'model_wait',waiting:false}),onRetry:(attempt,detail)=>onEvent?.({type:'model_retry',attempt,code:detail.code||'network_error'}),metrics:createRunMetrics({store:service.store,taskId:'wiki-update:'+updateId,runId:updateId})});
+    let terminalModelError;
     const complete=async(wire,tools,options={})=>{
+      if(terminalModelError)throw terminalModelError;
       const active=service.providers.status();if(!active.connected||active.model!==status.model||active.provider!==status.provider||active.connectionId!==status.connectionId)fail('provider_changed');
       const request=withCallLimit(wire);let attempt=request;
       for(let retry=0;;retry++){
@@ -98,13 +103,18 @@ export function defaultWikiUpdater(service,{load=()=>import('../generated/openwi
         catch(error){
           if(error.message==='response_invalid'&&retry<3){attempt=[...request,TEXT_REPLY];continue;}
           // The runner turns a page worker's failure into a skipped page: without this the host saw only an empty Wiki (2026-10-12).
+          terminalModelError=error;
           onEvent?.({type:'model_error',code:/^[a-z_]{3,60}$/.test(error?.message||'')?error.message:'model_failed'});throw error;
         }
       }
     };
     const model=new NubiOpenWikiModel({complete,signal,modelId:status.model,taskId:null});
     const progress=event=>{if(event?.type==='repository_progress')onEvent({type:'progress',stage:String(event.stage),...(typeof event.page==='string'?{page:event.page.slice(0,300)}:{}),...(Number.isSafeInteger(event.pageIndex)?{index:event.pageIndex}:{}),...(Number.isSafeInteger(event.pageCount)?{total:event.pageCount}:{})});};
-    return runNativeRepositoryGeneration({root,mode,language:language||null,modelId:status.model,model,onEvent:progress});
+    const result=await runNativeRepositoryGeneration({root,mode,language:language||null,modelId:status.model,model,onEvent:progress});
+    // OpenWiki may return after skipping failed pages. Keep the durable run for
+    // resume instead of publishing a partial generation as a completed Wiki.
+    if(terminalModelError)throw terminalModelError;
+    return result;
   };
 }
 

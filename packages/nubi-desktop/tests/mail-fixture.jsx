@@ -16,10 +16,13 @@ async function api(method,args={}){
  if(method!=='mail')throw Error('fixture_method');
  if(args.action==='status')return structuredClone(status);
  window.mailCalls.push(structuredClone(args));
- if(args.action==='portalLogin'){if(window.mailSlow)await new Promise(r=>window.releaseMail=r);if(window.mailFail)throw Error(typeof window.mailFail==='string'?window.mailFail:'mail_portal_login');status.connected=true;status.counts={received:1,saved:1,queued:0,attention:0};status.messages=[{id:'one',subject:'계약 검토',state:'saved',from:'sender@fixture',fetchedAt:new Date().toISOString()}];status.destination=args.destination;status.nextCheckAt=new Date(Date.now()+60000).toISOString();}
+ if(args.action==='portalLogin'){if(window.mailSlow){status.connecting=true;try{await new Promise(r=>window.releaseMail=r);}finally{status.connecting=false;}}if(window.mailFail){status.error=typeof window.mailFail==='string'?window.mailFail:'mail_portal_login';throw Error(status.error);}status.error=null;status.connected=true;status.counts={received:1,saved:1,queued:0,attention:0};status.messages=[{id:'one',subject:'계약 검토',state:'saved',from:'sender@fixture',fetchedAt:new Date().toISOString()}];status.destination=args.destination;status.nextCheckAt=new Date(Date.now()+60000).toISOString();}
  if(args.action==='setAutoWiki')status.autoWiki=args.enabled;
  if(args.action==='disconnect'||args.action==='cancelConnect')status.connected=false;
  return structuredClone(status);
 }
+// The library's 포털 로그인 button raises nubi-mail-login for the Workbench's login flow (2026-10-15); here the fixture plays
+// that flow: it calls the host login and, like the real host, leaves a failure in the mail status for the library to show.
+window.addEventListener('nubi-mail-login',()=>{void api('mail',{action:'portalLogin'}).catch(()=>{});});
 function Fixture(){const [open,setOpen]=useState(true);return <main className="nubi-workbench"><WorkspaceToast/><CxButton onClick={()=>setOpen(true)}>메일 열기</CxButton>{open&&<DetailPanel className="deck-dialog nubi-panel" title="메일 설정" variant="modal" onClose={()=>setOpen(false)}><MailLibrary api={api} provider={{connected:true,provider:'aipro',model:'fixture'}}/></DetailPanel>}</main>;}
 createRoot(document.getElementById('root')).render(<Fixture/>);

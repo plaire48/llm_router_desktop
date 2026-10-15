@@ -28,6 +28,8 @@ try{
   await writeFile(path.join(dir,'before.json'),JSON.stringify(baseline,null,2));console.log(JSON.stringify(baseline));
  }else{
   assert.equal(during.disabled,false);assert.equal(during.searchCalls,calls);assert.deepEqual(await results.locator('tbody tr').allTextContents(),before);assert.equal(await results.evaluate(el=>el.scrollTop),scroll);
+  assert.equal(await page.evaluate(()=>window.mailCalls.filter(c=>c.action==='history').length),0);
+  assert(await page.evaluate(()=>window.mailCalls.filter(c=>c.action==='status').every(c=>c.includeMessages===false)));
   assert(await page.getByRole('checkbox',{name:'업무 메일 22 선택',exact:true}).isChecked());
   await page.screenshot({path:path.join(dir,'update-available.png')});
   await page.setViewportSize({width:600,height:900});
@@ -45,6 +47,7 @@ try{
   await page.getByRole('button',{name:'새 메일 확인',exact:true}).click();
   await page.waitForTimeout(100);assert.equal(await page.evaluate(()=>window.mailCalls.filter(c=>c.action==='search').length),searchesBeforeCheck);
   assert.equal(await page.evaluate(()=>window.mailCalls.filter(c=>c.action==='portalSync').length),1);
+  assert.equal(await page.evaluate(()=>window.mailCalls.filter(c=>c.action==='history').length),0);
   await page.screenshot({path:path.join(dir,'reading.png')});
   await page.evaluate(()=>{window.mailDelay=0;window.arrive();});await page.waitForTimeout(3100);
   await page.getByRole('button',{name:'다음 메일 페이지',exact:true}).click();await page.waitForFunction(()=>document.querySelector('.nubi-mail-page-options>summary')?.textContent.includes('41–60'));

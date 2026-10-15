@@ -58,7 +58,7 @@ function recordFault(component,details={}){
  void mkdir(storage,{recursive:true}).then(()=>writeFile(path.join(storage,'last-host-fault.json'),JSON.stringify(record),{mode:0o600})).catch(()=>{});
 }
 process.on('uncaughtExceptionMonitor',()=>recordFault('main'));
-async function portalMailStatus(){void mailPortal.restore();const status=await invoke('mail',{action:'status'}),portal=mailPortal.status();return {...status,protocol:'portal',serverProfile:'portal',connected:portal.connected,connecting:portal.connecting,checking:portal.checking,error:portal.error||status.error,folders:portal.folders.length?portal.folders:status.folders,portal,progress:{...status.progress,stage:portal.connecting?'connecting':portal.checking?'checking':!portal.connected&&!status.localCount?'disconnected':status.progress.stage,lastCheckedAt:portal.lastCheckedAt}};}
+async function portalMailStatus(snapshot,{includeMessages=true}={}){void mailPortal.restore();const status=snapshot||await invoke('mail',{action:'status',includeMessages}),portal=mailPortal.status();return {...status,protocol:'portal',serverProfile:'portal',connected:portal.connected,connecting:portal.connecting,checking:portal.checking,error:portal.error||status.error,folders:portal.folders.length?portal.folders:status.folders,portal,progress:{...status.progress,stage:portal.connecting?'connecting':portal.checking?'checking':!portal.connected&&!status.localCount?'disconnected':status.progress.stage,lastCheckedAt:portal.lastCheckedAt}};}
 function invoke(method,args={}){if(!worker)return Promise.reject(Error('host_disconnected'));return worker.invoke(method,args);}
 // What the window needs to hear from the host itself (the worker restarted, or gave up): nubi:host-event.
 function hostEvent(event){if(window&&!window.isDestroyed()&&!window.webContents.isDestroyed())window.webContents.send('nubi:host-event',event);}
@@ -80,10 +80,12 @@ async function captureAppWindow(options={}){if(!window||window.isDestroyed())thr
 function openWorkspacePage(url,options={}){if(!browserHost||!window||window.isDestroyed())throw Error('browser_unavailable');const tab=browserHost.create(workspacePageUrl(url),options);window.webContents.send('nubi:browser-event',{type:'opened',state:browserHost.status()});return {opened:true,tabId:tab.id,userInteractionRequired:true};}
 function openPageLink(url){try{openWorkspacePage(url);}catch(error){window.webContents.send('nubi:browser-event',{type:'error',error:/^[a-z_]+$/.test(error.message)?error.message:'browser_url_invalid'});}}
 const {createDecisionNotices}=require('./decision-notices.cjs');
+const {createMailLoginNotices}=require('./mail-login-notices.cjs');
+const mailLoginNotices=createMailLoginNotices({Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
 const {createAnswerNotices}=require('./answer-notices.cjs');
 const answerNotices=createAnswerNotices({Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
 const decisionNotices=createDecisionNotices({Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
-app.on('before-quit',()=>{decisionNotices.clear();answerNotices.clear();});
+app.on('before-quit',()=>{decisionNotices.clear();answerNotices.clear();mailLoginNotices.clear();});
 const {connectionVault}=require('./connection-vault.cjs');
 const vault=connectionVault({directory:path.join(storage,'connections-v1'),safeStorage:require('electron').safeStorage});
 function secretScope(service,key){if(service!=='nubi.workspace.electron'||key!=='nubi.ghes.code.sdsdev.co.kr')throw Error('secret_scope');}
@@ -170,7 +172,7 @@ app.whenReady().then(async()=>{
  const {screen}=require('electron'),windowState=restoreWindowState(await loadWindowState(),screen.getAllDisplays());
  const installId=await installationStamp({packaged:app.isPackaged,platform:process.platform,executable:app.getPath('exe')});
  window=new BrowserWindow({icon:appIcon,width:windowState.width,height:windowState.height,...(windowState.x!==undefined?{x:windowState.x,y:windowState.y}:{}),minWidth:620,minHeight:540,title:'누비 Workspace Beta',backgroundColor:'#F1F7FE',titleBarStyle:process.platform==='darwin'?'hiddenInset':'hidden',...(process.platform==='darwin'?{trafficLightPosition:{x:14,y:17}}:{titleBarOverlay:DEFAULT_TITLEBAR}),webPreferences:{additionalArguments:installId?['--nubi-installation='+installId]:[],preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false}});
- window.webContents.on('did-start-navigation',(_event,_url,_inPlace,isMainFrame)=>{if(isMainFrame){decisionNotices.clear();answerNotices.clear();applyCaptionColors(window,DEFAULT_TITLEBAR);}});
+ window.webContents.on('did-start-navigation',(_event,_url,_inPlace,isMainFrame)=>{if(isMainFrame){decisionNotices.clear();answerNotices.clear();mailLoginNotices.clear();applyCaptionColors(window,DEFAULT_TITLEBAR);}});
  if(windowState.maximized)window.maximize();
  for(const name of ['resize','move','maximize','unmaximize'])window.on(name,saveWindowState);
  window.on('close',()=>{clearTimeout(windowStateTimer);try{require('node:fs').mkdirSync(storage,{recursive:true});require('node:fs').writeFileSync(windowStateFile,JSON.stringify(windowStateOf(window)),{mode:0o600});}catch{}});
@@ -187,7 +189,7 @@ app.whenReady().then(async()=>{
  window.on('responsive',()=>unresponsive?.abort());
  claudeCliUsage=createClaudeCliUsage();
  claudeWeb=new ClaudeWeb({BrowserWindow,parent:window,openPage:(url,options)=>openWorkspacePage(url,{...options,authentication:true,httpsOnly:true,session:session.fromPartition('persist:nubi-claude-web')}),closePage:tabId=>{if(browserHost?.tabs.has(tabId))browserHost.closeTab(tabId,{returnToApp:true});}});
- mailPortal=new MailPortal({BrowserWindow,invoke,parent:window,openPage:(url,options)=>openWorkspacePage(url,{...options,authentication:true,httpsOnly:/^https:/i.test(String(url)),session:companySession()}),getPageContents:tabId=>[...(browserHost?.tabs.values()||[])].filter(row=>row.ownerId===tabId).map(row=>row.view.webContents),closePage:tabId=>{for(const row of [...(browserHost?.tabs.values()||[])].reverse())if(row.ownerId===tabId)browserHost.closeTab(row.id,{returnToApp:true});}});
+ mailPortal=new MailPortal({BrowserWindow,invoke,parent:window,onDisconnected:notice=>mailLoginNotices.show(notice),openPage:(url,options)=>openWorkspacePage(url,{...options,authentication:true,httpsOnly:/^https:/i.test(String(url)),session:companySession()}),getPageContents:tabId=>[...(browserHost?.tabs.values()||[])].filter(row=>row.ownerId===tabId).map(row=>row.view.webContents),closePage:tabId=>{for(const row of [...(browserHost?.tabs.values()||[])].reverse())if(row.ownerId===tabId)browserHost.closeTab(row.id,{returnToApp:true});}});
  browserHost=new BrowserHost(window,{onFault:recordFault,loginCode:()=>{const device=host.account.device;return device&&device.expiresAt>Date.now()?device.code:null;}});
  playwrightHost=new PlaywrightHost(browserHost);
  window.webContents.setWindowOpenHandler(({url})=>{
@@ -254,18 +256,25 @@ app.whenReady().then(async()=>{
    if(/^portal(?:Connect|Import|Folders|Known|Rejected|Document)$/.test(args.action||'')||['download','importFolder'].includes(args.action))throw Error('method_invalid');
    if(args.action==='approvals')return mailPortal.approvals(args);
    if(args.action==='approvalRead')return mailPortal.approvalRead(args);
+   if(['portalSession','portalCredentials'].includes(args.action)){
+    if(source!=='electron')throw Error('mail_portal_desktop_only');
+    const result=args.action==='portalSession'?await mailPortal.sessionReady():await mailPortal.connectCredentials(args);
+    if(result.connected){mailLoginNotices.clear();hostEvent({type:'mail_portal_connected'});}
+    return {...await portalMailStatus(),requiresLogin:result.requiresLogin===true};
+   }
    if(args.action==='portalLogin'){
     if(source!=='electron')throw Error('mail_portal_desktop_only');mailPortal.requestId=args.requestId;
     try{await mailPortal.connect(args);}catch(error){if(error.message!=='mail_cancelled')hostEvent({type:'mail_portal_failed',error:/^mail_[a-z_]+$/.test(error.message)?error.message:'mail_portal_request'});throw error;}
-    hostEvent({type:'mail_portal_connected'});return portalMailStatus();
+    mailLoginNotices.clear();hostEvent({type:'mail_portal_connected'});return portalMailStatus();
    }
    // Cancel stops whatever portal connection is running, even when the screen that asked was reopened and no longer
    // holds the request id (user report 2026-10-14: 연결 취소 kept connecting).
    if(args.action==='cancelConnect'){if(args.requestId===mailPortal.requestId||mailPortal.status().connecting)await mailPortal.disconnect();return portalMailStatus();}
-   if(args.action==='disconnect'){await mailPortal.disconnect();return portalMailStatus();}
+   if(args.action==='disconnect'){await mailPortal.disconnect();await mailPortal.clearPortalSession();mailLoginNotices.clear();return portalMailStatus();}
    if(args.action==='portalSync'||['check','retryDownloads'].includes(args.action)&&mailPortal.status().connected){await mailPortal.recheck();return portalMailStatus();}
    if(['pauseWatch','resumeWatch'].includes(args.action)){await invoke('mail',args);if(args.action==='pauseWatch')clearTimeout(mailPortal.timer);else if(mailPortal.status().connected)void mailPortal.sync().catch(()=>{});return portalMailStatus();}
-   if(args.action==='status'||args.action===undefined)return portalMailStatus();
+   if(args.action==='attention'){const page=await invoke('mail',args);return {...page,status:await portalMailStatus(page.status)};}
+   if(args.action==='status'||args.action===undefined)return portalMailStatus(null,{includeMessages:args.includeMessages!==false});
   }
   // The person picks where mail and attachment originals live; the mail runtime moves what is already there.
   if(method==='chooseMcpFolder'){if(source!=='electron')throw Error('mcp_desktop_only');const directory=await choose(['openDirectory'],'MCP 서버 작업 폴더');return directory?{path:directory}:{cancelled:true};}

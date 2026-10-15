@@ -95,3 +95,4 @@
 .nubi-account-profile .nubi-account-status-emoji { width:24px; height:24px; font-size:var(--nubi-account-status-profile-font); }
 /* Beside the name the emoji needs no badge circle (2026-10-14). */
 .nubi-account-status-emoji { display:inline-grid; background:transparent; box-shadow:none; }
+.nubi-account-status-emoji[data-text] { width:auto; padding-inline:4px; font:var(--deck-font-caption); color:var(--deck-sub); }

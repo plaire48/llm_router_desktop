@@ -10,20 +10,21 @@ export function MailProgress({api,wiki,onSettings,onOpenMessage}){
   const [status,setStatus]=useState(null),[unavailable,setUnavailable]=useState(false);
   const [open,setOpen]=useState(false),trigger=useRef(null);
   useEffect(()=>{
+    if(open)return; // The open panel owns its status and list snapshot.
     let alive=true,pending=false;
     async function refresh(){
       if(pending)return;pending=true;
-      try{const value=await api('mail',{action:'status'});if(alive){setStatus(value);setUnavailable(false);}}
+      try{const value=await api('mail',{action:'status',includeMessages:false});if(alive){setStatus(value);setUnavailable(false);}}
       catch{if(alive)setUnavailable(true);}
       finally{pending=false;}
     }
     void refresh();const timer=setInterval(refresh,3000);
     return()=>{alive=false;clearInterval(timer);};
-  },[api]);
+  },[api,open]);
   const showMail=!!status&&(status.connected||status.connecting||status.counts?.received>0||status.error&&status.error!=='mail_cancelled'||open),showWiki=wiki?.state==='running';
   if(!showMail&&!showWiki)return null;
   if(!showMail)return <footer className="desktop-mail-progress" aria-label="위키 백그라운드 상태"><WikiInitializationProgress job={wiki} inline/></footer>;
-  const progress=status.progress||{stage:status.connecting?'connecting':!status.connected&&!status.localCount?'disconnected':!status.autoWiki?'off':status.checking?'checking':status.readingAttachments?'attachments':status.summarizing?'organizing':status.error?'attention':status.watchPaused?'paused':'watching',completed:status.counts?.saved||0,remaining:null,queued:status.counts?.queued||0,attention:(status.counts?.attention||0)+(status.counts?.attachmentAttention||0)};
+  const progress=status.progress||{stage:status.connecting?'connecting':!status.connected&&!status.localCount?'disconnected':!status.autoWiki?'off':status.checking?'checking':status.readingAttachments?'attachments':status.summarizing?'organizing':status.error?'attention':status.watchPaused?'paused':'watching',completed:status.counts?.saved||0,remaining:null,queued:status.counts?.queued||0,attention:status.counts?.attentionTotal??((status.counts?.attention||0)+(status.counts?.attachmentAttention||0))};
   // Current controls take precedence over a processing snapshot from before
   // stopping. Collection pause is distinct from turning auto organization off.
   const stage=unavailable?'attention':status.connecting?'connecting':!status.connected&&!status.localCount?'disconnected':!status.autoWiki?'off':progress.stage;

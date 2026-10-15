@@ -19,13 +19,13 @@ export function MailHistory({api,onDocument,onAsk,onAskSearch,onSettings,connect
  const [portalView,setPortalView]=useState('mail');
  const [mailbox,setMailbox]=useState(()=>viewState?.current?.mailbox||'inbox');
  const [status,setStatus]=useState(null),[refreshing,setRefreshing]=useState(false),[searchRevision,setSearchRevision]=useState(0);
- const [page,setPage]=useState({messages:[],total:0}),[query,setQuery]=useState(()=>viewState?.current?.query||''),[source,setSource]=useState(null),[loading,setLoading]=useState(false);
+ const [query,setQuery]=useState(()=>viewState?.current?.query||''),[source,setSource]=useState(null),[loading,setLoading]=useState(false);
  useEffect(()=>{if(status?.folders?.length&&!['all','mail'].includes(mailbox)&&!mailbox.startsWith('local:')&&!status.folders.some(folder=>'folder:'+folder.id===mailbox))setMailbox('folder:'+(status.folders.find(folder=>folder.mailbox==='inbox')||status.folders[0]).id);},[status?.folders,mailbox]);
  const [navigation,setNavigation]=useState(null),pendingNavigation=useRef(null),listRoot=useRef(null);
  const alive=useRef(true),epoch=useRef(0),selection=useRef(0);
  const accountKey=status?`${status.accountKey||'local'}:${status.identityRevision||0}`:viewState?.current?.accountKey??null,previousAccount=useRef(accountKey);
  useLayoutEffect(()=>{if(previousAccount.current!==accountKey){previousAccount.current=accountKey;closeReader();setQuery('');setNavigation(null);}if(viewState)viewState.current={...viewState.current,accountKey};},[accountKey]);
- useEffect(()=>{alive.current=true;let pending=false;async function refresh(){if(pending)return;pending=true;const attempt=++epoch.current;try{const [value,current]=await Promise.all([api('mail',{action:'history'}),api('mail',{action:'status'})]);if(alive.current&&attempt===epoch.current){setPage(value);setStatus(current);}}catch{if(alive.current)notifyWorkspaceToast('메일 이력을 읽지 못했어요. 연결 상태를 확인해 주세요.',{error:true});}finally{pending=false;}}void refresh();const timer=setInterval(refresh,3000);return()=>{alive.current=false;epoch.current++;selection.current++;clearInterval(timer);};},[api]);
+ useEffect(()=>{alive.current=true;let pending=false;async function refresh(){if(pending)return;pending=true;const attempt=++epoch.current;try{const current=await api('mail',{action:'status',includeMessages:false});if(alive.current&&attempt===epoch.current)setStatus(current);}catch{if(alive.current)notifyWorkspaceToast('메일 이력을 읽지 못했어요. 연결 상태를 확인해 주세요.',{error:true});}finally{pending=false;}}void refresh();const timer=setInterval(refresh,3000);return()=>{alive.current=false;epoch.current++;selection.current++;clearInterval(timer);};},[api]);
  useEffect(()=>{if(!sourceTarget)return;let live=true;const attempt=++selection.current;let observed=attempt;void (async()=>{try{await api('mail',{action:'evidence',...sourceTarget});if(!live||attempt!==selection.current)return;const opened=await open(sourceTarget.id,sourceTarget.sourceHash);observed=selection.current;if(opened&&sourceTarget.attachmentId&&live)await onDocument?.(sourceTarget.id,sourceTarget.attachmentId,{...sourceTarget,canPresent:()=>live&&alive.current&&observed===selection.current});}catch{if(live&&observed===selection.current)notifyWorkspaceToast('원문이 바뀌었거나 읽을 수 없어요.',{error:true});}})();return()=>{live=false;};},[sourceTarget?.key]);
  useEffect(()=>{if(viewState)viewState.current={...viewState.current,query};},[query,viewState]);
  useEffect(()=>{const saved=viewState?.current?.source;if(saved)void open(saved.id,saved.sourceHash,saved);},[]);
@@ -55,20 +55,20 @@ export function MailHistory({api,onDocument,onAsk,onAskSearch,onSettings,connect
  async function reload(){
   if(refreshing)return;setRefreshing(true);
   try{
-   let current=await api('mail',{action:'status'});
+   let current=await api('mail',{action:'status',includeMessages:false});
    if(current.connected&&!current.checking&&!current.connecting){
     if(!current.nextCheckAt||Date.now()>=Date.parse(current.nextCheckAt))current=await api('mail',{action:'portalSync'});
     else notifyWorkspaceToast(`다음 메일 확인은 ${new Date(current.nextCheckAt).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}이에요.`);
    }
    // Checking the server must not replace the rows the user is reading.
-   const value=await api('mail',{action:'history'});if(alive.current){setStatus(current);setPage(value);}
+   if(alive.current)setStatus(current);
   }catch(error){if(alive.current)notifyWorkspaceToast(error.message==='mail_check_wait'?'서버 확인 대기 시간이 남아 있어요. 다음 확인 시각에 자동으로 가져옵니다.':'메일을 다시 확인하지 못했어요. 연결 상태를 확인해 주세요.',{error:true});}
   finally{if(alive.current)setRefreshing(false);}
  }
  const checkedAt=status?.progress?.checkedAt||status?.lastCheckedAt;
- const revision=JSON.stringify([status?.identityRevision,page.total,page.messages.map(row=>[row.id,row.state,row.attachmentState])]);
+ const revision=JSON.stringify([status?.identityRevision,status?.counts?.received]);
  return <section className="nubi-mail-history" data-layout="table" data-selected={!!source||loading} aria-label="메일 이력">
-  <header className="nubi-mail-history-bar">{onReturn&&<ActionButton action="back" label="대화로 돌아가기" onClick={onReturn}/>}<Icon name="mail" size={22}/><h1>메일</h1><span>{page.total}개</span><ActionButton action="refresh" label="새 메일 확인" disabled={refreshing||status?.checking||status?.connecting} onClick={reload}/>{(refreshing||status?.checking)&&<span className="status-spinner" role="status" aria-label="메일 확인 중"/>}<CxButton ref={connectionRef} className="nubi-mail-connect-link" onClick={onSettings}><Icon name="mail" size={18}/><span>{status?.connected||status?.localCount?'메일 설정':'포털 로그인'}</span></CxButton></header>
+  <header className="nubi-mail-history-bar">{onReturn&&<ActionButton action="back" label="대화로 돌아가기" onClick={onReturn}/>}<Icon name="mail" size={22}/><h1>메일</h1><span>{status?.counts?.received??0}개</span><ActionButton action="refresh" label="새 메일 확인" disabled={refreshing||status?.checking||status?.connecting} onClick={reload}/>{(refreshing||status?.checking)&&<span className="status-spinner" role="status" aria-label="메일 확인 중"/>}<CxButton ref={connectionRef} className="nubi-mail-connect-link" onClick={onSettings}><Icon name="mail" size={18}/><span>{status?.connected||status?.localCount?'메일 설정':'포털 로그인'}</span></CxButton></header>
   <WorkspaceCatalogTabs wide label="포털 자료" idPrefix="portal-view" active={portalView} onChange={setPortalView} items={[{key:'mail',label:<><Icon name="mail" size={16}/>메일</>},{key:'approvals',label:<><Icon name="clipboardCheck" size={16}/>결재</>}]}/>
   {portalView==='approvals'?<ApprovalHistory api={api} onSettings={onSettings} status={status} onAsk={onAsk} onAskSearch={onAskSearch} onDocument={onDocument} revision={revision}/>:<>
   <WorkspaceCatalogTabs wide={false} label="메일함" idPrefix="mailbox" active={mailbox} onChange={value=>{closeReader();setMailbox(value);setQuery('');if(viewState)viewState.current={...viewState.current,mailbox:value,query:'',search:undefined};}} items={[...(status?.folders?.length?[{key:'mail',label:<><Icon name="mail" size={16}/>전체 메일</>},...status.folders.map(folder=>({key:'folder:'+folder.id,label:<>{({inbox:'mail',sent:'send',draft:'file',spam:'alertCircle',trash:'trash'})[folder.mailbox]?<Icon name={({inbox:'mail',sent:'send',draft:'file',spam:'alertCircle',trash:'trash'})[folder.mailbox]} size={16}/>:<FolderMark size={16}/>}{folder.name}</>}))]:[{key:'inbox',label:<><Icon name="mail" size={16}/>받은메일함</>},{key:'sent',label:<><Icon name="send" size={16}/>보낸메일함</>},{key:'draft',label:<><Icon name="file" size={16}/>임시보관함</>},{key:'spam',label:<><Icon name="alertCircle" size={16}/>스팸함</>}]),...(status?.localKinds||[]).filter(kind=>!APPROVAL_KINDS.includes(kind)).map(kind=>({key:'local:'+kind,label:<><Icon name={LOCAL_MAIL_KINDS[kind].icon} size={16}/>가져온 {LOCAL_MAIL_KINDS[kind].label}</>}))] }/>

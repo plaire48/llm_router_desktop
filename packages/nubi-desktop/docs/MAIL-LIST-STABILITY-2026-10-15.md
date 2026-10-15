@@ -6,6 +6,7 @@ Background collection no longer replaces a mail list the user is reading. The ex
 - **목록 업데이트** appears when the local data revision changes. It queries local storage only, retaining the open reader, checked IDs, current numbered page and scroll position.
 - Search, filter and page changes explicitly request the latest local results. The numbered UI does not send an old accumulation cursor that would reset the page when new mail arrives. Agent cursor invalidation remains unchanged.
 - A failed refresh preserves the usable previous table. Background progress never disables its row or checkbox targets.
+- Follow-up: MailHistory no longer calls `history` on entry, every three seconds or after a server check. Totals and arrival signals use status counters. History, settings and footer polling request `includeMessages:false`, so periodic status does not serialize the first 50 mail subjects. The existing history API remains available to explicit consumers.
 - Account scope uses the existing hashed account ID together with identity revision. A different account clears the prior reader and selection even when its identity revision has the same value.
 - Portal checks still enumerate lightweight headers, so an older missing item is not skipped merely because a newer item is known. This is not a new remote deletion or same-ID draft revision synchronization mechanism.
 

@@ -190,3 +190,29 @@ test('folder-open with existing Git follows local history even when a remote exi
  await writeFile(path.join(root,'app.txt'),'local edit\n');service.wikiUpdater=async({root:copy})=>{assert.equal((await git(copy,['rev-parse','HEAD'])).trim(),head);assert.equal(await readFile(path.join(copy,'app.txt'),'utf8'),'local edit\n');await publish(copy,'# Local');return {};};
  const result=await service.wikiUpdate({method:'refresh'});assert.equal(result.pulled.reason,'local_project');assert.equal((await settle(service,result.update.id)).state,'ready');assert.equal((await git(root,['rev-parse','HEAD'])).trim(),head);assert.match(await git(root,['status','--short']),/app.txt/);
 });
+
+for(const gitProject of [false,true])test(`interrupted Wiki keeps its snapshot and resumes after reopening (${gitProject?'Git':'folder'})`,async t=>{
+ const {root,service}=await setup(t,{gitProject});await rm(path.join(root,'openwiki'),{recursive:true});service.store.set('wiki-init',null);
+ let firstCopy;
+ service.wikiInitializer=async({root:copy})=>{firstCopy=copy;await publish(copy,'# Completed first page\n');await writeFile(path.join(copy,'openwiki/.run.json'),'checkpoint fixture');throw Error('model_timeout');};
+ await service.initializeWiki();await service.wikiInitPromise;
+ assert.equal(service.wikiInitialization().error,'timeout');assert.equal(service.wikiInitialization().canResume,true);await access(firstCopy);
+ await assert.rejects(access(path.join(root,'openwiki/home.md')),'a partial Wiki is never published');
+ const storageRoot=service.storageRoot;service.dispose();service.store.close();
+ const reopened=new ProjectService({storageRoot});t.after(()=>{reopened.dispose();reopened.store?.close();});
+ await reopened.open(root,{initializeWiki:false});reopened.providers={status:()=>({connected:true,provider:'fixture',model:'fixture'}),dispose(){}};
+ reopened.wikiInitializer=async({root:copy})=>{assert.equal(copy,firstCopy);assert.match(await readFile(path.join(copy,'openwiki/home.md'),'utf8'),/Completed first page/);assert.equal(await readFile(path.join(copy,'openwiki/.run.json'),'utf8'),'checkpoint fixture');await rm(path.join(copy,'openwiki/.run.json'));};
+ reopened.wikiInitialization({action:'retry'});await reopened.wikiInitPromise;
+ assert.equal(reopened.wikiInitialization().state,'completed',JSON.stringify(reopened.wikiInitialization()));assert.equal(reopened.wikiInitialization().resumed,true);
+ assert.match(await readFile(path.join(root,'openwiki/home.md'),'utf8'),/Completed first page/);await assert.rejects(access(firstCopy));
+});
+
+test('changed sources discard the saved Wiki snapshot before retry',async t=>{
+ const {root,service}=await setup(t);await rm(path.join(root,'openwiki'),{recursive:true});service.store.set('wiki-init',null);let firstCopy;
+ service.wikiInitializer=async({root:copy})=>{firstCopy=copy;await publish(copy,'# Stale draft\n');throw Error('network_error');};
+ await service.initializeWiki();await service.wikiInitPromise;
+ await writeFile(path.join(root,'app.txt'),'new source\n');
+ service.wikiInitializer=async({root:copy})=>{assert.notEqual(copy,firstCopy);await assert.rejects(access(firstCopy));await assert.rejects(access(path.join(copy,'openwiki/home.md')));assert.equal(await readFile(path.join(copy,'app.txt'),'utf8'),'new source\n');await publish(copy,'# Fresh Wiki\n');};
+ service.wikiInitialization({action:'retry'});await service.wikiInitPromise;
+ assert.equal(service.wikiInitialization().state,'completed');assert.equal(service.wikiInitialization().resumed,false);
+});

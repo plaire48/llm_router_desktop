@@ -28,8 +28,8 @@ class EmbedErrorBoundary extends React.Component{
 export function AiWorkspaceEmbed({view,account,onSignIn}){
  const profile=account?.connected?account.profile:null;
  // The signed-in person's GHES status emoji rides along so their own photo shows it too (2026-10-14).
- const statusEmoji=profile?.status?.emoji||'',statusMessage=profile?.status?.message||'';
- const user=useMemo(()=>profile?.login?{id:profile.id,login:profile.login,name:profile.name||profile.login,avatar_url:profile.avatar||undefined,html_url:profile.url||undefined,email:profile.email||undefined,...(statusEmoji?{status:{emoji:statusEmoji,message:statusMessage}}:{})}:null,[profile?.id,profile?.login,profile?.name,profile?.avatar,profile?.email,profile?.url,statusEmoji,statusMessage]);
+ const statusEmoji=profile?.status?.emoji||'',statusMessage=profile?.status?.message||'',statusImage=profile?.status?.image||'',statusName=profile?.status?.name||'';
+ const user=useMemo(()=>profile?.login?{id:profile.id,login:profile.login,name:profile.name||profile.login,avatar_url:profile.avatar||undefined,html_url:profile.url||undefined,email:profile.email||undefined,...(statusEmoji||statusImage?{status:{emoji:statusEmoji,message:statusMessage,...(statusImage?{image:statusImage,name:statusName}:{})}}:{})}:null,[profile?.id,profile?.login,profile?.name,profile?.avatar,profile?.email,profile?.url,statusEmoji,statusMessage,statusImage,statusName]);
  // The ported screens read the session while they first render (their clients are created then), so it is set before
  // they render, not in an effect afterwards: set late, the app list read itself as signed out and failed with
  // "연결을 확인하고 다시 불러오세요" (user report 2026-10-14). Setting it again is harmless.

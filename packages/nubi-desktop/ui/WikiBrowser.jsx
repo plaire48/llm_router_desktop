@@ -16,6 +16,7 @@ import './wiki-browser.css';
 import {ShowMore} from './ShowMore.jsx';
 import {LoadingNote} from './LoadingNote.jsx';
 import {PageNumbers} from './PageNumbers.jsx';
+import {DriftLabel} from './DriftLabel.jsx';
 const errors={wiki_library_mail_limit:'메일 위키는 기존 문서를 60,000자까지 수정할 수 있어요.',wiki_library_changed:'원문이 바뀌었어요. 작성한 내용은 보관했으니 원문과 비교해 주세요.',wiki_library_busy:'이 자료를 갱신하고 있어요. 읽기는 가능하며 작업이 끝나면 저장할 수 있어요.',wiki_library_scope:'이 위키 안의 Markdown 문서를 선택해 주세요.',wiki_library_limit:'문서 한 개는 1MB까지 편집할 수 있어요.',wiki_library_encoding:'UTF-8 Markdown 문서만 편집할 수 있어요.',wiki_library_unconfirmed:'저장 결과를 확인하지 못했어요. 원문을 다시 확인해 주세요.'};
 const sizeKey='nubi-wiki-page-size-v1';
 function preferredSize(){try{const value=Number(localStorage.getItem(sizeKey));return WIKI_PAGE_SIZES.includes(value)?value:20;}catch{return 20;}}
@@ -53,7 +54,7 @@ export function WikiBrowser({api,projectId,onBack,onSettings,onRewrite,openPath}
  const body=described?described.body.replace(/^\s*#\s+(.+?)\s*#*[ \t]*(?:\r?\n|$)/,(line,heading)=>heading.trim()===title.trim()?'':line):'';
  const chips=[...filters.sections.map(id=>({label:`분류 ${sectionLabel(id)}`,clear:()=>setFilters(f=>({...f,sections:f.sections.filter(s=>s!==id)}))})),...filters.types.map(id=>({label:`종류 ${id}`,clear:()=>setFilters(f=>({...f,types:f.types.filter(t=>t!==id)}))})),...(filters.link!=='all'?[{label:filters.link==='orphan'?'고립 문서만':'연결된 문서만',clear:()=>setFilters(f=>({...f,link:'all'}))}]:[]),...(filters.period!=='all'?[{label:`최근 ${filters.period}일 수정`,clear:()=>setFilters(f=>({...f,period:'all'}))}]:[])];
  const changeFilters=patch=>{setFilters(current=>({...current,...patch}));setPage(1);};
- const scopeItems=[...(projectScope?[{key:projectScope.id,label:<><BookMark size={16}/>{projectScope.name}</>}]:[]),...(mailRoot?[{key:mailRoot.id,label:<><Icon name="mail" size={16}/>메일</>}]:[])];
+ const scopeItems=[...(projectScope?[{key:projectScope.id,label:<><BookMark size={16}/><DriftLabel title={projectScope.name}>{projectScope.name}</DriftLabel></>}]:[]),...(mailRoot?[{key:mailRoot.id,label:<><Icon name="mail" size={16}/>메일</>}]:[])];
  return <section className="nubi-wiki-browser" aria-label="내 위키">
   <header className="nubi-wiki-bar">{onBack&&<WorkspaceAction action="back" label="대화로 돌아가기" onClick={onBack}/>}<span className="nubi-wiki-badge" aria-hidden="true"><BookMark size={22}/></span><h1>위키</h1><span className="nubi-wiki-count">{graph.nodes.length}개</span>
    {loading&&<span className="status-spinner" role="status" aria-label="위키 읽는 중"/>}

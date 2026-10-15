@@ -2,6 +2,7 @@ const {loginRedirect}=require('./mail-session-recovery.cjs');
 const {mailSessionFetch}=require('./mail-session-fetch.cjs');
 const {ORIGIN,LOGIN_URL,portalOrigin,foldersOf,identityOf,portalFetch,portalFetchSource}=require('./mail-portal-contract.cjs');
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const MAIL_POLL_INTERVAL_MS=5*60*1000;
 class MailPortal {
  // Login happens in the app's own browser tab (openPage/closePage) when the host offers one; the hidden window only
  // runs the read-only portal fetches on the same persistent session (user request 2026-10-14: no separate popup).
@@ -108,16 +109,19 @@ class MailPortal {
   return false;
  }
  async sessionReady(){
+  await this.sessionClearing;
+  if(this.state.error==='mail_portal_logout_failed')throw Error('mail_portal_logout_failed');
   if(this.state.connecting||this.state.checking)throw Error('mail_busy');
   if(this.restoring)await this.restoring;
   const epoch=this.epoch;this.restored=true;
   try{await this.windowForLogin(false,epoch);const {identity,folders}=await this.identify(epoch);
    if(epoch!==this.epoch)throw Error('mail_cancelled');
    await this.invoke('mail',{action:'portalConnect',identity:identity.id,email:identity.email,folders});
-   if(epoch!==this.epoch)throw Error('mail_cancelled');this.identity=identity;this.state={...this.state,connected:true,error:null,folders,connectionState:'connected',nextRetryAt:null};return this.status();
+   if(epoch!==this.epoch)throw Error('mail_cancelled');this.identity=identity;this.state={...this.state,connected:true,error:null,folders,connectionState:'connected',nextRetryAt:null};void this.sync().catch(()=>{});return this.status();
   }catch(error){if(epoch!==this.epoch)throw Error('mail_cancelled');if(this.state.connected)await this.failSession(error,epoch);return {...this.status(),requiresLogin:true};}
  }
  async connectCredentials(args){
+  await this.sessionClearing;
   const {MailCredentialLogin}=require('./mail-credential-login.cjs');
   const credentials={username:args.username,password:args.password};delete args.username;delete args.password;
   if(this.state.connecting||this.state.checking){credentials.username='';credentials.password='';throw Error('mail_busy');}
@@ -134,6 +138,9 @@ class MailPortal {
   finally{credentials.username='';credentials.password='';}
  }
  async connect(args={}){
+  // A disconnect that lands while the previous session is still being cleared cancels this login too, instead of
+  // the login taking a fresh epoch after the cancel and opening a late tab (tests: queued login while restore pends).
+  const requested=this.epoch;await this.sessionClearing;if(this.epoch!==requested)throw Error('mail_cancelled');
   if(this.state.connecting||this.state.checking)throw Error('mail_busy');
   const epoch=++this.epoch;this.access.abort();this.access=new AbortController();this.restored=true;clearTimeout(this.timer);this.syncing=null;this.state={...this.state,connected:false,connecting:true,loginStage:'preparing',error:null};
   try{
@@ -143,7 +150,7 @@ class MailPortal {
    const deadline=Date.now()+5*60*1000;
    while(epoch===this.epoch&&Date.now()<deadline){
     try{({identity,folders}=await this.identify(epoch));break;}
-    catch(error){if(await this.loginPageFailed())throw Error('mail_portal_sso');if(!['mail_portal_login','mail_portal_request','mail_portal_format'].includes(error.message))throw error;if(epoch!==this.epoch)break;await wait(2000);}
+    catch(error){if(await this.loginPageFailed())throw Error('mail_portal_sso');if(!['mail_portal_login','mail_portal_request','mail_portal_format','mail_portal_redirect'].includes(error.message))throw error;if(epoch!==this.epoch)break;await wait(2000);}
    }
    if(epoch!==this.epoch)throw Error('mail_cancelled');if(!identity||!folders)throw Error('mail_portal_timeout');
    if(this.page&&this.getPageContents){
@@ -194,7 +201,8 @@ class MailPortal {
     }
    }
    if(epoch!==this.epoch)throw Error('mail_cancelled');this.state={...this.state,checking:false,lastCheckedAt:new Date().toISOString(),discovered,error:null,connectionState:'connected',nextRetryAt:null};
-   this.timer=setTimeout(()=>void this.sync().catch(()=>{}),5*60*1000);this.timer.unref?.();return this.status();
+   // Schedule after completion so a slow collection never overlaps the next check.
+   this.timer=setTimeout(()=>void this.sync().catch(()=>{}),MAIL_POLL_INTERVAL_MS);this.timer.unref?.();return this.status();
   }catch(error){
    if(epoch!==this.epoch)throw Error('mail_cancelled');
    await this.failSession(error,epoch);throw error;
@@ -202,12 +210,16 @@ class MailPortal {
  }
  async failSession(error,epoch=this.epoch){
   if(epoch!==this.epoch||error.message==='mail_cancelled')return;
-  const code=/^mail_[a-z_]+$/.test(error.message)?error.message:'mail_portal_request';
-  await this.disconnect();const current=this.epoch;
-  try{await this.clearPortalSession();}catch{this.state.error='mail_portal_logout_failed';}
-  if(current!==this.epoch)return;
-  this.state={...this.state,error:this.state.error||code,connectionState:'authentication_required',failureCode:code};
-  this.onDisconnected({code:this.state.error});
+  if(this.sessionClearing)return this.sessionClearing;
+  const code=/^mail_[a-z_]+$/.test(error.message)?error.message:'mail_portal_request',current=epoch+1;
+  const pending=(async()=>{
+   await this.disconnect();if(current!==this.epoch)return;
+   let failure=code;try{await this.clearPortalSession();}catch{failure='mail_portal_logout_failed';}
+   if(current!==this.epoch)return;
+   this.state={...this.state,error:failure,connectionState:'authentication_required',failureCode:code};
+   this.onDisconnected({code:failure});
+  })();this.sessionClearing=pending;
+  try{await pending;}finally{if(this.sessionClearing===pending)this.sessionClearing=null;}
  }
  async clearPortalSession(){
   const session=this.window?.webContents.session;
@@ -222,7 +234,7 @@ class MailPortal {
   if(!this.state.connected)throw Error('mail_portal_login');if(!this.identity?.userId)throw Error('mail_portal_identity');if(!Number.isSafeInteger(page)||page<1||page>10000)throw Error('mail_input_invalid');
   // A login page from the approval endpoint while mail is connected is its own code (user report 2026-10-15: the list
   // said '로그인하세요' after a normal login), so the screen can say which request was refused.
-  const epoch=this.epoch;let result;try{result=await this.read('approvals',{page,userId:this.identity.userId});}catch(error){throw Error(error.message==='mail_portal_login'?'mail_portal_approval_login':error.message);}
+  const epoch=this.epoch;let result;try{result=await this.read('approvals',{page,userId:this.identity.userId});}catch(error){await this.failSession(error,epoch);throw Error(error.message==='mail_portal_login'?'mail_portal_approval_login':error.message);}
   if(epoch!==this.epoch)throw Error('mail_cancelled');if(!Array.isArray(result?.data))throw Error('mail_portal_format');
   this.approvalCache=new Map();this.approvalCacheBytes=0;const rows=result.data.slice(0,100).map(item=>({id:String(item.apId),lineId:String(item.aplnId),subject:String(item.subject||item.apTitle||'').slice(0,1000),submittedAt:item.sbmDt||null,completedAt:item.cplDt||null,status:String(item.apActStatsCd||'').slice(0,60)}));
   let next=0;await Promise.all(Array.from({length:Math.min(4,rows.length)},async()=>{while(next<rows.length){const row=rows[next++];if(epoch!==this.epoch)throw Error('mail_cancelled');try{const item=await this.approvalItem(row);row.subject=String(item.subject||row.subject||'(제목 없음)').slice(0,1000);}catch(error){row.subject=row.subject||'(제목 확인 필요)';row.error=error.message;}}}));
@@ -231,7 +243,7 @@ class MailPortal {
  async approvalItem({id,lineId}){
   if(!/^[\w-]{1,100}$/.test(id)||!/^[\w-]{1,100}$/.test(lineId))throw Error('mail_input_invalid');
   const key=id+'|'+lineId;if(this.approvalCache?.has(key))return this.approvalCache.get(key);
-  const epoch=this.epoch,result=await this.read('approvalItem',{ap:id,ln:lineId});if(epoch!==this.epoch)throw Error('mail_cancelled');
+  const epoch=this.epoch;let result;try{result=await this.read('approvalItem',{ap:id,ln:lineId});}catch(error){await this.failSession(error,epoch);throw error;}if(epoch!==this.epoch)throw Error('mail_cancelled');
   const item=result?.[0];if(!item||typeof item!=='object')throw Error('mail_portal_format');this.approvalCache ||=new Map();const bytes=Buffer.byteLength(typeof item.result==='string'?item.result:'','utf8')+1024;if(this.approvalCache.size<100&&(this.approvalCacheBytes||0)+bytes<=8*1024*1024){this.approvalCache.set(key,item);this.approvalCacheBytes=(this.approvalCacheBytes||0)+bytes;}return item;
  }
  async approvalRead(args){
@@ -241,6 +253,6 @@ class MailPortal {
   const parsed=await this.invoke('mail',{action:'portalDocument',raw:bytes.toString('base64')});if(epoch!==this.epoch)throw Error('mail_cancelled');return {id:args.id,subject:item.subject||parsed.mail.subject,...parsed};
  }
  async disconnect(){++this.epoch;this.access.abort();this.access=new AbortController();this.credentialLogin?.dispose();this.credentialLogin=null;this.syncing=null;clearTimeout(this.timer);this.approvalCache?.clear();this.state={...this.state,connected:false,connecting:false,checking:false,loginStage:null,error:null,connectionState:'disconnected',nextRetryAt:null};this.restored=true;this.closeLoginPage();await this.invoke('mail',{action:'disconnect'});return this.status();}
- dispose(){++this.epoch;this.access.abort();clearTimeout(this.timer);this.closeLoginPage();this.window?.destroy();}
+ dispose(){++this.epoch;this.credentialLogin?.dispose();this.access.abort();clearTimeout(this.timer);this.closeLoginPage();this.window?.destroy();}
 }
 module.exports={MailPortal};
