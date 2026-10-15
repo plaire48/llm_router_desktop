@@ -256,7 +256,13 @@ app.whenReady().then(async()=>{
    if(/^portal(?:Connect|Import|Folders|Known|Rejected|Document)$/.test(args.action||'')||['download','importFolder'].includes(args.action))throw Error('method_invalid');
    if(args.action==='approvals')return mailPortal.approvals(args);
    if(args.action==='approvalRead')return mailPortal.approvalRead(args);
-   if(args.action==='portalCredentials')throw Error('method_invalid');
+   if(args.action==='portalCredentials'){
+    if(source!=='electron')throw Error('mail_portal_desktop_only');
+    const credentials={username:args.username,password:args.password};args.username='';args.password='';
+    try{await mailPortal.connect({credentials});}
+    finally{credentials.username='';credentials.password='';}
+    mailLoginNotices.clear();hostEvent({type:'mail_portal_connected',requiresStorageSetup:(await invoke('mail',{action:'status',includeMessages:false})).requiresStorageSetup});return portalMailStatus();
+   }
    if(args.action==='portalSession'){
     if(source!=='electron')throw Error('mail_portal_desktop_only');
     const result=await mailPortal.sessionReady();

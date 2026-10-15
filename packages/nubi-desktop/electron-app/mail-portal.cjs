@@ -1,3 +1,4 @@
+const {MailCredentialLogin}=require('./mail-credential-login.cjs');
 const {loginRedirect}=require('./mail-session-recovery.cjs');
 const {mailSessionFetch}=require('./mail-session-fetch.cjs');
 const {ORIGIN,LOGIN_URL,portalOrigin,foldersOf,identityOf,portalFetch,portalFetchSource}=require('./mail-portal-contract.cjs');
@@ -134,7 +135,12 @@ class MailPortal {
   try{
    // Finish an invalidated restore before starting the interactive session. No overlapping SSO requests.
    this.window?.webContents.stop?.();await this.restoring;if(epoch!==this.epoch)throw Error('mail_cancelled');
-   await this.windowForLogin(true,epoch);this.state.loginStage='authenticating';let identity,folders;
+   await this.windowForLogin(!args.credentials,epoch);this.state.loginStage='authenticating';
+   if(args.credentials){
+    const login=new MailCredentialLogin({BrowserWindow:this.BrowserWindow,session:this.window.webContents.session,signal:this.access.signal});
+    await login.run(args.credentials);if(epoch!==this.epoch)throw Error('mail_cancelled');
+   }
+   this.state.loginStage=args.credentials?'verifying':'authenticating';let identity,folders;
    const deadline=Date.now()+5*60*1000;
    while(epoch===this.epoch&&Date.now()<deadline){
     try{({identity,folders}=await this.identify(epoch));break;}

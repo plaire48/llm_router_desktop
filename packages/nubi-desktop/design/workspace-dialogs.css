@@ -172,7 +172,7 @@
 }
 :root:has(.desktop-shell) .cx-panel-backdrop > .deck-dialog { width:min(var(--nubi-dialog-width-standard),100%); }
 :root:has(.desktop-shell) .cx-panel-backdrop > .nubi-panel--wide { width:min(var(--nubi-dialog-width-wide),100%); }
-:root:has(.desktop-shell) .cx-panel-backdrop > :is(.deck-confirmation,.nubi-ghes-modal,.nubi-wiki-progress-dialog) { width:min(var(--nubi-dialog-width-compact),100%); }
+:root:has(.desktop-shell) .cx-panel-backdrop > :is(.deck-confirmation,.nubi-ghes-modal,.nubi-wiki-progress-dialog,.nubi-mail-login-dialog) { width:min(var(--nubi-dialog-width-compact),100%); }
 :root:has(.desktop-shell) .cx-panel-backdrop > .model-dialog { width:min(var(--nubi-dialog-width-choice),100%); }
 :root:has(.desktop-shell) :is(.nubi-delete-conversation,.nubi-delete-skill) { --nubi-dialog-action:var(--deck-red); }
 :root:has(.desktop-shell) :is(.nubi-delete-conversation,.nubi-delete-skill) .deck-confirmation-content > .deck-symbol { color:var(--deck-red); background:var(--deck-red-soft); }

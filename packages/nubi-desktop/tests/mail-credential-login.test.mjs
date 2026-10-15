@@ -17,11 +17,11 @@ test('hidden SSO submits once, preserves native popups, wipes transient credenti
 test('foreign origins are never accepted as credential destinations',()=>{
  assert.equal(companyPage('https://samsung.net.evil.example/loginapp/login'),false);assert.equal(companyPage('https://x:y@samsung.net/loginapp/login'),false);assert.equal(companyPage('file:///tmp/login'),false);
 });
-test('Windows notice is deduplicated and opens the existing browser login without secrets',()=>{
+test('Windows notice is deduplicated and opens the in-app login form without secrets',()=>{
  const instances=[],events=[];let focused=0;
  class Notification{static isSupported(){return true;}constructor(options){this.options=options;this.events={};instances.push(this);}on(name,fn){this.events[name]=fn;}show(){}close(){}}
  const notices=createMailLoginNotices({Notification,getWindow:()=>({isDestroyed:()=>false,isMinimized:()=>true,restore(){},show(){},focus(){focused++;}}),send:e=>events.push(e),platform:'win32'});
  assert.equal(notices.show({code:'mail_portal_request'}).shown,true);assert.equal(notices.show({code:'mail_portal_request'}).shown,false);assert.equal(instances.length,1);assert.match(instances[0].options.body,/사내망.*VPN/);
  instances[0].events.click();assert.equal(focused,1);assert.equal(events.at(-1).type,'mail_login_open');notices.clear();
- notices.show({code:'mail_portal_login'});assert.match(instances[1].options.body,/누비 브라우저에서 다시 로그인/);assert.doesNotMatch(instances[1].options.body,/채팅|폼/);notices.clear();
+ notices.show({code:'mail_portal_login'});assert.match(instances[1].options.body,/누비에서 다시 로그인/);assert.doesNotMatch(instances[1].options.body,/채팅|폼/);notices.clear();
 });
