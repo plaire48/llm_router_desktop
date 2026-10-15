@@ -40,7 +40,8 @@ for(const folder of [false,true])test(`5 of 11 pages survive failure/reopen and 
   service.store.set('wiki-update:'+p.id,{...service.store.get('wiki-update:'+p.id),state:'running'});
   service.dispose();service.store.close();
   const reopened=new ProjectService({storageRoot:path.join(directory,'state')});
-  t.after(()=>{reopened.dispose();reopened.store?.close();});
+  // Close the reopened database before the fixture's directory cleanup on Windows.
+  try {
   await reopened.open(root,{initializeWiki:false});reopened.wikiUpdater=runner;
   const orphan=(await reopened.wikiUpdate({method:'status'})).updates.find(item=>item.id===p.id);
   assert.equal(orphan.error,'wiki_update_interrupted');assert.equal(orphan.canResume,true);assert.equal(calls,1);
@@ -52,6 +53,7 @@ for(const folder of [false,true])test(`5 of 11 pages survive failure/reopen and 
   await reopened.wikiUpdate({method:'apply',id:p.id,fingerprint:ready.fingerprint});
   assert.equal(await readFile(path.join(root,'openwiki/page-10.md'),'utf8'),'# Page 10\n');
   assert.equal(await exists(firstCopy),false);
+  } finally {reopened.dispose();reopened.store?.close();}
 });
 
 for(const change of ['source','head','wiki','copy','missing'])test(`resume refuses ${change} drift without destroying retained pages`,async t=>{
