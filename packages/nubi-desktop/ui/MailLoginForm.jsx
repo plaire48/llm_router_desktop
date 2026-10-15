@@ -3,6 +3,7 @@ import {CxButton,DetailPanel,Icon} from '@e2e/cx-design-system';
 import {mailConnectionErrors} from './mail-connection-error.mjs';
 import {durationLabel} from '../runtime/response-timing.mjs';
 import {openMailBrowserLogin} from './mail-browser-login.mjs';
+import {TaskProgressBar} from './TaskProgressBar.jsx';
 import './mail-login-form.css';
 // This component only checks the session or reports an error. Credentials belong to the portal page.
 export function MailLoginForm({api,onClose}){
@@ -22,12 +23,15 @@ export function MailLoginForm({api,onClose}){
  async function cancel(){alive.current=false;await api('mail',{action:'cancelConnect'}).catch(()=>{});close.current();}
  // Remove the overlay before the original portal tab opens, so the person can type directly in that page.
  if(stage==='browser')return null;
- return <DetailPanel className="deck-dialog nubi-panel nubi-mail-login-dialog" title={<span className="nubi-mail-login-title"><Icon name="mail" size={18}/>메일 연결</span>} variant="modal" hideHelp onClose={()=>void cancel()}>
+ return <DetailPanel className="deck-dialog nubi-panel nubi-mail-login-dialog" title={<span className="nubi-panel-title"><Icon name="mail" size={18}/>메일 연결</span>} variant="modal" hideHelp onClose={()=>void cancel()} footer={stage==='error'?<>
+  <CxButton onClick={()=>void cancel()}>닫기</CxButton>
+  <CxButton variant="primary" onClick={()=>void begin()}><Icon name="logIn" size={16}/>다시 로그인</CxButton>
+ </>:undefined}>
   <section className="nubi-mail-login-form" aria-label="메일 연결">
-   {stage==='checking'?<p role="status"><span className="status-spinner"/>로그인 확인 중 <time>{durationLabel(elapsed)}</time></p>:<>
-    <p role="alert"><Icon name="alertCircle" size={16}/><span>{mailConnectionErrors[error]?.title||'로그인 화면을 열지 못했어요. 다시 시도해 주세요.'}</span></p>
-    <CxButton variant="primary" onClick={()=>void begin()}><Icon name="logIn" size={16}/>다시 로그인</CxButton>
-   </>}
+   {stage==='checking'?<>
+    <div className="nubi-mail-login-message" role="status"><span className="status-spinner"/><strong>로그인 확인 중</strong><time>{durationLabel(elapsed,{keepSeconds:true})}</time></div>
+    <TaskProgressBar label="메일 로그인 확인"/>
+   </>:<div className="nubi-mail-login-message" role="alert"><Icon name="alertCircle" size={16}/><strong>{mailConnectionErrors[error]?.title||'로그인 화면을 열지 못했어요.'}</strong></div>}
   </section>
  </DetailPanel>;
 }

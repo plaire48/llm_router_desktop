@@ -1,6 +1,7 @@
-.nubi-mail-login-title { display:inline-flex; align-items:center; gap:var(--cx-space-2); }
-.nubi-mail-login-form { min-width:0; color:var(--nubi-text-primary); }
-.nubi-mail-login-form p { display:flex; align-items:center; gap:var(--cx-space-2); font:var(--deck-font-caption); line-height:1.6; }
-.nubi-mail-login-form p svg { flex:none; }
-.nubi-mail-login-form [role=alert] { color:var(--nubi-text-danger); }
-.nubi-mail-login-form time { font-variant-numeric:tabular-nums; white-space:nowrap; }
+.nubi-mail-login-form { display:grid; gap:var(--cx-space-3); min-width:0; color:var(--nubi-text-primary); }
+.nubi-mail-login-dialog .nubi-panel-title > svg { color:var(--nubi-dialog-action); }
+.nubi-mail-login-message { display:flex; align-items:center; gap:var(--nubi-work-control-gap); min-width:0; font:var(--deck-font-body); }
+.nubi-mail-login-message strong { min-width:0; font-weight:var(--nubi-weight-label); overflow-wrap:anywhere; }
+.nubi-mail-login-message > svg { flex:none; color:var(--nubi-text-danger); }
+.nubi-mail-login-message time { margin-left:auto; color:var(--nubi-text-secondary); font:var(--deck-font-caption); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.nubi-mail-login-form .nubi-progress { margin-top:0; }
