@@ -21,7 +21,9 @@ test('more than 20,000 sources survive folder/Git enumeration, Wiki generation a
   await writeFile(path.join(root,'.env'),'PRIVATE_FIXTURE\n');
   const folder=await listWikiSourceFiles(root);
   assert.equal(folder.truncated,false);assert.equal(folder.paths.length,count+3);assert(folder.paths.includes('src/마지막 파일.txt'));assert(!folder.paths.includes('.env'));
-  await git(root,['init','-q']);await git(root,['add','-A']);await git(root,['-c','user.name=Fixture','-c','user.email=fixture@localhost','-c','commit.gpgSign=false','commit','-qm','Many sources']);
+  // Fixture setup must not inherit Windows CRLF conversion or the interactive Git timeout.
+  await git(root,['init','-q']);await git(root,['config','core.autocrlf','false']);
+  await git(root,['add','-A'],{timeout:300000});await git(root,['-c','user.name=Fixture','-c','user.email=fixture@localhost','-c','commit.gpgSign=false','commit','-qm','Many sources'],{timeout:300000});
   assert.equal((await listFiles(root)).truncated,true,'interactive search retains its bounded contract');
   assert.deepEqual((await listWikiSourceFiles(root)).paths,folder.paths);
   const sources=await wikiSources(root);

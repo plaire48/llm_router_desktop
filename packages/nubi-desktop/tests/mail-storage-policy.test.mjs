@@ -17,7 +17,7 @@ test('attachment opt-out removes payload from raw copy, retains inline images an
  assert.equal(await mailForStorage(mail,true),mail,'default preserves original bytes');
 });
 test('preference persists, excluded attachments do not create attention, download is explicit and relocation failure preserves preference',async t=>{
- const root=await mkdtemp(path.join(os.tmpdir(),'nubi-storage-policy-'));t.after(()=>rm(root,{recursive:true,force:true}));const host={storageRoot:path.join(root,'state')},options={personalRoot:path.join(root,'mail')};let mail=new PersonalMail(host,options);t.after(()=>mail.dispose());await mail.call({action:'setAutoWiki',enabled:false});
+ const root=await mkdtemp(path.join(os.tmpdir(),'nubi-storage-policy-'));const host={storageRoot:path.join(root,'state')},options={personalRoot:path.join(root,'mail')};let mail=new PersonalMail(host,options);t.after(async()=>{mail.dispose();await rm(root,{recursive:true,force:true,maxRetries:3,retryDelay:100});});await mail.call({action:'setAutoWiki',enabled:false});
  assert.equal(mail.status().includeAttachments,true);await mail.call({action:'confirmStorage',includeAttachments:false});mail.dispose();mail=new PersonalMail(host,options);assert.equal(mail.status().includeAttachments,false);
  const raw=await message(),parsed=await normalizePortalMail(raw);mail.store.set('account:fixture',{seen:[]});
  await mail.intake({mails:[{...parsed,uidl:'one',protocol:'local'}]},mail.generation,{collectOnly:true,accountId:'fixture'});
