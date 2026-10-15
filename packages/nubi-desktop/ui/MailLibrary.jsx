@@ -119,6 +119,7 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
         <p>{failure.detail}</p><div className="nubi-mail-error-code"><code>{connectionCode}</code><CopyButton label="연결 오류 복사" text={mailConnectionDiagnostic(connectionCode,status?.protocol||'pop3')}/></div>
       </details>}
     </section>
+    {status?.connected&&status.requiresStorageSetup&&<section className="nubi-mail-section"><p>저장 위치를 정하면 메일을 가져와요.</p><CxButton onClick={()=>window.dispatchEvent(new Event('nubi-mail-storage'))}><FolderMark size={16}/>저장 위치 선택</CxButton></section>}
     {status?.connected&&fileImport}
     {showSettings&&<><section className="nubi-mail-section nubi-mail-organize" aria-label="자동 정리 설정"><div className="nubi-mail-switch-row"><div>{sectionTitle('sliders','자동 정리')}<small>받은 메일과 보낸 메일을 AI로 정리해요.</small></div>
       <button type="button" role="switch" aria-label="메일 자동 정리" aria-checked={autoWiki} className="nubi-ios-switch" disabled={connectionBusy||!status} onClick={()=>act(()=>api('mail',{action:'setAutoWiki',enabled:!autoWiki,destination:destination?{provider:destination.provider,model:destination.model}:null}))}><span aria-hidden="true"/></button>

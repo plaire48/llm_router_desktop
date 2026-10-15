@@ -63,6 +63,7 @@ const WikiBrowser=deferredScreen(()=>import('./WikiBrowser.jsx'),'WikiBrowser');
 const MailHistory=deferredScreen(()=>import('./MailHistory.jsx'),'MailHistory');
 const SkillManager=deferredScreen(()=>import('./SkillManager.jsx'),'SkillManager');
 const MailLibrary=deferredScreen(()=>import('./MailLibrary.jsx'),'MailLibrary');
+const MailStorageSetup=deferredScreen(()=>import('./MailStorageSetup.jsx'),'MailStorageSetup');
 const McpPanel=deferredScreen(()=>import('./McpPanel.jsx'),'McpPanel');
 const SkillRegistration=deferredScreen(()=>import('./SkillRegistration.jsx'),'SkillRegistration');
 import {CxButton, CxInput, CxNotice, CxCheckbox, DetailPanel, SearchInput, Icon} from '@e2e/cx-design-system';
@@ -188,8 +189,9 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
   const [initialNavigation]=useState(()=>initialProject?.projectId?restoreSessionNavigation(initialProject.projectId,initialProject.tasks||[]):{tabs:[],selected:null});
   const [project,setProject]=useState(initialProject),[taskId,setTaskId]=useState(initialNavigation.selected),[environmentPending,setEnvironmentPending]=useState(false);
   // Declared after `project` above: the poll reads it (initialisation-order error reported 2026-10-14).
-  const [mailBusy,setMailBusy]=useState(false);
-  useEffect(()=>{if(!project)return;let live=true;const read=async()=>{try{const status=await api('mail',{action:'status'});if(live)setMailBusy(!!(status?.connected&&(status.checking||status.summarizing||status.readingAttachments||status.localImport?.state==='importing'||status.localImport?.state==='scanning')));}catch{if(live)setMailBusy(false);}};void read();const timer=setInterval(read,20000);return()=>{live=false;clearInterval(timer);};},[api,project?.projectId]);
+  const [mailBusy,setMailBusy]=useState(false),[mailStorage,setMailStorage]=useState(null);
+  const mailStorageDismissed=useRef(false);
+  useEffect(()=>{if(!project)return;let live=true;const read=async()=>{try{const status=await api('mail',{action:'status',includeMessages:false});if(live){setMailBusy(!!(status?.connected&&(status.checking||status.summarizing||status.readingAttachments||status.localImport?.state==='importing'||status.localImport?.state==='scanning')));if(status?.connected&&status.requiresStorageSetup&&!mailStorageDismissed.current)setMailStorage(current=>current||status);else if(!status?.connected||!status.requiresStorageSetup)setMailStorage(null);}}catch{if(live)setMailBusy(false);}};void read();const timer=setInterval(read,20000);return()=>{live=false;clearInterval(timer);};},[api,project?.projectId]);
   useEffect(()=>{setWikiPage(false);},[project?.projectId]);
   function startCompanySignIn(){
     flushSync(()=>{setPanel(null);setAccountOpen(true);setAccountLoginRequest(value=>value+1);});
@@ -237,8 +239,11 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
   useEffect(()=>{
    const show=event=>{setMailLogin({checkSession:event?.type!=='mail_login_required',error:event?.code||null});if(event?.type==='mail_login_required')return;setPanel(null);setMailPage(false);setSkillsPage(false);setWikiPage(false);};
    const open=()=>show();window.addEventListener('nubi-mail-login',open);
-   const unsubscribe=window.nubi?.onHostEvent?.(event=>{if(['mail_login_required','mail_login_open'].includes(event.type))show(event);});
-   return()=>{window.removeEventListener('nubi-mail-login',open);unsubscribe?.();};
+   let live=true;
+   const storage=()=>{mailStorageDismissed.current=false;void api('mail',{action:'status',includeMessages:false}).then(status=>{if(live&&status.connected&&status.requiresStorageSetup){setPanel(null);setMailStorage(status);}}).catch(()=>{});};
+   window.addEventListener('nubi-mail-storage',storage);
+   const unsubscribe=window.nubi?.onHostEvent?.(event=>{if(['mail_login_required','mail_login_open'].includes(event.type))show(event);if(event.type==='mail_portal_connected'&&event.requiresStorageSetup)storage();});
+   return()=>{live=false;window.removeEventListener('nubi-mail-login',open);window.removeEventListener('nubi-mail-storage',storage);unsubscribe?.();};
   },[]);
   const [request,setRequest,readDraft,moveDraft]=useComposerDraft(project?.projectId,taskId);
   const [mailReferences,setMailReferences,readMailReferences,moveMailDraft]=useMailDraftReferences(project?.projectId,taskId);
@@ -778,6 +783,7 @@ export function Workbench({api,initialProject=null,initialProvider=null,installU
     </main>
     </>}
     </div></div>
+    {mailStorage&&<MailStorageSetup api={api} status={mailStorage} onClose={()=>{mailStorageDismissed.current=true;setMailStorage(null);}} onDone={()=>{mailStorageDismissed.current=true;setMailStorage(null);showNotice('메일 저장 위치를 설정했어요.');}}/>}
     {panel==='changes'&&nativeChanges&&<DetailPanel className="deck-dialog nubi-panel nubi-panel--wide" title={panelTitle('columns','Git 변경')} variant="modal" onClose={()=>setPanel(null)}><div className="nubi-git-changes"><span className="nubi-muted">{nativeChanges.branch}</span>{nativeChanges.entries.map(entry=><CxButton className="nubi-git-change" key={entry.path} disabled={busy} onClick={()=>perform(async()=>setNativePatch(await api('workspaceChanges',{path:entry.path})))}><Icon name="file" size={16}/><span>{entry.path}</span><small>{({untracked:'새 파일',deleted:'삭제',added:'추가',modified:'수정'})[entry.state]}</small></CxButton>)}{!nativeChanges.entries.length&&<GitEmptyState title={nativeChanges.repositoryState==='not_git_repository'?'Git 이력이 없는 폴더예요':undefined}/>}{nativeChanges.truncated&&<p className="nubi-muted">변경이 많아 일부 파일만 표시합니다.</p>}{nativePatch&&<section><strong>{nativePatch.path}</strong>{nativePatch.state!=='deleted'&&<CxButton onClick={()=>{setPanel(null);perform(()=>openPath(nativePatch.path));}}><Icon name="file" size={16}/>파일 열기</CxButton>}{nativePatch.patch!==null&&<pre className="nubi-git-patch">{nativePatch.patch||'현재 변경이 없어요.'}</pre>}{nativePatch.patchTruncated&&<p className="nubi-muted">변경 내용의 일부만 확인했습니다.</p>}{nativePatch.state==='untracked'&&<p className="nubi-muted">새 파일은 파일을 열어 내용을 확인하세요.</p>}</section>}</div></DetailPanel>}
     {DESKTOP_FEATURES.computerUse&&panel==='computer'&&task&&<DetailPanel className="deck-dialog nubi-panel nubi-panel--wide" title={panelTitle('app','앱 연결')} variant="modal" onClose={()=>{setPanel(null);requestAnimationFrame(()=>appButton.current?.focus());}}>
       {connectionRequest?<ComputerConnectionForm key={connectionRequest.id} request={connectionRequest} taskId={taskId} state={project.computer} api={api} refresh={refresh} disabled={busy||running}/>:<ComputerUse expanded showActions={true} key={taskId} taskId={taskId} state={project.computer} api={api} refresh={refresh} disabled={busy||running||!!task.question||task.state==='cancelled'}/>}

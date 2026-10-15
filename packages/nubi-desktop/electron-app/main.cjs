@@ -259,18 +259,19 @@ app.whenReady().then(async()=>{
    if(['portalSession','portalCredentials'].includes(args.action)){
     if(source!=='electron')throw Error('mail_portal_desktop_only');
     const result=args.action==='portalSession'?await mailPortal.sessionReady():await mailPortal.connectCredentials(args);
-    if(result.connected){mailLoginNotices.clear();hostEvent({type:'mail_portal_connected'});}
+    if(result.connected){mailLoginNotices.clear();hostEvent({type:'mail_portal_connected',requiresStorageSetup:(await invoke('mail',{action:'status',includeMessages:false})).requiresStorageSetup});}
     return {...await portalMailStatus(),requiresLogin:result.requiresLogin===true};
    }
    if(args.action==='portalLogin'){
     if(source!=='electron')throw Error('mail_portal_desktop_only');mailPortal.requestId=args.requestId;
     try{await mailPortal.connect(args);}catch(error){if(error.message!=='mail_cancelled')hostEvent({type:'mail_portal_failed',error:/^mail_[a-z_]+$/.test(error.message)?error.message:'mail_portal_request'});throw error;}
-    mailLoginNotices.clear();hostEvent({type:'mail_portal_connected'});return portalMailStatus();
+    mailLoginNotices.clear();hostEvent({type:'mail_portal_connected',requiresStorageSetup:(await invoke('mail',{action:'status',includeMessages:false})).requiresStorageSetup});return portalMailStatus();
    }
    // Cancel stops whatever portal connection is running, even when the screen that asked was reopened and no longer
    // holds the request id (user report 2026-10-14: 연결 취소 kept connecting).
    if(args.action==='cancelConnect'){if(args.requestId===mailPortal.requestId||mailPortal.status().connecting)await mailPortal.disconnect();return portalMailStatus();}
    if(args.action==='disconnect'){await mailPortal.disconnect();await mailPortal.clearPortalSession();mailLoginNotices.clear();return portalMailStatus();}
+   if(args.action==='confirmStorage'){if(source!=='electron')throw Error('mail_desktop_only');await invoke('mail',{action:'confirmStorage'});if(mailPortal.status().connected)void mailPortal.sync().catch(()=>{});return portalMailStatus();}
    if(args.action==='portalSync'||['check','retryDownloads'].includes(args.action)&&mailPortal.status().connected){await mailPortal.recheck();return portalMailStatus();}
    if(['pauseWatch','resumeWatch'].includes(args.action)){await invoke('mail',args);if(args.action==='pauseWatch')clearTimeout(mailPortal.timer);else if(mailPortal.status().connected)void mailPortal.sync().catch(()=>{});return portalMailStatus();}
    if(args.action==='attention'){const page=await invoke('mail',args);return {...page,status:await portalMailStatus(page.status)};}
@@ -278,7 +279,14 @@ app.whenReady().then(async()=>{
   }
   // The person picks where mail and attachment originals live; the mail runtime moves what is already there.
   if(method==='chooseMcpFolder'){if(source!=='electron')throw Error('mcp_desktop_only');const directory=await choose(['openDirectory'],'MCP 서버 작업 폴더');return directory?{path:directory}:{cancelled:true};}
-  if(method==='chooseMailRawRoot'){if(source!=='electron')throw Error('mail_desktop_only');const directory=await choose(['openDirectory','createDirectory'],'메일과 첨부 원본을 둘 폴더');if(!directory)return {cancelled:true};return await invoke('mail',{action:'setRawRoot',directory});}
+  if(method==='chooseMailRawRoot'){
+   if(source!=='electron')throw Error('mail_desktop_only');if(mailPortal.status().checking)throw Error('mail_busy');
+   const directory=await choose(['openDirectory','createDirectory'],'메일 원문과 첨부파일 저장 위치');if(!directory)return {cancelled:true};
+   if(mailPortal.status().checking)throw Error('mail_busy');clearTimeout(mailPortal.timer);
+   try{await invoke('mail',{action:'setRawRoot',directory});}
+   finally{if(mailPortal.status().connected)void mailPortal.sync().catch(()=>{});}
+   return portalMailStatus();
+  }
   if(method==='copyMailStoragePath'){
    if(!['raw','wiki'].includes(args.kind))throw Error('mail_storage_kind_invalid');
    const status=await invoke('mail',{action:'status'}),storagePath=args.kind==='raw'?status.rawRoot:status.wikiRoot;

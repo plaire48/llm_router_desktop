@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {createRequire} from 'node:module';
+import {fileURLToPath} from 'node:url';
 const require=createRequire(import.meta.url),module={exports:{}};
 // The host's own helpers (./capture-image.cjs) resolve against electron-app, not this test file.
-vm.runInNewContext(await readFile(new URL('../electron-app/browser-host.cjs',import.meta.url),'utf8'),{module,require:name=>name==='electron'?{}:require(name.startsWith('./')?new URL('../electron-app/'+name.slice(2),import.meta.url).pathname:name)});
+vm.runInNewContext(await readFile(new URL('../electron-app/browser-host.cjs',import.meta.url),'utf8'),{module,require:name=>name==='electron'?{}:require(name.startsWith('./')?fileURLToPath(new URL('../electron-app/'+name.slice(2),import.meta.url)):name)});
 const {BrowserHost}=module.exports;
 function fixture(rows,active){
  const events=[],host=Object.create(BrowserHost.prototype);

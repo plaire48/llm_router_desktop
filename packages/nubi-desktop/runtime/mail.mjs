@@ -7,7 +7,7 @@ import {applyPortalMetadata} from './portal-mail-metadata.mjs';
 import {DESKTOP_FEATURES} from './beta-features.mjs';
 import {responseTimer} from './response-timing.mjs';
 import {Worker} from 'node:worker_threads';
-import {mkdir,lstat,open,chmod,rm,readdir,rename,cp} from 'node:fs/promises';
+import {mkdir,lstat,open,chmod,rm,readdir,realpath,cp} from 'node:fs/promises';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {constants} from 'node:fs';
@@ -65,12 +65,12 @@ export class PersonalMail {
     this.processingTimer=setInterval(()=>{this.resumeProcessing();if(!this.timer)this.resumeCollection();},3000);this.processingTimer.unref?.();
     queueMicrotask(()=>void this.reconcilePrepared());
   }
-  eligible(row){return row.protocol==='local'||!!this.credentials&&row.account===this.account&&!this.paused;}
+  eligible(row){return row.protocol==='local'||!!this.credentials&&row.account===this.account&&!this.paused&&(this.serverProfile!=='portal'||this.storageConfigured);}
   rows(){return this.store.list('mail:');}
   modelAvailable(destination){return !!destination&&(this.host.providers?.catalogs?.()||[]).some(catalog=>catalog.provider===destination.provider&&catalog.models.some(item=>item.id===destination.model));}
   selectedModel(destination){if(!this.modelAvailable(destination))throw new Error('mail_model_missing');return {provider:destination.provider,model:destination.model};}
   resumeProcessing(){
-    if(!this.autoWiki||this.disposed)return;
+    if(!this.autoWiki||this.disposed||this.relocating)return;
     if(!this.destination){const destination=model(this.host);if(destination){this.destination=destination;this.store.set('setting:destination',destination);}}
     if(this.modelAvailable(this.destination))for(const row of this.rows().filter(row=>this.eligible(row)&&row.state==='attention'&&['mail_summary_interrupted','mail_model_changed','mail_model_missing'].includes(row.error)))this.store.set('mail:'+row.id,{...row,state:'queued',error:null});
     void this.readAttachments();void this.drain();
@@ -111,7 +111,7 @@ export class PersonalMail {
   }
   async readAttachments(){
     if(!DESKTOP_FEATURES.mailAttachmentReading)return;
-    if(!this.autoWiki||this.disposed||this.attachmentRead)return;
+    if(!this.autoWiki||this.disposed||this.relocating||this.attachmentRead)return;
     const row=this.rows().reverse().find(item=>this.eligible(item)&&(!item.attachmentState||['queued','unsupported'].includes(item.attachmentState)));if(!row)return;
     const controller=new AbortController(),generation=this.generation;this.attachmentRead=controller;
     try{
@@ -170,10 +170,11 @@ export class PersonalMail {
   }
   status({includeMessages=true}={}){
     this.resumeProcessing();
-    const rows=this.rows(),issues=this.attention();return {accountKey:this.account||null,localImport:this.importProgress||this.store.get('setting:local-import')||null,localCount:rows.filter(row=>row.protocol==='local').length,localKinds:[...new Set(rows.filter(row=>row.protocol==='local').map(row=>row.mailbox))],folders:this.store.get('portal-folders:'+this.account)||[],server:servers[this.serverProfile],serverProfile:this.serverProfile,protocol:servers[this.serverProfile].protocol||'pop3',connected:!!this.credentials,identityConfigured:!!(this.store.get('mail-identities:'+this.account)||[]).length,identityRevision:this.store.get('mail-identity-revision:'+this.account)||0,connecting:!!this.connecting,checking:!!this.checking,paused:this.paused,autoWiki:this.autoWiki,watchPaused:this.watchPaused,summarizing:!!this.synthesis,lastCheckedAt:this.lastCheckedAt||null,nextCheckAt:this.nextCheckAt||null,error:this.error||null,baselineCount:this.baselineCount||0,storageRoot:this.root,rawRoot:this.rawRoot,wikiRoot:this.wikiRoot,encryption:{state:this.wikiVault?.state||'off'},rejected:this.store.get('account:'+this.account)?.rejected||[],destination:this.destination,activeModel:model(this.host),catalogs:this.host.providers?.catalogs?.()||[],readingAttachments:!!this.attachmentRead,progress:this.progress(),recentChecks:this.store.get('mail-checks:'+this.account)||[],counts:{received:rows.length,queued:rows.filter(r=>r.state==='queued').length,saved:rows.filter(r=>r.state==='saved').length,attentionTotal:issues.items.length+issues.rejected.length,attachmentAttention:issues.items.filter(r=>r.attachmentFailures.length).length,attention:issues.items.filter(r=>r.summary).length},...(includeMessages?{messages:rows.slice(0,50).map(({id,subject,from,date,fetchedAt,state,error,path:wikiPath})=>({id,subject,from,date,fetchedAt,state,error,wikiPath}))}:{} )};
+    const rows=this.rows(),issues=this.attention();return {accountKey:this.account||null,localImport:this.importProgress||this.store.get('setting:local-import')||null,localCount:rows.filter(row=>row.protocol==='local').length,localKinds:[...new Set(rows.filter(row=>row.protocol==='local').map(row=>row.mailbox))],folders:this.store.get('portal-folders:'+this.account)||[],server:servers[this.serverProfile],serverProfile:this.serverProfile,protocol:servers[this.serverProfile].protocol||'pop3',connected:!!this.credentials,identityConfigured:!!(this.store.get('mail-identities:'+this.account)||[]).length,identityRevision:this.store.get('mail-identity-revision:'+this.account)||0,connecting:!!this.connecting,checking:!!this.checking,paused:this.paused,autoWiki:this.autoWiki,watchPaused:this.watchPaused,summarizing:!!this.synthesis,lastCheckedAt:this.lastCheckedAt||null,nextCheckAt:this.nextCheckAt||null,error:this.error||null,baselineCount:this.baselineCount||0,storageRoot:this.root,rawRoot:this.rawRoot,requiresStorageSetup:!this.storageConfigured,storageMoving:!!this.relocating,wikiRoot:this.wikiRoot,encryption:{state:this.wikiVault?.state||'off'},rejected:this.store.get('account:'+this.account)?.rejected||[],destination:this.destination,activeModel:model(this.host),catalogs:this.host.providers?.catalogs?.()||[],readingAttachments:!!this.attachmentRead,progress:this.progress(),recentChecks:this.store.get('mail-checks:'+this.account)||[],counts:{received:rows.length,queued:rows.filter(r=>r.state==='queued').length,saved:rows.filter(r=>r.state==='saved').length,attentionTotal:issues.items.length+issues.rejected.length,attachmentAttention:issues.items.filter(r=>r.attachmentFailures.length).length,attention:issues.items.filter(r=>r.summary).length},...(includeMessages?{messages:rows.slice(0,50).map(({id,subject,from,date,fetchedAt,state,error,path:wikiPath})=>({id,subject,from,date,fetchedAt,state,error,wikiPath}))}:{} )};
   }
   async parsePortal(raw,{includePresentation=false,filename=''}={}){if(typeof raw!=='string'||raw.length>14*1024*1024)throw Error('mail_size_limit');return await new Promise((resolve,reject)=>{const worker=new Worker(new URL('./mail-portal-worker.mjs',import.meta.url),{workerData:{raw,includePresentation,filename},resourceLimits:{maxOldGenerationSizeMb:192},execArgv:[]});const timer=setTimeout(()=>{worker.terminate();reject(Error('mail_timeout'));},30000);const finish=()=>{clearTimeout(timer);worker.terminate();};worker.once('message',value=>{finish();value.error?reject(Error(value.error)):resolve(value.result);});worker.once('error',()=>{finish();reject(Error('mail_parse_failed'));});worker.once('exit',exit=>{if(exit!==0){clearTimeout(timer);reject(Error('mail_parse_failed'));}});});}
   async startFolderImport(directory){
+    if(this.relocating)throw Error('mail_busy');
     if(this.importController)throw Error('mail_busy');
     const controller=new AbortController();this.importController=controller;
     try{await this.prepare();}catch(error){this.importController=null;throw error;}
@@ -246,6 +247,11 @@ export class PersonalMail {
     if(action==='setAutoWiki'&&typeof args.enabled!=='boolean')throw new Error('mail_input_invalid');
     if(action==='pause'||(action==='setAutoWiki'&&!args.enabled)){this.autoWiki=false;this.store.set('setting:auto-wiki',false);this.paused=true;this.generation++;clearTimeout(this.timer);this.cancelPull?.();this.attachmentRead?.abort();for(const controller of this.documentReaders||[])controller.abort();this.synthesis?.abort();return this.status();}
     if(action==='setRawRoot')return this.relocateRaw(args.directory);
+    if(action==='confirmStorage'){
+      if(this.relocating)throw Error('mail_busy');
+      await privateDir(this.rawRoot);
+      this.store.set('setting:raw-root-confirmed',true);this.resumeProcessing();return this.status();
+    }
     if(action==='setModel'){
       const destination=this.selectedModel(args.destination);if(this.synthesis)throw new Error('mail_busy');
       this.destination=destination;this.store.set('setting:destination',destination);return this.status();
@@ -323,23 +329,37 @@ export class PersonalMail {
   knownUids(account){return this.rows().filter(row=>row.account===account).map(row=>row.uidl);}
   // Mail and attachment originals live under the mail folder unless the person picked another place (user request 2026-10-14).
   get rawRoot(){const chosen=this.store?.get?.('setting:raw-root')?.path;return typeof chosen==='string'&&path.isAbsolute(chosen)?chosen:path.join(this.root,'raw');}
+  get storageConfigured(){const chosen=this.store.get('setting:raw-root')?.path;return this.store.get('setting:raw-root-confirmed')===true||typeof chosen==='string'&&path.isAbsolute(chosen);}
   async relocateRaw(directory){
     if(typeof directory!=='string'||!path.isAbsolute(directory)||directory.includes('\0'))throw new Error('mail_input_invalid');
-    if(this.checking||this.synthesis||this.attachmentRead||this.importController)throw new Error('mail_busy');
-    const from=this.rawRoot,to=path.basename(directory)==='nubi-mail-raw'?directory:path.join(directory,'nubi-mail-raw');
-    if(path.resolve(to)===path.resolve(from))return this.status();
+    if(this.relocating||this.checking||this.synthesis||this.attachmentRead||this.importController)throw new Error('mail_busy');
+    this.relocating=true;const copied=[];let committed=false;
+    try{
+    await privateDir(this.rawRoot);await mkdir(directory,{recursive:true});
+    const from=await realpath(this.rawRoot),selected=await realpath(directory),to=path.basename(selected)==='nubi-mail-raw'?selected:path.join(selected,'nubi-mail-raw');
+    if(path.resolve(to)===path.resolve(from)){await privateDir(to);this.store.set('setting:raw-root-confirmed',true);return {...this.status(),storageMoving:false};}
     const inside=(child,parent)=>{const rel=path.relative(parent,child);return !rel.startsWith('..')&&!path.isAbsolute(rel);};
     if(inside(to,from)||inside(from,to))throw new Error('mail_storage_nested');
     await privateDir(to);
     if((await readdir(to)).length)throw new Error('mail_storage_not_empty');
     let entries=[];try{entries=await readdir(from);}catch(error){if(error.code!=='ENOENT')throw error;}
+    // Copy and verify everything before switching the path. A disk/permission
+    // failure must leave all original mail readable at the old location.
+    async function verify(source,target){
+      const info=await lstat(source);if(info.isSymbolicLink())throw Error('mail_file_conflict');
+      if(info.isDirectory()){for(const name of await readdir(source))await verify(path.join(source,name),path.join(target,name));}
+      else if(!info.isFile()||sha(await readFile(source))!==sha(await readFile(target)))throw Error('mail_source_changed');
+    }
     for(const name of entries){
       const source=path.join(from,name),target=path.join(to,name);
-      try{await rename(source,target);}
-      catch(error){if(error.code!=='EXDEV')throw error;await cp(source,target,{recursive:true,errorOnExist:true,force:false});await rm(source,{recursive:true,force:true});}
+      copied.push(target);await cp(source,target,{recursive:true,errorOnExist:true,force:false,filter:async file=>{if((await lstat(file)).isSymbolicLink())throw Error('mail_file_conflict');return true;}});await verify(source,target);
     }
     this.store.set('setting:raw-root',{path:to,changedAt:new Date().toISOString()});
+    committed=true;
+    for(const name of entries)await rm(path.join(from,name),{recursive:true,force:true}).catch(()=>{});
     this.contentCache?.clear?.();
+    }catch(error){if(!committed)for(const target of copied)await rm(target,{recursive:true,force:true}).catch(()=>{});throw error;}
+    finally{this.relocating=false;}
     return this.status();
   }
   async prepare(){await privateDir(this.root);await privateDir(this.rawRoot);await this.ensureWiki();await privateDir(this.wikiRoot);}
@@ -378,6 +398,7 @@ export class PersonalMail {
     this.recordActivity({kind:'checked',received:this.autoWiki?result.mails.length:0,pendingServer:this.store.get('account:'+this.account).pendingServer,attention:result.failed?.length||0});
   }
   async intake(result,generation,{collectOnly=false,accountId=this.account}={}){
+    if(this.relocating)throw Error('mail_busy');
     for(const mail of result.mails){
       if(generation!==this.generation||this.disposed||!collectOnly&&!this.autoWiki)throw new Error('mail_cancelled');
       const id=sha(accountId+'\0'+mail.uidl),raw=Buffer.from(mail.raw),sourceHash=sha(raw),directory=path.join(this.rawRoot,id);
@@ -433,7 +454,7 @@ export class PersonalMail {
     return mail;
   }
   async drain(){
-    if(this.synthesis||this.reconciling||!this.autoWiki||this.disposed||this.host.isAnyProjectBusy?.()||this.host.agent?.running||this.host.wikiUpdating||!this.modelAvailable(this.destination))return;
+    if(this.relocating||this.synthesis||this.reconciling||!this.autoWiki||this.disposed||this.host.isAnyProjectBusy?.()||this.host.agent?.running||this.host.wikiUpdating||!this.modelAvailable(this.destination))return;
     const row=this.rows().reverse().find(r=>this.eligible(r)&&r.state==='queued'&&(!DESKTOP_FEATURES.mailAttachmentReading||r.attachmentState==='complete'));if(!row)return;
     const controller=new AbortController(),timing=responseTimer({kind:row.prepared?'saving':'organizing'});this.synthesis=controller;this.synthesisTimer=timing;
     try{

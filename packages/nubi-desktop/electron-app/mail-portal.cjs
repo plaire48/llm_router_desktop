@@ -178,7 +178,7 @@ class MailPortal {
  }
  async syncNow({manual=false}={}){
   if(!this.state.connected)throw Error('mail_portal_login');if(this.state.checking)return this.status();
-  const epoch=this.epoch;const settings=await this.invoke('mail',{action:'status'});if(epoch!==this.epoch)throw Error('mail_cancelled');if(settings?.watchPaused&&!manual)return this.status();clearTimeout(this.timer);this.state={...this.state,checking:true,error:null,completed:0,total:null};
+  const epoch=this.epoch;const settings=await this.invoke('mail',{action:'status'});if(epoch!==this.epoch)throw Error('mail_cancelled');if(settings?.requiresStorageSetup||settings?.storageMoving){clearTimeout(this.timer);return this.status();}if(settings?.watchPaused&&!manual)return this.status();clearTimeout(this.timer);this.state={...this.state,checking:true,error:null,completed:0,total:null};
   try{
    const folders=foldersOf(await this.read('folders',{setCd:this.identity.setCd}));if(epoch!==this.epoch)throw Error('mail_cancelled');this.state.folders=folders;
    await this.invoke('mail',{action:'portalFolders',folders});if(epoch!==this.epoch)throw Error('mail_cancelled');
