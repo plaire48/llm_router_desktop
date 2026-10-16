@@ -45,6 +45,14 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test ../nubi-vscode/tests/ghes-account.test.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify immediate Windows shell cancellation before packaging
+        run: |
+          node --test tests/windows-process-stop.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          for ($attempt = 1; $attempt -le 5; $attempt++) {
+            node --test --test-name-pattern="Bash syntax and missing shell" tests/recovery.test.mjs
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
       - name: Verify official npm Claude discovery without inherited npm PATH
         run: node scripts/check-windows-claude.mjs
       - name: Verify Unicode shortcut inspection

@@ -8,6 +8,7 @@ import {StringDecoder} from 'node:string_decoder';
 import {POWERSHELL_TEXT_ARGS,POWERSHELL_UTF8_PREFIX} from './powershell-encoding.mjs';
 import {startElevated,stopElevated} from './elevated-process.mjs';
 import {powerShellOutputDecoder,processOutputDiagnostic} from './powershell-output.mjs';
+import {stopWindowsProcess} from './windows-process-stop.mjs';
 const executeFile=promisify(execFile);
 export const hostShell = (platform=process.platform) => platform==='win32'?'powershell':'bash';
 
@@ -109,8 +110,9 @@ export class Processes {
     if(preflight){const item=this.records.get(id);item.state='stopping';item.cancellationRequested=true;item.stopReason=reason;this.store.set('process:'+id,item);preflight.abort();return item;}
     const child = this.active.get(id); if (!child) return this.poll(id);
     if(child.nubiElevation)return stopElevated(this,id,child,reason);
-    const item = this.records.get(id); item.state = 'stopping'; item.cancellationRequested=true;item.stopReason=reason; this.store.set('process:' + id, item);
-    if (process.platform === 'win32') execFile('taskkill', ['/PID', String(child.pid), '/T', '/F'], {windowsHide: true}, () => {});
+    const item = this.records.get(id);if(item.state==='stopping')return item;
+    item.state = 'stopping'; item.cancellationRequested=true;item.stopReason=reason; this.store.set('process:' + id, item);
+    if (process.platform === 'win32') stopWindowsProcess(child,{isActive:()=>this.active.get(id)===child,onAttempt:attempt=>{item.stopAttempts=attempt;this.store.set('process:'+id,item);},onResult:code=>{item.stopExitCode=code;this.store.set('process:'+id,item);},onUnconfirmed:()=>{item.stopFault='process_stop_unconfirmed';this.store.set('process:'+id,item);}});
     else { try { process.kill(-child.pid, 'SIGTERM'); } catch {} const timer = setTimeout(() => { if (this.active.get(id) === child) {try {process.kill(-child.pid, 'SIGKILL');} catch {}} }, 1500); timer.unref(); }
     return item;
   }

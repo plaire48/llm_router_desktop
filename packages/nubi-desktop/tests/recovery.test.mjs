@@ -82,7 +82,7 @@ test('Bash syntax and missing shell are not executed; configured timeout differs
   // Windows taskkill can take several seconds. Keep natural exit well beyond
   // the assertion deadline so merely waiting out the script cannot pass.
   const timed=await service.run({taskId:task.id,script:'sleep 30',profile:'bash',timeoutMs:30,autoDiagnose:false});await wait(()=>!service.processes.active.size,10000);assert.equal(service.processes.poll(timed.id).state,'timed_out');
-  const stopped=await service.run({taskId:task.id,script:'sleep 30',profile:'bash'});service.processes.stop(stopped.id);await wait(()=>!service.processes.active.size,10000);assert.equal(service.processes.poll(stopped.id).state,'cancelled');assert.equal(service.recoveryQueue.size,0);
+  const stopped=await service.run({taskId:task.id,script:'sleep 30',profile:'bash'});service.processes.stop(stopped.id);await wait(()=>!service.processes.active.size,15000).catch(error=>{t.diagnostic(JSON.stringify(service.processes.poll(stopped.id)));throw error;});assert.equal(service.processes.poll(stopped.id).state,'cancelled');assert.equal(service.recoveryQueue.size,0);
   const missingBinary=new Processes(service.store,{profiles:async()=>[{id:'bash',executable:path.join(root,'no-bash'),args:[]}]});const result=await missingBinary.start({cwd:root,taskId:task.id,script:'echo x',profile:'bash'});assert.equal(result.fault,'shell_executable_missing');
 });
 
