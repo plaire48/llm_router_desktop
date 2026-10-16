@@ -21,6 +21,18 @@ try{
   await p.getByRole('button',{name:'앱 등록',exact:true}).click();await p.getByRole('dialog').waitFor();await p.getByRole('tab',{name:'파일',exact:true}).click();await p.getByText('페이지 파일',{exact:true}).waitFor();await p.keyboard.press('Escape');await p.getByRole('alertdialog').getByRole('button',{name:'작성 취소',exact:true}).click();await p.getByRole('dialog').waitFor({state:'hidden'});
   await p.evaluate(()=>window.openFailure=true);await p.getByRole('link',{name:'파일 앱 새 탭에서 열기'}).click();await p.getByRole('alert').filter({hasText:'앱을 열지 못했어요'}).waitFor();await p.getByRole('button',{name:'다시 불러오기',exact:true}).click();await p.getByRole('alert').waitFor({state:'hidden'});
   await p.getByRole('button',{name:'테스트 Talk',exact:true}).click();await p.waitForFunction(()=>window.calls.some(c=>c.method==='ghesFetch'&&c.body?.includes('E2EDiscussions')));
+  await p.locator('.talk-toolbar').screenshot({path:dir+'/talk-filters-'+width+'.png'});
+  for(const name of ['글 정렬','카테고리 필터','답변 상태','페이지당 표시 수']){
+   const field=p.getByRole('combobox',{name,exact:true});
+   assert.equal(await field.evaluate(el=>getComputedStyle(el).appearance),'none',name+' must not add a native arrow');
+   const ownIcon=name!=='페이지당 표시 수';
+   assert.equal(await field.evaluate(el=>getComputedStyle(el).backgroundImage!=='none'),ownIcon,name+' has exactly one custom arrow');
+   await field.click();await p.getByRole('listbox',{name,exact:true}).waitFor();
+   assert.equal(await field.evaluate(el=>getComputedStyle(el).backgroundImage!=='none'),ownIcon,name+' keeps its arrow while open');
+   await p.keyboard.press('Escape');
+  }
+  const sort=p.getByRole('combobox',{name:'글 정렬',exact:true});await sort.focus();await p.keyboard.press('Enter');await p.keyboard.press('ArrowDown');await p.keyboard.press('Enter');assert.equal(await sort.inputValue(),'popular');
+  await sort.click();await p.getByRole('listbox',{name:'글 정렬'}).getByRole('option',{name:'최신순',exact:true}).click();assert.equal(await sort.inputValue(),'latest');
   await p.getByRole('button',{name:'글쓰기',exact:true}).first().click();await p.getByRole('textbox',{name:'글 제목',exact:true}).waitFor();await p.getByRole('combobox',{name:'글 카테고리'}).selectOption('general');
   await p.screenshot({path:dir+'/talk-'+width+'.png'});assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
   await p.getByRole('button',{name:'테스트 문의',exact:true}).click();

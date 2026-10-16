@@ -93,16 +93,21 @@
    shared open/closed icon, but draw it once at the trailing edge. */
 :root:has(.desktop-shell) select[data-cx-select],
 :root:has(.desktop-shell) .deck-dialog select[data-cx-select] {
+  appearance:none;
   background-repeat:no-repeat;
   background-position:right var(--cx-space-3) center;
   background-size:var(--cx-field-icon,16px);
   padding-right:calc(var(--cx-space-3) * 2 + var(--cx-field-icon,16px));
 }
-:root:has(.desktop-shell) select[data-cx-select]:not([aria-expanded=true]):not(:disabled) {
+:root:has(.desktop-shell) select[data-cx-select]:not(:disabled) {
   background-image:var(--cx-select-chevron);
 }
 :root:has(.desktop-shell) select[data-cx-select]:disabled {
   background-image:var(--cx-select-chevron-disabled);
+}
+/* Page-size controls already render the shared chevron as a sibling icon. */
+:root:has(.desktop-shell) .table-page-size select[data-cx-select] {
+  background-image:none;
 }
 /* Ordinary actions have one geometry. Choice rows, switches and page chips
    retain their own layout and accessible interaction semantics. */
