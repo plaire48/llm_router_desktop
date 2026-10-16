@@ -1,7 +1,7 @@
 import React,{useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {CxButton,CxInput,Icon} from '@e2e/cx-design-system';
-import {WorkspaceAction as ActionButton} from './WorkspaceAction.jsx';
+import {WorkspaceAction} from './WorkspaceAction.jsx';
 import {sectionLabel,WIKI_SORTS} from './wiki-graph.mjs';
 import './mail-column-filter.css';
 
@@ -11,7 +11,7 @@ export const WIKI_COLUMNS=[['title','제목'],['section','분류'],['type','종�
 export const WIKI_PAGE_SIZES=[10,20,50,100];
 export const EMPTY_WIKI_FILTERS=Object.freeze({sections:[],types:[],link:'all',period:'all'});
 export const WIKI_SORT_LABELS={'title-asc':'제목 오름차순','title-desc':'제목 내림차순','section-asc':'분류 오름차순','section-desc':'분류 내림차순','type-asc':'종류 오름차순','type-desc':'종류 내림차순','links-desc':'연결 많은 순','links-asc':'연결 적은 순','updated-desc':'최근 수정 순','updated-asc':'오래된 수정 순'};
-const LINK_CHOICES=[['all','전체 문서','file'],['linked','연결된 문서','link'],['orphan','고립 문서','alertCircle']],PERIOD_CHOICES=[['all','전체 기간'],['7','최근 7일'],['30','최근 30일']];
+const LINK_CHOICES=[['all','전체 문서','file'],['linked','연결된 문서','link'],['orphan','연결 없는 문서','file']],PERIOD_CHOICES=[['all','전체 기간'],['7','최근 7일'],['30','최근 30일']];
 export function wikiDate(value){const at=Date.parse(value||'');if(!Number.isFinite(at))return '';const date=new Date(at),pad=n=>String(n).padStart(2,'0');return `${date.getFullYear()}.${pad(date.getMonth()+1)}.${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;}
 export function activeWikiFilter(field,filters){return field==='section'?filters.sections.length>0:field==='type'?filters.types.length>0:field==='links'?filters.link!=='all':field==='updated'?filters.period!=='all':false;}
 
@@ -24,9 +24,10 @@ function ColumnFilter({field,label,filters,facets,disabled,onChange}){
  const trigger=useRef(null),popup=useRef(null),active=activeWikiFilter(field,filters);
  const close=()=>{setOpen(false);trigger.current?.focus({preventScroll:true});};
  useLayoutEffect(()=>{
-  if(!open)return;const place=()=>{const box=trigger.current.getBoundingClientRect(),height=popup.current?.getBoundingClientRect().height||260;setPosition({left:Math.max(12,Math.min(box.right-300,window.innerWidth-312)),top:Math.max(12,Math.min(box.bottom+8,window.innerHeight-height-12))});};
-  const observer=new ResizeObserver(place);if(popup.current)observer.observe(popup.current);place();popup.current?.querySelector('input,button')?.focus();const outside=event=>{if(!popup.current?.contains(event.target)&&!trigger.current?.contains(event.target))setOpen(false);};
-  document.addEventListener('pointerdown',outside);window.addEventListener('resize',place);window.addEventListener('scroll',place,true);return()=>{observer.disconnect();document.removeEventListener('pointerdown',outside);window.removeEventListener('resize',place);window.removeEventListener('scroll',place,true);};
+  if(!open)return;let frame=0;const place=()=>{frame=0;const box=trigger.current.getBoundingClientRect(),height=popup.current?.getBoundingClientRect().height||260,next={left:Math.max(12,Math.min(box.right-300,window.innerWidth-312)),top:Math.max(12,Math.min(box.bottom+8,window.innerHeight-height-12))};setPosition(current=>current.left===next.left&&current.top===next.top?current:next);};
+  const schedule=()=>{if(!frame)frame=requestAnimationFrame(place);};
+  const observer=new ResizeObserver(schedule);if(popup.current)observer.observe(popup.current);place();popup.current?.querySelector('input,button')?.focus({preventScroll:true});const outside=event=>{if(!popup.current?.contains(event.target)&&!trigger.current?.contains(event.target))setOpen(false);};
+  document.addEventListener('pointerdown',outside);window.addEventListener('resize',schedule);window.addEventListener('scroll',schedule,true);return()=>{cancelAnimationFrame(frame);observer.disconnect();document.removeEventListener('pointerdown',outside);window.removeEventListener('resize',schedule);window.removeEventListener('scroll',schedule,true);};
  },[open]);
  useEffect(()=>{if(disabled)setOpen(false);},[disabled]);
  const toggle=(key,value)=>setDraft(current=>({...current,[key]:current[key].includes(value)?current[key].filter(item=>item!==value):[...current[key],value]}));
@@ -52,7 +53,7 @@ export function WikiTable({rows,selectedPath,sort,onSort,onOpen,filters,facets,o
   <td><button type="button" className="nubi-wiki-result" disabled={disabled} aria-pressed={selectedPath===row.path} title={row.path}><span><strong>{row.title}</strong>{drafts?.has(row.path)&&<span className="nubi-wiki-draft-mark" aria-label="저장 전">●</span>}</span><small>{row.description||row.path}</small></button></td>
   <td title={sectionLabel(row.section)}><span className="nubi-wiki-section">{colors?.has(row.section)&&<i style={{background:colors.get(row.section)}} aria-hidden="true"/>}{sectionLabel(row.section)}</span></td>
   <td>{row.type?<span className="nubi-wiki-type">{row.type}</span>:<span className="nubi-muted">—</span>}</td>
-  <td><span className="nubi-wiki-degree" data-orphan={!row.degree} title={row.degree?`연결된 문서 ${row.degree}개`:'연결된 문서 없음'}>{row.degree?<><Icon name="link" size={14}/>{row.degree}</>:<><Icon name="alertCircle" size={16}/><span className="visually-hidden">고립 문서</span></>}</span></td>
+  <td><span className="nubi-wiki-degree" data-orphan={!row.degree} title={row.degree?`연결된 문서 ${row.degree}개`:'연결된 문서 없음'}>{row.degree?<><Icon name="link" size={14}/>{row.degree}</>:<><Icon name="file" size={16}/><span className="visually-hidden">연결 없는 문서</span></>}</span></td>
   <td><time dateTime={row.updatedAt||undefined}>{wikiDate(row.updatedAt)}</time></td>
  </tr>)}</tbody></table>;
 }

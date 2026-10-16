@@ -1,4 +1,9 @@
 .desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-history-body { display:flex; flex-direction:column; gap:0; overflow:auto; margin-top:12px; }
+.desktop-shell .nubi-mail-personal-folder { display:flex; align-items:center; gap:var(--cx-space-2); width:min(100%,360px); min-width:0; margin-top:var(--cx-space-2); }
+.desktop-shell .nubi-mail-personal-folder>svg { flex:none; color:var(--nubi-text-secondary); }
+.desktop-shell .nubi-mail-personal-folder>:last-child { flex:1; min-width:0; }
+.cx-select-menu[data-single-line=true] .cx-select-option>span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cx-select-menu[data-single-line=true] .cx-select-option>svg { flex:none; }
 .desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-history-list { display:flex; flex-direction:column; flex:none; width:100%; max-height:none; min-height:0; padding:0; border:0; }
 .desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-history-detail { display:block; flex:1 0 240px; min-height:240px; max-height:none; overflow:visible; margin-top:16px; padding:16px 0 0; border:0; border-top:1px solid var(--deck-line); border-radius:0; }
 .desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-results { display:block; overflow:auto; min-height:100px; max-height:clamp(200px,34vh,440px); padding:0; border:1px solid var(--deck-line); border-radius:var(--nubi-work-control-radius); }

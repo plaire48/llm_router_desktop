@@ -96,6 +96,15 @@ await p.screenshot({path:path.join(dir,`execution-${width}.png`),animations:'dis
   assert.equal(await activity.locator('[data-timeline-kind=note]').count(),2,'updates remain available after completion');
   await p.screenshot({path:path.join(dir,`completed-${width}.png`),animations:'disabled'});
  }
+ await p.goto('http://127.0.0.1:'+server.address().port+'/?integrated&progress&activity-readability&stopped-order');
+ const orderOpen=p.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await orderOpen.count())await orderOpen.click();
+ await p.getByRole('button',{name:'대화 검색',exact:true}).click();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').first().click();
+ await p.locator('.nubi-command-record').waitFor();await p.evaluate(()=>window.addSteering());
+ await p.locator('[data-message-key="input-steer"]').waitFor();
+ const assertOrder=async()=>assert(await p.locator('.nubi-command-record').evaluate(node=>!!(node.compareDocumentPosition(document.querySelector('[data-message-key="input-steer"]'))&Node.DOCUMENT_POSITION_FOLLOWING)),'terminal stays before the newer request');
+ await assertOrder();await p.evaluate(()=>window.stopOrderedRun());
+ await p.waitForFunction(()=>document.querySelector('.nubi-agent-activity')?.getAttribute('aria-busy')==='false');
+ await assertOrder();await p.screenshot({path:path.join(dir,'stopped-order.png'),animations:'disabled'});
  await p.setViewportSize({width:1280,height:1050});
  await p.goto('http://127.0.0.1:'+server.address().port+'/?integrated&document=history-handoff');
  const open=p.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await open.count())await open.click();

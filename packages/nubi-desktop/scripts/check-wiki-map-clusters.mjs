@@ -5,13 +5,13 @@ import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 const root=process.cwd(),out=path.join(root,'verification/wiki-map-clusters-2026-10-15');await mkdir(out,{recursive:true});
-const source=`import React from 'react';import {createRoot} from 'react-dom/client';import {WikiMap} from './ui/WikiMap.jsx';import {buildWikiGraph} from './ui/wiki-graph.mjs';import '@e2e/cx-design-system/styles.css';import './ui/wiki-browser.css';import './electron-app/workbench.css';import './design/workspace-identity.css';import './electron-app/shell.css';import './electron-app/ios-tokens.css';import './design/workspace-typography.css';import './design/workspace-dialogs.css';
-const mode=new URLSearchParams(location.search).get('mode')||'mail',large=mode==='large';
+const source=`import React from 'react';import {createRoot} from 'react-dom/client';import {WikiMap} from './ui/WikiMap.jsx';import {WikiTable,EMPTY_WIKI_FILTERS} from './ui/WikiTable.jsx';import {buildWikiGraph} from './ui/wiki-graph.mjs';import '@e2e/cx-design-system/styles.css';import './ui/wiki-browser.css';import './electron-app/workbench.css';import './design/workspace-identity.css';import './electron-app/shell.css';import './electron-app/ios-tokens.css';import './design/workspace-typography.css';import './design/workspace-dialogs.css';
+const mode=new URLSearchParams(location.search).get('mode')||'mail',large=mode==='large',mail=mode==='mail'||mode==='mail-simple';
 const titles=['누비 배포 검증','위키 검색 개선','고객 상담 내역','접근 권한 검토','품질 평가 결과'];
-const items=Array.from({length:large?3000:25},(_,i)=>({path:'domain-'+Math.floor(i/(large?30:5))+'/page-'+i+'.md',title:titles[Math.floor(i/5)%5]+' '+(i%5+1),type:mode==='mail'?'Mail':['Process','Integration','Module','Reference','Policy'][i%5],category:mode==='mail'?(i%2?'업무':'결재'):undefined,date:'2026-'+(i%2?'10':'09')+'-12',tags:[],description:'동일한 주제와 실제 문서 연결을 확인합니다.'}));
-const edges=items.flatMap((node,i)=>i%(large?30:5)?[{from:items[i-1].path,to:node.path,...(mode==='mail'?{kind:i%2?'reply':'similar_topic',label:i%2?'회신':'비슷한 주제',confidence:i%2?'header':'candidate',reasons:['테스트 관계']}:{})}]:[]);
-const graph=buildWikiGraph(items,edges,{kind:mode==='mail'?'mail':'code'});window.fixtureTotal=items.length;
-createRoot(document.getElementById('root')).render(<main className="desktop-shell" style={{display:'block',height:'auto',minHeight:'100vh',overflow:'visible'}}><div style={{padding:20,width:'100%',boxSizing:'border-box'}}><WikiMap graph={graph} onOpen={path=>window.openedPath=path}/></div></main>);`;
+const items=Array.from({length:large?3000:25},(_,i)=>({path:'domain-'+Math.floor(i/(large?30:5))+'/page-'+i+'.md',title:titles[Math.floor(i/5)%5]+' '+(i%5+1),type:mail?'Mail':['Process','Integration','Module','Reference','Policy'][i%5],category:mail?(mode==='mail-simple'?(i%2?'SR처리/이력내용':'SR처리/접수'):(i%2?'업무':'결재')):undefined,date:'2026-'+(i%2?'10':'09')+'-12',tags:[],description:'동일한 주제와 실제 문서 연결을 확인합니다.'}));
+const edges=items.flatMap((node,i)=>i%(large?30:5)&&(mode!=='mail-simple'||i<24)?[{from:items[i-1].path,to:node.path,...(mail?{kind:i%2?'reply':'similar_topic',label:i%2?'회신':'비슷한 주제',confidence:i%2?'header':'candidate',reasons:['테스트 관계']}:{})}]:[]);
+const graph=buildWikiGraph(items,edges,{kind:mail?'mail':'code'});window.fixtureTotal=items.length;
+createRoot(document.getElementById('root')).render(<main className="desktop-shell" style={{display:'block',height:mode==='mail-simple'?'100vh':'auto',minHeight:'100vh',overflow:mode==='mail-simple'?undefined:'visible'}}><div className={mode==='mail-simple'?'nubi-wiki-browser':undefined} style={{padding:20,width:'100%',height:mode==='mail-simple'?'100%':'auto',boxSizing:'border-box'}}><WikiMap graph={graph} onOpen={path=>window.openedPath=path}/>{mode==='mail-simple'&&<div className="nubi-wiki-results"><WikiTable rows={graph.nodes.slice(20)} sort='title-asc' onSort={()=>{}} onOpen={()=>{}} filters={EMPTY_WIKI_FILTERS} facets={graph} onFilters={()=>{}}/></div>}</div></main>);`;
 await build({stdin:{contents:source,loader:'jsx',resolveDir:root},outfile:path.join(out,'app.js'),bundle:true,format:'esm',platform:'browser',alias:{react:path.join(root,'node_modules/react'),'react-dom':path.join(root,'node_modules/react-dom')},loader:{'.woff2':'file','.woff':'file','.png':'file'},define:{'process.env.NODE_ENV':'"production"',__APP_VERSION__:'"fixture"'}});
 await build({entryPoints:['ui/wiki-layout-worker.mjs'],outfile:path.join(out,'chunks/wiki-layout-worker.js'),bundle:true,format:'esm',platform:'browser'});
 await writeFile(path.join(out,'index.html'),'<html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="app.css"><div id="root"></div><script type="module" src="app.js"></script></html>');
@@ -25,7 +25,7 @@ try{
   new PerformanceObserver(list=>window.longTasks.push(...list.getEntries().map(e=>e.duration))).observe({type:'longtask',buffered:true});
  });
  const go=async(mode,width)=>{await page.setViewportSize({width,height:950});await page.goto(`http://127.0.0.1:${server.address().port}/index.html?mode=${mode}`);await page.waitForFunction(()=>window.layoutDone>0);};
- for(const width of [1280,440]){
+ for(const width of (process.env.NUBI_MAIL_ONLY?[]:[1280,440])){
   await go('mail',width);assert.equal(await page.getByRole('tab',{name:'주제 묶음',exact:true}).getAttribute('aria-selected'),'true');
   assert.equal(await page.locator('.nubi-wiki-map-legend button').count(),5);
   await page.getByRole('button',{name:'전체 보기',exact:true}).click();
@@ -45,6 +45,23 @@ try{
   await page.waitForFunction(()=>window.layoutDone>=2);await page.getByRole('button',{name:'전체 보기',exact:true}).click();
   await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:path.join(out,`code-${width}.png`),fullPage:true,animations:'disabled'});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ }
+ for(const width of [1280,440]){
+  await go('mail-simple',width);await page.getByRole('tab',{name:'종류',exact:true}).click();
+  await page.getByRole('button',{name:'SR처리',exact:false}).first().waitFor();
+  assert.equal(await page.locator('.nubi-wiki-map-legend button:not(.nubi-wiki-map-orphans)').count(),1);
+  const degrees=page.locator('.nubi-wiki-degree[data-orphan=true]');
+  assert.equal(await degrees.count(),1);
+  assert.notEqual(await degrees.evaluate(el=>getComputedStyle(el).color),'rgb(240, 68, 82)');
+  await page.locator('.nubi-wiki-results').evaluate(el=>{el.scrollLeft=el.scrollWidth;});
+  await page.getByRole('button',{name:'종류 필터',exact:true}).click();
+  const filter=page.getByRole('dialog',{name:'종류 필터 설정'});
+  await filter.getByText('SR처리 (25)',{exact:true}).waitFor();
+  await page.screenshot({path:path.join(out,`mail-simple-${width}.png`),fullPage:true});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth||scrollX!==0||document.querySelector('main').scrollLeft!==0),false);
+  assert.equal(await filter.locator('.nubi-mail-column-values label').count(),2);
+  await page.screenshot({path:path.join(out,`mail-simple-${width}.png`),fullPage:true});
+  await filter.getByRole('button',{name:'필터 닫기'}).click();
  }
  await go('large',1280);const count=await page.locator('svg g[role="button"]').count();assert(count>0&&count<750);
  const before=await page.locator('svg g[role="button"]').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('aria-label')));

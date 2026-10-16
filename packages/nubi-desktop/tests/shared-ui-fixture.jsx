@@ -150,6 +150,12 @@ if(new URLSearchParams(location.search).has('activity-readability')){
  window.activityState('running');
  project.processes=[{id:'activity-process',taskId:task.id,profile:'powershell',cwd:'C:/repo/project',script:'Get-ChildItem -Name',state:'completed',exitCode:0,output:'src\nREADME.md\npackage.json'}];
 }
+if(new URLSearchParams(location.search).has('stopped-order')){
+ const task=project.tasks[0],runId=task.checkpoint.runId;
+ task.messages=[];task.responseTiming={runId,afterMessageId:task.id,startedAt:new Date().toISOString(),elapsedMs:12500};
+ window.addSteering=()=>{task.messages.push({id:'steer-1',inputId:'input-steer',role:'user',content:'추가 요청은 이 위치에 남겨 주세요.',at:new Date().toISOString()});};
+ window.stopOrderedRun=()=>{task.state='paused';task.trace.at(-1).status='error';};
+}
 if(new URLSearchParams(location.search).has('polling-response')){project.processes[0].state='running';window.pollCalls=[];window.finishProcess=()=>{project.processes[0]={...project.processes[0],state:'completed',output:'실행 완료 확인'};};}
 const usageFixture=new URLSearchParams(location.search).has('chatgpt-usage');
 if(usageFixture){connected=true;selected='chatgpt';model='gpt-5.6-sol';models.push({id:model,label:'GPT fixture',contextLength:262144});project.tasks=[{id:'usage-task',request:'사용량 확인',state:'review',messages:[{role:'assistant',content:'토큰 표시 검증용 응답입니다.'}],trace:[],criteria:[],context:{usage:{model,kind:'measured',used:23223,prompt:23175,completion:48,window:262144}}}];}

@@ -44,9 +44,40 @@ try{
   await p.getByRole('tab',{name:'업무 프로젝트',exact:true}).click();await p.getByRole('textbox',{name:'위키 본문'}).waitFor();
   assert.equal(await p.getByRole('textbox',{name:'위키 본문'}).inputValue(),'# 저장 전 메모','scope switch preserves unsaved text and selected document');
   await p.getByRole('button',{name:'수정 취소',exact:true}).click();
+  // Exercise the real WikiBrowser state, including the popup footer that used
+  // to reference an undefined WorkspaceAction and crash the whole screen.
+  for(const scope of ['메일','업무 프로젝트']){
+   await p.getByRole('tab',{name:scope,exact:true}).click();
+   for(const label of ['분류','종류','연결','수정일']){
+    const trigger=p.getByRole('button',{name:label+' 필터',exact:true});
+    await trigger.scrollIntoViewIfNeeded();await trigger.click();
+    const popup=p.getByRole('dialog',{name:label+' 필터 설정'});await popup.waitFor();
+    const choice=label==='분류'||label==='종류'?popup.getByRole('checkbox').nth(1):popup.getByRole('radio',{name:label==='연결'?'연결된 문서':'최근 7일',exact:true});
+    const choiceName=await choice.evaluate(el=>el.closest('label').textContent);
+    await choice.check();await popup.getByRole('button',{name:'필터 적용',exact:true}).click();
+    await popup.waitFor({state:'hidden'});
+    assert.equal(await trigger.getAttribute('data-active'),'true',scope+' '+label+' applied');
+    if(label==='종류')assert.equal(await p.locator('.nubi-wiki-table tbody tr').count(),1,'type filters the real rows');
+    await trigger.click();await popup.waitFor();
+    const restored=popup.locator('label').filter({hasText:choiceName.trim()}).locator('input').last();
+    assert.equal(await restored.isChecked(),true,'selection survives reopening');
+    const box=await popup.boundingBox();assert(box.x>=0&&box.x+box.width<=width&&box.y>=0&&box.y+box.height<=950,'filter fits viewport');
+    if(label==='종류')await p.screenshot({animations:'disabled',path:path.join(dir,'wiki-filter-'+scope+'-'+width+'.png')});
+    await popup.getByRole('button',{name:'필터 초기화',exact:true}).click();await popup.waitFor({state:'hidden'});
+    assert.equal(await trigger.getAttribute('data-active'),'false');assert.equal(await p.locator('.nubi-wiki-table tbody tr').count(),2);
+    await trigger.click();await popup.waitFor();await popup.press('Escape');await popup.waitFor({state:'hidden'});
+   }
+   // Empty results remain recoverable through the condition chip.
+   await p.getByRole('button',{name:'연결 필터',exact:true}).click();
+   const popup=p.getByRole('dialog',{name:'연결 필터 설정'});
+   await popup.getByRole('radio',{name:'연결 없는 문서',exact:true}).check();await popup.getByRole('button',{name:'필터 적용',exact:true}).click();
+   await p.getByText('조건에 맞는 문서가 없어요.',{exact:true}).waitFor();
+   await p.getByRole('button',{name:'연결 없는 문서만 조건 제거',exact:true}).click();await p.locator('.nubi-wiki-table').waitFor();
+   assert.equal(await p.locator('.nubi-wiki-table tbody tr').count(),2);
+  }
   await p.screenshot({animations:'disabled',path:path.join(dir,'wiki-reading-'+width+'.png')});
   await p.getByRole('button',{name:'위키 수정',exact:true}).click();await p.getByRole('textbox',{name:'위키 본문'}).fill('# 사람이 보완한 운영 지침');await p.getByRole('button',{name:'위키 저장',exact:true}).click();await p.getByText('저장했어요. 다음 위키 조회에 반영됩니다.',{exact:true}).waitFor();await p.getByRole('tab',{name:'관계 지도',exact:true}).click();await p.getByRole('img',{name:'2개 문서의 연결'}).waitFor();await p.locator('.nubi-wiki-map-side').getByRole('button',{name:/^배포 절차/}).click();await p.locator('.nubi-wiki-document h2').filter({hasText:'배포 절차'}).waitFor();await p.screenshot({animations:'disabled',path:path.join(dir,'wiki-'+width+'.png')});
   assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
  }
- assert.deepEqual(errors,[]);console.log('Workspace tabs, app opening, Talk grid/feed/post/comment, Wiki edit/save/graph: fixture 1100/440/360px passed, with direct opening, last document restoration, related navigation, Enter search and draft retention.');
+ assert.deepEqual(errors,[]);console.log('Workspace tabs, app opening, Talk grid/feed/post/comment, Wiki edit/save/graph: fixture 1100/440/360px passed. All four Wiki filters open/apply/reopen/reset/Escape in both project and mail scopes (24 combinations), including empty-result recovery. Direct opening, last document restoration, related navigation, Enter search and draft retention passed.');
 }finally{await browser?.close();server.close();}

@@ -94,3 +94,10 @@ test('category mailboxes include matching portal and imported mail without mixin
  assert.deepEqual((await search.search({filters:{mailbox:'sent'}})).results.map(row=>row.id),['one']);
  assert.deepEqual((await search.search({filters:{mailbox:'local:notice'}})).results.map(row=>row.id),['two']);
 });
+test('personal folder searches do not mix sibling folders or the inbox',async()=>{
+ const {search,rows}=fixture();Object.assign(rows[0],{mailbox:'other',folderId:'7',protocol:'portal'});Object.assign(rows[1],{mailbox:'other',folderId:'8',protocol:'portal'});
+ assert.deepEqual((await search.search({filters:{mailbox:'folder:7'}})).results.map(row=>row.id),['one']);
+ assert.deepEqual((await search.search({filters:{mailbox:'folder:8'}})).results.map(row=>row.id),['two']);
+ assert.equal((await search.search({filters:{mailbox:'inbox'}})).total,0);
+ assert.equal((await search.search({filters:{mailbox:'folder:99'}})).total,0);
+});

@@ -1,10 +1,11 @@
 // Interactive human terminals only. Agent commands keep their receipt/approval runtime.
 const pty=require(require.resolve('node-pty').replace(/app\.asar([\\/])/,'app.asar.unpacked$1'));
+const {release}=require('node:os');
 const sessions=new Map();
 const MAX_PENDING=256*1024,MAX_REPLAY=256*1024;
 const send=value=>{if(process.connected)process.send(value);};
 const dimensions=(cols,rows)=>({cols:Math.max(2,Math.min(500,Math.trunc(cols)||80)),rows:Math.max(1,Math.min(300,Math.trunc(rows)||24))});
-function snapshot(s){return {id:s.id,projectId:s.projectId,state:s.state,output:s.replay,exitCode:s.exitCode};}
+function snapshot(s){const buildNumber=Number(release().split('.')[2])||0;return {id:s.id,projectId:s.projectId,state:s.state,output:s.replay,exitCode:s.exitCode,...(process.platform==='win32'?{windowsPty:{backend:buildNumber>=18309?'conpty':'winpty',buildNumber}}:{})};}
 // The shell's environment: the app's, without secrets and host-only variables. An app started from Finder or the Dock
 // has no locale, and without one bash's readline drops every multibyte key: Korean typed or pasted into the terminal
 // vanished while ASCII arrived (found 2026-10-14). A UTF-8 character type is set when nothing names one; a user's
@@ -40,7 +41,9 @@ process.on('message',({requestId,action,args={}}={})=>{
    const s=session(args);
    if(action==='input'){if(s.state!=='running'||typeof args.data!=='string'||args.data.length>65536)throw Error('terminal_input_invalid');s.terminal.write(args.data);result={accepted:true};}
    else if(action==='resize'){if(s.state==='running'){const {cols,rows}=dimensions(args.cols,args.rows);s.terminal.resize(cols,rows);}result={resized:true};}
-   else if(action==='ack'){s.pending=Math.max(0,s.pending-Math.max(0,Math.min(65536,Number(args.length)||0)));if(s.pending<MAX_PENDING/2&&s.state==='running')s.terminal.resume();result={accepted:true};}
+   // The renderer batches multiple PTY chunks into one write. Acknowledging only
+   // 64 KiB of a larger parsed batch leaves phantom pending output and stalls it.
+   else if(action==='ack'){const length=Number(args.length);if(!Number.isSafeInteger(length)||length<0)throw Error('terminal_input_invalid');s.pending=Math.max(0,s.pending-Math.min(s.pending,length));if(s.pending<MAX_PENDING/2&&s.state==='running')s.terminal.resume();result={accepted:true};}
    else if(action==='detach'){s.attached=false;s.pending=0;if(s.state==='running')s.terminal.resume();result={detached:true};}
    else if(action==='close'){sessions.delete(s.id);if(s.state==='running')s.terminal.kill();result={closed:true};}
    else throw Error('method_invalid');

@@ -45,20 +45,25 @@ export function WikiMap({graph:source,selectedPath,onOpen,disabled}){
  };
  const colors=useMemo(()=>sectionColors(graph),[graph]);
  const byPath=useMemo(()=>new Map(graph.nodes.map(node=>[node.path,node])),[graph]);
- const visible=graph.nodes.filter(node=>!hidden.has(node.section)&&(orphans||node.degree>0));
- const shown=new Set(visible.map(node=>node.path)),needle=text(query).trim();
- const matches=needle?new Set(visible.filter(node=>[node.title,node.path,node.description,...node.tags].some(value=>text(value).includes(needle))).map(node=>node.path)):null;
- const documentLinks=graph.links.filter(link=>shown.has(link.from)&&shown.has(link.to)&&positions.has(link.from)&&positions.has(link.to));
- const collapsed=useMemo(()=>clusterWikiGraph({...graph,nodes:visible,links:documentLinks},positions),[graph,positions,hidden,orphans]);
+ // Pan/hover changes the viewport, not the graph. Reuse membership, links and
+ // search matches; aggregate clusters only while the cluster view is visible.
+ const visible=useMemo(()=>graph.nodes.filter(node=>!hidden.has(node.section)&&(orphans||node.degree>0)),[graph,hidden,orphans]);
+ const shown=useMemo(()=>new Set(visible.map(node=>node.path)),[visible]),needle=text(query).trim();
+ const documentLinks=useMemo(()=>graph.links.filter(link=>shown.has(link.from)&&shown.has(link.to)&&positions.has(link.from)&&positions.has(link.to)),[graph,shown,positions]);
+ const collapsed=useMemo(()=>representation==='clusters'?clusterWikiGraph({...graph,nodes:visible,links:documentLinks},positions):null,[representation,graph,positions,visible,documentLinks]);
  const displayPositions=representation==='clusters'?collapsed.positions:positions;
- const displayNodes=representation==='clusters'?collapsed.graph.nodes.filter(node=>!hidden.has(node.section)&&(orphans||node.members.some(path=>byPath.get(path)?.degree>0))):visible;
- const displayPaths=new Set(displayNodes.map(node=>node.path));
- const displayByPath=new Map(displayNodes.map(node=>[node.path,node]));
+ const displayNodes=collapsed?collapsed.graph.nodes:visible;
+ const displayByPath=useMemo(()=>new Map(displayNodes.map(node=>[node.path,node])),[displayNodes]);
+ const matches=useMemo(()=>{
+  if(!needle)return null;
+  const found=new Set(visible.filter(node=>[node.title,node.path,node.description,...node.tags].some(value=>text(value).includes(needle))).map(node=>node.path));
+  if(collapsed)for(const node of displayNodes)if(node.members.some(path=>found.has(path))||text(node.title).includes(needle))found.add(node.path);
+  return found;
+ },[needle,visible,collapsed,displayNodes]);
  const focus=hover||selectedPath,focusNode=focus?displayByPath.get(focus):null;
  const near=focusNode?new Set([focus,...focusNode.links,...focusNode.backlinks]):null;
- if(matches&&representation==='clusters')for(const node of displayNodes)if(node.members.some(path=>matches.has(path))||text(node.title).includes(needle))matches.add(node.path);
  const emphasised=path=>(!near||near.has(path))&&(!matches||matches.has(path));
- const links=representation==='clusters'?collapsed.graph.links.filter(link=>displayPaths.has(link.from)&&displayPaths.has(link.to)):documentLinks;
+ const links=collapsed?collapsed.graph.links:documentLinks;
  const minZoom=Math.min(0.4,Math.min(Math.max(1,size.width-160)/bounds.width,Math.max(1,size.height-80)/bounds.height)*0.9);
  const zoom=(factor,center)=>setView(current=>{const k=Math.min(3,Math.max(minZoom,current.k*factor)),cx=center?.x??size.width/2,cy=center?.y??size.height/2;return {k,x:cx-(cx-current.x)*k/current.k,y:cy-(cy-current.y)*k/current.k};});
  const point=event=>{const box=event.currentTarget.getBoundingClientRect();return {x:(event.clientX-box.left)*size.width/box.width,y:(event.clientY-box.top)*size.height/box.height};};
@@ -66,7 +71,7 @@ export function WikiMap({graph:source,selectedPath,onOpen,disabled}){
  // listener on the svg takes it (user report 2026-10-14: scrolling moved the page up and down).
  const svg=useRef(null),wheel=useRef(null);wheel.current=event=>{event.preventDefault();zoom(event.deltaY<0?1.15:1/1.15,point(event));};
  useEffect(()=>{const node=svg.current;if(!node)return;const handler=event=>wheel.current?.(event);node.addEventListener('wheel',handler,{passive:false});return()=>node.removeEventListener('wheel',handler);},[]);
- const viewport=wikiViewportItems({nodes:displayNodes,links},displayPositions,view,size,80/view.k);
+ const viewport=useMemo(()=>wikiViewportItems({nodes:displayNodes,links},displayPositions,view,size,80/view.k),[displayNodes,links,displayPositions,view,size]);
  const rendered=viewport.nodes;
  const large=rendered.length>300,crowded=rendered.length>120;
  // Keep labels at reading size. At overview zoom show representative labels,
@@ -88,7 +93,7 @@ export function WikiMap({graph:source,selectedPath,onOpen,disabled}){
  return <section className="nubi-wiki-map" aria-label="위키 관계 지도" data-expanded={expanded||undefined} data-side-closed={!sideOpen||undefined} data-large={large||undefined}>
   <div className="nubi-wiki-map-tools">
    <SearchField label="지도에서 문서 찾기" placeholder="지도에서 문서 찾기" maxLength={200} value={query} onChange={setQuery}/>
-   <div className="nubi-wiki-map-stats" aria-label="위키 요약"><span title={`문서 ${graph.nodes.length}개`}><BookMark size={16}/><span className="visually-hidden">문서 </span>{graph.nodes.length}</span><span title={`연결 ${graph.links.length}개`}><Icon name="link" size={16}/><span className="visually-hidden">연결 </span>{graph.links.length}</span><span data-attention={graph.orphans.length>0} title={`고립 문서 ${graph.orphans.length}개`}><Icon name="alertCircle" size={16}/><span className="visually-hidden">고립 문서 </span>{graph.orphans.length}</span></div>
+   <div className="nubi-wiki-map-stats" aria-label="위키 요약"><span title={`문서 ${graph.nodes.length}개`}><BookMark size={16}/><span className="visually-hidden">문서 </span>{graph.nodes.length}</span><span title={`연결 ${graph.links.length}개`}><Icon name="link" size={16}/><span className="visually-hidden">연결 </span>{graph.links.length}</span><span data-unlinked={graph.orphans.length>0} title={`연결 없는 문서 ${graph.orphans.length}개`}><Icon name="file" size={16}/><span className="visually-hidden">연결 없는 문서 </span>{graph.orphans.length}</span></div>
   </div>
   <div className="nubi-wiki-map-views">
   <WorkspaceCatalogTabs wide={false} label="지도 보기 방식" idPrefix="wiki-map-view" active={representation} onChange={changeRepresentation} items={[{key:'documents',label:<><Icon name="file" size={16}/>문서별 보기</>},{key:'clusters',label:<><Icon name="layers" size={16}/>클러스터 보기</>}]}/>
@@ -96,7 +101,7 @@ export function WikiMap({graph:source,selectedPath,onOpen,disabled}){
   </div>
   <div className="nubi-wiki-map-legend" role="group" aria-label="분류별 표시">
    {graph.sections.map(entry=><button type="button" key={entry.id||'(root)'} aria-pressed={!hidden.has(entry.id)} title={`${groupLabel(entry.id)} (${entry.count}개 문서)`} onClick={()=>setHidden(current=>{const next=new Set(current);if(next.has(entry.id))next.delete(entry.id);else next.add(entry.id);return next;})}><i style={{background:colors.get(entry.id)}} aria-hidden="true"/><span>{groupLabel(entry.id)}</span><small>{entry.count}개</small></button>)}
-   {graph.orphans.length>0&&<button type="button" className="nubi-wiki-map-orphans" aria-pressed={orphans} aria-label={`고립 문서 ${orphans?'숨기기':'표시'}`} title={`고립 문서 ${orphans?'숨기기':'표시'}`} onClick={()=>setOrphans(value=>!value)}><Icon name="alertCircle" size={16}/><small>{graph.orphans.length}</small></button>}
+   {graph.orphans.length>0&&<button type="button" className="nubi-wiki-map-orphans" aria-pressed={orphans} aria-label={`연결 없는 문서 ${orphans?'숨기기':'표시'}`} title={`연결 없는 문서 ${orphans?'숨기기':'표시'}`} onClick={()=>setOrphans(value=>!value)}><Icon name="file" size={16}/><small>{graph.orphans.length}</small></button>}
   </div>
   {(mode==='topic'||representation==='clusters')&&<p className="nubi-wiki-map-group-note"><Icon name="infoCircle" size={14}/>{representation==='clusters'?'묶음을 누르면 문서별로 펼쳐집니다.':source.kind==='mail'?'회신과 주제 유사도로 묶었어요. 점선은 관련 후보예요.':'문서에 기록된 연결을 기준으로 묶었어요.'}</p>}
   <div className="nubi-wiki-map-body">
@@ -123,7 +128,7 @@ export function WikiMap({graph:source,selectedPath,onOpen,disabled}){
     {/* One control folds the panel (user standard 2026-10-14: no duplicate buttons); it sits in the first header. */}
     <div className="nubi-wiki-map-side-head"><h3><Icon name="link" size={16}/>연결 많은 문서</h3><button type="button" className="nubi-wiki-map-side-toggle" aria-label="목록 접기" title="목록 접기" onClick={()=>setSideOpen(false)}><Icon name="chevronsRight" size={16}/></button></div>
     <ol>{graph.hubs.map(path=>{const node=byPath.get(path);return <li key={path}><button type="button" disabled={disabled} aria-pressed={selectedPath===path} title={`${node.title} (${groupLabel(node.section)}, 연결 ${node.degree}개)`} aria-label={`${node.title}, 연결 ${node.degree}개`} onClick={()=>onOpen(path)}><i className="nubi-wiki-map-dot" aria-hidden="true" style={{background:colors.get(node.section)}}/><small className="nubi-wiki-map-count">{node.degree}</small><DriftLabel>{node.title}</DriftLabel></button></li>;})}{!graph.hubs.length&&<li className="nubi-muted">아직 연결된 문서가 없어요.</li>}</ol>
-    {graph.orphans.length>0&&<details open><summary><h3 title={`고립 문서 ${graph.orphans.length}개`} data-orphan="true"><Icon name="alertCircle" size={16}/><span className="visually-hidden">고립 문서 </span><small>{graph.orphans.length}</small></h3><Icon name="chevronDown" size={14}/></summary><ul>{graph.orphans.slice(0,8).map(path=><li key={path}><button type="button" disabled={disabled} aria-pressed={selectedPath===path} title={`${byPath.get(path).title} (${groupLabel(byPath.get(path).section)})`} onClick={()=>onOpen(path)}><i className="nubi-wiki-map-dot" aria-hidden="true" style={{background:colors.get(byPath.get(path).section)}}/><span>{byPath.get(path).title}</span></button></li>)}{graph.orphans.length>8&&<li className="nubi-muted">목록에서 고립 문서 필터로 모두 볼 수 있어요.</li>}</ul></details>}
+    {graph.orphans.length>0&&<details open><summary><h3 title={`연결 없는 문서 ${graph.orphans.length}개`} data-orphan="true"><Icon name="file" size={16}/><span className="visually-hidden">연결 없는 문서 </span><small>{graph.orphans.length}</small></h3><Icon name="chevronDown" size={14}/></summary><ul>{graph.orphans.slice(0,8).map(path=><li key={path}><button type="button" disabled={disabled} aria-pressed={selectedPath===path} title={`${byPath.get(path).title} (${groupLabel(byPath.get(path).section)})`} onClick={()=>onOpen(path)}><i className="nubi-wiki-map-dot" aria-hidden="true" style={{background:colors.get(byPath.get(path).section)}}/><span>{byPath.get(path).title}</span></button></li>)}{graph.orphans.length>8&&<li className="nubi-muted">목록에서 연결 없는 문서 필터로 모두 볼 수 있어요.</li>}</ul></details>}
    </aside>:<button type="button" className="nubi-wiki-map-side-open" aria-label="연결 많은 문서 목록 펼치기" title="연결 많은 문서 목록 펼치기" onClick={()=>setSideOpen(true)}><Icon name="chevronsLeft" size={16}/></button>}
   </div>
  </section>;

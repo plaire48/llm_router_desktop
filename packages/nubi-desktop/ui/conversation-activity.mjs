@@ -37,14 +37,21 @@ export function conversationActivity(task) {
     if (!anchor && !run.question?.id && preceding) {pending.set(run.afterMessageId, [...(pending.get(run.afterMessageId) || []), run]); continue;}
     const predecessors = anchor ? takePredecessors(requestOf(index.get(anchor.id) - 1)) : [];
     const placed = predecessors.length ? {...run, predecessors} : run;
-    if (anchor) add(before, anchor, placed);
+    if (!run.question?.id && task.id && run.responseTiming?.afterMessageId===task.id) root.push(placed);
+    else if (!run.question?.id && run.responseTiming?.afterMessageId && preceding) add(after, preceding, placed);
+    else if (anchor) add(before, anchor, placed);
     else if (preceding) add(after, preceding, placed);
     else root.push(placed);
   }
   // Keep pending progress directly above its form. An unanchored question goes
   // to the transcript foot together with current progress, never into history.
-  const anchor = question ? questionMessage || null : anchors.get(runId);
-  const predecessors = runId ? takePredecessors(anchor ? requestOf(index.get(anchor.id) - 1) : requestOf(messages.length - 1)) : [];
+  const timing = runId && task?.responseTiming?.runId===runId ? task.responseTiming : null;
+  const started=Date.parse(timing?.startedAt||'');
+  const afterMessage = !question && (messages.find(message=>message.id===timing?.afterMessageId) ||
+    (Number.isFinite(started) ? messages.findLast(message=>message.role==='user'&&Date.parse(message.at||'')<=started) : null));
+  const atStart = !question && timing?.afterMessageId===task?.id && !!task?.id;
+  const anchor = afterMessage || atStart ? null : question ? questionMessage || null : anchors.get(runId);
+  const predecessors = runId ? takePredecessors(afterMessage ? requestOf(index.get(afterMessage.id)) : anchor ? requestOf(index.get(anchor.id) - 1) : requestOf(messages.length - 1)) : [];
   for (const [key, runs] of pending) {const preceding = messages.find(message => message.id === key); for (const run of runs) {if (preceding) add(after, preceding, run); else root.push(run);}}
-  return {runId, before, after, root, anchor, questionMessage, predecessors};
+  return {runId, before, after, root, anchor, afterMessage, atStart, questionMessage, predecessors};
 }

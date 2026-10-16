@@ -35,3 +35,38 @@ test('a history run with an answer takes the runs that led to it; a run that ask
   const separate=conversationActivity(asked);
   assert.deepEqual(separate.before.get(asked.messages[1])?.map(run=>run.runId),['r2']);assert.deepEqual(separate.predecessors,[]);
 });
+
+test('a stopped run and its commands stay before a later steering message',()=>{
+ const first=user('U1'),steer={...user('U2'),inputId:'input2'};
+ const task={state:'running',responseTiming:{runId:'r1',afterMessageId:'U1'},messages:[first,steer]};
+ for(const state of ['running','paused','cancelled','interrupted','review']){
+   task.state=state;const layout=conversationActivity(task);
+   assert.equal(layout.afterMessage,first);assert.equal(layout.anchor,null);
+ }
+ task.messages.push(answer('A1','r1'));
+ assert.equal(conversationActivity(task).afterMessage,first,'answer delivery must not move the terminal below steering');
+ const old={runId:'r1',afterMessageId:'U1',responseTiming:task.responseTiming,trace:[step('r1')]};
+ const next={...task,state:'running',responseTiming:{runId:'r2',afterMessageId:'U2'},activityHistory:[old]};
+ assert.equal(conversationActivity(next).after.get(first)?.[0],old);
+ assert.equal(conversationActivity(next).afterMessage,steer);
+});
+
+test('initial request progress stays above steering even without an answer',()=>{
+ const task={id:'task1',state:'running',responseTiming:{runId:'r1',afterMessageId:'task1'},messages:[{...user('steer'),inputId:'s'}]};
+ for(const state of ['running','paused','cancelled']){task.state=state;assert.equal(conversationActivity(task).atStart,true);}
+ task.messages.push(answer('A1','r1'));assert.equal(conversationActivity(task).atStart,true);
+});
+
+test('live timer refresh and archived progress preserve the originating message',async()=>{
+ const {ProjectService}=await import('../runtime/project-service.mjs');
+ const {rememberActivity}=await import('../runtime/activity-history.mjs');
+ const task={id:'t',state:'running',responseTiming:{runId:'r',afterMessageId:'u'},messages:[user('u'),user('steer')],trace:[step('r')]};
+ const run={running:true,runId:'r',timing:{snapshot:()=>({elapsedMs:12000})}};
+ const displayed=ProjectService.prototype.displayTask.call({agentForTask:()=>run},task);
+ assert.equal(displayed.responseTiming.afterMessageId,'u');assert.equal(displayed.responseTiming.elapsedMs,12000);
+ task.state='paused';rememberActivity(task,'r');assert.equal(task.activityHistory[0].afterMessageId,'u');
+ task.messages.push(user('later'));rememberActivity(task,'r');assert.equal(task.activityHistory[0].afterMessageId,'u');
+ run.runId='another';assert.equal(ProjectService.prototype.displayTask.call({agentForTask:()=>run},task).responseTiming.afterMessageId,undefined);
+});
+
+test('empty workspace has no progress anchor',()=>{assert.equal(conversationActivity(null).anchor,undefined);assert.equal(conversationActivity(undefined).atStart,false);});

@@ -52,6 +52,18 @@ try{
  await enter(windows?'(Get-Location).Path':'pwd');await waitPath();
  assert.equal(await readFile(path.join(root,'execution.txt'),'utf8'),before);checks.push('direct input opens selected default shell without replaying agent command');
  await enter(windows?"Write-Output 'terminal-active'; Start-Sleep 30":"printf 'terminal-active\\n'; sleep 30");await waitLine('terminal-active');await page.keyboard.press('Control+c');await enter(windows?"Write-Output 'after-interrupt'":"printf 'after-interrupt\\n'");await waitLine('after-interrupt');checks.push('Ctrl+C interrupts and terminal accepts the next command');
+ // More than one flow-control window, not just a short prompt. A frame-sized ACK
+ // must drain the entire parsed batch so the shell can print the final marker.
+ await enter(windows?"1..12000 | ForEach-Object { Write-Output ('한글 출력 확인 ' + ('x' * 80)) }; Write-Output 'large-output-finished'":"for ((n=0;n<12000;n++)); do printf '한글 출력 확인 %080d\\n' 0; done; printf 'large-output-finished\\n'");
+ await waitLine('large-output-finished');
+ const nativeWindow=await app.browserWindow(page);
+ for(const width of [1100,1500,1100])await nativeWindow.evaluate((win,width)=>win.setContentSize(width,850),width);
+ await enter(windows?"Write-Output 'resize-output-finished'":"printf 'resize-output-finished\\n'");await waitLine('resize-output-finished');
+ checks.push('large Korean output drains past backpressure window and accepts input after native window resize');
+ await enter(windows?"Write-Output 'last-output-before-exit'; exit 0":"printf 'last-output-before-exit\\n'; exit 0");
+ await page.locator('.desktop-terminal[data-terminal-state=exited]:visible').waitFor();await waitLine('last-output-before-exit');await waitLine('[셸 종료 0]');
+ const finalLines=await terminal.locator('.xterm-rows>div').allTextContents();assert(finalLines.findIndex(line=>line.trim()==='last-output-before-exit')<finalLines.findIndex(line=>line.trim()==='[셸 종료 0]'));
+ checks.push('final PTY output remains before shell exit marker');
  await page.screenshot({path:path.join(out,'terminal.png')});assert.deepEqual(errors,[]);
  await writeFile(path.join(out,'result.json'),JSON.stringify({passed:true,checks,errors,platform:process.platform,shell:expected,boundary:'Actual Electron and native PTY; scripted model. Windows PowerShell/CMD/Git Bash runtime only verified when platform is win32.'},null,2));console.log(JSON.stringify({checks,shell:expected}));
 }catch(error){await page?.screenshot({path:path.join(out,'failure.png')}).catch(()=>{});throw error;}

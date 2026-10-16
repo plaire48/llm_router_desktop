@@ -14,7 +14,7 @@ let browser;
 try{
  browser=await chromium.launch({channel:'chrome',headless:true});const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
  for(const width of [1100,440,360]){
-  await page.setViewportSize({width,height:800});await page.goto('http://127.0.0.1:'+server.address().port);await page.getByText('SSO 페이지를 확인해 주세요').waitFor();
+  await page.setViewportSize({width,height:800});await page.goto('http://127.0.0.1:'+server.address().port);await page.getByText('SSO 이동을 완료하지 못했어요').waitFor();await page.getByText(/원래 탭에서 링크를 다시 열어 주세요/).waitFor();
   const notice=page.getByRole('complementary',{name:'SSO 이동 확인'});await notice.locator('summary').click();await page.screenshot({path:path.join(dir,`failure-${width}.png`)});await page.getByRole('button',{name:'SSO 진단 복사',exact:true}).click();assert.equal(await page.evaluate(()=>window.copied),true);
   await page.getByRole('button',{name:'원래 탭으로 돌아가기'}).click();assert.equal(await page.evaluate(()=>window.returned),true);
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));

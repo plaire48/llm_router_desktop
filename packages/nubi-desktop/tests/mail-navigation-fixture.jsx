@@ -12,7 +12,7 @@ import '../design/workspace-dialogs.css';
 window.mailCalls=[];window.savedView={mailbox:'folder:3'};
 const api=async(method,args={})=>{
  window.mailCalls.push(args);
- if(args.action==='status')return {connected:true,counts:{received:8},progress:{},folders:['Inbox','Sent','Drafts','Spam','Trash','Other'].map((name,i)=>({id:String(i+1),name,mailbox:['inbox','sent','draft','spam','trash','other'][i]})),localKinds:['inbox','sent','notice']};
+ if(args.action==='status')return {connected:true,counts:{received:8},progress:{},folders:['Inbox','Sent','Drafts','Spam','Trash','프로젝트 자료','오래된 업무와 개인 보관 자료가 담긴 긴 이름의 폴더'].map((name,i)=>({id:String(i+1),name,mailbox:['inbox','sent','draft','spam','trash','other','other'][i]})),localKinds:['inbox','sent','notice']};
  if(args.action==='facets')return {tags:[],senders:[]};
  if(args.action==='search')return {results:[],total:0,totalPages:1,page:1,offset:0,filters:{},unavailable:[],retrieval:{}};
  if(args.action==='approvals')return {page:args.page,total:2,hasNext:args.page===1,items:[{id:'a'+args.page,lineId:'l',subject:args.page===1?'결재 문서':'예산 승인 요청',titlePending:args.page===1,submittedAt:'2026-10-15T03:00:00Z'}]};

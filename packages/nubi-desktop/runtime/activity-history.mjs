@@ -15,6 +15,6 @@ export function rememberActivity(task, runId) {
     ...(task.question ? {question:{id:task.question.id, kind:task.question.kind}} : {}),
     // Interrupted runs can have no answer. Retain their place after the last
     // spoken message instead of moving them below a later request.
-    afterMessageId:previous?.afterMessageId ?? task.messages?.at(-1)?.id ?? null});
+    afterMessageId:task.responseTiming?.runId===runId&&task.responseTiming?.afterMessageId || previous?.afterMessageId || task.messages?.at(-1)?.id || null});
   task.activityHistory = previous ? history.map(item => item.runId === runId ? run : item) : [...history, run];
 }

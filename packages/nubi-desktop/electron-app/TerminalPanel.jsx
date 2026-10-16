@@ -8,6 +8,7 @@ import '@xterm/xterm/css/xterm.css';
 import {notifyWorkspaceToast} from '../ui/WorkspaceToast.jsx';
 import {promptFor} from '../ui/TerminalBlock.jsx';
 import {guardShellMouse} from './terminal-mouse.mjs';
+import {terminalOutputBatch} from './terminal-output.mjs';
 const request=async args=>{const result=await window.nubi.terminal(args);if(result?.__nubiError)throw Error(result.__nubiError);return result;};
 function transcript(view){const buffer=view?.buffer.active;if(!buffer)return '';const lines=[];for(let i=0;i<buffer.length;i++)lines.push(buffer.getLine(i)?.translateToString(true)||'');return lines.join('\n').trimEnd();}
 export default function TerminalPanel({sessionId,processId,api,onInteractive,project,cwd,profileId,onError,onBusy,visible=true}){
@@ -45,8 +46,7 @@ export default function TerminalPanel({sessionId,processId,api,onInteractive,pro
   }
   const send=(action,args={})=>request({...scope,action,...args});
   const write=(data,ack=false)=>view.write(data,()=>{if(alive&&ack)void send('ack',{length:data.length}).catch(()=>{});});
-  let burst='',burstFrame=0;const flush=()=>{burstFrame=0;const data=burst;burst='';if(data)write(data,true);};
-  const writeBatched=data=>{burst+=data;if(!burstFrame)burstFrame=requestAnimationFrame(flush);};
+  const outputBatch=terminalOutputBatch(data=>write(data,true));
   // A local server announced in this terminal opens in the app browser once, with a notice for every new origin
   // (user request 2026-10-14: a dev server must be visible and checkable without hunting for the address).
   const servers={seen:new Set(),tail:'',opened:false};
@@ -54,11 +54,13 @@ export default function TerminalPanel({sessionId,processId,api,onInteractive,pro
   const receive=event=>{
    if(!alive||event.id!==sessionId)return;
    if(!attached){queued.push(event);return;}
-   if(event.type==='data'){writeBatched(String(event.data||''));announce(String(event.data||''));}
-   else{ready.current=false;setState(event.type==='exit'?'exited':'disconnected');view.writeln(event.type==='exit'?`\r\n[셸 종료 ${event.exitCode}]`:'\r\n[터미널 연결이 끊겼어요.]');}
+   if(event.type==='data'){outputBatch.push(String(event.data||''));announce(String(event.data||''));}
+   else{outputBatch.flush();ready.current=false;setState(event.type==='exit'?'exited':'disconnected');view.writeln(event.type==='exit'?`\r\n[셸 종료 ${event.exitCode}]`:'\r\n[터미널 연결이 끊겼어요.]');}
   };
   const unsubscribe=window.nubi.onTerminalEvent(receive);
-  const resize=()=>{if(frame)return;frame=requestAnimationFrame(()=>{frame=0;const rect=node.current?.getBoundingClientRect();if(!rect?.width||!rect.height){lastSize='';return;}const key=`${rect.width}:${rect.height}`;if(key===lastSize)return;lastSize=key;addon.fit();if(ready.current)void send('resize',{cols:view.cols,rows:view.rows}).catch(()=>{});});};
+  // Every fit path (including tab re-entry) must update the actual shell's grid.
+  const grid=view.onResize(({cols,rows})=>{if(ready.current)void send('resize',{cols,rows}).catch(()=>{});});
+  const resize=()=>{if(frame)return;frame=requestAnimationFrame(()=>{frame=0;const rect=node.current?.getBoundingClientRect();if(!rect?.width||!rect.height){lastSize='';return;}const key=`${rect.width}:${rect.height}`;if(key===lastSize)return;lastSize=key;addon.fit();});};
   const observer=new ResizeObserver(resize);observer.observe(node.current);resize();
   const input=view.onData(data=>{if(!ready.current)return;void send('input',{data}).catch(error=>{if(alive){ready.current=false;setState('disconnected');errors.current(error);}});});
   const selection=view.onSelectionChange(()=>setSelected(view.hasSelection()));
@@ -73,10 +75,11 @@ export default function TerminalPanel({sessionId,processId,api,onInteractive,pro
   void send('open',{profile:profileId,path:cwd,cols:view.cols,rows:view.rows}).then(result=>{
    if(!alive){void send('detach').catch(()=>{});return;}
    // Startup events are already in the host replay. Only events following this reply are live.
+   if(result.windowsPty)view.options.windowsPty=result.windowsPty;
    queued.length=0;attached=true;ready.current=result.state==='running';setState(result.state);write(result.output||'');
    addon.fit();void send('resize',{cols:view.cols,rows:view.rows}).catch(()=>{});if(shown.current)view.focus();
   }).catch(error=>{if(alive){attached=true;setState('failed');errors.current(error);}});
-  return()=>{alive=false;ready.current=false;cancelAnimationFrame(frame);cancelAnimationFrame(burstFrame);burst='';observer.disconnect();unsubscribe();input.dispose();selection.dispose();mouse.dispose();view.dispose();terminal.current=null;void send('detach').catch(()=>{});};
+  return()=>{alive=false;ready.current=false;cancelAnimationFrame(frame);outputBatch.dispose();observer.disconnect();unsubscribe();grid.dispose();input.dispose();selection.dispose();mouse.dispose();view.dispose();terminal.current=null;void send('detach').catch(()=>{});};
  },[sessionId,processId,project.projectId]);
  useEffect(()=>{if(visible){fit.current?.fit();terminal.current?.focus();}},[visible]);
  return <section className="desktop-terminal" hidden={!visible} aria-label="프로젝트 터미널" data-terminal-state={state}>
