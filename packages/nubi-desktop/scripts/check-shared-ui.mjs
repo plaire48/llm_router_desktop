@@ -276,6 +276,8 @@ try{
  const analyses=p.getByRole('region',{name:'분석 과정과 이력'});
  await analyses.getByText('이전 분석 1개',{exact:true}).click();
  const roles=p.getByRole('region',{name:'역할별 분석 진행'});
+ assert.equal(await roles.locator('details').first().getAttribute('open'),null);
+ await roles.locator('details > summary').first().click();
  await roles.getByText('저장 결과 화면을 확인합니다.',{exact:true}).waitFor();
  assert.equal(await roles.getByText('모델 호출 2회 / 근거 읽기 1회',{exact:true}).isVisible(),false);await roles.getByText('결과와 근거',{exact:true}).click();await roles.getByText('모델 호출 2회 / 근거 읽기 1회',{exact:true}).waitFor();await roles.locator('.nubi-document-worker-heading>span').filter({hasText:'근거 읽는 중'}).waitFor();
 
@@ -310,6 +312,7 @@ try{
  await recordedProgress.getByText('메일과 개인 위키 검색',{exact:true}).waitFor();
  assert.equal(await recordedProgress.getByText('메일 원문과 개인 위키 조회',{exact:true}).count(),2);
  assert.equal(await p.getByText('응답 검토됨',{exact:true}).count(),0);
+ for(const group of await roles.all())if(await group.locator('details').first().getAttribute('open')===null)await group.locator('details > summary').first().click();
  assert.equal(await p.getByText('선택 메일 1의 원문과 개인 위키 비교',{exact:true}).isVisible(),true);
  assert.equal(await p.getByText('선택 메일 2의 원문과 개인 위키 비교',{exact:true}).isVisible(),true);
  assert.equal(await p.getByText('메인에 전달됨',{exact:true}).count(),2);
@@ -338,6 +341,7 @@ try{
  assert.equal(await reviewProgress.getByText('완료',{exact:true}).count(),0);
  checks.push('independent review shows missing evidence and omitted child reports without presenting a completed mission');
  await analyses.getByRole('button',{name:'이전 분석 더 보기',exact:true}).click();
+ if(await roles.locator('details').first().getAttribute('open')===null)await roles.locator('details > summary').first().click();
  await roles.getByText('이전 분담의 저장 결과 확인',{exact:true}).waitFor();
  await p.evaluate(()=>window.finishHandoffFixture());
  await roles.getByText('일부 확인',{exact:true}).first().waitFor();
