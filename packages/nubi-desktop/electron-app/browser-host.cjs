@@ -82,7 +82,7 @@ class BrowserHost {
   const wc=view.webContents;
   row.stopAuthObserver=observeSession(wc.session,wc,row.authFlow,()=>this.changed());
   const blocked=code=>{row.authFlow.fail(code);this.changed();};
-  if(row.mailLogin)installMailSessionDialogs(wc,()=>this.changed());
+  const mailDialogsReady=row.mailLogin?installMailSessionDialogs(wc,()=>this.changed()):null;
   wc.on('context-menu',(_event,params)=>{
    const template=browserContextMenu(wc,params,{
     copyLink:url=>clipboard.writeText(url),
@@ -126,7 +126,7 @@ class BrowserHost {
   wc.on('found-in-page',(_event,result)=>{this.find={matches:result.matches,active:result.activeMatchOrdinal};this.changed();});
   wc.on('destroyed',()=>this.forget(row));
   wc.on('render-process-gone',(_event,details)=>{row.loading=false;row.error='browser_process_gone';this.layout();this.onFault('browser_renderer',details);this.changed();});
-  if(load)void wc.loadURL(target,loadOptions).catch(error=>{if(error?.code==='ERR_ABORTED'||error?.errno===-3)return;row.loading=false;row.error ||=loadFailure(error?.errno);this.layout();this.changed();});this.layout();this.changed();return row;
+  if(load)void (mailDialogsReady?wc.loadURL('about:blank').then(()=>mailDialogsReady).then(()=>{if(!wc.isDestroyed()&&this.tabs.has(row.id))return wc.loadURL(target,loadOptions);}):wc.loadURL(target,loadOptions)).catch(error=>{if(error?.code==='ERR_ABORTED'||error?.errno===-3)return;row.loading=false;row.error ||=loadFailure(error?.errno);this.layout();this.changed();});this.layout();this.changed();return row;
  }
  // A bounded PNG of one tab for the agent's page inspection (2026-10-14): at most 1600 px wide, never the app window.
  async capture(id=this.active,options={}) {

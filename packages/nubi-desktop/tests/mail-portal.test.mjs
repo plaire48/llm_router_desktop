@@ -105,7 +105,7 @@ test('interactive portal login preserves the browser flow before creating the ba
  let prevented=false;handlers['will-redirect']({preventDefault(){prevented=true;}},'https://sso.example.test/login');assert.equal(prevented,true);host.dispose();
 });
 test('a visible login is not marked connected when the background session remains expired',async()=>{
- const {host,calls}=loginFixture({backgroundExpired:true});await assert.rejects(host.connect({}),/mail_portal_login/);assert.equal(host.status().connected,false);assert(!calls.some(c=>c.action==='portalConnect'));host.dispose();
+ const {host,calls,events}=loginFixture({backgroundExpired:true});const pending=host.connect({});await settled(()=>events.includes('reader:folders'));await sleep(300);assert.equal(host.status().connecting,true);assert.equal(host.status().connected,false);assert(!events.includes('close-login'));assert(!calls.some(c=>c.action==='portalConnect'));await host.disconnect();await assert.rejects(pending,/mail_cancelled/);host.dispose();
 });
 test('Whitelabel login errors return a fixed error without collecting page contents or waiting five minutes',async()=>{
  const {host,calls}=loginFixture({whiteLabel:true});await assert.rejects(host.connect({}),/mail_portal_sso/);assert.equal(host.status().error,'mail_portal_sso');assert(!calls.some(c=>c.action==='portalConnect'));assert(!JSON.stringify(host.status()).includes('404'));host.dispose();
@@ -197,4 +197,20 @@ test('approval identity failure preserves mail connection and rejects a changed 
  const host=new MailPortal({invoke:async()=>({})});host.state.connected=true;host.identity={id:'owner@example.test',email:'owner@example.test'};
  host.identify=async()=>({identity:{id:'other',userId:'other',email:'other@example.test'},folders:[]});
  await assert.rejects(host.approvals(),/mail_portal_identity/);assert.equal(host.identity.email,'owner@example.test');assert.equal(host.status().connected,true);host.dispose();
+});
+
+test('403 during interactive login waits without closing and recovers on authentication',async()=>{
+ const {host,events,calls}=loginFixture();const identify=host.identify.bind(host);let probes=0,ready=false;
+ host.identify=async epoch=>{probes++;if(!ready)throw Error('mail_portal_forbidden');return identify(epoch);};
+ const pending=host.connect();await settled(()=>probes===1);await sleep(300);
+ assert.equal(host.status().connecting,true);assert.equal(host.status().error,null);assert(!events.includes('close-login'));assert.equal(probes,1);
+ ready=true;await pending;assert.equal(host.status().connected,true);assert.equal(calls.filter(c=>c.action==='portalConnect').length,1);host.dispose();
+});
+
+test('a delayed shared-session verification remains in the same login and can recover',async()=>{
+ const {host,events,calls}=loginFixture();const readSession=host.readSession.bind(host);let checks=0,ready=false;
+ host.readSession=async(...args)=>{checks++;if(!ready)throw Error('mail_portal_forbidden');return readSession(...args);};
+ const pending=host.connect();await settled(()=>checks===1);await sleep(300);
+ assert.equal(host.status().connecting,true);assert(!events.includes('close-login'));assert(!calls.some(c=>c.action==='portalConnect'));
+ ready=true;await pending;assert.equal(host.status().connected,true);assert.equal(calls.filter(c=>c.action==='portalConnect').length,1);host.dispose();
 });

@@ -1,5 +1,5 @@
 const {approvalStep,approvalFailure}=require('./approval-failure.cjs');
-const {mailDialogPending,mailDialogOpen}=require('./mail-session-dialog.cjs');
+const {mailDialogPending,mailDialogOpen,mailDialogGuide}=require('./mail-session-dialog.cjs');
 const {loginRedirect}=require('./mail-session-recovery.cjs');
 const {mailSessionFetch}=require('./mail-session-fetch.cjs');
 const {ORIGIN,LOGIN_URL,portalOrigin,foldersOf,identityOf,portalFetch,portalFetchSource}=require('./mail-portal-contract.cjs');
@@ -139,12 +139,12 @@ class MailPortal {
    // Finish an invalidated restore before starting the interactive session. No overlapping SSO requests.
    this.window?.webContents.stop?.();await this.restoring;if(epoch!==this.epoch)throw Error('mail_cancelled');
    await this.windowForLogin(true,epoch);this.state.loginStage='authenticating';let identity,folders;
-   let deadline=Date.now()+5*60*1000;
+   let deadline=Date.now()+5*60*1000,authFailures=0;
    while(epoch===this.epoch){
     const loginContents=()=>this.page&&this.getPageContents?this.getPageContents(this.page.tabId):[];
     const rows=loginContents();
     if(rows.some(mailDialogPending)){
-     this.state.loginStage='confirmation';
+     this.state.loginStage=rows.some(contents=>mailDialogGuide(contents)==='advancing')?'advancing':'confirmation';
      const humanWaiting=rows.some(mailDialogOpen);
      if(humanWaiting)deadline=Date.now()+5*60*1000;
      else if(Date.now()>=deadline)throw Error('mail_portal_timeout');
@@ -155,28 +155,47 @@ class MailPortal {
     }
     if(epoch!==this.epoch)break;
     // Credentials and confirmation are human input, not network inactivity.
-    if(rows.some(contents=>!contents.isDestroyed()&&loginLocation(contents.getURL())))deadline=Date.now()+5*60*1000;
+    const active=rows.filter(contents=>!contents.isDestroyed()).at(-1);
+    if(active&&loginLocation(active.getURL())){
+     this.state.loginStage='authenticating';deadline=Date.now()+5*60*1000;
+     await wait(250);continue;
+    }
     if(Date.now()>=deadline)throw Error('mail_portal_timeout');
     this.state.loginStage='authenticating';
-    try{({identity,folders}=await this.identify(epoch));if(loginContents().some(mailDialogPending)){deadline=Date.now()+5*60*1000;continue;}break;}
+    try{
+     ({identity,folders}=await this.identify(epoch));
+     if(loginContents().some(mailDialogPending)){deadline=Date.now()+5*60*1000;continue;}
+     if(this.page&&this.getPageContents){
+      // Both the visible portal and the shared session must be authenticated.
+      // Propagation delays belong to the same login attempt, not a fatal close.
+      this.state.loginStage='verifying';
+      folders=foldersOf(await this.readSession('folders',{setCd:identity.setCd}));
+      if(epoch!==this.epoch)throw Error('mail_cancelled');
+      if(loginContents().some(mailDialogPending)){deadline=Date.now()+5*60*1000;continue;}
+     }
+     break;
+    }
     catch(error){
      if(loginContents().some(mailDialogPending)){await wait(250);continue;}
      if(await this.loginPageFailed())throw Error('mail_portal_sso');
      // A dialog may have opened while the read-only error-page check awaited.
      if(loginContents().some(mailDialogPending)){await wait(250);continue;}
-     if(!['mail_portal_login','mail_portal_request','mail_portal_format','mail_portal_redirect'].includes(error.message))throw error;
+     if(!['mail_portal_login','mail_portal_forbidden','mail_portal_request','mail_portal_format','mail_portal_redirect'].includes(error.message))throw error;
      if(epoch!==this.epoch)break;
-     await wait(2000);
+     const authenticationPending=['mail_portal_login','mail_portal_forbidden'].includes(error.message);
+     if(authenticationPending){this.state.loginStage='authenticating';deadline=Date.now()+5*60*1000;authFailures++;}
+     const pause=authenticationPending?Math.min(10000,2000*authFailures):2000;
+     // Slow down unauthenticated probes, but react promptly to navigation,
+     // native alerts and explicit cancellation instead of sleeping uninterruptibly.
+     for(let elapsed=0;elapsed<pause&&epoch===this.epoch;elapsed+=250){
+      await wait(250);
+      const current=loginContents();
+      if(current.some(mailDialogPending)||current.some(contents=>contents.isLoadingMainFrame?.()))break;
+     }
+     if(authenticationPending)deadline=Date.now()+5*60*1000;
     }
    }
    if(epoch!==this.epoch)throw Error('mail_cancelled');if(!identity||!folders)throw Error('mail_portal_timeout');
-   if(this.page&&this.getPageContents){
-    // Verify the shared session through the fixed mail API. The hidden window stays blank;
-    // no second SSO navigation or manual visit to the mailbox page is needed.
-    this.state.loginStage='verifying';
-    folders=foldersOf(await this.readSession('folders',{setCd:identity.setCd}));
-    if(epoch!==this.epoch)throw Error('mail_cancelled');
-   }
    await this.invoke('mail',{action:'portalConnect',identity:identity.id,email:identity.email,folders,destination:args.destination});
    if(epoch!==this.epoch)throw Error('mail_cancelled');
    this.approvalCache=new Map();this.approvalCacheBytes=0;this.identity=identity;this.state={connected:true,connecting:false,checking:false,loginStage:'connected',folders,error:null,connectionState:'connected',nextRetryAt:null};this.closeLoginPage();
