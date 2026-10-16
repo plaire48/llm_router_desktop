@@ -51,11 +51,15 @@ try{
  await page.locator('.desktop-terminal[data-terminal-state=running]:visible').waitFor();terminal=page.locator('.desktop-terminal:visible');
  await enter(windows?'(Get-Location).Path':'pwd');await waitPath();
  assert.equal(await readFile(path.join(root,'execution.txt'),'utf8'),before);checks.push('direct input opens selected default shell without replaying agent command');
- await enter(windows?"Write-Output 'terminal-active'; Start-Sleep 30":"printf 'terminal-active\\n'; sleep 30");await waitLine('terminal-active');await page.keyboard.press('Control+c');await enter(windows?"Write-Output 'after-interrupt'":"printf 'after-interrupt\\n'");await waitLine('after-interrupt');checks.push('Ctrl+C interrupts and terminal accepts the next command');
+ const waitPrompt=()=>page.waitForFunction(win=>{const rows=[...document.querySelectorAll('.desktop-terminal:not([hidden]) .xterm-rows>div')].map(row=>row.textContent.trimEnd()).join('\n').trimEnd();return win?rows.endsWith('>'):/[$#]$/.test(rows);},windows);
+ await enter(windows?"Write-Output 'terminal-active'; Start-Sleep 30":"printf 'terminal-active\\n'; sleep 30");await waitLine('terminal-active');await page.keyboard.press('Control+c');
+ // ConPTY/PowerShell completes cancellation asynchronously and discards input
+ // sent during that cancellation. Wait for the actual new prompt, not a delay.
+ await waitPrompt();await enter(windows?"Write-Output 'after-interrupt'":"printf 'after-interrupt\\n'");await waitLine('after-interrupt');checks.push('Ctrl+C interrupts and terminal accepts the next command');
  // More than one flow-control window, not just a short prompt. A frame-sized ACK
  // must drain the entire parsed batch so the shell can print the final marker.
  await enter(windows?"1..12000 | ForEach-Object { Write-Output ('한글 출력 확인 ' + ('x' * 80)) }; Write-Output 'large-output-finished'":"for ((n=0;n<12000;n++)); do printf '한글 출력 확인 %080d\\n' 0; done; printf 'large-output-finished\\n'");
- await waitLine('large-output-finished');
+ await waitLine('large-output-finished');await waitPrompt();
  const nativeWindow=await app.browserWindow(page);
  for(const width of [1100,1500,1100])await nativeWindow.evaluate((win,width)=>win.setContentSize(width,850),width);
  await enter(windows?"Write-Output 'resize-output-finished'":"printf 'resize-output-finished\\n'");await waitLine('resize-output-finished');
