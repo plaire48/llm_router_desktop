@@ -97,5 +97,8 @@ try{
  assert.equal(recovered.events.filter(row=>row.host==='www.samsung.net'&&row.path==='/loginapp/login').length,1,'expired-session confirmation advances exactly once');
  }
  console.log(JSON.stringify({passed:true,checks:['POST popup and opener preserved','same persistent session','verified background mail reader','no separate login popup','owned tab cleanup','HTTPS-only login navigation','abnormal-logout and portal-home expiry alert/confirm automatically advance to login; unrelated dialogs remain manual; no premature API probes','relogin restores mail through existing SSO flow'],boundary:'Local Electron with isolated mock HTTPS protocol; not company SSO or Windows verification.'}));
+}catch(error){
+ if(app)console.error('fixture failure state',await app.evaluate(()=>({result:global.result,status:global.portal?.status(),events:global.events,tabs:[...(global.host?.tabs.values()||[])].map(row=>({id:row.id,ownerId:row.ownerId,url:row.view.webContents.getURL(),loading:row.view.webContents.isLoadingMainFrame(),guide:global.host.status().tabs.find(tab=>tab.id===row.id)?.mailLoginStage}))})).catch(()=>({unavailable:true})));
+ throw error;
 }finally{await app?.close();await rm(temporary,{recursive:true,force:true});}
 async function until(check){for(let i=0;i<150;i++){try{if(await check())return;}catch{}await new Promise(r=>setTimeout(r,100));}throw Error('portal fixture timed out');}
