@@ -163,6 +163,14 @@
 .desktop-git-history .desktop-git-back:hover { color:var(--deck-blue-deep); background:var(--deck-blue-soft); }
 .desktop-git-scroll { overflow:auto; min-height:0; flex:1; padding:0 var(--cx-space-3) var(--cx-space-4); scrollbar-gutter:stable; }
 .desktop-git-commits { display:flex; flex-direction:column; gap:var(--cx-space-1); }
+.desktop-git-commits[data-graph=true] { gap:0; }
+.desktop-git-commits[data-graph=true] .desktop-git-commit { position:relative; }
+.desktop-commit-graph { position:relative; align-self:stretch; flex:none; max-width:35%; margin-block:calc(-1 * var(--cx-space-2)); }
+.desktop-commit-graph > svg { display:block; position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
+.desktop-commit-graph path { fill:none; stroke-width:1.5; }
+.desktop-commit-node { position:absolute; top:50%; width:8px; height:8px; border-radius:50%; transform:translate(-50%,-50%); background:var(--commit-ink); }
+.desktop-commit-graph[data-merge=true] .desktop-commit-node { background:var(--deck-section-surface); box-shadow:0 0 0 2px var(--commit-ink); }
+@media(forced-colors:active) { .desktop-commit-graph path { stroke:CanvasText; } .desktop-commit-node { background:CanvasText; } .desktop-commit-graph[data-merge=true] .desktop-commit-node { background:Canvas; outline:2px solid CanvasText; } }
 .desktop-git-history .desktop-git-commit { display:flex; width:100%; align-items:center; gap:var(--cx-space-3); min-height:0; height:auto; padding:8px 12px; border:0; box-shadow:none; border-radius:8px; background:transparent; color:var(--deck-ink); text-align:left; white-space:nowrap; font:var(--deck-font-body); }
 .desktop-git-history .desktop-git-commit:hover { background:var(--deck-blue-soft); }
 .desktop-git-commit > svg { flex:none; margin-top:0; color:var(--deck-sub); }
@@ -540,7 +548,7 @@
 /* OpenWiki (user decision 2026-09-30): the update's progress as a bar, what it sends to the model as a note, pages as
    chips; results with the title and freshness first, then the passage, then where it is. */
 .nubi-progress { height:6px; margin-top:var(--cx-space-3); border-radius:var(--deck-pill-radius); background:var(--deck-tint); overflow:hidden; }
-.nubi-progress > span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg, var(--deck-blue-deep), var(--deck-blue) 60%, var(--deck-blue-lite)); transition:width var(--deck-rise) var(--deck-ease); }
+.nubi-progress > span { display:block; height:100%; border-radius:inherit; background:var(--deck-blue); transition:width var(--deck-rise) var(--deck-ease); }
 .nubi-action-note { display:flex; align-items:flex-start; gap:var(--cx-space-2); margin:var(--cx-space-3) 0 0; padding:10px 12px; border-radius:var(--deck-inset-radius); background:var(--deck-tint); color:var(--deck-sub); font:var(--deck-font-caption); }
 .nubi-action-note > svg { flex:none; margin-top:1px; color:var(--deck-blue); }
 .nubi-page-chips { display:flex; flex-wrap:wrap; gap:6px; margin:var(--cx-space-3) 0 0; padding:0; list-style:none; }
@@ -1804,26 +1812,19 @@ html[data-project-switching] .nubi-workbench .nubi-main, html[data-project-switc
    Decorative light is independent of measured progress and never implies completion. */
 :root {
   --nubi-progress-drift-duration:8s;
-  --nubi-progress-glow:color-mix(in srgb,var(--deck-blue) 7%,transparent);
-  --nubi-progress-glow-soft:color-mix(in srgb,var(--deck-blue-lite) 22%,transparent);
+  --nubi-progress-glow:color-mix(in srgb,var(--deck-blue) 4%,transparent);
 }
 .nubi-progress-atmosphere { position:relative; isolation:isolate; }
 .nubi-progress-atmosphere::before {
-  content:""; position:absolute; inset:0 2%; z-index:-1; pointer-events:none;
-  border-radius:var(--deck-control-radius); overflow:hidden;
-  background:radial-gradient(ellipse at 30% 50%,var(--nubi-progress-glow),transparent 68%),radial-gradient(ellipse at 80% 50%,var(--nubi-progress-glow-soft),transparent 64%);
+  content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
+  border-radius:inherit;
+  background:radial-gradient(ellipse at 50% 50%,var(--nubi-progress-glow),transparent 70%);
   animation:nubi-progress-breathe var(--nubi-progress-drift-duration) ease-in-out infinite alternate;
 }
 .nubi-progress[data-active=true] { position:relative; isolation:isolate; }
-.nubi-progress[data-active=true]::before {
-  content:""; position:absolute; inset:0; pointer-events:none;
-  background:linear-gradient(90deg,transparent,var(--nubi-progress-glow),transparent);
-  animation:nubi-progress-drift var(--nubi-progress-drift-duration) ease-in-out infinite alternate;
-}
 .nubi-progress[data-active=true]>span { position:relative; }
 .desktop-shell .nubi-working-status { width:fit-content; max-width:100%; padding:var(--cx-space-2) var(--cx-space-3); border-radius:var(--deck-control-radius); }
-@keyframes nubi-progress-breathe { from { opacity:.45; transform:translateX(-1%); } to { opacity:1; transform:translateX(1%); } }
-@keyframes nubi-progress-drift { from { transform:translateX(-40%); } to { transform:translateX(40%); } }
+@keyframes nubi-progress-breathe { from { opacity:.3; } to { opacity:.8; } }
 :root[data-motion='paused'] :is(.nubi-progress-atmosphere,.nubi-progress)::before,
 :root[data-motion-visibility='hidden'] :is(.nubi-progress-atmosphere,.nubi-progress)::before { animation-play-state:paused; }
 @media(prefers-reduced-motion:reduce) {

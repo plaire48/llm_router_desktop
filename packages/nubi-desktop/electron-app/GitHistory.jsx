@@ -5,6 +5,8 @@ import {GitEmptyState} from '../ui/GitEmptyState.jsx';
 import {BranchMark} from '../ui/marks.jsx';
 import {DriftLabel} from '../ui/DriftLabel.jsx';
 import {ProjectFileTree} from '../ui/ProjectFileTree.jsx';
+import {CommitGraph} from '../ui/CommitGraph.jsx';
+import {commitGraphPage} from '../ui/commit-graph.mjs';
 
 const Diff = lazy(() => import('./editor.jsx').then(module => ({default:module.GitDiff})));
 const dateLabel = value => Number.isNaN(Date.parse(value))?'':new Date(value).toLocaleDateString('ko-KR', {month:'numeric', day:'numeric'});
@@ -29,11 +31,21 @@ export function GitHistory({api, onError, projectId}) {
   const [file, setFile] = useState(null), [content, setContent] = useState(null);
   const [busy, setBusy] = useState('list'), [failed, setFailed] = useState(false), [reload, setReload] = useState(0);
   const requestId = useRef(0), errorRef = useRef(onError), tipRef=useRef(null),scrollRef=useRef(null);
+  const graphPages = useRef({scope:null, starts:new Map()});
   errorRef.current = onError;
   useEffect(() => {
     const id = ++requestId.current;
     setBusy('list'); setFailed(false); setSelected(null); setDetail(null); setFile(null); setContent(null); setCatalog(cache.get(`${projectId}:${branch}:${offset}`)||null);
-    api('commitHistory', {branch,offset,...offset&&tipRef.current?{expectedTip:tipRef.current}:{}}).then(value => { if (id === requestId.current) {cache.set(`${projectId}:${branch}:${offset}`,value);while(cache.size>12)cache.delete(cache.keys().next().value);tipRef.current=value.tip;setCatalog(value); setBusy(null);scrollRef.current?.scrollTo(0,0);} })
+    api('commitHistory', {branch,offset,...offset&&tipRef.current?{expectedTip:tipRef.current}:{}}).then(value => { if (id === requestId.current) {
+      const scope=JSON.stringify([projectId,branch,value.tip]);
+      if(graphPages.current.scope!==scope||offset===0)graphPages.current={scope,starts:new Map([[0,undefined]])};
+      // Unknown boundaries must not invent a connection. Normal previous/next
+      // navigation retains lightweight lane checkpoints, including uncached pages.
+      const graph=graphPages.current.starts.has(offset)?commitGraphPage(value.commits,graphPages.current.starts.get(offset)):null;
+      if(graph)graphPages.current.starts.set(offset+value.commits.length,graph.next);
+      value={...value,graph};
+      cache.set(`${projectId}:${branch}:${offset}`,value);while(cache.size>12)cache.delete(cache.keys().next().value);tipRef.current=value.tip;setCatalog(value); setBusy(null);scrollRef.current?.scrollTo(0,0);
+    } })
       .catch(error => { if (id === requestId.current) {setFailed(error.message); setBusy(null); errorRef.current(error);} });
     return () => { requestId.current++; };
   }, [api, projectId, branch, offset, reload]);
@@ -70,9 +82,9 @@ export function GitHistory({api, onError, projectId}) {
       <CxButton className="desktop-git-back" data-icon-only aria-label="커밋 이력 새로고침" title="커밋 이력 새로고침" disabled={busy==='list'} onClick={() => {tipRef.current=null;setOffset(0);setReload(value => value + 1);}}><Icon name="refresh" size={16}/></CxButton>
     </div>
     <div className="desktop-git-scroll" ref={scrollRef}>
-      {!selected && <div className="desktop-git-commits">
-        {catalog?.commits.map(row => <CxButton key={row.id} className="desktop-git-commit" onClick={() => chooseCommit(row)}>
-          <Icon name="gitCommit" size={16}/><span className="desktop-git-commit-copy"><strong title={row.subject}>{row.subject}</strong>
+      {!selected && <div className="desktop-git-commits" data-graph={!!catalog?.graph}>
+        {catalog?.commits.map((row,index) => <CxButton key={row.id} className="desktop-git-commit" onClick={() => chooseCommit(row)} aria-label={row.parents?.length>1?`${row.subject}, 병합 커밋`:undefined}>
+          {catalog.graph?<CommitGraph row={catalog.graph.rows[index]} columns={catalog.graph.columns}/>:<Icon name="gitCommit" size={16}/>}<span className="desktop-git-commit-copy"><strong title={row.subject}>{row.subject}</strong>
             <small><span className="desktop-git-author" title={row.author}>{row.author}</span><code title={row.id}>{row.id.slice(0,7)}</code><time dateTime={row.date} title={fullDate(row.date)}>{dateLabel(row.date)}</time></small>
             {catalog.branches.some(ref=>ref.tip===row.id)&&<span className="desktop-git-refs" title={catalog.branches.filter(ref=>ref.tip===row.id).map(ref=>ref.name).join(', ')}><BranchMark size={14}/><span>{catalog.branches.find(ref=>ref.tip===row.id).name}</span>{catalog.branches.filter(ref=>ref.tip===row.id).length>1&&<small>+{catalog.branches.filter(ref=>ref.tip===row.id).length-1}</small>}</span>}
           </span><Icon name="chevronRight" size={16}/>

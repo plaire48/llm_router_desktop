@@ -23,5 +23,7 @@ test('Windows notice is deduplicated and opens the in-app login form without sec
  const notices=createMailLoginNotices({Notification,getWindow:()=>({isDestroyed:()=>false,isMinimized:()=>true,restore(){},show(){},focus(){focused++;}}),send:e=>events.push(e),platform:'win32'});
  assert.equal(notices.show({code:'mail_portal_request'}).shown,true);assert.equal(notices.show({code:'mail_portal_request'}).shown,false);assert.equal(instances.length,1);assert.match(instances[0].options.body,/사내망.*VPN/);
  instances[0].events.click();assert.equal(focused,1);assert.equal(events.at(-1).type,'mail_login_open');notices.clear();
+ assert.equal(notices.show({code:'mail_portal_login'}).shown,false,'reopening or changing the outage label does not notify again');
+ notices.reset(); // A verified reconnect ends this outage.
  notices.show({code:'mail_portal_login'});assert.match(instances[1].options.body,/누비에서 다시 로그인/);assert.doesNotMatch(instances[1].options.body,/채팅|폼/);notices.clear();
 });

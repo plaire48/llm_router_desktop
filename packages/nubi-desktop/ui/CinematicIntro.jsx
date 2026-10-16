@@ -26,7 +26,8 @@ export function CinematicIntro({ready=false,onFinish}){
   const bootGuard=useRef(document.body.hasAttribute('data-nubi-opening'));
   useLayoutEffect(()=>{
     if(!bootGuard.current)return;
-    const root=document.getElementById('root');if(root)root.inert=phase!=='done'&&phase!=='leave';
+    // The shell owns its startup lock. #root belongs to CX modal isolation;
+    // sharing it restored a stale startup lock when a restored dialog closed.
     if(phase==='done')delete document.body.dataset.nubiOpening;
     else document.body.dataset.nubiOpening=phase==='leave'?'leaving':'intro';
     // The scene is committed outside the app root before the static white cover

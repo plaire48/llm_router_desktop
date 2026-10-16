@@ -11,8 +11,8 @@ function decisionNoticeContent({kind,projectName,taskTitle,summary}={}){
  const detail=preview(summary,160)||({proposal:'제안된 파일 변경을 검토해 주세요.',command:'제안된 명령의 실행 여부를 선택해 주세요.',computer:'연결할 앱과 요청한 동작을 확인해 주세요.'}[kind]||'대화에 추가 질문이 도착했어요.');
  return {title:project?`${project} — ${label}`:`누비 Workspace — ${label}`,body:task&&task!==detail?`${task}\n${detail}`:detail};
 }
-function createDecisionNotices({Notification,getWindow,send,icon,platform=process.platform}){
- const notices=new Map();
+function createDecisionNotices({Notification,getWindow,send,icon,platform=process.platform,history}){
+ const notices=new Map(),seen=new Set();
  return {
   request({id,action,kind,projectName,taskTitle,summary,choices,allowText,placeholder,openLabel}={}){
    if(typeof id!=='string'||!id||id.length>300||!['show','clear'].includes(action))throw Error('decision_notice_invalid');
@@ -20,7 +20,7 @@ function createDecisionNotices({Notification,getWindow,send,icon,platform=proces
     const entry=notices.get(id);notices.delete(id);entry?.notice.close();return {cleared:true};
    }
    const window=getWindow();
-   if(platform!=='win32'||!window||window.isDestroyed()||!Notification.isSupported()||notices.has(id))return {shown:false};
+   if(platform!=='win32'||!window||window.isDestroyed()||!Notification.isSupported()||notices.has(id)||seen.has(id)||history?.has('decision',id))return {shown:false};
    // Bound references even if a renderer reload loses its cleanup callbacks.
    if(notices.size>=20){const oldest=notices.keys().next().value;const entry=notices.get(oldest);notices.delete(oldest);entry.notice.close();}
    try{
@@ -38,7 +38,7 @@ function createDecisionNotices({Notification,getWindow,send,icon,platform=proces
     const openWindow=()=>{const current=getWindow();if(!current||current.isDestroyed())return;if(current.isMinimized())current.restore();current.show();current.focus();send({type:'decision_open',id});};
     notice.on('action',(_event,index)=>{if(notices.get(id)!==entry)return;if(opener){openWindow();return;}const choice=buttons[index];if(choice===undefined)return;notices.delete(id);send({type:'decision_answer',id,choice});});
     notice.on('reply',(_event,text)=>{if(notices.get(id)!==entry)return;const value=preview(text,2000);if(!value)return;notices.delete(id);send({type:'decision_answer',id,text:value});});
-    notice.on('failed',()=>{});notice.show();return {shown:true};
+    notice.on('failed',()=>{});notice.show();seen.add(id);history?.add('decision',id);if(seen.size>4096)seen.delete(seen.values().next().value);return {shown:true};
    }catch{return {shown:false};}
   },
   clear(){for(const {notice} of notices.values())notice.close();notices.clear();}

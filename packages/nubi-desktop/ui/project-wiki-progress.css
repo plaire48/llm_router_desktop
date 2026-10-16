@@ -1,9 +1,14 @@
-.nubi-project-wiki-progress{position:relative;flex:none;padding:12px 16px;margin:0 0 16px;background:var(--deck-blue-soft);border-radius:12px;min-width:0}
-.nubi-project-wiki-progress-body{display:flex;align-items:flex-start;gap:12px;min-width:0}
-.nubi-project-wiki-progress-body>svg{flex:none;margin-top:3px;color:var(--deck-blue)}
-.nubi-project-wiki-progress-status{flex:1;min-width:0}
-.nubi-project-wiki-progress .nubi-wiki-initialization{margin-top:8px;width:100%}
-.nubi-project-wiki-progress-body>button{flex:none;width:32px;height:32px;padding:0}
+.nubi-project-wiki-progress{position:relative;flex:none;display:grid;gap:var(--cx-space-2);padding:var(--cx-space-3) var(--cx-space-4);margin:0 0 var(--cx-space-4);background:var(--deck-section-surface);border-radius:var(--deck-control-radius);min-width:0;max-width:100%;box-sizing:border-box}
+.nubi-project-wiki-progress-body{display:flex;align-items:center;gap:var(--cx-space-2);min-width:0}
+.nubi-project-wiki-progress-body>.nubi-wiki-project-identity{flex:1}
+.nubi-project-wiki-progress .nubi-wiki-initialization{margin:0;width:100%;min-width:0}
+.nubi-project-wiki-progress-body>button{flex:none;width:var(--nubi-compact-control,32px);height:var(--nubi-compact-control,32px);min-height:0;min-width:0;padding:0;border:0;box-shadow:none;background:transparent;color:var(--nubi-text-secondary)}
+.nubi-project-wiki-progress .nubi-progress-estimate{margin:0}
+.nubi-project-wiki-progress{overflow:clip}
+/* One soft light across the card, never a second panel behind the bar. */
+.nubi-project-wiki-progress>.nubi-wiki-initialization::before{content:none}
+.nubi-project-wiki-progress .nubi-progress{margin-top:0}
+.nubi-project-wiki-progress .nubi-wiki-progress-meta{gap:var(--cx-space-2);font-size:var(--cx-type-caption)}
 .nubi-wiki-project-identity {display:flex;align-items:center;gap:var(--cx-space-2);min-width:0;max-width:100%;color:var(--nubi-text-primary);font-size:var(--cx-type-body);}
 .nubi-wiki-project-identity > svg {flex:none;color:var(--deck-blue);}
 .nubi-wiki-project-identity strong {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;}

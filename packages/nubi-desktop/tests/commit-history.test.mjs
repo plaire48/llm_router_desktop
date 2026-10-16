@@ -22,6 +22,7 @@ test('history pages have no duplicates and refuse a moved tip',async t=>{
   const first=await inspect(service);assert.equal(first.commits.length,25);assert.equal(first.hasMore,true);
   const second=await inspect(service,{offset:25,expectedTip:first.tip});assert.equal(second.commits.length,25);
   const last=await inspect(service,{offset:50,expectedTip:first.tip});assert.equal(last.commits.length,3);assert.equal(last.hasMore,false);
+  assert.deepEqual(first.commits.at(-1).parents,[second.commits[0].id]);assert.deepEqual(last.commits.at(-1).parents,[]);
   assert.equal(new Set([...first.commits,...second.commits,...last.commits].map(row=>row.id)).size,53);
   await run(['commit','--allow-empty','-m','new']);
   await assert.rejects(inspect(service,{offset:25,expectedTip:first.tip}),/git_history_changed/);
@@ -44,4 +45,15 @@ test('repeated file reads reuse comparison but keep scope and ancestry checks',a
   await assert.rejects(inspect(service,{commit,path:'one.txt'}),'cache does not bypass branch ancestry');
   const other=await mkdtemp(path.join(os.tmpdir(),'nubi-history-other-'));t.after(()=>rm(other,{recursive:true,force:true}));service.root=other;
   assert.equal((await inspect(service)).commits.length,0,'another root cannot reuse the previous catalog');
+});
+
+test('native merge history supplies full parent hashes in topological order',async t=>{
+ const {run,service}=await fixture(t);
+ await run(['checkout','-b','side']);await run(['commit','--allow-empty','-m','side work']);
+ const side=(await run(['rev-parse','HEAD'])).trim();await run(['checkout','main']);
+ await run(['commit','--allow-empty','-m','main work']);const main=(await run(['rev-parse','HEAD'])).trim();
+ await run(['merge','--no-ff','side','-m','merge']);
+ const page=await inspect(service);assert.deepEqual(page.commits[0].parents,[main,side]);
+ const index=new Map(page.commits.map((c,i)=>[c.id,i]));
+ for(const c of page.commits)for(const parent of c.parents)assert(index.get(parent)>index.get(c.id));
 });

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
-import {expiredSessionDialog,mailDialogPending,installMailSessionDialogs} from '../electron-app/mail-session-dialog.cjs';
+import {expiredSessionDialog,automaticExpiryConfirmation,mailDialogPending,installMailSessionDialogs} from '../electron-app/mail-session-dialog.cjs';
 const notice={url:'https://www.samsung.net/loginapp/abnormal-logout',type:'alert',message:'사용자 세션이 만료되었습니다. 브라우저를 종료하고 다시 로그인해 주시기 바랍니다.'};
 function fixture(){
  const contents=new EventEmitter(),debuggerApi=new EventEmitter(),commands=[];let attached=false;
@@ -16,7 +16,7 @@ test('only known portal session-expired alerts require navigation after manual c
 test('native dialogs stay manual and block probes through the expiry redirect gap',()=>{
  const {contents,commands,emit}=fixture();
  assert.equal(mailDialogPending(contents),false);
- emit('Page.javascriptDialogOpening',notice);assert.equal(mailDialogPending(contents),true);
+ emit('Page.javascriptDialogOpening',{...notice,url:'https://www.samsung.net/loginapp/logout'});assert.equal(mailDialogPending(contents),true);
  emit('Page.javascriptDialogClosed',{result:true});assert.equal(mailDialogPending(contents),true);
  contents.emit('did-start-navigation',{},'https://www.samsung.net/loginapp/login',true,true);assert.equal(mailDialogPending(contents),true,'hash changes do not prove login navigation');
  contents.emit('did-start-navigation',{},'https://www.samsung.net/loginapp/login',false,true);assert.equal(mailDialogPending(contents),false);
@@ -36,9 +36,27 @@ test('a human confirmation can wait beyond five minutes and resumes only after c
  const host=new MailPortal({getPageContents:()=>[contents],invoke:async()=>({})});t.after(()=>host.dispose());
  host.page={tabId:'fixture'};host.windowForLogin=async()=>{};host.sync=async()=>{};host.readSession=async()=>[{folderID:'1',folderName:'Inbox'}];let probes=0;
  host.identify=async()=>{probes++;return {identity:{id:'owner',userId:'owner'},folders:[]};};
- emit('Page.javascriptDialogOpening',notice);const connecting=host.connect();
+ emit('Page.javascriptDialogOpening',{...notice,url:'https://www.samsung.net/loginapp/logout'});const connecting=host.connect();
  await new Promise(r=>setTimeout(r,20));t.mock.timers.setTime(11*60*1000);await new Promise(r=>setTimeout(r,300));
  assert.equal(host.status().connecting,true);assert.equal(host.status().loginStage,'confirmation');assert.equal(probes,0);
  emit('Page.javascriptDialogClosed',{result:true});contents.emit('did-start-navigation',{},'http://kor3.samsung.net/portalapp/home',false,true);
  assert.equal((await connecting).connected,true);assert.equal(probes,1);assert.deepEqual(commands,[{method:'Page.enable',args:undefined}]);
+});
+
+test('only the exact abnormal logout expiry alert is accepted once per login tab',()=>{
+ assert(automaticExpiryConfirmation(notice));
+ for(const change of [{url:'https://www.samsung.net/loginapp/logout'},{url:'https://www.samsung.net/loginapp/abnormal-logout-other'},{type:'confirm'},{type:'prompt'},{message:'삭제하시겠습니까?'},{url:'https://evil.test/loginapp/abnormal-logout'}])assert.equal(automaticExpiryConfirmation({...notice,...change}),false);
+ const {contents,commands,emit}=fixture();
+ emit('Page.javascriptDialogOpening',notice);
+ assert.deepEqual(commands,[{method:'Page.enable',args:undefined},{method:'Page.handleJavaScriptDialog',args:{accept:true}}]);
+ assert.equal(mailDialogPending(contents),true,'command success is not proof of navigation');
+ emit('Page.javascriptDialogClosed',{result:true});assert.equal(mailDialogPending(contents),true);
+ contents.emit('did-start-navigation',{},'https://www.samsung.net/loginapp/login',false,true);assert.equal(mailDialogPending(contents),false);
+ emit('Page.javascriptDialogOpening',notice);assert.equal(commands.length,2,'a repeating expiry alert remains manual');
+});
+test('failed automatic confirmation leaves the original dialog available',async()=>{
+ const {contents,emit}=fixture();contents.debugger.sendCommand=async()=>{throw Error('unavailable');};
+ emit('Page.javascriptDialogOpening',notice);await new Promise(r=>setImmediate(r));
+ assert.equal(mailDialogPending(contents),true);
+ emit('Page.javascriptDialogClosed',{result:true});contents.emit('did-start-navigation',{},'https://www.samsung.net/loginapp/login',false,true);assert.equal(mailDialogPending(contents),false);
 });

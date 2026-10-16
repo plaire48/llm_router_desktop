@@ -9,6 +9,11 @@ import '../design/workspace-typography.css';
 import '../design/workspace-density.css';
 window.historyCalls=[];
 const commits=Array.from({length:53},(_,i)=>({id:(i+1).toString(16).padStart(40,'0'),subject:i===0?'메일 검색 조건과 커밋 이력의 가독성을 개선하고 프로젝트별 변경 사항을 확인하도록 수정':'프로젝트 문서와 사용자 흐름 개선 '+(i+1),author:i===0?'매우 긴 이름의 작성자 표시 검증':'김누비',date:'2026-10-12T09:24:00+09:00'}));
+// A merge spans the 25-row boundary, including its shared parent on page two.
+for(let i=0;i<commits.length;i++)commits[i].parents=i+1<commits.length?[commits[i+1].id]:[];
+commits[0].parents=[commits[1].id,commits[24].id];
+commits[23].parents=[commits[26].id];
+commits[24].parents=[commits[25].id];
 const api=async(method,args)=>{
   window.historyCalls.push({...args});await new Promise(resolve=>setTimeout(resolve,window.historyDelay||30));
   if(window.historyFailure)throw Error('fixture_read_failed');

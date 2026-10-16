@@ -83,14 +83,16 @@ function companySession(){const value=session.fromPartition(COMPANY_PARTITION);i
 async function captureAppWindow(options={}){return captureWindow(window,browserHost,options);}
 function openWorkspacePage(url,options={}){if(!browserHost||!window||window.isDestroyed())throw Error('browser_unavailable');const tab=browserHost.create(workspacePageUrl(url),options);window.webContents.send('nubi:browser-event',{type:'opened',state:browserHost.status()});return {opened:true,tabId:tab.id,userInteractionRequired:true};}
 function openPageLink(url){try{openWorkspacePage(url);}catch(error){window.webContents.send('nubi:browser-event',{type:'error',error:/^[a-z_]+$/.test(error.message)?error.message:'browser_url_invalid'});}}
+const {createNotificationHistory}=require('./notification-history.cjs');
+const notificationHistory=createNotificationHistory(path.join(storage,'notification-delivery-v1.json'));
 const {createDecisionNotices}=require('./decision-notices.cjs');
 const {createMailLoginNotices}=require('./mail-login-notices.cjs');
-const mailLoginNotices=createMailLoginNotices({Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
+const mailLoginNotices=createMailLoginNotices({history:notificationHistory,Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
 const {createWikiNotices}=require('./wiki-notices.cjs');
-const wikiNotices=createWikiNotices({Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
+const wikiNotices=createWikiNotices({history:notificationHistory,Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
 const {createAnswerNotices}=require('./answer-notices.cjs');
-const answerNotices=createAnswerNotices({Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
-const decisionNotices=createDecisionNotices({Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
+const answerNotices=createAnswerNotices({history:notificationHistory,Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
+const decisionNotices=createDecisionNotices({history:notificationHistory,Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
 app.on('before-quit',()=>{decisionNotices.clear();answerNotices.clear();wikiNotices.clear();mailLoginNotices.clear();});
 const {connectionVault,workerKey}=require('./connection-vault.cjs');
 const vault=connectionVault({directory:path.join(storage,'connections-v1'),safeStorage:require('electron').safeStorage});
@@ -121,6 +123,7 @@ const restoreCurrentProject=createProjectRestorer(async()=>{
  catch(error){if(error.message==='project_path_missing')await rm(path.join(storage,'last-project.json'),{force:true}).catch(()=>{});throw error;}
 });
 app.whenReady().then(async()=>{
+ await notificationHistory.ready;
  if(!primary)return;
  const appIcon=path.join(__dirname,'nubi-icon.png');
  if(process.platform==='darwin')app.dock?.setIcon(appIcon);
@@ -270,13 +273,13 @@ app.whenReady().then(async()=>{
    if(args.action==='portalSession'){
     if(source!=='electron')throw Error('mail_portal_desktop_only');
     const result=await mailPortal.sessionReady();
-    if(result.connected){mailLoginNotices.clear();hostEvent({type:'mail_portal_connected',requiresStorageSetup:(await invoke('mail',{action:'status',includeMessages:false})).requiresStorageSetup});}
+    if(result.connected){mailLoginNotices.reset();hostEvent({type:'mail_portal_connected',requiresStorageSetup:(await invoke('mail',{action:'status',includeMessages:false})).requiresStorageSetup});}
     return {...await portalMailStatus(),requiresLogin:result.requiresLogin===true};
    }
    if(args.action==='portalLogin'){
     if(source!=='electron')throw Error('mail_portal_desktop_only');mailPortal.requestId=args.requestId;
     try{await mailPortal.connect({destination:args.destination});}catch(error){if(error.message!=='mail_cancelled')hostEvent({type:'mail_portal_failed',error:/^mail_[a-z_]+$/.test(error.message)?error.message:'mail_portal_request'});throw error;}
-    mailLoginNotices.clear();hostEvent({type:'mail_portal_connected',requiresStorageSetup:(await invoke('mail',{action:'status',includeMessages:false})).requiresStorageSetup});return portalMailStatus();
+    mailLoginNotices.reset();hostEvent({type:'mail_portal_connected',requiresStorageSetup:(await invoke('mail',{action:'status',includeMessages:false})).requiresStorageSetup});return portalMailStatus();
    }
    // Cancel stops whatever portal connection is running, even when the screen that asked was reopened and no longer
    // holds the request id (user report 2026-10-14: 연결 취소 kept connecting).
@@ -366,4 +369,4 @@ app.whenReady().then(async()=>{
 app.on('window-all-closed',()=>app.quit());
 // Quitting waits for the worker to exit (bounded by its kill grace): the worker releases the project store lock with its
 // process, so a relaunch right after quit can open the same project instead of failing with project_locked.
-let quitting=false;app.on('before-quit',event=>{if(quitting)return;quitting=true;event.preventDefault();terminalHost?.dispose();playwrightHost?.dispose();browserHost?.dispose();mailPortal?.dispose();claudeWeb?.dispose();void webHost?.close();host?.dispose?.();Promise.resolve(worker?.stop()).catch(()=>{}).then(()=>vault.flush()).then(()=>app.quit());});
+let quitting=false;app.on('before-quit',event=>{if(quitting)return;quitting=true;event.preventDefault();terminalHost?.dispose();playwrightHost?.dispose();browserHost?.dispose();mailPortal?.dispose();claudeWeb?.dispose();void webHost?.close();host?.dispose?.();Promise.resolve(worker?.stop()).catch(()=>{}).then(()=>vault.flush()).then(()=>Promise.race([notificationHistory.flush(),new Promise(resolve=>setTimeout(resolve,1000))])).then(()=>app.quit());});

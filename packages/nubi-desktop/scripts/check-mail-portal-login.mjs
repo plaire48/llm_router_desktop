@@ -26,6 +26,7 @@ app.whenReady().then(async()=>{
   }
   const loginForm='<form action="https://sso.example.invalid/authenticate" method="post" target="_blank" rel="opener"><input name="proof" value="fixture"><button id="login">Fixture login</button></form>';
   if(global.expired&&global.expiryPath==='native-expired'&&url.origin==='https://home.example.invalid')return new Response('<script>alert("사용자 세션이 만료되었습니다. 브라우저를 종료하고 다시 로그인해 주시기 바랍니다.");setTimeout(()=>location.href="https://www.samsung.net/loginapp/login",600);</script>',{headers:{'content-type':'text/html; charset=utf-8'}});
+  if(url.origin==='https://www.samsung.net'&&url.pathname==='/loginapp/abnormal-logout')return new Response('<script>alert("사용자 세션이 만료되었습니다. 브라우저를 종료하고 다시 로그인해 주시기 바랍니다.");location.href="https://www.samsung.net/loginapp/login";</script>',{headers:{'content-type':'text/html; charset=utf-8'}});
   if(url.origin==='https://www.samsung.net'&&['/loginapp/abnormal-logout','/loginapp/logout'].includes(url.pathname))return new Response('<p>브라우저를 로그인하여 다시 시도해주시기 바랍니다.</p><button id=confirm onclick="location.href=String.fromCharCode(47)+String.fromCharCode(108,111,103,105,110,97,112,112)+String.fromCharCode(47)+String.fromCharCode(108,111,103,105,110)">확인</button>',{headers:{'content-type':'text/html; charset=utf-8'}});
   if(url.origin==='https://www.samsung.net'&&url.pathname==='/loginapp/login')return new Response(loginForm,{headers:{'content-type':'text/html; charset=utf-8'}});
   if(!['https://mail.example.invalid','https://home.example.invalid'].includes(url.origin))return new Response('',{status:403});
@@ -63,6 +64,9 @@ try{
  let observedDialog;const keepDialog=page=>page.on('dialog',dialog=>{observedDialog=dialog;});for(const page of app.context().pages())keepDialog(page);app.context().on('page',keepDialog);
  for(const loginPath of ['abnormal-logout','logout','native-expired']){
  await app.evaluate(async(_electron,loginPath)=>{await global.portal.disconnect();global.expire(loginPath);global.events=[];global.result=null;global.connection=global.portal.connect().then(()=>global.result={ok:true},error=>global.result={error:error.message});},loginPath);
+ if(loginPath==='abnormal-logout'){
+  await until(()=>app.evaluate(()=>global.host.tab(global.loginId).view.webContents.getURL()==='https://www.samsung.net/loginapp/login'));
+ }else{
  if(loginPath==='native-expired'){
   await until(()=>app.evaluate(()=>global.dialogPending()));
  }else await until(()=>app.evaluate(()=>global.host.tab(global.loginId).view.webContents.executeJavaScript('!!document.querySelector("#confirm")')));
@@ -70,10 +74,11 @@ try{
  const beforeConfirm=await app.evaluate(()=>({connecting:global.portal.status().connecting,result:global.result,guide:global.host.status().tabs.find(row=>row.id===global.loginId)?.mailLoginStage,requests:global.events.filter(row=>row.path?.startsWith('/mail/rest/'))}));
  if(loginPath==='native-expired')assert.equal(beforeConfirm.guide,'expired');
  assert.equal(beforeConfirm.connecting,true);assert.equal(beforeConfirm.result,null);assert.deepEqual(beforeConfirm.requests,[],'no forbidden API probe or tab closure while confirmation is waiting');
- // Explicit fixture-driver action represents the person's Confirm click. The product never sends this command.
+ // Other pages remain manual. Only the exact abnormal-logout expiry alert is automatic.
  // Use the Page session that observes the dialog; Playwright's separate CDP session may not own it.
  if(loginPath==='native-expired'){assert(observedDialog,'native alert remains available for the person');await app.evaluate(()=>global.host.tab(global.loginId).view.webContents.debugger.sendCommand('Page.handleJavaScriptDialog',{accept:true}));}
  else await app.evaluate(()=>global.host.tab(global.loginId).view.webContents.executeJavaScript('document.querySelector("#confirm").click()',true));
+ }
  await until(async()=>app.evaluate(async(_electron,loginPath)=>{const contents=global.host.tab(global.loginId).view.webContents;return contents.getURL()==='https://www.samsung.net/loginapp/login'&&await contents.executeJavaScript('!!document.querySelector("#login")');},loginPath));
  // Let at least one connect poll run while the expired API would return 403.
  await new Promise(resolve=>setTimeout(resolve,2300));
@@ -87,6 +92,6 @@ try{
  assert.equal(recovered.events.filter(row=>row.action==='portalConnect').length,1);
  assert.equal(recovered.events.filter(row=>row.host==='www.samsung.net'&&row.path==='/loginapp/login').length,1,'expired-session confirmation advances exactly once');
  }
- console.log(JSON.stringify({passed:true,checks:['POST popup and opener preserved','same persistent session','verified background mail reader','no separate login popup','owned tab cleanup','HTTPS-only login navigation','native alert and logout pages wait for the person to confirm before login, without premature API probes','relogin restores mail through existing SSO flow'],boundary:'Local Electron with isolated mock HTTPS protocol; not company SSO or Windows verification.'}));
+ console.log(JSON.stringify({passed:true,checks:['POST popup and opener preserved','same persistent session','verified background mail reader','no separate login popup','owned tab cleanup','HTTPS-only login navigation','abnormal-logout expiry alert automatically advances to login; other alerts and logout pages remain manual, without premature API probes','relogin restores mail through existing SSO flow'],boundary:'Local Electron with isolated mock HTTPS protocol; not company SSO or Windows verification.'}));
 }finally{await app?.close();await rm(temporary,{recursive:true,force:true});}
 async function until(check){for(let i=0;i<150;i++){try{if(await check())return;}catch{}await new Promise(r=>setTimeout(r,100));}throw Error('portal fixture timed out');}

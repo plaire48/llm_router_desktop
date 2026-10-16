@@ -90,9 +90,9 @@ async function inspect(service, {branch = 'HEAD', commit, path:rel, view, offset
   if (!OID.test(tip)) fail('git_history_invalid');
   if(expectedTip&&tip!==expectedTip)fail('git_history_changed');
   if (!commit) {
-    const text = await git(root, ['log', `-${PAGE_SIZE+1}`, `--skip=${offset}`, '--format=%H%x00%aI%x00%an%x00%s%x00', tip]);
+    const text = await git(root, ['log', '--topo-order', `-${PAGE_SIZE+1}`, `--skip=${offset}`, '--format=%H%x00%aI%x00%an%x00%s%x00%P%x00', tip]);
     const parts = text.split('\0'), commits = [];
-    for (let i = 0; i + 3 < parts.length; i += 4) commits.push({id:parts[i].trim(), date:parts[i+1], author:parts[i+2], subject:parts[i+3]});
+    for (let i = 0; i + 4 < parts.length; i += 5) commits.push({id:parts[i].trim(), date:parts[i+1], author:parts[i+2], subject:parts[i+3], parents:parts[i+4].split(' ').filter(Boolean)});
     if(service.root!==root)fail('project_changed');
     return {commits:commits.slice(0,PAGE_SIZE), branches:refs, currentBranch, branch, tip, offset, limit:PAGE_SIZE,hasMore:commits.length>PAGE_SIZE};
   }
