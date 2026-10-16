@@ -81,6 +81,12 @@ await p.screenshot({path:path.join(dir,`execution-${width}.png`),animations:'dis
   await activity.waitFor();
   await p.evaluate(()=>window.activityState('review'));
   await p.waitForFunction(()=>!document.querySelector('.nubi-activity-record')?.open);
+  const planAlignment=await p.locator('.task-plan [data-plan-overview]>summary').evaluateAll(rows=>rows.map(row=>{
+    const count=row.querySelector('.task-plan-count'),chevron=row.lastElementChild;
+    const gap=parseFloat(getComputedStyle(row).columnGap)||0;
+    return {actual:row.getBoundingClientRect().right-count.getBoundingClientRect().right,expected:chevron.getBoundingClientRect().width+gap};
+  }));
+  assert(planAlignment.length&&planAlignment.every(row=>Math.abs(row.actual-row.expected)<2),'plan counts align with right-hand controls: '+JSON.stringify(planAlignment));
   await record.locator(':scope > summary').click();
   assert.equal(await activity.locator('[data-timeline-kind=note]').count(),2,'updates remain available after completion');
   await p.screenshot({path:path.join(dir,`completed-${width}.png`),animations:'disabled'});

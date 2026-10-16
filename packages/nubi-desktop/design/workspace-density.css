@@ -731,7 +731,9 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .desktop-shell .nubi-workbench .nubi-agent-activity .nubi-response-time { flex:none; margin:0; color:var(--deck-sub); }
 .desktop-shell .nubi-workbench .agent-trace>summary>.nubi-response-time>svg { display:none; }
 .desktop-shell .nubi-workbench .task-plan-inline-current { min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; color:var(--deck-ink); }
-.desktop-shell .nubi-workbench .nubi-work-plan .task-plan-count { flex:none; margin-left:auto; }
+.desktop-shell .nubi-workbench .task-plan [data-plan-overview]>summary>.task-plan-pause { order:1; }
+.desktop-shell .nubi-workbench .task-plan [data-plan-overview]>summary>.task-plan-count { order:2; flex:none; margin-left:auto; }
+.desktop-shell .nubi-workbench .task-plan [data-plan-overview]>summary>svg:last-child { order:3; flex:none; margin-left:0; }
 .desktop-shell .nubi-workbench .nubi-agent-activity .agent-trace>ol { padding:4px 0; margin:4px 0 0; gap:8px; }
 .desktop-shell .nubi-workbench .nubi-agent-activity .agent-trace>ol>li { gap:var(--nubi-activity-gap); font:var(--deck-font-body); }
 .desktop-shell .nubi-workbench .nubi-agent-activity :is(.agent-step-status,.task-plan-marker) { display:inline-flex; flex:none; align-items:center; justify-content:center; width:var(--nubi-activity-icon); height:var(--nubi-activity-line); min-height:var(--nubi-activity-line); margin:0; }
