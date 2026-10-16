@@ -721,10 +721,20 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-start-return { display:flex; justify-content:center; margin:var(--cx-space-4) 0; }
 .nubi-wiki-initialization { display:grid; gap:var(--cx-space-2); font:var(--deck-font-caption); color:var(--deck-sub); }
 .nubi-wiki-initialization-line { display:flex; align-items:center; gap:var(--cx-space-2); min-width:0; }
-.nubi-wiki-initialization-line>strong { font-weight:650; color:var(--deck-ink); }
+.nubi-wiki-initialization-line>strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; color:var(--deck-ink); }
 .nubi-wiki-initialization-line>svg,.nubi-wiki-initialization-line>.status-spinner { flex:none; }
 .nubi-wiki-percent { color:var(--deck-blue-deep); font-weight:700; font-variant-numeric:tabular-nums; }
 .nubi-wiki-elapsed { color:var(--deck-sub); font-variant-numeric:tabular-nums; }
+/* One stage headline, then quiet counts and timing. Never shrink small text twice. */
+.nubi-wiki-initialization:not(.is-inline) { font:var(--deck-font-body); }
+.nubi-wiki-initialization:not(.is-inline) .nubi-wiki-percent { margin-left:auto; flex:none; font-weight:600; }
+.nubi-wiki-initialization:not(.is-inline)>small,.nubi-wiki-progress-meta,.nubi-wiki-error-detail { font:var(--deck-font-caption); }
+.nubi-wiki-progress-meta { display:flex; align-items:center; justify-content:space-between; gap:var(--cx-space-3); min-width:0; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.nubi-wiki-progress-meta strong { color:var(--deck-ink); font-weight:600; }
+.nubi-wiki-retained,.nubi-wiki-error-detail>summary { display:flex; align-items:center; gap:var(--cx-space-2); }
+.nubi-wiki-retained>svg,.nubi-wiki-error-detail>summary>svg { flex:none; }
+.nubi-wiki-error-detail>summary { cursor:pointer; width:fit-content; color:var(--deck-sub); }
+.nubi-wiki-error-detail>p { margin:var(--cx-space-2) 0; }
 .nubi-wiki-initialization.is-inline { flex:none; padding-right:var(--cx-space-3); }
 .nubi-wiki-initialization.is-inline strong { font-size:12px; }
 @container nubi-workspace (max-width:620px) { .nubi-start-git .nubi-start-field { flex-wrap:wrap; }.nubi-start-git .nubi-start-field>.cx-kit-input { flex-basis:100%; }.nubi-start-model { gap:var(--cx-space-2); } }

@@ -18,7 +18,7 @@ try{
   await p.getByRole('link',{name:'파일 앱 새 탭에서 열기'}).click();await p.waitForFunction(()=>window.calls.some(c=>c.method==='openWorkspaceApp'&&c.id.startsWith('2222')));
   await p.getByRole('link',{name:'링크 앱 새 탭에서 열기'}).click();await p.waitForFunction(()=>window.calls.some(c=>c.method==='openWorkspaceApp'&&c.id.startsWith('1111')));
   assert.equal(p.context().pages().length,1,'the renderer uses the native app bridge, not app:// hash popups');
-  await p.getByRole('button',{name:'앱 등록',exact:true}).click();await p.getByRole('dialog').waitFor();await p.getByRole('tab',{name:'파일',exact:true}).click();await p.getByText('페이지 파일',{exact:true}).waitFor();await p.keyboard.press('Escape');await p.getByRole('alertdialog').getByRole('button',{name:'작성 취소',exact:true}).click();await p.getByRole('dialog').waitFor({state:'hidden'});
+  await p.getByRole('button',{name:'앱 등록',exact:true}).click();await p.getByRole('dialog').waitFor();await p.getByRole('dialog').screenshot({path:dir+'/app-register-'+width+'.png'});await p.getByRole('tab',{name:'파일',exact:true}).click();await p.getByText('페이지 파일',{exact:true}).waitFor();await p.keyboard.press('Escape');await p.getByRole('alertdialog').getByRole('button',{name:'작성 취소',exact:true}).click();await p.getByRole('dialog').waitFor({state:'hidden'});
   await p.evaluate(()=>window.openFailure=true);await p.getByRole('link',{name:'파일 앱 새 탭에서 열기'}).click();await p.getByRole('alert').filter({hasText:'앱을 열지 못했어요'}).waitFor();await p.getByRole('button',{name:'다시 불러오기',exact:true}).click();await p.getByRole('alert').waitFor({state:'hidden'});
   await p.getByRole('button',{name:'테스트 Talk',exact:true}).click();await p.waitForFunction(()=>window.calls.some(c=>c.method==='ghesFetch'&&c.body?.includes('E2EDiscussions')));
   await p.locator('.talk-toolbar').screenshot({path:dir+'/talk-filters-'+width+'.png'});
@@ -44,7 +44,9 @@ try{
   await p.getByRole('button',{name:'문의하기',exact:true}).click();
   await p.getByRole('textbox',{name:'제목',exact:true}).fill('문의 연결 확인');
   await p.getByRole('textbox',{name:'문의 내용',exact:true}).fill('목록 조회와 등록 후 다시 확인하는 테스트입니다.');
+  await p.locator('.nubi-inquiry-page').screenshot({path:dir+'/inquiry-create-'+width+'.png'});
   await p.getByRole('button',{name:'담당자 선택',exact:true}).click();
+  await p.getByRole('dialog').screenshot({path:dir+'/assignees-'+width+'.png'});
   await p.getByRole('checkbox',{name:'김누비 (nubi) 배정',exact:true}).check();
   await p.keyboard.press('Escape');
   await p.getByRole('button',{name:'접수',exact:true}).click();

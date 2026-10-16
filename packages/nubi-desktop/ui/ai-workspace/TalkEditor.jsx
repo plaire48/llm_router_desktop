@@ -42,7 +42,7 @@ const Attachment=Node.create({name:'attachment',group:'block',atom:true,draggabl
 });
 function LinkDialog({initial='',onApply,onClose}) {
   const [url,setUrl]=useState(initial),[error,setError]=useState(''),field=useRef(null),errorId=useId();
-  return <DetailPanel title={initial?"링크 수정":"링크 삽입"} variant="modal" className="talk-link-dialog" hideHelp onClose={onClose} footer={<ActionButton action="save" label={initial?"적용":"삽입"} onClick={()=>{const value=safeTalkUrl(url.trim());if(!value){setError('http 또는 https 주소를 입력하세요.');field.current?.focus();return;}onApply(value);}}/>}>
+  return <DetailPanel titleIcon="link" title={initial?"링크 수정":"링크 삽입"} variant="modal" className="talk-link-dialog" hideHelp onClose={onClose} footer={<ActionButton action="save" label={initial?"적용":"삽입"} onClick={()=>{const value=safeTalkUrl(url.trim());if(!value){setError('http 또는 https 주소를 입력하세요.');field.current?.focus();return;}onApply(value);}}/>}>
     <label className="field"><span className="input-label">주소</span><input ref={field} className="text-input" type="url" value={url} onChange={e=>{setUrl(e.target.value);setError('');}} placeholder="https://" aria-invalid={!!error} aria-describedby={error?errorId:undefined}/></label>{error&&<p id={errorId} className="field-error" role="alert">{error}</p>}
   </DetailPanel>;
 }

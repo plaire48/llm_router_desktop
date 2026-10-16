@@ -9,9 +9,9 @@ import {commandRecordStatus,processLabels} from './command-record-status.mjs';
 const active=process=>['checking','running','stopping'].includes(process?.state);
 // An approved command reads like its shell, in the turn it was approved in: the command, the output as it arrives and
 // the actual state, exit code and stop control in the receipt (user decisions 2026-09-30 and 2026-10-14: no "실행 결과 보기",
-// nothing moved to the bottom). The record starts open; the user may fold it.
+// nothing moved to the bottom). Records start folded; expanding reads the saved command and output.
 function CommandRecord({action,process,state,profiles,onOpenTerminal,onStop}){
- const [expanded,setExpanded]=useState(true);
+ const [expanded,setExpanded]=useState(false);
  const shell=profiles.find(item=>item.id===(process?.profile||action.profile))?.label||process?.profile||action.profile;
  return <details className="nubi-process-fold nubi-command-record" open={expanded} onToggle={event=>setExpanded(event.currentTarget.open)}>
   <summary><TerminalMark size={16}/><strong title={action.title}>{action.title}</strong>{active(process)&&<span className="status-spinner" aria-hidden="true"/>}<small role="status">{state}</small><Icon name="chevronDown" size={14}/></summary>

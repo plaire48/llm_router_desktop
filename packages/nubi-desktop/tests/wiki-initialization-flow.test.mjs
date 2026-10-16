@@ -296,10 +296,16 @@ test('explicit reset removes retained updates and human wiki pages, then rebuild
  service.store.set('wiki-update:'+id,{id,copy,state:'failed',createdAt:new Date().toISOString(),resume:{schema:1}});
  assert.throws(()=>service.wikiInitialization({action:'reset'}),/wiki_reset_confirmation/);
  assert.equal(await readFile(manual,'utf8'),'human edits to be explicitly discarded');
+ let release;const original=service.wikiInitializer;service.wikiInitializer=async args=>{await new Promise(resolve=>{release=resolve;});return original(args);};
  const job=service.wikiInitialization({action:'reset',confirmed:true});
  assert.throws(()=>service.wikiInitialization({action:'reset',confirmed:true}),/wiki_busy/);
  await assert.rejects(service.wikiUpdate({method:'propose'}),/wiki_busy/);
- await job;await service.wikiInitPromise;
+ await job;
+ assert.equal(service.state().wikiChatBlocked,true);
+ await assert.rejects(service.createTask({request:'must wait for rebuild'}),/wiki_chat_blocked/);
+ while(!release)await new Promise(resolve=>setTimeout(resolve,5));
+ release();await service.wikiInitPromise;
+ assert.equal(service.state().wikiChatBlocked,false);
  assert.equal(service.wikiInitialization().state,'completed');
  assert.equal(service.store.list('wiki-update:').length,0);assert.equal(service.store.get('wiki-reset-pending'),null);
  await assert.rejects(access(copy),/ENOENT/);await assert.rejects(access(manual),/ENOENT/);

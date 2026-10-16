@@ -402,12 +402,12 @@ describe("independent page semantic review", () => {
     ).rejects.toThrow();
     expect(f.invoke).not.toHaveBeenCalled();
   });
-  test("rejects oversized required sources instead of silently reviewing a prefix", async () => {
+  test("rejects evidence not present in a delivered window of a large source", async () => {
     await expect(
       reviewRepositoryPage(
         fixture({}, { "/src/price.js": "x".repeat(80_001) }).input,
       ),
-    ).rejects.toThrow("source_limit");
+    ).rejects.toThrow("quote_invalid");
   });
   test("rejects traversal before source access", async () => {
     const f = fixture();
@@ -436,7 +436,7 @@ describe("independent page semantic review", () => {
       }),
     );
     await expect(reviewRepositoryPage(f.input)).rejects.toThrow("incomplete");
-    expect(f.invoke).toHaveBeenCalledTimes(4);
+    expect(f.invoke).toHaveBeenCalledTimes(12);
   });
   test("carries only admitted extra paths into repair hints and checks their contents", async () => {
     const f = fixture(
@@ -459,5 +459,64 @@ describe("independent page semantic review", () => {
     expect(result.extraSourcePaths).toEqual(["/package.json"]);
     f.data["/package.json"] = '{"scripts":{}}';
     await expect(result.assertUnchanged()).rejects.toThrow("source_changed");
+  });
+});
+
+
+describe("large repository review", () => {
+  test("reviews 60 independent sources in bounded batches without dropping a Claim", async () => {
+    const f = fixture({}, {"/openwiki/page.md": "# Systems\nSixty source contracts."});
+    const many = Array.from({length: 60}, (_, i) => {
+      f.data[`/src/module-${i}.js`] = `export const module${i} = ${i};`;
+      return {id: `claim-${i}`, statement: `Module ${i} exports its constant.`, evidence: [{resource: `repo://src/module-${i}.js`}]};
+    });
+    const reviewed: string[] = [];
+    f.invoke.mockImplementation(async (messages) => {
+      const packet = JSON.parse(messages[1].content);
+      expect(packet.claims.length).toBeLessThanOrEqual(12);
+      expect(JSON.stringify(packet).length).toBeLessThan(180000);
+      reviewed.push(...packet.claims.map((claim: {id: string}) => claim.id));
+      return new AIMessage({content: "", tool_calls: [{name:"review_page", id:"review", args:{checks:packet.claims.map((claim: {index: number; evidence: {resource: string}[]}) => ({index:claim.index,verdict:"supported",reason:"constant matches source",evidence:[{resource:claim.evidence[0].resource,quote:f.data["/"+claim.evidence[0].resource.slice(7)]}]})),issues:[]}}]});
+    });
+    const review = await reviewRepositoryPage({...f.input,claims:many});
+    expect(review.accepted).toBe(true);
+    expect(reviewed).toEqual(many.map(claim => claim.id));
+    expect(f.invoke).toHaveBeenCalledTimes(5);
+    f.data["/src/module-59.js"] = "changed after final batch";
+    await expect(review.assertUnchanged()).rejects.toThrow("source_changed");
+  });
+  test("reads a large source tail on demand and validates only returned evidence", async () => {
+    const prefix = "// unrelated source\n".repeat(5000);
+    const f = fixture({}, {"/src/price.js":prefix + source});
+    f.invoke.mockImplementationOnce(async messages => {
+      const packet = JSON.parse(messages[1].content);
+      expect(packet.sources[0].nextOffset).toBe(16000);
+      expect(packet.sources[0].totalCharacters).toBeGreaterThan(80000);
+      return new AIMessage({content:"",tool_calls:[{name:"read_review_source",id:"tail",args:{resource:"repo://src/price.js",offset:prefix.length}}]});
+    });
+    const review = await reviewRepositoryPage(f.input);
+    expect(review.accepted).toBe(true);
+    expect(f.invoke).toHaveBeenCalledTimes(2);
+    const tail = JSON.parse(f.invoke.mock.calls[1][0].find((message: {tool_call_id?: string}) => message.tool_call_id === "tail").content);
+    expect(tail.text).toBe(source);
+    expect(tail.nextOffset).toBeNull();
+    f.data["/src/price.js"] = prefix.replace("unrelated", "modified") + source;
+    await expect(review.assertUnchanged()).rejects.toThrow("source_changed");
+  });
+  test("reviews a long page as covering windows instead of rejecting its length", async () => {
+    const longPage = "Source description.\n".repeat(5000);
+    const f = fixture({}, {"/openwiki/page.md":longPage});
+    const result = await reviewRepositoryPage(f.input);
+    expect(result.accepted).toBe(true);
+    const windows = f.invoke.mock.calls.map(call => JSON.parse(call[0][1].content).page);
+    expect(windows.length).toBeGreaterThan(1);
+    expect(windows.every(window => window.partial && window.text.length <= 48000)).toBe(true);
+    expect(windows.map(window => window.text).join("").length).toBeGreaterThan(longPage.length);
+    f.data["/openwiki/page.md"] += "changed";
+    await expect(result.assertUnchanged()).rejects.toThrow("page_changed");
+  });
+  test("a later batch cannot hide incomplete earlier coverage", async () => {
+    const f = fixture();
+    await expect(reviewRepositoryPage({...f.input,claims:Array.from({length:13},(_,i)=>({...claims[0],id:String(i)}))})).rejects.toThrow("coverage_missing");
   });
 });

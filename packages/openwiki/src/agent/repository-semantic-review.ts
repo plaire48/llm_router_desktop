@@ -129,17 +129,10 @@ export async function reviewRepositoryPage(input: {
   const { model, read, signal } = input;
   signal?.throwIfAborted();
   const page = await read(input.page);
-  if (
-    !page.trim() ||
-    page.length > 60_000 ||
-    !input.claims.length ||
-    input.claims.length > 100
-  )
-    throw Error("wiki_review_input_limit");
+  if (!page.trim() || !input.claims.length) throw Error("wiki_review_input_limit");
   const riskStatements = pageAssertions(page).filter(
     (statement) => !input.claims.some((claim) => claim.statement === statement),
   );
-  if (riskStatements.length > 80) throw Error("wiki_review_input_limit");
   const evidence = [
     ...new Set(
       input.claims.flatMap((claim) =>
@@ -156,26 +149,94 @@ export async function reviewRepositoryPage(input: {
       origin: "page_assertion",
     })),
   ];
-  const sources = new Map<string, string>();
+  // Keep each independent review bounded. Every target is reviewed; a large
+  // repository is not rejected merely because its Claims cite many files.
+  const batches: typeof targets[] = [];
+  for (let offset = 0; offset < targets.length; offset += 12)
+    batches.push(targets.slice(offset, offset + 12));
+  const results: Awaited<ReturnType<typeof reviewBatch>>[] = [];
+  // Long pages also get bounded, overlapping windows. The union covers every
+  // character; a fragment cannot be mistaken for the whole document. Claims
+  // remain available across windows so contradictions are not silently dropped.
+  const windows: string[] = [];
+  for (let start = 0; start < page.length;) {
+    let end = Math.min(page.length, start + 48000);
+    if (end < page.length) {
+      const boundary = page.lastIndexOf("\n", end);
+      if (boundary > start + 32000) end = boundary + 1;
+    }
+    windows.push(page.slice(start, end));
+    if (end === page.length) break;
+    start = end - 1000;
+  }
+  for (const window of windows) for (const batch of batches) {
+    signal?.throwIfAborted();
+    results.push(await reviewBatch(input, window, batch, page));
+  }
+  return {
+    accepted: results.every((result) => result.accepted),
+    revision: createHash("sha256").update(JSON.stringify([page, input.claims])).digest("hex"),
+    extraSourcePaths: [...new Set(results.flatMap((result) => result.extraSourcePaths))],
+    feedback: JSON.stringify({
+      claims: results.flatMap((result) => JSON.parse(result.feedback).claims),
+      issues: [...new Map(results.flatMap((result) => JSON.parse(result.feedback).issues)
+        .map((issue: { quote: string; reason: string }) => [JSON.stringify(issue), issue])).values()],
+    }),
+    async assertUnchanged() {
+      for (const result of results) await result.assertUnchanged();
+    },
+  };
+}
+
+type ReviewTarget = Claim & { origin: string };
+async function reviewBatch(
+  input: { model: BaseChatModel; page: string; claims: Claim[]; seedPaths?: string[]; read: ReadText; signal?: AbortSignal },
+  page: string,
+  targets: ReviewTarget[],
+  fullPage: string,
+) {
+  const { model, read, signal } = input;
+  // Hash full sources for conflict detection, but expose only actual windows
+  // to the model. An unseen source quote must never validate a verdict.
+  const sources = new Map<string, string[]>();
+  const fingerprints = new Map<string, string>();
+  const packets: Array<{resource: string; text: string; offset: number; nextOffset: number | null; totalCharacters: number}> = [];
   const extraSourcePaths = new Set<string>();
   let total = 0;
-  const readSource = async (resource: string) => {
-    const file = sourcePath(resource);
-    if (sources.has(file)) return sources.get(file)!;
-    if (sources.size >= 48) throw Error("wiki_review_source_limit");
-    const text = await read(file);
-    if (text.length > 80_000 || total + text.length > 160_000)
-      throw Error("wiki_review_source_limit");
-    total += text.length;
-    sources.set(file, text);
-    return text;
+  const readSource = async (resource: string, requestedOffset?: number, limit = 16000) => {
+    signal?.throwIfAborted();
+    const file = sourcePath(resource), text = await read(file);
+    const digest = createHash("sha256").update(text).digest("hex");
+    if (fingerprints.has(file) && fingerprints.get(file) !== digest)
+      throw Error("wiki_review_source_changed");
+    fingerprints.set(file, digest);
+    let offset = requestedOffset ?? 0;
+    const anchor = /#L([1-9]\d*)/u.exec(resource);
+    if (requestedOffset === undefined && anchor) {
+      const startLine = Math.max(0, Number(anchor[1]) - 21);
+      const lines = text.split("\n");
+      offset = lines.slice(0, startLine).reduce((size, line) => size + line.length + 1, 0);
+    }
+    if (!Number.isSafeInteger(offset) || offset < 0 || offset > text.length)
+      throw Error("wiki_review_source_invalid");
+    const size = Math.min(limit, 16000, 160000 - total);
+    if (size <= 0) throw Error("wiki_review_source_limit");
+    const excerpt = text.slice(offset, offset + size);
+    total += excerpt.length;
+    sources.set(file, [...(sources.get(file) ?? []), excerpt]);
+    return { resource, text: excerpt, offset, nextOffset: offset + excerpt.length < text.length ? offset + excerpt.length : null, totalCharacters: text.length };
   };
-  for (const claim of input.claims)
-    for (const evidence of claim.evidence) await readSource(evidence.resource);
-  // Seeds are discovery hints and can be directories. Required Claim sources above must succeed.
+  const references = [...new Set(targets.flatMap((claim) => claim.evidence.map((item) => item.resource)))];
+  // Preload small windows fairly; the index retains every resource, including
+  // those beyond the initial budget. Readers can continue by exact offset.
+  const preload = references.slice(0, 24);
+  const windowSize = Math.max(2000, Math.min(16000, Math.floor(80000 / Math.max(1, preload.length))));
+  for (const resource of preload) packets.push(await readSource(resource, undefined, windowSize));
   for (const seed of (input.seedPaths ?? []).slice(0, 12)) {
+    const resource = "repo://" + seed.replace(/^\//u, "");
+    if (total >= 80000) break;
     try {
-      await readSource("repo://" + seed.replace(/^\//u, ""));
+      if (!fingerprints.has(sourcePath(resource))) packets.push(await readSource(resource, undefined, Math.min(4000, 80000 - total)));
     } catch {
       signal?.throwIfAborted();
     }
@@ -184,8 +245,8 @@ export async function reviewRepositoryPage(input: {
     {
       name: "read_review_source",
       description:
-        "Read an additional allowed repository source, e.g. a caller or dependency. No execution.",
-      schema: z.object({ resource: z.string() }).strict(),
+        "Read an allowed repository source window. Follow nextOffset for remaining text or pass an evidence #L anchor. No execution. Unread text is not evidence.",
+      schema: z.object({ resource: z.string(), offset: z.number().int().nonnegative().optional() }).strict(),
     },
     {
       name: "review_page",
@@ -196,20 +257,18 @@ export async function reviewRepositoryPage(input: {
   ];
   const bound = model.bindTools!(tools);
   const messages: BaseMessage[] = [
-    new SystemMessage(SEMANTIC_REVIEW_PROMPT),
+    new SystemMessage(SEMANTIC_REVIEW_PROMPT + "\nThis is one bounded Claim batch. Review all supplied indexes and the entire page for contradictions. Source windows may be incomplete: follow nextOffset and inspect callers when needed. Unread ranges are unknown; report uncertain if necessary evidence cannot be read. referencedSources is a discovery index, never proof. If page.partial is true, this is one overlapping window; inspect repo:// plus page.path without its leading slash when a qualification or context elsewhere is needed. Do not infer whole-page absence from this window."),
     new HumanMessage(
       JSON.stringify({
-        page: { path: input.page, text: page },
+        page: { path: input.page, text: page, partial: page !== fullPage, totalCharacters: fullPage.length },
         claims: targets.map((claim, index) => ({ index, ...claim })),
-        sources: [...sources].map(([path, text]) => ({
-          resource: "repo://" + path.slice(1),
-          text,
-        })),
+        sources: packets,
+        referencedSources: references,
       }),
     ),
   ];
   let quotationRepairs = 0;
-  for (let round = 0; round < 4; round++) {
+  for (let round = 0; round < 12; round++) {
     signal?.throwIfAborted();
     const response = await bound.invoke(messages, { signal });
     if (
@@ -223,7 +282,7 @@ export async function reviewRepositoryPage(input: {
       if (call.name === "read_review_source") {
         let result;
         try {
-          result = await readSource(String(call.args.resource));
+          result = JSON.stringify(await readSource(String(call.args.resource), call.args.offset));
           extraSourcePaths.add(sourcePath(String(call.args.resource)));
         } catch {
           signal?.throwIfAborted();
@@ -262,7 +321,7 @@ export async function reviewRepositoryPage(input: {
               (evidence) =>
                 !sources
                   .get(sourcePath(evidence.resource))
-                  ?.includes(evidence.quote),
+                  ?.some((text) => text.includes(evidence.quote)),
             )
             .map((evidence) => ({
               index: check.index,
@@ -310,10 +369,10 @@ export async function reviewRepositoryPage(input: {
           }),
           async assertUnchanged() {
             signal?.throwIfAborted();
-            if ((await read(input.page)) !== page)
+            if ((await read(input.page)) !== fullPage)
               throw Error("wiki_review_page_changed");
-            for (const [file, text] of sources)
-              if ((await read(file)) !== text)
+            for (const [file, fingerprint] of fingerprints)
+              if (createHash("sha256").update(await read(file)).digest("hex") !== fingerprint)
                 throw Error("wiki_review_source_changed");
           },
         };

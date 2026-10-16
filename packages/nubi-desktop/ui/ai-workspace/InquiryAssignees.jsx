@@ -32,7 +32,7 @@ export function InquiryAssignees({post,client,onClose,onSaved,onBusy}) {
     catch(reason){notifyToast(reason,{source:'inquiry-assignment',error:true});}
     finally{setSaving(false);}
   };
-  return <DetailPanel title="담당자 배정" variant="modal" className="inquiry-assignment-panel" helpTopic="support" busy={saving} onClose={onClose} footer={<ActionButton action="save" label="배정" busy={saving} disabled={loading||Boolean(error)||!chosen.length} onClick={save}/>}>
+  return <DetailPanel titleIcon="users" title="담당자 배정" variant="modal" className="inquiry-assignment-panel" helpTopic="support" busy={saving} onClose={onClose} footer={<ActionButton action="save" label="배정" busy={saving} disabled={loading||Boolean(error)||!chosen.length} onClick={save}/>}>
     <div className="inquiry-assignment-toolbar"><SearchField label="담당자 검색" placeholder="이름, ID, 이메일" value={query} onChange={setQuery}/><ActionButton action="refresh" busy={loading} disabled={saving} onClick={()=>setRevision(value=>value+1)}/></div>
     {post.assignees.length>0&&<p className="inquiry-assignment-current">현재 담당자 <span>{post.assignees.map(user=>githubIdentityLabel(user)).join(', ')}</span></p>}
     <InquiryAssigneeOptions rows={filtered} chosen={chosen} assigned={assigned} disabled={saving||loading||Boolean(error)} onChange={(user,checked)=>setChosen(current=>checked?[...current,user.login]:current.filter(login=>login!==user.login))}/>

@@ -111,6 +111,46 @@
 }
 /* Ordinary actions have one geometry. Choice rows, switches and page chips
    retain their own layout and accessible interaction semantics. */
+/* Embedded AI Workspace screens and their body portals use the Desktop scale,
+   rather than the web site's 32px controls and legacy field shadows. */
+:root:has(.desktop-shell) :is(.nubi-ai-workspace-embed,.nubi-workspace-panel,.inquiry-recipient-popover,.cx-select-menu) {
+  --cx-font-family:var(--nubi-font-family);
+  --cx-control:var(--nubi-work-control-height);
+  --cx-field-height:var(--nubi-work-control-height);
+  --cx-radius-control:var(--nubi-work-control-radius);
+  --cx-type-body:var(--deck-type-body);
+  --cx-type-caption:var(--deck-type-caption);
+  --cx-field-font:var(--deck-type-body);
+  --cx-weight-medium:var(--nubi-weight-emphasis);
+  --brand-action:var(--deck-blue-deep);
+  --brand-ink:var(--nubi-text-action);
+  --brand-soft:var(--nubi-surface-selected);
+  --brand-surface:var(--nubi-surface-selected);
+  --layout-text:var(--nubi-text-primary);
+  --layout-muted:var(--nubi-text-secondary);
+  font-family:var(--nubi-font-family);
+  font-size:var(--deck-type-body);
+}
+:root:has(.desktop-shell) :is(.nubi-ai-workspace-embed,.nubi-workspace-panel,.inquiry-recipient-popover) :is(.text-input,.native-select,.text-area,.cx-input-shell) {
+  min-width:0; min-height:var(--nubi-work-control-height);
+  border:1px solid transparent; border-radius:var(--nubi-work-control-radius);
+  background-color:var(--nubi-surface-inset); color:var(--nubi-text-primary);
+  font:var(--deck-font-body); box-shadow:none;
+}
+:root:has(.desktop-shell) :is(.nubi-ai-workspace-embed,.nubi-workspace-panel) :is(.text-input,.native-select) { height:var(--nubi-work-control-height); }
+:root:has(.desktop-shell) :is(.nubi-ai-workspace-embed,.nubi-workspace-panel) :is(.text-input,.text-area) { padding-inline:var(--cx-space-3); }
+:root:has(.desktop-shell) :is(.nubi-ai-workspace-embed,.nubi-workspace-panel) :is(.workspace-form,.service-desk-form)>label { font-weight:var(--nubi-weight-label); gap:var(--nubi-dialog-field-gap); }
+:root:has(.desktop-shell) :is(.nubi-ai-workspace-embed,.nubi-workspace-panel,.inquiry-recipient-popover) .cx-action-button {
+  border-radius:var(--nubi-work-control-radius); font-weight:var(--nubi-weight-label); box-shadow:none;
+}
+:root:has(.desktop-shell) :is(.nubi-ai-workspace-embed,.nubi-workspace-panel,.inquiry-recipient-popover) .cx-action-button>.ui-icon {
+  width:var(--nubi-work-control-icon); height:var(--nubi-work-control-icon); flex:none;
+}
+:root:has(.desktop-shell) .nubi-ai-workspace-embed .cx-button--primary { background:var(--deck-blue-deep); color:var(--nubi-surface-base); border-color:transparent; }
+:root:has(.desktop-shell) .nubi-inquiry-header-slot .cx-action-button { --cx-control:var(--nubi-work-control-height); border-radius:var(--nubi-work-control-radius); font:var(--deck-font-body); font-weight:var(--nubi-weight-label); }
+:root:has(.desktop-shell) .nubi-inquiry-header-slot .cx-button--primary { background:var(--deck-blue-deep); color:var(--nubi-surface-base); border-color:transparent; }
+:root:has(.desktop-shell) .nubi-inquiry-header-slot .cx-action-button>.ui-icon { width:var(--nubi-work-control-icon); height:var(--nubi-work-control-icon); }
+:root:has(.desktop-shell) .nubi-ai-workspace-embed :is(.workspace-heading,.talk-heading) h1 { font-size:var(--deck-type-heading); font-weight:var(--nubi-weight-emphasis); }
 :root:has(.desktop-shell) .deck-dialog :is(.cx-kit-button,.cx-action-button):not(.nubi-page-chip,[role=switch],.model-option,.nubi-history-item,.nubi-marketplace-card) {
   min-height:var(--nubi-work-control-height); border-radius:var(--nubi-work-control-radius);
   gap:var(--nubi-work-control-gap); font-weight:var(--nubi-weight-label); box-shadow:none;

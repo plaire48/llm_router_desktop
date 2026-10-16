@@ -82,29 +82,29 @@ try{
  assert.equal(await p.evaluate(()=>window.catalogCalls),3,'manual retry recovers');
  await p.screenshot({path:path.join(dir,'model-catalog-recovered.png'),animations:'disabled'});
  await p.keyboard.press('Escape');checks.push('catalog cache, nonblocking refresh, no repeated success/failure fetches, selected model preserved and explicit retry');
- // Wiki preparation runs in the background (toolbar spinner); its modal opens on request, or by itself only when it needs attention (2026-10-14 check update).
+ // Running preparation has one project surface, never a second progress dialog.
  for(const width of [1280,440]){
   await p.setViewportSize({width,height:800});await p.goto(origin+'/?context&modals&integrated&wiki-progress');
-  const wiki=p.getByRole('dialog',{name:'위키 준비',exact:true});await p.getByRole('button',{name:'위키 설정',exact:true}).waitFor();await p.waitForTimeout(300);assert.equal(await wiki.count(),0,'running preparation stays in the background');
-  await p.getByRole('button',{name:'위키 설정',exact:true}).click();await wiki.waitFor();
-  assert.equal(await wiki.getByRole('progressbar').getAttribute('aria-valuenow'),'30');
-  assert.match(await wiki.innerText(),/현재 단계 약 .*남음|처리 속도 확인 중/);assert.match(await wiki.innerText(),/진행 (?:[1-9]\d*분(?: [1-9]\d*초)?|[1-9]\d*초)/);
-  assert(await wiki.evaluate(e=>e.scrollWidth<=e.clientWidth+1),'wiki progress fits the modal');
+  const wiki=p.getByRole('dialog',{name:'위키 준비',exact:true});await p.getByRole('button',{name:'위키 설정',exact:true}).waitFor();
+  await p.getByRole('button',{name:'위키 설정',exact:true}).click();await closeSidebar();
+  const progress=p.getByRole('region',{name:'프로젝트 위키 작성',exact:true});await progress.waitFor();
+  assert.equal(await wiki.count(),0,'toolbar keeps running progress in the project surface');
+  assert.equal(await progress.getByRole('progressbar').getAttribute('aria-valuenow'),'30');
+  assert.match(await progress.innerText(),/현재 단계 약 .*남음|처리 속도 확인 중/);assert.match(await progress.innerText(),/진행 (?:[1-9]\d*분(?: [1-9]\d*초)?|[1-9]\d*초)/);
+  assert(await progress.evaluate(e=>e.scrollWidth<=e.clientWidth+1),'wiki progress fits the project surface');
   await p.screenshot({path:path.join(dir,`wiki-progress-${width}.png`),animations:'disabled'});
-  await wiki.getByRole('button',{name:'백그라운드로',exact:true}).click();await wiki.waitFor({state:'hidden'});
-  await p.waitForTimeout(300);assert.equal(await wiki.count(),0,'background progress does not reopen its modal');
  }
- checks.push('wiki progress opens from the toolbar, uses actual stage percentage, elapsed and stage-only ETA; it stays in the background');
+ checks.push('wiki preparation stays in the project surface with actual percentage, elapsed time, stage ETA and stop action; toolbar never opens a duplicate modal');
  await p.goto(origin+'/?context&modals&integrated&catalog');await closeSidebar();
  await p.getByRole('button',{name:'모델 변경',exact:true}).click();await p.getByRole('dialog',{name:'모델 선택',exact:true}).waitFor();
  await p.evaluate(()=>window.setWikiFixture({id:'delayed-wiki',state:'running',stage:'scanning',startedAt:new Date().toISOString(),percent:null}));
  const laterWiki=p.getByRole('dialog',{name:'위키 준비',exact:true});assert.equal(await laterWiki.count(),0,'running preparation never interrupts an open modal');
  await p.keyboard.press('Escape');await p.waitForTimeout(300);assert.equal(await laterWiki.count(),0,'running preparation does not open by itself after the modal closes');
- await p.getByRole('button',{name:'위키 설정',exact:true}).click();await laterWiki.waitFor();assert.match(await laterWiki.innerText(),/파일 목록 확인/);assert(!await laterWiki.innerText().then(text=>text.includes('남은 시간 계산 중')));await p.keyboard.press('Escape');await laterWiki.waitFor({state:'hidden'});
+ await p.getByRole('button',{name:'위키 설정',exact:true}).click();const inlineWiki=p.getByRole('region',{name:'프로젝트 위키 작성',exact:true});await inlineWiki.waitFor();assert.match(await inlineWiki.innerText(),/파일 목록 확인/);assert.equal(await laterWiki.count(),0);
  await p.evaluate(()=>window.setWikiFixture({id:'delayed-wiki',state:'attention',stage:'snapshot_git',error:'wiki_snapshot_failed',startedAt:new Date(Date.now()-5000).toISOString(),finishedAt:new Date().toISOString()}));
  await laterWiki.waitFor({timeout:2000});await laterWiki.getByText(/분석용 Git 준비에 실패/).waitFor();await laterWiki.getByText('오류 상세',{exact:true}).click();await laterWiki.getByText('wiki_snapshot_failed',{exact:true}).waitFor();
  await p.screenshot({path:path.join(dir,'wiki-failure-detail.png'),animations:'disabled'});await p.keyboard.press('Escape');await p.waitForTimeout(250);assert.equal(await laterWiki.count(),0);
- checks.push('Wiki preparation shows scanning on request, opens by itself only when it needs attention, and retains staged failure details without reopening');
+ checks.push('Wiki preparation keeps scanning on the project surface; actionable failure details remain available');
 
  await p.goto(origin+'/?context&modals&integrated&catalog');await closeSidebar();
  await selectTask();await closeSidebar();await p.evaluate(()=>{window.slowStart=true;});await p.getByRole('textbox',{name:'추가 요청',exact:true}).fill('느린 시작 검사');

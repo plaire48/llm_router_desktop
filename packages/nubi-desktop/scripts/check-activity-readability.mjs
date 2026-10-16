@@ -51,7 +51,11 @@ try{
   assert.equal(await p.locator('.nubi-worker-detail').count(),2);assert.equal(await p.locator('.nubi-worker-detail[open]').count(),0);
   await p.locator('.nubi-worker-detail summary').first().click();await p.getByText('메일 1 대조 결과',{exact:true}).waitFor();await p.locator('.nubi-worker-detail summary').first().click();
   await p.screenshot({path:path.join(dir,`running-${width}.png`),animations:'disabled'});
-  const terminal=p.locator('.nubi-command-record .nubi-terminal');await terminal.scrollIntoViewIfNeeded();
+  const commandRecord=p.locator('.nubi-command-record');
+  assert.equal(await commandRecord.getAttribute('open'),null,'execution records start collapsed');
+  assert.equal(await commandRecord.locator('.nubi-terminal').count(),0,'folded output is not rendered');
+  await commandRecord.locator(':scope > summary').click();
+  const terminal=commandRecord.locator('.nubi-terminal');await terminal.scrollIntoViewIfNeeded();
   await p.evaluate(()=>{window.copiedTerminal=[];Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>window.copiedTerminal.push(text)}});});
   await terminal.hover();
   const commandCopy=terminal.getByRole('button',{name:'명령어 복사',exact:true}),outputCopy=terminal.getByRole('button',{name:'실행 결과 복사',exact:true});
@@ -96,7 +100,8 @@ await p.screenshot({path:path.join(dir,`execution-${width}.png`),animations:'dis
  await p.goto('http://127.0.0.1:'+server.address().port+'/?integrated&progress&activity-readability&polling-response');
  const pollingOpen=p.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await pollingOpen.count())await pollingOpen.click();
  await p.getByRole('button',{name:'대화 검색',exact:true}).click();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').first().click();
- await p.locator('.nubi-command-record .nubi-terminal-state[data-state=running]').waitFor();
+  await p.locator('.nubi-command-record > summary').click();
+  await p.locator('.nubi-command-record .nubi-terminal-state[data-state=running]').waitFor();
  await p.evaluate(()=>{window.pollCalls=[];});
  await p.waitForFunction(()=>window.pollCalls.filter(call=>call==='poll').length>=3);
  const pollingCalls=await p.evaluate(()=>window.pollCalls);
