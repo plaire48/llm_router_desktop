@@ -16,7 +16,11 @@ Progress separates the stage and percentage from counts and elapsed time. Shared
 
 ## Evidence
 
+- Desktop full regression: 1,390 passed, zero failed, 196 skipped (1,586 total). Skipped checks remain disabled feature boundaries, not passes.
 - OpenWiki semantic review, repository runner and generation run: 124 tests passed. Includes 60 cited files, a large source read by offset, full-page window coverage, missing coverage and source changes. TypeScript check passed.
 - Same two fixed live Claude probes passed: whole-page review 43.0 seconds, function-scoped review 8.0 seconds. These synthetic probes check semantic regression, not general code accuracy or large-project end-to-end latency.
 - Chat activity fixture passed at 1280, 440 and 360 pixels: folded terminal records, copy/readback, chronological activity and shared polling. Capture fixture passed at 1280 and 440 pixels.
+- Workbench rebuild/update/resume fixture passed with delayed admission. Portal and approval rendering passed at 1100 and 440 pixels using synthetic API responses.
+- Actual macOS Electron/native PTY passed: Korean input, persistent shell variables, command approval, collapsed receipt, output readback, reopen without replay and Ctrl+C followed by another command. This does not verify Windows PowerShell or CMD.
+- Embedded App, Talk and inquiry flow passed at 1100 and 440 pixels, including registration, readback and relogin with synthetic GHES responses.
 - Company SSO and Windows 11 end-user behavior remain separate verification gates.

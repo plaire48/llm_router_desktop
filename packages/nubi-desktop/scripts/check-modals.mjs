@@ -193,7 +193,7 @@ try{
   await p.setViewportSize({width:1280,height:900});await p.goto(origin+'/?command&command-analysis='+phase+'&modals&integrated');
   await openSidebar();await p.getByRole('button',{name:'대화 검색',exact:true}).click();await p.getByRole('dialog',{name:'대화 검색'}).locator('.nubi-history-item').first().click();
   const card=p.getByRole('region',{name:'실행 준비 승인'});await card.getByText(phase==='running'?'결과 확인 중':'결과 확인 중단',{exact:true}).waitFor();
-  /* The record stays open in place (user decision 2026-10-14); the output also opens by process ID in the internal terminal. */assert.equal(await card.locator('.nubi-terminal').count(),1);await card.getByRole('button',{name:'터미널 열기',exact:true}).click();assert.equal(await p.evaluate(()=>window.openedTerminal.processId),'command-result');
+  /* Executed records start folded. Expanding reads the saved result without replay. */assert.equal(await card.locator('.nubi-terminal').count(),0);await card.locator('.nubi-command-record > summary').click();await card.locator('.nubi-terminal').waitFor();assert.equal(await card.locator('.nubi-terminal').count(),1);await card.getByRole('button',{name:'터미널 열기',exact:true}).click();assert.equal(await p.evaluate(()=>window.openedTerminal.processId),'command-result');
   if(phase==='paused'){await p.getByText('응답 형식 확인 필요',{exact:false}).first().waitFor();assert.equal(await p.getByText('실행 실패',{exact:true}).count(),0);}
   await p.screenshot({path:path.join(dir,'command-analysis-'+phase+'.png'),animations:'disabled'});
   checks.push('command analysis '+phase+': actual state label, readable output during analysis, planning failure distinguished from shell failure');
