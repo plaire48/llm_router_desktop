@@ -47,6 +47,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify immediate Windows shell cancellation before packaging
         run: |
+          npm run compile
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/windows-process-stop.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           for ($attempt = 1; $attempt -le 5; $attempt++) {
