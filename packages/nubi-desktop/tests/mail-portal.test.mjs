@@ -199,6 +199,31 @@ test('approval identity failure preserves mail connection and rejects a changed 
  await assert.rejects(host.approvals(),/mail_portal_identity/);assert.equal(host.identity.email,'owner@example.test');assert.equal(host.status().connected,true);host.dispose();
 });
 
+test('portal session identity uses GET and projects only the allowed profile fields in the renderer',async()=>{
+ const calls=[],data={data:{sessionInfo:{epUserId:83421,email:'owner@example.test',domainSet:'DM@host',token:'private-session-value'}},accessToken:'private-access-value',users:[{userId:'unrelated'}]};
+ const result=await vm.runInNewContext(`(${portalFetchSource()})({operation:'identityPortal'})`,{location:{origin:ORIGIN},URLSearchParams,TextDecoder,Uint8Array,AbortController,setTimeout,clearTimeout,fetch:async(url,args)=>{calls.push({url,args});return new Response(JSON.stringify(data));}});
+ assert.deepEqual(JSON.parse(JSON.stringify(result)),{epUserId:'83421',email:'owner@example.test',domainSet:'DM@host'});
+ assert.equal(calls[0].url,'/portal/user/rest/v1/get/session/token');assert.equal(calls[0].args.method,'GET');assert.equal(calls[0].args.body,undefined);assert.equal(calls[0].args.headers['Content-Type'],undefined);assert.equal(calls[0].args.credentials,'same-origin');
+});
+test('approval list recovers the EP ID from the portal session when mail profiles have only an address',async()=>{
+ const calls=[],host=new MailPortal({invoke:async()=>({})});host.state.connected=true;host.identity={id:'owner@example.test',email:'owner@example.test'};
+ host.read=async(operation,args)=>{calls.push({operation,args});if(operation==='identity')return {email:'owner@example.test'};if(operation==='identityPolicy')return {};if(operation==='identityPortal')return {epUserId:83421,email:'owner@example.test'};if(operation==='folders')return [];if(operation==='approvals')return {data:[{apId:'a',aplnId:'l',subject:'Recovered approval'}],totalCount:1};throw Error('unexpected_read');};
+ const result=await host.approvals();assert.equal(result.items[0].subject,'Recovered approval');assert.equal(calls.at(-1).args.userId,'83421');assert.equal(host.state.connected,true);assert.deepEqual(calls.map(c=>c.operation),['identity','identityPolicy','identityPortal','folders','approvals']);host.dispose();
+});
+test('missing portal profile does not break mail and cannot borrow a different account EP ID',async()=>{
+ for(const profile of [null,{epUserId:'other',email:'other@example.test'}]){
+  const host=new MailPortal({invoke:async()=>({})});host.state.connected=true;host.identity={id:'owner@example.test',email:'owner@example.test'};
+  host.read=async operation=>{if(operation==='identity')return {email:'owner@example.test'};if(operation==='identityPolicy')return {};if(operation==='identityPortal'){if(!profile)throw Error('mail_portal_request');return profile;}if(operation==='folders')return [];assert.fail('must not query approval with an unverified identity');};
+  await assert.rejects(host.approvals(),error=>error.message==='mail_portal_identity'&&error.approvalFailure.stage==='identity');assert.equal(host.state.connected,true);assert.equal(host.identity.email,'owner@example.test');host.dispose();
+ }
+});
+test('own sent-folder fallback accepts numeric IDs and rejects a mismatched sender',async()=>{
+ for(const email of ['owner@example.test','other@example.test']){
+  const host=new MailPortal({invoke:async()=>({})});host.read=async operation=>{if(operation==='identity')return {email:'owner@example.test'};if(['identityPolicy','identityPortal'].includes(operation))return {};if(operation==='folders')return [{folderID:2,folderName:'발신함'}];if(operation==='list')return {liteHeaderVOs:[{mailSeq:9}]};return {from:{epID:83421,email}};};
+  const result=await host.identify();assert.equal(result.identity.userId,email==='owner@example.test'?'83421':null);assert.equal(result.identity.email,'owner@example.test');host.dispose();
+ }
+});
+
 test('403 during interactive login waits without closing and recovers on authentication',async()=>{
  const {host,events,calls}=loginFixture();const identify=host.identify.bind(host);let probes=0,ready=false;
  host.identify=async epoch=>{probes++;if(!ready)throw Error('mail_portal_forbidden');return identify(epoch);};

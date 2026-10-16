@@ -9,7 +9,7 @@ function portalOrigin(value,current=ORIGIN){
   return url.origin;
  }catch{return null;}
 }
-const PATHS={summary:'/mail/rest/v1/mails/desktop/read/simple',identity:'/mail/rest/v1/mails/userinfo/read',identityPolicy:'/mail/rest/v1/mails/desktop/auth/policy',folders:'/mail/rest/v1/mails/desktop/folders',list:'/mail/rest/v1/mails/desktop/list/byfolder/new',eml:'/mail/rest/v1/mails/eml/download',approvals:'/approval/rest/v1/desktop/list/getDeskTopApList',approvalItem:'/approval/rest/v1/desktop/getDeskTopApItem'};
+const PATHS={summary:'/mail/rest/v1/mails/desktop/read/simple',identity:'/mail/rest/v1/mails/userinfo/read',identityPolicy:'/mail/rest/v1/mails/desktop/auth/policy',identityPortal:'/portal/user/rest/v1/get/session/token',folders:'/mail/rest/v1/mails/desktop/folders',list:'/mail/rest/v1/mails/desktop/list/byfolder/new',eml:'/mail/rest/v1/mails/eml/download',approvals:'/approval/rest/v1/desktop/list/getDeskTopApList',approvalItem:'/approval/rest/v1/desktop/getDeskTopApItem'};
 function folderKind(name){return /보낸|sent/i.test(name)?'sent':/임시|draft/i.test(name)?'draft':/스팸|spam|junk/i.test(name)?'spam':/휴지통|삭제|trash|deleted/i.test(name)?'trash':/받은|inbox/i.test(name)?'inbox':'other';}
 function foldersOf(data){
  if(!Array.isArray(data))throw Error('mail_portal_format');
@@ -17,21 +17,22 @@ function foldersOf(data){
 }
 function identityOf(data){
  const candidates=[data,data?.data,data?.userInfo,data?.userinfo,data?.user];
- for(const value of candidates){if(!value||typeof value!=='object')continue;const userId=value.epUserId||value.epUserID||value.userId||value.userID||value.epId||value.epID||value.usrId;const id=userId||value.email||value.emailAddress||value.receivedAddress;if(typeof id==='string'&&id.trim()&&id.length<=320){const email=value.email||value.emailAddress||value.receivedAddress;return {id:id.trim(),userId:typeof userId==='string'?userId:null,email:typeof email==='string'&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)?email:null,setCd:typeof value.setCd==='string'?value.setCd.slice(0,100):typeof value.domainSet==='string'?value.domainSet.split('@')[0].slice(0,100):''};}}
+ for(const value of candidates){if(!value||typeof value!=='object')continue;const rawId=value.epUserId??value.epUserID??value.userId??value.userID??value.epId??value.epID??value.usrId;const userId=typeof rawId==='string'?rawId.trim():Number.isSafeInteger(rawId)?String(rawId):null;const id=userId||value.email||value.emailAddress||value.receivedAddress;if(typeof id==='string'&&id.trim()&&id.length<=320){const email=value.email||value.emailAddress||value.receivedAddress;return {id:id.trim(),userId:typeof userId==='string'?userId:null,email:typeof email==='string'&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)?email:null,setCd:typeof value.setCd==='string'?value.setCd.slice(0,100):typeof value.domainSet==='string'?value.domainSet.split('@')[0].slice(0,100):''};}}
  throw Error('mail_portal_identity');
 }
-// Runs in the portal renderer or through its persistent Chromium session. No cookie/token read or copy.
-// Only the fixed read-only mail endpoints are admitted, with bounded bodies.
+// Runs in the portal renderer or through its persistent Chromium session. No cookie/token extraction or copy.
+// The portal session endpoint is projected to identity fields only; its token fields never leave this function.
+// Only fixed read-only endpoints are admitted, with bounded bodies.
 async function portalFetch(input,context=null){
- const origin=context?.origin||'__NUBI_PORTAL_ORIGIN__',paths={summary:'/mail/rest/v1/mails/desktop/read/simple',identity:'/mail/rest/v1/mails/userinfo/read',identityPolicy:'/mail/rest/v1/mails/desktop/auth/policy',folders:'/mail/rest/v1/mails/desktop/folders',list:'/mail/rest/v1/mails/desktop/list/byfolder/new',eml:'/mail/rest/v1/mails/eml/download',approvals:'/approval/rest/v1/desktop/list/getDeskTopApList',approvalItem:'/approval/rest/v1/desktop/getDeskTopApItem'};
+ const origin=context?.origin||'__NUBI_PORTAL_ORIGIN__',paths={summary:'/mail/rest/v1/mails/desktop/read/simple',identity:'/mail/rest/v1/mails/userinfo/read',identityPolicy:'/mail/rest/v1/mails/desktop/auth/policy',identityPortal:'/portal/user/rest/v1/get/session/token',folders:'/mail/rest/v1/mails/desktop/folders',list:'/mail/rest/v1/mails/desktop/list/byfolder/new',eml:'/mail/rest/v1/mails/eml/download',approvals:'/approval/rest/v1/desktop/list/getDeskTopApList',approvalItem:'/approval/rest/v1/desktop/getDeskTopApItem'};
  if(!context&&location.origin!==origin)throw Error('mail_portal_login');
  const route=paths[input.operation];if(!route)throw Error('mail_portal_action');
- const raw=input.operation==='eml';
+ const raw=input.operation==='eml',identityPortal=input.operation==='identityPortal';
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),30000);let httpStatus;
  try{
   const query=input.operation==='identityPolicy'?'?svcSectCd=DM':raw||input.operation==='summary'?'?'+new URLSearchParams({folderID:input.folderId,mailSeq:input.seq}):input.operation==='approvals'?'?'+new URLSearchParams({epid:input.userId,pageNum:String(input.page||1)}):'';
   const json=input.operation==='folders'?{topFolderId:'0',setCd:input.setCd||''}:input.operation==='list'?{folderID:Number(input.folderId),refMailSeq:Number(input.cursor||0),topFolderId:'0',setCd:input.setCd||''}:input.operation==='approvalItem'?[{ap:input.ap,ln:input.ln}]:{};
-  const response=await (context?.fetch||fetch)((context?origin:'')+route+query,{method:'POST',credentials:context?'include':'same-origin',redirect:'error',signal:context?.signal?AbortSignal.any([context.signal,controller.signal]):controller.signal,headers:{Accept:raw?'application/octet-stream':'application/json',...(!raw&&input.operation!=='approvals'?{'Content-Type':'application/json; charset=utf-8'}:{}),...(input.operation==='approvals'?{'X-EpUserID':input.userId}:{})},body:raw||input.operation==='approvals'||input.operation==='identityPolicy'?'':JSON.stringify(json)});
+  const response=await (context?.fetch||fetch)((context?origin:'')+route+query,{method:identityPortal?'GET':'POST',credentials:context?'include':'same-origin',redirect:'error',signal:context?.signal?AbortSignal.any([context.signal,controller.signal]):controller.signal,headers:{Accept:raw?'application/octet-stream':'application/json',...(!raw&&!identityPortal&&input.operation!=='approvals'?{'Content-Type':'application/json; charset=utf-8'}:{}),...(input.operation==='approvals'?{'X-EpUserID':input.userId}:{})},...(identityPortal?{}:{body:raw||input.operation==='approvals'||input.operation==='identityPolicy'?'':JSON.stringify(json)})});
   httpStatus=response.status;
   if(!response.ok)await response.body?.cancel();
   if(response.status===404&&['approvals','approvalItem'].includes(input.operation))throw Error('mail_portal_not_found');
@@ -50,7 +51,7 @@ async function portalFetch(input,context=null){
   const bytes=new Uint8Array(size);let offset=0;for(const part of parts){bytes.set(part,offset);offset+=part.length;}
   const head=new TextDecoder().decode(bytes.subarray(0,8192)).trim();if(/^<!doctype\s+html|^<html|^<head|^<form/i.test(head))throw Error(/<input\b[^>]*\btype\s*=\s*["']?password\b|<form\b[^>]*\baction\s*=\s*["'][^"']*\/loginapp\/(?:login|abnormal-logout|logout)(?:[\/\s\x22\x27?#>]|$)/i.test(head)?'mail_portal_login':'mail_portal_response');
   if(raw){let binary='';for(let i=0;i<bytes.length;i+=32768)binary+=String.fromCharCode(...bytes.subarray(i,i+32768));return {raw:btoa(binary),size};}
-  try{const data=JSON.parse(new TextDecoder().decode(bytes));if(!['identity','identityPolicy'].includes(input.operation))return data;
+  try{const data=JSON.parse(new TextDecoder().decode(bytes));if(!['identity','identityPolicy','identityPortal'].includes(input.operation))return data;
    const identity={},ids=new Map(),queue=[[data,0]],keys={epuserid:'epUserId',userid:'userId',epid:'epId',usrid:'usrId',email:'email',emailaddress:'emailAddress',receivedaddress:'receivedAddress',setcd:'setCd',setcode:'setCd',domainsetcode:'setCd',domainset:'domainSet'};
    let visited=0;while(queue.length&&visited++<80){const [value,depth]=queue.shift();if(!value||typeof value!=='object'||Array.isArray(value)||depth>3)continue;for(const [key,raw] of Object.entries(value)){const canonical=keys[key.toLowerCase()];if(canonical&&(typeof raw==='string'||Number.isSafeInteger(raw))){const text=String(raw).trim();if(text&&text.length<=320){if(['epUserId','userId','epId','usrId'].includes(canonical)){if(!ids.has(canonical))ids.set(canonical,new Set());ids.get(canonical).add(text);}if(!identity[canonical])identity[canonical]=text;}}else if(/^(data|result|userinfo|user|sessioninfo|loginuser|memberinfo|policy|authentication)$/i.test(key))queue.push([raw,depth+1]);}}
    if([...ids.values()].some(values=>values.size>1))for(const key of ['epUserId','userId','epId','usrId'])delete identity[key];

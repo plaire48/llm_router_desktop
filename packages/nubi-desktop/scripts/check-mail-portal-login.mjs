@@ -30,9 +30,13 @@ app.whenReady().then(async()=>{
   if(url.origin==='https://www.samsung.net'&&['/loginapp/abnormal-logout','/loginapp/logout'].includes(url.pathname))return new Response('<p>브라우저를 로그인하여 다시 시도해주시기 바랍니다.</p><button id=confirm onclick="location.href=String.fromCharCode(47)+String.fromCharCode(108,111,103,105,110,97,112,112)+String.fromCharCode(47)+String.fromCharCode(108,111,103,105,110)">확인</button>',{headers:{'content-type':'text/html; charset=utf-8'}});
   if(url.origin==='https://www.samsung.net'&&url.pathname==='/loginapp/login')return new Response(loginForm,{headers:{'content-type':'text/html; charset=utf-8'}});
   if(!['https://mail.example.invalid','https://home.example.invalid'].includes(url.origin))return new Response('',{status:403});
-  if(url.pathname.startsWith('/mail/rest/')){
+  if(url.pathname.startsWith('/mail/rest/')||url.pathname.startsWith('/portal/user/')||url.pathname.startsWith('/approval/rest/')){
    if(!authenticated)return new Response('',{status:global.expired?403:401});
-   const value=url.pathname.endsWith('/userinfo/read')?{userId:'fixture-user',email:'owner@example.test'}:[{folderID:1,folderName:'받은메일함',mailCount:0}];
+   let value;
+   if(url.pathname.endsWith('/get/session/token')){if(request.method!=='GET')return new Response('',{status:405});value={data:{sessionInfo:{epUserId:83421,email:'owner@example.test',token:'fixture-token-must-not-leave-projection'}}};}
+   else if(url.pathname.endsWith('/getDeskTopApList')){if(request.method!=='POST'||url.searchParams.get('epid')!=='83421'||request.headers.get('X-EpUserID')!=='83421')return new Response('',{status:400});value={data:[{apId:'fixture-approval',aplnId:'fixture-line'}],totalCount:1};}
+   else if(url.pathname.endsWith('/getDeskTopApItem')){if(request.method!=='POST'||await request.text()!==JSON.stringify([{ap:'fixture-approval',ln:'fixture-line'}]))return new Response('',{status:400});value=[{subject:'Fixture approval',result:'Subject: Fixture approval\\r\\nContent-Type: text/html; charset=utf-8\\r\\n\\r\\n<p>Verified approval body</p>'}];}
+   else value=url.pathname.endsWith('/userinfo/read')?{email:'owner@example.test'}:url.pathname.endsWith('/auth/policy')?{}:[{folderID:1,folderName:'받은메일함',mailCount:0}];
    return new Response(JSON.stringify(value),{headers:{'content-type':'application/json'}});
   }
   if(global.expired&&url.origin==='https://home.example.invalid')return new Response('<script>location.replace("https://www.samsung.net/loginapp/'+(global.expiryPath==='abnormal-confirm'?'abnormal-logout':global.expiryPath)+'")</script>',{headers:{'content-type':'text/html; charset=utf-8'}});
@@ -40,7 +44,7 @@ app.whenReady().then(async()=>{
  });
  global.host=new BrowserHost(win);
  global.other=global.host.create('about:blank').id;
- global.portal=new MailPortal({BrowserWindow,parent:win,invoke:async(_method,args)=>{global.events.push({action:args.action});return {};},
+ global.portal=new MailPortal({BrowserWindow,parent:win,invoke:async(_method,args)=>{global.events.push({action:args.action});if(args.action==='portalDocument'){const {normalizePortalMail}=await import('file:///Users/ganadi/Documents/llm_router/packages/nubi-desktop/runtime/mail-portal-content.mjs');const parsed=await normalizePortalMail(Buffer.from(args.raw,'base64'),{includePresentation:true});return {mail:{...parsed.normalized,presentation:parsed.presentation}};}return {};},
   openPage:(url,options)=>{const row=global.host.create(url,{...options,session:portalSession,authentication:true,httpsOnly:true});global.loginId=row.id;void global.host.request({action:'layout',bounds:{x:80,y:100,width:900,height:600},visible:true});return {tabId:row.id};},
   getPageContents:id=>[...global.host.tabs.values()].filter(row=>row.ownerId===id).map(row=>row.view.webContents),
   closePage:id=>{for(const row of [...global.host.tabs.values()].reverse())if(row.ownerId===id)global.host.closeTab(row.id);}
@@ -63,6 +67,10 @@ try{
  const requests=result.events.filter(e=>e.host==='sso.example.invalid');assert.deepEqual(requests,[{host:'sso.example.invalid',path:'/authenticate',method:'POST'}]);
  assert.ok(result.events.some(e=>e.host==='home.example.invalid'),'login begins at the configured home');
  assert.ok(result.events.some(e=>e.host==='mail.example.invalid'&&e.path.endsWith('/folders')),'the background reader verifies the mail API');
+ // Replay the user's JS contract through the real Electron session: the mail profile has
+ // no EP ID, the portal GET does, and approval list/body need exactly that ID and POST shape.
+ const approval=await app.evaluate(async()=>{global.portal.identity={id:'owner@example.test',email:'owner@example.test'};const list=await global.portal.approvals();const title=await global.portal.approvalTitle(list.items[0]);const body=await global.portal.approvalRead(list.items[0]);return {list,title,text:body.mail.text,identity:global.portal.identity};});
+ assert.equal(approval.list.items.length,1);assert.equal(approval.title.subject,'Fixture approval');assert.match(approval.text,/Verified approval body/);assert.equal(approval.identity.userId,'83421');assert(!JSON.stringify(approval).includes('fixture-token'));console.log('fixture: portal identity, approval list and body verified');
  let observedDialog;const keepDialog=page=>page.on('dialog',dialog=>{observedDialog=dialog;});for(const page of app.context().pages())keepDialog(page);app.context().on('page',keepDialog);
  for(const loginPath of ['abnormal-logout','abnormal-confirm','logout','native-expired','native-confirm']){
  console.log('fixture: expiry '+loginPath);
@@ -97,7 +105,7 @@ try{
  assert.equal(recovered.events.filter(row=>row.action==='portalConnect').length,1);
  assert.equal(recovered.events.filter(row=>row.host==='www.samsung.net'&&row.path==='/loginapp/login').length,1,'expired-session confirmation advances exactly once');
  }
- console.log(JSON.stringify({passed:true,checks:['POST popup and opener preserved','same persistent session','verified background mail reader','no separate login popup','owned tab cleanup','HTTPS-only login navigation','abnormal-logout and portal-home expiry alert/confirm automatically advance to login; unrelated dialogs remain manual; no premature API probes','relogin restores mail through existing SSO flow'],boundary:'Local Electron with isolated mock HTTPS protocol; not company SSO or Windows verification.'}));
+ console.log(JSON.stringify({passed:true,checks:['POST popup and opener preserved','same persistent session','verified background mail reader','portal-session EP ID fallback and approval list/body POST contract','no separate login popup','owned tab cleanup','HTTPS-only login navigation','abnormal-logout and portal-home expiry alert/confirm automatically advance to login; unrelated dialogs remain manual; no premature API probes','relogin restores mail through existing SSO flow'],boundary:'Local Electron with isolated mock HTTPS protocol; not company SSO or Windows verification.'}));
 }catch(error){
  if(app)console.error('fixture failure state',await app.evaluate(()=>({result:global.result,status:global.portal?.status(),events:global.events,tabs:[...(global.host?.tabs.values()||[])].map(row=>({id:row.id,ownerId:row.ownerId,url:row.view.webContents.getURL(),loading:row.view.webContents.isLoadingMainFrame(),guide:global.host.status().tabs.find(tab=>tab.id===row.id)?.mailLoginStage}))})).catch(()=>({unavailable:true})));
  throw error;
