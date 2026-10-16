@@ -45,6 +45,7 @@ app.whenReady().then(async()=>{
   getPageContents:id=>[...global.host.tabs.values()].filter(row=>row.ownerId===id).map(row=>row.view.webContents),
   closePage:id=>{for(const row of [...global.host.tabs.values()].reverse())if(row.ownerId===id)global.host.closeTab(row.id);}
  });
+ for(const method of ['identify','loginPageFailed']){const original=global.portal[method].bind(global.portal);global.portal[method]=async(...args)=>{global.events.push({stage:method,state:'start'});try{const value=await original(...args);global.events.push({stage:method,state:'complete'});return value;}catch(error){global.events.push({stage:method,state:'failed',code:error.message});throw error;}}}
  global.portal.sync=async()=>{};
  global.connection=global.portal.connect().then(()=>global.result={ok:true},error=>global.result={error:error.message});
 });

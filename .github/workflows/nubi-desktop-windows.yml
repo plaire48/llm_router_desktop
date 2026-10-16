@@ -89,7 +89,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify startup input recovery and commit graph boundaries
         run: |
-          node --test tests/commit-history.test.mjs tests/commit-graph.test.mjs tests/mail-session-dialog.test.mjs tests/notification-history.test.mjs
+          node --test tests/commit-history.test.mjs tests/commit-graph.test.mjs tests/mail-page-execution.test.mjs tests/mail-session-dialog.test.mjs tests/notification-history.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/check-startup-interaction.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

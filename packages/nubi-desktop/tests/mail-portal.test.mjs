@@ -214,3 +214,12 @@ test('a delayed shared-session verification remains in the same login and can re
  assert.equal(host.status().connecting,true);assert(!events.includes('close-login'));assert(!calls.some(c=>c.action==='portalConnect'));
  ready=true;await pending;assert.equal(host.status().connected,true);assert.equal(calls.filter(c=>c.action==='portalConnect').length,1);host.dispose();
 });
+
+test('a closing SSO page cannot strand the login while an error-page probe is pending',async()=>{
+ const {EventEmitter}=await import('node:events');
+ const {host}=loginFixture();let reading=false,ready=false;
+ const old=new EventEmitter();Object.assign(old,{getURL:()=>ORIGIN,isDestroyed:()=>false,isLoadingMainFrame:()=>false,executeJavaScript:()=>{reading=true;return new Promise(()=>{});}});
+ let rows=[old];host.getPageContents=()=>rows;host.identify=async()=>{if(!ready)throw Error('mail_portal_forbidden');return {identity:{id:'fixture'},folders:[]};};host.readSession=async()=>folders;
+ const pending=host.connect();await settled(()=>reading);rows=[];ready=true;old.emit('destroyed');
+ assert.equal((await pending).connected,true);assert.equal(old.eventNames().length,0);host.dispose();
+});

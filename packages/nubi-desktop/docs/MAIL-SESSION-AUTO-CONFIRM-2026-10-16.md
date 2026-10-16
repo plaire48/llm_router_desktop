@@ -9,6 +9,7 @@ The installed 1.2.9 was reported to leave the native confirmation on `abnormal-l
 - Subscribe even when the debugger is already attached. For newly loaded login tabs, initialize the blank renderer and enable Page dialog events before loading the portal. Preserve Chromium popup ownership and original POST data.
 - Keep API probes paused while a dialog, redirect or login page awaits input. Login input has no five-minute timeout. Explicit cancellation still stops the connection.
 - Treat interactive 401/403 and delayed shared-session verification as authentication pending. On the portal home, probes back off from 2 to 10 seconds; success requires the fixed mail API on the shared session. Do not replay SSO requests or auto-submit credentials.
+- Bind renderer reads and error-page checks to their document and login cancellation. Navigation, renderer destruction and bounded timeouts release the old promise so an SSO popup cannot strand the current login.
 - Keep the existing background collection failure/disconnect policy. This is an explicit interactive-login recovery only.
 - Use the existing browser guide and mail connection progress form for the automatic transition state. No new modal.
 

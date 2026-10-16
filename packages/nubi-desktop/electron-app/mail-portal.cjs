@@ -2,6 +2,7 @@ const {approvalStep,approvalFailure}=require('./approval-failure.cjs');
 const {mailDialogPending,mailDialogOpen,mailDialogGuide}=require('./mail-session-dialog.cjs');
 const {loginRedirect}=require('./mail-session-recovery.cjs');
 const {mailSessionFetch}=require('./mail-session-fetch.cjs');
+const {readMailPage}=require('./mail-page-execution.cjs');
 const {ORIGIN,LOGIN_URL,portalOrigin,foldersOf,identityOf,portalFetch,portalFetchSource}=require('./mail-portal-contract.cjs');
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const MAIL_POLL_INTERVAL_MS=5*60*1000;
@@ -62,7 +63,7 @@ class MailPortal {
  async readContents(contents,operation,input={}){
   if(!contents||contents.isDestroyed?.()||mailDialogPending(contents))throw Error('mail_portal_login');
   const origin=portalOrigin(contents.getURL(),this.origin);if(!origin||loginLocation(contents.getURL()))throw Error('mail_portal_login');this.origin=origin;
-  try{const result=await contents.executeJavaScript(`(${portalFetchSource(origin)})(${JSON.stringify({...input,operation,reportFailure:['approvals','approvalItem'].includes(operation)})})`);if(result?.__nubiPortalError)throw approvalFailure({message:result.__nubiPortalError,httpStatus:result.httpStatus},operation==='approvals'?'list':'document');return result;}
+  try{const result=await readMailPage(contents,`(${portalFetchSource(origin)})(${JSON.stringify({...input,operation,reportFailure:['approvals','approvalItem'].includes(operation)})})`,{signal:this.access.signal});if(result?.__nubiPortalError)throw approvalFailure({message:result.__nubiPortalError,httpStatus:result.httpStatus},operation==='approvals'?'list':'document');return result;}
   catch(error){if(error.approvalFailure)throw error;throw Error(/^mail_[a-z_]+$/.test(error.message)?error.message:'mail_portal_request');}
  }
  async read(operation,input={}){
@@ -113,7 +114,7 @@ class MailPortal {
   for(const contents of this.getPageContents(this.page.tabId)){
    if(contents.isDestroyed()||contents.isLoadingMainFrame()||mailDialogPending(contents))continue;
    // Return only a fixed boolean. Never collect the URL, login fields or page body.
-   try{if(await contents.executeJavaScript(`(()=>{const text=(document.body?.innerText||'').slice(0,8000);return /Whitelabel Error Page/i.test(text)&&/no explicit mapping for \\/error/i.test(text);})()`))return true;}catch{}
+   try{if(await readMailPage(contents,`(()=>{const text=(document.body?.innerText||'').slice(0,8000);return /Whitelabel Error Page/i.test(text)&&/no explicit mapping for \\/error/i.test(text);})()`,{signal:this.access.signal,timeout:2000}))return true;}catch{}
   }
   return false;
  }
