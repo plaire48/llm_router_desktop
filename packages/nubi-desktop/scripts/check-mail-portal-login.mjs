@@ -4,6 +4,7 @@ import {createRequire} from 'node:module';
 import {mkdtemp,writeFile,rm} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import {pathToFileURL} from 'node:url';
 import assert from 'node:assert/strict';
 const require=createRequire(import.meta.url),temporary=await mkdtemp(path.join(os.tmpdir(),'nubi-portal-login-')),entry=path.join(temporary,'main.cjs');
 await writeFile(entry,`
@@ -44,7 +45,7 @@ app.whenReady().then(async()=>{
  });
  global.host=new BrowserHost(win);
  global.other=global.host.create('about:blank').id;
- global.portal=new MailPortal({BrowserWindow,parent:win,invoke:async(_method,args)=>{global.events.push({action:args.action});if(args.action==='portalDocument'){const {normalizePortalMail}=await import('file:///Users/ganadi/Documents/llm_router/packages/nubi-desktop/runtime/mail-portal-content.mjs');const parsed=await normalizePortalMail(Buffer.from(args.raw,'base64'),{includePresentation:true});return {mail:{...parsed.normalized,presentation:parsed.presentation}};}return {};},
+ global.portal=new MailPortal({BrowserWindow,parent:win,invoke:async(_method,args)=>{global.events.push({action:args.action});if(args.action==='portalDocument'){const {normalizePortalMail}=await import(${JSON.stringify(pathToFileURL(path.resolve('runtime/mail-portal-content.mjs')).href)});const parsed=await normalizePortalMail(Buffer.from(args.raw,'base64'),{includePresentation:true});return {mail:{...parsed.normalized,presentation:parsed.presentation}};}return {};},
   openPage:(url,options)=>{const row=global.host.create(url,{...options,session:portalSession,authentication:true,httpsOnly:true});global.loginId=row.id;void global.host.request({action:'layout',bounds:{x:80,y:100,width:900,height:600},visible:true});return {tabId:row.id};},
   getPageContents:id=>[...global.host.tabs.values()].filter(row=>row.ownerId===id).map(row=>row.view.webContents),
   closePage:id=>{for(const row of [...global.host.tabs.values()].reverse())if(row.ownerId===id)global.host.closeTab(row.id);}

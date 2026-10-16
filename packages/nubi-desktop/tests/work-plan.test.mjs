@@ -86,7 +86,7 @@ test('a answered clarification replans the same task with preserved original cri
 });
 
 test('plan schema refuses fabricated completed steps, duplicate labels and multiple current steps',()=>{
-  for(const invalid of [[{...steps[0],status:'completed'}],[steps[0],steps[0]],[steps[0],{...steps[1],status:'in_progress'}]])assert.throws(()=>workPlanSteps({steps:invalid}),/work_plan_invalid/);
+  for(const invalid of [[{...steps[0],status:'completed'}],[steps[0],steps[0]],[steps[0],{...steps[1],status:'in_progress'}]])assert.throws(()=>workPlanSteps({steps:invalid},{initial:true}),/work_plan_invalid/);
 });
 
 test('agent invokes existing localhost comparison and stores actual captures without a UI mode selection',async t=>{

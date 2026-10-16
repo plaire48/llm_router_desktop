@@ -126,7 +126,7 @@ jobs:
           if ($wikiExit -ne 0) { exit $wikiExit }
       - name: Verify selected documents and manual mail confirmation recovery
         run: |
-          node --test --test-concurrency=1 tests/chat-documents.test.mjs tests/mail-session-dialog.test.mjs tests/mail-portal.test.mjs tests/approval-diagnostics.test.mjs
+          node --test --test-concurrency=1 tests/chat-documents.test.mjs tests/mail-session-dialog.test.mjs tests/mail-portal.test.mjs tests/approval-diagnostics.test.mjs tests/mail-tool-arguments.test.mjs tests/work-plan.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify factual Wiki review and current recovery contracts
         run: |
