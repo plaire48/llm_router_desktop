@@ -48,8 +48,13 @@ try{
   await plan.getByText('메일과 프로젝트 자료의 차이 확인',{exact:true}).waitFor();
   await plan.locator(':scope > summary').click();
   for(const row of await trace.locator(':scope > summary').all())await row.click();
+  const roles=p.locator('.nubi-role-progress > details');
+  assert.equal(await roles.getAttribute('open'),null,'subagent summary starts collapsed');
+  await roles.locator(':scope > summary').click();
+  await roles.locator('ol').waitFor();
   assert.equal(await p.locator('.nubi-worker-detail').count(),2);assert.equal(await p.locator('.nubi-worker-detail[open]').count(),0);
   await p.locator('.nubi-worker-detail summary').first().click();await p.getByText('메일 1 대조 결과',{exact:true}).waitFor();await p.locator('.nubi-worker-detail summary').first().click();
+  await roles.locator(':scope > summary').click();
   await p.screenshot({path:path.join(dir,`running-${width}.png`),animations:'disabled'});
   const commandRecord=p.locator('.nubi-command-record');
   assert.equal(await commandRecord.getAttribute('open'),null,'execution records start collapsed');

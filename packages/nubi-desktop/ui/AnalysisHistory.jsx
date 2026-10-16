@@ -14,11 +14,11 @@ const key = record => `${record.kind}:${record.id}`;
 const count = value => Number.isFinite(value) ? Math.max(0,Math.floor(value)).toLocaleString('ko-KR') : '0';
 
 function RoleProgress({analysis,taskRunning,showWork=false}) {
-  const [expanded,setExpanded]=useState(showWork||taskRunning&&analysis.state==='running');
+  const [expanded,setExpanded]=useState(false);
   const running=taskRunning&&analysis.state==='running';
   const workers=analysis.workers||[];
   const received=workers.filter(worker=>worker.status==='done').length;
-  const open=expanded??running;
+  const open=expanded;
   const status=worker=>worker.status==='done'?({partial:'일부 확인',blocked:'확인 필요'}[worker.analysis?.outcome]||(worker.analysis?.delivered?'메인에 전달됨':'응답 수신')):worker.status==='cancelled'?'중지':worker.status==='error'?'실패':!running?'응답 미확인':worker.status==='queued'?'대기':worker.analysis?.phase==='reading'?'근거 읽는 중':worker.analysis?.phase==='thinking'?'모델 분석 중':worker.analysis?.phase==='synthesizing'?'결과 정리 중':'분석 중';
   return <section className="nubi-document-progress nubi-role-progress" aria-label="역할별 분석 진행">
     <details open={open} onToggle={event=>{if(event.target===event.currentTarget&&event.currentTarget.open!==open)setExpanded(event.currentTarget.open);}}>
