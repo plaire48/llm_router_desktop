@@ -3,11 +3,11 @@
 .nubi-policy-title>svg { color:var(--deck-blue); flex:none; }
 .nubi-policy-section { display:grid; gap:var(--cx-space-2); }
 .nubi-policy-section h3,.nubi-policy-section p { margin:0; }
-.nubi-policy-section h3 { font:var(--deck-font-body); font-weight:600; color:var(--deck-ink); }
+.nubi-policy-section h3 { font:var(--deck-font-body); font-weight:var(--nubi-weight-emphasis); color:var(--deck-ink); }
 .nubi-policy-section p { color:var(--deck-sub); }
-.nubi-policy-section strong { color:var(--deck-ink); font-weight:600; }
+.nubi-policy-section strong { color:var(--deck-ink); font-weight:var(--nubi-weight-emphasis); }
 .nubi-policy-section .nubi-policy-warning { color:var(--deck-red); }
-.nubi-policy-link { width:fit-content; color:var(--deck-blue-deep); font-weight:500; text-decoration:none; }
+.nubi-policy-link { width:fit-content; color:var(--deck-blue-deep); font-weight:var(--nubi-weight-label); text-decoration:none; }
 .nubi-policy-link:hover { text-decoration:underline; }
 .nubi-policy-link:focus-visible { outline:2px solid var(--deck-blue); outline-offset:4px; border-radius:var(--deck-control-radius); }
 

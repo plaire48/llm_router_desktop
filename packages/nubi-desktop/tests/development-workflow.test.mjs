@@ -12,7 +12,7 @@ installAgent(ProjectService);
 const before='2026-10-15T01:00:00.000Z',applied='2026-10-15T01:00:01.000Z',after='2026-10-15T01:00:02.000Z';
 function sample(){
  const task={request:'검색 기능 개발',criteria:[],messages:[],changePlan:{createdAt:before,targets:[{path:'app.js'}],checks:[{requirementId:'r',method:'test',description:'검색 회귀 검사'},{requirementId:'r',method:'browser',description:'검색 입력 후 결과 확인'}]}};
- const receipts={proposals:[{path:'app.js',state:'applied',createdAt:before,appliedAt:applied}],setupActions:[{kind:'verify',state:'started',resultProcessId:'p'}],processes:[{id:'p',state:'completed',execution:'started',exitCode:0,startedAt:after,output:'1 test passed'}]};
+ const receipts={proposals:[{path:'app.js',state:'applied',createdAt:before,appliedAt:applied}],setupActions:[{kind:'verify',state:'started',resultProcessId:'p'}],processes:[{id:'p',profile:'bash',cwd:'/project',script:'npm test',state:'completed',execution:'started',exitCode:0,startedAt:after,output:'1 test passed'}]};
  const browser={tool:'mcp__playwright__browser_snapshot',observedAt:after,result:{ok:true,server:'playwright',tool:'browser_snapshot',text:'검색 결과: apple'}};
  return {task,receipts,evidence:[browser],candidate:'검색 동작을 확인했습니다.',model:{id:'fixture',contextLength:32000}};
 }
@@ -43,6 +43,52 @@ test('a reviewer cannot mark missing development evidence supported',async()=>{
  assert.equal(result.checks.find(c=>c.requirementId==='host:development').state,'unknown');
  const truthful={status:'ready',checks:[{requirementId:'host:development',state:'unknown',evidenceIds:[],detail:'로그인이 필요해 확인 못 함'}]};
  assert.equal(enforceDevelopmentEvidence(truthful,{}),truthful,'a truthful limitation is not a success claim');
+});
+
+function repeatVerification(x,changes={}){
+ const process={...x.receipts.processes[0],id:'p2',startedAt:'2026-10-15T01:00:03.000Z',...changes};
+ x.receipts.processes.unshift(process);
+ x.receipts.setupActions.unshift({kind:'verify',state:'started',resultProcessId:process.id});
+ return process;
+}
+for(const state of ['failed','running','cancelled'])test(`a later ${state} verification supersedes the same command's old pass`,()=>{
+ const x=sample();repeatVerification(x,{state,exitCode:state==='failed'?1:null});
+ assert.deepEqual(resultReviewInput(x).data.developmentChecks[0].eligibleEvidenceIds,[]);
+});
+test('a successful rerun qualifies regardless of receipt ordering; another command remains independent',()=>{
+ const x=sample();x.receipts.processes[0].state='failed';x.receipts.processes[0].exitCode=1;
+ repeatVerification(x,{state:'completed',exitCode:0});x.receipts.processes.reverse();
+ let check=resultReviewInput(x).data.developmentChecks[0];assert.deepEqual(check.eligibleProcessIds,['p2']);
+ x.receipts.processes.find(p=>p.id==='p2').script='npm run lint';x.receipts.processes.find(p=>p.id==='p').state='completed';x.receipts.processes.find(p=>p.id==='p').exitCode=0;
+ check=resultReviewInput(x).data.developmentChecks[0];assert.deepEqual(new Set(check.eligibleProcessIds),new Set(['p','p2']));
+});
+test('approved command repair inherits verification provenance and supersedes its failed parent',()=>{
+ const x=sample();x.receipts.processes[0].state='failed';x.receipts.processes[0].exitCode=1;
+ x.receipts.processes.unshift({...x.receipts.processes[0],id:'fixed',repairOf:'p',script:'npm test -- --run',startedAt:'2026-10-15T01:00:03.000Z',state:'completed',exitCode:0});
+ const check=resultReviewInput(x).data.developmentChecks[0];assert.deepEqual(check.eligibleEvidenceIds,['host']);assert.deepEqual(check.eligibleProcessIds,['fixed']);
+});
+test('a repair without its original verify receipt cannot certify development',()=>{
+ const x=sample();x.receipts.processes[0].repairOf='missing';x.receipts.setupActions=[];
+ assert.deepEqual(resultReviewInput(x).data.developmentChecks[0].eligibleEvidenceIds,[]);
+});
+test('the same text in another workspace or shell does not supersede a verification',()=>{
+ for(const change of [{cwd:'/other-project'},{profile:'powershell'}]){
+  const x=sample();repeatVerification(x,{state:'failed',exitCode:1,...change});
+  assert.deepEqual(resultReviewInput(x).data.developmentChecks[0].eligibleProcessIds,['p']);
+ }
+});
+test('a conflicting timestamp tie is not a current pass and repairing an inspect command is not a test',()=>{
+ const x=sample();repeatVerification(x,{startedAt:after,state:'failed',exitCode:1});
+ assert.deepEqual(resultReviewInput(x).data.developmentChecks[0].eligibleEvidenceIds,[]);
+ x.receipts.setupActions=[{kind:'inspect',state:'started',resultProcessId:'p'}];
+ Object.assign(x.receipts.processes[0],{repairOf:'p',state:'completed',exitCode:0,startedAt:'2026-10-15T01:00:04.000Z'});
+ assert.deepEqual(resultReviewInput(x).data.developmentChecks[0].eligibleEvidenceIds,[]);
+});
+test('cyclic repair records and missing rerun times never revive an old success',()=>{
+ const x=sample();repeatVerification(x,{startedAt:undefined,state:'failed',exitCode:1});
+ assert.deepEqual(resultReviewInput(x).data.developmentChecks[0].eligibleEvidenceIds,[]);
+ x.receipts.processes[0].repairOf='p';x.receipts.processes[1].repairOf='p2';x.receipts.setupActions=[];
+ assert.deepEqual(resultReviewInput(x).data.developmentChecks[0].eligibleEvidenceIds,[]);
 });
 
 const call=(name,args)=>({content:'',calls:[{id:crypto.randomUUID(),type:'function',function:{name,arguments:JSON.stringify(args)}}]});

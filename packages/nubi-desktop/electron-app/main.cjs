@@ -1,3 +1,6 @@
+const {OfficeWindowDock}=require('./office-window-dock.cjs');
+let officeDock;
+const {safeApprovalFailure}=require('./approval-failure.cjs');
 const {trustedRenderer}=require('./renderer-scope.cjs');
 const {app,BrowserWindow,protocol,net,ipcMain,dialog,clipboard,Menu,Notification,session}=require('electron');
 const {fork,spawn}=require('node:child_process');
@@ -14,6 +17,12 @@ const {startWebHost}=require('./web-host.cjs');
 const {installationStamp}=require('./installation-stamp.cjs');
 const {captureWindow}=require('./window-capture.cjs');
 const {PlaywrightHost}=require('./playwright-host.cjs');
+const {ExternalBrowserHost}=require('./external-browser-host.cjs');
+const {BrowserLaunch}=require('./external-browser-launch.cjs');
+const {BrowserRouter}=require('./browser-router.cjs');
+const {BrowserWindowNative}=require('./browser-window-native.cjs');
+const {BrowserWindowDock}=require('./browser-window-dock.cjs');
+const {ExternalMailPortal}=require('./external-mail-portal.cjs');
 const {BrowserHost}=require('./browser-host.cjs');
 const {MailPortal}=require('./mail-portal.cjs');
 const {ClaudeWeb}=require('./claude-web.cjs');
@@ -24,7 +33,7 @@ const {importProjectZip}=require('../runtime/project-zip.mjs');
 const {configureSystemTrust,disableHostedTracing}=require('../runtime/worker-environment.mjs');
 const {DESKTOP_FEATURES}=require('../runtime/beta-features.mjs');
 const {workspacePageUrl}=require('../runtime/workspace-browser.mjs');
-const {restoreSavedProject}=require('./project-restore.cjs');
+const {restoreSavedProject,createProjectRestorer}=require('./project-restore.cjs');
 const {WorkerSupervisor,restoreWindowState,windowStateOf,boundedLog,startupMailPrompt}=require('./lifecycle.cjs');
 configureSystemTrust();disableHostedTracing(process.env);
 require('./bundled-git.cjs').configureBundledGit({packaged:app.isPackaged,resourcesPath:process.resourcesPath});
@@ -42,17 +51,19 @@ let terminalHost,updater,installingUpdate=false;
 const wikiGitControllers=new Map();
 const cancelWikiGit=()=>{for(const controller of wikiGitControllers.values())controller.abort();wikiGitControllers.clear();};
 app.on('before-quit',cancelWikiGit);
-let playwrightHost;
+let playwrightHost,browserRouter,externalBrowser,browserLaunch,browserDock;
+const browserDockControllers=new Map();
 let window,worker,host,webHost,browserHost,mailPortal,claudeWeb,currentRoot=null,currentKind='project';const launchId=randomUUID();
 let claudeCliUsage=null,workspaceFetch=null;const {createClaudeCliUsage}=require('./claude-cli-usage.cjs');
 const storage=process.env.NUBI_STORAGE_ROOT||path.join(app.getPath('userData'),'workspace');
 const {ProjectCatalog}=require('./project-catalog.cjs');
 const projectCatalog=new ProjectCatalog(storage);
 const {WikiLibrary}=require('./wiki-library.cjs');
+let resettingData=false;
 const wikiLibrary=new WikiLibrary({backupRoot:path.join(storage,'wiki-revisions'),roots:async()=>{
  const projects=await projectCatalog.list(),mail=await invoke('mail',{action:'status'});
  return [...projects.map(p=>({id:p.id,name:p.name,kind:'project',root:path.join(p.root,'openwiki')})),{id:'personal-mail',name:'메일',kind:'mail',root:mail.wikiRoot}];
-},canWrite:async scope=>scope.kind==='mail'?!(await invoke('mail',{action:'status'})).summarizing:!(await invoke('projectActivity',{projectId:scope.id})).active});
+},canWrite:async scope=>{if(resettingData)return false;if(scope.kind==='mail'){const state=await invoke('mail',{action:'status'});return !state.summarizing&&!state.resetPending;}return !(await invoke('projectActivity',{projectId:scope.id})).active;}});
 let openingProject=false;
 function recordFault(component,details={}){
  const reason=['clean-exit','abnormal-exit','killed','crashed','oom','launch-failed','integrity-failure'].includes(details.reason)?details.reason:'unexpected';
@@ -79,16 +90,18 @@ function companySession(){const value=session.fromPartition(COMPANY_PARTITION);i
 // One bounded PNG of Nubi's own window for the agent (user request 2026-10-14: "인앱 내에서라도" screen capture), so a
 // question about what the app shows can be answered from the screen. Only this app's window, never the desktop.
 async function captureAppWindow(options={}){return captureWindow(window,browserHost,options);}
-function openWorkspacePage(url,options={}){if(!browserHost||!window||window.isDestroyed())throw Error('browser_unavailable');const tab=browserHost.create(workspacePageUrl(url),options);window.webContents.send('nubi:browser-event',{type:'opened',state:browserHost.status()});return {opened:true,tabId:tab.id,userInteractionRequired:true};}
-function openPageLink(url){try{openWorkspacePage(url);}catch(error){window.webContents.send('nubi:browser-event',{type:'error',error:/^[a-z_]+$/.test(error.message)?error.message:'browser_url_invalid'});}}
+function openWorkspacePage(url,options={}){if(!browserHost||!window||window.isDestroyed())throw Error('browser_unavailable');if(options.authentication){browserRouter.externalFocus=false;const tab=browserHost.create(workspacePageUrl(url),options);browserHost.publish('opened');return {opened:true,tabId:tab.id,userInteractionRequired:true};}return browserRouter.open(url,options);}
+function openPageLink(url){void Promise.resolve().then(()=>openWorkspacePage(url)).catch(error=>{hostEvent({type:'external_browser_open_failed',error:/^[a-z_]+$/.test(error.message)?error.message:'browser_url_invalid'});});}
+const {createNotificationHistory}=require('./notification-history.cjs');
+const notificationHistory=createNotificationHistory(path.join(storage,'notification-delivery-v1.json'));
 const {createDecisionNotices}=require('./decision-notices.cjs');
 const {createMailLoginNotices}=require('./mail-login-notices.cjs');
-const mailLoginNotices=createMailLoginNotices({Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
+const mailLoginNotices=createMailLoginNotices({history:notificationHistory,Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
 const {createWikiNotices}=require('./wiki-notices.cjs');
-const wikiNotices=createWikiNotices({Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
+const wikiNotices=createWikiNotices({history:notificationHistory,Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
 const {createAnswerNotices}=require('./answer-notices.cjs');
-const answerNotices=createAnswerNotices({Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
-const decisionNotices=createDecisionNotices({Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
+const answerNotices=createAnswerNotices({history:notificationHistory,Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
+const decisionNotices=createDecisionNotices({history:notificationHistory,Notification,getWindow:()=>window,send:hostEvent,icon:path.join(__dirname,'nubi-icon.png')});
 app.on('before-quit',()=>{decisionNotices.clear();answerNotices.clear();wikiNotices.clear();mailLoginNotices.clear();});
 const {connectionVault,workerKey}=require('./connection-vault.cjs');
 const vault=connectionVault({directory:path.join(storage,'connections-v1'),safeStorage:require('electron').safeStorage});
@@ -102,6 +115,7 @@ function projectOpenProgress(requestId,stage){if(typeof requestId==='string'&&/^
 async function openProject(root,kind='project',{initializeWiki=true,exactRoot=false,sourceKind,progressId}={}){
  if(openingProject)throw Error('project_busy');openingProject=true;
  try{
+ await officeDock?.detach();
  // A predecessor that is still exiting (quit or crash) holds the project store for a moment; the single-instance lock
  // rules out a live second instance, so a short retry is safe.
  let overview;for(let attempt=0;;attempt++){try{projectOpenProgress(progressId,'opening');overview=await invoke('open',{root,kind,initializeWiki,exactRoot,sourceKind});break;}catch(error){if(error.message!=='project_locked'||attempt>=4)throw error;projectOpenProgress(progressId,'waiting_lock');await new Promise(resolve=>setTimeout(resolve,600));}}currentRoot=overview.root;currentKind=kind;
@@ -110,8 +124,16 @@ async function openProject(root,kind='project',{initializeWiki=true,exactRoot=fa
  return overview;
  }finally{openingProject=false;}
 }
-const forbidden=new Set(['projectActivity','prepareAppUpdate','open','importSkill','connectSkillMarketplace','disconnectSkillMarketplace','initializeWiki','collaboration']);
+const forbidden=new Set(['_textEditor','_externalOffice','importDocumentSelection','projectActivity','prepareAppUpdate','open','importSkill','connectSkillMarketplace','disconnectSkillMarketplace','initializeWiki','collaboration']);
+const restoreCurrentProject=createProjectRestorer(async()=>{
+ if(currentRoot)return await invoke('overview');
+ let saved;try{saved=JSON.parse(await readFile(path.join(storage,'last-project.json'),'utf8'));}catch{return null;}
+ if(!saved?.root)return null;
+ try{return await restoreSavedProject(()=>openProject(saved.root,saved.kind==='conversation'?'conversation':'project',{initializeWiki:false}),{existing:()=>currentRoot?invoke('overview'):undefined,onEvent:async event=>{await mkdir(storage,{recursive:true});await writeFile(path.join(storage,'last-project-restore.json'),JSON.stringify({at:new Date().toISOString(),...event}),{mode:0o600}).catch(()=>{});}});}
+ catch(error){if(error.message==='project_path_missing')await rm(path.join(storage,'last-project.json'),{force:true}).catch(()=>{});throw error;}
+});
 app.whenReady().then(async()=>{
+ await notificationHistory.ready;
  if(!primary)return;
  const appIcon=path.join(__dirname,'nubi-icon.png');
  if(process.platform==='darwin')app.dock?.setIcon(appIcon);
@@ -138,7 +160,8 @@ app.whenReady().then(async()=>{
  },onMessage:message=>{
   if(message?.wikiCompleted){wikiNotices.show(message.wikiCompleted);return;}
   if(message?.answerCompleted){answerNotices.show(message.answerCompleted);return;}
-  if(message?.playwrightRequest){const {id,action,args}=message.playwrightRequest;if(typeof id!=='string'||id.length>80)return;void(async()=>{try{if(!playwrightHost)throw Error('browser_unavailable');const result=await playwrightHost.request(action,args);worker.send({playwrightReply:{id,result}});}catch(error){worker.send({playwrightReply:{id,error:/^[a-z_]+$/.test(error.message)?error.message:'browser_unavailable'}});}})();return;}
+  if(message?.playwrightCancel){browserDockControllers.get(message.playwrightCancel.id)?.abort();return;}
+  if(message?.playwrightRequest){const {id,action,args}=message.playwrightRequest;if(typeof id!=='string'||id.length>80)return;void(async()=>{try{if(!playwrightHost)throw Error('browser_unavailable');const controller=['bring','dockDetach'].includes(action)?new AbortController():null;if(controller)browserDockControllers.set(id,controller);let result;try{result=await playwrightHost.request(action,args,{signal:controller?.signal});}finally{browserDockControllers.delete(id);}worker.send({playwrightReply:{id,result}});}catch(error){worker.send({playwrightReply:{id,error:/^[a-z_]+$/.test(error.message)?error.message:'browser_unavailable'}});}})();return;}
   if(message?.wikiGitCancel){wikiGitControllers.get(message.wikiGitCancel.id)?.abort();return;}
   if(message?.wikiGitRequest){
    const {id,root}=message.wikiGitRequest;if(typeof id!=='string'||id.length>80||typeof root!=='string'||!path.isAbsolute(root)||wikiGitControllers.has(id))return;
@@ -146,7 +169,7 @@ app.whenReady().then(async()=>{
    void(async()=>{try{const result=await host.syncWikiSources(root,{signal:controller.signal});worker.send({wikiGitReply:{id,result}});}catch(error){worker.send({wikiGitReply:{id,error:/^[a-z_]{3,60}$/.test(error.message)?error.message:'git_pull_failed'}});}finally{wikiGitControllers.delete(id);}})();return;
   }
   if(message?.connectionSecretRequest){
-   const {id,operation,key,value}=message.connectionSecretRequest;
+    const {id,operation,key,value}=message.connectionSecretRequest;
    if(typeof id!=='string'||id.length>80)return;
    // A worker reaches its provider connections, the mail vault keys and MCP secrets, never company credentials.
    void (async()=>{try{
@@ -155,10 +178,10 @@ app.whenReady().then(async()=>{
    }catch{worker.send({connectionSecretReply:{id,error:'secret_unavailable'}});}})();return;
   }
   if(message?.workspaceAuthPageClose){const tabId=message.workspaceAuthPageClose.tabId;if(typeof tabId==='string'&&browserHost?.tabs.get(tabId)?.authentication)browserHost.closeTab(tabId,{returnToApp:true});return;}
-  if(message?.workspaceCaptureRequest){const {id,target,options={}}=message.workspaceCaptureRequest;if(typeof id!=='string')return;(async()=>{try{if(target==='window'){worker.send({workspaceCaptureReply:{id,...await captureAppWindow(options)}});return;}if(!browserHost)throw Error('browser_unavailable');const result=await browserHost.capture(options.tabId,{clip:options.clip,maxWidth:options.maxWidth});worker.send({workspaceCaptureReply:{id,...result}});}catch(error){worker.send({workspaceCaptureReply:{id,error:/^[a-z_]+$/.test(error.message)?error.message:'browser_capture_unavailable'}});}})();return;}
+  if(message?.workspaceCaptureRequest){const {id,target,options={}}=message.workspaceCaptureRequest;if(typeof id!=='string')return;(async()=>{try{if(target==='window'){worker.send({workspaceCaptureReply:{id,...await captureAppWindow(options)}});return;}if(!browserHost)throw Error('browser_unavailable');const result=browserLaunch.preference.mode==='external'?await externalBrowser.request('capture',{...options,tabId:options.tabId||externalBrowser.active,documentId:options.documentId||externalBrowser.tab(options.tabId||externalBrowser.active).automationDocument}):await browserHost.capture(options.tabId,{clip:options.clip,maxWidth:options.maxWidth});worker.send({workspaceCaptureReply:{id,...result}});}catch(error){worker.send({workspaceCaptureReply:{id,error:/^[a-z_]+$/.test(error.message)?error.message:'browser_capture_unavailable'}});}})();return;}
   if(!message?.workspacePageRequest)return;const {id,url,authentication}=message.workspacePageRequest;if(typeof id!=='string')return;
-  try{const result=openWorkspacePage(url,{authentication:authentication===true});worker.send({workspacePageReply:{id,...result}});}
-  catch(error){worker.send({workspacePageReply:{id,error:/^[a-z_]+$/.test(error.message)?error.message:'browser_unavailable'}});}
+  void(async()=>{try{const result=await openWorkspacePage(url,{authentication:authentication===true});worker.send({workspacePageReply:{id,...result}});}
+  catch(error){worker.send({workspacePageReply:{id,error:/^[a-z_]+$/.test(error.message)?error.message:'browser_unavailable'}});}})();
  }});
  worker.on('fault',details=>{cancelWikiGit();playwrightHost?.dispose();recordFault('worker',details);});
  worker.on('restarting',details=>hostEvent({type:'worker_restarting',...details}));
@@ -196,9 +219,17 @@ app.whenReady().then(async()=>{
  window.on('responsive',()=>unresponsive?.abort());
  claudeCliUsage=createClaudeCliUsage();
  claudeWeb=new ClaudeWeb({BrowserWindow,parent:window,openPage:(url,options)=>openWorkspacePage(url,{...options,authentication:true,httpsOnly:true,session:session.fromPartition('persist:nubi-claude-web')}),closePage:tabId=>{if(browserHost?.tabs.has(tabId))browserHost.closeTab(tabId,{returnToApp:true});}});
- mailPortal=new MailPortal({BrowserWindow,invoke,parent:window,onDisconnected:notice=>mailLoginNotices.show(notice),openPage:(url,options)=>openWorkspacePage(url,{...options,authentication:true,httpsOnly:/^https:/i.test(String(url)),session:companySession()}),getPageContents:tabId=>[...(browserHost?.tabs.values()||[])].filter(row=>row.ownerId===tabId).map(row=>row.view.webContents),closePage:tabId=>{for(const row of [...(browserHost?.tabs.values()||[])].reverse())if(row.ownerId===tabId)browserHost.closeTab(row.id,{returnToApp:true});}});
- browserHost=new BrowserHost(window,{onFault:recordFault,loginCode:()=>{const device=host.account.device;return device&&device.expiresAt>Date.now()?device.code:null;}});
- playwrightHost=new PlaywrightHost(browserHost);
+ const internalMailPortal=new MailPortal({BrowserWindow,invoke,parent:window,onDisconnected:notice=>mailLoginNotices.show(notice),openPage:(url,options)=>openWorkspacePage(url,{...options,authentication:true,httpsOnly:/^https:/i.test(String(url)),session:companySession()}),getPageContents:tabId=>[...(browserHost?.tabs.values()||[])].filter(row=>row.ownerId===tabId).map(row=>row.view.webContents),closePage:tabId=>{for(const row of [...(browserHost?.tabs.values()||[])].reverse())if(row.ownerId===tabId)browserHost.closeTab(row.id,{returnToApp:true});}});
+ browserHost=new BrowserHost(window,{partition:'persist:nubi-browser-workspace',onFault:recordFault,loginCode:()=>{const device=host.account.device;return device&&device.expiresAt>Date.now()?device.code:null;}});
+ externalBrowser=new ExternalBrowserHost({onChange:state=>{hostEvent({type:'external_browser_changed',state});if(!state.connected&&browserDock?.automationReady){browserDock.automationReady=false;browserDock.publish();}if(!state.connected&&browserLaunch?.preference.mode==='external'&&externalMailPortal?.state.connected)void externalMailPortal.failSession(Error('mail_portal_login')).catch(()=>{});}});
+ browserLaunch=new BrowserLaunch({storage,dialog,shell:require('electron').shell,parent:window});await browserLaunch.load();
+ browserRouter=new BrowserRouter({internal:browserHost,external:externalBrowser,launch:browserLaunch,notify:hostEvent});browserRouter.internalPlaywright=new PlaywrightHost(browserHost);
+ browserDock=new BrowserWindowDock({native:new BrowserWindowNative({directory:path.join(app.isPackaged?process.resourcesPath:__dirname,'browser-window-bridge'),parent:window}),external:externalBrowser,launch:browserLaunch,notify:event=>{if(event.type==='external_browser_opened'){window.show();window.focus();}hostEvent(event);}});browserRouter.dock=browserDock;
+ officeDock=new OfficeWindowDock({native:new BrowserWindowNative({directory:path.join(app.isPackaged?process.resourcesPath:__dirname,'browser-window-bridge'),parent:window}),identity:args=>invoke('_externalOffice',{...args,action:'window'}),notify:hostEvent});
+ window.on('close',event=>{if(!quitting&&browserDock){event.preventDefault();app.quit();}});
+ playwrightHost={request:(action,args,options)=>browserRouter.playwright(action,args,options),dispose(){browserRouter.internalPlaywright.dispose();externalBrowser.playwright.dispose();}};
+ const externalMailPortal=new ExternalMailPortal({BrowserWindow,invoke,parent:window,browser:externalBrowser,onDisconnected:notice=>mailLoginNotices.show(notice)});
+ mailPortal=new Proxy(internalMailPortal,{get(_target,key){if(key==='dispose')return()=>{internalMailPortal.dispose();externalMailPortal.dispose();};const selected=browserLaunch.preference.mode==='external'?externalMailPortal:internalMailPortal;const value=selected[key];return typeof value==='function'?value.bind(selected):value;},set(_target,key,value){const selected=browserLaunch.preference.mode==='external'?externalMailPortal:internalMailPortal;selected[key]=value;return true;}});
  window.webContents.setWindowOpenHandler(({url})=>{
   openPageLink(url);
   return {action:'deny'};
@@ -228,17 +259,32 @@ app.whenReady().then(async()=>{
   if(method==='decisionNotice'){if(source!=='electron')throw Error('decision_desktop_only');return decisionNotices.request(args);}
   if(method==='titlebarAppearance'){if(source!=='electron')throw Error('titlebar_desktop_only');applyCaptionColors(window,args);return {updated:true};}
   if(method==='startupConnections'){let mail=null;try{mail=await portalMailStatus();}catch{}return {launchId,mailPrompt:startupMailPrompt(mail)};}
-  if(method==='browser'){if(source!=='electron')throw Error('browser_desktop_only');return await browserHost.request(args);}
-  if(method==='openWorkspacePage')return openWorkspacePage(args.url);
-  if(!DESKTOP_FEATURES.computerUse&&method==='chooseComputerApp')throw Error('computer_beta_disabled');
-  if(method==='openCurrent'){
-   if(currentRoot)return await invoke('overview');
-   let saved;try{saved=JSON.parse(await readFile(path.join(storage,'last-project.json'),'utf8'));}catch{return null;}
-   if(!saved?.root)return null;
-   // A last project whose folder is gone opens the start screen once; the stale pointer goes so the next start is clean.
-   try{return await restoreSavedProject(()=>openProject(saved.root,saved.kind==='conversation'?'conversation':'project',{initializeWiki:false}),{existing:()=>currentRoot?invoke('overview'):undefined,onEvent:async event=>{await mkdir(storage,{recursive:true});await writeFile(path.join(storage,'last-project-restore.json'),JSON.stringify({at:new Date().toISOString(),...event}),{mode:0o600}).catch(()=>{});}});}
-   catch(error){if(error.message==='project_path_missing')await rm(path.join(storage,'last-project.json'),{force:true}).catch(()=>{});throw error;}
+  if(method==='browserConnection'){
+   if(source!=='electron')throw Error('browser_desktop_only');
+   if(args.action==='status')return browserRouter.configuration();
+   if(args.action==='pair')return await externalBrowser.pair();
+   if(args.action==='copyPair'){const paired=await externalBrowser.pair();clipboard.writeText(paired.code);return {copied:true,expiresAt:paired.expiresAt};}
+   if(args.action==='extensionFolder'){require('electron').shell.showItemInFolder(path.join(app.isPackaged?process.resourcesPath:__dirname,'browser-connector','manifest.json'));return {opened:true};}
+   if(args.action==='dockBring')return await browserDock.bring({source:'button'});
+   if(args.action==='dockDetach')return await browserDock.detach();
+   if(args.action==='dockCancel')return await browserDock.cancel();
+   if(args.action==='dockLayout'){
+    const b=args.bounds;if(!b||!['x','y','width','height'].every(k=>Number.isFinite(b[k]))||b.x<0||b.y<0)throw Error('dock_bounds_invalid');
+    const content=window.getContentBounds();if(b.x+b.width>content.width+2||b.y+b.height>content.height+2)throw Error('dock_bounds_invalid');
+    const absolute={x:Math.round(content.x+b.x),y:Math.round(content.y+b.y),width:Math.round(b.width),height:Math.round(b.height)};
+    const bounds=process.platform==='win32'?require('electron').screen.dipToScreenRect(window,absolute):absolute;
+    return await browserDock.layout({...args,bounds});
+   }
+   if(args.action==='selectExecutable'){if(browserDock.phase==='docked'||browserDock.operation)await browserDock.cancel();await browserDock.native.close();return await browserLaunch.select();}
+   if(args.action==='focus')return await externalBrowser.focus(args.tabId);
+   if(args.action==='disconnect'){await browserDock.cancel();if(mailPortal.status().connected||mailPortal.status().connecting)await mailPortal.disconnect();await externalBrowser.stop();return browserRouter.configuration();}
+   if(args.action==='mode'){if(mailPortal.status().connected||mailPortal.status().connecting||mailPortal.status().checking)throw Error('mail_browser_busy');await browserDock.cancel();playwrightHost.dispose();await browserLaunch.mode(args.mode);hostEvent({type:'external_browser_changed',state:browserRouter.configuration()});return browserRouter.configuration();}
+   throw Error('browser_action_invalid');
   }
+  if(method==='browser'){if(source!=='electron')throw Error('browser_desktop_only');return await browserRouter.ui(args);}
+  if(method==='openWorkspacePage')return await openWorkspacePage(args.url);
+  if(!DESKTOP_FEATURES.computerUse&&method==='chooseComputerApp')throw Error('computer_beta_disabled');
+  if(method==='openCurrent')return await restoreCurrentProject();
   if(method==='startConversation'){const root=path.join(storage,'conversations');await mkdir(root,{recursive:true});return await openProject(root,'conversation',{progressId:args.progressId});}
   if(method==='projectCatalog'){
    if(args.action==='rename')return await projectCatalog.rename(args.id,args.name);
@@ -250,8 +296,9 @@ app.whenReady().then(async()=>{
   if(method==='chooseFolder'){const root=await choose(['openDirectory'],'프로젝트 폴더 열기');return root?await openProject(root,'project',{sourceKind:'local',progressId:args.progressId}):{cancelled:true};}
   if(['browseLocalDirectory','readLocalFile'].includes(method)){const owner=await invoke('projectPath',{projectId:args.projectId});const value=await (method==='browseLocalDirectory'?browseLocalDirectory:readLocalFile)(args.path);if(currentRoot!==owner.path)throw Error('project_changed');return value;}
   if(method==='copyProjectPath'){const result=await invoke('projectPath',args);clipboard.writeText(result.path);return result;}
+  if(method==='saveDocumentCopy'){if(source!=='electron')throw Error('editor_desktop_only');const owner=currentRoot;return require('./save-document-copy.cjs').saveDocumentCopy(args,{choose:(filename,kind)=>dialog.showSaveDialog(window,{title:'수정한 사본 저장',defaultPath:path.join(app.getPath('downloads'),filename),filters:[{name:kind.toUpperCase(),extensions:[kind]}],buttonLabel:'사본 저장'}),current:()=>currentRoot===owner&&!window.isDestroyed()});}
   if(method==='downloadMail'){
-   const packet=await invoke('mail',{action:'download',id:args.id,kind:args.kind,attachmentId:args.attachmentId,expectedSourceHash:args.expectedSourceHash});
+   const packet=await invoke('mail',{action:'download',id:args.id,kind:args.kind,attachmentId:args.attachmentId,expectedSourceHash:args.expectedSourceHash,expectedAttachmentHash:args.expectedAttachmentHash,innerAttachmentId:args.innerAttachmentId,expectedInnerHash:args.expectedInnerHash});
    const bytes=Buffer.from(packet.bytes,'base64');if(bytes.length!==packet.size||createHash('sha256').update(bytes).digest('hex')!==packet.sha256)throw Error('mail_source_changed');
    const saved=await dialog.showSaveDialog(window,{title:'메일 다운로드',defaultPath:path.join(app.getPath('downloads'),packet.filename),buttonLabel:'저장'});if(saved.canceled)return {cancelled:true};
    await writeFile(saved.filePath,bytes,{mode:0o600});if(createHash('sha256').update(await readFile(saved.filePath)).digest('hex')!==packet.sha256){await rm(saved.filePath,{force:true}).catch(()=>{});throw Error('mail_download_unconfirmed');}
@@ -261,24 +308,25 @@ app.whenReady().then(async()=>{
   if(method==='mail'){
    if(['connect','setIdentity'].includes(args.action))throw Error('mail_portal_only');
    if(/^portal(?:Connect|Import|Folders|Known|Rejected|Document)$/.test(args.action||'')||['download','importFolder'].includes(args.action))throw Error('method_invalid');
-   if(args.action==='approvals')return mailPortal.approvals(args);
-   if(args.action==='approvalRead')return mailPortal.approvalRead(args);
-   if(args.action==='approvalTitle')return mailPortal.approvalTitle(args);
+   if(args.action==='approvals')return await mailPortal.approvals(args);
+   if(args.action==='approvalRead')return await mailPortal.approvalRead(args);
+   if(args.action==='approvalTitle')return await mailPortal.approvalTitle(args);
    if(args.action==='portalCredentials')throw Error('method_invalid');
    if(args.action==='portalSession'){
     if(source!=='electron')throw Error('mail_portal_desktop_only');
     const result=await mailPortal.sessionReady();
-    if(result.connected){mailLoginNotices.clear();hostEvent({type:'mail_portal_connected',requiresStorageSetup:(await invoke('mail',{action:'status',includeMessages:false})).requiresStorageSetup});}
+    if(result.connected){mailLoginNotices.reset();hostEvent({type:'mail_portal_connected',requiresStorageSetup:(await invoke('mail',{action:'status',includeMessages:false})).requiresStorageSetup});}
     return {...await portalMailStatus(),requiresLogin:result.requiresLogin===true};
    }
    if(args.action==='portalLogin'){
     if(source!=='electron')throw Error('mail_portal_desktop_only');mailPortal.requestId=args.requestId;
     try{await mailPortal.connect({destination:args.destination});}catch(error){if(error.message!=='mail_cancelled')hostEvent({type:'mail_portal_failed',error:/^mail_[a-z_]+$/.test(error.message)?error.message:'mail_portal_request'});throw error;}
-    mailLoginNotices.clear();hostEvent({type:'mail_portal_connected',requiresStorageSetup:(await invoke('mail',{action:'status',includeMessages:false})).requiresStorageSetup});return portalMailStatus();
+    mailLoginNotices.reset();hostEvent({type:'mail_portal_connected',requiresStorageSetup:(await invoke('mail',{action:'status',includeMessages:false})).requiresStorageSetup});return portalMailStatus();
    }
    // Cancel stops whatever portal connection is running, even when the screen that asked was reopened and no longer
    // holds the request id (user report 2026-10-14: 연결 취소 kept connecting).
    if(args.action==='cancelConnect'){if(args.requestId===mailPortal.requestId||mailPortal.status().connecting)await mailPortal.disconnect();return portalMailStatus();}
+   if(args.action==='reset'){if(source!=='electron'||args.confirmed!==true)throw Error('mail_reset_confirmation');if(resettingData||wikiLibrary.writes.size)throw Error('mail_busy');resettingData=true;try{await mailPortal.disconnect();await invoke('mail',args);Object.assign(mailPortal.state,{folders:[],lastCheckedAt:null,completed:0,total:null,discovered:0});mailPortal.approvalCacheBytes=0;hostEvent({type:'mail_data_reset'});return await portalMailStatus();}finally{resettingData=false;}}
    if(args.action==='disconnect'){await mailPortal.disconnect();await mailPortal.clearPortalSession();mailLoginNotices.clear();return portalMailStatus();}
    if(args.action==='confirmStorage'){if(source!=='electron')throw Error('mail_desktop_only');await invoke('mail',{action:'confirmStorage',includeAttachments:args.includeAttachments});if(mailPortal.status().connected)void mailPortal.sync().catch(()=>{});return portalMailStatus();}
    if(args.action==='portalSync'||['check','retryDownloads'].includes(args.action)&&mailPortal.status().connected){await mailPortal.recheck();return portalMailStatus();}
@@ -321,6 +369,7 @@ app.whenReady().then(async()=>{
    workspaceFetch??=require('./workspace-fetch.cjs').createWorkspaceFetch(host.account);return workspaceFetch(args);
   }
   if(method==='openWorkspaceApp'){if(source!=='electron')throw Error('wiki_share_desktop_only');const item=await host.community.call({action:'app',id:args.id});if(item.kind==='link')return openWorkspacePage(item.url);const workspace=await host.openTeamWorkspace();return openWorkspacePage(require('./workspace-community.cjs').workspaceAppUrl(workspace.url,item.id));}
+  if(method==='wikiInitialization'&&args.action==='reset'){if(source!=='electron'||args.confirmed!==true)throw Error('wiki_reset_confirmation');if(resettingData||wikiLibrary.writes.size)throw Error('wiki_busy');resettingData=true;try{return await invoke(method,args);}finally{resettingData=false;}}
   if(method==='wikiLibrary'){if(source!=='electron')throw Error('wiki_share_desktop_only');return wikiLibrary.call(args);}
   if(method==='wikiRepository'){
    if(source!=='electron')throw Error('wiki_share_desktop_only');
@@ -336,11 +385,37 @@ app.whenReady().then(async()=>{
    throw Error('method_invalid');
   }
   if(method==='openBrowser')return openWorkspacePage(args.url);
+  if(method==='editorConnectorFolder'){if(source!=='electron')throw Error('editor_desktop_only');require('electron').shell.showItemInFolder(path.join(app.isPackaged?process.resourcesPath:__dirname,'obsidian-connector','manifest.json'));return {opened:true};}
+  if(method==='officeDock'){
+   if(source!=='electron'||process.platform!=='win32')throw Error('native_office_windows_required');
+   if(args.action==='show'){await browserDock?.detach();return await officeDock.show({projectId:args.projectId||args._projectId,taskId:args.taskId});}
+   if(args.action==='detach')return await officeDock.detach();
+   if(args.action==='layout'){
+    const b=args.bounds,c=window.getContentBounds();if(!b||!['x','y','width','height'].every(k=>Number.isFinite(b[k]))||b.x<0||b.y<0||b.width<0||b.height<0||b.x+b.width>c.width+2||b.y+b.height>c.height+2)throw Error('dock_bounds_invalid');
+    const bounds=require('electron').screen.dipToScreenRect(window,{x:Math.round(c.x+b.x),y:Math.round(c.y+b.y),width:Math.round(b.width),height:Math.round(b.height)});return await officeDock.layout({...args,bounds});
+   }
+   throw Error('dock_action_invalid');
+  }
+  if(method==='externalOffice'){
+   if(source!=='electron')throw Error('native_office_desktop_only');
+   if(!['preview','select','stage','attach','cancel','status','disconnect','save','checkpoints','restore'].includes(args.action))throw Error('native_office_method_invalid');
+   if(['disconnect','restore','attach'].includes(args.action))await officeDock?.detach();
+   return await invoke('_externalOffice',{action:args.action,app:args.app,taskId:args.taskId,token:args.token,candidateId:args.candidateId,checkpointId:args.checkpointId,confirmed:args.confirmed,projectId:args.projectId||args._projectId});
+  }
+  if(method==='chooseChatDocuments'){
+   if(source!=='electron')throw Error('document_scope');
+   const owner=await invoke('projectPath',{projectId:args.projectId});
+   const result=await dialog.showOpenDialog(window,{title:'질문할 문서 선택',properties:['openFile','multiSelections'],filters:[{name:'문서',extensions:['pdf','doc','docx','docm','dotx','dotm','xls','xlsx','xlsm','xltx','xltm','ppt','pptx','pptm','ppsx','ppsm','potx','potm','txt','md','csv','json','xml','html','htm','ics']}]});
+   if(result.canceled)return {cancelled:true};
+   if(currentRoot!==owner.path)throw Error('project_changed');
+   return invoke('importDocumentSelection',{projectId:args.projectId,paths:result.filePaths});
+  }
   if(method==='chooseSkillPackage'){const folder=args.kind==='folder',mixed=!folder&&args.kind!=='zip'&&process.platform==='darwin';const file=await choose(folder?['openDirectory']:mixed?['openFile','openDirectory']:['openFile'],'스킬 등록',folder?undefined:[{name:'스킬',extensions:['zip','md']}]);return file?invoke('importSkill',{source:file,taskId:args.taskId}):{cancelled:true};}
   if(method==='chooseComputerApp'){const file=await choose(['openFile'],'Windows 앱 선택',[{name:'Windows app',extensions:['exe']}]);return file?invoke('computer',{method:'register_app',taskId:args.taskId,file}):{cancelled:true};}
   if(forbidden.has(method))throw Error('method_invalid');return await invoke(method,args);
- }catch(error){return {__nubiError:/^[a-z_]+$/.test(error.message)?error.message:'operation_failed',...(method==='cloneRepository'&&safeCloneFailure(error.cloneFailure)?{cloneFailure:safeCloneFailure(error.cloneFailure)}:{})};}};
- terminalHost=new TerminalHost({invoke,profiles:shellProfiles,workerFile:path.join(__dirname,'terminal-worker.cjs'),notify:event=>{if(window&&!window.isDestroyed()&&!window.webContents.isDestroyed())window.webContents.send('nubi:terminal-event',event);}});
+ }catch(error){return {__nubiError:/^[a-z_]+$/.test(error.message)?error.message:'operation_failed',...(method==='mail'&&['approvals','approvalRead','approvalTitle'].includes(args.action)&&safeApprovalFailure(error.approvalFailure)?{approvalFailure:safeApprovalFailure(error.approvalFailure)}:{}),...(method==='cloneRepository'&&safeCloneFailure(error.cloneFailure)?{cloneFailure:safeCloneFailure(error.cloneFailure)}:{})};}};
+ const terminalLog=boundedLog({file:path.join(storage,'terminal.log')});
+ terminalHost=new TerminalHost({invoke,onDiagnostic:event=>terminalLog(JSON.stringify({at:Date.now(),...event})+'\n'),profiles:shellProfiles,workerFile:path.join(__dirname,'terminal-worker.cjs'),notify:event=>{if(window&&!window.isDestroyed()&&!window.webContents.isDestroyed())window.webContents.send('nubi:terminal-event',event);}});
  ipcMain.handle('nubi:terminal',async(event,args)=>{trusted(event);try{if(installingUpdate)throw Error('update_installing');return await terminalHost.request(args);}catch(error){return {__nubiError:/^[a-z_]+$/.test(error.message)?error.message:'terminal_start_failed'};}});
  ipcMain.handle('nubi:request',(event,method,args={})=>{trusted(event);return dispatch(method,args);});
  ipcMain.handle('nubi:skill-file',async(event,args={})=>{trusted(event);try{
@@ -354,4 +429,4 @@ app.whenReady().then(async()=>{
 app.on('window-all-closed',()=>app.quit());
 // Quitting waits for the worker to exit (bounded by its kill grace): the worker releases the project store lock with its
 // process, so a relaunch right after quit can open the same project instead of failing with project_locked.
-let quitting=false;app.on('before-quit',event=>{if(quitting)return;quitting=true;event.preventDefault();terminalHost?.dispose();playwrightHost?.dispose();browserHost?.dispose();mailPortal?.dispose();claudeWeb?.dispose();void webHost?.close();host?.dispose?.();Promise.resolve(worker?.stop()).catch(()=>{}).then(()=>vault.flush()).then(()=>app.quit());});
+let quitting=false;app.on('before-quit',event=>{if(quitting)return;quitting=true;event.preventDefault();terminalHost?.dispose();playwrightHost?.dispose();browserHost?.dispose();mailPortal?.dispose();claudeWeb?.dispose();void webHost?.close();host?.dispose?.();Promise.resolve(officeDock?.dispose()).catch(()=>{}).then(()=>browserDock?.dispose()).catch(()=>{}).then(()=>externalBrowser?.dispose()).then(()=>worker?.stop()).catch(()=>{}).then(()=>vault.flush()).then(()=>Promise.race([notificationHistory.flush(),new Promise(resolve=>setTimeout(resolve,1000))])).then(()=>app.quit());});

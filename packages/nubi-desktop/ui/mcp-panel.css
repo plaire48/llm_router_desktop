@@ -5,32 +5,32 @@
 .nubi-mcp-item { padding:var(--cx-space-3); border-radius:var(--nubi-work-control-radius); background:var(--deck-section-surface); }
 .nubi-mcp-head { display:flex; align-items:center; gap:var(--cx-space-3); min-width:0; }
 .nubi-mcp-kind { display:inline-flex; flex:none; color:var(--deck-blue-deep); }
-.nubi-mcp-title { display:grid; min-width:0; flex:1; gap:2px; }
-.nubi-mcp-title strong { font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.nubi-mcp-title { display:grid; min-width:0; flex:1; gap:calc(var(--cx-space-1) * 0.5); }
+.nubi-mcp-title strong { font-weight:var(--nubi-weight-emphasis); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .nubi-mcp-title small { color:var(--nubi-text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:var(--nubi-code-family,monospace); }
-.nubi-mcp-state { display:inline-flex; align-items:center; gap:4px; flex:none; padding:2px 8px; border-radius:999px; background:var(--deck-card); font-size:var(--cx-type-caption); color:var(--nubi-text-secondary); white-space:nowrap; }
-.nubi-mcp-state[data-state="connected"] { color:var(--deck-green); }
+.nubi-mcp-state { display:inline-flex; align-items:center; gap:var(--cx-space-1); flex:none; padding:calc(var(--cx-space-1) * 0.5) var(--cx-space-2); border-radius:999px; background:var(--deck-card); font-size:var(--cx-type-caption); color:var(--nubi-text-secondary); white-space:nowrap; }
+.nubi-mcp-state[data-state="connected"] { color:var(--nubi-text-success); }
 .nubi-mcp-state[data-state="failed"] { color:var(--nubi-text-danger); }
-.nubi-mcp-actions { display:inline-flex; gap:2px; flex:none; }
+.nubi-mcp-actions { display:inline-flex; gap:calc(var(--cx-space-1) * 0.5); flex:none; }
 .nubi-mcp-tools { list-style:none; margin:var(--cx-space-2) 0 0; padding:0; display:flex; flex-wrap:wrap; gap:var(--cx-space-1); }
-.nubi-mcp-tools li { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; background:var(--deck-card); font-size:var(--cx-type-caption); color:var(--nubi-text-primary); }
+.nubi-mcp-tools li { display:inline-flex; align-items:center; gap:var(--cx-space-1); padding:calc(var(--cx-space-1) * 0.5) var(--cx-space-2); border-radius:999px; background:var(--deck-card); font-size:var(--cx-type-caption); color:var(--nubi-text-primary); }
 .nubi-mcp-add { display:flex; justify-content:flex-end; }
 
 /* Form: one column, label above the field, a short hint below (user feedback 2026-10-14). */
 .nubi-mcp-form { display:grid; gap:var(--cx-space-4); }
 .nubi-mcp-form-head { display:flex; align-items:center; gap:var(--cx-space-2); }
-.nubi-mcp-form-head h3 { margin:0; font-size:var(--cx-type-title); font-weight:600; }
+.nubi-mcp-form-head h3 { margin:0; font-size:var(--cx-type-title); font-weight:var(--nubi-weight-emphasis); }
 .nubi-mcp-field { display:grid; gap:var(--cx-space-1); }
-.nubi-mcp-field > label, .nubi-mcp-label { font-size:var(--cx-type-body); font-weight:600; color:var(--nubi-text-primary); }
-.nubi-mcp-field em { margin-left:var(--cx-space-1); font-style:normal; font-weight:400; font-size:var(--cx-type-caption); color:var(--nubi-text-secondary); }
-.nubi-mcp-field small { color:var(--nubi-text-secondary); font-size:var(--cx-type-caption); line-height:1.5; }
+.nubi-mcp-field > label, .nubi-mcp-label { font-size:var(--cx-type-body); font-weight:var(--nubi-weight-emphasis); color:var(--nubi-text-primary); }
+.nubi-mcp-field em { margin-left:var(--cx-space-1); font-style:normal; font-weight:var(--nubi-weight-regular); font-size:var(--cx-type-caption); color:var(--nubi-text-secondary); }
+.nubi-mcp-field small { color:var(--nubi-text-secondary); font-size:var(--cx-type-caption); line-height:var(--deck-line-caption); }
 .nubi-mcp-mono input, input.nubi-mcp-mono { font-family:var(--nubi-code-family,monospace); }
 .nubi-mcp-choice { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:var(--cx-space-2); }
 .nubi-mcp-choice > button { display:flex; align-items:center; gap:var(--cx-space-3); padding:var(--cx-space-3); border:1px solid var(--deck-line); border-radius:var(--nubi-work-control-radius); background:var(--deck-card); color:var(--nubi-text-primary); text-align:left; cursor:pointer; }
 .nubi-mcp-choice > button[data-selected] { border-color:var(--deck-blue-deep); background:var(--deck-blue-soft); }
 .nubi-mcp-choice > button:disabled { cursor:default; opacity:.7; }
-.nubi-mcp-choice > button > span { display:grid; gap:2px; }
-.nubi-mcp-choice strong { font-weight:600; }
+.nubi-mcp-choice > button > span { display:grid; gap:calc(var(--cx-space-1) * 0.5); }
+.nubi-mcp-choice strong { font-weight:var(--nubi-weight-emphasis); }
 .nubi-mcp-choice small { color:var(--nubi-text-secondary); font-size:var(--cx-type-caption); }
 .nubi-mcp-entries { list-style:none; margin:var(--cx-space-1) 0 0; padding:0; display:grid; gap:var(--cx-space-2); }
 .nubi-mcp-entries li { display:grid; grid-template-columns:minmax(120px,1fr) minmax(160px,2fr) auto; align-items:center; gap:var(--cx-space-2); }
@@ -39,34 +39,34 @@
 .nubi-mcp-form-actions { display:flex; justify-content:flex-end; }
 
 /* MCP servers at the bottom of the composer's tools menu (user suggestion 2026-10-14). */
-.nubi-skill-menu-mcp { display:grid; gap:2px; padding-top:var(--cx-space-2); border-top:1px solid var(--deck-line); }
+.nubi-skill-menu-mcp { display:grid; gap:calc(var(--cx-space-1) * 0.5); padding-top:var(--cx-space-2); border-top:1px solid var(--deck-line); }
 .nubi-skill-menu-mcp-row { display:flex; align-items:center; gap:var(--cx-space-2); padding:var(--cx-space-1) var(--cx-space-2); font-size:var(--cx-type-caption); color:var(--nubi-text-secondary); }
-.nubi-skill-menu-mcp-row strong { color:var(--nubi-text-primary); font-weight:500; }
+.nubi-skill-menu-mcp-row strong { color:var(--nubi-text-primary); font-weight:var(--nubi-weight-label); }
 .nubi-skill-menu-mcp-row[data-state="connected"] .nubi-skill-menu-mcp-dot { background:var(--deck-green); }
 .nubi-skill-menu-mcp-dot { width:8px; height:8px; border-radius:50%; background:var(--deck-line); flex:none; }
 
 /* Tool details per server (user feedback 2026-10-14: a server is for its tools). */
 .nubi-mcp-toolbox { margin-top:var(--cx-space-2); }
-.nubi-mcp-toolbox > summary { display:flex; align-items:center; gap:var(--cx-space-2); cursor:pointer; list-style:none; font-size:var(--cx-type-caption); color:var(--nubi-text-primary); font-weight:600; }
+.nubi-mcp-toolbox > summary { display:flex; align-items:center; gap:var(--cx-space-2); cursor:pointer; list-style:none; font-size:var(--cx-type-caption); color:var(--nubi-text-primary); font-weight:var(--nubi-weight-emphasis); }
 .nubi-mcp-toolbox > summary::-webkit-details-marker { display:none; }
-.nubi-mcp-toolbox > summary small { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:400; color:var(--nubi-text-secondary); }
+.nubi-mcp-toolbox > summary small { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:var(--nubi-weight-regular); color:var(--nubi-text-secondary); }
 .nubi-mcp-toolbox[open] > summary > svg:last-child { transform:rotate(180deg); }
 .nubi-mcp-tool-list { list-style:none; margin:var(--cx-space-2) 0 0; padding:0; display:grid; gap:var(--cx-space-1); }
-.nubi-mcp-tool-list > li { display:grid; gap:4px; padding:var(--cx-space-2) var(--cx-space-3); border-radius:var(--nubi-work-control-radius); background:var(--deck-card); }
+.nubi-mcp-tool-list > li { display:grid; gap:var(--cx-space-1); padding:var(--cx-space-2) var(--cx-space-3); border-radius:var(--nubi-work-control-radius); background:var(--deck-card); }
 .nubi-mcp-tool-head { display:flex; align-items:center; gap:var(--cx-space-2); min-width:0; }
-.nubi-mcp-tool-head code { font-family:var(--nubi-code-family,monospace); font-size:var(--cx-type-caption); color:var(--nubi-text-primary); font-weight:600; }
+.nubi-mcp-tool-head code { font-family:var(--nubi-code-family,monospace); font-size:var(--cx-type-caption); color:var(--nubi-text-primary); font-weight:var(--nubi-weight-emphasis); }
 .nubi-mcp-tool-title { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--nubi-text-secondary); font-size:var(--cx-type-caption); }
 .nubi-mcp-tool-kind { display:inline-flex; color:var(--nubi-text-secondary); }
-.nubi-mcp-tool-kind[data-read] { color:var(--deck-green); }
-.nubi-mcp-tool-desc { margin:0; font-size:var(--cx-type-caption); color:var(--nubi-text-secondary); line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-.nubi-mcp-params { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:4px; }
-.nubi-mcp-params li { display:inline-flex; align-items:center; gap:4px; padding:1px 6px; border-radius:999px; background:var(--deck-section-surface); font-size:var(--cx-type-caption); }
+.nubi-mcp-tool-kind[data-read] { color:var(--nubi-text-success); }
+.nubi-mcp-tool-desc { margin:0; font-size:var(--cx-type-caption); color:var(--nubi-text-secondary); line-height:var(--deck-line-caption); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.nubi-mcp-params { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:var(--cx-space-1); }
+.nubi-mcp-params li { display:inline-flex; align-items:center; gap:var(--cx-space-1); padding:calc(var(--cx-space-1) * 0.25) calc(var(--cx-space-1) * 1.5); border-radius:999px; background:var(--deck-section-surface); font-size:var(--cx-type-caption); }
 .nubi-mcp-params code { font-family:var(--nubi-code-family,monospace); }
 .nubi-mcp-params small { color:var(--nubi-text-secondary); }
-.nubi-mcp-params em { font-style:normal; color:var(--deck-blue-deep); font-weight:600; }
+.nubi-mcp-params em { font-style:normal; color:var(--deck-blue-deep); font-weight:var(--nubi-weight-emphasis); }
 .nubi-mcp-error { display:flex; align-items:flex-start; gap:var(--cx-space-2); margin:var(--cx-space-2) 0 0; color:var(--nubi-text-danger); font-size:var(--cx-type-caption); }
 
 .nubi-mcp-inline { display:flex; align-items:center; gap:var(--cx-space-2); }
 .nubi-mcp-inline > :first-child { flex:1; min-width:0; }
 .nubi-mcp-add { gap:var(--cx-space-2); }
-.nubi-mcp-paste { width:100%; min-height:200px; padding:var(--cx-space-3); border:1px solid var(--deck-line); border-radius:var(--nubi-work-control-radius); background:var(--deck-card); color:var(--nubi-text-primary); font:var(--cx-type-caption)/1.5 var(--nubi-code-family,monospace); resize:vertical; box-sizing:border-box; }
+.nubi-mcp-paste { width:100%; min-height:200px; padding:var(--cx-space-3); border:1px solid var(--deck-line); border-radius:var(--nubi-work-control-radius); background:var(--deck-card); color:var(--nubi-text-primary); font:var(--cx-type-caption)/var(--deck-line-caption) var(--nubi-code-family,monospace); resize:vertical; box-sizing:border-box; }

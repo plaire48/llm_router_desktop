@@ -48,6 +48,11 @@ async function open(){
   const status=await request('provider',{action:'connect',input:fixture.connection});
   assert.equal(status.connected,true,'the compatible provider connects to the fixture: '+JSON.stringify(status.__nubiError||status.provider));
   await trigger().waitFor({timeout:20000});/* the Workbench polls the provider status and shows the composer */
+  if(process.env.NUBI_TEST_REAL_MOTION==='1'){
+   await page.evaluate(()=>Object.defineProperty(navigator,'webdriver',{get:()=>false}));
+   await page.emulateMedia({reducedMotion:'reduce'});await page.evaluate(()=>new Promise(requestAnimationFrame));await page.emulateMedia({reducedMotion:'no-preference'});
+   await page.waitForFunction(()=>document.documentElement.dataset.modalMotion==='on');
+  }
 }
 const trigger=()=>page.locator('.nubi-composer-skill-trigger'),skillsDialog=()=>page.getByRole('dialog',{name:'스킬 관리',exact:true}),toast=text=>page.locator('.nubi-feedback-toast').filter({hasText:text});
 const row=name=>skillsDialog().locator('.nubi-custom-skill-row').filter({has:page.locator('strong',{hasText:name})});
@@ -63,6 +68,21 @@ async function register(file,expected){
 async function refresh(){await skillsDialog().getByRole('button',{name:'목록 새로고침',exact:true}).click();await skillsDialog().getByRole('status').filter({hasText:'스킬을 확인하고 있어요.'}).waitFor({state:'detached'});}
 try{
   await open();stage('fixture model connected through the compatible provider');
+  if(process.env.NUBI_TEST_REAL_MOTION==='1'){
+   for(let cycle=0;cycle<3;cycle++){
+    for(const selector of ['.nubi-composer-skill-trigger','.nubi-approval-mode-button','.context-trigger','.model-trigger']){
+     await page.locator(selector).click();const modal=page.locator('[aria-modal="true"]').last();await modal.waitFor();
+     await page.keyboard.press('Escape');await modal.waitFor({state:'hidden'});
+     assert.equal(await page.locator('#root').evaluate(node=>node.inert),false,selector+' releases its input lock');
+     await page.locator('textarea').fill('preserved draft '+cycle);
+    }
+    await trigger().click();await page.getByRole('dialog',{name:'도구 목록',exact:true}).waitFor();
+    const model=await page.locator('.model-trigger').boundingBox();await page.mouse.click(model.x+model.width/2,model.y+model.height/2);
+    await page.getByRole('dialog',{name:'모델 선택',exact:true}).waitFor();await page.keyboard.press('Escape');await page.getByRole('dialog',{name:'모델 선택',exact:true}).waitFor({state:'hidden'});
+    assert.equal(await page.locator('textarea').inputValue(),'preserved draft '+cycle);
+   }
+   await page.locator('textarea').fill('');stage('real motion picker cycles and replacements preserve input and release background locks');
+  }
   await page.getByRole('button',{name:'문의',exact:true}).click();await page.getByRole('heading',{name:'문의',exact:true}).waitFor();assert.equal(await page.getByRole('tab',{name:'Talk',exact:true}).count(),0,'the inquiry page has no Workspace section tabs');await page.getByRole('region',{name:'문의'}).getByText('팀의 AI Agent 경험을 누려보세요.').waitFor();/* a thirty-second toast may sit over the header: close it before using the back button */await page.locator('.nubi-feedback-toast').getByRole('button',{name:'알림 닫기'}).click().catch(()=>{});/* 문의 has no back arrow any more (user request 2026-10-14); Escape returns. */await page.locator('.nubi-inquiry-page h1').focus();await page.keyboard.press('Escape');await page.locator('.nubi-inquiry-page').waitFor({state:'hidden'});stage('the rail inquiry button opens the inquiry section with the company sign-in prompt');
   /* MCP from the tools menu: paste another app's config, the server starts over stdio and its tools are listed (2026-10-14) */
   {await page.locator('.nubi-feedback-toast').getByRole('button',{name:'알림 닫기'}).click().catch(()=>{});
@@ -70,7 +90,7 @@ try{
    const mcp=page.getByRole('dialog',{name:'MCP 서버',exact:true});await mcp.getByRole('button',{name:'설정 붙여넣기',exact:true}).click();
    await mcp.getByRole('textbox',{name:'MCP 설정 JSON'}).fill(JSON.stringify({mcpServers:{'fixture tools':{command:process.execPath,args:[path.resolve('tests/mcp-fixture-server.mjs'),'stdio']}}}));
    await mcp.getByRole('button',{name:'추가하고 연결',exact:true}).click();
-   await mcp.getByText('도구 2개',{exact:true}).first().waitFor({timeout:30000});await mcp.getByText('echo',{exact:true}).waitFor();await mcp.getByText('add_note',{exact:true}).waitFor();
+   await mcp.getByText('도구 2개',{exact:true}).first().waitFor({timeout:30000});await mcp.locator('.nubi-mcp-toolbox').filter({hasText:'도구 2개'}).locator('summary').click();await mcp.getByText('echo',{exact:true}).waitFor();await mcp.getByText('add_note',{exact:true}).waitFor();
    await page.keyboard.press('Escape');await mcp.waitFor({state:'hidden'});stage('an MCP config pasted from another app connects over stdio and lists its tools');}
   await openManagement();await skillsDialog().getByText('등록한 스킬이 없어요.').waitFor();
   await register(path.join(packages,'fixture-skill'),'스킬을 등록했어요.');await row('fixture-skill').waitFor();
@@ -95,8 +115,8 @@ try{
   assert.equal(await skillsDialog().getByRole('button',{name:/휴지통/}).count(),0);
   stage('remove skill with no trash browser in My Skills');
   await page.keyboard.press('Escape');await skillsDialog().waitFor({state:'hidden'});
-  await trigger().click();await page.getByRole('dialog',{name:'도구 목록',exact:true}).getByRole('button',{name:'fixture-skill 스킬 사용'}).click();await toast('스킬을 요청에 추가했습니다').waitFor();
-  const composer=page.getByRole('textbox',{name:'작업 요청'});assert.match(await composer.inputValue(),/^\/fixture-skill /,'the command leads the draft');
+  await trigger().click();await page.getByRole('dialog',{name:'도구 목록',exact:true}).getByRole('button',{name:'fixture-skill 스킬 사용'}).click();await toast('스킬을 선택했습니다').waitFor();
+  const composer=page.getByRole('textbox',{name:'작업 요청'});await page.getByRole('group',{name:'선택한 명령 또는 스킬',exact:true}).getByRole('button',{name:'fixture-skill',exact:true}).waitFor();assert.equal(await composer.inputValue(),'','the command is projected as an icon and title');
   await composer.click();await page.keyboard.press('End');await page.keyboard.type('요약해 줘');await page.getByRole('button',{name:'전송',exact:true}).click();
   await page.getByText(new RegExp(SENTINEL)).first().waitFor({timeout:90000});
   assert.deepEqual(calls.slice(0,2),['discover_capabilities','use_skill'],'the run discovers the skill, then loads it with the hash the discovery returned');assert.equal(loadedInstruction,true,'use_skill returned the registered instruction');

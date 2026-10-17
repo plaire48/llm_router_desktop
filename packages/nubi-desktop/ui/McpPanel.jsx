@@ -1,5 +1,6 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {CxButton,CxInput,Icon} from '@e2e/cx-design-system';
+import {DeckDisclosure} from '../../../extensions/aipro-chat/src/DeckSurfaces.jsx';
 import {WorkspaceAction} from './WorkspaceAction.jsx';
 import {TerminalMark,BrowserMark,FolderMark} from './marks.jsx';
 import {notifyWorkspaceToast} from './WorkspaceToast.jsx';
@@ -62,8 +63,10 @@ export function McpPanel({api}){
     </div></div>
    {stdio?<>
     <div className="nubi-mcp-field"><label htmlFor="nubi-mcp-command">명령</label><CxInput id="nubi-mcp-command" className="nubi-mcp-mono" value={form.commandLine} onChange={event=>update({commandLine:event.target.value})} placeholder="npx -y @scope/mcp-server --flag" required/><small>터미널에 치듯 한 줄로 적어요. 공백이 든 경로는 따옴표로 묶어요.</small></div>
-    <div className="nubi-mcp-field"><label htmlFor="nubi-mcp-cwd">작업 폴더 <em>선택</em></label><div className="nubi-mcp-inline"><CxInput id="nubi-mcp-cwd" className="nubi-mcp-mono" value={form.cwd} onChange={event=>update({cwd:event.target.value})} placeholder="비우면 기본 폴더"/><CxButton type="button" onClick={async()=>{try{const value=await api('chooseMcpFolder');if(value?.path)update({cwd:value.path});}catch{notifyWorkspaceToast('폴더를 고르지 못했어요.',{error:true});}}}><FolderMark size={16}/><span>폴더 선택</span></CxButton></div></div>
+
    </>:<div className="nubi-mcp-field"><label htmlFor="nubi-mcp-url">주소</label><CxInput id="nubi-mcp-url" className="nubi-mcp-mono" value={form.url} onChange={event=>update({url:event.target.value})} placeholder="https://mcp.company.local/mcp" required/></div>}
+   <DeckDisclosure key={`${form.id}:${form.transport}`} title={stdio?'작업 폴더와 환경 변수':'인증 헤더'} icon="sliders">
+    {stdio&&<div className="nubi-mcp-field"><label htmlFor="nubi-mcp-cwd">작업 폴더 <em>선택</em></label><div className="nubi-mcp-inline"><CxInput id="nubi-mcp-cwd" className="nubi-mcp-mono" value={form.cwd} onChange={event=>update({cwd:event.target.value})} placeholder="비우면 기본 폴더"/><CxButton type="button" onClick={async()=>{try{const value=await api('chooseMcpFolder');if(value?.path)update({cwd:value.path});}catch{notifyWorkspaceToast('폴더를 고르지 못했어요.',{error:true});}}}><FolderMark size={16}/><span>폴더 선택</span></CxButton></div></div>}
    <div className="nubi-mcp-field">
     <span className="nubi-mcp-label">{stdio?'환경 변수':'헤더'} <em>선택</em></span>
     <small>{stdio?'토큰 같은 값은 환경 변수로 넘겨요.':'인증 토큰은 헤더로 넘겨요 (예: Authorization).'} 값은 이 PC의 보관소에만 저장되고 다시 보여 주지 않아요. 편집할 때 비워 두면 기존 값을 유지해요.</small>
@@ -76,6 +79,7 @@ export function McpPanel({api}){
     </ul>}
     <CxButton type="button" className="nubi-mcp-add-entry" onClick={()=>update({entries:[...form.entries,{key:'',value:''}]})}><Icon name="plus" size={16}/><span>{stdio?'환경 변수 추가':'헤더 추가'}</span></CxButton>
    </div>
+   </DeckDisclosure>
    <div className="nubi-mail-switch-row nubi-mcp-switch"><div><strong>자동 연결</strong><small>앱을 켜면 이 서버에 바로 연결해요.</small></div><button type="button" role="switch" aria-label="자동 연결" aria-checked={form.enabled} className="nubi-ios-switch" onClick={()=>update({enabled:!form.enabled})}><span aria-hidden="true"/></button></div>
    <div className="nubi-mcp-form-actions"><CxButton type="submit" variant="primary" disabled={busy}><Icon name="save" size={16}/><span>저장</span></CxButton></div>
   </form>;
@@ -95,7 +99,7 @@ export function McpPanel({api}){
       {server.transport!=='builtin'&&<WorkspaceAction action="delete" label="삭제" disabled={busy} onClick={()=>act({action:'remove',id:server.id},()=>notifyWorkspaceToast('MCP 서버를 삭제했어요.'))}/>}
      </span>
     </div>
-    {server.tools.length>0&&<details className="nubi-mcp-toolbox" open={server.transport!=='builtin'&&data.filter(item=>item.transport!=='builtin').length===1||undefined}><summary><Icon name="layers" size={14}/><span>도구 {server.tools.length}개</span><small>읽기 전용은 바로 실행, 그 밖에는 실행 전에 물어봐요</small><Icon name="chevronDown" size={14}/></summary>
+    {server.tools.length>0&&<details className="nubi-mcp-toolbox"><summary><Icon name="layers" size={14}/><span>도구 {server.tools.length}개</span><small>읽기 전용은 바로 실행, 그 밖에는 실행 전에 물어봐요</small><Icon name="chevronDown" size={14}/></summary>
      <ul className="nubi-mcp-tool-list">{server.tools.map(tool=><li key={tool.name}>
       <div className="nubi-mcp-tool-head"><span className="nubi-mcp-tool-kind" data-read={tool.readOnly||undefined} title={tool.readOnly?'읽기 전용':'실행 전 확인'}><Icon name={tool.readOnly?'eye':'pencil'} size={14}/></span><code>{tool.name}</code>{tool.title&&<span className="nubi-mcp-tool-title">{tool.title}</span>}</div>
       {tool.description&&<p className="nubi-mcp-tool-desc" title={tool.description}>{tool.description}</p>}

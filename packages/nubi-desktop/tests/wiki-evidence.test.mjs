@@ -127,7 +127,9 @@ for(const drift of [false,true])test('Pi tool flow links Wiki to requirements an
     }
   }};
   const task=await service.createTask({request:'Change welcome using Wiki',criteria:['Changed wording']});await service.startAgent({taskId:task.id});await service.agent.promise;
-  assert.equal(service.task(task.id).state,'review');assert.equal(round,5);assert.equal(service.state().proposals.length,drift?0:1);assert.match(await readFile(path.join(root,'app.txt'),'utf8'),/second/);
+  // A stale Wiki refusal receives two bounded recovery opportunities. Each
+  // still sees the same refusal; no proposal or source write is fabricated.
+  assert.equal(service.task(task.id).state,'review');assert.equal(round,drift?7:5);assert.equal(service.state().proposals.length,drift?0:1);assert.match(await readFile(path.join(root,'app.txt'),'utf8'),/second/);
 });
 
 test('retrieval excludes private catalogs and claims and reports bounded coverage without DB work',async t=>{

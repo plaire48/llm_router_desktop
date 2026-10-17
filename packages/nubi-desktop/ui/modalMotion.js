@@ -9,12 +9,12 @@ import {installModalResizeMotion} from './modalResizeMotion.js';
 // the moment the caller's state closes it (dozens of `open && <DetailPanel/>` sites plus the vendored CX package).
 // Instead of delaying every close, this puts the exact node React just removed back in place as an inert,
 // aria-hidden "leaving" layer, plays the exit animation and then removes it. React state, Escape, focus return and the
-// CX inert layer therefore finish immediately, exactly as before; only the picture lingers for the exit (~220ms) and
+// CX inert layer therefore finish immediately, exactly as before; only the picture lingers for the exit (~180ms) and
 // it never takes focus or pointer input. Automated checks (navigator.webdriver), reduced motion and hidden windows
 // get neither the enter motion nor the exit delay.
 
 const BACKDROP='cx-panel-backdrop';
-export const MODAL_EXIT_MS=220;
+export const MODAL_EXIT_MS=180;
 const isBackdrop=node=>node instanceof HTMLElement&&node.classList.contains(BACKDROP);
 const isLeaving=node=>node.dataset.modalMotion==='leaving';
 
@@ -49,7 +49,8 @@ export function installModalMotion(){
     // CX restores the inert state it recorded when its (possibly deferred) effect cleanup runs; keep the copy inert.
     requestAnimationFrame(()=>{if(leaving.has(node))node.inert=true;});
     // Only the exit keyframes count; a spinner inside the dialog never finishes.
-    const exits=(node.getAnimations?.({subtree:true})||[]).filter(animation=>String(animation.animationName||'').startsWith('nubi-modal-'));
+    const panel=node.querySelector(':scope > .cx-detail-panel');
+    const exits=[...(node.getAnimations?.()||[]),...(panel?.getAnimations?.()||[])].filter(animation=>String(animation.animationName||'').startsWith('nubi-modal-'));
     if(!exits.length){finish(node);return;}
     Promise.allSettled(exits.map(animation=>animation.finished)).then(()=>finish(node));
     const timer=setTimeout(()=>{timers.delete(timer);finish(node);},MODAL_EXIT_MS+120);

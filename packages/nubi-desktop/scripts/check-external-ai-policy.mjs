@@ -29,7 +29,7 @@ try{
   assert.equal(await dialog.getByRole('link',{name:'보안 정책 및 FAQ'}).getAttribute('href'),'https://sdsaiuc.sds.samsung.net/post/cmqj8pr3n053pu64okt6yhe7a');
   assert(await dialog.evaluate(el=>el.scrollWidth<=el.clientWidth));
   await p.screenshot({path:path.join(dir,'policy-'+width+'.png'),animations:'disabled'});
-  await dialog.getByRole('checkbox',{name:'다시 보지 않기'}).check();await dialog.getByRole('button',{name:'취소',exact:true}).click();
+  await dialog.getByRole('switch',{name:'다시 보지 않기'}).check();await dialog.getByRole('button',{name:'취소',exact:true}).click();
   assert.equal(await p.evaluate(()=>localStorage.getItem('nubi.workspace.external-ai-policy.dismissed.v1')),null);
   assert.equal(await p.evaluate(()=>window.policyLoginCalls?.length||0),0);
   await p.locator('.aipro-login').getByRole('button',{name:'ChatGPT',exact:true}).click();
@@ -37,7 +37,7 @@ try{
   await p.waitForFunction(()=>window.policyLoginCalls?.length===1);
   assert.equal(await p.evaluate(()=>localStorage.getItem('nubi.workspace.external-ai-policy.dismissed.v1')),null);
   await p.reload();await p.locator('.aipro-login').getByRole('button',{name:'ChatGPT',exact:true}).click();
-  await dialog.getByRole('checkbox',{name:'다시 보지 않기'}).check();await dialog.getByRole('button',{name:'확인하고 연결',exact:true}).click();
+  await dialog.getByRole('switch',{name:'다시 보지 않기'}).check();await dialog.getByRole('button',{name:'확인하고 연결',exact:true}).click();
   await p.waitForFunction(()=>window.policyLoginCalls?.length===1);
   await p.reload();await p.locator('.aipro-login').getByRole('button',{name:'ChatGPT',exact:true}).click();
   await p.waitForFunction(()=>window.policyLoginCalls?.length===1);assert.equal(await dialog.count(),0);

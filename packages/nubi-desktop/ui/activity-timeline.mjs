@@ -1,7 +1,17 @@
 // Keep the host's event order. Never infer success from a later note or answer.
-export function activityTimeline(trace) {
+export function activityTimeline(trace,thoughts=[]) {
+  // Preserve host tool order. Insert provider notes by their recorded time;
+  // untimed legacy notes stay at the end instead of inventing chronology.
+  const events=[...trace];
+  for(const thought of thoughts){
+    const at=Date.parse(thought.at||'');
+    const index=Number.isFinite(at)?events.findIndex(event=>Date.parse(event.startedAt||event.at||'')>at):-1;
+    const event={...thought,tool:'model_memo'};
+    events.splice(index<0?events.length:index,0,event);
+  }
   const blocks=[];
-  for (const event of trace) {
+  for (const event of events) {
+    if(event.tool==='model_memo'){blocks.push({kind:'memo',id:event.id,event});continue;}
     if(event.tool==='progress_note') { blocks.push({kind:'note',id:event.id,event}); continue; }
     if(event.tool==='update_plan') continue;
     const attention=['error','waiting','cancelled','deferred'].includes(event.status);

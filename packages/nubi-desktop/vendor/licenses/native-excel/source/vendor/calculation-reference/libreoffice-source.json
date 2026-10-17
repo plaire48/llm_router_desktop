@@ -1,0 +1,22 @@
+{
+  "repository": "https://github.com/LibreOffice/core",
+  "commit": "9d375606275c5e71391d905e68d2e59a51d9833f",
+  "license": "MPL-2.0; original Apache-2.0 notice retained in analysishelper.cxx",
+  "files": {
+    "LICENSE.Apache-2.0": "68e32334df324ef4fc79fad3a26487e5abac36055a484bb6c8d7ecf9d8350885",
+    "interpr8.cxx": "da5d506aaeb4dbbe38f30d4b399abaa56bae53edf1fd4ca4b7fd4e254a95fad6",
+    "analysishelper.cxx": "4490fb94d985d22b8a17db1c22dd405290e3b84d375c1228f5c6c1a8616ced5a",
+    "COPYING.MPL": "1f256ecad192880510e84ad60474eab7589218784b9a50bc7ceee34c2b91f1d5"
+  },
+  "adaptedFiles": [
+    "scripts/libreoffice-depreciation.mjs",
+    "scripts/libreoffice-ets.mjs"
+  ],
+  "changes": [
+    "Use host-provided Univer numeric/date/normal-inverse classes and bounded JavaScript arrays",
+    "Correct duplicate averaging, all-gap validation and 30 percent missing-point denominator",
+    "Use additive base subtraction and prior seasonal state, reset initial season for each fit, fix full-cycle forecast index",
+    "Use deterministic additive innovation confidence intervals instead of LibreOffice Monte Carlo; Excel numerical parity remains a separate failing cached-reference gate",
+    "No LibreOffice executable or workbook rewrite fallback in the product calculation path"
+  ]
+}

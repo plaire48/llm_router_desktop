@@ -12,7 +12,7 @@ export async function assertDialogChrome(dialog) {
     return {insets:parts.map(node=>[getComputedStyle(node).paddingLeft,getComputedStyle(node).paddingRight]),
       titleWeight:getComputedStyle(title).fontWeight,
       radius:getComputedStyle(root).borderRadius,
-      close:close?{width:close.getBoundingClientRect().width,height:close.getBoundingClientRect().height,radius:getComputedStyle(close).borderRadius}:null,
+      close:close?.checkVisibility()?{width:close.getBoundingClientRect().width,height:close.getBoundingClientRect().height,radius:getComputedStyle(close).borderRadius}:null,
       sectionGap:getComputedStyle(root.querySelector(':scope > .cx-panel-body')).rowGap};
   });
   assert(new Set(facts.insets.flat()).size===1,'All dialog sections share the same horizontal gutter');

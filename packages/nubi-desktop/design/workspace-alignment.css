@@ -1,0 +1,82 @@
+/* Text axes belong to the content, not to an icon's intrinsic width.
+   Keep authored document indentation, table columns and centered empty states. */
+:root:has(.desktop-shell){
+ --nubi-text-row-inset:var(--cx-space-3);
+ --nubi-text-row-icon:var(--cx-space-4);
+ --nubi-text-row-gap:var(--cx-space-3);
+ --nubi-text-row-axis:calc(var(--nubi-text-row-inset) + var(--nubi-text-row-icon) + var(--nubi-text-row-gap));
+ --nubi-text-input-inset:var(--cx-space-4);
+}
+/* The transcript and the typed text use the same inset within equal-width cards. */
+.desktop-shell .nubi-workbench[data-workspace-screen=conversation] .nubi-conversation-content{
+ padding-inline:var(--nubi-text-input-inset);border-inline:1px solid transparent;box-sizing:border-box;
+}
+.desktop-shell .nubi-workbench .nubi-composer-surface{padding-inline:var(--nubi-text-input-inset)}
+.desktop-shell .nubi-workbench .composer textarea.aipro-message-input{padding-inline:0}
+/* Wiki overview: one icon gutter for heading, search, metrics, rows and disclosure. */
+.desktop-shell .nubi-wiki-browser{--nubi-wiki-text-axis:var(--nubi-text-row-axis)}
+.desktop-shell .nubi-wiki-bar{gap:var(--nubi-text-row-gap)}
+.desktop-shell .nubi-wiki-badge{width:calc(var(--nubi-wiki-text-axis) - var(--nubi-text-row-gap));height:30px}
+.desktop-shell .nubi-wiki-insights-heading,
+.desktop-shell .nubi-wiki-insight-reading>header{padding-inline-start:var(--nubi-wiki-text-axis)}
+.desktop-shell .nubi-wiki-insight-document{gap:var(--nubi-text-row-gap);padding-inline:var(--nubi-text-row-inset)}
+.desktop-shell .nubi-wiki-insight-document>svg{width:var(--nubi-text-row-icon);height:var(--nubi-text-row-icon)}
+.desktop-shell .nubi-wiki-insight-metrics>button{padding-inline:var(--nubi-text-row-inset);gap:var(--nubi-text-row-gap);text-align:start}
+.desktop-shell .nubi-wiki-insight-metrics>button>svg{width:var(--nubi-text-row-icon);height:var(--nubi-text-row-icon)}
+.desktop-shell .nubi-wiki-reading-links{margin-inline-start:var(--nubi-wiki-text-axis)}
+.desktop-shell .nubi-wiki-reading-links>summary{position:relative;list-style:none}
+.desktop-shell .nubi-wiki-reading-links>summary::-webkit-details-marker{display:none}
+.desktop-shell .nubi-wiki-reading-links>summary::before{content:"";position:absolute;inset-inline-start:calc(-1 * var(--cx-space-5));top:calc(50% - 3px);width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(-45deg)}
+.desktop-shell .nubi-wiki-reading-links[open]>summary::before{transform:rotate(45deg)}
+.desktop-shell .nubi-wiki-reading-links ul{padding-inline:0;background:transparent}
+.desktop-shell .nubi-wiki-insight-method{margin-inline-start:var(--nubi-wiki-text-axis);padding-inline:0;background:transparent}
+.desktop-shell .nubi-wiki-insight-method>summary{list-style-position:outside}
+.desktop-shell .nubi-wiki-candidate{padding-inline:0}
+.desktop-shell .nubi-wiki-candidate>p{padding-inline-start:var(--nubi-wiki-text-axis)}
+.desktop-shell .nubi-wiki-candidate button{padding-inline:var(--nubi-text-row-inset);gap:var(--nubi-text-row-gap)}
+.desktop-shell .nubi-wiki-candidate button>svg{width:var(--nubi-text-row-icon);height:var(--nubi-text-row-icon)}
+/* A callout background may extend beyond the reading axis; its text may not. */
+.desktop-shell .nubi-wiki-document-content{box-sizing:border-box;padding-inline:var(--cx-space-4)}
+.desktop-shell .nubi-wiki-description{margin-inline:calc(-1 * var(--cx-space-4));padding-inline:var(--cx-space-4)}
+.desktop-shell .nubi-wiki-links h3{position:relative}
+.desktop-shell .nubi-wiki-links h3>svg{position:absolute;inset-inline-start:calc(-1 * var(--cx-space-6))}
+.desktop-shell .nubi-wiki-links nav{margin-inline:calc(-1 * var(--cx-space-3))}
+.desktop-shell .nubi-wiki-links nav button>svg{order:2}
+.desktop-shell .nubi-wiki-links nav button>span:first-of-type{flex:1}
+/* Mail reader already aligns heading/envelope/body. Keep the return label on that axis. */
+.desktop-shell :is(.nubi-mail-reader-navigation,.nubi-wiki-reader-navigation)>button:first-child{
+ padding-inline-start:0;
+}
+@media(forced-colors:active){.desktop-shell .nubi-wiki-reading-links>summary::before{border-color:ButtonText}}
+
+.desktop-shell .nubi-wiki-insight-search input{padding-inline-start:var(--cx-space-1)}
+.desktop-shell .nubi-wiki-reader-navigation{padding-inline:var(--cx-space-4)}
+.desktop-shell .nubi-wiki-reader-navigation>button:first-child{position:relative;padding-inline:0;border:0;background:transparent;box-shadow:none}
+.desktop-shell .nubi-wiki-reader-navigation>button:first-child>svg{position:absolute;inset-inline-start:calc(-1 * var(--cx-space-6))}
+
+/* Mail attachments and source disclosures share the envelope/body text axis. */
+.desktop-shell .nubi-mail-reader-content{padding-inline-start:var(--cx-space-6)}
+.desktop-shell .nubi-mail-attachments h3,
+.desktop-shell .nubi-mail-original>summary{position:relative;padding-inline-start:0}
+.desktop-shell .nubi-mail-attachments h3>svg,
+.desktop-shell .nubi-mail-original>summary>svg{position:absolute;inset-inline-start:calc(-1 * var(--cx-space-6))}
+.desktop-shell .nubi-mail-reader-content .nubi-mail-attachment-row{padding-inline-start:0;border-inline-start:0}
+.desktop-shell .nubi-mail-reader-content .nubi-mail-attachment-row .nubi-mail-attachment{position:relative;padding-inline-start:0;border-inline-start:0}
+.desktop-shell .nubi-mail-reader-content .nubi-mail-attachment-row .nubi-mail-attachment>:is(svg,.desktop-file-icon,.status-spinner){position:absolute;inset-inline-start:calc(-1 * var(--cx-space-6));width:var(--cx-space-4);height:var(--cx-space-4)}
+
+/* Project names, new chat, date headings and chat titles use one sidebar axis. */
+.desktop-shell .nubi-sidebar :is(.nubi-sidebar-project,.nubi-sidebar-new,.nubi-session-select){border:0;padding-inline:var(--cx-space-3);gap:var(--cx-space-2)}
+.desktop-shell .nubi-sidebar :is(.nubi-sidebar-project,.nubi-sidebar-new,.nubi-session-select)>svg:first-child{width:var(--cx-space-4);height:var(--cx-space-4);flex:0 0 var(--cx-space-4)}
+.desktop-shell .nubi-sidebar nav[aria-label="대화 목록"] h3{padding-inline-start:calc(var(--cx-space-3) + var(--cx-space-4) + var(--cx-space-2))}
+
+/* The bottom status bar has its own reserved row. Center the label and glyph
+   on one baseline, with the leading glyph aligned to the navigation rail. */
+.desktop-shell>.desktop-mail-progress{
+ padding-block:0;
+ padding-inline:calc(var(--nubi-workspace-inset,var(--cx-space-2)) + (var(--nubi-rail-width,52px) - var(--nubi-text-row-icon))/2 - var(--cx-space-2));
+}
+.desktop-shell .desktop-mail-progress .nubi-mail-progress-open{
+ min-height:32px;padding-block:0;gap:var(--cx-space-2);font:inherit;
+}
+.desktop-shell .desktop-mail-progress .nubi-mail-progress-open>strong{font:inherit;font-weight:var(--nubi-weight-label)}
+.desktop-shell .desktop-mail-progress .nubi-mail-progress-open>:is(svg,.status-spinner){width:var(--nubi-text-row-icon);height:var(--nubi-text-row-icon);flex:0 0 var(--nubi-text-row-icon)}

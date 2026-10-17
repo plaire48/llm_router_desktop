@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import {DESKTOP_FEATURES} from '../runtime/beta-features.mjs';
 import {WELCOME_GREETINGS} from '../ui/welcome-greetings.mjs';
 const dir=path.resolve('verification/shared-ui');await mkdir(dir,{recursive:true});
-await build({entryPoints:['tests/shared-ui-fixture.jsx'],outfile:path.join(dir,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.woff2':'file','.woff':'file'},define:{__APP_VERSION__:'"fixture"','process.env.NODE_ENV':'"production"'}});
+await build({entryPoints:['tests/shared-ui-fixture.jsx'],outfile:path.join(dir,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.webp':'file','.woff2':'file','.woff':'file'},define:{__APP_VERSION__:'"fixture"','process.env.NODE_ENV':'"production"'}});
 await cp('../../extensions/aipro-chat/public/icons',path.join(dir,'icons'),{recursive:true});
 await writeFile(path.join(dir,'index.html'),'<!doctype html><html lang="ko"><title>Nubi synthetic flow check</title><link rel="stylesheet" href="app.css"><div id="root"></div><script type="module" src="app.js"></script></html>');
 const server=createServer(async(req,res)=>{try{const requested=path.resolve(dir,'.'+new URL(req.url,'http://localhost').pathname.replace(/\/$/,'/index.html'));if(!requested.startsWith(dir+path.sep))throw Error();const ext=path.extname(requested),data=await readFile(requested);res.writeHead(200,{'content-type':({'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.svg':'image/svg+xml','.woff2':'font/woff2','.webp':'image/webp'})[ext]||'application/octet-stream'}).end(data);}catch{res.writeHead(404).end();}});await new Promise(r=>server.listen(0,'127.0.0.1',r));
@@ -64,10 +64,29 @@ try{
  assert.deepEqual(await modeMenu.getByRole('menuitemradio').evaluateAll(items=>items.map(item=>[item.querySelector('strong').textContent,item.getAttribute('aria-checked')])),[['매번 확인','true'],['파일 자동 반영','false'],['파일과 명령 자동','false']]);
  await modeDialog.getByText('관리자 명령과 앱 조작은 항상 확인해요.',{exact:true}).waitFor();assert.equal(await modeDialog.getByRole('group',{name:'항상 허용한 명령'}).getByText('npm test',{exact:true}).count(),1);
  await p.screenshot({path:'verification/ui-approval-mode.png'});
- await modeMenu.getByRole('menuitemradio',{name:/파일 자동 반영/}).click();await p.getByRole('button',{name:/파일 자동 반영/}).waitFor();
+ await modeMenu.getByRole('menuitemradio',{name:/파일 자동 반영/}).click();
+ assert.deepEqual(await p.evaluate(()=>window.approvalCalls||[]),[],'selecting automatic mode must not persist before confirmation');
+ let warning=p.getByRole('alertdialog',{name:'자동 반영 안내',exact:true});await warning.waitFor();
+ await warning.getByText('파일 변경을 자동 반영해요.',{exact:true}).waitFor();assert.equal(await warning.getByRole('button',{name:'취소',exact:true}).evaluate(el=>el===document.activeElement),true);
+ await warning.getByRole('button',{name:'취소',exact:true}).click();assert.deepEqual(await p.evaluate(()=>window.approvalCalls||[]),[]);assert.equal(await modeButton.evaluate(el=>el===document.activeElement),true);
+ for(const close of ['escape','button']){await modeButton.click();await p.getByRole('menuitemradio',{name:/파일 자동 반영/}).click();warning=p.getByRole('alertdialog',{name:'자동 반영 안내',exact:true});await warning.waitFor();if(close==='escape')await p.keyboard.press('Escape');else await warning.getByRole('button',{name:'닫기',exact:true}).click();await warning.waitFor({state:'hidden'});assert.deepEqual(await p.evaluate(()=>window.approvalCalls||[]),[]);assert.equal(await modeButton.evaluate(el=>el===document.activeElement),true);}
+ await modeButton.click();await p.getByRole('menuitemradio',{name:/파일 자동 반영/}).click();warning=p.getByRole('alertdialog',{name:'자동 반영 안내',exact:true});await assertDesktopDialog(warning);
+ await warning.getByRole('button',{name:'자동 허용',exact:true}).click();await p.getByRole('button',{name:/승인 방식: 파일 자동 반영/}).waitFor();
  assert.deepEqual(await p.evaluate(()=>window.approvalCalls),['edits']);assert.equal(await p.getByRole('menu',{name:'승인 방식'}).count(),0);
- await p.getByRole('button',{name:/파일 자동 반영/}).click();await p.keyboard.press('Escape');assert.equal(await p.getByRole('menu',{name:'승인 방식'}).count(),0);
- await p.getByRole('button',{name:/파일 자동 반영/}).click();await p.getByRole('menuitemradio',{name:/매번 확인/}).click();
+ await p.getByRole('button',{name:/승인 방식: 파일 자동 반영/}).click();await p.keyboard.press('Escape');assert.equal(await p.getByRole('menu',{name:'승인 방식'}).count(),0);
+ await p.getByRole('button',{name:/승인 방식: 파일 자동 반영/}).click();await p.getByRole('menuitemradio',{name:/파일과 명령 자동/}).click();
+ warning=p.getByRole('alertdialog',{name:'자동 실행 안내',exact:true});await warning.getByText(/외부 통신/).waitFor();await warning.getByText(/현재 프로젝트/).waitFor();assert.equal(await warning.locator('details').getAttribute('open'),null);await warning.locator('summary').click();await warning.getByText(/항상 허용한 명령/).waitFor();await warning.getByText(/신뢰하는 프로젝트/).waitFor();
+ await warning.getByRole('button',{name:'취소',exact:true}).click();assert.deepEqual(await p.evaluate(()=>window.approvalCalls),['edits']);
+ await p.getByRole('button',{name:/승인 방식: 파일 자동 반영/}).click();await p.getByRole('menuitemradio',{name:/파일과 명령 자동/}).click();warning=p.getByRole('alertdialog',{name:'자동 실행 안내',exact:true});await assertDesktopDialog(warning);await p.screenshot({path:'verification/ui-auto-approval-warning-wide.png'});
+ await p.setViewportSize({width:440,height:950});await assertDesktopDialog(warning);await p.screenshot({path:'verification/ui-auto-approval-warning-narrow.png'});
+ await p.evaluate(()=>document.documentElement.style.fontSize='32px');
+ assert(await warning.evaluate(el=>{const r=el.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight&&el.scrollWidth<=el.clientWidth+1;}),'warning stays contained at 200% text');
+ const warningParagraphs=await warning.locator('p').evaluateAll(items=>items.map(el=>{const s=getComputedStyle(el);return {fontSize:parseFloat(s.fontSize),lineHeight:parseFloat(s.lineHeight)};}));assert(warningParagraphs.every(s=>s.lineHeight>=s.fontSize*1.5),'warning paragraphs retain readable line spacing at 200% text: '+JSON.stringify(warningParagraphs));
+ const warningFooter=warning.locator('.cx-panel-footer');assert(await warningFooter.evaluate(el=>el.scrollWidth<=el.clientWidth+1),'warning actions remain reachable at 200% text');await p.screenshot({path:'verification/ui-auto-approval-warning-large-text.png'});
+ await warning.locator('summary').click();await warning.locator('p').last().scrollIntoViewIfNeeded();assert(await warning.locator('p').last().evaluate(el=>{const r=el.getBoundingClientRect(),body=el.closest('.cx-panel-body').getBoundingClientRect();return r.top>=body.top-1&&r.bottom<=body.bottom+1;}),'the final scope note is reachable by scrolling at 200% text');await p.screenshot({path:'verification/ui-auto-approval-warning-large-text-bottom.png'});
+ await p.evaluate(()=>document.documentElement.style.fontSize='');await p.setViewportSize({width:1280,height:950});await warning.getByRole('button',{name:'자동 허용',exact:true}).click();
+ assert.deepEqual(await p.evaluate(()=>window.approvalCalls),['edits','commands']);await p.getByRole('button',{name:/승인 방식: 파일과 명령 자동/}).click();await p.getByRole('menuitemradio',{name:/매번 확인/}).click();assert.deepEqual(await p.evaluate(()=>window.approvalCalls),['edits','commands','ask']);
+ checks.push('automatic modes explain scope and consequences in a shared confirmation; cancel preserves policy, only explicit consent changes it, and warning fits narrow and 200 percent text');
  checks.push('the approval mode is chosen below the input; its menu shows the three modes, the always-allowed commands and what always waits');
  await p.getByRole('textbox',{name:'작업 요청'}).fill('문구를 간결하게 해 주세요.');await p.getByRole('button',{name:'전송',exact:true}).click();await p.getByRole('article',{name:/ 답변$/}).getByText(/합성 응답/).waitFor();await p.getByRole('textbox',{name:'추가 요청'}).fill('기존 조건도 유지해 주세요.');await p.getByRole('button',{name:'전송',exact:true}).click();await p.getByRole('article',{name:'내 메시지'}).getByText('기존 조건도 유지해 주세요.').waitFor();assert.equal(await p.getByRole('navigation',{name:'작업 보기'}).count(),0);assert.equal(await p.getByRole('textbox',{name:'로컬 실행',exact:true}).count(),0);await p.getByRole('region',{name:'작업 계획',exact:true}).waitFor();assert.equal(await p.getByRole('region',{name:'작업 계획',exact:true}).locator('li').count(),2);assert.equal(await p.locator('.nubi-work-plan > details').getAttribute('open'),null);/* Delivered results collapse automatically (user decision 2026-10-12); saved steps remain available. */await p.locator('.nubi-work-plan > details > summary').click();assert.equal(await p.locator('.nubi-work-plan > details').getAttribute('open'),'');assert.equal(await p.locator('.deck-blob').first().evaluate(e=>getComputedStyle(e).animationPlayState),'paused');checks.push('one task surface presents a concise plan and pauses background motion during work');
  assert.equal(await p.getByRole('button',{name:'새 작업',exact:true}).count(),0);assert.equal(await p.locator('.nubi-task-heading').getByText('REQ-fixture',{exact:true}).count(),0);
@@ -211,12 +230,19 @@ try{
  }else checks.push('keyboard consent scenario skipped: computerUse feature off');
  await p.goto(page('compaction=1'));
  await openSidebar();assert.equal(await p.getByRole('button',{name:'새 대화',exact:true}).isDisabled(),false);await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/대화 압축 화면 검증/}).click();
- await p.getByRole('region',{name:'계획과 진행 상황',exact:true}).getByText('이전 대화를 정리하고 있어요',{exact:true}).waitFor();// the compaction status is the activity's current step (2026-10-02)
+ await p.getByRole('region',{name:'계획과 진행 상황',exact:true}).getByText('대화 내용 정리 중',{exact:true}).waitFor();// the compaction status is the activity's current step (2026-10-02)
  await p.getByRole('article',{name:'내 메시지'}).getByText('원문 보존 확인: 승인 없이 실행하지 마세요.',{exact:true}).waitFor();
  await p.screenshot({path:'verification/ui-context-compaction.png',animations:'disabled'});
- await p.getByRole('button',{name:'중지',exact:true}).click();await p.getByText('이전 대화를 정리하고 있어요',{exact:true}).waitFor({state:'hidden'});
+ await p.getByRole('button',{name:'중지',exact:true}).click();await p.getByText('대화 내용 정리 중',{exact:true}).waitFor({state:'hidden'});
  await p.getByRole('article',{name:'내 메시지'}).getByText('원문 보존 확인: 승인 없이 실행하지 마세요.',{exact:true}).waitFor();
  checks.push('synthetic compaction phase has a concise status and stop control while original messages remain visible');assert.deepEqual(errors,[]);
+ for(const [operation,stage,label] of [['context','draft','컨텍스트 압축 중'],['history','review','대화 내용 정리 검토 중'],['context','review','컨텍스트 압축 검토 중']]){
+  await p.goto(page(`compaction=1&operation=${operation}&stage=${stage}`));
+  await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/대화 압축 화면 검증/}).click();
+  await p.getByRole('region',{name:'계획과 진행 상황',exact:true}).getByText(label,{exact:true}).waitFor();
+  await p.screenshot({path:`verification/ui-context-${operation}-${stage}.png`,animations:'disabled'});
+ }
+ checks.push('context compaction, conversation organization and source-review stages show distinct real host labels');assert.deepEqual(errors,[]);
  await p.goto(page('elevation=1'));
  await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/관리자 승인 화면 검증/}).click();
  const adminDialog=p.getByRole('region',{name:'실행 준비 승인',exact:true}).filter({hasText:'관리자 실행 검증'}).locator('.nubi-approval-form');await adminDialog.waitFor();
@@ -276,6 +302,8 @@ try{
  const analyses=p.getByRole('region',{name:'분석 과정과 이력'});
  await analyses.getByText('이전 분석 1개',{exact:true}).click();
  const roles=p.getByRole('region',{name:'역할별 분석 진행'});
+ assert.equal(await roles.locator('details').first().getAttribute('open'),null);
+ await roles.locator('details > summary').first().click();
  await roles.getByText('저장 결과 화면을 확인합니다.',{exact:true}).waitFor();
  assert.equal(await roles.getByText('모델 호출 2회 / 근거 읽기 1회',{exact:true}).isVisible(),false);await roles.getByText('결과와 근거',{exact:true}).click();await roles.getByText('모델 호출 2회 / 근거 읽기 1회',{exact:true}).waitFor();await roles.locator('.nubi-document-worker-heading>span').filter({hasText:'근거 읽는 중'}).waitFor();
 
@@ -310,6 +338,7 @@ try{
  await recordedProgress.getByText('메일과 개인 위키 검색',{exact:true}).waitFor();
  assert.equal(await recordedProgress.getByText('메일 원문과 개인 위키 조회',{exact:true}).count(),2);
  assert.equal(await p.getByText('응답 검토됨',{exact:true}).count(),0);
+ for(const group of await roles.all())if(await group.locator('details').first().getAttribute('open')===null)await group.locator('details > summary').first().click();
  assert.equal(await p.getByText('선택 메일 1의 원문과 개인 위키 비교',{exact:true}).isVisible(),true);
  assert.equal(await p.getByText('선택 메일 2의 원문과 개인 위키 비교',{exact:true}).isVisible(),true);
  assert.equal(await p.getByText('메인에 전달됨',{exact:true}).count(),2);
@@ -338,6 +367,7 @@ try{
  assert.equal(await reviewProgress.getByText('완료',{exact:true}).count(),0);
  checks.push('independent review shows missing evidence and omitted child reports without presenting a completed mission');
  await analyses.getByRole('button',{name:'이전 분석 더 보기',exact:true}).click();
+ if(await roles.locator('details').first().getAttribute('open')===null)await roles.locator('details > summary').first().click();
  await roles.getByText('이전 분담의 저장 결과 확인',{exact:true}).waitFor();
  await p.evaluate(()=>window.finishHandoffFixture());
  await roles.getByText('일부 확인',{exact:true}).first().waitFor();

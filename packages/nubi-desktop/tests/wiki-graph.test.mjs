@@ -54,3 +54,15 @@ test('mail candidate reasons are not relabelled as proven document references',(
  const graph=buildWikiGraph([{path:'a',title:'예산',type:'Mail'},{path:'b',title:'회신',type:'Mail',date:'2026-10-12'}],[{from:'a',to:'b',kind:'similar_topic',label:'비슷한 주제',confidence:'candidate',reasons:['공통 주제: 누비, 예산']}]);
  const related=relatedDocuments(graph,'a')[0];assert.equal(related.reasons[0],'비슷한 주제');assert.equal(related.strength,1.5);assert.equal(related.date,'2026-10-12');assert(!related.reasons.includes('이 문서가 참조'));
 });
+
+test('mail types show the existing parent category and preserve detail and evidence',()=>{
+ const categories=['SR처리/이력내용','SR처리/접수','SR처리','배포/승인','배포/결과','인사'];
+ const items=categories.map((category,i)=>({path:`mail/${i}.md`,title:`Mail ${i}`,type:'Mail',category}));
+ const graph=buildWikiGraph(items,[{from:items[0].path,to:items[1].path}]);
+ assert.deepEqual(graph.types.map(row=>row.id).sort(),['SR처리','배포','인사'].sort());
+ assert.equal(graph.nodes.length,items.length);assert.equal(graph.links.length,1);
+ for(let i=0;i<items.length;i++)assert.equal(graph.nodes[i].category,categories[i]);
+ assert.equal(filterWikiRows(graph.nodes,{query:'이력내용'})[0].path,items[0].path);
+ assert.equal(filterWikiRows(graph.nodes,{types:['SR처리']}).length,3);
+ assert.equal(buildWikiGraph([{path:'code.md',type:'Module',category:'SR처리/이력내용'}]).nodes[0].type,'Module');
+});

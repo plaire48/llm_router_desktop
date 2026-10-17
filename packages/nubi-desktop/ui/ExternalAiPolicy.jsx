@@ -1,5 +1,6 @@
 import React,{useState} from 'react';
-import {CxButton,CxCheckbox,DetailPanel,Icon} from '@e2e/cx-design-system';
+import {CxButton,DetailPanel,Icon} from '@e2e/cx-design-system';
+import {SettingToggle} from './SettingToggle.jsx';
 import {EXTERNAL_AI_POLICY_URL} from './external-ai-policy.mjs';
 import './external-ai-policy.css';
 
@@ -18,6 +19,6 @@ export function ExternalAiPolicy({onContinue,onClose,onOpenPolicy}){
     <p>향후 기밀 정보가 포함된 질의 이력이 확인될 경우, 정보보호 규정에 따라 <strong className="nubi-policy-warning">보안 위규로 처리</strong>될 수 있습니다.</p>
    </section>
   <a className="nubi-policy-link" href={EXTERNAL_AI_POLICY_URL} title="[공통] 외부생성형AI 보안 정책 변경 및 FAQ" onClick={onOpenPolicy?event=>{event.preventDefault();onOpenPolicy(EXTERNAL_AI_POLICY_URL);}:undefined}><Icon name="linkExternal" size={16}/>보안 정책 및 FAQ</a>
-  <CxCheckbox label="다시 보지 않기" checked={remember} onChange={event=>setRemember(event.target.checked)}/>
+  <SettingToggle label="다시 보지 않기" checked={remember} onChange={setRemember}/>
  </div></DetailPanel>;
 }

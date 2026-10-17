@@ -1,7 +1,8 @@
+import '@e2e/cx-design-system/styles.css';
 import React from 'react';
 import {createRoot} from 'react-dom/client';
 import {MailBody} from '../ui/MailBody.jsx';
-import '@e2e/cx-design-system/styles.css';
+
 import '../electron-app/workbench.css';
 import '../design/workspace-identity.css';
 import '../design/workspace-typography.css';

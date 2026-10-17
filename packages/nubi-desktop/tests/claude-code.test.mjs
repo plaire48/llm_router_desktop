@@ -2,13 +2,23 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,writeFile,rm} from 'node:fs/promises';
 import path from 'node:path';import os from 'node:os';
-import {createClaudeCode,claudeModels,claudeQuota,decodeClaudeResult,claudeEnvironment,runClaude} from '../runtime/claude-code.mjs';
+import {createClaudeCode,claudeModels,claudeQuota,decodeClaudeResult,claudeEnvironment,runClaude,completionSchema} from '../runtime/claude-code.mjs';
 import {createDesktopProviders} from '../runtime/desktop-providers.mjs';
 import {DesktopUsage} from '../runtime/usage.mjs';
 
 const catalog=[{value:'sonnet',resolvedModel:'claude-sonnet-5-5',displayName:'Sonnet 5.5',supportsEffort:true,supportedEffortLevels:['low','medium','high']},{value:'opus',resolvedModel:'claude-opus-5-5',displayName:'Opus 5.5',supportsEffort:true,supportedEffortLevels:['low','medium','high','xhigh','max']},{value:'haiku',resolvedModel:'claude-haiku-4-5',displayName:'Haiku 4.5'},{value:'fable',resolvedModel:'claude-fable-5-1',displayName:'Fable 5.1',supportsEffort:true,supportedEffortLevels:['high','max']}];
 const result=(calls=[],usage)=>({type:'result',subtype:'success',structured_output:{content:calls.length?'':'확인했습니다.',calls},usage});
 const tool={type:'function',function:{name:'source_search',parameters:{type:'object',properties:{query:{type:'string'}},required:['query']}}};
+test('opt-in typed proposals bind each tool name to its actual arguments without changing legacy transport',async()=>{
+  const schema=completionSchema([tool],true,{typedArguments:true});
+  assert.equal(schema.properties.calls.minItems,1);
+  const branch=schema.properties.calls.items.anyOf[0];assert.equal(branch.properties.name.const,'source_search');assert.deepEqual(branch.properties.arguments,tool.function.parameters);
+  branch.properties.arguments.properties.query.type='number';assert.equal(tool.function.parameters.properties.query.type,'string');
+  assert.ok(completionSchema([tool]).properties.calls.items.properties.arguments.anyOf);
+  const f=fixture(),adapter=createClaudeCode(f);await adapter.connect();
+  await adapter.complete([{role:'user',content:'read'}],[tool],undefined,()=>{},()=>{},()=>{},{typedToolArguments:true});
+  const args=f.invocations.at(-1).args,passed=JSON.parse(args[args.indexOf('--json-schema')+1]);assert.deepEqual(passed.properties.calls.items.anyOf[0].properties.arguments,tool.function.parameters);
+});
 function fixture(final=result(),auth={loggedIn:true}){
   const invocations=[];
   const run=async(binary,args,options={})=>{invocations.push({binary,args,options});if(args[0]==='--help')return '--safe-mode --json-schema';if(args[0]==='auth')return JSON.stringify(auth);if(args.includes('--input-format')){options.onEvent({type:'control_response',response:{subtype:'success',request_id:JSON.parse(options.input).request_id,response:{models:catalog}}});return '';}options.onEvent({type:'rate_limit_event',rate_limit_info:{rateLimitType:'five_hour',utilization:.25,resetsAt:2000000000}});options.onEvent(final);return '';};
@@ -37,6 +47,16 @@ test('native host proposals stop the inner CLI loop and return through Nubi appr
   await adapter.connect();const answer=await adapter.complete([], [tool]);
   assert.equal(answer.content,'');assert.equal(answer.calls[0].function.name,'source_search');assert.deepEqual(JSON.parse(answer.calls[0].function.arguments),{query:'auth'});
   assert.equal(answer.usage.total_tokens,15);assert.equal(usage[0].total_tokens,15);
+});
+test('typed transport waits for schema output rather than forwarding malformed native envelopes',async()=>{
+  const f=fixture(),adapter=createClaudeCode({...f,run:async(binary,args,options)=>{
+    if(args[0]==='--help'||args[0]==='auth'||args.includes('--input-format'))return f.run(binary,args,options);
+    assert.match(args[args.indexOf('--system-prompt')+1],/Do not JSON-encode arguments/);
+    options.onEvent({type:'assistant',message:{content:[{type:'tool_use',name:'source_search',input:{arguments:'{"query":"auth"}'}}]}});
+    assert.equal(options.signal.aborted,false);options.onEvent(result([{name:'source_search',arguments:{query:'auth'}}]));return '';
+  }});
+  await adapter.connect();const answer=await adapter.complete([],[tool],undefined,()=>{},()=>{},()=>{},{typedToolArguments:true});
+  assert.equal(answer.proposalTransport,'structured_output');assert.deepEqual(JSON.parse(answer.calls[0].function.arguments),{query:'auth'});
 });
 test('native unadvertised tools and user cancellation cannot become host proposals',async()=>{
   for(const name of ['Bash','source_search']){

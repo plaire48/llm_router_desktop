@@ -31,8 +31,9 @@ try{
   const opener=p.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await opener.count())await opener.click();
   await p.getByRole('button',{name:'새 대화',exact:true}).click();if(await closer.count())await closer.click();
   await p.getByRole('textbox',{name:'작업 요청',exact:true}).fill('새 대화를 시작해 주세요.');await p.getByRole('button',{name:'전송',exact:true}).click();
-  await p.locator('.nubi-launch-progress').getByText(/진행/).waitFor();assert.equal(await p.getByRole('button',{name:'복원',exact:true}).count(),0);assert.equal(await p.getByRole('button',{name:'시작',exact:true}).count(),0);
-  await p.waitForFunction(()=>window.startCalls===1&&document.querySelector('.nubi-launch-progress')===null);
+  // New requests show admission time beside the outgoing bubble, before host acceptance.
+  await p.locator('.nubi-delivery-status').getByText('시작하는 중',{exact:true}).waitFor();assert.match(await p.locator('.nubi-delivery-status .nubi-response-time').innerText(),/\d/);assert.equal(await p.getByRole('button',{name:'복원',exact:true}).count(),0);assert.equal(await p.getByRole('button',{name:'시작',exact:true}).count(),0);
+  await p.waitForFunction(()=>window.startCalls===1&&document.querySelector('.nubi-outgoing')===null);
   if(await opener.count())await opener.click();await p.getByRole('button',{name:'새 대화',exact:true}).click();if(await closer.count())await closer.click();
   await p.getByRole('textbox',{name:'작업 요청',exact:true}).fill('다른 대화가 실행 중이어도 입력');
   assert(await p.getByRole('button',{name:'전송',exact:true}).isEnabled());assert.equal(await p.getByText('다른 대화가 진행 중입니다. 초안은 저장돼요.',{exact:true}).count(),0);

@@ -1,3 +1,11 @@
+# Current Windows release: 1.2.8 (2026-10-16)
+
+The current product is the standalone Electron Nubi Workspace Beta. Use the current `.github/workflows/nubi-desktop-windows.yml`, `package.json`, `scripts/package-windows.mjs` and `scripts/Test-WindowsInstaller.ps1`. Historical version numbers and feature exclusions below do not override the current source or later user decisions. Mail attachment reading is enabled under the current Windows Office/NASCA contract.
+
+A new 1.2.8 build uses its own run-specific release tag. Never replace the installer from an older run. Publish only after the current artifact passes the workflow's installation, upgrade, reinstall and uninstall gates. Windows runner checks do not establish company SSO, NASCA or actual Windows 11 end-user behavior. See `docs/INSTALL-AND-UPDATE-1.2.8.md` for same-version reinstall and internal publication limits.
+
+## Historical release notes
+
 > 2026-10-12 후속 범위: Beta 메일 첨부 내용 읽기/미리보기/AI 분석은 지원하지 않는다. 본문과 메타데이터, 첨부 파일명 검색 및 원본 다운로드는 유지한다. 첨부 파서/worker/Office 읽기 스크립트를 설치본에서 제외하며 `mail-beta-scope.test.mjs`와 설치 파일 검사가 이를 확인한다.
 
 # Windows installer verification

@@ -1,9 +1,10 @@
+import '@e2e/cx-design-system/styles.css';
 import React,{useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {MessageBody} from '../../../extensions/aipro-chat/src/MessageBody.jsx';
 import {ProgressDisplaySetting,useProgressDisplay} from '../ui/ProgressDisplaySetting.jsx';
 import {useAnswerReveal} from '../ui/useAnswerReveal.js';
-import '@e2e/cx-design-system/styles.css';
+
 import '../electron-app/workbench.css';
 import '../design/workspace-identity.css';
 import '../design/workspace-typography.css';

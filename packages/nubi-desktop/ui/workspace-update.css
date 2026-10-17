@@ -1,24 +1,25 @@
-.nubi-workspace-update { display:flex; flex-direction:column; align-items:flex-start; gap:8px; padding-top:16px; border-top:1px solid var(--deck-line); font:var(--deck-font-body); }
-.nubi-update-heading { display:flex; align-items:center; gap:8px; }
+.nubi-workspace-update { display:flex; flex-direction:column; align-items:flex-start; gap:var(--cx-space-2); padding-top:var(--cx-space-4); border-top:1px solid var(--deck-line); font:var(--deck-font-body); }
+.nubi-update-heading { display:flex; align-items:center; gap:var(--cx-space-2); }
 .nubi-update-heading > .agent-mark { flex:none; }
-.nubi-update-heading strong { font-weight:600; }.nubi-update-heading span,.nubi-update-meta { font:var(--deck-font-caption); color:var(--nubi-text-secondary); }
-.nubi-workspace-update button { display:inline-flex; align-items:center; gap:8px; white-space:nowrap; }
+.nubi-update-heading strong { font-weight:var(--nubi-weight-emphasis); }.nubi-update-heading span,.nubi-update-meta { font:var(--deck-font-caption); color:var(--nubi-text-secondary); }
+.nubi-workspace-update button { display:inline-flex; align-items:center; gap:var(--cx-space-2); white-space:nowrap; }
 .nubi-workspace-update p { font:var(--deck-font-caption); color:var(--nubi-text-secondary); white-space:pre-line; margin:0; }
 .nubi-workspace-update progress { width:100%; accent-color:var(--deck-blue); }
 .nubi-workspace-update.is-compact { display:inline-flex; padding:0; border:0; }
-.nubi-workspace-update.is-compact button { color:var(--nubi-text-action); font-weight:600; -webkit-app-region:no-drag; }
+.nubi-workspace-update>.deck-disclosure { align-self:stretch; min-width:0; }
+.nubi-workspace-update.is-compact button { color:var(--nubi-text-action); font-weight:var(--nubi-weight-emphasis); -webkit-app-region:no-drag; }
 @media(max-width:800px){.nubi-workspace-update.is-compact button>span { display:none; }}
-.nubi-update-progress { display:grid; gap:16px; }
-.nubi-update-progress strong { font:var(--deck-font-body); font-weight:600; }
-.nubi-update-progress>div { display:flex; justify-content:space-between; gap:16px; font-variant-numeric:tabular-nums; color:var(--nubi-text-action); font-weight:600; }
+.nubi-update-progress { display:grid; gap:var(--cx-space-4); }
+.nubi-update-progress strong { font:var(--deck-font-body); font-weight:var(--nubi-weight-emphasis); }
+.nubi-update-progress>div { display:flex; justify-content:space-between; gap:var(--cx-space-4); font-variant-numeric:tabular-nums; color:var(--nubi-text-action); font-weight:var(--nubi-weight-emphasis); }
 .nubi-update-progress progress { width:100%; accent-color:var(--deck-blue); }
 .nubi-update-progress p,.nubi-update-progress>span { font:var(--deck-font-caption); color:var(--nubi-text-secondary); margin:0; }
 
 .desktop-shell .nubi-workspace-navigation.nubi-workspace-rail .nubi-update-rail-button.cx-kit-button { border-radius:50%; background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
-.desktop-shell .nubi-workspace-navigation.nubi-workspace-rail .nubi-update-rail-button.cx-kit-button:hover { background:var(--deck-blue); color:white; }
+.desktop-shell .nubi-workspace-navigation.nubi-workspace-rail .nubi-update-rail-button.cx-kit-button:hover { background:var(--deck-blue); color:var(--nubi-surface-base); }
 
 /* The technical version beside the product name: bold and accented (user decision 2026-10-14). */
-.nubi-update-heading > .nubi-update-version { font-weight:700; color:var(--deck-blue-deep); font-variant-numeric:tabular-nums; }
+.nubi-update-heading > .nubi-update-version { font-weight:var(--nubi-weight-strong); color:var(--deck-blue-deep); font-variant-numeric:tabular-nums; }
 
 /* The heading starts where the button's label starts (user feedback 2026-10-14: the two looked offset). */
 .nubi-workspace-update:not(.is-compact) .nubi-update-heading { padding-left:var(--cx-space-3); }

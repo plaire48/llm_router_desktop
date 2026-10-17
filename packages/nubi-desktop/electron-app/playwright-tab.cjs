@@ -1,16 +1,17 @@
 // A capability URL for one WebContents only. No app-wide remote-debugging port.
 const {WebSocketServer}=require('ws');
 const {randomUUID}=require('node:crypto');
-async function connectTab(row){
+const bounded=(operation,ms,code)=>{let timer;return Promise.race([operation,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error(code)),ms);})]).finally(()=>clearTimeout(timer));};
+async function connectTab(row,{timeout=5000}={}){
  const wc=row.view.webContents;
  if(row.authentication||row.companyLogin||row.session)throw Error('browser_auth_protected');
  if(wc.isDestroyed())throw Error('browser_tab_missing');
  if(wc.debugger.isAttached())throw Error('browser_debugger_busy');
  wc.debugger.attach('1.3');
- let targetInfo;try{({targetInfo}=await wc.debugger.sendCommand('Target.getTargetInfo'));}catch(error){wc.debugger.detach();throw error;}
+ let targetInfo;try{({targetInfo}=await bounded(wc.debugger.sendCommand('Target.getTargetInfo'),timeout,'browser_cdp_attach_timeout'));}catch(error){if(!wc.isDestroyed()&&wc.debugger.isAttached())wc.debugger.detach();throw error;}
  const secret=randomUUID(),sessionId='nubi-page',targetId=targetInfo.targetId;
  const server=new WebSocketServer({host:'127.0.0.1',port:0,path:'/'+secret,maxPayload:2*1024*1024,verifyClient:({origin})=>!origin});
- try{await new Promise((resolve,reject)=>{server.once('listening',resolve);server.once('error',reject);});}catch(error){wc.debugger.detach();throw error;}
+ try{await bounded(new Promise((resolve,reject)=>{server.once('listening',resolve);server.once('error',reject);}),timeout,'browser_cdp_listen_timeout');}catch(error){server.close();if(!wc.isDestroyed()&&wc.debugger.isAttached())wc.debugger.detach();throw error;}
  let client,closed=false;
  const info=()=>({targetId,type:'page',title:wc.getTitle(),url:wc.getURL(),attached:true,browserContextId:'nubi-tab'});
  const send=value=>{if(client?.readyState===1)client.send(JSON.stringify(value));};
@@ -31,7 +32,7 @@ async function connectTab(row){
     if(closed||wc.isDestroyed())throw Error('browser_tab_missing');
     let result;
     if(!child){
-     if(method==='Browser.getVersion')result={protocolVersion:'1.3',product:'Chrome/'+process.versions.chrome,userAgent:wc.getUserAgent(),revision:'nubi'};
+     if(method==='Browser.getVersion')result={protocolVersion:'1.3',product:'Chrome/'+(wc.getBrowserVersion?.()||process.versions.chrome),userAgent:wc.getUserAgent(),revision:'nubi'};
      else if(method==='Target.setAutoAttach'){if(params.autoAttach)send({method:'Target.attachedToTarget',params:{sessionId,targetInfo:info(),waitingForDebugger:false}});result={};}
      else if(method==='Target.getTargetInfo')result={targetInfo:info()};
      else if(method==='Target.getTargets')result={targetInfos:[info()]};

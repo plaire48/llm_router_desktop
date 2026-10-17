@@ -308,7 +308,7 @@ describe("ClaimsStore", () => {
     await expect(store.loadPage("/openwiki/page.md")).resolves.toEqual(initial);
   });
 
-  test("hashes exact Markdown bytes", async () => {
+  test("hashes Markdown content without ignoring blank lines", async () => {
     await writeFixture("openwiki/page.md", "# Page\n");
     const store = new ClaimsStore(rootDir);
     const before = await store.hashPage("/openwiki/page.md");
@@ -318,6 +318,16 @@ describe("ClaimsStore", () => {
 
     expect(before).toMatch(/^sha256:[a-f0-9]{64}$/u);
     expect(after).not.toBe(before);
+  });
+
+  test("preserves page versions across CRLF checkout without ignoring content edits", async () => {
+    await writeFixture("openwiki/page.md", "# Page\n\n한글 내용\n");
+    const store = new ClaimsStore(rootDir);
+    const version = await store.hashPage("/openwiki/page.md");
+    await writeFixture("openwiki/page.md", "# Page\r\n\r\n한글 내용\r\n");
+    expect(await store.hashPage("/openwiki/page.md")).toBe(version);
+    await writeFixture("openwiki/page.md", "# Page\r\n\r\n다른 내용\r\n");
+    expect(await store.hashPage("/openwiki/page.md")).not.toBe(version);
   });
 
   test("rejects symlinked sidecars and parent directories", async () => {

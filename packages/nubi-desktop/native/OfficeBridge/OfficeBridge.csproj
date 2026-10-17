@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework><OutputType>Exe</OutputType>
+    <AssemblyName>Nubi.OfficeBridge</AssemblyName><LangVersion>latest</LangVersion>
+    <Deterministic>true</Deterministic><DebugType>none</DebugType>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System.Security" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net472" Version="1.0.3" PrivateAssets="all" />
+    <Reference Include="OfficeX.Core"><HintPath>$(OfficeXNativeDirectory)/OfficeX.Core.dll</HintPath></Reference>
+    <Reference Include="Newtonsoft.Json"><HintPath>$(OfficeXNativeDirectory)/Newtonsoft.Json.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>

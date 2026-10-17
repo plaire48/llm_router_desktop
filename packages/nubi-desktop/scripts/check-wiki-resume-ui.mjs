@@ -8,12 +8,13 @@ import assert from 'node:assert/strict';
 
 const root=process.cwd(),directory=await mkdtemp(path.join(os.tmpdir(),'nubi-wiki-resume-ui-'));
 const output=path.join(root,'verification/wiki-update-resume-2026-10-15');await mkdir(output,{recursive:true});
+const failureOutput=path.join(root,'verification/wiki-failure-2026-10-16');await mkdir(failureOutput,{recursive:true});
 const styles=['electron-app/workbench.css','design/workspace-identity.css','electron-app/shell.css','electron-app/ios-tokens.css','design/workspace-typography.css','design/workspace-density.css','design/workspace-dialogs.css'];
 await writeFile(path.join(directory,'fixture.jsx'),`
 import React from 'react';import{createRoot}from'react-dom/client';import{DetailPanel}from'@e2e/cx-design-system';import{DeckDisclosure}from'${root}/../../extensions/aipro-chat/src/DeckSurfaces.jsx';import{WikiUpdate}from'${root}/ui/WikiUpdate.jsx';
 import '@e2e/cx-design-system/styles.css';${styles.map(file=>`import '${root}/${file}';`).join('')}
 window.calls=[];window.failResume=false;
-const update={id:'fixture-update',state:'failed',canResume:true,error:'timeout',fingerprint:'fixture-fingerprint',pageProgress:{completed:5,total:11},events:[]};
+const update={id:'fixture-update',state:'failed',stage:'reviewing',canResume:true,error:new URLSearchParams(location.search).get('failure')||'timeout',fingerprint:'fixture-fingerprint',pageProgress:{completed:5,total:11},events:[]};
 const api=async(method,args)=>{window.calls.push({method,...args});if(args.method==='resume'){if(window.failResume)throw Error('wiki_update_sources_changed');update.state='running';update.startedAt=new Date().toISOString();update.events=[{type:'progress',stage:'generating',index:6,total:11,completed:5}];}if(args.method==='cancel')update.state='cancelled';if(args.method==='discard')update.state='discarded';return {status:{state:'stale',lastUpdate:{},changedFiles:['app.txt']},updates:[{...update}]};};
 createRoot(document.getElementById('root')).render(<main className="desktop-shell"><DetailPanel className="deck-dialog nubi-panel" title="프로젝트 위키" variant="modal" onClose={()=>{}}><div className="nubi-library"><WikiUpdate api={api}/><DeckDisclosure title="위키 문서" icon="bookmark"><p className="nubi-muted">기존 문서는 그대로 유지됩니다.</p></DeckDisclosure></div></DetailPanel></main>);
 `);
@@ -33,10 +34,25 @@ try{
     await card.locator('summary').click();await page.getByText('모델 응답이 지연됐어요. 연결을 확인한 뒤 이어서 갱신해 주세요.',{exact:true}).waitFor();await card.locator('summary').click();
     assert.equal(await page.evaluate(()=>window.calls.some(call=>call.method==='resume')),false,'viewing never resumes');
     if(width===440)await page.evaluate(()=>document.documentElement.style.fontSize='20px');
+    const detailIcon=await card.locator('summary>svg').first().evaluate(el=>{
+      const icon=el.getBoundingClientRect(),row=el.parentElement.getBoundingClientRect();
+      return {width:icon.width,height:icon.height,rootFont:parseFloat(getComputedStyle(document.documentElement).fontSize),centerOffset:Math.abs(icon.y+icon.height/2-row.y-row.height/2)};
+    });
+    assert.equal(detailIcon.width,detailIcon.rootFont,'disclosure icon follows the common rem icon size');
+    assert.equal(detailIcon.height,detailIcon.rootFont);
+    assert(detailIcon.centerOffset<1,'disclosure icon stays vertically centered with its label');
     assert.equal(await card.evaluate(el=>el.scrollWidth<=el.clientWidth+1),true,'no horizontal clipping');
-    const buttons=await card.getByRole('button').evaluateAll(els=>els.map(el=>({x:el.getBoundingClientRect().x,right:el.getBoundingClientRect().right,top:el.getBoundingClientRect().top})));
+    const bounds=els=>els.map(el=>{const r=el.getBoundingClientRect();return {x:r.x,right:r.right,top:r.top,bottom:r.bottom};});
+    const buttons=await card.getByRole('button').evaluateAll(bounds);
     assert(buttons.every(button=>button.x>=0&&button.right<=width),'all actions remain visible');
-    assert(buttons.every(button=>Math.abs(button.top-buttons[0].top)<2),'actions share one row');
+    // Resetting all Wiki data is a separate control added after this fixture.
+    // Resume/refresh/discard share one row; the reset stays below, not mixed
+    // with the current update's recovery choices.
+    const actions=await card.locator('.nubi-approval-bar').getByRole('button').evaluateAll(bounds);
+    assert.equal(actions.length,3,'resume, refresh and discard are all present');
+    assert(actions.every(button=>Math.abs(button.top-actions[0].top)<2),'recovery actions share one row');
+    const reset=await card.getByRole('button',{name:'위키 다시 만들기',exact:true}).boundingBox();
+    assert(reset.y>=Math.max(...actions.map(button=>button.bottom)),'reset remains separate from recovery');
     await page.screenshot({path:path.join(output,'retained-'+width+'.png'),animations:'disabled'});
     await page.evaluate(()=>window.failResume=true);await page.getByRole('button',{name:'이어서 갱신',exact:true}).click();
     await page.getByText('원본이 바뀌었어요. 새 기준으로 갱신해 주세요. 보관한 작업은 유지됩니다.',{exact:true}).waitFor();
@@ -49,6 +65,19 @@ try{
     await page.getByRole('button',{name:'버리기',exact:true}).click();await page.getByText('갱신 결과를 버렸어요. 작업 공간은 그대로예요.',{exact:true}).waitFor();
     checks.push({width,enlargedText:width===440,resume:true,conflict:true,cancel:true,discard:true,noClipping:true});
   }
-  assert.deepEqual(errors,[]);await writeFile(path.join(output,'checks.json'),JSON.stringify({scope:'Actual React/CX components and fixture API, not live Windows/AI Pro.',checks,errors},null,2));console.log(JSON.stringify({checks,errors}));
+  const failures=[];
+  for(const width of [1280,440])for(const [code,message] of [['claude_login_required',/Claude.*로그인/],['claude_cli_timeout',/Claude.*초과/],['invalid_model',/모델.*선택/],['wiki_failed',/중단 단계와 오류 코드/]]){
+    await page.setViewportSize({width,height:850});await page.goto('http://127.0.0.1:'+server.address().port+'/index.html?failure='+code);
+    const card=page.getByRole('region',{name:'위키 갱신',exact:true});await card.waitFor();
+    if(width===440)await page.evaluate(()=>document.documentElement.style.fontSize='20px');
+    await card.getByText('중단 이유',{exact:true}).click();
+    assert.match(await card.innerText(),message);await card.getByText(code,{exact:true}).waitFor();
+    assert.match(await card.innerText(),/내용 검토/);
+    assert.equal(await card.evaluate(el=>el.scrollWidth<=el.clientWidth+1),true);
+    assert.equal(await page.evaluate(()=>window.calls.some(call=>call.method==='resume'||call.method==='discard')),false);
+    await page.screenshot({path:path.join(failureOutput,code+'-'+width+'.png'),animations:'disabled'});
+    failures.push({width,code,stage:true,readable:true,noAutomaticRetry:true});
+  }
+  assert.deepEqual(errors,[]);await writeFile(path.join(output,'checks.json'),JSON.stringify({scope:'Actual React/CX components and fixture API, not live Windows/AI Pro.',checks,errors},null,2));await writeFile(path.join(failureOutput,'ui-checks.json'),JSON.stringify({scope:'Actual WikiUpdate React/CX with isolated fixture API, not live Windows/provider.',failures,errors},null,2));console.log(JSON.stringify({checks,failures,errors}));
 }catch(error){await page?.screenshot({path:path.join(output,'failure.png')}).catch(()=>{});throw error;}
 finally{await browser?.close();await new Promise(resolve=>server.close(resolve));await rm(directory,{recursive:true,force:true});}

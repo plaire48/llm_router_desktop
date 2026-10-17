@@ -60,7 +60,7 @@ test('a link inside a corpus source is refused',async t=>{
 
 // expense-office holds the rules of the simulated expense app (2026-09-29).
 test('registered corpora are the only names',()=>{
-  assert.deepEqual(Object.keys(CORPORA).sort(),['expense-office','openwiki-sds','order-catalog','order-failing','order-service']);
+  assert.deepEqual(Object.keys(CORPORA).sort(),['cache-retry','expense-office','openwiki-sds','order-catalog','order-failing','order-service']);
 });
 
 // The command suite rests on two facts of its corpora: the order service fails two tests on its free-shipping

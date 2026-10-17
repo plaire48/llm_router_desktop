@@ -10,6 +10,7 @@ export const CONTEXT_SUMMARY_RATIO = .75;
 export const LARGE_WINDOW_INPUT_TOKENS = 128000;
 
 export function conversationModel(model = {}) {
+  model = {...model, contextSummaryReview: true};
   if (!Number.isSafeInteger(model.contextLength) || model.contextLength <= 0) return {...model, contextCompactionRatio: CONTEXT_SUMMARY_RATIO};
   const reported = Number.isSafeInteger(model.maxOutputTokens) && model.maxOutputTokens > 0 ? model.maxOutputTokens : 24576;
   const reserve = Math.max(4096, Math.min(reported, 32768, Math.max(1024, Math.floor(model.contextLength * .15))));

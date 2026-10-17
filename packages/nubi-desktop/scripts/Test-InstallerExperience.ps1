@@ -35,7 +35,8 @@ try {
       $text=($controls | Where-Object {$_.Text} | ForEach-Object {$_.Text}) -join ' | '
       if ($text -ne $last) {$observations.Add(@{seconds=[Math]::Round($clock.Elapsed.TotalSeconds,2);text=$text});$last=$text}
       if (!$noticeCaptured -and $text -match '설치 전 이용 안내') {
-        foreach($required in @('AI 계정 연결','연결한 AI로 전달','사내 Github SSO','회사망 또는 VPN','첨부파일 내용 읽기')) {
+        if ($text -match '첨부[^\r\n]*(지원하지|미지원)') { throw 'Installer notice has an obsolete attachment restriction' }
+        foreach($required in @('AI 계정 연결','연결한 AI로 전달','사내 Github SSO','회사망 또는 VPN','메일 본문과 첨부 문서를 읽어요','Office 문서는 PC에 Office가 필요해요')) {
           if ($text -notmatch [regex]::Escape($required)) {throw "Install notice missing: $required"}
         }
         Save-InstallerCapture $window (Join-Path (Get-Location) 'verification/windows-installer-notice.png')

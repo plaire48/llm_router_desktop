@@ -34,7 +34,7 @@ export interface RepositorySourceCheckpoint {
  */
 export interface RepositoryPageManifestEntry extends RepositorySourceCheckpoint {
   /**
-   * Hash of the exact Markdown bytes whose Claims were verified.
+   * Hash of verified Markdown content with CRLF normalized to LF.
    */
   pageVersion: string;
 
@@ -383,7 +383,7 @@ export async function getCurrentRepositoryPageCompletion(
  * @param source - Source checkpoint covered by the page.
  * @param completedBy - Producer that authored the completed page.
  * @param completedRunId - Durable run that completed the page.
- * @returns Valid entry bound to the current Markdown bytes.
+ * @returns Valid entry bound to the current line-ending-normalized Markdown.
  * @throws RepositoryRunError when the page is not durably verified.
  */
 async function buildManifestEntry(

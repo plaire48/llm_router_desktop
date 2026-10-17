@@ -1,8 +1,9 @@
+import '@e2e/cx-design-system/styles.css';
 import React from 'react';
 import {createRoot} from 'react-dom/client';
 import {SkillManager} from '../ui/SkillManager.jsx';
 import {WikiRepository} from '../ui/WikiRepository.jsx';
-import '@e2e/cx-design-system/styles.css';
+
 import '../electron-app/workbench.css';
 import '../design/workspace-identity.css';
 import '../electron-app/shell.css';
@@ -10,6 +11,7 @@ import '../electron-app/ios-tokens.css';
 import '../design/workspace-typography.css';
 import '../design/workspace-density.css';
 import '../design/workspace-dialogs.css';
+import '../design/workspace-icons.css';
 const records=[{id:'00000000-0000-4000-8000-000000000001',title:'설비 연동 서비스',description:'서비스 구조와 배포 절차를 정리한 프로젝트 위키',mode:'code',version:'1.2.0',createdBy:'minji',createdAt:'2026-10-01T00:00:00Z',updatedBy:'alice',updatedAt:'2026-10-12T00:00:00Z',managers:['alice'],canEdit:true,releases:[{version:'1.0.0',createdAt:'2026-10-01T00:00:00Z',createdBy:'minji'},{version:'1.2.0',createdAt:'2026-10-12T00:00:00Z',createdBy:'alice'}]},{id:'00000000-0000-4000-8000-000000000002',title:'온보딩 업무 안내',description:'처음 합류한 동료에게 필요한 업무 흐름과 자주 묻는 질문',mode:'personal',version:'1.0.0',createdBy:'alice',createdAt:'2026-10-12T00:00:00Z',updatedBy:'alice',updatedAt:'2026-10-12T00:00:00Z',managers:[],canEdit:true,releases:[{version:'1.0.0',createdAt:'2026-10-12T00:00:00Z',createdBy:'alice'}]}];
 window.wikiCalls=[];window.signInCalls=0;const guest=new URLSearchParams(location.search).has('guest');const signIn=async()=>{window.signInCalls++;return {loginRequired:true};};
 const files=[{path:'quickstart.md',size:128},{path:'guides/deployment.md',size:1024}];

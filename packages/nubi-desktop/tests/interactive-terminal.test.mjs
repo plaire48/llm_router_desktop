@@ -1,7 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
+import {EventEmitter} from 'node:events';
 const {interactiveShell,TerminalHost}=createRequire(import.meta.url)('../electron-app/terminal-host.cjs');
+test('terminal worker never inherits the app debugger arguments',()=>{
+ let options;const worker=new EventEmitter();worker.connected=true;worker.disconnect=()=>{};
+ const host=new TerminalHost({notify:()=>{},workerFile:'worker.cjs',spawnWorker:(file,args,config)=>{options=config;return worker;}});
+ host.start();assert.deepEqual(options.execArgv,[]);assert.equal(options.env.ELECTRON_RUN_AS_NODE,'1');host.dispose();
+});
 test('interactive PowerShell prefers installed 7 and retains its real startup banner',async()=>{
  const shell=await interactiveShell('powershell',{platform:'win32',env:{ProgramFiles:'C:\\Program Files'},lookup:async()=>{throw Error();},exists:async file=>{assert.equal(file,'C:\\Program Files\\PowerShell\\7\\pwsh.exe');}});
  assert.match(shell.executable,/pwsh\.exe$/);assert(shell.argv.includes('-NoExit'));const startup=Buffer.from(shell.argv.at(-1),'base64').toString('utf16le');assert.match(startup,/Console.*OutputEncoding/);assert.match(startup,/PSVersionTable.PSVersion/);assert.match(startup,/Get-Content:Encoding/);assert.doesNotMatch(startup,/ExecutionPolicy|Set-Culture|Set-WinSystemLocale/);
@@ -47,4 +53,12 @@ for(const preference of ['cmd','bash','powershell'])test(`opening a terminal use
  const other=preference==='bash'?'cmd':'bash';
  await host.request({action:'open',id:'explicit',projectId:'a',profile:other});
  assert.equal(calls[1].executable,'/fixture/'+other);
+});
+
+test('interactive Git Bash receives the verified installation environment root',async()=>{
+ const root='C:\\Program Files\\Git';
+ const host=new TerminalHost({notify:()=>{},profiles:async()=>[{id:'bash',executable:root+'\\usr\\bin\\bash.exe',gitBashRoot:root}],resolveShell:async()=>null,invoke:async method=>method==='projectPath'?{shellPreference:'bash'}:{absolute:'C:\\fixture'}});
+ let observed;host.call=async(action,args)=>{observed=args;return {id:args.id};};
+ await host.request({action:'open',id:'git',projectId:'p',gitBashRoot:'untrusted'});
+ assert.equal(observed.gitBashRoot,root);assert.equal(observed.executable,root+'\\usr\\bin\\bash.exe');
 });

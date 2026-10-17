@@ -3,7 +3,7 @@
 .nubi-memory-list { list-style:none; margin:0; padding:0; display:grid; gap:var(--cx-space-1); }
 .nubi-memory-list li { display:flex; align-items:center; gap:var(--cx-space-3); padding:var(--cx-space-2) var(--cx-space-3); border-radius:var(--nubi-work-control-radius); background:var(--deck-tint); min-width:0; }
 .nubi-memory-scope { display:inline-grid; place-items:center; flex:none; width:28px; height:28px; border-radius:999px; background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
-.nubi-memory-text { flex:1; min-width:0; line-height:1.5; }
+.nubi-memory-text { flex:1; min-width:0; line-height:var(--deck-line-caption); }
 .nubi-memory-empty { display:flex; align-items:center; gap:var(--cx-space-2); margin:0; }
 .nubi-memory-empty svg { flex:none; color:var(--deck-orange); }
 .nubi-memory-note { display:flex; align-items:center; flex-wrap:wrap; gap:var(--cx-space-2); margin:var(--cx-space-2) 0 0; color:var(--deck-sub); font:var(--deck-font-caption); }

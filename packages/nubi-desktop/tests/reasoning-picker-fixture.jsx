@@ -1,10 +1,11 @@
+import '@e2e/cx-design-system/styles.css';
 import React,{useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {ClaudeConnection} from '../ui/ClaudeConnection.jsx';
 import {CopyButton} from '../../../extensions/aipro-chat/src/CopyButton.jsx';
 import {ReasoningPicker} from '../ui/ReasoningPicker.jsx';
 import {ProviderIcon} from '../../../extensions/aipro-chat/src/ChatControls.jsx';
-import '@e2e/cx-design-system/styles.css';
+
 import '../electron-app/workbench.css';
 import '../design/workspace-identity.css';
 import '../electron-app/shell.css';
@@ -12,6 +13,7 @@ import '../electron-app/ios-tokens.css';
 import '../design/workspace-typography.css';
 import '../design/workspace-density.css';
 import '../design/workspace-dialogs.css';
+import '../design/workspace-icons.css';
 const id=new URLSearchParams(location.search).get('provider')||'claude';
 const catalog={aipro:['low','medium','xhigh'],chatgpt:['low','medium','high','xhigh','max'],claude:['low','medium','high','xhigh','max']};
 function CopySample(){

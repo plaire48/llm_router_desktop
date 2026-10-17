@@ -1,7 +1,7 @@
 import React, {useLayoutEffect, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import {Icon} from '@e2e/cx-design-system';
-import {NubiLogo} from '../../../extensions/aipro-chat/src/AgentMark.jsx';
+import {WorkspaceBrand} from './WorkspaceBrand.jsx';
 import {WorkspaceIconAction} from './WorkspaceIconAction.jsx';
 import {FolderMark} from './marks.jsx';
 
@@ -23,7 +23,7 @@ export function WorkspaceToolbar({host, layoutRoot, title, project, status, side
   if (!host) return null;
   return createPortal(<header className="nubi-window-toolbar" aria-label="Workspace 상단 메뉴">
     <div ref={navigation} className="nubi-toolbar-navigation">
-      <NubiLogo size={22} product="Workspace" versionLabel="Beta"/>
+      <WorkspaceBrand/>
       {project && <WorkspaceIconAction icon={sidebarOpen?'panelLeftClose':'panelLeft'} iconOnly label={sidebarOpen?'사이드바 접기':'사이드바 펼치기'} aria-expanded={sidebarOpen} onClick={onToggleSidebar}/>}
     </div>
     <div className="nubi-toolbar-context" title={title}>

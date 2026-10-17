@@ -1030,8 +1030,9 @@ describe("beginRepositoryRun", () => {
     ).resolves.toMatchObject({ status: "interrupted" });
   });
 
-  test("preserves mixed page baselines in a fresh checkout after partial progress", async () => {
+  test.each([false, true])("preserves mixed page baselines in a fresh checkout after partial progress (autocrlf=%s)", async (autocrlf) => {
     const root = await createRepository(["second.md"]);
+    await git(root, ["config", "core.autocrlf", String(autocrlf)]);
     const baselineHead = await git(root, ["rev-parse", "HEAD"]);
     await writeFile(
       path.join(root, "README.md"),
@@ -1082,7 +1083,7 @@ describe("beginRepositoryRun", () => {
       path.join(tmpdir(), "openwiki-partial-checkout-"),
     );
     temporaryDirectories.push(freshRoot);
-    await git(root, ["clone", "--quiet", root, freshRoot]);
+    await git(root, ["clone", "--config", `core.autocrlf=${autocrlf}`, "--quiet", root, freshRoot]);
     await expect(readRepositoryRunState(freshRoot)).resolves.toBeNull();
 
     const freshResult = await beginRepositoryRun({
@@ -1136,6 +1137,28 @@ describe("beginRepositoryRun", () => {
 });
 
 describe("repository page queue", () => {
+  test("replans a changed completed page without discarding it or aborting update", async () => {
+    const root = await createRepository();
+    const run = await beginForcedUpdate(root);
+    await submitRepositoryPlan(run, {
+      pages: [{ path: "/openwiki/quickstart.md", title: "Quickstart", purpose: "Refresh the guide." }],
+    });
+    await completeCurrentPage(run, "Quickstart");
+    await rm(repositoryRunStatePath(root));
+    const pagePath = path.join(root, "openwiki", "quickstart.md");
+    const edited = (await readFile(pagePath, "utf8")) + "\nHuman edit requiring review.\n";
+    await writeFile(pagePath, edited, "utf8");
+    await git(root, ["add", "openwiki"]);
+    await git(root, ["commit", "--quiet", "-m", "edit wiki after verification"]);
+    const result = await beginRepositoryRun({ root, mode: "update", actor: ACTOR });
+    expect(result.view).toMatchObject({
+      status: "active",
+      pageUpdateWindows: [{ pages: ["/openwiki/quickstart.md"], fullReview: true }],
+    });
+    expect(await readFile(pagePath, "utf8")).toBe(edited);
+    expect((await readRepositoryPageManifest(root)).pages["/openwiki/quickstart.md"]).toBeUndefined();
+  });
+
   test("resets an interrupted skipped job to pending on resume", async () => {
     const root = await createRepository(["second.md"]);
     const initial = await beginForcedUpdate(root);

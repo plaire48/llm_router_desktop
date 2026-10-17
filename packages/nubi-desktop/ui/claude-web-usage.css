@@ -1,5 +1,5 @@
 .claude-web-usage h3 { display:flex; align-items:center; gap:var(--cx-space-2); }
 .claude-web-usage h3 > svg { color:var(--provider-claude-ink,var(--deck-blue-deep)); }
-.claude-web-usage h3 small { color:var(--deck-sub); font-weight:500; }
+.claude-web-usage h3 small { color:var(--deck-sub); font-weight:var(--nubi-weight-label); }
 .claude-web-raw > summary { display:flex; align-items:center; gap:var(--cx-space-1); cursor:pointer; color:var(--deck-sub); font:var(--deck-font-caption); }
-.claude-web-raw pre { max-height:240px; overflow:auto; margin:var(--cx-space-2) 0 0; padding:var(--cx-space-2); border-radius:var(--nubi-work-control-radius,12px); background:var(--deck-tint); font:var(--deck-font-caption); white-space:pre-wrap; overflow-wrap:anywhere; }
+.claude-web-raw pre { max-height:240px; overflow:auto; margin:var(--cx-space-2) 0 0; padding:var(--cx-space-2); border-radius:var(--nubi-work-control-radius,var(--cx-space-3)); background:var(--deck-tint); font:var(--deck-font-caption); white-space:pre-wrap; overflow-wrap:anywhere; }

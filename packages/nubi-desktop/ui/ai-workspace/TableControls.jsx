@@ -1,6 +1,11 @@
+import {useFilterPosition} from '../useFilterPosition.js';
+import {ShowMore} from '../ShowMore.jsx';
+import '../filter-panel.css';
+import {PageNumbers} from '../PageNumbers.jsx';
+import {CollectionTable} from '../CollectionTable.jsx';
 import {CxSelect} from './CxSelect';
 import { ActionButton } from './ActionButton';
-import React, { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useWorkspaceState } from './WorkspaceMemory';
 import { columnFilterOptions, filterTableRows, getPage } from './reportInteractions';
@@ -57,15 +62,7 @@ export function PageSizeSelect({ pagination }) {
 
 export function TablePagination({ pagination, selectedCount = 0, as: Container = 'footer' }) {
   const { page, pageCount, total, start, end, setPage } = pagination;
-  const first = Math.max(1, Math.min(page - 2, pageCount - 4));
-  const numbers = Array.from({ length: Math.min(5, pageCount) }, (_, index) => first + index);
-  return <Container className="table-pagination"><span className="table-page-range" role="status" aria-live="polite">{total ? `${start + 1}–${end}` : '0'} / {total.toLocaleString()}건</span><nav aria-label="표 페이지 이동">
-    <button className="cx-icon-button" type="button" aria-label="첫 페이지" title="첫 페이지" disabled={page === 1 || !total} onClick={() => setPage(1)}><Icon name="chevronsLeft" size={16} /></button>
-    <button className="cx-icon-button" type="button" aria-label="이전 페이지" title="이전 페이지" disabled={page === 1 || !total} onClick={() => setPage(page - 1)}><Icon name="chevronLeft" size={15} /></button>
-    {numbers.map((number) => <button key={number} type="button" className="table-page-number" aria-label={`${number} 페이지`} aria-current={number === page ? 'page' : undefined} disabled={!total} onClick={() => setPage(number)}><span>{number}</span></button>)}
-    <button className="cx-icon-button" type="button" aria-label="다음 페이지" title="다음 페이지" disabled={page === pageCount || !total} onClick={() => setPage(page + 1)}><Icon name="chevronRight" size={15} /></button>
-    <button className="cx-icon-button" type="button" aria-label="마지막 페이지" title="마지막 페이지" disabled={page === pageCount || !total} onClick={() => setPage(pageCount)}><Icon name="chevronsRight" size={16} /></button>
-  </nav><span className="table-page-selection">{selectedCount ? `전체 페이지에서 ${selectedCount}건 선택` : `${page} / ${pageCount} 페이지`}</span></Container>;
+  return <Container className="table-pagination nubi-collection-pagination"><span className="table-page-range" role="status" aria-live="polite">{total ? `${start + 1}–${end}` : '0'} / {total.toLocaleString()}</span><PageNumbers page={page} totalPages={pageCount} onPage={setPage} disabled={!total} label="표 페이지"/><span className="table-page-selection">{selectedCount ? `${selectedCount}개 선택` : ''}</span></Container>;
 }
 
 export function ColumnFilter({ field, label }) {
@@ -73,38 +70,25 @@ export function ColumnFilter({ field, label }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState([]);
   const [query, setQuery] = useState('');
-  const [position, setPosition] = useState({ top: 0, left: 0 });
   const trigger = useRef(null), popup = useRef(null);
   const options = controls?.options[field] || [];
   const active = controls && Object.hasOwn(controls.filters, field);
   const close = (focus = true) => { setOpen(false); if (focus) trigger.current?.focus({ preventScroll: true }); };
-  useLayoutEffect(() => {
-    if (!open) return;
-    const place = () => {
-      const box = trigger.current.getBoundingClientRect();
-      const height = popup.current?.getBoundingClientRect().height || Math.min(440, window.innerHeight - 24);
-      const top = box.bottom + height + 8 <= window.innerHeight ? box.bottom + 8 : box.top - height - 8;
-      setPosition({ left: Math.max(12, Math.min(box.right - 268, window.innerWidth - 280)), top: Math.max(12, Math.min(top, window.innerHeight - height - 12)) });
-    };
-    place();
-    popup.current?.querySelector('input[type=search]')?.focus();
-    const outside = (event) => { if (!popup.current?.contains(event.target) && !trigger.current?.contains(event.target)) close(false); };
-    const keyboard = (event) => { if (event.key === 'Escape') { event.preventDefault(); close(); } };
-    document.addEventListener('pointerdown', outside); document.addEventListener('keydown', keyboard);
-    window.addEventListener('resize', place); window.addEventListener('scroll', place, true);
-    return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', keyboard); window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true); };
-  }, [open]);
+  const position=useFilterPosition(open,trigger,popup,{onOutside:()=>close(false)});
+  useEffect(()=>{if(!open)return;const keyboard=event=>{if(event.key==='Escape'){event.preventDefault();close();}};document.addEventListener('keydown',keyboard);return()=>document.removeEventListener('keydown',keyboard);},[open]);
+  const selected=useMemo(()=>new Set(draft),[draft]);
+  const matching=useMemo(()=>{if(!open)return [];const term=query.toLowerCase();return options.filter(option=>option.label.toLowerCase().includes(term));},[open,options,query]);
   if (!controls || !controls.columns.some((column) => column.key === field)) return null;
-  const all = options.length > 0 && options.every((option) => draft.includes(option.key));
-  const selectedCount = options.filter(option => draft.includes(option.key)).length;
+  const all = open && options.length > 0 && options.every((option) => selected.has(option.key));
+  const selectedCount = open ? options.filter(option => selected.has(option.key)).length : 0;
   const unrestricted = controls.unfilteredOptions?.[field] || options;
-  const selectsEveryValue = unrestricted.length > 0 && unrestricted.every(option => draft.includes(option.key));
+  const selectsEveryValue = open && unrestricted.length > 0 && unrestricted.every(option => selected.has(option.key));
   return <><button ref={trigger} type="button" className={`table-column-filter ${active ? 'is-active' : ''}`} aria-label={`${label} 필터`} title={`${label} 필터${active ? ' 적용 중' : ''}`} aria-haspopup="dialog" aria-expanded={open} onClick={() => { if (open) close(); else { setDraft(active ? [...controls.filters[field]] : options.map((option) => option.key)); setQuery(''); setOpen(true); } }}><Icon name="filter" size={15} />{active && <i />}</button>
-    {open && createPortal(<div ref={popup} onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();close();}}} className="table-filter-popover" role="dialog" aria-label={`${label} 필터 설정`} style={position}><div className="table-filter-title"><strong>{label}</strong><ActionButton action="close" type="button" onClick={() => close()} aria-label="필터 닫기"/></div>
+    {open && createPortal(<div ref={popup} onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();close();}}} className="table-filter-popover nubi-filter-panel" role="dialog" aria-label={`${label} 필터 설정`} style={position}><div className="table-filter-title"><span className="nubi-mail-column-popover-title"><Icon name="filter" size={16}/><strong>{label}</strong></span><ActionButton action="close" type="button" onClick={() => close()} aria-label="필터 닫기"/></div>
       <SearchField className="table-filter-search" label="필터 값 검색" placeholder="값 검색" value={query} onChange={setQuery}/>
-      <label className="table-filter-option table-filter-all"><input className="cx-checkbox" type="checkbox" checked={all} ref={(node) => { if (node) node.indeterminate = selectedCount > 0 && !all; }} onChange={() => setDraft(all ? [] : options.map((option) => option.key))} /><span>전체 선택</span><small>{selectedCount} / {options.length}</small></label>
-      <div className="table-filter-options">{options.filter((option) => option.label.toLowerCase().includes(query.toLowerCase())).map((option) => <label className="table-filter-option" key={option.key}><input className="cx-checkbox" type="checkbox" checked={draft.includes(option.key)} onChange={() => setDraft((current) => current.includes(option.key) ? current.filter((value) => value !== option.key) : [...current, option.key])} /><span>{option.label}</span></label>)}{!options.some((option) => option.label.toLowerCase().includes(query.toLowerCase())) && <p className="table-filter-empty">일치하는 값이 없습니다.</p>}</div>
-      <div className="table-filter-footer"><ActionButton action="clearFilters" type="button" onClick={() => { controls.setFilter(field, null); close(); }}/><ActionButton action="apply" onClick={() => { controls.setFilter(field, selectsEveryValue ? null : draft); close(); }}/></div>
+      <label className="table-filter-option table-filter-all"><input className="nubi-filter-checkbox" type="checkbox" checked={all} ref={(node) => { if (node) node.indeterminate = selectedCount > 0 && !all; }} onChange={() => setDraft(all ? [] : options.map((option) => option.key))} /><span>전체 선택</span><small>{selectedCount} / {options.length}</small></label>
+      <div className="table-filter-options"><ShowMore items={matching} step={60} resetKey={query}>{visible=>visible.map((option) => <label className="table-filter-option" key={option.key}><input className="nubi-filter-checkbox" type="checkbox" checked={selected.has(option.key)} onChange={() => setDraft((current) => current.includes(option.key) ? current.filter((value) => value !== option.key) : [...current, option.key])} /><span>{option.label}</span></label>)}</ShowMore>{!matching.length && <p className="table-filter-empty">일치하는 값이 없습니다.</p>}</div>
+      <div className="table-filter-footer"><ActionButton action="clearFilters" iconOnly={false} label="초기화" type="button" onClick={() => { controls.setFilter(field, null); close(); }}/><ActionButton action="apply" iconOnly={false} className="nubi-filter-apply" onClick={() => { controls.setFilter(field, selectsEveryValue ? null : draft); close(); }}/></div>
     </div>, trigger.current?.closest('[aria-modal="true"]') || document.body)}
   </>;
 }
@@ -183,7 +167,7 @@ export function ControlledTable({ className, selection = false, detail = false, 
     observer.observe(element);
     return () => { observer.disconnect(); if (viewport === element.parentElement) viewport.style.scrollPaddingInlineStart = ''; };
   }, [frozenKey, geometryKey]);
-  return <table ref={table} className={`${className} controlled-table${frozenKey ? ' has-frozen-columns' : ''}${compact ? ' compact-frozen-columns' : ''}`} style={{ width, minWidth: '100%' }}><colgroup>{columns.map((column, index) => <col key={column.key} style={{ width: column.key===flexibleColumn?undefined:widths[index] }} />)}</colgroup>{children}</table>;
+  return <CollectionTable ref={table} className={`${className} controlled-table${frozenKey ? ' has-frozen-columns' : ''}${compact ? ' compact-frozen-columns' : ''}`} style={{ width, minWidth: '100%' }}><colgroup>{columns.map((column, index) => <col key={column.key} style={{ width: column.key===flexibleColumn?undefined:widths[index] }} />)}</colgroup>{children}</CollectionTable>;
 }
 
 export function ActiveColumnFilters({ controls }) {

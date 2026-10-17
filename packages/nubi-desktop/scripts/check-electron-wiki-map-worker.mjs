@@ -37,10 +37,10 @@ try{
  await page.waitForFunction(()=>window.mapWorkerDone);
  assert(await page.locator('.nubi-wiki-map svg g[role="button"]').count()>0);
  await page.getByRole('tab',{name:'종류',exact:true}).click();await page.getByRole('button',{name:'외부 연동',exact:false}).waitFor();
- await page.getByRole('tab',{name:'클러스터 보기',exact:true}).click();
- await page.getByRole('img',{name:'3개 클러스터의 연결',exact:true}).waitFor();
+ await page.getByText('묶음과 표시 설정',{exact:true}).click();await page.getByRole('tab',{name:'묶어서 보기',exact:true}).click();
+ await page.getByRole('group',{name:'3개 클러스터의 연결',exact:true}).waitFor();
  await page.locator('svg g[role=button]').first().focus();await page.keyboard.press('Enter');
- assert.equal(await page.getByRole('tab',{name:'문서별 보기',exact:true}).getAttribute('aria-selected'),'true');
+ assert.equal(await page.getByRole('tab',{name:'문서로 보기',exact:true}).getAttribute('aria-selected'),'true');
  assert.deepEqual(await page.evaluate(()=>window.mapWorkerErrors),[]);assert.deepEqual(errors,[]);
  await mkdir('verification/wiki-map-clusters-2026-10-15',{recursive:true});await page.screenshot({path:'verification/wiki-map-clusters-2026-10-15/electron.png'});
  await writeFile('verification/wiki-map-clusters-2026-10-15/electron.json',JSON.stringify({passed:true,workerScheme:'app://bundle',errors,boundary:'Actual isolated macOS Electron with synthetic code wiki. No live model/mailbox or Windows claim.'},null,2));

@@ -1,4 +1,4 @@
-import {build} from 'esbuild';
+import {build,stop} from 'esbuild';
 import {_electron as electron} from 'playwright';
 import {createRequire} from 'node:module';
 import {mkdir,mkdtemp,writeFile,readFile,cp,rm} from 'node:fs/promises';
@@ -6,9 +6,11 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import {WELCOME_GREETINGS} from '../ui/welcome-greetings.mjs';
 import {assertDialogChrome} from './identity-browser.mjs';
-const dir=path.resolve('verification/all-surfaces'),bundle=path.join(dir,'fixture');
+import {auditCxSurface} from './cx-surface-audit.mjs';
+const dir=path.resolve(process.env.NUBI_SURFACE_OUTPUT||'verification/all-surfaces'),bundle=path.join(dir,'fixture');
 await mkdir(bundle,{recursive:true});
-await build({entryPoints:['tests/surface-audit-fixture.jsx'],outfile:path.join(bundle,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.woff2':'file','.woff':'file'},define:{__APP_VERSION__:'"fixture"','process.env.NODE_ENV':'"production"'}});
+await build({entryPoints:['tests/surface-audit-fixture.jsx'],outfile:path.join(bundle,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.webp':'file','.woff2':'file','.woff':'file'},define:{__APP_VERSION__:'"fixture"','process.env.NODE_ENV':'"production"'}});
+stop();
 await cp('../../extensions/aipro-chat/public/icons',path.join(bundle,'icons'),{recursive:true});
 await writeFile(path.join(bundle,'index.html'),'<!doctype html><html lang="ko"><title>누비 전체 화면 검토</title><link rel="stylesheet" href="app.css"><body><div class="desktop-shell" data-toolbar="true" data-platform="darwin" data-layout="split"><div id="toolbar" class="desktop-titlebar"></div><div class="desktop-workspace-body"><div class="desktop-agent" id="root"></div></div></div><script type="module" src="app.js"></script></body></html>');
 const storage=await mkdtemp('/tmp/nubi-all-surfaces-'),require=createRequire(import.meta.url);
@@ -16,10 +18,11 @@ const app=await electron.launch({executablePath:require('electron'),args:['elect
 const records=[],errors=[];let p;
 async function load(query){await p.goto('file://'+path.join(bundle,'index.html')+'?'+query);await p.locator('.nubi-workbench,.deck-dialog,.nubi-bar,.nubi-mail-history').first().waitFor();await p.emulateMedia({reducedMotion:'reduce'});await p.evaluate(()=>document.fonts.ready);}
 async function audit(name,selector='body'){
+ if(name.startsWith('progress-')){const footer=p.locator('.desktop-mail-progress');const bounds=await footer.boundingBox();assert(bounds&&bounds.width>100&&bounds.height>20&&bounds.y>=0&&bounds.y+bounds.height<=await p.evaluate(()=>innerHeight),'progress content is actually inside the viewport');assert.match(await footer.innerText(),/위키/);}
  for(const dialog of await p.locator('.deck-dialog:visible').all())await assertDialogChrome(dialog);
  const metrics=await p.locator(selector).first().evaluate(root=>{
   const floor=parseFloat(getComputedStyle(document.documentElement).fontSize)*.875;
-  const nodes=[...root.querySelectorAll('*')].filter(e=>e.checkVisibility()&&!e.closest('svg,.monaco-editor,.xterm,[aria-hidden="true"],.visually-hidden')&&[...e.childNodes].some(n=>n.nodeType===Node.TEXT_NODE&&n.textContent.trim()));
+  const nodes=[...root.querySelectorAll('*')].filter(e=>e.checkVisibility()&&!e.closest('svg,.monaco-editor,.xterm,[aria-hidden="true"],.visually-hidden,.nubi-word-paper,.nubi-ppt-canvas,.nubi-excel-grid-scroll,.talk-rich-content')&&[...e.childNodes].some(n=>n.nodeType===Node.TEXT_NODE&&n.textContent.trim()));
   const small=nodes.filter(e=>parseFloat(getComputedStyle(e).fontSize)+.1<floor).map(e=>({tag:e.tagName,class:e.className,text:e.textContent.trim().slice(0,45),size:getComputedStyle(e).fontSize}));
   const clippedActions=[...document.querySelectorAll('.nubi-window-toolbar button,.composer-bottom button,.nubi-composer-footer button')].filter(e=>e.checkVisibility()).filter(e=>{const r=e.getBoundingClientRect();return r.left< -1||r.right>innerWidth+1;}).map(e=>e.getAttribute('aria-label')||e.textContent.trim());
   const hiddenNames=[...document.querySelectorAll('.composer-bottom .model-trigger-label,.composer-bottom .nubi-approval-mode-button>span')].filter(e=>!e.checkVisibility()).map(e=>e.textContent.trim());
@@ -34,7 +37,14 @@ async function audit(name,selector='body'){
    }
   }
   const dialog=document.querySelector('[role=dialog],[role=alertdialog]'),r=dialog?.getBoundingClientRect();
-  return {small,clippedActions,hiddenNames,wrappedControls,overflow:document.documentElement.scrollWidth>innerWidth+1,dialog:r?{left:r.left,top:r.top,right:r.right,bottom:r.bottom,width:r.width,height:r.height}:null,width:innerWidth,height:innerHeight};
+  const probe=document.createElement('span');root.append(probe);
+  const scale=['--deck-type-caption','--deck-type-body','--nubi-reading-size','--nubi-type-large-body','--deck-type-heading','--nubi-type-section','--deck-type-title'].map(token=>{probe.style.fontSize=`var(${token})`;return parseFloat(getComputedStyle(probe).fontSize);});probe.remove();
+  const summary=e=>({class:e.className,text:e.textContent.trim().slice(0,45),font:getComputedStyle(e).fontFamily,size:getComputedStyle(e).fontSize,weight:getComputedStyle(e).fontWeight});
+  const familyOutliers=nodes.filter(e=>!/(?:Pretendard|Noto Sans KR|monospace|Color Emoji)/i.test(getComputedStyle(e).fontFamily)).map(summary);
+  const weightOutliers=nodes.filter(e=>![400,500,600,700].includes(Number(getComputedStyle(e).fontWeight))).map(summary);
+  const sizeOutliers=nodes.filter(e=>!e.closest('.nubi-welcome,.nubi-start,.aipro-login,.nubi-logo')&&!scale.some(size=>Math.abs(size-parseFloat(getComputedStyle(e).fontSize))<.15)).map(summary);
+  const typography=Object.fromEntries(['fontFamily','fontSize','fontWeight','color'].map(property=>[property,[...new Set(nodes.map(e=>getComputedStyle(e)[property]))]]));
+  return {small,familyOutliers,weightOutliers,sizeOutliers,typography,clippedActions,hiddenNames,wrappedControls,overflow:document.documentElement.scrollWidth>innerWidth+1,dialog:r?{left:r.left,top:r.top,right:r.right,bottom:r.bottom,width:r.width,height:r.height}:null,width:innerWidth,height:innerHeight};
  });
  const composers=await p.locator('.nubi-composer-surface').evaluateAll(surfaces=>surfaces.map(surface=>{
   const bounds=surface.getBoundingClientRect(),buttons=[...surface.querySelectorAll('.composer-bottom button')].filter(e=>e.checkVisibility()&&!e.closest('[role=dialog],[role=menu]'));
@@ -55,8 +65,12 @@ async function audit(name,selector='body'){
  assert(!metrics.overflow,name+': outer horizontal overflow');assert.deepEqual(metrics.wrappedControls,[],name+': control labels must stay single line');
  assert.deepEqual(metrics.clippedActions,[],name+': named actions clipped');assert.equal(await p.locator('.composer-bottom button:visible').evaluateAll(buttons=>buttons.every(button=>(button.getAttribute('aria-label')||button.textContent).trim()&&button.title)),true,name+': compact controls keep names and hints');
  if(!process.argv.includes('--diagnostic'))assert.deepEqual(metrics.small,[],name+': text below caption token');
+ if(!process.argv.includes('--diagnostic')){assert.deepEqual(metrics.familyOutliers,[],name+': non-Workspace text family');assert.deepEqual(metrics.weightOutliers,[],name+': non-token text weight');assert.deepEqual(metrics.sizeOutliers,[],name+': text outside the common type scale');}
  if(metrics.dialog){const r=metrics.dialog;assert(r.left>=-1&&r.top>=-1&&r.right<=metrics.width+1&&r.bottom<=metrics.height+1,name+': dialog clipped');}
- records.push({name,file,...metrics,composers});console.log('checked',name);
+ const cx=await auditCxSurface(p);
+ assert.deepEqual(cx.missingNames,[],name+': visible controls have names');
+ assert.deepEqual(cx.contrast,[],name+': text contrast over plain measured backgrounds');
+ records.push({name,file,...metrics,composers,cx});console.log('checked',name);
  await writeFile(path.join(dir,'diagnostic.json'),JSON.stringify(records,null,2));
 }
 async function close(){await p.keyboard.press('Escape');}
@@ -80,8 +94,9 @@ try{
   await p.getByRole('button',{name:'메일',exact:true}).click();await p.getByRole('heading',{name:'메일',exact:true}).waitFor();await audit('mail-empty-'+width);
   await p.locator('.nubi-mail-connect-link').click();await p.getByRole('group',{name:'메일 가져오는 방법'}).waitFor();await audit('mail-connect-'+width);await close();
   await load('screen=workbench&integrated&noproject');await p.getByRole('button',{name:'AI Pro',exact:true}).waitFor();await audit('login-'+width);await p.getByRole('button',{name:'AI Pro',exact:true}).click();await p.getByRole('region',{name:'프로젝트 열기'}).waitFor();await audit('project-start-'+width);
-  for(const [screen,wait] of [['claude-install','Claude Code 연결'],['claude-login','Claude Code 연결'],['claude-update','Claude Code 연결'],['startup','메일을 연결해 주세요'],['usage','사용량'],['models-long','모델 선택'],['mail-settings','메일 설정'],['registration','스킬 등록'],['skills','스킬 관리'],['marketplace','스킬 관리'],['account','검토 계정 @review']]){
+  for(const [screen,wait] of [['mcp','MCP 연결'],['claude-install','Claude Code 연결'],['claude-login','Claude Code 연결'],['claude-update','Claude Code 연결'],['startup','메일을 연결해 주세요'],['usage','사용량'],['models-long','모델 선택'],['mail-settings','메일 설정'],['registration','스킬 등록'],['skills','스킬 관리'],['marketplace','스킬 관리'],['account','검토 계정 @review']]){
    await load('screen='+screen);await (screen==='account'?p.locator('.nubi-ghes-modal'):p.getByRole('dialog',{name:wait,exact:true})).waitFor();
+   if(screen==='mcp')await p.locator('.nubi-mcp-state').first().waitFor();
    if(screen==='account')await p.locator('.nubi-account-heading strong').filter({hasText:'검토 계정'}).waitFor();
    if(screen==='mail-settings')await p.getByRole('switch',{name:'메일 자동 정리'}).waitFor();
    if(screen==='skills')await p.getByText('보고서 작성',{exact:true}).waitFor();
@@ -212,7 +227,7 @@ try{
     return {aligned:nav.dataset.aligned==='true',difference:Math.abs(nav.getBoundingClientRect().right-sidebar.getBoundingClientRect().right),rail:rail.getBoundingClientRect().width,last:rail.lastElementChild===team,bottom:rail.getBoundingClientRect().bottom-team.getBoundingClientRect().bottom};
    });
    if(state.aligned)assert(state.difference<1,'brand separator tracks the sidebar boundary');
-   assert.equal(state.rail,72);assert(state.last&&state.bottom<32,'AI Workspace stays at the bottom');
+   assert.equal(state.rail,56);assert(state.last&&state.bottom<32,'AI Workspace stays at the bottom');
   };
   await checkNavigation('navigation-1280');
   const resize=p.getByRole('separator',{name:'사이드바 너비 조절',exact:true});await resize.focus();await p.keyboard.press('ArrowRight');await checkNavigation('navigation-resized');
@@ -233,13 +248,14 @@ try{
   motion.pause();const positions=[0,1600,4000,6000,8000].map(time=>{motion.currentTime=time;const m=new DOMMatrix(getComputedStyle(bird.parentElement).transform);return {x:m.m41,y:m.m42};});motion.play();
   const wing=bird.querySelector('.bird-wing'),flap=wing.getAnimations()[0];
   flap.pause();flap.currentTime=1080;const wingVisible=Number(getComputedStyle(wing).opacity);flap.play();
-  return {positions,wingVisible,small:[...document.querySelectorAll('.nubi-logo .agent-mark')].map(e=>getComputedStyle(e).animationName)};
+  return {positions,wingVisible,small:[...document.querySelectorAll('.nubi-logo .agent-mark')].map(e=>{const style=getComputedStyle(e),animation=e.getAnimations()[0],positions=[];if(animation){const time=animation.currentTime;animation.pause();for(const fraction of [0,.25,.5,.75,1]){animation.currentTime=Number(animation.effect.getTiming().duration)*fraction;const m=new DOMMatrix(getComputedStyle(e).transform);positions.push({x:m.m41,y:m.m42});}animation.currentTime=time;animation.play();}return {name:style.animationName,duration:parseFloat(style.animationDuration),positions};})};
  });
+ await writeFile(path.join(dir,'bird-motion.json'),JSON.stringify(birdMotion,null,2));
  assert(birdMotion,'welcome bird has a flight path');
  assert(birdMotion.positions.some(v=>Math.abs(v.x)>3)&&birdMotion.positions.some(v=>v.y<-7),'bird actually flies');
  assert(birdMotion.positions.every(v=>Math.abs(v.x)<=4.01&&v.y>=-8.01&&v.y<=.01),'flight stays gentle and within its art');
  assert(birdMotion.wingVisible>.9,'the wing frame is visible during the flap');
- assert(birdMotion.small.every(v=>v==='none'),'small logo birds stay in place');
+ assert(birdMotion.small.every(v=>v.name==='none'||v.name==='nubi-brand-float'&&v.duration>=6&&v.positions.every(p=>Math.abs(p.x)<=.01&&Math.abs(p.y)<=2.01)),'small logo birds use only the slow bounded idle motion');
  await p.getByRole('textbox',{name:'작업 요청',exact:true}).focus();assert.equal(await emblem.evaluate(e=>getComputedStyle(e).animationPlayState),'running','typing does not freeze the bird');
  await p.locator('.welcome-art').hover();await p.waitForFunction(()=>getComputedStyle(document.querySelector('.welcome-emblem .agent-mark')).animationName==='nubi-bird-dance');
  await p.waitForTimeout(2000); // The greeting timer must not end the smile while the pointer remains.
@@ -253,7 +269,7 @@ try{
  assert.equal(await emblem.evaluate(e=>getComputedStyle(e).animationPlayState),'paused','modal pauses flight');
  assert.equal(await bird.evaluate(e=>getComputedStyle(e).animationPlayState),'paused','modal pauses greeting');
  await p.evaluate(()=>document.getElementById('bird-motion-pause-check').remove());
- await p.mouse.move(2,2);assert.equal(await bird.evaluate(e=>getComputedStyle(e).animationName),'none','greeting stops on leave');
+ await p.mouse.move(2,2);assert(['none','nubi-bird-curious'].includes(await bird.evaluate(e=>getComputedStyle(e).animationName)),'greeting ends on leave and returns to quiet idle motion');
  for(const [mood,frame] of [['sleep','bird-blink'],['sad','bird-sad']]){
   await bird.evaluate((e,mood)=>e.dataset.mood=mood,mood);
   await p.waitForFunction(frame=>Number(getComputedStyle(document.querySelector('.welcome-emblem .'+frame)).opacity)>.99,frame);

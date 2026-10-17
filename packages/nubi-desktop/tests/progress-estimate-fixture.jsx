@@ -1,10 +1,11 @@
+import '@e2e/cx-design-system/styles.css';
 import React,{useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {DetailPanel} from '@e2e/cx-design-system';
 import {TaskProgressBar} from '../ui/TaskProgressBar.jsx';
 import {WikiInitializationProgress} from '../ui/WikiInitializationProgress.jsx';
 import {GitCloneProgress} from '../ui/GitCloneProgress.jsx';
-import '@e2e/cx-design-system/styles.css';
+
 import '../electron-app/workbench.css';
 import '../design/workspace-identity.css';
 import '../electron-app/shell.css';
@@ -13,6 +14,7 @@ import '../ui/project-switch-cover.css';
 import '../design/workspace-typography.css';
 import '../design/workspace-density.css';
 import '../design/workspace-dialogs.css';
+import '../design/workspace-icons.css';
 const startedAt=Date.now();
 function Fixture(){
  const [count,setCount]=useState(10),[stage,setStage]=useState('reading'),[active,setActive]=useState(true);

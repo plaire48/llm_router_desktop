@@ -10,6 +10,8 @@ extension/lib/
 verification/
 
 generated/
+native/**/bin/
+native/**/obj/
 
 **/gen-esbuild.*.mjs
 
@@ -17,3 +19,5 @@ release/
 
 electron-app/resources/nsis-generated/
 electron-app/resources/git/
+artifacts/
+releases/

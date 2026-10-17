@@ -7,12 +7,12 @@
    ones, so this single place replaces the older per-dialog entrances (claude-connection, GHES) instead of stacking
    a second animation on top of them. */
 :root {
-  --nubi-modal-open:360ms;
-  --nubi-modal-close:220ms;
-  --nubi-modal-spring:cubic-bezier(.22,1.28,.36,1);
-  --nubi-modal-resize:360ms;
-  --nubi-modal-resize-ease:cubic-bezier(.22,1.12,.36,1);
-  --nubi-modal-drop:cubic-bezier(.3,0,.8,.15);
+  --nubi-modal-open:280ms;
+  --nubi-modal-close:180ms;
+  --nubi-modal-spring:var(--nubi-bounce,cubic-bezier(.34,1.18,.64,1));
+  --nubi-modal-resize:280ms;
+  --nubi-modal-resize-ease:cubic-bezier(.2,1.08,.3,1);
+  --nubi-modal-drop:cubic-bezier(.4,0,.8,.2);
 }
 @media (prefers-reduced-motion: no-preference) {
   @layer nubi-modal-motion {
@@ -36,10 +36,10 @@
 .cx-panel-backdrop[data-modal-motion="leaving"], .cx-panel-backdrop[data-modal-motion="leaving"] * { pointer-events:none !important; }
 @keyframes nubi-modal-scrim-in { from { opacity:0; } }
 @keyframes nubi-modal-scrim-out { to { opacity:0; } }
-@keyframes nubi-modal-sheet-in { from { transform:translate3d(0,18px,0) scale(.965); } }
-@keyframes nubi-modal-sheet-out { to { transform:translate3d(0,28px,0) scale(.97); } }
-@keyframes nubi-modal-drawer-in { from { transform:translate3d(100%,0,0); } }
-@keyframes nubi-modal-drawer-out { to { transform:translate3d(100%,0,0); } }
+@keyframes nubi-modal-sheet-in { from { opacity:0; transform:translate3d(0,12px,0) scale(.985); } }
+@keyframes nubi-modal-sheet-out { to { transform:translate3d(0,16px,0) scale(.99); } }
+@keyframes nubi-modal-drawer-in { from { opacity:0; transform:translate3d(24px,0,0); } }
+@keyframes nubi-modal-drawer-out { to { opacity:0; transform:translate3d(24px,0,0); } }
 @keyframes nubi-modal-swap-in { from { opacity:0; transform:scale(.985); } }
 
 /* View Transitions (ui/viewTransition.js) must not animate a dialog a second time. A transition never starts while a

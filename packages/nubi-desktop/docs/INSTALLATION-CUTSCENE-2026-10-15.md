@@ -4,7 +4,7 @@ The old localStorage key tracked only the package version and was written on mou
 
 The NSIS customInstall completion hook now rotates `nubi-installation.id` next to the executable. This runs for interactive installs, silent installs and updates, independent of whether the installer launches the app immediately. Electron reads the bounded GUID and exposes only this installation ID through its sandboxed preload. Existing installers without a valid marker use executable creation/change metadata as a fallback. Development/non-Windows runs retain the version fallback.
 
-The scene's seen key combines package version with installation ID. It is recorded only after completion or a user skip. Ordinary relaunch keeps the existing brief opening. Reduced motion shows a static brief opening; automation keeps its existing skip. First-run tour and user data are unaffected.
+The scene's seen key combines package version with installation ID. It is recorded only after completion or a user skip. Ordinary relaunch keeps the existing brief opening. Reduced motion shows a static brief opening; non-installed automated fixtures keep their skip; installed apps still show the opening when automation is attached. First-run tour and user data are unaffected.
 
 References checked: [electron-builder NSIS completion hooks](https://www.electron.build/nsis/), [NSIS GUID generation](https://nsis.sourceforge.io/Create_a_GUID,_a_Globally_Unique_Identifier). No new package dependency.
 
@@ -27,3 +27,11 @@ Ordinary launches keep their opaque logo/progress surface until startup settles.
 Project navigation sets its guard before awaiting the host and commits the new Workbench synchronously before removing it. Pending view-transition snapshots are cancelled and no new snapshot starts during a project switch. A compact brand/progress cover fills the area below the toolbar; old workspace contents, portalled dialogs and native browser views remain hidden. Cancellation/failure restores the original UI and interactivity. Existing project drafts and view-state storage are retained.
 
 Validation: opening React/Chromium fixture covers delayed JS, explicit visible descendants, high-z-index portals, first install, brief relaunch, reinstall, update, a startup beyond six seconds, early skip and reduced motion. Five opening/transition tests pass. Actual macOS Electron with two temporary local projects verifies the delayed switch frame-by-frame, new project after uncover, and original project on failure (`scripts/check-project-switch-cover.mjs`, `verification/project-switch-cover/result.json`). No company session or user project is used. Windows installed startup/switching remains unverified.
+
+## Windows installed-app report (2026-10-16)
+
+The reported environment is Windows, but the installed version and actual playback have not been observed. This change addresses identified reliability gaps rather than claiming a reproduced Windows root cause. The installer GUID is decoded with UTF-8/UTF-16 BOM support and combined with executable replacement metadata. This detects a replaced payload even when an older/custom installer preserves its marker. Ordinary launches retain a stable identity. The sandboxed preload is tested with the exact generated stamp.
+
+A generic window click or ordinary key no longer skips the flight. Only the common-token Skip button or Escape skips it, and an unready app remains behind the opaque title surface. The in-memory completion flag is recorded after completion, matching the persistent seen key. A webdriver flag no longer suppresses the installed app's intro. Reduced motion retains its static opening.
+
+Validation: six marker/state/preload tests, production React browser checks for first launch/relaunch/reinstall/update, accidental click/key input, attached automation, delayed readiness and reduced motion passed. Local Electron build and identity check passed. The existing Windows installer gate checks marker rotation; actual installed intro playback remains unverified and no installer was built or released in this session.

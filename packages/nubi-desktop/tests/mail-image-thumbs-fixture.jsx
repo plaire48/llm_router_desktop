@@ -1,7 +1,8 @@
+import '@e2e/cx-design-system/styles.css';
 import React,{useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {MailImageThumbs} from '../ui/MailImageThumbs.jsx';
-import '@e2e/cx-design-system/styles.css';
+
 import '../design/workspace-identity.css';
 const canvas=document.createElement('canvas');canvas.width=480;canvas.height=320;const context=canvas.getContext('2d');context.fillStyle='#F1F7FE';context.fillRect(0,0,480,320);context.fillStyle='#191F28';context.font='bold 28px sans-serif';context.fillText('출장비 영수증',40,65);context.font='22px sans-serif';context.fillText('교통비 120,000원',40,130);context.fillText('2026-10-15',40,185);context.fillStyle='#3182F6';context.fillRect(40,230,400,3);const image=canvas.toDataURL('image/png');
 window.calls=[];window.opened=[];

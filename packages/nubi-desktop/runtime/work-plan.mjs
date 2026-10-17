@@ -29,10 +29,11 @@ const validate=new Ajv().compile(WORK_PLAN_SCHEMA);
 export function workPlanSteps(input,{initial=false}={}){
   if(!validate(input))throw new Error('work_plan_invalid');
   const steps=normalizePlan(input.steps);
-  if(!steps||steps.filter(s=>s.status==='in_progress').length!==1||new Set(steps.map(s=>s.text)).size!==steps.length)throw new Error('work_plan_invalid');
+  const completed=!initial&&steps?.every(step=>step.status==='completed');
+  if(!steps||(!completed&&steps.filter(s=>s.status==='in_progress').length!==1)||new Set(steps.map(s=>s.text)).size!==steps.length)throw new Error('work_plan_invalid');
   // The model may mark earlier steps completed (bundle 3.2, 2026-10-15); a completed step after the current one is not a plan.
   const active=steps.findIndex(s=>s.status==='in_progress');
-  if(steps.some((s,i)=>s.status==='completed'&&i>active))throw new Error('work_plan_invalid');
+  if(!completed&&steps.some((s,i)=>s.status==='completed'&&i>active))throw new Error('work_plan_invalid');
   return initial?initialPlan(steps):steps;
 }
 // An initial plan with every step pending (or all statuses omitted) has no
@@ -133,7 +134,7 @@ export function reviewPlanSteps(steps,outcome){
   return steps.map((step,index)=>{
     const check=outcome.checks?.find(item=>item.requirementId==='intent:step:'+index);
     if(check?.state==='supported'&&check.evidenceIds?.length)return {...step,status:'completed',verified:true};
-    if(step.status==='completed'&&outcome.status==='revise'&&check&&check.state!=='supported')return {...step,status:'pending',verified:false};
+    if(step.status==='completed'&&check&&check.state!=='supported')return {...step,status:'pending',verified:false};
     return step;
   });
 }

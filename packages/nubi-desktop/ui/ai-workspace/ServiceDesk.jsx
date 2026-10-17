@@ -35,8 +35,8 @@ export {InquiryHeaderSlot} from './InquiryHeaderSlot.js';
 export function InquiryPage({children, actions, onClose, busy, composing=false, sidebar, sidebarId, sidebarCollapsed=false, onToggleSidebar, showList=false}) {
   const [help,setHelp]=useState(false), heading=useRef(null), id=useId(), slot=useContext(InquiryHeaderSlot);
   useEffect(()=>{heading.current?.focus();},[]);
-  // Collapsing lives next to the list's refresh icon (user request 2026-10-15); the header shows only the way back in.
-  const controls=<>{sidebar&&onToggleSidebar&&sidebarCollapsed&&<ActionButton className="inquiry-sidebar-toggle" action="showSidebar" label="문의 내역 펼치기" aria-expanded={false} aria-controls={sidebarId} onClick={onToggleSidebar}/>} {onClose&&<ActionButton action="back" aria-label="문의 목록" onClick={onClose} disabled={busy}/>}</>;
+  // Keep collapse and expand in the same header position so the control never jumps between rows.
+  const controls=<>{sidebar&&onToggleSidebar&&<ActionButton className="inquiry-sidebar-toggle" action={sidebarCollapsed?'showSidebar':'hideSidebar'} label={sidebarCollapsed?'문의 내역 펼치기':'문의 내역 접기'} aria-expanded={!sidebarCollapsed} aria-controls={sidebarId} onClick={onToggleSidebar}/>} {onClose&&<ActionButton action="back" aria-label="문의 목록" onClick={onClose} disabled={busy}/>}</>;
   if(slot)return <section className={`service-desk-page is-slotted${composing?' is-composing':''}${sidebar?' has-inquiry-sidebar':''}${sidebarCollapsed?' is-inquiry-sidebar-collapsed':''}${showList?' is-inquiry-list':''}`} aria-label="문의">
     {createPortal(<div className="service-desk-slot-controls">{controls}<HelpTrigger onClick={()=>setHelp(true)}/><div className="service-desk-page-actions">{actions}</div></div>,slot)}
     {sidebar?<div className="inquiry-columns">{sidebar}<div className="service-desk-page-body">{children}</div></div>:<div className="service-desk-page-body">{children}</div>}

@@ -1,0 +1,30 @@
+/* Shared filter surface; collection table headers own their trigger controls. */
+:root {
+ --nubi-filter-width:300px;
+ --nubi-filter-inset:var(--cx-space-4);
+ --nubi-filter-gap:var(--cx-space-3);
+ --nubi-filter-choice-height:36px;
+}
+.nubi-filter-panel:is(.table-filter-popover,.nubi-mail-column-popover) {
+ width:min(var(--nubi-filter-width),calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;
+ box-sizing:border-box;padding:var(--nubi-filter-inset);display:grid;gap:var(--nubi-filter-gap);
+ background:var(--nubi-surface-base);color:var(--nubi-text-primary);border:0;
+ border-radius:var(--nubi-work-control-radius);box-shadow:var(--deck-shadow);font:var(--deck-font-caption);
+}
+.nubi-filter-panel:is(.table-filter-popover,.nubi-mail-column-popover) :is(header,.table-filter-title,footer,.table-filter-footer) { display:flex;align-items:center;justify-content:space-between;gap:var(--cx-space-2);margin:0; }
+.nubi-filter-panel:is(.table-filter-popover,.nubi-mail-column-popover) :is(header,.table-filter-title) strong { font:var(--deck-font-body);font-weight:var(--nubi-weight-emphasis); }
+.nubi-filter-panel:is(.table-filter-popover,.nubi-mail-column-popover) .nubi-mail-column-popover-title { display:inline-flex;align-items:center;gap:var(--cx-space-2);min-width:0; }
+.nubi-filter-panel:is(.table-filter-popover,.nubi-mail-column-popover) .nubi-mail-column-popover-title>svg { flex:none;color:var(--deck-blue-deep); }
+.nubi-filter-panel:is(.table-filter-popover,.nubi-mail-column-popover) :is(.table-filter-option,.nubi-mail-column-values label,.nubi-mail-column-all) { min-height:var(--nubi-filter-choice-height);padding:0 var(--cx-space-2);gap:var(--cx-space-3);font:var(--deck-font-caption);border-radius:var(--nubi-work-control-radius); }
+.nubi-filter-panel:is(.table-filter-popover,.nubi-mail-column-popover) :is(.table-filter-options,.nubi-mail-column-values) { display:grid;gap:var(--cx-space-1);max-height:min(300px,50vh);overflow:auto;overscroll-behavior:contain; }
+.nubi-filter-panel:is(.table-filter-popover,.nubi-mail-column-popover) :is(.table-filter-option,.nubi-mail-column-values label)>span { min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.nubi-filter-panel:is(.table-filter-popover,.nubi-mail-column-popover) :is(.table-filter-all,.nubi-mail-column-all) { background:var(--deck-tint);font-weight:var(--nubi-weight-emphasis); }
+.nubi-filter-panel:is(.table-filter-popover,.nubi-mail-column-popover) :is(.table-filter-footer,footer) { padding-top:0;border:0; }
+.nubi-filter-panel:is(.table-filter-popover,.nubi-mail-column-popover) :is(.table-filter-footer,footer) button { border:0;box-shadow:none;background:transparent;min-height:var(--nubi-filter-choice-height);font:var(--deck-font-caption);border-radius:var(--nubi-work-control-radius); }
+.nubi-filter-panel:is(.table-filter-popover,.nubi-mail-column-popover) .nubi-show-more { width:100%;min-height:var(--nubi-filter-choice-height);font:var(--deck-font-caption); }
+.nubi-filter-panel:is(.table-filter-popover,.nubi-mail-column-popover) .table-filter-option:not(.table-filter-all) { background:transparent; }
+.nubi-filter-panel:is(.table-filter-popover,.nubi-mail-column-popover) .table-filter-option:not(.table-filter-all):hover { background:var(--deck-blue-soft); }
+.nubi-filter-panel:is(.table-filter-popover,.nubi-mail-column-popover) :is(.nubi-filter-checkbox,input[type=checkbox],input[type=radio]) { appearance:auto;accent-color:var(--deck-blue);width:16px;height:16px;flex:none;margin:0; }
+.nubi-filter-panel:is(.table-filter-popover,.nubi-mail-column-popover) :is(.table-filter-footer,footer) .nubi-filter-apply { background:var(--deck-blue);color:var(--nubi-surface-base);font-weight:var(--nubi-weight-emphasis);padding-inline:var(--cx-space-4); }
+.nubi-filter-panel:is(.table-filter-popover,.nubi-mail-column-popover) :is(header,.table-filter-title) button { min-width:32px;min-height:32px;border-radius:var(--nubi-work-control-radius); }
+@media(pointer:coarse) { :root { --nubi-filter-choice-height:44px; } }

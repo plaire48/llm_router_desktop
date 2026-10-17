@@ -10,6 +10,7 @@
   --deck-fast: var(--deck-feedback);
   --cx-border: var(--deck-line);
   --cx-space-5: calc(var(--cx-space-4) + var(--cx-space-1));
+  --cx-space-7: calc(var(--cx-space-6) + var(--cx-space-1));
   --nubi-diff-surface: #FFFFFF;
   --nubi-diff-transparent: #00000000;
   --nubi-diff-added-line: #EAF7EF;
@@ -19,7 +20,7 @@
   --nubi-diff-unchanged: #F3F5F7;
   --nubi-diff-muted: #6B7684;
   --nubi-diff-code-size: 13px;
-  --nubi-diff-code-line-height: 22px;
+  --nubi-diff-code-line-height:var(--deck-line-body);
   --nubi-file-kind-size: 10px;
   --nubi-file-kind-js: #A66A12;
   --nubi-file-kind-js-soft: #FFF2D6;
@@ -81,20 +82,92 @@
   --nubi-group-gap: var(--cx-space-5);
   --nubi-model-list-height: 260px;
   --nubi-modal-close-size: var(--nubi-work-control-height);
-  --nubi-modal-close-icon-size: 18px;
+  --nubi-modal-close-icon-size: var(--nubi-icon-control);
   --nubi-work-control-height: 40px;
-  --nubi-work-control-icon: 1.125rem;
+  --nubi-work-control-icon: var(--nubi-icon-control);
   --nubi-work-control-radius: var(--deck-control-radius);
   --nubi-work-control-gap: var(--cx-space-2);
-  --nubi-modal-section-gap: var(--cx-space-4);
+  --nubi-modal-section-gap: var(--cx-space-5);
   --nubi-weight-regular: 400;
   --nubi-weight-label: 500;
   --nubi-weight-emphasis: 600;
-  --nubi-icon-small: 1rem;
-  --nubi-icon-large: 1.25rem;
+  --nubi-weight-strong: 700;
+  /* CX portals and toolbar slots live outside .nubi-workbench. Keep their
+     inherited scale identical to the central workbench, not CX's 12px default. */
+  --cx-font-family: var(--nubi-font-family);
+  --cx-type-body: var(--deck-type-body);
+  --cx-type-caption: var(--deck-type-caption);
+  --cx-type-control: var(--deck-type-body);
+  --cx-type-section: var(--deck-type-heading);
+  --cx-type-title: var(--deck-type-title);
+  --cx-type-panel-title: var(--deck-type-heading);
+  --cx-field-font: var(--deck-type-body);
+  --cx-weight-regular: var(--nubi-weight-regular);
+  --cx-weight-medium: var(--nubi-weight-label);
+  --cx-weight-semibold: var(--nubi-weight-emphasis);
+  --cx-weight-bold: var(--nubi-weight-strong);
+  /* Compatibility names still referenced by CX profile/error controls. */
+  --color-bg-danger-tint: var(--nubi-surface-danger);
+  --font-size-2xs: var(--deck-type-caption);
+  --nubi-line-solid: 1;
+  --nubi-line-compact: 1.25;
+  --nubi-type-large-body: 1.0625rem;
+  --nubi-type-section: 1.25rem;
+  --nubi-emoji-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  --nubi-document-table-size: .6875rem;
+  --nubi-document-ruler-size: .5625rem;
+  --nubi-text-on-accent: var(--nubi-surface-base);
+  --nubi-office-word-ink: #185ABD;
+  --nubi-office-excel-ink: #217346;
+  --nubi-office-powerpoint-ink: #B7472A;
+  --nubi-dirty-dot-size: .5rem;
+  --nubi-shadow-subtle: 0 1px 3px color-mix(in srgb,var(--deck-ink) 4%,transparent);
+  --nubi-shadow-soft: color-mix(in srgb,var(--deck-ink) 6%,transparent);
+  --nubi-shadow-control: 0 1px 4px color-mix(in srgb,var(--deck-ink) 20%,transparent);
+  --nubi-overlay-soft: color-mix(in srgb,var(--deck-ink) 8%,transparent);
+  --nubi-tour-backdrop-shadow: 0 0 0 9999px color-mix(in srgb,var(--deck-ink) 18%,transparent);
+  --nubi-pane-shadow: -10px 0 40px color-mix(in srgb,var(--deck-ink) 12%,transparent);
+  --nubi-document-paper-shadow: 0 2px 10px color-mix(in srgb,var(--deck-ink) 7%,transparent);
+  --nubi-tracking-ui: normal;
+  --nubi-tracking-reading: -.01em;
+  --nubi-tracking-display: -.02em;
+  --nubi-tracking-code: .12em;
+  /* Artwork surfaces preserve the existing startup scene, separately from UI. */
+  --nubi-intro-stage: rgb(243 230 216);
+  --nubi-intro-vignette: radial-gradient(ellipse at 43% 50%,transparent 35%,rgba(40,30,60,.28) 85%,rgba(20,16,40,.45) 100%);
+  --nubi-intro-glow: radial-gradient(closest-side,rgba(255,255,250,.95) 0,rgba(255,246,226,.82) 18%,rgba(255,232,200,.5) 40%,rgba(255,226,196,.2) 65%,rgba(255,226,196,0) 100%);
+  --nubi-intro-fade: var(--nubi-surface-base);
+  --nubi-intro-sheen: linear-gradient(90deg,transparent,color-mix(in srgb,var(--nubi-surface-base) 60%,transparent),transparent);
+  --nubi-tour-highlight-shadow: 0 0 0 2px var(--deck-blue),0 0 0 6px var(--deck-blue-soft),var(--deck-shadow);
+  /* Optical glyph size is independent of the existing mouse/touch target. */
+  --nubi-icon-disclosure: .75rem;
+  --nubi-icon-inline: .875rem;
+  --nubi-icon-control: 1rem;
+  --nubi-icon-toolbar: 1.0625rem;
+  --nubi-icon-navigation: 1.25rem;
+  --nubi-icon-stroke: 1.8;
+  --nubi-icon-stroke-selected: 2;
+  --nubi-brand-emblem-size: 2rem;
+  --nubi-brand-wordmark-height: 1.25rem;
+  --nubi-brand-wordmark-width: 2.1875rem;
+  --nubi-brand-badge-type: .75rem;
+  --nubi-brand-radius: .625rem;
+  --nubi-navigation-radius: .875rem;
+  --nubi-brand-surface: linear-gradient(145deg,var(--deck-blue-soft),color-mix(in srgb,var(--deck-green-soft) 60%,var(--deck-card)));
+  --nubi-brand-wordmark-fill: linear-gradient(110deg,color-mix(in srgb,var(--deck-teal) 65%,var(--bird-ink)),var(--deck-blue-deep));
+  --nubi-brand-float-duration: 6s;
+  --nubi-bird-curious-duration: 12s;
+  --nubi-brand-greeting-duration: 800ms;
+  --nubi-chrome-surface: color-mix(in srgb,var(--deck-blue-soft) 18%,var(--deck-card));
+  --nubi-icon-small: var(--nubi-icon-inline);
+  --nubi-icon-large: var(--nubi-icon-navigation);
   --nubi-surface-base: var(--deck-card);
   --nubi-surface-inset: var(--deck-tint);
   --nubi-surface-selected: var(--deck-blue-soft);
+  --nubi-workspace-inset: var(--cx-space-4);
+  --nubi-workspace-radius: .75rem;
+  --nubi-surface-chrome: var(--nubi-surface-base);
+  --nubi-surface-header: var(--nubi-surface-base);
   --nubi-text-primary: var(--deck-ink);
   --nubi-text-secondary: var(--deck-sub);
   --nubi-text-action: var(--deck-blue-deep);
@@ -114,8 +187,9 @@
   --nubi-dialog-shadow: var(--deck-shadow);
   --nubi-dialog-footer-inset: var(--cx-space-6);
   --nubi-dialog-field-gap: var(--cx-space-2);
-  --nubi-dialog-symbol-size: var(--nubi-work-control-height);
+  --nubi-dialog-symbol-size: 2rem;
   --nubi-chat-width: clamp(700px, 94cqi, 1480px);
+  --nubi-chat-reading-width: 48rem;
   --nubi-reading-width: calc(var(--nubi-chat-width) + var(--nubi-page-inset) * 2);
   --nubi-scrollbar-size: 4px;
   --nubi-scrollbar-inset: var(--cx-space-2);
@@ -163,13 +237,21 @@
 .desktop-git-history .desktop-git-back:hover { color:var(--deck-blue-deep); background:var(--deck-blue-soft); }
 .desktop-git-scroll { overflow:auto; min-height:0; flex:1; padding:0 var(--cx-space-3) var(--cx-space-4); scrollbar-gutter:stable; }
 .desktop-git-commits { display:flex; flex-direction:column; gap:var(--cx-space-1); }
-.desktop-git-history .desktop-git-commit { display:flex; width:100%; align-items:center; gap:var(--cx-space-3); min-height:0; height:auto; padding:8px 12px; border:0; box-shadow:none; border-radius:8px; background:transparent; color:var(--deck-ink); text-align:left; white-space:nowrap; font:var(--deck-font-body); }
+.desktop-git-commits[data-graph=true] { gap:0; }
+.desktop-git-commits[data-graph=true] .desktop-git-commit { position:relative; }
+.desktop-commit-graph { position:relative; align-self:stretch; flex:none; max-width:35%; margin-block:calc(-1 * var(--cx-space-2)); }
+.desktop-commit-graph > svg { display:block; position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
+.desktop-commit-graph path { fill:none; stroke-width:1.5; }
+.desktop-commit-node { position:absolute; top:50%; width:8px; height:8px; border-radius:50%; transform:translate(-50%,-50%); background:var(--commit-ink); }
+.desktop-commit-graph[data-merge=true] .desktop-commit-node { background:var(--deck-section-surface); box-shadow:0 0 0 2px var(--commit-ink); }
+@media(forced-colors:active) { .desktop-commit-graph path { stroke:CanvasText; } .desktop-commit-node { background:CanvasText; } .desktop-commit-graph[data-merge=true] .desktop-commit-node { background:Canvas; outline:2px solid CanvasText; } }
+.desktop-git-history .desktop-git-commit { display:flex; width:100%; align-items:center; gap:var(--cx-space-3); min-height:0; height:auto; padding:var(--cx-space-2) var(--cx-space-3); border:0; box-shadow:none; border-radius:var(--cx-space-2); background:transparent; color:var(--deck-ink); text-align:left; white-space:nowrap; font:var(--deck-font-body); }
 .desktop-git-history .desktop-git-commit:hover { background:var(--deck-blue-soft); }
 .desktop-git-commit > svg { flex:none; margin-top:0; color:var(--deck-sub); }
 .desktop-git-commit > svg:first-child { color:var(--deck-blue-deep); }
 .desktop-git-commit > svg:last-child { color:var(--deck-muted); }
 .desktop-git-commit-copy { flex:1; min-width:0; }
-.desktop-git-commit-copy > strong { display:block; width:100%; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.desktop-git-commit-copy > strong { display:block; width:100%; font-weight:var(--nubi-weight-emphasis); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .desktop-git-commit-copy small, .desktop-git-summary p { display:flex; flex-wrap:nowrap; align-items:center; gap:var(--cx-space-2); margin:var(--cx-space-1) 0 0; font:var(--deck-font-caption); color:var(--deck-sub); white-space:nowrap; min-width:0; }
 .desktop-git-commit-copy > small .desktop-git-author { flex:1; min-width:0; max-width:none; }
 .desktop-git-commit-copy :is(code,time) { flex:none; font:inherit; font-variant-numeric:tabular-nums; }
@@ -179,7 +261,7 @@
 .desktop-git-refs > svg,.desktop-git-refs > small { flex:none; margin:0; color:inherit; }
 .desktop-git-refs > span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .desktop-git-summary { padding:var(--cx-space-3) var(--cx-space-2) var(--cx-space-4); }
-.desktop-git-summary h3 { margin:0; font-size:var(--deck-type-body); line-height:var(--deck-line-heading); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.desktop-git-summary h3 { margin:0; font-size:var(--deck-type-body); line-height:var(--deck-line-heading); font-weight:var(--nubi-weight-emphasis); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .desktop-git-summary-title { display:flex; align-items:center; gap:var(--cx-space-2); min-width:0; }
 .desktop-git-summary-title > svg { flex:none; color:var(--deck-blue-deep); }
 .desktop-git-summary-title > h3 { min-width:0; flex:1; }
@@ -196,19 +278,19 @@
 .desktop-git-history .desktop-git-file-heading { display:flex; width:100%; align-items:center; justify-content:flex-start; gap:var(--cx-space-2); padding:var(--cx-space-3); border:0; box-shadow:none; border-radius:var(--deck-control-radius); font:var(--deck-font-label); background:var(--deck-section-surface); color:var(--deck-ink); }
 .desktop-git-file-heading > svg { flex:none; color:var(--deck-sub); }
 .desktop-git-file-heading > .nubi-drift-label { flex:1; min-width:0; text-align:left; }
-.desktop-git-history .desktop-git-file-heading { font-weight:600; }
+.desktop-git-history .desktop-git-file-heading { font-weight:var(--nubi-weight-emphasis); }
 .desktop-git-history .desktop-git-file-heading > svg { color:var(--deck-blue-deep); }
 .desktop-git-loading { display:flex; align-items:center; gap:var(--cx-space-3); padding:var(--cx-space-4); color:var(--deck-sub); font:var(--deck-font-caption); white-space:nowrap; }
 .desktop-git-loading > span:first-child { flex:none; }
 .desktop-git-loading > span:last-child { min-width:0; overflow:hidden; text-overflow:ellipsis; }
 .desktop-git-history .nubi-file-tree-file.cx-kit-button { min-height:36px; font:var(--deck-font-body); }
 .desktop-git-history .nubi-file-tree-file > svg { color:var(--deck-sub); }
-.desktop-git-history .nubi-file-tree-file[aria-current=true] { font-weight:600; }
-.desktop-git-state[data-state=A] { color:var(--deck-green); }
+.desktop-git-history .nubi-file-tree-file[aria-current=true] { font-weight:var(--nubi-weight-emphasis); }
+.desktop-git-state[data-state=A] { color:var(--nubi-text-success); }
 .desktop-git-state[data-state=D] { color:var(--deck-red); }
 .desktop-git-state[data-state=M] { color:var(--deck-blue-deep); }
-.desktop-git-counts { display:inline-flex; align-items:center; gap:var(--cx-space-2); flex:none; font:var(--deck-font-caption); font-weight:600; font-variant-numeric:tabular-nums; }
-.desktop-git-counts .desktop-git-added { color:var(--deck-green); }
+.desktop-git-counts { display:inline-flex; align-items:center; gap:var(--cx-space-2); flex:none; font:var(--deck-font-caption); font-weight:var(--nubi-weight-emphasis); font-variant-numeric:tabular-nums; }
+.desktop-git-counts .desktop-git-added { color:var(--nubi-text-success); }
 .desktop-git-counts .desktop-git-removed { color:var(--deck-red); }
 .desktop-git-state { color:var(--deck-sub); flex:none; font:var(--deck-font-caption); }
 .desktop-git-diff { height:clamp(240px,45vh,520px); min-width:0; background:var(--nubi-diff-surface); }
@@ -225,14 +307,14 @@
 .nubi-file-tree-scroll { max-height:42vh; overflow:auto; margin-top:var(--cx-space-2); }
 .nubi-file-tree-level { list-style:none; padding:0; margin:0; }
 .nubi-file-tree-folder > .nubi-file-tree-level { padding-left:var(--cx-space-3); }
-.nubi-file-tree .nubi-file-tree-row.cx-kit-button { display:flex; align-items:center; justify-content:flex-start; gap:var(--cx-space-2); width:100%; min-height:30px; min-width:0; padding:var(--cx-space-1) var(--cx-space-2); border:0; box-shadow:none; background:transparent; color:var(--deck-ink); border-radius:var(--deck-control-radius); font:var(--deck-font-caption); font-weight:400; text-align:left; }
+.nubi-file-tree .nubi-file-tree-row.cx-kit-button { display:flex; align-items:center; justify-content:flex-start; gap:var(--cx-space-2); width:100%; min-height:30px; min-width:0; padding:var(--cx-space-1) var(--cx-space-2); border:0; box-shadow:none; background:transparent; color:var(--deck-ink); border-radius:var(--deck-control-radius); font:var(--deck-font-caption); font-weight:var(--nubi-weight-regular); text-align:left; }
 .nubi-file-tree-row > :is(svg,.nubi-file-kind) { flex:none; }
 .nubi-file-tree-row > svg { color:var(--deck-sub); }
 .nubi-file-tree-row[aria-expanded=false] > svg { transform:rotate(-90deg); }
 .nubi-file-tree-row > .nubi-drift-label { flex:1; min-width:0; }
 .nubi-file-tree .nubi-file-tree-row.cx-kit-button:hover:not(:disabled),.nubi-file-tree .nubi-file-tree-row[aria-current=true].cx-kit-button { background:var(--deck-blue-soft); }
 .nubi-file-tree .nubi-file-tree-row.cx-kit-button:focus-visible { outline:2px solid var(--deck-blue); outline-offset:-2px; }
-.nubi-file-kind { display:inline-flex; align-items:center; justify-content:center; min-width:16px; height:16px; border-radius:4px; font-size:var(--nubi-file-kind-size); line-height:1; font-weight:600; color:var(--deck-blue-deep); background:var(--deck-blue-soft); }
+.nubi-file-kind { display:inline-flex; align-items:center; justify-content:center; min-width:16px; height:16px; border-radius:var(--cx-space-1); font-size:var(--nubi-file-kind-size); line-height:var(--nubi-line-solid); font-weight:var(--nubi-weight-emphasis); color:var(--deck-blue-deep); background:var(--deck-blue-soft); }
 .nubi-file-kind[data-kind=JS] { color:var(--nubi-file-kind-js); background:var(--nubi-file-kind-js-soft); }
 .nubi-file-tree .nubi-file-tree-empty { margin:0; padding:var(--cx-space-3) var(--cx-space-2); font:var(--deck-font-caption); color:var(--deck-sub); }
 .nubi-file-tree .nubi-file-tree-more { padding:var(--cx-space-2); border:0; box-shadow:none; background:transparent; color:var(--deck-sub); font:var(--deck-font-caption); }
@@ -251,7 +333,7 @@
 .desktop-file-tabs .status-spinner { flex:none; width:12px; height:12px; }
 .desktop-file-icon { display:inline-flex; align-items:center; justify-content:center; color:var(--deck-blue-deep); }
 .desktop-file-icon[data-kind=image] { color:var(--deck-blue-deep); }
-.desktop-file-icon[data-kind=table] { color:var(--deck-green); }
+.desktop-file-icon[data-kind=table] { color:var(--nubi-text-success); }
 .desktop-file-icon[data-kind=presentation] { color:var(--deck-orange); }
 .desktop-file-icon[data-kind=archive] { color:var(--nubi-file-kind-js); }
 .desktop-file-icon:is([data-kind=video],[data-kind=audio],[data-kind=file]) { color:var(--deck-sub); }
@@ -276,7 +358,7 @@
 .desktop-file-workspace[data-editor=false]>.desktop-explorer { grid-column:1; border-left:0; }
 .desktop-file-workspace[data-compact=true]:not([data-editor=true])>.desktop-file-content { display:none; }
 .desktop-file-workspace[data-compact=true]>.desktop-explorer { grid-column:1; border-left:0; }
-.desktop-file-workspace[data-compact=true][data-editor=true][data-tree-open=true]>.desktop-explorer { position:absolute; z-index:2; right:0; top:46px; bottom:0; width:min(300px,85%); border-left:1px solid var(--deck-line); box-shadow:-8px 0 24px var(--nubi-shadow-soft,rgba(25,31,40,.06)); }
+.desktop-file-workspace[data-compact=true][data-editor=true][data-tree-open=true]>.desktop-explorer { position:absolute; z-index:2; right:0; top:46px; bottom:0; width:min(300px,85%); border-left:1px solid var(--deck-line); box-shadow:-8px 0 24px var(--nubi-shadow-soft); }
 .desktop-pane .desktop-path-bar,.desktop-pane .desktop-browser-toolbar,.desktop-pane .desktop-terminal-input { display:flex; align-items:center; flex-wrap:nowrap; padding:0; gap:var(--cx-space-1); }
 .desktop-pane .desktop-path-bar > .cx-kit-button,.desktop-browser-toolbar > .cx-kit-button,.desktop-browser-find > .cx-kit-button,.desktop-terminal-heading > .cx-kit-button { flex:none; display:flex; align-items:center; justify-content:center; min-width:30px; min-height:30px; padding:var(--cx-space-2); border:0; background:transparent; color:var(--deck-sub); box-shadow:none; }
 .desktop-pane .desktop-path-bar > .cx-kit-button:hover,.desktop-browser-toolbar > .cx-kit-button:hover,.desktop-browser-find > .cx-kit-button:hover,.desktop-terminal-heading > .cx-kit-button:hover { background:var(--deck-blue-soft); }
@@ -306,7 +388,7 @@
 .desktop-terminal { --nubi-code-family:Menlo,Consolas,"Liberation Mono",monospace; display:flex; flex-direction:column; flex:1; height:auto; min-height:0; padding:var(--cx-space-2) var(--cx-space-3); gap:var(--cx-space-2); border:0; background:var(--deck-card); box-sizing:border-box; }
 .desktop-terminal-heading { display:flex; align-items:center; gap:var(--cx-space-2); color:var(--deck-sub); font:var(--deck-font-label); }
 .desktop-terminal-heading > span { flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; color:var(--deck-muted); font:var(--deck-font-caption); }
-.desktop-terminal-output { flex:1; min-height:0; overflow:hidden; font-family:var(--nubi-code-family); font-size:13px; }
+.desktop-terminal-output { flex:1; min-height:0; overflow:hidden; font-family:var(--nubi-code-family); font-size:var(--deck-type-caption); }
 .desktop-pane .desktop-terminal-input > input { flex:1; min-width:0; border:0; background:transparent; padding:var(--cx-space-2); font-family:var(--nubi-code-family); }
 .desktop-pane .desktop-terminal-input > .cx-kit-button { display:flex; border:0; background:var(--deck-blue-soft); color:var(--deck-blue-deep); min-width:32px; padding:var(--cx-space-2); box-shadow:none; }
 .desktop-browser { display:flex; flex-direction:column; flex:1; min-height:0; background:var(--deck-card); }
@@ -331,7 +413,7 @@
 .desktop-shell[data-layout="split"] .nubi-workbench .nubi-workbench-content { min-width:var(--nubi-chat-min-width,380px); }
 .desktop-pane-resize { position:absolute; top:0; bottom:0; left:0; z-index:22; width:var(--nubi-resize-hit-width); padding:0; border:0; outline:none; box-shadow:none; background:transparent; cursor:col-resize; touch-action:none; }
 /* Paint one line at the pane edge, independently of the wider drag target. */
-.desktop-pane-resize::after { content:''; position:absolute; top:var(--cx-space-3); bottom:var(--cx-space-3); left:0; width:var(--nubi-resize-line-width); border-radius:var(--deck-pill-radius); background:transparent; pointer-events:none; transition:background var(--deck-feedback) var(--deck-ease); }
+.desktop-pane-resize::after { content:""; position:absolute; top:var(--cx-space-3); bottom:var(--cx-space-3); left:0; width:var(--nubi-resize-line-width); border-radius:var(--deck-pill-radius); background:transparent; pointer-events:none; transition:background var(--deck-feedback) var(--deck-ease); }
 .desktop-pane-resize:hover::after { background:var(--nubi-resize-hover); }
 .desktop-pane-resize:focus-visible::after,.desktop-shell[data-pane-resizing=true] .desktop-pane-resize::after { background:var(--deck-blue-deep); }
 .desktop-pane-resize:focus-visible::after { width:calc(var(--nubi-resize-line-width) + 1px); }
@@ -358,25 +440,25 @@
 :is(.nubi-workbench, .deck-dialog) :is(button, input, select, textarea) { font-family: var(--cx-font-family); }
 :is(.nubi-workbench, .deck-dialog) :is(p, label, dd, summary) { word-break: keep-all; overflow-wrap: anywhere; }
 :is(.nubi-workbench, .deck-dialog) :is(.cx-kit-button, .cx-action-button) { font: var(--deck-font-label); }
-.nubi-workbench .model-dialog .provider-connect-button.cx-action-button { font-family:var(--cx-font-family); font-size:20px; font-weight:800; line-height:1.35; }
+.nubi-workbench .model-dialog .provider-connect-button.cx-action-button { font-family:var(--cx-font-family); font-size:var(--nubi-type-section); font-weight:var(--nubi-weight-strong); line-height:var(--deck-line-heading); }
 :is(.nubi-workbench, .deck-dialog) .cx-kit-button { border-radius: var(--deck-control-radius); }
 .nubi-workbench :is(.cx-kit-input, .cx-input-shell) { background: var(--deck-section-surface); border-color: var(--cx-input-border); box-shadow: none; }
 .nubi-workbench :is(.cx-kit-input, .cx-input-shell):focus-within { background: var(--deck-card); border-color: var(--deck-blue-deep); }
 .nubi-workbench :is(.nubi-muted, .nubi-file-card p, .nubi-plan-list, .nubi-checks li, .nubi-trace, .nubi-decided-question, .nubi-url-pair label, .nubi-map-controls label, .nubi-db-fields label, .nubi-db-tls, .nubi-recovery-card small, .nubi-run-form small) { font: var(--deck-font-body); color: var(--deck-sub); }
-.nubi-workbench :is(.nubi-task h2, .nubi-map h2, .nubi-task h3, .nubi-knowledge-record h2) { font-size: var(--cx-type-section); line-height: var(--deck-line-heading); font-weight: 600; color: var(--deck-ink); }
-.nubi-workbench .nubi-task h1 { font-size: var(--cx-type-title); line-height: 1.45; font-weight: 700; }
+.nubi-workbench :is(.nubi-task h2, .nubi-map h2, .nubi-task h3, .nubi-knowledge-record h2) { font-size: var(--cx-type-section); line-height: var(--deck-line-heading); font-weight:var(--nubi-weight-emphasis); color: var(--deck-ink); }
+.nubi-workbench .nubi-task h1 { font-size: var(--cx-type-title); line-height:var(--deck-line-heading); font-weight:var(--nubi-weight-strong); }
 .nubi-workbench .nubi-task .message-body { font-size: var(--nubi-reading-size); line-height: var(--nubi-reading-leading); }
-.nubi-workbench .nubi-task .message-body :is(h1,h2) { font-size: 1.25em; line-height: 1.5; }
-.nubi-workbench .nubi-task .message-body h3 { font-size: 1.1em; line-height: 1.5; }
+.nubi-workbench .nubi-task .message-body :is(h1,h2) { font-size:var(--deck-type-title); line-height:var(--deck-line-caption); }
+.nubi-workbench .nubi-task .message-body h3 { font-size:var(--deck-type-heading); line-height:var(--deck-line-caption); }
 .nubi-workbench :is(.nubi-file-card small, .nubi-history-item small, .nubi-map-meta) { font: var(--deck-font-caption); color: var(--deck-sub); }
 .nubi-workbench .nubi-icon-button { min-width: var(--deck-field-height); min-height: var(--deck-field-height); border-radius: var(--deck-control-radius); }
 .nubi-workbench :is(.nubi-icon-button, .nubi-text-size):hover:not(:disabled) { background: var(--deck-blue-soft); color: var(--deck-blue-deep); }
 .nubi-workbench .cx-kit-button { transition: background-color var(--deck-feedback) var(--deck-ease), color var(--deck-feedback) var(--deck-ease); }
 .nubi-workbench .nubi-inline { flex-wrap: wrap; }
 .nubi-panel :is(p, summary, label, .nubi-muted) { font: var(--deck-font-body); }
-.nubi-panel summary { font-weight: 500; }
-.nubi-panel strong { font-weight: 700; color: var(--deck-ink); }
-.nubi-panel :is(h2,h3) { font-size: var(--cx-type-section); line-height: var(--deck-line-heading); font-weight: 700; color: var(--deck-ink); }
+.nubi-panel summary { font-weight:var(--nubi-weight-label); }
+.nubi-panel strong { font-weight:var(--nubi-weight-strong); color: var(--deck-ink); }
+.nubi-panel :is(h2,h3) { font-size: var(--cx-type-section); line-height: var(--deck-line-heading); font-weight:var(--nubi-weight-strong); color: var(--deck-ink); }
 .nubi-panel :is(input,select,textarea) { font: var(--deck-font-body); }
 .nubi-panel :is(.nubi-url-pair label,.nubi-map-controls label,.nubi-db-fields label,.nubi-db-tls,.nubi-recovery-option) { font: var(--deck-font-body); color: var(--deck-sub); }
 .nubi-panel :is(small, .nubi-history-item small) { font: var(--deck-font-caption); color: var(--deck-sub); }
@@ -401,7 +483,7 @@
 .nubi-panel .nubi-library .deck-subsection { padding:var(--cx-space-2) var(--cx-space-3); }
 .nubi-library > :is(.nubi-search,.nubi-wiki-update,.deck-disclosure,.nubi-knowledge-record) { margin-block:0; }
 .deck-confirmation-content p { font:var(--deck-font-body); }
-.deck-confirmation-content .nubi-deletion-note { display:inline-flex; align-items:center; gap:var(--cx-space-1); color:var(--deck-muted,#8B95A1); font-weight:400; }
+.deck-confirmation-content .nubi-deletion-note { display:inline-flex; align-items:center; gap:var(--cx-space-1); color:var(--deck-muted); font-weight:var(--nubi-weight-regular); }
 .nubi-deletion-note > svg { flex:none; }
 @media(max-width:600px) { :root { --nubi-modal-inset:var(--cx-space-4); } }
 
@@ -442,12 +524,12 @@
 .dialogBlock { font: var(--deck-font-body); }
 .theia-light .lm-Widget.dialogOverlay .dialogBlock { color: var(--deck-ink); background: var(--deck-card); border: 1px solid var(--deck-line); border-radius: var(--deck-panel-radius); box-shadow: var(--deck-shadow); }
 .dialogBlock :is(input,button) { font-family: var(--cx-font-family); font-size: var(--cx-type-body); border-radius: var(--deck-control-radius); }
-.lm-Widget.dialogOverlay .dialogTitle { font-size: var(--cx-type-section); line-height: var(--deck-line-heading); font-weight: 600; }
+.lm-Widget.dialogOverlay .dialogTitle { font-size: var(--cx-type-section); line-height: var(--deck-line-heading); font-weight:var(--nubi-weight-emphasis); }
 @media (pointer:coarse) { .nubi-workbench .nubi-icon-button { min-width: 44px; min-height: 44px; } }
 @media (prefers-reduced-motion:reduce) { :is(.nubi-workbench,.deck-dialog) *, :is(.nubi-workbench,.deck-dialog) *::after { animation:none!important; transition:none!important; } }
 
 /* Emphasis conveys hierarchy without relying on color alone. */
-.nubi-workbench .message-assistant .message-body strong { font-weight: 700; color: var(--deck-ink); }
+.nubi-workbench .message-assistant .message-body strong { font-weight:var(--nubi-weight-strong); color: var(--deck-ink); }
 .nubi-workbench .message-assistant .message-body > p:first-child strong { color: var(--deck-blue-deep); }
 .nubi-workbench .message-body :is(p,li) { word-break: keep-all; overflow-wrap: anywhere; }
 .nubi-workbench .message-body li + li { margin-top: .35em; }
@@ -467,121 +549,121 @@
 .nubi-work-plan.task-plan { max-width:none; }
 /* Change proposals (user decision 2026-09-30): the reference deck's file card with a tile, status pills and one
    primary action. */
-.nubi-workbench .nubi-file-card { gap:var(--cx-space-4); padding:16px 18px; border:1.5px solid var(--deck-blue-soft); }
+.nubi-workbench .nubi-file-card { gap:var(--cx-space-4); padding:var(--cx-space-4) calc(var(--cx-space-1) * 4.5); border:1.5px solid var(--deck-blue-soft); }
 .nubi-file-tile { display:grid; place-items:center; flex:none; width:40px; height:40px; border-radius:var(--deck-tile-radius); background:var(--deck-blue-soft); color:var(--deck-blue); }
 .nubi-file-card > .nubi-file-body { display:grid; gap:var(--cx-space-1); }
-.nubi-file-body strong { font-weight:700; }
+.nubi-file-body strong { font-weight:var(--nubi-weight-strong); }
 .nubi-workbench .nubi-file-body p { margin:0; }
-.nubi-file-meta { display:flex; flex-wrap:wrap; gap:6px; margin-top:2px; }
-.nubi-pill { display:inline-flex; align-items:center; min-height:22px; padding:0 10px; border-radius:var(--deck-pill-radius); background:var(--deck-tint); color:var(--deck-sub); font:var(--deck-font-body); font-weight:600; white-space:nowrap; }
+.nubi-file-meta { display:flex; flex-wrap:wrap; gap:calc(var(--cx-space-1) * 1.5); margin-top:calc(var(--cx-space-1) * 0.5); }
+.nubi-pill { display:inline-flex; align-items:center; min-height:22px; padding:0 calc(var(--cx-space-1) * 2.5); border-radius:var(--deck-pill-radius); background:var(--deck-tint); color:var(--deck-sub); font:var(--deck-font-body); font-weight:var(--nubi-weight-emphasis); white-space:nowrap; }
 .nubi-pill:is([data-tone="blue"],[data-tone="done"]) { background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
 .nubi-pill[data-tone="danger"] { background:var(--deck-red-soft); color:var(--deck-red); }
-.nubi-pill-mono { font-family:var(--deck-mono); font-weight:500; }
+.nubi-pill-mono { font-family:var(--deck-mono); font-weight:var(--nubi-weight-label); }
 .nubi-file-card > .nubi-file-actions { display:flex; flex:none; gap:var(--cx-space-2); }
 @media(max-width:800px) { .nubi-file-card > .nubi-file-actions { flex-basis:100%; justify-content:flex-end; } }
 /* Approval cards (user decision 2026-09-30): an icon tile and title, the facts as blocks and chips, and the decision
    row at the foot on the right: the approval as the one filled button with its icon, the refusal without a frame. */
 .nubi-action-head { display:flex; align-items:flex-start; gap:var(--cx-space-3); }
 .nubi-action-head > div { flex:1; min-width:0; }
-:is(.nubi-workbench, .nubi-panel) .nubi-action-head h3 { margin:0; font-size:var(--deck-type-heading); line-height:var(--deck-line-heading); font-weight:700; color:var(--deck-ink); }
-.nubi-action-head > div > p { margin:2px 0 0; color:var(--deck-sub); }
+:is(.nubi-workbench, .nubi-panel) .nubi-action-head h3 { margin:0; font-size:var(--deck-type-heading); line-height:var(--deck-line-heading); font-weight:var(--nubi-weight-strong); color:var(--deck-ink); }
+.nubi-action-head > div > p { margin:calc(var(--cx-space-1) * 0.5) 0 0; color:var(--deck-sub); }
 .nubi-action-head > .deck-status { flex:none; }
 .nubi-action-tile { display:grid; place-items:center; flex:none; width:40px; height:40px; border-radius:var(--deck-tile-radius); background:var(--deck-blue-soft); color:var(--deck-blue); }
 .nubi-action-tile[data-tone="orange"] { background:var(--deck-orange-soft); color:var(--deck-orange); }
 .nubi-action-tile[data-tone="violet"] { background:var(--deck-violet-soft); color:var(--deck-violet); }
-.nubi-action-warning { display:flex; align-items:flex-start; gap:var(--cx-space-2); margin:var(--cx-space-4) 0 0; padding:12px 14px; border-radius:var(--deck-inset-radius); background:var(--deck-orange-soft); color:color-mix(in srgb, var(--deck-orange) 45%, var(--deck-ink)); }
-.nubi-action-warning > svg { flex:none; margin-top:3px; }
+.nubi-action-warning { display:flex; align-items:flex-start; gap:var(--cx-space-2); margin:var(--cx-space-4) 0 0; padding:var(--cx-space-3) calc(var(--cx-space-1) * 3.5); border-radius:var(--deck-inset-radius); background:var(--deck-orange-soft); color:color-mix(in srgb, var(--deck-orange) 45%, var(--deck-ink)); }
+.nubi-action-warning > svg { flex:none; margin-top:calc(var(--cx-space-1) * 0.75); }
 .nubi-action-effect { margin:var(--cx-space-4) 0 0; }
 /* A command in its shell (user decision 2026-09-30, like Codex): a dark terminal, the shell and folder in its bar, the
    prompt in the reference deck's light blue. */
-.nubi-terminal { margin:var(--cx-space-4) 0 0; border-radius:var(--deck-inset-radius); overflow:hidden; background:#17171C; box-shadow:0 12px 30px rgba(25,31,40,.16); }
-.nubi-terminal-bar { display:flex; align-items:center; gap:var(--cx-space-3); min-width:0; padding:8px 14px; background:#23232A; color:#9AA3AE; font:500 12px/1.4 var(--deck-mono); }
-.nubi-terminal-dots { display:flex; gap:6px; flex:none; }
-.nubi-terminal-dots i { width:9px; height:9px; border-radius:50%; background:#3B3B46; }
-.nubi-terminal-shell { display:inline-flex; align-items:center; gap:6px; flex:none; color:#E5E8EB; }
+.nubi-terminal { margin:var(--cx-space-4) 0 0; border-radius:var(--deck-inset-radius); overflow:hidden; background:var(--nubi-terminal-surface); box-shadow:var(--deck-shadow); }
+.nubi-terminal-bar { display:flex; align-items:center; gap:var(--cx-space-3); min-width:0; padding:var(--cx-space-2) calc(var(--cx-space-1) * 3.5); background:var(--nubi-terminal-bar); color:var(--nubi-text-meta); font:var(--nubi-weight-label) var(--deck-type-caption)/var(--deck-line-heading) var(--deck-mono); }
+.nubi-terminal-dots { display:flex; gap:calc(var(--cx-space-1) * 1.5); flex:none; }
+.nubi-terminal-dots i { width:9px; height:9px; border-radius:50%; background:var(--nubi-terminal-line); }
+.nubi-terminal-shell { display:inline-flex; align-items:center; gap:calc(var(--cx-space-1) * 1.5); flex:none; color:var(--deck-line); }
 .nubi-terminal-cwd { margin-left:auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-:is(.nubi-workbench, .nubi-panel) .nubi-terminal-body { margin:0; padding:14px 16px; background:transparent; color:#E5E8EB; font:500 13px/1.75 var(--deck-mono); white-space:pre-wrap; overflow-wrap:anywhere; }
-.nubi-terminal-prompt { color:#64A8F8; font-weight:700; user-select:none; }
-.nubi-terminal-output { display:block; margin-top:var(--cx-space-2); color:#AEB6C0; font:inherit; white-space:pre-wrap; }
+:is(.nubi-workbench, .nubi-panel) .nubi-terminal-body { margin:0; padding:calc(var(--cx-space-1) * 3.5) var(--cx-space-4); background:transparent; color:var(--deck-line); font:var(--nubi-weight-label) var(--deck-type-caption)/var(--nubi-reading-leading) var(--deck-mono); white-space:pre-wrap; overflow-wrap:anywhere; }
+.nubi-terminal-prompt { color:var(--deck-blue-lite); font-weight:var(--nubi-weight-strong); user-select:none; }
+.nubi-terminal-output { display:block; margin-top:var(--cx-space-2); color:var(--nubi-terminal-muted); font:inherit; white-space:pre-wrap; }
 .nubi-terminal-status { display:inline-flex; align-items:center; gap:var(--cx-space-2); flex:none; }
 .nubi-terminal-cwd + .nubi-terminal-status { margin-left:var(--cx-space-2); }
 .nubi-terminal-bar > .nubi-terminal-shell + .nubi-terminal-status { margin-left:auto; }
-.nubi-terminal-state { padding:2px 8px; border-radius:var(--deck-pill-radius); background:#2E2E38; color:#E5E8EB; font:600 var(--cx-type-caption)/1.4 var(--cx-font-family); }
-.nubi-terminal-state[data-state="running"] { background:color-mix(in srgb, var(--deck-blue) 30%, #17171C); color:#CFE3FD; }
-.nubi-terminal-state:is([data-state="failed"],[data-state="timed_out"],[data-state="interrupted"]) { background:color-mix(in srgb, var(--deck-red) 35%, #17171C); color:#FFD9DC; }
-.nubi-terminal-exit { color:#9AA3AE; }
-:is(.nubi-workbench, .nubi-panel) .nubi-terminal-stop.cx-kit-button { width:26px; height:26px; min-height:0; padding:0; justify-content:center; border:0; border-radius:8px; background:#2E2E38; color:#E5E8EB; }
+.nubi-terminal-state { padding:calc(var(--cx-space-1) * 0.5) var(--cx-space-2); border-radius:var(--deck-pill-radius); background:var(--nubi-terminal-line); color:var(--deck-line); font:var(--nubi-weight-emphasis) var(--cx-type-caption)/var(--deck-line-heading) var(--cx-font-family); }
+.nubi-terminal-state[data-state="running"] { background:color-mix(in srgb, var(--deck-blue) 30%, var(--nubi-terminal-surface)); color:var(--nubi-terminal-accent); }
+.nubi-terminal-state:is([data-state="failed"],[data-state="timed_out"],[data-state="interrupted"]) { background:color-mix(in srgb, var(--deck-red) 35%, var(--nubi-terminal-surface)); color:var(--nubi-terminal-danger); }
+.nubi-terminal-exit { color:var(--nubi-text-meta); }
+:is(.nubi-workbench, .nubi-panel) .nubi-terminal-stop.cx-kit-button { width:26px; height:26px; min-height:0; padding:0; justify-content:center; border:0; border-radius:var(--cx-space-2); background:var(--nubi-terminal-line); color:var(--deck-line); }
 :is(.nubi-workbench, .nubi-panel) .nubi-terminal-stop .stop-symbol { width:10px; height:10px; }
 :is(.nubi-workbench, .nubi-panel) .nubi-process { padding:0; background:none; }
 :is(.nubi-workbench, .nubi-panel) .nubi-process .nubi-terminal { margin:0; }
 :is(.nubi-workbench, .nubi-panel) .nubi-process .nubi-terminal-body { max-height:320px; overflow:auto; }
-:is(.nubi-workbench, .nubi-panel) .nubi-command { margin:var(--cx-space-2) 0 0; padding:14px 16px; border-radius:var(--deck-inset-radius); background:#17171C; color:#E5E8EB; font:500 13px/1.7 var(--deck-mono); }
-.nubi-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:var(--cx-space-2); }
-.nubi-chip { display:inline-flex; align-items:center; gap:6px; max-width:100%; min-height:26px; padding:0 10px; border-radius:var(--deck-pill-radius); background:var(--deck-tint); color:var(--deck-sub); font:500 12px/1 var(--cx-font-family); }
+:is(.nubi-workbench, .nubi-panel) .nubi-command { margin:var(--cx-space-2) 0 0; padding:calc(var(--cx-space-1) * 3.5) var(--cx-space-4); border-radius:var(--deck-inset-radius); background:var(--nubi-terminal-surface); color:var(--deck-line); font:var(--nubi-weight-label) var(--deck-type-caption)/var(--nubi-reading-leading) var(--deck-mono); }
+.nubi-chips { display:flex; flex-wrap:wrap; gap:calc(var(--cx-space-1) * 1.5); margin-top:var(--cx-space-2); }
+.nubi-chip { display:inline-flex; align-items:center; gap:calc(var(--cx-space-1) * 1.5); max-width:100%; min-height:26px; padding:0 calc(var(--cx-space-1) * 2.5); border-radius:var(--deck-pill-radius); background:var(--deck-tint); color:var(--deck-sub); font:var(--nubi-weight-label) var(--deck-type-caption)/var(--nubi-line-solid) var(--cx-font-family); }
 .nubi-chip[data-mono] { font-family:var(--deck-mono); }
 .nubi-chip > svg { flex:none; }
 .nubi-chip > span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.nubi-approval-bar { display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:center; gap:var(--cx-space-2); margin:var(--cx-space-4) -20px -20px; padding:12px 20px; border-top:1px solid var(--deck-line); border-radius:0 0 var(--deck-inset-radius) var(--deck-inset-radius); background:color-mix(in srgb, var(--deck-tint) 55%, var(--deck-card)); }
-.nubi-approval-bar .cx-button { gap:6px; }
+.nubi-approval-bar { display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:center; gap:var(--cx-space-2); margin:var(--cx-space-4) calc(var(--cx-space-5) * -1) calc(var(--cx-space-5) * -1); padding:var(--cx-space-3) var(--cx-space-5); border-top:1px solid var(--deck-line); border-radius:0 0 var(--deck-inset-radius) var(--deck-inset-radius); background:color-mix(in srgb, var(--deck-tint) 55%, var(--deck-card)); }
+.nubi-approval-bar .cx-button { gap:calc(var(--cx-space-1) * 1.5); }
 :is(.nubi-workbench, .nubi-panel) .nubi-text-button.cx-kit-button { border:0; background:transparent; box-shadow:none; color:var(--deck-sub); }
 :is(.nubi-workbench, .nubi-panel) .nubi-text-button.cx-kit-button:hover:not(:disabled) { background:var(--deck-tint); color:var(--deck-ink); }
-.nubi-evidence > summary { display:inline-flex; align-items:center; gap:6px; min-height:26px; padding:0 10px; border-radius:var(--deck-pill-radius); background:var(--deck-blue-soft); color:var(--deck-blue-deep); font:600 12px/1 var(--cx-font-family); cursor:pointer; list-style:none; }
+.nubi-evidence > summary { display:inline-flex; align-items:center; gap:calc(var(--cx-space-1) * 1.5); min-height:26px; padding:0 calc(var(--cx-space-1) * 2.5); border-radius:var(--deck-pill-radius); background:var(--deck-blue-soft); color:var(--deck-blue-deep); font:var(--nubi-weight-emphasis) var(--deck-type-caption)/var(--nubi-line-solid) var(--cx-font-family); cursor:pointer; list-style:none; }
 .nubi-evidence > summary::-webkit-details-marker { display:none; }
 .nubi-evidence[open] { flex-basis:100%; }
 .nubi-evidence[open] > summary { margin-bottom:var(--cx-space-2); }
 .nubi-card-next { display:flex; justify-content:flex-end; margin-top:var(--cx-space-4); }
-.nubi-card-next .cx-button, :is(.nubi-workbench, .nubi-panel) .nubi-text-button.cx-kit-button { gap:6px; }
-.nubi-action-head > .nubi-icon-button { flex:none; margin-top:2px; }
+.nubi-card-next .cx-button, :is(.nubi-workbench, .nubi-panel) .nubi-text-button.cx-kit-button { gap:calc(var(--cx-space-1) * 1.5); }
+.nubi-action-head > .nubi-icon-button { flex:none; margin-top:calc(var(--cx-space-1) * 0.5); }
 /* Project search (user decision 2026-09-30): first in the panel, its magnifier as the button inside the field. */
 .nubi-search { position:relative; display:flex; align-items:center; margin-bottom:var(--cx-space-3); }
 .nubi-search > :first-child { flex:1; min-width:0; }
-.nubi-search input { width:100%; padding-right:44px; }
+.nubi-search input { width:100%; padding-right:calc(var(--cx-space-1) * 11); }
 :is(.nubi-workbench, .nubi-panel) .nubi-search > .nubi-icon-button { position:absolute; right:2px; top:50%; transform:translateY(-50%); }
 /* OpenWiki (user decision 2026-09-30): the update's progress as a bar, what it sends to the model as a note, pages as
    chips; results with the title and freshness first, then the passage, then where it is. */
 .nubi-progress { height:6px; margin-top:var(--cx-space-3); border-radius:var(--deck-pill-radius); background:var(--deck-tint); overflow:hidden; }
-.nubi-progress > span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg, var(--deck-blue-deep), var(--deck-blue) 60%, var(--deck-blue-lite)); transition:width var(--deck-rise) var(--deck-ease); }
-.nubi-action-note { display:flex; align-items:flex-start; gap:var(--cx-space-2); margin:var(--cx-space-3) 0 0; padding:10px 12px; border-radius:var(--deck-inset-radius); background:var(--deck-tint); color:var(--deck-sub); font:var(--deck-font-caption); }
-.nubi-action-note > svg { flex:none; margin-top:1px; color:var(--deck-blue); }
-.nubi-page-chips { display:flex; flex-wrap:wrap; gap:6px; margin:var(--cx-space-3) 0 0; padding:0; list-style:none; }
+.nubi-progress > span { display:block; height:100%; border-radius:inherit; background:var(--deck-blue); transition:width var(--deck-rise) var(--deck-ease); }
+.nubi-action-note { display:flex; align-items:flex-start; gap:var(--cx-space-2); margin:var(--cx-space-3) 0 0; padding:calc(var(--cx-space-1) * 2.5) var(--cx-space-3); border-radius:var(--deck-inset-radius); background:var(--deck-tint); color:var(--deck-sub); font:var(--deck-font-caption); }
+.nubi-action-note > svg { flex:none; margin-top:calc(var(--cx-space-1) * 0.25); color:var(--deck-blue); }
+.nubi-page-chips { display:flex; flex-wrap:wrap; gap:calc(var(--cx-space-1) * 1.5); margin:var(--cx-space-3) 0 0; padding:0; list-style:none; }
 .nubi-page-chips > li { min-width:0; max-width:100%; }
-:is(.nubi-workbench, .nubi-panel) .nubi-page-chip.cx-kit-button { display:inline-flex; align-items:center; gap:6px; max-width:100%; min-height:28px; padding:0 10px; border:0; border-radius:var(--deck-pill-radius); background:var(--deck-tint); color:var(--deck-ink); font:var(--deck-font-label); font-family:var(--deck-mono); }
+:is(.nubi-workbench, .nubi-panel) .nubi-page-chip.cx-kit-button { display:inline-flex; align-items:center; gap:calc(var(--cx-space-1) * 1.5); max-width:100%; min-height:28px; padding:0 calc(var(--cx-space-1) * 2.5); border:0; border-radius:var(--deck-pill-radius); background:var(--deck-tint); color:var(--deck-ink); font:var(--deck-font-label); font-family:var(--deck-mono); }
 :is(.nubi-workbench, .nubi-panel) .nubi-page-chip.cx-kit-button:hover { background:var(--deck-blue-soft); }
 .nubi-page-chip > span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.nubi-page-change { flex:none; color:var(--deck-blue-deep); font:600 var(--cx-type-caption)/1.4 var(--cx-font-family); }
-:is(.nubi-wiki-evidence, .nubi-code-results) > h3 { display:flex; align-items:center; gap:var(--cx-space-2); margin:var(--cx-space-3) 0 var(--cx-space-2); font:var(--deck-font-label); font-weight:700; color:var(--deck-ink); }
+.nubi-page-change { flex:none; color:var(--deck-blue-deep); font:var(--nubi-weight-emphasis) var(--cx-type-caption)/var(--deck-line-heading) var(--cx-font-family); }
+:is(.nubi-wiki-evidence, .nubi-code-results) > h3 { display:flex; align-items:center; gap:var(--cx-space-2); margin:var(--cx-space-3) 0 var(--cx-space-2); font:var(--deck-font-label); font-weight:var(--nubi-weight-strong); color:var(--deck-ink); }
 :is(.nubi-wiki-evidence, .nubi-code-results) > h3 > svg { color:var(--deck-blue); }
-:is(.nubi-workbench, .nubi-panel) .nubi-search-result.cx-kit-button { display:grid; grid-template-columns:minmax(0,1fr); justify-content:stretch; gap:6px; justify-items:start; width:100%; margin:0 0 var(--cx-space-2); padding:12px 14px; border:1px solid var(--deck-line); border-radius:var(--deck-inset-radius); background:var(--deck-card); box-shadow:none; text-align:left; white-space:normal; }
+:is(.nubi-workbench, .nubi-panel) .nubi-search-result.cx-kit-button { display:grid; grid-template-columns:minmax(0,1fr); justify-content:stretch; gap:calc(var(--cx-space-1) * 1.5); justify-items:start; width:100%; margin:0 0 var(--cx-space-2); padding:var(--cx-space-3) calc(var(--cx-space-1) * 3.5); border:1px solid var(--deck-line); border-radius:var(--deck-inset-radius); background:var(--deck-card); box-shadow:none; text-align:left; white-space:normal; }
 :is(.nubi-workbench, .nubi-panel) .nubi-search-result.cx-kit-button:hover { border-color:color-mix(in srgb, var(--deck-blue) 40%, var(--deck-line)); background:color-mix(in srgb, var(--deck-tint) 50%, var(--deck-card)); }
 .nubi-result-head { display:flex; align-items:center; gap:var(--cx-space-2); width:100%; min-width:0; }
 .nubi-result-head > strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--deck-ink); }
 .nubi-wiki-evidence .nubi-result-head > strong, .nubi-wiki-excerpt { font-family:var(--cx-font-family); }
-.nubi-code-results .nubi-result-head > strong { font:600 13px/1.4 var(--deck-mono); }
-.nubi-result-path { color:var(--deck-sub); font:500 var(--cx-type-caption)/1.4 var(--deck-mono); overflow-wrap:anywhere; }
-.nubi-code-excerpt { display:block; width:100%; box-sizing:border-box; padding:6px 10px; border-radius:8px; background:#17171C; color:#E5E8EB; font:500 12px/1.6 var(--deck-mono); white-space:pre-wrap; overflow-wrap:anywhere; }
+.nubi-code-results .nubi-result-head > strong { font:var(--nubi-weight-emphasis) var(--deck-type-caption)/var(--deck-line-heading) var(--deck-mono); }
+.nubi-result-path { color:var(--deck-sub); font:var(--nubi-weight-label) var(--cx-type-caption)/var(--deck-line-heading) var(--deck-mono); overflow-wrap:anywhere; }
+.nubi-code-excerpt { display:block; width:100%; box-sizing:border-box; padding:calc(var(--cx-space-1) * 1.5) calc(var(--cx-space-1) * 2.5); border-radius:var(--cx-space-2); background:var(--nubi-terminal-surface); color:var(--deck-line); font:var(--nubi-weight-label) var(--deck-type-caption)/var(--deck-line-body) var(--deck-mono); white-space:pre-wrap; overflow-wrap:anywhere; }
 .nubi-pill[data-tone="warn"] { background:var(--deck-orange-soft); color:color-mix(in srgb, var(--deck-orange) 50%, var(--deck-ink)); }
-:is(.nubi-workbench, .nubi-panel) .nubi-file-link.cx-kit-button { display:flex; flex-direction:row; align-items:center; gap:8px; width:100%; min-height:32px; padding:var(--cx-space-1) var(--cx-space-2); justify-content:flex-start; border:0; border-radius:var(--deck-control-radius); background:transparent; box-shadow:none; color:var(--deck-ink); font:var(--deck-font-label); font-family:var(--deck-mono); }
+:is(.nubi-workbench, .nubi-panel) .nubi-file-link.cx-kit-button { display:flex; flex-direction:row; align-items:center; gap:var(--cx-space-2); width:100%; min-height:32px; padding:var(--cx-space-1) var(--cx-space-2); justify-content:flex-start; border:0; border-radius:var(--deck-control-radius); background:transparent; box-shadow:none; color:var(--deck-ink); font:var(--deck-font-label); font-family:var(--deck-mono); }
 :is(.nubi-workbench, .nubi-panel) .nubi-file-link.cx-kit-button:hover { background:var(--deck-tint); }
 .nubi-file-link > svg { flex:none; color:var(--deck-sub); }
 .nubi-file-link > span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.nubi-work-plan h2 { display:flex; align-items:center; gap:var(--cx-space-2); margin:0; font:var(--deck-font-label); font-weight:600; color:var(--deck-ink); }
+.nubi-work-plan h2 { display:flex; align-items:center; gap:var(--cx-space-2); margin:0; font:var(--deck-font-label); font-weight:var(--nubi-weight-emphasis); color:var(--deck-ink); }
 .nubi-work-plan h2 > svg { color:var(--deck-blue-deep); }
-.nubi-work-plan .task-plan-label strong { display:block; font-weight:500; color:inherit; }
-.nubi-work-plan li[data-status="in_progress"] .task-plan-label strong { font-weight:700; }
+.nubi-work-plan .task-plan-label strong { display:block; font-weight:var(--nubi-weight-label); color:inherit; }
+.nubi-work-plan li[data-status="in_progress"] .task-plan-label strong { font-weight:var(--nubi-weight-strong); }
 .nubi-work-plan > details > summary { min-width:0; }
 .nubi-work-plan .nubi-plan-current { display:none; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--deck-sub); font:var(--deck-font-body); }
 .nubi-work-plan > details:not([open]) > summary .nubi-plan-current:not(:empty) { display:block; }
 .nubi-work-plan .nubi-plan-outcomes { margin-top:var(--cx-space-2); padding-top:var(--cx-space-3); border-top:1px solid var(--deck-line); }
-.nubi-work-plan .nubi-plan-outcomes dt { color:var(--deck-ink); font-weight:600; }
+.nubi-work-plan .nubi-plan-outcomes dt { color:var(--deck-ink); font-weight:var(--nubi-weight-emphasis); }
 .nubi-work-plan .nubi-plan-outcomes dd { color:var(--deck-sub); }
 .nubi-settings { display:grid; gap:var(--cx-space-4); }
 .nubi-settings-rows { display:grid; gap:var(--cx-space-2); }
-.nubi-settings-row.cx-kit-button { display:flex; justify-content:flex-start; align-items:center; gap:var(--cx-space-3); width:100%; padding:var(--cx-space-3); border:0; border-radius:var(--nubi-work-control-radius); background:var(--deck-tint); color:var(--deck-ink); font-weight:600; text-align:left; transition:background-color .15s ease; }
+.nubi-settings-row.cx-kit-button { display:flex; justify-content:flex-start; align-items:center; gap:var(--cx-space-3); width:100%; padding:var(--cx-space-3); border:0; border-radius:var(--nubi-work-control-radius); background:var(--deck-tint); color:var(--deck-ink); font-weight:var(--nubi-weight-emphasis); text-align:left; transition:background-color .15s ease; }
 .nubi-settings-row.cx-kit-button:hover { background:var(--deck-blue-soft); }
 .nubi-settings-row > svg:last-child { margin-left:auto; color:var(--deck-sub); }
 .nubi-settings-row-icon { display:grid; place-items:center; width:36px; height:36px; flex:none; border-radius:var(--deck-control-radius); background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
 .nubi-settings-field { display:grid; gap:var(--cx-space-2); padding-top:var(--cx-space-4); border-top:1px solid var(--deck-line); }
-.nubi-settings-field > label { display:flex; align-items:center; gap:var(--cx-space-2); font-weight:600; color:var(--deck-ink); }
+.nubi-settings-field > label { display:flex; align-items:center; gap:var(--cx-space-2); font-weight:var(--nubi-weight-emphasis); color:var(--deck-ink); }
 .nubi-settings-field > label svg { color:var(--deck-blue-deep); }
 .nubi-settings-field > p { margin:0; }
 .nubi-settings > .nubi-settings-field:first-child { padding-top:0; border-top:0; }
@@ -592,8 +674,8 @@
 .nubi-workbench-layout { position:relative; z-index:1; display:flex; min-height:100%; }
 .nubi-workbench-content { flex:1; min-width:0; }
 .nubi-sidebar { flex:none; width:var(--nubi-sidebar-width); min-width:var(--nubi-sidebar-min-width); max-width:none; height:100vh; position:sticky; top:0; overflow-y:auto; overflow-x:hidden; resize:none; padding:var(--cx-space-4) var(--cx-space-4) var(--cx-space-6); border-right:1px solid var(--deck-line); background:var(--nubi-sidebar-surface); }
-.nubi-sidebar-resize { flex:none; align-self:stretch; position:sticky; top:0; z-index:13; width:8px; height:100vh; margin-inline:-4px; padding:0; border:0; background:transparent; cursor:col-resize; touch-action:none; }
-.nubi-sidebar-resize::after { content:''; position:absolute; inset:var(--cx-space-3) 3px; border-radius:2px; background:transparent; }
+.nubi-sidebar-resize { flex:none; align-self:stretch; position:sticky; top:0; z-index:13; width:8px; height:100vh; margin-inline:calc(var(--cx-space-1) * -1); padding:0; border:0; background:transparent; cursor:col-resize; touch-action:none; }
+.nubi-sidebar-resize::after { content:""; position:absolute; inset:var(--cx-space-3) 3px; border-radius:calc(var(--cx-space-1) * 0.5); background:transparent; }
 .nubi-sidebar-resize:hover::after,.nubi-sidebar-resize:focus-visible::after,.nubi-workbench[data-sidebar-resizing=true] .nubi-sidebar-resize::after { background:var(--deck-blue); }
 .nubi-sidebar-resize:focus-visible { outline:2px solid var(--deck-blue-deep); outline-offset:-2px; }
 .nubi-workbench[data-sidebar-resizing=true],.nubi-workbench[data-sidebar-resizing=true] * { cursor:col-resize!important; user-select:none!important; }
@@ -602,7 +684,7 @@
 .nubi-sidebar-scrim { display:none; }
 .nubi-sidebar-head, .nubi-sidebar-actions { display:flex; align-items:center; gap:var(--cx-space-2); }
 .nubi-sidebar-head { justify-content:space-between; margin-bottom:var(--cx-space-4); }
-.nubi-sidebar-head strong { font-size:var(--cx-type-section); line-height:var(--deck-line-heading); font-weight:700; color:var(--deck-ink); }
+.nubi-sidebar-head strong { font-size:var(--cx-type-section); line-height:var(--deck-line-heading); font-weight:var(--nubi-weight-strong); color:var(--deck-ink); }
 .nubi-sidebar-head .cx-action-button { margin-left:auto; }
 .nubi-sidebar-project.cx-kit-button { display:flex; align-items:center; gap:var(--cx-space-2); width:100%; min-width:0; justify-content:flex-start; padding:var(--cx-space-3); background:var(--deck-card); border:1px solid var(--deck-line); color:var(--deck-ink); }
 .nubi-sidebar-project-row { display:flex; align-items:center; min-width:0; }
@@ -617,7 +699,7 @@
 .nubi-sidebar-project[aria-expanded="false"] svg:last-child { transform:rotate(-90deg); }
 .nubi-sidebar-project-name { text-align:left;min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .nubi-saved-project+.nubi-saved-project { margin-top:var(--cx-space-3); }
-.nubi-saved-project[data-current="true"]>.nubi-sidebar-project-row>.nubi-sidebar-project { background:var(--deck-blue-soft,#E8F1FE);border-radius:10px; }
+.nubi-saved-project[data-current="true"]>.nubi-sidebar-project-row>.nubi-sidebar-project { background:var(--deck-blue-soft);border-radius:calc(var(--cx-space-1) * 2.5); }
 .nubi-saved-project>.nubi-sidebar-project-row { margin-left:0;gap:var(--cx-space-1); }
 .nubi-saved-project>.nubi-sidebar-project-row>.nubi-sidebar-project { width:auto;min-height:40px;white-space:nowrap; }
 .nubi-project-name-dialog { width:min(440px,calc(100vw - 32px)); }
@@ -649,7 +731,7 @@
 .nubi-session-row .nubi-session-select.cx-kit-button { display:flex; align-items:center; gap:var(--cx-space-2); flex:1; min-width:0; min-height:40px; padding:var(--cx-space-2) var(--cx-space-3); border:0; background:transparent; box-shadow:none; color:var(--deck-ink); font:var(--deck-font-body); justify-content:flex-start; text-align:left; }
 .nubi-session-select > svg { flex:none; color:var(--deck-sub); }
 .nubi-session-row[data-current="true"] .nubi-session-select > svg { color:var(--deck-blue-deep); }
-.nubi-session-row[data-current="true"] .nubi-session-title { font-weight:700; color:var(--deck-blue-deep); }
+.nubi-session-row[data-current="true"] .nubi-session-title { font-weight:var(--nubi-weight-strong); color:var(--deck-blue-deep); }
 .nubi-session-title { display:block; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .nubi-session-row small { flex:none; font:var(--deck-font-caption); color:var(--deck-blue-deep); }
 .nubi-recovery-status { display:inline-flex; align-items:center; justify-content:center; flex:none; width:16px; height:16px; color:var(--deck-red); }
@@ -663,7 +745,7 @@
 .nubi-session-progress { display:inline-grid; place-items:center; flex:none; width:16px; height:16px; margin-left:auto; }
 .nubi-session-progress .status-spinner { display:block; width:14px; height:14px; border:2px solid var(--deck-blue-soft); border-top-color:var(--deck-blue-deep); border-radius:50%; animation:nubi-session-spin .8s linear infinite; }
 @keyframes nubi-session-spin { to { transform:rotate(360deg); } }
-.nubi-session-complete { display:inline-block; flex:none; width:1px; min-width:1px; height:1px; min-height:1px; margin-inline:5px; border-radius:50%; background:var(--deck-blue-deep); }
+.nubi-session-complete { display:inline-block; flex:none; width:1px; min-width:1px; height:1px; min-height:1px; margin-inline:calc(var(--cx-space-1) * 1.25); border-radius:50%; background:var(--deck-blue-deep); }
 .nubi-session-actions .nubi-session-action[aria-pressed="true"] { color:var(--deck-blue-deep); opacity:1; pointer-events:auto; }
 .nubi-session-actions .cx-action-button:hover:not(:disabled) { color:var(--deck-red); }
 @media (prefers-reduced-motion: reduce) { .nubi-session-progress .status-spinner { animation:none; } }
@@ -677,20 +759,20 @@
 .nubi-workbench .nubi-bar .nubi-project-label:empty { display:none; }
 .nubi-workbench-layout:has(.nubi-sidebar[data-open="true"]) .nubi-bar .nubi-project-label { display:none; }
 @media(max-width:600px) { .nubi-workbench .nubi-bar .nubi-project-label { flex-basis:100%; } }
-.nubi-start .welcome { margin:clamp(32px,8vh,84px) auto 0; padding:var(--cx-space-4) 0; }
+.nubi-start .welcome { margin:clamp(var(--cx-space-8),8vh,84px) auto 0; padding:var(--cx-space-4) 0; }
 /* The bird grows with the window (user request 2026-09-30: the screen is large, the bird was small at 88px).
    The art box keeps the browser agent's 160:224:174 proportion so the sparkles stay beside the bird. */
 .nubi-start { --nubi-bird:clamp(112px, min(21vh, 34vw), 200px); }
-.nubi-start .welcome-title { font-size:clamp(24px, 2.6vw, 34px); }
+.nubi-start .welcome-title { font-size:var(--deck-type-title); }
 .nubi-start .welcome-art { width:calc(var(--nubi-bird) * 1.4); height:calc(var(--nubi-bird) * 1.09); }
 .nubi-start .welcome-emblem { width:var(--nubi-bird); height:var(--nubi-bird); }
 /* Project start (user decision 2026-09-30): the reference deck's feature cards in the composer's place and
    width. The greeting rises first, then the support line, then the cards one after another. */
 .nubi-project-start { display:grid; justify-items:center; gap:var(--cx-space-6); width:min(760px,100%); }
-.nubi-start-support { margin:calc(-1 * var(--cx-space-6)) 0 0; font:500 15px/24px var(--cx-font-family); color:var(--deck-sub); text-align:center; text-wrap:balance; animation:deck-rise var(--deck-rise) var(--deck-ease) both; animation-delay:calc(var(--deck-step) * 2); }
+.nubi-start-support { margin:calc(-1 * var(--cx-space-6)) 0 0; font:var(--nubi-weight-label) var(--deck-type-body)/var(--deck-line-body) var(--cx-font-family); color:var(--deck-sub); text-align:center; text-wrap:balance; animation:deck-rise var(--deck-rise) var(--deck-ease) both; animation-delay:calc(var(--deck-step) * 2); }
 .nubi-start-choices { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(248px,100%),1fr)); gap:var(--cx-space-4); width:100%; }
 .nubi-start-choices[data-count="1"] { width:min(372px,100%); }
-.nubi-start-card { display:flex; flex-direction:column; align-items:flex-start; gap:var(--cx-space-1); min-width:0; margin:0; padding:20px; border:0; border-radius:var(--deck-panel-radius); background:var(--deck-card); box-shadow:var(--deck-shadow); color:var(--deck-ink); font:inherit; text-align:left; animation:deck-rise var(--deck-rise) var(--deck-ease) both; animation-delay:calc(var(--deck-step) * 2 + var(--deck-stagger)); transition:transform var(--deck-feedback) var(--deck-ease), box-shadow var(--deck-feedback) var(--deck-ease); }
+.nubi-start-card { display:flex; flex-direction:column; align-items:flex-start; gap:var(--cx-space-1); min-width:0; margin:0; padding:var(--cx-space-5); border:0; border-radius:var(--deck-panel-radius); background:var(--deck-card); box-shadow:var(--deck-shadow); color:var(--deck-ink); font:inherit; text-align:left; animation:deck-rise var(--deck-rise) var(--deck-ease) both; animation-delay:calc(var(--deck-step) * 2 + var(--deck-stagger)); transition:transform var(--deck-feedback) var(--deck-ease), box-shadow var(--deck-feedback) var(--deck-ease); }
 .nubi-start-card + .nubi-start-card { animation-delay:calc(var(--deck-step) * 2 + var(--deck-stagger) * 2); }
 button.nubi-start-card { cursor:pointer; }
 button.nubi-start-card:hover:not(:disabled), .nubi-start-card:focus-within { background:var(--deck-section-surface); box-shadow:var(--deck-shadow); }
@@ -700,7 +782,7 @@ button.nubi-start-card:disabled { cursor:default; opacity:.6; }
 .nubi-start-tile { display:grid; place-items:center; width:44px; height:44px; margin-bottom:var(--cx-space-3); border-radius:var(--deck-tile-radius); }
 .nubi-start-tile[data-tone="blue"] { background:var(--deck-blue-soft); color:var(--deck-blue); }
 .nubi-start-tile[data-tone="violet"] { background:var(--deck-violet-soft); color:var(--deck-violet); }
-.nubi-start-card strong { font-size:17px; line-height:24px; font-weight:800; letter-spacing:-.01em; }
+.nubi-start-card strong { font-size:var(--nubi-type-large-body); line-height:var(--deck-line-body); font-weight:var(--nubi-weight-strong); letter-spacing:var(--nubi-tracking-reading); }
 .nubi-start-text { margin-bottom:var(--cx-space-4); font:var(--deck-font-label); color:var(--deck-sub); }
 .nubi-start-go, .nubi-start-field { display:flex; align-items:center; gap:var(--cx-space-2); width:100%; margin-top:auto; }
 .nubi-start-go { justify-content:center; width:var(--deck-field-height); height:var(--deck-field-height); margin-left:auto; border-radius:var(--deck-control-radius); background:var(--deck-blue-soft); color:var(--deck-blue-deep); transition:background var(--deck-feedback) var(--deck-ease), color var(--deck-feedback) var(--deck-ease); }
@@ -712,7 +794,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-start-model { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:var(--cx-space-3); }
 .nubi-start-model>span { color:var(--deck-sub); font:var(--deck-font-caption); }
 .nubi-start-git { display:grid; gap:var(--cx-space-2); width:100%; padding:var(--cx-space-4); box-sizing:border-box; background:var(--deck-card); border-radius:var(--deck-panel-radius); }
-.nubi-start-git>label { display:flex; align-items:center; gap:var(--cx-space-2); color:var(--deck-ink); font:var(--deck-font-label); font-weight:700; }
+.nubi-start-git>label { display:flex; align-items:center; gap:var(--cx-space-2); color:var(--deck-ink); font:var(--deck-font-label); font-weight:var(--nubi-weight-strong); }
 .nubi-start-git .nubi-start-field { margin:0; }
 .nubi-start-git .nubi-start-field>.cx-kit-button { flex:none; }
 .nubi-start-privacy { display:flex; align-items:center; gap:var(--cx-space-2); margin:0; color:var(--deck-muted); font:var(--deck-font-caption); }
@@ -721,12 +803,22 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-start-return { display:flex; justify-content:center; margin:var(--cx-space-4) 0; }
 .nubi-wiki-initialization { display:grid; gap:var(--cx-space-2); font:var(--deck-font-caption); color:var(--deck-sub); }
 .nubi-wiki-initialization-line { display:flex; align-items:center; gap:var(--cx-space-2); min-width:0; }
-.nubi-wiki-initialization-line>strong { font-weight:650; color:var(--deck-ink); }
+.nubi-wiki-initialization-line>strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:var(--nubi-weight-emphasis); color:var(--deck-ink); }
 .nubi-wiki-initialization-line>svg,.nubi-wiki-initialization-line>.status-spinner { flex:none; }
-.nubi-wiki-percent { color:var(--deck-blue-deep); font-weight:700; font-variant-numeric:tabular-nums; }
+.nubi-wiki-percent { color:var(--deck-blue-deep); font-weight:var(--nubi-weight-strong); font-variant-numeric:tabular-nums; }
 .nubi-wiki-elapsed { color:var(--deck-sub); font-variant-numeric:tabular-nums; }
+/* One stage headline, then quiet counts and timing. Never shrink small text twice. */
+.nubi-wiki-initialization:not(.is-inline) { font:var(--deck-font-body); }
+.nubi-wiki-initialization:not(.is-inline) .nubi-wiki-percent { margin-left:auto; flex:none; font-weight:var(--nubi-weight-emphasis); }
+.nubi-wiki-initialization:not(.is-inline)>small,.nubi-wiki-progress-meta,.nubi-wiki-error-detail { font:var(--deck-font-caption); }
+.nubi-wiki-progress-meta { display:flex; align-items:center; justify-content:space-between; gap:var(--cx-space-3); min-width:0; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.nubi-wiki-progress-meta strong { color:var(--deck-ink); font-weight:var(--nubi-weight-emphasis); }
+.nubi-wiki-retained,.nubi-wiki-error-detail>summary { display:flex; align-items:center; gap:var(--cx-space-2); }
+.nubi-wiki-retained>svg,.nubi-wiki-error-detail>summary>svg { flex:none; }
+.nubi-wiki-error-detail>summary { cursor:pointer; width:fit-content; color:var(--deck-sub); }
+.nubi-wiki-error-detail>p { margin:var(--cx-space-2) 0; }
 .nubi-wiki-initialization.is-inline { flex:none; padding-right:var(--cx-space-3); }
-.nubi-wiki-initialization.is-inline strong { font-size:12px; }
+.nubi-wiki-initialization.is-inline strong { font-size:var(--deck-type-caption); }
 @container nubi-workspace (max-width:620px) { .nubi-start-git .nubi-start-field { flex-wrap:wrap; }.nubi-start-git .nubi-start-field>.cx-kit-input { flex-basis:100%; }.nubi-start-model { gap:var(--cx-space-2); } }
 .nubi-start-field .nubi-start-submit.cx-kit-button { width:var(--deck-field-height); height:var(--deck-field-height); padding:0; justify-content:center; }
 .nubi-file-actions .cx-button { width:var(--deck-field-height); height:var(--deck-field-height); padding:0; justify-content:center; }
@@ -737,14 +829,13 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-workbench .agent-mark { isolation:isolate; }
 .nubi-workbench .agent-mark > .bird-joy { z-index:-1; }
 /* Reuse the shared bird's expressions; keep small answer marks within their line. */
-.nubi-workbench .nubi-answer-mark { --nubi-answer-cycle:8s; --nubi-answer-work-cycle:2.8s; --nubi-answer-rest-cycle:3.6s; --nubi-answer-greeting-cycle:900ms; --nubi-answer-travel:1px; }
+.nubi-workbench .nubi-answer-mark { --nubi-answer-cycle:8s; --nubi-answer-work-cycle:2.8s; --nubi-answer-greeting-cycle:900ms; --nubi-answer-travel:1px; }
 .nubi-workbench .answer-model .nubi-answer-mark[data-mood="idle"] { animation:nubi-answer-breathe var(--nubi-answer-cycle) ease-in-out infinite; }
 .nubi-workbench .nubi-answer-mark[data-mood="idle"] .bird-base { animation:bird-idle-base var(--nubi-answer-cycle) linear infinite; }
 .nubi-workbench .nubi-answer-mark[data-mood="idle"] .bird-blink { animation:bird-blink var(--nubi-answer-cycle) linear infinite; }
 .nubi-workbench .nubi-answer-mark[data-mood="idle"] .bird-wing { animation:bird-idle-wing var(--nubi-answer-cycle) linear infinite; }
 .nubi-workbench .nubi-answer-mark[data-mood="idle"] .bird-smile { animation:bird-idle-smile var(--nubi-answer-cycle) linear infinite; }
 .nubi-workbench .answer-model .nubi-answer-mark[data-mood="working"] { animation:nubi-answer-breathe var(--nubi-answer-work-cycle) ease-in-out infinite; }
-.nubi-workbench .answer-model .nubi-answer-mark[data-mood="sleep"] { animation:nubi-answer-breathe var(--nubi-answer-rest-cycle) ease-in-out infinite; }
 .nubi-workbench .answer-model .nubi-answer-mark[data-mood="celebrate"] { animation:nubi-answer-greeting var(--nubi-answer-greeting-cycle) var(--deck-ease) 2; }
 :root[data-motion="paused"] .nubi-workbench :is(.nubi-answer-mark,.nubi-answer-mark *),
 :root[data-motion-visibility="hidden"] .nubi-workbench :is(.nubi-answer-mark,.nubi-answer-mark *),
@@ -756,7 +847,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-workbench .model-picker { display:flex; align-items:center; min-width:0; }
 .nubi-workbench .model-trigger.cx-kit-button { display:flex; align-items:center; gap:var(--cx-space-3); max-width:min(340px,55vw); background:var(--deck-blue-soft); border:1px solid var(--deck-line); color:var(--deck-ink); }
 .nubi-workbench .model-trigger-label { display:flex; align-items:center; gap:var(--cx-space-3); min-width:0; }
-.nubi-workbench .model-trigger-label strong { color:var(--deck-blue-deep); font-weight:700; white-space:nowrap; }
+.nubi-workbench .model-trigger-label strong { color:var(--deck-blue-deep); font-weight:var(--nubi-weight-strong); white-space:nowrap; }
 .nubi-workbench .model-trigger-label span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .nubi-workbench .model-trigger svg { flex:none; }
 .nubi-workbench .model-trigger.cx-kit-button:hover:not(:active) { transform:none; }
@@ -790,7 +881,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-document-progress { padding-block: var(--cx-space-4); min-width: 0; }
 .nubi-document-progress-heading, .nubi-document-worker-heading { display: flex; align-items: center; flex-wrap: wrap; gap: var(--cx-space-2); }
 .nubi-document-progress-heading { color: var(--deck-blue-deep); }
-.nubi-document-progress-heading strong, .nubi-document-worker-heading strong { font: var(--deck-font-label); font-weight: 700; }
+.nubi-document-progress-heading strong, .nubi-document-worker-heading strong { font: var(--deck-font-label); font-weight:var(--nubi-weight-strong); }
 .nubi-document-progress-heading > span, .nubi-document-worker-heading > span { font: var(--deck-font-caption); color: var(--deck-sub); margin-left: auto; }
 .nubi-document-progress summary { display: flex; align-items: center; gap: var(--cx-space-2); cursor: pointer; list-style: none; font: var(--deck-font-label); color: var(--deck-sub); padding-block: var(--cx-space-3); }
 .nubi-document-progress summary::-webkit-details-marker { display: none; }
@@ -813,35 +904,35 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-analysis-history-error p { color:var(--deck-sub); font:var(--deck-font-body); }
 
 /* A note beside the decision, such as a command that waits for its fix (2026-09-30). */
-:is(.nubi-workbench, .nubi-panel) .nubi-approval-note{margin-right:auto;display:inline-flex;align-items:center;gap:6px;color:var(--deck-sub);font:var(--deck-font-body)}
+:is(.nubi-workbench, .nubi-panel) .nubi-approval-note{margin-right:auto;display:inline-flex;align-items:center;gap:calc(var(--cx-space-1) * 1.5);color:var(--deck-sub);font:var(--deck-font-body);}
 
 /* Keys to press, as keycaps (2026-09-30). */
-:is(.nubi-workbench, .nubi-panel) .nubi-keys{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
-:is(.nubi-workbench, .nubi-panel) .nubi-keys kbd{display:inline-flex;align-items:center;min-height:28px;padding:0 10px;border-radius:8px;background:var(--deck-tint);border:1px solid var(--deck-line);box-shadow:inset 0 -2px 0 var(--deck-line);color:var(--deck-ink);font:var(--deck-font-body)}
+:is(.nubi-workbench, .nubi-panel) .nubi-keys{display:flex;flex-wrap:wrap;gap:calc(var(--cx-space-1) * 1.5);margin:var(--cx-space-2) 0;}
+:is(.nubi-workbench, .nubi-panel) .nubi-keys kbd{display:inline-flex;align-items:center;min-height:28px;padding:0 calc(var(--cx-space-1) * 2.5);border-radius:var(--cx-space-2);background:var(--deck-tint);border:1px solid var(--deck-line);box-shadow:inset 0 -2px 0 var(--deck-line);color:var(--deck-ink);font:var(--deck-font-body);}
 
 .nubi-approval-mode-layer { --cx-font-family:var(--nubi-font-family); font:var(--deck-font-body); }
 /* Approval mode sits before the context ring in the trailing composer group. */
 :is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-mode{position:relative;display:inline-flex}
-:is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-mode-button{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 10px;border:0;border-radius:999px;background:transparent;color:var(--deck-sub);font:var(--deck-font-body);cursor:pointer}
+:is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-mode-button{display:inline-flex;align-items:center;gap:calc(var(--cx-space-1) * 1.5);min-height:32px;padding:0 calc(var(--cx-space-1) * 2.5);border:0;border-radius:999px;background:transparent;color:var(--deck-sub);font:var(--deck-font-body);cursor:pointer;}
 :is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-mode-button:hover{background:var(--deck-tint);color:var(--deck-ink)}
 :is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-mode-button[data-mode="edits"],:is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-mode-button[data-mode="commands"]{background:var(--deck-blue-soft);color:var(--deck-blue-deep)}
 :is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-mode-menu{position:fixed;box-sizing:border-box;width:min(340px,calc(100vw - 32px));z-index:1000;overflow-y:auto;overscroll-behavior:contain;padding:var(--cx-space-3);border:0;border-radius:var(--deck-panel-radius);background:var(--deck-card);box-shadow:var(--deck-shadow)}
 .nubi-approval-mode-header { display:flex; align-items:center; gap:var(--cx-space-2); min-height:var(--nubi-modal-title-height); padding:0 var(--cx-space-3) var(--cx-space-1); }
-.nubi-approval-mode-header > strong { flex:1; font:var(--deck-font-label); font-weight:700; }
+.nubi-approval-mode-header > strong { flex:1; font:var(--deck-font-label); font-weight:var(--nubi-weight-strong); }
 .nubi-approval-mode-header .nubi-modal-close.cx-kit-button { width:var(--nubi-modal-close-size); min-width:var(--nubi-modal-close-size); min-height:var(--nubi-modal-close-size); padding:0; border:0; background:transparent; color:var(--deck-sub); box-shadow:none; }
 .nubi-approval-mode-header .nubi-modal-close:hover { background:var(--deck-tint); }
 .nubi-approval-mode-header .nubi-modal-close:focus-visible { outline:2px solid var(--deck-blue); outline-offset:-2px; }
-:is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-mode-item{display:grid;grid-template-columns:20px minmax(0,1fr) 16px;align-items:start;gap:var(--cx-space-3);width:100%;padding:10px 12px;border:0;border-radius:var(--deck-control-radius);background:transparent;color:var(--deck-ink);text-align:left;cursor:pointer}
+:is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-mode-item{display:grid;grid-template-columns:20px minmax(0,1fr) 16px;align-items:start;gap:var(--cx-space-3);width:100%;padding:calc(var(--cx-space-1) * 2.5) var(--cx-space-3);border:0;border-radius:var(--deck-control-radius);background:transparent;color:var(--deck-ink);text-align:left;cursor:pointer;}
 :is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-mode-item:hover,:is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-mode-item:focus-visible{background:var(--deck-tint);outline:none}
 :is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-mode-item[aria-checked="true"]{color:var(--deck-blue-deep)}
-:is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-mode-item span{display:grid;gap:2px}
+:is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-mode-item span{display:grid;gap:calc(var(--cx-space-1) * 0.5);}
 :is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-mode-item strong{font:var(--deck-font-label)}
 :is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-mode-item small{font:var(--deck-font-body);color:var(--deck-sub)}
-:is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-mode-note{display:flex;align-items:center;gap:6px;margin:4px 12px 6px;color:var(--deck-sub);font:var(--deck-font-body)}
-:is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-allowed{margin:4px 4px 2px;padding:10px 8px 2px;border-top:1px solid var(--deck-line)}
-:is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-allowed>strong{display:block;margin:0 4px 6px;font:var(--deck-font-body);color:var(--deck-sub)}
+:is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-mode-note{display:flex;align-items:center;gap:calc(var(--cx-space-1) * 1.5);margin:var(--cx-space-1) var(--cx-space-3) calc(var(--cx-space-1) * 1.5);color:var(--deck-sub);font:var(--deck-font-body);}
+:is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-allowed{margin:var(--cx-space-1) var(--cx-space-1) calc(var(--cx-space-1) * 0.5);padding:calc(var(--cx-space-1) * 2.5) var(--cx-space-2) calc(var(--cx-space-1) * 0.5);border-top:1px solid var(--deck-line);}
+:is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-allowed>strong{display:block;margin:0 var(--cx-space-1) calc(var(--cx-space-1) * 1.5);font:var(--deck-font-body);color:var(--deck-sub);}
 :is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-allowed ul{margin:0;padding:0;list-style:none}
-:is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-allowed li{display:flex;align-items:center;gap:6px;padding:2px 0 2px 4px}
+:is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-allowed li{display:flex;align-items:center;gap:calc(var(--cx-space-1) * 1.5);padding:calc(var(--cx-space-1) * 0.5) 0 calc(var(--cx-space-1) * 0.5) var(--cx-space-1);}
 :is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-allowed code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:var(--deck-font-body);color:var(--deck-ink)}
 
 /* Keep the conversation in one reading column with its composer at the bottom. */
@@ -851,16 +942,16 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-workbench .nubi-main { flex:1; min-height:0; width:100%; max-width:var(--nubi-reading-width); overflow-y:auto; scrollbar-width:none; scrollbar-gutter:auto; padding:var(--nubi-page-block) var(--nubi-page-inset) var(--cx-space-6); }
 .nubi-workbench .nubi-task { display:flex; flex-direction:column; min-height:100%; }
 .nubi-workbench .nubi-task > .nubi-enter { display:flex; flex:1; flex-direction:column; }
-.nubi-workbench .nubi-task .nubi-followup { margin:24px auto 0; width:100%; max-width:var(--nubi-chat-width); }
+.nubi-workbench .nubi-task .nubi-followup { margin:var(--cx-space-6) auto 0; width:100%; max-width:var(--nubi-chat-width); }
 .nubi-workbench .agent-intro > p:empty { display:none; }
 @media(max-width:600px) { .nubi-workbench .nubi-main { padding:var(--cx-space-3) var(--nubi-page-inset) var(--cx-space-5); } }
 
 /* A product header and native tools share one spacing rhythm. */
 .nubi-workbench .nubi-bar { gap:var(--cx-space-3); padding:var(--nubi-page-block) var(--nubi-page-inset); }
 .nubi-workbench .nubi-logo { flex:none; gap:var(--cx-space-2); }
-.nubi-workbench .nubi-logo-title { font:700 var(--cx-type-section)/var(--deck-line-heading) var(--cx-font-family); color:var(--deck-ink); white-space:nowrap; letter-spacing:-.01em; }
-.nubi-workbench .nubi-logo-product { color:var(--deck-ink); font:var(--deck-font-label); font-weight:700; }
-.nubi-workbench .nubi-beta { margin-left:var(--cx-space-1); padding:2px var(--cx-space-2); border-radius:var(--deck-pill-radius); background:var(--deck-blue-soft); color:var(--deck-blue-deep); font:var(--deck-font-caption); }
+.nubi-workbench .nubi-logo-title { font:var(--nubi-weight-strong) var(--cx-type-section)/var(--deck-line-heading) var(--cx-font-family); color:var(--deck-ink); white-space:nowrap; letter-spacing:var(--nubi-tracking-reading); }
+.nubi-workbench .nubi-logo-product { color:var(--deck-ink); font:var(--deck-font-label); font-weight:var(--nubi-weight-strong); }
+.nubi-workbench .nubi-beta { margin-left:var(--cx-space-1); padding:calc(var(--cx-space-1) * 0.5) var(--cx-space-2); border-radius:var(--deck-pill-radius); background:var(--deck-blue-soft); color:var(--deck-blue-deep); font:var(--deck-font-caption); }
 .nubi-workbench :is(.nubi-enter,.nubi-file-card) { animation-duration:var(--deck-rise); animation-timing-function:var(--deck-ease); }
 .nubi-workspace-navigation { display:flex; align-items:center; flex-wrap:wrap; gap:var(--cx-space-2); padding:0 var(--nubi-page-inset) var(--cx-space-2); }
 .nubi-workspace-navigation .cx-kit-button { display:inline-flex; align-items:center; gap:var(--cx-space-2); min-height:var(--deck-field-height); padding:var(--cx-space-1) var(--cx-space-3); background:var(--deck-card); border:1px solid var(--deck-line); color:var(--deck-ink); }
@@ -873,19 +964,19 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 
 /* Agent connection (user decision 2026-10-01): the header count of requests that wait for this user, pairing and the exchanged tasks. */
 .nubi-workbench .nubi-agent-button { position:relative; }
-.nubi-agent-badge { position:absolute; top:1px; right:1px; min-width:20px; height:20px; padding:0 var(--cx-space-1); border-radius:var(--deck-pill-radius); background:var(--deck-blue-deep); color:var(--deck-card); font:700 var(--cx-type-caption)/20px var(--cx-font-family); text-align:center; pointer-events:none; }
+.nubi-agent-badge { position:absolute; top:1px; right:1px; min-width:20px; height:20px; padding:0 var(--cx-space-1); border-radius:var(--deck-pill-radius); background:var(--deck-blue-deep); color:var(--deck-card); font:var(--nubi-weight-strong) var(--cx-type-caption)/var(--deck-line-body) var(--cx-font-family); text-align:center; pointer-events:none; }
 .nubi-agent-links { display:grid; gap:var(--cx-space-4); }
 .nubi-agent-links > section { display:grid; gap:var(--cx-space-2); min-width:0; }
-.nubi-agent-links h3 { margin:0; font-size:var(--deck-type-heading); line-height:var(--deck-line-heading); font-weight:700; color:var(--deck-ink); }
+.nubi-agent-links h3 { margin:0; font-size:var(--deck-type-heading); line-height:var(--deck-line-heading); font-weight:var(--nubi-weight-strong); color:var(--deck-ink); }
 .nubi-agent-link { display:flex; align-items:center; gap:var(--cx-space-3); padding:var(--cx-space-3); border:1px solid var(--deck-line); border-radius:var(--deck-inset-radius); background:var(--deck-card); }
 .nubi-agent-link > div { flex:1; min-width:0; }
-.nubi-agent-link p, .nubi-agent-job p { margin:2px 0 0; }
+.nubi-agent-link p, .nubi-agent-job p { margin:calc(var(--cx-space-1) * 0.5) 0 0; }
 .nubi-agent-invite { display:grid; gap:var(--cx-space-2); }
 .nubi-agent-invite-field { display:flex; align-items:center; gap:var(--cx-space-2); }
 .nubi-agent-invite-field > :first-child { flex:1; min-width:0; }
 .nubi-agent-links .nubi-agent-request { margin:0; }
 .nubi-agent-request-text { margin:var(--cx-space-3) 0 0; white-space:pre-wrap; overflow-wrap:anywhere; color:var(--deck-ink); }
-.nubi-agent-job { display:flex; align-items:center; gap:var(--cx-space-3); padding:10px 0; border-top:1px solid var(--deck-line); }
+.nubi-agent-job { display:flex; align-items:center; gap:var(--cx-space-3); padding:calc(var(--cx-space-1) * 2.5) 0; border-top:1px solid var(--deck-line); }
 .nubi-agent-job > div { flex:1; min-width:0; }
 .nubi-agent-job p { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--deck-sub); }
 .nubi-agent-job > .deck-status { flex:none; }
@@ -902,11 +993,11 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 /* Agent application shell: project/history, conversation, supporting editors. */
 .nubi-sidebar-brand { display:flex; align-items:center; min-height:40px; margin-bottom:var(--cx-space-2); }
 .nubi-sidebar-brand .nubi-logo { gap:var(--cx-space-2); }
-.nubi-conversation-title { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:var(--deck-font-label); font-weight:600; color:var(--deck-ink); }
+.nubi-conversation-title { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:var(--deck-font-label); font-weight:var(--nubi-weight-emphasis); color:var(--deck-ink); }
 .nubi-workbench[data-host-layout="integrated"] .nubi-project-label { display:none; }
 .nubi-workspace-navigation.nubi-workspace-rail { flex:none; position:relative; z-index:12; flex-direction:column; flex-wrap:nowrap; width:48px; padding:var(--cx-space-2) var(--cx-space-1); gap:var(--cx-space-2); border-right:1px solid var(--deck-line); background:var(--deck-section-surface); }
 .nubi-workspace-rail .cx-kit-button { flex:none; width:36px; height:36px; padding:var(--cx-space-2); border:0; background:transparent; }
-.nubi-workspace-rail .cx-kit-button span { position:absolute; width:1px; height:1px; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+.nubi-workspace-rail .cx-kit-button span { position:absolute; width:1px; height:1px; margin:calc(var(--cx-space-1) * -0.25); overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
 .nubi-workspace-rail .nubi-rail-settings { margin-top:0; }
 .nubi-workbench[data-host-layout="integrated"] .nubi-sidebar-scrim { left:var(--nubi-rail-width); }
 @media(max-width:760px) { .nubi-workbench[data-host-layout="integrated"] .nubi-sidebar { left:var(--nubi-rail-width); width:min(var(--nubi-sidebar-width),calc(100% - var(--nubi-rail-width))); z-index:11; } }
@@ -925,14 +1016,14 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 
 /* Local skills share one intake and a reversible, compact list. */
 .nubi-custom-skill-toolbar { display:flex; align-items:center; gap:var(--cx-space-1); }
-.nubi-custom-skill-toolbar .nubi-custom-skill-register { gap:var(--cx-space-1); border:0; border-radius:var(--deck-pill-radius); background:var(--deck-blue-soft); color:var(--deck-blue-deep); font-weight:700; }
+.nubi-custom-skill-toolbar .nubi-custom-skill-register { gap:var(--cx-space-1); border:0; border-radius:var(--deck-pill-radius); background:var(--deck-blue-soft); color:var(--deck-blue-deep); font-weight:var(--nubi-weight-strong); }
 .nubi-custom-skill-toolbar .cx-action-button[aria-pressed="true"] { color:var(--deck-blue-deep); background:var(--deck-blue-soft); }
 .nubi-custom-skill-list { display:grid; gap:var(--cx-space-1); max-height:min(360px,52vh); overflow-y:auto; padding-block:var(--cx-space-2); }
 .nubi-custom-skill-row { display:flex; align-items:center; gap:var(--cx-space-3); padding:var(--cx-space-2) var(--cx-space-2); border-radius:var(--deck-control-radius); }
 .nubi-custom-skill-row:hover, .nubi-custom-skill-row:focus-within { background:var(--deck-section-surface); }
 .nubi-custom-skill-mark { display:flex; flex:none; color:var(--deck-sub); }
 .nubi-custom-skill-copy { flex:1; min-width:0; }
-.nubi-custom-skill-copy strong { display:block; font:var(--deck-font-body); font-weight:700; color:var(--deck-ink); overflow-wrap:anywhere; }
+.nubi-custom-skill-copy strong { display:block; font:var(--deck-font-body); font-weight:var(--nubi-weight-strong); color:var(--deck-ink); overflow-wrap:anywhere; }
 .nubi-custom-skill-copy p { margin:var(--cx-space-1) 0 0; font:var(--deck-font-caption); color:var(--deck-sub); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .nubi-custom-skill-copy small { display:flex; align-items:center; gap:var(--cx-space-1); margin-top:var(--cx-space-1); font:var(--deck-font-caption); color:var(--deck-sub); }
 .nubi-custom-skill-actions { display:flex; align-items:center; flex:none; gap:0; }
@@ -945,7 +1036,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-skill-dropzone { display:flex; flex-direction:column; align-items:center; gap:var(--cx-space-2); padding:var(--cx-space-6) var(--cx-space-4); border-radius:var(--deck-control-radius); background:var(--deck-section-surface); }
 .nubi-skill-dropzone[data-dragging="true"] { background:var(--deck-blue-soft); }
 .nubi-skill-import-mark { display:flex; color:var(--deck-blue-deep); margin-bottom:var(--cx-space-1); }
-.nubi-skill-dropzone strong { font:var(--deck-font-body); font-weight:700; color:var(--deck-ink); }
+.nubi-skill-dropzone strong { font:var(--deck-font-body); font-weight:var(--nubi-weight-strong); color:var(--deck-ink); }
 .nubi-skill-dropzone p { margin:0; font:var(--deck-font-caption); color:var(--deck-sub); }
 .nubi-skill-import-actions { display:flex; align-items:center; gap:var(--cx-space-2); margin-top:var(--cx-space-3); }
 .nubi-skill-import-actions .cx-kit-button { gap:var(--cx-space-2); }
@@ -971,7 +1062,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-skill-options p, .nubi-skill-expanded p { margin:var(--cx-space-2) 0; color:var(--deck-sub); }
 .nubi-skill-signin { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:var(--cx-space-3); padding:var(--cx-space-4); margin-bottom:var(--cx-space-3); border-radius:var(--deck-control-radius); background:var(--deck-blue-soft); }
 .nubi-skill-signin p { margin:0; font:var(--deck-font-body); color:var(--deck-sub); }
-.nubi-skill-signin .nubi-skill-signin-button { display:inline-flex; align-items:center; justify-content:center; gap:var(--cx-space-2); border:0; border-radius:var(--deck-pill-radius); background:var(--deck-card); color:var(--deck-blue-deep); font-weight:700; }
+.nubi-skill-signin .nubi-skill-signin-button { display:inline-flex; align-items:center; justify-content:center; gap:var(--cx-space-2); border:0; border-radius:var(--deck-pill-radius); background:var(--deck-card); color:var(--deck-blue-deep); font-weight:var(--nubi-weight-strong); }
 .nubi-skill-signin .nubi-skill-signin-button:hover { background:var(--deck-card); color:var(--deck-blue-deep); }
 .nubi-skill-recovery { display:flex; align-items:center; gap:var(--cx-space-2); margin-bottom:var(--cx-space-3); color:var(--deck-sub); }
 .nubi-skill-recovery p { flex:1; margin:0; font:var(--deck-font-body); }
@@ -983,7 +1074,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
    progressive detail. Mutations stay explicit; ordinary metadata stays quiet. */
 .nubi-skill-page { flex:1; min-height:0; overflow-y:auto; color:var(--deck-ink); background:var(--deck-card); }
 .nubi-skill-page-header { position:sticky; top:0; z-index:2; display:flex; align-items:center; gap:var(--cx-space-3); padding:var(--cx-space-4) var(--nubi-page-inset); border-bottom:1px solid var(--deck-line); background:var(--deck-card); }
-.nubi-skill-page h1 { margin:0; font:600 var(--cx-type-section)/var(--deck-line-heading) var(--cx-font-family); }
+.nubi-skill-page h1 { margin:0; font:var(--nubi-weight-emphasis) var(--cx-type-section)/var(--deck-line-heading) var(--cx-font-family); }
 .nubi-skill-page h1:focus { outline:none; }
 .nubi-skill-page-actions { display:flex; align-items:center; gap:var(--cx-space-1); margin-left:auto; }
 .nubi-skill-page-body { max-width:1200px; margin:0 auto; padding:var(--cx-space-6) var(--nubi-page-inset); }
@@ -996,7 +1087,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-skill-row { display:flex; align-items:center; gap:var(--cx-space-4); min-width:0; padding:var(--nubi-row-inset) 0; border-bottom:1px solid var(--deck-line); }
 .nubi-skill-row-icon { display:grid; place-items:center; flex:none; width:40px; height:40px; background:var(--deck-section-surface); border-radius:var(--deck-control-radius); color:var(--deck-sub); }
 .nubi-skill-row-copy { min-width:0; flex:1; }
-.nubi-skill-row-copy strong { font:var(--deck-font-label); font-weight:600; }
+.nubi-skill-row-copy strong { font:var(--deck-font-label); font-weight:var(--nubi-weight-emphasis); }
 .nubi-skill-row-copy p { margin:var(--cx-space-1) 0 0; color:var(--deck-sub); font:var(--deck-font-body); white-space:normal; overflow-wrap:anywhere; }
 .nubi-skill-row-actions { flex:none; display:flex; align-items:center; gap:var(--cx-space-2); }
 .nubi-skill-row-actions > .cx-kit-button { min-width:64px; }
@@ -1017,10 +1108,10 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 /* The quick picker separates request shortcuts from discovery and management. */
 .nubi-composer-skill-menu { position:fixed; z-index:1200; left:auto; right:auto; top:auto; bottom:auto; width:min(360px,calc(100vw - 24px)); max-height:min(440px,calc(100vh - 24px)); padding:var(--cx-space-3); display:flex; flex-direction:column; overflow:hidden; border:0; box-sizing:border-box; }
 .nubi-composer-skill-menu .nubi-skill-menu-header { display:flex; flex:none; align-items:center; gap:var(--cx-space-2); min-height:var(--nubi-modal-title-height); padding:0 var(--cx-space-3) var(--cx-space-1); color:var(--deck-ink); }
-.nubi-composer-skill-menu .nubi-skill-menu-header strong { flex:1; font:var(--deck-font-label); font-weight:700; }
+.nubi-composer-skill-menu .nubi-skill-menu-header strong { flex:1; font:var(--deck-font-label); font-weight:var(--nubi-weight-strong); }
 .nubi-skill-menu-close.cx-kit-button { width:var(--nubi-modal-close-size); min-width:var(--nubi-modal-close-size); height:var(--nubi-modal-close-size); min-height:var(--nubi-modal-close-size); padding:0; border:0; background:transparent; color:var(--deck-sub); box-shadow:none; }
 .nubi-composer-skill-menu .nubi-skill-menu-close:hover { background:var(--deck-tint); }
-.nubi-composer-skill-menu .nubi-skill-menu-section { display:flex; flex:none; align-items:center; gap:var(--cx-space-2); padding:var(--cx-space-1) var(--cx-space-3); color:var(--deck-sub); font:var(--deck-font-caption); font-weight:500; }
+.nubi-composer-skill-menu .nubi-skill-menu-section { display:flex; flex:none; align-items:center; gap:var(--cx-space-2); padding:var(--cx-space-1) var(--cx-space-3); color:var(--deck-sub); font:var(--deck-font-caption); font-weight:var(--nubi-weight-label); }
 .nubi-skill-menu-section > span { color:var(--deck-muted); font-variant-numeric:tabular-nums; }
 .nubi-skill-menu-list { flex:0 1 auto; min-height:0; max-height:240px; overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:auto; }
 .nubi-skill-menu-row.cx-kit-button, .nubi-skill-menu-marketplace.cx-kit-button { display:flex; align-items:center; justify-content:flex-start; gap:var(--cx-space-3); width:100%; min-width:0; min-height:48px; padding:var(--cx-space-2) var(--cx-space-3); border:0; background:transparent; color:var(--deck-sub); text-align:left; white-space:normal; box-shadow:none; border-radius:var(--deck-control-radius); transform:none; }
@@ -1028,7 +1119,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-composer-skill-menu .cx-kit-button:focus-visible { outline:2px solid var(--deck-blue); outline-offset:-2px; }
 .nubi-skill-menu-icon { display:grid; flex:none; place-items:center; width:28px; height:28px; background:transparent; color:var(--deck-blue-deep); }
 .nubi-skill-menu-copy { display:flex; flex-direction:column; align-items:stretch; min-width:0; flex:1; gap:var(--cx-space-1); }
-.nubi-skill-menu-copy strong { display:block; max-width:100%; min-width:0; overflow:hidden; font:var(--deck-font-body); font-weight:600; color:var(--deck-ink); text-overflow:ellipsis; white-space:nowrap; }
+.nubi-skill-menu-copy strong { display:block; max-width:100%; min-width:0; overflow:hidden; font:var(--deck-font-body); font-weight:var(--nubi-weight-emphasis); color:var(--deck-ink); text-overflow:ellipsis; white-space:nowrap; }
 .nubi-composer-skill-menu .nubi-skill-menu-copy small { display:-webkit-box; min-width:0; margin:0; overflow:hidden; color:var(--deck-sub); font:var(--deck-font-caption); white-space:normal; overflow-wrap:anywhere; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
 .nubi-skill-menu-add { flex:none; margin-top:var(--cx-space-2); padding:var(--cx-space-1); border:0; border-radius:var(--deck-control-radius); background:color-mix(in srgb,var(--deck-blue-soft) 45%,var(--deck-card)); }
 .nubi-skill-menu-add .nubi-skill-menu-section { padding-inline:var(--cx-space-2); }
@@ -1181,7 +1272,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 /* Theia renders a close element even for non-closable titles. */
 .lm-TabBar-tab:has(.nubi-workspace-tab-icon) .lm-TabBar-tabCloseIcon { display:none; }
 #shell-tab-nubi-workspace > .lm-TabBar-tabCloseIcon { display:none!important; }
-.nubi-mail-history{padding:22px 28px;min-height:100vh}.nubi-mail-history-bar{display:flex;align-items:center;gap:12px;border-bottom:1px solid #E5E8EB;padding-bottom:16px}.nubi-mail-history-bar h1{font-size:22px;margin:0}.nubi-mail-history-bar>span{color:#4E5968;font-size:13px;margin-right:auto}.nubi-mail-history-body{display:grid;grid-template-columns:280px minmax(0,1fr);gap:24px;margin-top:22px}.nubi-mail-history-list>h2{font-size:12px;color:#4E5968;margin:22px 0 8px}.nubi-mail-history-row.cx-kit-button{display:flex;flex-direction:column;align-items:stretch;text-align:left;width:100%;gap:5px;border:0;background:transparent;border-radius:12px;padding:12px;margin:4px 0;white-space:normal}.nubi-mail-history-row[aria-pressed=true]{background:#E8F1FE}.nubi-mail-history-row strong{font-size:14px;font-weight:650}.nubi-mail-history-row small,.nubi-mail-history-row>span{font-size:12px;color:#4E5968;overflow-wrap:anywhere}.nubi-mail-history-detail{padding:0 8px;min-width:0}.nubi-mail-history-detail h2{font-size:20px;line-height:1.5}.nubi-mail-history-detail pre{font:inherit;font-size:14px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere}.nubi-mail-attachment.cx-kit-button{display:flex;gap:10px;align-items:center;width:100%;padding:12px;margin:6px 0;background:#F1F7FE;border-color:#E5E8EB}.nubi-mail-attachment>span{flex:1;text-align:left;overflow-wrap:anywhere}@container nubi-workspace (max-width:800px){.nubi-mail-history-body{grid-template-columns:minmax(0,1fr)}.nubi-mail-history-list{max-height:340px;overflow:auto}.nubi-mail-history{padding:18px}}
+.nubi-mail-history{padding:calc(var(--cx-space-1) * 5.5) var(--cx-space-7);min-height:100vh;}.nubi-mail-history-bar{display:flex;align-items:center;gap:var(--cx-space-3);border-bottom:1px solid var(--deck-line);padding-bottom:var(--cx-space-4);}.nubi-mail-history-bar h1{font-size:var(--deck-type-title);margin:0;}.nubi-mail-history-bar>span{color:var(--nubi-text-secondary);font-size:var(--deck-type-caption);margin-right:auto;}.nubi-mail-history-body{display:grid;grid-template-columns:280px minmax(0,1fr);gap:var(--cx-space-6);margin-top:calc(var(--cx-space-1) * 5.5);}.nubi-mail-history-list>h2{font-size:var(--deck-type-caption);color:var(--nubi-text-secondary);margin:calc(var(--cx-space-1) * 5.5) 0 var(--cx-space-2);}.nubi-mail-history-row.cx-kit-button{display:flex;flex-direction:column;align-items:stretch;text-align:left;width:100%;gap:calc(var(--cx-space-1) * 1.25);border:0;background:transparent;border-radius:var(--cx-space-3);padding:var(--cx-space-3);margin:var(--cx-space-1) 0;white-space:normal;}.nubi-mail-history-row[aria-pressed=true]{background:var(--nubi-surface-selected);}.nubi-mail-history-row strong{font-size:var(--deck-type-caption);font-weight:var(--nubi-weight-emphasis);}.nubi-mail-history-row small,.nubi-mail-history-row>span{font-size:var(--deck-type-caption);color:var(--nubi-text-secondary);overflow-wrap:anywhere;}.nubi-mail-history-detail{padding:0 var(--cx-space-2);min-width:0;}.nubi-mail-history-detail h2{font-size:var(--nubi-type-section);line-height:var(--deck-line-caption);}.nubi-mail-history-detail pre{font:inherit;font-size:var(--deck-type-caption);line-height:var(--nubi-reading-leading);white-space:pre-wrap;overflow-wrap:anywhere;}.nubi-mail-attachment.cx-kit-button{display:flex;gap:calc(var(--cx-space-1) * 2.5);align-items:center;width:100%;padding:var(--cx-space-3);margin:calc(var(--cx-space-1) * 1.5) 0;background:var(--nubi-surface-inset);border-color:var(--deck-line);}.nubi-mail-attachment>span{flex:1;text-align:left;overflow-wrap:anywhere}@container nubi-workspace (max-width:800px){.nubi-mail-history-body{grid-template-columns:minmax(0,1fr)}.nubi-mail-history-list{max-height:340px;overflow:auto}.nubi-mail-history{padding:calc(var(--cx-space-1) * 4.5);}}
 
 /* Keep the shared Nubi palette; motion adds a free swimming water aura. */
 .nubi-workbench[data-host-layout="integrated"][data-workspace-screen="welcome"] .deck-blob {
@@ -1221,25 +1312,25 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 
 /* Mail settings share the desktop's spacing and calm iOS switch treatment. */
 .nubi-mail-settings { gap:var(--cx-space-4); }
-.nubi-mail-history-bar .nubi-mail-connect-link.cx-kit-button { display:inline-flex; align-items:center; gap:var(--cx-space-2); padding:var(--cx-space-2) var(--cx-space-3); border:0; background:var(--deck-blue-soft); color:var(--deck-blue-deep); font:var(--deck-font-label); font-weight:600; }
+.nubi-mail-history-bar .nubi-mail-connect-link.cx-kit-button { display:inline-flex; align-items:center; gap:var(--cx-space-2); padding:var(--cx-space-2) var(--cx-space-3); border:0; background:var(--deck-blue-soft); color:var(--deck-blue-deep); font:var(--deck-font-label); font-weight:var(--nubi-weight-emphasis); }
 .nubi-mail-account-fields { display:grid; grid-template-columns:minmax(0,1fr); align-items:start; gap:var(--cx-space-3); }
 .nubi-mail-section,.nubi-mail-model-picker { display:grid; gap:var(--cx-space-3); min-width:0; }
 .nubi-mail-section-heading { display:flex; align-items:center; justify-content:space-between; gap:var(--cx-space-3); }
 .nubi-mail-section-title,.nubi-mail-field-title { display:inline-flex; align-items:center; gap:var(--cx-space-2); }
-.nubi-mail-section-title strong { font-size:15px; line-height:1.5; font-weight:700; color:var(--deck-ink); }
+.nubi-mail-section-title strong { font-size:var(--deck-type-body); line-height:var(--deck-line-caption); font-weight:var(--nubi-weight-strong); color:var(--deck-ink); }
 .nubi-mail-section-icon { display:inline-grid; flex:none; place-items:center; width:30px; height:30px; border-radius:var(--deck-control-radius); background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
-.nubi-mail-field-title { color:var(--deck-sub); font-size:13px; font-weight:600; }
+.nubi-mail-field-title { color:var(--deck-sub); font-size:var(--deck-type-caption); font-weight:var(--nubi-weight-emphasis); }
 .nubi-mail-field-title svg { flex:none; color:var(--deck-blue-deep); }
 .nubi-mail-form { display:grid; gap:var(--cx-space-3); }
 .nubi-mail-connect-actions { display:flex; align-items:center; flex-wrap:wrap; gap:var(--cx-space-2); }
-.nubi-mail-connect-actions .cx-kit-button { display:inline-flex; align-items:center; gap:var(--cx-space-2); font-weight:700; }
+.nubi-mail-connect-actions .cx-kit-button { display:inline-flex; align-items:center; gap:var(--cx-space-2); font-weight:var(--nubi-weight-strong); }
 .nubi-mail-model-picker .provider-toolbar { margin:0; }
 .nubi-mail-model-picker .provider-model-panel { flex:none; }
 .nubi-mail-model-picker .model-options { flex:none; max-height:160px; padding-inline-end:var(--cx-space-2); }
 .nubi-mail-model-picker .provider-connect-state { min-height:0; padding:var(--cx-space-3) 0; }
 .nubi-mail-model-picker .provider-tabs { width:100%; }
 .nubi-mail-model-picker .provider-account-actions .cx-action-button { width:30px; height:30px; min-width:30px; min-height:30px; padding:var(--cx-space-1); }
-.nubi-mail-model-picker .provider-model-panel>p { font-size:13px; color:var(--deck-sub); }
+.nubi-mail-model-picker .provider-model-panel>p { font-size:var(--deck-type-caption); color:var(--deck-sub); }
 .nubi-mail-model-disclosure { min-width:0; }
 .nubi-mail-model-disclosure>summary { display:flex; align-items:center; gap:var(--cx-space-2); min-width:0; padding:var(--cx-space-3); border-radius:var(--deck-control-radius); list-style:none; cursor:pointer; }
 .nubi-mail-model-disclosure>summary::-webkit-details-marker { display:none; }
@@ -1264,43 +1355,43 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-mail-connection-error>summary>svg { flex:none; color:var(--deck-blue-deep); }
 .nubi-mail-connection-error>p { margin:var(--cx-space-2) 0; }
 .nubi-mail-error-code { display:flex; align-items:center; justify-content:space-between; gap:var(--cx-space-3); }
-.nubi-mail-error-code>code { min-width:0; overflow:auto; white-space:nowrap; font-size:12px; }
+.nubi-mail-error-code>code { min-width:0; overflow:auto; white-space:nowrap; font-size:var(--deck-type-caption); }
 .nubi-mail-help .nubi-text-button.cx-kit-button { display:inline-flex; align-items:center; gap:var(--cx-space-2); padding:var(--cx-space-2) var(--cx-space-3); border:0; background:var(--deck-tint); color:var(--deck-blue-deep); font:var(--deck-font-label); }
 .nubi-startup-options { display:grid; gap:var(--cx-space-2); margin:var(--cx-space-4) 0; }
 .nubi-startup-options>.cx-kit-button { display:flex; align-items:center; justify-content:flex-start; text-align:left; gap:var(--cx-space-3); padding:var(--cx-space-3); border:0; background:var(--deck-tint); border-radius:var(--deck-control-radius); white-space:normal; color:var(--deck-ink); }
 .nubi-startup-options>.cx-kit-button:hover { background:var(--deck-blue-soft); }
 .nubi-startup-options>.cx-kit-button>span:nth-child(2) { display:grid; gap:var(--cx-space-1); flex:1; }
-.nubi-startup-options strong { font-size:15px; font-weight:700; }
-.nubi-startup-options small,.nubi-startup-connections .nubi-muted { font-size:13px; font-weight:400; line-height:1.6; color:var(--deck-sub); }
+.nubi-startup-options strong { font-size:var(--deck-type-body); font-weight:var(--nubi-weight-strong); }
+.nubi-startup-options small,.nubi-startup-connections .nubi-muted { font-size:var(--deck-type-caption); font-weight:var(--nubi-weight-regular); line-height:var(--deck-line-body); color:var(--deck-sub); }
 .desktop-pane-left-control svg,.desktop-pane-right-control svg { transform:scaleX(-1); }
-.nubi-mail-account-fields label,.nubi-mail-model-field { display:grid; gap:var(--cx-space-2); font-weight:600; }
+.nubi-mail-account-fields label,.nubi-mail-model-field { display:grid; gap:var(--cx-space-2); font-weight:var(--nubi-weight-emphasis); }
 .nubi-mail-organize { display:grid; gap:var(--cx-space-4); }
 .nubi-mail-switch-row,.nubi-mail-connected { display:flex; align-items:center; justify-content:space-between; gap:var(--cx-space-4); }
 .nubi-mail-switch-row>div,.nubi-mail-connected>div { display:grid; gap:var(--cx-space-2); min-width:0; }
 .nubi-mail-connected strong { display:flex; align-items:center; gap:var(--cx-space-2); }
-.nubi-mail-switch-row small,.nubi-mail-connected small,.nubi-mail-activity small,.nubi-mail-settings .nubi-muted { font-size:13px; line-height:1.6; color:var(--deck-sub); font-weight:400; }
-.nubi-ios-switch { flex:none; width:44px; height:27px; padding:3px; border:0; border-radius:999px; background:#E5E8EB; cursor:pointer; transition:background-color 180ms ease; }
-.nubi-ios-switch>span { display:block; width:21px; height:21px; border-radius:50%; background:white; box-shadow:0 1px 3px #191F2826; transition:transform 180ms ease; }
+.nubi-mail-switch-row small,.nubi-mail-connected small,.nubi-mail-activity small,.nubi-mail-settings .nubi-muted { font-size:var(--deck-type-caption); line-height:var(--deck-line-body); color:var(--deck-sub); font-weight:var(--nubi-weight-regular); }
+.nubi-ios-switch { flex:none; width:44px; height:27px; padding:calc(var(--cx-space-1) * 0.75); border:0; border-radius:999px; background:var(--deck-line); cursor:pointer; transition:background-color 180ms ease; }
+.nubi-ios-switch>span { display:block; width:21px; height:21px; border-radius:50%; background:white; box-shadow:var(--nubi-shadow-subtle); transition:transform 180ms ease; }
 .nubi-ios-switch[aria-checked=true] { background:var(--deck-blue); }
 .nubi-ios-switch[aria-checked=true]>span { transform:translateX(17px); }
 .nubi-ios-switch:disabled { opacity:.5; cursor:default; }
 .nubi-ios-switch:focus-visible { outline:2px solid var(--deck-blue); outline-offset:4px; }
-.nubi-mail-activity { display:grid; gap:var(--cx-space-1); font-size:14px; }
+.nubi-mail-activity { display:grid; gap:var(--cx-space-1); font-size:var(--deck-type-caption); }
 .nubi-mail-watch-actions { display:flex; align-items:center; gap:var(--cx-space-2); }
-.nubi-mail-storage summary { display:flex; align-items:center; justify-content:space-between; padding:var(--cx-space-3); border-radius:var(--deck-control-radius); cursor:pointer; font-weight:600; list-style:none; }
+.nubi-mail-storage summary { display:flex; align-items:center; justify-content:space-between; padding:var(--cx-space-3); border-radius:var(--deck-control-radius); cursor:pointer; font-weight:var(--nubi-weight-emphasis); list-style:none; }
 .nubi-mail-storage summary::-webkit-details-marker { display:none; }
 .nubi-mail-storage summary:hover { background:var(--deck-tint); }
 .nubi-mail-storage summary>svg { flex:none; color:var(--deck-sub); transition:transform var(--cx-motion); }
 .nubi-mail-storage[open] summary>svg { transform:rotate(180deg); }
 .nubi-mail-storage dl { display:grid; gap:var(--cx-space-2); margin:var(--cx-space-2) 0 0; font:var(--deck-font-body); }
 .nubi-mail-storage-row { min-width:0; padding:var(--cx-space-3); border-radius:var(--deck-control-radius); background:var(--deck-tint); }
-.nubi-mail-storage dt { color:var(--deck-ink); font-weight:600; }
+.nubi-mail-storage dt { color:var(--deck-ink); font-weight:var(--nubi-weight-emphasis); }
 .nubi-mail-storage dd { display:flex; align-items:flex-start; gap:var(--cx-space-2); min-width:0; margin:var(--cx-space-1) 0 0; }
 .nubi-mail-storage dd>code { flex:1; min-width:0; padding-block:var(--cx-space-1); color:var(--deck-sub); font:inherit; word-break:break-all; overflow-wrap:anywhere; user-select:text; }
 .nubi-mail-storage dd>.cx-action-button { flex:none; border:0; background:transparent; box-shadow:none; color:var(--deck-sub); }
 .nubi-mail-storage dd>.cx-action-button:not(:disabled):hover { background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
 .nubi-mail-attachment.cx-kit-button { border:0; }
-.nubi-mail-attachment>span small { display:block; font-size:12px; font-weight:400; color:var(--deck-sub); margin-top:4px; }
+.nubi-mail-attachment>span small { display:block; font-size:var(--deck-type-caption); font-weight:var(--nubi-weight-regular); color:var(--deck-sub); margin-top:var(--cx-space-1); }
 @media (prefers-reduced-motion:reduce) { .nubi-ios-switch,.nubi-ios-switch>span { transition:none; } }
 
 /* Shared browser plan and executor progress stay in the conversation flow. */
@@ -1309,7 +1400,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-agent-activity .agent-trace { min-width:0; margin:0; font:var(--deck-font-body); }
 .nubi-agent-activity .agent-trace > summary { border:0; border-radius:var(--deck-control-radius); background:transparent; padding:var(--cx-space-2); color:var(--deck-sub); }
 .nubi-agent-activity .agent-trace > summary:hover { background:var(--deck-tint); }
-.nubi-agent-activity .agent-trace[open] > summary,.nubi-agent-activity .agent-trace[data-state='running'] > summary { background:transparent; color:var(--deck-blue-deep); }
+.nubi-agent-activity .agent-trace[open] > summary,.nubi-agent-activity .agent-trace[data-state="running"] > summary { background:transparent; color:var(--deck-blue-deep); }
 .nubi-agent-activity .agent-trace[open] > summary:hover { background:var(--deck-tint); }
 .nubi-agent-activity .agent-trace > ol { background:transparent; margin:var(--cx-space-1) 0 0; padding:var(--cx-space-2); gap:var(--cx-space-2); }
 .nubi-agent-activity .agent-progress-note { color:var(--deck-ink); }
@@ -1358,20 +1449,20 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .desktop-pane-controls { display:flex; align-items:center; gap:var(--cx-space-1); margin-left:auto; flex:none; }
 .desktop-shell { --nubi-mail-footer-height:36px; }
 .desktop-shell:has(>.desktop-mail-progress) { padding-bottom:var(--nubi-mail-footer-height); box-sizing:border-box; }
-.desktop-mail-progress { position:absolute; bottom:0; left:0; right:0; height:var(--nubi-mail-footer-height); box-sizing:border-box; display:flex; align-items:center; gap:var(--cx-space-4); padding:var(--cx-space-2) var(--cx-space-4); background:var(--deck-tint); color:var(--deck-sub); font:var(--deck-font-caption); font-size:12px; z-index:21; }
+.desktop-mail-progress { position:absolute; bottom:0; left:0; right:0; height:var(--nubi-mail-footer-height); box-sizing:border-box; display:flex; align-items:center; gap:var(--cx-space-4); padding:var(--cx-space-2) var(--cx-space-4); background:var(--deck-tint); color:var(--deck-sub); font:var(--deck-font-caption); font-size:var(--deck-type-caption); z-index:21; }
 .nubi-mail-progress-state,.nubi-mail-progress-counts { display:flex; align-items:center; gap:var(--cx-space-2); min-width:0; }
 .nubi-mail-progress-state { color:var(--deck-blue-deep); }
-.nubi-mail-progress-state strong { font-weight:650; white-space:nowrap; }
+.nubi-mail-progress-state strong { font-weight:var(--nubi-weight-emphasis); white-space:nowrap; }
 .nubi-mail-progress-state>.status-spinner { width:12px; height:12px; flex:none; }
 .nubi-mail-progress-counts { gap:var(--cx-space-3); white-space:nowrap; }
-.nubi-mail-progress-counts b { color:var(--deck-ink); font-weight:650; font-variant-numeric:tabular-nums; }
+.nubi-mail-progress-counts b { color:var(--deck-ink); font-weight:var(--nubi-weight-emphasis); font-variant-numeric:tabular-nums; }
 /* The latest-applied time sits at the right end of the bar, the next check beside it; the attachment counter stays with the progress on the left (user request 2026-10-09). */
 .nubi-mail-progress-attachment { white-space:nowrap; }
 .desktop-mail-progress .nubi-mail-timestamp { margin-left:auto; white-space:nowrap; }
 .nubi-mail-progress-next { margin-left:auto; white-space:nowrap; }
 .nubi-mail-timestamp + .nubi-mail-progress-next { margin-left:0; }
 .desktop-shell:has(>.desktop-mail-progress) .desktop-pane[data-expanded=true] { bottom:var(--nubi-mail-footer-height); height:auto; }
-.desktop-shell:has(>.desktop-mail-progress)[data-layout='overlay'] .desktop-pane { height:calc(100% - var(--nubi-mail-footer-height)); }
+.desktop-shell:has(>.desktop-mail-progress)[data-layout="overlay"] .desktop-pane { height:calc(100% - var(--nubi-mail-footer-height)); }
 @media(max-width:1000px){.desktop-shell { --nubi-mail-footer-height:64px; }.desktop-mail-progress { flex-wrap:wrap; align-content:center; gap:var(--cx-space-1) var(--cx-space-3); }}
 @media(max-width:620px){.desktop-mail-progress { gap:var(--cx-space-2); padding-inline:var(--cx-space-2); }.nubi-mail-progress-next { display:none; }.nubi-mail-progress-counts { gap:var(--cx-space-2); }}
 
@@ -1390,22 +1481,22 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-mail-recent[open] summary>svg:last-child { transform:rotate(180deg); }
 .nubi-mail-recent-times { display:grid; gap:var(--cx-space-2); margin:0; padding:var(--cx-space-2) var(--cx-space-2) 0; }
 .nubi-mail-recent-times>div { display:flex; align-items:center; gap:var(--cx-space-3); }
-.nubi-mail-recent-times dt { display:inline-flex; align-items:center; gap:var(--cx-space-2); min-width:88px; color:var(--deck-sub); font-weight:600; }
+.nubi-mail-recent-times dt { display:inline-flex; align-items:center; gap:var(--cx-space-2); min-width:88px; color:var(--deck-sub); font-weight:var(--nubi-weight-emphasis); }
 .nubi-mail-recent-times dt svg { flex:none; color:var(--deck-blue-deep); }
 .nubi-mail-recent-times dd { margin:0; color:var(--deck-ink); }
 .nubi-mail-recent-times .nubi-mail-timestamp { color:var(--deck-ink); }
 .nubi-mail-recent li { display:flex; align-items:flex-start; flex-wrap:nowrap; gap:var(--cx-space-2); }
-.nubi-mail-recent li>svg { flex:none; margin-top:2px; color:var(--deck-sub); }
-.nubi-mail-recent li>span { display:grid; gap:2px; min-width:0; }
-.nubi-mail-recent li strong { font-weight:500; color:var(--deck-ink); }
+.nubi-mail-recent li>svg { flex:none; margin-top:calc(var(--cx-space-1) * 0.5); color:var(--deck-sub); }
+.nubi-mail-recent li>span { display:grid; gap:calc(var(--cx-space-1) * 0.5); min-width:0; }
+.nubi-mail-recent li strong { font-weight:var(--nubi-weight-label); color:var(--deck-ink); }
 @container nubi-workspace (max-width:800px){.nubi-mail-history-body { grid-template-columns:minmax(0,1fr); }}
 .desktop-shell .desktop-agent>.nubi-workbench { height:100%; min-height:0; }
-.desktop-shell:has(>.desktop-mail-progress) .nubi-sidebar[data-open='true'],.desktop-shell:has(>.desktop-mail-progress) .nubi-sidebar-resize { height:calc(100vh - var(--nubi-mail-footer-height)); }
+.desktop-shell:has(>.desktop-mail-progress) .nubi-sidebar[data-open="true"],.desktop-shell:has(>.desktop-mail-progress) .nubi-sidebar-resize { height:calc(100vh - var(--nubi-mail-footer-height)); }
 
 .nubi-mail-history { container-type:inline-size; container-name:nubi-mail-view; }
 @container nubi-mail-view (max-width:640px){.nubi-mail-history-body { grid-template-columns:minmax(0,1fr); }.nubi-mail-history-list { max-height:340px; overflow:auto; }}
 
-.nubi-response-time { display:inline-flex; align-items:center; gap:var(--cx-space-1); color:var(--nubi-note-ink); font:var(--deck-font-caption); font-size:12px; font-weight:400; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.nubi-response-time { display:inline-flex; align-items:center; gap:var(--cx-space-1); color:var(--nubi-note-ink); font:var(--deck-font-caption); font-size:var(--deck-type-caption); font-weight:var(--nubi-weight-regular); white-space:nowrap; font-variant-numeric:tabular-nums; }
 .nubi-response-time>svg { flex:none; }
 .nubi-workbench .message-actions .nubi-response-time { margin-right:var(--cx-space-2); }
 .nubi-agent-activity>.nubi-response-time { color:var(--deck-sub); }
@@ -1415,7 +1506,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-mail-history-asof { display:flex; flex-wrap:wrap; gap:var(--cx-space-2) var(--cx-space-3); }
 .nubi-mail-progress-state>.nubi-mail-watching-spinner { animation-duration:2.4s; }
 .nubi-mail-search-heading { display:flex; align-items:center; flex-wrap:wrap; gap:var(--cx-space-2); color:var(--deck-blue-deep); margin-bottom:var(--cx-space-2); }
-.nubi-mail-search-heading strong { font:var(--deck-font-label); font-weight:650; }
+.nubi-mail-search-heading strong { font:var(--deck-font-label); font-weight:var(--nubi-weight-emphasis); }
 .nubi-mail-search-heading small { color:var(--deck-muted); font:var(--deck-font-caption); }
 .nubi-mail-search-hint { color:var(--deck-sub); font:var(--deck-font-caption); margin:var(--cx-space-2) 0; }
 .nubi-mail-search-status { display:flex; align-items:center; gap:var(--cx-space-2); color:var(--deck-blue-deep); }
@@ -1425,68 +1516,68 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-mail-search { display:flex; flex-direction:column; width:100%; min-height:0; gap:var(--cx-space-2); }
 .nubi-mail-search .cx-search-field { flex:none; }
 .nubi-mail-filters { flex:none; font:var(--deck-font-caption); }
-.nubi-mail-filters>summary { display:flex; align-items:center; gap:var(--cx-space-2); min-height:36px; padding:var(--cx-space-1) var(--cx-space-3); border-radius:var(--nubi-work-control-radius,12px); color:var(--deck-ink); font-weight:600; cursor:pointer; list-style:none; transition:background .18s ease,color .18s ease; }
+.nubi-mail-filters>summary { display:flex; align-items:center; gap:var(--cx-space-2); min-height:36px; padding:var(--cx-space-1) var(--cx-space-3); border-radius:var(--nubi-work-control-radius,var(--cx-space-3)); color:var(--deck-ink); font-weight:var(--nubi-weight-emphasis); cursor:pointer; list-style:none; transition:background .18s ease,color .18s ease; }
 .nubi-mail-filters>summary>svg:first-child { color:var(--deck-blue-deep); flex:none; }
-.nubi-mail-filters-count { display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 var(--cx-space-2); border-radius:999px; background:var(--deck-blue); color:var(--deck-card); font-weight:700; font-variant-numeric:tabular-nums; }
+.nubi-mail-filters-count { display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 var(--cx-space-2); border-radius:999px; background:var(--deck-blue); color:var(--deck-card); font-weight:var(--nubi-weight-strong); font-variant-numeric:tabular-nums; }
 .nubi-mail-filters>summary>svg:last-child { margin-left:auto; }
 .nubi-mail-filters>summary:hover,.nubi-mail-filters[open]>summary { background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
 .nubi-mail-filters[open]>summary>svg:last-child { transform:rotate(180deg); }
 .nubi-mail-filters>summary>svg:last-child { transition:transform .18s ease; }
-.nubi-mail-filter-fields { display:grid; gap:var(--cx-space-2); padding:var(--cx-space-3); margin-top:var(--cx-space-1); background:var(--deck-tint); border-radius:var(--nubi-work-control-radius,12px); }
+.nubi-mail-filter-fields { display:grid; gap:var(--cx-space-2); padding:var(--cx-space-3); margin-top:var(--cx-space-1); background:var(--deck-tint); border-radius:var(--nubi-work-control-radius,var(--cx-space-3)); }
 .nubi-mail-filter-fields label { display:grid; grid-template-columns:92px minmax(0,1fr); align-items:center; gap:var(--cx-space-2); min-height:36px; }
-.nubi-mail-filter-fields label>span { display:flex; align-items:center; gap:var(--cx-space-2); color:var(--deck-ink); font-weight:500; white-space:nowrap; }
+.nubi-mail-filter-fields label>span { display:flex; align-items:center; gap:var(--cx-space-2); color:var(--deck-ink); font-weight:var(--nubi-weight-label); white-space:nowrap; }
 .nubi-mail-filter-fields label>span>svg,.nubi-mail-extra-filters>summary>svg:first-child,.nubi-mail-page-label>svg { flex:none; color:var(--deck-blue-deep); }
-.nubi-mail-search select { min-width:0; max-width:100%; height:36px; padding:4px 28px 4px var(--cx-space-3); border:0; border-radius:var(--nubi-work-control-radius,12px); background:var(--deck-card); color:var(--deck-ink); font:var(--deck-font-caption); font-weight:500; box-shadow:none; transition:background .18s ease,box-shadow .18s ease; }
+.nubi-mail-search select { min-width:0; max-width:100%; height:36px; padding:var(--cx-space-1) var(--cx-space-7) var(--cx-space-1) var(--cx-space-3); border:0; border-radius:var(--nubi-work-control-radius,var(--cx-space-3)); background:var(--deck-card); color:var(--deck-ink); font:var(--deck-font-caption); font-weight:var(--nubi-weight-label); box-shadow:none; transition:background .18s ease,box-shadow .18s ease; }
 .nubi-mail-search select:hover { background:var(--deck-blue-soft); }
 .nubi-mail-search select:focus-visible { outline:2px solid var(--deck-blue-deep); outline-offset:1px; }
-.nubi-mail-filter-fields .cx-kit-input { width:100%; min-width:0; height:36px; padding:4px var(--cx-space-3); border:0; border-radius:var(--nubi-work-control-radius,12px); background:var(--deck-card); font:var(--deck-font-caption); }
+.nubi-mail-filter-fields .cx-kit-input { width:100%; min-width:0; height:36px; padding:var(--cx-space-1) var(--cx-space-3); border:0; border-radius:var(--nubi-work-control-radius,var(--cx-space-3)); background:var(--deck-card); font:var(--deck-font-caption); }
 .nubi-mail-filter-fields .cx-kit-input:focus-visible { outline:2px solid var(--deck-blue-deep); outline-offset:1px; border-color:transparent; }
 .nubi-mail-date-range { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:var(--cx-space-1); }
 .nubi-mail-filter-chips { display:flex; flex-wrap:wrap; gap:var(--cx-space-1); }
-.nubi-mail-filter-chips>span { display:inline-flex; align-items:center; max-width:100%; gap:var(--cx-space-1); background:var(--deck-blue-soft); color:var(--deck-blue-deep); border-radius:var(--deck-pill-radius); padding:2px 4px 2px 9px; font:var(--deck-font-caption); overflow-wrap:anywhere; }
+.nubi-mail-filter-chips>span { display:inline-flex; align-items:center; max-width:100%; gap:var(--cx-space-1); background:var(--deck-blue-soft); color:var(--deck-blue-deep); border-radius:var(--deck-pill-radius); padding:calc(var(--cx-space-1) * 0.5) var(--cx-space-1) calc(var(--cx-space-1) * 0.5) calc(var(--cx-space-1) * 2.25); font:var(--deck-font-caption); overflow-wrap:anywhere; }
 .nubi-mail-filter-chips .cx-icon-button { width:22px; height:22px; min-height:22px; flex:none; background:transparent; border:0; }
 .nubi-mail-filter-chips .cx-icon-button>svg { width:12px; height:12px; }
 .nubi-mail-result-toolbar { display:flex; align-items:center; justify-content:space-between; gap:var(--cx-space-2); color:var(--nubi-note-ink); font:var(--deck-font-caption); }
 .nubi-mail-result-toolbar>span { display:flex; align-items:center; gap:var(--cx-space-1); }
-.nubi-mail-results { flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; padding:4px 3px; scrollbar-gutter:stable; }
+.nubi-mail-results { flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; padding:var(--cx-space-1) calc(var(--cx-space-1) * 0.75); scrollbar-gutter:stable; }
 .nubi-mail-results:focus-visible { outline:2px solid var(--deck-blue-deep); outline-offset:-2px; border-radius:var(--deck-control-radius); }
-.nubi-mail-result.cx-kit-button { gap:4px; padding:10px 11px; margin:1px 0; }
-.nubi-mail-result strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.45; }
-.nubi-mail-result p { font:var(--deck-font-caption); color:var(--deck-sub); line-height:1.55; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; margin:0; overflow-wrap:anywhere; }
-.nubi-mail-result-meta { display:flex; align-items:center; gap:var(--cx-space-2); width:100%; font-size:12px; }
+.nubi-mail-result.cx-kit-button { gap:var(--cx-space-1); padding:calc(var(--cx-space-1) * 2.5) calc(var(--cx-space-1) * 2.75); margin:calc(var(--cx-space-1) * 0.25) 0; }
+.nubi-mail-result strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:var(--deck-line-heading); }
+.nubi-mail-result p { font:var(--deck-font-caption); color:var(--deck-sub); line-height:var(--deck-line-body); display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; margin:0; overflow-wrap:anywhere; }
+.nubi-mail-result-meta { display:flex; align-items:center; gap:var(--cx-space-2); width:100%; font-size:var(--deck-type-caption); }
 .nubi-mail-result-meta>span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--deck-sub); }
 .nubi-mail-result-meta time { flex:none; color:var(--nubi-note-ink); font-variant-numeric:tabular-nums; }
-.nubi-mail-result-location { display:flex; align-items:center; gap:var(--cx-space-1); font-size:11px; color:var(--nubi-note-ink); overflow-wrap:anywhere; }
-.nubi-mail-result-location small { font-size:11px; color:var(--nubi-note-ink); margin-left:auto; }
-.desktop-shell .nubi-mail-result.nubi-mail-history-row>span { align-self:stretch; background:transparent; border-radius:0; padding:0; color:var(--nubi-note-ink); font-weight:400; line-height:1.5; }
-.nubi-mail-history mark,.desktop-cited-excerpt mark,.nubi-mail-document-text mark { color:var(--deck-blue-deep); background:var(--deck-blue-soft); border-radius:3px; padding:0 1px; }
+.nubi-mail-result-location { display:flex; align-items:center; gap:var(--cx-space-1); font-size:var(--deck-type-caption); color:var(--nubi-note-ink); overflow-wrap:anywhere; }
+.nubi-mail-result-location small { font-size:var(--deck-type-caption); color:var(--nubi-note-ink); margin-left:auto; }
+.desktop-shell .nubi-mail-result.nubi-mail-history-row>span { align-self:stretch; background:transparent; border-radius:0; padding:0; color:var(--nubi-note-ink); font-weight:var(--nubi-weight-regular); line-height:var(--deck-line-caption); }
+.nubi-mail-history mark,.desktop-cited-excerpt mark,.nubi-mail-document-text mark { color:var(--deck-blue-deep); background:var(--deck-blue-soft); border-radius:calc(var(--cx-space-1) * 0.75); padding:0 calc(var(--cx-space-1) * 0.25); }
 .nubi-mail-pagination { flex:none; display:flex; flex-wrap:wrap; align-items:center; gap:var(--cx-space-1) var(--cx-space-2); padding-top:var(--cx-space-1); color:var(--nubi-note-ink); font:var(--deck-font-caption); white-space:nowrap; }
 .nubi-mail-page-summary { display:flex; flex:1 1 180px; align-items:center; justify-content:space-between; gap:var(--cx-space-2); min-width:0; }
 .nubi-mail-page-summary>span { font-variant-numeric:tabular-nums; }
 .nubi-mail-page-navigation { display:flex; flex:none; margin-left:auto; align-items:center; justify-content:flex-end; gap:var(--cx-space-1); }
 .nubi-mail-page-number { display:flex; align-items:center; gap:var(--cx-space-1); font-variant-numeric:tabular-nums; }
-.nubi-mail-page-number .cx-kit-input { width:42px; height:28px; min-height:28px; padding:4px; border:0; border-radius:var(--deck-control-radius); background:var(--deck-tint); color:var(--deck-sub); font:var(--deck-font-caption); font-weight:600; text-align:center; }
+.nubi-mail-page-number .cx-kit-input { width:42px; height:28px; min-height:28px; padding:var(--cx-space-1); border:0; border-radius:var(--deck-control-radius); background:var(--deck-tint); color:var(--deck-sub); font:var(--deck-font-caption); font-weight:var(--nubi-weight-emphasis); text-align:center; }
 .nubi-mail-page-number .cx-kit-input:focus-visible { outline:2px solid var(--deck-blue-deep); outline-offset:1px; }
-.nubi-mail-pagination .cx-action-button { width:28px; min-width:28px; min-height:28px; height:28px; padding:4px; border:0; box-shadow:none; background:transparent; color:var(--deck-sub); }
+.nubi-mail-pagination .cx-action-button { width:28px; min-width:28px; min-height:28px; height:28px; padding:var(--cx-space-1); border:0; box-shadow:none; background:transparent; color:var(--deck-sub); }
 .nubi-mail-pagination .cx-action-button:hover:not(:disabled) { background:var(--deck-blue-soft); color:var(--deck-blue-deep); box-shadow:none; }
 .nubi-mail-pagination svg { width:16px; height:16px; }
 .nubi-mail-search-coverage,.nubi-mail-original { font:var(--deck-font-caption); color:var(--nubi-note-ink); }
 .nubi-mail-search-coverage summary,.nubi-mail-original summary { display:flex; align-items:center; gap:var(--cx-space-1); padding:var(--cx-space-2); border-radius:var(--deck-control-radius); cursor:pointer; }
-.nubi-mail-search-coverage p { margin:var(--cx-space-1) var(--cx-space-2); line-height:1.6; }
-.nubi-mail-history-detail { min-height:0; overflow:auto; padding:4px 8px 8px; }
+.nubi-mail-search-coverage p { margin:var(--cx-space-1) var(--cx-space-2); line-height:var(--deck-line-body); }
+.nubi-mail-history-detail { min-height:0; overflow:auto; padding:var(--cx-space-1) var(--cx-space-2) var(--cx-space-2); }
 .nubi-mail-reader-heading { display:flex; align-items:flex-start; gap:var(--cx-space-2); }
-.nubi-mail-reader-heading h2 { flex:1; margin:0; color:var(--deck-ink); font-size:18px; font-weight:700; overflow-wrap:anywhere; }
+.nubi-mail-reader-heading h2 { flex:1; margin:0; color:var(--deck-ink); font-size:var(--deck-type-heading); font-weight:var(--nubi-weight-strong); overflow-wrap:anywhere; }
 .nubi-mail-reader-heading>.cx-icon-button { flex:none; border:0; }
-.nubi-mail-reader-meta { display:flex; flex-wrap:wrap; gap:4px 12px; color:var(--deck-sub); font:var(--deck-font-caption); padding:8px 0; overflow-wrap:anywhere; }
+.nubi-mail-reader-meta { display:flex; flex-wrap:wrap; gap:var(--cx-space-1) var(--cx-space-3); color:var(--deck-sub); font:var(--deck-font-caption); padding:var(--cx-space-2) 0; overflow-wrap:anywhere; }
 .nubi-mail-reader-meta time { color:var(--deck-muted); }
-.nubi-mail-history-detail .nubi-mail-reader-text { font-size:14px; line-height:1.75; margin:12px 0 18px; }
-.nubi-mail-match { padding:10px 12px; border-radius:var(--nubi-content-radius,12px); background:var(--deck-tint); margin:var(--cx-space-3) 0; }
+.nubi-mail-history-detail .nubi-mail-reader-text { font-size:var(--deck-type-caption); line-height:var(--nubi-reading-leading); margin:var(--cx-space-3) 0 calc(var(--cx-space-1) * 4.5); }
+.nubi-mail-match { padding:calc(var(--cx-space-1) * 2.5) var(--cx-space-3); border-radius:var(--nubi-content-radius,var(--cx-space-3)); background:var(--deck-tint); margin:var(--cx-space-3) 0; }
 .nubi-mail-match>span { display:flex; align-items:center; gap:var(--cx-space-1); color:var(--deck-muted); font:var(--deck-font-caption); }
-.nubi-mail-match p { font:var(--deck-font-caption); color:var(--deck-sub); margin:6px 0 0; line-height:1.6; white-space:pre-wrap; overflow-wrap:anywhere; }
-.nubi-mail-attachments h3 { display:flex; align-items:center; gap:var(--cx-space-1); font:var(--deck-font-label); font-weight:650; color:var(--deck-sub); }
-.nubi-mail-attachment-row { display:flex; align-items:center; gap:var(--cx-space-1); border-radius:var(--deck-control-radius); background:var(--deck-tint); margin:6px 0; padding:2px 5px 2px 2px; }
-.desktop-shell .nubi-mail-attachment-row .nubi-mail-attachment { display:flex; align-items:center; gap:var(--cx-space-3); flex:1; min-width:0; padding:8px; margin:0; background:transparent; color:var(--deck-sub); }
-.nubi-mail-attachment-row .nubi-mail-attachment strong { font-size:13px; font-weight:650; }
+.nubi-mail-match p { font:var(--deck-font-caption); color:var(--deck-sub); margin:calc(var(--cx-space-1) * 1.5) 0 0; line-height:var(--deck-line-body); white-space:pre-wrap; overflow-wrap:anywhere; }
+.nubi-mail-attachments h3 { display:flex; align-items:center; gap:var(--cx-space-1); font:var(--deck-font-label); font-weight:var(--nubi-weight-emphasis); color:var(--deck-sub); }
+.nubi-mail-attachment-row { display:flex; align-items:center; gap:var(--cx-space-1); border-radius:var(--deck-control-radius); background:var(--deck-tint); margin:calc(var(--cx-space-1) * 1.5) 0; padding:calc(var(--cx-space-1) * 0.5) calc(var(--cx-space-1) * 1.25) calc(var(--cx-space-1) * 0.5) calc(var(--cx-space-1) * 0.5); }
+.desktop-shell .nubi-mail-attachment-row .nubi-mail-attachment { display:flex; align-items:center; gap:var(--cx-space-3); flex:1; min-width:0; padding:var(--cx-space-2); margin:0; background:transparent; color:var(--deck-sub); }
+.nubi-mail-attachment-row .nubi-mail-attachment strong { font-size:var(--deck-type-caption); font-weight:var(--nubi-weight-emphasis); }
 .nubi-mail-attachment-row .cx-icon-button { flex:none; background:transparent; border:0; }
 .nubi-mail-attachment-row .cx-icon-button>svg,.nubi-mail-reader-heading>.cx-icon-button>svg { width:17px; height:17px; }
 .nubi-mail-original { margin-top:var(--cx-space-3); }
@@ -1514,24 +1605,24 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-mail-knowledge-hit>span { display:flex; align-items:center; gap:var(--cx-space-1); }
 @media(prefers-reduced-motion:reduce){.desktop-mail-progress .status-spinner { animation:none; }}
 
-.nubi-message-timestamp { color:var(--nubi-note-ink); font:var(--deck-font-caption); font-size:12px; white-space:nowrap; font-variant-numeric:tabular-nums; margin-right:var(--cx-space-2); }
+.nubi-message-timestamp { color:var(--nubi-note-ink); font:var(--deck-font-caption); font-size:var(--deck-type-caption); white-space:nowrap; font-variant-numeric:tabular-nums; margin-right:var(--cx-space-2); }
 .nubi-workbench .nubi-task .message-actions:has(.nubi-message-timestamp,.nubi-response-time) { opacity:1; }
 
 /* Mail evidence belongs to the draft, the admitted queue row and the message. */
-.nubi-mail-ask { width:fit-content; margin:var(--cx-space-2) 0; padding:7px 12px; gap:8px; border:0; border-radius:999px; background:var(--deck-blue-soft); color:var(--deck-blue-deep); font-size:13px; font-weight:700; box-shadow:none; }
+.nubi-mail-ask { width:fit-content; margin:var(--cx-space-2) 0; padding:calc(var(--cx-space-1) * 1.75) var(--cx-space-3); gap:var(--cx-space-2); border:0; border-radius:999px; background:var(--deck-blue-soft); color:var(--deck-blue-deep); font-size:var(--deck-type-caption); font-weight:var(--nubi-weight-strong); box-shadow:none; }
 .nubi-mail-ask:hover { background:var(--deck-blue-soft); box-shadow:none; }
-.nubi-mail-evidence-chips { display:flex; flex-wrap:wrap; gap:6px; min-width:0; margin:8px 0; }
-.nubi-compose-card>.nubi-mail-evidence-chips { margin:0 0 6px; }
-.nubi-mail-evidence-chip { display:inline-flex; align-items:center; max-width:100%; min-width:0; background:var(--deck-blue-soft); color:var(--deck-blue-deep); border-radius:10px; }
-.nubi-mail-evidence-chip>.cx-button { min-width:0; border:0; background:transparent; padding:5px 7px; gap:6px; box-shadow:none; color:inherit; font-size:12px; }
+.nubi-mail-evidence-chips { display:flex; flex-wrap:wrap; gap:calc(var(--cx-space-1) * 1.5); min-width:0; margin:var(--cx-space-2) 0; }
+.nubi-compose-card>.nubi-mail-evidence-chips { margin:0 0 calc(var(--cx-space-1) * 1.5); }
+.nubi-mail-evidence-chip { display:inline-flex; align-items:center; max-width:100%; min-width:0; background:var(--deck-blue-soft); color:var(--deck-blue-deep); border-radius:calc(var(--cx-space-1) * 2.5); }
+.nubi-mail-evidence-chip>.cx-button { min-width:0; border:0; background:transparent; padding:calc(var(--cx-space-1) * 1.25) calc(var(--cx-space-1) * 1.75); gap:calc(var(--cx-space-1) * 1.5); box-shadow:none; color:inherit; font-size:var(--deck-type-caption); }
 .nubi-mail-evidence-chip>.cx-button:first-child { flex:1; }
 .nubi-mail-evidence-chip>.cx-button:first-child>span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.nubi-mail-evidence-chip>.cx-button:last-child:not(:first-child) { flex:none; padding:5px; }
-.nubi-mail-evidence-chip>.cx-button:hover { background:rgba(49,130,246,.08); box-shadow:none; }
+.nubi-mail-evidence-chip>.cx-button:last-child:not(:first-child) { flex:none; padding:calc(var(--cx-space-1) * 1.25); }
+.nubi-mail-evidence-chip>.cx-button:hover { background:var(--nubi-surface-selected); box-shadow:none; }
 .nubi-mail-evidence-chip svg { flex:none; }
 .nubi-queued-content { flex:1; min-width:0; }
 .nubi-queued-content>.agent-input-text { display:block; }
-.desktop-shell .nubi-workbench .agent-input-queue { --nubi-queue-action-size:28px; gap:2px; padding-block:2px; }
+.desktop-shell .nubi-workbench .agent-input-queue { --nubi-queue-action-size:28px; gap:calc(var(--cx-space-1) * 0.5); padding-block:calc(var(--cx-space-1) * 0.5); }
 .desktop-shell .nubi-workbench .agent-input-queue>li { padding-block:0; box-shadow:none; }
 .desktop-shell .nubi-workbench .agent-input-queue .composer-icon.cx-kit-button {
   display:inline-flex; align-items:center; justify-content:center;
@@ -1547,27 +1638,27 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .desktop-shell .nubi-workbench .agent-input-queue .composer-icon.cx-kit-button:not(:focus-visible) { outline:none; }
 @media(pointer:coarse) { .desktop-shell .nubi-workbench .agent-input-queue { --nubi-queue-action-size:44px; } }
 @media(forced-colors:active) { .desktop-shell .nubi-workbench .agent-input-queue .composer-icon.cx-kit-button { border:1px solid ButtonText; } }
-.desktop-shell .nubi-workbench .agent-input-queue .nubi-mail-evidence-chip>.cx-kit-button { height:auto; min-height:24px; padding-block:2px; }
-.agent-input-queue .nubi-mail-evidence-chips { margin:3px 0 0; gap:4px; }
-.agent-input-queue .nubi-mail-evidence-chip>.cx-button { padding-block:3px; }
+.desktop-shell .nubi-workbench .agent-input-queue .nubi-mail-evidence-chip>.cx-kit-button { height:auto; min-height:24px; padding-block:calc(var(--cx-space-1) * 0.5); }
+.agent-input-queue .nubi-mail-evidence-chips { margin:calc(var(--cx-space-1) * 0.75) 0 0; gap:var(--cx-space-1); }
+.agent-input-queue .nubi-mail-evidence-chip>.cx-button { padding-block:calc(var(--cx-space-1) * 0.75); }
 /* Applied receipts stay in the conversation; file clicks open the verified diff. */
-.nubi-applied-files { width:100%; max-width:640px; min-width:0; margin:16px 0; overflow:hidden; border-radius:var(--deck-radius,16px); background:var(--deck-card,#FFF); box-shadow:0 0 0 1px var(--deck-line,#E5E8EB); }
-.nubi-applied-trigger { display:flex; align-items:center; gap:12px; width:100%; min-width:0; min-height:44px; padding:12px 16px; border:0; background:var(--deck-hover,#F9FAFB); color:var(--deck-ink,#191F28); font:inherit; cursor:pointer; text-align:left; }
-.nubi-applied-trigger>strong { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-size:var(--deck-type-body,15px); font-weight:600; }
-.nubi-applied-trigger>svg { flex:none; margin-left:auto; color:var(--deck-muted,#8B95A1); }
-.nubi-applied-counts { display:inline-flex; flex:none; gap:6px; font-size:var(--deck-type-caption,13px); font-variant-numeric:tabular-nums; font-weight:600; white-space:nowrap; }
-.nubi-applied-counts>span:first-child { color:var(--deck-green,#148A5C); }
-.nubi-applied-counts>span:last-child { color:var(--deck-red,#F04452); }
+.nubi-applied-files { width:100%; max-width:640px; min-width:0; margin:var(--cx-space-4) 0; overflow:hidden; border-radius:var(--deck-radius,var(--cx-space-4)); background:var(--deck-card); box-shadow:0 0 0 1px var(--deck-line); }
+.nubi-applied-trigger { display:flex; align-items:center; gap:var(--cx-space-3); width:100%; min-width:0; min-height:44px; padding:var(--cx-space-3) var(--cx-space-4); border:0; background:var(--nubi-surface-inset); color:var(--deck-ink); font:inherit; cursor:pointer; text-align:left; }
+.nubi-applied-trigger>strong { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-size:var(--deck-type-body); font-weight:var(--nubi-weight-emphasis); }
+.nubi-applied-trigger>svg { flex:none; margin-left:auto; color:var(--deck-muted); }
+.nubi-applied-counts { display:inline-flex; flex:none; gap:calc(var(--cx-space-1) * 1.5); font-size:var(--deck-type-caption); font-variant-numeric:tabular-nums; font-weight:var(--nubi-weight-emphasis); white-space:nowrap; }
+.nubi-applied-counts>span:first-child { color:var(--nubi-text-success); }
+.nubi-applied-counts>span:last-child { color:var(--deck-red); }
 .nubi-applied-list { min-width:0; }
-.nubi-applied-list>p { display:flex; align-items:center; gap:8px; margin:0; padding:12px 16px; font-size:var(--deck-type-caption,13px); color:var(--deck-sub,#4E5968); }
-.nubi-applied-files .nubi-applied-row,.nubi-applied-files .nubi-applied-more { display:flex; width:100%; min-width:0; min-height:44px; align-items:center; gap:10px; padding:10px 16px; border:0; border-radius:0; background:transparent; color:var(--deck-ink,#191F28); text-align:left; box-shadow:none; font-size:var(--deck-type-body,15px); }
-.nubi-applied-files .nubi-applied-row+.nubi-applied-row { border-top:1px solid var(--deck-line,#E5E8EB); }
-.nubi-applied-files .nubi-applied-row:hover,.nubi-applied-files .nubi-applied-more:hover { background:var(--deck-blue-soft,#E8F1FE); }
+.nubi-applied-list>p { display:flex; align-items:center; gap:var(--cx-space-2); margin:0; padding:var(--cx-space-3) var(--cx-space-4); font-size:var(--deck-type-caption); color:var(--deck-sub); }
+.nubi-applied-files .nubi-applied-row,.nubi-applied-files .nubi-applied-more { display:flex; width:100%; min-width:0; min-height:44px; align-items:center; gap:calc(var(--cx-space-1) * 2.5); padding:calc(var(--cx-space-1) * 2.5) var(--cx-space-4); border:0; border-radius:0; background:transparent; color:var(--deck-ink); text-align:left; box-shadow:none; font-size:var(--deck-type-body); }
+.nubi-applied-files .nubi-applied-row+.nubi-applied-row { border-top:1px solid var(--deck-line); }
+.nubi-applied-files .nubi-applied-row:hover,.nubi-applied-files .nubi-applied-more:hover { background:var(--deck-blue-soft); }
 .nubi-applied-row>.nubi-drift-label { flex:1; min-width:0; }
 .nubi-applied-row>svg,.nubi-applied-row>small { flex:none; }
-.nubi-applied-row>small { color:var(--deck-muted,#8B95A1); font-size:var(--deck-type-caption,13px); white-space:nowrap; }
-.nubi-applied-files .nubi-applied-more { justify-content:space-between; color:var(--deck-sub,#4E5968); font-size:var(--deck-type-caption,13px); }
-.nubi-applied-trigger:focus-visible { outline:2px solid var(--deck-blue,#3182F6); outline-offset:-3px; }
+.nubi-applied-row>small { color:var(--deck-muted); font-size:var(--deck-type-caption); white-space:nowrap; }
+.nubi-applied-files .nubi-applied-more { justify-content:space-between; color:var(--deck-sub); font-size:var(--deck-type-caption); }
+.nubi-applied-trigger:focus-visible { outline:2px solid var(--deck-blue); outline-offset:-3px; }
 @media(max-width:1300px) {
  .desktop-shell:has(.desktop-mail-progress>.nubi-wiki-initialization) { --nubi-mail-footer-height:64px; }
  .desktop-mail-progress:has(>.nubi-wiki-initialization) { flex-wrap:wrap; align-content:center; gap:var(--cx-space-1) var(--cx-space-3); }
@@ -1576,7 +1667,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 /* Local mail management uses the same compact controls as search and files. */
 .nubi-mail-search-input-row { display:flex; align-items:center; flex:none; gap:var(--cx-space-1); min-width:0; }
 .nubi-mail-search-input-row .cx-search-field { flex:1; min-width:0; }
-.nubi-mail-saved-trigger.cx-kit-button,.nubi-mail-local-action.cx-kit-button { display:inline-flex; align-items:center; justify-content:center; flex:none; min-width:30px; min-height:30px; padding:6px; border:0; box-shadow:none; background:transparent; color:var(--deck-sub); border-radius:var(--deck-control-radius); }
+.nubi-mail-saved-trigger.cx-kit-button,.nubi-mail-local-action.cx-kit-button { display:inline-flex; align-items:center; justify-content:center; flex:none; min-width:30px; min-height:30px; padding:calc(var(--cx-space-1) * 1.5); border:0; box-shadow:none; background:transparent; color:var(--deck-sub); border-radius:var(--deck-control-radius); }
 .nubi-mail-saved-trigger:hover,.nubi-mail-local-action:hover,.nubi-mail-local-action[aria-pressed=true] { background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
 .nubi-mail-local-action[aria-pressed=true]>svg,.nubi-mail-pin-filter[aria-pressed=true]>svg:first-child { fill:currentColor; }
 .nubi-mail-filters[open]>.nubi-mail-filter-fields { max-height:none; overflow:visible; }
@@ -1586,69 +1677,69 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
  .nubi-mail-filters>.nubi-mail-filter-fields,.nubi-mail-extra-filters>div { grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:var(--cx-space-4); }
  .nubi-mail-extra-filters { grid-column:1/-1; }
 }
-.nubi-mail-extra-filters>summary { display:flex; align-items:center; gap:var(--cx-space-2); min-height:36px; padding:var(--cx-space-1) var(--cx-space-2); border-radius:var(--nubi-work-control-radius,12px); cursor:pointer; color:var(--deck-ink); font-weight:500; list-style:none; transition:background .18s ease; }
+.nubi-mail-extra-filters>summary { display:flex; align-items:center; gap:var(--cx-space-2); min-height:36px; padding:var(--cx-space-1) var(--cx-space-2); border-radius:var(--nubi-work-control-radius,var(--cx-space-3)); cursor:pointer; color:var(--deck-ink); font-weight:var(--nubi-weight-label); list-style:none; transition:background .18s ease; }
 .nubi-mail-extra-filters>summary>svg:last-child { margin-left:auto; color:var(--deck-sub); transition:transform .18s ease; }
 .nubi-mail-extra-filters[open]>summary>svg:last-child { transform:rotate(180deg); }
 .nubi-mail-extra-filters>summary:hover { background:var(--deck-blue-soft); }
 .nubi-mail-extra-filters>div { display:grid; gap:var(--cx-space-2); padding-top:var(--cx-space-1); }
-.nubi-mail-pin-filter.cx-kit-button { justify-self:start; display:flex; align-items:center; gap:var(--cx-space-2); min-height:36px; padding:var(--cx-space-1) var(--cx-space-3); border:0; border-radius:999px; box-shadow:none; background:var(--deck-card); color:var(--deck-ink); font:var(--deck-font-caption); font-weight:500; transition:background .18s ease,color .18s ease; }
+.nubi-mail-pin-filter.cx-kit-button { justify-self:start; display:flex; align-items:center; gap:var(--cx-space-2); min-height:36px; padding:var(--cx-space-1) var(--cx-space-3); border:0; border-radius:999px; box-shadow:none; background:var(--deck-card); color:var(--deck-ink); font:var(--deck-font-caption); font-weight:var(--nubi-weight-label); transition:background .18s ease,color .18s ease; }
 .nubi-mail-pin-filter.cx-kit-button>svg:first-child { color:var(--deck-blue-deep); }
-.nubi-mail-pin-filter[aria-pressed=true],.nubi-mail-pin-filter:hover { background:var(--deck-blue-soft); color:var(--deck-blue-deep); font-weight:600; }
-.nubi-mail-page-label { display:inline-flex; align-items:center; gap:var(--cx-space-2); color:var(--deck-ink); font-weight:500; white-space:nowrap; }
-.nubi-mail-result strong>svg { margin-right:5px; vertical-align:middle; color:var(--deck-blue-deep); }
+.nubi-mail-pin-filter[aria-pressed=true],.nubi-mail-pin-filter:hover { background:var(--deck-blue-soft); color:var(--deck-blue-deep); font-weight:var(--nubi-weight-emphasis); }
+.nubi-mail-page-label { display:inline-flex; align-items:center; gap:var(--cx-space-2); color:var(--deck-ink); font-weight:var(--nubi-weight-label); white-space:nowrap; }
+.nubi-mail-result strong>svg { margin-right:calc(var(--cx-space-1) * 1.25); vertical-align:middle; color:var(--deck-blue-deep); }
 .nubi-mail-local-tags { display:flex; flex-wrap:wrap; gap:var(--cx-space-1); margin-bottom:var(--cx-space-2); }
-.nubi-mail-local-tags>span { display:inline-flex; align-items:center; gap:4px; border-radius:var(--deck-pill-radius); padding:3px 8px; color:var(--deck-blue-deep); background:var(--deck-blue-soft); font:var(--deck-font-caption); overflow-wrap:anywhere; }
+.nubi-mail-local-tags>span { display:inline-flex; align-items:center; gap:var(--cx-space-1); border-radius:var(--deck-pill-radius); padding:calc(var(--cx-space-1) * 0.75) var(--cx-space-2); color:var(--deck-blue-deep); background:var(--deck-blue-soft); font:var(--deck-font-caption); overflow-wrap:anywhere; }
 .nubi-mail-saved-dialog,.nubi-mail-tags-dialog { width:min(420px,calc(100vw - 32px)); }
 .nubi-mail-save-search,.nubi-mail-tag-input { display:flex; gap:var(--cx-space-2); align-items:center; margin-bottom:var(--cx-space-2); }
 .nubi-mail-save-search .cx-kit-input,.nubi-mail-tag-input .cx-kit-input { flex:1; min-width:0; }
-.nubi-mail-save-search .cx-action-button,.nubi-mail-dialog-actions .cx-action-button { border:0; box-shadow:none; background:var(--deck-blue-soft); color:var(--deck-blue-deep); font-weight:650; }
+.nubi-mail-save-search .cx-action-button,.nubi-mail-dialog-actions .cx-action-button { border:0; box-shadow:none; background:var(--deck-blue-soft); color:var(--deck-blue-deep); font-weight:var(--nubi-weight-emphasis); }
 .nubi-mail-saved-list { max-height:260px; overflow:auto; }
-.nubi-mail-saved-list>div { display:flex; align-items:center; gap:var(--cx-space-1); padding:3px 0; }
-.nubi-mail-saved-list>div>.cx-kit-button { justify-content:flex-start; flex:1; min-width:0; display:flex; align-items:center; gap:var(--cx-space-2); padding:8px; border:0; box-shadow:none; background:transparent; color:var(--deck-sub); text-align:left; border-radius:var(--deck-control-radius); }
+.nubi-mail-saved-list>div { display:flex; align-items:center; gap:var(--cx-space-1); padding:calc(var(--cx-space-1) * 0.75) 0; }
+.nubi-mail-saved-list>div>.cx-kit-button { justify-content:flex-start; flex:1; min-width:0; display:flex; align-items:center; gap:var(--cx-space-2); padding:var(--cx-space-2); border:0; box-shadow:none; background:transparent; color:var(--deck-sub); text-align:left; border-radius:var(--deck-control-radius); }
 .nubi-mail-saved-list>div>.cx-kit-button:hover { background:var(--deck-blue-soft); }
 .nubi-mail-saved-list .cx-kit-button>svg { flex:none; }
 .nubi-mail-saved-list .cx-kit-button>span { min-width:0; }
 .nubi-mail-saved-list strong,.nubi-mail-saved-list small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.nubi-mail-saved-list strong { color:var(--deck-ink); font-weight:650; }
-.nubi-mail-saved-list small { font:var(--deck-font-caption); color:var(--deck-muted); margin-top:2px; }
+.nubi-mail-saved-list strong { color:var(--deck-ink); font-weight:var(--nubi-weight-emphasis); }
+.nubi-mail-saved-list small { font:var(--deck-font-caption); color:var(--deck-muted); margin-top:calc(var(--cx-space-1) * 0.5); }
 .nubi-mail-saved-list .cx-icon-button { flex:none; min-width:28px; width:28px; min-height:28px; height:28px; border:0; background:transparent; box-shadow:none; }
 .nubi-mail-saved-list .cx-icon-button>svg { width:14px; height:14px; }
-.nubi-mail-saved-dialog .nubi-muted,.nubi-mail-tags-dialog .nubi-muted { font:var(--deck-font-caption); margin:8px 0; }
+.nubi-mail-saved-dialog .nubi-muted,.nubi-mail-tags-dialog .nubi-muted { font:var(--deck-font-caption); margin:var(--cx-space-2) 0; }
 .nubi-mail-dialog-actions { display:flex; justify-content:flex-end; margin-top:var(--cx-space-3); }
-.desktop-terminal-recovery { display:flex; align-items:center; gap:var(--cx-space-2); color:var(--deck-sub); font:var(--deck-font-caption); padding:4px 0; }
+.desktop-terminal-recovery { display:flex; align-items:center; gap:var(--cx-space-2); color:var(--deck-sub); font:var(--deck-font-caption); padding:var(--cx-space-1) 0; }
 
 /* Type icons and filenames keep one alignment in both preview and download-only rows. */
 .desktop-shell .nubi-mail-attachment > .desktop-file-icon { flex:0 0 24px; min-width:24px; }
 .desktop-shell .nubi-mail-attachment > .nubi-mail-attachment-label { flex:1; min-width:0; overflow:hidden; }
-.desktop-shell .nubi-mail-attachment-label strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.desktop-shell .nubi-mail-attachment-label :is(strong,small) { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
 /* Destructive confirmation: concise scope, preserved-file note, clear action. */
 .nubi-delete-conversation { width:min(440px,calc(100vw - 32px)); }
 .nubi-delete-conversation .deck-confirmation-content p { min-width:0;margin:0; }
-.nubi-delete-title { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--deck-ink,#191F28); }
-.nubi-delete-scope { display:block;margin-top:8px; }
-.nubi-delete-conversation .nubi-deletion-note { margin-top:16px;color:#4E5968; }
+.nubi-delete-title { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--deck-ink); }
+.nubi-delete-scope { display:block;margin-top:var(--cx-space-2); }
+.nubi-delete-conversation .nubi-deletion-note { margin-top:var(--cx-space-4);color:var(--nubi-text-secondary); }
 
 .nubi-wiki-progress-dialog { width:min(480px,calc(100vw - 32px)); }
-.nubi-wiki-progress-dialog .nubi-wiki-initialization-line { flex-wrap:nowrap;gap:12px; }
+.nubi-wiki-progress-dialog .nubi-wiki-initialization-line { flex-wrap:nowrap;gap:var(--cx-space-3); }
 .nubi-wiki-progress-dialog .nubi-wiki-percent { margin-left:auto; }
-.nubi-wiki-eta { display:block;margin-top:8px;color:#4E5968; }
-.nubi-progress.is-indeterminate span { width:30%;animation:nubi-wiki-scan 1.8s ease-in-out infinite alternate; }
-@keyframes nubi-wiki-scan { to { transform:translateX(230%); } }
-@media(prefers-reduced-motion:reduce){.nubi-progress.is-indeterminate span{animation:none;}}
+.nubi-wiki-eta { display:block;margin-top:var(--cx-space-2);color:var(--nubi-text-secondary); }
+.nubi-progress.is-indeterminate span { width:30%;animation:nubi-wiki-scan 1.8s linear infinite; }
+@keyframes nubi-wiki-scan { from { transform:translateX(-100%); } to { transform:translateX(334%); } }
+@media(prefers-reduced-motion:reduce){.nubi-progress.is-indeterminate span{animation:none;transform:none;}}
 
 /* Git empty results share the existing Nubi mascot and readable CX tokens. */
 .nubi-git-empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--cx-space-4); min-height:196px; padding:var(--cx-space-5) var(--cx-space-3); box-sizing:border-box; }
-.nubi-git-empty-state > strong { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:var(--deck-font-label); font-weight:600; color:var(--deck-ink); text-align:center; }
+.nubi-git-empty-state > strong { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:var(--deck-font-label); font-weight:var(--nubi-weight-emphasis); color:var(--deck-ink); text-align:center; }
 
 /* Diff counts retain signs as well as semantic color. */
-.nubi-diff-counts { display:inline-flex; align-items:center; gap:8px; white-space:nowrap; font-variant-numeric:tabular-nums; }
-.nubi-diff-added { color:var(--nubi-text-success); font-weight:600; }
-.nubi-diff-removed { color:var(--nubi-text-danger); font-weight:600; }
+.nubi-diff-counts { display:inline-flex; align-items:center; gap:var(--cx-space-2); white-space:nowrap; font-variant-numeric:tabular-nums; }
+.nubi-diff-added { color:var(--nubi-text-success); font-weight:var(--nubi-weight-emphasis); }
+.nubi-diff-removed { color:var(--nubi-text-danger); font-weight:var(--nubi-weight-emphasis); }
 
-.nubi-proposal-quality { color:var(--nubi-note-ink); font-size:var(--nubi-font-size-meta,14px); }
+.nubi-proposal-quality { color:var(--nubi-note-ink); font-size:var(--deck-type-caption); }
 .nubi-proposal-quality[data-state="passed"] { display:inline-flex; align-items:center; color:var(--nubi-text-success); }
-.nubi-proposal-quality[data-state="blocked"] { color:var(--nubi-text-danger); font-weight:600; }
+.nubi-proposal-quality[data-state="blocked"] { color:var(--nubi-text-danger); font-weight:var(--nubi-weight-emphasis); }
 
 :root { --nubi-account-status-font:12px; --nubi-account-status-profile-font:17px; }
 
@@ -1659,20 +1750,20 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 
 /* The model-use note of the Wiki update card: one collapsed line with an icon, the full sentence inside. */
 .nubi-wiki-update-detail { color:var(--deck-sub); font:var(--deck-font-caption); }
-.nubi-wiki-update-detail>summary { display:flex; align-items:center; gap:var(--cx-space-1); width:fit-content; padding:var(--cx-space-1) 0; cursor:pointer; list-style:none; }
+.nubi-wiki-update-detail>summary { display:flex; align-items:center; gap:var(--nubi-work-control-gap); width:fit-content; padding:var(--cx-space-1) 0; font-weight:var(--nubi-weight-label); cursor:pointer; list-style:none; }
 .nubi-wiki-update-detail>summary::-webkit-details-marker { display:none; }
-.nubi-wiki-update-detail>summary>svg { flex:none; color:var(--deck-blue-deep); }
-.nubi-wiki-update-detail>p { margin:var(--cx-space-2) 0 0; line-height:1.6; }
+.nubi-wiki-update-detail>summary>svg { flex:none; width:var(--nubi-icon-small); height:var(--nubi-icon-small); color:var(--deck-blue-deep); }
+.nubi-wiki-update-detail>p { margin:var(--cx-space-2) 0 0; line-height:var(--deck-line-body); }
 
 /* Long lists grow one page at a time (2026-10-14). */
-.nubi-show-more.cx-kit-button { justify-self:start; display:inline-flex; align-items:center; gap:var(--cx-space-2); min-height:36px; margin-top:var(--cx-space-2); padding:var(--cx-space-1) var(--cx-space-3); border:0; border-radius:999px; box-shadow:none; background:var(--deck-tint); color:var(--deck-blue-deep); font:var(--deck-font-caption); font-weight:600; }
+.nubi-show-more.cx-kit-button { justify-self:start; display:inline-flex; align-items:center; gap:var(--cx-space-2); min-height:36px; margin-top:var(--cx-space-2); padding:var(--cx-space-1) var(--cx-space-3); border:0; border-radius:999px; box-shadow:none; background:var(--deck-tint); color:var(--deck-blue-deep); font:var(--deck-font-caption); font-weight:var(--nubi-weight-emphasis); }
 .nubi-show-more.cx-kit-button:hover { background:var(--deck-blue-soft); }
-.nubi-show-more.cx-kit-button small { color:var(--deck-sub); font-weight:500; font-variant-numeric:tabular-nums; }
+.nubi-show-more.cx-kit-button small { color:var(--deck-sub); font-weight:var(--nubi-weight-label); font-variant-numeric:tabular-nums; }
 
 /* A running record breathes: the summary icon spins and the title pulses while the model works, whether a tool is
    running or it is thinking (user report 2026-10-14: the wait must read as activity). */
 .nubi-agent-activity[aria-busy=true] .agent-trace > summary > svg:first-child { display:none; }
-.nubi-agent-activity[aria-busy=true] .agent-trace > summary::before { content:''; flex:none; width:14px; height:14px; margin-right:var(--cx-space-2); border:2px solid var(--deck-blue-soft); border-top-color:var(--deck-blue-deep); border-radius:50%; animation:nubi-live-spin .9s linear infinite; }
+.nubi-agent-activity[aria-busy=true] .agent-trace > summary::before { content:""; flex:none; width:14px; height:14px; margin-right:var(--cx-space-2); border:2px solid var(--deck-blue-soft); border-top-color:var(--deck-blue-deep); border-radius:50%; animation:nubi-live-spin .9s linear infinite; }
 .nubi-agent-activity[aria-busy=true] .agent-trace > summary > .agent-trace-title { animation:nubi-live-breathe 1.8s ease-in-out infinite; }
 .nubi-agent-activity .agent-next-step .status-spinner,.nubi-launch-progress .status-spinner { color:var(--deck-blue-deep); }
 @keyframes nubi-live-breathe { 0%,100% { opacity:1; } 50% { opacity:.55; } }
@@ -1680,7 +1771,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 @media (prefers-reduced-motion: reduce) { .nubi-agent-activity[aria-busy=true] .agent-trace > summary > svg:first-child,.nubi-agent-activity[aria-busy=true] .agent-trace > summary > .agent-trace-title { animation:none; } }
 
 /* Any host request slower than 400 ms shows a moving line under the toolbar so a wait reads as work, not a freeze (2026-10-14). */
-html[data-host-busy] .desktop-shell::after { content:''; position:fixed; left:0; right:0; top:var(--desktop-toolbar-height,48px); height:2px; z-index:40; pointer-events:none; background:linear-gradient(90deg,transparent 0%,var(--deck-blue) 50%,transparent 100%); background-size:40% 100%; animation:nubi-host-busy 1.1s linear infinite; }
+html[data-host-busy] .desktop-shell::after { content:""; position:fixed; left:0; right:0; top:var(--desktop-toolbar-height,48px); height:2px; z-index:40; pointer-events:none; background:linear-gradient(90deg,transparent 0%,var(--deck-blue) 50%,transparent 100%); background-size:40% 100%; animation:nubi-host-busy 1.1s linear infinite; }
 @keyframes nubi-host-busy { from { background-position:-40% 0; } to { background-position:140% 0; } }
 @media (prefers-reduced-motion: reduce) { html[data-host-busy] .desktop-shell::after { animation:none; background:var(--deck-blue-soft); } }
 
@@ -1690,19 +1781,19 @@ html[data-project-switching] .nubi-workbench .nubi-main, html[data-project-switc
 @media (prefers-reduced-motion: reduce) { .nubi-workbench .nubi-main, .nubi-workbench .nubi-sidebar { transition:none; } }
 
 /* A toast may carry one action, such as opening a local server in the app browser (2026-10-14). */
-.nubi-feedback-action { flex:none; margin-left:var(--cx-space-2); padding:var(--cx-space-1) var(--cx-space-3); border:0; border-radius:999px; background:var(--deck-blue); color:var(--deck-card); font:var(--deck-font-caption); font-weight:600; cursor:pointer; }
+.nubi-feedback-action { flex:none; margin-left:var(--cx-space-2); padding:var(--cx-space-1) var(--cx-space-3); border:0; border-radius:999px; background:var(--deck-blue); color:var(--deck-card); font:var(--deck-font-caption); font-weight:var(--nubi-weight-emphasis); cursor:pointer; }
 .nubi-feedback-action:hover { filter:brightness(1.08); }
 
-.nubi-server-notice { display:flex; align-items:center; gap:var(--cx-space-3); margin-top:var(--cx-space-2); padding:var(--cx-space-3); border-radius:var(--nubi-work-control-radius,12px); background:var(--deck-blue-soft); }
-.nubi-server-notice>div { flex:1; min-width:0; display:grid; gap:2px; }
-.nubi-server-notice strong { font:var(--deck-font-body); font-weight:600; }
+.nubi-server-notice { display:flex; align-items:center; gap:var(--cx-space-3); margin-top:var(--cx-space-2); padding:var(--cx-space-3); border-radius:var(--nubi-work-control-radius,var(--cx-space-3)); background:var(--deck-blue-soft); }
+.nubi-server-notice>div { flex:1; min-width:0; display:grid; gap:calc(var(--cx-space-1) * 0.5); }
+.nubi-server-notice strong { font:var(--deck-font-body); font-weight:var(--nubi-weight-emphasis); }
 .nubi-server-notice small { font:var(--deck-font-caption); color:var(--deck-sub); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .nubi-server-notice-icon { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; background:var(--deck-card); color:var(--deck-blue-deep); flex:none; }
 
-.nubi-process-fold>summary { display:flex; align-items:center; gap:var(--cx-space-2); min-height:36px; padding:var(--cx-space-1) var(--cx-space-2); border-radius:var(--nubi-work-control-radius,12px); list-style:none; cursor:pointer; color:var(--deck-ink); font:var(--deck-font-caption); font-weight:600; }
+.nubi-process-fold>summary { display:flex; align-items:center; gap:var(--cx-space-2); min-height:36px; padding:var(--cx-space-1) var(--cx-space-2); border-radius:var(--nubi-work-control-radius,var(--cx-space-3)); list-style:none; cursor:pointer; color:var(--deck-ink); font:var(--deck-font-caption); font-weight:var(--nubi-weight-emphasis); }
 .nubi-process-fold>summary::-webkit-details-marker { display:none; }
 .nubi-process-fold>summary:hover { background:var(--deck-tint); }
-.nubi-process-fold>summary>small { color:var(--deck-sub); font-weight:500; }
+.nubi-process-fold>summary>small { color:var(--deck-sub); font-weight:var(--nubi-weight-label); }
 .nubi-process-fold>summary>.status-spinner { color:var(--deck-blue-deep); }
 .nubi-process-fold>summary>svg:last-child { margin-left:auto; color:var(--deck-sub); transition:transform .18s ease; }
 .nubi-process-fold[open]>summary>svg:last-child { transform:rotate(180deg); }
@@ -1721,14 +1812,15 @@ html[data-project-switching] .nubi-workbench .nubi-main, html[data-project-switc
 .nubi-notice-item { display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; align-items:center; gap:var(--cx-space-2); padding:var(--cx-space-2) var(--cx-space-2); border-radius:var(--nubi-work-control-radius); }
 .nubi-notice-item:hover { background:var(--deck-section-surface); }
 .nubi-notice-icon { display:inline-flex; color:var(--deck-blue-deep); }
-.nubi-notice-item[data-error] .nubi-notice-icon { color:var(--deck-red,#C8102E); }
-.nubi-notice-item[data-success] .nubi-notice-icon { color:var(--deck-green-deep,#1B7A3F); }
+.nubi-notice-item[data-error] .nubi-notice-icon { color:var(--deck-red); }
+.nubi-notice-item[data-success] .nubi-notice-icon { color:var(--nubi-text-success); }
 .nubi-notice-text { min-width:0; font-size:var(--cx-type-body); color:var(--nubi-text-primary); overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
 .nubi-notice-time { flex:none; font-size:var(--cx-type-caption); color:var(--nubi-text-secondary); white-space:nowrap; }
 .nubi-notice-footer { display:flex; justify-content:flex-end; margin-top:var(--cx-space-2); }
 
 /* Encrypted mail wiki storage mark beside the connected heading (2026-10-14). */
-.nubi-mail-lock { display:inline-flex; align-items:center; margin-left:var(--cx-space-2); color:var(--deck-blue-deep); }
+.nubi-mail-connection-actions { display:inline-flex; align-items:center; flex-shrink:0; gap:var(--cx-space-2); }
+.nubi-mail-lock { display:inline-flex; align-items:center; color:var(--deck-blue-deep); }
 .nubi-mail-lock[data-state="unavailable"] { color:var(--nubi-text-secondary); opacity:.7; }
 
 /* Toast decisions: the choices of a question and its free-text answer (2026-10-14). */
@@ -1742,9 +1834,9 @@ html[data-project-switching] .nubi-workbench .nubi-main, html[data-project-switc
 
 /* Live reasoning while the model thinks (2026-10-14): muted, the latest lines only. */
 .nubi-live-reasoning { display:grid; gap:var(--cx-space-1); margin:var(--cx-space-2) 0; padding:var(--cx-space-2) var(--cx-space-3); border-left:2px solid var(--deck-blue-soft); color:var(--nubi-text-secondary); }
-.nubi-live-reasoning-head { display:inline-flex; align-items:center; gap:var(--cx-space-2); font-size:var(--cx-type-caption); font-weight:600; color:var(--deck-blue-deep); }
+.nubi-live-reasoning-head { display:inline-flex; align-items:center; gap:var(--cx-space-2); font-size:var(--cx-type-caption); font-weight:var(--nubi-weight-emphasis); color:var(--deck-blue-deep); }
 .nubi-live-reasoning-head .status-spinner { width:12px; height:12px; }
-.nubi-live-reasoning p { margin:0; font-size:var(--cx-type-caption); line-height:1.6; white-space:pre-wrap; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; }
+.nubi-live-reasoning p { margin:0; font-size:var(--cx-type-caption); line-height:var(--deck-line-body); white-space:pre-wrap; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; }
 
 /* Progress folds smoothly (user request 2026-10-14): the plan, its step details and the run record open
    while the run works and fold once the answer is delivered; a reader's own toggle opens and folds with a short ease.
@@ -1760,63 +1852,105 @@ html[data-project-switching] .nubi-workbench .nubi-main, html[data-project-switc
 @container workspace-composer (max-width:460px) {
  .nubi-workbench .nubi-compose-card .nubi-reasoning-label { display:none; }
  .nubi-workbench .nubi-compose-card .nubi-reasoning-trigger.cx-kit-button { width:32px; min-width:32px; padding:0; justify-content:center; }
- .nubi-workbench .nubi-compose-card :is(.composer-bottom,.composer-leading,.composer-tools) { gap:4px; }
+ .nubi-workbench .nubi-compose-card :is(.composer-bottom,.composer-leading,.composer-tools) { gap:var(--cx-space-1); }
  .nubi-workbench .nubi-compose-card .composer-bottom :is(.composer-leading,.composer-tools) > .cx-kit-button:not(.context-trigger) { width:32px; min-width:32px; padding:0; }
- .nubi-workbench .nubi-compose-card .composer-bottom .context-trigger.cx-kit-button { padding-inline:4px; }
+ .nubi-workbench .nubi-compose-card .composer-bottom .context-trigger.cx-kit-button { padding-inline:var(--cx-space-1); }
 }
 /* Very narrow: the right-hand group wraps onto its own line instead of overlapping. */
 @container workspace-composer (max-width:330px) {
- .nubi-workbench .nubi-compose-card .composer-bottom { flex-wrap:wrap; row-gap:6px; }
+ .nubi-workbench .nubi-compose-card .composer-bottom { flex-wrap:wrap; row-gap:calc(var(--cx-space-1) * 1.5); }
  .nubi-workbench .nubi-compose-card .composer-bottom .composer-tools { margin-left:auto; }
 }
 
 /* Capture part of the Workspace window and attach it (2026-10-14): a crosshair overlay, the dragged rectangle, and
    thumbnails in the composer and the sent bubble. */
-.nubi-capture-overlay { position:fixed; inset:0; z-index:2147482000; cursor:crosshair; background:rgba(15,23,42,.08); user-select:none; touch-action:none; }
+.nubi-capture-overlay { position:fixed; inset:0; z-index:2147482000; cursor:crosshair; background:var(--nubi-overlay-soft); user-select:none; touch-action:none; }
 .nubi-capture-overlay[data-dragging] { background:transparent; }
-.nubi-capture-rect { position:absolute; box-sizing:border-box; border:2px solid var(--deck-blue); border-radius:4px; background:transparent; box-shadow:0 0 0 9999px rgba(15,23,42,.18); pointer-events:none; }
-.nubi-capture-hint { position:absolute; left:50%; top:16px; transform:translateX(-50%); margin:0; padding:6px 12px; border-radius:999px; background:var(--deck-card); color:var(--deck-ink); font:var(--deck-font-caption); box-shadow:0 4px 16px rgba(15,23,42,.15); pointer-events:none; white-space:nowrap; }
-.nubi-capture-chips { display:flex; flex-wrap:wrap; gap:10px; min-width:0; margin:0 0 6px; }
+.nubi-capture-rect { position:absolute; box-sizing:border-box; border:2px solid var(--deck-blue); border-radius:var(--cx-space-1); background:transparent; box-shadow:var(--nubi-tour-backdrop-shadow); pointer-events:none; }
+.nubi-capture-hint { position:absolute; left:50%; top:16px; transform:translateX(-50%); margin:0; padding:calc(var(--cx-space-1) * 1.5) var(--cx-space-3); border-radius:999px; background:var(--deck-card); color:var(--deck-ink); font:var(--deck-font-caption); box-shadow:var(--deck-shadow); pointer-events:none; white-space:nowrap; }
+.nubi-capture-chips { display:flex; flex-wrap:wrap; gap:calc(var(--cx-space-1) * 2.5); min-width:0; margin:0 0 calc(var(--cx-space-1) * 1.5); }
 .nubi-capture-chip { position:relative; display:inline-flex; align-items:flex-start; max-width:100%; }
-.nubi-capture-thumb { display:block; padding:0; border:1px solid var(--deck-line); border-radius:8px; background:var(--deck-card); cursor:zoom-in; overflow:hidden; }
+.nubi-capture-thumb { display:block; padding:0; border:1px solid var(--deck-line); border-radius:var(--cx-space-2); background:var(--deck-card); cursor:zoom-in; overflow:hidden; }
 .nubi-capture-thumb img { display:block; width:auto; height:72px; max-width:200px; object-fit:cover; }
 .nubi-capture-chip[data-open] .nubi-capture-thumb { cursor:zoom-out; }
 .nubi-capture-chip[data-open] .nubi-capture-thumb img { height:auto; max-width:min(100%,720px); max-height:70vh; object-fit:contain; }
-.nubi-capture-missing { display:inline-flex; align-items:center; gap:6px; padding:8px 10px; color:var(--deck-sub); font:var(--deck-font-caption); }
-.nubi-capture-chip .nubi-capture-remove { position:absolute; top:-7px; right:-7px; width:22px; height:22px; min-width:0; padding:0; border-radius:999px; background:var(--deck-card); box-shadow:0 1px 4px rgba(15,23,42,.2); }
-.nubi-user-bubble .nubi-capture-chips { margin:8px 0 0; }
+.nubi-capture-missing { display:inline-flex; align-items:center; gap:calc(var(--cx-space-1) * 1.5); padding:var(--cx-space-2) calc(var(--cx-space-1) * 2.5); color:var(--deck-sub); font:var(--deck-font-caption); }
+.nubi-capture-chip .nubi-capture-remove { position:absolute; top:-7px; right:-7px; width:22px; height:22px; min-width:0; padding:0; border-radius:999px; background:var(--deck-card); box-shadow:var(--nubi-shadow-control); }
+.nubi-user-bubble .nubi-capture-chips { margin:var(--cx-space-2) 0 0; }
 
 /* Keep relationship hints subordinate to the linked document title. */
-.nubi-wiki-links .nubi-wiki-relation-label{display:block;color:var(--deck-sub);font:var(--deck-font-caption);font-weight:400;margin-top:var(--cx-space-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nubi-wiki-links .nubi-wiki-relation-label{display:block;color:var(--deck-sub);font:var(--deck-font-caption);font-weight:var(--nubi-weight-regular);margin-top:var(--cx-space-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
 /* Quiet loading atmosphere: fixed geometry and compositor-only movement.
    Decorative light is independent of measured progress and never implies completion. */
 :root {
   --nubi-progress-drift-duration:8s;
-  --nubi-progress-glow:color-mix(in srgb,var(--deck-blue) 7%,transparent);
-  --nubi-progress-glow-soft:color-mix(in srgb,var(--deck-blue-lite) 22%,transparent);
+  --nubi-progress-glow:color-mix(in srgb,var(--deck-blue) 4%,transparent);
 }
 .nubi-progress-atmosphere { position:relative; isolation:isolate; }
 .nubi-progress-atmosphere::before {
-  content:""; position:absolute; inset:0 2%; z-index:-1; pointer-events:none;
-  border-radius:var(--deck-control-radius); overflow:hidden;
-  background:radial-gradient(ellipse at 30% 50%,var(--nubi-progress-glow),transparent 68%),radial-gradient(ellipse at 80% 50%,var(--nubi-progress-glow-soft),transparent 64%);
+  content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
+  border-radius:inherit;
+  background:radial-gradient(ellipse at 50% 50%,var(--nubi-progress-glow),transparent 70%);
   animation:nubi-progress-breathe var(--nubi-progress-drift-duration) ease-in-out infinite alternate;
 }
 .nubi-progress[data-active=true] { position:relative; isolation:isolate; }
-.nubi-progress[data-active=true]::before {
-  content:""; position:absolute; inset:0; pointer-events:none;
-  background:linear-gradient(90deg,transparent,var(--nubi-progress-glow),transparent);
-  animation:nubi-progress-drift var(--nubi-progress-drift-duration) ease-in-out infinite alternate;
-}
 .nubi-progress[data-active=true]>span { position:relative; }
 .desktop-shell .nubi-working-status { width:fit-content; max-width:100%; padding:var(--cx-space-2) var(--cx-space-3); border-radius:var(--deck-control-radius); }
-@keyframes nubi-progress-breathe { from { opacity:.45; transform:translateX(-1%); } to { opacity:1; transform:translateX(1%); } }
-@keyframes nubi-progress-drift { from { transform:translateX(-40%); } to { transform:translateX(40%); } }
-:root[data-motion='paused'] :is(.nubi-progress-atmosphere,.nubi-progress)::before,
-:root[data-motion-visibility='hidden'] :is(.nubi-progress-atmosphere,.nubi-progress)::before { animation-play-state:paused; }
+@keyframes nubi-progress-breathe { from { opacity:.3; } to { opacity:.8; } }
+:root[data-motion="paused"] :is(.nubi-progress-atmosphere,.nubi-progress)::before,
+:root[data-motion-visibility="hidden"] :is(.nubi-progress-atmosphere,.nubi-progress)::before { animation-play-state:paused; }
 @media(prefers-reduced-motion:reduce) {
   .nubi-progress-atmosphere::before,.nubi-progress[data-active=true]::before { animation:none; transform:none; opacity:.65; }
 }
 
 .nubi-progress-estimate { display:block; margin-top:var(--cx-space-2); color:var(--deck-sub); font:var(--deck-font-caption); font-variant-numeric:tabular-nums; }
+
+/* Mail authentication guidance stays outside the native portal viewport. */
+.desktop-browser-login-guide { display:flex; align-items:center; flex:none; gap:var(--cx-space-2); padding:var(--cx-space-2) var(--cx-space-3); background:var(--deck-blue-soft); color:var(--deck-sub); font:var(--deck-font-caption); }
+.desktop-browser-login-guide > svg { flex:none; color:var(--deck-blue); }
+.desktop-browser-login-guide > span { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.desktop-browser-login-guide strong { color:var(--deck-ink); font-weight:var(--nubi-weight-emphasis); margin-right:var(--cx-space-1); }
+
+/* Destructive data cleanup uses the same confirmation and progress rhythm as storage moves. */
+.nubi-data-reset-progress { display:grid; gap:var(--cx-space-2); margin-top:var(--cx-space-3); }
+.nubi-data-reset-progress p { display:flex; align-items:center; justify-content:space-between; gap:var(--cx-space-3); margin:0; color:var(--deck-sub); font:var(--deck-font-caption); }
+.nubi-data-reset-progress time { flex-shrink:0; font-variant-numeric:tabular-nums; }
+.nubi-mail-storage > .cx-button { margin-top:var(--cx-space-3); }
+
+/* SSO failures stay next to the browser toolbar; the original page remains visible. */
+.desktop-browser-auth-notice { flex:0 0 auto; min-width:0; margin:var(--cx-space-2); padding:var(--cx-space-3) var(--cx-space-4); border-radius:var(--deck-control-radius); background:var(--deck-tint); color:var(--deck-ink); font:var(--nubi-weight-regular) var(--deck-type-caption)/var(--deck-line-caption) var(--nubi-font-family); }
+.desktop-browser-auth-heading { display:flex; align-items:center; gap:var(--cx-space-2); min-width:0; }
+.desktop-browser-auth-heading>svg { flex:none; color:var(--deck-blue); }
+.desktop-browser-auth-heading strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:var(--nubi-weight-emphasis); font-size:var(--deck-type-body); }
+.desktop-browser-auth-heading button { margin-left:auto; flex:none; height:40px; gap:var(--cx-space-2); border:0; background:transparent; color:var(--deck-sub); box-shadow:none; }
+.desktop-browser-auth-notice p { margin:var(--cx-space-1) 0 var(--cx-space-2); color:var(--deck-sub); overflow-wrap:anywhere; }
+.desktop-browser-auth-notice summary { display:flex; align-items:center; gap:var(--cx-space-2); cursor:pointer; min-height:32px; color:var(--deck-sub); list-style:none; }
+.desktop-browser-auth-notice summary::-webkit-details-marker { display:none; }
+.desktop-browser-auth-notice summary>svg { flex:none; transition:transform var(--deck-fast); }
+.desktop-browser-auth-notice details[open] summary>svg { transform:rotate(180deg); }
+.desktop-browser-auth-detail-label { margin-left:auto; }
+.desktop-browser-auth-notice ol { margin:var(--cx-space-2) 0; padding:0; list-style:none; max-height:160px; overflow:auto; }
+.desktop-browser-auth-notice li { display:grid; grid-template-columns:minmax(0,1fr) auto 4em; gap:var(--cx-space-2); padding:var(--cx-space-1) 0; }
+.desktop-browser-auth-notice time { text-align:right; color:var(--deck-sub); font-variant-numeric:tabular-nums; }
+.desktop-browser-auth-code { display:flex; align-items:center; gap:var(--cx-space-2); color:var(--deck-sub); }
+.desktop-browser-auth-code code { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; font:inherit; }
+@media(max-width:480px) { .desktop-browser-auth-heading button span { display:none; } }
+@media(prefers-reduced-motion:reduce) { .desktop-browser-auth-notice summary>svg { transition:none; } }
+
+.desktop-browser-network-detail { width:min(100%,36em); min-width:0; text-align:left; font:var(--deck-font-body); }
+.desktop-browser-network-detail summary { cursor:pointer; padding-block:var(--cx-space-2); }
+.desktop-browser-network-detail .desktop-browser-auth-code { min-width:0; gap:var(--cx-space-2); }
+
+.desktop-browser-network-detail .desktop-browser-auth-code code { white-space:nowrap; }
+
+/* Long wiki paths must not widen the modal or push recovery actions away. */
+.nubi-wiki-update,
+.nubi-wiki-update .deck-disclosure-body { grid-template-columns:minmax(0,1fr); min-width:0; }
+.nubi-wiki-update > *,
+.nubi-wiki-update .deck-disclosure { min-width:0; }
+.nubi-wiki-update .nubi-page-chips { display:grid; grid-template-columns:minmax(0,1fr); gap:var(--cx-space-2); }
+.nubi-wiki-update .nubi-page-chips .nubi-page-chip { width:100%; min-width:0; justify-content:flex-start; }
+.nubi-wiki-update .nubi-page-chip > svg { flex:none; }
+.nubi-wiki-update .nubi-page-chip > span:first-of-type { flex:1; text-align:left; }
+.nubi-wiki-update .nubi-page-chip > .nubi-page-change { flex:none; }

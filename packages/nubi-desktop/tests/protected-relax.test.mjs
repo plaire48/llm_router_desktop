@@ -73,7 +73,8 @@ test('in a later turn a compaction that does not fit keeps the message being ans
     if(messages.some(item=>item.role==='user'&&String(item.content).includes('Current task memory')))compacted.push(messages);
     const last=messages.findLast(item=>item.role==='tool');
     if(last){try{const result=JSON.parse(last.content);if(result.nextStart)next=result.nextStart;}catch{/* A cleared result has no position. */}}
-    step++;
+    // Force the overflow under test rather than relying on an advisory review to trigger more reading.
+    step++;if(step===4)throw Error('context_overflow');
     if(step<=3||step>=5&&step<=30)return {content:'',calls:[{id:crypto.randomUUID(),type:'function',function:{name:'read_source',arguments:JSON.stringify({path:'docs/big.md',start:next,end:next+9})}}]};
     return {content:step===4?long:'KEY-777 항목은 문서에 없습니다.',calls:[]};
   }};

@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "method": "Manual semantic audit against implementation and executed synthetic counterexamples. Valid source hashes alone never earn factual correctness points. Missing and failed outputs remain failures. Model review is not an independent human score.",
+  "order-service": {
+    "inheritedRubric": "wiki-code-map-rubric.json",
+    "additionalRegressions": [
+      "Fractional price 0.5 times quantity 2 passes aggregate validation; do not claim every item must be integer.",
+      "Number.MAX_VALUE passes Number.isInteger and overflows in discount arithmetic; shippingFee can reject Infinity. Do not claim its invalid_amount is unreachable through createOrder."
+    ]
+  },
+  "cache-retry": [
+    "Service reads cache, retries fetch on miss, then stores result.",
+    "TTL uses milliseconds and expiration is now >= expiresAt, including exact equality.",
+    "Finite ttlMs and a finite injected clock can still yield Infinity via addition; expiration is not guaranteed for every accepted input.",
+    "Values are stored and returned by reference; no deep clone or isolation.",
+    "Map supports keys such as toString without prototype collisions.",
+    "Default retries=2 permits three task attempts; delays are 100ms and 200ms.",
+    "Only truthy retryable errors retry; there is no rollback or idempotency guarantee.",
+    "Abort is checked before attempts, not inside sleep/task; an in-flight successful result can be returned after abort.",
+    "Undefined results are fetched again; false is cached; concurrent misses are not coalesced.",
+    "Historical README design notes are not implemented guarantees; reading tests is not executing them."
+  ]
+}

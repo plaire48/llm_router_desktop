@@ -1,0 +1,13 @@
+import {build} from 'esbuild';
+import {readFile,writeFile,mkdir,copyFile,readdir} from 'node:fs/promises';
+import path from 'node:path';
+export async function buildNativeExcelCalculator(outfile='generated/native-excel-calculator-worker.mjs'){
+ const result=await build({entryPoints:['runtime/native-excel-calculator-source.ts'],outfile,bundle:true,minify:true,keepNames:true,metafile:true,platform:'node',format:'esm',target:'node24',legalComments:'eof'});
+ const packages=new Map();for(const input of Object.keys(result.metafile.inputs)){const normalized=input.replaceAll('\\','/'),mark=normalized.lastIndexOf('node_modules/');if(mark<0)continue;const parts=normalized.slice(mark+13).split('/'),name=parts[0].startsWith('@')?parts.slice(0,2).join('/'):parts[0],directory=path.resolve(normalized.slice(0,mark+13)+name);if(packages.has(name))continue;const info=JSON.parse(await readFile(path.join(directory,'package.json'),'utf8'));packages.set(name,{name,version:info.version,license:info.license,directory});}
+ const notices='vendor/licenses/native-excel';await mkdir(notices,{recursive:true});const rows=[];for(const item of packages.values()){const files=(await readdir(item.directory)).filter(f=>/^(?:licen[sc]e|copying|notice)(?:[.-]|$)/i.test(f));const copies=[];for(const file of files){const target=item.name.replaceAll('/','-')+'-'+item.version+'-'+file;try{await copyFile(path.join(item.directory,file),path.join(notices,target));copies.push(target);}catch(error){if(error.code!=='EISDIR')throw error;}}const {directory,...info}=item;rows.push({...info,files:copies});}
+ const sourceFiles=['scripts/libreoffice-depreciation.mjs','scripts/libreoffice-ets.mjs','vendor/calculation-reference/libreoffice-source.json','vendor/calculation-reference/libreoffice/COPYING.MPL','vendor/calculation-reference/libreoffice/LICENSE.Apache-2.0','vendor/calculation-reference/libreoffice/analysishelper.cxx','vendor/calculation-reference/libreoffice/interpr8.cxx'];
+ for(const file of sourceFiles){const target=path.join(notices,'source',file);await mkdir(path.dirname(target),{recursive:true});await copyFile(path.resolve('../nubi-document-agent',file),target);}
+ await writeFile(path.join(notices,'source','README.txt'),'Modified LibreOffice calculation sources (MPL-2.0), original sources, licenses and revision manifest are provided beside the bundled calculator. Relative paths follow nubi-document-agent.\n');
+ await writeFile(path.join(notices,'index.json'),JSON.stringify({scope:'Bundled captured-cell calculator only; no Office document reader or native Office host',coveredSources:sourceFiles,packages:rows.sort((a,b)=>a.name.localeCompare(b.name))},null,2)+'\n');
+}
+await buildNativeExcelCalculator();

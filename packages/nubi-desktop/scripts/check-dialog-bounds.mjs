@@ -17,12 +17,32 @@ let browser;const results=[],errors=[];
 try {
  browser=await chromium.launch({channel:'chrome',headless:true});
  const p=await browser.newPage();p.on('pageerror',e=>errors.push(e.message));
- for(const [width,height,scale] of [[360,560,100],[440,500,200]]) {
+ for(const [width,height,scale] of [[1280,900,100],[360,560,100],[440,500,200]]) {
   await p.setViewportSize({width,height});
-  for(const screen of ['models-long','registration','mail-settings','skills','marketplace','usage','mail-filters','startup','account']) {
+  for(const screen of ['models-long','registration','mail-settings','skills','marketplace','usage','mail-filters','startup','account','claude-install','mcp','wiki-many']) {
    await p.goto('http://127.0.0.1:'+server.address().port+'/?screen='+screen);
    const dialog=p.locator('.deck-dialog:visible').first();await dialog.waitFor();
    await p.evaluate(scale=>document.documentElement.style.fontSize=scale+'%',scale);await p.evaluate(()=>document.fonts.ready);
+   if(screen==='mcp'){
+    assert.equal(await dialog.locator('.nubi-mcp-toolbox[open]').count(),0);
+    await dialog.getByRole('button',{name:'편집',exact:true}).click();
+    assert.equal(await dialog.locator('.deck-disclosure[open]').count(),0);
+    assert(await dialog.getByRole('textbox',{name:'명령',exact:true}).isVisible());
+    assert(await dialog.getByRole('button',{name:'저장',exact:true}).isVisible());
+    await p.screenshot({path:path.join(dir,'mcp-folded-'+width+'-'+scale+'.png'),animations:'disabled'});
+    await dialog.locator('.deck-disclosure>summary').click();
+    assert(await dialog.getByRole('textbox',{name:'환경 변수 이름',exact:true}).isVisible());
+   }
+   if(screen==='mail-settings'){
+    assert(await dialog.getByRole('switch',{name:'첨부 원본도 보관'}).isVisible());
+    const disclosure=dialog.locator('.deck-disclosure').filter({hasText:'파일에서 가져오기'});
+    assert.equal(await disclosure.getAttribute('open'),null);
+    await disclosure.locator('summary').click();assert(await disclosure.getByRole('button',{name:'폴더 선택',exact:true}).isVisible());await disclosure.locator('summary').click();
+   }
+   if(screen==='wiki-many'){
+    const disclosure=dialog.locator('.deck-disclosure').filter({hasText:'변경 문서 12개'});assert.equal(await disclosure.getAttribute('open'),null);
+    assert(await dialog.getByRole('button',{name:'동기화 및 갱신',exact:true}).isVisible());await disclosure.locator('summary').click();assert.equal(await disclosure.locator('.nubi-page-chip').count(),12);
+   }
    const failures=[];
    const bounds=await dialog.boundingBox();
    if(bounds.x<0||bounds.y<0||bounds.x+bounds.width>width+1||bounds.y+bounds.height>height+1)failures.push({kind:'dialog-outside',bounds});

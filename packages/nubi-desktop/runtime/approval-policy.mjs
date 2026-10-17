@@ -83,12 +83,12 @@ export async function autoApprovals(service,{taskId}){
   const state=service.state(),open=state.proposals.filter(p=>p.taskId===taskId&&p.state==='proposed').sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
   if(policy.mode!=='ask'&&open.length){
     // The newest proposal of each file, as the editor applies them.
-    const seen=new Set(),proposals=[];for(const p of open)if(!seen.has(p.path)){seen.add(p.path);proposals.push(p.id);}
+    const seen=new Set(),proposals=[];for(const p of open)if(!seen.has(p.path)){seen.add(p.path);if(!p.sourceChanged)proposals.push(p.id);}
     return {...none,proposals};
   }
   const scripts=policy.mode==='commands'?await manifestScripts(await service.target(taskId)):{};
   const waiting=action=>(action.afterProposals||[]).some(id=>service.store.get('proposal:'+id)?.state==='proposed');
-  const commands=[...(state.setupActions||[]).filter(v=>v.taskId===taskId&&v.state==='proposed'&&v.privilege!=='administrator'&&!waiting(v)).map(value=>({kind:'setup',value})),
+  const commands=[...(state.setupActions||[]).filter(v=>v.taskId===taskId&&v.state==='proposed'&&v.kind!=='input'&&v.privilege!=='administrator'&&!waiting(v)).map(value=>({kind:'setup',value})),
     ...(state.commandRepairs||[]).filter(v=>v.taskId===taskId&&v.state==='proposed').map(value=>({kind:'repair',value}))]
     .sort((a,b)=>String(a.value.createdAt).localeCompare(String(b.value.createdAt)));
   for(const {kind,value} of commands){
@@ -104,7 +104,7 @@ export function installApprovalPolicy(ProjectService){
   // Always allow the command of a proposal the user sees, then approve it as usual.
   ProjectService.prototype.allowCommand=function({kind='setup',id}){
     this.ready();const value=this.store.get((kind==='repair'?'command-repair:':'setup-action:')+id);
-    if(!value)fail('approval_command_invalid');
+    if(!value||value.kind==='input')fail('approval_command_invalid');
     return allowCommand(this.store,value);
   };
   ProjectService.prototype.removeAllowedCommand=function({profile,script}){this.ready();return removeAllowedCommand(this.store,{profile,script});};

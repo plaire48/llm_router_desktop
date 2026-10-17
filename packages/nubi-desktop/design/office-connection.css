@@ -1,0 +1,21 @@
+/* Content only: the shared dialog contract owns modal chrome and geometry. */
+.nubi-office-actions{display:flex;align-items:center;gap:var(--cx-space-2);flex-wrap:wrap}
+.nubi-connection-apps{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:var(--cx-space-2)}
+.nubi-connection-apps--editors{grid-template-columns:repeat(2,minmax(0,1fr))}
+.deck-dialog .nubi-connection-choice,.deck-dialog .nubi-connection-document{display:flex;align-items:center;justify-content:flex-start;min-width:0;height:auto;text-align:left;gap:var(--cx-space-3);padding:var(--cx-space-3);border:0;background:var(--nubi-surface-inset);color:var(--nubi-text-primary);border-radius:var(--nubi-work-control-radius);box-shadow:none}
+.deck-dialog button:is(.nubi-connection-choice,.nubi-connection-document):hover:not(:disabled),.deck-dialog .nubi-connection-choice[aria-pressed=true]{background:var(--nubi-surface-selected);color:var(--nubi-text-action)}
+.nubi-connection-symbol{display:inline-flex;align-items:center;justify-content:center;flex:0 0 var(--nubi-icon-large);width:var(--nubi-icon-large);color:var(--nubi-text-action)}
+.nubi-connection-label{display:flex;flex-direction:column;gap:var(--cx-space-1);flex:1;min-width:0;white-space:normal;overflow-wrap:anywhere}
+.nubi-connection-label>span{font-weight:var(--nubi-weight-label);line-height:var(--deck-line-body)}
+.nubi-connection-label>small{font-size:var(--deck-type-caption);line-height:var(--deck-line-body);font-weight:var(--nubi-weight-regular);color:var(--nubi-text-secondary)}
+.nubi-connection-document>svg{flex:none;color:var(--nubi-text-secondary)}
+.nubi-connection-list{display:grid;gap:var(--cx-space-1);max-height:min(360px,40vh);overflow:auto;overscroll-behavior:contain}
+.nubi-connection-current,.nubi-connection-pair,.nubi-connection-recovery{display:flex;flex-direction:column;gap:var(--cx-space-3);min-width:0}
+.nubi-connection-note{display:flex;align-items:flex-start;gap:var(--cx-space-2);margin:0;color:var(--nubi-text-secondary);font-size:var(--deck-type-caption);line-height:var(--deck-line-body)}
+.nubi-connection-note>svg{flex:none;margin-top:var(--cx-space-1)}
+.nubi-connection-progress{display:flex;align-items:center;gap:var(--cx-space-2);margin:0;color:var(--nubi-text-secondary)}
+.nubi-connection-details{color:var(--nubi-text-secondary);font-size:var(--deck-type-caption)}
+.nubi-connection-details summary{cursor:pointer;min-height:var(--nubi-work-control-height);display:list-item;align-content:center}
+.nubi-connection-details p{overflow-wrap:anywhere}
+.nubi-connection-error{color:var(--deck-red);margin:0}
+@media(max-width:480px){.nubi-connection-apps--editors{grid-template-columns:1fr}}

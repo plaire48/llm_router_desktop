@@ -16,9 +16,12 @@ try{
   await page.setViewportSize({width,height:800});await page.goto(`http://127.0.0.1:${server.address().port}`);
   const rows=page.locator('.desktop-git-commit');await rows.first().waitFor();assert.equal(await rows.count(),25);
   assert(await rows.evaluateAll(nodes=>nodes.every(node=>{const r=node.getBoundingClientRect(),m=node.querySelector('small');return r.right<=innerWidth&&m.scrollWidth<=m.clientWidth+1&&getComputedStyle(m).flexWrap==='nowrap';})));
+  assert.equal(await page.locator('.desktop-commit-graph').count(),25);assert.equal(await page.locator('.desktop-commit-graph[data-merge=true]').count(),1);
+  assert(await page.locator('.desktop-commit-graph').first().evaluate(node=>{const box=node.getBoundingClientRect(),next=node.parentElement.nextElementSibling.querySelector('.desktop-commit-graph').getBoundingClientRect();return Math.abs(box.bottom-next.top)<1;}),'graph lanes meet between variable-height rows');
   await rows.first().hover();assert.equal(await rows.first().evaluate(node=>node.querySelector('strong').getAnimations({subtree:true}).length),0,'commit title stays still');
   await page.screenshot({path:path.join(dir,`list-${width}.png`)});
   await page.getByRole('button',{name:'다음 커밋 페이지',exact:true}).click();await page.getByText('26–50',{exact:true}).waitFor();
+  assert.equal(await page.locator('.desktop-commit-graph').count(),25);await page.screenshot({path:path.join(dir,`page-two-${width}.png`)});
   await page.getByRole('button',{name:'다음 커밋 페이지',exact:true}).click();await page.getByText('51–53',{exact:true}).waitFor();assert.equal(await rows.count(),3);assert(await page.getByRole('button',{name:'다음 커밋 페이지',exact:true}).isDisabled());
   await rows.first().click();await page.getByRole('region',{name:'커밋 변경 파일',exact:true}).waitFor();assert.equal(await page.evaluate(()=>window.historyCalls.filter(call=>call.path).length),0,'commit selection does not read file contents');assert.equal(await page.locator('.desktop-git-diff').count(),0);
   await page.evaluate(()=>window.historyDelay=700);

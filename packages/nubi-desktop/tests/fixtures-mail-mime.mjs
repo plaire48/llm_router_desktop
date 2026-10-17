@@ -1,0 +1,5 @@
+export const body='<html><body><h1>내부 메일 본문</h1><p>회의 자료를 확인해 주세요.</p></body></html>';
+export const child=Buffer.from('actual attachment bytes\n');
+export const inner=Buffer.from('Subject: Inner message\r\nFrom: Alice <alice@example.invalid>\r\nTo: bob@example.invalid\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=inner\r\n\r\n--inner\r\nContent-Type: text/html; charset=utf-8\r\n\r\n'+body+'\r\n--inner\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Disposition: attachment; filename="notes.txt"\r\nContent-Transfer-Encoding: base64\r\n\r\n'+child.toString('base64')+'\r\n--inner--\r\n');
+export const outer=()=>Buffer.from('Subject: Outer message\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=outer\r\n\r\n--outer\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n바깥 메일 본문\r\n--outer\r\nContent-Type: application/octet-stream\r\nContent-Disposition: attachment; filename="export.dat"\r\nContent-Transfer-Encoding: base64\r\n\r\n'+inner.toString('base64')+'\r\n--outer--\r\n');
+

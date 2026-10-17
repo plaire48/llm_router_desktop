@@ -49,3 +49,13 @@ export function groupSessionsByDate(tasks, now = new Date(), preserveOrder = fal
   }
   return [...groups.values()];
 }
+
+// Stored pin IDs are newest-first. Conversation activity must not reorder pins
+// or put an old pinned conversation back into its date section.
+export function sessionSidebarGroups(tasks, pinned, {showAll=false,limit=5,now=new Date()}={}) {
+  const pinOrder=new Map([...new Set(Array.isArray(pinned)?pinned:[])].map((id,index)=>[id,index]));
+  const fixed=tasks.filter(task=>pinOrder.has(task.id)).sort((a,b)=>pinOrder.get(a.id)-pinOrder.get(b.id));
+  const recent=tasks.filter(task=>!pinOrder.has(task.id)).sort((a,b)=>(sessionDate(b)?.getTime()??0)-(sessionDate(a)?.getTime()??0));
+  const visible=showAll?recent:recent.slice(0,limit);
+  return {groups:[...(fixed.length?[{key:'pinned',label:'고정',tasks:fixed}]:[]),...groupSessionsByDate(visible,now,true)],hiddenCount:recent.length-visible.length,canCollapse:showAll&&recent.length>limit};
+}

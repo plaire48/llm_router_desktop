@@ -1,6 +1,6 @@
 import {randomUUID} from 'node:crypto';
 import {fail,hash,readSource} from './files.mjs';
-import {shellProfiles} from './processes.mjs';
+import {shellProfiles,processInputRevision} from './processes.mjs';
 import Ajv from 'ajv';
 import {preferredShell} from './environment-inspection.mjs';
 import {toolArgumentIssues} from '../../../extensions/aipro-chat/tool-validation.js';
@@ -8,7 +8,9 @@ import {toolArgumentIssues} from '../../../extensions/aipro-chat/tool-validation
 const text = maxLength => ({type:'string',minLength:1,maxLength});
 export const SETUP_ACTION_SCHEMA = {
   type:'object',additionalProperties:false,
-  properties:{title:{...text(120),description:'Short approval card title.'},kind:{type:'string',enum:['inspect','install','configure','build','start','verify'],description:'start runs an app or server, verify runs tests, inspect checks a version.'},
+  properties:{title:{...text(120),description:'Short approval card title.'},kind:{type:'string',enum:['inspect','install','configure','build','start','verify','input'],description:'start runs an app/server; verify runs tests; input sends exact text to an observed interactive process.'},
+    interactive:{type:'boolean',description:'Use a real PTY only for commands that need terminal input. Existing approval still applies.'},
+    processId:text(80),processRevision:text(100),
     profile:{...text(40),description:'Omit: the user\'s chosen shell is used; another id is refused.'},
     script:{...text(16000),description:'ONE exact shell command string in the selected shell syntax.'},
     reason:{...text(1000),description:'Why it is needed.'},effects:{...text(1500),description:'Downloads, hooks and changes, one string.'},verification:{...text(1000),description:'How the result is checked, one string.'},
@@ -34,7 +36,7 @@ export function normalizeSetupArgs(args){
     else if(key==='references'){if(!Array.isArray(value))value=[];value=value.filter(item=>item&&typeof item==='object'&&typeof item.path==='string'&&typeof item.hash==='string').map(item=>({path:item.path,hash:item.hash}));}
     else if(key==='kind'&&typeof value==='string')value=value.trim().toLowerCase();
     else if(key==='privilege'&&typeof value==='string')value=value.trim().toLowerCase();
-    if(typeof value==='string')value=value.trim();
+    if(typeof value==='string'&&!(key==='script'&&String(args.kind).trim().toLowerCase()==='input'))value=value.trim();
     if(value===''||value===undefined)continue;
     out[key]=value;
   }
@@ -51,11 +53,19 @@ export async function prepareSetupAction(service,taskId,args,observations) {
   args=normalizeSetupArgs(args);
   if(!validate(args))throw Object.assign(Error('setup_invalid'),{details:{issues:toolArgumentIssues(SETUP_ACTION_SCHEMA,args)},actionIssued:false});
   if(service.task(taskId).question)fail('question_pending');
+  const input=args.kind==='input',record=input?service.processes.records.get(args.processId):null;
+  if(input){
+    if(!record||record.taskId!==taskId||record.state!=='running'||!record.interactive||!service.processes.active.has(record.id)||args.script.length>8000||args.privilege==='administrator')fail('process_input_unavailable');
+    if(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(args.script))fail('process_input_invalid');
+    if(observations?.processes?.get(record.id)!==args.processRevision)fail('process_input_observation_required');
+    if(processInputRevision(record)!==args.processRevision)fail('process_input_changed');
+    args={...args,profile:record.profile};
+  }else if(args.processId||args.processRevision)fail('setup_invalid');
   const profiles=await shellProfiles();args={...args,profile:args.profile||preferredShell(profiles,process.platform,service.shellPreference())};
-  requireChosenShell(profiles,service.shellPreference(),args.profile,args.privilege==='administrator');
+  if(!input)requireChosenShell(profiles,service.shellPreference(),args.profile,args.privilege==='administrator');
   if(args.privilege==='administrator'){
     if(process.platform!=='win32'||args.profile!=='powershell')fail('elevation_unavailable');
-    if(!args.privilegeReason||args.script.length>3000||args.kind==='start')fail('elevation_command_limit');
+    if(!args.privilegeReason||args.script.length>3000||args.kind==='start'||args.interactive)fail('elevation_command_limit');
   }
   const workspace=await service.target(taskId);
   if(!profiles.some(p=>p.id===args.profile))fail('shell_unavailable');
@@ -78,15 +88,27 @@ export async function prepareSetupAction(service,taskId,args,observations) {
   // The same command again: an open one keeps its card and now also waits for this run's fixes; a rejected or
   // uncertain one stays as it is and is never replayed. One whose run finished may run again with a new approval,
   // such as a test after its fix; so may one whose references changed.
-  const finished=v=>v.state==='stale'||v.state==='started'&&!['checking','running','stopping'].includes(service.store.get('process:'+v.resultProcessId)?.state);
+  const finished=v=>{
+    if(v.state==='stale')return true;
+    const receipt=v.state==='started'&&service.store.get('process:'+v.resultProcessId);
+    // A missing receipt or a restart's unknown execution is not proof of exit.
+    return !!receipt&&receipt.execution!=='unknown'&&['completed','failed','cancelled','timed_out'].includes(receipt.state);
+  };
   const previous=service.store.list('setup-action:').find(v=>v.fingerprint===fingerprint&&!finished(v));
   if(previous?.state==='proposed'&&afterProposals.some(id=>!(previous.afterProposals||[]).includes(id))){
     const merged={...previous,afterProposals:[...new Set([...(previous.afterProposals||[]),...afterProposals])]};
     service.store.set('setup-action:'+previous.id,merged);return merged;
   }
+  if(previous?.state==='started'){
+    const receipt=service.store.get('process:'+previous.resultProcessId);
+    if(receipt?.execution==='unknown'||!['checking','running','stopping'].includes(receipt?.state)){
+      const uncertain={...previous,state:'attention',error:'setup_execution_unconfirmed'};
+      service.store.set('setup-action:'+previous.id,uncertain);return uncertain;
+    }
+  }
   if(previous)return previous;
   // The run that proposed it places the card in that turn of the conversation (user request 2026-10-14).
-  const value={...args,id:randomUUID(),taskId,workspace,fingerprint,state:'proposed',createdAt:new Date().toISOString(),...(runId?{runId}:{}),...(afterProposals.length?{afterProposals}:{})};
+  const value={...args,id:randomUUID(),taskId,workspace,fingerprint,state:'proposed',createdAt:new Date().toISOString(),...(input?{inputTarget:{command:record.script,profile:record.profile,cwd:record.cwd}}:{}),...(runId?{runId}:{}),...(afterProposals.length?{afterProposals}:{})};
   service.store.set('setup-action:'+value.id,value);return value;
 }
 
@@ -109,7 +131,7 @@ export async function decideSetupAction({id,fingerprint,decision,elevationConsen
   try{
     // Settings can change while this approval card is waiting. Never run old
     // syntax in either the old shell or the newly chosen shell implicitly.
-    requireChosenShell(await shellProfiles(),this.shellPreference(),value.profile,value.privilege==='administrator');
+    if(value.kind!=='input')requireChosenShell(await shellProfiles(),this.shellPreference(),value.profile,value.privilege==='administrator');
     if(await this.target(value.taskId)!==value.workspace)fail('setup_changed');
     for(const ref of value.references){
       const current=(await readSource(value.workspace,ref.path)).hash;
@@ -117,14 +139,23 @@ export async function decideSetupAction({id,fingerprint,decision,elevationConsen
       if(current!==ref.hash&&!this.store.list('proposal:').some(p=>p.taskId===value.taskId&&p.path===ref.path&&p.state==='applied'&&p.expectedHash===ref.hash&&p.afterHash===current))fail('setup_changed');
     }
     if(this.disposed||this.task(value.taskId).state==='cancelled'||this.task(value.taskId).question)fail('setup_cancelled');
-    const process=await this.processes.start({cwd:value.workspace,taskId:value.taskId,script:value.script,profile:value.profile,autoDiagnose:true,idleCheck:value.kind!=='start',setupActionId:value.id,privilege:value.privilege||'user'});
+    if(value.kind==='input'){
+      const record=this.processes.records.get(value.processId);
+      if(!record||record.taskId!==value.taskId||record.cwd!==value.inputTarget?.cwd||record.script!==value.inputTarget?.command)fail('process_input_changed');
+      this.processes.input(record.id,value.script,value.processRevision);
+      record.inputActionId=value.id;record.inputContinuationAt=new Date().toISOString();
+      this.store.set('process:'+record.id,record);
+      value.state='started';value.resultProcessId=record.id;this.store.set('setup-action:'+id,value);
+      this.processStarted?.(record);return value;
+    }
+    const process=await this.processes.start({cwd:value.workspace,taskId:value.taskId,script:value.script,profile:value.profile,interactive:value.interactive===true,autoDiagnose:true,idleCheck:value.kind!=='start',setupActionId:value.id,privilege:value.privilege||'user'});
     value.state='started';value.resultProcessId=process.id;
     this.store.set('setup-action:'+id,value);
-    if(value.kind==='start')this.processStarted?.(this.processes.poll(process.id));
+    if(value.kind==='start'||value.interactive)this.processStarted?.(this.processes.poll(process.id));
     return value;
   }catch(error){
-    value.state=['setup_changed','shell_not_selected'].includes(error.message)?'stale':'attention';
-    value.error=['setup_changed','shell_not_selected'].includes(error.message)?error.message:'setup_execution_unconfirmed';
+    value.state=['setup_changed','shell_not_selected','process_input_changed','process_input_unavailable'].includes(error.message)?'stale':'attention';
+    value.error=['setup_changed','shell_not_selected','process_input_changed','process_input_unavailable'].includes(error.message)?error.message:'setup_execution_unconfirmed';
     this.store.set('setup-action:'+id,value);throw error;
   }finally{this.setupBusy=false;queueMicrotask(()=>this.drainRecovery?.().catch(()=>{}));}
 }

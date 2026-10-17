@@ -12,10 +12,11 @@ export function continuationBinding({task,workspace,rules,scope,skills}) {
 
 export function continueCommandPlan({task,process,action,binding,runId,capabilities}) {
   const plan=task.workPlan,held=plan?.commandContinuation;
-  const launched=action?.kind==='start'&&process?.state==='running'&&!!process.startContinuationAt;
+  const input=action?.kind==='input'&&process?.inputActionId===action.id&&!!process.inputContinuationAt;
+  const launched=((action?.kind==='start'||action?.interactive===true)&&!!process?.startContinuationAt||input)&&process?.state==='running';
   if(!held||held.binding!==binding||held.actionId!==action?.id||action.taskId!==task.id||
     action.state!=='started'||action.resultProcessId!==process?.id||
-    process.taskId!==task.id||process.setupActionId!==action.id||process.execution!=='started'||
+    process.taskId!==task.id||(!input&&process.setupActionId!==action.id)||process.execution!=='started'||
     (!launched&&(process.state!=='completed'||process.exitCode!==0))||process.stopReason||task.state==='cancelled')return null;
   try {
     const intent=workIntent(plan.intent,capabilities);

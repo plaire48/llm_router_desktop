@@ -1,0 +1,5 @@
+.nubi-setting-toggle { display:flex; align-items:center; gap:var(--cx-space-3); min-width:0; }
+.nubi-setting-toggle>svg { flex:none; color:var(--nubi-text-secondary); }
+.nubi-setting-toggle-copy { flex:1; min-width:0; display:grid; gap:var(--cx-space-1); }
+.nubi-setting-toggle-copy>label { font:var(--deck-font-body); font-weight:var(--nubi-weight-emphasis); color:var(--nubi-text-primary); cursor:pointer; }
+.nubi-setting-toggle-copy>small { font:var(--deck-font-caption); color:var(--nubi-text-secondary); }

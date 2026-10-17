@@ -1,4 +1,6 @@
+import './build-document-agent-native.mjs';
 import {build} from 'esbuild';
+import './build-browser-agent-core.mjs';
 import {DESKTOP_FEATURES} from '../runtime/beta-features.mjs';
 import {mkdir,copyFile,cp,readFile,rm,writeFile} from 'node:fs/promises';
 import path from 'node:path';
@@ -6,6 +8,7 @@ import {createHash} from 'node:crypto';
 import {rendererBundleOptions} from './renderer-bundle.mjs';
 // Release protection (user decision 2026-10-14): shipped runtime bundles are minified; NUBI_MINIFY=0 keeps them readable for local debugging.
 const MINIFY=process.env.NUBI_MINIFY!=='0';
+if(process.platform==='win32')await import('./build-process-host.mjs');
 
 // Both standalone Wiki tests and the packaged host resolve the same locked
 // framework copies. NODE_PATH alone would prefer an optional OpenWiki install.
@@ -85,18 +88,25 @@ const updateSources=Object.keys(updateBuild.metafile.inputs).filter(p=>!p.includ
 const updateHash=createHash('sha256');for(const file of updateSources){updateHash.update(file.replaceAll('\\','/'));updateHash.update(await readFile(file));}
 await writeFile('generated/runtime-provenance.json',JSON.stringify({openwiki:{name:wikiPackage.name,version:wikiPackage.version,sourceSha256:wikiHash.digest('hex'),sourceFiles:wikiSources.length,scope:'Bundled retrieval, Claims, read-only document research, repository evidence and pairing. Not the full CLI.'},openwikiUpdate:{sourceSha256:updateHash.digest('hex'),sourceFiles:updateSources.length,scope:'The repository update runner (openwiki --update), run with the Desktop model on the user\'s approval. A separate file loaded only for an update.'},documentResearch:{dependencyLock:'extensions/aipro-chat/package-lock.json',dependencies:researchDependencies}},null,2)+'\n');
 await mkdir('extension/lib/node',{recursive:true});
+await rm('extension/lib/node/process-host',{recursive:true,force:true});
+try{await cp('generated/process-host','extension/lib/node/process-host',{recursive:true});}catch(error){if(process.platform==='win32'||error.code!=='ENOENT')throw error;}
 await copyFile('extension/src/node/git-askpass.cjs','extension/lib/node/git-askpass.cjs');
 await copyFile('runtime/computer-pointer.ps1','extension/lib/node/computer-pointer.ps1');
+// Optional native host is an explicit build artifact, never another app's live
+// install directory. Remove a stale earlier bundle when it is absent.
+await rm('extension/lib/node/external-office-native',{recursive:true,force:true});
+try{await readFile('generated/external-office-native/manifest.json');await cp('generated/external-office-native','extension/lib/node/external-office-native',{recursive:true});}catch(error){if(error.code!=='ENOENT')throw error;}
 if(DESKTOP_FEATURES.mailAttachmentReading)await copyFile('runtime/office-document.ps1','extension/lib/node/office-document.ps1');
 else for(const file of ['office-document.ps1','mail-attachment-worker.mjs','document-extract.mjs','pdf.worker.mjs'])await rm('extension/lib/node/'+file,{force:true});
 await rm('extension/lib/node/openwiki-update',{recursive:true,force:true});
 await cp('generated/openwiki-update','extension/lib/node/openwiki-update',{recursive:true});
+await copyFile('generated/native-excel-calculator-worker.mjs','extension/lib/node/native-excel-calculator-worker.mjs');
 for (const worker of ['schema-worker','database-worker','code-analysis-worker','mail-worker','mail-portal-worker',...(DESKTOP_FEATURES.mailAttachmentReading?['mail-attachment-worker']:[])]) await build({entryPoints:[`runtime/${worker}.mjs`],outfile:`extension/lib/node/${worker}.mjs`,bundle:true,minify:MINIFY,keepNames:true,platform:'node',format:'esm',target:'node24',external:['knex','knex-schema-inspector','typescript','jsonc-parser','./document-extract.mjs'],banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);"}});
 const sourceWiki={name:'nubi-source-wiki',setup(builder){builder.onResolve({filter:/openwiki\.mjs$/},args=>path.resolve(args.resolveDir,args.path)===path.resolve('generated/openwiki.mjs')?{path:path.resolve('runtime/openwiki-source.ts')}:undefined);}};
 // The host imports the update runner from the folder next to it.
 const deferredDocuments={name:'nubi-deferred-documents',setup(builder){builder.onResolve({filter:/document-extract\.mjs$/},args=>path.resolve(args.resolveDir,args.path)===path.resolve('runtime/document-extract.mjs')?{path:'./document-extract.mjs',external:true}:undefined);}};
 const deferredUpdate={name:'nubi-deferred-wiki-update',setup(builder){builder.onResolve({filter:/openwiki-update\/index\.mjs$/},args=>path.resolve(args.resolveDir,args.path)===path.resolve('generated/openwiki-update/index.mjs')?{path:'./openwiki-update/index.mjs',external:true}:undefined);}};
-const runtimeBuild=await build({metafile:true,plugins:[pinnedFramework,sourceWiki,deferredUpdate,deferredDocuments],entryPoints:['runtime/service-entry.mjs'],outfile:'extension/lib/node/service-entry.mjs',bundle:true,minify:MINIFY,keepNames:true,platform:'node',nodePaths:[path.resolve('node_modules')],format:'esm',target:'node24',banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);"},external:['@playwright/mcp','jsonc-parser','@vscode/ripgrep','knex','knex-schema-inspector','@earendil-works/pi-agent-core','@earendil-works/pi-ai','playwright','pixelmatch','pngjs','minisearch'],legalComments:'eof'});
+const runtimeBuild=await build({metafile:true,plugins:[pinnedFramework,sourceWiki,deferredUpdate,deferredDocuments],entryPoints:['runtime/service-entry.mjs'],outfile:'extension/lib/node/service-entry.mjs',bundle:true,minify:MINIFY,keepNames:true,platform:'node',nodePaths:[path.resolve('node_modules')],format:'esm',target:'node24',banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);"},external:['node-pty','@playwright/mcp','jsonc-parser','@vscode/ripgrep','knex','knex-schema-inspector','@earendil-works/pi-agent-core','@earendil-works/pi-ai','playwright','pixelmatch','pngjs','minisearch'],legalComments:'eof'});
 assertFrameworkSources(runtimeBuild.metafile);
 if(Object.keys(runtimeBuild.metafile.inputs).some(file=>path.resolve(file)===path.resolve('generated/openwiki.mjs')))throw Error('research_prebundle_duplicate');
 if(!Object.keys(runtimeBuild.metafile.inputs).some(file=>file.replaceAll('\\','/').endsWith('/openwiki/src/agent/wiki-question.ts')))throw Error('research_core_missing');
@@ -106,7 +116,7 @@ if(Object.keys(runtimeBuild.metafile.inputs).some(file=>file.replaceAll('\\','/'
 // extension bundle and its style outputs are gone: the renderer imports the workbench styles itself (2026-10-07).
 const uiBuild=await build({...rendererBundleOptions(),outdir:'generated/renderer-analysis',write:false});
 // Main-process shared login helpers are also part of the release source closure.
-const mainBuild=await build({metafile:true,entryPoints:['electron-app/main.cjs'],outfile:'generated/main-analysis.cjs',write:false,platform:'node',bundle:true,format:'cjs',target:'node24',external:['electron']});
+const mainBuild=await build({metafile:true,entryPoints:['electron-app/main.cjs'],outfile:'generated/main-analysis.cjs',write:false,platform:'node',bundle:true,format:'cjs',target:'node24',external:['electron','node-pty']});
 
 
 if(Object.keys(uiBuild.metafile.inputs).some(file=>/@a2a-js\/sdk|nubi-a2a\/(?:client|server)\.mjs/.test(file.replaceAll('\\','/'))))throw Error('a2a_auth_must_remain_in_host');
@@ -122,3 +132,6 @@ await copyFile('../../extensions/aipro-chat/node_modules/pdfjs-dist/legacy/build
 
 await copyFile('../../extensions/aipro-chat/public/icons/agent-128.png','extension/lib/node/auth-bird.png');
 await copyFile('../openwiki/src/auth/aipro-callback-fonts.css','extension/lib/node/auth-fonts.css');
+
+// Optional Windows UI Automation connector, bundled only from its verified build.
+await rm('extension/lib/node/text-editor-bridge',{recursive:true,force:true});

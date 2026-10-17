@@ -146,6 +146,9 @@ test('Wiki failure diagnostics preserve actionable codes without raw errors',()=
   assert.equal(wikiInitializationError(Object.assign(Error('private graph state'),{name:'GraphRecursionError'}),'planning'),'wiki_analysis_limit');
   assert.equal(wikiInitializationError(Object.assign(Error('private plan'),{code:'invalid_input'}),'planning'),'wiki_plan_invalid');
   assert.equal(wikiInitializationError(Error('request_failed'),'planning'),'model_failed');
+  assert.equal(wikiInitializationError(Error('wiki_review_attempt_limit'),'generating'),'wiki_review_incomplete');
+  assert.equal(wikiInitializationError(Error('wiki_review_source_limit'),'generating'),'wiki_review_scope');
+  assert.equal(wikiInitializationError(Error('wiki_review_quote_invalid'),'generating'),'wiki_review_incomplete');
   assert.equal(wikiInitializationError(Error('unknown_private_reply'),'planning'),'wiki_failed');
 });
 
@@ -283,4 +286,45 @@ test('retry after Git verification timeout reuses copied history and sources',as
  service.wikiInitializer=async({root:current})=>{assert.equal(current,copy);assert.equal((await stat(receipt)).mtimeMs,receiptTime);assert.equal((await stat(source)).mtimeMs,sourceTime);await publish(copy,'# Wiki\n');};
  service.wikiInitialization({action:'retry'});await service.wikiInitPromise;
  assert.equal(service.wikiInitialization().state,'completed',JSON.stringify(service.wikiInitialization()));
+});
+
+test('explicit reset removes retained updates and human wiki pages, then rebuilds from preserved source',async t=>{
+ const {root,service}=await setup(t);
+ const manual=path.join(root,'openwiki','human.md');await writeFile(manual,'human edits to be explicitly discarded');
+ const id='12345678-1234-1234-1234-123456789abc',copy=path.join(service.store.directory,'wiki-update',id);
+ await mkdir(copy,{recursive:true});await writeFile(path.join(copy,'old.md'),'stale partial wiki');
+ service.store.set('wiki-update:'+id,{id,copy,state:'failed',createdAt:new Date().toISOString(),resume:{schema:1}});
+ assert.throws(()=>service.wikiInitialization({action:'reset'}),/wiki_reset_confirmation/);
+ assert.equal(await readFile(manual,'utf8'),'human edits to be explicitly discarded');
+ let release;const original=service.wikiInitializer;service.wikiInitializer=async args=>{await new Promise(resolve=>{release=resolve;});return original(args);};
+ const job=service.wikiInitialization({action:'reset',confirmed:true});
+ assert.throws(()=>service.wikiInitialization({action:'reset',confirmed:true}),/wiki_busy/);
+ await assert.rejects(service.wikiUpdate({method:'propose'}),/wiki_busy/);
+ await job;
+ assert.equal(service.state().wikiChatBlocked,true);
+ await assert.rejects(service.createTask({request:'must wait for rebuild'}),/wiki_chat_blocked/);
+ while(!release)await new Promise(resolve=>setTimeout(resolve,5));
+ release();await service.wikiInitPromise;
+ assert.equal(service.state().wikiChatBlocked,false);
+ assert.equal(service.wikiInitialization().state,'completed');
+ assert.equal(service.store.list('wiki-update:').length,0);assert.equal(service.store.get('wiki-reset-pending'),null);
+ await assert.rejects(access(copy),/ENOENT/);await assert.rejects(access(manual),/ENOENT/);
+ assert.equal(await readFile(path.join(root,'app.txt'),'utf8'),'initial source\n');
+ assert.match(await readFile(path.join(root,'openwiki/home.md'),'utf8'),/initial source/);
+});
+
+test('reset rejects an update copy outside its owned directory without deleting source or wiki',async t=>{
+ const {root,service}=await setup(t),outside=path.join(root,'keep');await mkdir(outside);await writeFile(path.join(outside,'human.txt'),'keep');
+ const id='22345678-1234-1234-1234-123456789abc';service.store.set('wiki-update:'+id,{id,copy:outside,state:'failed',createdAt:new Date().toISOString()});
+ await assert.rejects(service.wikiInitialization({action:'reset',confirmed:true}),/path_scope/);
+ assert.equal(await readFile(path.join(outside,'human.txt'),'utf8'),'keep');await access(path.join(root,'openwiki/home.md'));assert.equal(service.store.get('wiki-reset-pending'),true);
+ service.store.delete('wiki-update:'+id);await service.wikiInitialization({action:'reset',confirmed:true});await service.wikiInitPromise;assert.equal(service.store.get('wiki-reset-pending'),null);assert.equal(service.wikiInitialization().state,'completed');
+});
+
+test('reset of a Git project does not restore committed old Wiki pages from HEAD',async t=>{
+ const {root,service}=await setup(t,{gitProject:true});await writeFile(path.join(root,'openwiki','old.md'),'old page');
+ await git(root,['add','-f','openwiki']);await git(root,['-c','user.name=Fixture','-c','user.email=fixture@localhost','-c','commit.gpgSign=false','commit','-qm','Existing wiki']);
+ const head=(await git(root,['rev-parse','HEAD'])).trim();
+ await service.wikiInitialization({action:'reset',confirmed:true});await service.wikiInitPromise;
+ assert.equal(service.wikiInitialization().state,'completed',JSON.stringify(service.wikiInitialization()));await assert.rejects(access(path.join(root,'openwiki/old.md')),/ENOENT/);assert.equal((await git(root,['rev-parse','HEAD'])).trim(),head);assert.match(await readFile(path.join(root,'openwiki/home.md'),'utf8'),/initial source/);
 });

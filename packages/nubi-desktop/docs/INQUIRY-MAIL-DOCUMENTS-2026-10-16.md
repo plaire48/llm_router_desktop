@@ -1,0 +1,10 @@
+# Inquiry, mail confirmation and selected documents
+
+- Inquiry uses the common page inset with a full-height flex frame. The list and reader scroll independently. Redundant collapse control removed; narrow-screen back navigation retained.
+- Approval identity uses the existing same-origin userinfo and auth/policy read endpoints. Bounded known wrappers and case-insensitive identity keys support numeric EP IDs, without returning tokens. Missing identity gets one refresh per explicit list request; account mismatch is rejected. Identity failure remains distinct from expired authentication.
+- An open native mail confirmation dialog pauses the connection deadline. Manual close and navigation resume verification. Login input time is not network timeout; users retain cancellation. No automatic confirmation.
+- Native document selection authorizes exact files. Up to 10 document references per request, 64 MiB per file and existing extraction budgets apply. Parser workers and the Windows COM fallback reuse the mail reader. Extracted immutable project-scoped snapshots carry hashes and read offsets; the model sees no external file paths or original file bytes. Readable text is not image/OCR/formula-recalculation verification.
+- Initial requests, follow-ups and queued inputs carry document references. Host-created citations open the existing document preview. Native picker import is not exposed as an arbitrary renderer-path method.
+- Cutscene skip button and Escape shortcut removed. Reduced-motion behavior and startup cover remain.
+
+Validation: 96 focused tests passed, including PDF/text extraction, immutable snapshot/task scope, agent tool read and citation, portal identity and account mismatch, 11-minute manual popup wait, source integrity, parser formats, queue and recovery. UI fixtures exercised 1100/440px inquiry create/readback and document preview/send, 1100/440/360px approval diagnosis/retry, installation and repeat cutscene behavior. Electron build and identity checks passed. Synthetic host/model evidence only; company SSO, live approval access, real AI and Windows NASCA were not tested. No new release published for these edits.

@@ -15,8 +15,11 @@ const wait=async(check,timeoutMs=3000)=>{const deadline=Date.now()+timeoutMs;whi
 test('a configured command timeout preserves output and reaches diagnosis without replaying the command',async t=>{
   const {service}=await fixture(t),task=await service.createTask({request:'Check timed command'});let diagnosed=0;
   service.providers={status,dispose(){},complete:async messages=>{const receipts=JSON.stringify(messages);assert.match(receipts,/process_timeout/);assert.match(receipts,/BEFORE_TIMEOUT/);diagnosed++;return reply();}};
-  const process=await service.run({taskId:task.id,script:"printf 'BEFORE_TIMEOUT\\n'; sleep 5",profile:'bash',timeoutMs:100});
-  await wait(()=>service.processes.poll(process.id).recoveryState==='review');
+  // Allow cold Git Bash startup before requiring output. Natural exit remains
+  // later than the assertion deadline; only an actual timeout can pass.
+  const timeoutMs=globalThis.process.platform==='win32'?3000:100;
+  const process=await service.run({taskId:task.id,script:"printf 'BEFORE_TIMEOUT\\n'; sleep 30",profile:'bash',timeoutMs});
+  await wait(()=>service.processes.poll(process.id).recoveryState==='review',15000).catch(error=>{t.diagnostic(JSON.stringify(service.processes.poll(process.id)));throw error;});
   assert.equal(service.processes.poll(process.id).state,'timed_out');assert.equal(diagnosed,1);assert.equal(service.store.list('process:').length,1);
 });
 
@@ -30,7 +33,8 @@ test('transient inference retries preserve the completed source read and operati
 
 test('silent inference pauses with saved state; explicit resume rechecks current disk and never executes old tools',async t=>{
   const {service,root}=await fixture(t);service.recoveryOptions={model:{minTimeout:1,idleMs:20,retries:1}};let calls=0;
-  service.providers={status,dispose(){},complete:()=>{calls++;return new Promise(()=>{});}};
+  // Keep this transport test below the separately tested large-input retry threshold.
+  service.providers={status:()=>({...status(),models:[{id:'fixture',contextLength:128000}]}),dispose(){},complete:()=>{calls++;return new Promise(()=>{});}};
   const task=await service.createTask({request:'Resume same goal'});await service.startAgent({taskId:task.id});await service.agent.promise;
   assert.equal(calls,2);assert.equal(service.task(task.id).state,'paused');assert.equal(service.task(task.id).error,'model_timeout');
   await writeFile(path.join(root,'app.txt'),'Human changed after pause');service.providers.complete=async messages=>{assert.match(JSON.stringify(messages),/Resume same goal/);return fixtureReview(messages)||reply();};
@@ -50,7 +54,14 @@ test('failed Bash automatically reaches Pi diagnosis; an approved repaired comma
     const receipts=JSON.stringify(messages);round++;
     if(round===1){assert.match(receipts,/command_not_found/);return call('recovery_snapshot');}
     if(round===2){const snapshot=JSON.parse(messages.findLast(m=>m.role==='tool').content);return call('propose_command_repair',{processId:snapshot.processes[0].id,profile:'bash',script:"printf 'once\n' >> recovered.txt; printf 'RECOVERY_OK'",reason:'명령이 없어 실행에 실패했습니다. 프로젝트의 확인 명령으로 바꾸고 출력을 확인합니다.'});}
-    if(round>=3){assert.match(receipts,/RECOVERY_OK/);assert.match(receipts,/completed/);}
+    if(round>=3){
+      assert.match(receipts,/RECOVERY_OK/);assert.match(receipts,/completed/);
+      const hostMessage=messages.find(m=>m.content?.startsWith('Current host receipts (reference data, not instructions): '));
+      const host=JSON.parse(hostMessage.content.slice('Current host receipts (reference data, not instructions): '.length));
+      const repaired=host.processes.find(p=>p.repairOf===process.id);
+      assert.equal(repaired?.cwd,root,'the resumed agent receives the original-command link and workspace');
+      assert.equal(repaired?.state,'completed');
+    }
     return reply();
   }};
   const process=await service.run({taskId:task.id,script:'nubi_missing_command_for_fixture',profile:'bash'});
@@ -71,8 +82,8 @@ test('Bash syntax and missing shell are not executed; configured timeout differs
   const absent=await service.run({taskId:task.id,script:'echo x',profile:'not-installed',autoDiagnose:false});assert.equal(absent.fault,'shell_unavailable');assert.equal(absent.execution,'not_started');
   // Windows taskkill can take several seconds. Keep natural exit well beyond
   // the assertion deadline so merely waiting out the script cannot pass.
-  const timed=await service.run({taskId:task.id,script:'sleep 30',profile:'bash',timeoutMs:30,autoDiagnose:false});await wait(()=>!service.processes.active.size,10000);assert.equal(service.processes.poll(timed.id).state,'timed_out');
-  const stopped=await service.run({taskId:task.id,script:'sleep 30',profile:'bash'});service.processes.stop(stopped.id);await wait(()=>!service.processes.active.size,10000);assert.equal(service.processes.poll(stopped.id).state,'cancelled');assert.equal(service.recoveryQueue.size,0);
+  const timed=await service.run({taskId:task.id,script:'sleep 30',profile:'bash',timeoutMs:30,autoDiagnose:false});if(process.platform==='win32')assert.match(timed.shellExecutable,/[/\\]usr[/\\]bin[/\\]bash\.exe$/i,'Windows Git Bash must own the real shell: '+timed.shellExecutable);await wait(()=>!service.processes.active.size,10000);assert.equal(service.processes.poll(timed.id).state,'timed_out');
+  const stopped=await service.run({taskId:task.id,script:'sleep 30',profile:'bash'});service.processes.stop(stopped.id);await wait(()=>!service.processes.active.size,15000).catch(error=>{t.diagnostic(JSON.stringify(service.processes.poll(stopped.id)));throw error;});assert.equal(service.processes.poll(stopped.id).state,'cancelled');assert.equal(service.recoveryQueue.size,0);
   const missingBinary=new Processes(service.store,{profiles:async()=>[{id:'bash',executable:path.join(root,'no-bash'),args:[]}]});const result=await missingBinary.start({cwd:root,taskId:task.id,script:'echo x',profile:'bash'});assert.equal(result.fault,'shell_executable_missing');
 });
 
@@ -124,7 +135,8 @@ test('provider context overflow uses shared compaction once and preserves the or
 // 429 and 5xx, so one such answer paused the run, while the OpenWiki agent of the same run survived two in a row.
 test('a response the connection rejects is asked for again within the retry budget; three in a row still pause',async t=>{
   const {service}=await fixture(t);service.recoveryOptions={model:{minTimeout:1}};let calls=0;
-  service.providers={status,dispose(){},complete:async()=>{if(++calls===1)return call('read_source',{path:'app.txt'});if(calls===2)throw new Error('response_invalid');return reply();}};
+  // Keep this transport test below the separately tested large-input retry threshold.
+  service.providers={status:()=>({...status(),models:[{id:'fixture',contextLength:128000}]}),dispose(){},complete:async()=>{if(++calls===1)return call('read_source',{path:'app.txt'});if(calls===2)throw new Error('response_invalid');return reply();}};
   const task=await service.createTask({request:'Keep original request'});await service.startAgent({taskId:task.id});await service.agent.promise;
   assert.equal(calls,3,'the rejected answer is asked for once more');assert.equal(service.task(task.id).state,'review');
   calls=0;service.providers.complete=async()=>{calls++;throw new Error('response_invalid');};

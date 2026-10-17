@@ -4,10 +4,10 @@
   vertical-align: middle;
   color: inherit;
 }
-.topbar .menu-button { gap: 8px; }
+.topbar .menu-button { gap:var(--cx-space-2); }
 .topbar .menu-button .ui-icon { opacity: .9; }
 .topbar .menu-button.is-active .ui-icon { opacity: 1; }
-.topbar .topbar-actions > .btn { gap: 7px; }
+.topbar .topbar-actions > .btn { gap:calc(var(--cx-space-1) * 1.75); }
 .input-with-icon { position: relative; display: block; width: 100%; }
 .input-with-icon > .ui-icon {
   position: absolute;
@@ -17,9 +17,9 @@
   color: var(--layout-muted);
   pointer-events: none;
 }
-.app-shell .workspace-filters .input-with-icon > .text-input { padding-left: 34px; }
-.app-shell .filter-reset { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
-.table-edit-button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.app-shell .workspace-filters .input-with-icon > .text-input { padding-left:calc(var(--cx-space-1) * 8.5); }
+.app-shell .filter-reset { display: inline-flex; align-items: center; justify-content: center; gap:calc(var(--cx-space-1) * 1.5); }
+.table-edit-button { display: inline-flex; align-items: center; justify-content: center; gap:calc(var(--cx-space-1) * 1.25); }
 .modal-close { display: inline-flex; align-items: center; justify-content: center; }
 @media (pointer: coarse) {
   .app-shell .topbar .btn, .app-shell .topbar .icon-button, .app-shell .filter-reset, .table-edit-button, .modal-close, .dialog__close {

@@ -24,7 +24,7 @@ function mailSessionFetch(session,url,options){
     const result=new Response(body,{status:response.statusCode,headers});settled=true;resolve(result);
    }catch(error){fail(error);request.abort();}
   });
-  try{for(const [name,value] of Object.entries(options.headers||{}))request.setHeader(name,value);request.end(options.body||'');}catch(error){fail(error);request.abort();}
+  try{for(const [name,value] of Object.entries(options.headers||{}))request.setHeader(name,value);if(options.body)request.end(options.body);else request.end();}catch(error){fail(error);request.abort();}
  });
 }
 module.exports={mailSessionFetch};

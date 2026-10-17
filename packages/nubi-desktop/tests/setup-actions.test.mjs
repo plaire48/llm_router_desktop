@@ -216,3 +216,13 @@ test('a command proposed during a run remembers that run, so its card stays in t
   assert.equal(action.runId,'run-turn');
   assert.equal(service.store.get('setup-action:'+action.id).runId,'run-turn');
 });
+
+for(const receipt of [null,{state:'interrupted',execution:'unknown'},{state:'completed',execution:'unknown'},{state:'unrecognized'}])test(`an unsettled receipt never creates a fresh approval for the same command: ${receipt?.state||'missing'}`,async t=>{
+  const {service}=await fixture(t),task=await service.createTask({request:'Keep uncertain execution'}),action=await prepare(service,task.id);
+  service.store.set('setup-action:'+action.id,{...action,state:'started',resultProcessId:'uncertain-process'});
+  if(receipt)service.store.set('process:uncertain-process',{id:'uncertain-process',taskId:task.id,...receipt});
+  const again=await prepare(service,task.id);
+  assert.equal(again.id,action.id,'a missing or uncertain receipt is not proof of exit');
+  assert.equal(again.state,'attention');assert.equal(again.error,'setup_execution_unconfirmed');assert.equal(service.store.list('setup-action:').length,1);
+  assert.equal((await prepare(service,task.id)).id,action.id,'repeated observations cannot acquire fresh authority');
+});

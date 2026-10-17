@@ -182,12 +182,73 @@ its inputs, not every possible input. Scope claims to validated input domains.
 For universal assertions (always, never, all unknown inputs, cannot throw,
 exact arithmetic, immutable), trace relevant failure paths and boundary behavior:
 coercion and inherited properties in dynamic lookups, non-finite/unsafe numeric
-intermediates, and shallow versus deep mutation. Do not infer numerical exactness
-merely from integer input checks. If the evidence does not establish a universal,
+intermediates, and shallow versus deep mutation. For failure-state claims, trace earlier reads
+and cleanup too; skipping a final write does not guarantee unchanged state.
+When explaining retries, explicitly document whether rollback and idempotency
+exist in the implementation. If absent, include one concise sentence beside the
+retry policy: a failed attempt may already have side effects, and repeating it
+can repeat those effects. Retries alone provide neither rollback nor idempotency. Do not infer numerical exactness
+merely from integer input checks. A validated parameter does not validate other
+operands or values returned by injected callbacks; qualify comparisons accordingly.
+Separate callback values at creation from later invocations. A finite timestamp
+at set time does not constrain future reads. If overflow produces an infinite
+expiry, say it does not expire WHILE subsequent clock readings remain finite;
+if a later reading is Infinity the >= comparison succeeds. TTL zero also needs
+a numeric (not NaN) reading for the equality example. Prefer the actual comparison
+over an unqualified promise about all future states.
+For cancellation, state which signals the wrapper actually passes or checks.
+Distinguish the built-in default task/sleep behavior from an injected callback,
+which may independently observe a captured signal. Do not claim injected work
+cannot cancel itself merely because the wrapper does not pass its signal. If the evidence does not establish a universal,
 narrow the statement to observed behavior or explicitly name the unverified bound.
 Distinguish recommendations from existing validation and source observations from
 live operational guarantees. Distinguish reading test code from running its checks.
 Lead each page with the core behavior; avoid repeated inventories and boilerplate.
+Do not present generic OpenWiki housekeeping as an application feature. For an
+unrelated application, omit sections about OpenWiki's own scheduled generation
+workflow or bootstrap files from quickstart unless the assignment asks how to
+operate that integration. Keep actual application build/test/deployment guidance. Generated
+AGENTS/CLAUDE setup guidance is policy, not evidence that CI, schedules or deployment
+are configured or running. Verify the actual configuration before asserting those facts.
+Keep each assertion locally accurate: put material conditions and exceptions in
+the same sentence or table row. A caveat several paragraphs later does not repair
+an overbroad earlier claim. In particular, an aggregate check does not validate
+every item: fractional or missing item fields are rejected only when the actual
+calculation reaches the rejecting guard. Distinguish omitted object properties
+from omitting an entire required argument.
+
+Give each fact one primary home. When a detail page exists, quickstart should
+provide a short runnable example, the essential command and a task-routing table,
+then link to that page instead of repeating its policies, failure catalog or
+test inventory. Do not restate table rows in prose. Match length to source complexity: for a
+small module, aim for a compact detail page of roughly 2500-4000 characters,
+without dropping a requested behavior or material condition. State each policy
+and caveat once beside its actual mechanism. A concise call-flow paragraph and
+condition table usually suffice; do not add parallel risk/error/test-gap catalogs
+that restate them. Describe representative test coverage and its entrypoint,
+not an exhaustive list of untested inputs or every assertion in every test.
+Keep arithmetic derivations
+and speculative edge-case audits out unless they materially change the reader's
+decision; retain the actual limitation concisely where the behavior is described.
+${
+  job.path === "/openwiki/quickstart.md" &&
+  allPages.some((page) => page.path !== job.path)
+    ? `
+This quickstart has separate detail pages. Read the relevant existing detail page
+when available to keep terminology and qualifications consistent, but original
+source remains authoritative. Link to its policy and validation sections rather
+than rephrasing their guarantees into new shortened claims. Do not duplicate its
+error/edge-case summary in the navigation table. Keep its body to a short core-behavior
+paragraph, one minimal example, the essential command, and a compact task-routing
+table. Do not add policy-by-policy walkthroughs, an error catalog, or a repeated
+test inventory. Link to the owning detail page for conditions and exceptions;
+omitting an error summary is better than flattening its input-dependent behavior.
+Retain essential repository restrictions and approval boundaries. Aim for about
+1000-1800 characters of body prose; this is a brevity target, not permission to
+drop a material warning or requested requirement.
+`
+    : ""
+}
 
 Make relationships useful to someone changing this code. For a workflow, trace
 the actual trigger through its handlers, state or data owner, and observable
@@ -201,7 +262,16 @@ and evidence below it. Mention test files as verification entrypoints, never as
 proof that they were run. Keep historical behavior explicitly dated and separate
 from the current implementation. Unresolved paths stay explicit unknowns.
 
-Write only ${job.path}. Do not create, edit, or delete another wiki page. After
+Write only ${job.path}. Do not create, edit, or delete another wiki page.
+After any content-review rejection, verify all findings against the source,
+then fix the page and its affected Claims in one focused revision. Keep correct
+content unchanged. Use edit_file for small sentence corrections instead of
+rewriting the whole existing page. Do not add unrelated sections, new universal guarantees or
+an exhaustive taxonomy. Reuse a supplied claimId for a corrected Claim rather
+than retaining the old claim and adding a duplicate. Do not turn counterexamples into an exhaustive list ("only two failure
+paths") or a universal numeric threshold. Use the actual condition/expression
+and concise examples instead of claiming all cases are covered. Wait for each
+write/edit result before submitting the page. After
 writing it, call submit_page with only the sparse Claim decisions required by
 your edits: confirmedClaimIds for rechecked issue Claims that remain unchanged,
 claims for revised or new propositions, and retractedClaimIds for removed

@@ -9,6 +9,7 @@ Versions are pinned in the package lock. Original source notices and installed p
 | React / React DOM | 19.2.8 | MIT | Shared UI |
 | React Arborist | 3.16.0 | MIT | Virtualized file explorer selection and keyboard navigation |
 | xterm.js / Fit addon | 6.0.0 / 0.11.0 | MIT | Manual command output terminal and container fitting |
+| Univer core / formula engine / sheets / sheets-formula | 0.25.1 | Apache-2.0 | Worker calculation of captured native Excel cells; bundled dependency notices in vendor/licenses/native-excel/index.json |
 | Pi agent-core / pi-ai | 0.86.1 | MIT | Existing Nubi agent and provider runtime |
 | @vscode/ripgrep | 1.18.0 | MIT wrapper; ripgrep MIT OR Unlicense | Bounded native source search; platform package retained by npm |
 | TypeScript | 5.9.3 | Apache-2.0 | In-memory JS/TS syntax diagnostics and declaration outlines |
@@ -113,3 +114,7 @@ HTML-to-text 10.0.1, MIT, https://github.com/html-to-text/node-html-to-text — 
 POP3/MIME and HTML-to-text license texts are also included in the installed resources/licenses/pop3 directory.
 
 DOMPurify 3.4.15 (Apache-2.0 OR MPL-2.0) also sanitizes the Desktop email presentation. The upstream Apache license is retained in `vendor/licenses/DOMPurify-LICENSE.txt`. No new sanitizer package is installed.
+
+## Captured Excel calculation sources
+
+The captured-cell worker includes the existing modified LibreOffice depreciation and seasonal-period calculation adapters (MPL-2.0). Their complete modified source, original sources, revision manifest, MPL-2.0 and Apache-2.0 notices are distributed under `vendor/licenses/native-excel/source` and copied into the host's `lib/licenses/native-excel/source`. The wrapper only enables ETS.SEASONALITY; other ETS adapters retain their documented numerical verification gap. It does not read Office files.

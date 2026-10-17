@@ -38,3 +38,7 @@ MIT `word-extractor`, SheetJS의 구형 Excel 해석, Tesseract.js OCR을 검토
 이번 환경은 macOS다. Electron JavaScript/백엔드 빌드에 이 경로와 PS1 자산을 포함했다. Windows PowerShell 파서, Office COM, 실제 NASCA 암복호화와 회사 정책/보안 프롬프트 동작은 실행하지 않았다. 따라서 실제 읽기 성공/호환성/성능을 아직 보장하지 않는다. Native Office/설치 빌드, 실제 모델 호출과 자동 테스트를 실행하지 않았다.
 
 실환경에서 확인해야 하는 항목은 보호 DOC/DOCX/XLS/XLSX/PPT/PPTX의 원문 대조, 한국어/표/날짜/슬라이드, 열기 전후 원본 해시, 기존 편집 중인 Office 문서 보존, OFF/시간 초과/보안 질문 시 보류/취소, 파일 잠금 해제와 읽기용 사본 제거다. 쓰기와 편집은 기존 누비 Office의 승인/문서 바인딩/저장/readback 실행기를 사용하며 이번 Desktop 읽기를 편집 연동으로 확대하지 않는다.
+
+## 2026-10-16 읽기 실패 후속
+
+현재 소스의 PowerShell 본문 조합에 누락된 중괄호를 복구하고, 빌드/Windows 패키징의 실제 PowerShell 구문 검사와 안전한 실패 단계/HRESULT 보존을 추가했다. 재현/수정 및 macOS 검사와 실제 Windows Office/NASCA의 경계는 [후속 기록](OFFICE-READ-FAILURE-2026-10-16.md)을 따른다.

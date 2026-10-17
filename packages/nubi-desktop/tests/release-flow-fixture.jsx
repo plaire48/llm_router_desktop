@@ -1,15 +1,17 @@
+import '@e2e/cx-design-system/styles.css';
 import React from 'react';
 import {createRoot} from 'react-dom/client';
 import {WorkspaceNavigation} from '../ui/WorkspaceNavigation.jsx';
 import {DriftLabel} from '../ui/DriftLabel.jsx';
 import {WorkspaceUpdate,WorkspaceUpdateProgress,useWorkspaceUpdate} from '../ui/WorkspaceUpdate.jsx';
-import '@e2e/cx-design-system/styles.css';
+
 import '../electron-app/workbench.css';
 import '../design/workspace-identity.css';
 import '../electron-app/shell.css';
 import '../electron-app/ios-tokens.css';
 import '../design/workspace-typography.css';
 import '../design/workspace-dialogs.css';
+import '../design/workspace-icons.css';
 import '../design/workspace-density.css';
 window.fixtureUpdate={phase:'available',currentVersion:'1.1.1',release:{version:'1.1.2',size:100*1024**2,notes:'업데이트 안내'}};
 if(new URLSearchParams(location.search).get('update')==='current')window.fixtureUpdate={...window.fixtureUpdate,phase:'current',currentVersion:'1.1.2'};

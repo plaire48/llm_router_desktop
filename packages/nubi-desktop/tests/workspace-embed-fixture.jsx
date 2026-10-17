@@ -1,11 +1,13 @@
+import '@e2e/cx-design-system/styles.css';
 import inquiryTypes from '../ui/ai-workspace/data/masters/inquiry-types.json';
 import React,{useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {GhesAccount} from '../ui/GhesAccount.jsx';
 import {AiWorkspaceEmbed} from '../ui/AiWorkspaceEmbed.jsx';
 import {prepareWorkspaceSite} from '../ui/ai-workspace/workspace/workspaceSite.js';
-import '@e2e/cx-design-system/styles.css';
+
 import '../electron-app/workbench.css';import '../design/workspace-identity.css';import '../electron-app/shell.css';import '../electron-app/ios-tokens.css';import '../design/workspace-typography.css';import '../design/workspace-density.css';import '../design/workspace-dialogs.css';
+import '../design/workspace-icons.css';
 window.calls=[];window.unhandled=[];window.openFailure=false;
 const user={id:7,login:'nubi',name:'김누비',email:'nubi@example.test',type:'User'};
 const issues=[];
@@ -39,6 +41,7 @@ window.nubi={desktop:true,request:async(method,args)=>{
  else {status=404;value={message:'fixture missing'};}
  return {status,body:encode(value),url:args.url,headers:{'content-type':'application/json'}};
 }};
+const {SkillManager}=await import('../ui/SkillManager.jsx');
 const accountStatus=async()=>({connected:true,state:'connected',profile:user});
-function Fixture(){const [accountOpen,setAccountOpen]=useState(false);const [view,setView]=useState('apps'),[connected,setConnected]=useState(true);return <main className="desktop-shell" style={{display:'block',height:'100vh',overflow:'auto'}}><nav><button onClick={()=>setView('apps')}>테스트 앱</button><button onClick={()=>setView('support')}>테스트 문의</button><button onClick={()=>setView('talk')}>테스트 Talk</button><button onClick={()=>setConnected(v=>!v)}>테스트 로그인 전환</button></nav><GhesAccount account={accountStatus} open={accountOpen} onOpen={()=>setAccountOpen(true)} onClose={()=>setAccountOpen(false)}/><AiWorkspaceEmbed view={view} account={{connected,profile:user}} onSignIn={()=>setConnected(true)}/></main>;}
+function Fixture(){const [accountOpen,setAccountOpen]=useState(false);const [view,setView]=useState('apps'),[connected,setConnected]=useState(true);return <main className="desktop-shell" style={{display:'flex',flexDirection:'column',height:'100vh',overflow:'hidden'}}><nav><button onClick={()=>setView('apps')}>테스트 앱</button><button onClick={()=>setView('support')}>테스트 문의</button><button onClick={()=>setView('talk')}>테스트 Talk</button><button onClick={()=>setConnected(v=>!v)}>테스트 로그인 전환</button></nav><GhesAccount account={accountStatus} open={accountOpen} onOpen={()=>setAccountOpen(true)} onClose={()=>setAccountOpen(false)}/>{view==='support'?<SkillManager initialTab="support" account={{connected,profile:user}} onSignIn={()=>setConnected(true)}/>:<AiWorkspaceEmbed view={view} account={{connected,profile:user}} onSignIn={()=>setConnected(true)}/>}</main>;}
 createRoot(document.getElementById('root')).render(<Fixture/>);

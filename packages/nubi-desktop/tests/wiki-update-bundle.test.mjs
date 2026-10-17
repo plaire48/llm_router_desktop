@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,readdir,readFile,writeFile,rm,access} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import {Worker} from 'node:worker_threads';
 
 // OpenWiki takes its home from the environment when its module loads.
 const home=await mkdtemp(path.join(os.tmpdir(),'nubi-openwiki-home-'));
@@ -17,6 +18,14 @@ test('the update folder loads on its own and exports the runner, the model and t
   assert.equal(typeof runner.runNativeRepositoryGeneration,'function');
   assert.equal(typeof runner.NubiOpenWikiModel,'function');
   assert.equal(typeof runner.syncBundledSkills,'function');
+});
+
+test('the packaged analysis worker includes repository structure mode',async t=>{
+  const worker=new Worker(new URL('../extension/lib/node/code-analysis-worker.mjs',import.meta.url),{workerData:{mode:'repository',files:[{path:'main.ts',content:'export function main() {}',hash:'synthetic'}]},execArgv:[]});
+  t.after(()=>worker.terminate());
+  const result=await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('worker_timeout')),5000);worker.once('message',value=>{clearTimeout(timer);resolve(value);});worker.once('error',error=>{clearTimeout(timer);reject(error);});});
+  assert.equal(result.scope,'static_symbols_and_references');
+  assert.ok(result.symbols.some(symbol=>symbol.path==='main.ts'&&symbol.name==='main'));
 });
 
 test('the bundled skills come from the folder and go to the OpenWiki home',async()=>{

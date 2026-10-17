@@ -1,0 +1,37 @@
+{
+  "name": "cache-retry",
+  "schema": 1,
+  "createdAt": "2026-10-15T17:37:22.530Z",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "15b66a927d8a61eee59e38bdf5999852fdf0dcf670f17fb71cb58d3f089fa93b",
+      "bytes": 294
+    },
+    {
+      "path": "package.json",
+      "sha256": "88b2239deb2d0f30f031c13c22dee3173fe0667ea809d04dc3ff676d19c453b8",
+      "bytes": 108
+    },
+    {
+      "path": "src/cache.mjs",
+      "sha256": "7f8cc7886846feb52ac48643d7a3da90af221681194d9f790d34195f66575131",
+      "bytes": 453
+    },
+    {
+      "path": "src/retry.mjs",
+      "sha256": "a288cba9a7f9436d7eb334fe3f4a35813f85fbe800162ac7f94614f43dd852ab",
+      "bytes": 472
+    },
+    {
+      "path": "src/service.mjs",
+      "sha256": "e814bdc9bd963477ea566a2745ed92442674134384537e308507339398b9edc9",
+      "bytes": 446
+    },
+    {
+      "path": "test/boundaries.mjs",
+      "sha256": "ac587d9aefc2263130114331d86158084a75c947103f5e209b97cb59e7581241",
+      "bytes": 1839
+    }
+  ]
+}

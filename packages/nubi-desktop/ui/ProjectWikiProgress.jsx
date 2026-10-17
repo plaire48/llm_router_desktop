@@ -23,11 +23,11 @@ export function useWorkbenchEdge(node){
   return edge;
 }
 export function ProjectWikiProgress({job,projectName,projectRoot,onStop}){
-  return <section className="nubi-project-wiki-progress" aria-label="프로젝트 위키 작성">
+  return <section className={`nubi-project-wiki-progress${job?.state==='running'?' nubi-progress-atmosphere':''}`} aria-label="프로젝트 위키 작성">
     <div className="nubi-project-wiki-progress-body">
-      <Icon name="bookmark" size={18}/>
-      <div className="nubi-project-wiki-progress-status"><WikiProjectIdentity name={projectName} root={projectRoot}/><WikiInitializationProgress job={job}/></div>
-      <CxButton onClick={onStop} aria-label="위키 작성 중지" title="위키 작성 중지"><Icon name="xClose" size={16}/></CxButton>
+      <WikiProjectIdentity name={projectName} root={projectRoot}/>
+      <CxButton data-icon-only onClick={onStop} aria-label="위키 작성 중지" title="위키 작성 중지"><Icon name="xClose" size={16}/></CxButton>
     </div>
+    <WikiInitializationProgress job={job}/>
   </section>;
 }

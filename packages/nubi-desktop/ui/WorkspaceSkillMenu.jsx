@@ -1,19 +1,17 @@
 import {pickerWidth} from './picker-width.mjs';
 import React, {useEffect, useId, useLayoutEffect, useRef, useState} from 'react';
-import {createPortal} from 'react-dom';
 import {CxButton, Icon} from '@e2e/cx-design-system';
 import {notifyWorkspaceToast} from './WorkspaceToast.jsx';
 import {FolderMark} from './marks.jsx';
-import {useAnchoredModal} from './useAnchoredModal.js';
+import {AnchoredDialog} from './AnchoredDialog.jsx';
 
 // Registered skills are request shortcuts, not installation or tool approval.
 // Discovery and file management stay separate from choosing a skill to use.
-export function WorkspaceSkillMenu({api, taskId, onMarketplace, onManage, onManageMcp, onSelect}) {
+export function WorkspaceSkillMenu({api, taskId, onMarketplace, onManage, onManageMcp, onDocuments, onOffice, onEditor, onSelect}) {
   const [open, setOpen] = useState(false), [catalog, setCatalog] = useState(null), [mcp, setMcp] = useState(null);
   const [loading, setLoading] = useState(false), [failed, setFailed] = useState(false), [revision, setRevision] = useState(0);
   const [position, setPosition] = useState(null);
   const trigger = useRef(null), dialog = useRef(null), closeButton = useRef(null), id = useId();
-  useAnchoredModal(dialog, trigger, open && !!position, '.nubi-skill-menu-close');
   useEffect(() => { setOpen(false); setCatalog(null); }, [taskId]);
   useEffect(() => {
     if (!open || !onManageMcp) return;
@@ -57,25 +55,25 @@ export function WorkspaceSkillMenu({api, taskId, onMarketplace, onManage, onMana
     document.addEventListener('scroll', place, true);
     return () => { observer.disconnect(); window.removeEventListener('resize', place); document.removeEventListener('scroll', place, true); };
   }, [open]);
-  function close() { setOpen(false); trigger.current?.focus({preventScroll:true}); }
+  function close() { setOpen(false); }
   function openManagement(callback) { close(); callback?.(trigger.current); }
-  function handleKeys(event) {
-    if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(); }
-  }
   const skills = catalog?.skills || [];
   return <div className="nubi-skill-menu-anchor nubi-composer-skill-anchor">
-    <CxButton ref={trigger} className="composer-icon nubi-composer-skill-trigger" data-icon-only aria-label="스킬 관리" title="스킬 관리" aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined} onClick={() => { if (open) close(); else {setLoading(true); setFailed(false); setOpen(true);} }}><Icon name="plus" size={18}/></CxButton>
-    {open && createPortal(<div ref={dialog} id={id} className="nubi-skill-menu nubi-composer-skill-menu" role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} style={{...position, visibility:position ? 'visible' : 'hidden'}} onKeyDown={handleKeys}>
+    <CxButton ref={trigger} className="composer-icon nubi-composer-skill-trigger" data-icon-only aria-label="스킬 관리" title="문서 첨부 및 도구" aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined} onClick={() => { if (open) close(); else {setLoading(true); setFailed(false); setOpen(true);} }}><Icon name="plus" size={18}/></CxButton>
+    {open && <AnchoredDialog dialogRef={dialog} id={id} title="도구 목록" className="nubi-skill-menu nubi-composer-skill-menu" initialFocus=".nubi-skill-menu-close" onClose={close} style={{...position, visibility:position ? 'visible' : 'hidden'}}>
       <div className="nubi-skill-menu-header"><strong id={`${id}-title`}>도구 목록</strong><CxButton ref={closeButton} className="nubi-skill-menu-close nubi-modal-close" aria-label="스킬 메뉴 닫기" title="닫기" onClick={close}><Icon name="xClose" size={18}/></CxButton></div>
       
+      {onDocuments&&<CxButton className="nubi-skill-menu-marketplace" onClick={()=>openManagement(onDocuments)}><span className="nubi-skill-menu-icon" aria-hidden="true"><Icon name="file" size={18}/></span><span className="nubi-skill-menu-copy"><strong>문서 첨부</strong></span><Icon name="plus" size={16}/></CxButton>}
+      {onOffice&&<CxButton className="nubi-skill-menu-marketplace" onClick={()=>openManagement(onOffice)}><span className="nubi-skill-menu-icon" aria-hidden="true"><Icon name="file" size={18}/></span><span className="nubi-skill-menu-copy"><strong>열린 Office 연결</strong></span><Icon name="plus" size={16}/></CxButton>}
+      {onEditor&&<CxButton className="nubi-skill-menu-marketplace" onClick={()=>openManagement(onEditor)}><span className="nubi-skill-menu-icon" aria-hidden="true"><Icon name="file" size={18}/></span><span className="nubi-skill-menu-copy"><strong>문서 편집기 연결</strong></span><Icon name="plus" size={16}/></CxButton>}
       <div className="nubi-skill-menu-list" role="list" aria-label="등록한 스킬" aria-busy={loading}>
         {loading && <p className="nubi-skill-menu-empty" role="status"><span className="status-spinner" aria-hidden="true"/>스킬 확인 중</p>}
         {!loading && failed && <div className="nubi-skill-menu-unavailable"><p className="nubi-skill-menu-empty">불러오기 실패</p><CxButton className="nubi-skill-menu-retry" onClick={() => setRevision(value => value + 1)}><Icon name="refresh" size={14}/>다시 확인</CxButton></div>}
         {!loading && !failed && !skills.length && <p className="nubi-skill-menu-empty" role="status">스킬이 없어요.</p>}
         {!loading && skills.map(skill => <div role="listitem" key={skill.path || skill.name}><CxButton className="nubi-skill-menu-row" aria-label={`${skill.title||skill.name} 스킬 사용`} title={skill.description || skill.name} onClick={() => { try {
           if (!onSelect) throw Error('selection_unavailable');
-          onSelect(skill); setOpen(false);
-          notifyWorkspaceToast(`${skill.title||skill.name} 스킬을 요청에 추가했습니다.`, {success:true});
+          onSelect(skill,skills); setOpen(false);
+          notifyWorkspaceToast(`${skill.title||skill.name} 스킬을 선택했습니다.`, {success:true});
         } catch { notifyWorkspaceToast('스킬을 요청에 추가하지 못했습니다. 다시 선택해 주세요.', {error:true}); } }}>
           <span className="nubi-skill-menu-icon" aria-hidden="true"><Icon name="layers" size={18}/></span><span className="nubi-skill-menu-copy"><strong>{skill.title||skill.name}</strong></span>
         </CxButton></div>)}
@@ -90,6 +88,6 @@ export function WorkspaceSkillMenu({api, taskId, onMarketplace, onManage, onMana
         {(mcp || []).map(server => <div key={server.id} className="nubi-skill-menu-mcp-row" data-state={server.state}><span className="nubi-skill-menu-mcp-dot" aria-hidden="true"/><strong>{server.name || server.id}</strong><span>{server.state === 'connected' ? `도구 ${server.tools.length}개` : server.state === 'failed' ? '연결 실패' : '연결 안 됨'}</span></div>)}
         <CxButton className="nubi-skill-menu-marketplace" onClick={() => openManagement(onManageMcp)}><span className="nubi-skill-menu-icon" aria-hidden="true"><Icon name="workflow" size={18}/></span><span className="nubi-skill-menu-copy"><strong>MCP 서버</strong>{mcp && <small>{mcp.length ? `${mcp.length}개 등록` : '등록된 서버 없음'}</small>}</span><Icon name="chevronRight" size={14}/></CxButton>
       </div>}
-    </div>, document.body)}
+    </AnchoredDialog>}
   </div>;
 }

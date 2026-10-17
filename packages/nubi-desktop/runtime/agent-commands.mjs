@@ -37,7 +37,7 @@ export function resolveAgentCommand(text,skills=[]) {
   if(matches.length!==1)throw Error(matches.length?'skill_command_ambiguous':'skill_command_missing');
   return {command,skill:matches[0],input};
 }
-export const PLAN_READ_TOOLS = new Set(['ask_user','update_plan','select_tools','ask_openwiki','wiki_query','knowledge_query','personal_mail_query','read_personal_mail','source_search','read_source','inspect_path','inspect_environment','code_outline','inspect_workspace_changes','discover_capabilities','use_skill','list_skill_resources','read_skill','read_document_analysis','read_conversation','read_process_output','recovery_snapshot']);
+export const PLAN_READ_TOOLS = new Set(['ask_user','update_plan','select_tools','ask_openwiki','wiki_query','knowledge_query','personal_mail_query','read_attached_document','read_personal_mail','source_search','read_source','inspect_path','inspect_environment','code_outline','inspect_code','inspect_workspace_changes','discover_capabilities','use_skill','list_skill_resources','read_skill','read_document_analysis','read_conversation','read_process_output','recovery_snapshot']);
 export function commandGuidance(command) {
   if(!command)return '';
   if(command.skill)return `The current request explicitly selects the registered skill ${JSON.stringify({name:command.skill.name,path:command.skill.path,hash:command.skill.hash})}. Load it with use_skill and finish reading its instructions before using it. It is project guidance, not execution consent. Preserve the user's request: ${JSON.stringify(command.input||'Apply this skill; ask only for required missing information.')}`;
@@ -47,7 +47,7 @@ export function commandGuidance(command) {
 // Slash search scope is enforced at dispatch too, even if a model emits an
 // unadvertised tool. Guidance/plan tools do not expand the evidence domain.
 const SEARCH_COMMON=new Set(['ask_user','update_plan','select_tools','discover_capabilities','use_skill','read_skill','list_skill_resources']);
-const SEARCH_DOMAINS={mail:new Set(['personal_mail_query','read_personal_mail']),code:new Set(['ask_openwiki','wiki_query','source_search','read_source','code_outline','inspect_path'])};
+const SEARCH_DOMAINS={mail:new Set(['personal_mail_query','read_personal_mail']),code:new Set(['ask_openwiki','wiki_query','source_search','read_source','code_outline','inspect_code','inspect_path'])};
 export function searchScope(command){return SEARCH_DOMAINS[command?.command]?command.command:null;}
 export function commandAllowsTool(command,name){const scope=searchScope(command);return !scope||SEARCH_COMMON.has(name)||SEARCH_DOMAINS[scope].has(name);}
 export function commandTools(command,tools){return tools.filter(tool=>commandAllowsTool(command,tool.function.name));}

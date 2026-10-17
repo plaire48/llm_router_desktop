@@ -45,3 +45,15 @@ test('real process pipes normalize split UTF-8 CLIXML while retaining raw disk e
   assert.equal(record.output,decode(xml,100));assert.equal(record.outputDiagnostic.kind,'directory_access_denied');
   assert.equal(await readFile(record.logPath,'utf8'),xml);assert.equal(service.store.list('process:').length,1);
 });
+
+test('multilingual process bytes keep accents, emoji and line art at one-byte pipe boundaries',async t=>{
+ const {service,root}=await fixture(t);
+ const processes=new Processes(service.store,{profiles:async()=>[{id:'fixture',executable:process.execPath,args:['-e']}]});t.after(()=>processes.dispose());
+ const raw='\x1b[32m한글 日本語 résumé Ελληνικά 😀 👩‍💻\x1b[0m\r\n┌──┐\r\n│ ✓│\r\n└──┘\r\n';
+ const script=`const b=Buffer.from(${JSON.stringify(raw)});let i=0;const tick=setInterval(()=>{process.stdout.write(b.subarray(i,i+1));if(++i===b.length)clearInterval(tick);},1);`;
+ const started=await processes.start({cwd:root,taskId:'unicode-test',profile:'fixture',script,autoDiagnose:false});
+ const deadline=Date.now()+10000;while(processes.active.size&&Date.now()<deadline)await new Promise(r=>setTimeout(r,10));
+ const record=processes.poll(started.id);assert.equal(record.state,'completed');assert.equal(record.output,raw);
+ assert.equal(processOutputPreview(record).output,'한글 日本語 résumé Ελληνικά 😀 👩‍💻\n┌──┐\n│ ✓│\n└──┘\n');
+ assert.equal(await readFile(record.logPath,'utf8'),raw);
+});

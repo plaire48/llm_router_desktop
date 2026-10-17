@@ -9,6 +9,8 @@ const used=new Map();
 for(const file of [...['ui','electron-app'].flatMap(files),path.resolve('runtime/mail-file-kinds.mjs')]){
   const text=readFileSync(file,'utf8');
   for(const match of text.matchAll(/<Icon\b[^>]*?\bname=(?:"([^"]+)"|'([^']+)'|\{'([^']+)'\}|\{"([^"]+)"\})/g)){const name=match[1]||match[2]||match[3]||match[4];if(!used.has(name))used.set(name,file);}
+  // Disclosure icons are forwarded to the same Icon component.
+  for(const match of text.matchAll(/<DeckDisclosure\b[^>]*?\bicon=["']([A-Za-z]+)["']/g)){if(!used.has(match[1]))used.set(match[1],file);}
   // Data tables: icon:'name' entries are rendered by several screens (the mail kinds table had 'folder', 2026-10-14).
   for(const match of text.matchAll(/\bicon\s*:\s*(?:'([A-Za-z]+)'|"([A-Za-z]+)")/g)){const name=match[1]||match[2];if(!used.has(name))used.set(name,file);}
   // Conditional names: name={cond?'a':'b'} — collect every quoted word inside the braces.

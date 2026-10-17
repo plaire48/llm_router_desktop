@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "files": {
+    "OfficeX.Core.dll": "20ff830731489062e1bb1f7f1394a2ac484365e62627d7be72e5a77bef8fc6b6",
+    "OfficeX.ExcelHost.dll": "e7afbd9e424e5eea434ff28acf0cf73ad3e4582295133460e8e393cdfb7e6278",
+    "Newtonsoft.Json.dll": "e1e27af7b07eeedf5ce71a9255f0422816a6fc5849a483c6714e1b472044fa9d"
+  },
+  "provenance": "Existing OfficeX native libraries reused by Nubi OfficeBridge; build input, not a Windows runtime validation.",
+  "windowsRuntimeVerified": false,
+  "office2016Verified": false
+}

@@ -1,0 +1,354 @@
+{
+  "scope": "Bundled captured-cell calculator only; no Office document reader or native Office host",
+  "coveredSources": [
+    "scripts/libreoffice-depreciation.mjs",
+    "scripts/libreoffice-ets.mjs",
+    "vendor/calculation-reference/libreoffice-source.json",
+    "vendor/calculation-reference/libreoffice/COPYING.MPL",
+    "vendor/calculation-reference/libreoffice/LICENSE.Apache-2.0",
+    "vendor/calculation-reference/libreoffice/analysishelper.cxx",
+    "vendor/calculation-reference/libreoffice/interpr8.cxx"
+  ],
+  "packages": [
+    {
+      "name": "@flatten-js/interval-tree",
+      "version": "1.1.3",
+      "license": "MIT",
+      "files": [
+        "@flatten-js-interval-tree-1.1.3-LICENSE"
+      ]
+    },
+    {
+      "name": "@floating-ui/core",
+      "version": "1.8.0",
+      "license": "MIT",
+      "files": [
+        "@floating-ui-core-1.8.0-LICENSE"
+      ]
+    },
+    {
+      "name": "@floating-ui/dom",
+      "version": "1.8.0",
+      "license": "MIT",
+      "files": [
+        "@floating-ui-dom-1.8.0-LICENSE"
+      ]
+    },
+    {
+      "name": "@floating-ui/utils",
+      "version": "0.2.12",
+      "license": "MIT",
+      "files": [
+        "@floating-ui-utils-0.2.12-LICENSE"
+      ]
+    },
+    {
+      "name": "@nodable/entities",
+      "version": "3.1.0",
+      "license": "MIT",
+      "files": []
+    },
+    {
+      "name": "@univerjs/core",
+      "version": "0.25.1",
+      "license": "Apache-2.0",
+      "files": [
+        "@univerjs-core-0.25.1-LICENSE"
+      ]
+    },
+    {
+      "name": "@univerjs/engine-formula",
+      "version": "0.25.1",
+      "license": "Apache-2.0",
+      "files": [
+        "@univerjs-engine-formula-0.25.1-LICENSE"
+      ]
+    },
+    {
+      "name": "@univerjs/engine-render",
+      "version": "0.25.1",
+      "license": "Apache-2.0",
+      "files": [
+        "@univerjs-engine-render-0.25.1-LICENSE"
+      ]
+    },
+    {
+      "name": "@univerjs/protocol",
+      "version": "0.25.1",
+      "license": "Apache-2.0",
+      "files": []
+    },
+    {
+      "name": "@univerjs/rpc",
+      "version": "0.25.1",
+      "license": "Apache-2.0",
+      "files": [
+        "@univerjs-rpc-0.25.1-LICENSE"
+      ]
+    },
+    {
+      "name": "@univerjs/sheets",
+      "version": "0.25.1",
+      "license": "Apache-2.0",
+      "files": [
+        "@univerjs-sheets-0.25.1-LICENSE"
+      ]
+    },
+    {
+      "name": "@univerjs/sheets-formula",
+      "version": "0.25.1",
+      "license": "Apache-2.0",
+      "files": [
+        "@univerjs-sheets-formula-0.25.1-LICENSE"
+      ]
+    },
+    {
+      "name": "@univerjs/themes",
+      "version": "0.25.1",
+      "license": "Apache-2.0",
+      "files": [
+        "@univerjs-themes-0.25.1-LICENSE"
+      ]
+    },
+    {
+      "name": "@wendellhu/redi",
+      "version": "1.1.1",
+      "license": "MIT",
+      "files": [
+        "@wendellhu-redi-1.1.1-LICENSE"
+      ]
+    },
+    {
+      "name": "@xmldom/xmldom",
+      "version": "0.8.15",
+      "license": "MIT",
+      "files": [
+        "@xmldom-xmldom-0.8.15-LICENSE"
+      ]
+    },
+    {
+      "name": "anynum",
+      "version": "1.0.1",
+      "license": "MIT",
+      "files": [
+        "anynum-1.0.1-LICENSE"
+      ]
+    },
+    {
+      "name": "async-lock",
+      "version": "1.4.1",
+      "license": "MIT",
+      "files": [
+        "async-lock-1.4.1-LICENSE"
+      ]
+    },
+    {
+      "name": "cjk-regex",
+      "version": "3.5.0",
+      "license": "MIT",
+      "files": [
+        "cjk-regex-3.5.0-LICENSE"
+      ]
+    },
+    {
+      "name": "collapse-white-space",
+      "version": "2.1.0",
+      "license": "MIT",
+      "files": [
+        "collapse-white-space-2.1.0-license"
+      ]
+    },
+    {
+      "name": "decimal.js",
+      "version": "10.6.0",
+      "license": "MIT",
+      "files": [
+        "decimal.js-10.6.0-LICENCE.md"
+      ]
+    },
+    {
+      "name": "fast-diff",
+      "version": "1.3.0",
+      "license": "Apache-2.0",
+      "files": [
+        "fast-diff-1.3.0-LICENSE"
+      ]
+    },
+    {
+      "name": "fast-xml-builder",
+      "version": "1.3.1",
+      "license": "MIT",
+      "files": [
+        "fast-xml-builder-1.3.1-LICENSE"
+      ]
+    },
+    {
+      "name": "fast-xml-parser",
+      "version": "5.11.2",
+      "license": "MIT",
+      "files": [
+        "fast-xml-parser-5.11.2-LICENSE"
+      ]
+    },
+    {
+      "name": "franc-min",
+      "version": "6.2.0",
+      "license": "MIT",
+      "files": []
+    },
+    {
+      "name": "is-unsafe",
+      "version": "2.0.2",
+      "license": "MIT",
+      "files": [
+        "is-unsafe-2.0.2-LICENSE"
+      ]
+    },
+    {
+      "name": "kdbush",
+      "version": "4.1.0",
+      "license": "ISC",
+      "files": [
+        "kdbush-4.1.0-LICENSE"
+      ]
+    },
+    {
+      "name": "lodash-es",
+      "version": "4.18.1",
+      "license": "MIT",
+      "files": [
+        "lodash-es-4.18.1-LICENSE"
+      ]
+    },
+    {
+      "name": "n-gram",
+      "version": "2.0.2",
+      "license": "MIT",
+      "files": [
+        "n-gram-2.0.2-license"
+      ]
+    },
+    {
+      "name": "nanoid",
+      "version": "5.1.11",
+      "license": "MIT",
+      "files": [
+        "nanoid-5.1.11-LICENSE"
+      ]
+    },
+    {
+      "name": "numfmt",
+      "version": "3.2.6",
+      "license": "MIT",
+      "files": [
+        "numfmt-3.2.6-LICENSE"
+      ]
+    },
+    {
+      "name": "opentype.js",
+      "version": "2.0.0",
+      "license": "MIT",
+      "files": [
+        "opentype.js-2.0.0-LICENSE"
+      ]
+    },
+    {
+      "name": "ot-json1",
+      "version": "1.0.2",
+      "license": "ISC",
+      "files": []
+    },
+    {
+      "name": "ot-text-unicode",
+      "version": "4.0.0",
+      "license": "ISC",
+      "files": []
+    },
+    {
+      "name": "path-expression-matcher",
+      "version": "1.6.2",
+      "license": "MIT",
+      "files": [
+        "path-expression-matcher-1.6.2-LICENSE"
+      ]
+    },
+    {
+      "name": "quickselect",
+      "version": "3.0.0",
+      "license": "ISC",
+      "files": [
+        "quickselect-3.0.0-LICENSE"
+      ]
+    },
+    {
+      "name": "rbush",
+      "version": "4.0.1",
+      "license": "MIT",
+      "files": [
+        "rbush-4.0.1-LICENSE"
+      ]
+    },
+    {
+      "name": "regexp-util",
+      "version": "2.1.0",
+      "license": "MIT",
+      "files": [
+        "regexp-util-2.1.0-LICENSE"
+      ]
+    },
+    {
+      "name": "rxjs",
+      "version": "7.8.2",
+      "license": "Apache-2.0",
+      "files": [
+        "rxjs-7.8.2-LICENSE.txt"
+      ]
+    },
+    {
+      "name": "strnum",
+      "version": "2.5.1",
+      "license": "MIT",
+      "files": [
+        "strnum-2.5.1-LICENSE"
+      ]
+    },
+    {
+      "name": "trigram-utils",
+      "version": "2.0.1",
+      "license": "MIT",
+      "files": [
+        "trigram-utils-2.0.1-license"
+      ]
+    },
+    {
+      "name": "unicode-regex",
+      "version": "4.3.0",
+      "license": "MIT",
+      "files": [
+        "unicode-regex-4.3.0-LICENSE"
+      ]
+    },
+    {
+      "name": "unicount",
+      "version": "1.1.0",
+      "license": "ISC",
+      "files": []
+    },
+    {
+      "name": "xml-naming",
+      "version": "0.3.0",
+      "license": "MIT",
+      "files": [
+        "xml-naming-0.3.0-LICENSE"
+      ]
+    },
+    {
+      "name": "xpath",
+      "version": "0.0.35",
+      "license": "MIT",
+      "files": [
+        "xpath-0.0.35-LICENSE"
+      ]
+    }
+  ]
+}

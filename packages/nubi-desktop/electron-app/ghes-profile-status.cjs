@@ -32,7 +32,13 @@ function displayStatus(value,now=Date.now()){
  return {emoji,message,...(expiresAt?{expiresAt:new Date(expiresAt).toISOString()}:{})};
 }
 class DesktopGhesAccount extends GhesAccount{
- view(){const value=super.view(),cached=this.statusCache;return value.connected&&value.profile?{...value,profile:{...value.profile,status:cached?.generation===this.generation&&cached.id===value.profile.id?displayStatus(cached.value,this.now()):null}}:value;}
+ view(){
+  const value=super.view(),cached=this.statusCache,status=cached?.value;
+  // The cache already contains a validated display value. Parsing it as raw
+  // GraphQL again loses custom image emoji (whose Unicode emoji is empty).
+  const current=cached?.generation===this.generation&&cached.id===value.profile?.id&&status&&(!status.expiresAt||Date.parse(status.expiresAt)>this.now());
+  return value.connected&&value.profile?{...value,profile:{...value.profile,status:current?{...status}:null}}:value;
+ }
  async readProfileStatus(force=false){
   const generation=this.generation,record=this.record,profile=this.profile;
   if(this.state!=='connected'||!record||!profile)return;

@@ -7,7 +7,22 @@ permissions:
   contents: write
   actions: read
 jobs:
+  windows-shell-probe:
+    runs-on: windows-latest
+    timeout-minutes: 6
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.18.0'
+      - name: Build owned command process helper
+        run: node packages/nubi-desktop/scripts/build-process-host.mjs
+      - name: Check native Git Bash process ownership before dependency installation
+        run: node --test packages/nubi-desktop/tests/git-bash-profile.test.mjs packages/nubi-desktop/tests/windows-process-stop.test.mjs packages/nubi-desktop/tests/windows-git-bash-live.test.mjs packages/nubi-desktop/tests/windows-bash-process.test.mjs
   windows:
+    needs: windows-shell-probe
     runs-on: windows-latest
     timeout-minutes: 50
     defaults:
@@ -29,6 +44,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm ci --prefix ../nubi-a2a --ignore-scripts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm ci --prefix ../nubi-document-agent --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm ci
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Install OpenWiki-SDS locked dependencies
@@ -39,12 +56,24 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           pnpm install --frozen-lockfile --ignore-scripts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build owned command process helper
+        run: node scripts/build-process-host.mjs
+      - name: Compile shared runtime before host checks
+        run: npm run compile
       - name: Check Windows lifecycle and secure connection storage
         run: |
           node --test tests/connection-vault.test.mjs tests/electron-lifecycle.test.mjs tests/connection-readiness.test.mjs tests/model-catalog-refresh.test.mjs tests/project-catalog.test.mjs tests/titlebar-colors.test.mjs tests/git-runtime.test.mjs tests/claude-stream.test.mjs tests/answer-source-integrity.test.mjs tests/model-tool-batch.test.mjs tests/claude-discovery.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test ../nubi-vscode/tests/ghes-account.test.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify immediate Windows shell cancellation before packaging
+        run: |
+          node --test tests/windows-process-stop.test.mjs tests/git-bash-profile.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          for ($attempt = 1; $attempt -le 10; $attempt++) {
+            node --test --test-name-pattern="Bash syntax and missing shell" tests/recovery.test.mjs
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
       - name: Verify official npm Claude discovery without inherited npm PATH
         run: node scripts/check-windows-claude.mjs
       - name: Verify Unicode shortcut inspection
@@ -64,7 +93,37 @@ jobs:
           node scripts/check-mail-auth-redirects.mjs --home
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build standalone Electron installer with bird icon
+        env:
+          NUBI_UI_OUTPUT: verification/pdf-chat
         run: npm run package:windows
+      - name: Preserve test installer candidate in private draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $private = gh api "repos/$env:GITHUB_REPOSITORY" --jq '.private'
+          if ($LASTEXITCODE -ne 0 -or $private -ne 'true') { throw 'Private build repository required' }
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $tag = "nubi-desktop-v$version-run-$env:GITHUB_RUN_ID"
+          $files = @((Get-ChildItem release/windows/*-Setup.exe).FullName) + @((Get-ChildItem release/windows/*.sha256).FullName)
+          gh release create $tag --repo $env:GITHUB_REPOSITORY --draft --prerelease --target $env:GITHUB_SHA --title "누비 Workspace Beta 테스트 후보 ($env:GITHUB_RUN_ID)" --notes "Test candidate. Installer build and pre-package PDF/terminal checks passed. Full regression and installation verification are still pending; inspect the workflow conclusion and reports before use." @files
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify document connections and PDF chat editing
+        env:
+          NUBI_NATIVE_UI_OUTPUT: verification/office-preview
+          NUBI_EXCEL_BUNDLE_OUTPUT: verification/excel-bundle.json
+          NUBI_UI_OUTPUT: verification/pdf-chat
+        run: |
+          node --test tests/document-all-work.test.mjs tests/pdf-form.test.mjs tests/live-editor-host.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/check-distribution-capabilities.mjs --packaged
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/check-native-excel-bundle.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/check-native-office-ui.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/check-external-office-bundle.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify 1.2.0 fixes
         run: |
           node --test tests/decision-notices.test.mjs tests/human-decisions.test.mjs tests/project-services.test.mjs tests/review-format-recovery.test.mjs tests/ghes-profile-status.test.mjs tests/wiki-repository.test.mjs tests/browser-auth-return.test.mjs tests/mail-portal.test.mjs tests/portal-mail-metadata.test.mjs tests/mail-file-import.test.mjs tests/workspace-community.test.mjs tests/wiki-library.test.mjs tests/result-review.test.mjs tests/memory.test.mjs tests/mail-facts.test.mjs tests/wiki-graph.test.mjs tests/wiki-frontmatter.test.mjs tests/openai-shim.test.mjs tests/judge.test.mjs tests/claude-code.test.mjs tests/conversation-activity.test.mjs
@@ -79,11 +138,17 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify 1.2.7 terminal wait and MCP approval recovery
         run: |
-          node --test --test-concurrency=1 tests/process-idle.test.mjs tests/interactive-terminal.test.mjs tests/setup-actions.test.mjs tests/recovery.test.mjs tests/mcp-approval-flow.test.mjs tests/tool-argument-view.test.mjs tests/mail-browser-login.test.mjs tests/workspace-inquiry-flow.test.mjs tests/mail-auth-lifecycle.test.mjs tests/mail-session-recovery.test.mjs tests/mail-attachment-recovery.test.mjs tests/mail-credential-login.test.mjs tests/mail-portal-bundle.test.mjs
+          node --test --test-concurrency=1 tests/process-idle.test.mjs tests/terminal-stream.test.mjs tests/terminal-mouse.test.mjs tests/powershell-output.test.mjs tests/interactive-terminal.test.mjs tests/setup-actions.test.mjs tests/recovery.test.mjs tests/mcp-approval-flow.test.mjs tests/tool-argument-view.test.mjs tests/mail-browser-login.test.mjs tests/workspace-inquiry-flow.test.mjs tests/mail-auth-lifecycle.test.mjs tests/mail-session-recovery.test.mjs tests/mail-attachment-recovery.test.mjs tests/mail-credential-login.test.mjs tests/mail-portal-bundle.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify resumable mail, large Wiki sources and completion notices
         run: |
           node --test --test-concurrency=1 tests/wiki-large-project.test.mjs tests/git-clone-progress.test.mjs tests/mail-import-resume.test.mjs tests/mail-storage-policy.test.mjs tests/mail-raw-root.test.mjs tests/wiki-notifications.test.mjs tests/answer-notifications.test.mjs tests/answer-source-integrity.test.mjs tests/mail-knowledge.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify startup input recovery and commit graph boundaries
+        run: |
+          node --test tests/commit-history.test.mjs tests/commit-graph.test.mjs tests/mail-page-execution.test.mjs tests/mail-session-dialog.test.mjs tests/notification-history.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/check-startup-interaction.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Check packaged project navigation before installation
         run: |
@@ -99,7 +164,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/check-source-highlight.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Verify body-only mail Beta scope
+      - name: Verify mail body, attachment scope and search
         run: |
           node --test tests/mail-beta-scope.test.mjs tests/mail-search.test.mjs tests/mail-connection-errors.test.mjs tests/mail-presentation.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -116,6 +181,19 @@ jobs:
           $env:Path = $previousPath
           Remove-Item Env:NUBI_BUNDLED_GIT
           if ($wikiExit -ne 0) { exit $wikiExit }
+      - name: Verify selected documents and manual mail confirmation recovery
+        run: |
+          node --test --test-concurrency=1 tests/chat-documents.test.mjs tests/mail-session-dialog.test.mjs tests/mail-portal.test.mjs tests/approval-diagnostics.test.mjs tests/mail-tool-arguments.test.mjs tests/work-plan.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify factual Wiki review and current recovery contracts
+        run: |
+          node --test --test-concurrency=1 tests/development-workflow.test.mjs tests/browser-saml.test.mjs tests/workspace-inquiry-flow.test.mjs tests/mail-attachment-formats.test.mjs tests/mail-attachment-image.test.mjs tests/wiki-chat-admission.test.mjs tests/wiki-code-map.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify independent OpenWiki semantic review
+        working-directory: packages/openwiki
+        run: |
+          pnpm exec vitest run test/agent/repository-semantic-review.test.ts test/agent/repository-runner.test.ts test/agent/repository-prompts.test.ts test/generation/repository-run.test.ts test/ingestion/code-mode.test.ts test/claims/brains/code/store.test.ts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Download verified upgrade baseline
         env:
           GH_TOKEN: ${{ github.token }}
@@ -123,7 +201,7 @@ jobs:
         run: |
           $baseline = Join-Path $env:RUNNER_TEMP 'nubi-desktop-baseline'
           New-Item $baseline -ItemType Directory -Force | Out-Null
-          gh release download nubi-desktop-v1.1.7 --repo $env:GITHUB_REPOSITORY --pattern '*-Setup.exe' --dir $baseline
+          gh release download nubi-desktop-v1.1.7 --repo plaire48/llm_router_desktop --pattern '*-Setup.exe' --dir $baseline
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $previous = (Get-ChildItem $baseline/*-Setup.exe | Select-Object -First 1).FullName
           if ((Get-FileHash $previous -Algorithm SHA256).Hash.ToLower() -ne '481d26c4ca58197e2093f3a973efc5b0801c0a9c0a8baf2cee652e0577bda91a') { throw 'Baseline checksum mismatch' }
@@ -139,10 +217,14 @@ jobs:
         run: |
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
           $tag = "nubi-desktop-v$version-run-$env:GITHUB_RUN_ID"
-          $reports = 'electron-shell.json','electron-first-install.json','electron-projects.json','electron-projects.png','electron-projects-narrow.png','windows-installer.json','windows-branding.json','installed-icon.png','windows-package.json','windows-claude.json','windows-installer-experience.json','windows-installer-progress.png','windows-installer-finish.png','windows-installer-notice.png' | ForEach-Object { (Resolve-Path (Join-Path 'verification' $_)).Path }
+          $reports = 'distribution-capabilities.json','excel-bundle.json','electron-shell.json','electron-first-install.json','electron-projects.json','electron-projects.png','electron-projects-narrow.png','windows-installer.json','windows-branding.json','installed-icon.png','windows-package.json','windows-claude.json','windows-installer-experience.json','windows-installer-progress.png','windows-installer-finish.png','windows-installer-notice.png' | ForEach-Object { (Resolve-Path (Join-Path 'verification' $_)).Path }
+          Compress-Archive -Path verification/* -DestinationPath release/windows/verification.zip
+          $reports += (Resolve-Path release/windows/verification.zip).Path
           Copy-Item "docs/HOTFIX-$version.md" release-notes.txt
           $files = @((Get-ChildItem release/windows/*-Setup.exe).FullName) + @((Get-ChildItem release/windows/*.sha256).FullName) + $reports + @('scripts/Publish-NubiUpdate.ps1','docs/WINDOWS-UPDATE-DEPLOYMENT.md','THIRD-PARTY-NOTICES.md',"docs/HOTFIX-$version.md","docs/INSTALL-AND-UPDATE-$version.md",'release-notes.txt')
-          gh release create $tag --repo $env:GITHUB_REPOSITORY --draft --prerelease --target $env:GITHUB_SHA --title "누비 Workspace Beta Windows x64 ($env:GITHUB_RUN_ID)" --notes "Standalone Electron installer and native Windows installation reports. Build $env:GITHUB_RUN_ID, commit $env:GITHUB_SHA. Unsigned Beta; corporate SSO, Office 2016/NASCA and Windows 11 end-user behavior are separate checks." @files
+          gh release upload $tag --repo $env:GITHUB_REPOSITORY --clobber @files
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          gh release edit $tag --repo $env:GITHUB_REPOSITORY --title "누비 Workspace Beta Windows x64 ($env:GITHUB_RUN_ID)" --notes "Standalone Electron installer and native Windows installation reports. All workflow checks passed before this draft update. Build $env:GITHUB_RUN_ID, commit $env:GITHUB_SHA. Unsigned Beta; corporate SSO, Office 2016/NASCA and Windows 11 end-user behavior are separate checks."
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Save failed-check diagnostics in a private draft
         if: failure()

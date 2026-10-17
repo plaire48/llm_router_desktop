@@ -85,8 +85,31 @@ function pageJob(
 }
 
 describe("repository worker prompts", () => {
+  test("quickstart routes to detail pages without imposing brevity on a standalone page", () => {
+    const quick = pageJob({ path: "/openwiki/quickstart.md" });
+    expect(
+      createRepositoryPagePrompt(quick, [quick, pageJob()], "ko"),
+    ).toContain("Do not add policy-by-policy walkthroughs");
+    expect(createRepositoryPagePrompt(quick, [quick], "ko")).not.toContain(
+      "1500-2500 characters",
+    );
+    expect(
+      createRepositoryPagePrompt(pageJob(), [quick, pageJob()], "ko"),
+    ).not.toContain("1500-2500 characters");
+  });
+  test("keeps exceptions with their claims and routes quickstart readers instead of duplicating policies", () => {
+    const prompt = createRepositoryPagePrompt(pageJob(), [pageJob()], "ko");
+    expect(prompt).toContain("same sentence or table row");
+    expect(prompt).toContain("aggregate check does not validate");
+    expect(prompt).toContain("omitting an entire required argument");
+    expect(prompt).toContain("Give each fact one primary home");
+    expect(prompt).toContain("Do not restate table rows in prose");
+  });
   test("connects code coverage to grounded workflows without expanding scoped updates", () => {
-    const planner = createRepositoryPlannerPrompt(planningView(), "Only document auth.");
+    const planner = createRepositoryPlannerPrompt(
+      planningView(),
+      "Only document auth.",
+    );
     expect(planner).toContain("failure/recovery");
     expect(planner).toContain("omit absent domains");
     expect(planner).toContain("hard scoped update mandate");

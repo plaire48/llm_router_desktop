@@ -18,9 +18,11 @@ installConnectionVault(service);
 // Warm the MCP catalog off the first chat's critical path. No browser is launched.
 const mcp=service.mcpRegistry();mcp.warming=mcp.connectEnabled().catch(()=>{});
 const projects=new ProjectServices({service,createService:()=>Object.assign(new ProjectService({storageRoot:process.env.NUBI_STORAGE_ROOT}),{memoryExtraction:true,mailFacts:true}),resolveRoot:resolveProjectFolder});
+const {ExternalOffice}=await import('./external-office.mjs');
+const externalOffice=new ExternalOffice();
 process.on('message', async message => {
   if (!message || typeof message.id !== 'string' || typeof message.method !== 'string') return;
-  try {process.send?.({id:message.id,result:await projects.invoke(message.method,message.args)});}
+  try {if(projects.updateLocked)throw Error('update_installing');const result=await (message.method==='_externalOffice'?externalOffice.request(projects.current,message.args):projects.invoke(message.method,message.args));if(['open','deleteTask'].includes(message.method))externalOffice.pruneSelections(projects.current);process.send?.({id:message.id,result});}
   catch(error) {process.send?.({id:message.id,error:/^[a-z_]{3,50}$/.test(error.message) ? error.message : 'operation_failed'});}
 });
-process.on('disconnect',()=>{projects.dispose();setTimeout(()=>process.exit(0),1800);});
+process.on('disconnect',()=>{externalOffice.dispose();projects.dispose();setTimeout(()=>process.exit(0),1800);});

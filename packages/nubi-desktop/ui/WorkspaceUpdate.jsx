@@ -3,6 +3,7 @@ import {CxButton,DetailPanel,Icon} from '@e2e/cx-design-system';
 import './workspace-update.css';
 import {WorkspaceIconAction} from './WorkspaceIconAction.jsx';
 import {AgentMark} from '../../../extensions/aipro-chat/src/AgentMark.jsx';
+import {DeckDisclosure} from '../../../extensions/aipro-chat/src/DeckSurfaces.jsx';
 const errors={ghes_login_required:'사내 Github SSO로 로그인한 뒤 확인해 주세요.',ghes_session_expired:'사내 Github SSO에 다시 로그인해 주세요.',ghes_session_changed:'계정이 바뀌었어요. 업데이트를 다시 확인해 주세요.',update_permission:'nuri 저장소의 읽기 권한을 확인해 주세요.',update_not_published:'아직 등록된 Windows 업데이트가 없어요.',update_network:'사내망 연결을 확인하고 다시 시도해 주세요.',update_download_origin:'다운로드 서버 주소를 확인해야 해요. 관리자에게 문의해 주세요.',update_integrity:'파일을 확인하지 못했어요. 다시 다운로드해 주세요.',update_manifest_invalid:'배포 정보를 확인하지 못했어요. 관리자에게 문의해 주세요.',update_work_active:'진행 중인 작업과 터미널을 마친 뒤 다시 시도해 주세요.',editor_dirty:'수정 중인 파일을 저장한 뒤 다시 시도해 주세요.',update_windows_only:'Windows 설치판에서 업데이트할 수 있어요.'};
 export function useWorkspaceUpdate(api,onInstall){
  const [state,setState]=useState(null),[error,setError]=useState(''),[opened,setOpened]=useState(false),live=useRef(true),lock=useRef(false),automatic=useRef(false),install=useRef(onInstall),phaseRef=useRef();install.current=onInstall;phaseRef.current=state?.phase;
@@ -30,7 +31,7 @@ export function WorkspaceUpdate({update,compact=false,rail=false}){
   <CxButton title={label} aria-label={label} disabled={['checking','downloading','installing','unsupported'].includes(phase)} onClick={()=>available?start():void action('check')}><Icon name={available||phase==='downloading'?'download':'refresh'} size={16}/><span>{label}</span></CxButton>
   {!compact&&phase==='current'&&<p>최신 버전이에요.</p>}
   {!compact&&phase==='unsupported'&&<p>Windows 설치판에서 업데이트할 수 있어요.</p>}
-  {!compact&&state?.release&&available&&<><span className="nubi-update-meta">새 버전 {state.release.version}</span><p>{state.release.notes}</p></>}
+  {!compact&&state?.release&&available&&<><span className="nubi-update-meta">새 버전 {state.release.version}</span>{state.release.notes&&<DeckDisclosure title="업데이트 내용" icon="file"><p>{state.release.notes}</p></DeckDisclosure>}</>}
   {error&&!compact&&<p role="status">{error}</p>}
  </section>;
 }

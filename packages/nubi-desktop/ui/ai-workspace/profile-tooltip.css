@@ -1,4 +1,4 @@
-.cx-profile-tooltip {position:fixed;z-index:10060;display:flex;align-items:flex-start;gap:var(--cx-space-2);box-sizing:border-box;width:280px;max-width:calc(100vw - 16px);padding:12px;border:1px solid var(--layout-border);border-radius:var(--cx-popup-radius);background:var(--layout-surface);box-shadow:var(--cx-shadow-overlay);color:var(--layout-text);font:400 var(--cx-type-body)/1.5 var(--cx-font-family)}
+.cx-profile-tooltip {position:fixed;z-index:10060;display:flex;align-items:flex-start;gap:var(--cx-space-2);box-sizing:border-box;width:280px;max-width:calc(100vw - 16px);padding:var(--cx-space-3);border:1px solid var(--layout-border);border-radius:var(--cx-popup-radius);background:var(--layout-surface);box-shadow:var(--cx-shadow-overlay);color:var(--layout-text);font:var(--nubi-weight-regular) var(--cx-type-body)/var(--deck-line-caption) var(--cx-font-family);}
 .cx-profile-tooltip>.github-avatar {display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;min-width:32px;flex:0 0 32px;border-radius:50%;object-fit:cover}
 .cx-profile-tooltip>div {min-width:0}
 .cx-profile-tooltip strong,.cx-profile-tooltip span {display:block;overflow-wrap:anywhere}
@@ -6,7 +6,7 @@
 .cx-profile-tooltip span {font-size:var(--cx-type-caption);color:var(--layout-muted)}
 .cx-profile-tooltip p {margin:var(--cx-space-2) 0 0;white-space:pre-line;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 
-.cx-profile-tooltip-name {display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 6px;}
-.cx-profile-tooltip-email {display:flex;align-items:flex-start;gap:6px;margin-top:4px;color:var(--layout-muted);}
-.cx-profile-tooltip-email>svg {flex:none;margin-top:2px;}
+.cx-profile-tooltip-name {display:flex;align-items:baseline;flex-wrap:wrap;gap:calc(var(--cx-space-1) * 0.5) calc(var(--cx-space-1) * 1.5);}
+.cx-profile-tooltip-email {display:flex;align-items:flex-start;gap:calc(var(--cx-space-1) * 1.5);margin-top:var(--cx-space-1);color:var(--layout-muted);}
+.cx-profile-tooltip-email>svg {flex:none;margin-top:calc(var(--cx-space-1) * 0.5);}
 .cx-profile-tooltip-email>span {min-width:0;}

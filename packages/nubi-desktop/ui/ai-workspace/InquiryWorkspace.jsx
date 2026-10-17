@@ -29,14 +29,14 @@ import {ghesImageUrl} from './ghesImage.js';
 const readRoute=()=>location.hash==='#support=new'?'new':/^#support=([1-9]\d*)$/.exec(location.hash)?.[1]||'list';
 const noPending=()=>{};
 const empty={dirty:false,saving:false};
-function InquirySidebar({id,posts,rows,pagination,query,setQuery,mine,setMine,status,setStatus,category,setCategory,client,selected,loading,failure,locked,refreshLocked,onRefresh,onOpen,scrollPosition,onCollapse}) {
+function InquirySidebar({id,posts,rows,pagination,query,setQuery,mine,setMine,status,setStatus,category,setCategory,client,selected,loading,failure,locked,refreshLocked,onRefresh,onOpen,scrollPosition}) {
   const excerpts=useMemo(()=>new Map(pagination.rows.map(post=>[post.number,talkExcerpt(post.body,'markdown').text])),[pagination.rows]);
   const counts=useMemo(()=>Object.fromEntries(['','open','completed','closed'].map(key=>[key,rows.filter(post=>!key||inquiryStatus(post).key===key).length])),[rows]);
   const scroll=useRef(null),scope=useRef(`${query}:${mine}:${status}:${category}:${pagination.page}`);
   useEffect(()=>{if(scroll.current)scroll.current.scrollTop=scrollPosition.current;},[scrollPosition]);
   useEffect(()=>{const next=`${query}:${mine}:${status}:${category}:${pagination.page}`;if(scope.current!==next)scroll.current?.scrollTo({top:0});scope.current=next;},[query,mine,status,category,pagination.page]);
   return <aside id={id} className="inquiry-sidebar" aria-label="문의 목록">
-    <div className="inquiry-sidebar-heading"><h2>문의 목록 <span>{posts.length}</span></h2><ActionButton action="refresh" disabled={loading||locked||refreshLocked} onClick={onRefresh}/>{onCollapse&&<ActionButton className="inquiry-sidebar-toggle" action="hideSidebar" label="문의 내역 접기" aria-expanded={true} aria-controls={id} onClick={onCollapse}/>}</div>
+    <div className="inquiry-sidebar-heading"><h2>문의 목록 <span>{posts.length}</span></h2><ActionButton action="refresh" disabled={loading||locked||refreshLocked} onClick={onRefresh}/></div>
     <CxTabs className="inquiry-status-tabs" label="처리 상태" active={status} onChange={setStatus} idPrefix={`${id}-status`} panelId={`${id}-results`} items={['','open','completed','closed'].map((key,index)=>({key,label:<><span>{['전체','진행 중','완료','종료'][index]}</span><span className="inquiry-tab-count">{counts[key].toLocaleString()}</span></>}))}/>
     <div className="inquiry-toolbar">
       <SearchField label="문의 검색" placeholder="제목, 내용, 작성자 검색" value={query} onChange={setQuery}/>
@@ -72,7 +72,7 @@ export default function InquiryWorkspace({user,role='user',onPendingChange=noPen
   const [assignment]=useState(()=>suppliedAssignment||createInquiryAssignmentClient());
   const [canAssign,setCanAssign]=useState(false),[assigning,setAssigning]=useState(false),[assignBusy,setAssignBusy]=useState(false);
   useEffect(()=>{let active=true;setCanAssign(false);if(role==='editor'||role==='system')assignment.canAssign().then(value=>{if(active)setCanAssign(value);}).catch(()=>{});return()=>{active=false;};},[assignment,role,revision]);
-  const [sidebarCollapsed,setSidebarCollapsed]=useState(false),sidebarId=useId();
+  const sidebarId=useId();
   const sequence=useRef(0),scrollPosition=useRef(0),reader=useRef(null);
   useEffect(()=>{onPendingChange({...pending,dirty:pending.dirty||assigning||Boolean(pendingRemoval)||Boolean(pendingState),saving:pending.saving||assignBusy||mutating});return()=>onPendingChange(empty);},[pending,assigning,assignBusy,mutating,pendingRemoval,pendingState,onPendingChange]);
   const [savedCommentId,setSavedCommentId]=useState(null),[replyTo,setReplyTo]=useState(null);useEffect(()=>setReplyTo(null),[route]);
@@ -125,8 +125,8 @@ export default function InquiryWorkspace({user,role='user',onPendingChange=noPen
     finally{mutation.current=false;setMutating(false);}
   };
   const locked=pending.saving||mutating||Boolean(pendingRemoval)||Boolean(pendingState);
-  const sidebar=<InquirySidebar onCollapse={()=>setSidebarCollapsed(true)} id={sidebarId} posts={posts} rows={scoped} pagination={pagination} query={query} setQuery={setQuery} mine={mine} setMine={setMine} status={status} setStatus={setStatus} category={category} setCategory={setCategory} client={client} selected={route} loading={loading} failure={failure} locked={pending.saving||mutating} refreshLocked={pending.dirty||detailLoading||Boolean(pendingRemoval)||Boolean(pendingState)} onRefresh={refresh} onOpen={open} scrollPosition={scrollPosition}/>;
-  const pageLayout={sidebar,sidebarId,sidebarCollapsed,onToggleSidebar:()=>setSidebarCollapsed(value=>!value),showList:route==='list'};
+  const sidebar=<InquirySidebar id={sidebarId} posts={posts} rows={scoped} pagination={pagination} query={query} setQuery={setQuery} mine={mine} setMine={setMine} status={status} setStatus={setStatus} category={category} setCategory={setCategory} client={client} selected={route} loading={loading} failure={failure} locked={pending.saving||mutating} refreshLocked={pending.dirty||detailLoading||Boolean(pendingRemoval)||Boolean(pendingState)} onRefresh={refresh} onOpen={open} scrollPosition={scrollPosition}/>;
+  const pageLayout={sidebar,sidebarId,showList:route==='list'};
   const selected=detail?.post.number===Number(route)?detail:null;
   const commentSaved=comment=>{setSavedCommentId(comment.id);setEditingComment(null);setPending(empty);refresh();refreshInquiryNotifications();};
   return <div className="inquiry-workspace">{editingPost?<ServiceDesk key={`edit-${editingPost.number}`} editing={editingPost} page={editingPost.source} session={client.session} onClose={()=>{setEditingPost(null);setPending(empty);}} onPendingChange={setPending} request={({payload,types})=>client.update(editingPost,{title:payload.title,type:payload.type,body:payload.description},types)} onSaved={post=>{setDetail(value=>({...value,post}));setPosts(rows=>rows.map(row=>row.number===post.number?post:row));setEditingPost(null);setPending(empty);refresh();}} media={media} pageLayout={pageLayout} assignmentClient={assignment}/>:route==='new'?<ServiceDesk page={origin.page} onClose={()=>open('list',true)} onPendingChange={setPending} onSaved={receipt=>{refresh();open(String(receipt.number),true);}} media={media} pageLayout={pageLayout} assignmentClient={assignment}/>:<InquiryPage {...pageLayout} onClose={route==='list'?undefined:()=>open('list')} busy={pending.saving||mutating} actions={<><ActionButton className="inquiry-mobile-refresh" action="refresh" disabled={loading||detailLoading||locked||pending.dirty} onClick={refresh}/><ActionButton action="edit" label="문의하기" disabled={locked} onClick={()=>open('new')}/></>}>

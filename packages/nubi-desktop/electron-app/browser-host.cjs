@@ -1,3 +1,5 @@
+const {AuthFlow,observeSession,isSamlAddress,displayAddress,epssoFailureProbe}=require('./browser-auth-flow.cjs');
+const {installMailSessionDialogs,mailDialogGuide}=require('./mail-session-dialog.cjs');
 const {WebContentsView,session,Menu,dialog,shell,clipboard}=require('electron');
 const {browserContextMenu}=require('./browser-context-menu.cjs');
 const {httpBrowserAddress}=require('../runtime/browser-address.cjs');
@@ -13,16 +15,13 @@ function address(input) {
   return `https://www.google.com/search?q=${encodeURIComponent(value)}`;
  }
 }
-function displayAddress(value){
- try{const url=new URL(value);for(const key of [...url.searchParams.keys()])if(/^(code|token|access_token|id_token|refresh_token)$/i.test(key))url.searchParams.delete(key);if(/(?:^|[&#])(code|token|access_token|id_token|refresh_token)=/i.test(url.hash))url.hash='';return url.href;}catch{return value;}
-}
-function loadFailure(code){return code===-102?'browser_connection_refused':code===-105?'browser_dns_failed':code===-106?'browser_offline':code===-7?'browser_timeout':code<=-200&&code>=-299?'browser_certificate_failed':'browser_load_failed';}
+const {loadFailure,networkDiagnostic}=require('./browser-network-error.cjs');
 class BrowserHost {
- constructor(window,{loginCode=()=>null,onFault=()=>{}}={}) {
+ constructor(window,{loginCode=()=>null,onFault=()=>{},partition=`nubi-browser-${randomUUID()}`}={}) {
   this.loginCode=loginCode;
   this.onFault=onFault;this.disposed=false;this.updateTimer=null;this.lastUpdate='';
   this.window=window;this.tabs=new Map();this.active=null;this.history=[];this.downloads=[];this.visible=false;this.bounds=null;this.find=null;
-  this.session=session.fromPartition(`nubi-browser-${randomUUID()}`,{cache:true});
+  this.session=session.fromPartition(partition,{cache:true});
   // Pages in the in-app browser (the company AI Workspace, login pages) copy codes and links with a copy button; that
   // write needs clipboard-sanitized-write from a user gesture, as in the main window. Every other permission stays denied
   // (user report 2026-10-14: '코드를 복사하지 못했습니다' on the login screen inside the app).
@@ -49,6 +48,7 @@ class BrowserHost {
   // last tab must not leave an empty browser with the old callback address.
   const closedActiveAuthentication=row.authentication&&this.active===row.id;
   if(!this.tabs.delete(row.id))return;
+  row.stopAuthObserver?.();
   if(row.onClosed){const notify=row.onClosed;row.onClosed=null;try{notify();}catch{}}
   if(!this.window.isDestroyed())this.window.contentView.removeChildView(row.view);
   if(this.active===row.id)this.active=[...this.tabs.keys()].at(-1)||null;
@@ -71,30 +71,34 @@ class BrowserHost {
  }
  // A tab may carry its own persistent session (the mail portal login keeps its cookies for silent restore) and
  // report when the person closes it, so the login waiting on it can stop (2026-10-14).
- create(url='about:blank',{authentication=false,companyLogin=false,popupOptions=null,load=true,loadOptions={},session=null,onClosed=null,ownerId=null,httpsOnly=false}={}) {
+ create(url='about:blank',{authentication=false,companyLogin=false,mailLogin=false,popupOptions=null,load=true,loadOptions={},session=null,onClosed=null,ownerId=null,httpsOnly=false,parentId=null}={}) {
   if(this.tabs.size>=12)throw Error('browser_tab_limit');
   const target=address(url);if(httpsOnly&&target!=='about:blank'&&new URL(target).protocol!=='https:')throw Error('browser_url_invalid');
   const view=new WebContentsView({...(popupOptions?.webContents?{webContents:popupOptions.webContents}:{}),webPreferences:{...popupOptions?.webPreferences,session:session||this.session,sandbox:true,contextIsolation:true,nodeIntegration:false,webSecurity:true,allowRunningInsecureContent:false}});
-  const row={id:randomUUID(),view,title:'웹 페이지',url:displayAddress(target),authentication:authentication===true,companyLogin:companyLogin===true,popup:!!popupOptions,session,onClosed:typeof onClosed==='function'?onClosed:null,contentReady:false,loading:false,error:null,revision:0};this.tabs.set(row.id,row);this.window.contentView.addChildView(view);view.setVisible(false);view.setBackgroundColor('#FFFFFF');this.active=row.id;
-  row.ownerId=ownerId||row.id;row.httpsOnly=httpsOnly;
+  const row={id:randomUUID(),view,title:'웹 페이지',url:displayAddress(target),authentication:authentication===true,companyLogin:companyLogin===true,mailLogin:mailLogin===true,popup:!!popupOptions,session,onClosed:typeof onClosed==='function'?onClosed:null,contentReady:false,loading:false,error:null,revision:0};this.tabs.set(row.id,row);this.window.contentView.addChildView(view);view.setVisible(false);view.setBackgroundColor('#FFFFFF');this.active=row.id;
+  row.ownerId=ownerId||row.id;row.httpsOnly=httpsOnly;row.parentId=parentId;
+  row.authFlow=new AuthFlow(parentId?this.tabs.get(parentId)?.authFlow:null);row.authFlow.active ||=isSamlAddress(target);
   row.lastNavigationUrl=target;
   const wc=view.webContents;
+  row.stopAuthObserver=observeSession(wc.session,wc,row.authFlow,()=>this.changed());
+  const blocked=code=>{row.authFlow.fail(code);this.changed();};
+  const mailDialogsReady=row.mailLogin?installMailSessionDialogs(wc,()=>this.changed()):null;
   wc.on('context-menu',(_event,params)=>{
    const template=browserContextMenu(wc,params,{
     copyLink:url=>clipboard.writeText(url),
-    openLink:url=>{try{this.create(url,{authentication:row.authentication,companyLogin:row.companyLogin,session:row.session,ownerId:row.ownerId,httpsOnly:row.httpsOnly});this.publish('opened');}catch(error){this.publish('error',{error:error.message});}},
+    openLink:url=>{try{this.create(url,{authentication:row.authentication,companyLogin:row.companyLogin,mailLogin:row.mailLogin,session:row.session,ownerId:row.ownerId,httpsOnly:row.httpsOnly});this.publish('opened');}catch(error){this.publish('error',{error:error.message});}},
    });
    Menu.buildFromTemplate(template).popup({window:this.window});
   });
   const permitted=url=>{try{const parsed=new URL(url);return url==='about:blank'||((httpsOnly?parsed.protocol==='https:':['http:','https:'].includes(parsed.protocol))&&!parsed.username&&!parsed.password);}catch{return false;}};
-  wc.on('will-navigate',(event,url)=>{if(row.authentication&&url==='nubi-workspace://auth-return'){event.preventDefault();this.closeTab(row.id,{returnToApp:true});return;}if(!permitted(url))event.preventDefault();});
-  wc.on('will-redirect',(event,url)=>{if(!permitted(url))event.preventDefault();});
+  wc.on('will-navigate',(event,url)=>{if(row.authentication&&url==='nubi-workspace://auth-return'){event.preventDefault();this.closeTab(row.id,{returnToApp:true});return;}if(!permitted(url)){event.preventDefault();blocked('navigation_blocked');}});
+  wc.on('will-redirect',(event,url)=>{if(!permitted(url)){event.preventDefault();blocked('navigation_blocked');}});
   wc.setWindowOpenHandler(details=>{
-   if(!permitted(details.url)||this.tabs.size>=12)return {action:'deny'};
-   // Electron owns popup navigation, opener linkage and form POST delivery.
-   // Reopening the URL as GET breaks pages which populate a blank child window.
+   if(!permitted(details.url)||this.tabs.size>=12){row.authFlow.active ||=isSamlAddress(details.url);blocked(this.tabs.size>=12?'popup_limit':'navigation_blocked');return {action:'deny'};}
+   // Adopt Chromium's guest without loading it again (preserves POST and opener).
+   // With no guest, createWindow owns the initial load regardless of disposition.
    return {action:'allow',createWindow:options=>{
-    const child=this.create(details.url,{authentication:row.authentication,companyLogin:row.companyLogin,session:row.session,ownerId:row.ownerId,httpsOnly,popupOptions:options,load:details.disposition==='background-tab',loadOptions:{httpReferrer:details.referrer,...(details.postBody?{postData:details.postBody.data,extraHeaders:'Content-Type: '+details.postBody.contentType+(details.postBody.boundary?'; boundary='+details.postBody.boundary:'')}: {})}});
+    const child=this.create(details.url,{authentication:row.authentication,companyLogin:row.companyLogin,mailLogin:row.mailLogin,session:row.session,ownerId:row.ownerId,httpsOnly,parentId:row.id,popupOptions:options,load:!options.webContents,loadOptions:{httpReferrer:details.referrer,...(details.postBody?{postData:details.postBody.data,extraHeaders:'Content-Type: '+details.postBody.contentType+(details.postBody.boundary?'; boundary='+details.postBody.boundary:'')}: {})}});
     this.publish('opened');return child.view.webContents;
    }};
   });
@@ -105,17 +109,26 @@ class BrowserHost {
    else if(key==='r')wc.reload();else if(key==='t'){try{this.create();}catch(error){this.window.webContents.send('nubi:browser-event',{type:'error',error:error.message});}}else void this.request({action:'close',id:row.id}).catch(()=>{});
   });
   wc.on('page-title-updated',(_event,title)=>{row.title=title.slice(0,240);this.changed();});
-  wc.on('did-start-loading',()=>{row.loading=true;row.error=null;this.layout();this.changed();});
+  wc.on('did-start-loading',()=>{row.loading=true;row.error=null;row.networkFailure=null;this.layout();this.changed();});
   wc.on('did-start-navigation',(_event,url,inPlace,isMain)=>{if(isMain&&!inPlace){row.revision++;row.contentReady=false;if(permitted(url))row.lastNavigationUrl=url;}});
-  wc.on('dom-ready',()=>{row.contentReady=true;this.changed();});
+  wc.on('dom-ready',()=>{
+   row.contentReady=true;this.changed();
+   if(!row.authFlow.active&&!/epsso|saml/i.test(wc.getTitle()))return;
+   row.authFlow.active=true;const revision=row.revision;
+   void wc.executeJavaScriptInIsolatedWorld(998,[{code:epssoFailureProbe}]).then(failed=>{
+    if(failed===true&&!wc.isDestroyed()&&this.tabs.has(row.id)&&row.revision===revision){row.authFlow.fail('epsso_request_missing');this.changed();}
+   }).catch(()=>{});
+  });
   wc.on('did-stop-loading',()=>{row.loading=false;this.changed();});
-  wc.on('did-navigate',(_event,url)=>{row.error=null;row.url=displayAddress(url);this.layout();if(!row.authentication&&!row.session&&url!=='about:blank'&&row.url===url){this.history=this.history.filter(item=>item.url!==url);this.history.unshift({url,title:row.title,date:Date.now()});this.history=this.history.slice(0,100);}this.changed();});
+  wc.on('did-navigate',(_event,url)=>{row.error=null;row.networkFailure=null;row.url=displayAddress(url);this.layout();if(!row.authentication&&!row.session&&!row.authFlow.active&&url!=='about:blank'&&row.url===url){this.history=this.history.filter(item=>item.url!==url);this.history.unshift({url,title:row.title,date:Date.now()});this.history=this.history.slice(0,100);}this.changed();});
   wc.on('did-navigate-in-page',(_event,url,isMain)=>{if(isMain){row.url=displayAddress(url);this.changed();}});
-  wc.on('did-fail-load',(_event,code,_description,_url,isMain)=>{if(isMain&&code!==-3){row.loading=false;row.error=loadFailure(code);this.layout();this.changed();}});
+  wc.on('did-fail-load',(_event,code,_description,_url,isMain)=>{if(isMain&&code!==-3){row.loading=false;row.error=loadFailure(code);row.networkFailure=networkDiagnostic(code,_description,row.authFlow.stage);row.authFlow.fail(row.error);this.layout();this.changed();}});
   wc.on('found-in-page',(_event,result)=>{this.find={matches:result.matches,active:result.activeMatchOrdinal};this.changed();});
   wc.on('destroyed',()=>this.forget(row));
   wc.on('render-process-gone',(_event,details)=>{row.loading=false;row.error='browser_process_gone';this.layout();this.onFault('browser_renderer',details);this.changed();});
-  if(load)void wc.loadURL(target,loadOptions).catch(error=>{if(error?.code==='ERR_ABORTED'||error?.errno===-3)return;row.loading=false;row.error ||=loadFailure(error?.errno);this.layout();this.changed();});this.layout();this.changed();return row;
+  // Only a new top-level login waits for an initialized blank renderer. Popup
+  // guests must retain Chromium's original POST/navigation timing.
+  if(load)void (mailDialogsReady&&!popupOptions?wc.loadURL('about:blank').then(()=>mailDialogsReady).then(()=>{if(!wc.isDestroyed()&&this.tabs.has(row.id))return wc.loadURL(target,loadOptions);}):wc.loadURL(target,loadOptions)).catch(error=>{if(error?.code==='ERR_ABORTED'||error?.errno===-3)return;row.loading=false;row.error ||=loadFailure(error?.errno);this.layout();this.changed();});this.layout();this.changed();return row;
  }
  // A bounded PNG of one tab for the agent's page inspection (2026-10-14): at most 1600 px wide, never the app window.
  async capture(id=this.active,options={}) {
@@ -125,7 +138,7 @@ class BrowserHost {
   return {...shot,tabId:row.id,url:row.url,title:row.title};
  }
 
- status() {return {active:this.active,tabs:[...this.tabs.values()].filter(row=>!row.view.webContents.isDestroyed()).map(row=>({id:row.id,title:row.title,url:row.url,loginCode:row.companyLogin?this.loginCode():null,loading:row.loading,error:row.error,popup:row.popup,contentReady:row.contentReady,back:row.view.webContents.navigationHistory.canGoBack(),forward:row.view.webContents.navigationHistory.canGoForward(),zoom:Math.round(row.view.webContents.getZoomFactor()*100)})),find:this.find,history:this.history.map(item=>({...item})),downloads:this.downloads.map(({file,...item})=>item)};}
+ status() {return {active:this.active,tabs:[...this.tabs.values()].filter(row=>!row.view.webContents.isDestroyed()).map(row=>({id:row.id,title:row.title,url:row.url,mailLoginStage:row.mailLogin?mailDialogGuide(row.view.webContents):null,loginCode:row.companyLogin?this.loginCode():null,loading:row.loading,error:row.error,networkFailure:row.networkFailure||null,authFlow:row.authFlow.snapshot(),authReturn:!!this.tabs.get(row.parentId),popup:row.popup,contentReady:row.contentReady,back:row.view.webContents.navigationHistory.canGoBack(),forward:row.view.webContents.navigationHistory.canGoForward(),zoom:Math.round(row.view.webContents.getZoomFactor()*100)})),find:this.find,history:this.history.map(item=>({...item})),downloads:this.downloads.map(({file,...item})=>item)};}
  menu({kind='main',x,y}={}) {
   const wc=this.tab().view.webContents;
   const downloadItems=this.downloads.map(item=>({label:`${item.name.slice(0,80)}${item.state==='completed'?' (폴더에서 보기)':' (다운로드 중)'}`,enabled:item.state==='completed',click:()=>shell.showItemInFolder(item.file)}));
@@ -152,7 +165,10 @@ class BrowserHost {
   else if(action==='menu')return this.menu({x,y,kind});
   else {
    const row=this.tab(id),wc=row.view.webContents;
-   if(action==='navigate'){const target=address(url);if(row.httpsOnly&&target!=='about:blank'&&new URL(target).protocol!=='https:')throw Error('browser_url_invalid');row.error=null;row.url=displayAddress(target);void wc.loadURL(target).catch(error=>{if(error?.code==='ERR_ABORTED'||error?.errno===-3)return;row.loading=false;row.error ||=loadFailure(error?.errno);this.layout();this.changed();});}
+   if(action==='authReturn'){const parent=this.tabs.get(row.parentId);if(parent){this.active=parent.id;this.layout();}else throw Error('browser_tab_missing');}
+   else if(action==='networkCopyDiagnostic'){clipboard.writeText(JSON.stringify(row.networkFailure||{},null,2));}
+   else if(action==='authCopyDiagnostic'){clipboard.writeText(JSON.stringify(row.authFlow.snapshot(),null,2));}
+   else if(action==='navigate'){const target=address(url);if(row.httpsOnly&&target!=='about:blank'&&new URL(target).protocol!=='https:')throw Error('browser_url_invalid');row.error=null;row.url=displayAddress(target);void wc.loadURL(target).catch(error=>{if(error?.code==='ERR_ABORTED'||error?.errno===-3)return;row.loading=false;row.error ||=loadFailure(error?.errno);this.layout();this.changed();});}
    else if(action==='back'){if(wc.navigationHistory.canGoBack())wc.navigationHistory.goBack();}
    else if(action==='forward'){if(wc.navigationHistory.canGoForward())wc.navigationHistory.goForward();}
    else if(action==='reload'){

@@ -9,8 +9,13 @@ export const sectionLabel=id=>/^\d{4}-\d{2}$/.test(id||'')?`${id.slice(0,4)}년 
 export const WIKI_SECTION_PALETTE=['#3182F6','#F04452','#00A86B','#F59E0B','#8B5CF6','#0EA5E9','#EC4899','#64748B','#14B8A6','#A16207'];
 export const sectionColors=graph=>new Map((graph?.sections||[]).map((entry,i)=>[entry.id,WIKI_SECTION_PALETTE[i%WIKI_SECTION_PALETTE.length]]));
 const round=value=>Math.round(value*100)/100;
+// Show the existing top-level category, not a new taxonomy. Preserve the full
+// category on the node so detailed labels remain searchable and unchanged.
+export function mailWikiType(category){
+  return String(category||'').split(/[/>›»]/u).map(value=>value.trim()).find(Boolean)||'메일';
+}
 export function buildWikiGraph(items=[],edges=[],{kind}={}){
-  const nodes=new Map(items.map(item=>[item.path,{...item,title:item.title||item.path,type:item.type?.toLowerCase()==='mail'?(item.category||'메일'):item.type||'',description:item.description||'',tags:Array.isArray(item.tags)?item.tags:[],section:typeof item.section==='string'?item.section:wikiSection(item.path),links:[],backlinks:[]}]));
+  const nodes=new Map(items.map(item=>[item.path,{...item,title:item.title||item.path,type:item.type?.toLowerCase()==='mail'?mailWikiType(item.category):item.type||'',description:item.description||'',tags:Array.isArray(item.tags)?item.tags:[],section:typeof item.section==='string'?item.section:wikiSection(item.path),links:[],backlinks:[]}]));
   const pairs=new Map();
   for(const edge of edges){
     const from=nodes.get(edge?.from),to=nodes.get(edge?.to);
@@ -54,7 +59,7 @@ const text=value=>String(value||'').toLocaleLowerCase();
 export function filterWikiRows(nodes,{query='',sections=[],types=[],link='all',period='all',now=Date.now()}={}){
   const needle=text(query).trim(),since=period==='7'?now-7*86400000:period==='30'?now-30*86400000:null;
   return nodes.filter(node=>{
-    if(needle&&![node.title,node.path,node.description,...node.tags].some(value=>text(value).includes(needle)))return false;
+    if(needle&&![node.title,node.path,node.description,node.category,node.type,...node.tags].some(value=>text(value).includes(needle)))return false;
     if(sections.length&&!sections.includes(node.section))return false;
     if(types.length&&!types.includes(node.type))return false;
     if(link==='orphan'&&node.degree)return false;

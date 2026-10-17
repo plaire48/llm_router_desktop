@@ -6,7 +6,7 @@ import path from 'node:path';
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 const dir=path.resolve('verification/modal-review');await mkdir(dir,{recursive:true});
-await build({entryPoints:['tests/shared-ui-fixture.jsx'],outfile:path.join(dir,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.woff2':'file','.woff':'file'},define:{__APP_VERSION__:'"fixture"','process.env.NODE_ENV':'"production"'}});
+await build({entryPoints:['tests/shared-ui-fixture.jsx'],outfile:path.join(dir,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.webp':'file','.woff2':'file','.woff':'file'},define:{__APP_VERSION__:'"fixture"','process.env.NODE_ENV':'"production"'}});
 await cp('../../extensions/aipro-chat/public/icons',path.join(dir,'icons'),{recursive:true});
 await writeFile(path.join(dir,'index.html'),'<!doctype html><html lang="ko"><title>Nubi synthetic flow check</title><link rel="stylesheet" href="app.css"><div id="root"></div><script type="module" src="app.js"></script></html>');
 const server=createServer(async(req,res)=>{try{const requested=path.resolve(dir,'.'+new URL(req.url,'http://localhost').pathname.replace(/\/$/,'/index.html'));if(!requested.startsWith(dir+path.sep))throw Error();const ext=path.extname(requested),data=await readFile(requested);res.writeHead(200,{'content-type':({'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.svg':'image/svg+xml','.woff2':'font/woff2','.webp':'image/webp'})[ext]||'application/octet-stream'}).end(data);}catch{res.writeHead(404).end();}});await new Promise(r=>server.listen(0,'127.0.0.1',r));
@@ -82,29 +82,29 @@ try{
  assert.equal(await p.evaluate(()=>window.catalogCalls),3,'manual retry recovers');
  await p.screenshot({path:path.join(dir,'model-catalog-recovered.png'),animations:'disabled'});
  await p.keyboard.press('Escape');checks.push('catalog cache, nonblocking refresh, no repeated success/failure fetches, selected model preserved and explicit retry');
- // Wiki preparation runs in the background (toolbar spinner); its modal opens on request, or by itself only when it needs attention (2026-10-14 check update).
+ // Running preparation has one project surface, never a second progress dialog.
  for(const width of [1280,440]){
   await p.setViewportSize({width,height:800});await p.goto(origin+'/?context&modals&integrated&wiki-progress');
-  const wiki=p.getByRole('dialog',{name:'위키 준비',exact:true});await p.getByRole('button',{name:'위키 설정',exact:true}).waitFor();await p.waitForTimeout(300);assert.equal(await wiki.count(),0,'running preparation stays in the background');
-  await p.getByRole('button',{name:'위키 설정',exact:true}).click();await wiki.waitFor();
-  assert.equal(await wiki.getByRole('progressbar').getAttribute('aria-valuenow'),'30');
-  assert.match(await wiki.innerText(),/현재 단계 약 .*남음|처리 속도 확인 중/);assert.match(await wiki.innerText(),/진행 (?:[1-9]\d*분(?: [1-9]\d*초)?|[1-9]\d*초)/);
-  assert(await wiki.evaluate(e=>e.scrollWidth<=e.clientWidth+1),'wiki progress fits the modal');
+  const wiki=p.getByRole('dialog',{name:'위키 준비',exact:true});await p.getByRole('button',{name:'위키 설정',exact:true}).waitFor();
+  await p.getByRole('button',{name:'위키 설정',exact:true}).click();await closeSidebar();
+  const progress=p.getByRole('region',{name:'프로젝트 위키 작성',exact:true});await progress.waitFor();
+  assert.equal(await wiki.count(),0,'toolbar keeps running progress in the project surface');
+  assert.equal(await progress.getByRole('progressbar').getAttribute('aria-valuenow'),'30');
+  assert.match(await progress.innerText(),/현재 단계 약 .*남음|처리 속도 확인 중/);assert.match(await progress.innerText(),/진행 (?:[1-9]\d*분(?: [1-9]\d*초)?|[1-9]\d*초)/);
+  assert(await progress.evaluate(e=>e.scrollWidth<=e.clientWidth+1),'wiki progress fits the project surface');
   await p.screenshot({path:path.join(dir,`wiki-progress-${width}.png`),animations:'disabled'});
-  await wiki.getByRole('button',{name:'백그라운드로',exact:true}).click();await wiki.waitFor({state:'hidden'});
-  await p.waitForTimeout(300);assert.equal(await wiki.count(),0,'background progress does not reopen its modal');
  }
- checks.push('wiki progress opens from the toolbar, uses actual stage percentage, elapsed and stage-only ETA; it stays in the background');
+ checks.push('wiki preparation stays in the project surface with actual percentage, elapsed time, stage ETA and stop action; toolbar never opens a duplicate modal');
  await p.goto(origin+'/?context&modals&integrated&catalog');await closeSidebar();
  await p.getByRole('button',{name:'모델 변경',exact:true}).click();await p.getByRole('dialog',{name:'모델 선택',exact:true}).waitFor();
  await p.evaluate(()=>window.setWikiFixture({id:'delayed-wiki',state:'running',stage:'scanning',startedAt:new Date().toISOString(),percent:null}));
  const laterWiki=p.getByRole('dialog',{name:'위키 준비',exact:true});assert.equal(await laterWiki.count(),0,'running preparation never interrupts an open modal');
  await p.keyboard.press('Escape');await p.waitForTimeout(300);assert.equal(await laterWiki.count(),0,'running preparation does not open by itself after the modal closes');
- await p.getByRole('button',{name:'위키 설정',exact:true}).click();await laterWiki.waitFor();assert.match(await laterWiki.innerText(),/파일 목록 확인/);assert(!await laterWiki.innerText().then(text=>text.includes('남은 시간 계산 중')));await p.keyboard.press('Escape');await laterWiki.waitFor({state:'hidden'});
+ await p.getByRole('button',{name:'위키 설정',exact:true}).click();const inlineWiki=p.getByRole('region',{name:'프로젝트 위키 작성',exact:true});await inlineWiki.waitFor();assert.match(await inlineWiki.innerText(),/파일 목록 확인/);assert.equal(await laterWiki.count(),0);
  await p.evaluate(()=>window.setWikiFixture({id:'delayed-wiki',state:'attention',stage:'snapshot_git',error:'wiki_snapshot_failed',startedAt:new Date(Date.now()-5000).toISOString(),finishedAt:new Date().toISOString()}));
  await laterWiki.waitFor({timeout:2000});await laterWiki.getByText(/분석용 Git 준비에 실패/).waitFor();await laterWiki.getByText('오류 상세',{exact:true}).click();await laterWiki.getByText('wiki_snapshot_failed',{exact:true}).waitFor();
  await p.screenshot({path:path.join(dir,'wiki-failure-detail.png'),animations:'disabled'});await p.keyboard.press('Escape');await p.waitForTimeout(250);assert.equal(await laterWiki.count(),0);
- checks.push('Wiki preparation shows scanning on request, opens by itself only when it needs attention, and retains staged failure details without reopening');
+ checks.push('Wiki preparation keeps scanning on the project surface; actionable failure details remain available');
 
  await p.goto(origin+'/?context&modals&integrated&catalog');await closeSidebar();
  await selectTask();await closeSidebar();await p.evaluate(()=>{window.slowStart=true;});await p.getByRole('textbox',{name:'추가 요청',exact:true}).fill('느린 시작 검사');
@@ -193,7 +193,7 @@ try{
   await p.setViewportSize({width:1280,height:900});await p.goto(origin+'/?command&command-analysis='+phase+'&modals&integrated');
   await openSidebar();await p.getByRole('button',{name:'대화 검색',exact:true}).click();await p.getByRole('dialog',{name:'대화 검색'}).locator('.nubi-history-item').first().click();
   const card=p.getByRole('region',{name:'실행 준비 승인'});await card.getByText(phase==='running'?'결과 확인 중':'결과 확인 중단',{exact:true}).waitFor();
-  /* The record stays open in place (user decision 2026-10-14); the output also opens by process ID in the internal terminal. */assert.equal(await card.locator('.nubi-terminal').count(),1);await card.getByRole('button',{name:'터미널 열기',exact:true}).click();assert.equal(await p.evaluate(()=>window.openedTerminal.processId),'command-result');
+  /* Executed records start folded. Expanding reads the saved result without replay. */assert.equal(await card.locator('.nubi-terminal').count(),0);await card.locator('.nubi-command-record > summary').click();await card.locator('.nubi-terminal').waitFor();assert.equal(await card.locator('.nubi-terminal').count(),1);await card.getByRole('button',{name:'터미널 열기',exact:true}).click();assert.equal(await p.evaluate(()=>window.openedTerminal.processId),'command-result');
   if(phase==='paused'){await p.getByText('응답 형식 확인 필요',{exact:false}).first().waitFor();assert.equal(await p.getByText('실행 실패',{exact:true}).count(),0);}
   await p.screenshot({path:path.join(dir,'command-analysis-'+phase+'.png'),animations:'disabled'});
   checks.push('command analysis '+phase+': actual state label, readable output during analysis, planning failure distinguished from shell failure');

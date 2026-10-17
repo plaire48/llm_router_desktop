@@ -1,3 +1,4 @@
+import {nativeOfficeStatus} from './native-office-host.mjs';
 import {installProcessIdle} from './process-idle.mjs';
 import {requireWikiChatReady} from './wiki-chat-admission.mjs';
 import {processOutputPreview} from './process-output.mjs';
@@ -9,7 +10,7 @@ import {shellProfiles} from './processes.mjs';
 import {preferredShell} from './environment-inspection.mjs';
 import {requireChosenShell} from './setup-actions.mjs';
 
-export const READ_TOOLS=new Set(['personal_mail_query','read_personal_mail','ask_openwiki','inspect_environment','inspect_workspace_changes','read_process_output','read_document_analysis','analyze_documents','list_skill_resources','discover_capabilities','use_skill','read_skill','read_conversation','computer_checkpoint','read_computer_result','list_computer_apps','inspect_path','code_outline','source_search','read_source','wiki_query','knowledge_query','recovery_snapshot']);
+export const READ_TOOLS=new Set(['read_editor_range','native_office_status','inspect_native_office','personal_mail_query','read_attached_document','read_personal_mail','ask_openwiki','inspect_environment','inspect_workspace_changes','inspect_code','inspect_dev_server','read_process_output','read_document_analysis','analyze_documents','list_skill_resources','discover_capabilities','use_skill','read_skill','read_conversation','computer_checkpoint','read_computer_result','list_computer_apps','inspect_path','code_outline','source_search','read_source','wiki_query','knowledge_query','recovery_snapshot']);
 const recoverableProcesses=new Set(['failed','timed_out','interrupted']);
 const now=()=>new Date().toISOString();
 export const recoveryCode=error=>safeError(error);
@@ -64,7 +65,7 @@ export async function recoverySnapshot({taskId}){
     let disk='unavailable';try{const current=await this.read({taskId,path:p.path,start:1,end:1});disk=current.hash===p.afterHash?'matches_proposal':current.hash===p.expectedHash?'matches_before':'changed';}catch(error){if(p.kind==='create'&&error.code==='ENOENT')disk='absent';}
     proposals.push({id:p.id,path:p.path,kind:p.kind||'edit',state:p.state,disk});
   }
-  return {taskId,request:task.request,criteria:task.criteria,workspace:root,checkpoint:task.checkpoint||null,
+  return {taskId,request:task.request,criteria:task.criteria,workspace:root,nativeOffice:nativeOfficeStatus(this,taskId),checkpoint:task.checkpoint||null,
     operations:this.store.list('operation:').filter(o=>o.taskId===taskId).slice(0,30),proposals,
     processes:this.store.list('process:').filter(p=>p.taskId===taskId).slice(0,10).map(p=>({id:p.id,profile:p.profile,script:p.script,state:p.state,execution:p.execution||'unknown',fault:p.fault,exitCode:p.exitCode,stopReason:p.stopReason,...processOutputPreview(p)})),
     shells:(await shellProfiles()).map(({id,label})=>({id,label})),
@@ -78,10 +79,13 @@ export function installRecovery(ProjectService){
   // its approved launch, not only on exit. This is NOT a readiness receipt.
   ProjectService.prototype.processStarted=function(record){
     record=this.processes.records.get(record.id)||record;
-    const action=record.setupActionId&&this.store.get('setup-action:'+record.setupActionId);
+    const actionId=record.inputActionId||record.setupActionId;
+    const action=actionId&&this.store.get('setup-action:'+actionId);
     if(this.disposed||record.terminal||!record.autoDiagnose||record.state!=='running'||record.execution!=='started'||
-      action?.kind!=='start'||action.taskId!==record.taskId||action.state!=='started'||action.resultProcessId!==record.id||record.startContinuationAt)return;
-    record.startContinuationAt=now();record.recoveryState='queued';
+      !(['start','input'].includes(action?.kind)||action?.interactive===true)||action.taskId!==record.taskId||action.state!=='started'||action.resultProcessId!==record.id||record.continuedActionId===action.id||action.kind!=='input'&&record.startContinuationAt)return;
+    record.continuedActionId=action.id;
+    if(action.kind!=='input')record.startContinuationAt=now();
+    record.recoveryState='queued';
     this.store.set('process:'+record.id,record);
     this.recoveryQueue ||=new Set();this.recoveryQueue.add(record.id);
     this.drainRecovery().catch(()=>{});
@@ -145,14 +149,19 @@ export function installRecovery(ProjectService){
     const value=this.store.get('command-repair:'+id);if(!value)fail('repair_invalid');
     if(value.state!=='proposed')return value; // A lost response cannot launch twice.
     if(this.computerBusy||this.agent?.running||this.task(value.taskId).question)fail('agent_busy');
+    if(this.task(value.taskId).state==='cancelled')fail('setup_cancelled');
     if(this.unsettledOperations?.size)fail('tool_unsettled');
     // Reserve before the first await, including concurrent renderer calls.
     value.state='starting';this.store.set('command-repair:'+id,value);
+    const controller=new AbortController();
+    this.repairStarts ||=new Map();this.repairStarts.set(id,{taskId:value.taskId,controller});
     try{
       if(await this.target(value.taskId)!==value.workspace)fail('workspace_changed');
+      if(controller.signal.aborted||this.task(value.taskId).state==='cancelled')fail('setup_cancelled');
       const original=this.processes.poll(value.processId);if(!recoverableProcesses.has(original.state))fail('recovery_changed');
-      const process=await this.run({taskId:value.taskId,script:value.script,profile:value.profile,timeoutMs:original.timeoutMs||0,autoDiagnose:true,idleCheck:original.idleCheck!==false,repairOf:value.processId});
+      const process=await this.run({taskId:value.taskId,script:value.script,profile:value.profile,timeoutMs:original.timeoutMs||0,autoDiagnose:true,idleCheck:original.idleCheck!==false,repairOf:value.processId,signal:controller.signal});
       value.state='started';value.resultProcessId=process.id;this.store.set('command-repair:'+id,value);return value;
     }catch(error){value.state='attention';value.error=safeError(error);this.store.set('command-repair:'+id,value);throw error;}
+    finally{this.repairStarts.delete(id);}
   };
 }

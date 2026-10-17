@@ -23,7 +23,7 @@ export function MailProgress({api,wiki,onSettings,onOpenMessage}){
   },[api,open]);
   const showMail=!!status&&(status.connected||status.connecting||status.counts?.received>0||status.error&&status.error!=='mail_cancelled'||open),showWiki=wiki?.state==='running';
   if(!showMail&&!showWiki)return null;
-  if(!showMail)return <footer className="desktop-mail-progress" aria-label="위키 백그라운드 상태"><WikiInitializationProgress job={wiki} inline/></footer>;
+  if(!showMail)return <footer className="desktop-mail-progress" aria-label="위키 진행 상태"><WikiInitializationProgress job={wiki} inline/></footer>;
   const progress=status.progress||{stage:status.connecting?'connecting':!status.connected&&!status.localCount?'disconnected':!status.autoWiki?'off':status.checking?'checking':status.readingAttachments?'attachments':status.summarizing?'organizing':status.error?'attention':status.watchPaused?'paused':'watching',completed:status.counts?.saved||0,remaining:null,queued:status.counts?.queued||0,attention:status.counts?.attentionTotal??((status.counts?.attention||0)+(status.counts?.attachmentAttention||0))};
   // Current controls take precedence over a processing snapshot from before
   // stopping. Collection pause is distinct from turning auto organization off.
@@ -33,9 +33,9 @@ export function MailProgress({api,wiki,onSettings,onOpenMessage}){
   const pending=stopped?progress.queued:progress.remaining??progress.queued;
   const showCounts=progress.completed>0||pending>0||progress.attention>0;
   const next=status.connected&&status.autoWiki&&!status.watchPaused&&status.nextCheckAt&&!active.has(stage)?new Date(status.nextCheckAt).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'}):null;
-  return <><footer className="desktop-mail-progress" aria-label="백그라운드 상태">
+  return <><footer className="desktop-mail-progress" aria-label="작업 상태">
     {showWiki&&<WikiInitializationProgress job={wiki} inline/>}
-    <button ref={trigger} type="button" className="nubi-mail-progress-state nubi-mail-progress-open" aria-label="메일 백그라운드 상태 확인" title="확인 필요한 메일과 조치 보기" aria-haspopup="dialog" aria-expanded={open} onClick={()=>setOpen(value=>!value)}>{active.has(stage)||(background&&stage==='watching')?<span className={`status-spinner${stage==='watching'?' nubi-mail-watching-spinner':''}`} aria-hidden="true"/>:<Icon name={stage==='attention'?'alertCircle':'mail'} size={14}/>}<strong>{background?'백그라운드 / ':''}{unavailable?'상태 확인 중':stages[stage]||'메일 처리 중'}</strong></button>
+    <button ref={trigger} type="button" className="nubi-mail-progress-state nubi-mail-progress-open" aria-label="메일 처리 상태 확인" title="확인 필요한 메일과 조치 보기" aria-haspopup="dialog" aria-expanded={open} onClick={()=>setOpen(value=>!value)}>{active.has(stage)||(background&&stage==='watching')?<span className={`status-spinner${stage==='watching'?' nubi-mail-watching-spinner':''}`} aria-hidden="true"/>:<Icon name={stage==='attention'?'alertCircle':'mail'} size={14}/>}<strong>{unavailable?'상태 확인 중':stages[stage]||'메일 처리 중'}</strong></button>
     {showCounts&&<span className="nubi-mail-progress-counts">{progress.completed>0&&<span>완료 <b>{progress.completed}</b></span>}{pending>0&&<span>{stopped?'보류':progress.remaining==null?'정리 대기':'남음'} <b>{pending}</b></span>}{progress.attention>0&&<span>확인 필요 <b>{progress.attention}</b></span>}</span>}
     {!stopped&&progress.timing&&<ResponseTime timing={progress.timing} label={progress.timing.kind==='saving'?'저장':'정리'} live/>}
     {!stopped&&progress.attachment&&<span className="nubi-mail-progress-attachment">첨부 {progress.attachment.completed}/{progress.attachment.total}</span>}

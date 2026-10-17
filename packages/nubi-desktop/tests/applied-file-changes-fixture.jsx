@@ -1,14 +1,16 @@
+import '@e2e/cx-design-system/styles.css';
 import React,{useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {AppliedFileChanges} from '../ui/AppliedFileChanges.jsx';
 import {GitDiff} from '../electron-app/editor.jsx';
-import '@e2e/cx-design-system/styles.css';
+
 import '../electron-app/workbench.css';
 import '../design/workspace-identity.css';
 import '../electron-app/ios-tokens.css';
 import '../design/workspace-typography.css';
 import '../design/workspace-density.css';
 import '../design/workspace-dialogs.css';
+import '../design/workspace-icons.css';
 const names=['design/workspace-density.css','ui/CaptureChips.jsx','ui/SetupActions.jsx','ui/AppliedFileChanges.jsx','runtime/applied-file-summary.mjs','electron-app/editor.jsx','tests/changes.test.mjs','docs/CHANGES.md','ui/변경한-파일의-매우-긴-이름이-좁은-화면에서도-넘치지-않아야-합니다.jsx'];
 const files=names.map((path,i)=>({path,hash:'hash-'+i,state:'verified',stats:{state:'counted',added:i+1,removed:i%3}}));
 const receipts=files.map((row,i)=>({...row,id:String(i),afterHash:row.hash}));

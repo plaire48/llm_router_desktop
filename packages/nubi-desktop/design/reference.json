@@ -42,7 +42,7 @@
     "actionGap": 12,
     "rowBlock": 12,
     "groupGap": 20,
-    "navigationRail": 72,
+    "navigationRail": 56,
     "toolbarHeight": 48,
     "narrowToolbarHeight": 48,
     "namedActions": false,
@@ -51,7 +51,7 @@
       "height": 40,
       "touchHeight": 44,
       "radius": 12,
-      "icon": 18,
+      "icon": 16,
       "iconLabelGap": 8,
       "labelWeight": 500,
       "headingWeight": 600
@@ -66,7 +66,7 @@
       "bodyWeight": 400,
       "inset": 24,
       "narrowInset": 16,
-      "sectionGap": 16,
+      "sectionGap": 20,
       "fieldGap": 8,
       "footerBottom": 24,
       "radius": 20,
@@ -85,6 +85,33 @@
         "error",
         "success"
       ]
+    },
+    "iconScale": {
+      "disclosure": 12,
+      "inline": 14,
+      "control": 16,
+      "toolbar": 17,
+      "navigation": 20,
+      "source": "Apple HIG optical scale principles, Nubi-specific CSS pixel adaptation, 2026-10-17"
+    },
+    "workspaceFrame": {
+      "wideInset": 16,
+      "narrowInset": 8,
+      "radiusRem": 0.75,
+      "border": 1,
+      "background": "--deck-background",
+      "readingSurface": "--nubi-surface-base",
+      "reference": "references/workspace-surround-2026-10-17.png"
+    },
+    "chat": {
+      "readingWidthRem": 48,
+      "answerBody": 16,
+      "caption": 14,
+      "composerRadiusRem": 1.25,
+      "transcriptTop": 24,
+      "turnGap": 32,
+      "actions": "hover or keyboard focus; always visible on coarse pointers",
+      "providerColors": "preserved"
     }
   }
 }

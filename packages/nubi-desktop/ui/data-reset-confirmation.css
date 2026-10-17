@@ -1,0 +1,5 @@
+.nubi-reset-scope { display:grid; grid-template-columns:max-content minmax(0,1fr); gap:var(--cx-space-3); align-items:baseline; margin:var(--cx-space-4) 0 0; min-width:0; }
+.nubi-reset-scope>div { display:contents; }
+.nubi-reset-scope dt { display:flex; align-items:center; white-space:nowrap; gap:var(--cx-space-2); font:var(--deck-font-caption); font-weight:var(--nubi-weight-emphasis); color:var(--nubi-text-primary); }
+.nubi-reset-scope dt svg { flex:none; color:var(--nubi-text-secondary); align-self:center; }
+.nubi-reset-scope dd { margin:0; min-width:0; font:var(--deck-font-caption); color:var(--nubi-text-secondary); overflow-wrap:anywhere; }

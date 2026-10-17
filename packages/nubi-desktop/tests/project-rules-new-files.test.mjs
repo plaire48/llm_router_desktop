@@ -146,8 +146,10 @@ test('context overflow retains project guidance and original criteria; compactio
       case 1:return call('inspect_path',{path:'helper.ts'});
       case 2:throw new Error('context_overflow');
       case 3:assert.match(content,/ROOT_RULE_MUST_SURVIVE/);assert.match(content,/ORIGINAL_REQUIRED_RESULT/);return call('propose_new_file',{path:'helper.ts',content:'export const result = 2;',reason:'Add helper'});
-      default:assert.match(content,/source_read_required/);return {content:'문맥을 압축했습니다. 생성 위치부터 다시 확인해야 합니다.',calls:[]};
+      default:assert.match(content,/source_read_required/);assert.match(content,/ROOT_RULE_MUST_SURVIVE/);assert.match(content,/ORIGINAL_REQUIRED_RESULT/);return {content:'문맥을 압축했습니다. 생성 위치부터 다시 확인해야 합니다.',calls:[]};
     }
   }};
-  await service.startAgent({taskId:task.id});await service.agent.promise;assert.ok(summaries>0);assert.equal(calls,4);assert.equal(service.state().proposals.length,0);assert.equal(service.task(task.id).state,'review');
+  // The existing recovery hook offers two bounded repair turns after the
+  // refused create. Neither turn restores an expired path observation.
+  await service.startAgent({taskId:task.id});await service.agent.promise;assert.ok(summaries>0);assert.equal(calls,6);assert.equal(service.state().proposals.length,0);assert.equal(service.task(task.id).state,'review');
 });

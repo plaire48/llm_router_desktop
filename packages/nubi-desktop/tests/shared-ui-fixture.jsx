@@ -1,3 +1,4 @@
+import '@e2e/cx-design-system/styles.css';
 import {useModalDismissalPolicy} from '../ui/useModalDismissalPolicy.js';
 import {searchConversations} from '../ui/conversation-search.mjs';
 // Synthetic provider states only. No credentials, external network or claimed model success.
@@ -8,7 +9,7 @@ import {MailSourcePane} from '../ui/MailSourcePane.jsx';
 import {ComputerUiFixture,ComputerControlUiFixture,ComputerPointerUiFixture,ComputerKeyboardUiFixture} from './computer-ui-fixture.jsx';
 import {createRoot} from 'react-dom/client';
 import {Workbench} from '../ui/Workbench.jsx';
-import '@e2e/cx-design-system/styles.css';
+
 import '../electron-app/workbench.css';
 import '../design/workspace-identity.css';
 import '../electron-app/shell.css';
@@ -16,6 +17,7 @@ import '../electron-app/ios-tokens.css';
 import '../design/workspace-typography.css';
 import '../design/workspace-density.css';
 import '../design/workspace-dialogs.css';
+import '../design/workspace-icons.css';
 const wikiChatFixture=new URLSearchParams(location.search).has('wiki-chat');if(wikiChatFixture)window.wikiChatCalls=[];
 let selected='aipro',connected=false,pending=null,model='qwen-fixture',catalogAt=1;
 if(new URLSearchParams(location.search).has('catalog')){connected=true;window.catalogCalls=0;window.catalogDelay=0;window.catalogFailure=false;}
@@ -46,6 +48,12 @@ if(new URLSearchParams(location.search).has('queue-layout')){
   connected=true;
   project.tasks=[{id:'queue-layout',request:'진행 내용을 간결하게 정리해 주세요.',state:'running',createdAt:new Date().toISOString(),checkpoint:{runId:'queue-run'},trace:[],messages:[{role:'assistant',content:'확인한 내용을 정리하고 있어요.',at:new Date().toISOString()}],inbox:[{id:'queued-message',mode:'queue',runId:'queue-run',text:'이 요청도 함께 반영해 주세요. 큐에서 올라온 메시지입니다.',createdAt:new Date().toISOString()}]}];
 }
+if(new URLSearchParams(location.search).has('chapters')){
+ connected=true;
+ const count=new URLSearchParams(location.search).has('chapters-long')?86:6;
+ const messages=Array.from({length:count},(_,i)=>({id:'chapter-message-'+i,role:i%2?'assistant':'user',content:(i%2?'확인한 결과입니다.':'다음 자료를 확인해 주세요.')+'\n\n'+('대화 기록을 보존하며 현재 자료의 근거를 확인합니다. '.repeat(12)),runId:'chapter-run-'+Math.floor(i/2)}));
+ project.tasks=[{id:'chapters-task',request:'챕터 화면 확인',criteria:[],state:'review',createdAt:new Date().toISOString(),messages,trace:[],chapters:(new URLSearchParams(location.search).has('chapters-many')?Array.from({length:20},(_,i)=>i*4+2):[2,4,count]).map((messageIndex,i)=>({id:'fixture-chapter-'+i,title:['자료 탐색','수정 사항','결과 검증'][i]||'확인 단계 '+(i+1),summary:'현재 단계에서 확인한 내용을 정리합니다.',messageIndex,runId:'chapter-run-'+i,at:new Date().toISOString()}))}];
+}
 if(new URLSearchParams(location.search).has('sessions')){
   connected=true;project.projectId='sessions-fixture';project.name='세션 검증 프로젝트';
   const now=new Date(),yesterday=new Date(now);yesterday.setDate(now.getDate()-1);
@@ -60,7 +68,7 @@ if(new URLSearchParams(location.search).has('connection')){
   project.tasks=[{id:'connection-task',request:'메신저 창의 안내문을 확인해 주세요.',criteria:[],state:'waiting_input',messages:[],trace:[],computerConnectionRequest:{id:'connect-1',state:'pending',reason:'안내문을 읽을 메신저 창을 선택해 주세요.',appHint:'업무 메신저'}}];
   window.connectionCalls=[];
 }
-if(new URLSearchParams(location.search).has('compaction')){connected=true;project.tasks=[{id:'compaction-task',request:'대화 압축 화면 검증',criteria:[],state:'running',checkpoint:{runId:'compaction-run'},/* activity is shown per run (2026-10-02) */messages:[{role:'user',content:'원문 보존 확인: 승인 없이 실행하지 마세요.',runId:'compaction-run'}],trace:[],context:{phase:'summarizing'}}];}
+if(new URLSearchParams(location.search).has('compaction')){connected=true;project.tasks=[{id:'compaction-task',request:'대화 압축 화면 검증',criteria:[],state:'running',checkpoint:{runId:'compaction-run'},/* activity is shown per run (2026-10-02) */messages:[{role:'user',content:'원문 보존 확인: 승인 없이 실행하지 마세요.',runId:'compaction-run'}],trace:[],context:{phase:'summarizing',operation:new URLSearchParams(location.search).get('operation')||'history',stage:new URLSearchParams(location.search).get('stage')||'draft'}}];}
 if(new URLSearchParams(location.search).has('elevation')){connected=true;project.tasks=[{id:'elevation-task',request:'관리자 승인 화면 검증',criteria:[],state:'review',messages:[],trace:[]}];project.setupActions=['approve','reject'].map(id=>({id,taskId:'elevation-task',title:id==='approve'?'관리자 실행 검증':'관리자 실행 거절',reason:'합성 승인 흐름 검사',privilege:'administrator',privilegeReason:'시스템 범위 변경 필요',script:'Write-Output "fixture"',profile:'powershell',workspace:'C:\\fixture',effects:'검증용 합성 요청',verification:'실제 결과 확인',references:[],fingerprint:id,state:'proposed'}));}
 // A check proposed with its fix (2026-09-30): the run button waits for the fix; always allow sits beside it.
 if(new URLSearchParams(location.search).has('command')){connected=true;project.tasks=[{id:'command-task',request:'무료 배송 기준을 고치고 테스트로 확인해 주세요.',criteria:[],state:'review',messages:[],trace:[]}];project.proposals=[{id:'fix',taskId:'command-task',path:'src/shipping.mjs',reason:'무료 배송 기준을 정책 값 50,000원으로 되돌립니다.',state:'proposed'}];project.setupActions=[{id:'check',taskId:'command-task',title:'테스트 실행',kind:'verify',reason:'수정한 배송 기준을 테스트로 확인합니다.',privilege:'user',script:'npm test',profile:'bash',workspace:'/fixture/order-service',effects:'파일을 바꾸지 않습니다.',verification:'종료 코드 0과 실패 0건을 확인합니다.',references:[{path:'package.json',hash:'fixture'}],fingerprint:'check',state:'proposed',afterProposals:['fix']}];}
@@ -97,11 +105,19 @@ if(new URLSearchParams(location.search).has('capture-gallery')){
 }
 // The composer gauge (2026-09-30): the tokens AI Pro reported for the latest answer, against the model window.
 if(new URLSearchParams(location.search).has('progress')){
- connected=true;const runId='progress-run';
+ connected=true;const runId=new URLSearchParams(location.search).has('activity-memos')?'11111111-1111-4111-8111-111111111111':'progress-run';
  project.tasks=[{id:'progress-task',request:'선택 메일 확인',state:'review',checkpoint:{runId},messages:[{role:'user',content:'선택 메일 확인',runId},{role:'assistant',content:'합성 화면 검증 결과입니다.',runId}],trace:['personal_mail_query','read_personal_mail','read_personal_mail','read_source','wiki_query','review_task'].map((tool,index)=>({id:`${runId}:0:${index}`,runId,tool,status:'done',label:'도구 호출'})),resultReview:{runId,status:'ready',checks:[{requirementId:'REQ-progress',state:'supported',detail:'선택한 원문과 답변의 근거를 대조했습니다.'}]}}];
 }
 if(new URLSearchParams(location.search).has('context')){connected=true;project.tasks=[{id:'context-task',request:'문맥 사용량 화면 검증',criteria:[],state:'review',messages:[],trace:[],context:{phase:'ready',compactions:1,beforeTokens:215000,afterTokens:61000,usage:{kind:'measured',used:23223,window:262144,prompt:23175,completion:48,reasoning:30,compactAt:213811,model:'qwen-fixture',at:'2026-09-30T12:00:00.000Z'}}}];}
 if(new URLSearchParams(location.search).has('composer-stress')){models[0].label='업무 분석을 위한 아주 긴 모델 이름 GPT-6.1-Sol';if(new URLSearchParams(location.search).has('composer-running'))project.tasks[0].state='running';}
+// Representative conversation for visual comparison, never a live-model claim.
+if(new URLSearchParams(location.search).has('codex-chat')){
+ connected=true;project.tasks=[{id:'codex-chat',request:'10월 운영 보고서의 변경 내용을 정리해 주세요.',state:'review',criteria:[],trace:[],messages:[
+ {id:'codex-answer-1',role:'assistant',model:'qwen-fixture',at:'2026-10-17T01:00:00Z',content:'검토할 항목은 **예산, 일정, 담당자**입니다.\n\n운영 보고서와 변경 내역을 비교해 달라진 부분부터 정리하겠습니다.'},
+ {id:'codex-user-2',role:'user',at:'2026-10-17T01:00:30Z',content:'예산 차이와 이번 주에 결정할 것만 짧게 보여 주세요.'},
+ {id:'codex-answer-2',role:'assistant',model:'qwen-fixture',at:'2026-10-17T01:01:00Z',content:'예산은 **300만 원 증가**했고, 이번 주에는 적용 일정만 확정하면 됩니다.\n\n| 항목 | 기존 | 변경 |\n|---|---:|---:|\n| 운영 예산 | 2,400만 원 | 2,700만 원 |\n| 적용 부서 | 2개 | 3개 |\n\n- **금요일까지** 부서별 담당자를 확정합니다.\n- 추가 예산의 승인 여부를 확인합니다.\n\n이 대화는 화면 검토용 예시입니다.'}
+ ]}];
+}
 if(new URLSearchParams(location.search).has('chat-preview')){
  const task=project.tasks[0];task.request='이번 주 회의 내용을 핵심만 정리해 줘.';
  task.messages=[{role:'assistant',model:'qwen-fixture',content:'확인할 내용은 **세 가지**입니다.\n\n- 일정: 다음 주 수요일까지 초안을 준비합니다.\n- 담당: 각 담당자가 변경 사항을 확인합니다.\n- 다음 단계: 초안을 검토한 뒤 최종 일정을 정합니다.\n\n이 화면은 채팅 배치를 확인하기 위한 예시입니다.'}];
@@ -146,9 +162,20 @@ if(new URLSearchParams(location.search).has('activity-readability')){
   task.trace.splice(0,0,{id:runId+':0:note1',runId,tool:'progress_note',status:'done',content:'**메일과 프로젝트 자료를 비교하겠습니다.** 먼저 원문을 확인하고 차이가 있는 항목을 정리하겠습니다.'});
   task.trace.splice(3,0,{id:runId+':0:note2',runId,tool:'progress_note',status:'done',content:'메일에서 변경된 일정을 확인했습니다. 관련 소스와 대조해 **실제 반영 여부**를 확인하겠습니다.'});
  }
+ if(new URLSearchParams(location.search).has('activity-memos')) {
+  task.trace.forEach((row,index)=>{row.startedAt=new Date(Date.UTC(2026,9,16,0,0,index*2)).toISOString();});
+  task.thoughts=[1,3].map((index)=>({id:`${runId}:memo:${index}`,runId,at:new Date(Date.UTC(2026,9,16,0,0,index*2+1)).toISOString(),content:`기록된 작업 메모 ${index}`}));
+  task.sources=[{path:'src/example.mjs',hash:'fixture'}];
+ }
  window.activityState=state=>{task.state=state;task.trace.at(-1).status=state==='running'?'running':state==='paused'?'error':'done';task.trace.at(-1).label=state==='running'?'메일 원문과 프로젝트 자료를 대조하고 있어요':'답변과 근거 확인';task.responseTiming={elapsedMs:12500,startedAt:new Date().toISOString()};};
- window.activityState('running');
+ window.activityState(new URLSearchParams(location.search).has('activity-paused')?'paused':'running');
  project.processes=[{id:'activity-process',taskId:task.id,profile:'powershell',cwd:'C:/repo/project',script:'Get-ChildItem -Name',state:'completed',exitCode:0,output:'src\nREADME.md\npackage.json'}];
+}
+if(new URLSearchParams(location.search).has('stopped-order')){
+ const task=project.tasks[0],runId=task.checkpoint.runId;
+ task.messages=[];task.responseTiming={runId,afterMessageId:task.id,startedAt:new Date().toISOString(),elapsedMs:12500};
+ window.addSteering=()=>{task.messages.push({id:'steer-1',inputId:'input-steer',role:'user',content:'추가 요청은 이 위치에 남겨 주세요.',at:new Date().toISOString()});};
+ window.stopOrderedRun=()=>{task.state='paused';task.trace.at(-1).status='error';};
 }
 if(new URLSearchParams(location.search).has('polling-response')){project.processes[0].state='running';window.pollCalls=[];window.finishProcess=()=>{project.processes[0]={...project.processes[0],state:'completed',output:'실행 완료 확인'};};}
 const usageFixture=new URLSearchParams(location.search).has('chatgpt-usage');
@@ -157,7 +184,13 @@ const usageSnapshot=()=>({auth:{provider:'chatgpt',present:true},connections:{ch
 const sendTransition=new URLSearchParams(location.search).has('send-transition');
 if(sendTransition){connected=true;const saved=sessionStorage.getItem('send-fixture');if(saved)Object.assign(project,JSON.parse(saved));window.saveSendFixture=()=>sessionStorage.setItem('send-fixture',JSON.stringify(project));window.sendCalls=[];window.sendGate={};window.finishSend=()=>{const task=project.tasks[0];task.state='review';task.messages.push({id:'finished',role:'assistant',content:'확인한 결과입니다.',at:new Date().toISOString()});};}
 async function waitForSendGate(kind){await new Promise((resolve,reject)=>{window.sendGate[kind]={release:resolve,reject:()=>reject(Error('network'))};});}
+const attachedDocument={id:'doc-fixture',sourceHash:'document-hash',filename:'분기 보고서.pdf',coverage:'2쪽 텍스트. 이미지와 OCR은 미확인',bytes:200};
+if(new URLSearchParams(location.search).has('documents'))connected=true;
 async function api(method,args={}){
+  if(method==='listSkills'&&new URLSearchParams(location.search).has('documents'))return {skills:[],issues:[],truncated:false};
+  if(method==='chooseChatDocuments')return {documents:[attachedDocument],errors:[]};
+  if(method==='chatDocument'){window.documentReads=(window.documentReads||0)+1;return {...attachedDocument,text:'승인 예산은 1200입니다.',segments:[],offset:0,totalCharacters:17,partial:false};}
+  if(new URLSearchParams(location.search).has('documents')&&['createTask','startAgent','agentInput'].includes(method))(window.documentCalls||=[]).push({method,args});
   if(method==='appliedFileSummary')return {files:project.proposals.filter(p=>p.state==='applied').map(p=>({...p,hash:'fixture',state:'verified'})),total:1,totals:{added:11,removed:0}};
   // Workspace capture (2026-10-14): the window picture is a canvas the size of the viewport with one blue block.
   if(method==='captureWorkspace'){const canvas=document.createElement('canvas');canvas.width=innerWidth;canvas.height=innerHeight;const ctx=canvas.getContext('2d');ctx.fillStyle='#dbeafe';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#1d4ed8';ctx.fillRect(40,40,200,120);window.captureCalls=(window.captureCalls||0)+1;window.captureArgs=[...(window.captureArgs||[]),args];let out=canvas;if(args.clip){out=document.createElement('canvas');out.width=args.clip.width;out.height=args.clip.height;out.getContext('2d').drawImage(canvas,args.clip.x,args.clip.y,args.clip.width,args.clip.height,0,0,args.clip.width,args.clip.height);}const url=out.toDataURL('image/png');return {image:url.slice(url.indexOf(',')+1),width:out.width,height:out.height,viewport:{width:innerWidth,height:innerHeight},...(args.clip?{clip:args.clip}:{}),title:'fixture'};}
@@ -165,6 +198,13 @@ async function api(method,args={}){
   if(['createTask','startAgent','agentInput'].includes(method)&&Array.isArray(args.captures)&&args.captures.length){window.sentCaptures=[...(window.sentCaptures||[]),...args.captures.map(item=>({width:item.width,height:item.height,bytes:item.image.length}))];}
   if(proposalFixture&&method==='cancelProposal'){window.proposalCalls.push({method,...args});project.proposals.find(p=>p.id===args.proposalId).state='cancelled';return {state:'cancelled'};}
 
+  if(wikiChatFixture&&(method==='wikiInitialization'&&['reset','retry'].includes(args.action)||method==='wikiUpdate'&&['refresh','resume'].includes(args.method))){
+    window.wikiStartCalls=(window.wikiStartCalls||[]).concat({method,...args});
+    await new Promise(resolve=>{window.releaseWikiAdmission=resolve;});
+    if(window.rejectWikiAdmission)throw Error('model_unavailable');
+    project.wikiChatBlocked=true;project.wikiChatJob={id:'rewrite',projectId:'fixture',kind:method==='wikiUpdate'?'update':'init',state:'running',stage:'generating',startedAt:new Date().toISOString(),completed:2,total:8,percent:25};
+    return {...project.wikiChatJob,resetProjectId:'fixture'};
+  }
   if(wikiChatFixture&&['createTask','startAgent','agentInput','regenerateAnswer'].includes(method)){window.wikiChatCalls.push(method);if(window.wikiSilentLock)throw Error('wiki_chat_blocked');}
   if(sendTransition&&['createTask','startAgent','agentInput'].includes(method)){
     window.sendCalls.push({method,args});if(method==='startAgent'&&project.tasks.find(item=>item.id===args.taskId)?.state==='running')throw Error('agent_busy');await waitForSendGate(method);
@@ -216,7 +256,7 @@ async function api(method,args={}){
  if(method==='listSkills')return {skills:[{name:'보고서 작성',description:'회사 양식과 출처를 확인해 보고서를 작성해요.',path:'.nubi/skill/report/SKILL.md'},...Array.from({length:window.skillFixtureCount||0},(_,i)=>({name:`검토 스킬 ${String(i+1).padStart(2,'0')}`,description:'문서의 핵심 내용을 검토해요.',path:`.nubi/skill/review-${i}/SKILL.md`}))],issues:[],truncated:false};
     if(method==='skillTrash')return {items:[]};// the custom skill view loads the trash with the list (2026-10-02)
     if(method==='skillMarketplace'){(window.marketplaceCalls||=[]).push(args);if(args.operation==='install'){await new Promise(resolve=>setTimeout(resolve,window.skillDownloadDelay||0));window.skillDownloaded=args.id;}const result={credentialsReady:true,loginRequired:false,items:[{id:'simple-addition',name:'simple-addition',title:'간단 덧셈',version:'1.2.0',description:'두 수를 더하고 계산 과정을 설명해요.',state:'installed',updateAvailable:true,commit:'c1'},{id:'report-review',name:'report-review',title:'보고서 검토',version:'1.0.0',description:'보고서의 근거와 양식을 확인해요.',state:'available',commit:'c1'}],installed:[{id:'simple-addition',name:'simple-addition',version:'1.0.0',state:'installed'}]};result.items.push(...Array.from({length:window.skillFixtureCount||0},(_,i)=>({id:`catalog-${i}`,name:`catalog-${i}`,title:`공유 스킬 ${String(i+1).padStart(2,'0')}`,description:'프로젝트 자료를 검토해요.',state:'available',version:'1.0.0',commit:'c1'})));if(window.skillDownloaded){const item=result.items.find(item=>item.id===window.skillDownloaded);if(item){item.state='installed';item.updateAvailable=false;result.installed.push({id:item.id,name:item.name,title:item.title,version:item.version,state:'installed'});}}return result;}// the AI Workspace tab lists the company catalog beside what this project installed (2026-10-07)
-    if(method==='wikiUpdate'){if(new URLSearchParams(location.search).has('wiki-inventory')&&!project.wikiFiles.length)return {status:{state:'unknown',reason:'no_wiki_pages'},updates:[]};const state=window.modalWikiState||'current';return {status:{state:state==='current'?'current':'outdated',lastUpdate:{updatedAt:'2026-10-01'},changedFiles:['src/index.ts'],uncommitted:['draft.txt'],stalePages:[{path:'openwiki/업무-지침.md',freshness:'source_changed'}]},updates:['ready','failed'].includes(state)?[{id:'fixture-update',state,changes:[{path:'openwiki/업무-지침.md',change:'modified'}],error:'model_unavailable'}]:[]};}
+    if(method==='wikiUpdate'){if(new URLSearchParams(location.search).has('wiki-inventory')&&!project.wikiFiles.length)return {status:{state:'unknown',reason:'no_wiki_pages'},updates:[]};const state=window.modalWikiState||'current';return {status:{state:state==='current'?'current':'outdated',lastUpdate:{updatedAt:'2026-10-01'},changedFiles:['src/index.ts'],uncommitted:['draft.txt'],stalePages:[{path:'openwiki/업무-지침.md',freshness:'source_changed'}]},updates:['ready','failed'].includes(state)?[{id:'fixture-update',state,...(wikiChatFixture&&state==='failed'?{canResume:true,fingerprint:'fixture'}:{}),changes:[{path:'openwiki/업무-지침.md',change:'modified'}],error:'model_unavailable'}]:[]};}
     if(method==='knowledgeStatus')return {state:'none'};
   }
   if(method==='computer'&&new URLSearchParams(location.search).has('connection')){
@@ -284,7 +324,7 @@ async function api(method,args={}){
     if(method==='createTask'){const task={id:'other-task',request:args.request,state:'draft',createdAt:new Date().toISOString(),messages:[],trace:[],criteria:[]};project.tasks.push(task);return structuredClone(task);}
     if(method==='startAgent'){const task=project.tasks.find(t=>t.id===args.taskId);window.startCalls=(window.startCalls||0)+1;await new Promise(r=>setTimeout(r,1500));task.state='running';task.responseTiming={runId:task.id,startedAt:new Date().toISOString(),elapsedMs:0};return {state:'running'};}
   }
-  if(method==='createTask'){const task={id:'fixture-task',request:args.request,requirementId:'REQ-fixture',criteria:[],state:'draft',messages:[],trace:[]};project.tasks=[task];return task;}
+  if(method==='createTask'){const task={id:'fixture-task',request:args.request,requestDocuments:args.documentReferences,documentReferences:args.documentReferences,requirementId:'REQ-fixture',criteria:[],state:'draft',messages:[],trace:[]};project.tasks=[task];return task;}
   if(method==='agentInput'&&new URLSearchParams(location.search).has('queue-layout')){
     const task=project.tasks[0],item=task.inbox.find(item=>item.id===args.id);
     if(args.action==='steer'&&item){item.mode='steer';setTimeout(()=>{task.inbox=[];task.messages.push({role:'user',inputId:item.id,content:item.text,at:new Date().toISOString(),runId:'queue-run'},{role:'assistant',content:'추가 요청까지 반영했습니다. 이 화면은 배치 확인용 예시입니다.',at:new Date().toISOString(),runId:'queue-run'});task.state='review';},1800);}
@@ -301,5 +341,5 @@ if(new URLSearchParams(location.search).has('integrated')&&!fixtureRoot.closest(
 // Exercise the real titlebar portal as well as the rail fallback.
 if(new URLSearchParams(location.search).has('toolbar')&&!document.getElementById('toolbar')){const shell=fixtureRoot.closest('.desktop-shell');shell.dataset.toolbar='true';shell.dataset.platform='darwin';const toolbar=document.createElement('div');toolbar.id='toolbar';toolbar.className='desktop-titlebar';shell.prepend(toolbar);}
 const wikiFixture=new URLSearchParams(location.search).has('wiki-progress')?{id:'wiki-fixture',state:'running',stage:'generating',startedAt:new Date(Date.now()-60000).toISOString(),stageStartedAt:new Date(Date.now()-30000).toISOString(),completed:3,total:10,percent:30}:undefined;
-function WorkbenchFixture(){useModalDismissalPolicy();const [sources,setSources]=useState(null),[wiki,setWiki]=useState(wikiFixture);window.setWikiFixture=setWiki;if(wikiChatFixture)window.setWikiChatJob=job=>{project.wikiChatBlocked=!!job;project.wikiChatJob=job;setWiki(job);};return <><Workbench openTerminal={context=>{window.openedTerminal=context;}} projects={wikiChatFixture?[{id:'fixture',name:'검증 프로젝트',root:'/fixture/current'},{id:'background-wiki',name:'백그라운드 프로젝트',root:'/fixture/background'}]:[]} switchProject={wikiChatFixture?async id=>{window.wikiProjectSwitches.push(id);}:undefined} showAnalysisHistory={new URLSearchParams(location.search).has('document')} wikiInitialization={wiki} openTeamWorkspace={async()=>{(window.nativeViewCalls||=[]).push('team-workspace');}} openMailSources={mailFlow?references=>{window.mailSourceCalls=references;setSources(references);}:undefined} toolbarHost={document.getElementById("toolbar")} hostLayout={new URLSearchParams(location.search).has('integrated')?'integrated':undefined} workspaceView={['solution','modals','integrated'].some(key=>new URLSearchParams(location.search).has(key))?async view=>{(window.nativeViewCalls||=[]).push(view);}:undefined} api={api} openCurrent={async()=>new URLSearchParams(location.search).has('noproject')?null:(sendTransition||new URLSearchParams(location.search).has('wiki-inventory')||new URLSearchParams(location.search).has('long-chat-live'))?structuredClone(project):project} chooseFolder={()=>{}} openPath={()=>{}} review={()=>{}} reviewApplied={async(row,taskId)=>{window.appliedComparison={path:row.path,taskId};}} apply={async id=>{const proposal=project.proposals.find(p=>p.id===id);if(proposal)proposal.state='applied';}} openURI={()=>{}} openBrowser={()=>{}} cloneRepository={async url=>{(window.cloneCalls||=[]).push(url);return {cancelled:true};}} ghesAccount={modalsVariant?ghesAccount:undefined} ghesUpdate={modalsVariant?async()=>({state:'unchecked'}):undefined} ghesRepositories={modalsVariant?async()=>({cancelled:true}):undefined}/>{sources&&createPortal(<aside className="desktop-pane"><header><strong>메일 원문</strong><WorkspaceAction action="close" label="원문 닫기" onClick={()=>setSources(null)}/></header><MailSourcePane references={sources} api={api}/></aside>,fixtureRoot.parentElement)}</>;}
+function WorkbenchFixture(){useModalDismissalPolicy();const [sources,setSources]=useState(null),[wiki,setWiki]=useState(wikiFixture);window.setWikiFixture=setWiki;if(wikiChatFixture)window.setWikiChatJob=job=>{project.wikiChatBlocked=!!job;project.wikiChatJob=job;setWiki(job);};return <><Workbench renameProject={new URLSearchParams(location.search).has('chapters')?async()=>{}:undefined} openTerminal={context=>{window.openedTerminal=context;}} projects={wikiChatFixture?[{id:'fixture',name:'검증 프로젝트',root:'/fixture/current'},{id:'background-wiki',name:'백그라운드 프로젝트',root:'/fixture/background'}]:[]} switchProject={wikiChatFixture?async id=>{window.wikiProjectSwitches.push(id);}:undefined} showAnalysisHistory={new URLSearchParams(location.search).has('document')} wikiInitialization={wiki} openTeamWorkspace={async()=>{(window.nativeViewCalls||=[]).push('team-workspace');}} openMailSources={mailFlow?references=>{window.mailSourceCalls=references;setSources(references);}:undefined} toolbarHost={document.getElementById("toolbar")} hostLayout={new URLSearchParams(location.search).has('integrated')?'integrated':undefined} workspaceView={['solution','modals','integrated'].some(key=>new URLSearchParams(location.search).has(key))?async view=>{(window.nativeViewCalls||=[]).push(view);}:undefined} api={api} openCurrent={async()=>new URLSearchParams(location.search).has('noproject')?null:(wikiChatFixture||sendTransition||new URLSearchParams(location.search).has('wiki-inventory')||new URLSearchParams(location.search).has('long-chat-live'))?structuredClone(project):project} chooseFolder={()=>{}} openPath={()=>{}} review={()=>{}} reviewApplied={async(row,taskId)=>{window.appliedComparison={path:row.path,taskId};}} apply={async id=>{const proposal=project.proposals.find(p=>p.id===id);if(proposal)proposal.state='applied';}} openURI={()=>{}} openBrowser={()=>{}} cloneRepository={async url=>{(window.cloneCalls||=[]).push(url);return {cancelled:true};}} ghesAccount={modalsVariant?ghesAccount:undefined} ghesUpdate={modalsVariant?async()=>({state:'unchecked'}):undefined} ghesRepositories={modalsVariant?async()=>({cancelled:true}):undefined}/>{sources&&createPortal(<aside className="desktop-pane"><header><strong>메일 원문</strong><WorkspaceAction action="close" label="원문 닫기" onClick={()=>setSources(null)}/></header><MailSourcePane references={sources} api={api}/></aside>,fixtureRoot.parentElement)}</>;}
 createRoot(fixtureRoot).render(new URLSearchParams(location.search).has('pointer')?<ComputerPointerUiFixture/>:new URLSearchParams(location.search).has('keyboard')?<ComputerKeyboardUiFixture/>:new URLSearchParams(location.search).has('controls')?<ComputerControlUiFixture/>:new URLSearchParams(location.search).has('computer')?<ComputerUiFixture/>:<WorkbenchFixture/>);

@@ -30,7 +30,7 @@ export interface PageClaims {
   schemaVersion: number;
 
   /**
-   * Compatibility snapshot of the generated Markdown bytes.
+   * Compatibility snapshot of generated Markdown with CRLF normalized to LF.
    *
    * Hash drift is informational in schema v1 and does not create agent work.
    */

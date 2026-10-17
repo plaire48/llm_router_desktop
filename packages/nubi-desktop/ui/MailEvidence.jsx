@@ -3,11 +3,11 @@ import {CxButton,Icon} from '@e2e/cx-design-system';
 
 export const mailReferenceKey=item=>`${item.id}:${item.attachmentId||''}:${JSON.stringify(item.location||{})}`;
 const validReference=item=>item&&typeof item==='object'&&typeof item.id==='string'&&typeof item.sourceHash==='string';
-export function useMailDraftReferences(projectId,taskId){
-  const cache=useRef(new Map()),[,update]=useState(0),key=projectId?`nubi-mail-draft:${JSON.stringify([projectId,taskId||null])}`:null;
+export function useMailDraftReferences(projectId,taskId,namespace='mail'){
+  const cache=useRef(new Map()),[,update]=useState(0),key=projectId?`nubi-${namespace}-draft:${JSON.stringify([projectId,taskId||null])}`:null;
   if(key&&!cache.current.has(key)){let values=[];try{const stored=JSON.parse(sessionStorage.getItem(key)||'[]');if(Array.isArray(stored))values=stored.filter(validReference).slice(0,20);}catch{}cache.current.set(key,values);}
   function setReferences(value){if(!key)return;const current=cache.current.get(key)||[],next=typeof value==='function'?value(current):value;cache.current.set(key,next);try{if(next.length)sessionStorage.setItem(key,JSON.stringify(next));else sessionStorage.removeItem(key);}catch{}update(n=>n+1);}
-  function moveTo(nextTaskId){if(!key)return;const nextKey=`nubi-mail-draft:${JSON.stringify([projectId,nextTaskId])}`,values=cache.current.get(key)||[];cache.current.set(nextKey,values);try{if(values.length)sessionStorage.setItem(nextKey,JSON.stringify(values));else sessionStorage.removeItem(nextKey);}catch{}setReferences([]);}
+  function moveTo(nextTaskId){if(!key)return;const nextKey=`nubi-${namespace}-draft:${JSON.stringify([projectId,nextTaskId])}`,values=cache.current.get(key)||[];cache.current.set(nextKey,values);try{if(values.length)sessionStorage.setItem(nextKey,JSON.stringify(values));else sessionStorage.removeItem(nextKey);}catch{}setReferences([]);}
   return [key?cache.current.get(key):[],setReferences,()=>key?cache.current.get(key)||[]:[],moveTo];
 }
 export function MailEvidenceChips({references=[],onRemove,onOpen}){

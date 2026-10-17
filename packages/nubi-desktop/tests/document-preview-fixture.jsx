@@ -1,10 +1,11 @@
+import '@e2e/cx-design-system/styles.css';
 import React,{useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {CxButton} from '@e2e/cx-design-system';
 import {DocumentPreview,RenderedFile} from '../ui/DocumentPreview.jsx';
 import {WikiBrowser} from '../ui/WikiBrowser.jsx';
 import {ProjectWikiProgress} from '../ui/ProjectWikiProgress.jsx';
-import '@e2e/cx-design-system/styles.css';
+
 import '../../../extensions/aipro-chat/design/agent-deck.css';
 import '../electron-app/workbench.css';
 import '../design/workspace-identity.css';

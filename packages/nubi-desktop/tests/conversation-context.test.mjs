@@ -107,9 +107,9 @@ test('in-run compaction rereads live host receipts and preserves tool call/resul
 test('desktop run reuses durable history, displays real summary progress and retrieves exact originals',async t=>{
   const {service}=await fixture(t),task=await service.createTask({request:'Keep original goal',criteria:['NEVER_SEND']});
   const history=setup().task.messages;task.messages=history;service.store.set('task:'+task.id,task);
-  let summaries=0,turn=0;
+  let summaries=0,turn=0;const summaryStages=new Set();
   service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:32000}]}),dispose(){},complete:async(messages,tools)=>{
-    if(messages[0].content.startsWith('Summarize conversation')){summaries++;assert.equal(service.task(task.id).context.phase,'summarizing');assert.deepEqual(tools,[]);return summarize();}
+    if(messages[0].content.startsWith('Summarize conversation')){summaries++;assert.equal(service.task(task.id).context.phase,'summarizing');assert.equal(service.task(task.id).context.operation,'history');summaryStages.add(service.task(task.id).context.stage);assert.deepEqual(tools,[]);return summarize();}
     assert.match(JSON.stringify(messages),/NEVER_SEND/);assert.match(JSON.stringify(messages),/최신 정정/);
     if(turn++===0)return {content:'',calls:[{id:'read-history',type:'function',function:{name:'read_conversation',arguments:'{"index":1}'}}]};
     if(turn===2)assert.match(messages.findLast(m=>m.role==='tool').content,/old source/);
@@ -117,7 +117,7 @@ test('desktop run reuses durable history, displays real summary progress and ret
   }};
   await service.startAgent({taskId:task.id});await service.agent.promise;
   assert.equal(service.task(task.id).state,'review');assert(summaries>0);
-  assert.equal(service.task(task.id).context.phase,'ready');assert(service.task(task.id).context.compactions>0);
+  assert.equal(service.task(task.id).context.phase,'ready');assert.equal(service.task(task.id).context.status,'completed');assert.deepEqual([...summaryStages],['draft','review']);assert(service.task(task.id).context.compactions>0);
   assert(service.store.get('context-history:'+task.id));assert.equal(service.task(task.id).messages[0].content,history[0].content);
   const prior=summaries;await service.startAgent({taskId:task.id,answer:'같은 조건으로 이어 주세요.'});await service.agent.promise;
   assert.equal(service.task(task.id).state,'review');assert.equal(summaries,prior);

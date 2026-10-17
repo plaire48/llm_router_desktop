@@ -6,30 +6,30 @@
   --nubi-tab-icon:15px;
 }
 .desktop-shell .desktop-pane:has(.desktop-file-tabs)>header { gap:var(--cx-space-2); padding:var(--cx-space-1) var(--cx-space-2); min-height:36px; }
-:root:has(.desktop-shell) .desktop-shell .desktop-file-tabs { gap:var(--cx-space-1); padding:2px; overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; }
+:root:has(.desktop-shell) .desktop-shell .desktop-file-tabs { gap:var(--cx-space-1); padding:calc(var(--cx-space-1) * 0.5); overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; }
 :root:has(.desktop-shell) .desktop-shell .desktop-file-tabs .desktop-workspace-tab { position:relative; flex:0 0 auto; min-width:104px; max-width:196px; height:var(--nubi-tab-height); border-radius:var(--nubi-tab-radius); background:transparent; transition:background-color var(--nubi-motion-hover) var(--nubi-motion-ease); }
-:root:has(.desktop-shell) .desktop-shell .desktop-file-tabs .desktop-workspace-tab::after { content:''; position:absolute; right:-3px; top:9px; bottom:9px; width:1px; background:var(--deck-line); pointer-events:none; }
-:root:has(.desktop-shell) .desktop-shell .desktop-file-tabs .desktop-workspace-tab:has([aria-selected=true]) { background:var(--deck-card); box-shadow:0 1px 3px #191f280a; }
+:root:has(.desktop-shell) .desktop-shell .desktop-file-tabs .desktop-workspace-tab::after { content:""; position:absolute; right:-3px; top:9px; bottom:9px; width:1px; background:var(--deck-line); pointer-events:none; }
+:root:has(.desktop-shell) .desktop-shell .desktop-file-tabs .desktop-workspace-tab:has([aria-selected=true]) { background:var(--nubi-surface-selected); box-shadow:none; }
 :root:has(.desktop-shell) .desktop-shell .desktop-file-tabs .desktop-workspace-tab:is(:hover,:has([aria-selected=true]))::after { opacity:0; }
-:root:has(.desktop-shell) .desktop-shell .desktop-file-tabs .desktop-workspace-tab:hover { background:var(--deck-card); }
+:root:has(.desktop-shell) .desktop-shell .desktop-file-tabs .desktop-workspace-tab:hover:not(:has([aria-selected=true])) { background:var(--nubi-surface-inset); }
 :root:has(.desktop-shell) .desktop-shell .desktop-file-tabs .desktop-tab-select,
 :root:has(.desktop-shell) .desktop-shell .desktop-file-tabs>.cx-kit-button {
-  display:flex; align-items:center; justify-content:flex-start; gap:6px;
+  display:flex; align-items:center; justify-content:flex-start; gap:calc(var(--cx-space-1) * 1.5);
   flex:1; width:auto; min-width:0; max-width:none; height:var(--nubi-tab-height); min-height:var(--nubi-tab-height);
   padding:0 var(--cx-space-2); border-radius:var(--nubi-tab-radius); border:0;
   font:var(--deck-font-caption); font-weight:var(--nubi-weight-regular); color:var(--deck-sub);
   background:transparent; box-shadow:none;
 }
 :root:has(.desktop-shell) .desktop-shell .desktop-file-tabs>.cx-kit-button { flex:none; }
-:root:has(.desktop-shell) .desktop-shell .desktop-file-tabs [role=tab][aria-selected=true] { color:var(--deck-ink); font-weight:var(--nubi-weight-label); }
-:root:has(.desktop-shell) .desktop-shell .desktop-file-tabs>.cx-kit-button[aria-selected=true] { background:var(--deck-card); }
+:root:has(.desktop-shell) .desktop-shell .desktop-file-tabs [role=tab][aria-selected=true] { color:var(--nubi-text-action); font-weight:var(--nubi-weight-label); }
+:root:has(.desktop-shell) .desktop-shell .desktop-file-tabs>.cx-kit-button[aria-selected=true] { background:var(--nubi-surface-selected); }
 :root:has(.desktop-shell) .desktop-shell .desktop-file-tabs .desktop-tab-select>span:not(.desktop-dirty):not(.status-spinner) { position:static; width:auto; height:auto; min-width:0; overflow:hidden; text-overflow:ellipsis; clip-path:none; white-space:nowrap; }
 :root:has(.desktop-shell) .desktop-shell .desktop-file-tabs [role=tab]>svg { width:var(--nubi-tab-icon); height:var(--nubi-tab-icon); flex:none; }
-:root:has(.desktop-shell) .desktop-shell .desktop-file-tabs .desktop-tab-select>.desktop-dirty { position:static; flex:none; font-size:8px; color:var(--deck-blue-deep); }
+:root:has(.desktop-shell) .desktop-shell .desktop-file-tabs .desktop-tab-select>.desktop-dirty { position:static; flex:none; font-size:var(--nubi-dirty-dot-size); color:var(--deck-blue-deep); }
 :root:has(.desktop-shell) .desktop-shell .desktop-file-tabs .desktop-tab-select>.status-spinner { position:static; width:12px; height:12px; flex:none; }
 :root:has(.desktop-shell) .desktop-shell .desktop-file-tabs .desktop-tab-close {
   position:static; flex:none; width:24px; min-width:24px; height:24px; min-height:24px;
-  margin:0 3px 0 0; padding:0; border:0; border-radius:6px;
+  margin:0 calc(var(--cx-space-1) * 0.75) 0 0; padding:0; border:0; border-radius:calc(var(--cx-space-1) * 1.5);
   opacity:0; transform:none; background:transparent; box-shadow:none; color:var(--deck-sub);
   transition:opacity 120ms ease,background-color 120ms ease;
 }
@@ -37,7 +37,7 @@
 :root:has(.desktop-shell) .desktop-shell .desktop-file-tabs .desktop-workspace-tab:is(:hover,:focus-within,:has([aria-selected=true])) .desktop-tab-close { opacity:1; }
 :root:has(.desktop-shell) .desktop-shell .desktop-file-tabs .desktop-tab-close:hover { background:var(--deck-tint); color:var(--deck-ink); }
 :root:has(.desktop-shell) .desktop-shell .desktop-file-tabs [role=tab]:active { transform:none; }
-.desktop-shell .desktop-file-location { padding:6px var(--cx-space-2); gap:var(--cx-space-2); }
+.desktop-shell .desktop-file-location { padding:calc(var(--cx-space-1) * 1.5) var(--cx-space-2); gap:var(--cx-space-2); }
 .desktop-shell .desktop-file-location .desktop-breadcrumbs {
   min-height:32px; padding:0 var(--cx-space-2); gap:var(--cx-space-1); border:1px solid var(--deck-line);
   border-radius:var(--deck-pill-radius); background:var(--deck-card); scrollbar-width:none;

@@ -70,6 +70,26 @@ const {PlaywrightHost}=require('../electron-app/playwright-host.cjs');
   if(!staleBlocked)throw Error('stale_document_not_blocked');
   if(!sessionReused)throw Error('session_not_reused');
   await rpc({name:'__reconnect'});const reconnected=await call('browser_snapshot');if(reconnected.isError)throw Error('reconnect_failed');
+  // Drop the live capability socket, then stall one Electron attach. Recovery must
+  // happen before any action is dispatched and must retain the same page/session.
+  const liveConnection=await bridge.connections.get(tabId);liveConnection.close();
+  await new Promise(resolve=>setTimeout(resolve,50));
+  const debug=host.tab(tabId).view.webContents.debugger,sendCommand=debug.sendCommand.bind(debug);let stalledAttaches=0;
+  debug.sendCommand=(method,...args)=>method==='Target.getTargetInfo'&&stalledAttaches++===0?new Promise(()=>{}):sendCommand(method,...args);
+  try{
+   const recovered=await timed('cdpRecovery',()=>call('browser_snapshot'));
+   if(recovered.isError||!recovered.content.some(part=>part.text?.includes('textbox')))throw Error('cdp_stall_recovery_failed');
+   const reused=await call('browser_snapshot');
+   if(reused.isError)throw Error('recovered_client_not_reused');
+   if(stalledAttaches!==2)throw Error('cdp_retry_not_bounded');
+   const recoveredText=reused.content.map(part=>part.text||'').join('\n');
+   const recoveredButton=/button "찾기" \[ref=([^\]]+)/.exec(recoveredText)?.[1];
+   const wc=host.tab(tabId).view.webContents;
+   await wc.executeJavaScript('window.clickCount=0;document.querySelector("button").addEventListener("click",()=>window.clickCount++)');
+   const current=JSON.parse(reused.content[0].text);
+   const once=await call('browser_click',{documentId:current.documentId,target:recoveredButton});
+   if(once.isError||await wc.executeJavaScript('window.clickCount')!==1)throw Error('recovery_action_replayed');
+  }finally{debug.sendCommand=sendCommand;}
   // A not-yet-running local server keeps an in-app error tab and can recover in place.
   const pendingServer=createServer((_req,res)=>{res.setHeader('content-type','text/html');res.end('<h1>Server ready</h1>');});
   await new Promise(resolve=>pendingServer.listen(0,'127.0.0.1',resolve));const delayedPort=pendingServer.address().port;await new Promise(resolve=>pendingServer.close(resolve));
@@ -78,6 +98,6 @@ const {PlaywrightHost}=require('../electron-app/playwright-host.cjs');
   const failedTab=host.active;await new Promise(resolve=>pendingServer.listen(delayedPort,'127.0.0.1',resolve));
   try{const wc=host.tab(failedTab).view.webContents;await host.request({action:'reload',id:failedTab});let recovered=false;for(let i=0;i<50;i++){if(!host.tab(failedTab).error&&await wc.executeJavaScript('document.body?.textContent').catch(()=>null)==='Server ready'){recovered=true;break;}await new Promise(resolve=>setTimeout(resolve,100));}if(!recovered){console.log('recovery',JSON.stringify({error:host.tab(failedTab).error,url:wc.getURL(),body:await wc.executeJavaScript('document.body?.textContent')}));throw Error('local_server_retry_failed');}}finally{pendingServer.closeAllConnections();await new Promise(resolve=>pendingServer.close(resolve));}
   if(BrowserWindow.getAllWindows().length!==1)throw Error('extra_browser_window');
-  const result={passed:true,windowCapture:{width:windowCapture.width,height:windowCapture.height},workerIpc:true,contextMenu:true,initialSnapshot:true,localServerRecovery:true,sessionReused,reconnected:true,staleBlocked,tools:listed.tools.map(t=>t.name),timings,protectedAuth};console.log(JSON.stringify(result));await writeFile(path.join(__dirname,'../verification/playwright-mcp-2026-10-15/result.json'),JSON.stringify(result,null,2));
+  const result={passed:true,windowCapture:{width:windowCapture.width,height:windowCapture.height},workerIpc:true,contextMenu:true,initialSnapshot:true,localServerRecovery:true,cdpStallRecovery:true,sessionReused,reconnected:true,staleBlocked,tools:listed.tools.map(t=>t.name),timings,protectedAuth};console.log(JSON.stringify(result));await writeFile(path.join(__dirname,'../verification/playwright-mcp-2026-10-15/result.json'),JSON.stringify(result,null,2));
  }finally{await mcp?.close();bridge.dispose();host.dispose();window.destroy();fixture.close();app.quit();}
 })().catch(error=>{console.error(error);app.exit(1);});

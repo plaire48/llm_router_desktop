@@ -1,7 +1,7 @@
 /* Reuse E2E Report's WorkList frame, table density and action geometry. */
 .app-shell .skill-workspace { width:100%; min-width:0; }
-.app-shell .skill-workspace .list-heading h1 { font-size:24px; line-height:1.5; font-weight:600; }
-.app-shell .skill-workspace .work-list-table td { min-height:var(--cx-row-height); padding-block:10px; }
+.app-shell .skill-workspace .list-heading h1 { font-size:var(--deck-type-title); line-height:var(--deck-line-caption); font-weight:var(--nubi-weight-emphasis); }
+.app-shell .skill-workspace .work-list-table td { min-height:var(--cx-row-height); padding-block:calc(var(--cx-space-1) * 2.5); }
 .skill-table .cx-person-login { display:none; }
 .skill-table .skill-version-label { font-size:var(--cx-type-body); }
 .skill-list-panel { display:flex; flex-direction:column; flex:1 0 120px; height:0; min-height:120px; }
@@ -20,15 +20,15 @@
 .skill-table :is([data-field=maintainers],[data-field=updatedBy]) .profile-identity-button { max-width:100%; }
 .skill-table :is([data-field=maintainers],[data-field=updatedBy]) .profile-identity-button strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:var(--cx-weight-medium); }
 .skill-table.compact-frozen-columns [data-column-pinned=true] .skill-title-link { white-space:nowrap; }
-.skill-title-link { display:block; max-width:100%; padding:0; border:0; background:none; color:var(--layout-text); font:inherit; font-weight:600; text-align:left; cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.skill-title-link { display:block; max-width:100%; padding:0; border:0; background:none; color:var(--layout-text); font:inherit; font-weight:var(--nubi-weight-emphasis); text-align:left; cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .skill-title-link:hover { color:var(--brand-ink); text-decoration:underline; text-underline-offset:3px; }
-.skill-row-description { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; white-space:normal; line-height:1.6; word-break:keep-all; overflow-wrap:anywhere; }
+.skill-row-description { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; white-space:normal; line-height:var(--deck-line-body); word-break:keep-all; overflow-wrap:anywhere; }
 .skill-version-label { color:var(--layout-muted); font-size:var(--cx-type-caption); }
 .skill-tags { display:flex; flex-wrap:wrap; align-items:center; gap:var(--cx-gap-xs); min-width:0; }
-.skill-tag { display:inline-flex; align-items:center; justify-content:center; min-width:0; max-width:100%; min-height:28px; padding:2px var(--cx-space-2); border:1px solid transparent; border-radius:var(--cx-radius-card); background:var(--layout-soft); color:var(--layout-muted); font:var(--cx-type-body)/1.5 var(--cx-font-family); white-space:normal; overflow-wrap:anywhere; }
+.skill-tag { display:inline-flex; align-items:center; justify-content:center; min-width:0; max-width:100%; min-height:28px; padding:calc(var(--cx-space-1) * 0.5) var(--cx-space-2); border:1px solid transparent; border-radius:var(--cx-radius-card); background:var(--layout-soft); color:var(--layout-muted); font:var(--cx-type-body)/var(--deck-line-caption) var(--cx-font-family); white-space:normal; overflow-wrap:anywhere; }
 button.skill-tag { cursor:pointer; }
-button.skill-tag:hover { color:var(--brand-heading); background:var(--brand-soft); border-color:var(--brand-mid); }
-button.skill-tag[aria-pressed='true'] { color:var(--brand-on-action); background:var(--brand-action); border-color:var(--brand-action); }
+button.skill-tag:hover { color:var(--nubi-text-primary); background:var(--brand-soft); border-color:var(--brand-mid); }
+button.skill-tag[aria-pressed="true"] { color:var(--nubi-text-on-accent); background:var(--brand-action); border-color:var(--brand-action); }
 .skill-row-actions { display:flex; align-items:center; justify-content:flex-end; gap:var(--cx-space-1); }
 .skill-row-actions .cx-icon-button { flex-shrink:0; }
 .skill-row-actions .cx-button { flex-shrink:0; }
@@ -55,8 +55,8 @@ button.skill-tag[aria-pressed='true'] { color:var(--brand-on-action); background
 .skill-version-notice { color:var(--brand-ink); font-size:var(--cx-type-caption); }
 /* Document typography, links, code, quotes and tables come from AI Talk.
    SKILL.md may also contain heading levels not exposed by the Talk editor. */
-.skill-markdown h1 { font:var(--cx-weight-bold) var(--cx-type-panel-title)/1.5 var(--cx-font-family); margin:var(--cx-gap-xl) 0 var(--cx-gap-sm); }
-.skill-markdown :is(h4,h5,h6) { font:var(--cx-weight-medium) var(--cx-type-body)/1.5 var(--cx-font-family); margin:var(--cx-gap-lg) 0 var(--cx-gap-xs); }
+.skill-markdown h1 { font:var(--cx-weight-bold) var(--cx-type-panel-title)/var(--deck-line-caption) var(--cx-font-family); margin:var(--cx-gap-xl) 0 var(--cx-gap-sm); }
+.skill-markdown :is(h4,h5,h6) { font:var(--cx-weight-medium) var(--cx-type-body)/var(--deck-line-caption) var(--cx-font-family); margin:var(--cx-gap-lg) 0 var(--cx-gap-xs); }
 .skill-markdown { overflow-x:auto; }
 .skill-markdown > :first-child { margin-top:0; }
 .skill-files { border-top:1px solid var(--layout-border); padding:var(--cx-gap-sm) 0; margin-top:var(--cx-gap-sm); }
@@ -81,7 +81,7 @@ button.skill-tag[aria-pressed='true'] { color:var(--brand-on-action); background
 .skill-tag-picked .cx-action-button { flex-shrink:0; }
 .skill-tag-suggestions { display:grid; gap:var(--cx-gap-xs); min-width:0; }
 .skill-tag-suggestions > span { font-size:var(--cx-type-caption); color:var(--layout-muted); }
-.skill-tag-suggestions ul { max-height:120px; overflow:auto; padding:2px; }
+.skill-tag-suggestions ul { max-height:120px; overflow:auto; padding:calc(var(--cx-space-1) * 0.5); }
 .skill-tag-suggestions li { max-width:100%; }
 .skill-tag-suggestions .skill-tag { min-height:var(--cx-control); }
 .skill-maintainers { display:grid; gap:var(--cx-gap-xs); min-width:0; }
@@ -94,8 +94,8 @@ button.skill-tag[aria-pressed='true'] { color:var(--brand-on-action); background
 .skill-maintainer-result { display:flex; align-items:center; gap:var(--cx-gap-sm); width:100%; min-height:var(--cx-touch); padding:var(--cx-gap-xs); border:0; border-radius:var(--cx-radius-control); background:transparent; color:var(--layout-text); text-align:left; cursor:pointer; }
 .skill-maintainer-result:hover:not(:disabled),.skill-maintainer-result:focus-visible { background:var(--brand-surface); }
 .skill-maintainer-result:disabled { cursor:default; color:var(--layout-muted); }
-.skill-maintainer-person { flex:1; min-width:0; display:grid; gap:4px; }
-.skill-maintainer-email { padding-left:32px; overflow-wrap:anywhere; color:var(--layout-muted); font-size:var(--cx-type-caption); }
+.skill-maintainer-person { flex:1; min-width:0; display:grid; gap:var(--cx-space-1); }
+.skill-maintainer-email { padding-left:var(--cx-space-8); overflow-wrap:anywhere; color:var(--layout-muted); font-size:var(--cx-type-caption); }
 .skill-maintainer-role { flex-shrink:0; font-size:var(--cx-type-caption); }
 .skill-maintainer-selected { display:flex; flex-wrap:wrap; gap:var(--cx-gap-xs); }
 .skill-maintainer-selected li { display:flex; align-items:center; min-width:0; max-width:100%; padding-left:var(--cx-gap-xs); border:1px solid var(--brand-border); border-radius:var(--cx-radius-control); background:var(--brand-soft); color:var(--brand-ink); }
@@ -145,7 +145,7 @@ button.skill-tag[aria-pressed='true'] { color:var(--brand-on-action); background
 /* Installation uses shared controls and readable, action-first steps. */
 .cx-panel-backdrop.is-modal > .cx-detail-panel.skill-install-panel { width:min(420px,100%); }
 .skill-install-content,.skill-install-guide { display:grid; gap:var(--cx-gap-md); }
-.skill-install-content { line-height:1.65; word-break:keep-all; overflow-wrap:anywhere; }
+.skill-install-content { line-height:var(--nubi-reading-leading); word-break:keep-all; overflow-wrap:anywhere; }
 .skill-install-content p { margin:0; font:inherit; }
 .skill-install-copy { min-width:0; }
 .skill-install-copy > .skill-error { margin-top:var(--cx-gap-xs); }

@@ -1,3 +1,4 @@
+import {processInputRevision} from './processes.mjs';
 import {open,lstat,realpath} from 'node:fs/promises';
 import {constants} from 'node:fs';
 import {isUtf8} from 'node:buffer';
@@ -5,6 +6,7 @@ import path from 'node:path';
 import {setTimeout as wait} from 'node:timers/promises';
 import {hash,fail} from './files.mjs';
 import {processOutputDiagnostic} from './powershell-output.mjs';
+import {terminalReadableText} from './terminal-readable-text.mjs';
 
 const PAGE_BYTES=8000,SCAN_BYTES=262144,MAX_MATCHES=10;
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
@@ -42,7 +44,7 @@ export function commandProblem(record){
 }
 
 export function processOutputPreview(record){
-  const text=record.output||'',truncated=text.length>2*PREVIEW_EDGE,problem=commandProblem(record),diagnostic=processOutputDiagnostic(record);
+  const text=terminalReadableText(record.output),truncated=text.length>2*PREVIEW_EDGE,problem=commandProblem(record),diagnostic=processOutputDiagnostic(record);
   return {output:truncated?text.slice(0,PREVIEW_EDGE)+'\n[... retained output omitted; use read_process_output ...]\n'+text.slice(-PREVIEW_EDGE):text,
     outputScope:'retained_buffer',outputTruncated:truncated,logIncomplete:!!record.logIncomplete,
     outputReference:{tool:'read_process_output',processId:record.id},...(problem?{commandProblem:problem}:{}),...(diagnostic?{outputDiagnostic:diagnostic}:{})};
@@ -88,7 +90,7 @@ export async function readProcessOutput(service,taskId,{processId,offset=0,query
     let bytesRead=0;
     while(bytesRead<buffer.length){signal?.throwIfAborted();const read=await handle.read(buffer,bytesRead,buffer.length-bytesRead,offset+bytesRead);if(!read.bytesRead)break;bytesRead+=read.bytesRead;}
     const bytes=buffer.subarray(0,bytesRead);
-    const common={processId,state:record.state,execution:record.execution||'unknown',exitCode:record.exitCode??null,available:true,historical:true,source:'saved_log',revision:currentVersion,revisionKind:'file_metadata',totalBytes:before.size,logIncomplete:!!record.logIncomplete,instruction};
+    const common={processId,state:record.state,execution:record.execution||'unknown',exitCode:record.exitCode??null,available:true,historical:true,source:'saved_log',revision:currentVersion,revisionKind:'file_metadata',totalBytes:before.size,logIncomplete:!!record.logIncomplete,interactive:record.interactive===true,...(record.interactive&&record.state==='running'?{inputRevision:processInputRevision(record)}:{}),instruction};
     let result;
     if(!needle){const range=utf8Range(bytes,0,Math.min(scanEnd-offset,bytes.length));result={...common,offset:offset+range.start,endOffset:offset+range.end,text:range.text,encodingLoss:range.encodingLoss,nextOffset:offset+range.end<before.size?offset+range.end:null};}
     else{

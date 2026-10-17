@@ -1,3 +1,4 @@
+import {officeReadDiagnostic} from '../runtime/office-read-diagnostic.mjs';
 import {mailConnectionErrors} from './mail-connection-error.mjs';
 
 const issues={
@@ -9,6 +10,7 @@ const issues={
  mail_storage_permission:{title:'메일 저장 위치의 권한을 확인해 주세요',action:'settings'},
  mail_file_conflict:{title:'저장된 위키가 변경됐어요',action:'retry'},
  mail_source_changed:{title:'보관한 원문이 변경됐어요',action:'source'},
+ mail_attachment_analysis_failed:{title:'첨부를 읽지 못해 수집하지 않았어요',action:'settings'},
  mail_parse_failed:{title:'메일 본문을 읽지 못했어요',action:'settings'},
  mail_size_limit:{title:'이 메일은 원문 보관 범위(96MB)를 넘었어요',action:null},
  mail_summary_invalid:{title:'AI 정리 결과를 확인하지 못했어요',action:'retry'},
@@ -23,9 +25,10 @@ const issues={
  document_office_required:{title:'Office에서 첨부를 확인해 주세요',action:'source'},
  document_office_missing:{title:'Office 설치를 확인해 주세요',action:'source'},
  document_office_version:{title:'Office 호환 버전을 확인해 주세요',action:'source'},
- document_office_policy:{title:'회사 Office 실행 정책을 확인해 주세요',action:'source'},
+ document_office_policy:{title:'Office에서 읽기 전용으로 열지 못했어요',action:'retry'},
  document_office_timeout:{title:'Office 첨부 읽기 시간이 초과됐어요',action:'retry'},
  document_office_cleanup:{title:'Office 읽기용 사본을 확인해 주세요',action:'source'},
+ document_office_busy:{title:'Office가 자동 읽기 요청을 받지 못했어요',action:'retry'},
  document_office_read_failed:{title:'Office에서 첨부를 읽지 못했어요',action:'retry'},
 };
 export function mailAttentionInfo(code){
@@ -33,10 +36,17 @@ export function mailAttentionInfo(code){
  return issues[code]|| (mailConnectionErrors[code]?{...mailConnectionErrors[code],action:'settings'}:{title:'메일 처리를 완료하지 못했어요',action:'retry'});
 }
 
+const officeStages={prepare:'읽기 사본 준비',activate:'Office 실행',configure:'읽기 설정',open:'파일 열기',read:'본문 읽기',verify:'읽기 결과 확인',close:'문서 닫기',restore:'Office 설정 복구',release:'읽기 연결 정리'};
+export function officeReadHelp(value){
+ const diagnostic=officeReadDiagnostic(value);if(!diagnostic)return '';
+ const facts=[{word:'Word',excel:'Excel',powerpoint:'PowerPoint'}[diagnostic.app],diagnostic.officeVersion,officeStages[diagnostic.stage],diagnostic.hresult].filter(Boolean).join(' / ');
+ const action=['activate','configure','open','read'].includes(diagnostic.stage)?'Office에서 해당 첨부를 직접 열어 안내나 대기 창을 확인한 뒤 다시 읽어 주세요.':'';
+ return [facts,action,diagnostic.cleanupFailed?'읽기용 사본 정리도 확인이 필요해요.':''].filter(Boolean).join('\n');
+}
 export function mailAttentionRowInfo(row){
  const failures=row.attachmentFailures||[],attachmentsOnly=row.summary===false&&failures.length>0;
  const issue=mailAttentionInfo(row.error),filename=attachmentsOnly?failures[0].filename:'';
- const detail=[...(!attachmentsOnly?[issue.title]:[]),...failures.map(item=>[item.filename,mailAttentionInfo(item.error).title].filter(Boolean).join(' — '))].join('\n');
+ const detail=[...(!attachmentsOnly?[issue.title]:[]),...failures.map(item=>[item.filename,mailAttentionInfo(item.error).title,officeReadHelp(item.officeDiagnostic)].filter(Boolean).join(' — '))].join('\n');
  return {...issue,action:failures.some(item=>item.error==='mail_source_changed')?'source':issue.action,attachmentsOnly,filename,
   title:attachmentsOnly?[filename,issue.title].filter(Boolean).join(' — '):issue.title+(failures.length?' / 첨부 확인 필요':''),detail:detail||issue.title};
 }

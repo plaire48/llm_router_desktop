@@ -73,7 +73,7 @@
 .talk-form-error, .service-desk-form > .service-desk-field-error { margin: 0; padding: var(--cx-space-2) var(--community-inset); }
 @media (max-width: 700px) {
   :is(.talk-workspace, .talk-compose-page, .service-desk-page) { --community-inset: var(--cx-space-3); gap: var(--cx-space-3); }
-  :is(.talk-title, .talk-compose-heading-title, .service-desk-page-title) h1 { font-size: 20px; line-height: 28px; }
+  :is(.talk-title, .talk-compose-heading-title, .service-desk-page-title) h1 { font-size:var(--nubi-type-section); line-height:var(--deck-line-body); }
 }
 
 .community-compose-title { font-weight:var(--cx-weight-medium); }
@@ -110,4 +110,4 @@
 }
 
 /* The category emoji chosen in GHES, shown as itself at icon size (2026-10-14). */
-.discussion-category-emoji { display:inline-block; font-size:14px; line-height:1; }
+.discussion-category-emoji { display:inline-block; font-size:var(--deck-type-caption); line-height:var(--nubi-line-solid); }

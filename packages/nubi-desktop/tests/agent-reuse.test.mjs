@@ -86,7 +86,9 @@ test('desktop shared context compaction retains every original criterion and ans
 });
 
 test('repeated unchanged source failure asks a durable focused question and resumes the original task',async t=>{
-  const {service}=await fixture(t);let failures=0,answered=false;
+  const {service}=await fixture(t);let failures=0,reads=0,answered=false;
+  const read=service.read.bind(service);
+  service.read=async args=>{if(args.path==='missing-settings.txt')reads++;return read(args);};
   service.providers={status,dispose(){},async complete(messages,tools){
     if(tools.length===1&&tools[0].function.name==='ask_user')return call('ask_user',{question:'요청하신 설정 파일은 어느 경로에 있나요?',input_mode:'text'});
     if(!answered){failures++;return call('read_source',{path:'missing-settings.txt'});}
@@ -95,7 +97,9 @@ test('repeated unchanged source failure asks a durable focused question and resu
   }};
   const task=await service.createTask({request:'ORIGINAL_GOAL: inspect the requested settings',criteria:['Preserve current behavior']});
   await service.startAgent({taskId:task.id});await service.agent.promise;
-  const waiting=service.task(task.id);assert.equal(failures,3);assert.equal(waiting.state,'waiting_input');assert.ok(waiting.question?.id);assert.equal(waiting.error,null);
+  // The recovery hook allows one alternative-method turn; identical failed
+  // reads are executed only twice, then blocked before a focused question.
+  const waiting=service.task(task.id);assert.equal(reads,2);assert.equal(failures,4);assert.equal(waiting.state,'waiting_input');assert.ok(waiting.question?.id);assert.equal(waiting.error,null);
   assert.equal(service.state().proposals.length,0);
   answered=true;await service.answerAgent({taskId:task.id,answer:'app.txt'});await service.agent.promise;
   const resumed=service.task(task.id);assert.equal(resumed.request,task.request);assert.equal(resumed.criteria[0].text,'Preserve current behavior');assert.equal(resumed.questionHistory[0].answer.text,'app.txt');assert.equal(resumed.state,'review');

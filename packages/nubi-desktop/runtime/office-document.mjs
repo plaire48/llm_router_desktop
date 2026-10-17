@@ -2,18 +2,19 @@ import {spawn} from 'node:child_process';
 import {mkdtemp,readFile,writeFile,lstat,rm} from 'node:fs/promises';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
+import {officeReadDiagnostic} from './office-read-diagnostic.mjs';
 
 const formats={word:['doc','docx','docm','dot','dotx','dotm','rtf'],excel:['xls','xlsx','xlsm','xlt','xltx','xltm'],powerpoint:['ppt','pptx','pptm','pps','ppsx','ppsm','pot','potx','potm']};
 const mimes={'application/msword':'doc','application/vnd.ms-excel':'xls','application/vnd.ms-powerpoint':'ppt','application/vnd.openxmlformats-officedocument.wordprocessingml.document':'docx','application/vnd.openxmlformats-officedocument.wordprocessingml.template':'dotx','application/vnd.ms-word.document.macroenabled.12':'docm','application/vnd.ms-word.template.macroenabled.12':'dotm','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.template':'xltx','application/vnd.ms-excel.sheet.macroenabled.12':'xlsm','application/vnd.ms-excel.template.macroenabled.12':'xltm','application/vnd.openxmlformats-officedocument.presentationml.presentation':'pptx','application/vnd.openxmlformats-officedocument.presentationml.slideshow':'ppsx','application/vnd.openxmlformats-officedocument.presentationml.template':'potx','application/vnd.ms-powerpoint.presentation.macroenabled.12':'pptm','application/vnd.ms-powerpoint.slideshow.macroenabled.12':'ppsm','application/vnd.ms-powerpoint.template.macroenabled.12':'potm'};
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 export function officeDocumentFormat(filename='',contentType=''){
   const suffix=path.extname(String(filename||'')).slice(1).toLowerCase();
-  if(/^(pdf|txt|md|csv|json|xml|html?|png|jpe?g|gif|webp)$/.test(suffix))return null;
+  if(/^(pdf|txt|md|ics|csv|json|xml|html?|png|jpe?g|gif|webp)$/.test(suffix))return null;
   const extension=Object.values(formats).flat().includes(suffix)?suffix:mimes[String(contentType||'').split(';')[0].trim().toLowerCase()];
   const app=Object.keys(formats).find(key=>formats[key].includes(extension));
   return app?{app,extension}:null;
 }
-const failures=new Set(['document_limit','document_empty','document_office_missing','document_office_version','document_office_policy','document_office_read_failed','mail_source_changed']);
+const failures=new Set(['document_limit','document_empty','document_office_missing','document_office_version','document_office_policy','document_office_read_failed','document_office_busy','document_office_cleanup','mail_source_changed']);
 let officeQueue=Promise.resolve();
 
 // Only a byte-identical copy inside the account's ACL-restricted raw directory
@@ -29,9 +30,9 @@ async function readOfficeDocumentNow(bytes,attachment,{signal,directory,restrict
   if(!format)throw Error('document_format');
   if(signal?.aborted)throw Error('mail_cancelled');
   if(bytes.length>64*1024*1024)throw Error('document_limit');
-  if(!directory||typeof restrictDirectory!=='function')throw Error('document_office_policy');
+  if(!directory||typeof restrictDirectory!=='function')throw Error('document_office_read_failed');
   const parent=await lstat(directory);if(!parent.isDirectory()||parent.isSymbolicLink())throw Error('mail_source_changed');
-  let temporary;
+  let temporary,primaryError;
   try{
     temporary=await mkdtemp(path.join(directory,'office-read-'));
     await restrictDirectory(temporary);
@@ -55,20 +56,40 @@ async function readOfficeDocumentNow(bytes,attachment,{signal,directory,restrict
       child.once('close',code=>{
         if(settled)return;settled=true;clearTimeout(timer);signal?.removeEventListener('abort',abort);
         if(failure)return reject(Error(failure));
-        let value;try{value=JSON.parse(Buffer.concat(chunks).toString('utf8').replace(/^\uFEFF/,''));}catch{return reject(Error('document_office_policy'));}
-        if(value.error||code!==0)return reject(Error(failures.has(value.error)?value.error:'document_office_read_failed'));
-        const document=value.document;
-        if(document?.reader!=='office_com'||!/^16\./.test(document.officeVersion||'')||typeof document?.text!=='string'||!document.text.trim()||document.text.length>2000000||typeof document.coverage!=='string'||document.coverage.length>2000||!Array.isArray(document.segments)||document.segments.length>1000||document.segments.some(segment=>typeof segment.text!=='string'||segment.text.length>2000000))return reject(Error('document_office_read_failed'));
-        resolve(document);
+        try{resolve(parseOfficeDocumentResponse(Buffer.concat(chunks).toString('utf8'),code));}catch(error){reject(error);}
       });
       child.stdin.end(JSON.stringify({file,app:format.app,expectedHash}));
     });
     if(signal?.aborted)throw Error('mail_cancelled');
     if(sha(await readFile(file))!==expectedHash)throw Error('mail_source_changed');
     return result;
-  }finally{
+  }catch(error){primaryError=error;throw error;}finally{
     // A timed-out Office call may still hold its read-only file. Never kill a
     // user's Office process or close an unrelated document to force cleanup.
-    if(temporary)await rm(temporary,{recursive:true,force:true}).catch(()=>{throw Error('document_office_cleanup');});
+    if(temporary)await cleanupOfficeCopy(temporary,primaryError);
   }
+}
+
+export async function cleanupOfficeCopy(directory,primaryError){
+  try{await rm(directory,{recursive:true,force:true});}
+  catch{
+    const error=primaryError||Error('document_office_cleanup');
+    error.officeDiagnostic={...officeReadDiagnostic(error.officeDiagnostic),cleanupFailed:true};
+    if(!primaryError)throw error;
+  }
+}
+
+// A missing/malformed response does not establish a company policy failure.
+export function parseOfficeDocumentResponse(stdout,code){
+  let value;try{value=JSON.parse(stdout.replace(/^\uFEFF/,''));}catch{throw Error('document_office_read_failed');}
+  if(!value||typeof value!=='object')throw Error('document_office_read_failed');
+  if(value.error||code!==0){
+    const diagnostic=officeReadDiagnostic(value.diagnostic);
+    let failure=failures.has(value.error)?value.error:'document_office_read_failed';
+    if(['document_office_read_failed','document_office_missing'].includes(failure)&&['0x80010001','0x8001010A','0x8001010B'].includes(diagnostic?.hresult))failure='document_office_busy';
+    throw Object.assign(Error(failure),diagnostic?{officeDiagnostic:diagnostic}:{});
+  }
+  const document=value.document;
+  if(document?.reader!=='office_com'||!/^16\./.test(document.officeVersion||'')||typeof document?.text!=='string'||!document.text.trim()||document.text.length>2000000||typeof document.coverage!=='string'||document.coverage.length>2000||!Array.isArray(document.segments)||document.segments.length>1000||document.segments.some(segment=>typeof segment?.text!=='string'||segment.text.length>2000000))throw Error('document_office_read_failed');
+  return document;
 }

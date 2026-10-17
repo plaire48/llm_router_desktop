@@ -2,6 +2,7 @@ import path from 'node:path';
 import ts from 'typescript';
 import {parse as parseJSON,printParseErrorCode} from 'jsonc-parser';
 import {parseDocument} from 'yaml';
+import {analyzeRepository} from './wiki-code-map-core.mjs';
 
 export const codeLanguage=file=>/\.[cm]?[jt]sx?$/i.test(file)?'typescript':/\.jsonc?$/i.test(file)?'json':/\.ya?ml$/i.test(file)?'yaml':null;
 const position=(text,offset)=>{const lines=text.slice(0,offset).split('\n');return {line:lines.length,column:lines.at(-1).length+1};};
@@ -47,7 +48,30 @@ function outline(file,content){
   };
   visit(source);return {supported:true,symbols,imports,truncated,scope:'file_syntax_structure_only'};
 }
+function intelligence(input){
+  const files=new Map(input.files.map(file=>['/'+file.path,file.content]));
+  const options={noResolve:false,noLib:true,noEmit:true,allowJs:true,checkJs:true,strict:true,target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext,moduleResolution:ts.ModuleResolutionKind.Bundler,jsx:ts.JsxEmit.Preserve};
+  const host={getSourceFile:name=>files.has(name)?sourceFile(name,files.get(name)):undefined,getDefaultLibFileName:()=>'',writeFile(){},getCurrentDirectory:()=> '/',getDirectories:()=>[],directoryExists:directory=>[...files.keys()].some(name=>name.startsWith(directory.replace(/\/$/,'')+'/')),fileExists:name=>files.has(name),readFile:name=>files.get(name),getCanonicalFileName:name=>name,useCaseSensitiveFileNames:()=>true,getNewLine:()=> '\n'};
+  const program=ts.createProgram([...files.keys()],options,host),source=program.getSourceFile('/'+input.path),checker=program.getTypeChecker();
+  const diagnostics=[...program.getSyntacticDiagnostics(source),...program.getSemanticDiagnostics(source)];
+  const unresolvedImports=program.getSemanticDiagnostics().filter(d=>[2307,2792,7016].includes(d.code)).length;
+  if(input.operation==='diagnostics')return {engine:'typescript@'+ts.version,scope:'admitted_source_snapshot',diagnostics:diagnostics.slice(0,50).map(d=>({path:d.file?.fileName.slice(1)||input.path,code:'TS'+d.code,message:trim(ts.flattenDiagnosticMessageText(d.messageText,' ')),...position(d.file?.text||'',d.start||0)})),errorCount:diagnostics.length,unresolvedImports,truncated:diagnostics.length>50};
+  const starts=source.getLineStarts();if(input.line>starts.length)return {error:'code_position_invalid'};
+  const offset=starts[input.line-1]+input.column-1;
+  if(offset>=source.end||offset>=(starts[input.line]??source.end))return {error:'code_position_invalid'};
+  let token=source;const visit=node=>{if(node.getStart(source)<=offset&&node.end>offset){token=node;ts.forEachChild(node,visit);}};visit(source);
+  const resolve=node=>{let symbol=checker.getSymbolAtLocation(node);if(symbol?.flags&ts.SymbolFlags.Alias)symbol=checker.getAliasedSymbol(symbol);return symbol;};
+  const symbol=resolve(token),locations=[];
+  const add=node=>{const owner=node.getSourceFile();if(!files.has(owner.fileName)||locations.length>=80)return;locations.push({path:owner.fileName.slice(1),...position(owner.text,node.getStart(owner)),endLine:position(owner.text,node.end).line});};
+  if(symbol&&input.operation==='definition')for(const node of symbol.declarations||[])add(node.name||node);
+  else if(symbol)for(const owner of program.getSourceFiles()){
+    const scan=node=>{if(ts.isIdentifier(node)&&resolve(node)===symbol)add(node);if(locations.length<80)ts.forEachChild(node,scan);};scan(owner);
+  }
+  return {engine:'typescript@'+ts.version,scope:'admitted_source_snapshot',locations,unresolvedImports,truncated:locations.length>=80};
+}
 export function analyzeCode(input){
+  if(input.mode==='intelligence')return intelligence(input);
+  if(input.mode==='repository')return analyzeRepository(input);
   if(input.mode==='outline')return outline(input.path,input.content);
   return {before:syntax(input.path,input.before),after:syntax(input.path,input.after)};
 }

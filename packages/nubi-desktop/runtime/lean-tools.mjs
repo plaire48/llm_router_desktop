@@ -14,25 +14,25 @@ import {WORKFLOWS} from './agent-capabilities.mjs';
 export const LEAN_INPUT_TOKENS=20000;
 
 // Discovery remains available when the task needs registered skills or workflows.
-export const LEAN_TOOLS=Object.freeze(['update_plan','ask_user','select_tools','discover_capabilities','open_workspace_page','read_source','source_search','wiki_query','personal_mail_query','read_personal_mail','ask_openwiki','read_conversation','read_analysis_evidence']);
+export const LEAN_TOOLS=Object.freeze(['read_editor_range','propose_editor_edit','native_office_status','update_plan','ask_user','select_tools','discover_capabilities','open_workspace_page','read_attached_document','read_source','source_search','wiki_query','personal_mail_query','read_personal_mail','ask_openwiki','read_conversation','read_analysis_evidence']);
 // Tools that no workflow names, grouped by what they are for.
-const EXTRA={mail:['personal_mail_query','read_personal_mail'],'source-change':['inspect_path','propose_edit','inspect_workspace_changes'],skills:['use_skill','read_skill','list_skill_resources'],analysis:['delegate_analysis','collect_analysis','read_analysis_handoff','cancel_analysis'],documents:['analyze_documents','read_document_analysis']};
-const PURPOSE={mail:'사내 메일 personal mail email attachment',skills:'프로젝트 스킬 찾기와 읽기 project skills procedure',analysis:'하위 분석 에이전트 위임과 수집 delegate parallel analysis',documents:'대용량 문서 분석 large documents'};
+const EXTRA={'browser-learning':['remember_browser_screen','learn_browser_screen'],mail:['personal_mail_query','read_personal_mail'],'source-change':['inspect_path','propose_edit','inspect_workspace_changes'],skills:['use_skill','read_skill','list_skill_resources'],analysis:['delegate_analysis','collect_analysis','read_analysis_handoff','cancel_analysis'],documents:['analyze_documents','read_document_analysis','compare_document_values']};
+const PURPOSE={'browser-learning':'브라우저 화면 학습 기억 업무 용도 browser screen learn knowledge',mail:'사내 메일 personal mail email attachment',skills:'프로젝트 스킬 찾기와 읽기 project skills procedure',analysis:'하위 분석 에이전트 위임과 수집 delegate parallel analysis',documents:'대용량 문서 분석 large documents'};
 export const LEAN_GUIDANCE='A request offers only some tools, so its fixed part stays small. The tools of the workflows in your plan are offered once the plan is recorded. select_tools adds others by group or query; call it together with the operation that needs them.';
 export const SELECT_TOOLS={type:'function',function:{name:'select_tools',description:'Offer more tools from the next request on: groups by workflow id, or a query of a few words (Korean or English) for up to five matching tools. A tool asked for in the same response runs as usual. Offering is not permission; host checks and approvals are unchanged.',
   parameters:{type:'object',additionalProperties:false,properties:{groups:{type:'array',maxItems:6,uniqueItems:true,items:{type:'string',minLength:1,maxLength:40}},query:{type:'string',minLength:1,maxLength:300}}}}};
 
-export function createToolSet({tools,lean,planned=()=>[]}) {
+export function createToolSet({tools,lean,planned=()=>[],available=null}) {
   const names=new Set(tools.map(item=>item.function.name));
   const groups=Object.fromEntries([...WORKFLOWS.map(workflow=>[workflow.id,[...workflow.tools,...(EXTRA[workflow.id]||[])]]),...Object.entries(EXTRA).filter(([id])=>!WORKFLOWS.some(workflow=>workflow.id===id))]
     .map(([id,list])=>[id,[...new Set(list)].filter(name=>names.has(name))]).filter(([,list])=>list.length));
   const purpose=id=>WORKFLOWS.find(workflow=>workflow.id===id)?.description||PURPOSE[id]||'';
   const enabled=new Set(LEAN_TOOLS);
   // MCP tools are always offered: the user registered the server for the model to use them.
-  const offered=name=>enabled.has(name)||name.startsWith('mcp__')||(planned()||[]).some(id=>groups[id]?.includes(name));
+  const offered=name=>enabled.has(name)||name.startsWith('mcp__')||name==='native_office_status'||name.endsWith('_native_office')||(planned()||[]).some(id=>groups[id]?.includes(name));
   return {
     lean,
-    advertised:definitions=>lean?definitions.filter(item=>offered(item.function.name)):definitions,
+    advertised:definitions=>{const shown=available?definitions.filter(item=>available(item.function.name)):definitions;return lean?shown.filter(item=>offered(item.function.name)):shown;},
     observe(name){if(lean&&names.has(name))enabled.add(name);},
     select(args){
       if(!lean)return {ok:true,connected:[],matches:[],instruction:'Every tool is already offered.'};

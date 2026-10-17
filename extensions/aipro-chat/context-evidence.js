@@ -547,6 +547,16 @@ export function continuityMessage(messages) {
       for (const key of ['error', 'reason']) if (/^[a-z_]{1,64}$/.test(result[key] || '')) receipt[key] = result[key];
       receipts.push(receipt);
     }
+    if (tool === 'read_attached_document' && result.snapshot === true && !result.error && result.ok !== false && !result.deferred && !result.cancelled &&
+        typeof result.id === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(result.id) && /^[a-f0-9]{64}$/.test(result.sourceHash || '') &&
+        typeof result.text === 'string' && result.text.length > 0 && result.text.length <= 60000 && Number.isSafeInteger(result.offset) && result.offset >= 0 &&
+        Number.isSafeInteger(result.totalCharacters) && result.offset + result.text.length <= result.totalCharacters && result.totalCharacters <= 4000000 &&
+        (result.nextOffset === null && result.offset + result.text.length === result.totalCharacters || result.nextOffset === result.offset + result.text.length)) {
+      const source = {kind:'document', reader:'read_attached_document', id:result.id, sourceHash:result.sourceHash, start:result.offset,
+        end:result.offset + result.text.length, nextOffset:result.nextOffset, totalCharacters:result.totalCharacters, unit:'characters', historical:true,
+        ...(Number.isSafeInteger(result.segmentIndex)&&result.segmentIndex>=0?{segmentIndex:result.segmentIndex,locationVerified:false}: {})};
+      const key = JSON.stringify(source); sources.delete(key); sources.set(key, source);
+    }
     if (['wiki_query', 'wiki_search', 'wiki_read', 'source_search', 'read_source', 'search_documents', 'read_document', 'read_analysis_evidence'].includes(tool) &&
         !result.error && result.ok !== false && !result.cancelled && result.source_status !== 'error') for (const row of [result, ...(Array.isArray(result.results) ? result.results : [])]) {
       if (row?.error || row?.ok === false || row?.cancelled) continue;

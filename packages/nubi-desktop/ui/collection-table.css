@@ -1,0 +1,52 @@
+:root {
+ --nubi-table-body-font:var(--deck-font-body);
+ --nubi-table-header-font:var(--deck-font-caption);
+ --nubi-table-header-weight:var(--nubi-weight-emphasis,600);
+ --nubi-table-title-weight:var(--nubi-weight-emphasis,600);
+ --nubi-table-head-bg:var(--nubi-surface-inset);
+ --nubi-table-head-ink:var(--nubi-text-secondary);
+ --nubi-table-head-padding:var(--cx-space-3);
+ --nubi-table-cell-block:var(--cx-space-2);
+ --nubi-table-cell-inline:var(--cx-space-3);
+ --nubi-table-control-height:44px;
+ --nubi-table-header-control:32px;
+ --nubi-table-row-line:var(--deck-line);
+}
+/* Explicit opt-in: never restyle a website, HTML email or authored document.
+   The host selectors outrank the old per-screen skins while retaining widths,
+   column pinning, resize handles, selection and horizontal scrolling. */
+:is(.desktop-shell .nubi-mail-history[data-layout=table],.nubi-approval-history,.nubi-wiki-browser,.app-shell,.cx-detail-panel,.nubi-document-table) table.nubi-collection-table[data-kind],
+table.nubi-collection-table[data-kind] {
+ border-collapse:collapse;border-spacing:0;color:var(--nubi-text-primary);font:var(--nubi-table-body-font);
+}
+:is(.desktop-shell .nubi-mail-history[data-layout=table],.nubi-approval-history,.nubi-wiki-browser,.app-shell,.cx-detail-panel,.nubi-document-table) table.nubi-collection-table[data-kind]>thead>tr>th {
+ background:var(--nubi-table-head-bg);color:var(--nubi-table-head-ink);font:var(--nubi-table-header-font);font-weight:var(--nubi-table-header-weight);padding:var(--nubi-table-head-padding);border-bottom:0;height:auto;vertical-align:middle;white-space:nowrap;
+}
+:is(.desktop-shell .nubi-mail-history[data-layout=table],.nubi-approval-history,.nubi-wiki-browser,.app-shell,.cx-detail-panel,.nubi-document-table) table.nubi-collection-table[data-kind]>tbody>tr>td {
+ padding:var(--nubi-table-cell-block) var(--nubi-table-cell-inline);border-bottom:1px solid var(--nubi-table-row-line);height:calc(var(--nubi-table-control-height) + var(--nubi-table-cell-block) * 2);vertical-align:middle;font:var(--nubi-table-body-font);
+}
+table.nubi-collection-table[data-kind] :is(.nubi-mail-column-heading,.nubi-approval-column,.table-th-content) { display:flex;align-items:center;justify-content:flex-start;gap:var(--cx-space-2); }
+table.nubi-collection-table[data-kind] th :is(.cx-sort-button,.cx-column-pin,.nubi-mail-column-heading>button,.nubi-approval-column>button) { font:inherit;font-weight:inherit;min-height:var(--nubi-table-header-control); }
+table.nubi-collection-table[data-kind] .cx-sort-button:not(.cx-column-sort) { flex:0 1 auto;width:auto;justify-content:flex-start;gap:var(--cx-space-2); }
+table.nubi-collection-table[data-kind] .cx-sort-button>.ui-icon { margin-left:0;flex:none; }
+table.nubi-collection-table[data-kind] th .table-column-filter { height:var(--nubi-table-header-control);min-height:var(--nubi-table-header-control); }
+.nubi-mail-search[data-density=compact] { --nubi-table-control-height:32px; }
+table.nubi-collection-table[data-kind] th[aria-sort=none] button svg { opacity:1; }
+table.nubi-collection-table[data-kind] th:is([aria-sort=ascending],[aria-sort=descending]) :is(.cx-sort-button,.nubi-mail-column-heading>button,.nubi-approval-column>button) { color:var(--nubi-text-action); }
+table.nubi-collection-table[data-kind] :is(.nubi-mail-result,.nubi-wiki-result,.nubi-collection-title) { min-height:var(--nubi-table-control-height);font:var(--nubi-table-body-font); }
+table.nubi-collection-table[data-kind] :is(strong,.list-value-text) { font-weight:var(--nubi-table-title-weight); }
+table.nubi-collection-table[data-kind] time { font:var(--deck-font-caption);color:var(--nubi-text-secondary);font-variant-numeric:tabular-nums; }
+table.nubi-collection-table[data-kind] td>svg { flex:none; }
+table.nubi-collection-table[data-kind] tbody tr:is([data-open=true],[data-selected=true],.is-selected)>td { background:var(--nubi-surface-selected); }
+table.nubi-collection-table[data-kind=reading] { table-layout:auto;width:100%; }
+table.nubi-collection-table[data-kind=reading] td { white-space:pre-wrap;overflow-wrap:anywhere; }
+.nubi-collection-controls { display:flex;flex-wrap:wrap;align-items:center;gap:var(--cx-space-2);min-width:0; }
+.nubi-collection-controls>.nubi-mail-search-input-row { flex:1 1 240px;min-width:180px; }
+.nubi-collection-controls>.nubi-mail-result-toolbar { flex:none;margin-left:auto; }
+.nubi-collection-pagination { justify-content:center;gap:var(--cx-space-2); }
+.table-pagination.nubi-collection-pagination>nav.nubi-page-numbers { flex:1;flex-wrap:wrap;min-width:0;gap:calc(var(--cx-space-1) * 0.5); }
+.nubi-collection-pagination .table-page-range,.nubi-collection-pagination .table-page-selection { font:var(--deck-font-caption);color:var(--nubi-text-secondary); }
+.nubi-collection-pagination .table-page-selection:empty { display:none; }
+@media (pointer:coarse) { :root { --nubi-table-header-control:44px; } }
+
+.nubi-wiki-table[data-kind] .nubi-wiki-result>span>svg { flex:none;color:var(--nubi-text-secondary); }

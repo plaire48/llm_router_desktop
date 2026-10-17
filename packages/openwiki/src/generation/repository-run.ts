@@ -54,6 +54,7 @@ import {
   recordRepositoryPageCompletion,
   replaceRepositoryPageManifest,
   seedRepositoryPageManifest,
+  writeRepositoryPageManifest,
   type RepositorySourceCheckpoint,
 } from "./page-manifest.js";
 import {
@@ -932,13 +933,24 @@ async function fastForwardUnchangedRepositoryPageCoverage(
     );
     if (changedPaths.length > 0) continue;
 
-    await recordRepositoryPageCompletion(
-      root,
-      page,
-      source,
-      entry.completedBy,
-      entry.completedRunId,
-    );
+    try {
+      await recordRepositoryPageCompletion(
+        root,
+        page,
+        source,
+        entry.completedBy,
+        entry.completedRunId,
+      );
+    } catch (error) {
+      if (!(error instanceof RepositoryRunError) || error.code !== "invalid_state") {
+        throw error;
+      }
+      // Old byte-hashed CRLF pages or edited Markdown need fresh review, not
+      // an aborted update. Preserve the page and Claims, remove only coverage.
+      const current = await readRepositoryPageManifest(root);
+      delete current.pages[page];
+      await writeRepositoryPageManifest(root, current);
+    }
   }
 }
 

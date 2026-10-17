@@ -31,10 +31,14 @@ export function transitioned(update){
     try{transition=document.startViewTransition(flush);}
     catch{flush();return;}
     const record={transition,flush};running=record;quiet(transition.ready);quiet(transition.updateCallbackDone);
-    const interrupt=()=>transition.skipTransition();
+    // Snapshot capture is optional decoration. A slow compositor must not hold
+    // the requested screen update; continue live if capture misses the budget.
+    const captureTimer=setTimeout(()=>{flush();transition.skipTransition();},120);
+    transition.ready.then(()=>clearTimeout(captureTimer),()=>clearTimeout(captureTimer));
+    const interrupt=()=>{flush();transition.skipTransition();};
     const events=['pointerdown','keydown','wheel','visibilitychange'];
     for(const event of events)document.addEventListener(event,interrupt,{capture:true,passive:true});
-    const done=()=>{for(const event of events)document.removeEventListener(event,interrupt,{capture:true});if(running===record)running=null;};
+    const done=()=>{clearTimeout(captureTimer);for(const event of events)document.removeEventListener(event,interrupt,{capture:true});if(running===record)running=null;};
     transition.finished.then(done,done);
   });
 }

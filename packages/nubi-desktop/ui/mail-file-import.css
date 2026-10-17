@@ -16,19 +16,19 @@
 .nubi-mail-import-card { display:grid; gap:var(--cx-space-3); padding:var(--cx-space-4); border:0; border-radius:var(--nubi-work-control-radius); background:var(--deck-tint); }
 .nubi-mail-import-card[data-recommended=true] { background:var(--deck-blue-soft); }
 .nubi-mail-import-card .nubi-mail-import-heading { align-items:flex-start; gap:var(--cx-space-3); }
-.nubi-mail-import-card .nubi-mail-import-heading strong { display:flex; align-items:center; flex-wrap:wrap; gap:var(--cx-space-2); font:var(--deck-font-body); font-weight:700; color:var(--deck-ink); }
-.nubi-mail-import-card .nubi-mail-import-heading small { line-height:1.6; white-space:normal; }
+.nubi-mail-import-card .nubi-mail-import-heading strong { display:flex; align-items:center; flex-wrap:wrap; gap:var(--cx-space-2); font:var(--deck-font-body); font-weight:var(--nubi-weight-strong); color:var(--deck-ink); }
+.nubi-mail-import-card .nubi-mail-import-heading small { line-height:var(--deck-line-body); white-space:normal; }
 .nubi-mail-import-icon { display:inline-grid; place-items:center; flex:none; width:40px; height:40px; border-radius:var(--nubi-work-control-radius); background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
 .nubi-mail-import-card[data-recommended=true] .nubi-mail-import-icon { background:var(--deck-blue); color:var(--deck-card); }
-.nubi-mail-import-badge { display:inline-block; padding:1px var(--cx-space-2); border-radius:999px; background:var(--deck-blue); color:var(--deck-card); font:var(--deck-font-caption); font-weight:700; }
-.nubi-mail-import-card-action .cx-kit-button { display:inline-flex; align-items:center; justify-content:center; gap:var(--cx-space-2); width:100%; font-weight:700; }
+.nubi-mail-import-badge { display:inline-block; padding:calc(var(--cx-space-1) * 0.25) var(--cx-space-2); border-radius:999px; background:var(--deck-blue); color:var(--deck-card); font:var(--deck-font-caption); font-weight:var(--nubi-weight-strong); }
+.nubi-mail-import-card-action .cx-kit-button { display:inline-flex; align-items:center; justify-content:center; gap:var(--cx-space-2); width:100%; font-weight:var(--nubi-weight-strong); }
 .nubi-mail-import-card { transition:background-color .15s ease; }
 .nubi-mail-import-card:hover { background:var(--deck-blue-soft); }
 
 /* Portal login uses the same quiet icon, type and spacing as adjacent settings. */
 .nubi-mail-portal-card .nubi-mail-import-heading { align-items:center; }
 .nubi-mail-portal-card .nubi-mail-import-heading strong { font-weight:var(--nubi-weight-emphasis); }
-.nubi-mail-portal-card .nubi-mail-import-heading small { font:var(--deck-font-caption); color:var(--nubi-text-secondary); line-height:1.6; }
+.nubi-mail-portal-card .nubi-mail-import-heading small { font:var(--deck-font-caption); color:var(--nubi-text-secondary); line-height:var(--deck-line-body); }
 .nubi-mail-portal-card[data-recommended=true] .nubi-mail-import-icon { background:var(--nubi-surface-base); color:var(--nubi-text-action); }
 .nubi-mail-portal-card .nubi-mail-connect { font-weight:var(--nubi-weight-emphasis); }
 

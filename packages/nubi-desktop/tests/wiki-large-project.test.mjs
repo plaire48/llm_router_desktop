@@ -8,6 +8,7 @@ import {listWikiSourceFiles,wikiSources,writeWikiSnapshot} from '../runtime/wiki
 import {wikiSourceInventory,wikiGitRecords} from '../runtime/wiki-source-inventory.mjs';
 import {wikiUpdateStatus} from '../runtime/wiki-update.mjs';
 import {ProjectService} from '../runtime/project-service.mjs';
+import {WIKI_GIT_PREPARATION_TIMEOUT} from '../runtime/wiki-git-preparation.mjs';
 
 test('more than 20,000 sources survive folder/Git enumeration, Wiki generation and checkpoint reload',async t=>{
   const temp=await realpath(await mkdtemp(path.join(os.tmpdir(),'nubi-large-wiki-'))),root=path.join(temp,'source');
@@ -23,7 +24,7 @@ test('more than 20,000 sources survive folder/Git enumeration, Wiki generation a
   assert.equal(folder.truncated,false);assert.equal(folder.paths.length,count+3);assert(folder.paths.includes('src/마지막 파일.txt'));assert(!folder.paths.includes('.env'));
   // Fixture setup must not inherit Windows CRLF conversion or the interactive Git timeout.
   await git(root,['init','-q']);await git(root,['config','core.autocrlf','false']);
-  await git(root,['add','-A'],{timeout:300000});await git(root,['-c','user.name=Fixture','-c','user.email=fixture@localhost','-c','commit.gpgSign=false','commit','-qm','Many sources'],{timeout:300000});
+  await git(root,['add','-A'],{timeout:WIKI_GIT_PREPARATION_TIMEOUT});await git(root,['-c','user.name=Fixture','-c','user.email=fixture@localhost','-c','commit.gpgSign=false','commit','-qm','Many sources'],{timeout:WIKI_GIT_PREPARATION_TIMEOUT});
   assert.equal((await listFiles(root)).truncated,true,'interactive search retains its bounded contract');
   assert.deepEqual((await listWikiSourceFiles(root)).paths,folder.paths);
   const sources=await wikiSources(root);

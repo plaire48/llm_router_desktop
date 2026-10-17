@@ -5,6 +5,7 @@ import path from 'node:path';
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import {rendererBundleOptions} from './renderer-bundle.mjs';
+import {auditSurfaceTokens} from './surface-token-audit.mjs';
 const dir=path.resolve('verification/workspace-embed');await mkdir(dir,{recursive:true});
 await build({...rendererBundleOptions(),entryPoints:['tests/workspace-embed-fixture.jsx'],entryNames:'app',outdir:dir,minify:false});
 await writeFile(dir+'/index.html','<!doctype html><html lang="ko"><meta charset="UTF-8"><link rel="stylesheet" href="app.css"><div id="root"></div><script type="module" src="app.js"></script></html>');
@@ -14,16 +15,29 @@ try{
  browser=await chromium.launch({channel:process.platform==='win32'?'msedge':'chrome',headless:true});const p=page=await browser.newPage();p.setDefaultTimeout(10000);p.on('pageerror',e=>errors.push(e.message));
  await p.route('https://**/*',route=>route.abort());
  for(const width of [1100,440]){
-  await p.setViewportSize({width,height:900});await p.goto('http://127.0.0.1:'+server.address().port);await p.getByRole('link',{name:'파일 앱 새 탭에서 열기'}).waitFor();
+  await p.setViewportSize({width,height:900});await p.goto('http://127.0.0.1:'+server.address().port);await p.evaluate(value=>document.documentElement.style.fontSize=value,width===440?'20px':'16px');await p.getByRole('link',{name:'파일 앱 새 탭에서 열기'}).waitFor();await auditSurfaceTokens(p,'embedded-apps-'+width);
   await p.getByRole('link',{name:'파일 앱 새 탭에서 열기'}).click();await p.waitForFunction(()=>window.calls.some(c=>c.method==='openWorkspaceApp'&&c.id.startsWith('2222')));
   await p.getByRole('link',{name:'링크 앱 새 탭에서 열기'}).click();await p.waitForFunction(()=>window.calls.some(c=>c.method==='openWorkspaceApp'&&c.id.startsWith('1111')));
   assert.equal(p.context().pages().length,1,'the renderer uses the native app bridge, not app:// hash popups');
-  await p.getByRole('button',{name:'앱 등록',exact:true}).click();await p.getByRole('dialog').waitFor();await p.getByRole('tab',{name:'파일',exact:true}).click();await p.getByText('페이지 파일',{exact:true}).waitFor();await p.keyboard.press('Escape');await p.getByRole('alertdialog').getByRole('button',{name:'작성 취소',exact:true}).click();await p.getByRole('dialog').waitFor({state:'hidden'});
+  await p.getByRole('button',{name:'앱 등록',exact:true}).click();await p.getByRole('dialog').waitFor();await auditSurfaceTokens(p,'embedded-register-'+width);await p.getByRole('dialog').screenshot({path:dir+'/app-register-'+width+'.png'});await p.getByRole('tab',{name:'파일',exact:true}).click();await p.getByText('페이지 파일',{exact:true}).waitFor();await p.keyboard.press('Escape');await p.getByRole('alertdialog').getByRole('button',{name:'작성 취소',exact:true}).click();await p.getByRole('dialog').waitFor({state:'hidden'});
   await p.evaluate(()=>window.openFailure=true);await p.getByRole('link',{name:'파일 앱 새 탭에서 열기'}).click();await p.getByRole('alert').filter({hasText:'앱을 열지 못했어요'}).waitFor();await p.getByRole('button',{name:'다시 불러오기',exact:true}).click();await p.getByRole('alert').waitFor({state:'hidden'});
   await p.getByRole('button',{name:'테스트 Talk',exact:true}).click();await p.waitForFunction(()=>window.calls.some(c=>c.method==='ghesFetch'&&c.body?.includes('E2EDiscussions')));
+  await p.locator('.talk-toolbar').screenshot({path:dir+'/talk-filters-'+width+'.png'});
+  for(const name of ['글 정렬','카테고리 필터','답변 상태','페이지당 표시 수']){
+   const field=p.getByRole('combobox',{name,exact:true});
+   assert.equal(await field.evaluate(el=>getComputedStyle(el).appearance),'none',name+' must not add a native arrow');
+   const ownIcon=name!=='페이지당 표시 수';
+   assert.equal(await field.evaluate(el=>getComputedStyle(el).backgroundImage!=='none'),ownIcon,name+' has exactly one custom arrow');
+   await field.click();await p.getByRole('listbox',{name,exact:true}).waitFor();
+   assert.equal(await field.evaluate(el=>getComputedStyle(el).backgroundImage!=='none'),ownIcon,name+' keeps its arrow while open');
+   await p.keyboard.press('Escape');
+  }
+  const sort=p.getByRole('combobox',{name:'글 정렬',exact:true});await sort.focus();await p.keyboard.press('Enter');await p.keyboard.press('ArrowDown');await p.keyboard.press('Enter');assert.equal(await sort.inputValue(),'popular');
+  await sort.click();await p.getByRole('listbox',{name:'글 정렬'}).getByRole('option',{name:'최신순',exact:true}).click();assert.equal(await sort.inputValue(),'latest');
   await p.getByRole('button',{name:'글쓰기',exact:true}).first().click();await p.getByRole('textbox',{name:'글 제목',exact:true}).waitFor();await p.getByRole('combobox',{name:'글 카테고리'}).selectOption('general');
-  await p.screenshot({path:dir+'/talk-'+width+'.png'});assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+  await auditSurfaceTokens(p,'embedded-talk-'+width);await p.screenshot({path:dir+'/talk-'+width+'.png'});assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
   await p.getByRole('button',{name:'테스트 문의',exact:true}).click();
+  assert.equal(await p.getByRole('button',{name:/문의 내역 (접기|펼치기)/}).count(),0);
   await p.getByRole('button',{name:'김누비 계정 메뉴',exact:true}).click();
   await p.locator('.nubi-ghes-modal').waitFor();
   assert.equal(await p.getByText(/회사 계정을 확인하지 못했어요/).count(),0);
@@ -31,13 +45,17 @@ try{
   await p.getByRole('button',{name:'문의하기',exact:true}).click();
   await p.getByRole('textbox',{name:'제목',exact:true}).fill('문의 연결 확인');
   await p.getByRole('textbox',{name:'문의 내용',exact:true}).fill('목록 조회와 등록 후 다시 확인하는 테스트입니다.');
+  await p.locator('.nubi-inquiry-page').screenshot({path:dir+'/inquiry-create-'+width+'.png'});
   await p.getByRole('button',{name:'담당자 선택',exact:true}).click();
+  await auditSurfaceTokens(p,'embedded-assignees-'+width);await p.getByRole('dialog').screenshot({path:dir+'/assignees-'+width+'.png'});
+  const help=p.getByRole('dialog').getByRole('button',{name:'도움말',exact:true});if(await help.count()){await help.click();await p.getByRole('dialog',{name:'도움말',exact:true}).waitFor();await auditSurfaceTokens(p,'embedded-help-'+width);await p.getByRole('dialog',{name:'도움말',exact:true}).screenshot({path:dir+'/help-'+width+'.png'});await p.keyboard.press('Escape');}
   await p.getByRole('checkbox',{name:'김누비 (nubi) 배정',exact:true}).check();
   await p.keyboard.press('Escape');
   await p.getByRole('button',{name:'접수',exact:true}).click();
   await p.getByRole('heading',{name:'문의 연결 확인',exact:true}).waitFor();
   await p.getByText('목록 조회와 등록 후 다시 확인하는 테스트입니다.',{exact:true}).last().waitFor();
-  await p.screenshot({path:dir+'/support-'+width+'.png'});
+  const alignment=await p.evaluate(()=>{const header=document.querySelector('.nubi-inquiry-page>.nubi-skill-page-header'),columns=document.querySelector('.inquiry-columns');return Math.abs(header.getBoundingClientRect().left+parseFloat(getComputedStyle(header).paddingLeft)-columns.getBoundingClientRect().left);});assert(alignment<2,'Inquiry content aligns with the title inset');assert(await p.locator('.inquiry-columns').evaluate(el=>{const bounds=el.getBoundingClientRect();return bounds.bottom>=innerHeight-40&&bounds.bottom<=innerHeight&&bounds.height>innerHeight*.7;}),'Inquiry list and reader fill the available height');
+  await auditSurfaceTokens(p,'embedded-inquiry-'+width);await p.locator('.nubi-inquiry-page').screenshot({path:dir+'/support-'+width+'.png'});
   assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
   await p.getByRole('button',{name:'테스트 앱',exact:true}).click();await p.getByRole('link',{name:'파일 앱 새 탭에서 열기'}).waitFor();
   await p.getByRole('button',{name:'테스트 로그인 전환'}).click();await p.getByRole('button',{name:'사내 Github SSO 로그인',exact:true}).waitFor();assert.equal(await p.getByRole('link',{name:'파일 앱 새 탭에서 열기'}).count(),0);

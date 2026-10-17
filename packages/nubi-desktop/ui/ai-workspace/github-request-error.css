@@ -1,7 +1,7 @@
-.github-request-error {min-height:0;overflow:auto;padding:12px 8px;color:var(--layout-muted);font:var(--cx-type-body)/var(--cx-line-body) var(--cx-font-family);overflow-wrap:anywhere;text-align:left}
+.github-request-error {min-height:0;overflow:auto;padding:var(--cx-space-3) var(--cx-space-2);color:var(--layout-muted);font:var(--cx-type-body)/var(--cx-line-body) var(--cx-font-family);overflow-wrap:anywhere;text-align:left;}
 .github-request-error p {margin:0}
-.github-request-error-detail {display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;font-size:var(--cx-type-caption)}
+.github-request-error-detail {display:flex;align-items:center;justify-content:space-between;gap:var(--cx-space-2);margin-top:var(--cx-space-2);font-size:var(--cx-type-caption);}
 .github-request-error-detail span {min-width:0}
-.github-request-error-detail strong {margin-left:4px;color:var(--layout-text);font-weight:500}
-.github-request-error .github-request-copy-status {margin-top:4px;font-size:var(--cx-type-caption)}
+.github-request-error-detail strong {margin-left:var(--cx-space-1);color:var(--layout-text);font-weight:var(--nubi-weight-label);}
+.github-request-error .github-request-copy-status {margin-top:var(--cx-space-1);font-size:var(--cx-type-caption);}
 .admin-content>.github-request-error {width:min(440px,100%);box-sizing:border-box;flex:none}

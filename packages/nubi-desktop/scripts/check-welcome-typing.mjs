@@ -1,0 +1,40 @@
+import {build,stop as stopBuildService} from 'esbuild';
+import {assertDesktopDialog} from './identity-browser.mjs';
+import {mkdir,writeFile,readFile,cp} from 'node:fs/promises';
+import {createServer} from 'node:http';
+import path from 'node:path';
+import {chromium} from 'playwright';
+import assert from 'node:assert/strict';
+import {DESKTOP_FEATURES} from '../runtime/beta-features.mjs';
+import {WELCOME_GREETINGS} from '../ui/welcome-greetings.mjs';
+const dir=path.resolve('verification/welcome-typing-2026-10-16');await mkdir(dir,{recursive:true});
+await build({entryPoints:['tests/shared-ui-fixture.jsx'],outfile:path.join(dir,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.woff2':'file','.woff':'file'},define:{__APP_VERSION__:'"fixture"','process.env.NODE_ENV':'"production"'}});
+await cp('../../extensions/aipro-chat/public/icons',path.join(dir,'icons'),{recursive:true});
+await writeFile(path.join(dir,'index.html'),'<!doctype html><html lang="ko"><title>Nubi synthetic flow check</title><link rel="stylesheet" href="app.css"><div id="root"></div><script type="module" src="app.js"></script></html>');
+const server=createServer(async(req,res)=>{try{const requested=path.resolve(dir,'.'+new URL(req.url,'http://localhost').pathname.replace(/\/$/,'/index.html'));if(!requested.startsWith(dir+path.sep))throw Error();const ext=path.extname(requested),data=await readFile(requested);res.writeHead(200,{'content-type':({'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.svg':'image/svg+xml','.woff2':'font/woff2','.webp':'image/webp'})[ext]||'application/octet-stream'}).end(data);}catch{res.writeHead(404).end();}});await new Promise(r=>server.listen(0,'127.0.0.1',r));
+
+let browser;
+try {
+ browser=await chromium.launch({channel:'chrome',headless:true});
+ const p=await browser.newPage({viewport:{width:1280,height:950}}),errors=[];p.on('pageerror',e=>errors.push(e.message));
+ await p.goto('http://127.0.0.1:'+server.address().port+'/?integrated');
+ await p.locator('.aipro-login').getByRole('button',{name:'AI Pro',exact:true}).click();
+ const title=p.locator('.welcome-title'),typed=title.locator('.welcome-typed');
+ const partial=()=>p.waitForFunction(()=>{const el=document.querySelector('.welcome-typed'),all=document.querySelector('.welcome-reserve');return el&&all&&el.textContent.length>0&&el.textContent.length<all.textContent.length;});
+ await partial();const first=await typed.innerText(),before=await title.boundingBox();
+ await p.screenshot({path:path.join(dir,'typing.png'),animations:'disabled'});
+ await p.waitForFunction(()=>!document.querySelector('.welcome-cursor')?.classList.contains('is-typing'));
+ const full=await typed.innerText(),after=await title.boundingBox();assert(full.length>first.length);assert(Math.abs(before.height-after.height)<1);
+ const opener=p.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await opener.count())await opener.click();
+ await p.locator('.nubi-sidebar').getByRole('button',{name:'새 대화',exact:true}).click();
+ await partial();await p.waitForFunction(()=>!document.querySelector('.welcome-cursor')?.classList.contains('is-typing'));
+ assert.notEqual(await typed.innerText(),full,'new chat selects and types its own greeting');
+ await p.getByRole('textbox',{name:'작업 요청'}).fill('입력하는 동안 인사말은 유지');
+ assert.equal(await title.locator('.is-typing').count(),0);
+ await p.emulateMedia({reducedMotion:'reduce'});
+ await p.locator('.nubi-sidebar').getByRole('button',{name:'새 대화',exact:true}).click();
+ assert.equal(await typed.evaluate(el=>getComputedStyle(el).visibility),'hidden');
+ assert.equal(await title.locator('.welcome-reserve').evaluate(el=>getComputedStyle(el).visibility),'visible');
+ assert.deepEqual(errors,[]);console.log('PASS: initial and new-chat greetings type progressively, retain layout, stay still while composing, and respect reduced motion.');
+ await writeFile(path.join(dir,'result.json'),JSON.stringify({passed:true,checks:['initial typing','new greeting types again','stable heading height','no restart while composing','reduced motion full text'],boundary:'Synthetic provider with actual Workbench in Chrome.'},null,2));
+}finally{await browser?.close();server.closeAllConnections();await new Promise(r=>server.close(r));stopBuildService();}

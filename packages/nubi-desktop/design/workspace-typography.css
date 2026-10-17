@@ -12,6 +12,8 @@ body {
 }
 :is(.desktop-shell,.deck-dialog) :is(.cx-kit-button,.cx-action-button,input,textarea,select) {
   font-family:var(--cx-font-family);
+  font-size:var(--deck-type-body);
+  line-height:var(--deck-line-body);
   letter-spacing:normal;
 }
 .desktop-shell .nubi-workbench .nubi-task .message-body,
@@ -20,7 +22,7 @@ body {
 .desktop-shell .nubi-mail-history-detail .nubi-mail-reader-text {
   font-size:var(--nubi-reading-size);
   line-height:var(--nubi-reading-leading);
-  font-weight:400;
+  font-weight:var(--nubi-weight-regular);
   letter-spacing:normal;
   color:var(--deck-ink);
   word-break:keep-all;
@@ -30,27 +32,27 @@ body {
 .desktop-shell .nubi-task .message-body p { margin-block:0 1em; }
 .desktop-shell .nubi-task .message-body > :last-child { margin-bottom:0; }
 .desktop-shell .nubi-task .message-body li + li { margin-top:.4em; }
-.desktop-shell .nubi-task .message-body :is(strong,b) { font-weight:600; color:var(--deck-ink); }
+.desktop-shell .nubi-task .message-body :is(strong,b) { font-weight:var(--nubi-weight-emphasis); color:var(--deck-ink); }
 .desktop-shell .nubi-task .message-body :is(h1,h2,h3,h4,h5,h6) {
-  font-weight:600;
+  font-weight:var(--nubi-weight-emphasis);
   letter-spacing:normal;
   color:var(--deck-ink);
   word-break:keep-all;
 }
 .desktop-shell .nubi-task .message-body :is(pre,code) { letter-spacing:normal; word-break:normal; }
 .desktop-shell .nubi-workbench .composer textarea::placeholder { color:var(--nubi-note-ink); opacity:1; }
-.desktop-shell .nubi-session-row .nubi-session-select.cx-kit-button { font-weight:500; }
-.desktop-shell .nubi-session-row[data-current="true"] .nubi-session-title { font-weight:600; }
-.desktop-shell .nubi-workbench .nubi-conversation-title { font-weight:600; letter-spacing:normal; }
-.desktop-shell .nubi-workbench .nubi-start .welcome-title { font-weight:700; line-height:1.4; letter-spacing:normal; }
+.desktop-shell .nubi-session-row .nubi-session-select.cx-kit-button { font-weight:var(--nubi-weight-label); }
+.desktop-shell .nubi-session-row[data-current="true"] .nubi-session-title { font-weight:var(--nubi-weight-emphasis); }
+.desktop-shell .nubi-workbench .nubi-conversation-title { font-weight:var(--nubi-weight-emphasis); letter-spacing:normal; }
+.desktop-shell .nubi-workbench .nubi-start .welcome-title { font-weight:var(--nubi-weight-strong); line-height:var(--deck-line-heading); letter-spacing:normal; }
 .desktop-shell .aipro-login .provider-button[data-provider] .provider-label > span {
-  font-size:var(--deck-type-body); font-weight:600; line-height:var(--deck-line-body); letter-spacing:normal;
+  font-size:var(--deck-type-body); font-weight:var(--nubi-weight-emphasis); line-height:var(--deck-line-body); letter-spacing:normal;
 }
 :is(.desktop-shell,.deck-dialog) :is(.nubi-start-card strong,.nubi-startup-options strong,.nubi-mail-section-title strong,.nubi-mail-history-row strong,.nubi-command-copy strong) {
-  font-size:var(--deck-type-body); font-weight:600; line-height:var(--deck-line-body); letter-spacing:normal;
+  font-size:var(--deck-type-body); font-weight:var(--nubi-weight-emphasis); line-height:var(--deck-line-body); letter-spacing:normal;
 }
 :is(.desktop-shell,.deck-dialog) :is(.nubi-start-support,.nubi-startup-options small,.nubi-mail-switch-row small,.nubi-mail-connected small,.nubi-mail-activity small,.nubi-mail-settings .nubi-muted,.nubi-mail-model-picker .provider-model-panel>p) {
-  font-size:var(--deck-type-body); font-weight:400; line-height:var(--deck-line-body); color:var(--deck-sub);
+  font-size:var(--deck-type-body); font-weight:var(--nubi-weight-regular); line-height:var(--deck-line-body); color:var(--deck-sub);
 }
 /* Dates, provenance and helper text remain secondary without becoming tiny. */
 :is(.desktop-shell,.deck-dialog,.nubi-applied-menu) :is(.nubi-message-timestamp,.nubi-response-time,.nubi-mail-result-meta,.nubi-mail-result-location,.nubi-mail-result-location small,.nubi-mail-field-title,.nubi-mail-attachment>span small,.nubi-mail-history-row small,.nubi-mail-result p,.nubi-mail-match p,.nubi-answer-sources,.nubi-source-label,.nubi-source-number,.nubi-answer-source small,.nubi-command-copy small,.nubi-command-options code,.nubi-command-menu-header,.nubi-command-empty,.nubi-command-footnote,.nubi-applied-row>small,.nubi-applied-menu>small,.nubi-applied-menu>p,.desktop-hint,.desktop-mail-progress) {
@@ -59,13 +61,12 @@ body {
 .desktop-shell .nubi-workbench .nubi-answer-sources .nubi-answer-source,
 .desktop-shell .nubi-workbench .nubi-mail-ask,
 .desktop-shell .nubi-applied-trigger.cx-kit-button,
-.desktop-shell .nubi-mail-attachment-row .nubi-mail-attachment strong,
 .desktop-shell .desktop-cited-excerpt>strong {
   font-size:var(--deck-type-caption); line-height:var(--deck-line-caption);
 }
 .desktop-shell .nubi-answer-sources summary { color:var(--nubi-note-ink); }
 .desktop-shell .nubi-task .message-body .nubi-inline-citation {
-  font-size:var(--deck-type-caption); line-height:1;
+  font-size:var(--deck-type-caption); line-height:var(--nubi-line-solid);
 }
 .desktop-shell .desktop-pane :is(input,textarea,select) { line-height:var(--deck-line-body); }
 .desktop-shell .nubi-project-start :is(.nubi-start-text,.nubi-start-model>span,.nubi-start-privacy) {
@@ -93,23 +94,23 @@ body {
   letter-spacing:normal; color:var(--nubi-note-ink);
 }
 :root:has(.desktop-shell) :is(.deck-dialog,.nubi-skill-menu,.nubi-reasoning-menu,.nubi-approval-mode-menu) strong {
-  font-weight:600;
+  font-weight:var(--nubi-weight-emphasis);
 }
 :root:has(.desktop-shell) :is(.nubi-skill-page-header h1,.nubi-mail-history-bar h1) {
-  font-size:var(--deck-type-heading); line-height:var(--deck-line-heading); font-weight:600;
+  font-size:var(--deck-type-heading); line-height:var(--deck-line-heading); font-weight:var(--nubi-weight-emphasis);
 }
 :root:has(.desktop-shell) :is(.deck-dialog,.nubi-skill-page,.nubi-mail-history,.desktop-pane) h3 {
-  font-size:var(--deck-type-body); line-height:var(--deck-line-body); font-weight:600;
+  font-size:var(--deck-type-body); line-height:var(--deck-line-body); font-weight:var(--nubi-weight-emphasis);
 }
 :root:has(.desktop-shell) :is(.usage-caption,.usage-label,.usage-provider-name,.usage-stat-label,.usage-provider-note,.context-note,.context-label,.context-stat-label,.context-model,.nubi-skill-menu-section,.nubi-skill-menu-status,.nubi-reasoning-value,.nubi-history-meta,.nubi-input-time,.nubi-document-worker-heading>span,.nubi-wiki-elapsed,.nubi-wiki-percent,.desktop-tools-label,.desktop-git-caption,.desktop-git-state,.desktop-terminal-recovery) {
   font-size:var(--deck-type-caption); line-height:var(--deck-line-caption); letter-spacing:normal;
   color:var(--nubi-note-ink);
 }
-:root:has(.desktop-shell) :is(.nubi-skill-name strong,.nubi-custom-skill-copy strong,.nubi-skill-menu-copy strong,.nubi-history-item strong,.nubi-mail-reader-heading h2,.nubi-action-head h3,.nubi-document-progress-heading strong,.nubi-document-worker-heading strong,.nubi-role-worker-heading strong) {
-  font-size:var(--deck-type-body); line-height:var(--deck-line-body); font-weight:600;
+:root:has(.desktop-shell) :is(.nubi-skill-name strong,.nubi-custom-skill-copy strong,.nubi-skill-menu-copy strong,.nubi-history-item strong,.nubi-action-head h3,.nubi-document-progress-heading strong,.nubi-document-worker-heading strong,.nubi-role-worker-heading strong) {
+  font-size:var(--deck-type-body); line-height:var(--deck-line-body); font-weight:var(--nubi-weight-emphasis);
 }
 :root:has(.desktop-shell) :is(.usage-stat-value,.context-stat-value) {
-  font-size:var(--deck-type-heading); line-height:var(--deck-line-heading); font-weight:600;
+  font-size:var(--deck-type-heading); line-height:var(--deck-line-heading); font-weight:var(--nubi-weight-emphasis);
 }
 .desktop-shell .desktop-pane :is(.desktop-list>.cx-kit-button,.desktop-tools-menu .cx-kit-button,.desktop-git-toolbar select) {
   font-family:var(--nubi-font-family); font-size:var(--deck-type-body); line-height:var(--deck-line-body);
@@ -135,6 +136,15 @@ body {
   font-size:var(--deck-type-caption); line-height:var(--deck-line-caption);
 }
 .desktop-shell :is(.nubi-logo-product,.nubi-workbench .nubi-logo-product) { font:var(--deck-font-label); letter-spacing:normal; }
+/* Ported CX identity/time metadata otherwise keeps its library 12px rule. */
+:root:has(.desktop-shell) :is(.nubi-ai-workspace-embed,.nubi-workspace-panel) :is(.cx-person-login,time) {
+  font-size:var(--deck-type-caption); line-height:var(--deck-line-caption);
+  font-weight:var(--nubi-weight-regular); color:var(--nubi-text-secondary);
+}
+:root:has(.desktop-shell) :is(.nubi-ai-workspace-embed,.nubi-workspace-panel) .cx-person-name {
+  font-size:var(--deck-type-caption); line-height:var(--deck-line-caption);
+  font-weight:var(--nubi-weight-label); color:var(--nubi-text-primary);
+}
 
 /* Progress is a UI row. Do not inherit the larger answer prose metrics. */
 .desktop-shell .nubi-workbench .nubi-task .nubi-agent-activity .message-body {
@@ -153,28 +163,45 @@ body {
 
 /* Reading rhythm: consistent leading, restrained tracking and clear emphasis. */
 :root, .nubi-workbench { --nubi-reading-leading:1.7; --nubi-prose-paragraph-gap:.75em; --nubi-prose-section-gap:1.25em; --nubi-prose-list-gap:.35em; }
-.desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) { letter-spacing:-.01em; }
+.desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) { letter-spacing:var(--nubi-tracking-reading); }
 .desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) :is(p,li,td,th,blockquote) { line-height:var(--nubi-reading-leading); letter-spacing:inherit; }
-.desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) :is(strong,b) { font-weight:700; }
+.desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) :is(strong,b) { font-weight:var(--nubi-weight-strong); }
 .desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) :is(td,th) { padding-block:.35em; }
 /* A table, a code block or a quote ends a thought like a paragraph does: the same gap below it as above it
    (user, 2026-10-14: the text under a table sat on it). */
 .desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) :is(table,pre,blockquote) { margin-block:0 var(--nubi-prose-paragraph-gap); }
 .desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) > :last-child { margin-bottom:0; }
 .desktop-shell {
-  --nubi-answer-reveal-duration:240ms;
+  --nubi-answer-reveal-duration:180ms;
 }
 /* Short, ordered ink fade. Full Markdown layout is stable from the first frame;
    no character timers, layout transforms, blinking cursor or repeated parsing. */
 .desktop-shell .nubi-answer-piece {
   animation:nubi-answer-ink var(--nubi-answer-reveal-duration) ease-out both;
 }
-@keyframes nubi-answer-ink { from { opacity:0; filter:blur(.8px); } to { opacity:1; filter:blur(0); } }
+@keyframes nubi-answer-ink { from { opacity:0; } to { opacity:1; } }
 @media (prefers-reduced-motion:reduce) {
   .desktop-shell .nubi-answer-piece { animation:none; }
 }
-:root[data-motion='paused'] .nubi-answer-piece,
-:root[data-motion-visibility='hidden'] .nubi-answer-piece {
+:root[data-motion="paused"] .nubi-answer-piece,
+:root[data-motion-visibility="hidden"] .nubi-answer-piece {
   animation:none;
 }
 .desktop-shell .message-body:focus-within .nubi-answer-piece { animation:none; }
+
+/* Mail source hierarchy follows the same heading/body/caption scale as dialogs. */
+.desktop-shell .nubi-mail-attachment-row .nubi-mail-attachment strong {
+ font-size:var(--deck-type-body); line-height:var(--deck-line-body);
+ font-weight:var(--nubi-weight-emphasis); color:var(--nubi-text-primary);
+}
+.desktop-shell .nubi-mail-attachment-label small {
+ font-size:var(--deck-type-caption); line-height:var(--deck-line-caption);
+ font-weight:var(--nubi-weight-regular); color:var(--nubi-text-secondary);
+}
+.desktop-shell .nubi-mail-attachments h3 {
+ font-size:var(--deck-type-body); line-height:var(--deck-line-body); font-weight:var(--nubi-weight-emphasis);
+}
+/* Paths are required context on a dark command receipt, not muted page text. */
+:root:has(.desktop-shell) .nubi-terminal-bar :is(.nubi-terminal-cwd,.nubi-terminal-cwd .nubi-drift-text) {
+ color:var(--nubi-terminal-muted);
+}

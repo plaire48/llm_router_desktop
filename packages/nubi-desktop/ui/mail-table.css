@@ -1,37 +1,42 @@
-.desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-history-body { display:flex; flex-direction:column; gap:0; overflow:auto; margin-top:12px; }
+.desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-history-body { display:flex; flex-direction:column; gap:0; overflow:auto; margin-top:var(--cx-space-3); }
+.desktop-shell .nubi-mail-personal-folder { display:flex; align-items:center; gap:var(--cx-space-2); width:min(100%,360px); min-width:0; margin-top:var(--cx-space-2); }
+.desktop-shell .nubi-mail-personal-folder>svg { flex:none; color:var(--nubi-text-secondary); }
+.desktop-shell .nubi-mail-personal-folder>:last-child { flex:1; min-width:0; }
+.cx-select-menu[data-single-line=true] .cx-select-option>span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cx-select-menu[data-single-line=true] .cx-select-option>svg { flex:none; }
 .desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-history-list { display:flex; flex-direction:column; flex:none; width:100%; max-height:none; min-height:0; padding:0; border:0; }
-.desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-history-detail { display:block; flex:1 0 240px; min-height:240px; max-height:none; overflow:visible; margin-top:16px; padding:16px 0 0; border:0; border-top:1px solid var(--deck-line); border-radius:0; }
+.desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-history-detail { display:block; flex:1 0 240px; min-height:240px; max-height:none; overflow:visible; margin-top:var(--cx-space-4); padding:var(--cx-space-4) 0 0; border:0; border-top:1px solid var(--deck-line); border-radius:0; }
 .desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-results { display:block; overflow:auto; min-height:100px; max-height:clamp(200px,34vh,440px); padding:0; border:1px solid var(--deck-line); border-radius:var(--nubi-work-control-radius); }
-.desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-search { overflow:visible; gap:8px; }
+.desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-search { overflow:visible; gap:var(--cx-space-2); }
 .desktop-shell .nubi-mail-table { border-collapse:separate; border-spacing:0; width:100%; min-width:920px; table-layout:fixed; color:var(--nubi-text-primary); font:var(--deck-font-body); }
 .nubi-mail-table .mail-check-col { width:48px; }.nubi-mail-table .mail-subject-col { width:auto; }.nubi-mail-table .mail-sender-col { width:27%; }.nubi-mail-table .mail-role-col { width:132px; }.nubi-mail-table .mail-date-col { width:200px; }
-.desktop-shell .nubi-mail-table th { position:sticky; top:0; z-index:1; background:var(--nubi-surface-base); border-bottom:1px solid var(--deck-line); color:var(--nubi-text-secondary); text-align:left; font-weight:500; }
-.desktop-shell .nubi-mail-table :is(th,td) { padding:8px 12px; vertical-align:middle; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; height:48px; }
-.desktop-shell .nubi-mail-table :is(th,td):first-child { padding-inline:12px; }
-.desktop-shell .nubi-mail-table th button { display:inline-flex; align-items:center; gap:8px; padding:0; border:0; background:none; color:inherit; font:inherit; cursor:pointer; min-height:32px; }
+.desktop-shell .nubi-mail-table th { position:sticky; top:0; z-index:1; background:var(--nubi-surface-base); border-bottom:1px solid var(--deck-line); color:var(--nubi-text-secondary); text-align:left; font-weight:var(--nubi-weight-label); }
+.desktop-shell .nubi-mail-table :is(th,td) { padding:var(--cx-space-2) var(--cx-space-3); vertical-align:middle; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; height:48px; }
+.desktop-shell .nubi-mail-table :is(th,td):first-child { padding-inline:var(--cx-space-3); }
+.desktop-shell .nubi-mail-table th button { display:inline-flex; align-items:center; gap:var(--cx-space-2); padding:0; border:0; background:none; color:inherit; font:inherit; cursor:pointer; min-height:32px; }
 .desktop-shell .nubi-mail-table th[aria-sort=none] button svg { opacity:.35; }
-.desktop-shell .nubi-mail-table th:not([aria-sort=none]) button { color:var(--nubi-text-action); font-weight:600; }
+.desktop-shell .nubi-mail-table th:not([aria-sort=none]) button { color:var(--nubi-text-action); font-weight:var(--nubi-weight-emphasis); }
 .desktop-shell .nubi-mail-table td { border-bottom:1px solid var(--deck-line); }
 .desktop-shell .nubi-mail-table tr:last-child td { border-bottom:0; }
 .desktop-shell .nubi-mail-table tbody tr:hover { background:var(--nubi-surface-hover,var(--deck-blue-soft)); cursor:pointer; }
 .desktop-shell .nubi-mail-table tbody tr:is([data-open=true],[data-selected=true]) { background:var(--nubi-surface-selected); }
 .desktop-shell .nubi-mail-table .nubi-mail-result { display:block; width:100%; padding:0; background:none; color:inherit; border:0; border-radius:0; text-align:left; font:inherit; cursor:pointer; }
-.desktop-shell .nubi-mail-table .nubi-mail-result>span { display:flex; align-items:center; gap:8px; min-width:0; }
-.desktop-shell .nubi-mail-table .nubi-mail-result strong { display:block; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.desktop-shell .nubi-mail-table .nubi-mail-result>span { display:flex; align-items:center; gap:var(--cx-space-2); min-width:0; }
+.desktop-shell .nubi-mail-table .nubi-mail-result strong { display:block; font-weight:var(--nubi-weight-emphasis); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .desktop-shell .nubi-mail-table .nubi-mail-result svg { flex:none; color:var(--nubi-text-secondary); }
 .desktop-shell .nubi-mail-table .nubi-mail-result svg.nubi-mail-pinned-mark { color:var(--deck-blue-deep); fill:var(--deck-blue-deep); }
-.desktop-shell .nubi-mail-table .nubi-mail-result small { display:block; font:var(--deck-font-caption); color:var(--nubi-text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:4px; }
+.desktop-shell .nubi-mail-table .nubi-mail-result small { display:block; font:var(--deck-font-caption); color:var(--nubi-text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:var(--cx-space-1); }
 .desktop-shell .nubi-mail-table time { color:var(--nubi-text-secondary); font:var(--deck-font-caption); font-variant-numeric:tabular-nums; }
 .desktop-shell .nubi-mail-table .nubi-mail-select { min-width:24px; width:24px; height:32px; display:flex; align-items:center; justify-content:center; padding:0; margin:0; }
 .nubi-mail-role { font:var(--deck-font-caption); color:var(--nubi-text-secondary); }
-.nubi-mail-role[data-role=to] { color:var(--nubi-text-action); font-weight:600; }
-.nubi-mail-reader-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; min-height:220px; text-align:center; }
-.nubi-mail-reader-empty strong { font:var(--deck-font-body); font-weight:600; }
+.nubi-mail-role[data-role=to] { color:var(--nubi-text-action); font-weight:var(--nubi-weight-emphasis); }
+.nubi-mail-reader-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--cx-space-2); min-height:220px; text-align:center; }
+.nubi-mail-reader-empty strong { font:var(--deck-font-body); font-weight:var(--nubi-weight-emphasis); }
 .nubi-mail-reader-empty p { margin:0; font:var(--deck-font-caption); color:var(--nubi-text-secondary); }
-.nubi-mailbox-note { display:flex; align-items:center; gap:8px; color:var(--nubi-text-secondary); font:var(--deck-font-caption); padding:16px 0; }
+.nubi-mailbox-note { display:flex; align-items:center; gap:var(--cx-space-2); color:var(--nubi-text-secondary); font:var(--deck-font-caption); padding:var(--cx-space-4) 0; }
 .nubi-mailbox-note svg { flex:none; }
 
-.desktop-shell .nubi-mail-history>.nubi-catalog-tabs { flex:none; margin-top:12px; }
+.desktop-shell .nubi-mail-history>.nubi-catalog-tabs { flex:none; margin-top:var(--cx-space-3); }
 .desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-history-list { overflow:visible; }
 .desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-results:has(.nubi-mail-table) { min-width:0; }
 
@@ -39,7 +44,7 @@
 .desktop-shell .nubi-mail-table th:first-child { z-index:3; }
 .desktop-shell .nubi-mail-table tbody tr:is([data-open=true],[data-selected=true]) td:first-child { background:var(--nubi-surface-selected); }
 .desktop-shell .nubi-mail-table tbody tr:hover td:first-child { background:var(--nubi-surface-hover,var(--deck-blue-soft)); }
-.desktop-shell .nubi-mail-list-update { color:var(--nubi-text-action); gap:6px; white-space:nowrap; flex-shrink:0; }
+.desktop-shell .nubi-mail-list-update { color:var(--nubi-text-action); gap:calc(var(--cx-space-1) * 1.5); white-space:nowrap; flex-shrink:0; }
 @media(max-width:600px) {
   .desktop-shell .nubi-mail-list-update>span { display:none; }
 }
@@ -47,3 +52,26 @@
 /* Folder labels stay on one line; only this row scrolls on narrow panes. */
 .desktop-shell .nubi-mail-history>.nubi-catalog-tabs[data-layout=compact] { max-width:100%; overflow-x:auto; }
 .desktop-shell .nubi-mail-history>.nubi-catalog-tabs[data-layout=compact]>.agent-tabs { min-width:max-content; }
+
+/* The existing approval list is the visual reference for both collections. */
+.desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-search { gap:var(--cx-space-4); }
+.desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-results { max-height:clamp(180px,42vh,480px); border:0; border-radius:0; }
+.desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-table { border-collapse:collapse; }
+.desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-table th { height:auto; padding:var(--cx-space-3); background:var(--nubi-surface-inset); font:var(--deck-font-caption); font-weight:var(--nubi-weight-emphasis); }
+.desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-table td { height:auto; padding:var(--cx-space-2) var(--cx-space-3); }
+.desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-table .nubi-mail-result { min-height:var(--nubi-table-control-height,44px); }
+.desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-column-heading { justify-content:flex-start; gap:var(--cx-space-2); }
+.desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-table th:not([aria-sort=none]) button { color:var(--nubi-text-action); }
+.desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-table th[aria-sort=none] button svg { opacity:1; }
+.desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-table tbody tr:last-child td { border-bottom:1px solid var(--deck-line); }
+.desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-search[data-density=compact] .nubi-mail-result { min-height:32px; }
+.nubi-mail-collection-controls { position:relative; display:flex; flex-wrap:wrap; align-items:center; gap:var(--cx-space-2); min-width:0; }
+.nubi-mail-collection-controls>.nubi-mail-search-input-row { flex:1 1 240px; min-width:180px; }
+.desktop-shell .nubi-mail-collection-controls>.nubi-mail-result-toolbar { flex:none; margin-left:auto; min-width:0; max-width:100%; }
+.nubi-mail-collection-controls .nubi-mail-filters { flex:none; position:static; }
+.nubi-mail-collection-controls .nubi-mail-filters>summary { width:32px; height:36px; min-height:36px; justify-content:center; padding:0; background:transparent; }
+.nubi-mail-collection-controls .nubi-mail-filters>summary>span,.nubi-mail-collection-controls .nubi-mail-filters>summary>svg:last-child { display:none; }
+.nubi-mail-collection-controls .nubi-mail-filters[open]>summary { background:var(--nubi-surface-selected); color:var(--nubi-text-action); }
+.nubi-mail-collection-controls .nubi-mail-filters[open]>.nubi-mail-filter-fields { position:absolute; z-index:12; top:calc(100% + var(--cx-space-2)); left:0; width:min(580px,100%); box-sizing:border-box; padding:var(--cx-space-4); border-radius:var(--nubi-work-control-radius); background:var(--nubi-surface-base); box-shadow:var(--deck-shadow); }
+.desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-table th { border-bottom:0; }
+.desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-table th .nubi-mail-select { min-height:32px; height:32px; }

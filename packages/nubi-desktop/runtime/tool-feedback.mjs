@@ -6,6 +6,12 @@ const READ_FAILED='The read failed. Inspect the error and choose a narrower rang
 const UNCHANGED='No source was changed and no proposal was created. ';
 const PLAN='Use record_change_plan with the corrected input. ';
 const GUIDANCE=Object.freeze({
+  process_input_observation_required:'No input was sent. Read read_process_output for this process, then use its current inputRevision in propose_process_input. Stop for the existing approval form.',
+  process_input_changed:'No input was sent. The program output or input state changed. Read its current output and reassess the question before preparing a new input approval.',
+  process_input_unavailable:'No input was sent. This task has no matching live interactive process. Inspect its existing state; never relaunch a completed or uncertain command just to send input.',
+  process_input_invalid:'No input was sent. Use plain text and explicit line breaks only. Terminal control escapes are refused; use the existing stop control to stop the command.',
+  server_url_not_observed:'No request was sent. Read this process output and use only an exact loopback URL returned by inspect_dev_server; never guess a port.',
+  code_position_invalid:'No source was changed. Read the target range and use its line and column within the current file.',
   workspace_status_failed:'Git could not read the current change status. Continue from source files and stored receipts; do not report a clean tree or repeat commands to recreate evidence.',
   git_unavailable:'Git is unavailable. Continue with source_search/read_source and stored receipts where sufficient. Do not invent a diff.',
   git_timeout:'Git status timed out. Use a specific relative file path or current source and receipts. Do not repeat an unchanged full scan.',

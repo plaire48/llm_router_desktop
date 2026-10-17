@@ -4,6 +4,7 @@ const recoveryLabels={queued:'결과 확인 대기',diagnosing:'결과 확인 �
 export function commandRecordStatus(action,process){
  if(action.error==='shell_not_selected')return '기본 터미널 변경됨';
  if(action.state!=='started'||!process)return actionLabels[action.state];
+ if(action.kind==='input')return '입력 전달됨';
  // An independent review does not turn a failed/cancelled execution into success.
  if(['failed','cancelled','timed_out','interrupted','checking','running','stopping'].includes(process.state))return processLabels[process.state];
  if(Number.isInteger(process.exitCode)&&process.exitCode!==0)return '실행 실패';

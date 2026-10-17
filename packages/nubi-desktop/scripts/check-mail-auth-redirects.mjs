@@ -12,11 +12,12 @@ const {app,BrowserWindow,session}=require('electron');
 app.setPath('userData',${JSON.stringify(path.join(temporary,'state'))});
 process.env.NUBI_MAIL_PORTAL_ORIGIN=${JSON.stringify((upgrade?'http:':'https:')+'//mail.example.invalid')};
 process.env.NUBI_MAIL_PORTAL_LOGIN_URL='https://home.example.invalid';
+global.navigations=[];app.on('web-contents-created',(_event,contents)=>contents.on('did-start-navigation',(_event,value,_inPlace,isMainFrame)=>{if(!isMainFrame)return;try{const url=new URL(value);global.navigations.push({host:url.hostname,path:url.pathname});}catch{}}));
 app.whenReady().then(async()=>{
  const {BrowserHost}=require(${JSON.stringify(path.resolve('electron-app/browser-host.cjs'))});
  const {MailPortal}=require(${JSON.stringify(path.resolve('electron-app/mail-portal.cjs'))});
- const win=new BrowserWindow({show:false,width:1100,height:800,webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}});await win.loadURL('about:blank');
- global.events=[];let authenticated=false;
+ const win=new BrowserWindow({show:true,width:1100,height:800,webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}});await win.loadURL('about:blank');
+ global.events=[];global.loadFailures=[];let authenticated=false;
  const portalSession=session.fromPartition('persist:nubi-company');
  const handle=async request=>{
   const url=new URL(request.url);global.events.push({host:url.hostname,path:url.pathname,method:request.method,protocol:url.protocol});
@@ -40,10 +41,11 @@ app.whenReady().then(async()=>{
   return new Response(authenticated?'<h1>Portal ready</h1>':'<form action="https://sso.example.invalid/authenticate" method="post" target="_blank" rel="opener"><input name="proof" value="fixture"><button id="login">Fixture login</button></form>',{headers:{'content-type':'text/html'}});
  };
  await portalSession.protocol.handle('http',handle);await portalSession.protocol.handle('https',handle);
+ if(!await portalSession.protocol.isProtocolHandled('https'))throw Error('fixture_protocol_unavailable');
  global.host=new BrowserHost(win);
  global.other=global.host.create('about:blank').id;
  global.portal=new MailPortal({BrowserWindow,parent:win,invoke:async(_method,args)=>{global.events.push({action:args.action});return {};},
-  openPage:(url,options)=>{const row=global.host.create(url,{...options,session:portalSession,authentication:true,httpsOnly:${!upgrade}});global.loginId=row.id;return {tabId:row.id};},
+  openPage:(url,options)=>{const row=global.host.create(url,{...options,session:portalSession,authentication:true,httpsOnly:${!upgrade}});global.loginId=row.id;if(row.view.webContents.session!==portalSession)throw Error('fixture_session_mismatch');row.view.webContents.on('did-fail-load',(_event,code,description,_url,isMain)=>{if(isMain)global.loadFailures.push({code,description});});void global.host.request({action:'layout',bounds:{x:80,y:100,width:900,height:600},visible:true});return {tabId:row.id};},
   getPageContents:id=>[...global.host.tabs.values()].filter(row=>row.ownerId===id).map(row=>row.view.webContents),
   closePage:id=>{for(const row of [...global.host.tabs.values()].reverse())if(row.ownerId===id)global.host.closeTab(row.id);}
  });
@@ -58,12 +60,13 @@ try{
  if(!upgrade){const denied=await app.evaluate(async()=>{try{await global.host.request({action:'navigate',id:global.loginId,url:'http://example.invalid'});return false;}catch(error){return error.message==='browser_url_invalid';}});assert.equal(denied,true);}
  await app.evaluate(async()=>global.host.tab(global.loginId).view.webContents.executeJavaScript('document.querySelector("#login").click()',true));
  await until(async()=>app.evaluate(()=>!!global.result));
- const result=await app.evaluate(({BrowserWindow})=>({result:global.result,events:global.events,status:global.portal.status(),tabs:[...global.host.tabs.keys()],other:global.other,windows:BrowserWindow.getAllWindows().length}));
+ const result=await app.evaluate(({BrowserWindow})=>({result:global.result,events:global.events,navigations:global.navigations,status:global.portal.status(),tabs:[...global.host.tabs.keys()],other:global.other,windows:BrowserWindow.getAllWindows().length}));
  assert.deepEqual(result.result,{ok:true});assert.equal(result.status.connected,true);assert.deepEqual(result.tabs,[result.other],'only owned authentication tabs close');assert.equal(result.windows,2,'SSO does not create another native popup window');
  const requests=result.events.filter(e=>e.host==='sso.example.invalid');assert.deepEqual(requests.map(({path,method})=>({path,method})),[{path:'/authenticate',method:'POST'},{path:'/relay',method:'POST'},{path:'/verify',method:'POST'},{path:'/finish',method:'GET'}]);
  assert.ok(result.events.some(e=>e.host==='home.example.invalid'),'login begins at the configured home');
  assert.ok(result.events.some(e=>e.host==='mail.example.invalid'&&e.path.endsWith('/folders')),'the background reader verifies the mail API');
- if(home)assert(!result.events.some(e=>e.host==='mail.example.invalid'&&e.method==='GET'),'login on home requires no mailbox navigation');
+ assert(result.navigations.some(e=>e.host==='home.example.invalid'),'navigation observer records the configured login page');
+ if(home)assert(!result.navigations.some(e=>e.host==='mail.example.invalid'),'login on home requires no mailbox navigation; session API GET is allowed');
  console.log(JSON.stringify({passed:true,upgrade,home,checks:['302 home redirect, POST 307 and 308, then 303 GET callback preserved','POST popup and opener preserved','same persistent session','verified background mail reader','no separate login popup','owned tab cleanup','automatic home authentication without manual continuation'],boundary:'Local Electron with isolated mock HTTPS protocol; not company SSO or Windows verification.'}));
-}catch(error){if(app)console.error(JSON.stringify(await app.evaluate(()=>({result:global.result,events:global.events,state:global.portal?.status(),tabs:global.host?.status()}))));throw error;}finally{await app?.close();await rm(temporary,{recursive:true,force:true});}
+}catch(error){if(app)console.error(JSON.stringify(await app.evaluate(()=>({result:global.result,events:global.events,loadFailures:global.loadFailures,state:global.portal?.status(),tabs:global.host?.status()}))));throw error;}finally{await app?.close();await rm(temporary,{recursive:true,force:true});}
 async function until(check){for(let i=0;i<150;i++){try{if(await check())return;}catch{}await new Promise(r=>setTimeout(r,100));}throw Error('portal fixture timed out');}

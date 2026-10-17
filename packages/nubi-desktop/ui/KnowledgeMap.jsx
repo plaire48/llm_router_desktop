@@ -1,4 +1,5 @@
 import {DriftLabel} from './DriftLabel.jsx';
+import {SettingToggle} from './SettingToggle.jsx';
 import React,{useEffect,useRef,useState} from 'react';
 import {CxButton, CxInput, CxNotice, Icon} from '@e2e/cx-design-system';
 import {CxSelect} from './WorkspaceSelect.jsx';
@@ -72,7 +73,7 @@ function DatabaseConnections({api,onChanged}){
           <label>포트<CxInput aria-label="포트" type="number" required min={1} max={65535} disabled={busy} value={form.port} onChange={e=>update('port',e.target.value===''?'':Number(e.target.value))}/></label>
           {['postgres','sqlserver'].includes(form.engine)&&<label>스키마<CxInput aria-label="스키마" required disabled={busy} value={form.schema} onChange={e=>update('schema',e.target.value)}/></label>}
         </div>
-        <label className="nubi-db-tls"><input type="checkbox" disabled={busy} checked={form.tls} onChange={e=>update('tls',e.target.checked)}/> TLS 암호화 연결</label>
+        <SettingToggle label="TLS 암호화 연결" disabled={busy} checked={form.tls} onChange={value=>update('tls',value)}/>
         <small className="nubi-muted">포트와 스키마는 DB 기본값을 사용합니다. 다른 설정이 필요한 경우에만 바꾸세요.</small>
       </details>
       {error&&<CxNotice tone="danger">{error}</CxNotice>}

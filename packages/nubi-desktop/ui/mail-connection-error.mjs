@@ -1,6 +1,9 @@
 // Fixed diagnostics only. Server replies may contain account or message data.
 const listing='로그인은 완료됐어요. 메일 목록을 읽는 단계에서 멈췄어요.';
 export const mailConnectionErrors={
+  external_browser_connection_required:{title:'삼성 브라우저를 연결해 주세요',detail:'웹 화면에서 연결 코드를 복사한 뒤 브라우저의 누비 연결 확장에 붙여넣어 주세요.'},
+  external_browser_portal_permission_required:{title:'이 포털의 메일 읽기를 허용해 주세요',detail:'브라우저의 포털 탭에서 누비 연결 확장을 열고 메일 읽기를 허용한 뒤 다시 연결해 주세요.'},
+  external_browser_result_unconfirmed:{title:'브라우저 연결을 확인해 주세요',detail:'메일 수집을 멈췄어요. 브라우저의 누비 연결 상태를 확인한 뒤 다시 연결해 주세요. 저장된 메일은 유지됩니다.'},
   mail_encryption_migration:{title:'기존 원문 암호화를 마치지 못했어요',detail:'파일은 유지했습니다. 저장 위치와 권한을 확인한 뒤 다시 시도해 주세요.'},
   mail_storage_full:{title:'메일 저장 공간이 부족해요',detail:'공간을 확보한 뒤 다시 시도해 주세요. 기존 원문은 유지됩니다.'},
   mail_encryption_unavailable:{title:'메일 암호화 키를 열지 못했어요',detail:'원문 수집을 멈췄어요. 이 PC의 기존 계정으로 앱을 다시 열어 주세요. 저장된 원문은 유지됩니다.'},

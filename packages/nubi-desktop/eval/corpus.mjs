@@ -18,6 +18,7 @@ const packages=path.resolve(here,'..','..');
 export const CORPORA=Object.freeze({
   'openwiki-sds':{source:path.join(packages,'openwiki'),include:['src','openwiki','README.md','AGENTS.md','CONTRIBUTING.md','DEVELOPMENT.md','ENTERPRISE.md','CHANGELOG.md','package.json','tsconfig.json','evals/ledger/README.md','evals/deepswe/README.md']},
   'order-service':{source:path.join(here,'corpus-src','order-service'),include:['.']},
+  'cache-retry':{source:path.join(here,'corpus-src','cache-retry'),include:['.']},
   // Rules of the simulated expense app, for app control that acts on an OpenWiki answer.
   'expense-office':{source:path.join(here,'corpus-src','expense-office'),include:['.']},
   // The command suite: the order service with a free-shipping threshold that breaks its tests,

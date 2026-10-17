@@ -211,7 +211,8 @@ export class ClaimsStore {
   }
 
   /**
-   * Hashes the current generated Markdown for synchronization checks.
+   * Hashes generated Markdown with Git checkout line endings normalized.
+   * Only CRLF pairs become LF; spaces, blank lines and content remain significant.
    *
    * @param page - Virtual generated-page path.
    * @returns Algorithm-prefixed page version.
@@ -225,7 +226,7 @@ export class ClaimsStore {
       );
     }
     try {
-      const content = await readFile(physicalPage);
+      const content = (await readFile(physicalPage, "utf8")).replace(/\r\n/gu, "\n");
       return `sha256:${createHash("sha256").update(content).digest("hex")}`;
     } catch (error) {
       throw new ClaimsPersistenceError(

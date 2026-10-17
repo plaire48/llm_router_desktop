@@ -1,5 +1,7 @@
 # Electron 전체 화면 가독성 검토
 
+2026-10-17 후속: [전체 화면과 모달 토큰 점검](DESIGN-TOKEN-AUDIT-2026-10-17.md)에서 CSS 로드 순서, 글꼴/크기/굵기/색상/간격과 실제 렌더링을 다시 확인했다. 아래 기록은 각 작업 당시의 검사와 결정을 보존한다.
+
 ## Aligned answer sources (2026-10-12)
 
 The source heading now sits above a single-column list instead of consuming space beside source 1. Each full-width row has fixed icon and number tracks, one truncated title, retained location/freshness metadata and an opening chevron. Mail uses an envelope; attachments and documents use the common file icon. “원문 출처”, full-title tooltips and explicit source/type/open accessible names identify the destination without adding explanatory paragraphs. Citation numbers and source identities remain unchanged.

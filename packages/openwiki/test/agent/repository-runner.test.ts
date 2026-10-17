@@ -74,6 +74,22 @@ type HarnessPlanInput = {
 };
 
 const HARNESS_RUN_ID = vi.hoisted(() => "00000000-0000-4000-8000-000000000001");
+const semantic = vi.hoisted(() => ({ reject: false, fail: false, calls: 0 }));
+vi.mock("../../src/agent/repository-semantic-review.js", () => ({
+  createPageReviewBudget: () => ({ next: () => 1, rejected: () => {} }),
+  reviewClaims: (_current: unknown, proposed: unknown) => proposed,
+  reviewRepositoryPage: () => {
+    semantic.calls++;
+    if (semantic.fail) throw Error("wiki_review_incomplete");
+    return Promise.resolve({
+      accepted: !semantic.reject,
+      revision: "reviewed-revision",
+      extraSourcePaths: [],
+      feedback: "overclaim",
+      assertUnchanged: () => Promise.resolve(),
+    });
+  },
+}));
 
 const harness = vi.hoisted(() => ({
   agentOptions: [] as CapturedAgentOptions[],
@@ -109,6 +125,7 @@ const harness = vi.hoisted(() => ({
   pageRestoreCalls: 0,
   restoreCalls: 0,
   streamConfigs: [] as Array<{ configurable?: Record<string, unknown> }>,
+  streamInputs: [] as unknown[],
   workerExitsWithoutSubmit: 0,
 }));
 
@@ -272,7 +289,16 @@ vi.mock("deepagents", async (importOriginal) => {
             if (exitWithoutSubmit) {
               harness.workerExitsWithoutSubmit -= 1;
             } else {
-              await completionTool.invoke(input);
+              await completionTool.invoke(
+                semantic.reject && toolName === "submit_page"
+                  ? {
+                      name: toolName,
+                      id: "semantic-rejected",
+                      type: "tool_call",
+                      args: input,
+                    }
+                  : input,
+              );
               if (
                 toolName === "submit_plan" &&
                 harness.duplicatePlanSubmission
@@ -315,6 +341,7 @@ vi.mock("deepagents", async (importOriginal) => {
           config: { configurable?: Record<string, unknown> },
         ) {
           harness.streamConfigs.push(config);
+          harness.streamInputs.push(input);
           return stream(input, config);
         },
       };
@@ -323,6 +350,7 @@ vi.mock("deepagents", async (importOriginal) => {
 });
 
 vi.mock("../../src/generation/repository-run.js", () => ({
+  inspectRepositoryPageClaims: () => ({ claims: [] }),
   captureRepositoryPageSnapshot(_run: HarnessRun, jobId: string) {
     return Promise.resolve({
       jobId,
@@ -550,6 +578,7 @@ vi.mock("../../src/generation/repository-run.js", () => ({
 
 import {
   isRateLimitError,
+  createPageMutationQueue,
   parseWorkerToolEvent,
   PLANNER_AGENT_NAME,
   runNativeRepositoryGeneration,
@@ -563,7 +592,10 @@ import type { OpenWikiRunEvent } from "../../src/agent/types.ts";
  * @returns Complete ordered event stream emitted by the runner.
  */
 async function runHarness(
-  options: { pageConcurrency?: number } = {},
+  options: {
+    pageConcurrency?: number;
+    repositoryContext?: import("../../src/agent/repository-runner.ts").RepositoryContextProvider;
+  } = {},
 ): Promise<OpenWikiRunEvent[]> {
   const events: OpenWikiRunEvent[] = [];
   await runNativeRepositoryGeneration({
@@ -572,6 +604,7 @@ async function runHarness(
     modelId: "test-model",
     model: {} as never,
     planningContext: "User and connector context",
+    repositoryContext: options.repositoryContext,
     onEvent: (event) => events.push(event),
     ...(options.pageConcurrency === undefined
       ? {}
@@ -631,8 +664,12 @@ async function getNoDelegationWrapModelCall(): Promise<
 }
 
 beforeEach(() => {
+  semantic.reject = false;
+  semantic.fail = false;
+  semantic.calls = 0;
   harness.agentOptions = [];
   harness.streamConfigs = [];
+  harness.streamInputs = [];
   harness.beginCalls = 0;
   harness.changedPaths = ["README.md"];
   harness.currentRun = undefined;
@@ -668,6 +705,169 @@ beforeEach(() => {
 });
 
 describe("runNativeRepositoryGeneration", () => {
+  test("orders edits before review and prevents post-submit mutations", async () => {
+    let submitted = false;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const queue = createPageMutationQueue(() => submitted).wrapToolCall as (
+      request: {
+        toolCall: { name: string; id: string; args: Record<string, never> };
+      },
+      handler: () => Promise<ToolMessage>,
+    ) => Promise<ToolMessage>;
+    const order: string[] = [];
+    const request = (name: string) => ({
+      toolCall: { name, id: name, args: {} },
+    });
+    const edit = queue(request("edit_file"), async () => {
+      await gate;
+      order.push("edit");
+      return new ToolMessage({ content: "ok", tool_call_id: "edit" });
+    });
+    const submit = queue(request("submit_page"), () => {
+      order.push("review");
+      submitted = true;
+      return Promise.resolve(
+        new ToolMessage({ content: "ok", tool_call_id: "submit" }),
+      );
+    });
+    const late = queue(request("write_file"), () => {
+      order.push("late");
+      return Promise.resolve(
+        new ToolMessage({ content: "late", tool_call_id: "write" }),
+      );
+    });
+    await queue(request("read_file"), () => {
+      order.push("read");
+      return Promise.resolve(
+        new ToolMessage({ content: "read", tool_call_id: "read" }),
+      );
+    });
+    expect(order).toEqual(["read"]);
+    release();
+    await Promise.all([edit, submit, late]);
+    expect(order).toEqual(["read", "edit", "review"]);
+  });
+  test("never commits a page rejected by semantic review", async () => {
+    semantic.reject = true;
+    await expect(runHarness()).rejects.toThrow("wiki_review_incomplete");
+    expect(semantic.calls).toBeGreaterThan(0);
+    expect(harness.pageSubmissionCalls).toBe(0);
+    expect(harness.restoreCalls).toBe(0);
+    expect(harness.finishCalls).toBe(0);
+  });
+  test("review infrastructure failure leaves the pending run unfinalized", async () => {
+    semantic.fail = true;
+    await expect(runHarness()).rejects.toThrow("wiki_review_incomplete");
+    expect(harness.pageSubmissionCalls).toBe(0);
+    expect(harness.finishCalls).toBe(0);
+  });
+  test("resume only requests fresh page hints for pending jobs and preserves their seeds", async () => {
+    harness.resumed = true;
+    harness.currentRun = {
+      root: "/repo",
+      state: {
+        phase: "generating",
+        mode: "update",
+        language: "en",
+        runId: HARNESS_RUN_ID,
+        plan: {
+          deletePages: [],
+          pages: [
+            {
+              id: "00000000-0000-4000-8000-000000000001",
+              path: "/openwiki/quickstart.md",
+              title: "Done",
+              purpose: "Already written",
+              seedPaths: ["/src/old.ts"],
+              relatedPages: [],
+              instructions: [],
+              status: "complete",
+            },
+            {
+              id: "00000000-0000-4000-8000-000000000002",
+              path: "/openwiki/architecture.md",
+              title: "Architecture",
+              purpose: "Remaining page",
+              seedPaths: ["/src/current.ts"],
+              relatedPages: [],
+              instructions: [],
+              status: "pending",
+            },
+          ],
+        },
+      },
+    };
+    const requests: unknown[] = [];
+    await runHarness({
+      repositoryContext: (request) => {
+        requests.push(request);
+        return Promise.resolve("fresh map");
+      },
+    });
+    expect(requests).toEqual([
+      {
+        phase: "page",
+        seedPaths: ["/src/current.ts"],
+        changedPaths: ["README.md"],
+      },
+    ]);
+    expect(harness.planSubmissionCalls).toBe(0);
+    expect(harness.pageSubmissionCalls).toBe(1);
+  });
+
+  test("passes bounded host navigation as user data, scoped to planner and each page", async () => {
+    const requests: unknown[] = [];
+    await runHarness({
+      repositoryContext: (request) => {
+        requests.push(request);
+        return Promise.resolve("host-map-fixture");
+      },
+    });
+    expect(requests).toEqual([
+      { phase: "planning", seedPaths: [], changedPaths: ["README.md"] },
+      { phase: "page", seedPaths: [], changedPaths: ["README.md"] },
+      { phase: "page", seedPaths: [], changedPaths: ["README.md"] },
+    ]);
+    expect(harness.streamInputs).toHaveLength(3);
+    for (const input of harness.streamInputs) {
+      expect(JSON.stringify(input)).toContain("host-map-fixture");
+      expect(JSON.stringify(input)).toContain(
+        "untrusted repository identifiers",
+      );
+    }
+    expect(
+      harness.agentOptions.every(
+        (option) => !String(option.systemPrompt).includes("host-map-fixture"),
+      ),
+    ).toBe(true);
+    expect(harness.pageSubmissionCalls).toBe(2);
+  });
+
+  test("does not collect a map for no-op updates or pass oversized maps to the model", async () => {
+    const context = vi.fn(() => Promise.resolve("x".repeat(24001)));
+    harness.noop = true;
+    await runHarness({ repositoryContext: context });
+    expect(context).not.toHaveBeenCalled();
+    harness.noop = false;
+    await runHarness({ repositoryContext: context });
+    expect(context).toHaveBeenCalledTimes(3);
+    expect(JSON.stringify(harness.streamInputs)).toContain("over budget");
+    expect(JSON.stringify(harness.streamInputs)).not.toContain("x".repeat(100));
+  });
+
+  test("a cancelled host lookup does not submit a plan or complete the run", async () => {
+    await expect(
+      runHarness({
+        repositoryContext: () => Promise.reject(new Error("cancelled")),
+      }),
+    ).rejects.toThrow("cancelled");
+    expect(harness.planSubmissionCalls).toBe(0);
+    expect(harness.finishCalls).toBe(0);
+  });
+
   test("uses exact shell-free tool surfaces and a fresh worker per page", async () => {
     const events = await runHarness();
 

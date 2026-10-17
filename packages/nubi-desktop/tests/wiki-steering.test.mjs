@@ -64,7 +64,7 @@ test('the agent receives the overview and tools that say when to use the Wiki',a
   const receipts=request.messages.find(message=>message.role==='user'&&String(message.content).startsWith('Current host receipts'));
   const data=JSON.parse(receipts.content.slice(receipts.content.indexOf('{')));
   assert.equal(data.wiki.language,'en');assert.equal(data.wiki.list.length,4);
-  const described=name=>request.tools.find(item=>item.function.name===name).function.description;
+  const described=name=>request.tools.find(item=>item.function.name===name).function.description+'\n'+request.messages.filter(message=>message.role==='system'&&message.content.startsWith('Tool rules.')).map(message=>message.content.split('\n').find(line=>line.startsWith('- '+name+': '))||'').join('\n');
   assert.match(described('ask_openwiki'),/synthesis or how\/why/);assert.match(described('ask_openwiki'),/researches openwiki\/ separately/);assert.match(described('ask_openwiki'),/check current source/);assert.match(described('ask_openwiki'),/Simple documented facts can use wiki_query/);assert.match(described('ask_openwiki'),/wiki\.language/);
   // Found in B3 case D2: the main agent added "exhaustive review is required" to a question about one topic, and the OpenWiki agent read the whole Wiki with 150 model calls.
   assert.match(described('ask_openwiki'),/exhaustive review is only for an explicit whole-Wiki request/);assert.match(described('ask_openwiki'),/many calls/);

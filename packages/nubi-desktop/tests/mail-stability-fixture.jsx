@@ -1,7 +1,8 @@
+import '@e2e/cx-design-system/styles.css';
 import React,{useRef} from 'react';
 import {createRoot} from 'react-dom/client';
 import {MailHistory} from '../ui/MailHistory.jsx';
-import '@e2e/cx-design-system/styles.css';
+
 import '../electron-app/workbench.css';
 import '../design/workspace-identity.css';
 import '../design/workspace-typography.css';

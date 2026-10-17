@@ -1,5 +1,6 @@
 import {useLayoutEffect, useRef, useState} from 'react';
 import {WORKSPACE_LAYOUT} from '../electron-app/workspace-layout.cjs';
+import {frameCoalescer} from './frame-coalescer.mjs';
 
 const DEFAULT_WIDTH = WORKSPACE_LAYOUT.projects, MIN_WIDTH = WORKSPACE_LAYOUT.minimumProjects, MAX_WIDTH = 420;
 const STORAGE_KEY = 'nubi-workspace-sidebar-width';
@@ -22,6 +23,9 @@ export function useSidebarResize(root, {
 }) {
   const [preferredWidth, setPreferredWidth] = useState(() => savedWidth(storageKey, minWidth, maxWidth));
   const drag = useRef(null);
+  const paint = useRef(null), latestApply = useRef(null);
+  latestApply.current=apply;
+  if(!paint.current)paint.current=frameCoalescer(({value,handle})=>latestApply.current(value,handle));
   const max = Math.max(1, Math.min(maxWidth, hostWidth - railWidth - reservedWidth));
   const min = Math.min(minWidth, max);
   const width = clamp(preferredWidth ?? defaultWidth, min, max);
@@ -35,6 +39,7 @@ export function useSidebarResize(root, {
     try { localStorage.setItem(storageKey, String(value)); } catch { /* Keep it for this window. */ }
   }
   function finish(commit) {
+    paint.current.cancel();
     const current = drag.current;
     if (!current) return;
     drag.current = null;
@@ -65,7 +70,7 @@ export function useSidebarResize(root, {
       if (!current || current.pointerId !== event.pointerId) return;
       const movement = (event.clientX - current.startX) * (side === 'right' ? -1 : 1);
       current.width = clamp(current.startWidth + movement, min, max);
-      apply(current.width, current.handle);
+      paint.current.schedule({value:current.width,handle:current.handle});
     },
     onPointerUp(event) { if (drag.current?.pointerId === event.pointerId) finish(true); },
     onPointerCancel(event) { if (drag.current?.pointerId === event.pointerId) finish(false); },

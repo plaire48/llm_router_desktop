@@ -1,7 +1,7 @@
 // The composer reports its compact, single-row width after it is rendered.
 // This initial value also protects the conversation before a composer exists.
 const WORKSPACE_LAYOUT=Object.freeze({
- rail:72,projects:280,minimumProjects:264,auxiliary:380,minimumAgent:380,minimumAuxiliary:320
+ rail:56,projects:280,minimumProjects:264,auxiliary:380,minimumAgent:380,minimumAuxiliary:320
 });
 function workspaceSlots(width,{minimumAgent=WORKSPACE_LAYOUT.minimumAgent,projects=WORKSPACE_LAYOUT.projects}={}){
  const layout=WORKSPACE_LAYOUT;

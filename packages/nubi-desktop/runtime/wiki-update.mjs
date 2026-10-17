@@ -21,6 +21,7 @@ import {modelTransport} from './recovery.mjs';
 import {createRunMetrics} from './run-metrics.mjs';
 import {wikiInitializationError} from './wiki-initialization-error.mjs';
 import {wikiPlanPending,WIKI_PLAN_REQUIRED} from './wiki-plan-completion.mjs';
+import {createWikiCodeContext} from './wiki-code-map.mjs';
 
 const WIKI='openwiki/',CLAIMS='openwiki/.claims/',RECORD='openwiki/.last-update.json',KEPT=20,EVENTS=40;
 const inWiki=rel=>rel.startsWith(WIKI);
@@ -122,7 +123,13 @@ export function defaultWikiUpdater(service,{load=()=>import('../generated/openwi
           return result;
         }
         catch(error){
-          if(error.message==='response_invalid'&&retry<3){attempt=[...attempt,planPending?WIKI_PLAN_REQUIRED:TEXT_REPLY];continue;}
+          // Both transports reject malformed proposals before dispatch. Repair
+          // inference only: never repeat an accepted read/write or relax schemas.
+          if(['response_invalid','claude_response_invalid'].includes(error.message)&&retry<3){
+            attempt=[...attempt,...(error.message==='claude_response_invalid'?[{role:'system',content:'The last response was rejected before any host tool ran. Return only advertised host actions in the structured calls array, never native CLI tools. Keep completed host tool results; do not replay them.'}]:[]),planPending?WIKI_PLAN_REQUIRED:TEXT_REPLY];
+            if(error.message==='claude_response_invalid')onEvent?.({type:'model_retry',attempt:retry+1,code:'claude_response_invalid'});
+            continue;
+          }
           // The runner turns a page worker's failure into a skipped page: without this the host saw only an empty Wiki (2026-10-12).
           terminalModelError=error;
           onEvent?.({type:'model_error',code:/^[a-z_]{3,60}$/.test(error?.message||'')?error.message:'model_failed'});throw error;
@@ -130,13 +137,19 @@ export function defaultWikiUpdater(service,{load=()=>import('../generated/openwi
       }
     };
     const model=new NubiOpenWikiModel({complete,signal,modelId:status.model,taskId:null});
+    let pageProgress={};
     const progress=event=>{
       // Native finalization removes .run.json even when a worker was skipped.
       // Stop BEFORE that boundary so accepted plans/pages remain resumable.
       if(event?.type==='repository_progress'&&event.stage==='finalizing'&&terminalModelError)throw terminalModelError;
+      if(event?.type==='repository_progress')pageProgress={...(typeof event.page==='string'?{page:event.page.slice(0,300)}:{}),...(Number.isSafeInteger(event.pageIndex)?{index:event.pageIndex}:{}),...(Number.isSafeInteger(event.pageCount)?{total:event.pageCount}:{}),...(Number.isSafeInteger(event.completedPages)?{completed:event.completedPages}:{})};
+      if(event?.name==='review_page'&&event.type==='tool_start')onEvent?.({type:'progress',stage:'reviewing',...pageProgress,page:String(event.page||pageProgress.page||'').slice(0,300)});
       if(event?.type==='repository_progress')onEvent?.({type:'progress',stage:String(event.stage),...(typeof event.page==='string'?{page:event.page.slice(0,300)}:{}),...(Number.isSafeInteger(event.pageIndex)?{index:event.pageIndex}:{}),...(Number.isSafeInteger(event.pageCount)?{total:event.pageCount}:{}),...(Number.isSafeInteger(event.completedPages)?{completed:event.completedPages}:{})});
     };
-    const result=await runNativeRepositoryGeneration({root,mode,language:language||null,modelId:status.model,model,onEvent:progress});
+    const repositoryContext=createWikiCodeContext(root,{signal});
+    let result;
+    try{result=await runNativeRepositoryGeneration({root,mode,language:language||null,modelId:status.model,model,onEvent:progress,repositoryContext});}
+    catch(error){throw terminalModelError||error;}
     // OpenWiki may return after skipping failed pages. Keep the durable run for
     // resume instead of publishing a partial generation as a completed Wiki.
     if(terminalModelError)throw terminalModelError;
@@ -244,8 +257,26 @@ async function removeCopy(root,copy){
   await rm(copy,{recursive:true,force:true});
 }
 
+// Only runtime-owned copies can be removed; never trust a path saved in a record alone.
+export async function clearWikiUpdates(service,owner,root){
+  const entries=owner.entries('wiki-update:');
+  for(const {value} of entries){
+    if(!value.copy)continue;
+    const expected=path.join(owner.directory,'wiki-update',value.id);
+    if(!/^[a-f0-9-]{36}$/.test(value.id)||value.copy!==expected)fail('path_scope');
+    for(const folder of [path.dirname(expected),expected]){
+      try{if((await lstat(folder)).isSymbolicLink()||await realpath(folder)!==path.join(await realpath(owner.directory),path.relative(owner.directory,folder)))fail('path_scope');}catch(error){if(error.code!=='ENOENT')throw error;}
+    }
+  }
+  for(const {key,value} of entries){
+    if(service.store!==owner||service.root!==root)fail('project_changed');
+    if(value.copy)await removeCopy(root,value.copy);
+    owner.delete(key);
+  }
+}
+
 export async function wikiUpdate({method='status',id,fingerprint}={}){
-  this.ready();const root=this.root,owner=this.store,projectId=this.projectId;
+  this.ready();if(this.wikiResetting||this.store.get('wiki-reset-pending'))fail('wiki_busy');const root=this.root,owner=this.store,projectId=this.projectId;
   // An orphaned run retains its private copy and durable native page checkpoints.
   for(const item of records(this).filter(item=>item.state==='running'&&!(item.id===this.wikiUpdateRun?.id&&this.wikiUpdateRun.owner===owner))){save(this,{...item,state:'failed',pageProgress:await retainedPageProgress(item.copy),error:'wiki_update_interrupted',finishedAt:new Date().toISOString()});}
   if(method==='status')return {status:await wikiUpdateStatus(root),updates:records(this).slice(0,KEPT).map(visible)};
@@ -325,7 +356,7 @@ export async function wikiUpdate({method='status',id,fingerprint}={}){
     if(this.wikiUpdateRun||this.wikiInitController||this.agent?.running||this.processes?.active.size)fail('wiki_update_busy');
     const controller=new AbortController(),events=resuming?[...(value.events||[])]:[];
     const active={id:value.id,controller,owner,preparing:true,startedAt:new Date().toISOString()};this.wikiUpdateRun=active;
-    let copy=value.copy,running;
+    let copy=value.copy,running,runStage='planning';
     const check=()=>{controller.signal.throwIfAborted();if(this.store!==owner||this.root!==root)fail('project_changed');};
     try{
     await requireWikiGit();check();
@@ -367,7 +398,7 @@ export async function wikiUpdate({method='status',id,fingerprint}={}){
     check();
     if(this.wikiRefreshJob?.controller.signal.aborted)fail('wiki_refresh_cancelled');
     check();
-    running={...value,state:'running',copy,resume,resumed:resuming,startedAt:new Date().toISOString(),events};
+    running={...value,state:'running',stage:runStage,copy,resume,resumed:resuming,startedAt:new Date().toISOString(),events};
     delete running.error;delete running.finishedAt;
     save(this,running);
     active.preparing=false;
@@ -380,11 +411,13 @@ export async function wikiUpdate({method='status',id,fingerprint}={}){
     Promise.resolve().then(async()=>{
       let lastSaved=0;
       const result=resume.generated?resume.result:await runner({root:copy,language:value.status.lastUpdate.language,signal:controller.signal,updateId:value.id,onEvent:event=>{
+        if(event.type==='progress'&&typeof event.stage==='string'){runStage=event.stage;running.stage=runStage;}
         events.push({...event,at:new Date().toISOString()});if(events.length>EVENTS)events.splice(0,events.length-EVENTS);
         if(owner.db.isOpen&&Date.now()-lastSaved>250){owner.set('wiki-update:'+value.id,{...running,events:[...events]});lastSaved=Date.now();}
       }});
       if(!resume.generated){resume={...resume,generated:true,result:result||{},copySources:fileHashes(await wikiSources(copy,{signal:controller.signal}))};running={...running,resume};if(owner.db.isOpen)owner.set('wiki-update:'+value.id,running);}
       if(controller.signal.aborted||this.store!==owner||this.root!==root)return finish({state:'cancelled'});
+      runStage='publishing';running.stage=runStage;
       // The checkpoint names the sources this run read; the status reads it for uncommitted edits since.
       // The receipt describes the original sources, not the runner's managed
       // AGENTS snippets, which are intentionally never applied to the project.
@@ -400,13 +433,13 @@ export async function wikiUpdate({method='status',id,fingerprint}={}){
       const ready={state:'ready',changes,outside,outsideEvidence:await outsideEvidence(root,copy,changes,outside),base,result:{skipped:result?.skipped===true,...(result?.sourceChanged?{sourceChanged:true}:{})}};
       ready.fingerprint=hash(JSON.stringify([value.id,changes,base]));
       return finish(ready);
-    }).catch(error=>finish(controller.signal.aborted?{state:'cancelled'}:{state:'failed',error:wikiInitializationError(error,'planning')}));
+    }).catch(error=>finish(controller.signal.aborted?{state:'cancelled',stage:runStage}:{state:'failed',stage:runStage,error:wikiInitializationError(error,runStage)}));
     return visible(running);
     }catch(error){
       if(this.wikiUpdateRun===active)this.wikiUpdateRun=null;
       // Preparation never clears an already retained copy. A failed first
       // preparation can be explicitly discarded along with the proposal.
-      if(owner.db.isOpen&&!resuming)owner.set('wiki-update:'+value.id,{...value,copy,state:'failed',error:wikiInitializationError(error,'snapshot_git'),finishedAt:new Date().toISOString()});
+      if(owner.db.isOpen&&!resuming)owner.set('wiki-update:'+value.id,{...value,copy,state:'failed',stage:'snapshot_git',error:wikiInitializationError(error,'snapshot_git'),finishedAt:new Date().toISOString()});
       throw error;
     }
   }

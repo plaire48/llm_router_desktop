@@ -17,3 +17,10 @@ test('appending progress keeps previous group identities and never drops cancell
  assert.deepEqual(activityTimeline([...trace,tool('d')]).slice(0,3),activityTimeline(trace));
  assert.equal(activityTimeline([]).length,0);
 });
+test('provider notes sit between operations without reordering receipts',()=>{
+ const trace=[{...tool('a'),startedAt:'2026-10-16T01:00:00Z'},{...tool('b','error'),startedAt:'2026-10-16T01:00:02Z'}];
+ const notes=[{id:'memo',at:'2026-10-16T01:00:01Z',content:'관찰한 내용'},{id:'legacy',content:'기존 기록'}];
+ const original=structuredClone({trace,notes});
+ assert.deepEqual(activityTimeline(trace,notes).map(block=>[block.kind,block.id]),[['tools','a'],['memo','memo'],['tools','b'],['memo','legacy']]);
+ assert.deepEqual({trace,notes},original);
+});
