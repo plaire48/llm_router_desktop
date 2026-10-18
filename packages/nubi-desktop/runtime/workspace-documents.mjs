@@ -98,7 +98,7 @@ export async function wikiSnapshot({root,pages,projectId,signal}){
   return {wikiId:'external:'+projectId,documents,sourceComplete:pages.length<=WIKI_LIMITS.files&&!skipped.length};
 }
 
-export async function analyzeWorkspaceDocuments({root,args,signal,modelId,complete,taskId,runId,onRecord,store},engine){
+export async function analyzeWorkspaceDocuments({root,args,signal,modelId,complete,taskId,runId,onRecord,store,scheduler},engine){
   if(typeof args.question!=='string'||!args.question.trim()||args.question.length>4000)fail('document_arguments');
   const id=randomUUID(),record={id,taskId,runId,question:args.question,state:'running',phase:'loading',completed:0,total:0,workers:[],sources:[]};
   const persist=()=>{store?.set('document-analysis:'+id,record);if(store)saveDocumentProgress(store,record);onRecord?.(record);};
@@ -113,7 +113,7 @@ export async function analyzeWorkspaceDocuments({root,args,signal,modelId,comple
       try{return await complete(...parameters);}catch(error){if(engine.isWikiAuthenticationError(error))authentication.abort(error);throw error;}
     };
     const model=new engine.NubiOpenWikiModel({complete:guardedComplete,signal:researchSignal,modelId,taskId:id});
-    const result=await engine.runWikiQuestion({question:args.question,documents,sourceComplete:true},{signal:researchSignal,modelId,model,search:engine.createWikiQuestionSearch(),onProgress:event=>{researchSignal.throwIfAborted();researchProgress(record,event);persist();}});
+    const result=await engine.runWikiQuestion({question:args.question,documents,sourceComplete:true},{signal:researchSignal,modelId,model,scheduler,search:engine.createWikiQuestionSearch(),onProgress:event=>{researchSignal.throwIfAborted();researchProgress(record,event);persist();}});
     researchSignal.throwIfAborted();record.phase='validating';persist();
     const current=await documentSnapshot(root,args.paths,researchSignal);
     if(current.some((doc,index)=>doc.version!==documents[index].version))fail('document_changed');

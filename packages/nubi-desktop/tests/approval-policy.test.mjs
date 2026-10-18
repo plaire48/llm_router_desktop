@@ -79,3 +79,24 @@ test('a command that waits for its fix, a running agent or an open question is n
   service.agent={running:true,taskId:task.id};assert.equal((await auto()).command,null);service.agent=null;
   service.store.set('task:'+task.id,{...service.task(task.id),question:{id:'q',text:'어느 쪽?'}});assert.equal((await auto()).command,null);
 });
+
+for(const mode of ['ask','edits','commands'])test(`irreversible proposals and commands wait in ${mode} with persisted reasons`,async t=>{
+ const {service,action,proposal,auto}=await setup(t);service.setApprovalMode({mode});
+ const del=proposal('src/remove.mjs',{kind:'delete'}),cmd=action('git push --force origin main');
+ const before=service.state();assert.match(before.setupActions.find(a=>a.id===cmd).irreversible?.reason||'',/강제 push/);
+ const next=await auto();assert.deepEqual(next.proposals,[]);assert.equal(next.command,null);
+ assert.equal(service.store.get('proposal:'+del).irreversible.reason,'기존 파일 삭제');
+ assert.match(service.store.get('setup-action:'+cmd).irreversible.reason,/강제 push/);
+});
+test('exact shell allowlist remains an exception, never a broader command',async t=>{
+ const {service,action,auto}=await setup(t);service.setApprovalMode({mode:'commands'});
+ const id=action('git push --force origin main');service.allowCommand({id});
+ assert.equal((await auto()).command.id,id);
+ service.store.set('setup-action:'+id,{...service.store.get('setup-action:'+id),state:'done'});
+ action('git push --force origin other');assert.equal((await auto()).command,null);
+});
+test('deletion does not expose an older proposal for the same path to auto approval',async t=>{
+ const {service,proposal,auto}=await setup(t);service.setApprovalMode({mode:'edits'});
+ proposal('src/a.mjs',{kind:'patch'});proposal('src/a.mjs',{kind:'delete'});
+ const safe=proposal('src/b.mjs',{kind:'patch'});assert.deepEqual((await auto()).proposals,[safe]);
+});

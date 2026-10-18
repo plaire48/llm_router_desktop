@@ -1,3 +1,4 @@
+import {hash} from './files.mjs';
 import {humanDecisions} from '../ui/human-decisions.mjs';
 import {wikiChatJob} from './wiki-chat-admission.mjs';
 
@@ -12,7 +13,7 @@ export class ProjectServices{
  share(service){
   const primary=this.primary;
   for(const name of ['providers','providerRestoring','personalMail','usageLedger','marketplaceToken','marketplaceReader','marketplaceConnected','marketplaceCatalog','marketplaceAuthRequired','marketplaceRevision','marketplaceController'])Object.defineProperty(service,name,{configurable:true,get:()=>primary[name],set:value=>{primary[name]=value;}});
-  for(const name of ['connectionVault','openWorkspacePage','closeWorkspaceAuthPage','syncWikiSources','playwrightRequest','captureWorkspacePage','captureWorkspaceWindow','notifyAnswer','notifyWiki'])service[name]=primary[name];
+  for(const name of ['connectionVault','openWorkspacePage','closeWorkspaceAuthPage','syncWikiSources','playwrightRequest','captureWorkspacePage','captureWorkspaceWindow','notifyAnswer','notifyWiki','routines'])service[name]=primary[name];
   service.mail=args=>primary.mail(args);
   return service;
  }
@@ -26,18 +27,28 @@ export class ProjectServices{
    let service,created=false;
    try{const root=await this.resolveRoot(args.root);
     service=this.projects.get(root);if(!service){service=this.primary.root?this.share(this.createService()):this.primary;created=service!==this.primary;}
-    const result=await service.invoke(method,args);this.projects.set(service.root,service);this.current=service;return {...result,...this.status()};
+    const result=await service.invoke(method,args);this.projects.set(service.root,service);if(this.current!==service)this.current.viewingTaskId=null;this.current=service;return {...result,...this.status()};
    }catch(error){if(service?.root)this.projects.set(service.root,service);else if(created&&service){this.detachShared(service);service.dispose();}throw error;}
    finally{this.opening=false;}
   }
   const services=[this.primary,...this.projects.values()];
-  if(method==='prepareAppUpdate'&&services.some(active))throw Error('update_work_active');
+  if(method==='prepareAppUpdate'&&(this.opening||this.primary.routines?.busy||services.some(active)))throw Error('update_work_active');
   if((method==='provider'&&args.action&&args.action!=='status'||method==='fabrix'&&args.method==='CONNECT_FABRIX')&&services.some(service=>service.agent?.running))throw Error('agent_busy');
-  const result=await this.current.invoke(method,args);
+  let result;try{result=await this.current.invoke(method,args);}finally{this.primary.routines?.observe?.(this.current);}
   if(method==='prepareAppUpdate')this.updateLocked=true;
   return ['overview','state'].includes(method)?{...result,...this.status()}:result;
  }
  status(){const background=this.background();return {backgroundProjects:background.map(({decisions,...project})=>({...project,waitingInput:decisions.length>0})),backgroundDecisions:background.flatMap(project=>project.decisions),backgroundActive:background.some(project=>project.running)};}
+ async service(project){
+  if(this.updateLocked||this.opening)throw Error('project_busy');
+  this.opening=true;let created;
+  try{
+   const root=await this.resolveRoot(project.root);if(hash(root).slice(7,31)!==project.id)throw Error('project_changed');
+   const existing=this.projects.get(root);if(existing)return existing;
+   created=this.share(this.createService());await created.open(root,{initializeWiki:false,exactRoot:true});this.projects.set(root,created);return created;
+  }catch(error){if(created){this.detachShared(created);created.dispose();created.store?.close();}throw error;}
+  finally{this.opening=false;}
+ }
  activity(projectId){const service=[...this.projects.values()].find(item=>item.projectId===projectId);return {active:!!service&&(active(service)||humanDecisions({...service.state(),projectId}).length>0)};}
  detachShared(service){for(const name of ['providers','personalMail','usageLedger','marketplaceController','marketplaceToken','marketplaceCatalog'])Object.defineProperty(service,name,{configurable:true,value:null,writable:true});}
  dispose(){const services=new Set([this.primary,...this.projects.values()]),providers=this.primary.providers,mail=this.primary.personalMail,usage=this.primary.usageLedger,marketplace=this.primary.marketplaceController;

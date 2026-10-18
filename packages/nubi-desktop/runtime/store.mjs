@@ -31,6 +31,10 @@ export class Store {
     const rows=limit===undefined?this.db.prepare(sql).all(prefix+'%'):this.db.prepare(sql+' LIMIT ?').all(prefix+'%',limit);
     return rows.map(row=>JSON.parse(row.value));
   }
+  taskSummaries() {
+    // SQLite projects only navigation fields; historical message bodies never cross IPC.
+    return this.db.prepare("SELECT json_extract(value,'$.id') AS id,json_extract(value,'$.request') AS request,json_extract(value,'$.state') AS state,json_extract(value,'$.createdAt') AS createdAt,json_extract(value,'$.updatedAt') AS updatedAt,json_extract(value,'$.unread') AS unread,json_extract(value,'$.archivedAt') AS archivedAt,json_extract(value,'$.origin') AS origin FROM records WHERE key LIKE 'task:%' ORDER BY rowid DESC").all().map(({origin,...row})=>({...row,unread:!!row.unread,...(origin?{origin:JSON.parse(origin)}:{})}));
+  }
   delete(key) { this.db.prepare('DELETE FROM records WHERE key=?').run(key); }
   entries(prefix) { return this.db.prepare('SELECT key, value FROM records WHERE key LIKE ? ORDER BY rowid DESC').all(prefix + '%').map(row => ({key: row.key, value: JSON.parse(row.value)})); }
   event(kind, value) { this.db.prepare('INSERT INTO events (at,kind,value) VALUES (?,?,?)').run(new Date().toISOString(), kind, JSON.stringify(value)); }

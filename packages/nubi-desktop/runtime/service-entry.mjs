@@ -1,3 +1,7 @@
+import {createRoutineManager} from './routines.mjs';
+import {Store} from './store.mjs';
+import path from 'node:path';
+import {ProjectCatalog} from '../electron-app/project-catalog.cjs';
 import {disableHostedTracing,configureSystemTrust} from './worker-environment.mjs';
 import {installWorkspaceBrowser} from './workspace-browser.mjs';
 import {installWikiGitBridge} from './wiki-git-bridge.mjs';
@@ -18,6 +22,9 @@ installConnectionVault(service);
 // Warm the MCP catalog off the first chat's critical path. No browser is launched.
 const mcp=service.mcpRegistry();mcp.warming=mcp.connectEnabled().catch(()=>{});
 const projects=new ProjectServices({service,createService:()=>Object.assign(new ProjectService({storageRoot:process.env.NUBI_STORAGE_ROOT}),{memoryExtraction:true,mailFacts:true}),resolveRoot:resolveProjectFolder});
+const routineStore=new Store(path.join(service.storageRoot,'routines')),routineProjects=new ProjectCatalog(service.storageRoot);
+service.routines=createRoutineManager({onActivity:event=>{if(process.connected)process.send?.({routineActivity:event},()=>{});},store:routineStore,listProjects:()=>routineProjects.list(),serviceFor:project=>projects.service(project),canStart:()=>!projects.updateLocked&&!projects.opening});
+service.routines.start();
 const {ExternalOffice}=await import('./external-office.mjs');
 const externalOffice=new ExternalOffice();
 process.on('message', async message => {
@@ -25,4 +32,4 @@ process.on('message', async message => {
   try {if(projects.updateLocked)throw Error('update_installing');const result=await (message.method==='_externalOffice'?externalOffice.request(projects.current,message.args):projects.invoke(message.method,message.args));if(['open','deleteTask'].includes(message.method))externalOffice.pruneSelections(projects.current);process.send?.({id:message.id,result});}
   catch(error) {process.send?.({id:message.id,error:/^[a-z_]{3,50}$/.test(error.message) ? error.message : 'operation_failed'});}
 });
-process.on('disconnect',()=>{externalOffice.dispose();projects.dispose();setTimeout(()=>process.exit(0),1800);});
+process.on('disconnect',()=>{service.routines.stop();externalOffice.dispose();projects.dispose();setTimeout(()=>process.exit(0),1800);});

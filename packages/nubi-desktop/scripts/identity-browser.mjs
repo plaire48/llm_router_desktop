@@ -5,6 +5,7 @@ const {adaptation,palette}=JSON.parse(await readFile(new URL('../design/referenc
 export const desktopDialogScale=large=>({size:(large?adaptation.largeBody:adaptation.body)+'px',line:(large?adaptation.largeBody*adaptation.lineRatio:adaptation.line)+'px',heading:adaptation.heading+'px',headingLine:adaptation.headingLine+'px'});
 
 export async function assertDialogChrome(dialog) {
+  await assertDialogIdentity(dialog);
   const facts=await dialog.evaluate(root=>{
     const parts=['header','body','footer'].map(name=>root.querySelector(':scope > .cx-panel-'+name)).filter(Boolean);
     const close=root.querySelector('.cx-panel-header-actions [data-action=close]');
@@ -25,11 +26,12 @@ export async function assertDialogChrome(dialog) {
 
 export async function assertDesktopDialog(dialog,{large=false}={}) {
   await dialog.waitFor();
+  await assertDialogIdentity(dialog);
   const facts=await dialog.evaluate(root=>{
     const css=getComputedStyle(root),title=getComputedStyle(root.querySelector('h2'));
     const buttons=[...root.querySelectorAll('button')].filter(e=>e.checkVisibility());
     return {font:css.fontFamily,size:css.fontSize,line:css.lineHeight,radius:css.borderRadius,
-      danger:root.matches('.nubi-delete-conversation,.nubi-delete-skill'),dangerToken:css.getPropertyValue('--deck-red').trim(),title:{size:title.fontSize,line:title.lineHeight},blue:css.getPropertyValue('--brand-action').trim(),
+      danger:root.matches('.nubi-delete-conversation,.nubi-delete-skill,.nubi-danger-confirmation'),dangerToken:css.getPropertyValue('--deck-red').trim(),title:{size:title.fontSize,line:title.lineHeight},blue:css.getPropertyValue('--brand-action').trim(),
       buttons:buttons.map(e=>({size:getComputedStyle(e).fontSize,radius:getComputedStyle(e).borderRadius,kit:e.classList.contains('cx-kit-button'),chip:e.classList.contains('nubi-page-chip'),label:e.getAttribute('aria-label')||e.textContent.trim(),iconOnly:e.dataset.iconOnly,title:e.title})),
       fields:[...root.querySelectorAll('.nubi-url-pair label,.nubi-db-fields label,.nubi-map-controls label,.nubi-db-tls,.nubi-recovery-option,.nubi-run-form small')].filter(e=>e.checkVisibility()).map(e=>({size:getComputedStyle(e).fontSize,line:getComputedStyle(e).lineHeight})),
       overflow:root.scrollWidth>root.clientWidth};
@@ -42,4 +44,24 @@ export async function assertDesktopDialog(dialog,{large=false}={}) {
   assert(facts.buttons.filter(b=>b.kit&&!b.chip).every(b=>b.radius==='12px'));
   assert(facts.buttons.filter(b=>b.chip).every(b=>b.radius==='100px'),'Page chips use the reference pill radius');
   assert(facts.buttons.filter(b=>b.iconOnly).every(b=>b.title));
+}
+
+// All application-owned modal chrome and field labels share semantic tokens.
+// Rich mail/document content and provider artwork retain their source styling.
+export async function assertDialogIdentity(dialog) {
+ const facts=await dialog.evaluate(root=>{
+  const css=getComputedStyle(root),probe=document.createElement('span');root.append(probe);
+  const color=name=>{probe.style.color=`var(${name})`;return getComputedStyle(probe).color;};
+  const tokens={primary:color('--nubi-text-primary'),surface:color('--nubi-surface-base'),danger:color('--nubi-text-danger'),action:color('--nubi-text-action'),label:css.getPropertyValue('--nubi-weight-label').trim(),emphasis:css.getPropertyValue('--nubi-weight-emphasis').trim()};probe.remove();
+  const visible=selector=>[...root.querySelectorAll(selector)].filter(e=>e.checkVisibility());
+  return {name:root.querySelector('h2')?.textContent,tokens,background:css.backgroundColor,color:css.color,title:getComputedStyle(root.querySelector('h2')).color,
+   labels:visible('label[for]').map(e=>({text:e.textContent.trim().slice(0,40),color:getComputedStyle(e).color,weight:getComputedStyle(e).fontWeight})),
+   errors:visible('p[role="alert"]:not([class])').map(e=>getComputedStyle(e).color),
+   links:visible(':scope > .cx-panel-body > p > a,:scope > .cx-panel-body > form > p > a').filter(e=>!e.className).map(e=>getComputedStyle(e).color)};
+ });
+ assert.equal(facts.background,facts.tokens.surface,facts.name+' modal surface');assert.equal(facts.color,facts.tokens.primary,facts.name+' body ink');assert.equal(facts.title,facts.tokens.primary,facts.name+' title ink');
+ for(const label of facts.labels){assert.equal(label.weight,facts.tokens.label,facts.name+' label weight: '+label.text);assert.equal(label.color,facts.tokens.primary,facts.name+' label ink: '+label.text);}
+ for(const color of facts.errors)assert.equal(color,facts.tokens.danger,facts.name+' error ink');
+ for(const color of facts.links)assert.equal(color,facts.tokens.action,facts.name+' link ink');
+ return facts;
 }

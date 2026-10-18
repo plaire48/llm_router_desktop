@@ -8,10 +8,10 @@ import {approvalPolicy} from '../runtime/approval-policy.mjs';
 installAgent(ProjectService);
 const name='mcp__playwright__browser_open';
 const call=args=>({content:'',calls:[{id:crypto.randomUUID(),type:'function',function:{name,arguments:JSON.stringify(args)}}]});
-async function setup(t){
+async function setup(t,tool={name:'browser_open',annotations:{readOnlyHint:false}},serverId='playwright'){
  const f=await fixture(t),calls=[];
- const registry=new McpRegistry({file:f.directory+'/mcp.json',playwright:async()=>({listTools:async()=>({tools:[{name:'browser_open',inputSchema:{type:'object',properties:{url:{type:'string'}},required:['url']},annotations:{readOnlyHint:false}}]}),callTool:async args=>{calls.push(args);return {content:[{type:'text',text:JSON.stringify({tabId:'actual-tab',documentId:'doc'})}]};},close:async()=>{}})});
- await registry.connectEnabled();f.service.mcpRegistry=()=>registry;f.service.mcpDefinitions=async()=>registry.definitions();t.after(()=>registry.dispose());
+ const registry=new McpRegistry({file:f.directory+'/mcp.json',playwright:async()=>({listTools:async()=>({tools:[{...tool,inputSchema:{type:'object',properties:{url:{type:'string'}},required:['url']}}]}),callTool:async args=>{calls.push(args);return {content:[{type:'text',text:JSON.stringify({tabId:'actual-tab',documentId:'doc'})}]};},close:async()=>{}})});
+ await registry.connectEnabled();if(serverId!=='playwright'){const entry=registry.connections.get('playwright');registry.connections.delete('playwright');registry.connections.set(serverId,entry);}f.service.mcpRegistry=()=>registry;f.service.mcpDefinitions=async()=>registry.definitions();t.after(()=>registry.dispose());
  return {...f,calls,registry};
 }
 for(const label of ['실행','항상 허용','취소'])test(`MCP ${label}: exact approval continues before another model turn`,async t=>{
@@ -64,4 +64,34 @@ test('an interrupted dispatch is evidence of uncertainty, never permission to re
  task.mcpContinuation={name,args,fingerprint:registry.fingerprint(name,args),state:'executing'};service.store.set('task:'+task.id,task);let turn=0;
  service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:32000}]}),dispose(){},async complete(messages){assert.match(JSON.stringify(messages),/unconfirmed/);return turn++===0?call(args):{content:'이전 실행의 결과 확인이 필요합니다.',calls:[]};}};
  await service.startAgent({taskId:task.id});await service.agent.promise;assert.equal(calls.length,0);assert.equal(turn,2);
+});
+
+for(const mode of ['ask','edits','commands'])test(`external MCP writes ignore stored allowlist in ${mode} and execute exactly once per approval`,async t=>{
+ const {service,calls}=await setup(t,{name:'send_mail',annotations:{openWorldHint:true}},'external');
+ service.store.set('setting:approvals',{mode,allowedCommands:[],allowedMcpTools:[{serverId:'external',tool:'send_mail'}]});
+ const invoke=()=>({content:'',calls:[{id:crypto.randomUUID(),type:'function',function:{name:'mcp__external__send_mail',arguments:JSON.stringify({url:'https://example.invalid/send'})}}]});
+ for(let attempt=0;attempt<2;attempt++){
+  const task=await service.createTask({request:'승인 뒤 메일 보내기'});let turn=0;
+  service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:32000}]}),dispose(){},async complete(){return turn++<2?invoke():{content:'완료했습니다.',calls:[]};}};
+  await service.startAgent({taskId:task.id});await service.agent.promise;
+  const q=service.task(task.id).question;assert.ok(q,'stored allowlist must not issue an external write');
+  assert.equal(calls.length,attempt);assert.deepEqual(q.options.map(o=>o.label),['실행','취소']);
+  assert.equal(q.toolRequest.alwaysAllowIgnored,true);assert.match(q.toolRequest.irreversible.reason,/외부/);
+  await assert.rejects(service.answerAgent({taskId:task.id,choice:{questionId:q.id,text:'항상 허용'}}),/answer_invalid/);
+  await service.answerAgent({taskId:task.id,choice:{questionId:q.id,optionId:q.options[0].id}});await service.agent.promise;
+  assert.equal(calls.length,attempt+1,'exact resumed call is issued once, a repeated model call uses its receipt');
+  assert.equal(approvalPolicy(service.store).allowedMcpTools.length,1,'saved entries remain visible for removal');
+ }
+});
+
+// Real upstream annotations must survive classification and persisted approval.
+test('F1 browser_type always allow survives reopen without another prompt',async t=>{
+ const {service,calls}=await setup(t,{name:'browser_type',annotations:{readOnlyHint:false,destructiveHint:true,openWorldHint:true}});
+ const invoke=()=>({content:'',calls:[{id:crypto.randomUUID(),type:'function',function:{name:'mcp__playwright__browser_type',arguments:JSON.stringify({url:'https://example.invalid/type'})}}]});
+ const provider=()=>{let turn=0;return {status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:32000}]}),dispose(){},complete:async()=>turn++===0?invoke():{content:'입력했습니다.',calls:[]}};};
+ service.providers=provider();const first=await service.createTask({request:'입력해 주세요'});await service.startAgent({taskId:first.id});await service.agent.promise;
+ const q=service.task(first.id).question;assert.ok(q.options.some(o=>o.label==='항상 허용'));
+ await service.answerAgent({taskId:first.id,choice:{questionId:q.id,optionId:q.options.find(o=>o.label==='항상 허용').id}});await service.agent.promise;assert.equal(calls.length,1);
+ service.store.close();await service.open(service.root);service.providers=provider();const second=await service.createTask({request:'다시 입력해 주세요'});await service.startAgent({taskId:second.id});await service.agent.promise;
+ assert.equal(service.task(second.id).question,null);assert.equal(calls.length,2);
 });

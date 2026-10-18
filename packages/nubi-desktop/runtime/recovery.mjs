@@ -10,7 +10,7 @@ import {shellProfiles} from './processes.mjs';
 import {preferredShell} from './environment-inspection.mjs';
 import {requireChosenShell} from './setup-actions.mjs';
 
-export const READ_TOOLS=new Set(['read_editor_range','native_office_status','inspect_native_office','personal_mail_query','read_attached_document','read_personal_mail','ask_openwiki','inspect_environment','inspect_workspace_changes','inspect_code','inspect_dev_server','read_process_output','read_document_analysis','analyze_documents','list_skill_resources','discover_capabilities','use_skill','read_skill','read_conversation','computer_checkpoint','read_computer_result','list_computer_apps','inspect_path','code_outline','source_search','read_source','wiki_query','knowledge_query','recovery_snapshot']);
+export const READ_TOOLS=new Set(['delegate_research','continue_research','read_editor_range','native_office_status','inspect_native_office','personal_mail_query','read_attached_document','read_personal_mail','ask_openwiki','inspect_environment','inspect_workspace_changes','inspect_code','inspect_dev_server','read_process_output','read_document_analysis','analyze_documents','list_skill_resources','discover_capabilities','use_skill','read_skill','read_conversation','computer_checkpoint','read_computer_result','list_computer_apps','inspect_path','code_outline','source_search','read_source','wiki_query','knowledge_query','recovery_snapshot']);
 const recoverableProcesses=new Set(['failed','timed_out','interrupted']);
 const now=()=>new Date().toISOString();
 export const recoveryCode=error=>safeError(error);
@@ -24,7 +24,7 @@ export function modelTransport(service,{signal,onRetry,onSlow,onResumed,waitPoli
   const modelName=()=>{try{return service.providers.status().model;}catch{return null;}};
   // retries may lower the retries of one call (a large request), never raise them.
   return (messages,tools,childSignal=signal,purpose='actor',{retries,visionModel,maxTokens,toolChoice,responseFormat,retryInvalidResponse=true}={})=>{
-    const options={retries:2,...waitPolicy,...service.recoveryOptions?.model};
+    const options={retries:3,minTimeout:2000,...waitPolicy,...service.recoveryOptions?.model};
     // Keep the existing system/payload positions used by structured planners.
     const at=messages.findIndex(message=>message.role==='system'&&typeof message.content==='string');
     const base=tools.length&&!messages.some(message=>message.role==='system'&&typeof message.content==='string'&&message.content.includes('at most 8 tool calls'))?(at<0?[batchLimit,...messages]:messages.map((message,index)=>index===at?{...message,content:message.content+'\n'+batchLimit.content}:message)):messages;

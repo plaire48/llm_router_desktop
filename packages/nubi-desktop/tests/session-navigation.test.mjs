@@ -41,3 +41,9 @@ test('all pins stay visible above the recent limit; stale IDs do not consume his
   const full=sessionSidebarGroups(tasks,pins,{showAll:true,limit:3,now});
   assert.equal(full.hiddenCount,0);assert.equal(full.canCollapse,true);assert.equal(full.groups.flatMap(group=>group.tasks).length,12);
 });
+
+test('archive filters preserve pin order and never mix active and archived conversations',()=>{
+ const tasks=[{id:'a',createdAt:'2026-10-18'},{id:'b',archivedAt:'2026-10-18',createdAt:'2026-10-17'},{id:'c',createdAt:'2026-10-16'}];
+ assert.deepEqual(sessionSidebarGroups(tasks,['c','b','a']).groups.flatMap(group=>group.tasks.map(task=>task.id)),['c','a']);
+ assert.deepEqual(sessionSidebarGroups(tasks,['c','b','a'],{archived:true}).groups.flatMap(group=>group.tasks.map(task=>task.id)),['b']);
+});

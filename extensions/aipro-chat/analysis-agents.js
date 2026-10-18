@@ -106,7 +106,7 @@ function documentProgress(job, report = job.report) {
   });
 }
 
-export function createAnalysisCoordinator({signal, modelId, complete, execute, run, tools = [], documents = [], observationSources = {}, onStep = () => {}, onEvidence = () => {}, onDelivery = () => {}, onHandoff, handoffs, readTimeoutMs = REFERENCE_READ_TIMEOUT_MS, verbatimTools = [], verbatimMaxChars}) {
+export function createAnalysisCoordinator({signal, modelId, complete, execute, run, tools = [], documents = [], observationSources = {}, onStep = () => {}, onEvidence = () => {}, onDelivery = () => {}, onHandoff, handoffs, scheduler, readTimeoutMs = REFERENCE_READ_TIMEOUT_MS, verbatimTools = [], verbatimMaxChars}) {
   const sources = new Map(), jobs = new Map();
   const contentReadNamespace=crypto.randomUUID().replaceAll('-','').slice(0,16);
   const definitions = analysisToolDefinitions();
@@ -531,6 +531,7 @@ export function createAnalysisCoordinator({signal, modelId, complete, execute, r
       (job.signature === JSON.stringify(task) || needsContinuation(job) && job.failureKey === failureKey(task)));
     const needed = new Set(planned.filter(task => !existing(task)).map(task => JSON.stringify(task))).size;
     if ([...jobs.values()].filter(job => pending(job) || !job.reported).length + needed > ANALYSIS_CAPACITY) return {error: 'analysis_busy', instruction: 'Six assignments are active, queued or awaiting collection. Collect results before adding more assignments; completed work will not be restarted.'};
+    if (scheduler && !scheduler.admit(needed)) return {error: 'analysis_busy', instruction: '이번 실행의 분석과 조사 작업 6개 한도에 도달했습니다. 기존 결과를 수집해 사용하세요.'};
     const launched = planned.map(task => {
       const previous = existing(task); if (previous) return {...state(previous), reused: true, ...(needsContinuation(previous) ? {recovery_required: true, instruction: 'Collect this prior result. Preserve its evidence and change the failed approach or supply new observations before delegating again. Increasing effort alone does not resume it.'} : {})};
       const job = {id: `analysis_${crypto.randomUUID()}`, assignment: structuredClone(task), signature: JSON.stringify(task), failureKey: failureKey(task), role: task.role, requireQuotes: !!task.require_quotes, task: task.task, constraints: task.constraints || '', doneWhen: task.done_when, effort: task.effort, budget: ANALYSIS_EFFORT[task.effort],
@@ -542,7 +543,7 @@ export function createAnalysisCoordinator({signal, modelId, complete, execute, r
       // a p-limit slot. Collectors may already be awaiting this job while both
       // slots are occupied. The scheduler still owns running concurrency.
       job.done = new Promise(resolve => {job.finish = resolve;});
-      void limit(async () => {
+      void (scheduler ? work => scheduler.schedule(work, job.controller.signal) : limit)(async () => {
         // Commit the original brief before any child model or read is started.
         if (job.handoffWrite) await waitForRead(()=>job.handoffWrite,{signal:job.controller.signal,timeoutMs:readTimeoutMs}).catch(error=>{job.handoffFailed=true;throw error;});
         if (!job.controller.signal.aborted) return work(job);

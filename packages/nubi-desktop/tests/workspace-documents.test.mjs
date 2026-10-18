@@ -1,3 +1,4 @@
+import {createWorkerScheduler} from '../runtime/research-agent.mjs';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {fileURLToPath} from 'node:url';
@@ -129,4 +130,41 @@ test('host restart preserves worker responses but never revives an unfinished do
   const saved=service.task(task.id);assert.equal(saved.state,'interrupted');assert.equal(saved.documentAnalysis.state,'interrupted');
   assert.equal(saved.documentAnalysis.workers[0].summary,'수신한 부분 결과');assert.equal(saved.documentAnalysis.workers[1].phase,'interrupted');
   assert.equal(service.store.get('document-analysis:'+progress.id).state,'interrupted');assert.throws(()=>documentAnalysisResult(service.store.get('document-analysis:'+progress.id)),/document_result_unavailable/);
+});
+
+
+test('document research shares remaining admissions and preserves unread ranges when the host limit is reached',async t=>{
+ const {root,service}=await fixture(t);await writeFile(path.join(root,'shared.md'),'A'.repeat(96000));
+ const scheduler=createWorkerScheduler();assert.equal(scheduler.admit(5),true);
+ const result=await analyzeWorkspaceDocuments({root,args:{paths:['shared.md'],question:'전체 내용 확인'},scheduler,signal:signal(),modelId:'fixture',complete:researchModel(),taskId:'task',runId:'run',store:service.store});
+ assert.notEqual(result.status,'complete');assert.ok(result.coverage.budgetLimitedTasks>=3);assert.ok(result.coverage.unreadRanges.length>=3);assert.ok(result.uncertainties.some(s=>s.includes('한도')));assert.equal(scheduler.admit(),false);
+ const record=service.store.get('document-analysis:'+result.id);assert.equal(record.workers.filter(w=>w.role==='research'&&w.outcome!=='blocked').length,1);
+});
+
+test('document workers share physical slots with an existing research job',async t=>{
+ const {root}=await fixture(t);await writeFile(path.join(root,'shared.md'),'A'.repeat(96000));
+ const pool=createWorkerScheduler();let active=0,peak=0;const scheduler={admit:n=>pool.admit(n),schedule:(work,s)=>pool.schedule(async()=>{active++;peak=Math.max(peak,active);try{return await work();}finally{active--;}},s)};
+ let release;const other=scheduler.schedule(()=>new Promise(r=>{release=r;}));await new Promise(r=>setImmediate(r));
+ let first=true;
+ const result=await analyzeWorkspaceDocuments({root,args:{paths:['shared.md'],question:'전체 내용 확인'},scheduler,signal:signal(),modelId:'fixture',complete:researchModel({onRead:async()=>{if(first){first=false;assert.equal(active,2);release();await other;}}}),taskId:'task',runId:'run'});
+ assert.equal(result.status,'complete');assert.equal(peak,2);assert.equal(active,0);
+});
+
+test('exhausted document admissions do not spend model calls synthesizing unstarted workers',async t=>{
+ const {root}=await fixture(t);await writeFile(path.join(root,'shared.md'),'A'.repeat(96000));const scheduler=createWorkerScheduler();scheduler.admit(6);let modelCalls=0;const complete=researchModel();
+ const result=await analyzeWorkspaceDocuments({root,args:{paths:['shared.md'],question:'전체 확인'},scheduler,signal:signal(),modelId:'fixture',complete:(...args)=>{modelCalls++;return complete(...args);},taskId:'task',runId:'run'});
+ assert.equal(result.status,'blocked');assert.equal(modelCalls,1,'only the planner runs; unstarted assignments have no findings to synthesize');assert.equal(result.coverage.budgetLimitedTasks,4);assert.equal(result.coverage.unreadRanges.length,4);
+});
+
+test('a fresh document recovery context consumes the same remaining admissions',async t=>{
+ const {root}=await fixture(t);const scheduler=createWorkerScheduler();scheduler.admit(5);let researchCalls=0;
+ const result=await analyzeWorkspaceDocuments({root,args:{paths:['app.txt'],question:'전체 확인'},scheduler,signal:signal(),modelId:'fixture',complete:async(messages)=>{
+ const prompt=messages.filter(m=>m.role==='system').map(m=>m.content).join('\n');if(prompt.includes('Plan OpenWiki research'))return {content:JSON.stringify({mode:'comprehensive',questions:['전체']})};if(!prompt.includes('Synthesize'))researchCalls++;return {content:JSON.stringify({status:'blocked',answer:'원문을 읽지 못했습니다.',findings:[],uncertainties:['미확인']})};},taskId:'task',runId:'run'});
+ assert.equal(researchCalls,1);assert.ok(result.coverage.budgetLimitedTasks);assert.ok(result.coverage.unreadRanges.length);assert.notEqual(result.status,'complete');
+});
+
+test('queued document workers cancel without model reads and release only their own queue entries',async t=>{
+ const {root}=await fixture(t);const scheduler=createWorkerScheduler(),controller=new AbortController(),held=[];const occupied=[scheduler.schedule(()=>new Promise(r=>held.push(r))),scheduler.schedule(()=>new Promise(r=>held.push(r)))];await new Promise(r=>setImmediate(r));let planned=false,reads=0;
+ const pending=analyzeWorkspaceDocuments({root,args:{paths:['app.txt'],question:'전체 확인'},scheduler,signal:controller.signal,modelId:'fixture',complete:async(messages)=>{if(String(messages[0].content).includes('Plan OpenWiki research')){planned=true;return {content:JSON.stringify({mode:'comprehensive',questions:['전체']})};}reads++;return {content:JSON.stringify(report([]))};},taskId:'task',runId:'run'});
+ const cancelled=assert.rejects(pending,/abort|cancelled/i);for(let i=0;i<100&&!planned;i++)await new Promise(r=>setTimeout(r,5));assert.ok(planned);await new Promise(r=>setTimeout(r,10));controller.abort();await cancelled;assert.equal(reads,0);held.forEach(r=>r());await Promise.all(occupied);assert.equal(await scheduler.schedule(()=>42),42);
 });

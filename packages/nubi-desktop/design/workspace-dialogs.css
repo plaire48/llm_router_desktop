@@ -228,8 +228,8 @@
 :root:has(.desktop-shell) .cx-panel-backdrop > .nubi-panel--wide { width:min(var(--nubi-dialog-width-wide),100%); }
 :root:has(.desktop-shell) .cx-panel-backdrop > :is(.deck-confirmation,.nubi-ghes-modal,.nubi-wiki-progress-dialog,.nubi-mail-login-dialog) { width:min(var(--nubi-dialog-width-compact),100%); }
 :root:has(.desktop-shell) .cx-panel-backdrop > .model-dialog { width:min(var(--nubi-dialog-width-choice),100%); }
-:root:has(.desktop-shell) :is(.nubi-delete-conversation,.nubi-delete-skill) { --nubi-dialog-action:var(--deck-red); }
-:root:has(.desktop-shell) :is(.nubi-delete-conversation,.nubi-delete-skill) .deck-confirmation-content > .deck-symbol { color:var(--deck-red); background:var(--deck-red-soft); }
+:root:has(.desktop-shell) :is(.nubi-delete-conversation,.nubi-delete-skill,.nubi-danger-confirmation) { --nubi-dialog-action:var(--deck-red); }
+:root:has(.desktop-shell) :is(.nubi-delete-conversation,.nubi-delete-skill,.nubi-danger-confirmation) .deck-confirmation-content > .deck-symbol { color:var(--deck-red); background:var(--deck-red-soft); }
 
 /* Apply the same semantic hierarchy inside portals without recoloring brands. */
 :root:has(.desktop-shell) .deck-dialog .cx-kit-notice.is-warning { color:var(--nubi-text-warning); background:var(--nubi-surface-warning); }
@@ -519,3 +519,25 @@
 
 :root:has(.desktop-shell) .deck-dialog .nubi-workspace-update:not(.is-compact)>button{position:relative;padding-inline-start:0;margin-inline-start:0}
 :root:has(.desktop-shell) .deck-dialog .nubi-workspace-update:not(.is-compact)>button>svg{position:absolute;inset-inline-start:calc(-1 * var(--cx-space-6))}
+
+/* Shared text identity for every Desktop modal, including body portals.
+   These selectors cover application labels and plain feedback only; embedded
+   document/mail content, provider marks and semantic notices keep their colors. */
+:root:has(.desktop-shell) .deck-dialog label[for] {
+  font-weight:var(--nubi-weight-label);
+  color:var(--nubi-text-primary);
+}
+:root:has(.desktop-shell) .deck-dialog p[role="alert"]:not([class]) {
+  color:var(--nubi-text-danger);
+}
+:root:has(.desktop-shell) .deck-dialog > .cx-panel-body > p > a:not([class]),
+:root:has(.desktop-shell) .deck-dialog > .cx-panel-body > form > p > a:not([class]) {
+  color:var(--nubi-text-action);
+  text-underline-offset:var(--cx-space-1);
+}
+@media(forced-colors:active) {
+  :root:has(.desktop-shell) .deck-dialog label[for],
+  :root:has(.desktop-shell) .deck-dialog p[role="alert"]:not([class]) { color:CanvasText; }
+  :root:has(.desktop-shell) .deck-dialog > .cx-panel-body > p > a:not([class]),
+  :root:has(.desktop-shell) .deck-dialog > .cx-panel-body > form > p > a:not([class]) { color:LinkText; }
+}

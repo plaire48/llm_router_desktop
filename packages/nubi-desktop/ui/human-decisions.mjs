@@ -19,7 +19,7 @@ export function humanDecisions(project,{computerUse=false}={}){
    else if(repair)decision={kind:'command',localId:repair.id,summary:repair.reason||'수정한 명령을 검토해 주세요.'};
    else if(computer)decision={kind:'computer',localId:computer.id+':'+computer.state};
   }
-  if(decision)output.push({...decision,projectId:project.projectId,taskTitle:task.request,taskId:task.id,id:`${project.projectId}:${decision.kind}:${decision.localId}`});
+  if(decision)output.push({...decision,...(task.routineName?{routineName:task.routineName}:{}),projectId:project.projectId,taskTitle:task.request,taskId:task.id,id:`${project.projectId}:${decision.kind}:${decision.localId}`});
  }
  return output;
 }

@@ -27,6 +27,7 @@ await writeFile(path.join(root,'value.ts'),'export const amount: number = "wrong
 const service=new ProjectService({storageRoot:storage});
 await service.open(root,{initializeWiki:false});
 const task=await service.createTask({request:'개발 서버를 실행하고 실제 응답을 확인합니다.'});
+service.store.set('task:'+task.id,{...task,state:'review'});
 const source=await service.read({taskId:task.id,path:'serve.cjs'});
 const quote=value=>"'"+value.replaceAll("'","'\\''")+"'";
 const action=await prepareSetupAction(service,task.id,{title:'미리보기 서버 실행',kind:'start',interactive:true,script:process.platform==='win32'?'& '+quote(process.execPath)+' '+quote('serve.cjs'):'npx --offline --no -- nubi-development-fixture',reason:'실제 Electron 실행 경로 확인',effects:'격리된 로컬 서버 실행',verification:'TTY와 HTTP 응답 확인',references:[{path:'serve.cjs',hash:source.hash}]},{files:new Map([['serve.cjs',{hash:source.hash}]])});
@@ -59,6 +60,66 @@ try{
   await assert.rejects(()=>fetch(response.url,{signal:AbortSignal.timeout(2000)}),'the actual preview endpoint must stop responding after process cancellation');
   checks.push('the owned server was cancelled and its actual HTTP endpoint stopped responding');
   assert.equal(await readFile(path.join(root,'value.ts'),'utf8'),'export const amount: number = "wrong";\n');
+  // Configure through the actual settings surface, then exercise the built host
+  // confirmation IPC. No provider is connected and no command runs before approval.
+  const opener=page.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await opener.count())await opener.click();
+  await page.getByRole('button',{name:'대화 검색',exact:true}).click();
+  await page.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').first().click();
+  await page.getByRole('button',{name:'설정',exact:true}).click();
+  const setting=page.getByLabel('편집 뒤 자동 검사',{exact:true});await setting.fill('node --version');
+  await setting.locator('xpath=ancestor::form').getByRole('button',{name:'저장',exact:true}).click();
+  await page.waitForFunction(async()=>{const state=await window.nubi.request('state',{});return state.afterEditCheck?.script==='node --version';});
+  await page.screenshot({path:path.join(evidence,'after-edit-settings.png'),animations:'disabled'});
+  await page.keyboard.press('Escape');
+  await page.getByRole('button',{name:'오른쪽 사이드바 닫기',exact:true}).click();
+  const original=await request('read',{taskId:task.id,path:'value.ts'});
+  const edit=await request('propose',{taskId:task.id,path:'value.ts',expectedHash:original.hash,content:'export const amount: number = 3;\n',reason:'타입 오류 수정'});
+  await writeFile(path.join(root,'value.ts'),edit.content);
+  await request('confirmProposal',{proposalId:edit.id});
+  await request('confirmProposal',{proposalId:edit.id});
+  const queued=(await request('state',{taskId:task.id})).setupActions.filter(a=>a.kind==='verify');
+  assert.equal(queued.length,1);assert.equal(queued[0].state,'proposed');assert.equal(queued[0].script,'node --version');
+  const card=page.getByRole('region',{name:'실행 준비 승인'}).filter({hasText:'편집 뒤 검사'});await card.waitFor({timeout:10000});
+  assert((await card.innerText()).includes('편집 뒤 검사'));
+  for(const width of [1280,440]){
+    const collapse=page.getByRole('button',{name:'사이드바 접기',exact:true});if(width===440&&await collapse.count())await collapse.click();
+    await page.setViewportSize({width,height:900});
+    await card.scrollIntoViewIfNeeded();
+    assert(await card.evaluate(node=>{const r=node.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth+1&&node.scrollWidth<=node.clientWidth+1;}));
+    await page.screenshot({path:path.join(evidence,`after-edit-${width}.png`),animations:'disabled'});
+  }
+  assert.equal((await request('state',{taskId:task.id})).processes.length,1);
+  const verification=await request('decideSetupAction',{id:queued[0].id,fingerprint:queued[0].fingerprint,decision:'approve'});
+  for(let i=0;i<100;i++){record=await request('poll',{id:verification.resultProcessId});if(record.state==='completed')break;await new Promise(resolve=>setTimeout(resolve,50));}
+  assert.equal(record.exitCode,0);assert.match(record.output,/v\d+\./);
+  await request('confirmProposal',{proposalId:edit.id});
+  assert.equal((await request('state',{taskId:task.id})).processes.length,2);
+  checks.push('saved after-edit setting queued one hash-bound approval; 1280/440 card fit; explicit approval ran once');
+  // F13: the real host must not auto-certify a check using the manifest it just applied.
+  const project=await request('overview',{});
+  await request('setAfterEditCheck',{projectId:project.projectId,profile:queued[0].profile,script:'npm test'});
+  const manifest=await request('read',{taskId:task.id,path:'package.json'});
+  const changed=await request('propose',{taskId:task.id,path:'package.json',expectedHash:manifest.hash,content:JSON.stringify({name:'nubi-fixture',scripts:{test:'node --version'}}),reason:'검사 정의 변경'});
+  await writeFile(path.join(root,'package.json'),changed.content);await request('confirmProposal',{proposalId:changed.id});
+  await request('setApprovalMode',{mode:'commands'});
+  const pending=(await request('state',{taskId:task.id})).setupActions.find(row=>row.script==='npm test');assert.equal(pending?.manifestChanged,true);assert.equal(pending.state,'proposed');
+  assert.equal((await request('autoApprovals',{taskId:task.id})).command,null);
+  const applied=await request('appliedFileSummary',{taskId:task.id});
+  assert.equal(applied.files.length,2);assert(applied.files.every(row=>row.state==='verified'&&row.stats.state==='counted'));assert.deepEqual(applied.totals,{added:2,removed:2});
+  const guarded=page.getByRole('region',{name:'실행 준비 승인'}).filter({hasText:'npm test'});await guarded.getByText('방금 반영한 변경이 package.json 또는 검사 실행 파일을 바꿔서 확인이 필요해요.',{exact:true}).waitFor();
+  await page.setViewportSize({width:1280,height:900});
+  const closeTerminal=page.getByRole('button',{name:'오른쪽 사이드바 닫기',exact:true});if(await closeTerminal.count())await closeTerminal.click();
+  for(const width of [1280,440]){
+    await page.setViewportSize({width,height:900});await guarded.scrollIntoViewIfNeeded();
+    assert(await guarded.evaluate(node=>{const r=node.getBoundingClientRect();return node.contains(document.elementFromPoint((r.left+r.right)/2,(r.top+r.bottom)/2));}),'approval card must not be covered by the terminal');
+    assert(await guarded.evaluate(node=>{const r=node.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth+1&&node.scrollWidth<=node.clientWidth+1;}));
+    await page.screenshot({path:path.join(evidence,`manifest-approval-${width}.png`),animations:'disabled'});
+  }
+  assert.equal((await request('state',{taskId:task.id})).processes.length,2);
+  checks.push('F13 changed manifest remains proposed in commands mode, with an explanation at 1280/440 and no new process');
+  checks.push('applied changes verified against their original snapshots despite the macOS storage alias: 2 added and 2 removed lines');
+  assert.equal(await guarded.getByRole('button',{name:'승인',exact:true}).count(),1);
+  assert.equal(await guarded.getByRole('button',{name:'실행 승인',exact:true}).count(),0);
   await page.screenshot({path:path.join(evidence,'workspace.png'),animations:'disabled'});
   assert.deepEqual(errors,[]);
   await writeFile(path.join(evidence,'result.json'),JSON.stringify({kind:'electron-runtime-development-smoke',platform:process.platform,checks,errors,model:'not_run',windowsVerified:process.platform==='win32'},null,2));

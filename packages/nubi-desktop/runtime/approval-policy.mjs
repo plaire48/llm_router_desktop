@@ -9,6 +9,7 @@
 import {readFile} from 'node:fs/promises';
 import path from 'node:path';
 import {fail} from './files.mjs';
+import {irreversibleCommand,irreversibleProposal} from './irreversible-actions.mjs';
 
 export const APPROVAL_MODES=Object.freeze(['ask','edits','commands']);
 const KEY='setting:approvals',ALLOWED_LIMIT=100;
@@ -79,20 +80,31 @@ async function manifestScripts(root){
 // Nothing while the agent runs, a question waits or a command is running.
 export async function autoApprovals(service,{taskId}){
   const task=service.task(taskId),policy=approvalPolicy(service.store),none={mode:policy.mode,proposals:[],command:null};
-  if(service.agent?.running||task.question||task.state!=='review'||service.setupBusy||service.processes?.active.size||service.processes?.pending.size)return none;
+  if(service.agent?.running||task.question||task.state!=='review'||service.setupBusy||service.afterEditChecks?.has(taskId)||service.processes?.active.size||service.processes?.pending.size)return none;
   const state=service.state(),open=state.proposals.filter(p=>p.taskId===taskId&&p.state==='proposed').sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+  // Store reasons before returning any automatic action; the next state snapshot renders them.
+  const annotate=(prefix,row,classification)=>{
+    if(classification.matched&&service.store.get(prefix+row.id)?.irreversible?.reason!==classification.reason){row.irreversible={reason:classification.reason};service.store.set(prefix+row.id,{...service.store.get(prefix+row.id),irreversible:row.irreversible});}
+  };
+  for(const row of open)annotate('proposal:',row,irreversibleProposal(row));
+  for(const [prefix,rows] of [['setup-action:',state.setupActions||[]],['command-repair:',state.commandRepairs||[]]])for(const row of rows)if(row.taskId===taskId&&row.state==='proposed'&&row.kind!=='input')annotate(prefix,row,irreversibleCommand(row.script));
   if(policy.mode!=='ask'&&open.length){
     // The newest proposal of each file, as the editor applies them.
-    const seen=new Set(),proposals=[];for(const p of open)if(!seen.has(p.path)){seen.add(p.path);if(!p.sourceChanged)proposals.push(p.id);}
+    const seen=new Set(),proposals=[];for(const p of open)if(!seen.has(p.path)){seen.add(p.path);if(!p.sourceChanged&&!irreversibleProposal(p).matched)proposals.push(p.id);}
     return {...none,proposals};
   }
   const scripts=policy.mode==='commands'?await manifestScripts(await service.target(taskId)):{};
+  if(service.afterEditChecks?.has(taskId))return none;
   const waiting=action=>(action.afterProposals||[]).some(id=>service.store.get('proposal:'+id)?.state==='proposed');
   const commands=[...(state.setupActions||[]).filter(v=>v.taskId===taskId&&v.state==='proposed'&&v.kind!=='input'&&v.privilege!=='administrator'&&!waiting(v)).map(value=>({kind:'setup',value})),
     ...(state.commandRepairs||[]).filter(v=>v.taskId===taskId&&v.state==='proposed').map(value=>({kind:'repair',value}))]
     .sort((a,b)=>String(a.value.createdAt).localeCompare(String(b.value.createdAt)));
-  for(const {kind,value} of commands){
-    const reason=commandAllowed(policy,value)?'allowed':policy.mode==='commands'&&checkCommand(value.script,scripts)?'check':null;
+  for(const {kind,value:observed} of commands){
+    // Manifest reading yields. A completed edit batch may have revoked automatic
+    // checking on this card while that read was in flight.
+    const value=service.store.get((kind==='setup'?'setup-action:':'command-repair:')+observed.id);
+    if(!value||value.state!=='proposed'||waiting(value))continue;
+    const reason=commandAllowed(policy,value)?'allowed':policy.mode==='commands'&&!value.manifestChanged&&!irreversibleCommand(value.script).matched&&checkCommand(value.script,scripts)?'check':null;
     if(reason)return {...none,command:{kind,id:value.id,fingerprint:value.fingerprint,script:value.script,reason}};
   }
   return none;

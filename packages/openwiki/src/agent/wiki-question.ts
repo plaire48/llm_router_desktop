@@ -80,9 +80,17 @@ export interface QuestionResult extends Report {
     failedTasks: number;
     repairTasks: number;
     synthesisFailures: number;
+    budgetLimitedTasks?: number;
     unreadRanges: Array<{ documentId: string; start: number; end: number }>;
   };
 }
+// Optional host-owned admission and physical slots; ordinary OpenWiki callers
+// keep the existing four-worker policy when no scheduler is supplied.
+export interface QuestionScheduler {
+  admit(count?: number): boolean;
+  schedule<T>(work: () => Promise<T>, signal?: AbortSignal): Promise<T>;
+}
+
 export interface QuestionProgress {
   phase: string;
   completed: number;
@@ -553,6 +561,7 @@ export async function runWikiQuestion(
     modelId: string;
     search?: QuestionSearch;
     onProgress?: (progress: QuestionProgress) => void;
+    scheduler?: QuestionScheduler;
     checkpoint?: unknown;
     onCheckpoint?: (checkpoint: QuestionCheckpoint) => Promise<void>;
   },
@@ -863,7 +872,8 @@ export async function runWikiQuestion(
   // would reread the same rules and report each other's exceptions as missing.
   // Keep the original question and every planned aspect in that single scope.
   const focusedQuestions =
-    input.documents.reduce((n, doc) => n + doc.text.length, 0) <= QUESTION_LIMITS.window
+    input.documents.reduce((n, doc) => n + doc.text.length, 0) <=
+    QUESTION_LIMITS.window
       ? [[input.question, ...new Set(plan.questions)].join("\n")]
       : plan.questions;
   const assignments: Assignment[] =
@@ -891,12 +901,14 @@ export async function runWikiQuestion(
   }
   total = assignments.length;
   progress("researching");
+  const unstartedReports = new WeakSet<Report>();
   const reports: Report[] = [],
     unreadRanges: QuestionResult["coverage"]["unreadRanges"] = [];
   let cursor = 0,
     failedTasks = 0,
     repairTasks = 0,
-    synthesisFailures = 0;
+    synthesisFailures = 0,
+    budgetLimitedTasks = 0;
   // Preserve leaf findings outside compressed model contexts. Each reducer
   // can retrieve only its descendants, never another branch or Wiki run.
   type ArchivedNote = {
@@ -1036,32 +1048,75 @@ export async function runWikiQuestion(
       const taskId = cursor++,
         assignment = assignments[taskId],
         seen = new Set<string>();
-      const results = [await research(assignment, taskId, seen)];
-      let missing = gaps(assignment, seen);
-      while (missing.length) {
-        const before = missing.reduce((n, r) => n + r.end - r.start, 0);
-        const fresh = new Set<string>(),
-          recoveryId = assignments.length + repairTasks++;
-        total++;
-        const recovery = {
-          ...assignment,
-          range: missing[0],
-          question: `${input.question}\nComplete this unread range. Earlier ranges were already read; do not repeat them.`,
+      options.signal.throwIfAborted();
+      if (options.scheduler && !options.scheduler.admit()) {
+        budgetLimitedTasks++;
+        failedTasks++;
+        completed++;
+        unreadRanges.push(
+          ...(assignment.range
+            ? [assignment.range]
+            : input.documents
+                .filter((doc) => assignment.documentIds.includes(doc.id))
+                .map((doc) => ({
+                  documentId: doc.id,
+                  start: 0,
+                  end: doc.text.length,
+                }))),
+        );
+        const report: Report = {
+          status: "blocked",
+          answer: "작업자 한도로 이 범위를 조사하지 못했습니다.",
+          findings: [],
+          uncertainties: ["원문 미확인 범위가 남아 있습니다."],
         };
-        results.push(await research(recovery, recoveryId, fresh, "recovery"));
-        for (const id of fresh) seen.add(id);
-        missing = gaps(assignment, seen);
-        // Stop a stalled repair, not productive reading. Transport recovery is
-        // handled by the host. Remaining work stays explicit, never complete.
-        if (missing.reduce((n, r) => n + r.end - r.start, 0) >= before) break;
+        unstartedReports.add(report);
+        reports[taskId] = report;
+        retain(report);
+        progress(
+          "finished",
+          { taskId, role: "research", assignment },
+          { outcome: "blocked", summary: report.answer },
+        );
+        continue;
       }
-      if (missing.length) {
-        unreadRanges.push(...missing);
-        for (const report of results)
-          if (report.status === "complete") report.status = "partial";
-      }
-      reports[taskId] = await combineResearch(results);
-      progress("researching");
+      const runAssignment = async () => {
+        const results = [await research(assignment, taskId, seen)];
+        let missing = gaps(assignment, seen);
+        while (missing.length) {
+          // A fresh recovery context consumes an admission, but inherits the
+          // current physical slot rather than recursively queueing behind itself.
+          if (options.scheduler && !options.scheduler.admit()) {
+            budgetLimitedTasks++;
+            break;
+          }
+          const before = missing.reduce((n, r) => n + r.end - r.start, 0);
+          const fresh = new Set<string>(),
+            recoveryId = assignments.length + repairTasks++;
+          total++;
+          const recovery = {
+            ...assignment,
+            range: missing[0],
+            question: `${input.question}\nComplete this unread range. Earlier ranges were already read; do not repeat them.`,
+          };
+          results.push(await research(recovery, recoveryId, fresh, "recovery"));
+          for (const id of fresh) seen.add(id);
+          missing = gaps(assignment, seen);
+          // Stop a stalled repair, not productive reading. Transport recovery is
+          // handled by the host. Remaining work stays explicit, never complete.
+          if (missing.reduce((n, r) => n + r.end - r.start, 0) >= before) break;
+        }
+        if (missing.length) {
+          unreadRanges.push(...missing);
+          for (const report of results)
+            if (report.status === "complete") report.status = "partial";
+        }
+        reports[taskId] = await combineResearch(results);
+        progress("researching");
+      };
+      if (options.scheduler)
+        await options.scheduler.schedule(runAssignment, options.signal);
+      else await runAssignment();
     }
   }
   async function combineResearch(results: Report[]) {
@@ -1202,7 +1257,7 @@ export async function runWikiQuestion(
     }
   }
   // Hierarchical reduction keeps hundreds of child reports out of one model context.
-  let level = reports;
+  let level = reports.filter((report) => !unstartedReports.has(report));
   while (level.length > 4) {
     const next: Report[] = [];
     for (let at = 0; at < level.length; at += 4)
@@ -1213,9 +1268,13 @@ export async function runWikiQuestion(
     ? await reduce(level)
     : {
         status: "blocked" as const,
-        answer: "No readable Wiki documents are available.",
+        answer: budgetLimitedTasks
+          ? "작업자 한도로 문서 조사를 시작하지 못했습니다."
+          : "No readable Wiki documents are available.",
         findings: [],
-        uncertainties: ["No source documents."],
+        uncertainties: budgetLimitedTasks
+          ? ["선택한 문서의 원문을 확인하지 못했습니다."]
+          : ["No source documents."],
       };
   const selected = [
     ...new Set(report.findings.flatMap((f) => f.citations)),
@@ -1229,6 +1288,11 @@ export async function runWikiQuestion(
   ) {
     if (report.status === "complete") report.status = "partial";
   }
+  if (budgetLimitedTasks)
+    report.uncertainties = [
+      `작업자 한도로 ${budgetLimitedTasks}개 조사 범위를 완료하지 못했습니다. 원문 미확인 범위를 확인하세요.`,
+      ...report.uncertainties,
+    ].slice(0, 12);
   if (synthesisFailures)
     report.uncertainties = [
       `Synthesis failed ${synthesisFailures} time(s); retained findings need combined review.`,
@@ -1247,6 +1311,7 @@ export async function runWikiQuestion(
       failedTasks,
       repairTasks,
       synthesisFailures,
+      ...(budgetLimitedTasks ? { budgetLimitedTasks } : {}),
       unreadRanges,
     },
   };

@@ -4,7 +4,7 @@
 import {contextTokens} from '../../../extensions/aipro-chat/context-manager.js';
 
 // wiki_update: an OpenWiki update that the user approved, apart from any task.
-export const METRIC_PURPOSES = Object.freeze(['actor', 'planner', 'reviewer', 'summary', 'analysis', 'document', 'wiki_update']);
+export const METRIC_PURPOSES = Object.freeze(['actor', 'planner', 'reviewer', 'summary', 'analysis', 'research', 'document', 'wiki_update']);
 export const METRIC_TRIGGERS = Object.freeze(['history', 'threshold', 'overflow']);
 export const METRIC_KINDS = Object.freeze(['metric_model', 'metric_tool', 'metric_compaction']);
 const RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
@@ -64,12 +64,12 @@ export function readRunMetrics(store, {taskId, runId} = {}) {
   const rows = store.db.prepare("SELECT kind,value FROM events WHERE kind LIKE 'metric\\_%' ESCAPE '\\' ORDER BY sequence").all()
     .map(row => ({kind: row.kind, ...JSON.parse(row.value)}))
     .filter(row => (!taskId || row.taskId === taskId) && (!runId || row.runId === runId));
-  const summary = {modelCalls: 0, retries: 0, toolCalls: 0, compactions: 0, elapsedMs: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, estimatedTokens: 0, measuredCalls: 0, measuredEstimatedTokens: 0,
+  const summary = {subagentCalls: 0, modelCalls: 0, retries: 0, toolCalls: 0, compactions: 0, elapsedMs: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, estimatedTokens: 0, measuredCalls: 0, measuredEstimatedTokens: 0,
     peakRequestCharacters: 0, fixedCharacters: 0, requestCharacters: 0, byPurpose: {}, byTool: {}, modelErrors: {}, toolErrors: {}};
   for (const row of rows) {
     if (row.kind === 'metric_model') {
       const request = row.messageCharacters + row.toolCharacters;
-      summary.modelCalls++; if (row.attempt > 1) summary.retries++;
+      summary.modelCalls++; if (row.purpose === 'research') summary.subagentCalls++; if (row.attempt > 1) summary.retries++;
       summary.elapsedMs += row.elapsedMs; summary.estimatedTokens += row.estimatedTokens;
       summary.requestCharacters += request; summary.fixedCharacters += row.systemCharacters + row.toolCharacters;
       summary.peakRequestCharacters = Math.max(summary.peakRequestCharacters, request);
@@ -87,4 +87,24 @@ export function readRunMetrics(store, {taskId, runId} = {}) {
   summary.cacheShare = summary.promptTokens ? summary.cachedTokens / summary.promptTokens : null;
   summary.estimateRatio = summary.measuredEstimatedTokens ? summary.promptTokens / summary.measuredEstimatedTokens : null;
   return {events: rows, summary};
+}
+
+// Display only the retained measured facts. A missing token field is not zero.
+export function summarizeTaskMetrics(store,taskId){
+ const {events}=readRunMetrics(store,{taskId});
+ const rows=['planner','actor','reviewer','summary','analysis','research'].map(purpose=>({purpose,calls:0,promptTokens:null,completionTokens:null,cachedTokens:null,reports:{promptTokens:0,completionTokens:0,cachedTokens:0}}));
+ const result={taskId,rows,modelCalls:0,toolCalls:0,compactions:0,retries:0,elapsedMs:0,runCount:0,retentionDays:30},runs=new Set();
+ for(const event of events){
+  if(event.runId)runs.add(event.runId);
+  if(event.kind==='metric_tool'){result.toolCalls++;continue;}
+  if(event.kind==='metric_compaction'){result.compactions++;continue;}
+  if(event.kind!=='metric_model')continue;
+  const row=rows.find(row=>row.purpose===event.purpose)||rows.find(row=>row.purpose==='analysis');row.calls++;result.modelCalls++;
+  if(event.attempt>1)result.retries++;
+  if(Number.isFinite(event.elapsedMs)&&event.elapsedMs>=0)result.elapsedMs+=event.elapsedMs;
+  for(const [field,key] of [['promptTokens','prompt_tokens'],['completionTokens','completion_tokens'],['cachedTokens','cached_tokens']]){
+   const value=event.usage?.[key];if(Number.isSafeInteger(value)&&value>=0){row[field]=(row[field]??0)+value;row.reports[field]++;}
+  }
+ }
+ result.runCount=runs.size;return result;
 }

@@ -41,7 +41,7 @@ try{
  await p.locator('.nubi-session-select').filter({hasText:'명령 순서 확인'}).click();
  const commands=p.locator('.nubi-command-record');assert.equal(await commands.count(),2);
  assert.equal(await commands.first().getAttribute('open'),null);assert.equal(await commands.first().locator('.nubi-terminal').count(),0);
- await p.getByRole('button',{name:'실행 승인',exact:true}).waitFor();
+ await p.getByRole('button',{name:'승인',exact:true}).waitFor();
  await commands.first().locator('summary').click();await commands.first().locator('.nubi-terminal-output').waitFor();
  assert.equal(await commands.first().locator('.nubi-terminal-output').textContent(),'first');
  assert.match(await commands.first().locator('[data-terminal-part=command]').textContent(),/node --version/);

@@ -40,3 +40,15 @@ test('the agent persists a host-bound chapter while preserving previous conversa
  assert.equal(saved.chapters[0].id,'old');assert.equal(saved.chapters[1].messageIndex,1);assert.notEqual(saved.chapters[1].runId,'previous');
  assert.deepEqual(saved.messages[0],original[0]);assert(saved.trace.some(row=>row.tool==='read_source'&&row.status==='done'));
 });
+
+test('F12 chapter labels reject invisible-only titles and remove controls',()=>{
+ const task={messages:[{role:'user',content:'request'}]};
+ for(const title of ['\u200b\u200d\ufeff','\u0007\u001b\u009f',' \u202e \u2066 '])assert.throws(()=>addChapter(task,{title,runId:'r'}),/chapter_invalid/);
+ const chapter=addChapter(task,{title:'\u0007작업 \u200b  정리\u202e',summary:'  주요\n내용\u009f ',runId:'r'});
+ assert.equal(chapter.title,'작업 정리');assert.equal(chapter.summary,'주요 내용');
+});
+
+test('F12 a supplied invisible-only chapter summary is invalid but omitted summary stays optional',()=>{
+ const t=task();assert.throws(()=>addChapter(t,{title:'요약',summary:'\u200b\u0007',runId:'r'}),/chapter_invalid/);
+ assert.equal(addChapter(t,{title:'요약',runId:'r'}).summary,'');
+});

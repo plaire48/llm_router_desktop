@@ -25,7 +25,9 @@ export async function appliedFileSummary(service,{taskId,path:requestedPath,expe
         index=prior;first=rows[prior];
       }
       const snapshot=path.resolve(first.before),parent=path.resolve(service.store.directory,'proposals');
-      if(!snapshot.startsWith(parent+path.sep)||await realpath(snapshot)!==snapshot)fail('path_scope');
+      // macOS may expose the store as /var while realpath returns /private/var.
+      // Canonicalize the trusted parent only; child/leaf symlinks still fail.
+      if(!snapshot.startsWith(parent+path.sep)||await realpath(snapshot)!==path.join(await realpath(parent),path.relative(parent,snapshot)))fail('path_scope');
       const info=await lstat(snapshot);if(!info.isFile()||info.size>1024*1024)fail('file_too_large');
       const before=await readFile(snapshot,'utf8');
       if(first.expectedHash==='absent'?before!=='':hash(before)!==first.expectedHash)fail('source_stale');

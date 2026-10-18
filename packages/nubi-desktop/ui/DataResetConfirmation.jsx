@@ -17,7 +17,7 @@ export function DataResetConfirmation({kind,api,onDone,onClose}){
   const result=await api(mail?'mail':'wikiInitialization',{action:'reset',confirmed:true});const resetScope=mail?'personal-mail':result.resetProjectId;if(resetScope){for(const key of wikiDrafts.keys())if(key.startsWith(resetScope+':'))wikiDrafts.delete(key);wikiLastDocuments.delete(resetScope);}onDone(result);
  }catch(cause){setError(cause.message==='mail_reset_wait'?'작업이 아직 종료 중이에요. 잠시 뒤 초기화를 다시 눌러 주세요.':/wiki_busy|agent_busy|mail_busy/.test(cause.message)?'저장이나 진행 중인 작업을 마친 뒤 다시 초기화해 주세요.':mail?'초기화를 마치지 못했어요. 수집을 멈췄으며 다시 초기화할 수 있어요.':'위키를 초기화하지 못했어요. 다시 시도해 주세요.');}finally{setBusy(false);lock.current=false;}}
  const label=progress?.stage==='stopping'?'메일 작업 중지 중':'저장한 데이터 정리 중';
- return <DeckConfirmation title={mail?'메일 데이터를 초기화할까요?':'위키를 다시 만들까요?'} confirmLabel={mail?'초기화':'다시 만들기'} confirmIcon="trash" showActionLabels busy={busy} onCancel={()=>{if(!busy)onClose();}} onConfirm={()=>void reset()} message={<><strong>{mail?'저장한 메일 데이터를 삭제해요.':'현재 프로젝트의 위키를 삭제해요.'}</strong><br/>직접 수정한 위키도 삭제됩니다.</>}>
+ return <DeckConfirmation className="nubi-danger-confirmation" title={mail?'메일 데이터를 초기화할까요?':'위키를 다시 만들까요?'} confirmLabel={mail?'초기화':'다시 만들기'} confirmIcon="trash" showActionLabels busy={busy} onCancel={()=>{if(!busy)onClose();}} onConfirm={()=>void reset()} message={<><strong>{mail?'저장한 메일 데이터를 삭제해요.':'현재 프로젝트의 위키를 삭제해요.'}</strong><br/>직접 수정한 위키도 삭제됩니다.</>}>
   <dl className="nubi-reset-scope">
    <div><dt><Icon name="trash" size={16}/>삭제</dt><dd>{mail?'이 PC의 메일 원문, 첨부, 메일 위키와 수집 기록':'openwiki 폴더와 보관한 위키 작업'}</dd></div>
    <div><dt><Icon name="check" size={16}/>유지</dt><dd>{mail?'포털 원본과 가져온 원본 폴더는 유지돼요.':'소스 코드, Git 이력과 대화'}</dd></div>

@@ -49,7 +49,7 @@ export function requireChosenShell(profiles,chosen,profile,elevated=false){
   if(elevated||!chosen||profile===chosen||!profiles.some(p=>p.id===chosen))return;
   throw Object.assign(Error('shell_not_selected'),{details:{selectedShell:chosen,instruction:'The user chose this shell in settings. Rewrite the command in its syntax and omit profile.'},actionIssued:false});
 }
-export async function prepareSetupAction(service,taskId,args,observations) {
+export async function prepareSetupAction(service,taskId,args,observations,hostReferences=[]) {
   args=normalizeSetupArgs(args);
   if(!validate(args))throw Object.assign(Error('setup_invalid'),{details:{issues:toolArgumentIssues(SETUP_ACTION_SCHEMA,args)},actionIssued:false});
   if(service.task(taskId).question)fail('question_pending');
@@ -69,7 +69,7 @@ export async function prepareSetupAction(service,taskId,args,observations) {
   }
   const workspace=await service.target(taskId);
   if(!profiles.some(p=>p.id===args.profile))fail('shell_unavailable');
-  const references=new Map(args.references.map(ref=>[ref.path,ref]));
+  const references=new Map([...args.references,...hostReferences].map(ref=>[ref.path,ref]));
   for(const ref of args.references){
     const inspected=observations?.environment?.get(ref.path);
     if(inspected?.hash===ref.hash)for(const dependency of inspected.dependencies||[])references.set(dependency.path,dependency);

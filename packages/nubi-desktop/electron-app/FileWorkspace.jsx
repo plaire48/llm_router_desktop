@@ -22,7 +22,7 @@ export function FileWorkspace({api,project,buffer,revealRequest,cwd,onDirectory,
  const file=buffer;
  const [sourceKeys,setSourceKeys]=useState(()=>new Set());
  const canRender=!!file?.model&&/\.(md|html?)$/i.test(file.path),source=sourceKeys.has(file?.key)||!!file?.sourceSelection||!!file?.editSource;
- const fileRoot=project.root,external=file?file.readOnly:/^(?:[A-Za-z]:[\\/]|[\\/]|~[\\/])/.test(cwd||''),parts=external?[(file?.absolute||cwd).split(/[\\/]/).filter(Boolean).at(-1)].filter(Boolean):(file?.path||cwd||'').split('/').filter(Boolean),projectName=fileRoot.split(/[\\/]/).filter(Boolean).at(-1);
+ const fileRoot=project.root,external=file?file.readOnly:/^(?:[A-Za-z]:[\\/]|[\\/]|~[\\/])/.test(cwd||''),parts=external?[(file?.absolute||file?.path||cwd).split(/[\\/]/).filter(Boolean).at(-1)].filter(Boolean):(file?.path||cwd||'').split('/').filter(Boolean),projectName=fileRoot.split(/[\\/]/).filter(Boolean).at(-1);
  function navigate(path){onDirectory(path);setTreeOpen(true);}
  async function openInTab(path){const request=++tabOpen.current,item=await onOpen(path);if(item&&request===tabOpen.current&&element.current&&!element.current.hidden)setTreeOpen(false);}
  return <section ref={element} className="desktop-file-workspace" hidden={!visible} data-compact={compact} data-editor={pinned&&!!file||loading} data-tree-open={treeOpen} aria-label="프로젝트 파일 작업">

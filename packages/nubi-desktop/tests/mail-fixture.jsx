@@ -7,6 +7,12 @@ import {WorkspaceToast} from '../ui/WorkspaceToast.jsx';
 
 import '../electron-app/workbench.css';
 import '../design/workspace-identity.css';
+import '../electron-app/shell.css';
+import '../electron-app/ios-tokens.css';
+import '../design/workspace-typography.css';
+import '../design/workspace-density.css';
+import '../design/workspace-dialogs.css';
+import '../design/workspace-icons.css';
 // The '메일 설정' dialog of the Workbench: MailLibrary inside a DetailPanel, with the toast host that shows its action errors.
 // Two ways in (2026-10-14): the portal login and a folder of saved mail files. No password field exists any more.
 window.mailCalls=[];window.mailFail=false;window.mailSlow=false;
@@ -29,5 +35,5 @@ async function api(method,args={}){
 // The library's 포털 로그인 button raises nubi-mail-login for the Workbench's login flow (2026-10-15); here the fixture plays
 // that flow: it calls the host login and, like the real host, leaves a failure in the mail status for the library to show.
 window.addEventListener('nubi-mail-login',()=>{void api('mail',{action:'portalLogin'}).catch(()=>{});});
-function Fixture(){const [open,setOpen]=useState(true);return <main className="nubi-workbench"><WorkspaceToast/><CxButton onClick={()=>setOpen(true)}>메일 열기</CxButton>{open&&<DetailPanel className="deck-dialog nubi-panel" title="메일 설정" variant="modal" onClose={()=>setOpen(false)}><MailLibrary api={api} provider={{connected:true,provider:'aipro',model:'fixture'}}/></DetailPanel>}</main>;}
+function Fixture(){const [open,setOpen]=useState(true);return <div className="desktop-shell"><main className="nubi-workbench"><WorkspaceToast/><CxButton onClick={()=>setOpen(true)}>메일 열기</CxButton>{open&&<DetailPanel className="deck-dialog nubi-panel" title="메일 설정" variant="modal" onClose={()=>setOpen(false)}><MailLibrary api={api} provider={{connected:true,provider:'aipro',model:'fixture'}}/></DetailPanel>}</main></div>;}
 createRoot(document.getElementById('root')).render(<Fixture/>);

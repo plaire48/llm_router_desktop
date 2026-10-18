@@ -30,7 +30,7 @@ try{
    assert.equal(await p.locator('[aria-modal="true"]').count(),0);
    assert.equal(await p.locator('.nubi-decision-toast').count(),0);
    assert.equal(await p.evaluate(()=>window.decisionCalls.length),0,'rendering never approves');
-   const send=form.getByRole('button',{name:kind==='question'?'답변 보내기':'실행 승인',exact:true});
+   const send=form.getByRole('button',{name:kind==='question'?'답변 보내기':'승인',exact:true});
    await send.scrollIntoViewIfNeeded();
    const geometry=await form.evaluate(node=>[node,...node.querySelectorAll('*')].filter(e=>e.scrollWidth>e.clientWidth+1).slice(0,12).map(e=>({class:e.className,width:e.clientWidth,scroll:e.scrollWidth,css:getComputedStyle(e).margin,left:e.getBoundingClientRect().left})));assert(await form.evaluate(node=>{const rect=node.getBoundingClientRect();return rect.left>=0&&rect.right<=innerWidth&&node.scrollWidth<=node.clientWidth+1;}),JSON.stringify(geometry));
    assert(await send.evaluate(node=>{const rect=node.getBoundingClientRect();return rect.left>=0&&rect.right<=innerWidth;}));

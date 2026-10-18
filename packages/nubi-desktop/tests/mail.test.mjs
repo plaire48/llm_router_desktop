@@ -117,7 +117,7 @@ test('an automatic inference retry pins the mail model and reports a model failu
  const host={storageRoot:path.join(f.root,'state'),recoveryOptions:{model:{minTimeout:1,maxTimeout:1}},providers:{catalogs:()=>CATALOGS,status:()=>active,complete:async(...args)=>{models.push(args.find(arg=>arg&&typeof arg==='object'&&'backgroundModel' in arg)?.backgroundModel);active={connected:true,provider:'chatgpt',model:'different'};throw Error('network_error');}}};
  const mail=new PersonalMail(host,{personalRoot:path.join(f.root,'personal'),pull:input=>pullPop3({...input,endpoint:f.endpoint})});t.after(()=>mail.dispose());await mail.call({action:'connect',requestId:'base',...credentials,destination});f.mailbox.push({uidl:'one',raw:simple('one')});await mail.cycle();await settled(mail);
  // The host's active model changed after the first call; the bounded retries still run with the mail's own model.
- assert.deepEqual(models,[destination,destination,destination]);assert.equal(mail.rows()[0].state,'attention');assert.equal(mail.rows()[0].error,'mail_summary_failed');assert.equal(mail.status().counts.saved,0);
+ assert.deepEqual(models,[destination,destination,destination,destination]);assert.equal(mail.rows()[0].state,'attention');assert.equal(mail.rows()[0].error,'mail_summary_failed');assert.equal(mail.status().counts.saved,0);
 });
 
 test('a model failure is retried on the next polls, three times in all, and a manual retry starts the count again',async t=>{

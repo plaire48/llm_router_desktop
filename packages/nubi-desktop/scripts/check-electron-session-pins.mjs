@@ -35,6 +35,7 @@ async function pin(title,enabled=true){
  const trigger=row(title).locator('summary');await trigger.scrollIntoViewIfNeeded();await trigger.focus();
  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
  await trigger.click();await page.getByRole('button',{name:title+(enabled?' 고정':' 고정 해제'),exact:true}).click();
+ await page.waitForFunction(({title,enabled})=>[...document.querySelectorAll('.nubi-session-row')].find(row=>row.querySelector('.nubi-session-title')?.textContent===title)?.dataset.pinned===String(enabled),{title,enabled});
  assert(await row(title).locator('summary').evaluate(node=>node===document.activeElement),'the moved conversation keeps keyboard focus on its menu');
 }
 async function order(expected){
@@ -60,7 +61,7 @@ try{
  await history().getByRole('button',{name:'접기',exact:true}).click();await order([titles[1],titles[0],titles[2]]);
  assert.equal(await history().locator('.nubi-session-row').count(),8,'all three pins remain above the five recent unpinned conversations');
  await page.reload();await page.locator('.desktop-shell[data-startup-ready=true]').waitFor({timeout:60000});await history().getByRole('heading',{name:'고정',exact:true}).waitFor();await order([titles[1],titles[0],titles[2]]);
- const saved=await page.evaluate(projectId=>JSON.parse(localStorage.getItem(`nubi-pinned-tasks:${projectId}`)),initial.projectId);assert.deepEqual(saved,[tasks[1].id,tasks[0].id,tasks[2].id]);
+ const saved=await page.evaluate(projectId=>localStorage.getItem(`nubi-pinned-tasks:${projectId}`),initial.projectId);assert.equal(saved,null,'confirmed pin migration removes the renderer copy');const host=await page.evaluate(()=>window.nubi.request('state',{}));assert.deepEqual(host.conversationNavigation.pinnedIds,[tasks[1].id,tasks[0].id,tasks[2].id]);
  await page.getByRole('button',{name:'project-b 대화 펼치기',exact:true}).click();await page.getByRole('button',{name:'다른 프로젝트 대화',exact:true}).waitFor();assert.equal(await history().getByRole('heading',{name:'고정',exact:true}).count(),0);
  await page.getByRole('button',{name:'project-a 대화 펼치기',exact:true}).click();await history().getByRole('heading',{name:'고정',exact:true}).waitFor();await order([titles[1],titles[0],titles[2]]);
  await app.close();app=null;await launch();await history().getByRole('heading',{name:'고정',exact:true}).waitFor();await order([titles[1],titles[0],titles[2]]);
@@ -75,7 +76,7 @@ try{
   await page.keyboard.press('Escape');assert(await row(titles[1]).locator('summary').evaluate(node=>node===document.activeElement));
   await page.screenshot({path:path.join(output,`sidebar-${width}.png`),animations:'disabled'});
  }
- assert.deepEqual(errors,[]);await writeFile(path.join(output,'checks.json'),JSON.stringify({passed:true,scope:'Built macOS Electron with isolated project/task fixtures, no model or external account.',checks:['shaded more button','pinned section before dates','most recently pinned first','unpin and re-pin','all pins stay visible when recent history collapses','reload and restart persistence','project isolation','menu keyboard and viewport containment at 1280/440 with enlarged text'],errors},null,2));
- console.log('Built Electron conversation pins and shaded action button passed.');
+ assert.deepEqual(errors,[]);await writeFile(path.join(output,'checks.json'),JSON.stringify({passed:true,scope:'Built macOS Electron with isolated project/task fixtures, no model or external account.',checks:[...(!process.argv.includes('--order-only')?['shaded more button']:[]),'pinned section before dates','most recently pinned first','unpin and re-pin','all pins stay visible when recent history collapses','reload and restart persistence','project isolation','menu keyboard and viewport containment at 1280/440 with enlarged text'],errors},null,2));
+ console.log(process.argv.includes('--order-only')?'Built Electron conversation pin order, host persistence and focus passed.':'Built Electron conversation pins and shaded action button passed.');
 }catch(error){await page?.screenshot({path:path.join(output,'failure.png'),timeout:5000}).catch(()=>{});throw error;}
 finally{await app?.close();await rm(temporary,{recursive:true,force:true});}

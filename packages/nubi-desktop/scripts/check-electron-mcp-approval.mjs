@@ -22,7 +22,7 @@ const fixture=await startFixtureModel({respond({user,results,call,text}){
  if(!requested){requested=true;return call('mcp__playwright__browser_open',{url:url+'/'+cycle});}
  if(phase==='open'){
   if(!last?.text)return text('ERROR: missing open receipt');
-  const opened=JSON.parse(last.text);({tabId,documentId}=opened);
+  const [metadata,...pageText]=last.text.split('\n');const opened=JSON.parse(metadata);if(!opened.snapshot&&pageText.length)opened.snapshot=pageText.join('\n');({tabId,documentId}=opened);
   if(opened.snapshot){input=/textbox "검색"[^\n]*?\[ref=([^\]]+)/.exec(opened.snapshot)?.[1];button=/button "찾기"[^\n]*?\[ref=([^\]]+)/.exec(opened.snapshot)?.[1];if(input&&button){phase='type';return call('mcp__playwright__browser_type',{tabId,documentId,target:input,text:'승인 연결 '+cycle});}}
   phase='snapshot';return call('mcp__playwright__browser_snapshot',{tabId});
  }
@@ -37,7 +37,7 @@ const fixture=await startFixtureModel({respond({user,results,call,text}){
  return text('검사 '+cycle+' 완료.');
 }});
 let app,page;const request=(method,args={})=>page.evaluate(({method,args})=>window.nubi.request(method,args),{method,args});
-async function ready(){await page.locator('.desktop-shell[data-startup-ready="true"]').waitFor({timeout:60000});await page.keyboard.press('Escape');await request('provider',{action:'connect',input:fixture.connection});await request('mcp',{action:'connect',id:'playwright'});}
+async function ready(){await page.locator('.desktop-shell[data-startup-ready="true"]').waitFor({timeout:60000});await page.keyboard.press('Escape');await request('provider',{action:'connect',input:fixture.connection});await request('browserConnection',{action:'mode',mode:'internal'});await request('mcp',{action:'connect',id:'playwright'});}
 async function send(){const composer=page.getByRole('textbox',{name:/^(작업 요청|추가 요청)$/});await composer.fill('인앱 페이지에서 검색에 입력하고 찾기를 눌러 결과 확인 '+cycle);await page.getByRole('button',{name:'전송',exact:true}).click();}
 async function approve(tool){
  const form=page.locator('.nubi-question-inline').filter({hasText:'playwright / '+tool});await form.waitFor({timeout:60000});

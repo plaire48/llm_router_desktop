@@ -1,4 +1,5 @@
-import {build} from 'esbuild';
+import {assertDialogIdentity} from './identity-browser.mjs';
+import {build,stop as stopBuildService} from 'esbuild';
 import {mkdir,writeFile,readFile,cp} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import path from 'node:path';
@@ -13,6 +14,7 @@ const server=createServer(async(req,res)=>{try{const requested=path.resolve(dir,
 let browser;const errors=[],checks=[];
 try {
  browser=await chromium.launch({channel:'chrome',headless:true});
+ if(!process.argv.includes('--routines-only')){
  for(const width of [1280,440]){
   const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});page.on('pageerror',error=>errors.push(error.message));
   await page.goto('http://127.0.0.1:'+server.address().port+'/?integrated&chapters');
@@ -49,7 +51,129 @@ try {
  assert.equal(await page.locator('.message').count(),87);
  checks.push({scene:many?'chapters-many':'chapters-long',messages:86,historyRevealed:true});await page.close();
  }
+ for(const width of [1280,440]){
+  const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});page.on('pageerror',error=>errors.push(error.message));
+  await page.goto('http://127.0.0.1:'+server.address().port+'/?integrated&sidebar-archive');
+  const openSidebar=async()=>{const opener=page.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await opener.count())await opener.click();};
+  await openSidebar();await page.getByRole('status',{name:'읽지 않음',exact:true}).waitFor();
+  assert.equal(await page.getByRole('status',{name:'읽지 않음',exact:true}).count(),1);
+  assert.equal(await page.locator('.nubi-session-row').first().getAttribute('data-session-id'),'pinned');
+  await page.waitForFunction(()=>localStorage.getItem('nubi-pinned-tasks:fixture')===null);
+  await page.locator('[data-session-id="pinned"] summary').click();assert(await page.getByRole('button',{name:'고정한 대화 보관',exact:true}).isDisabled());await page.keyboard.press('Escape');
+  await page.locator('[data-session-id="unread"] .nubi-session-select').click();
+  await openSidebar();await page.waitForFunction(()=>!document.querySelector('[aria-label="읽지 않음"]'));
+  const row=page.locator('[data-session-id="unread"]');await row.locator('summary').click();await page.getByRole('button',{name:'새로운 결과 보관',exact:true}).click();
+  await page.waitForFunction(()=>!document.querySelector('[data-session-id="unread"]'));
+  await page.getByRole('button',{name:'보관함 2',exact:true}).click();await page.locator('[data-session-id="unread"]').waitFor();
+  await page.screenshot({path:path.join(dir,'archive-'+width+'.png'),animations:'disabled'});
+  await page.reload();await openSidebar();await page.getByRole('button',{name:'보관함 2',exact:true}).click();
+  await page.locator('[data-session-id="unread"] summary').click();await page.getByRole('button',{name:'새로운 결과 보관 해제',exact:true}).click();
+  await page.getByRole('button',{name:'대화로 돌아가기',exact:true}).click();await page.locator('[data-session-id="unread"]').waitFor();
+  await page.locator('[data-session-id="unread"] summary').click();await page.getByRole('button',{name:'새로운 결과 고정',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('.nubi-session-row')?.dataset.sessionId==='unread');
+  await page.screenshot({path:path.join(dir,'archive-restored-'+width+'.png'),animations:'disabled'});
+  await page.getByRole('button',{name:'보관함 1',exact:true}).click();await page.locator('[data-session-id="archived"] summary').click();await page.getByRole('button',{name:'지난 대화 고정',exact:true}).click();await page.getByText('보관한 대화가 없어요.',{exact:true}).waitFor();await page.getByRole('button',{name:'대화로 돌아가기',exact:true}).click();await page.waitForFunction(()=>document.querySelector('.nubi-session-row')?.dataset.sessionId==='archived');
+  const close=page.getByRole('button',{name:'사이드바 접기',exact:true});if(width===440&&await close.count())await close.click();
+  await page.getByRole('button',{name:'설정',exact:true}).click();
+  const days=page.getByLabel('대화 자동 보관',{exact:true});await days.fill('0');await days.locator('xpath=ancestor::form').getByRole('button',{name:'저장',exact:true}).click();
+  await page.getByText('자동 보관을 사용하지 않아요.',{exact:false}).waitFor();
+  await page.screenshot({path:path.join(dir,'archive-settings-'+width+'.png'),animations:'disabled'});
+  checks.push({scene:'archive',width,unreadCleared:true,archiveRestore:true,reloadPreserved:true,newestPinFirst:true,disabledDays:0,pinProtectsArchive:true,pinRestoresArchived:true,rendererPinCopyRemoved:true});await page.close();
+ }
+ for(const width of [1280,440]){
+  const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});page.on('pageerror',error=>errors.push(error.message));
+  await page.goto('http://127.0.0.1:'+server.address().port+'/?integrated&outputs');
+  const opener=page.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await opener.count())await opener.click();
+  await page.getByRole('button',{name:'대화 검색',exact:true}).click();await page.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').first().click();
+  const cards=page.getByRole('group',{name:'산출물'});await cards.waitFor({timeout:5000});
+  assert.equal(await cards.getByRole('button').count(),2);assert.equal(await cards.count(),1);
+  assert(await cards.evaluate(node=>node.previousElementSibling?.textContent.includes('확인한 화면과 보고서를 준비했어요.')),'cards follow the answer, not its earlier question or later user message');
+  await cards.getByRole('button').first().click();assert.equal(await page.evaluate(()=>window.openedPath),'capture-1.png');
+  await cards.getByRole('button').last().focus();await page.keyboard.press('Enter');assert.match(await page.evaluate(()=>window.openedPath),/최종 보고서.md$/);
+  console.log('산출물 카드 배치',width,await cards.evaluate(node=>({rect:node.getBoundingClientRect().toJSON(),scrollWidth:node.scrollWidth,clientWidth:node.clientWidth,viewport:innerWidth})));
+  await page.screenshot({path:path.join(dir,'outputs-'+width+'.png'),animations:'disabled'});
+  assert(await cards.evaluate(node=>{const r=node.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&node.scrollWidth<=node.clientWidth+1;}),'long filenames must wrap without horizontal overflow');
+  await page.screenshot({path:path.join(dir,'outputs-'+width+'.png'),animations:'disabled'});checks.push({scene:'outputs',width,cards:2,answerPlacement:true,keyboardOpen:true});await page.close();
+ }
+ for(const width of [1280,440]){
+  const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});page.on('pageerror',error=>errors.push(error.message));
+  await page.goto('http://127.0.0.1:'+server.address().port+'/?integrated&side-tasks');
+  const opener=page.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await opener.count())await opener.click();
+  await page.getByRole('button',{name:'대화 검색',exact:true}).click();await page.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').first().click();
+  const chips=page.getByRole('group',{name:'다음 작업 제안'});await chips.waitFor({timeout:5000});assert.equal(await chips.locator('.nubi-side-task').count(),2);
+  assert(await chips.evaluate(node=>{const r=node.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&node.scrollWidth<=node.clientWidth+1;}));
+  await page.screenshot({path:path.join(dir,'side-tasks-'+width+'.png'),animations:'disabled'});
+  await chips.getByRole('button',{name:'오래된 개발 안내 문서와 검사 방법 정리 제안 닫기',exact:true}).click();await page.waitForFunction(()=>window.dismissedSideTask==='side-two');assert.equal(await chips.locator('.nubi-side-task').count(),1);
+  const start=chips.getByRole('button',{name:'첨부 시간 초과 처리 보완',exact:true});assert.equal(await start.getAttribute('title'),'확인된 첨부 실패가 안내 목록에서 빠져 있어요.');await start.focus();await page.keyboard.press('Enter');
+  await page.waitForFunction(()=>window.startedSideTask?.taskId==='side-child');await page.getByRole('button',{name:'시작',exact:true}).waitFor();assert.equal(await page.getByRole('group',{name:'다음 작업 제안'}).count(),0);
+  assert((await page.locator('.message').first().innerText()).includes('src/mail.mjs'));
+  const reveal=page.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await reveal.count())await reveal.click();
+  const badge=page.locator('[data-session-id="side-child"] .nubi-session-origin');await badge.waitFor();
+  assert.equal(await badge.innerText(),'제안');assert.equal(await badge.getAttribute('aria-label'),'에이전트 제안으로 시작한 대화');
+  assert(await badge.evaluate(node=>{const r=node.getBoundingClientRect(),row=node.closest('.nubi-session-row').getBoundingClientRect();return r.left>=row.left&&r.right<=row.right&&r.width>0;}));
+  await page.screenshot({path:path.join(dir,'side-task-origin-'+width+'.png'),animations:'disabled'});checks.push({scene:'side-tasks',width,dismissed:true,newConversationSelected:true,keyboardStart:true});await page.close();
+ }
+ for(const width of [1280,440]){
+  const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});page.on('pageerror',error=>errors.push(error.message));
+  await page.goto('http://127.0.0.1:'+server.address().port+'/?integrated&interrupted-retry');
+  const opener=page.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await opener.count())await opener.click();
+  await page.getByRole('button',{name:'대화 검색',exact:true}).click();await page.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').first().click({timeout:5000});
+  const resume=page.getByRole('button',{name:'이어서 진행',exact:true});await resume.waitFor({timeout:5000});assert.equal(await resume.count(),1);
+  assert(await resume.evaluate(node=>{const r=node.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth;}));
+  const approval=page.getByRole('region',{name:'실행 준비 승인'});await approval.waitFor({timeout:5000});assert((await approval.innerText()).includes('node --version')); 
+  await page.screenshot({path:path.join(dir,'interrupted-'+width+'.png'),animations:'disabled'});
+  await resume.focus();await page.keyboard.press('Enter');await page.waitForFunction(()=>window.retryResumeCalls?.length===1);
+  assert.deepEqual(await page.evaluate(()=>window.retryResumeCalls),[{method:'resumeAgent',taskId:'retry-task'}]);
+  assert.equal(await page.evaluate(()=>window.retryStartCalls||0),0);
+  assert.equal(await page.evaluate(()=>window.retryPendingState),'proposed');
+  assert.equal(await page.evaluate(()=>window.retryUserMessages),1);
+  checks.push({scene:'interrupted',width,oneResume:true,keyboardResume:true,pendingApprovalPreserved:true,noNewRequest:true});await page.close();
+ }
+ for(const width of [1280,440,360]){
+  const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});page.on('pageerror',error=>errors.push(error.message));
+  await page.goto('http://127.0.0.1:'+server.address().port+'/?integrated&usage');
+  const openSidebar=page.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await openSidebar.count())await openSidebar.click();
+  const open=async()=>{await page.locator('[data-session-id="conversation-usage"] summary').click();await page.getByRole('button',{name:'사용량 확인 사용량',exact:true}).click();};
+  await open();const dialog=page.getByRole('dialog',{name:'이 대화의 사용량',exact:true});await dialog.locator('tbody tr').first().waitFor();assert.equal(await dialog.locator('tbody tr').count(),6);assert.match(await dialog.innerText(),/모델 호출 8회/);assert.match(await dialog.innerText(),/400\*/);assert.match(await dialog.innerText(),/30일/);assert.match(await dialog.innerText(),/분석에는 문서 처리와 위키 갱신이 포함/);assert.doesNotMatch(await dialog.innerText(),/비용|\$/);
+  assert(await dialog.evaluate(node=>{const r=node.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&node.scrollWidth<=node.clientWidth+1;}),'usage dialog stays in viewport');
+  await page.screenshot({path:path.join(dir,'usage-'+width+'.png'),animations:'disabled'});
+  await page.keyboard.press('Escape');await dialog.waitFor({state:'detached'});
+  if(width===1280){await page.evaluate(()=>{window.usageFailure=true;});await open();await dialog.getByRole('alert').waitFor();await page.evaluate(()=>{window.usageFailure=false;});await dialog.getByRole('button',{name:'다시 시도'}).click();await dialog.locator('tbody tr').first().waitFor();}
+  checks.push({scene:'conversation-usage',width,purposes:6,partialTokens:true,missingTokens:true,noPrice:true});await page.close();
+ }
+ }
+ for(const width of [1280,440,360]){
+  const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});page.on('pageerror',error=>errors.push(error.message));
+  await page.goto('http://127.0.0.1:'+server.address().port+'/?integrated&routines');
+  await page.getByRole('button',{name:'설정',exact:true}).click();await page.getByRole('button',{name:'루틴',exact:true}).click();await page.getByRole('button',{name:'루틴 추가',exact:true}).click();
+  const form=page.getByRole('dialog',{name:'루틴 설정',exact:true});await form.getByLabel('이름',{exact:true}).fill('주간 자료 점검');await form.getByLabel('주기',{exact:true}).selectOption('weekly');await form.getByLabel('요일',{exact:true}).selectOption('2');await form.getByLabel('시각',{exact:true}).fill('08:30');await form.getByLabel('요청',{exact:true}).fill('이번 주 자료의 변경 사항을 정리해 주세요.');
+  await assertDialogIdentity(form);
+  assert(await form.evaluate(node=>{const r=node.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&node.scrollWidth<=node.clientWidth+1;}),'routine form fits viewport');
+  await page.screenshot({path:path.join(dir,'routines-form-'+width+'.png'),animations:'disabled'});await form.getByRole('button',{name:'저장',exact:true}).click();
+  const dialog=page.getByRole('dialog',{name:'루틴',exact:true});await assertDialogIdentity(dialog);await dialog.getByText(/매주 화요일 08:30/).waitFor();await dialog.getByRole('switch',{name:'주간 자료 점검',exact:true}).click();await page.waitForFunction(()=>document.querySelector('[role="switch"][aria-checked="false"]'));
+  await dialog.getByRole('button',{name:'주간 자료 점검 수정',exact:true}).click();assert.equal(await form.getByLabel('시각',{exact:true}).inputValue(),'08:30');assert.equal(await form.getByRole('switch',{name:'예약 실행'}).getAttribute('aria-checked'),'false');await form.getByLabel('이름',{exact:true}).fill('주간 업무 점검');await form.getByRole('button',{name:'저장',exact:true}).click();
+  await dialog.getByRole('button',{name:'주간 업무 점검 삭제',exact:true}).click();const confirm=page.getByRole('alertdialog',{name:'루틴을 삭제할까요?',exact:true});await confirm.waitFor();assert(await confirm.evaluate(node=>getComputedStyle(node).getPropertyValue('--nubi-dialog-action').trim()===getComputedStyle(node).getPropertyValue('--deck-red').trim()),'deletion uses danger action token');await confirm.getByRole('button',{name:'취소',exact:true}).click();await dialog.getByRole('switch',{name:'주간 업무 점검'}).waitFor();await dialog.getByRole('button',{name:'주간 업무 점검 삭제',exact:true}).click();await confirm.getByRole('button',{name:'삭제',exact:true}).click();await dialog.getByText('반복할 작업과 시각을 정해 주세요.').waitFor();
+  await page.evaluate(()=>{window.routineFailure=true;});await dialog.getByRole('alert').waitFor({timeout:10000});await assertDialogIdentity(dialog);
+  await page.keyboard.press('Escape');await dialog.waitFor({state:'detached'});checks.push({scene:'routines',width,weekly:true,edit:true,toggle:true,confirmedDelete:true});await page.close();
+ }
+ for(const width of [1280,440]){
+  const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('http://127.0.0.1:'+server.address().port+'/?integrated&after-edit-failure');
+  const reveal=page.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await reveal.count())await reveal.click();
+  await page.getByRole('button',{name:'검사 준비 실패',exact:true}).click();const warning=page.locator('section.nubi-results[role="alert"]');await warning.waitFor();
+  assert.match(await warning.innerText(),/src\/app.mjs/);assert.match(await warning.innerText(),/설정에서 편집 뒤 검사를 꺼/);
+  await warning.getByRole('button',{name:'검사 다시 준비',exact:true}).click();await page.waitForFunction(()=>window.afterEditRetries===1);
+  await page.locator('.nubi-feedback-toast').waitFor();assert(await warning.evaluate(node=>node.scrollWidth<=node.clientWidth+1));
+  await page.screenshot({path:path.join(dir,'after-edit-failure-'+width+'.png')});checks.push({scene:'after-edit-failure',width,pathVisible:true,retryFailureToast:true});await page.close();
+ }
  assert.deepEqual(errors,[]);
  await writeFile(path.join(dir,'result.json'),JSON.stringify({checks,errors,scope:'Synthetic Workbench fixture on macOS; no live model or Windows verification.'},null,2));
- console.log('PASS: chapters');
-}finally{await browser?.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
+ console.log('PASS: chapters, archive, output cards, side tasks and interrupted recovery');
+}finally{
+ // Drop the fixture's open polling connections before closing Chromium, as the other checks do; otherwise browser.close() can hang.
+ server.closeAllConnections();
+ if(browser){const open=browser.contexts().flatMap(context=>context.pages());console.log('cleanup: open pages',open.length,open.map(page=>page.url()).join(' '));for(const page of open)await page.close({runBeforeUnload:false}).catch(()=>{});}
+ let deadline;
+ try{await Promise.race([browser?.close(),new Promise((_,reject)=>{deadline=setTimeout(()=>reject(Error('wave2_browser_cleanup_timeout')),15000);})]);}
+ finally{clearTimeout(deadline);const closed=new Promise(resolve=>server.close(resolve));server.closeAllConnections();await closed;stopBuildService();}
+}

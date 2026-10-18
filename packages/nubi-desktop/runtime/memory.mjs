@@ -7,11 +7,19 @@ import {randomUUID,createHash} from 'node:crypto';
 import {Store} from './store.mjs';
 
 export const MEMORY_LIMITS=Object.freeze({perScope:200,text:300,inject:12,exchange:6000});
-const SECRET=/(?:password|passwd|비밀번호|api[_ -]?key|secret|token|토큰|bearer|private key|otp|인증번호)[은는이가을를의]?\s*[:=]?\s*\S{4,}|\b(?:sk|ghp|gho|xox[abp])-[A-Za-z0-9_-]{8,}|\b\d{6}-\d{7}\b|\b\d{4}(?:[ -]?\d{4}){3}\b/i;
+import {secretLike} from './secret-like.mjs';
+export {secretLike} from './secret-like.mjs';
 const shared=new Map();
 export const memoryKey=id=>'memory:'+id;
 export const normalizeMemory=text=>String(text||'').replace(/\s+/g,' ').trim().slice(0,MEMORY_LIMITS.text);
-export const secretLike=text=>SECRET.test(String(text||''));
+export function memoryRequest(task){
+  const people=(task.messages||[]).filter(message=>message.role==='user');
+  // Initial requests normally live outside messages. Also support histories
+  // which include that first request as a user message, without counting it twice.
+  const initialInMessages=task.messages?.[0]?.role==='user'&&task.messages[0].content===task.request;
+  if(task.origin?.kind==='side_task'&&people.length+(initialInMessages?0:1)<=1)return null;
+  return people.at(-1)?.content||task.request;
+}
 const fingerprint=text=>createHash('sha256').update(normalizeMemory(text).toLocaleLowerCase()).digest('hex').slice(0,16);
 
 // One shared Store per app for the 'user' scope. Stores lock their folder per process, so projects share one handle.

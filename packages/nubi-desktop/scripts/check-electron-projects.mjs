@@ -25,6 +25,19 @@ async function menu(name){
 async function resize(width,height){await (await app.browserWindow(page)).evaluate((win,size)=>win.setContentSize(size.width,size.height),{width,height});await page.waitForFunction(width=>innerWidth===width,width,{polling:100});}
 try{
  await launch();await resize(1480,960);await page.getByRole('button',{name:task.request,exact:true}).click();
+ const exported=path.join(temporary,'conversation.md');await writeFile(exported,'keep on cancel');
+ await app.evaluate(({dialog},filePath)=>{dialog.showSaveDialog=async()=>({canceled:true,filePath});},exported);
+ const openExport=async()=>{await page.locator(`[data-session-id="${task.id}"] summary`).click();await page.getByRole('button',{name:task.request+' Markdown으로 내보내기',exact:true}).click();};
+ await openExport();await page.waitForFunction(()=>!document.querySelector('.nubi-workbench [aria-busy="true"]'));assert.equal(await readFile(exported,'utf8'),'keep on cancel');
+ await app.evaluate(({dialog},filePath)=>{dialog.showSaveDialog=async()=>({canceled:false,filePath});},exported);
+ await page.locator(`[data-session-id="${task.id}"] summary`).click();
+ await mkdir('verification/wave2',{recursive:true});await page.screenshot({path:'verification/wave2/task10-export-menu.png'});
+ await page.getByRole('button',{name:task.request+' Markdown으로 내보내기',exact:true}).click();
+ await page.locator('.nubi-feedback-toast').filter({hasText:'대화를 Markdown 파일로 저장했어요.'}).waitFor();
+ const markdown=await readFile(exported,'utf8');assert(markdown.startsWith('# '+task.request));assert.match(markdown,/원본에서 내용을 확인했어요/);assert.match(markdown,/read_source/);
+ const taskAfter=await page.evaluate(taskId=>window.nubi.request('state',{taskId}),task.id);assert.equal(taskAfter.tasks.find(row=>row.id===task.id).messages.length,1);
+ checks.push('conversation menu exports saved request, answer and collapsed tool history; cancellation preserves existing file and task records');
+
  const plan=page.locator('.nubi-agent-activity .task-plan details[data-plan-overview]'),record=page.locator('.nubi-agent-activity .nubi-activity-record').first(),trace=page.locator('.nubi-agent-activity .agent-trace').first();
  assert.equal(await plan.getAttribute('open'),null,'result plan starts collapsed');
  /* The finished journal folds as one record (2026-10-15): the reader opens it, then a tool block inside it. */

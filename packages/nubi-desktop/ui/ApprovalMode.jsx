@@ -59,6 +59,7 @@ export function ApprovalModeControl({policy,disabled,onMode,onRemove}){
       message={<><strong>{commands?'파일 변경과 검사 명령을 자동 실행해요.':'파일 변경을 자동 반영해요.'}</strong><br/>{commands?'파일 변경이나 외부 통신이 발생할 수 있어요.':'작업 내용을 잃을 수 있으니 미리 보관해 주세요.'}</>}>
       <p>현재 프로젝트의 모든 대화와 대기 중인 작업에 적용돼요.</p>
       <p className="nubi-muted">관리자 명령과 앱 조작은 계속 확인해요.</p>
+      <p className="nubi-muted">되돌리기 어려운 명령은 자동 모드에서도 확인해요.</p>
       <DeckDisclosure title="설정 변경과 허용 범위" icon="infoCircle">
         <p>입력창에서 <strong>매번 확인</strong>으로 되돌릴 수 있어요.</p>
         {commands&&<p>검사 명령은 이 PC에서 테스트, 빌드, 점검을 실행해요. 신뢰하는 프로젝트에서만 허용해 주세요.</p>}

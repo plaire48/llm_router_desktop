@@ -1,3 +1,8 @@
+import {summarizeTaskMetrics} from './run-metrics.mjs';
+import {conversationMarkdown,conversationFilename} from './conversation-export.mjs';
+import {setAfterEditCheck,queueAfterEditCheck} from './after-edit-check.mjs';
+import {autoArchive,markRead,setArchived,archiveBlocked} from './conversation-archive.mjs';
+import {approvalActionView} from './irreversible-actions.mjs';
 import {editorLink,disposeEditorLink} from './editor-link.mjs';
 import {liveEditor,disposeEditors} from './live-editor-host.mjs';
 import {registerNativeOfficeConnection,nativeOfficeStatus,disposeNativeOffice,cancelNativeOffice,reviseNativeOfficeDraft} from './native-office-host.mjs';
@@ -46,6 +51,7 @@ import {git, gitOpenFailure, hash, fail, readSource, listFiles, scopedFile, rela
 import {READ_LINES} from './read-room.mjs';
 import {modelTransport} from './recovery.mjs';
 import {wikiUpdate} from './wiki-update.mjs';
+import {startSideTask,dismissSideTask} from './side-tasks.mjs';
 import {storeCaptures,readCapture} from './captures.mjs';
 import {importDocumentSelection,readChatDocument,validateDocuments} from './chat-documents.mjs';
 import {inspectWorkspaceChanges} from './workspace-changes.mjs';
@@ -68,11 +74,11 @@ export class ProjectService {
     // A folder without Git, or outside a repository, opens as it is (user decision 2026-10-04); the setup flow of 2026-09-30 is gone (2026-10-07).
     const top = await resolveProjectFolder(resolved);
     if(exactRoot&&top!==resolved)fail('clone_root_mismatch');
-    if (this.root === top && this.store?.db.isOpen) {if(['local','remote'].includes(sourceKind))this.store.set('setting:wiki-source',{mode:sourceKind});if(initializeWiki){this.wikiInitEnabled=true;await this.initializeWiki();}return this.overview();}
-    if (this.skillImportBusy || this.vocBusy || this.computerBusy || this.newFileBusy || this.setupBusy || this.repairStarts?.size || this.processes?.active.size || this.processes?.pending.size || this.unsettledOperations?.size || this.reconciling || this.agent?.running || this.recordingKnowledge || this.databaseBusy || this.collaborationBusy) fail('project_busy');
+    if (this.root === top && this.store?.db.isOpen) {this.runAutoArchive();if(['local','remote'].includes(sourceKind))this.store.set('setting:wiki-source',{mode:sourceKind});if(initializeWiki){this.wikiInitEnabled=true;await this.initializeWiki();}return this.overview();}
+    if (this.afterEditChecks?.size || this.sideTaskStarts?.size || this.skillImportBusy || this.vocBusy || this.computerBusy || this.newFileBusy || this.setupBusy || this.repairStarts?.size || this.processes?.active.size || this.processes?.pending.size || this.unsettledOperations?.size || this.reconciling || this.agent?.running || this.recordingKnowledge || this.databaseBusy || this.collaborationBusy) fail('project_busy');
     const projectId = hash(top).slice(7, 31), store = new Store(path.join(this.storageRoot, projectId));
     disposeEditorLink(this);disposeEditors(this);disposeNativeOffice(this);await disposeDevelopmentBrowser(this);await this.collaborationServer?.close();this.collaborationServer=null;this.knowledge?.server.close(); this.knowledge=null; this.store?.close(); this.root = top; this.projectId = projectId; this.agentRuns?.clear();this.lastAgent=null;
-    this.wikiInitController?.abort();this.wikiUpdateRun?.controller.abort();this.wikiRefreshJob?.controller.abort();this.store = store;this.workspaceKind=kind==='conversation'?'conversation':'project';this.wikiInitEnabled=initializeWiki!==false;if(['local','remote'].includes(sourceKind))store.set('setting:wiki-source',{mode:sourceKind});
+    this.wikiInitController?.abort();this.wikiUpdateRun?.controller.abort();this.wikiRefreshJob?.controller.abort();this.store = store;this.viewingTaskId=null;this.workspaceKind=kind==='conversation'?'conversation':'project';this.wikiInitEnabled=initializeWiki!==false;if(['local','remote'].includes(sourceKind))store.set('setting:wiki-source',{mode:sourceKind});
     interruptDocumentResearch(this.store);
     restoreAnalysisHistory(this.store);
     this.localPerception?.dispose();delete this.localPerception;this.computerPointer?.dispose();this.computerPointer=null;this.computerFallback=null;this.computerAdapter?.dispose?.();this.computerAdapter=null;this.computerLauncher?.dispose?.();this.computerLauncher=null;this.computerApps=new Map();this.databaseConnections=new Map();this.computerBinding=null;this.computerObservation=null;
@@ -92,6 +98,7 @@ export class ProjectService {
     for(const repair of this.store.list('command-repair:').filter(r=>r.state==='starting'))this.store.set('command-repair:'+repair.id,{...repair,state:'attention',error:'execution_unknown'});
     for(const action of this.store.list('setup-action:').filter(v=>v.state==='starting'))this.store.set('setup-action:'+action.id,{...action,state:'attention',error:'setup_execution_unconfirmed'});
     for(const proposal of this.store.list('proposal:').filter(p=>p.state==='creating'))this.store.set('proposal:'+proposal.id,{...proposal,state:'attention'});
+    this.runAutoArchive();
     await this.initializeWiki();
     return this.overview();
   }
@@ -110,12 +117,14 @@ export class ProjectService {
   shellPreference() { this.ready(); return this.store.get('setting:shell')?.profile; }
   async setShellPreference({profile}) {
     this.ready();
-    if(this.agent?.running||this.setupBusy)fail('agent_busy');
+    if(this.afterEditChecks?.size||this.agent?.running||this.setupBusy)fail('agent_busy');
     const profiles=await shellProfiles();
     if(typeof profile!=='string'||!profiles.some(item=>item.id===profile))fail('shell_unavailable');
     this.store.set('setting:shell',{profile});
     return {profile};
   }
+  setAfterEditCheck(args){return setAfterEditCheck(this,args);}
+  async retryAfterEditCheck({taskId}){this.task(taskId);const result=await queueAfterEditCheck(this,taskId),task=this.task(taskId);if(task.afterEditCheckError)throw Object.assign(Error(task.afterEditCheckError),{details:{path:task.afterEditCheckPath}});return result;}
   async overview({taskId}={}) {
     this.ready();
     const owner=this.store,projectId=this.projectId;
@@ -123,14 +132,58 @@ export class ProjectService {
     if(this.store!==owner||this.projectId!==projectId)fail('project_changed');
     return {projectId: this.projectId, root: this.root, kind:this.workspaceKind||'project', name:this.workspaceKind==='conversation'?'개인 대화':path.basename(this.root), branch: branch.trim() || 'detached', dirty: !!status,
       files: files.paths, truncated: files.truncated, wikiChatBlocked:wikiChatBlocked(this), wikiChatJob:wikiChatJob(this), wikiInitialization:this.workspaceKind==='conversation'?null:this.store.get('wiki-init'), wikiFiles: wikiPages,
-      computer:computerState(this),setupActions:this.store.list('setup-action:',{limit:50}), collaborations:collaborationRows(this),peerTasks:peerRows(this),peerLinks:peerLinks(this), tasks: this.displayTasks(taskId), proposals: this.store.list('proposal:',{limit:50}), processes: this.store.list('process:',{limit:20}), comparisons: this.store.list('comparison:',{limit:20}), commandRepairs:this.store.list('command-repair:',{limit:30}), profiles,defaultShell:preferredShell(profiles,process.platform,this.shellPreference())};
+      afterEditCheck:this.store.get('setting:after-edit-check')||null,computer:computerState(this),setupActions:this.store.list('setup-action:',{limit:50}).map(approvalActionView), collaborations:collaborationRows(this),peerTasks:peerRows(this),peerLinks:peerLinks(this), tasks: this.displayTasks(taskId), conversationNavigation:this.conversationNavigation(), proposals: this.store.list('proposal:',{limit:50}).map(approvalActionView), processes: this.store.list('process:',{limit:20}), comparisons: this.store.list('comparison:',{limit:20}), commandRepairs:this.store.list('command-repair:',{limit:30}).map(approvalActionView), profiles,defaultShell:preferredShell(profiles,process.platform,this.shellPreference())};
   }
   async workspaceChanges(args={}) {return inspectWorkspaceChanges(this,args);}
   async appliedFileSummary(args={}) {return appliedFileSummary(this,args);}
-  state({taskId}={}) { this.ready(); return {wikiChatBlocked:wikiChatBlocked(this),wikiChatJob:wikiChatJob(this),computer:computerState(this),setupActions:this.store.list('setup-action:',{limit:50}), collaborations:collaborationRows(this),peerTasks:peerRows(this),peerLinks:peerLinks(this), tasks: this.displayTasks(taskId), proposals: this.store.list('proposal:',{limit:50}), processes: this.store.list('process:',{limit:20}), comparisons: this.store.list('comparison:',{limit:20}),commandRepairs:this.store.list('command-repair:',{limit:30})}; }
+  state({taskId}={}) { this.ready(); return {wikiChatBlocked:wikiChatBlocked(this),wikiChatJob:wikiChatJob(this),afterEditCheck:this.store.get('setting:after-edit-check')||null,computer:computerState(this),setupActions:this.store.list('setup-action:',{limit:50}).map(approvalActionView), collaborations:collaborationRows(this),peerTasks:peerRows(this),peerLinks:peerLinks(this), tasks: this.displayTasks(taskId), conversationNavigation:this.conversationNavigation(), proposals: this.store.list('proposal:',{limit:50}).map(approvalActionView), processes: this.store.list('process:',{limit:20}), comparisons: this.store.list('comparison:',{limit:20}),commandRepairs:this.store.list('command-repair:',{limit:30}).map(approvalActionView)}; }
+  conversationNavigation(){
+    this.ready();const pins=this.store.get('setting:pinned-tasks');
+    return {tasks:this.store.taskSummaries().map(task=>({...task,pinned:!!pins?.ids?.includes(task.id)})),pinnedIds:pins?.ids??null,autoArchiveDays:this.store.get('setting:auto-archive-days')?.days??30};
+  }
+  checkConversationScope(projectId){this.ready();if(projectId!==undefined&&projectId!==this.projectId)fail('project_changed');}
+  runAutoArchive(){
+    const pending=[];
+    for(const [prefix,states] of Object.entries({'process:':['checking','running','stopping'],'setup-action:':['proposed','starting'],'command-repair:':['proposed','starting'],'proposal:':['proposed','creating']}))for(const item of this.store.list(prefix))if(item.taskId&&states.includes(item.state))pending.push(item.taskId);
+    for(const run of this.agentRuns?.values()||[])if(run.running)pending.push(run.taskId);
+    return autoArchive(this.store,{days:this.store.get('setting:auto-archive-days')?.days??30,blockedIds:pending});
+  }
+  setPinnedTasks({projectId,ids,initialize=false}){
+    this.checkConversationScope(projectId);
+    if(!Array.isArray(ids)||ids.some(id=>typeof id!=='string'))fail('pins_invalid');
+    const existing=this.store.get('setting:pinned-tasks');
+    const valid=[...new Set(ids)].filter(id=>this.store.get('task:'+id));
+    if(!initialize&&valid.length>50)fail('pin_limit');
+    const selected=initialize?valid.slice(0,50):valid;
+    if(!initialize||!existing){
+      this.store.set('setting:pinned-tasks',{ids:selected});
+      for(const id of selected)if(this.store.get('task:'+id)?.archivedAt)setArchived(this.store,id,false);
+    }
+    if(!existing)this.runAutoArchive();
+    return {...this.conversationNavigation(),...(initialize&&!existing&&valid.length>50?{unpinnedCount:valid.length-50}:{})};
+  }
+  markTaskRead({projectId,taskId}){
+    this.checkConversationScope(projectId);if(taskId!==null)this.task(taskId);
+    this.viewingTaskId=taskId;
+    if(!taskId)return {viewingTaskId:null};const task=markRead(this.store,taskId);return {id:task.id,unread:false,updatedAt:task.updatedAt};
+  }
+  archiveTask({projectId,taskId,archived}){
+    this.checkConversationScope(projectId);const task=this.task(taskId);
+    if(typeof archived!=='boolean')fail('archive_invalid');
+    if(archived){
+      if(this.store.get('setting:pinned-tasks')?.ids?.includes(taskId))fail('task_pinned');
+      if(archiveBlocked(task)||this.agentForTask(taskId)?.running||[...this.repairStarts?.values()||[]].some(item=>item.taskId===taskId))fail('agent_busy');
+      if(this.store.list('process:').some(item=>item.taskId===taskId&&['running','stopping','checking'].includes(item.state)))fail('process_running');
+    }
+    setArchived(this.store,taskId,archived);return this.conversationNavigation();
+  }
+  setAutoArchiveDays({projectId,days}){
+    this.checkConversationScope(projectId);if(!Number.isSafeInteger(days)||days<0)fail('archive_days_invalid');
+    this.store.set('setting:auto-archive-days',{days});return {days};
+  }
   displayTasks(taskId){const tasks=this.store.list('task:',{limit:50});if(taskId&&!tasks.some(task=>task.id===taskId)){const selected=this.store.get('task:'+taskId);if(selected)tasks.push(selected);}return tasks.map(task=>this.displayTask(task));}
   conversationHistory(args={}) {this.ready();if(args.taskId){if(typeof args.taskId!=='string')fail('task_missing');return this.displayTask(this.task(args.taskId));}return searchConversations(this.store.list('task:'),args);}
-  displayTask(task){const run=this.agentForTask(task.id);return run?.running&&run.timing?{...task,streamingAnswer:run.streamingAnswer||'',streamingReasoning:run.streamingReasoning||'',responseTiming:{...(task.responseTiming?.runId===run.runId?task.responseTiming:{}),...run.timing.snapshot(),runId:run.runId}}:task;}
+  displayTask(task){task={...task,pinned:!!this.store?.get('setting:pinned-tasks')?.ids?.includes(task.id)};const run=this.agentForTask(task.id);return run?.running&&run.timing?{...task,streamingAnswer:run.streamingAnswer||'',streamingReasoning:run.streamingReasoning||'',responseTiming:{...(task.responseTiming?.runId===run.runId?task.responseTiming:{}),...run.timing.snapshot(),runId:run.runId}}:task;}
   task(taskId) { const task = this.store.get('task:' + taskId); if (!task) fail('task_missing'); return task; }
   async target(taskId) {
     if (!taskId) return this.root;
@@ -164,7 +217,7 @@ export class ProjectService {
   }
   async inspectPath({taskId,path}) {return inspectNewPath(await this.target(taskId),path);}
   async proposeNewFile(args) {return proposeNewFile.call(this,args);}
-  async applyNewFile(args) {return applyNewFile.call(this,args);}
+  async applyNewFile(args) {const result=await applyNewFile.call(this,args);const proposal=this.store.get('proposal:'+args.proposalId);if(proposal?.state==='applied')await queueAfterEditCheck(this,proposal.taskId);return result;}
   async search(args) { return searchSource.call(this,args); }
   async codeOutline(args) { this.ready();return codeOutline.call(this,args); }
   async inspectCode(args) { this.ready();return inspectCode.call(this,args); }
@@ -214,13 +267,28 @@ export class ProjectService {
 
   importDocumentSelection(args){return importDocumentSelection.call(this,args);}
   chatDocument(args){this.ready();return readChatDocument(this,{...args,preview:true});}
-  async createTask({request, criteria = [],mailReferences=[],captures=[],documentReferences=[]}) {
+  startSideTask(args){return startSideTask(this,args);}
+  dismissSideTask(args){return dismissSideTask(this,args);}
+  async createTask({request, criteria = [],mailReferences=[],captures=[],documentReferences=[],origin}, routine) {
     this.ready(); requireWikiChatReady(this); request = limited(request);
+    if(origin!==undefined){
+      if(origin?.kind!=='side_task'||['taskId','sideTaskId','runId'].some(key=>typeof origin[key]!=='string'||!origin[key]||origin[key].length>200))fail('task_origin_invalid');
+      origin={kind:'side_task',taskId:origin.taskId,sideTaskId:origin.sideTaskId,runId:origin.runId};
+    }
     if (!Array.isArray(criteria) || criteria.length > 30) fail('criteria_invalid');
     const references=await validateMailReferences(this,mailReferences);
     requireWikiChatReady(this);
-    const key = id(), attached=storeCaptures(this,key,captures), task = {id: key, request, documentReferences:validateDocuments(this,documentReferences),requestDocuments:validateDocuments(this,documentReferences),mailReferences:references,requestMailReferences:references,...(attached.length?{requestCaptures:attached}:{}),criteria: criteria.map((text, i) => ({id: 'AC-' + (i + 1), text: limited(text, 1000), state: 'unknown'})), state: 'draft', createdAt: new Date().toISOString(), messages: [], trace: [], requirementId: 'REQ-' + key.slice(0, 8)};
+    const key = id(), attached=storeCaptures(this,key,captures), task = {id: key, request, documentReferences:validateDocuments(this,documentReferences),requestDocuments:validateDocuments(this,documentReferences),mailReferences:references,requestMailReferences:references,...(attached.length?{requestCaptures:attached}:{}),criteria: criteria.map((text, i) => ({id: 'AC-' + (i + 1), text: limited(text, 1000), state: 'unknown'})), state: 'draft', ...(routine?{routineId:routine.id,routineName:routine.name}:{}), createdAt: new Date().toISOString(), messages: [], trace: [], requirementId: 'REQ-' + key.slice(0, 8)};
+    if(origin)task.origin=origin;
     this.store.set('task:' + key, task); this.store.event('task_created', {id: key}); return task;
+  }
+  listRoutines(){if(!this.routines)fail('routine_not_ready');return this.routines.list();}
+  saveRoutine(args){if(!this.routines)fail('routine_not_ready');return this.routines.save(args);}
+  deleteRoutine(args){if(!this.routines)fail('routine_not_ready');return this.routines.delete(args);}
+  runRoutineNow(args){if(!this.routines)fail('routine_not_ready');return this.routines.runNow(args);}
+  taskUsage({taskId}) {this.task(taskId);return summarizeTaskMetrics(this.store,taskId);}
+  exportConversation({taskId}) {
+    const task=this.task(taskId);return {filename:conversationFilename(task),markdown:conversationMarkdown(task)};
   }
   async exportRequirement({taskId}) {
     const task = this.task(taskId), slug = 'nubi-' + task.id.slice(0, 8), base = 'openspec/changes/' + slug;
@@ -242,6 +310,8 @@ export class ProjectService {
   // A conversation the user deletes with the trash icon (user decision 2026-09-30): the task, every record made for it
   // and its own worktree go. Files already applied to the project stay. A running task or process is refused.
   async deleteTask({taskId}) {
+    if(this.afterEditChecks?.has(taskId))fail('project_busy');
+    if([...this.sideTaskStarts?.values()||[]].some(entry=>entry.taskId===taskId))fail('project_busy');
     this.ready(); const task = this.task(taskId);
     if (['running', 'stopping'].includes(task.state) || this.agentForTask(taskId)?.running || [...this.repairStarts?.values()||[]].some(pending=>pending.taskId===taskId)) fail('agent_busy');
     if (this.store.list('process:').some(item => item.taskId === taskId && ['running', 'stopping'].includes(item.state))) fail('process_running');
@@ -291,7 +361,7 @@ export class ProjectService {
     return proposal;
   }
   async proposalArtifacts({proposalId}) { const proposal=this.store.get('proposal:'+proposalId);if(!proposal)fail('proposal_missing');return {...proposal,beforeUri:pathToFileURL(proposal.before).href,afterUri:pathToFileURL(proposal.after).href}; }
-  cancelProposal({proposalId}) {
+  async cancelProposal({proposalId}) {
     this.ready();
     const proposal=this.store.get('proposal:'+proposalId);if(!proposal)fail('proposal_missing');
     if(proposal.state==='cancelled')return proposal;
@@ -304,7 +374,7 @@ export class ProjectService {
     // A check prepared for this exact edit must not run after its prerequisite is rejected.
     for(const action of this.store.list('setup-action:').filter(row=>row.taskId===proposal.taskId&&row.state==='proposed'&&row.afterProposals?.includes(proposalId)))this.store.set('setup-action:'+action.id,{...action,state:'rejected',decidedAt,reasonCode:'proposal_cancelled'});
     this.store.event('proposal_cancelled',{proposalId,taskId:proposal.taskId});
-    return cancelled;
+    await queueAfterEditCheck(this,proposal.taskId);return cancelled;
   }
   async prepareProposal({proposalId}) {
     const proposal = this.store.get('proposal:' + proposalId); if (!proposal) fail('proposal_missing');
@@ -323,7 +393,7 @@ export class ProjectService {
     if(proposal.kind==='create'&&proposal.state!=='applied')fail('write_unconfirmed');
     const actual = await readSource(await this.target(proposal.taskId), proposal.path);
     if (actual.hash !== proposal.afterHash) fail('write_unconfirmed');
-    proposal.appliedAt ||= new Date().toISOString(); proposal.state = 'applied'; this.store.set('proposal:' + proposalId, proposal); this.store.event('proposal_applied', {proposalId, hash: actual.hash}); return proposal;
+    proposal.appliedAt ||= new Date().toISOString(); proposal.state = 'applied'; this.store.set('proposal:' + proposalId, proposal); this.store.event('proposal_applied', {proposalId, hash: actual.hash}); await queueAfterEditCheck(this,proposal.taskId);return proposal;
   }
   async mergeProposal({proposalId}) {
     const proposal = this.store.get('proposal:' + proposalId); if (!proposal || proposal.kind==='create' || proposal.state !== 'proposed') fail('proposal_missing');
@@ -350,21 +420,21 @@ export class ProjectService {
   async mail(args) {return mail.call(this,args);}
   prepareAppUpdate(){
     const mail=this.personalMail;
-    if(this.skillImportBusy||this.marketplaceBusy||this.vocBusy||this.computerBusy||this.newFileBusy||this.setupBusy||this.repairStarts?.size||this.processes?.active.size||this.processes?.pending.size||this.unsettledOperations?.size||this.reconciling||this.agent?.running||[...this.agentRuns?.values()||[]].some(run=>run.running)||this.recordingKnowledge||this.databaseBusy||this.collaborationBusy||this.wikiInitController&&!this.wikiInitController.signal.aborted&&this.store?.get('wiki-init')?.state==='running'||this.wikiUpdateRun||this.wikiRefreshOwner||mail?.checking||mail?.connecting||mail?.synthesis||mail?.attachmentRead)fail('update_work_active');
+    if(this.afterEditChecks?.size||this.sideTaskStarts?.size||this.skillImportBusy||this.marketplaceBusy||this.vocBusy||this.computerBusy||this.newFileBusy||this.setupBusy||this.repairStarts?.size||this.processes?.active.size||this.processes?.pending.size||this.unsettledOperations?.size||this.reconciling||this.agent?.running||[...this.agentRuns?.values()||[]].some(run=>run.running)||this.recordingKnowledge||this.databaseBusy||this.collaborationBusy||this.wikiInitController&&!this.wikiInitController.signal.aborted&&this.store?.get('wiki-init')?.state==='running'||this.wikiUpdateRun||this.wikiRefreshOwner||mail?.checking||mail?.connecting||mail?.synthesis||mail?.attachmentRead)fail('update_work_active');
     this.appUpdateLocked=true;clearInterval(mail?.processingTimer);mail?.disconnect();return {ready:true};
   }
   async invoke(method, args = {}) {
     if(this.appUpdateLocked)fail('update_installing');
     if(method==='prepareAppUpdate')return this.prepareAppUpdate();
-    const allowed = new Set(['editorLink','liveEditor','reviseNativeOfficeDraft','nativeOfficeStatus','importDocumentSelection','chatDocument','capture','captureWorkspace','previewFile','browseDirectory','terminalCommand','projectPath','proposalText','artifactText','initializeWiki','wikiInitialization','saveSource','commitHistory','mailDocument','mail','wikiUpdate','analysisHistory','memories','listSkills','removeSkill','skillMarketplace','connectSkillMarketplace','disconnectSkillMarketplace','importSkill','importVoc','queryVoc','readVoc','computer','applyNewFile','decideSetupAction','collaboration','codeOutline','recoverySnapshot','resumeAgent','diagnoseProcess','applyCommandRepair','knowledgeMap','knowledgeQuery','initializeKnowledgeCatalog','exportKnowledgeMap','databaseConnection','open','knowledgeStatus','recordKnowledge','comparison','connectKnowledge','overview','state','setShellPreference','read','search','wikiQuery','createTask','exportRequirement','createWorktree','propose','prepareProposal','proposalArtifacts','confirmProposal','mergeProposal','diff','run','exportReport','compare','provider','fabrix','agentInput','startAgent','answerAgent','saveQuestionDraft','stopAgent','deleteTask','approvalPolicy','setApprovalMode','allowCommand','removeAllowedCommand','autoApprovals']);
-    allowed.add('inspectCode');allowed.add('inspectDevServer');allowed.add('mcp');allowed.add('removeAllowedMcpTool');allowed.add('rejectCommandRepair');allowed.add('cancelProposal');allowed.add('gitAvailability');allowed.add('conversationHistory');allowed.add('usage');allowed.add('editorSource');allowed.add('regenerateAnswer');allowed.add('skillTrash');
+    const allowed = new Set(['editorLink','liveEditor','reviseNativeOfficeDraft','nativeOfficeStatus','importDocumentSelection','chatDocument','capture','captureWorkspace','previewFile','browseDirectory','terminalCommand','projectPath','proposalText','artifactText','initializeWiki','wikiInitialization','saveSource','commitHistory','mailDocument','mail','wikiUpdate','analysisHistory','memories','listSkills','removeSkill','skillMarketplace','connectSkillMarketplace','disconnectSkillMarketplace','importSkill','importVoc','queryVoc','readVoc','computer','applyNewFile','decideSetupAction','collaboration','codeOutline','recoverySnapshot','resumeAgent','diagnoseProcess','applyCommandRepair','knowledgeMap','knowledgeQuery','initializeKnowledgeCatalog','exportKnowledgeMap','databaseConnection','open','knowledgeStatus','recordKnowledge','comparison','connectKnowledge','overview','state','setShellPreference','read','search','wikiQuery','createTask','exportConversation','taskUsage','listRoutines','saveRoutine','deleteRoutine','runRoutineNow','exportRequirement','createWorktree','propose','prepareProposal','proposalArtifacts','confirmProposal','mergeProposal','diff','run','exportReport','compare','provider','fabrix','agentInput','startAgent','answerAgent','saveQuestionDraft','stopAgent','deleteTask','approvalPolicy','setApprovalMode','allowCommand','removeAllowedCommand','autoApprovals']);
+    allowed.add('inspectCode');allowed.add('inspectDevServer');allowed.add('mcp');allowed.add('removeAllowedMcpTool');allowed.add('rejectCommandRepair');allowed.add('cancelProposal');allowed.add('gitAvailability');allowed.add('conversationHistory');allowed.add('usage');for(const method of ['setAfterEditCheck','retryAfterEditCheck','startSideTask','dismissSideTask','markTaskRead','archiveTask','setAutoArchiveDays','setPinnedTasks'])allowed.add(method);allowed.add('editorSource');allowed.add('regenerateAnswer');allowed.add('skillTrash');
     if (method === 'poll') { this.ready(); return this.processes.poll(args.id); }
     if (method === 'stop') { this.ready(); return this.processes.stop(args.id); }
     if (method === 'events') { this.ready(); return this.store.events(args.after); }
     if ((!allowed.has(method)&&!['workspaceChanges','appliedFileSummary'].includes(method)) || typeof this[method] !== 'function') fail('method_invalid');
     return method==='open'?this.open(args.root,{kind:args.kind,initializeWiki:args.initializeWiki,exactRoot:args.exactRoot,sourceKind:args.sourceKind}):this[method](args);
   }
-  dispose() { disposeEditorLink(this);disposeEditors(this);disposeNativeOffice(this);void disposeDevelopmentBrowser(this).catch(()=>{});this.chatDocumentReading?.abort();void this.mcpInstance?.dispose();this.usageLedger?.close(); this.wikiInitController?.abort(); this.wikiUpdateRun?.controller.abort(); this.wikiRefreshJob?.controller.abort(); this.localPerception?.dispose();this.marketplaceController?.abort();this.marketplaceToken=null;this.marketplaceConnected=false;this.marketplaceCatalog=null;this.personalMail?.dispose();this.computerPointer?.dispose();this.computerLauncher?.dispose?.();this.computerAdapter?.dispose?.();void this.collaborationServer?.close();this.disposed=true;this.recoveryQueue?.clear();this.databaseWorker?.terminate(); this.databaseConnections?.clear(); this.knowledge?.server.close(); for(const run of this.agentRuns?.values()||[])run.controller?.abort();this.lastAgent?.controller?.abort(); this.providers?.dispose(); for(const entry of this.fabrixTests?.values()||[])entry.provider.dispose();this.fabrixTests?.clear(); this.processes?.dispose(); }
+  dispose() { this.viewingTaskId=null;disposeEditorLink(this);disposeEditors(this);disposeNativeOffice(this);void disposeDevelopmentBrowser(this).catch(()=>{});this.chatDocumentReading?.abort();void this.mcpInstance?.dispose();this.usageLedger?.close(); this.wikiInitController?.abort(); this.wikiUpdateRun?.controller.abort(); this.wikiRefreshJob?.controller.abort(); this.localPerception?.dispose();this.marketplaceController?.abort();this.marketplaceToken=null;this.marketplaceConnected=false;this.marketplaceCatalog=null;this.personalMail?.dispose();this.computerPointer?.dispose();this.computerLauncher?.dispose?.();this.computerAdapter?.dispose?.();void this.collaborationServer?.close();this.disposed=true;this.recoveryQueue?.clear();this.databaseWorker?.terminate(); this.databaseConnections?.clear(); this.knowledge?.server.close(); for(const run of this.agentRuns?.values()||[])run.controller?.abort();this.lastAgent?.controller?.abort(); this.providers?.dispose(); for(const entry of this.fabrixTests?.values()||[])entry.provider.dispose();this.fabrixTests?.clear(); this.processes?.dispose(); }
 }
 
 installDesktopFeatures(ProjectService);

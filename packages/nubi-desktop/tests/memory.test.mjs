@@ -47,3 +47,8 @@ test('the renderer method lists, deletes, undoes one run and switches the featur
   await assert.rejects(api.call(service,{action:'bogus'}),/memory_action/);
   assert(!Object.hasOwn((await api.call(service)),'print'));
 });
+
+test('F15 memory and export share Korean access-key and provider-key detection',()=>{
+ for(const value of ['DB 비밀번호는 Qwerty!234','접속키는 AKIAEXAMPLE1234567890','sk-abcdefghijklmnop1234','ghp_abcdefghijklmnop1234'])assert.equal(secretLike(value),true);
+ assert.equal(secretLike('결과 보고서를 작성합니다'),false);
+});

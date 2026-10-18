@@ -1,3 +1,4 @@
+import {IrreversibleNotice} from './IrreversibleNotice.jsx';
 import React,{useState} from 'react';
 import {CxButton,Icon} from '@e2e/cx-design-system';
 import {TerminalBlock} from './TerminalBlock.jsx';
@@ -31,12 +32,13 @@ export function SetupActions({actions,proposals=[],processes=[],latest=null,prof
   const state=commandRecordStatus(action,process);
   return <section key={action.id} className="nubi-setup-summary" aria-label="실행 준비 승인">
    {pending?<DecisionPrompt inline id={action.id} title={input?'실행 중인 프로그램에 입력할까요?':'이 명령을 실행할까요?'} summary={action.title} icon="terminal" blocked={disabled||waiting}>
-    <p className="nubi-decision-reason">{action.reason}</p>
+    <p className="nubi-decision-reason">{action.reason}</p><IrreversibleNotice value={action.irreversible}/>
+    {action.manifestChanged&&<p className="nubi-action-effect">방금 반영한 변경이 package.json 또는 검사 실행 파일을 바꿔서 확인이 필요해요.</p>}
     {input&&<TerminalBlock profile={action.profile} workspace={action.inputTarget?.cwd} command={action.inputTarget?.command} label="입력받을 프로그램"/>}
     <TerminalBlock inputText={input} profile={action.profile} workspace={action.workspace} command={input?JSON.stringify(action.script):action.script} label={input?'보낼 입력':'실행할 명령'}/>
     <p className="nubi-action-effect"><strong>예상 변경</strong> {action.effects}</p>
     {admin?<p className="nubi-action-warning"><Icon name="alertCircle" size={18}/><span><strong>관리자 권한 필요</strong> {action.privilegeReason} 승인 후 Windows UAC에서 확인해 주세요. 이미 시작한 작업은 중지를 보장할 수 없습니다.</span></p>:<p className="nubi-decision-scope">{input?'현재 질문에 이 입력을 한 번 보냅니다. 출력이 바뀌면 다시 확인합니다.':'현재 사용자 권한으로 실행하며 명령에 따라 프로젝트 밖에도 영향을 줄 수 있습니다.'}</p>}
-    <ApprovalBar approveLabel={input?'입력 승인':admin?'관리자 실행 승인':'실행 승인'} rejectLabel="취소" disabled={disabled} approveDisabled={waiting} onApprove={()=>onDecision(action,'approve')} onReject={()=>onDecision(action,'reject')} onAlways={!input&&!admin&&onAlways?()=>onAlways(action):undefined}/>
+    <ApprovalBar approveLabel={input?'입력 승인':admin?'관리자 실행 승인':'승인'} rejectLabel="취소" disabled={disabled} approveDisabled={waiting} onApprove={()=>onDecision(action,'approve')} onReject={()=>onDecision(action,'reject')} onAlways={!input&&!admin&&onAlways?()=>onAlways(action):undefined}/>
    </DecisionPrompt>:<CommandRecord action={action} process={process} state={state} profiles={profiles} onOpenTerminal={onOpenTerminal} onStop={onStop}/>}
 
    {waiting&&pending&&<p className="nubi-muted">수정안을 반영하면 실행할 수 있어요.</p>}

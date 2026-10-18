@@ -93,3 +93,17 @@ test('saved answers notify from foreground and background services without repla
  assert.equal(notices[0].projectId,service.projectId);assert.equal(notices[1].projectId,pool.current.projectId);
  await pool.invoke('state');await open(a);await pool.invoke('overview');assert.equal(notices.length,2);
 });
+
+test('switching projects clears foreground conversation even if the previous renderer cleanup arrives late',async t=>{
+ const {a,b,service,pool,open}=await fixture(t);await open(a);const task=await service.createTask({request:'Viewed answer'});
+ await pool.invoke('markTaskRead',{projectId:service.projectId,taskId:task.id});assert.equal(service.viewingTaskId,task.id);
+ await open(b);assert.equal(service.viewingTaskId,null);
+ await assert.rejects(pool.invoke('markTaskRead',{projectId:service.projectId,taskId:null}),/project_changed/);
+ assert.equal(pool.current.viewingTaskId,null);
+});
+
+test('routine target reopens a saved project without selecting it and rejects a changed root identity',async t=>{
+ const {a,b,pool,open}=await fixture(t);const first=await open(a),owner=pool.current;const {hash}=await import('../runtime/files.mjs');
+ const target=await pool.service({id:hash(b).slice(7,31),root:b});assert.equal(pool.current,owner);assert.equal(pool.current.projectId,first.projectId);assert.equal(target.root,b);assert.equal(await pool.service({id:target.projectId,root:b}),target);
+ await assert.rejects(pool.service({id:'wrong',root:b}),/project_changed/);assert.equal(pool.current,owner);
+});

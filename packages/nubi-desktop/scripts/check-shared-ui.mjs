@@ -211,7 +211,7 @@ try{
  await p.goto(page('command=1'));
  await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/무료 배송 기준을 고치고/}).click();
  const checkCard=p.getByRole('region',{name:'실행 준비 승인',exact:true});await checkCard.waitFor();
- assert.equal(await checkCard.getByRole('button',{name:'실행 승인',exact:true}).isDisabled(),true);assert.equal(await p.getByRole('dialog',{name:'이 명령을 실행할까요?',exact:true}).count(),0);
+ assert.equal(await checkCard.getByRole('button',{name:'승인',exact:true}).isDisabled(),true);assert.equal(await p.getByRole('dialog',{name:'이 명령을 실행할까요?',exact:true}).count(),0);
  await checkCard.getByText('수정안을 반영하면 실행할 수 있어요.',{exact:true}).waitFor();await checkCard.screenshot({path:'verification/ui-command-waits-for-fix.png'});
  await p.locator('.nubi-proposal-card').getByRole('button',{name:'반영',exact:true}).click();
  assert.equal(await p.getByRole('dialog',{name:'이 명령을 실행할까요?',exact:true}).count(),0,'unblocked approval waits for an explicit open');
@@ -429,6 +429,9 @@ try{
  assert(actionBoxes.every(r=>r.width>=44&&r.height>=44&&!r.text&&r.title),'icon actions retain usable targets and tooltips');
  await p.screenshot({path:'verification/ui-conversation-actions-inline.png',animations:'disabled'});
  await p.keyboard.press('ArrowRight');assert.match(await p.evaluate(()=>document.activeElement.getAttribute('aria-label')),/고정/);
+ await p.keyboard.press('ArrowRight');assert.match(await p.evaluate(()=>document.activeElement.getAttribute('aria-label')),/보관/);
+ await p.keyboard.press('ArrowRight');assert.match(await p.evaluate(()=>document.activeElement.getAttribute('aria-label')),/사용량/);
+ await p.keyboard.press('ArrowRight');assert.match(await p.evaluate(()=>document.activeElement.getAttribute('aria-label')),/Markdown으로 내보내기/);
  await p.keyboard.press('ArrowRight');assert.match(await p.evaluate(()=>document.activeElement.getAttribute('aria-label')),/삭제/);
  await p.keyboard.press('Escape');assert.equal(await actionPanel.isVisible(),false);assert.equal(await menuRow.locator('summary').evaluate(e=>e===document.activeElement),true);
  await menuRow.locator('summary').click();await menuRow.locator('summary').click();assert.equal(await actionPanel.isVisible(),false,'reclick closes without native light-dismiss reopening');await menuRow.locator('summary').click();await p.getByRole('textbox',{name:'작업 요청'}).click();assert.equal(await actionPanel.isVisible(),false);

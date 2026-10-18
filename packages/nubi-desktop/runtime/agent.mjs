@@ -1,3 +1,10 @@
+const REJECTION_INSTRUCTIONS={"output_invalid": "파일이나 캡처가 존재하는지 확인한 뒤 다시 요청하세요.", "output_outside": "현재 프로젝트 안에서 관찰한 파일 경로를 사용하세요.", "output_card_limit": "이번 실행의 산출물 카드 한도에 도달했으니 추가 등록을 멈추세요.", "side_task_invalid": "파일 경로와 기대 결과가 있는 독립적인 작업 설명을 제공하세요.", "side_task_limit": "이번 실행의 곁가지 작업 한도에 도달했으니 추가 제안을 멈추세요.", "side_task_missing": "현재 대화에 남아 있는 작업 제안 ID를 확인하세요.", "side_task_state": "이미 처리한 제안이므로 같은 동작을 반복하지 마세요."};
+import {realpath} from 'node:fs/promises';
+import path from 'node:path';
+import {createResearchAgent,createWorkerScheduler,RESEARCH_TOOLS} from './research-agent.mjs';
+import {markUnread} from './conversation-archive.mjs';
+import {proposeSideTask,mergeSideTasks} from './side-tasks.mjs';
+import {registerOutput} from './output-files.mjs';
 import {addChapter} from './chapters.mjs';
 import {DOCUMENT_CONSISTENCY_TOOL,compareDocumentValues} from './document-consistency.mjs';
 import {rememberBrowserScreen,learnBrowserScreen,answerBrowserScreen} from './browser-agent-host.mjs';
@@ -50,8 +57,9 @@ import {storeCaptures,readCapture,storeAgentCapture} from './captures.mjs';
 import {validateDocuments,mergeDocuments,readChatDocument} from './chat-documents.mjs';
 import {TOOL_RULES,LEAN_TOOL_RULES} from './tool-rules.mjs';
 import {installRecovery,modelTransport,boundedRead,READ_TOOLS,beginOperation,endOperation,recoveryCode} from './recovery.mjs';
-import {installMemory,memoryStores,memoryEnabled,listMemories,rankMemories,memoryGuidance,rememberExchange} from './memory.mjs';
+import {installMemory,memoryStores,memoryEnabled,listMemories,rankMemories,memoryGuidance,rememberExchange,memoryRequest} from './memory.mjs';
 import {installApprovalPolicy,approvalPolicy,mcpToolAllowed,allowMcpTool} from './approval-policy.mjs';
+import {irreversibleMcpTool} from './irreversible-actions.mjs';
 import {installMcp,parseMcpToolName} from './mcp.mjs';
 import {normalizeSearchArgs} from './search-args.mjs';
 import {runAgent,progressTools} from '../../../extensions/aipro-chat/agent-runtime.js';
@@ -94,19 +102,47 @@ const ACTION_TOOLS=new Set(['propose_patch','propose_edit','propose_new_file','p
 // Shared tool definitions (analysis, OpenWiki, documents) keep their long descriptions for the browser; Desktop shows a
 // sentence and keeps the rules in TOOL_RULES (bundle 2.2, 2026-10-15). Names, parameters and required stay the same.
 const FULL_DESCRIPTION_OVERRIDES={
-  update_plan:"Set 1-5 steps with intent, expected outcomes and current status.",
-  ask_openwiki:"Delegate a synthesis or how/why question to OpenWiki; it researches openwiki/ separately.",
-  compare_document_values:"Compare exact numeric ranges in 2-12 identified document snapshots or project text files.",
-  learn_browser_screen:"Learn this authorized screen, asking a grounded question only when its business meaning is unclear.",
-  remember_browser_screen:"Remember authorized screen structure for later matching screens.",
-  inspect_environment:"Inspect project manifests and available host tools.",
-  code_outline:"List declarations and imports without file bodies.",
-  inspect_path:"Check a new path, parent and scoped project rules.",
+  source_search:"Exact text search; use ask_openwiki for concepts.",
+  knowledge_query:"Find concept and source relations.",
+  spawn_task:"Offer a confirmed out-of-scope task.",
+  mark_chapter:"Mark a phase change.",
+  send_file:"Attach a result file or capture.",
+  inspect_workspace_changes:"Read Git status or a bounded diff.",
+  read_analysis_handoff:"Read a saved analyst handoff without restarting it.",
+  propose_setup_action:"Prepare an exact command for approval.",
+  delegate_research:"Investigate scoped sources in a read-only worker.",
+  continue_research:"Follow up with an existing research worker.",
+  analyze_documents:"Analyze bounded text files with read-only workers.",
+  read_attached_document:"Read a bounded attached-document range.",
+  delegate_analysis:"Delegate isolated analysis of frozen evidence.",
+  update_wiki:"Refresh OpenWiki on the user's request.",
+  read_personal_mail:"Read one local mail or its attachment by id.",
+  personal_mail_query:"Search local mail and Personal Wiki.",
+  discover_capabilities:"Find skill metadata and host workflows.",
+  collect_analysis:"Collect finished or historical analyst reports.",
+  recovery_snapshot:"Inspect saved host state before recovery.",
+  compare_local_pages:"Compare two observed localhost pages.",
+  propose_command_repair:"Propose a corrected failed command for review.",
+  read_skill:"Read skill instructions or resources.",
+  use_skill:"Activate a discovered skill.",
+  list_skill_resources:"List activated skill resources.",
+  read_conversation:"Read original task messages after compaction.",
+  wiki_query:"Search Wiki excerpts and evidenceIds.",
+  mail_facts:"Find dated, quoted mail facts with sources.",
+  read_document_analysis:"Read saved analysis or excerpts.",
+  update_plan:"Set intent, outcome steps and status.",
+  ask_openwiki:"Delegate synthesis or how/why research; it researches openwiki/ separately.",
+  compare_document_values:"Compare exact numeric source ranges.",
+  learn_browser_screen:"Learn authorized screen structure and meaning.",
+  remember_browser_screen:"Remember authorized screen structure.",
+  inspect_environment:"Inspect manifests and host tools.",
+  code_outline:"List declarations and imports.",
+  inspect_path:"Inspect a new path and rules.",
   propose_new_file:"Propose a new text file for review.",
   propose_patch:"Propose exact replacements in freshly read ranges.",
   propose_edit:"Propose a whole-file edit for review.",
   read_source:"Read source lines with their hash and nextStart.",
-  record_change_plan:"Record requirements, targets and checks before editing.",
+  record_change_plan:"Record the change plan.",
   read_process_output:"Read or search a process log by processId.",
 };
 const DESCRIPTION_OVERRIDES={
@@ -184,7 +220,7 @@ export function staleProposals(task,proposals) {
   const list=proposals.map(({id,path,state,expectedHash,afterHash,createdAt,appliedAt})=>({id,path,state,expectedHash,afterHash,createdAt,appliedAt,...(spoken&&state==='proposed'&&createdAt<spoken?{beforeLatestUserMessage:true}:{})}));
   return {proposals:list,...(list.some(item=>item.beforeLatestUserMessage)?{proposalNote:'Proposals marked beforeLatestUserMessage were prepared before the latest user message. Propose again when that message changes what they do; an unchanged one still waits for the user.'}:{})};
 }
-const READ_TOGETHER=new Set(['mark_chapter','read_attached_document','personal_mail_query','read_personal_mail','read_source','source_search','wiki_query','code_outline','inspect_path','inspect_environment','inspect_workspace_changes','read_conversation','read_process_output','inspect_dev_server','inspect_code','read_document_analysis','knowledge_query']);
+const READ_TOGETHER=new Set(['spawn_task','dismiss_task','mark_chapter','send_file','read_attached_document','personal_mail_query','read_personal_mail','read_source','source_search','wiki_query','code_outline','inspect_path','inspect_environment','inspect_workspace_changes','read_conversation','read_process_output','inspect_dev_server','inspect_code','read_document_analysis','knowledge_query']);
 const ASK_OPENWIKI='Delegate a synthesis or how/why question to OpenWiki. It researches openwiki/ separately and returns sources and gaps. Simple documented facts can use wiki_query/current pages directly. Use the Wiki language (wiki.language). Default to targeted search; exhaustive review is only for an explicit whole-Wiki request and costs many calls. Wiki may be stale (wiki.updatedAt) or omit code details: check current source when the claim needs it or evidence is missing.';
 export function installAgent(ProjectService) {
   installMemory(ProjectService);
@@ -280,7 +316,9 @@ export function installAgent(ProjectService) {
     // OpenWiki agent in its own context and this host supplies the Wiki pages.
     // The name and arguments stay shared; the wording names this host's one Wiki.
     const wikiTools=openWikiTools({external:!!wiki}).map(item=>({...item,function:{...item.function,description:ASK_OPENWIKI,parameters:{...item.function.parameters,properties:{...item.function.parameters.properties,restart_research:{type:'boolean',description:'Discard the saved research and start again after the Wiki changed.'}}}}}));
+    const analysisScheduler=createWorkerScheduler(),researchSignals=new WeakSet();
     let tools = [
+      ...RESEARCH_TOOLS,
       DOCUMENT_TOOL,
       tool('read_attached_document','Read a token-bounded original range of selectedDocuments by id/sourceHash; follow nextOffset. Segment positions refer to this single body; unlocated segments are unverified.',{id:string(80),sourceHash:string(100),offset:{type:'integer',minimum:0},limit:{type:'integer',minimum:1,maximum:12000},segmentIndex:{type:'integer',minimum:0,description:'Segment-local offsets; source location unverified.'}},['id','sourceHash']),
       ...(this.openWorkspacePage?[tool('open_workspace_page','Open an HTTP(S) page through the existing Browser Agent and host approval. Read fresh DOM before interaction. No secrets in the URL.',{url:string(2048)},['url']),...(this.captureWorkspacePage?[tool('inspect_workspace_page','Screenshot the active Workspace browser tab; an image model answers your question about it.',{...CAPTURE_OPTIONS,question:{type:'string',minLength:1,maxLength:400,description:'What to check or describe on the page.'}},['question'])]:[]),...(this.captureWorkspaceWindow?[tool('inspect_workspace_window','Screenshot this Nubi app window (not the desktop); an image model answers your question about what it shows.',{...CAPTURE_OPTIONS,question:{type:'string',minLength:1,maxLength:400}},['question'])]:[])]:[]),
@@ -290,6 +328,9 @@ export function installAgent(ProjectService) {
       ...wikiTools,
       tool('inspect_environment','Read project manifests, lockfiles, scripts and host tools before proposing setup.',{directory:string(1000)},[]),
       tool('read_document_analysis','Read saved analysis by id, or one excerpt by evidenceId. Historical, task-scoped.',{id:string(80),evidenceId:string(200)},['id']),
+      tool('spawn_task','Offer confirmed out-of-scope work with a verb title, plain tldr and standalone prompt.',{title:string(60),tldr:string(240),prompt:{type:'string',minLength:200,maxLength:4000}}),
+      tool('dismiss_task','Withdraw a side-task chip fixed in this run.',{id:string(80)}),
+      tool('send_file','Attach a produced project file or host capture as a result card.',{path:string(1000),captureId:string(36),caption:string(160)},[]),
       tool('mark_chapter','Start a chapter at a phase change with a short title and one-line summary.',{title:string(40),summary:string(200)},['title']),
       {type:'function',function:{name:'update_plan',description:'Set 1-5 steps: intent and one in_progress initially; all completed allowed later. Independent review verifies outcomes.',parameters:WORK_PLAN_SCHEMA}},
       tool('discover_capabilities','Find project SKILL.md metadata and host workflows for a short query (empty query browses eight at a time).',{query:string(300),offset:{type:'integer',minimum:0}},[]),
@@ -486,12 +527,13 @@ export function installAgent(ProjectService) {
     };
     // After a compaction the gauge shows the compacted size until the next answer is counted.
     const rememberCompaction=(summary,trigger)=>{metrics.compaction({trigger,beforeTokens:summary.beforeTokens,afterTokens:summary.afterTokens});const at=new Date().toISOString();task.context={...task.context,phase:'ready',status:'completed',compactions:(task.context?.compactions||0)+1,beforeTokens:summary.beforeTokens,afterTokens:summary.afterTokens,estimated:true,at,...(Number.isSafeInteger(summary.afterTokens)?{usage:gauge(null,()=>summary.afterTokens,at,'compaction')}:{})};persistTask();};
-    const persistTask = () => { const current = this.task(taskId); for (const key of ['state','question','error','messages','chapters','trace','sources','evidenceCount','changePlan','questionHistory','checkpoint','recovery','context','resultReview','reviewDraft','workPlan','activityHistory','documentAnalysis','computerConnectionRequest','peerWait','peerFacts','responseTiming','mailReferences','documentReferences','replyRegeneration','thoughts','runBudget','pendingMcp','mcpApprovals','mcpContinuation']) if (key in task) current[key] = task[key]; this.store.set('task:'+taskId,current); };
+    const persistTask = () => { const current = this.task(taskId); for (const key of ['state','question','error','messages','chapters','outputs','trace','sources','evidenceCount','changePlan','questionHistory','checkpoint','recovery','context','resultReview','reviewDraft','workPlan','activityHistory','documentAnalysis','computerConnectionRequest','peerWait','peerFacts','responseTiming','mailReferences','documentReferences','replyRegeneration','thoughts','runBudget','pendingMcp','mcpApprovals','mcpContinuation']) if (key in task) current[key] = task[key]; if(task.sideTasks||current.sideTasks)current.sideTasks=task.sideTasks=mergeSideTasks(current.sideTasks,task.sideTasks); this.store.set('task:'+taskId,current); };
     const showQuestion=question=>{
       const at=new Date().toISOString(),called=this.providers.status();
       task.question={...question,runId};
       task.messages.push({id:randomUUID(),runId,questionId:question.id,role:'assistant',content:question.text,at,modelId:called.model,modelName:called.models?.find(model=>model.id===called.model)?.label||called.model});
       persistTask();
+      markUnread(this.store,taskId,{viewing:this.viewingTaskId});
     };
     task.messages ||= []; task.trace ||= []; task.runBudget=null;
     // Screenshots attached to this message (user request 2026-10-14): a queued message brought its own, a direct one
@@ -530,7 +572,7 @@ export function installAgent(ProjectService) {
     if(task.context)task.context={...task.context,phase:'ready'};
     if(computerConnectionRequestId)task.computerConnectionRequest={...task.computerConnectionRequest,draft:undefined,state:computerConnectionAnswer===undefined?'resolved':'answered',...(computerConnectionAnswer===undefined?{}:{answer:{text:answer,at:new Date().toISOString()}}),finishedAt:new Date().toISOString()};
     if(recoveryProcessId){const record=this.store.get('process:'+recoveryProcessId);this.store.set('process:'+recoveryProcessId,{...record,recoveryState:'diagnosing'});}
-    task.state = 'running'; task.question = null; task.error = null; task.recovery={state:'checking',...(recoveryProcessId?{processId:recoveryProcessId}:{})};task.checkpoint={runId,inputChain:this.agent.inputChain,phase:'model',at:new Date().toISOString()};persistTask();
+    this.store.set('task:'+taskId,{...this.task(taskId),updatedAt:new Date().toISOString()});task.state = 'running'; task.question = null; task.error = null; task.recovery={state:'checking',...(recoveryProcessId?{processId:recoveryProcessId}:{})};task.checkpoint={runId,inputChain:this.agent.inputChain,phase:'model',at:new Date().toISOString()};persistTask();
     const evidence = [],leaderEvidence=[];
     const operation = async (name, args, childSignal) => {
       let result;
@@ -545,7 +587,7 @@ export function installAgent(ProjectService) {
       // The shared analysis coordinator passes a child signal only for its
       // project reads. Keep write/plan/question authority and edit observations
       // with the leader even if the advertised child tool set ever changes.
-      if(childSignal&&!['source_search','read_source','wiki_query'].includes(name))return {ok:false,error:'tools_unavailable'};
+      if(childSignal&&!['source_search','read_source','wiki_query',...(researchSignals.has(childSignal)?['personal_mail_query','read_personal_mail']:[])].includes(name))return {ok:false,error:'tools_unavailable'};
       if(!childSignal&&!CAPABILITY_DISCOVERY_TOOLS.has(name)&&!['ask_user','update_plan'].includes(name)&&task.workPlan?.runId!==runId&&!mcpDispatching)return {ok:false,error:'work_plan_required',instruction:'Call update_plan before any project operation.'};
       if(task.question||pendingComputerConnection(task))return {requiresUserInput:true,instruction:'Wait for the user answer. No further operations are allowed in this run.'};
       if(waitingPeer())return {waitingForPeer:true,instruction:'Wait for the connected Nubi app: its result continues this conversation. No further operations are allowed in this run.'};
@@ -563,7 +605,18 @@ export function installAgent(ProjectService) {
         if(pending.length)return {ok:false,error:'selected_skill_required',actionIssued:false,skills:pending.map(path=>skills.skills.find(s=>s.path===path)||{path,unavailable:true}),instruction:'Load the skills you selected with use_skill and finish their main instructions with read_skill nextOffset before project work. Refresh discovery or revise the plan if a selected skill is unavailable or irrelevant. No project action was issued.'};
         if(selectedSkillPaths.length){const rootForSkills=this.root;for(const path of selectedSkillPaths)await read(()=>readSkill(rootForSkills,skills,{path,expectedHash:loadedSkills.get(path).hash}));}
       }
+      if(name==='delegate_research'||name==='continue_research'){
+        try{return await research[name==='delegate_research'?'delegate':'continue'](args);}catch(error){if(controller.signal.aborted)throw error;return {ok:false,error:/^research_[a-z_]+$/.test(error.message)?error.message:recoveryCode(error),advisory:true};}
+      }
       if(name==='mark_chapter'){const row=addChapter(task,{...args,runId});persistTask();result={ok:true,chapter:{id:row.id,title:row.title}};}
+      else if(['spawn_task','dismiss_task','send_file'].includes(name)){
+        try{
+          if(name==='spawn_task'){const chip=proposeSideTask(task,{...args,runId});result={ok:true,chip:{id:chip.id,title:chip.title}};}
+          else if(name==='dismiss_task')result={ok:true,...this.dismissSideTask({taskId,sideTaskId:args.id,runId})};
+          else{const card=await registerOutput({root:await this.target(taskId),store:this.store},task,{...args,runId});result={ok:true,card:{id:card.id,...(card.captureId?{captureId:card.captureId}:{path:card.path})}};}
+          persistTask();
+        }catch(error){const instructions=REJECTION_INSTRUCTIONS;if(!Object.hasOwn(instructions,error.message))throw error;result={ok:false,error:error.message,actionIssued:false,instruction:instructions[error.message]};}
+      }
       else if(name==='update_plan'){const initial=task.workPlan?.runId!==runId,steps=workPlanSteps(args,{initial});const intent=args.intent?workIntent(args.intent,{...capabilityContext(),skills:skills.skills}):initial?workIntent(undefined,capabilityContext()):task.workPlan.intent;const before=initial?[]:task.workPlan?.steps||[],updates=task.workPlan?.updates||[];task.workPlan={intent,runId,updates:[...updates,{runId,revision:(task.workPlan?.revision||0)+1,before,after:steps,reason:args.explanation||'',at:new Date().toISOString()}].slice(-20),revision:(task.workPlan?.revision||0)+1,steps,at:new Date().toISOString()};persistTask();result={ok:true,plan:steps,intent,instruction:'Intent is a provisional interpretation, not permission or execution evidence. Load selected skills before using them; preserve literal requests and later answers.'};}
       else if(name==='compare_document_values')result=await compareDocumentValues(this,task,args,signal);
       else if(name==='read_attached_document')result=await read(()=>readChatDocument(this,{...args,...readRoom()},task));
@@ -576,6 +629,7 @@ export function installAgent(ProjectService) {
         if(args.attachmentId&&selected.some(item=>item.attachmentId)&&!selected.some(item=>!item.attachmentId||item.attachmentId===args.attachmentId))throw Error('mail_scope');
         if(!DESKTOP_FEATURES.mailAttachmentReading&&selected.some(item=>item.attachmentId))throw Error('mail_attachment_beta_disabled');
         const references=selected.length?selected:[{id:value.id,sourceHash:value.sourceHash,title:value.mail.subject,from:value.mail.from,date:value.mail.date}];
+        if(researchSignals.has(childSignal)){const {subject,from,to,cc,date,text}=value.mail;return {id:value.id,sourceHash:value.sourceHash,mail:{subject,from,to,cc,date,text},scope:'mail_body_only'};}
         for(const reference of references)readMailSources.set(`${reference.id}:${reference.attachmentId||''}:${JSON.stringify(reference.location||{})}`,reference);
         return await readMailAttachmentsForAgent(this,value,args.attachmentId?[{attachmentId:args.attachmentId}]:selected,signal,{offset:args.offset||0});
       });
@@ -632,7 +686,7 @@ export function installAgent(ProjectService) {
       else if(name==='propose_computer_batch'){if(!computerReads.has(args?.observationId))throw new Error('computer_observation_stale');result={...await proposeComputerBatch(this,taskId,args,observations),requiresUserInput:true};}
       else if(name==='read_document_analysis'){const record=this.store.get('document-analysis:'+args.id);if(record?.taskId!==taskId)throw Error('document_result_unavailable');result=documentAnalysisResult(record,args.evidenceId);}
       else if(name==='ask_openwiki')result=await read(async()=>wikiSnapshot({root:await this.target(taskId),pages:await wikiPages(await this.target(taskId)),projectId:this.projectId,signal}));
-      else if(name==='analyze_documents')result=await analyzeWorkspaceDocuments({root:await this.target(taskId),args,signal,modelId:this.providers.status().model,complete:(wire,definitions,scope)=>invokeModel(wire,definitions,scope.signal,'document'),taskId,runId,store:this.store,onRecord:record=>{const {result,...progress}=record;task.documentAnalysis=structuredClone(progress);persistTask();}});
+      else if(name==='analyze_documents')result=await analyzeWorkspaceDocuments({root:await this.target(taskId),args,signal,scheduler:analysisScheduler,modelId:this.providers.status().model,complete:(wire,definitions,scope)=>invokeModel(wire,definitions,scope.signal,'document'),taskId,runId,store:this.store,onRecord:record=>{const {result,...progress}=record;task.documentAnalysis=structuredClone(progress);persistTask();}});
       else if (name === 'source_search') result = await read(()=>this.search({...normalizeSearchArgs(args), taskId,signal}));
       else if (name === 'inspect_workspace_changes') result = await read(()=>inspectWorkspaceChanges(this,{...args,taskId}));
       else if (name === 'code_outline') result = await read(()=>this.codeOutline({...args,taskId,signal}));
@@ -680,11 +734,12 @@ export function installAgent(ProjectService) {
         const fingerprint=registry.fingerprint(name,args);
         if(mcpReceipt?.fingerprint===fingerprint)return {...mcpReceipt.result,reusedReceipt:true,instruction:'This exact approved call already finished or was cancelled. Use this receipt; do not replay the action.'};
         // Read-only tools run; others need the user's answer once per call, or an "always allow" for the server's tool.
-        const allowed=mcpDispatching&&mcpContinuation?.fingerprint===fingerprint||found.readOnly||mcpToolAllowed(approvalPolicy(this.store),{serverId:found.serverId,tool:found.tool.name})||(task.mcpApprovals||[]).includes(fingerprint);
+        const irreversible=irreversibleMcpTool(found.tool,{serverId:found.serverId}),savedAllowance=mcpToolAllowed(approvalPolicy(this.store),{serverId:found.serverId,tool:found.tool.name});
+        const allowed=mcpDispatching&&mcpContinuation?.fingerprint===fingerprint||found.readOnly||(savedAllowance&&!irreversible.matched)||(task.mcpApprovals||[]).includes(fingerprint);
         if(!found.readOnly&&!(mcpDispatching&&mcpContinuation?.fingerprint===fingerprint))await prepareDevelopmentBrowserCall(this,{taskId,name,args:args??{},signal:childSignal||signal});
         if(!allowed){
-          task.pendingMcp={name,args:args??{},fingerprint,serverId:found.serverId,tool:found.tool.name};
-          showQuestion({...makeQuestion(`${mcpToolLabel(found.serverId,found.tool.name)} 작업을 허용할까요?`,[],[],{choices:[{label:'실행',description:'표시된 인자로 이번 한 번 실행'},{label:'항상 허용',description:'이 프로젝트에서 이 도구 허용. 다른 도구는 별도 확인'},{label:'취소',description:'실행하지 않음'}],inputMode:'none',selection:'single'}),toolRequest:{serverId:found.serverId,tool:found.tool.name,arguments:toolArgumentView(args),scope:'project_tool'}});
+          task.pendingMcp={name,args:args??{},fingerprint,serverId:found.serverId,tool:found.tool.name,...(irreversible.matched?{irreversible:{reason:irreversible.reason}}:{})};
+          showQuestion({...makeQuestion(`${mcpToolLabel(found.serverId,found.tool.name)} 작업을 허용할까요?`,[],[],{choices:[{label:'실행',description:'표시된 인자로 이번 한 번 실행'},...(!irreversible.matched?[{label:'항상 허용',description:'이 프로젝트에서 이 도구 허용. 다른 도구는 별도 확인'}]:[]),{label:'취소',description:'실행하지 않음'}],inputMode:'none',selection:'single'}),toolRequest:{serverId:found.serverId,tool:found.tool.name,arguments:toolArgumentView(args),scope:irreversible.matched?'once':'project_tool',...(irreversible.matched?{irreversible:{reason:irreversible.reason},alwaysAllowIgnored:savedAllowance}:{})}});
           result={requiresUserInput:true};
         }else{
           task.mcpApprovals=(task.mcpApprovals||[]).filter(value=>value!==fingerprint);persistTask();
@@ -723,6 +778,7 @@ export function installAgent(ProjectService) {
       // The pages supplied to the OpenWiki agent are its input. Its answer is recorded when it returns.
       if(name==='ask_openwiki')return result;
       if(COMPUTER_TOOL_NAMES.has(name)&&result?.image&&this.providers.status().vision===false){const {image,...metadata}=result;result={...metadata,imageStatus:'not_sent_model_image_support_unconfirmed',instruction:(result.instruction||'')+' The capture stays in the host. Use ground_computer_target to analyze it with an image-capable model from this login, or the optional local parser. This main model receives structured UIA data only.'};}
+      if(researchSignals.has(childSignal))return result;
       result=answerSources.annotate(name,result);
       evidence.push({tool: name, result});if(!childSignal&&name!=='update_plan')leaderEvidence.push({tool:name,result,observedAt:new Date().toISOString()}); return result;
     };
@@ -754,9 +810,13 @@ export function installAgent(ProjectService) {
       const pending=operation(name,args);this.unsettledOperations ||=new Set();
       if(ACTION_TOOLS.has(name))actionsIssued=true;
       if(!READ_TOOLS.has(name)){this.unsettledOperations.add(item.id);pending.finally(()=>this.unsettledOperations.delete(item.id)).catch(()=>{});}
-      try{const result=name==='analyze_documents'?await pending:await boundedRead(()=>pending,{signal:controller.signal,timeoutMs:this.recoveryOptions?.operationTimeoutMs||60000});if(name!=='ask_openwiki')spent+=contextTokens([{role:'tool',content:JSON.stringify(result??null)}]);toolRecovery.observe(name,args,result);measured.end(name==='ask_openwiki'&&Array.isArray(result?.documents)?{documents:result.documents.length}:result);endOperation(this,item,result);task.checkpoint={runId,inputChain:this.agent.inputChain,phase:'model',operationId:item.id,tool:name,state:item.state,at:item.finishedAt};persistTask();return result;}
+      try{const result=['analyze_documents','delegate_research','continue_research'].includes(name)?await pending:await boundedRead(()=>pending,{signal:controller.signal,timeoutMs:this.recoveryOptions?.operationTimeoutMs||60000});if(name!=='ask_openwiki')spent+=contextTokens([{role:'tool',content:JSON.stringify(result??null)}]);toolRecovery.observe(name,args,result);measured.end(name==='ask_openwiki'&&Array.isArray(result?.documents)?{documents:result.documents.length}:result);endOperation(this,item,result);task.checkpoint={runId,inputChain:this.agent.inputChain,phase:'model',operationId:item.id,tool:name,state:item.state,at:item.finishedAt};persistTask();return result;}
       catch(error){measured.fail(recoveryCode(error));if(!READ_TOOLS.has(name)&&this.unsettledOperations.has(item.id)){item.outcome='unknown';if(!controller.signal.aborted)controller.abort('tool_unsettled');}endOperation(this,item,{error:recoveryCode(error)});persistTask();throw error;}
     };
+    const research=createResearchAgent({readTools:tools,execute:(name,args,signal)=>{researchSignals.add(signal);return execute(name,args,signal);},invokeModel,scheduler:analysisScheduler,signal:controller.signal,
+      resolvePath:async relative=>(await realpath(path.resolve(await this.target(taskId),relative))).replaceAll('\\','/'),mailIds:(task.mailReferences||[]).map(item=>item.id),
+      fitResult:value=>{const room=readRoom();return !room.measure||room.measure(value)<=room.room;},
+      onProgress:entry=>{const at=new Date().toISOString();saveRoleProgress(this.store,taskId,runId,{...entry,runId,at});persistTask();}});
     const capabilityContext=()=>taskCapabilities(skills,task,commandTools(requestCommand,tools).map(t=>t.function.name));
     let continuedSkills=[],continuedSetup=[];
     if(recoveryProcessId&&!answer&&!redoRequested){
@@ -912,7 +972,8 @@ export function installAgent(ProjectService) {
           const citations=rows.map(row=>{const entry=delivered.evidence?.find(item=>item.id===row.openwikiId);if(!entry?.excerpt)return null;const offset=entry.excerptTruncated?Math.max(0,entry.excerptStart-(result.evidence.find(item=>item.id===row.openwikiId)?.start||0)):0;const start=row.provenance.start+row.excerpt.slice(0,offset).split('\n').length-1;return answerSources.file({...row,excerpt:entry.excerpt,provenance:{...row.provenance,start,end:start+entry.excerpt.split('\n').length-1}},'wiki');}).filter(Boolean);
           const sourced=citations.length?{...delivered,citations}:delivered;
           spent+=contextTokens([{role:'tool',content:JSON.stringify(sourced)}]);return sourced;
-        }, recoverToolStall:({tool,args})=>!controller.signal.aborted&&!reviewRecoveryActive&&!budget.reached()&&!commandApprovalPending&&!task.question&&!pendingComputerConnection(task)&&!waitingPeer()&&!pendingAgentInput(this,taskId)&&toolRecovery.stall(tool,args), settleAnswer:()=>toolRecovery.settle({blocked:controller.signal.aborted||reviewRecoveryActive||budget.reached()||commandApprovalPending||!!task.question||pendingComputerConnection(task)||waitingPeer()||!!pendingAgentInput(this,taskId)}), stepwise:true, harness:false, parallelReadBatches:true, readTools:READ_TOOLS, expectPlan:true, clarifyOnStall:true, compactProgress:true, readTogether:READ_TOGETHER, traceErrorCodes:['source_read_required','change_plan_required','change_scope_unplanned','change_plan_stale','project_rules_changed','parent_missing','file_exists','content_limit','proposal_invalid_syntax','quality_unavailable','input_invalid','path_scope','search_unavailable','source_missing','source_unavailable','tool_arguments_invalid','tool_timeout','project_changed','search_scope'],
+        }, recoverToolStall:({tool,args})=>!controller.signal.aborted&&!reviewRecoveryActive&&!budget.reached()&&!commandApprovalPending&&!task.question&&!pendingComputerConnection(task)&&!waitingPeer()&&!pendingAgentInput(this,taskId)&&toolRecovery.stall(tool,args), settleAnswer:()=>toolRecovery.settle({blocked:controller.signal.aborted||reviewRecoveryActive||budget.reached()||commandApprovalPending||!!task.question||pendingComputerConnection(task)||waitingPeer()||!!pendingAgentInput(this,taskId)}), stepwise:true, harness:false, parallelReadBatches:true, readTools:READ_TOOLS, expectPlan:true, clarifyOnStall:true, compactProgress:true, readTogether:READ_TOGETHER, traceErrorCodes:['output_invalid','output_outside','output_card_limit','side_task_invalid','side_task_limit','side_task_missing','side_task_state','source_read_required','change_plan_required','change_scope_unplanned','change_plan_stale','project_rules_changed','parent_missing','file_exists','content_limit','proposal_invalid_syntax','quality_unavailable','input_invalid','path_scope','search_unavailable','source_missing','source_unavailable','tool_arguments_invalid','tool_timeout','project_changed','search_scope'],
+      analysisScheduler,
       completeAnalysis: reviewRecovery?undefined:(wire, definitions, scope) => {researchBudget.admit(scope,wire);return invokeModel(wire, definitions, scope.signal, 'analysis');},
       verbatimTools:['wiki_query','ask_openwiki'], verbatimMaxChars:WIKI_VERBATIM_CHARS,
       prepareContext: async (wire,definitions) => {lastSource=structuredClone(wire);const advertised=commandTools(requestCommand,toolSet.advertised(definitions));return reobserve(await fitted(wire,false,reviewRecovery?reviewRecoveryTools(advertised):advertised));}, onStep: event => {
@@ -931,10 +992,10 @@ export function installAgent(ProjectService) {
       if(editorStatus(this,taskId).state==='attention'&&result)result.content='문서 변경 결과를 확인하지 못했어요. 같은 수정을 다시 실행하지 않았습니다. 편집기에서 현재 내용을 확인해 주세요. 저장 여부는 확인되지 않았습니다.';
       if (result?.content) { task.reviewDraft=null; const called=this.providers.status(), calledModel=called.models?.find(item=>item.id===called.model);const responseTiming=timing.finish();task.messages.push({id:randomUUID(),runId,role:'assistant',content:result.content,...(runCaptureReferences.length?{captures:runCaptureReferences}:{}),at:responseTiming.finishedAt,responseTiming,modelId:called.model,modelName:calledModel?.label||calledModel?.displayName||called.model,mailSources:[...readMailSources.values()].slice(0,20),...answerSources.finish(result.content)}); }
       // After the answer, one short model call decides what of the person's words to remember. It never delays or fails the run.
-      if(result?.content&&memoryActive&&!task.question)void (async()=>{try{const stores=memoryStores(this);const person=task.messages.filter(message=>message.role==='user').at(-1)?.content||task.request;const outcome=await rememberExchange({stores,request:person,answer:result.content,taskId,runId,invoke:(wire,definitions,signal,kind,options)=>invokeModel(wire,definitions,signal,kind,options)});if(outcome.saved.length||outcome.updated.length||outcome.deleted.length){task.memoryNotes=[...(task.memoryNotes||[]).filter(note=>note.runId!==runId).slice(-19),{runId,at:new Date().toISOString(),saved:outcome.saved.map(({id,text,scope})=>({id,text,scope})),updated:outcome.updated.map(({id,text,scope})=>({id,text,scope})),deleted:outcome.deleted}];persistTask();this.store.event('memory_saved',{taskId,runId,saved:outcome.saved.length,updated:outcome.updated.length,deleted:outcome.deleted.length});}}catch{/* Memory never blocks a run. */}})();
+      if(result?.content&&memoryActive&&!task.question&&memoryRequest(task))void (async()=>{try{const stores=memoryStores(this);const person=memoryRequest(task);const outcome=await rememberExchange({stores,request:person,answer:result.content,taskId,runId,invoke:(wire,definitions,signal,kind,options)=>invokeModel(wire,definitions,signal,kind,options)});if(outcome.saved.length||outcome.updated.length||outcome.deleted.length){task.memoryNotes=[...(task.memoryNotes||[]).filter(note=>note.runId!==runId).slice(-19),{runId,at:new Date().toISOString(),saved:outcome.saved.map(({id,text,scope})=>({id,text,scope})),updated:outcome.updated.map(({id,text,scope})=>({id,text,scope})),deleted:outcome.deleted}];persistTask();this.store.event('memory_saved',{taskId,runId,saved:outcome.saved.length,updated:outcome.updated.length,deleted:outcome.deleted.length});}}catch{/* Memory never blocks a run. */}})();
       task.state = task.question||pendingComputerConnection(task)||waitingPeer() ? 'waiting_input' : (nativeOfficeStatus(this,taskId).state==='attention'||editorStatus(this,taskId).state==='attention')?'paused':'review'; task.evidenceCount = evidence.length;task.recovery={state:task.question||pendingComputerConnection(task)||waitingPeer()?'waiting_input':'review',...(recoveryProcessId?{processId:recoveryProcessId}:{})};
     }).catch(error => { finishSummary(controller.signal.aborted?'cancelled':'failed');const cancelled=controller.signal.aborted&&controller.signal.reason!=='tool_unsettled';task.state = cancelled ? 'cancelled' : 'paused'; task.error = cancelled ? null : controller.signal.reason==='tool_unsettled'?'tool_unsettled':recoveryCode(error); if(!cancelled&&typeof error.reviewCandidate==='string'){task.reviewDraft={runId,content:error.reviewCandidate,reason:error.reviewReason||recoveryCode(error),at:new Date().toISOString()};} task.recovery={state:cancelled?'cancelled':'attention',code:task.error,at:new Date().toISOString(),...(recoveryProcessId?{processId:recoveryProcessId}:{}),...(!cancelled&&error.planningDiagnostic?{planningDiagnostic:error.planningDiagnostic}:{}),...(!cancelled&&error.apiDiagnostic?{apiDiagnostic:error.apiDiagnostic}:{})}; })
-      .finally(() => { if(redoRequested)task.replyRegeneration={...task.replyRegeneration,state:task.state==='review'?'completed':task.state};task.responseTiming={afterMessageId:task.responseTiming?.afterMessageId,...timing.finish(commandApprovalPending?'waiting_input':task.state==='review'?'completed':task.state==='waiting_input'?'waiting_input':task.state==='cancelled'?'cancelled':'interrupted'),runId};rememberActivity(task,runId);finishRoleProgress(this.store,taskId,runId,controller.signal.aborted?'cancelled':'interrupted');this.agent.streamingAnswer='';this.agent.running = false; persistTask();if(recoveryProcessId){const p=this.processes.records.get(recoveryProcessId)||this.store.get('process:'+recoveryProcessId);p.recoveryState=task.state;this.store.set('process:'+recoveryProcessId,p);} this.store.event('agent_stopped', {taskId,state:task.state});notifyDeliveredAnswer(this,task,runId);const chain=this.agent.inputChain;queueMicrotask(()=>drainAgentInputs(this,taskId,chain).catch(error=>{this.store.event('agent_input_waiting',{taskId,error:error.message});}));queueMicrotask(()=>this.drainRecovery().catch(()=>{})); });
+      .finally(() => { if(redoRequested)task.replyRegeneration={...task.replyRegeneration,state:task.state==='review'?'completed':task.state};task.responseTiming={afterMessageId:task.responseTiming?.afterMessageId,...timing.finish(commandApprovalPending?'waiting_input':task.state==='review'?'completed':task.state==='waiting_input'?'waiting_input':task.state==='cancelled'?'cancelled':'interrupted'),runId};rememberActivity(task,runId);finishRoleProgress(this.store,taskId,runId,controller.signal.aborted?'cancelled':'interrupted');this.agent.streamingAnswer='';this.agent.running = false; persistTask();if(task.state==='review'&&task.messages.some(message=>message.runId===runId&&message.role==='assistant'&&!message.questionId))markUnread(this.store,taskId,{viewing:this.viewingTaskId});if(recoveryProcessId){const p=this.processes.records.get(recoveryProcessId)||this.store.get('process:'+recoveryProcessId);p.recoveryState=task.state;this.store.set('process:'+recoveryProcessId,p);} this.store.event('agent_stopped', {taskId,state:task.state});notifyDeliveredAnswer(this,task,runId);const chain=this.agent.inputChain;queueMicrotask(()=>drainAgentInputs(this,taskId,chain).catch(error=>{this.store.event('agent_input_waiting',{taskId,error:error.message});}));queueMicrotask(()=>this.drainRecovery().catch(()=>{})); });
     this.agent.promise = promise;
     return {taskId, state:'running',runId};
   };
@@ -957,6 +1018,7 @@ export function installAgent(ProjectService) {
     if(task.pendingMcp){
       const pending=task.pendingMcp;
       if(!['실행','항상 허용','취소'].includes(text))throw Error('answer_invalid');
+      if(text==='항상 허용'&&(pending.irreversible||irreversibleMcpTool(this.mcpRegistry().tool(pending.name)?.tool,{serverId:this.mcpRegistry().tool(pending.name)?.serverId}).matched))throw Error('answer_invalid');
       if(text==='항상 허용')allowMcpTool(this.store,{serverId:pending.serverId,tool:pending.tool});
       task.mcpContinuation={...pending,state:text==='취소'?'cancelled':'approved'};
       task.pendingMcp=null;

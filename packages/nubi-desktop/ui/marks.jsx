@@ -2,6 +2,7 @@ import React from 'react';
 
 // Marks the design system has no glyph for, drawn like its icons (24 grid, round 1.8px stroke).
 const Mark = ({size = 22, children}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{children}</svg>;
+export const SparklesMark = ({size}) => <Mark size={size}><path d="m9 5 2.1 5.9L17 13l-5.9 2.1L9 21l-2.1-5.9L1 13l5.9-2.1ZM19 2l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/></Mark>;
 export const FolderMark = ({size}) => <Mark size={size}><path d="M3.5 7.5a2 2 0 0 1 2-2h3.7l2 2.2h7.3a2 2 0 0 1 2 2v7.8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></Mark>;
 export const FolderOpenMark = ({size}) => <Mark size={size}><path d="M3.5 8a2 2 0 0 1 2-2h3.7l2 2.2h6.7a2 2 0 0 1 1.8 2.9l-1.8 6.1a2 2 0 0 1-1.9 1.4H5a2 2 0 0 1-1.9-2.6l1.2-5.1a2 2 0 0 1 1.9-1.5h15"/></Mark>;
 export const BranchMark = ({size}) => <Mark size={size}><circle cx="6.5" cy="5.5" r="2"/><circle cx="6.5" cy="18.5" r="2"/><circle cx="17.5" cy="8" r="2"/><path d="M6.5 7.5v9M17.5 10c0 4-4.5 4.2-9.6 6.9"/></Mark>;
@@ -22,3 +23,5 @@ export function RecoveryStatus() {
 }
 
 export const BookMark = ({size}) => <Mark size={size}><path d="M12 5C9 3 5 3 2.5 4.5v15C5 18 9 18 12 20c3-2 7-2 9.5-.5v-15C19 3 15 3 12 5Zm0 0v15"/></Mark>;
+
+export const ArchiveMark = ({size}) => <Mark size={size}><rect x="3" y="3" width="18" height="5" rx="1"/><path d="M5 8v12h14V8M10 12h4"/></Mark>;

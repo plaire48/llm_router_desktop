@@ -1,0 +1,4 @@
+.nubi-conversation-usage .nubi-usage-table{max-width:100%;overflow-x:auto;}
+.nubi-conversation-usage table{width:100%;font-variant-numeric:tabular-nums;}
+.nubi-conversation-usage td:not(:first-child),.nubi-conversation-usage th:not(:first-child){text-align:right;}
+.nubi-conversation-usage th:first-child{text-align:left;}

@@ -158,6 +158,7 @@ app.whenReady().then(async()=>{
   const child=fork(path.join(__dirname,'backend/service-entry.mjs'),[],{env:{...process.env,ELECTRON_RUN_AS_NODE:'1',NUBI_STORAGE_ROOT:storage},stdio:['ignore','ignore','pipe','ipc']});
   child.stderr.on('data',chunk=>{void workerLog(chunk);});return child;
  },onMessage:message=>{
+  if(message?.routineActivity){hostEvent({type:'routine_activity',...message.routineActivity});return;}
   if(message?.wikiCompleted){wikiNotices.show(message.wikiCompleted);return;}
   if(message?.answerCompleted){answerNotices.show(message.answerCompleted);return;}
   if(message?.playwrightCancel){browserDockControllers.get(message.playwrightCancel.id)?.abort();return;}
@@ -297,6 +298,16 @@ app.whenReady().then(async()=>{
   if(['browseLocalDirectory','readLocalFile'].includes(method)){const owner=await invoke('projectPath',{projectId:args.projectId});const value=await (method==='browseLocalDirectory'?browseLocalDirectory:readLocalFile)(args.path);if(currentRoot!==owner.path)throw Error('project_changed');return value;}
   if(method==='copyProjectPath'){const result=await invoke('projectPath',args);clipboard.writeText(result.path);return result;}
   if(method==='saveDocumentCopy'){if(source!=='electron')throw Error('editor_desktop_only');const owner=currentRoot;return require('./save-document-copy.cjs').saveDocumentCopy(args,{choose:(filename,kind)=>dialog.showSaveDialog(window,{title:'수정한 사본 저장',defaultPath:path.join(app.getPath('downloads'),filename),filters:[{name:kind.toUpperCase(),extensions:[kind]}],buttonLabel:'사본 저장'}),current:()=>currentRoot===owner&&!window.isDestroyed()});}
+  if(method==='exportConversation'){
+   if(source!=='electron')throw Error('editor_desktop_only');
+   const owner=currentRoot,packet=await invoke('exportConversation',args),bytes=Buffer.from(packet.markdown,'utf8'),expected=createHash('sha256').update(bytes).digest('hex');
+   const saved=await dialog.showSaveDialog(window,{title:'대화 Markdown 내보내기',defaultPath:path.join(app.getPath('downloads'),packet.filename),filters:[{name:'Markdown',extensions:['md']}],buttonLabel:'저장'});
+   if(saved.canceled||!saved.filePath)return {cancelled:true};
+   if(currentRoot!==owner)throw Error('project_changed');
+   await writeFile(saved.filePath,bytes,{mode:0o600});
+   if(createHash('sha256').update(await readFile(saved.filePath)).digest('hex')!==expected)throw Error('대화 파일 저장을 확인하지 못했어요. 저장한 파일을 확인해 주세요.');
+   return {saved:true,filename:path.basename(saved.filePath)};
+  }
   if(method==='downloadMail'){
    const packet=await invoke('mail',{action:'download',id:args.id,kind:args.kind,attachmentId:args.attachmentId,expectedSourceHash:args.expectedSourceHash,expectedAttachmentHash:args.expectedAttachmentHash,innerAttachmentId:args.innerAttachmentId,expectedInnerHash:args.expectedInnerHash});
    const bytes=Buffer.from(packet.bytes,'base64');if(bytes.length!==packet.size||createHash('sha256').update(bytes).digest('hex')!==packet.sha256)throw Error('mail_source_changed');

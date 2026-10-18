@@ -1,3 +1,4 @@
+import {toolArgumentView} from '../runtime/tool-argument-view.mjs';
 import '@e2e/cx-design-system/styles.css';
 import {useModalDismissalPolicy} from '../ui/useModalDismissalPolicy.js';
 import {searchConversations} from '../ui/conversation-search.mjs';
@@ -24,6 +25,19 @@ if(new URLSearchParams(location.search).has('catalog')){connected=true;window.ca
 const models=[{id:'qwen-fixture',label:'Qwen fixture',contextLength:32000},{id:'second-exact-id',label:'Second fixture',contextLength:64000}];
 // A project whose OpenWiki exists: without wiki files or a running initialization the Workbench shows the project start screen instead of the composer (2026-10-05).
 const project={projectId:'fixture',name:'검증 프로젝트',branch:'main',files:[],wikiFiles:['openwiki/업무-지침.md'],tasks:[],proposals:[],processes:[],comparisons:[],profiles:[{id:'bash',label:'Bash'}]};
+const conversationUsageFixture=new URLSearchParams(location.search).has('usage');
+if(conversationUsageFixture){connected=true;project.tasks=[{id:'conversation-usage',request:'사용량 확인',criteria:[],messages:[],trace:[],state:'review'}];}
+const afterEditFailureFixture=new URLSearchParams(location.search).has('after-edit-failure');
+if(afterEditFailureFixture){connected=true;project.tasks=[{id:'after-edit-failure',request:'검사 준비 실패',state:'review',criteria:[],trace:[],messages:[],afterEditCheckError:'source_stale',afterEditCheckPath:'src/app.mjs'}];}
+const archiveFixture=new URLSearchParams(location.search).has('sidebar-archive');
+if(archiveFixture){
+ connected=true;
+ project.tasks=[{id:'unread',request:'새로운 결과',unread:true},{id:'pinned',request:'고정한 대화'},{id:'archived',request:'지난 대화',archivedAt:'2026-09-01T00:00:00Z'}].map(task=>({state:'review',createdAt:'2026-10-18T12:00:00Z',criteria:[],trace:[],messages:[{role:'assistant',content:'보관해도 이 대화 내용은 그대로 남아요.'}],...task}));
+ project.conversationNavigation={pinnedIds:null,autoArchiveDays:30,tasks:project.tasks};
+ const saved=sessionStorage.getItem('archive-fixture');if(saved)Object.assign(project,JSON.parse(saved));
+ if(!saved)localStorage.setItem('nubi-pinned-tasks:fixture',JSON.stringify(['pinned']));
+ window.archiveCalls=[];
+}
 const proposalFixture=new URLSearchParams(location.search).get('proposal-review');
 if(proposalFixture){
  connected=true;window.proposalCalls=[];
@@ -41,12 +55,41 @@ if(decisionFixture){
  if(decisionFixture==='question')project.tasks[0].question={id:'decision-question',kind:'choice',text:'결과를 어떤 형식으로 정리할까요?',options:[{id:'table',label:'표로 정리',description:'항목별로 비교해요'},{id:'text',label:'문장으로 정리',description:'핵심 내용을 설명해요'}]};
  else project.setupActions=[{id:'decision-command',taskId:'decision-task',title:'실행 환경 확인',kind:'inspect',reason:'설치된 Node 버전을 확인합니다.',profile:'bash',workspace:'/fixture/project',script:'node --version',effects:'파일을 변경하지 않습니다.',verification:'실제 버전 출력과 종료 상태를 확인합니다.',references:[],fingerprint:'fixture',state:'proposed'}];
 }
+const irreversibleFixture=new URLSearchParams(location.search).get('irreversible');
+if(irreversibleFixture){
+ connected=true;window.decisionCalls=[];project.tasks=[{id:'irreversible-task',request:'승인 범위 확인',state:irreversibleFixture==='mcp'?'waiting_input':'review',messages:[],trace:[],criteria:[]}];
+ if(irreversibleFixture==='mcp')project.tasks[0].question={id:'mcp-question',kind:'choice',text:'메일 발송을 허용할까요?',inputMode:'none',selection:'single',options:[{id:'run',label:'실행',description:'이번 한 번 실행'},{id:'cancel',label:'취소',description:'실행하지 않음'}],toolRequest:{serverId:'mail',tool:'send_mail',arguments:toolArgumentView({recipient:'fixture@example.invalid'}),scope:'once',irreversible:{reason:'외부 반영 도구'},alwaysAllowIgnored:true}};
+ else {
+  project.setupActions=[{id:'dangerous-command',taskId:'irreversible-task',title:'강제 push 확인',reason:'요청한 브랜치 갱신',profile:'bash',script:'git push --force origin main',workspace:'/fixture',effects:'원격 브랜치의 이력을 바꿉니다.',state:'proposed',irreversible:{reason:'강제 push'}}];
+  project.proposals=[{id:'dangerous-delete',taskId:'irreversible-task',path:'src/old.mjs',kind:'delete',state:'proposed',reason:'요청한 파일 삭제',irreversible:{reason:'기존 파일 삭제'}}];
+ }
+}
 if(new URLSearchParams(location.search).has('solution')){project.peerTasks=[{id:'design-request',recipient:'desktop',state:'submitted'}];window.nativeViewCalls=[];}
 const status=()=>({modelCatalog:{fetchedAt:catalogAt},provider:selected,providers:Object.entries({aipro:'AI Pro',chatgpt:'ChatGPT',fabrix:'FabriX'}).map(([id,label])=>({id,label,connected:connected&&id===selected})),connected,pending,models:connected?models:[],model:connected?model:'',verified:false});
 if(new URLSearchParams(location.search).has('message-footer')){connected=true;const at=new Date().toISOString();project.tasks=[{id:'footer',request:'네',state:'review',createdAt:at,messages:[{role:'user',content:'확인',at},{role:'assistant',content:'요청한 내용을 확인했어요.',at,responseTiming:{state:'completed',durationMs:65000,finishedAt:at}}],trace:[],criteria:[]}];}
 if(new URLSearchParams(location.search).has('queue-layout')){
   connected=true;
   project.tasks=[{id:'queue-layout',request:'진행 내용을 간결하게 정리해 주세요.',state:'running',createdAt:new Date().toISOString(),checkpoint:{runId:'queue-run'},trace:[],messages:[{role:'assistant',content:'확인한 내용을 정리하고 있어요.',at:new Date().toISOString()}],inbox:[{id:'queued-message',mode:'queue',runId:'queue-run',text:'이 요청도 함께 반영해 주세요. 큐에서 올라온 메시지입니다.',createdAt:new Date().toISOString()}]}];
+}
+if(new URLSearchParams(location.search).has('interrupted-retry')){
+ connected=true;const at=new Date().toISOString();window.retryResumeCalls=[];
+ project.tasks=[{id:'retry-task',request:'확인하던 작업 이어가기',criteria:[],state:'interrupted',error:'network',createdAt:at,trace:[],messages:[{role:'user',content:'환경을 확인해 주세요.',at}],checkpoint:{runId:'retry-run'}}];
+ project.setupActions=[{id:'retry-pending',taskId:'retry-task',title:'실행 환경 확인',kind:'inspect',reason:'설치된 Node 버전을 확인합니다.',profile:'bash',workspace:'/fixture/project',script:'node --version',effects:'파일을 변경하지 않습니다.',verification:'버전과 종료 상태 확인',references:[],fingerprint:'fixture',state:'proposed'}];
+}
+if(new URLSearchParams(location.search).has('side-tasks')){
+ connected=true;const at=new Date().toISOString();const prompt='src/mail.mjs의 첨부 시간 초과 처리를 확인하고 tests/mail.test.mjs에 재현 시험을 추가해 주세요. 확인한 근거와 변경 결과를 정리해 주세요. '.repeat(3);
+ project.tasks=[{id:'side-parent',request:'곁가지 작업 확인',criteria:[],state:'review',createdAt:at,trace:[],messages:[{id:'side-answer',role:'assistant',runId:'side-run',content:'현재 요청을 마쳤어요. 따로 확인할 작업은 아래에 남겼습니다.',at}],sideTasks:[
+ {id:'side-one',title:'첨부 시간 초과 처리 보완',tldr:'확인된 첨부 실패가 안내 목록에서 빠져 있어요.',prompt,runId:'side-run',state:'proposed',at},
+ {id:'side-two',title:'오래된 개발 안내 문서와 검사 방법 정리',tldr:'현재 명령과 다른 안내가 있어요.',prompt,runId:'side-run',state:'proposed',at}]}];
+}
+if(new URLSearchParams(location.search).has('outputs')){
+ connected=true;const at=new Date().toISOString();
+ project.tasks=[{id:'output-task',request:'검토 결과를 파일로 정리해 주세요.',criteria:[],state:'review',createdAt:at,trace:[],messages:[
+ {id:'output-question',role:'assistant',runId:'output-run',questionId:'q',content:'보고서에 화면도 넣을까요?',at},
+ {id:'output-answer',role:'assistant',runId:'output-run',content:'확인한 화면과 보고서를 준비했어요. 카드를 눌러 내용을 확인해 주세요.',at},
+ {id:'output-followup',role:'user',runId:'next-run',content:'고마워요.',at}],outputs:[
+ {id:'output-image',path:'capture-1.png',kind:'image',size:24576,caption:'검토한 결과 화면',runId:'output-run',at},
+ {id:'output-text',path:'reports/프로젝트 검토 결과와 남은 확인 사항을 정리한 최종 보고서.md',kind:'text',size:1250,caption:'확인한 내용과 남은 작업을 정리했어요.',runId:'output-run',at}]}];
 }
 if(new URLSearchParams(location.search).has('chapters')){
  connected=true;
@@ -186,7 +229,50 @@ if(sendTransition){connected=true;const saved=sessionStorage.getItem('send-fixtu
 async function waitForSendGate(kind){await new Promise((resolve,reject)=>{window.sendGate[kind]={release:resolve,reject:()=>reject(Error('network'))};});}
 const attachedDocument={id:'doc-fixture',sourceHash:'document-hash',filename:'분기 보고서.pdf',coverage:'2쪽 텍스트. 이미지와 OCR은 미확인',bytes:200};
 if(new URLSearchParams(location.search).has('documents'))connected=true;
+const routineRows=[];
+if(new URLSearchParams(location.search).has('routines'))connected=true;
 async function api(method,args={}){
+  if(afterEditFailureFixture&&method==='retryAfterEditCheck'){window.afterEditRetries=(window.afterEditRetries||0)+1;throw Object.assign(Error('source_stale'),{details:{path:'src/app.mjs'}});}
+  if(method==='listRoutines'){if(window.routineFailure)throw Error('fixture_read_failure');return {items:structuredClone(routineRows),projects:[{id:project.projectId,name:project.name}]};}
+  if(method==='saveRoutine'){const row={...args,id:args.id||'routine-fixture'},index=routineRows.findIndex(r=>r.id===row.id);if(index<0)routineRows.push(row);else routineRows[index]=row;return row;}
+  if(method==='deleteRoutine'){if(args.confirmed!==true)throw Error('routine_confirmation');routineRows.splice(routineRows.findIndex(r=>r.id===args.id),1);return {deleted:true};}
+
+  if(method==='taskUsage'){
+   if(window.usageFailure)throw Error('fixture_usage_failure');
+   return {taskId:args.taskId,modelCalls:8,toolCalls:2,compactions:1,retries:1,elapsedMs:8800,runCount:2,retentionDays:30,rows:['planner','actor','reviewer','summary','analysis','research'].map((purpose,i)=>({purpose,calls:[1,4,1,0,0,2][i],promptTokens:i===1?400:i>=3?null:100,completionTokens:i===3||i===4?null:10,cachedTokens:null,reports:{promptTokens:i===1?3:i>=3?0:1,completionTokens:i===3||i===4?0:1,cachedTokens:0}}))};
+  }
+
+  if(new URLSearchParams(location.search).has('interrupted-retry')&&['resumeAgent','startAgent'].includes(method)){
+   if(method==='startAgent'){window.retryStartCalls=(window.retryStartCalls||0)+1;throw Error('fixture_unexpected_restart');}
+   window.retryResumeCalls.push({method,...args});window.retryPendingState=project.setupActions[0].state;
+   window.retryUserMessages=project.tasks[0].messages.filter(message=>message.role==='user').length;
+   project.tasks[0].state='paused';return {taskId:args.taskId,state:'paused'};
+  }
+
+  if(method==='startSideTask'){
+   const task=project.tasks.find(row=>row.id===args.taskId),chip=task.sideTasks.find(row=>row.id===args.sideTaskId);chip.state='started';
+   const created={id:'side-child',request:chip.prompt,origin:{kind:'side_task',taskId:task.id,sideTaskId:chip.id,runId:chip.runId},criteria:[],state:'draft',createdAt:new Date().toISOString(),messages:[],trace:[]};project.tasks.unshift(created);window.startedSideTask={...args,taskId:created.id};return {taskId:created.id};
+  }
+  if(method==='dismissSideTask'){const task=project.tasks.find(row=>row.id===args.taskId);task.sideTasks.find(row=>row.id===args.sideTaskId).state='dismissed';window.dismissedSideTask=args.sideTaskId;return {state:'dismissed'};}
+
+  if(method==='setPinnedTasks'){
+   if(!args.initialize||project.conversationNavigation?.pinnedIds===null)project.conversationNavigation={...project.conversationNavigation,pinnedIds:[...new Set(args.ids)],tasks:project.tasks,autoArchiveDays:project.conversationNavigation?.autoArchiveDays??30};
+   for(const task of project.tasks)if(project.conversationNavigation?.pinnedIds?.includes(task.id))task.archivedAt=null;
+   return structuredClone(project.conversationNavigation);
+  }
+  if(method==='markTaskRead'){
+   if(archiveFixture)window.archiveCalls.push({method,args});
+   const task=project.tasks.find(row=>row.id===args.taskId);if(task)task.unread=false;
+   return task?structuredClone(task):{viewingTaskId:null};
+  }
+  if(method==='archiveTask'){
+   const task=project.tasks.find(row=>row.id===args.taskId);task.archivedAt=args.archived?new Date().toISOString():null;
+   project.conversationNavigation.tasks=project.tasks;
+   if(archiveFixture)sessionStorage.setItem('archive-fixture',JSON.stringify(project));
+   return structuredClone(project.conversationNavigation);
+  }
+  if(method==='setAutoArchiveDays'){project.conversationNavigation={...project.conversationNavigation,autoArchiveDays:args.days};if(archiveFixture)sessionStorage.setItem('archive-fixture',JSON.stringify(project));return {days:args.days};}
+
   if(method==='listSkills'&&new URLSearchParams(location.search).has('documents'))return {skills:[],issues:[],truncated:false};
   if(method==='chooseChatDocuments')return {documents:[attachedDocument],errors:[]};
   if(method==='chatDocument'){window.documentReads=(window.documentReads||0)+1;return {...attachedDocument,text:'승인 예산은 1200입니다.',segments:[],offset:0,totalCharacters:17,partial:false};}
@@ -318,7 +404,7 @@ async function api(method,args={}){
   if(method==='removeAllowedCommand'){window.approvalPolicy.allowedCommands=window.approvalPolicy.allowedCommands.filter(item=>item.script!==args.script);return structuredClone(window.approvalPolicy);}
   if(method==='autoApprovals'){(window.autoApprovalChecks||=[]).push(args.taskId);return {mode:window.approvalPolicy?.mode||'ask',proposals:[],command:null};}
   if(method==='deleteTask'){(window.deletedTasks||=[]).push(args.taskId);project.tasks=project.tasks.filter(task=>task.id!==args.taskId);return {deleted:args.taskId};}
-  if(method==='overview'||method==='state'){if(new URLSearchParams(location.search).has('noproject'))throw Error('project_missing');return structuredClone(project);}
+  if(method==='overview'||method==='state'){if(new URLSearchParams(location.search).has('noproject'))throw Error('project_missing');if(project.conversationNavigation)project.conversationNavigation.tasks=project.tasks;return structuredClone(project);}
   if(new URLSearchParams(location.search).has('message-footer')){
     if(method==='regenerateAnswer'){window.redoCalls=(window.redoCalls||0)+1;const task=project.tasks.find(t=>t.id===args.taskId);task.messages.pop();task.state='running';task.responseTiming={elapsedMs:0,startedAt:new Date().toISOString(),runId:'redo-fixture'};setTimeout(()=>{task.messages.push({id:'redone',role:'assistant',content:'새로 확인한 답변이에요.',at:new Date().toISOString()});task.state='review';},1200);return {state:'running'};}
     if(method==='createTask'){const task={id:'other-task',request:args.request,state:'draft',createdAt:new Date().toISOString(),messages:[],trace:[],criteria:[]};project.tasks.push(task);return structuredClone(task);}
@@ -341,5 +427,6 @@ if(new URLSearchParams(location.search).has('integrated')&&!fixtureRoot.closest(
 // Exercise the real titlebar portal as well as the rail fallback.
 if(new URLSearchParams(location.search).has('toolbar')&&!document.getElementById('toolbar')){const shell=fixtureRoot.closest('.desktop-shell');shell.dataset.toolbar='true';shell.dataset.platform='darwin';const toolbar=document.createElement('div');toolbar.id='toolbar';toolbar.className='desktop-titlebar';shell.prepend(toolbar);}
 const wikiFixture=new URLSearchParams(location.search).has('wiki-progress')?{id:'wiki-fixture',state:'running',stage:'generating',startedAt:new Date(Date.now()-60000).toISOString(),stageStartedAt:new Date(Date.now()-30000).toISOString(),completed:3,total:10,percent:30}:undefined;
-function WorkbenchFixture(){useModalDismissalPolicy();const [sources,setSources]=useState(null),[wiki,setWiki]=useState(wikiFixture);window.setWikiFixture=setWiki;if(wikiChatFixture)window.setWikiChatJob=job=>{project.wikiChatBlocked=!!job;project.wikiChatJob=job;setWiki(job);};return <><Workbench renameProject={new URLSearchParams(location.search).has('chapters')?async()=>{}:undefined} openTerminal={context=>{window.openedTerminal=context;}} projects={wikiChatFixture?[{id:'fixture',name:'검증 프로젝트',root:'/fixture/current'},{id:'background-wiki',name:'백그라운드 프로젝트',root:'/fixture/background'}]:[]} switchProject={wikiChatFixture?async id=>{window.wikiProjectSwitches.push(id);}:undefined} showAnalysisHistory={new URLSearchParams(location.search).has('document')} wikiInitialization={wiki} openTeamWorkspace={async()=>{(window.nativeViewCalls||=[]).push('team-workspace');}} openMailSources={mailFlow?references=>{window.mailSourceCalls=references;setSources(references);}:undefined} toolbarHost={document.getElementById("toolbar")} hostLayout={new URLSearchParams(location.search).has('integrated')?'integrated':undefined} workspaceView={['solution','modals','integrated'].some(key=>new URLSearchParams(location.search).has(key))?async view=>{(window.nativeViewCalls||=[]).push(view);}:undefined} api={api} openCurrent={async()=>new URLSearchParams(location.search).has('noproject')?null:(wikiChatFixture||sendTransition||new URLSearchParams(location.search).has('wiki-inventory')||new URLSearchParams(location.search).has('long-chat-live'))?structuredClone(project):project} chooseFolder={()=>{}} openPath={()=>{}} review={()=>{}} reviewApplied={async(row,taskId)=>{window.appliedComparison={path:row.path,taskId};}} apply={async id=>{const proposal=project.proposals.find(p=>p.id===id);if(proposal)proposal.state='applied';}} openURI={()=>{}} openBrowser={()=>{}} cloneRepository={async url=>{(window.cloneCalls||=[]).push(url);return {cancelled:true};}} ghesAccount={modalsVariant?ghesAccount:undefined} ghesUpdate={modalsVariant?async()=>({state:'unchecked'}):undefined} ghesRepositories={modalsVariant?async()=>({cancelled:true}):undefined}/>{sources&&createPortal(<aside className="desktop-pane"><header><strong>메일 원문</strong><WorkspaceAction action="close" label="원문 닫기" onClick={()=>setSources(null)}/></header><MailSourcePane references={sources} api={api}/></aside>,fixtureRoot.parentElement)}</>;}
-createRoot(fixtureRoot).render(new URLSearchParams(location.search).has('pointer')?<ComputerPointerUiFixture/>:new URLSearchParams(location.search).has('keyboard')?<ComputerKeyboardUiFixture/>:new URLSearchParams(location.search).has('controls')?<ComputerControlUiFixture/>:new URLSearchParams(location.search).has('computer')?<ComputerUiFixture/>:<WorkbenchFixture/>);
+function WorkbenchFixture(){useModalDismissalPolicy();const [sources,setSources]=useState(null),[wiki,setWiki]=useState(wikiFixture);window.setWikiFixture=setWiki;if(wikiChatFixture)window.setWikiChatJob=job=>{project.wikiChatBlocked=!!job;project.wikiChatJob=job;setWiki(job);};return <><Workbench renameProject={new URLSearchParams(location.search).has('chapters')?async()=>{}:undefined} openTerminal={context=>{window.openedTerminal=context;}} projects={wikiChatFixture?[{id:'fixture',name:'검증 프로젝트',root:'/fixture/current'},{id:'background-wiki',name:'백그라운드 프로젝트',root:'/fixture/background'}]:[]} switchProject={wikiChatFixture?async id=>{window.wikiProjectSwitches.push(id);}:undefined} showAnalysisHistory={new URLSearchParams(location.search).has('document')} wikiInitialization={wiki} openTeamWorkspace={async()=>{(window.nativeViewCalls||=[]).push('team-workspace');}} openMailSources={mailFlow?references=>{window.mailSourceCalls=references;setSources(references);}:undefined} toolbarHost={document.getElementById("toolbar")} hostLayout={new URLSearchParams(location.search).has('integrated')?'integrated':undefined} workspaceView={['solution','modals','integrated'].some(key=>new URLSearchParams(location.search).has(key))?async view=>{(window.nativeViewCalls||=[]).push(view);}:undefined} api={api} openCurrent={async()=>new URLSearchParams(location.search).has('noproject')?null:(wikiChatFixture||sendTransition||new URLSearchParams(location.search).has('wiki-inventory')||new URLSearchParams(location.search).has('long-chat-live'))?structuredClone(project):project} chooseFolder={()=>{}} openPath={path=>{window.openedPath=path;}} review={()=>{}} reviewApplied={async(row,taskId)=>{window.appliedComparison={path:row.path,taskId};}} apply={async id=>{const proposal=project.proposals.find(p=>p.id===id);if(proposal)proposal.state='applied';}} openURI={()=>{}} openBrowser={()=>{}} cloneRepository={async url=>{(window.cloneCalls||=[]).push(url);return {cancelled:true};}} ghesAccount={modalsVariant?ghesAccount:undefined} ghesUpdate={modalsVariant?async()=>({state:'unchecked'}):undefined} ghesRepositories={modalsVariant?async()=>({cancelled:true}):undefined}/>{sources&&createPortal(<aside className="desktop-pane"><header><strong>메일 원문</strong><WorkspaceAction action="close" label="원문 닫기" onClick={()=>setSources(null)}/></header><MailSourcePane references={sources} api={api}/></aside>,fixtureRoot.parentElement)}</>;}
+export {api as fixtureApi,project as fixtureProject};
+if(!window.__nubiExternalFixture)createRoot(fixtureRoot).render(new URLSearchParams(location.search).has('pointer')?<ComputerPointerUiFixture/>:new URLSearchParams(location.search).has('keyboard')?<ComputerKeyboardUiFixture/>:new URLSearchParams(location.search).has('controls')?<ComputerControlUiFixture/>:new URLSearchParams(location.search).has('computer')?<ComputerUiFixture/>:<WorkbenchFixture/>);

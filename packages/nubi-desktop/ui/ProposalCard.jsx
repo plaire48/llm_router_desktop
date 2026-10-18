@@ -1,3 +1,4 @@
+import {IrreversibleNotice} from './IrreversibleNotice.jsx';
 import React,{useState,useRef,useEffect} from 'react';
 import {CxButton,Icon} from '@e2e/cx-design-system';
 import {diffLines} from 'diff';
@@ -32,7 +33,7 @@ export function ProposalCard({proposal:p,api,busy,onCompare,onRebase,onReplan,on
   </span></header>
   <p className="nubi-proposal-path" title={p.path}>{p.path}</p>
   {p.reason&&<p className="nubi-proposal-reason">{p.reason}</p>}
-  {p.sourceChanged&&<p className="nubi-proposal-stale" role="status"><Icon name="infoCircle" size={16}/><span title={p.mergeConflicted?'같은 부분이 바뀌었어요. AI가 새 제안을 준비해야 해요.':'파일이 바뀌었어요. 현재 내용에 다시 맞춰 주세요.'}>{p.mergeConflicted?'같은 부분이 바뀌었어요. AI가 새 제안을 준비해야 해요.':'파일이 바뀌었어요. 현재 내용에 다시 맞춰 주세요.'}</span></p>}
+  <IrreversibleNotice value={p.irreversible}/>{p.sourceChanged&&<p className="nubi-proposal-stale" role="status"><Icon name="infoCircle" size={16}/><span title={p.mergeConflicted?'같은 부분이 바뀌었어요. AI가 새 제안을 준비해야 해요.':'파일이 바뀌었어요. 현재 내용에 다시 맞춰 주세요.'}>{p.mergeConflicted?'같은 부분이 바뀌었어요. AI가 새 제안을 준비해야 해요.':'파일이 바뀌었어요. 현재 내용에 다시 맞춰 주세요.'}</span></p>}
   {open&&<div className="nubi-proposal-preview" aria-label="변경 내용" aria-busy={loading}>
    {loading?<LoadingNote>변경 내용 불러오는 중</LoadingNote>:failed?<CxButton onClick={()=>{setOpen(false);}}>미리보기를 다시 열어 주세요.</CxButton>:preview?.large?<CxButton onClick={onCompare}>전체 비교에서 확인</CxButton>:preview?.parts.length===0?<p>텍스트 변경이 없어요.</p>:<pre tabIndex={0}>{preview?.parts.map((part,index)=><span key={index} data-change={part.added?'added':'removed'}>{part.value.split('\n').filter((line,i,lines)=>i<lines.length-1||line).map(line=>(part.added?'+ ':'− ')+line+'\n').join('')}</span>)}</pre>}
   </div>}

@@ -46,7 +46,7 @@ try{
  for(const kind of ['question','command']){
   await p.goto(origin+'/?integrated&modals&toolbar&decision='+kind);await selectTask();
   const form=p.locator(kind==='question'?'.nubi-question-inline':'.nubi-approval-form');await form.waitFor();
-  assert(await form.getByRole('button',{name:kind==='question'?'답변 보내기':'실행 승인',exact:true}).isVisible());
+  assert(await form.getByRole('button',{name:kind==='question'?'답변 보내기':'승인',exact:true}).isVisible());
   assert.equal(await p.evaluate(()=>window.decisionCalls.length),0);
  }
  await p.goto(origin+'/?integrated&review-failure=review_schema_invalid');await selectTask();

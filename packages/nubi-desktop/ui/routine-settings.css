@@ -1,0 +1,7 @@
+.nubi-routine-settings form{display:grid;gap:var(--cx-space-2);}
+.nubi-routine-schedule{display:flex;flex-wrap:wrap;gap:var(--cx-space-3);}
+.nubi-routine-schedule>div{flex:1;min-width:7rem;display:grid;gap:var(--cx-space-2);}
+.nubi-routine-actions{display:flex;justify-content:flex-end;align-items:center;gap:var(--cx-space-2);}
+.nubi-routine-list{list-style:none;padding:0;margin:var(--cx-space-4) 0;}
+.nubi-routine-list>li{padding-block:var(--cx-space-4);border-bottom:1px solid var(--deck-line);}
+.nubi-routine-list p{overflow-wrap:anywhere;}

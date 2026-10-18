@@ -1,0 +1,7 @@
+.nubi-side-tasks{display:flex;flex-wrap:wrap;gap:var(--cx-space-2);margin:var(--cx-space-2) 0 var(--cx-space-4);min-width:0}
+.nubi-side-task{display:inline-flex;align-items:center;max-width:100%;min-width:0;gap:var(--cx-space-1);padding:var(--cx-space-1);border:1px solid var(--deck-line);border-radius:var(--cx-radius-control);background:var(--deck-surface)}
+.nubi-workbench .nubi-side-tasks .nubi-side-task-start{display:flex;gap:var(--cx-space-2);flex:1;min-width:0;min-height:2rem;height:auto;padding:var(--cx-space-1) var(--cx-space-2);border:0;box-shadow:none;background:transparent;color:var(--deck-ink);font-size:.875rem;font-weight:500;text-align:left;white-space:normal}
+.nubi-workbench .nubi-side-tasks .nubi-side-task-start:hover{background:var(--deck-blue-soft)}
+.nubi-workbench .nubi-side-task-start>span{min-width:0;overflow-wrap:anywhere;white-space:normal}
+.nubi-side-task-start>svg{flex-shrink:0;color:var(--deck-blue)}
+.nubi-side-task>.nubi-utility-action{flex-shrink:0}

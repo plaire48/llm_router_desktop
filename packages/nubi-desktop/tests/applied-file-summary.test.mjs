@@ -34,3 +34,17 @@ test('broken receipt chains expose only the recent sequence and never a misleadi
  const packet=await service.appliedFileSummary({taskId:task.id});assert.equal(packet.totals,null);assert.equal(packet.files[0].partial,true);
  const diff=await service.appliedFileSummary({taskId:task.id,path:row.path,expectedHash:row.afterHash});assert.equal(diff.before,'external\n');assert.equal(diff.partial,true);
 });
+
+test('a host storage path with a platform directory alias still verifies the original change',async t=>{
+ const {symlink}=await import('node:fs/promises');
+ const {service,root,directory}=await fixture(t),task=await service.createTask({request:'당시 변경 확인'});
+ const actual=service.store.directory,alias=path.join(directory,'storage-alias');await symlink(actual,alias,'dir');service.store.directory=alias;
+ const before=await service.read({taskId:task.id,path:'app.txt'});
+ const p=await service.propose({taskId:task.id,path:'app.txt',expectedHash:before.hash,content:'changed\n',reason:'변경 확인'});
+ await writeFile(path.join(root,'app.txt'),p.content);await service.confirmProposal({proposalId:p.id});
+ const summary=await service.appliedFileSummary({taskId:task.id});
+ assert.equal(summary.files[0].state,'verified');assert.equal(summary.files[0].stats.state,'counted');
+ const comparison=await service.appliedFileSummary({taskId:task.id,path:'app.txt',expectedHash:p.afterHash});assert.equal(comparison.before,before.content);assert.equal(comparison.after,p.content);
+ const {unlink}=await import('node:fs/promises');const outside=path.join(root,'snapshot.txt');await writeFile(outside,before.content);await unlink(p.before);await symlink(outside,p.before);
+ await assert.rejects(service.appliedFileSummary({taskId:task.id,path:'app.txt',expectedHash:p.afterHash}),/path_scope/);
+});

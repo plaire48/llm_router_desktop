@@ -1,3 +1,4 @@
+import {outputCapture} from './output-files.mjs';
 import documentReader from '../electron-app/document-file-reader.cjs';
 import {readdir,lstat,realpath,readFile} from 'node:fs/promises';
 import path from 'node:path';
@@ -22,8 +23,13 @@ export function installProjectBrowser(Service) {
     requireProject(this,projectId);if(await this.target(taskId)!==root)fail('project_changed');
     return {...source,root,uri:pathToFileURL(path.join(root,input)).href};
   };
-  Service.prototype.previewFile=async function({projectId,path:input,taskId}) {
+  Service.prototype.previewFile=async function({projectId,path:input,taskId,outputId}) {
     requireProject(this,projectId);
+    if(outputId!==undefined){
+      const task=this.task(taskId),card=task.outputs?.find(row=>row.id===outputId);if(!card?.captureId)fail('output_invalid');
+      const record=outputCapture(this,task,card),root=await this.target(taskId);requireProject(this,projectId);
+      return {path:card.name,root,hash:hash(record.image),content:`data:image/png;base64,${record.image}`};
+    }
     const mime={'.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.gif':'image/gif','.webp':'image/webp','.ico':'image/x-icon'}[path.extname(input).toLowerCase()];
     const document=documentReader.DOCUMENT_FILE.test(input),root=await this.target(taskId);if(!mime&&!document)fail('binary_file');const file=await scopedFile(root,input),stats=await lstat(file);
     if(!stats.isFile()||stats.isSymbolicLink()||stats.size>(document?64:4)*1024*1024)fail('file_too_large');

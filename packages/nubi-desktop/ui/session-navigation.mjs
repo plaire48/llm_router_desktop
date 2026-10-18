@@ -52,7 +52,8 @@ export function groupSessionsByDate(tasks, now = new Date(), preserveOrder = fal
 
 // Stored pin IDs are newest-first. Conversation activity must not reorder pins
 // or put an old pinned conversation back into its date section.
-export function sessionSidebarGroups(tasks, pinned, {showAll=false,limit=5,now=new Date()}={}) {
+export function sessionSidebarGroups(tasks, pinned, {showAll=false,limit=5,now=new Date(),archived=false}={}) {
+  tasks=tasks.filter(task=>!!task.archivedAt===archived);
   const pinOrder=new Map([...new Set(Array.isArray(pinned)?pinned:[])].map((id,index)=>[id,index]));
   const fixed=tasks.filter(task=>pinOrder.has(task.id)).sort((a,b)=>pinOrder.get(a.id)-pinOrder.get(b.id));
   const recent=tasks.filter(task=>!pinOrder.has(task.id)).sort((a,b)=>(sessionDate(b)?.getTime()??0)-(sessionDate(a)?.getTime()??0));

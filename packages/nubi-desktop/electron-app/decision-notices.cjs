@@ -5,16 +5,17 @@ function preview(value,limit){
  const text=value.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g,'').replace(/[\x00-\x1f\x7f\u202a-\u202e\u2066-\u2069]/g,' ').replace(/\s+/g,' ').trim();
  const chars=Array.from(text);return chars.length>limit?chars.slice(0,limit-1).join('')+'…':text;
 }
-function decisionNoticeContent({kind,projectName,taskTitle,summary}={}){
+function decisionNoticeContent({kind,projectName,taskTitle,summary,routineName}={}){
  const labels={question:'답변 요청',proposal:'변경 승인 요청',command:'실행 승인 요청',computer:'앱 동작 확인',answer:'답변 완료'};
  const label=labels[kind]||labels.question,project=preview(projectName,40),task=preview(taskTitle,55);
  const detail=preview(summary,160)||({proposal:'제안된 파일 변경을 검토해 주세요.',command:'제안된 명령의 실행 여부를 선택해 주세요.',computer:'연결할 앱과 요청한 동작을 확인해 주세요.'}[kind]||'대화에 추가 질문이 도착했어요.');
+ if(kind==='question'&&routineName)return {title:project?`${project} — 답변 요청`:'누비 Workspace — 답변 요청',body:`루틴 '${preview(routineName,40)}'이 답을 기다려요.\n${detail}`};
  return {title:project?`${project} — ${label}`:`누비 Workspace — ${label}`,body:task&&task!==detail?`${task}\n${detail}`:detail};
 }
 function createDecisionNotices({Notification,getWindow,send,icon,platform=process.platform,history}){
  const notices=new Map(),seen=new Set();
  return {
-  request({id,action,kind,projectName,taskTitle,summary,choices,allowText,placeholder,openLabel}={}){
+  request({id,action,kind,projectName,taskTitle,summary,routineName,choices,allowText,placeholder,openLabel}={}){
    if(typeof id!=='string'||!id||id.length>300||!['show','clear'].includes(action))throw Error('decision_notice_invalid');
    if(action==='clear'){
     const entry=notices.get(id);notices.delete(id);entry?.notice.close();return {cleared:true};
@@ -27,7 +28,7 @@ function createDecisionNotices({Notification,getWindow,send,icon,platform=proces
     const opener=typeof openLabel==='string'&&openLabel.trim()?preview(openLabel,24):null;
     const buttons=opener?[opener]:Array.isArray(choices)?choices.filter(item=>typeof item==='string'&&item.trim()).slice(0,4).map(item=>preview(item,40)):[];
     const reply=!opener&&allowText===true;
-    const notice=new Notification({...decisionNoticeContent({kind,projectName,taskTitle,summary}),icon,silent:true,...(buttons.length?{actions:buttons.map(text=>({type:'button',text}))}:{}),...(reply?{hasReply:true,replyPlaceholder:preview(placeholder,40)||'답변 입력'}:{})});
+    const notice=new Notification({...decisionNoticeContent({kind,projectName,taskTitle,summary,routineName}),icon,silent:true,...(buttons.length?{actions:buttons.map(text=>({type:'button',text}))}:{}),...(reply?{hasReply:true,replyPlaceholder:preview(placeholder,40)||'답변 입력'}:{})});
     const entry={notice};notices.set(id,entry);
     notice.on('click',()=>{
      if(notices.get(id)!==entry)return;

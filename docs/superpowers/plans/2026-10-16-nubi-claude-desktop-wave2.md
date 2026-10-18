@@ -25,6 +25,7 @@
 - 완료 주장 전에 `node --test tests/<파일>`과 해당 검사 스크립트를 실제로 실행한다. 작업마다 QA 묶음 전체(빌드, 디자인, 검사 19개, 단위)를 통과한 뒤 main에 올린다.
 - §8 미결 1(명령 기록 기본 접힘)은 사용자 답 전까지 코드를 바꾸지 않는다.
 - 평가 과제 id C, D, E, K, L, S, W, X는 이미 쓰인다. 이 계획은 과제를 추가하지 않는다.
+- 공용 런타임과 OpenWiki 수정 금지의 예외는 Task 9 하나(설계 §4 예외, §8 답 10과 11): 선택적 admission/slot 인터페이스만, 기본 동작 보존, `extensions/aipro-chat/tests`와 OpenWiki 시험을 QA에 포함.
 - 도구 실패 복구(`tool-recovery-loop.mjs`), 진행 서술(`progressNarration`), 사이드바 고정 그룹(`sessionSidebarGroups`), 모드 전환 안내 모달은 이미 있다. 다시 만들지 않고 그 위에 붙인다.
 - 게이트는 `npm run test:gates`(단위, 디자인, 화면 검사 11종, 빌드, Electron 검사 6종)와 기존 QA 묶음이다.
 
@@ -99,7 +100,7 @@ luna로 한 번 더. 결과 디렉터리(`output/` 아래 보고서 경로)를 C
 
 - [x] **Step 1: 제외 항목 추가** — 파일 끝에 두 줄: `artifacts/`와 `releases/`. 기존 `release/`와 `verification/`은 그대로.
 - [x] **Step 2: 확인** — `git -C ../.. check-ignore -q packages/nubi-desktop/artifacts/x && echo ok`, `git -C ../.. check-ignore -q packages/nubi-desktop/releases/x && echo ok`. 둘 다 `ok`.
-- [ ] **Step 3: 업로드** — 다음 main 업로드에 포함. 메시지에 "검토 산출물과 설치판 폴더 제외" 한 줄.
+- [x] **Step 3: 업로드** — 2026-10-18 사용자가 전달한 Claude qa79 보고에 따르면 Task 0b와 Task 1을 포함해 비공개 main `04c380cd`에 업로드했다. 설치판 `releases/`와 검토 산출물 `artifacts/`는 제외했다. Codex가 원격을 재조회하거나 push한 것은 아니다.
 
 2026-10-17 실행 기록: 변경 전 두 경로의 `git check-ignore -q` 종료 코드 1을 확인했고, 두 줄 추가 후 모두 종료 코드 0(`ok`)을 확인했다. Task 1 진입 전에 설계 §8 질문 4~5를 기록하고 사용자 지시에 따라 중단했다. `node --test`, 화면 검사, `npm run test:gates`와 main 업로드는 아직 실행하지 않았다. Task 0b 전체 완료로 표시하지 않는다. 현재 origin은 공개 저장소이며 앞서 선택한 비공개 빌드 저장소와 다르므로 main 업로드 대상도 확인 대기다. 이후 설계 §8의 4~6번 답을 확인하고 Task 1을 재개했다. 업로드는 Claude가 비공개 `plaire48/llm_router_desktop` main에 수행하며 Codex는 push하지 않는다.
 
@@ -213,15 +214,15 @@ Expected: `PASS: chapters`
 
 2026-10-17: 다섯 번째 `npm run test:gates` 종료 코드 0. 단위 1,737 통과, 실패 0, 플랫폼 조건 200개 건너뜀. 화면 검사, 빌드와 macOS Electron 검사 통과. 사용자 후속 요청으로 목차는 본문과 겹치지 않는 전용 영역에, 프로젝트 이름과 `…`은 한 배경에 배치했다. 변경 파일과 실패 이력은 `packages/nubi-desktop/docs/WAVE2-IMPLEMENTATION-2026-10-17.md`, 최종 로그는 `packages/nubi-desktop/verification/wave2/task1-gates-final.log`에 있다.
 
-- [ ] **Step 7b: Claude 검토와 업로드**
+- [x] **Step 7b: Claude 검토와 업로드**
 
-설계 §8.6에 따라 Claude가 QA 뒤 비공개 main에 업로드한다. Codex는 commit/push하지 않았다. 권장 메시지: `feat(nubi-desktop): add chapter navigation without transcript overlap`.
+2026-10-18 사용자 전달 보고: Claude qa79 배치와 재실행 후 비공개 main `04c380cd`에 업로드했다. Codex의 원격 재조회나 push는 없었다. 네 추가 화면 검사도 다음 Task 2부터 게이트에 포함한다.
 
 ---
 
 ## Task 2: A5 자동 모드 안전 규칙
 
-2026-10-17: 구현 전 설계 §8 질문 7(외부 쓰기와 기존 MCP 항상 허용의 우선순위)을 기록했다. 사용자 지시에 따라 답변까지 이 단계와 이후 구현을 중단한다.
+2026-10-18: 설계 §8 답 7을 확인하고 재개했다. 호스트 판정과 승인 화면을 구현했고 전체 게이트가 종료 코드 0으로 통과했다. 추가 화면 검사 4개도 `test:gates`에 포함했다.
 
 **Files:**
 - Create: `runtime/irreversible-actions.mjs`, `tests/irreversible-actions.test.mjs`
@@ -231,7 +232,7 @@ Expected: `PASS: chapters`
 - Produces: `irreversibleCommand(script) -> {matched:boolean, reason?:string}`; `irreversibleProposal(proposal) -> {matched, reason?}`; `irreversibleMcpTool(tool) -> {matched, reason?}`(설계 §8 답 7: `destructiveHint`, `openWorldHint`이고 읽기 전용 아님, 또는 이름 패턴; `readOnlyHint`는 제외).
 - 우선순위: A5 규칙 > 승인 모드 > 항상 허용. 예외는 셸 명령의 정확한 문자열 항상 허용 하나. MCP에는 예외가 없다.
 
-- [ ] **Step 1: 실패하는 시험**
+- [x] **Step 1: 실패하는 시험**
 
 ```js
 import {test} from 'node:test';
@@ -257,11 +258,11 @@ test('MCP tools are classified by annotations first, then by name; read-only too
 });
 ```
 
-- [ ] **Step 2: 실패 확인**
+- [x] **Step 2: 실패 확인**
 
 Run: `node --test tests/irreversible-actions.test.mjs` → FAIL (module missing)
 
-- [ ] **Step 3: 구현**
+- [x] **Step 3: 구현**
 
 ```js
 // Actions an automatic mode must still confirm (Claude Desktop auto mode benchmark, 2026-10-16). Host judgement
@@ -291,17 +292,25 @@ export function irreversibleMcpTool(tool){
 승인 카드: `irreversible`이 있으면 사유 한 줄 `<p className="nubi-decision-scope"><Icon name="alertCircle" size={16}/>되돌리기 어려운 작업({reason})이라 자동 모드에서도 확인해요.</p>`.
 `TOOL_RULES`: `- Destructive commands (recursive delete, force push, hard reset) and file deletions wait for the user in every mode; prefer reversible steps.`
 
-- [ ] **Step 4: 시험**
+- [x] **Step 4: 시험**
 
 Run: `node --test tests/irreversible-actions.test.mjs tests/approval-policy.test.mjs` → PASS. `tests/approval-policy.test.mjs`에 "commands 모드에서 `git push --force`는 자동 승인되지 않고 사유가 붙는다" 사례 하나 추가.
 
-- [ ] **Step 5: QA와 업로드**
+- [x] **Step 5a: 로컬 QA와 인계 기록**
 
-메시지: `feat(nubi-desktop): 자동 모드에서도 되돌리기 어려운 명령과 삭제는 확인`.
+2026-10-18: 확장한 `npm run test:gates` 종료 코드 0. 단위 1,749 통과, 실패 0, 환경 조건 200개 제외. 디자인, 빌드, 화면/Electron 흐름, 117개 전체 화면, 신규 승인 화면과 추가 QA 4개 모두 통과. 실패 재현, 변경 파일, 증거 경계는 `packages/nubi-desktop/docs/WAVE2-TASK2-2026-10-18.md`에 기록했다.
+
+- [ ] **Step 5b: Claude 검토와 업로드**
+
+설계 §8.6에 따라 Claude가 검토 후 업로드한다. Codex는 commit/push하지 않았다. 권장 메시지: `feat(nubi-desktop): require approval for irreversible actions`.
 
 ---
 
 ## Task 3: A4 사이드바 읽지 않음과 보관
+
+2026-10-18: 설계 §8 답 8의 고정 목록 동기화 조건을 적용한다. 호스트 목록 최대 50개, 확인 후 localStorage 제거, 고정 대화 보관 차단과 고정 시 복구를 포함한다.
+
+진행 근거: `packages/nubi-desktop/docs/WAVE2-TASK3-2026-10-18.md`. 고정 목록은 최초 한 번 호스트로 이전하고 이후 호스트를 기준으로 사용한다.
 
 **Files:**
 - Create: `runtime/conversation-archive.mjs`, `tests/conversation-archive.test.mjs`
@@ -310,7 +319,7 @@ Run: `node --test tests/irreversible-actions.test.mjs tests/approval-policy.test
 **Interfaces:**
 - Produces: service 메서드 `markTaskRead({taskId})`, `archiveTask({taskId,archived:boolean})`, `setAutoArchiveDays({days})`; `autoArchive(store,{now,days}) -> archivedIds[]`; task 키 `unread:boolean`, `archivedAt:string|null`.
 
-- [ ] **Step 1: 실패하는 시험**
+- [x] **Step 1: 실패하는 시험**
 
 ```js
 import {test} from 'node:test';
@@ -322,7 +331,7 @@ test('a finished answer in a conversation the user is not viewing is unread unti
   markUnread(s,'a',{viewing:'a'});markRead(s,'a');assert.equal(s.get('task:a').unread,false);
 });
 test('auto archive moves idle conversations after N days, never running, pinned-equivalent or already archived ones',()=>{
-  const s=store(),old=new Date(Date.now()-31*864e5).toISOString();
+  const s=store(),old=new Date(Date.now()-31*864e5).toISOString();s.set('setting:pinned-tasks',{ids:[]});
   s.set('task:old',{id:'old',state:'completed',updatedAt:old});s.set('task:run',{id:'run',state:'running',updatedAt:old});s.set('task:new',{id:'new',state:'completed',updatedAt:new Date().toISOString()});
   assert.deepEqual(autoArchive(s,{days:30}),['old']);assert.ok(s.get('task:old').archivedAt);assert.equal(s.get('task:run').archivedAt,undefined);
   assert.deepEqual(autoArchive(s,{days:0}),[]);
@@ -330,9 +339,9 @@ test('auto archive moves idle conversations after N days, never running, pinned-
 test('archiving is reversible',()=>{const s=store();s.set('task:a',{id:'a',state:'completed'});setArchived(s,'a',true);assert.ok(s.get('task:a').archivedAt);setArchived(s,'a',false);assert.equal(s.get('task:a').archivedAt,null);});
 ```
 
-- [ ] **Step 2: 실패 확인** — `node --test tests/conversation-archive.test.mjs` → FAIL
+- [x] **Step 2: 실패 확인** — `node --test tests/conversation-archive.test.mjs` → FAIL
 
-- [ ] **Step 3: 구현**
+- [x] **Step 3: 구현**
 
 ```js
 // Unread dots and archiving (Claude Desktop sidebar benchmark, 2026-10-16). Archiving keeps every record; deleting is separate.
@@ -341,23 +350,27 @@ export function markUnread(store,taskId,{viewing}={}){const task=store.get('task
 export function markRead(store,taskId){const task=store.get('task:'+taskId);if(task?.unread)store.set('task:'+taskId,{...task,unread:false});}
 export function setArchived(store,taskId,archived){const task=store.get('task:'+taskId);if(!task)return null;const next={...task,archivedAt:archived?new Date().toISOString():null};store.set('task:'+taskId,next);return next;}
 export function autoArchive(store,{days,now=Date.now()}={}){
-  if(!(days>0))return [];const ids=[];
-  for(const task of store.list('task:')){if(task.archivedAt||['running','stopping','waiting_input','paused'].includes(task.state))continue;const at=Date.parse(task.updatedAt||task.createdAt||'');if(Number.isFinite(at)&&now-at>days*DAY){setArchived(store,task.id,true);ids.push(task.id);}}
+  const pins=store.get('setting:pinned-tasks');if(!pins||!(days>0))return [];const ids=[];
+  for(const task of store.list('task:')){if(task.archivedAt||task.pinned||pins.ids.includes(task.id)||['running','stopping','waiting_input','paused'].includes(task.state))continue;const at=Date.parse(task.updatedAt||task.createdAt||'');if(Number.isFinite(at)&&now-at>days*DAY){setArchived(store,task.id,true);ids.push(task.id);}}
   return ids;
 }
 ```
 
-`project-service.mjs`: 메서드 셋을 추가하고 `allowed`에 `markTaskRead`, `archiveTask`, `setAutoArchiveDays`를 넣는다. 설정 키 `'setting:auto-archive-days'`(기본 30). 서비스 시작(`ready` 뒤 line 87 근처)에서 `autoArchive(this.store,{days})`. `state()`의 tasks 행에 `unread`, `archivedAt`을 포함한다.
+**§8 답 8 적용:** 위 예시는 핵심 함수 모양이다. 실제 구현은 `setting:pinned-tasks`(최대 50개)와 `setPinnedTasks`를 사용하고 `pinned`를 투영한다. 호스트 확인 뒤 localStorage 사본을 지운다. 자동 보관은 동기화 뒤 프로젝트를 열 때 실행하며 고정 대화의 수동 보관도 막고, 보관된 대화를 고정하면 복구한다. 전체 구현과 경계 검사는 Task 3 기록을 따른다.
+
+`project-service.mjs`: 메서드 셋을 추가하고 `allowed`에 `markTaskRead`, `archiveTask`, `setAutoArchiveDays`를 넣는다. 설정 키 `'setting:auto-archive-days'`(기본 30). 프로젝트 열기에서 고정 동기화 완료를 확인한 뒤 `autoArchive(this.store,{days})`. `state()`의 tasks 행에 `unread`, `archivedAt`을 포함한다.
 `agent.mjs`: 답이 `review`로 끝나거나 `question`이 생길 때 `markUnread(this.store,taskId,{viewing:this.viewingTaskId})`. `viewingTaskId`는 렌더러가 `markTaskRead` 호출 때 함께 기록한다.
 `SessionSidebar.jsx`: 기존 `nubi-session-complete`(새 결과 점, localStorage `acknowledged`)를 `task.unread`로 대체한다. 고정 그룹과 `sessionSidebarGroups`(`session-navigation.mjs`, Codex 2026-10-17)는 그대로 두고 보관 필터만 인자로 더한다(`{archived:boolean}`), `tests/session-navigation.test.mjs`에 필터 사례를 추가한다. 보관함 토글(`CxButton` "보관함 N")을 목록 위에 두고, 켜면 `archivedAt`이 있는 대화만, 끄면 없는 대화만 보인다. `…` 메뉴에 보관/보관 해제(아이콘 `archive`, 라벨 `보관`/`보관 해제`). 진행 중 대화는 보관 불가.
 `Workbench.jsx`: 대화를 선택하면 `api('markTaskRead',{taskId})`.
 설정: "대화 자동 보관" 숫자 입력(일, 0은 끔)과 설명 "N일 동안 쓰지 않은 대화를 보관함으로 옮겨요. 삭제하지 않아요."
 
-- [ ] **Step 4: 시험** — `node --test tests/conversation-archive.test.mjs` → PASS
+- [x] **Step 4: 시험** — `node --test tests/conversation-archive.test.mjs` → PASS
 
-- [ ] **Step 5: 화면 검사** — `scripts/check-wave2-ui.mjs`에 장면 추가: fixture `?sidebar-archive`에서 읽지 않음 점(`aria-label="읽지 않음"`) 1개, 보관 뒤 목록에서 사라지고 보관함에서 보임, 보관 해제 복귀. `scripts/check-electron-lifecycle.mjs`에는 손대지 않는다.
+- [x] **Step 5: 화면 검사** — `scripts/check-wave2-ui.mjs`에 장면 추가: fixture `?sidebar-archive`에서 읽지 않음 점(`aria-label="읽지 않음"`) 1개, 보관 뒤 목록에서 사라지고 보관함에서 보임, 보관 해제 복귀. `scripts/check-electron-lifecycle.mjs`에는 손대지 않는다.
 
-- [ ] **Step 6: QA와 업로드** — 메시지: `feat(nubi-desktop): 사이드바 읽지 않음 점과 대화 보관(자동 보관 30일)`.
+- [x] **Step 6a: 로컬 QA** — 최종 `npm run test:gates` 종료 코드 0. 단위 1,761 통과/0 실패/200 제외, 빌드와 macOS Electron, 117개 전체 화면 및 추가 위키/계정/활동/실패 검사 4종 통과. 기록: `packages/nubi-desktop/docs/WAVE2-TASK3-2026-10-18.md`.
+
+- [ ] **Step 6b: Claude QA 뒤 업로드** — 메시지: `feat(nubi-desktop): 사이드바 읽지 않음 점과 대화 보관(자동 보관 30일)`.
 
 ---
 
@@ -370,7 +383,7 @@ export function autoArchive(store,{days,now=Date.now()}={}){
 **Interfaces:**
 - Produces: `registerOutput(service,task,{path,caption,runId}) -> {id,path,caption,size,kind,runId,at}` (throws `output_invalid`, `output_outside`, `output_limit`); task 키 `outputs[]`; 도구 `send_file`.
 
-- [ ] **Step 1: 실패하는 시험**
+- [x] **Step 1: 실패하는 시험**
 
 ```js
 import {test} from 'node:test';
@@ -392,9 +405,9 @@ test('at most OUTPUT_LIMIT cards per run',async()=>{
 });
 ```
 
-- [ ] **Step 2: 실패 확인** — FAIL (module missing)
+- [x] **Step 2: 실패 확인** — FAIL (module missing)
 
-- [ ] **Step 3: 구현**
+- [x] **Step 3: 구현**
 
 ```js
 import {randomUUID} from 'node:crypto';
@@ -419,11 +432,15 @@ export async function registerOutput({root},task,{path:rel,caption='',runId}){
 `TOOL_RULES`: `- send_file only for files this run produced for the user (reports, captures, generated documents), not for sources you read.`
 `ui/OutputFileCards.jsx`: 카드 목록(`FileKindIcon`, 이름, 크기 `1.2 KB`, 캡션). 누르면 `openPath(card.path)`(이미지와 PDF는 미리보기, 텍스트는 편집기). `Workbench.jsx`의 그 실행 답 아래(`afterMessage`)에 `task.outputs.filter(o=>o.runId===message.runId)`.
 
-- [ ] **Step 4: 시험** — `node --test tests/output-files.test.mjs tests/lean-tools.test.mjs` → PASS
+- [x] **Step 4: 시험** — `node --test tests/output-files.test.mjs tests/lean-tools.test.mjs` → PASS
 
-- [ ] **Step 5: 화면 검사** — fixture `?outputs`에 카드 2개(이미지, 텍스트). 검사: 카드 2개, 첫 카드 클릭 뒤 `window.openedPath==='capture-1.png'`.
+- [x] **Step 5: 화면 검사** — fixture `?outputs`에 카드 2개(이미지, 텍스트). 검사: 카드 2개, 첫 카드 클릭 뒤 `window.openedPath==='capture-1.png'`.
 
-- [ ] **Step 6: QA와 업로드** — 메시지: `feat(nubi-desktop): 산출물 카드 — 실행이 만든 파일을 대화에 붙이고 오른쪽 창에서 열기`.
+- [x] **Step 6a: 로컬 전체 QA** — `npm run test:gates`.
+
+- [ ] **Step 6b: Claude QA와 업로드** — 메시지: `feat(nubi-desktop): 산출물 카드 — 실행이 만든 파일을 대화에 붙이고 오른쪽 창에서 열기`.
+
+2026-10-18: 누락 모듈과 카드 UI 실패를 먼저 확인했다. 파일/캡처 범위 및 실행별 한도, 실제 도구 저장을 포함한 집중 시험 16개 통과. 1280/440 화면에서 카드 위치, 긴 제목 줄바꿈과 키보드 열기를 확인했다. 최종 전체 게이트 종료 코드 0: 단위 1,767 통과/실패 0/조건부 제외 200. 디자인, 빌드, 화면/Electron과 추가 QA 4개 및 산출물 카드 Electron 검사 모두 통과했다. 변경 파일 15개와 최초 실패는 `packages/nubi-desktop/docs/WAVE2-TASK4-2026-10-18.md`에 기록했다. 업로드는 Claude QA 뒤 별도이며 Codex는 push하지 않았다.
 
 ---
 
@@ -436,7 +453,7 @@ export async function registerOutput({root},task,{path:rel,caption='',runId}){
 **Interfaces:**
 - Produces: `proposeSideTask(task,{title,tldr,prompt,runId}) -> chip` (`side_task_invalid`, `side_task_limit`); `transitionSideTask(task,id,'started'|'dismissed')`; service `startSideTask({taskId,sideTaskId}) -> {taskId:newId}`; 도구 `spawn_task`, `dismiss_task`.
 
-- [ ] **Step 1: 실패하는 시험**
+- [x] **Step 1: 실패하는 시험**
 
 ```js
 import {test} from 'node:test';
@@ -456,9 +473,9 @@ test('three chips per run; transitions are one-way',()=>{
 });
 ```
 
-- [ ] **Step 2: 실패 확인** — FAIL
+- [x] **Step 2: 실패 확인** — FAIL
 
-- [ ] **Step 3: 구현**
+- [x] **Step 3: 구현**
 
 ```js
 import {randomUUID} from 'node:crypto';
@@ -487,11 +504,15 @@ export function transitionSideTask(task,id,state){
 `project-service.mjs`: `startSideTask({taskId,sideTaskId})` — 같은 프로젝트에 `createTask({request:chip.prompt})`, `transitionSideTask(...,'started')`, 새 task id 반환. `allowed`에 추가.
 `ui/SideTaskChips.jsx`: 칩(`CxButton` 아이콘 `sparkles`, 제목, `title={tldr}`)과 가위표(`WorkspaceAction action="close"`). 클릭 → `api('startSideTask')` 뒤 새 대화 선택. `Workbench.jsx`의 그 실행 답 아래.
 
-- [ ] **Step 4: 시험** — `node --test tests/side-tasks.test.mjs tests/lean-tools.test.mjs` → PASS
+- [x] **Step 4: 시험** — `node --test tests/side-tasks.test.mjs tests/lean-tools.test.mjs` → PASS
 
-- [ ] **Step 5: 화면 검사** — fixture `?side-tasks`: 칩 2개, 하나 클릭 → `window.startedSideTask` 기록과 새 대화 선택, 하나 가위표 → 사라짐.
+- [x] **Step 5: 화면 검사** — fixture `?side-tasks`: 칩 2개, 하나 클릭 → `window.startedSideTask` 기록과 새 대화 선택, 하나 가위표 → 사라짐.
 
-- [ ] **Step 6: QA와 업로드** — 메시지: `feat(nubi-desktop): 곁가지 작업 칩 — 범위 밖 일을 새 대화로`.
+- [x] **Step 6a: 로컬 전체 QA** — `npm run test:gates`.
+
+- [ ] **Step 6b: Claude QA와 업로드** — 메시지: `feat(nubi-desktop): 곁가지 작업 칩 — 범위 밖 일을 새 대화로`.
+
+2026-10-18: 모듈 누락과 칩 미표시를 먼저 확인했다. 집중 검사 32개와 1280/440 화면 검사를 통과했다. 새 대화는 계획대로 `createTask`로 준비한 뒤 선택하며 기존 시작 버튼을 사용한다. 중복 클릭, 사용자 닫기와 늦은 모델 응답, 같은 프로젝트 바인딩을 보완했다. 첫 전체 게이트에서 압축 회귀 2건을 재현해 중복 도구 안내를 줄였고 공용 압축 코드와 기존 시험은 유지했다. 최종 집중 41/41, 전체 게이트 종료 코드 0(단위 1,776 통과/0 실패/200 건너뜀), 117 화면과 추가 QA 4종, Electron 산출물 열기까지 통과했다. `packages/nubi-desktop/docs/WAVE2-TASK5-2026-10-18.md`에 근거와 변경 파일을 기록했다. Claude QA와 업로드는 남아 있으며 push하지 않았다.
 
 ---
 
@@ -503,6 +524,8 @@ export function transitionSideTask(task,id,state){
 
 ## Task 7: B2 편집 뒤 자동 검사와 완료 게이트 확인
 
+> 실행 보정: 기존 `verify` 및 개발 증거 게이트를 재사용한다. 상세 동작과 최초 실패/검증은 `packages/nubi-desktop/docs/WAVE2-TASK7-2026-10-18.md`.
+
 **Files:**
 - Create: `tests/after-edit-check.test.mjs`, `tests/development-gate.test.mjs`
 - Modify: `runtime/development-workflow.mjs`(`afterEditCheckAction`, `developmentEvidenceMissing`), `runtime/project-service.mjs`(`setting:after-edit-check`, 반영 뒤 명령 제안, `setAfterEditCheck`), `runtime/result-review.mjs`(호스트 게이트), 설정 화면
@@ -511,7 +534,7 @@ export function transitionSideTask(task,id,state){
 - Produces: `afterEditCheckAction({setting,applied,taskId}) -> action|null`; `developmentEvidenceMissing(task,receipts) -> [{method,description}]`; 설정 키 `'setting:after-edit-check'`(`{profile,script}|null`).
 - 선행 확인: 개발 사이클 계획 2단계("수정과 검증의 연결")가 이미 같은 게이트를 넣었으면 `developmentEvidenceMissing`은 그 함수를 감싸기만 하고 새 판정을 만들지 않는다. 시작 전에 `runtime/development-workflow.mjs`의 export 목록을 확인하고 이 Task의 Step 3을 그에 맞게 줄인다.
 
-- [ ] **Step 1: 실패하는 시험(편집 뒤 자동 검사)**
+- [x] **Step 1: 실패하는 시험(편집 뒤 자동 검사)**
 
 ```js
 import {test} from 'node:test';import assert from 'node:assert/strict';
@@ -523,8 +546,8 @@ test('an applied proposal queues the configured check once per batch, bound to t
 });
 ```
 
-- [ ] **Step 2: 실패 확인** — `node --test tests/after-edit-check.test.mjs` → FAIL
-- [ ] **Step 3: 구현**
+- [x] **Step 2: 실패 확인** — `node --test tests/after-edit-check.test.mjs` → FAIL
+- [x] **Step 3: 구현**
 
 `development-workflow.mjs`:
 
@@ -544,74 +567,46 @@ export function developmentEvidenceMissing(task,receipts){
 `result-review.mjs`: 검토 모델 호출 전에 `developmentEvidenceMissing(task,receipts)`가 비어 있지 않으면 모델 답과 무관하게 `{status:'revise',nextStep:'검증 증거가 없어요: '+missing.map(m=>m.description).join(', ')+'. 검사 명령을 실행하거나 브라우저로 확인한 뒤 답하세요.'}`. 읽기 전용 실행에는 적용하지 않는다.
 설정 화면: "편집 뒤 자동 검사" 셸 선택과 명령 한 줄, 설명 "제안을 반영한 뒤 이 명령을 실행해요. 자동 모드가 아니면 승인 카드로 나와요."
 
-- [ ] **Step 4: 시험** — `node --test tests/after-edit-check.test.mjs tests/development-gate.test.mjs tests/result-review.test.mjs tests/development-execution.test.mjs` → PASS. `tests/development-gate.test.mjs`: 증거 없는 완료 답이 `revise`, 검사 명령 영수증(exit 0, 반영 이후 시각)이 있으면 모델 판정 그대로.
-- [ ] **Step 5: Electron 검사** — `scripts/check-development-execution-electron.mjs`에 설정한 검사 명령이 반영 뒤 승인 카드로 올라오는 단계 하나.
-- [ ] **Step 6: QA와 업로드** — 메시지: `feat(nubi-desktop): 편집 뒤 자동 검사 명령과 개발 검증 증거 게이트`.
+- [x] **Step 4: 시험** — `node --test tests/after-edit-check.test.mjs tests/development-gate.test.mjs tests/result-review.test.mjs tests/development-execution.test.mjs` → PASS. `tests/development-gate.test.mjs`: 증거 없는 완료 답이 `revise`, 검사 명령 영수증(exit 0, 반영 이후 시각)이 있으면 모델 판정 그대로.
+- [x] **Step 5: Electron 검사** — `scripts/check-development-execution-electron.mjs`에 설정한 검사 명령이 반영 뒤 승인 카드로 올라오는 단계 하나.
+- [x] **Step 6a: 로컬 QA** — 전체 `npm run test:gates` 종료 코드 0. 단위 1,793 통과/0 실패/200 건너뜀, 화면 117종과 추가 QA 4종 및 native 개발 6개 경로 통과.
+- [ ] **Step 6b: Claude 검토와 업로드** — Codex는 commit/push하지 않음. 권장 메시지: `feat(nubi-desktop): 편집 뒤 자동 검사 명령과 개발 검증 증거 게이트`.
 
 ---
 
 ## Task 8: B4 모델 호출 재시도와 이어서 진행
 
+> **재확인(2026-10-18, 설계 §8 답 9)**: 아래 `withModelRetry` 래퍼와 새 단추는 쓰지 않는다. 기존 `runtime/recovery.mjs:modelTransport`가 재시도 소유자이므로 그 기본값만 재시도 3회(총 4회), 기준 지연 2/4/8초로 맞추고(실제 대기는 공용 실행기의 분산 지연과 서버 cooldown, Retry-After는 줄이지 않음), 집계는 기존 `beginModel`(`attempt>1`), 이어가기는 기존 "이어서 진행"과 `resumeAgent`를 재사용한다. 시험은 총 시도 한도, 래퍼 중첩 없음, 취소/이미지/서버 cooldown, 승인 대기 작업 미재실행을 확인한다. 기록: `packages/nubi-desktop/docs/WAVE2-TASK8-2026-10-18.md`.
+
+2026-10-18: 사용자 "이어서" 지시에 따라 설계 §8.9의 조정안을 적용한다. 기존 provider 아래 재시도 래퍼, 중복 집계와 단추를 추가하지 않는다.
+
 **Files:**
-- Create: `runtime/model-retry.mjs`, `tests/model-retry.test.mjs`
-- Modify: `runtime/desktop-providers.mjs`(`complete` 래핑), `runtime/claude-platform.mjs`(자체 재시도를 공통 정책으로 교체), `runtime/run-metrics.mjs`(`retries` 집계), `ui/Workbench.jsx`(중단된 실행에 "이어서 진행" 단추)
+- Create: `tests/model-retry.test.mjs`
+- Modify: `runtime/recovery.mjs`의 기본 재시도 설정, `tests/recovery.test.mjs`와 `tests/mail.test.mjs`의 새 기본 횟수, `tests/shared-ui-fixture.jsx`, `scripts/check-wave2-ui.mjs`
+- Reuse unchanged: `desktop-providers.mjs`, `claude-platform.mjs`, `run-metrics.mjs`, `Workbench.jsx`, 공용 `model-recovery.js`.
 
 **Interfaces:**
-- Produces: `withModelRetry(complete,{sleep,onRetry}) -> complete'`; `retryDelay(error,attempt) -> ms|null`.
-- 하지 않는 것: 도구 실패 복구(끝남), 압축 지표(개발 사이클 계획 4단계와 `CONTEXT-COMPACTION-BENCHMARK`).
+- 기존 `modelTransport`와 `recoverModel`이 유일한 재시도 계층이다. 기본 재시도 3회(총 4회), `minTimeout:2000`과 기존 factor/maxTimeout/분산 지연으로 기준 2/4/8초를 유지한다.
+- 기존 호출별 한도, 이미지 무재시도, 취소, 인증/정책 거절, 408과 발행 전 `response_invalid` 복구를 유지한다. 60초 초과 서버 대기는 줄이지 않고 일시 중단한다.
+- `beginModel/readRunMetrics`로 실제 시도만 한 번 집계한다. 기존 단추는 `resumeAgent`를 호출하며 추가 사용자 요청이나 도구를 재전송하지 않는다.
 
-- [ ] **Step 1: 실패하는 시험**
+- [x] **Step 1: 실패하는 시험** — 실제 `modelTransport` 기본 지연과 총 4회 시도를 확인한다. 현재 1초/2회 재시도에서 실패해야 한다. 낮은/0회/이미지 한도, 인증 거절, 서버 cooldown, 취소, 실제 집계와 기존 승인 복구도 검사한다.
+- [x] **Step 2: 실패 확인** — `node --test tests/model-retry.test.mjs` → FAIL.
+- [x] **Step 3: 구현** — 기존 옵션의 기본값만 `{retries:3,minTimeout:2000}`으로 변경한다. 하위 계층과 영수증 계약은 유지한다.
+- [x] **Step 4: 시험** — `node --test tests/model-retry.test.mjs tests/run-metrics.test.mjs tests/recovery.test.mjs tests/model-tool-batch.test.mjs` → PASS.
+- [x] **Step 5: 화면 검사** — `check-wave2-ui.mjs` fixture `?interrupted`: 단추 하나, 1280/440px에서 Enter로 `resumeAgent` 한 번 호출. `startAgent` 추가 요청 없음, 대화와 승인 대기 카드 보존.
+- [x] **Step 6a: 로컬 전체 QA** — `npm run test:gates`.
+- [ ] **Step 6b: Claude QA와 업로드** — Codex는 push하지 않는다.
 
-```js
-import {test} from 'node:test';import assert from 'node:assert/strict';
-import {retryDelay,withModelRetry} from '../runtime/model-retry.mjs';
-test('timeouts and 5xx back off 2s, 4s, 8s then stop; 429 honours retry-after; auth and other 4xx never retry',()=>{
-  const timeout=Object.assign(Error('timeout'),{code:'ETIMEDOUT'});
-  assert.deepEqual([0,1,2,3].map(i=>retryDelay(timeout,i)),[2000,4000,8000,null]);
-  assert.equal(retryDelay(Object.assign(Error('x'),{status:503}),0),2000);
-  assert.equal(retryDelay(Object.assign(Error('x'),{status:429,retryAfterMs:7000}),0),7000);
-  assert.equal(retryDelay(Object.assign(Error('x'),{status:401}),0),null);assert.equal(retryDelay(Object.assign(Error('x'),{status:400}),0),null);
-});
-test('the wrapper retries, reports each retry and respects abort',async()=>{
-  let calls=0;const complete=withModelRetry(async()=>{calls++;if(calls<3)throw Object.assign(Error('x'),{status:502});return {content:'ok'};},{sleep:async()=>{},onRetry:()=>{}});
-  assert.equal((await complete([],[],undefined)).content,'ok');assert.equal(calls,3);
-  const aborted=new AbortController();aborted.abort();
-  await assert.rejects(withModelRetry(async()=>{throw Object.assign(Error('x'),{status:502});},{sleep:async()=>{}})([],[],aborted.signal),/aborted|x/);
-});
-```
-
-- [ ] **Step 2: 실패 확인** → FAIL
-- [ ] **Step 3: 구현**
-
-```js
-// One place for model call retries (Claude Code benchmark, 2026-10-16). Timeouts and 5xx back off three times;
-// 429 waits what the server asks; authentication and other 4xx go to their existing flows unchanged.
-const BACKOFF=[2000,4000,8000];
-export function retryDelay(error,attempt){
-  const status=error?.status??error?.response?.status;
-  if(status===429)return attempt<3?Math.min(error.retryAfterMs||BACKOFF[attempt],60000):null;
-  if(status>=400&&status<500)return null;
-  if(status>=500||['ETIMEDOUT','ECONNRESET','UND_ERR_CONNECT_TIMEOUT','ABORT_TIMEOUT'].includes(error?.code)||/timeout/i.test(error?.message||''))return attempt<BACKOFF.length?BACKOFF[attempt]:null;
-  return null;
-}
-export function withModelRetry(complete,{sleep=ms=>new Promise(r=>setTimeout(r,ms)),onRetry=()=>{}}={}){
-  return async(...args)=>{const signal=args[2];for(let attempt=0;;attempt++){
-    try{return await complete(...args);}
-    catch(error){if(signal?.aborted)throw error;const delay=retryDelay(error,attempt);if(delay==null)throw error;onRetry({attempt:attempt+1,delay,error});await sleep(delay);if(signal?.aborted)throw error;}
-  }};
-}
-```
-
-`desktop-providers.mjs` line 50의 `complete`를 `withModelRetry(원래,{onRetry:info=>this.metrics?.retry(info)})`로 감싼다. `claude-platform.mjs`의 자체 재시도는 이 정책으로 바꾸고 중복 재시도가 없게 한다(`tests/claude-platform.test.mjs`가 있으면 그 기대값을 같은 정책으로 맞춘다). `run-metrics.mjs`에 `retry()` 기록과 `readRunMetrics`의 `retries` 합계.
-`Workbench.jsx`: `task.state==='interrupted'`이면 안내문 옆에 `CxButton` "이어서 진행"(아이콘 `play`) — 기존 예산 도달 경로와 같이 추가 요청("이어서 진행해 주세요")을 보낸다. 승인 대기 중이던 호출은 재실행하지 않는다.
-
-- [ ] **Step 4: 시험** — `node --test tests/model-retry.test.mjs tests/run-metrics.test.mjs` → PASS
-- [ ] **Step 5: 화면 검사** — `check-wave2-ui.mjs` fixture `?interrupted`: 단추 존재, 클릭 뒤 `window.sentRequest==='이어서 진행해 주세요'`.
-- [ ] **Step 6: QA와 업로드** — 메시지: `feat(nubi-desktop): 모델 호출 재시도 정책 한 곳, 중단된 실행 이어서 진행`.
+2026-10-18: 집중 50/50, 최종 전체 게이트 종료 코드 0(단위 1,783 통과/0 실패/200 건너뜀), 117 화면과 추가 QA 4종 통과. 제품 변경은 기존 transport 기본값 한 곳이다. 기록과 변경 파일은 `packages/nubi-desktop/docs/WAVE2-TASK8-2026-10-18.md`. Claude QA/업로드는 남아 있다.
 
 ---
 
 ## Task 9: B3 조사 하위 에이전트
+
+> §8 답 10(2026-10-18): 사용자 승인으로 공용 `agent-runtime.js`, `analysis-agents.js` 두 파일의 선택적 호스트 admission/slot 연결만 예외 허용한다. 기존 기본 동작은 보존하며 Desktop의 분석/조사 작업자는 동시 2, 실행당 누적 6을 공유한다.
+
+> 2026-10-18: 로컬 완료. 집중 98/98, OpenWiki typecheck, 실제 Electron 12종, 전체 게이트 종료 코드 0(단위 1,809 통과/0 실패/200 건너뜀), 화면 117개와 추가 QA 4종 통과. 기록: `packages/nubi-desktop/docs/WAVE2-TASK9-2026-10-18.md`. Claude QA/업로드는 후속.
 
 **Files:**
 - Create: `runtime/research-agent.mjs`, `tests/research-agent.test.mjs`
@@ -620,7 +615,7 @@ export function withModelRetry(complete,{sleep=ms=>new Promise(r=>setTimeout(r,m
 **Interfaces:**
 - Produces: `createResearchAgent({service,taskId,runId,readTools,invokeModel,limit:{concurrent:2,perRun:6}})` with `delegate({goal,scope,budget}) -> {id,summary,findings:[{claim,source}],unresolved:[],calls}` and `continue({id,question}) -> same`(최대 2회).
 
-- [ ] **Step 1: 실패하는 시험**
+- [x] **Step 1: 실패하는 시험**
 
 ```js
 import {test} from 'node:test';import assert from 'node:assert/strict';
@@ -640,8 +635,8 @@ test('write tools are refused inside the agent, budgets and per-run limits hold,
 });
 ```
 
-- [ ] **Step 2: 실패 확인** → FAIL
-- [ ] **Step 3: 구현**
+- [x] **Step 2: 실패 확인** → FAIL
+- [x] **Step 3: 구현**
 
 `research-agent.mjs` 핵심:
 
@@ -684,9 +679,11 @@ export function createResearchAgent({readTools,execute,invokeModel,limit={concur
 `TOOL_RULES`: `- delegate_research for independent investigations you do not need to read yourself; its findings are leads: read the cited source before citing it in the answer.`
 `eval/grade.mjs`: `subagentCalls` 합계(purpose `research`).
 
-- [ ] **Step 4: 시험** — `node --test tests/research-agent.test.mjs tests/lean-tools.test.mjs tests/tool-budget.test.mjs` → PASS
-- [ ] **Step 5: 합성 모델 검사** — `scripts/check-electron-agent.mjs`에 한 턴 추가: 모델이 `delegate_research`를 부르고 fixture 모델이 하위에서 `read_source` 1회 뒤 JSON으로 답, 메인이 출처를 `read_source`로 다시 읽고 답. 기록에 역할 "조사"가 보인다.
-- [ ] **Step 6: QA와 업로드** — 메시지: `feat(nubi-desktop): 조사 하위 에이전트 — 읽기 전용 자체 문맥, 동시 2, 이어서 묻기`.
+- [x] **Step 4: 시험** — `node --test tests/research-agent.test.mjs tests/lean-tools.test.mjs tests/tool-budget.test.mjs` → PASS
+- [x] **Step 5: 합성 모델 검사** — `scripts/check-electron-agent.mjs`에 한 턴 추가: 모델이 `delegate_research`를 부르고 fixture 모델이 하위에서 `read_source` 1회 뒤 JSON으로 답, 메인이 출처를 `read_source`로 다시 읽고 답. 기록에 역할 "조사"가 보인다.
+- [x] **Step 6a: 로컬 QA** — 메시지: `feat(nubi-desktop): 조사 하위 에이전트 — 읽기 전용 자체 문맥, 동시 2, 이어서 묻기`.
+
+- [ ] **Step 6b: Claude QA 뒤 비공개 main 업로드** — Codex는 commit/push하지 않는다.
 
 ---
 
@@ -696,7 +693,7 @@ export function createResearchAgent({readTools,execute,invokeModel,limit={concur
 - Create: `runtime/conversation-export.mjs`, `tests/conversation-export.test.mjs`
 - Modify: `runtime/project-service.mjs`(`exportConversation`), `electron-app/main.cjs`(저장 대화상자, 기존 `downloadMail`과 같은 틀), `ui/SessionSidebar.jsx`(`…`에 "Markdown으로 내보내기")
 
-- [ ] **Step 1: 실패하는 시험**
+- [x] **Step 1: 실패하는 시험**
 
 ```js
 import {test} from 'node:test';import assert from 'node:assert/strict';
@@ -711,11 +708,15 @@ test('export keeps order: request, chapters, tool names and commands, answers; n
 });
 ```
 
-- [ ] **Step 2: 실패 확인** → FAIL
-- [ ] **Step 3: 구현** — `conversationMarkdown(task)`: 제목, 날짜, 메시지 순서대로(`## 요청`, `## 답`), 챕터는 해당 위치에 `## {title}`, 각 실행의 도구 행은 접힌 목록 `- read_source src/mail.mjs`(args에서 `path|query|script|title`만, 인증값 키 `token|password|secret|authorization` 제외), 메일 참조는 제목과 id만. `project-service.mjs` `exportConversation({taskId}) -> {filename,markdown}`; `main.cjs`에 `exportConversation` 메서드: `showSaveDialog` 뒤 `writeFile`(mode 0o600), 해시 확인은 `downloadMail`과 같이.
-- [ ] **Step 4: 시험** → PASS
-- [ ] **Step 5: Electron 검사** — `scripts/check-electron-projects.mjs`에 내보내기 한 단계(`dialog.showSaveDialog`를 evaluate로 대체, 파일 내용에 요청 문장 포함).
-- [ ] **Step 6: QA와 업로드** — 메시지: `feat(nubi-desktop): 대화 Markdown 내보내기`.
+- [x] **Step 2: 실패 확인** → FAIL
+- [x] **Step 3: 구현** — `conversationMarkdown(task)`: 제목, 날짜, 메시지 순서대로(`## 요청`, `## 답`), 챕터는 해당 위치에 `## {title}`, 각 실행의 도구 행은 접힌 목록 `- read_source src/mail.mjs`(args에서 `path|query|script|title`만, 인증값 키 `token|password|secret|authorization` 제외), 메일 참조는 제목과 id만. `project-service.mjs` `exportConversation({taskId}) -> {filename,markdown}`; `main.cjs`에 `exportConversation` 메서드: `showSaveDialog` 뒤 `writeFile`(mode 0o600), 해시 확인은 `downloadMail`과 같이.
+- [x] **Step 4: 시험** → PASS
+- [x] **Step 5: Electron 검사** — `scripts/check-electron-projects.mjs`에 내보내기 한 단계(`dialog.showSaveDialog`를 evaluate로 대체, 파일 내용에 요청 문장 포함).
+- [x] **Step 6a: 로컬 QA** — 메시지: `feat(nubi-desktop): 대화 Markdown 내보내기`.
+
+- [ ] **Step 6b: Claude QA 뒤 비공개 main 업로드** — Codex commit/push 없음.
+
+2026-10-18: 전체 게이트 종료 코드 0, 1,813 통과/0 실패/200 건너뜀. 기록과 변경 8개 파일은 `packages/nubi-desktop/docs/WAVE2-TASK10-2026-10-18.md`.
 
 ---
 
@@ -725,12 +726,16 @@ test('export keeps order: request, chapters, tool names and commands, answers; n
 - Create: `ui/ConversationUsage.jsx`, `tests/conversation-usage.test.mjs`
 - Modify: `runtime/run-metrics.mjs`(`summarizeTaskMetrics(store,taskId)`), `runtime/project-service.mjs`(`taskUsage`), `ui/SessionSidebar.jsx`(`…`에 "사용량"), `scripts/check-wave2-ui.mjs`
 
-- [ ] **Step 1: 실패하는 시험** — `summarizeTaskMetrics`가 실행별 `metric_model`을 목적별 호출 수와 토큰 합, `metric_tool` 수, `metric_compaction` 수, `retries`, 시간으로 합산한다. fixture: 실행 2개(계획 1, 본문 4, 검토 1, 조사 2; 압축 1).
-- [ ] **Step 2: 실패 확인** → FAIL
-- [ ] **Step 3: 구현** — `summarizeTaskMetrics` + `taskUsage({taskId})`. `ConversationUsage.jsx`: `DetailPanel`(`deck-dialog`)에 표(목적, 호출, prompt, completion, cached)와 한 줄 합계(도구 호출, 압축, 재시도, 시간). 비용 없음.
-- [ ] **Step 4: 시험** → PASS
-- [ ] **Step 5: 화면 검사** — fixture `?usage`로 모달 열림과 표 행 6개.
-- [ ] **Step 6: QA와 업로드** — 메시지: `feat(nubi-desktop): 이 대화의 사용량 — 목적별 호출과 토큰, 압축, 재시도`.
+- [x] **Step 1: 실패하는 시험** — `summarizeTaskMetrics`가 실행별 `metric_model`을 목적별 호출 수와 토큰 합, `metric_tool` 수, `metric_compaction` 수, `retries`, 시간으로 합산한다. fixture: 실행 2개(계획 1, 본문 4, 검토 1, 조사 2; 압축 1).
+- [x] **Step 2: 실패 확인** → FAIL
+- [x] **Step 3: 구현** — `summarizeTaskMetrics` + `taskUsage({taskId})`. `ConversationUsage.jsx`: `DetailPanel`(`deck-dialog`)에 표(목적, 호출, prompt, completion, cached)와 한 줄 합계(도구 호출, 압축, 재시도, 시간). 비용 없음.
+- [x] **Step 4: 시험** → PASS
+- [x] **Step 5: 화면 검사** — fixture `?usage`로 모달 열림과 표 행 6개.
+- [x] **Step 6a: 로컬 QA** — 메시지: `feat(nubi-desktop): 이 대화의 사용량 — 목적별 호출과 토큰, 압축, 재시도`.
+
+- [ ] **Step 6b: Claude QA 뒤 비공개 main 업로드** — Codex commit/push 없음.
+
+2026-10-18: 전체 게이트 종료 코드 0. 단위 1,815 통과/0 실패/200 건너뜀. 기록과 변경 10개 파일은 `packages/nubi-desktop/docs/WAVE2-TASK11-2026-10-18.md`.
 
 ---
 
@@ -743,7 +748,7 @@ test('export keeps order: request, chapters, tool names and commands, answers; n
 **Interfaces:**
 - Produces: `nextRun(routine,now) -> ISO`; `dueRoutines(store,now) -> routine[]`; `createRoutineScheduler({store,run,now,interval:60000})`; 루틴 `{id,name,projectId,request,schedule:{kind:'daily'|'weekly',time:'09:00',weekday?:0-6},enabled,lastRunAt,lastTaskId}`.
 
-- [ ] **Step 1: 실패하는 시험**
+- [x] **Step 1: 실패하는 시험**
 
 ```js
 import {test} from 'node:test';import assert from 'node:assert/strict';
@@ -761,11 +766,12 @@ test('the scheduler runs due routines once, records lastRunAt and never overlaps
 });
 ```
 
-- [ ] **Step 2: 실패 확인** → FAIL
-- [ ] **Step 3: 구현** — `routines.mjs`(위 인터페이스; `tick`은 `dueRoutines`를 순서대로 `run`, 실행 중인 루틴의 task가 `running|waiting_input`이면 건너뜀, 앱이 꺼져 있던 동안 지난 시각은 한 번만). `service-entry.mjs`에서 `createRoutineScheduler({store,run:routine=>projects.service(routine.projectId).createTask({request:routine.request,routineId:routine.id})}).start()`. 질문이 생기면 기존 결정 알림(`decision-notices.cjs`)에 "루틴 '이름'이 답을 기다려요". 외부 반영은 승인 카드로 대기(기존 게이트). `RoutineSettings.jsx`: 목록, 추가(이름, 프로젝트, 주기, 시각, 요청 문장), 켜기/끄기, 지금 실행, 삭제(휴지통 아이콘, 확인).
-- [ ] **Step 4: 시험** → PASS
-- [ ] **Step 5: Electron 검사** — `scripts/check-electron-lifecycle.mjs`에 루틴 한 건 추가 뒤 "지금 실행"으로 대화가 생기고 사이드바에 보이는 단계. 자동 시각 실행은 단위 시험으로만.
-- [ ] **Step 6: QA와 업로드** — 메시지: `feat(nubi-desktop): 루틴 — 예약 실행, 질문과 승인은 알림으로 대기`.
+- [x] **Step 2: 실패 확인** → FAIL
+- [x] **Step 3: 구현** — `routines.mjs`(위 인터페이스; `tick`은 `dueRoutines`를 순서대로 `run`, 실행 중인 루틴의 task가 `running|waiting_input`이면 건너뜀, 앱이 꺼져 있던 동안 지난 시각은 한 번만). `service-entry.mjs`에서 `createRoutineScheduler({store,run:routine=>projects.service(routine.projectId).createTask({request:routine.request,routineId:routine.id})}).start()`. 질문이 생기면 기존 결정 알림(`decision-notices.cjs`)에 "루틴 '이름'이 답을 기다려요". 외부 반영은 승인 카드로 대기(기존 게이트). `RoutineSettings.jsx`: 목록, 추가(이름, 프로젝트, 주기, 시각, 요청 문장), 켜기/끄기, 지금 실행, 삭제(휴지통 아이콘, 확인).
+- [x] **Step 4: 시험** → PASS
+- [x] **Step 5: Electron 검사** — `scripts/check-electron-lifecycle.mjs`에 루틴 한 건 추가 뒤 "지금 실행"으로 대화가 생기고 사이드바에 보이는 단계. 자동 시각 실행은 단위 시험으로만.
+- [x] **Step 6a: 로컬 전체 QA** — 공통 모달 아이덴티티와 최종 리뷰 보완 포함 `npm run test:gates` 종료 코드 0. 단위 1,827 통과/0 실패/200 건너뜀, 화면 117종, 추가 QA 4종과 실제 Electron 개발 6개 경로 통과. 최종 소스/시험 87파일 해시 확인. 상세: `packages/nubi-desktop/docs/WAVE2-QA-HANDOFF-2026-10-18.md`.
+- [ ] **Step 6b: Claude QA와 업로드** — Codex는 commit/push하지 않는다. 권장 메시지: `feat(nubi-desktop): add scheduled routines with existing decision gates`.
 
 ---
 
@@ -774,6 +780,122 @@ test('the scheduler runs due routines once, records lastRunAt and never overlaps
 - [ ] **Step 1: 재측정** — Task 0과 같은 절차로 sol, luna 한 번씩(사용자). Claude가 `eval/compare.mjs`로 기준선과 비교해 `docs/superpowers/specs/2026-10-16-nubi-harness-baseline.md`에 "2차 뒤" 표를 붙인다. 목표: 통과 유지 또는 증가, 본문+계획+검토 호출 수 감소, 거짓 완료 증가 없음, `subagentCalls`와 `retries` 기록. 압축 지표는 개발 사이클 계획의 표를 쓴다.
 - [ ] **Step 2: 문서** — `docs/HOTFIX-<다음 버전>.md`에 2차 물결 항목을 사용자 말로 적는다(챕터, 곁가지 칩, 산출물 카드, 읽지 않음과 보관, 자동 모드 안전 규칙, 편집 뒤 검사, 재시도, 하위 조사, 내보내기, 사용량, 루틴).
 - [ ] **Step 3: 메모리와 업로드** — 설계 §8 미결의 답을 설계 문서에 기록하고 main 업로드.
+
+
+---
+
+## 2차 검토 결과 (2026-10-18, Claude 평가 — 업로드 전에 고칠 것)
+
+단위 시험(1,820), 공용 런타임 시험(1,734), OpenWiki 타입 검사는 통과했다. 독립 검토(정확성, 조용한 실패) 둘에서 확인한 결함은 아래 열 가지이며 **F1, F2, F4, F5, F13을 고친 뒤** Task 2~12를 함께 올린다. F3, F6~F12, F14, F15는 같은 묶음에서 고치되 업로드를 막지 않는다(F14는 다음 업로드 전까지). 각 항목은 실패 시험을 먼저 추가한다.
+
+### F1. 인앱 Playwright 도구가 "삭제 도구"로 분류되어 항상 허용이 깨짐 (Task 2, 높음)
+
+- [x] 2026-10-18 Codex 수정 및 관련 단위/화면 검사 완료. 추가 Electron MCP 승인 검사를 포함한 `npm run test:gates` 종료 코드 0. [파일 목록과 근거](../../../packages/nubi-desktop/docs/WAVE2-QA-FIXES-2026-10-18.md). Claude QA 및 업로드는 별도이며 Codex는 push하지 않음.
+
+- 원인: 내장 `@playwright/mcp` 도구는 상위 구현(`node_modules/playwright/lib/mcp/sdk/tool.js:35-36`)이 `destructiveHint:!readOnly, openWorldHint:true`로 주석을 붙인다. `browser_click`, `browser_type`, `browser_navigate` 등 입력/동작 도구가 전부 `irreversibleMcpTool`의 `destructiveHint` 분기에 걸려 `{matched:true,reason:'삭제 도구'}`가 된다. 저장된 항상 허용은 무시되고(`agent.mjs` MCP 게이트의 `savedAllowance&&!irreversible.matched`), 카드는 실행/취소만 남으며, 답변 "항상 허용"은 `answer_invalid`. 설계 §8 답 7("인앱 Playwright 도구는 이 규칙 대상이 아니다")과 어긋난다.
+- 고침: `irreversibleMcpTool(tool,{serverId})`에 `serverId` 인자를 더하고 `serverId==='playwright'`(내장 브라우저 서버)는 `{matched:false}`를 돌려준다. `agent.mjs`의 두 호출(게이트와 답변 검사)에 `found.serverId`를 넘긴다. 주석을 벗기는 대안은 쓰지 않는다(다른 소비자가 주석을 본다).
+- 시험: `tests/irreversible-actions.test.mjs`에 실제 상위 모양 `{name:'browser_click',annotations:{readOnlyHint:false,destructiveHint:true,openWorldHint:true}}`가 `serverId:'playwright'`에서 `matched:false`, 다른 서버의 같은 모양은 `matched:true`. `tests/mcp-approval-flow.test.mjs`에 "browser_type 항상 허용 뒤 재프롬프트 없음".
+- 게이트: `scripts/check-electron-mcp-approval.mjs`(실제 도구로 항상 허용 라디오와 재시작 뒤 무프롬프트를 봄)를 `npm run test:gates`에 넣는다. 이번에 빠져 있어 못 잡았다. **주의(2026-10-18 실행 결과)**: 이 스크립트는 지금 승인 단계 전에 `.desktop-browser-viewport` 대기에서 실패한다(브라우저 창 도킹 변경 뒤 갱신이 안 됨). 먼저 현재 브라우저 창 구조에 맞게 고친 뒤 게이트에 넣는다. F1 자체는 단위 탐침(실제 주석 모양 `destructiveHint:true,openWorldHint:true` → `삭제 도구`)으로 확인했다.
+
+### F2. 자동 보관이 명령을 한 번이라도 실행한 대화를 영원히 건너뜀 (Task 3, 높음)
+
+- [x] 2026-10-18 Codex 수정 및 관련 단위/화면 검사 완료. 추가 Electron MCP 승인 검사를 포함한 `npm run test:gates` 종료 코드 0. [파일 목록과 근거](../../../packages/nubi-desktop/docs/WAVE2-QA-FIXES-2026-10-18.md). Claude QA 및 업로드는 별도이며 Codex는 push하지 않음.
+
+- 원인: `project-service.mjs:145 runAutoArchive`가 `process:`, `setup-action:`, `proposal:`, `command-repair:` 기록 중 상태가 `['completed','applied','cancelled','rejected','succeeded','failed']`에 **없으면** 차단한다. 그런데 정상 실행된 setup action의 종료 상태는 `started`(`setup-actions.mjs:148,152`), 다시 제안된 편집의 이전 제안은 `superseded`(`project-service.mjs:355`, `new-files.mjs:36`), 프로세스는 `timed_out`/`interrupted`로 끝난다. 결과: `npm test` 한 번 돌린 개발 대화는 30일이 지나도 보관되지 않는다. 새 시험은 그런 기록이 없는 대화만 썼다.
+- 고침: 차단은 **진행 중 상태만** 본다. `process:` → `checking`, `running`, `stopping`; `setup-action:`과 `command-repair:` → `proposed`, `starting`; `proposal:` → `proposed`, `creating`. 나머지는 모두 보관 가능.
+- 시험: `tests/conversation-archive.test.mjs`(또는 project-service 시험)에 `started` setup action과 `superseded` proposal이 있는 31일 지난 대화가 보관되고, `running` process가 있는 대화는 보관되지 않는 사례.
+
+### F3. `irreversibleCommand`가 Windows와 래퍼 형태를 놓침 (Task 2, 낮음 — 자동 실행 우회는 없음)
+
+- [x] 2026-10-18 Codex 수정 및 관련 단위/화면 검사 완료. 추가 Electron MCP 승인 검사를 포함한 `npm run test:gates` 종료 코드 0. [파일 목록과 근거](../../../packages/nubi-desktop/docs/WAVE2-QA-FIXES-2026-10-18.md). Claude QA 및 업로드는 별도이며 Codex는 push하지 않음.
+
+- 놓치는 형태: `rm -Recurse -Force out`(PowerShell 별칭, 플래그 문자열에 소문자 f 없음), `rmdir -Recurse -Force x`, `del -Recurse -Force x`, `Remove-Item -r -fo x`(매개변수 축약), `powershell -Command "Remove-Item -Recurse -Force x"`와 `cmd /c "rd /s /q x"`(따옴표 안 payload가 한 토큰), `sudo rm -rf x`, `/bin/rm -rf x`, `env X=1 rm -rf x`(기본 이름과 래퍼), `git -C dir push --force`(`args[0]`이 `-C`).
+- 영향: 자동 실행은 정확한 항상 허용이나 매니페스트 `checkCommand`(패키지 관리자 명령만, `$ ( ) ; & |` 거절)가 있어야 하므로 우회는 없다. 카드의 "되돌리기 어려운 작업" 안내만 빠진다.
+- 고침: 프로그램을 기본 이름으로 줄이고(`/bin/rm`, `rm.exe`), 래퍼(`sudo`, `env`, `nice`, `time`)를 건너뛰고, `-c`, `/c`, `-Command`, `-EncodedCommand` 뒤 payload는 다시 토큰화하고, PowerShell `-Recurse`/`-Force`는 대소문자 무시 접두 일치, git 전역 옵션(`-C <dir>`, `-c k=v`)은 건너뛴다. 각 형태를 시험에 추가.
+
+### F4. `send_file`, `spawn_task`, `dismiss_task`의 거절이 모델에 `tool_execution_failed`로만 도착 (Task 4, 5, 높음)
+
+- [x] 2026-10-18 Codex 수정 및 관련 단위/화면 검사 완료. 추가 Electron MCP 승인 검사를 포함한 `npm run test:gates` 종료 코드 0. [파일 목록과 근거](../../../packages/nubi-desktop/docs/WAVE2-QA-FIXES-2026-10-18.md). Claude QA 및 업로드는 별도이며 Codex는 push하지 않음.
+
+- 원인: `agent.mjs:611-613` 세 분기가 `proposeSideTask`/`registerOutput`/`dismissSideTask`의 `fail(code)`를 그대로 던진다. 공용 런타임의 `toolException`(`extensions/aipro-chat/tool-errors.js:7-10`)은 `ERROR_TEXT`에 없는 코드를 `tool_execution_failed`로 바꾸므로 `output_invalid`, `output_outside`, `side_task_invalid`, `side_task_limit`, `side_task_missing`, `side_task_state`가 전부 "도구가 실패했습니다"가 된다. `output_limit`만 `ERROR_TEXT`에 있는데 전혀 다른 뜻("응답 생성을 이어가지 못했습니다")의 기존 코드와 충돌한다. `traceErrorCodes`에도 없어 작업 기록 행은 사유 없이 오류만 보인다.
+- 결과: 모델이 "경로가 프로젝트 밖"과 "파일 없음"과 "한도 도달"을 구분하지 못하고 재시도하거나 카드가 붙었다고 말할 수 있다.
+- 고침: 세 분기를 `delegate_research` 분기처럼 `try{...}catch(error){result={ok:false,error:코드,actionIssued:false,instruction:한 문장}}`로 바꾼다(`fail` 코드 목록만 통과, 나머지는 던짐). 카드 한도 코드는 `output_card_limit`으로 바꿔 충돌을 없앤다(`output-files.mjs`, 시험, UI 오류 표 함께). `traceErrorCodes`에 여섯 코드를 더한다.
+- 시험: `tests/output-files.test.mjs`와 `tests/side-tasks.test.mjs`에 agent 경로 통과 시험(합성 모델이 프로젝트 밖 경로로 `send_file` → 결과 `error:'output_outside'`, 기록 행 `reason` 있음).
+
+### F5. 편집 뒤 검사 "다시 준비"가 조용히 실패하고 원인이 한 문장으로 뭉개짐 (Task 7, 높음)
+
+- [x] 2026-10-18 Codex 수정 및 관련 단위/화면 검사 완료. 추가 Electron MCP 승인 검사를 포함한 `npm run test:gates` 종료 코드 0. [파일 목록과 근거](../../../packages/nubi-desktop/docs/WAVE2-QA-FIXES-2026-10-18.md). Claude QA 및 업로드는 별도이며 Codex는 push하지 않음.
+
+- 원인: `after-edit-check.mjs:63`의 `queueAfterEditCheck`가 `.catch`로 오류를 삼키고 `afterEditCheckError`만 저장한 채 `null`을 돌려준다. `project-service.mjs:127 retryAfterEditCheck`가 그 약속을 그대로 반환해 `Workbench.jsx`의 "검사 다시 준비"는 실패해도 토스트가 없다. 경고문은 코드와 무관하게 고정 문장이고 `prepareSetupAction`의 `details.path`(어느 파일이 바뀌었는지)는 버려진다. `check_prepare_failed`는 실제 버그를 숨기고 `store.event`도 없다. `waitingOn()`이 `afterEditCheckError` 동안 true라 적용 뒤 자동 이어가기가 막히는데 빠져나가는 방법(수동 편집 되돌리기, 설정 끄기)을 말해 주지 않는다.
+- 고침: `retryAfterEditCheck`는 실패를 다시 던지거나 `{error,path}`를 돌려줘 `perform`이 오류를 표시하게 한다. 경고문을 코드별로 나눈다: `source_stale` → "반영 뒤 {path}가 바뀌었어요. 현재 내용으로 다시 준비하거나 설정을 꺼 주세요", `shell_not_selected`/`shell_unavailable` → "기본 터미널을 설정에서 골라 주세요", `question_pending` → "대기 중인 질문에 답한 뒤 준비해요", `setup_cancelled` → "취소했어요", 그 밖은 코드를 괄호로. `store.event('after_edit_check_failed',{taskId,code,path})` 기록. 시험: `tests/after-edit-check.test.mjs`에 재시도 실패가 호출자에게 보이는 사례.
+
+### F6. 조사 하위 에이전트의 오류 코드가 `research_read_failed`/`research_failed`로 뭉개짐 (Task 9, 중간)
+
+- [x] 2026-10-18 Codex 수정 및 관련 단위/화면 검사 완료. 추가 Electron MCP 승인 검사를 포함한 `npm run test:gates` 종료 코드 0. [파일 목록과 근거](../../../packages/nubi-desktop/docs/WAVE2-QA-FIXES-2026-10-18.md). Claude QA 및 업로드는 별도이며 Codex는 push하지 않음.
+
+- 원인: `research-agent.mjs` 루프의 catch가 세 코드 외는 전부 `research_read_failed`, `agent.mjs:608`의 catch가 `research_*` 외는 전부 `research_failed`. 호스트 읽기의 `path_scope`, `source_missing`, `range_invalid`, `tool_timeout`, `content_limit`, `search_unavailable`와 모델의 `rate_limited`, `unauthorized`, `model_timeout`, `network`가 모두 사라진다. 진행 항목에도 코드가 없어 작업 기록의 실패한 조사에 사유가 없다(`analyzeWorkspaceDocuments`는 `record.error`를 남김).
+- 같이 고칠 것: `pathName()`이 범위 검사에서는 `./src/a.mjs`와 `src/`를 받아들이지만 원래 문자열을 `execute`에 넘겨 `relativeFile`이 `path_scope`로 거절한다(정규화한 경로를 넘긴다). `resolvePath`가 읽기마다 모든 범위 경로를 `realpath`하므로 존재하지 않는 범위 경로 하나가 세션의 모든 읽기를 실패시킨다(`delegate()`에서 범위 경로 존재를 먼저 검사하고 없는 경로는 `unresolved`에 적는다). `source_search`는 `within`이 없으면 `research_scope`로 거절되는데 범위가 `['.']`이면 허용하고 거절 메시지에 `within`이 필요하다고 적는다.
+- 고침: 두 catch에서 `recoveryCode(error)`를 통과시키고 진행 항목에 `error` 코드를 넣는다.
+
+### F7. 조사 예산 소진이 완료처럼 돌아옴 (Task 9, 중간)
+
+- [x] 2026-10-18 Codex 수정 및 관련 단위/화면 검사 완료. 추가 Electron MCP 승인 검사를 포함한 `npm run test:gates` 종료 코드 0. [파일 목록과 근거](../../../packages/nubi-desktop/docs/WAVE2-QA-FIXES-2026-10-18.md). Claude QA 및 업로드는 별도이며 Codex는 push하지 않음.
+
+- 원인: `loop()`가 예산 종료, 문맥 한도, 8회 초과, 잘못된 호출 id 등 모든 `break`에서 `result(s,'확인한 범위 안에서 조사를 마쳤습니다.')`를 돌려주고 `status` 필드가 없다. `outcome:'partial'`은 화면용 `progress()`에만 있다.
+- 고침: 반환에 `status:'complete'|'partial'|'budget_exhausted'|'context_limit'`를 넣고 요약 문장을 상태에 맞춘다("호출 예산 20회를 다 써서 멈췄어요. 읽은 범위: …"). 메인 규칙 한 줄: "status가 complete가 아니면 조사 결과를 근거로 쓰지 말고 범위를 좁혀 다시 위임하거나 직접 읽어라."
+
+### F8. `irreversibleMcpTool`의 이름 판정이 부분 문자열이라 조회 도구를 외부 반영으로 오인 (Task 2, 낮음이지만 사용자에게 보임)
+
+- [x] 2026-10-18 Codex 수정 및 관련 단위/화면 검사 완료. 추가 Electron MCP 승인 검사를 포함한 `npm run test:gates` 종료 코드 0. [파일 목록과 근거](../../../packages/nubi-desktop/docs/WAVE2-QA-FIXES-2026-10-18.md). Claude QA 및 업로드는 별도이며 Codex는 push하지 않음.
+
+- 원인: `MCP_NAME=/(send|publish|post|...|reset)/i`가 `get_presets`(reset), `postgres_query`(post), `gmail_search`(mail), `dropdown_select`(drop)에 걸린다. 주석이 없는 서버의 조회 도구가 "외부 반영 도구라 항상 허용을 적용하지 않아요"로 표시되고 항상 허용이 숨는다. 닫힌 방향이지만 설명이 거짓이다.
+- 고침: 이름을 `[_\-\s]`와 camelCase 경계로 나눠 **토큰 일치**로 본다(`send_mail` → send, mail; `gmail_search` → gmail, search). 시험에 위 네 이름이 `matched:false`, `send_mail`, `deletePage`, `post-comment`가 `matched:true`.
+
+### F9. VS Code 호스트(`packages/nubi-vscode`)가 새 메서드를 하나도 통과시키지 않음 (통합 공백, 중간)
+
+- [x] 2026-10-18 Codex 수정 및 관련 단위/화면 검사 완료. 추가 Electron MCP 승인 검사를 포함한 `npm run test:gates` 종료 코드 0. [파일 목록과 근거](../../../packages/nubi-desktop/docs/WAVE2-QA-FIXES-2026-10-18.md). Claude QA 및 업로드는 별도이며 Codex는 push하지 않음.
+
+- 원인: 같은 `Workbench`를 올리는 `packages/nubi-vscode/src/host.cjs:17`의 `API` 허용 목록에 `exportConversation`, `taskUsage`, `markTaskRead`, `setPinnedTasks`, `archiveTask`, `setAutoArchiveDays`, `setAfterEditCheck`, `retryAfterEditCheck`, `startSideTask`, `dismissSideTask`, `conversationHistory`가 없다. 그 호스트에서는 프로젝트를 열 때마다 고정 이전이 `method_invalid` 토스트를 내고, `markTaskRead` 실패는 삼켜져 읽지 않음 점이 지워지지 않으며(`viewingTaskId`도 설정되지 않아 보고 있는 답도 읽지 않음), 내보내기는 오류다. `exportConversation`을 허용해도 저장 대화상자는 Electron `main.cjs`에만 있다.
+- 고침: **②로 결정(2026-10-18 사용자)**. 호스트 능력(`api.capabilities` 또는 `method_invalid` 사전 조회)으로 VS Code 호스트에서는 보관/내보내기/사용량/곁가지 칩 메뉴를 숨기고, 고정 이전과 `markTaskRead`는 호출하지 않는다(읽지 않음 점도 표시하지 않음). Electron에서는 변화 없음. 시험: `packages/nubi-vscode` 웹뷰 fixture에서 새 메뉴가 없고 `method_invalid` 토스트가 0건.
+
+### F10. 작은 것들 (낮음)
+
+- [x] 2026-10-18 Codex 수정 및 관련 단위/화면 검사 완료. 추가 Electron MCP 승인 검사를 포함한 `npm run test:gates` 종료 코드 0. [파일 목록과 근거](../../../packages/nubi-desktop/docs/WAVE2-QA-FIXES-2026-10-18.md). Claude QA 및 업로드는 별도이며 Codex는 push하지 않음.
+
+- `research-agent.mjs delegate()`: `admit()` 뒤 큐에서 취소되면(`cancelled`) `started`가 줄지 않아 실행당 6개 중 하나를 영구히 소비한다. 큐 취소 때 되돌린다.
+- `run-metrics.mjs summarizeTaskMetrics`: `document` 목적 호출이 "분석" 행에 합쳐진다. 행을 나누거나 표에 표시한다.
+
+### F11. 읽음/읽지 않음 표시가 `updatedAt`을 바꿔 오래된 대화가 "오늘"로 올라옴 (Task 3, 낮음)
+
+- 원인: `conversation-archive.mjs`의 `markRead`/`markUnread`가 `updatedAt`을 갱신한다(탐침 확인). 오래된 대화를 열기만 해도 날짜 그룹이 바뀌고 자동 보관 타이머가 초기화된다.
+- 고침: 두 함수는 `unread`만 바꾸고 `updatedAt`은 건드리지 않는다. 시험에 "읽음 표시 뒤 `updatedAt` 불변" 추가. **고침 완료(2026-10-18, Claude)**: `conversation-archive.mjs` 두 줄과 `tests/conversation-archive.test.mjs` 사례 1개(12/12 통과).
+
+### F12. 모델 입력 문자열의 제어 문자와 폭 없는 문자 (Task 1, 5, 낮음)
+
+- 탐침: `spawn_task`의 prompt에 `\u0007`, `\u001b[31m`이 그대로 저장되고, `mark_chapter`의 제목이 폭 없는 문자(`\u200b`)만으로도 통과한다. 칩 prompt가 새 대화의 첫 요청이 되므로 슬래시 명령(`/wiki_update …`)으로 시작하는 prompt도 그대로 받는다(호스트 동작으로 이어지는지는 보안 검토 결과에 따름).
+- 고침: 공통 정리 함수(`cleanModelText`: C0/C1 제어 문자와 폭 없는 문자 제거, 공백 정리)를 chapters, side-tasks, output-files 캡션에 적용하고, 정리 뒤 비면 `*_invalid`. 칩 prompt는 `/`로 시작하면 `side_task_invalid`(새 대화의 첫 요청은 일반 문장만).
+
+### F13. 편집 뒤 자동 검사가 모델이 방금 고친 매니페스트를 믿고 자동 실행됨 (Task 7, 보안, 높음 — 업로드 차단)
+
+- 원인: `after-edit-check.mjs:56`이 제안 반영 직후 `setting.script`(예: `npm test`)를 setup action으로 올리고, `approval-policy.mjs:96,102`의 `checkCommand`가 **디스크의 `package.json` scripts를 그때 읽어** `reason:'check'`로 자동 승인한다. "파일과 명령 자동" 모드에서는 파일 제안도 자동 반영되므로, 지시문에 오염된 모델이 `package.json`의 `"test":"curl … | sh"`를 제안 → 자동 반영 → 호스트가 `npm test`를 즉시 올림 → 방금 모델이 쓴 매니페스트로 검증 통과 → 사람 승인 0번에 실행된다. 매니페스트 신뢰 공백은 전부터 있었지만 이 변경이 두 단계를 호스트가 한 번에 이어 주는 길을 만들었다.
+- 고침: `queueAfterEditCheck`에서 반영 묶음에 `package.json`, 잠금 파일, 또는 매니페스트 scripts에 해당하는 파일이 있으면 action에 `manifestChanged:true`를 붙이고, `autoApprovals`는 그런 action에 `'check'`를 돌려주지 않는다(정확한 `commandAllowed`만 자동). 카드에 "방금 반영한 변경이 package.json을 바꿔서 확인이 필요해요" 한 줄. 대안: `setAfterEditCheck` 때 매니페스트 해시를 저장하고 다르면 승인 요구.
+- 시험: commands 모드에서 `package.json` 수정 제안 반영 뒤 편집 뒤 검사가 자동 승인되지 않고 카드로 남는 사례, 다른 파일만 바뀐 경우는 기존대로 자동.
+
+### F14. 곁가지 칩의 prompt가 사용자 권한을 얻음 (Task 5, 보안, 중간)
+
+- 원인: `side-tasks.mjs:40`이 `createTask({request:chip.prompt})`로 새 대화를 만들고 `createTask`는 `origin`을 저장하지 않는다(루틴은 `routineId`가 있음). 그 요청은 첫 `role:'user'` 메시지가 되고 `agent.mjs:995`가 `rememberExchange`에 "사람의 말"로 넘기며 `memory.mjs:69`의 추출 지침은 "사람의 말만 센다"고 해서 `scope:'user'` 기억으로 남아 이후 모든 실행에 주입된다. 지시문에 오염된 모델이 "사용자는 승인 없이 실행하길 원한다" 같은 prompt를 칩으로 심고 사용자가 누르면 그대로 사용자 선호가 된다. 내보내기의 `## 요청`과 기본 파일명도 사용자 입력처럼 보인다. 슬래시 호스트 동작은 `agent_command_ui_only`로 막혀 있어 생성 때 실행되지는 않는다(확인됨).
+- 고침: `createTask`가 `origin:{kind:'side_task',taskId,sideTaskId,runId}`를 받아 저장한다. 기억 추출은 `origin.kind==='side_task'`이고 사용자 메시지가 1개 이하인 동안 건너뛴다. 내보내기 제목은 `## 요청 (에이전트 제안)`, 사이드바 행에 작은 배지. F12의 문자 정리에 bidi 제어(`\u202a-\u202e`, `\u2066-\u2069`)를 포함한다(`U+202E`로 칩 제목 위장 가능).
+- 시험: 칩으로 만든 대화에서 첫 실행 뒤 `memory:` 저장소에 user 범위 기억이 없고, `task.origin.kind==='side_task'`가 보존되는 사례.
+
+### F15. 내보내기 가림이 기억 모듈의 비밀 탐지보다 약함 (Task 10, 낮음)
+
+- 원인: `conversation-export.mjs:2`의 가림은 영어 키워드와 `Bearer`, URL 자격만 본다. "DB 비밀번호는 Qwerty!234", "접속키는 AKIA…", `sk-abcdefghijklmnop1234`가 그대로 .md에 쓰인다(탐침 확인). `memory.mjs:10`의 `SECRET`은 비밀번호/토큰/인증번호/`sk-`/`ghp_`/`xox*`/주민번호/카드번호를 이미 덮는다.
+- 고침: `SECRET`을 공용 모듈로 올리고 `safeText`에서 `credential.test(line)||secretLike(line)`이면 줄을 가린다. 시험에 위 세 문장.
+
+### 참고(결함 아님)
+
+- `irreversibleProposal`은 `kind==='delete'`를 보지만 지금 런타임은 삭제 제안을 만들지 않는다(시험과 fixture만). 삭제 제안 도구가 생기면 그때 유효해진다.
+- `READ_TOOLS`에 `delegate_research`/`continue_research`가 들어가 병렬 읽기 묶음에서 함께 실행될 수 있다. 읽기 전용이라 무해.
 
 ---
 

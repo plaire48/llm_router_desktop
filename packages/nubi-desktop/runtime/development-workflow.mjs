@@ -1,5 +1,14 @@
 // Workflow guidance is not permission. Existing proposal/MCP approval owns
 // every write; host receipts, not this plan, establish what actually happened.
+export function afterEditCheckAction({setting,applied,taskId}){
+  if(!setting?.script||!applied?.length)return null;
+  return {kind:'verify',taskId,profile:setting.profile,script:setting.script,
+    title:('편집 뒤 검사: '+setting.script).slice(0,120),reason:'프로젝트에 설정한 편집 뒤 검사',
+    effects:'설정한 명령을 실행해요. 명령에 따라 파일이나 실행 환경이 바뀔 수 있어요.',
+    verification:'반영 이후의 종료 코드와 출력을 확인하고 요청한 검증 결과와 대조합니다.',
+    after:[...new Set(applied.map(p=>p.path))]};
+}
+
 export function needsDevelopmentGuidance(task,actions=[]){
   // Routing hint only, never a permission or completion decision. Keep this
   // longer workflow out of ordinary lookups and small-window conversations.

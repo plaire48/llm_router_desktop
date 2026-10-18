@@ -133,7 +133,7 @@ test('provider context overflow uses shared compaction once and preserves the or
 // Measured 2026-10-12 (S29): for an hour the ChatGPT backend answered some large requests with a stream error in about
 // a second (response_invalid; 2 of 6 identical requests at the worst). The shared policy retries only network, timeout,
 // 429 and 5xx, so one such answer paused the run, while the OpenWiki agent of the same run survived two in a row.
-test('a response the connection rejects is asked for again within the retry budget; three in a row still pause',async t=>{
+test('a response the connection rejects is asked for again within the retry budget; four in a row still pause',async t=>{
   const {service}=await fixture(t);service.recoveryOptions={model:{minTimeout:1}};let calls=0;
   // Keep this transport test below the separately tested large-input retry threshold.
   service.providers={status:()=>({...status(),models:[{id:'fixture',contextLength:128000}]}),dispose(){},complete:async()=>{if(++calls===1)return call('read_source',{path:'app.txt'});if(calls===2)throw new Error('response_invalid');return reply();}};
@@ -141,7 +141,7 @@ test('a response the connection rejects is asked for again within the retry budg
   assert.equal(calls,3,'the rejected answer is asked for once more');assert.equal(service.task(task.id).state,'review');
   calls=0;service.providers.complete=async()=>{calls++;throw new Error('response_invalid');};
   const again=await service.createTask({request:'Keep original request'});await service.startAgent({taskId:again.id});await service.agent.promise;
-  assert.equal(calls,3,'the request and two more');assert.equal(service.task(again.id).state,'paused');assert.equal(service.task(again.id).error,'response_invalid');
+  assert.equal(calls,4,'the request and three more');assert.equal(service.task(again.id).state,'paused');assert.equal(service.task(again.id).error,'response_invalid');
 });
 
  test('declining a command repair is idempotent and cannot execute later',async t=>{

@@ -18,7 +18,7 @@
 ### 1.2.10 추가 조사 (2026-10-17, 작업 폴더 기준)
 
 - 사용자가 Codex와 승인한 개발 사이클 계획이 따로 있다: `docs/research/2026-10-16-workspace-dev-cycle-oss-context-benchmark.md` §9(실행 세션과 환경 일치 → 수정과 검증의 연결 → 탐색과 편집 효율 → 장기 작업과 문맥 → 독립 평가)와 §8(개발 과제 12 + 보류 12, 문맥 정책 A/B/C/D 비교). 첫 적용이 `docs/DEVELOPMENT-EXECUTION-2026-10-16.md`다(실제 PTY 입력 승인, `inspect_dev_server`, `inspect_code`, 셸 발견 공유). 이 설계는 그 계획과 겹치는 부분을 맡지 않는다.
-- 도구 실패 복구는 끝났다(`docs/AUTONOMOUS-RECOVERY-2026-10-16.md`, `tool-recovery-loop.mjs`, `ProcessRecovery.jsx`). 모델 호출 재시도는 `claude-platform.mjs`에만 있다.
+- 도구 실패 복구는 끝났다(`docs/AUTONOMOUS-RECOVERY-2026-10-16.md`, `tool-recovery-loop.mjs`, `ProcessRecovery.jsx`). 모델 호출 재시도는 `runtime/recovery.mjs:modelTransport`가 공용 `recoverModel`로 이미 한다(기본 2회, 실행별 cooldown, idle/hard timeout, 60초 초과 Retry-After는 일시 중단). 2026-10-17 조사에서 `claude-platform.mjs`의 재시도로 본 것은 임시 폴더 정리용 `rm` 재시도였다(정정 2026-10-18).
 - 압축은 `docs/CONTEXT-COMPACTION-BENCHMARK-2026-10-16.md`가 다음 범위(사전 요약 후보, 증분 갱신, 화면 중간 정리, 복구 기록)와 지표(압축 품질 행)를 정했다. `compaction-reads.mjs` 추가.
 - 진행 서술이 있다: `service.progressNarration`으로 모델이 도구 호출 전에 한 문장을 말하고 기록 사이에 시각 순으로 끼운다(`docs/ACTIVITY-TIMELINE-2026-10-16.md`). 완료 뒤 한 기록으로 접는다.
 - 자동 모드 전환 때 안내 모달이 생겼다(`docs/AUTO-APPROVAL-WARNING-2026-10-16.md`). 작업 단위의 되돌리기 어려운 명령 판정은 아직 없다.
@@ -99,8 +99,8 @@
 ### B4. 실패 복구 보강 (남은 두 가지)
 
 - **재확인**: 도구 실패 복구(교정 피드백, 같은 실패 3회 금지, 정체 탈출 한도)와 명령 실패 뒤 자동 검토는 끝났다. 압축의 다음 범위와 지표는 `CONTEXT-COMPACTION-BENCHMARK`와 개발 사이클 계획 4단계가 맡는다. 이 설계는 둘을 다시 하지 않는다.
-- 모델 호출 실패 정책을 `runtime/model-retry.mjs` 한 곳에: 시간 초과와 5xx는 지수 대기(2초, 4초, 8초) 3회, 429는 응답의 대기 시간, 4xx(인증 제외)는 재시도 없음. 지금은 Claude 경로(`claude-platform.mjs`)에만 있는 것을 AI Pro, ChatGPT, FabriX에도 같은 정책으로 적용한다. 인증 만료는 기존 재로그인 흐름. 재시도 횟수를 실행 지표에 기록한다.
-- 중단된 실행 이어가기: 시작 때 `running`을 `interrupted`로 바꾸는 처리와 입력창으로 이어가는 경로는 있다. 안내문 옆에 "이어서 진행" 단추 하나를 둔다(예산 도달과 같은 경로). 승인 대기 중이던 호출은 재실행하지 않는다(`mcpContinuation` 규칙).
+- 모델 재시도는 기존 `runtime/recovery.mjs:modelTransport`와 공용 `recoverModel` 한 경로에서 처리한다. 기본 재시도 3회(총 4회), 기준 지연 2/4/8초와 기존 분산 지연을 사용한다. 호출별 낮은 한도/0회, 이미지 무재시도, 취소, 인증/정책 오류 제외, 기존 408 및 발행 전 응답 복구를 보존한다. 서버 Retry-After를 줄이지 않으며 60초 초과는 기존 일시 중단을 유지한다. 실제 시도는 기존 실행 지표로 한 번만 집계한다. 공용 소스와 provider 래퍼는 바꾸지 않는다(§8.9).
+- 기존 "이어서 진행"과 `resumeAgent`의 현재 상태/영수증 재확인을 재사용하고 중복 단추를 추가하지 않는다. 승인 대기 중이던 호출은 재실행하지 않는다.
 
 ### B5. 보류
 
@@ -132,6 +132,7 @@
 ## 4. 바꾸지 않는 것
 
 - 승인 모델과 근거 검증. 공용 런타임. 평가 채점 규칙과 기존 과제. 1차 물결의 설정값.
+- **예외(2026-10-18 사용자 답 §8 10, 11, Task 9에 한함)**: `extensions/aipro-chat/agent-runtime.js`와 `analysis-agents.js`, OpenWiki `runWikiQuestion`에 선택적 호스트 admission/slot 인터페이스만 추가한다. 기본 호출자(브라우저 누비, OpenWiki 단독)의 동작은 그대로이고 Desktop만 문서/조사 작업자에 동시 2, 누적 6 예산을 주입한다. 검증은 `extensions/aipro-chat/tests`와 OpenWiki 시험을 QA에 포함한다. 한도로 실행하지 못한 원문 범위는 미확인으로 남긴다.
 - 사용자 결정 2026-10-14의 대화 원칙: 기록은 지우거나 옮기지 않는다. 챕터와 칩은 추가만 한다.
 
 ## 5. 위험과 대응
@@ -169,6 +170,42 @@ A(A1→A5→A4→A3→A2) → B(B1 실측은 사용자, B4→B2→B3) → C(C1�
    - 분류되지 않은 쓰기 도구(예: 로컬 데이터 조회 뒤 캐시 갱신)는 기존 계약 그대로 항상 허용이 통한다.
    - 인앱 Playwright 도구(클릭, 입력)는 이름으로 외부 반영을 알 수 없어 이 규칙의 대상이 아니다. 그 승인은 Codex의 브라우저 단계별 영수증 계약이 맡는다.
    - Task 2 범위에 이 MCP 분류를 넣었다(계획 Task 2 갱신). `agent.mjs`의 `allowed=` 판정식에 `&&!irreversibleMcpTool(found.tool).matched`를 더하는 한 줄과 시험이다.
+
+8. **구현 전 질문(2026-10-18, Task 3)**: 계획의 자동 보관 시험은 고정된 대화를 제외하도록 요구하지만, 현재 고정 목록은 `SessionSidebar.jsx`의 프로젝트별 `localStorage`에만 있고 자동 보관은 호스트 시작 때 실행하도록 되어 있다. 호스트는 최초 시작 시 기존 고정을 알 수 없다. **제안:** 기존 고정 순서와 UI를 유지하면서 목록을 프로젝트 호스트 저장소에 동기화하고, 최초 동기화 완료 전에는 자동 보관을 하지 않는다. 이후 고정/해제도 같은 목록을 동기화하고, 자동 보관은 호스트의 고정 목록을 제외한다. 이 저장 계약과 최초 실행 시점 보완을 승인하는가? 승인 전 Task 3 제품 코드는 변경하지 않는다. Task 2 검증은 독립적으로 마무리한다.
+   **답(2026-10-18, Claude)**: 승인한다. 조건 넷. ① 고정은 호스트 저장소의 프로젝트별 목록(`setting:pinned-tasks`, 순서 보존, 최대 50개)으로 두고 `state()`의 tasks 행에 `pinned:boolean`을 내보낸다. ② 렌더러는 처음 한 번 localStorage 목록을 `setPinnedTasks`로 올리고 호스트 확인 뒤 키를 지운다. 이후 고정/해제는 호스트 메서드만 쓴다. ③ 자동 보관은 호스트 시작이 아니라 프로젝트를 열 때(목록 동기화가 끝난 뒤) 실행한다. 동기화 전에는 보류. ④ 고정된 대화는 자동 보관과 수동 보관 모두에서 제외하고, 보관된 대화를 고정하면 보관이 풀린다. 계획 Task 3의 시험 "pinned-equivalent"는 이 `pinned` 플래그를 쓴다.
+   **구현 확인(2026-10-18)**: 진행 중 위 답변의 구체 조건을 확인해 `setting:pinned-tasks`, `setPinnedTasks`, 50개 한도와 `pinned` 투영, 확인 후 localStorage 제거, 프로젝트 재열기 자동 보관, 고정 대화 수동 보관 차단과 고정 시 보관 해제를 반영한다.
+
+   **사용자 직접 확인(2026-10-18)**: 늦게 도착한 질문 8의 답변은 “고정 목록 동기화 후 자동 보관 (권장)”이다. 이미 구현하고 검증한 위 계약을 유지한다.
+
+9. **구현 전 질문(2026-10-18, Task 8)**: 현재 코드에는 이미 모델 재시도, 횟수 집계와 중단 복구가 있어 B4 예시와 경계가 다르다. 다음 기준으로 Task 8의 변경 대상과 시험을 수정해도 되는가?
+   - **확인한 현재 구현**: `runtime/recovery.mjs:modelTransport`가 공용 `recoverModel`을 호출하며 기본 재시도는 2회다. `desktop-providers.mjs:complete` 아래에 3회 재시도 래퍼를 더하면 이 경로는 최악의 경우 3 × 4 = 12회 호출한다. `claude-platform.mjs`에는 모델 자체 재시도가 없고 임시 폴더 정리용 `rm` 재시도만 있다. 따라서 계획의 "Claude 자체 재시도 교체" 대상이 없다.
+   - **확인한 보존 계약**: 공용 `model-recovery.js`는 실행별 cooldown, 스트림 활동에 따른 idle/hard timeout, 취소와 응답 복구를 담당한다. 60초보다 긴 Retry-After는 일시 중단하며 일찍 재전송하지 않는다. 계획 예시의 `Math.min(retryAfterMs,60000)`은 이 계약과 다르다. `run-metrics.mjs`는 이미 실제 모델 시도의 `attempt > 1`을 retries로 센다. `Workbench.jsx`에는 `paused/failed/interrupted`에 대한 "이어서 진행"이 있고 `resumeAgent`가 영수증과 현재 상태를 재확인한다.
+   - **제안 A — 재시도 소유자**: 새 provider 래퍼를 중첩하지 않고 Desktop의 기존 `modelTransport`를 유일한 재시도 지점으로 사용한다. 정상 기본값만 재시도 3회(총 4회)와 기준 지연 2/4/8초로 맞춘다. 호출별 낮은 한도와 0회, 이미지 무재시도, 취소, 인증/정책 오류 제외, 응답이 발행되기 전 `response_invalid` 복구, 기존 408 처리는 유지한다. 공용 소스는 수정하지 않는다.
+   - **제안 B — 정확한 지연의 의미**: 공용 `recoverModel`은 `randomize:true`를 고정하므로 2/4/8초는 기준 지연이고 실제 대기는 기존 분산 지연과 서버 cooldown을 따른다. 정확히 2/4/8초 고정보다 기존 분산 지연을 유지해도 되는가? Retry-After는 줄이지 않고 60초 초과 시 기존 일시 중단을 유지한다.
+   - **제안 C — 집계와 이어가기**: 기존 `beginModel`과 `readRunMetrics`로 실제 시도를 한 번만 집계하고 기존 "이어서 진행"/`resumeAgent`를 재사용한다. 새 단추와 `startAgent` 추가 요청으로 복구를 우회하지 않는다. 새 시험은 총 시도 한도, 중첩 없음, 취소/이미지/서버 cooldown과 승인 대기 작업 미재실행을 확인한다. 계획의 새 `withModelRetry` 인터페이스와 단추 추가 시험은 이 기존 경로를 검증하는 시험으로 바꾼다.
+   **상태**: Task 5 전체 게이트 통과 후 현재 코드만 대조했다. 위 변경은 아직 구현하지 않았다. 사용자 지시대로 설계 답변까지 Task 8 및 이후 구현을 멈춘다. Task 14~34는 시작하지 않았다.
+   **답(2026-10-18, 사용자 후속 지시)**: 위 조정안을 보고한 뒤 사용자가 "이어서"라고 지시했다. 제안 A~C를 기준으로 진행한다. 기존 경로를 재사용하고 기본 3회 재시도, 2/4/8초 기준 지연과 분산 지연, 기존 서버 대기/취소/복구 계약을 유지한다. Task 14~34는 계속 제외한다.
+   **답(2026-10-18, Claude)**: 제안 A, B, C 모두 승인. 조사 오류를 정정한다(§0: `claude-platform.mjs`에는 모델 재시도가 없고 `modelTransport`가 이미 재시도 소유자). 변경은 `modelTransport` 기본값 한 곳(재시도 3회, 기준 지연 2/4/8초), 지연은 기존 분산 지연과 서버 cooldown을 따르며 Retry-After는 줄이지 않는다. 집계와 이어가기는 기존 경로. 계획 Task 8의 `withModelRetry` 인터페이스와 단추 시험은 이 기준으로 대체한다(계획에 재확인 메모).
+
+10. **구현 전 질문(2026-10-18, Task 9)**: B3의 “기존 문서 분석 작업자와 같은 큐, 동시 2, 한 실행 합계 6”과 Global Constraints의 공용 런타임 수정 금지를 현재 API로는 함께 충족할 수 없다.
+   - 실제 큐는 `extensions/aipro-chat/agent-runtime.js:218`에서 내부 생성하는 `createAnalysisCoordinator`가 소유한다. `analysis-agents.js:114`의 p-limit을 Desktop에 주입/노출하는 인터페이스가 없다. `delegate_analysis`도 공용 런타임이 직접 처리하므로 Desktop `execute` 래퍼로 큐를 합칠 수 없다.
+   - 현재 6개 한도는 `analysis-agents.js:533`의 **대기/실행/미수집 작업 수**다. 결과를 수집하면 다시 위임할 수 있어 B3의 **한 실행 누적 6개**와 다르다. 별도 큐 2개를 만들면 동시 4개가 될 수 있고, 모델 호출만 세마포어로 막으면 작업 전체 동시성/누적 수를 보장하지 못한다.
+   - **권장 조정안 A**: 이 Task에 한해 위 공용 파일 두 곳에 선택적인 호스트 작업 admission/slot 인터페이스를 추가하는 좁은 예외를 허용한다. 기본 호출자는 기존 동작 그대로 유지한다. Desktop만 문서/조사 전체에 같은 동시 2, 누적 6 예산을 주입하고, 취소/재사용/이어 묻기와 실패 시 슬롯 반환을 회귀 검사한다. 신규 조사 도구와 범위 검사는 Desktop에 둔다. 평가 채점/과제는 바꾸지 않는다.
+   - **대안 B**: 공용 런타임 수정 금지를 유지하고 Task 9를 보류한다. B3 및 Task 11의 조사 호출 표시는 미구현으로 남기고, 다음 Task로 넘어갈지 사용자가 별도로 결정한다. 기존 `delegate_analysis`는 그대로 유지한다.
+   - A의 좁은 예외를 승인할 것인가, B로 보류할 것인가? **답 전 Task 9 제품 코드는 작성하지 않는다.** Task 7의 이미 구현한 범위는 독립적으로 전체 게이트까지 마무리한다.
+   **사용자 답(2026-10-18)**: “좁은 예외 허용: 기존 기본 동작을 보존하고 같은 큐 사용”. A를 승인한다. 이 Task에서만 `agent-runtime.js`, `analysis-agents.js`의 선택적 호스트 admission/slot 연결을 허용하고 기본 호출자의 동작과 나머지 Global Constraints는 유지한다.
+
+11. **추가 구현 질문(2026-10-18, Task 9)**: §8.10에서 확인한 `delegate_analysis` 외에 `analyze_documents`는 `runtime/workspace-documents.mjs:116` → `packages/openwiki/src/agent/wiki-question.ts:1030`의 별도 4-worker 루프를 사용한다. 질문 10은 이 별도 경로까지 확인하지 못했다. 두 공용 파일만 연결하면 실제 큰 문서 분석은 B3의 동시 2/누적 6에서 빠진다.
+   - **권장안**: OpenWiki `runWikiQuestion`에 선택적 작업 admission/slot 인터페이스를 추가하고 Desktop의 `analyze_documents`에서 같은 실행 큐를 주입한다. 기본 OpenWiki 호출자의 동작은 보존한다. 문서 분할 수가 남은 6개 예산을 넘으면 미실행/미확인 범위를 기존 coverage에 남기고 완료로 표시하지 않는다. 평가 채점/과제는 변경하지 않는다.
+   - **대안**: B3의 이번 공유 범위를 `delegate_analysis`와 `delegate_research`로 명시하고 큰 문서 OpenWiki 경로는 후속으로 분리한다. 모든 문서 작업자 합산 완료라고 표시하지 않는다.
+   **사용자 답(2026-10-18)**: “OpenWiki 문서 작업자까지 같은 큐로 연결 (권장)”. 권장안을 승인한다. 기본 OpenWiki 호출은 보존하고 Desktop의 `analyze_documents`만 같은 큐/누적 한도에 연결한다. 한도 때문에 실행하지 못한 원문 범위는 미확인으로 남긴다.
+
+
+12. **Mac 외부 브라우저 기본 지원 요구와 구현 전 질문(2026-10-18)**: 사용자는 macOS에서도 외부 브라우저 연결과 기존 로그인 상태를 유지한 자동화를 기본 기능으로 요구했다. 현재 `external-browser-host.cjs`의 확장 통신은 OS에 제한되지 않지만, 매번 일회용 연결 코드를 수동으로 전달하며 브라우저 선택과 창 전체 도킹은 `win32`에서만 지원한다. 기본 브라우저에 URL을 여는 것은 연결/자동화 성공이 아니다.
+   - **확정 요구:** Mac을 기본 지원 대상으로 포함하고 이미 승인한 브라우저 연결은 요청 시 자동 복구한다. 중앙 에이전트와 기존 탭/문서 바인딩, 승인, 미확정 쓰기 재전송 금지를 유지한다. 쿠키나 브라우저 프로필을 복사하지 않는다.
+   - **설계 보완 제안/질문:** Chrome/Edge 계열은 기존 확장에 macOS Native Messaging 연결을 추가해 설치/최초 승인 뒤 안전하게 재연결한다. 창 전체 표시는 탭 자동화와 분리한 Mac 표시 어댑터에서 검증한다. 공개 API의 창 캡처를 사용할 때는 화면 미러링이며 실제 창 이식이라고 표시하지 않는다. Safari는 동일 debugger API를 가정하지 않고 별도 어댑터와 검증 범위를 정한다. 이 호스트 등록/재연결 계약과 Mac 표시 방식의 구체안을 설계에 추가할 것인가?
+   - 계획의 “설계를 바꿔야 하면 §8에 질문을 추가하고 멈춘다”에 따라 새 Mac 연결/도킹 구현은 보류한다. 이미 승인된 F1~F10 수정과 회귀는 계속한다. 이 항목은 새 평가 과제나 3차 Task 14~34 착수가 아니다.
+   - 공식 근거: [Chrome Native Messaging](https://developer.chrome.com/docs/extensions/develop/concepts/native-messaging), [Apple ScreenCaptureKit](https://developer.apple.com/documentation/screencapturekit/capturing-screen-content-in-macos), [Safari 앱 메시징](https://developer.apple.com/documentation/safariservices/messaging-between-the-app-and-javascript-in-a-safari-web-extension).
 
 ## 9. 저장소 위생 (2026-10-17)
 

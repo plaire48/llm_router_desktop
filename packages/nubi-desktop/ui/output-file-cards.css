@@ -1,0 +1,7 @@
+.nubi-output-files{display:flex;flex-wrap:wrap;gap:var(--cx-space-2);margin:var(--cx-space-2) 0 var(--cx-space-4);min-width:0}
+.nubi-workbench .nubi-output-files .nubi-output-file{display:flex;align-items:center;justify-content:flex-start;gap:var(--cx-space-3);flex:1 1 15rem;max-width:24rem;min-width:0;height:auto;padding:var(--cx-space-3);border:1px solid var(--deck-line);border-radius:var(--cx-radius-control);background:var(--deck-surface);color:var(--deck-ink);text-align:left;white-space:normal}
+.nubi-workbench .nubi-output-files .nubi-output-file:hover{background:var(--deck-blue-soft)}
+.nubi-output-file>svg,.nubi-output-file>.desktop-file-icon{flex-shrink:0}
+.nubi-output-file-body{display:grid;gap:var(--cx-space-1);flex:1;min-width:0}
+.nubi-workbench .nubi-output-file .nubi-output-file-name{white-space:normal;min-width:0;font-size:.875rem;font-weight:600;overflow-wrap:anywhere}
+.nubi-output-file-size,.nubi-output-file-caption{font-size:.8125rem;font-weight:400;line-height:1.5;color:var(--deck-muted);white-space:normal;overflow-wrap:anywhere}
