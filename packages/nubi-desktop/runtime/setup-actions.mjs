@@ -49,7 +49,7 @@ export function requireChosenShell(profiles,chosen,profile,elevated=false){
   if(elevated||!chosen||profile===chosen||!profiles.some(p=>p.id===chosen))return;
   throw Object.assign(Error('shell_not_selected'),{details:{selectedShell:chosen,instruction:'The user chose this shell in settings. Rewrite the command in its syntax and omit profile.'},actionIssued:false});
 }
-export async function prepareSetupAction(service,taskId,args,observations,hostReferences=[]) {
+export async function prepareSetupAction(service,taskId,args,observations,hostReferences=[],beforeCommit=()=>{}) {
   args=normalizeSetupArgs(args);
   if(!validate(args))throw Object.assign(Error('setup_invalid'),{details:{issues:toolArgumentIssues(SETUP_ACTION_SCHEMA,args)},actionIssued:false});
   if(service.task(taskId).question)fail('question_pending');
@@ -94,6 +94,7 @@ export async function prepareSetupAction(service,taskId,args,observations,hostRe
     // A missing receipt or a restart's unknown execution is not proof of exit.
     return !!receipt&&receipt.execution!=='unknown'&&['completed','failed','cancelled','timed_out'].includes(receipt.state);
   };
+  beforeCommit();
   const previous=service.store.list('setup-action:').find(v=>v.fingerprint===fingerprint&&!finished(v));
   if(previous?.state==='proposed'&&afterProposals.some(id=>!(previous.afterProposals||[]).includes(id))){
     const merged={...previous,afterProposals:[...new Set([...(previous.afterProposals||[]),...afterProposals])]};

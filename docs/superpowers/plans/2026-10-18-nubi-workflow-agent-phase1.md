@@ -58,7 +58,7 @@
 **Interfaces:**
 - Produces: `WORKFLOW_SCHEMA`, `validateWorkflow(document,{adapters}) -> {ok:true,workflow}|{ok:false,errors:[{code,path,message}]}` (codes: `workflow_schema`, `workflow_cycle`, `workflow_adapter_unknown`, `workflow_secret_plain`, `workflow_permission_widened`, `workflow_external_write_forbidden`); `evaluateTemplate(text,scope) -> string`, `evaluateCondition(expr,scope) -> boolean` (throws `template_invalid`); `loadWorkflowPackage(root,slug) -> {slug,workflow,readme,fixtures,hash}`, `listWorkflowPackages(root) -> [{slug,name,version,hash,valid,errors}]`.
 
-- [ ] **Step 1: 실패하는 시험**
+- [x] **Step 1: 실패하는 시험**
 
 `tests/workflow-schema.test.mjs`:
 
@@ -96,9 +96,9 @@ test('templates read paths and filters only',()=>{
 
 `tests/workflow-package.test.mjs`: 임시 폴더에 `.nubi/workflows/sample/workflow.yaml`, `README.md`, `fixtures/basic.json`을 쓰고 `listWorkflowPackages`가 1개, `hash`가 내용 변경 때 바뀜, 잘못된 YAML은 `valid:false`와 `errors`.
 
-- [ ] **Step 2: 실패 확인** — `node --test tests/workflow-schema.test.mjs tests/workflow-template.test.mjs tests/workflow-package.test.mjs` → FAIL (module missing)
+- [x] **Step 2: 실패 확인** — `node --test tests/workflow-schema.test.mjs tests/workflow-template.test.mjs tests/workflow-package.test.mjs` → FAIL (module missing)
 
-- [ ] **Step 3: 구현**
+- [x] **Step 3: 구현**
 
 `runtime/workflow-template.mjs` 핵심: 토크나이저로 `{{ … }}`를 찾고 식은 손으로 파싱한다(식별자 경로 `a.b.c`, 문자열 리터럴, 숫자, `==`, `!=`, `&&`, `||`, `!`, 괄호, 파이프 필터). `eval`과 `Function`을 쓰지 않는다. 경로 접근은 `Object.hasOwn` 기반이며 `__proto__`, `constructor`, `prototype`는 거절.
 
@@ -117,8 +117,10 @@ export function evaluateExpression(expr,scope){const tokens=tokenize(expr);const
 
 `runtime/workflow-package.mjs`: `yaml.parse`, 파일 해시(sha256), `fixtures/*.json` 로드, 슬러그는 폴더명. `.nubi/workflows` 밖은 보지 않는다(`relativeFile` 재사용).
 
-- [ ] **Step 4: 시험** → PASS
-- [ ] **Step 5: 업로드 준비** — 메시지: `feat(nubi-desktop): 워크플로우 정의 형식 — 스키마, 템플릿, 패키지 로더`.
+- [x] **Step 4: 시험** → PASS
+- [x] **Step 5: 업로드 준비** — 메시지: `feat(nubi-desktop): 워크플로우 정의 형식 — 스키마, 템플릿, 패키지 로더`.
+
+Task 1 로컬 검증 완료(2026-10-18): 새 시험 17/17, 도구 예산과 내보내기 포함 집중 시험 26/26. 최종 소스 `test:gates` 종료 코드 0, 총 2,078개 중 1,878 통과/200 제외/실패 0. 화면 117개 장면과 마지막 Electron/MCP 승인 검사 통과. 새 UI와 실제 워크플로우 실행은 이후 작업 범위다. Claude QA 인계와 변경 파일은 `docs/WORKFLOW-AGENT-PHASE1-TASK1-2026-10-18.md`. Codex는 업로드하지 않았다.
 
 ---
 
@@ -130,7 +132,7 @@ export function evaluateExpression(expr,scope){const tokens=tokenize(expr);const
 **Interfaces:**
 - Produces: `createRun(store,{workflow,hash,inputs,trigger}) -> run`(`workflow-run:<id>`: `{id,slug,version,hash,inputs,trigger,status:'running'|'waiting'|'complete'|'partial'|'failed'|'cancelled',steps:{[id]:{status,inputHash,output,receipts,startedAt,finishedAt,error}},cursor,createdAt,updatedAt}`); `stepCacheKey(stepId,inputs) -> hash`; `markStep(store,runId,stepId,patch)`; `resumePoint(run) -> stepId|null`; `listRuns(store,{slug,limit})`.
 
-- [ ] **Step 1: 실패하는 시험**
+- [x] **Step 1: 실패하는 시험**
 
 ```js
 import {test} from 'node:test';import assert from 'node:assert/strict';
@@ -152,11 +154,13 @@ test('an approved step with unconfirmed result is not re-executed on resume',()=
 test('cache keys change with inputs and the same key is reused across runs',()=>{assert.notEqual(stepCacheKey('a',{x:1}),stepCacheKey('a',{x:2}));assert.equal(stepCacheKey('a',{x:1,y:[1,2]}),stepCacheKey('a',{y:[1,2],x:1}));});
 ```
 
-- [ ] **Step 2: 실패 확인** → FAIL
-- [ ] **Step 3: 구현** — 캐시 키는 안정 정렬 JSON의 sha256. `markStep`은 `updatedAt`과 실행 상태를 함께 갱신(모든 단계 complete면 `complete`, 하나라도 `failed`면 `failed`, `waiting`/`unconfirmed`면 `waiting`). 레코드 크기 한도: 단계 출력은 64KB까지 인라인, 넘으면 `output-ref`(별도 레코드).
-- [ ] **Step 4: 시험** → PASS
+- [x] **Step 2: 실패 확인** → FAIL
+- [x] **Step 3: 구현** — 캐시 키는 안정 정렬 JSON의 sha256. `markStep`은 `updatedAt`과 실행 상태를 함께 갱신(모든 단계 complete면 `complete`, 하나라도 `failed`면 `failed`, `waiting`/`unconfirmed`면 `waiting`). 레코드 크기 한도: 단계 출력은 64KB까지 인라인, 넘으면 `output-ref`(별도 레코드).
+- [x] **Step 4: 시험** → PASS
 
 ---
+
+Task 2 로컬 완료(2026-10-18): 새 시험 10/10, Task 1~2 합계 27/27. 최종 `test:gates` 종료 코드 0, 2,088개 중 1,888 통과/200 제외/실패 0. 변경 파일과 근거: `docs/WORKFLOW-AGENT-PHASE1-TASKS2-5-2026-10-18.md`.
 
 ## Task 3: 어댑터 (web, terminal, documents)와 합성 어댑터
 
@@ -166,12 +170,14 @@ test('cache keys change with inputs and the same key is reused across runs',()=>
 **Interfaces:**
 - Produces: `createAdapters(service,{taskId,runId}) -> {web:{read,verify,irreversible:()=>false},terminal:{run,irreversible:({script})=>irreversibleCommand(script).matched},documents:{exists,read,hash,irreversible:()=>false}}`; 각 동작은 `async(args,{signal,summary}) -> {ok,observation|result,receipts:[id],error?}`; `createSyntheticAdapters(fixture) -> same shape`(fixture의 `responses[stepId]`를 돌려줌); `ADAPTER_CATALOG`(스키마 검증용 이름 목록).
 
-- [ ] **Step 1: 실패하는 시험** — 합성 어댑터로 각 동작의 결과 모양, `terminal.run`이 실제로는 `prepareSetupAction`을 거쳐 `setup-action:` 영수증 id를 돌려주는지(서비스 fixture), `web.verify`의 `text_present`/`element_visible`/`url_is`가 snapshot 결과로 판정되는지, `documents.hash`가 프로젝트 밖 경로를 `path_scope`로 거절하는지.
-- [ ] **Step 2: 실패 확인** → FAIL
-- [ ] **Step 3: 구현** — `web.read(url)`: 기존 `playwrightRequest('open')` 뒤 `browser_snapshot`; `web.verify`는 snapshot 텍스트/역할 검사. `terminal.run({profile,script})`: `prepareSetupAction` → 자동 승인 흐름이 없으면 `waiting`(사람 단계로 승격) → 완료 뒤 `exit_code`와 출력 8KB. `documents.*`는 `relativeFile`/`readSource`. 모든 동작은 영수증 id를 남기고 `summary`(동작 요약 한 줄)를 영수증에 기록한다.
-- [ ] **Step 4: 시험** → PASS
+- [x] **Step 1: 실패하는 시험** — 합성 어댑터로 각 동작의 결과 모양, `terminal.run`이 실제로는 `prepareSetupAction`을 거쳐 `setup-action:` 영수증 id를 돌려주는지(서비스 fixture), `web.verify`의 `text_present`/`element_visible`/`url_is`가 snapshot 결과로 판정되는지, `documents.hash`가 프로젝트 밖 경로를 `path_scope`로 거절하는지.
+- [x] **Step 2: 실패 확인** → FAIL
+- [x] **Step 3: 구현** — `web.read(url)`: 기존 `playwrightRequest('open')` 뒤 `browser_snapshot`; `web.verify`는 snapshot 텍스트/역할 검사. `terminal.run({profile,script})`: `prepareSetupAction` → 자동 승인 흐름이 없으면 `waiting`(사람 단계로 승격) → 완료 뒤 `exit_code`와 출력 8KB. `documents.*`는 `relativeFile`/`readSource`. 모든 동작은 영수증 id를 남기고 `summary`(동작 요약 한 줄)를 영수증에 기록한다.
+- [x] **Step 4: 시험** → PASS
 
 ---
+
+Task 3 로컬 완료(2026-10-18): 새 시험 19/19, 워크플로우/승인/F13 집중 시험 71/71. 최종 소스 `test:gates` 종료 코드 0, 총 2,107개 중 1,907 통과/200 제외/실패 0. Task 4와 5는 설계 §8 질문 4의 답 대기. 자세한 변경 파일과 검증 경계는 `docs/WORKFLOW-AGENT-PHASE1-TASKS2-5-2026-10-18.md`.
 
 ## Task 4: 러너 (순차, 사람, 에이전트, 도구, branch)와 재개
 
@@ -181,8 +187,9 @@ test('cache keys change with inputs and the same key is reused across runs',()=>
 
 **Interfaces:**
 - Produces: `createWorkflowRunner(service) -> {start({slug,inputs,trigger}) -> run, resume(runId,{answer}) -> run, cancel(runId)}`; 단계 대화 도구 `submit_step_output({output})`(스키마 검증, 통과하면 단계 `complete`); `task.origin={kind:'workflow_step',runId,stepId}`.
+- **재확인(2026-10-18, 설계 §8 답 4)**: `runtime/workflow-tools.mjs`의 `TOOL_PREREQUISITES`(호스트 고정)와 `expandStepTools(declared) -> {tools, added}`. 작성자는 능력 도구만 적고(`tools:[propose_new_file]`), 호스트가 선행 도구(`inspect_path`, `record_change_plan`)와 공통 도구(`update_plan`, `submit_step_output`)를 보탠다. 알 수 없는 도구 이름은 `workflow_tool_unknown`. 모델에 보이는 목록과 실행 허용 목록은 둘 다 `resolvedTools`. 관찰과 계획은 자동으로 만들지 않는다(기존 거절 유지). 시험: 확장 결과 확인 사례 추가(Step 1의 네 번째 시험 기대값을 `['inspect_path','propose_new_file','read_source','record_change_plan','submit_step_output','update_plan']`로).
 
-- [ ] **Step 1: 실패하는 시험**
+- [x] **Step 1: 실패하는 시험**
 
 ```js
 import {test} from 'node:test';import assert from 'node:assert/strict';
@@ -213,12 +220,12 @@ test('restart resumes from the waiting step and never replays a tool step with a
 test('an agent step sees only its allowed tools and submit_step_output; other tools are not offered',async t=>{
   const seen=[];const f=await fixture(t,{onModelRequest:request=>seen.push(request.tools.map(tool=>tool.function.name)),workflows:{sample:{steps:[{id:'write',kind:'agent',goal:'메모',tools:['read_source','propose_new_file'],done_when:{kind:'file_exists',path:'out/memo.md'}}]}}});
   const runner=createWorkflowRunner(f.service);await runner.start({slug:'sample',inputs:{},trigger:{kind:'manual'}});await f.settle();
-  const names=new Set(seen.flat());assert.deepEqual([...names].sort(),['propose_new_file','read_source','submit_step_output'].sort());
+  const names=new Set(seen.flat());assert.deepEqual([...names].sort(),['inspect_path','propose_new_file','read_source','record_change_plan','submit_step_output','update_plan'].sort());
 });
 ```
 
-- [ ] **Step 2: 실패 확인** → FAIL
-- [ ] **Step 3: 구현**
+- [x] **Step 2: 실패 확인** → FAIL
+- [x] **Step 3: 구현**
 
 `workflow-runner.mjs` 핵심 흐름:
 
@@ -251,7 +258,7 @@ export function createWorkflowRunner(service){
 
 `project-service.mjs`: `answerAgent`에서 `task.kind==='workflow'`(우산 대화)이면 `workflowRunner.resume`. 허용 목록에 새 메서드.
 
-- [ ] **Step 4: 시험** → PASS. `tests/lean-tools.test.mjs`, `tests/compaction-turn.test.mjs` 회귀.
+- [x] **Step 4: 시험** → PASS. `tests/lean-tools.test.mjs`, `tests/compaction-turn.test.mjs` 회귀.
 
 ---
 
@@ -261,10 +268,10 @@ export function createWorkflowRunner(service){
 - Create: `runtime/workflow-report.mjs`, `tests/workflow-dry-run.test.mjs`, `tests/workflow-report.test.mjs`
 - Modify: `runtime/workflow-runner.mjs`(`mode:'dry-run'`은 합성 어댑터와 fixture 모델, 사람 단계는 fixture의 답으로 자동 응답, 사이드 이펙트 0)
 
-- [ ] **Step 1: 실패하는 시험** — dry-run이 `fixtures/basic.json`(입력, 단계별 합성 응답, 사람 답)으로 끝까지 돌고 `complete`; 응답이 빠진 단계는 `partial`과 이유; 어떤 `setup-action:`/`proposal:` 레코드도 만들지 않음. 보고서는 제목, 실행 정보(버전, 해시, 트리거), 단계별 상태와 영수증 id, 사람 답, 미해결 목록을 담고 `secretLike`와 인증값 가림을 통과.
-- [ ] **Step 2: 실패 확인** → FAIL
-- [ ] **Step 3: 구현** — `workflow-report.mjs`는 2차 `conversation-export.mjs`의 `safeText`를 재사용한다. 보고서는 실행 폴더가 아니라 `workflow-run` 레코드에 붙이고 내보내기는 기존 저장 대화상자 경로.
-- [ ] **Step 4: 시험** → PASS
+- [x] **Step 1: 실패하는 시험** — dry-run이 `fixtures/basic.json`(입력, 단계별 합성 응답, 사람 답)으로 끝까지 돌고 `complete`; 응답이 빠진 단계는 `partial`과 이유; 어떤 `setup-action:`/`proposal:` 레코드도 만들지 않음. 보고서는 제목, 실행 정보(버전, 해시, 트리거), 단계별 상태와 영수증 id, 사람 답, 미해결 목록을 담고 `secretLike`와 인증값 가림을 통과.
+- [x] **Step 2: 실패 확인** → FAIL
+- [x] **Step 3: 구현** — `workflow-report.mjs`는 2차 `conversation-export.mjs`의 `safeText`를 재사용한다. 보고서는 실행 폴더가 아니라 `workflow-run` 레코드에 붙이고 내보내기는 기존 저장 대화상자 경로.
+- [x] **Step 4: 시험** → PASS
 
 ---
 
@@ -327,6 +334,64 @@ export function createWorkflowRunner(service){
 - [ ] **Step 1: 문서** — `docs/WORKFLOW-AGENT-2026-10.md`: 형식(필드 표), 템플릿 문법, 어댑터 표, dry-run과 감독 실행 절차, 한계(Windows 실측 전 office 없음), 시범 패키지 안내. `AGENTS.md`에 "워크플로우 순서는 호스트가 강제, 단계 출력은 스키마" 한 줄.
 - [ ] **Step 2: QA** — `npm run test:gates` + `check-workflow-ui` + `check-electron-workflow` + Claude QA 묶음. 도구 예산과 압축 시험 유지.
 - [ ] **Step 3: 업로드(Claude)** — 메시지: `feat(nubi-desktop): 워크플로우 에이전트 1단계 — 정의 형식, 러너, dry-run, 보고서, 읽기 전용 캔버스, e2e 변환기`.
+
+
+---
+
+## 1단계 검토 결과 (2026-10-18, Claude 독립 검토 — Task 8 시범 실행 전에 고칠 것)
+
+Task 1~5 시험 110개는 통과했다. 코드 추적으로 확인한 결함은 아래 아홉이며 **W1~W5, W7은 Task 8(시범 실행) 전에**, W6, W8, W9는 같은 묶음에서 고친다. 각 항목은 실패 시험을 먼저 추가한다.
+
+### W1. 분기가 아닌 단계의 `next`가 무시되어 양쪽 경로가 모두 실행됨 (치명)
+- 원인: `workflow-run.mjs:64` `markStep`이 체크포인트의 `next`만 보고 다음 단계를 정하는데, 러너는 branch 패치(`workflow-runner.mjs:187`)에만 `next`를 넣는다. tool/agent/human 완료 패치에는 정의의 `next`가 들어가지 않아 배열 순서로 넘어간다.
+- 재현: `[pick(branch then:A else:B), A(next:end), B, end]` → pick→A 뒤 B도 실행된다. 기존 시험은 `then:'end'`만 써서 못 잡았다.
+- 고침: 모든 완료 패치에 `next:step.next`를 넣거나 `markStep`이 정의에서 후속을 읽게 한다. 시험: 위 재현이 B를 건너뛰는지.
+
+### W2. 분기가 아닌 단계의 `when`이 평가되지 않음 (치명)
+- 원인: 스키마는 모든 단계에 `when`을 허용하지만 러너는 branch에서만 읽는다(`runner:186`). 설계 §3.1 예시의 `publish` 단계가 무조건 실행된다.
+- 고침: tool/agent/human 단계도 디스패치 전에 `when`을 평가해 거짓이거나 `undefined`면 `skipped`. 템플릿의 `!x`, `x != 'a'`는 `x`가 undefined일 때 **닫힌 방향**으로(조건을 만족하지 않은 것으로) 처리한다. 시험: 미완료 단계 출력에 기대는 조건이 실행을 막는지.
+
+### W3. `startAgent` 일시 실패 뒤 에이전트 단계가 영구히 멈춤 (중요)
+- 원인: `runner:114`가 `agentStarted:true`를 먼저 저장하고 `startAgent`가 `agent_busy`/`provider_missing`/위키 미준비로 던지면 되돌리지 않는다. 다음 재개는 `workflow_output_missing`으로 다시 대기.
+- 고침: `agentStarted`는 `startAgent`가 돌아온 뒤에 저장하거나 사전 거절 오류에서는 초기화. 시험: 첫 시작 실패 → 공급자 연결 → 재개 시 에이전트가 실제로 시작되는지.
+
+### W4. `submit_step_output`을 끝내 부르지 않은 단계가 `partial`이 아니라 `waiting`으로 남음 (중요)
+- 원인: `runner:117,123`. 모델이 산문으로 끝내거나 예산 마무리 호출(도구 없음)로 끝나면 `workflow_output_missing` 대기 상태로 질문도 카드도 없이 멈춘다. 제안 반영 뒤 러너를 깨우는 경로도 없다.
+- 고침: 하위 대화가 `review`/`paused`/`cancelled`로 끝났고 대기 중인 질문/승인이 없으며 제출이 없으면 `finish(run,'partial','workflow_output_missing')`. 제안 반영(`confirmProposal`)과 질문 답은 러너를 깨운다. 시험: 산문으로 끝난 단계가 `partial`로 닫히는지.
+
+### W5. 템플릿과 데이터 오류가 try 밖에서 터져 `running` 좀비 실행을 남김 (중요)
+- 원인: `scopeOf`(147), `resolve(step.args)`와 `stepCacheKey`(170), 174, 179, `ask()`(68)가 try(184) 앞에 있다. `template_invalid`나 `workflow_data_invalid`가 나면 `start`/`resume`이 거부되고 실행은 체크포인트 없이 `running`에 머문다. dry-run도 진단 대신 충돌.
+- 고침: 범위 계산, 인자 해석, 멱등 키 계산까지 모두 같은 catch 안으로 넣어 `finish(run,'partial',code)`로 닫고, dry-run은 그 코드를 진단으로 보고한다. 시험: `{{ inputs.ticket | jsmUrl }}` 같은 잘못된 필터가 `partial`과 코드로 끝나는지.
+
+### W6. `delegate_analysis` 계열이 단계 도구 제한을 우회 (중요)
+- 원인: 단계 도구에 `read_source`/`source_search`/`wiki_*`가 있으면 공용 `runAgent`가 분석 코디네이터 도구를 자기 목록에 더하고(`agent-runtime.js:218-224`), 모델에는 숨기지만 도착한 호출은 `beforeToolCall`을 지나 `analyses.execute`로 바로 간다(611). `agent.mjs:591`의 `workflow_tool_forbidden`을 거치지 않는다.
+- 고침: 워크플로우 단계에서는 `completeAnalysis`를 넘기지 않거나 공용 러너의 분석 도구 이름을 거절한다(선택적 인자, 기본 동작 보존). 시험: 위조된 `delegate_analysis` 호출이 거절되는지.
+
+### W7. `human.outputs.decision`이 검증되지 않아 실제 실행이 충돌 (중요)
+- 원인: 스키마 `outputs:{type:'object'}`. 설계 §3.1 예시 `decision: approve|revise`는 문자열로 파싱되고 dry-run은 `String.includes` 부분 일치로 통과하지만 실제 실행의 `ask()`에서 `choices.map is not a function`.
+- 고침: `decision`은 비어 있지 않은 문자열 배열로 스키마 고정, 답 비교는 정확 일치. 설계 §3.1 예시도 `decision: [approve, revise]`로 고친다(Claude가 수정). 시험 추가.
+
+### W8. `permissions`와 `externalWrite:never`가 실행 때 아무 효과가 없음 (중요)
+- 원인: 러너와 어댑터가 `permissions`를 읽지 않는다. 저장 때 검사는 작성자가 `externalWrite:true`로 표시한 단계에만 걸린다. 에이전트 단계의 `tools`도 `permissions.tools`와 대조되지 않는다.
+- 고침: 실행 때 ① 에이전트 단계의 `resolvedTools`를 `permissions.tools`가 허용한 어댑터/도구 집합으로 교차 검증(저장 때도), ② `externalWrite:never`면 외부 반영 도구(메일 보내기, 외부 MCP 쓰기, `send_file`은 제외)와 `irreversibleCommand`/`irreversibleMcpTool` 매칭 작업을 **거절**(승인 카드도 띄우지 않음), ③ `timeout`과 `on_failure`(retry 뒤 human)를 실제로 적용, `wiki` 해시 불일치는 경고로 보고서에. 실행 전체 상한(기본 2시간) 추가. 시험 각각.
+
+### W9. 작은 것들
+- `start()`가 `createTask` 전에 실행 레코드를 저장해 `createTask` 실패 시 `taskId` 없는 고아 실행이 남는다 → 순서를 바꾸거나 실패 시 레코드를 `failed`로.
+- 자유 입력 사람 단계의 답이 글자 그대로 "stop"이면 취소된다 → 취소는 명시적 선택지나 단추로만.
+- 멱등 키가 실행 안에서만 비교된다 → 설계 예시(`{{ inputs.ticket }}:publish`)대로 같은 워크플로우의 **이전 실행**과도 비교(저장소 조회), 일치하면 `skipped`와 사유.
+
+### W1~W9 수정 검증 진행 (Codex)
+
+- [x] 각 검토 항목의 실패 시험과 후속 경계 재현
+- [x] W1~W9 구현과 집중 시험 167/167 (새 시험 30개)
+- [x] 공통 보고서 1280px/440px 화면 검사와 직접 확인
+- [x] 최종 `test:gates` 전체 종료 확인: 종료 0, 2,181개 중 1,981 통과 / 0 실패 / 200 건너뜀, 화면 117개와 Electron/MCP 검사 통과
+- [ ] Claude QA와 업로드 (Claude 담당)
+
+인계: `docs/WORKFLOW-AGENT-W1-W9-2026-10-18.md`. Task 6과 Task 8은 시작하지 않았다.
+
+### 확인되어 괜찮은 것
+단계 출처 바인딩과 단일 제출, 모델 노출 도구 필터와 실행 때 금지, 복구 넛지의 필터 재사용, 템플릿 평가기의 금지 이름과 깊이/길이 상한, dry-run의 무부작용, `terminal.run`의 승인 경유와 비가역 검사, 문서 어댑터의 루트 격리, 보고서 가림, 순환 검출, 재시작 시 미확정 처리.
 
 ---
 

@@ -1,7 +1,7 @@
 import {secretLike} from './secret-like.mjs';
 // Export is a projection of saved conversation records, never tool execution.
 const credential=/(?:password|passwd|secret|token|authorization|cookie|api[_-]?key|client[_-]?key|access[_-]?key)(?:[\w-]*["']?)\s*(?:[:=]|\s+)|\bBearer\s+\S+|https?:\/\/[^\s/]+:[^\s/]+@/i;
-const safeText=value=>String(value??'').replace(/-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----[\s\S]*?(?:-----END (?:[A-Z0-9]+ )*PRIVATE KEY-----|$)/g,'[인증값 포함 내용 숨김]').split(/\r?\n/).map(line=>(credential.test(line)||secretLike(line)||/(?:^|\s)(?:-u|--user|--proxy-user)(?:[=\s]+|(?=[\"']))\S+|\bBasic\s+[A-Za-z0-9+/]{8,}={0,2}/i.test(line))?'[인증값 포함 내용 숨김]':line).join('\n');
+export const safeText=value=>String(value??'').replace(/-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----[\s\S]*?(?:-----END (?:[A-Z0-9]+ )*PRIVATE KEY-----|$)/g,'[인증값 포함 내용 숨김]').split(/\r?\n/).map(line=>(credential.test(line)||secretLike(line)||/(?:^|\s)(?:-u|--user|--proxy-user)(?:[=\s]+|(?=[\"']))\S+|\bBasic\s+[A-Za-z0-9+/]{8,}={0,2}/i.test(line))?'[인증값 포함 내용 숨김]':line).join('\n');
 const line=value=>safeText(value).replace(/[\r\n\t]+/g,' ').replace(/[<>&]/g,char=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[char]));
 function argumentText(entry){
  let args=entry.args;

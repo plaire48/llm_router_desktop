@@ -75,7 +75,7 @@ export class ProjectService {
     const top = await resolveProjectFolder(resolved);
     if(exactRoot&&top!==resolved)fail('clone_root_mismatch');
     if (this.root === top && this.store?.db.isOpen) {this.runAutoArchive();if(['local','remote'].includes(sourceKind))this.store.set('setting:wiki-source',{mode:sourceKind});if(initializeWiki){this.wikiInitEnabled=true;await this.initializeWiki();}return this.overview();}
-    if (this.afterEditChecks?.size || this.sideTaskStarts?.size || this.skillImportBusy || this.vocBusy || this.computerBusy || this.newFileBusy || this.setupBusy || this.repairStarts?.size || this.processes?.active.size || this.processes?.pending.size || this.unsettledOperations?.size || this.reconciling || this.agent?.running || this.recordingKnowledge || this.databaseBusy || this.collaborationBusy) fail('project_busy');
+    if (this.workflowActive || this.afterEditChecks?.size || this.sideTaskStarts?.size || this.skillImportBusy || this.vocBusy || this.computerBusy || this.newFileBusy || this.setupBusy || this.repairStarts?.size || this.processes?.active.size || this.processes?.pending.size || this.unsettledOperations?.size || this.reconciling || this.agent?.running || this.recordingKnowledge || this.databaseBusy || this.collaborationBusy) fail('project_busy');
     const projectId = hash(top).slice(7, 31), store = new Store(path.join(this.storageRoot, projectId));
     disposeEditorLink(this);disposeEditors(this);disposeNativeOffice(this);await disposeDevelopmentBrowser(this);await this.collaborationServer?.close();this.collaborationServer=null;this.knowledge?.server.close(); this.knowledge=null; this.store?.close(); this.root = top; this.projectId = projectId; this.agentRuns?.clear();this.lastAgent=null;
     this.wikiInitController?.abort();this.wikiUpdateRun?.controller.abort();this.wikiRefreshJob?.controller.abort();this.store = store;this.viewingTaskId=null;this.workspaceKind=kind==='conversation'?'conversation':'project';this.wikiInitEnabled=initializeWiki!==false;if(['local','remote'].includes(sourceKind))store.set('setting:wiki-source',{mode:sourceKind});
@@ -85,7 +85,7 @@ export class ProjectService {
     for(const action of this.store.list('computer-action:').filter(v=>v.state==='starting'))this.store.set('computer-action:'+action.id,{...action,state:'attention',execution:'unknown',error:'computer_outcome_unknown'});
     for(const action of this.store.list('computer-action:').filter(v=>v.review?.state==='running'))this.store.set('computer-action:'+action.id,{...action,review:{...action.review,state:'interrupted'}});
     this.disposed=false;this.recoveryQueue=new Set();this.idleProcessQueue=new Set();
-    this.processes = new Processes(this.store,{onFinished:record=>this.processFinished?.(record),onIdle:record=>this.processIdle?.(record),onActivity:record=>this.resolveProcessIdle?.(record,'output')});
+    this.processes = new Processes(this.store,{onFinished:record=>{const task=this.store.get('task:'+record.taskId);if(task?.kind==='workflow'){void this.workflowRunner?.notify(task.workflowRunId).catch(()=>{});}else this.processFinished?.(record);},onIdle:record=>this.processIdle?.(record),onActivity:record=>this.resolveProcessIdle?.(record,'output')});
     // A restarted host cannot establish the outcome of an earlier process.
     for (const p of this.store.list('process:').filter(p => ['running','stopping','checking'].includes(p.state))) this.store.set('process:' + p.id, {...p, state: 'interrupted',execution:'unknown',recoveryState:'attention'});
     for(const task of this.store.list('task:').filter(t=>t.question?.processIdle)){this.resolveProcessIdle(this.store.get('process:'+task.question.processIdle.id),'restart');}
@@ -217,7 +217,7 @@ export class ProjectService {
   }
   async inspectPath({taskId,path}) {return inspectNewPath(await this.target(taskId),path);}
   async proposeNewFile(args) {return proposeNewFile.call(this,args);}
-  async applyNewFile(args) {const result=await applyNewFile.call(this,args);const proposal=this.store.get('proposal:'+args.proposalId);if(proposal?.state==='applied')await queueAfterEditCheck(this,proposal.taskId);return result;}
+  async applyNewFile(args) {const result=await applyNewFile.call(this,args);const proposal=this.store.get('proposal:'+args.proposalId);if(proposal?.state==='applied'){await queueAfterEditCheck(this,proposal.taskId);const origin=this.task(proposal.taskId).origin;if(origin?.kind==='workflow_step')queueMicrotask(()=>this.workflowRunner?.notify(origin.runId).catch(()=>{}));}return result;}
   async search(args) { return searchSource.call(this,args); }
   async codeOutline(args) { this.ready();return codeOutline.call(this,args); }
   async inspectCode(args) { this.ready();return inspectCode.call(this,args); }
@@ -272,8 +272,14 @@ export class ProjectService {
   async createTask({request, criteria = [],mailReferences=[],captures=[],documentReferences=[],origin}, routine) {
     this.ready(); requireWikiChatReady(this); request = limited(request);
     if(origin!==undefined){
-      if(origin?.kind!=='side_task'||['taskId','sideTaskId','runId'].some(key=>typeof origin[key]!=='string'||!origin[key]||origin[key].length>200))fail('task_origin_invalid');
-      origin={kind:'side_task',taskId:origin.taskId,sideTaskId:origin.sideTaskId,runId:origin.runId};
+      if(origin?.kind==='workflow_step'){
+        const run=this.store.get('workflow-run:'+origin.runId),step=run?.workflow.steps.find(s=>s.id===origin.stepId);
+        if(!run||run.cursor!==origin.stepId||step?.kind!=='agent'||run.steps[origin.stepId]?.taskId||['complete','partial','cancelled','failed'].includes(run.status))fail('task_origin_invalid');
+        origin={kind:'workflow_step',runId:origin.runId,stepId:origin.stepId};
+      }else{
+        if(origin?.kind!=='side_task'||['taskId','sideTaskId','runId'].some(key=>typeof origin[key]!=='string'||!origin[key]||origin[key].length>200))fail('task_origin_invalid');
+        origin={kind:'side_task',taskId:origin.taskId,sideTaskId:origin.sideTaskId,runId:origin.runId};
+      }
     }
     if (!Array.isArray(criteria) || criteria.length > 30) fail('criteria_invalid');
     const references=await validateMailReferences(this,mailReferences);
@@ -393,7 +399,7 @@ export class ProjectService {
     if(proposal.kind==='create'&&proposal.state!=='applied')fail('write_unconfirmed');
     const actual = await readSource(await this.target(proposal.taskId), proposal.path);
     if (actual.hash !== proposal.afterHash) fail('write_unconfirmed');
-    proposal.appliedAt ||= new Date().toISOString(); proposal.state = 'applied'; this.store.set('proposal:' + proposalId, proposal); this.store.event('proposal_applied', {proposalId, hash: actual.hash}); await queueAfterEditCheck(this,proposal.taskId);return proposal;
+    proposal.appliedAt ||= new Date().toISOString(); proposal.state = 'applied'; this.store.set('proposal:' + proposalId, proposal); this.store.event('proposal_applied', {proposalId, hash: actual.hash}); await queueAfterEditCheck(this,proposal.taskId);const origin=this.task(proposal.taskId).origin;if(origin?.kind==='workflow_step')queueMicrotask(()=>this.workflowRunner?.notify(origin.runId).catch(()=>{}));return proposal;
   }
   async mergeProposal({proposalId}) {
     const proposal = this.store.get('proposal:' + proposalId); if (!proposal || proposal.kind==='create' || proposal.state !== 'proposed') fail('proposal_missing');
@@ -434,7 +440,7 @@ export class ProjectService {
     if ((!allowed.has(method)&&!['workspaceChanges','appliedFileSummary'].includes(method)) || typeof this[method] !== 'function') fail('method_invalid');
     return method==='open'?this.open(args.root,{kind:args.kind,initializeWiki:args.initializeWiki,exactRoot:args.exactRoot,sourceKind:args.sourceKind}):this[method](args);
   }
-  dispose() { this.viewingTaskId=null;disposeEditorLink(this);disposeEditors(this);disposeNativeOffice(this);void disposeDevelopmentBrowser(this).catch(()=>{});this.chatDocumentReading?.abort();void this.mcpInstance?.dispose();this.usageLedger?.close(); this.wikiInitController?.abort(); this.wikiUpdateRun?.controller.abort(); this.wikiRefreshJob?.controller.abort(); this.localPerception?.dispose();this.marketplaceController?.abort();this.marketplaceToken=null;this.marketplaceConnected=false;this.marketplaceCatalog=null;this.personalMail?.dispose();this.computerPointer?.dispose();this.computerLauncher?.dispose?.();this.computerAdapter?.dispose?.();void this.collaborationServer?.close();this.disposed=true;this.recoveryQueue?.clear();this.databaseWorker?.terminate(); this.databaseConnections?.clear(); this.knowledge?.server.close(); for(const run of this.agentRuns?.values()||[])run.controller?.abort();this.lastAgent?.controller?.abort(); this.providers?.dispose(); for(const entry of this.fabrixTests?.values()||[])entry.provider.dispose();this.fabrixTests?.clear(); this.processes?.dispose(); }
+  dispose() { this.workflowRunner?.dispose();this.viewingTaskId=null;disposeEditorLink(this);disposeEditors(this);disposeNativeOffice(this);void disposeDevelopmentBrowser(this).catch(()=>{});this.chatDocumentReading?.abort();void this.mcpInstance?.dispose();this.usageLedger?.close(); this.wikiInitController?.abort(); this.wikiUpdateRun?.controller.abort(); this.wikiRefreshJob?.controller.abort(); this.localPerception?.dispose();this.marketplaceController?.abort();this.marketplaceToken=null;this.marketplaceConnected=false;this.marketplaceCatalog=null;this.personalMail?.dispose();this.computerPointer?.dispose();this.computerLauncher?.dispose?.();this.computerAdapter?.dispose?.();void this.collaborationServer?.close();this.disposed=true;this.recoveryQueue?.clear();this.databaseWorker?.terminate(); this.databaseConnections?.clear(); this.knowledge?.server.close(); for(const run of this.agentRuns?.values()||[])run.controller?.abort();this.lastAgent?.controller?.abort(); this.providers?.dispose(); for(const entry of this.fabrixTests?.values()||[])entry.provider.dispose();this.fabrixTests?.clear(); this.processes?.dispose(); }
 }
 
 installDesktopFeatures(ProjectService);

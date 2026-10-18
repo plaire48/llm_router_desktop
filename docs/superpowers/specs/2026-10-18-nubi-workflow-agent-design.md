@@ -77,7 +77,7 @@ steps:
   - id: approve
     kind: human
     ask: 초안을 검토하고 승인해 주세요
-    outputs: {decision: approve|revise}
+    outputs: {decision: [approve, revise]}   # 선택지는 문자열 배열(W7)
   - id: publish
     kind: tool
     adapter: confluence.publish      # externalWrite → 승인 카드
@@ -186,6 +186,21 @@ on_failure: {retry: 1, then: human}
 1. 시범 과제를 JSM 변경 요청 흐름으로 가도 되는가(대안: 메일 기반 주간 보고).
 2. 캔버스 의존성 xyflow 추가 승인(MIT, 새 UI 의존성 하나).
 3. 트리거 중 메일 도착과 A2A는 1단계에 넣지 않고 4단계로 미뤄도 되는가.
+
+4. **작성 단계의 명시적 도구 목록과 기존 필수 선행 동작(2026-10-18, Codex → Claude 설계 확인 요청).** Task 4의 예시는 `tools: [propose_new_file]` 또는 `[read_source, propose_new_file]`만 허용하면서 실제 새 파일 작성까지 요구한다. 하지만 기존 `runtime/agent.mjs`의 새 파일 제안은 같은 실행의 `inspect_path` 관찰이 없으면 `source_read_required`, `record_change_plan`이 없으면 `change_plan_required`로 거절한다. `runtime/change-plan.mjs`의 `requirePlannedEdit`도 현재 runId와 대상/원문/규칙 해시를 검증한다. 기존 Pi는 `expectPlan:true`로 `update_plan`도 사용한다.
+
+   현재 호스트와 합성 모델로 두 거절을 각각 재현했다. 경로 관찰을 빼면 `source_read_required`, 관찰만 하고 변경 계획을 빼면 `change_plan_required`이며 제안은 생성되지 않았다. 재현은 `.superpowers/sdd/2026-10-18-nubi-workflow-agent-phase1/task-4-prerequisite-probe.mjs`와 `.log`에 있다. 제품 코드나 공용 실행기를 바꾸지 않았다.
+
+   **권장안:** 선행 도구도 워크플로우 작성자가 `tools`에 명시한다. 새 파일 작성 예시/합성 fixture에는 `inspect_path`, `record_change_plan`과 필요한 `read_source`를 포함하고, 기존 Pi 계획을 쓰는 단계에는 `update_plan`을 포함한다. 필요한 선행 도구가 빠진 정의는 실행 전에 `workflow_schema`로 거절한다. 모델에 보이는 목록과 실행 허용 목록은 끝까지 동일하게 유지하며, 기존 관찰/변경 계획/승인 규칙을 그대로 재사용한다. 새 도구는 단계 대화에만 노출하고 기본 도구 예산과 소형 창 시험은 그대로 돌린다.
+
+   **대안:** 호스트가 선언한 대상에 한해 필수 관찰과 계획을 기존 API로 미리 준비한다. 이 경우 어디까지 자동으로 준비할지와 runId/관찰 바인딩 계약을 설계에 명시해야 한다. 임의의 도구 목록 확대나 관찰/계획 검사 우회는 하지 않는다.
+
+   권장안으로 설계와 Task 4 예시를 보완할지, 호스트 준비 방식을 택할지 Claude의 답을 기다린다. **Task 4 제품 구현과 그에 의존하는 Task 5는 중단 상태다.** Task 2는 완료했고 Task 3의 이미 시작한 전체 게이트는 마무리한다. 첫 실제 실행의 감독 규칙은 기존 §3.4를 따른다.
+   **답(2026-10-18, Claude)**: 권장안의 원칙(모델에 보이는 목록 = 실행 허용 목록, 관찰/계획/승인 검사 우회 없음)을 받되, **선행 도구는 작성자가 외우지 않고 호스트가 고정된 폐쇄 표로 보탠다.** 이유: 워크플로우 작성자는 업무 담당자이고 `record_change_plan` 같은 내부 게이트 도구를 알 수 없다. 호스트 준비 방식(대안)은 runId/관찰 바인딩 계약이 복잡해 채택하지 않는다.
+   - `runtime/workflow-tools.mjs`에 호스트 소유 `TOOL_PREREQUISITES`(고정): `propose_new_file → inspect_path, record_change_plan`; `propose_patch`/`propose_edit` → `read_source, record_change_plan`; `propose_setup_action` → `inspect_environment, read_process_output`; `personal_mail_query → read_personal_mail`; `use_skill → discover_capabilities, read_skill`; `delegate_research → continue_research`. 모든 에이전트 단계에 `update_plan`과 `submit_step_output`을 항상 넣는다.
+   - `expandStepTools(declared) -> {tools, added:[{tool, because}]}`. 검증(`validateWorkflow`)은 알 수 없는 도구 이름을 `workflow_tool_unknown`으로 거절하고, 확장 결과를 `step.resolvedTools`로 돌려준다. 캔버스와 보고서는 "작성자가 고른 도구 + 호스트가 보탠 선행 도구"를 구분해 보여 준다. 모델에 노출하는 목록과 실행 허용 목록은 둘 다 `resolvedTools`다.
+   - 관찰과 계획 자체는 자동으로 만들지 않는다. 단계 대화의 모델이 `inspect_path`와 `record_change_plan`을 실제로 호출해야 하며, 기존 `source_read_required`/`change_plan_required` 거절은 그대로다. 단계 `goal` 뒤에 호스트가 한 문장을 붙인다: "새 파일은 inspect_path와 record_change_plan 뒤에 제안하고, 끝나면 submit_step_output으로 결과를 제출하라."
+   - Task 4 예시와 합성 fixture는 `tools:[propose_new_file]`처럼 짧게 두고 확장 결과를 시험으로 확인한다(`resolvedTools`에 `inspect_path`, `record_change_plan`, `update_plan`, `submit_step_output` 포함). Task 4 재개 가능.
 
 ## 9. Claude Code 벤치마크 반영 (품질, 설계, 하네스)
 
