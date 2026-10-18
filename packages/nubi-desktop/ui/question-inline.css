@@ -37,3 +37,10 @@
 .nubi-editor-change-review span{font-size:var(--deck-type-caption);color:var(--nubi-text-secondary)}
 .nubi-editor-change-review pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:240px;overflow:auto;padding:var(--cx-space-3);margin-top:var(--cx-space-1);background:var(--nubi-surface-inset);border-radius:var(--cx-space-2);font:inherit}
 @media(max-width:640px){.nubi-editor-change-review{grid-template-columns:1fr}}
+
+/* Choice rows have one hierarchy: prompt, label and optional explanation. */
+:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-card--compact .question-option.cx-kit-button{background:var(--nubi-surface-base);border:0;border-block-end:1px solid var(--deck-line);border-radius:0}
+:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-option-copy strong{font-weight:var(--nubi-weight-label)}
+:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-card--compact .question-option.cx-kit-button[aria-checked=true]{background:var(--nubi-surface-selected)}
+:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-option[aria-checked=true] .question-option-index{color:var(--deck-blue)}
+:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .interaction-input{background:transparent}

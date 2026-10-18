@@ -1236,3 +1236,6 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 @container workspace-agent (max-width:520px) {
  .desktop-shell .nubi-workbench[data-workspace-screen="conversation"] .nubi-task .message-user { max-width:92%; }
 }
+
+/* At compact widths the bird keeps identity while content keeps its title. */
+@container workspace-toolbar (max-width:32rem){.nubi-window-toolbar .nubi-logo :is(.nubi-brand-name,.nubi-beta){display:none}}

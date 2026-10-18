@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-18-nubi-workflow-agent-design.md` (§3.1 정의 형식, §3.2 러너, §3.3 어댑터, §3.4 검증, §9 Claude Code 벤치마크 반영)
 
-**진행 순서(2026-10-19 사용자 확정):** 6 → 7 → 14 → 15 → 8 → 9 → 10 → 11 → 12 → 13. Task 15(실행 화면, 설계 §3.12)는 2026-10-19 사용자 승인으로 추가했고 Task 8 전에 한다. Task 14는 Process Activity Maker의 타입을 읽어 대응하며 원본 코드는 복사하지 않는다. 시험 자료는 합성 프로세스명만 사용한다.
+**진행 순서(2026-10-19 사용자 확정):** 6 → 7 → 14 → 15 → 16 → 8 → 9 → 10 → 11 → 12 → 13. Task 15(실행 화면, 설계 §3.12)는 2026-10-19 사용자 승인으로 추가했고 Task 8 전에 한다. **릴리스 목표(2026-10-19 사용자 지시):** 이 계획의 Task 1~16까지를 1.3.0으로 고정해 배포한다. 순서는 16 → P1(프리징) → P2(모션) → 8 → 9 → 11 → 12 → 13 → 10(릴리스 준비). 긴 검사 묶음은 GitHub Actions로 옮긴다. 세부는 `docs/superpowers/plans/2026-10-19-nubi-desktop-1.3.0-release.md`. **업로드 기준(2026-10-19 04:30):** Task 1~7, 14와 Q5, W1~W11이 main e8623314에 있다(60 파일, QA87 29개 통과). Task 15부터는 이 커밋 위에서 작업한다. Task 14는 Process Activity Maker의 타입을 읽어 대응하며 원본 코드는 복사하지 않는다. 시험 자료는 합성 프로세스명만 사용한다.
 
 ## Global Constraints
 
@@ -326,17 +326,25 @@ export function createWorkflowRunner(service){
 
 ---
 
-## Task 9: 루틴 트리거 연결
+## Task 9: 루틴 트리거 연결 (루틴 = 일정 + 할 일, 설계 §3.8 "루틴과 워크플로우의 관계")
+
+> 재확인(2026-10-19, 사용자 지적): 루틴은 워크플로우도 될 수 있다. 자유 요청 루틴과 워크플로우 루틴이 같은 스케줄러와 알림을 쓰고, YAML이 진실이며, 무인 실행은 감독 통과 뒤에만.
 
 **Files:**
-- Modify: `runtime/routines.mjs`(`kind:'workflow'`, `slug`, `inputs`), `ui/RoutineSettings.jsx`(대상 선택: 대화 요청 또는 워크플로우), `tests/routines.test.mjs`
+- Modify: `runtime/routines.mjs`(`kind:'workflow'`, `slug`, `inputs`, 감독 통과 확인, 승격 제안 카운트), `runtime/workflow-package.mjs`(`definitionHash`: `trigger.schedule`을 뺀 정규화 JSON 해시. `workflow-qualified` 키와 숙성 단계가 이것을 쓴다), `runtime/workflow-runner.mjs`(qualified 키를 `definitionHash`로), `runtime/workflow-service.mjs`(저장/가져오기 때 `trigger.kind==='routine'`이면 등록 제안 레코드 `routine-proposal:<slug>`, `registerWorkflowRoutine({slug,enabled})`, `listWorkflows`에 다음 예정 시각), `ui/RoutineSettings.jsx`(할 일 선택: 대화 요청 / 워크플로우, 워크플로우 `inputs` 스키마에서 입력 칸, §3.12 양식), `ui/WorkflowPanel.jsx`(목록 행에 다음 예정과 루틴 배지, 상세에 "루틴으로 등록"), `tests/routines.test.mjs`, `tests/workflow-routine.test.mjs`
 
-- [ ] **Step 1: 시험** — 루틴 `kind:'workflow'`가 정시에 `startWorkflow`를 부르고, 대기 중인 사람 단계가 있으면 다음 예약에서 중복 시작하지 않는다(기존 `pending` 규칙).
-- [ ] **Step 2: 실패 확인 → 구현 → 통과**.
+**Interfaces:**
+- Produces: 루틴 레코드 `{id,name,projectId,schedule,kind:'prompt'|'workflow',request?|slug?,inputs?}`; `definitionHash(workflow)`; 알림 종류 `workflow_supervision_required`; 제안 레코드 `routine-proposal:<slug>`(사람이 켜기 전까지 실행 없음), `workflow-promotion:<routineId>`(자유 요청 루틴 3회 성공 뒤 한 번).
+
+- [ ] **Step 1: 시험** — (a) 루틴 `kind:'workflow'`가 정시에 `startWorkflow`를 부른다. (b) 대기 중인 사람 단계나 실행 중인 run이 있으면 다음 예약에서 중복 시작하지 않는다(기존 `pending` 규칙). (c) 감독 통과가 없으면 시작하지 않고 `workflow_supervision_required` 알림 하나만 남긴다. (d) YAML `trigger.kind: routine` 저장 시 제안 레코드만 생기고 루틴은 자동 등록되지 않는다. (e) 루틴 화면에서 일정을 바꾸면 YAML `trigger.schedule`이 바뀌고 `definitionHash`와 qualified는 그대로다. (f) 자유 요청 루틴이 3회 성공하면 승격 제안이 한 번만 생긴다.
+- [ ] **Step 2: 실패 확인 → 구현 → 통과**. `npm run test:gates`, 루틴 화면과 워크플로우 목록 캡처(1280/440)를 보고서에.
 
 ---
 
-## Task 10: 문서, QA, 업로드
+## Task 10: 문서, QA, 업로드 → 1.3.0 릴리스 준비로 바뀜
+
+> 바뀜(2026-10-19): 이 Task의 본문은 `docs/superpowers/plans/2026-10-19-nubi-desktop-1.3.0-release.md`의 "Task 10(바뀜)"을 따른다(버전 1.3.0, HOTFIX와 INSTALL 문서, 워크플로우 문서 보강). QA는 Actions 게이트(Task R1)가 맡는다.
+
 
 - [ ] **Step 1: 문서** — `docs/WORKFLOW-AGENT-2026-10.md`: 형식(필드 표), 템플릿 문법, 어댑터 표, dry-run과 감독 실행 절차, 한계(Windows 실측 전 office 없음), 시범 패키지 안내. `AGENTS.md`에 "워크플로우 순서는 호스트가 강제, 단계 출력은 스키마" 한 줄.
 - [ ] **Step 2: QA** — `npm run test:gates` + `check-workflow-ui` + `check-electron-workflow` + Claude QA 묶음. 도구 예산과 압축 시험 유지.
@@ -400,19 +408,48 @@ export function createWorkflowRunner(service){
 
 **Files:**
 - Create: `ui/WorkflowTimeline.jsx`(타임라인: 단계 챕터, 접힌 하위 대화 카드, 도구 줄과 영수증, 질문/승인 카드는 기존 `QuestionDecision`, 산출물 카드, 보고서 카드), `ui/WorkflowMiniMap.jsx`(`WorkflowCanvas`의 `compact` 모드 래퍼: 상태 색 넷, 노드 클릭 → 챕터 점프, 440px에서 접힘), `ui/WorkflowStatusBar.jsx`(이름, 상태 알약, 경과/예상 시간, 감독 표시, 대기 사유 한 문장과 1차 버튼), `tests/workflow-run-demo.jsx`(합성 실행 레코드 4단계: 완료 2, 승인 대기 1, 미실행 1)
-- Modify: `ui/Workbench.jsx`(`task.kind==='workflow'`면 활동 목록 대신 `WorkflowTimeline` + `WorkflowMiniMap`, 챕터 목차는 기존 `ChapterContents` 재사용, 작성기는 계속 숨김), `ui/WorkflowRunView.jsx`(단계 목록과 보고서 모달 제거, 시작 직후 우산 대화로 이동), `ui/WorkflowPanel.jsx`(목록, 검증, 시작만), `ui/WorkflowCanvas.jsx`(`compact` 레이아웃: 고정 폭, 상태 색, fitView 없음, 실행 중 재배치 금지), `ui/workflow.css`, `runtime/workflow-service.mjs`(`workflowRun` 투영에 단계별 `startedAt`, `finishedAt`, `receipts`, `answer`, `taskId`, `reason`, 하위 대화 요약 한 줄 `summary`, 산출물 카드 id 목록), `runtime/workflow-runner.mjs`(단계 시작 때 우산 대화 `task.chapters`에 호스트가 직접 챕터 추가. 모델 호출 없음. 2차 `mark_chapter`와 같은 저장 형식과 한도), `scripts/check-workflow-ui.mjs`(실행 장면 추가), `scripts/check-motion-performance.mjs`(실행 중 레이아웃 worker 메시지 0회)
+- Modify: `ui/Workbench.jsx`(`task.kind==='workflow'`면 활동 목록 대신 `WorkflowTimeline` + `WorkflowMiniMap`, 챕터 목차는 기존 `ChapterContents` 재사용, 작성기는 계속 숨김), `ui/WorkflowRunView.jsx`(단계 목록과 보고서 모달 제거, 시작 직후 우산 대화로 이동), `ui/WorkflowPanel.jsx`(목록, 검증, 시작만), `ui/WorkflowCanvas.jsx`(`compact` 레이아웃: 고정 폭, 상태 색, fitView 없음, 실행 중 재배치 금지), `ui/workflow.css`, `runtime/workflow-service.mjs`(`workflowRun` 투영에 단계별 `startedAt`, `finishedAt`, `receipts`, `answer`, `taskId`, `reason`, 하위 대화 요약 한 줄 `summary`, 산출물 카드 id 목록), `runtime/workflow-chapters.mjs`(새 파일, 브라우저 안전: `workflowChapters(run)`이 단계 순서와 체크포인트에서 챕터를 파생. `task.chapters`에 저장하지 않음, 한도 없음. 설계 §8 답 7), `runtime/conversation-export.mjs`(워크플로우 대화는 파생 챕터를 절 머리글로), `scripts/check-workflow-ui.mjs`(실행 장면 추가), `scripts/check-motion-performance.mjs`(실행 중 레이아웃 worker 메시지 0회)
 
 **Interfaces:**
-- Consumes: `workflowRun({runId})`(Task 6), `task.chapters`(2차 Task 2), `QuestionDecision`, `ChapterContents`, `WorkflowCanvas`(Task 6/14), `frameCoalescer`.
-- Produces: `workflowRun` → `{run:{...,steps:{[id]:{status,startedAt,finishedAt,receipts,answer,taskId,reason,summary,outputs:[cardId]}}},task:{id,state,question,chapters}}`. 타임라인 행은 `run.workflow.steps` 순서와 체크포인트에서 파생한다. 하위 대화 요약은 서비스가 하위 task의 결과 첫 200자로 만든다(클라이언트가 하위 task 전체를 받지 않는다). 대기 사유 문장: 승인 필요 "외부 반영 전에 확인이 필요해요", 결과 확인 대기 "이전 실행 결과를 확인하는 중이에요", 사람 답 필요 "답을 기다리고 있어요", 감독 확인 "다음 단계를 실행할까요".
+- Consumes: `workflowRun({runId})`(Task 6), `QuestionDecision`, `ChapterContents`(파생 챕터 목록을 그대로 받음), `WorkflowCanvas`(Task 6/14), `frameCoalescer`. 기존 `chapters.mjs` 한도(실행당 5, 대화당 20)는 모델 `mark_chapter` 전용으로 손대지 않는다.
+- Produces: `workflowRun` → `{run:{...,steps:{[id]:{status,startedAt,finishedAt,receipts,answer,taskId,reason,summary,outputs:[cardId]}}},task:{id,state,question}}`. 타임라인 행과 챕터는 `workflowChapters(run)`으로 `run.workflow.steps` 순서와 체크포인트에서 파생한다(`{id:'step:'+stepId, stepId, title, status, at, lane}`). 행은 `data-step-id` 앵커를 가진다. 단계가 20개를 넘으면 목차는 레인 또는 10개 묶음으로 접고 현재 묶음만 편다. 하위 대화 요약은 서비스가 하위 task의 결과 첫 200자로 만든다(클라이언트가 하위 task 전체를 받지 않는다). 대기 사유 문장: 승인 필요 "외부 반영 전에 확인이 필요해요", 결과 확인 대기 "이전 실행 결과를 확인하는 중이에요", 사람 답 필요 "답을 기다리고 있어요", 감독 확인 "다음 단계를 실행할까요".
 
-- [ ] **Step 1: 실패하는 검사** — `check-workflow-ui.mjs` 실행 장면: (a) 타임라인에 챕터 4개가 단계 순서대로, 하위 대화 카드가 접혀 있고 펼치면 하위 대화 내용, 승인 카드가 오른쪽 정렬(기존 승인 줄 규칙), (b) 미니 지도 노드 상태 색 4종(`data-status`)과 노드 클릭 → 해당 챕터 `aria-current`와 스크롤, (c) 상태 줄에 대기 사유 한 문장과 강조 버튼 1개만, 경과/예상 시간, (d) 440px에서 미니 지도 접힘과 토글, (e) 상태 변화 `transition-duration` 180ms, `prefers-reduced-motion: reduce`에서 펄스 없음, (f) 디자인 토큰만(hex, px 금지), 가운뎃점 없음.
-- [ ] **Step 2: 실패 확인** → FAIL
-- [ ] **Step 3: 구현** — 러너 챕터 기록 → 서비스 투영 → 세 컴포넌트 → Workbench 분기 → RunView/Panel 축소. 레이아웃은 설계 때 worker가 준 자리를 그대로 쓰고 실행 중에는 상태만 바꾼다(`WorkflowCanvas`에 `positions` 입력 또는 캐시).
-- [ ] **Step 4: 검사** → PASS. `npm run test:gates`, `check-motion-performance`(실행 장면에서 레이아웃 worker 메시지 0회, 메인 스레드 50ms 이하).
-- [ ] **Step 5: 문서와 커밋** — `docs/WORKFLOW-AGENT-2026-10.md`에 화면 절(설계 §3.12 요약과 스크린샷 경로). 커밋 뒤 보고하고 멈춤(Claude QA와 업로드).
+- [x] **Step 1: 실패하는 검사** — `check-workflow-ui.mjs` 실행 장면: (a) 타임라인에 파생 챕터 4개가 단계 순서대로(`task.chapters`는 비어 있음), 하위 대화 카드가 접혀 있고 펼치면 하위 대화 내용, 승인 카드가 오른쪽 정렬(기존 승인 줄 규칙), (b) 미니 지도 노드 상태 색 4종(`data-status`)과 노드 클릭 → 해당 챕터 `aria-current`와 스크롤, (c) 상태 줄에 대기 사유 한 문장과 강조 버튼 1개만, 경과/예상 시간, (d) 440px에서 미니 지도 접힘과 토글, (e) 상태 변화 `transition-duration` 180ms, `prefers-reduced-motion: reduce`에서 펄스 없음, (f) 디자인 토큰만(hex, px 금지), 가운뎃점 없음. (g) 설계 §3.12 디자인 규칙 단언: 원시 코드 노출 0, 채움 버튼 화면당 1개 이하, 셸 머리글 제목을 본문에서 반복하지 않음, 색 배경 중첩 0, 단계 표식은 종류별 outline 아이콘(북마크 아이콘 금지), 대기 안내는 배너가 아니라 상태 줄 한 줄.
+- [x] **Step 2: 실패 확인** → FAIL
+- [x] **Step 3: 구현** — `workflow-chapters.mjs`와 단위 시험(순서, 상태, 레인 묶음, 1000단계) → 서비스 투영 → 세 컴포넌트 → Workbench 분기 → RunView/Panel 축소. 레이아웃은 설계 때 worker가 준 자리를 그대로 쓰고 실행 중에는 상태만 바꾼다(`WorkflowCanvas`에 `positions` 입력 또는 캐시).
+- [x] **Step 4: 검사** → PASS. `npm run test:gates`, `check-motion-performance`(실행 장면에서 레이아웃 worker 메시지 0회, 메인 스레드 50ms 이하).
+- [x] **Step 5: 문서와 인계** — `docs/WORKFLOW-AGENT-2026-10.md`에 화면 절(설계 §3.12 요약과 스크린샷 경로). 사용자 역할 분담대로 문서를 인계하고 보고 뒤 멈춤. 커밋과 업로드는 Claude가 QA 후 담당한다.
+
+
+완료 근거(2026-10-19): 새 단위12개와 집중234/234, 최종 test:gates session52134 종료0(2267/2067 통과/실패0/기존 건너뜀200). 전체 화면117개, Electron 개발8개와 공식MCP 승인/재시작 유지 통과. 상태 갱신 모션3회 worker재호출0/50ms JS0/좌표 불변. 27개 고정 소스 해시 불변. 상세와 파일 목록: `docs/WORKFLOW-AGENT-T15-2026-10-19.md`. 첫 게이트는 툴팁 보완을 위해 중단했고 최종 전체 재실행으로 대체했다. 커밋/push/릴리스 없음. **보고 뒤 STOP: Claude QA/업로드 대기, Task8 미시작.**
+
+추가 디자인 범위 구분: 최종 마감 읽기에서 Step1(g)와 후속 Task16, 설계 §3.12 디자인 규칙의 추가를 확인했다. 이번 Task15 구현/화면 검사는 착수 때의 Step1(a)~(f)와 Q7 기능 계약이다. (g)의 원시 코드 숨김/화면당 채움 버튼 하나/중복 제목 제거/배경 중첩 제거/북마크 금지/대기 배너 제거는 새 Task16의 범위이며 이번 소스에 적용하거나 시험하지 않았다. 따라서 Step1 전체 체크박스는 미완료로 되돌리고 **기능 범위 완료와 디자인 추가 범위 미완료를 구분한다.** 전체 게이트 통과는 새 (g) 디자인의 통과 근거가 아니다. 요청대로 보고 뒤 멈추며 Task16/8은 시작하지 않는다.
 
 ---
+
+
+디자인 보완 완료: Step1(g) 새 검사의 파란 배너 RED 뒤 구현. 집중222/222, 전체 게이트 task-15-design-gates.log 종료0(2267/2067 통과/실패0/기존 건너뜀200). 새 실행 타임라인/상태 줄/중복 제목 수정6파일. 위 미완료 문단은 최초 마감 당시 기록이며 이번 사용자 재개로 해소했다. 지도/목록은 이어지는 Task16에서 별도 검사한다.
+
+## Task 16: 디자인 정합 — 기존 워크플로우 화면을 주변 UI 양식으로 (설계 §3.12 디자인 규칙, Task 15 뒤, Task 8 전)
+
+> 추가(2026-10-19, 사용자 지적 "디자인이 구리다, 주변 UI에 맞춰라"): 캡처 `verification/workflow/ui/workflow-1280.png`, `blueprint-rejected-1280.png`, `execution-1280.png`를 주변 화면(`chat-documents-2026-10-16/chat-1100.png`, `activity-readability/review-next-action.png`, `community-wiki/wiki-1100.png`, `mail/connected.png`)과 비교해 §3.12 디자인 규칙 표를 만들었다. 새 스타일을 발명하지 말고 그 양식을 그대로 가져온다.
+
+**Files:**
+- Modify: `ui/WorkflowPanel.jsx`(머리글 아이콘 타일 + 제목 + 개수, 오른쪽 아이콘 버튼 "가져오기"와 "새로고침", 목록은 `nubi-session-row` 양식, 형식 오류 행은 빨간 점 + 한국어 사유, 설명 문장 삭제), `ui/BlueprintImport.jsx`(`deck-dialog` 모달로 이동: 파일 선택, 미리보기 지도, 거절 사유 목록, "초안 저장" 하나), `ui/WorkflowCanvas.jsx`(노드 카드: 아이콘 타일 28px + 제목 + 보조 + 상태 점, 현재 단계 파랑 테두리 2px, 채움 배경 제거, 연결선 1px, 배경 점은 위키 관계 지도 수준 또는 없음, 레인은 머리글 + 열 구분선), `ui/WorkflowRunView.jsx`(남는 부분이 있으면 타임라인 양식), `ui/workflow.css`(토큰만, 중첩 색 배경 제거), `scripts/check-workflow-ui.mjs`(디자인 단언 추가), `tests/workflow-demo.jsx`
+
+**Interfaces:**
+- Consumes: `WorkspaceIconAction`, `Icon`, `DetailPanel`(`deck-dialog`), 사이드바 행 클래스 `nubi-session-row`(`design/workspace-density.css`), 진행 기록 클래스 `nubi-document-progress`, 토큰 `--nubi-box-radius`, `--deck-line`, `--deck-type-*`, `--cx-space-*`.
+- Produces: 같은 데이터 계약(`listWorkflows`, `validateWorkflow`, `workflowRun`, `importBlueprint`)에 화면만 바뀐다. 노드 `data-step-kind`, `data-status`, 미니 지도 `data-layout` 선택자는 유지한다.
+
+- [x] **Step 1: 실패하는 검사** — `check-workflow-ui.mjs` 디자인 단언: 보이는 글자에 `/\bworkflow_[a-z_]+\b/` 0건(접힌 details 제외), 노드 배경 computed color가 표면 토큰 값, 채움 버튼(`[data-variant=primary]` 또는 해당 클래스) 화면당 1개 이하, 본문 h1이 셸 머리글과 같은 글자가 아님, 목록 항목이 `button.cx-button`이 아님, 색 배경 요소 안에 색 배경 요소 없음, 가져오기 UI가 `deck-dialog` 안, hex/px 없음. 1280/440 스크린샷 저장.
+- [x] **Step 2: 실패 확인** → FAIL(현재 화면은 원시 코드, 채움 노드, 채움 버튼 2개, details 블록으로 실패)
+- [x] **Step 3: 구현** — 머리글 → 목록 행 → 가져오기 모달 → 노드 카드와 레인 → 타임라인 잔여. 전환은 `viewTransition.js` 280/180ms, 모션 감소 존중.
+- [x] **Step 4: 검사** → PASS. `npm run design:check`, `check-motion-performance`, `npm run test:gates`.
+- [x] **Step 5: 보고** — 스크린샷 경로(1280/440, 목록/실행/가져오기/레인)를 보고서에 적고 멈춤. Claude가 캡처로 디자인을 검수한 뒤 업로드한다.
+
+---
+
+완료 근거(2026-10-19): 사용자 추가 가독성/대칭 여백 요청까지 포함해 집중225/225, 최종 test:gates86366 종료0(2270전체/2070통과/실패0/기존skip200). 전체117화면/Electron8/공식MCP 통과. 고정44파일 해시 변화0. 1280/440 목록·실행·가져오기·레인 경로와 변경 파일은 `docs/WORKFLOW-AGENT-T16-2026-10-19.md`, 공통 가독성23파일은 `docs/research/2026-10-19-apple-readability-audit.md`. 워크플로우 상태 변화 레이아웃 재계산0/50ms JS0. 별도 공통 전환66ms1건은 기록에 남긴다. **보고 뒤 STOP: Claude 디자인 QA/업로드 대기, Task8 미시작.**
 
 ## 1단계 검토 결과 (2026-10-18, Claude 독립 검토 — Task 8 시범 실행 전에 고칠 것)
 

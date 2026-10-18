@@ -1,0 +1,13 @@
+.nubi-settings-section{min-width:0;margin:0;padding:0;border:0}
+.nubi-settings-section+.nubi-settings-section{border-block-start:calc(var(--cx-space-1)/4) solid var(--deck-line);padding-block-start:var(--cx-space-5)}
+.nubi-settings-section>legend{display:flex;align-items:center;gap:var(--cx-space-2);width:100%;padding:0;margin-block-end:var(--cx-space-3);color:var(--nubi-text-primary);font-size:var(--deck-type-body);font-weight:var(--nubi-weight-emphasis)}
+.nubi-settings-section-icon{display:grid;place-items:center;flex:none;width:var(--cx-space-6);height:var(--cx-space-6);color:var(--deck-sub)}
+.nubi-settings-section-body{display:grid;min-width:0;gap:var(--cx-space-4);padding-inline-start:var(--cx-space-8)}
+.nubi-settings-control{display:grid;min-width:0;gap:var(--cx-space-1)}
+.nubi-settings-control>label{font-size:var(--deck-type-body);font-weight:var(--nubi-weight-label);color:var(--nubi-text-primary)}
+.nubi-settings-control>:is(input,select,textarea,.cx-input-shell){width:100%;min-width:0;box-sizing:border-box}
+.nubi-settings-control>small,.nubi-settings-section-description{color:var(--nubi-note-ink);font-size:var(--deck-type-caption);line-height:var(--deck-line-body)}
+.nubi-settings-section-description{margin:0}
+.nubi-form-lead{font-size:var(--nubi-reading-size);font-weight:var(--nubi-weight-regular);line-height:var(--deck-line-body);color:var(--nubi-text-primary)}
+
+.nubi-settings-actions{display:flex;justify-content:flex-end;align-items:center;gap:var(--cx-space-2)}

@@ -1,6 +1,7 @@
 import React,{useEffect,useId,useState} from 'react';
 import {CxButton,CxInput,CxSelect,CxTextarea,DetailPanel,Icon} from '@e2e/cx-design-system';
 import {DeckConfirmation} from '../../../extensions/aipro-chat/src/DeckSurfaces.jsx';
+import {SettingsSection,SettingsField,PanelTitle} from './SettingsSection.jsx';
 import {SettingToggle} from './SettingToggle.jsx';
 import {WorkspaceAction} from './WorkspaceAction.jsx';
 import './routine-settings.css';
@@ -12,16 +13,18 @@ export function RoutineSettings({api,projectId,onClose,onStarted}){
  async function act(operation){if(busy)return;setBusy(true);setError('');try{await operation();setData(await api('listRoutines'));}catch(e){setError(failure(e));}finally{setBusy(false);}}
  const field=(key,value)=>setEditing(current=>({...current,[key]:value}));
  if(removing)return <DeckConfirmation className="nubi-danger-confirmation" title="루틴을 삭제할까요?" confirmLabel="삭제" busy={busy} onCancel={()=>setRemoving(null)} onConfirm={()=>act(async()=>{await api('deleteRoutine',{id:removing.id,confirmed:true});setRemoving(null);})}><p>{removing.name}의 예약을 삭제합니다. 기존 대화는 남아 있어요.</p>{error&&<p role="alert">{error}</p>}</DeckConfirmation>;
- return <DetailPanel className="deck-dialog nubi-panel nubi-routine-settings" title={editing?'루틴 설정':'루틴'} variant="modal" busy={busy} onClose={onClose}>
+ return <DetailPanel className="deck-dialog nubi-panel nubi-routine-settings" title={<PanelTitle icon="clock">{editing?'루틴 설정':'루틴'}</PanelTitle>} variant="modal" busy={busy} onClose={onClose} footer={editing?<><CxButton disabled={busy} onClick={()=>setEditing(null)}>취소</CxButton><CxButton type="submit" form={id+'form'} variant="primary" disabled={busy||!editing.projectId}>저장</CxButton></>:undefined}>
   {error&&<p role="alert">{error}</p>}
-  {editing?<form onSubmit={event=>{event.preventDefault();void act(async()=>{await api('saveRoutine',editing);setEditing(null);});}}>
-   <label htmlFor={id+'name'}>이름</label><CxInput id={id+'name'} required maxLength={80} value={editing.name} disabled={busy} onChange={e=>field('name',e.target.value)}/>
-   <label htmlFor={id+'project'}>프로젝트</label><CxSelect id={id+'project'} required disabled={busy} value={editing.projectId} onChange={e=>field('projectId',e.target.value)}><option value="">프로젝트 선택</option>{data?.projects.map(project=><option key={project.id} value={project.id}>{project.name}</option>)}</CxSelect>
-   <div className="nubi-routine-schedule"><div><label htmlFor={id+'kind'}>주기</label><CxSelect id={id+'kind'} value={editing.schedule.kind} disabled={busy} onChange={e=>field('schedule',{...editing.schedule,kind:e.target.value,weekday:editing.schedule.weekday??1})}><option value="daily">매일</option><option value="weekly">매주</option></CxSelect></div>{editing.schedule.kind==='weekly'&&<div><label htmlFor={id+'day'}>요일</label><CxSelect id={id+'day'} disabled={busy} value={editing.schedule.weekday} onChange={e=>field('schedule',{...editing.schedule,weekday:Number(e.target.value)})}>{days.map((day,index)=><option key={day} value={index}>{day}요일</option>)}</CxSelect></div>}<div><label htmlFor={id+'time'}>시각</label><CxInput id={id+'time'} type="time" required disabled={busy} value={editing.schedule.time} onChange={e=>field('schedule',{...editing.schedule,time:e.target.value})}/></div></div>
-   <label htmlFor={id+'request'}>요청</label><CxTextarea id={id+'request'} required maxLength={16000} disabled={busy} value={editing.request} onChange={e=>field('request',e.target.value)}/>
-   <SettingToggle label="예약 실행" checked={editing.enabled} disabled={busy} onChange={value=>field('enabled',value)}/>
-   <p className="nubi-muted">이 PC의 시각을 사용합니다. 앱을 닫아 놓쳤던 예약은 다음 시작 때 한 번 실행해요. 질문과 승인은 대화에서 확인합니다.</p>
-   <div className="nubi-routine-actions"><CxButton disabled={busy} onClick={()=>setEditing(null)}>취소</CxButton><CxButton type="submit" variant="primary" disabled={busy||!editing.projectId}>저장</CxButton></div>
+  {editing?<form id={id+'form'} onSubmit={event=>{event.preventDefault();void act(async()=>{await api('saveRoutine',editing);setEditing(null);});}}>
+   <SettingsSection icon="file" title="실행할 작업"><SettingsField id={id+'name'} label="이름"><CxInput required maxLength={80} value={editing.name} disabled={busy} onChange={e=>field('name',e.target.value)}/></SettingsField>
+    <SettingsField id={id+'project'} label="프로젝트"><CxSelect required disabled={busy} value={editing.projectId} onChange={e=>field('projectId',e.target.value)}><option value="">프로젝트 선택</option>{data?.projects.map(project=><option key={project.id} value={project.id}>{project.name}</option>)}</CxSelect></SettingsField>
+    <SettingsField id={id+'request'} label="요청"><CxTextarea required maxLength={16000} disabled={busy} value={editing.request} onChange={e=>field('request',e.target.value)}/></SettingsField>
+   </SettingsSection>
+   <SettingsSection icon="clock" title="실행 일정"><div className="nubi-routine-schedule"><SettingsField id={id+'kind'} label="주기"><CxSelect value={editing.schedule.kind} disabled={busy} onChange={e=>field('schedule',{...editing.schedule,kind:e.target.value,weekday:editing.schedule.weekday??1})}><option value="daily">매일</option><option value="weekly">매주</option></CxSelect></SettingsField>
+    {editing.schedule.kind==='weekly'&&<SettingsField id={id+'day'} label="요일"><CxSelect disabled={busy} value={editing.schedule.weekday} onChange={e=>field('schedule',{...editing.schedule,weekday:Number(e.target.value)})}>{days.map((day,index)=><option key={day} value={index}>{day}요일</option>)}</CxSelect></SettingsField>}
+    <SettingsField id={id+'time'} label="시각"><CxInput type="time" required disabled={busy} value={editing.schedule.time} onChange={e=>field('schedule',{...editing.schedule,time:e.target.value})}/></SettingsField></div>
+   </SettingsSection>
+   <SettingsSection icon="code" title="실행 방식"><SettingToggle label="예약 실행" checked={editing.enabled} disabled={busy} onChange={value=>field('enabled',value)}/><p className="nubi-settings-section-description">질문과 승인은 대화에서 확인해요.<br/>이 PC의 시각을 사용해요. 앱을 닫아 놓친 예약은 다음 시작 때 한 번 실행해요.</p></SettingsSection>
   </form>:<>
    <CxButton disabled={busy||!data?.projects.length} onClick={()=>{setError('');setEditing({name:'',projectId:data.projects.some(p=>p.id===projectId)?projectId:data.projects[0]?.id||'',request:'',schedule:{kind:'daily',time:'09:00'},enabled:true});}}><Icon name="plus" size={18}/>루틴 추가</CxButton>
    {!data?<p role="status">루틴을 불러오고 있어요.</p>:!data.items.length?<p className="nubi-muted">{data.projects.length?'반복할 작업과 시각을 정해 주세요.':'프로젝트를 추가하면 루틴을 만들 수 있어요.'}</p>:<ul className="nubi-routine-list">{data.items.map(row=><li key={row.id}>

@@ -295,7 +295,7 @@ export class ProjectService {
   runRoutineNow(args){if(!this.routines)fail('routine_not_ready');return this.routines.runNow(args);}
   taskUsage({taskId}) {this.task(taskId);return summarizeTaskMetrics(this.store,taskId);}
   exportConversation({taskId}) {
-    const task=this.task(taskId);return {filename:conversationFilename(task),markdown:conversationMarkdown(task)};
+    const task=this.task(taskId);return {filename:conversationFilename(task),markdown:conversationMarkdown(task,{workflowRun:task.kind==='workflow'?this.store.get('workflow-run:'+task.workflowRunId):undefined})};
   }
   async exportRequirement({taskId}) {
     const task = this.task(taskId), slug = 'nubi-' + task.id.slice(0, 8), base = 'openspec/changes/' + slug;

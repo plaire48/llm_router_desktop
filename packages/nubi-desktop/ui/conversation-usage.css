@@ -2,3 +2,10 @@
 .nubi-conversation-usage table{width:100%;font-variant-numeric:tabular-nums;}
 .nubi-conversation-usage td:not(:first-child),.nubi-conversation-usage th:not(:first-child){text-align:right;}
 .nubi-conversation-usage th:first-child{text-align:left;}
+
+.nubi-usage-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--cx-space-5);margin:0;padding-block-end:var(--cx-space-4);border-block-end:calc(var(--cx-space-1)/4) solid var(--deck-line)}
+.nubi-usage-summary>div{display:grid;gap:var(--cx-space-1)}
+.nubi-usage-summary dt{color:var(--deck-sub);font-size:var(--deck-type-caption)}
+.nubi-usage-summary dd{margin:0;font-size:var(--deck-type-heading);font-weight:var(--nubi-weight-emphasis);font-variant-numeric:tabular-nums}
+.nubi-usage-notes{color:var(--nubi-note-ink);font-size:var(--deck-type-caption)}
+.nubi-usage-notes p{line-height:var(--deck-line-body)}

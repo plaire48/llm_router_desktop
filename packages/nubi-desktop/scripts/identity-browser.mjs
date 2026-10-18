@@ -14,12 +14,12 @@ export async function assertDialogChrome(dialog) {
       titleWeight:getComputedStyle(title).fontWeight,
       radius:getComputedStyle(root).borderRadius,
       close:close?.checkVisibility()?{width:close.getBoundingClientRect().width,height:close.getBoundingClientRect().height,radius:getComputedStyle(close).borderRadius}:null,
-      sectionGap:getComputedStyle(root.querySelector(':scope > .cx-panel-body')).rowGap};
+      sectionGap:getComputedStyle(root.querySelector(':scope > .cx-panel-body')).rowGap,leadingGlyph:(()=>{const glyph=root.querySelector('.cx-panel-header .nubi-panel-title>:is(.nubi-panel-title-icon,svg,img)');if(!glyph?.checkVisibility())return null;const header=root.querySelector('.cx-panel-header'),box=glyph.getBoundingClientRect(),bounds=header.getBoundingClientRect();return {left:box.left,min:bounds.left+parseFloat(getComputedStyle(header).paddingLeft)};})()};
   });
   assert(new Set(facts.insets.flat()).size===1,'All dialog sections share the same horizontal gutter');
   assert.equal(facts.titleWeight,String(adaptation.modal.titleWeight));
   assert.equal(facts.radius,adaptation.modal.radius+'px');
-  assert.equal(facts.sectionGap,adaptation.modal.sectionGap+'px');
+  assert.equal(facts.sectionGap,adaptation.modal.sectionGap+'px');if(facts.leadingGlyph)assert(facts.leadingGlyph.left>=facts.leadingGlyph.min-1,'Title icons stay inside the shared gutter');
   if(facts.close){assert.equal(facts.close.width,facts.close.height,'Close target must be square');assert(facts.close.width>=adaptation.workControl.height);assert.equal(facts.close.radius,adaptation.workControl.radius+'px');}
   return facts;
 }

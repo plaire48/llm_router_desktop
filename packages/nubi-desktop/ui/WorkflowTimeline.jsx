@@ -1,0 +1,33 @@
+import {workflowKindIcons} from './workflow-presentation.mjs';
+import {WorkspaceActivity} from './WorkspaceActivity.jsx';
+import React,{useEffect,useRef,useState} from 'react';
+import {CxButton,Icon} from '@e2e/cx-design-system';
+import {workflowChapters,workflowChapterGroups} from '../runtime/workflow-chapters.mjs';
+import {ChapterDivider,ChapterContents} from './ChapterMarks.jsx';
+import {MessageBody} from '../../../extensions/aipro-chat/src/MessageBody.jsx';
+import {QuestionDecision} from './QuestionDecision.jsx';
+import {OutputFileCards} from './OutputFileCards.jsx';
+import {workflowRunStatus} from './WorkflowStatusBar.jsx';
+function ChildConversation({api,runId,step,checkpoint}){
+ const [expanded,setExpanded]=useState(false),[child,setChild]=useState(null),[error,setError]=useState('');const generation=useRef(0);
+ useEffect(()=>{
+  const current=++generation.current;if(!expanded)return;
+  let live=true;api('conversationHistory',{taskId:checkpoint.taskId}).then(value=>{
+   if(!live||current!==generation.current)return;
+   if(value.id!==checkpoint.taskId||value.origin?.kind!=='workflow_step'||value.origin.runId!==runId||value.origin.stepId!==step.id)throw Error('workflow_binding_changed');
+   setChild(value);setError('');
+  }).catch(()=>{if(live&&current===generation.current)setError('대화를 불러오지 못했어요. 다시 펼쳐 주세요.');});
+  return()=>{live=false;};
+ },[expanded,api,runId,checkpoint.taskId,checkpoint.taskRevision]);
+ const toggle=()=>setExpanded(value=>!value);
+ return <div className="nubi-workflow-child"><CxButton aria-label={`${step.name||step.id} 하위 대화`} aria-expanded={expanded} onClick={toggle}><Icon name={expanded?'chevronUp':'chevronDown'} size={16}/><span>{checkpoint.summary||'하위 대화 보기'}</span></CxButton>{expanded&&(error?<p role="alert">{error}</p>:!child?<p role="status">대화를 불러오고 있어요.</p>:<div className="nubi-workflow-child-messages">{child.request&&!(child.messages?.[0]?.role==='user'&&child.messages[0].content===child.request)&&<article className="message message-user"><MessageBody role="user" content={child.request}/></article>}{(child.messages||[]).map((message,index)=><React.Fragment key={index}>{(child.chapters||[]).filter(chapter=>chapter.messageIndex===index).map(chapter=><ChapterDivider key={chapter.id} chapter={chapter}/>)}{['user','assistant'].includes(message.role)&&<article className={'message message-'+message.role}><MessageBody role={message.role} content={message.content}/></article>}</React.Fragment>)}{(child.chapters||[]).filter(chapter=>chapter.messageIndex===child.messages?.length).map(chapter=><ChapterDivider key={chapter.id} chapter={chapter}/>)}{[...new Set((child.trace||[]).map(row=>row.runId).filter(Boolean))].map(runId=><WorkspaceActivity key={runId} task={child} run={{...child,runId}} historical/>)}</div>)}</div>;
+}
+
+const skipReasons={workflow_condition_false:'조건이 맞지 않아 건너뛰었어요.',workflow_idempotency_reused:'같은 멱등 키의 확인된 결과를 사용했어요.'};
+export function WorkflowTimeline({api,run,task,selected,onJump,onAnswer,onDraft,onOpenOutput,renderDecisions,onNativeEdit}){
+ const chapters=workflowChapters(run),groups=workflowChapterGroups(chapters,selected),group=groups.find(row=>row.current)||groups[0];
+ const index=group?.chapters.findIndex(row=>row.stepId===selected)??0,center=Math.max(0,index),[offset,setOffset]=useState(0);
+ useEffect(()=>setOffset(Math.max(0,center-3)),[selected,group?.id]);
+ const visible=(group?.chapters||[]).length>=50?group.chapters.slice(offset,offset+10):group?.chapters||[],byId=new Map(run.workflow.steps.map(step=>[step.id,step]));
+ return <div className="nubi-workflow-primary"><ChapterContents chapters={chapters} current={selected} lanes={run.workflow.lanes} onJump={onJump}/><div className="nubi-workflow-timeline" aria-label="업무 실행 타임라인">{offset>0&&group?.chapters.length>=50&&<CxButton onClick={()=>setOffset(value=>Math.max(0,value-10))}>이전 단계 보기</CxButton>}{visible.map(chapter=>{const step=byId.get(chapter.stepId),checkpoint=run.steps?.[step.id]||{},questionHere=task?.question&&(task.question.workflow?.stepId||run.cursor)===step.id;return <section key={step.id} className="nubi-workflow-stage" data-step-id={step.id} data-status={checkpoint.status||'pending'} aria-current={selected===step.id?'step':undefined}><div className="nubi-document-progress-heading nubi-workflow-stage-heading" id={'chapter-'+chapter.id} role="separator" aria-label={'챕터 '+chapter.title}><Icon name={workflowKindIcons[step.kind]||'workflow'} size={18}/><strong>{chapter.title}</strong><span className="nubi-workflow-stage-state">{checkpoint.status==='running'?<span className="status-spinner"/>:checkpoint.status==='complete'?<Icon name="check" size={16}/>:null}{workflowRunStatus[checkpoint.status]||'미실행'}</span></div>{step.kind==='agent'&&checkpoint.taskId&&<ChildConversation key={checkpoint.taskId} api={api} runId={run.id} step={step} checkpoint={checkpoint}/>}<p className="nubi-workflow-action-summary">{step.action_summary||step.adapter||''}</p>{checkpoint.reason&&<p className="nubi-muted">{skipReasons[checkpoint.reason]||'이 단계의 실행을 확인해 주세요.'}</p>}{checkpoint.reason&&!skipReasons[checkpoint.reason]&&<details className="nubi-workflow-receipts"><summary>자세히</summary><code>{checkpoint.reason}</code></details>}{checkpoint.cachedFrom&&!checkpoint.reason&&<p className="nubi-muted">확인된 이전 결과를 사용했어요.</p>}{checkpoint.receipts?.length>0&&<details className="nubi-workflow-receipts"><summary>영수증 {checkpoint.receipts.length}개</summary>{checkpoint.receipts.map((receipt,i)=><code key={i}>{typeof receipt==='string'?receipt:JSON.stringify(receipt)}</code>)}</details>}{checkpoint.answer&&<p>답변: {typeof checkpoint.answer==='string'?checkpoint.answer:JSON.stringify(checkpoint.answer)}</p>}{questionHere&&<div className="nubi-workflow-decision"><QuestionDecision key={task.question.id} question={task.question} onNativeEdit={onNativeEdit} onDraft={onDraft} onChoose={onAnswer}/></div>}{task?.decisions?.some(decision=>decision.stepId===step.id)&&<div className="nubi-workflow-decision">{renderDecisions?.(task.decisions.filter(decision=>decision.stepId===step.id))}</div>}<OutputFileCards cards={(run.outputCards||[]).filter(card=>checkpoint.outputs?.includes(card.id))} onOpen={onOpenOutput}/></section>;})}{group?.chapters.length>=50&&offset+10<group.chapters.length&&<CxButton onClick={()=>setOffset(value=>value+10)}>다음 단계 보기</CxButton>}{['complete','partial','failed','cancelled'].includes(run.status)&&<article className="nubi-workflow-report" aria-label="실행 보고서"><h3>실행 보고서</h3><MessageBody role="assistant" content={run.report||'확인된 실행 기록이 없어요.'}/><p>위키 반영은 보고서를 검토한 뒤 제안할 수 있어요.</p></article>}</div></div>;
+}

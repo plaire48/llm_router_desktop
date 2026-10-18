@@ -499,26 +499,16 @@
  :root:has(.desktop-shell) .deck-dialog > :is(.cx-panel-header,.cx-panel-footer) { background:Canvas; }
 }
 
-/* One text axis for modal title, sections and field labels. Decorative icons
-   hang in a reserved gutter and never push only one line to the right. */
-:root:has(.desktop-shell) .deck-dialog:not(.nubi-anchored-dialog){--nubi-modal-inset:calc(var(--cx-space-4) + var(--cx-space-6))}
-:root:has(.desktop-shell) .deck-dialog:not(.nubi-anchored-dialog) .cx-panel-header h2{overflow:visible}
-:root:has(.desktop-shell) .deck-dialog:not(.nubi-anchored-dialog) .cx-panel-header .nubi-panel-title{position:relative;overflow:visible}
-:root:has(.desktop-shell) .deck-dialog:not(.nubi-anchored-dialog) .nubi-panel-title>:is(.nubi-panel-title-icon,svg,img){
- position:absolute;inset-inline-start:calc(-1 * var(--cx-space-8));width:var(--cx-space-6);height:var(--cx-space-6);
-}
-:root:has(.desktop-shell) .deck-dialog .nubi-settings-field>label{position:relative}
-:root:has(.desktop-shell) .deck-dialog .nubi-settings-field>label>svg{position:absolute;inset-inline-start:calc(-1 * var(--cx-space-6))}
-:root:has(.desktop-shell) .deck-dialog .nubi-settings-row.cx-kit-button{
- position:relative;padding-inline:var(--cx-space-3);margin-inline-start:calc(-1 * var(--cx-space-3));width:calc(100% + var(--cx-space-3));
-}
-:root:has(.desktop-shell) .deck-dialog .nubi-settings-row-icon{position:absolute;inset-inline-start:calc(-1 * var(--cx-space-5));width:var(--cx-space-6);height:var(--cx-space-6)}
-:root:has(.desktop-shell) .deck-dialog .nubi-workspace-update:not(.is-compact) .nubi-update-heading{position:relative;padding-inline-start:0;flex-wrap:wrap}
-:root:has(.desktop-shell) .deck-dialog .nubi-update-heading>.agent-mark{position:absolute;inset-inline-start:calc(-1 * var(--cx-space-8))}
+/* Balanced outer gutters. Icons remain inside the content edge rather than
+   hanging into the left margin. The native header/footer own all chrome. */
+:root:has(.desktop-shell) .deck-dialog:not(.nubi-anchored-dialog){--nubi-modal-inset:calc(var(--cx-space-4) + var(--cx-space-6));--nubi-dialog-symbol-size:var(--cx-space-6)}
+:root:has(.desktop-shell) .deck-dialog .nubi-panel-title>:is(svg,img){width:var(--cx-space-6);height:var(--cx-space-6);flex:none}
+:root:has(.desktop-shell) .deck-dialog .nubi-settings-row.cx-kit-button{width:100%;margin-inline:0;padding-inline:0;gap:var(--cx-space-2);background:transparent}
+:root:has(.desktop-shell) .deck-dialog .nubi-settings-row-icon{width:var(--cx-space-6);height:var(--cx-space-6)}
+:root:has(.desktop-shell) .deck-dialog .nubi-settings-row.cx-kit-button:hover:not(:disabled){background:var(--deck-blue-soft)}
+:root:has(.desktop-shell) .deck-dialog>.cx-panel-body>p:not(.nubi-muted):not([role=status]){font-size:var(--nubi-reading-size);font-weight:var(--nubi-weight-regular);line-height:var(--deck-line-body)}
+:root:has(.desktop-shell) .context-dialog>.cx-panel-body>*{margin-inline-start:var(--cx-space-8)}
 @media(max-width:480px){:root:has(.desktop-shell) .deck-dialog:not(.nubi-anchored-dialog){--nubi-modal-inset:calc(var(--cx-space-3) * 3)}}
-
-:root:has(.desktop-shell) .deck-dialog .nubi-workspace-update:not(.is-compact)>button{position:relative;padding-inline-start:0;margin-inline-start:0}
-:root:has(.desktop-shell) .deck-dialog .nubi-workspace-update:not(.is-compact)>button>svg{position:absolute;inset-inline-start:calc(-1 * var(--cx-space-6))}
 
 /* Shared text identity for every Desktop modal, including body portals.
    These selectors cover application labels and plain feedback only; embedded

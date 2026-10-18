@@ -1,3 +1,4 @@
+import {WorkflowExecutionPerformance} from './workflow-execution-performance.jsx';
 import {WorkflowCanvas} from '../ui/WorkflowCanvas.jsx';
 const workflowSteps=Array.from({length:150},(_,i)=>({id:'step-'+i,kind:'tool',name:'합성 단계 '+i,lane:'lane-'+(i%3)}));
 import React,{useRef,useState} from 'react';
@@ -29,7 +30,7 @@ function App(){
   <button onClick={()=>setCount(value=>value+1)}>응답 확인 {count}</button><input aria-label="메인 입력"/>
   {anchored&&<Anchored trigger={trigger} onClose={()=>setAnchored(false)} onChild={()=>setChild(true)}/>}
   {child&&<DetailPanel title="상세 창" variant="modal" className="deck-dialog" hideHelp onClose={()=>setChild(false)}><input aria-label="상세 입력"/></DetailPanel>}
- {workflowOpen&&<WorkflowCanvas steps={workflowSteps} layout={workflowOpen} workflow={workflowOpen==='lanes'?{lanes:[{id:'lane-0',name:'합성 자료'},{id:'lane-1',name:'합성 판단'},{id:'lane-2',name:'합성 검토'}]}:undefined}/>}
+ {workflowOpen==='execution'?<WorkflowExecutionPerformance/>:workflowOpen&&<WorkflowCanvas steps={workflowSteps} layout={workflowOpen} workflow={workflowOpen==='lanes'?{lanes:[{id:'lane-0',name:'합성 자료'},{id:'lane-1',name:'합성 판단'},{id:'lane-2',name:'합성 검토'}]}:undefined}/>}
  </main>;
 }
 createRoot(document.getElementById('root')).render(<App/>);

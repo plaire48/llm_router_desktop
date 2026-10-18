@@ -1,37 +1,105 @@
-.nubi-workflows,.nubi-workflow-run{padding:var(--cx-space-4);color:var(--deck-ink);font:var(--deck-font-body);line-height:var(--deck-line-body);min-width:0;overflow-wrap:anywhere}
-.nubi-workflows{overflow:auto;flex:1}
-.nubi-workflows h1,.nubi-workflows h2,.nubi-workflow-run h2{font-size:var(--deck-type-heading);font-weight:var(--nubi-weight-strong)}
+.nubi-workflows,.nubi-workflow-run{padding:var(--cx-space-6);color:var(--deck-ink);font:var(--deck-font-body);line-height:var(--deck-line-body);min-width:0;overflow-wrap:anywhere}
+.nubi-workflows{overflow:auto;flex:1;background:var(--deck-surface);--nubi-sidebar-active:var(--deck-blue-soft);--nubi-wiki-text-axis:var(--nubi-text-row-axis,calc(var(--cx-space-1)*10))}
+.nubi-workflows h1,.nubi-workflows h2,.nubi-workflow-run h2{font-size:var(--deck-type-heading);font-weight:var(--nubi-weight-emphasis)}
+.nubi-workflow-header{margin-block-end:var(--cx-space-5)}
 .nubi-workflow-columns{display:flex;flex-wrap:wrap;gap:var(--cx-space-6);align-items:flex-start}
-.nubi-workflow-columns>nav{flex:1 1 calc(var(--cx-space-8)*7);max-width:100%;display:grid;gap:var(--cx-space-3)}
-.nubi-workflow-columns>nav article{display:grid;gap:var(--cx-space-2);padding:var(--cx-space-3);border-radius:var(--deck-control-radius);background:var(--deck-surface)}
+.nubi-workflow-columns>nav{flex:0 1 calc(var(--cx-space-8)*8.75);max-width:100%;display:grid;gap:var(--cx-space-1)}
+.nubi-workflow-row{display:flex;align-items:center;gap:var(--cx-space-3);flex:1;min-width:0;border:0;background:transparent;color:var(--deck-ink);font:inherit;text-align:start;padding:var(--cx-space-3);cursor:pointer}
+.nubi-workflow-row>svg{flex:none;color:var(--deck-sub)}
+.nubi-workflow-row-copy{display:grid;flex:1;min-width:0;gap:var(--cx-space-1)}
+.nubi-workflow-row-copy strong{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:var(--nubi-weight-emphasis)}
+.nubi-workflows .nubi-session-row .nubi-workflow-row-copy>small{color:var(--nubi-note-ink,var(--deck-sub));font-size:var(--deck-type-caption)}
+.nubi-workflow-row-state{display:flex;align-items:center;gap:var(--cx-space-1);flex:none;color:var(--deck-sub);font-size:var(--deck-type-caption)}
+.nubi-workflow-row-state[data-error]{color:var(--nubi-text-danger)}
 .nubi-workflow-detail{flex:3 1 calc(var(--cx-space-8)*12);min-width:0;max-width:100%}
+.nubi-workflow-detail-heading{display:flex;align-items:center;justify-content:space-between;gap:var(--cx-space-3)}
+.nubi-workflow-detail-heading h2{margin:0}
 .nubi-workflow-actions{display:flex;flex-wrap:wrap;gap:var(--cx-space-2);margin-block:var(--cx-space-3)}
-.nubi-workflow-canvas{height:calc(var(--cx-space-8)*20);width:100%;border:calc(var(--cx-space-1)/4) solid var(--deck-line);border-radius:var(--deck-control-radius);overflow:hidden;background:var(--deck-surface);--xy-background-color:var(--deck-surface);--xy-edge-stroke:var(--deck-line);--xy-handle-background-color:var(--nubi-text-secondary);--xy-handle-border-color:var(--deck-surface);--xy-node-background-color:var(--deck-surface);--xy-node-color:var(--deck-ink);--xy-node-border:calc(var(--cx-space-1)/4) solid var(--deck-line)}
-.nubi-workflow-node{display:grid;text-align:start;gap:var(--cx-space-2);padding:var(--cx-space-4);width:calc(var(--cx-space-8)*7);min-height:calc(var(--cx-space-8)*4);color:var(--deck-ink);background:var(--deck-surface);border:calc(var(--cx-space-1)/4) solid var(--deck-line);border-radius:var(--deck-control-radius);font:inherit;cursor:pointer}
-.nubi-workflow-node[data-step-kind=agent]{background:var(--deck-blue-soft)}
-.nubi-workflow-node[data-step-kind=human]{background:var(--deck-orange-soft,var(--deck-surface))}
-.nubi-workflow-node:focus-visible{outline:calc(var(--cx-space-1)/4) solid var(--deck-blue);outline-offset:var(--cx-space-1)}
-.nubi-workflow-node small,.nubi-workflow-steps small,.nubi-workflow-columns small{color:var(--nubi-text-secondary);font-size:var(--deck-type-caption)}
-.nubi-workflow-properties{padding:var(--cx-space-4);border-radius:var(--deck-control-radius);background:var(--deck-surface);margin-block:var(--cx-space-3)}
-.nubi-workflow-evidence{border-radius:var(--deck-control-radius);padding:var(--cx-space-2);background:var(--deck-blue-soft)}
-.nubi-workflow-steps{padding-inline-start:var(--cx-space-5)}
-.nubi-workflow-steps li{padding:var(--cx-space-2);display:flex;gap:var(--cx-space-3);justify-content:space-between}
-.nubi-workflow-steps [aria-current=step]{border-radius:var(--deck-control-radius);background:var(--deck-blue-soft)}
+.nubi-workflow-canvas{height:calc(var(--cx-space-8)*20);width:100%;border:calc(var(--cx-space-1)/4) solid var(--deck-line);border-radius:var(--nubi-box-radius);overflow:hidden;background:var(--deck-surface);--xy-background-color:var(--deck-surface);--xy-edge-stroke:var(--deck-line);--xy-edge-stroke-width:1;--xy-handle-background-color:var(--deck-sub);--xy-handle-border-color:var(--deck-surface);--xy-node-background-color:var(--deck-surface);--xy-node-color:var(--deck-ink)}
+.nubi-workflow-node{display:flex;align-items:center;gap:var(--cx-space-2);box-sizing:border-box;text-align:start;padding:var(--cx-space-3);width:100%;height:calc(var(--cx-space-8)*3);color:var(--deck-ink);background:var(--deck-surface);border:calc(var(--cx-space-1)/4) solid var(--deck-line);border-radius:var(--nubi-box-radius);font:inherit;cursor:pointer;transition:color 180ms ease-out,border-color 180ms ease-out;--workflow-state:var(--deck-sub)}
+.nubi-workflow-node[data-current]{border:calc(var(--cx-space-1)/2) solid var(--deck-blue)}
+.nubi-workflow-node[data-compact]{height:calc(var(--cx-space-8)*2.5)}
+.nubi-workflow-kind-tile{display:grid;place-items:center;flex:none;width:calc(var(--cx-space-1)*7);height:calc(var(--cx-space-1)*7);border-radius:var(--cx-space-2);color:var(--deck-sub);background:color-mix(in srgb,var(--deck-sub) 8%,var(--deck-surface))}
+.nubi-workflow-node[data-step-kind=agent] .nubi-workflow-kind-tile{color:var(--deck-blue);background:var(--deck-blue-soft)}
+.nubi-workflow-node[data-step-kind=human] .nubi-workflow-kind-tile{color:var(--nubi-text-warning);background:var(--nubi-surface-warning)}
+.nubi-workflow-node[data-step-kind=branch] .nubi-workflow-kind-tile{color:var(--nubi-text-success);background:var(--nubi-surface-success)}
+.nubi-workflow-node-copy{display:grid;flex:1;min-width:0;gap:var(--cx-space-1)}
+.nubi-workflow-node-copy>strong,.nubi-workflow-node-copy>small{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.nubi-workflow-node-copy>strong{font-size:var(--deck-type-body);font-weight:var(--nubi-weight-emphasis)}
+.nubi-workflow-node-copy>small{font-size:var(--deck-type-caption);color:var(--deck-sub)}
+.nubi-workflow-node-state{display:flex;align-items:center;flex:none;gap:var(--cx-space-1);font-size:var(--deck-type-caption);color:var(--workflow-state);transition:color 180ms ease-out}
+.nubi-workflow-state-dot{display:inline-block;flex:none;width:var(--cx-space-2);height:var(--cx-space-2);border-radius:50%;background:currentColor;transition:background-color 180ms ease-out}
+.nubi-workflow-node[data-status=running],.nubi-workflow-stage[data-status=running]{--workflow-state:var(--deck-blue)}
+.nubi-workflow-node[data-status=complete],.nubi-workflow-stage[data-status=complete]{--workflow-state:var(--nubi-text-success)}
+:is(.nubi-workflow-node,.nubi-workflow-stage):is([data-status=waiting],[data-status=unconfirmed]){--workflow-state:var(--nubi-text-warning)}
+:is(.nubi-workflow-node,.nubi-workflow-stage):is([data-status=failed],[data-status=partial],[data-status=cancelled]){--workflow-state:var(--nubi-text-danger)}
+.nubi-workflow-lane{width:100%;height:100%;box-sizing:border-box;padding-inline:var(--cx-space-4);border-inline-end:calc(var(--cx-space-1)/4) solid var(--deck-line);color:var(--deck-sub)}
+.nubi-workflow-lane>strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-block-end:var(--cx-space-3);border-block-end:calc(var(--cx-space-1)/4) solid var(--deck-line);font-size:var(--deck-type-body);font-weight:var(--nubi-weight-emphasis)}
+.nubi-workflow-properties{padding-block:var(--cx-space-4);border-block-start:calc(var(--cx-space-1)/4) solid var(--deck-line);margin-block:var(--cx-space-3)}
+.nubi-workflow-evidence{color:var(--deck-sub)}
+.nubi-workflow-import-notes,.nubi-workflow-issue details{margin-block:var(--cx-space-3);color:var(--deck-sub)}
+.nubi-workflow-map-hint{margin-block:var(--cx-space-2);color:var(--deck-sub);font-size:var(--deck-type-caption);line-height:var(--deck-line-body)}
 .nubi-workflow-input{display:grid;gap:var(--cx-space-2);margin-block:var(--cx-space-3)}
-
-.nubi-workflow-node small{display:flex;align-items:center;gap:var(--cx-space-2)}
-.nubi-workflow-node[data-step-kind=branch]{background:var(--deck-green-soft)}
-.nubi-workflow-node[data-step-kind=subflow]{background:var(--deck-tint)}
-.nubi-workflow-lane{width:100%;height:100%;box-sizing:border-box;padding:var(--cx-space-3) var(--cx-space-6);border:calc(var(--cx-space-1)/4) solid var(--deck-line);border-radius:var(--deck-control-radius);background:var(--deck-tint);color:var(--nubi-text-secondary)}
-.nubi-workflow-lane>strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--deck-type-body);font-weight:var(--nubi-weight-emphasis);line-height:var(--deck-line-body)}
-.nubi-workflow-node{width:100%}
-.nubi-workflow-node>strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.nubi-workflow-import-notes{margin-block:var(--cx-space-3);color:var(--nubi-text-secondary)}
-
-.nubi-workflow-map-hint{margin-block:var(--cx-space-2);color:var(--nubi-text-secondary);font-size:var(--deck-type-caption);line-height:var(--deck-line-body)}
-
-.nubi-workflow-import{margin-block:var(--cx-space-4);padding:var(--cx-space-4);background:var(--deck-surface);border:calc(var(--cx-space-1)/4) solid var(--deck-line);border-radius:var(--deck-control-radius)}
-.nubi-workflow-import>summary{cursor:pointer;font-weight:var(--nubi-weight-emphasis)}
-.nubi-workflow-import form{max-width:var(--nubi-reading-width)}
+.nubi-workflow-import{min-width:0}
 .nubi-workflow-import li{margin-block:var(--cx-space-3)}
-.nubi-workflow-import li p{margin-block:var(--cx-space-1);color:var(--nubi-text-secondary)}
+.nubi-workflow-import li p{margin-block:var(--cx-space-1);color:var(--deck-sub)}
+.nubi-workflow-import .nubi-workflow-canvas{height:calc(var(--cx-space-8)*12)}
+/* Execution updates status paint, retaining worker positions and measured nodes. */
+.nubi-workflow-run{container-type:inline-size;--workflow-state-duration:180ms}
+.nubi-workflow-status{display:grid;gap:var(--cx-space-3);margin-block-end:var(--cx-space-5);position:sticky;top:0;z-index:2;background:var(--deck-surface);padding-block:var(--cx-space-3)}
+.nubi-workflow-status-heading{display:flex;align-items:center;gap:var(--cx-space-3);flex-wrap:wrap}
+.nubi-workflow-status-heading h2{margin:0}
+.nubi-workflow-timing{display:flex;flex-wrap:wrap;gap:var(--cx-space-3);color:var(--deck-sub);font-size:var(--deck-type-caption)}
+.nubi-workflow-wait{display:flex;align-items:center;justify-content:space-between;gap:var(--cx-space-3);padding-block:var(--cx-space-2);border-block-end:calc(var(--cx-space-1)/4) solid var(--deck-line)}
+.nubi-workflow-wait p{margin:0;display:flex;align-items:center;gap:var(--cx-space-2)}
+.nubi-workflow-wait p>svg{flex:none;color:var(--deck-sub)}
+.nubi-workflow-wait button{flex:none}
+.nubi-workflow-execution{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,calc(var(--cx-space-8)*10));align-items:start;gap:var(--cx-space-5)}
+.nubi-workflow-primary{min-width:0;max-width:var(--nubi-chat-reading-width)}
+.nubi-workflow-minimap{min-width:0;position:sticky;top:calc(var(--cx-space-8)*6)}
+.nubi-workflow-map-title{display:flex;align-items:center;justify-content:space-between;gap:var(--cx-space-2);margin-block-end:var(--cx-space-2)}
+.nubi-workflow-minimap-body[hidden]{display:none}
+.nubi-workflow-minimap .nubi-workflow-canvas{height:calc(var(--cx-space-8)*16)}
+.nubi-workflow-contents{display:flex;flex-wrap:wrap;gap:var(--cx-space-2);margin-block-end:var(--cx-space-4);max-height:calc(var(--cx-space-8)*6);overflow:auto;align-content:start}
+.nubi-workflow-contents details{flex:1 1 calc(var(--cx-space-8)*6)}
+.nubi-workflow-contents summary{cursor:pointer;font-size:var(--deck-type-caption);color:var(--deck-sub)}
+.nubi-workflow-contents details[open]{flex-basis:100%;display:flex;flex-wrap:wrap}
+.nubi-workflow-contents .cx-button{border:0;box-shadow:none;background:transparent}
+.nubi-workflow-contents .cx-button[aria-current=step]{background:var(--deck-blue-soft);color:var(--deck-blue)}
+.nubi-workflow-stage{min-width:0;padding-block:var(--cx-space-3) var(--cx-space-5);scroll-margin-block-start:calc(var(--cx-space-8)*6);transition:background-color var(--workflow-state-duration) ease-out,color var(--workflow-state-duration) ease-out;--workflow-state:var(--deck-sub)}
+.nubi-workflow-stage-heading{display:flex;align-items:center;gap:var(--cx-space-2);padding-block:var(--cx-space-3);border-block-end:calc(var(--cx-space-1)/4) solid var(--deck-line)}
+.nubi-workflow-stage-heading>svg{flex:none;color:var(--deck-sub)}
+.nubi-workflow-stage-heading>strong{flex:1;min-width:0;font-weight:var(--nubi-weight-emphasis)}
+.nubi-workflow-stage-state{display:flex;align-items:center;gap:var(--cx-space-1);color:var(--workflow-state);font-size:var(--deck-type-caption);transition:color 180ms ease-out;margin-inline-start:auto;flex:none}
+.nubi-workflow-action-summary{margin-block:var(--cx-space-2);color:var(--deck-sub)}
+.nubi-workflow-receipts{margin-block:var(--cx-space-2);font-size:var(--deck-type-caption);color:var(--deck-sub)}
+.nubi-workflow-receipts code{display:block;overflow-wrap:anywhere}
+.nubi-workflow-child{margin-block:var(--cx-space-2)}
+.nubi-workflow-child>button{max-width:100%;text-align:start;white-space:normal}
+.nubi-workflow-child-messages{display:grid;gap:var(--cx-space-3);margin-block-start:var(--cx-space-3)}
+.nubi-workflow-child-messages .message{min-width:0}
+.nubi-workflow-decision{margin-inline-start:auto;width:92%;max-width:var(--nubi-chat-reading-width);margin-block:var(--cx-space-3)}
+.nubi-workflow-report{padding-block:var(--cx-space-4);border-block-start:calc(var(--cx-space-1)/4) solid var(--deck-line)}
+.nubi-workflow-status .nubi-pill[data-status=running]{color:var(--deck-blue);background:var(--deck-blue-soft)}
+.nubi-workflow-status .nubi-pill[data-status=complete]{color:var(--nubi-text-success);background:var(--nubi-surface-success)}
+.nubi-workflow-status .nubi-pill:is([data-status=waiting],[data-status=unconfirmed]){color:var(--nubi-text-warning);background:var(--nubi-surface-warning)}
+.nubi-workflow-status .nubi-pill:is([data-status=failed],[data-status=partial],[data-status=cancelled]){color:var(--nubi-text-danger);background:var(--nubi-surface-danger)}
+.nubi-workflow-stage[data-status=running] .nubi-workflow-stage-state{animation:nubi-workflow-pulse 2.8s ease-in-out infinite}
+@keyframes nubi-workflow-pulse{50%{opacity:.65}}
+@container(max-width:45em){.nubi-workflow-execution{grid-template-columns:minmax(0,1fr)}.nubi-workflow-minimap{position:static;grid-row:1}}
+@media(prefers-reduced-motion:reduce){.nubi-workflow-stage,.nubi-workflow-node,.nubi-workflow-node-state,.nubi-workflow-state-dot,.nubi-workflow-stage-state{animation:none;transition:none}.nubi-workflow-stage[data-status=running] .nubi-workflow-stage-state{animation:none}}
+
+.nubi-workflow-row:focus-visible{outline:calc(var(--cx-space-1)/2) solid var(--deck-blue);outline-offset:calc(var(--cx-space-1)/2);border-radius:var(--nubi-box-radius)}
+@media(max-width:45em){.nubi-workflow-columns>nav{flex-basis:100%}}
+
+.nubi-workbench[data-host-layout=integrated]:has(.nubi-sidebar[data-open=false] .nubi-sidebar-brand) .nubi-workflows{padding-block-start:calc(var(--cx-space-8)*2 + var(--cx-space-6))}
+
+.nubi-workflow-header .nubi-wiki-badge{width:calc(var(--cx-space-1)*7);height:calc(var(--cx-space-1)*7)}
+.nubi-workflow-header{gap:var(--cx-space-3)}
+.nubi-workflow-detail .nubi-workflow-run{padding:0}
+@media(max-width:45em){.nubi-workflows,.nubi-workflow-run{padding-inline:var(--cx-space-5)}}
+
+.nubi-workflows[data-shell-title]>.nubi-workflow-header>h1{display:none}
+@media(max-width:45em){.nubi-workflows[data-shell-title]>.nubi-workflow-header>h1{display:block}:root:has(.nubi-workflows[data-shell-title]) .nubi-window-toolbar .nubi-toolbar-context{display:none}:root:has(.nubi-workflows[data-shell-title]) .nubi-window-toolbar .nubi-toolbar-actions{margin-inline-start:auto}}
+
+.desktop-shell .nubi-workbench .nubi-workflow-stage .nubi-workflow-stage-heading>strong{font-weight:var(--nubi-weight-emphasis)}
