@@ -110,6 +110,7 @@ on_failure: {retry: 1, then: human}
 | office | 열린 문서와 범위 읽기 | 셀/문단/슬라이드 변경(COM), 사본 저장 | cell_equals, text_in_doc, file_hash | Windows 전용. NASCA 실측 뒤 기본 켬 |
 | terminal | 출력 읽기, 프로세스 상태 | 명령(승인 흐름), 입력 | exit_code, output_matches | 설정 셸 우선 |
 | documents | 문서 읽기와 비교 | 새 파일, 편집 제안, 내보내기 | file_exists, file_hash, numbers_match | 제안은 승인 뒤 반영 |
+| forms | 양식 지도 추출, 채움표 코드 검사 | 양식 복사본에 부분 쓰기(`office.apply_form`, COM), OOXML 생성 fallback | form_checks(구조, 형식, 근거, 숫자) | §3.9. 누비 Office S1 파이프라인 재사용 |
 | wiki | 페이지와 근거 조회 | 갱신안 제출 | page_hash | 환류 경로 |
 | mail | 검색과 읽기 | 보내기(외부 반영, 항상 승인) | sent_receipt | 본문은 데이터 |
 | mcp | 도구별 | 도구별 | 도구별 | 분류 규칙(2차 A5) 적용 |
@@ -134,7 +135,7 @@ on_failure: {retry: 1, then: human}
 | 시연으로 짜기 | 내장 브라우저에서 사람이 한 번 해 보이면 "화면 배우기"가 단계와 선택자를 뽑아 web 도구 단계로 만든다 |
 | 가져오기 | 성공한 대화 기록("이 대화를 워크플로우로 저장"), 위키 절차 문서, 기존 e2e task JSON에서 초안 생성 |
 
-동기화 규칙: **진실은 YAML 하나**이고 캔버스와 대화는 그 파일의 편집기다. 한쪽 변경은 다른 쪽에 즉시 반영하고 파일 해시로 충돌을 막는다. 노드에서 대화를 열 수 있고("이 단계 완료 조건을 정해 줘"), 대화에서 "3번 뒤에 승인 넣어 줘"라고 하면 노드가 생긴다. **에이전트 제안 노드는 점선**이며 사람이 확정해야 실선이 된다. 사람이 그린 순서는 에이전트가 바꾸지 못한다. 노드에는 위키 근거 칩(해시가 바뀌면 노란 표시), 완료 조건, 권한, 마지막 실행 상태, dry-run 결과가 보인다. 저장마다 버전이 남고 실행 기록은 버전을 가리키며 되돌릴 수 있다.
+동기화 규칙: **진실은 YAML 하나**이고 캔버스와 대화는 그 파일의 편집기다. 한쪽 변경은 다른 쪽에 즉시 반영하고 파일 해시로 충돌을 막는다. 노드에서 대화를 열 수 있고("이 단계 완료 조건을 정해 줘"), 대화에서 "3번 뒤에 승인 넣어 줘"라고 하면 노드가 생긴다. **에이전트 제안 노드는 점선**이며 사람이 확정해야 실선이 된다. 사람이 그린 순서는 에이전트가 바꾸지 못한다. 화면 배치(저작 대화, 캔버스, 속성 패널), 노드 위 오류 배지, 숙성 단계 표시기, YAML 원문 탭은 §3.12. 노드에는 위키 근거 칩(해시가 바뀌면 노란 표시), 완료 조건, 권한, 마지막 실행 상태, dry-run 결과가 보인다. 저장마다 버전이 남고 실행 기록은 버전을 가리키며 되돌릴 수 있다.
 
 ### 3.6 위키 환류
 
@@ -155,6 +156,120 @@ on_failure: {retry: 1, then: human}
 - 알림: 대기 중인 사람 단계, 실패, 완료. 알림 센터에서 바로 열기.
 - 대시보드: 워크플로우별 실행 수, 성공률, 평균 시간, 사람 개입 수, 사용량(2차 C2 재사용).
 - 공유: AI Workspace에 게시, 다른 누비에서 가져오기. 버전과 되돌리기.
+- 화면: 실행 타임라인(챕터, 하위 대화 카드, 승인 카드, 보고서 카드)과 미니 지도, 대기 사유 한 문장과 1차 버튼은 §3.12.
+
+### 3.9 양식과 초안 (2026-10-19 추가, 사용자 지적)
+
+초안은 빈 종이가 아니라 **회사 양식(Word 정의서, Excel 검수표, PPT 보고 틀)** 위에 쓴다. 양식은 기존 Office 파일에서 추출한다. 이미 있는 자산을 그대로 쓴다: 누비 Office S1 양식 작성 파이프라인(`packages/nubi-office/worker/form-map.mjs`, `form-fill.mjs`, `form-apply.mjs`, `form-checks.mjs`, `form-review.mjs`, `form-ledger.mjs`; Desktop은 이미 같은 worker 모듈을 import한다)과 Desktop의 native Office 초안(`native-office-draft.mjs`, COM).
+
+| 동작 | 무엇 | 재사용 | 언제 |
+|---|---|---|---|
+| `forms.extract` | 회사 양식 파일(복사본)에서 **양식 지도**를 만든다: 입력 칸(라벨 옆 칸, 표의 항목, 계산 칸, 고정 문장), 위치(문단 id, 표 셀, 시트 범위, 슬라이드 자리표시자), 형식과 제약, 예시 값. 위치에서 유도한 **힌트**일 뿐 쓰기 권한이 아니다 | `form-map.mjs` | 저작 때 한 번. 사람이 확인 카드로 칸 대응을 확정 |
+| 저장 | 워크플로우 패키지 `forms/<이름>/`에 `form-map.json` + 원본 양식 파일 해시 + 확인 기록. 위키에도 "양식" 페이지로 연결해 양식이 바뀌면 "확인 필요" 표시 | 패키지 형식(§3.1) | 저작 |
+| `forms.fill` | 에이전트 단계가 양식 지도에서 유도된 **출력 스키마**(칸마다 속성)로 **채움표**를 쓴다. 칸마다 값과 근거(위키 페이지, 메일 id, 티켓 필드)를 함께 낸다. 코드가 형식과 필수 칸을 먼저 검사한다 | `form-fill.mjs`의 채움표와 코드 검사 | 실행, 에이전트 단계 |
+| 검토 | 채움표 전체를 **한 장의 카드**로 사람이 승인한다(칸별 수정 가능). 승인 없이 쓰지 않는다 | 기존 승인 카드, `form-review.mjs`(인용 우선 체크리스트) | 실행, 사람 단계 |
+| `office.apply_form` | 승인된 채움표를 양식 복사본에 **부분 단위로** 쓴다. 같은 표를 다시 적용하면 차이가 없어 아무것도 쓰지 않는다(멱등). 문단 장부로 위치를 따라가 양식 자체 문장은 건드리지 않는다 | `form-apply.mjs`, `form-ledger.mjs`, Windows COM(`native-office-draft.mjs`) | 실행, 도구 단계(승인 뒤) |
+| `forms.verify` | 결과를 양식 지도와 대조: 구조(칸 수와 위치), 형식(날짜, 숫자, 목록 번호), 근거(값이 근거 문장에 있는가), 숫자 대조(`document-consistency.mjs`). 실패한 칸만 다시 쓰기(최대 2회) 뒤 사람에게 | `form-checks.mjs`, `form-review.mjs` | 실행, verify |
+
+렌더링 경로의 우선순위: **① Windows에서 실제 Office(COM)**가 양식 복사본에 쓴다(서식과 NASCA 호환이 가장 좋다). ② Office가 없는 환경(개발 Mac, CI)에서는 OOXML 라이브러리로 **생성만** 지원한다: Word는 `dolanmiu/docx`(MIT, 6.0k), Excel은 이미 의존성인 Univer(Apache-2.0, 22.7k), PPT는 자리표시자 채움에 한해 `PptxGenJS`(MIT, 6.3k)로 새 파일 생성. `docxtemplater`(핵심 MIT, 3.6k)는 양식에 `{자리표시자}`를 미리 넣어야 해서 기존 회사 양식에는 맞지 않아 보류. `SheetJS`(Apache-2.0 공개판은 2024-04 이후 갱신 없음)와 `exceljs`(2025-01 이후 정지)는 보류. ②는 dry-run과 미리보기용이며 최종 산출은 ①로 만든다. Markdown 양식(Confluence 정의서 등)은 같은 양식 지도 구조에 `markdown` 종류를 둔다.
+
+워크플로우 정의에서의 모양:
+
+```yaml
+forms:
+  definition: {source: 양식/변경요청정의서.docx, map: forms/definition/form-map.json}
+steps:
+  - id: draft
+    kind: agent
+    goal: 티켓과 위키 근거로 정의서 채움표를 쓴다
+    form: definition                       # 출력 스키마는 양식 지도에서 유도
+    tools: [wiki_query, ask_openwiki, read_personal_mail]
+  - id: review
+    kind: human
+    form_review: draft                     # 채움표 카드(칸별 수정, 근거 보기)
+  - id: apply
+    kind: tool
+    adapter: office.apply_form             # Windows COM, 승인 뒤
+    args: {form: definition, sheet: "{{ steps.review.output.sheet }}", output: "docs/정의서/{{ inputs.ticket }}.docx"}
+    verify: {kind: form_checks, form: definition}
+```
+
+저작 흐름에 "양식 등록" 입구를 더한다: 사용자가 회사 양식 파일을 놓으면 `forms.extract`가 지도를 만들고 확인 카드로 칸 대응을 확정한 뒤 패키지에 저장한다(S1의 "칸 항목 → 부품 → 측정 묶음 → 확인 카드" 그대로).
+
+### 3.10 웹에서의 저작과 사용 (2026-10-19 추가, 사용자 지적)
+
+워크플로우는 Desktop 안에서만 만들고 고치는 것이 아니라 **웹에서도 보고, 고치고, 쓸 수 있어야 한다.** 세 표면을 나눈다.
+
+| 표면 | 할 수 있는 것 | 못 하는 것(이유) |
+|---|---|---|
+| **AI Workspace 웹**(사내 GitHub Pages, Desktop 안에도 내장) | 워크플로우 카탈로그(팀 공유), 캔버스로 보기와 **편집**, YAML 편집, 저장 전 검증, 합성 어댑터 dry-run, 버전과 변경 이력, 실행 보고서 열람(게시된 것만), "내 누비로 가져오기", 실행 요청 보내기(A2A) | 실제 실행(로컬 어댑터와 승인 카드가 Desktop에 있다), 비밀 저장 |
+| **브라우저 누비**(확장) | 웹 단계만으로 된 워크플로우의 실행(기존 공용 런타임), 현재 화면 시연으로 web 단계 만들기 | Office, 터미널, 파일 단계 |
+| **Desktop 누비** | 모든 것: 실행, 승인, 양식 적용, 보고서, 게시 | |
+
+공유 저장소: 스킬 장터와 같은 방식으로 사내 GitHub 저장소(`nubi-workflows/<팀>/<slug>/`)에 패키지를 두고 장터 목록에 올린다. 웹에서의 수정은 **PR(변경 요청)**로 들어가 승인자가 합치면 새 버전이 된다(거버넌스 §3.7의 작성자/승인자). Desktop은 "가져오기"로 패키지를 `.nubi/workflows`에 복사하고, 가져올 때 권한 프로필과 외부 반영 설정을 사용자에게 보여 확인받는다. 비밀은 패키지에 절대 들어가지 않고 각 PC의 금고 참조만 쓴다.
+
+공용 코드: `runtime/workflow-schema.mjs`, `workflow-template.mjs`, `ui/WorkflowCanvas.jsx`는 **브라우저에서도 돌아야 한다**(Node 전용 import 금지: ajv, yaml, secret-like만). 패키지 로더와 러너는 Desktop 전용. 같은 검증 코드가 웹 편집기와 Desktop에서 같은 오류 코드를 내므로 "웹에서 통과한 것이 Desktop에서 거절"되는 일이 없다.
+
+실행 요청: 웹에서 "실행"을 누르면 A2A 요청이 사용자의 Desktop으로 가고, Desktop이 수락한 뒤 실행한다(A2A의 수락 뒤 실행 규칙 그대로). 결과 보고서는 사용자가 게시를 선택할 때만 웹에 올라간다.
+
+단계 배치: 1단계는 웹 호환 제약만 지킨다(이 절의 "공용 코드"). 3단계(저작)에서 AI Workspace 카탈로그와 캔버스 편집, 4단계(운영)에서 PR 승인과 실행 요청을 만든다.
+
+### 3.11 기존 Process Activity Maker 활용 (2026-10-19 추가)
+
+사내에 이미 **Process Activity Maker**(`~/Downloads/next_workflow_sol`, Vite + React + `@xyflow/react` + `yaml` + sql.js, GitHub Pages 배포, 전신 `agent-workflow-maker`)가 있다. 그대로 쓰지 않고 **세 가지를 활용**한다.
+
+| 활용 대상 | 무엇 | 누비에서의 자리 |
+|---|---|---|
+| **업무 모델(데이터)** | Process → Activity → Task lane 계층, AS-IS/TO-BE 짝, `workloadCatalog.yaml`의 태스크별 작업량 비율, 노드 네 종류(action, branch, event, memo), `ModuleType`(agent, skill, api_mcp, human_approval, file_search, guardrail, transform, set_state, child_workflow, external_workflow), 입출력 스키마와 필드 매핑, 역할, 양식 바인딩(start/input/approval/review/report), 작업 시간 추정(workload/actual), 멱등 키와 보상 | 누비 워크플로우는 **TO-BE Activity 하나의 자동화**다. Blueprint(Activity 단위 Workflow YAML)를 누비 `workflow.yaml`로 바꾸는 변환기를 둔다(아래 대응표). 반대로 실행 결과의 실제 소요 시간(`actual_minutes`)을 Blueprint의 `work_time`으로 돌려보내 TO-BE 검증 자료로 쓴다 |
+| **편집기 UX** | 태스크 레인 캔버스, 노드 카드, AS-IS/TO-BE 비교 보기, YAML 동시 편집 | 같은 React + xyflow라 Desktop 캔버스(Task 6)와 AI Workspace 편집기(§3.10)에서 **컴포넌트와 레이아웃 규칙을 가져온다**(Tauri, sql.js 저장, 자체 검증은 가져오지 않음). 가져올 때 누비 디자인 토큰과 Apple HIG 모션 규칙으로 바꾼다 |
+| **비교와 지표** | AS-IS/TO-BE 비교 수치, 태스크 수준 TO-BE 개수, 작업량 비율 | 운영 대시보드(§3.8)에 "기대 작업량 대비 실제 소요"를 추가해 자동화 효과를 수치로 보인다 |
+
+대응표(Blueprint → 누비 단계):
+
+| Blueprint | 누비 |
+|---|---|
+| `action` + module `agent` | `agent` 단계(goal, tools, done_when, outputs.schema ← output_schema) |
+| `action` + module `skill` | `agent` 단계 + `use_skill`(스킬 경로 ref) |
+| `action` + module `api_mcp` | `tool` 단계(어댑터 `mcp.<server>.<tool>`), `effect:write`면 승인 |
+| `action` + module `human_approval`, form_binding approval/review | `human` 단계(`form_review`) |
+| `action` + module `file_search` | `agent` 단계(`wiki_query`, `source_search`, 문서 읽기) |
+| `guardrail` | 단계 `verify` 또는 워크플로우 `hooks` |
+| `transform`, `set_state` | 템플릿 출력 매핑(`outputs`, `{{ }}`) |
+| `child_workflow` / `external_workflow` | `subflow` / A2A 요청 |
+| `branch`(if_else, switch, loop, for_each, parallel, join) | `branch` / `loop` / `parallel`. 1단계는 if_else/switch만 변환하고 반복/병렬/join은 §8 답 6대로 미지원 노드를 모두 나열해 거절한다. 2단계 실행 설계 뒤 `loop`/`parallel`로 대응 |
+| `event`(start, schedule, timer, webhook, signal, end) | 트리거(manual, routine, mail, a2a)와 종료 |
+| `form_binding`(start, input, approval, review, report) | 입력 양식과 §3.9 양식 지도 |
+| `work_time`, `workloadCatalog.ratio_percent` | 실행 지표(기대 대비 실제) |
+
+변환기는 손실을 숨기지 않는다: 대응이 없는 노드는 `human` 단계로 두고 경고를 남긴다(e2e task JSON 변환기와 같은 규칙). 역변환(누비 → Blueprint)은 Activity 구조만 돌려준다.
+
+### 3.12 화면 규칙: 설계 모드와 실행 모드 (2026-10-19 사용자 승인)
+
+원칙: **지도는 하나, 모드는 둘.** 설계와 실행은 같은 캔버스와 같은 노드 자리를 쓴다. 설계 모드는 편집하고, 실행 모드는 그 위에 상태만 덧칠한다. 사용자가 두 화면의 구조를 따로 배우지 않는다. 패턴 참고: n8n(편집기와 실행 결과가 한 캔버스), LangGraph Studio(실행 되감기), Temporal UI(이벤트 타임라인), Kestra(토폴로지 위 상태), Claude Code(챕터 목차, 승인 카드, 산출물 카드). 채택 라이브러리는 그대로 xyflow 하나다(`docs/WORKFLOW-AGENT-OSS-2026-10-18.md`). 새 의존성은 없다.
+
+**설계 모드: 대화가 1차, 캔버스는 확인과 미세 조정**
+1. 배치: 저작 대화(왼쪽), 캔버스(가운데), 속성 패널(오른쪽). 사용자가 목표와 완료 조건을 말하면 저작 에이전트가 단계 초안을 YAML로 쓰고 캔버스가 즉시 갱신된다(§3.5 동기화). 드래그 편집은 그 뒤 단계다.
+2. 캔버스는 레인(역할 또는 시스템) 세로 흐름이다. 노드 카드에는 종류 아이콘, 이름, 완료 조건 배지("결과 제출 확인", "파일 존재 확인", "파일 해시 확인"), 위키 근거 개수만 둔다. 나머지는 속성 패널이 맡는다.
+3. 검증 오류(`validateWorkflow`의 `errors[].path`)는 해당 노드 위 빨간 배지로 보인다. 노드를 누르면 속성 패널 맨 위에 오류 문장과 고칠 칸이 나온다. 오류 글 목록만 따로 두지 않는다.
+4. 숙성 단계 표시기(상단): 초안 → 검증됨 → 합성 통과 → 감독 통과 → 자동 가능. 근거는 차례로 저장됨, `validateWorkflow` ok, 마지막 dry-run 성공 레코드(같은 해시), `workflow-qualified:<slug>:<hash>`, 루틴 연결과 qualified 유지다. 정의 해시가 바뀌면 "검증됨"까지 되돌아간다.
+5. YAML 원문 탭: 읽기와 편집, 저장 때 검증과 해시 충돌 거절. 단일 진실은 YAML이다(§3.5).
+6. 합성 실행(dry-run)은 같은 지도 위에서 재생한다. 타임라인 스크럽으로 그 시점의 노드 상태를 본다. 재생 자료는 dry-run 실행 레코드의 단계 시각이다.
+
+**실행 모드: 대화 타임라인이 본문, 지도는 곁에서 위치 표시**
+1. 실행의 본문은 우산 대화의 타임라인이다. 순서대로 쌓고 지우거나 옮기지 않는다(대화 화면 원칙). 구성: 단계 시작은 챕터(목차에 들어감), 에이전트 단계는 접힌 하위 대화 카드(요약 한 줄, 펼치면 하위 대화 전체), 도구 단계는 `action_summary` 한 줄과 영수증 id, 승인은 기존 승인 카드(오른쪽), 사람 단계는 질문 카드, 산출물은 산출물 카드, 끝은 보고서 카드와 "위키에 반영할까요" 제안(§3.6).
+2. 미니 지도는 오른쪽에 고정하고 좁은 창(440px 검사 기준)에서는 접힌다. 상태 색은 넷뿐이다: 현재(강조), 완료(체크), 대기(주황), 실패(빨강). 노드를 누르면 타임라인의 해당 챕터로 이동한다(기존 챕터 목차 점프 재사용).
+3. 대기 상태는 "왜 기다리는지" 한 문장과 1차 행동 버튼 하나다. 종류: 승인 필요(외부 반영 또는 되돌리기 어려운 작업), 결과 확인 대기(unconfirmed), 사람 답 필요(human 단계), 감독 확인(supervised 실행의 단계 전 확인).
+4. 상단 상태 줄: 워크플로우 이름, 상태 알약, 경과 시간과 원본 예상 시간(`metrics.expectedMinutes`가 있을 때), 감독 모드 표시("이번 실행은 단계마다 확인").
+5. 재개와 캐시: 건너뛴 단계는 사유(캐시 적중, 조건 거짓, 멱등 키 일치)를 한 줄로 적는다.
+6. 기존 `WorkflowRunView`의 단계 목록과 보고서 모달은 이 타임라인에 흡수한다. 목록 화면(`WorkflowPanel`)은 시작과 상태 요약만 맡는다.
+
+**모션과 성능(공통)**
+- 상태 변화는 색 크로스페이드 180ms, 현재 단계는 약한 펄스(모션 감소 설정이면 정지). 실행 중에는 레이아웃을 다시 계산하지 않는다. 자리는 설계 때 worker가 정한 값을 쓰고 상태만 바꾼다.
+- 50노드 이상 가상화와 worker 레이아웃은 기존 것을 쓴다. 메인 스레드 50ms 규칙은 Global Constraints와 같다.
+- 웹(AI Workspace)도 같은 화면 규칙을 따른다. 실행은 Desktop이 전부, 웹은 web 어댑터만(§3.10).
+
+구현 순서: 실행 모드 1~6은 1단계 Task 15(Task 8 시범 실행 전, 그 검사가 이 화면을 대상으로 하도록). 설계 모드 1~6은 2단계 계획 `docs/superpowers/plans/2026-10-19-nubi-workflow-agent-phase2-authoring-ui.md`.
+
 
 ## 4. 단계
 
@@ -201,6 +316,34 @@ on_failure: {retry: 1, then: human}
    - `expandStepTools(declared) -> {tools, added:[{tool, because}]}`. 검증(`validateWorkflow`)은 알 수 없는 도구 이름을 `workflow_tool_unknown`으로 거절하고, 확장 결과를 `step.resolvedTools`로 돌려준다. 캔버스와 보고서는 "작성자가 고른 도구 + 호스트가 보탠 선행 도구"를 구분해 보여 준다. 모델에 노출하는 목록과 실행 허용 목록은 둘 다 `resolvedTools`다.
    - 관찰과 계획 자체는 자동으로 만들지 않는다. 단계 대화의 모델이 `inspect_path`와 `record_change_plan`을 실제로 호출해야 하며, 기존 `source_read_required`/`change_plan_required` 거절은 그대로다. 단계 `goal` 뒤에 호스트가 한 문장을 붙인다: "새 파일은 inspect_path와 record_change_plan 뒤에 제안하고, 끝나면 submit_step_output으로 결과를 제출하라."
    - Task 4 예시와 합성 fixture는 `tools:[propose_new_file]`처럼 짧게 두고 확장 결과를 시험으로 확인한다(`resolvedTools`에 `inspect_path`, `record_change_plan`, `update_plan`, `submit_step_output` 포함). Task 4 재개 가능.
+
+5. **파일 없는 판단과 요약 단계의 완료 조건(2026-10-19, Codex 설계 확인 요청).** Task 7은 일반 `decide_*`를 구조화 출력을 내는 `agent`로 바꾸고, Task 8의 마지막 `report`도 요약 JSON Schema를 요구한다. 그러나 승인된 Task 4~5 구현의 `agent.done_when`은 현재 `file_exists`와 `file_hash`만 실행할 수 있다. 합성 판단 단계에서 완료 조건을 생략하면 `workflow_schema`, `truthy`를 넣으면 시작 전 `workflow_verify_unsupported`가 발생한다(실행과 대화 생성 모두 0개). 근거: `.superpowers/sdd/2026-10-18-nubi-workflow-agent-phase1/task-7-output-preflight.mjs`와 `.log`, `runtime/workflow-runner.mjs`의 `preflight`.
+
+   파일이 없는 판단에 임의의 기존 파일 경로를 붙이면 그 파일의 존재를 판단 완료의 증거로 잘못 쓰게 된다. 임의 산출 파일을 만들도록 원래 업무를 바꾸지도 않는다.
+
+   **권장안:** 순수한 구조화 결과 단계용 `done_when.kind: output_schema`를 명시적으로 승인한다. 읽기 전용 도구만 허용하는 단계에 한정하고, 기존 `submit_step_output`의 단일 제출과 선언 Schema 검사, 오류 재요청 한도, 현재 run/step 바인딩, 미확정 작업과 질문/승인 대기 차단을 그대로 적용한다. 이 조건은 요청한 JSON 결과를 제출했다는 증거이며 외부 변경이나 사실의 참됨을 증명하는 조건은 아니다. 파일/웹/프로세스 결과는 기존 독립 관찰 조건을 계속 쓴다. Task 7의 일반 판단과 Task 8의 요약에 이 조건을 사용하도록 설계와 계획을 보완할지 확인이 필요하다.
+
+   **대안:** 파일 산출 경로가 없는 판단/요약은 경고와 함께 `human`으로 변환한다. 기존 러너를 유지할 수 있으나 계획의 `decide_* → agent`와 시범의 요약 에이전트 범위가 줄어든다.
+
+   **상태:** 답변 전 Task 7~10 제품 구현을 시작하지 않는다. Task 6은 이미 시작한 전체 게이트를 끝내고 결과를 보고한다. Task 7은 합성 계약 대조만 수행했으며 변환기나 시범 제품 코드는 만들지 않았다.
+   **답(2026-10-19, Claude)**: 권장안 승인. `done_when.kind: output_schema`를 추가하되 조건 셋을 붙인다.
+   - **적용 범위**: 단계의 `resolvedTools`가 읽기 도구(+ `update_plan`, `submit_step_output`)뿐일 때만 `output_schema` 단독 사용 가능. 쓰기/명령/외부 도구가 있는 단계는 관찰 가능한 조건(`file_exists`, `file_hash`, 뒤에 생길 `verify` 종류)을 함께 둬야 하며 `all_of:[…]`로 결합한다. 스키마 검증에서 어기면 `workflow_done_when_unobservable`.
+   - **근거 요구**: `done_when: {kind: output_schema, evidence: {min: 1}}`(기본값: 단계 도구에 `wiki_query`, `ask_openwiki`, `read_personal_mail`, `read_source`, `source_search` 중 하나라도 있으면 `min:1`, 없으면 0). 제출 JSON의 `evidence[]`(또는 스키마가 지정한 필드)의 각 항목은 **이 단계 대화의 영수증 id**(wiki 페이지와 해시, 메일 id, 소스 경로와 범위)여야 하고 호스트가 trace에서 존재를 확인한다. 없는 id나 다른 실행의 id는 `workflow_evidence_invalid`로 한 번 재요청, 두 번째는 `partial`.
+   - **의미 표시**: 보고서와 캔버스는 이 조건을 "결과 제출 확인"으로 표시하고 "사실 참됨 증명"으로 표시하지 않는다. 기존 `submit_step_output`의 단일 제출, 스키마 검사, 재요청 한도, run/step 바인딩, 미확정·질문·승인 대기 차단은 그대로.
+   - Task 7의 `decide_*`와 Task 8의 요약 단계는 이 조건을 쓴다. 대안(사람 단계 변환)은 쓰지 않는다. Task 7 재개 가능.
+
+6. **Blueprint의 미지원 제어 흐름 처리(2026-10-19, Codex → Claude 설계 확인 요청).** §3.11은 loop/for_each/parallel/join 대응과 미지원 노드의 human 전환을 함께 요구하지만, 1단계 러너는 tool/agent/human/branch만 실행한다. Task 14 합성 재현에서 parallel을 human으로만 바꾸면 첫 번째 후속 경로가 선택되며, `BranchNode.loop:true`와 `Edge.condition`을 보존하지 않으면 원래 제어 의미가 사라진다. 실행 없이 변환만 호출한 근거: `.superpowers/sdd/2026-10-18-nubi-workflow-agent-phase1/task-14-control-preflight.mjs`와 `.log`.
+
+   **권장안:** 1단계 실행용 변환은 의미가 완전한 if_else/switch로 한정한다. 미지원 분기/반복/병렬/합류, loop 플래그, 비어 있지 않은 edge condition과 case join은 저장과 실행 전에 `workflow_import_unsupported`로 거절하고 원본을 보존한다. 고유한 후속이 있는 선형 미지원 모듈만 기존 human+경고 규칙을 유지한다. 임의로 첫 분기를 택하지 않는다. 대안인 전체 제어 흐름 실행은 반복 변수/상한, 병렬 합류, 재시작과 승인 계약의 설계가 먼저 필요하다.
+
+   **상태:** Task 14는 미완료이며 해당 변환 정책 구현과 전체 게이트, Task 8 이후는 답변까지 중단한다. 사용자가 요청한 웹 업무 지도/상태 표시는 실행 없는 합성 미리보기로 별도 확인한다. 현재 Task 14 작업 폴더 전체는 업로드 대상이 아니다.
+   **답(2026-10-19, Claude)**: 권장안 승인. 1단계 변환은 의미가 완전한 제어 흐름만 실행 대상으로 만든다. 조건은 아래와 같다.
+   - **변환 허용**: `if_else`/`switch`(enum 완전성 또는 default 필수, Task 14 규칙대로). 배타적 분기 뒤 여러 경로가 같은 후속 노드로 **모이는 합류(merge)**는 공통 `next`로 허용한다. 후속이 하나뿐인 선형 미지원 모듈은 기존 human + 경고 규칙을 유지한다.
+   - **거절(`workflow_import_unsupported`, 저장 전)**: 병렬 분기와 동기화 합류(join, 여러 토큰 대기), `loop:true`와 역방향 간선(반복), for_each, 분기 case 밖의 비어 있지 않은 `Edge.condition`. 임의로 첫 분기를 택하거나 병렬을 순차로 바꾸지 않는다. 원본 Blueprint는 그대로 두고 아무것도 저장하지 않는다.
+   - **진단 형식**: 첫 문제에서 멈추지 말고 미지원 노드를 **모두** 모아 `errors:[{code:'workflow_import_unsupported', nodeId, kind:'parallel'|'join'|'loop'|'for_each'|'edge_condition', message}]`로 돌려준다. 가져오기 화면은 노드 이름과 사유를 목록으로 보여 사용자가 Blueprint를 한 번에 고칠 수 있게 한다. 사유 문구는 한국어로 쓴다. 예: "병렬 구간은 1단계에서 실행하지 못해요. 순서를 정해 하나의 경로로 바꾸거나 2단계를 기다려 주세요."
+   - **의미 보존**: 거절돼도 웹 업무 지도 미리보기(실행 없음)는 원본 Blueprint에서 그린다(Codex 상태 보고의 "별도 확인" 그대로). 변환된 YAML은 `blueprint.id/version/workflowId`와 `notes`를 남겨 재가져오기 때 비교한다(이미 구현된 필드).
+   - **2단계로 넘김(설계 선행)**: 러너의 `loop`(반복 변수, `max` 상한, 탈출 조건)와 `parallel`(가지별 실패와 `partial`, 합류 대기, 재시작과 승인 계약) 실행 설계가 끝난 뒤 변환기가 Blueprint의 반복/병렬을 스키마의 `loop`/`parallel` 단계로 대응시킨다. 그 전까지 §3.11의 "loop/for_each/parallel/join 대응"은 2단계 항목으로 읽는다.
+   - **시험**: 병렬 2개 + 반복 1개가 있는 합성 Blueprint → 거절 1회에 미지원 노드 3개가 모두 나열되고 패키지 폴더가 생기지 않는다. 배타적 분기 뒤 합류가 있는 Blueprint → 변환과 dry-run 통과. Task 14 재개 가능.
 
 ## 9. Claude Code 벤치마크 반영 (품질, 설계, 하네스)
 

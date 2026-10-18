@@ -1,6 +1,6 @@
-import {realpath,lstat,readdir} from 'node:fs/promises';
+import {realpath,lstat,readdir,mkdir,writeFile} from 'node:fs/promises';
 import path from 'node:path';
-import {parse} from 'yaml';
+import {parse,stringify} from 'yaml';
 import {relativeFile,readSource,scopedFile,hash,fail} from './files.mjs';
 import {validateWorkflow} from './workflow-schema.mjs';
 
@@ -43,4 +43,20 @@ export async function listWorkflowPackages(projectRoot){
     try{const item=await loadWorkflowPackage(root,entry.name);result.push({slug:item.slug,name:item.workflow.name,version:item.workflow.version,hash:item.hash,valid:true,errors:[]});}
     catch(error){result.push({slug:entry.name,name:entry.name,version:null,hash:error.hash||null,valid:false,errors:error.errors||[{code:error.message==='path_scope'?'path_scope':'workflow_schema',path:'',message:'워크플로우 파일을 확인해 주세요.'}]});}
   }return result;
+}
+
+// Imports create a new draft package only. They never overwrite or execute it.
+export async function saveImportedWorkflow(projectRoot,{workflow,warnings=[]},assertCurrent=()=>{}){
+ const checked=validateWorkflow(workflow);if(!checked.ok)throw Object.assign(Error(checked.errors[0].code),{errors:checked.errors});
+ const root=await realpath(projectRoot);assertCurrent();
+ for(const rel of ['.nubi',base]){assertCurrent();try{await mkdir(path.join(root,rel));}catch(error){if(error.code!=='EEXIST')throw error;}await directory(root,rel);assertCurrent();}
+ const name=String(workflow.name).normalize('NFKC').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,64)||'imported-workflow';
+ for(let index=1;index<=1000;index++){
+  const slug=safeSlug(name+(index===1?'':'-'+index)),rel=base+'/'+slug;assertCurrent();
+  try{await mkdir(path.join(root,rel));}catch(error){if(error.code==='EEXIST')continue;throw error;}
+  await directory(root,rel);assertCurrent();await writeFile(path.join(root,rel,'workflow.yaml'),stringify(workflow),{flag:'wx'});assertCurrent();
+  await writeFile(path.join(root,rel,'README.md'),'# 가져온 워크플로우 초안\n\n자동 실행하지 않았습니다. 단계와 완료 조건을 확인하고 합성 시험 후 감독 실행하세요.\n\n'+warnings.map(row=>'- '+row.code+': '+row.message).join('\n')+'\n',{flag:'wx'});assertCurrent();
+  const saved=await loadWorkflowPackage(root,slug);assertCurrent();return {slug,workflow:saved.workflow,warnings};
+ }
+ throw Error('workflow_import_limit');
 }

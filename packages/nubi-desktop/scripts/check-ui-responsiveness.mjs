@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import {chromium} from 'playwright';
 const dir=path.resolve('verification/ui-responsiveness');await mkdir(dir,{recursive:true});
 await build({entryPoints:['tests/ui-responsiveness-fixture.jsx'],outfile:path.join(dir,'app.js'),bundle:true,format:'esm',platform:'browser',alias:Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),loader:{'.webp':'file','.woff2':'file','.woff':'file'},define:{'process.env.NODE_ENV':'"production"'}});
+await build({entryPoints:['ui/workflow-layout-worker.mjs'],outfile:path.join(dir,'chunks/workflow-layout-worker.js'),bundle:true,format:'esm',minify:true});
 await writeFile(path.join(dir,'index.html'),'<!doctype html><html lang="ko"><meta charset="utf-8"><link rel="stylesheet" href="app.css"><div id="root"></div><script type="module" src="app.js"></script></html>');
 const server=createServer(async(req,res)=>{try{const file=path.resolve(dir,'.'+new URL(req.url,'http://localhost').pathname.replace(/\/$/,'/index.html'));if(!file.startsWith(dir+path.sep))throw Error();res.setHeader('content-type',({'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css','.woff2':'font/woff2'})[path.extname(file)]||'application/octet-stream');res.end(await readFile(file));}catch{res.writeHead(404).end();}});
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -39,7 +40,8 @@ try{
   assert(await page.locator('.desktop-shell').evaluate(node=>node.inert),'a separate startup/shell lock must be preserved');
   await page.evaluate(()=>window.lockShell(false));await page.getByRole('textbox',{name:'메인 입력',exact:true}).fill('shell lock preserved');
   await page.waitForFunction(()=>!document.querySelector('[data-modal-motion="leaving"]'));
-  results.push({reducedMotion,cycles:6,preservedShellLock:true,...await page.evaluate(()=>window.responsiveness)});
+  for(const layout of ['linear','lanes']){await page.evaluate(layout=>window.toggleWorkflow(layout),layout);await page.locator(`[data-layout=${layout}][data-virtualized="true"] [data-step-kind]`).first().waitFor();assert.ok(await page.locator('[data-step-kind]').count()<50);await page.getByRole('textbox',{name:'메인 입력',exact:true}).fill(layout+' workflow stays responsive');await page.evaluate(()=>window.toggleWorkflow());}
+  results.push({workflowNodes:150,reducedMotion,cycles:6,preservedShellLock:true,...await page.evaluate(()=>window.responsiveness)});
  }
  assert.deepEqual(errors,[]);await writeFile(path.join(dir,'result.json'),JSON.stringify({passed:true,results,errors,scope:'real React/CX focus and inert hooks, synthetic dialogs in Chrome'},null,2));console.log(JSON.stringify({passed:true,results}));
 }catch(error){if(page){console.error(await page.evaluate(()=>({rootInert:document.querySelector('#root')?.inert,active:document.activeElement?.outerHTML.slice(0,200),layers:[...document.body.children].map(node=>({class:node.className,inert:node.inert,motion:node.dataset.modalMotion})),responsiveness:window.responsiveness})));await page.screenshot({path:path.join(dir,'failure.png')});}throw error;}

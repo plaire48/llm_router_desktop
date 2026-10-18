@@ -1,4 +1,10 @@
+import {workflowMcpApprovalValid} from './workflow-mcp.mjs';
+import {mcpApprovalQuestion,answerMcpApproval} from './mcp-approval.mjs';
+import {nextWorkflowStep,branchWorkflowStep} from './workflow-navigation.mjs';
+import {parseWorkflowAdapter} from './workflow-adapter-id.mjs';
 import Ajv from 'ajv';
+import {completionChecks,evidenceRequirements} from './workflow-completion.mjs';
+import {assertWorkflowEvidence} from './workflow-evidence.mjs';
 import {createAdapters,createSyntheticAdapters} from './workflow-adapters.mjs';
 import {loadWorkflowPackage} from './workflow-package.mjs';
 import {createRun,markStep,readStepOutput,stepCacheKey} from './workflow-run.mjs';
@@ -28,8 +34,8 @@ function preflight(workflow){
   if(!kinds.has(step.kind))throw Error('workflow_step_unsupported');
   // File verification is scoped to the child's workspace. Other agent outcomes
   // need a child-bound receipt port; an umbrella tab/process must never stand in.
-  if(step.kind==='agent'&&!['file_exists','file_hash'].includes(step.done_when.kind))throw Error('workflow_verify_unsupported');
-  for(const check of [step.verify,step.done_when].filter(Boolean))if(!conditions.has(check.kind))throw Error('workflow_verify_unsupported');
+  if(step.kind==='agent'&&completionChecks(step.done_when).some(check=>!['file_exists','file_hash','output_schema'].includes(check.kind)))throw Error('workflow_verify_unsupported');
+  for(const check of [step.verify,step.done_when].filter(Boolean).flatMap(check=>completionChecks(check)))if(!conditions.has(check.kind)&&!(step.kind==='agent'&&check.kind==='output_schema'))throw Error('workflow_verify_unsupported');
  }
 }
 function inputsFor(workflow,values){
@@ -57,13 +63,15 @@ export function createWorkflowRunner(service){
    // Closing a run revokes outstanding consent. A later click cannot issue work
    // after a timeout, and uncertain/executing receipts keep their actual state.
    for(const prefix of ['setup-action:','proposal:','computer-action:'])for(const row of owner.list(prefix))if(tasks.has(row.taskId)&&row.state==='proposed')owner.set(prefix+row.id,{...row,state:'rejected',error:reason||'workflow_closed'});
+   for(const id of tasks){const task=service.task(id);if(task.pendingMcp?.workflowRunId===run.id||task.mcpContinuation?.workflowRunId===run.id&&task.mcpContinuation.state==='approved'){task.pendingMcp=null;if(task.mcpContinuation?.state==='approved')task.mcpContinuation={...task.mcpContinuation,state:'finished',result:{ok:false,execution:'cancelled',actionIssued:false}};owner.set('task:'+id,task);}}
    for(const child of Object.values(run.steps))if(child.taskId)queueMicrotask(()=>service.stopAgent({taskId:child.taskId}).catch(()=>{}));
   }
   run.status=status;if(reason)run.reason=reason;run.finishedAt=new Date().toISOString();save(run);taskState(run,status==='cancelled'?'cancelled':'review');
   if(status==='complete'&&run.supervised)owner.set(`workflow-qualified:${run.slug}:${run.hash}`,{hash:run.hash,runId:run.id});return get(run.id);
  }
- function hold(run,step,reason,{unconfirmed=false}={}){
+ function hold(run,step,reason,{unconfirmed=false,approval}={}){
   run=patch(run.id,step.id,{status:unconfirmed?'unconfirmed':'waiting',reason});
+  if(approval){const task=service.task(run.taskId),question=mcpApprovalQuestion(approval.found,task.pendingMcp.args,approval);question.workflow={runId:run.id,stepId:step.id,phase:'mcp',answers:Object.fromEntries(question.options.map(option=>[option.label,{실행:'approve','항상 허용':'always',취소:'stop'}[option.label]]))};run=patch(run.id,step.id,{phase:'mcp',questionId:question.id});taskState(run,'waiting_input',question);return run;}
   if(unconfirmed){
    const question=makeQuestion('이전 실행 결과를 확인하지 못했어요. 같은 작업을 다시 실행하지 않고 영수증 확인을 기다립니다.',[],[],{choices:[{label:'중단'}],inputMode:'none',selection:'single'});
    question.workflow={runId:run.id,stepId:step.id,phase:'reconcile',answers:{중단:'stop'}};
@@ -95,13 +103,15 @@ export function createWorkflowRunner(service){
  }
  async function verify(check,result,adapters,context){
   if(!check)return {ok:true,receipts:[]};
+  if(check.kind==='all_of'){const receipts=[];for(const child of check.all_of){const checked=await verify(child,result,adapters,context);receipts.push(...checked.receipts);if(!checked.ok)return {ok:false,receipts};}return {ok:true,receipts};}
+  if(check.kind==='output_schema')return {ok:context.outputSubmitted===true,receipts:[]};
   if(check.kind==='truthy')return {ok:result?.exists===undefined?!!result:result.exists===true,receipts:[]};
   if(['file_exists','file_hash'].includes(check.kind)){
    const observation=await adapters.documents[check.kind==='file_exists'?'exists':'hash']({path:check.path},context);
    return {ok:check.kind==='file_exists'?observation.result.exists:observation.result.hash===check.value,receipts:observation.receipts};
   }
   if(check.kind==='exit_code')return {ok:result?.exitCode===(check.value??0),receipts:[]};
-  if(check.kind==='output_matches')return {ok:typeof result?.output==='string'&&result.output.includes(check.value),receipts:[]};
+  if(check.kind==='output_matches'){const output=typeof result?.output==='string'?result.output:context.toolText;return {ok:typeof output==='string'&&output.includes(check.value),receipts:[]};}
   const observation=await adapters.web.verify(check,context);return {ok:observation.result.verified===true,receipts:observation.receipts};
  }
  async function agentStep(run,step,scope,signal,adapters){
@@ -124,11 +134,12 @@ export function createWorkflowRunner(service){
    else throw Error('workflow_output_missing');
   }
   alive(signal);run=get(run.id);checkpoint=run.steps[step.id];task=service.task(task.id);
-  if(checkpoint.submissionErrors>=2)throw Error('workflow_output_schema');
+  if(checkpoint.submissionErrors>=2)throw Error(checkpoint.submissionError||'workflow_output_schema');
   if(rejected(task.id)||task.state==='cancelled')return finish(run,'partial','workflow_action_rejected');
   if(pending(task.id).length||task.question)return hold(run,step,'workflow_action_pending');
   if(!checkpoint.candidate)throw Error('workflow_output_missing');
-  const outcome=await verify(resolve(step.done_when,scope),null,adapters,{signal,stepId:step.id,summary:step.action_summary||step.goal});
+  assertWorkflowEvidence(service,task,run,step,readStepCandidate(owner,checkpoint));
+  const outcome=await verify(resolve(step.done_when,scope),null,adapters,{signal,stepId:step.id,summary:step.action_summary||step.goal,outputSubmitted:true});
   alive(signal);if(!outcome.ok)throw Error('workflow_verify_failed');
   const applied=owner.list('proposal:').filter(row=>row.taskId===task.id&&row.state==='applied').map(row=>'proposal:'+row.id);
   patch(run.id,step.id,{status:'complete',output:readStepCandidate(owner,checkpoint),receipts:[...(checkpoint.receipts||[]),...applied,...outcome.receipts]});return null;
@@ -168,12 +179,18 @@ export function createWorkflowRunner(service){
   if(answer!==undefined){
    const step=run.workflow.steps.find(s=>s.id===run.cursor),checkpoint=run.steps[step.id],task=service.task(run.taskId);
    if(!task.question||task.question.id!==checkpoint?.questionId||task.question.workflow?.runId!==run.id)throw Error('question_changed');
-   const choices=checkpoint.phase==='supervision'?['approve','stop']:checkpoint.phase==='reconcile'?['stop']:checkpoint.phase==='failure'?Object.values(task.question.workflow.answers):step.outputs?.decision;
+   const choices=checkpoint.phase==='mcp'?Object.values(task.question.workflow.answers):checkpoint.phase==='supervision'?['approve','stop']:checkpoint.phase==='reconcile'?['stop']:checkpoint.phase==='failure'?Object.values(task.question.workflow.answers):step.outputs?.decision;
    if(typeof answer!=='string'||!answer.trim()||answer.length>4000||(choices&&!choices.includes(answer)))throw Error('answer_invalid');
    if(step.timeout&&Date.now()-Date.parse(checkpoint.startedAt)>=step.timeout*1000)return finish(run,'partial','workflow_step_timeout');
+   if(checkpoint.phase==='mcp'){
+    if(task.pendingMcp?.workflowRunId!==run.id||task.pendingMcp?.workflowStepId!==step.id)throw Error('workflow_binding_changed');
+    if(answer!=='stop'&&!workflowMcpApprovalValid(service,task,run.id,step.id))return finish(run,'partial','workflow_mcp_changed');
+    const text=answer==='always'?'항상 허용':answer==='stop'?'취소':'실행';
+    task.questionHistory=[...(task.questionHistory||[]),{...task.question,draft:undefined,answer:{text,at:new Date().toISOString()}}];answerMcpApproval(service,task,text);owner.set('task:'+task.id,task);
+   }
    if(choices?.includes('stop')&&answer==='stop')return finish(patch(id,step.id,{status:'cancelled',answer}),'partial','workflow_stopped');
    taskState(run,'review');
-   run=checkpoint.phase==='supervision'?patch(id,step.id,{status:'pending',supervisedApproved:true,phase:'execution'}):checkpoint.phase==='failure'?patch(id,step.id,{status:'pending',phase:'execution'}):patch(id,step.id,{status:'complete',answer,output:{decision:answer},receipts:[]});
+   run=checkpoint.phase==='mcp'?patch(id,step.id,{status:'pending',phase:'execution'}):checkpoint.phase==='supervision'?patch(id,step.id,{status:'pending',supervisedApproved:true,phase:'execution'}):checkpoint.phase==='failure'?patch(id,step.id,{status:'pending',phase:'execution'}):patch(id,step.id,{status:'complete',answer,output:{decision:answer},receipts:[]});
   }
   const adapters=dry?createSyntheticAdapters(fixture):createAdapters(service,{taskId:run.taskId,runId:run.id});
   const fixtureReceipts=(ids,stepId)=>[...new Set((Array.isArray(ids)&&ids.length?ids:[stepId]).map(id=>'fixture:'+String(id).replace(/^fixture:/,'')))];
@@ -191,7 +208,7 @@ export function createWorkflowRunner(service){
     }
     return hold(run,step,'workflow_unconfirmed',{unconfirmed:true});
    }
-   if(['complete','skipped'].includes(checkpoint?.status)){run.cursor=Object.hasOwn(checkpoint,'next')?checkpoint.next:step.next??run.workflow.steps[run.workflow.steps.indexOf(step)+1]?.id??null;save(run);return null;}
+   if(['complete','skipped'].includes(checkpoint?.status)){run.cursor=Object.hasOwn(checkpoint,'next')?checkpoint.next:nextWorkflowStep(run.workflow,step);save(run);return null;}
    if(step.kind!=='branch'&&step.when!==undefined&&!evaluateCondition(step.when.replace(/^\{\{\s*|\s*\}\}$/g,''),scope)){
     patch(id,step.id,{status:'skipped',reason:'workflow_condition_false'});return null;
    }
@@ -237,26 +254,30 @@ export function createWorkflowRunner(service){
    }
    if(step.kind==='branch'){
     const yes=evaluateCondition(step.when.replace(/^\{\{\s*|\s*\}\}$/g,''),scope);
-    patch(id,step.id,{status:'complete',output:{decision:yes},next:yes?step.then:step.else||step.next||run.workflow.steps[run.workflow.steps.indexOf(step)+1]?.id||null});return null;
+    patch(id,step.id,{status:'complete',output:{decision:yes},next:branchWorkflowStep(run.workflow,step,yes)});return null;
    }
    if(step.kind==='agent'){
     if(dry){
      const result=fixture.responses?.[step.id];if(!result)throw Error('workflow_fixture_missing');
      if(result.ok!==true||result.waiting)throw Error('workflow_fixture_invalid');
      if(!validStepOutput(step,result.output))throw Error('workflow_output_schema');
-     const checked=await verify(resolve(step.done_when,scope),result.result,adapters,{signal,stepId:step.id});alive(signal);
+     for(const requirement of evidenceRequirements(step)){
+      const ids=result.output[requirement.field]||[];if(!Array.isArray(ids)||new Set(ids).size<requirement.min||ids.some(id=>typeof id!=='string'||!(result.receipts||[]).includes(id)))throw Error('workflow_evidence_invalid');
+     }
+     const checked=await verify(resolve(step.done_when,scope),result.result,adapters,{signal,stepId:step.id,outputSubmitted:true});alive(signal);
      if(!checked.ok)throw Error('workflow_verify_failed');
      patch(id,step.id,{status:'complete',output:result.output,receipts:fixtureReceipts([...(result.receipts||[]),...checked.receipts],step.id)});return null;
     }
     return agentStep(run,step,scope,signal,adapters);
    }
-   const [family,action]=step.adapter.split('.'),context={signal,stepId:step.id,summary:step.action_summary||step.adapter};
+   const target=parseWorkflowAdapter(step.adapter),{family,action}=target,context={signal,stepId:step.id,summary:step.action_summary||step.adapter,target};
    const result=await adapters[family][action](args,context);alive(signal);
    const receipts=dry?fixtureReceipts(result.receipts,step.id):result.receipts||[];patch(id,step.id,{receipts});
    if(dry&&result.waiting)throw Error('workflow_fixture_waiting');
-   if(result.waiting)return hold(get(id),step,result.error||'workflow_waiting',{unconfirmed:result.execution==='unconfirmed'});
+   if(result.waiting)return hold(get(id),step,result.error||'workflow_waiting',{unconfirmed:result.execution==='unconfirmed',approval:result.approval});
    if(!result.ok)throw Error(result.error||'workflow_step_failed');
-   const outcome=await verify(resolve(step.verify,scope),result.result??result.observation,adapters,context);alive(signal);
+   const output=result.result??result.observation??{};if(step.outputs&&!validStepOutput(step,output))throw Error('workflow_output_schema');
+   const outcome=await verify(resolve(step.verify,scope),output,adapters,{...context,toolText:result.observation?.output});alive(signal);
    if(!outcome.ok)throw Error('workflow_verify_failed');
    patch(id,step.id,{status:'complete',output:result.result??result.observation??{},receipts:dry?fixtureReceipts([...receipts,...outcome.receipts],step.id):[...receipts,...outcome.receipts]});return null;
   }
@@ -284,7 +305,7 @@ export function createWorkflowRunner(service){
   const controller=new AbortController();controllers.set(id,controller);service.workflowActive=(service.workflowActive||0)+1;
   const promise=execute(id,options,controller.signal).then(run=>{alive();const current=get(run.id),report=workflowReport(current);if(current.report!==report){current.report=report;owner.set('workflow-run:'+run.id,current);}return current;}).finally(()=>{locks.delete(id);controllers.delete(id);service.workflowActive--;});locks.set(id,promise);return promise;
  }
- async function start({slug,inputs,trigger={kind:'manual'},mode='execute',fixture='basic.json'}){
+ async function start({slug,inputs,trigger={kind:'manual'},mode='execute',fixture='basic.json',background=false}){
   alive();if(!['manual','routine'].includes(trigger.kind))throw Error('workflow_trigger_invalid');
   if(!['execute','dry-run'].includes(mode))throw Error('workflow_mode_invalid');
   if(service.workflowActive||service.agent?.running)throw Error('workflow_busy');
@@ -300,6 +321,7 @@ export function createWorkflowRunner(service){
   const task=await service.createTask({request:checked.workflow.name});alive();task.kind='workflow';task.workflowRunId=run.id;owner.set('task:'+task.id,task);
   run.taskId=task.id;run.mode=mode;run.fixture=mode==='dry-run'?fixture:null;run.supervised=mode!=='dry-run'&&!owner.get(`workflow-qualified:${slug}:${pkg.hash}`);save(run);
   }catch(error){if(run){run.status='failed';run.reason='workflow_task_creation_failed';run.finishedAt=new Date().toISOString();save(run);}throw error;}finally{service.workflowActive--;}
+  if(background){queueMicrotask(()=>resume(run.id).catch(error=>{if(service.store===owner&&!service.disposed&&!terminal.has(get(run.id).status))finish(get(run.id),'partial',errorCode(error));}));return get(run.id);}
   return resume(run.id);
  }
  async function cancel(id){

@@ -1,3 +1,4 @@
+import {nextWorkflowStep} from './workflow-navigation.mjs';
 import {randomUUID} from 'node:crypto';
 import {hash,fail} from './files.mjs';
 
@@ -61,7 +62,7 @@ export function markStep(store,runId,stepId,patch){
   if(ended.has(step.status))step.finishedAt=before?.finishedAt||now;
   if(!Array.isArray(step.receipts))step.receipts=[];
   run.steps[stepId]=step;run.updatedAt=now;
-  if(run.cursor===stepId&&['complete','skipped'].includes(step.status))run.cursor=Object.hasOwn(step,'next')?step.next:run.workflow.steps[index].next??run.workflow.steps[index+1]?.id??null;
+  if(run.cursor===stepId&&['complete','skipped'].includes(step.status))run.cursor=Object.hasOwn(step,'next')?step.next:nextWorkflowStep(run.workflow,run.workflow.steps[index]);
   if(!['cancelled','partial'].includes(run.status)){
     const states=Object.values(run.steps).map(step=>step.status);
     run.status=states.includes('failed')?'failed':states.some(state=>['waiting','unconfirmed'].includes(state))?'waiting':run.workflow.steps.every(step=>['complete','skipped'].includes(run.steps[step.id]?.status))?'complete':'running';
@@ -77,7 +78,7 @@ export function resumePoint(run){
     const index=run.workflow.steps.findIndex(step=>step.id===cursor);if(index<0)fail('workflow_step_missing');
     const checkpoint=run.steps[cursor];
     if(!['complete','skipped'].includes(checkpoint?.status))return cursor;
-    cursor=Object.hasOwn(checkpoint,'next')?checkpoint.next:run.workflow.steps[index].next??run.workflow.steps[index+1]?.id;
+    cursor=Object.hasOwn(checkpoint,'next')?checkpoint.next:nextWorkflowStep(run.workflow,run.workflow.steps[index]);
   }return null;
 }
 

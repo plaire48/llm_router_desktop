@@ -1,0 +1,7 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {sameWorkflowView} from '../ui/workflow-view.mjs';
+const view=()=>({run:{id:'synthetic-run',updatedAt:'2026-10-19T00:00:00.000Z',status:'waiting'},task:{id:'synthetic-task',state:'waiting_input',question:null}});
+test('unchanged run revision and task view can reuse the prior render',()=>{assert.equal(sameWorkflowView(view(),view()),true);const next=view();next.run.updatedAt='2026-10-19T00:00:02.000Z';assert.equal(sameWorkflowView(view(),next),false);next.run.updatedAt=view().run.updatedAt;next.run.id='other-run';assert.equal(sameWorkflowView(view(),next),false);});
+test('a new approval or draft remains visible even if the run revision did not change',()=>{const next=view();next.task.question={id:'synthetic-question',question:'합성 확인',draft:''};assert.equal(sameWorkflowView(view(),next),false);const edited=structuredClone(next);edited.task.question.draft='아직 작성 중';assert.equal(sameWorkflowView(next,edited),false);assert.equal(sameWorkflowView(next,structuredClone(next)),true);});
+test('missing revisions never imply an unchanged or completed run',()=>{const first=view(),next=view();delete first.run.updatedAt;delete next.run.updatedAt;assert.equal(sameWorkflowView(first,next),false);assert.equal(sameWorkflowView(null,next),false);next.run.status='complete';assert.equal(sameWorkflowView(view(),next),false);});

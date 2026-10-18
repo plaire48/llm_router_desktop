@@ -1,0 +1,213 @@
+{
+  "schema_version": "2.2",
+  "task_id": "synthetic-review",
+  "task_name": "합성 자료 확인 절차",
+  "max_auto_steps_per_pump": 8,
+  "inputs_from": [
+    {
+      "field": "key",
+      "name": "합성 업무 키",
+      "type": "string",
+      "required": true
+    }
+  ],
+  "nodes": [
+    {
+      "id": "decide_0",
+      "name": "합성 자료 판단 1",
+      "action_type": "decision",
+      "inputs": [],
+      "outputs": [
+        {
+          "id": "output",
+          "name": "판단 결과",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "id": "decide_1",
+      "name": "합성 자료 판단 2",
+      "action_type": "decision",
+      "inputs": [],
+      "outputs": [
+        {
+          "id": "output",
+          "name": "판단 결과",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "id": "decide_2",
+      "name": "합성 자료 판단 3",
+      "action_type": "decision",
+      "inputs": [],
+      "outputs": [
+        {
+          "id": "output",
+          "name": "판단 결과",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "id": "decide_3",
+      "name": "합성 자료 판단 4",
+      "action_type": "decision",
+      "inputs": [],
+      "outputs": [
+        {
+          "id": "output",
+          "name": "판단 결과",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "id": "decide_4",
+      "name": "합성 자료 판단 5",
+      "action_type": "decision",
+      "inputs": [],
+      "outputs": [
+        {
+          "id": "output",
+          "name": "판단 결과",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "id": "decide_5",
+      "name": "합성 자료 판단 6",
+      "action_type": "decision",
+      "inputs": [],
+      "outputs": [
+        {
+          "id": "output",
+          "name": "판단 결과",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "id": "decide_6",
+      "name": "합성 자료 판단 7",
+      "action_type": "decision",
+      "inputs": [],
+      "outputs": [
+        {
+          "id": "output",
+          "name": "판단 결과",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "id": "decide_7",
+      "name": "합성 자료 판단 8",
+      "action_type": "decision",
+      "inputs": [],
+      "outputs": [
+        {
+          "id": "output",
+          "name": "판단 결과",
+          "type": "string"
+        }
+      ],
+      "labels": [
+        "진행",
+        "보류"
+      ]
+    },
+    {
+      "id": "file_change_8",
+      "name": "합성 초안 파일 작성",
+      "action_type": "file_write",
+      "path": "out/synthetic-note.md",
+      "inputs": [
+        {
+          "field": "판단",
+          "source": "$.nodes.decide_7.output.output"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "result",
+          "name": "작성 결과",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "id": "route_9",
+      "name": "합성 경로 선택",
+      "type": "if",
+      "source_node": "decide_7",
+      "source_field": "output",
+      "cases": [
+        {
+          "value": "진행",
+          "next": "confirm_10"
+        },
+        {
+          "value": "보류",
+          "next": "confirm_11"
+        }
+      ]
+    },
+    {
+      "id": "confirm_10",
+      "name": "합성 초안 확인",
+      "action_type": "confirm",
+      "next": "decide_12",
+      "inputs": [],
+      "outputs": []
+    },
+    {
+      "id": "confirm_11",
+      "name": "합성 보류 사유 확인",
+      "action_type": "confirm",
+      "next": "decide_12",
+      "inputs": [],
+      "outputs": []
+    },
+    {
+      "id": "decide_12",
+      "name": "합성 결과 요약",
+      "action_type": "decision",
+      "inputs": [
+        {
+          "field": "이전 판단",
+          "source": "$.nodes.decide_7.output.output"
+        },
+        {
+          "field": "업무 키",
+          "source": "$.key"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "summary",
+          "name": "요약",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "id": "confirm_13",
+      "name": "합성 최종 확인",
+      "action_type": "confirm",
+      "inputs": [],
+      "outputs": []
+    },
+    {
+      "id": "unknown_14",
+      "name": "합성 미지원 작업",
+      "action_type": "synthetic_unknown",
+      "inputs": [],
+      "outputs": [],
+      "next": null
+    }
+  ]
+}

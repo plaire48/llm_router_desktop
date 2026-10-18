@@ -1,0 +1,9 @@
+import {nextWorkflowStep,branchWorkflowStep} from '../runtime/workflow-navigation.mjs';
+export function workflowGraph(steps,checkpoints={}, {rowHeight=200,nodeWidth=240,layout='linear',lanes=[],gutter=24,headerHeight=48,previewEdges}={}){
+ const workflow={steps},ids=new Set(steps.map(s=>s.id)),columns=layout==='lanes'?[...lanes]:[],columnIndex=new Map(columns.map((lane,index)=>[lane.id,index]));
+ if(layout==='lanes'&&steps.some(step=>!columnIndex.has(step.lane))){columnIndex.set(null,columns.length);columns.push({id:null,name:'공통 단계'});}
+ const laneWidth=nodeWidth+gutter*2,height=headerHeight+steps.length*rowHeight+gutter;
+ const cards=steps.map((step,index)=>({id:step.id,type:'workflow',position:{x:layout==='lanes'?(columnIndex.get(step.lane)??columnIndex.get(null))*laneWidth+gutter:0,y:index*rowHeight+(layout==='lanes'?headerHeight:0)},draggable:false,connectable:false,width:nodeWidth,zIndex:1,data:{step,status:checkpoints[step.id]?.status||'pending'}}));
+ const backgrounds=columns.map((lane,index)=>({id:'lane:'+String(lane.id??'unassigned'),type:'lane',position:{x:index*laneWidth,y:0},draggable:false,connectable:false,selectable:false,focusable:false,zIndex:-1,width:laneWidth,height,style:{width:laneWidth,height,pointerEvents:'none'},data:{name:lane.name}}));
+ const edges=previewEdges?previewEdges.filter(edge=>ids.has(edge.source)&&ids.has(edge.target)).map((edge,index)=>({...edge,id:edge.id||'original-'+index,type:'smoothstep',animated:false})):steps.flatMap(s=>[...new Set((s.kind==='branch'?[s.then,branchWorkflowStep(workflow,s,false)]:[nextWorkflowStep(workflow,s)]).filter(id=>ids.has(id)))].map(target=>({id:s.id+'-'+target,source:s.id,target,...(s.kind==='branch'?{label:target===s.then?'조건 만족':'그 외'}:{}),type:'smoothstep',animated:false})));return {nodes:[...backgrounds,...cards],edges};
+}

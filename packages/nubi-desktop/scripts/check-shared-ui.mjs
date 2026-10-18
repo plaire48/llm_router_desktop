@@ -24,7 +24,7 @@ async function openHistory(){await p.locator('.nubi-sidebar').waitFor({state:'at
 async function newConversation(){await openSidebar();await p.getByRole('button',{name:'새 대화',exact:true}).click();}
 const record=checks.push.bind(checks);checks.push=(...items)=>{console.log(items.join('\n'));return record(...items);};
 try{
- browser=await chromium.launch({channel:process.platform==='win32'?'msedge':'chrome',headless:true});p=await browser.newPage({viewport:{width:1280,height:950}});p.on('pageerror',e=>errors.push(e.message));await p.goto(page());
+ browser=await chromium.launch({channel:process.platform==='win32'?'msedge':'chrome',headless:true});p=await browser.newPage({viewport:{width:1280,height:950}});p.on('pageerror',e=>{errors.push(e.message);console.error('pageerror:',e.message);});await p.goto(page());
  await p.locator('.aipro-login').getByRole('button',{name:'AI Pro',exact:true}).click();await p.getByRole('textbox',{name:'작업 요청'}).waitFor();assert.equal(await p.locator('.aipro-login').count(),0);checks.push('login state transitions to shared Welcome and composer');
  const requestBox=p.getByRole('textbox',{name:'작업 요청'}),smallHeight=await requestBox.evaluate(e=>e.clientHeight);
  const welcomeTitle=await p.locator('h1.welcome-title').innerText();
@@ -283,7 +283,11 @@ try{
  await documentProgress.getByText('응답 2/3',{exact:true}).waitFor();await documentProgress.getByText('일부 확인',{exact:true}).waitFor();
  await documentProgress.getByText('문자 1–6,000',{exact:true}).waitFor();await documentProgress.getByText('결과 통합 3',{exact:true}).waitFor();
  assert.equal(await documentProgress.getByText('완료',{exact:true}).count(),0);
- await p.setViewportSize({width:440,height:950});await closeSidebar();await p.waitForFunction(()=>{const e=document.querySelector('.nubi-workbench');return !!e&&e.scrollWidth<=e.clientWidth;},null,{timeout:5000});/* layout settles after the resize */
+ await p.setViewportSize({width:440,height:950});
+ // ResizeObserver closes the wide sidebar when entering the compact layout.
+ // Observe that update before looking up a toggle whose accessible name changes.
+ await p.locator('.nubi-workbench[data-compact="true"]').waitFor();await p.locator('.nubi-sidebar[data-open="false"]').waitFor();
+ await p.waitForFunction(()=>{const e=document.querySelector('.nubi-workbench');return !!e&&e.scrollWidth<=e.clientWidth;},null,{timeout:5000});
  await closeSidebar();await p.locator('.nubi-sidebar-scrim').waitFor({state:'hidden'});await p.screenshot({path:'verification/ui-document-analysis-running.png',animations:'disabled'});
  await p.getByRole('button',{name:'중지',exact:true}).click();await documentProgress.getByText('분석 중지됨',{exact:true}).waitFor();
  if(!(await documentProgress.locator('details').first().getAttribute('open')))await documentProgress.locator('details > summary').first().click();

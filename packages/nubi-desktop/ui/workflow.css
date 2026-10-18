@@ -1,0 +1,37 @@
+.nubi-workflows,.nubi-workflow-run{padding:var(--cx-space-4);color:var(--deck-ink);font:var(--deck-font-body);line-height:var(--deck-line-body);min-width:0;overflow-wrap:anywhere}
+.nubi-workflows{overflow:auto;flex:1}
+.nubi-workflows h1,.nubi-workflows h2,.nubi-workflow-run h2{font-size:var(--deck-type-heading);font-weight:var(--nubi-weight-strong)}
+.nubi-workflow-columns{display:flex;flex-wrap:wrap;gap:var(--cx-space-6);align-items:flex-start}
+.nubi-workflow-columns>nav{flex:1 1 calc(var(--cx-space-8)*7);max-width:100%;display:grid;gap:var(--cx-space-3)}
+.nubi-workflow-columns>nav article{display:grid;gap:var(--cx-space-2);padding:var(--cx-space-3);border-radius:var(--deck-control-radius);background:var(--deck-surface)}
+.nubi-workflow-detail{flex:3 1 calc(var(--cx-space-8)*12);min-width:0;max-width:100%}
+.nubi-workflow-actions{display:flex;flex-wrap:wrap;gap:var(--cx-space-2);margin-block:var(--cx-space-3)}
+.nubi-workflow-canvas{height:calc(var(--cx-space-8)*20);width:100%;border:calc(var(--cx-space-1)/4) solid var(--deck-line);border-radius:var(--deck-control-radius);overflow:hidden;background:var(--deck-surface);--xy-background-color:var(--deck-surface);--xy-edge-stroke:var(--deck-line);--xy-handle-background-color:var(--nubi-text-secondary);--xy-handle-border-color:var(--deck-surface);--xy-node-background-color:var(--deck-surface);--xy-node-color:var(--deck-ink);--xy-node-border:calc(var(--cx-space-1)/4) solid var(--deck-line)}
+.nubi-workflow-node{display:grid;text-align:start;gap:var(--cx-space-2);padding:var(--cx-space-4);width:calc(var(--cx-space-8)*7);min-height:calc(var(--cx-space-8)*4);color:var(--deck-ink);background:var(--deck-surface);border:calc(var(--cx-space-1)/4) solid var(--deck-line);border-radius:var(--deck-control-radius);font:inherit;cursor:pointer}
+.nubi-workflow-node[data-step-kind=agent]{background:var(--deck-blue-soft)}
+.nubi-workflow-node[data-step-kind=human]{background:var(--deck-orange-soft,var(--deck-surface))}
+.nubi-workflow-node:focus-visible{outline:calc(var(--cx-space-1)/4) solid var(--deck-blue);outline-offset:var(--cx-space-1)}
+.nubi-workflow-node small,.nubi-workflow-steps small,.nubi-workflow-columns small{color:var(--nubi-text-secondary);font-size:var(--deck-type-caption)}
+.nubi-workflow-properties{padding:var(--cx-space-4);border-radius:var(--deck-control-radius);background:var(--deck-surface);margin-block:var(--cx-space-3)}
+.nubi-workflow-evidence{border-radius:var(--deck-control-radius);padding:var(--cx-space-2);background:var(--deck-blue-soft)}
+.nubi-workflow-steps{padding-inline-start:var(--cx-space-5)}
+.nubi-workflow-steps li{padding:var(--cx-space-2);display:flex;gap:var(--cx-space-3);justify-content:space-between}
+.nubi-workflow-steps [aria-current=step]{border-radius:var(--deck-control-radius);background:var(--deck-blue-soft)}
+.nubi-workflow-input{display:grid;gap:var(--cx-space-2);margin-block:var(--cx-space-3)}
+
+.nubi-workflow-node small{display:flex;align-items:center;gap:var(--cx-space-2)}
+.nubi-workflow-node[data-step-kind=branch]{background:var(--deck-green-soft)}
+.nubi-workflow-node[data-step-kind=subflow]{background:var(--deck-tint)}
+.nubi-workflow-lane{width:100%;height:100%;box-sizing:border-box;padding:var(--cx-space-3) var(--cx-space-6);border:calc(var(--cx-space-1)/4) solid var(--deck-line);border-radius:var(--deck-control-radius);background:var(--deck-tint);color:var(--nubi-text-secondary)}
+.nubi-workflow-lane>strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--deck-type-body);font-weight:var(--nubi-weight-emphasis);line-height:var(--deck-line-body)}
+.nubi-workflow-node{width:100%}
+.nubi-workflow-node>strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.nubi-workflow-import-notes{margin-block:var(--cx-space-3);color:var(--nubi-text-secondary)}
+
+.nubi-workflow-map-hint{margin-block:var(--cx-space-2);color:var(--nubi-text-secondary);font-size:var(--deck-type-caption);line-height:var(--deck-line-body)}
+
+.nubi-workflow-import{margin-block:var(--cx-space-4);padding:var(--cx-space-4);background:var(--deck-surface);border:calc(var(--cx-space-1)/4) solid var(--deck-line);border-radius:var(--deck-control-radius)}
+.nubi-workflow-import>summary{cursor:pointer;font-weight:var(--nubi-weight-emphasis)}
+.nubi-workflow-import form{max-width:var(--nubi-reading-width)}
+.nubi-workflow-import li{margin-block:var(--cx-space-3)}
+.nubi-workflow-import li p{margin-block:var(--cx-space-1);color:var(--nubi-text-secondary)}

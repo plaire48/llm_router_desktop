@@ -541,3 +541,14 @@
   :root:has(.desktop-shell) .deck-dialog > .cx-panel-body > p > a:not([class]),
   :root:has(.desktop-shell) .deck-dialog > .cx-panel-body > form > p > a:not([class]) { color:LinkText; }
 }
+
+/* Context values share the modal's text column; the title owns its symbol. */
+:root:has(.desktop-shell) .deck-dialog.context-dialog .context-total > .context-total-icon { display:none; }
+:root:has(.desktop-shell) .deck-dialog.context-dialog .context-total > strong {
+  font-family:inherit;
+  font-size:var(--deck-type-heading);
+  line-height:var(--deck-line-heading);
+  font-weight:var(--nubi-weight-emphasis);
+}
+:root:has(.desktop-shell) .deck-dialog.context-dialog .context-compaction-policy { padding-block-start:0; border-top:0; }
+:root:has(.desktop-shell) .deck-dialog.context-dialog .context-details { margin-block:var(--cx-space-3) 0; }

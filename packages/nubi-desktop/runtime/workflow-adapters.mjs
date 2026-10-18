@@ -1,3 +1,4 @@
+import {createWorkflowMcp} from './workflow-mcp.mjs';
 import {randomUUID} from 'node:crypto';
 import {lstat} from 'node:fs/promises';
 import {readSource,relativeFile,scopedFile,fail} from './files.mjs';
@@ -9,7 +10,7 @@ import {stepCacheKey} from './workflow-run.mjs';
 import {cleanModelText} from './model-text.mjs';
 import {assertWorkflowCall} from './workflow-policy.mjs';
 
-export const ADAPTER_CATALOG={web:['read','verify'],terminal:['run'],documents:['exists','read','hash']};
+export const ADAPTER_CATALOG={web:['read','verify'],terminal:['run'],documents:['exists','read','hash'],mcp:['call']};
 const oneLine=value=>cleanModelText(value).slice(0,500);
 const textOf=result=>typeof result?.text==='string'?result.text:(result?.content||[]).filter(part=>part.type==='text').map(part=>part.text).join('\n');
 
@@ -118,7 +119,7 @@ export function createAdapters(service,{taskId,runId}={}){
       return {ok:process.state==='completed'&&process.exitCode===0,result,receipts,...(process.state==='completed'&&process.exitCode===0?{}:{error:'workflow_command_failed'})};
     }
   };
-  return {web,terminal,documents:{read:document('read'),exists:document('exists'),hash:document('hash'),irreversible:()=>false}};
+  return {mcp:createWorkflowMcp(service,{owner,taskId,runId,alive,authorize}),web,terminal,documents:{read:document('read'),exists:document('exists'),hash:document('hash'),irreversible:()=>false}};
 }
 
 export function createSyntheticAdapters(fixture={}){

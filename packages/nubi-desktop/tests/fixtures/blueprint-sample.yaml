@@ -1,0 +1,121 @@
+schema_version: '1.0'
+id: synthetic-blueprint
+name: 합성 문서 확인
+version: '1.0.0'
+start_workflow_id: synthetic-flow
+roles:
+  - {id: reviewer, name: 합성 확인자}
+forms: []
+workflows:
+  - id: synthetic-flow
+    name: 합성 문서 확인 활동
+    tasks:
+      - {id: source-lane, name: 자료 확인}
+      - {id: review-lane, name: 합성 검토}
+    input_schema:
+      fields:
+        - {id: ticket, name: 합성 요청 번호, type: string, required: true}
+    output_schema: {fields: []}
+    nodes:
+      - id: schedule
+        type: event
+        name: 합성 정기 시작
+        event_type: schedule
+        source: daily 09:00
+        resume_payload_schema: {fields: []}
+      - id: decide_source
+        type: action
+        task_id: source-lane
+        name: 합성 자료 판단
+        input_schema: {fields: []}
+        input_mapping: []
+        output_schema:
+          fields:
+            - {id: route, type: enum, enum_values: [진행, 보류], required: true}
+        module:
+          id: source-agent
+          type: agent
+          name: 자료 판단
+          effect: read
+          config: {tools: [read_source], goal: 합성 자료를 읽고 경로를 판단한다}
+        work_time: {basis: workload, workload_minutes: 3}
+      - id: route
+        type: branch
+        task_id: source-lane
+        name: 합성 경로 선택
+        logic_type: switch
+        source_field: $.nodes.decide_source.output.route
+        cases:
+          - {label: 진행, value: 진행, target_node_id: confirm}
+          - {label: 보류, value: 보류, target_node_id: send_note}
+      - id: confirm
+        type: action
+        task_id: review-lane
+        role_id: reviewer
+        name: 합성 내용 확인
+        input_schema: {fields: []}
+        input_mapping: []
+        output_schema: {fields: []}
+        module: {id: approval, type: human_approval, name: 사람 확인, effect: none}
+        work_time: {basis: workload, workload_minutes: 2}
+      - id: send_note
+        type: action
+        task_id: review-lane
+        name: 합성 메모 반영
+        input_schema: {fields: []}
+        input_mapping: []
+        output_schema: {fields: []}
+        module:
+          id: note-tool
+          type: api_mcp
+          name: 합성 메모 도구
+          effect: write
+          ref: mcp.fixture.add_note
+          idempotency_key: '{{ inputs.ticket }}'
+          config:
+            args: {text: 합성 메모}
+            verify: {kind: output_matches, value: saved}
+        work_time: {basis: workload, workload_minutes: 1}
+      - id: summarize
+        type: action
+        task_id: review-lane
+        name: 합성 결과 정리
+        input_schema: {fields: []}
+        input_mapping:
+          - {target_field: ticket, source: $.ticket}
+        output_schema:
+          fields:
+            - {id: summary, type: string, required: true}
+        module:
+          id: summary-agent
+          type: agent
+          name: 결과 정리
+          effect: read
+          config: {tools: [read_source]}
+        work_time: {basis: workload, workload_minutes: 4}
+      - id: guard
+        type: action
+        task_id: review-lane
+        name: 합성 별도 확인
+        input_schema: {fields: []}
+        input_mapping: []
+        output_schema: {fields: []}
+        module: {id: guard-rule, type: guardrail, name: 미연결 확인 규칙, effect: none}
+      - id: end
+        type: event
+        name: 합성 종료
+        event_type: end
+        resume_payload_schema: {fields: []}
+      - id: memo
+        type: memo
+        name: 합성 참고
+        content: 실제 업무 자료를 사용하지 않은 합성 예시입니다.
+    edges:
+      - {id: e0, source: schedule, target: decide_source}
+      - {id: e1, source: decide_source, target: route}
+      - {id: e2, source: route, target: confirm}
+      - {id: e3, source: route, target: send_note}
+      - {id: e4, source: confirm, target: summarize}
+      - {id: e5, source: send_note, target: summarize}
+      - {id: e6, source: summarize, target: guard}
+      - {id: e7, source: guard, target: end}

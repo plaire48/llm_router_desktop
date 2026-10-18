@@ -1,3 +1,4 @@
+import {mcpApprovalQuestion,answerMcpApproval} from './mcp-approval.mjs';
 const REJECTION_INSTRUCTIONS={"output_invalid": "파일이나 캡처가 존재하는지 확인한 뒤 다시 요청하세요.", "output_outside": "현재 프로젝트 안에서 관찰한 파일 경로를 사용하세요.", "output_card_limit": "이번 실행의 산출물 카드 한도에 도달했으니 추가 등록을 멈추세요.", "side_task_invalid": "파일 경로와 기대 결과가 있는 독립적인 작업 설명을 제공하세요.", "side_task_limit": "이번 실행의 곁가지 작업 한도에 도달했으니 추가 제안을 멈추세요.", "side_task_missing": "현재 대화에 남아 있는 작업 제안 ID를 확인하세요.", "side_task_state": "이미 처리한 제안이므로 같은 동작을 반복하지 마세요."};
 import {realpath} from 'node:fs/promises';
 import path from 'node:path';
@@ -45,6 +46,7 @@ import {openWikiTools} from '../../../extensions/aipro-chat/openwiki-contract.js
 import {WORK_PLAN_SCHEMA,prepareWorkPlan,workPlanSteps,workIntent,planningRequests,reviewPlanSteps} from './work-plan.mjs';
 import {createRunBudget,WRAP_UP} from './run-budget.mjs';
 import {assertWorkflowCall} from './workflow-policy.mjs';
+import {recordWorkflowEvidence} from './workflow-evidence.mjs';
 import {STEP_OUTPUT_TOOL,workflowStepContext,workflowStepClosed,submitStepOutput} from './workflow-step.mjs';
 import {createWorkflowRunner} from './workflow-runner.mjs';
 import {PLANNING_OUTCOME_GUIDE} from '../../../extensions/aipro-chat/task-plan.js';
@@ -750,7 +752,7 @@ export function installAgent(ProjectService) {
         if(!found.readOnly&&!(mcpDispatching&&mcpContinuation?.fingerprint===fingerprint))await prepareDevelopmentBrowserCall(this,{taskId,name,args:args??{},signal:childSignal||signal});
         if(!allowed){
           task.pendingMcp={name,args:args??{},fingerprint,serverId:found.serverId,tool:found.tool.name,...(irreversible.matched?{irreversible:{reason:irreversible.reason}}:{})};
-          showQuestion({...makeQuestion(`${mcpToolLabel(found.serverId,found.tool.name)} 작업을 허용할까요?`,[],[],{choices:[{label:'실행',description:'표시된 인자로 이번 한 번 실행'},...(!irreversible.matched?[{label:'항상 허용',description:'이 프로젝트에서 이 도구 허용. 다른 도구는 별도 확인'}]:[]),{label:'취소',description:'실행하지 않음'}],inputMode:'none',selection:'single'}),toolRequest:{serverId:found.serverId,tool:found.tool.name,arguments:toolArgumentView(args),scope:irreversible.matched?'once':'project_tool',...(irreversible.matched?{irreversible:{reason:irreversible.reason},alwaysAllowIgnored:savedAllowance}:{})}});
+          showQuestion(mcpApprovalQuestion(found,args,{irreversible,savedAllowance}));
           result={requiresUserInput:true};
         }else{
           task.mcpApprovals=(task.mcpApprovals||[]).filter(value=>value!==fingerprint);persistTask();
@@ -806,6 +808,7 @@ export function installAgent(ProjectService) {
         persistTask();return null;
       }
     }
+    const delegatedOperations=new Map();
     const execute=async(name,args,childSignal)=>{
       // A read that the results of this response leave no room for is not executed.
       if(!childSignal&&READ_TOGETHER.has(name)&&roomNow()?.defer){this.store.event('context_read_deferred',{taskId,tool:name});return {deferred:true,actionIssued:false,instruction:'This call was NOT executed: the results of this response already fill the input window. Call it again in your next response.'};}
@@ -817,11 +820,11 @@ export function installAgent(ProjectService) {
       }
       if(childSignal){const measured=metrics.beginTool({tool:name,scope:'child'});try{const result=await operation(name,args,childSignal);measured.end(result);return result;}catch(error){measured.fail(recoveryCode(error));throw error;}}
       const measured=metrics.beginTool({tool:name});
-      const item=beginOperation(this,taskId,runId,name,args);task.checkpoint={runId,inputChain:this.agent.inputChain,phase:'tool',operationId:item.id,tool:name,at:item.startedAt};persistTask();
+      const item=beginOperation(this,taskId,runId,name,args),workflowTraceId=workflowStep?task.trace.findLast(row=>row.runId===runId&&row.tool===name&&row.status==='running')?.id:null;task.checkpoint={runId,inputChain:this.agent.inputChain,phase:'tool',operationId:item.id,tool:name,at:item.startedAt};persistTask();
       const pending=operation(name,args);this.unsettledOperations ||=new Set();
       if(ACTION_TOOLS.has(name))actionsIssued=true;
       if(!READ_TOOLS.has(name)){this.unsettledOperations.add(item.id);pending.finally(()=>this.unsettledOperations.delete(item.id)).catch(()=>{});}
-      try{const result=['analyze_documents','delegate_research','continue_research'].includes(name)?await pending:await boundedRead(()=>pending,{signal:controller.signal,timeoutMs:this.recoveryOptions?.operationTimeoutMs||60000});if(name!=='ask_openwiki')spent+=contextTokens([{role:'tool',content:JSON.stringify(result??null)}]);toolRecovery.observe(name,args,result);measured.end(name==='ask_openwiki'&&Array.isArray(result?.documents)?{documents:result.documents.length}:result);endOperation(this,item,result);task.checkpoint={runId,inputChain:this.agent.inputChain,phase:'model',operationId:item.id,tool:name,state:item.state,at:item.finishedAt};persistTask();return result;}
+      try{let result=['analyze_documents','delegate_research','continue_research'].includes(name)?await pending:await boundedRead(()=>pending,{signal:controller.signal,timeoutMs:this.recoveryOptions?.operationTimeoutMs||60000});if(name!=='ask_openwiki')spent+=contextTokens([{role:'tool',content:JSON.stringify(result??null)}]);toolRecovery.observe(name,args,result);measured.end(name==='ask_openwiki'&&Array.isArray(result?.documents)?{documents:result.documents.length}:result);endOperation(this,item,result);if(name==='ask_openwiki'&&workflowTraceId)delegatedOperations.set(workflowTraceId,{operationId:item.id,traceId:workflowTraceId});if(name!=='ask_openwiki')result=recordWorkflowEvidence(this,task,workflowStep,item,result,workflowTraceId);task.checkpoint={runId,inputChain:this.agent.inputChain,phase:'model',operationId:item.id,tool:name,state:item.state,at:item.finishedAt};persistTask();return result;}
       catch(error){measured.fail(recoveryCode(error));if(!READ_TOOLS.has(name)&&this.unsettledOperations.has(item.id)){item.outcome='unknown';if(!controller.signal.aborted)controller.abort('tool_unsettled');}endOperation(this,item,{error:recoveryCode(error)});persistTask();throw error;}
     };
     const research=createResearchAgent({readTools:tools,execute:(name,args,signal)=>{researchSignals.add(signal);return execute(name,args,signal);},invokeModel,scheduler:analysisScheduler,signal:controller.signal,
@@ -982,7 +985,8 @@ export function installAgent(ProjectService) {
           if(researchBudget.consume()&&delivered?.desktop)delivered.desktop={...delivered.desktop,note:researchBudget.note+(delivered.desktop.note||'')};
           // The pages given to the OpenWiki agent never enter the conversation. Its answer does.
           const citations=rows.map(row=>{const entry=delivered.evidence?.find(item=>item.id===row.openwikiId);if(!entry?.excerpt)return null;const offset=entry.excerptTruncated?Math.max(0,entry.excerptStart-(result.evidence.find(item=>item.id===row.openwikiId)?.start||0)):0;const start=row.provenance.start+row.excerpt.slice(0,offset).split('\n').length-1;return answerSources.file({...row,excerpt:entry.excerpt,provenance:{...row.provenance,start,end:start+entry.excerpt.split('\n').length-1}},'wiki');}).filter(Boolean);
-          const sourced=citations.length?{...delivered,citations}:delivered;
+          let sourced=citations.length?{...delivered,citations}:delivered;
+          if(workflowStep){const entry=task.trace.findLast(row=>row.runId===runId&&row.tool==='ask_openwiki'&&row.status==='running'),binding=delegatedOperations.get(entry?.id);delegatedOperations.delete(entry?.id);const operation=binding?this.store.get('operation:'+binding.operationId):null;if(operation?.state==='completed'&&operation.taskId===taskId&&operation.runId===runId&&operation.tool==='ask_openwiki')sourced=recordWorkflowEvidence(this,task,workflowStep,operation,sourced,binding.traceId);persistTask();}
           spent+=contextTokens([{role:'tool',content:JSON.stringify(sourced)}]);return sourced;
         }, recoverToolStall:({tool,args})=>!controller.signal.aborted&&!reviewRecoveryActive&&!budget.reached()&&!commandApprovalPending&&!task.question&&!pendingComputerConnection(task)&&!waitingPeer()&&!pendingAgentInput(this,taskId)&&toolRecovery.stall(tool,args), settleAnswer:()=>toolRecovery.settle({blocked:controller.signal.aborted||reviewRecoveryActive||budget.reached()||commandApprovalPending||!!task.question||pendingComputerConnection(task)||waitingPeer()||!!pendingAgentInput(this,taskId)}), stepwise:true, harness:false, parallelReadBatches:true, readTools:READ_TOOLS, expectPlan:true, clarifyOnStall:true, compactProgress:true, readTogether:READ_TOGETHER, traceErrorCodes:['output_invalid','output_outside','output_card_limit','side_task_invalid','side_task_limit','side_task_missing','side_task_state','source_read_required','change_plan_required','change_scope_unplanned','change_plan_stale','project_rules_changed','parent_missing','file_exists','content_limit','proposal_invalid_syntax','quality_unavailable','input_invalid','path_scope','search_unavailable','source_missing','source_unavailable','tool_arguments_invalid','tool_timeout','project_changed','search_scope'],
       analysisScheduler,
@@ -991,7 +995,7 @@ export function installAgent(ProjectService) {
       prepareContext: async (wire,definitions) => {lastSource=structuredClone(wire);const advertised=commandTools(requestCommand,toolSet.advertised(definitions));return reobserve(await fitted(wire,false,reviewRecovery?reviewRecoveryTools(advertised):advertised));}, onStep: event => {
         const id=runId+':'+round+':'+event.index,at=new Date().toISOString(),previous=task.trace.find(item=>item.id===id);
         const startedAt=previous?.startedAt||(event.status==='running'?at:undefined);
-        const entry={...event,runId,id,at,...(previous?.captures?{captures:previous.captures}:{}),...(previous?.arguments?{arguments:previous.arguments,readOnly:previous.readOnly}:{}),...(startedAt?{startedAt}:{})};saveRoleProgress(this.store,taskId,runId,entry);
+        const entry={...event,runId,id,at,...(previous?.captures?{captures:previous.captures}:{}),...(previous?.workflowEvidence?{workflowEvidence:previous.workflowEvidence}:{}),...(previous?.arguments?{arguments:previous.arguments,readOnly:previous.readOnly}:{}),...(startedAt?{startedAt}:{})};saveRoleProgress(this.store,taskId,runId,entry);
         const index=task.trace.findIndex(item=>item.id===id);if(index<0)task.trace=[...task.trace.slice(-79),entry];else task.trace=task.trace.map((item,i)=>i===index?entry:item);persistTask();
       },
       onDiagnostic: diagnostic => {if(diagnostic?.phase==='tool_result'&&diagnostic.error==='tool_arguments_invalid')this.store.event('agent_tool_schema_rejected',{taskId,tool:diagnostic.tool,issues:diagnostic.issues||[]});},
@@ -1028,14 +1032,7 @@ export function installAgent(ProjectService) {
     if(task.question.browserScreenLearning){const store=this.store,questionId=task.question.id;await answerBrowserScreen(this,task,text);const current=this.task(taskId);if(this.store!==store||current.state!=='waiting_input'||current.question?.id!==questionId)throw Error('question_changed');}
     if(task.question.editorApproval)decideEditor(this,task,text);
     if(task.question.nativeOfficeApproval)decideNativeOffice(this,task,text,choice?.nativeOfficeApprovalId);
-    if(task.pendingMcp){
-      const pending=task.pendingMcp;
-      if(!['실행','항상 허용','취소'].includes(text))throw Error('answer_invalid');
-      if(text==='항상 허용'&&(pending.irreversible||irreversibleMcpTool(this.mcpRegistry().tool(pending.name)?.tool,{serverId:this.mcpRegistry().tool(pending.name)?.serverId}).matched))throw Error('answer_invalid');
-      if(text==='항상 허용')allowMcpTool(this.store,{serverId:pending.serverId,tool:pending.tool});
-      task.mcpContinuation={...pending,state:text==='취소'?'cancelled':'approved'};
-      task.pendingMcp=null;
-    }
+    if(task.pendingMcp)answerMcpApproval(this,task,text);
     const answeredQuestion=typeof task.question==='string'?{text:task.question}:{...task.question};
     // UI projections duplicate observed content and geometry. Keep the exact
     // approved arguments and approval identity, without replaying that UI tree

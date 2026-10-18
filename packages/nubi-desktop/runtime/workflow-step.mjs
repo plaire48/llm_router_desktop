@@ -1,4 +1,5 @@
 import Ajv from 'ajv';
+import {assertWorkflowEvidence} from './workflow-evidence.mjs';
 import {expandStepTools} from './workflow-tools.mjs';
 import {markStep} from './workflow-run.mjs';
 import {hash} from './files.mjs';
@@ -25,9 +26,11 @@ export function submitStepOutput(service,task,output){
  const {run,step,checkpoint}=workflowStepContext(service,task);
  if(checkpoint.candidate||checkpoint.submissionErrors>=2)throw Error('workflow_step_closed');
  const text=JSON.stringify(output);
- if(!validStepOutput(step,output)){
-  const count=(checkpoint.submissionErrors||0)+1;markStep(service.store,run.id,step.id,{submissionErrors:count});
-  return {ok:false,error:'workflow_output_schema',retry:count<2,instruction:count<2?'Correct the result object once to match the declared output schema.':'Output rejected twice. Stop this step.'};
+ let reason=!validStepOutput(step,output)?'workflow_output_schema':null;
+ if(!reason)try{assertWorkflowEvidence(service,task,run,step,output);}catch(error){reason=error.message;}
+ if(reason){
+  const count=(checkpoint.submissionErrors||0)+1;markStep(service.store,run.id,step.id,{submissionErrors:count,submissionError:reason});
+  return {ok:false,error:reason,retry:count<2,instruction:count<2?'Correct the result once. Match the output schema and cite only workflowEvidence receipt ids returned by this step.':'Output rejected twice. Stop this step.'};
  }
  // Candidate is not completion. The runner verifies current host evidence separately.
  const key=`workflow-submission:${run.id}:${step.id}`,digest=hash(text),bytes=Buffer.byteLength(text);

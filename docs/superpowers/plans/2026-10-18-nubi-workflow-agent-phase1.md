@@ -10,8 +10,11 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-18-nubi-workflow-agent-design.md` (§3.1 정의 형식, §3.2 러너, §3.3 어댑터, §3.4 검증, §9 Claude Code 벤치마크 반영)
 
+**진행 순서(2026-10-19 사용자 확정):** 6 → 7 → 14 → 15 → 8 → 9 → 10 → 11 → 12 → 13. Task 15(실행 화면, 설계 §3.12)는 2026-10-19 사용자 승인으로 추가했고 Task 8 전에 한다. Task 14는 Process Activity Maker의 타입을 읽어 대응하며 원본 코드는 복사하지 않는다. 시험 자료는 합성 프로세스명만 사용한다.
+
 ## Global Constraints
 
+- **웹 호환(설계 §3.10)**: `runtime/workflow-schema.mjs`, `workflow-template.mjs`, `ui/WorkflowCanvas.jsx`는 브라우저에서도 동작해야 한다. Node 전용 모듈(`node:fs`, `node:path` 등) import 금지, 허용 의존성은 ajv, yaml, secret-like, React, xyflow. 패키지 로더와 러너만 Desktop 전용. 시험에 "스키마/템플릿 모듈이 node: import를 하지 않는다" 사례를 둔다.
 - **Apple iOS 벤치마크와 성능(2026-10-18 사용자 지시)**: 화면을 만들거나 고치는 작업은 Apple HIG 모션(짧고 목적 있는 전환, ease-out, 작은 탄성, 모션 감소 존중)과 기존 수치(모달 열기와 크기 280ms, 닫기 180ms, 화면 전환 280ms)를 따르고 `ui/viewTransition.js`, `modalMotion.js`, `frame-coalescer.mjs`를 재사용한다. 메인 스레드 50ms 이상 작업 금지(무거운 계산은 worker), 긴 목록은 가상화, 새 화면마다 `check-motion-performance`와 `check-ui-responsiveness`에 장면을 추가하고 전후 수치를 기록한다. 프리징 보고가 있으면 재현 → 측정 → 수정 → 재측정 순서.
 - **오픈소스 먼저(2026-10-18 사용자 지시)**: 작업을 시작하기 전에 관련 오픈소스 후보를 조사해(스타는 `gh api`로 실측, 라이선스, 최근 커밋, 누비 적합성) 작업 기록에 표로 남기고, 채택/패턴 참고/보류를 명시한다. 기존 의존성과 중복되면 도입하지 않는다.
 - 한국어 메시지와 로그. 가운뎃점 금지.
@@ -284,15 +287,19 @@ export function createWorkflowRunner(service){
 **Interfaces:**
 - Produces: 서비스 `listWorkflows()`, `validateWorkflow({slug})`, `dryRunWorkflow({slug,fixture})`, `startWorkflow({slug,inputs})`, `workflowRun({runId})`, `cancelWorkflow({runId})`; 화면: 목록(이름, 버전, 유효성, 마지막 실행), 실행 뷰(단계 목록과 상태, 현재 단계, 대기 질문은 기존 질문 카드), 캔버스(xyflow 읽기 전용: 노드 다섯 종류 색/아이콘, 상태 배지, 위키 근거 칩, 점선은 에이전트 제안용 예약).
 
-- [ ] **Step 1: 의존성** — `npm i @xyflow/react@12.12.0` (설계 §8 미결 2 승인 뒤). 번들 크기 측정값을 `docs/WORKFLOW-AGENT-2026-10.md`에 기록.
-- [ ] **Step 2: 실패하는 검사** — `scripts/check-workflow-ui.mjs`: fixture 워크플로우 2개(유효 1, 오류 1)로 목록 렌더, 오류 항목에 코드, 실행 뷰에서 단계 3개와 현재 단계 표시, 캔버스에 노드 3개와 연결 2개(`[data-step-kind]`), 1280/440 너비, 디자인 토큰만(hex, px 금지), 모달은 `deck-dialog`.
-- [ ] **Step 3: 실패 확인** → FAIL
-- [ ] **Step 4: 구현** — 캔버스는 `ReactFlow`에 `nodesDraggable={false}`, `nodesConnectable={false}`, 자동 배치는 단순 세로 레이아웃(dagre 없이 단계 순서대로). 노드는 공통 토큰(`workspace-identity.css`)만. 실행 뷰의 질문은 기존 `QuestionDecision`을 재사용(우산 대화의 질문).
-- [ ] **Step 5: 검사** → PASS. `npm run design:check`.
+- [x] **Step 1: 의존성** — `npm i @xyflow/react@12.12.0` (설계 §8 미결 2 승인 뒤). 번들 크기 측정값을 `docs/WORKFLOW-AGENT-2026-10.md`에 기록.
+- [x] **Step 2: 실패하는 검사** — `scripts/check-workflow-ui.mjs`: fixture 워크플로우 2개(유효 1, 오류 1)로 목록 렌더, 오류 항목에 코드, 실행 뷰에서 단계 3개와 현재 단계 표시, 캔버스에 노드 3개와 연결 2개(`[data-step-kind]`), 1280/440 너비, 디자인 토큰만(hex, px 금지), 모달은 `deck-dialog`.
+- [x] **Step 3: 실패 확인** → FAIL
+- [x] **Step 4: 구현** — 캔버스는 `ReactFlow`에 `nodesDraggable={false}`, `nodesConnectable={false}`, 자동 배치는 단순 세로 레이아웃(dagre 없이 단계 순서대로). 노드는 공통 토큰(`workspace-identity.css`)만. 실행 뷰의 질문은 기존 `QuestionDecision`을 재사용(우산 대화의 질문).
+- [x] **Step 5: 검사** → PASS. `npm run design:check`.
 
 ---
 
 ## Task 7: e2e task JSON 변환기
+
+> **재확인(2026-10-19, 설계 §8 답 5)**: `decide_*`처럼 파일이 없는 판단 단계는 `done_when:{kind:'output_schema',evidence:{min:1}}`를 쓴다(읽기 도구만 있는 단계 한정, 근거 id는 이 단계 영수증에 있어야 함, `workflow_done_when_unobservable`/`workflow_evidence_invalid`). 스키마와 러너에 `output_schema`와 `all_of`를 추가하는 작업은 이 Task 앞에 Task 4의 보강으로 한다(시험: 읽기 전용 단계 통과, 쓰기 도구 단계는 단독 사용 거절, 가짜 근거 id 거절).
+
+- [x] **Task 4 보강 선행 완료(2026-10-19)** — output_schema/all_of, 도구 관찰 제한, 단계 영수증 근거 검증과 공통 1회 교정. 새 시험 13개, 집중 161/161, 전체 test:gates 종료 0(2,002 통과 / 실패 0 / 200 건너뜀).
 
 **Files:**
 - Create: `runtime/workflow-import-e2e.mjs`, `tests/workflow-import-e2e.test.mjs`, `tests/fixtures/e2e-task-sample.json`(합성, 구조만 닮음)
@@ -301,10 +308,10 @@ export function createWorkflowRunner(service){
 **Interfaces:**
 - Produces: `convertE2eTask(json) -> {workflow,warnings:[{nodeId,code,message}]}`. 대응: `decide_*` → `agent`(goal=name, inputs→템플릿 참조, outputs→schema 객체), `file_change_*` → `agent`(tools: `propose_new_file`, `propose_patch`, `read_source`; done_when: 산출 경로가 있으면 `file_exists`), `type:'if'` → `branch`, 사람 확인 노드 → `human`, 알 수 없는 노드는 `human`으로 두고 경고.
 
-- [ ] **Step 1: 실패하는 시험** — 합성 샘플 15노드가 단계 15개로 바뀌고 `validateWorkflow`를 통과하며, 입력 참조 `$.nodes.decide_7.output.output`이 `{{ steps.decide-7.output.output }}`로 바뀌고, 알 수 없는 노드 1개가 경고와 함께 `human`이 된다.
-- [ ] **Step 2: 실패 확인** → FAIL
-- [ ] **Step 3: 구현** — id는 소문자와 하이픈으로 정규화(충돌 시 접미사), `inputs_from`은 워크플로우 `inputs`, `max_auto_steps_per_pump`는 `budget`으로.
-- [ ] **Step 4: 시험** → PASS
+- [x] **Step 1: 실패하는 시험** — 합성 샘플 15노드가 단계 15개로 바뀌고 `validateWorkflow`를 통과하며, 입력 참조 `$.nodes.decide_7.output.output`이 `{{ steps.decide-7.output.output }}`로 바뀌고, 알 수 없는 노드 1개가 경고와 함께 `human`이 된다.
+- [x] **Step 2: 실패 확인** → FAIL
+- [x] **Step 3: 구현** — id는 소문자와 하이픈으로 정규화(충돌 시 접미사), `inputs_from`은 워크플로우 `inputs`, `max_auto_steps_per_pump`는 `budget`으로.
+- [x] **Step 4: 시험** → PASS
 
 ---
 
@@ -335,6 +342,75 @@ export function createWorkflowRunner(service){
 - [ ] **Step 2: QA** — `npm run test:gates` + `check-workflow-ui` + `check-electron-workflow` + Claude QA 묶음. 도구 예산과 압축 시험 유지.
 - [ ] **Step 3: 업로드(Claude)** — 메시지: `feat(nubi-desktop): 워크플로우 에이전트 1단계 — 정의 형식, 러너, dry-run, 보고서, 읽기 전용 캔버스, e2e 변환기`.
 
+
+
+---
+
+## Task 11: 양식 지도 추출과 패키지 저장 (설계 §3.9, Task 6 뒤)
+
+**Files:**
+- Create: `runtime/workflow-forms.mjs`, `tests/workflow-forms.test.mjs`, `tests/fixtures/forms/정의서-합성.docx`(합성 양식, 사내 자료 아님), `tests/fixtures/forms/검수표-합성.xlsx`
+- Modify: `runtime/workflow-schema.mjs`(`forms` 섹션, 단계의 `form`, `form_review`), `runtime/workflow-package.mjs`(`forms/<이름>/form-map.json` 로드와 원본 해시), `runtime/project-service.mjs`(`extractForm({path}) -> {map,hash,preview}`, `confirmFormMap({slug,name,map})`)
+
+**Interfaces:**
+- Produces: `extractFormMap(file,{kind:'docx'|'xlsx'|'pptx'|'markdown'}) -> {fields:[{id,label,location,type,required,example}],fixed:[...],hash}`(누비 Office `form-map.mjs` 재사용: Desktop에서 import 가능한지 확인하고, Office 의존 부분은 OOXML 읽기로 대체); `formOutputSchema(map) -> JSON Schema`(칸마다 속성, required 반영, 값과 `evidence` 배열).
+
+- [ ] **Step 1: 실패하는 시험** — 합성 docx에서 라벨 옆 칸 6개와 표 항목 1개가 추출되고, `formOutputSchema`가 required 칸을 required로 두며, 원본 해시가 바뀌면 패키지 로더가 `form_source_changed` 경고를 낸다.
+- [ ] **Step 2: 실패 확인 → 구현 → 통과**. 오픈소스 표 갱신: `dolanmiu/docx`(MIT), Univer(기존), `PptxGenJS`(MIT), `docxtemplater`/`SheetJS`/`exceljs`는 보류 이유.
+
+## Task 12: 채움표(agent 단계 `form`)와 검토 카드(human 단계 `form_review`)
+
+**Files:**
+- Create: `ui/FormFillCard.jsx`, `ui/form-fill-card.css`, `tests/workflow-form-fill.test.mjs`
+- Modify: `runtime/workflow-runner.mjs`(`form`이 있는 에이전트 단계는 출력 스키마를 양식 지도에서 유도하고 `submit_step_output`에 코드 검사(`form-checks.mjs`의 형식/필수 칸) 적용; `form_review` 사람 단계는 채움표 카드), `scripts/check-workflow-ui.mjs`
+
+- [ ] **Step 1: 실패하는 시험** — 필수 칸이 빈 제출은 `form_required_missing`으로 한 번 재요청, 날짜 형식 오류는 칸 단위 사유, 카드에서 칸 값을 고치면 출력에 반영되고 근거 링크가 보인다(1280/440).
+- [ ] **Step 2: 실패 확인 → 구현 → 통과**. Apple iOS 모션/성능 제약 적용(긴 양식은 섹션 단위 접기, 입력 중 전환 중단).
+
+## Task 13: `office.apply_form`과 `forms.verify` (Windows COM 우선, OOXML 생성 fallback)
+
+**Files:**
+- Create: `runtime/workflow-office-forms.mjs`, `tests/workflow-office-forms.test.mjs`
+- Modify: `runtime/workflow-adapters.mjs`(`office.apply_form`, `forms.verify`), `scripts/evaluate-live-native-office.mjs`(양식 채움 장면 추가, Windows 실측용)
+
+- [ ] **Step 1: 실패하는 시험** — 합성 어댑터와 OOXML fallback으로: 같은 채움표를 두 번 적용하면 두 번째는 쓰기 0건(멱등), 양식 자체 문장은 바뀌지 않음(해시 비교), `forms.verify`가 구조/형식/근거/숫자 4종을 코드로 판정하고 실패 칸만 돌려준다. COM 경로는 Windows 실측 항목으로 남기고 Mac에서는 `windowsOfficeVerified:false`.
+- [ ] **Step 2: 실패 확인 → 구현 → 통과**. 되돌리기 어려운 작업 규칙: 원본 양식 파일은 절대 쓰지 않고 복사본에만 쓴다(출력 경로가 원본과 같으면 거절 `form_source_protected`).
+
+
+## Task 14: Process Activity Maker Blueprint 변환기와 레인 캔버스 재사용 (설계 §3.11, Task 7 뒤)
+
+> 재확인(2026-10-19, Claude): 제어 흐름 범위는 설계 §8 답 6을 따른다. if_else/switch만 변환하고, 병렬/join/반복/for_each/case 밖 edge condition은 미지원 노드를 모두 나열해 `workflow_import_unsupported`로 저장 전에 거절한다. 첫 분기 임의 선택과 병렬의 순차 변환은 금지. 배타적 분기 뒤 합류(merge)는 공통 `next`로 허용.
+
+**Files:**
+- Create: `runtime/workflow-import-blueprint.mjs`, `tests/workflow-import-blueprint.test.mjs`, `tests/fixtures/blueprint-sample.yaml`(합성, 사내 프로세스명 금지)
+- Modify: `runtime/project-service.mjs`(`importBlueprint({path}) -> {slug,workflow,warnings}`), `ui/WorkflowCanvas.jsx`(태스크 레인 레이아웃: Blueprint `tasks[]` 레인을 세로 띠로, 노드는 `task_id`로 배치)
+
+**Interfaces:**
+- Produces: `convertBlueprint(yaml) -> {workflow, warnings:[{nodeId,code,message}], metrics:{expectedMinutes}}`. 대응은 설계 §3.11 표. 원본 `types.ts`(`~/Downloads/next_workflow_sol/src/types.ts`)의 `Workflow`, `ActionNode`, `BranchNode`, `EventNode`, `ModuleBinding`, `FormBinding`, `WorkTimeEstimate`를 기준으로 하되 복사하지 않고 읽어 대응한다.
+
+- [x] **Step 1: 실패하는 시험** — 합성 Blueprint(action agent 2, human_approval 1, api_mcp write 1, branch switch 1, event schedule 1, memo 1)가 누비 단계로 바뀌고 `validateWorkflow` 통과; `api_mcp` write는 `externalWrite:true`; `event schedule`은 `trigger.kind:'routine'`; memo는 단계가 아니라 `notes`; 대응 없는 module(`guardrail` without verify mapping)은 `human` + 경고; `work_time` 합계가 `metrics.expectedMinutes`.
+- [x] **Step 2: 실패 확인 → 구현 → 통과**. 오픈소스 표: Process Activity Maker는 사내 자산(라이선스 확인 불필요)이며 "패턴과 데이터 모델 참고, 컴포넌트 선별 이식"으로 기록.
+- [x] **Step 3: 캔버스 레인** — Task 6 캔버스에 레인 배치 옵션(`layout:'lanes'`)을 더하고 `check-workflow-ui.mjs`에 레인 장면 1개(1280/440).
+
+---
+
+## Task 15: 실행 화면 뒤집기 — 대화 타임라인 본문 + 미니 지도 (설계 §3.12 실행 모드, Task 8 전)
+
+> 추가(2026-10-19, 사용자 승인): 지금 실행 화면은 단계 목록과 캔버스가 중심이고 대화는 버튼 뒤에 있다. 이를 뒤집어 우산 대화의 타임라인을 본문으로, 지도를 보조로 둔다. Task 8의 Electron 감독 실행 검사는 이 화면을 대상으로 한다.
+
+**Files:**
+- Create: `ui/WorkflowTimeline.jsx`(타임라인: 단계 챕터, 접힌 하위 대화 카드, 도구 줄과 영수증, 질문/승인 카드는 기존 `QuestionDecision`, 산출물 카드, 보고서 카드), `ui/WorkflowMiniMap.jsx`(`WorkflowCanvas`의 `compact` 모드 래퍼: 상태 색 넷, 노드 클릭 → 챕터 점프, 440px에서 접힘), `ui/WorkflowStatusBar.jsx`(이름, 상태 알약, 경과/예상 시간, 감독 표시, 대기 사유 한 문장과 1차 버튼), `tests/workflow-run-demo.jsx`(합성 실행 레코드 4단계: 완료 2, 승인 대기 1, 미실행 1)
+- Modify: `ui/Workbench.jsx`(`task.kind==='workflow'`면 활동 목록 대신 `WorkflowTimeline` + `WorkflowMiniMap`, 챕터 목차는 기존 `ChapterContents` 재사용, 작성기는 계속 숨김), `ui/WorkflowRunView.jsx`(단계 목록과 보고서 모달 제거, 시작 직후 우산 대화로 이동), `ui/WorkflowPanel.jsx`(목록, 검증, 시작만), `ui/WorkflowCanvas.jsx`(`compact` 레이아웃: 고정 폭, 상태 색, fitView 없음, 실행 중 재배치 금지), `ui/workflow.css`, `runtime/workflow-service.mjs`(`workflowRun` 투영에 단계별 `startedAt`, `finishedAt`, `receipts`, `answer`, `taskId`, `reason`, 하위 대화 요약 한 줄 `summary`, 산출물 카드 id 목록), `runtime/workflow-runner.mjs`(단계 시작 때 우산 대화 `task.chapters`에 호스트가 직접 챕터 추가. 모델 호출 없음. 2차 `mark_chapter`와 같은 저장 형식과 한도), `scripts/check-workflow-ui.mjs`(실행 장면 추가), `scripts/check-motion-performance.mjs`(실행 중 레이아웃 worker 메시지 0회)
+
+**Interfaces:**
+- Consumes: `workflowRun({runId})`(Task 6), `task.chapters`(2차 Task 2), `QuestionDecision`, `ChapterContents`, `WorkflowCanvas`(Task 6/14), `frameCoalescer`.
+- Produces: `workflowRun` → `{run:{...,steps:{[id]:{status,startedAt,finishedAt,receipts,answer,taskId,reason,summary,outputs:[cardId]}}},task:{id,state,question,chapters}}`. 타임라인 행은 `run.workflow.steps` 순서와 체크포인트에서 파생한다. 하위 대화 요약은 서비스가 하위 task의 결과 첫 200자로 만든다(클라이언트가 하위 task 전체를 받지 않는다). 대기 사유 문장: 승인 필요 "외부 반영 전에 확인이 필요해요", 결과 확인 대기 "이전 실행 결과를 확인하는 중이에요", 사람 답 필요 "답을 기다리고 있어요", 감독 확인 "다음 단계를 실행할까요".
+
+- [ ] **Step 1: 실패하는 검사** — `check-workflow-ui.mjs` 실행 장면: (a) 타임라인에 챕터 4개가 단계 순서대로, 하위 대화 카드가 접혀 있고 펼치면 하위 대화 내용, 승인 카드가 오른쪽 정렬(기존 승인 줄 규칙), (b) 미니 지도 노드 상태 색 4종(`data-status`)과 노드 클릭 → 해당 챕터 `aria-current`와 스크롤, (c) 상태 줄에 대기 사유 한 문장과 강조 버튼 1개만, 경과/예상 시간, (d) 440px에서 미니 지도 접힘과 토글, (e) 상태 변화 `transition-duration` 180ms, `prefers-reduced-motion: reduce`에서 펄스 없음, (f) 디자인 토큰만(hex, px 금지), 가운뎃점 없음.
+- [ ] **Step 2: 실패 확인** → FAIL
+- [ ] **Step 3: 구현** — 러너 챕터 기록 → 서비스 투영 → 세 컴포넌트 → Workbench 분기 → RunView/Panel 축소. 레이아웃은 설계 때 worker가 준 자리를 그대로 쓰고 실행 중에는 상태만 바꾼다(`WorkflowCanvas`에 `positions` 입력 또는 캐시).
+- [ ] **Step 4: 검사** → PASS. `npm run test:gates`, `check-motion-performance`(실행 장면에서 레이아웃 worker 메시지 0회, 메인 스레드 50ms 이하).
+- [ ] **Step 5: 문서와 커밋** — `docs/WORKFLOW-AGENT-2026-10.md`에 화면 절(설계 §3.12 요약과 스크린샷 경로). 커밋 뒤 보고하고 멈춤(Claude QA와 업로드).
 
 ---
 
@@ -393,7 +469,30 @@ Task 1~5 시험 110개는 통과했다. 코드 추적으로 확인한 결함은 
 ### 확인되어 괜찮은 것
 단계 출처 바인딩과 단일 제출, 모델 노출 도구 필터와 실행 때 금지, 복구 넛지의 필터 재사용, 템플릿 평가기의 금지 이름과 깊이/길이 상한, dry-run의 무부작용, `terminal.run`의 승인 경유와 비가역 검사, 문서 어댑터의 루트 격리, 보고서 가림, 순환 검출, 재시작 시 미확정 처리.
 
+## 2단계 검토 결과 (2026-10-19, Claude 독립 검토 — Task 6, 7, 14 일부와 Q5 구현)
+
+시험 192개 통과, `check-workflow-ui`(레인 장면 포함)와 `design:check` 통과. 실제 도구 결과 형태(`read_source`의 start/end/hash, `source_search`의 path/line/hash, `wiki_query`의 path/hash, `read_personal_mail`의 id/sourceHash)와 `workflow-evidence.mjs`가 맞는 것을 코드로 확인. 빌드가 `chunks/workflow-layout-worker.js`를 내보내고, 웹 공유 모듈(schema, template, completion, navigation, adapter-id, tools, policy, import-common)에 node: import가 없음을 확인. 아래 1건은 Task 8 시범 실행 전에 고친다.
+
+### W10. `ask_openwiki` 근거 영수증이 같은 실행의 다른 operation에 묶일 수 있음 (중요)
+- 원인: `agent.mjs`의 `onDelegated`가 `this.store.list('operation:').find(row=>row.taskId===taskId&&row.runId===runId&&row.tool==='ask_openwiki'&&row.state==='completed')`로 operation을 고른다. `agent-runtime.js:611-613`은 `delegateWikiQuestion`이 끝난 뒤 `onDelegated`를 부르므로, 한 에이전트 단계 실행에서 `ask_openwiki`를 두 번 부르면 두 번째 호출 때 완료된 ask_openwiki operation이 둘이고 `find`는 먼저 저장된 것을 돌려준다. 그러면 두 번째 영수증이 첫 operation id로 발급되고 첫 operation의 `workflowEvidence`를 덮어쓴다. 첫 영수증은 trace와 operation의 JSON이 달라져 `assertWorkflowEvidence`에서 `workflow_evidence_invalid`가 나고, 두 번째 영수증은 실제 호출과 다른 operation을 가리킨다. 전체 operation 순회도 저장소 크기에 비례한다.
+- 고침: 현재 호출의 operation id를 직접 넘긴다. 예: `execute`(826)에서 `name==='ask_openwiki'`이면 `item.id`와 `workflowTraceId`를 호출 단위 기록(예: `delegatedOperations` Map, 키는 레지스트리 fingerprint 또는 호출 순번)에 남기고 `onDelegated`에서 그 id로 `store.get`한다. 호출 단위 기록이 어렵다면 최소한 같은 runId의 완료 operation 중 `finishedAt`이 가장 늦은 것을 고른다. 시험: 한 단계에서 `ask_openwiki` 두 번 → 두 영수증 id가 서로 다른 operation을 가리키고, 두 번째 호출 뒤에도 첫 영수증이 유효하며, 두 영수증을 함께 제출하면 통과.
+
+### W11. 작은 것들
+- `WorkflowRunView`가 종료 전까지 1초마다 `workflowRun` 전체를 다시 받는다 → 단계가 많으면 매초 직렬화와 리렌더가 반복된다. 2초 이상으로 늘리고 `run.updatedAt`이 같으면 상태 갱신을 건너뛴다(iOS 부드러움 원칙: 불필요한 리렌더 금지).
+- Task 14 Step 1~3은 코드와 시험(`workflow-import-blueprint.test.mjs` 11개, `check-workflow-ui` 레인 장면)이 있으나 체크박스가 비어 있다 → 완료 시 갱신하고 남은 항목이 있으면 적는다.
+
 ---
+
+
+### Task 14 / W10 / W11 최종 검증 (Codex, 2026-10-19)
+
+- [x] 설계 §8 답 6의 저장 전 전체 미지원 진단, 원본 지도와 분기 합류 보존. Task 14 Step 1~3 완료.
+- [x] W10: 현재 호출의 정확한 operation id 바인딩. 서로 다른/같은 질문 × 목록 두 순서의 새 시험 4개와 기존 위키 회귀 32/32.
+- [x] W11: 2초 폴링, 불변 상태 setState 생략, 독립 질문 갱신. 비교 시험 3개와 실제 화면 회귀 통과.
+- [x] 전체 `test:gates` 종료 0: 2,255개 중 2,055 통과 / 실패 0 / 기존 건너뜀 200. 전체 화면 117개와 Claude 지정 네 회귀, Electron 산출물/개발 실행/MCP 재시작 검사 통과. 고정 소스 42개 해시 불변.
+- [ ] Claude QA87과 main 업로드 (Claude 담당)
+
+추가 시험 14개, 집중 회귀 221/221. 상세와 이번 수정 파일 18개: `docs/WORKFLOW-AGENT-T14-W10-W11-2026-10-19.md`. 보고 뒤 중단하며 Task 15와 Task 8, 2단계 및 업로드는 시작하지 않았다.
 
 ## 2단계 이후 (이 계획 밖)
 

@@ -1,6 +1,7 @@
 import {safeText} from './conversation-export.mjs';
 import {secretLike} from './secret-like.mjs';
 import {cleanModelText} from './model-text.mjs';
+import {completionLabel} from './workflow-completion.mjs';
 import {expandStepTools} from './workflow-tools.mjs';
 
 function value(input){
@@ -22,9 +23,14 @@ export function workflowReport(run){
   ...(synthetic?['합성 fixture로 단계 순서와 검증 조건을 확인했습니다.']:[]),'<details>\n<summary>실행 정보</summary>\n',`- 실행: ${code(run.id)}`,
   `- 버전: ${code(run.version)}`,`- 정의 해시: ${code(run.hash)}`,`- 트리거: ${code(run.trigger?.kind||'manual')}`,
   ...(run.createdAt?[`- 시작: ${text(run.createdAt)}`]:[]),...(run.finishedAt?[`- 종료: ${text(run.finishedAt)}`]:[]),
-  '</details>',...(run.warnings?.length?['## 확인할 근거',...run.warnings.map(warning=>'- '+code(warning))]:[]),'## 단계'];
+  '</details>',...(run.warnings?.length?['## 확인할 근거',...run.warnings.map(warning=>'- '+code(warning))]:[])];
+ if(Number.isFinite(run.workflow.metrics?.expectedMinutes))rows.push(`- 원본 예상 업무시간: ${run.workflow.metrics.expectedMinutes}분${run.workflow.metrics.partial?' (일부 단계 추정)':''}`);
+ const elapsed=(Date.parse(run.finishedAt)-Date.parse(run.createdAt))/60000;if(!synthetic&&Number.isFinite(elapsed)&&elapsed>=0)rows.push(`- 실행 경과: ${Math.round(elapsed*100)/100}분`);
+ if(run.workflow.notes?.length)rows.push('## 원본 참고',...run.workflow.notes.map(note=>text(note.content)));
+ rows.push('## 단계');
  for(const [index,step] of run.workflow.steps.entries()){
   const checkpoint=run.steps[step.id];rows.push(`### ${index+1}. ${text(step.name||step.id)}`,`- 상태: ${stepStatus(run,checkpoint)}`);
+  if(step.done_when)rows.push(`- 완료 조건: ${text(completionLabel(step.done_when))}`);
   if(step.action_summary)rows.push(`- 동작: ${text(step.action_summary)}`);
   if(checkpoint?.answer!==undefined){const label=step.outputs?.decision?.includes(checkpoint.answer)?{approve:'진행',stop:'중단'}[checkpoint.answer]:undefined;rows.push(`- 사람 답: ${label?label+' ('+text(checkpoint.answer)+')':text(checkpoint.answer)}`);}
   if(checkpoint?.receipts?.length)rows.push(`- ${synthetic?'합성 영수증':'영수증'}: ${checkpoint.receipts.map(code).join(', ')}`);
