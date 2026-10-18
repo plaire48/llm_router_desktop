@@ -9,7 +9,9 @@ const require=createRequire(import.meta.url);
 export const PLAYWRIGHT_MCP_VERSION='0.0.83';
 // 2026-10-15: find (cheap ref search instead of a full snapshot), fill_form (one call per form) and mouse_wheel (lazy
 // pages need scrolling) added; evaluate, run_code, uploads, cookies and network stay out.
-const allowed=new Set(['browser_snapshot','browser_find','browser_click','browser_type','browser_fill_form','browser_press_key','browser_select_option','browser_hover','browser_mouse_wheel','browser_navigate','browser_navigate_back','browser_wait_for']);
+// Claude Code benchmark (2026-10-18): console errors, viewport presets, dialog handling and the testing verifiers join
+// the set. browser_evaluate, network listing (URLs can carry tokens), file upload and raw coordinates stay out.
+const allowed=new Set(['browser_snapshot','browser_find','browser_click','browser_type','browser_fill_form','browser_press_key','browser_select_option','browser_hover','browser_mouse_wheel','browser_navigate','browser_navigate_back','browser_wait_for','browser_console_messages','browser_resize','browser_handle_dialog','browser_verify_text_visible','browser_verify_element_visible']);
 // Official MCP tools, with an explicit Nubi tab id on every operation. No JS,
 // cookies, network logs, file upload or authentication tabs. Captures are bounded PNGs, never disk files.
 export async function createInAppPlaywright(request){
@@ -49,7 +51,7 @@ export async function createInAppPlaywright(request){
     browser.once('disconnected',()=>{void close();});
     if(disposed)throw Error('mcp_tool_unavailable');
    }
-   server=await createConnection({timeouts:{action:5000,navigation:15000,settle:150},saveSession:false,webmcp:false,console:{level:'error'},outputDir,codegen:'none',snapshot:{mode:'none'},capabilities:['vision']},async()=>{
+   server=await createConnection({timeouts:{action:5000,navigation:15000,settle:150},saveSession:false,webmcp:false,console:{level:'error'},outputDir,codegen:'none',snapshot:{mode:'none'},capabilities:['vision','testing']},async()=>{
     if(!tabId)throw Error('browser_tab_required');
     if(!browser?.isConnected())throw Error('browser_cdp_disconnected');
     return browser.contexts()[0];

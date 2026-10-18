@@ -87,6 +87,9 @@
 .nubi-account-button[data-connected="false"] .nubi-account-avatar { background:transparent; color:var(--nubi-text-primary,var(--deck-ink)); }
 
 .nubi-account-avatar-photo { display:inline-flex; align-items:center; justify-content:center; width:100%; height:100%; overflow:hidden; border-radius:50%; }
+/* Rail labels are hidden independently; the nested identity photo must keep its full size. */
+.nubi-workspace-navigation.nubi-workspace-rail .nubi-account-button .nubi-account-avatar-photo { position:static; width:100%; height:100%; margin:0; clip-path:none; white-space:normal; }
+.nubi-workspace-navigation.nubi-workspace-rail .nubi-account-button[data-connected="true"] > .nubi-account-name-label { display:none; }
 /* Status follows the name without entering the truncated text container. */
 .nubi-account-control, .nubi-ghes-modal { --nubi-account-status-font:12px; --nubi-account-status-profile-font:17px; }
 .nubi-account-status-emoji { position:static; margin:0; flex:none; display:grid; place-items:center; width:18px; height:18px; border-radius:50%; background:transparent; box-shadow:none; font-family:var(--nubi-emoji-family); font-size:var(--nubi-account-status-font); line-height:var(--nubi-line-solid); pointer-events:auto; overflow:hidden; z-index:1; }

@@ -9,6 +9,11 @@ export async function prepareAppIcon(){
   if(!bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))||bytes.readUInt32BE(16)<256||bytes.readUInt32BE(20)<256)throw Error('app_icon_resolution');
   const directory=path.join(root,'electron-app/resources');
   await mkdir(directory,{recursive:true});
-  const target=path.join(directory,'nubi.png');await copyFile(source,target);
+  const target=path.join(directory,'nubi.png');
+  const existing=await readFile(target).catch(error=>{
+    if(error.code==='ENOENT')return null;
+    throw error;
+  });
+  if(!existing?.equals(bytes))await copyFile(source,target);
   return target;
 }

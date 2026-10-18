@@ -104,9 +104,9 @@ const ACTION_TOOLS=new Set(['propose_patch','propose_edit','propose_new_file','p
 const FULL_DESCRIPTION_OVERRIDES={
   source_search:"Exact text search; use ask_openwiki for concepts.",
   knowledge_query:"Find concept and source relations.",
-  spawn_task:"Offer a confirmed out-of-scope task.",
+  spawn_task:"Propose work: paths, evidence, outcome.",
   mark_chapter:"Mark a phase change.",
-  send_file:"Attach a result file or capture.",
+  send_file:"Return one produced path/captureId.",
   inspect_workspace_changes:"Read Git status or a bounded diff.",
   read_analysis_handoff:"Read a saved analyst handoff without restarting it.",
   propose_setup_action:"Prepare an exact command for approval.",
@@ -130,7 +130,7 @@ const FULL_DESCRIPTION_OVERRIDES={
   wiki_query:"Search Wiki excerpts and evidenceIds.",
   mail_facts:"Find dated, quoted mail facts with sources.",
   read_document_analysis:"Read saved analysis or excerpts.",
-  update_plan:"Set intent, outcome steps and status.",
+  update_plan:"Plan outcome steps.",
   ask_openwiki:"Delegate synthesis or how/why research; it researches openwiki/ separately.",
   compare_document_values:"Compare exact numeric source ranges.",
   learn_browser_screen:"Learn authorized screen structure and meaning.",
@@ -146,6 +146,7 @@ const FULL_DESCRIPTION_OVERRIDES={
   read_process_output:"Read or search a process log by processId.",
 };
 const DESCRIPTION_OVERRIDES={
+  ...Object.fromEntries(['spawn_task','send_file','update_plan'].map(name=>[name,FULL_DESCRIPTION_OVERRIDES[name]])),
   propose_setup_action:'Prepare one exact setup/start/test command for approval; interactive supports terminal input.',
   delegate_analysis:'Start up to six isolated read-only analysts, two concurrent: tasks[] (role, task, done_when, frozen evidence_ids). Retrieve reports with collect_analysis.',
   collect_analysis:'Collect finished analyst reports; wait=false returns what is ready, task_ids recovers earlier reports.',

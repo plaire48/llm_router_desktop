@@ -12,7 +12,7 @@ import {ProjectService} from '../runtime/project-service.mjs';
 import {installAgent} from '../runtime/agent.mjs';
 installAgent(ProjectService);
 const out=path.resolve(process.env.NUBI_NATIVE_UI_OUTPUT||'../../artifacts/workspace-native-1/ui');await mkdir(out,{recursive:true});
-await build({entryPoints:['tests/native-office-ui-fixture.jsx'],outfile:path.join(out,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.woff2':'file','.woff':'file'},define:{'process.env.NODE_ENV':'"production"'}});
+await build({entryPoints:['tests/native-office-ui-fixture.jsx'],outfile:path.join(out,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.woff2':'file','.woff':'file','.webp':'file'},define:{'process.env.NODE_ENV':'"production"'}});
 await writeFile(path.join(out,'index.html'),'<!doctype html><html lang="ko"><meta charset="utf-8"><link rel="stylesheet" href="app.css"><div id="root"></div><script type="module" src="app.js"></script></html>');
 let current,writes=0,documentData;const cleanup=[];const {service}=await fixture({after:fn=>cleanup.push(fn)});
 const read={action:'get',member:'Text'};

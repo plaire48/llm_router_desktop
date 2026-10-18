@@ -2,7 +2,7 @@ import {build} from 'esbuild';
 import {chromium} from 'playwright';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-const bundle=await build({entryPoints:['tests/deferred-screen-fixture.jsx'],bundle:true,write:false,outdir:'/tmp/nubi-deferred-screen',format:'iife',platform:'browser',alias:Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),define:{'process.env.NODE_ENV':'"production"'}});
+const bundle=await build({entryPoints:['tests/deferred-screen-fixture.jsx'],bundle:true,write:false,outdir:'/tmp/nubi-deferred-screen',format:'iife',platform:'browser',loader:{'.webp':'file'},alias:Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),define:{'process.env.NODE_ENV':'"production"'}});
 const browser=await chromium.launch({channel:'chrome',headless:true});
 try{
  const page=await browser.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));

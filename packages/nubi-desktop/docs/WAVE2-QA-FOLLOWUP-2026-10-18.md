@@ -2,7 +2,11 @@
 
 ## 상태
 
-F13 → F14 → F12 → F15 순서로 수정했다. 집중 단위 시험 79/79, Chrome 화면 검사, 실제 macOS Electron 개발 검사 8개가 통과했다. `npm run test:gates`는 실행 중이다. 완료 판정과 계획 체크박스는 전체 게이트 종료 뒤 갱신한다. F11의 Claude 수정은 건드리지 않고 읽음 표시 회귀를 함께 통과했다. Codex는 commit, push, 릴리스 작업을 하지 않았다.
+F13 → F14 → F12 → F15 수정 완료. `npm run test:gates` **종료 코드 0**: 단위 1,859 통과/0 실패/200 건너뜀, 전체 화면 117종, 추가 QA 4종, 실제 macOS Electron 개발 검사 8개와 MCP 승인 6개 통과. F11의 Claude 변경은 유지하고 읽음 표시 회귀도 통과했다. 사용자 추가 요청인 ‘승인’ 버튼 문구와 변경량 표시 오류도 포함했다.
+
+게이트 전후 소스/시험 1,179개 해시에서 제품 코드는 같았다. 실행 중 `check-wave2-ui.mjs` 하나에 추가 편집이 들어와 최종 종료 처리를 보완하고 **동일한 화면 단언 전체를 별도 재실행해 종료 코드 0**을 확인했다. 최종 게이트 로그는 해당 종료 보완 전 버전, `wave2-ui-final.log`는 최종 검사 파일의 근거다. 제품 전체 게이트를 새 종료 코드로 재실행했다고 소급하지 않는다.
+
+계획 F12~F15 체크박스를 갱신했다. Codex는 commit, push, 릴리스를 하지 않았다. Claude의 최종 QA와 업로드 단계로 넘긴다.
 
 ## 수정
 
@@ -25,8 +29,8 @@ F13 → F14 → F12 → F15 순서로 수정했다. 집중 단위 시험 79/79, 
 | 최종 집중 단위 | `focused.log`: 79 통과, 실패 0, 건너뜀 0 |
 | Chrome 화면 | `wave2-ui.log`, `packages/nubi-desktop/verification/wave2/result.json`: 1280/440 제안 배지와 기존 챕터/보관/카드/모달 검증 |
 | 실제 Electron | `development-electron-final.log`: 8개 통과. 변경된 manifest의 자동 승인 없음, 새 process 없음, 1280/440 카드와 가림 없음 확인 |
-| 소스 고정 | `files-before-gates.json`: runtime/UI/design/scripts/tests 1,179개 해시. 게이트 후 대조 예정 |
-| 전체 게이트 | `gates.log`: 실행 중 |
+| 소스 고정 | `files-before-gates.json`: runtime/UI/design/scripts/tests 1,179개 해시. 최종 대조: 제품 변경 없음, 화면 검사 종료 처리 한 파일은 별도 재검증 |
+| 전체 게이트 | `gates.log`: 종료 코드 0. 최종 검사 종료 처리는 `wave2-ui-final.log`로 별도 통과 |
 
 Electron 첫 시도의 `project_changed`는 시험이 overview 대신 state에서 프로젝트 ID를 읽어 발생했으며 시험을 수정했다. 중간 440px 캡처에는 열린 터미널이 앞에 있어, 보조 터미널을 닫고 카드 중앙이 다른 요소에 가리지 않는 검사도 추가한 뒤 최종 캡처를 확인했다. 초기 실패 로그를 보존했다.
 
@@ -35,12 +39,15 @@ Electron 첫 시도의 `project_changed`는 시험이 overview 대신 state에�
 ## 사용자 추가 요청
 
 - 기본 명령과 수정 명령의 ‘실행 승인’ 버튼을 ‘승인’으로 줄였다. 관리자 권한과 입력 승인은 의미를 유지한다. 해당 버튼을 찾는 기존 화면 검사도 같은 문구로 맞췄다.
-- 코드 변경 목록의 두 파일에 표시된 ‘확인 필요’를 조사했다. 당시 반영 해시는 맞았으나 macOS 저장 경로의 `/var`와 `/private/var` 별칭을 다른 경로로 판단해 비교 스냅샷을 거부했다. 신뢰하는 저장 부모 경로만 정규화하고 하위/파일 symlink 거부를 유지했다. 저장소 별칭에서 실제 제안과 반영을 거친 실패 시험을 만든 뒤 수정했다. 관련 단위 5/5 및 실제 Electron의 합계 추가 2줄/삭제 2줄을 확인한다.
+- 코드 변경 목록의 두 파일에 표시된 ‘확인 필요’를 조사했다. 당시 반영 해시는 맞았으나 macOS 저장 경로의 `/var`와 `/private/var` 별칭을 다른 경로로 판단해 비교 스냅샷을 거부했다. 신뢰하는 저장 부모 경로만 정규화하고 하위/파일 symlink 거부를 유지했다. 저장소 별칭에서 실제 제안과 반영을 거친 실패 시험을 만든 뒤 수정했다. 관련 단위 5/5 및 실제 Electron의 합계 추가 2줄/삭제 2줄을 확인했다.
 - 최초 전체 게이트는 이 추가 요청을 최종 소스에 반영하기 위해 소유 프로세스 트리만 중단했다. `gates-before-user-ui-followup.log`에 남겼으며 통과 결과로 세지 않는다. 제품 수정 후 전체 게이트를 새로 실행한다.
 
-## 검사 종료 복구
+## 검사 종료 복구와 동시 편집
 
-추가 요청을 반영한 첫 전체 게이트는 단위 1,859 통과/0 실패/200 건너뜀과 Wave2 화면의 모든 단언을 통과한 뒤 `browser.close()`에서 종료되지 않았다. Chrome 자식은 사라졌으나 검사 HTTP 서버가 열린 채 남은 것을 프로세스와 열린 파일 목록으로 확인했다. 빌드 서비스만 중지해도 해소되지 않아 해당 게이트 트리만 종료했다. `gates-browser-cleanup-stalled.log`는 전체 통과로 세지 않는다. Wave2 검사 종료에 15초 제한을 넣고 성공/실패와 무관하게 HTTP 연결 및 esbuild 서비스를 정리한다. 이 최종 스크립트의 단독 실행은 모든 화면 단언 후 종료 코드 0이었다(`wave2-ui-cleanup.log`). 전체 게이트는 이 소스로 다시 실행한다.
+- 첫 전체 재실행은 단위와 Wave2의 화면 단언을 모두 통과한 뒤 `browser.close()`에서 멈췄다. Chrome 자식은 사라졌으나 검사 HTTP 서버와 통신 파이프가 남아 있었다. 검사 전용 빌드 서비스만 종료해도 해소되지 않아 소유 게이트 트리만 중지했다. `gates-browser-cleanup-stalled.log`는 전체 통과가 아니다.
+- 제한 시간과 정리 코드를 넣은 재실행에서 전체 `test:gates`가 종료 코드 0으로 끝났다. 해시 대조 때 Wave2 스크립트에 동시 편집된 종료 코드가 확인됐다. 그 코드의 Playwright Browser에는 없는 `process()` 호출과 종료 실패 무시 처리를 제거했다.
+- 단독 후속 검사에서 종료 시간 초과를 재현했고, 공식 `launchServer`/`connect`/`BrowserServer.kill`로 검사 전용 프로세스를 소유하도록 바꿨다. 이 과정의 한 차례 문법 오류도 수정했다. 최종 코드는 소유한 Chrome의 실제 exit를 확인한 뒤 상속된 통신 파이프를 닫아 Playwright의 close와 임시 폴더 정리가 끝나게 한다. 종료 15초 제한은 유지하며 화면 단언 또는 정리 실패를 통과로 바꾸지 않는다. 사용자 브라우저를 종료하지 않는다.
+- 최종 전체 화면 단언과 프로세스 종료는 `wave2-ui-final.log`에서 종료 코드 0이다. `wave2-ui-final-concurrent-edit.log`, `wave2-ui-owned-server.log`, `wave2-ui-kill-timeout.log`, `wave2-ui-cleanup-syntax-error.log`에 중간 실패를 남겼다. 제품 소스는 전체 게이트 이후 바뀌지 않았다.
 
 ## 변경 파일
 

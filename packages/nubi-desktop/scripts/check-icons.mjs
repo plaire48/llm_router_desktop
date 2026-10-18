@@ -22,8 +22,9 @@ writeFileSync(path.join(dir,'probe.jsx'),`import React from 'react';import {rend
 const names=${JSON.stringify([...used.keys()])};const missing=[];
 for(const name of names){try{renderToStaticMarkup(<Icon name={name} size={16}/>);}catch(error){missing.push(name+' ('+String(error.message).slice(0,60)+')');}}
 console.log(JSON.stringify(missing));`);
-const result=await build({entryPoints:[path.join(dir,'probe.jsx')],bundle:true,write:false,platform:'node',format:'esm',external:['react','react-dom','react-dom/server'],loader:{'.jsx':'jsx','.css':'empty','.png':'dataurl'},jsx:'automatic',nodePaths:[path.resolve('node_modules')],logLevel:'silent'});
-writeFileSync(path.join(dir,'probe.bundle.mjs'),result.outputFiles[0].text);
+const bundlePath=path.join(dir,'probe.bundle.mjs');
+const result=await build({entryPoints:[path.join(dir,'probe.jsx')],outfile:bundlePath,bundle:true,write:false,platform:'node',format:'esm',external:['react','react-dom','react-dom/server'],loader:{'.jsx':'jsx','.css':'empty','.png':'dataurl','.webp':'file'},jsx:'automatic',nodePaths:[path.resolve('node_modules')],logLevel:'silent'});
+writeFileSync(bundlePath,result.outputFiles.find(file=>file.path===bundlePath).text);
 const {execFileSync}=await import('node:child_process');
 const missing=JSON.parse(execFileSync(process.execPath,[path.join(dir,'probe.bundle.mjs')],{encoding:'utf8'}).trim().split('\n').pop());
 if(missing.length){for(const item of missing){const name=item.split(' ')[0];console.log(`${used.get(name)}: ${item}`);}console.log(`없는 아이콘 ${missing.length}개`);process.exit(1);}

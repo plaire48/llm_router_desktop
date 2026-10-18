@@ -11,9 +11,10 @@ await cp('../../extensions/aipro-chat/public/icons',path.join(dir,'icons'),{recu
 await writeFile(path.join(dir,'index.html'),'<!doctype html><html lang="ko"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Nubi Wave 2</title><link rel="stylesheet" href="app.css"><div id="root"></div><script type="module" src="app.js"></script></html>');
 const server=createServer(async(req,res)=>{try{const requested=path.resolve(dir,'.'+new URL(req.url,'http://localhost').pathname.replace(/\/$/,'/index.html'));if(!requested.startsWith(dir+path.sep))throw Error();const ext=path.extname(requested),data=await readFile(requested);res.writeHead(200,{'content-type':({'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.svg':'image/svg+xml','.woff2':'font/woff2','.webp':'image/webp'})[ext]||'application/octet-stream'}).end(data);}catch{res.writeHead(404).end();}});await new Promise(r=>server.listen(0,'127.0.0.1',r));
 
-let browser;const errors=[],checks=[];
+let browser,browserServer;const errors=[],checks=[];
 try {
- browser=await chromium.launch({channel:'chrome',headless:true});
+ browserServer=await chromium.launchServer({channel:'chrome',headless:true});
+ browser=await chromium.connect(browserServer.wsEndpoint());
  if(!process.argv.includes('--routines-only')){
  for(const width of [1280,440]){
   const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});page.on('pageerror',error=>errors.push(error.message));
@@ -170,10 +171,18 @@ try {
  await writeFile(path.join(dir,'result.json'),JSON.stringify({checks,errors,scope:'Synthetic Workbench fixture on macOS; no live model or Windows verification.'},null,2));
  console.log('PASS: chapters, archive, output cards, side tasks and interrupted recovery');
 }finally{
- // Drop the fixture's open polling connections before closing Chromium, as the other checks do; otherwise browser.close() can hang.
- server.closeAllConnections();
- if(browser){const open=browser.contexts().flatMap(context=>context.pages());console.log('cleanup: open pages',open.length,open.map(page=>page.url()).join(' '));for(const page of open)await page.close({runBeforeUnload:false}).catch(()=>{});}
  let deadline;
- try{await Promise.race([browser?.close(),new Promise((_,reject)=>{deadline=setTimeout(()=>reject(Error('wave2_browser_cleanup_timeout')),15000);})]);}
- finally{clearTimeout(deadline);const closed=new Promise(resolve=>server.close(resolve));server.closeAllConnections();await closed;stopBuildService();}
+ const child=browserServer?.process();
+ // Chromium helpers can retain inherited pipe descriptors after the actual
+ // browser has exited. Release only this owned child's pipes, and only after
+ // its exit, so Playwright's close event and temporary-directory cleanup finish.
+ const releaseExitedPipes=()=>{if(child&&(child.exitCode!==null||child.signalCode!==null))for(const stream of child.stdio||[])stream?.destroy?.();};
+ child?.once('exit',releaseExitedPipes);
+ try{
+  const stopped=browserServer?.kill();releaseExitedPipes();
+  await Promise.race([stopped,new Promise((_,reject)=>{deadline=setTimeout(()=>reject(Error('wave2_browser_cleanup_timeout')),15000);})]);
+ }finally{
+  clearTimeout(deadline);child?.removeListener('exit',releaseExitedPipes);
+  const closed=new Promise(resolve=>server.close(resolve));server.closeAllConnections();await closed;stopBuildService();
+ }
 }

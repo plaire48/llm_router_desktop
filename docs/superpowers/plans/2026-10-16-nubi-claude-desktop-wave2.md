@@ -14,6 +14,8 @@
 
 ## Global Constraints
 
+- **Apple iOS 벤치마크와 성능(2026-10-18 사용자 지시)**: 화면을 만들거나 고치는 작업은 Apple HIG 모션(짧고 목적 있는 전환, ease-out, 작은 탄성, 모션 감소 존중)과 기존 수치(모달 열기와 크기 280ms, 닫기 180ms, 화면 전환 280ms)를 따르고 `ui/viewTransition.js`, `modalMotion.js`, `frame-coalescer.mjs`를 재사용한다. 메인 스레드 50ms 이상 작업 금지(무거운 계산은 worker), 긴 목록은 가상화, 새 화면마다 `check-motion-performance`와 `check-ui-responsiveness`에 장면을 추가하고 전후 수치를 기록한다. 프리징 보고가 있으면 재현 → 측정 → 수정 → 재측정 순서.
+- **오픈소스 먼저(2026-10-18 사용자 지시)**: 작업을 시작하기 전에 관련 오픈소스 후보를 조사해(스타는 `gh api`로 실측, 라이선스, 최근 커밋, 누비 적합성) 작업 기록에 표로 남기고, 채택/패턴 참고/보류를 명시한다. 기존 의존성과 중복되면 도입하지 않는다.
 - 사용자 메시지, 오류 안내, 로그는 한국어. 가운뎃점(·) 금지.
 - 기록은 지우거나 옮기지 않는다(2026-10-14 결정). 챕터, 칩, 카드는 추가만 한다.
 - 승인 모델과 근거 검증은 그대로. 하위 에이전트는 읽기 도구만. 쓰기, 명령, 질문, 승인은 메인만.
@@ -300,7 +302,7 @@ Run: `node --test tests/irreversible-actions.test.mjs tests/approval-policy.test
 
 2026-10-18: 확장한 `npm run test:gates` 종료 코드 0. 단위 1,749 통과, 실패 0, 환경 조건 200개 제외. 디자인, 빌드, 화면/Electron 흐름, 117개 전체 화면, 신규 승인 화면과 추가 QA 4개 모두 통과. 실패 재현, 변경 파일, 증거 경계는 `packages/nubi-desktop/docs/WAVE2-TASK2-2026-10-18.md`에 기록했다.
 
-- [ ] **Step 5b: Claude 검토와 업로드**
+- [x] **Step 5b: Claude 검토와 업로드** **완료(2026-10-18, main ddcb51d1)**
 
 설계 §8.6에 따라 Claude가 검토 후 업로드한다. Codex는 commit/push하지 않았다. 권장 메시지: `feat(nubi-desktop): require approval for irreversible actions`.
 
@@ -370,7 +372,7 @@ export function autoArchive(store,{days,now=Date.now()}={}){
 
 - [x] **Step 6a: 로컬 QA** — 최종 `npm run test:gates` 종료 코드 0. 단위 1,761 통과/0 실패/200 제외, 빌드와 macOS Electron, 117개 전체 화면 및 추가 위키/계정/활동/실패 검사 4종 통과. 기록: `packages/nubi-desktop/docs/WAVE2-TASK3-2026-10-18.md`.
 
-- [ ] **Step 6b: Claude QA 뒤 업로드** — 메시지: `feat(nubi-desktop): 사이드바 읽지 않음 점과 대화 보관(자동 보관 30일)`.
+- [x] **Step 6b: Claude QA 뒤 업로드** — 메시지: `feat(nubi-desktop): 사이드바 읽지 않음 점과 대화 보관(자동 보관 30일)`. **완료(2026-10-18, main ddcb51d1)**
 
 ---
 
@@ -438,7 +440,7 @@ export async function registerOutput({root},task,{path:rel,caption='',runId}){
 
 - [x] **Step 6a: 로컬 전체 QA** — `npm run test:gates`.
 
-- [ ] **Step 6b: Claude QA와 업로드** — 메시지: `feat(nubi-desktop): 산출물 카드 — 실행이 만든 파일을 대화에 붙이고 오른쪽 창에서 열기`.
+- [x] **Step 6b: Claude QA와 업로드** — 메시지: `feat(nubi-desktop): 산출물 카드 — 실행이 만든 파일을 대화에 붙이고 오른쪽 창에서 열기`. **완료(2026-10-18, main ddcb51d1)**
 
 2026-10-18: 누락 모듈과 카드 UI 실패를 먼저 확인했다. 파일/캡처 범위 및 실행별 한도, 실제 도구 저장을 포함한 집중 시험 16개 통과. 1280/440 화면에서 카드 위치, 긴 제목 줄바꿈과 키보드 열기를 확인했다. 최종 전체 게이트 종료 코드 0: 단위 1,767 통과/실패 0/조건부 제외 200. 디자인, 빌드, 화면/Electron과 추가 QA 4개 및 산출물 카드 Electron 검사 모두 통과했다. 변경 파일 15개와 최초 실패는 `packages/nubi-desktop/docs/WAVE2-TASK4-2026-10-18.md`에 기록했다. 업로드는 Claude QA 뒤 별도이며 Codex는 push하지 않았다.
 
@@ -510,7 +512,7 @@ export function transitionSideTask(task,id,state){
 
 - [x] **Step 6a: 로컬 전체 QA** — `npm run test:gates`.
 
-- [ ] **Step 6b: Claude QA와 업로드** — 메시지: `feat(nubi-desktop): 곁가지 작업 칩 — 범위 밖 일을 새 대화로`.
+- [x] **Step 6b: Claude QA와 업로드** — 메시지: `feat(nubi-desktop): 곁가지 작업 칩 — 범위 밖 일을 새 대화로`. **완료(2026-10-18, main ddcb51d1)**
 
 2026-10-18: 모듈 누락과 칩 미표시를 먼저 확인했다. 집중 검사 32개와 1280/440 화면 검사를 통과했다. 새 대화는 계획대로 `createTask`로 준비한 뒤 선택하며 기존 시작 버튼을 사용한다. 중복 클릭, 사용자 닫기와 늦은 모델 응답, 같은 프로젝트 바인딩을 보완했다. 첫 전체 게이트에서 압축 회귀 2건을 재현해 중복 도구 안내를 줄였고 공용 압축 코드와 기존 시험은 유지했다. 최종 집중 41/41, 전체 게이트 종료 코드 0(단위 1,776 통과/0 실패/200 건너뜀), 117 화면과 추가 QA 4종, Electron 산출물 열기까지 통과했다. `packages/nubi-desktop/docs/WAVE2-TASK5-2026-10-18.md`에 근거와 변경 파일을 기록했다. Claude QA와 업로드는 남아 있으며 push하지 않았다.
 
@@ -570,7 +572,7 @@ export function developmentEvidenceMissing(task,receipts){
 - [x] **Step 4: 시험** — `node --test tests/after-edit-check.test.mjs tests/development-gate.test.mjs tests/result-review.test.mjs tests/development-execution.test.mjs` → PASS. `tests/development-gate.test.mjs`: 증거 없는 완료 답이 `revise`, 검사 명령 영수증(exit 0, 반영 이후 시각)이 있으면 모델 판정 그대로.
 - [x] **Step 5: Electron 검사** — `scripts/check-development-execution-electron.mjs`에 설정한 검사 명령이 반영 뒤 승인 카드로 올라오는 단계 하나.
 - [x] **Step 6a: 로컬 QA** — 전체 `npm run test:gates` 종료 코드 0. 단위 1,793 통과/0 실패/200 건너뜀, 화면 117종과 추가 QA 4종 및 native 개발 6개 경로 통과.
-- [ ] **Step 6b: Claude 검토와 업로드** — Codex는 commit/push하지 않음. 권장 메시지: `feat(nubi-desktop): 편집 뒤 자동 검사 명령과 개발 검증 증거 게이트`.
+- [x] **Step 6b: Claude 검토와 업로드** — Codex는 commit/push하지 않음. 권장 메시지: `feat(nubi-desktop): 편집 뒤 자동 검사 명령과 개발 검증 증거 게이트`. **완료(2026-10-18, main ddcb51d1)**
 
 ---
 
@@ -596,7 +598,7 @@ export function developmentEvidenceMissing(task,receipts){
 - [x] **Step 4: 시험** — `node --test tests/model-retry.test.mjs tests/run-metrics.test.mjs tests/recovery.test.mjs tests/model-tool-batch.test.mjs` → PASS.
 - [x] **Step 5: 화면 검사** — `check-wave2-ui.mjs` fixture `?interrupted`: 단추 하나, 1280/440px에서 Enter로 `resumeAgent` 한 번 호출. `startAgent` 추가 요청 없음, 대화와 승인 대기 카드 보존.
 - [x] **Step 6a: 로컬 전체 QA** — `npm run test:gates`.
-- [ ] **Step 6b: Claude QA와 업로드** — Codex는 push하지 않는다.
+- [x] **Step 6b: Claude QA와 업로드** — Codex는 push하지 않는다. **완료(2026-10-18, main ddcb51d1)**
 
 2026-10-18: 집중 50/50, 최종 전체 게이트 종료 코드 0(단위 1,783 통과/0 실패/200 건너뜀), 117 화면과 추가 QA 4종 통과. 제품 변경은 기존 transport 기본값 한 곳이다. 기록과 변경 파일은 `packages/nubi-desktop/docs/WAVE2-TASK8-2026-10-18.md`. Claude QA/업로드는 남아 있다.
 
@@ -683,7 +685,7 @@ export function createResearchAgent({readTools,execute,invokeModel,limit={concur
 - [x] **Step 5: 합성 모델 검사** — `scripts/check-electron-agent.mjs`에 한 턴 추가: 모델이 `delegate_research`를 부르고 fixture 모델이 하위에서 `read_source` 1회 뒤 JSON으로 답, 메인이 출처를 `read_source`로 다시 읽고 답. 기록에 역할 "조사"가 보인다.
 - [x] **Step 6a: 로컬 QA** — 메시지: `feat(nubi-desktop): 조사 하위 에이전트 — 읽기 전용 자체 문맥, 동시 2, 이어서 묻기`.
 
-- [ ] **Step 6b: Claude QA 뒤 비공개 main 업로드** — Codex는 commit/push하지 않는다.
+- [x] **Step 6b: Claude QA 뒤 비공개 main 업로드** — Codex는 commit/push하지 않는다. **완료(2026-10-18, main ddcb51d1)**
 
 ---
 
@@ -714,7 +716,7 @@ test('export keeps order: request, chapters, tool names and commands, answers; n
 - [x] **Step 5: Electron 검사** — `scripts/check-electron-projects.mjs`에 내보내기 한 단계(`dialog.showSaveDialog`를 evaluate로 대체, 파일 내용에 요청 문장 포함).
 - [x] **Step 6a: 로컬 QA** — 메시지: `feat(nubi-desktop): 대화 Markdown 내보내기`.
 
-- [ ] **Step 6b: Claude QA 뒤 비공개 main 업로드** — Codex commit/push 없음.
+- [x] **Step 6b: Claude QA 뒤 비공개 main 업로드** — Codex commit/push 없음. **완료(2026-10-18, main ddcb51d1)**
 
 2026-10-18: 전체 게이트 종료 코드 0, 1,813 통과/0 실패/200 건너뜀. 기록과 변경 8개 파일은 `packages/nubi-desktop/docs/WAVE2-TASK10-2026-10-18.md`.
 
@@ -733,7 +735,7 @@ test('export keeps order: request, chapters, tool names and commands, answers; n
 - [x] **Step 5: 화면 검사** — fixture `?usage`로 모달 열림과 표 행 6개.
 - [x] **Step 6a: 로컬 QA** — 메시지: `feat(nubi-desktop): 이 대화의 사용량 — 목적별 호출과 토큰, 압축, 재시도`.
 
-- [ ] **Step 6b: Claude QA 뒤 비공개 main 업로드** — Codex commit/push 없음.
+- [x] **Step 6b: Claude QA 뒤 비공개 main 업로드** — Codex commit/push 없음. **완료(2026-10-18, main ddcb51d1)**
 
 2026-10-18: 전체 게이트 종료 코드 0. 단위 1,815 통과/0 실패/200 건너뜀. 기록과 변경 10개 파일은 `packages/nubi-desktop/docs/WAVE2-TASK11-2026-10-18.md`.
 
@@ -771,7 +773,7 @@ test('the scheduler runs due routines once, records lastRunAt and never overlaps
 - [x] **Step 4: 시험** → PASS
 - [x] **Step 5: Electron 검사** — `scripts/check-electron-lifecycle.mjs`에 루틴 한 건 추가 뒤 "지금 실행"으로 대화가 생기고 사이드바에 보이는 단계. 자동 시각 실행은 단위 시험으로만.
 - [x] **Step 6a: 로컬 전체 QA** — 공통 모달 아이덴티티와 최종 리뷰 보완 포함 `npm run test:gates` 종료 코드 0. 단위 1,827 통과/0 실패/200 건너뜀, 화면 117종, 추가 QA 4종과 실제 Electron 개발 6개 경로 통과. 최종 소스/시험 87파일 해시 확인. 상세: `packages/nubi-desktop/docs/WAVE2-QA-HANDOFF-2026-10-18.md`.
-- [ ] **Step 6b: Claude QA와 업로드** — Codex는 commit/push하지 않는다. 권장 메시지: `feat(nubi-desktop): add scheduled routines with existing decision gates`.
+- [x] **Step 6b: Claude QA와 업로드** — Codex는 commit/push하지 않는다. 권장 메시지: `feat(nubi-desktop): add scheduled routines with existing decision gates`. **완료(2026-10-18, main ddcb51d1)**
 
 ---
 
@@ -875,11 +877,15 @@ test('the scheduler runs due routines once, records lastRunAt and never overlaps
 - 탐침: `spawn_task`의 prompt에 `\u0007`, `\u001b[31m`이 그대로 저장되고, `mark_chapter`의 제목이 폭 없는 문자(`\u200b`)만으로도 통과한다. 칩 prompt가 새 대화의 첫 요청이 되므로 슬래시 명령(`/wiki_update …`)으로 시작하는 prompt도 그대로 받는다(호스트 동작으로 이어지는지는 보안 검토 결과에 따름).
 - 고침: 공통 정리 함수(`cleanModelText`: C0/C1 제어 문자와 폭 없는 문자 제거, 공백 정리)를 chapters, side-tasks, output-files 캡션에 적용하고, 정리 뒤 비면 `*_invalid`. 칩 prompt는 `/`로 시작하면 `side_task_invalid`(새 대화의 첫 요청은 일반 문장만).
 
+- [x] 2026-10-18 Codex 수정 완료. 실패 재현 후 관련 단위/실화면 검사와 `npm run test:gates` 종료 코드 0(1,859 통과/0 실패/200 건너뜀). 게이트 뒤 동시 편집된 화면 검사 종료 코드는 별도 최종 재검증 통과. [파일 목록과 근거](../../../packages/nubi-desktop/docs/WAVE2-QA-FOLLOWUP-2026-10-18.md). 제품 소스는 게이트 이후 동일하며 push하지 않음.
+
 ### F13. 편집 뒤 자동 검사가 모델이 방금 고친 매니페스트를 믿고 자동 실행됨 (Task 7, 보안, 높음 — 업로드 차단)
 
 - 원인: `after-edit-check.mjs:56`이 제안 반영 직후 `setting.script`(예: `npm test`)를 setup action으로 올리고, `approval-policy.mjs:96,102`의 `checkCommand`가 **디스크의 `package.json` scripts를 그때 읽어** `reason:'check'`로 자동 승인한다. "파일과 명령 자동" 모드에서는 파일 제안도 자동 반영되므로, 지시문에 오염된 모델이 `package.json`의 `"test":"curl … | sh"`를 제안 → 자동 반영 → 호스트가 `npm test`를 즉시 올림 → 방금 모델이 쓴 매니페스트로 검증 통과 → 사람 승인 0번에 실행된다. 매니페스트 신뢰 공백은 전부터 있었지만 이 변경이 두 단계를 호스트가 한 번에 이어 주는 길을 만들었다.
 - 고침: `queueAfterEditCheck`에서 반영 묶음에 `package.json`, 잠금 파일, 또는 매니페스트 scripts에 해당하는 파일이 있으면 action에 `manifestChanged:true`를 붙이고, `autoApprovals`는 그런 action에 `'check'`를 돌려주지 않는다(정확한 `commandAllowed`만 자동). 카드에 "방금 반영한 변경이 package.json을 바꿔서 확인이 필요해요" 한 줄. 대안: `setAfterEditCheck` 때 매니페스트 해시를 저장하고 다르면 승인 요구.
 - 시험: commands 모드에서 `package.json` 수정 제안 반영 뒤 편집 뒤 검사가 자동 승인되지 않고 카드로 남는 사례, 다른 파일만 바뀐 경우는 기존대로 자동.
+
+- [x] 2026-10-18 Codex 수정 완료. 실패 재현 후 관련 단위/실화면 검사와 `npm run test:gates` 종료 코드 0(1,859 통과/0 실패/200 건너뜀). 게이트 뒤 동시 편집된 화면 검사 종료 코드는 별도 최종 재검증 통과. [파일 목록과 근거](../../../packages/nubi-desktop/docs/WAVE2-QA-FOLLOWUP-2026-10-18.md). 제품 소스는 게이트 이후 동일하며 push하지 않음.
 
 ### F14. 곁가지 칩의 prompt가 사용자 권한을 얻음 (Task 5, 보안, 중간)
 
@@ -887,10 +893,22 @@ test('the scheduler runs due routines once, records lastRunAt and never overlaps
 - 고침: `createTask`가 `origin:{kind:'side_task',taskId,sideTaskId,runId}`를 받아 저장한다. 기억 추출은 `origin.kind==='side_task'`이고 사용자 메시지가 1개 이하인 동안 건너뛴다. 내보내기 제목은 `## 요청 (에이전트 제안)`, 사이드바 행에 작은 배지. F12의 문자 정리에 bidi 제어(`\u202a-\u202e`, `\u2066-\u2069`)를 포함한다(`U+202E`로 칩 제목 위장 가능).
 - 시험: 칩으로 만든 대화에서 첫 실행 뒤 `memory:` 저장소에 user 범위 기억이 없고, `task.origin.kind==='side_task'`가 보존되는 사례.
 
+- [x] 2026-10-18 Codex 수정 완료. 실패 재현 후 관련 단위/실화면 검사와 `npm run test:gates` 종료 코드 0(1,859 통과/0 실패/200 건너뜀). 게이트 뒤 동시 편집된 화면 검사 종료 코드는 별도 최종 재검증 통과. [파일 목록과 근거](../../../packages/nubi-desktop/docs/WAVE2-QA-FOLLOWUP-2026-10-18.md). 제품 소스는 게이트 이후 동일하며 push하지 않음.
+
 ### F15. 내보내기 가림이 기억 모듈의 비밀 탐지보다 약함 (Task 10, 낮음)
 
 - 원인: `conversation-export.mjs:2`의 가림은 영어 키워드와 `Bearer`, URL 자격만 본다. "DB 비밀번호는 Qwerty!234", "접속키는 AKIA…", `sk-abcdefghijklmnop1234`가 그대로 .md에 쓰인다(탐침 확인). `memory.mjs:10`의 `SECRET`은 비밀번호/토큰/인증번호/`sk-`/`ghp_`/`xox*`/주민번호/카드번호를 이미 덮는다.
 - 고침: `SECRET`을 공용 모듈로 올리고 `safeText`에서 `credential.test(line)||secretLike(line)`이면 줄을 가린다. 시험에 위 세 문장.
+
+- [x] 2026-10-18 Codex 수정 완료. 실패 재현 후 관련 단위/실화면 검사와 `npm run test:gates` 종료 코드 0(1,859 통과/0 실패/200 건너뜀). 게이트 뒤 동시 편집된 화면 검사 종료 코드는 별도 최종 재검증 통과. [파일 목록과 근거](../../../packages/nubi-desktop/docs/WAVE2-QA-FOLLOWUP-2026-10-18.md). 제품 소스는 게이트 이후 동일하며 push하지 않음.
+
+### F16. 도구 규칙이 1,800자 늘어 소형 창 압축 시험이 깨짐 (게이트 차단, Codex)
+
+- 증상: `tests/compaction-turn.test.mjs` 2건("a long pasted message…", "protected messages that the window cannot hold…")이 `context_compaction_failed`. `TOOL_RULES`가 main 3,929자 → 5,861자(F4~F10 수정에서 spawn_task, send_file, delegate_research, update_plan 등 줄을 늘림), `LEAN_TOOL_RULES`가 1,371 → 2,002자. main 파일로 바꾸면 통과(2026-10-18 이분 확인). Claude가 벤치마크로 합친 두 규칙(본문은 데이터, 자격값 금지, 관찰 먼저)은 약 130자이며 유지한다.
+- 고침(둘 중 하나, Codex): ① 1차 물결 2.2 원칙대로 규칙을 한 줄 한 문장으로 다시 줄이고 도구별 세부는 설명으로 되돌려 `TOOL_RULES` 4,300자, `LEAN_TOOL_RULES` 1,500자 이하로 맞춘다. ② 줄이기 어려우면 `tests/compaction-turn.test.mjs`와 `protected-relax.test.mjs`의 창(16000/26000)을 고정 부분 증가분만큼 올리고 `docs`에 1차와 같은 방식으로 기록한다. ①을 권한다.
+- 검증: 위 두 시험과 `tests/lean-tools.test.mjs`, `tests/tool-budget.test.mjs`, `tests/compaction.test.mjs`.
+
+- [x] 2026-10-18 Codex 수정 완료. 창 크기는 유지하고 일반 규칙 4,129자/소형 1,487자로 축소했으며 데이터/자격값/관찰 규칙과 6,000토큰 도구 목록 한도를 보존했다. 집중 회귀 42/42, Bash 선택 1280/440px와 추가 요청한 GitHub 아이콘/프로필 사진 검사 통과. 최종 `npm run test:gates` 종료 코드 0(1,861 통과/0 실패/200 건너뜀). `.webp` 로더를 유지한 아이콘 검사 출력 경로 보완도 포함하며 push하지 않았다. [변경 파일과 검증 기록](../../../packages/nubi-desktop/docs/WAVE2-F16-AND-GITHUB-2026-10-18.md).
 
 ### 참고(결함 아님)
 

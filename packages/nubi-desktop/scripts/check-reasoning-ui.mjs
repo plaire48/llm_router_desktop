@@ -5,7 +5,7 @@ import {mkdir,writeFile,mkdtemp,rm,cp} from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 const out=path.resolve('verification/reasoning-providers');await mkdir(out,{recursive:true});
-await build({entryPoints:['tests/reasoning-picker-fixture.jsx'],outfile:path.join(out,'app.js'),bundle:true,format:'esm',platform:'browser',alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.woff2':'file','.woff':'file'},define:{'process.env.NODE_ENV':'"production"'}});
+await build({entryPoints:['tests/reasoning-picker-fixture.jsx'],outfile:path.join(out,'app.js'),bundle:true,format:'esm',platform:'browser',alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.woff2':'file','.woff':'file','.webp':'file'},define:{'process.env.NODE_ENV':'"production"'}});
 await cp('../../extensions/aipro-chat/public/icons',path.join(out,'icons'),{recursive:true});
 await writeFile(path.join(out,'index.html'),'<!doctype html><html lang="ko"><meta charset="utf-8"><link rel="stylesheet" href="app.css"><div id="root"></div><script type="module" src="app.js"></script></html>');
 const storage=await mkdtemp('/tmp/nubi-reasoning-colors-'),require=createRequire(import.meta.url);

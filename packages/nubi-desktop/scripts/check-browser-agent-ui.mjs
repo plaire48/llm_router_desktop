@@ -15,6 +15,8 @@ const site=createServer((q,r)=>{r.setHeader('content-type','text/html;charset=ut
 const fixture=await startFixtureModel({respond({text}){throw Error('UI-only check must not invoke a model');}});
 let app;const errors=[],checks=[];
 try{
+/* The product opens web pages in the external browser by default (2026-10-17); this check exercises the in-app browser surface, so it selects internal mode in its isolated storage. */
+await mkdir(storage,{recursive:true});await writeFile(path.join(storage,'browser-preference.json'),JSON.stringify({mode:'internal',executable:null}));
  app=await electron.launch({executablePath:require('electron'),args:['electron-app'],timeout:30000,env:{...process.env,NUBI_STORAGE_ROOT:storage,ELECTRON_RUN_AS_NODE:undefined}});
  const page=await desktopTestWindow(app);page.setDefaultTimeout(10000);page.on('pageerror',error=>errors.push(error.message));
  await page.locator('.desktop-shell[data-startup-ready="true"]').waitFor({timeout:60000});await page.waitForFunction(()=>!document.querySelector('.nubi-intro')&&!document.querySelector('.desktop-shell')?.inert,null,{timeout:60000});
