@@ -20,17 +20,22 @@ try{
   await context.addInitScript(()=>Object.defineProperty(navigator,'webdriver',{get:()=>false}));
   const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
   await page.goto(`http://127.0.0.1:${server.address().port}/?context&modals&integrated`);
-  const settings=page.getByRole('button',{name:'설정',exact:true});await settings.click();
-  const dialog=page.getByRole('dialog',{name:'설정',exact:true});await dialog.waitFor();
+  // Settings can fill the viewport; use an intrinsic-height production modal
+  // so changing the body really changes panel bounds and exercises the morph.
+  const sidebar=page.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await sidebar.count())await sidebar.click();
+  await page.getByRole('button',{name:'대화 검색',exact:true}).click();
+  await page.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:'문맥 사용량 화면 검증'}).click();
+  const opener=page.getByRole('button',{name:'컨텍스트 사용량',exact:true});await opener.click();
+  const dialog=page.getByRole('dialog',{name:'컨텍스트 사용량',exact:true});await dialog.waitFor();
   await page.waitForTimeout(450);
   // Exercise intrinsic growth/shrink on the real CX panel, including a resize
   // that interrupts the previous animation. No scale is applied to its text.
-  const initial=await dialog.boundingBox();
+  const initial=await dialog.boundingBox(),basePadding=await dialog.evaluate(el=>parseFloat(getComputedStyle(el.querySelector('.cx-panel-body')).paddingBottom));
   for(const growth of [80,24,0]){
-   await dialog.evaluate((el,growth)=>{el.querySelector('.cx-panel-body').style.paddingBottom=`${growth+12}px`;},growth);
+   await dialog.evaluate((el,padding)=>{el.querySelector('.cx-panel-body').style.paddingBottom=`${padding}px`;},basePadding+growth);
    if(!reduced){
     await page.waitForFunction(()=>!!document.querySelector('.nubi-modal-morph-surface'));
-    assert.equal(await dialog.evaluate(el=>getComputedStyle(el).transform),'none');
+    assert.deepEqual(await dialog.evaluate(el=>{const m=new DOMMatrixReadOnly(getComputedStyle(el).transform);return [m.a,m.b,m.c,m.d];}),[1,0,0,1],'Live text may translate with the surface but never scale or skew');
     assert.equal(await page.locator('.nubi-modal-morph-surface').count(),1);
    }else{await page.waitForTimeout(30);assert.equal(await page.locator('.nubi-modal-morph-surface').count(),0);}
   }
@@ -40,11 +45,11 @@ try{
   checks.push(`${reduced?'reduced':'normal'}: grow, interrupt, shrink, stable text and focus`);
   await page.keyboard.press('Escape');
   await page.waitForFunction(()=>!document.querySelector('.cx-panel-backdrop'));
-  assert.equal(await settings.evaluate(el=>el===document.activeElement),true);
-  for(let i=0;i<3;i++){await settings.click();await dialog.waitFor();await page.keyboard.press('Escape');await page.waitForFunction(()=>!document.querySelector('.cx-panel-backdrop'));}
+  assert.equal(await opener.evaluate(el=>el===document.activeElement),true);
+  for(let i=0;i<3;i++){await opener.click();await dialog.waitFor();await page.keyboard.press('Escape');await page.waitForFunction(()=>!document.querySelector('.cx-panel-backdrop'));}
   checks.push(`${reduced?'reduced':'normal'}: Escape, repeated open/close, focus returns, no orphan surfaces`);
   if(!reduced){
-   await settings.click();await dialog.waitFor();await page.waitForTimeout(400);
+   await opener.click();await dialog.waitFor();await page.waitForTimeout(400);
    await dialog.evaluate(el=>el.querySelector('.cx-panel-body').style.paddingBottom='160px');
    await page.waitForFunction(()=>!!document.querySelector('.nubi-modal-morph-surface'));
    await page.emulateMedia({reducedMotion:'reduce'});
@@ -58,7 +63,7 @@ try{
    await page.getByRole('dialog',{name:'스킬 관리',exact:true}).waitFor();await page.waitForTimeout(450);
    await page.screenshot({path:path.join(dir,'skills.png')});
    await page.getByRole('button',{name:'등록',exact:true}).click();
-   await page.getByRole('dialog',{name:'스킬 등록',exact:true}).waitFor();await page.waitForFunction(()=>!document.querySelector('.nubi-modal-morph-surface'),null,{timeout:3000});
+   await page.getByRole('dialog',{name:'스킬 등록',exact:true}).locator('.nubi-skill-dropzone').waitFor();await page.waitForFunction(()=>!document.querySelector('.nubi-modal-morph-surface'),null,{timeout:3000});
    await page.screenshot({path:path.join(dir,'registration.png')});
    assert.equal(await page.locator('.nubi-modal-morph-surface').count(),0);
    checks.push('actual tool list to skills to registration dialog flow completes');

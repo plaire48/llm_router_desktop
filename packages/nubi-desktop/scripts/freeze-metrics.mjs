@@ -33,3 +33,16 @@ export function freezeViolations(result,{judgeFrames=true}={}){
  if(result.frameSamples>0&&result.frameSamples<600)failures.push('samples_insufficient');
  if(!result.frameSamples||!result.inputSamples)failures.push('samples_missing');return failures;
 }
+
+// Contract failures are collected with timing failures so a slow admission
+// cannot abort the remaining scenes or discard their raw measurements.
+export function conversationAdmissionViolations(rows){
+ if(!rows?.length)return ['admission_samples_missing'];
+ const failures=[];
+ if(rows[0].count!==4)failures.push('admission_first_rows');
+ if(rows.at(-1).count!==40)failures.push('admission_incomplete');
+ if(rows.some((row,index)=>!Number.isFinite(row.at)||index&&row.at<rows[index-1].at))failures.push('admission_samples_invalid');
+ if(rows.at(-1).at-rows[0].at>300)failures.push('admission_deadline');
+ if(rows.some((row,index)=>index&&row.count-rows[index-1].count>4))failures.push('admission_batch');
+ return failures;
+}

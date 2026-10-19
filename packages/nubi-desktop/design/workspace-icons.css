@@ -60,10 +60,10 @@
    frames and hover state; no timer or per-frame React layout work is added. */
 @media(prefers-reduced-motion:no-preference) {
   :root:root .nubi-brand-emblem .agent-mark[data-mood=idle] { animation:nubi-brand-float var(--nubi-brand-float-duration) ease-in-out infinite; }
-  :root:root .nubi-brand-emblem .agent-mark[data-mood=idle] .bird-base { animation:bird-idle-base 8s linear infinite; }
-  :root:root .nubi-brand-emblem .agent-mark[data-mood=idle] .bird-wing { animation:bird-idle-wing 8s linear infinite; }
-  :root:root .nubi-brand-emblem .agent-mark[data-mood=idle] .bird-smile { animation:bird-idle-smile 8s linear infinite; }
-  :root:root .nubi-brand-emblem .agent-mark[data-mood=idle] .bird-blink { animation:bird-blink 8s linear infinite; }
+  :root:root .nubi-brand-emblem .agent-mark[data-mood=idle] .bird-base { animation:bird-idle-base var(--nubi-ambient-bird-expression) linear infinite; }
+  :root:root .nubi-brand-emblem .agent-mark[data-mood=idle] .bird-wing { animation:bird-idle-wing var(--nubi-ambient-bird-expression) linear infinite; }
+  :root:root .nubi-brand-emblem .agent-mark[data-mood=idle] .bird-smile { animation:bird-idle-smile var(--nubi-ambient-bird-expression) linear infinite; }
+  :root:root .nubi-brand-emblem .agent-mark[data-mood=idle] .bird-blink { animation:bird-blink var(--nubi-ambient-bird-expression) linear infinite; }
   :root:root .nubi-brand-emblem .agent-mark[data-mood=celebrate] { animation:nubi-brand-greeting var(--nubi-brand-greeting-duration) ease-in-out 2; }
 }
 @keyframes nubi-brand-float {

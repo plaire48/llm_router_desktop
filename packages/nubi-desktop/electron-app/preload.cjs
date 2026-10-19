@@ -1,4 +1,6 @@
 const {contextBridge,ipcRenderer,webUtils}=require('electron');
+let lastVisibility;
+ipcRenderer.on('nubi:host-event',(_event,value)=>{if(value?.type==='window_visibility'&&typeof value.visible==='boolean')lastVisibility={type:'window_visibility',visible:value.visible};});
 const installationId=process.argv.find(value=>/^--nubi-installation=[a-f0-9-]{36,64}$/.test(value))?.split('=')[1]||'';
 contextBridge.exposeInMainWorld('nubi',{installationId,desktop:true,platform:process.platform,/* the skill picker offers a folder button where one dialog cannot take files and folders (2026-10-07) */terminal:args=>ipcRenderer.invoke('nubi:terminal',args),onTerminalEvent:callback=>{if(typeof callback!=='function')throw Error('callback_invalid');const listener=(_event,value)=>callback(value);ipcRenderer.on('nubi:terminal-event',listener);return()=>ipcRenderer.removeListener('nubi:terminal-event',listener);},request:(method,args)=>ipcRenderer.invoke('nubi:request',method,args),registerSkillFile:(file,taskId)=>{
  const source=webUtils.getPathForFile(file);
@@ -7,6 +9,7 @@ contextBridge.exposeInMainWorld('nubi',{installationId,desktop:true,platform:pro
 },onHostEvent:callback=>{
  if(typeof callback!=='function')throw Error('callback_invalid');
  const listener=(_event,value)=>callback(value);ipcRenderer.on('nubi:host-event',listener);
+ if(lastVisibility)callback(lastVisibility);
  return()=>ipcRenderer.removeListener('nubi:host-event',listener);
 },onBrowserEvent:callback=>{
  if(typeof callback!=='function')throw Error('callback_invalid');

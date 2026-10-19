@@ -1,4 +1,5 @@
 import {WorkspaceActionMenu} from './WorkspaceActionMenu.jsx';
+import {installListMotion} from './motion-list.mjs';
 import {CopyButton} from '../../../extensions/aipro-chat/src/CopyButton.jsx';
 import React, {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {ProjectFileTree} from './ProjectFileTree.jsx';
@@ -17,6 +18,7 @@ export function SessionSidebar({conversationTools=true,projects=[],onSwitchProje
   const [editingProject,setEditingProject]=useState(null),[projectName,setProjectName]=useState(''),[removingProject,setRemovingProject]=useState(null),[projectBusy,setProjectBusy]=useState(false);
   const [removing, setRemoving] = useState(null), [deleting, setDeleting] = useState(false), [expanded, setExpanded] = useState(true), [showAll, setShowAll] = useState(false), [pinned, setPinned] = useState([]), [archived, setArchived] = useState(false), [pinBusy,setPinBusy]=useState(false);
   const sidebar=useRef(null),pinFocus=useRef(null);
+  useEffect(()=>sidebar.current?installListMotion(sidebar.current):undefined,[project?.projectId]);
   useLayoutEffect(()=>{const id=pinFocus.current;if(!id)return;pinFocus.current=null;[...sidebar.current.querySelectorAll('.nubi-session-row')].find(node=>node.dataset.sessionId===id)?.querySelector('summary')?.focus();},[pinned,project?.conversationNavigation?.pinnedIds]);
   const fileItems = useMemo(() => (project?.files || []).map(path => ({path})), [project?.files]);
   // The left navigation rail owns the sidebar toggle. Over a narrow window the

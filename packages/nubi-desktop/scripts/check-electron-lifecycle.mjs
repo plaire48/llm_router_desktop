@@ -83,11 +83,12 @@ try{
   result.requested=await app.evaluate(({BrowserWindow,screen})=>{const area=screen.getPrimaryDisplay().workArea;const bounds={x:area.x+20,y:area.y+20,width:Math.min(1000,area.width-40),height:Math.min(700,area.height-40)};/* portal authentication owns hidden windows (2026-10-14): resize the visible workspace window */(BrowserWindow.getAllWindows().find(w=>w.isVisible())||BrowserWindow.getAllWindows()[0]).setBounds(bounds);return bounds;});
   await new Promise(resolve=>setTimeout(resolve,900));
 }finally{await app.close();routineFixture?.close();}
-result.saved=JSON.parse(await readFile(path.join(storage,'window-state.json'),'utf8'));assert.equal(result.saved.width,result.requested.width);assert.equal(result.saved.height,result.requested.height);
+result.saved=JSON.parse(await readFile(path.join(storage,'window-state.json'),'utf8'));await writeFile('verification/lifecycle-window-state.json',JSON.stringify(result,null,2));assert.equal(result.saved.width,result.requested.width);assert.equal(result.saved.height,result.requested.height);assert.equal(result.saved.x,result.requested.x,'the requested x was saved before relaunch');
 const again=await launch();
 try{
   const page=await again.firstWindow();await page.getByRole('navigation',{name:'프로젝트 도구'}).waitFor({timeout:30000});
   result.bounds=await again.evaluate(({BrowserWindow})=>(BrowserWindow.getAllWindows().find(w=>w.isVisible())||BrowserWindow.getAllWindows()[0]).getBounds());
+  result.displays=await again.evaluate(({screen})=>screen.getAllDisplays().map(display=>({id:display.id,bounds:display.bounds,workArea:display.workArea})));await writeFile('verification/lifecycle-window-state.json',JSON.stringify(result,null,2));
   assert.equal(result.bounds.width,result.requested.width);assert.equal(result.bounds.height,result.requested.height);assert.equal(result.bounds.x,result.requested.x);
   result.workerLog=(await readFile(path.join(storage,'worker.log'),'utf8').catch(()=>'')).length;
 }finally{await again.close();}

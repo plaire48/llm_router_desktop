@@ -6,7 +6,7 @@ import {ApprovalHistory} from './ApprovalHistory.jsx';
 import {WorkspaceCatalogTabs} from './WorkspaceCatalogTabs.jsx';
 import {AgentMark} from '../../../extensions/aipro-chat/src/AgentMark.jsx';
 import './mail-table.css';
-import React,{useEffect,useLayoutEffect,useRef,useState} from 'react';
+import React,{useCallback,useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {CxButton, Icon} from '@e2e/cx-design-system';
 import {WorkspaceAction as ActionButton} from './WorkspaceAction.jsx';
 import {MailReader} from './MailReader.jsx';
@@ -45,7 +45,7 @@ export function MailHistory({api,onDocument,onAsk,onAskSearch,onSettings,connect
   const next=navigation.page+direction;if(next<1||next>navigation.totalPages)return;
   pendingNavigation.current={page:next,edge:direction>0?'first':'last',signature:navigation.signature};navigation.movePage(next);
  }
- async function open(id,expectedHash,context={}){
+ const open=useCallback(async function open(id,expectedHash,context={}){
   const attempt=++selection.current;setLoading(true);
   try{
    const value=await api('mail',{action:'read',id,includePresentation:true});if(expectedHash&&value.sourceHash!==expectedHash)throw Error('mail_source_changed');
@@ -57,7 +57,7 @@ export function MailHistory({api,onDocument,onAsk,onAskSearch,onSettings,connect
    return alive.current&&attempt===selection.current;
   }catch{if(alive.current&&attempt===selection.current)notifyWorkspaceToast('원문이 바뀌었거나 읽을 수 없어요.',{error:true});return false;}
   finally{if(alive.current&&attempt===selection.current)setLoading(false);}
- }
+ },[api,onDocument,viewState]);
  async function reload(){
   if(refreshing)return;setRefreshing(true);
   try{

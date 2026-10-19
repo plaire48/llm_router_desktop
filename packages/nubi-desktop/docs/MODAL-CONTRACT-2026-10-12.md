@@ -7,7 +7,7 @@ User request: consistent typography, emphasis, layered colors, geometry and spac
 - Existing Pretendard/Noto Sans KR fonts and deck/CX primitives remain the source. No new UI package or copied dialog component is introduced.
 - Global/semantic values live in `workspace-identity.css`; `workspace-dialogs.css` owns modal chrome and controls. Removed competing header/footer, close button, title icon, body gap and blue-only error overrides from identity/density/iOS layers. Login provider branding stays in its existing component.
 - Title: 18px/600. Body: 15px/400. Secondary: 14px/400. Field labels and primary actions: 15px/600. Secondary actions: 15px/500. Key values: 600. Sizes use rem; large-text and root enlargement remain supported.
-- Spacing: icon/label and field gap 8px; related sections 16px; horizontal gutter and bottom footer 24px (gutter 16px on narrow windows).
+- Spacing: icon/label and field gap 8px; related sections 20px; shared top, horizontal and bottom outer inset 32px (24px at viewport widths up to 600px). Header and body combine two 12px insets between title and content.
 - Controls: 40px high, 44px for coarse pointers; 18px action icons, 16px field icons, 20px confirmation symbols; 12px control radius, 20px modal radius. Close buttons are square.
 - Width reflects purpose: choice 420px, confirmation/account 480px, regular form 600px, wide library 760px, constrained to viewport. Composer pickers retain compact single-row navigation.
 - Surface layers: white modal, pale inset grouping, soft-blue selection. Solid deep blue is the main action. Red means deletion/error, amber a caution, green a confirmed result. Do not map errors to blue. Color never replaces text/icon semantics.
@@ -62,3 +62,11 @@ All remaining Desktop copy buttons reuse the shared CopyButton. It shows the che
 ### Verification of this follow-up
 
 Electron build and identity checks passed. The final surface run completed 114 screen/layout checks, including search default/expanded, 440px and 200% text; search payload/reset and 11-skill pagination assertions also passed. No target text-size or horizontal-overflow violations were recorded. The overall suite subsequently failed its existing bird hover persistence assertion (`none` instead of `nubi-bird-dance`); do not report that whole suite as passing. These are isolated Electron component checks with sample data, not a Windows installer or live mail-provider test.
+
+## Balanced geometry audit 2026-10-19
+
+- One outer inset owns the top, left, right and bottom edges: 32px on desktop and 24px at viewport widths up to 600px. Header/body spacing combines two 12px tokens; sections keep the existing 20px rhythm and fields keep 8px.
+- A body without a footer supplies the bottom inset. With a footer, the body supplies the content/action gap and the footer supplies the outer bottom inset, without a second top padding.
+- Removed the later 40px/36px gutter override, the extra context indentation, question-dialog chrome overrides and account-specific body padding. Anchored composer pickers keep their positioning contract.
+- Compact confirmation, account, context, project-name, saved-search/tag and embedded Workspace utility dialogs use 480px; general forms use 600px; libraries use 760px. Model choices keep 420px, or 600px for four provider tabs. All stay within the viewport and scroll the body while preserving header/footer access.
+- Existing CX components and tokens are retained; no package or duplicate modal component is introduced. Full-screen content keeps its existing layout and is included in the broad surface audit.

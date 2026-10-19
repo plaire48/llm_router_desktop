@@ -172,7 +172,7 @@ body {
 .desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) :is(table,pre,blockquote) { margin-block:0 var(--nubi-prose-paragraph-gap); }
 .desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) > :last-child { margin-bottom:0; }
 .desktop-shell {
-  --nubi-answer-reveal-duration:180ms;
+  --nubi-answer-reveal-duration:var(--nubi-motion-load);
 }
 /* Short, ordered ink fade. Full Markdown layout is stable from the first frame;
    no character timers, layout transforms, blinking cursor or repeated parsing. */

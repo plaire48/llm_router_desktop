@@ -19,6 +19,7 @@ import '../design/workspace-typography.css';
 import '../design/workspace-density.css';
 import '../design/workspace-dialogs.css';
 import '../design/workspace-icons.css';
+import '../design/workspace-pastel.css';
 const wikiChatFixture=new URLSearchParams(location.search).has('wiki-chat');if(wikiChatFixture)window.wikiChatCalls=[];
 let selected='aipro',connected=false,pending=null,model='qwen-fixture',catalogAt=1;
 if(new URLSearchParams(location.search).has('catalog')){connected=true;window.catalogCalls=0;window.catalogDelay=0;window.catalogFailure=false;}

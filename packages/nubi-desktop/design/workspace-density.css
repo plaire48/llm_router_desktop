@@ -349,12 +349,12 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
    small roll, so the old stacked translation/bounce does not return. */
 .desktop-shell .nubi-start .welcome { width:100%; min-width:0; container-type:inline-size; }
 .desktop-shell .nubi-workbench .nubi-start .welcome .welcome-title { font-size:var(--deck-type-title); }
-:root:root { --nubi-bird-flight:8s; --nubi-bird-greeting:1.2s; --nubi-bird-blink:8s; }
+:root:root { --nubi-bird-flight:var(--nubi-ambient-bird-flight); --nubi-bird-greeting:var(--nubi-ambient-bird-greeting); --nubi-bird-blink:var(--nubi-ambient-bird-expression); }
 :root:root .welcome-emblem,
 :root:root .welcome-emblem::before,
 :root:root .agent-mark[data-mood],
 :root:root .agent-mark[data-mood] > img { animation:none; transform:none; }
-:root:root .agent-mark[data-mood] > img { transition:opacity 120ms ease-out; }
+:root:root .agent-mark[data-mood] > img { transition:opacity var(--nubi-motion-load) ease-out; }
 :root:root .agent-mark:is([data-mood="idle"],[data-mood="working"]) .bird-base { opacity:1; }
 :root:root .agent-mark:is([data-mood="idle"],[data-mood="working"]) :is(.bird-wing,.bird-smile) { opacity:0; }
 .desktop-shell .nubi-workbench[data-host-layout="integrated"][data-workspace-screen="welcome"] .deck-blob { animation:none; }
@@ -368,11 +368,11 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
  :root:root .welcome-emblem > .agent-mark[data-mood="idle"] .bird-wing { animation:bird-idle-wing var(--nubi-bird-flight) linear infinite; }
  :root:root .welcome-emblem > .agent-mark[data-mood="idle"] .bird-smile { animation:bird-idle-smile var(--nubi-bird-flight) linear infinite; }
  :root:root .welcome-emblem > .agent-mark[data-mood="idle"] .bird-blink { animation:bird-blink var(--nubi-bird-flight) linear infinite; }
- :root:root .welcome-emblem > .agent-mark[data-mood="working"] .bird-base { animation:bird-wing-base 2.8s linear infinite; }
- :root:root .welcome-emblem > .agent-mark[data-mood="working"] .bird-wing { animation:bird-wing 2.8s linear infinite; }
+ :root:root .welcome-emblem > .agent-mark[data-mood="working"] .bird-base { animation:bird-wing-base var(--nubi-ambient-bird-work) linear infinite; }
+ :root:root .welcome-emblem > .agent-mark[data-mood="working"] .bird-wing { animation:bird-wing var(--nubi-ambient-bird-work) linear infinite; }
  :root:root .welcome-emblem > .agent-mark[data-mood="celebrate"],
  :root:root .welcome-art:hover .agent-mark:is([data-mood="idle"],[data-mood="celebrate"]) { animation:nubi-bird-dance var(--nubi-bird-greeting) ease-in-out infinite; transform-origin:50% 65%; }
- :root:root .welcome-emblem > .agent-mark[data-mood="sad"] { animation:bird-sigh 2.8s ease-in-out 1; }
+ :root:root .welcome-emblem > .agent-mark[data-mood="sad"] { animation:bird-sigh var(--nubi-motion-enter) ease-in-out 1; }
 }
 @keyframes nubi-bird-flight { 0%,100% { transform:translate(0,0); } 20% { transform:translate(4px,-8px); } 50% { transform:translate(0,-4px); } 75% { transform:translate(-4px,-6px); } }
 @keyframes nubi-bird-dance { 0%,100% { transform:rotate(0); } 25% { transform:rotate(-4deg); } 75% { transform:rotate(4deg); } }
@@ -875,7 +875,7 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .desktop-shell .nubi-delivery-status>svg,.desktop-shell .nubi-delivery-status>.status-spinner { flex:none; width:18px; height:18px; }
 .desktop-shell [data-delivery=unconfirmed] .nubi-delivery-status { color:var(--nubi-text-warning); }
 @media(prefers-reduced-motion:no-preference) {
- .desktop-shell .nubi-outgoing { animation:nubi-delivery-in 140ms ease-out; }
+ .desktop-shell .nubi-outgoing { animation:nubi-delivery-in var(--nubi-motion-load) ease-out; }
  @keyframes nubi-delivery-in { from { opacity:0; transform:translateY(3px); } to { opacity:1; transform:none; } }
 }
 
@@ -1063,7 +1063,7 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .desktop-shell .nubi-workbench .nubi-review-fold>summary::-webkit-details-marker { display:none; }
 .desktop-shell .nubi-workbench .nubi-review-fold>summary>.nubi-document-progress-heading { color:var(--nubi-text-warning); }
 .desktop-shell .nubi-workbench .nubi-review-fold>summary .nubi-review-count { color:var(--nubi-text-secondary); font-weight:var(--nubi-weight-label); }
-.desktop-shell .nubi-workbench .nubi-review-fold>summary .nubi-document-progress-heading>svg:last-child { margin-inline-start:auto; transition:transform .2s ease; }
+.desktop-shell .nubi-workbench .nubi-review-fold>summary .nubi-document-progress-heading>svg:last-child { margin-inline-start:auto; transition:transform var(--nubi-motion-state) ease; }
 .desktop-shell .nubi-workbench .nubi-review-fold[open]>summary .nubi-document-progress-heading>svg:last-child { transform:rotate(180deg); }
 .desktop-shell .nubi-workbench .nubi-result-review[data-folded]>.nubi-review-next { margin-block-end:0; }
 .nubi-review-slot:empty { display:none; }
@@ -1071,7 +1071,7 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .desktop-shell .nubi-workbench .nubi-thoughts { margin:var(--cx-space-2) 0 0; color:var(--nubi-text-secondary); }
 .desktop-shell .nubi-workbench .nubi-thoughts>summary { display:flex; align-items:center; gap:var(--cx-space-2); width:fit-content; cursor:pointer; list-style:none; padding:var(--cx-space-1) 0; font-size:var(--deck-type-caption); font-weight:var(--nubi-weight-label); }
 .desktop-shell .nubi-workbench .nubi-thoughts>summary::-webkit-details-marker { display:none; }
-.desktop-shell .nubi-workbench .nubi-thoughts>summary>svg:last-child { transition:transform .2s ease; }
+.desktop-shell .nubi-workbench .nubi-thoughts>summary>svg:last-child { transition:transform var(--nubi-motion-state) ease; }
 .desktop-shell .nubi-workbench .nubi-thoughts[open]>summary>svg:last-child { transform:rotate(180deg); }
 .desktop-shell .nubi-workbench .nubi-thoughts>ol { list-style:none; margin:0; padding:0 0 0 var(--cx-space-5); display:grid; gap:var(--cx-space-2); }
 .desktop-shell .nubi-workbench .nubi-thoughts p { margin:0; font-size:var(--deck-type-caption); line-height:var(--deck-line-body); white-space:pre-wrap; overflow-wrap:anywhere; color:var(--nubi-text-secondary); }
@@ -1084,7 +1084,7 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .desktop-shell .nubi-workbench .nubi-activity-record { min-width:0; }
 .desktop-shell .nubi-workbench .nubi-activity-record>summary { display:flex; align-items:center; gap:calc(var(--cx-space-1) * 1.5); list-style:none; color:var(--deck-sub); cursor:pointer; padding:calc(var(--cx-space-1) * 1.5) 0; }
 .desktop-shell .nubi-workbench .nubi-activity-record>summary::-webkit-details-marker { display:none; }
-.desktop-shell .nubi-workbench .nubi-activity-record>summary>svg { margin-left:auto; transition:transform var(--deck-feedback,240ms) var(--deck-ease,ease); }
+.desktop-shell .nubi-workbench .nubi-activity-record>summary>svg { margin-left:auto; transition:transform var(--deck-feedback,var(--nubi-motion-state)) var(--deck-ease,ease); }
 .desktop-shell .nubi-workbench .nubi-activity-record[open]>summary>svg { transform:rotate(180deg); }
 .desktop-shell .nubi-workbench .nubi-activity-timeline { display:grid; gap:var(--cx-space-3); min-width:0; padding:var(--cx-space-2) 0; }
 .desktop-shell .nubi-workbench .nubi-activity-note { min-width:0; color:var(--deck-ink); font:var(--deck-font-body); line-height:var(--nubi-reading-leading); overflow-wrap:anywhere; }
@@ -1243,3 +1243,100 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 
 /* Preserve the jump control subtree; scroll only changes its visibility. */
 .nubi-workbench .nubi-jump-latest[hidden]{display:none}
+
+
+.desktop-shell .nubi-workbench .nubi-conversation-wrap { --nubi-activity-icon:var(--nubi-transcript-icon-size); }
+
+/* The transcript's leading symbols share one column. Card chrome can bleed
+   into the existing page gutter; its icon/content stays on the reading edge.
+   Nested evidence keeps its own intentional indentation. */
+.desktop-shell .nubi-workbench .nubi-conversation-wrap :is(
+ .nubi-activity-record>summary,.nubi-thoughts>summary,
+ .nubi-activity-sources>summary,.nubi-command-record>summary,
+ .agent-trace>summary,.task-plan [data-plan-overview]>summary,
+ .nubi-document-progress-heading,.nubi-approval-form>header,
+ .nubi-question-inline>.nubi-question-caption,.nubi-activity-current
+) {
+ justify-content:flex-start; column-gap:var(--nubi-activity-gap);
+}
+.desktop-shell .nubi-workbench .nubi-conversation-wrap :is(
+ .nubi-activity-record>summary,.nubi-thoughts>summary,
+ .nubi-activity-sources>summary,.nubi-command-record>summary,
+ .agent-trace>summary,.task-plan [data-plan-overview]>summary,
+ .nubi-document-progress-heading,.nubi-approval-form>header,
+ .nubi-question-inline>.nubi-question-caption
+)>svg:first-child,
+.desktop-shell .nubi-workbench .nubi-conversation-wrap .agent-step-status>svg {
+ flex:none; width:var(--nubi-activity-icon); height:var(--nubi-activity-icon);
+ margin-inline:0;
+}
+.desktop-shell .nubi-workbench .nubi-conversation-wrap :is(
+ .nubi-activity-current,.agent-next-step
+)>.status-spinner {
+ flex:none; box-sizing:border-box;
+ width:var(--nubi-activity-icon); height:var(--nubi-activity-icon); margin-inline:0;
+}
+.desktop-shell .nubi-workbench .nubi-conversation-wrap :is(.nubi-question-inline,.nubi-approval-form) {
+ box-sizing:border-box;
+ margin-inline:calc(-1 * var(--nubi-transcript-card-inset));
+ width:calc(100% + 2 * var(--nubi-transcript-card-inset)); max-width:none;
+ padding-inline:calc(var(--nubi-transcript-card-inset) - var(--nubi-transcript-card-border));
+}
+/* The labelled approval region owns the gutter bleed too, so its child does
+   not paint outside the region. Keep the card and its reading edge unchanged. */
+.desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-setup-summary:has(>.nubi-approval-form) {
+ box-sizing:border-box; margin-inline:calc(-1 * var(--nubi-transcript-card-inset));
+ width:calc(100% + 2 * var(--nubi-transcript-card-inset));
+}
+.desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-setup-summary>.nubi-approval-form {
+ margin-inline:0; width:100%;
+}
+.desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-applied-files {
+ box-sizing:border-box; margin-inline:calc(-1 * var(--nubi-transcript-card-inset));
+ width:calc(100% + 2 * var(--nubi-transcript-card-inset)); max-width:none;
+}
+.desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-applied-files .nubi-applied-row {
+ column-gap:var(--nubi-activity-gap);
+}
+.desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-applied-row>.desktop-file-icon {
+ flex:none; width:var(--nubi-transcript-icon-size);
+}
+
+
+/* The longest ordinal owns the shared marker column, even when selection
+   replaces it with a check. No limit on the ordinal's number of digits. */
+:root:root .desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-question-inline {
+ --nubi-question-marker-size:calc(var(--nubi-question-marker-min-size) + (var(--nubi-question-number-digits,1) - 1) * 1ch);
+}
+:root:root .desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-question-inline .question-card--compact .question-option.cx-kit-button,
+:root:root .desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-question-inline .question-card--compact .question-option.cx-kit-button:hover:not(:disabled) {
+ padding-inline-start:0; column-gap:var(--nubi-activity-gap);
+}
+:root:root .desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-question-inline .question-card--compact .interaction-entry {
+ column-gap:var(--nubi-activity-gap);
+}
+:root:root .desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-question-inline .question-card--compact .interaction-entry-icon {
+ font:var(--deck-font-caption);
+ flex:0 0 var(--nubi-question-marker-size); width:var(--nubi-question-marker-size); justify-content:flex-start;
+}
+:root:root .desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-question-inline .question-card--compact .question-option-index {
+ font-variant-numeric:tabular-nums; justify-items:start;
+ flex:0 0 var(--nubi-question-marker-size); width:var(--nubi-question-marker-size); height:var(--nubi-question-marker-min-size);
+ padding-inline-start:calc((var(--nubi-question-marker-min-size) - 1ch) / 2);
+}
+/* Keep the pencil's visible stroke on the ordinal start, independent of
+   how far the shared label column expands for longer numbers. */
+:root:root .desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-question-inline .question-card--compact .interaction-entry-icon>svg {
+ width:var(--nubi-icon-inline); height:var(--nubi-icon-inline);
+ margin-inline-start:calc((var(--nubi-question-marker-min-size) - var(--nubi-icon-inline)) / 2);
+ transform:translateX(var(--nubi-question-pencil-inset));
+}
+:root:root .desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-question-inline>.nubi-question-caption {
+ column-gap:calc(var(--nubi-question-marker-size) - var(--nubi-transcript-icon-size) + var(--nubi-activity-gap));
+}
+
+/* The shared selected badge is blue; the Desktop row already supplies that
+   state surface, so retain a contrasting check on the row's soft surface. */
+:root:root .desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-question-inline .question-card--compact .question-option[aria-checked=true] .question-option-index {
+ background:transparent; color:var(--nubi-text-action);
+}

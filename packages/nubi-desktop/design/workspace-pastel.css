@@ -3,8 +3,8 @@
    New Nubi pastel surfaces can opt in with .nubi-pastel-surface; no DOM observer,
    per-frame JS, filter animation or provider-logo recolouring is needed. */
 :root:root{
- --nubi-pastel-duration:72s;
- --nubi-pastel-surround-duration:96s;
+ --nubi-pastel-duration:var(--nubi-ambient-wash);
+ --nubi-pastel-surround-duration:var(--nubi-ambient-surround);
  --nubi-pastel-ease:cubic-bezier(.45,0,.55,1);
  --nubi-pastel-wash:radial-gradient(ellipse at 15% 30%,color-mix(in srgb,var(--deck-blue) 14%,transparent),transparent 60%),radial-gradient(ellipse at 85% 75%,color-mix(in srgb,var(--deck-teal) 12%,transparent),transparent 64%);
 }
@@ -91,7 +91,7 @@
  .nubi-wiki-candidate button,.nubi-wiki-links nav button,
  .nubi-mail-evidence-group>summary,.nubi-mail-result[aria-pressed=true],
  .nubi-skill-card-icon,.nubi-custom-skill-mark)::before,
- :root:root .desktop-shell .deck-ambient .deck-blob{animation:none!important}
+ :root:root .desktop-shell .deck-ambient .deck-blob{animation-play-state:paused!important;}
 }
 @media(forced-colors:active){.desktop-shell::before,:root:root :is( .nubi-pastel-surface,
  .nubi-brand-emblem,.nubi-beta,

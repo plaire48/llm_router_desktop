@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 import {installMotionPresence} from '../../../extensions/aipro-chat/src/motion-presence.mjs';
 import {installModalResizeMotion} from './modalResizeMotion.js';
+import {installMotionPolicy,motionDuration} from './motion-policy.mjs';
 
 // iOS-like dialog motion (user request 2026-10-14): dialogs rise in like a sheet and drop away on close instead of
 // popping in and vanishing. The enter motion is pure CSS (electron-app/modal-motion.css), keyed on
@@ -11,23 +12,23 @@ import {installModalResizeMotion} from './modalResizeMotion.js';
 // Instead of delaying every close, this puts the exact node React just removed back in place as an inert,
 // aria-hidden "leaving" layer, plays the exit animation and then removes it. React state, Escape, focus return and the
 // CX inert layer therefore finish immediately, exactly as before; only the picture lingers for the exit (~180ms) and
-// it never takes focus or pointer input. Automated checks (navigator.webdriver), reduced motion and hidden windows
-// get neither the enter motion nor the exit delay.
+// it never takes focus or pointer input. Automated checks can opt out. Reduced motion retains
+// a 120ms opacity-only transition; hidden windows skip resize geometry animation.
 
 const BACKDROP='cx-panel-backdrop';
-export const MODAL_EXIT_MS=180;
 const isBackdrop=node=>node instanceof HTMLElement&&node.classList.contains(BACKDROP);
 const isLeaving=node=>node.dataset.modalMotion==='leaving';
 
 export function installModalMotion(){
   if(typeof document==='undefined'||typeof MutationObserver!=='function'||!document.body)return()=>{};
   const stopPresence=installMotionPresence();
+  const stopPolicy=installMotionPolicy();
   const html=document.documentElement;
   const reduced=typeof matchMedia==='function'?matchMedia('(prefers-reduced-motion: reduce)'):null;
-  const allowed=()=>!(typeof navigator!=='undefined'&&navigator.webdriver)&&!reduced?.matches;
+  const allowed=()=>!(typeof navigator!=='undefined'&&navigator.webdriver);
   const sync=()=>{if(allowed())html.dataset.modalMotion='on';else delete html.dataset.modalMotion;};
   sync();reduced?.addEventListener?.('change',sync);
-  const stopResize=installModalResizeMotion(()=>!!html.dataset.modalMotion&&!document.hidden);
+  const stopResize=installModalResizeMotion(()=>!!html.dataset.modalMotion&&!document.hidden&&!reduced?.matches);
 
   // A node taken out of the document loses its scroll offset; remember offsets inside dialogs so the leaving copy
   // keeps showing what the person was looking at.
@@ -55,7 +56,7 @@ export function installModalMotion(){
     const exits=[...(node.getAnimations?.()||[]),...(panel?.getAnimations?.()||[])].filter(animation=>String(animation.animationName||'').startsWith('nubi-modal-'));
     if(!exits.length){finish(node);return;}
     Promise.allSettled(exits.map(animation=>animation.finished)).then(()=>finish(node));
-    const timer=setTimeout(()=>{timers.delete(timer);finish(node);},MODAL_EXIT_MS+120);
+    const timer=setTimeout(()=>{timers.delete(timer);finish(node);},motionDuration('exit')+motionDuration('capture'));
     timers.add(timer);
   };
 
@@ -79,6 +80,7 @@ export function installModalMotion(){
 
   return()=>{
     stopPresence();
+    stopPolicy();
     stopResize();
     observer.disconnect();
     document.removeEventListener('scroll',remember,{capture:true});

@@ -16,7 +16,7 @@
 .nubi-workflow-detail-heading h2{margin:0}
 .nubi-workflow-actions{display:flex;flex-wrap:wrap;gap:var(--cx-space-2);margin-block:var(--cx-space-3)}
 .nubi-workflow-canvas{height:calc(var(--cx-space-8)*20);width:100%;border:calc(var(--cx-space-1)/4) solid var(--deck-line);border-radius:var(--nubi-box-radius);overflow:hidden;background:var(--deck-surface);--xy-background-color:var(--deck-surface);--xy-edge-stroke:var(--deck-line);--xy-edge-stroke-width:1;--xy-handle-background-color:var(--deck-sub);--xy-handle-border-color:var(--deck-surface);--xy-node-background-color:var(--deck-surface);--xy-node-color:var(--deck-ink)}
-.nubi-workflow-node{display:flex;align-items:center;gap:var(--cx-space-2);box-sizing:border-box;text-align:start;padding:var(--cx-space-3);width:100%;height:calc(var(--cx-space-8)*3);color:var(--deck-ink);background:var(--deck-surface);border:calc(var(--cx-space-1)/4) solid var(--deck-line);border-radius:var(--nubi-box-radius);font:inherit;cursor:pointer;transition:color 180ms ease-out,border-color 180ms ease-out;--workflow-state:var(--deck-sub)}
+.nubi-workflow-node{display:flex;align-items:center;gap:var(--cx-space-2);box-sizing:border-box;text-align:start;padding:var(--cx-space-3);width:100%;height:calc(var(--cx-space-8)*3);color:var(--deck-ink);background:var(--deck-surface);border:calc(var(--cx-space-1)/4) solid var(--deck-line);border-radius:var(--nubi-box-radius);font:inherit;cursor:pointer;transition:color var(--nubi-motion-state) ease-out,border-color var(--nubi-motion-state) ease-out;--workflow-state:var(--deck-sub)}
 .nubi-workflow-node[data-current]{border:calc(var(--cx-space-1)/2) solid var(--deck-blue)}
 .nubi-workflow-node[data-compact]{height:calc(var(--cx-space-8)*2.5)}
 .nubi-workflow-kind-tile{display:grid;place-items:center;flex:none;width:calc(var(--cx-space-1)*7);height:calc(var(--cx-space-1)*7);border-radius:var(--cx-space-2);color:var(--deck-sub);background:color-mix(in srgb,var(--deck-sub) 8%,var(--deck-surface))}
@@ -27,8 +27,8 @@
 .nubi-workflow-node-copy>strong,.nubi-workflow-node-copy>small{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .nubi-workflow-node-copy>strong{font-size:var(--deck-type-body);font-weight:var(--nubi-weight-emphasis)}
 .nubi-workflow-node-copy>small{font-size:var(--deck-type-caption);color:var(--deck-sub)}
-.nubi-workflow-node-state{display:flex;align-items:center;flex:none;gap:var(--cx-space-1);font-size:var(--deck-type-caption);color:var(--workflow-state);transition:color 180ms ease-out}
-.nubi-workflow-state-dot{display:inline-block;flex:none;width:var(--cx-space-2);height:var(--cx-space-2);border-radius:50%;background:currentColor;transition:background-color 180ms ease-out}
+.nubi-workflow-node-state{display:flex;align-items:center;flex:none;gap:var(--cx-space-1);font-size:var(--deck-type-caption);color:var(--workflow-state);transition:color var(--nubi-motion-state) ease-out}
+.nubi-workflow-state-dot{display:inline-block;flex:none;width:var(--cx-space-2);height:var(--cx-space-2);border-radius:50%;background:currentColor;transition:background-color var(--nubi-motion-state) ease-out}
 .nubi-workflow-node[data-status=running],.nubi-workflow-stage[data-status=running]{--workflow-state:var(--deck-blue)}
 .nubi-workflow-node[data-status=complete],.nubi-workflow-stage[data-status=complete]{--workflow-state:var(--nubi-text-success)}
 :is(.nubi-workflow-node,.nubi-workflow-stage):is([data-status=waiting],[data-status=unconfirmed]){--workflow-state:var(--nubi-text-warning)}
@@ -70,7 +70,7 @@
 .nubi-workflow-stage-heading{display:flex;align-items:center;gap:var(--cx-space-2);padding-block:var(--cx-space-3);border-block-end:calc(var(--cx-space-1)/4) solid var(--deck-line)}
 .nubi-workflow-stage-heading>svg{flex:none;color:var(--deck-sub)}
 .nubi-workflow-stage-heading>strong{flex:1;min-width:0;font-weight:var(--nubi-weight-emphasis)}
-.nubi-workflow-stage-state{display:flex;align-items:center;gap:var(--cx-space-1);color:var(--workflow-state);font-size:var(--deck-type-caption);transition:color 180ms ease-out;margin-inline-start:auto;flex:none}
+.nubi-workflow-stage-state{display:flex;align-items:center;gap:var(--cx-space-1);color:var(--workflow-state);font-size:var(--deck-type-caption);transition:color var(--nubi-motion-state) ease-out;margin-inline-start:auto;flex:none}
 .nubi-workflow-action-summary{margin-block:var(--cx-space-2);color:var(--deck-sub)}
 .nubi-workflow-receipts{margin-block:var(--cx-space-2);font-size:var(--deck-type-caption);color:var(--deck-sub)}
 .nubi-workflow-receipts code{display:block;overflow-wrap:anywhere}
@@ -84,7 +84,7 @@
 .nubi-workflow-status .nubi-pill[data-status=complete]{color:var(--nubi-text-success);background:var(--nubi-surface-success)}
 .nubi-workflow-status .nubi-pill:is([data-status=waiting],[data-status=unconfirmed]){color:var(--nubi-text-warning);background:var(--nubi-surface-warning)}
 .nubi-workflow-status .nubi-pill:is([data-status=failed],[data-status=partial],[data-status=cancelled]){color:var(--nubi-text-danger);background:var(--nubi-surface-danger)}
-.nubi-workflow-stage[data-status=running] .nubi-workflow-stage-state{animation:nubi-workflow-pulse 2.8s ease-in-out infinite}
+.nubi-workflow-stage[data-status=running] .nubi-workflow-stage-state{animation:nubi-workflow-pulse var(--nubi-ambient-bird-work) ease-in-out infinite}
 @keyframes nubi-workflow-pulse{50%{opacity:.65}}
 @container(max-width:45em){.nubi-workflow-execution{grid-template-columns:minmax(0,1fr)}.nubi-workflow-minimap{position:static;grid-row:1}}
 @media(prefers-reduced-motion:reduce){.nubi-workflow-stage,.nubi-workflow-node,.nubi-workflow-node-state,.nubi-workflow-state-dot,.nubi-workflow-stage-state{animation:none;transition:none}.nubi-workflow-stage[data-status=running] .nubi-workflow-stage-state{animation:none}}

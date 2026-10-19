@@ -18,6 +18,7 @@ import '../design/workspace-typography.css';
 import '../design/workspace-density.css';
 import '../design/workspace-dialogs.css';
 import '../design/workspace-icons.css';
+import '../design/workspace-pastel.css';
 import '../electron-app/modal-motion.css';
 
 function App(){

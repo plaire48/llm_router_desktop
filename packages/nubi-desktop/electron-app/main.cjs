@@ -4,6 +4,7 @@ const {safeApprovalFailure}=require('./approval-failure.cjs');
 const {trustedRenderer}=require('./renderer-scope.cjs');
 const {app,BrowserWindow,protocol,net,ipcMain,dialog,clipboard,Menu,Notification,session}=require('electron');
 const {prepareNativeInput}=require('./native-input-preparation.cjs');
+const {watchMotionVisibility}=require('./motion-visibility.cjs');
 const {fork,spawn}=require('node:child_process');
 const {WorkspaceUpdater}=require('./workspace-updater.cjs');
 const {readFile,writeFile,mkdir,realpath,rm}=require('node:fs/promises');
@@ -204,6 +205,7 @@ app.whenReady().then(async()=>{
  const {screen}=require('electron'),windowState=restoreWindowState(await loadWindowState(),screen.getAllDisplays());
  const installId=await installationStamp({packaged:app.isPackaged,platform:process.platform,executable:app.getPath('exe')});
  window=new BrowserWindow({icon:appIcon,width:windowState.width,height:windowState.height,...(windowState.x!==undefined?{x:windowState.x,y:windowState.y}:{}),minWidth:620,minHeight:540,title:'누비 Workspace Beta',backgroundColor:'#FFFFFF',titleBarStyle:process.platform==='darwin'?'hiddenInset':'hidden',...(process.platform==='darwin'?{trafficLightPosition:{x:14,y:17}}:{titleBarOverlay:DEFAULT_TITLEBAR}),webPreferences:{additionalArguments:installId?['--nubi-installation='+installId]:[],preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false}});
+ watchMotionVisibility(window);
  window.webContents.on('did-start-navigation',(_event,_url,_inPlace,isMainFrame)=>{if(isMainFrame){decisionNotices.clear();answerNotices.clear();wikiNotices.clear();mailLoginNotices.clear();applyCaptionColors(window,DEFAULT_TITLEBAR);}});
  if(windowState.maximized)window.maximize();
  for(const name of ['resize','move','maximize','unmaximize'])window.on(name,saveWindowState);

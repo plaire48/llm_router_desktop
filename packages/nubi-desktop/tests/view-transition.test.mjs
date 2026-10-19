@@ -2,6 +2,24 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {transitioned} from '../ui/viewTransition.js';
 
+test('capture timing is read before phase writes and snapshot capture can invalidate styles',async()=>{
+ const previousDocument=globalThis.document,previousStyle=globalThis.getComputedStyle,target=new EventTarget(),events=[];
+ const attributes=new Set();let finish;
+ const finished=new Promise(resolve=>{finish=resolve;});
+ Object.assign(target,{hidden:false,documentElement:{hasAttribute:name=>attributes.has(name),setAttribute(name){attributes.add(name);events.push('phase-write');},removeAttribute(name){attributes.delete(name);}},querySelector:()=>null,
+  startViewTransition(run){events.push('snapshot');run();return {ready:Promise.resolve(),updateCallbackDone:Promise.resolve(),finished,skipTransition(){}};}});
+ globalThis.document=target;globalThis.getComputedStyle=()=>({getPropertyValue(name){events.push('timing-read');assert.equal(name,'--nubi-motion-capture');return '120ms';}});
+ try{
+  transitioned(()=>events.push('update'));await Promise.resolve();
+  assert.equal(events.filter(event=>event==='timing-read').length,1);
+  assert.ok(events.indexOf('timing-read')<events.indexOf('phase-write'),'a token read after a phase mutation forces a document-wide style flush');
+  assert.ok(events.indexOf('timing-read')<events.indexOf('snapshot'),'capture must not introduce a synchronous computed-style read');
+ }finally{
+  finish();await finished;await Promise.resolve();globalThis.document=previousDocument;
+  if(previousStyle===undefined)delete globalThis.getComputedStyle;else globalThis.getComputedStyle=previousStyle;
+ }
+});
+
 test('new input commits a pending transition update immediately, without waiting for its capture callback',async()=>{
  const previousDocument=globalThis.document,target=new EventTarget();let callback,finish,updates=0;
  const finished=new Promise(resolve=>{finish=resolve;});

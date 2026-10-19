@@ -10,13 +10,34 @@ export async function assertDialogChrome(dialog) {
     const parts=['header','body','footer'].map(name=>root.querySelector(':scope > .cx-panel-'+name)).filter(Boolean);
     const close=root.querySelector('.cx-panel-header-actions [data-action=close]');
     const title=root.querySelector('.cx-panel-header h2');
-    return {insets:parts.map(node=>[getComputedStyle(node).paddingLeft,getComputedStyle(node).paddingRight]),
+    const header=parts.find(node=>node.classList.contains('cx-panel-header'));
+    const body=parts.find(node=>node.classList.contains('cx-panel-body'));
+    const footer=parts.find(node=>node.classList.contains('cx-panel-footer'));
+    const fullModal=!root.classList.contains('nubi-anchored-dialog')&&header?.checkVisibility();
+    return {geometry:fullModal?{
+      gutter:parseFloat(getComputedStyle(header).paddingLeft),
+      closeInset:close?.checkVisibility()?{top:close.getBoundingClientRect().top-root.getBoundingClientRect().top,right:root.getBoundingClientRect().right-close.getBoundingClientRect().right}:null,
+      narrow:innerWidth<=600,
+      top:parseFloat(getComputedStyle(header).paddingTop),
+      bottom:parseFloat(getComputedStyle(footer||body).paddingBottom),
+      footerTop:footer?parseFloat(getComputedStyle(footer).paddingTop):0,
+      contextOffsets:root.classList.contains('context-dialog')?[...body.children].map(node=>parseFloat(getComputedStyle(node).marginInlineStart)):[]
+    }:null,insets:parts.map(node=>[getComputedStyle(node).paddingLeft,getComputedStyle(node).paddingRight]),
       titleWeight:getComputedStyle(title).fontWeight,
       radius:getComputedStyle(root).borderRadius,
       close:close?.checkVisibility()?{width:close.getBoundingClientRect().width,height:close.getBoundingClientRect().height,radius:getComputedStyle(close).borderRadius}:null,
       sectionGap:getComputedStyle(root.querySelector(':scope > .cx-panel-body')).rowGap,leadingGlyph:(()=>{const glyph=root.querySelector('.cx-panel-header .nubi-panel-title>:is(.nubi-panel-title-icon,svg,img)');if(!glyph?.checkVisibility())return null;const header=root.querySelector('.cx-panel-header'),box=glyph.getBoundingClientRect(),bounds=header.getBoundingClientRect();return {left:box.left,min:bounds.left+parseFloat(getComputedStyle(header).paddingLeft)};})()};
   });
   assert(new Set(facts.insets.flat()).size===1,'All dialog sections share the same horizontal gutter');
+  if(facts.geometry){
+    const g=facts.geometry,expected=g.narrow?adaptation.modal.narrowInset:adaptation.modal.inset;
+    assert.equal(g.gutter,expected,'Modal uses the shared responsive gutter');
+    assert.equal(g.top,g.gutter,'Top and side outer insets match');
+    if(g.closeInset){assert(Math.abs(g.closeInset.top-g.gutter)<1,'Close button uses common top inset: '+JSON.stringify(g.closeInset));assert(Math.abs(g.closeInset.right-g.gutter)<1,'Close button uses common right inset: '+JSON.stringify(g.closeInset));}
+    assert.equal(g.bottom,g.gutter,'Bottom and side outer insets match');
+    assert.equal(g.footerTop,0,'Body owns the action gap; footer must not double it');
+    assert(g.contextOffsets.every(value=>value===0),'Context body has no extra horizontal indent');
+  }
   assert.equal(facts.titleWeight,String(adaptation.modal.titleWeight));
   assert.equal(facts.radius,adaptation.modal.radius+'px');
   assert.equal(facts.sectionGap,adaptation.modal.sectionGap+'px');if(facts.leadingGlyph)assert(facts.leadingGlyph.left>=facts.leadingGlyph.min-1,'Title icons stay inside the shared gutter');

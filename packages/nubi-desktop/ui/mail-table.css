@@ -75,3 +75,13 @@
 .nubi-mail-collection-controls .nubi-mail-filters[open]>.nubi-mail-filter-fields { position:absolute; z-index:12; top:calc(100% + var(--cx-space-2)); left:0; width:min(580px,100%); box-sizing:border-box; padding:var(--cx-space-4); border-radius:var(--nubi-work-control-radius); background:var(--nubi-surface-base); box-shadow:var(--deck-shadow); }
 .desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-table th { border-bottom:0; }
 .desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-table th .nubi-mail-select { min-height:32px; height:32px; }
+
+/* Fixed tracks keep reserved gaps and admitted rows at exactly the same size.
+   Query previews get two text lines; compact single-line density stays compact. */
+.desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-table[data-kind] { border-collapse:separate; border-spacing:0; table-layout:fixed; --nubi-mail-row-height:calc(max(var(--nubi-table-control-height),2rem) + var(--nubi-table-cell-block)*2); }
+.desktop-shell .nubi-mail-table[data-kind][data-query=true] { --nubi-mail-row-height:calc(max(var(--nubi-table-control-height),3rem) + var(--nubi-table-cell-block)*2); }
+.desktop-shell .nubi-mail-history[data-layout=table] table.nubi-mail-table[data-kind]>tbody>tr[data-mail-id]>td { height:var(--nubi-mail-row-height); max-height:var(--nubi-mail-row-height); box-sizing:border-box; }
+.desktop-shell .nubi-mail-history[data-layout=table] table.nubi-mail-table[data-kind] .nubi-mail-result { height:calc(var(--nubi-mail-row-height) - var(--nubi-table-cell-block)*2); min-height:0; overflow:hidden; }
+.desktop-shell .nubi-mail-history[data-layout=table] table.nubi-mail-table[data-kind]>tbody>.nubi-mail-gap>td { height:calc(var(--nubi-mail-row-height)*var(--nubi-mail-gap-rows)); padding:0; border:0; }
+.desktop-shell .nubi-mail-table>.nubi-mail-row-group { content-visibility:auto; contain-intrinsic-block-size:auto calc(var(--nubi-mail-row-height)*var(--nubi-mail-group-rows)); }
+.desktop-shell .nubi-mail-table>tbody:not(:last-child)>tr:last-child>td { border-bottom:1px solid var(--deck-line); }

@@ -50,3 +50,14 @@ test('three consecutive missed frames fail even below the one percent ratio',()=
  const result=measure({frames:[...Array(597).fill(16.7),34,34,34],inputs:[30]});assert.equal(result.maxConsecutiveMissedFrames,3);assert.ok(freezeViolations(result).includes('consecutive_missed_frames'));
  const separated=measure({frames:[...Array(594).fill(16.7),34,16.7,34,16.7,34,16.7],inputs:[30]});assert.equal(separated.maxConsecutiveMissedFrames,1);assert.deepEqual(freezeViolations(separated),[]);
 });
+
+test('conversation admission preserves first4, bounded batches and the exact300ms deadline',async()=>{
+ const {conversationAdmissionViolations}=await import('../scripts/freeze-metrics.mjs');
+ const rows=Array.from({length:10},(_,i)=>({count:(i+1)*4,at:i*300/9}));
+ assert.deepEqual(conversationAdmissionViolations(rows),[]);
+ assert.deepEqual(conversationAdmissionViolations(rows.map((r,i)=>i===9?{...r,at:306.8}:r)),['admission_deadline']);
+ assert(conversationAdmissionViolations([{count:8,at:0},{count:40,at:100}]).includes('admission_first_rows'));
+ assert(conversationAdmissionViolations(rows.slice(0,-1)).includes('admission_incomplete'));
+ assert(conversationAdmissionViolations([]).includes('admission_samples_missing'));
+ assert(conversationAdmissionViolations([{count:4,at:0},{count:40,at:100}]).includes('admission_batch'));
+});

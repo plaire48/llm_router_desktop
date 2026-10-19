@@ -12,19 +12,21 @@ test('the Electron renderer installs dialog motion and its styles',async()=>{
   assert.match(renderer,/useModalDismissalPolicy\(\);\n useModalMotion\(\);/);
 });
 
-test('dialog motion is compositor-only, timed like a sheet and off for reduced motion',async()=>{
+test('dialog motion uses the common timings and opacity-only reduced motion',async()=>{
   const css=await read('electron-app/modal-motion.css');
-  assert.match(css,/--nubi-modal-open:280ms;/);
-  assert.match(css,/--nubi-modal-close:180ms;/);
-  assert.match(css,/@media \(prefers-reduced-motion: no-preference\) \{\s*@layer nubi-modal-motion \{/);
+  assert.match(css,/--nubi-modal-open:var\(--nubi-motion-enter\);/);
+  assert.match(css,/--nubi-modal-close:var\(--nubi-motion-exit\);/);
+  const tokens=await read('design/workspace-motion.css');assert.match(tokens,/--nubi-motion-enter:280ms/);assert.match(tokens,/--nubi-motion-exit:180ms/);assert.match(tokens,/--nubi-motion-reduced:120ms/);
+  assert.match(css,/nubi-modal-fade-in var\(--nubi-motion-reduced\)/);
+  assert.match(css,/nubi-modal-fade-out var\(--nubi-motion-reduced\)/);
   for(const [,body] of css.matchAll(/@keyframes nubi-modal-[\w-]+ \{([^}]*\})\s*\}/g)){
     for(const [,property] of body.matchAll(/([a-z-]+):/g))assert.ok(['opacity','transform'].includes(property),`only transform and opacity animate, found ${property}`);
   }
-  assert.match(css,/\[data-modal-motion="leaving"\] \* \{ pointer-events:none !important; \}/);
-  assert.match(css,/view-transition-name:nubi-modal;/);
+  assert.match(css,/\[data-modal-motion=leaving\] \* \{pointer-events:none!important\}/);
+  assert.match(css,/view-transition-name:nubi-modal/);
 });
 
-test('automated checks and reduced motion get no motion or close delay',async()=>{
+test('automation can opt out while reduced motion retains the inert close lifecycle',async()=>{
   const motion=await read('ui/modalMotion.js');
   assert.match(motion,/navigator\.webdriver/);
   assert.match(motion,/prefers-reduced-motion: reduce/);

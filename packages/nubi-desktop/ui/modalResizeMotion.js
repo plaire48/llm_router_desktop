@@ -11,7 +11,7 @@ export function installModalResizeMotion(allowed){
   return {left:r.left+(r.width-width)/2-transform.m41,top:r.top+(r.height-height)/2-transform.m42,width,height};
  };
  const stop=record=>{record.animation?.cancel();record.reveal?.cancel();record.surface?.remove();record.panel.classList.remove('nubi-modal-morphing');record.animation=record.reveal=record.surface=record.appearance=null;};
- const appearance=panel=>{const style=getComputedStyle(panel);return {background:style.background,borderRadius:style.borderRadius,boxShadow:style.boxShadow,duration:parseFloat(style.getPropertyValue('--nubi-modal-resize'))||240,easing:style.getPropertyValue('--nubi-modal-resize-ease').trim()||'cubic-bezier(.2,.8,.2,1)'};};
+ const appearance=panel=>{const style=getComputedStyle(panel);return {background:style.background,borderRadius:style.borderRadius,boxShadow:style.boxShadow,duration:parseFloat(style.getPropertyValue('--nubi-modal-resize')),easing:style.getPropertyValue('--nubi-modal-resize-ease').trim()};};
  function morph(record,from,to){
   const panel=record.panel,backdrop=panel.parentElement;
   if(!allowed()||!panel.isConnected||!from?.width||!to.width||Math.abs(from.width-to.width)+Math.abs(from.height-to.height)<2)return;

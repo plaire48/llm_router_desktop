@@ -19,13 +19,13 @@
   --nubi-chat-min-inset:12px;
   --nubi-icon-size:var(--nubi-icon-control);
   --nubi-rail-width:64px;
-  --nubi-motion-press:110ms;
-  --nubi-motion-hover:160ms;
-  --nubi-motion-enter:240ms;
-  --nubi-motion-dock:440ms;
-  --nubi-motion-dock-ease:cubic-bezier(.22,.8,.25,1);
-  --nubi-motion-ease:cubic-bezier(.2,.8,.2,1);
-  --nubi-motion-pressed-scale:.99;
+  
+  
+  
+  
+  
+  
+  
   --deck-press:var(--nubi-motion-pressed-scale);
   --nubi-ambient-drift:16s;
   --nubi-creature-drift:11s;
@@ -37,7 +37,7 @@
 .nubi-desktop-host :is(.cx-kit-button,.cx-action-button) {
   min-height:var(--nubi-action-height);border-radius:var(--nubi-action-radius);
   font-weight:var(--nubi-weight-emphasis);letter-spacing:var(--nubi-tracking-ui);
-  transition:background var(--nubi-motion-hover) var(--nubi-motion-ease),box-shadow var(--nubi-motion-hover) var(--nubi-motion-ease),color var(--nubi-motion-hover) var(--nubi-motion-ease),transform var(--nubi-motion-press) var(--nubi-motion-ease);
+  transition:color var(--nubi-motion-hover) var(--nubi-motion-ease),transform var(--nubi-motion-press) var(--nubi-motion-ease);
 }
 .nubi-desktop-host :is(.cx-kit-button,.cx-action-button):focus-visible {outline:2px solid var(--nubi-action-ink);outline-offset:3px}
 .nubi-desktop-host :is(.cx-kit-button,.cx-action-button):active:not(:disabled) {transform:scale(var(--nubi-motion-pressed-scale))}
@@ -90,11 +90,11 @@
 .desktop-shell .nubi-mail-attachment.cx-kit-button {background:var(--deck-blue-soft);color:var(--deck-blue-deep);border:0;border-radius:var(--nubi-action-radius)}
 .desktop-shell .nubi-mail-history-row>span {align-self:flex-start;background:var(--deck-tint);color:var(--deck-blue-deep);border-radius:var(--deck-pill-radius);padding:calc(var(--cx-space-1) * 0.5) var(--cx-space-2);}
 .desktop-shell .cx-kit-shell {background:var(--nubi-workspace-gradient)}
-.desktop-shell .deck-blob {opacity:.19!important;will-change:transform;animation:var(--nubi-ambient-drift) var(--nubi-ambient-ease) infinite alternate}
+.desktop-shell .deck-blob {opacity:.19!important;animation:var(--nubi-ambient-drift) var(--nubi-ambient-ease) infinite alternate}
 .desktop-shell .deck-blob-blue {animation-name:nubi-ambient-blue;animation-delay:-9s}
-.desktop-shell .deck-blob-violet {animation-name:nubi-ambient-violet;animation-duration:20s;animation-delay:-16s}
-.desktop-shell .deck-blob-teal {animation-name:nubi-ambient-teal;animation-duration:18s;animation-delay:-4s}
-.desktop-shell .welcome-emblem {will-change:transform;animation:nubi-emblem-drift calc(var(--nubi-creature-drift) * 1.2) var(--nubi-ambient-ease) infinite}
+.desktop-shell .deck-blob-violet {animation-name:nubi-ambient-violet;animation-duration:var(--nubi-motion-enter);animation-delay:-16s}
+.desktop-shell .deck-blob-teal {animation-name:nubi-ambient-teal;animation-duration:var(--nubi-motion-enter);animation-delay:-4s}
+.desktop-shell .welcome-emblem {animation:nubi-emblem-drift calc(var(--nubi-creature-drift) * 1.2) var(--nubi-ambient-ease) infinite}
 .desktop-shell .agent-mark[data-mood="idle"] {animation:nubi-bird-swim var(--nubi-creature-drift) var(--nubi-ambient-ease) infinite}
 @keyframes nubi-ambient-blue {0%{transform:translate3d(-30px,-18px,0) scale(.96)}48%{transform:translate3d(48px,24px,0) scale(1.08)}100%{transform:translate3d(-8px,56px,0) scale(1)}}
 @keyframes nubi-ambient-violet {0%{transform:translate3d(38px,24px,0) scale(1.03)}45%{transform:translate3d(-44px,-30px,0) scale(.94)}100%{transform:translate3d(18px,-54px,0) scale(1.07)}}
@@ -200,7 +200,7 @@
 .desktop-shell .nubi-workbench .model-trigger.cx-kit-button,
 .desktop-shell .nubi-workbench .model-trigger.cx-kit-button:is(:hover,:focus-visible,:active) {
   transform:none;translate:none;rotate:none;scale:none;animation:none;
-  transition:background var(--nubi-motion-hover) var(--nubi-motion-ease),color var(--nubi-motion-hover) var(--nubi-motion-ease);
+  transition:color var(--nubi-motion-hover) var(--nubi-motion-ease);
 }
 .desktop-shell .nubi-workbench .model-trigger-label,
 .desktop-shell .nubi-workbench .model-trigger-label > * {transform:none;translate:none;animation:none}
@@ -329,7 +329,7 @@
    changes in View Transitions; these names let the sidebar, the main column and the side pane morph as separate
    layers while the rest cross-fades. Everything runs on the compositor (snapshots, transform, opacity). */
 /* On :root so the view-transition pseudo-elements (children of html) see them; slightly shorter for a quicker feel (2026-10-14). */
-:root { --nubi-spring:cubic-bezier(.32,.72,0,1); --nubi-morph:.28s; --nubi-morph-out:.18s; }
+:root {    }
 .desktop-shell .nubi-sidebar[data-open=true] { view-transition-name:nubi-sidebar; }
 .desktop-shell .nubi-workbench .nubi-main { view-transition-name:nubi-main; }
 .desktop-shell .desktop-pane { view-transition-name:nubi-pane; }
@@ -337,17 +337,17 @@
    when the snapshot overlay has pointer-events:none in Chromium. */
 :root { view-transition-name:none; }
 .desktop-shell .nubi-window-toolbar { view-transition-name:none; }
-::view-transition-group(*) { animation-duration:var(--nubi-morph,.42s); animation-timing-function:var(--nubi-spring,cubic-bezier(.32,.72,0,1)); }
+::view-transition-group(*) { animation-duration:var(--nubi-morph,var(--nubi-motion-enter)); animation-timing-function:var(--nubi-spring,cubic-bezier(.32,.72,0,1)); }
 /* Snapshots are visual only. Live controls remain reachable during the morph. */
 ::view-transition { pointer-events:none; }
 ::view-transition-group(*), ::view-transition-image-pair(*), ::view-transition-old(*), ::view-transition-new(*) { pointer-events:none; }
-::view-transition-old(root), ::view-transition-new(root) { animation-duration:.24s; animation-timing-function:ease-out; }
-::view-transition-old(nubi-main), ::view-transition-new(nubi-main), ::view-transition-old(nubi-pane), ::view-transition-new(nubi-pane) { height:100%; width:100%; object-fit:cover; object-position:left top; animation-duration:.28s; }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration:var(--nubi-motion-enter); animation-timing-function:ease-out; }
+::view-transition-old(nubi-main), ::view-transition-new(nubi-main), ::view-transition-old(nubi-pane), ::view-transition-new(nubi-pane) { height:100%; width:100%; object-fit:cover; object-position:left top; animation-duration:var(--nubi-motion-enter); }
 ::view-transition-old(nubi-toolbar), ::view-transition-new(nubi-toolbar) { animation:none; }
-::view-transition-new(nubi-sidebar):only-child { animation:nubi-vt-in-left var(--nubi-morph,.42s) var(--nubi-spring) both; }
-::view-transition-old(nubi-sidebar):only-child { animation:nubi-vt-out-left var(--nubi-morph-out,.3s) var(--nubi-spring) both; }
-::view-transition-new(nubi-pane):only-child { animation:nubi-vt-in-right var(--nubi-morph,.42s) var(--nubi-spring) both; }
-::view-transition-old(nubi-pane):only-child { animation:nubi-vt-out-right var(--nubi-morph-out,.3s) var(--nubi-spring) both; }
+::view-transition-new(nubi-sidebar):only-child { animation:nubi-vt-in-left var(--nubi-morph,var(--nubi-motion-enter)) var(--nubi-spring) both; }
+::view-transition-old(nubi-sidebar):only-child { animation:nubi-vt-out-left var(--nubi-morph-out,var(--nubi-motion-enter)) var(--nubi-spring) both; }
+::view-transition-new(nubi-pane):only-child { animation:nubi-vt-in-right var(--nubi-morph,var(--nubi-motion-enter)) var(--nubi-spring) both; }
+::view-transition-old(nubi-pane):only-child { animation:nubi-vt-out-right var(--nubi-morph-out,var(--nubi-motion-enter)) var(--nubi-spring) both; }
 @keyframes nubi-vt-in-left { from { transform:translateX(-24px); opacity:0; } to { transform:none; opacity:1; } }
 @keyframes nubi-vt-out-left { from { transform:none; opacity:1; } to { transform:translateX(-24px); opacity:0; } }
 @keyframes nubi-vt-in-right { from { transform:translateX(32px); opacity:0; } to { transform:none; opacity:1; } }
@@ -361,30 +361,30 @@
 /* iOS-like touch feedback across the app (user request 2026-10-14: the reasoning knob's "통통" swell, everywhere).
    Presses sink a little and spring back; knobs swell while held; checks pop; menus grow from their anchor. Transform
    and opacity only, so the compositor does the work. Reduced motion turns all of it off. */
-:root { --nubi-bounce:cubic-bezier(.34,1.18,.64,1); --nubi-motion-pressed-scale:.96; }
-.nubi-desktop-host :is(.cx-kit-button,.cx-action-button) { transition-property:background,box-shadow,color,transform; transition-duration:var(--nubi-motion-hover),var(--nubi-motion-hover),var(--nubi-motion-hover),.32s; transition-timing-function:var(--nubi-motion-ease),var(--nubi-motion-ease),var(--nubi-motion-ease),var(--nubi-bounce); }
-.nubi-desktop-host :is(.cx-kit-button,.cx-action-button):active:not(:disabled) { transition-duration:var(--nubi-motion-hover),var(--nubi-motion-hover),var(--nubi-motion-hover),.09s; }
+:root {   }
+.nubi-desktop-host :is(.cx-kit-button,.cx-action-button) { transition-property:background,box-shadow,color,transform; transition-duration:var(--nubi-motion-hover),var(--nubi-motion-hover),var(--nubi-motion-hover),var(--nubi-motion-state); transition-timing-function:var(--nubi-motion-ease),var(--nubi-motion-ease),var(--nubi-motion-ease),var(--nubi-bounce); }
+.nubi-desktop-host :is(.cx-kit-button,.cx-action-button):active:not(:disabled) { transition-duration:var(--nubi-motion-hover),var(--nubi-motion-hover),var(--nubi-motion-hover),var(--nubi-motion-load); }
 /* Rows and cards a person taps: mail, wiki, skills, tasks, projects, menu items. */
-.desktop-shell :is(.nubi-mail-result,.nubi-mail-history-row,.nubi-custom-skill-row,.nubi-marketplace-row,.nubi-wiki-row,.nubi-task-row,.nubi-project-row,[role="menuitem"],[role="option"],[role="tab"]) { transition:transform .32s var(--nubi-bounce), background-color .2s var(--nubi-motion-ease); }
-.desktop-shell :is(.nubi-mail-result,.nubi-mail-history-row,.nubi-custom-skill-row,.nubi-marketplace-row,.nubi-wiki-row,.nubi-task-row,.nubi-project-row,[role="menuitem"],[role="option"]):active:not(:disabled):not([aria-disabled="true"]) { transform:scale(.985); transition-duration:.09s; }
+.desktop-shell :is(.nubi-mail-result,.nubi-mail-history-row,.nubi-custom-skill-row,.nubi-marketplace-row,.nubi-wiki-row,.nubi-task-row,.nubi-project-row,[role="menuitem"],[role="option"],[role="tab"]) { transition:transform var(--nubi-motion-state) var(--nubi-bounce), background-color var(--nubi-motion-state) var(--nubi-motion-ease); }
+.desktop-shell :is(.nubi-mail-result,.nubi-mail-history-row,.nubi-custom-skill-row,.nubi-marketplace-row,.nubi-wiki-row,.nubi-task-row,.nubi-project-row,[role="menuitem"],[role="option"]):active:not(:disabled):not([aria-disabled="true"]) { transform:scale(.985); transition-duration:var(--nubi-motion-load); }
 /* Slider knobs swell while held, then settle. */
-.nubi-desktop-host input[type="range"]::-webkit-slider-thumb { transition:transform .32s var(--nubi-bounce), box-shadow .2s var(--nubi-motion-ease); }
+.nubi-desktop-host input[type="range"]::-webkit-slider-thumb { transition:transform var(--nubi-motion-state) var(--nubi-bounce); }
 .nubi-desktop-host input[type="range"]:active::-webkit-slider-thumb { transform:scale(1.28); box-shadow:0 3px 10px color-mix(in srgb,var(--deck-ink) 18%,transparent); }
 /* Checks and radios pop when they change. */
-.nubi-desktop-host :is(input[type="checkbox"],input[type="radio"]) { transition:transform .3s var(--nubi-bounce); }
+.nubi-desktop-host :is(input[type="checkbox"],input[type="radio"]) { transition:transform var(--nubi-motion-state) var(--nubi-bounce); }
 .nubi-desktop-host :is(input[type="checkbox"],input[type="radio"]):active:not(:disabled) { transform:scale(.86); }
-.nubi-desktop-host :is(input[type="checkbox"],input[type="radio"]):checked { animation:nubi-pop .34s var(--nubi-bounce); }
-.nubi-desktop-host [role="switch"][aria-checked] { transition:transform .3s var(--nubi-bounce), background-color .2s var(--nubi-motion-ease); }
+.nubi-desktop-host :is(input[type="checkbox"],input[type="radio"]):checked { animation:nubi-pop var(--nubi-motion-enter) var(--nubi-bounce); }
+.nubi-desktop-host [role="switch"][aria-checked] { transition:transform var(--nubi-motion-state) var(--nubi-bounce), background-color var(--nubi-motion-state) var(--nubi-motion-ease); }
 .nubi-desktop-host [role="switch"]:active { transform:scale(.94); }
 @keyframes nubi-pop { 0%{transform:scale(.8)} 60%{transform:scale(1.12)} 100%{transform:scale(1)} }
 /* Menus and popovers grow from where they open. */
-.desktop-shell :is([role="menu"],[role="listbox"],.cx-popover,.nubi-popover) { animation:nubi-menu-in .26s var(--nubi-spring,cubic-bezier(.32,.72,0,1)) both; transform-origin:top center; }
+.desktop-shell :is([role="menu"],[role="listbox"],.cx-popover,.nubi-popover) { animation:nubi-menu-in var(--nubi-motion-enter) var(--nubi-spring,cubic-bezier(.32,.72,0,1)) both; transform-origin:top center; }
 @keyframes nubi-menu-in { from{opacity:0;transform:scale(.94) translateY(-4px)} to{opacity:1;transform:none} }
 /* Icon-only toolbar buttons get a small bounce on release. */
 .desktop-shell .nubi-icon-button:active:not(:disabled) svg { transform:scale(.96); }
 .desktop-shell .nubi-icon-button svg { transition:transform var(--nubi-motion-press) var(--nubi-motion-ease); }
 @media (prefers-reduced-motion: reduce) {
-  .nubi-desktop-host *, .nubi-desktop-host *::-webkit-slider-thumb { animation:none !important; transition-duration:0s !important; }
+  .nubi-desktop-host *, .nubi-desktop-host *::-webkit-slider-thumb { animation:none !important; transition-duration:var(--nubi-motion-load) !important; }
   .nubi-desktop-host :is(.cx-kit-button,.cx-action-button,input,[role="switch"],[role="menuitem"],[role="option"]):active { transform:none !important; }
 }
 
@@ -392,9 +392,9 @@
    Elsewhere typing still quiets the backdrop. Wider, slower drift; transform only. Dialogs, a hidden window, a paused
    motion setting and reduced motion still stop it. */
 :root:not([data-motion="paused"]):not([data-motion-visibility="hidden"]):not(:has(.cx-panel-backdrop)) .desktop-shell:has(.nubi-start.is-empty) .deck-blob { animation-play-state:running; opacity:.3 !important; }
-.desktop-shell:has(.nubi-start.is-empty) .deck-blob-blue { animation:nubi-start-drift-a 26s cubic-bezier(.45,0,.55,1) infinite alternate; }
-.desktop-shell:has(.nubi-start.is-empty) .deck-blob-violet { animation:nubi-start-drift-b 31s cubic-bezier(.45,0,.55,1) infinite alternate; animation-delay:-11s; }
-.desktop-shell:has(.nubi-start.is-empty) .deck-blob-teal { animation:nubi-start-drift-c 23s cubic-bezier(.45,0,.55,1) infinite alternate; animation-delay:-6s; }
+.desktop-shell:has(.nubi-start.is-empty) .deck-blob-blue { animation:nubi-start-drift-a var(--nubi-ambient-pastel-a) cubic-bezier(.45,0,.55,1) infinite alternate; }
+.desktop-shell:has(.nubi-start.is-empty) .deck-blob-violet { animation:nubi-start-drift-b var(--nubi-ambient-pastel-b) cubic-bezier(.45,0,.55,1) infinite alternate; animation-delay:-11s; }
+.desktop-shell:has(.nubi-start.is-empty) .deck-blob-teal { animation:nubi-start-drift-c var(--nubi-ambient-pastel-c) cubic-bezier(.45,0,.55,1) infinite alternate; animation-delay:-6s; }
 @keyframes nubi-start-drift-a { 0%{transform:translate3d(-6vw,-4vh,0) scale(.95)} 50%{transform:translate3d(14vw,10vh,0) scale(1.15)} 100%{transform:translate3d(4vw,22vh,0) scale(1.02)} }
 @keyframes nubi-start-drift-b { 0%{transform:translate3d(8vw,6vh,0) scale(1.05)} 50%{transform:translate3d(-16vw,-12vh,0) scale(.92)} 100%{transform:translate3d(-4vw,-24vh,0) scale(1.12)} }
 @keyframes nubi-start-drift-c { 0%{transform:translate3d(-4vw,14vh,0) scale(.94)} 50%{transform:translate3d(-20vw,-6vh,0) scale(1.18)} 100%{transform:translate3d(6vw,-10vh,0) scale(1)} }
@@ -416,9 +416,9 @@ body.nubi-desktop-host {
   .desktop-shell :is(.nubi-mail-result,.nubi-custom-skill-row,.nubi-marketplace-row,.nubi-mcp-item,.nubi-wiki-table tbody tr,.usage-account,.nubi-server-notice):hover { transform:translateY(-1px); }
   .desktop-shell .nubi-icon-button:hover:not(:disabled) svg, .desktop-shell .nubi-workspace-rail button:hover:not(:disabled) svg { transform:none; }
 }
-.desktop-shell :is(.nubi-mail-result,.nubi-custom-skill-row,.nubi-marketplace-row,.nubi-mcp-item,.usage-account,.nubi-server-notice) { transition:transform .38s var(--nubi-bounce), box-shadow .25s var(--nubi-motion-ease), background-color .2s var(--nubi-motion-ease); }
+.desktop-shell :is(.nubi-mail-result,.nubi-custom-skill-row,.nubi-marketplace-row,.nubi-mcp-item,.usage-account,.nubi-server-notice) { transition:transform var(--nubi-motion-state) var(--nubi-bounce), background-color var(--nubi-motion-state) var(--nubi-motion-ease); }
 .desktop-shell .nubi-workspace-rail button svg { transition:transform var(--nubi-motion-press) var(--nubi-motion-ease); }
-.desktop-shell .nubi-workbench .composer { transition:box-shadow .3s var(--nubi-motion-ease), transform .38s var(--nubi-bounce); }
+.desktop-shell .nubi-workbench .composer { transition: transform var(--nubi-motion-state) var(--nubi-bounce); }
 /* Jelly press on the primary send and action buttons: a squash, then a springy release. */
 .nubi-desktop-host .cx-kit-button[data-variant="primary"]:active:not(:disabled), .nubi-desktop-host .cx-kit-button.cx-kit-button--primary:active:not(:disabled) { transform:scale(.97,.95); }
 @media (prefers-reduced-motion: reduce) { .desktop-shell :is(.nubi-mail-result,.nubi-custom-skill-row,.nubi-marketplace-row,.nubi-mcp-item,.usage-account,.nubi-server-notice):hover { transform:none; } }

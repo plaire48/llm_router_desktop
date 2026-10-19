@@ -36,20 +36,21 @@
 :root:root .deck-dialog > .cx-panel-header {
   padding:var(--nubi-modal-title-inset) var(--nubi-modal-inset) var(--nubi-modal-block);
   gap:var(--nubi-work-control-gap);
+  align-items:flex-start;
   border:0;
 }
 :root:root .deck-dialog > .cx-panel-body {
   display:flex;
   flex-direction:column;
   gap:var(--nubi-modal-section-gap);
-  padding:var(--nubi-modal-body-block) var(--nubi-modal-inset);
+  padding:var(--nubi-modal-body-block) var(--nubi-modal-inset) var(--nubi-dialog-footer-inset);
 }
 :root:root .deck-dialog > .cx-panel-footer {
   display:flex;
   align-items:center;
   flex-wrap:nowrap;
   gap:var(--nubi-work-control-gap);
-  padding:var(--cx-space-3) var(--nubi-modal-inset) var(--nubi-dialog-footer-inset);
+  padding:0 var(--nubi-modal-inset) var(--nubi-dialog-footer-inset);
   border:0;
 }
 :root:root .deck-dialog .cx-panel-header > div:first-child { min-width:0; }
@@ -168,7 +169,7 @@
 :root:root .deck-dialog :is(.cx-kit-button,.cx-action-button):not([role=switch],[role=tab],.model-option,.nubi-history-item,.nubi-marketplace-card,.nubi-page-chip) {
   background-image:none;
 }
-:root:root .deck-dialog .cx-panel-header-actions { display:flex; align-items:center; justify-content:flex-end; }
+:root:root .deck-dialog .cx-panel-header-actions { display:flex; align-items:center; justify-content:flex-end; align-self:flex-start; margin:0; }
 :root:root .deck-dialog :is([data-icon-only],.cx-panel-header-actions [data-action=close]) {
   display:inline-flex; align-items:center; justify-content:center; flex:none;
   width:var(--nubi-work-control-height); min-width:var(--nubi-work-control-height);
@@ -227,7 +228,7 @@
 }
 :root:root .cx-panel-backdrop > .deck-dialog { width:min(var(--nubi-dialog-width-standard),100%); }
 :root:root .cx-panel-backdrop > .nubi-panel--wide { width:min(var(--nubi-dialog-width-wide),100%); }
-:root:root .cx-panel-backdrop > :is(.deck-confirmation,.nubi-ghes-modal,.nubi-wiki-progress-dialog,.nubi-mail-login-dialog) { width:min(var(--nubi-dialog-width-compact),100%); }
+:root:root .cx-panel-backdrop > :is(.deck-confirmation,.cx-confirmation,.nubi-ghes-modal,.nubi-wiki-progress-dialog,.nubi-mail-login-dialog,.context-dialog,.nubi-project-name-dialog,.nubi-mail-saved-dialog,.nubi-mail-tags-dialog,.admin-account-modal,.talk-login-panel,.talk-link-dialog,.skill-install-panel) { width:min(var(--nubi-dialog-width-compact),100%); }
 :root:root .cx-panel-backdrop > .model-dialog { width:min(var(--nubi-dialog-width-choice),100%); }
 :root:root :is(.nubi-delete-conversation,.nubi-delete-skill,.nubi-danger-confirmation) { --nubi-dialog-action:var(--deck-red); }
 :root:root :is(.nubi-delete-conversation,.nubi-delete-skill,.nubi-danger-confirmation) .deck-confirmation-content > .deck-symbol { color:var(--deck-red); background:var(--deck-red-soft); }
@@ -250,7 +251,7 @@
 :root:root .deck-dialog :is(input,select,textarea) { min-width:0; max-width:100%; }
 
 /* A decision is a compact message dialog using the same modal tokens. */
-:root:root .cx-panel-backdrop>.nubi-decision-dialog { width:min(580px,100%); }
+:root:root .cx-panel-backdrop>.nubi-decision-dialog { width:min(var(--nubi-dialog-width-standard),100%); }
 :root:root :is(.nubi-decision-dialog,.nubi-question-form) .question-option-copy { display:flex; flex-direction:row; align-items:center; gap:var(--cx-space-3); min-width:0; }
 :root:root :is(.nubi-decision-dialog,.nubi-question-form) .question-option-copy strong { flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 /* Sentences wrap to two lines instead of being cut at one (user report 2026-10-14). */
@@ -411,8 +412,6 @@
 :root:root .nubi-question-form .question-send>svg { display:none; }
 
 /* User reference: quiet caption, numbered rows, then one input/action row. */
-:root:root .nubi-decision-dialog:has(.nubi-question-form) > .cx-panel-header { padding:var(--cx-space-3) var(--nubi-modal-inset) var(--cx-space-2); }
-:root:root .nubi-decision-dialog:has(.nubi-question-form) > .cx-panel-body { padding:0 var(--nubi-modal-inset) var(--cx-space-4); }
 :root:root .nubi-question-caption { display:inline-flex; align-items:center; gap:var(--cx-space-2); font:var(--deck-font-caption); color:var(--nubi-text-secondary); font-weight:var(--nubi-weight-regular); }
 :root:root .nubi-question-form .nubi-question-prompt { margin:0 0 var(--cx-space-4); font:var(--deck-font-body); font-weight:var(--nubi-weight-label); color:var(--nubi-text-primary); overflow-wrap:anywhere; }
 :root:root .nubi-question-form .question-card--compact { max-width:none; gap:var(--cx-space-2); }
@@ -502,14 +501,12 @@
 
 /* Balanced outer gutters. Icons remain inside the content edge rather than
    hanging into the left margin. The native header/footer own all chrome. */
-:root:root .deck-dialog:not(.nubi-anchored-dialog){--nubi-modal-inset:calc(var(--cx-space-4) + var(--cx-space-6));--nubi-dialog-symbol-size:var(--cx-space-6)}
+:root:root .deck-dialog:not(.nubi-anchored-dialog){--nubi-dialog-symbol-size:var(--cx-space-6)}
 :root:root .deck-dialog .nubi-panel-title>:is(svg,img){width:var(--cx-space-6);height:var(--cx-space-6);flex:none}
 :root:root .deck-dialog .nubi-settings-row.cx-kit-button{width:100%;margin-inline:0;padding-inline:0;gap:var(--cx-space-2);background:transparent}
 :root:root .deck-dialog .nubi-settings-row-icon{width:var(--cx-space-6);height:var(--cx-space-6)}
 :root:root .deck-dialog .nubi-settings-row.cx-kit-button:hover:not(:disabled){background:var(--deck-blue-soft)}
 :root:root .deck-dialog>.cx-panel-body>p:not(.nubi-muted):not([role=status]){font-size:var(--nubi-reading-size);font-weight:var(--nubi-weight-regular);line-height:var(--deck-line-body)}
-:root:root .context-dialog>.cx-panel-body>*{margin-inline-start:var(--cx-space-8)}
-@media(max-width:480px){:root:root .deck-dialog:not(.nubi-anchored-dialog){--nubi-modal-inset:calc(var(--cx-space-3) * 3)}}
 
 /* Shared text identity for every Desktop modal, including body portals.
    These selectors cover application labels and plain feedback only; embedded

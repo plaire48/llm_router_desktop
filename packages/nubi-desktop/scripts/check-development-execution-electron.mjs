@@ -82,11 +82,36 @@ try{
   const card=page.getByRole('region',{name:'실행 준비 승인'}).filter({hasText:'편집 뒤 검사'});await card.waitFor({timeout:10000});
   assert((await card.innerText()).includes('편집 뒤 검사'));
   for(const width of [1280,440]){
+    await page.setViewportSize({width,height:900});
+    const expand=page.getByRole('button',{name:'사이드바 펼치기',exact:true});if(width===440||await expand.count())await expand.click();
+    await page.locator('.nubi-sidebar[data-open="true"] .nubi-sidebar-history h3').first().waitFor({state:'visible'});
+    const dates=await page.locator('.nubi-sidebar-history>section').evaluateAll(groups=>groups.map(group=>{
+      const heading=group.querySelector('h3'),range=document.createRange();range.selectNodeContents(heading);
+      return {label:heading.textContent,dateWidth:range.getBoundingClientRect().width,dateLeft:range.getBoundingClientRect().left,iconLeft:group.querySelector('.nubi-session-select>svg').getBoundingClientRect().left};
+    }));
+    await writeFile(path.join(evidence,`date-alignment-${width}.json`),JSON.stringify(dates,null,2));
+    await page.screenshot({path:path.join(evidence,`date-alignment-${width}.png`),animations:'disabled'});
+    assert(dates.length>0&&dates.every(row=>row.dateWidth>0&&Math.abs(row.dateLeft-row.iconLeft)<1),'visible sidebar dates share the list leading edge: '+JSON.stringify(dates));
+  }
+  for(const width of [1280,440]){
     const collapse=page.getByRole('button',{name:'사이드바 접기',exact:true});if(width===440&&await collapse.count())await collapse.click();
     await page.setViewportSize({width,height:900});
     await card.scrollIntoViewIfNeeded();
-    assert(await card.evaluate(node=>{const r=node.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth+1&&node.scrollWidth<=node.clientWidth+1;}));
+    const geometry=await card.evaluate(node=>{const r=node.getBoundingClientRect();return {left:r.left,right:r.right,viewport:innerWidth,scrollWidth:node.scrollWidth,clientWidth:node.clientWidth};});
+    await writeFile(path.join(evidence,`after-edit-${width}-geometry.json`),JSON.stringify(geometry,null,2));
     await page.screenshot({path:path.join(evidence,`after-edit-${width}.png`),animations:'disabled'});
+    assert(geometry.left>=0&&geometry.right<=geometry.viewport+1&&geometry.scrollWidth<=geometry.clientWidth+1,JSON.stringify(geometry));
+    const fileAlignment=await page.evaluate(()=>{
+      const files=document.querySelector('.nubi-applied-files'),approval=document.querySelector('.nubi-approval-form');
+      const left=selector=>files.querySelector(selector).getBoundingClientRect().left;
+      return {anchor:approval.querySelector('header>svg').getBoundingClientRect().left,
+        heading:left('.nubi-applied-trigger>strong'),icons:[...files.querySelectorAll('.nubi-applied-row>.desktop-file-icon')].map(node=>node.getBoundingClientRect().left),
+        cardLeft:files.getBoundingClientRect().left,cardRight:files.getBoundingClientRect().right,
+        approvalLeft:approval.getBoundingClientRect().left,approvalRight:approval.getBoundingClientRect().right};
+    });
+    await writeFile(path.join(evidence,`file-alignment-${width}.json`),JSON.stringify(fileAlignment,null,2));
+    assert(Math.abs(fileAlignment.heading-fileAlignment.anchor)<1&&fileAlignment.icons.length>0&&fileAlignment.icons.every(left=>Math.abs(left-fileAlignment.anchor)<1),'changed-file heading and file icons share the transcript reading edge: '+JSON.stringify(fileAlignment));
+    assert(Math.abs(fileAlignment.cardLeft-fileAlignment.approvalLeft)<1&&Math.abs(fileAlignment.cardRight-fileAlignment.approvalRight)<1,'changed-file and approval cards share both edges: '+JSON.stringify(fileAlignment));
   }
   assert.equal((await request('state',{taskId:task.id})).processes.length,1);
   const verification=await request('decideSetupAction',{id:queued[0].id,fingerprint:queued[0].fingerprint,decision:'approve'});

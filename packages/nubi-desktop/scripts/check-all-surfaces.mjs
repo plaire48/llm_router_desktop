@@ -279,8 +279,15 @@ try{
  await bird.evaluate(e=>e.dataset.mood='idle');
  await p.evaluate(()=>document.documentElement.dataset.motionVisibility='hidden');assert.equal(await emblem.evaluate(e=>getComputedStyle(e).animationPlayState),'paused');
  await p.evaluate(()=>document.documentElement.dataset.motionVisibility='visible');
- await p.emulateMedia({reducedMotion:'reduce'});assert.equal(await emblem.evaluate(e=>getComputedStyle(e).animationName),'none');assert.equal(await bird.evaluate(e=>getComputedStyle(e).animationName),'none');
- await p.locator('.welcome-art').hover();assert.equal(await bird.evaluate(e=>getComputedStyle(e).animationName),'none','reduced motion retains expression without dancing');
+ // Q10: preserve the existing Animation and phase under OS reduction; removing
+ // its name would restart the timeline when the preference returns.
+ await p.evaluate(()=>{window.reducedBirdAnimations=[...document.querySelector('.welcome-emblem').getAnimations(),...document.querySelector('.welcome-emblem .agent-mark').getAnimations()];});
+ await p.emulateMedia({reducedMotion:'reduce'});await p.waitForTimeout(70);
+ assert.equal(await emblem.evaluate(e=>getComputedStyle(e).animationPlayState),'paused');assert.equal(await bird.evaluate(e=>getComputedStyle(e).animationPlayState),'paused');
+ const pausedBird=await p.evaluate(()=>window.reducedBirdAnimations.map(a=>({same:document.getAnimations().includes(a),state:a.playState,at:a.currentTime})));await p.waitForTimeout(70);
+ assert(await p.evaluate(rows=>rows.length>0&&rows.every((row,index)=>row.same&&row.state==='paused'&&Math.abs(row.at-window.reducedBirdAnimations[index].currentTime)<1),pausedBird),'reduced motion keeps the same bird animations at the same phase');
+ await p.locator('.welcome-art').hover();assert.equal(await bird.evaluate(e=>getComputedStyle(e).animationPlayState),'paused','reduced motion retains expression without dancing');
+ const hoverPhase=await bird.evaluate(e=>e.getAnimations()[0]?.currentTime);await p.waitForTimeout(70);assert.equal(await bird.evaluate(e=>e.getAnimations()[0]?.currentTime),hoverPhase,'reduced greeting never advances');
  records.push({screen:'central-bird-motion',flight:true,wing:true,hover:true,sleep:true,sad:true,reducedMotion:true});
  await writeFile(path.join(dir,'bird-motion.json'),JSON.stringify(birdMotion,null,2));
  }

@@ -1,3 +1,4 @@
+@import './workspace-motion.css';
 /* Desktop adaptation of the supplied HTML. Palette and shared components
    come from agent-deck.css; this layer closes host and portal differences. */
 :root {
@@ -63,10 +64,10 @@
   --nubi-copy-hover-ink: var(--nubi-text-primary);
   --nubi-pointer-ink: #171717;
   --nubi-pointer-shadow: drop-shadow(0 1px 1px #0008);
-  --nubi-modal-inset: var(--cx-space-6);
-  --nubi-modal-block: var(--cx-space-2);
-  --nubi-modal-body-block: var(--cx-space-4);
-  --nubi-modal-title-inset: var(--cx-space-4);
+  --nubi-modal-inset: var(--cx-space-8);
+  --nubi-modal-block: var(--cx-space-3);
+  --nubi-modal-body-block: var(--cx-space-3);
+  --nubi-modal-title-inset: var(--nubi-modal-inset);
   --nubi-modal-title-height: 40px;
   --nubi-toolbar-height: 48px;
   --nubi-toolbar-mac-inset: 88px;
@@ -155,9 +156,9 @@
   --nubi-navigation-radius: .875rem;
   --nubi-brand-surface: linear-gradient(145deg,var(--deck-blue-soft),color-mix(in srgb,var(--deck-green-soft) 60%,var(--deck-card)));
   --nubi-brand-wordmark-fill: linear-gradient(110deg,color-mix(in srgb,var(--deck-teal) 65%,var(--bird-ink)),var(--deck-blue-deep));
-  --nubi-brand-float-duration: 6s;
-  --nubi-bird-curious-duration: 12s;
-  --nubi-brand-greeting-duration: 800ms;
+  --nubi-brand-float-duration:var(--nubi-ambient-brand-float);
+  --nubi-bird-curious-duration:var(--nubi-ambient-bird-curious);
+  --nubi-brand-greeting-duration:var(--nubi-motion-enter);
   --nubi-chrome-surface: color-mix(in srgb,var(--deck-blue-soft) 18%,var(--deck-card));
   --nubi-icon-small: var(--nubi-icon-inline);
   --nubi-icon-large: var(--nubi-icon-navigation);
@@ -185,11 +186,16 @@
   --nubi-dialog-width-wide: 47.5rem;
   --nubi-dialog-radius: var(--deck-panel-radius);
   --nubi-dialog-shadow: var(--deck-shadow);
-  --nubi-dialog-footer-inset: var(--cx-space-6);
+  --nubi-dialog-footer-inset: var(--nubi-modal-inset);
   --nubi-dialog-field-gap: var(--cx-space-2);
   --nubi-dialog-symbol-size: 2rem;
   --nubi-chat-width: clamp(700px, 94cqi, 1480px);
   --nubi-chat-reading-width: 48rem;
+  --nubi-transcript-icon-size: var(--nubi-icon-control);
+  --nubi-question-marker-min-size: max(var(--cx-space-5), var(--nubi-transcript-icon-size));
+  --nubi-question-pencil-inset: calc(var(--nubi-icon-inline) * .15);
+  --nubi-transcript-card-inset: var(--cx-space-4);
+  --nubi-transcript-card-border: 1px;
   --nubi-reading-width: calc(var(--nubi-chat-width) + var(--nubi-page-inset) * 2);
   --nubi-scrollbar-size: 4px;
   --nubi-scrollbar-inset: var(--cx-space-2);
@@ -413,7 +419,7 @@
 .desktop-shell[data-layout="split"] .nubi-workbench .nubi-workbench-content { min-width:var(--nubi-chat-min-width,380px); }
 .desktop-pane-resize { position:absolute; top:0; bottom:0; left:0; z-index:22; width:var(--nubi-resize-hit-width); padding:0; border:0; outline:none; box-shadow:none; background:transparent; cursor:col-resize; touch-action:none; }
 /* Paint one line at the pane edge, independently of the wider drag target. */
-.desktop-pane-resize::after { content:""; position:absolute; top:var(--cx-space-3); bottom:var(--cx-space-3); left:0; width:var(--nubi-resize-line-width); border-radius:var(--deck-pill-radius); background:transparent; pointer-events:none; transition:background var(--deck-feedback) var(--deck-ease); }
+.desktop-pane-resize::after { content:""; position:absolute; top:var(--cx-space-3); bottom:var(--cx-space-3); left:0; width:var(--nubi-resize-line-width); border-radius:var(--deck-pill-radius); background:transparent; pointer-events:none; transition:none; }
 .desktop-pane-resize:hover::after { background:var(--nubi-resize-hover); }
 .desktop-pane-resize:focus-visible::after,.desktop-shell[data-pane-resizing=true] .desktop-pane-resize::after { background:var(--deck-blue-deep); }
 .desktop-pane-resize:focus-visible::after { width:calc(var(--nubi-resize-line-width) + 1px); }
@@ -453,7 +459,7 @@
 .nubi-workbench :is(.nubi-file-card small, .nubi-history-item small, .nubi-map-meta) { font: var(--deck-font-caption); color: var(--deck-sub); }
 .nubi-workbench .nubi-icon-button { min-width: var(--deck-field-height); min-height: var(--deck-field-height); border-radius: var(--deck-control-radius); }
 .nubi-workbench :is(.nubi-icon-button, .nubi-text-size):hover:not(:disabled) { background: var(--deck-blue-soft); color: var(--deck-blue-deep); }
-.nubi-workbench .cx-kit-button { transition: background-color var(--deck-feedback) var(--deck-ease), color var(--deck-feedback) var(--deck-ease); }
+.nubi-workbench .cx-kit-button { transition:background-color var(--deck-feedback) var(--deck-ease), color var(--deck-feedback) var(--deck-ease); }
 .nubi-workbench .nubi-inline { flex-wrap: wrap; }
 .nubi-panel :is(p, summary, label, .nubi-muted) { font: var(--deck-font-body); }
 .nubi-panel summary { font-weight:var(--nubi-weight-label); }
@@ -485,7 +491,7 @@
 .deck-confirmation-content p { font:var(--deck-font-body); }
 .deck-confirmation-content .nubi-deletion-note { display:inline-flex; align-items:center; gap:var(--cx-space-1); color:var(--deck-muted); font-weight:var(--nubi-weight-regular); }
 .nubi-deletion-note > svg { flex:none; }
-@media(max-width:600px) { :root { --nubi-modal-inset:var(--cx-space-4); } }
+@media(max-width:600px) { :root { --nubi-modal-inset:var(--cx-space-6); } }
 
 .nubi-skill-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:var(--cx-space-2); margin-bottom:var(--cx-space-3); }
 .nubi-skill-toolbar > .cx-action-button { margin-left:auto; }
@@ -622,7 +628,7 @@
 /* OpenWiki (user decision 2026-09-30): the update's progress as a bar, what it sends to the model as a note, pages as
    chips; results with the title and freshness first, then the passage, then where it is. */
 .nubi-progress { height:6px; margin-top:var(--cx-space-3); border-radius:var(--deck-pill-radius); background:var(--deck-tint); overflow:hidden; }
-.nubi-progress > span { display:block; height:100%; border-radius:inherit; background:var(--deck-blue); transition:width var(--deck-rise) var(--deck-ease); }
+.nubi-progress > span { display:block; height:100%; border-radius:inherit; background:var(--deck-blue); transition:none; }
 .nubi-action-note { display:flex; align-items:flex-start; gap:var(--cx-space-2); margin:var(--cx-space-3) 0 0; padding:calc(var(--cx-space-1) * 2.5) var(--cx-space-3); border-radius:var(--deck-inset-radius); background:var(--deck-tint); color:var(--deck-sub); font:var(--deck-font-caption); }
 .nubi-action-note > svg { flex:none; margin-top:calc(var(--cx-space-1) * 0.25); color:var(--deck-blue); }
 .nubi-page-chips { display:flex; flex-wrap:wrap; gap:calc(var(--cx-space-1) * 1.5); margin:var(--cx-space-3) 0 0; padding:0; list-style:none; }
@@ -658,7 +664,7 @@
 .nubi-work-plan .nubi-plan-outcomes dd { color:var(--deck-sub); }
 .nubi-settings { display:grid; gap:var(--cx-space-4); }
 .nubi-settings-rows { display:grid; gap:var(--cx-space-2); }
-.nubi-settings-row.cx-kit-button { display:flex; justify-content:flex-start; align-items:center; gap:var(--cx-space-3); width:100%; padding:var(--cx-space-3); border:0; border-radius:var(--nubi-work-control-radius); background:var(--deck-tint); color:var(--deck-ink); font-weight:var(--nubi-weight-emphasis); text-align:left; transition:background-color .15s ease; }
+.nubi-settings-row.cx-kit-button { display:flex; justify-content:flex-start; align-items:center; gap:var(--cx-space-3); width:100%; padding:var(--cx-space-3); border:0; border-radius:var(--nubi-work-control-radius); background:var(--deck-tint); color:var(--deck-ink); font-weight:var(--nubi-weight-emphasis); text-align:left; transition:background-color var(--nubi-motion-state) ease; }
 .nubi-settings-row.cx-kit-button:hover { background:var(--deck-blue-soft); }
 .nubi-settings-row > svg:last-child { margin-left:auto; color:var(--deck-sub); }
 .nubi-settings-row-icon { display:grid; place-items:center; width:36px; height:36px; flex:none; border-radius:var(--deck-control-radius); background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
@@ -743,7 +749,7 @@
 .nubi-session-actions :is(.cx-kit-button,.cx-action-button) { width:28px; min-width:28px; height:28px; min-height:28px; padding:var(--cx-space-1); color:var(--deck-sub); background:transparent; border:0; box-shadow:none; }
 .nubi-workbench .nubi-session-actions :is(.nubi-session-action,.cx-action-button[data-action="delete"]) > svg { width:var(--nubi-session-action-icon-size); height:var(--nubi-session-action-icon-size); flex:none; }
 .nubi-session-progress { display:inline-grid; place-items:center; flex:none; width:16px; height:16px; margin-left:auto; }
-.nubi-session-progress .status-spinner { display:block; width:14px; height:14px; border:2px solid var(--deck-blue-soft); border-top-color:var(--deck-blue-deep); border-radius:50%; animation:nubi-session-spin .8s linear infinite; }
+.nubi-session-progress .status-spinner { display:block; width:14px; height:14px; border:2px solid var(--deck-blue-soft); border-top-color:var(--deck-blue-deep); border-radius:50%; animation:nubi-session-spin var(--nubi-ambient-spin) linear infinite; }
 @keyframes nubi-session-spin { to { transform:rotate(360deg); } }
 .nubi-session-complete { display:inline-block; flex:none; width:1px; min-width:1px; height:1px; min-height:1px; margin-inline:calc(var(--cx-space-1) * 1.25); border-radius:50%; background:var(--deck-blue-deep); }
 .nubi-session-actions .nubi-session-action[aria-pressed="true"] { color:var(--deck-blue-deep); opacity:1; pointer-events:auto; }
@@ -772,7 +778,7 @@
 .nubi-start-support { margin:calc(-1 * var(--cx-space-6)) 0 0; font:var(--nubi-weight-label) var(--deck-type-body)/var(--deck-line-body) var(--cx-font-family); color:var(--deck-sub); text-align:center; text-wrap:balance; animation:deck-rise var(--deck-rise) var(--deck-ease) both; animation-delay:calc(var(--deck-step) * 2); }
 .nubi-start-choices { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(248px,100%),1fr)); gap:var(--cx-space-4); width:100%; }
 .nubi-start-choices[data-count="1"] { width:min(372px,100%); }
-.nubi-start-card { display:flex; flex-direction:column; align-items:flex-start; gap:var(--cx-space-1); min-width:0; margin:0; padding:var(--cx-space-5); border:0; border-radius:var(--deck-panel-radius); background:var(--deck-card); box-shadow:var(--deck-shadow); color:var(--deck-ink); font:inherit; text-align:left; animation:deck-rise var(--deck-rise) var(--deck-ease) both; animation-delay:calc(var(--deck-step) * 2 + var(--deck-stagger)); transition:transform var(--deck-feedback) var(--deck-ease), box-shadow var(--deck-feedback) var(--deck-ease); }
+.nubi-start-card { display:flex; flex-direction:column; align-items:flex-start; gap:var(--cx-space-1); min-width:0; margin:0; padding:var(--cx-space-5); border:0; border-radius:var(--deck-panel-radius); background:var(--deck-card); box-shadow:var(--deck-shadow); color:var(--deck-ink); font:inherit; text-align:left; animation:deck-rise var(--deck-rise) var(--deck-ease) both; animation-delay:calc(var(--deck-step) * 2 + var(--deck-stagger)); transition:transform var(--deck-feedback) var(--deck-ease); }
 .nubi-start-card + .nubi-start-card { animation-delay:calc(var(--deck-step) * 2 + var(--deck-stagger) * 2); }
 button.nubi-start-card { cursor:pointer; }
 button.nubi-start-card:hover:not(:disabled), .nubi-start-card:focus-within { background:var(--deck-section-surface); box-shadow:var(--deck-shadow); }
@@ -785,7 +791,7 @@ button.nubi-start-card:disabled { cursor:default; opacity:.6; }
 .nubi-start-card strong { font-size:var(--nubi-type-large-body); line-height:var(--deck-line-body); font-weight:var(--nubi-weight-strong); letter-spacing:var(--nubi-tracking-reading); }
 .nubi-start-text { margin-bottom:var(--cx-space-4); font:var(--deck-font-label); color:var(--deck-sub); }
 .nubi-start-go, .nubi-start-field { display:flex; align-items:center; gap:var(--cx-space-2); width:100%; margin-top:auto; }
-.nubi-start-go { justify-content:center; width:var(--deck-field-height); height:var(--deck-field-height); margin-left:auto; border-radius:var(--deck-control-radius); background:var(--deck-blue-soft); color:var(--deck-blue-deep); transition:background var(--deck-feedback) var(--deck-ease), color var(--deck-feedback) var(--deck-ease); }
+.nubi-start-go { justify-content:center; width:var(--deck-field-height); height:var(--deck-field-height); margin-left:auto; border-radius:var(--deck-control-radius); background:var(--deck-blue-soft); color:var(--deck-blue-deep); transition: color var(--deck-feedback) var(--deck-ease); }
 .nubi-start-go svg { transition:transform var(--deck-feedback) var(--deck-ease); }
 button.nubi-start-card:hover:not(:disabled) .nubi-start-go { background:var(--deck-blue-deep); color:var(--deck-card); }
 button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:translateX(3px); }
@@ -829,7 +835,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-workbench .agent-mark { isolation:isolate; }
 .nubi-workbench .agent-mark > .bird-joy { z-index:-1; }
 /* Reuse the shared bird's expressions; keep small answer marks within their line. */
-.nubi-workbench .nubi-answer-mark { --nubi-answer-cycle:8s; --nubi-answer-work-cycle:2.8s; --nubi-answer-greeting-cycle:900ms; --nubi-answer-travel:1px; }
+.nubi-workbench .nubi-answer-mark { --nubi-answer-cycle:8s; --nubi-answer-work-cycle:2.8s; --nubi-answer-greeting-cycle:var(--nubi-motion-enter); --nubi-answer-travel:1px; }
 .nubi-workbench .answer-model .nubi-answer-mark[data-mood="idle"] { animation:nubi-answer-breathe var(--nubi-answer-cycle) ease-in-out infinite; }
 .nubi-workbench .nubi-answer-mark[data-mood="idle"] .bird-base { animation:bird-idle-base var(--nubi-answer-cycle) linear infinite; }
 .nubi-workbench .nubi-answer-mark[data-mood="idle"] .bird-blink { animation:bird-blink var(--nubi-answer-cycle) linear infinite; }
@@ -1277,20 +1283,20 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 /* Keep the shared Nubi palette; motion adds a free swimming water aura. */
 .nubi-workbench[data-host-layout="integrated"][data-workspace-screen="welcome"] .deck-blob {
   filter:blur(16px); opacity:.16;
-  animation:nubi-water-drift 14s ease-in-out infinite alternate;
+  animation:nubi-water-drift var(--nubi-ambient-water) ease-in-out infinite alternate;
 }
 .nubi-workbench[data-host-layout="integrated"] .deck-blob-violet { animation-delay:-5s; }
 .nubi-workbench[data-host-layout="integrated"] .deck-blob-teal { animation-delay:-9s; }
-.nubi-workbench[data-host-layout="integrated"] .welcome-emblem { animation:nubi-bird-swim 9s ease-in-out infinite; }
+.nubi-workbench[data-host-layout="integrated"] .welcome-emblem { animation:nubi-bird-swim var(--nubi-ambient-swim) ease-in-out infinite; }
 .nubi-workbench[data-host-layout="integrated"] .welcome-emblem::before {
   inset:-38px; border-radius:43% 57% 62% 38% / 60% 45% 55% 40%; opacity:.55;
   background:var(--bird-aura); background-size:150% 150%; filter:blur(20px);
-  animation:nubi-water-aura 11s ease-in-out infinite alternate;
+  animation:nubi-water-aura var(--nubi-ambient-water-aura) ease-in-out infinite alternate;
 }
 @keyframes nubi-water-drift { from{transform:translate3d(-20px,-15px,0) rotate(-8deg) scale(.96)} to{transform:translate3d(65px,45px,0) rotate(14deg) scale(1.08)} }
 @keyframes nubi-water-aura {
-  from{transform:translate(-18px,8px) rotate(-16deg) scale(.92);background-position:0% 35%;border-radius:43% 57% 62% 38% / 60% 45% 55% 40%}
-  to{transform:translate(22px,-12px) rotate(18deg) scale(1.08);background-position:100% 65%;border-radius:58% 42% 38% 62% / 40% 60% 45% 55%}
+  from{transform:translate(-18px,8px) rotate(-16deg) scale(.92)}
+  to{transform:translate(22px,-12px) rotate(18deg) scale(1.08)}
 }
 @keyframes nubi-bird-swim { 0%,100%{transform:translate(0,0) rotate(-1deg)} 35%{transform:translate(9px,-11px) rotate(2deg)} 70%{transform:translate(-7px,-4px) rotate(-2deg)} }
 :root[data-motion="paused"] .nubi-workbench[data-host-layout="integrated"] .welcome-emblem::before,
@@ -1370,8 +1376,8 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-mail-switch-row>div,.nubi-mail-connected>div { display:grid; gap:var(--cx-space-2); min-width:0; }
 .nubi-mail-connected strong { display:flex; align-items:center; gap:var(--cx-space-2); }
 .nubi-mail-switch-row small,.nubi-mail-connected small,.nubi-mail-activity small,.nubi-mail-settings .nubi-muted { font-size:var(--deck-type-caption); line-height:var(--deck-line-body); color:var(--deck-sub); font-weight:var(--nubi-weight-regular); }
-.nubi-ios-switch { flex:none; width:44px; height:27px; padding:calc(var(--cx-space-1) * 0.75); border:0; border-radius:999px; background:var(--deck-line); cursor:pointer; transition:background-color 180ms ease; }
-.nubi-ios-switch>span { display:block; width:21px; height:21px; border-radius:50%; background:white; box-shadow:var(--nubi-shadow-subtle); transition:transform 180ms ease; }
+.nubi-ios-switch { flex:none; width:44px; height:27px; padding:calc(var(--cx-space-1) * 0.75); border:0; border-radius:999px; background:var(--deck-line); cursor:pointer; transition:background-color var(--nubi-motion-state) ease; }
+.nubi-ios-switch>span { display:block; width:21px; height:21px; border-radius:50%; background:white; box-shadow:var(--nubi-shadow-subtle); transition:transform var(--nubi-motion-state) ease; }
 .nubi-ios-switch[aria-checked=true] { background:var(--deck-blue); }
 .nubi-ios-switch[aria-checked=true]>span { transform:translateX(17px); }
 .nubi-ios-switch:disabled { opacity:.5; cursor:default; }
@@ -1504,7 +1510,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .desktop-mail-progress>.nubi-response-time { color:var(--deck-sub); }
 .nubi-mail-timestamp { color:var(--deck-muted); font:var(--deck-font-caption); white-space:nowrap; font-variant-numeric:tabular-nums; }
 .nubi-mail-history-asof { display:flex; flex-wrap:wrap; gap:var(--cx-space-2) var(--cx-space-3); }
-.nubi-mail-progress-state>.nubi-mail-watching-spinner { animation-duration:2.4s; }
+.nubi-mail-progress-state>.nubi-mail-watching-spinner { animation-duration:var(--nubi-motion-enter); }
 .nubi-mail-search-heading { display:flex; align-items:center; flex-wrap:wrap; gap:var(--cx-space-2); color:var(--deck-blue-deep); margin-bottom:var(--cx-space-2); }
 .nubi-mail-search-heading strong { font:var(--deck-font-label); font-weight:var(--nubi-weight-emphasis); }
 .nubi-mail-search-heading small { color:var(--deck-muted); font:var(--deck-font-caption); }
@@ -1516,18 +1522,18 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-mail-search { display:flex; flex-direction:column; width:100%; min-height:0; gap:var(--cx-space-2); }
 .nubi-mail-search .cx-search-field { flex:none; }
 .nubi-mail-filters { flex:none; font:var(--deck-font-caption); }
-.nubi-mail-filters>summary { display:flex; align-items:center; gap:var(--cx-space-2); min-height:36px; padding:var(--cx-space-1) var(--cx-space-3); border-radius:var(--nubi-work-control-radius,var(--cx-space-3)); color:var(--deck-ink); font-weight:var(--nubi-weight-emphasis); cursor:pointer; list-style:none; transition:background .18s ease,color .18s ease; }
+.nubi-mail-filters>summary { display:flex; align-items:center; gap:var(--cx-space-2); min-height:36px; padding:var(--cx-space-1) var(--cx-space-3); border-radius:var(--nubi-work-control-radius,var(--cx-space-3)); color:var(--deck-ink); font-weight:var(--nubi-weight-emphasis); cursor:pointer; list-style:none; transition:color var(--nubi-motion-state) ease; }
 .nubi-mail-filters>summary>svg:first-child { color:var(--deck-blue-deep); flex:none; }
 .nubi-mail-filters-count { display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 var(--cx-space-2); border-radius:999px; background:var(--deck-blue); color:var(--deck-card); font-weight:var(--nubi-weight-strong); font-variant-numeric:tabular-nums; }
 .nubi-mail-filters>summary>svg:last-child { margin-left:auto; }
 .nubi-mail-filters>summary:hover,.nubi-mail-filters[open]>summary { background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
 .nubi-mail-filters[open]>summary>svg:last-child { transform:rotate(180deg); }
-.nubi-mail-filters>summary>svg:last-child { transition:transform .18s ease; }
+.nubi-mail-filters>summary>svg:last-child { transition:transform var(--nubi-motion-state) ease; }
 .nubi-mail-filter-fields { display:grid; gap:var(--cx-space-2); padding:var(--cx-space-3); margin-top:var(--cx-space-1); background:var(--deck-tint); border-radius:var(--nubi-work-control-radius,var(--cx-space-3)); }
 .nubi-mail-filter-fields label { display:grid; grid-template-columns:92px minmax(0,1fr); align-items:center; gap:var(--cx-space-2); min-height:36px; }
 .nubi-mail-filter-fields label>span { display:flex; align-items:center; gap:var(--cx-space-2); color:var(--deck-ink); font-weight:var(--nubi-weight-label); white-space:nowrap; }
 .nubi-mail-filter-fields label>span>svg,.nubi-mail-extra-filters>summary>svg:first-child,.nubi-mail-page-label>svg { flex:none; color:var(--deck-blue-deep); }
-.nubi-mail-search select { min-width:0; max-width:100%; height:36px; padding:var(--cx-space-1) var(--cx-space-7) var(--cx-space-1) var(--cx-space-3); border:0; border-radius:var(--nubi-work-control-radius,var(--cx-space-3)); background:var(--deck-card); color:var(--deck-ink); font:var(--deck-font-caption); font-weight:var(--nubi-weight-label); box-shadow:none; transition:background .18s ease,box-shadow .18s ease; }
+.nubi-mail-search select { min-width:0; max-width:100%; height:36px; padding:var(--cx-space-1) var(--cx-space-7) var(--cx-space-1) var(--cx-space-3); border:0; border-radius:var(--nubi-work-control-radius,var(--cx-space-3)); background:var(--deck-card); color:var(--deck-ink); font:var(--deck-font-caption); font-weight:var(--nubi-weight-label); box-shadow:none; transition:none; }
 .nubi-mail-search select:hover { background:var(--deck-blue-soft); }
 .nubi-mail-search select:focus-visible { outline:2px solid var(--deck-blue-deep); outline-offset:1px; }
 .nubi-mail-filter-fields .cx-kit-input { width:100%; min-width:0; height:36px; padding:var(--cx-space-1) var(--cx-space-3); border:0; border-radius:var(--nubi-work-control-radius,var(--cx-space-3)); background:var(--deck-card); font:var(--deck-font-caption); }
@@ -1677,12 +1683,12 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
  .nubi-mail-filters>.nubi-mail-filter-fields,.nubi-mail-extra-filters>div { grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:var(--cx-space-4); }
  .nubi-mail-extra-filters { grid-column:1/-1; }
 }
-.nubi-mail-extra-filters>summary { display:flex; align-items:center; gap:var(--cx-space-2); min-height:36px; padding:var(--cx-space-1) var(--cx-space-2); border-radius:var(--nubi-work-control-radius,var(--cx-space-3)); cursor:pointer; color:var(--deck-ink); font-weight:var(--nubi-weight-label); list-style:none; transition:background .18s ease; }
-.nubi-mail-extra-filters>summary>svg:last-child { margin-left:auto; color:var(--deck-sub); transition:transform .18s ease; }
+.nubi-mail-extra-filters>summary { display:flex; align-items:center; gap:var(--cx-space-2); min-height:36px; padding:var(--cx-space-1) var(--cx-space-2); border-radius:var(--nubi-work-control-radius,var(--cx-space-3)); cursor:pointer; color:var(--deck-ink); font-weight:var(--nubi-weight-label); list-style:none; transition:none; }
+.nubi-mail-extra-filters>summary>svg:last-child { margin-left:auto; color:var(--deck-sub); transition:transform var(--nubi-motion-state) ease; }
 .nubi-mail-extra-filters[open]>summary>svg:last-child { transform:rotate(180deg); }
 .nubi-mail-extra-filters>summary:hover { background:var(--deck-blue-soft); }
 .nubi-mail-extra-filters>div { display:grid; gap:var(--cx-space-2); padding-top:var(--cx-space-1); }
-.nubi-mail-pin-filter.cx-kit-button { justify-self:start; display:flex; align-items:center; gap:var(--cx-space-2); min-height:36px; padding:var(--cx-space-1) var(--cx-space-3); border:0; border-radius:999px; box-shadow:none; background:var(--deck-card); color:var(--deck-ink); font:var(--deck-font-caption); font-weight:var(--nubi-weight-label); transition:background .18s ease,color .18s ease; }
+.nubi-mail-pin-filter.cx-kit-button { justify-self:start; display:flex; align-items:center; gap:var(--cx-space-2); min-height:36px; padding:var(--cx-space-1) var(--cx-space-3); border:0; border-radius:999px; box-shadow:none; background:var(--deck-card); color:var(--deck-ink); font:var(--deck-font-caption); font-weight:var(--nubi-weight-label); transition:color var(--nubi-motion-state) ease; }
 .nubi-mail-pin-filter.cx-kit-button>svg:first-child { color:var(--deck-blue-deep); }
 .nubi-mail-pin-filter[aria-pressed=true],.nubi-mail-pin-filter:hover { background:var(--deck-blue-soft); color:var(--deck-blue-deep); font-weight:var(--nubi-weight-emphasis); }
 .nubi-mail-page-label { display:inline-flex; align-items:center; gap:var(--cx-space-2); color:var(--deck-ink); font-weight:var(--nubi-weight-label); white-space:nowrap; }
@@ -1724,7 +1730,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-wiki-progress-dialog .nubi-wiki-initialization-line { flex-wrap:nowrap;gap:var(--cx-space-3); }
 .nubi-wiki-progress-dialog .nubi-wiki-percent { margin-left:auto; }
 .nubi-wiki-eta { display:block;margin-top:var(--cx-space-2);color:var(--nubi-text-secondary); }
-.nubi-progress.is-indeterminate span { width:30%;animation:nubi-wiki-scan 1.8s linear infinite; }
+.nubi-progress.is-indeterminate span { width:30%;animation:nubi-wiki-scan var(--nubi-ambient-progress) linear infinite; }
 @keyframes nubi-wiki-scan { from { transform:translateX(-100%); } to { transform:translateX(334%); } }
 @media(prefers-reduced-motion:reduce){.nubi-progress.is-indeterminate span{animation:none;transform:none;}}
 
@@ -1763,20 +1769,20 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 /* A running record breathes: the summary icon spins and the title pulses while the model works, whether a tool is
    running or it is thinking (user report 2026-10-14: the wait must read as activity). */
 .nubi-agent-activity[data-activity-live=true] .agent-trace > summary > svg:first-child { display:none; }
-.nubi-agent-activity[data-activity-live=true] .agent-trace > summary::before { content:""; flex:none; width:14px; height:14px; margin-right:var(--cx-space-2); border:2px solid var(--deck-blue-soft); border-top-color:var(--deck-blue-deep); border-radius:50%; animation:nubi-live-spin .9s linear infinite; }
-.nubi-agent-activity[data-activity-live=true] .agent-trace > summary > .agent-trace-title { animation:nubi-live-breathe 1.8s ease-in-out infinite; }
+.nubi-agent-activity[data-activity-live=true] .agent-trace > summary::before { content:""; flex:none; width:14px; height:14px; margin-right:var(--cx-space-2); border:2px solid var(--deck-blue-soft); border-top-color:var(--deck-blue-deep); border-radius:50%; animation:nubi-live-spin var(--nubi-ambient-spin-live) linear infinite; }
+.nubi-agent-activity[data-activity-live=true] .agent-trace > summary > .agent-trace-title { animation:nubi-live-breathe var(--nubi-ambient-progress) ease-in-out infinite; }
 .nubi-agent-activity .agent-next-step .status-spinner,.nubi-launch-progress .status-spinner { color:var(--deck-blue-deep); }
 @keyframes nubi-live-breathe { 0%,100% { opacity:1; } 50% { opacity:.55; } }
 @keyframes nubi-live-spin { to { transform:rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .nubi-agent-activity[data-activity-live=true] .agent-trace > summary > svg:first-child,.nubi-agent-activity[data-activity-live=true] .agent-trace > summary > .agent-trace-title { animation:none; } }
 
 /* Any host request slower than 400 ms shows a moving line under the toolbar so a wait reads as work, not a freeze (2026-10-14). */
-html[data-host-busy] .desktop-shell::after { content:""; position:fixed; left:0; right:0; top:var(--desktop-toolbar-height,48px); height:2px; z-index:40; pointer-events:none; background:linear-gradient(90deg,transparent 0%,var(--deck-blue) 50%,transparent 100%); background-size:40% 100%; animation:nubi-host-busy 1.1s linear infinite; }
-@keyframes nubi-host-busy { from { background-position:-40% 0; } to { background-position:140% 0; } }
+html[data-host-busy] .desktop-shell::after { content:""; position:fixed; left:0; right:0; top:var(--desktop-toolbar-height,48px); height:2px; z-index:40; pointer-events:none; background:linear-gradient(90deg,transparent 0%,var(--deck-blue) 50%,transparent 100%); background-size:40% 100%; animation:nubi-host-busy var(--nubi-ambient-host) linear infinite; }
+@keyframes nubi-host-busy { from { transform:translateX(-40%); } to { transform:translateX(140%); } }
 @media (prefers-reduced-motion: reduce) { html[data-host-busy] .desktop-shell::after { animation:none; background:var(--deck-blue-soft); } }
 
 /* While another project opens, the current workbench fades instead of sitting frozen; the next one fades in (2026-10-14). */
-.nubi-workbench .nubi-main, .nubi-workbench .nubi-sidebar { transition:opacity .22s ease, filter .22s ease; }
+.nubi-workbench .nubi-main, .nubi-workbench .nubi-sidebar { transition:opacity var(--nubi-motion-state) ease; }
 html[data-project-switching] .nubi-workbench .nubi-main, html[data-project-switching] .nubi-workbench .nubi-sidebar { opacity:.45; filter:saturate(.6); pointer-events:none; }
 @media (prefers-reduced-motion: reduce) { .nubi-workbench .nubi-main, .nubi-workbench .nubi-sidebar { transition:none; } }
 
@@ -1795,7 +1801,7 @@ html[data-project-switching] .nubi-workbench .nubi-main, html[data-project-switc
 .nubi-process-fold>summary:hover { background:var(--deck-tint); }
 .nubi-process-fold>summary>small { color:var(--deck-sub); font-weight:var(--nubi-weight-label); }
 .nubi-process-fold>summary>.status-spinner { color:var(--deck-blue-deep); }
-.nubi-process-fold>summary>svg:last-child { margin-left:auto; color:var(--deck-sub); transition:transform .18s ease; }
+.nubi-process-fold>summary>svg:last-child { margin-left:auto; color:var(--deck-sub); transition:transform var(--nubi-motion-state) ease; }
 .nubi-process-fold[open]>summary>svg:last-child { transform:rotate(180deg); }
 .nubi-process-fold-icon { display:inline-flex; color:var(--deck-blue-deep); }
 
@@ -1843,7 +1849,7 @@ html[data-project-switching] .nubi-workbench .nubi-main, html[data-project-switc
    Reduced motion keeps the plain toggle. */
 @media (prefers-reduced-motion: no-preference) {
   .nubi-workbench .nubi-agent-activity :is(.agent-trace, [data-plan-overview], .task-plan-context) { interpolate-size:allow-keywords; }
-  .nubi-workbench .nubi-agent-activity :is(.agent-trace, [data-plan-overview], .task-plan-context)::details-content { block-size:0; opacity:0; overflow:clip; transition:block-size var(--deck-feedback, 240ms) var(--deck-ease, ease), opacity var(--deck-feedback, 240ms) var(--deck-ease, ease), content-visibility var(--deck-feedback, 240ms) allow-discrete; }
+  .nubi-workbench .nubi-agent-activity :is(.agent-trace, [data-plan-overview], .task-plan-context)::details-content { block-size:0; opacity:0; overflow:clip; transition:opacity var(--nubi-motion-state) var(--nubi-ease-out); }
   .nubi-workbench .nubi-agent-activity :is(.agent-trace, [data-plan-overview], .task-plan-context)[open]::details-content { block-size:auto; opacity:1; }
 }
 

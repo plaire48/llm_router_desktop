@@ -5,10 +5,10 @@
 .nubi-native-browser-bar>span{display:flex;align-items:center;gap:8px}.nubi-native-browser-viewport{flex:1;min-height:0;position:relative;background:var(--layout-surface,#fff);isolation:isolate}
 .nubi-browser-arrival{position:absolute;inset:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;border-radius:16px;background:linear-gradient(135deg,#edf5ff,#f1f7fe 65%,#eef8f5);box-shadow:inset 0 0 0 1px #3182f612;color:var(--layout-muted,#4e5968);pointer-events:none}
 .nubi-browser-arrival strong{font-size:.875rem;font-weight:500}.nubi-browser-arrival-mark{display:grid;place-items:center;width:64px;height:64px;border-radius:22px;background:var(--nubi-brand-icon-surface)}
-[data-dock-phase=attaching] .nubi-browser-arrival{transform-origin:85% 35%;animation:nubi-window-arrive var(--nubi-motion-dock,440ms) var(--nubi-motion-dock-ease,cubic-bezier(.22,.8,.25,1)) both;will-change:transform,opacity}
+[data-dock-phase=attaching] .nubi-browser-arrival{transform-origin:85% 35%;animation:nubi-window-arrive var(--nubi-motion-dock,440ms) var(--nubi-motion-dock-ease,cubic-bezier(.22,.8,.25,1)) both;}
 @keyframes nubi-window-arrive{0%{transform:translate(70px,-30px) scale(.86,.94);opacity:.25}70%{transform:translate(-2px,1px) scale(1.012,.99);opacity:1}100%{transform:none;opacity:1}}
 .nubi-browser-drop-hint{position:fixed;right:24px;top:120px;bottom:32px;width:min(440px,40vw);z-index:1000;border:1px solid #3182f655;border-radius:18px;background:linear-gradient(135deg,#e8f1feeb,#eaf8f3eb);box-shadow:0 12px 40px #193f7714;display:flex;align-items:center;justify-content:center;gap:12px;pointer-events:none;color:var(--text-primary,#191f28);font-size:.875rem;animation:nubi-drop-target var(--nubi-motion-hover,160ms) var(--nubi-motion-ease,ease-out) both}
 @keyframes nubi-drop-target{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:none}}
-@media(prefers-reduced-motion:reduce){[data-dock-phase=attaching] .nubi-browser-arrival,.nubi-browser-drop-hint{animation:none;will-change:auto}}
+@media(prefers-reduced-motion:reduce){[data-dock-phase=attaching] .nubi-browser-arrival,.nubi-browser-drop-hint{animation:none;}}
 
 .nubi-native-browser[hidden]{display:none;}

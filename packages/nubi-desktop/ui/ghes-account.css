@@ -29,7 +29,6 @@
 .nubi-account-update p { margin:var(--cx-space-1) 0 0; font-size:var(--cx-type-caption); line-height:var(--deck-line-body); color:var(--deck-sub); }
 .nubi-account-update > p { width:100%; }
 
-.cx-panel-backdrop.is-modal > .nubi-panel.nubi-ghes-modal { width:min(480px,100%); }
 .nubi-account-info { padding-top:var(--cx-space-4); border-top:1px solid var(--deck-line); }
 .nubi-account-info dl { display:grid; gap:var(--nubi-account-row-gap); margin:0; line-height:var(--cx-space-6); }
 .nubi-account-info dl > div { display:grid; grid-template-columns:84px minmax(0,1fr); gap:var(--cx-space-3); align-items:baseline; }
@@ -68,7 +67,6 @@
 @media (prefers-reduced-motion:reduce) {
   .cx-panel-backdrop.is-modal > .nubi-panel.nubi-ghes-modal { animation:none; }
 }
-.cx-panel-backdrop > .deck-dialog.nubi-ghes-modal > .cx-panel-body { padding:var(--nubi-modal-body-block) var(--nubi-modal-inset); }
 @media (max-width:480px) {
   .nubi-ghes-modal { --nubi-account-inset:var(--cx-space-6); }
 }

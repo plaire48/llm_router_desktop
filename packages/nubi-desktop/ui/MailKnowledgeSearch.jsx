@@ -1,6 +1,6 @@
 import {MailTable} from './MailTable.jsx';
 import {DESKTOP_FEATURES} from '../runtime/beta-features.mjs';
-import React,{startTransition,useEffect,useLayoutEffect,useRef,useState} from 'react';
+import React,{memo,startTransition,useCallback,useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {CxButton, CxInput, SearchField, Icon} from '@e2e/cx-design-system';
 import {WorkspaceAction as ActionButton} from './WorkspaceAction.jsx';
 import {DeckEmpty} from '../../../extensions/aipro-chat/src/DeckSurfaces.jsx';
@@ -18,16 +18,18 @@ const periodChoices=['all','7','30','custom','unknown'];
 const attachments={all:'모든 메일',with:'첨부 있음',without:'첨부 없음',pdf:'PDF',word:'Word',excel:'Excel',powerpoint:'PowerPoint'};
 const pageSizes=[10,20,50,100],sizeKey='nubi-mail-page-size-v1';
 function preferredSize(){try{const value=Number(localStorage.getItem(sizeKey));return pageSizes.includes(value)?value:20;}catch{return 20;}}
-export function MailKnowledgeSearch({api,query,onQuery,lastAppliedAt,revision,refreshKey=0,accountKey=null,selectedId,onOpen,onAskSearch,onAskSelected,onResults,viewState,mailbox='all'}){
+export const MailKnowledgeSearch=memo(function MailKnowledgeSearch({api,query,onQuery,lastAppliedAt,revision,refreshKey=0,accountKey=null,selectedId,onOpen,onAskSearch,onAskSelected,onResults,viewState,mailbox='all'}){
   const saved=viewState?.current?.search?.accountKey===accountKey?viewState.current.search:null;
   const [filters,setFilters]=useState(()=>saved?.filters||defaults),[size,setSize]=useState(preferredSize),[sort,setSort]=useState(()=>saved?.sort||'auto'),[navigation,setNavigation]=useState(()=>saved?.navigation||{page:1,cursor:null}),[pageDraft,setPageDraft]=useState('1');
   const [packet,setPacket]=useState(null),[pending,setPending]=useState(true),[failed,setFailed]=useState(false),[savedOpen,setSavedOpen]=useState(false),[tags,setTags]=useState([]),[asking,setAsking]=useState(false);
   const [columnFacets,setColumnFacets]=useState({senders:[]});
   const [selected,setSelected]=useState(()=>saved?.selected||[]),[selecting,setSelecting]=useState(false);
-  const [refreshRequest,setRefreshRequest]=useState(0);
+  const [refreshRequest,setRefreshRequest]=useState(0),[admittedPacket,setAdmittedPacket]=useState(null);
+  const admissionComplete=useCallback(()=>setAdmittedPacket(packet),[packet]);
+  const recordRowHeight=useCallback(rowHeight=>{if(viewState)viewState.current={...viewState.current,search:{...viewState.current?.search,rowHeight}};},[viewState]);
   const dataRevision=JSON.stringify([lastAppliedAt,revision]),latestRevision=useRef(dataRevision);latestRevision.current=dataRevision;
   const [density,setDensity]=useState(()=>{try{return localStorage.getItem('nubi-mail-density')==='compact'?'compact':'comfortable';}catch{return 'comfortable';}});
-  const resultsRef=useRef(null),shownView=useRef(null),initialScroll=useRef(saved?.scrollTop||0),selectionLock=useRef(false);
+  const resultsRef=useRef(null),shownView=useRef(null),initialScroll=useRef(saved?.scrollTop||0),scrollPosition=useRef(0),selectionLock=useRef(false);
   useLayoutEffect(()=>{if(viewState)viewState.current={...viewState.current,search:{...viewState.current?.search,accountKey,filters,sort,navigation,selected}};},[filters,sort,navigation,selected,viewState,accountKey]);
   const term=query.trim(),wire={...filters,mailbox};
   const attachmentChoice=filters.types[0]||filters.attachment;
@@ -37,7 +39,7 @@ export function MailKnowledgeSearch({api,query,onQuery,lastAppliedAt,revision,re
   const invalidRange=filters.period==='custom'&&(!filters.from||!filters.to||filters.from>filters.to);
   const currentPacket=packet?.signature===signature&&packet?.requestPage===navigation.page;
   const blocked=invalidRange||!currentPacket;
-  const updateAvailable=!!packet&&packet.dataRevision!==dataRevision;
+  const updateAvailable=!!packet&&packet.dataRevision!==dataRevision,admitting=!!packet&&admittedPacket!==packet;
   useEffect(()=>{
     let live=true;setPending(true);setFailed(false);
     if(invalidRange){setPending(false);setPacket(null);return;}
@@ -62,7 +64,17 @@ export function MailKnowledgeSearch({api,query,onQuery,lastAppliedAt,revision,re
   // rows or disable a pointer/keyboard target while someone is reading them.
   },[api,signature,navigation.page,refreshKey,refreshRequest,invalidRange]);
   useLayoutEffect(()=>{
-    if(packet?.viewKey&&shownView.current!==packet.viewKey){if(resultsRef.current)resultsRef.current.scrollTop=shownView.current?0:initialScroll.current;shownView.current=packet.viewKey;}
+    if(packet?.viewKey&&shownView.current!==packet.viewKey){
+      const next=shownView.current?0:initialScroll.current;
+      // A scrollTop write forces layout after the result commit, even at zero.
+      // Scroll events retain the observed position without a synchronous read.
+      shownView.current=packet.viewKey;
+      const node=resultsRef.current;
+      if(node&&scrollPosition.current!==next){
+        const observer=new ResizeObserver(()=>{observer.disconnect();if(resultsRef.current===node){node.scrollTo({top:next,behavior:'instant'});scrollPosition.current=next;}});
+        observer.observe(node);return()=>observer.disconnect();
+      }
+    }
   },[packet]);
   async function askSearch(){
     if(asking||invalidRange||!term)return;
@@ -130,8 +142,8 @@ export function MailKnowledgeSearch({api,query,onQuery,lastAppliedAt,revision,re
     </div>
     </div>
     {!!chips.length&&<div className="nubi-mail-filter-chips" aria-label="선택한 검색 조건">{chips.map(chip=><span key={chip.label+JSON.stringify(chip.patch)}>{chip.label}<ActionButton action="clearSearch" label={`${chip.label} 조건 제거`} onClick={chip.clear}/></span>)}</div>}
-    <div ref={resultsRef} className="nubi-mail-results" role="region" tabIndex={0} aria-label="메일 검색 결과" aria-busy={pending} onScroll={event=>{if(viewState)viewState.current={...viewState.current,search:{...viewState.current?.search,scrollTop:event.currentTarget.scrollTop}};}}>
-      {invalidRange?<p className="nubi-mail-search-hint">시작 날짜와 끝 날짜를 확인해 주세요.</p>:failed&&!currentPacket?<DeckEmpty title="검색을 완료하지 못했어요" description="검색어나 조건을 바꿔 다시 확인해 주세요."/>:packet&&<MailTable filters={filters} facets={columnFacets} onFilters={changeFilters} rows={packet.results} selected={selected} selectedId={selectedId} blocked={blocked} selecting={selecting} toggle={toggle} togglePage={togglePage} allSelected={allSelected} sort={sort} onSort={value=>{setSort(value);resetPage();}} onOpen={onOpen} query={term}/>}
+    <div ref={resultsRef} className="nubi-mail-results" role="region" tabIndex={0} aria-label="메일 검색 결과" aria-busy={pending||admitting} data-admission={pending||admitting?'pending':'complete'} onScroll={event=>{const scrollTop=event.currentTarget.scrollTop;scrollPosition.current=scrollTop;if(viewState)viewState.current={...viewState.current,search:{...viewState.current?.search,scrollTop}};}}>
+      {invalidRange?<p className="nubi-mail-search-hint">시작 날짜와 끝 날짜를 확인해 주세요.</p>:failed&&!currentPacket?<DeckEmpty title="검색을 완료하지 못했어요" description="검색어나 조건을 바꿔 다시 확인해 주세요."/>:packet&&<MailTable viewportStart={packet.viewKey===shownView.current?scrollPosition.current:shownView.current?0:initialScroll.current} rowHeightHint={saved?.rowHeight||60} onRowHeight={recordRowHeight} onAdmissionComplete={admissionComplete} filters={filters} facets={columnFacets} onFilters={changeFilters} rows={packet.results} selected={selected} selectedId={selectedId} blocked={blocked} selecting={selecting} toggle={toggle} togglePage={togglePage} allSelected={allSelected} sort={sort} onSort={value=>{setSort(value);resetPage();}} onOpen={onOpen} query={term}/>}
 
       {!pending&&!failed&&!invalidRange&&packet&&!packet.results.length&&<DeckEmpty title={term||chips.length?'검색 결과가 없어요':mailbox.startsWith('local:')?'가져온 문서가 없어요':({inbox:'받은 메일이 없어요',sent:'보낸 메일이 없어요',draft:'임시 보관한 메일이 없어요',spam:'스팸 메일이 없어요'})[mailbox]||'표시할 메일이 없어요'} description={term||chips.length?'검색어나 조건을 바꿔 보세요.':mailbox.startsWith('local:')?'다른 분류를 선택하거나 파일을 가져와 주세요.':mailbox==='sent'?'':'메일 연결에서 수집 상태를 확인해 주세요.'}/>}
     </div>
@@ -139,4 +151,4 @@ export function MailKnowledgeSearch({api,query,onQuery,lastAppliedAt,revision,re
     {packet&&(packet.unreadAttachments>0||packet.bodyTruncated>0||packet.unavailable?.length>0)&&<details className="nubi-mail-search-coverage"><summary><Icon name="infoCircle" size={13}/>검색 범위 확인</summary>{packet.unreadAttachments>0&&<p>{DESKTOP_FEATURES.mailAttachmentReading?`아직 읽지 못한 첨부 ${packet.unreadAttachments}개는 파일명으로만 검색해요.`:'첨부는 파일명으로만 검색해요.'}</p>}{packet.bodyTruncated>0&&<p>긴 본문 일부가 검색에서 빠진 메일 {packet.bodyTruncated}개가 있어요.</p>}{packet.unavailable?.length>0&&<p>원문을 확인할 수 없는 메일 {packet.unavailable.length}개는 제외했어요.</p>}</details>}
     {savedOpen&&<SavedMailSearches api={api} query={query} filters={wire} sort={sort} onApply={item=>{setFilters({...defaults,...item.filters});setSort(item.sort||'auto');onQuery(item.query||'');resetPage();}} onClose={()=>setSavedOpen(false)}/>}
   </div>;
-}
+});

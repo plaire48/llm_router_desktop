@@ -1,4 +1,4 @@
-import {assertDialogIdentity} from './identity-browser.mjs';
+import {assertDialogIdentity,assertDialogChrome} from './identity-browser.mjs';
 import {build,stop as stopBuildService} from 'esbuild';
 import {mkdir,writeFile,readFile,cp} from 'node:fs/promises';
 import {createServer} from 'node:http';
@@ -152,7 +152,7 @@ try {
   const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});page.on('pageerror',error=>errors.push(error.message));
   await page.goto('http://127.0.0.1:'+server.address().port+'/?integrated&routines');
   await page.getByRole('button',{name:'설정',exact:true}).click();await page.getByRole('button',{name:'루틴',exact:true}).click();await page.getByRole('button',{name:'루틴 추가',exact:true}).click();
-  const form=page.getByRole('dialog',{name:'루틴 설정',exact:true});assert.equal(await form.locator('fieldset.nubi-settings-section').count(),3,'routine form separates task, schedule and execution');assert.equal(await form.locator('.cx-panel-footer .cx-button--primary').count(),1,'save action stays in the shared footer');const insets=await form.evaluate(node=>['header','body','footer'].map(part=>{const css=getComputedStyle(node.querySelector('.cx-panel-'+part));return [parseFloat(css.paddingLeft),parseFloat(css.paddingRight)];}));assert.ok(insets.every(([left,right])=>left===right&&left>=28),'dialog gutters are symmetric and leave breathing room');await form.getByLabel('이름',{exact:true}).fill('주간 자료 점검');await form.getByLabel('주기',{exact:true}).selectOption('weekly');await form.getByLabel('요일',{exact:true}).selectOption('2');await form.getByLabel('시각',{exact:true}).fill('08:30');await form.getByLabel('요청',{exact:true}).fill('이번 주 자료의 변경 사항을 정리해 주세요.');
+  const form=page.getByRole('dialog',{name:'루틴 설정',exact:true});assert.equal(await form.locator('fieldset.nubi-settings-section').count(),3,'routine form separates task, schedule and execution');assert.equal(await form.locator('.cx-panel-footer .cx-button--primary').count(),1,'save action stays in the shared footer');await assertDialogChrome(form);await form.getByLabel('이름',{exact:true}).fill('주간 자료 점검');await form.getByLabel('주기',{exact:true}).selectOption('weekly');await form.getByLabel('요일',{exact:true}).selectOption('2');await form.getByLabel('시각',{exact:true}).fill('08:30');await form.getByLabel('요청',{exact:true}).fill('이번 주 자료의 변경 사항을 정리해 주세요.');
   await assertDialogIdentity(form);
   assert(await form.evaluate(node=>{const r=node.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&node.scrollWidth<=node.clientWidth+1;}),'routine form fits viewport');
   await page.screenshot({path:path.join(dir,'routines-form-'+width+'.png'),animations:'disabled'});await form.getByRole('button',{name:'저장',exact:true}).click();

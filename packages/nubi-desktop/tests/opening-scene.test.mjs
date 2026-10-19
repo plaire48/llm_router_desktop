@@ -1,4 +1,5 @@
 import vm from 'node:vm';
+import {EventEmitter} from 'node:events';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,writeFile,readFile,rm} from 'node:fs/promises';
@@ -43,8 +44,23 @@ test('installed scenes are not silently suppressed by a webdriver flag',()=>{
 test('the sandboxed preload passes the installer stamp to the renderer intact',async()=>{
  const stamp='a'.repeat(64);let exposed;
  vm.runInNewContext(await readFile(new URL('../electron-app/preload.cjs',import.meta.url),'utf8'),{
-  require:name=>{assert.equal(name,'electron');return {contextBridge:{exposeInMainWorld:(name,value)=>{assert.equal(name,'nubi');exposed=value;}},ipcRenderer:{}};},
+  require:name=>{assert.equal(name,'electron');return {contextBridge:{exposeInMainWorld:(name,value)=>{assert.equal(name,'nubi');exposed=value;}},ipcRenderer:new EventEmitter()};},
   process:{argv:['exe','--nubi-installation='+stamp],platform:'win32'}
  });
  assert.equal(exposed.installationId,stamp);assert.equal(exposed.desktop,true);
+});
+
+test('preload replays only the latest typed window visibility and disposes host subscribers',async()=>{
+ const ipc=new EventEmitter();let api;
+ vm.runInNewContext(await readFile(new URL('../electron-app/preload.cjs',import.meta.url),'utf8'),{
+  require:()=>({contextBridge:{exposeInMainWorld:(_name,value)=>{api=value;}},ipcRenderer:ipc}),process:{argv:['exe'],platform:'darwin'}
+ });
+ ipc.emit('nubi:host-event',{}, {type:'window_visibility',visible:false,unrelated:'must not be cached'});
+ ipc.emit('nubi:host-event',{}, {type:'window_visibility',visible:'invalid'});
+ const events=[],off=api.onHostEvent(event=>events.push(event));
+ assert.equal(JSON.stringify(events),JSON.stringify([{type:'window_visibility',visible:false}]));
+ ipc.emit('nubi:host-event',{}, {type:'window_visibility',visible:true});assert.equal(events.length,2);assert.equal(events[1].visible,true);
+ off();assert.equal(ipc.listenerCount('nubi:host-event'),1,'only preload cache remains');
+ ipc.emit('nubi:host-event',{}, {type:'window_visibility',visible:false});assert.equal(events.length,2);
+ assert.throws(()=>api.onHostEvent(null),/callback_invalid/);
 });

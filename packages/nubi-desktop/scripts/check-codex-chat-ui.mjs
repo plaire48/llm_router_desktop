@@ -27,7 +27,7 @@ try{
    return {reading,composer,body:body.getBoundingClientRect().toJSON(),model:model.getBoundingClientRect().toJSON(),modelSize:getComputedStyle(model).fontSize,inputBackground:getComputedStyle(input).backgroundColor,answerBackground:getComputedStyle(answer).backgroundColor,overflow:document.documentElement.scrollWidth>innerWidth+1,controls:[...document.querySelectorAll('.composer-bottom button')].filter(e=>e.checkVisibility()).map(e=>({name:e.getAttribute('aria-label'),...e.getBoundingClientRect().toJSON()}))};
   });
   assert(!metrics.overflow);assert(Math.abs(metrics.reading.x-metrics.composer.x)<2);assert(Math.abs(metrics.reading.width-metrics.composer.width)<2);assert(metrics.controls.every(c=>c.x>=metrics.composer.x-1&&c.right<=metrics.composer.right+1));
-  if(!baseline){assert(metrics.reading.width<=801);assert(metrics.model.top>=metrics.body.bottom-1,'model metadata follows the answer');assert.equal(metrics.answerBackground,'rgba(0, 0, 0, 0)');}
+  if(!baseline){assert.equal(await page.locator('.nubi-answer-mark').evaluateAll(marks=>marks.every(mark=>mark.querySelectorAll('img').length===1&&!mark.querySelector('svg'))),true,'static transcript marks mount one frame, not animated mascot layers');assert(metrics.reading.width<=801);assert(metrics.model.top>=metrics.body.bottom-1,'model metadata follows the answer');assert.equal(metrics.answerBackground,'rgba(0, 0, 0, 0)');}
   if(!baseline){
    await page.getByRole('textbox',{name:'추가 요청',exact:true}).focus();await page.mouse.move(0,0);
    const fine=await page.evaluate(()=>matchMedia('(hover:hover) and (pointer:fine)').matches);

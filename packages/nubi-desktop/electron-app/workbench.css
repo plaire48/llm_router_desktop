@@ -26,7 +26,7 @@
 .nubi-model-choice.cx-kit-button { border:0; background:var(--deck-tint); color:var(--deck-sub); }
 .nubi-home-links { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:var(--cx-space-3); font-size:var(--cx-type-caption); color:var(--deck-sub); }
 .nubi-home-links .cx-kit-button { border:0; background:transparent; }
-.nubi-enter { animation:nubi-rise 450ms var(--deck-ease) both; }
+.nubi-enter { animation:nubi-rise var(--nubi-motion-enter) var(--deck-ease) both; }
 @keyframes nubi-rise { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
 .nubi-task { padding-top:var(--cx-space-3); }
 .nubi-task-heading { display:flex; align-items:center; gap:var(--cx-space-3); color:var(--deck-sub); font-size:var(--cx-type-caption); }
@@ -34,7 +34,7 @@
 .nubi-task h1 { margin:calc(var(--cx-space-1) * 4.5) 0 calc(var(--cx-space-1) * 5.5); font-size:var(--cx-type-title); line-height:var(--deck-line-heading); letter-spacing:var(--nubi-tracking-display); font-weight:var(--nubi-weight-strong); overflow-wrap:anywhere; }
 .nubi-task h2 { font-size:var(--cx-type-section); font-weight:var(--nubi-weight-strong); margin:calc(var(--cx-space-1) * 5.5) 0 var(--cx-space-3); }
 .nubi-tabs { display:flex; gap:var(--cx-space-1); padding:var(--cx-space-1); width:fit-content; background:color-mix(in srgb,var(--deck-card) 70%,transparent); border-radius:calc(var(--cx-space-1) * 3.5); margin-bottom:var(--cx-space-6); }
-.nubi-tabs .cx-kit-button { border:0; background:transparent; color:var(--deck-sub); transition:background 240ms,color 240ms,box-shadow 240ms; }
+.nubi-tabs .cx-kit-button { border:0; background:transparent; color:var(--deck-sub); transition:color var(--nubi-motion-state); }
 .nubi-tabs [aria-pressed=true] { color:var(--deck-blue-deep); background:var(--deck-card); box-shadow:var(--deck-shadow-field); }
 .nubi-task-actions { display:flex; gap:var(--cx-space-2); flex-wrap:wrap; margin:var(--cx-space-4) 0; }
 .nubi-muted { color:var(--deck-sub); font-size:var(--cx-type-body); line-height:var(--deck-line-body); }
@@ -47,7 +47,7 @@
 @keyframes nubi-pulse { 50% {opacity:.35;transform:scale(.8);} }
 .nubi-question { display:grid; gap:var(--cx-space-3); margin:var(--cx-space-5) 0; padding:calc(var(--cx-space-1) * 5.5); border-radius:var(--deck-panel-radius); background:var(--deck-card); }
 .nubi-results { margin:var(--cx-space-6) 0; }
-.nubi-file-card { display:flex; gap:calc(var(--cx-space-1) * 3.5); align-items:center; margin:calc(var(--cx-space-1) * 2.5) 0; padding:calc(var(--cx-space-1) * 4.5); border-radius:var(--deck-inset-radius); background:var(--deck-card); box-shadow:var(--deck-shadow-file); animation:nubi-rise 450ms var(--deck-ease) both; }
+.nubi-file-card { display:flex; gap:calc(var(--cx-space-1) * 3.5); align-items:center; margin:calc(var(--cx-space-1) * 2.5) 0; padding:calc(var(--cx-space-1) * 4.5); border-radius:var(--deck-inset-radius); background:var(--deck-card); box-shadow:var(--deck-shadow-file); animation:nubi-rise var(--nubi-motion-enter) var(--deck-ease) both; }
 .nubi-file-card > svg { color:var(--deck-blue); flex-shrink:0; }
 .nubi-file-card > div { flex:1; min-width:0; overflow-wrap:anywhere; }
 .nubi-file-card strong { font-size:var(--cx-type-body); }
@@ -90,7 +90,7 @@
 .nubi-captures.overlay figure { grid-area:1/1; }
 .nubi-captures.overlay figure:last-child { opacity:.5; }
 .nubi-provider-tiles { display:flex; gap:var(--cx-space-3); margin-bottom:var(--cx-space-6); }
-.nubi-provider-tiles .cx-kit-button { flex:1; display:flex; flex-direction:column; gap:calc(var(--cx-space-1) * 2.5); height:auto; padding:calc(var(--cx-space-1) * 4.5) calc(var(--cx-space-1) * 2.5); border:0; background:var(--deck-tint); border-radius:var(--deck-panel-radius); transition:background 240ms,transform 180ms,box-shadow 240ms; }
+.nubi-provider-tiles .cx-kit-button { flex:1; display:flex; flex-direction:column; gap:calc(var(--cx-space-1) * 2.5); height:auto; padding:calc(var(--cx-space-1) * 4.5) calc(var(--cx-space-1) * 2.5); border:0; background:var(--deck-tint); border-radius:var(--deck-panel-radius); transition:transform var(--nubi-motion-state); }
 .nubi-provider-tiles [aria-pressed=true] { background:var(--deck-blue-soft); box-shadow:var(--deck-shadow-file); color:var(--deck-blue-deep); }
 .nubi-provider-tiles img { width:32px; height:32px; }
 .nubi-field { display:grid; gap:var(--cx-space-2); margin:var(--cx-space-4) 0; }

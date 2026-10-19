@@ -1,53 +1,46 @@
-/* iOS-like dialog motion (user request 2026-10-14): the scrim fades in while the panel rises out of a slight
-   scale like a sheet, and on close the panel drops away while the scrim fades out. ui/modalMotion.js sets
-   :root[data-modal-motion] (never for automated checks or reduced motion) and keeps the closed node on screen as an
-   inert "leaving" layer for the exit. Only transform and opacity animate, so every frame stays on the compositor.
-
-   The rules sit in a cascade layer on purpose: an !important declaration in a layer outranks unlayered !important
-   ones, so this single place replaces the older per-dialog entrances (claude-connection, GHES) instead of stacking
-   a second animation on top of them. */
+@import '../design/workspace-motion.css';
+/* React state, focus, Escape and approval settle immediately. Only the inert
+   removed picture stays for the tokenized exit; ui/modalMotion.js owns cleanup. */
 :root {
-  --nubi-modal-open:280ms;
-  --nubi-modal-close:180ms;
-  --nubi-modal-spring:var(--nubi-bounce,cubic-bezier(.34,1.18,.64,1));
-  --nubi-modal-resize:280ms;
-  --nubi-modal-resize-ease:cubic-bezier(.2,1.08,.3,1);
-  --nubi-modal-drop:cubic-bezier(.4,0,.8,.2);
+ --nubi-modal-open:var(--nubi-motion-enter);
+ --nubi-modal-close:var(--nubi-motion-exit);
+ --nubi-modal-spring:var(--nubi-ease-spring);
+ --nubi-modal-resize:var(--nubi-motion-enter);
+ --nubi-modal-resize-ease:var(--nubi-ease-spring);
+ --nubi-modal-drop:var(--nubi-ease-exit);
 }
-@media (prefers-reduced-motion: no-preference) {
-  @layer nubi-modal-motion {
-    :root[data-modal-motion] .cx-detail-panel.nubi-modal-morphing { background:transparent !important; box-shadow:none !important; animation:none !important; position:relative; z-index:1; }
-    /* Enter. */
-    :root[data-modal-motion] .cx-panel-backdrop { animation:nubi-modal-scrim-in var(--nubi-modal-open) var(--nubi-modal-spring) backwards !important; }
-    :root[data-modal-motion] .cx-panel-backdrop:is(.is-modal,.is-confirmation) > .cx-detail-panel { animation:nubi-modal-sheet-in var(--nubi-modal-open) var(--nubi-modal-spring) backwards !important; }
-    :root[data-modal-motion] .cx-panel-backdrop:not(.is-modal,.is-confirmation) > .cx-detail-panel { animation:nubi-modal-drawer-in var(--nubi-modal-open) var(--nubi-modal-spring) backwards !important; }
-    /* One dialog replacing another: the scrim stays put and only the new panel settles in. */
-    :root[data-modal-motion] .cx-panel-backdrop[data-modal-motion="swap"] { animation:none !important; }
-    :root[data-modal-motion] .cx-panel-backdrop[data-modal-motion="swap"] > .cx-detail-panel { animation:nubi-modal-swap-in 200ms var(--nubi-modal-spring) backwards !important; }
-    /* Exit: the copy ui/modalMotion.js keeps after React unmounted the dialog. */
-    :root[data-modal-motion] .cx-panel-backdrop[data-modal-motion="leaving"] { animation:nubi-modal-scrim-out var(--nubi-modal-close) linear forwards !important; }
-    :root[data-modal-motion] .cx-panel-backdrop[data-modal-motion="leaving"]:is(.is-modal,.is-confirmation) > .cx-detail-panel { animation:nubi-modal-sheet-out var(--nubi-modal-close) var(--nubi-modal-drop) forwards !important; }
-    :root[data-modal-motion] .cx-panel-backdrop[data-modal-motion="leaving"]:not(.is-modal,.is-confirmation) > .cx-detail-panel { animation:nubi-modal-drawer-out var(--nubi-modal-close) var(--nubi-modal-drop) forwards !important; }
-    /* Removing the transient transparent surface must not restart an entrance. */
-    :root[data-modal-motion] .cx-panel-backdrop:not([data-modal-motion="leaving"]) > .cx-detail-panel.cx-detail-panel[data-modal-settled] { animation:none !important; }
-  }
+@layer nubi-modal-motion {
+ :root[data-modal-motion] .cx-panel-backdrop {backdrop-filter:none!important;animation:nubi-modal-scrim-in var(--nubi-modal-open) var(--nubi-ease-out) backwards!important}
+ :root[data-modal-motion] .cx-panel-backdrop>.cx-detail-panel {animation:nubi-modal-sheet-in var(--nubi-modal-open) var(--nubi-modal-spring) backwards!important}
+ :root[data-modal-motion] .cx-detail-panel.nubi-modal-morphing {background:transparent!important;box-shadow:none!important;animation:none!important;position:relative;z-index:1}
+ :root[data-modal-motion] .cx-panel-backdrop[data-modal-motion=swap] {animation:none!important}
+ :root[data-modal-motion] .cx-panel-backdrop[data-modal-motion=swap]>.cx-detail-panel {animation:nubi-modal-sheet-in var(--nubi-modal-open) var(--nubi-modal-spring) backwards!important}
+ :root[data-modal-motion] .cx-panel-backdrop[data-modal-motion=leaving] {animation:nubi-modal-scrim-out var(--nubi-modal-close) var(--nubi-modal-drop) forwards!important}
+ :root[data-modal-motion] .cx-panel-backdrop[data-modal-motion=leaving]>.cx-detail-panel {animation:nubi-modal-sheet-out var(--nubi-modal-close) var(--nubi-modal-drop) forwards!important}
+ :root[data-modal-motion] .cx-panel-backdrop:not([data-modal-motion=leaving])>.cx-detail-panel[data-modal-settled] {animation:none!important}
+ @media(max-width:600px) {
+  :root[data-modal-motion] .cx-panel-backdrop.is-modal {align-items:flex-end!important;padding-block-end:0!important}
+  :root[data-modal-motion] .cx-panel-backdrop.is-modal>.cx-detail-panel {margin-block-end:0!important;border-end-start-radius:0!important;border-end-end-radius:0!important;animation-name:nubi-modal-narrow-in!important}
+  :root[data-modal-motion] .cx-panel-backdrop.is-modal[data-modal-motion=leaving]>.cx-detail-panel {animation-name:nubi-modal-narrow-out!important}
+ }
+
 }
-/* The leaving copy is only a picture: clicks fall through to the app underneath. */
-.cx-panel-backdrop[data-modal-motion="leaving"], .cx-panel-backdrop[data-modal-motion="leaving"] * { pointer-events:none !important; }
-@keyframes nubi-modal-scrim-in { from { opacity:0; } }
-@keyframes nubi-modal-scrim-out { to { opacity:0; } }
-@keyframes nubi-modal-sheet-in { from { opacity:0; transform:translate3d(0,12px,0) scale(.985); } }
-@keyframes nubi-modal-sheet-out { to { transform:translate3d(0,16px,0) scale(.99); } }
-@keyframes nubi-modal-drawer-in { from { opacity:0; transform:translate3d(24px,0,0); } }
-@keyframes nubi-modal-drawer-out { to { opacity:0; transform:translate3d(24px,0,0); } }
-@keyframes nubi-modal-swap-in { from { opacity:0; transform:scale(.985); } }
+.cx-panel-backdrop[data-modal-motion=leaving],.cx-panel-backdrop[data-modal-motion=leaving] * {pointer-events:none!important}
+@keyframes nubi-modal-scrim-in {from{opacity:0}to{opacity:1}}
+@keyframes nubi-modal-scrim-out {from{opacity:1}to{opacity:0}}
+@keyframes nubi-modal-sheet-in {from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+@keyframes nubi-modal-sheet-out {from{opacity:1;transform:none}to{opacity:0;transform:scale(.96)}}
+@keyframes nubi-modal-narrow-in {from{opacity:0;transform:translate3d(0,12px,0)}to{opacity:1;transform:none}}
+@keyframes nubi-modal-narrow-out {from{opacity:1;transform:none}to{opacity:0;transform:translate3d(0,12px,0)}}
+@keyframes nubi-modal-fade-in {from{opacity:0}to{opacity:1}}
+@keyframes nubi-modal-fade-out {from{opacity:1}to{opacity:0}}
+:root[data-modal-motion] .cx-panel-backdrop[data-modal-top=true] {view-transition-name:nubi-modal}
+::view-transition-group(nubi-modal),::view-transition-new(nubi-modal) {animation:none}
+::view-transition-old(nubi-modal) {display:none}
+.nubi-modal-morph-surface {position:fixed;pointer-events:none;transform-origin:top left;z-index:0}
+@media(prefers-reduced-motion:reduce){.nubi-modal-morph-surface{display:none}}
 
-/* View Transitions (ui/viewTransition.js) must not animate a dialog a second time. A transition never starts while a
-   dialog is open, and a dialog that opens during one is captured as its own live layer with no animation of its own,
-   so only the motion above plays. Only the topmost dialog is named because names must be unique. */
-:root[data-modal-motion] .cx-panel-backdrop[data-modal-top="true"] { view-transition-name:nubi-modal; }
-::view-transition-group(nubi-modal), ::view-transition-new(nubi-modal) { animation:none; }
-::view-transition-old(nubi-modal) { display:none; }
-
-.nubi-modal-morph-surface { position:fixed; pointer-events:none; transform-origin:top left; z-index:0; }
-@media (prefers-reduced-motion: reduce) { .nubi-modal-morph-surface { display:none; } }
+@media(prefers-reduced-motion:reduce){@layer nubi-reduced{
+  :root[data-modal-motion] .cx-panel-backdrop,:root[data-modal-motion] .cx-panel-backdrop>.cx-detail-panel {animation:nubi-modal-fade-in var(--nubi-motion-reduced) linear backwards!important}
+  :root[data-modal-motion] .cx-panel-backdrop[data-modal-motion=leaving],:root[data-modal-motion] .cx-panel-backdrop[data-modal-motion=leaving]>.cx-detail-panel {animation:nubi-modal-fade-out var(--nubi-motion-reduced) linear forwards!important}
+ }}

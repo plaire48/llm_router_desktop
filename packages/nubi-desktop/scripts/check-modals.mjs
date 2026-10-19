@@ -1,5 +1,5 @@
 import {build,stop as stopBuildService} from 'esbuild';
-import {assertDesktopDialog,desktopDialogScale} from './identity-browser.mjs';
+import {assertDesktopDialog,desktopDialogScale,assertDialogChrome} from './identity-browser.mjs';
 import {mkdir,writeFile,readFile,cp} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import path from 'node:path';
@@ -22,10 +22,11 @@ async function selectTask(){await history();await p.getByRole('dialog',{name:'�
 async function inspect(name,file,large){
  const dialog=p.getByRole(name==='대화를 삭제할까요?'?'alertdialog':'dialog',{name,exact:true});
  await assertDesktopDialog(dialog,{large});
+ await assertDialogChrome(dialog);
  if(name==='컨텍스트 사용량'){
-  const aligned=await dialog.evaluate(root=>{const title=root.querySelector('.nubi-panel-title > span:last-child'),counter=root.querySelector('.context-total strong'),body=root.querySelector('.cx-panel-body'),policy=root.querySelector('.context-compaction-policy > span'),summary=root.querySelector('.context-memory > summary');const x=e=>e.getBoundingClientRect().left;return {title:x(title),counter:x(counter),policy:policy?x(policy):null,summary:x(summary),font:getComputedStyle(counter).fontFamily,bodyFont:getComputedStyle(body).fontFamily};});
-  assert(Math.abs(aligned.counter-aligned.title)<1,'context count starts on the title text column: '+JSON.stringify(aligned));
-  for(const key of ['policy','summary'])if(aligned[key]!==null)assert(Math.abs(aligned[key]-aligned.title)<1,'context labels share the text column');assert.equal(aligned.font,aligned.bodyFont,'context count uses surrounding typography');
+  const aligned=await dialog.evaluate(root=>{const title=root.querySelector('.nubi-panel-title'),counter=root.querySelector('.context-total strong'),body=root.querySelector('.cx-panel-body'),policy=root.querySelector('.context-compaction-policy > span'),summary=root.querySelector('.context-memory > summary');const x=e=>e.getBoundingClientRect().left;return {title:x(title),counter:x(counter),policy:policy?x(policy):null,summary:x(summary),font:getComputedStyle(counter).fontFamily,bodyFont:getComputedStyle(body).fontFamily};});
+  assert(Math.abs(aligned.counter-aligned.title)<1,'context count starts on the shared content gutter: '+JSON.stringify(aligned));
+  for(const key of ['policy','summary'])if(aligned[key]!==null)assert(Math.abs(aligned[key]-aligned.title)<1,'context labels share the content gutter');assert.equal(aligned.font,aligned.bodyFont,'context count uses surrounding typography');
  }
 
  const facts=await dialog.evaluate(root=>{const r=root.getBoundingClientRect();return {bounds:r.x>=0&&r.y>=0&&r.right<=innerWidth+1&&r.bottom<=innerHeight+1,inset:[...root.querySelectorAll(':scope > .cx-panel-header,:scope > .cx-panel-body,:scope > .cx-panel-footer')].map(e=>getComputedStyle(e).paddingLeft),fields:[...root.querySelectorAll('input,select,textarea')].filter(e=>e.checkVisibility()&&e.type!=='checkbox').map(e=>({name:e.labels?.length||e.getAttribute('aria-label'),size:getComputedStyle(e).fontSize})),smallText:[...root.querySelectorAll('p,label')].filter(e=>e.checkVisibility()&&e.textContent.trim()).map(e=>getComputedStyle(e).fontSize)};});

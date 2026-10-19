@@ -5,7 +5,7 @@ import path from 'node:path';
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 const dir=path.resolve('verification/progress-display-2026-10-15');await mkdir(dir,{recursive:true});
-await build({entryPoints:['tests/shared-ui-fixture.jsx'],outfile:path.join(dir,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.woff2':'file','.woff':'file'},define:{__APP_VERSION__:'"fixture"','process.env.NODE_ENV':'"production"'}});
+await build({entryPoints:['tests/shared-ui-fixture.jsx'],outfile:path.join(dir,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.webp':'file','.woff2':'file','.woff':'file'},define:{__APP_VERSION__:'"fixture"','process.env.NODE_ENV':'"production"'}});
 await cp('../../extensions/aipro-chat/public/icons',path.join(dir,'icons'),{recursive:true});
 await writeFile(path.join(dir,'index.html'),'<!doctype html><html lang="ko"><title>Nubi synthetic flow check</title><link rel="stylesheet" href="app.css"><div id="root"></div><script type="module" src="app.js"></script></html>');
 const server=createServer(async(req,res)=>{try{const requested=path.resolve(dir,'.'+new URL(req.url,'http://localhost').pathname.replace(/\/$/,'/index.html'));if(!requested.startsWith(dir+path.sep))throw Error();const ext=path.extname(requested),data=await readFile(requested);res.writeHead(200,{'content-type':({'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.svg':'image/svg+xml','.woff2':'font/woff2','.webp':'image/webp'})[ext]||'application/octet-stream'}).end(data);}catch{res.writeHead(404).end();}});await new Promise(r=>server.listen(0,'127.0.0.1',r));
@@ -30,7 +30,7 @@ try{
  await p.waitForFunction(before=>document.querySelector('.nubi-working-status')?.textContent!==before,timeBefore);
  assert.equal(await p.locator('.nubi-working-status').evaluate(el=>getComputedStyle(el,'::before').animationName),'nubi-progress-breathe');
  await p.emulateMedia({reducedMotion:'reduce'});
- assert.equal(await p.locator('.nubi-working-status').evaluate(el=>getComputedStyle(el,'::before').animationName),'none');
+ assert(await p.locator('.nubi-working-status').evaluate(el=>{const css=getComputedStyle(el,'::before');return css.animationName==='none'||css.animationPlayState.split(',').every(value=>value.trim()==='paused');}),'Reduced motion stops or pauses decorative progress');
  await p.emulateMedia({reducedMotion:'no-preference'});
  await p.locator('.nubi-working-status').screenshot({path:path.join(dir,'working-time.png')});
  assert(await p.getByText('합성 화면 검증 결과입니다.',{exact:true}).isVisible());
