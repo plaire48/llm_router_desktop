@@ -27,7 +27,13 @@ const htmlSchema = {...defaultSchema,
   strip: ['script', 'style', 'iframe', 'object', 'embed', 'noscript', 'template', 'form', 'select', 'textarea', 'button'],
   clobberPrefix: 'user-content-', clobber: ['name', 'id']};
 const htmlPlugins = [rehypeRaw, [rehypeSanitize, htmlSchema]];
-const revealPlugins = [...htmlPlugins,answerReveal];
+const plainPlugins = [[rehypeSanitize, htmlSchema]];
+const revealPlugins = [...htmlPlugins,answerReveal],plainRevealPlugins=[...plainPlugins,answerReveal];
+// Without a literal '<', remark cannot produce raw HTML or an autolink.
+// Skip parse5's whole-tree HTML reconstruction; always retain sanitization.
+export function markdownHtmlPlugins(content,reveal=false){
+  return String(content||'').includes('<')?(reveal?revealPlugins:htmlPlugins):(reveal?plainRevealPlugins:plainPlugins);
+}
 export const MessageBody=memo(function MessageBody({content, role, compact = false, sourceReferences = [], onSource, textReveal = false}) {
   const sources=useRef(null),open=useRef(onSource);sources.current=new Map(sourceReferences.map(source=>[source.href,source]));open.current=onSource;
   const interactive=!!onSource;
@@ -39,7 +45,7 @@ export const MessageBody=memo(function MessageBody({content, role, compact = fal
     return markdownComponents.a({href,children,className,style});
   }}:markdownComponents,[interactive]);
   const sourceKey=JSON.stringify(sourceReferences);
-  return useMemo(()=>role === 'user' ? <div className="message-body user-text">{content}</div> : <div className={`message-body${compact ? ' progress-markdown' : ''}`}><Markdown remarkPlugins={[remarkGfm]} rehypePlugins={textReveal?revealPlugins:htmlPlugins} components={components}>{content}</Markdown></div>,[content,role,compact,components,sourceKey,textReveal]);
+  return useMemo(()=>role === 'user' ? <div className="message-body user-text">{content}</div> : <div className={`message-body${compact ? ' progress-markdown' : ''}`}><Markdown remarkPlugins={[remarkGfm]} rehypePlugins={markdownHtmlPlugins(content,textReveal)} components={components}>{content}</Markdown></div>,[content,role,compact,components,sourceKey,textReveal]);
 });
 export function InlineMarkdown({content}) {
   return <span className="message-body progress-inline"><Markdown remarkPlugins={[remarkGfm]} skipHtml unwrapDisallowed allowedElements={['strong', 'em', 'del', 'code', 'a', 'br']} components={markdownComponents}>{content}</Markdown></span>;

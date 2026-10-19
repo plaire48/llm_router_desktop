@@ -69,12 +69,21 @@
 .desktop-shell .nubi-sidebar :is(.nubi-sidebar-project,.nubi-sidebar-new,.nubi-session-select)>svg:first-child{width:var(--cx-space-4);height:var(--cx-space-4);flex:0 0 var(--cx-space-4)}
 .desktop-shell .nubi-sidebar nav[aria-label="대화 목록"] h3{padding-inline-start:calc(var(--cx-space-3) + var(--cx-space-4) + var(--cx-space-2))}
 
-/* The bottom status bar has its own reserved row. Center the label and glyph
-   on one baseline, with the leading glyph aligned to the navigation rail. */
+/* The bottom surround includes its status text: reserve the same complete
+   band on all four sides instead of adding footer height to the outer inset. */
+.desktop-shell[data-toolbar=true]:has(>.desktop-mail-progress){
+ --nubi-workspace-inset:var(--cx-space-8);
+ --nubi-mail-footer-height:var(--nubi-workspace-inset);
+ padding-bottom:var(--nubi-workspace-inset);
+}
 .desktop-shell>.desktop-mail-progress{
  padding-block:0;
- padding-inline:calc(var(--nubi-workspace-inset,var(--cx-space-2)) + (var(--nubi-rail-width,52px) - var(--nubi-text-row-icon))/2 - var(--cx-space-2));
+ padding-inline:var(--nubi-workspace-inset,var(--cx-space-4));
+ flex-wrap:nowrap;gap:var(--cx-space-3);overflow-x:auto;overflow-y:hidden;scrollbar-width:none;
 }
+.desktop-shell>.desktop-mail-progress::-webkit-scrollbar{display:none}
+.desktop-shell>.desktop-mail-progress>*{flex-shrink:0}
+.desktop-shell>.desktop-mail-progress:focus-visible{outline:2px solid var(--nubi-text-action);outline-offset:-2px}
 .desktop-shell .desktop-mail-progress .nubi-mail-progress-open{
  min-height:32px;padding-block:0;gap:var(--cx-space-2);font:inherit;
 }

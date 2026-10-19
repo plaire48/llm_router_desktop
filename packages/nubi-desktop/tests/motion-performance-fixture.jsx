@@ -31,7 +31,7 @@ function App(){
   <div {...resize} style={{width:8,flex:'none',cursor:'col-resize'}}/>
   <section className="nubi-workbench" style={{flex:1}}><div className="nubi-main"><h1>업무 화면 {screen}</h1>{Array.from({length:80},(_,i)=><p key={i}>업무 자료 {i+1}: 변경 범위와 다음 행동을 확인합니다.</p>)}</div></section>
   {open&&<DetailPanel className="deck-dialog" variant="modal" title="설정 검토" hideHelp onClose={()=>setOpen(false)}><input aria-label="설정 입력"/>{Array.from({length:rows},(_,i)=><p key={i}>작업 결과 {i+1}의 범위와 상태를 확인합니다.</p>)}</DetailPanel>}
- {workflowOpen==='execution'?<div style={{position:'fixed',inset:0,overflow:'auto',background:'var(--deck-surface)',zIndex:10}}><WorkflowExecutionPerformance/></div>:workflowOpen&&<WorkflowCanvas steps={workflowSteps} layout={workflowOpen} workflow={workflowOpen==='lanes'?{lanes:[{id:'lane-0',name:'합성 자료'},{id:'lane-1',name:'합성 판단'},{id:'lane-2',name:'합성 검토'}]}:undefined}/>}
+ {workflowOpen==='execution'?<div style={{position:'fixed',inset:0,overflow:'auto',background:'var(--deck-surface)',zIndex:10}}><WorkflowExecutionPerformance count={1000}/></div>:workflowOpen&&<WorkflowCanvas steps={workflowSteps} layout={workflowOpen} workflow={workflowOpen==='lanes'?{lanes:[{id:'lane-0',name:'합성 자료'},{id:'lane-1',name:'합성 판단'},{id:'lane-2',name:'합성 검토'}]}:undefined}/>}
  </main>;
 }
 createRoot(document.getElementById('root')).render(<App/>);

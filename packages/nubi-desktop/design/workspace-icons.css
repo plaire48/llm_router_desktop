@@ -1,18 +1,19 @@
+/* Desktop-only cascade: keep root specificity without descendant queries. */
 /* Final optical scale for app controls. Apple HIG's text-relative scale and
    separate hit-region principles inform these Nubi values; SF Symbols artwork
    is not bundled. Existing focus, targets, labels and interactions stay owned
    by the components. Authored content and brand illustrations are excluded. */
-:root:has(.desktop-shell) :is(.desktop-shell,.deck-dialog,.nubi-workspace-panel,.nubi-command-menu,.nubi-applied-menu) {
+:root:root :is(.desktop-shell,.deck-dialog,.nubi-workspace-panel,.nubi-command-menu,.nubi-applied-menu) {
   --nubi-glyph-size:var(--nubi-icon-control);
 }
-:root:has(.desktop-shell) :is(.desktop-shell,.deck-dialog,.nubi-workspace-panel,.nubi-command-menu,.nubi-applied-menu)
+:root:root :is(.desktop-shell,.deck-dialog,.nubi-workspace-panel,.nubi-command-menu,.nubi-applied-menu)
  :is(button,a,summary,[role=button]) :is(svg.ui-icon,svg[data-icon],svg[viewBox="0 0 24 24"]):not(:where(.nubi-logo *,.agent-mark *,.connection-logo *,.nubi-word-paper *,.nubi-ppt-canvas *,.nubi-ppt-thumbnail *,.nubi-excel-grid-scroll *,.monaco-editor *,.xterm *,.talk-rich-content *)) {
   width:var(--nubi-glyph-size); height:var(--nubi-glyph-size); flex-shrink:0;
 }
-:root:has(.desktop-shell) :is(.nubi-workspace-rail) { --nubi-glyph-size:var(--nubi-icon-navigation); }
-:root:has(.desktop-shell) :is(.nubi-window-toolbar,.desktop-pane>header) { --nubi-glyph-size:var(--nubi-icon-toolbar); }
-:root:has(.desktop-shell) :is(.nubi-session-row,.nubi-sidebar-more,.desktop-tabs,.nubi-answer-source,.nubi-command-menu,.nubi-applied-menu,.nubi-skill-menu,.nubi-mail-reader-tools,.nubi-mail-document-toolbar) { --nubi-glyph-size:var(--nubi-icon-inline); }
-:root:has(.desktop-shell) .nubi-workspace-rail .nubi-team-mark { width:var(--nubi-icon-navigation); height:var(--nubi-icon-navigation); }
+:root:root :is(.nubi-workspace-rail) { --nubi-glyph-size:var(--nubi-icon-navigation); }
+:root:root :is(.nubi-window-toolbar,.desktop-pane>header) { --nubi-glyph-size:var(--nubi-icon-toolbar); }
+:root:root :is(.nubi-session-row,.nubi-sidebar-more,.desktop-tabs,.nubi-answer-source,.nubi-command-menu,.nubi-applied-menu,.nubi-skill-menu,.nubi-mail-reader-tools,.nubi-mail-document-toolbar) { --nubi-glyph-size:var(--nubi-icon-inline); }
+:root:root .nubi-workspace-rail .nubi-team-mark { width:var(--nubi-icon-navigation); height:var(--nubi-icon-navigation); }
 /* A restrained desktop lockup: mint artwork, quiet wordmark and a secondary
    Beta badge. Optical sizes are Nubi choices, not prescribed Apple values. */
 .desktop-shell .nubi-workspace-brand.nubi-logo {
@@ -58,12 +59,12 @@
 /* Keep the titlebar's bird inside its reserved box. Use the existing expression
    frames and hover state; no timer or per-frame React layout work is added. */
 @media(prefers-reduced-motion:no-preference) {
-  :root:has(.desktop-shell) .nubi-brand-emblem .agent-mark[data-mood=idle] { animation:nubi-brand-float var(--nubi-brand-float-duration) ease-in-out infinite; }
-  :root:has(.desktop-shell) .nubi-brand-emblem .agent-mark[data-mood=idle] .bird-base { animation:bird-idle-base 8s linear infinite; }
-  :root:has(.desktop-shell) .nubi-brand-emblem .agent-mark[data-mood=idle] .bird-wing { animation:bird-idle-wing 8s linear infinite; }
-  :root:has(.desktop-shell) .nubi-brand-emblem .agent-mark[data-mood=idle] .bird-smile { animation:bird-idle-smile 8s linear infinite; }
-  :root:has(.desktop-shell) .nubi-brand-emblem .agent-mark[data-mood=idle] .bird-blink { animation:bird-blink 8s linear infinite; }
-  :root:has(.desktop-shell) .nubi-brand-emblem .agent-mark[data-mood=celebrate] { animation:nubi-brand-greeting var(--nubi-brand-greeting-duration) ease-in-out 2; }
+  :root:root .nubi-brand-emblem .agent-mark[data-mood=idle] { animation:nubi-brand-float var(--nubi-brand-float-duration) ease-in-out infinite; }
+  :root:root .nubi-brand-emblem .agent-mark[data-mood=idle] .bird-base { animation:bird-idle-base 8s linear infinite; }
+  :root:root .nubi-brand-emblem .agent-mark[data-mood=idle] .bird-wing { animation:bird-idle-wing 8s linear infinite; }
+  :root:root .nubi-brand-emblem .agent-mark[data-mood=idle] .bird-smile { animation:bird-idle-smile 8s linear infinite; }
+  :root:root .nubi-brand-emblem .agent-mark[data-mood=idle] .bird-blink { animation:bird-blink 8s linear infinite; }
+  :root:root .nubi-brand-emblem .agent-mark[data-mood=celebrate] { animation:nubi-brand-greeting var(--nubi-brand-greeting-duration) ease-in-out 2; }
 }
 @keyframes nubi-brand-float {
   0%,100% { transform:translateY(0) rotate(0); }
@@ -76,7 +77,7 @@
   80% { transform:translateY(0) rotate(1deg) scale(1.01,.99); }
 }
 :root:is([data-motion=paused],[data-motion-visibility=hidden]) .desktop-shell .nubi-brand-emblem :is(.agent-mark,.agent-mark *),
-:root:has(.cx-panel-backdrop) .desktop-shell .nubi-brand-emblem :is(.agent-mark,.agent-mark *) { animation-play-state:paused; }
+:root[data-motion-panel] .desktop-shell .nubi-brand-emblem :is(.agent-mark,.agent-mark *) { animation-play-state:paused; }
 @media(prefers-reduced-motion:reduce) {
   .desktop-shell .nubi-brand-emblem :is(.agent-mark,.agent-mark *) { animation:none !important; transform:none !important; }
 }
@@ -88,14 +89,14 @@
   .desktop-shell .nubi-workspace-rail [aria-pressed=true] { outline:1px solid Highlight; outline-offset:-2px; }
 }
 /* The copied content and collapsed disclosure affordances have less emphasis. */
-:root:has(.desktop-shell) :is(.copy-control,.nubi-actions-disclosure>summary) { --nubi-glyph-size:var(--nubi-icon-inline); }
-:root:has(.desktop-shell) :is(.desktop-shell,.deck-dialog,.nubi-workspace-panel)
+:root:root :is(.copy-control,.nubi-actions-disclosure>summary) { --nubi-glyph-size:var(--nubi-icon-inline); }
+:root:root :is(.desktop-shell,.deck-dialog,.nubi-workspace-panel)
  :is(button,a,summary) svg[data-icon^="chevron"] {
   width:var(--nubi-icon-disclosure); height:var(--nubi-icon-disclosure);
 }
 @media(pointer:coarse) {
-  :root:has(.desktop-shell) .deck-dialog .cx-panel-header-actions [data-action=close],
-  :root:has(.desktop-shell) .desktop-shell .nubi-window-toolbar :is(.nubi-toolbar-actions,.nubi-toolbar-account) > .cx-kit-button:is(.nubi-icon-button,[data-icon-only]) {
+  :root:root .deck-dialog .cx-panel-header-actions [data-action=close],
+  :root:root .desktop-shell .nubi-window-toolbar :is(.nubi-toolbar-actions,.nubi-toolbar-account) > .cx-kit-button:is(.nubi-icon-button,[data-icon-only]) {
     width:44px; min-width:44px; height:44px; min-height:44px;
   }
 }

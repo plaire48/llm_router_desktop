@@ -4,3 +4,15 @@ test('large layout returns finite stable coordinates without mutating definition
 test('explicit end never draws a fall-through edge to a different path',()=>{const graph=workflowGraph([{id:'early',kind:'human',next:null},{id:'other',kind:'tool',next:null}]);assert.deepEqual(graph.edges,[]);});
 test('lane layout keeps same-task cards in a column and different tasks apart',()=>{const steps=[{id:'one',kind:'tool',lane:'source'},{id:'two',kind:'human',lane:'review'},{id:'three',kind:'agent',lane:'source',next:null}],lanes=[{id:'source',name:'합성 자료'},{id:'review',name:'합성 검토'}];const graph=workflowGraph(steps,{}, {layout:'lanes',lanes,rowHeight:200,nodeWidth:240});const cards=graph.nodes.filter(n=>n.type==='workflow');assert.equal(cards[0].position.x,cards[2].position.x);assert.ok(cards[1].position.x>cards[0].position.x+240);assert.equal(graph.nodes.filter(n=>n.type==='lane').length,2);assert.ok(cards.every(n=>n.position.y>=48));});
 test('original preview edges preserve parallel and backwards connections without fall-through',()=>{const steps=[{id:'a',kind:'parallel',next:null},{id:'b',kind:'human',next:null},{id:'c',kind:'human',next:null}],previewEdges=[{source:'a',target:'b',label:'첫 합성 경로'},{source:'a',target:'c'},{source:'c',target:'a'}];const graph=workflowGraph(steps,{}, {previewEdges});assert.deepEqual(graph.edges.map(({source,target})=>[source,target]),[['a','b'],['a','c'],['c','a']]);assert.equal(graph.edges[0].label,'첫 합성 경로');});
+
+test('first React Flow viewport never mounts every unmeasured node just to discover handles',async()=>{
+ const {adoptUserNodes,getNodesInside,getEdgePosition}=await import('@xyflow/system');
+ const steps=Array.from({length:1000},(_,i)=>({id:'initial-'+i,kind:'tool',lane:'lane-'+i%3}));
+ const graph=workflowGraph(steps,{}, {nodeWidth:240,nodeHeight:80,rowHeight:120,layout:'lanes',lanes:[{id:'lane-0',name:'합성 자료'},{id:'lane-1',name:'합성 판단'},{id:'lane-2',name:'합성 검토'}]});
+ const lookup=new Map();adoptUserNodes(graph.nodes,lookup,new Map());
+ const visible=getNodesInside(lookup,{x:0,y:0,width:320,height:500},[0,0,1],true);
+ assert.ok(visible.length<50,`initial visibility rendered ${visible.length} nodes before DOM measurement`);
+ assert.equal(lookup.get('initial-0').height,80);
+ const position=getEdgePosition({id:'initial-edge',sourceNode:lookup.get('initial-0'),targetNode:lookup.get('initial-1'),connectionMode:'strict'});
+ assert.ok(position&&Object.values(position).filter(x=>typeof x==='number').every(Number.isFinite),'first frame edges already have usable endpoints');
+});

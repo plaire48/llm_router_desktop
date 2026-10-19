@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {installMotionPresence} from '../../../extensions/aipro-chat/src/motion-presence.mjs';
 import {installModalResizeMotion} from './modalResizeMotion.js';
 
 // iOS-like dialog motion (user request 2026-10-14): dialogs rise in like a sheet and drop away on close instead of
@@ -20,6 +21,7 @@ const isLeaving=node=>node.dataset.modalMotion==='leaving';
 
 export function installModalMotion(){
   if(typeof document==='undefined'||typeof MutationObserver!=='function'||!document.body)return()=>{};
+  const stopPresence=installMotionPresence();
   const html=document.documentElement;
   const reduced=typeof matchMedia==='function'?matchMedia('(prefers-reduced-motion: reduce)'):null;
   const allowed=()=>!(typeof navigator!=='undefined'&&navigator.webdriver)&&!reduced?.matches;
@@ -76,6 +78,7 @@ export function installModalMotion(){
   observer.observe(document.body,{childList:true});
 
   return()=>{
+    stopPresence();
     stopResize();
     observer.disconnect();
     document.removeEventListener('scroll',remember,{capture:true});

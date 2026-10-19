@@ -26,7 +26,7 @@
     "test:ui": "node scripts/check-electron-shell.mjs",
     "test:lifecycle": "node scripts/check-electron-lifecycle.mjs",
     "test:wave2-ui": "node scripts/check-wave2-ui.mjs && node scripts/check-vscode-capabilities.mjs",
-    "test:gates": "npm test && npm run design:check && npm run test:forms-ui && npm run test:mail-ui && npm run test:modals-ui && npm run test:responsiveness-ui && npm run test:shared-ui && node scripts/check-workflow-ui.mjs && node scripts/check-motion-performance.mjs after && npm run test:wave2-ui && npm run test:workspace-ui && npm run test:icons-ui && npm run test:chat-ui && npm run build:electron && npm run test:ui && npm run test:skills-ui && npm run test:agent-ui && npm run test:live-web && npm run test:lifecycle && npm run test:all-surfaces && node scripts/check-irreversible-ui.mjs && node scripts/check-community-wiki-ui.mjs && node scripts/check-profile-wiki-ui.mjs && node scripts/check-activity-readability.mjs && node scripts/check-review-failure-ui.mjs && node scripts/check-electron-output-cards.mjs && node scripts/check-development-execution-electron.mjs && node scripts/check-electron-mcp-approval.mjs",
+    "test:gates": "npm test && npm run design:check && npm run test:forms-ui && npm run test:mail-ui && npm run test:modals-ui && npm run test:responsiveness-ui && npm run test:shared-ui && node scripts/check-workflow-ui.mjs && node scripts/check-motion-performance.mjs after && npm run test:wave2-ui && npm run test:workspace-ui && npm run test:icons-ui && npm run test:chat-ui && npm run build:electron && npm run test:ui && npm run test:skills-ui && npm run test:agent-ui && npm run test:live-web && npm run test:lifecycle && npm run test:all-surfaces && node scripts/check-irreversible-ui.mjs && node scripts/check-community-wiki-ui.mjs && node scripts/check-profile-wiki-ui.mjs && node scripts/check-activity-readability.mjs && node scripts/check-review-failure-ui.mjs && node scripts/check-electron-output-cards.mjs && node scripts/check-development-execution-electron.mjs && node scripts/check-electron-mcp-approval.mjs && npm run test:freeze-scenes:browser && npm run test:freeze-scenes:electron",
     "test:shared-ui": "node scripts/check-shared-ui.mjs",
     "test:workspace-ui": "node scripts/check-workspace-embed.mjs && node scripts/check-workspace-secondary.mjs",
     "test:icons-ui": "node scripts/check-icon-scale.mjs",
@@ -48,7 +48,9 @@
     "test:wiki-portal-ui": "node scripts/check-wiki-portal-ui.mjs",
     "test:mail-background-ui": "node scripts/check-mail-background-ui.mjs",
     "check:office-reader": "node scripts/check-office-reader.mjs",
-    "test:chat-ui": "node scripts/check-codex-chat-ui.mjs after"
+    "test:chat-ui": "node scripts/check-codex-chat-ui.mjs after",
+    "test:freeze-scenes:browser": "node scripts/check-freeze-scenes.mjs",
+    "test:freeze-scenes:electron": "node scripts/check-freeze-scenes.mjs --electron"
   },
   "devDependencies": {
     "@types/node": "24.10.1",

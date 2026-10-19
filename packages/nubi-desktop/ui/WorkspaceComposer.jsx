@@ -14,19 +14,18 @@ export function WorkspaceComposer({className = '', inputRef, id = 'message-input
   const commands=useComposerCommands({api:commandApi,taskId,value:draft.input,inputRef,onChange:writeInput,onCommand,onCatalog:setSkills,onSelect:(item,input)=>inputProps.onChange({target:{value:`/${item.command} ${input}`}})});
   const change=event=>{commands.onInputChange();writeInput(event);};
   const cannotSend=sendDisabled||!draft.input.trim();
-  const form = useRef(null), previousLayout=useRef(null), entrance=useRef(null);
+  const form = useRef(null), previousLayout=useRef(null), entrance=useRef(null),entranceObserver=useRef(null),pendingEntrance=useRef(null);
   useLayoutEffect(()=>{
     const node=form.current;if(!node)return;
-    const rect=node.getBoundingClientRect(),previous=previousLayout.current;
-    previousLayout.current={top:rect.top,value};
+    const previous=previousLayout.current;
+    previousLayout.current={...previous,value};
     // Animate only the first Send's layout change. Work starts immediately;
     // admission and subsequent typing never wait for a transition to finish.
-    if(previous?.value&&!value&&sending&&node.closest('.nubi-submit-scene')&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
-      const offset=previous.top-rect.top;
-      if(Math.abs(offset)>2){entrance.current?.cancel();entrance.current=node.animate([{transform:`translateY(${offset}px)`},{transform:'translateY(0)'}],{duration:180,easing:'cubic-bezier(.2,.8,.2,1)'});}
+    if(Number.isFinite(previous?.top)&&previous?.value&&!value&&sending&&node.closest('.nubi-submit-scene')&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+      pendingEntrance.current=previous.top;entranceObserver.current?.unobserve(node);entranceObserver.current?.observe(node);
     }
   },[value,sending]);
-  useLayoutEffect(()=>()=>entrance.current?.cancel(),[]);
+  useLayoutEffect(()=>{const node=form.current;if(!node)return;const observer=new ResizeObserver(()=>{const top=node.getBoundingClientRect().top;if(pendingEntrance.current!==null){const offset=pendingEntrance.current-top;pendingEntrance.current=null;if(Math.abs(offset)>2){entrance.current?.cancel();entrance.current=node.animate([{transform:`translateY(${offset}px)`},{transform:'translateY(0)'}],{duration:180,easing:'cubic-bezier(.2,.8,.2,1)'});}}previousLayout.current={...previousLayout.current,top};});entranceObserver.current=observer;observer.observe(node);return()=>{entranceObserver.current=null;observer.disconnect();entrance.current?.cancel();};},[]);
   const [expanded, setExpanded] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   useLayoutEffect(() => {
@@ -64,12 +63,12 @@ export function WorkspaceComposer({className = '', inputRef, id = 'message-input
       sizes.disconnect();
       sizes.observe(node);
       for (const item of node.querySelectorAll('.composer-leading > *, .composer-tools > *')) sizes.observe(item);
-      measure();
     };
     const changes = new MutationObserver(observe);
     changes.observe(bar, {childList:true, subtree:true, characterData:true});
     observe();
-    document.fonts?.ready.then(measure);
+    // Initial delivery and font-driven control size changes are observed above.
+    // Reading FontFaceSet.ready during commit itself forces synchronous layout.
     return () => {disposed = true; sizes.disconnect(); changes.disconnect();};
   }, [onMinimumWidth]);
   useLayoutEffect(() => {
@@ -80,10 +79,11 @@ export function WorkspaceComposer({className = '', inputRef, id = 'message-input
       setHasMore(current => current === more ? current : more);
       if (!more) setExpanded(false);
     };
-    measure();
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
-    observer?.observe(field);
-    window.addEventListener('resize', measure);
+    // Each observation delivers an initial notification after layout, including
+    // value changes whose overflow grows inside an already capped textarea.
+    if (observer) observer.observe(field);
+    else {measure(); window.addEventListener('resize', measure);}
     return () => {observer?.disconnect(); window.removeEventListener('resize', measure);};
   }, [inputRef, value, expanded]);
   function submit(event){event.preventDefault();if(!cannotSend)onSubmit(event);}

@@ -51,6 +51,7 @@ try{
  await p.getByRole('button',{name:'접기',exact:true}).click();
  assert.equal(await requestBox.evaluate(e=>e.clientHeight<=180),true);
  await requestBox.fill('');assert.equal(await requestBox.evaluate(e=>e.clientHeight),smallHeight);
+ await more.waitFor({state:'detached'});
  assert.equal(await p.getByRole('button',{name:'더 보기',exact:true}).count(),0);
  checks.push('request composer grows, expands and collapses without a resize handle or losing its draft');await p.screenshot({path:'verification/ui-connected-fixture.png'});
  const modelControl=p.getByRole('button',{name:'모델 변경',exact:true});

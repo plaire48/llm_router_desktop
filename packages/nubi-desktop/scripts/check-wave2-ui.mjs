@@ -12,6 +12,7 @@ await writeFile(path.join(dir,'index.html'),'<!doctype html><html lang="ko"><met
 const server=createServer(async(req,res)=>{try{const requested=path.resolve(dir,'.'+new URL(req.url,'http://localhost').pathname.replace(/\/$/,'/index.html'));if(!requested.startsWith(dir+path.sep))throw Error();const ext=path.extname(requested),data=await readFile(requested);res.writeHead(200,{'content-type':({'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.svg':'image/svg+xml','.woff2':'font/woff2','.webp':'image/webp'})[ext]||'application/octet-stream'}).end(data);}catch{res.writeHead(404).end();}});await new Promise(r=>server.listen(0,'127.0.0.1',r));
 
 let browser,browserServer;const errors=[],checks=[];
+const waitForAdmission=page=>page.locator('.nubi-conversation-scroll[data-admission="complete"][aria-busy="false"]').waitFor();
 try {
  browserServer=await chromium.launchServer({channel:'chrome',headless:true});
  browser=await chromium.connect(browserServer.wsEndpoint());
@@ -28,12 +29,14 @@ try {
   assert.equal(await nav.getByRole('button').count(),3);
   const assertSeparated=async()=>assert(await nav.evaluate(node=>{const a=node.getBoundingClientRect(),b=node.closest('.nubi-conversation-wrap').querySelector('.nubi-conversation-scroll').getBoundingClientRect();return a.right<=b.left+1||a.left>=b.right-1||a.bottom<=b.top+1||a.top>=b.bottom-1;}),'chapter navigation must have its own space outside the transcript');
   await assertSeparated();
+  await waitForAdmission(page);
   const before=await page.locator('.message').allTextContents();
   for(const index of [2,0,1]){
    await nav.getByRole('button').nth(index).click();
    await page.waitForFunction(id=>{const node=document.getElementById(id),box=node?.getBoundingClientRect(),scroll=node?.closest('.nubi-conversation-scroll')?.getBoundingClientRect();return box&&scroll&&box.top>=scroll.top-1&&box.bottom<=scroll.bottom+1;},'chapter-fixture-chapter-'+index);
   }
   await assertSeparated();
+  await waitForAdmission(page);
   assert.deepEqual(await page.locator('.message').allTextContents(),before);
   assert(await nav.evaluate(node=>{const box=node.getBoundingClientRect();return box.left>=0&&box.right<=innerWidth;}));
   await page.screenshot({path:path.join(dir,'chapters-'+width+'.png'),animations:'disabled'});
@@ -49,8 +52,10 @@ try {
  if(many)assert(await nav.evaluate(node=>node.getBoundingClientRect().height<=innerHeight/2),'chapter contents must leave room for the conversation');
  await nav.getByRole('button').first().click();
  await page.waitForFunction(()=>{const node=document.getElementById('chapter-fixture-chapter-0'),box=node?.getBoundingClientRect(),scroll=node?.closest('.nubi-conversation-scroll')?.getBoundingClientRect();return box&&scroll&&box.top>=scroll.top-1&&box.bottom<=scroll.bottom+1;});
+ await waitForAdmission(page);
  assert.equal(await page.locator('.message').count(),87);
- checks.push({scene:many?'chapters-many':'chapters-long',messages:86,historyRevealed:true});await page.close();
+ await page.screenshot({path:path.join(dir,many?'chapters-many.png':'chapters-long.png'),animations:'disabled'});
+ checks.push({scene:many?'chapters-many':'chapters-long',messages:86,renderedMessages:87,admissionComplete:true,historyRevealed:true});await page.close();
  }
  for(const width of [1280,440]){
   const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});page.on('pageerror',error=>errors.push(error.message));

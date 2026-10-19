@@ -3,6 +3,7 @@ let officeDock;
 const {safeApprovalFailure}=require('./approval-failure.cjs');
 const {trustedRenderer}=require('./renderer-scope.cjs');
 const {app,BrowserWindow,protocol,net,ipcMain,dialog,clipboard,Menu,Notification,session}=require('electron');
+const {prepareNativeInput}=require('./native-input-preparation.cjs');
 const {fork,spawn}=require('node:child_process');
 const {WorkspaceUpdater}=require('./workspace-updater.cjs');
 const {readFile,writeFile,mkdir,realpath,rm}=require('node:fs/promises');
@@ -259,7 +260,7 @@ app.whenReady().then(async()=>{
   }
   if(method==='decisionNotice'){if(source!=='electron')throw Error('decision_desktop_only');return decisionNotices.request(args);}
   if(method==='titlebarAppearance'){if(source!=='electron')throw Error('titlebar_desktop_only');applyCaptionColors(window,args);return {updated:true};}
-  if(method==='startupConnections'){let mail=null;try{mail=await portalMailStatus();}catch{}return {launchId,mailPrompt:startupMailPrompt(mail)};}
+  if(method==='startupConnections'){const preparation=prepareNativeInput(window);let mail=null;try{mail=await portalMailStatus();}catch{}const nativeInput=await preparation;return {launchId,mailPrompt:startupMailPrompt(mail),nativeInput};}
   if(method==='browserConnection'){
    if(source!=='electron')throw Error('browser_desktop_only');
    if(args.action==='status')return browserRouter.configuration();

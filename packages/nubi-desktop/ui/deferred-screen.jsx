@@ -1,6 +1,7 @@
 import React,{Suspense,lazy} from 'react';
 import {CxButton,Icon} from '@e2e/cx-design-system';
 import {LoadingNote} from './LoadingNote.jsx';
+import {AfterFirstPaint} from './AfterFirstPaint.jsx';
 
 // Each screen gets its own boundary: a missing chunk cannot replace the chat or
 // application shell. The normal lazy type is stable; retry alone replaces it.
@@ -14,10 +15,12 @@ class ScreenBoundary extends React.Component {
  }
 }
 export function deferredScreen(importScreen,name){
- const load=()=>importScreen().then(module=>({default:module[name]}));
+ let pending;
+ const load=()=>pending||(pending=importScreen().then(module=>({default:module[name]})).catch(error=>{pending=null;throw error;}));
  let View=lazy(load);
- const retry=()=>{View=lazy(load);return View;};
- function DeferredScreen(props){return <ScreenBoundary View={View} retry={retry} screenProps={props}/>;}
+ const retry=()=>{pending=null;View=lazy(load);return View;};
+ function DeferredScreen(props){return <AfterFirstPaint><ScreenBoundary View={View} retry={retry} screenProps={props}/></AfterFirstPaint>;}
+ DeferredScreen.preload=()=>load().catch(()=>null);
  DeferredScreen.displayName=`Deferred${name}`;
  return DeferredScreen;
 }

@@ -17,8 +17,7 @@ export function WorkspaceToolbar({host, layoutRoot, title, project, status, side
       else nav.style.removeProperty('--nubi-brand-column');
     };
     const sizes=new ResizeObserver(align);sizes.observe(sidebar);sizes.observe(root);sizes.observe(host);
-    const changes=new MutationObserver(align);changes.observe(root,{attributes:true,attributeFilter:['data-compact']});
-    align();return()=>{sizes.disconnect();changes.disconnect();};
+    return()=>sizes.disconnect();
   },[host,layoutRoot,project,sidebarOpen]);
   if (!host) return null;
   return createPortal(<header className="nubi-window-toolbar" aria-label="Workspace 상단 메뉴">

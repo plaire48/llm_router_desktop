@@ -10,7 +10,10 @@ export function observeConversationVisibility(node){
    for(const entry of entries){
     // Seed skipped layout with the observed, actual border-box height instead
     // of a guessed message height. Keep auto content searchable/accessible.
-    if(entry.boundingClientRect.height>0)entry.target.style.setProperty('--nubi-message-height',entry.boundingClientRect.height+'px');
+    if(entry.boundingClientRect.height>0){
+     const size='auto '+entry.boundingClientRect.height+'px';
+     if(entry.target.style.getPropertyValue('contain-intrinsic-block-size')!==size)entry.target.style.setProperty('contain-intrinsic-block-size',size);
+    }
     entry.target.toggleAttribute('data-message-offscreen',!entry.isIntersecting);
    }
   },{root,rootMargin:'200px'})};observers.set(root,group);

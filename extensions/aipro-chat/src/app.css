@@ -153,10 +153,8 @@ h1 { font-size: var(--cx-type-title); font-weight: 900; letter-spacing: -.02em; 
 :root[data-motion='paused'] .welcome-emblem::before,
 :root[data-motion-visibility='hidden'] :is(.deck-blob, .deck-spark, .welcome-emblem, .agent-mark, .agent-mark *),
 :root[data-motion-visibility='hidden'] .welcome-emblem::before,
-:root:has(.cx-panel-backdrop) :is(.deck-blob, .deck-spark, .welcome-emblem, .agent-mark, .agent-mark *),
-:root:has(.cx-panel-backdrop) .welcome-emblem::before,
-.cx-kit-shell:has([aria-haspopup='dialog'][aria-expanded='true']) :is(.deck-blob, .deck-spark, .welcome-emblem, .agent-mark, .agent-mark *),
-.cx-kit-shell:has([aria-haspopup='dialog'][aria-expanded='true']) .welcome-emblem::before { animation-play-state: paused; }
+:root[data-motion-panel] :is(.deck-blob, .deck-spark, .welcome-emblem, .agent-mark, .agent-mark *),
+:root[data-motion-panel] .welcome-emblem::before { animation-play-state: paused; }
 /* Typing quiets the backdrop without freezing the mascot or its task feedback. */
 .cx-kit-shell:has(.composer:focus-within) :is(.deck-blob, .deck-spark),
 .cx-kit-shell:has(.composer:focus-within) .welcome-emblem::before { animation-play-state: paused; }

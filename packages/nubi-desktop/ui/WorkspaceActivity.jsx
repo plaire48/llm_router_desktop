@@ -80,7 +80,7 @@ export function WorkspaceActivity({task,run,historical=false,predecessors=run?.p
   const timeline=activityTimeline(trace.map(event=>({...event,at:rawSteps.get(event.id)?.at,startedAt:rawSteps.get(event.id)?.startedAt,label:event.label||activityOptions.toolLabels[event.tool]})),collapsed?[]:thoughts);
   const thinking=live&&task.streamingReasoning?task.streamingReasoning.slice(-600).replace(/^\S*\s/,''):'';
   if (!currentPlan?.steps?.length && !trace.length && !live && !thoughts.length && !sources.length) return null;
-  return <section className="nubi-agent-activity" data-run-id={runId} data-historical={historical||undefined} aria-label="계획과 진행 상황" aria-busy={live}>
+  return <section className="nubi-agent-activity" data-run-id={runId} data-historical={historical||undefined} aria-label="계획과 진행 상황" aria-busy={live} data-activity-live={live||undefined}>
     {/* The plan stays visible at the top of its turn, compact; only the journal below folds (user decision 2026-10-14: 작업 계획은 항상 위에). */}
     {currentPlan?.steps?.length > 0 && <WorkspacePlan compact task={{...task,workPlan:currentPlan}} historical={historical} answered={answered} trace={trace}/>}
     <details className="nubi-activity-record" key={`${runId}:${collapsed?'result':'active'}:${needsAttention?'attention':'normal'}`} open={!collapsed}>

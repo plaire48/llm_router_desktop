@@ -1,6 +1,6 @@
 import {MailTable} from './MailTable.jsx';
 import {DESKTOP_FEATURES} from '../runtime/beta-features.mjs';
-import React,{useEffect,useLayoutEffect,useRef,useState} from 'react';
+import React,{startTransition,useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {CxButton, CxInput, SearchField, Icon} from '@e2e/cx-design-system';
 import {WorkspaceAction as ActionButton} from './WorkspaceAction.jsx';
 import {DeckEmpty} from '../../../extensions/aipro-chat/src/DeckSurfaces.jsx';
@@ -41,16 +41,22 @@ export function MailKnowledgeSearch({api,query,onQuery,lastAppliedAt,revision,re
   useEffect(()=>{
     let live=true;setPending(true);setFailed(false);
     if(invalidRange){setPending(false);setPacket(null);return;}
-    const timer=setTimeout(async()=>{try{
+    const timer=setTimeout(async()=>{let scheduled=false;try{
       const observedRevision=latestRevision.current;
       // A numbered UI page is an explicit navigation request, not a cursor
       // accumulation. An arrival must never silently send the reader to page 1.
       const result=await api('mail',{action:'search',query:term,filters:wire,limit:size,sort:sort==='auto'?(term?'relevance':'newest'):sort,page:navigation.page});
       if(!live)return;
       const viewKey=JSON.stringify([signature,navigation.page]);
-      if(viewKey!==shownView.current||result.reset)setPageDraft(String(result.page||1));
-      setPacket({...result,signature,requestPage:navigation.page,viewKey,dataRevision:observedRevision});
-    }catch{if(live){setFailed(true);notifyWorkspaceToast('메일을 검색하지 못했어요. 다시 확인해 주세요.',{error:true});}}finally{if(live)setPending(false);}},term||filters.senders.length||filters.filename?300:0);
+      const changeDraft=viewKey!==shownView.current||result.reset;
+      // Search result rendering is background work. Commit its packet, page
+      // label and pending state together, yielding to current pointer/key input.
+      startTransition(()=>{
+        if(changeDraft)setPageDraft(current=>live?String(result.page||1):current);
+        setPacket(current=>live?{...result,signature,requestPage:navigation.page,viewKey,dataRevision:observedRevision}:current);
+        setPending(current=>live?false:current);
+      });scheduled=true;
+    }catch{if(live){setFailed(true);notifyWorkspaceToast('메일을 검색하지 못했어요. 다시 확인해 주세요.',{error:true});}}finally{if(live&&!scheduled)setPending(false);}},term||filters.senders.length||filters.filename?300:0);
     return()=>{live=false;clearTimeout(timer);};
   // Background ingestion changes only the update affordance. Never replace
   // rows or disable a pointer/keyboard target while someone is reading them.

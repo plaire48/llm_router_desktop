@@ -1,6 +1,6 @@
 import React from 'react';
+import {formatMessageTime} from './message-time.mjs';
 export function MessageTimestamp({at,role='user'}){
-  if(!at||!Number.isFinite(Date.parse(at)))return null;
-  const date=new Date(at),full=date.toLocaleString();
-  return <time className="nubi-message-timestamp" dateTime={date.toISOString()} title={full} aria-label={`${role==='user'?'보낸':'받은'} 시각 ${full}`}>{date.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}</time>;
+  const time=formatMessageTime(at);if(!time)return null;
+  return <time className="nubi-message-timestamp" dateTime={time.iso} title={time.full} aria-label={`${role==='user'?'보낸':'받은'} 시각 ${time.full}`}>{time.short}</time>;
 }

@@ -1,15 +1,17 @@
 import React, {useEffect, useState} from 'react';
+import {installMotionPresence} from './motion-presence.mjs';
 
 export function useMotionPreference() {
   const [paused, setPaused] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   useEffect(() => {
+    const stopPresence=installMotionPresence();
     const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
     const sync = () => setPaused(preference.matches);
     const visibility = () => {document.documentElement.dataset.motionVisibility = document.hidden ? 'hidden' : 'visible';};
     // The removed toolbar toggle must not leave an invisible paused preference.
     try {localStorage.removeItem('aipro:motion-paused');} catch { /* OS preference remains available. */ }
     sync(); visibility(); preference.addEventListener('change', sync); document.addEventListener('visibilitychange', visibility);
-    return () => {preference.removeEventListener('change', sync); document.removeEventListener('visibilitychange', visibility);};
+    return () => {stopPresence();preference.removeEventListener('change', sync); document.removeEventListener('visibilitychange', visibility);};
   }, []);
   useEffect(() => {document.documentElement.dataset.motion = paused ? 'paused' : 'running';}, [paused]);
   return {paused};

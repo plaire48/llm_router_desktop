@@ -737,9 +737,9 @@
 .nubi-recovery-status { display:inline-flex; align-items:center; justify-content:center; flex:none; width:16px; height:16px; color:var(--deck-red); }
 .nubi-recovery-status > svg { width:14px; height:14px; }
 .nubi-session-actions { display:flex; align-items:center; flex:none; gap:var(--cx-space-1); margin-inline-end:var(--cx-space-1); }
-.nubi-session-actions > * { opacity:0; pointer-events:none; transition:opacity var(--nubi-sidebar-motion); }
-.nubi-session-row:is(:hover, :focus-within, [data-current="true"]) .nubi-session-actions > * { opacity:1; pointer-events:auto; }
-.nubi-session-row[data-state="review"] .nubi-session-actions > *, .nubi-session-row[data-state="completed"] .nubi-session-actions > * { opacity:1; pointer-events:auto; }
+.nubi-session-actions > :where(.nubi-session-complete,.nubi-actions-disclosure) { opacity:0; pointer-events:none; transition:opacity var(--nubi-sidebar-motion); }
+.nubi-session-row:is(:hover, :focus-within, [data-current="true"]) .nubi-session-actions > :where(.nubi-session-complete,.nubi-actions-disclosure) { opacity:1; pointer-events:auto; }
+.nubi-session-row[data-state="review"] .nubi-session-actions > :where(.nubi-session-complete,.nubi-actions-disclosure), .nubi-session-row[data-state="completed"] .nubi-session-actions > :where(.nubi-session-complete,.nubi-actions-disclosure) { opacity:1; pointer-events:auto; }
 .nubi-session-actions :is(.cx-kit-button,.cx-action-button) { width:28px; min-width:28px; height:28px; min-height:28px; padding:var(--cx-space-1); color:var(--deck-sub); background:transparent; border:0; box-shadow:none; }
 .nubi-workbench .nubi-session-actions :is(.nubi-session-action,.cx-action-button[data-action="delete"]) > svg { width:var(--nubi-session-action-icon-size); height:var(--nubi-session-action-icon-size); flex:none; }
 .nubi-session-progress { display:inline-grid; place-items:center; flex:none; width:16px; height:16px; margin-left:auto; }
@@ -750,7 +750,7 @@
 .nubi-session-actions .cx-action-button:hover:not(:disabled) { color:var(--deck-red); }
 @media (prefers-reduced-motion: reduce) { .nubi-session-progress .status-spinner { animation:none; } }
 .nubi-sidebar-more.cx-kit-button { width:100%; min-height:32px; margin-top:var(--cx-space-2); padding:var(--cx-space-2) var(--cx-space-3); justify-content:flex-start; color:var(--deck-sub); background:transparent; border:0; box-shadow:none; font:var(--deck-font-caption); }
-@media (pointer:coarse) { .nubi-session-actions > * { opacity:1; pointer-events:auto; } }
+@media (pointer:coarse) { .nubi-session-actions > :where(.nubi-session-complete,.nubi-actions-disclosure) { opacity:1; pointer-events:auto; } }
 .nubi-workbench .nubi-bar .nubi-project-label { flex:0 1 auto; min-width:0; }
 .nubi-workbench .nubi-bar > .deck-status { flex:none; }
 /* The actions keep the right edge; an empty label takes no room. Under 600px the label takes its own line below,
@@ -839,7 +839,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-workbench .answer-model .nubi-answer-mark[data-mood="celebrate"] { animation:nubi-answer-greeting var(--nubi-answer-greeting-cycle) var(--deck-ease) 2; }
 :root[data-motion="paused"] .nubi-workbench :is(.nubi-answer-mark,.nubi-answer-mark *),
 :root[data-motion-visibility="hidden"] .nubi-workbench :is(.nubi-answer-mark,.nubi-answer-mark *),
-:root:has(.cx-panel-backdrop) .nubi-workbench :is(.nubi-answer-mark,.nubi-answer-mark *) { animation-play-state:paused; }
+:root[data-motion-panel] .nubi-workbench :is(.nubi-answer-mark,.nubi-answer-mark *) { animation-play-state:paused; }
 @keyframes nubi-answer-breathe { 0%,100% { transform:translateY(0) scale(1); } 50% { transform:translateY(calc(-1 * var(--nubi-answer-travel))) scale(1.025); } }
 @keyframes nubi-answer-greeting { 0%,100% { transform:translateY(0) rotate(0); } 35% { transform:translateY(calc(-1 * var(--nubi-answer-travel))) rotate(-2deg); } 65% { transform:translateY(0) rotate(2deg); } }
 .nubi-workbench .composer-leading { display:flex; flex:1 1 auto; flex-wrap:wrap; align-items:center; justify-content:flex-start; gap:var(--cx-space-2); min-width:0; }
@@ -1762,13 +1762,13 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 
 /* A running record breathes: the summary icon spins and the title pulses while the model works, whether a tool is
    running or it is thinking (user report 2026-10-14: the wait must read as activity). */
-.nubi-agent-activity[aria-busy=true] .agent-trace > summary > svg:first-child { display:none; }
-.nubi-agent-activity[aria-busy=true] .agent-trace > summary::before { content:""; flex:none; width:14px; height:14px; margin-right:var(--cx-space-2); border:2px solid var(--deck-blue-soft); border-top-color:var(--deck-blue-deep); border-radius:50%; animation:nubi-live-spin .9s linear infinite; }
-.nubi-agent-activity[aria-busy=true] .agent-trace > summary > .agent-trace-title { animation:nubi-live-breathe 1.8s ease-in-out infinite; }
+.nubi-agent-activity[data-activity-live=true] .agent-trace > summary > svg:first-child { display:none; }
+.nubi-agent-activity[data-activity-live=true] .agent-trace > summary::before { content:""; flex:none; width:14px; height:14px; margin-right:var(--cx-space-2); border:2px solid var(--deck-blue-soft); border-top-color:var(--deck-blue-deep); border-radius:50%; animation:nubi-live-spin .9s linear infinite; }
+.nubi-agent-activity[data-activity-live=true] .agent-trace > summary > .agent-trace-title { animation:nubi-live-breathe 1.8s ease-in-out infinite; }
 .nubi-agent-activity .agent-next-step .status-spinner,.nubi-launch-progress .status-spinner { color:var(--deck-blue-deep); }
 @keyframes nubi-live-breathe { 0%,100% { opacity:1; } 50% { opacity:.55; } }
 @keyframes nubi-live-spin { to { transform:rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .nubi-agent-activity[aria-busy=true] .agent-trace > summary > svg:first-child,.nubi-agent-activity[aria-busy=true] .agent-trace > summary > .agent-trace-title { animation:none; } }
+@media (prefers-reduced-motion: reduce) { .nubi-agent-activity[data-activity-live=true] .agent-trace > summary > svg:first-child,.nubi-agent-activity[data-activity-live=true] .agent-trace > summary > .agent-trace-title { animation:none; } }
 
 /* Any host request slower than 400 ms shows a moving line under the toolbar so a wait reads as work, not a freeze (2026-10-14). */
 html[data-host-busy] .desktop-shell::after { content:""; position:fixed; left:0; right:0; top:var(--desktop-toolbar-height,48px); height:2px; z-index:40; pointer-events:none; background:linear-gradient(90deg,transparent 0%,var(--deck-blue) 50%,transparent 100%); background-size:40% 100%; animation:nubi-host-busy 1.1s linear infinite; }

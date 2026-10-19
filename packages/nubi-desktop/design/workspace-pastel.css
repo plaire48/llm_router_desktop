@@ -1,13 +1,14 @@
+/* Desktop-only cascade: keep root specificity without descendant queries. */
 /* One slow, low-contrast colour wash. Only the decorative layer moves.
    New Nubi pastel surfaces can opt in with .nubi-pastel-surface; no DOM observer,
    per-frame JS, filter animation or provider-logo recolouring is needed. */
-:root:has(.desktop-shell){
+:root:root{
  --nubi-pastel-duration:72s;
  --nubi-pastel-surround-duration:96s;
  --nubi-pastel-ease:cubic-bezier(.45,0,.55,1);
  --nubi-pastel-wash:radial-gradient(ellipse at 15% 30%,color-mix(in srgb,var(--deck-blue) 14%,transparent),transparent 60%),radial-gradient(ellipse at 85% 75%,color-mix(in srgb,var(--deck-teal) 12%,transparent),transparent 64%);
 }
-:root:has(.desktop-shell) :is( .nubi-pastel-surface,
+:root:root :is( .nubi-pastel-surface,
  .nubi-brand-emblem,.nubi-beta,
  .nubi-catalog-tabs [role=tab][aria-selected=true],
  .nubi-wiki-badge,.nubi-wiki-description,.nubi-wiki-insight-method,
@@ -18,7 +19,7 @@
  .nubi-skill-card-icon,.nubi-custom-skill-mark){
  position:relative;isolation:isolate;overflow:clip;
 }
-:root:has(.desktop-shell) :is( .nubi-pastel-surface,
+:root:root :is( .nubi-pastel-surface,
  .nubi-brand-emblem,.nubi-beta,
  .nubi-catalog-tabs [role=tab][aria-selected=true],
  .nubi-wiki-badge,.nubi-wiki-description,.nubi-wiki-insight-method,
@@ -52,12 +53,12 @@
  to{transform:translate3d(5%,3%,0) scale(1.08)}
 }
 /* Existing start/mail ambient blobs use the same quiet rhythm. */
-:root:has(.desktop-shell) .desktop-shell .deck-ambient .deck-blob{
+:root:root .desktop-shell .deck-ambient .deck-blob{
  animation-name:nubi-pastel-flow;animation-duration:var(--nubi-pastel-duration);
  animation-timing-function:var(--nubi-pastel-ease);animation-iteration-count:infinite;animation-direction:alternate;
 }
-:root:has(.desktop-shell) .desktop-shell .deck-ambient .deck-blob-teal{animation-delay:-24s;animation-duration:var(--nubi-pastel-surround-duration)}
-:root:has(.desktop-shell) .desktop-shell .deck-ambient .deck-blob-violet{animation-delay:-48s}
+:root:root .desktop-shell .deck-ambient .deck-blob-teal{animation-delay:-24s;animation-duration:var(--nubi-pastel-surround-duration)}
+:root:root .desktop-shell .deck-ambient .deck-blob-violet{animation-delay:-48s}
 /* Keep the host's pause/visibility policy, including modal attention. */
 :root:is([data-motion=paused],[data-motion-visibility=hidden]) .desktop-shell::before{animation-play-state:paused}
 :root:is([data-motion=paused],[data-motion-visibility=hidden]) :is( .nubi-pastel-surface,
@@ -69,8 +70,8 @@
  .nubi-wiki-candidate button,.nubi-wiki-links nav button,
  .nubi-mail-evidence-group>summary,.nubi-mail-result[aria-pressed=true],
  .nubi-skill-card-icon,.nubi-custom-skill-mark)::before{animation-play-state:paused}
-:root:has(.cx-panel-backdrop) .desktop-shell::before,
-:root:has(.cx-panel-backdrop) :is( .nubi-pastel-surface,
+:root[data-motion-panel] .desktop-shell::before,
+:root[data-motion-panel] :is( .nubi-pastel-surface,
  .nubi-brand-emblem,.nubi-beta,
  .nubi-catalog-tabs [role=tab][aria-selected=true],
  .nubi-wiki-badge,.nubi-wiki-description,.nubi-wiki-insight-method,
@@ -81,7 +82,7 @@
  .nubi-skill-card-icon,.nubi-custom-skill-mark)::before{animation-play-state:paused}
 @media(prefers-reduced-motion:reduce){
  .desktop-shell::before,
- :root:has(.desktop-shell) :is( .nubi-pastel-surface,
+ :root:root :is( .nubi-pastel-surface,
  .nubi-brand-emblem,.nubi-beta,
  .nubi-catalog-tabs [role=tab][aria-selected=true],
  .nubi-wiki-badge,.nubi-wiki-description,.nubi-wiki-insight-method,
@@ -90,9 +91,9 @@
  .nubi-wiki-candidate button,.nubi-wiki-links nav button,
  .nubi-mail-evidence-group>summary,.nubi-mail-result[aria-pressed=true],
  .nubi-skill-card-icon,.nubi-custom-skill-mark)::before,
- :root:has(.desktop-shell) .desktop-shell .deck-ambient .deck-blob{animation:none!important}
+ :root:root .desktop-shell .deck-ambient .deck-blob{animation:none!important}
 }
-@media(forced-colors:active){.desktop-shell::before,:root:has(.desktop-shell) :is( .nubi-pastel-surface,
+@media(forced-colors:active){.desktop-shell::before,:root:root :is( .nubi-pastel-surface,
  .nubi-brand-emblem,.nubi-beta,
  .nubi-catalog-tabs [role=tab][aria-selected=true],
  .nubi-wiki-badge,.nubi-wiki-description,.nubi-wiki-insight-method,
