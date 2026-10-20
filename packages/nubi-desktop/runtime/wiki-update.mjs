@@ -1,3 +1,4 @@
+import {importantFiles,coverageMap,coveragePlanningContext} from './wiki-coverage.mjs';
 import {wikiGenerationBinding,assertWikiGenerationCurrent} from './wiki-generation.mjs';
 import {folderPlanningContext} from './wiki-folder-plan.mjs';
 import {notifyWikiCompleted} from './wiki-notification.mjs';
@@ -99,7 +100,7 @@ export async function prepareNativeWikiCopy(root,mode='update'){
 // stage, page and position, never page text.
 export function defaultWikiUpdater(service,{load=()=>import('../generated/openwiki-update/index.mjs')}={}){
   // mode init serves only the evaluation, which generates the Wiki that it then updates.
-  return async({root,language,signal,onEvent,updateId,mode='update',repositoryPlan,planningContext,force=false,scope,generationBinding})=>{
+  return async({root,language,signal,onEvent,updateId,mode='update',repositoryPlan,planningContext,force=false,scope,generationBinding,onModelCall})=>{
     const status=generationBinding||wikiGenerationBinding(service);
     if(!status?.connected)fail('model_unavailable');
     const owner=service.store,sourceRoot=service.root,clock=service.wikiDurableClock||wikiClock,context=new AsyncLocalStorage();
@@ -125,6 +126,7 @@ export function defaultWikiUpdater(service,{load=()=>import('../generated/openwi
           assertWikiGenerationCurrent(service,status);
           const remaining=journal.value.deadlineAt-clock.now();if(remaining<=0)throw Error('wiki_budget_exhausted');
           const requestSignal=AbortSignal.any([options.signal||signal,AbortSignal.timeout(Math.max(1,Math.ceil(remaining)))].filter(Boolean));
+          onModelCall?.();
           const result=await invoke(attempt,tools,requestSignal,'wiki_update',{retries:0,retryInvalidResponse:false,...(status.request?{wikiRequest:status.request,...(context.getStore()?.path?{maxTokens:status.pageMaxTokens}:{})}:{})});
           if(result.finishReason==='length'){
             const page=context.getStore()?.path||'planning';
@@ -254,7 +256,7 @@ export async function wikiChangeSummary(root){
 
 const records=service=>service.store.list('wiki-update:').sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
 const save=(service,value)=>{service.store.set('wiki-update:'+value.id,value);return value;};
-const visible=({controller,resume,...value})=>({...value,canResume:!!resume&&['failed','cancelled','partial'].includes(value.state)});
+const visible=({controller,resume,coveragePlan,...value})=>({...value,canResume:!!resume&&['failed','cancelled','partial'].includes(value.state)});
 const fileHashes=files=>Object.fromEntries(files.map(file=>[file.path,file.hash]).sort(([a],[b])=>a.localeCompare(b)));
 const sameHashes=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 async function retainedPageProgress(copy){
@@ -352,7 +354,7 @@ export async function resumeWikiUpdates(service){
  try{await wikiUpdate.call(service,{method:'resume',id:retained.id,fingerprint:retained.fingerprint});return true;}catch{return false;}
 }
 
-export async function wikiUpdate({method='status',id,fingerprint,confirmed=false}={}){
+export async function wikiUpdate({method='status',id,fingerprint,confirmed=false,coverageFiles}={}){
   this.ready();if(this.wikiResetting||this.store.get('wiki-reset-pending'))fail('wiki_busy');const root=this.root,owner=this.store,projectId=this.projectId;
   // An orphaned run retains its private copy and durable native page checkpoints.
   for(const item of records(this).filter(item=>item.state==='running'&&!(item.id===this.wikiUpdateRun?.id&&this.wikiUpdateRun.owner===owner))){save(this,{...item,state:'failed',pageProgress:await retainedPageProgress(item.copy),error:'wiki_update_interrupted',finishedAt:new Date().toISOString()});}
@@ -360,9 +362,17 @@ export async function wikiUpdate({method='status',id,fingerprint,confirmed=false
   if(method==='propose'){
     const status=await wikiUpdateStatus(root);
     if(this.store!==owner||this.root!==root)fail('project_changed');
-    if(status.state!=='stale')fail(status.state==='unknown'?'wiki_update_unavailable':'wiki_update_not_needed');
-    const value={id:randomUUID(),state:'proposed',createdAt:new Date().toISOString(),status};
-    value.fingerprint=hash(JSON.stringify([value.id,status.head,status.changedFiles,status.stalePages]));
+    let selected;
+    if(coverageFiles!==undefined){
+      if(!Array.isArray(coverageFiles)||!coverageFiles.length||coverageFiles.length>2000||new Set(coverageFiles).size!==coverageFiles.length)fail('wiki_coverage_selection');
+      selected=await importantFiles(root,{representatives:coverageFiles});const coverage=await coverageMap(root,{important:selected});
+      if(selected.some(rel=>!coverage.uncovered.includes(rel)))fail('wiki_coverage_selection');
+      if(!(await listWikiPages(root)).length)fail('wiki_update_unavailable');
+      if(this.store!==owner||this.root!==root)fail('project_changed');
+    }
+    if(!selected&&status.state!=='stale')fail(status.state==='unknown'?'wiki_update_unavailable':'wiki_update_not_needed');
+    const value={id:randomUUID(),state:'proposed',createdAt:new Date().toISOString(),status,...(selected?{coverageFiles:selected}:{} )};
+    value.fingerprint=hash(JSON.stringify([value.id,status.head,status.changedFiles,status.stalePages,...(selected?[selected]:[])]));
     return save(this,value);
   }
   // "오픈위키 갱신" from the conversation or /wiki_update (user request 2026-10-14): pull the git remote when there is
@@ -489,13 +499,14 @@ export async function wikiUpdate({method='status',id,fingerprint,confirmed=false
     };
     active.promise=Promise.resolve().then(async()=>{
       let lastSaved=0;
-      const result=resume.generated?resume.result:await runner({root:copy,language:value.status.lastUpdate.language,signal:controller.signal,updateId:value.id,generationBinding:selected,onEvent:event=>{
+      const result=resume.generated?resume.result:await runner({root:copy,language:value.status.lastUpdate.language,signal:controller.signal,updateId:value.id,generationBinding:selected,...(value.coverageFiles?{force:true,planningContext:coveragePlanningContext(value.coverageFiles)}:{}),onModelCall:()=>{running.modelCalls=(running.modelCalls||0)+1;},onEvent:event=>{
         if(event.type==='generation_settings')running.generation={...running.generation,...event.applied};
         if(event.type==='progress'&&typeof event.stage==='string'){runStage=event.stage;running.stage=runStage;}
         if(event.type==='durability'){running.pageStates=event.pages;running.heartbeatAt=event.heartbeatAt;running.deadlineAt=event.deadlineAt;}
         events.push({...event,at:new Date().toISOString()});if(events.length>EVENTS)events.splice(0,events.length-EVENTS);
         if(owner.db.isOpen&&Date.now()-lastSaved>250){owner.set('wiki-update:'+value.id,{...running,events:[...events]});lastSaved=Date.now();}
       }});
+      if(value.coverageFiles&&result?.partial!==true){const coverage=await coverageMap(copy,{important:value.coverageFiles,check});running.coveragePlan=coverage.planLinks;}
       if(!resume.generated){resume={...resume,generated:result?.partial!==true,result:result||{},copySources:fileHashes(await wikiSources(copy,{signal:controller.signal}))};running={...running,resume};if(owner.db.isOpen)owner.set('wiki-update:'+value.id,running);}
       check();
       runStage='publishing';running.stage=runStage;

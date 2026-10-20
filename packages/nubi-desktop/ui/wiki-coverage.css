@@ -1,0 +1,10 @@
+.nubi-wiki-coverage { margin-block: var(--cx-space-3); }
+.nubi-wiki-coverage-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr)); gap: var(--cx-space-3); margin: 0; }
+.nubi-wiki-coverage-facts dt { color: var(--deck-muted); font: var(--deck-font-caption); }
+.nubi-wiki-coverage-facts dd { margin: var(--cx-space-1) 0 0; overflow-wrap: anywhere; }
+.nubi-wiki-coverage-files { list-style: none; padding: 0; margin: 0; }
+.nubi-wiki-coverage-files label { display: flex; align-items: center; gap: var(--cx-space-2); min-height: var(--deck-field-height); }
+.nubi-wiki-coverage-files label span { overflow-wrap: anywhere; min-width: 0; }
+.nubi-wiki-coverage-files input { accent-color: var(--deck-blue); flex: 0 0 auto; }
+
+.nubi-wiki-coverage-facts > div:last-child { grid-column: 1 / -1; }

@@ -1345,3 +1345,20 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-workflow-decision :is(.nubi-question-inline,.nubi-approval-form,.nubi-setup-summary:has(>.nubi-approval-form)) {
  margin-inline:0; width:100%; max-width:100%;
 }
+
+/* Source qualifications remain readable beside the title and wrap beneath
+   that same text axis in a narrow agent pane. */
+.desktop-shell .nubi-workbench .nubi-answer-sources .nubi-source-meta {
+ flex-wrap:wrap; max-width:240px; white-space:normal; overflow:visible;
+}
+@container workspace-agent (max-width:600px) {
+ .desktop-shell .nubi-workbench .nubi-answer-sources .nubi-answer-source {
+  grid-template-columns:24px 2ch minmax(0,1fr) 14px; row-gap:var(--cx-space-1);
+ }
+ .desktop-shell .nubi-workbench .nubi-answer-sources .nubi-source-meta {
+  grid-column:3; grid-row:2; max-width:none; align-items:flex-start;
+ }
+ .desktop-shell .nubi-workbench .nubi-answer-sources .nubi-answer-source > svg:last-child {
+  grid-column:4; grid-row:1;
+ }
+}

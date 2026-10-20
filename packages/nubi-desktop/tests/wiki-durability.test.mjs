@@ -34,7 +34,7 @@ async function page(root,name){
 test('provider-thrown output_limit receives the one host continuation',async t=>{
  const {service,root}=await workspace(t);let calls=0;
  service.providers.complete=async()=>{calls++;if(calls===1)throw Error('output_limit');return {content:'Complete shortened result.',calls:[]};};
- service.wikiInitializer=defaultWikiUpdater(service,{load:async()=>({NubiOpenWikiModel:class{constructor({complete}){this.complete=complete;}},async runNativeRepositoryGeneration({root:copy,model,durability}){return durability.runPage({path:'/openwiki/large.md'},async()=>{await model.complete([{role:'user',content:'Document a synthetic source.'}],[]);await page(copy,'large');return {skipped:false};});}})});
+ service.wikiInitializer=defaultWikiUpdater(service,{load:async()=>({NubiOpenWikiModel:class{constructor({complete}){this.complete=complete;}},async runNativeRepositoryGeneration({root:copy,model,durability}){return durability.runPage({path:'/openwiki/large.md'},async()=>{await model.complete([{role:'user',content:'Document a synthetic source.'}],[]);await page(copy,'large');await writeFile(path.join(copy,'openwiki/.run.json'),JSON.stringify({plan:{pages:[{path:'/openwiki/large.md',status:'complete',seedPaths:['app.txt',...Array.from({length:10},(_,i)=>'synthetic-'+(i+1)+'.txt')]}]}}));return {skipped:false};});}})});
  await service.initializeWiki();await service.wikiInitPromise;
  assert.equal(service.wikiInitialization().state,'completed',JSON.stringify(service.wikiInitialization()));assert.equal(calls,2);assert.match(await readFile(path.join(root,'openwiki/large.md'),'utf8'),/Synthetic/);
 });

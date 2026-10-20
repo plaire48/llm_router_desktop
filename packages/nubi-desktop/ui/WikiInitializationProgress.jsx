@@ -1,3 +1,4 @@
+import {WikiCoverageSummary} from './WikiCoverageBadge.jsx';
 import {ProgressEstimate} from './ProgressEstimate.jsx';
 import {wikiModelErrors} from './wiki-model-errors.mjs';
 import {gitErrors} from './git-errors.mjs';
@@ -60,6 +61,7 @@ export function WikiInitializationProgress({job, inline=false,heading=true,onRes
       {job.total>0&&percent!==null?<span><strong>{job.completed.toLocaleString()}</strong> / {job.total.toLocaleString()}{['reading','snapshot','snapshot_git','publishing'].includes(job.stage)?'개 파일':'개 문서'}</span>:job.stage==='scanning'&&job.completed>0?<span>파일 {job.completed.toLocaleString()}개 확인</span>:null}
       {duration&&<span className="nubi-wiki-elapsed">진행 {duration}</span>}
     </div>}
+    {!inline&&job.report&&<details><summary>준비 보고서</summary><WikiCoverageSummary report={job.report}/></details>}
     {!inline&&job.scope&&<small role="status">보강 {job.scope.rounds.done} / {job.scope.rounds.total}회{job.scope.mode==='folders'?' / 선택한 폴더부터 정리':''}</small>}
     {!inline&&running&&<ProgressEstimate identity={`${job.id}:${job.stage}:${job.gitStep||''}:${job.stageStartedAt||''}`} completed={job.completed} total={job.total}/>}
     {!inline&&running&&job.modelWaiting&&<small role="status">AI 응답을 기다리고 있어요. 받은 결과는 유지됩니다.</small>}

@@ -633,7 +633,7 @@
 .nubi-action-note > svg { flex:none; margin-top:calc(var(--cx-space-1) * 0.25); color:var(--deck-blue); }
 .nubi-page-chips { display:flex; flex-wrap:wrap; gap:calc(var(--cx-space-1) * 1.5); margin:var(--cx-space-3) 0 0; padding:0; list-style:none; }
 .nubi-page-chips > li { min-width:0; max-width:100%; }
-:is(.nubi-workbench, .nubi-panel) .nubi-page-chip.cx-kit-button { display:inline-flex; align-items:center; gap:calc(var(--cx-space-1) * 1.5); max-width:100%; min-height:28px; padding:0 calc(var(--cx-space-1) * 2.5); border:0; border-radius:var(--deck-pill-radius); background:var(--deck-tint); color:var(--deck-ink); font:var(--deck-font-label); font-family:var(--deck-mono); }
+:is(.nubi-workbench, .nubi-panel, .deck-dialog) .nubi-page-chip { display:inline-flex; align-items:center; gap:calc(var(--cx-space-1) * 1.5); max-width:100%; min-height:28px; padding:0 calc(var(--cx-space-1) * 2.5); border:0; border-radius:var(--deck-pill-radius); background:var(--deck-tint); color:var(--deck-ink); font:var(--deck-font-label); font-family:var(--deck-mono); }
 :is(.nubi-workbench, .nubi-panel) .nubi-page-chip.cx-kit-button:hover { background:var(--deck-blue-soft); }
 .nubi-page-chip > span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .nubi-page-change { flex:none; color:var(--deck-blue-deep); font:var(--nubi-weight-emphasis) var(--cx-type-caption)/var(--deck-line-heading) var(--cx-font-family); }

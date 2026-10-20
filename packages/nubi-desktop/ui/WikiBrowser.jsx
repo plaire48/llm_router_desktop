@@ -1,3 +1,4 @@
+import {WikiCoverageBadge} from './WikiCoverageBadge.jsx';
 import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {CxButton,CxInput,Icon,DetailPanel,SearchField} from '@e2e/cx-design-system';
 import {WorkspaceAction} from './WorkspaceAction.jsx';
@@ -76,6 +77,7 @@ export function WikiBrowser({api,projectId,onBack,onSettings,onRewrite,openPath}
    {scopeItems.length>0&&<WorkspaceCatalogTabs wide label="위키 자료" idPrefix="wiki-scope" active={isMail?mailRoot.id:projectScope?.id||''} onChange={value=>{if(!saving)setScope(value);}} items={scopeItems}/>}
   </div>}
   <WorkspaceCatalogTabs wide={false} label="위키 보기" idPrefix="wiki-view" active={view==='documents'?'documents':mapMode==='network'?'network':'map'} onChange={value=>{setMapReaderOpen(false);setView(value==='documents'?'documents':'map');setMapMode(value==='network'?'network':'overview');}} items={[{key:'documents',label:<><Icon name="list" size={16}/>문서 목록</>},{key:'map',label:<><Icon name="link" size={16}/>함께 읽기</>},{key:'network',label:<><BranchMark size={16}/>관계 지도</>}]}/>
+  {!isMail&&scope===projectId&&<WikiCoverageBadge api={api} projectId={projectId} onOpenUpdate={onSettings} disabled={saving}/>}
   {error&&<p role="alert" className="nubi-wiki-error">{error}</p>}{notice&&<p role="status" className="nubi-wiki-saved">{notice}</p>}
   <div className="nubi-wiki-workbench" data-reader-open={view==='map'&&mapReaderOpen||undefined}>
   <div ref={explorer} tabIndex={-1} className="nubi-wiki-explorer" aria-label="위키 탐색">

@@ -40,13 +40,13 @@ export function WikiUpdate({api,openPath,initialization,onApplied,currentModel,c
   </section>;
   const view=wikiUpdateView({status:data.status,update,initialization});
   const act=async fn=>{if(actionLock.current)return;actionLock.current=true;setBusy(true);setError('');try{await fn();await load();}catch(e){await load();setError(errors[e.message]||'갱신 작업을 마치지 못했어요.');}finally{actionLock.current=false;setBusy(false);}};
-  const run=()=>act(async()=>{setNotice('');const result=await api('wikiUpdate',{method:'refresh'});setNotice(wikiRefreshNotice(result));await onApplied?.();});
+  const run=()=>act(async()=>{setNotice('');const result=await api('wikiUpdate',update?.state==='proposed'&&update.coverageFiles?.length?{method:'run',id:update.id,fingerprint:update.fingerprint}:{method:'refresh'});setNotice(update?.state==='proposed'&&update.coverageFiles?(result.state==='ready'?'갱신 결과를 확인하고 반영해 주세요.':'선택한 파일 작성을 시작했어요.'):wikiRefreshNotice(result));await onApplied?.();});
   const [lead,...rest]=view.lines,modelUse=rest.find(line=>MODEL_USE.test(line)),notes=rest.filter(line=>line!==modelUse);
   const progress=update?.state==='running'?[...(update.events||[])].reverse().find(event=>event.type==='progress'):null;
   const completed=progress?.stage==='generating'&&progress.total>0&&Number.isSafeInteger(progress.completed)?Math.max(0,Math.min(progress.total,progress.completed)):null;
   const duration=durationLabel(Math.max(0,now-Date.parse(update?.startedAt)));
   const state=update?.state==='running'&&duration?`진행 ${duration}`:update?.canResume?'보관됨':update?states[update.state]:data.status?.state==='current'?'최신':data.status?.state==='stale'?'갱신 필요':'';
-  const pageList=<ul className="nubi-page-chips">{view.pages.map(page=><li key={page.path}><CxButton className="nubi-page-chip" disabled={busy||update?.state==='running'} title={page.path} onClick={()=>openPath?.(page.path)}><Icon name="file" size={14}/><span>{page.path}</span><span className="nubi-page-change">{page.label}</span></CxButton></li>)}</ul>;
+  const pageList=<ul className="nubi-page-chips">{view.pages.map(page=><li key={page.path}>{update?.state==='proposed'&&update.coverageFiles?<span className="nubi-page-chip"><Icon name="file" size={14}/><span>{page.path}</span></span>:<CxButton className="nubi-page-chip" disabled={busy||update?.state==='running'} title={page.path} onClick={()=>openPath?.(page.path)}><Icon name="file" size={14}/><span>{page.path}</span><span className="nubi-page-change">{page.label}</span></CxButton>}</li>)}</ul>;
   const changedModel=!!update?.modelBinding&&!!currentModel&&(currentModel!==update.modelBinding.model||currentProvider!==update.modelBinding.provider);
   const resume=()=>{if(changedModel&&!confirmModel){setConfirmModel(true);return;}return act(()=>api('wikiUpdate',{method:'resume',id:update.id,fingerprint:update.fingerprint,confirmed:changedModel&&confirmModel}));};
   const quietCurrent=!update&&data.status?.state==='current';
@@ -63,7 +63,7 @@ export function WikiUpdate({api,openPath,initialization,onApplied,currentModel,c
 
     {modelUse&&<details className="nubi-wiki-update-detail"><summary><Icon name="infoCircle" size={14}/>모델 호출과 반영 범위</summary><p>{modelUse}</p></details>}
     {view.pages.length>3?<DeckDisclosure title={`변경 문서 ${view.pages.length}개`} icon="file">{pageList}</DeckDisclosure>:view.pages.length>0&&pageList}
-    {view.actions.includes('run')&&<ApprovalBar approveLabel="동기화 및 갱신" approveIcon="refresh" disabled={busy} onApprove={run}/>}
+    {view.actions.includes('run')&&<ApprovalBar approveLabel={update?.state==='proposed'&&update.coverageFiles?'선택한 파일 작성':'동기화 및 갱신'} approveIcon="refresh" disabled={busy} onApprove={run}/>}
     {confirmModel&&changedModel&&<p role="status">{update.modelBinding.model}에서 {currentModel}로 바꿔 이어갑니다. 완료한 문서와 원본 기준은 유지합니다.</p>}
     {view.actions.includes('resume')&&<ApprovalBar approveLabel={confirmModel&&changedModel?'변경 승인 후 이어서':'이어서 갱신'} approveIcon="refresh" disabled={busy} onApprove={resume}>
       <CxButton className="nubi-icon-button" aria-label="버리기" title="보관한 갱신 작업 버리기" disabled={busy} onClick={()=>act(()=>api('wikiUpdate',{method:'discard',id:update.id}))}><Icon name="trash" size={18}/></CxButton>
@@ -72,7 +72,7 @@ export function WikiUpdate({api,openPath,initialization,onApplied,currentModel,c
     {!view.actions.includes('resume')&&view.actions.some(action=>['cancel','discard','apply'].includes(action))&&<div className="nubi-approval-bar">
       {view.actions.includes('cancel')&&<CxButton className="nubi-icon-button" aria-label="위키 갱신 중지" title="위키 갱신 중지" disabled={busy} onClick={()=>act(()=>api('wikiUpdate',{method:'cancel',id:update.id}))}><span className="stop-symbol" aria-hidden="true"/></CxButton>}
       {view.actions.includes('discard')&&<CxButton className="nubi-icon-button" aria-label="버리기" title="갱신 결과 버리기" disabled={busy} onClick={()=>act(()=>api('wikiUpdate',{method:'discard',id:update.id}))}><Icon name="trash" size={18}/></CxButton>}
-      {view.actions.includes('apply')&&<CxButton variant="primary" disabled={busy} onClick={()=>act(async()=>{await api('wikiUpdate',{method:'apply',id:update.id,fingerprint:update.fingerprint});await onApplied?.();})}><Icon name="check" size={16}/>반영</CxButton>}
+      {view.actions.includes('apply')&&<CxButton variant="primary" disabled={busy} onClick={()=>act(async()=>{await api('wikiUpdate',{method:'apply',id:update.id,fingerprint:update.fingerprint});window.dispatchEvent(new CustomEvent('nubi-wiki-updated'));await onApplied?.();})}><Icon name="check" size={16}/>반영</CxButton>}
     </div>}
     {resetControl}
   </section>;

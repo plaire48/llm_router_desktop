@@ -46,6 +46,8 @@
     "node scripts/check-electron-workflow.mjs",
     "node scripts/check-wiki-scope-ui.mjs",
     "node scripts/check-wiki-durability-ui.mjs",
-    "node scripts/check-wiki-generation-ui.mjs"
+    "node scripts/check-wiki-generation-ui.mjs",
+    "node scripts/check-wiki-coverage-ui.mjs",
+    "node scripts/check-wiki-search-ui.mjs"
   ]
 }

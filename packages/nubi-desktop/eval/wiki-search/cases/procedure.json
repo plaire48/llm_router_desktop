@@ -1,0 +1,1122 @@
+[
+  {
+    "id": "P001",
+    "category": "procedure",
+    "language": "direct",
+    "query": "다온01의 실행 전 확인부터 반영까지 순서는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P001.md",
+            "sourceHash": "sha256:62c3ff55a0de70ef704afc3b63e730e95757e9e3d39900a4115902a8dfcab27b",
+            "start": 5,
+            "end": 5,
+            "quote": "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P002",
+    "category": "procedure",
+    "language": "direct",
+    "query": "다온02의 실행 전 확인부터 반영까지 순서는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P002.md",
+            "sourceHash": "sha256:2cad40714e6bca6455f9ba400b793dfe6f3bedb27f17af209cebcd6d3363a88e",
+            "start": 5,
+            "end": 5,
+            "quote": "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P003",
+    "category": "procedure",
+    "language": "direct",
+    "query": "다온03의 실행 전 확인부터 반영까지 순서는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P003.md",
+            "sourceHash": "sha256:333a74b36de603ff4cf56e06c781294f251d88e92e5ef8133262abf1e1f36147",
+            "start": 5,
+            "end": 5,
+            "quote": "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P004",
+    "category": "procedure",
+    "language": "direct",
+    "query": "다온04의 실행 전 확인부터 반영까지 순서는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P004.md",
+            "sourceHash": "sha256:3405c2e966e62338b1806f436b5b66e46ea1f14e26a43784ffb0adb83aa583dd",
+            "start": 5,
+            "end": 5,
+            "quote": "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P005",
+    "category": "procedure",
+    "language": "direct",
+    "query": "다온05의 실행 전 확인부터 반영까지 순서는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P005.md",
+            "sourceHash": "sha256:bc7c5a0974fedc830d28fb50b6d8534e8d7f4daaf6eb9522afa8d9decf6dc4ba",
+            "start": 5,
+            "end": 5,
+            "quote": "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P006",
+    "category": "procedure",
+    "language": "direct",
+    "query": "다온06의 실행 전 확인부터 반영까지 순서는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P006.md",
+            "sourceHash": "sha256:37fa97a1574e1efe4b1ffabab09fa09a1d9bf17c94db9396f49fc36269f91ce7",
+            "start": 5,
+            "end": 5,
+            "quote": "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P007",
+    "category": "procedure",
+    "language": "direct",
+    "query": "다온07의 실행 전 확인부터 반영까지 순서는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P007.md",
+            "sourceHash": "sha256:9ec5f4e57974130b8aa550f6222aad5b1168f4e93c362fb49625349004ea54df",
+            "start": 5,
+            "end": 5,
+            "quote": "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P008",
+    "category": "procedure",
+    "language": "direct",
+    "query": "다온08의 실행 전 확인부터 반영까지 순서는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P008.md",
+            "sourceHash": "sha256:bb5e96a193a62443c6c8d3ce7492df8764e73fdcb4bc753edadcff3899ccf2bc",
+            "start": 5,
+            "end": 5,
+            "quote": "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P009",
+    "category": "procedure",
+    "language": "direct",
+    "query": "다온09의 실행 전 확인부터 반영까지 순서는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P009.md",
+            "sourceHash": "sha256:0481101fa53594a53c60a13475f406b98d167319a51e582c44d8484ad0c12064",
+            "start": 5,
+            "end": 5,
+            "quote": "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P010",
+    "category": "procedure",
+    "language": "direct",
+    "query": "다온10의 실행 전 확인부터 반영까지 순서는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P010.md",
+            "sourceHash": "sha256:250ac43709f91cfd4c775faf306bda2d32be4b496bfb687077aafef0193a0f6b",
+            "start": 5,
+            "end": 5,
+            "quote": "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P011",
+    "category": "procedure",
+    "language": "direct",
+    "query": "다온11의 실행 전 확인부터 반영까지 순서는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P011.md",
+            "sourceHash": "sha256:8776642d0bb9bb157d2893f73385ef865566a6649a3e32428cffba93888e218a",
+            "start": 5,
+            "end": 5,
+            "quote": "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P012",
+    "category": "procedure",
+    "language": "direct",
+    "query": "다온12의 실행 전 확인부터 반영까지 순서는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P012.md",
+            "sourceHash": "sha256:98cb13efb5d04d86dc327283b96f2999648c0792d8d7576d05b11cd3f4e14eb8",
+            "start": 5,
+            "end": 5,
+            "quote": "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P013",
+    "category": "procedure",
+    "language": "direct",
+    "query": "다온13의 실행 전 확인부터 반영까지 순서는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P013.md",
+            "sourceHash": "sha256:a13802cdced4d982e4af58b156ab9c241fa7a1d813a28df1e1923c68104d5018",
+            "start": 5,
+            "end": 5,
+            "quote": "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P014",
+    "category": "procedure",
+    "language": "direct",
+    "query": "다온14의 실행 전 확인부터 반영까지 순서는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P014.md",
+            "sourceHash": "sha256:0388d48551e96bb53638ebec9ce2a61157f03bfd206d2fc9d755cc82d3f19bff",
+            "start": 5,
+            "end": 5,
+            "quote": "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P015",
+    "category": "procedure",
+    "language": "direct",
+    "query": "다온15의 실행 전 확인부터 반영까지 순서는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P015.md",
+            "sourceHash": "sha256:0ef243ea6550435e75b2044a151eb0c07887388f3a0d03995dc8681050e037f2",
+            "start": 5,
+            "end": 5,
+            "quote": "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P016",
+    "category": "procedure",
+    "language": "direct",
+    "query": "다온16의 실행 전 확인부터 반영까지 순서는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P016.md",
+            "sourceHash": "sha256:2d74e5c7ad170bb5238f324e3c75551a1ebef90404efa70730614c166a69fa80",
+            "start": 5,
+            "end": 5,
+            "quote": "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P017",
+    "category": "procedure",
+    "language": "direct",
+    "query": "다온17의 실행 전 확인부터 반영까지 순서는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P017.md",
+            "sourceHash": "sha256:c1821cf82fbd4cbba8d3c1124ccd3231300be34259b9116865bdb743febae424",
+            "start": 5,
+            "end": 5,
+            "quote": "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P018",
+    "category": "procedure",
+    "language": "direct",
+    "query": "다온18의 실행 전 확인부터 반영까지 순서는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P018.md",
+            "sourceHash": "sha256:b41cc9c8bbecc07ec9c733f861f4ff504ba14099990181118bc04103ef8847dc",
+            "start": 5,
+            "end": 5,
+            "quote": "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P019",
+    "category": "procedure",
+    "language": "direct",
+    "query": "다온19의 실행 전 확인부터 반영까지 순서는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P019.md",
+            "sourceHash": "sha256:da156faa6c8a3a55bf8a111683f6a8c85d68cefdc73067be4fed2c413a9d8b91",
+            "start": 5,
+            "end": 5,
+            "quote": "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P020",
+    "category": "procedure",
+    "language": "direct",
+    "query": "다온20의 실행 전 확인부터 반영까지 순서는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P020.md",
+            "sourceHash": "sha256:adfd0a8213c338a4841ec0eca9b508e8f5b686f7de7e2f0c268f1e2706ca61b6",
+            "start": 5,
+            "end": 5,
+            "quote": "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "원본 해시 확인 → 사본 작성 → 사용자 승인 → 결과 반영 순서입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P021",
+    "category": "procedure",
+    "language": "korean-paraphrase",
+    "query": "다온21 작업 응답이 사라지면 무엇부터 해야 하고 기다리는 시간은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P021.md",
+            "sourceHash": "sha256:64d45156b207d300ba105a4efd543326715c97ebfecdd6e322febc297a59bb44",
+            "start": 5,
+            "end": 5,
+            "quote": "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 26초입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 26초입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P022",
+    "category": "procedure",
+    "language": "korean-paraphrase",
+    "query": "다온22 작업 응답이 사라지면 무엇부터 해야 하고 기다리는 시간은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P022.md",
+            "sourceHash": "sha256:6e83c7c048fb47faa4f7493a7c643734bdb5ad8d0bc9ea6d078bf5ed59151c61",
+            "start": 5,
+            "end": 5,
+            "quote": "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 27초입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 27초입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P023",
+    "category": "procedure",
+    "language": "korean-paraphrase",
+    "query": "다온23 작업 응답이 사라지면 무엇부터 해야 하고 기다리는 시간은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P023.md",
+            "sourceHash": "sha256:0fcae65d9a0499cf6e9b74fde4d5e9475d778dc4179dfc3c6b6e2cc528306b3f",
+            "start": 5,
+            "end": 5,
+            "quote": "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 28초입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 28초입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P024",
+    "category": "procedure",
+    "language": "korean-paraphrase",
+    "query": "다온24 작업 응답이 사라지면 무엇부터 해야 하고 기다리는 시간은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P024.md",
+            "sourceHash": "sha256:1b27ce00617027741caf22d3c444545a53e9a2dc4f1914fefbd2a43cb0457c52",
+            "start": 5,
+            "end": 5,
+            "quote": "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 29초입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 29초입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P025",
+    "category": "procedure",
+    "language": "korean-paraphrase",
+    "query": "다온25 작업 응답이 사라지면 무엇부터 해야 하고 기다리는 시간은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P025.md",
+            "sourceHash": "sha256:802b7a68897dbe5680e9e65981884a2700983cc2ea4715666659ec695c441be3",
+            "start": 5,
+            "end": 5,
+            "quote": "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 30초입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 30초입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P026",
+    "category": "procedure",
+    "language": "korean-paraphrase",
+    "query": "다온26 작업 응답이 사라지면 무엇부터 해야 하고 기다리는 시간은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P026.md",
+            "sourceHash": "sha256:8af05de7584046a4925b829490d0256a13faa4b3cb1a895e03a5db729be7852d",
+            "start": 5,
+            "end": 5,
+            "quote": "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 31초입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 31초입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P027",
+    "category": "procedure",
+    "language": "korean-paraphrase",
+    "query": "다온27 작업 응답이 사라지면 무엇부터 해야 하고 기다리는 시간은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P027.md",
+            "sourceHash": "sha256:82c94ae65ded7e454d2c9dd260c7e66f6815176e05c36a5443068b1738db9dda",
+            "start": 5,
+            "end": 5,
+            "quote": "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 32초입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 32초입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P028",
+    "category": "procedure",
+    "language": "korean-paraphrase",
+    "query": "다온28 작업 응답이 사라지면 무엇부터 해야 하고 기다리는 시간은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P028.md",
+            "sourceHash": "sha256:1d52bf1599c770c577c25649b87f3e42605d23e9b00b018f87efba2c149fe67b",
+            "start": 5,
+            "end": 5,
+            "quote": "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 33초입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 33초입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P029",
+    "category": "procedure",
+    "language": "korean-paraphrase",
+    "query": "다온29 작업 응답이 사라지면 무엇부터 해야 하고 기다리는 시간은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P029.md",
+            "sourceHash": "sha256:33e09f2fe41c400f37dc2450c58771c8890bc4e794b8e542ec7c8d7b567212c5",
+            "start": 5,
+            "end": 5,
+            "quote": "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 34초입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 34초입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P030",
+    "category": "procedure",
+    "language": "korean-paraphrase",
+    "query": "다온30 작업 응답이 사라지면 무엇부터 해야 하고 기다리는 시간은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P030.md",
+            "sourceHash": "sha256:13bc68caf4c67e06ab4de7e8d477ba644719ebc41ddaaf4de24f55ad02b31b72",
+            "start": 5,
+            "end": 5,
+            "quote": "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 35초입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 35초입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P031",
+    "category": "procedure",
+    "language": "mixed",
+    "query": "다온31 workflow의 timeout recovery와 retry wait를 문서 기준으로 설명해 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P031.md",
+            "sourceHash": "sha256:977ba401dc90be5d4aafbed7f0b678c2ca9706408877ebe2ca1416e2c454dd15",
+            "start": 5,
+            "end": 5,
+            "quote": "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 36초입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 36초입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P032",
+    "category": "procedure",
+    "language": "mixed",
+    "query": "다온32 workflow의 timeout recovery와 retry wait를 문서 기준으로 설명해 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P032.md",
+            "sourceHash": "sha256:f005e09be0c67e921b66d1773a9e30f7b901dedf25535ea60614eed2b6779784",
+            "start": 5,
+            "end": 5,
+            "quote": "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 37초입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 37초입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P033",
+    "category": "procedure",
+    "language": "mixed",
+    "query": "다온33 workflow의 timeout recovery와 retry wait를 문서 기준으로 설명해 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P033.md",
+            "sourceHash": "sha256:5402687c0b5870560220e06685bfda13410dae0276da6d4cc9bcb3dd4ea620ae",
+            "start": 5,
+            "end": 5,
+            "quote": "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 38초입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 38초입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P034",
+    "category": "procedure",
+    "language": "mixed",
+    "query": "다온34 workflow의 timeout recovery와 retry wait를 문서 기준으로 설명해 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P034.md",
+            "sourceHash": "sha256:faebb98675d360e781f97453e43b6687d181649e6df6ea3717ccd7d5b6f96534",
+            "start": 5,
+            "end": 5,
+            "quote": "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 39초입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 39초입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P035",
+    "category": "procedure",
+    "language": "mixed",
+    "query": "다온35 workflow의 timeout recovery와 retry wait를 문서 기준으로 설명해 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P035.md",
+            "sourceHash": "sha256:9cc0109a04cbdecc891f96f98be65b0f7608eb99cf8bfe95428241cf0487f487",
+            "start": 5,
+            "end": 5,
+            "quote": "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 40초입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 40초입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P036",
+    "category": "procedure",
+    "language": "mixed",
+    "query": "다온36 workflow의 timeout recovery와 retry wait를 문서 기준으로 설명해 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P036.md",
+            "sourceHash": "sha256:76fb4518d8b9361e19fd5ce95c2a32f43dca4d2390ae5aa64304ff67e1abf3bd",
+            "start": 5,
+            "end": 5,
+            "quote": "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 41초입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 41초입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P037",
+    "category": "procedure",
+    "language": "mixed",
+    "query": "다온37 workflow의 timeout recovery와 retry wait를 문서 기준으로 설명해 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P037.md",
+            "sourceHash": "sha256:eb127af70c5237633dcb0c3facf7b68a68459d611f2ed3d367c21f2a571565c2",
+            "start": 5,
+            "end": 5,
+            "quote": "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 42초입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 42초입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P038",
+    "category": "procedure",
+    "language": "mixed",
+    "query": "다온38 workflow의 timeout recovery와 retry wait를 문서 기준으로 설명해 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P038.md",
+            "sourceHash": "sha256:3f3f491f5874e11d4cb1e34130c20fae605dbada42510a114d8413100aea38ca",
+            "start": 5,
+            "end": 5,
+            "quote": "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 43초입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 43초입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P039",
+    "category": "procedure",
+    "language": "mixed",
+    "query": "다온39 workflow의 timeout recovery와 retry wait를 문서 기준으로 설명해 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P039.md",
+            "sourceHash": "sha256:fe1b09958d02fb703632fcce2bddad9ac374141a8e3bd649fed9ffd571bcebe4",
+            "start": 5,
+            "end": 5,
+            "quote": "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 44초입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 44초입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "P040",
+    "category": "procedure",
+    "language": "mixed",
+    "query": "다온40 workflow의 timeout recovery와 retry wait를 문서 기준으로 설명해 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/20-procedure-P040.md",
+            "sourceHash": "sha256:056d00088cc73650c87ff2ab15ab583550c0ea965f417b4eac6f31595e4e455d",
+            "start": 5,
+            "end": 5,
+            "quote": "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 45초입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "응답이 끊기면 결과를 재조회하고, 확인 전에는 재전송하지 않습니다. 재시도 대기는 45초입니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  }
+]

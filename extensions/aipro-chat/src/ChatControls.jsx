@@ -22,7 +22,7 @@ export function ModelPicker({id,data, loading, disabled, open, onOpen, onRefresh
   </div>;
 }
 
-export function ModelSelection({title='모델 선택', data, initialProvider, loading, disabled, onProviderSelect, onSelect, onRefresh, onLogin, onLogout, onCancelLogin, onClose, showProviderNames = false, providerLabels = PROVIDER_LABELS, embedded = false, autoRefresh = true, selectWhileLoading = false, onError, showActionLabels = false, embeddedLabel = '정리할 모델', manageConnections = true}) {
+export function ModelSelection({title='모델 선택', data, initialProvider, loading, disabled, onProviderSelect, onSelect, onRefresh, onLogin, onLogout, onCancelLogin, onClose, showProviderNames = false, providerLabels = PROVIDER_LABELS, embedded = false, autoRefresh = true, selectWhileLoading = false, onError, showActionLabels = false, embeddedLabel = '정리할 모델', manageConnections = true, automaticOption}) {
   const [provider, setProvider] = useState(initialProvider || data.activeProvider);
   const [query, setQuery] = useState(''), [saving, setSaving] = useState(false), [error, setError] = useState('');
   const rows = useRef(null), providerTabs = useRef(null), restoreTabFocus = useRef(false);
@@ -30,7 +30,7 @@ export function ModelSelection({title='모델 선택', data, initialProvider, lo
   const connected = connection.present && !connection.expired && !connection.rejected;
   const current = provider === data.activeProvider, pending = data.pending?.provider === provider;
   const catalog = data.catalogs?.[provider] || (current ? data.catalog : null), models = catalog?.models || [];
-  const selectedModel = data.selectedModels?.[provider] ?? data.settings.modelId;
+  const selectedModel = automaticOption?.selected?null:data.selectedModels?.[provider] ?? data.settings.modelId;
   const searchable = models.length > 0;
   const visible = models.filter(model => !searchable || `${model.displayName} ${model.name}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
   const blocked = saving || disabled || !!data.pending;
@@ -89,6 +89,10 @@ export function ModelSelection({title='모델 선택', data, initialProvider, lo
     try {if (await onSelect(name,provider)) {if(!embedded)onClose?.();} else setError('모델을 변경하지 못했습니다. 다시 선택하세요.');}
     finally {setSaving(false);}
   }
+  async function selectAutomatic(){
+    if(blocked)return;setSaving(true);setError('');
+    try{if(await automaticOption.onSelect()){if(!embedded)onClose?.();}else setError('모델을 변경하지 못했습니다. 다시 선택하세요.');}finally{setSaving(false);}
+  }
   async function connect() {
     setSaving(true); setError('');
     try {await onLogin(provider);}
@@ -110,7 +114,7 @@ export function ModelSelection({title='모델 선택', data, initialProvider, lo
     </div>;
   const content=<>
     <div className="provider-toolbar">
-    <AgentTabs provider containerRef={providerTabs} items={Object.entries(providerLabels).map(([key, label]) => ({key, label: <span className={`provider-tab-icon${showProviderNames ? ' with-name' : ''}`} title={label}><ProviderIcon provider={key}/><span className={showProviderNames ? 'provider-tab-name' : 'visually-hidden'}>{label}</span></span>}))} active={provider} onChange={changeProvider} label="모델 제공자" idPrefix="provider-tab" panelId="provider-model-panel" disabled={blocked}/>
+    <AgentTabs provider measureAfterLayout={embedded} containerRef={providerTabs} items={Object.entries(providerLabels).map(([key, label]) => ({key, label: <span className={`provider-tab-icon${showProviderNames ? ' with-name' : ''}`} title={label}><ProviderIcon provider={key}/><span className={showProviderNames ? 'provider-tab-name' : 'visually-hidden'}>{label}</span></span>}))} active={provider} onChange={changeProvider} label="모델 제공자" idPrefix="provider-tab" panelId="provider-model-panel" disabled={blocked}/>
     </div>
     <div key={provider} className="provider-model-panel" role="tabpanel" id="provider-model-panel" aria-labelledby={`provider-tab-${provider}`}>
       {problem && !onError && <CxNotice tone="danger">{problem}</CxNotice>}
@@ -124,6 +128,7 @@ export function ModelSelection({title='모델 선택', data, initialProvider, lo
           e.preventDefault();
           buttons[e.key === 'Home' ? 0 : e.key === 'End' ? buttons.length - 1 : (index + (e.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length]?.focus();
         }}>
+          {automaticOption&&<CxButton className="model-option" aria-pressed={automaticOption.selected===true} aria-label={automaticOption.label} disabled={blocked} onClick={selectAutomatic}><span className="model-option-text">{automaticOption.label}</span>{automaticOption.selected&&<Icon name="check" size={18}/>}</CxButton>}
           {visible.map(model => <CxButton key={model.name} className="model-option" aria-pressed={model.name === selectedModel} aria-label={model.displayName} title={`${model.displayName}${provider === 'fabrix' ? '' : `\n${model.name}`}\n컨텍스트 ${formatTokens(model.contextLength)} 토큰\n최대 입력 ${formatTokens(model.maxInputTokens)} 토큰`} disabled={blocked || (loading && !selectWhileLoading)} onClick={() => select(model.name)}>
             {showActionLabels&&<Icon name="layers" size={18}/>}<span className="model-option-text">{model.displayName}</span>
             {model.name === selectedModel && <Icon name="check" size={18}/>}

@@ -1,3 +1,4 @@
+import {importantFiles,coverageMap,coveragePlanningContext,coverageReport} from './wiki-coverage.mjs';
 import {wikiGeneration,wikiGenerationBinding,assertWikiGenerationCurrent} from './wiki-generation.mjs';
 import {folderPlan,planWikiRounds,inWikiFolders} from './wiki-folder-plan.mjs';
 import {documentWindow,DOCUMENT_MAX_TEXT,DOCUMENT_MAX_BYTES} from './document-window.mjs';
@@ -16,7 +17,7 @@ import {modelTransport} from './recovery.mjs';
 import {inspectCommitHistory} from './commit-history.mjs';
 import {DESKTOP_FEATURES} from './beta-features.mjs';
 import {mailImagePreview} from './mail-image.mjs';
-import {wikiFiles,hasWikiPages,countWikiPages,listWikiSourceFiles,readWikiSource,writeWikiSnapshot,checkpointSnapshotWiki,wikiSourceHead,prepareWikiHistory,removeWikiHistory} from './wiki-snapshot.mjs';
+import {wikiSources,wikiFiles,hasWikiPages,countWikiPages,listWikiSourceFiles,readWikiSource,writeWikiSnapshot,checkpointSnapshotWiki,wikiSourceHead,prepareWikiHistory,removeWikiHistory} from './wiki-snapshot.mjs';
 import {wikiInitializationError} from './wiki-initialization-error.mjs';
 import {snapshotFolderHistory} from './wiki-folder-history.mjs';
 import {wikiInitCheckpoint,markWikiInitCheckpointPreparing,markWikiInitCheckpointReady,markWikiInitGenerated,discardWikiInitCheckpoint} from './wiki-init-checkpoint.mjs';
@@ -71,6 +72,14 @@ export function installDesktopFeatures(Service){
     finally{if(proposal)this.newFileBusy=false;}
   };
   Service.prototype.commitHistory=function(args={}){return inspectCommitHistory(this,args);};
+  Service.prototype.wikiCoverage=async function({projectId}={}){
+    this.ready();const owner=this.store,root=this.root;if(projectId&&projectId!==this.projectId)fail('project_changed');
+    const check=()=>{if(this.store!==owner||this.root!==root)fail('project_changed');};
+    const sources=await wikiSources(root),plan=await folderPlan(root,sources);plan.pinned=owner.get('setting:wiki-pinned-sources')||[];
+    const important=await importantFiles(root,plan),plannedPages=Object.assign(Object.create(null),owner.get('wiki-coverage-plan')||{});
+    for(const update of owner.list('wiki-update:').filter(v=>v.state==='applied').sort((a,b)=>a.finishedAt.localeCompare(b.finishedAt)))Object.assign(plannedPages,update.coveragePlan||{});
+    const coverage=await coverageMap(root,{important,plannedPages,check});check();return {coverage,report:owner.get('wiki-init')?.report||null};
+  };
   Service.prototype.wikiInitialization=function({action='status',confirmed=false,folders,jobId}={}){
     this.ready();
     if(action==='scope'){
@@ -137,7 +146,7 @@ export function installDesktopFeatures(Service){
       const candidates=files.paths.filter(rel=>!rel.startsWith('openwiki/')&&!sourceIgnore.ignores(rel));job.stage='reading';job.stageStartedAt=new Date().toISOString();job.total=candidates.length;job.completed=0;persist();
       for(const rel of candidates){check();try{const {content,...file}=await readWikiSource(root,rel);sources.push({...file,bytes:Buffer.byteLength(content),sourceRoot:root});}catch(error){if(!['file_too_large','binary_file','file_encoding'].includes(error.message))throw error;sourceExcluded[{file_too_large:'large',binary_file:'binary',file_encoding:'encoding'}[error.message]]++;}job.completed++;job.percent=Math.floor(100*job.completed/Math.max(1,job.total));persist();}
       if(!sources.length)fail('wiki_no_sources');
-      const plan=await folderPlan(root,sources,{signal,excluded:{...files.excluded,...sourceExcluded}});check();
+      const plan=await folderPlan(root,sources,{signal,excluded:{...files.excluded,...sourceExcluded}});plan.pinned=store.get('setting:wiki-pinned-sources')||[];const important=await importantFiles(root,plan);check();
       const scopeIdentity=hash(JSON.stringify([sourceHead,sources.map(file=>[file.path,file.hash]).sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0)]));
       let scopeJournal=store.get('wiki-init-scope');
       if(scopeJournal?.identity!==scopeIdentity)scopeJournal=null;
@@ -146,7 +155,7 @@ export function installDesktopFeatures(Service){
         job.stage='selecting_scope';job.percent=null;job.scopePlan={total:plan.total,folders:plan.folders.map(({path,files,bytes,score})=>({path,files,bytes,score})),selected:rounds[0].folders};persist();
         rounds=await new Promise((resolve,reject)=>{const selection={owner:store,jobId:job.id,plan,resolve};this.wikiScopeSelection=selection;const abort=()=>{if(this.wikiScopeSelection===selection)this.wikiScopeSelection=null;reject(signal.reason||Error('cancelled'));};signal.addEventListener('abort',abort,{once:true});selection.resolve=value=>{signal.removeEventListener('abort',abort);resolve(value);};if(signal.aborted)abort();});check();delete job.scopePlan;
       }
-      scopeJournal||={identity:scopeIdentity,rounds,done:0};
+      scopeJournal||={identity:scopeIdentity,rounds,done:0,startedAt:job.startedAt};
       job.scope={mode:rounds.length>1?'folders':'all',folders:rounds[0].folders,rounds:{done:scopeJournal.done,total:rounds.length}};
       const admitted=index=>sources.filter(file=>inWikiFolders(file.path,rounds.slice(0,index+1).flatMap(row=>row.folders)));
       job.stage='snapshot_git';job.stageStartedAt=new Date().toISOString();job.percent=null;job.total=0;job.completed=0;persist();
@@ -170,7 +179,7 @@ export function installDesktopFeatures(Service){
       for(let round=scopeJournal.done;round<rounds.length;round++){
       check();if(round>0){job.stage='snapshot';job.stageStartedAt=new Date().toISOString();job.percent=null;persist();markWikiInitCheckpointPreparing(store,temporary);if(sourceHead)await writeWikiSnapshot(temporary,admitted(round),{...preparation,incremental:true});else await snapshotFolderHistory(store.directory,admitted(round),temporary,preparation);check();await markWikiInitCheckpointReady(store,temporary,preparation);}
       delete job.gitStep;job.stage='planning';job.stageStartedAt=new Date().toISOString();job.percent=null;job.total=0;job.completed=0;job.scope.folders=rounds[round].folders;job.scope.rounds.done=round;persist();
-      const updateResult=await updater({root:temporary,mode:rounds[round].mode,force:round>0,language:'ko',signal,updateId:job.id,generationBinding:status,scope:{folders:rounds[round].folders,round:round+1,total:rounds.length},repositoryPlan:{plan,folders:rounds[round].folders},planningContext:'Document the selected folders in this round: '+JSON.stringify(rounds[round].folders)+'. Preserve completed pages and their evidence.',onEvent:event=>{check();if(event.type==='generation_settings'){job.generation={...job.generation,...event.applied};persist(true);return;}if(event.type==='durability'){job.pageStates=event.pages;job.heartbeatAt=event.heartbeatAt;job.deadlineAt=event.deadlineAt;job.partial=event.partial;job.pageRevision=(job.pageRevision||0)+1;persist();return;}if(event.type==='model_error'){job.lastModelError=event.code;persist();return;}if(event.type==='model_wait'){job.modelWaiting=event.waiting;persist();return;}if(event.type==='model_retry'){job.modelRetries=(job.modelRetries||0)+1;persist();return;}job.modelWaiting=false;if(job.stage!==event.stage)job.stageStartedAt=new Date().toISOString();job.stage=event.stage;if(['generating','reviewing'].includes(event.stage)&&event.total>0){job.total=event.total;job.completed=Math.max(0,Math.min(event.total,Number.isSafeInteger(event.completed)?event.completed:0));job.percent=Math.floor(100*job.completed/job.total);}else{job.percent=null;job.completed=0;job.total=0;}persist();}});
+      const updateResult=await updater({root:temporary,mode:rounds[round].mode,force:round>0,language:'ko',signal,updateId:job.id,generationBinding:status,scope:{folders:rounds[round].folders,round:round+1,total:rounds.length},repositoryPlan:{plan,folders:rounds[round].folders},planningContext:rounds[round].coverageFiles?coveragePlanningContext(rounds[round].coverageFiles):'Document the selected folders in this round: '+JSON.stringify(rounds[round].folders)+'. Preserve completed pages and their evidence.',onModelCall:()=>{check();scopeJournal={...scopeJournal,modelCalls:(scopeJournal.modelCalls||0)+1};store.set('wiki-init-scope',scopeJournal);},onEvent:event=>{check();if(event.type==='generation_settings'){job.generation={...job.generation,...event.applied};persist(true);return;}if(event.type==='durability'){job.pageStates=event.pages;job.heartbeatAt=event.heartbeatAt;job.deadlineAt=event.deadlineAt;job.partial=event.partial;job.pageRevision=(job.pageRevision||0)+1;persist();return;}if(event.type==='model_error'){job.lastModelError=event.code;persist();return;}if(event.type==='model_wait'){job.modelWaiting=event.waiting;persist();return;}if(event.type==='model_retry'){job.modelRetries=(job.modelRetries||0)+1;persist();return;}job.modelWaiting=false;if(job.stage!==event.stage)job.stageStartedAt=new Date().toISOString();job.stage=event.stage;if(['generating','reviewing'].includes(event.stage)&&event.total>0){job.total=event.total;job.completed=Math.max(0,Math.min(event.total,Number.isSafeInteger(event.completed)?event.completed:0));job.percent=Math.floor(100*job.completed/job.total);}else{job.percent=null;job.completed=0;job.total=0;}persist();}});
       if(updateResult?.partial){
         check();const done=Object.entries(job.pageStates||{}).filter(([,page])=>page.state==='done').map(([rel])=>rel.replace(/^\/?openwiki\//,''));
         const preparedRoot=await realpath(temporary),paths=[];await verifyWikiPages(preparedRoot,done,{check});for(const rel of done)paths.push('.claims/'+rel.replace(/\.md$/,'.json'),rel);
@@ -178,10 +187,16 @@ export function installDesktopFeatures(Service){
         await publishWikiOutput({root,copy:temporary,paths,published:job.published,check,save:()=>persist(true),onFile:(completed,target,value,created)=>{if(created)published.push({target,hash:value});}});
         Object.assign(job,{state:'partial',partial:true,percent:null,canResume:true,pages:done.length,sourceFiles:sources.length,finishedAt:new Date().toISOString()});persist(true);return;
       }
-      check();scopeJournal={...scopeJournal,done:round+1};store.set('wiki-init-scope',scopeJournal);job.scope.rounds.done=round+1;persist();
+      check();scopeJournal={...scopeJournal,done:round+1};
+      if(round===rounds.length-1&&!scopeJournal.coverageChecked){
+        const audit=await coverageMap(temporary,{important,nativeRun:true,check});check();scopeJournal={...scopeJournal,coverageChecked:true};
+        if(audit.uncovered.length){rounds=[...rounds,{mode:'update',folders:plan.folders.map(f=>f.path),coverageFiles:audit.uncovered}];scopeJournal={...scopeJournal,rounds};job.scope.rounds.total=rounds.length;}
+      }
+      store.set('wiki-init-scope',scopeJournal);job.scope.rounds.done=round+1;persist();
       }
       check();markWikiInitGenerated(store,temporary);
       }
+      const audit=await coverageMap(temporary,{important,nativeRun:true,check});check();store.set('wiki-coverage-plan',audit.planLinks);job.report=coverageReport(audit,{skipped:sourceExcluded,modelCalls:scopeJournal.modelCalls||0,durationMs:Math.max(0,Date.now()-Date.parse(scopeJournal.startedAt||job.startedAt)),rounds:scopeJournal.done});persist(true);
       // Sources that moved while the model worked do not discard its work (user decision 2026-10-12): the pages are
       // published as written for the snapshot, the checkpoint names that snapshot, and the update card then shows the
       // files that changed since. The job carries the count.

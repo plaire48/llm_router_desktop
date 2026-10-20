@@ -1,0 +1,1142 @@
+[
+  {
+    "id": "F001",
+    "category": "fact",
+    "language": "direct",
+    "query": "가온01 자료의 보관 기한은 며칠인가요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F001.md",
+            "sourceHash": "sha256:1a859b425e3bc7bd4107e9aa25c15500339e17d0876e7c4115c4e759d2ba5a23",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 11일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "11일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "F002",
+    "category": "fact",
+    "language": "direct",
+    "query": "가온02 자료의 보관 기한은 며칠인가요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F002.md",
+            "sourceHash": "sha256:df2ebbcc77380a3e25e5132c09cd3858131889c3b4b94e4b6cbc50a6f4a4c2ea",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 12일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "12일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "F003",
+    "category": "fact",
+    "language": "direct",
+    "query": "가온03 자료의 보관 기한은 며칠인가요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F003.md",
+            "sourceHash": "sha256:7f8266f723c5940012cb812d2c545610c98a1e478d70d09b1849e5d1ca60b813",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 13일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "13일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "F004",
+    "category": "fact",
+    "language": "direct",
+    "query": "가온04 자료의 보관 기한은 며칠인가요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F004.md",
+            "sourceHash": "sha256:441d3693e586086cf5da0b98f14fb63656a8ecfb9e354e46a7024f73e35c5d7e",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 14일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "14일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "F005",
+    "category": "fact",
+    "language": "direct",
+    "query": "가온05 자료의 보관 기한은 며칠인가요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F005.md",
+            "sourceHash": "sha256:8bca0f4d184ea36aceebb1a6fd12f1a3ef2bad012deadc556523b151a1d8f60e",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 15일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "15일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "F006",
+    "category": "fact",
+    "language": "direct",
+    "query": "가온06 자료의 보관 기한은 며칠인가요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F006.md",
+            "sourceHash": "sha256:ca8a58919e0c01797ada6fbca89dda026d6ab2be9852739760b3a0b1f3117a99",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 16일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "16일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "F007",
+    "category": "fact",
+    "language": "direct",
+    "query": "가온07 자료의 보관 기한은 며칠인가요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F007.md",
+            "sourceHash": "sha256:8482d8016def83169bd42cad2de54db79ba3eead6e5d45aedb619a167a56deea",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 17일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "17일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "F008",
+    "category": "fact",
+    "language": "direct",
+    "query": "가온08 자료의 보관 기한은 며칠인가요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F008.md",
+            "sourceHash": "sha256:68a7e025e660a5b22b476b48c363b14a126fbba9f8b8245c80d2d30724141852",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 18일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "18일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "F009",
+    "category": "fact",
+    "language": "direct",
+    "query": "가온09 자료의 보관 기한은 며칠인가요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F009.md",
+            "sourceHash": "sha256:8d019deaad56045d968e922f680fcf6e6b0df5775e4987f85423822d62ae80b0",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 19일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "19일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "F010",
+    "category": "fact",
+    "language": "direct",
+    "query": "가온10 자료의 보관 기한은 며칠인가요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F010.md",
+            "sourceHash": "sha256:25973d104f86ce8c9e2edcec06a9a92c6d5bcff1f3f78e1e51081d1aab5d1981",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 20일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "20일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "F011",
+    "category": "fact",
+    "language": "direct",
+    "query": "가온11 자료의 보관 기한은 며칠인가요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F011.md",
+            "sourceHash": "sha256:a55cc68cff176a00c433e66fe1c665f38b177c34346cc3dd1dfb180a1a1ea6f7",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 21일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "21일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "F012",
+    "category": "fact",
+    "language": "direct",
+    "query": "가온12 자료의 보관 기한은 며칠인가요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F012.md",
+            "sourceHash": "sha256:c0d608a94ca3b89bf733d00ff0e78fc75c8f0df19a710383a082719ef02a186b",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 22일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "22일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "F013",
+    "category": "fact",
+    "language": "direct",
+    "query": "가온13 자료의 보관 기한은 며칠인가요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F013.md",
+            "sourceHash": "sha256:27c979f3a4b7c422ec5ad7f21178cc110ed39b65bba4741afacd6c33633ca263",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 23일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "23일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "F014",
+    "category": "fact",
+    "language": "direct",
+    "query": "가온14 자료의 보관 기한은 며칠인가요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F014.md",
+            "sourceHash": "sha256:2f36f1e55017c0f62afb301c8e730f9feb6dc30e2983ce84f6e49cffb979d092",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 24일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "24일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "F015",
+    "category": "fact",
+    "language": "direct",
+    "query": "가온15 자료의 보관 기한은 며칠인가요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F015.md",
+            "sourceHash": "sha256:a8cf9bc22cbc9c9bfb41bd1f6e2210738b8b7134153729cd9e86906d46ce8a53",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 25일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "25일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "F016",
+    "category": "fact",
+    "language": "direct",
+    "query": "가온16 자료의 보관 기한은 며칠인가요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F016.md",
+            "sourceHash": "sha256:122bd6644cba3940e6926b6a846b20d8802ee93dfb0555351a1d8fffa029b6be",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 26일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "26일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "F017",
+    "category": "fact",
+    "language": "direct",
+    "query": "가온17 자료의 보관 기한은 며칠인가요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F017.md",
+            "sourceHash": "sha256:2292ac493d9f4a8452ab3bba54f92c0cbadd7fde75ce34bc2043b5ee385f25cd",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 27일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "27일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "F018",
+    "category": "fact",
+    "language": "direct",
+    "query": "가온18 자료의 보관 기한은 며칠인가요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F018.md",
+            "sourceHash": "sha256:41c48f14f1249c6855b83abb6a2d913aaf091fd0e31d321fa1e61328ff6fe8cd",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 28일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "28일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "F019",
+    "category": "fact",
+    "language": "direct",
+    "query": "가온19 자료의 보관 기한은 며칠인가요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F019.md",
+            "sourceHash": "sha256:dd43b4b35b8c1e560b638cee1d71d21ad5fe8a9cbd2f370f6a9bf7818c4c76d9",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 29일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "29일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "F020",
+    "category": "fact",
+    "language": "direct",
+    "query": "가온20 자료의 보관 기한은 며칠인가요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F020.md",
+            "sourceHash": "sha256:9c2c3e802e47bab94b6d966a27a5bd8a34b02caad1bf72b717ac79028aae76ab",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 30일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "30일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401"
+    ]
+  },
+  {
+    "id": "F021",
+    "category": "fact",
+    "language": "korean-paraphrase",
+    "query": "가온21 자료 계약에 적힌 저장 기간과 단위를 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F021.md",
+            "sourceHash": "sha256:77622f808af47486c4ccd464392261ded300f7b7af83e40fe76d1a6837d38275",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 31일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "31일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401",
+      "stale-evidence"
+    ]
+  },
+  {
+    "id": "F022",
+    "category": "fact",
+    "language": "korean-paraphrase",
+    "query": "가온22 자료 계약에 적힌 저장 기간과 단위를 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F022.md",
+            "sourceHash": "sha256:41d9e49960397d363a6aef5f8f8e859521f32acbe42319823a2863acae97162b",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 32일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "32일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401",
+      "stale-evidence"
+    ]
+  },
+  {
+    "id": "F023",
+    "category": "fact",
+    "language": "korean-paraphrase",
+    "query": "가온23 자료 계약에 적힌 저장 기간과 단위를 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F023.md",
+            "sourceHash": "sha256:c2e33907d6649d170ce466946c7a4741b11342e28d669220e740242cb13a5350",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 33일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "33일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401",
+      "stale-evidence"
+    ]
+  },
+  {
+    "id": "F024",
+    "category": "fact",
+    "language": "korean-paraphrase",
+    "query": "가온24 자료 계약에 적힌 저장 기간과 단위를 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F024.md",
+            "sourceHash": "sha256:0b97de63f3e388c743f06a8ee45f20e75877ea51d2813657338ffe7ccc58599d",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 34일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "34일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401",
+      "stale-evidence"
+    ]
+  },
+  {
+    "id": "F025",
+    "category": "fact",
+    "language": "korean-paraphrase",
+    "query": "가온25 자료 계약에 적힌 저장 기간과 단위를 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F025.md",
+            "sourceHash": "sha256:185004604fce929aac8c37d7ff96a284a64fccb5c3f5d34a46d9d614e7539355",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 35일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "35일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401",
+      "stale-evidence"
+    ]
+  },
+  {
+    "id": "F026",
+    "category": "fact",
+    "language": "korean-paraphrase",
+    "query": "가온26 자료 계약에 적힌 저장 기간과 단위를 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F026.md",
+            "sourceHash": "sha256:3224dee85585c0ccea899d044d9dad152d0b110b646968ac67ecae63c86fbd0e",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 36일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "36일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401",
+      "stale-evidence"
+    ]
+  },
+  {
+    "id": "F027",
+    "category": "fact",
+    "language": "korean-paraphrase",
+    "query": "가온27 자료 계약에 적힌 저장 기간과 단위를 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F027.md",
+            "sourceHash": "sha256:5ea58750f3f278933c4133e792f43493631d375c0187695261f79e6b3252ba8e",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 37일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "37일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401",
+      "stale-evidence"
+    ]
+  },
+  {
+    "id": "F028",
+    "category": "fact",
+    "language": "korean-paraphrase",
+    "query": "가온28 자료 계약에 적힌 저장 기간과 단위를 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F028.md",
+            "sourceHash": "sha256:5d8448ffc94868997dc6606f70d51294d7e51a97d432bb1a216957a000d98bbe",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 38일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "38일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401",
+      "stale-evidence"
+    ]
+  },
+  {
+    "id": "F029",
+    "category": "fact",
+    "language": "korean-paraphrase",
+    "query": "가온29 자료 계약에 적힌 저장 기간과 단위를 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F029.md",
+            "sourceHash": "sha256:0ee9e57e1d2619cf763cfc108c7a606aaf9dd89cf8d0043a5b61d717dccb6157",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 39일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "39일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401",
+      "stale-evidence"
+    ]
+  },
+  {
+    "id": "F030",
+    "category": "fact",
+    "language": "korean-paraphrase",
+    "query": "가온30 자료 계약에 적힌 저장 기간과 단위를 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F030.md",
+            "sourceHash": "sha256:f5c92f5b7950c2cbf5f17cf79936919b6d99d4789b7a726529843316743baf07",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 40일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "40일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401",
+      "stale-evidence"
+    ]
+  },
+  {
+    "id": "F031",
+    "category": "fact",
+    "language": "mixed",
+    "query": "가온31 retention days는 얼마로 문서화되어 있나요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F031.md",
+            "sourceHash": "sha256:0e9a3b089d8a29be93294d6cc5d9c6055f0d2e3a0b718c87dcbca0e62432e268",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 41일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "41일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401",
+      "stale-evidence"
+    ]
+  },
+  {
+    "id": "F032",
+    "category": "fact",
+    "language": "mixed",
+    "query": "가온32 retention days는 얼마로 문서화되어 있나요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F032.md",
+            "sourceHash": "sha256:58efca72b8c5502f54f9f6fee4fac5900a26ddb8f13d475f0f65c84c8b318493",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 42일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "42일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401",
+      "stale-evidence"
+    ]
+  },
+  {
+    "id": "F033",
+    "category": "fact",
+    "language": "mixed",
+    "query": "가온33 retention days는 얼마로 문서화되어 있나요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F033.md",
+            "sourceHash": "sha256:6dbf79c80977009fe51f1334152d6fc67fc16ad382fe489950a2ae5f5ea8779e",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 43일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "43일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401",
+      "stale-evidence"
+    ]
+  },
+  {
+    "id": "F034",
+    "category": "fact",
+    "language": "mixed",
+    "query": "가온34 retention days는 얼마로 문서화되어 있나요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F034.md",
+            "sourceHash": "sha256:361bc9e8f162cfb589e03c72a6fb4e3391caf0260fc2f6c34a9bb1a6f498b127",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 44일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "44일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401",
+      "stale-evidence"
+    ]
+  },
+  {
+    "id": "F035",
+    "category": "fact",
+    "language": "mixed",
+    "query": "가온35 retention days는 얼마로 문서화되어 있나요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F035.md",
+            "sourceHash": "sha256:837963b5b1b413664c062077a0eea8efa73e469b0bd438bd4d12824a6e12e9d7",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 45일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "45일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401",
+      "stale-evidence"
+    ]
+  },
+  {
+    "id": "F036",
+    "category": "fact",
+    "language": "mixed",
+    "query": "가온36 retention days는 얼마로 문서화되어 있나요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F036.md",
+            "sourceHash": "sha256:44d2c007f6a7c43a1f2f9445f079d601e2ded60c9d5ef09120ef07d8865ad659",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 46일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "46일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401",
+      "stale-evidence"
+    ]
+  },
+  {
+    "id": "F037",
+    "category": "fact",
+    "language": "mixed",
+    "query": "가온37 retention days는 얼마로 문서화되어 있나요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F037.md",
+            "sourceHash": "sha256:f1b792f07cd159fa72d57b5a3d4883c97d61f6ba9836a661144f2f788aa07ebb",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 47일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "47일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401",
+      "stale-evidence"
+    ]
+  },
+  {
+    "id": "F038",
+    "category": "fact",
+    "language": "mixed",
+    "query": "가온38 retention days는 얼마로 문서화되어 있나요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F038.md",
+            "sourceHash": "sha256:5819a7865acad72ae83f3f61f1d33286c662744bc7fa5655115d92368d2a5517",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 48일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "48일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401",
+      "stale-evidence"
+    ]
+  },
+  {
+    "id": "F039",
+    "category": "fact",
+    "language": "mixed",
+    "query": "가온39 retention days는 얼마로 문서화되어 있나요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F039.md",
+            "sourceHash": "sha256:28f83264d6c854c6e56b32377b02d0f5ad1f7369a46ea2b70b1f0ce93aa6502c",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 49일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "49일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401",
+      "stale-evidence"
+    ]
+  },
+  {
+    "id": "F040",
+    "category": "fact",
+    "language": "mixed",
+    "query": "가온40 retention days는 얼마로 문서화되어 있나요?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/10-fact-F040.md",
+            "sourceHash": "sha256:c431c1078c8a7d5ec2d6f707f54464f8a0d4d79c21e148d0156bf095771b44d5",
+            "start": 5,
+            "end": 5,
+            "quote": "보관 기한은 50일입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "50일"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "after-401",
+      "stale-evidence"
+    ]
+  }
+]

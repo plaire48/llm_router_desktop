@@ -32,13 +32,14 @@ test('more than 20,000 sources survive folder/Git enumeration, Wiki generation a
   assert(!sources.some(file=>file.path==='ignored.txt'));
   service=new ProjectService({storageRoot:path.join(temp,'state')});await service.open(root,{initializeWiki:false});
   service.wikiInitEnabled=true;service.providers={status:()=>({connected:true,provider:'fixture',model:'fixture'}),dispose(){}};
-  service.wikiInitializer=async({root:copy})=>{
+  service.wikiInitializer=async({root:copy,repositoryPlan})=>{
     assert.equal(await readFile(path.join(copy,'src','마지막 파일.txt'),'utf8'),'last source\n');
     assert.equal(await readFile(path.join(copy,'src','20024.txt'),'utf8'),'source 20024\n');
     await assert.rejects(readFile(path.join(copy,'.env')),{code:'ENOENT'});
     await assert.rejects(readFile(path.join(copy,'ignored.txt')),{code:'ENOENT'});
     await mkdir(path.join(copy,'openwiki'));await writeFile(path.join(copy,'openwiki','home.md'),'# Large project\n');
     await writeFile(path.join(copy,'openwiki','.last-update.json'),JSON.stringify({status:'complete'}));
+    await writeFile(path.join(copy,'openwiki/.run.json'),JSON.stringify({plan:{pages:[{path:'/openwiki/home.md',status:'complete',seedPaths:repositoryPlan.plan.representatives}]}}));
   };
   service.store.set('wiki-init',null);await service.initializeWiki();await service.wikiInitPromise;
   assert.equal(service.wikiInitialization().state,'completed',JSON.stringify(service.wikiInitialization()));

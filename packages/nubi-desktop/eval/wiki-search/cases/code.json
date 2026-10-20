@@ -1,0 +1,1182 @@
+[
+  {
+    "id": "C001",
+    "category": "code",
+    "language": "direct",
+    "query": "라온01의 실행 함수 구현 경로와 검사 파일은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C001.md",
+            "sourceHash": "sha256:d98e72d8b8d0b9e3e006b86e964b0cf378b9fab8f4c62dde527c38274752f18c",
+            "start": 8,
+            "end": 8,
+            "quote": "실행 구현은 src/modules/C001/run.mjs:1의 run이고 검사는 tests/modules/C001/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C001/run.mjs",
+      "tests/modules/C001/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C002",
+    "category": "code",
+    "language": "direct",
+    "query": "라온02의 실행 함수 구현 경로와 검사 파일은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C002.md",
+            "sourceHash": "sha256:77c0019b8cc0caf4c98340cd2cfd2326797c3592bfa158d833e2a91c271a023a",
+            "start": 8,
+            "end": 8,
+            "quote": "실행 구현은 src/modules/C002/run.mjs:1의 run이고 검사는 tests/modules/C002/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C002/run.mjs",
+      "tests/modules/C002/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C003",
+    "category": "code",
+    "language": "direct",
+    "query": "라온03의 실행 함수 구현 경로와 검사 파일은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C003.md",
+            "sourceHash": "sha256:94ff6883ceedd5ecc0bfa5cf45685234830f2ffec594e02bc79b20c7aac0220a",
+            "start": 8,
+            "end": 8,
+            "quote": "실행 구현은 src/modules/C003/run.mjs:1의 run이고 검사는 tests/modules/C003/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C003/run.mjs",
+      "tests/modules/C003/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C004",
+    "category": "code",
+    "language": "direct",
+    "query": "라온04의 실행 함수 구현 경로와 검사 파일은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C004.md",
+            "sourceHash": "sha256:788eb9625fe22fd4701fb9f01c144594330e3f03f3379ad4310754fcbf08afb5",
+            "start": 8,
+            "end": 8,
+            "quote": "실행 구현은 src/modules/C004/run.mjs:1의 run이고 검사는 tests/modules/C004/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C004/run.mjs",
+      "tests/modules/C004/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C005",
+    "category": "code",
+    "language": "direct",
+    "query": "라온05의 실행 함수 구현 경로와 검사 파일은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C005.md",
+            "sourceHash": "sha256:1fa5c31f89185cd19b232a75643bd8c05cd481a5cffab2b32abc86b51e7bc223",
+            "start": 8,
+            "end": 8,
+            "quote": "실행 구현은 src/modules/C005/run.mjs:1의 run이고 검사는 tests/modules/C005/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C005/run.mjs",
+      "tests/modules/C005/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C006",
+    "category": "code",
+    "language": "direct",
+    "query": "라온06의 실행 함수 구현 경로와 검사 파일은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C006.md",
+            "sourceHash": "sha256:2315fd13ae20112586750c986e93197dc7f9cc56d640a85abbffb56be6b582e3",
+            "start": 8,
+            "end": 8,
+            "quote": "실행 구현은 src/modules/C006/run.mjs:1의 run이고 검사는 tests/modules/C006/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C006/run.mjs",
+      "tests/modules/C006/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C007",
+    "category": "code",
+    "language": "direct",
+    "query": "라온07의 실행 함수 구현 경로와 검사 파일은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C007.md",
+            "sourceHash": "sha256:41d8851ac1c9774a27f1db15df6b84be58d0cb084e49bf7c017feda570482a82",
+            "start": 8,
+            "end": 8,
+            "quote": "실행 구현은 src/modules/C007/run.mjs:1의 run이고 검사는 tests/modules/C007/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C007/run.mjs",
+      "tests/modules/C007/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C008",
+    "category": "code",
+    "language": "direct",
+    "query": "라온08의 실행 함수 구현 경로와 검사 파일은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C008.md",
+            "sourceHash": "sha256:ccda09ea7f1330b76227addd4d3999f5a203beb21f97318a7ea8343979f255ec",
+            "start": 8,
+            "end": 8,
+            "quote": "실행 구현은 src/modules/C008/run.mjs:1의 run이고 검사는 tests/modules/C008/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C008/run.mjs",
+      "tests/modules/C008/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C009",
+    "category": "code",
+    "language": "direct",
+    "query": "라온09의 실행 함수 구현 경로와 검사 파일은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C009.md",
+            "sourceHash": "sha256:04bf7dccf78c1e5d18bede848c1586a72976125198ffa4f636ac23c5772b9b39",
+            "start": 8,
+            "end": 8,
+            "quote": "실행 구현은 src/modules/C009/run.mjs:1의 run이고 검사는 tests/modules/C009/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C009/run.mjs",
+      "tests/modules/C009/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C010",
+    "category": "code",
+    "language": "direct",
+    "query": "라온10의 실행 함수 구현 경로와 검사 파일은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C010.md",
+            "sourceHash": "sha256:3d95fa94698e675cf7e9fc46db48132d0cfc6250535397f9adf9d3585ae2ca34",
+            "start": 8,
+            "end": 8,
+            "quote": "실행 구현은 src/modules/C010/run.mjs:1의 run이고 검사는 tests/modules/C010/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C010/run.mjs",
+      "tests/modules/C010/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C011",
+    "category": "code",
+    "language": "direct",
+    "query": "라온11의 실행 함수 구현 경로와 검사 파일은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C011.md",
+            "sourceHash": "sha256:617d60de1d704add0e34f0ec8414c1ba0f76805057950a575aa10fb9a19d49a5",
+            "start": 8,
+            "end": 8,
+            "quote": "실행 구현은 src/modules/C011/run.mjs:1의 run이고 검사는 tests/modules/C011/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C011/run.mjs",
+      "tests/modules/C011/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C012",
+    "category": "code",
+    "language": "direct",
+    "query": "라온12의 실행 함수 구현 경로와 검사 파일은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C012.md",
+            "sourceHash": "sha256:5174e1b328338beaa41d51278595739283ee58a456c900de55658cfac1ecd01c",
+            "start": 8,
+            "end": 8,
+            "quote": "실행 구현은 src/modules/C012/run.mjs:1의 run이고 검사는 tests/modules/C012/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C012/run.mjs",
+      "tests/modules/C012/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C013",
+    "category": "code",
+    "language": "direct",
+    "query": "라온13의 실행 함수 구현 경로와 검사 파일은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C013.md",
+            "sourceHash": "sha256:e57a5d695e71a5acdc2733d8114ca96e4dad9a207485a8dcc083fc04fc45d986",
+            "start": 8,
+            "end": 8,
+            "quote": "실행 구현은 src/modules/C013/run.mjs:1의 run이고 검사는 tests/modules/C013/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C013/run.mjs",
+      "tests/modules/C013/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C014",
+    "category": "code",
+    "language": "direct",
+    "query": "라온14의 실행 함수 구현 경로와 검사 파일은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C014.md",
+            "sourceHash": "sha256:0de0ae1d9d437a9e1643fe09a7d042058bf16705f860731f00c8911bea80c6c9",
+            "start": 8,
+            "end": 8,
+            "quote": "실행 구현은 src/modules/C014/run.mjs:1의 run이고 검사는 tests/modules/C014/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C014/run.mjs",
+      "tests/modules/C014/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C015",
+    "category": "code",
+    "language": "direct",
+    "query": "라온15의 실행 함수 구현 경로와 검사 파일은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C015.md",
+            "sourceHash": "sha256:7538f10ea0281679616012fae210edc88c9537e4627b8cbf5e15d241d3e78576",
+            "start": 8,
+            "end": 8,
+            "quote": "실행 구현은 src/modules/C015/run.mjs:1의 run이고 검사는 tests/modules/C015/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C015/run.mjs",
+      "tests/modules/C015/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C016",
+    "category": "code",
+    "language": "direct",
+    "query": "라온16의 실행 함수 구현 경로와 검사 파일은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C016.md",
+            "sourceHash": "sha256:6636c84e37e366ffd9b1d456a3f796712708e0a3cd70a2c6ae59ce1273df5bd7",
+            "start": 8,
+            "end": 8,
+            "quote": "실행 구현은 src/modules/C016/run.mjs:1의 run이고 검사는 tests/modules/C016/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C016/run.mjs",
+      "tests/modules/C016/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C017",
+    "category": "code",
+    "language": "direct",
+    "query": "라온17의 실행 함수 구현 경로와 검사 파일은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C017.md",
+            "sourceHash": "sha256:c1b322ec5ed950b98595d7137ad8370561e7e31d16d9fe4446a895d1bc02e249",
+            "start": 8,
+            "end": 8,
+            "quote": "실행 구현은 src/modules/C017/run.mjs:1의 run이고 검사는 tests/modules/C017/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C017/run.mjs",
+      "tests/modules/C017/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C018",
+    "category": "code",
+    "language": "direct",
+    "query": "라온18의 실행 함수 구현 경로와 검사 파일은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C018.md",
+            "sourceHash": "sha256:120b666c48f12eb143598109e68c17d16daac56797c24f2e149f8bb474855258",
+            "start": 8,
+            "end": 8,
+            "quote": "실행 구현은 src/modules/C018/run.mjs:1의 run이고 검사는 tests/modules/C018/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C018/run.mjs",
+      "tests/modules/C018/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C019",
+    "category": "code",
+    "language": "direct",
+    "query": "라온19의 실행 함수 구현 경로와 검사 파일은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C019.md",
+            "sourceHash": "sha256:ed4e6e2e43e0f4f5d2f13af125b8c32d4d26090225e1fd78899dcfc0277c4d3d",
+            "start": 8,
+            "end": 8,
+            "quote": "실행 구현은 src/modules/C019/run.mjs:1의 run이고 검사는 tests/modules/C019/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C019/run.mjs",
+      "tests/modules/C019/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C020",
+    "category": "code",
+    "language": "direct",
+    "query": "라온20의 실행 함수 구현 경로와 검사 파일은?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C020.md",
+            "sourceHash": "sha256:58328b7d8fc6b5c124aa8cb4d732efe7fb9636b6244d094cac5c1680e4d4908a",
+            "start": 8,
+            "end": 8,
+            "quote": "실행 구현은 src/modules/C020/run.mjs:1의 run이고 검사는 tests/modules/C020/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C020/run.mjs",
+      "tests/modules/C020/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C021",
+    "category": "code",
+    "language": "korean-paraphrase",
+    "query": "다른 run 구현과 구별하여 라온21 개발 가이드의 실행 위치를 찾아 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C021.md",
+            "sourceHash": "sha256:1fa6f1daac90079d4a2d19cc84f8e6bc96e71114e3f7670518a3d61a8cefd59e",
+            "start": 22,
+            "end": 22,
+            "quote": "실행 구현은 src/modules/C021/run.mjs:1의 run이고 검사는 tests/modules/C021/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C021/run.mjs",
+      "tests/modules/C021/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "heading-only",
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C022",
+    "category": "code",
+    "language": "korean-paraphrase",
+    "query": "다른 run 구현과 구별하여 라온22 개발 가이드의 실행 위치를 찾아 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C022.md",
+            "sourceHash": "sha256:b564f19f5c0bc4bd17ed003c17ae9cb18efea3bbe050ab00728750e38004f693",
+            "start": 22,
+            "end": 22,
+            "quote": "실행 구현은 src/modules/C022/run.mjs:1의 run이고 검사는 tests/modules/C022/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C022/run.mjs",
+      "tests/modules/C022/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "heading-only",
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C023",
+    "category": "code",
+    "language": "korean-paraphrase",
+    "query": "다른 run 구현과 구별하여 라온23 개발 가이드의 실행 위치를 찾아 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C023.md",
+            "sourceHash": "sha256:dadb576dd9b5f23f09d0586b639949d83536f488558db554f42bc2e1ed8d2a49",
+            "start": 22,
+            "end": 22,
+            "quote": "실행 구현은 src/modules/C023/run.mjs:1의 run이고 검사는 tests/modules/C023/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C023/run.mjs",
+      "tests/modules/C023/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "heading-only",
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C024",
+    "category": "code",
+    "language": "korean-paraphrase",
+    "query": "다른 run 구현과 구별하여 라온24 개발 가이드의 실행 위치를 찾아 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C024.md",
+            "sourceHash": "sha256:53757bc07de63220d636782d33c52f566617ce47ab9baec3babe69f4dc3cfb48",
+            "start": 22,
+            "end": 22,
+            "quote": "실행 구현은 src/modules/C024/run.mjs:1의 run이고 검사는 tests/modules/C024/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C024/run.mjs",
+      "tests/modules/C024/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "heading-only",
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C025",
+    "category": "code",
+    "language": "korean-paraphrase",
+    "query": "다른 run 구현과 구별하여 라온25 개발 가이드의 실행 위치를 찾아 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C025.md",
+            "sourceHash": "sha256:949a7a8f10eb9deb0347db96974a933f0d7809b9c004e66ab1832f7b65887fdb",
+            "start": 22,
+            "end": 22,
+            "quote": "실행 구현은 src/modules/C025/run.mjs:1의 run이고 검사는 tests/modules/C025/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C025/run.mjs",
+      "tests/modules/C025/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "heading-only",
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C026",
+    "category": "code",
+    "language": "korean-paraphrase",
+    "query": "다른 run 구현과 구별하여 라온26 개발 가이드의 실행 위치를 찾아 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C026.md",
+            "sourceHash": "sha256:b4f6228a598f6828d869ca54458e94de8609bb0ed262dfa4c85b80e88b23e434",
+            "start": 22,
+            "end": 22,
+            "quote": "실행 구현은 src/modules/C026/run.mjs:1의 run이고 검사는 tests/modules/C026/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C026/run.mjs",
+      "tests/modules/C026/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "heading-only",
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C027",
+    "category": "code",
+    "language": "korean-paraphrase",
+    "query": "다른 run 구현과 구별하여 라온27 개발 가이드의 실행 위치를 찾아 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C027.md",
+            "sourceHash": "sha256:a6c95bb9adda1ddd9c734d1697cae2d4818478227eac9c0c2fcc2af3c6ce9560",
+            "start": 22,
+            "end": 22,
+            "quote": "실행 구현은 src/modules/C027/run.mjs:1의 run이고 검사는 tests/modules/C027/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C027/run.mjs",
+      "tests/modules/C027/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "heading-only",
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C028",
+    "category": "code",
+    "language": "korean-paraphrase",
+    "query": "다른 run 구현과 구별하여 라온28 개발 가이드의 실행 위치를 찾아 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C028.md",
+            "sourceHash": "sha256:3d5fefcacba94774c7830caaee2b049d602218fbb9a352a95647d9c41d8afe7b",
+            "start": 22,
+            "end": 22,
+            "quote": "실행 구현은 src/modules/C028/run.mjs:1의 run이고 검사는 tests/modules/C028/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C028/run.mjs",
+      "tests/modules/C028/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "heading-only",
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C029",
+    "category": "code",
+    "language": "korean-paraphrase",
+    "query": "다른 run 구현과 구별하여 라온29 개발 가이드의 실행 위치를 찾아 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C029.md",
+            "sourceHash": "sha256:62c58682a31b1508fa09a599f5a9ea5796018335e9f48ebda1e7183dc4d6d959",
+            "start": 22,
+            "end": 22,
+            "quote": "실행 구현은 src/modules/C029/run.mjs:1의 run이고 검사는 tests/modules/C029/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C029/run.mjs",
+      "tests/modules/C029/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "heading-only",
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C030",
+    "category": "code",
+    "language": "korean-paraphrase",
+    "query": "다른 run 구현과 구별하여 라온30 개발 가이드의 실행 위치를 찾아 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C030.md",
+            "sourceHash": "sha256:914d280c85861114a49b3e0a8838da0e4fa96faf2805db0872f13d927c220344",
+            "start": 22,
+            "end": 22,
+            "quote": "실행 구현은 src/modules/C030/run.mjs:1의 run이고 검사는 tests/modules/C030/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C030/run.mjs",
+      "tests/modules/C030/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "heading-only",
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C031",
+    "category": "code",
+    "language": "mixed",
+    "query": "라온31 module의 run implementation과 test path를 각각 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C031.md",
+            "sourceHash": "sha256:2aa1bb91714d5e1b7be9088f0a1057e180c09aeca0c1d9753e2b7276c06abe1b",
+            "start": 22,
+            "end": 22,
+            "quote": "실행 구현은 src/modules/C031/run.mjs:1의 run이고 검사는 tests/modules/C031/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C031/run.mjs",
+      "tests/modules/C031/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "heading-only",
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C032",
+    "category": "code",
+    "language": "mixed",
+    "query": "라온32 module의 run implementation과 test path를 각각 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C032.md",
+            "sourceHash": "sha256:e2d42e8764080b22199151b3a63b3c1e42fc11d1fd7ce20b8db8b7cbd50ffe1f",
+            "start": 22,
+            "end": 22,
+            "quote": "실행 구현은 src/modules/C032/run.mjs:1의 run이고 검사는 tests/modules/C032/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C032/run.mjs",
+      "tests/modules/C032/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "heading-only",
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C033",
+    "category": "code",
+    "language": "mixed",
+    "query": "라온33 module의 run implementation과 test path를 각각 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C033.md",
+            "sourceHash": "sha256:3475e7a5215b8d6dda9fbbb80ca6aa86cf452b651038db733cfe18872f5641d7",
+            "start": 22,
+            "end": 22,
+            "quote": "실행 구현은 src/modules/C033/run.mjs:1의 run이고 검사는 tests/modules/C033/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C033/run.mjs",
+      "tests/modules/C033/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "heading-only",
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C034",
+    "category": "code",
+    "language": "mixed",
+    "query": "라온34 module의 run implementation과 test path를 각각 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C034.md",
+            "sourceHash": "sha256:ed2547a397d66202dc43102a3afb68b7fa05b038ec3059327900a7b9ec12b8cd",
+            "start": 22,
+            "end": 22,
+            "quote": "실행 구현은 src/modules/C034/run.mjs:1의 run이고 검사는 tests/modules/C034/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C034/run.mjs",
+      "tests/modules/C034/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "heading-only",
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C035",
+    "category": "code",
+    "language": "mixed",
+    "query": "라온35 module의 run implementation과 test path를 각각 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C035.md",
+            "sourceHash": "sha256:1d93a0dc4900167cc002b3cbe21d8dd7fe7c9ba9a34ca42166f017f2e4390eda",
+            "start": 22,
+            "end": 22,
+            "quote": "실행 구현은 src/modules/C035/run.mjs:1의 run이고 검사는 tests/modules/C035/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C035/run.mjs",
+      "tests/modules/C035/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "heading-only",
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C036",
+    "category": "code",
+    "language": "mixed",
+    "query": "라온36 module의 run implementation과 test path를 각각 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C036.md",
+            "sourceHash": "sha256:06b87277161a632801c03b1be79723eac59f60e73cc34cddfac1bf4837cf33d7",
+            "start": 22,
+            "end": 22,
+            "quote": "실행 구현은 src/modules/C036/run.mjs:1의 run이고 검사는 tests/modules/C036/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C036/run.mjs",
+      "tests/modules/C036/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "heading-only",
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C037",
+    "category": "code",
+    "language": "mixed",
+    "query": "라온37 module의 run implementation과 test path를 각각 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C037.md",
+            "sourceHash": "sha256:e6c49bbf1ff97ca8cd571fa57a6b0f0dfac4ad7f4652615a827b36ff378110f0",
+            "start": 22,
+            "end": 22,
+            "quote": "실행 구현은 src/modules/C037/run.mjs:1의 run이고 검사는 tests/modules/C037/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C037/run.mjs",
+      "tests/modules/C037/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "heading-only",
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C038",
+    "category": "code",
+    "language": "mixed",
+    "query": "라온38 module의 run implementation과 test path를 각각 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C038.md",
+            "sourceHash": "sha256:e3e8df768b360be44b54e9706ec804d5d8ef21a74df83ffaa12def93bcffddec",
+            "start": 22,
+            "end": 22,
+            "quote": "실행 구현은 src/modules/C038/run.mjs:1의 run이고 검사는 tests/modules/C038/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C038/run.mjs",
+      "tests/modules/C038/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "heading-only",
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C039",
+    "category": "code",
+    "language": "mixed",
+    "query": "라온39 module의 run implementation과 test path를 각각 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C039.md",
+            "sourceHash": "sha256:ba928ae2dd09e7d14110d7cc1f36948d34013568e6160d6b44917a1740913efc",
+            "start": 22,
+            "end": 22,
+            "quote": "실행 구현은 src/modules/C039/run.mjs:1의 run이고 검사는 tests/modules/C039/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C039/run.mjs",
+      "tests/modules/C039/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "heading-only",
+      "same-symbol"
+    ]
+  },
+  {
+    "id": "C040",
+    "category": "code",
+    "language": "mixed",
+    "query": "라온40 module의 run implementation과 test path를 각각 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/30-code-C040.md",
+            "sourceHash": "sha256:a2bf549054703a7b731aa2aa7802d81b1d103fb474ab728dd9b70f76aeb45a91",
+            "start": 22,
+            "end": 22,
+            "quote": "실행 구현은 src/modules/C040/run.mjs:1의 run이고 검사는 tests/modules/C040/run.test.mjs:1입니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "src/modules/C040/run.mjs",
+      "tests/modules/C040/run.test.mjs"
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "heading-only",
+      "same-symbol"
+    ]
+  }
+]

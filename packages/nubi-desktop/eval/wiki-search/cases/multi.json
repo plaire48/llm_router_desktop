@@ -1,0 +1,1602 @@
+[
+  {
+    "id": "M001",
+    "category": "multi",
+    "language": "direct",
+    "query": "마루01의 묶음 상한과 반영 승인 조건을 함께 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M001.md",
+            "sourceHash": "sha256:bb59f73fb76c055fa14f122de3de65c5cdd2e2b9026230cc303a46d5c6073b34",
+            "start": 3,
+            "end": 3,
+            "quote": "마루01의 문서상 묶음 상한은 21개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M001.md",
+            "sourceHash": "sha256:37be1c43de4358e4e3322cf8c6eb19e92d079adbbb8847b723636fed8f1e0e94",
+            "start": 3,
+            "end": 3,
+            "quote": "마루01의 반영은 담당자의 승인 뒤에만 가능합니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루01의 문서상 묶음 상한은 21개입니다.",
+      "마루01의 반영은 담당자의 승인 뒤에만 가능합니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M002",
+    "category": "multi",
+    "language": "direct",
+    "query": "마루02의 묶음 상한과 반영 승인 조건을 함께 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M002.md",
+            "sourceHash": "sha256:176fee053bd89ba024eedef540cd8efc17119ba0e67524b75fd8dec75ad1235d",
+            "start": 3,
+            "end": 3,
+            "quote": "마루02의 문서상 묶음 상한은 22개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M002.md",
+            "sourceHash": "sha256:7a590d11d0bda10d4f0557f7c6d1ee711e38dabb5e359700c802e8f625207c7d",
+            "start": 3,
+            "end": 3,
+            "quote": "마루02의 반영은 담당자의 승인 뒤에만 가능합니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루02의 문서상 묶음 상한은 22개입니다.",
+      "마루02의 반영은 담당자의 승인 뒤에만 가능합니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M003",
+    "category": "multi",
+    "language": "direct",
+    "query": "마루03의 묶음 상한과 반영 승인 조건을 함께 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M003.md",
+            "sourceHash": "sha256:6899a4ea209ce5bfb00d21bf06f028db1174ce6496dcb99d71793148cf2edcc1",
+            "start": 3,
+            "end": 3,
+            "quote": "마루03의 문서상 묶음 상한은 23개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M003.md",
+            "sourceHash": "sha256:e30816bddf9c6dbb6db16d1528c873c0525da79356b35049de2a4fc531e5d1a3",
+            "start": 3,
+            "end": 3,
+            "quote": "마루03의 반영은 담당자의 승인 뒤에만 가능합니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루03의 문서상 묶음 상한은 23개입니다.",
+      "마루03의 반영은 담당자의 승인 뒤에만 가능합니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M004",
+    "category": "multi",
+    "language": "direct",
+    "query": "마루04의 묶음 상한과 반영 승인 조건을 함께 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M004.md",
+            "sourceHash": "sha256:2d166b6340aecc88d7947c2fd0acb39c400e337273f38529afca899574e52c25",
+            "start": 3,
+            "end": 3,
+            "quote": "마루04의 문서상 묶음 상한은 24개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M004.md",
+            "sourceHash": "sha256:0374620157fc02d02c892c2bf1e3abcfc3e66cb4663d524177c2bcab68f19718",
+            "start": 3,
+            "end": 3,
+            "quote": "마루04의 반영은 담당자의 승인 뒤에만 가능합니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루04의 문서상 묶음 상한은 24개입니다.",
+      "마루04의 반영은 담당자의 승인 뒤에만 가능합니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M005",
+    "category": "multi",
+    "language": "direct",
+    "query": "마루05의 묶음 상한과 반영 승인 조건을 함께 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M005.md",
+            "sourceHash": "sha256:8891fea27e32e56c0f87ed3a8ce8456614e452dbacc30882bcfd32c899b52e33",
+            "start": 3,
+            "end": 3,
+            "quote": "마루05의 문서상 묶음 상한은 25개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M005.md",
+            "sourceHash": "sha256:21a9afb1e4af82d6e33879294903836a2a86178c92f64340a33c0b32dc8369d4",
+            "start": 3,
+            "end": 3,
+            "quote": "마루05의 반영은 담당자의 승인 뒤에만 가능합니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루05의 문서상 묶음 상한은 25개입니다.",
+      "마루05의 반영은 담당자의 승인 뒤에만 가능합니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M006",
+    "category": "multi",
+    "language": "direct",
+    "query": "마루06의 묶음 상한과 반영 승인 조건을 함께 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M006.md",
+            "sourceHash": "sha256:9a353b98c2157688603594e3c231b5123d51476670ca59235527e9336ede7cc3",
+            "start": 3,
+            "end": 3,
+            "quote": "마루06의 문서상 묶음 상한은 26개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M006.md",
+            "sourceHash": "sha256:52e27d8684e5c2f5bf2cc1f4c541b2c44121980a26b76c33edddeb8d9a88ba2c",
+            "start": 3,
+            "end": 3,
+            "quote": "마루06의 반영은 담당자의 승인 뒤에만 가능합니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루06의 문서상 묶음 상한은 26개입니다.",
+      "마루06의 반영은 담당자의 승인 뒤에만 가능합니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M007",
+    "category": "multi",
+    "language": "direct",
+    "query": "마루07의 묶음 상한과 반영 승인 조건을 함께 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M007.md",
+            "sourceHash": "sha256:35e1d4d384ef7c7b6d7a016ffd2bf1acec6375ea81b1524b89436683195b0f30",
+            "start": 3,
+            "end": 3,
+            "quote": "마루07의 문서상 묶음 상한은 27개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M007.md",
+            "sourceHash": "sha256:e83b095fe4247cc6898314d12357bb2e0a6d4b1cb73f0a813bd796f29bec14c6",
+            "start": 3,
+            "end": 3,
+            "quote": "마루07의 반영은 담당자의 승인 뒤에만 가능합니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루07의 문서상 묶음 상한은 27개입니다.",
+      "마루07의 반영은 담당자의 승인 뒤에만 가능합니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M008",
+    "category": "multi",
+    "language": "direct",
+    "query": "마루08의 묶음 상한과 반영 승인 조건을 함께 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M008.md",
+            "sourceHash": "sha256:247921b3c3c644d1424203a06388986fc891537089301f3f5818c93dad653477",
+            "start": 3,
+            "end": 3,
+            "quote": "마루08의 문서상 묶음 상한은 28개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M008.md",
+            "sourceHash": "sha256:4ace1e736cc00c61f365c127a3adcd8780ed221dc442648d0c9efa730039913d",
+            "start": 3,
+            "end": 3,
+            "quote": "마루08의 반영은 담당자의 승인 뒤에만 가능합니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루08의 문서상 묶음 상한은 28개입니다.",
+      "마루08의 반영은 담당자의 승인 뒤에만 가능합니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M009",
+    "category": "multi",
+    "language": "direct",
+    "query": "마루09의 묶음 상한과 반영 승인 조건을 함께 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M009.md",
+            "sourceHash": "sha256:c457aff8dea3bfd682b3d1f1d86edd9379312ae66f79f01157b793feb064d76d",
+            "start": 3,
+            "end": 3,
+            "quote": "마루09의 문서상 묶음 상한은 29개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M009.md",
+            "sourceHash": "sha256:476bd095dad1e3399e3e7a488ef716df56f1b92cb23ff1c0ea12626c42d78ab3",
+            "start": 3,
+            "end": 3,
+            "quote": "마루09의 반영은 담당자의 승인 뒤에만 가능합니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루09의 문서상 묶음 상한은 29개입니다.",
+      "마루09의 반영은 담당자의 승인 뒤에만 가능합니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M010",
+    "category": "multi",
+    "language": "direct",
+    "query": "마루10의 묶음 상한과 반영 승인 조건을 함께 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M010.md",
+            "sourceHash": "sha256:543e84f6f33656e7f056c0102e9961e15ab495129d20640e96b7dc5099644ffb",
+            "start": 3,
+            "end": 3,
+            "quote": "마루10의 문서상 묶음 상한은 30개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M010.md",
+            "sourceHash": "sha256:9e6114eb0091c270c8bf3374625dbdfc44df2399eb0ea4473511a8f42f856d6b",
+            "start": 3,
+            "end": 3,
+            "quote": "마루10의 반영은 담당자의 승인 뒤에만 가능합니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루10의 문서상 묶음 상한은 30개입니다.",
+      "마루10의 반영은 담당자의 승인 뒤에만 가능합니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M011",
+    "category": "multi",
+    "language": "direct",
+    "query": "마루11의 묶음 상한과 반영 승인 조건을 함께 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M011.md",
+            "sourceHash": "sha256:5322f476ee9c454fd4fabecbf758cf27b0ecf2e6b7cdc14401c648f534ab554a",
+            "start": 3,
+            "end": 3,
+            "quote": "마루11의 문서상 묶음 상한은 31개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M011.md",
+            "sourceHash": "sha256:095bbdbdb135a126a528ca27733aa3f54cd63cb8ce13a56181e05f2d3d506dd2",
+            "start": 3,
+            "end": 3,
+            "quote": "마루11의 반영은 담당자의 승인 뒤에만 가능합니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루11의 문서상 묶음 상한은 31개입니다.",
+      "마루11의 반영은 담당자의 승인 뒤에만 가능합니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M012",
+    "category": "multi",
+    "language": "direct",
+    "query": "마루12의 묶음 상한과 반영 승인 조건을 함께 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M012.md",
+            "sourceHash": "sha256:dc81d8699e92b8828a0101d13750c5c8d06092455f73164d08a4cf2952fe124c",
+            "start": 3,
+            "end": 3,
+            "quote": "마루12의 문서상 묶음 상한은 32개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M012.md",
+            "sourceHash": "sha256:9073b6eb1526c75c6f1a50ba190e39b762e0b5f7faff119c5a9623001ec814fb",
+            "start": 3,
+            "end": 3,
+            "quote": "마루12의 반영은 담당자의 승인 뒤에만 가능합니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루12의 문서상 묶음 상한은 32개입니다.",
+      "마루12의 반영은 담당자의 승인 뒤에만 가능합니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M013",
+    "category": "multi",
+    "language": "direct",
+    "query": "마루13의 묶음 상한과 반영 승인 조건을 함께 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M013.md",
+            "sourceHash": "sha256:80fd83a86b5623c54009a1ddd1a1680735d1ba78103f1ba036ed9ddd8c26531f",
+            "start": 3,
+            "end": 3,
+            "quote": "마루13의 문서상 묶음 상한은 33개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M013.md",
+            "sourceHash": "sha256:5d8c32fb8546086e71fb3fe37880cf7af227768231a2c7500facb5fa9c3cbc45",
+            "start": 3,
+            "end": 3,
+            "quote": "마루13의 반영은 담당자의 승인 뒤에만 가능합니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루13의 문서상 묶음 상한은 33개입니다.",
+      "마루13의 반영은 담당자의 승인 뒤에만 가능합니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M014",
+    "category": "multi",
+    "language": "direct",
+    "query": "마루14의 묶음 상한과 반영 승인 조건을 함께 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M014.md",
+            "sourceHash": "sha256:3371a7b1d07865a2fba7e004a4ced4ada9fbe4b349ae8e73ad310dbdd97eebd6",
+            "start": 3,
+            "end": 3,
+            "quote": "마루14의 문서상 묶음 상한은 34개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M014.md",
+            "sourceHash": "sha256:cd014fb27012670932db21bc563315d16f2b2d7136e5260b6a6e11d010613557",
+            "start": 3,
+            "end": 3,
+            "quote": "마루14의 반영은 담당자의 승인 뒤에만 가능합니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루14의 문서상 묶음 상한은 34개입니다.",
+      "마루14의 반영은 담당자의 승인 뒤에만 가능합니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M015",
+    "category": "multi",
+    "language": "direct",
+    "query": "마루15의 묶음 상한과 반영 승인 조건을 함께 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M015.md",
+            "sourceHash": "sha256:81b1e42b18c08df977f7984763e6468cf6169a5f1029d522dda20b575dde927a",
+            "start": 3,
+            "end": 3,
+            "quote": "마루15의 문서상 묶음 상한은 35개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M015.md",
+            "sourceHash": "sha256:5c27c4a9f89f20c6beda0a9b1b484b4bdd83a5e9692942bcb7357eefb451448d",
+            "start": 3,
+            "end": 3,
+            "quote": "마루15의 반영은 담당자의 승인 뒤에만 가능합니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루15의 문서상 묶음 상한은 35개입니다.",
+      "마루15의 반영은 담당자의 승인 뒤에만 가능합니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M016",
+    "category": "multi",
+    "language": "direct",
+    "query": "마루16의 묶음 상한과 반영 승인 조건을 함께 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M016.md",
+            "sourceHash": "sha256:f3b0dc7968ed62a402c8e29af0d7ffcb777b2ec2c3c6321c678f8dbf4df9150e",
+            "start": 3,
+            "end": 3,
+            "quote": "마루16의 문서상 묶음 상한은 36개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M016.md",
+            "sourceHash": "sha256:feb5b529454b68abdbc3cc844a9de12db6d8b9633f3b3f393f2780f898408283",
+            "start": 3,
+            "end": 3,
+            "quote": "마루16의 반영은 담당자의 승인 뒤에만 가능합니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루16의 문서상 묶음 상한은 36개입니다.",
+      "마루16의 반영은 담당자의 승인 뒤에만 가능합니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M017",
+    "category": "multi",
+    "language": "direct",
+    "query": "마루17의 묶음 상한과 반영 승인 조건을 함께 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M017.md",
+            "sourceHash": "sha256:d91858194985c27653e2f937bb5bd181e5c48c41b228bcee8409b32ec33ecc90",
+            "start": 3,
+            "end": 3,
+            "quote": "마루17의 문서상 묶음 상한은 37개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M017.md",
+            "sourceHash": "sha256:0d1e345b23993355b5831c476a79d1db1aa47d168cfb6db5f8556d4304a71030",
+            "start": 3,
+            "end": 3,
+            "quote": "마루17의 반영은 담당자의 승인 뒤에만 가능합니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루17의 문서상 묶음 상한은 37개입니다.",
+      "마루17의 반영은 담당자의 승인 뒤에만 가능합니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M018",
+    "category": "multi",
+    "language": "direct",
+    "query": "마루18의 묶음 상한과 반영 승인 조건을 함께 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M018.md",
+            "sourceHash": "sha256:a51d82c2f0dcf3ccecee9b6dbd3fe9bc68b9ab3c28d9e39dc9c2a8a5e111442d",
+            "start": 3,
+            "end": 3,
+            "quote": "마루18의 문서상 묶음 상한은 38개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M018.md",
+            "sourceHash": "sha256:c89b20e052bdcf87c424cf43dcaabe230a604bf3f5db113df20ed9759b9596ca",
+            "start": 3,
+            "end": 3,
+            "quote": "마루18의 반영은 담당자의 승인 뒤에만 가능합니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루18의 문서상 묶음 상한은 38개입니다.",
+      "마루18의 반영은 담당자의 승인 뒤에만 가능합니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M019",
+    "category": "multi",
+    "language": "direct",
+    "query": "마루19의 묶음 상한과 반영 승인 조건을 함께 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M019.md",
+            "sourceHash": "sha256:b3db5713afe9e62872b636b1f9fd0df87193d62d4da9e01767706c37f6444a00",
+            "start": 3,
+            "end": 3,
+            "quote": "마루19의 문서상 묶음 상한은 39개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M019.md",
+            "sourceHash": "sha256:31d46af62b6b79661ab4c73f6c2634a857535723488f3b48f85a179cd6865417",
+            "start": 3,
+            "end": 3,
+            "quote": "마루19의 반영은 담당자의 승인 뒤에만 가능합니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루19의 문서상 묶음 상한은 39개입니다.",
+      "마루19의 반영은 담당자의 승인 뒤에만 가능합니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M020",
+    "category": "multi",
+    "language": "direct",
+    "query": "마루20의 묶음 상한과 반영 승인 조건을 함께 알려주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M020.md",
+            "sourceHash": "sha256:8a9adcc4e2d90bba940a7c9f11b01b9c3d7618c5e13891b7965e78ee6ff23676",
+            "start": 3,
+            "end": 3,
+            "quote": "마루20의 문서상 묶음 상한은 40개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M020.md",
+            "sourceHash": "sha256:0b4c994c188e7ecdfc44a08410903304f41435485d638a0b57adeff3fd234f66",
+            "start": 3,
+            "end": 3,
+            "quote": "마루20의 반영은 담당자의 승인 뒤에만 가능합니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루20의 문서상 묶음 상한은 40개입니다.",
+      "마루20의 반영은 담당자의 승인 뒤에만 가능합니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M021",
+    "category": "multi",
+    "language": "korean-paraphrase",
+    "query": "마루21 정책 문서와 구현 상한이 일치하나요? 두 근거를 비교해 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M021.md",
+            "sourceHash": "sha256:f4151004250d888be7b111ccf4ca79cdbe9acf699bd0c8cebf5751253baabb39",
+            "start": 3,
+            "end": 3,
+            "quote": "마루21의 문서상 묶음 상한은 41개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M021.md",
+            "sourceHash": "sha256:486465a8d38df8349b3cd1836d0328a9ded7885d190a61ed274803aaa01563a3",
+            "start": 3,
+            "end": 3,
+            "quote": "src/limits/M021.mjs:1의 batchLimit 값은 42입니다. 문서와 구현의 값이 다릅니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루21의 문서상 묶음 상한은 41개입니다.",
+      "src/limits/M021.mjs:1의 batchLimit 값은 42입니다. 문서와 구현의 값이 다릅니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M022",
+    "category": "multi",
+    "language": "korean-paraphrase",
+    "query": "마루22 정책 문서와 구현 상한이 일치하나요? 두 근거를 비교해 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M022.md",
+            "sourceHash": "sha256:ff792733bac286db55c29d91decf479e6d11ede1aa03439816b1703bf692cd78",
+            "start": 3,
+            "end": 3,
+            "quote": "마루22의 문서상 묶음 상한은 42개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M022.md",
+            "sourceHash": "sha256:953c83a1273604c496527b3c4dc23c991cbacf6766bb69b3c5b3dd549978d454",
+            "start": 3,
+            "end": 3,
+            "quote": "src/limits/M022.mjs:1의 batchLimit 값은 43입니다. 문서와 구현의 값이 다릅니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루22의 문서상 묶음 상한은 42개입니다.",
+      "src/limits/M022.mjs:1의 batchLimit 값은 43입니다. 문서와 구현의 값이 다릅니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M023",
+    "category": "multi",
+    "language": "korean-paraphrase",
+    "query": "마루23 정책 문서와 구현 상한이 일치하나요? 두 근거를 비교해 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M023.md",
+            "sourceHash": "sha256:786496ee284362bfaf09cdda308f6da5c49533ef0250af2271ba4926f0f58fa8",
+            "start": 3,
+            "end": 3,
+            "quote": "마루23의 문서상 묶음 상한은 43개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M023.md",
+            "sourceHash": "sha256:e7937a3fa7a77da8197de5c004623c329faa8f00dc195f3335408d20c1f68bbf",
+            "start": 3,
+            "end": 3,
+            "quote": "src/limits/M023.mjs:1의 batchLimit 값은 44입니다. 문서와 구현의 값이 다릅니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루23의 문서상 묶음 상한은 43개입니다.",
+      "src/limits/M023.mjs:1의 batchLimit 값은 44입니다. 문서와 구현의 값이 다릅니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M024",
+    "category": "multi",
+    "language": "korean-paraphrase",
+    "query": "마루24 정책 문서와 구현 상한이 일치하나요? 두 근거를 비교해 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M024.md",
+            "sourceHash": "sha256:9b8e62f3f34eb7cd35e034371ccda2588b86852bfa7d30a596612f99ca36beee",
+            "start": 3,
+            "end": 3,
+            "quote": "마루24의 문서상 묶음 상한은 44개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M024.md",
+            "sourceHash": "sha256:39d32db8728196dc5c9f8bcb5f2ec4aa7ecf5898a98e6160b5fcaf9a6395018a",
+            "start": 3,
+            "end": 3,
+            "quote": "src/limits/M024.mjs:1의 batchLimit 값은 45입니다. 문서와 구현의 값이 다릅니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루24의 문서상 묶음 상한은 44개입니다.",
+      "src/limits/M024.mjs:1의 batchLimit 값은 45입니다. 문서와 구현의 값이 다릅니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M025",
+    "category": "multi",
+    "language": "korean-paraphrase",
+    "query": "마루25 정책 문서와 구현 상한이 일치하나요? 두 근거를 비교해 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M025.md",
+            "sourceHash": "sha256:43cd9c4f7f826ea06f4bda9622c5523cf648ab94b974d19c2ee4b170c5e90350",
+            "start": 3,
+            "end": 3,
+            "quote": "마루25의 문서상 묶음 상한은 45개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M025.md",
+            "sourceHash": "sha256:5ee0c67219c94f6abb2bab341ad4f99f46f689e56a69b707ca2809e06f957e0a",
+            "start": 3,
+            "end": 3,
+            "quote": "src/limits/M025.mjs:1의 batchLimit 값은 46입니다. 문서와 구현의 값이 다릅니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루25의 문서상 묶음 상한은 45개입니다.",
+      "src/limits/M025.mjs:1의 batchLimit 값은 46입니다. 문서와 구현의 값이 다릅니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M026",
+    "category": "multi",
+    "language": "korean-paraphrase",
+    "query": "마루26 정책 문서와 구현 상한이 일치하나요? 두 근거를 비교해 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M026.md",
+            "sourceHash": "sha256:aae7d8fec42514e9c6e83f37154c0e4f4c82e65167bbcdaa8e531c2622fd583e",
+            "start": 3,
+            "end": 3,
+            "quote": "마루26의 문서상 묶음 상한은 46개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M026.md",
+            "sourceHash": "sha256:34f3ff4fa39c6cba6a86cb33ae8656ca6800dd066fd8ab8387e07a1e2c194da2",
+            "start": 3,
+            "end": 3,
+            "quote": "src/limits/M026.mjs:1의 batchLimit 값은 47입니다. 문서와 구현의 값이 다릅니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루26의 문서상 묶음 상한은 46개입니다.",
+      "src/limits/M026.mjs:1의 batchLimit 값은 47입니다. 문서와 구현의 값이 다릅니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M027",
+    "category": "multi",
+    "language": "korean-paraphrase",
+    "query": "마루27 정책 문서와 구현 상한이 일치하나요? 두 근거를 비교해 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M027.md",
+            "sourceHash": "sha256:99bd401e827884f4835cfed865365c5e87366aabb241bcb25a53c6a3e48e8dea",
+            "start": 3,
+            "end": 3,
+            "quote": "마루27의 문서상 묶음 상한은 47개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M027.md",
+            "sourceHash": "sha256:819b81fbbf79b98f3d9fd34e1dc7db00db3caa5d65e063c58a618e364e824fcb",
+            "start": 3,
+            "end": 3,
+            "quote": "src/limits/M027.mjs:1의 batchLimit 값은 48입니다. 문서와 구현의 값이 다릅니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루27의 문서상 묶음 상한은 47개입니다.",
+      "src/limits/M027.mjs:1의 batchLimit 값은 48입니다. 문서와 구현의 값이 다릅니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M028",
+    "category": "multi",
+    "language": "korean-paraphrase",
+    "query": "마루28 정책 문서와 구현 상한이 일치하나요? 두 근거를 비교해 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M028.md",
+            "sourceHash": "sha256:87aca4bb08271f3e078b06505c10013e200bcf02b02378ff9ccd0562722f498e",
+            "start": 3,
+            "end": 3,
+            "quote": "마루28의 문서상 묶음 상한은 48개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M028.md",
+            "sourceHash": "sha256:da29de95cd92d53ed2981d3167404f3ead0824c8ee7a777f4dad10af0b3e1a1e",
+            "start": 3,
+            "end": 3,
+            "quote": "src/limits/M028.mjs:1의 batchLimit 값은 49입니다. 문서와 구현의 값이 다릅니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루28의 문서상 묶음 상한은 48개입니다.",
+      "src/limits/M028.mjs:1의 batchLimit 값은 49입니다. 문서와 구현의 값이 다릅니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M029",
+    "category": "multi",
+    "language": "korean-paraphrase",
+    "query": "마루29 정책 문서와 구현 상한이 일치하나요? 두 근거를 비교해 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M029.md",
+            "sourceHash": "sha256:55642d36c87ac9a65691f7dcffa729a09647ebe472c55239894bdfbe2b61f02d",
+            "start": 3,
+            "end": 3,
+            "quote": "마루29의 문서상 묶음 상한은 49개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M029.md",
+            "sourceHash": "sha256:dcc49ebd0def9cdb52fe7d3f2353457da993b834865e6a3a8265ba45104b9ebc",
+            "start": 3,
+            "end": 3,
+            "quote": "src/limits/M029.mjs:1의 batchLimit 값은 50입니다. 문서와 구현의 값이 다릅니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루29의 문서상 묶음 상한은 49개입니다.",
+      "src/limits/M029.mjs:1의 batchLimit 값은 50입니다. 문서와 구현의 값이 다릅니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M030",
+    "category": "multi",
+    "language": "korean-paraphrase",
+    "query": "마루30 정책 문서와 구현 상한이 일치하나요? 두 근거를 비교해 주세요.",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M030.md",
+            "sourceHash": "sha256:52f9a939f2eae267bcd0d3622a32a831e3ca8674f4e94dc9547eec4ce4e12b6c",
+            "start": 3,
+            "end": 3,
+            "quote": "마루30의 문서상 묶음 상한은 50개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M030.md",
+            "sourceHash": "sha256:e0e8cb059fbd4a99cbd07e62c816374ab3f4042a83617e9e7e73792a0e2890da",
+            "start": 3,
+            "end": 3,
+            "quote": "src/limits/M030.mjs:1의 batchLimit 값은 51입니다. 문서와 구현의 값이 다릅니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루30의 문서상 묶음 상한은 50개입니다.",
+      "src/limits/M030.mjs:1의 batchLimit 값은 51입니다. 문서와 구현의 값이 다릅니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M031",
+    "category": "multi",
+    "language": "mixed",
+    "query": "마루31 documented limit과 implementation limit의 차이 및 source path는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M031.md",
+            "sourceHash": "sha256:8df5105430adab0b5385904cdda749ed9c175c8359c0c89d2bd19765de8a1c67",
+            "start": 3,
+            "end": 3,
+            "quote": "마루31의 문서상 묶음 상한은 51개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M031.md",
+            "sourceHash": "sha256:6fd18a82c6ba7182d5bf8527e38054c9cfb208ea39af10cf7cdfd9f7329fabfd",
+            "start": 3,
+            "end": 3,
+            "quote": "src/limits/M031.mjs:1의 batchLimit 값은 52입니다. 문서와 구현의 값이 다릅니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루31의 문서상 묶음 상한은 51개입니다.",
+      "src/limits/M031.mjs:1의 batchLimit 값은 52입니다. 문서와 구현의 값이 다릅니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M032",
+    "category": "multi",
+    "language": "mixed",
+    "query": "마루32 documented limit과 implementation limit의 차이 및 source path는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M032.md",
+            "sourceHash": "sha256:29bf9a4cfda9c636e6a6c8e48f8c1a7c8bb11dd12f1cf576f0f9a6581f5b45d2",
+            "start": 3,
+            "end": 3,
+            "quote": "마루32의 문서상 묶음 상한은 52개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M032.md",
+            "sourceHash": "sha256:07e231270a125c6eba45d635af7f50a1e150d2d15d4b9ffb44bf9b3bd1c2b12f",
+            "start": 3,
+            "end": 3,
+            "quote": "src/limits/M032.mjs:1의 batchLimit 값은 53입니다. 문서와 구현의 값이 다릅니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루32의 문서상 묶음 상한은 52개입니다.",
+      "src/limits/M032.mjs:1의 batchLimit 값은 53입니다. 문서와 구현의 값이 다릅니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M033",
+    "category": "multi",
+    "language": "mixed",
+    "query": "마루33 documented limit과 implementation limit의 차이 및 source path는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M033.md",
+            "sourceHash": "sha256:dfe17c04943bb7e529987ffc07204adb5f7777a286deb4f129092dd6acae11cb",
+            "start": 3,
+            "end": 3,
+            "quote": "마루33의 문서상 묶음 상한은 53개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M033.md",
+            "sourceHash": "sha256:36565bdfc840425c292a716ae63ed15f89b3cbab0909d62a7cb747447b4c0472",
+            "start": 3,
+            "end": 3,
+            "quote": "src/limits/M033.mjs:1의 batchLimit 값은 54입니다. 문서와 구현의 값이 다릅니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루33의 문서상 묶음 상한은 53개입니다.",
+      "src/limits/M033.mjs:1의 batchLimit 값은 54입니다. 문서와 구현의 값이 다릅니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M034",
+    "category": "multi",
+    "language": "mixed",
+    "query": "마루34 documented limit과 implementation limit의 차이 및 source path는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M034.md",
+            "sourceHash": "sha256:1553732a9eaef790efa392739198a21a7cff461b05c79559aa6fdbb2db4bbab2",
+            "start": 3,
+            "end": 3,
+            "quote": "마루34의 문서상 묶음 상한은 54개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M034.md",
+            "sourceHash": "sha256:5f1106040aaad9d444734c35ed5c5bc70ca7a9808a383dfd7bec978e61eef81b",
+            "start": 3,
+            "end": 3,
+            "quote": "src/limits/M034.mjs:1의 batchLimit 값은 55입니다. 문서와 구현의 값이 다릅니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루34의 문서상 묶음 상한은 54개입니다.",
+      "src/limits/M034.mjs:1의 batchLimit 값은 55입니다. 문서와 구현의 값이 다릅니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M035",
+    "category": "multi",
+    "language": "mixed",
+    "query": "마루35 documented limit과 implementation limit의 차이 및 source path는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M035.md",
+            "sourceHash": "sha256:60b09afcbf11a5d440dcdf5facd56f87344643342a0f02afd1a8142cd1505559",
+            "start": 3,
+            "end": 3,
+            "quote": "마루35의 문서상 묶음 상한은 55개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M035.md",
+            "sourceHash": "sha256:a7ef3854e7885d92b8def69b560f49934c5ff5cd87213dd05b6f49730310ec01",
+            "start": 3,
+            "end": 3,
+            "quote": "src/limits/M035.mjs:1의 batchLimit 값은 56입니다. 문서와 구현의 값이 다릅니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루35의 문서상 묶음 상한은 55개입니다.",
+      "src/limits/M035.mjs:1의 batchLimit 값은 56입니다. 문서와 구현의 값이 다릅니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M036",
+    "category": "multi",
+    "language": "mixed",
+    "query": "마루36 documented limit과 implementation limit의 차이 및 source path는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M036.md",
+            "sourceHash": "sha256:046dbe329a5464b8eb390fea7ffa4f3e76bc5115027629bcc0e271e7d861915c",
+            "start": 3,
+            "end": 3,
+            "quote": "마루36의 문서상 묶음 상한은 56개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M036.md",
+            "sourceHash": "sha256:3e0245e9dc04ae8fdaac72da2e0ffcda3c20cec325924fa16770a0238d68254f",
+            "start": 3,
+            "end": 3,
+            "quote": "src/limits/M036.mjs:1의 batchLimit 값은 57입니다. 문서와 구현의 값이 다릅니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루36의 문서상 묶음 상한은 56개입니다.",
+      "src/limits/M036.mjs:1의 batchLimit 값은 57입니다. 문서와 구현의 값이 다릅니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M037",
+    "category": "multi",
+    "language": "mixed",
+    "query": "마루37 documented limit과 implementation limit의 차이 및 source path는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M037.md",
+            "sourceHash": "sha256:19422aa86b9d1efbc43f145e48569361f776e3f1f9f386058c7581a72ec5b7d0",
+            "start": 3,
+            "end": 3,
+            "quote": "마루37의 문서상 묶음 상한은 57개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M037.md",
+            "sourceHash": "sha256:db4eb51580bef79b0ce0e6da12586f81402944c4e13d45412b996a7172686704",
+            "start": 3,
+            "end": 3,
+            "quote": "src/limits/M037.mjs:1의 batchLimit 값은 58입니다. 문서와 구현의 값이 다릅니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루37의 문서상 묶음 상한은 57개입니다.",
+      "src/limits/M037.mjs:1의 batchLimit 값은 58입니다. 문서와 구현의 값이 다릅니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M038",
+    "category": "multi",
+    "language": "mixed",
+    "query": "마루38 documented limit과 implementation limit의 차이 및 source path는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M038.md",
+            "sourceHash": "sha256:64c4fd60d7a4ab1a7af0e49ab56eae68809a5e8e25139fd5b9cc8cab78d5bce1",
+            "start": 3,
+            "end": 3,
+            "quote": "마루38의 문서상 묶음 상한은 58개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M038.md",
+            "sourceHash": "sha256:5601e34384550a0f30d2e1c88ff77d107bdb9a0ea155457a7a62d03bc403d3d2",
+            "start": 3,
+            "end": 3,
+            "quote": "src/limits/M038.mjs:1의 batchLimit 값은 59입니다. 문서와 구현의 값이 다릅니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루38의 문서상 묶음 상한은 58개입니다.",
+      "src/limits/M038.mjs:1의 batchLimit 값은 59입니다. 문서와 구현의 값이 다릅니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M039",
+    "category": "multi",
+    "language": "mixed",
+    "query": "마루39 documented limit과 implementation limit의 차이 및 source path는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M039.md",
+            "sourceHash": "sha256:055b5066443121bf7a5bb557264443ef5e74c94bffcbe34ec48fc4e626695163",
+            "start": 3,
+            "end": 3,
+            "quote": "마루39의 문서상 묶음 상한은 59개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M039.md",
+            "sourceHash": "sha256:44c569f4fae2597bae84cd0bd671f80fb8d2120eedc22fd20697e8a92c4876bb",
+            "start": 3,
+            "end": 3,
+            "quote": "src/limits/M039.mjs:1의 batchLimit 값은 60입니다. 문서와 구현의 값이 다릅니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루39의 문서상 묶음 상한은 59개입니다.",
+      "src/limits/M039.mjs:1의 batchLimit 값은 60입니다. 문서와 구현의 값이 다릅니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  },
+  {
+    "id": "M040",
+    "category": "multi",
+    "language": "mixed",
+    "query": "마루40 documented limit과 implementation limit의 차이 및 source path는?",
+    "answerable": true,
+    "corpusRevision": "synthetic-s1-v1",
+    "evidenceGroups": [
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-policy-M040.md",
+            "sourceHash": "sha256:96a0e2940b756869524de90c009066e0836ce0ab2374371119409c1e0f90be5e",
+            "start": 3,
+            "end": 3,
+            "quote": "마루40의 문서상 묶음 상한은 60개입니다."
+          }
+        ]
+      },
+      {
+        "alternatives": [
+          {
+            "page": "openwiki/40-control-M040.md",
+            "sourceHash": "sha256:868b8e7bb5038f7aca5ad2e36c8902954881ab917aa2a2bb751fdbc8853b0111",
+            "start": 3,
+            "end": 3,
+            "quote": "src/limits/M040.mjs:1의 batchLimit 값은 61입니다. 문서와 구현의 값이 다릅니다."
+          }
+        ]
+      }
+    ],
+    "requiredFacts": [
+      "마루40의 문서상 묶음 상한은 60개입니다.",
+      "src/limits/M040.mjs:1의 batchLimit 값은 61입니다. 문서와 구현의 값이 다릅니다."
+    ],
+    "forbiddenClaims": [],
+    "tags": [
+      "two-sources"
+    ]
+  }
+]

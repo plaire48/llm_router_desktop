@@ -16,7 +16,7 @@ export class AnswerSources {
   file(row,kind='file') {
     if(!filePath(row?.path)||typeof row.hash!=='string'||!row.hash||typeof (row.content??row.excerpt)!=='string'||!(row.content??row.excerpt).trim())return null;
     const start=row.provenance?.start??row.start,end=row.provenance?.end??row.end;
-    return this.add({kind,path:row.path,hash:row.hash,title:clean(row.title)||row.path.split('/').at(-1),...(positive(start)?{start}:{}),...(positive(end)?{end}:{}),...(row.freshness?{freshness:row.freshness}:{}),...(row.evidenceId?{evidenceId:row.evidenceId}:{}),...(row.openwikiId?{openwikiId:row.openwikiId}:{})});
+    return this.add({kind,path:row.path,hash:row.hash,title:clean(row.title)||row.path.split('/').at(-1),...(positive(start)?{start}:{}),...(positive(end)?{end}:{}),...(row.freshness?{freshness:row.freshness}:{}),...(row.claimVerification?.state==='unverified'||row.claimVerification?.state==='recorded'?{claimVerification:{state:row.claimVerification.state}}:{}),...(row.evidenceId?{evidenceId:row.evidenceId}:{}),...(row.openwikiId?{openwikiId:row.openwikiId}:{})});
   }
   mail(value) {
     if(!/^[a-f0-9]{64}$/.test(value?.id||'')||typeof value.sourceHash!=='string')return [];

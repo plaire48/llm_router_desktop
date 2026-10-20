@@ -17,6 +17,9 @@ export function wikiUpdateView({status,update,initialization}){
     const safeCode=/^[a-z_]{1,80}$/.test(update.error||'')?update.error:'wiki_update_failed';
     return {title:update.state==='partial'?'위키 일부 반영 완료':'위키 갱신 일시 중지',lines:[completed||'작성한 문서를 보관했어요.','남은 작업부터 이어갑니다. 결과는 확인 후 반영합니다.'],detail:update.error?ERROR[update.error]||`오류: ${safeCode}`:null,diagnostic:update.error?{stage:STAGE[update.stage||last?.stage]||'갱신 준비',code:safeCode}:null,pages:[],actions:['resume','restart','discard']};
   }
+  if(update?.state==='proposed'&&update.coverageFiles?.length){
+    return {title:'빠진 파일 보강 제안',lines:[`선택한 소스 ${update.coverageFiles.length}개를 정리합니다.`,'로그인한 모델이 복사본에서 작성합니다. 실행 후 결과를 확인하고 반영합니다.'],pages:update.coverageFiles.slice(0,20).map(path=>({path,label:'소스'})),actions:['run','discard']};
+  }
   if(update?.state==='running'){
     const last=[...(update.events||[])].reverse().find(event=>event.type==='progress');
     const stage=last?(STAGE[last.stage]||last.stage)+(last.index&&last.total?` ${last.index}/${last.total}`:'')+(last.page?`: ${last.page}`:''):'준비';

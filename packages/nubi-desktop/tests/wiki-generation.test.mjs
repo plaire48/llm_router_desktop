@@ -24,7 +24,7 @@ test('changing wiki settings during a wiki run is refused without changing next-
 
 
 test('ChatGPT wiki settings retain wished tokens and expose server default as the applied cap',async t=>{
- const {service}=await fixture(t),p=createProviders({chatGPTLogin:async()=>({result:Promise.resolve({token:'synthetic',expiresAt:Date.now()+3600000}),cancel(){}}),chatGPTModels:()=>({payload:{modelList:[{name:'synthetic-chat',supported_reasoning_levels:['low']}]}})});t.after(()=>p.dispose());await p.login('chatgpt');await new Promise(r=>setImmediate(r));service.providers=p;
+ const {service}=await fixture(t),p=createProviders({startLogin:async()=>({result:Promise.resolve({token:'synthetic',models:[{id:'synthetic-api',maxOutputTokens:24576}]}),cancel(){}}),chatGPTLogin:async()=>({result:Promise.resolve({token:'synthetic',expiresAt:Date.now()+3600000}),cancel(){}}),chatGPTModels:()=>({payload:{modelList:[{name:'synthetic-chat',supported_reasoning_levels:['low']}]}})});t.after(()=>p.dispose());await p.login('chatgpt');await new Promise(r=>setImmediate(r));service.providers=p;
  const view=await service.invoke('wikiGeneration',{action:'set',value:{provider:'chatgpt',model:'synthetic-chat',pageMaxTokens:16384}});
- assert.equal(view.settings.pageMaxTokens,16384);assert.equal(view.applied.pageMaxTokens,null);assert.equal(view.models[0].pageOutputConfigurable,false);
+ assert.equal(view.settings.pageMaxTokens,16384);assert.equal(view.applied.pageMaxTokens,null);assert.equal(view.models[0].pageOutputConfigurable,false);await p.login('aipro');await new Promise(r=>setImmediate(r));const restored=await service.invoke('wikiGeneration',{action:'set',value:{...view.settings,provider:'aipro',model:'synthetic-api'}});assert.equal(restored.settings.pageMaxTokens,16384);assert.equal(restored.applied.pageMaxTokens,16384);assert.equal(restored.models.find(m=>m.provider==='aipro').pageOutputConfigurable,true);
 });

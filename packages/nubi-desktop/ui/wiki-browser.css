@@ -141,3 +141,6 @@
 /* The wiki owns its scrollports. SVG/sticky-table overflow must never scroll
    the outer desktop shell when a table control receives focus. */
 .desktop-shell:has(.nubi-wiki-browser){overflow:clip}
+
+/* The Wiki owns scrolling; checkbox focus cannot move the outer agent shell. */
+.desktop-shell .nubi-workbench:has(.nubi-wiki-browser){overflow:clip}

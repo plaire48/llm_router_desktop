@@ -4,12 +4,7 @@ import {CxButton, Icon} from '@e2e/cx-design-system';
 import {notifyWorkspaceToast} from './WorkspaceToast.jsx';
 import {AnchoredDialog} from './AnchoredDialog.jsx';
 
-const OPTIONS = {
-  aipro: [{id:'low', label:'Low'}, {id:'medium', label:'Medium'}, {id:'xhigh', label:'Extra high'}],
-  chatgpt: [{id:'low', label:'Light'}, {id:'medium', label:'Medium'}, {id:'high', label:'High'}, {id:'xhigh', label:'Extra high'}, {id:'max', label:'Ultra'}],
-  claude: [{id:'low',label:'Low'}, {id:'medium',label:'Medium'}, {id:'high',label:'High'}, {id:'xhigh',label:'Xhigh'}, {id:'max',label:'Max'}]
-};
-const DEFAULTS = {aipro:'medium', chatgpt:'medium', claude:'medium'};
+import {REASONING_OPTIONS as OPTIONS,REASONING_DEFAULTS as DEFAULTS,reasoningLabel} from './reasoning-labels.mjs';
 const ADJUST_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown']);
 
 function readStored(provider) {
@@ -19,7 +14,7 @@ function readStored(provider) {
 
 export function ReasoningPicker({api, provider, disabled}) {
   const claude=provider?.provider==='claude';
-  const optional = provider?.provider === 'chatgpt' && provider?.connected ? [{id:'none',label:'None'},{id:'minimal',label:'Minimal'}].filter(item=>provider.reasoningOptions?.includes(item.id)) : [];
+  const optional = provider?.provider === 'chatgpt' && provider?.connected ? ['none','minimal'].filter(id=>provider.reasoningOptions?.includes(id)).map(id=>({id,label:reasoningLabel('chatgpt',id)})) : [];
   const options = claude
     ? (provider.reasoningOptions || []).map(id => OPTIONS.claude.find(item => item.id === id)).filter(Boolean)
     : [...optional, ...(OPTIONS[provider?.provider] || []).filter(item => !provider?.connected || !Array.isArray(provider.reasoningOptions) || provider.reasoningOptions.includes(item.id))];

@@ -14,3 +14,6 @@
 
 
  :root:root .deck-dialog .nubi-library[data-model-picker-open]>:not(.nubi-wiki-generation){display:none}
+
+.nubi-wiki-model-heading{display:flex;align-items:center;gap:var(--cx-space-2)}
+:root:root .deck-dialog .nubi-wiki-response-limits select{background:var(--deck-card)}
