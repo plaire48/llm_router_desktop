@@ -20,5 +20,5 @@ try{
     development=path.join(temp,'test-driver');await mkdir(development);
     await writeFile(path.join(development,'package.json'),JSON.stringify({name:'nubi-verification-driver',publisher:'nubi-test',version:'0.0.0',engines:{vscode:'^1.100.0'}}));
   }
-  await runTests({vscodeExecutablePath:executable,extensionDevelopmentPath:development,extensionTestsEnv:{NUBI_TEST_CDP_PORT:String(debugPort),NUBI_TEST_INSTALLED:process.env.NUBI_TEST_VSIX?'1':'0'},extensionTestsPath:path.resolve('tests/vscode-suite.cjs'),launchArgs:[root,'--remote-debugging-port='+debugPort,...(process.env.NUBI_TEST_VSIX?[]:['--disable-extensions']),'--disable-workspace-trust','--skip-welcome','--skip-release-notes',...profile]});
+  await runTests({vscodeExecutablePath:executable,extensionDevelopmentPath:development,extensionTestsEnv:{NUBI_TEST_CDP_PORT:String(debugPort),NUBI_TEST_DESIGN:process.env.NUBI_TEST_DESIGN||'0',NUBI_TEST_INSTALLED:process.env.NUBI_TEST_VSIX?'1':'0'},extensionTestsPath:path.resolve('tests/vscode-suite.cjs'),launchArgs:[root,'--remote-debugging-port='+debugPort,...(process.env.NUBI_TEST_VSIX?[]:['--disable-extensions']),'--disable-workspace-trust','--skip-welcome','--skip-release-notes',...profile]});
 }finally{await rm(temp,{recursive:true,force:true});}

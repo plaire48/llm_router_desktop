@@ -1,0 +1,13 @@
+{
+  "$schema": "vscode://schemas/color-theme",
+  "name": "Nubi editor",
+  "tokenColors": [
+    {"scope": ["comment", "punctuation.definition.comment"], "settings": {"foreground": "#4E5968"}},
+    {"scope": ["keyword", "storage"], "settings": {"foreground": "#1B64DA"}},
+    {"scope": ["string"], "settings": {"foreground": "#116B48"}},
+    {"scope": ["constant.numeric", "constant.language"], "settings": {"foreground": "#6750B4"}},
+    {"scope": ["entity.name.function", "support.function"], "settings": {"foreground": "#79501A"}},
+    {"scope": ["entity.name.type", "support.type"], "settings": {"foreground": "#126678"}}
+  ],
+  "semanticHighlighting": true
+}
