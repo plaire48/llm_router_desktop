@@ -84,7 +84,7 @@ export function createProcedureHost({page:pageOption,origin,allowedOrigins=[orig
           const frame=await handle.ownerFrame();if(!frame)return;
           // Every like control of the frame is listed with the pressed one, so recordTarget can keep its ordinal among
           // identical siblings (two unnamed checkboxes, a column of 삭제 buttons). Browser teach plan T2, 2026-10-21.
-          const rows=await handle.evaluate(el=>{const info=e=>({tag:e.tagName.toLowerCase(),type:e instanceof HTMLInputElement?e.type:'',role:e.getAttribute('role')??'',name:(e.getAttribute('aria-label')??e.getAttribute('title')??e.textContent??'').trim().slice(0,120),context:(e.closest('tr')?.innerText??e.parentElement?.innerText??'').trim().slice(0,240),editable:e instanceof HTMLTextAreaElement||e instanceof HTMLInputElement||e.isContentEditable,disabled:e.disabled===true,readOnly:e.readOnly===true});const all=Array.from(document.querySelectorAll('input:not([type=hidden]),textarea,button,select,a[href],[contenteditable=true],[onclick],[tabindex]')).slice(0,400);return {at:all.indexOf(el),items:all.map(info),self:info(el)};});
+          const rows=await handle.evaluate(el=>{const label=e=>{const id=e.getAttribute('id');const forLabel=id?document.querySelector('label[for="'+id.replace(/"/g,'')+'"]'):null;return (forLabel?.innerText??e.closest('label')?.innerText??'').trim();};const info=e=>({tag:e.tagName.toLowerCase(),type:e instanceof HTMLInputElement?e.type:'',role:e.getAttribute('role')??'',name:(e.getAttribute('aria-label')??e.getAttribute('title')??(e instanceof HTMLInputElement||e instanceof HTMLTextAreaElement||e instanceof HTMLSelectElement?(label(e)||e.getAttribute('placeholder')||''):e.textContent)??'').trim().slice(0,120),context:(e.closest('tr')?.innerText??e.parentElement?.innerText??'').trim().slice(0,240),editable:e instanceof HTMLTextAreaElement||e instanceof HTMLInputElement||e.isContentEditable,disabled:e.disabled===true,readOnly:e.readOnly===true});const all=Array.from(document.querySelectorAll('input:not([type=hidden]),textarea,button,select,a[href],[contenteditable=true],[onclick],[tabindex]')).slice(0,400);return {at:all.indexOf(el),items:all.map(info),self:info(el)};});
           const items=rows.items.map((c,index)=>element({...c,targetId:index===rows.at?action.arguments.targetId:'sibling-'+index}));
           const found=rows.at>=0?items[rows.at]:element({...rows.self,targetId:action.arguments.targetId});
           const current={frames:[{frame:frame===page.mainFrame()?0:1,url:frameRoute(frame),elements:rows.at>=0?items:[found]}]};
@@ -95,6 +95,8 @@ export function createProcedureHost({page:pageOption,origin,allowedOrigins=[orig
   }
   return {memory,drafts,cards,view,captureErrors,get lastCandidate(){return lastCandidate;},get captureCount(){return captureCount;},
     review(){if(drafts.length!==1)throw Error('one_candidate_required');const card={...structuredClone(drafts[0]),status:'reviewed'};cards.set(card.id,card);return card;},
+    // A demonstrated card (teach plan T3) enters the store as reviewed, as a person's test run would mark it.
+    adopt(card){const reviewed={...structuredClone(card),status:'reviewed'};cards.set(reviewed.id,reviewed);return reviewed;},
     revoke(){enabled=false;revision++;},
   };
 }

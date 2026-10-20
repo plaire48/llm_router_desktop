@@ -21,12 +21,14 @@ import {createPlaywrightMcpPort} from '../../dist/playwright.js';
 import {hostFixture} from '../../tests/host.mjs';
 import {createProcedureHost} from '../../evaluation/procedure-host.mjs';
 import {tasks} from './tasks.mjs';
+import {createDemonstration} from '../../dist/demonstration.js';
+import {recordStep,recordTarget} from '../../../../extensions/aipro-chat/browser-replay.js';
 
 const option=name=>{const at=process.argv.indexOf('--'+name);return at>=0?process.argv[at+1]:undefined;};
 const flag=name=>process.argv.includes('--'+name);
 const out=option('out')&&resolve(option('out'));if(!out){console.error('사용법: node eval/quality/run.mjs --out <dir> [--only id,id] [--repeat N] [--timeout-s S] [--headed]');process.exit(2);}
 const only=option('only')?.split(',').filter(Boolean),repeat=Number(option('repeat')||1),timeoutMs=Number(option('timeout-s')||180)*1000;
-const selected=tasks.filter(task=>!only||only.includes(task.id)),teach=flag('teach');
+const selected=tasks.filter(task=>!only||only.includes(task.id)),teach=flag('teach'),demo=flag('demo');
 await mkdir(out,{recursive:true});
 const report={schemaVersion:1,startedAt:new Date().toISOString(),actualModel:true,actualBrowser:true,publicSitesOnly:true,trials:[]};
 const persist=()=>writeFile(resolve(out,'report.json'),JSON.stringify(report,null,1));
@@ -102,7 +104,31 @@ try{
    console.log(JSON.stringify({task:task.id,phase:'direct',success:row.success,ms:row.totalMs,toolCalls:row.toolCalls,error:row.error,replay:row.replay,oracle:row.oracle?.detail}));}
   return row;
  };
+ // Demonstration arm (teach plan T3): a scripted person performs the task while the recorder listens; the card it
+ // yields is adopted as reviewed and replayed directly with no model.
+ const demonstrate=async(task,index)=>{
+  const row={index,taskId:task.id,title:task.title,phase:'demo',success:false,events:0,steps:0,error:null,totalMs:null};report.trials.push(row);
+  const context=await browser.newContext({locale:'ko-KR',viewport:{width:1280,height:900}}),page=await context.newPage();const started=performance.now();
+  try{
+   const recorder=await createDemonstration({page,recorder:{recordStep,recordTarget},allowUrl:url=>{try{return task.origins.includes(new URL(url).origin);}catch{return false;}}});
+   await page.goto(task.url,{waitUntil:'domcontentloaded',timeout:30000});
+   recorder.start();await task.demo(page);await page.waitForTimeout(300);const events=recorder.stop();
+   row.events=events.length;const card=recorder.card({id:'demo-'+task.id,title:task.title,wikiRef:{id:'evaluation-wiki',version:1}});
+   row.steps=card?.steps.length??0;row.inputs=card?.inputs.length??0;row.success=!!card;row.card=card;
+  }catch(error){row.error=error.code??error.message;}
+  finally{row.totalMs=Math.round(performance.now()-started);await context.close().catch(()=>{});await persist();console.log(JSON.stringify({task:task.id,phase:'demo',card:!!row.card,events:row.events,steps:row.steps,inputs:row.inputs,error:row.error}));}
+  return row;
+ };
  for(let index=1;index<=repeat;index++)for(const task of selected){
+  if(demo){
+   if(typeof task.demo!=='function'){console.log(JSON.stringify({task:task.id,phase:'demo',skipped:true}));continue;}
+   const shown=await demonstrate(task,index);if(!shown.card)continue;
+   const pageRef={page:null};const learning=createProcedureHost({page:()=>pageRef.page,origin:task.origins[0],allowedOrigins:task.origins,projectId:'public-quality',title:task.title,qualification:true});
+   Object.assign(learning,{pageRef});const reviewed=learning.adopt(shown.card);
+   const direct=await directReplay(task,index,learning,reviewed);
+   console.log(JSON.stringify({task:task.id,phase:'demo-direct',success:direct.success,ms:direct.totalMs,steps:reviewed.steps.length}));
+   continue;
+  }
   if(!teach){await trial(task,index,'single',null);continue;}
   // Teach arm: learn with the model, review the one draft, then reuse without it.
   const pageRef={page:null};

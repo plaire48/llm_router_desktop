@@ -4,10 +4,10 @@
 // A null answer means the run produced no answer (direct script replay): only the page state is judged.
 const answerHas=(answer,text)=>answer===null||answer===undefined?true:String(answer).includes(text);
 export const tasks=Object.freeze([
-  {id:'inputs',slotValues:["42"],title:'숫자 입력',origins:['https://the-internet.herokuapp.com'],url:'https://the-internet.herokuapp.com/inputs',
+  {id:'inputs',demo:async page=>{await page.locator('input[type=number]').fill('42');await page.locator('input[type=number]').dispatchEvent('change');},slotValues:["42"],title:'숫자 입력',origins:['https://the-internet.herokuapp.com'],url:'https://the-internet.herokuapp.com/inputs',
     request:'이 페이지의 숫자 입력란에 42를 입력하세요. 입력이 끝나면 "입력 완료"라고 답하세요.',
     async oracle(page){const value=await page.locator('input[type=number]').inputValue();return {success:value==='42',detail:{value}};}},
-  {id:'dropdown',slotValues:["2"],title:'드롭다운 선택',origins:['https://the-internet.herokuapp.com'],url:'https://the-internet.herokuapp.com/dropdown',
+  {id:'dropdown',demo:async page=>{await page.locator('#dropdown').selectOption('2');},slotValues:["2"],title:'드롭다운 선택',origins:['https://the-internet.herokuapp.com'],url:'https://the-internet.herokuapp.com/dropdown',
     request:'드롭다운에서 "Option 2"를 선택하고 선택한 값을 답하세요.',
     async oracle(page,answer){const value=await page.locator('#dropdown').inputValue();return {success:value==='2'&&answerHas(answer,'Option 2'),detail:{value}};}},
   {id:'checkboxes',title:'체크박스 둘 다 켜기',origins:['https://the-internet.herokuapp.com'],url:'https://the-internet.herokuapp.com/checkboxes',
@@ -25,13 +25,13 @@ export const tasks=Object.freeze([
   {id:'wiki-fact',title:'위키백과 사실 읽기',origins:['https://ko.wikipedia.org'],url:'https://ko.wikipedia.org/wiki/%EB%8C%80%ED%95%9C%EB%AF%BC%EA%B5%AD',
     request:'이 문서의 정보 상자에서 수도가 어디인지 찾아 도시 이름만 답하세요.',
     async oracle(page,answer){const row=await page.locator('table.infobox tr').filter({hasText:'수도'}).first().innerText().catch(()=>'');return {success:/서울/.test(row)&&answerHas(answer,'서울'),detail:{row:row.slice(0,80)}};}},
-  {id:'text-box',slotValues:["홍길동","hong@example.com","서울시 중구 세종대로 110"],title:'양식 채우고 제출',origins:['https://demoqa.com'],url:'https://demoqa.com/text-box',
+  {id:'text-box',demo:async page=>{for(const [sel,v] of [['#userName','홍길동'],['#userEmail','hong@example.com'],['#currentAddress','서울시 중구 세종대로 110']]){await page.locator(sel).fill(v);await page.locator(sel).dispatchEvent('change');}await page.locator('#submit').click();},slotValues:["홍길동","hong@example.com","서울시 중구 세종대로 110"],title:'양식 채우고 제출',origins:['https://demoqa.com'],url:'https://demoqa.com/text-box',
     request:'Full Name에 "홍길동", Email에 "hong@example.com", Current Address에 "서울시 중구 세종대로 110"을 입력하고 Submit을 누르세요. 제출 뒤 화면에 표시된 이름을 답하세요.',
     async oracle(page,answer){const out=await page.locator('#output').innerText().catch(()=>'');return {success:out.includes('홍길동')&&out.includes('hong@example.com')&&answerHas(answer,'홍길동'),detail:{out:out.slice(0,120)}};}},
-  {id:'key-press',title:'키 입력 결과 읽기',origins:['https://the-internet.herokuapp.com'],url:'https://the-internet.herokuapp.com/key_presses',
+  {id:'key-press',demo:async page=>{await page.locator('#target').click();await page.locator('#target').press('Tab');},title:'키 입력 결과 읽기',origins:['https://the-internet.herokuapp.com'],url:'https://the-internet.herokuapp.com/key_presses',
     request:'입력란을 선택한 뒤 Tab 키를 한 번 누르고, 페이지가 보여 주는 결과 문구를 그대로 답하세요.',
     async oracle(page,answer){const result=await page.locator('#result').innerText().catch(()=>'');return {success:/TAB/.test(result)&&answerHas(answer,'TAB'),detail:{result}};}},
-  {id:'status-404',title:'링크 따라가 설명 읽기',origins:['https://the-internet.herokuapp.com'],url:'https://the-internet.herokuapp.com/status_codes',
+  {id:'status-404',demo:async page=>{await page.getByRole('link',{name:'404'}).click();},title:'링크 따라가 설명 읽기',origins:['https://the-internet.herokuapp.com'],url:'https://the-internet.herokuapp.com/status_codes',
     request:'"404" 링크를 눌러 들어간 뒤, 그 페이지가 설명하는 문장을 한 줄로 요약해 답하세요. 404라는 숫자가 들어가야 합니다.',
     async oracle(page,answer){const url=page.url();return {success:/\/status_codes\/404$/.test(url)&&answerHas(answer,'404'),detail:{url}};}},
 ]);
