@@ -36,6 +36,7 @@ jobs:
           npm ci --prefix ../../extensions/aipro-chat --ignore-scripts
           npm ci --prefix ../nubi-a2a --ignore-scripts
           npm ci --prefix ../nubi-document-agent --ignore-scripts
+          npm ci --prefix ../nubi-office --ignore-scripts
           npm ci
       - name: Install locked OpenWiki dependencies
         working-directory: packages/openwiki
