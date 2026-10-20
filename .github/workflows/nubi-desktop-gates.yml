@@ -1,0 +1,65 @@
+name: Nubi Desktop gates
+on:
+  push:
+    branches:
+      - main
+  pull_request: null
+  workflow_dispatch: null
+permissions:
+  contents: read
+concurrency:
+  group: desktop-gates-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  gates-fast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    defaults:
+      run:
+        shell: bash
+        working-directory: packages/nubi-desktop
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+          cache: npm
+          cache-dependency-path: |
+            packages/nubi-desktop/package-lock.json
+            extensions/aipro-chat/package-lock.json
+            packages/nubi-a2a/package-lock.json
+            packages/nubi-document-agent/package-lock.json
+      - name: Install locked dependencies
+        run: |
+          npm ci --prefix ../../extensions/aipro-chat --ignore-scripts
+          npm ci --prefix ../nubi-a2a --ignore-scripts
+          npm ci --prefix ../nubi-document-agent --ignore-scripts
+          npm ci
+      - name: Install locked OpenWiki dependencies
+        working-directory: packages/openwiki
+        run: |
+          npm install --global pnpm@11.25.0
+          pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install Chrome channel
+        run: npx --no-install playwright install --with-deps chrome
+      - name: Check gate coverage
+        run: node scripts/check-gate-coverage.mjs
+      - name: Run fast gates
+        run: npm run test:gates:fast
+        timeout-minutes: 20
+      - name: Preserve failed-check screenshots and measurements
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nubi-desktop-fast-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            packages/nubi-desktop/verification/**/*.png
+            packages/nubi-desktop/verification/**/*.json
+            packages/nubi-desktop/verification/**/*.cpuprofile
+            packages/nubi-desktop/verification/**/*.log
+          retention-days: 7
+          if-no-files-found: warn
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
