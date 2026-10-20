@@ -65,10 +65,14 @@ try{
   const opener=page.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await opener.count())await opener.click();
   await page.getByRole('button',{name:'대화 검색',exact:true}).click();
   await page.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').first().click();
+  await page.setViewportSize({width:1280,height:900});
   await page.getByRole('button',{name:'설정',exact:true}).click();
   const setting=page.getByLabel('편집 뒤 자동 검사',{exact:true});await setting.fill('node --version');
   await setting.locator('xpath=ancestor::form').getByRole('button',{name:'저장',exact:true}).click();
   await page.waitForFunction(async()=>{const state=await window.nubi.request('state',{});return state.afterEditCheck?.script==='node --version';});
+  const sidebarLabels=await page.locator('.nubi-sidebar-quick-actions button').evaluateAll(buttons=>buttons.map(button=>{const b=button.getBoundingClientRect(),span=button.querySelector('span'),r=span?.getBoundingClientRect();return {left:b.left,right:b.right,labelLeft:r?.left,labelRight:r?.right};}));
+  assert(sidebarLabels.length>1&&sidebarLabels.every((b,i)=>!i||b.left>=sidebarLabels[i-1].right-1)&&sidebarLabels.every(b=>b.labelLeft===undefined||b.labelLeft>=b.left-1&&b.labelRight<=b.right+1),'actual1280 sidebar labels stay inside their own buttons under settings');
+  await writeFile(path.join(evidence,'settings-sidebar-1280.json'),JSON.stringify(sidebarLabels,null,2));
   await page.screenshot({path:path.join(evidence,'after-edit-settings.png'),animations:'disabled'});
   await page.keyboard.press('Escape');
   await page.getByRole('button',{name:'오른쪽 사이드바 닫기',exact:true}).click();

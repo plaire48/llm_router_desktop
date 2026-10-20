@@ -18,7 +18,9 @@ export function parseProcessLoad(output){
  }).sort((a,b)=>b.cpuPercent-a.cpuPercent||a.pid-b.pid).slice(0,10);
 }
 export async function captureSystemLoad(){
- const result={at:new Date().toISOString(),loadavg:os.loadavg(),cpuCount:os.cpus().length,processes:[],processError:null};
+ const supported=os.platform()!=='win32';
+ const result={at:new Date().toISOString(),loadavg:os.loadavg(),loadavgStatus:supported?'available':'unsupported',cpuCount:os.cpus().length,processes:[],processError:supported?null:'process_load_unsupported'};
+ if(!supported)return result;
  try{
   // comm contains executable names, not command arguments or environment values.
   const {stdout}=await execute('ps',['-axo','pid=,ppid=,pcpu=,pmem=,comm='],{timeout:5000,maxBuffer:2*1024*1024});
@@ -26,7 +28,28 @@ export async function captureSystemLoad(){
  }catch(error){result.processError=String(error.code||'process_load_unavailable');}
  return result;
 }
+export const SCENE_LOAD_LIMIT=4;
+export function sceneEnvironmentState(samples=[]){
+ const usable=samples.filter(s=>s.status!=='unavailable'&&s.loadavgStatus==='available'&&Array.isArray(s.loadavg)&&s.loadavg.length===3&&s.loadavg.every(Number.isFinite));
+ const excessive=usable.filter(s=>s.loadavg[0]>SCENE_LOAD_LIMIT),peak=usable.length?Math.max(...usable.map(s=>s.loadavg[0])):null;
+ return {status:excessive.length?'environment_unstable':usable.length?'ready':'unavailable',reasons:excessive.length?[{code:'loadavg_exceeded',threshold:SCENE_LOAD_LIMIT,firstExceededAt:excessive[0].at,peakLoadavg:peak}]:[]};
+}
+// Control-process diagnostics only: no renderer subprocesses, no overlapping ps,
+// no retries or invented zeroes. A delayed capture remains an explicit sample.
+export function createSceneLoadSampler({capture=captureSystemLoad,intervalMs=1000,context={}}={}){
+ const samples=[];let timer,pending,stopped=false,ending;const epoch=performance.now();
+ const collect=async stage=>{const start=performance.now();let value;try{value={status:'available',...await capture()};}catch(error){value={status:'unavailable',error:String(error.code||'collector_failed')};}const captureMs=performance.now()-start;samples.push({...value,...context,stage,at:value.at||new Date().toISOString(),elapsedMs:start-epoch,captureMs,delayed:captureMs>intervalMs});};
+ const schedule=()=>{if(!stopped)timer=setTimeout(()=>{pending=collect('during');pending.finally(schedule);},intervalMs);};
+ return {async start(){if(pending||stopped)return;pending=collect('scene-start');await pending;schedule();},stop(){if(!ending)ending=(async()=>{stopped=true;clearTimeout(timer);await pending;await collect('scene-end');return samples;})();return ending;}};
+}
+const timingFailures=new Set(['long_tasks','freezes','startup_freeze','missed_frames','consecutive_missed_frames','frame_max','input_delay']);
+export function classifyFreezeResults({results=[],errors=[],baseline=false}={}){
+ if(errors.length||results.some(r=>r.pageErrors?.length))return 1;
+ const noisy=row=>row.environmentReasons?.some(r=>r.code==='loadavg_exceeded');
+ for(const row of results){const violations=row.violations||[];if(violations.some(v=>!timingFailures.has(v)))return 1;if(!baseline&&violations.length&&!noisy(row))return 1;}
+ return results.some(noisy)?2:0;
+}
 export function freezeExitCode(error,{results=[],errors=[],baseline=false}={}){
- const productFailed=errors.length||!baseline&&results.some(row=>row.violations.length);
- return error?.code==='environment_unstable'&&!productFailed?2:1;
+ const outcome=classifyFreezeResults({results,errors,baseline});
+ return error?.code==='environment_unstable'&&outcome!==1?2:1;
 }

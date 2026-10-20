@@ -1,3 +1,4 @@
+import {folderPlanningContext} from './wiki-folder-plan.mjs';
 import {notifyWikiCompleted} from './wiki-notification.mjs';
 import {requireWikiGit} from './git-runtime.mjs';
 import {pullSources} from './wiki-refresh.mjs';
@@ -94,7 +95,7 @@ export async function prepareNativeWikiCopy(root,mode='update'){
 // stage, page and position, never page text.
 export function defaultWikiUpdater(service,{load=()=>import('../generated/openwiki-update/index.mjs')}={}){
   // mode init serves only the evaluation, which generates the Wiki that it then updates.
-  return async({root,language,signal,onEvent,updateId,mode='update'})=>{
+  return async({root,language,signal,onEvent,updateId,mode='update',repositoryPlan,planningContext,force=false})=>{
     const status=service.providers?.status?.();
     if(!status?.connected)fail('model_unavailable');
     onEvent?.({type:'progress',stage:'preparing_runtime'});
@@ -146,9 +147,10 @@ export function defaultWikiUpdater(service,{load=()=>import('../generated/openwi
       if(event?.name==='review_page'&&event.type==='tool_start')onEvent?.({type:'progress',stage:'reviewing',...pageProgress,page:String(event.page||pageProgress.page||'').slice(0,300)});
       if(event?.type==='repository_progress')onEvent?.({type:'progress',stage:String(event.stage),...(typeof event.page==='string'?{page:event.page.slice(0,300)}:{}),...(Number.isSafeInteger(event.pageIndex)?{index:event.pageIndex}:{}),...(Number.isSafeInteger(event.pageCount)?{total:event.pageCount}:{}),...(Number.isSafeInteger(event.completedPages)?{completed:event.completedPages}:{})});
     };
-    const repositoryContext=createWikiCodeContext(root,{signal});
+    const codeContext=createWikiCodeContext(root,{signal});
+    const repositoryContext=async request=>(repositoryPlan?folderPlanningContext(repositoryPlan.plan,{folders:repositoryPlan.folders})+'\n':'')+await codeContext(request);
     let result;
-    try{result=await runNativeRepositoryGeneration({root,mode,language:language||null,modelId:status.model,model,onEvent:progress,repositoryContext});}
+    try{result=await runNativeRepositoryGeneration({root,mode,language:language||null,modelId:status.model,model,onEvent:progress,repositoryContext,planningContext,force});}
     catch(error){throw terminalModelError||error;}
     // OpenWiki may return after skipping failed pages. Keep the durable run for
     // resume instead of publishing a partial generation as a completed Wiki.

@@ -54,3 +54,9 @@ export function markWikiInitGenerated(store,directory){
  const record=store.get(KEY);if(location(store,record)!==directory)throw Error('project_changed');
  store.set(KEY,{...record,generated:true});
 }
+
+// Persist before extending the owned source copy so a crash keeps pages for preparation resume.
+export function markWikiInitCheckpointPreparing(store,directory){
+ const record=store.get(KEY);if(location(store,record)!==directory)throw Error('project_changed');
+ store.set(KEY,{...record,ready:false});
+}

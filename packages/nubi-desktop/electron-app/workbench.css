@@ -43,7 +43,7 @@
 .nubi-message p { margin:var(--cx-space-2) 0; }
 .nubi-message pre { overflow:auto; }
 .nubi-live { display:flex; gap:calc(var(--cx-space-1) * 2.5); align-items:center; color:var(--deck-blue-deep); padding:var(--cx-space-4) 0; font-size:var(--cx-type-body); }
-.nubi-pulse { width:8px; height:8px; border-radius:50%; background:var(--deck-blue); animation:nubi-pulse 1.6s ease-in-out infinite; }
+.nubi-pulse { width:8px; height:8px; border-radius:50%; background:var(--deck-blue); animation:nubi-live-breathe var(--nubi-ambient-progress) var(--nubi-ease-out) infinite; animation-play-state:var(--nubi-ambient-play); }
 @keyframes nubi-pulse { 50% {opacity:.35;transform:scale(.8);} }
 .nubi-question { display:grid; gap:var(--cx-space-3); margin:var(--cx-space-5) 0; padding:calc(var(--cx-space-1) * 5.5); border-radius:var(--deck-panel-radius); background:var(--deck-card); }
 .nubi-results { margin:var(--cx-space-6) 0; }
@@ -106,8 +106,8 @@
 .nubi-workbench { background:var(--deck-background); }
 
 .nubi-panel { font-family:var(--cx-font-family); }
-.nubi-results article:nth-of-type(2) {animation-delay:110ms;}
-.nubi-results article:nth-of-type(3) {animation-delay:220ms;}
+.nubi-results article:nth-of-type(2) {animation-delay:var(--nubi-motion-delay);}
+.nubi-results article:nth-of-type(3) {animation-delay:var(--nubi-motion-delay);}
 
 #nubi-workspace { overflow:auto; min-width:0; }
 

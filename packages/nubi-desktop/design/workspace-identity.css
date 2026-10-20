@@ -725,7 +725,7 @@
 .nubi-sidebar-quick-actions { justify-content:flex-end; margin:0 0 var(--cx-space-2); }
 .nubi-sidebar-new.cx-kit-button { display:flex; align-items:center; justify-content:flex-start; gap:var(--cx-space-2); flex:1; background:var(--deck-card); border:1px solid var(--deck-line); color:var(--deck-ink); }
 .nubi-sidebar-new[aria-current="page"].cx-kit-button { border-color:var(--deck-blue-deep); color:var(--deck-blue-deep); }
-.nubi-sidebar-actions :is(.nubi-sidebar-folder-picker,.nubi-sidebar-search).cx-kit-button { flex:none; width:36px; min-width:36px; height:40px; min-height:40px; padding:var(--cx-space-2); color:var(--deck-sub); background:transparent; border-color:transparent; box-shadow:none; }
+.nubi-sidebar-actions :is(.nubi-sidebar-folder-picker,.nubi-sidebar-search).cx-kit-button { flex:none; width:auto; white-space:nowrap; min-width:36px; height:40px; min-height:40px; padding:var(--cx-space-2); color:var(--deck-sub); background:transparent; border-color:transparent; box-shadow:none; }
 .nubi-sidebar-quick-actions .cx-action-button { flex:none; width:32px; min-width:32px; height:36px; min-height:36px; padding:var(--cx-space-2); color:var(--deck-sub); background:transparent; border:0; box-shadow:none; }
 /* Conversation list (user decision 2026-09-30): one list by date as in the browser agent's history. No side bar: the
    current conversation is the soft blue row. The trash icon shows on hover, focus and the current row. */

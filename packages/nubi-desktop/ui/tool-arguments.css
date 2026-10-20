@@ -1,7 +1,7 @@
 .nubi-tool-arguments { min-width:0; max-width:100%; color:var(--nubi-text-secondary); font:var(--deck-font-caption); }
 .nubi-tool-arguments>summary { display:flex; align-items:center; gap:var(--cx-space-2); min-width:0; padding-block:var(--cx-space-2); cursor:pointer; list-style:none; }
 .nubi-tool-arguments>summary::-webkit-details-marker { display:none; }
-.nubi-tool-arguments>summary>svg { flex:none; margin-left:auto; transition:transform 160ms ease; }
+.nubi-tool-arguments>summary>svg { flex:none; margin-left:auto; transition:transform var(--nubi-motion-state) var(--nubi-ease-out); }
 .nubi-tool-arguments[open]>summary>svg { transform:rotate(180deg); }
 .nubi-tool-arguments-title { display:flex; align-items:center; gap:var(--cx-space-2); font-weight:var(--nubi-weight-label); }
 .nubi-tool-arguments-title small { font:inherit; font-weight:var(--nubi-weight-regular); color:var(--nubi-text-meta); }

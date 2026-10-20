@@ -17,7 +17,11 @@ export function installModalStack() {
     layers.set(node, original);
     node.dataset.modalOrder = String(++sequence);
     node.style.zIndex = `calc(var(--nubi-modal-layer-base, 1200) + ${sequence})`;
-    if (getComputedStyle(node).position === 'static') node.style.position = 'relative';
+    // CX owns a fixed-position backdrop. Avoid flushing the new modal's entire
+    // style tree merely to re-read that contract; retain measurement for other portals.
+    const inline=node.style.position;
+    const position=/^(static|relative|absolute|fixed|sticky)$/.test(inline)?inline:(!inline&&node.matches('.cx-panel-backdrop')?'fixed':getComputedStyle(node).position);
+    if (position === 'static') node.style.position = 'relative';
   };
   const restore = (node, original) => {
     node.style.zIndex = original.zIndex;

@@ -5,7 +5,7 @@ import React, {useEffect, useState} from 'react';
 import {Icon} from '@e2e/cx-design-system';
 import {durationLabel} from '../runtime/response-timing.mjs';
 
-const stages={syncing:'코드 동기화',preparing_runtime:'실행기 확인',preparing_skills:'준비 파일 연결',scanning:'파일 목록 확인',reading:'파일 읽기',snapshot:'분석 준비',snapshot_git:'분석 기준 준비',planning:'구성 분석',replanning:'구성 다시 분석',generating:'문서 작성',reviewing:'내용 검토',finalizing:'문서 검토',publishing:'저장 확인'};
+const stages={selecting_scope:'분석 범위 선택',syncing:'코드 동기화',preparing_runtime:'실행기 확인',preparing_skills:'준비 파일 연결',scanning:'파일 목록 확인',reading:'파일 읽기',snapshot:'분석 준비',snapshot_git:'분석 기준 준비',planning:'구성 분석',replanning:'구성 다시 분석',generating:'문서 작성',reviewing:'내용 검토',finalizing:'문서 검토',publishing:'저장 확인'};
 const gitSteps={repository:'분석 저장소 준비',sources:'분석 파일 복사',index:'파일 변경 확인',commit:'분석 기준 저장',history:'분석 이력 복사',worktree:'분석 공간 연결',verify:'분석 기준 확인'};
 const states={waiting_model:'위키 모델 연결 대기',waiting_source:'위키 프로젝트 선택 대기',completed:'위키 준비 완료',existing:'위키 연결됨',attention:'위키 확인 필요',cancelled:'위키 준비 중지됨'};
 const errors={wiki_interrupted:'위키 준비가 중간에 멈췄어요. 앱이 종료되었거나 프로젝트가 바뀌었어요. 다시 시도해 주세요.',source_stale:'원본 파일이 바뀌었어요. 최신 파일로 다시 시도해 주세요.',provider_changed:'모델이 바뀌었어요. 선택한 모델로 다시 시도해 주세요.',wiki_git_required:'코드 위키에 필요한 Git 실행기가 없어요. 최신 누비 설치 파일로 복구한 뒤 다시 시도해 주세요.',wiki_source_limit:'파일 목록을 끝까지 확인하지 못했어요. 다시 시도해 주세요.',unauthorized:'모델 로그인을 다시 확인해 주세요.',expired_token:'모델 로그인이 만료됐어요. 다시 연결해 주세요.',response_invalid:'모델 응답을 읽지 못했어요. 다시 시도해 주세요.'};
@@ -46,6 +46,7 @@ export function WikiInitializationProgress({job, inline=false}) {
       {job.total>0&&percent!==null?<span><strong>{job.completed.toLocaleString()}</strong> / {job.total.toLocaleString()}{['reading','snapshot','snapshot_git','publishing'].includes(job.stage)?'개 파일':'개 문서'}</span>:job.stage==='scanning'&&job.completed>0?<span>파일 {job.completed.toLocaleString()}개 확인</span>:null}
       {duration&&<span className="nubi-wiki-elapsed">진행 {duration}</span>}
     </div>}
+    {!inline&&job.scope&&<small role="status">보강 {job.scope.rounds.done} / {job.scope.rounds.total}회{job.scope.mode==='folders'?' / 선택한 폴더부터 정리':''}</small>}
     {!inline&&running&&<ProgressEstimate identity={`${job.id}:${job.stage}:${job.gitStep||''}:${job.stageStartedAt||''}`} completed={job.completed} total={job.total}/>}
     {!inline&&running&&job.modelWaiting&&<small role="status">AI 응답을 기다리고 있어요. 받은 결과는 유지됩니다.</small>}
     {!inline&&job.canResume&&['attention','cancelled'].includes(job.state)&&<small className="nubi-wiki-retained"><Icon name="check" size={16}/>완료한 문서는 보관했습니다.</small>}

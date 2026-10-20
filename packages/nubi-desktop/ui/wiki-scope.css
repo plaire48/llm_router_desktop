@@ -1,0 +1,6 @@
+.nubi-wiki-scope-content{min-block-size:min(calc(var(--cx-space-8)*18),60vh)}
+.nubi-wiki-scope-list{display:grid;block-size:min(calc(var(--cx-space-8)*10),40vh);overflow:auto}
+.nubi-wiki-scope-row{display:flex;align-items:center;gap:var(--cx-space-3);min-height:calc(var(--cx-space-8) + var(--cx-space-3));padding-block:var(--cx-space-2);border-block-end:calc(var(--cx-space-1)/4) solid var(--deck-line);font:var(--deck-font-body)}
+.nubi-wiki-scope-row>span{flex:1;min-width:0;overflow-wrap:anywhere}
+.nubi-wiki-scope-row>input{flex:none;accent-color:var(--deck-blue)}
+.nubi-wiki-scope-row>small{flex:none;color:var(--deck-sub);font:var(--deck-font-caption)}

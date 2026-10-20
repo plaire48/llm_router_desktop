@@ -28,6 +28,7 @@ test('load diagnostics retain high CPU processes in descending order using names
 });
 test('real host load diagnostics report loadavg and bounded process data without command arguments',async()=>{
  const result=await subject.captureSystemLoad();assert.equal(result.loadavg.length,3);assert.ok(result.loadavg.every(Number.isFinite));
+ if(process.platform==='win32'){assert.equal(result.loadavgStatus,'unsupported');assert.equal(result.processError,'process_load_unsupported');assert.deepEqual(result.processes,[]);return;}
  assert.ok(result.cpuCount>0);assert.ok(result.processes.length>0&&result.processes.length<=10);assert.equal(result.processError,null);
  assert.ok(result.processes.every(x=>Number.isInteger(x.pid)&&Number.isFinite(x.cpuPercent)&&!Object.hasOwn(x,'args')));
 });

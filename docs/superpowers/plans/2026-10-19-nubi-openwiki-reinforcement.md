@@ -10,7 +10,7 @@
 
 **Spec:** 설계 근거는 이 계획의 "배경"과 `packages/nubi-desktop/docs/OPENWIKI-QUALITY-ASSESSMENT-2026-10-15.md`(P0~P1), `OPENWIKI-GAPS-2026-10-12.md`(20,000 파일 상한), `AGENTS.md`의 위키 결정(실제 러너 재사용, MiniSearch/Claims/RRF).
 
-**진행 순서:** 1.3.0 릴리스 계획의 Task 8 뒤에 W1 → W3 → W4 → S1을 넣는다(8 → W1 → W3 → W4 → S1 → 9 → 11 → 12 → 13 → R1 → 10 → R2). W2와 S2는 1.3.1이다.
+**진행 순서(2026-10-20 갱신):** W0(내구성)은 R1 바로 뒤, Task 8보다 먼저 한다. 그 다음 8 → W1 → W3 → W4 → S1 → 9 → 11 → 12 → 13 → 10 → R2. W2와 S2 이후도 모두 1.3.0 후반에 한다(2026-10-20).
 
 ## 배경(측정과 코드로 확인한 현재 제한)
 
@@ -29,6 +29,32 @@
 
 ---
 
+## Task W0: 위키 작업 내구성 — 끊기지 않고 끝까지, 끊겨도 스스로 이어서 (2026-10-20 사용자 보고 "중간에 자꾸 끊기고 갑자기 멈추고 안 된다", 최우선)
+
+**코드로 확인한 끊김 원인(현재):**
+- 모델 호출 실패가 재시도 3회(2초, 4초, 8초) 뒤 `terminalModelError`가 되어 실행 전체를 끝낸다(`runtime/wiki-update.mjs` 108~155행). 시간 초과는 재시도하지 않는다(`WIKI_MODEL_WAIT_POLICY.retryTimeouts:false`). 절전, 네트워크 끊김, 한도(429) 연속, 5xx가 14초 안에 안 풀리면 전부 "실패"다.
+- `finishReason==='length'`는 즉시 `output_limit`으로 실행을 끝낸다(116행). 긴 페이지 하나 때문에 전체가 멈춘다.
+- 계획 응답이 두 번 비면 `wiki_plan_missing`으로 끝낸다(118행). 모델이나 연결이 바뀌면 `provider_changed`로 끝낸다.
+- 앱 종료나 프로젝트 전환으로 끊기면 다음 실행 때 `running` → `attention`(`wiki_interrupted`)으로만 바뀌고, `attention`은 자동으로 이어지지 않는다(`desktop-features.mjs` 81행). 체크포인트는 있지만 사람이 "다시 시도"를 눌러야 한다.
+- 실패하면 완성된 페이지도 보이지 않는다(부분 결과를 게시하지 않고 재개용으로만 보관). 사용자에게는 "다시 시도해 주세요" 한 줄만 보인다.
+
+**벤치마킹(내구 실행 패턴):** Temporal(작업 단위 재시도 정책: 초기 1초, 2배 증가, 상한, 시간 예산 안에서 무제한, heartbeat, 충돌 뒤 이력에서 재개), Sidekiq(지수 백오프로 오래 재시도, 실패 격리), Prefect와 Kestra(실패한 작업만 재개), Chrome 이어받기 다운로드, GitHub Actions의 실패한 작업만 재실행, Claude Code 배경 작업의 자동 재시도와 이어가기, LLM "계속" 생성 패턴(출력 한도에서 이어 쓰기). 공통 원칙은 넷이다. 실패는 격리하고(페이지 하나가 전체를 못 죽임), 재시도는 길게(분 단위 백오프와 시간 예산), 중단은 상태로 보존해 사람 없이 재개하며, 부분 결과를 먼저 보여 준다.
+
+**Files:**
+- Create: `runtime/wiki-durable-policy.mjs`(위키 전용 재시도 정책과 오류 분류), `runtime/wiki-run-journal.mjs`(페이지별 상태 done/running/retrying/skipped와 다음 재시도 시각, heartbeat), `tests/wiki-durability.test.mjs`(중단 주입: 네트워크 끊김, 429 연속, 5xx, 시간 초과, output_limit, 앱 재시작, 절전, 모델 재연결)
+- Modify: `runtime/wiki-update.mjs`(terminalModelError 단락 제거: 인증 401/403과 잘못된 요청 400만 종결, 나머지는 페이지 단위 재시도로. output_limit은 "계속" 이어 쓰기 1회 뒤 페이지 분할. 계획 응답 비면 재요청 상한을 올리고 실패 시 폴더 집계 기반 기본 계획으로 대체), `runtime/recovery.mjs`(위키 정책: 시간 초과 재시도, 백오프 10초 → 30초 → 1분 → 5분 상한, 시간 예산 2시간, 429는 응답의 재설정 시각까지 대기), `runtime/desktop-features.mjs`(앱 시작과 프로젝트 열기 때 `attention`이고 `canResume`이면 자동 재개 1회, 취소한 것만 제외. `provider_changed`는 종결이 아니라 일시 정지 뒤 같은 모델 재연결 시 재개, 다른 모델이면 확인 카드. 부분 결과 게시: 완성 페이지는 `partial` 상태로 바로 보이고 "생성 중" 배지), `electron-app/main.cjs`(`powerMonitor` suspend/resume과 오프라인 감지를 서비스에 전달해 일시 정지와 재개), `ui/WikiInitializationProgress.jsx`(페이지별 상태 목록, 마지막 응답 N초 전과 다음 재시도 N초 뒤, 구체적 사유: 한도 재설정 시각, 네트워크, 모델 응답 형식, 이어서 버튼 상시)
+
+**Interfaces:**
+- `wikiRetryPolicy(error)` → `{retry:boolean, waitMs, terminal:boolean, reason}`; 종결은 인증, 권한, 잘못된 요청, 사용자 취소뿐.
+- `wiki-init` 상태에 `pages:{[path]:{state, attempts, nextRetryAt, error}}`, `heartbeatAt`, `partial:true`, `resumable:true`.
+- 완료 정의: 모든 페이지 done 또는 skipped(사유와 함께). skipped가 있으면 상태 `partial`이고 "빠진 페이지 N개 다시 시도" 버튼.
+
+- [ ] **Step 1: 실패하는 시험** — 중단 주입 8종에서 현재 코드는 실행이 `attention`으로 끝난다는 것을 먼저 고정한다(합성 모델과 네트워크 fixture). 그 다음 각 주입에서 사람 클릭 없이 실행이 끝까지 가거나 `partial`로 게시되고 재개되는 것을 단언한다. 페이지 하나의 반복 실패가 다른 페이지를 막지 않는다.
+- [ ] **Step 2: 구현** — 정책 → 페이지 격리 → output_limit 이어 쓰기 → 자동 재개 → 절전과 오프라인 → 부분 게시 → 진행 화면. 설계 §3.12 양식(상태 줄 한 줄과 버튼 하나, 페이지 목록은 진행 기록 행 양식).
+- [ ] **Step 3: 측정과 보고** — 합성 11소스 코퍼스로 중단 주입 실행 20회의 "사람 없이 완료율"과 평균 재개 횟수를 `docs/OPENWIKI-REINFORCEMENT-2026-10.md`에. 전체 `test:gates`. 캡처 1280/440(진행 화면, partial 상태).
+
+---
+
 ## Task W1: 큰 저장소 — ignore 먼저, 폴더 집계 계획 문맥, 핵심 폴더 우선과 점진 보강
 
 **Files:**
@@ -39,11 +65,13 @@
 - Produces: `folderPlan(root, files)` → `{folders:[{path, files, bytes, languages, representatives:[path]}], representatives:[path], total, excluded:{ignored, binary, large}}`. 대표 파일 = 진입점(package.json main/bin, src/index*, main.*), README/docs, 설정, import 중심성 상위(ripgrep import 스캔), 최근 30일 변경. 계획 문맥은 폴더 집계 + 대표 파일 목록(200KB 이하)이고 전체 파일 목록은 넘기지 않는다.
 - 범위: 대표 파일 수가 2,000 이하면 한 번에, 넘으면 핵심 폴더 N개(집계 점수 상위, 사용자가 시트에서 조정)로 1라운드, 나머지 폴더는 보강 라운드로 update 모드 재실행(체크포인트 재개 그대로). `wiki-init.scope={mode:'all'|'folders', folders:[...], rounds:{done,total}}`.
 
-- [ ] **Step 1: 실패하는 시험** — 합성 30,000 파일 저장소에서 ignore 뒤 8,000개가 남아 `wiki_source_limit` 없이 진행, 폴더 집계가 200KB 이하, 대표 파일에 진입점과 README 포함, 범위 시트에서 폴더 2개 선택 시 1라운드가 그 폴더만, 2라운드가 나머지. 기존 작은 프로젝트 초기화 시험은 그대로 통과.
-- [ ] **Step 2: 실패 확인 → 구현 → 통과**. 캡처 1280/440(범위 시트, 진행 표시).
+- [x] **Step 1: 실패하는 시험** — 합성 30,000 파일 저장소에서 ignore 뒤 8,000개가 남아 `wiki_source_limit` 없이 진행, 폴더 집계가 200KB 이하, 대표 파일에 진입점과 README 포함, 범위 시트에서 폴더 2개 선택 시 1라운드가 그 폴더만, 2라운드가 나머지. 기존 작은 프로젝트 초기화 시험은 그대로 통과.
+- [x] **Step 2: 실패 확인 → 구현 → 통과**. 캡처 1280/440(범위 시트, 진행 표시).
 - [ ] **Step 3: 전체 게이트와 보고** — 합성 큰 저장소 실측 시간을 `docs/OPENWIKI-REINFORCEMENT-2026-10.md`에 기록.
 
 ---
+
+W1 로컬 구현과 집중 검증 완료(2026-10-20): 224통과/2제외/실패0, 1280/440 화면, 모션3회 새 장면50ms 초과0, 입력 복원, 빌드 통과. Step3 전체 게이트는 R1 Actions 업로드 뒤 판정 대기. [단일 보고서](../../OPENWIKI-REINFORCEMENT-2026-10.md). 다음 W3은 설계§8 질문12의 공용 계약 예외 답변 뒤 진행한다.
 
 ## Task W3: 생성 설정 — 동시성, 위키 생성 모델과 effort, 호출 상한 실측
 
@@ -89,7 +117,7 @@
 
 ---
 
-## 1.3.1로 미루는 과제
+## 후반 과제(2026-10-20 사용자 결정: 모두 1.3.0에 포함, 핵심 과제 뒤 순서대로)
 
 ### Task W2: Office와 PDF 입력
 - `runtime/document-extract.mjs`로 docx/xlsx/pptx/pdf를 텍스트화해 해시와 함께 소스로 넣는다. 1MB 초과는 머리와 구조 요약. 변환기 결정(Docling 보류 유지, 기존 추출기 우선)과 Windows 실측 뒤.
@@ -105,7 +133,7 @@
 
 측정은 하나의 점수판으로 한다. 커버리지 비율, 신선도(소스보다 오래된 페이지 비율), 근거 지지율, 답 없음 비율, 린트 경고 수를 "위키 품질 점수판"으로 위키 화면 상단에 두고(설계 §3.12 양식), 개선은 이 숫자로만 주장한다. 점수판은 W4의 보고서와 S1의 지표를 그대로 쓴다.
 
-### 1.3.1
+### 후반 1(W6, W7, W10)
 
 #### Task W6: 위키 린트
 - Create: `runtime/wiki-lint.mjs`, `ui/WikiLintPanel.jsx`, `tests/wiki-lint.test.mjs`. Modify: `ui/WikiBrowser.jsx`(점수판과 린트 목록), `runtime/desktop-features.mjs`(초기화와 갱신 뒤 린트 실행, `wiki-lint` 레코드).
@@ -120,7 +148,7 @@
 - Create: `runtime/wiki-question-log.mjs`(답 없음, 근거 부족, 사용자 "틀렸어요" 표시를 기록), `tests/wiki-question-log.test.mjs`. Modify: `runtime/agent.mjs`(ask_openwiki와 wiki_query 결과가 근거 부족이면 기록, 모델 호출 없음), `runtime/routines.mjs`(루틴 종류 `wiki-reinforce`: 기록을 묶어 update 모드 planningContext로 보강 라운드, 감독 통과 전에는 제안만), `ui/`의 답 카드에 "틀렸어요" 버튼(기존 산출물 카드 양식).
 - [ ] Step 1: 실패하는 시험(합성 질문 3개가 기록되고 루틴 한 라운드 뒤 해당 주제 페이지 초안이 점선으로 생기며 사람 승인 전에는 실선이 되지 않음) → 구현 → 통과.
 
-### 1.3.2
+### 후반 2(W8, W9)
 
 #### Task W8: drift 보고서
 - Modify: `runtime/wiki-update.mjs`(소스 변경 감지 때 바뀐 파일의 diff 요약과 영향 페이지 목록을 `wiki-drift` 레코드로), `ui/WikiBrowser.jsx`(drift 패널: 바뀐 것, 영향 페이지, "한 번에 갱신 승인"). 기존 해시 신선도와 update 모드를 그대로 쓴다.
@@ -130,7 +158,7 @@
 - Create: `runtime/wiki-diagram.mjs`(mermaid 파싱 검증. 실패하면 표로 대체), `tests/wiki-diagram.test.mjs`. Modify: 생성 뒤 처리에서 다이어그램 블록 검증. mermaid는 OSS 표에 이미 있는 후보이며 파서만 쓴다(렌더 의존성 추가 없음, 실측 뒤).
 - [ ] Step 1: 실패하는 시험(깨진 mermaid 블록이 표로 바뀌고 정상 블록은 유지) → 구현 → 통과.
 
-### 1.4.0
+### 후반 3(W11, W12)
 
 #### Task W11: 엔터티 페이지
 - 사람, 시스템, 티켓 같은 엔터티를 메일 위키, 코드 위키, 문서에서 추출해 한 페이지로 묶는다(Glean식 지식 그래프). 기존 graphology 관계와 Claims를 쓰고 새 엔진은 없다. 사내 데이터는 fixture에 넣지 않는다.

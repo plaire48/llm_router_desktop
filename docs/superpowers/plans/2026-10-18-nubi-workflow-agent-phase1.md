@@ -320,11 +320,13 @@ export function createWorkflowRunner(service){
 **Files:**
 - Create: `tests/workflow-fixture-project/.nubi/workflows/change-request-definition/{workflow.yaml,README.md,fixtures/basic.json}`(합성 티켓과 합성 위키 페이지), `scripts/check-electron-workflow.mjs`
 
-- [ ] **Step 1: 패키지** — 설계 §5의 흐름을 합성으로: `read-ticket`(documents.read 합성 티켓 파일) → `draft`(agent: 위키 질의와 새 파일) → `approve`(human) → `verify`(tool: documents.exists + hash) → `report`(agent: 요약 출력 schema). 외부 반영 없음(`externalWrite:never`).
-- [ ] **Step 2: 검사** — 실제 Electron + fixture 모델: 목록에서 시범 선택 → dry-run 통과 표시 → 실행 → 사람 단계에서 질문 카드 → 답 → 완료 → 보고서 열기. 앱을 강제 종료하고 다시 열어 대기 단계부터 재개되는 장면 포함. 1280/440.
-- [ ] **Step 3: 실패 확인 → 구현 → 통과**.
+- [x] **Step 1: 패키지** — 설계 §5의 흐름을 합성으로: `read-ticket`(documents.read 합성 티켓 파일) → `draft`(agent: 위키 질의와 새 파일) → `approve`(human) → `verify`(tool: documents.exists + hash) → `report`(agent: 요약 출력 schema). 외부 반영 없음(`externalWrite:never`).
+- [x] **Step 2: 검사** — 실제 Electron + fixture 모델: 목록에서 시범 선택 → dry-run 통과 표시 → 실행 → 사람 단계에서 질문 카드 → 답 → 완료 → 보고서 열기. 앱을 강제 종료하고 다시 열어 대기 단계부터 재개되는 장면 포함. 1280/440.
+- [x] **Step 3: 실패 확인 → 구현 → 통과**.
 
 ---
+
+Task 8 로컬 완료(2026-10-20): 관련 회귀226/226, 실제 Electron1280/440의10장면 exit0, design:check와 빌드 통과. 최종 전체 게이트는 R1 Actions 판정 대기다. [단일 보고서](../../WORKFLOW-PILOT-2026-10-20.md).
 
 ## Task 9: 루틴 트리거 연결 (루틴 = 일정 + 할 일, 설계 §3.8 "루틴과 워크플로우의 관계")
 

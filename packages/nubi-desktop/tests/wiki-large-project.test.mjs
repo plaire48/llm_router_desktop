@@ -21,7 +21,7 @@ test('more than 20,000 sources survive folder/Git enumeration, Wiki generation a
   await writeFile(path.join(root,'.openwikiignore'),'ignored.txt\n');await writeFile(path.join(root,'ignored.txt'),'excluded\n');
   await writeFile(path.join(root,'.env'),'PRIVATE_FIXTURE\n');
   const folder=await listWikiSourceFiles(root);
-  assert.equal(folder.truncated,false);assert.equal(folder.paths.length,count+3);assert(folder.paths.includes('src/마지막 파일.txt'));assert(!folder.paths.includes('.env'));
+  assert.equal(folder.truncated,false);assert.equal(folder.paths.length,count+2);assert(folder.paths.includes('src/마지막 파일.txt'));assert(!folder.paths.includes('.env'));assert(!folder.paths.includes('ignored.txt'),'ignore is applied during inventory before the source cap');assert.equal(folder.excluded.ignored,1);
   // Fixture setup must not inherit Windows CRLF conversion or the interactive Git timeout.
   await git(root,['init','-q']);await git(root,['config','core.autocrlf','false']);
   await git(root,['add','-A'],{timeout:WIKI_GIT_PREPARATION_TIMEOUT});await git(root,['-c','user.name=Fixture','-c','user.email=fixture@localhost','-c','commit.gpgSign=false','commit','-qm','Many sources'],{timeout:WIKI_GIT_PREPARATION_TIMEOUT});

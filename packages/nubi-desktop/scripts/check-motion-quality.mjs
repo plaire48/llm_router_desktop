@@ -19,7 +19,7 @@ const check=(name,pass,detail)=>result.checks.push({name,pass,detail});
 let tokens='';
 try{tokens=await readFile('design/workspace-motion.css','utf8');}catch(error){if(error.code!=='ENOENT')throw error;}
 for(const [name,ms] of Object.entries({enter:280,exit:180,press:120,state:180}))check('token:'+name,new RegExp(`--nubi-motion-${name}:\\s*${ms}ms`).test(tokens),{expected:ms});
-const cssFiles=['design/workspace-identity.css','design/workspace-density.css','design/workspace-typography.css','design/workspace-icons.css','design/workspace-pastel.css','ui/workflow.css','ui/loading-note.css','electron-app/ios-tokens.css','electron-app/modal-motion.css'];
+const cssFiles=['design/workspace-identity.css','design/workspace-density.css','design/workspace-typography.css','design/workspace-icons.css','design/workspace-pastel.css','ui/workflow.css','ui/loading-note.css','electron-app/ios-tokens.css','electron-app/modal-motion.css','ui/computer-use.css','ui/tool-arguments.css','ui/project-switch-cover.css','electron-app/external-browser.css','electron-app/workbench.css'];
 const literals=[],all=[];
 for(const file of cssFiles){
  const source=(await readFile(file,'utf8')).replace(/\/\*[\s\S]*?\*\//g,'');
@@ -84,6 +84,7 @@ try{
   check(`modal-budget:${width}:${reduced}`,during.counts.every(row=>row.interactionTargets<=3),during.counts);
   check(`modal-ambient-paused:${width}:${reduced}`,await page.evaluate(()=>document.getAnimations().filter(a=>window.qualityAmbient.has(a.animationName)).every(a=>a.playState==='paused')),null);
   if(width===440){const sheet=await dialog.evaluate(element=>({bottom:element.getBoundingClientRect().bottom,viewport:innerHeight,radius:getComputedStyle(element).borderBottomLeftRadius}));check(`narrow-bottom-sheet:${reduced}`,Math.abs(sheet.bottom-sheet.viewport)<1&&sheet.radius==='0px',sheet);}
+  if(width===1280){const headings=await page.locator('.nubi-sidebar-quick-actions button').evaluateAll(buttons=>buttons.map(button=>{const b=button.getBoundingClientRect(),label=button.querySelector('span'),r=label?.getBoundingClientRect();return {left:b.left,right:b.right,labelLeft:r?.left,labelRight:r?.right};}));check(`sidebar-modal-labels:${reduced}`,headings.length>1&&headings.every((b,i)=>i===0||b.left>=headings[i-1].right-1)&&headings.every(b=>b.labelLeft===undefined||b.labelLeft>=b.left-1&&b.labelRight<=b.right+1),headings);}
   await page.screenshot({path:path.join(dir,`modal-${width}-${reduced?'reduced':'normal'}.png`)});
   await page.keyboard.press('Escape');
   const closing=await page.locator('[data-modal-motion="leaving"]').evaluateAll(backdrops=>backdrops.flatMap(backdrop=>[...backdrop.getAnimations(),...backdrop.querySelector(':scope > .cx-detail-panel').getAnimations()].map(animation=>({name:animation.animationName,duration:animation.effect.getTiming().duration}))));
@@ -152,6 +153,10 @@ try{
   check(`view-ambient-paused:${width}:${reduced}`,view.counts.filter(row=>row.interactionTargets>0).every(row=>row.ambient===0),view.counts);
   await page.screenshot({path:path.join(dir,`controls-${width}-${reduced?'reduced':'normal'}.png`)});await page.close();
  }
+ // Load the actual component stylesheet: controls do not mount the host cover.
+ {const probe=await browser.newPage({viewport:{width:440,height:900}});await probe.goto(`http://127.0.0.1:${server.address().port}/?quality-controls`);await probe.locator('.nubi-main').waitFor();const css=await readFile('ui/project-switch-cover.css','utf8');
+ const measure=()=>{const section=document.createElement('section');section.className='nubi-git-clone-progress';section.innerHTML='<progress aria-label="합성 불확정 진행"></progress>';document.querySelector('.nubi-main').append(section);const bar=section.firstElementChild,style=getComputedStyle(bar),width=bar.clientWidth,imageWidth=parseFloat(style.backgroundSize)/100*width,left=parseFloat(style.backgroundPositionX)/100*(width-imageWidth),value={width,imageWidth,left,visible:Math.max(0,Math.min(width,left+imageWidth)-Math.max(0,left)),play:style.animationPlayState};section.remove();return value;};
+ const oldStyle=await probe.addStyleTag({content:css.replace('center / 30%','-43% center / 30%')});const before=await probe.evaluate(measure);await oldStyle.evaluate(node=>node.remove());await probe.addStyleTag({content:css});const fill=await probe.evaluate(measure);check('indeterminate-fill-regression',Number.isFinite(before.visible)&&before.visible===0,before);check('indeterminate-fill-visible',fill.width>0&&Number.isFinite(fill.visible)&&fill.visible>0,fill);await probe.close();}
  // Actual native visibility, using an isolated Electron window and userData.
  storage=await mkdtemp(path.join(os.tmpdir(),'nubi-motion-'));
  const require=createRequire(import.meta.url);

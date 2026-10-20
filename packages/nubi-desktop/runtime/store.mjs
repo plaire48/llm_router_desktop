@@ -3,14 +3,17 @@ import {mkdirSync} from 'node:fs';
 import path from 'node:path';
 
 export class Store {
-  constructor(directory) {
+  constructor(directory, {ownerWaitMs=0} = {}) {
+    if(!Number.isSafeInteger(ownerWaitMs)||ownerWaitMs<0||ownerWaitMs>2400)throw Error('store_owner_wait');
     mkdirSync(directory, {recursive: true, mode: 0o700});
     this.directory = directory;
     // A separate SQLite transaction owns the execution state, without blocking
     // ordinary WAL writes. OS locks are released when the owning process exits.
     this.owner = new DatabaseSync(path.join(directory, 'owner.db'));
     try {
-      this.owner.exec('PRAGMA busy_timeout=0; BEGIN IMMEDIATE');
+      // Startup may briefly overlap the previous worker closing its routine store.
+      // Wait only for ownership; no task, tool or write is replayed.
+      this.owner.exec(`PRAGMA busy_timeout=${ownerWaitMs}; BEGIN IMMEDIATE`);
       this.db = new DatabaseSync(path.join(directory, 'workspace.db'));
       this.db.exec('PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS records (key TEXT PRIMARY KEY, value TEXT NOT NULL); CREATE TABLE IF NOT EXISTS events (sequence INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, kind TEXT NOT NULL, value TEXT NOT NULL);');
       // SQLite LIKE uses NOCASE by default; the binary primary key cannot serve

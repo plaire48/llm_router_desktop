@@ -3,6 +3,7 @@ import {opendir} from 'node:fs/promises';
 import path from 'node:path';
 import {gitCandidates,gitFailure} from './git-runtime.mjs';
 import {privatePath} from './files.mjs';
+import {OpenWikiIgnore} from '../generated/openwiki.mjs';
 import {WIKI_GIT_PREPARATION_TIMEOUT} from './wiki-git-preparation.mjs';
 
 const excluded = rel => privatePath(rel) || /(^|\/)(?:dist|build|coverage|verification|\.next)(\/|$)/.test(rel);
@@ -43,11 +44,13 @@ export async function wikiGitRecords(root,args,onRecord,{signal,timeout=WIKI_GIT
   throw Object.assign(Error('git_unavailable'),{code:'ENOENT'});
 }
 
-export async function wikiSourceInventory(root,{signal,onProgress}={}) {
-  const paths=new Set();let visited=0,unavailableFiles=0;
+export async function wikiSourceInventory(root,{signal,onProgress,maxFiles=200000}={}) {
+  if(!Number.isSafeInteger(maxFiles)||maxFiles<1||maxFiles>200000)throw Error('wiki_source_limit');
+  const ignore=await OpenWikiIgnore.load(root),ignored=new Set(),paths=new Set();let visited=0,unavailableFiles=0,truncated=false;
+  const omit=rel=>{if(ignore.ignores(rel)){ignored.add(rel);return true;}return excluded(rel)||rel.startsWith('openwiki/');};
   const remember=rel=>{
     signal?.throwIfAborted();
-    if(!excluded(rel))paths.add(rel);
+    if(!omit(rel)&&!paths.has(rel)){if(paths.size>=maxFiles)truncated=true;else paths.add(rel);}
     if(++visited%256===0)onProgress?.(visited);
   };
   try {
@@ -60,13 +63,14 @@ export async function wikiSourceInventory(root,{signal,onProgress}={}) {
   } catch(error) {
     signal?.throwIfAborted();
     if(!['not_git_repository','git_unavailable'].includes(gitFailure(error)))throw error;
-    paths.clear();visited=0;unavailableFiles=0;
+    paths.clear();ignored.clear();visited=0;unavailableFiles=0;truncated=false;
     async function walk(directory,base='') {
       signal?.throwIfAborted();
       for await(const entry of await opendir(directory)) {
         signal?.throwIfAborted();
         const rel=base+entry.name;
         if(excluded(rel))continue;
+        // Traverse ignored directories to retain exact excluded-file counts and negations.
         if(entry.isDirectory())await walk(path.join(directory,entry.name),rel+'/');
         else if(entry.isFile())remember(rel);
       }
@@ -74,5 +78,5 @@ export async function wikiSourceInventory(root,{signal,onProgress}={}) {
     await walk(root);
   }
   onProgress?.(visited);
-  return {paths:[...paths].sort(),truncated:false,unavailableFiles};
+  return {paths:[...paths].sort(),truncated,unavailableFiles,excluded:{ignored:ignored.size,binary:0,large:0}};
 }

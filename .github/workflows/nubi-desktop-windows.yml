@@ -1,10 +1,11 @@
 name: Nubi Desktop Windows installer
 on:
   push:
-    branches: ['codex/nubi-desktop-windows-release*']
-  workflow_dispatch:
+    branches:
+      - codex/nubi-desktop-windows-release*
+  workflow_dispatch: null
 permissions:
-  contents: write
+  contents: read
   actions: read
 jobs:
   windows-shell-probe:
@@ -16,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '24.18.0'
+          node-version: 24.18.0
       - name: Build owned command process helper
         run: node packages/nubi-desktop/scripts/build-process-host.mjs
       - name: Check native Git Bash process ownership before dependency installation
@@ -32,7 +33,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '24.18.0'
+          node-version: 24.18.0
           cache: npm
           cache-dependency-path: |
             packages/nubi-desktop/package-lock.json
@@ -96,18 +97,6 @@ jobs:
         env:
           NUBI_UI_OUTPUT: verification/pdf-chat
         run: npm run package:windows
-      - name: Preserve test installer candidate in private draft
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: pwsh
-        run: |
-          $private = gh api "repos/$env:GITHUB_REPOSITORY" --jq '.private'
-          if ($LASTEXITCODE -ne 0 -or $private -ne 'true') { throw 'Private build repository required' }
-          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
-          $tag = "nubi-desktop-v$version-run-$env:GITHUB_RUN_ID"
-          $files = @((Get-ChildItem release/windows/*-Setup.exe).FullName) + @((Get-ChildItem release/windows/*.sha256).FullName)
-          gh release create $tag --repo $env:GITHUB_REPOSITORY --draft --prerelease --target $env:GITHUB_SHA --title "누비 Workspace Beta 테스트 후보 ($env:GITHUB_RUN_ID)" --notes "Test candidate. Installer build and pre-package PDF/terminal checks passed. Full regression and installation verification are still pending; inspect the workflow conclusion and reports before use." @files
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify document connections and PDF chat editing
         env:
           NUBI_NATIVE_UI_OUTPUT: verification/office-preview
@@ -210,34 +199,25 @@ jobs:
         timeout-minutes: 25
         shell: pwsh
         run: ./scripts/Test-WindowsInstaller.ps1
-      - name: Save verified installer and reports in a private draft
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Prepare verified installer payload for gated draft
         shell: pwsh
-        run: |
+        run: |-
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
-          $tag = "nubi-desktop-v$version-run-$env:GITHUB_RUN_ID"
           $reports = 'distribution-capabilities.json','excel-bundle.json','electron-shell.json','electron-first-install.json','electron-projects.json','electron-projects.png','electron-projects-narrow.png','windows-installer.json','windows-branding.json','installed-icon.png','windows-package.json','windows-claude.json','windows-installer-experience.json','windows-installer-progress.png','windows-installer-finish.png','windows-installer-notice.png' | ForEach-Object { (Resolve-Path (Join-Path 'verification' $_)).Path }
           Compress-Archive -Path verification/* -DestinationPath release/windows/verification.zip
-          $reports += (Resolve-Path release/windows/verification.zip).Path
-          Copy-Item "docs/HOTFIX-$version.md" release-notes.txt
-          $files = @((Get-ChildItem release/windows/*-Setup.exe).FullName) + @((Get-ChildItem release/windows/*.sha256).FullName) + $reports + @('scripts/Publish-NubiUpdate.ps1','docs/WINDOWS-UPDATE-DEPLOYMENT.md','THIRD-PARTY-NOTICES.md',"docs/HOTFIX-$version.md","docs/INSTALL-AND-UPDATE-$version.md",'release-notes.txt')
-          gh release upload $tag --repo $env:GITHUB_REPOSITORY --clobber @files
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          gh release edit $tag --repo $env:GITHUB_REPOSITORY --title "누비 Workspace Beta Windows x64 ($env:GITHUB_RUN_ID)" --notes "Standalone Electron installer and native Windows installation reports. All workflow checks passed before this draft update. Build $env:GITHUB_RUN_ID, commit $env:GITHUB_SHA. Unsigned Beta; corporate SSO, Office 2016/NASCA and Windows 11 end-user behavior are separate checks."
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Save failed-check diagnostics in a private draft
-        if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: pwsh
-        run: |
-          $tag = "nubi-desktop-diagnostics-$env:GITHUB_RUN_ID"
-          New-Item verification -ItemType Directory -Force | Out-Null
-          "Build $env:GITHUB_RUN_ID failed. See workflow logs for the failed gate." | Set-Content verification/failure.txt
-          Compress-Archive -Path verification/* -DestinationPath verification/windows-diagnostics.zip
-          gh release create $tag --repo $env:GITHUB_REPOSITORY --draft --prerelease --target $env:GITHUB_SHA --title "Nubi Windows check diagnostics ($env:GITHUB_RUN_ID)" --notes "Isolated fixture diagnostics only. No installer is released from this failed check." verification/windows-diagnostics.zip
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $files = @((Get-ChildItem release/windows/*-Setup.exe).FullName) + @((Get-ChildItem release/windows/*.sha256).FullName) + $reports + @('release/windows/verification.zip','scripts/Publish-NubiUpdate.ps1','docs/WINDOWS-UPDATE-DEPLOYMENT.md','THIRD-PARTY-NOTICES.md',"docs/HOTFIX-$version.md","docs/INSTALL-AND-UPDATE-$version.md")
+          $payload = New-Item release/draft-payload -ItemType Directory -Force
+          foreach ($file in $files) { Copy-Item $file $payload }
+          Copy-Item "docs/HOTFIX-$version.md" (Join-Path $payload 'release-notes.txt')
+          $manifest = @(Get-ChildItem $payload -File | ForEach-Object { @{ name=$_.Name; sha256=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower() } })
+          @{ version=$version; commit=$env:GITHUB_SHA; runId=$env:GITHUB_RUN_ID; runAttempt=$env:GITHUB_RUN_ATTEMPT; files=$manifest } | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $payload 'candidate.json') -Encoding utf8
+      - name: Pass installer payload to the gated draft job
+        uses: actions/upload-artifact@v4
+        with:
+          name: nubi-installer-${{ github.run_id }}-${{ github.run_attempt }}
+          path: packages/nubi-desktop/release/draft-payload/
+          retention-days: 7
+          if-no-files-found: error
       - name: Preserve diagnostics
         if: always()
         continue-on-error: true
@@ -246,3 +226,105 @@ jobs:
           name: nubi-windows-diagnostics
           path: packages/nubi-desktop/verification/
           retention-days: 7
+  gates-full:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: packages/nubi-desktop
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+          cache: npm
+          cache-dependency-path: |
+            packages/nubi-desktop/package-lock.json
+            extensions/aipro-chat/package-lock.json
+            packages/nubi-a2a/package-lock.json
+            packages/nubi-document-agent/package-lock.json
+      - name: Install locked dependencies
+        run: |
+          npm ci --prefix ../../extensions/aipro-chat --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm ci --prefix ../nubi-a2a --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm ci --prefix ../nubi-document-agent --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Install locked OpenWiki dependencies
+        working-directory: packages/openwiki
+        run: |
+          npm install --global pnpm@11.25.0
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          pnpm install --frozen-lockfile --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Install Chrome channel
+        run: npx --no-install playwright install chrome
+      - name: Build owned process helper
+        run: node scripts/build-process-host.mjs
+      - name: Check gate coverage
+        run: node scripts/check-gate-coverage.mjs
+      - name: Run fast gates
+        id: fast
+        run: npm run test:gates:fast
+      - name: Run Electron gates even after a fast-gate failure
+        if: ${{ !cancelled() && steps.fast.outcome != 'skipped' }}
+        run: npm run test:gates:electron
+      - name: Preserve failed-check screenshots and measurements
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nubi-desktop-full-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            packages/nubi-desktop/verification/**/*.png
+            packages/nubi-desktop/verification/**/*.json
+            packages/nubi-desktop/verification/**/*.cpuprofile
+            packages/nubi-desktop/verification/**/*.log
+          retention-days: 7
+          if-no-files-found: warn
+  save-draft:
+    if: ${{ needs.windows.result == 'success' && needs.gates-full.result == 'success' }}
+    needs:
+      - windows
+      - gates-full
+    runs-on: windows-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download this run and attempt only
+        uses: actions/download-artifact@v4
+        with:
+          name: nubi-installer-${{ github.run_id }}-${{ github.run_attempt }}
+          path: draft-payload
+      - name: Save private draft only after packaging and full gates succeed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |-
+          $private = gh api "repos/$env:GITHUB_REPOSITORY" --jq '.private'
+          if ($LASTEXITCODE -ne 0 -or $private -ne 'true') { throw 'Private build repository required' }
+          $payload = (Resolve-Path draft-payload).Path
+          $candidate = Get-Content (Join-Path $payload 'candidate.json') -Raw | ConvertFrom-Json
+          if ($candidate.commit -ne $env:GITHUB_SHA -or $candidate.runId -ne $env:GITHUB_RUN_ID -or $candidate.runAttempt -ne $env:GITHUB_RUN_ATTEMPT) { throw 'Candidate run binding mismatch' }
+          $files = @()
+          foreach ($file in $candidate.files) {
+            if ((Split-Path $file.name -Leaf) -ne $file.name) { throw 'Invalid candidate path' }
+            $resolved = Join-Path $payload $file.name
+            if ((Get-FileHash $resolved -Algorithm SHA256).Hash.ToLower() -ne $file.sha256) { throw 'Candidate checksum mismatch' }
+            $files += $resolved
+          }
+          $tag = "nubi-desktop-v$($candidate.version)-run-$env:GITHUB_RUN_ID"
+          $existingJson = gh release list --repo $env:GITHUB_REPOSITORY --limit 100 --json tagName
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $existing = @($existingJson | ConvertFrom-Json | Where-Object { $_.tagName -eq $tag })
+          if ($existing.Count) { throw 'Draft already exists; inspect it instead of overwriting' }
+          gh release create $tag --repo $env:GITHUB_REPOSITORY --draft --prerelease --target $env:GITHUB_SHA --title "누비 Workspace Beta Windows x64 ($env:GITHUB_RUN_ID)" --notes-file (Join-Path $payload 'release-notes.txt') @files
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

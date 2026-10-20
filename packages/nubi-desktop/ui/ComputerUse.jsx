@@ -26,7 +26,7 @@ export function ActionPreview({image,action='click',pointer={x:0.5,y:0.5},demo=f
     <div className="nubi-action-preview-head"><span>{label} <strong>{verbs[action]}</strong></span>{demo&&<span className="nubi-inline"><CxButton aria-label="커서 모션" aria-pressed={motion} onClick={()=>setMotion(!motion)}>{motion?'모션 끄기':'모션 켜기'}</CxButton><ActionButton action="refresh" label="다시 보기" onClick={()=>setReplay(v=>v+1)}/></span>}</div>
     <div className="nubi-action-stage" data-motion={motion?'on':'off'} style={image?{width:Math.min(560,image.width*2,280*image.width/image.height),maxWidth:'100%',marginInline:'auto'}:undefined}>
       {image?<img key={image.data.slice(-80)} src={'data:image/png;base64,'+image.data} width={image.width} height={image.height} alt="관찰한 대상 영역" onLoad={()=>setLoaded(true)} onError={()=>setLoaded(false)}/>:children}
-      {valid&&(demo||loaded)&&<div key={replay} className={'nubi-action-pointer is-'+action} style={{left:`${pointer.x*100}%`,top:`${pointer.y*100}%`}} aria-hidden="true">
+      {valid&&(demo||loaded)&&<div key={replay} className={'nubi-action-pointer is-'+action} style={{'--nubi-pointer-x':`${pointer.x*100}%`,'--nubi-pointer-y':`${pointer.y*100}%`}} aria-hidden="true">
         <span className="nubi-action-halo" data-demo={demo?'true':'false'}/>
         <svg viewBox="-2 -2 34 38"><path d="M1 1Q-1 0 0 4L10 29Q12 33 14 29L17 20L26 17Q30 15 26 13L4 1Q2 0 1 1Z"/></svg>
       </div>}

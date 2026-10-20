@@ -1,3 +1,4 @@
+import {WikiScopeSheet} from './WikiScopeSheet.jsx';
 import {WorkflowRunView} from './WorkflowRunView.jsx';
 import {afterEditCheckMessage} from './after-edit-check-message.mjs';
 import {RoutineSettings} from './RoutineSettings.jsx';
@@ -410,7 +411,9 @@ export function Workbench({createEditorDraft,connectEditor,api:requestApi,initia
   const initializationRunning=wikiInitialization?.state==='running'&&(!wikiInitialization.projectId||wikiInitialization.projectId===project?.projectId);
   const wikiChatBlocked=!!project&&(!!wikiPending||initializationRunning||project.wikiChatBlocked===true);
   const wikiChatJob=initializationRunning?wikiInitialization:project?.wikiChatJob||wikiPending;
+  useEffect(()=>{if(wikiInitialization?.stage==='selecting_scope'&&wikiInitialization.scopePlan)setPanel('wiki-scope');},[wikiInitialization?.id,wikiInitialization?.stage]);
   function openWikiSettings(){
+    if(wikiInitialization?.stage==='selecting_scope'){setPanel('wiki-scope');return;}
     if(!wikiChatBlocked){setPanel('library');return;}
     setPanel(null);setWikiPage(false);setMailPage(false);setSkillsPage(false);
     if(activeView)void workspaceView?.(null);
@@ -984,6 +987,7 @@ export function Workbench({createEditorDraft,connectEditor,api:requestApi,initia
           <DeckDisclosure title="실행 설정" icon="sliders"><SettingToggle label="실행 후 AI가 결과 확인" checked={autoDiagnose} onChange={setAutoDiagnose}/><label className="nubi-recovery-option"><span>실행 시간 제한 (초)</span><CxInput aria-label="실행 시간 제한 (초)" type="number" min={0} max={86400} value={timeoutSeconds} onChange={e=>setTimeoutSeconds(Number(e.target.value))}/></label><p className="nubi-muted">0은 시간 제한 없이 실행합니다.</p></DeckDisclosure>
           <DeckDisclosure title="화면 비교" icon="columns"><form className="nubi-compare-form" onSubmit={e=>{e.preventDefault();perform(async()=>{setComparison(await api('compare',{taskId,beforeUrl,afterUrl}));setPanel(null);});}}><div className="nubi-url-pair"><label>변경 전<CxInput value={beforeUrl} onChange={e=>setBeforeUrl(e.target.value)} placeholder="http://localhost:5173"/></label><label>변경 후<CxInput value={afterUrl} onChange={e=>setAfterUrl(e.target.value)} placeholder="http://localhost:5174"/></label></div><CxButton type="submit" variant="primary" busy={busy} disabled={!beforeUrl||!afterUrl||busy}><Icon name="columns" size={16}/>비교</CxButton></form></DeckDisclosure>
     </DetailPanel>}
+    {panel==='wiki-scope'&&wikiInitialization?.stage==='selecting_scope'&&<WikiScopeSheet key={wikiInitialization.id} job={wikiInitialization} onClose={()=>setPanel(null)} onSelect={async folders=>{await api('wikiInitialization',{action:'scope',jobId:wikiInitialization.id,folders});setPanel(null);await refresh();}}/>}
     {panel==='wiki-progress'&&!wikiChatBlocked&&<DetailPanel title="위키 준비" variant="modal" className="deck-dialog nubi-panel nubi-wiki-progress-dialog" hideHelp onClose={()=>setPanel(null)} footer={<><CxButton onClick={()=>setPanel(null)}><Icon name={wikiInitialization?.state==='running'?'minimize':'xClose'} size={18}/>{wikiInitialization?.state==='running'?'접기':'닫기'}</CxButton>{wikiInitialization?.state==='running'&&<CxButton onClick={()=>api('wikiInitialization',{action:'cancel'}).catch(error=>showError(failure(error)))}><Icon name="xClose" size={18}/>중지</CxButton>}{['attention','cancelled'].includes(wikiInitialization?.state)&&<CxButton variant="primary" onClick={()=>api('wikiInitialization',{action:'retry'}).catch(error=>showError(failure(error)))}><Icon name="refresh" size={18}/>{wikiInitialization?.canResume?'이어서 준비':'다시 시도'}</CxButton>}</>}><WikiProjectIdentity name={wikiProjectName} root={project?.root}/><WikiInitializationProgress job={wikiInitialization}/></DetailPanel>}
     {externalAiPolicy&&<ExternalAiPolicy onClose={closeExternalAiPolicy} onContinue={confirmExternalAiPolicy} onOpenPolicy={openWebPage?url=>{setExternalAiPolicy(null);setPanel(null);void perform(()=>openWebPage(url));}:undefined}/>}
     {panel==='claude'&&<ClaudeConnection initialIssue={claudeIssue} api={api} onConnected={async()=>{await refreshProvider();returnToPanel();quotaProbe.current=Date.now();void refreshClaudeQuota().catch(()=>{});}} onClose={returnToPanel} openWebPage={openWebPage}/>}

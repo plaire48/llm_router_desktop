@@ -1,0 +1,58 @@
+{
+  "inputs": {
+    "ticket": "DEMO-101"
+  },
+  "answers": {
+    "approve": "approve"
+  },
+  "responses": {
+    "read-ticket": {
+      "ok": true,
+      "result": {
+        "path": "fixtures/pilot-ticket.json",
+        "content": "{\n  \"id\": \"DEMO-101\",\n  \"summary\": \"합성 검토 절차 확인\",\n  \"description\": \"목적과 변경 범위, 검증 및 복구 방법을 로컬 정의서에 정리한다. 실제 회사 요청이나 외부 반영은 없다.\"\n}\n"
+      },
+      "receipts": [
+        "fixture:ticket"
+      ]
+    },
+    "draft": {
+      "ok": true,
+      "output": {
+        "summary": "합성 정의서 작성",
+        "evidence": [
+          "fixture:draft-source"
+        ]
+      },
+      "result": {
+        "exists": true
+      },
+      "receipts": [
+        "fixture:draft-source"
+      ]
+    },
+    "verify": {
+      "ok": true,
+      "result": {
+        "path": "out/change-request.md",
+        "exists": true,
+        "hash": "sha256:d4375616500648f840f90901e27bf8d91255656cc785d15448a7f9be9e357f9e"
+      },
+      "receipts": [
+        "fixture:verify"
+      ]
+    },
+    "report": {
+      "ok": true,
+      "output": {
+        "summary": "로컬 정의서만 작성했으며 실제 JSM은 검증하지 않았습니다.",
+        "evidence": [
+          "fixture:report-source"
+        ]
+      },
+      "receipts": [
+        "fixture:report-source"
+      ]
+    }
+  }
+}

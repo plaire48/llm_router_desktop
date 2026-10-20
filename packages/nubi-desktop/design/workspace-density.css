@@ -1340,3 +1340,8 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 :root:root .desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-question-inline .question-card--compact .question-option[aria-checked=true] .question-option-index {
  background:transparent; color:var(--nubi-text-action);
 }
+/* Workflow approvals have a separate right-aligned column beside the map.
+   Its column already owns the gutter; transcript bleed would overlap the map. */
+.desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-workflow-decision :is(.nubi-question-inline,.nubi-approval-form,.nubi-setup-summary:has(>.nubi-approval-form)) {
+ margin-inline:0; width:100%; max-width:100%;
+}

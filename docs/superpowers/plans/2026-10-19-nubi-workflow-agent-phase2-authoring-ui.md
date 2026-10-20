@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 설계 §3.12 설계 모드 1~6을 만든다. 사용자가 대화로 워크플로우 초안을 만들고, 같은 캔버스에서 오류와 숙성 단계를 보고, YAML 원문을 고치고, 합성 실행을 지도 위에서 재생한다. 1단계 Task 15(실행 모드)가 끝난 뒤 시작한다.
+**Goal:** 설계 §3.12 설계 모드 1~6을 만든다. 사용자가 대화로 워크플로우 초안을 만들고, 같은 캔버스에서 오류와 숙성 단계를 보고, YAML 원문을 고치고, 합성 실행을 지도 위에서 재생한다. 1단계 Task 15(실행 모드)가 끝난 뒤 시작한다. 2026-10-20 사용자 결정으로 1.3.0에 포함한다(릴리스 계획 후반 순서).
 
 **Architecture:** 새 엔진 없음. 저작 대화는 기존 `createTask` + `startAgent`에 워크플로우 저작 도구 두 개(`workflow_draft`, `workflow_validate`)만 노출한 대화다. 초안은 `.nubi/workflows/<slug>/workflow.draft.yaml`에 쓰고 캔버스는 점선으로 보이며, 사람이 "확정"하면 `workflow.yaml`이 된다(설계 §3.5 "에이전트 제안 노드는 점선"). 오류 배지와 숙성 단계는 기존 `validateWorkflow`, dry-run 레코드, `workflow-qualified` 키에서만 파생한다. 재생은 dry-run 레코드의 단계 시각으로 같은 캔버스에 상태를 덧칠한다.
 
