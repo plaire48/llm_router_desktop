@@ -266,7 +266,11 @@ export function installAgent(ProjectService) {
     return {...status, providers: status.providers.filter(p => ['aipro', 'chatgpt', 'fabrix', 'claude'].includes(p.id))};
   };
   ProjectService.prototype.usage = async function ({action='status',force=false}={}) {
-    if(!['status','account'].includes(action))throw Error('usage_action');
+    if(!['status','account','reset'].includes(action))throw Error('usage_action');
+    if(action==='reset'){
+      const ledger=desktopUsage(this);if(!ledger)throw Error('usage_unavailable');
+      return ledger.reset();
+    }
     if(!this.providers)await this.provider();
     const account=action==='account'?await this.providers.accountUsage({force:force===true}):this.providers.usageStatus();
     return {...account,...(desktopUsage(this)?.summary()||{usage:null,usageError:'usage_unavailable'})};

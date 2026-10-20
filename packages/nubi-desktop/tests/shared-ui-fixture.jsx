@@ -224,7 +224,7 @@ if(new URLSearchParams(location.search).has('stopped-order')){
 if(new URLSearchParams(location.search).has('polling-response')){project.processes[0].state='running';window.pollCalls=[];window.finishProcess=()=>{project.processes[0]={...project.processes[0],state:'completed',output:'실행 완료 확인'};};}
 const usageFixture=new URLSearchParams(location.search).has('chatgpt-usage');
 if(usageFixture){connected=true;selected='chatgpt';model='gpt-5.6-sol';models.push({id:model,label:'GPT fixture',contextLength:262144});project.tasks=[{id:'usage-task',request:'사용량 확인',state:'review',messages:[{role:'assistant',content:'토큰 표시 검증용 응답입니다.'}],trace:[],criteria:[],context:{usage:{model,kind:'measured',used:23223,prompt:23175,completion:48,window:262144}}}];}
-const usageSnapshot=()=>({auth:{provider:'chatgpt',present:true},connections:{chatgpt:{present:true,receivedAt:1}},accountUsage:window.quotaFixture||null,usage:{today:{chatgpt:{calls:1,measured:1,total:23223,input:23175,output:48,inputReports:1,outputReports:1,pending:0}},total:{chatgpt:{calls:1,measured:1,total:23223,input:23175,output:48,inputReports:1,outputReports:1,pending:0}}}});
+const usageSnapshot=()=>{const stats=window.usageWasReset?{calls:0,measured:0,total:0,input:0,output:0,inputReports:0,outputReports:0,pending:0}:{calls:1,measured:1,total:23223,input:23175,output:48,inputReports:1,outputReports:1,pending:0};return {auth:{provider:'chatgpt',present:true},connections:{chatgpt:{present:true,receivedAt:1}},accountUsage:window.quotaFixture||null,usage:{today:{chatgpt:stats},total:{chatgpt:stats}}};};
 const sendTransition=new URLSearchParams(location.search).has('send-transition');
 if(sendTransition){connected=true;const saved=sessionStorage.getItem('send-fixture');if(saved)Object.assign(project,JSON.parse(saved));window.saveSendFixture=()=>sessionStorage.setItem('send-fixture',JSON.stringify(project));window.sendCalls=[];window.sendGate={};window.finishSend=()=>{const task=project.tasks[0];task.state='review';task.messages.push({id:'finished',role:'assistant',content:'확인한 결과입니다.',at:new Date().toISOString()});};}
 async function waitForSendGate(kind){await new Promise((resolve,reject)=>{window.sendGate[kind]={release:resolve,reject:()=>reject(Error('network'))};});}
@@ -305,6 +305,7 @@ async function api(method,args={}){
   if(window.pollCalls&&['poll','state'].includes(method))window.pollCalls.push(method);
   if(method==='poll'&&args.id==='activity-process')return structuredClone(project.processes[0]);
   if(method==='usage'&&usageFixture){
+    if(args.action==='reset'){if(window.usageResetFailure)throw Error('usage_save_failed');await new Promise(r=>setTimeout(r,100));window.usageWasReset=true;return usageSnapshot();}
     if(args.action==='account'){window.quotaCalls=(window.quotaCalls||0)+1;await new Promise(r=>setTimeout(r,window.quotaDelay??3200));window.quotaFixture={version:2,fetchedAt:Date.now(),error:null,data:{windows:[{id:'primary',seconds:18000,remaining:75,resetsAt:Date.now()+3600000}]}};window.quotaFinished=Date.now();}
     else window.usagePolls=(window.usagePolls||0)+1;
     return usageSnapshot();

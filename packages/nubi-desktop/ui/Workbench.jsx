@@ -329,7 +329,7 @@ export function Workbench({createEditorDraft,connectEditor,api:requestApi,initia
   useEffect(()=>{setConversationUsageId(null);setPanel(current=>current==='conversation-usage'?null:current);},[project?.projectId]);
   const [externalAiPolicy,setExternalAiPolicy]=useState(null);
   const [claudeChecking,setClaudeChecking]=useState(false),[claudeIssue,setClaudeIssue]=useState(null);
-  const usageButton=useRef(null),usageRead=useRef(0),usageAccountPending=useRef(null);
+  const usageButton=useRef(null),usageRead=useRef(0),usageAccountPending=useRef(null),usageResetPending=useRef(false);
   const [usageData,setUsageData]=useState({auth:{provider:'aipro',present:false},connections:{}});
   const loadAccountUsage=useCallback(async({force,signal})=>{
     const revision=++usageRead.current;usageAccountPending.current=revision;
@@ -337,13 +337,18 @@ export function Workbench({createEditorDraft,connectEditor,api:requestApi,initia
     catch {if(!signal.aborted&&revision===usageRead.current)setUsageData(data=>({...data,accountUsage:{...data.accountUsage,error:'quota_unavailable'}}));}
     finally {if(usageAccountPending.current===revision)usageAccountPending.current=null;}
   },[api]);
+  const resetUsage=useCallback(async()=>{
+    usageRead.current++;usageResetPending.current=true;
+    try {const data=await api('usage',{action:'reset'});if(mounted.current)setUsageData(previous=>({...previous,usage:data.usage,usageError:data.usageError}));}
+    finally {usageRead.current++;usageResetPending.current=false;}
+  },[api]);
   // One short Claude request reads the current limits; the pill and the panel follow the provider status.
   const readClaudeCliUsage=useCallback(()=>api('claudeCliUsage',{action:'read'}),[api]);
   const refreshClaudeQuota=useCallback(async()=>{const value=await api('provider',{action:'quota'});if(!mounted.current)return;setProvider(previous=>JSON.stringify(previous)===JSON.stringify(value)?previous:value);const revision=++usageRead.current;const data=await api('usage');if(mounted.current&&revision===usageRead.current)setUsageData(data);},[api]);
   useEffect(()=>{
     if(panel!=='usage')return;
     let alive=true,pending=false;
-    const read=async()=>{if(pending||document.hidden||usageAccountPending.current!==null)return;pending=true;const revision=++usageRead.current;
+    const read=async()=>{if(pending||document.hidden||usageAccountPending.current!==null||usageResetPending.current)return;pending=true;const revision=++usageRead.current;
       try {const data=await api('usage');if(alive&&revision===usageRead.current)setUsageData(data);}
       catch {if(alive&&revision===usageRead.current)setUsageData(data=>({...data,usageError:'usage_unavailable'}));}
       finally {pending=false;}
@@ -1010,7 +1015,7 @@ export function Workbench({createEditorDraft,connectEditor,api:requestApi,initia
     {conversationTools&&panel==='conversation-usage'&&conversationUsageId&&<ConversationUsage api={api} taskId={conversationUsageId} onClose={()=>setPanel(null)}/>}
     {conversationTools&&panel==='routines'&&<RoutineSettings api={api} projectId={project?.projectId} onClose={()=>setPanel('settings')} onStarted={async()=>{await refresh();showNotice('루틴 대화를 시작했어요. 질문과 승인은 대화에서 확인해 주세요.');}}/>}
     {panel==='settings'&&<DetailPanel className="deck-dialog nubi-panel" title={panelTitle('sliders','설정')} variant="modal" onClose={()=>closePanel(settingsButton)}><div className="nubi-settings">{conversationTools&&<CxButton className="nubi-settings-row" onClick={()=>setPanel('routines')}><span className="nubi-settings-row-icon" aria-hidden="true"><Icon name="clock" size={18}/></span><span>루틴</span><Icon name="chevronRight" size={16}/></CxButton>}<SettingsSection icon="layers" title="표시"><ProgressDisplaySetting enabled={showProgress} onChange={setShowProgress}/></SettingsSection>{conversationTools&&project&&<ConversationArchiveSetting days={project.conversationNavigation?.autoArchiveDays??30} onSave={days=>perform(async()=>{await api('setAutoArchiveDays',{projectId:project.projectId,days});await refresh();})}/>}{project?<div className="nubi-settings-field"><SettingsSection icon="code" title="기본 터미널"><CxSelect aria-label="기본 터미널" id="nubi-default-shell" value={project.defaultShell||''} disabled={busy||!!activeTask||project?.backgroundActive} onChange={e=>perform(async()=>{await api('setShellPreference',{profile:e.target.value});setShell('');await refresh();})}>{project.profiles.map(profile=><option key={profile.id} value={profile.id}>{profile.label}</option>)}</CxSelect></SettingsSection></div>:<p className="nubi-muted">프로젝트를 열면 기본 터미널을 설정할 수 있어요.</p>}{conversationTools&&project&&<AfterEditCheckSetting key={project.projectId} setting={project.afterEditCheck} profiles={project.profiles} defaultShell={project.defaultShell} disabled={busy||!!activeTask||project.backgroundActive} onSave={value=>perform(async()=>{await api('setAfterEditCheck',{projectId:project.projectId,...value});await refresh();})}/>}<div className="nubi-settings-rows">{project&&<CxButton className="nubi-settings-row" onClick={()=>setPanel('memories')}><span className="nubi-settings-row-icon" aria-hidden="true"><Icon name="lightbulb" size={18}/></span><span>기억</span><Icon name="chevronRight" size={16}/></CxButton>}{task&&<CxButton className="nubi-settings-row" onClick={()=>setPanel('analysis-history')}><span className="nubi-settings-row-icon" aria-hidden="true"><Icon name="clock" size={18}/></span><span>작업 기록</span><Icon name="chevronRight" size={16}/></CxButton>}</div><WorkspaceUpdate update={workspaceUpdate} onInstall={installUpdate}/></div></DetailPanel>}
-    {panel==='usage'&&<UsagePanel data={usageData} providerLabels={providerLabels} afterAccount={<ClaudeAccountUsage data={usageData} onRefresh={refreshClaudeQuota} readCliUsage={readClaudeCliUsage}/>} loadAccountUsage={loadAccountUsage} scopeLabel="이 앱에서 사용한 토큰" onClose={()=>closePanel(usageButton)}/>}
+    {panel==='usage'&&<UsagePanel data={usageData} providerLabels={providerLabels} afterAccount={<ClaudeAccountUsage data={usageData} onRefresh={refreshClaudeQuota} readCliUsage={readClaudeCliUsage}/>} loadAccountUsage={loadAccountUsage} onResetUsage={resetUsage} scopeLabel="이 앱에서 사용한 토큰" onClose={()=>closePanel(usageButton)}/>}
     {conversationTools&&panel==='history'&&<DetailPanel className="deck-dialog nubi-panel" title={panelTitle('search','대화 검색')} variant="modal" initialFocus="#nubi-conversation-search" onClose={()=>closePanel(historyTrigger)}>
       <ConversationSearch api={api} projectId={project?.projectId} taskId={taskId} busy={busy} onSelect={id=>perform(async()=>{const selected=await api('conversationHistory',{taskId:id});setProject(current=>({...current,tasks:[selected,...current.tasks.filter(item=>item.id!==id)]}));setWikiPage(false);selectSession(id);setPanel(null);if(compact)setSidebarOpen(false);requestAnimationFrame(()=>composer.current?.focus());})}/>
 

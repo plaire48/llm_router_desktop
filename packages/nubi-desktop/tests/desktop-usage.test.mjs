@@ -14,3 +14,25 @@ test('the ledger keeps dollar cost per provider for today, the week and the tota
   const fourth=usage.start({provider:'claude'});usage.finish(fourth,{prompt_tokens:1,completion_tokens:1,total_tokens:2,cost_usd:0.05});
   assert.equal(usage.summary().usage.total.claude.costUsd,0.05);assert.equal(usage.summary().usage.total.claude.total,19);
 });
+test('reset clears all providers and periods durably and starts a fresh accounting boundary',async t=>{
+  const dir=await mkdtemp(path.join(os.tmpdir(),'nubi-usage-reset-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+  let usage=new DesktopUsage(dir);t.after(()=>usage.close());
+  for(const provider of ['aipro','chatgpt','fabrix','claude']){const id=usage.start({provider});usage.finish(id,{prompt_tokens:10,completion_tokens:2,total_tokens:12,cost_usd:0.2});}
+  const pending=usage.start({provider:'claude'});
+  usage.reset();
+  for(const period of ['today','week','total'])for(const stats of Object.values(usage.summary().usage[period]))assert(Object.values(stats).every(value=>value===0));
+  // A response begun before reset must not restore erased counters.
+  usage.finish(pending,{prompt_tokens:100,completion_tokens:20,total_tokens:120});
+  const fresh=usage.start({provider:'chatgpt'});usage.finish(fresh,{prompt_tokens:3,completion_tokens:2,total_tokens:5});
+  assert.equal(usage.summary().usage.total.chatgpt.total,5);assert.equal(usage.summary().usage.total.claude.total,0);
+  usage.close();usage=new DesktopUsage(dir);
+  assert.equal(usage.summary().usage.total.chatgpt.total,5);assert.equal(usage.summary().usage.total.aipro.total,0);
+});
+test('a reset write failure preserves counters and pending calls instead of claiming zero',async t=>{
+  const dir=await mkdtemp(path.join(os.tmpdir(),'nubi-usage-reset-error-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+  const usage=new DesktopUsage(dir);t.after(()=>usage.close());const id=usage.start({provider:'claude'});
+  const set=usage.store.set.bind(usage.store);usage.store.set=()=>{throw Error('disk_full');};
+  assert.throws(()=>usage.reset(),/usage_save_failed/);assert.equal(usage.summary().usage.total.claude.calls,1);
+  usage.store.set=set;usage.finish(id,{prompt_tokens:4,completion_tokens:2,total_tokens:6});
+  assert.equal(usage.summary().usage.total.claude.total,6);
+});

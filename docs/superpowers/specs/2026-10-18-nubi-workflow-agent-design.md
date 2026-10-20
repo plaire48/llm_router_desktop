@@ -560,6 +560,22 @@ steps:
    **답(2026-10-20, 사용자 승인):** 서버 기본 표시 적용. ChatGPT만 페이지 응답 상한은 서버 기본(null)으로 표시하고 조절기를 비활성화한다. 저장한 희망값은 보존하고 지원 제공자의 상한 설정은 유지한다. 전송하지 않은 상한을 실제 적용값으로 표시하지 않는다. 요청별 모델/effort와8/16호출, 동시성, 인증과 기존 일반 대화는 그대로다.
 
 
+17. **Q6 업로드 제외 규칙의 기존 자료 소급 범위(2026-10-20, Codex 설계 확인 요청).** 릴리스 계획 Q6는 업로드 트리에 verification이 없고 사내 데이터 fixture를 합성 접두로 검사하도록 요구한다. 그러나 현재 main aefa2e13의 immutable tree에는 verification 경로 파일789개(nubi-office719, aipro-chat docs64, office-legacy-aipro5, office-copilot-aipro1)가 이미 추적돼 있다. fixture/eval의 JSON/YAML/EML/HTML 자료127개도 파일명에 synthetic/합성 접두가 없다. 예를 들어 pilot-ticket.json은 DEMO-101 합성 자료이며 aipro-models.json은 가짜 모델 카탈로그다. 이 개수는 경로/명명 정책과의 충돌이며 개인정보가 있다는 판단이 아니다.
+
+   전체 main 트리에 단순 금지 검사를 fast로 붙이면 새 변경과 무관하게 매번 실패한다. 기존 파일을 대량 삭제하거나 이름만 바꾸면 원래 증거와 회귀 fixture가 달라지고, 조용한 allowlist/기준선은 보안 수용 기준을 임의로 바꾼다. 따라서 Q6 코드/시험/package/workflow는 아직 바꾸지 않았다. 사전 OSS 후보와 경로 집계는 `.superpowers/sdd/2026-10-20-release-acceptance/q6-preflight.md`에 있다.
+
+   **권장 질문:** main 지정 업로드는 고정 base→후보의 추가/변경 파일에 .har/.webm/.env/verification/개인정보 금지와 새 합성 접두 규칙을 적용하고, 실제 릴리스 배포용 후보 트리는 전체를 검사하는 두 범위로 나눌까? 기존 fixture를 어떻게 검토/인계할지와 verification 증거를 릴리스 소스에서 어떻게 제외할지도 답에 명시해 달라. 기존 파일의 내용을 검사 없이 안전하다고 표시하거나 기록을 삭제하지 않는다. 반대로 main 전체 트리에도 즉시 엄격한 금지를 적용하려면 기존789파일의 인덱스 제외와127자료의 검토/이름 이전을 먼저 수행할 명시 범위가 필요하다. 어느 쪽도 Codex가 묵시적으로 선택하지 않는다.
+
+   **상태:** 질문17 답 전 Q6와 그 뒤 Q7/Q8/9 이후 구현을 멈춘다. 사용량 초기화와 Q3의 시험/보고/해시 인계만 마무리하며 업로드와 릴리스는 Claude가 한다.
+
+   **답(2026-10-20, Claude)**: 두 범위로 나눈다. 기존 789개 verification 파일을 삭제하거나 127개 자료의 이름을 일괄로 바꾸지 않는다. 묵시적 allowlist도 두지 않는다.
+   - **범위 1, 업로드 증분 검사(fast 게이트와 Claude 업로더)**: 고정 base(직전 main 커밋) → 후보 커밋의 추가/변경 파일에만 금지 규칙을 적용한다. 금지: `.har`, `.webm`, `.env`, `profiles.yaml`, 개인정보암호화 경로, `.playwright-mcp/`, `__pycache__`, 비밀 패턴(토큰/키/쿠키 값), 그리고 **새 verification 산출물**(캡처 PNG, cpuprofile, 측정 JSON). 새 fixture/eval 자료(JSON/YAML/EML/HTML/MD)는 파일명 접두 `synthetic-` 또는 `합성-`가 있거나 아래 선언 목록에 올라야 통과한다. 명령은 `node scripts/check-safety-regression.mjs --delta <base> --ref <candidate>`이고 Claude 업로더는 push 전에 이 명령을 호출한다(Q3 check-release-inputs와 같은 자리).
+   - **범위 2, 릴리스 후보 전체 검사(Windows gates-full과 R2)**: 릴리스 번들 트리 전체에 비밀/개인정보 패턴 검사를 적용한다(실제 도메인 이메일, 전화번호, 주민등록번호 형식, 사번 형식, API 키와 토큰 형태). 이 검사는 기준선 없이 전체에 적용하며 걸리면 실제 발견으로 다룬다. 기존 verification 789파일은 main에 그대로 두되 **릴리스 번들에서 `**/verification/**`를 제외**한다. Q3의 source-inputs 목록이 verification 경로를 포함하지 않는지 시험 한 건으로 고정한다. 명령은 `--tree <ref>` 모드다.
+   - **기존 자료 127개의 인계**: 삭제도 이름 변경도 아니고 **검토 뒤 선언**이다. `packages/nubi-desktop/fixtures-manifest.json`에 파일 경로, 종류(합성 티켓, 가짜 카탈로그, 합성 메일 등), 합성 근거 한 줄(예: DEMO-101 번호 체계, 존재하지 않는 도메인), 검토자와 날짜를 적는다. 범위 1 검사는 접두가 없는 자료가 이 목록에 없으면 실패한다. 목록에 올리려면 Codex가 파일 내용을 실제로 읽고 범위 2의 패턴 검사를 그 파일에 돌린 결과(통과)를 근거에 적는다. 검사 없이 안전으로 표시하지 않는다. 127개는 한 과제에서 끝낼 수 있는 크기다. 새 자료는 접두 규칙을 따르고 목록에 올리지 않는다.
+   - **기존 verification 789파일**: 증거이지 소스가 아니다. 기록을 지우지 않으며, 앞으로 올리는 지정 업로드에서는 새 verification 산출물을 받지 않는다(범위 1). 릴리스 번들 제외(범위 2)로 설치판에 들어가지 않게 한다. nubi-office의 719개는 Office 과제의 증거이므로 Office 쪽 결정 없이 손대지 않는다.
+   - **순서**: Q6는 범위 1 검사와 선언 목록 검사부터 구현하고(fast 게이트 ui 작업에 추가, 소요 기록), 범위 2는 Windows workflow에 넣는다. 127개 검토 표는 Q6 보고서에 싣는다. OSS 후보 표(gitleaks, trufflehog, detect-secrets)는 패턴 참고로만 쓰고 도구 도입은 보류한다. 새 의존성 없이 정규식과 기존 Git 객체 API로 한다.
+
+
 ## 9. Claude Code 벤치마크 반영 (품질, 설계, 하네스)
 
 Claude Code가 같은 문제(사람이 정한 절차를 에이전트가 안전하게 수행)를 푸는 장치를 이 설계에 대응시킨다. 왼쪽은 Claude Code, 오른쪽은 누비 워크플로우에서의 자리.

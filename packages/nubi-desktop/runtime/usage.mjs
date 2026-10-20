@@ -21,6 +21,16 @@ export class DesktopUsage {
     try {this.store.set('usage:ledger', this.ledger); this.error = null;}
     catch {this.error = 'usage_save_failed';}
   }
+  reset() {
+    if(this.closed)throw Error('usage_unavailable');
+    const next=newLedger();
+    // Persist first: a failed disk write must leave the visible ledger intact.
+    try {this.store.set('usage:ledger',next);}
+    catch {this.error='usage_save_failed';throw Error(this.error);}
+    this.ledger=next;this.calls.clear();this.error=null;
+    // Completions from requests started before reset belong to the old period.
+    return this.summary();
+  }
   add(frame, previous) {
     for (const [day, providers] of Object.entries(frame.days)) {
       this.ledger.days[day] ||= {};
