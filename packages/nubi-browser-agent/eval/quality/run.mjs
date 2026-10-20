@@ -41,6 +41,7 @@ try{
   const context=await browser.newContext({locale:'ko-KR',viewport:{width:1280,height:900}}),page=await context.newPage(),controller=new AbortController();let addon,client,server;
   if(learning?.pageRef)learning.pageRef.page=page;
   const started=performance.now(),timer=setTimeout(()=>{row.timeout=true;controller.abort();},timeoutMs);
+  row.dialogs=[];page.on('dialog',async dialog=>{row.dialogs.push({type:dialog.type(),message:dialog.message().slice(0,80)});await dialog.accept().catch(()=>{});});
   const allowed=url=>{try{const u=new URL(url);return u.protocol==='https:'&&task.origins.includes(u.origin);}catch{return false;}};
   await context.route('**/*',route=>{const request=route.request();if(request.isNavigationRequest()&&request.frame()===request.frame().page().mainFrame()&&!allowed(request.url()))return route.abort();return route.continue();});
   try{
@@ -66,7 +67,7 @@ try{
    row.receipts=outcome.checkpoint.receipts.map(r=>({tool:r.tool,status:r.status,effect:r.effect}));
    // What the agent left for a human: a question or a completion waiting for confirmation.
    row.pending=[...controls.present.values()].map(r=>({kind:r.kind,title:String(r.title??'').slice(0,200),text:String(r.text??r.question??r.answer??'').slice(0,400)}));
-   row.oracle=await task.oracle(page,outcome.answer).catch(error=>({success:false,detail:{error:error.message}}));row.success=row.oracle.success;
+   row.oracle=await Promise.race([task.oracle(page,outcome.answer),new Promise(resolve=>setTimeout(()=>resolve({success:false,detail:{error:'oracle_timeout'}}),15000))]).catch(error=>({success:false,detail:{error:error.message}}));row.success=row.oracle.success;
   }catch(error){row.error=error.code??error.message;}
   finally{clearTimeout(timer);row.totalMs=Math.round(performance.now()-started);await addon?.detach().catch(()=>{});await client?.close().catch(()=>{});await server?.close().catch(()=>{});await context.close().catch(()=>{});await persist();
    console.log(JSON.stringify({task:task.id,phase,success:row.success,state:row.state,ms:row.totalMs,modelCalls:row.modelCalls,toolCalls:row.toolCalls,toolErrors:row.toolErrors,promptTokens:row.promptTokens,error:row.error,oracle:row.oracle?.detail}));}
@@ -79,6 +80,7 @@ try{
   const context=await browser.newContext({locale:'ko-KR',viewport:{width:1280,height:900}}),page=await context.newPage(),controller=new AbortController();let addon,client,server;
   learning.pageRef.page=page;
   const started=performance.now(),timer=setTimeout(()=>{row.timeout=true;controller.abort();},timeoutMs);
+  row.dialogs=[];page.on('dialog',async dialog=>{row.dialogs.push({type:dialog.type(),message:dialog.message().slice(0,80)});await dialog.accept().catch(()=>{});});
   const allowed=url=>{try{const u=new URL(url);return u.protocol==='https:'&&task.origins.includes(u.origin);}catch{return false;}};
   await context.route('**/*',route=>{const request=route.request();if(request.isNavigationRequest()&&request.frame()===request.frame().page().mainFrame()&&!allowed(request.url()))return route.abort();return route.continue();});
   try{
