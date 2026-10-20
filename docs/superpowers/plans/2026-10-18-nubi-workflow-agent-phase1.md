@@ -341,6 +341,8 @@ Task 8 로컬 완료(2026-10-20): 관련 회귀226/226, 실제 Electron1280/440�
 - [ ] **Step 1: 시험** — (a) 루틴 `kind:'workflow'`가 정시에 `startWorkflow`를 부른다. (b) 대기 중인 사람 단계나 실행 중인 run이 있으면 다음 예약에서 중복 시작하지 않는다(기존 `pending` 규칙). (c) 감독 통과가 없으면 시작하지 않고 `workflow_supervision_required` 알림 하나만 남긴다. (d) YAML `trigger.kind: routine` 저장 시 제안 레코드만 생기고 루틴은 자동 등록되지 않는다. (e) 루틴 화면에서 일정을 바꾸면 YAML `trigger.schedule`이 바뀌고 `definitionHash`와 qualified는 그대로다. (f) 자유 요청 루틴이 3회 성공하면 승격 제안이 한 번만 생긴다.
 - [ ] **Step 2: 실패 확인 → 구현 → 통과**. `npm run test:gates`, 루틴 화면과 워크플로우 목록 캡처(1280/440)를 보고서에.
 
+> Task 9 진행(2026-10-21, Claude): 런타임과 시험 (a)~(f)는 구현과 통과(`tests/workflow-routine.test.mjs`). Files 중 `runtime/routines.mjs`, `workflow-package.mjs`(definitionHash, parseWorkflowSchedule, saveWorkflowSchedule), `workflow-runner.mjs`, `workflow-service.mjs`(listWorkflows 확장, registerWorkflowRoutine), `project-service.mjs`(허용 목록) 완료. 남은 것은 `ui/RoutineSettings.jsx`, `ui/WorkflowPanel.jsx`, fixture와 화면 검사, 캡처(기능 공백 설계 G0에 단계가 있다). 승격 제안의 소비처(워크플로우로 만들기)도 G0에서.
+
 ---
 
 ## Task 10: 문서, QA, 업로드 → 1.3.0 릴리스 준비로 바뀜

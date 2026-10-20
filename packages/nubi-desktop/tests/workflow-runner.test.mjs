@@ -17,7 +17,7 @@ export async function workflowFixture(t,steps,{permissions={tools:['documents','
  if(fixtures){await mkdir(path.join(dir,'fixtures'));for(const [name,value] of Object.entries(fixtures))await writeFile(path.join(dir,'fixtures',name),JSON.stringify(value));}
  const runner=createWorkflowRunner(f.service);return {...f,runner,dir};
 }
-async function qualified(f){const pkg=await loadWorkflowPackage(f.root,'sample');f.service.store.set('workflow-qualified:sample:'+pkg.hash,{hash:pkg.hash});}
+async function qualified(f){const pkg=await loadWorkflowPackage(f.root,'sample');f.service.store.set('workflow-qualified:sample:'+pkg.definitionHash,{definitionHash:pkg.definitionHash,hash:pkg.hash});}
 const call=(name,args)=>({id:crypto.randomUUID(),type:'function',function:{name,arguments:JSON.stringify(args)}});
 function provider(f,actor){f.service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:32000}]}),complete:actor,dispose(){}};}
 

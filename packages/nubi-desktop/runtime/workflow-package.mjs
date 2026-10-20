@@ -1,10 +1,42 @@
 import {realpath,lstat,readdir,mkdir,writeFile} from 'node:fs/promises';
 import path from 'node:path';
-import {parse,stringify} from 'yaml';
+import {parse,parseDocument,stringify} from 'yaml';
 import {relativeFile,readSource,scopedFile,hash,fail} from './files.mjs';
 import {validateWorkflow} from './workflow-schema.mjs';
 
 const base='.nubi/workflows';
+// Design §3.8: the supervision key and maturity follow the definition without
+// trigger.schedule, so changing only the schedule never resets "qualified".
+// README guidance enters agent conversations, so it is part of the definition;
+// fixtures only feed dry-runs and are not.
+const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])])):value;
+export function definitionHash(workflow,readme=''){
+  const {trigger,...rest}=workflow||{};const {schedule,...triggerRest}=trigger||{};
+  return hash(JSON.stringify([canonical({...rest,...(trigger?{trigger:triggerRest}:{})}),String(readme||'')]));
+}
+const weekdays=['sun','mon','tue','wed','thu','fri','sat'];
+const validTime=time=>{const m=/^(\d{2}):(\d{2})$/.exec(time||'');return !!m&&+m[1]<=23&&+m[2]<=59;};
+export function parseWorkflowSchedule(text){
+  const m=/^(daily|weekly)(?: (sun|mon|tue|wed|thu|fri|sat|[0-6]))? (\d{2}:\d{2})$/.exec(typeof text==='string'?text.trim():'');
+  if(!m||!validTime(m[3])||(m[1]==='weekly')!==(m[2]!==undefined))fail('workflow_schedule_invalid');
+  const weekday=m[2]===undefined?undefined:/^\d$/.test(m[2])?+m[2]:weekdays.indexOf(m[2]);
+  return m[1]==='daily'?{kind:'daily',time:m[3]}:{kind:'weekly',time:m[3],weekday};
+}
+export function formatWorkflowSchedule(schedule){
+  if(!schedule||!['daily','weekly'].includes(schedule.kind)||!validTime(schedule.time)||schedule.kind==='weekly'&&!(Number.isInteger(schedule.weekday)&&schedule.weekday>=0&&schedule.weekday<=6))fail('workflow_schedule_invalid');
+  return schedule.kind==='daily'?`daily ${schedule.time}`:`weekly ${weekdays[schedule.weekday]} ${schedule.time}`;
+}
+// The routine screen edits only trigger.schedule in place; YAML stays the truth.
+export async function saveWorkflowSchedule(projectRoot,slug,schedule,assertCurrent=()=>{}){
+  const text=formatWorkflowSchedule(schedule);safeSlug(slug);const root=await realpath(projectRoot),rel=`${base}/${slug}`;await directory(root,rel);
+  const current=await loadWorkflowPackage(root,slug);assertCurrent();
+  if(current.workflow.trigger?.kind!=='routine')fail('workflow_trigger_invalid');
+  if(current.workflow.trigger.schedule===text)return current;
+  const yaml=await source(root,`${rel}/workflow.yaml`),doc=parseDocument(yaml.content,{maxAliasCount:100});
+  doc.setIn(['trigger','schedule'],text);assertCurrent();
+  await writeFile(path.join(root,rel,'workflow.yaml'),doc.toString());
+  const saved=await loadWorkflowPackage(root,slug);if(saved.definitionHash!==current.definitionHash)fail('workflow_schedule_invalid');return saved;
+}
 const safeSlug=slug=>{if(typeof slug!=='string'||!/^[a-z0-9][a-z0-9-]{0,79}$/.test(slug))fail('path_scope');return slug;};
 const schemaError=()=>Object.assign(new Error('workflow_schema'),{errors:[{code:'workflow_schema',path:'',message:'워크플로우 파일 형식을 확인해 주세요.'}]});
 async function directory(root,rel){
@@ -32,7 +64,7 @@ export async function loadWorkflowPackage(projectRoot,slug){
   try{workflow=parse(yaml.content,{maxAliasCount:100});}catch{throw Object.assign(schemaError(),{hash:packageHash});}
   const checked=validateWorkflow(workflow);
   if(!checked.ok)throw Object.assign(new Error(checked.errors[0].code),{errors:checked.errors,hash:packageHash});
-  return {slug,workflow:checked.workflow,readme:readme?.content||'',fixtures,hash:packageHash};
+  return {slug,workflow:checked.workflow,readme:readme?.content||'',fixtures,hash:packageHash,definitionHash:definitionHash(checked.workflow,readme?.content||'')};
 }
 export async function listWorkflowPackages(projectRoot){
   const root=await realpath(projectRoot);let entries;
@@ -40,7 +72,7 @@ export async function listWorkflowPackages(projectRoot){
   const result=[];
   for(const entry of entries.sort((a,b)=>a.name.localeCompare(b.name))){
     if(!entry.isDirectory()&&!entry.isSymbolicLink())continue;
-    try{const item=await loadWorkflowPackage(root,entry.name);result.push({slug:item.slug,name:item.workflow.name,version:item.workflow.version,hash:item.hash,valid:true,errors:[]});}
+    try{const item=await loadWorkflowPackage(root,entry.name);result.push({slug:item.slug,name:item.workflow.name,version:item.workflow.version,hash:item.hash,definitionHash:item.definitionHash,trigger:item.workflow.trigger||{kind:'manual'},inputs:item.workflow.inputs||{},valid:true,errors:[]});}
     catch(error){result.push({slug:entry.name,name:entry.name,version:null,hash:error.hash||null,valid:false,errors:error.errors||[{code:error.message==='path_scope'?'path_scope':'workflow_schema',path:'',message:'워크플로우 파일을 확인해 주세요.'}]});}
   }return result;
 }

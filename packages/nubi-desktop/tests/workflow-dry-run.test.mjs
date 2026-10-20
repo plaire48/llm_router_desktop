@@ -54,7 +54,7 @@ test('synthetic completion still checks done_when instead of accepting fixture o
 });
 test('a successful dry-run cannot qualify or silently switch to actual execution',async t=>{
  const f=await setup(t),run=await f.runner.start({slug:'sample',mode:'dry-run'});
- assert.equal(f.service.store.get('workflow-qualified:sample:'+run.hash),null);
+ assert.equal(f.service.store.get('workflow-qualified:sample:'+run.definitionHash),null);
  const resumed=await f.runner.resume(run.id,{mode:'execute'});assert.equal(resumed.mode,'dry-run');assert.equal(resumed.status,'complete');noEffects(f.service);
  const actual=await f.runner.start({slug:'sample',inputs:{ticket:'CR-12'}});assert.equal(actual.supervised,true);assert.equal(actual.steps.read.phase,'supervision');noEffects(f.service);
 });

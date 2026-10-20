@@ -67,7 +67,7 @@ export function createWorkflowRunner(service){
    for(const child of Object.values(run.steps))if(child.taskId)queueMicrotask(()=>service.stopAgent({taskId:child.taskId}).catch(()=>{}));
   }
   run.status=status;if(reason)run.reason=reason;run.finishedAt=new Date().toISOString();save(run);taskState(run,status==='cancelled'?'cancelled':'review');
-  if(status==='complete'&&run.supervised)owner.set(`workflow-qualified:${run.slug}:${run.hash}`,{hash:run.hash,runId:run.id});return get(run.id);
+  if(status==='complete'&&run.supervised)owner.set(`workflow-qualified:${run.slug}:${run.definitionHash||run.hash}`,{definitionHash:run.definitionHash||null,hash:run.hash,runId:run.id});return get(run.id);
  }
  function hold(run,step,reason,{unconfirmed=false,approval}={}){
   run=patch(run.id,step.id,{status:unconfirmed?'unconfirmed':'waiting',reason});
@@ -313,13 +313,16 @@ export function createWorkflowRunner(service){
   let run;
   try{
   const pkg=await loadWorkflowPackage(root,slug);alive();const checked={workflow:pkg.workflow};preflight(checked.workflow);
+  const qualified=!!owner.get(`workflow-qualified:${slug}:${pkg.definitionHash}`);
+  // Design §3.8: an unattended routine start needs a prior supervised pass of this definition.
+  if(trigger.kind==='routine'&&mode!=='dry-run'&&!qualified)throw Error('workflow_supervision_required');
   const synthetic=mode==='dry-run'?Object.hasOwn(pkg.fixtures,fixture)&&pkg.fixtures[fixture]:null;
   if(mode==='dry-run'&&(!synthetic||typeof synthetic!=='object'||Array.isArray(synthetic)))throw Error('workflow_fixture_missing');
   if(Buffer.byteLength(pkg.readme)>8192&&checked.workflow.steps.some(step=>step.kind==='agent'))throw Error('workflow_guidance_limit');
   run=createRun(owner,{slug,workflow:checked.workflow,hash:pkg.hash,inputs:inputsFor(checked.workflow,inputs??synthetic?.inputs??{}),trigger});
   owner.set('workflow-guidance:'+run.id,{hash:pkg.hash,text:pkg.readme});
-  const task=await service.createTask({request:checked.workflow.name});alive();task.kind='workflow';task.workflowRunId=run.id;owner.set('task:'+task.id,task);
-  run.taskId=task.id;run.mode=mode;run.fixture=mode==='dry-run'?fixture:null;run.supervised=mode!=='dry-run'&&!owner.get(`workflow-qualified:${slug}:${pkg.hash}`);save(run);
+  const task=await service.createTask({request:checked.workflow.name},trigger.kind==='routine'&&typeof trigger.routineId==='string'?{id:trigger.routineId,name:typeof trigger.routineName==='string'?trigger.routineName:checked.workflow.name}:undefined);alive();task.kind='workflow';task.workflowRunId=run.id;owner.set('task:'+task.id,task);
+  run.taskId=task.id;run.mode=mode;run.fixture=mode==='dry-run'?fixture:null;run.definitionHash=pkg.definitionHash;run.supervised=mode!=='dry-run'&&!qualified;save(run);
   }catch(error){if(run){run.status='failed';run.reason='workflow_task_creation_failed';run.finishedAt=new Date().toISOString();save(run);}throw error;}finally{service.workflowActive--;}
   if(background){queueMicrotask(()=>resume(run.id).catch(error=>{if(service.store===owner&&!service.disposed&&!terminal.has(get(run.id).status))finish(get(run.id),'partial',errorCode(error));}));return get(run.id);}
   return resume(run.id);

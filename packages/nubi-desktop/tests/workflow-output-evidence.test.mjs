@@ -16,7 +16,7 @@ const definition=steps=>({name:'합성 결과 판단',version:1,permissions:{too
 const call=(name,args)=>({id:crypto.randomUUID(),type:'function',function:{name,arguments:JSON.stringify(args)}});
 async function setup(t,steps=[step()]){
  const f=await fixture(t),dir=path.join(f.root,'.nubi/workflows/sample');await mkdir(dir,{recursive:true});await writeFile(path.join(dir,'workflow.yaml'),JSON.stringify(definition(steps)));
- const pkg=await loadWorkflowPackage(f.root,'sample');f.service.store.set('workflow-qualified:sample:'+pkg.hash,{hash:pkg.hash});
+ const pkg=await loadWorkflowPackage(f.root,'sample');f.service.store.set('workflow-qualified:sample:'+pkg.definitionHash,{definitionHash:pkg.definitionHash,hash:pkg.hash});
  return {...f,runner:createWorkflowRunner(f.service)};
 }
 function provider(f,actor){f.service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:32000}]}),complete:(messages,...args)=>fixturePlan(messages)||fixtureReview(messages)||actor(messages,...args),dispose(){}};}
@@ -53,7 +53,7 @@ test('a receipt from another step conversation is rejected despite existing in t
  const f=await setup(t,[step('first'),step('second')]);let firstId;const counts=new Map();
  provider(f,async messages=>{const text=JSON.stringify(messages),second=text.includes('second');const key=second?'second':'first';const n=counts.get(key)||0;counts.set(key,n+1);if(!n&&!second)return {content:'',calls:[call('read_source',{path:'app.txt'})]};firstId ||=results(messages).find(row=>row.workflowEvidence?.length)?.workflowEvidence[0].id;return {content:'',calls:[call('submit_step_output',{output:{summary:key,evidence:[firstId]}})]};});
  // Distinguish isolated stages by their literal goal, rather than model call counts.
- const file=path.join(f.root,'.nubi/workflows/sample/workflow.yaml');const doc=definition([step('first'),{...step('second'),goal:'second 단계에서 이전 영수증 재사용 금지'}]);await writeFile(file,JSON.stringify(doc));const pkg=await loadWorkflowPackage(f.root,'sample');f.service.store.set('workflow-qualified:sample:'+pkg.hash,{hash:pkg.hash});
+ const file=path.join(f.root,'.nubi/workflows/sample/workflow.yaml');const doc=definition([step('first'),{...step('second'),goal:'second 단계에서 이전 영수증 재사용 금지'}]);await writeFile(file,JSON.stringify(doc));const pkg=await loadWorkflowPackage(f.root,'sample');f.service.store.set('workflow-qualified:sample:'+pkg.definitionHash,{definitionHash:pkg.definitionHash,hash:pkg.hash});
  const run=await f.runner.start({slug:'sample'});assert.equal(run.steps.first.status,'complete');assert.equal(run.status,'partial');assert.equal(run.reason,'workflow_evidence_invalid');assert.equal(run.steps.second.output,undefined);
 });
 test('source tools default to one receipt while a tool-free schema stage needs none',async t=>{
