@@ -1,0 +1,108 @@
+{
+  "name": "@nubi/browser-agent",
+  "version": "0.5.0",
+  "private": true,
+  "type": "module",
+  "description": "Standalone host-owned browser task lifecycle and addon contract",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "exports": {
+    "./context": {
+      "types": "./dist/context.d.ts",
+      "import": "./dist/context.js"
+    },
+    "./research": {
+      "types": "./dist/research.d.ts",
+      "import": "./dist/research.js"
+    },
+    "./research/playwright": {
+      "types": "./dist/research-playwright.d.ts",
+      "import": "./dist/research-playwright.js"
+    },
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./playwright": {
+      "types": "./dist/playwright.d.ts",
+      "import": "./dist/playwright.js"
+    },
+    "./pi": {
+      "types": "./dist/pi.d.ts",
+      "import": "./dist/pi.js"
+    },
+    "./memory": {
+      "types": "./dist/memory.d.ts",
+      "import": "./dist/memory.js"
+    },
+    "./knowledge": {
+      "types": "./dist/knowledge.d.ts",
+      "import": "./dist/knowledge.js"
+    },
+    "./knowledge/wiki": {
+      "types": "./dist/knowledge-wiki.d.ts",
+      "import": "./dist/knowledge-wiki.js"
+    },
+    "./knowledge/playwright": {
+      "types": "./dist/knowledge-playwright.d.ts",
+      "import": "./dist/knowledge-playwright.js"
+    },
+    "./stagehand": {
+      "types": "./dist/stagehand.d.ts",
+      "import": "./dist/stagehand.js"
+    },
+    "./knowledge/files": {
+      "types": "./dist/knowledge-files.d.ts",
+      "import": "./dist/knowledge-files.js"
+    },
+    "./knowledge/learning": {
+      "types": "./dist/knowledge-learning.d.ts",
+      "import": "./dist/knowledge-learning.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "SCREEN-KNOWLEDGE.md",
+    "RESEARCH.md",
+    "THIRD-PARTY-NOTICES.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "test:browser": "npm run build && node --test --test-concurrency=1 --test-timeout=60000 tests/browser/*.test.mjs",
+    "fixture:workflows": "node evaluation/site.mjs",
+    "benchmark:overhead": "npm run build && node scripts/latency.mjs",
+    "benchmark:legacy": "npm run build && node scripts/legacy-latency.mjs"
+  },
+  "peerDependencies": {
+    "playwright-core": "1.64.0-alpha-1790635538000",
+    "@browserbasehq/stagehand": "3.7.3",
+    "zod": "4.4.3"
+  },
+  "peerDependenciesMeta": {
+    "playwright-core": {
+      "optional": true
+    },
+    "@browserbasehq/stagehand": {
+      "optional": true
+    },
+    "zod": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@browserbasehq/stagehand": "3.7.3",
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "@playwright/mcp": "0.0.83",
+    "playwright-core": "1.64.0-alpha-1790635538000",
+    "typescript": "5.9.3",
+    "zod": "4.4.3"
+  },
+  "overrides": {
+    "@ai-sdk/provider-utils": {
+      "undici": "6.28.1"
+    }
+  }
+}
