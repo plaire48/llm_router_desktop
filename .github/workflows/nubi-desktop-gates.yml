@@ -44,6 +44,8 @@ jobs:
           pnpm install --frozen-lockfile --ignore-scripts
       - name: Install Chrome channel
         run: npx --no-install playwright install --with-deps chrome
+      - name: Compile shared runtime
+        run: npm run compile
       - name: Check gate coverage
         run: node scripts/check-gate-coverage.mjs
       - name: Run fast gates
