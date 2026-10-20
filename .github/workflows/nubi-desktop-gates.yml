@@ -49,9 +49,27 @@ jobs:
         run: npm run compile
       - name: Check gate coverage
         run: node scripts/check-gate-coverage.mjs
+      - name: Reset timing marker for this run
+        run: rm -f verification/unjudged.json
       - name: Run fast gates
         run: npm run test:gates:fast
         timeout-minutes: 20
+      - name: Summarize unjudged timing checks
+        if: always()
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFile,appendFile} from 'node:fs/promises';
+          let entries=[];
+          try {
+            const marker=JSON.parse(await readFile('verification/unjudged.json','utf8'));
+            if(marker.version!==1||!Array.isArray(marker.entries)||marker.runId!==process.env.GITHUB_RUN_ID+':'+process.env.GITHUB_RUN_ATTEMPT)throw Error('invalid timing marker');
+            entries=marker.entries;
+            if(entries.some(e=>e.verdict!=='unjudged'||e.functionalPassed!==true))throw Error('invalid unjudged entry');
+          } catch(error) {if(error.code!=='ENOENT')throw error;}
+          const text='미판정 '+entries.length+'건';
+          console.log(text);
+          await appendFile(process.env.GITHUB_STEP_SUMMARY,'### '+text+'\n\n기능 단언은 계속 판정합니다. 미판정 시간 항목은 목표 환경에서 별도 확인해야 합니다.\n'+entries.map(e=>'- '+e.id+' ('+e.reason+')').join('\n')+'\n');
+          NODE
       - name: Preserve failed-check screenshots and measurements
         if: failure()
         uses: actions/upload-artifact@v4
@@ -64,5 +82,18 @@ jobs:
             packages/nubi-desktop/verification/**/*.log
           retention-days: 7
           if-no-files-found: warn
+      - name: Preserve unjudged timing measurements
+        if: success() && hashFiles('packages/nubi-desktop/verification/unjudged.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: nubi-desktop-unjudged-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            packages/nubi-desktop/verification/**/*.png
+            packages/nubi-desktop/verification/**/*.json
+            packages/nubi-desktop/verification/**/*.cpuprofile
+            packages/nubi-desktop/verification/**/*.log
+          retention-days: 7
+          if-no-files-found: error
     env:
       ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+      NUBI_SHARED_RUNNER: "1"

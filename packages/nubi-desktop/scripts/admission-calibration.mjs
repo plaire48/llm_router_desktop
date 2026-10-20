@@ -1,4 +1,6 @@
-import {writeFile} from 'node:fs/promises';
+import {writeFile,readFile,mkdir,rename} from 'node:fs/promises';
+import path from 'node:path';
+import assert from 'node:assert/strict';
 
 // Fixed Mac reference for the exact versioned synthetic task below. Updated
 // only by recording a new local reference, never from the CI being judged.
@@ -34,6 +36,38 @@ export function admissionBudget({measuredMs,referenceMs}){
  return {contractMs:300,measuredMs,referenceMs,ratio,scale,budgetMs:300*scale,status:ratio>2?'environment_unstable':'stable',exitCode:ratio>2?2:0};
 }
 
+// Opt-in only for shared CI hardware. Local and Windows target gates retain exit 2.
+export const isSharedRunner=()=>process.env.NUBI_SHARED_RUNNER==='1';
+export function timingVerdict(environmentUnstable,{sharedRunner=isSharedRunner()}={}){
+ return environmentUnstable&&sharedRunner?'unjudged':'judged';
+}
+export function judgedTimingRow(row,timingCodes){
+ return row.timingVerdict==='unjudged'?{...row,environmentReasons:[],violations:row.violations.filter(code=>!timingCodes.has(code))}:row;
+}
+export function assertAdmissionTiming(calibration,{check,actualMs,limitMs=calibration.budgetMs}){
+ assert.ok(Number.isFinite(actualMs)&&actualMs>=0&&Number.isFinite(limitMs)&&limitMs>0,'valid timing sample: '+check);
+ const verdict=calibration.timingVerdict==='unjudged'?'unjudged':'passed';
+ if(verdict!=='unjudged')assert.ok(actualMs<=limitMs,check+': '+JSON.stringify({actualMs,limitMs,ratio:calibration.ratio}));
+ return {check,actualMs,limitMs,verdict};
+}
+let markerQueue=Promise.resolve(),markerSequence=0;
+export function recordUnjudged(record,{file=path.resolve('verification/unjudged.json'),runId=[process.env.GITHUB_RUN_ID||'local',process.env.GITHUB_RUN_ATTEMPT||'1'].join(':')}={}){
+ const write=async()=>{
+  assert.equal(record.functionalPassed,true,'unjudged requires completed functional assertions');assert.ok(record.id);
+  let marker={version:1,runId,entries:[]};
+  try{const old=JSON.parse(await readFile(file,'utf8'));assert.equal(old.version,1);assert.ok(Array.isArray(old.entries));if(old.runId===runId)marker=old;}catch(error){if(error.code!=='ENOENT')throw error;}
+  const entry={...record,verdict:'unjudged',recordedAt:new Date().toISOString()},index=marker.entries.findIndex(e=>e.id===record.id);
+  if(index<0)marker.entries.push(entry);else marker.entries[index]=entry;
+  await mkdir(path.dirname(file),{recursive:true});const temporary=file+'.'+process.pid+'.'+(++markerSequence)+'.tmp';
+  await writeFile(temporary,JSON.stringify(marker,null,2));await rename(temporary,file);
+ };
+ const pending=markerQueue.then(write);markerQueue=pending.catch(()=>{});return pending;
+}
+export async function completeAdmissionCheck(calibration,timings){
+ if(calibration.timingVerdict==='unjudged')await recordUnjudged({id:calibration.name+':'+calibration.width,check:calibration.name,width:calibration.width,functionalPassed:true,reason:'reference_ratio_exceeded',calibration,timings});
+ console.log(JSON.stringify({check:calibration.name,width:calibration.width,functionalPassed:true,verdict:calibration.timingVerdict==='unjudged'?'unjudged':'passed',timings}));
+}
+
 export async function measureAdmissionReference(browser,width){
  const page=await browser.newPage({viewport:{width,height:900}});
  try{
@@ -57,7 +91,8 @@ export async function calibrateAdmission(browser,{width,directory,name}){
  if(measurement.rows!==100||measurement.cells!==700)throw Error('admission_reference_incomplete');
  const reference=ADMISSION_REFERENCE.measurements[width];
  const budget=admissionBudget({measuredMs:measurement.durationMs,referenceMs:reference?.durationMs});
- const result={...budget,width,name,measurement,reference:{...reference,version:ADMISSION_REFERENCE.version,platform:ADMISSION_REFERENCE.platform,measuredAt:ADMISSION_REFERENCE.measuredAt},browser:browser.version(),recordedAt:new Date().toISOString()};
+ const verdict=timingVerdict(budget.status==='environment_unstable');
+ const result={...budget,environmentExitCode:budget.exitCode,exitCode:verdict==='unjudged'?0:budget.exitCode,timingVerdict:verdict,width,name,measurement,reference:{...reference,version:ADMISSION_REFERENCE.version,platform:ADMISSION_REFERENCE.platform,measuredAt:ADMISSION_REFERENCE.measuredAt},browser:browser.version(),recordedAt:new Date().toISOString()};
  await writeFile(directory+'/calibration-'+width+'.json',JSON.stringify(result,null,2));
  console.log(JSON.stringify({scene:'admission-calibration',...result}));
  if(result.exitCode===2)throw Object.assign(Error('environment_unstable'),{code:'environment_unstable',calibration:result});
