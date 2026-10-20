@@ -128,7 +128,11 @@ export function createPlaywrightMcpPort(options:PlaywrightPortOptions):BrowserPo
     }
     if(!['accessibility','structure'].includes(observeOptions.mode??'accessibility'))fail('observation_mode_invalid');
     await catalog(state.tab.client);await clearSeen(state);
-    const initial=await binding(state),targets=new Map<string,Target>();let data:Json;
+    // Let a page that is still mutating (lazy images, scripts) settle before the observation is bound, so a
+    // mutation burst does not fail the whole observe (browser quality baseline 2, 2026-10-21: Korean Wikipedia).
+    let initial=await binding(state);
+    for(let attempt=0;attempt<6;attempt++){await new Promise(resolve=>setTimeout(resolve,250));check(context);const again=await binding(state);if(bindingEqual(initial,again))break;initial=again;}
+    const targets=new Map<string,Target>();let data:Json;
     let published=false;
     try{
     if(observeOptions.mode==='structure'||options.scope){
@@ -161,9 +165,11 @@ export function createPlaywrightMcpPort(options:PlaywrightPortOptions):BrowserPo
       const result=await state.tab.client.callTool({name:'browser_snapshot',arguments:{}},undefined,{signal:context.signal});
       if(result.isError)fail('snapshot_failed');
       const snapshot=(result.content??[]).filter(x=>x.type==='text').map(x=>x.text??'').join('\n');
-      if(snapshot.length>100_000)fail('snapshot_too_large');
-      for(const match of snapshot.matchAll(refPattern))targets.set(match[1]!,{ref:match[1]!,description:'Observed browser element'});
-      data={mode:'accessibility',snapshot};
+      // A large page (browser quality baseline 1, 2026-10-21: Korean Wikipedia) is cut at the same 100,000
+      // characters the scoped mode uses and marked truncated, instead of pausing the task before any observation.
+      const truncated=snapshot.length>100_000,visible=truncated?snapshot.slice(0,100_000):snapshot;
+      for(const match of visible.matchAll(refPattern))targets.set(match[1]!,{ref:match[1]!,description:'Observed browser element'});
+      data={mode:'accessibility',snapshot:visible,...(truncated?{truncated:true}:{})};
     }
     const current=await binding(state);check(context);
     if(!bindingEqual(initial,current)||await guard(context,state)!=='ready'){
