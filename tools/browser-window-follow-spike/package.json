@@ -1,0 +1,12 @@
+{
+  "name": "nubi-browser-window-follow-spike",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Isolated Windows experiment, not a Nubi product dependency",
+  "scripts": { "test": "node --test core.test.mjs" },
+  "dependencies": {
+    "koffi": "3.3.3",
+    "node-window-manager": "2.2.4"
+  }
+}

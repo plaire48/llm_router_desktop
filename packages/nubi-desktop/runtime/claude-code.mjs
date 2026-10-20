@@ -80,6 +80,31 @@ export function unwrapArgumentEnvelope(args,name,tools=[]) {
   }
   return args;
 }
+// With JSON-encoded arguments the model also stringifies typed values ("false", "null", "[...]"), which strict
+// tool schemas reject (wiki quality baseline 7, 2026-10-21: edit_file replace_all, grep max_count, review_page arrays).
+// Coerce a string only where the catalog schema expects another type and the string reads as that type.
+const schemaTypes=schema=>{const types=new Set();const visit=node=>{if(!node||typeof node!=='object')return;if(Array.isArray(node.type))node.type.forEach(t=>types.add(t));else if(typeof node.type==='string')types.add(node.type);if(node.nullable===true)types.add('null');for(const key of ['anyOf','oneOf','allOf'])if(Array.isArray(node[key]))node[key].forEach(visit);if(node.enum)types.add('enum');};visit(schema);return types;};
+export function coerceArgumentsToSchema(args,schema,depth=0) {
+  if(!schema||typeof schema!=='object'||!args||typeof args!=='object'||Array.isArray(args)||depth>6)return args;
+  const properties=schema.properties||{},required=new Set(Array.isArray(schema.required)?schema.required:[]);
+  const out={...args};
+  for(const [key,value] of Object.entries(out)){
+    const property=properties[key];if(!property||typeof property!=='object')continue;
+    const types=schemaTypes(property);
+    if(typeof value==='string'&&!types.has('string')&&!types.has('enum')){
+      const text=value.trim();
+      if(text==='null'){if(types.has('null'))out[key]=null;else if(!required.has(key))delete out[key];continue;}
+      if(types.has('boolean')&&(text==='true'||text==='false')){out[key]=text==='true';continue;}
+      if((types.has('number')||types.has('integer'))&&/^-?\d+(?:\.\d+)?(?:e[+-]?\d+)?$/i.test(text)){out[key]=Number(text);continue;}
+      if((types.has('array')&&text.startsWith('['))||(types.has('object')&&text.startsWith('{'))){let parsed;try{parsed=JSON.parse(text);}catch{continue;}if(Array.isArray(parsed)?types.has('array'):parsed&&typeof parsed==='object'&&types.has('object'))out[key]=parsed;}
+    }
+    const current=out[key];
+    if(Array.isArray(current)&&property.items&&typeof property.items==='object')out[key]=current.map(item=>item&&typeof item==='object'&&!Array.isArray(item)?coerceArgumentsToSchema(item,property.items,depth+1):typeof item==='string'?coerceScalar(item,property.items):item);
+    else if(current&&typeof current==='object'&&!Array.isArray(current))out[key]=coerceArgumentsToSchema(current,property,depth+1);
+  }
+  return out;
+}
+function coerceScalar(text,schema){const types=schemaTypes(schema);if(types.has('string')||types.has('enum'))return text;const t=text.trim();if(types.has('boolean')&&(t==='true'||t==='false'))return t==='true';if((types.has('number')||types.has('integer'))&&/^-?\d+(?:\.\d+)?$/.test(t))return Number(t);return text;}
 export function decodeClaudeResult(result,tools=[]) {
   if(result?.is_error||result?.subtype!=='success')throw Error('claude_cli_failed');
   const data=result.structured_output;
@@ -92,6 +117,7 @@ export function decodeClaudeResult(result,tools=[]) {
     if(typeof args==='string'){try{args=JSON.parse(args);}catch{throw Error('claude_response_invalid');}}
     if(!args||Array.isArray(args)||typeof args!=='object')throw Error('claude_response_invalid');
     args=unwrapArgumentEnvelope(args,call.name,tools);
+    args=coerceArgumentsToSchema(args,tools.find(tool=>tool.function?.name===call.name)?.function?.parameters);
     return {id:randomUUID(),type:'function',function:{name:call.name,arguments:JSON.stringify(args)}};
   });
   return {content:data.content,calls,usage:claudeUsage(result.usage),finishReason:calls.length?'tool_calls':'stop'};

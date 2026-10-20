@@ -286,3 +286,15 @@ test('a tool call whose arguments arrive wrapped in an extra envelope is unwrapp
   assert.throws(()=>decode([{name:'read_file',arguments:{arguments:'not json'}}]),/claude_response_invalid/);
   assert.throws(()=>decode([{name:'read_file',arguments:{arguments:[1]}}]),/claude_response_invalid/);
 });
+
+test('string-typed argument values are coerced only where the catalog schema expects another type (wiki quality baseline 7)',()=>{
+  const tools=[{type:'function',function:{name:'edit_file',parameters:{type:'object',properties:{file_path:{type:'string'},old_string:{type:'string'},replace_all:{type:'boolean'}},required:['file_path','old_string']}}},
+    {type:'function',function:{name:'grep',parameters:{type:'object',properties:{pattern:{type:'string'},max_count:{type:'number'},limit:{anyOf:[{type:'integer'},{type:'null'}]}},required:['pattern']}}},
+    {type:'function',function:{name:'review_page',parameters:{type:'object',properties:{checks:{type:'array',items:{type:'object',properties:{index:{type:'integer'},verdict:{type:'string'}}}},issues:{type:'array',items:{type:'string'}},note:{type:'string'}},required:['checks']}}}];
+  const decode=calls=>decodeClaudeResult({subtype:'success',structured_output:{content:'',calls}},tools).calls.map(call=>JSON.parse(call.function.arguments));
+  assert.deepEqual(decode([{name:'edit_file',arguments:{file_path:'/a.md',old_string:'x',replace_all:'false'}}]),[{file_path:'/a.md',old_string:'x',replace_all:false}]);
+  assert.deepEqual(decode([{name:'grep',arguments:{pattern:'trust proxy',max_count:'null',limit:'null'}}]),[{pattern:'trust proxy',limit:null}],'an optional "null" is dropped and a nullable one becomes null');
+  assert.deepEqual(decode([{name:'grep',arguments:{pattern:'12',max_count:'3'}}]),[{pattern:'12',max_count:3}],'a string schema keeps its text while a number schema parses it');
+  assert.deepEqual(decode([{name:'review_page',arguments:{checks:'[{"index":"0","verdict":"supported"}]',issues:'[]',note:'[keep]'}}]),[{checks:[{index:0,verdict:'supported'}],issues:[],note:'[keep]'}],'JSON-encoded arrays are parsed recursively and string fields stay');
+  assert.deepEqual(decode([{name:'review_page',arguments:{checks:'not json'}}]),[{checks:'not json'}],'unparseable text is left for the tool to reject');
+});

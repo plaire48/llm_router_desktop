@@ -1,0 +1,9 @@
+{
+  "host": {
+    "id": 0,
+    "processId": 0,
+    "path": "C:\\REPLACE\\Nubi Workspace.exe"
+  },
+  "browserExecutable": "C:\\REPLACE\\browser.exe",
+  "paneInsetsDIP": [80, 24, 24, 400]
+}
