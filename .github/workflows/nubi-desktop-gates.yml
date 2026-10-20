@@ -12,6 +12,14 @@ concurrency:
   cancel-in-progress: true
 jobs:
   gates-fast:
+    # Two parallel parts of one chain (release plan R1, 2026-10-20): "unit" runs npm test,
+    # "ui" runs the remaining fast checks. scripts/run-gate-part.mjs partitions the same
+    # package.json chain that check-gate-coverage verifies, so coverage and order stay intact.
+    name: gates-fast (${{ matrix.part }})
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [unit, ui]
     runs-on: ubuntu-latest
     timeout-minutes: 35
     defaults:
@@ -44,6 +52,7 @@ jobs:
           npm install --global pnpm@11.25.0
           pnpm install --frozen-lockfile --ignore-scripts
       - name: Install Chrome channel
+        if: matrix.part == 'ui'
         run: npx --no-install playwright install --with-deps chrome
       - name: Compile shared runtime
         run: npm run compile
@@ -51,8 +60,8 @@ jobs:
         run: node scripts/check-gate-coverage.mjs
       - name: Reset timing marker for this run
         run: rm -f verification/unjudged.json
-      - name: Run fast gates
-        run: npm run test:gates:fast
+      - name: Run fast gates (${{ matrix.part }})
+        run: node scripts/run-gate-part.mjs ${{ matrix.part }}
         timeout-minutes: 20
       - name: Summarize unjudged timing checks
         if: always()
@@ -74,7 +83,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: nubi-desktop-fast-${{ github.run_id }}-${{ github.run_attempt }}
+          name: nubi-desktop-fast-${{ matrix.part }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             packages/nubi-desktop/verification/**/*.png
             packages/nubi-desktop/verification/**/*.json
@@ -86,7 +95,7 @@ jobs:
         if: success() && hashFiles('packages/nubi-desktop/verification/unjudged.json') != ''
         uses: actions/upload-artifact@v4
         with:
-          name: nubi-desktop-unjudged-${{ github.run_id }}-${{ github.run_attempt }}
+          name: nubi-desktop-unjudged-${{ matrix.part }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             packages/nubi-desktop/verification/**/*.png
             packages/nubi-desktop/verification/**/*.json
