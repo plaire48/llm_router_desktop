@@ -1,3 +1,4 @@
+import {captureDesign} from './design-rules.mjs';
 import {assertDialogIdentity} from './identity-browser.mjs';
 import {build} from 'esbuild';
 import {mkdir,writeFile,readFile,cp} from 'node:fs/promises';
@@ -27,6 +28,6 @@ try{
  await page.getByRole('button',{name:'설정',exact:true}).click();
  assert.equal(await page.getByText('자동 보관',{exact:true}).count(),0);assert.equal(await page.getByLabel('편집 뒤 검사',{exact:true}).count(),0);assert.equal(await page.getByRole('button',{name:'루틴',exact:true}).count(),0);
  assert.equal(await page.getByText('method_invalid',{exact:false}).count(),0);assert.deepEqual(errors,[]);assert.deepEqual(await page.evaluate(()=>window.unsupportedCalls),[]);
- await page.screenshot({path:path.join(dir,'vscode-settings.png')});
+ await captureDesign(page,{path:path.join(dir,'vscode-settings.png')});
  console.log('PASS: actual VS Code webview capabilities hide unsupported controls and issue no unsupported RPCs');
 }finally{await browser?.close();await new Promise(r=>server.close(r));}

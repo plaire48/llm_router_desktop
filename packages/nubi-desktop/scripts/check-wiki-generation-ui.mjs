@@ -1,3 +1,4 @@
+import {captureDesign} from './design-rules.mjs';
 import {build,stop} from 'esbuild';
 import {mkdir,readFile,writeFile,cp} from 'node:fs/promises';
 import {createServer} from 'node:http';
@@ -13,7 +14,7 @@ const mime={'.html':'text/html; charset=utf-8','.css':'text/css','.woff2':'font/
 const server=createServer(async(req,res)=>{try{const file=path.resolve(dir,'.'+new URL(req.url,'http://localhost').pathname.replace(/\/$/,'/index.html'));assert(file.startsWith(dir+path.sep));res.setHeader('content-type',mime[path.extname(file)]||'application/octet-stream');res.end(await readFile(file));}catch{res.writeHead(404).end();}});
 await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser,page;const results=[];
 async function settle(node){await node.evaluate(async n=>{await document.fonts.ready;for(let i=0;i<2;i++){await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));await Promise.all(n.getAnimations({subtree:true}).filter(a=>a.effect.getTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));}});}
-async function capture(page,dialog,file,section){await dialog.evaluate(n=>{for(const item of [n,...n.querySelectorAll('*')])if(item.scrollHeight>item.clientHeight)item.scrollTop=0;});if(section)await section.evaluate(n=>{for(let p=n.parentElement;p;p=p.parentElement)if(p.scrollHeight>p.clientHeight&&/auto|scroll/.test(getComputedStyle(p).overflowY)){p.scrollTop+=n.getBoundingClientRect().top-p.getBoundingClientRect().top-24;break;}});await settle(dialog);await page.screenshot({path:file});}
+async function capture(page,dialog,file,section){await dialog.evaluate(n=>{for(const item of [n,...n.querySelectorAll('*')])if(item.scrollHeight>item.clientHeight)item.scrollTop=0;});if(section)await section.evaluate(n=>{for(let p=n.parentElement;p;p=p.parentElement)if(p.scrollHeight>p.clientHeight&&/auto|scroll/.test(getComputedStyle(p).overflowY)){p.scrollTop+=n.getBoundingClientRect().top-p.getBoundingClientRect().top-24;break;}});await settle(dialog);await captureDesign(page,{path:file});}
 async function checked(row,wanted){assert.equal(await row.getAttribute('aria-pressed'),String(wanted));assert.equal(await row.locator('svg[data-icon=check]').count(),wanted?1:0,'selected row has the existing check icon');}
 try{
  browser=await chromium.launch({channel:'chrome',headless:true});

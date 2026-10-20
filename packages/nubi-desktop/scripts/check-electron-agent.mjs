@@ -1,3 +1,4 @@
+import {captureDesign} from './design-rules.mjs';
 // An agent run in the real Electron app with a scripted model (2026-10-07): a requested change becomes a proposal the
 // user applies from the conversation, the file and the Git view show it and the run verifies it; a model server that
 // fails leaves a readable message and the run resumes once it is back. No real provider, login or network.
@@ -103,15 +104,15 @@ try{
   assert.equal(scenario.childCalls,2);assert.equal(scenario.leaderCalls,3);assert.ok(scenario.researchResult,'research returns sourced advice');
   const roles=page.getByRole('region',{name:'역할별 분석 진행'}).last();await roles.waitFor();await roles.locator('summary').first().click();
   const worker=roles.locator('[data-tool="analysis_research"]');await worker.getByText('조사 1',{exact:true}).waitFor();await worker.locator('summary').click();await worker.getByText('모델 호출 2회 / 근거 읽기 1회',{exact:true}).waitFor();
-  await mkdir('verification/wave2',{recursive:true});await page.screenshot({path:'verification/wave2/task9-research.png'});
+  await mkdir('verification/wave2',{recursive:true});await captureDesign(page,{path:'verification/wave2/task9-research.png'});
   stage('research reads in its own context, leader rereads and the existing history shows 조사');
   scenario.phase='documents';await followUp.fill('large.md 전체를 확인하고 읽지 못한 범위를 알려 줘');await page.getByRole('button',{name:'전송',exact:true}).click();
   await page.getByText('작업자 한도로 일부 문서 구간을 읽지 못했습니다.',{exact:true}).waitFor({timeout:90000});
   assert.ok(scenario.documentResult);assert.equal(scenario.documentResult.status,'partial');assert.equal(scenario.documentResult.coverage.budgetLimitedTasks,1);
   const documentProgress=page.getByRole('region',{name:'문서 분석 진행'}).last();await documentProgress.getByText('읽지 못한 구간 1개가 남아 있어요.',{exact:true}).waitFor();
-  await page.screenshot({path:'verification/wave2/task9-document-limit.png'});stage('large document worker limit preserves and displays unread ranges');
+  await captureDesign(page,{path:'verification/wave2/task9-document-limit.png'});stage('large document worker limit preserves and displays unread ranges');
 
-  await mkdir('verification',{recursive:true});await page.screenshot({path:'verification/electron-agent.png'});
+  await mkdir('verification',{recursive:true});await captureDesign(page,{path:'verification/electron-agent.png'});
   await writeFile('verification/electron-agent.json',JSON.stringify({platform:process.platform,checks,toolCalls:fixture.calls,modelRequests:fixture.requests,reviewProblems:fixture.reviewProblems,boundary:'Local Electron with a scripted loopback model and a temporary Git project. No real provider login.'},null,2));
   console.log(JSON.stringify({checks,toolCalls:fixture.calls,modelRequests:fixture.requests.length}));
 }catch(error){await mkdir('verification',{recursive:true});await page?.screenshot({path:'verification/electron-agent-failure.png'}).catch(()=>{});console.log('model requests:',JSON.stringify(fixture.requests));console.log('tool calls:',JSON.stringify(fixture.calls));console.log('review problems:',JSON.stringify(fixture.reviewProblems));console.log(await page?.locator('.nubi-feedback-toast,.desktop-error,.nubi-error').allTextContents().catch(()=>[]));throw error;}

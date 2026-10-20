@@ -1,3 +1,4 @@
+import {loadOfficeEvaluationCases} from './synthetic-values.mjs';
 import {spawn} from 'node:child_process';
 import {createInterface} from 'node:readline';
 import {readFile, writeFile, mkdir, access} from 'node:fs/promises';
@@ -48,7 +49,7 @@ async function connect(providers, env) {
   providers.model(env.NUBI_EVAL_MODEL);
 }
 export async function evaluate({caseIds, env = process.env, outputDir} = {}) {
-  const corpus = JSON.parse(await readFile(resolve(root, 'eval/cases.json'), 'utf8'));
+  const corpus = await loadOfficeEvaluationCases();
   const cases = caseIds ? corpus.cases.filter(c => caseIds.includes(c.id)) : corpus.cases;
   if (!cases.length || caseIds?.some(id => !cases.some(c => c.id === id))) throw new Error('unknown_case');
   if (cases.some(c => !['edit','template','document'].includes(c.mode))) throw new Error('evaluation_mode_not_supported');

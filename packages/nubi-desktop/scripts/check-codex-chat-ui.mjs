@@ -1,3 +1,4 @@
+import {captureDesign} from './design-rules.mjs';
 import {build,stop} from 'esbuild';
 import {mkdir,writeFile,readFile,cp} from 'node:fs/promises';
 import {createServer} from 'node:http';
@@ -42,9 +43,9 @@ try{
     await page.waitForFunction(()=>getComputedStyle(document.querySelector('[data-message-key="codex-answer-2"] .message-actions')).opacity==='0');
    }else{assert(await page.locator('.nubi-task .message .message-actions').evaluateAll(rows=>rows.every(e=>getComputedStyle(e).opacity==='1')),'touch message tools remain visible');}
   }
-  await page.screenshot({path:path.join(dir,`chat-${width}${touch?'-touch':''}.png`),animations:'disabled'});
+  await captureDesign(page,{path:path.join(dir,`chat-${width}${touch?'-touch':''}.png`),animations:'disabled'});
   if(width===1280)await page.locator('.nubi-conversation-wrap').screenshot({path:path.join(dir,'conversation.png'),animations:'disabled'});
-  if(width===440){await page.evaluate(()=>document.documentElement.style.fontSize='200%');const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);assert(!overflow);await page.screenshot({path:path.join(dir,'chat-440-large-text.png'),animations:'disabled'});}
+  if(width===440){await page.evaluate(()=>document.documentElement.style.fontSize='200%');const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);assert(!overflow);await captureDesign(page,{path:path.join(dir,'chat-440-large-text.png'),animations:'disabled'});}
   if(!baseline&&width===1280){
    const answer=page.locator('[data-message-key="codex-answer-2"]');
    await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{}}}));

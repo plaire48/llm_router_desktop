@@ -1,3 +1,5 @@
+import {collectRetainedHeap,measureHeapRetention,heapRetentionViolations} from './heap-retention.mjs';
+import {captureDesign} from './design-rules.mjs';
 // P1 measurement: production surfaces, synthetic workloads, unchanged limits.
 import {build,stop} from 'esbuild';
 import {chromium,_electron as electron} from 'playwright';
@@ -13,6 +15,7 @@ import {FREEZE_SCENES,freezeMetrics,freezeViolations,conversationAdmissionViolat
 import {calibrationState,captureSystemLoad,freezeExitCode,createSceneLoadSampler,sceneEnvironmentState,classifyFreezeResults} from './freeze-environment.mjs';
 const mode=process.argv.includes('--electron')?'electron':'browser',baseline=process.argv.includes('--baseline');
 const sharedRunner=isSharedRunner();
+const heapBaseline=process.argv.includes('--heap-baseline');
 const timingCodes=new Set(['long_tasks','freezes','startup_freeze','missed_frames','consecutive_missed_frames','frame_max','input_delay','admission_deadline']);
 const phase=baseline?'baseline':'after',only=process.env.FREEZE_SCENE,widths=process.env.FREEZE_WIDTH?[Number(process.env.FREEZE_WIDTH)]:[1280,440];
 const tag=process.env.FREEZE_TAG||'';assert.match(tag,/^[a-z0-9-]*$/);
@@ -69,7 +72,7 @@ try{
  else{storage=await mkdtemp(path.join(os.tmpdir(),'nubi-freeze-'));const require=createRequire(import.meta.url);app=await electron.launch({executablePath:require('electron'),args:['tests/freeze-electron.cjs',url],env:{...process.env,NUBI_FREEZE_STORAGE:storage,ELECTRON_RUN_AS_NODE:undefined},cwd:process.cwd()});}
  for(const width of widths)for(const scene of FREEZE_SCENES.filter(s=>!only||s.id===only)){
   page=mode==='browser'?await browser.newPage({viewport:{width,height:900}}):await app.firstWindow();if(mode==='electron')await app.evaluate(({BrowserWindow},w)=>BrowserWindow.getAllWindows()[0].setContentSize(w,900),width);
-  const pageErrors=[];const onError=e=>{pageErrors.push(e.message);console.error('pageerror',e.message);};page.on('pageerror',onError);page.setDefaultTimeout(15000);await page.addInitScript(()=>Object.defineProperty(navigator,'webdriver',{get:()=>false,configurable:true}));
+  const pageErrors=[];const onError=e=>{pageErrors.push(e.message);console.error('pageerror',e.stack||e.message);};page.on('pageerror',onError);page.setDefaultTimeout(15000);await page.addInitScript(()=>Object.defineProperty(navigator,'webdriver',{get:()=>false,configurable:true}));
   await page.goto(url);await page.waitForFunction(()=>window.freezeReady===true);await page.evaluate(()=>document.fonts.ready);await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
   let inputPreparation;
   if(mode==='electron')inputPreparation=await app.evaluate(()=>globalThis.__nubiFreezePrepareInput());
@@ -101,8 +104,19 @@ try{
   assert.ok(Number.isFinite(raw.startupDelayMs)&&raw.startupDelayMs>=0,'initial rAF scheduling delay is observed with a monotonic clock');
   assert.deepEqual(await page.locator('img[src^="./icons/"]').evaluateAll(images=>images.filter(n=>!n.complete||!n.naturalWidth).map(n=>n.getAttribute('src'))),[],'production artwork must load before a scene can qualify');
   const {profile}=await client.send('Profiler.stop');if(traceDone){await client.send('Tracing.end');await traceDone;await writeFile(path.join(dir,scene.id+'-'+width+'-trace.json'),JSON.stringify({traceEvents:trace}));}if(scene.id==='terminal'){const output=page.locator('.nubi-terminal-output');const exact=await output.evaluate(n=>{const selection=getSelection();selection.removeAllRanges();const range=document.createRange();range.selectNodeContents(n);selection.addRange(range);const same=selection.toString()===n.textContent;selection.removeAllRanges();return same;});assert.ok(exact,'native selection retains complete output text');assert.equal(await output.evaluate(n=>n.textContent.split('\n').length),5000,'all 5000 lines remain available');}const metrics=freezeMetrics({...raw,displayIntervalMs:d}),violations=[...freezeViolations(metrics,{judgeFrames:mode==='browser'}),...admissionFailures];if(inputPreparation.status!=='ready')violations.push('native_input_preparation');if(scene.id==='workflow'&&raw.peakNodes>=50)violations.push('initial_virtualization');
-  await writeFile(path.join(dir,scene.id+'-'+width+'.cpuprofile'),JSON.stringify(profile));await page.screenshot({path:path.join(dir,scene.id+'-'+width+'.png')});if(scene.id==='wiki'){await page.getByRole('button',{name:'탐색으로 돌아가기',exact:true}).click();await page.screenshot({path:path.join(dir,'wiki-map-'+width+'.png')});}
-  errors.push(...pageErrors);const unstable=sceneEnvironment.status==='environment_unstable'||mode==='browser'&&idleState.status==='environment_unstable';const row={timingVerdict:timingVerdict(unstable,{sharedRunner}),calibration:calibrationRow,environmentSamples,environmentReasons:sceneEnvironment.reasons,environmentStatus:sceneEnvironment.status,admission:raw.admission,inputTimings:raw.inputTimings,inputPreparation,scene:scene.id,width,durationMs:Date.now()-start,peakNodes:raw.peakNodes,metrics,violations,topFunctions:await topFunctions(profile),productFunctions:await topFunctions(profile,true),workload,pageErrors};results.push(row);await writeFile(path.join(dir,'result.json'),JSON.stringify({mode,phase,results,errors,calibration,boundary:'Product React surfaces and synthetic business APIs. Isolated Electron uses product native-input preparation. No connected services, business host IPC, Office or Windows. Pointer to next-paint upper estimate uses two rAF. All frame samples retained.'},null,2));
+  // Q8 runs after every timing sample/profile has been frozen. GC and the
+  // repeat workloads must never be removed from or charged to P1 timing data.
+  const timingDurationMs=Date.now()-start,heapStarted=Date.now(),mainSamples=[];
+  const heap=await measureHeapRetention({sample:async()=>{const retained=await collectRetainedHeap(client);if(mode==='electron')mainSamples.push(await app.evaluate(()=>process.memoryUsage()));return retained;},cycle:async()=>{
+   await page.evaluate(()=>window.freezeOpen(null));await page.waitForFunction(()=>window.freezeScene===null);await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
+   await exercise(scene.id,scene.durationMs);await pause(80);
+  }});
+  heap.durationMs=Date.now()-heapStarted;heap.rawBeforeGcBytes=raw.heapBytes;heap.limitGrowthRatio=0.10;heap.verdict=heapBaseline?'baseline_collected':'judged';
+  if(mode==='electron')heap.electronMain={boundary:'Three main process samples without forced main GC; diagnostic only, not renderer retained heap',samples:mainSamples};
+  if(!heapBaseline)violations.push(...heapRetentionViolations(heap));
+  await writeFile(path.join(dir,scene.id+'-'+width+'-heap.json'),JSON.stringify(heap,null,2));
+  await writeFile(path.join(dir,scene.id+'-'+width+'.cpuprofile'),JSON.stringify(profile));await captureDesign(page,{path:path.join(dir,scene.id+'-'+width+'.png')});if(scene.id==='wiki'){await page.getByRole('button',{name:'탐색으로 돌아가기',exact:true}).click();await captureDesign(page,{path:path.join(dir,'wiki-map-'+width+'.png')});}
+  errors.push(...pageErrors);const unstable=sceneEnvironment.status==='environment_unstable'||mode==='browser'&&idleState.status==='environment_unstable';const row={timingVerdict:timingVerdict(unstable,{sharedRunner}),calibration:calibrationRow,environmentSamples,environmentReasons:sceneEnvironment.reasons,environmentStatus:sceneEnvironment.status,admission:raw.admission,inputTimings:raw.inputTimings,inputPreparation,scene:scene.id,width,durationMs:timingDurationMs,heap,peakNodes:raw.peakNodes,metrics,violations,topFunctions:await topFunctions(profile),productFunctions:await topFunctions(profile,true),workload,pageErrors};results.push(row);await writeFile(path.join(dir,'result.json'),JSON.stringify({mode,phase,results,errors,calibration,boundary:'Product React surfaces and synthetic business APIs. Isolated Electron uses product native-input preparation. No connected services, business host IPC, Office or Windows. Pointer to next-paint upper estimate uses two rAF. All frame samples retained.'},null,2));
   console.log(JSON.stringify({scene:scene.id,width,...Object.fromEntries(Object.entries(metrics).filter(([k])=>!['tasks','frames','inputs'].includes(k))),violations,topFunctions:row.topFunctions,workload}));page.off('pageerror',onError);await client.detach();if(mode==='browser')await page.close();
  }
  assert.deepEqual(errors,[],'scene errors invalidate measurements');

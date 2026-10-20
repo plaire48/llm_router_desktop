@@ -1,3 +1,4 @@
+import {captureDesign} from './design-rules.mjs';
 import {build} from 'esbuild';
 import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {createServer} from 'node:http';
@@ -35,7 +36,7 @@ try{
   const sort=p.getByRole('combobox',{name:'글 정렬',exact:true});await sort.focus();await p.keyboard.press('Enter');await p.keyboard.press('ArrowDown');await p.keyboard.press('Enter');assert.equal(await sort.inputValue(),'popular');
   await sort.click();await p.getByRole('listbox',{name:'글 정렬'}).getByRole('option',{name:'최신순',exact:true}).click();assert.equal(await sort.inputValue(),'latest');
   await p.getByRole('button',{name:'글쓰기',exact:true}).first().click();await p.getByRole('textbox',{name:'글 제목',exact:true}).waitFor();await p.getByRole('combobox',{name:'글 카테고리'}).selectOption('general');
-  await auditSurfaceTokens(p,'embedded-talk-'+width);await p.screenshot({path:dir+'/talk-'+width+'.png'});assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+  await auditSurfaceTokens(p,'embedded-talk-'+width);await captureDesign(p,{path:dir+'/talk-'+width+'.png'});assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
   await p.getByRole('button',{name:'테스트 문의',exact:true}).click();
   assert.equal(await p.getByRole('button',{name:/문의 내역 (접기|펼치기)/}).count(),0);
   await p.getByRole('button',{name:'김누비 계정 메뉴',exact:true}).click();
@@ -59,7 +60,7 @@ try{
   assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
   await p.getByRole('button',{name:'테스트 앱',exact:true}).click();await p.getByRole('link',{name:'파일 앱 새 탭에서 열기'}).waitFor();
   await p.getByRole('button',{name:'테스트 로그인 전환'}).click();await p.getByRole('button',{name:'사내 Github SSO 로그인',exact:true}).waitFor();assert.equal(await p.getByRole('link',{name:'파일 앱 새 탭에서 열기'}).count(),0);
-  await p.getByRole('button',{name:'사내 Github SSO 로그인',exact:true}).click();await p.getByRole('link',{name:'파일 앱 새 탭에서 열기'}).waitFor();await p.screenshot({path:dir+'/apps-'+width+'.png'});
+  await p.getByRole('button',{name:'사내 Github SSO 로그인',exact:true}).click();await p.getByRole('link',{name:'파일 앱 새 탭에서 열기'}).waitFor();await captureDesign(p,{path:dir+'/apps-'+width+'.png'});
   assert.deepEqual(await p.evaluate(()=>window.unhandled),[]);checks.push({width,apps:'list/open/register-file/error/retry/relogin',talk:'real embedded client list and composer',support:'list/master/create/readback'});
  }
  assert.deepEqual(errors,[]);await writeFile(dir+'/result.json',JSON.stringify({checks,errors,boundary:'Production embedded components and renderer bridge with synthetic GHES responses. No company reads or writes.'},null,2));console.log(JSON.stringify({checks,errors}));

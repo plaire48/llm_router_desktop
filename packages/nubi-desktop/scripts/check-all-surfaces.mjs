@@ -1,3 +1,4 @@
+import {captureDesign} from './design-rules.mjs';
 import {build,stop} from 'esbuild';
 import {_electron as electron} from 'playwright';
 import {createRequire} from 'node:module';
@@ -61,7 +62,7 @@ async function audit(name,selector='body'){
   const result=pairs.map(([ink,surface])=>{probe.style.color='var(--nubi-text-'+ink+')';probe.style.backgroundColor='var(--nubi-surface-'+surface+')';const style=getComputedStyle(probe),a=lum(style.color),b=lum(style.backgroundColor);return {ink,contrast:(Math.max(a,b)+.05)/(Math.min(a,b)+.05)};});probe.remove();return result;
  });
  assert(tones.every(tone=>tone.contrast>=4.5),name+': semantic text contrast '+JSON.stringify(tones));
- const file=name+'.png';await p.screenshot({path:path.join(dir,file),animations:'disabled',scale:'css'});
+ const file=name+'.png';await captureDesign(p,{path:path.join(dir,file),animations:'disabled',scale:'css'});
  assert(!metrics.overflow,name+': outer horizontal overflow');assert.deepEqual(metrics.wrappedControls,[],name+': control labels must stay single line');
  assert.deepEqual(metrics.clippedActions,[],name+': named actions clipped');assert.equal(await p.locator('.composer-bottom button:visible').evaluateAll(buttons=>buttons.every(button=>(button.getAttribute('aria-label')||button.textContent).trim()&&button.title)),true,name+': compact controls keep names and hints');
  if(!process.argv.includes('--diagnostic'))assert.deepEqual(metrics.small,[],name+': text below caption token');
@@ -197,7 +198,7 @@ try{
    const measurements=await p.locator('.welcome-title').evaluate((heading,lines)=>{const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d'),style=getComputedStyle(heading);ctx.font=style.font;return {available:heading.parentElement.clientWidth,widest:Math.max(...lines.map(line=>ctx.measureText(line).width)),nowrap:getComputedStyle(heading.querySelector('.welcome-display')).whiteSpace};},WELCOME_GREETINGS.flatMap(period=>period.lines));
    assert(measurements.widest<=measurements.available,'all greeting variants fit the current width');assert.equal(measurements.nowrap,'nowrap');
    await p.getByRole('textbox',{name:'작업 요청',exact:true}).fill('');await p.getByRole('button',{name:'새 대화',exact:true}).first().click();assert.notEqual(await title.innerText(),greeting);
-   await p.screenshot({path:path.join(dir,`welcome-${hour}-${width}.png`)});records.push({screen:'welcome',width,hour,greeting,oneLine:true,stableWhileTyping:true});
+   await captureDesign(p,{path:path.join(dir,`welcome-${hour}-${width}.png`)});records.push({screen:'welcome',width,hour,greeting,oneLine:true,stableWhileTyping:true});
   }
  }
  if(process.env.NUBI_PICKER_ONLY){
@@ -262,7 +263,7 @@ try{
  assert.equal(await bird.evaluate(e=>getComputedStyle(e).animationName),'nubi-bird-dance');
  assert.equal(await bird.locator('.bird-smile').evaluate(e=>getComputedStyle(e).opacity),'1');
  assert.equal(await bird.locator('.bird-wing').evaluate(e=>getComputedStyle(e).animationName),'none','hover expression is not overwritten by wing cycling');
- await p.screenshot({path:path.join(dir,'bird-hover.png')});
+ await captureDesign(p,{path:path.join(dir,'bird-hover.png')});
  await p.evaluate(()=>document.documentElement.dataset.motionVisibility='hidden');
  assert.equal(await bird.evaluate(e=>getComputedStyle(e).animationPlayState),'paused','hover dance pauses in the background');
  await p.evaluate(()=>{document.documentElement.dataset.motionVisibility='visible';const modal=document.createElement('div');modal.className='cx-panel-backdrop';modal.id='bird-motion-pause-check';document.body.append(modal);});

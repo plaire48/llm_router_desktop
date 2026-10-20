@@ -1,3 +1,4 @@
+import {captureDesign} from './design-rules.mjs';
 // Skill registration and use in the real Electron app (2026-10-07). A loopback OpenAI-compatible fixture serves the
 // model through the worker's own "compatible" provider, so the composer and the skill menu open without a product hook
 // or a real login. Covers folder, ZIP and Markdown registration, a duplicate and a cancelled pick, a malformed instruction
@@ -126,7 +127,7 @@ try{
   await openManagement();await row('fixture-skill').locator('[aria-label="fixture-skill 관리"]').first().click();await row('fixture-skill').getByRole('button',{name:'fixture-skill 수정'}).click();await skillsDialog().waitFor({state:'hidden'});
   await page.getByRole('tab',{name:/SKILL\.md/}).waitFor();await page.waitForFunction(sentinel=>document.querySelector('.desktop-editor')?.textContent.includes(sentinel),SENTINEL);
   stage('the instruction opens in the editor');
-  await mkdir('verification',{recursive:true});await page.screenshot({path:'verification/electron-skills.png'});
+  await mkdir('verification',{recursive:true});await captureDesign(page,{path:'verification/electron-skills.png'});
   await app.close();await open();await openManagement();for(const name of ['fixture-skill','quick-note'])await row(name).waitFor();assert.equal(await row('zipped-skill').count(),0);assert.equal(await skillsDialog().locator('.nubi-custom-skill-row').count(),2);
   stage('registrations survive a restart');
   await writeFile('verification/electron-skills.json',JSON.stringify({platform:process.platform,checks,modelRequests:seen,toolCalls:calls,plannerOfferedSkill:planned,reviewProblems,boundary:'Local Electron with a scripted loopback model. No real provider login, marketplace or Windows installation.'},null,2));

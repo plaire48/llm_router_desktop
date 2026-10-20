@@ -1,3 +1,4 @@
+import {readSyntheticFixture} from '../../../nubi-office/eval/synthetic-values.mjs';
 import {disableHostedTracing} from '../../runtime/worker-environment.mjs';
 disableHostedTracing(process.env);
 import {readFile,writeFile,mkdir,rename} from 'node:fs/promises';
@@ -12,7 +13,7 @@ import {gradeEasy} from './grade.mjs';
 
 export async function loadEasyCases(version=1){
  if(![1,2].includes(version))throw Error('suite_version_invalid');
- const text=await readFile(new URL(version===2?'cases-v2.json':'cases.json',import.meta.url),'utf8'),cases=JSON.parse(text);
+ const cases=await readSyntheticFixture(new URL(version===2?'cases-v2.json':'cases.json',import.meta.url));
  if(cases.length!==80||new Set(cases.map(c=>c.id)).size!==80)throw Error('easy80_case_count');
  for(const category of ['bash','mail','skill','wiki'])if(cases.filter(c=>c.category===category).length!==20)throw Error('easy80_category_count');
  if(cases.some(c=>!c.request||!c.expected?.length||c.expected.some(g=>!g.length)))throw Error('easy80_expectations_missing');
@@ -28,7 +29,7 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
  if(ids&&selected.length!==ids.length)throw Error('case_unknown');
  const concurrency=Number(option('concurrency')||2);if(!Number.isInteger(concurrency)||concurrency<1||concurrency>4)throw Error('invalid_concurrency');
  const output=path.resolve(option('out')||'verification/eval-live/easy80-opus55-medium-20261012');await mkdir(output,{recursive:true});
- const candidate=await candidateIdentity(),files=[version===2?'cases-v2.json':'cases.json','skills.json','fixtures.mjs','grade.mjs','run.mjs','../driver.mjs','../transcript.mjs','../relay.mjs'];
+ const candidate=await candidateIdentity(),files=[version===2?'cases-v2.json':'cases.json','skills.json','fixtures.mjs','grade.mjs','run.mjs','../driver.mjs','../../../nubi-office/eval/synthetic-values.mjs','../transcript.mjs','../relay.mjs'];
  const benchmarkHash=hash((await Promise.all(files.map(f=>readFile(new URL(f,import.meta.url))))).map((b,i)=>files[i]+':'+hash(b)).join('\n'));
  let report={schema:1,kind:'easy-80-live-agent',suiteVersion:version,startedAt:new Date().toISOString(),candidate,benchmarkHash,concurrency,platform:os.platform(),node:process.version,trials:1,
   limits:{timeoutMs:600000,maxModelCalls:60,maxDelegatedCalls:160,maxInteractions:16},

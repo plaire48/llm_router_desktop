@@ -517,3 +517,15 @@
 - 터미널/설정 표시 후속 2026-10-16: 채팅의 명령 결과와 복사/모델 미리보기만 제어 코드 없는 텍스트로 투영한다. 실제 PTY/xterm, 원본 로그, 종료 코드와 오류는 보존한다. 켜기/끄기 설정은 기존 메일 자동 정리와 같은 `SettingToggle`/`nubi-ios-switch`를 사용하고 대상 다중 선택은 체크박스를 유지한다. 검증 범위는 `docs/TERMINAL-OUTPUT-AND-TOGGLES-2026-10-16.md`를 따른다.
 
 - 자동 복구 후속 2026-10-16: Desktop은 복구 가능한 도구 실패 뒤 오류 설명만으로 끝내지 않도록 기존 Pi 후속 루프에서 대체 방법을 요청한다. 동일 실패 호출은 실제 재실행을 제한하고 복구 기회도 실행 예산 안에서 제한한다. 권한 거부, 사용자 취소, 미확정 실행과 기존 명령별 승인은 유지하며 완료 판단은 실제 결과와 독립 검토에 둔다. 자동 결과 확인 중에는 수동 오류 분석 버튼을 표시하지 않는다. `docs/AUTONOMOUS-RECOVERY-2026-10-16.md` 참조.
+
+- 릴리스 입력 고정(Q3,2026-10-20): Claude의 소스 업로드와 릴리스 브랜치 생성 전에는 현재 작업 폴더에서 compile로 만든 `generated/source-inputs.json`을 사용해 `node packages/nubi-desktop/scripts/check-release-inputs.mjs --repo <후보 Git 저장소> --ref <후보 commit/tree> --source-root <원본 작업 폴더> --output <검증 JSON>`을 먼저 실행한다. exit0 전에는 해당 후보를 푸시하거나 릴리스하지 않는다. 후보 Git 객체와 원본 파일의 SHA-256, 자동 발견한 형제 패키지와 두 workflow/HOTFIX/INSTALL을 대조한다. generated 목록은 빌드 산출물이며 Git에 추정 목록을 수기로 넣지 않는다. 동적 경로의 실제 실행/Windows 동작은 별도 검증한다. Windows workflow도 compile 뒤 같은 검사를 실행한다. 원격 업로더는 Claude 소유이며 Codex가 푸시하지 않는다.
+
+- Q3 v2 후보 모델(2026-10-20): 상대 import는 파일 디렉터리 기준으로만 해석한다. generated 산출물과 node_modules 설치 파일을 소스 후보 트리에 요구하지 않는다. 생성기/entryPoints와 import 그래프 및 package.json/lockfile을 검사한다. 실제 Claude 업로더의 main 기준 후보 dry-run을 통과한 명세만 업로드 대상으로 인계한다. 작업 폴더 바이트를 모두 복사한 임시 트리는 실제 후보 검증이 아니다.
+
+- Q6 안전 검사(2026-10-20, 설계§8 답17~19): fast ui의 test:safety는 고정 base→candidate 증분과 fixtures-manifest.json 전체 선언을 검사한다. 신규 증거/금지 경로와 합성 접두 규칙을 우회하지 않는다. 전체 Git --tree는 별도 감사이며 실제 배포 차단은 --bundle-dir로 최종 payload/ASAR/extraResources 전체에 적용한다. 공개 저작권과 인증서 발급자 귀속은 값 없이 지문/유형만 기록하고 원문을 보존한다. 서명 신뢰 검증이나 알려지지 않은 비밀의 부재 증명으로 표시하지 않는다. verification은 원본 기록을 지우지 않고 빌드 복사/패키징에서 제외한다. §8 답20의 공개 의존성 발견별 출처/정확한 파일 SHA/지문/종류/횟수 검토를 적용한다. 바뀐 파일/발견과 비밀 종류 및 미확인 발견은 계속 차단한다.
+
+- Q7 공통 디자인 검사(2026-10-21, 설계§8 답21): 화면/모달 검사 성공 캡처는 scripts/design-rules.mjs의 captureDesign/assertDesignRules를 재사용한다. 최상위 모달은 전체 활성 주 동작1개, 기존 독립 폼/승인·수정 카드/작성기는 각1개다. 새 div로 영역을 나누어 한도를 우회하지 않는다. 비활성은 선택 수에서만 제외하고 사용자 본문/소스/터미널과 펼친 진단은 제품 원시 오류로 세지 않는다. 토큰/모션 감소/제목/중첩 색상과 열린 모달 뒤 사이드바 겹침은 계속 검사한다.
+
+- Q8 힙 측정(2026-10-21): check-freeze-scenes는 타이밍 표본/프로파일을 끝낸 뒤 같은 장면 두 반복의 renderer 강제 GC 뒤 힙을 비교한다. 반복당10% 초과/누락 표본은 기능 실패이며 부하/공용 러너 시간 미판정으로 면책하지 않는다. 제품에 강제GC를 넣지 않는다. 원시 힙/Electron main의GC 없는 진단과 retained heap을 구분한다. 위키 관찰 콜백은 제거/cleanup 뒤 발행하지 않고, 좁은 화면 미니 지도는 처음 펼칠 때 Canvas를 읽되 재펼침은 같은 인스턴스를 유지한다.
+
+- Q7 G5 접근성 검사(2026-10-21): 기존 공통 화면은 scripts/design-rules.mjs의 assertAccessibilityRules를 사용한다. 활성 모달의 실제 양방향 Tab 순환과 이름 없는 조작, 본문4.5:1/공통 muted 토큰3:1을 검사하고 포커스/선택/스크롤을 복원한다. 미지원 배경을 통과로 추정하지 않는다. 예외는 design-exceptions.json의 정확한 대상/사유/개수로만 선언하며 현재 예외0이다. 로컬 합성 화면 검사와 스크린리더/Windows 검증을 구분한다.

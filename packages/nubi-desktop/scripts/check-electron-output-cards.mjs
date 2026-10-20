@@ -1,3 +1,4 @@
+import {captureDesign} from './design-rules.mjs';
 // Native renderer and persisted synthetic records; no live model, Windows or Office proof.
 import {_electron as electron} from 'playwright';
 import {desktopTestWindow} from './electron-test-window.mjs';
@@ -31,7 +32,7 @@ try{
  }
  await cards.getByRole('button',{name:'report.txt 열기',exact:true}).click();await page.locator('.monaco-editor').waitFor();await page.waitForFunction(()=>document.querySelector('.monaco-editor')?.innerText.replace(/\s/g,' ').includes('검토 보고서'));checks.push('텍스트 편집기');
  await cards.getByRole('button',{name:'report.pdf 열기',exact:true}).click();await page.getByText('1 / 2',{exact:true}).waitFor();await page.waitForFunction(()=>{const c=document.querySelector('.nubi-pdf-preview canvas');return c&&c.width>0;});checks.push('PDF 미리보기');
- await cards.getByRole('button',{name:'report.docx 열기',exact:true}).click();await page.frameLocator('.nubi-document-preview iframe').getByText('산출물 Word 확인',{exact:true}).waitFor();checks.push('기존 Word 읽기');await page.screenshot({path:path.join(out,'word.png')});
+ await cards.getByRole('button',{name:'report.docx 열기',exact:true}).click();await page.frameLocator('.nubi-document-preview iframe').getByText('산출물 Word 확인',{exact:true}).waitFor();checks.push('기존 Word 읽기');await captureDesign(page,{path:path.join(out,'word.png')});
  await page.reload();await page.locator('.desktop-shell[data-startup-ready=true]').waitFor({timeout:60000});if(await page.getByRole('dialog').count())await page.keyboard.press('Escape');await openTask();assert.equal(await page.getByRole('group',{name:'산출물'}).getByRole('button').count(),5);checks.push('새로고침 뒤 카드 보존');
  assert.deepEqual(errors,[]);await writeFile(path.join(out,'result.json'),JSON.stringify({checks,errors,scope:'macOS Electron with persisted synthetic files and host capture; no live model or Windows/Office verification.'},null,2));console.log('산출물 카드 Electron 검사 통과',checks);
 }catch(error){if(page){await page.screenshot({path:path.join(out,'failure.png')}).catch(()=>{});await writeFile(path.join(out,'failure.txt'),await page.locator('body').innerText()).catch(()=>{});}throw error;}

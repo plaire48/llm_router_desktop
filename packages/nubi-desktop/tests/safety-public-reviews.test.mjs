@@ -1,0 +1,13 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {mkdtemp,writeFile,rm} from 'node:fs/promises';import os from 'node:os';import path from 'node:path';import {createHash} from 'node:crypto';
+import {inspectSafetyBundle,scanSensitivePatterns} from '../scripts/check-safety-regression.mjs';
+const hash=b=>createHash('sha256').update(b).digest('hex');
+async function sample(fn){const dir=await mkdtemp(path.join(os.tmpdir(),'nubi-safety-review-'));try{const bytes=Buffer.from('public-example'+'@synthetic-project.dev');await writeFile(path.join(dir,'sample.txt'),bytes);const finding=scanSensitivePatterns('sample.txt',bytes)[0];const review={path:'sample.txt',sha256:hash(bytes),kind:'email',fingerprint:finding.fingerprint,occurrences:1,classification:'public_example',source:{url:'https://github.com/synthetic-project/synthetic/blob/v1/sample.txt',integrity:'sha256-'+hash(bytes),artifactPath:'sample.txt'},evidence:'Synthetic test of the review contract, no real upstream claim',reviewer:'test',reviewedAt:'2026-10-20'};await fn({dir,bytes,review});}finally{await rm(dir,{recursive:true,force:true});}}
+test('reviewed public data is nonblocking only for the exact file bytes and finding',async()=>sample(async({dir,bytes,review})=>{
+ const accepted=await inspectSafetyBundle({directory:dir,publicReviews:{version:1,findings:[review]}});assert.equal(accepted.ok,true);assert.equal(accepted.reviewedPublicFindings.length,1);assert.equal(accepted.issues.length,0);
+ await writeFile(path.join(dir,'sample.txt'),Buffer.concat([bytes,Buffer.from('\nprivate'+'@private-company.dev')]));const changed=await inspectSafetyBundle({directory:dir,publicReviews:{version:1,findings:[review]}});assert.equal(changed.ok,false);assert(changed.issues.some(x=>x.kind==='email'));assert.equal(changed.reviewedPublicFindings.length,0);
+}));
+test('reviews cannot authorize key patterns, missing provenance, fingerprints from another file or duplicate declarations',async()=>sample(async({dir,review})=>{
+ for(const changed of [{...review,source:{}},{...review,fingerprint:'f'.repeat(16)},{...review,kind:'secret'}]){const result=await inspectSafetyBundle({directory:dir,publicReviews:{version:1,findings:[changed]}});assert.equal(result.ok,false);}
+ const dup=await inspectSafetyBundle({directory:dir,publicReviews:{version:1,findings:[review,review]}});assert.equal(dup.ok,false);
+ await writeFile(path.join(dir,'key.txt'),'ghp_'+'Dd49'.repeat(9));const result=await inspectSafetyBundle({directory:dir,publicReviews:{version:1,findings:[review]}});assert(result.issues.some(x=>x.kind==='secret'));
+}));

@@ -841,7 +841,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-workbench .agent-mark { isolation:isolate; }
 .nubi-workbench .agent-mark > .bird-joy { z-index:-1; }
 /* Reuse the shared bird's expressions; keep small answer marks within their line. */
-.nubi-workbench .nubi-answer-mark { --nubi-answer-cycle:8s; --nubi-answer-work-cycle:2.8s; --nubi-answer-greeting-cycle:var(--nubi-motion-enter); --nubi-answer-travel:1px; }
+.nubi-workbench .nubi-answer-mark { --nubi-answer-cycle:var(--nubi-ambient-bird-expression); --nubi-answer-work-cycle:var(--nubi-ambient-bird-work); --nubi-answer-greeting-cycle:var(--nubi-motion-enter); --nubi-answer-travel:1px; }
 .nubi-workbench .answer-model .nubi-answer-mark[data-mood="idle"] { animation:nubi-answer-breathe var(--nubi-answer-cycle) ease-in-out infinite; }
 .nubi-workbench .nubi-answer-mark[data-mood="idle"] .bird-base { animation:bird-idle-base var(--nubi-answer-cycle) linear infinite; }
 .nubi-workbench .nubi-answer-mark[data-mood="idle"] .bird-blink { animation:bird-blink var(--nubi-answer-cycle) linear infinite; }
@@ -885,7 +885,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 @keyframes nubi-sidebar-scrim-enter { from { opacity:0; } to { opacity:1; } }
 @media(max-width:900px) { .nubi-sidebar { position:absolute; z-index:11; left:0; top:0; height:100%; min-height:100vh; box-shadow:var(--deck-shadow); } .nubi-sidebar[data-open="true"] { animation:nubi-sidebar-enter var(--nubi-sidebar-motion) var(--deck-ease) both; } .nubi-sidebar-scrim { display:block; position:absolute; inset:0; z-index:10; background:var(--deck-overlay); animation:nubi-sidebar-scrim-enter var(--nubi-sidebar-motion) var(--deck-ease) both; } }
 @media(max-width:600px) { .nubi-workbench .model-trigger.cx-kit-button { max-width:64vw; } .nubi-workbench .model-trigger-label { gap:var(--cx-space-1); } }
-@media(prefers-reduced-motion:reduce) { .nubi-workbench { --nubi-sidebar-motion:0ms; } }
+@media(prefers-reduced-motion:reduce) { .nubi-workbench { --nubi-sidebar-motion:var(--nubi-motion-reduced); } }
 .nubi-workbench:has(.nubi-task) .deck-ambient :is(.deck-blob,.deck-spark),
 .nubi-workbench:has(.composer:focus-within) .deck-ambient :is(.deck-blob,.deck-spark) { animation-play-state:paused; }
 
@@ -1896,7 +1896,7 @@ html[data-project-switching] .nubi-workbench .nubi-main, html[data-project-switc
 /* Quiet loading atmosphere: fixed geometry and compositor-only movement.
    Decorative light is independent of measured progress and never implies completion. */
 :root {
-  --nubi-progress-drift-duration:8s;
+  --nubi-progress-drift-duration:var(--nubi-ambient-progress-glow);
   --nubi-progress-glow:color-mix(in srgb,var(--deck-blue) 4%,transparent);
 }
 .nubi-progress-atmosphere { position:relative; isolation:isolate; }

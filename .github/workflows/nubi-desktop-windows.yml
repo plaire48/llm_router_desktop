@@ -61,6 +61,9 @@ jobs:
         run: node scripts/build-process-host.mjs
       - name: Compile shared runtime before host checks
         run: npm run compile
+      - name: Check immutable release inputs before packaging
+        shell: pwsh
+        run: node scripts/check-release-inputs.mjs --repo ../.. --source-root ../.. --ref $env:GITHUB_SHA --output verification/release-inputs.json
       - name: Check Windows lifecycle and secure connection storage
         run: |
           node --test tests/connection-vault.test.mjs tests/electron-lifecycle.test.mjs tests/connection-readiness.test.mjs tests/model-catalog-refresh.test.mjs tests/project-catalog.test.mjs tests/titlebar-colors.test.mjs tests/git-runtime.test.mjs tests/claude-stream.test.mjs tests/answer-source-integrity.test.mjs tests/model-tool-batch.test.mjs tests/claude-discovery.test.mjs
@@ -229,6 +232,9 @@ jobs:
   gates-full:
     runs-on: windows-latest
     timeout-minutes: 120
+    env:
+      NUBI_SAFETY_BASE: ${{ github.event.before || github.event.pull_request.base.sha || '' }}
+      NUBI_SAFETY_REF: ${{ github.sha }}
     permissions:
       contents: read
     defaults:
@@ -239,6 +245,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 2
       - uses: actions/setup-node@v4
         with:
           node-version: 24.18.0
@@ -271,12 +278,26 @@ jobs:
         run: node scripts/build-process-host.mjs
       - name: Check gate coverage
         run: node scripts/check-gate-coverage.mjs
+      - name: Check complete release source patterns
+        continue-on-error: true
+        run: node scripts/check-safety-regression.mjs --tree $env:GITHUB_SHA --output verification/safety-tree.json
       - name: Run fast gates
         id: fast
         run: npm run test:gates:fast
       - name: Run Electron gates even after a fast-gate failure
         if: ${{ !cancelled() && steps.fast.outcome != 'skipped' }}
         run: npm run test:gates:electron
+      - name: Build and inspect actual release payload
+        if: ${{ !cancelled() && steps.fast.outcome != 'skipped' }}
+        run: node scripts/package-windows.mjs --payload-only
+      - name: Preserve safety source audit and payload verdict
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nubi-safety-${{ github.run_id }}-${{ github.run_attempt }}
+          path: packages/nubi-desktop/verification/safety-*.json
+          retention-days: 7
+          if-no-files-found: warn
       - name: Preserve failed-check screenshots and measurements
         if: failure()
         uses: actions/upload-artifact@v4

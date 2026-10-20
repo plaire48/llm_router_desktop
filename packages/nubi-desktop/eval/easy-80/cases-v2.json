@@ -1090,7 +1090,7 @@
     "id": "skill-07",
     "category": "skill",
     "title": "전화번호 가림",
-    "request": "프로젝트에서 이 작업에 맞는 스킬을 찾아 적용해서 정리해 줘. 김하늘(010-1234-5678)이 모니터 교체를 요청했습니다.",
+    "request": "프로젝트에서 이 작업에 맞는 스킬을 찾아 적용해서 정리해 줘. 김하늘({{synthetic:phone-2}})이 모니터 교체를 요청했습니다.",
     "expected": [
       [
         "제목"
@@ -1107,7 +1107,7 @@
     ],
     "skill": "privacy-summary",
     "forbidden": [
-      "010-1234-5678"
+      "{{synthetic:phone-2}}"
     ],
     "evaluationVersion": 2
   },

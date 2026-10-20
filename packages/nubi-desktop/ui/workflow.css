@@ -45,7 +45,7 @@
 .nubi-workflow-import li p{margin-block:var(--cx-space-1);color:var(--deck-sub)}
 .nubi-workflow-import .nubi-workflow-canvas{height:calc(var(--cx-space-8)*12)}
 /* Execution updates status paint, retaining worker positions and measured nodes. */
-.nubi-workflow-run{container-type:inline-size;--workflow-state-duration:180ms}
+.nubi-workflow-run{container-type:inline-size;--workflow-state-duration:var(--nubi-motion-state)}
 .nubi-workflow-status{display:grid;gap:var(--cx-space-3);margin-block-end:var(--cx-space-5);position:sticky;top:0;z-index:2;background:var(--deck-surface);padding-block:var(--cx-space-3)}
 .nubi-workflow-status-heading{display:flex;align-items:center;gap:var(--cx-space-3);flex-wrap:wrap}
 .nubi-workflow-status-heading h2{margin:0}

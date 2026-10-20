@@ -1,3 +1,4 @@
+import {captureDesign} from './design-rules.mjs';
 import {build,stop as stopBuildService} from 'esbuild';
 import {assertDesktopDialog,desktopDialogScale,assertDialogChrome} from './identity-browser.mjs';
 import {mkdir,writeFile,readFile,cp} from 'node:fs/promises';
@@ -32,7 +33,7 @@ async function inspect(name,file,large){
  const facts=await dialog.evaluate(root=>{const r=root.getBoundingClientRect();return {bounds:r.x>=0&&r.y>=0&&r.right<=innerWidth+1&&r.bottom<=innerHeight+1,inset:[...root.querySelectorAll(':scope > .cx-panel-header,:scope > .cx-panel-body,:scope > .cx-panel-footer')].map(e=>getComputedStyle(e).paddingLeft),fields:[...root.querySelectorAll('input,select,textarea')].filter(e=>e.checkVisibility()&&e.type!=='checkbox').map(e=>({name:e.labels?.length||e.getAttribute('aria-label'),size:getComputedStyle(e).fontSize})),smallText:[...root.querySelectorAll('p,label')].filter(e=>e.checkVisibility()&&e.textContent.trim()).map(e=>getComputedStyle(e).fontSize)};});
  assert(facts.bounds,name+' stays inside the viewport');assert(new Set(facts.inset).size===1,name+' aligns title, body and footer');assert(facts.fields.every(e=>e.name&&e.size===desktopDialogScale(large).size),name+' uses labelled, readable inputs');assert(facts.smallText.every(size=>parseFloat(size)>=(large?16:14)),name+' keeps secondary copy at or above the caption scale');
  for(let i=0;i<18;i++){await p.keyboard.press(i<14?'Tab':'Shift+Tab');assert(await dialog.evaluate(root=>root.contains(document.activeElement)),name+' traps keyboard focus at '+i+' '+JSON.stringify(await p.evaluate(()=>({active:document.activeElement?.tagName,inert:[...document.querySelectorAll('[inert]')].map(e=>e.className),controls:[...document.querySelectorAll('.deck-dialog button,.deck-dialog input,.deck-dialog summary')].map(e=>({tag:e.tagName,name:e.getAttribute('aria-label')||e.textContent.slice(0,25),disabled:e.disabled,visible:e.checkVisibility(),tab:e.tabIndex,w:e.getBoundingClientRect().width,h:e.getBoundingClientRect().height}))}))));}
- await dialog.locator('.cx-panel-header h2').focus();await p.screenshot({path:path.join(dir,file+'.png'),animations:'disabled'});checks.push(`${name}: ${large?'large':'normal'} text, ${p.viewportSize().width}px, aligned spacing, named controls, focus and bounds`);
+ await dialog.locator('.cx-panel-header h2').focus();await dialog.locator('.cx-panel-body').evaluate(body=>body.scrollTop=0);await p.evaluate(()=>new Promise(requestAnimationFrame));await captureDesign(p,{path:path.join(dir,file+'.png'),animations:'disabled'});checks.push(`${name}: ${large?'large':'normal'} text, ${p.viewportSize().width}px, aligned spacing, named controls, focus and bounds`);
  return dialog;
 }
 try{
@@ -43,7 +44,7 @@ try{
   await selectTask();
   const suffix=`${variant.width}`;
   await p.getByRole('button',{name:'설정',exact:true}).click();await inspect('설정','settings-'+suffix);await p.keyboard.press('Escape');await p.waitForFunction(()=>document.activeElement?.getAttribute('aria-label')==='설정');
-  await p.getByRole('button',{name:'위키 설정',exact:true}).click();await inspect('위키 설정','library-'+suffix);
+  await p.getByRole('button',{name:'위키 설정',exact:true}).click();assert.equal(await p.getByRole('dialog',{name:'위키 설정',exact:true}).getByRole('button',{name:'위키에 기록',exact:true}).evaluate(button=>button.classList.contains('cx-button--primary')),false,'Wiki recording stays secondary to synchronization inside one modal');await inspect('위키 설정','library-'+suffix);
   await p.keyboard.press('Escape');await p.getByRole('dialog',{name:'위키 설정',exact:true}).waitFor({state:'hidden'});
   // The mail page owns its settings (2026-10-14): the rail opens the page, its '포털 로그인' link opens the mail settings dialog, and Escape returns focus to that control.
   await p.getByRole('button',{name:'메일',exact:true}).first().click();await p.locator('.nubi-mail-connect-link').click();await inspect('메일 설정','mail-'+suffix);await p.keyboard.press('Escape');await p.waitForFunction(()=>document.activeElement?.classList.contains('nubi-mail-connect-link'));
@@ -63,7 +64,7 @@ try{
   await p.getByRole('tab',{name:'FabriX',exact:true}).click();await p.getByRole('button',{name:'연결',exact:true}).click();await inspect('FabriX 연결','fabrix-'+suffix);await p.keyboard.press('Escape');await p.getByRole('dialog',{name:'모델 선택'}).waitFor();await p.keyboard.press('Escape');
   // Reload before checking the approval menu and destructive confirmation with the connected fixture provider.
   await p.goto(origin+'/?context&modals&integrated');await selectTask();
-  await p.getByRole('button',{name:/매번 확인/}).click();const menu=p.getByRole('menu',{name:'승인 방식'});assert(await menu.locator('small').evaluateAll(es=>es.every(e=>parseFloat(getComputedStyle(e).fontSize)>=(document.querySelector('.nubi-workbench').dataset.largeText==='true'?16:14))));assert(await menu.evaluate(e=>{const r=e.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight;}),'approval menu stays fully inside the viewport');await p.waitForFunction(()=>document.activeElement?.getAttribute('aria-checked')==='true');await p.keyboard.press('ArrowDown');assert.equal(await menu.getByRole('menuitemradio',{name:/파일 자동 반영/}).evaluate(e=>e===document.activeElement),true);await p.screenshot({path:path.join(dir,'approval-'+suffix+'.png')});await p.keyboard.press('Escape');assert(await p.getByRole('button',{name:/매번 확인/}).evaluate(e=>e===document.activeElement));
+  await p.getByRole('button',{name:/매번 확인/}).click();const menu=p.getByRole('menu',{name:'승인 방식'});assert(await menu.locator('small').evaluateAll(es=>es.every(e=>parseFloat(getComputedStyle(e).fontSize)>=(document.querySelector('.nubi-workbench').dataset.largeText==='true'?16:14))));assert(await menu.evaluate(e=>{const r=e.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight;}),'approval menu stays fully inside the viewport');await p.waitForFunction(()=>document.activeElement?.getAttribute('aria-checked')==='true');await p.keyboard.press('ArrowDown');assert.equal(await menu.getByRole('menuitemradio',{name:/파일 자동 반영/}).evaluate(e=>e===document.activeElement),true);await captureDesign(p,{path:path.join(dir,'approval-'+suffix+'.png')});await p.keyboard.press('Escape');assert(await p.getByRole('button',{name:/매번 확인/}).evaluate(e=>e===document.activeElement));
   await openSidebar();await p.locator('.nubi-session-row').filter({hasText:'문맥 사용량 화면 검증'}).locator('.nubi-actions-disclosure>summary').click();await p.getByRole('button',{name:'문맥 사용량 화면 검증 삭제',exact:true}).click();await inspect('대화를 삭제할까요?','delete-'+suffix);assert.match(await p.getByRole('alertdialog').innerText(),/프로젝트에 반영한 파일은 그대로/);await p.keyboard.press('Escape');assert.equal(await p.getByRole('button',{name:'문맥 사용량 화면 검증 삭제',exact:true}).count(),0);assert.equal(await p.locator('.nubi-session-row').filter({hasText:'문맥 사용량 화면 검증'}).count(),1);
   checks.push('nested navigation restores the invoking screen and control; FabriX returns to model selection; Escape cancels deletion');
  }
@@ -87,7 +88,7 @@ try{
  await p.evaluate(()=>{window.catalogFailure=false;});
  await catalogDialog.getByRole('button',{name:'모델 목록 새로고침',exact:true}).click();await p.waitForTimeout(300);
  assert.equal(await p.evaluate(()=>window.catalogCalls),3,'manual retry recovers');
- await p.screenshot({path:path.join(dir,'model-catalog-recovered.png'),animations:'disabled'});
+ await captureDesign(p,{path:path.join(dir,'model-catalog-recovered.png'),animations:'disabled'});
  await p.keyboard.press('Escape');checks.push('catalog cache, nonblocking refresh, no repeated success/failure fetches, selected model preserved and explicit retry');
  // Running preparation has one project surface, never a second progress dialog.
  for(const width of [1280,440]){
@@ -99,7 +100,7 @@ try{
   assert.equal(await progress.getByRole('progressbar').getAttribute('aria-valuenow'),'30');
   assert.match(await progress.innerText(),/현재 단계 약 .*남음|처리 속도 확인 중/);assert.match(await progress.innerText(),/진행 (?:[1-9]\d*분(?: [1-9]\d*초)?|[1-9]\d*초)/);
   assert(await progress.evaluate(e=>e.scrollWidth<=e.clientWidth+1),'wiki progress fits the project surface');
-  await p.screenshot({path:path.join(dir,`wiki-progress-${width}.png`),animations:'disabled'});
+  await captureDesign(p,{path:path.join(dir,`wiki-progress-${width}.png`),animations:'disabled'});
  }
  checks.push('wiki preparation stays in the project surface with actual percentage, elapsed time, stage ETA and stop action; toolbar never opens a duplicate modal');
  await p.goto(origin+'/?context&modals&integrated&catalog');await closeSidebar();
@@ -124,7 +125,7 @@ try{
  await p.getByRole('list',{name:'대기 메시지'}).getByText('방금 실행한 결과를 설명해 주세요.',{exact:true}).waitFor();
  assert.equal(await followup.inputValue(),'');assert.equal(await p.evaluate(()=>window.commandReviewAdmissions),1);
  assert.equal(await p.getByText('AI가 다른 작업을 확인하고 있어요. 입력한 내용은 보관했어요.',{exact:true}).count(),0);
- await p.screenshot({path:path.join(dir,'command-followup-queue.png'),animations:'disabled'});
+ await captureDesign(p,{path:path.join(dir,'command-followup-queue.png'),animations:'disabled'});
  checks.push('Send racing automatic command review refreshes state and queues the exact message once without a busy error');
  // Company sign-in must be discoverable in the titlebar, including before a project/model is connected.
  for(const variant of [{width:1280,height:720},{width:800,height:600},{width:440,height:500},{width:440,height:500,noProject:true},{width:1280,height:720,connected:true},{width:440,height:600,connected:true}]){
@@ -136,11 +137,11 @@ try{
   assert.equal(await account.locator('.nubi-account-avatar').isVisible(),true,'avatar remains visible at every toolbar width');
   assert(await account.evaluate(e=>{const r=e.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight;}),'company account is visible without scrolling');
   assert.deepEqual(await p.locator('.nubi-window-toolbar button').evaluateAll(es=>es.filter(e=>{const r=e.getBoundingClientRect();return r.left<0||r.right>innerWidth+1||r.bottom>document.querySelector('.desktop-titlebar').getBoundingClientRect().bottom+1;}).map(e=>e.textContent.trim())),[],'toolbar actions stay inside the titlebar');
-  await p.screenshot({path:path.join(dir,`company-menu-${variant.width}${variant.noProject?'-start':''}${variant.connected?'-connected':''}.png`),animations:'disabled'});
+  await captureDesign(p,{path:path.join(dir,`company-menu-${variant.width}${variant.noProject?'-start':''}${variant.connected?'-connected':''}.png`),animations:'disabled'});
   await account.click();const dialog=p.locator('.nubi-ghes-modal');await dialog.waitFor();
   if(variant.connected){await dialog.locator('.nubi-account-heading strong').filter({hasText:'긴 이름의 회사 계정 화면 검토 사용자'}).waitFor();await dialog.getByText('기본 정보',{exact:true}).waitFor();assert.equal(await dialog.getByText('회사 저장소 열기',{exact:true}).count(),0);assert.equal(await dialog.locator('.nubi-account-avatar img').evaluate(img=>img.complete&&img.naturalWidth>0),true);}
   else{assert.doesNotMatch(await dialog.innerText(),/code\.sdsdev\.co\.kr/,'company connection keeps its host out of the visible copy');/* the top-right login starts the sign-in at once (2026-10-14): the dialog shows the code to enter */await dialog.getByRole('button',{name:'로그인 코드 복사',exact:true}).waitFor();}
-  await p.screenshot({path:path.join(dir,`company-login-${variant.width}${variant.noProject?'-start':''}${variant.connected?'-connected':''}.png`),animations:'disabled'});
+  await captureDesign(p,{path:path.join(dir,`company-login-${variant.width}${variant.noProject?'-start':''}${variant.connected?'-connected':''}.png`),animations:'disabled'});
   await p.keyboard.press('Escape');await dialog.waitFor({state:'hidden'});assert(await account.evaluate(e=>e===document.activeElement),'Escape returns to the titlebar account button');
   checks.push(`company titlebar entry and login dialog: ${variant.width}x${variant.height}, ${variant.connected?'connected':variant.noProject?'no project':'guest'}`);
  }
@@ -150,7 +151,7 @@ try{
  await loginError.getByText('로그인 코드 발급 / HTTP 404',{exact:true}).waitFor();
  assert.match(await loginError.innerText(),/회사 로그인 경로를 찾지 못했어요/);assert.doesNotMatch(await loginError.innerText(),/저장소를 읽을 수 없어요|code\.sdsdev\.co\.kr/);
  assert(await loginError.locator('.nubi-account-diagnostic').evaluate(e=>e.scrollWidth<=e.clientWidth),'safe diagnostic stays on one line');
- await p.screenshot({path:path.join(dir,'company-login-error-440.png'),animations:'disabled'});checks.push('login endpoint failure is distinct from repository access and shows a safe, single-line stage/status');
+ await captureDesign(p,{path:path.join(dir,'company-login-error-440.png'),animations:'disabled'});checks.push('login endpoint failure is distinct from repository access and shows a safe, single-line stage/status');
 
  // The rail opens Nubi's catalog immediately without fetching or embedding the website.
  await p.setViewportSize({width:1280,height:850});await p.goto(origin+'/?context&modals&integrated&catalog&toolbar');await closeSidebar();
@@ -159,9 +160,9 @@ try{
  const skillSearch=p.getByRole('textbox',{name:'AI Workspace 스킬 검색'});await skillSearch.fill('보고서');await p.getByRole('button',{name:'보고서 검토 다운로드',exact:true}).waitFor();
  assert.equal(await p.locator('iframe').count(),0);assert.equal(await p.evaluate(()=>window.nativeViewCalls?.includes('team-workspace')||false),false);
  await p.evaluate(()=>{window.skillDownloadDelay=900;});await p.getByRole('button',{name:'보고서 검토 다운로드',exact:true}).click();await skillSearch.fill('간단');await p.getByRole('button',{name:'간단 덧셈 업데이트'}).waitFor();await p.waitForTimeout(1100);await skillSearch.fill('보고서');await p.locator('.nubi-marketplace-card').filter({hasText:'보고서 검토'}).getByRole('img',{name:'설치됨',exact:true}).waitFor();
- await skillSearch.fill('');await p.screenshot({path:path.join(dir,'nubi-workspace-skills.png'),animations:'disabled'});
- await p.getByRole('tab',{name:'Personal',exact:true}).click();await p.getByRole('textbox',{name:'내 스킬 검색'}).fill('보고서');await p.locator('.nubi-custom-skill-row').first().waitFor();await p.screenshot({path:path.join(dir,'nubi-my-skills.png'),animations:'disabled'});
- for(const width of [440,800,1280]){await p.setViewportSize({width,height:850});for(const tabName of ['Team','Personal']){await p.getByRole('tab',{name:tabName,exact:true}).click();const tabs=p.locator('.nubi-skill-tabs');assert(await tabs.evaluate(node=>node.scrollWidth<=node.clientWidth),'skill tabs fit at '+width);assert(await tabs.getByRole('tab').evaluateAll(items=>items.every(tab=>{const r=tab.getBoundingClientRect();return r.height>=40&&r.width>=44;})),'skill tab targets');}await p.screenshot({path:path.join(dir,'nubi-my-skills-'+width+'.png'),animations:'disabled'});}
+ await skillSearch.fill('');await captureDesign(p,{path:path.join(dir,'nubi-workspace-skills.png'),animations:'disabled'});
+ await p.getByRole('tab',{name:'Personal',exact:true}).click();await p.getByRole('textbox',{name:'내 스킬 검색'}).fill('보고서');await p.locator('.nubi-custom-skill-row').first().waitFor();await captureDesign(p,{path:path.join(dir,'nubi-my-skills.png'),animations:'disabled'});
+ for(const width of [440,800,1280]){await p.setViewportSize({width,height:850});for(const tabName of ['Team','Personal']){await p.getByRole('tab',{name:tabName,exact:true}).click();const tabs=p.locator('.nubi-skill-tabs');assert(await tabs.evaluate(node=>node.scrollWidth<=node.clientWidth),'skill tabs fit at '+width);assert(await tabs.getByRole('tab').evaluateAll(items=>items.every(tab=>{const r=tab.getBoundingClientRect();return r.height>=40&&r.width>=44;})),'skill tab targets');}await captureDesign(p,{path:path.join(dir,'nubi-my-skills-'+width+'.png'),animations:'disabled'});}
  // Pagination searches the full catalog and resets on filtering.
  await p.evaluate(()=>{window.skillFixtureCount=22;});
  for(const entry of [{tab:'Personal',search:'내 스킬 검색',refresh:'목록 새로고침',prefix:'내 스킬',row:'.nubi-custom-skill-row',term:'검토 스킬 22',total:23},{tab:'Team',search:'AI Workspace 스킬 검색',refresh:'마켓플레이스 새로고침',prefix:'AI Workspace 스킬',row:'.nubi-marketplace-card',term:'공유 스킬 22',total:24}]){
@@ -177,15 +178,15 @@ try{
  for(const width of [440,1280]){
    await p.setViewportSize({width,height:850});assert.equal(await p.getByRole('button',{name:/휴지통/}).count(),0);
    const register=p.getByRole('button',{name:'등록',exact:true});assert(await register.evaluate(e=>e.getBoundingClientRect().width>=88&&e.querySelector('span').checkVisibility()));
-   await p.screenshot({path:path.join(dir,'skills-pagination-'+width+'.png'),animations:'disabled'});
+   await captureDesign(p,{path:path.join(dir,'skills-pagination-'+width+'.png'),animations:'disabled'});
    await p.evaluate(()=>{window.nubi={...window.nubi,platform:'win32'};});await register.click();const registration=p.getByRole('dialog',{name:'스킬 등록',exact:true});await registration.waitFor();
    for(const name of ['파일 선택','폴더 선택']){const button=registration.getByRole('button',{name,exact:true});await button.waitFor();const style=await button.evaluate(e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();return {bg:s.backgroundColor,fg:s.color,border:s.borderWidth,width:r.width,height:r.height};});assert.notEqual(style.bg,'rgba(0, 0, 0, 0)');assert.notEqual(style.bg,style.fg);assert(style.width>=112&&style.height>=40);assert.notEqual(style.border,'0px');}
-   await p.screenshot({path:path.join(dir,'skill-registration-'+width+'.png'),animations:'disabled'});await p.keyboard.press('Escape');await registration.waitFor({state:'hidden'});
+   await captureDesign(p,{path:path.join(dir,'skill-registration-'+width+'.png'),animations:'disabled'});await p.keyboard.press('Escape');await registration.waitFor({state:'hidden'});
  }
  checks.push('skill pagination across full local/company catalogs, filter reset, visible file/folder buttons, no trash toolbar, wide registration at 440/1280px');
  /* The AI Workspace page has no back arrow any more (user request 2026-10-14); Escape returns to the conversation. */await p.locator('.nubi-skill-page h1').focus();await p.keyboard.press('Escape');assert.equal(await input.inputValue(),'보존할 대화 초안');
  await p.mouse.move(1,1);await input.blur();const surface=p.locator('.nubi-composer-surface').first();const calm=await surface.evaluate(el=>getComputedStyle(el).borderColor);await surface.hover();assert.equal(await surface.evaluate(el=>getComputedStyle(el).borderColor),calm);
- await input.focus();const focus=await surface.evaluate(el=>({border:getComputedStyle(el).borderColor,shadow:getComputedStyle(el).boxShadow}));/* No focus ring on the message box (user decision 2026-10-14): typing keeps its calm border and adds no shadow. */assert.equal(focus.border,calm);assert.equal(focus.shadow,'none');await p.screenshot({path:path.join(dir,'composer-soft-focus.png'),animations:'disabled'});
+ await input.focus();const focus=await surface.evaluate(el=>({border:getComputedStyle(el).borderColor,shadow:getComputedStyle(el).boxShadow}));/* No focus ring on the message box (user decision 2026-10-14): typing keeps its calm border and adds no shadow. */assert.equal(focus.border,calm);assert.equal(focus.shadow,'none');await captureDesign(p,{path:path.join(dir,'composer-soft-focus.png'),animations:'disabled'});
  /* Capture part of the Workspace and attach it to the message (user request 2026-10-14). */
  await p.getByRole('button',{name:'화면 캡처',exact:true}).first().click();const overlay=p.locator('.nubi-capture-overlay');await overlay.waitFor();
  await p.mouse.move(300,200);await p.mouse.down();await p.mouse.move(500,330,{steps:4});await p.mouse.up();await overlay.waitFor({state:'hidden'});
@@ -202,7 +203,7 @@ try{
   const card=p.getByRole('region',{name:'실행 준비 승인'});await card.getByText(phase==='running'?'결과 확인 중':'결과 확인 중단',{exact:true}).waitFor();
   /* Executed records start folded. Expanding reads the saved result without replay. */assert.equal(await card.locator('.nubi-terminal').count(),0);await card.locator('.nubi-command-record > summary').click();await card.locator('.nubi-terminal').waitFor();assert.equal(await card.locator('.nubi-terminal').count(),1);await card.getByRole('button',{name:'터미널 열기',exact:true}).click();assert.equal(await p.evaluate(()=>window.openedTerminal.processId),'command-result');
   if(phase==='paused'){await p.getByText('응답 형식 확인 필요',{exact:false}).first().waitFor();assert.equal(await p.getByText('실행 실패',{exact:true}).count(),0);}
-  await p.screenshot({path:path.join(dir,'command-analysis-'+phase+'.png'),animations:'disabled'});
+  await captureDesign(p,{path:path.join(dir,'command-analysis-'+phase+'.png'),animations:'disabled'});
   checks.push('command analysis '+phase+': actual state label, readable output during analysis, planning failure distinguished from shell failure');
  }
  assert.deepEqual(errors,[]);await writeFile(path.join(dir,'result.json'),JSON.stringify({checks,errors,scope:'actual Electron Workbench style and layout with synthetic data in Chrome; native pickers and real accounts are separate'},null,2));console.log(JSON.stringify({passed:checks.length,checks},null,2));

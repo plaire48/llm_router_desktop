@@ -1,3 +1,5 @@
+import {DESIGN_MOTION_FILES,sourceDesignIssues} from './design-rules.mjs';
+import {captureDesign} from './design-rules.mjs';
 // P2 red baseline. This collects current product styles and real Workbench
 // animations; missing coverage must be completed before the P2 gate is green.
 import {build,stop} from 'esbuild';
@@ -19,14 +21,11 @@ const check=(name,pass,detail)=>result.checks.push({name,pass,detail});
 let tokens='';
 try{tokens=await readFile('design/workspace-motion.css','utf8');}catch(error){if(error.code!=='ENOENT')throw error;}
 for(const [name,ms] of Object.entries({enter:280,exit:180,press:120,state:180}))check('token:'+name,new RegExp(`--nubi-motion-${name}:\\s*${ms}ms`).test(tokens),{expected:ms});
-const cssFiles=['design/workspace-identity.css','design/workspace-density.css','design/workspace-typography.css','design/workspace-icons.css','design/workspace-pastel.css','ui/workflow.css','ui/loading-note.css','electron-app/ios-tokens.css','electron-app/modal-motion.css','ui/computer-use.css','ui/tool-arguments.css','ui/project-switch-cover.css','electron-app/external-browser.css','electron-app/workbench.css'];
+const cssFiles=DESIGN_MOTION_FILES;
 const literals=[],all=[];
 for(const file of cssFiles){
  const source=(await readFile(file,'utf8')).replace(/\/\*[\s\S]*?\*\//g,'');
- for(const match of source.matchAll(/(?:^|[;{])\s*(transition(?:-duration)?|animation(?:-duration)?)\s*:\s*([^;}]+)/g)){
-  if(/\b(?:\d*\.)?\d+(?:ms|s)\b/.test(match[2]))literals.push({file,declaration:match[0].replace(/^[;{]\s*/,''),offset:match.index});
-  if(match[1]==='transition'&&/\ball\b/.test(match[2]))all.push({file,declaration:match[0]});
- }
+ for(const finding of sourceDesignIssues(file,source)){if(finding.rule==='motion_literal')literals.push(finding);if(finding.rule==='transition_all')all.push(finding);}
 }
 check('hardcoded-duration-zero',literals.length===0,literals);
 check('transition-all-zero',all.length===0,all);
@@ -71,7 +70,7 @@ try{
   check(`ambient-registered:${width}:${reduced}`,ambient.filter(animation=>animation.iterations==='infinite').every(animation=>names.has(animation.name)),ambient);
   check(`interaction-concurrency:${width}:${reduced}`,ambient.filter(animation=>!names.has(animation.name)).length<=3,ambient);
   if(reduced)check(`reduced-ambient:${width}`,ambient.every(animation=>animation.iterations!=='infinite'),ambient);
-  await page.screenshot({path:path.join(dir,`welcome-${width}-${reduced?'reduced':'normal'}.png`)});
+  await captureDesign(page,{path:path.join(dir,`welcome-${width}-${reduced?'reduced':'normal'}.png`)});
   await page.evaluate(()=>{window.qualityStop=window.qualityTrack();});
   const settings=page.getByRole('button',{name:'설정',exact:true});await settings.click();
   const dialog=page.getByRole('dialog',{name:'설정',exact:true});await dialog.waitFor();
@@ -85,7 +84,7 @@ try{
   check(`modal-ambient-paused:${width}:${reduced}`,await page.evaluate(()=>document.getAnimations().filter(a=>window.qualityAmbient.has(a.animationName)).every(a=>a.playState==='paused')),null);
   if(width===440){const sheet=await dialog.evaluate(element=>({bottom:element.getBoundingClientRect().bottom,viewport:innerHeight,radius:getComputedStyle(element).borderBottomLeftRadius}));check(`narrow-bottom-sheet:${reduced}`,Math.abs(sheet.bottom-sheet.viewport)<1&&sheet.radius==='0px',sheet);}
   if(width===1280){const headings=await page.locator('.nubi-sidebar-quick-actions button').evaluateAll(buttons=>buttons.map(button=>{const b=button.getBoundingClientRect(),label=button.querySelector('span'),r=label?.getBoundingClientRect();return {left:b.left,right:b.right,labelLeft:r?.left,labelRight:r?.right};}));check(`sidebar-modal-labels:${reduced}`,headings.length>1&&headings.every((b,i)=>i===0||b.left>=headings[i-1].right-1)&&headings.every(b=>b.labelLeft===undefined||b.labelLeft>=b.left-1&&b.labelRight<=b.right+1),headings);}
-  await page.screenshot({path:path.join(dir,`modal-${width}-${reduced?'reduced':'normal'}.png`)});
+  await captureDesign(page,{path:path.join(dir,`modal-${width}-${reduced?'reduced':'normal'}.png`)});
   await page.keyboard.press('Escape');
   const closing=await page.locator('[data-modal-motion="leaving"]').evaluateAll(backdrops=>backdrops.flatMap(backdrop=>[...backdrop.getAnimations(),...backdrop.querySelector(':scope > .cx-detail-panel').getAnimations()].map(animation=>({name:animation.animationName,duration:animation.effect.getTiming().duration}))));
   check(`modal-exit:${width}:${reduced}`,closing.length===2&&closing.every(animation=>Math.abs(animation.duration-(reduced?120:180))<=20),closing);
@@ -151,7 +150,7 @@ try{
   check(`compositor-properties:${width}:${reduced}`,properties.length===0,properties);
   result.scenes.at(-1).view=view;result.scenes.at(-1).list=list;
   check(`view-ambient-paused:${width}:${reduced}`,view.counts.filter(row=>row.interactionTargets>0).every(row=>row.ambient===0),view.counts);
-  await page.screenshot({path:path.join(dir,`controls-${width}-${reduced?'reduced':'normal'}.png`)});await page.close();
+  await captureDesign(page,{path:path.join(dir,`controls-${width}-${reduced?'reduced':'normal'}.png`)});await page.close();
  }
  // Load the actual component stylesheet: controls do not mount the host cover.
  {const probe=await browser.newPage({viewport:{width:440,height:900}});await probe.goto(`http://127.0.0.1:${server.address().port}/?quality-controls`);await probe.locator('.nubi-main').waitFor();const css=await readFile('ui/project-switch-cover.css','utf8');

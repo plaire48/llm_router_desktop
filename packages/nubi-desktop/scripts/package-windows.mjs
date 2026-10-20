@@ -1,3 +1,4 @@
+import {assertReleaseTree} from './release-paths.mjs';
 import {spawn} from 'node:child_process';
 import {readdir,readFile,mkdir,writeFile} from 'node:fs/promises';
 import path from 'node:path';
@@ -5,6 +6,7 @@ import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {DESKTOP_FEATURES} from '../runtime/beta-features.mjs';
 const require=createRequire(import.meta.url);
+const payloadOnly=process.argv.includes('--payload-only');
 if(process.platform!=='win32'||process.arch!=='x64')throw Error('Windows x64 build host required');
 if(DESKTOP_FEATURES.computerUse)throw Error('windows_driver_packaging_requires_review');
 const run=(file,args,cwd=process.cwd())=>new Promise((resolve,reject)=>{const p=spawn(file,args,{cwd,stdio:'inherit',shell:false});p.on('error',reject);p.on('exit',c=>c===0?resolve():reject(Error('build_exit_'+c)));});
@@ -21,7 +23,12 @@ await run(process.execPath,['scripts/check-command-terminal.mjs']);
 await run(process.execPath,['scripts/prepare-installer-ui.mjs']);
 await run(process.execPath,['scripts/prepare-installer-brand.mjs']);
 // build-electron prepares the approved bird master for both the window and NSIS.
-await run(process.execPath,[require.resolve('electron-builder/cli.js'),'--projectDir','electron-app','--win','--x64','--publish','never']);
+await run(process.execPath,[require.resolve('electron-builder/cli.js'),'--projectDir','electron-app','--win','--x64',...(payloadOnly?['--dir']:[]),'--publish','never']);
+
+await assertReleaseTree('release/windows/win-unpacked');
+// Scan the final payload, including ASAR members and every extraResource. A
+// source-only audit cannot substitute for this blocking release check.
+await run(process.execPath,['scripts/check-safety-regression.mjs','--bundle-dir','release/windows/win-unpacked','--output','verification/safety-bundle.json']);
 
 // fs.cp needs physical OpenWiki skill directories; never ship only ASAR entries.
 const bundledSkills=path.resolve('../openwiki/skills');

@@ -1,3 +1,4 @@
+import {captureDesign} from './design-rules.mjs';
 import {build,stop} from 'esbuild';
 import {chromium} from 'playwright';
 import {mkdir,readFile,writeFile,cp} from 'node:fs/promises';
@@ -47,7 +48,7 @@ try{
   const close=page.getByRole('button',{name:'사이드바 접기',exact:true});if(width===440&&await close.count())await close.click();
   await measure('composer-'+suffix,'.composer-tools > button:not(.context-trigger) > svg',16*k);
   if(!baseline)await measure('send-'+suffix,'.composer button[aria-label="전송"] > svg',16*k);
-  await page.screenshot({path:`${dir}/${phase}-conversation-${suffix}.png`});
+  await captureDesign(page,{path:`${dir}/${phase}-conversation-${suffix}.png`});
   await page.getByRole('button',{name:'설정',exact:true}).click();await page.getByRole('dialog',{name:'설정',exact:true}).waitFor();
   await measure('dialog-close-'+suffix,'.deck-dialog .cx-panel-header-actions [data-action=close] > svg',16*k);
   if(!baseline){const target=records.at(-1).icons[0].target;assert(target.width>=40&&target.height>=40,'close click target remains 40px');}
@@ -61,7 +62,7 @@ try{
   const colors=await page.locator('.provider-button[data-provider]').evaluateAll(nodes=>nodes.map(e=>{const s=getComputedStyle(e),probe=document.createElement('i');e.append(probe);const provider=e.dataset.provider;probe.style.background=provider==='claude'?'var(--provider-claude-soft)':provider==='chatgpt'?'var(--provider-chatgpt)':`linear-gradient(112deg,var(--provider-${provider}-start),var(--provider-${provider}-end))`;const expected=getComputedStyle(probe);const result={provider,color:s.color,background:s.backgroundImage==='none'?s.backgroundColor:s.backgroundImage,expected:expected.backgroundImage==='none'?expected.backgroundColor:expected.backgroundImage};probe.remove();return result;}));
   assert.equal(colors.length,4,'all original provider identities');
   for(const color of colors)assert.equal(color.background,color.expected,'provider identity preserved: '+color.provider);
-  await page.screenshot({path:`${dir}/provider-colors.png`});
+  await captureDesign(page,{path:`${dir}/provider-colors.png`});
   await writeFile(`${dir}/provider-colors.json`,JSON.stringify(colors,null,2));
  }
  assert.deepEqual(errors,[]);await writeFile(`${dir}/${phase}.json`,JSON.stringify({records,errors,boundary:'Actual production components and full Desktop CSS in Chrome with synthetic data. Pixel values are Nubi adaptations, not Apple-prescribed icon sizes.'},null,2));console.log(JSON.stringify({phase,groups:records.length,errors}));

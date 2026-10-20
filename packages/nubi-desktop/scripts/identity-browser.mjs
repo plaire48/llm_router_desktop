@@ -1,3 +1,4 @@
+import {assertDesignRules} from './design-rules.mjs';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 
@@ -70,6 +71,7 @@ export async function assertDesktopDialog(dialog,{large=false}={}) {
 // All application-owned modal chrome and field labels share semantic tokens.
 // Rich mail/document content and provider artwork retain their source styling.
 export async function assertDialogIdentity(dialog) {
+ await assertDesignRules(dialog.page());
  const facts=await dialog.evaluate(root=>{
   const css=getComputedStyle(root),probe=document.createElement('span');root.append(probe);
   const color=name=>{probe.style.color=`var(${name})`;return getComputedStyle(probe).color;};

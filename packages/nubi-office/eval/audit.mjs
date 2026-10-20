@@ -1,3 +1,4 @@
+import {loadOfficeEvaluationCases} from './synthetic-values.mjs';
 // Source-only audit probes. Scripted providers expose control defects; they do
 // not measure a model's document quality and never launch Excel or a build.
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
@@ -13,7 +14,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 export async function auditHarness() {
   const rubric = JSON.parse(await readFile(resolve(root, 'eval/harness-rubric.json'), 'utf8'));
   if (rubric.dimensions.reduce((sum, d) => sum + d.weight, 0) !== 100 || rubric.dimensions.some(d => d.score < 0 || d.score > 5)) throw new Error('invalid_review_rubric');
-  const corpus = JSON.parse(await readFile(resolve(root, 'eval/cases.json'), 'utf8'));
+  const corpus = await loadOfficeEvaluationCases();
   const snapshot = workbook().snapshot();
   const scorerProbes = [
     {id: 'irrelevant-question', state: 'awaiting_user', question: '오늘 날씨는 어때요?'},

@@ -1,3 +1,4 @@
+import {captureDesign} from './design-rules.mjs';
 import {build} from 'esbuild';
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import {createServer} from 'node:http';
@@ -28,7 +29,7 @@ try{
   if(await dialog.evaluate(el=>el.classList.contains('deck-dialog')))await assertDialogChrome(dialog);
   const bounds=await dialog.boundingBox();assert(bounds.x>=-1&&bounds.y>=-1&&bounds.x+bounds.width<=width+1&&bounds.y+bounds.height<=901,screen+': panel stays inside window');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,screen+': no page overflow');
-  await dialog.screenshot({path:`${dir}/${screen}-${width}.png`});checks.push({screen,width,textNodes:audit.textNodes});
+  await captureDesign(dialog,{path:`${dir}/${screen}-${width}.png`});checks.push({screen,width,textNodes:audit.textNodes});
  }
  assert.deepEqual(errors,[]);await writeFile(dir+'/result.json',JSON.stringify({checks,errors,boundary:'Production panels with synthetic read-only profile/team data. No GHES changes or notifications.'},null,2));console.log(JSON.stringify({checks,errors}));
 }catch(error){await page?.screenshot({path:dir+'/failure.png'});console.error(await page?.locator('body').innerText());throw error;}finally{await browser?.close();await new Promise(r=>server.close(r));}

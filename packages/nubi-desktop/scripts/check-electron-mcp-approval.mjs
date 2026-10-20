@@ -1,3 +1,4 @@
+import {captureDesign} from './design-rules.mjs';
 // Real renderer, approval form, worker, official MCP and native in-app tab.
 // Only the model is scripted; no real account or external website is used.
 import {_electron as electron} from 'playwright';
@@ -44,10 +45,10 @@ async function approve(tool){
  assert.equal(await form.locator('textarea,input').count(),0,'MCP permission has no free-text answer');
  assert.equal(await form.locator('.nubi-tool-arguments pre .json-key').count()>0,true);assert.doesNotMatch(await form.locator('.nubi-question-prompt').innerText(),/\{"/);
  if(tool==='browser_open'){
-  await page.locator('.nubi-feedback-toast button').last().click({timeout:1000}).catch(()=>{});await form.scrollIntoViewIfNeeded();await page.screenshot({path:path.join(out,'approval-arguments.png')});
+  await page.locator('.nubi-feedback-toast button').last().click({timeout:1000}).catch(()=>{});await form.scrollIntoViewIfNeeded();await captureDesign(page,{path:path.join(out,'approval-arguments.png')});
   const win=await app.browserWindow(page);await win.evaluate(w=>w.setSize(720,800));
   await page.waitForFunction(()=>innerWidth<800);await form.scrollIntoViewIfNeeded();
-  assert(await form.evaluate(el=>el.scrollWidth<=el.clientWidth+1));await page.screenshot({path:path.join(out,'approval-narrow.png')});await win.evaluate(w=>w.setSize(1480,960));
+  assert(await form.evaluate(el=>el.scrollWidth<=el.clientWidth+1));await captureDesign(page,{path:path.join(out,'approval-narrow.png')});await win.evaluate(w=>w.setSize(1480,960));
  }
  await form.getByRole('radio',{name:/항상 허용/}).click();const start=Date.now();await form.getByRole('button',{name:'답변 보내기',exact:true}).click();await form.waitFor({state:'hidden',timeout:15000});timings.push({tool,approvalReturnMs:Date.now()-start});
 }
@@ -69,8 +70,8 @@ try{
  const argumentRows=activity.locator('.nubi-tool-arguments');assert(await argumentRows.count()>=3);
  assert((await argumentRows.locator('pre').allTextContents()).some(text=>text.includes('승인 연결 1')));
  await argumentRows.filter({hasText:'승인 연결 1'}).last().scrollIntoViewIfNeeded();
- await page.screenshot({path:path.join(out,'completed-arguments.png')});checks.push('completed activity retains expandable typed JSON arguments');
- await page.screenshot({path:path.join(out,'approved-browser.png')});
+ await captureDesign(page,{path:path.join(out,'completed-arguments.png')});checks.push('completed activity retains expandable typed JSON arguments');
+ await captureDesign(page,{path:path.join(out,'approved-browser.png')});
  const policy=await request('approvalPolicy');assert.equal(policy.allowedMcpTools.length,3);
  // A real app restart reloads the saved per-tool policy. Another URL and arguments still use that policy.
  await app.close();app=null;cycle=2;phase='open';requested=false;
@@ -79,7 +80,7 @@ try{
  assert.equal((await request('approvalPolicy')).allowedMcpTools.length,3);await send();
  await page.getByText('인앱 입력과 클릭 결과를 확인했습니다. 검사 2 완료.',{exact:true}).waitFor({timeout:60000});
  assert.equal(await page.locator('.nubi-question-inline').count(),0);checks.push('always allow survives app restart without repeat prompts');
- assert.deepEqual(errors,[]);await page.screenshot({path:path.join(out,'after-restart.png')});
+ assert.deepEqual(errors,[]);await captureDesign(page,{path:path.join(out,'after-restart.png')});
  await writeFile(path.join(out,'result.json'),JSON.stringify({passed:true,checks,timings,errors,boundary:'Actual macOS Electron UI, worker IPC, official Playwright MCP and local HTTP page. Scripted model. Windows installer and company login not tested.'},null,2));console.log(JSON.stringify({checks,timings}));
 }catch(error){await page?.screenshot({path:path.join(out,'failure.png')}).catch(()=>{});console.error('phase',phase,'calls',fixture.calls);throw error;}
 finally{await app?.close();fixture.close();web.close();await rm(temporary,{recursive:true,force:true});}

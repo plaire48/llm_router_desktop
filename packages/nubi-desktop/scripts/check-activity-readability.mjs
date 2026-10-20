@@ -1,3 +1,4 @@
+import {captureDesign} from './design-rules.mjs';
 import {build} from 'esbuild';
 import {assertDesktopDialog} from './identity-browser.mjs';
 import {mkdir,writeFile,readFile,cp} from 'node:fs/promises';
@@ -38,7 +39,7 @@ try{
   assert(geometry.every(row=>row.fits&&Math.max(...row.centers)-Math.min(...row.centers)<2),JSON.stringify(geometry));
   await record.locator(':scope > summary').evaluate(el=>el.scrollIntoView({block:'start'}));
   await p.waitForFunction(()=>{const r=document.querySelector('.nubi-activity-record>summary').getBoundingClientRect();return r.top>=0&&r.bottom<innerHeight;});
-  await p.screenshot({path:path.join(dir,`running-${width}.png`),animations:'disabled'});
+  await captureDesign(p,{path:path.join(dir,`running-${width}.png`),animations:'disabled'});
   for(const row of await trace.locator(':scope > summary').all())await row.click();
   assert.equal(await trace.locator('li[data-tool]').count(),6);
   await trace.locator('li[data-tool]').first().waitFor();// the opened fold renders its rows on the next React commit
@@ -55,7 +56,7 @@ try{
   assert.equal(await p.locator('.nubi-worker-detail').count(),2);assert.equal(await p.locator('.nubi-worker-detail[open]').count(),0);
   await p.locator('.nubi-worker-detail summary').first().click();await p.getByText('메일 1 대조 결과',{exact:true}).waitFor();await p.locator('.nubi-worker-detail summary').first().click();
   await roles.locator(':scope > summary').click();
-  await p.screenshot({path:path.join(dir,`running-${width}.png`),animations:'disabled'});
+  await captureDesign(p,{path:path.join(dir,`running-${width}.png`),animations:'disabled'});
   const commandRecord=p.locator('.nubi-command-record');
   assert.equal(await commandRecord.getAttribute('open'),null,'execution records start collapsed');
   assert.equal(await commandRecord.locator('.nubi-terminal').count(),0,'folded output is not rendered');
@@ -74,10 +75,10 @@ try{
   const copied=await p.evaluate(()=>window.copiedTerminal);assert.equal(copied[0],'Get-ChildItem -Name');
   assert.equal(copied[1],await terminal.locator('.nubi-terminal-output').innerText());assert(!copied[0].startsWith('PS '),'decorative shell prompt is not copied');
   await p.mouse.move(0,0);await commandCopy.focus();assert.equal(await commandCopy.evaluate(e=>getComputedStyle(e.closest('.nubi-terminal-copy')).opacity),'1','keyboard reveals controls');
-await p.screenshot({path:path.join(dir,`execution-${width}.png`),animations:'disabled'});
+await captureDesign(p,{path:path.join(dir,`execution-${width}.png`),animations:'disabled'});
   await p.locator('.nubi-conversation-scroll').evaluate(el=>{el.scrollTop=0;});
   await p.evaluate(()=>window.activityState('paused'));await trace.locator('li[data-status=error]').waitFor();assert(await trace.locator('li[data-status=error]').isVisible());
-  await p.screenshot({path:path.join(dir,`attention-${width}.png`),animations:'disabled'});
+  await captureDesign(p,{path:path.join(dir,`attention-${width}.png`),animations:'disabled'});
   assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   await p.reload();
   const reopen=p.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await reopen.count())await reopen.click();
@@ -94,7 +95,7 @@ await p.screenshot({path:path.join(dir,`execution-${width}.png`),animations:'dis
   assert(planAlignment.length&&planAlignment.every(row=>Math.abs(row.actual-row.expected)<2),'plan counts align with right-hand controls: '+JSON.stringify(planAlignment));
   await record.locator(':scope > summary').click();
   assert.equal(await activity.locator('[data-timeline-kind=note]').count(),2,'updates remain available after completion');
-  await p.screenshot({path:path.join(dir,`completed-${width}.png`),animations:'disabled'});
+  await captureDesign(p,{path:path.join(dir,`completed-${width}.png`),animations:'disabled'});
  }
  await p.goto('http://127.0.0.1:'+server.address().port+'/?integrated&progress&activity-readability&stopped-order');
  const orderOpen=p.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await orderOpen.count())await orderOpen.click();
@@ -104,7 +105,7 @@ await p.screenshot({path:path.join(dir,`execution-${width}.png`),animations:'dis
  const assertOrder=async()=>assert(await p.locator('.nubi-command-record').evaluate(node=>!!(node.compareDocumentPosition(document.querySelector('[data-message-key="input-steer"]'))&Node.DOCUMENT_POSITION_FOLLOWING)),'terminal stays before the newer request');
  await assertOrder();await p.evaluate(()=>window.stopOrderedRun());
  await p.waitForFunction(()=>document.querySelector('.nubi-agent-activity')?.getAttribute('aria-busy')==='false');
- await assertOrder();await p.screenshot({path:path.join(dir,'stopped-order.png'),animations:'disabled'});
+ await assertOrder();await captureDesign(p,{path:path.join(dir,'stopped-order.png'),animations:'disabled'});
  await p.setViewportSize({width:1280,height:1050});
  await p.goto('http://127.0.0.1:'+server.address().port+'/?integrated&document=history-handoff');
  const open=p.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await open.count())await open.click();
@@ -116,7 +117,7 @@ await p.screenshot({path:path.join(dir,`execution-${width}.png`),animations:'dis
  await review.locator('.nubi-review-open-items p').waitFor();
  assert(await review.getByText('파일 재열기 근거가 없습니다.',{exact:true}).isVisible());
  assert.equal(await review.locator('.nubi-review-detail').getAttribute('open'),null);
- await review.scrollIntoViewIfNeeded();await p.screenshot({path:path.join(dir,'review-next-action.png'),animations:'disabled'});
+ await review.scrollIntoViewIfNeeded();await captureDesign(p,{path:path.join(dir,'review-next-action.png'),animations:'disabled'});
  await p.goto('http://127.0.0.1:'+server.address().port+'/?integrated&progress&activity-readability&polling-response');
  const pollingOpen=p.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await pollingOpen.count())await pollingOpen.click();
  await p.getByRole('button',{name:'대화 검색',exact:true}).click();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').first().click();

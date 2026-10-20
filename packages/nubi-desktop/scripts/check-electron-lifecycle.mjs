@@ -1,3 +1,4 @@
+import {captureDesign} from './design-rules.mjs';
 import {startFixtureModel} from './fixture-model.mjs';
 // The lifecycle of the real Electron host (2026-10-05): the worker restarts after it is killed, a second start leaves the first window running,
 // and the window comes back at its last bounds. Run from the package dir after scripts/build-electron.mjs:
@@ -51,7 +52,7 @@ try{
   await page.evaluate(id=>window.nubi.request('runRoutineNow',{id}),configured.id);
   const saved=(await page.evaluate(()=>window.nubi.request('listRoutines'))).items[0];result.routineId=saved.id;result.routineTaskId=saved.lastTaskId;assert(saved.lastTaskId);
   await page.waitForFunction(async id=>(await window.nubi.request('state',{taskId:id})).tasks.some(t=>t.id===id&&t.state==='waiting_input'),saved.lastTaskId,{timeout:30000});
-  await mkdir('verification/wave2',{recursive:true});await page.screenshot({path:'verification/wave2/task12-routines.png'});
+  await mkdir('verification/wave2',{recursive:true});await captureDesign(page,{path:'verification/wave2/task12-routines.png'});
   const showSidebar=page.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await showSidebar.count())await showSidebar.click();await page.locator(`[data-session-id="${saved.lastTaskId}"] .nubi-session-select`).waitFor();assert.match(await page.locator(`[data-session-id="${saved.lastTaskId}"] .nubi-session-select`).innerText(),/루틴 실행 범위를 확인해 주세요/);
   result.routineStartedAndWaiting=true;result.idleRoutineDiscoveredWithoutRefresh=true;
   await page.getByRole('button',{name:/^알림/}).first().click();
@@ -96,7 +97,7 @@ try{
 {
   await writeFile(path.join(storage,'last-project.json'),JSON.stringify({root:path.join(temporary,'gone-project')}));
   const app=await launch();
-  try{const page=await app.firstWindow();await dismissStartup(page);await page.getByRole('navigation',{name:'프로젝트 도구'}).waitFor();await page.screenshot({path:'verification/lifecycle-missing-project.png'});await writeFile('verification/lifecycle-missing-project.txt',await page.locator('body').innerText());assert.equal(await page.getByRole('button',{name:'파일',exact:true}).isDisabled(),true,'missing project leaves file tools disabled');/* without a model the start screen is the provider chooser */result.missingProjectStartScreen=true;
+  try{const page=await app.firstWindow();await dismissStartup(page);await page.getByRole('navigation',{name:'프로젝트 도구'}).waitFor();await captureDesign(page,{path:'verification/lifecycle-missing-project.png'});await writeFile('verification/lifecycle-missing-project.txt',await page.locator('body').innerText());assert.equal(await page.getByRole('button',{name:'파일',exact:true}).isDisabled(),true,'missing project leaves file tools disabled');/* without a model the start screen is the provider chooser */result.missingProjectStartScreen=true;
     await new Promise(resolve=>setTimeout(resolve,500));result.stalePointerCleared=await readFile(path.join(storage,'last-project.json'),'utf8').then(()=>false,()=>true);assert.equal(result.stalePointerCleared,true,'the stale pointer is removed');}
   finally{await app.close();}
 }

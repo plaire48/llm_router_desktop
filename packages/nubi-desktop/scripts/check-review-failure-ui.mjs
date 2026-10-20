@@ -1,3 +1,4 @@
+import {captureDesign} from './design-rules.mjs';
 import {build} from 'esbuild';
 import {assertDesktopDialog} from './identity-browser.mjs';
 import {mkdir,writeFile,readFile,cp} from 'node:fs/promises';
@@ -27,6 +28,6 @@ let browser;try{
   await review.getByText(/AI의 검토 항목과 근거가 맞지 않아요/).waitFor();await review.locator('summary').click();await review.getByText('review_schema_invalid',{exact:true}).waitFor();
   const style=await review.locator('.nubi-document-progress-heading').evaluate(el=>({color:getComputedStyle(el).color,icon:getComputedStyle(el.querySelector('svg')).color,font:getComputedStyle(el.querySelector('strong')).fontSize,weight:getComputedStyle(el.querySelector('strong')).fontWeight}));
   assert.equal(style.color,style.icon);assert.equal(style.font,'15px');assert.equal(style.weight,'600');assert(await review.evaluate(el=>el.scrollWidth<=el.clientWidth));
-  await review.screenshot({path:dir+'/'+width+'.png'});console.log('PASS review failure '+width+'px: visible cause/code, semantic icon color, 15px/600, no horizontal overflow');
+  await captureDesign(review,{path:dir+'/'+width+'.png'});console.log('PASS review failure '+width+'px: visible cause/code, semantic icon color, 15px/600, no horizontal overflow');
  }
 }finally{await browser?.close();server.close();}

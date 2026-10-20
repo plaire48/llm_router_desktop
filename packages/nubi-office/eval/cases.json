@@ -610,7 +610,7 @@
     {
       "id": "template-text-code",
       "mode": "template",
-      "request": "기존 양식을 그대로 사용해. B2는 필수 텍스트 사번 입력칸이다. 입력 항목을 확인받고 사번 00123을 넣어줘. 앞자리 0과 모든 서식·수식·다른 셀은 보존해.",
+      "request": "기존 양식을 그대로 사용해. B2는 필수 텍스트 사번 입력칸이다. 입력 항목을 확인받고 사번 {{synthetic:employee-1}}을 넣어줘. 앞자리 0과 모든 서식·수식·다른 셀은 보존해.",
       "range": "A1:C4",
       "auditRange": "A1:F6",
       "cells": {
@@ -633,7 +633,7 @@
           "address": "B2",
           "field": "value",
           "operator": "equals",
-          "expected": "00123"
+          "expected": "{{synthetic:employee-1}}"
         }
       ],
       "allowedChanges": [
@@ -685,7 +685,7 @@
       ],
       "dialogue": [
         {
-          "match": "\\(B2\\)",
+          "match": "\\(B2\\)|담당\\s*부서",
           "answer": "인사"
         }
       ]

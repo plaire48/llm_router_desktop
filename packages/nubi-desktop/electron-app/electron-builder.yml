@@ -36,23 +36,30 @@ files:
   - lib/**/*
   - launcher.cjs
   - package.json
+  - "!**/verification/**"
 extraResources:
   - from: lib/obsidian-connector
     to: obsidian-connector
+    filter: ["**/*", "!**/verification/**"]
   - from: lib/browser-window-bridge
     to: browser-window-bridge
+    filter: ["**/*", "!**/verification/**"]
   - from: lib/browser-connector
     to: browser-connector
+    filter: ["**/*", "!**/verification/**"]
   - from: ../third-party/pop3
     to: licenses/pop3
+    filter: ["**/*", "!**/verification/**"]
   - from: resources/git
     to: git
+    filter: ["**/*", "!**/verification/**"]
   - from: resources/nubi.png
     to: nubi-icon.png
   - from: ../THIRD-PARTY-NOTICES.md
     to: THIRD-PARTY-NOTICES.md
   - from: ../vendor/licenses
     to: licenses
+    filter: ["**/*", "!**/verification/**"]
 win:
   icon: resources/nubi.png
   target:

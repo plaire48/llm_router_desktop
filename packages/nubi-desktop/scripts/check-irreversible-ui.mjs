@@ -1,3 +1,4 @@
+import {captureDesign} from './design-rules.mjs';
 import {build} from 'esbuild';
 import {mkdir,writeFile,readFile,cp} from 'node:fs/promises';
 import {createServer} from 'node:http';
@@ -30,12 +31,12 @@ try{
   }
   const notices=page.locator('[data-irreversible-notice]');assert(await notices.count()>0);
   for(const notice of await notices.all()){await notice.scrollIntoViewIfNeeded();assert(await notice.evaluate(n=>n.scrollWidth<=n.clientWidth+1),'notice must wrap without clipping');}
-  await page.screenshot({path:path.join(dir,scene+'-'+width+'.png'),animations:'disabled'});
+  await captureDesign(page,{path:path.join(dir,scene+'-'+width+'.png'),animations:'disabled'});
   if(scene==='commands'){
    await page.getByRole('button',{name:/승인 방식: 매번 확인/}).click();
    await page.getByRole('menuitemradio',{name:/파일과 명령 자동/}).click();
    await page.getByText('되돌리기 어려운 명령은 자동 모드에서도 확인해요.',{exact:true}).waitFor({timeout:5000});
-   await page.screenshot({path:path.join(dir,'mode-'+width+'.png'),animations:'disabled'});
+   await captureDesign(page,{path:path.join(dir,'mode-'+width+'.png'),animations:'disabled'});
   }
   await page.close();
  }

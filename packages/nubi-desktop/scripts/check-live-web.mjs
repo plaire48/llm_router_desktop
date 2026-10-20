@@ -1,3 +1,4 @@
+import {captureDesign} from './design-rules.mjs';
 // The local web Workspace (docs/LIVE-WORKSPACE-2026-10-01.md): the real Electron host serves its own frontend over a
 // loopback port with a capability-bound bridge, and a browser drives the same project. Revived on 2026-10-07 with the
 // selectors of the Electron shell check: file editor and save, Git patch and commit history, source search, terminal,
@@ -39,7 +40,7 @@ try{
   const provider=await request('provider',{action:'status'});assert.equal(provider.connected,false);assert.equal(provider.models.length,0);stage('a disconnected provider fakes no model');
   assert.equal((await request('collaboration',{})).__nubiError,'method_invalid');assert.equal((await request('browser',{})).__nubiError,'browser_desktop_only');stage('A2A disabled and the browser pane stays in the app');
   await page.reload();await page.getByRole('navigation',{name:'프로젝트 도구'}).waitFor({timeout:30000});await openFile();await page.waitForFunction(()=>/value\s*=\s*2/.test(document.querySelector('.desktop-editor')?.textContent||''));/* Monaco draws spaces as no-break spaces */assert.equal((await request('read',{path:'example.js',full:true})).content,'export const value = 2;\n');stage('a reload keeps the project and the saved file');
-  await mkdir('verification/live-web',{recursive:true});await page.screenshot({path:'verification/live-web/file.png'});assert.deepEqual(errors,[]);
+  await mkdir('verification/live-web',{recursive:true});await captureDesign(page,{path:'verification/live-web/file.png'});assert.deepEqual(errors,[]);
   assert.deepEqual(bridgeErrors.filter(error=>error.method==='openCurrent'),[],'startup surfaces restore the same project without busy errors');
   await writeFile('verification/live-web/result.json',JSON.stringify({platform:process.platform,checks,errors,bridgeErrors,boundary:'Actual Electron worker serving a headless Chrome over loopback with a temporary Git project. No provider login.'},null,2));console.log(JSON.stringify({checks,errors}));
 }catch(error){await mkdir('verification/live-web',{recursive:true});await page.screenshot({path:'verification/live-web/failure.png'}).catch(()=>{});console.log('page errors:',JSON.stringify(errors));console.log('bridge errors:',JSON.stringify(bridgeErrors));console.log('failure:',error.message.split('\n').slice(0,6).join(' | '));throw error;}

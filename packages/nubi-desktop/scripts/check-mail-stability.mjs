@@ -1,3 +1,4 @@
+import {captureDesign} from './design-rules.mjs';
 import {build,stop as stopBuildService} from 'esbuild';
 import {mkdir,writeFile,readFile,cp} from 'node:fs/promises';
 import {createServer} from 'node:http';
@@ -46,12 +47,12 @@ try{
   assert.equal(await page.evaluate(()=>window.mailCalls.filter(c=>c.action==='history').length),0);
   assert(await page.evaluate(()=>window.mailCalls.filter(c=>c.action==='status').every(c=>c.includeMessages===false)));
   assert(await page.getByRole('checkbox',{name:'업무 메일 22 선택',exact:true}).isChecked());
-  await page.screenshot({path:path.join(dir,'update-available.png')});
+  await captureDesign(page,{path:path.join(dir,'update-available.png')});
   await page.setViewportSize({width:600,height:900});
   const update=page.getByRole('button',{name:'메일 목록 업데이트',exact:true});
   assert(await update.isVisible());assert.equal(await update.locator('span').isVisible(),false);
   assert(await page.locator('.nubi-mail-result-toolbar').evaluate(el=>el.scrollWidth<=el.clientWidth+1));
-  await page.screenshot({path:path.join(dir,'narrow.png')});await page.setViewportSize({width:1440,height:900});
+  await captureDesign(page,{path:path.join(dir,'narrow.png')});await page.setViewportSize({width:1440,height:900});
   await page.getByRole('button',{name:'업무 메일 23',exact:true}).click();await page.getByRole('heading',{name:'업무 메일 23',exact:true}).waitFor();
   await results.evaluate(el=>el.scrollTop=200);
   await page.getByRole('button',{name:'메일 목록 업데이트',exact:true}).click();await page.waitForTimeout(2100);
@@ -63,7 +64,7 @@ try{
   await page.waitForTimeout(100);assert.equal(await page.evaluate(()=>window.mailCalls.filter(c=>c.action==='search').length),searchesBeforeCheck);
   assert.equal(await page.evaluate(()=>window.mailCalls.filter(c=>c.action==='portalSync').length),1);
   assert.equal(await page.evaluate(()=>window.mailCalls.filter(c=>c.action==='history').length),0);
-  await page.screenshot({path:path.join(dir,'reading.png')});
+  await captureDesign(page,{path:path.join(dir,'reading.png')});
   await page.evaluate(()=>{window.mailDelay=0;window.arrive();});await page.waitForTimeout(3100);
   await page.getByRole('button',{name:'다음 메일 페이지',exact:true}).click();await page.waitForFunction(()=>document.querySelector('.nubi-mail-page-options>summary')?.textContent.includes('41–60'));
   assert.equal(await page.getByRole('button',{name:'메일 목록 업데이트',exact:true}).count(),0);
@@ -72,6 +73,6 @@ try{
   assert(await results.locator('tbody tr').count()>0);assert.equal(await results.locator('.nubi-mail-result').first().isDisabled(),false);
   await page.evaluate(()=>{window.mailFail=false;window.switchAccount();});await page.waitForTimeout(3300);
   await page.getByRole('button',{name:'다른 계정 메일',exact:true}).waitFor();assert.equal(await page.getByRole('heading',{name:'업무 메일 23',exact:true}).count(),0);assert.equal(await results.locator('input:checked').count(),0);
-  assert.deepEqual(errors,[]);await page.screenshot({path:path.join(dir,'after.png')});await writeFile(path.join(dir,'result.json'),JSON.stringify({passed:true,calls,during,scroll,errors},null,2));console.log('Mail stability passed: arrivals, selection, scroll, reader, explicit update, page navigation, refresh failure and account switch.');
+  assert.deepEqual(errors,[]);await captureDesign(page,{path:path.join(dir,'after.png')});await writeFile(path.join(dir,'result.json'),JSON.stringify({passed:true,calls,during,scroll,errors},null,2));console.log('Mail stability passed: arrivals, selection, scroll, reader, explicit update, page navigation, refresh failure and account switch.');
  }
 }finally{await browser?.close();server.closeAllConnections();await new Promise(r=>server.close(r));stopBuildService();}

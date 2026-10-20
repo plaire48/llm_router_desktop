@@ -1,4 +1,5 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
+import {observeWikiFrame} from './wiki-frame-size.mjs';
 import {CxButton,Icon,SearchField} from '@e2e/cx-design-system';
 import {BookMark} from './marks.jsx';
 import {groupWikiGraph,clusterWikiGraph,wikiMapModes,wikiTypeLabel} from './wiki-map-groups.mjs';
@@ -22,7 +23,7 @@ export function WikiNetwork({graph:source,selectedPath,onOpen,disabled}){
  const [query,setQuery]=useState(''),[hidden,setHidden]=useState(()=>new Set()),[orphans,setOrphans]=useState(true),[hover,setHover]=useState(null),[view,setView]=useState({x:0,y:0,k:1}),[expanded,setExpanded]=useState(false),[sideOpen,setSideOpen]=useState(true);
  const drag=useRef(null),savedViews=useRef({});
  // Viewport dimensions affect culling and zoom only, never layout coordinates.
- useEffect(()=>{if(!frame.current)return;const measure=()=>{const width=Math.max(320,Math.round(frame.current.clientWidth)),height=Math.max(320,Math.round(frame.current.clientHeight));setSize(current=>Math.abs(current.width-width)<=8&&Math.abs(current.height-height)<=8?current:{width,height});};const observer=new ResizeObserver(measure);observer.observe(frame.current);measure();return()=>observer.disconnect();},[]);
+ useEffect(()=>{const node=frame.current;if(!node)return;return observeWikiFrame(node,({width,height})=>setSize(current=>Math.abs(current.width-width)<=8&&Math.abs(current.height-height)<=8?current:{width,height}));},[]);
  // Publish a cheap initial cluster layout immediately. Relaxation runs off the
  // UI thread; panning never restarts it and viewport resize never squeezes nodes.
  const bounds=useMemo(()=>wikiPositionBounds(positions),[positions]);

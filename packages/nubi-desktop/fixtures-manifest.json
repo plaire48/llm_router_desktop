@@ -1,0 +1,1022 @@
+{
+  "version": 1,
+  "reviewScope": "Existing 127 fixture/eval assets from main aefa2e13, reviewed against d0643712. Public API metadata is not labeled synthetic. New fixtures use synthetic-/합성- prefix.",
+  "fixtures": [
+    {
+      "path": "extensions/aipro-chat/tests/fixtures/aipro-models.json",
+      "kind": "카탈로그 파서 회귀 표본",
+      "evidence": "정적 모델 식별자/기능 설명/환경 키. 사용자나 계정 자격값은 없으며 합성 모델 ID라고 단정하지 않음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "5d06c8de2c7d45a95ea0b0d20b9f9148b127ce47a0ee1ecc3f5574b6f0b9ea66"
+    },
+    {
+      "path": "extensions/aipro-chat/tests/fixtures/fabrix-models.json",
+      "kind": "카탈로그 파서 회귀 표본",
+      "evidence": "정적 모델 식별자/기능 설명/환경 키. 사용자나 계정 자격값은 없으며 합성 모델 ID라고 단정하지 않음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "1c6a6b6361bf5231ab13577b9297e8f74c9c45427486236a9f4661de1c3085e2"
+    },
+    {
+      "path": "extensions/aipro-chat/tests/fixtures/skills/work-log-draft.skill.json",
+      "kind": "배포 예제 스킬",
+      "evidence": "본문에 배포용 예제라고 명시. 사이트 주소/메뉴는 배포 담당자가 정하며 실제 사내 절차 확정 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "0729ebb620cbda1c4044d7d036ac2c5820cee23323f52a6b83fc5d1058e8a8db"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/C1-add-platinum-grade.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "195f9dbbc1940c5761238d4c4ce37b46b6574d390910bf06bfefae91a4024dd8"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/C2-free-shipping-threshold.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "32534fa6ab591b741a3bcfb014817313ef597c23e816682d1d5d080fdd3f63d1"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/C3-new-format-function.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "a4b72c09fdf062aeb8ddb4ed208589dbf28f160b9ee54d7328496788fefc2d90"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/C4-preserve-forbidden-folder.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "5d4e398755b8de15b8d998528a2f541d4bb9f86446a27ec821e4667c2eb10442"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/C5-ambiguous-discount.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "3e95b020b97192b6eb14b73ced9e149d1912491a5a8dfb264abadd35005ef1ba"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/D1-readme-vs-enterprise.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "49801c9a82a18875640eec622f34d63584495c72a9c045eefc7a81ff2fde13b8"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/D2-home-state-files.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "cc355b9513f33bd73f32b64529e5743d0bfad38929579f2f2e07e5e99867161d"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/D3-absent-proxy-setting.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "80a40265ac77ace1213ab30caa61cf2b2ea472f78da91ce144a692a02403ee63"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/E1-run-tests-report.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "afb19b70207c68b35b549093a97807b2fffd1c83d217fe2d70dbbbe77a54bce5"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/E2-fix-and-rerun.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "6cea40893a1dc9b8c3070f34cab84b63bd54f2e1186e031f819f3f487cb415e0"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/E3-long-log-check.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "c592bc579a5e6da0651f7b2913faf07ae2280cc17da70bd2b64f729f9ba8ee39"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/E4-run-one-test-file.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "1abdabb72d244fac0e5fccd6684ff1cb813165d396e0c4aec7f2337eb8f21454"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/E5-missing-script.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "cb258397916e232e65839b42a835a7ac829a7394af2ffe889dfd74ec263aed15"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/E6-wrong-test-path.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "d22042b809e09de2137836e3412ebe771d26a67362e876cb79092f2981f9ac40"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/K1-jeju-extra-fee.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "b58484f6449187d76f9113950af74aac270c4e1297305c939d1461be53f09518"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/L1-condition-after-compaction.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "b4451b9eab9741bdcf84a283e35976f46bbf1754b5460f1f46f9877fb0aa49e3"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/L2-short-follow-up.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "2407c9a8bc59f9324135fb75179e28add35fd02857b5556e63ee9ab9f999e299"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/L3-user-correction.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "93b9e4b7aa50ad5df89903a12c0ed4b24ba94bd2a1d51c3182b888201b817480"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/S1-version-fallback.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "97a89ba2c4302c81df80521c352129179a49406ede6a090822dc0380743e0afc"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/S2-visualize-call-flow.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "f7ebc1812c12a5981ca62b9ffbf26b4576d4ca317c4d772f0c01f6a32ca97127"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/S3-visualizer-doc-drift.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "cac598acfb659bb6a324b1724d271ce3f43af55c6cb74d1f1fe08c763928ccb0"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/W1-ngrok-default-port.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "bd53def4fd05aa446f465eb3bdb9cfee35ad878ffe1ab7d0b9d674888dd90c4c"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/W2-ci-schedule-telemetry.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "ebe69580d45e159553c4d64a01f5e9e5cf409705d2ca43a55acb135081b55f1e"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/W3-absent-confluence.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "dcf6a24a19db58bb08d70196bc4a7d6b326a2ef3ac0d164c099a18ea1f4d4182"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/W4-stale-provider-list.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "35fd9f0b879ad195d32992a1bcd812faf61985796b56186cb97a398a9b0bc8a1"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/W5-sleeping-mac-schedule.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "12a3f2b0f3261d17904a5df11b861acc58ef8019021bf03645fbc41bc165e150"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/X1-generation-run-lifecycle.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "fd74580512557053416a87ff339b81fa459568aa7d64a250f6d9a22b21530e07"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/X2-provider-model-classes.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "cd320b5f9a9c8ed95ccf7cbc3d0d1b328dc21dd9a28a8c398580c0a95e972035"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/cases/X3-long-session-recall.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "53dab79beb1fd54158836c9cd90668be75fd0e776f259dfafdeebcb3b88d8829"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/compaction/P1-notes-across-turns.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "19c7465c2bad9843979dceeaa2d0eacff9c97e0fb336103a301920da1a17d226"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/compaction/P2-many-long-reads.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "3776829539ee0541c3d2ca9a7dded1dc12156904f3a2d32760d36f01c6a48056"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/apps/admin-console.json",
+      "kind": "합성 앱 화면",
+      "evidence": "고정 UIA 컨트롤과 샘플 앱 상태. 예약 도메인/합성 자리표시자이며 실제 앱에서 수집한 화면 아님; 전체 UTF-8/JSON 해석 패턴 검사0건; 답18 자리표시자 복원 후 원본 코퍼스 전체 SHA 동등성 시험",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "81b2d30d720102c717d912f1882b84256935c9d81e8044224c255afa80587394"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/apps/backup-settings.json",
+      "kind": "합성 앱 화면",
+      "evidence": "고정 UIA 컨트롤과 샘플 앱 상태. 예약 도메인/합성 자리표시자이며 실제 앱에서 수집한 화면 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "2a039777a2f9ddb9f77b1d0a7d37861caf33e6a34ded0b1fb0b3642ae6787920"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/apps/expense-draft.json",
+      "kind": "합성 앱 화면",
+      "evidence": "고정 UIA 컨트롤과 샘플 앱 상태. 예약 도메인/합성 자리표시자이며 실제 앱에서 수집한 화면 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "f7166bad23a072f71d9aaf861949257a136cdb3f5c50599549ef5d3838e46a40"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/apps/expense-form.json",
+      "kind": "합성 앱 화면",
+      "evidence": "고정 UIA 컨트롤과 샘플 앱 상태. 예약 도메인/합성 자리표시자이며 실제 앱에서 수집한 화면 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "b8e4e491ac6b46ccc6a78562dfd3dacc99e744f015dee03eeb4caf1117fdedb4"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/apps/file-browser.json",
+      "kind": "합성 앱 화면",
+      "evidence": "고정 UIA 컨트롤과 샘플 앱 상태. 예약 도메인/합성 자리표시자이며 실제 앱에서 수집한 화면 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "cbae038d96fc66134c8e6bedc7ab7090bdf85e2bddc2e7e749424aadd41760ad"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/apps/note-editor.json",
+      "kind": "합성 앱 화면",
+      "evidence": "고정 UIA 컨트롤과 샘플 앱 상태. 예약 도메인/합성 자리표시자이며 실제 앱에서 수집한 화면 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "81a87fef7b486bb17dd0b1437ff01c05afbf000b34b79853d468048046f3876c"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/apps/order-search.json",
+      "kind": "합성 앱 화면",
+      "evidence": "고정 UIA 컨트롤과 샘플 앱 상태. 예약 도메인/합성 자리표시자이며 실제 앱에서 수집한 화면 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "79822e4a7da54e4cb010d9bca693af51465ed1698a57ea6c9898f8752522deb0"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/apps/sales-chart.json",
+      "kind": "합성 앱 화면",
+      "evidence": "고정 UIA 컨트롤과 샘플 앱 상태. 예약 도메인/합성 자리표시자이며 실제 앱에서 수집한 화면 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "ef58c6d15b19d3df5d240aa9d7796180b0ce5eb412900f31fb65a61ab4f50c0b"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/apps/sync-status.json",
+      "kind": "합성 앱 화면",
+      "evidence": "고정 UIA 컨트롤과 샘플 앱 상태. 예약 도메인/합성 자리표시자이며 실제 앱에서 수집한 화면 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "5e388fe1ac0121450ba3cb3d68bf1a955275d34b17d04f7aa0c86840192388d2"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/apps/task-board.json",
+      "kind": "합성 앱 화면",
+      "evidence": "고정 UIA 컨트롤과 샘플 앱 상태. 예약 도메인/합성 자리표시자이며 실제 앱에서 수집한 화면 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "da5eec0ba53a559184b872b4eaadbd694b3d60557e41d133ebaa3cad4c930326"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A1-read-values.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "aa1ca2ac4ca0ce8173edc7f2d44f2e335d10f5ae675863e7d158503ea697bac5"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A10-select-department.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "68375f60da131ecd00220fb4d8da8c575f34cf09285a178271b67fc698adfb59"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A11-fill-four-fields.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "40b368f491dfea049230dd9ccf989faa0e5afe40244d2af751d6b27105ab4b5b"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A12-rules-amount.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "209830bb5db5ebaa5e358025a8b976f1aca98ba5a8bfd010698a1ff60d5d2cc3"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A13-rules-transport.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "e3c2f73769c0251f6d5fe3cae76a58e0a82e02570df45cbefa28543ebd0c2093"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A14-rules-submit.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "c689313804515128dc427d5dd20dd4a7e2b25a68f4b837c23ebdeab955446c93"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A15-rules-absent.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "7ac8fd55f03b2197c6eea39fa9620662000ade0dcce65c7aad2c3efe29226669"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A16-many-settings.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "6508b5d77616a31cf2e4bffb238c830826c73311d2b21d83fd541cfda0ada7e4"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A17-search-with-enter.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "a3cf8a3c716858d98eac9856c045ef86c2b11eef91af95f9ca0368a54594040d"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A18-double-click-open.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "651f991eb9af0c94a2c6c8591a6b9ce820f99390761b0fb424c69d2a029a64c2"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A19-context-menu-copy.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "8f0b93e9d752f927d1dbd504757fba0b284f448254356ce518f587df57dde49b"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A2-set-amount.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "a103df9b7d135c26904133f4e5f7897a1356c4514fa9f74f3f939521e8e90cac"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A20-hover-tooltip.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "1c23260a46cbf3906ca8547b3e89ff2ca02a674475403891e09fa16a18e0067a"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A21-drag-card.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "6277c22a466c55d2c3b1d6adfbb2723343213b6a4c867535558c26443b1dc7c2"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A22-scroll-into-view.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "1cfbddbb6614a2a84ab13de3440c144d51ce15a5aff652ed809a683b8e6d6fe5"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A23-type-and-shortcut.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "6c7cf261e4acda4074989c6528ca3c658399e7fe871aa54c87a2cae49f905145"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A24-system-key-refused.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "e67aaaf23afd1ee1a60869a4654cdeddae7e6eeb0b63b681f62175d9e574b465"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A25-password-typing-refused.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "24e708999b2887273cc070da4c67ea2bcb65598b8f768111bdfa3c4163d299db"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A26-custom-control-click.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "a4fb6c54aacf8e064b03f2f63f59703a15d3543f0efb8395b38ea0154b9d7ce9"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A3-fill-and-save.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "a8c57726f7308e9c0b6d9a810b0a1c76531e8e83d86192cbb8ab9e72a130fe11"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A4-already-on.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "7c87aafb7e3483b0a654c0fe5d9a03ac517a709fdc76a1386f056ef264db0f54"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A5-deep-control.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "63a259dfac8391df227906e4dee4ccdee4566a28fdbf97b9f61d7bdcd7388b2f"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A6-password-field.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "87a8546fb61f42f6e0bce0dd2aeecd962750c561c4fb50ddadefe6ef7fb0cfa0"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A7-save-not-submit.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "8ce802dd1818b90b02bed13569e5ff45eb7cc62df3548b85f175444c5c829d3d"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A8-ambiguous-target.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "66ed91b21d8dc3dbb75bcc7037bff351d90f16eed5e439b983b0d07fb42591d4"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/computer/cases/A9-read-only-field.json",
+      "kind": "합성 앱 과제",
+      "evidence": "고정 앱/상태/기대값으로만 구성한 과제. 실제 회사 요청/계정 정보 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "91fde70d84b8c91abfb4aa6b73be0fe5c68d6b3e6654d57a0436911c8ab47ac2"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/corpus-src/cache-retry/package.json",
+      "kind": "합성 원천 프로젝트",
+      "evidence": "order-service/cache-retry 가상 프로젝트의 실행 스크립트/상품/SKU 정적 데이터; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "88b2239deb2d0f30f031c13c22dee3173fe0667ea809d04dc3ff676d19c453b8"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/corpus-src/order-catalog/catalog/items.json",
+      "kind": "합성 원천 프로젝트",
+      "evidence": "order-service/cache-retry 가상 프로젝트의 실행 스크립트/상품/SKU 정적 데이터; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "06279aa4908a27093515cfc9a336a9b65b7273b5afb2072a7ccde1511370e3d8"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/corpus-src/order-catalog/package.json",
+      "kind": "합성 원천 프로젝트",
+      "evidence": "order-service/cache-retry 가상 프로젝트의 실행 스크립트/상품/SKU 정적 데이터; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "bc60f20ff8454cfb8ff9094800eff445efefc04e9f09ab1a48dcada555d9995b"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/corpus-src/order-failing/package.json",
+      "kind": "합성 원천 프로젝트",
+      "evidence": "order-service/cache-retry 가상 프로젝트의 실행 스크립트/상품/SKU 정적 데이터; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "8094b3912447040221543c5124c0f73e4260754080fbb750fe75df5f3b3d0165"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/corpus-src/order-service/package.json",
+      "kind": "합성 원천 프로젝트",
+      "evidence": "order-service/cache-retry 가상 프로젝트의 실행 스크립트/상품/SKU 정적 데이터; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "8094b3912447040221543c5124c0f73e4260754080fbb750fe75df5f3b3d0165"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/corpus/cache-retry.manifest.json",
+      "kind": "평가 원천 해시 목록",
+      "evidence": "코퍼스의 상대 파일명과 SHA 목록이며 원문 사용자/메일 데이터 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "12311811d76fbeed461e2fb6bc5c170b8edcaf67811d67d237b0c2e503327302"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/corpus/expense-office.manifest.json",
+      "kind": "평가 원천 해시 목록",
+      "evidence": "코퍼스의 상대 파일명과 SHA 목록이며 원문 사용자/메일 데이터 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "88bb7c3be164168c2c1529f8246ad073469aaf3383b5c2ca78abed88442cb71c"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/corpus/openwiki-sds.manifest.json",
+      "kind": "평가 원천 해시 목록",
+      "evidence": "코퍼스의 상대 파일명과 SHA 목록이며 원문 사용자/메일 데이터 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "c515517b1c0dfc36fd4af95b81529509bb8aa30f5b49df8c581eb4db07556992"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/corpus/order-catalog.manifest.json",
+      "kind": "평가 원천 해시 목록",
+      "evidence": "코퍼스의 상대 파일명과 SHA 목록이며 원문 사용자/메일 데이터 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "1124af20b7ec3d3ee4bab14271641c27d635c14692dbbf18ab97137880cf5d5c"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/corpus/order-failing.manifest.json",
+      "kind": "평가 원천 해시 목록",
+      "evidence": "코퍼스의 상대 파일명과 SHA 목록이며 원문 사용자/메일 데이터 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "07d060df89321e903306c7b487ed4bf9a20cef31f04073e2124f22524e4dbbda"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/corpus/order-service.manifest.json",
+      "kind": "평가 원천 해시 목록",
+      "evidence": "코퍼스의 상대 파일명과 SHA 목록이며 원문 사용자/메일 데이터 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "8f81aedc324e2e7326ce48da0b19aec7d749b7b3bbb01759ed950e66e2328775"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/easy-80/cases-v2.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건; 답18 자리표시자 복원 후 원본 코퍼스 전체 SHA 동등성 시험",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "c4ea4e09eeda5aa9a1f045157d480344135da61c7f23e073ec31ebcba6717442"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/easy-80/cases.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건; 답18 자리표시자 복원 후 원본 코퍼스 전체 SHA 동등성 시험",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "8bf0cf3ae53db4657ef835c5ad3a9f94b6dac7f846616b3890934ec4c663894a"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/easy-80/skills.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "eafe2133462c1fad9cd2fd30878b784666dfd06c19bc5edb5b4fcf08e1ed555f"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/hard-10/cases.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "782085522fbc3aa03cf18c2a5e48e036e874176c6a24c2388070cb8c69b34b5d"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/hard-40/cases.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "e18ae75a30536d4f06596b759cd23331636fa2b3e1044c4c3b869011d05cbc04"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/medium-40/cases.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건; 답18 자리표시자 복원 후 원본 코퍼스 전체 SHA 동등성 시험",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "c11be340a6813bb19c99850d074c74a7c5b3b9b58be78a8d01c0346ce06bb8da"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/medium-40/skills.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "0a7a8d156c0b4ffccd2bfc7ff91d56645f2669c65acc6767bda5cf904b46a585"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/wiki-code-map-rubric.json",
+      "kind": "평가 기준",
+      "evidence": "실행/주장/의미 판정 조건만 기록. 개인정보나 실계정 입력을 담지 않음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "674279a9a46f98dbb1ac6932d7c5f881399e0a1e19ecb33d5027c433b9fac5b4"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/wiki-quality-40/cases.json",
+      "kind": "합성 업무 평가",
+      "evidence": "고정 Bash/mail/skill/wiki 과제와 예약 주소/가상 주문·배포 자료. 실제 사내 메일 수집 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "9738056fe3f4eedf2b85b03c9cb7c7cbf08d9500eebc58ab6e847c64e05d91c9"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/wiki-search/cases/code.json",
+      "kind": "합성 검색 정답셋",
+      "evidence": "synthetic-s1-v1 ID/가상 문서/소스 SHA/정답으로 구성한 기존 정답셋; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "0801d3969c25bb90cd1474bf9a782e1a68ccac02dde266c3c4edc68510ae5593"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/wiki-search/cases/fact.json",
+      "kind": "합성 검색 정답셋",
+      "evidence": "synthetic-s1-v1 ID/가상 문서/소스 SHA/정답으로 구성한 기존 정답셋; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "288a6b0dc6e7a7ef03a96291d8e2a0f6e92745851261bbbcd39c717e1d519be8"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/wiki-search/cases/multi.json",
+      "kind": "합성 검색 정답셋",
+      "evidence": "synthetic-s1-v1 ID/가상 문서/소스 SHA/정답으로 구성한 기존 정답셋; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "b4e16600965bbc793410f3da488be96915bbb8d020b81accc3b0a636a9b22600"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/wiki-search/cases/none.json",
+      "kind": "합성 검색 정답셋",
+      "evidence": "synthetic-s1-v1 ID/가상 문서/소스 SHA/정답으로 구성한 기존 정답셋; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "31e99af564ec5119cfd9b52b366f9c68fe72651263bcb3e34f228d98813be01b"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/wiki-search/cases/procedure.json",
+      "kind": "합성 검색 정답셋",
+      "evidence": "synthetic-s1-v1 ID/가상 문서/소스 SHA/정답으로 구성한 기존 정답셋; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "354c8493f33fd312a008408060e13bf19571da42bf0a9bb6a56fb5e01622ac83"
+    },
+    {
+      "path": "packages/nubi-desktop/eval/wiki-semantic-rubric.json",
+      "kind": "평가 기준",
+      "evidence": "실행/주장/의미 판정 조건만 기록. 개인정보나 실계정 입력을 담지 않음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "a03b1c10115591b225bf97e7705effe4dede88d8ee812496da9e79287e6fb960"
+    },
+    {
+      "path": "packages/nubi-desktop/tests/fixtures/blueprint-sample.yaml",
+      "kind": "합성 단계 지도",
+      "evidence": "synthetic- ID와 합성 요청/판단/출력으로 정의한 지도 fixture; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "5e4b4193a5f8b382eac1764a5e7c20d5272a03545105bbca214d9e2941533bc5"
+    },
+    {
+      "path": "packages/nubi-desktop/tests/fixtures/e2e-task-sample.json",
+      "kind": "합성 단계 지도",
+      "evidence": "synthetic- ID와 합성 요청/판단/출력으로 정의한 지도 fixture; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "5f150b724b453e5c39ee39997fd4de83a1c97054c2c2cc6893cfbd9787475410"
+    },
+    {
+      "path": "packages/nubi-desktop/tests/workflow-fixture-project/.nubi/workflows/change-request-definition/fixtures/basic.json",
+      "kind": "합성 워크플로우",
+      "evidence": "DEMO-101 및 fixture: 영수증을 명시한 로컬 시범. 실제 외부 반영 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "dd4c16e981443fd0d5e3d9474bfc8544b97ef6617b84c7133d012eafa9b94c6b"
+    },
+    {
+      "path": "packages/nubi-desktop/tests/workflow-fixture-project/fixtures/pilot-ticket.json",
+      "kind": "합성 워크플로우",
+      "evidence": "DEMO-101 및 fixture: 영수증을 명시한 로컬 시범. 실제 외부 반영 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "7cd3e5cc5ff7ac4eb16f0efb823038210825fc557dc072b7e083d3512023ce5b"
+    },
+    {
+      "path": "packages/nubi-document-agent/eval/EX-CREATE-01.json",
+      "kind": "합성 문서 과제/정답",
+      "evidence": "synthetic/scope 또는 대응 합성 초안. 고정 표/수치/문구이며 열린 회사 문서/NASCA 원문 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "2d34242bebbd29682bf327d5921b3fe8a352f892fbfbcf5fbcdff4e33b25c5e3"
+    },
+    {
+      "path": "packages/nubi-document-agent/eval/EX-CREATE-01.reference-draft.json",
+      "kind": "합성 문서 과제/정답",
+      "evidence": "synthetic/scope 또는 대응 합성 초안. 고정 표/수치/문구이며 열린 회사 문서/NASCA 원문 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "ce9f7c192fa0ec1cd9fbcea359c9372e0c95a3c51683cd55d5584a948d33b9c9"
+    },
+    {
+      "path": "packages/nubi-document-agent/eval/PP-CREATE-01.json",
+      "kind": "합성 문서 과제/정답",
+      "evidence": "synthetic/scope 또는 대응 합성 초안. 고정 표/수치/문구이며 열린 회사 문서/NASCA 원문 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "06d4d1425ef8a5b750a97b4232d5d9d7e9ae83494341b12f74d26d0bd052dd06"
+    },
+    {
+      "path": "packages/nubi-document-agent/eval/PP-CREATE-01.reference-draft.json",
+      "kind": "합성 문서 과제/정답",
+      "evidence": "synthetic/scope 또는 대응 합성 초안. 고정 표/수치/문구이며 열린 회사 문서/NASCA 원문 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "7920a698012ecc7ab69103f07e4ff8f8fd22a6606eb86da8c3efefb5c845923a"
+    },
+    {
+      "path": "packages/nubi-document-agent/eval/WD-CREATE-01.json",
+      "kind": "합성 문서 과제/정답",
+      "evidence": "synthetic/scope 또는 대응 합성 초안. 고정 표/수치/문구이며 열린 회사 문서/NASCA 원문 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "fb1d2e63b7d4fd998f3359e66f70720b2cb42e24e6df80e7680a9118288329a3"
+    },
+    {
+      "path": "packages/nubi-document-agent/eval/WD-CREATE-01.reference-draft.json",
+      "kind": "합성 문서 과제/정답",
+      "evidence": "synthetic/scope 또는 대응 합성 초안. 고정 표/수치/문구이며 열린 회사 문서/NASCA 원문 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "96a38f3fa2d43878abee365e8a263818cbf1eb46ceac6102b7718b4aee6de180"
+    },
+    {
+      "path": "packages/nubi-document-agent/eval/WD-EDIT-01.json",
+      "kind": "합성 문서 과제/정답",
+      "evidence": "synthetic/scope 또는 대응 합성 초안. 고정 표/수치/문구이며 열린 회사 문서/NASCA 원문 아님; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "2a707721bacfd318ca23a2afb41486f658ab71855915e4b5d91f8fa8cc9e2e60"
+    },
+    {
+      "path": "packages/nubi-document-agent/eval/capabilities/connected-coverage.json",
+      "kind": "공개 API/기능 근거 원장",
+      "evidence": "Microsoft 공개 문서 URL/객체·함수명 또는 기능 실행 한계와 SHA 원장. 고객/계정 본문 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "655e06e32ca06a6a5408a73ec1c508a33b171c4c2c6ba755474dc028fd75f1c8"
+    },
+    {
+      "path": "packages/nubi-document-agent/eval/capabilities/coverage.json",
+      "kind": "공개 API/기능 근거 원장",
+      "evidence": "Microsoft 공개 문서 URL/객체·함수명 또는 기능 실행 한계와 SHA 원장. 고객/계정 본문 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "1a683877c26232f23f2feeb0d04e32e5ce22066f713b33a73b4f6319a5082969"
+    },
+    {
+      "path": "packages/nubi-document-agent/eval/capabilities/docs.json",
+      "kind": "공개 API/기능 근거 원장",
+      "evidence": "Microsoft 공개 문서 URL/객체·함수명 또는 기능 실행 한계와 SHA 원장. 고객/계정 본문 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "4579a6b6649a508334255b6cc0435e0dcda6694770ec33d35622f757115695fa"
+    },
+    {
+      "path": "packages/nubi-document-agent/eval/capabilities/existing-genoffice-formula-engine.json",
+      "kind": "공개 API/기능 근거 원장",
+      "evidence": "Microsoft 공개 문서 URL/객체·함수명 또는 기능 실행 한계와 SHA 원장. 고객/계정 본문 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "1612173961744b71bab94573eb38c305ed7ea910afe4975d6abbfddd5b953dc3"
+    },
+    {
+      "path": "packages/nubi-document-agent/eval/capabilities/formula-execution-coverage.json",
+      "kind": "공개 API/기능 근거 원장",
+      "evidence": "Microsoft 공개 문서 URL/객체·함수명 또는 기능 실행 한계와 SHA 원장. 고객/계정 본문 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "9709eb38501dfc1b7cddd3b7faf8714c3c14109f90f6fab682e63b1950488ea1"
+    },
+    {
+      "path": "packages/nubi-document-agent/eval/capabilities/genoffice-execution-coverage.json",
+      "kind": "공개 API/기능 근거 원장",
+      "evidence": "Microsoft 공개 문서 URL/객체·함수명 또는 기능 실행 한계와 SHA 원장. 고객/계정 본문 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "bcd30e87ae784680149e9e6885b6dce7869074cf263e57c5c6324ccd310faed0"
+    },
+    {
+      "path": "packages/nubi-document-agent/eval/capabilities/genoffice-parity-target.json",
+      "kind": "공개 API/기능 근거 원장",
+      "evidence": "Microsoft 공개 문서 URL/객체·함수명 또는 기능 실행 한계와 SHA 원장. 고객/계정 본문 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "aecf1d71cf175be0cc0b8522a65478ddeb9503bf247a9f361ff19cf72bc3b137"
+    },
+    {
+      "path": "packages/nubi-document-agent/eval/capabilities/official-excel-api-index.json",
+      "kind": "공개 API/기능 근거 원장",
+      "evidence": "Microsoft 공개 문서 URL/객체·함수명 또는 기능 실행 한계와 SHA 원장. 고객/계정 본문 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "ca0e0844b01640a20d515f8bb06c2920ff4a783306e27e043cb37bc9ae3cb159"
+    },
+    {
+      "path": "packages/nubi-document-agent/eval/capabilities/official-excel-functions.json",
+      "kind": "공개 API/기능 근거 원장",
+      "evidence": "Microsoft 공개 문서 URL/객체·함수명 또는 기능 실행 한계와 SHA 원장. 고객/계정 본문 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "02c3d2c436690b0f9dd65c1d902889d4dffadd91b3c27f9eea64078cc999e6b5"
+    },
+    {
+      "path": "packages/nubi-document-agent/eval/capabilities/official-function-overrides.json",
+      "kind": "공개 API/기능 근거 원장",
+      "evidence": "Microsoft 공개 문서 URL/객체·함수명 또는 기능 실행 한계와 SHA 원장. 고객/계정 본문 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "b81583a7e3ffba078c2fc5cb33cbbb3a4d0540e305a2e87c523e78e3256b587c"
+    },
+    {
+      "path": "packages/nubi-document-agent/eval/capabilities/official-powerpoint-api-index.json",
+      "kind": "공개 API/기능 근거 원장",
+      "evidence": "Microsoft 공개 문서 URL/객체·함수명 또는 기능 실행 한계와 SHA 원장. 고객/계정 본문 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "1945af1962893a6f7c8d3f257cb069da2710a115b625b085a80b6ec793a1b176"
+    },
+    {
+      "path": "packages/nubi-document-agent/eval/capabilities/official-word-api-index.json",
+      "kind": "공개 API/기능 근거 원장",
+      "evidence": "Microsoft 공개 문서 URL/객체·함수명 또는 기능 실행 한계와 SHA 원장. 고객/계정 본문 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "9fa24f58b198db6e6af00b7fcd70452fa435e03f9ef430c6acc02cb605d4ff0a"
+    },
+    {
+      "path": "packages/nubi-document-agent/eval/capabilities/sheets.json",
+      "kind": "공개 API/기능 근거 원장",
+      "evidence": "Microsoft 공개 문서 URL/객체·함수명 또는 기능 실행 한계와 SHA 원장. 고객/계정 본문 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "d557427ed4d91eece1aadfe687b7cdab4f38d545f2b657c0a3c5a66aa4159285"
+    },
+    {
+      "path": "packages/nubi-document-agent/eval/capabilities/slides.json",
+      "kind": "공개 API/기능 근거 원장",
+      "evidence": "Microsoft 공개 문서 URL/객체·함수명 또는 기능 실행 한계와 SHA 원장. 고객/계정 본문 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "f0019c9822ce5e520b6c884b5d38bbcf4a93341a9ea4ed2dc42e058f9b898a7e"
+    },
+    {
+      "path": "packages/nubi-document-agent/eval/quality-delivery-followup.json",
+      "kind": "생성 문서 평가 경로",
+      "evidence": "단일 합성 문서 과제/초안의 상대 artifacts 경로만 보유; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "5f3c8efb55d7d4aad56daa45a5f5601514c9dbb3bd19e819ddec932b151022cf"
+    },
+    {
+      "path": "packages/nubi-office/eval/cases.json",
+      "kind": "합성 Office 과제",
+      "evidence": "provenance가 Original synthetic/no customer data를 명시. 양성 사번 값은 실행 시 복원; 전체 UTF-8/JSON 해석 패턴 검사0건; 답18 자리표시자 복원 후 원본 코퍼스 전체 SHA 동등성 시험",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "bf345deed098de25868dca6a5ae59923cd4355af1f56f54e060c867419ea1a3c"
+    },
+    {
+      "path": "packages/nubi-office/eval/harness-rubric.json",
+      "kind": "평가 설정/교정",
+      "evidence": "고정 문법 오류/채점 기준 또는 replace-with-explicit-model-id 설정. 실계정 자격값 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "2e4bf570d12059eb246192a1baedbbca38b6b0912f218612904171056481ed8e"
+    },
+    {
+      "path": "packages/nubi-office/eval/operation-repair-cases.json",
+      "kind": "평가 설정/교정",
+      "evidence": "고정 문법 오류/채점 기준 또는 replace-with-explicit-model-id 설정. 실계정 자격값 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "17380963cd3b11a6316e66953ff2d0ce356bc0c29798008a708c8195246d9a4d"
+    },
+    {
+      "path": "packages/nubi-office/eval/promptfooconfig.yaml",
+      "kind": "평가 설정/교정",
+      "evidence": "고정 문법 오류/채점 기준 또는 replace-with-explicit-model-id 설정. 실계정 자격값 없음; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "29d2e78593a9f7bfba2f7c356ddd1b40a113c550eebb1f4498fce29823ed022a"
+    },
+    {
+      "path": "packages/openwiki/evals/ledger/evaluator/fixtures/precision-gold.json",
+      "kind": "고정 교정 정답셋",
+      "evidence": "정답·발췌 증거를 비교하는 calibration fixture. 원천 사실 증명과 패턴 검사는 구분; 전체 UTF-8/JSON 해석 패턴 검사0건",
+      "reviewer": "Codex",
+      "reviewedAt": "2026-10-20",
+      "sha256": "b0c2adc22bd6e696284a5c2eff7dc1d3761d0bba9941472300c891114dfd21e2"
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import {captureDesign} from './design-rules.mjs';
 // Built Electron main -> service IPC -> actual PTY/HTTP/compiler worker.
 // Uses an isolated project and an explicit test approval, with no model/login.
 import {_electron as electron} from 'playwright';
@@ -73,7 +74,7 @@ try{
   const sidebarLabels=await page.locator('.nubi-sidebar-quick-actions button').evaluateAll(buttons=>buttons.map(button=>{const b=button.getBoundingClientRect(),span=button.querySelector('span'),r=span?.getBoundingClientRect();return {left:b.left,right:b.right,labelLeft:r?.left,labelRight:r?.right};}));
   assert(sidebarLabels.length>1&&sidebarLabels.every((b,i)=>!i||b.left>=sidebarLabels[i-1].right-1)&&sidebarLabels.every(b=>b.labelLeft===undefined||b.labelLeft>=b.left-1&&b.labelRight<=b.right+1),'actual1280 sidebar labels stay inside their own buttons under settings');
   await writeFile(path.join(evidence,'settings-sidebar-1280.json'),JSON.stringify(sidebarLabels,null,2));
-  await page.screenshot({path:path.join(evidence,'after-edit-settings.png'),animations:'disabled'});
+  await captureDesign(page,{path:path.join(evidence,'after-edit-settings.png'),animations:'disabled'});
   await page.keyboard.press('Escape');
   await page.getByRole('button',{name:'오른쪽 사이드바 닫기',exact:true}).click();
   const original=await request('read',{taskId:task.id,path:'value.ts'});
@@ -94,7 +95,7 @@ try{
       return {label:heading.textContent,dateWidth:range.getBoundingClientRect().width,dateLeft:range.getBoundingClientRect().left,iconLeft:group.querySelector('.nubi-session-select>svg').getBoundingClientRect().left};
     }));
     await writeFile(path.join(evidence,`date-alignment-${width}.json`),JSON.stringify(dates,null,2));
-    await page.screenshot({path:path.join(evidence,`date-alignment-${width}.png`),animations:'disabled'});
+    await captureDesign(page,{path:path.join(evidence,`date-alignment-${width}.png`),animations:'disabled'});
     assert(dates.length>0&&dates.every(row=>row.dateWidth>0&&Math.abs(row.dateLeft-row.iconLeft)<1),'visible sidebar dates share the list leading edge: '+JSON.stringify(dates));
   }
   for(const width of [1280,440]){
@@ -103,7 +104,7 @@ try{
     await card.scrollIntoViewIfNeeded();
     const geometry=await card.evaluate(node=>{const r=node.getBoundingClientRect();return {left:r.left,right:r.right,viewport:innerWidth,scrollWidth:node.scrollWidth,clientWidth:node.clientWidth};});
     await writeFile(path.join(evidence,`after-edit-${width}-geometry.json`),JSON.stringify(geometry,null,2));
-    await page.screenshot({path:path.join(evidence,`after-edit-${width}.png`),animations:'disabled'});
+    await captureDesign(page,{path:path.join(evidence,`after-edit-${width}.png`),animations:'disabled'});
     assert(geometry.left>=0&&geometry.right<=geometry.viewport+1&&geometry.scrollWidth<=geometry.clientWidth+1,JSON.stringify(geometry));
     const fileAlignment=await page.evaluate(()=>{
       const files=document.querySelector('.nubi-applied-files'),approval=document.querySelector('.nubi-approval-form');
@@ -142,14 +143,14 @@ try{
     await page.setViewportSize({width,height:900});await guarded.scrollIntoViewIfNeeded();
     assert(await guarded.evaluate(node=>{const r=node.getBoundingClientRect();return node.contains(document.elementFromPoint((r.left+r.right)/2,(r.top+r.bottom)/2));}),'approval card must not be covered by the terminal');
     assert(await guarded.evaluate(node=>{const r=node.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth+1&&node.scrollWidth<=node.clientWidth+1;}));
-    await page.screenshot({path:path.join(evidence,`manifest-approval-${width}.png`),animations:'disabled'});
+    await captureDesign(page,{path:path.join(evidence,`manifest-approval-${width}.png`),animations:'disabled'});
   }
   assert.equal((await request('state',{taskId:task.id})).processes.length,2);
   checks.push('F13 changed manifest remains proposed in commands mode, with an explanation at 1280/440 and no new process');
   checks.push('applied changes verified against their original snapshots despite the macOS storage alias: 2 added and 2 removed lines');
   assert.equal(await guarded.getByRole('button',{name:'승인',exact:true}).count(),1);
   assert.equal(await guarded.getByRole('button',{name:'실행 승인',exact:true}).count(),0);
-  await page.screenshot({path:path.join(evidence,'workspace.png'),animations:'disabled'});
+  await captureDesign(page,{path:path.join(evidence,'workspace.png'),animations:'disabled'});
   assert.deepEqual(errors,[]);
   await writeFile(path.join(evidence,'result.json'),JSON.stringify({kind:'electron-runtime-development-smoke',platform:process.platform,checks,errors,model:'not_run',windowsVerified:process.platform==='win32'},null,2));
   console.log(`PASS: ${checks.length} actual Electron development checks`);

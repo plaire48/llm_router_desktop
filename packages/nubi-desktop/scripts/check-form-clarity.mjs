@@ -1,3 +1,4 @@
+import {captureDesign} from './design-rules.mjs';
 import {build} from 'esbuild';
 import {assertDesktopDialog} from './identity-browser.mjs';
 import {mkdir,writeFile,readFile,cp} from 'node:fs/promises';
@@ -14,13 +15,13 @@ let browser,p;const errors=[],checks=[];
 try {
  browser=await chromium.launch({channel:process.platform==='win32'?'msedge':'chrome',headless:true});p=await browser.newPage({viewport:{width:900,height:1000}});p.on('pageerror',e=>errors.push(e.message));
  await p.goto('http://127.0.0.1:'+server.address().port);await p.getByRole('button',{name:'DB 연결',exact:true}).click();
- if(process.argv.includes('--baseline')){await p.screenshot({path:'verification/form-clarity/db-before.png',fullPage:true});}
+ if(process.argv.includes('--baseline')){await captureDesign(p,{path:'verification/form-clarity/db-before.png',fullPage:true});}
  else {
  const form=p.getByRole('form',{name:'DB 연결 정보'}),options=form.locator('details');
  assert.equal(await options.getAttribute('open'),null);assert.equal(await form.locator('input:visible,select:visible').count(),5);
  assert.equal(await p.evaluate(()=>window.dbCalls.length),0);checks.push('five basic controls; optional settings collapsed; opening never connects');
- await p.screenshot({path:'verification/form-clarity/db-after.png',fullPage:true});
- await p.setViewportSize({width:440,height:950});await p.screenshot({path:'verification/form-clarity/db-narrow.png',fullPage:true});assert.equal(await form.evaluate(e=>e.scrollWidth<=e.clientWidth),true);
+ await captureDesign(p,{path:'verification/form-clarity/db-after.png',fullPage:true});
+ await p.setViewportSize({width:440,height:950});await captureDesign(p,{path:'verification/form-clarity/db-narrow.png',fullPage:true});assert.equal(await form.evaluate(e=>e.scrollWidth<=e.clientWidth),true);
  checks.push('basic form fits a narrow view without horizontal scrolling');
  await form.getByRole('button',{name:'연결해서 읽기'}).click();assert.equal(await p.evaluate(()=>window.dbCalls.length),0);
  checks.push('required account/database fields stop submission before RPC');
@@ -47,7 +48,7 @@ try {
  await p.evaluate(()=>window.dbStatusFail=true);await form.getByRole('button',{name:'연결해서 읽기'}).click();
  await p.getByText('요청은 처리됐지만 연결 목록을 갱신하지 못했어요.',{exact:true}).waitFor();assert.equal(await p.evaluate(()=>window.dbCalls.length),8);
  assert.equal(await form.getByLabel('비밀번호',{exact:true}).inputValue(),'');assert.equal(await form.getByText(/DB에 연결하지 못했어요/).count(),0);
- await p.screenshot({path:'verification/form-clarity/db-status-recovery.png',fullPage:true});
+ await captureDesign(p,{path:'verification/form-clarity/db-status-recovery.png',fullPage:true});
  await p.evaluate(()=>window.dbStatusFail=false);await p.getByRole('button',{name:'연결 상태 다시 확인',exact:true}).click();
  await p.getByRole('button',{name:'연결 상태 다시 확인',exact:true}).waitFor({state:'hidden'});assert.equal(await p.evaluate(()=>window.dbCalls.length),8);
  checks.push('successful DB action is preserved after status read failure; retry refreshes status without reconnecting');

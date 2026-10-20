@@ -18,3 +18,10 @@ test('Windows packaging stays parallel and all release API calls wait for both s
  assert.ok(jobs['gates-full'].steps.some(s=>s.run?.includes('test:gates:fast')));const electron=jobs['gates-full'].steps.find(s=>s.run?.includes('test:gates:electron'));assert.match(electron.if,/!cancelled\(\)/);
  const release=Object.entries(jobs).filter(([,j])=>j.steps.some(s=>/gh release (?:create|upload|edit)/.test(s.run||'')));assert.equal(release.length,1,'no pre-gate candidate or failed-check release');assert.deepEqual(new Set(release[0][1].needs),new Set(['windows','gates-full']));assert.equal(release[0][1].permissions.contents,'write');assert.match(release[0][1].steps.map(s=>s.run||'').join('\n'),/Private build repository required/);
 });
+test('safety delta has a fixed base and enough checkout history and full safety blocks Windows release gates',async()=>{
+ const fast=parse(await readFile(new URL('nubi-desktop-gates.yml',root),'utf8')).jobs['gates-fast'];assert.ok(fast.steps.find(s=>s.uses?.startsWith('actions/checkout@')).with['fetch-depth']>=2);assert.match(fast.env.NUBI_SAFETY_BASE,/github\.event\.before/);assert.match(fast.env.NUBI_SAFETY_REF,/github\.sha/);
+ const doc=parse(await readFile(new URL('nubi-desktop-windows.yml',root),'utf8')),job=doc.jobs['gates-full'];const at=job.steps.findIndex(s=>s.run?.includes('check-safety-regression.mjs --tree'));assert(at>=0);assert(at<job.steps.findIndex(s=>s.run?.includes('test:gates:fast')));assert(job.steps[at].run.includes('$env:GITHUB_SHA'));assert.equal(job.steps[at]['continue-on-error'],true,'source audit must remain visible without replacing the payload gate');
+ const payload=job.steps.find(s=>s.run?.includes('package-windows.mjs --payload-only'));assert.ok(payload,'build and inspect the complete unpacked release payload');assert.notEqual(payload['continue-on-error'],true);
+ const packaging=parse(await readFile(new URL('nubi-desktop-windows.yml',root),'utf8')).jobs.windows;assert.ok(packaging.steps.some(s=>s.run?.includes('package-windows'))||packaging.steps.some(s=>s.run?.includes('package:windows')));
+
+});

@@ -606,6 +606,16 @@ steps:
 
 20. **tree-sitter 네이티브 모듈 반입(2026-10-21, Claude 설계, 사용자 결정 대기).** 코드 지도(C1)에서 Java, Python 등 비 JS 언어의 정의 추출에 tree-sitter가 정확하지만 네이티브 모듈이라 Windows 빌드와 사내 미러 설치 확인이 필요하다. **질문:** 반입할까? 보류면 TypeScript 파서(JS/TS)와 정규식(그 밖)으로 가고 정확도 한계를 보고서에 적는다. 권장: 1.3.0은 보류, 1.3.1에서 재검토.
 
+21. **문서 렌더 확인 환경과 LibreOffice(2026-10-21, Claude 설계, 사용자 결정 대기).** 문서 쓰기 품질 설계(`docs/superpowers/specs/2026-10-21-nubi-document-writing-quality-design.md`)는 Claude Code처럼 결과물을 PDF/썸네일로 보고 Excel을 재계산해 오류 0을 확인한다. 이 Mac과 CI에는 LibreOffice가 없다. **질문:** ① Mac/CI는 구조 검증까지만 하고 재계산과 렌더는 Windows 실기기(Office COM)에서만 판정한다(권장), ② LibreOffice를 개발 PC에만 설치해 Mac에서도 재계산/렌더를 돌린다(번들하지 않음), ③ 설치판에 LibreOffice를 번들한다(용량과 라이선스 검토 필요, 비권장). 권장: ①, 개발 편의가 필요하면 ②를 사용자 PC에만.
+
+   **답(2026-10-21, 사용자 승인, 보정 "Mac의 LibreOffice는 테스트에만, 실제 배포 판정은 Office 2016")**: ① + ②다. 개발 Mac에는 LibreOffice를 설치해 **시험에서만** 재계산과 PDF/썸네일 렌더를 돌린다(CI와 설치판에는 넣지 않는다). 릴리스 판정은 Windows 실기기의 Office 2016 COM이다. Mac LibreOffice 결과와 Office 2016 결과가 다르면 Office 2016을 기준으로 한다. Mac과 CI는 OOXML 구조 검증(스키마, 관계, 콘텐츠 타입, 차트)과 원본 기준선 보존 검사까지만 판정하고, Excel 재계산 오류 0과 PDF/썸네일 렌더 확인은 Windows 실기기의 Office COM에서 판정한다. LibreOffice는 설치판에 번들하지 않는다. 개발 편의로 사용자 PC에 설치하는 것은 사용자 선택이며 판정 환경으로 쓰지 않는다. 문서 쓰기 품질 설계 D1~D8과 벤치마크 30과제는 이 조건으로 진행하며 착수는 위키 트랙 뒤다.
+
+22. **의미 검토 실패의 페이지 격리와 스키마 오류 피드백(2026-10-21, Claude 설계 결정, 사용자 확인 요청).** 위키 품질 기준선(express 213파일, claude-sonnet-5-5, 2026-10-21 01:00)에서 초기화가 16분 37초 만에 `wiki_failed`로 끝났다. 페이지 0개 게시, 모델 호출 147회, 프롬프트 토큰 728만, 완료 토큰 5.7만, 캐시 적중 3%. 마지막 모델 호출은 정상(tool_calls)이었고 실패는 그 뒤 의미 검토(`repository-semantic-review.ts`)에서 모델이 인자가 거의 없는 `review_page` 호출을 보내자 `SemanticVerdict.parse`의 Zod 예외가 그대로 던져진 것이다. 이 예외는 `wiki_review_*` 코드가 아니라 Desktop이 `wiki_failed`로만 보였고, 러너에서는 페이지 작업자의 예외가 `pool.fatal`이 되어 실행 전체가 멈췄다. W0의 페이지 격리는 "제출 없이 끝난 작업자"만 skipped로 다루고 검토 단계의 예외는 다루지 않는다.
+
+   **답(2026-10-21, Claude)**: 답 13의 좁은 예외 범위 안에서 코어를 두 군데 고친다. ① 의미 검토에서 `review_page` 인자의 스키마 오류는 던지지 않고 오류 ToolMessage(`wiki_review_schema_invalid`, Zod 이슈 요약)로 돌려 모델이 다시 제출하게 한다. 최대 2회, 넘으면 `wiki_review_schema_invalid`를 페이지 수준 실패로 던진다. ② 러너의 작업자 루프에서 `wiki_review_` 코드의 예외(검토 불완전, 인용 불일치, 범위 초과, 스키마 오류)는 `pool.fatal`이 아니라 그 페이지의 skipped 결과(스냅숏과 오류 코드)로 바꾼다. 그러면 W0 호스트 정책이 예약 재시도와 분할, partial 게시를 그대로 맡는다. 전송/인증/취소 오류와 제출 자체의 치명 오류는 지금처럼 fatal이다. 옵션 없는 코어 실행에서도 ②는 적용된다(검토 실패 페이지는 skipped로 끝나고 실행은 끝까지 간다). 이것은 기존 "skipped" 의미(제출 없이 끝남)의 확장이며 새 상태가 아니다. ③ Desktop은 초기화 실패 때 공개 코드 외에 진단용 원인 사슬(오류 이름과 `[a-z_]` 코드만, 모델 텍스트 없음)을 작업 레코드 `failure`에 남겨 "wiki_failed" 하나로 끝나지 않게 한다. 회귀 시험: 합성 모델이 잘못된 인자 뒤 올바른 verdict를 내면 통과, 3회 잘못되면 그 페이지만 skipped이고 다른 페이지는 완료, 옵션 없는 실행도 같음. 사용자가 반대하면 되돌린다. 구현은 Claude.
+
+
+
 
 ## 9. Claude Code 벤치마크 반영 (품질, 설계, 하네스)
 

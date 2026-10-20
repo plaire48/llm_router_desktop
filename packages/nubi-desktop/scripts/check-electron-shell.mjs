@@ -1,3 +1,4 @@
+import {captureDesign} from './design-rules.mjs';
 import {desktopTestWindow} from './electron-test-window.mjs';
 import {_electron as electron} from 'playwright';
 import {createRequire} from 'node:module';
@@ -27,7 +28,7 @@ async function capture(name){
  const dock=page.locator('.desktop-dock-header');if(await dock.count())assert(await dock.evaluate(header=>{const tabs=header.querySelector('.desktop-file-tabs').getBoundingClientRect(),plus=header.querySelector('.desktop-tools-anchor').getBoundingClientRect();return Math.abs((tabs.top+tabs.bottom)/2-(plus.top+plus.bottom)/2)<2;}),name+': tabs and plus remain on one line');
  if(await dock.count())assert(await dock.evaluate(header=>{const strip=header.querySelector('.desktop-file-tabs'),active=strip.querySelector('[aria-selected="true"]');if(!active)return true;const bounds=strip.getBoundingClientRect(),item=(active.closest('.desktop-workspace-tab')||active).getBoundingClientRect();return item.left>=bounds.left-1&&item.right<=bounds.right+1;}),name+': the active tab, including its close button, stays fully visible');
  if(await dock.count())await page.waitForFunction(()=>{const active=document.querySelector('.desktop-dock-header .desktop-workspace-tab:has([aria-selected=true])');if(!active)return true;const probe=document.createElement('i');probe.style.background='var(--nubi-surface-selected)';active.append(probe);const match=getComputedStyle(active).backgroundColor===getComputedStyle(probe).backgroundColor;probe.remove();return match;},null,{timeout:5000}); /* Verify the settled color, not an intermediate transition frame. */
- await page.screenshot({path:path.join(captures,name+'.png'),animations:'disabled',scale:'css',timeout:30000});console.log('capture complete',name);
+ await captureDesign(page,{path:path.join(captures,name+'.png'),animations:'disabled',scale:'css',timeout:30000});console.log('capture complete',name);
 }
 try{page=await desktopTestWindow(app);await page.bringToFront();page.setDefaultTimeout(process.platform==='win32'?30000:10000);page.on('crash',()=>console.log('RENDERER CRASH'));page.on('pageerror',e=>{pageErrors.push(e.message);console.log('PAGE ERROR:',e.message);});await page.getByRole('navigation',{name:'프로젝트 도구'}).waitFor({timeout:60000});const firstScreenMs=Date.now()-started;assert.doesNotMatch(await page.locator('body').innerText(),/\/\*|\*\//,'no source comment leaks into the screen');
  // The startup mail prompt (renderer.jsx startupConnections) opens on every launch; the check closes it as a user would.
@@ -58,7 +59,7 @@ try{page=await desktopTestWindow(app);await page.bringToFront();page.setDefaultT
   await new Promise(resolve=>setTimeout(resolve,800));
   const updates=await (await app.browserWindow(page)).evaluate(win=>win.captionUpdates);
   for(const update of updates)assert.deepEqual(update,expected,'native minimize/maximize/close controls keep the toolbar colours under a dialog');
-  await page.screenshot({path:path.join(captures,'settings-caption.png')});
+  await captureDesign(page,{path:path.join(captures,'settings-caption.png')});
  }
  await page.keyboard.press('Escape');await page.getByRole('dialog',{name:'설정',exact:true}).waitFor({state:'hidden'});
  if(process.platform==='win32'){
@@ -91,7 +92,7 @@ try{page=await desktopTestWindow(app);await page.bringToFront();page.setDefaultT
  assert.match((await page.evaluate(()=>window.terminalCopies))[0],/nubi-terminal-ok/);
  const toastBounds=await toastPosition.jsonValue();await toastPosition.dispose();
  assert(toastBounds.top>=toastBounds.titlebarBottom,'copy notification stays below the titlebar and cannot intercept its controls');
- checks.push('interactive PTY keeps variables between commands, has inline input and copies visible output');await shellInput.focus();await capture('terminal');await terminalRegion.screenshot({path:path.join(captures,'terminal-detail.png')});
+ checks.push('interactive PTY keeps variables between commands, has inline input and copies visible output');await shellInput.focus();await capture('terminal');await captureDesign(terminalRegion,{path:path.join(captures,'terminal-detail.png')});
 
  const toolbar=page.getByRole('banner',{name:'Workspace 상단 메뉴'});
  assert(await toolbar.locator('.nubi-toolbar-navigation').evaluate(nav=>{const logo=nav.querySelector('.nubi-logo').getBoundingClientRect(),button=nav.querySelector('button').getBoundingClientRect();return button.left>=logo.right-1&&button.right<=nav.getBoundingClientRect().right;}),'sidebar toggle sits after brand and before divider');
@@ -168,7 +169,7 @@ try{page=await desktopTestWindow(app);await page.bringToFront();page.setDefaultT
  assert.equal(layoutReads,0,'a hidden browser does no geometry reads during unrelated DOM changes');
  checks.push('hidden browser has zero layout reads across 60 UI updates');
  await page.setViewportSize({width:700,height:760});await assertWorkspaceFrame();assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);console.log('stage',checks.length);checks.push('narrow layout');
- assert.deepEqual(pageErrors,[],'renderer has no unhandled errors');await mkdir('verification',{recursive:true});await page.screenshot({path:'verification/electron-shell.png'});await writeFile('verification/electron-shell.json',JSON.stringify({platform:process.platform,firstScreenMs,projectReadyMs,checks,errors:await page.locator('.desktop-error,.desktop-toast,.nubi-error').allTextContents(),packaged:!!process.env.NUBI_TEST_EXECUTABLE,archive:!!process.env.NUBI_TEST_APP?.endsWith('.asar'),boundary:'Electron with isolated Git fixture. Installed executable only when packaged is true. No real provider login or model quality measurement.'},null,2));console.log(JSON.stringify({firstScreenMs,projectReadyMs,checks}));
+ assert.deepEqual(pageErrors,[],'renderer has no unhandled errors');await mkdir('verification',{recursive:true});await captureDesign(page,{path:'verification/electron-shell.png'});await writeFile('verification/electron-shell.json',JSON.stringify({platform:process.platform,firstScreenMs,projectReadyMs,checks,errors:await page.locator('.desktop-error,.desktop-toast,.nubi-error').allTextContents(),packaged:!!process.env.NUBI_TEST_EXECUTABLE,archive:!!process.env.NUBI_TEST_APP?.endsWith('.asar'),boundary:'Electron with isolated Git fixture. Installed executable only when packaged is true. No real provider login or model quality measurement.'},null,2));console.log(JSON.stringify({firstScreenMs,projectReadyMs,checks}));
  }catch(error){
  console.error('SHELL_FAILURE',lastAction,error.stack||String(error));
  console.error('SHELL_SCROLL',JSON.stringify(await page.evaluate(()=>[document.documentElement,document.body,...document.querySelectorAll('.desktop-shell,.desktop-workspace-body,.desktop-pane,.desktop-browser,.desktop-browser-find')].map(n=>({tag:n.tagName,cls:n.className,scrollLeft:n.scrollLeft,scrollTop:n.scrollTop,client:[n.clientWidth,n.clientHeight],scroll:[n.scrollWidth,n.scrollHeight],rect:n.getBoundingClientRect().toJSON(),transform:getComputedStyle(n).transform})))));

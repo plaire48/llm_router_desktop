@@ -192,6 +192,9 @@
 - 배치: rc2 전에 M6 합성 30만 통 생성기와 측정, M1 저장/색인, M2 모델 없는 파이프라인, C1 코드 지도(W7 대체), C2 큰 파일 정책, C7 공개 OSS 세 크기 기준선.
 - C1 진행(2026-10-21, Claude): 코드 지도 모듈과 폴더 계획 연결, 시험 5개, OSS 두 저장소 측정 완료(보강 계획 W7 메모). C7 기준선의 결정적 부분(목록, 폴더 계획, 지도 소요)은 express와 undici로 잡았고 모델이 드는 부분(초기화, 질문 200개)은 사용자 계정 실행이 필요하다. 후반에 M3 두 계층 메일 위키, M4 검색, M5 보관, C3 깊이, C5 린트(W6 대체)와 정답셋, C4 증분, C6 파일 단위 건너뛰기. §8 질문 18(색인 암호화), 19(보관 기본값), 20(tree-sitter) 답 대기. 새 의존성 없음.
 
+### 문서 쓰기 품질 D1~D8(2026-10-21, 사용자 요청 "Claude Code 문서 스킬 벤치마크", 설계 `docs/superpowers/specs/2026-10-21-nubi-document-writing-quality-design.md`)
+- Claude Code의 docx/pptx/xlsx 스킬 관행(제자리 XML 편집과 원본 기준선 검증, 추적 변경 제안, 수식 우선과 재계산 오류 0, 구조화 덱, 양식 칸 ≠ 자료 규칙, 렌더 그림 확인)을 누비 문서 경로(document-agent, nubi-office, Task 11~13)에 적용한다. D1 OOXML 검증기, D2 제자리 편집, D3 양식 지도 세 앱, D4 채움 값 출처와 질문 묶음은 Task 11~13 안에서, D5 Word 추적 변경, D6 Excel 수식/재계산, D7 PPT 구조화 덱, D8 렌더 확인은 그 뒤. 벤치마크 30과제(앱별 10, 새로 만들기/양식 채우기/기존 수정)를 코드로 채점하고 Windows 실기기에서 재계산과 렌더를 판정한다. §8 질문 21(렌더 환경) 답 대기. 새 의존성 없음. 착수는 위키 트랙 뒤(사용자 지시 "하나씩").
+
 ### 릴리스 리듬
 - 핵심 13 끝 → 1.3.0-rc1, L2 끝 → rc2, 후반 끝 → rc3, 3차 묶음 끝 → rc4, 자기 보강 루프와 워크플로우 3단계 끝 → 1.3.0 최종. rc마다 Q1의20회 측정(`node scripts/measure-wiki-durability.mjs --output verification/wiki-durability/q1-<rc>.json`), Actions 전체 게이트와 Windows 실측 항목 갱신.
 
@@ -224,6 +227,8 @@
 > **Actions 18차 녹색(2026-10-20 22:10, Claude, 39425332493, d0643712):** 워크플로 16분 16초(20분 안). unit 16분 12초(미판정 0), ui 8분 07초(미판정 16건). 16차, 17차, 18차 연속 녹색으로 Q2는 계속 충족. ui 작업이 6분 50초 → 8분 07초로 늘었다(사용량 초기화 화면 검사는 fast 체인에 없으므로 러너 편차). unit 여유 약 3.5분 그대로.
 
 > **Actions 19차 녹색(2026-10-21, Claude, 39450133722, Task 9 런타임 756ab00d):** 워크플로 10분 39초(빠른 러너). unit 10분 34초(미판정 0), ui 7분 32초(미판정 16건). 16~19차 연속 녹색.
+
+> **Actions 20차 녹색(2026-10-21, Claude, 39452814020, C1 코드 지도 a837ad61):** 워크플로 11분 54초. unit 11분 50초, ui 7분 02초. 16~20차 연속 녹색.
 
 ## Task R1: 게이트를 GitHub Actions로
 
@@ -374,3 +379,11 @@ Q7 질문21 사용자 승인: 독립 작업 영역별1개. 최상위 모달은 �
 Q7 로컬 완료(2026-10-21): 답21 적용, 공통 규칙/성공 캡처35곳 연결. 위키 설정의 중복 강조는 기록 버튼을 기본 테두리로 수정하고 회귀를 추가했다. Node16/16, 새 브라우저 계약12, 모달40, 공유 대화38, 메일11, Electron117, 모션161, design/게이트 집합 통과. 1280/440 설정/위키 설정을 직접 확인했다. 48파일 SHA/frozen과 한 쪽 보고서 docs/DESIGN-Q7-2026-10-20.md로 인계한다. 전체Actions/Windows는 별도. Q8 진행 가능.
 
 Q7 최종 인계(2026-10-21): 실제 모션 감소 sidebar CSS 회귀를 더해 브라우저 계약13개/1.31초. 기존 animation:none 우선으로 이동0을 확인했고 제품 모션 추가 수정은 없다. 최종48파일은 q7-final-upload-inputs.json/q7-final-frozen이며 이전q7-upload-inputs.json은 대체됐다. Q8 변경이 들어간 현재 check-freeze-scenes를 Q7 묶음에 섞지 않고 Q7 원래 바이트를 고정했다.
+
+Q8 구현/집중 인계(2026-10-21): renderer GC+동일 장면2반복/반복당10% 한도, 첫24장면72GC표본 모두상한안. 첫전체명령은 위키observer오류와Electron69ms/메일60.8ms 때문에실패였고 통과로소급하지 않는다. 제거후observer수정/회귀3개, 접힌미니지도JS요청지연/재펼침동일DOM을고쳤다. 수정뒤위키4/전환4/440워크플로우2환경별exit0, Node35/35/design/게이트집합/모션성능통과. 메일은부하4.17~7.35에서3회시간미판정(exit2)이며50ms한도불변. 전체최종소스Actions/Windows/메일시간판정은남긴다. docs/MEMORY-Q8-2026-10-21.md와12파일SHA로인계, CI구성은바꾸지않고실측비교만보고한다. Claude의main756ab00d Task9런타임과G0/G5설계를보존한다.
+
+Q3~Q8 후보 재대조(2026-10-21): 비공개main a837ad61(Task9런타임/C1 보존) 위 지정91파일의 실제Claude업로더 dry-run이exit0였다. 빌드입력973/전체입력1095, 금지경로0. 최종후보/SHA는 q3-q8-combined-upload-inputs.json에 고정하고 원래d064기준 Q3/Q6/기존Q7단독명세와 구분한다. 업로드/릴리스는Claude. Q8 메일시간미판정과 새G5/Task9 UI는완료로소급하지 않는다.
+
+Q7 G5/Q8 재개(2026-10-21): 기존 공통38개 흐름/39캡처에 접근성 이름, 실제 모달 양방향Tab, 본문4.5/공통muted3 대비를 연결했다. 글자675개/모달11회, 위반0/미측정0/선언예외0. 브라우저 계약31개1.88초, 공유화면46.75초(감사1.019초), 새Node/네이티브단위0. Q8 남은메일1280 격리Electron은 입력41ms/50ms, 작업/프리징/힙위반0, exit0으로 판정됐다. 원래미판정3회/첫전체실패는 보존하며 전체최종소스Actions/Windows는후속이다. 최신SHA/frozen은 q3-q8-g5-upload-inputs.json이며 기존91파일명세를덮어쓰지않는다. 업로드는Claude.
+
+지정 후보 차단(2026-10-21): G5 포함93파일의 첫 실제Claude업로더 대조에서 `release_input_changed`4건이 나왔다. 병행 작업이 이어져 다음 대조에는 `runtime/openwiki-source.ts`까지5건이었다. 정확한 후보별 수치/경로는 최신 SHA명세와 입력 검사 JSON을 따른다. main a837ad61에 없는 병행 위키 문맥 접기/검토 복구 변경(`extensions/aipro-chat/openwiki-agent.js`, `packages/nubi-desktop/runtime/desktop-features.mjs`, `packages/openwiki/src/agent/repository-runner.ts`, `packages/openwiki/src/agent/repository-semantic-review.ts`)이 현재 compile 입력에 포함된 원인이다. 이 병행 파일들을 임의로 업로드 목록에 넣거나 비교에서 빼지 않았다. 최신93파일 명세는 **로컬 검토용, 후보 입력 게이트 차단** 상태다. 이전91파일 실제후보 exit0는 이전소스 증거로만 유지한다. Claude가 병행 변경을 검토해 같은 후보에 정합시킨 뒤 실제 입력 게이트를 다시 돌려야 한다. 상세 SHA는 `.superpowers/sdd/2026-10-20-release-acceptance/q3-q8-g5-parallel-inputs.json`.

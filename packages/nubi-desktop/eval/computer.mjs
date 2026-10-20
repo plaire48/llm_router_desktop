@@ -1,3 +1,4 @@
+import {readSyntheticFixture} from '../../nubi-office/eval/synthetic-values.mjs';
 // Measures app control with a real model and a simulated Windows app. The
 // product code is the real one: tools, host checks, approvals and receipts.
 // Only the command runner of the adapter is replaced (eval/app-host.mjs), so
@@ -57,7 +58,7 @@ export function validateComputerCase(value,apps){
 export async function loadComputerCases(directory=COMPUTER_DIRECTORY){
   const apps=new Map(),cases=[];
   for(const name of (await readdir(path.join(directory,'apps'))).filter(file=>file.endsWith('.json')).sort()){
-    const app=JSON.parse(await readFile(path.join(directory,'apps',name),'utf8')),problems=validateApp(app);
+    const app=await readSyntheticFixture(path.join(directory,'apps',name)),problems=validateApp(app);
     if(problems.length||!text(app.id,60))throw Object.assign(new Error('app_invalid'),{details:{file:name,problems}});
     const controls=new Set(),walk=list=>{for(const control of list){controls.add(control.selector);if(control.children)walk(control.children);}};walk(app.controls);
     apps.set(app.id,{definition:app,controls});

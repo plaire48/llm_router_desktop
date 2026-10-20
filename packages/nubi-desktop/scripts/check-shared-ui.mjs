@@ -1,3 +1,4 @@
+import {captureDesign as captureDesignBase,assertAccessibilityRules} from './design-rules.mjs';
 import {build,stop as stopBuildService} from 'esbuild';
 import {assertDesktopDialog} from './identity-browser.mjs';
 import {mkdir,writeFile,readFile,cp} from 'node:fs/promises';
@@ -8,6 +9,16 @@ import assert from 'node:assert/strict';
 import {DESKTOP_FEATURES} from '../runtime/beta-features.mjs';
 import {WELCOME_GREETINGS} from '../ui/welcome-greetings.mjs';
 const dir=path.resolve('verification/shared-ui');await mkdir(dir,{recursive:true});
+const accessibility=[];
+async function captureDesign(target,options){
+ const page=typeof target.context==='function'?target:target.page();
+ // Inspect the settled screen, as the existing screenshot already does.
+ await page.evaluate(()=>Promise.all(document.getAnimations().filter(a=>a.playState==='running'&&a.effect?.getComputedTiming().endTime<=300).map(a=>a.finished.catch(()=>{}))));
+ const auditStarted=performance.now(),facts=await assertAccessibilityRules(page);accessibility.push({capture:options.path,durationMs:performance.now()-auditStarted,...facts});
+ await writeFile(path.join(dir,'accessibility.json'),JSON.stringify({checks:accessibility,boundary:'Existing shared product UI with synthetic APIs; keyboard traversal and flat-color contrast, not assistive-technology certification.'},null,2));
+ return captureDesignBase(target,options);
+}
+
 await build({entryPoints:['tests/shared-ui-fixture.jsx'],outfile:path.join(dir,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.webp':'file','.woff2':'file','.woff':'file'},define:{__APP_VERSION__:'"fixture"','process.env.NODE_ENV':'"production"'}});
 await cp('../../extensions/aipro-chat/public/icons',path.join(dir,'icons'),{recursive:true});
 await writeFile(path.join(dir,'index.html'),'<!doctype html><html lang="ko"><title>Nubi synthetic flow check</title><link rel="stylesheet" href="app.css"><div id="root"></div><script type="module" src="app.js"></script></html>');
@@ -47,15 +58,15 @@ try{
  await more.click();assert.equal(await p.getByRole('button',{name:'접기',exact:true}).getAttribute('aria-expanded'),'true');
  assert.equal(await requestBox.evaluate(e=>e.clientHeight>180),true);
  assert.equal(await requestBox.inputValue(),longDraft);
- await p.screenshot({path:'verification/ui-composer-expanded.png'});
+ await captureDesign(p,{path:'verification/ui-composer-expanded.png'});
  await p.getByRole('button',{name:'접기',exact:true}).click();
  assert.equal(await requestBox.evaluate(e=>e.clientHeight<=180),true);
  await requestBox.fill('');assert.equal(await requestBox.evaluate(e=>e.clientHeight),smallHeight);
  await more.waitFor({state:'detached'});
  assert.equal(await p.getByRole('button',{name:'더 보기',exact:true}).count(),0);
- checks.push('request composer grows, expands and collapses without a resize handle or losing its draft');await p.screenshot({path:'verification/ui-connected-fixture.png'});
+ checks.push('request composer grows, expands and collapses without a resize handle or losing its draft');await captureDesign(p,{path:'verification/ui-connected-fixture.png'});
  const modelControl=p.getByRole('button',{name:'모델 변경',exact:true});
- await modelControl.click();await p.screenshot({path:'verification/ui-model-selection.png',animations:'disabled'});await p.setViewportSize({width:440,height:900});await assertDesktopDialog(p.getByRole('dialog',{name:'모델 선택'}));assert.equal(await p.getByRole('dialog',{name:'모델 선택'}).getByRole('tab',{name:'AI Pro',exact:true}).locator('.provider-tab-name').isVisible(),true);await p.screenshot({path:'verification/ui-model-selection-narrow.png',animations:'disabled'});await p.setViewportSize({width:1280,height:950});await p.getByRole('textbox',{name:'모델 검색'}).fill('Second');await p.getByRole('button',{name:'Second fixture',exact:true}).click();
+ await modelControl.click();await captureDesign(p,{path:'verification/ui-model-selection.png',animations:'disabled'});await p.setViewportSize({width:440,height:900});await assertDesktopDialog(p.getByRole('dialog',{name:'모델 선택'}));assert.equal(await p.getByRole('dialog',{name:'모델 선택'}).getByRole('tab',{name:'AI Pro',exact:true}).locator('.provider-tab-name').isVisible(),true);await captureDesign(p,{path:'verification/ui-model-selection-narrow.png',animations:'disabled'});await p.setViewportSize({width:1280,height:950});await p.getByRole('textbox',{name:'모델 검색'}).fill('Second');await p.getByRole('button',{name:'Second fixture',exact:true}).click();
  await modelControl.click();assert.equal(await p.getByRole('dialog',{name:'모델 선택'}).getByRole('button',{name:'Second fixture',exact:true}).getAttribute('aria-pressed'),'true');await p.keyboard.press('Escape');
  checks.push('current provider and model stay visible in the composer and open the shared model dialog');
  // Automatic approval (user decision 2026-09-30): the mode sits beside the model, its menu names the three modes and
@@ -64,7 +75,7 @@ try{
  await modeButton.click();const modeDialog=p.getByRole('dialog',{name:'승인 방식',exact:true}),modeMenu=modeDialog.getByRole('menu',{name:'승인 방식',exact:true});// the menu sits in a titled dialog with the note and the allowed commands (2026-10-02)
  assert.deepEqual(await modeMenu.getByRole('menuitemradio').evaluateAll(items=>items.map(item=>[item.querySelector('strong').textContent,item.getAttribute('aria-checked')])),[['매번 확인','true'],['파일 자동 반영','false'],['파일과 명령 자동','false']]);
  await modeDialog.getByText('관리자 명령과 앱 조작은 항상 확인해요.',{exact:true}).waitFor();assert.equal(await modeDialog.getByRole('group',{name:'항상 허용한 명령'}).getByText('npm test',{exact:true}).count(),1);
- await p.screenshot({path:'verification/ui-approval-mode.png'});
+ await captureDesign(p,{path:'verification/ui-approval-mode.png'});
  await modeMenu.getByRole('menuitemradio',{name:/파일 자동 반영/}).click();
  assert.deepEqual(await p.evaluate(()=>window.approvalCalls||[]),[],'selecting automatic mode must not persist before confirmation');
  let warning=p.getByRole('alertdialog',{name:'자동 반영 안내',exact:true});await warning.waitFor();
@@ -78,13 +89,13 @@ try{
  await p.getByRole('button',{name:/승인 방식: 파일 자동 반영/}).click();await p.getByRole('menuitemradio',{name:/파일과 명령 자동/}).click();
  warning=p.getByRole('alertdialog',{name:'자동 실행 안내',exact:true});await warning.getByText(/외부 통신/).waitFor();await warning.getByText(/현재 프로젝트/).waitFor();assert.equal(await warning.locator('details').getAttribute('open'),null);await warning.locator('summary').click();await warning.getByText(/항상 허용한 명령/).waitFor();await warning.getByText(/신뢰하는 프로젝트/).waitFor();
  await warning.getByRole('button',{name:'취소',exact:true}).click();assert.deepEqual(await p.evaluate(()=>window.approvalCalls),['edits']);
- await p.getByRole('button',{name:/승인 방식: 파일 자동 반영/}).click();await p.getByRole('menuitemradio',{name:/파일과 명령 자동/}).click();warning=p.getByRole('alertdialog',{name:'자동 실행 안내',exact:true});await assertDesktopDialog(warning);await p.screenshot({path:'verification/ui-auto-approval-warning-wide.png'});
- await p.setViewportSize({width:440,height:950});await assertDesktopDialog(warning);await p.screenshot({path:'verification/ui-auto-approval-warning-narrow.png'});
+ await p.getByRole('button',{name:/승인 방식: 파일 자동 반영/}).click();await p.getByRole('menuitemradio',{name:/파일과 명령 자동/}).click();warning=p.getByRole('alertdialog',{name:'자동 실행 안내',exact:true});await assertDesktopDialog(warning);await captureDesign(p,{path:'verification/ui-auto-approval-warning-wide.png'});
+ await p.setViewportSize({width:440,height:950});await assertDesktopDialog(warning);await captureDesign(p,{path:'verification/ui-auto-approval-warning-narrow.png'});
  await p.evaluate(()=>document.documentElement.style.fontSize='32px');
  assert(await warning.evaluate(el=>{const r=el.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight&&el.scrollWidth<=el.clientWidth+1;}),'warning stays contained at 200% text');
  const warningParagraphs=await warning.locator('p').evaluateAll(items=>items.map(el=>{const s=getComputedStyle(el);return {fontSize:parseFloat(s.fontSize),lineHeight:parseFloat(s.lineHeight)};}));assert(warningParagraphs.every(s=>s.lineHeight>=s.fontSize*1.5),'warning paragraphs retain readable line spacing at 200% text: '+JSON.stringify(warningParagraphs));
- const warningFooter=warning.locator('.cx-panel-footer');assert(await warningFooter.evaluate(el=>el.scrollWidth<=el.clientWidth+1),'warning actions remain reachable at 200% text');await p.screenshot({path:'verification/ui-auto-approval-warning-large-text.png'});
- await warning.locator('summary').click();await warning.locator('p').last().scrollIntoViewIfNeeded();assert(await warning.locator('p').last().evaluate(el=>{const r=el.getBoundingClientRect(),body=el.closest('.cx-panel-body').getBoundingClientRect();return r.top>=body.top-1&&r.bottom<=body.bottom+1;}),'the final scope note is reachable by scrolling at 200% text');await p.screenshot({path:'verification/ui-auto-approval-warning-large-text-bottom.png'});
+ const warningFooter=warning.locator('.cx-panel-footer');assert(await warningFooter.evaluate(el=>el.scrollWidth<=el.clientWidth+1),'warning actions remain reachable at 200% text');await captureDesign(p,{path:'verification/ui-auto-approval-warning-large-text.png'});
+ await warning.locator('summary').click();await warning.locator('p').last().scrollIntoViewIfNeeded();assert(await warning.locator('p').last().evaluate(el=>{const r=el.getBoundingClientRect(),body=el.closest('.cx-panel-body').getBoundingClientRect();return r.top>=body.top-1&&r.bottom<=body.bottom+1;}),'the final scope note is reachable by scrolling at 200% text');await captureDesign(p,{path:'verification/ui-auto-approval-warning-large-text-bottom.png'});
  await p.evaluate(()=>document.documentElement.style.fontSize='');await p.setViewportSize({width:1280,height:950});await warning.getByRole('button',{name:'자동 허용',exact:true}).click();
  assert.deepEqual(await p.evaluate(()=>window.approvalCalls),['edits','commands']);await p.getByRole('button',{name:/승인 방식: 파일과 명령 자동/}).click();await p.getByRole('menuitemradio',{name:/매번 확인/}).click();assert.deepEqual(await p.evaluate(()=>window.approvalCalls),['edits','commands','ask']);
  checks.push('automatic modes explain scope and consequences in a shared confirmation; cancel preserves policy, only explicit consent changes it, and warning fits narrow and 200 percent text');
@@ -95,10 +106,10 @@ try{
  await newConversation();
  assert.equal(await p.getByRole('textbox',{name:'작업 요청'}).inputValue(),'');await p.getByRole('textbox',{name:'작업 요청'}).fill('다른 요청의 초안');
  await openHistory();await p.getByRole('searchbox',{name:'대화 검색'}).fill('없는 요청');await p.getByText('검색 결과가 없어요',{exact:true}).waitFor();
- await p.getByRole('searchbox',{name:'대화 검색'}).fill('간결');await p.screenshot({path:'verification/ui-conversation-history.png',animations:'disabled'});await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/문구를 간결하게 해 주세요/}).click();
+ await p.getByRole('searchbox',{name:'대화 검색'}).fill('간결');await captureDesign(p,{path:'verification/ui-conversation-history.png',animations:'disabled'});await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/문구를 간결하게 해 주세요/}).click();
  await p.waitForFunction(()=>document.activeElement?.getAttribute('aria-label')==='추가 요청');assert.equal(await p.getByRole('textbox',{name:'추가 요청'}).inputValue(),'이 대화에서만 유지할 초안');await p.getByRole('textbox',{name:'추가 요청'}).fill('');
  checks.push('new-task button and internal ID are absent from the conversation; history search and separate drafts preserve navigation context');
- const emphasis=p.getByRole('article',{name:/ 답변$/}).first().locator('.message-body strong');assert.deepEqual(await emphasis.evaluateAll(es=>es.map(e=>({color:getComputedStyle(e).color,weight:getComputedStyle(e).fontWeight}))),[{color:'rgb(25, 31, 40)',weight:'700'},{color:'rgb(25, 31, 40)',weight:'700'}]);checks.push('reading emphasis uses the common ink and semibold tokens');await p.screenshot({path:'verification/ui-workspace-fixture.png',animations:'disabled'});/* emphasis is 700 since 2026-10-14 (user: bold must read as bold) */
+ const emphasis=p.getByRole('article',{name:/ 답변$/}).first().locator('.message-body strong');assert.deepEqual(await emphasis.evaluateAll(es=>es.map(e=>({color:getComputedStyle(e).color,weight:getComputedStyle(e).fontWeight}))),[{color:'rgb(25, 31, 40)',weight:'700'},{color:'rgb(25, 31, 40)',weight:'700'}]);checks.push('reading emphasis uses the common ink and semibold tokens');await captureDesign(p,{path:'verification/ui-workspace-fixture.png',animations:'disabled'});/* emphasis is 700 since 2026-10-14 (user: bold must read as bold) */
  await newConversation();assert.equal(await p.getByRole('textbox',{name:'작업 요청'}).inputValue(),'다른 요청의 초안');await p.getByRole('textbox',{name:'작업 요청'}).fill('');await modelControl.click();await p.getByRole('button',{name:'AI Pro 로그아웃',exact:true}).click();await p.keyboard.press('Escape');await p.locator('.aipro-login').waitFor();checks.push('logout returns to Nubi login');
  await p.getByRole('button',{name:'FabriX',exact:true}).click();await p.getByRole('dialog',{name:'FabriX 연결'}).waitFor();await p.getByLabel('Endpoint').fill('https://fixture.example/openapi');await p.getByLabel('x-fabrix-client').fill('fixture');await p.getByLabel('x-openapi-token').fill('fixture');await p.getByRole('button',{name:'연결 테스트',exact:true}).click();await p.getByText('테스트 통과',{exact:true}).waitFor();await p.getByRole('button',{name:'연결',exact:true}).click();await p.getByRole('textbox',{name:'작업 요청'}).waitFor();checks.push('same FabriX test-then-connect dialog uses desktop permission adapter');assert.deepEqual(errors,[]);
  await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/문구를 간결하게 해 주세요/}).click();await p.getByRole('article',{name:/ 답변$/}).getByText('연결 후 대기 중인 오류 분석을 확인한 합성 결과입니다.',{exact:true}).waitFor();checks.push('provider reconnection refreshes queued recovery work and its finished result');assert.deepEqual(errors,[]);
@@ -106,19 +117,19 @@ try{
  if(DESKTOP_FEATURES.computerUse){// the app connection dialog needs the computer-use feature (off since 2026-10-05)
  await p.getByRole('button',{name:'앱 연결',exact:true}).click();await p.getByText('동작 표시 예시',{exact:true}).click();const preview=p.getByRole('figure',{name:'커서 표시 예시'});await preview.waitFor();await preview.getByText('표시 예시입니다. 실제 앱을 조작하지 않습니다.',{exact:true}).waitFor();
  const example=p.getByRole('group',{name:'동작 예시 선택'});await example.getByRole('button',{name:'마우스 올리기',exact:true}).click();assert.equal(await preview.locator('.is-hover').count(),1);await example.getByRole('button',{name:'입력',exact:true}).click();assert.equal(await preview.locator('.is-set_value').count(),1);await example.getByRole('button',{name:'클릭',exact:true}).click();assert.equal(await preview.locator('.is-click').count(),1);checks.push('cursor preview distinguishes click, hover and input without issuing actions');
- const arrowStyle=await preview.locator('.nubi-action-pointer svg path').evaluate(e=>({fill:getComputedStyle(e).fill,stroke:getComputedStyle(e).stroke}));assert.equal(arrowStyle.fill,'rgb(23, 23, 23)');assert.equal(arrowStyle.stroke,'rgb(255, 255, 255)');await preview.screenshot({path:'verification/ui-visual-pointer-shape.png'});
+ const arrowStyle=await preview.locator('.nubi-action-pointer svg path').evaluate(e=>({fill:getComputedStyle(e).fill,stroke:getComputedStyle(e).stroke}));assert.equal(arrowStyle.fill,'rgb(23, 23, 23)');assert.equal(arrowStyle.stroke,'rgb(255, 255, 255)');await captureDesign(preview,{path:'verification/ui-visual-pointer-shape.png'});
  await assertDesktopDialog(p.getByRole('dialog',{name:'앱 연결',exact:true}));
  assert.doesNotMatch(await p.getByRole('dialog',{name:'앱 연결',exact:true}).innerText(),/REQ-fixture|직접 확인할 때 사용하는 도구입니다/);
  const replay=preview.getByRole('button',{name:'다시 보기',exact:true});assert.equal(await replay.getAttribute('data-icon-only'),'true');assert.equal(await replay.locator('.visually-hidden').evaluate(e=>e.getBoundingClientRect().width<=1&&e.getBoundingClientRect().height<=1),true);assert.equal(await replay.getAttribute('title'),'다시 보기');await replay.focus();await replay.press('Enter');
  checks.push('task tools and nested cursor preview use shared typography; replay is a named keyboard-operable icon');
  await preview.getByRole('button',{name:'커서 모션'}).click();assert.equal(await preview.locator('.nubi-action-pointer').evaluate(e=>getComputedStyle(e).animationName),'none');await preview.getByRole('button',{name:'커서 모션'}).click();await p.emulateMedia({reducedMotion:'reduce'});assert.equal(await preview.locator('.nubi-action-halo').evaluate(e=>getComputedStyle(e).animationName),'none');assert.equal(await preview.locator('.nubi-action-pointer').evaluate(e=>getComputedStyle(e).transitionDuration),'0s');checks.push('cursor motion respects explicit toggle and reduced-motion preference');await p.emulateMedia({reducedMotion:'no-preference'});
  await p.keyboard.press('Escape');const body=p.getByRole('article',{name:'내 메시지'}).first().locator('.message-body');assert.equal(await body.evaluate(e=>getComputedStyle(e).fontSize),'15px');await p.getByRole('button',{name:'큰 글자',exact:true}).click();assert.equal(await body.evaluate(e=>getComputedStyle(e).fontSize),'17px');assert.equal(await body.evaluate(e=>getComputedStyle(e).fontWeight),'400');assert.equal(await p.evaluate(()=>localStorage.getItem('nubi-workspace-large-text')),'true');checks.push('desktop body has stable 15px/17px reading scale and persists text preference');
- await p.setViewportSize({width:440,height:900});assert.equal(await p.locator('.nubi-workbench').evaluate(e=>e.scrollWidth<=e.clientWidth),true);await p.screenshot({path:'verification/ui-cursor-typography-narrow.png'});await p.setViewportSize({width:1280,height:950});await p.screenshot({path:'verification/ui-cursor-typography.png'});checks.push('cursor preview and large Korean text fit narrow layout');
+ await p.setViewportSize({width:440,height:900});assert.equal(await p.locator('.nubi-workbench').evaluate(e=>e.scrollWidth<=e.clientWidth),true);await captureDesign(p,{path:'verification/ui-cursor-typography-narrow.png'});await p.setViewportSize({width:1280,height:950});await captureDesign(p,{path:'verification/ui-cursor-typography.png'});checks.push('cursor preview and large Korean text fit narrow layout');
  await p.getByRole('button',{name:'앱 연결',exact:true}).click();await p.setViewportSize({width:440,height:950});
  await assertDesktopDialog(p.getByRole('dialog',{name:'앱 연결',exact:true}),{large:true});
  assert.equal(await p.getByRole('dialog').getByRole('textbox',{name:'로컬 실행',exact:true}).count(),0);
  assert.equal(await p.getByRole('dialog').getByRole('textbox',{name:'변경 전',exact:true}).count(),0);
- await p.screenshot({path:'verification/ui-identity-tools-large.png',animations:'disabled'});await p.keyboard.press('Escape');
+ await captureDesign(p,{path:'verification/ui-identity-tools-large.png',animations:'disabled'});await p.keyboard.press('Escape');
  assert.equal(await p.getByRole('dialog').count(),0);await p.waitForFunction(()=>document.activeElement?.getAttribute('aria-label')==='앱 연결');
  await p.setViewportSize({width:1280,height:950});checks.push('large text reaches modal labels and fields at narrow width; Escape restores the opener focus');
  }else checks.push('app connection dialog steps skipped: computerUse feature off');
@@ -134,7 +145,7 @@ try{
  assert.equal(await connection.getByRole('textbox',{name:'실행 파일 (.exe)'}).count(),0);
  await connection.getByRole('textbox',{name:'기타',exact:true}).waitFor();
  assert.equal(await p.getByRole('button',{name:'작업 도구',exact:true}).count(),0);
- await p.setViewportSize({width:440,height:950});await p.screenshot({path:'verification/ui-simple-connection-question.png',animations:'disabled'});await p.setViewportSize({width:1280,height:950});
+ await p.setViewportSize({width:440,height:950});await captureDesign(p,{path:'verification/ui-simple-connection-question.png',animations:'disabled'});await p.setViewportSize({width:1280,height:950});
  await p.evaluate(()=>window.connectionFail=true);await chooseConnection('열린 앱 선택');
  await connection.getByText('열린 창을 찾지 못했어요. 앱이 열려 있는지 확인하고 다시 찾아 주세요.',{exact:true}).waitFor();
  assert.equal(await connection.getByText('답변을 보내지 못했습니다. 다시 시도해주세요.',{exact:true}).count(),0);
@@ -150,7 +161,7 @@ try{
  await chooseConnection('열린 앱 선택');await chooseConnection(/업무 메신저 Messenger/);await connection.getByRole('radio',{name:/연결한 앱으로 이어가기/}).waitFor();
  assert.deepEqual(await p.evaluate(()=>window.connectionCalls.map(c=>c.method)),['windows','bind']);
  await chooseConnection('다른 앱 선택');await chooseConnection(/업무 메신저 Messenger/);await connection.getByRole('radio',{name:/연결한 앱으로 이어가기/}).waitFor();
- await p.setViewportSize({width:440,height:950});assert.equal(await p.locator('.nubi-workbench').evaluate(e=>e.scrollWidth<=e.clientWidth),true);await p.screenshot({path:'verification/ui-contextual-connection.png',animations:'disabled'});
+ await p.setViewportSize({width:440,height:950});assert.equal(await p.locator('.nubi-workbench').evaluate(e=>e.scrollWidth<=e.clientWidth),true);await captureDesign(p,{path:'verification/ui-contextual-connection.png',animations:'disabled'});
  await chooseConnection(/연결한 앱으로 이어가기/);await p.getByText('연결한 창에서 같은 작업을 이어가는 합성 응답입니다.',{exact:true}).waitFor();assert.equal(await connection.count(),0);
  assert.equal(await p.getByRole('textbox',{name:'추가 요청'}).isDisabled(),false);
  checks.push('agent connection request appears inline; binding is explicit and does not resume or approve native actions');
@@ -180,14 +191,14 @@ try{
  const uncertain=p.getByRole('region',{name:'프로그램 실행 승인'}).filter({hasText:'unknown.exe'});await uncertain.getByText('확인 필요',{exact:true}).waitFor();await uncertain.getByText(/실행 결과를 확인해야 합니다/).waitFor();await uncertain.getByRole('button',{name:'열린 창 다시 확인',exact:true}).click();assert.equal(await p.getByLabel('실행 횟수').textContent(),'2');await uncertain.getByRole('button',{name:'실제 결과를 확인했어요',exact:true}).click();await uncertain.getByText('사용자 확인됨',{exact:true}).waitFor();assert.equal(await p.getByLabel('실행 횟수').textContent(),'2');
  checks.push('uncertain app launch stays visible and read-only reconciliation or acknowledgement never repeats launch');
 
- await p.setViewportSize({width:440,height:950});assert.equal(await p.locator('.nubi-workbench').evaluate(e=>e.scrollWidth<=e.clientWidth),true);await p.screenshot({path:'verification/ui-windows-launch-narrow.png'});
- await p.setViewportSize({width:1280,height:950});await p.screenshot({path:'verification/ui-windows-launch.png'});assert.deepEqual(errors,[]);
+ await p.setViewportSize({width:440,height:950});assert.equal(await p.locator('.nubi-workbench').evaluate(e=>e.scrollWidth<=e.clientWidth),true);await captureDesign(p,{path:'verification/ui-windows-launch-narrow.png'});
+ await p.setViewportSize({width:1280,height:950});await captureDesign(p,{path:'verification/ui-windows-launch.png'});assert.deepEqual(errors,[]);
  await p.goto(page('controls=1'));
  await p.getByText('이미 요청한 상태여서 다시 조작하지 않았습니다.',{exact:true}).waitFor();
  await p.getByText('OpenWiki-SDS 근거가 바뀌어 실행하지 않았습니다. 최신 근거로 다시 제안해 주세요.',{exact:true}).waitFor();
  await p.getByText('OpenWiki-SDS 근거 1개',{exact:true}).first().click();await p.getByText('openwiki/notification.md:3 참조 버전 일치',{exact:true}).first().waitFor();
  assert.equal(await p.getByRole('button',{name:'실행',exact:true}).count(),0);
- await p.setViewportSize({width:440,height:950});assert.equal(await p.locator('.nubi-workbench').evaluate(e=>e.scrollWidth<=e.clientWidth),true);await p.screenshot({path:'verification/ui-uia-state-evidence.png'});
+ await p.setViewportSize({width:440,height:950});assert.equal(await p.locator('.nubi-workbench').evaluate(e=>e.scrollWidth<=e.clientWidth),true);await captureDesign(p,{path:'verification/ui-uia-state-evidence.png'});
  checks.push('UIA no-op and stale Wiki remain distinct with reviewable evidence and no execution button');assert.deepEqual(errors,[]);
  await p.setViewportSize({width:1280,height:950});
  const waitingBatch=p.getByRole('region',{name:'컴퓨터 동작 묶음 승인'}).filter({hasText:'요청한 입력 세 가지'});
@@ -199,21 +210,21 @@ try{
  await partialBatch.getByText('2번째 단계에서 대상이 바뀌어 멈췄습니다. 그 단계부터는 실행하지 않았습니다.',{exact:true}).waitFor();
  assert.deepEqual(await partialBatch.locator('.nubi-batch-steps small').allTextContents(),['입력값 일치','실행하지 않음']);
  assert.equal(await partialBatch.getByRole('button',{name:'모두 실행',exact:true}).count(),0);
- await p.setViewportSize({width:440,height:950});assert.equal(await p.locator('.nubi-workbench').evaluate(e=>e.scrollWidth<=e.clientWidth),true);await waitingBatch.screenshot({path:'verification/ui-computer-batch.png'});
+ await p.setViewportSize({width:440,height:950});assert.equal(await p.locator('.nubi-workbench').evaluate(e=>e.scrollWidth<=e.clientWidth),true);await captureDesign(waitingBatch,{path:'verification/ui-computer-batch.png'});
  checks.push('a batch lists every step with its value, and a stopped batch tells which steps ran');assert.deepEqual(errors,[]);
  await p.goto(page('pointer=1'));
  // Both drag targets are shown before consent without a click to open them (2026-09-30: fewer steps).
  const pointerApproval=p.getByRole('button',{name:'마우스 제어 승인',exact:true});assert.equal(await p.getByLabel('마우스 실행 횟수').textContent(),'0');
  await p.getByRole('figure',{name:'컴퓨터 동작 미리보기',exact:true}).nth(1).waitFor();assert.equal(await pointerApproval.isEnabled(),true);
  assert.equal(await p.getByRole('button',{name:'대상 위치 보기',exact:true}).getAttribute('aria-pressed'),'true');
- await p.screenshot({path:'verification/ui-shared-pointer-approval.png'});await pointerApproval.click();await p.getByRole('button',{name:'작업 중지',exact:true}).click();await p.getByText('확인 필요',{exact:true}).waitFor();assert.equal(await p.getByLabel('마우스 실행 횟수').textContent(),'1');assert.equal(await p.getByRole('button',{name:'마우스 제어 승인',exact:true}).count(),0);
+ await captureDesign(p,{path:'verification/ui-shared-pointer-approval.png'});await pointerApproval.click();await p.getByRole('button',{name:'작업 중지',exact:true}).click();await p.getByText('확인 필요',{exact:true}).waitFor();assert.equal(await p.getByLabel('마우스 실행 횟수').textContent(),'1');assert.equal(await p.getByRole('button',{name:'마우스 제어 승인',exact:true}).count(),0);
  checks.push('mouse control shows both drag targets before explicit consent and permits stop without replay');assert.deepEqual(errors,[]);
  }else checks.push('app launch, control and mouse scenarios skipped: computerUse feature off');
  await p.goto(page('command=1'));
  await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/무료 배송 기준을 고치고/}).click();
  const checkCard=p.getByRole('region',{name:'실행 준비 승인',exact:true});await checkCard.waitFor();
  assert.equal(await checkCard.getByRole('button',{name:'승인',exact:true}).isDisabled(),true);assert.equal(await p.getByRole('dialog',{name:'이 명령을 실행할까요?',exact:true}).count(),0);
- await checkCard.getByText('수정안을 반영하면 실행할 수 있어요.',{exact:true}).waitFor();await checkCard.screenshot({path:'verification/ui-command-waits-for-fix.png'});
+ await checkCard.getByText('수정안을 반영하면 실행할 수 있어요.',{exact:true}).waitFor();await captureDesign(checkCard,{path:'verification/ui-command-waits-for-fix.png'});
  await p.locator('.nubi-proposal-card').getByRole('button',{name:'반영',exact:true}).click();
  assert.equal(await p.getByRole('dialog',{name:'이 명령을 실행할까요?',exact:true}).count(),0,'unblocked approval waits for an explicit open');
  const commandDecision=checkCard.locator('.nubi-approval-form');await commandDecision.waitFor();
@@ -225,7 +236,7 @@ try{
  const keysCard=p.getByRole('region',{name:'컴퓨터 동작 승인',exact:true});
  assert.deepEqual(await keysCard.locator('.nubi-keys kbd').allTextContents(),['Ctrl + S']);
  const keyApproval=keysCard.getByRole('button',{name:'키보드 입력 승인',exact:true});await keysCard.getByRole('figure',{name:'컴퓨터 동작 미리보기',exact:true}).waitFor();
- await keysCard.screenshot({path:'verification/ui-keyboard-approval.png'});await keyApproval.click();await p.getByLabel('키 입력 횟수').getByText('1',{exact:true}).waitFor();
+ await captureDesign(keysCard,{path:'verification/ui-keyboard-approval.png'});await keyApproval.click();await p.getByLabel('키 입력 횟수').getByText('1',{exact:true}).waitFor();
  assert.equal(await keysCard.getByRole('button',{name:'키보드 입력 승인',exact:true}).count(),0);
  checks.push('keys show as keycaps and are sent only with keyboard consent');assert.deepEqual(errors,[]);
  }else checks.push('keyboard consent scenario skipped: computerUse feature off');
@@ -233,7 +244,7 @@ try{
  await openSidebar();assert.equal(await p.getByRole('button',{name:'새 대화',exact:true}).isDisabled(),false);await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/대화 압축 화면 검증/}).click();
  await p.getByRole('region',{name:'계획과 진행 상황',exact:true}).getByText('대화 내용 정리 중',{exact:true}).waitFor();// the compaction status is the activity's current step (2026-10-02)
  await p.getByRole('article',{name:'내 메시지'}).getByText('원문 보존 확인: 승인 없이 실행하지 마세요.',{exact:true}).waitFor();
- await p.screenshot({path:'verification/ui-context-compaction.png',animations:'disabled'});
+ await captureDesign(p,{path:'verification/ui-context-compaction.png',animations:'disabled'});
  await p.getByRole('button',{name:'중지',exact:true}).click();await p.getByText('대화 내용 정리 중',{exact:true}).waitFor({state:'hidden'});
  await p.getByRole('article',{name:'내 메시지'}).getByText('원문 보존 확인: 승인 없이 실행하지 마세요.',{exact:true}).waitFor();
  checks.push('synthetic compaction phase has a concise status and stop control while original messages remain visible');assert.deepEqual(errors,[]);
@@ -241,14 +252,14 @@ try{
   await p.goto(page(`compaction=1&operation=${operation}&stage=${stage}`));
   await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/대화 압축 화면 검증/}).click();
   await p.getByRole('region',{name:'계획과 진행 상황',exact:true}).getByText(label,{exact:true}).waitFor();
-  await p.screenshot({path:`verification/ui-context-${operation}-${stage}.png`,animations:'disabled'});
+  await captureDesign(p,{path:`verification/ui-context-${operation}-${stage}.png`,animations:'disabled'});
  }
  checks.push('context compaction, conversation organization and source-review stages show distinct real host labels');assert.deepEqual(errors,[]);
  await p.goto(page('elevation=1'));
  await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/관리자 승인 화면 검증/}).click();
  const adminDialog=p.getByRole('region',{name:'실행 준비 승인',exact:true}).filter({hasText:'관리자 실행 검증'}).locator('.nubi-approval-form');await adminDialog.waitFor();
  await adminDialog.getByText(/Windows UAC/).waitFor();
- await p.screenshot({path:'verification/ui-administrator-approval.png',animations:'disabled'});
+ await captureDesign(p,{path:'verification/ui-administrator-approval.png',animations:'disabled'});
  await adminDialog.getByRole('button',{name:'관리자 실행 승인',exact:true}).click();
  await p.getByRole('region',{name:'실행 준비 승인',exact:true}).filter({hasText:'관리자 실행 검증'}).getByText('실행 요청됨',{exact:true}).waitFor();
  const rejectForm=p.getByRole('region',{name:'실행 준비 승인',exact:true}).filter({hasText:'관리자 실행 거절'}).locator('.nubi-approval-form');await rejectForm.getByRole('button',{name:'취소',exact:true}).click();await rejectForm.waitFor({state:'hidden'});
@@ -274,7 +285,7 @@ try{
  await meter.click();const meterDialog=p.getByRole('dialog',{name:'컨텍스트'});await meterDialog.getByText('1회 정리 (215K → 61K 추정)',{exact:true}).waitFor();
  await meterDialog.getByText('토큰 상세',{exact:true}).click();await meterDialog.locator('.context-compaction-policy').waitFor();assert.match(await meterDialog.locator('.context-compaction-policy').innerText(),/자동 요약[\s\S]*196/);// the policy row shows the 75% threshold of the 262,144 window (196,608), not the reported compactAt (2026-10-05)
  assert.equal(await meterDialog.getByText('23,175 토큰',{exact:true}).count(),1);
- await p.screenshot({path:'verification/ui-context-meter.png',animations:'disabled'});
+ await captureDesign(p,{path:'verification/ui-context-meter.png',animations:'disabled'});
  checks.push('the composer gauge shows the reported tokens against the model window and where the history is summarized');assert.deepEqual(errors,[]);
  await p.goto(page('document=running'));
  await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/긴 업무 문서의 요구사항/}).click();
@@ -289,7 +300,7 @@ try{
  // Observe that update before looking up a toggle whose accessible name changes.
  await p.locator('.nubi-workbench[data-compact="true"]').waitFor();await p.locator('.nubi-sidebar[data-open="false"]').waitFor();
  await p.waitForFunction(()=>{const e=document.querySelector('.nubi-workbench');return !!e&&e.scrollWidth<=e.clientWidth;},null,{timeout:5000});
- await closeSidebar();await p.locator('.nubi-sidebar-scrim').waitFor({state:'hidden'});await p.screenshot({path:'verification/ui-document-analysis-running.png',animations:'disabled'});
+ await closeSidebar();await p.locator('.nubi-sidebar-scrim').waitFor({state:'hidden'});await captureDesign(p,{path:'verification/ui-document-analysis-running.png',animations:'disabled'});
  await p.getByRole('button',{name:'중지',exact:true}).click();await documentProgress.getByText('분석 중지됨',{exact:true}).waitFor();
  if(!(await documentProgress.locator('details').first().getAttribute('open')))await documentProgress.locator('details > summary').first().click();
  await documentProgress.getByText('응답 미확인',{exact:true}).waitFor();
@@ -300,7 +311,7 @@ try{
  assert.equal(await documentProgress.locator('details').first().getAttribute('open'),null);
  await documentProgress.locator('details > summary').first().click();await documentProgress.getByText('남은 구간',{exact:true}).click();
  await documentProgress.getByText('문자 12,001–18,000',{exact:true}).waitFor();
- await p.screenshot({path:'verification/ui-document-analysis-partial.png',animations:'disabled'});
+ await captureDesign(p,{path:'verification/ui-document-analysis-partial.png',animations:'disabled'});
  checks.push('partial document analysis keeps missing ranges visible after reopening and distinguishes report responses from business success');assert.deepEqual(errors,[]);
  await p.goto(page('document=history'));
  await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/긴 업무 문서의 요구사항/}).click();
@@ -319,7 +330,7 @@ try{
  const old=analyses.getByRole('region',{name:'문서 분석 진행'}).last();
  await old.locator('details > summary').first().click();await old.getByText('이전 조사 기록 2',{exact:true}).waitFor();
  await p.waitForTimeout(1600);
- await p.screenshot({path:'verification/ui-analysis-history.png',animations:'disabled'});
+ await captureDesign(p,{path:'verification/ui-analysis-history.png',animations:'disabled'});
  await old.getByText('이전 조사 기록 2',{exact:true}).waitFor();assert.equal(await analyses.getByRole('button',{name:'이전 분석 더 보기',exact:true}).count(),0);
  await p.getByRole('button',{name:'중지',exact:true}).click();await roles.getByText('분석 중단됨',{exact:true}).waitFor();if(await roles.locator('details').first().getAttribute('open')===null)await roles.locator('details > summary').first().click();await roles.getByText('응답 미확인',{exact:true}).waitFor();
  checks.push('all document and role analyses remain paged and expandable across live refresh; screenshots retain historical provenance and unfinished workers never become complete');
@@ -330,7 +341,7 @@ try{
  await roles.getByText('응답 미확인',{exact:true}).waitFor();
  assert.equal(await roles.getByText('역할을 나눠 확인하고 있어요',{exact:true}).count(),0);
  assert.equal(await roles.getByText('근거 읽는 중',{exact:true}).count(),0);
- await p.screenshot({path:'verification/ui-analysis-resumed.png',animations:'disabled'});
+ await captureDesign(p,{path:'verification/ui-analysis-resumed.png',animations:'disabled'});
  checks.push('resumed task keeps prior interrupted worker stopped despite retained running trace; old worker is never presented as active');
  await p.goto(page('progress'));
  await openSidebar();await p.getByRole('button',{name:'선택 메일 확인',exact:true}).click();
@@ -348,7 +359,7 @@ try{
  assert.equal(await p.getByText('선택 메일 2의 원문과 개인 위키 비교',{exact:true}).isVisible(),true);
  assert.equal(await p.getByText('메인에 전달됨',{exact:true}).count(),2);
  await p.getByText('확인한 근거 1개',{exact:true}).click();await p.getByText('선택한 원문과 답변의 근거를 대조했습니다.',{exact:true}).waitFor();
- await p.screenshot({path:'verification/ui-personal-wiki-progress.png',animations:'disabled'});
+ await captureDesign(p,{path:'verification/ui-personal-wiki-progress.png',animations:'disabled'});
  checks.push('all retained completed operations remain in order with explicit personal-Wiki lookup labels');
  await p.goto(page('document=history-error'));
  await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:/긴 업무 문서의 요구사항/}).click();
@@ -382,7 +393,7 @@ try{
  await roles.getByText('저장 후 다시 열기는 미확인입니다.',{exact:true}).waitFor();
  await roles.getByText('파일을 다시 열어 값을 확인합니다.',{exact:true}).waitFor();
  assert.equal(await analyses.getByRole('button',{name:'이전 분석 더 보기',exact:true}).count(),0);
- await p.screenshot({path:'verification/ui-analysis-handoff.png',animations:'disabled'});
+ await captureDesign(p,{path:'verification/ui-analysis-handoff.png',animations:'disabled'});
  checks.push('paged worker outside recent trace refreshes to partial and keeps uncertainty and next action; collected is not reviewed');assert.deepEqual(errors,[]);
  if(DESKTOP_FEATURES.computerUse){// native app proposals need the computer-use feature (off since 2026-10-05)
  await p.goto(page('controls'));
@@ -418,7 +429,7 @@ try{
  await p.getByRole('complementary',{name:'프로젝트 대화'}).getByRole('button',{name:'새 대화',exact:true}).click();
  assert.equal(await p.getByRole('textbox',{name:'작업 요청'}).inputValue(),'새 대화의 초안');
  await p.setViewportSize({width:1280,height:820});
- await p.screenshot({path:'verification/ui-session-sidebar.png',animations:'disabled'});
+ await captureDesign(p,{path:'verification/ui-session-sidebar.png',animations:'disabled'});
  await p.reload();await row('실행 중인 분석').waitFor();
  assert.equal(await p.getByRole('textbox',{name:'작업 요청'}).inputValue(),'새 대화의 초안');
  assert.equal(await p.getByRole('complementary',{name:'프로젝트 대화'}).getByRole('button',{name:'새 대화',exact:true}).getAttribute('aria-current'),'page');
@@ -432,7 +443,7 @@ try{
  const actionBoxes=await actionPanel.locator('button').evaluateAll(items=>items.map(e=>{const r=e.getBoundingClientRect();const copy=e.cloneNode(true);copy.querySelectorAll('.visually-hidden').forEach(n=>n.remove());return {y:r.y,height:r.height,width:r.width,text:copy.textContent.trim(),title:e.title};}));
  assert.equal(new Set(actionBoxes.map(r=>Math.round(r.y))).size,1,'conversation actions stay on one horizontal row');
  assert(actionBoxes.every(r=>r.width>=44&&r.height>=44&&!r.text&&r.title),'icon actions retain usable targets and tooltips');
- await p.screenshot({path:'verification/ui-conversation-actions-inline.png',animations:'disabled'});
+ await captureDesign(p,{path:'verification/ui-conversation-actions-inline.png',animations:'disabled'});
  await p.keyboard.press('ArrowRight');assert.match(await p.evaluate(()=>document.activeElement.getAttribute('aria-label')),/고정/);
  await p.keyboard.press('ArrowRight');assert.match(await p.evaluate(()=>document.activeElement.getAttribute('aria-label')),/보관/);
  await p.keyboard.press('ArrowRight');assert.match(await p.evaluate(()=>document.activeElement.getAttribute('aria-label')),/사용량/);
@@ -457,7 +468,7 @@ try{
  // The narrow sidebar is the Electron (integrated) layout's overlay with its own opener; the shared layout has none at 440px.
  await p.setViewportSize({width:440,height:900});await p.goto(page('sessions=1'));await p.locator('.nubi-sidebar').waitFor({state:'attached'});await openSidebar();
  await p.waitForFunction(()=>{const e=document.querySelector('.nubi-workbench');return !!e&&e.scrollWidth<=e.clientWidth;},null,{timeout:5000});
- await p.screenshot({path:'verification/ui-session-sidebar-narrow.png',animations:'disabled'});
+ await captureDesign(p,{path:'verification/ui-session-sidebar-narrow.png',animations:'disabled'});
  assert.equal(await p.getByRole('complementary',{name:'프로젝트 대화'}).isVisible(),true);
  assert.equal(await p.getByRole('complementary',{name:'프로젝트 대화'}).getByRole('button',{name:'사이드바 닫기',exact:true}).count(),0,'the header button is the one close control');await p.emulateMedia({reducedMotion:'reduce'});await p.keyboard.press('Escape');await p.locator('.nubi-sidebar[data-open="false"]').waitFor();/* the compact sidebar collapses to its header strip that keeps the toggle (2026-10-02) */await openSidebar();assert.equal(await p.getByRole('complementary',{name:'프로젝트 대화'}).evaluate(e=>getComputedStyle(e).animationDuration),'0s');
  checks.push('one dated conversation list marks the current row without a side bar, keeps drafts across switching and reload, and deletes a finished conversation with the trash icon after confirmation');assert.deepEqual(errors,[]);
@@ -478,7 +489,7 @@ try{
    const fields=p.locator('.nubi-mail-filters>.nubi-mail-filter-fields');
    assert(await fields.evaluate(e=>e.scrollHeight<=e.clientHeight+1&&e.scrollWidth<=e.clientWidth+1),'mail filters have no nested scroll or clipping');
    await p.getByLabel('메일 검색 위치',{exact:true}).selectOption('body');await p.getByLabel('메일 검색 위치',{exact:true}).selectOption('');
-   await p.screenshot({path:`verification/mail-filters-no-scroll-${width}.png`,animations:'disabled'});
+   await captureDesign(p,{path:`verification/mail-filters-no-scroll-${width}.png`,animations:'disabled'});
  }
  await p.locator('.nubi-mail-extra-filters>summary').click();
  checks.push('mail search filters fit without an inner scrollbar and all fields stay reachable at 440/1280px');
@@ -489,7 +500,7 @@ try{
  await p.waitForFunction(()=>document.activeElement?.getAttribute('aria-label')==='작업 요청');
  assert.equal(await p.locator('.nubi-task').count(),0,'AI search must not auto-submit');
  assert.equal(await p.locator('.composer .model-trigger-label').innerText(),'Qwen fixture');
- await p.screenshot({path:'verification/ui-mail-ai-draft.png',animations:'disabled'});
+ await captureDesign(p,{path:'verification/ui-mail-ai-draft.png',animations:'disabled'});
  await mailDraft.press('Enter');await p.locator('.nubi-task').waitFor();
  checks.push('mail search hands query and filters to the selected-model draft, preserves existing text and waits for Send; Shift+Enter and Korean IME do not send');assert.deepEqual(errors,[]);
 
@@ -505,7 +516,7 @@ try{
  await p.getByRole('alert').filter({hasText:'git@ 주소를 넣어 주세요'}).waitFor();assert.equal(await p.evaluate(()=>window.cloneCalls?.length||0),0,'a malformed address stays in the card');
  await address.fill('https://github.com/owner/repo.git');await p.getByRole('button',{name:'저장할 폴더 선택',exact:true}).click();
  await p.waitForFunction(()=>window.cloneCalls?.length===1);assert.deepEqual(await p.evaluate(()=>window.cloneCalls),['https://github.com/owner/repo.git']);
- assert.equal(await p.locator('.nubi-error').count(),0);await p.screenshot({path:'verification/ui-project-start.png',animations:'disabled'});
+ assert.equal(await p.locator('.nubi-error').count(),0);await captureDesign(p,{path:'verification/ui-project-start.png',animations:'disabled'});
  checks.push('project start offers folder and remote repository cards; a malformed address is explained in the card and never reaches the host');assert.deepEqual(errors,[]);
 
  for(const width of [1280,440]){
@@ -514,14 +525,14 @@ try{
  assert.equal(await search.getByRole('button',{name:/복사/}).count(),0);
  await search.getByRole('searchbox',{name:'대화 검색',exact:true}).fill('빵');await search.locator('.nubi-history-search-status').filter({hasText:'1개 대화'}).waitFor();
  const hit=search.locator('.nubi-history-item');assert.equal(await hit.count(),1);assert.match(await hit.innerText(),/아침 식사 추천/);assert.match(await hit.locator('.nubi-history-excerpt').innerText(),/따뜻한 빵과 우유/);assert.equal(await hit.locator('mark').first().innerText(),'빵');
- assert(await hit.locator('.nubi-history-excerpt').evaluate(node=>node.getBoundingClientRect().height<30));await p.screenshot({path:`verification/ui-conversation-search-${width}.png`,animations:'disabled'});
+ assert(await hit.locator('.nubi-history-excerpt').evaluate(node=>node.getBoundingClientRect().height<30));await captureDesign(p,{path:`verification/ui-conversation-search-${width}.png`,animations:'disabled'});
  await hit.click();await search.waitFor({state:'detached'});await p.getByRole('article',{name:/ 답변$/}).getByText('따뜻한 빵과 우유를 추천합니다. 식빵도 좋아요.',{exact:true}).waitFor();
  }
  checks.push('conversation search finds assistant body, highlights literal Korean keywords, removes copy, and opens the matching conversation at wide and narrow widths');
  for(const width of [1280,620,440]){
    await p.setViewportSize({width,height:900});await p.goto(page('queue-layout'));await openHistory();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').filter({hasText:'진행 내용을 간결하게 정리해 주세요.'}).click();await closeSidebar();
    const queue=p.getByRole('list',{name:'대기 메시지',exact:true});assert.equal(await queue.locator('.agent-input-order').count(),0);assert.equal(await queue.locator('.agent-input-actions').innerText(),'');assert(await queue.locator('.agent-input-actions button').evaluateAll(buttons=>buttons.every(button=>button.getAttribute('aria-label')&&button.title)));
-   await p.screenshot({path:`verification/ui-queue-icons-${width}.png`,animations:'disabled'});
+   await captureDesign(p,{path:`verification/ui-queue-icons-${width}.png`,animations:'disabled'});
    await p.getByRole('button',{name:'지금 반영',exact:true}).click();
    await p.getByRole('article',{name:'반영 대기 메시지'}).waitFor();
    const pendingLayout=await p.locator('.agent-input-pending').evaluate(node=>{const bubble=node.querySelector('.nubi-user-bubble').getBoundingClientRect(),footer=node.querySelector('.nubi-pending-footer').getBoundingClientRect();return {gap:footer.top-bubble.bottom,inside:footer.bottom<=node.getBoundingClientRect().bottom+1};});
@@ -529,7 +540,7 @@ try{
    await p.getByText('추가 요청까지 반영했습니다. 이 화면은 배치 확인용 예시입니다.',{exact:true}).waitFor();
    const layouts=await p.locator('.message-user').evaluateAll(nodes=>nodes.map(node=>{const bubble=node.querySelector('.nubi-user-bubble').getBoundingClientRect(),footer=node.querySelector('.message-actions').getBoundingClientRect(),box=node.getBoundingClientRect();return {gap:footer.top-bubble.bottom,inside:footer.bottom<=box.bottom+1,position:getComputedStyle(node.querySelector('.message-actions')).position};}));
    assert(layouts.length===2&&layouts.every(item=>item.gap>=3&&item.gap<=5&&item.inside&&item.position==='static'),'queue admission retains metadata in normal flow next to its own bubble');
-   await p.screenshot({path:`verification/ui-queue-layout-${width}.png`,animations:'disabled'});
+   await captureDesign(p,{path:`verification/ui-queue-layout-${width}.png`,animations:'disabled'});
  }
  checks.push('queued input, pending admission and consumed message keep metadata in normal flow at 1280, 620 and 440px');
  await writeFile('verification/shared-ui-result.json',JSON.stringify({scope:'synthetic UI provider states; not live authentication or model inference',checks,errors},null,2));console.log(JSON.stringify({passed:checks.length,checks},null,2));
