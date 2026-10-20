@@ -197,3 +197,18 @@ test('failed post-procedure reads retain the completed prefix and require actual
  const f=await setup(t,async(messages)=>{if(++calls===1)return call('use_browser_procedure',{id:summary.id,version:1,values:{v1:'NEW_INPUT'},readAfter:{}});if(calls===2){const x=JSON.parse(messages.filter(m=>m.role==='tool').at(-1).content);assert.equal(x.completed.steps,1);assert.equal(x.confirmedSteps.length,1);assert.equal(x.followUp.cause,'binding_changed');assert.equal(f.controls.writes,1);return call('browser_action',{actionId:'remaining-read',observationId:x.observation.observationId,tool:'find',input:{}});}return answer();},memory);
  const execute=f.host.browser.execute;f.host.browser.execute=async(...args)=>{if(args[1].tool==='find')reads++;return execute(...args);};f.host.browser.verify=async(_ctx,cp)=>({criteria:cp.criteria.map(id=>({id,satisfied:reads===1&&f.controls.writes===1,evidenceRefs:['current:read']}))});assert.equal((await f.runner.run(f.input)).state,'COMPLETED');assert.equal(reads,1);assert.equal(f.controls.writes,1);
 });
+
+test('a dropdown choice is a valid card step whose values come from the input slot and reach browser_select_option (teach plan T2)',async()=>{
+  const f=replaySetup();const select={role:'combobox',name:'Choose',kind:'control',tag:'select'};
+  f.view.frames[0].elements=[{...select,ref:'select-ref'}];
+  f.card={...f.card,inputs:[{slot:'v1',label:'Choose',kind:'choice'}],steps:[{tool:'select_option',target:select,slot:'v1'}]};
+  const acts=[];f.api.act=async(tool,args)=>{acts.push({tool,args});return {kind:'result',receipt:{status:'confirmed',effect:'write',evidenceRefs:['x']},data:{}};};
+  assert.equal((await createReplayMemory(f.options).lookup(f.context)).procedures.length,1,'the card passes validation');
+  const result=await createReplayMemory(f.options).run({id:'procedure',version:1,values:{v1:'2'}},f.context,f.api);
+  assert.equal(result.stopped??result.error??null,null,JSON.stringify(result).slice(0,300));
+  assert.deepEqual(acts.map(a=>a.tool),['browser_select_option']);
+  assert.deepEqual(acts[0].args,{targetId:'select-ref',values:['2']});
+  // Values written into the card itself stay forbidden.
+  f.card={...f.card,steps:[{tool:'select_option',target:select,slot:'v1',values:['2']}]};
+  assert.equal((await createReplayMemory(f.options).lookup(f.context)).procedures.length,0);
+});

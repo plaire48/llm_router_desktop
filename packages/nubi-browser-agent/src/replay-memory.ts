@@ -37,7 +37,9 @@ function portable(value:Json):boolean {
 function valid(card:ReviewedProcedure):boolean {
   if(!card||card.schemaVersion!==1||!id(card.id)||!Number.isSafeInteger(card.version)||card.version<1||!['draft','reviewed','revalidated'].includes(card.status)||typeof card.title!=='string'||!card.title.trim()||card.title.length>180||!id(card.wikiRef?.id)||!Number.isSafeInteger(card.wikiRef.version)||card.wikiRef.version<1||!/^[a-f0-9]{64}$/.test(card.wikiRef.hash)||!Array.isArray(card.steps)||!card.steps.length||card.steps.length>40||!Array.isArray(card.inputs)||card.inputs.length>30||card.inputs.some(x=>!id(x.slot)||typeof x.label!=='string'||!x.label.trim()||x.label.length>120)||new Set(card.inputs.map(x=>x.slot)).size!==card.inputs.length)return false;
   if(!portable(card as unknown as Json)||JSON.stringify(card).length>32000)return false;
-  return card.steps.every(step=>step.tool==='press_key'&&!!step.target&&Object.keys(step.args as JsonObject??{}).length===1&&['Tab','Enter','Escape','ArrowDown','ArrowUp','Space','Backspace'].includes((step.args as JsonObject)?.key as string)||step.tool==='click_element'&&!!step.target&&Object.keys(step.args as JsonObject??{}).length===0||step.tool==='fill_form'&&fields(step.fields).length===1&&fields(step.fields).every(field=>!!field.target&&card.inputs.some(x=>x.slot===field.slot)));
+  return card.steps.every(step=>step.tool==='press_key'&&!!step.target&&Object.keys(step.args as JsonObject??{}).length===1&&['Tab','Enter','Escape','ArrowDown','ArrowUp','Space','Backspace'].includes((step.args as JsonObject)?.key as string)||step.tool==='click_element'&&!!step.target&&Object.keys(step.args as JsonObject??{}).length===0||step.tool==='fill_form'&&fields(step.fields).length===1&&fields(step.fields).every(field=>!!field.target&&card.inputs.some(x=>x.slot===field.slot))
+    // A dropdown choice (browser teach plan T2, 2026-10-21): the chosen values live in an input slot, never in the card.
+    ||step.tool==='select_option'&&!!step.target&&typeof step.slot==='string'&&card.inputs.some(x=>x.slot===step.slot)&&Object.keys(step.args as JsonObject??{}).length===0);
 }
 const summary=(card:ReviewedProcedure):ProcedureSummary=>({id:card.id,version:card.version,title:card.title,inputs:clone(card.inputs)});
 const elements=(view:JsonObject)=>fields(view.frames).flatMap(frame=>fields(frame.elements));
@@ -70,7 +72,7 @@ export function createReplayMemory(options:ReplayMemoryOptions):BrowserMemoryPor
           const element=elements(view).find(x=>x.ref===ref),actual=element?options.replay.recordTarget(element,view):null;
           if(!actual||canonical(actual)!==canonical(expected))return {error:'procedure_target_changed'};
           attempted=meta!.replayIndex;
-          const act=(targetId:string)=>api.act(name==='fill_form'?'browser_type':name==='press_key'?'browser_press_key':'browser_click',{targetId,...(field?{text:field.value!}:name==='press_key'?{key:(step.args as JsonObject).key!}:{})});
+          const act=(targetId:string)=>api.act(name==='fill_form'?'browser_type':name==='press_key'?'browser_press_key':name==='select_option'?'browser_select_option':'browser_click',{targetId,...(field?{text:field.value!}:name==='press_key'?{key:(step.args as JsonObject).key!}:name==='select_option'?{values:(Array.isArray(args.values)?args.values:[args.values]).filter(x=>typeof x==='string')}:{})});
           let outcome:JsonObject|undefined,retryUnissued=false;
           try{outcome=await act(ref);}catch(error){
             if(!(error instanceof BrowserAgentError)||!['binding_changed','observation_changed'].includes(error.code))throw error;
