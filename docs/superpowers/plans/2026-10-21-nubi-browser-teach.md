@@ -46,7 +46,7 @@
 
 **Files:** Create `src/teach.ts`(`draftPlan(card) -> 단계마다 reason 추측과 valueSource 후보`, `questionsFor(plan) -> 질문 묶음`, `annotationBoard(observation) -> 번호와 표`), `tests/teach.test.mjs`. 번호 주석판의 동작 후보는 Stagehand observe를 쓴다.
 
-- [ ] 10단계 카드에서 질문이 5개 이하이고, 답이 카드의 reason, valueSource, guard, assert로 들어간다. 질문 종류는 셋뿐(어디, 어떤 값과 출처, 왜).
+- [x] (2026-10-21 05:35) `src/teach.ts`: draftPlan(카드 → 단계마다 한국어 요약, 이유 추측, 값 슬롯과 출처 후보, 제출/저장/삭제/결제 류는 guard), questionsFor(목적이 없을 때 한 번, 값 슬롯마다 출처, guard 단계마다 이유와 확인 방법), applyAnswers(답을 teach 메타데이터로, 단계는 불변, 고정값은 literal_pending으로만 표시하고 값은 카드 밖), annotationBoard(구조 관찰의 후보를 번호와 상자 좌표로). 구조 후보에 box 좌표를 더했다(`src/playwright.ts`). 5단계 견적서 카드에서 질문 3개. 시험 tests/teach.test.mjs 3개. 남은 것: Stagehand observe로 후보를 보강하는 선택 경로, 질문 카드 UI(T8).
 
 ### T5. Workspace 저장과 README, 상태 전이
 
