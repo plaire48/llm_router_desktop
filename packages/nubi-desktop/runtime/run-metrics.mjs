@@ -105,7 +105,7 @@ export function readRunMetrics(store, {taskId, runId} = {}) {
       // Submission outcomes (C10): the first attempt of a request whose newest tool result came from submit_page or submit_plan.
       if (row.attempt === 1 && ['submit_page', 'submit_plan'].includes(row.lastTool?.tool)) {
         const entry = summary.submissions[row.lastTool.tool] ??= {accepted: 0, rejected: 0, codes: {}};
-        if (row.lastTool.status === 'accepted') entry.accepted++;
+        if (['accepted', 'complete'].includes(row.lastTool.status)) entry.accepted++;
         else { entry.rejected++; const key = row.lastTool.code || row.lastTool.status || 'unknown'; entry.codes[key] = (entry.codes[key] || 0) + 1; }
       }
     } else if (row.kind === 'metric_tool') {

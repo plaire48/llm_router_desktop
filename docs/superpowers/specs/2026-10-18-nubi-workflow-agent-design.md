@@ -669,3 +669,9 @@ Claude Code가 같은 문제(사람이 정한 절차를 에이전트가 안전�
 25. **LibreOffice는 Mac 시험 전용, 릴리스 판정은 Windows Office 2016(2026-10-21, Claude 설계, 문서 쓰기 품질 설계 D1~D8).** **질문25 답(2026-10-21, 사용자 승인 "네 그렇게 하세요"와 보정 "mac의 리브레로 하는데 테스트할 때만 쓰고 실제 배포는 office 2016"):** Mac LibreOffice는 재계산과 렌더 시험에만 쓰고 CI와 설치판에는 넣지 않는다. 릴리스 판정은 Windows Office 2016 COM이다. 문서 쓰기 D1~D8은 위키 품질 뒤에 착수한다.
 
 26. **의미 검토 실패의 페이지 격리와 스키마 피드백(2026-10-21, Claude 설계와 구현, OpenWiki 코어 변경).** express 기준선에서 모델이 인자 없는 review_page를 보내자 Zod 예외가 러너를 fatal로 멈춰 초기화 전체가 실패했다(22페이지 중 0 게시). 변경: `repository-semantic-review.ts`는 잘못된 review_page를 대화 안에서 두 번까지 고치게 하고(`wiki_review_schema_invalid` 피드백) 그 뒤 페이지 검토 실패로 끝낸다. `repository-runner.ts`는 모델 측 검토 실패(schema, quote, coverage, response, incomplete, attempt_limit)를 그 페이지의 skipped로 격리하고 기반 장애(source_unavailable 등)만 fatal로 남긴다. Desktop은 실패 때 진단 사슬(오류 이름, 코드, Zod issue 경로만, 모델 글과 경로 없음)을 상태에 남긴다. **상태:** 구현과 시험 완료(OpenWiki 검토 31, 러너 44, 전체 3,564 통과, Desktop 위키 68). 답 13(내구성 훅)에 이은 두 번째 코어 예외이며 사용자가 거부하면 되돌린다. **보강(2026-10-21 02:15):** 4차 측정에서 submit_page 입력이 스키마에 맞지 않을 때 LangChain 기본 문구만 돌아가 모델이 같은 제출을 8회 되풀이했다. 제출 도구(submit_plan, inspect_claims, submit_page)에 verboseParsingErrors를 켜서 어느 칸이 틀렸는지 돌려준다(같은 범위의 한 줄 변경).
+
+27. **브라우저 가르치기 기능의 버전 배치(2026-10-21, Claude).** 사용자 지시(03:00)로 1.3.0 릴리스 절차보다 기능 고도화가 우선이 되어 번호를 미리 정하지 않는다. **상태:** 보류. 기능이 준비되면 그때 정한다.
+
+28. **회사 PC의 확장 배포 방식(2026-10-21, Claude).** 압축 해제 확장 로드가 정책으로 막히면 관리자 정책 등록이나 사내 스토어가 필요하다. Codex의 확인표(docs/BROWSER-TEACH-PC-CHECK-2026-10-21.md) 결과 뒤 결정. **상태:** 사용자 확인 대기.
+
+29. **위키 작성 프롬프트에 검토 규칙을 앞당기기(2026-10-21, Claude 설계, OpenWiki 프롬프트 변경).** 8차 측정에서 전송 결함을 모두 고친 뒤에도 페이지당 제출 약 4회(검토 반려 3회)가 들고 반려마다 작성 대화 10만 자를 다시 보낸다. 검토가 잡는 것은 과장 표현("모든 app에 영향"), 머리말과 본문의 모순, 원문과 다른 인용이다. 제안: 작성자 프롬프트에 이 세 규칙과 "인용은 원문 그대로 복사"를 넣고, 제출 전 자체 점검 목록을 요구해 반려를 줄인다. 검토 자체는 바꾸지 않는다. OpenWiki 프롬프트 파일 변경이라 코어 예외 승인이 필요하다. 권고: 승인. **상태:** 답 대기. 그 전에는 Desktop 쪽 지렛대(typedToolArguments, C9, C11)만 한다.

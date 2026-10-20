@@ -83,6 +83,7 @@ export async function wikiUpdateStatus(root){
 // (2026-10-12: three rejections in a row ended a five-minute generation).
 export const CALL_LIMIT={role:'system',content:'Host limit: return at most 8 tool calls in one response. Split larger sets of calls across responses.'};
 export const TEXT_REPLY={role:'user',content:'Host note: if no tool call is needed now, reply with one short sentence.'};
+const WIKI_TYPED_TOOL_ARGUMENTS=process.env.NUBI_WIKI_TYPED_ARGUMENTS!=='0';
 const withCallLimit=(wire,limit=8)=>{const callLimit=limit===8?CALL_LIMIT:{...CALL_LIMIT,content:CALL_LIMIT.content.replace('at most 8','at most '+limit)};const at=wire.findIndex(message=>message.role!=='system');return at<0?[...wire,callLimit]:[...wire.slice(0,at),callLimit,...wire.slice(at)];};
 // Repository reasoning may be slow. Parsed model activity keeps it alive; a
 // silent request ends one transport attempt; the persisted host policy owns retries.
@@ -127,7 +128,9 @@ export function defaultWikiUpdater(service,{load=()=>import('../generated/openwi
           const remaining=journal.value.deadlineAt-clock.now();if(remaining<=0)throw Error('wiki_budget_exhausted');
           const requestSignal=AbortSignal.any([options.signal||signal,AbortSignal.timeout(Math.max(1,Math.ceil(remaining)))].filter(Boolean));
           onModelCall?.();
-          const result=await invoke(attempt,tools,requestSignal,'wiki_update',{retries:0,retryInvalidResponse:false,...(status.request?{wikiRequest:status.request,...(context.getStore()?.path?{maxTokens:status.pageMaxTokens}:{})}:{})});
+          // Typed tool arguments (the mode the browser module already uses): the CLI enforces each tool's own schema, so
+          // arguments arrive as objects instead of JSON text (wiki quality baselines 6~8, 2026-10-21).
+          const result=await invoke(attempt,tools,requestSignal,'wiki_update',{retries:0,retryInvalidResponse:false,typedToolArguments:WIKI_TYPED_TOOL_ARGUMENTS,...(status.request?{wikiRequest:status.request,...(context.getStore()?.path?{maxTokens:status.pageMaxTokens}:{})}:{})});
           if(result.finishReason==='length'){
             const page=context.getStore()?.path||'planning';
             if(journal.continuation(page)){

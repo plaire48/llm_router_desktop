@@ -22,7 +22,7 @@ type Tracker={revision:number;submissions:number;identity(node:Node):number;disc
 type FrameState={frame:Frame;id:string;documentId:string;tracker?:JSHandle<Tracker>};
 type Target={ref?:string;handle?:ElementHandle;frameId?:string;frameDocumentId?:string;description:string};
 type Seen={observation:Observation;targets:Map<string,Target>;mode:ObserveOptions['mode'];frameId?:string};
-type TabState={tab:PlaywrightTab;frames:Map<Frame,FrameState>;seen:Map<string,Seen>;dispose():Promise<void>};
+type TabState={tab:PlaywrightTab;frames:Map<Frame,FrameState>;seen:Map<string,Seen>;autoScope?:{frame:Frame;root:Locator}[]|null;dispose():Promise<void>};
 const sensitiveTarget=(el:Node)=>el instanceof HTMLInputElement&&(['password','hidden'].includes(el.type)||['current-password','new-password','one-time-code'].some(x=>el.autocomplete.split(/\s+/).includes(x)));
 const editableTarget=(el:Node)=>el instanceof HTMLTextAreaElement||el instanceof HTMLInputElement&&!['button','submit','reset','checkbox','radio','file','image','range','color'].includes(el.type)||el instanceof HTMLElement&&el.isContentEditable;
 const target={type:'string',description:'Exact observed targetId; accessibility snapshot [ref=...] or structural candidate targetId.'};
@@ -68,15 +68,31 @@ export function createPlaywrightMcpPort(options:PlaywrightPortOptions):BrowserPo
     const state:TabState={tab,frames,seen:new Map(),async dispose(){tab.page.off('frameattached',attach);tab.page.off('framenavigated',navigate);tab.page.off('framedetached',detach);await Promise.allSettled([...frames.values()].map(async f=>{try{await f.tracker?.evaluate(t=>t.disconnect());}finally{await f.tracker?.dispose();}}));frames.clear();}};
     states.set(tabId,state);return state;
   };
+  // The main content root of a long page, or nothing when the page is small or has no such landmark.
+  const defaultScope=async(state:TabState)=>{
+    const main=state.tab.page.mainFrame();
+    const length=await main.evaluate(()=>document.body?.innerText?.length??0).catch(()=>0);
+    // Many frames usually means advertising iframes whose churn would invalidate every observation.
+    const crowded=state.frames.size>8;
+    if(length<=60_000&&!crowded)return undefined;
+    for(const selector of ['main','[role="main"]','article','#content','#mw-content-text','form']){
+      const root=main.locator(selector).first();
+      if(await root.count().catch(()=>0))return [{frame:main,root}];
+    }
+    return crowded?[{frame:main,root:main.locator('body')}]:undefined;
+  };
   const binding=async(state:TabState):Promise<Binding>=>{
     if(!options.scope&&state.frames.size>32)fail('frame_limit_exceeded');
-    const scoped=options.scope?.(state.tab);
+    const scoped=options.scope?.(state.tab)??state.autoScope??undefined;
     if(scoped&&(!scoped.length||scoped.length>16||scoped.some(x=>!state.frames.has(x.frame))))fail('scope_invalid');
     const included=scoped?new Set([state.tab.page.mainFrame()]):undefined;
     for(const item of scoped??[])for(let frame:Frame|null=item.frame;frame;frame=frame.parentFrame())included!.add(frame);
     const before=[...state.frames.values()].filter(f=>!included||included.has(f.frame));
+    // Without a scope, a child frame that detaches or reloads mid-binding (advertising iframes, browser quality
+    // baselines 4~7, 2026-10-21) is left out of the binding instead of failing it; only the main frame is fatal.
+    const mainFrame=state.tab.page.mainFrame();
     const rows=await Promise.all(before.map(async f=>{
-      const documentId=f.documentId;
+      const documentId=f.documentId,volatile=()=>{if(scoped||f.frame===mainFrame)fail('frame_changed');return null;};
       try{
       const tracker=f.tracker??await f.frame.evaluateHandle(()=>{
         const identities=new WeakMap<Node,number>();let serial=0;
@@ -86,9 +102,9 @@ export function createPlaywrightMcpPort(options:PlaywrightPortOptions):BrowserPo
         const submit=(event:Event)=>{queueMicrotask(()=>{const form=event.target;if(!event.defaultPrevented&&form instanceof HTMLFormElement&&['','_self'].includes(form.target)&&form.method!=='dialog'){state.submissions++;state.revision++;}});};document.addEventListener('submit',submit,true);
         state.disconnect=()=>{document.removeEventListener('submit',submit,true);observer.disconnect();document.removeEventListener('input',input,true);document.removeEventListener('change',input,true);};return state;
       });
-      if(f.documentId!==documentId||f.frame.isDetached()){await tracker.dispose().catch(()=>{});fail('frame_changed');}
+      if(f.documentId!==documentId||f.frame.isDetached()){await tracker.dispose().catch(()=>{});return volatile();}
       f.tracker=tracker;const revision=await tracker.evaluate(t=>t.revision);
-      if(f.documentId!==documentId||f.frame.isDetached())fail('frame_changed');
+      if(f.documentId!==documentId||f.frame.isDetached())return volatile();
       let effectiveRevision:string|number=revision;
       if(scoped){
         const proofs=[];for(const item of scoped.filter(x=>x.frame===f.frame)){
@@ -104,16 +120,17 @@ export function createPlaywrightMcpPort(options:PlaywrightPortOptions):BrowserPo
         }
         const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(proofs)));effectiveRevision=[...new Uint8Array(bytes)].map(x=>x.toString(16).padStart(2,'0')).join('');
       }
-      if(f.documentId!==documentId)fail('frame_changed');
+      if(f.documentId!==documentId)return volatile();
       return {id:f.id,documentId,parentId:state.frames.get(f.frame.parentFrame()!)?.id??null,revision:effectiveRevision};
       }catch(error){
-        if(f.documentId!==documentId||f.frame.isDetached()||error instanceof Error&&/Execution context was destroyed|Frame was detached|Cannot find context with specified id/.test(error.message))fail('frame_changed');
+        if(f.documentId!==documentId||f.frame.isDetached()||error instanceof Error&&/Execution context was destroyed|Frame was detached|Cannot find context with specified id/.test(error.message))return volatile();
         throw error;
       }
     }));
-    if((!scoped&&before.length!==state.frames.size)||before.some((f,i)=>state.frames.get(f.frame)!==f||f.documentId!==rows[i]?.documentId))fail('frame_changed');
-    const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(rows)));
-    const main=rows.find(x=>x.id===state.frames.get(state.tab.page.mainFrame())?.id);if(!main)return fail('frame_changed');
+    if(before.some((f,i)=>rows[i]&&(state.frames.get(f.frame)!==f||f.documentId!==rows[i]!.documentId))||(scoped&&before.length!==rows.filter(Boolean).length))fail('frame_changed');
+    const stable=rows.filter((row):row is NonNullable<typeof row>=>!!row);
+    const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(stable)));
+    const main=stable.find(x=>x.id===state.frames.get(mainFrame)?.id);if(!main)return fail('frame_changed');
     return {tabId:state.tab.tabId,documentId:main.documentId,revision:String(main.revision),frameTreeRevision:[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('')};
   };
   const clearSeen=async(state:TabState)=>{
@@ -130,18 +147,26 @@ export function createPlaywrightMcpPort(options:PlaywrightPortOptions):BrowserPo
     await catalog(state.tab.client);await clearSeen(state);
     // Let a page that is still mutating (lazy images, scripts) settle before the observation is bound, so a
     // mutation burst does not fail the whole observe (browser quality baseline 2, 2026-10-21: Korean Wikipedia).
+    // The automatic scope must be known before the first binding, so frames outside it (advertising iframes) do
+    // not count as frame changes while the page settles.
+    state.autoScope=!options.scope&&observeOptions.mode!=='structure'?(await defaultScope(state))??null:null;
     let initial=await binding(state);
     for(let attempt=0;attempt<6;attempt++){await new Promise(resolve=>setTimeout(resolve,250));check(context);const again=await binding(state);if(bindingEqual(initial,again))break;initial=again;}
     const targets=new Map<string,Target>();let data:Json;
     let published=false;
     try{
-    if(observeOptions.mode==='structure'||options.scope){
+    // A large page without a host scope (browser quality baseline 4, 2026-10-21: Wikipedia 64k tokens per observe,
+    // demoqa ads) is observed through its main content root instead of the whole document: an aria snapshot of
+    // that root plus its interactive candidates, which the scoped mode already produces.
+    const autoScope=state.autoScope??undefined;
+    const scopeFn=options.scope??(autoScope?()=>autoScope:undefined);
+    if(observeOptions.mode==='structure'||scopeFn){
       const candidates:Json[]=[];let truncated=false;
-      const roots=options.scope?.(state.tab)??[...state.frames.values()].map(f=>({frame:f.frame,root:f.frame.locator('body')}));
+      const roots=scopeFn?.(state.tab)??[...state.frames.values()].map(f=>({frame:f.frame,root:f.frame.locator('body')}));
       const snapshots:string[]=[];
       for(const item of roots){const f=state.frames.get(item.frame);if(!f)fail('scope_invalid');
         if(observeOptions.frameId&&f.id!==observeOptions.frameId)continue;
-        if(options.scope&&observeOptions.mode!=='structure')snapshots.push(await item.root.ariaSnapshot({timeout}));
+        if(scopeFn&&observeOptions.mode!=='structure'){const aria=await item.root.ariaSnapshot({timeout});if(aria.length>60_000)truncated=true;snapshots.push(aria.slice(0,60_000));}
         const locator=item.root.locator('input:not([type="password"]):not([type="hidden"]),textarea,button,select,a[href],[contenteditable="true"],[onclick],[tabindex]');
         const metadata=await locator.evaluateAll(elements=>{const visible=elements.map((el,index)=>{
           const box=el.getBoundingClientRect(),style=getComputedStyle(el);
@@ -160,7 +185,8 @@ export function createPlaywrightMcpPort(options:PlaywrightPortOptions):BrowserPo
       }
       if(observeOptions.frameId&&![...state.frames.values()].some(f=>f.id===observeOptions.frameId))fail('frame_unavailable');
       data={mode:observeOptions.mode??'accessibility',candidates,truncated,...(snapshots.length?{snapshot:snapshots.join('\n').slice(0,100000)}:{})};
-      if(!options.scope)(data as Record<string,Json>).mode='structure';
+      if(!scopeFn)(data as Record<string,Json>).mode='structure';
+      if(autoScope)(data as Record<string,Json>).autoScoped=true;
     }else{
       const result=await state.tab.client.callTool({name:'browser_snapshot',arguments:{}},undefined,{signal:context.signal});
       if(result.isError)fail('snapshot_failed');

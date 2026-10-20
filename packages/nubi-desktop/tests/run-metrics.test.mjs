@@ -92,7 +92,8 @@ test('the newest tool outcome is kept as typed codes and submissions are totalle
   assert.equal(latestToolOutcome([{role:'user',content:'x'}]),null);
   assert.equal(JSON.stringify(measureRequest(rejected)).includes('SECRET'),false);
   const s=await store(t);const metrics=createRunMetrics({store:s,taskId:'task-c10',runId:'run-1'});
-  for(const [messages,attempt] of [[rejected,1],[rejected,2],[accepted,1],[read,1]])metrics.beginModel({purpose:'wiki_update',attempt,messages,tools:[],model:'fixture'}).end({finishReason:'stop'});
+  const completed=[...rejected,{role:'assistant',content:'',tool_calls:calls('p8')},{role:'tool',tool_call_id:'p8',content:JSON.stringify({status:'complete',page:'/openwiki/b.md',remaining:3})}];
+  for(const [messages,attempt] of [[rejected,1],[rejected,2],[accepted,1],[read,1],[completed,1]])metrics.beginModel({purpose:'wiki_update',attempt,messages,tools:[],model:'fixture'}).end({finishReason:'stop'});
   const {summary}=readRunMetrics(s,{taskId:'task-c10',runId:'run-1'});
-  assert.deepEqual(summary.submissions,{submit_page:{accepted:1,rejected:1,codes:{wiki_claim_quote_mismatch:1}}},'retries of the same request are not counted twice');
+  assert.deepEqual(summary.submissions,{submit_page:{accepted:2,rejected:1,codes:{wiki_claim_quote_mismatch:1}}},'retries of the same request are not counted twice and a complete page counts as accepted');
 });
