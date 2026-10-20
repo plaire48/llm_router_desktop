@@ -67,7 +67,7 @@ export function createProcedureHost({page:pageOption,origin,allowedOrigins=[orig
         steps.push(captured.step);
       }
       if(!steps.length){captureErrors.push({tool:'build',error:'candidate_no_steps:trace_'+experience.trace.length+':omitted_'+omitted});return null;}
-      const candidate={schemaVersion:1,id:'learned-workflow',version:1,status:'draft',title,wikiRef:{id:'evaluation-wiki',version:revision,hash:digest(steps)},induction:{omittedNonportableClicks:omitted,requiresFreshInputQualification:true},inputs,steps};
+      const candidate={schemaVersion:1,id:'learned-workflow',version:1,status:'draft',title,wikiRef:{id:'evaluation-wiki',version:revision,hash:digest(steps)},...(experience.trace[0]?.metadata?.page?{startPage:experience.trace[0].metadata.page}:{}),induction:{omittedNonportableClicks:omitted,requiresFreshInputQualification:true},inputs,steps};
       lastCandidate=candidate;return candidate;
     },
   });

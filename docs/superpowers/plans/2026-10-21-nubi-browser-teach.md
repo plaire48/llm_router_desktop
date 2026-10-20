@@ -52,19 +52,20 @@
 
 **Files:** Create `packages/nubi-desktop/runtime/browser-scripts.mjs`(`browser-scripts/<이름>/{card.json, README.md, captures/, runs/}`, draft → reviewed(사용자 시험 통과) → revalidated(세 번 성공)), `tests/browser-scripts.test.mjs`.
 
-- [ ] 저장본에 입력값이 없고(슬롯과 출처만), README가 목적과 선행 조건과 단계를 담고, 원본 상태 전이가 기존 replay-memory 규칙과 같다.
+- [x] (2026-10-21 05:50) `packages/nubi-desktop/runtime/browser-scripts.mjs`: `.nubi/browser-scripts/<슬러그>/{card.json, README.md, captures/, runs/}`. 저장 전 검증(절차 기억의 금지 키 + 남은 값 + literal 금지, 허용 도구 6종, 슬롯 형식), README는 목적과 선행 조건과 단계(이유, 확인 필요 표시)와 입력(출처)을 적고 값은 쓰지 않는다. 상태 전이: 저장 draft, 사용자 시험 수락 reviewed, 같은 버전에서 세 번 연속 성공 revalidated, 단계가 바뀌면 version+1과 draft. 실행 영수증은 형식화된 사실만. 시험 tests/browser-scripts.test.mjs 3개.
 
 ### T6. 워크플로우 단계 종류 `browser_script`와 루틴
 
 **Files:** Modify `packages/nubi-desktop/runtime/workflow-schema.mjs`, `workflow-runner.mjs`, `workflow-adapters.mjs`; `tests/workflow-browser-script.test.mjs`.
 
-- [ ] 단계 입력(스크립트 이름, 슬롯 바인딩), 영수증(실행 id, 단계 수, 캡처, assert 결과), 실패는 행동 필요 목록(G1). 루틴 승격은 Task 9 규칙.
+- [x] (2026-10-21 06:10) 어댑터 `browser.script`(`runtime/workflow-adapters.mjs`, 카탈로그와 스키마 기본 어댑터에 browser 가족 추가): 스크립트 슬러그와 슬롯 값(args.values)을 받아 `.nubi/browser-scripts`의 reviewed 또는 revalidated 카드를 읽고, 카드의 startPage를 워크플로우 브라우저 탭으로 열어 기존 `runWorkflow`(결정적 재실행)로 모델 없이 돌린다. 매 동작 뒤 스냅숏을 다시 읽어 다음 단계를 지금 페이지에 맞춘다. 영수증(script, version, completed, confirmedSteps, stopped, ms, modelCalls 0)을 남기고 실행 기록을 저장소에 기록한다. 검사: 미검토 카드, 값 누락과 초과, startPage 없음, 브라우저 없음, 슬러그. `browser-workflow.mjs`에 select_option 매핑. 시험 tests/workflow-browser-script.test.mjs 3개(실제 브라우저 실행은 Electron 검사에서). 루틴 호출과 G1 연결은 기존 워크플로우 규칙을 그대로 따른다.
 
 ### T7. 자기 치유(초안)와 Stagehand
 
 **Files:** Modify `src/replay-memory.ts` 또는 `src/teach.ts`: 재실행 중 단계 실패 → 모듈 에이전트가 Stagehand act로 한 번 시도 → 성공하면 새 target을 초안으로 → 승인 뒤 카드 갱신.
 
 - [ ] 변형 화면 10종에서 초안 생성 70% 이상, 카드 자동 변경 0.
+- 메모(2026-10-21 06:20): 모듈에는 이미 재실행이 멈춘 단계를 에이전트가 새 관찰에서 고른 대상으로 한 번 잇는 resume(continuation)이 있고, 화면 변경 복구 실측(docs/research/2026-10-16-browser-agent-reopen-recovery.md)이 있다. T7은 Desktop 쪽 연결이다: browser.script 단계가 멈추면 "에이전트로 복구" 제안을 내고, 복구한 대상은 카드의 새 버전 초안(draft)으로만 저장해 사용자 승인 뒤 reviewed가 된다. T8 카드 UI와 함께 구현한다.
 
 ### T8. 카드 UI (Codex)
 

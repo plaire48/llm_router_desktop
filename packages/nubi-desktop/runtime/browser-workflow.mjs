@@ -36,8 +36,9 @@ export async function runWorkflow(plan,{observe,act,signal,onConfirmed=()=>{}}){
   signal?.throwIfAborted();
   if(name==='browser_snapshot'){lastText=await observe();return {observation:view(lastText)};}
   const field=name==='fill_form'?args.fields[0]:null;
-  const tool=name==='fill_form'?'browser_type':name==='press_key'?'browser_press_key':'browser_click';
-  const outcome=await act(tool,{target:field?.field_id||args.ref,...(field?{text:field.value}:name==='press_key'?{key:args.key}:{})});
+  // select_option joined the replayable steps with saved browser scripts (teach plan T6, 2026-10-21).
+  const tool=name==='fill_form'?'browser_type':name==='press_key'?'browser_press_key':name==='select_option'?'browser_select_option':'browser_click';
+  const outcome=await act(tool,{target:field?.field_id||args.ref,...(field?{text:field.value}:name==='press_key'?{key:args.key}:name==='select_option'?{values:Array.isArray(args.values)?args.values:[String(args.values??'')]}:{})});
   if(!outcome.ok)return {ok:false,error:outcome.execution==='unconfirmed'?'execution_unconfirmed':'workflow_action_failed'};
   confirmedSteps++;await onConfirmed(confirmedSteps);lastText=outcome.text;
   try{return {observation:view(lastText)};}catch{return {ok:false,error:'workflow_observation_changed'};}

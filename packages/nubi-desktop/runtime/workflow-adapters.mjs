@@ -9,8 +9,10 @@ import {irreversibleCommand} from './irreversible-actions.mjs';
 import {stepCacheKey} from './workflow-run.mjs';
 import {cleanModelText} from './model-text.mjs';
 import {assertWorkflowCall} from './workflow-policy.mjs';
+import {loadBrowserScript,recordBrowserScriptRun} from './browser-scripts.mjs';
+import {runWorkflow} from './browser-workflow.mjs';
 
-export const ADAPTER_CATALOG={web:['read','verify'],terminal:['run'],documents:['exists','read','hash'],mcp:['call']};
+export const ADAPTER_CATALOG={web:['read','verify'],terminal:['run'],documents:['exists','read','hash'],mcp:['call'],browser:['script']};
 const oneLine=value=>cleanModelText(value).slice(0,500);
 const textOf=result=>typeof result?.text==='string'?result.text:(result?.content||[]).filter(part=>part.type==='text').map(part=>part.text).join('\n');
 
@@ -77,6 +79,37 @@ export function createAdapters(service,{taskId,runId}={}){
       return {ok:true,result,observation,receipts:[receipt('web.verify',{...result,observation},context)]};
     }
   };
+  // A saved browser script (teach plan T6): a reviewed card from .nubi/browser-scripts runs on the workflow's own
+  // browser tab through the existing deterministic replay, with no model. Values come from the step arguments,
+  // one per input slot, and never from the card.
+  const browser={irreversible:()=>false,
+    async script(args,context={}){
+      authorize('browser.script',args,context);
+      if(typeof args?.script!=='string')fail('browser_script_slug_invalid');
+      const workspace=await service.target(taskId),{card}=await loadBrowserScript(workspace,args.script);
+      if(!['reviewed','revalidated'].includes(card.status))fail('browser_script_not_reviewed');
+      const values=args.values&&typeof args.values==='object'&&!Array.isArray(args.values)?args.values:{};
+      for(const input of card.inputs)if(typeof values[input.slot]!=='string')fail('browser_script_inputs_missing');
+      if(Object.keys(values).some(key=>!card.inputs.some(input=>input.slot===key)))fail('browser_script_inputs_invalid');
+      if(typeof card.startPage!=='string'||!/^https?:\/\//.test(card.startPage))fail('browser_script_start_missing');
+      if(typeof service.playwrightRequest!=='function'||typeof service.mcpRegistry!=='function')fail('workflow_browser_unavailable');
+      const started=Date.now(),binding=await service.playwrightRequest('open',{url:card.startPage},{signal:context.signal});
+      if(!binding?.tabId||!binding.documentId||binding.automation===false)fail('workflow_browser_unavailable');
+      let current={tabId:binding.tabId,documentId:binding.documentId};
+      const result=await runWorkflow({steps:card.steps,values},{signal:context.signal,
+        observe:async()=>(await snapshot(current,context)).text,
+        act:async(tool,input)=>{
+          alive(context.signal);
+          const outcome=await service.mcpRegistry().call('mcp__playwright__'+tool,{...current,...input},{signal:context.signal});
+          if(outcome?.isError||outcome?.ok===false)return {ok:false,execution:'failed'};
+          const after=await service.playwrightRequest('check',{tabId:current.tabId},{signal:context.signal});current={tabId:after.tabId,documentId:after.documentId};
+          // The page is read again after every action so the next step matches the page as it is now.
+          return {ok:true,text:(await snapshot(current,context)).text};
+        }});
+      const data={script:args.script,version:card.version,completed:!!result.completed,confirmedSteps:result.confirmedSteps,stopped:result.stopped?.text??result.stopped?.reason??null,ms:Date.now()-started,modelCalls:0};
+      try{await recordBrowserScriptRun(workspace,args.script,{success:data.completed,steps:data.confirmedSteps,stopped:data.stopped,ms:data.ms,modelCalls:0});}catch{/* A receipt file failure must not change the run outcome. */}
+      return {ok:data.completed,result:data,receipts:[receipt('browser.script',data,context)]};
+    }};
   const terminal={irreversible:args=>irreversibleCommand(args?.script).matched,
     async run(args,context={}){
       authorize('terminal.run',args,context);
@@ -119,7 +152,7 @@ export function createAdapters(service,{taskId,runId}={}){
       return {ok:process.state==='completed'&&process.exitCode===0,result,receipts,...(process.state==='completed'&&process.exitCode===0?{}:{error:'workflow_command_failed'})};
     }
   };
-  return {mcp:createWorkflowMcp(service,{owner,taskId,runId,alive,authorize}),web,terminal,documents:{read:document('read'),exists:document('exists'),hash:document('hash'),irreversible:()=>false}};
+  return {mcp:createWorkflowMcp(service,{owner,taskId,runId,alive,authorize}),web,terminal,browser,documents:{read:document('read'),exists:document('exists'),hash:document('hash'),irreversible:()=>false}};
 }
 
 export function createSyntheticAdapters(fixture={}){

@@ -33,7 +33,7 @@ export const WORKFLOW_SCHEMA={type:'object',additionalProperties:false,required:
 }};
 const ajv=new Ajv({allErrors:false,strict:false,ownProperties:true,validateFormats:false});
 const schema=ajv.compile(WORKFLOW_SCHEMA);
-const defaultAdapters={web:['read','verify'],terminal:['run'],documents:['exists','read','hash'],mcp:['call']};
+const defaultAdapters={web:['read','verify'],terminal:['run'],documents:['exists','read','hash'],mcp:['call'],browser:['script']};
 const error=(code,path,message)=>({ok:false,errors:[{code,path,message}]});
 const pointer=(path,key)=>path+'/'+String(key).replace(/~/g,'~0').replace(/\//g,'~1');
 

@@ -9,7 +9,7 @@ import {createHash} from 'node:crypto';
 
 export interface DemonstrationEvent {kind:'click'|'input'|'select'|'key';at:number;index:number;key?:string;value?:string;values?:string[];items:JsonObject[];url:string;title:string}
 export interface DemonstrationRecorder {recordStep(tool:string,args:JsonObject,observation:JsonObject,result:JsonObject,slot:()=>string):{step?:JsonObject;unreplayable?:string;values?:JsonObject}|null;recordTarget(element:JsonObject,view:JsonObject):JsonObject|null}
-export interface DemonstrationCard {schemaVersion:1;id:string;version:number;status:'draft';title:string;wikiRef:{id:string;version:number;hash:string};inputs:{slot:string;label:string;kind?:string}[];steps:JsonObject[];demonstration:{events:number;skipped:number}}
+export interface DemonstrationCard {schemaVersion:1;id:string;version:number;status:'draft';title:string;wikiRef:{id:string;version:number;hash:string};startPage?:string;inputs:{slot:string;label:string;kind?:string}[];steps:JsonObject[];demonstration:{events:number;skipped:number}}
 
 export const INTERACTIVE_SELECTOR='input:not([type="hidden"]),textarea,button,select,a[href],[contenteditable="true"],[onclick],[tabindex]';
 const KEYS=new Set(['Tab','Enter','Escape','ArrowDown','ArrowUp','Space','Backspace']);
@@ -80,6 +80,8 @@ export function demonstrationCard(events:DemonstrationEvent[],input:{id:string;t
   }
   if(!steps.length)return null;
   const hash=createHash('sha256').update(JSON.stringify(steps)).digest('hex');
-  return {schemaVersion:1,id:input.id,version:1,status:'draft',title:input.title,wikiRef:{...input.wikiRef,hash},inputs,steps,demonstration:{events:events.length,skipped}};
+  // Where the demonstration began: a saved script opens this page before its first step (origin and path only).
+  const first=events.find(e=>e.url);let startPage:string|undefined;try{if(first){const u=new URL(first.url);startPage=u.origin+u.pathname;}}catch{startPage=undefined;}
+  return {schemaVersion:1,id:input.id,version:1,status:'draft',title:input.title,wikiRef:{...input.wikiRef,hash},...(startPage?{startPage}:{}),inputs,steps,demonstration:{events:events.length,skipped}};
 }
 export const demonstrationValues=(events:DemonstrationEvent[]):Json[]=>events.filter(e=>e.kind==='input'||e.kind==='select').map(e=>e.kind==='input'?e.value??'':(e.values??[]).join(','));

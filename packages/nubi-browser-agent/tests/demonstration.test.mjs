@@ -27,6 +27,7 @@ test('typing, a dropdown choice, a key and a click become slots and steps withou
   assert.equal(card.steps[0].fields[0].target.name,'Full Name');
   assert.equal(card.steps[4].target.name,'Submit');
   assert.match(card.wikiRef.hash,/^[a-f0-9]{64}$/);
+  assert.equal(card.startPage,'https://demo.invalid/form','the card remembers where the demonstration began');
 });
 
 test('an empty or unusable demonstration yields no card and the page script lists the same controls',()=>{

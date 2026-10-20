@@ -13,7 +13,7 @@ const ctx={stepId:'read',summary:'합성 자료를 확인합니다.'};
 async function setup(t){const f=await fixture(t),task=await f.service.createTask({request:'합성 워크플로우를 확인합니다.'});f.service.store.set('task:'+task.id,{...task,state:'review'});return {...f,task,adapters:createAdapters(f.service,{taskId:task.id,runId:'run-test'})};}
 test('catalog and synthetic adapters have the same actions and missing responses fail explicitly',async()=>{
   const synthetic=createSyntheticAdapters({responses:{read:{ok:true,result:{value:'합성'},receipts:['fixture:read']}}});
-  assert.deepEqual(ADAPTER_CATALOG,{web:['read','verify'],terminal:['run'],documents:['exists','read','hash'],mcp:['call']});
+  assert.deepEqual(ADAPTER_CATALOG,{web:['read','verify'],terminal:['run'],documents:['exists','read','hash'],mcp:['call'],browser:['script']});
   for(const [name,actions] of Object.entries(ADAPTER_CATALOG))for(const action of actions){const result=await synthetic[name][action]({},ctx);assert.equal(result.ok,true);assert.equal(result.result.value,'합성');assert.equal(typeof synthetic[name].irreversible,'function');}
   assert.equal((await synthetic.web.read({},{stepId:'missing'})).error,'workflow_fixture_missing');
 });
