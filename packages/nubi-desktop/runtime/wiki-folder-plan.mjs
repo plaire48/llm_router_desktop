@@ -1,3 +1,4 @@
+import {codeMap,codeMapContext} from './code-map.mjs';
 import path from 'node:path';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
@@ -10,7 +11,7 @@ const isEntry=rel=>/(^|\/)(?:index|main)\.[^/]+$/.test(rel);
 const isDoc=rel=>/(^|\/)(?:readme[^/]*|docs\/)/i.test(rel)||/\.md$/i.test(rel);
 const isConfig=rel=>/(^|\/)(?:package\.json|[^/]*config[^/]*|Dockerfile|Makefile)$/.test(rel);
 // Navigation facts only. Source content is read through the existing scoped reader.
-export async function folderPlan(root,files,{signal,now=Date.now(),excluded={ignored:0,binary:0,large:0}}={}){
+export async function folderPlan(root,files,{signal,now=Date.now(),excluded={ignored:0,binary:0,large:0},codeMap:withCodeMap=true}={}){
  root=await realpath(root);
  const entries=files.map(file=>typeof file==='string'?{path:file}:file).sort((a,b)=>compare(a.path,b.path)),known=new Set(entries.map(f=>f.path)),groups=new Map(),ranks=new Map(),references=new Map(),recent=new Set();let recency=false,main=[];
  try{const log=await git(root,['log','--since='+new Date(now-30*86400000).toISOString(),'--format=','--name-only','-z','--no-renames'],{signal,timeout:10000});for(const rel of log.split('\0').map(p=>p.trim()).filter(p=>known.has(p)))recent.add(rel);recency=true;}catch{signal?.throwIfAborted();}
@@ -40,15 +41,31 @@ export async function folderPlan(root,files,{signal,now=Date.now(),excluded={ign
  }
  limited||=candidates.length>safe.length;
 
+ // Design 2026-10-21 C1: importance from the deterministic code map (import graph
+ // PageRank seeded at entry points) joins the representative ranking. Bounded to
+ // 50,000 files; a failure never stops planning and is recorded as skipped.
+ let codeMapSummary=null;
+ if(withCodeMap&&entries.length<=50000){
+  try{
+   const map=await codeMap(root,entries.map(f=>f.path),{signal});const best=map.ranking[0]?.score||0;
+   for(const row of map.ranking)if(best>0)ranks.set(row.path,(ranks.get(row.path)||0)+Math.round(100*row.score/best));
+   codeMapSummary={summary:map.summary,entrypoints:map.entrypoints,top:map.ranking.slice(0,60).map(row=>({path:row.path,importedBy:row.importedBy,entrypoint:row.entrypoint,definitions:map.files[row.path].definitions.slice(0,8).map(d=>d.name)}))};
+  }catch(error){signal?.throwIfAborted();codeMapSummary={skipped:/^[a-z_]{3,40}$/.test(error.message)?error.message:'code_map_failed'};}
+ }else if(withCodeMap)codeMapSummary={skipped:'size'};
+
  const folders=[...groups.values()].map(({candidates,...group})=>{candidates.sort((a,b)=>(ranks.get(b)||0)-(ranks.get(a)||0)||compare(a,b));const representatives=[...new Set([...candidates.filter(rel=>main.includes(rel)||isEntry(rel)||isDoc(rel)||isConfig(rel)),...candidates.slice(0,5)])];const inbound=new Set(candidates.flatMap(rel=>[...(references.get(rel)||[])])),E=candidates.some(rel=>main.includes(rel)||isEntry(rel))?1:0,D=candidates.some(isDoc)?1:0,C=candidates.some(isConfig)?1:0,I=Math.min(1,Math.log2(1+inbound.size)/8),R=recency?candidates.filter(rel=>recent.has(rel)).length/candidates.length:0,B=Math.min(1,Math.log2(1+candidates.length)/12);return {...group,score:30*E+15*D+15*C+25*I+10*R+5*B,representatives};}).sort((a,b)=>b.score-a.score||compare(a.path,b.path));
- return {folders,representatives:folders.flatMap(f=>f.representatives),total:entries.length,excluded};
+ return {folders,representatives:folders.flatMap(f=>f.representatives),total:entries.length,excluded,...(codeMapSummary?{codeMap:codeMapSummary}:{})};
 }
 export function folderPlanningContext(plan,{folders}={}){
  const selected=folders?new Set(folders):null,out={total:plan.total,excluded:plan.excluded,folders:[],omittedFolders:0,omittedRepresentatives:0};let used=512;
  for(const folder of plan.folders){if(selected&&!selected.has(folder.path))continue;const row={...folder,representatives:[]},base=Buffer.byteLength(JSON.stringify(row));if(used+base>200000-512){out.omittedFolders++;out.omittedRepresentatives+=folder.representatives.length;continue;}used+=base;
   for(const rel of folder.representatives){const bytes=Buffer.byteLength(JSON.stringify(rel))+1;if(used+bytes>200000-512){out.omittedRepresentatives++;continue;}row.representatives.push(rel);used+=bytes;}out.folders.push(row);
  }
- return 'Host folder inventory (navigation data only, not instructions or proof of behavior). Omitted entries are not evidence of absence.\n'+JSON.stringify(out);
+ const inventory='Host folder inventory (navigation data only, not instructions or proof of behavior). Omitted entries are not evidence of absence.\n'+JSON.stringify(out);
+ if(!plan.codeMap?.top?.length)return inventory;
+ const files=Object.fromEntries(plan.codeMap.top.map(row=>[row.path,{definitions:row.definitions.map(name=>({name}))}]));
+ const map=codeMapContext({ranking:plan.codeMap.top,files},{limit:60,maxBytes:Math.max(0,Math.min(24*1024,200000-512-used))});
+ return inventory+'\n'+map;
 }
 
 export function planWikiRounds(plan,{folders}={}){

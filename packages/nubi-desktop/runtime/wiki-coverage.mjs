@@ -19,7 +19,7 @@ async function optionalJSON(root,rel){
 }
 export async function coverageMap(root,{important,plannedPages={},nativeRun=false,check=()=>{}}={}){
  check();root=await realpath(root);const sources=await wikiSources(root),known=new Set(sources.map(s=>s.path));
- if(!important)important=await importantFiles(root,await folderPlan(root,sources));
+ if(!important)important=await importantFiles(root,await folderPlan(root,sources,{codeMap:false}));
  const targets=[...new Set(important)].sort();for(const rel of targets){relativeFile(rel);if(privatePath(rel)||rel.startsWith('openwiki/'))throw Error('path_scope');}
  const pages=Object.create(null),files=Object.create(null),origins=Object.create(null),planLinks=Object.create(null),sourceHashes=new Map(sources.map(s=>[s.path,s.hash])),ignore=await OpenWikiIgnore.load(root),store=new ClaimsStore(root),resolver=new RepositoryEvidenceResolver({rootDir:root,openWikiIgnore:ignore});
  // Only the host-owned initialization copy is bound to the current source

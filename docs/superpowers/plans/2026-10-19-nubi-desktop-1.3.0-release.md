@@ -187,6 +187,11 @@
 - 사용자 지시 "기능 중심으로 부족한 부분을 찾아 설계"에 따라 여정 열 단계를 대조해 찾은 공백. G0 워크플로우 루틴 화면 연결(Task 9 UI, 승격 제안 소비처)과 G1 행동 필요 목록(Buzz B9를 3차 Task 6에서 떼어 앞당김)은 P0로 핵심 13 → rc1 사이에. G2 메일 도착 트리거는 L2 뒤(F4 앞), G3 워크플로우 공유와 버전은 저작 UI 6 뒤, G4 절전/오프라인 일반화는 Q8 뒤, G5 접근성 최소 규칙은 Q7 안. 새 의존성 없음.
 - Task 9 런타임은 Claude가 2026-10-21에 구현했다(루틴 kind workflow, definitionHash(일정 제외, README 포함), 감독 통과 전 무인 시작 금지와 알림 한 번, 제안 레코드, 일정 되쓰기, 승격 제안 한 번; 시험 (a)~(f)). 기존 러너 시험의 감독 통과 키 심기는 패키지 해시 → 정의 해시로 옮겼다. 화면 연결(G0)은 Codex.
 
+### 위키 규모와 품질 M1~M6, C1~C7(2026-10-21, 사용자 질문 "수십만 통 메일과 큰 저장소", 설계 `docs/superpowers/specs/2026-10-21-nubi-wiki-scale-quality-design.md`)
+- 지금 메일은 `store.list('mail:')` 전체 스캔, MiniSearch 메모리 색인, 메일당 모델 요약이라 수천 통 전제다. 코드 위키는 파일 상한 20만, 1MiB 제외, 대표 파일 표본 계획이라 깊이를 모델 판단에 기댄다. 설계: 결정적인 것은 호스트(SQLite FTS5, 스레드 묶기, 심벌 지도와 PageRank 중요도), 모델은 상위 묶음 요약과 답변만, 증분만, 메모리 상한(메일 500MB, 코드 1GB).
+- 배치: rc2 전에 M6 합성 30만 통 생성기와 측정, M1 저장/색인, M2 모델 없는 파이프라인, C1 코드 지도(W7 대체), C2 큰 파일 정책, C7 공개 OSS 세 크기 기준선.
+- C1 진행(2026-10-21, Claude): 코드 지도 모듈과 폴더 계획 연결, 시험 5개, OSS 두 저장소 측정 완료(보강 계획 W7 메모). C7 기준선의 결정적 부분(목록, 폴더 계획, 지도 소요)은 express와 undici로 잡았고 모델이 드는 부분(초기화, 질문 200개)은 사용자 계정 실행이 필요하다. 후반에 M3 두 계층 메일 위키, M4 검색, M5 보관, C3 깊이, C5 린트(W6 대체)와 정답셋, C4 증분, C6 파일 단위 건너뛰기. §8 질문 18(색인 암호화), 19(보관 기본값), 20(tree-sitter) 답 대기. 새 의존성 없음.
+
 ### 릴리스 리듬
 - 핵심 13 끝 → 1.3.0-rc1, L2 끝 → rc2, 후반 끝 → rc3, 3차 묶음 끝 → rc4, 자기 보강 루프와 워크플로우 3단계 끝 → 1.3.0 최종. rc마다 Q1의20회 측정(`node scripts/measure-wiki-durability.mjs --output verification/wiki-durability/q1-<rc>.json`), Actions 전체 게이트와 Windows 실측 항목 갱신.
 
@@ -217,6 +222,8 @@
 > **사용량 초기화 업로드와 Q3 실제 연결 결과(2026-10-20 21:30, Claude, main d0643712, Actions 18차 39425332493):** 사용량 초기화 9파일과 설계 §8 답 17을 올렸다(Claude 검토: 집중 4개, 화면 검사 1280/440/360, 게이트 집합 ok). **Q3는 보류**다. Claude 업로더에 `check-release-inputs.mjs`를 실제로 연결해 후보 트리(main 기준 임시 트리)로 돌리자 22건이 나왔고 세 종류 모두 검사기의 모델이 실제 후보 트리와 다른 데서 온다. ① `eval/hard-10/run.mjs`의 `../candidate.mjs` 같은 상대 import를 파일 위치가 아니라 패키지 루트 기준으로 풀어 `packages/candidate.mjs/package.json` 같은 형제 패키지로 오인(8건)과 `packages/hard-10/fixtures.mjs` 같은 참조 누락(2건). ② `generated/*.mjs` 6건은 gitignore된 빌드 산출물로 CI가 compile과 pretest로 다시 만드는데 검사기가 트리 안 존재를 요구. ③ `node_modules/...` 참조 4건은 CI가 npm ci로 설치하는 의존성인데 파일 존재를 요구. Codex의 로컬 통과는 작업 폴더 바이트로 만든 임시 트리(generated와 node_modules 포함)여서 통과한 것이다. 조치: 업로더 게이트는 `RELEASE_INPUTS_GATE=1`일 때만 돌도록 두고(기본 꺼짐), Windows workflow 단계 추가도 검사기 v2가 실제 후보(main)에서 exit 0을 낼 때까지 미룬다. 기대 동작: 상대 import는 파일 디렉터리 기준으로 풀고 형제 패키지는 file: 의존성과 패키지 루트 밖으로 나가는 경로만, generated는 산출물이 아니라 빌드 입력(entryPoints와 import 그래프)을 요구, node_modules는 package.json 의존성과 lockfile 존재로 확인, 회귀 시험은 node_modules와 generated가 없는 후보 트리로.
 
 > **Actions 18차 녹색(2026-10-20 22:10, Claude, 39425332493, d0643712):** 워크플로 16분 16초(20분 안). unit 16분 12초(미판정 0), ui 8분 07초(미판정 16건). 16차, 17차, 18차 연속 녹색으로 Q2는 계속 충족. ui 작업이 6분 50초 → 8분 07초로 늘었다(사용량 초기화 화면 검사는 fast 체인에 없으므로 러너 편차). unit 여유 약 3.5분 그대로.
+
+> **Actions 19차 녹색(2026-10-21, Claude, 39450133722, Task 9 런타임 756ab00d):** 워크플로 10분 39초(빠른 러너). unit 10분 34초(미판정 0), ui 7분 32초(미판정 16건). 16~19차 연속 녹색.
 
 ## Task R1: 게이트를 GitHub Actions로
 
