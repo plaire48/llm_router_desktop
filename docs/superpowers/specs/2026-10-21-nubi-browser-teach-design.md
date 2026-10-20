@@ -58,7 +58,7 @@
 - 녹화기는 페이지에 주입되는 스크립트 하나다. 캡처 대상은 click, dblclick, input과 change, select, keydown(Enter, Tab, Escape), 이동과 새 탭이다. 비밀번호 칸과 로그인 주소 페이지는 값을 기록하지 않고 "사용자가 입력함"으로만 남긴다.
 - 셀렉터 후보는 Playwright 규칙을 따른다. 순서는 역할과 접근성 이름, 라벨, placeholder, 보이는 글자, data-testid, id, 짧은 CSS 경로다. 후보를 전부 저장하고 실행 때 순서대로 시도한다.
 - 단계마다 실행 직전 캡처와 요소 테두리 좌표를 남긴다. 캡처는 Workspace 안에만 두고 공유 때는 선택이다.
-- 외부 브라우저는 확장의 scripting으로, 내부 뷰는 `playwright-tab.cjs`의 탭 디버거로 같은 스크립트를 넣는다. 녹화 결과 형식은 동일하다.
+- 외부 브라우저는 확장의 scripting으로, 내부 뷰는 `playwright-tab.cjs`의 탭 디버거로 같은 스크립트를 넣는다. 녹화 결과 형식은 동일하다. 구현(2026-10-21, §11j): 둘 다 탭 디버거 인터페이스 위에서 CDP로 넣는다(내부는 실제 `webContents.debugger`, 외부는 확장의 CDP 중계). 확장 scripting은 쓰지 않는다.
 
 ## 6. 가르치기 흐름 (Magentic-UI 원칙)
 
@@ -212,6 +212,16 @@
 | 합계 | **18/20 (90%)** | | 수용 기준 90% 도달 |
 
 실패 둘: ① 새 창. 링크를 눌러 새 창이 열리면 어댑터의 탭 목록이 주 탭뿐이라 결과를 확인하지 못해 사람에게 넘긴다(reconcile 미확인). 어댑터에 팝업 탭 등록(context의 page 이벤트)이 필요하다. ② 표 필터(demoqa). 모델은 "Vega"를 맞게 답했지만 오라클이 거른 행 0개를 봤다. 입력 뒤 React 표의 반응 또는 오라클 시점 문제이고 재측정으로 가른다.
+
+### 11j. 제품 브라우저 녹화와 T8 호스트 연결 (2026-10-21 07:40, 계획 T3 제품 단계, §8 답 32)
+
+- 녹화기 `electron-app/demonstration-recorder.cjs`: 탭 디버거(내부 뷰의 `webContents.debugger`, 외부 탭의 확장 CDP 중계 shim) 위에서 `Page.addScriptToEvaluateOnNewDocument`, `Runtime.addBinding('__nubiDemonstration')`, `Runtime.evaluate`로 브라우저 모듈의 같은 페이지 스크립트를 넣고 `Runtime.bindingCalled`를 모은다. 주 프레임의 기본 실행 컨텍스트만 기록한다(`Page.getFrameTree`와 `Runtime.executionContextCreated`로 판별, 자식 타깃은 받지 않음). Playwright 포트가 이미 붙어 있으면 공유하고(종료 때 바인딩과 스크립트만 제거) 아니면 녹화기가 소유한다(종료 때 detach). 녹화 중에는 Playwright 포트가 그 탭에 새로 붙지 못한다(`browser_debugger_busy`). 이벤트 상한 200.
+- 호스트 액션 `demonstration {op:start|status|stop}` (`playwright-host.cjs`, 내부와 외부 공용): start는 기존 자동화 보호(로그인 중, SAML, code/token 주소)를 그대로 적용하고 그런 주소의 이벤트는 버린다. stop과 status는 사람이 보호 페이지나 닫힌 탭에서 끝내도 동작하며 보호 주소는 돌려주지 않는다. dispose가 모든 녹화를 끝낸다.
+- 런타임 `browserTeach` (`runtime/browser-teach-host.mjs`, ProjectService 허용 목록): tabs, record(start, status, stop), test, save, approve, discard, list. stop이 `demonstrationCard`로 초안을 만들고 시연 때 입력한 값은 세션 메모리에만 둔다(카드와 파일에는 슬롯만). binding은 {projectId, sessionId, revision(단계 해시 16자)}. test는 같은 세션과 같은 단계 해시의 카드만 1회 실행하고(`runBrowserCard`, T6 어댑터와 같은 실행기, 모델 0) 실행 뒤 캡처 1장을 영수증에 붙인다. save는 draft로 저장하고(제목에서 slug, 다른 단계의 같은 slug는 `-2`) 영수증과 캡처를 `runs/`, `captures/`에 쓴다. approve는 저장된 slug, hash(단계 해시), version과 성공 영수증, 검수한 캡처 전부가 맞을 때만 reviewed. 세션은 8개까지.
+- 공용 실행기 `runtime/browser-card-run.mjs`: T6 `browser.script` 어댑터도 이것을 쓴다(동작 동일, 검사 3건 유지).
+- 발견한 공백 1(수정): 시연 카드의 대상이 `context`(주변 글자)를 갖는데 제품 재실행의 관찰(접근성 스냅숏)에는 context가 없어 첫 단계부터 "찾지 못함"으로 멈췄다. 제품 카드에서는 context를 라벨에만 쓰고 대상에서 뺀다. 같은 모양 컨트롤은 §8 질문 30대로 멈춘다.
+- 남은 것: 번호 주석판용 구조 관찰과 캡처(stop 응답의 observation과 capture는 null, 패널의 "화면에서 확인"은 비활성), 외부 탭에서 문서 id가 바뀌는 순간의 이벤트 누락(이동 직후 잠깐), OOPIF 안의 조작은 기록되지 않음, 실제 브라우저 왕복 실측.
+- 검사: `tests/demonstration-recorder.test.mjs` 5, `tests/playwright-host-demonstration.test.mjs` 2, `tests/browser-teach-host.test.mjs` 3.
 
 ## 12. 단계와 배치
 

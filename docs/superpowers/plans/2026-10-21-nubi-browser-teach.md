@@ -42,6 +42,8 @@
 
 - [x] (2026-10-21 05:20) `src/demonstration.ts`: 페이지 쪽 녹화 스크립트와 createDemonstration, demonstrationCard. 점검판 `--demo`로 대본 사용자가 시연하면 카드가 reviewed로 들어가 직접 재실행된다. 결과: 숫자 입력 3.1초, 드롭다운 3.4초, 양식 세 칸 제출 8.5초(4단계), 키 입력 3.3초가 모두 시연부터 재실행까지 모델 0으로 성공. 링크 따라가기도 사후 관찰을 넘기도록 고친 뒤 4.4초 성공. 대본이 있는 5과제 모두 모델 0. 남은 것: 자식 프레임 시연, 확장(외부 브라우저) 주입 경로, 내부 뷰 주입 경로.
 
+- [x] (2026-10-21 07:40) 제품 주입: `electron-app/demonstration-recorder.cjs`(탭 디버거 공용 인터페이스, 내부 뷰와 외부 탭 동일), `playwright-host.cjs`의 `demonstration` 액션, 런타임 `browserTeach`(record stop이 초안 카드, 값은 세션 메모리). 발견한 공백: 시연 대상의 context가 제품 재실행 관찰에 없어 멈춤 → 대상에서 제거. 설계 §11j.
+
 ### T4. 가르치기 세션(계획 초안, 질문 묶음, 번호 주석판)
 
 **Files:** Create `src/teach.ts`(`draftPlan(card) -> 단계마다 reason 추측과 valueSource 후보`, `questionsFor(plan) -> 질문 묶음`, `annotationBoard(observation) -> 번호와 표`), `tests/teach.test.mjs`. 번호 주석판의 동작 후보는 Stagehand observe를 쓴다.
@@ -70,6 +72,9 @@
 ### T8. 카드 UI (Codex)
 
 **Files:** `ui/BrowserTeachPanel.jsx`(계획 초안과 질문 묶음, 번호 주석판, 시험 실행과 캡처 검수, 저장), `ui/BrowserScriptCard.jsx`(실행 결과, 초안 승인). 기존 양식 재사용: 목록 행, 진행 행, deck-dialog, 캡처 검수. 1280/440 캡처와 디자인 규칙 검사.
+
+- [x] 화면 조각과 합성 포트 검사(2026-10-21): T4 함수 직접 재사용, 구조 관찰/캡처 바인딩과 번호 좌표, 질문, 시험 요청, 캡처 검수, draft 저장/승인 표시. 순수 Node 3개와 1280/440 흐름/공통 디자인/접근성 검사 통과. 보고서 `docs/BROWSER-TEACH-T8-UI-2026-10-21.md`.
+- [ ] 제품 연결과 T8 완료(Codex): §8 답 32(2026-10-21 07:40)로 호스트 경로 `browserTeach`가 생겼다(설계 §11j). 남은 것은 화면 진입과 콜백 연결뿐이다: 브라우저 창의 녹화 시작/중지 → `record start/stop`, 패널 `onTest/onSave/onApprove` → `test/save/approve`, 닫기 → `discard`. 이전 메모(답 전): 현재 `browser.script`는 승인된 저장 카드만 실행하고 녹화 전달/미승인 초안 시험 연결은 없다. UI는 실행/저장/승인 콜백이 없으면 해당 버튼을 비활성화한다. 새 엔진이나 임의 승인 상태를 만들지 않았다.
 
 ## 순서
 

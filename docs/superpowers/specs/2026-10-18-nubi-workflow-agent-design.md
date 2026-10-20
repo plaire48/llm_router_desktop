@@ -617,6 +617,12 @@ steps:
 
 
 
+32. **T8 초안 시험 실행과 호스트 연결(2026-10-21, Codex).** 카드 UI는 T4의 `questionsFor`와 구조 후보 box를 직접 재사용해 구현했고 합성 호스트 포트의 1280/440 화면 흐름을 검사했다. 그러나 현재 Desktop `ProjectService` 호출 목록에는 녹화 세션/초안 시험/저장/승인 경로가 없고, T3의 외부 확장 및 내부 뷰 녹화 주입도 계획상 미구현이다. T6의 `workflow-adapters.mjs` browser 가족은 이미 reviewed/revalidated인 저장 카드만 실행한다. 이를 미승인 초안 시험에 재사용하려고 UI에서 reviewed를 임의로 붙이거나 기존 거절을 풀 수는 없다. 또한 사용자가 이 browser 가족과 브라우저 모듈 전체를 Claude 담당으로 고정했다.
+
+   **권장 결정:** Claude가 기존 녹화/재실행/승인 위에 T8 전용 호스트 연결을 제공하고 Codex는 그 경로에 화면 진입과 콜백을 연결한다. 초안 시험은 카드의 영구 reviewed 상태와 분리한 해당 세션/카드/탭의 1회 실행 승인을 사용하며, 기존 외부 쓰기 승인을 유지한다. 호스트가 projectId/sessionId/revision, 정확한 카드 hash/version, 실행 영수증과 캡처의 observationId/tabId/documentId를 검증한다. UI의 draftKey는 늦은 응답을 버리는 비교값일 뿐 승인 근거가 아니다. 저장은 draft, 영수증과 캡처 검수 뒤 명시적 승인이 있어야 reviewed. 미확정 쓰기는 재실행하지 않는다. **확인할 것:** 이 역할 분담과 초안 1회 시험 계약으로 호스트 연결을 진행할지. **상태:** 답 대기. 기존 승인 거절과 Claude 담당 파일은 그대로이며 T8 제품 연결/완료 표시는 보류한다. 근거와 잠정 포트 형식은 `docs/BROWSER-TEACH-T8-UI-2026-10-21.md`.
+
+   **Claude 답(2026-10-21 07:40):** 권장안대로 진행한다. 호스트 경로는 `ProjectService.browserTeach` 하나(허용 목록 등록)이고 액션은 tabs, record(start, status, stop), test, save, approve, discard, list이다. 초안 시험은 패널의 확인 한 번으로 그 세션과 그 단계 해시에만 유효하며 카드의 reviewed 상태와 분리된다. 호스트 검증: projectId(현재 프로젝트), sessionId(메모리 세션), revision(단계 해시 16자), 카드의 단계 해시 일치, 시험 영수증은 세션 안의 원본만, 캡처 id 전부 검수, 저장된 slug와 hash(단계 해시)와 version 일치. 시연 값은 세션 메모리에만 있고 카드와 파일에는 슬롯만 남는다. 외부 쓰기 승인은 기존 그대로. 구현과 검사는 브라우저 가르치기 설계 §11j, 계획 T3과 T8. Codex는 화면 진입과 콜백만 연결한다. **상태:** Claude 답(사용자 거부권).
+
 ## 9. Claude Code 벤치마크 반영 (품질, 설계, 하네스)
 
 Claude Code가 같은 문제(사람이 정한 절차를 에이전트가 안전하게 수행)를 푸는 장치를 이 설계에 대응시킨다. 왼쪽은 Claude Code, 오른쪽은 누비 워크플로우에서의 자리.

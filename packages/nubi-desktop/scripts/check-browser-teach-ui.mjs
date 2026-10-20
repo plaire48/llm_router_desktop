@@ -1,0 +1,34 @@
+import {captureDesign,assertAccessibilityRules,sourceDesignIssues} from './design-rules.mjs';import {rendererBundleOptions} from './renderer-bundle.mjs';
+import {build,stop} from 'esbuild';import {mkdir,writeFile,readFile} from 'node:fs/promises';import {createServer} from 'node:http';import path from 'node:path';import assert from 'node:assert/strict';import {chromium} from 'playwright';
+for(const file of ['ui/BrowserTeachPanel.jsx','ui/BrowserScriptCard.jsx','ui/browser-teach.css'])assert.deepEqual(sourceDesignIssues(file,await readFile(file,'utf8'),{colors:true,layout:true}),[]);
+const dir=path.resolve('verification/browser-teach-ui');await mkdir(dir,{recursive:true});
+await build({...rendererBundleOptions(),entryPoints:['tests/browser-teach-ui-fixture.jsx'],outdir:dir,entryNames:'app',minify:true});stop();
+await writeFile(dir+'/index.html','<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="app.css"><div id="root"></div><script type="module" src="app.js"></script></html>');
+const server=createServer(async(req,res)=>{try{const f=path.resolve(dir,'.'+new URL(req.url,'http://local').pathname.replace(/\/$/,'/index.html'));assert(f.startsWith(dir+path.sep));res.setHeader('content-type',f.endsWith('.css')?'text/css':f.endsWith('.html')?'text/html; charset=utf-8':'text/javascript');res.end(await readFile(f));}catch{res.writeHead(404).end();}});await new Promise(r=>server.listen(0,'127.0.0.1',r));
+let browser;const checks=[],url='http://127.0.0.1:'+server.address().port;
+async function settled(page){await page.evaluate(async()=>{await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));await Promise.all(document.getAnimations().filter(a=>a.effect?.getTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));});}
+async function answer(page){await page.getByRole('textbox',{name:/누르는 이유/}).fill('조회 결과 제목이 나타나는지 확인한다');}
+async function run(page){await page.getByRole('button',{name:'시험 실행',exact:true}).click();await page.getByRole('button',{name:'실행 요청',exact:true}).click();}
+try{
+ browser=await chromium.launch({channel:'chrome',headless:true});
+ for(const width of [1280,440]){
+  const page=await browser.newPage({viewport:{width,height:950},reducedMotion:'reduce'});page.setDefaultTimeout(7000);const errors=[];page.on('pageerror',e=>{errors.push(e.message);console.error('pageerror',e.message);});
+  await page.goto(url);await answer(page);assert.equal(await page.evaluate(()=>window.teachCalls.length),0,'no action on mount or answer');
+  await page.keyboard.press('Tab');await settled(page);await assertAccessibilityRules(page);await captureDesign(page,{path:dir+'/plan-'+width+'.png'});
+  await page.getByRole('button',{name:'화면에서 확인',exact:true}).click();assert.equal(await page.locator('.nubi-browser-board-box').count(),2);
+  const geometry=await page.locator('.nubi-browser-board').evaluate(n=>{const img=n.querySelector('img').getBoundingClientRect(),b=n.querySelector('button').getBoundingClientRect();return {left:(b.x-img.x)/img.width,top:(b.y-img.y)/img.height,width:b.width/img.width};});assert(Math.abs(geometry.left-.05)<.005);assert(Math.abs(geometry.top-.25)<.005);assert(Math.abs(geometry.width-.55)<.005);
+  await settled(page);await assertAccessibilityRules(page);await captureDesign(page,{path:dir+'/board-'+width+'.png'});await page.keyboard.press('Escape');
+  await run(page);await page.getByRole('heading',{name:'실행 결과를 확인해 주세요'}).waitFor();
+  await page.getByRole('button',{name:'조회 결과 크게 보기'}).click();await page.getByRole('dialog').waitFor();await page.keyboard.press('Escape');
+  await page.getByRole('checkbox',{name:'조회 결과 확인'}).check();await page.getByRole('button',{name:'초안 저장',exact:true}).click();
+  await page.getByRole('button',{name:'초안 승인',exact:true}).scrollIntoViewIfNeeded();await settled(page);await assertAccessibilityRules(page);await captureDesign(page,{path:dir+'/review-'+width+'.png'});
+  await page.getByRole('button',{name:'초안 승인',exact:true}).click();await page.getByText('승인됨',{exact:true}).waitFor();
+  const calls=await page.evaluate(()=>window.teachCalls);assert.deepEqual(calls.map(c=>c.action),['test','save','approve']);assert.equal(calls[2].request.receiptId,'receipt');assert.deepEqual(calls[2].request.captureIds,['c']);assert.deepEqual(errors,[]);
+  await page.goto(url);await answer(page);await run(page);await page.getByRole('heading',{name:'실행 결과를 확인해 주세요'}).waitFor();await page.getByRole('textbox',{name:/누르는 이유/}).fill('다른 확인 방법');assert.equal(await page.locator('.nubi-browser-teach-results').count(),0,'editing invalidates result');
+  await page.goto(url);await answer(page);await page.evaluate(()=>window.delayTeachRun=true);await run(page);await page.evaluate(()=>window.changeTeachSession('new'));await page.evaluate(()=>window.resolveTeachRun());await page.waitForTimeout(50);assert.equal(await page.locator('.nubi-browser-teach-results').count(),0,'late previous-session result ignored');
+  await page.goto(url);await answer(page);await page.evaluate(()=>window.throwTeachRun=true);await run(page);await page.getByText(/실행 결과가 미확정/).waitFor();assert(await page.getByRole('button',{name:'시험 실행',exact:true}).isDisabled());
+  await page.goto(url+'?disconnected');await answer(page);assert(await page.getByRole('button',{name:'시험 실행',exact:true}).isDisabled());assert(await page.getByRole('button',{name:'초안 저장',exact:true}).isDisabled());
+  checks.push({width,moduleQuestions:true,structuralBoxAlignment:true,receiptAndCaptureReview:true,staleResponseIgnored:true,uncertainReplayBlocked:true,missingPortsDisabled:true});await page.close();
+ }
+ await writeFile(dir+'/result.json',JSON.stringify({scope:'synthetic UI ports, not external browser execution',checks},null,2));console.log(JSON.stringify({checks}));
+}catch(error){const page=browser?.contexts().flatMap(c=>c.pages()).at(-1);if(page){console.error((await page.locator('body').innerText()).slice(0,3000));await page.screenshot({path:dir+'/failure.png',fullPage:true});}throw error;}finally{server.closeAllConnections();await new Promise(r=>server.close(r));await browser?.close();}
