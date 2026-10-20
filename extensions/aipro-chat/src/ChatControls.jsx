@@ -9,20 +9,20 @@ export function ProviderIcon({provider}) {
   if (provider === 'aipro-cli' || provider === 'compatible') return <Icon name="code" size={20} className="connection-logo"/>;
   return <img className="connection-logo" src={`./icons/${providerIcons[provider] || providerIcons.aipro}`} alt="" width="20" height="20"/>;
 }
-export function ModelPicker({data, loading, disabled, open, onOpen, onRefresh, showProviderName = false, iconOnly = false, providerLabels = PROVIDER_LABELS, renderModelLabel}) {
+export function ModelPicker({id,data, loading, disabled, open, onOpen, onRefresh, showProviderName = false, iconOnly = false, providerLabels = PROVIDER_LABELS, renderModelLabel}) {
   const models = data.catalog?.models || [], selected = models.find(model => model.name === data.settings.modelId);
   const empty = data.catalog?.models?.length === 0 && !data.catalog.error;
   const unnamed = empty && data.catalog?.diagnostics?.summary?.received > 0;
   const modelLabel=empty ? unnamed ? '목록 확인 필요' : '모델 없음' : selected?.displayName || (data.activeProvider === 'fabrix' ? '모델 선택' : data.settings.modelId);
   return <div className="model-picker" data-icon-only={iconOnly||undefined}>
-    <CxButton className="model-trigger" data-provider={data.activeProvider} data-icon-only={iconOnly||undefined} aria-label={iconOnly?`${providerLabels[data.activeProvider]} ${modelLabel||''} 모델 변경`:'모델 변경'} aria-haspopup="dialog" aria-expanded={open} title={`${providerLabels[data.activeProvider]}\n${modelLabel||'모델 선택'}\n모델 변경`} disabled={disabled} onClick={onOpen}>
+    <CxButton id={id} className="model-trigger" data-provider={data.activeProvider} data-icon-only={iconOnly||undefined} aria-label={iconOnly?`${providerLabels[data.activeProvider]} ${modelLabel||''} 모델 변경`:'모델 변경'} aria-haspopup="dialog" aria-expanded={open} title={`${providerLabels[data.activeProvider]}\n${modelLabel||'모델 선택'}\n모델 변경`} disabled={disabled} onClick={onOpen}>
       <ProviderIcon provider={data.activeProvider}/>{!iconOnly&&<><span className="model-trigger-label">{showProviderName && <strong>{providerLabels[data.activeProvider]}</strong>}{renderModelLabel ? renderModelLabel(modelLabel) : <span>{modelLabel}</span>}</span><Icon name="chevronDown" size={16}/></>}
     </CxButton>
     {loading ? <span className="status-spinner" role="status" aria-label="모델 불러오는 중"/> : (data.catalog?.error || empty) && <ActionButton action="refresh" label="모델 목록 다시 불러오기" onClick={onRefresh}/>}
   </div>;
 }
 
-export function ModelSelection({title='모델 선택', data, initialProvider, loading, disabled, onProviderSelect, onSelect, onRefresh, onLogin, onLogout, onCancelLogin, onClose, showProviderNames = false, providerLabels = PROVIDER_LABELS, embedded = false, autoRefresh = true, selectWhileLoading = false, onError, showActionLabels = false}) {
+export function ModelSelection({title='모델 선택', data, initialProvider, loading, disabled, onProviderSelect, onSelect, onRefresh, onLogin, onLogout, onCancelLogin, onClose, showProviderNames = false, providerLabels = PROVIDER_LABELS, embedded = false, autoRefresh = true, selectWhileLoading = false, onError, showActionLabels = false, embeddedLabel = '정리할 모델', manageConnections = true}) {
   const [provider, setProvider] = useState(initialProvider || data.activeProvider);
   const [query, setQuery] = useState(''), [saving, setSaving] = useState(false), [error, setError] = useState('');
   const rows = useRef(null), providerTabs = useRef(null), restoreTabFocus = useRef(false);
@@ -103,7 +103,7 @@ export function ModelSelection({title='모델 선택', data, initialProvider, lo
   }
   const problem = error || (pending || !connected ? data.report.provider === provider && data.report.error !== 'login_closed' && ERROR_TEXT[data.report.error] : current ? catalog?.errorMessage || ERROR_TEXT[catalog?.error] : '');
   useEffect(()=>{if(problem&&onError)onError(problem);},[problem,onError]);
-  const accountActions=(connected || connection.present) && <div className="provider-account-actions" role="group" aria-label="모델 연결 관리">
+  const accountActions=manageConnections && (connected || connection.present) && <div className="provider-account-actions" role="group" aria-label="모델 연결 관리">
         {connected && (current || data.catalogs) && <ActionButton action="refresh" iconOnly={!showActionLabels} label={showActionLabels?'새로고침':'모델 목록 새로고침'} aria-label="모델 목록 새로고침" busy={loading} disabled={blocked || loading} onClick={() => refreshModels()}/>}
         {connected && provider === 'fabrix' && <ActionButton action="edit" iconOnly={!showActionLabels} label={showActionLabels?'연결 편집':'FabriX 연결 편집'} aria-label="FabriX 연결 편집" disabled={blocked} onClick={connect}/>}
         {connection.present && <ActionButton action="logout" iconOnly={!showActionLabels} label={showActionLabels?(provider==='claude'?'연결 해제':'로그아웃'):`${providerLabels[provider]} ${provider==='claude'?'연결 해제':'로그아웃'}`} aria-label={`${providerLabels[provider]} ${provider==='claude'?'연결 해제':'로그아웃'}`} disabled={blocked} onClick={disconnect}/>}
@@ -114,7 +114,7 @@ export function ModelSelection({title='모델 선택', data, initialProvider, lo
     </div>
     <div key={provider} className="provider-model-panel" role="tabpanel" id="provider-model-panel" aria-labelledby={`provider-tab-${provider}`}>
       {problem && !onError && <CxNotice tone="danger">{problem}</CxNotice>}
-      {pending ? <div className="provider-connect-state" role="status"><span className="status-spinner" aria-hidden="true"/><span>{data.pending.phase === 'exchanging' ? '인증 확인 중' : '로그인 대기 중'}</span><ActionButton action="cancel" label="로그인 취소" onClick={onCancelLogin}/></div> : !connected ? <div className="provider-connect-state">{(connection.expired || connection.rejected) && <p>다시 연결해 주세요.</p>}<ActionButton action="login" className="provider-connect-button" data-provider={provider} label="연결" title={`${providerLabels[provider]} 연결`} disabled={blocked} onClick={connect}/></div> : <>
+      {pending ? <div className="provider-connect-state" role="status"><span className="status-spinner" aria-hidden="true"/><span>{data.pending.phase === 'exchanging' ? '인증 확인 중' : '로그인 대기 중'}</span><ActionButton action="cancel" label="로그인 취소" onClick={onCancelLogin}/></div> : !connected ? !manageConnections ? <p className="model-empty" role="status">연결된 모델이 없어요.</p> : <div className="provider-connect-state">{(connection.expired || connection.rejected) && <p>다시 연결해 주세요.</p>}<ActionButton action="login" className="provider-connect-button" data-provider={provider} label="연결" title={`${providerLabels[provider]} 연결`} disabled={blocked} onClick={connect}/></div> : <>
         {searchable && <div className="model-search-row"><SearchInput><CxInput id="model-search" aria-label="모델 검색" placeholder="모델 검색" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => {if (e.key === 'ArrowDown') {e.preventDefault(); rows.current?.querySelector('button:not(:disabled)')?.focus();}}}/></SearchInput></div>}
         {loading && !searchable && <div className="model-catalog-status" role="status">목록 불러오는 중</div>}
         <div className="model-options" ref={rows} role="group" aria-label="사용 가능한 모델" onKeyDown={e => {
@@ -133,7 +133,7 @@ export function ModelSelection({title='모델 선택', data, initialProvider, lo
       </>}
     </div>
   </>;
-  if(embedded)return <section className="model-dialog nubi-mail-model-picker" aria-label="정리할 모델"><header className="nubi-mail-section-heading">{title}{accountActions}</header>{content}</section>;
+  if(embedded)return <section className="model-dialog nubi-mail-model-picker" aria-label={embeddedLabel}><header className="nubi-mail-section-heading">{title}{accountActions}</header>{content}</section>;
   return <DetailPanel title={title} variant="modal" className="deck-dialog model-dialog" busy={saving} hideHelp footer={accountActions} initialFocus={connected ? searchable ? '#model-search' : '.model-option[aria-pressed="true"]' : '#model-provider-tabs [aria-selected="true"]'} onClose={() => {if (!saving) onClose();}}>
     {content}
   </DetailPanel>;

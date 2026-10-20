@@ -120,6 +120,21 @@ export function createProviders(deps = {}) {
     modelCatalog: sessions.get(active)?.modelCatalog || null,completionDiagnostic:sessions.get(active)?.completionDiagnostic||null, pending: pending?.provider || null, loginError,
     persistenceError,pendingPhase:pending?.phase||null,loginPhase,loginDiagnostics:loginDiagnostics.map(item=>({...item}))});
   const catalogs = () => [...sessions].filter(([id]) => ['aipro','chatgpt','fabrix'].includes(id)).map(([provider, session]) => ({provider,models:session.models.map(item=>({...item})),model:session.model}));
+  const wikiEfforts=(provider,session)=>{const reported=session.models.find(model=>model.id===session.model)?.reasoningOptions;return provider==='chatgpt'&&Array.isArray(reported)?reported:reasoningOptions(provider,session);};
+  // Read-only host capability view. Authentication and selection remain here.
+  const wikiModels = () => [...sessions].map(([provider,session])=>({provider,connectionId:connectionId(session),model:session.model,models:session.models.map(model=>({...model,reasoningOptions:wikiEfforts(provider,{...session,model:model.id}),pageOutputConfigurable:provider!=='chatgpt'}))}));
+  const wikiRequest = (options={}) => {
+    if(options.purpose!=='wiki')throw new Error('invalid_model');
+    const authenticated=sessions.get(options.provider),model=authenticated?.models.find(item=>item.id===options.model);
+    if(!model||options.connectionId!==connectionId(authenticated))throw new Error('invalid_model');
+    const selected={...authenticated,model:model.id},allowed=wikiEfforts(options.provider,selected),wanted=options.effort??'auto';
+    const effort=wanted==='auto'?(allowed.includes('high')?'high':allowed.includes(authenticated.reasoningEffort)?authenticated.reasoningEffort:allowed.includes(model.defaultReasoning)?model.defaultReasoning:allowed.includes('medium')?'medium':allowed[0]||null):wanted;
+    if(effort!==null&&!allowed.includes(effort))throw new Error('invalid_reasoning_effort');
+    const maxToolCalls=options.maxToolCalls??8;
+    if(![8,16].includes(maxToolCalls))throw new Error('response_invalid');
+    if(options.maxTokens!==undefined&&!(options.provider==='chatgpt'&&options.maxTokens===null)&&(!positiveCount(options.maxTokens)||options.maxTokens>OUTPUT_TOKEN_CEILING))throw new Error('response_invalid');
+    return {purpose:'wiki',provider:options.provider,model:model.id,connectionId:options.connectionId,effort,maxToolCalls,maxTokens:options.provider==='chatgpt'?null:Math.min(options.maxTokens??outputTokens(selected),outputTokens(selected))};
+  };
   const usageStatus = () => {
     const chatgpt = sessions.get('chatgpt');
     return {auth:{provider:active,present:sessions.has(active)}, connections:{chatgpt:{present:!!chatgpt,receivedAt:chatgpt?.credential.receivedAt,
@@ -234,10 +249,14 @@ export function createProviders(deps = {}) {
   // onActivity is called for every streamed model event (text, reasoning, tool call arguments): the caller's wait renews.
   async function complete(messages, tools, signal, onText = () => {}, onPhase = () => {}, onActivity = () => {}, options = {}) {
     if(signal?.aborted)throw new Error('cancelled');
-    const provider = options.backgroundModel?.provider || active, authenticated = sessions.get(provider); if (!authenticated) throw new Error('no_credential');
+    const wiki=options.purpose==='wiki'?wikiRequest(options):null;
+    if(!wiki&&['provider','model','effort','maxToolCalls','connectionId'].some(key=>options[key]!==undefined))throw new Error('invalid_model');
+    if(wiki&&(options.backgroundModel||options.visionModel!==undefined))throw new Error('invalid_model');
+    const provider = wiki?.provider || options.backgroundModel?.provider || active, authenticated = sessions.get(provider); if (!authenticated) throw new Error('no_credential');
+    const checkWiki=()=>{if(wiki&&(sessions.get(provider)!==authenticated||!authenticated.models.some(item=>item.id===wiki.model)))throw new Error('provider_changed');};
     // A read-only image analysis uses another catalog model in the SAME login.
     // Never mutate the user's model/chosen map or borrow another provider token.
-    let session=authenticated;
+    let session=wiki?{...authenticated,model:wiki.model,reasoningEffort:wiki.effort}:authenticated;
     if(options.backgroundModel){
       const wanted=authenticated.models.find(item=>item.id===options.backgroundModel.model);
       if(tools.length||!wanted)throw new Error('invalid_model');
@@ -249,11 +268,11 @@ export function createProviders(deps = {}) {
       if(tools.length||!hasImageInput(messages)||!wanted||!(wanted.supportsImages===true||visionModelFor(provider,wanted,[wanted])?.name===wanted.name))throw new Error('invalid_model');
       session={...authenticated,model:wanted.id};
     }
-    let result, httpFailure, inferenceDiagnostic, usageRequest, reportedUsage;
+    let result, httpFailure, inferenceDiagnostic, usageRequest, reportedUsage,appliedMaxTokens=wiki?.maxTokens;
     const toolChoice=tools.length&&options.toolChoice==='required'&&provider!=='fabrix'?'required':'auto';
     if(provider==='chatgpt'&&!reasoningOptions(provider,session).includes(session.reasoningEffort))session={...session,reasoningEffort:startReasoning(provider,session)};
     const inferenceFetch=async(...args)=>{
-      const response=await api.fetchImpl(...args);
+      checkWiki();const response=await api.fetchImpl(...args);
       if(!response.ok)httpFailure={status:response.status,retryAfterMs:retryAfterMs(response.headers)};
       return response;
     };
@@ -262,7 +281,7 @@ export function createProviders(deps = {}) {
     try {
     if (provider === 'chatgpt') {
       session.credential = await prepareChatGPT(authenticated,signal);
-      result = await api.completeChatGPT({fetchImpl:api.fetchImpl,onMeasurement:value=>{reportedUsage=value;},onDiagnostic:detail=>{inferenceDiagnostic={...detail,model:session.model};},messages, tools, toolChoice, modelId: session.model,modelMetadata:api.accountCatalog===true?authenticated.models.find(m=>m.id===session.model):undefined, reasoningEffort: session.reasoningEffort, credential: session.credential, signal, onText, onPhase, onActivity});
+      result = await api.completeChatGPT({fetchImpl:wiki?inferenceFetch:api.fetchImpl,...(wiki?{purpose:'wiki',maxToolCalls:wiki.maxToolCalls}:{}),onMeasurement:value=>{reportedUsage=value;},onDiagnostic:detail=>{inferenceDiagnostic={...detail,model:session.model};},messages, tools, toolChoice, modelId: session.model,modelMetadata:api.accountCatalog===true?authenticated.models.find(m=>m.id===session.model):undefined, reasoningEffort: session.reasoningEffort, credential: session.credential, signal, onText, onPhase, onActivity});
     } else {
       // The model server counts the tokens of every request (user, 2026-09-30). An OpenAI-compatible stream (vLLM behind
       // AI Pro) reports them in a last chunk only when asked: stream_options.include_usage, as the browser runtime asks
@@ -274,7 +293,7 @@ export function createProviders(deps = {}) {
         const reasoning = provider === 'aipro' && session.reasoningEffort && session.reasoningEffort !== 'xhigh' ? {reasoning_effort: session.reasoningEffort} : {};
         const body = {model: session.model, messages, stream: true, max_tokens: maxTokens, ...reasoning, ...(session.usageRefused ? {} : {stream_options: {include_usage: true}}), ...(format && !session.formatRefused ? {response_format: format} : {}), ...(tools.length ? {tools, tool_choice: toolChoice} : {})};
         return provider === 'fabrix'
-          ? api.fabrixCompletion(body, {...session.credential, modelId: session.model}, {signal, fetchImpl: inferenceFetch})
+          ? api.fabrixCompletion(body, {...session.credential, modelId: session.model}, {signal, fetchImpl: inferenceFetch,...(wiki?{purpose:'wiki',maxToolCalls:wiki.maxToolCalls}:{})})
           : inferenceFetch(provider === 'aipro' ? endpoint('browser') : session.credential.endpoint, {method: 'POST', redirect: 'error', signal,
             headers: {'Content-Type': 'application/json', Accept: 'text/event-stream', Authorization: `Bearer ${session.credential.token}`, ...(provider === 'aipro-cli' ? {'User-Agent': 'AIPROCLI'} : {})}, body: JSON.stringify(body)});
       };
@@ -295,6 +314,7 @@ export function createProviders(deps = {}) {
         else break;
         httpFailure = undefined; response = await send(maxTokens);
       }
+      appliedMaxTokens=maxTokens;
       if(!response.ok){await response.body?.cancel().catch(()=>{});throw Object.assign(new Error(response.status===401?'unauthorized':response.status===403?'forbidden':response.status===429?'rate_limited':response.status===413?'context_overflow':[400,404,422].includes(response.status)?'invalid_model':'upstream'),{status:response.status,retryAfterMs:retryAfterMs(response.headers)});}
       let calls = [], usage, finishReason;
       // Keep Office's permanent transport error distinct from a repairable
@@ -302,13 +322,13 @@ export function createProviders(deps = {}) {
       const completionResponse={ok:response.ok,status:response.status,headers:response.headers,body:response.body,json:async()=>{
         try{return await response.json();}catch(error){if(error instanceof SyntaxError)throw new Error('response_json_invalid');throw error;}
       }};
-      const content = await readCompletion(completionResponse, onText, value => {usage = reportedUsage = value;}, onPhase, value => {finishReason = value;}, value => {calls = value;}, undefined, onActivity, typeof options.onReasoning === 'function' ? {onReasoning: options.onReasoning} : undefined);
+      const content = await readCompletion(completionResponse, onText, value => {usage = reportedUsage = value;}, onPhase, value => {finishReason = value;}, value => {calls = value;}, undefined, onActivity, {...(typeof options.onReasoning === 'function'?{onReasoning:options.onReasoning}:{}),...(wiki?{purpose:'wiki',maxToolCalls:wiki.maxToolCalls}:{})});
       result = {content, calls, usage, finishReason};
     }
     if (signal.aborted) throw new Error('cancelled');
     if (JSON.stringify(result).length > 600000) throw new Error('output_limit');
     if (result.finishReason === 'length') throw new Error('output_limit');
-    authenticated.verified = true;authenticated.completionDiagnostic={phase:'verified',status:200,model:session.model}; return result;
+    checkWiki();if(wiki)result.requestOptions={provider,model:session.model,effort:session.reasoningEffort,maxToolCalls:wiki.maxToolCalls,maxTokens:appliedMaxTokens};authenticated.verified = true;authenticated.completionDiagnostic={phase:'verified',status:200,model:session.model}; return result;
     }catch(error){
       authenticated.completionDiagnostic={...inferenceDiagnostic,phase:'failed',status:error.status||inferenceDiagnostic?.status||0,model:session.model,code:safeError(error),...(inferenceDiagnostic?.code?{apiCode:inferenceDiagnostic.code}:{})};
       const facts={...faultFacts(httpFailure),...faultFacts(error)};
@@ -317,5 +337,5 @@ export function createProviders(deps = {}) {
       throw Object.assign(new Error(signal.aborted?'cancelled':facts.status===413?'context_overflow':safeError(error)),facts,...(inferenceDiagnostic?[{apiDiagnostic:authenticated.completionDiagnostic}]:[]));
     } finally {try {api.onUsageFinish?.(usageRequest,result?.usage||reportedUsage);} catch {}}
   }
-  return {status, restoreConnections, flushConnections:()=>persistence, catalogs, usageStatus, accountUsage, select, connect, login, cancelLogin, disconnect, model, reasoning, refreshModels, complete, dispose: () => {cancelLogin(); sessions.clear();}};
+  return {status, wikiModels, wikiRequest, restoreConnections, flushConnections:()=>persistence, catalogs, usageStatus, accountUsage, select, connect, login, cancelLogin, disconnect, model, reasoning, refreshModels, complete, dispose: () => {cancelLogin(); sessions.clear();}};
 }

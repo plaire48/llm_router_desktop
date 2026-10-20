@@ -14,7 +14,8 @@ export function chatGPTModels() {
     supported_reasoning_levels: ['low','medium','high','xhigh','max'].filter(effort => model.thinkingLevelMap?.[effort] !== null)}))}};
 }
 
-export async function completeChatGPT({messages, tools, modelId,modelMetadata, reasoningEffort, credential, signal, onText, onPhase, onActivity = () => {}, onMeasurement = () => {}, onDiagnostic = () => {}, fetchImpl=fetch, maxCharacters = 400000, toolChoice = 'auto', cacheKey}) {
+export async function completeChatGPT({messages, tools, modelId,modelMetadata, reasoningEffort, credential, signal, onText, onPhase, onActivity = () => {}, onMeasurement = () => {}, onDiagnostic = () => {}, fetchImpl=fetch, maxCharacters = 400000, toolChoice = 'auto', cacheKey, purpose, maxToolCalls = 8}) {
+  if (maxToolCalls !== 8 && !(purpose === 'wiki' && maxToolCalls === 16)) throw new Error('response_invalid');
   // Ultra is a display label. Pi's transport accepts the canonical max value.
   const wireEffort = reasoningEffort === 'ultra' ? 'max' : reasoningEffort;
   // Desktop may supply metadata received from this account's catalog. The
@@ -82,7 +83,7 @@ export async function completeChatGPT({messages, tools, modelId,modelMetadata, r
     // Replay call IDs only: response item IDs refer to encrypted reasoning that
     // this extension deliberately does not retain in the conversation.
     const calls = output.content.filter(part => part.type === 'toolCall').map(part => ({id: part.id.split('|')[0], type: 'function', function: {name: part.name, arguments: JSON.stringify(part.arguments)}}));
-    if (calls.length > 8 || calls.some(call => !call.id || call.id.length > 256 || call.function.arguments.length > 32000) || new Set(calls.map(call => call.id)).size !== calls.length) throw new Error('response_invalid');
+    if (calls.length > maxToolCalls || calls.some(call => !call.id || call.id.length > 256 || call.function.arguments.length > 32000) || new Set(calls.map(call => call.id)).size !== calls.length) throw new Error('response_invalid');
     if (!content.trim() && !calls.length) throw new Error(output.stopReason === 'length' ? 'output_limit' : 'response_invalid');
     return {content, calls, finishReason: calls.length ? 'tool_calls' : output.stopReason === 'length' ? 'length' : 'stop',
       usage: measuredUsage};

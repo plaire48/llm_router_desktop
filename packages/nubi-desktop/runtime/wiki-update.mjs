@@ -1,3 +1,4 @@
+import {wikiGenerationBinding,assertWikiGenerationCurrent} from './wiki-generation.mjs';
 import {folderPlanningContext} from './wiki-folder-plan.mjs';
 import {notifyWikiCompleted} from './wiki-notification.mjs';
 import {requireWikiGit} from './git-runtime.mjs';
@@ -81,7 +82,7 @@ export async function wikiUpdateStatus(root){
 // (2026-10-12: three rejections in a row ended a five-minute generation).
 export const CALL_LIMIT={role:'system',content:'Host limit: return at most 8 tool calls in one response. Split larger sets of calls across responses.'};
 export const TEXT_REPLY={role:'user',content:'Host note: if no tool call is needed now, reply with one short sentence.'};
-const withCallLimit=wire=>{const at=wire.findIndex(message=>message.role!=='system');return at<0?[...wire,CALL_LIMIT]:[...wire.slice(0,at),CALL_LIMIT,...wire.slice(at)];};
+const withCallLimit=(wire,limit=8)=>{const callLimit=limit===8?CALL_LIMIT:{...CALL_LIMIT,content:CALL_LIMIT.content.replace('at most 8','at most '+limit)};const at=wire.findIndex(message=>message.role!=='system');return at<0?[...wire,callLimit]:[...wire.slice(0,at),callLimit,...wire.slice(at)];};
 // Repository reasoning may be slow. Parsed model activity keeps it alive; a
 // silent request ends one transport attempt; the persisted host policy owns retries.
 export const WIKI_MODEL_WAIT_POLICY=Object.freeze({idleMs:600000,attemptMs:0,slowMs:30000,retryTimeouts:true});
@@ -98,8 +99,8 @@ export async function prepareNativeWikiCopy(root,mode='update'){
 // stage, page and position, never page text.
 export function defaultWikiUpdater(service,{load=()=>import('../generated/openwiki-update/index.mjs')}={}){
   // mode init serves only the evaluation, which generates the Wiki that it then updates.
-  return async({root,language,signal,onEvent,updateId,mode='update',repositoryPlan,planningContext,force=false,scope})=>{
-    const status=service.providers?.status?.();
+  return async({root,language,signal,onEvent,updateId,mode='update',repositoryPlan,planningContext,force=false,scope,generationBinding})=>{
+    const status=generationBinding||wikiGenerationBinding(service);
     if(!status?.connected)fail('model_unavailable');
     const owner=service.store,sourceRoot=service.root,clock=service.wikiDurableClock||wikiClock,context=new AsyncLocalStorage();
     const check=()=>{signal?.throwIfAborted();if(service.disposed||service.store!==owner||service.root!==sourceRoot)fail('project_changed');};
@@ -117,14 +118,14 @@ export function defaultWikiUpdater(service,{load=()=>import('../generated/openwi
     let terminalModelError;
     const complete=async(wire,tools,options={})=>{
       if(terminalModelError)throw terminalModelError;
-      const request=withCallLimit(wire),planPending=wikiPlanPending(wire,tools);let attempt=request,planRepairs=0;
+      const request=withCallLimit(wire,status.maxToolCalls),planPending=wikiPlanPending(wire,tools);let attempt=request,planRepairs=0;
       for(let retry=0;;retry++){
         try{
           check();if(service.wikiHostPaused)throw Error(service.wikiHostPaused);
-          const active=service.providers.status();if(!active.connected||active.model!==status.model||active.provider!==status.provider||active.connectionId!==status.connectionId)fail('provider_changed');
+          assertWikiGenerationCurrent(service,status);
           const remaining=journal.value.deadlineAt-clock.now();if(remaining<=0)throw Error('wiki_budget_exhausted');
           const requestSignal=AbortSignal.any([options.signal||signal,AbortSignal.timeout(Math.max(1,Math.ceil(remaining)))].filter(Boolean));
-          const result=await invoke(attempt,tools,requestSignal,'wiki_update',{retries:0,retryInvalidResponse:false});
+          const result=await invoke(attempt,tools,requestSignal,'wiki_update',{retries:0,retryInvalidResponse:false,...(status.request?{wikiRequest:status.request,...(context.getStore()?.path?{maxTokens:status.pageMaxTokens}:{})}:{})});
           if(result.finishReason==='length'){
             const page=context.getStore()?.path||'planning';
             if(journal.continuation(page)){
@@ -147,6 +148,7 @@ export function defaultWikiUpdater(service,{load=()=>import('../generated/openwi
             onEvent?.({type:'model_retry',attempt:planRepairs,code:'wiki_plan_missing'});
             continue;
           }
+          if(status.request&&result.requestOptions)onEvent?.({type:'generation_settings',applied:{provider:status.provider,model:status.model,effort:status.effort,concurrency:status.concurrency,maxToolCalls:status.maxToolCalls,...(context.getStore()?.path?{pageMaxTokens:result.requestOptions.maxTokens}:{})}});
           return result;
         }
         catch(error){
@@ -208,7 +210,7 @@ export function defaultWikiUpdater(service,{load=()=>import('../generated/openwi
         return {nextRetryAt:clock.now()+policy.waitMs};
       }};
     const heartbeat=setInterval(()=>{try{check();journal.beat();publishJournal();}catch{/* A stale owner cannot publish a heartbeat. */}},10000);heartbeat.unref?.();
-    try{result=await runNativeRepositoryGeneration({root,mode,language:language||null,modelId:status.model,model,onEvent:progress,repositoryContext,planningContext,force,durability});}
+    try{result=await runNativeRepositoryGeneration({root,mode,language:language||null,modelId:status.model,model,pageConcurrency:status.concurrency,onEvent:progress,repositoryContext,planningContext,force,durability});}
     catch(error){throw terminalModelError||error;}finally{clearInterval(heartbeat);}
     // OpenWiki may return after skipping failed pages. Keep the durable run for
     // resume instead of publishing a partial generation as a completed Wiki.
@@ -340,7 +342,7 @@ export async function clearWikiUpdates(service,owner,root){
 // needs the existing current-result approval.
 export async function resumeWikiUpdates(service){
  if(!service.store?.db.isOpen||service.disposed||service.workspaceKind==='conversation'||service.wikiHostPaused||service.wikiUpdateRun||service.wikiInitController||service.agent?.running)return false;
- const owner=service.store,root=service.root,status=service.providers?.status();
+ const owner=service.store,root=service.root,status=wikiGenerationBinding(service);
  if(!status?.connected)return false;
  const latest=records(service)[0];
  if(!latest?.resume||!['running','failed','partial'].includes(latest.state)||latest.autoResumeConsumed||latest.modelBinding?.provider!==status.provider||latest.modelBinding?.model!==status.model||wikiRetryPolicy(Error(latest.error||'wiki_update_interrupted')).terminal)return false;
@@ -428,7 +430,7 @@ export async function wikiUpdate({method='status',id,fingerprint,confirmed=false
     if(this.wikiRefreshOwner&&this.wikiRefreshProposalId!==id)fail('wiki_update_busy');
     if(resuming?!['failed','cancelled','partial'].includes(value.state):value.state!=='proposed')fail('wiki_update_state');
     if(value.fingerprint!==fingerprint)fail('wiki_update_changed');
-    const selected=this.providers?.status();
+    const selected=wikiGenerationBinding(this);
     if(resuming&&value.modelBinding&&(!selected?.connected||selected.provider!==value.modelBinding.provider||selected.model!==value.modelBinding.model)&&!confirmed)fail('wiki_model_confirmation');
     if(this.wikiUpdateRun||this.wikiInitController||this.agent?.running||this.processes?.active.size)fail('wiki_update_busy');
     const controller=new AbortController(),events=resuming?[...(value.events||[])]:[];
@@ -487,7 +489,8 @@ export async function wikiUpdate({method='status',id,fingerprint,confirmed=false
     };
     active.promise=Promise.resolve().then(async()=>{
       let lastSaved=0;
-      const result=resume.generated?resume.result:await runner({root:copy,language:value.status.lastUpdate.language,signal:controller.signal,updateId:value.id,onEvent:event=>{
+      const result=resume.generated?resume.result:await runner({root:copy,language:value.status.lastUpdate.language,signal:controller.signal,updateId:value.id,generationBinding:selected,onEvent:event=>{
+        if(event.type==='generation_settings')running.generation={...running.generation,...event.applied};
         if(event.type==='progress'&&typeof event.stage==='string'){runStage=event.stage;running.stage=runStage;}
         if(event.type==='durability'){running.pageStates=event.pages;running.heartbeatAt=event.heartbeatAt;running.deadlineAt=event.deadlineAt;}
         events.push({...event,at:new Date().toISOString()});if(events.length>EVENTS)events.splice(0,events.length-EVENTS);

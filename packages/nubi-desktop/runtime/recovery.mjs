@@ -23,17 +23,19 @@ export function modelTransport(service,{signal,onRetry,onSlow,onResumed,waitPoli
   // Telemetry reads the model name defensively: it must not add a failure path.
   const modelName=()=>{try{return service.providers.status().model;}catch{return null;}};
   // retries may lower the retries of one call (a large request), never raise them.
-  return (messages,tools,childSignal=signal,purpose='actor',{retries,visionModel,maxTokens,toolChoice,responseFormat,retryInvalidResponse=true}={})=>{
+  return (messages,tools,childSignal=signal,purpose='actor',{retries,visionModel,maxTokens,toolChoice,responseFormat,retryInvalidResponse=true,wikiRequest}={})=>{
+    if(wikiRequest&&purpose!=='wiki_update')throw Error('invalid_model');
+    const callLimit=wikiRequest?.maxToolCalls||8,callBatchLimit=callLimit===8?batchLimit:{...batchLimit,content:batchLimit.content.replace('at most 8','at most '+callLimit)};
     const options={retries:3,minTimeout:2000,...waitPolicy,...service.recoveryOptions?.model};
     // Keep the existing system/payload positions used by structured planners.
     const at=messages.findIndex(message=>message.role==='system'&&typeof message.content==='string');
-    const base=tools.length&&!messages.some(message=>message.role==='system'&&typeof message.content==='string'&&message.content.includes('at most 8 tool calls'))?(at<0?[batchLimit,...messages]:messages.map((message,index)=>index===at?{...message,content:message.content+'\n'+batchLimit.content}:message)):messages;
+    const base=tools.length&&!messages.some(message=>message.role==='system'&&typeof message.content==='string'&&message.content.includes('at most '+callLimit+' tool calls'))?(at<0?[callBatchLimit,...messages]:messages.map((message,index)=>index===at?{...message,content:message.content+'\n'+callBatchLimit.content}:message)):messages;
     let rejected=false;
     return recoverModel(async ({signal:attemptSignal,activity,attempt})=>{
       if(purpose==='actor')onText?.('');
       const wire=rejected?[...base,{role:'system',content:'The previous response was rejected before dispatch. No tool from the rejected response was executed. Return a smaller batch of valid tool calls, or a nonempty answer in the requested format. Keep completed receipts and unfinished work; never replay completed or uncertain operations.'}]:base;
-      const measured=metrics?.beginModel({purpose,attempt,messages:wire,tools,model:visionModel||modelName()});
-      try{const result=await service.providers.complete(wire,tools,attemptSignal,text=>{activity();if(purpose==='actor'&&typeof text==='string')onText?.(text);},activity,activity,{...(purpose==='actor'&&onReasoning?{onReasoning:text=>{activity();onReasoning(text);}}:{}),...(visionModel?{visionModel}:{}),...(Number.isSafeInteger(maxTokens)&&maxTokens>0?{maxTokens}:{}),...(toolChoice==='required'?{toolChoice}:{}),...(responseFormat?.type==='json_object'?{responseFormat:{type:'json_object'}}:{})});measured?.end(result);return result;}
+      const measured=metrics?.beginModel({purpose,attempt,messages:wire,tools,model:wikiRequest?.model||visionModel||modelName()});
+      try{const result=await service.providers.complete(wire,tools,attemptSignal,text=>{activity();if(purpose==='actor'&&typeof text==='string')onText?.(text);},activity,activity,{...(wikiRequest||{}),...(purpose==='actor'&&onReasoning?{onReasoning:text=>{activity();onReasoning(text);}}:{}),...(visionModel?{visionModel}:{}),...(Number.isSafeInteger(maxTokens)&&maxTokens>0?{maxTokens}:{}),...(toolChoice==='required'?{toolChoice}:{}),...(responseFormat?.type==='json_object'?{responseFormat:{type:'json_object'}}:{})});measured?.end(result);return result;}
       // A response the connection rejects (response_invalid: a stream error, an empty answer, too many tool calls) is
       // asked for again within this budget: the shared policy retries only network, timeout, 429 and 5xx, and one
       // server-side stream error ended a run (measured 2026-10-12, S29: 2 of 6 identical requests for an hour).

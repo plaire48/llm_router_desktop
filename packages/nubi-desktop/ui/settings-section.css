@@ -11,3 +11,6 @@
 .nubi-form-lead{font-size:var(--nubi-reading-size);font-weight:var(--nubi-weight-regular);line-height:var(--deck-line-body);color:var(--nubi-text-primary)}
 
 .nubi-settings-actions{display:flex;justify-content:flex-end;align-items:center;gap:var(--cx-space-2)}
+
+
+ :root:root .deck-dialog .nubi-library[data-model-picker-open]>:not(.nubi-wiki-generation){display:none}

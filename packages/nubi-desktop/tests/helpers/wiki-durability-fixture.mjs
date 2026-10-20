@@ -6,19 +6,19 @@ import path from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 
 const sources=Array.from({length:11},(_,i)=>({path:`synthetic-${String(i).padStart(2,'0')}.txt`,text:`Synthetic source ${i}\nvalue: ${i}\n`,statement:`Synthetic source ${i} defines value ${i}.`}));
-const pages=['/openwiki/quickstart.md','/openwiki/details.md'];
+const basePages=['/openwiki/quickstart.md','/openwiki/details.md'];
 const digest=value=>createHash('sha256').update(value).digest('hex');
 const body=text=>text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/u,'');
 
 // Each attempt owns a fresh process, config directory and project. No signed-in
 // provider or user's OpenWiki home is read by this synthetic remote model.
-export async function runDurabilityScenario({injection,index=0,seed=0,corruptPage=false}){
+export async function runDurabilityScenario({injection,index=0,seed=0,corruptPage=false,concurrency,maxToolCalls=8,modelDelayMs=0}){
  const directory=await realpath(await mkdtemp(path.join(os.tmpdir(),'nubi-q1-')));
  try{
    const result=path.join(directory,'result.json');
    for(let phase=0;phase<2;phase++){
    const code=await new Promise((resolve,reject)=>{
-     const child=spawn(process.execPath,[fileURLToPath(import.meta.url),'--child',JSON.stringify({directory,injection,index,seed,corruptPage,restarting:phase===1})],{env:{...process.env,OPENWIKI_CONFIG_DIR:path.join(directory,'openwiki-home')},stdio:['ignore','ignore','pipe']});
+     const child=spawn(process.execPath,[fileURLToPath(import.meta.url),'--child',JSON.stringify({directory,injection,index,seed,corruptPage,concurrency,maxToolCalls,modelDelayMs,restarting:phase===1})],{env:{...process.env,OPENWIKI_CONFIG_DIR:path.join(directory,'openwiki-home')},stdio:['ignore','ignore','pipe']});
      let stderr='';child.stderr.on('data',chunk=>{stderr=(stderr+chunk.toString()).slice(-4000);});
      const timeout=setTimeout(()=>{child.kill('SIGKILL');reject(Error('measurement_timeout'));},60000);
      child.on('error',error=>{clearTimeout(timeout);reject(error);});
@@ -30,7 +30,8 @@ export async function runDurabilityScenario({injection,index=0,seed=0,corruptPag
  }finally{await rm(directory,{recursive:true,force:true});}
 }
 
-async function executeScenario({directory,injection,restarting,corruptPage}){
+async function executeScenario({directory,injection,restarting,corruptPage,concurrency,maxToolCalls=8,modelDelayMs=0}){
+ const benchmark=injection==='none',pages=benchmark?[...basePages,'/openwiki/flow.md']:basePages;let activeModels=0,peakModels=0,generationStarted;const pageOutputTokens=[];
  const {ProjectService}=await import('../../runtime/project-service.mjs');
  const {verifyWikiPages}=await import('../../runtime/wiki-run-journal.mjs');
  const root=path.join(directory,'source');if(!restarting){await mkdir(root);for(const source of sources)await writeFile(path.join(root,source.path),source.text);}
@@ -47,7 +48,7 @@ async function executeScenario({directory,injection,restarting,corruptPage}){
      if(read&&String(results.get(read.id)).includes('value: '+source.path.match(/\d+/)[0].replace(/^0(\d)$/,'$1')))observedSources.add(source.path);
    }
    const missing=sources.filter(source=>!calls.some(c=>c.function.name==='read_file'&&JSON.parse(c.function.arguments).file_path==='/'+source.path));
-   return missing.length?{content:'Read the synthetic corpus.',calls:missing.slice(0,8).map(source=>({id:'synthetic-'+(++providerCalls),type:'function',function:{name:'read_file',arguments:JSON.stringify({file_path:'/'+source.path})}}))}:null;
+   return missing.length?{content:'Read the synthetic corpus.',calls:missing.slice(0,maxToolCalls).map(source=>({id:'synthetic-'+(++providerCalls),type:'function',function:{name:'read_file',arguments:JSON.stringify({file_path:'/'+source.path})}}))}:null;
  };
  const complete=async(wire,tools,signal)=>{
    signal?.throwIfAborted();modelCalls++;const names=namesOf(tools);
@@ -64,12 +65,13 @@ async function executeScenario({directory,injection,restarting,corruptPage}){
    if(names.includes('submit_plan')){
      if(proposed(wire).some(c=>c.function.name==='submit_plan'))return {content:'Synthetic plan submitted.',calls:[]};
      const read=readSources(wire);if(read)return read;
-     return call('submit_plan',{pages:pages.map((page,i)=>({path:page,title:i?'Synthetic details':'Synthetic quickstart',purpose:'Document the eleven synthetic values.',seedPaths:sources.map(source=>source.path),relatedPages:[pages[1-i]]})),deletePages:[]});
+     return call('submit_plan',{pages:pages.map((page,i)=>({path:page,title:i===2?'Synthetic flow':i?'Synthetic details':'Synthetic quickstart',purpose:'Document the eleven synthetic values.',seedPaths:sources.map(source=>source.path),relatedPages:pages.filter(other=>other!==page)})),deletePages:[]});
    }
    const assigned=wire.filter(message=>message.role==='system').map(message=>message.content).join('\n').match(/You own exactly (\/openwiki\/[^\s]+\.md)\./)?.[1];
    if(!assigned)throw Error('synthetic_assignment_missing');
+   if(modelDelayMs){activeModels++;peakModels=Math.max(peakModels,activeModels);try{await new Promise(r=>setTimeout(r,modelDelayMs));}finally{activeModels--;}}
    const job=service.store.get('wiki-init'),journal=service.store.get('wiki-durable:'+job.id),completed=Object.entries(journal?.pages||{}).find(([page,value])=>page!==assigned&&value.state==='done');
-   if(completed&&(!injected||injection==='rate_limit'&&injected<3)){
+   if(!benchmark&&completed&&(!injected||injection==='rate_limit'&&injected<3)){
      injected++;retainedPage=completed[0];const copy=service.store.get('wiki-init-scope').directory;firstPageText=await readFile(path.join(copy,retainedPage),'utf8');firstClaims=JSON.parse(await readFile(path.join(copy,'openwiki/.claims',path.basename(retainedPage,'.md')+'.json'),'utf8')).claims;
      if(['app_restart','sleep_resume','model_reconnect'].includes(injection)){
        if(injection==='app_restart'){
@@ -97,6 +99,17 @@ async function executeScenario({directory,injection,restarting,corruptPage}){
    const current=new ProjectService({storageRoot:path.join(directory,'state')});services.push(current);
    await current.open(root,{initializeWiki:false});
    current.providers={status:()=>({connected,provider:'synthetic',model:'synthetic-durability',connectionId}),complete,dispose(){}};
+   if(benchmark){
+     const {createProviders}=await import('../../../nubi-office/worker/providers.mjs');
+     const provider=createProviders({startLogin:async()=>({result:Promise.resolve({token:'synthetic-benchmark-only',models:[{id:'synthetic-durability',label:'Synthetic generation',contextLength:262144,maxOutputTokens:32768}]}),cancel(){}}),fetchImpl:async(_,init)=>{
+       const body=JSON.parse(init.body);
+       if(body.messages.some(m=>m.role==='system'&&typeof m.content==='string'&&m.content.includes('You own exactly')))pageOutputTokens.push(body.max_tokens);
+       const reply=await complete(body.messages,body.tools||[],init.signal);
+       return Response.json({choices:[{message:{content:reply.content||null,...(reply.calls?.length?{tool_calls:reply.calls}:{})},finish_reason:reply.calls?.length?'tool_calls':'stop'}]});
+     }});await provider.login('aipro');await new Promise(r=>setImmediate(r));current.providers=provider;
+     current.store.set('setting:wiki-generation',{model:'auto',effort:'auto',concurrency:concurrency??3,maxToolCalls,pageMaxTokens:16384});
+   }
+
    current.wikiInitEnabled=true;current.wikiDurableClock={now:()=>now,sleep:async(ms,signal)=>{signal?.throwIfAborted();now+=ms;virtualWaitMs+=ms;}};
    current.recoveryOptions={model:{retries:0,minTimeout:0,maxTimeout:0,randomize:false}};
    const set=current.store.set.bind(current.store);let previousState=current.store.get('wiki-init')?.state;
@@ -104,7 +117,7 @@ async function executeScenario({directory,injection,restarting,corruptPage}){
    return current;
  };
  try{
-   service=await open();await service.initializeWiki();await service.wikiInitPromise;
+   service=await open();generationStarted=performance.now();await service.initializeWiki();await service.wikiInitPromise;
    await interruption;
    const initial=service.wikiInitialization();notices.push({phase:'after_injection',state:initial.state,error:initial.error});
    if(!restarting&&['sleep_resume','model_reconnect'].includes(injection)&&injected){
@@ -121,9 +134,10 @@ async function executeScenario({directory,injection,restarting,corruptPage}){
        if(corruptPage){const file=path.join(root,pages.find(page=>page!==retainedPage));await writeFile(file,(await readFile(file,'utf8'))+'\nUnsupported synthetic addition.\n');}
        if(job.sourceFiles!==11)throw Error('synthetic_corpus_incomplete');
        for(const source of sources)if(digest(await readFile(path.join(root,source.path)))!==digest(source.text))throw Error('synthetic_source_changed');
-       await verifyWikiPages(root,['quickstart.md','details.md']);
+       await verifyWikiPages(root,pages.map(page=>path.basename(page)));
        if(observedSources.size!==11)throw Error('synthetic_corpus_not_read');
        for(const page of pages)for(const source of sources)if(!(await readFile(path.join(root,page),'utf8')).includes(source.statement))throw Error('synthetic_page_incomplete');
+       if(!benchmark){
        if(!injected||!retainedPage)throw Error('synthetic_interruption_not_injected');
        // Native finalization adds source/generated frontmatter. Its original
        // page body and accepted Claims must remain byte-for-byte identical.
@@ -131,12 +145,13 @@ async function executeScenario({directory,injection,restarting,corruptPage}){
        const finalClaims=JSON.parse(await readFile(path.join(root,'openwiki/.claims',path.basename(retainedPage,'.md')+'.json'),'utf8')).claims;
        if(JSON.stringify(firstClaims)!==JSON.stringify(finalClaims))throw Error('synthetic_completed_claims_changed');
        if(pageWrites[retainedPage]!==1)throw Error('synthetic_completed_page_replayed');
+       }else if(pages.some(page=>pageWrites[page]!==1))throw Error('synthetic_page_replayed');
        const copy=service.store.get('wiki-init-scope')?.directory;
        if(copy){let retained=false;try{await access(path.join(copy,'openwiki/.run.json'));retained=true;}catch{}if(retained)throw Error('synthetic_run_not_finalized');}
        verified=true;
      }catch(failure){error=failure.message;}
    }
-   return {state:job.state,verified,sources:job.sourceFiles,plannedPages:2,verifiedPages:verified?2:0,pages:job.pages,manualRetries:0,resumes,partialPublications,injected,providerCalls:modelCalls,proposedToolCalls:providerCalls,modelRetries,virtualWaitMs,pageWrites,retainedPage,...(error?{error}:{}),notices};
+   return {state:job.state,verified,sources:job.sourceFiles,plannedPages:pages.length,verifiedPages:verified?pages.length:0,...(benchmark?{concurrency:concurrency??3,maxToolCalls,modelDelayMs,peakModels,generationMs:performance.now()-generationStarted,pageOutputTokens}:{}),pages:job.pages,manualRetries:0,resumes,partialPublications,injected,providerCalls:modelCalls,proposedToolCalls:providerCalls,modelRetries,virtualWaitMs,pageWrites,retainedPage,...(error?{error}:{}),notices};
  }finally{for(const current of services.reverse()){current.dispose();if(current.store?.db?.isOpen)current.store.close();}}
 }
 

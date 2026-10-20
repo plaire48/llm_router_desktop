@@ -95,6 +95,16 @@ export function createClaudeCode(deps={}) {
   const metadata=new Map();
   const controllers=new Set();
   const status=()=>({provider:'claude',connected,model,models:connected?models.map(item=>({...item,...metadata.get(item.id)})):[],reasoningEffort:effortOptions(model).length?effort:null,reasoningOptions:effortOptions(model),vision:false,verified,connectionId,modelCatalog:{source:'cli_initialize'},pending:null,loginError:null,plan,quota:connected?quota:null});
+  // Wiki requests borrow this connection without changing the conversational selection.
+  const wikiModels=()=>connected?[{provider:'claude',connectionId,model,models:status().models.map(item=>({...item,pageOutputConfigurable:false}))}]:[];
+  const wikiRequest=options=>{
+    const chosen=models.find(item=>item.id===options.model);
+    if(!connected||options.purpose!=='wiki'||options.provider!=='claude'||options.connectionId!==connectionId||!chosen)throw Error('invalid_model');
+    const supported=effortOptions(chosen.id),wanted=options.effort??'auto',resolved=wanted==='auto'?(supported.includes('high')?'high':supported.includes(effort)?effort:supported.includes('medium')?'medium':supported[0]||null):wanted;
+    if(resolved!==null&&!supported.includes(resolved))throw Error('invalid_reasoning_effort');
+    const maxToolCalls=options.maxToolCalls??8;if(![8,16].includes(maxToolCalls)||options.maxTokens!==undefined&&options.maxTokens!==null&&(!Number.isSafeInteger(options.maxTokens)||options.maxTokens<1||options.maxTokens>32768))throw Error('response_invalid');
+    return {purpose:'wiki',provider:'claude',model:chosen.id,connectionId,effort:resolved,maxToolCalls,maxTokens:null};
+  };
   function connect(){
     if(connecting)return connecting;
     const pending=connectNow();connecting=pending;
@@ -121,8 +131,9 @@ export function createClaudeCode(deps={}) {
   async function complete(messages,tools=[],signal,onText=()=>{},onPhase=()=>{},onActivity=()=>{},options={}) {
     if(!connected)throw Error('no_credential');
     if(options.visionModel||messages.some(message=>Array.isArray(message.content)&&message.content.some(part=>part.type==='image_url')))throw Error('invalid_model');
-    const selected=modelId(options.backgroundModel?.model||model);if(!models.some(item=>item.id===selected))throw Error('invalid_model');
-    const supportedEfforts=effortOptions(selected),selectedEffort=supportedEfforts.includes(effort)?effort:supportedEfforts.includes('medium')?'medium':supportedEfforts[0];
+    const wiki=options.purpose==='wiki'?wikiRequest(options):null;if(wiki&&options.backgroundModel)throw Error('invalid_model');
+    const selected=wiki?.model||modelId(options.backgroundModel?.model||model);if(!models.some(item=>item.id===selected))throw Error('invalid_model');
+    const supportedEfforts=effortOptions(selected),selectedEffort=wiki?wiki.effort:supportedEfforts.includes(effort)?effort:supportedEfforts.includes('medium')?'medium':supportedEfforts[0];
     const controller=new AbortController();controllers.add(controller);
     const combined=signal?AbortSignal.any([signal,controller.signal]):controller.signal;
     const proposalStop=new AbortController(),allowed=new Set(tools.map(tool=>tool.function.name));
@@ -157,6 +168,7 @@ export function createClaudeCode(deps={}) {
       if(proposal)final=proposal;
       if(final?.is_error&&reportedFailure)throw Error(reportedFailure);
       const result=decodeClaudeResult(final,tools),window=final.modelUsage?.[actualModel]?.contextWindow;
+      if(wiki){wikiRequest(wiki);if(result.calls.length>wiki.maxToolCalls)throw Error('response_invalid');result.requestOptions={provider:'claude',model:wiki.model,effort:wiki.effort,maxToolCalls:wiki.maxToolCalls,maxTokens:null};}
       result.proposalTransport=proposal?'native_proposal':'structured_output';
       metadata.set(selected,{...metadata.get(selected),...(actualModel?{resolvedModel:actualModel}:{}),...(Number.isSafeInteger(window)&&window>0?{contextLength:window}:{})});
       // Result usage sums the CLI's internal turns. Keep it for the ledger;
@@ -177,5 +189,5 @@ export function createClaudeCode(deps={}) {
     finally{try{deps.onUsageFinish?.(usageRequest,claudeUsage(final?.usage,final?.total_cost_usd));}catch{try{deps.onUsageFinish?.(usageRequest);}catch{}}}
     return quota;
   }
-  return {status,connect,complete,refreshQuota,quota:()=>quota,model:value=>{value=modelId(value);if(!models.some(m=>m.id===value))throw Error('invalid_model');model=value;if(!effortOptions(model).includes(effort))effort=effortOptions(model).includes('medium')?'medium':effortOptions(model)[0]||null;return status();},reasoning:value=>{if(!effortOptions(model).includes(value))throw Error('invalid_reasoning');effort=value;return status();},disconnect:()=>{generation++;connecting=null;for(const controller of controllers)controller.abort();connected=false;verified=false;quota=null;plan=null;connectionId=null;return status();}};
+  return {status,wikiModels,wikiRequest,connect,complete,refreshQuota,quota:()=>quota,model:value=>{value=modelId(value);if(!models.some(m=>m.id===value))throw Error('invalid_model');model=value;if(!effortOptions(model).includes(effort))effort=effortOptions(model).includes('medium')?'medium':effortOptions(model)[0]||null;return status();},reasoning:value=>{if(!effortOptions(model).includes(value))throw Error('invalid_reasoning');effort=value;return status();},disconnect:()=>{generation++;connecting=null;for(const controller of controllers)controller.abort();connected=false;verified=false;quota=null;plan=null;connectionId=null;return status();}};
 }

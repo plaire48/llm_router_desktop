@@ -2,7 +2,8 @@ import {httpError} from './core.js';
 import {normalizeUsage} from './usage.js';
 import {completionStreamError} from './completion-errors.js';
 
-export async function readCompletion(response, onText = () => {}, onUsage = () => {}, onPhase = () => {}, onFinish = () => {}, onTools, onMeasurement = () => {}, onActivity = () => {}, {drainMs = 1000, onReasoning} = {}) {
+export async function readCompletion(response, onText = () => {}, onUsage = () => {}, onPhase = () => {}, onFinish = () => {}, onTools, onMeasurement = () => {}, onActivity = () => {}, {drainMs = 1000, onReasoning, purpose, maxToolCalls = 8} = {}) {
+  if (maxToolCalls !== 8 && !(purpose === 'wiki' && maxToolCalls === 16)) throw new Error('response_invalid');
   if (!response.ok) throw Object.assign(new Error(httpError(response.status)), {status: response.status});
   const toolParts = new Map();
   function validateFinish(reason, hasTools = false) {
@@ -15,7 +16,7 @@ export async function readCompletion(response, onText = () => {}, onUsage = () =
     if (!onTools || !Array.isArray(parts)) throw new Error('tools_unavailable');
     for (const part of parts) {
       const index = part.index ?? toolParts.size;
-      if (!Number.isInteger(index) || index < 0 || index >= 8) throw new Error('response_invalid');
+      if (!Number.isInteger(index) || index < 0 || index >= maxToolCalls) throw new Error('response_invalid');
       const previous = toolParts.get(index) || {id: '', type: 'function', function: {name: '', arguments: ''}};
       for (const [field, value] of [['id', part.id], ['name', part.function?.name], ['arguments', part.function?.arguments]]) {
         if (value == null) continue;

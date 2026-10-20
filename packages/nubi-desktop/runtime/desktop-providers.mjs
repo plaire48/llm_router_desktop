@@ -36,6 +36,8 @@ export function createDesktopProviders(deps={}) {
     return status();
   }
   return {...base,status,usageStatus,
+    wikiModels:()=>[...(base.wikiModels?.()||[]),...(claude.wikiModels?.()||[])],
+    wikiRequest:options=>(options.provider==='claude'?claude:base).wikiRequest(options),
     catalogs:()=>[...base.catalogs(),...(claude.status().connected?[{provider:'claude',models:claude.status().models,model:claude.status().model}]:[])],
     restoreConnections:async(records,active)=>{await base.restoreConnections(records.filter(r=>r.provider!=='claude'),active);const c=records.find(r=>r.provider==='claude');if(c)try{await claude.connect();if(c.model)claude.model(c.model);if(c.reasoningEffort)claude.reasoning(c.reasoningEffort);activeClaude=active==='claude';}catch{/* A removed or signed-out CLI stays disconnected. */}return status();},
     flushConnections:async()=>{await base.flushConnections();await persistence;},
@@ -47,7 +49,7 @@ export function createDesktopProviders(deps={}) {
     disconnect:async provider=>{if(provider==='claude'){cancelLogin();claude.disconnect();await remember();}else await base.disconnect(provider);return status();},
     accountUsage:async input=>{await base.accountUsage(input);return usageStatus();},
     quota:async()=>{if(!claude.status().connected)throw Error('claude_login_required');await claude.refreshQuota();return status();},
-    complete:(...args)=>{const provider=args[6]?.backgroundModel?.provider||(activeClaude?'claude':base.status().provider);return (provider==='claude'?claude:base).complete(...args);},
+    complete:(...args)=>{const provider=args[6]?.purpose==='wiki'?args[6].provider:args[6]?.backgroundModel?.provider||(activeClaude?'claude':base.status().provider);return (provider==='claude'?claude:base).complete(...args);},
     dispose:()=>{cancelLogin();claude.disconnect();base.dispose();}
   };
 }

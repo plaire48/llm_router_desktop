@@ -1,3 +1,4 @@
+import {wikiGeneration,wikiGenerationBinding,assertWikiGenerationCurrent} from './wiki-generation.mjs';
 import {folderPlan,planWikiRounds,inWikiFolders} from './wiki-folder-plan.mjs';
 import {documentWindow,DOCUMENT_MAX_TEXT,DOCUMENT_MAX_BYTES} from './document-window.mjs';
 import {notifyWikiCompleted} from './wiki-notification.mjs';
@@ -34,7 +35,7 @@ export function installDesktopFeatures(Service){
       if(this.wikiPauseReasons.has(event))return this.wikiInitialization();
       this.wikiPauseReasons.add(event);
       this.wikiHostPaused=reason;
-      if(this.wikiUpdateRun)this.wikiPausedUpdate={id:this.wikiUpdateRun.id,provider:this.providers.status()};
+      if(this.wikiUpdateRun)this.wikiPausedUpdate={id:this.wikiUpdateRun.id,provider:wikiGenerationBinding(this)};
       this.wikiInitController?.abort(Error(reason));this.wikiUpdateRun?.controller.abort(Error(reason));
       await this.wikiInitPromise?.catch(()=>{});await this.wikiUpdateRun?.promise?.catch(()=>{});return this.wikiInitialization();
     }
@@ -45,10 +46,11 @@ export function installDesktopFeatures(Service){
     if(this.store!==owner||this.root!==root||this.disposed)return;
     const job=owner.get('wiki-init');
     if(job?.state==='paused'&&job.canResume){owner.set('wiki-init',{...job,autoResumeConsumed:false});await this.initializeWiki();}
-    if(this.wikiPausedUpdate){const pending=this.wikiPausedUpdate;this.wikiPausedUpdate=null;const active=this.providers.status();
+    if(this.wikiPausedUpdate){const pending=this.wikiPausedUpdate;this.wikiPausedUpdate=null;const active=wikiGenerationBinding(this);
       if(active.connected&&active.provider===pending.provider.provider&&active.model===pending.provider.model){const value=owner.get('wiki-update:'+pending.id);if(value?.state==='failed')await this.wikiUpdate({method:'resume',id:value.id,fingerprint:value.fingerprint});}}
     return this.wikiInitialization();
   };
+  Service.prototype.wikiGeneration=function(args){return wikiGeneration(this,args);};
   Service.prototype.gitAvailability=gitAvailability;
   Service.prototype.proposalText=async function({proposalId}){this.ready();const p=this.store.get('proposal:'+proposalId);if(!p)fail('proposal_missing');return {before:p.kind==='create'?'':await readFile(p.before,'utf8'),after:await readFile(p.after,'utf8')};};
   Service.prototype.artifactText=async function({uri}){this.ready();let file;try{file=fileURLToPath(uri);}catch{fail('path_scope');}const reports=path.join(this.store.directory,'reports');if(path.dirname(file)!==reports||!(await lstat(file)).isFile()||(await lstat(file)).isSymbolicLink())fail('path_scope');return {content:await readFile(file,'utf8')};};
@@ -98,7 +100,7 @@ export function installDesktopFeatures(Service){
         return {...store.get('wiki-init'),resetProjectId};
       })();
     }if(action==='cancel'){this.wikiInitController?.abort();const v=this.store.get('wiki-init');if(v)this.store.set('wiki-init',{...v,state:'cancelled',percent:null,finishedAt:new Date().toISOString()});}
-    if(action==='retry'){if(this.wikiResetting||this.store.get('wiki-reset-pending')||this.wikiInitController||this.wikiInitAdmission)fail('wiki_busy');this.wikiInitEnabled=true;const previous=this.store.get('wiki-init'),active=this.providers.status();if(previous?.canResume&&(previous.model!==active.model||previous.provider!==active.provider)&&!confirmed)fail('wiki_model_confirmation');this.store.set('wiki-init',previous?.partial?{...previous,state:'attention',autoResumeConsumed:false}:null);const store=this.store;void this.initializeWiki().catch(()=>{if(this.store===store&&store.db.isOpen)store.set('wiki-init',{state:'attention',percent:null,error:'wiki_failed'});});}
+    if(action==='retry'){if(this.wikiResetting||this.store.get('wiki-reset-pending')||this.wikiInitController||this.wikiInitAdmission)fail('wiki_busy');this.wikiInitEnabled=true;const previous=this.store.get('wiki-init'),active=wikiGenerationBinding(this);if(previous?.canResume&&(previous.model!==active.model||previous.provider!==active.provider)&&!confirmed)fail('wiki_model_confirmation');this.store.set('wiki-init',previous?.partial?{...previous,state:'attention',autoResumeConsumed:false}:null);const store=this.store;void this.initializeWiki().catch(()=>{if(this.store===store&&store.db.isOpen)store.set('wiki-init',{state:'attention',percent:null,error:'wiki_failed'});});}
     return this.store.get('wiki-init');
   };
   Service.prototype.initializeWiki=async function(){
@@ -112,19 +114,19 @@ export function installDesktopFeatures(Service){
     const admission={store};this.wikiInitAdmission=admission;
     admission.promise=(async()=>{
     let previous=store.get('wiki-init');if(previous?.state==='running'){previous={...previous,state:'attention',percent:null,error:'wiki_interrupted',finishedAt:new Date().toISOString()};store.set('wiki-init',previous);}
-    const currentProvider=this.providers?.status();
+    const currentProvider=wikiGenerationBinding(this);
     const autoResume=previous?.canResume&&['attention','partial','paused'].includes(previous.state)&&!previous.autoResumeConsumed&&currentProvider?.connected&&previous.model===currentProvider.model&&previous.provider===currentProvider.provider&&!wikiRetryPolicy(Error(previous.error||'wiki_interrupted')).terminal;
     if(previous&&['attention','partial','paused','cancelled','completed','existing'].includes(previous.state)&&!autoResume)return previous;
-    const status=this.providers?.status();
+    const status=wikiGenerationBinding(this);
     if(!status?.connected||this.wikiInitEnabled===false&&!autoResume){
       const existing=await hasWikiPages(root);if(this.store!==store||this.root!==root||this.disposed)return;
       const v=existing?(previous?.state==='completed'?previous:{state:'existing',percent:null,pages:await countWikiPages(root)}):{state:status?.connected?'waiting_source':'waiting_model',percent:null};store.set('wiki-init',v);return v;
     }
     const controller=new AbortController();this.wikiInitController=controller;this.wikiInitOwner=store;const signal=controller.signal;
-    const job={id:autoResume?previous.id:randomUUID(),projectId:this.projectId,startedAt:autoResume?previous.startedAt:new Date().toISOString(),state:'running',stage:'scanning',stageStartedAt:new Date().toISOString(),percent:null,completed:0,total:0,model:status.model,provider:status.provider,connectionId:status.connectionId,...(autoResume?{autoResumeConsumed:true}:{}),...(previous?.published?{published:previous.published}:{})};store.set('wiki-init',job);
+    const job={id:autoResume?previous.id:randomUUID(),projectId:this.projectId,startedAt:autoResume?previous.startedAt:new Date().toISOString(),state:'running',stage:'scanning',stageStartedAt:new Date().toISOString(),percent:null,completed:0,total:0,model:status.model,provider:status.provider,connectionId:status.connectionId,...(status.request?{generation:{provider:status.provider,model:status.model,effort:status.effort,concurrency:status.concurrency,maxToolCalls:status.maxToolCalls,pageMaxTokens:status.pageMaxTokens}}:{}),...(autoResume?{autoResumeConsumed:true}:{}),...(previous?.published?{published:previous.published}:{})};store.set('wiki-init',job);
     let lastKey='',lastSaved=0;
     const persist=(force=false)=>{const key=`${job.state}:${job.stage}:${job.gitStep}:${job.percent}:${job.modelWaiting}:${job.modelRetries}:${job.lastModelError}:${job.scope?.rounds.done}:${job.pageRevision}`;if(!force&&key===lastKey&&Date.now()-lastSaved<250)return;if(this.store===store&&store.db.isOpen){store.set('wiki-init',{...job});lastKey=key;lastSaved=Date.now();}};
-    const check=()=>{signal.throwIfAborted();if(this.store!==store||this.root!==root)fail('project_changed');const active=this.providers.status();if(!active.connected||active.model!==job.model||active.provider!==job.provider)fail('provider_changed');};
+    const check=()=>{signal.throwIfAborted();if(this.store!==store||this.root!==root)fail('project_changed');assertWikiGenerationCurrent(this,status);};
     const preparation={signal,gitRun:this.wikiPreparationGit,onGitStep:step=>{check();if(job.gitStep!==step)job.gitStepStartedAt=new Date().toISOString();Object.assign(job,{gitStep:step,percent:null,completed:0,total:0});persist();},onFile:(completed,total)=>{check();Object.assign(job,{completed,total,percent:Math.floor(100*completed/Math.max(1,total))});persist();}};
     this.wikiInitPromise=(async()=>{let temporary,sourceHead;const published=[];try{
       if(!autoResume&&await hasWikiPages(root)){check();Object.assign(job,previous?.state==='completed'?previous:{state:'existing',percent:null,pages:await countWikiPages(root),finishedAt:new Date().toISOString()});persist();return;}
@@ -168,7 +170,7 @@ export function installDesktopFeatures(Service){
       for(let round=scopeJournal.done;round<rounds.length;round++){
       check();if(round>0){job.stage='snapshot';job.stageStartedAt=new Date().toISOString();job.percent=null;persist();markWikiInitCheckpointPreparing(store,temporary);if(sourceHead)await writeWikiSnapshot(temporary,admitted(round),{...preparation,incremental:true});else await snapshotFolderHistory(store.directory,admitted(round),temporary,preparation);check();await markWikiInitCheckpointReady(store,temporary,preparation);}
       delete job.gitStep;job.stage='planning';job.stageStartedAt=new Date().toISOString();job.percent=null;job.total=0;job.completed=0;job.scope.folders=rounds[round].folders;job.scope.rounds.done=round;persist();
-      const updateResult=await updater({root:temporary,mode:rounds[round].mode,force:round>0,language:'ko',signal,updateId:job.id,scope:{folders:rounds[round].folders,round:round+1,total:rounds.length},repositoryPlan:{plan,folders:rounds[round].folders},planningContext:'Document the selected folders in this round: '+JSON.stringify(rounds[round].folders)+'. Preserve completed pages and their evidence.',onEvent:event=>{check();if(event.type==='durability'){job.pageStates=event.pages;job.heartbeatAt=event.heartbeatAt;job.deadlineAt=event.deadlineAt;job.partial=event.partial;job.pageRevision=(job.pageRevision||0)+1;persist();return;}if(event.type==='model_error'){job.lastModelError=event.code;persist();return;}if(event.type==='model_wait'){job.modelWaiting=event.waiting;persist();return;}if(event.type==='model_retry'){job.modelRetries=(job.modelRetries||0)+1;persist();return;}job.modelWaiting=false;if(job.stage!==event.stage)job.stageStartedAt=new Date().toISOString();job.stage=event.stage;if(['generating','reviewing'].includes(event.stage)&&event.total>0){job.total=event.total;job.completed=Math.max(0,Math.min(event.total,Number.isSafeInteger(event.completed)?event.completed:0));job.percent=Math.floor(100*job.completed/job.total);}else{job.percent=null;job.completed=0;job.total=0;}persist();}});
+      const updateResult=await updater({root:temporary,mode:rounds[round].mode,force:round>0,language:'ko',signal,updateId:job.id,generationBinding:status,scope:{folders:rounds[round].folders,round:round+1,total:rounds.length},repositoryPlan:{plan,folders:rounds[round].folders},planningContext:'Document the selected folders in this round: '+JSON.stringify(rounds[round].folders)+'. Preserve completed pages and their evidence.',onEvent:event=>{check();if(event.type==='generation_settings'){job.generation={...job.generation,...event.applied};persist(true);return;}if(event.type==='durability'){job.pageStates=event.pages;job.heartbeatAt=event.heartbeatAt;job.deadlineAt=event.deadlineAt;job.partial=event.partial;job.pageRevision=(job.pageRevision||0)+1;persist();return;}if(event.type==='model_error'){job.lastModelError=event.code;persist();return;}if(event.type==='model_wait'){job.modelWaiting=event.waiting;persist();return;}if(event.type==='model_retry'){job.modelRetries=(job.modelRetries||0)+1;persist();return;}job.modelWaiting=false;if(job.stage!==event.stage)job.stageStartedAt=new Date().toISOString();job.stage=event.stage;if(['generating','reviewing'].includes(event.stage)&&event.total>0){job.total=event.total;job.completed=Math.max(0,Math.min(event.total,Number.isSafeInteger(event.completed)?event.completed:0));job.percent=Math.floor(100*job.completed/job.total);}else{job.percent=null;job.completed=0;job.total=0;}persist();}});
       if(updateResult?.partial){
         check();const done=Object.entries(job.pageStates||{}).filter(([,page])=>page.state==='done').map(([rel])=>rel.replace(/^\/?openwiki\//,''));
         const preparedRoot=await realpath(temporary),paths=[];await verifyWikiPages(preparedRoot,done,{check});for(const rel of done)paths.push('.claims/'+rel.replace(/\.md$/,'.json'),rel);
