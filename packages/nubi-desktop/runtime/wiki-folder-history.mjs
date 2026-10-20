@@ -11,12 +11,18 @@ export async function snapshotFolderHistory(storage,sources,copy,options={}){
   const root=path.join(storage,'wiki-folder-history');
   await mkdir(root,{recursive:true});
   if((await lstat(root)).isSymbolicLink())fail('path_scope');
-  const config=['-c','core.hooksPath='+path.join(root,'.nubi-no-hooks'),'-c','commit.gpgSign=false','-c','user.name=Nubi Wiki','-c','user.email=wiki@localhost'];
+  // Commit may detach automatic GC once the owned history holds ~6700
+  // objects. It can remove loose objects while cp is reading .git, producing
+  // ENOENT. Protect only our private history and its copies, never the source
+  // repository or the user's global Git settings.
+  const config=['-c','gc.auto=0','-c','maintenance.auto=false','-c','core.hooksPath='+path.join(root,'.nubi-no-hooks'),'-c','commit.gpgSign=false','-c','user.name=Nubi Wiki','-c','user.email=wiki@localhost'];
   const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!key.startsWith('GIT_')));
   const gitOptions={...options,env:{...env,GIT_CONFIG_NOSYSTEM:'1',GIT_CONFIG_GLOBAL:process.platform==='win32'?'NUL':'/dev/null'}};
   const run=(args,step)=>wikiPreparationGit(root,[...config,...args],gitOptions,step);
   try{if((await lstat(path.join(root,'.git'))).isSymbolicLink())fail('path_scope');}catch(error){if(error.code!=='ENOENT')throw error;}
   await run(['init','-q'],'repository');
+  await run(['config','gc.auto','0'],'repository');
+  await run(['config','maintenance.auto','false'],'repository');
   await run(['config','core.hooksPath',path.join(root,'.nubi-no-hooks')],'repository');
   await run(['config','core.autocrlf','false'],'repository');
   // Keep unchanged files and their mtimes so Git can reuse the index's stat cache.
