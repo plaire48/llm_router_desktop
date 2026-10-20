@@ -213,6 +213,8 @@
 
 실패 둘: ① 새 창. 링크를 눌러 새 창이 열리면 어댑터의 탭 목록이 주 탭뿐이라 결과를 확인하지 못해 사람에게 넘긴다(reconcile 미확인). 어댑터에 팝업 탭 등록(context의 page 이벤트)이 필요하다. ② 표 필터(demoqa). 모델은 "Vega"를 맞게 답했지만 오라클이 거른 행 0개를 봤다. 입력 뒤 React 표의 반응 또는 오라클 시점 문제이고 재측정으로 가른다.
 
+재측정(2026-10-21 08:35): ② 표 필터는 오라클 셀렉터가 낡은 것이었다. demoqa가 react-table 클래스(`.rt-tbody .rt-tr-group`) 대신 일반 `table`을 그리게 바뀌어 오라클이 행 0개를 봤고, 모델의 답(Vega)은 세 번 다 맞았다. 오라클을 "거른 뒤 남은 행이 Cierra 행뿐"(`tbody tr` 전체 수 = Cierra 행 수)으로 고쳐 1/1 통과(25초, 모델 3회, 토큰 6.8만, `binding_changed` 1회). 고치기 전 실행은 `binding_changed` 2회로 모델 7회, 토큰 52만이었다. 원인은 광고 iframe이 붙을 때 바뀌는 프레임 트리 revision이다(주 문서는 그대로). 같은 주 문서에서 자식 프레임만 바뀐 경우를 자동 재관찰로 잇는 것은 T7 후보다. ① 새 창은 제품에서는 in-app MCP의 `browser_tabs`가 누비가 연 탭을 나열하므로 점검판(단일 main 탭 포트)만의 공백이다. 포트 계약은 탭마다 MCP 클라이언트 하나이므로 점검판 등록은 페이지마다 연결 하나가 필요하다(다음). 20과제 기준선은 19/20.
+
 ### 11j. 제품 브라우저 녹화와 T8 호스트 연결 (2026-10-21 07:40, 계획 T3 제품 단계, §8 답 32)
 
 - 녹화기 `electron-app/demonstration-recorder.cjs`: 탭 디버거(내부 뷰의 `webContents.debugger`, 외부 탭의 확장 CDP 중계 shim) 위에서 `Page.addScriptToEvaluateOnNewDocument`, `Runtime.addBinding('__nubiDemonstration')`, `Runtime.evaluate`로 브라우저 모듈의 같은 페이지 스크립트를 넣고 `Runtime.bindingCalled`를 모은다. 주 프레임의 기본 실행 컨텍스트만 기록한다(`Page.getFrameTree`와 `Runtime.executionContextCreated`로 판별, 자식 타깃은 받지 않음). Playwright 포트가 이미 붙어 있으면 공유하고(종료 때 바인딩과 스크립트만 제거) 아니면 녹화기가 소유한다(종료 때 detach). 녹화 중에는 Playwright 포트가 그 탭에 새로 붙지 못한다(`browser_debugger_busy`). 이벤트 상한 200.

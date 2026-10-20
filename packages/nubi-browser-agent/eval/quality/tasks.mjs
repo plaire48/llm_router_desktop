@@ -60,7 +60,8 @@ export const tasks=Object.freeze([
     async oracle(page,answer){const text=await page.locator('#withOptGroup').innerText().catch(()=>'');return {success:/Group 2, option 1/.test(text)&&answerHas(answer,'Group 2, option 1'),detail:{text:text.slice(0,60)}};}},
   {id:'table-filter',title:'표 검색으로 거르기',origins:['https://demoqa.com'],url:'https://demoqa.com/webtables',
     request:'검색 상자에 "Cierra"를 입력해 표를 거른 뒤, 남은 행의 성(Last Name)을 답하세요.',
-    async oracle(page,answer){const rows=await page.locator('.rt-tbody .rt-tr-group').filter({hasText:'Cierra'}).count().catch(()=>0);return {success:rows>=1&&answerHas(answer,'Vega'),detail:{rows}};}},
+    // demoqa renders a plain table now (2026-10-21 08:30); the filter must leave only matching rows, not just contain one.
+    async oracle(page,answer){const body=page.locator('tbody tr').filter({hasText:/\S/});const all=await body.count().catch(()=>0),rows=await body.filter({hasText:'Cierra'}).count().catch(()=>0);return {success:rows>=1&&all===rows&&answerHas(answer,'Vega'),detail:{rows,all}};}},
   {id:'wiki-area',title:'위키백과 수치 읽기',origins:['https://ko.wikipedia.org'],url:'https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8%ED%8A%B9%EB%B3%84%EC%8B%9C',
     request:'이 문서의 정보 상자에서 서울의 면적을 찾아 숫자와 단위를 답하세요.',
     async oracle(page,answer){const row=await page.locator('table.infobox tr').filter({hasText:'면적'}).first().innerText().catch(()=>'');const number=/([0-9][0-9,.]*)/.exec(row.replace(/면적/,''))?.[1]??'';return {success:!!number&&answerHas(answer,number.split('.')[0]),detail:{row:row.slice(0,80)}};}},

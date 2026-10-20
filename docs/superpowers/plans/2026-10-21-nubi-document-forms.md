@@ -26,9 +26,9 @@
 
 **Interfaces:** `docxSnapshot(buffer) -> {items, styles, paragraphs:Map<id, xmlLocation>}`; item 모양은 Word 호스트와 같다(`{id:'p-N'|'tT/rR/cC', kind:'paragraph'|'cell'|'field', text, style, outlineLevel, listString, bold, editable:true, writable:true, fields, controls, table,row,column,span,width, tag,title,controlType,showingPlaceholder}`). `extractFormMap(buffer) -> {map, hash, items, summary}`는 `wordFormMap(items)`를 그대로 쓴다.
 
-- [ ] Step 1: 시험. 합성 기안문 docx(제목, 2행 표, 번호 제목, 안내 문단, 한글 목록, 굵은 라벨+날짜 안내)에서 항목 id와 종류, outlineLevel, 표 좌표가 기대와 같고 `wordFormMap`이 칸 2개와 절 1개와 날짜 칸 1개를 낸다.
-- [ ] Step 2: 구현. `w:body` 순회, `w:p`(style → outlineLevel은 styles.xml의 `w:outlineLvl` 또는 Heading N), `w:numPr` → listString, `w:tbl`(gridSpan, tcW), `w:sdt`(content control) → field. 문단 id는 문서 순서 번호, 셀 id는 표/행/열.
-- [ ] Step 3: 통과와 기록.
+- [x] Step 1: 시험(2026-10-21 08:55). `tests/docx-snapshot.test.mjs` 5건: Office 시뮬레이션 호스트의 양식 6종(기안문, 개조식 기안문, 출장 보고, 품의서, 주간 보고, 업무 보고)을 `tests/helpers-docx-fixture.mjs`로 실제 docx로 조립해 `wordFormMap`이 `word-form-map.test.mjs`와 같은 칸/목차/표 행/작성 요령/안내 문구 슬롯을 내는지 확인. 콘텐츠 컨트롤은 field, 깨진 파일은 `docx_invalid`.
+- [x] Step 2: 구현. `runtime/docx-snapshot.mjs`: 의존성 없는 OOXML 태그 토크나이저로 요소 트리(각 요소의 문자 범위 유지), styles.xml(outlineLvl와 크기는 basedOn 사슬로 해석), numbering.xml(decimal/ganada/bullet 등 listString, 깊은 단계 초기화), 문단(하이퍼링크/fldSimple/인라인 sdt 안의 run 포함, 삭제 추적 제외, 같은 서식 run 병합, textRuns, editable=run 1개), 표(gridSpan, tcW, vMerge 이어짐 셀 제외), 블록/인라인 sdt → `f-N` field(tag, alias, 종류, showingPlcHdr). `locations`에 문단/셀/필드의 XML 범위를 둬 Task D가 조각만 고친다. `extractFormMap`은 Office `word-form-map.mjs`를 그대로 호출.
+- [x] Step 3: 통과(5/5). 제한: 중첩 표는 셀 글자로만 읽음, OOPIF 없음, 각주/머리글은 읽지 않음(본문만).
 
 ### Task B: 양식 패키지 저장과 등록 카드 데이터
 
@@ -36,9 +36,9 @@
 
 **Interfaces:** `registerForm({workspace, source, name}) -> forms/<name>/{form-map.json, source.sha256, preview.json}`; `loadForm(workspace,name) -> {map, hash, changed}`; `formQuestionPlan(map, values) -> {questions:[{id,label,kind,required,example,group}], filled:[...]}`.
 
-- [ ] Step 1: 시험. 등록 뒤 폴더 세 파일, 원본 해시가 바뀌면 `changed:true`, 질문 계획이 필수 빈 칸만 한 묶음으로 낸다.
-- [ ] Step 2: 구현. 질문 묶음은 필수 칸 먼저, 같은 group은 한 질문으로.
-- [ ] Step 3: 통과.
+- [x] Step 1: 시험(2026-10-21 09:05). `tests/document-forms.test.mjs` 2건: 등록 뒤 `.nubi/forms/<이름>/{form-map.json, source.sha256, preview.json}`, 목록, 원본이 바뀌면 `changed:true`(원본이 없으면 null), 없는 양식은 `form_missing`, 이름 검증, 질문 계획(표 하나가 질문 하나, 목차 하나가 질문 하나, 필수 먼저, 선택인 표 행은 뒤, 값이 있으면 filled).
+- [x] Step 2: 구현. `runtime/document-forms.mjs`: registerForm(원본은 읽기만, Workspace 안 원본은 상대 경로 기록), loadForm, listForms, formPreview(값 없이 라벨/종류/안내 문구), formQuestionPlan(group은 셀→표 id, 표 행→표 id, 안내 문구 슬롯→목차 id; 예시는 안내 문구 또는 종류별 보기).
+- [x] Step 3: 통과(2/2).
 
 ### Task C: 채움 계획(근거 또는 질문)과 서비스 메서드
 
