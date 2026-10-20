@@ -530,6 +530,7 @@ async function runPlanningAgent(
   });
 
   let submitted = false;
+
   const submitPlanTool = new DynamicStructuredTool({
     name: "submit_plan",
     description:
@@ -1095,6 +1096,16 @@ async function runPageWorkerAttempt(
 
   let submitted = false;
   let fatalSubmissionFailure = false;
+  // A review the model could not complete is this page's failure, not the run's (design §8 답 26).
+  let reviewFailure: unknown = null;
+  const MODEL_REVIEW_FAILURES = new Set([
+    "wiki_review_schema_invalid",
+    "wiki_review_quote_invalid",
+    "wiki_review_coverage_missing",
+    "wiki_review_response_invalid",
+    "wiki_review_incomplete",
+    "wiki_review_attempt_limit",
+  ]);
   let reviewing = false;
   const reviewBudget = createPageReviewBudget();
   const reviewHints = new Set<string>();
@@ -1193,6 +1204,10 @@ async function runPageWorkerAttempt(
               ?.id,
           );
         }
+        if (error instanceof Error && MODEL_REVIEW_FAILURES.has(error.message)) {
+          reviewFailure = error;
+          throw error;
+        }
         fatalSubmissionFailure = true;
         throw error;
       } finally {
@@ -1247,6 +1262,9 @@ async function runPageWorkerAttempt(
     );
   } catch (error) {
     if (submitted) return { status: "submitted" };
+    // A page whose independent review the model could not finish is skipped and
+    // left to the host policy (retry, split, partial); the run keeps going (§8 답 26).
+    if (reviewFailure) return { status: "skipped", snapshot, error: reviewFailure };
     // A fatal submission failure is not retried: the store itself is refusing,
     // so a second attempt would fail the same way and the run should stop.
     if (fatalSubmissionFailure) throw error;
@@ -1255,7 +1273,7 @@ async function runPageWorkerAttempt(
   }
 
   if (submitted) return { status: "submitted" };
-  if (unresolvedReview) throw new Error("wiki_review_incomplete");
+  if (unresolvedReview) return { status: "skipped", snapshot, error: new Error("wiki_review_incomplete") };
 
   return { status: "skipped", snapshot };
 }

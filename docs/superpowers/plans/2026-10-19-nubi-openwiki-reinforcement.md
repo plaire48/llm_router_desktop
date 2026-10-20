@@ -165,7 +165,8 @@ S1 로컬 실행과 측정 완료(2026-10-20), 최종 수용은 보류: 합성20
 #### Task W7: 코드 지도(결정적)
 
 > 2026-10-21: 위키 규모와 품질 설계의 C1(심벌 지도, import 그래프 PageRank 중요도, rc2 전 앞당김)로 대체한다.
-> C1 진행(2026-10-21, Claude 구현): `runtime/code-map.mjs`(TypeScript 파서로 JS/TS 정의와 import, Python/Java는 줄 패턴, 상대 import 해석, 생성물 표식, 진입점 텔레포트 PageRank, 결정성)와 `tests/code-map.test.mjs` 5개. `wiki-folder-plan.mjs`가 대표 파일 순위에 지도 중요도를 합산하고(5만 파일 이하, 실패는 skipped), 계획 문맥에 상위 60개 파일 한 줄씩을 200KB 예산 안에서 붙인다. 커버리지 감사는 지도 없는 계획 유지. 공개 OSS 측정: express 213파일 105ms, undici 881파일 426ms, 메모리 증가 15MiB. 남은 것: `openwiki/code-map.md` 결정적 개요 페이지(탐색 페이지, Claims 불요), Java/Python 해석 정확도 보고, tree-sitter는 §8 질문 20.
+> C1 진행(2026-10-21, Claude 구현): `runtime/code-map.mjs`(TypeScript 파서로 JS/TS 정의와 import, Python/Java는 줄 패턴, 상대 import 해석, 생성물 표식, 진입점 텔레포트 PageRank, 결정성)와 `tests/code-map.test.mjs` 5개. `wiki-folder-plan.mjs`가 대표 파일 순위에 지도 중요도를 합산하고(5만 파일 이하, 실패는 skipped), 계획 문맥에 상위 60개 파일 한 줄씩을 200KB 예산 안에서 붙인다. 커버리지 감사는 지도 없는 계획 유지. 공개 OSS 측정: express 213파일 105ms, undici 881파일 426ms, 메모리 증가 15MiB. 남은 것: `openwiki/code-map.md` 결정적 개요 페이지(탐색 페이지, Claims 불요), Java/Python 해석 정확도 보고, tree-sitter는 §8 질문 24.
+> 품질 루프(2026-10-21, Claude): 점검판(`eval/wiki-quality/run.mjs`: 초기화 → 린트 → 커버리지 → 근거 도달률)로 express 기준선을 측정했다. 1차 실패 원인은 의미 검토의 스키마 예외(설계 §8 답 26로 코어 수정, 페이지 격리), 비용 원인은 작성 대화 재전송(C8 접기로 대응, C9 세션 유지는 설계). 결과표는 규모/품질 설계 §5b. W6/W8 린트는 점검판의 lintPages가 첫 구현이다.
 - Create: `runtime/code-map.mjs`(tree-sitter 개요 `code_outline`과 import 스캔으로 모듈 그래프, 참조 순위), `tests/code-map.test.mjs`. Modify: `runtime/wiki-folder-plan.mjs`(W1 대표 파일 선정이 코드 지도 순위를 사용), `runtime/wiki-update.mjs`(개요 페이지 `openwiki/code-map.md`를 결정적으로 생성해 repositoryContext로 전달. 모델은 설명만 덧붙임).
 - [ ] Step 1: 실패하는 시험(합성 저장소에서 진입점과 허브 모듈이 상위 10에 들고, 같은 입력이면 같은 지도) → 구현 → 통과.
 

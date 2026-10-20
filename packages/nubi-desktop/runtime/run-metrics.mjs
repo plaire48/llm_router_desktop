@@ -14,6 +14,22 @@ const count = value => Number.isSafeInteger(value) && value >= 0 ? value : null;
 const textLength = content => typeof content === 'string' ? content.length : JSON.stringify((Array.isArray(content) ? content : []).filter(part => part?.type === 'text')).length;
 const imageParts = content => Array.isArray(content) ? content.filter(part => part?.type === 'image_url' || part?.type === 'image').length : 0;
 
+// The newest tool result a request carries, as typed codes only (wiki quality design C10):
+// which tool answered and the status/code field of its JSON result. Never the body.
+export function latestToolOutcome(messages = []) {
+  let last = null;
+  for (let index = messages.length - 1; index >= 0; index--) if (messages[index]?.role === 'tool') { last = messages[index]; break; }
+  if (!last) return null;
+  let tool = null;
+  for (const message of messages) for (const call of message?.tool_calls || []) if (call?.id === last.tool_call_id) tool = call.function?.name;
+  let status = null, outcome = null;
+  try {
+    const parsed = typeof last.content === 'string' ? JSON.parse(last.content) : null;
+    if (parsed && typeof parsed === 'object') { status = code(parsed.status); outcome = code(parsed.code ?? parsed.error); }
+  } catch { /* Free-text results carry no typed outcome. */ }
+  return {tool: code(tool) || 'unknown', status, code: outcome};
+}
+
 export function measureRequest(messages = [], tools = []) {
   let messageCharacters = 0, systemCharacters = 0, imageCount = 0;
   for (const message of messages) {
@@ -21,7 +37,7 @@ export function measureRequest(messages = [], tools = []) {
     messageCharacters += length; imageCount += imageParts(message.content);
     if (message.role === 'system') systemCharacters += length;
   }
-  return {messageCharacters, systemCharacters, toolCharacters: JSON.stringify(tools).length, imageCount, estimatedTokens: contextTokens(messages, tools)};
+  return {messageCharacters, systemCharacters, toolCharacters: JSON.stringify(tools).length, imageCount, estimatedTokens: contextTokens(messages, tools), lastTool: latestToolOutcome(messages)};
 }
 
 function usageFacts(usage) {
@@ -65,7 +81,7 @@ export function readRunMetrics(store, {taskId, runId} = {}) {
     .map(row => ({kind: row.kind, ...JSON.parse(row.value)}))
     .filter(row => (!taskId || row.taskId === taskId) && (!runId || row.runId === runId));
   const summary = {subagentCalls: 0, modelCalls: 0, retries: 0, toolCalls: 0, compactions: 0, elapsedMs: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, estimatedTokens: 0, measuredCalls: 0, measuredEstimatedTokens: 0,
-    peakRequestCharacters: 0, fixedCharacters: 0, requestCharacters: 0, byPurpose: {}, byTool: {}, modelErrors: {}, toolErrors: {}};
+    peakRequestCharacters: 0, fixedCharacters: 0, requestCharacters: 0, byPurpose: {}, byTool: {}, modelErrors: {}, toolErrors: {}, submissions: {}};
   for (const row of rows) {
     if (row.kind === 'metric_model') {
       const request = row.messageCharacters + row.toolCharacters;
@@ -77,6 +93,12 @@ export function readRunMetrics(store, {taskId, runId} = {}) {
       summary.promptTokens += row.usage?.prompt_tokens || 0; summary.completionTokens += row.usage?.completion_tokens || 0; summary.cachedTokens += row.usage?.cached_tokens || 0;
       bump(summary.byPurpose, row.purpose, {elapsedMs: row.elapsedMs, estimatedTokens: row.estimatedTokens, promptTokens: row.usage?.prompt_tokens, completionTokens: row.usage?.completion_tokens, cachedTokens: row.usage?.cached_tokens, requestCharacters: request});
       if (row.error) summary.modelErrors[row.error] = (summary.modelErrors[row.error] || 0) + 1;
+      // Submission outcomes (C10): the first attempt of a request whose newest tool result came from submit_page or submit_plan.
+      if (row.attempt === 1 && ['submit_page', 'submit_plan'].includes(row.lastTool?.tool)) {
+        const entry = summary.submissions[row.lastTool.tool] ??= {accepted: 0, rejected: 0, codes: {}};
+        if (row.lastTool.status === 'accepted') entry.accepted++;
+        else { entry.rejected++; const key = row.lastTool.code || row.lastTool.status || 'unknown'; entry.codes[key] = (entry.codes[key] || 0) + 1; }
+      }
     } else if (row.kind === 'metric_tool') {
       summary.toolCalls++;
       bump(summary.byTool, row.tool, {elapsedMs: row.elapsedMs, resultCharacters: row.resultCharacters, imageCount: row.imageCount});

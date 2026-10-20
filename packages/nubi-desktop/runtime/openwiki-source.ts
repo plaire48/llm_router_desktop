@@ -14,7 +14,7 @@ import {traceable} from 'langsmith/traceable';
 // A user's unrelated tracing environment must not upload workspace documents.
 // Disable tracing within this async scope, without mutating process.env.
 export const runWikiQuestion = traceable(researchQuestion, {name:'nubi-document-research',tracingEnabled:false});
-export {NubiOpenWikiModel,isWikiAuthenticationError} from '../../../extensions/aipro-chat/openwiki-agent.js';
+export {NubiOpenWikiModel,isWikiAuthenticationError,foldWikiWire,FOLDABLE_WIKI_TOOLS,WIKI_WIRE_BUDGET} from '../../../extensions/aipro-chat/openwiki-agent.js';
 export {createWikiQuestionSearch} from '../../../extensions/aipro-chat/openwiki-retrieval.js';
 
 export {synthesizePersonalMail} from '../../openwiki/src/ingestion/personal-mail';

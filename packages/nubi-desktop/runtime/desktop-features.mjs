@@ -25,6 +25,15 @@ import {OpenWikiIgnore} from '../generated/openwiki.mjs';
 import {wikiRetryPolicy} from './wiki-durable-policy.mjs';
 import {publishWikiOutput,verifyWikiPages} from './wiki-run-journal.mjs';
 
+// Diagnostic cause chain for the state record only: error names and code-shaped messages, never model text or paths (design §8 답 26).
+export function wikiFailureChain(error){
+  const chain=[];const seen=new Set();
+  for(let current=error,depth=0;current&&depth<5&&!seen.has(current);current=current.cause,depth++){
+    seen.add(current);const message=typeof current.message==='string'?current.message:'';
+    chain.push({name:String(current.name||'Error').slice(0,60),code:/^[a-z_][a-z0-9_]{0,79}$/.test(message)?message:(current.code&&/^[A-Z_]{2,30}$/.test(String(current.code))?String(current.code):null),issues:Array.isArray(current.issues)?current.issues.slice(0,5).map(issue=>({path:(issue.path||[]).join('.').slice(0,80),code:String(issue.code||'').slice(0,40)})):undefined});
+  }
+  return {at:new Date().toISOString(),chain};
+}
 export function installDesktopFeatures(Service){
   Service.prototype.wikiLifecycle=async function({event,expectedRoot}={}){
     this.ready();if(!['suspend','resume','offline','online'].includes(event))fail('input_invalid');
@@ -212,7 +221,7 @@ export function installDesktopFeatures(Service){
       job.published||={};
       await publishWikiOutput({root,copy:temporary,paths:output,published:job.published,check,save:()=>persist(true),onFile:(completed,target,value,created)=>{if(created)published.push({target,hash:value});job.completed=completed;job.percent=Math.floor(100*completed/job.total);persist();}});
       check();Object.assign(job,{state:'completed',stage:'finished',percent:100,canResume:false,finishedAt:new Date().toISOString(),sourceFiles:sources.length,excludedFiles:files.paths.length-sources.length+(files.unavailableFiles||0)+(files.excluded?.ignored||0),pages,changedDuringRun});persist();notifyWikiCompleted(this,job,{root,projectId:job.projectId});
-    }catch(error){for(const file of published.reverse()){try{if(!(await lstat(file.target)).isSymbolicLink()&&hash(await readFile(file.target))===file.hash)await unlink(file.target);}catch{/* Concurrent human changes remain. */}}const pause=signal.aborted&&['wiki_suspended','wiki_offline','provider_changed'].includes(signal.reason?.message);Object.assign(job,{state:pause?'paused':signal.aborted?'cancelled':'attention',...(pause?{autoResumeConsumed:false}:{}),percent:null,finishedAt:new Date().toISOString(),error:pause?signal.reason.message:signal.aborted?'cancelled':wikiInitializationError(error,job.stage)});persist();}
+    }catch(error){for(const file of published.reverse()){try{if(!(await lstat(file.target)).isSymbolicLink()&&hash(await readFile(file.target))===file.hash)await unlink(file.target);}catch{/* Concurrent human changes remain. */}}const pause=signal.aborted&&['wiki_suspended','wiki_offline','provider_changed'].includes(signal.reason?.message);Object.assign(job,{state:pause?'paused':signal.aborted?'cancelled':'attention',...(pause?{autoResumeConsumed:false}:{}),percent:null,finishedAt:new Date().toISOString(),error:pause?signal.reason.message:signal.aborted?'cancelled':wikiInitializationError(error,job.stage),failure:wikiFailureChain(error)});persist();}
     finally{try{if(temporary&&job.state==='completed'){if(store.db.isOpen)await discardWikiInitCheckpoint(store,root);else await removeWikiHistory(root,temporary,sourceHead);}}finally{if(this.wikiInitController===controller){this.wikiInitController=null;this.wikiInitOwner=null;}}}})();return job;
     })();
     try{return await admission.promise;}finally{if(this.wikiInitAdmission===admission)this.wikiInitAdmission=null;}

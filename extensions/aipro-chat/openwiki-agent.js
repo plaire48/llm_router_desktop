@@ -17,6 +17,42 @@ export function wikiWire(messages) {
       ...(role === 'assistant' && message.tool_calls?.length ? {tool_calls: message.tool_calls.map(call => ({id: call.id, type:'function', function:{name:call.name, arguments:JSON.stringify(call.args)}}))} : {})};
   });
 }
+// Conversation folding (wiki scale/quality design C8, 2026-10-21). A page worker re-sends its
+// whole conversation on every call and the Claude CLI host cannot cache a single growing
+// prompt. Two folds keep the transport small without starving the writer: an older read-only
+// result whose exact call is repeated later is superseded by the newer copy (always), and
+// beyond the budget the oldest unique read-only results become short stubs while the newest
+// keepLast stay verbatim. Receipts (write_file, edit_file, submit_page, submit_plan) are never
+// folded. The agent state is untouched; only the copy sent to the host changes.
+export const FOLDABLE_WIKI_TOOLS = Object.freeze(new Set(['read_file', 'ls', 'glob', 'grep', 'read_review_source']));
+export const WIKI_WIRE_BUDGET = 120000;
+const wireSize = message => (message.content || '').length + JSON.stringify(message.tool_calls || []).length;
+const count = n => n.toLocaleString('en-US');
+export function foldWikiWire(wire, {budget = WIKI_WIRE_BUDGET, keepLast = 8, minFold = 1200} = {}) {
+  const calls = new Map();
+  for (const message of wire) for (const call of message.tool_calls || []) calls.set(call.id, {name: call.function?.name, args: call.function?.arguments || ''});
+  const folded = new Map(), latestByCall = new Map(), foldable = [];
+  wire.forEach((message, index) => {
+    const call = message.role === 'tool' ? calls.get(message.tool_call_id) : null;
+    if (!call || !FOLDABLE_WIKI_TOOLS.has(call.name) || typeof message.content !== 'string' || message.content.length < minFold) return;
+    foldable.push({index, name: call.name});
+    const key = call.name + '\n' + call.args;
+    const earlier = latestByCall.get(key);
+    if (earlier !== undefined) folded.set(earlier, '[folded earlier ' + call.name + ' result: ' + count(wire[earlier].content.length) + ' characters. The same call was repeated later; use the newer result below.]');
+    latestByCall.set(key, index);
+  });
+  let total = wire.reduce((sum, message, index) => sum + (folded.has(index) ? folded.get(index).length + JSON.stringify(message.tool_calls || []).length : wireSize(message)), 0);
+  const unique = foldable.filter(({index}) => !folded.has(index));
+  for (const {index, name} of unique.slice(0, Math.max(0, unique.length - keepLast))) {
+    if (total <= budget) break;
+    const content = wire[index].content;
+    const stub = '[folded earlier ' + name + ' result: ' + count(content.length) + ' characters removed to save context. Call ' + name + ' again with the same arguments only if you still need it.]';
+    total -= content.length - stub.length;
+    folded.set(index, stub);
+  }
+  if (!folded.size) return wire;
+  return wire.map((message, index) => folded.has(index) ? {...message, content: folded.get(index)} : message);
+}
 // Credentials remain in the existing host transport. No OpenWiki CLI auth/environment is loaded.
 export class NubiOpenWikiModel extends BaseChatModel {
   constructor({complete, signal, modelId, taskId}) {super({}); this.complete = complete; this.parentSignal = signal; this.modelId = modelId; this.taskId = taskId;}
@@ -25,7 +61,7 @@ export class NubiOpenWikiModel extends BaseChatModel {
   async _generate(messages, options) {
     const signal = options.signal ? AbortSignal.any([this.parentSignal, options.signal]) : this.parentSignal;
     signal.throwIfAborted();
-    const response = await this.complete(wikiWire(messages), options.tools || [], {signal, taskId:this.taskId, role:'research', modelId:this.modelId});
+    const response = await this.complete(foldWikiWire(wikiWire(messages)), options.tools || [], {signal, taskId:this.taskId, role:'research', modelId:this.modelId});
     signal.throwIfAborted();
     if (response.finishReason === 'length') throw new Error('output_limit');
     const tool_calls = (response.calls || []).map(call => ({id:call.id, name:call.function.name, args:JSON.parse(call.function.arguments || '{}'), type:'tool_call'}));

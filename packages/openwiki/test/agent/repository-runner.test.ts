@@ -75,13 +75,13 @@ type HarnessPlanInput = {
 };
 
 const HARNESS_RUN_ID = vi.hoisted(() => "00000000-0000-4000-8000-000000000001");
-const semantic = vi.hoisted(() => ({ reject: false, fail: false, calls: 0 }));
+const semantic = vi.hoisted(() => ({ reject: false, fail: false, failCode: "wiki_review_source_unavailable", calls: 0 }));
 vi.mock("../../src/agent/repository-semantic-review.js", () => ({
   createPageReviewBudget: () => ({ next: () => 1, rejected: () => {} }),
   reviewClaims: (_current: unknown, proposed: unknown) => proposed,
   reviewRepositoryPage: () => {
     semantic.calls++;
-    if (semantic.fail) throw Error("wiki_review_incomplete");
+    if (semantic.fail) throw Error(semantic.failCode);
     return Promise.resolve({
       accepted: !semantic.reject,
       revision: "reviewed-revision",
@@ -788,17 +788,27 @@ describe("runNativeRepositoryGeneration", () => {
     await Promise.all([edit, submit, late]);
     expect(order).toEqual(["read", "edit", "review"]);
   });
-  test("never commits a page rejected by semantic review", async () => {
+  test("never commits a page rejected by semantic review; the page is skipped and the run still finishes (§8 답 26)", async () => {
     semantic.reject = true;
-    await expect(runHarness()).rejects.toThrow("wiki_review_incomplete");
+    const events = await runHarness();
     expect(semantic.calls).toBeGreaterThan(0);
     expect(harness.pageSubmissionCalls).toBe(0);
-    expect(harness.restoreCalls).toBe(0);
-    expect(harness.finishCalls).toBe(0);
+    expect(harness.finishCalls).toBe(1);
+    expect(harness.currentRun?.state.plan?.pages.every((page) => page.status === "skipped")).toBe(true);
+    expect(events.some((event) => event.type === "text" && event.text.includes("reconsidered on the next update"))).toBe(true);
+  });
+  test("a review the model cannot complete skips only that page instead of stopping the run (§8 답 26)", async () => {
+    semantic.fail = true;
+    semantic.failCode = "wiki_review_schema_invalid";
+    await runHarness();
+    expect(harness.pageSubmissionCalls).toBe(0);
+    expect(harness.finishCalls).toBe(1);
+    expect(harness.currentRun?.state.plan?.pages.every((page) => page.status === "skipped")).toBe(true);
   });
   test("review infrastructure failure leaves the pending run unfinalized", async () => {
     semantic.fail = true;
-    await expect(runHarness()).rejects.toThrow("wiki_review_incomplete");
+    semantic.failCode = "wiki_review_source_unavailable";
+    await expect(runHarness()).rejects.toThrow("wiki_review_source_unavailable");
     expect(harness.pageSubmissionCalls).toBe(0);
     expect(harness.finishCalls).toBe(0);
   });

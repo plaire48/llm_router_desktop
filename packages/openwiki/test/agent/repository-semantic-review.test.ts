@@ -64,6 +64,37 @@ function fixture(args: object = {}, files: Record<string, string> = {}) {
   };
 }
 describe("independent page semantic review", () => {
+  test("a malformed review_page is repaired in conversation, then fails the page after two repairs (§8 답 26)", async () => {
+    const good = {
+      checks: [
+        {
+          index: 0,
+          verdict: "supported",
+          reason: "source reasoning",
+          evidence: [{ resource: "repo://src/price.js", quote: source }],
+        },
+      ],
+      issues: [],
+    };
+    const bad = () => new AIMessage({ content: "", tool_calls: [{ name: "review_page", id: "r0", args: {} }] });
+    const f = fixture();
+    f.invoke.mockReset();
+    f.invoke.mockResolvedValueOnce(bad()).mockResolvedValueOnce(
+      new AIMessage({ content: "", tool_calls: [{ name: "review_page", id: "r1", args: good }] }),
+    );
+    const result = await reviewRepositoryPage(f.input);
+    expect(result.accepted).toBe(true);
+    // The same messages array is reused across rounds, so look the repair up by tool call id.
+    const repair = f.invoke.mock.calls[1][0].find((message: any) => message._getType() === "tool" && message.tool_call_id === "r0");
+    expect(repair).toBeDefined();
+    expect(JSON.parse(String(repair.content)).error).toBe("wiki_review_schema_invalid");
+    const g = fixture();
+    g.invoke.mockReset();
+    g.invoke.mockResolvedValueOnce(bad()).mockResolvedValueOnce(bad()).mockResolvedValueOnce(bad());
+    await expect(reviewRepositoryPage(g.input)).rejects.toThrow("wiki_review_schema_invalid");
+    expect(g.invoke).toHaveBeenCalledTimes(3);
+  });
+
   test("compact support still requires a scope explanation", async () => {
     const f = fixture({
       checks: [],

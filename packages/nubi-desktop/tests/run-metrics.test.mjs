@@ -4,7 +4,7 @@ import {mkdtemp,rm} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {Store} from '../runtime/store.mjs';
-import {createRunMetrics,readRunMetrics,measureRequest} from '../runtime/run-metrics.mjs';
+import {createRunMetrics,readRunMetrics,measureRequest,latestToolOutcome} from '../runtime/run-metrics.mjs';
 
 async function store(t){
   const directory=await mkdtemp(path.join(os.tmpdir(),'nubi-metrics-')),value=new Store(directory);
@@ -73,4 +73,19 @@ test('metric events older than thirty days are removed when a run starts; other 
   insert.run(new Date().toISOString(),'metric_tool',JSON.stringify({taskId:'new',runId:'new',sequence:1,tool:'x',elapsedMs:0}));
   createRunMetrics({store:s,taskId:'t',runId:'r'});
   assert.deepEqual(s.db.prepare('SELECT kind FROM events ORDER BY sequence').all().map(row=>row.kind),['task_created','metric_tool']);
+});
+
+test('the newest tool outcome is kept as typed codes and submissions are totalled by result (C10)',async t=>{
+  const calls=id=>[{id,type:'function',function:{name:id.startsWith('p')?'submit_page':'read_file',arguments:'{"path":"SECRET"}'}}];
+  const rejected=[{role:'system',content:'S'},{role:'assistant',content:'',tool_calls:calls('p1')},{role:'tool',tool_call_id:'p1',content:JSON.stringify({status:'rejected',code:'wiki_claim_quote_mismatch',message:'SECRET QUOTE /Users/x'})}];
+  const accepted=[...rejected,{role:'assistant',content:'',tool_calls:calls('p2')},{role:'tool',tool_call_id:'p2',content:JSON.stringify({status:'accepted',page:'/openwiki/a.md'})}];
+  const read=[...accepted,{role:'assistant',content:'',tool_calls:calls('r1')},{role:'tool',tool_call_id:'r1',content:'plain file text, not JSON'}];
+  assert.deepEqual(latestToolOutcome(rejected),{tool:'submit_page',status:'rejected',code:'wiki_claim_quote_mismatch'});
+  assert.deepEqual(latestToolOutcome(read),{tool:'read_file',status:null,code:null});
+  assert.equal(latestToolOutcome([{role:'user',content:'x'}]),null);
+  assert.equal(JSON.stringify(measureRequest(rejected)).includes('SECRET'),false);
+  const s=await store(t);const metrics=createRunMetrics({store:s,taskId:'task-c10',runId:'run-1'});
+  for(const [messages,attempt] of [[rejected,1],[rejected,2],[accepted,1],[read,1]])metrics.beginModel({purpose:'wiki_update',attempt,messages,tools:[],model:'fixture'}).end({finishReason:'stop'});
+  const {summary}=readRunMetrics(s,{taskId:'task-c10',runId:'run-1'});
+  assert.deepEqual(summary.submissions,{submit_page:{accepted:1,rejected:1,codes:{wiki_claim_quote_mismatch:1}}},'retries of the same request are not counted twice');
 });

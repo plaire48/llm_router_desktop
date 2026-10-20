@@ -268,6 +268,10 @@ async function reviewBatch(
     ),
   ];
   let quotationRepairs = 0;
+  // Design §8 답 26 (2026-10-21): a malformed review_page is repaired through the
+  // conversation like a bad quotation, instead of throwing a schema error that
+  // only the host can see. Two repairs, then a page-level review failure.
+  let schemaRepairs = 0;
   for (let round = 0; round < 12; round++) {
     signal?.throwIfAborted();
     const response = await bound.invoke(messages, { signal });
@@ -296,7 +300,27 @@ async function reviewBatch(
         // A verdict cannot depend on read results it has not received yet.
         if (response.tool_calls.length !== 1)
           throw Error("wiki_review_response_invalid");
-        const verdict = SemanticVerdict.parse(call.args);
+        const parsed = SemanticVerdict.safeParse(call.args);
+        if (!parsed.success) {
+          if (schemaRepairs++ >= 2) throw Error("wiki_review_schema_invalid");
+          messages.push(
+            new ToolMessage({
+              tool_call_id: call.id!,
+              status: "error",
+              content: JSON.stringify({
+                error: "wiki_review_schema_invalid",
+                issues: parsed.error.issues.slice(0, 8).map((issue) => ({
+                  path: issue.path.join("."),
+                  message: issue.message,
+                })),
+                instruction:
+                  "Resubmit review_page once as a complete object: checks with one entry per supplied index (index, verdict, reason, evidence quotes) and issues (possibly empty). Optional supported groups need indexes, reason and evidence. Never send an empty call.",
+              }),
+            }),
+          );
+          continue;
+        }
+        const verdict = parsed.data;
         const checks = [
           ...verdict.checks,
           ...(verdict.supported ?? []).flatMap((group) =>
