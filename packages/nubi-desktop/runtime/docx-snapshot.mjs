@@ -4,7 +4,7 @@
 // element in word/document.xml so a later in-place edit touches that fragment only.
 import JSZip from 'jszip';
 import {createHash} from 'node:crypto';
-import {wordFormMap} from '../../nubi-office/worker/word-form-map.mjs';
+import {wordFormMap} from '../generated/office-forms.mjs';
 import {fail} from './files.mjs';
 
 const TAG=/<(\/?)([A-Za-z_][\w:.-]*)((?:\s+[^\s=>/]+(?:="[^"]*"|='[^']*')?)*)\s*(\/?)>/g;

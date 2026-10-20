@@ -5,7 +5,7 @@
 import {mkdir,readFile,writeFile,readdir,realpath,lstat} from 'node:fs/promises';
 import path from 'node:path';
 import {extractFormMap} from './docx-snapshot.mjs';
-import {mapSummary} from '../../nubi-office/worker/word-form-map.mjs';
+import {mapSummary} from '../generated/office-forms.mjs';
 import {scopedFile,hash,fail} from './files.mjs';
 
 export const FORMS_DIR='.nubi/forms';
@@ -32,7 +32,7 @@ export async function registerForm({workspace,source,name}){
   if(typeof source!=='string'||!source)fail('form_source_required');
   const formName=name?safeFormName(name):formNameFromFile(source);
   const bytes=await readFile(source).catch(error=>{if(error.code==='ENOENT')fail('form_source_missing');throw error;});
-  const {map,hash:sourceHash}=await extractFormMap(bytes,{name:path.basename(source)});
+  const {map,hash:sourceHash,items}=await extractFormMap(bytes,{name:path.basename(source)});
   const {root,rel}=await formDir(workspace,formName,{create:true});
   const registeredAt=new Date().toISOString();
   const sourceRel=path.isAbsolute(source)&&(await realpath(source)).startsWith(root+path.sep)?path.relative(root,await realpath(source)):null;
@@ -40,6 +40,8 @@ export async function registerForm({workspace,source,name}){
   await writeFile(await scopedFile(root,`${rel}/form-map.json`,{newFile:true}),JSON.stringify({...map,registeredAt},null,1)+'\n');
   await writeFile(await scopedFile(root,`${rel}/source.sha256`,{newFile:true}),sourceHash+(sourceRel?' '+sourceRel:'')+'\n');
   await writeFile(await scopedFile(root,`${rel}/preview.json`,{newFile:true}),JSON.stringify(preview,null,1)+'\n');
+  // The form's own items (labels and guide text, no values): the fill run's ledger needs them without the source file.
+  await writeFile(await scopedFile(root,`${rel}/items.json`,{newFile:true}),JSON.stringify(items,null,0)+'\n');
   return {name:formName,map,hash:sourceHash,preview,changed:false};
 }
 /** The kept map; `changed` says whether the source file (when it is still in the Workspace) differs from the registered one. */
@@ -50,10 +52,11 @@ export async function loadForm(workspace,name,{source}={}){
   if(map?.kind!=='template_map'||!Array.isArray(map.slots))fail('form_map_invalid');
   const record=(await readFile(await scopedFile(root,`${rel}/source.sha256`),'utf8').catch(()=>'')).trim(),[registeredHash,...rest]=record.split(' '),sourceRel=rest.join(' ')||null;
   const preview=JSON.parse(await readFile(await scopedFile(root,`${rel}/preview.json`),'utf8').catch(()=>'null'));
+  const items=JSON.parse(await readFile(await scopedFile(root,`${rel}/items.json`),'utf8').catch(()=>'null'));
   const candidate=source??(sourceRel?path.join(root,sourceRel):null);
   let changed=null;
   if(candidate){try{changed=hash(await readFile(candidate))!==registeredHash;}catch(error){if(error.code!=='ENOENT')throw error;changed=null;}}
-  return {name,map,hash:registeredHash,source:sourceRel,preview,changed};
+  return {name,map,items:Array.isArray(items)?items:null,hash:registeredHash,source:sourceRel,preview,changed};
 }
 export async function listForms(workspace){
   const root=await realpath(workspace);let names=[];

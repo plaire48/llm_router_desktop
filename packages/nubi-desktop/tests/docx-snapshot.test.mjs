@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {docxSnapshot,extractFormMap,parseXml} from '../runtime/docx-snapshot.mjs';
-import {mapSummary} from '../../nubi-office/worker/word-form-map.mjs';
+import {mapSummary} from '../generated/office-forms.mjs';
 import {docxFromBlocks,FORMS} from './helpers-docx-fixture.mjs';
 
 // Document forms plan Task A: a docx read without Word yields the items the Word host reports, so the Office form map

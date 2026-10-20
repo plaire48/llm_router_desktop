@@ -41,7 +41,7 @@
     "node scripts/check-electron-mcp-approval.mjs",
     "node scripts/check-freeze-both.mjs"
   ],
-  "pretest": "npm run build:browser-agent-core && npm run build:document-agent-native",
+  "pretest": "npm run build:browser-agent-core && npm run build:document-agent-native && npm run build:office-forms",
   "additions": [
     "node scripts/check-electron-workflow.mjs",
     "node scripts/check-wiki-scope-ui.mjs",

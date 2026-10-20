@@ -1,6 +1,7 @@
 import './build-document-agent-native.mjs';
 import {build} from 'esbuild';
 import './build-browser-agent-core.mjs';
+import './build-office-forms.mjs';
 import {DESKTOP_FEATURES} from '../runtime/beta-features.mjs';
 import {mkdir,copyFile,cp,readFile,rm,writeFile} from 'node:fs/promises';
 import path from 'node:path';

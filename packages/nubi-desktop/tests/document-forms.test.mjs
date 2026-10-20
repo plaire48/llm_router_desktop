@@ -15,7 +15,7 @@ test('registering a form writes its three files, lists it, and notices when the 
   await writeFile(source,await docxFromBlocks(FORMS.gianmun)).catch(async()=>{const {mkdir}=await import('node:fs/promises');await mkdir(path.dirname(source),{recursive:true});await writeFile(source,await docxFromBlocks(FORMS.gianmun));});
   const registered=await registerForm({workspace:root,source});
   assert.equal(registered.name,'기안문');assert.match(registered.hash,/^sha256:/);assert.equal(registered.preview.summary,'칸 6개, 목차 3개, 작성 요령 1개');
-  assert.deepEqual((await readdir(path.join(root,'.nubi','forms','기안문'))).sort(),['form-map.json','preview.json','source.sha256']);
+  assert.deepEqual((await readdir(path.join(root,'.nubi','forms','기안문'))).sort(),['form-map.json','items.json','preview.json','source.sha256']);
   const stored=JSON.parse(await readFile(path.join(root,'.nubi','forms','기안문','form-map.json'),'utf8'));
   assert.equal(stored.kind,'template_map');assert.equal(stored.slots.length,6);
   assert.match(await readFile(path.join(root,'.nubi','forms','기안문','source.sha256'),'utf8'),/^sha256:[0-9a-f]{64} 서식\/기안문\.docx\n$/);

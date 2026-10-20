@@ -46,9 +46,9 @@
 
 **Interfaces:** `formPlan({name, sources:{files:[], wikiQuery, mail}, answers}) -> {sheet:{cells,rows,sections}, questions, evidence}`; `formAnswer({planId, answers})`. 모델은 `createFormFill`의 structured/ask 포트를 Desktop 전송에 연결해 쓴다. 근거 없는 값은 넣지 않고 질문으로 보낸다.
 
-- [ ] Step 1: 시험(가짜 모델). 근거가 있는 칸은 evidence가 붙고 없는 칸은 questions로 가며, 답을 주면 채움표가 다시 검사된다(`formChecks`).
-- [ ] Step 2: 구현. 
-- [ ] Step 3: 통과.
+- [x] Step 1: 시험(2026-10-21 09:40, 가짜 모델). `tests/document-forms-service.test.mjs` 2건: 요청과 자료(위키 발췌)에서 채운 칸마다 source와 quote가 붙고, 자료에 없는 칸(출장 기간)은 질문 카드로 가며, 빈 답은 한 번 더 묻고, 답을 주면 채움표를 다시 써서 ready가 된다(cells 3회, section 2회). 거절된 채움표(요청에 없는 인용)는 이유와 함께 되돌아가 두 번째에 통과. 양식 없음, 요청 없음, 프로젝트 바뀜, 공급자 없음, 잘못된 action 거절. 등록/목록/질문 계획도 같은 메서드로.
+- [x] Step 2: 구현. 메서드는 하나 `documentForm({action})`: register, list, questions, plan, answer, status, cancel(허용 목록 등록). `runtime/document-forms-service.mjs`: Office `createFormFill`을 Desktop `modelTransport`에 연결(structured: 스키마 거절 피드백 3회, form_fill 목적), ask는 열린 칸 전부를 한 카드로 돌려주고 답은 "라벨: 값"으로 answers에 넣어 모델이 인용하게 한다. 자료는 `sources.files`(Workspace 글 파일 10개, 2만 자)와 `sources.passages`(호출자가 넘기는 위키/메일/파일 발췌 40개)이며 history-N으로 들어가 evidence가 kind/ref로 되돌아온다. 목차의 sources는 Office 파서가 버리므로 구조화 응답에서 따로 보관. Office 부품은 `scripts/build-office-forms.mjs`가 typebox/numfmt와 함께 `generated/office-forms.mjs`로 묶는다(pretest, compile). Task B 등록 패키지에 `items.json`(값 없는 항목)을 더해 채움 실행의 장부가 원본 없이도 선다.
+- [x] Step 3: 통과(2/2). 계획과 다른 점: `formChecks`는 사본에 쓴 뒤 비교하는 검사라 Task D(form_apply) 뒤로 미뤘고, 채움표 자체의 검사(인용 일치, 숫자, 안내 문구)는 Office `parseCellSheet`가 한다. 위키 질의와 메일 조회는 호출자(에이전트/화면)가 발췌로 넘긴다.
 
 ### Task D: docx 사본에 제자리 쓰기와 검증
 
