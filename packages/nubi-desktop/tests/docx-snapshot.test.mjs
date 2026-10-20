@@ -48,12 +48,13 @@ test('a guide inside a sentence is a slot, a two-format guide paragraph leaves r
 test('items keep ids, styles, list strings, run counts and the XML range of each element',async()=>{
   const bytes=await docxFromBlocks(FORMS.gianmunList),snapshot=await docxSnapshot(bytes,{name:'기안문.docx'});
   const paragraphs=snapshot.items.filter(item=>item.kind==='paragraph'),cells=snapshot.items.filter(item=>item.kind==='cell');
-  assert.deepEqual(paragraphs.slice(0,3).map(p=>[p.id,p.text,p.style,p.outlineLevel,p.listString]),[['p-1','기 안 문','Title',10,null],['p-2','1. 개요','heading 1',1,null],['p-3','(추진 배경을 기재)','개조식 1',10,'가.']]);
+  // Word numbers the 12 cell paragraphs of the header table too, so the first heading is p-14 as the Word host says.
+  assert.deepEqual(paragraphs.slice(0,3).map(p=>[p.id,p.text,p.style,p.outlineLevel,p.listString]),[['p-1','기 안 문','Title',10,null],['p-14','1. 개요','heading 1',1,null],['p-15','(추진 배경을 기재)','개조식 1',10,'가.']]);
   assert.equal(paragraphs.at(-1).text,'','the trailing empty paragraph is an item too');
   assert.deepEqual(cells.slice(0,4).map(c=>[c.id,c.text,c.bold,c.span,c.width>0]),[['t1/r1/c1','문서번호',true,1,true],['t1/r1/c2','○○팀-2026-000',false,1,true],['t1/r1/c3','기안일자',true,1,true],['t1/r1/c4','20XX. XX. XX.',false,1,true]]);
   assert.deepEqual(cells.find(c=>c.id==='t1/r3/c2').span,3);
   assert.ok(paragraphs.every(p=>p.editable&&p.writable&&p.runs<=1&&p.fields===0&&p.controls===0));
-  const range=snapshot.locations.get('p-2'),xml=snapshot.documentXml.slice(range.start,range.end);
+  const range=snapshot.locations.get('p-14'),xml=snapshot.documentXml.slice(range.start,range.end);
   assert.ok(xml.startsWith('<w:p>')&&xml.endsWith('</w:p>')&&xml.includes('1. 개요'));
   const cell=snapshot.locations.get('t1/r1/c2');assert.ok(snapshot.documentXml.slice(cell.start,cell.end).startsWith('<w:tc>'));
   assert.ok(cell.paragraph.start>cell.start&&cell.paragraph.end<=cell.end);

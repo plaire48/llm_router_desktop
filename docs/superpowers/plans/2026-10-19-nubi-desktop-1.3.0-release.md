@@ -257,6 +257,10 @@
 
 > **Actions 33차 녹색(2026-10-21 07:17~07:45, Claude, 39507001138, 제품 브라우저 녹화기와 가르치기 호스트 연결 §8 답 32와 Codex T8 UI 20파일 7765864c):** unit 16분 53초 녹색. ui 1차 실패(7분 49초, `check-wave2-ui.mjs:69` `[data-session-id="pinned"] summary`가 2개로 strict mode 위반: 고정 대화 이전(localStorage → 호스트) 중 같은 행이 두 번 그려지는 경합. 변경 내용과 무관, 로컬 export 트리에서는 통과) → 실패 작업만 재실행해 9분 19초 녹색. 16~33차 연속 녹색(33차는 재실행 1회). 공유 파일 `project-service.mjs`는 Codex 미완 편집(루틴)을 빼고 main+이 변경만 올림(업로더 OVERRIDE_FILES). 경합 수정은 Codex(UI)에 전달.
 
+> **Actions 34차 녹색(2026-10-21 07:47~08:05, Claude, 39510619166, Office Task A/B와 표 필터 오라클과 Office worker 2파일 11파일 07120bb2):** 워크플로 17분 18초. unit 17분 18초, ui 9분 28초. 16~34차 연속 녹색. unit 17분대가 네 번째라 2분할(Codex 로컬) 업로드가 필요하다.
+
+> **Actions 35차 녹색(2026-10-21 07:58~08:30, Claude, 39513949062, Office Task C documentForm와 양식 부품 번들 21파일 f09e0534):** unit 13분 54초, ui 7분 15초. 16~35차 연속 녹색. 공유 파일 4개(package.json, gate-baseline.json, build-runtime.mjs, project-service.mjs)는 OVERRIDE로 main+이 변경만.
+
 > 우선순위 변경(2026-10-21 02:50, 사용자): 1.3.0 릴리스 절차보다 현재 기능 고도화가 최우선이다. Task 11~13은 Claude가 문서 양식 작성 계획(docs/superpowers/plans/2026-10-21-nubi-document-forms.md)으로 이어받고, 릴리스 전용 과제와 릴리스 입력 게이트 기본 켬은 보류한다. 업로드 전 CI 녹색 확인은 유지한다.
 
 ## Task R1: 게이트를 GitHub Actions로

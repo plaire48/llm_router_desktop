@@ -86,7 +86,7 @@ function collectRuns(node,out,counts){
 const sameFormat=(a,b)=>a.bold===b.bold&&a.size===b.size&&a.font===b.font;
 
 class Reader{
-  constructor(parts){this.styles=readStyles(parts.styles);this.numbering=readNumbering(parts.numbering);this.counters=new Map();this.items=[];this.locations=new Map();this.fields=0;}
+  constructor(parts){this.styles=readStyles(parts.styles);this.numbering=readNumbering(parts.numbering);this.counters=new Map();this.items=[];this.locations=new Map();this.fields=0;this.paragraphs=0;this.tables=0;}
   styleOf(id){return id&&this.styles.get(id)||null;}
   listString(pPr){
     const numPr=pPr&&firstNamed(pPr,'w:numPr');if(!numPr)return null;
@@ -119,14 +119,13 @@ class Reader{
     this.locations.set(id,{start:node.start,end:node.end});
   }
   body(body){
-    let paragraphs=0,tables=0;
     for(const child of body.children){
       if(!isElement(child))continue;
       if(child.name==='w:p'){
-        const id='p-'+(++paragraphs),{range,...item}=this.paragraph(child);
+        const id='p-'+(++this.paragraphs),{range,...item}=this.paragraph(child);
         this.items.push({id,kind:'paragraph',...item,inTable:false});this.locations.set(id,range);
         for(const sdt of findAll(child,'w:sdt'))this.field(sdt,id);
-      }else if(child.name==='w:tbl')this.table(child,++tables);
+      }else if(child.name==='w:tbl')this.table(child,++this.tables);
       else if(child.name==='w:sdt'){const content=firstNamed(child,'w:sdtContent');if(content&&childrenNamed(content,'w:tbl').length)this.body(content);else this.field(child);}
     }
   }
@@ -139,7 +138,8 @@ class Reader{
         // A vertically merged continuation is the cell above, not a cell of its own.
         if(vMerge&&vMerge.attrs['w:val']!=='restart')continue;
         c++;
-        const paragraphs=childrenNamed(cell,'w:p').map(p=>this.paragraph(p));
+        // Word counts cell paragraphs in the p-N sequence (Office ledger note, 2026-10-01); so does this reader.
+        const paragraphs=childrenNamed(cell,'w:p').map(p=>{this.paragraphs++;return this.paragraph(p);});
         const first=paragraphs[0]??{text:'',style:'Normal',bold:false,fields:0,controls:0,runs:0,textRuns:[],editable:true,writable:true,range:{start:cell.start,end:cell.end}};
         const text=paragraphs.map(p=>p.text).join('\n'),fields=paragraphs.reduce((n,p)=>n+p.fields,0),controls=paragraphs.reduce((n,p)=>n+p.controls,0);
         const writable=!fields&&!controls,editable=writable&&paragraphs.length<=1&&first.runs<=1;
@@ -153,17 +153,26 @@ class Reader{
 }
 function findAll(node,name,out=[]){for(const child of node.children){if(!isElement(child))continue;if(child.name===name)out.push(child);else findAll(child,name,out);}return out;}
 
-/** The snapshot of a docx: items in document order, resolved styles and the XML location of each item. */
-export async function docxSnapshot(bytes,{name='양식.docx'}={}){
+/** The snapshot of the XML parts (document, styles, numbering) already read out of a docx. */
+export function snapshotParts(parts,{name='양식.docx',fingerprint=''}={}){
+  if(typeof parts?.document!=='string')fail('docx_invalid');
+  const reader=new Reader({styles:parts.styles??null,numbering:parts.numbering??null});
+  const body=findFirst(parseXml(parts.document),'w:body');if(!body)fail('docx_invalid');
+  reader.body(body);
+  return {host:'word',name,scopeId:'docx:'+String(fingerprint).slice(7,19),fingerprint,items:reader.items,styles:[...reader.styles.values()].map(({id,name:styleName,outlineLevel,size})=>({id,name:styleName,outlineLevel,size})),locations:reader.locations,documentXml:parts.document};
+}
+/** The XML parts of a docx. */
+export async function docxParts(bytes){
   if(!bytes||!bytes.length)fail('docx_invalid');
   let zip;try{zip=await JSZip.loadAsync(bytes);}catch{fail('docx_invalid');}
   const part=async path=>{const file=zip.file(path);return file?await file.async('string'):null;};
   const document=await part('word/document.xml');if(!document)fail('docx_invalid');
-  const reader=new Reader({styles:await part('word/styles.xml'),numbering:await part('word/numbering.xml')});
-  const body=findFirst(parseXml(document),'w:body');if(!body)fail('docx_invalid');
-  reader.body(body);
-  const fingerprint=hash(bytes);
-  return {host:'word',name,scopeId:'docx:'+fingerprint.slice(7,19),fingerprint,items:reader.items,styles:[...reader.styles.values()].map(({id,name:styleName,outlineLevel,size})=>({id,name:styleName,outlineLevel,size})),locations:reader.locations,documentXml:document};
+  return {zip,document,styles:await part('word/styles.xml'),numbering:await part('word/numbering.xml')};
+}
+/** The snapshot of a docx: items in document order, resolved styles and the XML location of each item. */
+export async function docxSnapshot(bytes,{name='양식.docx'}={}){
+  const parts=await docxParts(bytes);
+  return snapshotParts(parts,{name,fingerprint:hash(bytes)});
 }
 /** The form map of a docx, built by the Office form map code from the snapshot. */
 export async function extractFormMap(bytes,options={}){

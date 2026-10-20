@@ -56,9 +56,9 @@
 
 **Interfaces:** `applyDocxOperations(buffer, operations, {snapshot}) -> {buffer, applied, skipped}`; 작업은 form-apply의 `nextOperation`이 내는 `fill_cell`, `fill_field`, `replace_guide`, `replace_text`, `add_rows`(행 복제), `insert_paragraphs`, `remove_paragraph`. `verifyDocxCopy(original, result, {targets}) -> {sameEntries, changedParagraphs, violations}`.
 
-- [ ] Step 1: 시험. 셀 채우기 뒤 다른 zip 항목은 바이트 동일, 안내 글 치환은 run 서식(rPr) 유지, 같은 채움표 두 번 적용은 두 번째 쓰기 0, 원본 경로 출력은 거절.
-- [ ] Step 2: 구현. 바뀌는 `w:p`만 문자열 범위로 바꿔 끼우고 나머지 XML은 그대로. 쪼개진 run은 합친다(Claude 스킬의 merge_runs).
-- [ ] Step 3: 통과.
+- [x] Step 1: 시험(2026-10-21 10:30). `tests/docx-apply.test.mjs` 4건: 칸 채우기 뒤 document.xml 외 zip 항목 전부 바이트 동일(`verifyDocxCopy`), 바뀐 문단은 대상뿐(targets 밖이면 violations), 두 서식 문단의 안내 문구 치환은 굵은 run을 유지하고 표식 run은 그대로, 문단 통째 쓰기는 스타일 유지, 견본 같은 문단 삽입/삭제(마지막 문단 보호), 표 행 추가(폭과 span 유지, 빈 셀), 콘텐츠 컨트롤 채우기(placeholder 해제), 없는 대상과 작업은 Office 거절 코드. Office `applyFill`로 출장 보고 채움표 전체(13 작업)를 쓰고 `formChecks` "칸 4/4, 목차 2/2, 남은 안내 문구 0, 서식 유지, 근거 확인", 같은 채움표 두 번째는 작업 0. 서비스 `tests/document-forms-service.test.mjs` 3번째: apply가 Workspace 안 사본에 쓰고(원본 경로는 `form_source_protected`, .docx 아니면 `form_output_invalid`, 있는 파일은 `form_output_exists`), 검토 목록(REVIEWER)까지 돌아 state written, 원본은 그대로.
+- [x] Step 2: 구현. `runtime/docx-apply.mjs`: `applyOperationToXml`(fill_cell, replace_text, replace_guide/replace_text_fragment, fill_field, insert_paragraphs, remove_paragraph, add_rows)은 대상 요소의 문자 범위만 바꿔 끼운다. 문단은 pPr와 책갈피를 보존하고 run을 다시 만든다(같은 rPr의 run 병합, 치환 글자는 안내 문구가 시작한 run의 서식). `createDocxWriter`가 Office 채움의 read/apply 포트가 되고 쓰기마다 다시 읽어 Office 호스트와 같은 영수증 검사(내용, 서식 보존, 다른 칸과 문단 보존, 표 모양)를 돌려준다. `docx-snapshot`은 Word처럼 셀 문단도 p-N에 세어(호스트와 같은 번호) 지도가 COM 경로와도 맞는다. 서비스 apply: 첫 카드는 apply 호출이 승인, 고친 채움표는 state approval로 멈춰 다시 apply, 질문은 answer. 끝나면 사본 저장과 `verifyDocxCopy` 결과(`written`).
+- [x] Step 3: 통과(4/4, 서비스 3/3). Windows COM 경로는 기존 externalOffice 연결을 쓰는 후속이며 이 docx 경로가 Mac과 CI의 기준이다.
 
 ### Task E: 전후 렌더
 
@@ -66,9 +66,9 @@
 
 **Interfaces:** `renderDocumentPages(path, {outDir, soffice}) -> {pages:[png], status:'rendered'|'unavailable', engine}`; soffice는 `NUBI_SOFFICE` 또는 PATH에서 찾고 없으면 `unavailable`("렌더 미확인"). Mac 시험 전용. 페이지별 PNG는 LibreOffice PageRange 필터로 뽑는다.
 
-- [ ] Step 1: 시험. soffice가 없으면 unavailable, 있으면(이 Mac) 합성 docx가 1페이지 PNG로 나온다.
-- [ ] Step 2: 구현.
-- [ ] Step 3: 통과.
+- [x] Step 1: 시험(2026-10-21 10:50). `tests/document-render.test.mjs` 2건: `soffice:false`면 unavailable(soffice_missing), 지원 안 하는 형식은 format_unsupported, 이 Mac에서는 출장 보고와 기안문이 PDF와 page-1.png로 나온다(전후 3.6초). 서비스 4번째: written 전 render는 `form_plan_not_written`, LibreOffice 없이는 unavailable, 있으면 `.nubi/forms/<이름>/renders/<planId 8자>/{before,after}/page-N.png`.
+- [x] Step 2: 구현. `runtime/document-render.mjs`: `findSoffice`(NUBI_SOFFICE → 흔한 위치 → PATH, false면 찾지 않음), `renderDocumentPages`(격리 프로필로 PDF 변환, pdfjs로 쪽수(없으면 /Type /Page 수), 쪽마다 `writer_png_Export` PageRange로 PNG, 상한 12쪽), `renderBeforeAfter`. 서비스 `documentForm render`.
+- [x] Step 3: 통과(2/2, 서비스 4/4). CI(ubuntu)에는 LibreOffice가 없어 unavailable 경로만 돈다. Windows 설치판은 COM 렌더가 아니라 Office 자체 확인이다(§8 답 25).
 
 ### Task F: 화면(양식 등록, 질문 카드, 채움표 확인, 전후 비교, 저장)
 

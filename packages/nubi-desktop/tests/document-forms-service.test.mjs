@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {writeFile,mkdir} from 'node:fs/promises';
+import {writeFile,mkdir,readFile} from 'node:fs/promises';
 import path from 'node:path';
 import {fixture} from './fixtures.mjs';
 import {docxFromBlocks,FORMS} from './helpers-docx-fixture.mjs';
@@ -76,4 +76,59 @@ test('a refused sheet goes back with the reason, and the guards hold',async t=>{
   await assert.rejects(s.invoke('documentForm',{action:'nope',projectId:s.projectId}),/document_form_action_invalid/);
   s.providers={status:()=>({connected:false}),dispose(){},complete:async()=>{throw Error('unexpected');}};
   await assert.rejects(s.invoke('documentForm',{action:'plan',projectId:s.projectId,name:'출장 보고',request:'x'}),/provider_missing/);
+});
+
+test('apply writes the checked sheet into a copy inside the Workspace, never into the source, and reports the checks',async t=>{
+  const f=await fixture(t),s=f.service;await registered(f);
+  const request='김민수 영업팀 부산 거래처 방문 2026. 10. 21. ~ 2026. 10. 22. 목적은 거래처 방문. 결과는 없음.';
+  const prompts=[];
+  s.providers={status:()=>({connected:true,model:'fixture'}),dispose(){},async complete(messages){
+    const system=messages[0].content,payload=JSON.parse(messages[1].content);prompts.push(system.slice(5,24));
+    if(system.startsWith('NUBI_WORD_FORM_CELLS'))return {content:JSON.stringify({cells:[{slot:'s1',value:'김민수',source:'request',quote:'김민수'},{slot:'s2',value:'영업팀',source:'request',quote:'영업팀'},{slot:'s3',value:'부산',source:'request',quote:'부산'},{slot:'s4',value:PERIOD,source:'request',quote:PERIOD}],rows:[],missing:[]})};
+    if(system.startsWith('NUBI_WORD_FORM_SECTION'))return {content:JSON.stringify({paragraphs:[payload.section.id==='sec-1'?'거래처 방문':'없음'],sources:['request']})};
+    if(system.startsWith('NUBI_WORD_FORM_REVIEWER'))return {content:JSON.stringify({checks:payload.items.map(item=>({item:item.item,target:item.target,quoteDocument:payload.places.find(place=>place.target===item.target).text.split('\n')[0],quoteUser:payload.sources[0].text,status:'met'}))})};
+    throw Error('unexpected_prompt');
+  }};
+  const plan=await s.invoke('documentForm',{action:'plan',projectId:s.projectId,name:'출장 보고',request});
+  assert.equal(plan.state,'ready');
+  await assert.rejects(s.invoke('documentForm',{action:'apply',projectId:s.projectId,planId:plan.planId,output:'서식/출장.docx'}),/form_source_protected/);
+  await assert.rejects(s.invoke('documentForm',{action:'apply',projectId:s.projectId,planId:plan.planId,output:'out/출장.txt'}),/form_output_invalid/);
+  const written=await s.invoke('documentForm',{action:'apply',projectId:s.projectId,planId:plan.planId,output:'out/출장-작성.docx'});
+  assert.equal(written.state,'written',JSON.stringify({error:written.error,activity:written.activity}));
+  assert.equal(written.checks.summary,'칸 4/4, 목차 2/2, 남은 안내 문구 0, 서식 유지, 근거 확인');assert.deepEqual(written.checks.unmet,[]);
+  assert.deepEqual([written.written.output,written.written.sameEntries,written.written.violations,written.written.operations>=6],['out/출장-작성.docx',true,[],true]);
+  assert.ok(prompts.some(p=>p.startsWith('WORD_FORM_REVIEWER')),'the checklist review ran after the write');
+  const {docxSnapshot}=await import('../runtime/docx-snapshot.mjs');
+  const copy=await docxSnapshot(await readFile(path.join(f.root,'out','출장-작성.docx')));
+  assert.deepEqual(['t1/r1/c2','t1/r1/c4','t1/r2/c2','t1/r3/c2'].map(id=>copy.items.find(item=>item.id===id).text),['김민수','영업팀','부산',PERIOD]);
+  assert.ok(copy.items.some(item=>item.kind==='paragraph'&&item.text==='거래처 방문'&&item.style==='본문'));
+  const source=await docxSnapshot(await readFile(path.join(f.root,'서식','출장.docx')));
+  assert.equal(source.items.find(item=>item.id==='t1/r1/c2').text,'','the source form is untouched');
+  await assert.rejects(s.invoke('documentForm',{action:'apply',projectId:s.projectId,planId:plan.planId,output:'out/다시.docx'}),/form_plan_not_ready/);
+  const again=await s.invoke('documentForm',{action:'plan',projectId:s.projectId,name:'출장 보고',request});
+  await assert.rejects(s.invoke('documentForm',{action:'apply',projectId:s.projectId,planId:again.planId,output:'out/출장-작성.docx'}),/form_output_exists/);
+});
+
+test('render after a write gives before and after pages when LibreOffice is there, and says unavailable when it is not',async t=>{
+  const f=await fixture(t),s=f.service;await registered(f);
+  const request=`김민수 영업팀 부산 거래처 방문 ${PERIOD} 목적은 거래처 방문. 결과는 없음.`;
+  s.providers={status:()=>({connected:true,model:'fixture'}),dispose(){},async complete(messages){
+    const system=messages[0].content,payload=JSON.parse(messages[1].content);
+    if(system.startsWith('NUBI_WORD_FORM_CELLS'))return {content:JSON.stringify({cells:[{slot:'s1',value:'김민수',source:'request',quote:'김민수'},{slot:'s2',value:'영업팀',source:'request',quote:'영업팀'},{slot:'s3',value:'부산',source:'request',quote:'부산'},{slot:'s4',value:PERIOD,source:'request',quote:PERIOD}],rows:[],missing:[]})};
+    if(system.startsWith('NUBI_WORD_FORM_SECTION'))return {content:JSON.stringify({paragraphs:[payload.section.id==='sec-1'?'거래처 방문':'없음'],sources:['request']})};
+    return {content:JSON.stringify({checks:payload.items.map(item=>({item:item.item,target:item.target,quoteDocument:payload.places.find(place=>place.target===item.target).text.split('\n')[0],quoteUser:payload.sources[0].text,status:'met'}))})};
+  }};
+  const plan=await s.invoke('documentForm',{action:'plan',projectId:s.projectId,name:'출장 보고',request});
+  await assert.rejects(s.invoke('documentForm',{action:'render',projectId:s.projectId,planId:plan.planId}),/form_plan_not_written/);
+  const written=await s.invoke('documentForm',{action:'apply',projectId:s.projectId,planId:plan.planId,output:'out/출장-작성.docx'});
+  assert.equal(written.state,'written');
+  const none=await s.invoke('documentForm',{action:'render',projectId:s.projectId,planId:plan.planId,soffice:false});
+  assert.deepEqual([none.render.before.status,none.render.after.status,none.render.before.reason],['unavailable','unavailable','soffice_missing']);
+  const {findSoffice}=await import('../runtime/document-render.mjs');
+  if(!await findSoffice()){t.diagnostic('soffice not installed here: rendered pages not exercised');return;}
+  const real=await s.invoke('documentForm',{action:'render',projectId:s.projectId,planId:plan.planId});
+  assert.equal(real.render.after.status,'rendered',JSON.stringify(real.render));
+  assert.match(real.render.after.pages[0].path,/^\.nubi\/forms\/출장 보고\/renders\/[0-9a-f]{8}\/after\/page-1\.png$/);
+  assert.ok((await readFile(path.join(f.root,real.render.before.pages[0].path))).length>1000);
+  assert.deepEqual((await s.invoke('documentForm',{action:'status',projectId:s.projectId,planId:plan.planId})).render.after.pageCount,real.render.after.pageCount);
 });
