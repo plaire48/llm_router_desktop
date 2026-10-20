@@ -63,6 +63,23 @@ export function completionSchema(tools=[],required=false,{typedArguments=false}=
   const items=typedArguments&&tools.length?{anyOf:tools.map(({function:tool})=>({type:'object',additionalProperties:false,required:['name','arguments'],properties:{name:{type:'string',const:tool.name},arguments:structuredClone(tool.parameters)}}))}:generic;
   return {type:'object',additionalProperties:false,required:['content','calls'],properties:{content:{type:'string'},calls:{type:'array',maxItems:16,...(tools.length&&required?{minItems:1}:{}),items,...(tools.length?{}:{maxItems:0})}}};
 }
+// The model sometimes wraps a call's arguments once more ({"arguments":"<json>"} or {"name","arguments"}),
+// which every strict host schema rejects (wiki quality baseline 6, 2026-10-21: 6 of 16 tool calls). Unwrap
+// while the catalog schema itself has no such property, so a mis-enveloped call reaches the tool intact.
+export function unwrapArgumentEnvelope(args,name,tools=[]) {
+  const schema=tools.find(tool=>tool.function?.name===name)?.function?.parameters;
+  const declared=key=>!!schema?.properties&&Object.hasOwn(schema.properties,key);
+  for(let depth=0;depth<3;depth++){
+    const keys=Object.keys(args);
+    const enveloped=!declared('arguments')&&(keys.length===1&&keys[0]==='arguments'||keys.length===2&&keys.includes('arguments')&&keys.includes('name')&&args.name===name);
+    if(!enveloped)break;
+    let inner=args.arguments;
+    if(typeof inner==='string'){try{inner=JSON.parse(inner);}catch{throw Error('claude_response_invalid');}}
+    if(!inner||Array.isArray(inner)||typeof inner!=='object')throw Error('claude_response_invalid');
+    args=inner;
+  }
+  return args;
+}
 export function decodeClaudeResult(result,tools=[]) {
   if(result?.is_error||result?.subtype!=='success')throw Error('claude_cli_failed');
   const data=result.structured_output;
@@ -74,6 +91,7 @@ export function decodeClaudeResult(result,tools=[]) {
     let args=call.arguments;
     if(typeof args==='string'){try{args=JSON.parse(args);}catch{throw Error('claude_response_invalid');}}
     if(!args||Array.isArray(args)||typeof args!=='object')throw Error('claude_response_invalid');
+    args=unwrapArgumentEnvelope(args,call.name,tools);
     return {id:randomUUID(),type:'function',function:{name:call.name,arguments:JSON.stringify(args)}};
   });
   return {content:data.content,calls,usage:claudeUsage(result.usage),finishReason:calls.length?'tool_calls':'stop'};

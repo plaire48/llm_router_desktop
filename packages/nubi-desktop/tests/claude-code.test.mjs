@@ -271,3 +271,18 @@ test('model context windows from the Models API fill the catalog without blockin
   assert.equal(baseModelId('claude-opus-5-5[1m]'),'claude-opus-5-5');
   const refused=await claudeContextWindows({readToken:async()=>'t',fetchImpl:async()=>new Response('{}',{status:401})});assert.equal(refused.size,0);
 });
+
+test('a tool call whose arguments arrive wrapped in an extra envelope is unwrapped before the host schema check (wiki quality baseline 6)',()=>{
+  const tools=[{type:'function',function:{name:'read_file',parameters:{type:'object',properties:{file_path:{type:'string'},offset:{type:'number'}},required:['file_path']}}},
+    {type:'function',function:{name:'run_with_arguments',parameters:{type:'object',properties:{arguments:{type:'string'}},required:['arguments']}}}];
+  const decode=calls=>decodeClaudeResult({subtype:'success',structured_output:{content:'',calls}},tools).calls.map(call=>JSON.parse(call.function.arguments));
+  const want={file_path:'/lib/application.js',offset:0};
+  assert.deepEqual(decode([{name:'read_file',arguments:{arguments:JSON.stringify(want)}}]),[want],'object envelope with a JSON string inside');
+  assert.deepEqual(decode([{name:'read_file',arguments:JSON.stringify({arguments:JSON.stringify(want)})}]),[want],'string envelope');
+  assert.deepEqual(decode([{name:'read_file',arguments:{name:'read_file',arguments:want}}]),[want],'name/arguments envelope');
+  assert.deepEqual(decode([{name:'read_file',arguments:{arguments:{arguments:want}}}]),[want],'two envelopes');
+  assert.deepEqual(decode([{name:'read_file',arguments:want}]),[want],'plain arguments are untouched');
+  assert.deepEqual(decode([{name:'run_with_arguments',arguments:{arguments:'literal'}}]),[{arguments:'literal'}],'a schema that declares an arguments field is never unwrapped');
+  assert.throws(()=>decode([{name:'read_file',arguments:{arguments:'not json'}}]),/claude_response_invalid/);
+  assert.throws(()=>decode([{name:'read_file',arguments:{arguments:[1]}}]),/claude_response_invalid/);
+});

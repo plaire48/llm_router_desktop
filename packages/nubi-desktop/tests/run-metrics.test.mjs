@@ -82,6 +82,13 @@ test('the newest tool outcome is kept as typed codes and submissions are totalle
   const read=[...accepted,{role:'assistant',content:'',tool_calls:calls('r1')},{role:'tool',tool_call_id:'r1',content:'plain file text, not JSON'}];
   assert.deepEqual(latestToolOutcome(rejected),{tool:'submit_page',status:'rejected',code:'wiki_claim_quote_mismatch'});
   assert.deepEqual(latestToolOutcome(read),{tool:'read_file',status:null,code:null});
+  const thrown=[...accepted,{role:'assistant',content:'',tool_calls:calls('p3')},{role:'tool',tool_call_id:'p3',content:'Error: wiki_claims_unsupported: 2 claims lack evidence at /Users/SECRET\n Please fix your mistakes.'}];
+  assert.deepEqual(latestToolOutcome(thrown),{tool:'submit_page',status:'error',code:'wiki_claims_unsupported'});
+  assert.deepEqual(latestToolOutcome([...accepted,{role:'assistant',content:'',tool_calls:calls('p5')},{role:'tool',tool_call_id:'p5',content:'Error: Received tool input did not match expected schema\nDetails: [{"path":["claims"]}]\n Please fix your mistakes.'}]),{tool:'submit_page',status:'error',code:'tool_input_schema'});
+  const wrapped='Error invoking tool \'submit_page\' with kwargs {"claims":"SECRET BODY","path":"/Users/x"} with error: Error: Received tool input did not match expected schema\nDetails: [{"path":["claims"]}]\n Please fix your mistakes.';
+  assert.deepEqual(latestToolOutcome([...accepted,{role:'assistant',content:'',tool_calls:calls('p6')},{role:'tool',tool_call_id:'p6',content:wrapped}]),{tool:'submit_page',status:'error',code:'tool_input_schema'});
+  assert.deepEqual(latestToolOutcome([...accepted,{role:'assistant',content:'',tool_calls:calls('p7')},{role:'tool',tool_call_id:'p7',content:'Error invoking tool \'submit_page\' with kwargs {"a":1} with error: RepositoryRunError: wiki_page_conflict: page changed'}]),{tool:'submit_page',status:'error',code:'wiki_page_conflict'});
+  assert.deepEqual(latestToolOutcome([...accepted,{role:'assistant',content:'',tool_calls:calls('p4')},{role:'tool',tool_call_id:'p4',content:'Error: Something broke at /Users/SECRET'}]),{tool:'submit_page',status:null,code:null});
   assert.equal(latestToolOutcome([{role:'user',content:'x'}]),null);
   assert.equal(JSON.stringify(measureRequest(rejected)).includes('SECRET'),false);
   const s=await store(t);const metrics=createRunMetrics({store:s,taskId:'task-c10',runId:'run-1'});

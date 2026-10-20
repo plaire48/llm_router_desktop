@@ -145,6 +145,36 @@
 
 읽은 사실: 접힌 결과를 다시 읽으라는 안내가 읽기 반복을 불렀다. 페이지 작성자는 대표 파일 20개를 모두 읽은 뒤 쓰므로, 오래된 읽기를 예산으로 접으면 쓰기 직전에 내용이 없어 다시 읽고, 그 결과가 다른 읽기를 밀어내는 순환이 생긴다. 그래서 C8을 고쳤다: 같은 인자의 읽기가 되풀이되면 옛 사본만 접고(항상), 예산 접기는 120,000자를 넘을 때만 최신 8개를 남기고 가장 오래된 것부터 접는다. 4차는 이 판으로 잰다.
 
+### 기준선 4차 결과 (2026-10-21 02:03~02:46, 답 26 + C8 둘째 판 + C10, 중간에 멈춤)
+
+| 지표 | 값 | 판정 |
+|---|---|---|
+| 완료 상태 | 43분에 계획 21페이지 중 0 게시, 호출 157회(687만 프롬프트, 캐시 20만, 호출당 평균 8.1만 자) | 접기 둘째 판은 읽기 반복을 없앴지만(read_file 98) 페이지는 여전히 0 |
+| 호출 분포 | read_file 98, submit_page 19, edit_file 16, ls 12, review_page 10, read_review_source 10, grep 10, write_file 6, submit_plan 1 | 제출 19회 중 15회가 status와 code 없는 결과 뒤에 곧바로 재제출 |
+| C10 결과 분포 | submit_page 15회 결과가 JSON이 아님(형식화 코드 없음), review_page 6회 wiki_review_schema_invalid 피드백 | 제출 도구의 입력 스키마 불일치로 판정 |
+
+읽은 사실: 측정 장부의 "가장 최근 도구 결과"가 보여 준 반복은 submit_page 호출 8회 연속(대화 9.4만 → 17.0만 자)이며 결과마다 status도 code도 없었다. 검토 반려는 JSON(status rejected, code invalid_input)으로 오므로 이것은 LangChain 도구 입력 스키마 검사 실패다. 기본 메시지는 "Received tool input did not match expected schema"뿐이라 모델이 어느 칸이 틀렸는지 모른 채 같은 제출을 되풀이한다. review_page도 같은 이유로 스키마 피드백을 여섯 번 받았다. 조치: 제출 도구(submit_plan, inspect_claims, submit_page)에 LangChain의 verboseParsingErrors를 켜서 Zod issue 경로를 모델에 돌려준다(답 26의 스키마 피드백 범위). C10은 이 문구를 tool_input_schema 코드로 센다. 5차는 이 상태로 잰다.
+
+### 기준선 5차 결과 (2026-10-21 02:17~02:47, 답 26 보강(verboseParsingErrors), 중간에 멈춤)
+
+| 지표 | 값 | 판정 |
+|---|---|---|
+| 완료 상태 | 29분에 계획 22페이지 중 0 게시, 호출 126회(460만 프롬프트, 캐시 22만, 호출당 평균 6.8만 자) | 상세 스키마 오류로도 반복이 끝나지 않음 |
+| 호출 분포 | read_file 77, grep 23, submit_page 13, review_page 8, read_review_source 10, ls 10, write_file 4, submit_plan 2, glob 2 | submit_page 13회 중 10회가 코드 없는 결과 뒤 재제출, review_page 6회 스키마 피드백 |
+
+읽은 사실: 설치된 LangChain 1.5.10의 ToolNode를 직접 재현해 보니 도구 함수나 스키마 검사가 실패하면 모델에게 "Error invoking tool 'submit_page' with kwargs {인자 전체} with error: Error: Received tool input did not match expected schema\nDetails: [...]" 꼴로 돌아간다. 실패할 때마다 제출 인자(Claims 전체)를 다시 되돌려 주므로 대화가 매번 1만~1.5만 자씩 자라고, 측정 장부의 코드 분류는 이 접두사를 몰라 비어 있었다(C10 분류기를 고쳐 tool_input_schema와 감싸인 코드를 센다). 어떤 칸이 틀리는지는 본문이 없어 아직 모른다. 6차는 점검판 전용 진단(NUBI_WIKI_EVAL=1일 때만 요청마다 가장 최근 도구 결과를 out/trace.jsonl에 4,000자까지 기록)을 켜고 돌려 실제 오류를 읽는다. 후보 조치: 제출 도구의 외곽 스키마를 느슨하게 두고 함수 안에서 safeParse로 검사해 짧은 JSON 반려(issues 경로만)를 돌려주면 인자 되돌림과 스택 흔적이 사라진다(답 26 범위, 6차 결과 뒤 결정).
+
+### 기준선 6차 결과 (2026-10-21 02:30~02:37, 진단 추적 켬, 원인 확인 뒤 멈춤)
+
+| 지표 | 값 | 판정 |
+|---|---|---|
+| 추적 | 요청 16회 중 도구 결과 16개: 정상 10, 실패 6(전부 같은 꼴) | 원인 확인 |
+| 실패 본문 | `Error invoking tool 'read_file' with kwargs {"arguments":"{\"file_path\":\"/lib/application.js\",\"offset\":0,\"limit\":200}"} with error: ... expected string, received undefined → at file_path` | 인자가 한 겹 더 싸여 옴 |
+
+읽은 사실(근본 원인): Claude CLI 호스트(`runtime/claude-code.mjs`)는 구조화 출력으로 `calls[].arguments`를 받는데, 모델이 때때로 인자를 `{"arguments":"<JSON>"}` 또는 `{"name","arguments"}` 봉투로 한 겹 더 싸서 보낸다. 호스트는 객체면 그대로 통과시키므로 도구에는 `{arguments:"..."}`가 도착하고, 엄격한 스키마를 가진 모든 도구(read_file, submit_page, review_page, submit_plan)가 거절한다. 6차 추적에서 도구 호출의 37%가 이 꼴이었다. 1차의 "인자 없는 review_page"(Zod 예외로 러너 fatal), 3차의 읽기 반복, 4차와 5차의 제출 반복과 검토 스키마 피드백, 대화 성장(실패마다 인자 전체가 되돌아옴)이 모두 여기서 나왔다. 전환 모드(TYPED_ADAPTER_PROMPT, typedToolArguments)는 존재하지만 어떤 호출자도 켜지 않는다.
+
+조치(C12, Desktop 호스트): `decodeClaudeResult`가 카탈로그 스키마에 `arguments` 속성이 없을 때만 봉투를 최대 세 겹까지 벗긴다(`unwrapArgumentEnvelope`, 시험 8개 단언). 7차는 이 상태로 잰다. 후속 실험: 위키 요청에 typedToolArguments를 켜서(CLI가 도구별 스키마를 강제) 봉투 자체를 없애는 방법을 비교한다(§8 질문 27 후보).
+
 ### C10. 제출 결과 분포를 측정 장부에 (2026-10-21 기준선 2차에서 도출)
 
 - 사실: 2차에서 submit_page 23회 중 의미 검토까지 간 것은 8회였다. 나머지는 검토 전 검사에서 반려됐지만 측정 장부에는 호출 수와 크기만 남아 어떤 검사가 왜 반려했는지 셀 수 없다.

@@ -533,6 +533,8 @@ async function runPlanningAgent(
 
   const submitPlanTool = new DynamicStructuredTool({
     name: "submit_plan",
+    // Design §8 답 26: a schema mismatch must tell the model which field is wrong, or it resubmits blindly.
+    verboseParsingErrors: true,
     description:
       "Submit the final canonical OpenWiki page plan. This is the only completion action for planning.",
     schema: PlanSchema,
@@ -1112,6 +1114,8 @@ async function runPageWorkerAttempt(
   let unresolvedReview = false;
   const inspectClaimsTool = new DynamicStructuredTool({
     name: "inspect_claims",
+    // Design §8 답 26: a schema mismatch must tell the model which field is wrong, or it resubmits blindly.
+    verboseParsingErrors: true,
     description:
       "Return this page's complete current Claim set without opaque evidence versions. Use only before intentionally revising or removing otherwise-current content; stale or unresolved Claims already appear in the assignment.",
     schema: z.object({}).strict(),
@@ -1120,6 +1124,8 @@ async function runPageWorkerAttempt(
   });
   const submitPageTool = new DynamicStructuredTool({
     name: "submit_page",
+    // Design §8 답 26: a schema mismatch must tell the model which field is wrong, or it resubmits blindly.
+    verboseParsingErrors: true,
     description:
       "Complete the assigned page after writing it. Submit only sparse Claim decisions: confirmedClaimIds for rechecked issue Claims kept unchanged, claims for revisions/additions, and retractedClaimIds for removals. Other current Claims are retained automatically. Evidence must use repo://<repository-relative-path>, optionally with #Lx-Ly.",
     schema: ClaimReconciliationSchema,

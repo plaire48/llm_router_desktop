@@ -26,7 +26,16 @@ export function latestToolOutcome(messages = []) {
   try {
     const parsed = typeof last.content === 'string' ? JSON.parse(last.content) : null;
     if (parsed && typeof parsed === 'object') { status = code(parsed.status); outcome = code(parsed.code ?? parsed.error); }
-  } catch { /* Free-text results carry no typed outcome. */ }
+  } catch {
+    // A thrown tool error reaches the model as text ('Error: <message>'); keep only a code-shaped message.
+    // LangChain wraps a failing tool as "Error invoking tool '<name>' with kwargs {...} with error: <Error>";
+    // a tool whose input failed the schema is "Received tool input did not match expected schema".
+    const text = typeof last.content === 'string' ? last.content : '';
+    const tail = /^Error invoking tool '[^']*' with kwargs [\s\S]*? with error: ([\s\S]{0,200})/.exec(text)?.[1] ?? text;
+    const thrown = /^[A-Za-z]*(?:Error|Exception): ([a-z_][a-z0-9_]{0,63})(?![a-z0-9_])/.exec(tail);
+    if (/Received tool input did not match expected schema/.test(tail.slice(0, 120))) { status = 'error'; outcome = 'tool_input_schema'; }
+    else if (thrown) { status = 'error'; outcome = code(thrown[1]); }
+  }
   return {tool: code(tool) || 'unknown', status, code: outcome};
 }
 

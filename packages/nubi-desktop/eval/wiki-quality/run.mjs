@@ -29,6 +29,8 @@ async function main(){
 const option=name=>{const at=process.argv.indexOf('--'+name);return at>0?process.argv[at+1]:undefined;};
 const root=option('root')&&path.resolve(option('root')),out=option('out')&&path.resolve(option('out')),model=option('model')||'claude-sonnet-5-5',probes=Number(option('probes')||10),timeoutMs=Number(option('timeout-min')||40)*60000,skipInit=process.argv.includes('--skip-init');
 if(!root||!out){console.error('사용법: node eval/wiki-quality/run.mjs --root <repo> --out <dir> [--model] [--probes N] [--skip-init] [--timeout-min M]');process.exit(2);}
+// Eval-only diagnostic (design C10): the adapter appends the newest tool result of every request to out/trace.jsonl.
+process.env.NUBI_WIKI_EVAL='1';process.env.NUBI_WIKI_EVAL_TRACE=path.join(out,'trace.jsonl');
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 await mkdir(out,{recursive:true});
 process.env.OPENWIKI_CONFIG_DIR=path.join(out,'openwiki-home');
