@@ -73,10 +73,10 @@ for(const initialReply of ['prose-only','prose-then-plan','invalid-then-plan'])t
     const result=service.wikiInitialization();
     assert.equal(result.state,'attention');assert.equal(result.canResume,true);
     if(repairsPlan){assert.equal(result.error,'unauthorized',JSON.stringify(result));assert.equal(planningCalls,2);assert.equal(pageCalls,1);}
-    else{assert.equal(result.error,'wiki_plan_missing',JSON.stringify(result));assert.equal(planningCalls,3);assert.equal(pageCalls,0);}
+    else{assert.equal(result.error,'unauthorized',JSON.stringify(result));assert.equal(planningCalls,7,'six prose replies followed by the native post-submit acknowledgment');assert.equal(pageCalls,1,'the validated folder fallback reaches a page worker');}
     const checkpoint=service.store.get('wiki-init-checkpoint');
     const saved=JSON.parse(await readFile(path.join(service.store.directory,'wiki-preparation',checkpoint.name,'openwiki/.run.json'),'utf8'));
-    assert.equal(Boolean(saved.plan),repairsPlan,'only the native accepted plan is checkpointed');
+    assert.equal(Boolean(saved.plan),true,'the native validator must accept either the repaired model plan or the host folder fallback');
     await assert.rejects(access(path.join(root,'openwiki')),'failed generation never publishes partial pages');
     if(repairsPlan){
       service.wikiInitialization({action:'retry'});await service.wikiInitPromise;

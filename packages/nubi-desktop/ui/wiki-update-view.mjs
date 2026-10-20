@@ -10,12 +10,12 @@ Object.assign(ERROR,wikiModelErrors);
 Object.assign(ERROR,{wiki_review_scope:'근거 검토가 중단됐어요. 이어서 갱신하면 남은 문서를 나눠 검토합니다.',wiki_review_incomplete:'문서 내용 검토를 마치지 못했어요. 완료된 문서는 유지되며 남은 문서부터 다시 확인합니다.'});
 
 export function wikiUpdateView({status,update,initialization}){
-  if(update?.canResume&&['failed','cancelled'].includes(update.state)){
+  if(update?.canResume&&['failed','cancelled','partial'].includes(update.state)){
     const last=[...(update.events||[])].reverse().find(event=>event.type==='progress');
     const progress=update.pageProgress||(Number.isSafeInteger(last?.completed)?last:null);
     const completed=progress?.total>0?`${Math.max(0,Math.min(progress.total,progress.completed))}/${progress.total}개 문서 완료`:'';
     const safeCode=/^[a-z_]{1,80}$/.test(update.error||'')?update.error:'wiki_update_failed';
-    return {title:'위키 갱신 일시 중지',lines:[completed||'작성한 문서를 보관했어요.','남은 작업부터 이어갑니다. 결과는 확인 후 반영합니다.'],detail:update.error?ERROR[update.error]||`오류: ${safeCode}`:null,diagnostic:update.error?{stage:STAGE[update.stage||last?.stage]||'갱신 준비',code:safeCode}:null,pages:[],actions:['resume','restart','discard']};
+    return {title:update.state==='partial'?'위키 일부 반영 완료':'위키 갱신 일시 중지',lines:[completed||'작성한 문서를 보관했어요.','남은 작업부터 이어갑니다. 결과는 확인 후 반영합니다.'],detail:update.error?ERROR[update.error]||`오류: ${safeCode}`:null,diagnostic:update.error?{stage:STAGE[update.stage||last?.stage]||'갱신 준비',code:safeCode}:null,pages:[],actions:['resume','restart','discard']};
   }
   if(update?.state==='running'){
     const last=[...(update.events||[])].reverse().find(event=>event.type==='progress');
@@ -25,6 +25,7 @@ export function wikiUpdateView({status,update,initialization}){
   if(update?.state==='ready'){
     const pages=(update.changes||[]).filter(change=>change.path.endsWith('.md')).map(change=>({path:change.path,label:CHANGE[change.change]||change.change}));
     const lines=[pages.length?`바뀐 페이지 ${pages.length}개`:'바뀐 페이지가 없어요.'];
+    if(update.result?.partial)lines.push('완료한 문서부터 먼저 반영할 수 있어요. 빠진 문서는 보관한 작업에서 이어갑니다.');
     if(update.result?.skipped)lines.push('다시 쓸 페이지 없음. 갱신 기록만 바뀌었어요.');
     if(update.outside?.length)lines.push('반영하지 않는 파일: '+update.outside.join(', '));
     if(update.outsideEvidence?.length)lines.push('반영하지 않는 파일을 인용한 페이지(근거는 미확인으로 남음): '+update.outsideEvidence.map(item=>`${item.page}(${item.path})`).join(', '));

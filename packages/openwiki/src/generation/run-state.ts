@@ -98,6 +98,8 @@ export interface PageJob {
    * @default undefined for pending/skipped jobs and legacy completed state.
    */
   completedBy?: string;
+  /** Optional host durability metadata. Absent on legacy/default runs. */
+  durability?: { attempts: number; nextRetryAt: number; error: string; splitDepth: number };
 }
 
 /**
@@ -259,6 +261,7 @@ const PageJobSchema = z
     instructions: z.array(z.string().trim().min(1)),
     status: z.enum(["pending", "skipped", "complete"]),
     completedBy: z.string().trim().min(1).optional(),
+    durability: z.object({attempts:z.number().int().min(1).max(10000),nextRetryAt:z.number().finite().nonnegative(),error:z.string().min(1).max(80),splitDepth:z.number().int().min(0).max(1)}).strict().optional(),
   })
   .strict();
 

@@ -85,6 +85,18 @@ const writer=({block}={})=>async({root,signal,onEvent})=>{
 };
 const settle=async(service,id)=>{for(let i=0;i<200;i++){const item=(await service.wikiUpdate({method:'status'})).updates.find(update=>update.id===id);if(!['running','proposed'].includes(item.state))return item;await new Promise(resolve=>setTimeout(resolve,10));}throw new Error('not settled');};
 
+test('approved partial update keeps its native checkpoint and resumes without reapplying completed pages',async t=>{
+ const {service,root}=await generated(t);await commit(root,'app.txt','changed source\n');let calls=0,copy;
+ service.wikiUpdater=async({root:current,onEvent})=>{copy=current;calls++;if(calls===1){const content='# Approved partial\n';await writeFile(path.join(copy,'openwiki/home.md'),content);await writeFile(path.join(copy,'openwiki/remaining.md'),'# Unverified draft\n');const evidence=await new RepositoryEvidenceResolver({rootDir:copy}).resolve('repo://app.txt');await writeFile(path.join(copy,'openwiki/.claims/home.json'),JSON.stringify({schemaVersion:1,pageVersion:hash(content),claims:[{id:'current',statement:'Synthetic source.',evidence:[{resource:'repo://app.txt',version:evidence.evidence.version}]}]}));onEvent({type:'durability',pages:{'/openwiki/home.md':{state:'done'},'/openwiki/remaining.md':{state:'skipped'}},partial:true});await writeFile(path.join(copy,'openwiki/.run.json'),'owned partial checkpoint');return {partial:true};}assert.equal(await readFile(path.join(copy,'openwiki/.run.json'),'utf8'),'owned partial checkpoint');await writeFile(path.join(copy,'openwiki/remaining.md'),'# Remaining\n');return {skipped:false};};
+ const proposal=await service.wikiUpdate({method:'propose'});await service.wikiUpdate({method:'run',id:proposal.id,fingerprint:proposal.fingerprint});
+ const ready=await settle(service,proposal.id);assert.equal(ready.state,'ready');assert.equal(ready.result.partial,true);assert.ok(!ready.changes.some(change=>change.path==='openwiki/remaining.md'),'unverified draft is not offered for partial publication');
+ const partial=await service.wikiUpdate({method:'apply',id:ready.id,fingerprint:ready.fingerprint});assert.equal(partial.state,'partial');assert.equal(partial.canResume,true);await access(path.join(copy,'openwiki/.run.json'));
+ assert.equal(await readFile(path.join(root,'openwiki/home.md'),'utf8'),'# Approved partial\n');
+ await service.wikiUpdate({method:'resume',id:partial.id,fingerprint:partial.fingerprint});const complete=await settle(service,partial.id);assert.equal(complete.state,'ready',complete.error);assert.equal(calls,2);
+ assert.ok(!complete.changes.some(change=>change.path==='openwiki/home.md'),'the approved page is not offered again');
+ await service.wikiUpdate({method:'apply',id:complete.id,fingerprint:complete.fingerprint});assert.equal(await readFile(path.join(root,'openwiki/remaining.md'),'utf8'),'# Remaining\n');
+});
+
 test('a proposal runs nothing; an approved run changes only a copy; an approved result reaches only openwiki/',async t=>{
   const {service,root}=await generated(t);service.wikiUpdater=writer();
   const notices=[];service.notifyWiki=value=>{assert.equal(service.store.get('wiki-update:'+value.jobId).state,value.phase);notices.push(value);};
@@ -302,4 +314,24 @@ test('a skipped page cannot hide a terminal model failure or repeat it for later
  }});
  await assert.rejects(defaultWikiUpdater(service,{load})({root,signal:new AbortController().signal,onEvent(){},updateId:'terminal'}),/unauthorized/);
  assert.equal(calls,1);
+});
+
+test('retained update requires explicit confirmation before changing its bound model',async t=>{
+ const {service,root}=await generated(t);await commit(root,'app.txt','changed source\n');
+ let model='original',calls=0;service.providers={status:()=>({connected:true,provider:'fixture',model}),dispose(){}};
+ service.wikiUpdater=async()=>{calls++;throw Error('network_error');};
+ const proposal=await service.wikiUpdate({method:'propose'});await service.wikiUpdate({method:'run',id:proposal.id,fingerprint:proposal.fingerprint});const stopped=await settle(service,proposal.id);
+ model='replacement';await assert.rejects(service.wikiUpdate({method:'resume',id:stopped.id,fingerprint:stopped.fingerprint}),/wiki_model_confirmation/);assert.equal(calls,1);
+ service.wikiUpdater=writer();await service.wikiUpdate({method:'resume',id:stopped.id,fingerprint:stopped.fingerprint,confirmed:true});assert.equal((await settle(service,stopped.id)).state,'ready');
+});
+
+test('project re-entry automatically resumes an interrupted approved update once without applying it',async t=>{
+ const {service,root}=await generated(t);await commit(root,'app.txt','changed source\n');let calls=0;
+ service.providers={status:()=>({connected:true,provider:'fixture',model:'fixture'}),dispose(){}};
+ service.wikiUpdater=async()=>{calls++;throw Error('network_error');};
+ const proposal=await service.wikiUpdate({method:'propose'});await service.wikiUpdate({method:'run',id:proposal.id,fingerprint:proposal.fingerprint});await settle(service,proposal.id);
+ service.wikiUpdater=async()=>{calls++;throw Error('network_error');};
+ await service.open(root,{initializeWiki:false});await settle(service,proposal.id);assert.equal(calls,2);
+ await service.open(root,{initializeWiki:false});await settle(service,proposal.id);assert.equal(calls,2,'one automatic resume for an interrupted run');
+ assert.equal(await readFile(path.join(root,'openwiki/home.md'),'utf8'),'# Welcome\n\nWelcome uses app.txt.\n');
 });

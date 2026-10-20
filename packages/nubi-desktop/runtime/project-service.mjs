@@ -51,7 +51,7 @@ import {preferredShell} from './environment-inspection.mjs';
 import {git, gitOpenFailure, hash, fail, readSource, listFiles, scopedFile, relativeFile, snapshot} from './files.mjs';
 import {READ_LINES} from './read-room.mjs';
 import {modelTransport} from './recovery.mjs';
-import {wikiUpdate} from './wiki-update.mjs';
+import {wikiUpdate,resumeWikiUpdates} from './wiki-update.mjs';
 import {startSideTask,dismissSideTask} from './side-tasks.mjs';
 import {storeCaptures,readCapture} from './captures.mjs';
 import {importDocumentSelection,readChatDocument,validateDocuments} from './chat-documents.mjs';
@@ -75,7 +75,7 @@ export class ProjectService {
     // A folder without Git, or outside a repository, opens as it is (user decision 2026-10-04); the setup flow of 2026-09-30 is gone (2026-10-07).
     const top = await resolveProjectFolder(resolved);
     if(exactRoot&&top!==resolved)fail('clone_root_mismatch');
-    if (this.root === top && this.store?.db.isOpen) {this.runAutoArchive();if(['local','remote'].includes(sourceKind))this.store.set('setting:wiki-source',{mode:sourceKind});if(initializeWiki){this.wikiInitEnabled=true;await this.initializeWiki();}return this.overview();}
+    if (this.root === top && this.store?.db.isOpen) {this.runAutoArchive();if(['local','remote'].includes(sourceKind))this.store.set('setting:wiki-source',{mode:sourceKind});if(initializeWiki){this.wikiInitEnabled=true;await this.initializeWiki();}await this.resumeWikiUpdates();return this.overview();}
     if (this.workflowActive || this.afterEditChecks?.size || this.sideTaskStarts?.size || this.skillImportBusy || this.vocBusy || this.computerBusy || this.newFileBusy || this.setupBusy || this.repairStarts?.size || this.processes?.active.size || this.processes?.pending.size || this.unsettledOperations?.size || this.reconciling || this.agent?.running || this.recordingKnowledge || this.databaseBusy || this.collaborationBusy) fail('project_busy');
     const projectId = hash(top).slice(7, 31), store = new Store(path.join(this.storageRoot, projectId));
     disposeEditorLink(this);disposeEditors(this);disposeNativeOffice(this);await disposeDevelopmentBrowser(this);await this.collaborationServer?.close();this.collaborationServer=null;this.knowledge?.server.close(); this.knowledge=null; this.store?.close(); this.root = top; this.projectId = projectId; this.agentRuns?.clear();this.lastAgent=null;
@@ -101,6 +101,7 @@ export class ProjectService {
     for(const proposal of this.store.list('proposal:').filter(p=>p.state==='creating'))this.store.set('proposal:'+proposal.id,{...proposal,state:'attention'});
     this.runAutoArchive();
     await this.initializeWiki();
+    await this.resumeWikiUpdates();
     return this.overview();
   }
   editorLink(args) { return editorLink(this,args); }
@@ -255,6 +256,7 @@ export class ProjectService {
   async readVoc(args) {return readVoc.call(this,args);}
 
   async computer(args) {return computer.call(this,args);}
+  async resumeWikiUpdates() {return resumeWikiUpdates(this);}
   async wikiUpdate(args) {return wikiUpdate.call(this,args);}
   // A screenshot the user attached from the Workspace window (user request 2026-10-14); the window capture itself
   // comes from the app host through the browser bridge.
@@ -434,7 +436,7 @@ export class ProjectService {
     if(this.appUpdateLocked)fail('update_installing');
     if(method==='prepareAppUpdate')return this.prepareAppUpdate();
     const allowed = new Set(['importBlueprint','importE2eTask','listWorkflows','validateWorkflow','dryRunWorkflow','startWorkflow','workflowRun','cancelWorkflow','resumeWorkflow','editorLink','liveEditor','reviseNativeOfficeDraft','nativeOfficeStatus','importDocumentSelection','chatDocument','capture','captureWorkspace','previewFile','browseDirectory','terminalCommand','projectPath','proposalText','artifactText','initializeWiki','wikiInitialization','saveSource','commitHistory','mailDocument','mail','wikiUpdate','analysisHistory','memories','listSkills','removeSkill','skillMarketplace','connectSkillMarketplace','disconnectSkillMarketplace','importSkill','importVoc','queryVoc','readVoc','computer','applyNewFile','decideSetupAction','collaboration','codeOutline','recoverySnapshot','resumeAgent','diagnoseProcess','applyCommandRepair','knowledgeMap','knowledgeQuery','initializeKnowledgeCatalog','exportKnowledgeMap','databaseConnection','open','knowledgeStatus','recordKnowledge','comparison','connectKnowledge','overview','state','setShellPreference','read','search','wikiQuery','createTask','exportConversation','taskUsage','listRoutines','saveRoutine','deleteRoutine','runRoutineNow','exportRequirement','createWorktree','propose','prepareProposal','proposalArtifacts','confirmProposal','mergeProposal','diff','run','exportReport','compare','provider','fabrix','agentInput','startAgent','answerAgent','saveQuestionDraft','stopAgent','deleteTask','approvalPolicy','setApprovalMode','allowCommand','removeAllowedCommand','autoApprovals']);
-    allowed.add('inspectCode');allowed.add('inspectDevServer');allowed.add('mcp');allowed.add('removeAllowedMcpTool');allowed.add('rejectCommandRepair');allowed.add('cancelProposal');allowed.add('gitAvailability');allowed.add('conversationHistory');allowed.add('usage');for(const method of ['setAfterEditCheck','retryAfterEditCheck','startSideTask','dismissSideTask','markTaskRead','archiveTask','setAutoArchiveDays','setPinnedTasks'])allowed.add(method);allowed.add('editorSource');allowed.add('regenerateAnswer');allowed.add('skillTrash');
+    allowed.add('wikiLifecycle');allowed.add('inspectCode');allowed.add('inspectDevServer');allowed.add('mcp');allowed.add('removeAllowedMcpTool');allowed.add('rejectCommandRepair');allowed.add('cancelProposal');allowed.add('gitAvailability');allowed.add('conversationHistory');allowed.add('usage');for(const method of ['setAfterEditCheck','retryAfterEditCheck','startSideTask','dismissSideTask','markTaskRead','archiveTask','setAutoArchiveDays','setPinnedTasks'])allowed.add(method);allowed.add('editorSource');allowed.add('regenerateAnswer');allowed.add('skillTrash');
     if (method === 'poll') { this.ready(); return this.processes.poll(args.id); }
     if (method === 'stop') { this.ready(); return this.processes.stop(args.id); }
     if (method === 'events') { this.ready(); return this.store.events(args.after); }

@@ -138,6 +138,52 @@ const OTHER_ACTOR = {
 const STARTED_AT = "2026-08-24T12:00:00.000Z";
 const temporaryDirectories: string[] = [];
 
+test("host durability retries a skipped page without replaying a completed page", async () => {
+  const core = await import("../../src/generation/repository-run.ts");
+  expect(typeof core.requeueRepositoryPage).toBe("function");
+  const run = await beginForcedUpdate(await createRepository());
+  await submitRepositoryPlan(run, { pages: [
+    {path:"/openwiki/first.md",title:"First",purpose:"Synthetic first"},
+    {path:"/openwiki/second.md",title:"Second",purpose:"Synthetic second"},
+  ]});
+  const first = await nextRepositoryPage(run);
+  if(first.status!=="pending")throw Error("pending expected");
+  await skipRepositoryPage(run,await captureRepositoryPageSnapshot(run,first.job.id));
+  await completeCurrentPage(run,"Second");
+  const completed=run.state.plan!.pages.find(page=>page.status==="complete")!;
+  await core.requeueRepositoryPage(run,{jobId:first.job.id,error:"network",nextRetryAt:1234});
+  expect(run.state.plan!.pages.find(page=>page.id===completed.id)?.status).toBe("complete");
+  const next=await nextRepositoryPage(run);
+  expect(next.status==="pending"&&next.job.id).toBe(first.job.id);
+  expect((await readRepositoryRunState(run.root))?.plan?.pages[0].durability?.nextRetryAt).toBe(1234);
+  await expect(core.requeueRepositoryPage(run,{jobId:completed.id,error:"network",nextRetryAt:1234})).rejects.toMatchObject({code:"invalid_state"});
+});
+
+test("host durability validates split children and retains the parent as a concise routing page", async () => {
+  const core=await import("../../src/generation/repository-run.ts");
+  expect(typeof core.requeueRepositoryPage).toBe("function");
+  const run=await beginForcedUpdate(await createRepository());
+  await submitRepositoryPlan(run,{pages:[{path:"/openwiki/large.md",title:"Large",purpose:"Synthetic large"}]});
+  const job=run.state.plan!.pages[0];
+  await skipRepositoryPage(run,await captureRepositoryPageSnapshot(run,job.id));
+  const child=(path:string)=>({path,title:"Part",purpose:"Synthetic part",seedPaths:["README.md"]});
+  await expect(core.requeueRepositoryPage(run,{jobId:job.id,error:"output_limit",continued:true,nextRetryAt:0,split:[child("/openwiki/part.md"),child("/openwiki/part.md")]})).rejects.toMatchObject({code:"invalid_input"});
+  const before=await readFile(path.join(run.root,"openwiki/.run.json"),"utf8");
+  for(const attempt of [
+    {continued:false,split:[child("/openwiki/a.md"),child("/openwiki/b.md")]},
+    {continued:true,split:[child("/openwiki/../outside.md"),child("/openwiki/b.md")]},
+    {continued:true,split:[child("/openwiki/a.md"),{...child("/openwiki/b.md"),relatedPages:["/openwiki/../outside.md"]}]},
+  ]){
+    await expect(core.requeueRepositoryPage(run,{jobId:job.id,error:"output_limit",nextRetryAt:0,...attempt})).rejects.toThrow();
+    expect(await readFile(path.join(run.root,"openwiki/.run.json"),"utf8")).toBe(before);
+  }
+  expect(run.state.plan!.pages).toHaveLength(1);
+  await core.requeueRepositoryPage(run,{jobId:job.id,error:"output_limit",continued:true,nextRetryAt:0,split:[child("/openwiki/part-a.md"),child("/openwiki/part-b.md")]});
+  expect(run.state.plan!.pages.map(page=>page.path)).toEqual(["/openwiki/part-a.md","/openwiki/part-b.md","/openwiki/large.md"]);
+  expect(run.state.plan!.pages[2].id).toBe(job.id);
+  expect(run.state.plan!.pages.every(page=>page.status==="pending")).toBe(true);
+});
+
 /**
  * Runs one Git command in a temporary test repository.
  *

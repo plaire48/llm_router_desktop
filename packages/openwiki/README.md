@@ -749,6 +749,10 @@ export DO_NOT_TRACK=1   # cross-tool standard
 
 To see exactly what a run would send, add `--telemetry-file=<path>` to any run.
 
+## Host durability connection (optional)
+
+`runNativeRepositoryGeneration` accepts an optional host-owned `durability` port. Omitting it preserves the CLI's existing lifecycle and persisted-state shape. A host may schedule only skipped pages through `requeueRepositoryPage`, after other available pages drain, using its persisted deadline and retry timestamp. After one exhausted output-limit continuation, it may propose two validated child pages while retaining the original page as a short routing overview and preserving completed page IDs and Claims. Partial runs keep `openwiki/.run.json`; the host journals completed/missing pages and verifies Claims, source/page hashes, publication readback and existing approvals before exposing results. The port does not add a model loop, credentials, dependencies or a new execution engine. Desktop's bounded policy and evidence limits are recorded in [`OPENWIKI-W0-2026-10-20.md`](../../docs/OPENWIKI-W0-2026-10-20.md).
+
 ## Contributing
 
 Contributions are welcome. Please read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a PR. We intentionally keep PRs tightly scoped to one change each, and PRs that bundle unrelated changes may be closed with a request to split them.

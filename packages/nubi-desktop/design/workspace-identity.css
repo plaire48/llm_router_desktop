@@ -821,6 +821,12 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-wiki-progress-meta strong { color:var(--deck-ink); font-weight:var(--nubi-weight-emphasis); }
 .nubi-wiki-retained,.nubi-wiki-error-detail>summary { display:flex; align-items:center; gap:var(--cx-space-2); }
 .nubi-wiki-retained>svg,.nubi-wiki-error-detail>summary>svg { flex:none; }
+.nubi-wiki-page-list { list-style:none; margin:0; padding:0; }
+.nubi-wiki-page-list>li { display:flex; align-items:center; gap:var(--cx-space-3); padding-block:var(--cx-space-3); border-block-end:1px solid var(--deck-line); min-width:0; }
+.nubi-wiki-page-list>li>svg { flex:none; color:var(--deck-sub); }
+.nubi-wiki-page-list>li>span:first-of-type { flex:1; min-width:0; overflow:hidden; overflow-wrap:anywhere; color:var(--deck-ink); }
+.nubi-wiki-page-list small { display:block; color:var(--deck-sub); font:var(--deck-font-caption); }
+.nubi-wiki-page-status { flex:none; color:var(--deck-sub); font:var(--deck-font-caption); }
 .nubi-wiki-error-detail>summary { cursor:pointer; width:fit-content; color:var(--deck-sub); }
 .nubi-wiki-error-detail>p { margin:var(--cx-space-2) 0; }
 .nubi-wiki-initialization.is-inline { flex:none; padding-right:var(--cx-space-3); }

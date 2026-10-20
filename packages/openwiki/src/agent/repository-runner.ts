@@ -28,13 +28,15 @@ import {
   skipRepositoryPage,
   submitRepositoryPage,
   submitRepositoryPlan,
+  requeueRepositoryPage,
   type ActiveBeginView,
   type ActiveRepositoryRun,
   type BeginRepositoryRunResult,
   type NextRepositoryPageResult,
   type RepositoryPageSnapshot,
 } from "../generation/repository-run.js";
-import type { RepositoryRunMode } from "../generation/run-state.js";
+import type { RepositoryRunMode, PageJob } from "../generation/run-state.js";
+import type { ProposedPlanPage } from "../generation/page-jobs.js";
 import { OPENWIKI_PRODUCER_ACTOR } from "../version.js";
 import {
   AGENT_FILESYSTEM_PERMISSIONS,
@@ -310,7 +312,19 @@ async function repositoryHints(
   );
 }
 
+export interface RepositoryHostDurability {
+  deadlineAt: number;
+  signal?: AbortSignal;
+  now?: () => number;
+  wait: (milliseconds:number,signal?:AbortSignal) => Promise<void>;
+  onFailure: (input:{runId:string;page:Readonly<PageJob>;error:unknown}) => Promise<{nextRetryAt:number;continued?:boolean;split?:ProposedPlanPage[]}|null>;
+  journal: (input:{runId:string;phase:string;pages:readonly PageJob[];page?:string;error?:unknown}) => Promise<void>;
+  runPage?: <T>(page:Readonly<PageJob>,operation:()=>Promise<T>) => Promise<T>;
+}
+
 export interface NativeRepositoryGenerationOptions {
+  /** Optional host-owned durability; omission preserves the original lifecycle. */
+  durability?: RepositoryHostDurability;
   /** Optional host-owned, read-only structural hints. Never persisted as instructions or Claims. */
   repositoryContext?: RepositoryContextProvider;
   /**
@@ -389,6 +403,8 @@ export interface NativeRepositoryGenerationResult {
    * Whether the repository changed after planning, leaving a later update due.
    */
   sourceChanged?: true;
+  /** A host-connected run retained its native checkpoint for missing pages. */
+  partial?: true;
 }
 
 /**
@@ -426,7 +442,11 @@ export async function runNativeRepositoryGeneration(
     );
   }
 
-  const skippedPageSnapshots = await runPendingPageAgents(
+  if(options.durability){
+    const partial=await runDurablePages(run,view,options);
+    if(partial)return {skipped:false,partial:true};
+  }
+  const skippedPageSnapshots = options.durability?[]:await runPendingPageAgents(
     run,
     options.model,
     options.onEvent,
@@ -616,6 +636,41 @@ const DEFAULT_WORKER_START_STAGGER_MS = 1_000;
 /**
  * Result of one bounded page worker.
  */
+async function runDurablePages(run:ActiveRepositoryRun,view:ActiveBeginView,options:NativeRepositoryGenerationOptions):Promise<boolean>{
+  const host=options.durability!,now=()=>host.now?.()??Date.now(),failures=new Map<string,unknown>();
+  if(!Number.isFinite(host.deadlineAt))throw new Error("wiki_deadline_invalid");
+  await host.journal({runId:run.state.runId,phase:"resumed",pages:run.state.plan?.pages??[]});
+  for(;;){
+    host.signal?.throwIfAborted();
+    if(now()<host.deadlineAt)await runPendingPageAgents(run,options.model,options.onEvent,view,options.pageConcurrency??1,options.workerStartStaggerMs??DEFAULT_WORKER_START_STAGGER_MS,options.repositoryContext,host,failures);
+    host.signal?.throwIfAborted();
+    // Each pass drains other available work before a failed job is requeued.
+    // This keeps a bad head page from starving the rest of the repository.
+    for(const page of [...(run.state.plan?.pages??[])].filter(page=>page.status==="skipped")){
+      const error=failures.get(page.id)??new Error(page.durability?.error??"page_incomplete");
+      const decision=await host.onFailure({runId:run.state.runId,page,error});
+      host.signal?.throwIfAborted();
+      if(decision&&now()<host.deadlineAt&&decision.nextRetryAt<host.deadlineAt){
+        const message=(error as {message?:unknown})?.message;
+        const code=typeof message==="string"&&/^[a-z_]{1,80}$/.test(message)?message:"page_incomplete";
+        await requeueRepositoryPage(run,{jobId:page.id,error:code,...decision});
+      }
+    }
+    const pages=run.state.plan?.pages??[],unfinished=pages.filter(page=>page.status!=="complete");
+    await host.journal({runId:run.state.runId,phase:unfinished.length?"checkpoint":"ready",pages});
+    if(!unfinished.length)return false;
+    const pending=unfinished.filter(page=>page.status==="pending");
+    if(!pending.length||now()>=host.deadlineAt){
+      await host.journal({runId:run.state.runId,phase:"partial",pages});
+      // Submission already validated each completed page and its Claims.
+      // Do not finish/remove .run.json until the host can resume the rest.
+      return true;
+    }
+    const due=Math.min(...pending.map(page=>page.durability?.nextRetryAt??0));
+    if(due>now())await host.wait(Math.min(due,host.deadlineAt)-now(),host.signal);
+  }
+}
+
 type PageAgentOutcome =
   | { status: "submitted" }
   | { status: "skipped"; snapshot: RepositoryPageSnapshot; error?: unknown };
@@ -627,6 +682,8 @@ type PageAgentOutcome =
  * complete jobs, and a resumed run rebuilds ownership from scratch.
  */
 interface PageWorkerPool {
+  durability?: RepositoryHostDurability;
+  failures?: Map<string,unknown>;
   repositoryContext?: RepositoryContextProvider;
   changedPaths: string[];
   /**
@@ -695,9 +752,12 @@ async function runPendingPageAgents(
   pageConcurrency: number,
   workerStartStaggerMs: number,
   repositoryContext?: RepositoryContextProvider,
+  durability?: RepositoryHostDurability,
+  failures?: Map<string,unknown>,
 ): Promise<RepositoryPageSnapshot[]> {
   const size = Math.max(1, Math.floor(pageConcurrency));
   const pool: PageWorkerPool = {
+    ...(durability?{durability,failures}:{}),
     repositoryContext,
     changedPaths: view.pageUpdateWindows.flatMap(
       (window) => window.changedPaths,
@@ -796,7 +856,8 @@ async function runWorkerLoop(
 
     let outcome: PageAgentOutcome;
     try {
-      outcome = await runPageAgent(
+      if(pool.durability)await pool.durability.journal({runId:run.state.runId,phase:"page_running",pages:run.state.plan?.pages??[],page:next.job.path});
+      const operation=()=>runPageAgent(
         run,
         next.job,
         model,
@@ -804,6 +865,11 @@ async function runWorkerLoop(
         pool.repositoryContext,
         pool.changedPaths,
       );
+      outcome=pool.durability?.runPage?await pool.durability.runPage(next.job,operation):await operation();
+      if(pool.durability){
+        if(outcome.status==='skipped')pool.failures?.set(next.job.id,outcome.error);
+        await pool.durability.journal({runId:run.state.runId,phase:outcome.status==='submitted'?'page_done':'page_skipped',pages:run.state.plan?.pages??[],page:next.job.path,...(outcome.status==='skipped'?{error:outcome.error}:{})});
+      }
     } catch (error) {
       pool.fatal ??= { error };
       removeInFlightPage(pool, next.job.path);
@@ -843,8 +909,9 @@ function acquireNextJob(
   heldBack: ReadonlySet<string>,
 ): Promise<NextRepositoryPageResult> {
   const acquisition = pool.acquiring.then(async () => {
+    pool.durability?.signal?.throwIfAborted();
     const next = await nextRepositoryPage(run, {
-      exclude: new Set([...pool.claimed, ...heldBack]),
+      exclude: new Set([...pool.claimed, ...heldBack,...(pool.durability?(run.state.plan?.pages??[]).filter(page=>(page.durability?.nextRetryAt??0)>(pool.durability!.now?.()??Date.now())).map(page=>page.id):[])]),
     });
     if (next.status === "pending") pool.claimed.add(next.job.id);
     return next;

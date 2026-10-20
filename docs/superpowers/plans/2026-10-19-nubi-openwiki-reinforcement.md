@@ -49,13 +49,17 @@
 - `wiki-init` 상태에 `pages:{[path]:{state, attempts, nextRetryAt, error}}`, `heartbeatAt`, `partial:true`, `resumable:true`.
 - 완료 정의: 모든 페이지 done 또는 skipped(사유와 함께). skipped가 있으면 상태 `partial`이고 "빠진 페이지 N개 다시 시도" 버튼.
 
-- [ ] **Step 1: 실패하는 시험** — 중단 주입 8종에서 현재 코드는 실행이 `attention`으로 끝난다는 것을 먼저 고정한다(합성 모델과 네트워크 fixture). 그 다음 각 주입에서 사람 클릭 없이 실행이 끝까지 가거나 `partial`로 게시되고 재개되는 것을 단언한다. 페이지 하나의 반복 실패가 다른 페이지를 막지 않는다.
-- [ ] **Step 2: 구현** — 정책 → 페이지 격리 → output_limit 이어 쓰기 → 자동 재개 → 절전과 오프라인 → 부분 게시 → 진행 화면. 설계 §3.12 양식(상태 줄 한 줄과 버튼 하나, 페이지 목록은 진행 기록 행 양식).
-- [ ] **Step 3: 측정과 보고** — 합성 11소스 코퍼스로 중단 주입 실행 20회의 "사람 없이 완료율"과 평균 재개 횟수를 `docs/OPENWIKI-REINFORCEMENT-2026-10.md`에. 전체 `test:gates`. 캡처 1280/440(진행 화면, partial 상태).
+- [x] **Step 1: 실패하는 시험** — 중단 주입 8종에서 현재 코드는 실행이 `attention`으로 끝난다는 것을 먼저 고정한다(합성 모델과 네트워크 fixture). 그 다음 각 주입에서 사람 클릭 없이 실행이 끝까지 가거나 `partial`로 게시되고 재개되는 것을 단언한다. 페이지 하나의 반복 실패가 다른 페이지를 막지 않는다.
+- [x] **Step 2: 구현** — 정책 → 페이지 격리 → output_limit 이어 쓰기 → 자동 재개 → 절전과 오프라인 → 부분 게시 → 진행 화면. 설계 §3.12 양식(상태 줄 한 줄과 버튼 하나, 페이지 목록은 진행 기록 행 양식).
+- [ ] **Step 3: 측정과 보고(Q1 포함)** — `scripts/measure-wiki-durability.mjs`로 합성11소스/무작위 중단20회의 사람 없이 완료율90% 이상, 평균 체크포인트 재개와 partial 게시 횟수를 기록한다. 게이트에는 네이티브8종만,20회는 rc마다 별도로 실행한다. 전체 `test:gates`. 캡처1280/440(진행 화면, partial 상태).
 
 ---
 
-W0 진행 기록(2026-10-20): 중단 주입 8종 RED 실행은 0통과/8실패(exit 1)로 현재 attention 정지를 확인했다. Step 1의 복구 통과와 Step 2/3은 미완료다. 실제 코어 재현에서 skipped 재선택과 수락 계획의 분할 연결이 없어 설계 §8 질문 13에 좁은 예외안을 기록하고 중단했다. 새 실패 시험은 업로드 후보가 아니다. [단일 보고서](../../OPENWIKI-W0-2026-10-20.md).
+W0/Q1 진행 기록(2026-10-20): 초기 중단8종 RED 후 설계 §8 답13의 선택 포트로 구현했다. Q1 최종 무작위20회는 실제 네이티브 경계로20/20=100%, 평균 체크포인트 재개0.45, partial 게시0, 수동 재시도0이다(시드3799100702). 최초 고정20회는 합성 페이지 작업자 개발 기록이며 Q1로 소급하지 않는다. Q1 집중24개와 OpenWiki 전체3,563개/타입/1280 및440 화면 통과. 이전 W0 전체 게이트는 단위실패0와 fast/Electron 기능/모션161개 통과 후 프리징 양쪽이 시스템 부하로 exit2(24장면 성능 위반0)였다. 최종35파일과 Q1입력7개의 SHA 불변 확인, fresh 집중31개/디자인/1280 및440 화면 통과. 이전 전체 게이트는 CI 보정으로 중단했다. `w0-final-freeze.log` 재측정은 부하3.75에서 시작했지만 장면 중4.0을 넘었다. Chrome12/Electron12 모두 성능 위반0, 양쪽exit2로 Step3은 열어 둔다. W3 미착수. [단일 보고서](../../OPENWIKI-W0-2026-10-20.md).
+
+W0 Claude 검토와 수용(2026-10-20 15:45): 코어 변경은 `repository-runner.ts`, `repository-run.ts`, `run-state.ts` 3곳과 README 한 절로 §8 답 13의 범위 안이다. `durability` 옵션이 없으면 기존 수명주기 그대로이고, `requeueRepositoryPage`는 소유되지 않은 skipped 페이지만 pending으로 돌리며 분할은 output_limit 이어 쓰기 1회 뒤 splitDepth 0에서만 두 자식으로 허용하고 기존 계획 검증을 통과해야 한다. Claude가 직접 돌린 결과: OpenWiki 회귀 2파일 100개 통과, Desktop 위키 집중 252개(건너뜀 2) 통과, Q1 같은 시드(3799100702) 독립 재현 20/20, 평균 재개 0.45, partial 0(`verification/wiki-durability/q1-claude-20261020.json`). 1280/440 진행과 partial 캡처는 진행 기록 행과 채움 버튼 하나 규칙에 맞는다. 프리징은 Codex 2회와 Claude 1회가 모두 성능 위반 0인데 장면 부하 가드(절대값 4)만 걸려 exit 2였다. 설계 §8 답 15로 가드가 위반을 면책할 뿐 깨끗한 통과를 무효로 만들지 않게 바꾼 뒤 Claude 재측정(w0-claude-2-20261020): Chrome 12장면 exit 0(부하 초과 0), 격리 Electron 12장면 exit 0(위반 0, 부하 초과 11장면 기록, 최고 10.7, 놓친 프레임 비율 최대 0.495%, 입력 최대 48.2ms, 최대 프레임 60ms). W0는 수용한다. Step 3 체크는 Codex가 이 기록을 읽고 갱신한다. 남은 것: Linux 공용 러너의 W0 단위 시험(앱 재시작, 절전 주입)은 Actions 11차에서 확인한다.
+
+수용 과제 배치(사용자,2026-10-20): W0는Q1, R1은Q2까지가 완료 조건이다. 현재 남은 순서는 W0/Q1→W3→W4→S1→Q3→Q6→Q7→Q8→9→11→12→13→Q4→Q5이며 그 뒤는1.3.0 릴리스 계획을 따른다. 차단7항은 공개 전에 모두 충족해야 하고, Q2 Actions 결과는 Claude가 전달한다.
 
 ## Task W1: 큰 저장소 — ignore 먼저, 폴더 집계 계획 문맥, 핵심 폴더 우선과 점진 보강
 
@@ -78,15 +82,17 @@ W1 로컬 구현과 집중 검증 완료(2026-10-20): 224통과/2제외/실패0,
 ## Task W3: 생성 설정 — 동시성, 위키 생성 모델과 effort, 호출 상한 실측
 
 **Files:**
-- Modify: `runtime/wiki-update.mjs`(`pageConcurrency` 옵션 전달 기본 3, `CALL_LIMIT` 값을 설정으로, effort 전달), `runtime/desktop-features.mjs`(`setting:wiki-generation` {model, effort, concurrency}), `runtime/project-service.mjs`(허용 목록), `ui/WikiBrowser.jsx`의 위키 설정 모달(생성 모델과 effort 선택, 기본은 연결된 것 중 가장 강한 모델과 high), `tests/wiki-update.test.mjs`
+- Modify: `runtime/wiki-update.mjs`(`pageConcurrency` 옵션 전달 기본 3, `CALL_LIMIT` 값을 설정으로, effort 전달), `runtime/desktop-features.mjs`(`setting:wiki-generation` {model, effort, concurrency}), `runtime/project-service.mjs`(허용 목록), `ui/WikiBrowser.jsx`의 위키 설정 모달(생성 모델과 effort 선택, 기본은 답12의 검증된 모델 우선순위와 답14의 effort auto), `tests/wiki-update.test.mjs`
 
 **Interfaces:**
-- Produces: `setting:wiki-generation={model:'auto'|id, effort:'high'|'medium'|'low', concurrency:1..4}`; 러너 호출 `runNativeRepositoryGeneration({...,pageConcurrency})`; 전송 `invoke(..., {effort})`. 러너가 429에서 동시성을 스스로 내리는 동작은 그대로. 초기화 보고에 모델, effort, 동시성, 호출 수를 기록.
+- Produces: `setting:wiki-generation={model:'auto'|id, effort:'auto'|지원 canonical 값, concurrency:1..4}`; 러너 호출 `runNativeRepositoryGeneration({...,pageConcurrency})`; 전송 `invoke(..., {effort})`. 러너가 429에서 동시성을 스스로 내리는 동작은 그대로. 초기화 보고에 모델, effort, 동시성, 호출 수를 기록.
 
-- [ ] **Step 1: 실패하는 시험** — 설정이 러너 옵션과 전송 effort에 전달되고, 기본값이 "가장 강한 연결 모델 + high + 3"이며, 동시성 3에서 합성 11소스 초기화가 순차보다 짧고 결과 페이지 수가 같다. 호출 상한 8 vs 16을 합성으로 재서 표로 남긴다(통과 조건 아님).
+- [ ] **Step 1: 실패하는 시험** — 설정이 러너 옵션과 전송 effort에 전달되고, 기본값이 "답12 모델 선택 + auto(high 지원 시 high, 그 밖에는 기존 지원값/서버 기본) + 3"이며, 동시성 3에서 합성 11소스 초기화가 순차보다 짧고 결과 페이지 수가 같다. 호출 상한 8 vs 16을 합성으로 재서 표로 남긴다(통과 조건 아님).
 - [ ] **Step 2: 실패 확인 → 구현 → 통과**. 설정 모달 캡처.
 
 ---
+
+W3 재확인(2026-10-20 사용자, 설계 §8 답14): 자동 기본값과 실제 적용값 표시 승인. 명시한 미지원 effort는 거절하고, high 미지원 제공자는 기존 지원값 또는 서버 기본을 사용한다. 다른 대화의 선택이나 인증을 바꾸지 않는다.
 
 ## Task W4: 커버리지 감사와 초기화 보고서
 

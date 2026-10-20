@@ -20,6 +20,7 @@ type HarnessPage = {
   relatedPages: string[];
   instructions: string[];
   status: "pending" | "skipped" | "complete";
+  durability?: {attempts:number;nextRetryAt:number;error:string;splitDepth:number};
 };
 
 type HarnessPlan = {
@@ -350,6 +351,11 @@ vi.mock("deepagents", async (importOriginal) => {
 });
 
 vi.mock("../../src/generation/repository-run.js", () => ({
+  async requeueRepositoryPage(run:HarnessRun,input:{jobId:string;error:string;nextRetryAt:number}){
+    const page=run.state.plan?.pages.find(page=>page.id===input.jobId);
+    if(!page||page.status!=='skipped')throw Error('invalid_state');
+    page.status='pending';page.durability={attempts:(page.durability?.attempts??0)+1,nextRetryAt:input.nextRetryAt,error:input.error,splitDepth:0};
+  },
   inspectRepositoryPageClaims: () => ({ claims: [] }),
   captureRepositoryPageSnapshot(_run: HarnessRun, jobId: string) {
     return Promise.resolve({
@@ -705,6 +711,38 @@ beforeEach(() => {
 });
 
 describe("runNativeRepositoryGeneration", () => {
+  test("host durability drains other pages before retrying a skipped page and journals before finalization", async () => {
+    harness.pageWorkerFailures=2;
+    let now=1000;const transitions:Array<{phase:string;completed:number}>=[];
+    const result=await runNativeRepositoryGeneration({root:"/repo",mode:"update",modelId:"test",model:{} as never,
+      durability:{deadlineAt:100000,now:()=>now,wait:async ms=>{now+=ms;},
+        onFailure:async()=>({nextRetryAt:now+10000}),
+        journal:async event=>{transitions.push({phase:event.phase,completed:event.pages.filter(page=>page.status==='complete').length});},
+      }});
+    expect(result).toEqual({skipped:false});expect(harness.finishCalls).toBe(1);
+    expect(transitions.some(row=>row.phase==='page_done'&&row.completed===1)).toBe(true);
+    expect(transitions.at(-1)).toEqual({phase:'ready',completed:2});
+    expect(harness.pageSubmissionCalls).toBe(2);
+  });
+
+  test("host durability returns partial without finalizing or removing missing page state", async()=>{
+    harness.pageWorkerFailures=2;
+    let phase='';
+    const result=await runNativeRepositoryGeneration({root:"/repo",mode:"update",modelId:"test",model:{} as never,durability:{deadlineAt:Date.now()+100000,wait:async()=>{},onFailure:async()=>null,journal:async event=>{phase=event.phase;}}});
+    expect(result).toEqual({skipped:false,partial:true});expect(harness.finishCalls).toBe(0);expect(phase).toBe('partial');
+    expect(harness.currentRun?.state.plan?.pages.filter(page=>page.status==='complete')).toHaveLength(1);
+  });
+  test("host durability respects a retained expired deadline without starting page workers",async()=>{
+    const result=await runNativeRepositoryGeneration({root:"/repo",mode:"update",modelId:"test",model:{} as never,durability:{deadlineAt:1000,now:()=>1000,wait:async()=>{},onFailure:async()=>{throw Error("no failed page");},journal:async()=>{}}});
+    expect(result).toEqual({skipped:false,partial:true});expect(harness.pageSubmissionCalls).toBe(0);expect(harness.finishCalls).toBe(0);
+  });
+  test("host durability rejects a cancelled run and never finalizes after its journal owner changes",async()=>{
+    const controller=new AbortController();controller.abort(Error("cancelled"));
+    await expect(runNativeRepositoryGeneration({root:"/repo",mode:"update",modelId:"test",model:{} as never,durability:{deadlineAt:100000,now:()=>0,signal:controller.signal,wait:async()=>{},onFailure:async()=>null,journal:async()=>{}}})).rejects.toThrow("cancelled");
+    expect(harness.pageSubmissionCalls).toBe(0);expect(harness.finishCalls).toBe(0);
+    await expect(runNativeRepositoryGeneration({root:"/repo",mode:"update",modelId:"test",model:{} as never,durability:{deadlineAt:100000,now:()=>0,wait:async()=>{},onFailure:async()=>null,journal:async event=>{if(event.phase==='page_done')throw Error('project_changed');}}})).rejects.toThrow('project_changed');
+    expect(harness.finishCalls).toBe(0);
+  });
   test("orders edits before review and prevents post-submit mutations", async () => {
     let submitted = false;
     let release!: () => void;

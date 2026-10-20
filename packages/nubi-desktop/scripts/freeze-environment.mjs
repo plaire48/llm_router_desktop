@@ -46,8 +46,12 @@ const timingFailures=new Set(['long_tasks','freezes','startup_freeze','missed_fr
 export function classifyFreezeResults({results=[],errors=[],baseline=false}={}){
  if(errors.length||results.some(r=>r.pageErrors?.length))return 1;
  const noisy=row=>row.environmentReasons?.some(r=>r.code==='loadavg_exceeded');
- for(const row of results){const violations=row.violations||[];if(violations.some(v=>!timingFailures.has(v)))return 1;if(!baseline&&violations.length&&!noisy(row))return 1;}
- return results.some(noisy)?2:0;
+ // Scene load above SCENE_LOAD_LIMIT excuses timing violations (unjudged, exit 2).
+ // It never voids a clean scene: load can only hurt, and each scene keeps its
+ // functional assertions and frame minimum (design §8 answer 15, 2026-10-20).
+ let unjudged=false;
+ for(const row of results){const violations=row.violations||[];if(violations.some(v=>!timingFailures.has(v)))return 1;if(!violations.length)continue;if(noisy(row))unjudged=true;else if(!baseline)return 1;}
+ return unjudged?2:0;
 }
 export function freezeExitCode(error,{results=[],errors=[],baseline=false}={}){
  const outcome=classifyFreezeResults({results,errors,baseline});

@@ -259,8 +259,8 @@ export function installAgent(ProjectService) {
     this.personalMail?.resumeProcessing();
     if(!['status','refresh','quota'].includes(action))this.inputEpoch=(this.inputEpoch||0)+1;
     const wikiConnection=status.providers?.find(item=>item.id===status.provider)?.connectionId;
-    if(status.connected&&this.store&&(action!=='status'||this.lastWikiProviderStore!==this.store||this.lastWikiProviderConnection!==wikiConnection)){this.lastWikiProviderStore=this.store;this.lastWikiProviderConnection=wikiConnection;void this.initializeWiki().catch(()=>{});}
-    if(this.wikiInitController&&!status.connected)this.wikiInitController.abort();
+    if(status.connected&&this.store&&(action!=='status'||this.lastWikiProviderStore!==this.store||this.lastWikiProviderConnection!==wikiConnection)){this.lastWikiProviderStore=this.store;this.lastWikiProviderConnection=wikiConnection;void this.initializeWiki().then(()=>this.resumeWikiUpdates()).catch(()=>{});}
+    if(!status.connected){this.wikiInitController?.abort(Error('provider_changed'));this.wikiUpdateRun?.controller.abort(Error('provider_changed'));}
     if(status.connected)queueMicrotask(()=>this.drainRecovery().catch(()=>{}));
     // Claude Code is a Desktop-only local adapter.
     return {...status, providers: status.providers.filter(p => ['aipro', 'chatgpt', 'fabrix', 'claude'].includes(p.id))};

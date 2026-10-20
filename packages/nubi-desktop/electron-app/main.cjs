@@ -2,7 +2,8 @@ const {OfficeWindowDock}=require('./office-window-dock.cjs');
 let officeDock;
 const {safeApprovalFailure}=require('./approval-failure.cjs');
 const {trustedRenderer}=require('./renderer-scope.cjs');
-const {app,BrowserWindow,protocol,net,ipcMain,dialog,clipboard,Menu,Notification,session}=require('electron');
+const {app,BrowserWindow,protocol,net,ipcMain,dialog,clipboard,Menu,Notification,session,powerMonitor}=require('electron');
+const {watchWikiLifecycle}=require('./wiki-lifecycle.cjs');
 const {prepareNativeInput}=require('./native-input-preparation.cjs');
 const {watchMotionVisibility}=require('./motion-visibility.cjs');
 const {fork,spawn}=require('node:child_process');
@@ -194,6 +195,7 @@ app.whenReady().then(async()=>{
   catch(error){hostEvent({type:'worker_failed',...details,error:/^[a-z_]+$/.test(error.message)?error.message:'operation_failed'});}
  });
  worker.start();
+ const stopWikiLifecycle=watchWikiLifecycle({powerMonitor,net,invoke,owner:()=>currentRoot});app.once('before-quit',stopWikiLifecycle);
  host=new ElectronHost({storage,keyStore,invoke,helperPath:path.join(__dirname,'git-askpass.cjs'),avatarFetcher:(url,options)=>{
   if(!ghesImageTarget(url))throw Error('ghes_avatar_unavailable');
   // Use normal requests in the app's authenticated browser session. No cookie

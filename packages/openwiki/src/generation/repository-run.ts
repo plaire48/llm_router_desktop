@@ -62,6 +62,7 @@ import {
   reconcilePageClaims,
   type ProposedPageClaimReconciliation,
   type ProposedRepositoryPlan,
+  type ProposedPlanPage,
 } from "./page-jobs.js";
 import {
   readRepositoryRunState,
@@ -1071,6 +1072,47 @@ export interface NextRepositoryPageOptions {
  * @param options - Optional in-flight job ids to skip.
  * @returns Next available pending job context, or completion when none remains.
  */
+/** Host-only recovery of a durably skipped job; never changes completed jobs. */
+export async function requeueRepositoryPage(
+  run: ActiveRepositoryRun,
+  input: {jobId:string;error:string;nextRetryAt:number;continued?:boolean;split?:ProposedPlanPage[]},
+): Promise<void> {
+  if(!Number.isFinite(input.nextRetryAt)||input.nextRetryAt<0||!/^[a-z_]{1,80}$/.test(input.error))
+    throw new RepositoryRunError("invalid_input","Invalid host retry policy.");
+  await withRunMutation(run,async()=>{
+    const plan=run.state.plan,owned=plan?.pages.find(page=>page.id===input.jobId);
+    if(!plan||run.state.phase!=="generating"||!owned||owned.status!=="skipped")
+      throw new RepositoryRunError("invalid_state","Only an unowned skipped page can be retried.");
+    const depth=owned.durability?.splitDepth??0;
+    if(input.split&&(input.error!=="output_limit"||input.continued!==true||depth!==0||input.split.length!==2))
+      throw new RepositoryRunError("invalid_input","Split requires one exhausted continuation of an unsplit page.");
+    let pages=plan.pages;
+    if(input.split){
+      const childPaths=input.split.map(page=>normalizeWikiPagePath(page.path));
+      const parent={...owned,purpose:"Write a concise overview linking the two detailed pages. "+owned.purpose,
+        relatedPages:[...new Set([...owned.relatedPages,...childPaths])],
+        instructions:[...owned.instructions,"Keep this routing overview short; detailed research belongs in the related split pages."]};
+      // Validate the complete candidate before making a durable mutation. This
+      // retains quickstart, required rewrites, path and duplicate checks.
+      const proposed=plan.pages.flatMap(page=>page.id===owned.id?[...input.split!,parent]:[page]);
+      const checked=createRepositoryPlan(run.state.mode,{pages:proposed,deletePages:plan.deletePages},run.claimsRuntime.issues,run.state.requiredRewritePages);
+      const old=new Map(plan.pages.map(page=>[page.path,page]));
+      pages=checked.pages.map(page=>{
+        const prior=old.get(page.path);
+        if(prior&&prior.id!==owned.id)return prior;
+        return {...page,...(prior?{id:prior.id}:{}),status:"pending" as const,
+          durability:{attempts:(prior?.durability?.attempts??0)+1,nextRetryAt:input.nextRetryAt,error:input.error,splitDepth:1}};
+      });
+      const parentIndex=pages.findIndex(page=>page.id===owned.id);
+      const [routing]=pages.splice(parentIndex,1);
+      const lastChild=Math.max(...pages.map((page,index)=>childPaths.includes(page.path)?index:-1));
+      pages.splice(lastChild+1,0,routing!);
+    }else pages=pages.map(page=>page.id===owned.id?{...page,status:"pending" as const,durability:{attempts:(page.durability?.attempts??0)+1,nextRetryAt:input.nextRetryAt,error:input.error,splitDepth:depth}}:page);
+    const next={...run.state,plan:{...plan,pages}};
+    await writeRepositoryRunState(run.root,next);run.state=next;
+  });
+}
+
 export async function nextRepositoryPage(
   run: ActiveRepositoryRun,
   options: NextRepositoryPageOptions = {},

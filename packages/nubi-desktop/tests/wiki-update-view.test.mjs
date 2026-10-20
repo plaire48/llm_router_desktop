@@ -70,3 +70,10 @@ test('absent Wiki pages explain initialization state without claiming lost gener
   assert.deepEqual(recovery.actions,['run']);
   assert.match(recovery.lines.join(' '),/기록을 복구/);
 });
+
+test('approved partial update shows retained completion and a resume action instead of a new update proposal',()=>{
+ const view=wikiUpdateView({status:stale,update:{state:'partial',canResume:true,pageProgress:{completed:2,total:6}}});
+ assert.match(view.title,/일부/);assert.deepEqual(view.actions,['resume','restart','discard']);assert.match(view.lines[0],/2\/6/);
+ const ready=wikiUpdateView({status:stale,update:{state:'ready',result:{partial:true},changes:[{path:'openwiki/one.md',change:'added'}]}});
+ assert.match(ready.lines.join(' '),/완료한.*먼저/);
+});

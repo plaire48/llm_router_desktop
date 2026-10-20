@@ -2,7 +2,7 @@ import {ProgressEstimate} from './ProgressEstimate.jsx';
 import {wikiModelErrors} from './wiki-model-errors.mjs';
 import {gitErrors} from './git-errors.mjs';
 import React, {useEffect, useState} from 'react';
-import {Icon} from '@e2e/cx-design-system';
+import {Icon,CxButton} from '@e2e/cx-design-system';
 import {durationLabel} from '../runtime/response-timing.mjs';
 
 const stages={selecting_scope:'분석 범위 선택',syncing:'코드 동기화',preparing_runtime:'실행기 확인',preparing_skills:'준비 파일 연결',scanning:'파일 목록 확인',reading:'파일 읽기',snapshot:'분석 준비',snapshot_git:'분석 기준 준비',planning:'구성 분석',replanning:'구성 다시 분석',generating:'문서 작성',reviewing:'내용 검토',finalizing:'문서 검토',publishing:'저장 확인'};
@@ -23,23 +23,37 @@ Object.assign(errors,{
 
 // Counts come from the runner. A clock is a duration, never a synthetic percent.
 Object.assign(errors,wikiModelErrors,{wiki_failed:'위키 준비를 마치지 못했어요. 오류 상세의 중단 단계와 코드를 확인해 주세요.'});
-export function WikiInitializationProgress({job, inline=false}) {
+const pageStates={pending:'대기',done:'완료',running:'작성 중',retrying:'재시도 대기',skipped:'다시 확인'};
+const retryReasons={network:'네트워크 연결 대기',network_error:'네트워크 연결 대기',model_timeout:'응답 지연',rate_limited:'사용 한도 재설정 대기',response_invalid:'응답 형식 다시 확인',output_limit:'문서를 나눠 이어 쓰는 중',provider_changed:'모델 연결 대기',wiki_offline:'네트워크 연결 대기',wiki_suspended:'절전 복귀 대기'};
+export function WikiPageProgress({pages:values={},heartbeatAt,now=Date.now()}) {
+  const pages=Object.entries(values),inline=false;
+  return <>{heartbeatAt&&<small role="status">마지막 상태 확인 {Math.max(0,Math.floor((now-heartbeatAt)/1000))}초 전</small>}
+    {!inline&&pages.length>0&&<ol className="nubi-wiki-page-list" aria-label="문서별 준비 상태">{pages.slice(0,20).map(([name,page])=><li key={name} data-wiki-page={name}><Icon name={page.state==='done'?'check':'file'} size={18}/><span title={name}>{name.replace(/^\/?openwiki\//,'')}<small>{retryReasons[page.error]||''}{page.nextRetryAt>now?` / 재시도까지 ${Math.ceil((page.nextRetryAt-now)/1000)}초`:''}</small></span><span className="nubi-wiki-page-status">{pageStates[page.state]||'확인 중'}</span></li>)}</ol>}
+    {!inline&&pages.length>20&&<small>전체 {pages.length}개 중 20개 문서 표시</small>}
+  </>;
+}
+export function WikiInitializationProgress({job, inline=false,heading=true,onResume,currentModel,currentProvider}) {
   const [now,setNow]=useState(Date.now);
-  useEffect(()=>{if(job?.state!=='running')return;setNow(Date.now());const timer=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(timer);},[job?.id,job?.state]);
+  const [confirmModel,setConfirmModel]=useState(false);
+  useEffect(()=>{if(!['running','paused','partial'].includes(job?.state))return;setNow(Date.now());const timer=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(timer);},[job?.id,job?.state]);
+  useEffect(()=>setConfirmModel(false),[job?.id,currentModel,currentProvider]);
   if(!job)return null;
   const running=job.state==='running',start=Date.parse(job.startedAt),end=Date.parse(job.finishedAt);
   const duration=Number.isFinite(start)?elapsed(start,running?now:Number.isFinite(end)?end:now):null;
   const percent=running&&Number.isFinite(job.percent)?Math.max(0,Math.min(100,job.percent)):null;
   const stageLabel=job.stage==='snapshot_git'?(gitSteps[job.gitStep]||stages[job.stage]):stages[job.stage];
-  const title=running?`위키 ${stageLabel||'준비 중'}`:states[job.state]||'위키';
+  const title=running?`위키 ${stageLabel||'준비 중'}`:job.state==='partial'?'위키 일부 준비 완료':job.state==='paused'?'위키 준비 일시 정지':states[job.state]||'위키';
+  const pages=Object.entries(job.pageStates||{}),missing=pages.filter(([,page])=>page.state!=='done').length;
+  const changedModel=!!currentModel&&(currentModel!==job.model||currentProvider!==job.provider);
+  const resume=()=>{if(changedModel&&!confirmModel){setConfirmModel(true);return;}onResume?.({confirmed:confirmModel});};
   return <div className={`nubi-wiki-initialization${inline?' is-inline':running?' nubi-progress-atmosphere':''}`} data-state={job.state}>
-    <div className="nubi-wiki-initialization-line">
+    {heading&&<div className="nubi-wiki-initialization-line">
       {running?<span className="status-spinner" aria-hidden="true"/>:<Icon name={job.state==='attention'?'alertCircle':'bookmark'} size={14}/>}
       <strong role={running?'status':undefined}>{title}</strong>
       {percent!==null&&<span className="nubi-wiki-percent" title="현재 단계 진행률">{percent}%</span>}
       {inline&&running&&duration&&<span className="nubi-wiki-elapsed">진행 {duration}</span>}
       {!running&&job.state==='completed'&&<span className="nubi-wiki-elapsed">{job.pages}개 문서{job.excludedFiles>0?` / 제외 ${job.excludedFiles}개 파일`:''}{job.changedDuringRun>0?` / 생성 중 바뀐 파일 ${job.changedDuringRun}개, 갱신 필요`:''}{job.lastModelError?` / 모델 오류 ${job.lastModelError}`:''}{duration?` / ${duration}`:''}</span>}
-    </div>
+    </div>}
     {!inline&&running&&percent===null&&<div className="nubi-progress is-indeterminate" data-active={running} role="progressbar" aria-label={title}><span/></div>}
     {!inline&&percent!==null&&<div className="nubi-progress" data-active={running} role="progressbar" aria-label={`${title} 진행률`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-valuetext={`${percent}%${job.total>0?` (${job.completed}/${job.total})`:''}`}><span style={{width:`${percent}%`}}/></div>}
     {!inline&&running&&<div className="nubi-wiki-progress-meta">
@@ -49,6 +63,11 @@ export function WikiInitializationProgress({job, inline=false}) {
     {!inline&&job.scope&&<small role="status">보강 {job.scope.rounds.done} / {job.scope.rounds.total}회{job.scope.mode==='folders'?' / 선택한 폴더부터 정리':''}</small>}
     {!inline&&running&&<ProgressEstimate identity={`${job.id}:${job.stage}:${job.gitStep||''}:${job.stageStartedAt||''}`} completed={job.completed} total={job.total}/>}
     {!inline&&running&&job.modelWaiting&&<small role="status">AI 응답을 기다리고 있어요. 받은 결과는 유지됩니다.</small>}
+    {!inline&&<WikiPageProgress pages={job.pageStates} heartbeatAt={job.heartbeatAt} now={now}/>}
+    {!inline&&job.state==='paused'&&<small role="status">{retryReasons[job.error]||'연결을 기다리고 있어요.'} 연결되면 남은 문서부터 이어갑니다.</small>}
+    {!inline&&job.state==='partial'&&<small role="status">완료한 문서 {job.pages||pages.length-missing}개를 먼저 보여드려요.</small>}
+    {!inline&&confirmModel&&<div role="group" aria-label="모델 변경 승인"><p>보관한 작업은 {job.model}로 시작했습니다. {currentModel}로 바꿔 이어갈까요?</p><small>완료한 문서와 현재 원본 기준은 유지합니다.</small></div>}
+    {!inline&&onResume&&['attention','cancelled','paused','partial'].includes(job.state)&&<CxButton onClick={resume} disabled={job.state==='paused'&&!changedModel}><Icon name="refresh" size={18}/>{confirmModel?'변경 승인 후 이어서':job.state==='partial'?`빠진 페이지 ${missing}개 다시 시도`:job.canResume?'이어서 준비':'다시 시도'}</CxButton>}
     {!inline&&job.canResume&&['attention','cancelled'].includes(job.state)&&<small className="nubi-wiki-retained"><Icon name="check" size={16}/>완료한 문서는 보관했습니다.</small>}
     {!inline&&job.state==='attention'&&<><small role="alert">{errors[job.error]||`${stages[job.stage]||'위키 준비'} 단계에서 멈췄어요. 아래 오류 코드를 확인해 주세요.`}</small><details className="nubi-wiki-error-detail"><summary><Icon name="infoCircle" size={16}/>오류 상세</summary><p>{stageLabel||'위키 준비'}{duration?` / 진행 ${duration}`:''}</p><code>{/^[a-z_]{1,80}$/.test(job.error||'')?job.error:'wiki_failed'}</code></details></>}
   </div>;
