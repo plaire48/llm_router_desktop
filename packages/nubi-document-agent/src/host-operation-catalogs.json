@@ -1,0 +1,107 @@
+[
+  {
+    "domain": "excel",
+    "op": "refresh_pivot",
+    "group": "editor-only",
+    "signature": "{sheet?}",
+    "requiredHost": "editor"
+  },
+  {
+    "domain": "excel",
+    "op": "add_table_row",
+    "group": "editor-only",
+    "signature": "{sheet?, tableName, row?: n, count?: n}",
+    "requiredHost": "editor"
+  },
+  {
+    "domain": "excel",
+    "op": "add_table_column",
+    "group": "editor-only",
+    "signature": "{sheet?, tableName, column?: n, columnName, count?: n}",
+    "requiredHost": "editor"
+  },
+  {
+    "domain": "excel",
+    "op": "delete_table_row",
+    "group": "editor-only",
+    "signature": "{sheet?, tableName, row: n, count?: n}",
+    "requiredHost": "editor"
+  },
+  {
+    "domain": "excel",
+    "op": "delete_table_column",
+    "group": "editor-only",
+    "signature": "{sheet?, tableName, column: n, count?: n}",
+    "requiredHost": "editor"
+  },
+  {
+    "domain": "excel",
+    "op": "delete_table",
+    "group": "editor-only",
+    "signature": "{sheet?, tableName}",
+    "requiredHost": "editor"
+  },
+  {
+    "domain": "excel",
+    "op": "edit_shape",
+    "group": "editor-only",
+    "signature": "{visualId, text?, fillColor?, anchorCell?}",
+    "requiredHost": "editor"
+  },
+  {
+    "domain": "excel",
+    "op": "delete_visual",
+    "group": "editor-only",
+    "signature": "{visualId}",
+    "requiredHost": "editor"
+  },
+  {
+    "domain": "powerpoint",
+    "op": "addMedia",
+    "group": "insert",
+    "signature": "{kind:\"video\"|\"audio\",bytes:base64|dataURL,ext,offset}",
+    "requiredHost": "bound_payload"
+  },
+  {
+    "domain": "powerpoint",
+    "op": "addModel3d",
+    "group": "insert",
+    "signature": "{bytes,ext,offset} — bytes payload",
+    "requiredHost": "bound_payload"
+  },
+  {
+    "domain": "powerpoint",
+    "op": "pasteElements",
+    "group": "insert",
+    "signature": "{items,dx,dy} — clipboard payload",
+    "requiredHost": "bound_payload"
+  },
+  {
+    "domain": "powerpoint",
+    "op": "setChart",
+    "group": "table",
+    "signature": "{patch:ChartEdit} — use the edit_chart tool instead",
+    "requiredHost": "bound_payload"
+  },
+  {
+    "domain": "powerpoint",
+    "op": "pasteSlide",
+    "group": "slide",
+    "signature": "{afterIndex,bundle|png,mode?} — clipboard payload",
+    "requiredHost": "bound_payload"
+  },
+  {
+    "domain": "powerpoint",
+    "op": "insertSlidePptx",
+    "group": "slide",
+    "signature": "{source,at?,replace?} — generated-page landing payload (use generate_deck/regenerate_slide)",
+    "requiredHost": "bound_payload"
+  },
+  {
+    "domain": "powerpoint",
+    "op": "setAnimations",
+    "group": "slide",
+    "signature": "{items:[{spid,effect,trigger,durationMs,delayMs,…}]} — spid-addressed (cNvPr id), no id translation yet",
+    "requiredHost": "bound_payload"
+  }
+]

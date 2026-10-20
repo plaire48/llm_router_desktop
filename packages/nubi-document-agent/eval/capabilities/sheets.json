@@ -1,0 +1,3376 @@
+{
+  "domain": "sheets",
+  "fingerprint": "3fab218b5a15",
+  "groups": [
+    {
+      "name": "content",
+      "summary": "cell values, formulas, fills, find/replace, sorting",
+      "ops": [
+        "set_cell",
+        "set_formula",
+        "set_range",
+        "clear_cell",
+        "clear_range",
+        "fill_range",
+        "copy_range",
+        "find_replace",
+        "sort_range",
+        "convert_to_values"
+      ]
+    },
+    {
+      "name": "format",
+      "summary": "cell formats, conditional formats, data validation",
+      "ops": [
+        "format_range",
+        "add_conditional_format",
+        "clear_conditional_formats",
+        "set_data_validation"
+      ]
+    },
+    {
+      "name": "layout",
+      "summary": "merges, sizes, hidden rows/columns, panes, filters, page setup, protection",
+      "ops": [
+        "merge_cells",
+        "unmerge_cells",
+        "set_row_height",
+        "set_col_width",
+        "set_rows_hidden",
+        "set_cols_hidden",
+        "set_freeze",
+        "set_filter",
+        "set_filter_criteria",
+        "clear_filter",
+        "set_page_setup",
+        "protect_sheet"
+      ]
+    },
+    {
+      "name": "data",
+      "summary": "hyperlinks, notes, defined names, Excel tables, pivot tables",
+      "ops": [
+        "set_hyperlink",
+        "set_note",
+        "add_defined_name",
+        "delete_defined_name",
+        "add_table",
+        "add_pivot"
+      ]
+    },
+    {
+      "name": "visuals",
+      "summary": "charts, images, shapes, sparklines",
+      "ops": [
+        "add_chart",
+        "edit_chart",
+        "add_image",
+        "add_shape",
+        "add_sparkline"
+      ]
+    },
+    {
+      "name": "structure",
+      "summary": "rows, columns and sheets; later ops in the batch use the shifted addresses",
+      "ops": [
+        "insert_rows",
+        "delete_rows",
+        "insert_cols",
+        "delete_cols",
+        "add_sheet",
+        "delete_sheet",
+        "rename_sheet",
+        "duplicate_sheet",
+        "move_sheet",
+        "set_sheet_hidden"
+      ]
+    },
+    {
+      "name": "editor-only",
+      "summary": "accepted by the app, refused headless",
+      "ops": [
+        "refresh_pivot",
+        "add_table_row",
+        "add_table_column",
+        "delete_table_row",
+        "delete_table_column",
+        "delete_table",
+        "edit_shape",
+        "delete_visual"
+      ]
+    }
+  ],
+  "ops": [
+    {
+      "op": "set_cell",
+      "group": "content",
+      "signature": "{sheet?, address, value: string|n|bool|null, expectedValue?: string|n|bool|null}",
+      "note": "a string value starting with \"=\" is written as a formula; type: \"text\" keeps such a string as literal cell text",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "set_cell"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "address": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}$"
+          },
+          "value": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          },
+          "expectedValue": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "op",
+          "address",
+          "value"
+        ]
+      }
+    },
+    {
+      "op": "set_formula",
+      "group": "content",
+      "signature": "{sheet?, address, formula, expectedFormula?}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "set_formula"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "address": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}$"
+          },
+          "formula": {
+            "type": "string",
+            "maxLength": 8192,
+            "format": "starts_with",
+            "pattern": "^=.*"
+          },
+          "expectedFormula": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "op",
+          "address",
+          "formula"
+        ]
+      }
+    },
+    {
+      "op": "set_range",
+      "group": "content",
+      "signature": "{sheet?, start?, range?, values: [[string|n|bool|null]]}",
+      "note": "start is the top-left cell; range, when given instead, must match the values grid",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "set_range"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "start": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}$"
+          },
+          "range": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}(:[A-Z]{1,3}[1-9][0-9]{0,6})?$"
+          },
+          "values": {
+            "minItems": 1,
+            "maxItems": 500,
+            "type": "array",
+            "items": {
+              "minItems": 1,
+              "maxItems": 100,
+              "type": "array",
+              "items": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "required": [
+          "op",
+          "values"
+        ]
+      }
+    },
+    {
+      "op": "clear_cell",
+      "group": "content",
+      "signature": "{sheet?, address}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "clear_cell"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "address": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}$"
+          }
+        },
+        "required": [
+          "op",
+          "address"
+        ]
+      }
+    },
+    {
+      "op": "clear_range",
+      "group": "content",
+      "signature": "{sheet?, range}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "clear_range"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "range": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}(:[A-Z]{1,3}[1-9][0-9]{0,6})?$"
+          }
+        },
+        "required": [
+          "op",
+          "range"
+        ]
+      }
+    },
+    {
+      "op": "fill_range",
+      "group": "content",
+      "signature": "{sheet?, source, sourceSheet?, target}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "fill_range"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "source": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}(:[A-Z]{1,3}[1-9][0-9]{0,6})?$"
+          },
+          "sourceSheet": {
+            "type": "string",
+            "description": "worksheet of the source range; omitted = sheet"
+          },
+          "target": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}(:[A-Z]{1,3}[1-9][0-9]{0,6})?$"
+          }
+        },
+        "required": [
+          "op",
+          "source",
+          "target"
+        ]
+      }
+    },
+    {
+      "op": "copy_range",
+      "group": "content",
+      "signature": "{sheet?, source, sourceSheet?, target, filterColumn?, filterValues?: [string]}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "copy_range"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "source": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}(:[A-Z]{1,3}[1-9][0-9]{0,6})?$"
+          },
+          "sourceSheet": {
+            "type": "string",
+            "description": "worksheet of the source range; omitted = sheet"
+          },
+          "target": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}(:[A-Z]{1,3}[1-9][0-9]{0,6})?$"
+          },
+          "filterColumn": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}$"
+          },
+          "filterValues": {
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32767
+            }
+          }
+        },
+        "required": [
+          "op",
+          "source",
+          "target"
+        ]
+      }
+    },
+    {
+      "op": "find_replace",
+      "group": "content",
+      "signature": "{sheet?, range, find, replace, matchCase?: bool, wholeCell?: bool}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "find_replace"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "range": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}(:[A-Z]{1,3}[1-9][0-9]{0,6})?$"
+          },
+          "find": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32767
+          },
+          "replace": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "matchCase": {
+            "type": "boolean"
+          },
+          "wholeCell": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "op",
+          "range",
+          "find",
+          "replace"
+        ]
+      }
+    },
+    {
+      "op": "sort_range",
+      "group": "content",
+      "signature": "{sheet?, range, byColumn, order: asc|desc, hasHeader?: bool}",
+      "note": "hasHeader keeps the first row in place",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "sort_range"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "range": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}(:[A-Z]{1,3}[1-9][0-9]{0,6})?$"
+          },
+          "byColumn": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}$"
+          },
+          "order": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          },
+          "hasHeader": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "op",
+          "range",
+          "byColumn",
+          "order"
+        ]
+      }
+    },
+    {
+      "op": "convert_to_values",
+      "group": "content",
+      "signature": "{sheet?, range}",
+      "note": "replaces the formulas in range with the values the workbook engine computes; cells that evaluate to an error keep their formula",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "convert_to_values"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "range": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}(:[A-Z]{1,3}[1-9][0-9]{0,6})?$"
+          }
+        },
+        "required": [
+          "op",
+          "range"
+        ]
+      }
+    },
+    {
+      "op": "format_range",
+      "group": "format",
+      "signature": "{\n    sheet?,\n    range,\n    format: {bold?: bool|null, italic?: bool|null, underline?: bool|null, strikethrough?: bool|null, fontFamily?: string|null, fontSize?: n|null, fontColor?: string|string|{theme: n|lt1|dk1|lt2|dk2|accent1|accent2|accent3|accent4|accent5|accent6|hlink|folHlink, tint?: n}|null, fillColor?: string|string|{theme: n|lt1|dk1|lt2|dk2|accent1|accent2|accent3|accent4|accent5|accent6|hlink|folHlink, tint?: n}|null, fill?: {pattern: solid|mediumGray|darkGray|lightGray|gray125|gray0625|darkHorizontal|darkVertical|darkDown|darkUp|darkGrid|darkTrellis|lightHorizontal|lightVertical|lightDown|lightUp|lightGrid|lightTrellis, fg: string|string|{theme: n|lt1|dk1|lt2|dk2|accent1|accent2|accent3|accent4|accent5|accent6|hlink|folHlink, tint?: n}, bg?: string|string|{theme: n|lt1|dk1|lt2|dk2|accent1|accent2|accent3|accent4|accent5|accent6|hlink|folHlink, tint?: n}}\n        | {gradient: {type?: linear|path, angle?: n, left?: n, right?: n, top?: n, bottom?: n, stops: [{position: n, color: string|string|{theme: n|lt1|dk1|lt2|dk2|accent1|accent2|accent3|accent4|accent5|accent6|hlink|folHlink, tint?: n}}]}}|null, numberFormat?: string|null, horizontalAlign?: left|center|right|null, verticalAlign?: top|center|bottom|null, wrapText?: bool|null, textRotation?: n|\"vertical\"|null, indent?: n|null, border?: {type: all|top|bottom|left|right|none, color?: string|string|{theme: n|lt1|dk1|lt2|dk2|accent1|accent2|accent3|accent4|accent5|accent6|hlink|folHlink, tint?: n}}}\n  }",
+      "note": "null clears a property; colors are #RRGGBB or theme slots (\"accent1\", \"accent1+40%\", \"dk2-25%\", {theme, tint}) that follow the workbook theme; fill = {pattern, fg, bg?} or {gradient: {angle?, stops}}; border type none removes all borders",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "format_range"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "range": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}(:[A-Z]{1,3}[1-9][0-9]{0,6})?$"
+          },
+          "format": {
+            "type": "object",
+            "properties": {
+              "bold": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "italic": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "underline": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "strikethrough": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "fontFamily": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "fontSize": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 409
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "fontColor": {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^(lt1|dk1|lt2|dk2|accent[1-6]|hlink|folHlink|bg1|bg2|tx1|tx2|background[12]|text[12]|hyperlink|followedHyperlink)(?:\\s*([+-])\\s*(\\d{1,3})%)?$"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "theme": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 11
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "lt1",
+                                  "dk1",
+                                  "lt2",
+                                  "dk2",
+                                  "accent1",
+                                  "accent2",
+                                  "accent3",
+                                  "accent4",
+                                  "accent5",
+                                  "accent6",
+                                  "hlink",
+                                  "folHlink"
+                                ]
+                              }
+                            ]
+                          },
+                          "tint": {
+                            "type": "number",
+                            "minimum": -1,
+                            "maximum": 1
+                          }
+                        },
+                        "required": [
+                          "theme"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ],
+                    "description": "\"#RRGGBB\", a theme slot name (lt1 dk1 lt2 dk2 accent1-6 hlink folHlink) optionally with a tint like \"accent1+40%\" or \"dk2-25%\", or {theme, tint}"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "fillColor": {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^(lt1|dk1|lt2|dk2|accent[1-6]|hlink|folHlink|bg1|bg2|tx1|tx2|background[12]|text[12]|hyperlink|followedHyperlink)(?:\\s*([+-])\\s*(\\d{1,3})%)?$"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "theme": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 11
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "lt1",
+                                  "dk1",
+                                  "lt2",
+                                  "dk2",
+                                  "accent1",
+                                  "accent2",
+                                  "accent3",
+                                  "accent4",
+                                  "accent5",
+                                  "accent6",
+                                  "hlink",
+                                  "folHlink"
+                                ]
+                              }
+                            ]
+                          },
+                          "tint": {
+                            "type": "number",
+                            "minimum": -1,
+                            "maximum": 1
+                          }
+                        },
+                        "required": [
+                          "theme"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ],
+                    "description": "\"#RRGGBB\", a theme slot name (lt1 dk1 lt2 dk2 accent1-6 hlink folHlink) optionally with a tint like \"accent1+40%\" or \"dk2-25%\", or {theme, tint}"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "fill": {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "pattern": {
+                            "type": "string",
+                            "enum": [
+                              "solid",
+                              "mediumGray",
+                              "darkGray",
+                              "lightGray",
+                              "gray125",
+                              "gray0625",
+                              "darkHorizontal",
+                              "darkVertical",
+                              "darkDown",
+                              "darkUp",
+                              "darkGrid",
+                              "darkTrellis",
+                              "lightHorizontal",
+                              "lightVertical",
+                              "lightDown",
+                              "lightUp",
+                              "lightGrid",
+                              "lightTrellis"
+                            ]
+                          },
+                          "fg": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^#[0-9A-Fa-f]{6}$"
+                              },
+                              {
+                                "type": "string",
+                                "pattern": "^(lt1|dk1|lt2|dk2|accent[1-6]|hlink|folHlink|bg1|bg2|tx1|tx2|background[12]|text[12]|hyperlink|followedHyperlink)(?:\\s*([+-])\\s*(\\d{1,3})%)?$"
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "theme": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 11
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "lt1",
+                                          "dk1",
+                                          "lt2",
+                                          "dk2",
+                                          "accent1",
+                                          "accent2",
+                                          "accent3",
+                                          "accent4",
+                                          "accent5",
+                                          "accent6",
+                                          "hlink",
+                                          "folHlink"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "tint": {
+                                    "type": "number",
+                                    "minimum": -1,
+                                    "maximum": 1
+                                  }
+                                },
+                                "required": [
+                                  "theme"
+                                ],
+                                "additionalProperties": false
+                              }
+                            ],
+                            "description": "\"#RRGGBB\", a theme slot name (lt1 dk1 lt2 dk2 accent1-6 hlink folHlink) optionally with a tint like \"accent1+40%\" or \"dk2-25%\", or {theme, tint}"
+                          },
+                          "bg": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^#[0-9A-Fa-f]{6}$"
+                              },
+                              {
+                                "type": "string",
+                                "pattern": "^(lt1|dk1|lt2|dk2|accent[1-6]|hlink|folHlink|bg1|bg2|tx1|tx2|background[12]|text[12]|hyperlink|followedHyperlink)(?:\\s*([+-])\\s*(\\d{1,3})%)?$"
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "theme": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 11
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "lt1",
+                                          "dk1",
+                                          "lt2",
+                                          "dk2",
+                                          "accent1",
+                                          "accent2",
+                                          "accent3",
+                                          "accent4",
+                                          "accent5",
+                                          "accent6",
+                                          "hlink",
+                                          "folHlink"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "tint": {
+                                    "type": "number",
+                                    "minimum": -1,
+                                    "maximum": 1
+                                  }
+                                },
+                                "required": [
+                                  "theme"
+                                ],
+                                "additionalProperties": false
+                              }
+                            ],
+                            "description": "\"#RRGGBB\", a theme slot name (lt1 dk1 lt2 dk2 accent1-6 hlink folHlink) optionally with a tint like \"accent1+40%\" or \"dk2-25%\", or {theme, tint}"
+                          }
+                        },
+                        "required": [
+                          "pattern",
+                          "fg"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "gradient": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "linear",
+                                  "path"
+                                ]
+                              },
+                              "angle": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 360
+                              },
+                              "left": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                              },
+                              "right": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                              },
+                              "top": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                              },
+                              "bottom": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                              },
+                              "stops": {
+                                "minItems": 2,
+                                "maxItems": 10,
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "position": {
+                                      "type": "number",
+                                      "minimum": 0,
+                                      "maximum": 1
+                                    },
+                                    "color": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string",
+                                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                                        },
+                                        {
+                                          "type": "string",
+                                          "pattern": "^(lt1|dk1|lt2|dk2|accent[1-6]|hlink|folHlink|bg1|bg2|tx1|tx2|background[12]|text[12]|hyperlink|followedHyperlink)(?:\\s*([+-])\\s*(\\d{1,3})%)?$"
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "theme": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "integer",
+                                                  "minimum": 0,
+                                                  "maximum": 11
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "lt1",
+                                                    "dk1",
+                                                    "lt2",
+                                                    "dk2",
+                                                    "accent1",
+                                                    "accent2",
+                                                    "accent3",
+                                                    "accent4",
+                                                    "accent5",
+                                                    "accent6",
+                                                    "hlink",
+                                                    "folHlink"
+                                                  ]
+                                                }
+                                              ]
+                                            },
+                                            "tint": {
+                                              "type": "number",
+                                              "minimum": -1,
+                                              "maximum": 1
+                                            }
+                                          },
+                                          "required": [
+                                            "theme"
+                                          ],
+                                          "additionalProperties": false
+                                        }
+                                      ],
+                                      "description": "\"#RRGGBB\", a theme slot name (lt1 dk1 lt2 dk2 accent1-6 hlink folHlink) optionally with a tint like \"accent1+40%\" or \"dk2-25%\", or {theme, tint}"
+                                    }
+                                  },
+                                  "required": [
+                                    "position",
+                                    "color"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              }
+                            },
+                            "required": [
+                              "stops"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": [
+                          "gradient"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ],
+                    "description": "pattern fill {pattern: solid|lightGray|darkHorizontal|…, fg, bg?} or gradient {gradient: {angle?, stops: [{position 0..1, color}]}}; wins over fillColor"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "numberFormat": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "horizontalAlign": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "left",
+                      "center",
+                      "right"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "verticalAlign": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "top",
+                      "center",
+                      "bottom"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "wrapText": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "textRotation": {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": -90,
+                        "maximum": 90
+                      },
+                      {
+                        "type": "string",
+                        "const": "vertical"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "indent": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 250
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "border": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "all",
+                      "top",
+                      "bottom",
+                      "left",
+                      "right",
+                      "none"
+                    ]
+                  },
+                  "color": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^(lt1|dk1|lt2|dk2|accent[1-6]|hlink|folHlink|bg1|bg2|tx1|tx2|background[12]|text[12]|hyperlink|followedHyperlink)(?:\\s*([+-])\\s*(\\d{1,3})%)?$"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "theme": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 11
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "lt1",
+                                  "dk1",
+                                  "lt2",
+                                  "dk2",
+                                  "accent1",
+                                  "accent2",
+                                  "accent3",
+                                  "accent4",
+                                  "accent5",
+                                  "accent6",
+                                  "hlink",
+                                  "folHlink"
+                                ]
+                              }
+                            ]
+                          },
+                          "tint": {
+                            "type": "number",
+                            "minimum": -1,
+                            "maximum": 1
+                          }
+                        },
+                        "required": [
+                          "theme"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ],
+                    "description": "\"#RRGGBB\", a theme slot name (lt1 dk1 lt2 dk2 accent1-6 hlink folHlink) optionally with a tint like \"accent1+40%\" or \"dk2-25%\", or {theme, tint}"
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            }
+          }
+        },
+        "required": [
+          "op",
+          "range",
+          "format"
+        ]
+      }
+    },
+    {
+      "op": "add_conditional_format",
+      "group": "format",
+      "signature": "{\n    sheet?,\n    range,\n    rule: {kind: \"number\", operator: greaterThan|greaterThanOrEqual|lessThan|lessThanOrEqual|equal|notEqual|between|notBetween, value: n, value2?: n, format: {fillColor?, fontColor?, bold?: bool, italic?: bool}}\n        | {kind: \"text\", operator: contains|notContains|beginsWith|endsWith, text, format: {fillColor?, fontColor?, bold?: bool, italic?: bool}}\n        | {kind: \"blank\", blank: bool, format: {fillColor?, fontColor?, bold?: bool, italic?: bool}}\n        | {kind: \"duplicate\", unique?: bool, format: {fillColor?, fontColor?, bold?: bool, italic?: bool}}\n        | {kind: \"top10\", rank: n, percent?: bool, bottom?: bool, format: {fillColor?, fontColor?, bold?: bool, italic?: bool}}\n        | {kind: \"formula\", formula, format: {fillColor?, fontColor?, bold?: bool, italic?: bool}}\n        | {kind: \"colorScale\", minColor, midColor?, maxColor}\n        | {kind: \"dataBar\", color?}\n  }",
+      "note": "adds to the rules the sheet already has (clear_conditional_formats first to start over); format = {fillColor?, fontColor?, bold?, italic?}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "add_conditional_format"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "range": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}(:[A-Z]{1,3}[1-9][0-9]{0,6})?$"
+          },
+          "rule": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "number"
+                  },
+                  "operator": {
+                    "type": "string",
+                    "enum": [
+                      "greaterThan",
+                      "greaterThanOrEqual",
+                      "lessThan",
+                      "lessThanOrEqual",
+                      "equal",
+                      "notEqual",
+                      "between",
+                      "notBetween"
+                    ]
+                  },
+                  "value": {
+                    "type": "number"
+                  },
+                  "value2": {
+                    "type": "number"
+                  },
+                  "format": {
+                    "type": "object",
+                    "properties": {
+                      "fillColor": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "fontColor": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "bold": {
+                        "type": "boolean"
+                      },
+                      "italic": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "kind",
+                  "operator",
+                  "value",
+                  "format"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "text"
+                  },
+                  "operator": {
+                    "type": "string",
+                    "enum": [
+                      "contains",
+                      "notContains",
+                      "beginsWith",
+                      "endsWith"
+                    ]
+                  },
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                  },
+                  "format": {
+                    "type": "object",
+                    "properties": {
+                      "fillColor": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "fontColor": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "bold": {
+                        "type": "boolean"
+                      },
+                      "italic": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "kind",
+                  "operator",
+                  "text",
+                  "format"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "blank"
+                  },
+                  "blank": {
+                    "type": "boolean"
+                  },
+                  "format": {
+                    "type": "object",
+                    "properties": {
+                      "fillColor": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "fontColor": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "bold": {
+                        "type": "boolean"
+                      },
+                      "italic": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "kind",
+                  "blank",
+                  "format"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "duplicate"
+                  },
+                  "unique": {
+                    "type": "boolean"
+                  },
+                  "format": {
+                    "type": "object",
+                    "properties": {
+                      "fillColor": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "fontColor": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "bold": {
+                        "type": "boolean"
+                      },
+                      "italic": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "kind",
+                  "format"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "top10"
+                  },
+                  "rank": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
+                  },
+                  "percent": {
+                    "type": "boolean"
+                  },
+                  "bottom": {
+                    "type": "boolean"
+                  },
+                  "format": {
+                    "type": "object",
+                    "properties": {
+                      "fillColor": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "fontColor": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "bold": {
+                        "type": "boolean"
+                      },
+                      "italic": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "kind",
+                  "rank",
+                  "format"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "formula"
+                  },
+                  "formula": {
+                    "type": "string",
+                    "maxLength": 8192,
+                    "format": "starts_with",
+                    "pattern": "^=.*"
+                  },
+                  "format": {
+                    "type": "object",
+                    "properties": {
+                      "fillColor": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "fontColor": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "bold": {
+                        "type": "boolean"
+                      },
+                      "italic": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "kind",
+                  "formula",
+                  "format"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "colorScale"
+                  },
+                  "minColor": {
+                    "type": "string",
+                    "pattern": "^#[0-9A-Fa-f]{6}$"
+                  },
+                  "midColor": {
+                    "type": "string",
+                    "pattern": "^#[0-9A-Fa-f]{6}$"
+                  },
+                  "maxColor": {
+                    "type": "string",
+                    "pattern": "^#[0-9A-Fa-f]{6}$"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "minColor",
+                  "maxColor"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "dataBar"
+                  },
+                  "color": {
+                    "type": "string",
+                    "pattern": "^#[0-9A-Fa-f]{6}$"
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "op",
+          "range",
+          "rule"
+        ]
+      }
+    },
+    {
+      "op": "clear_conditional_formats",
+      "group": "format",
+      "signature": "{sheet?}",
+      "note": "removes every rule of the sheet; later add_conditional_format ops in the batch rebuild from scratch",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "clear_conditional_formats"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          }
+        },
+        "required": [
+          "op"
+        ]
+      }
+    },
+    {
+      "op": "set_data_validation",
+      "group": "format",
+      "signature": "{\n    sheet?,\n    range,\n    validation: {kind: \"list\", values: [string]}\n        | {kind: \"listRef\", range}\n        | {kind: \"numberBetween\", min: n, max: n}\n        | {kind: \"dateBetween\", start, end}\n        | {kind: \"checkbox\"}\n        | {kind: \"formula\", formula}|null\n  }",
+      "note": "adds to the rules the sheet already has; on a range that has one it replaces it, null removes it",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "set_data_validation"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "range": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}(:[A-Z]{1,3}[1-9][0-9]{0,6})?$"
+          },
+          "validation": {
+            "anyOf": [
+              {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "list"
+                      },
+                      "values": {
+                        "minItems": 1,
+                        "maxItems": 100,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 255
+                        }
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "values"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "listRef"
+                      },
+                      "range": {
+                        "type": "string",
+                        "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}(:[A-Z]{1,3}[1-9][0-9]{0,6})?$"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "range"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "numberBetween"
+                      },
+                      "min": {
+                        "type": "number"
+                      },
+                      "max": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "min",
+                      "max"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "dateBetween"
+                      },
+                      "start": {
+                        "type": "string",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                      },
+                      "end": {
+                        "type": "string",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "start",
+                      "end"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "checkbox"
+                      }
+                    },
+                    "required": [
+                      "kind"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "formula"
+                      },
+                      "formula": {
+                        "type": "string",
+                        "maxLength": 8192,
+                        "format": "starts_with",
+                        "pattern": "^=.*"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "formula"
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "op",
+          "range",
+          "validation"
+        ]
+      }
+    },
+    {
+      "op": "merge_cells",
+      "group": "layout",
+      "signature": "{sheet?, range}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "merge_cells"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "range": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}(:[A-Z]{1,3}[1-9][0-9]{0,6})?$"
+          }
+        },
+        "required": [
+          "op",
+          "range"
+        ]
+      }
+    },
+    {
+      "op": "unmerge_cells",
+      "group": "layout",
+      "signature": "{sheet?, range}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "unmerge_cells"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "range": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}(:[A-Z]{1,3}[1-9][0-9]{0,6})?$"
+          }
+        },
+        "required": [
+          "op",
+          "range"
+        ]
+      }
+    },
+    {
+      "op": "set_row_height",
+      "group": "layout",
+      "signature": "{sheet?, row: n, count?: n, heightPoints: n}",
+      "note": "pt",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "set_row_height"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "row": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1048576
+          },
+          "count": {
+            "default": 1,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500
+          },
+          "heightPoints": {
+            "type": "number",
+            "minimum": 2,
+            "maximum": 409
+          }
+        },
+        "required": [
+          "op",
+          "row",
+          "heightPoints"
+        ]
+      }
+    },
+    {
+      "op": "set_col_width",
+      "group": "layout",
+      "signature": "{sheet?, column, count?: n, widthPx: n}",
+      "note": "px",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "set_col_width"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "column": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}$"
+          },
+          "count": {
+            "default": 1,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "widthPx": {
+            "type": "number",
+            "minimum": 10,
+            "maximum": 2000
+          }
+        },
+        "required": [
+          "op",
+          "column",
+          "widthPx"
+        ]
+      }
+    },
+    {
+      "op": "set_rows_hidden",
+      "group": "layout",
+      "signature": "{sheet?, row: n, count?: n, hidden: bool}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "set_rows_hidden"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "row": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1048576
+          },
+          "count": {
+            "default": 1,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "hidden": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "op",
+          "row",
+          "hidden"
+        ]
+      }
+    },
+    {
+      "op": "set_cols_hidden",
+      "group": "layout",
+      "signature": "{sheet?, column, count?: n, hidden: bool}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "set_cols_hidden"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "column": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}$"
+          },
+          "count": {
+            "default": 1,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "hidden": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "op",
+          "column",
+          "hidden"
+        ]
+      }
+    },
+    {
+      "op": "set_freeze",
+      "group": "layout",
+      "signature": "{sheet?, rows: n, columns: n}",
+      "note": "0/0 unfreezes",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "set_freeze"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "rows": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "columns": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "op",
+          "rows",
+          "columns"
+        ]
+      }
+    },
+    {
+      "op": "set_filter",
+      "group": "layout",
+      "signature": "{sheet?, range}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "set_filter"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "range": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}(:[A-Z]{1,3}[1-9][0-9]{0,6})?$"
+          }
+        },
+        "required": [
+          "op",
+          "range"
+        ]
+      }
+    },
+    {
+      "op": "set_filter_criteria",
+      "group": "layout",
+      "signature": "{sheet?, column, values: [string]|null}",
+      "note": "needs a filter without criteria; null clears the column",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "set_filter_criteria"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "column": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}$"
+          },
+          "values": {
+            "anyOf": [
+              {
+                "minItems": 1,
+                "maxItems": 1000,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "maxLength": 32767
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "op",
+          "column",
+          "values"
+        ]
+      }
+    },
+    {
+      "op": "clear_filter",
+      "group": "layout",
+      "signature": "{sheet?}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "clear_filter"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          }
+        },
+        "required": [
+          "op"
+        ]
+      }
+    },
+    {
+      "op": "set_page_setup",
+      "group": "layout",
+      "signature": "{\n    sheet?,\n    orientation?: portrait|landscape,\n    paperSize?: n,\n    scale?: n,\n    fitToWidth?: n,\n    fitToHeight?: n,\n    margins?: normal|wide|narrow,\n    printGridlines?: bool,\n    printHeadings?: bool,\n    printArea?: string|null,\n    printTitles?: string|null,\n    header?: {left?, center?, right?}|null,\n    footer?: {left?, center?, right?}|null,\n    rowBreaks?: [n],\n    colBreaks?: [n]\n  }",
+      "note": "paperSize 9 = A4, 1 = Letter; scale and fitToWidth/fitToHeight are exclusive; margins normal|wide|narrow; printArea/printTitles/header/footer null clears; rowBreaks/colBreaks replace the manual breaks",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "set_page_setup"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "orientation": {
+            "type": "string",
+            "enum": [
+              "portrait",
+              "landscape"
+            ]
+          },
+          "paperSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 118
+          },
+          "scale": {
+            "type": "integer",
+            "minimum": 10,
+            "maximum": 400
+          },
+          "fitToWidth": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "fitToHeight": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "margins": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "wide",
+              "narrow"
+            ]
+          },
+          "printGridlines": {
+            "type": "boolean"
+          },
+          "printHeadings": {
+            "type": "boolean"
+          },
+          "printArea": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}(:[A-Z]{1,3}[1-9][0-9]{0,6})?$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "printTitles": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\$?([A-Za-z]{1,3}|\\d{1,7}):\\$?([A-Za-z]{1,3}|\\d{1,7})(,\\$?([A-Za-z]{1,3}|\\d{1,7}):\\$?([A-Za-z]{1,3}|\\d{1,7}))?$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "header": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "left": {
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  "center": {
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  "right": {
+                    "type": "string",
+                    "maxLength": 255
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "footer": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "left": {
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  "center": {
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  "right": {
+                    "type": "string",
+                    "maxLength": 255
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rowBreaks": {
+            "maxItems": 1023,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1048575
+            }
+          },
+          "colBreaks": {
+            "maxItems": 1023,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 16383
+            }
+          }
+        },
+        "required": [
+          "op"
+        ]
+      }
+    },
+    {
+      "op": "protect_sheet",
+      "group": "layout",
+      "signature": "{\n    sheet?,\n    protected: bool,\n    password?,\n    allow?: {selectLockedCells?: bool, selectUnlockedCells?: bool, formatCells?: bool, formatColumns?: bool, formatRows?: bool, insertColumns?: bool, insertRows?: bool, insertHyperlinks?: bool, deleteColumns?: bool, deleteRows?: bool, sort?: bool, autoFilter?: bool, pivotTables?: bool, objects?: bool, scenarios?: bool}\n  }",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "protect_sheet"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "protected": {
+            "type": "boolean"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "allow": {
+            "type": "object",
+            "properties": {
+              "selectLockedCells": {
+                "type": "boolean"
+              },
+              "selectUnlockedCells": {
+                "type": "boolean"
+              },
+              "formatCells": {
+                "type": "boolean"
+              },
+              "formatColumns": {
+                "type": "boolean"
+              },
+              "formatRows": {
+                "type": "boolean"
+              },
+              "insertColumns": {
+                "type": "boolean"
+              },
+              "insertRows": {
+                "type": "boolean"
+              },
+              "insertHyperlinks": {
+                "type": "boolean"
+              },
+              "deleteColumns": {
+                "type": "boolean"
+              },
+              "deleteRows": {
+                "type": "boolean"
+              },
+              "sort": {
+                "type": "boolean"
+              },
+              "autoFilter": {
+                "type": "boolean"
+              },
+              "pivotTables": {
+                "type": "boolean"
+              },
+              "objects": {
+                "type": "boolean"
+              },
+              "scenarios": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "required": [
+          "op",
+          "protected"
+        ]
+      }
+    },
+    {
+      "op": "set_hyperlink",
+      "group": "data",
+      "signature": "{sheet?, address, target: string|null}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "set_hyperlink"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "address": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}$"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "op",
+          "address",
+          "target"
+        ]
+      }
+    },
+    {
+      "op": "set_note",
+      "group": "data",
+      "signature": "{sheet?, address, text: string|null}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "set_note"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "address": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}$"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 32000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "op",
+          "address",
+          "text"
+        ]
+      }
+    },
+    {
+      "op": "add_defined_name",
+      "group": "data",
+      "signature": "{name, ref}",
+      "note": "ref like \"Sheet1!$A$2:$A$9\"; not in a batch with sheet or row/column ops",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "add_defined_name"
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[\\p{L}_\\\\][\\p{L}\\p{N}_.\\\\]{0,254}$"
+          },
+          "ref": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          }
+        },
+        "required": [
+          "op",
+          "name",
+          "ref"
+        ]
+      }
+    },
+    {
+      "op": "delete_defined_name",
+      "group": "data",
+      "signature": "{name}",
+      "note": "not in a batch with sheet or row/column ops",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "delete_defined_name"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        "required": [
+          "op",
+          "name"
+        ]
+      }
+    },
+    {
+      "op": "add_table",
+      "group": "data",
+      "signature": "{sheet?, range, name?, style?, bandedRows?: bool}",
+      "note": "first row = unique, non-empty column names; not in a batch with row/column, merge or size ops on the same sheet",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "add_table"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "range": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}(:[A-Z]{1,3}[1-9][0-9]{0,6})?$"
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[\\p{L}_\\\\][\\p{L}\\p{N}_.\\\\]{0,254}$"
+          },
+          "style": {
+            "type": "string",
+            "pattern": "^TableStyle(?:Light|Medium|Dark)[1-9][0-9]?$"
+          },
+          "bandedRows": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "op",
+          "range"
+        ]
+      }
+    },
+    {
+      "op": "add_pivot",
+      "group": "data",
+      "signature": "{\n    sheet?,\n    sourceRange,\n    targetCell,\n    targetSheet?,\n    rowFields: string|[string],\n    columnField?: string|[string],\n    pageFields?: [string|{field, item?}],\n    values: [{field, agg: sum|count|average|max|min|product|countNums, numFmt?, showDataAs?: percentOfTotal|percentOfRow|percentOfCol|percentOfParentRow|percentOfParentCol|index, name?, formula?}],\n    groupings?: [{kind: \"date\", field, dateUnit: year|quarter|month}\n        | {kind: \"range\", field, rangeStep: n, rangeStart?: n}],\n    filters?: [{kind: \"label\", field, op: equal|contains|beginsWith, value}\n        | {kind: \"value\", field, valueIndex?: n, op: top|greaterThan|between, count?: n, from?: n, to?: n}],\n    name?\n  }",
+      "note": "sourceRange first row = field names; the output is written as cells at targetCell (must be empty) plus a native pivot Excel can refresh; targetSheet must already exist in the file; not in a batch with sheet or row/column ops",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "add_pivot"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "sourceRange": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}(:[A-Z]{1,3}[1-9][0-9]{0,6})?$"
+          },
+          "targetCell": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}$"
+          },
+          "targetSheet": {
+            "type": "string",
+            "description": "worksheet that receives the output; omitted = sheet"
+          },
+          "rowFields": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255
+              },
+              {
+                "minItems": 1,
+                "maxItems": 8,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 255
+                }
+              }
+            ]
+          },
+          "columnField": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255
+              },
+              {
+                "minItems": 1,
+                "maxItems": 8,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 255
+                }
+              }
+            ]
+          },
+          "pageFields": {
+            "maxItems": 4,
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 255
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "field": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 255
+                    },
+                    "item": {
+                      "type": "string",
+                      "maxLength": 255
+                    }
+                  },
+                  "required": [
+                    "field"
+                  ]
+                }
+              ]
+            }
+          },
+          "values": {
+            "minItems": 1,
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 255
+                },
+                "agg": {
+                  "type": "string",
+                  "enum": [
+                    "sum",
+                    "count",
+                    "average",
+                    "max",
+                    "min",
+                    "product",
+                    "countNums"
+                  ]
+                },
+                "numFmt": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 255
+                },
+                "showDataAs": {
+                  "type": "string",
+                  "enum": [
+                    "percentOfTotal",
+                    "percentOfRow",
+                    "percentOfCol",
+                    "percentOfParentRow",
+                    "percentOfParentCol",
+                    "index"
+                  ]
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 255
+                },
+                "formula": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                }
+              },
+              "required": [
+                "field",
+                "agg"
+              ]
+            }
+          },
+          "groupings": {
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "date"
+                    },
+                    "field": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 255
+                    },
+                    "dateUnit": {
+                      "type": "string",
+                      "enum": [
+                        "year",
+                        "quarter",
+                        "month"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "field",
+                    "dateUnit"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "range"
+                    },
+                    "field": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 255
+                    },
+                    "rangeStep": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "rangeStart": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "field",
+                    "rangeStep"
+                  ]
+                }
+              ]
+            }
+          },
+          "filters": {
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "label"
+                    },
+                    "field": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 255
+                    },
+                    "op": {
+                      "type": "string",
+                      "enum": [
+                        "equal",
+                        "contains",
+                        "beginsWith"
+                      ]
+                    },
+                    "value": {
+                      "type": "string",
+                      "maxLength": 255
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "field",
+                    "op",
+                    "value"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "value"
+                    },
+                    "field": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 255
+                    },
+                    "valueIndex": {
+                      "default": 0,
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 7
+                    },
+                    "op": {
+                      "type": "string",
+                      "enum": [
+                        "top",
+                        "greaterThan",
+                        "between"
+                      ]
+                    },
+                    "count": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 10000
+                    },
+                    "from": {
+                      "type": "number"
+                    },
+                    "to": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "field",
+                    "op"
+                  ]
+                }
+              ]
+            }
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[\\p{L}_\\\\][\\p{L}\\p{N}_.\\\\ ]{0,254}$"
+          }
+        },
+        "required": [
+          "op",
+          "sourceRange",
+          "targetCell",
+          "rowFields",
+          "values"
+        ]
+      }
+    },
+    {
+      "op": "add_chart",
+      "group": "visuals",
+      "signature": "{sheet?, chartType: column|bar|line|area|pie|doughnut|scatter|radar|combo, dataRange, title?, anchorCell?}",
+      "note": "header row and a leading category column are detected; the chart lands two columns right of the data unless anchorCell",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "add_chart"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "chartType": {
+            "type": "string",
+            "enum": [
+              "column",
+              "bar",
+              "line",
+              "area",
+              "pie",
+              "doughnut",
+              "scatter",
+              "radar",
+              "combo"
+            ]
+          },
+          "dataRange": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}(:[A-Z]{1,3}[1-9][0-9]{0,6})?$"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "anchorCell": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}$"
+          }
+        },
+        "required": [
+          "op",
+          "chartType",
+          "dataRange"
+        ]
+      }
+    },
+    {
+      "op": "edit_chart",
+      "group": "visuals",
+      "signature": "{\n    chartPath,\n    title?,\n    chartType?: column|bar|line|area|pie|doughnut,\n    seriesColors?: {\"<key>\": string},\n    legend?: none|right|bottom|top|left,\n    dataLabels?: none|value|percent|category-percent,\n    grouping?: clustered|stacked|percentStacked,\n    axisTitles?: {category?: string|null, value?: string|null}\n  }",
+      "note": "`genoffice sheet read` lists chart paths under features.charts; repointing a series at other cells needs the app",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "edit_chart"
+          },
+          "chartPath": {
+            "type": "string",
+            "pattern": "^(xl\\/charts\\/[A-Za-z0-9._-]+\\.xml|(added|demo)-chart-[A-Za-z0-9._-]+)$"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "chartType": {
+            "type": "string",
+            "enum": [
+              "column",
+              "bar",
+              "line",
+              "area",
+              "pie",
+              "doughnut"
+            ]
+          },
+          "seriesColors": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "pattern": "^[0-9]{1,3}$"
+            },
+            "additionalProperties": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$"
+            }
+          },
+          "legend": {
+            "type": "string",
+            "enum": [
+              "none",
+              "right",
+              "bottom",
+              "top",
+              "left"
+            ]
+          },
+          "dataLabels": {
+            "type": "string",
+            "enum": [
+              "none",
+              "value",
+              "percent",
+              "category-percent"
+            ]
+          },
+          "grouping": {
+            "type": "string",
+            "enum": [
+              "clustered",
+              "stacked",
+              "percentStacked"
+            ]
+          },
+          "axisTitles": {
+            "type": "object",
+            "properties": {
+              "category": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "value": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "required": [
+          "op",
+          "chartPath"
+        ]
+      }
+    },
+    {
+      "op": "add_image",
+      "group": "visuals",
+      "signature": "{sheet?, path, anchorCell}",
+      "note": "path is a local file (absolute or relative) or an https URL",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "add_image"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "anchorCell": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}$"
+          }
+        },
+        "required": [
+          "op",
+          "path",
+          "anchorCell"
+        ]
+      }
+    },
+    {
+      "op": "add_shape",
+      "group": "visuals",
+      "signature": "{\n    sheet?,\n    shapeType: rect|roundRect|snip1Rect|snip2SameRect|snip2DiagRect|snipRoundRect|round1Rect|round2SameRect|round2DiagRect|ellipse|triangle|rtTriangle|parallelogram|trapezoid|diamond|pentagon|hexagon|octagon|plus|mathPlus|pie|chord|teardrop|frame|halfFrame|corner|diagStripe|donut|noSmoking|blockArc|foldedCorner|bevel|cube|can|lightningBolt|heart|sun|moon|cloud|arc|plaque|smileyFace|leftBracket|rightBracket|leftBrace|rightBrace|rightArrow|leftArrow|upArrow|downArrow|leftRightArrow|upDownArrow|quadArrow|bentArrow|uturnArrow|curvedRightArrow|stripedRightArrow|notchedRightArrow|chevron|homePlate|star4|star5|star6|star7|star8|star10|star12|star16|star24|star32|irregularSeal1|irregularSeal2|ribbon|ribbon2|wave|doubleWave|flowChartProcess|flowChartAlternateProcess|flowChartDecision|flowChartPredefinedProcess|flowChartInternalStorage|flowChartDocument|flowChartMultidocument|flowChartTerminator|flowChartPreparation|flowChartManualInput|flowChartManualOperation|flowChartConnector|flowChartOffpageConnector|flowChartMagneticDisk|flowChartMagneticDrum|flowChartDisplay|flowChartDelay|flowChartOr|flowChartCollate|flowChartSort|flowChartExtract|flowChartMerge|flowChartSummingJunction|flowChartPunchedTape|wedgeRectCallout|wedgeRoundRectCallout|wedgeEllipseCallout|cloudCallout|textbox,\n    anchorCell,\n    fillColor?,\n    text?\n  }",
+      "note": "shapeType \"textbox\" for a text box",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "add_shape"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "shapeType": {
+            "type": "string",
+            "enum": [
+              "rect",
+              "roundRect",
+              "snip1Rect",
+              "snip2SameRect",
+              "snip2DiagRect",
+              "snipRoundRect",
+              "round1Rect",
+              "round2SameRect",
+              "round2DiagRect",
+              "ellipse",
+              "triangle",
+              "rtTriangle",
+              "parallelogram",
+              "trapezoid",
+              "diamond",
+              "pentagon",
+              "hexagon",
+              "octagon",
+              "plus",
+              "mathPlus",
+              "pie",
+              "chord",
+              "teardrop",
+              "frame",
+              "halfFrame",
+              "corner",
+              "diagStripe",
+              "donut",
+              "noSmoking",
+              "blockArc",
+              "foldedCorner",
+              "bevel",
+              "cube",
+              "can",
+              "lightningBolt",
+              "heart",
+              "sun",
+              "moon",
+              "cloud",
+              "arc",
+              "plaque",
+              "smileyFace",
+              "leftBracket",
+              "rightBracket",
+              "leftBrace",
+              "rightBrace",
+              "rightArrow",
+              "leftArrow",
+              "upArrow",
+              "downArrow",
+              "leftRightArrow",
+              "upDownArrow",
+              "quadArrow",
+              "bentArrow",
+              "uturnArrow",
+              "curvedRightArrow",
+              "stripedRightArrow",
+              "notchedRightArrow",
+              "chevron",
+              "homePlate",
+              "star4",
+              "star5",
+              "star6",
+              "star7",
+              "star8",
+              "star10",
+              "star12",
+              "star16",
+              "star24",
+              "star32",
+              "irregularSeal1",
+              "irregularSeal2",
+              "ribbon",
+              "ribbon2",
+              "wave",
+              "doubleWave",
+              "flowChartProcess",
+              "flowChartAlternateProcess",
+              "flowChartDecision",
+              "flowChartPredefinedProcess",
+              "flowChartInternalStorage",
+              "flowChartDocument",
+              "flowChartMultidocument",
+              "flowChartTerminator",
+              "flowChartPreparation",
+              "flowChartManualInput",
+              "flowChartManualOperation",
+              "flowChartConnector",
+              "flowChartOffpageConnector",
+              "flowChartMagneticDisk",
+              "flowChartMagneticDrum",
+              "flowChartDisplay",
+              "flowChartDelay",
+              "flowChartOr",
+              "flowChartCollate",
+              "flowChartSort",
+              "flowChartExtract",
+              "flowChartMerge",
+              "flowChartSummingJunction",
+              "flowChartPunchedTape",
+              "wedgeRectCallout",
+              "wedgeRoundRectCallout",
+              "wedgeEllipseCallout",
+              "cloudCallout",
+              "textbox"
+            ]
+          },
+          "anchorCell": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}$"
+          },
+          "fillColor": {
+            "type": "string",
+            "pattern": "^#[0-9A-Fa-f]{6}$"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "op",
+          "shapeType",
+          "anchorCell"
+        ]
+      }
+    },
+    {
+      "op": "add_sparkline",
+      "group": "visuals",
+      "signature": "{sheet?, type: line|column|stacked, dataRange, targetCell?, color?}",
+      "note": "one sparkline per row of dataRange (at most 200 rows per op), in the column right of it unless targetCell; type line|column|stacked",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "add_sparkline"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "line",
+              "column",
+              "stacked"
+            ]
+          },
+          "dataRange": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}(:[A-Z]{1,3}[1-9][0-9]{0,6})?$"
+          },
+          "targetCell": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}$"
+          },
+          "color": {
+            "type": "string",
+            "pattern": "^#[0-9A-Fa-f]{6}$"
+          }
+        },
+        "required": [
+          "op",
+          "type",
+          "dataRange"
+        ]
+      }
+    },
+    {
+      "op": "insert_rows",
+      "group": "structure",
+      "signature": "{sheet?, row: n, count: n}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "insert_rows"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "row": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1048576
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500
+          }
+        },
+        "required": [
+          "op",
+          "row",
+          "count"
+        ]
+      }
+    },
+    {
+      "op": "delete_rows",
+      "group": "structure",
+      "signature": "{sheet?, row: n, count: n}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "delete_rows"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "row": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1048576
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500
+          }
+        },
+        "required": [
+          "op",
+          "row",
+          "count"
+        ]
+      }
+    },
+    {
+      "op": "insert_cols",
+      "group": "structure",
+      "signature": "{sheet?, column, count: n}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "insert_cols"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "column": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}$"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "op",
+          "column",
+          "count"
+        ]
+      }
+    },
+    {
+      "op": "delete_cols",
+      "group": "structure",
+      "signature": "{sheet?, column, count: n}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "delete_cols"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "column": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}$"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "op",
+          "column",
+          "count"
+        ]
+      }
+    },
+    {
+      "op": "add_sheet",
+      "group": "structure",
+      "signature": "{name, rows?: n, columns?: n}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "add_sheet"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 31
+          },
+          "rows": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1048576
+          },
+          "columns": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16384
+          }
+        },
+        "required": [
+          "op",
+          "name"
+        ]
+      }
+    },
+    {
+      "op": "delete_sheet",
+      "group": "structure",
+      "signature": "{sheet?}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "delete_sheet"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          }
+        },
+        "required": [
+          "op"
+        ]
+      }
+    },
+    {
+      "op": "rename_sheet",
+      "group": "structure",
+      "signature": "{sheet?, name}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "rename_sheet"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 31
+          }
+        },
+        "required": [
+          "op",
+          "name"
+        ]
+      }
+    },
+    {
+      "op": "duplicate_sheet",
+      "group": "structure",
+      "signature": "{sheet?, name?}",
+      "note": "the copy is cloned from the file; cell edits of the same batch are not in it",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "duplicate_sheet"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 31
+          }
+        },
+        "required": [
+          "op"
+        ]
+      }
+    },
+    {
+      "op": "move_sheet",
+      "group": "structure",
+      "signature": "{sheet?, position: n}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "move_sheet"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "position": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          }
+        },
+        "required": [
+          "op",
+          "position"
+        ]
+      }
+    },
+    {
+      "op": "set_sheet_hidden",
+      "group": "structure",
+      "signature": "{sheet?, hidden: bool}",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "const": "set_sheet_hidden"
+          },
+          "sheet": {
+            "type": "string",
+            "description": "worksheet name; omitted = the active sheet"
+          },
+          "hidden": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "op",
+          "hidden"
+        ]
+      }
+    },
+    {
+      "op": "refresh_pivot",
+      "group": "editor-only",
+      "signature": "{sheet?}",
+      "available": false,
+      "reason": "the pivot layout is computed by the editor"
+    },
+    {
+      "op": "add_table_row",
+      "group": "editor-only",
+      "signature": "{sheet?, tableName, row?: n, count?: n}",
+      "available": false,
+      "reason": "edits a table created in the same editor session"
+    },
+    {
+      "op": "add_table_column",
+      "group": "editor-only",
+      "signature": "{sheet?, tableName, column?: n, columnName, count?: n}",
+      "available": false,
+      "reason": "edits a table created in the same editor session"
+    },
+    {
+      "op": "delete_table_row",
+      "group": "editor-only",
+      "signature": "{sheet?, tableName, row: n, count?: n}",
+      "available": false,
+      "reason": "edits a table created in the same editor session"
+    },
+    {
+      "op": "delete_table_column",
+      "group": "editor-only",
+      "signature": "{sheet?, tableName, column: n, count?: n}",
+      "available": false,
+      "reason": "edits a table created in the same editor session"
+    },
+    {
+      "op": "delete_table",
+      "group": "editor-only",
+      "signature": "{sheet?, tableName}",
+      "available": false,
+      "reason": "removes a table created in the same editor session"
+    },
+    {
+      "op": "edit_shape",
+      "group": "editor-only",
+      "signature": "{visualId, text?, fillColor?, anchorCell?}",
+      "available": false,
+      "reason": "targets a shape created in the same editor session"
+    },
+    {
+      "op": "delete_visual",
+      "group": "editor-only",
+      "signature": "{visualId}",
+      "available": false,
+      "reason": "targets a visual by its editor session id"
+    }
+  ]
+}

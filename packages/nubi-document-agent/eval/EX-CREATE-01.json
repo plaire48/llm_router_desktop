@@ -1,0 +1,52 @@
+{
+  "id": "EX-CREATE-01",
+  "synthetic": true,
+  "scope": "new_unencrypted_excel_draft",
+  "request": "한국어 Excel 현황표를 작성하세요. 시트는 '검토 현황', '원본' 순서로 만드세요. 원본 A1:G4에는 문서 종류, 작성, 검토 완료, 검토 대기, 남은 검토, 담당자, 마감일을 배치하고 입력을 보존하세요. 검토 현황 A1:E5에는 문서 종류, 작성, 검토 완료, 검토 대기, 완료율의 표를 만들고 마지막 행은 합계로 쓰세요. 작성/검토 완료는 원본 셀을 참조하고 대기는 작성-완료, 완료율은 완료/작성 수식으로 계산하세요. 0건은 완료율 0으로 표시하세요. 합계 B5:D5는 SUM을 사용하고 E5는 IF(B5=0,0,C5/B5)로 계산하세요. A7=배포 결정, B7=보류, A8=다음 배포 결정, B8=2026-10-19 날짜, C8=16:00, A9=PowerPoint 비용, B9=근거 확인 중을 넣으세요. 날짜는 date, 완료율은 percent 형식을 사용하세요.",
+  "sources": {
+    "period": "2026년 10월 12일부터 10월 15일까지",
+    "recipient": "팀장",
+    "counts": [
+      {
+        "document": "Word",
+        "created": 3,
+        "reviewed": 2,
+        "pending": 1
+      },
+      {
+        "document": "Excel",
+        "created": 2,
+        "reviewed": 1,
+        "pending": 1
+      },
+      {
+        "document": "PowerPoint",
+        "created": 1,
+        "reviewed": 0,
+        "pending": 1
+      }
+    ],
+    "pendingActions": [
+      {
+        "document": "Word",
+        "action": "표 서식 검토",
+        "owner": "김민수",
+        "due": "10월 16일"
+      },
+      {
+        "document": "Excel",
+        "action": "합계 수식 검증",
+        "owner": "이지은",
+        "due": "10월 16일"
+      },
+      {
+        "document": "PowerPoint",
+        "action": "출처 확인",
+        "owner": "박서준",
+        "due": "10월 19일"
+      }
+    ],
+    "decision": "배포는 보류하고 검토 대기 3건을 처리한 뒤 10월 19일 16시에 다시 결정한다.",
+    "unknown": "PowerPoint의 비용 근거는 확인 중이다. 비용 금액을 추정하거나 확정하지 않는다."
+  }
+}

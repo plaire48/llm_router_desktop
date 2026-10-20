@@ -1,0 +1,98 @@
+{
+  "name": "@nubi/document-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/types/src/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./word": {
+      "types": "./dist/types/src/word.d.ts",
+      "import": "./dist/word.js"
+    },
+    "./excel": {
+      "types": "./dist/types/src/excel.d.ts",
+      "import": "./dist/excel.js"
+    },
+    "./host-model": {
+      "types": "./dist/types/src/host-model.d.ts",
+      "import": "./dist/host-model.js"
+    },
+    "./powerpoint": {
+      "types": "./dist/types/src/powerpoint.d.ts",
+      "import": "./dist/powerpoint.js"
+    },
+    "./file-operations": {
+      "types": "./dist/types/src/file-operations.d.ts",
+      "import": "./dist/file-operations.js"
+    },
+    "./genoffice-node": {
+      "types": "./types/genoffice-node.d.ts",
+      "import": "./scripts/genoffice-node-port.mjs"
+    },
+    "./composition": {
+      "types": "./dist/types/src/composition.d.ts",
+      "import": "./dist/composition.js"
+    },
+    "./quality": {
+      "types": "./dist/types/src/quality.d.ts",
+      "import": "./dist/quality.js"
+    },
+    "./editors": {
+      "types": "./dist/types/src/editors.d.ts",
+      "import": "./dist/editors.js"
+    }
+  },
+  "files": [
+    "dist",
+    "types",
+    "src",
+    "vendor",
+    "scripts",
+    "tests",
+    "eval",
+    "tsconfig.json",
+    "README.md",
+    "WINDOWS-WORD-READ.md",
+    "WINDOWS-OFFICE-WRITE.md",
+    "NATIVE-HOST-MODEL.md",
+    "OFFICE-API-CATALOG.md",
+    "CAPABILITY-COVERAGE.md",
+    "FILE-OPERATIONS.md",
+    "THIRD-PARTY-NOTICES.md",
+    "WORD-CREATION.md",
+    "EXCEL-POWERPOINT-CREATION.md",
+    "COMPOSITION.md",
+    "QUALITY.md",
+    "EDITORS.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && esbuild src/index.ts --bundle --platform=node --format=esm --target=node22 --outfile=dist/index.js && esbuild src/word.ts --bundle --platform=node --format=esm --target=node22 --external:jszip --external:fast-xml-parser --outfile=dist/word.js && esbuild src/excel.ts --bundle --platform=node --format=esm --target=node22 --external:exceljs --external:jszip --external:fast-xml-parser --outfile=dist/excel.js && esbuild src/powerpoint.ts --bundle --platform=node --format=esm --target=node22 --external:jszip --external:fast-xml-parser --external:exceljs --outfile=dist/powerpoint.js && npm run build:host-model && esbuild src/file-operations.ts --bundle --platform=node --format=esm --target=node22 --external:exceljs --external:jszip --external:fast-xml-parser --outfile=dist/file-operations.js && esbuild src/composition.ts --bundle --platform=node --format=esm --target=node22 --external:jszip --external:fast-xml-parser --external:exceljs --outfile=dist/composition.js && esbuild src/quality.ts --bundle --platform=node --format=esm --target=node22 --external:jszip --external:fast-xml-parser --external:exceljs --outfile=dist/quality.js && esbuild src/editors.ts --bundle --platform=neutral --format=esm --target=es2022 --outfile=dist/editors.js",
+    "build:host-model": "esbuild src/host-model.ts --bundle --platform=node --format=esm --target=node22 --outfile=dist/host-model.js",
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "verify:vendor": "node scripts/verify-vendor.mjs",
+    "audit:capabilities": "node scripts/collect-capability-catalogs.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.0",
+    "esbuild": "0.25.12",
+    "typescript": "5.9.3"
+  },
+  "dependencies": {
+    "@xmldom/xmldom": "0.8.15",
+    "exceljs": "4.4.0",
+    "fast-xml-parser": "5.11.2",
+    "jszip": "3.10.2",
+    "xpath": "0.0.35"
+  },
+  "overrides": {
+    "exceljs": {
+      "uuid": "11.1.1"
+    }
+  }
+}

@@ -1,0 +1,671 @@
+{
+  "title": "2026년 10월 12일부터 10월 15일까지 문서 검토 현황",
+  "sheets": [
+    {
+      "name": "검토 현황",
+      "columnWidths": [
+        26,
+        18,
+        18,
+        18,
+        18
+      ],
+      "rows": [
+        [
+          {
+            "value": "문서 종류",
+            "formula": null,
+            "role": "header",
+            "format": "general"
+          },
+          {
+            "value": "작성",
+            "formula": null,
+            "role": "header",
+            "format": "general"
+          },
+          {
+            "value": "검토 완료",
+            "formula": null,
+            "role": "header",
+            "format": "general"
+          },
+          {
+            "value": "검토 대기",
+            "formula": null,
+            "role": "header",
+            "format": "general"
+          },
+          {
+            "value": "완료율",
+            "formula": null,
+            "role": "header",
+            "format": "general"
+          }
+        ],
+        [
+          {
+            "value": "Word",
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": "'원본'!B2",
+            "role": "total",
+            "format": "integer"
+          },
+          {
+            "value": null,
+            "formula": "'원본'!C2",
+            "role": "total",
+            "format": "integer"
+          },
+          {
+            "value": null,
+            "formula": "B2-C2",
+            "role": "total",
+            "format": "integer"
+          },
+          {
+            "value": null,
+            "formula": "IF(B2=0,0,C2/B2)",
+            "role": "total",
+            "format": "percent"
+          }
+        ],
+        [
+          {
+            "value": "Excel",
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": "'원본'!B3",
+            "role": "total",
+            "format": "integer"
+          },
+          {
+            "value": null,
+            "formula": "'원본'!C3",
+            "role": "total",
+            "format": "integer"
+          },
+          {
+            "value": null,
+            "formula": "B3-C3",
+            "role": "total",
+            "format": "integer"
+          },
+          {
+            "value": null,
+            "formula": "IF(B3=0,0,C3/B3)",
+            "role": "total",
+            "format": "percent"
+          }
+        ],
+        [
+          {
+            "value": "PowerPoint",
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": "'원본'!B4",
+            "role": "total",
+            "format": "integer"
+          },
+          {
+            "value": null,
+            "formula": "'원본'!C4",
+            "role": "total",
+            "format": "integer"
+          },
+          {
+            "value": null,
+            "formula": "B4-C4",
+            "role": "total",
+            "format": "integer"
+          },
+          {
+            "value": null,
+            "formula": "IF(B4=0,0,C4/B4)",
+            "role": "total",
+            "format": "percent"
+          }
+        ],
+        [
+          {
+            "value": "합계",
+            "formula": null,
+            "role": "total",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": "SUM(B2:B4)",
+            "role": "total",
+            "format": "integer"
+          },
+          {
+            "value": null,
+            "formula": "SUM(C2:C4)",
+            "role": "total",
+            "format": "integer"
+          },
+          {
+            "value": null,
+            "formula": "SUM(D2:D4)",
+            "role": "total",
+            "format": "integer"
+          },
+          {
+            "value": null,
+            "formula": "IF(B5=0,0,C5/B5)",
+            "role": "total",
+            "format": "percent"
+          }
+        ],
+        [
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          }
+        ],
+        [
+          {
+            "value": "배포 결정",
+            "formula": null,
+            "role": "header",
+            "format": "general"
+          },
+          {
+            "value": "보류",
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          }
+        ],
+        [
+          {
+            "value": "다음 배포 결정",
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": "2026-10-19",
+            "formula": null,
+            "role": "body",
+            "format": "date"
+          },
+          {
+            "value": "16:00",
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          }
+        ],
+        [
+          {
+            "value": "PowerPoint 비용",
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": "근거 확인 중",
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "원본",
+      "columnWidths": [
+        20,
+        12,
+        14,
+        14,
+        26,
+        16,
+        18
+      ],
+      "rows": [
+        [
+          {
+            "value": "문서 종류",
+            "formula": null,
+            "role": "header",
+            "format": "general"
+          },
+          {
+            "value": "작성",
+            "formula": null,
+            "role": "header",
+            "format": "general"
+          },
+          {
+            "value": "검토 완료",
+            "formula": null,
+            "role": "header",
+            "format": "general"
+          },
+          {
+            "value": "검토 대기",
+            "formula": null,
+            "role": "header",
+            "format": "general"
+          },
+          {
+            "value": "남은 검토",
+            "formula": null,
+            "role": "header",
+            "format": "general"
+          },
+          {
+            "value": "담당자",
+            "formula": null,
+            "role": "header",
+            "format": "general"
+          },
+          {
+            "value": "마감일",
+            "formula": null,
+            "role": "header",
+            "format": "general"
+          }
+        ],
+        [
+          {
+            "value": "Word",
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": 3,
+            "formula": null,
+            "role": "input",
+            "format": "integer"
+          },
+          {
+            "value": 2,
+            "formula": null,
+            "role": "input",
+            "format": "integer"
+          },
+          {
+            "value": 1,
+            "formula": null,
+            "role": "input",
+            "format": "integer"
+          },
+          {
+            "value": "표 서식 검토",
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": "김민수",
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": "2026-10-16",
+            "formula": null,
+            "role": "input",
+            "format": "date"
+          }
+        ],
+        [
+          {
+            "value": "Excel",
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": 2,
+            "formula": null,
+            "role": "input",
+            "format": "integer"
+          },
+          {
+            "value": 1,
+            "formula": null,
+            "role": "input",
+            "format": "integer"
+          },
+          {
+            "value": 1,
+            "formula": null,
+            "role": "input",
+            "format": "integer"
+          },
+          {
+            "value": "합계 수식 검증",
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": "이지은",
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": "2026-10-16",
+            "formula": null,
+            "role": "input",
+            "format": "date"
+          }
+        ],
+        [
+          {
+            "value": "PowerPoint",
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": 1,
+            "formula": null,
+            "role": "input",
+            "format": "integer"
+          },
+          {
+            "value": 0,
+            "formula": null,
+            "role": "input",
+            "format": "integer"
+          },
+          {
+            "value": 1,
+            "formula": null,
+            "role": "input",
+            "format": "integer"
+          },
+          {
+            "value": "출처 확인",
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": "박서준",
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": "2026-10-19",
+            "formula": null,
+            "role": "input",
+            "format": "date"
+          }
+        ],
+        [
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          }
+        ],
+        [
+          {
+            "value": "출처",
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": "합성 평가 자료",
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          }
+        ],
+        [
+          {
+            "value": "보고 시작",
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": "2026-10-12",
+            "formula": null,
+            "role": "body",
+            "format": "date"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          }
+        ],
+        [
+          {
+            "value": "보고 종료",
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": "2026-10-15",
+            "formula": null,
+            "role": "body",
+            "format": "date"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          },
+          {
+            "value": null,
+            "formula": null,
+            "role": "body",
+            "format": "general"
+          }
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1578 @@
+{
+  "schemaVersion": 1,
+  "kind": "upstream_operation_inventory",
+  "generalOfficeQualityMeasured": false,
+  "claim": "Upstream operation names only; not Microsoft Office API coverage, module feature coverage, host-enabled operations or execution results.",
+  "domains": [
+    {
+      "domain": "docs",
+      "fingerprint": "cb801d16d081",
+      "operationCount": 45,
+      "headlessUnavailable": 0,
+      "groups": [
+        {
+          "name": "block",
+          "count": 23
+        },
+        {
+          "name": "content",
+          "count": 22
+        }
+      ]
+    },
+    {
+      "domain": "sheets",
+      "fingerprint": "3fab218b5a15",
+      "operationCount": 55,
+      "headlessUnavailable": 8,
+      "groups": [
+        {
+          "name": "content",
+          "count": 10
+        },
+        {
+          "name": "format",
+          "count": 4
+        },
+        {
+          "name": "layout",
+          "count": 12
+        },
+        {
+          "name": "data",
+          "count": 6
+        },
+        {
+          "name": "visuals",
+          "count": 5
+        },
+        {
+          "name": "structure",
+          "count": 10
+        },
+        {
+          "name": "editor-only",
+          "count": 8
+        }
+      ]
+    },
+    {
+      "domain": "slides",
+      "fingerprint": "bfe6ceb639f6",
+      "operationCount": 62,
+      "headlessUnavailable": 0,
+      "groups": [
+        {
+          "name": "text",
+          "count": 4
+        },
+        {
+          "name": "element",
+          "count": 21
+        },
+        {
+          "name": "insert",
+          "count": 5
+        },
+        {
+          "name": "table",
+          "count": 7
+        },
+        {
+          "name": "slide",
+          "count": 16
+        },
+        {
+          "name": "deck",
+          "count": 9
+        }
+      ]
+    }
+  ],
+  "operations": [
+    {
+      "domain": "docs",
+      "op": "setFont",
+      "group": "block",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "setMatchedFont",
+      "group": "block",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "setParagraphFormat",
+      "group": "block",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "setHeadingLevel",
+      "group": "block",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "findReplace",
+      "group": "block",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "deleteBlocks",
+      "group": "block",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "moveBlocks",
+      "group": "block",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "setList",
+      "group": "block",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "clearList",
+      "group": "block",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "setImageProperties",
+      "group": "block",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "insertToc",
+      "group": "block",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "insertField",
+      "group": "block",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "insertBookmark",
+      "group": "block",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "updateFields",
+      "group": "block",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "insertTableRow",
+      "group": "block",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "deleteTableRow",
+      "group": "block",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "insertTableColumn",
+      "group": "block",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "deleteTableColumn",
+      "group": "block",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "mergeTableCells",
+      "group": "block",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "splitTableCell",
+      "group": "block",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "setTableCellFormat",
+      "group": "block",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "setTableStyle",
+      "group": "block",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "applyStyle",
+      "group": "block",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "insert_content",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "replace_blocks",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "insert_image",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "insert_picture",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "insert_text_box",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "insert_chart",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "edit_chart",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "set_header_footer",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "set_page_setup",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "insert_section_break",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "set_watermark",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "define_style",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "add_comment",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "reply_comment",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "resolve_comment",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "accept_changes",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "reject_changes",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "insert_footnote",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "insert_endnote",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "edit_note",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "delete_note",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "docs",
+      "op": "delete_comment",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "set_cell",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "set_formula",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "set_range",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "clear_cell",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "clear_range",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "fill_range",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "copy_range",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "find_replace",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "sort_range",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "convert_to_values",
+      "group": "content",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "format_range",
+      "group": "format",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "add_conditional_format",
+      "group": "format",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "clear_conditional_formats",
+      "group": "format",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "set_data_validation",
+      "group": "format",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "merge_cells",
+      "group": "layout",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "unmerge_cells",
+      "group": "layout",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "set_row_height",
+      "group": "layout",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "set_col_width",
+      "group": "layout",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "set_rows_hidden",
+      "group": "layout",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "set_cols_hidden",
+      "group": "layout",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "set_freeze",
+      "group": "layout",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "set_filter",
+      "group": "layout",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "set_filter_criteria",
+      "group": "layout",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "clear_filter",
+      "group": "layout",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "set_page_setup",
+      "group": "layout",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "protect_sheet",
+      "group": "layout",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "set_hyperlink",
+      "group": "data",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "set_note",
+      "group": "data",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "add_defined_name",
+      "group": "data",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "delete_defined_name",
+      "group": "data",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "add_table",
+      "group": "data",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "add_pivot",
+      "group": "data",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "add_chart",
+      "group": "visuals",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "edit_chart",
+      "group": "visuals",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "add_image",
+      "group": "visuals",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "add_shape",
+      "group": "visuals",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "add_sparkline",
+      "group": "visuals",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "insert_rows",
+      "group": "structure",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "delete_rows",
+      "group": "structure",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "insert_cols",
+      "group": "structure",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "delete_cols",
+      "group": "structure",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "add_sheet",
+      "group": "structure",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "delete_sheet",
+      "group": "structure",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "rename_sheet",
+      "group": "structure",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "duplicate_sheet",
+      "group": "structure",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "move_sheet",
+      "group": "structure",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "set_sheet_hidden",
+      "group": "structure",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "refresh_pivot",
+      "group": "editor-only",
+      "availability": "headless_unavailable",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "add_table_row",
+      "group": "editor-only",
+      "availability": "headless_unavailable",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "add_table_column",
+      "group": "editor-only",
+      "availability": "headless_unavailable",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "delete_table_row",
+      "group": "editor-only",
+      "availability": "headless_unavailable",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "delete_table_column",
+      "group": "editor-only",
+      "availability": "headless_unavailable",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "delete_table",
+      "group": "editor-only",
+      "availability": "headless_unavailable",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "edit_shape",
+      "group": "editor-only",
+      "availability": "headless_unavailable",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "sheets",
+      "op": "delete_visual",
+      "group": "editor-only",
+      "availability": "headless_unavailable",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setText",
+      "group": "text",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setFont",
+      "group": "text",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setParagraphFormat",
+      "group": "text",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "insertEquation",
+      "group": "text",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "deleteElement",
+      "group": "element",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setFill",
+      "group": "element",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setStroke",
+      "group": "element",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setTransform",
+      "group": "element",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setConnectorEndpoints",
+      "group": "element",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "flipElements",
+      "group": "element",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setPictureSrcRect",
+      "group": "element",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setRedaction",
+      "group": "element",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setPictureOpacity",
+      "group": "element",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "reorderElement",
+      "group": "element",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "groupElements",
+      "group": "element",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "ungroupElement",
+      "group": "element",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setShapeGeometry",
+      "group": "element",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setShapeAdjust",
+      "group": "element",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setShapeCustomGeometry",
+      "group": "element",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setTextAnchor",
+      "group": "element",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setTextBodyProps",
+      "group": "element",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setEffects",
+      "group": "element",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setLink",
+      "group": "element",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "alignElements",
+      "group": "element",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "distributeElements",
+      "group": "element",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "addElement",
+      "group": "insert",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "addConnector",
+      "group": "insert",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "addTable",
+      "group": "insert",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "addChart",
+      "group": "insert",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "addSmartArt",
+      "group": "insert",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setTableCell",
+      "group": "table",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "tableMerge",
+      "group": "table",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "tableStructure",
+      "group": "table",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setTableRowHeight",
+      "group": "table",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setTableCellAnchor",
+      "group": "table",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setTableColWidth",
+      "group": "table",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setTableStyle",
+      "group": "table",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "deleteSlide",
+      "group": "slide",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "duplicateSlide",
+      "group": "slide",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "addBlankSlide",
+      "group": "slide",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "addSlideWithLayout",
+      "group": "slide",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "moveSlide",
+      "group": "slide",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setSlideLayout",
+      "group": "slide",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setBackground",
+      "group": "slide",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setHidden",
+      "group": "slide",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setTransition",
+      "group": "slide",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setAdvanceTime",
+      "group": "slide",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "addAnimation",
+      "group": "slide",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "removeAnimation",
+      "group": "slide",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "reorderAnimation",
+      "group": "slide",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setNotes",
+      "group": "slide",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "addComment",
+      "group": "slide",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "deleteComment",
+      "group": "slide",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setSlideSize",
+      "group": "deck",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "findReplace",
+      "group": "deck",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "applyHeaderFooter",
+      "group": "deck",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "setSections",
+      "group": "deck",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "applyTheme",
+      "group": "deck",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "addSection",
+      "group": "deck",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "renameSection",
+      "group": "deck",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "removeSection",
+      "group": "deck",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    },
+    {
+      "domain": "slides",
+      "op": "moveSection",
+      "group": "deck",
+      "availability": "advertised_by_upstream",
+      "connection": "not_connected_as_named_operation",
+      "evaluation": "not_evaluated",
+      "nativeVerified": false
+    }
+  ],
+  "provenance": {
+    "collectedAt": "2026-10-15T15:52:47.420Z",
+    "upstreamRevision": "438d9c65709952490c970beaa2599ef45e74431f",
+    "wordExcelRetrieval": "existing compiled catalog endpoint; compiled hash recorded separately from source",
+    "slidesRetrieval": "upstream documentation parser with CLI catalog projection",
+    "files": {
+      "dist/cli/genoffice-engine.cjs": "891cf80b88225ffddb2b1dd022c449f45178593986c8a048de4f2ae8373285f8",
+      "tools-src/genoffice-engine.ts": "a9fc994c268dedc3b6f03f02cbefd5c4c5dc01cd64986a9c75197ede70dcb8e2",
+      "runtime-src/feature-policy.ts": "be479053e6ca9e3c012f4f9532c3ae6aaa49ed491e373ae15ed25f236e459628",
+      "vendor/genoffice-source.json": "dbf2581887a438d3259f5b6da875e215339241295dda4e551b98e340d4f2bd2d",
+      "vendor/genoffice/packages/cli/src/commands/guide.ts": "22be0d4a57764cd9c6cdbbe440646d035dbc74a00ad3136167665ec0132a0d90",
+      "vendor/genoffice/packages/cli/src/op-catalog.ts": "43eb7e58562335f7ddc6ad5785064d99ddc08928dc7a307e9717231434828c97",
+      "vendor/genoffice/packages/cli/src/formats/docx.ts": "ec81117dab0777d452cb3ab0f90c3b656aa6ea19719be75ca652f68738441dda",
+      "vendor/genoffice/packages/cli/src/formats/xlsx-catalog.ts": "871ebb2460cafa2c3abd97b2bb2759801952ee6f4e7ff4eaae1a44babb5a02b2",
+      "vendor/genoffice/packages/pptx-ops/src/op-docs.ts": "e745ad91caa3585ebc493195cd99ff8eba204177f8d499f7ff034b7030c3d2af",
+      "vendor/genoffice/packages/pptx-ops/src/prompts/ops/text.md": "6181e8db98d96c7b2b56920f95593ee305c5f31753d197ac02fd863e854c8234",
+      "vendor/genoffice/packages/pptx-ops/src/prompts/ops/element.md": "dcabc13e046512458b4357d9204973743f46585e752617f7514eabe37d03699c",
+      "vendor/genoffice/packages/pptx-ops/src/prompts/ops/insert.md": "54e7f9e32e6555ee3d718c2c5eda14dae9a181e9ebfa6a3a9b971941299c3a63",
+      "vendor/genoffice/packages/pptx-ops/src/prompts/ops/table.md": "3c3c24c07423b11e3ce4e8aaf771f80ecb21183ec06595acc6f7be108d761d28",
+      "vendor/genoffice/packages/pptx-ops/src/prompts/ops/slide.md": "022df20a67941067a6b80efd199e9dcee6140f967a24eb66b5c4561ca0611129",
+      "vendor/genoffice/packages/pptx-ops/src/prompts/ops/deck.md": "8bab6db3a000a6dbcd476c973d4dd8c9788a3ff00f54c57df84af044f494b559",
+      "docs.json": "4579a6b6649a508334255b6cc0435e0dcda6694770ec33d35622f757115695fa",
+      "sheets.json": "d557427ed4d91eece1aadfe687b7cdab4f38d545f2b657c0a3c5a66aa4159285",
+      "slides.json": "f0019c9822ce5e520b6c884b5d38bbcf4a93341a9ea4ed2dc42e058f9b898a7e"
+    }
+  }
+}

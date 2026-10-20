@@ -1,0 +1,10 @@
+{
+  "source": "existing Nubi Office checkout",
+  "files": {
+    "packages/nubi-office/worker/document-file.mjs": "11612d4ca6beeb34cea56897e72a980295e949a2dc05bdaafc7b25f108898992",
+    "packages/nubi-office/package-lock.json": "92dc97c8d54fc45fccf16164c977f64dd53ee8f431d2f5cf808d4ef1783438c5"
+  },
+  "adaptation": "Typed cell/formula mapping, ExcelJS workbook styles, print setup and serialization. File system/save ownership omitted; bounded draft validation and internal formula dependency checks added.",
+  "runtimeDependency": "exceljs@4.4.0",
+  "existingOverride": "exceljs > uuid@11.1.1"
+}

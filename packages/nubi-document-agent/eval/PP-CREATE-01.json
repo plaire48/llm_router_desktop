@@ -1,0 +1,52 @@
+{
+  "id": "PP-CREATE-01",
+  "synthetic": true,
+  "scope": "new_unencrypted_powerpoint_draft",
+  "request": "한국어 PowerPoint 보고서를 정확히 3장 작성하세요. 첫 장은 배포 보류와 작성 6건, 검토 완료 3건, 완료율 50%, 검토 대기 3건과 10월 19일 16시 재결정을 담으세요. 둘째 장은 문서 종류, 작성, 검토 완료, 검토 대기라는 4열 편집 가능한 표로 문서별 현황과 합계를 표시하세요. 셋째 장은 문서 종류, 남은 검토, 담당자, 마감일이라는 4열 편집 가능한 표로 담당자별 처리 계획을 표시하세요. PowerPoint 비용 근거가 확인 중이며 금액을 확정하지 않는다는 점을 표시하세요. 출처는 각 슬라이드 notes에 남기세요. 제공한 표의 순서와 문구를 보존하세요.",
+  "sources": {
+    "period": "2026년 10월 12일부터 10월 15일까지",
+    "recipient": "팀장",
+    "counts": [
+      {
+        "document": "Word",
+        "created": 3,
+        "reviewed": 2,
+        "pending": 1
+      },
+      {
+        "document": "Excel",
+        "created": 2,
+        "reviewed": 1,
+        "pending": 1
+      },
+      {
+        "document": "PowerPoint",
+        "created": 1,
+        "reviewed": 0,
+        "pending": 1
+      }
+    ],
+    "pendingActions": [
+      {
+        "document": "Word",
+        "action": "표 서식 검토",
+        "owner": "김민수",
+        "due": "10월 16일"
+      },
+      {
+        "document": "Excel",
+        "action": "합계 수식 검증",
+        "owner": "이지은",
+        "due": "10월 16일"
+      },
+      {
+        "document": "PowerPoint",
+        "action": "출처 확인",
+        "owner": "박서준",
+        "due": "10월 19일"
+      }
+    ],
+    "decision": "배포는 보류하고 검토 대기 3건을 처리한 뒤 10월 19일 16시에 다시 결정한다.",
+    "unknown": "PowerPoint의 비용 근거는 확인 중이다. 비용 금액을 추정하거나 확정하지 않는다."
+  }
+}

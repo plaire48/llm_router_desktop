@@ -1,0 +1,28 @@
+{
+  "repository": "https://github.com/genspark-ai/genoffice",
+  "commit": "438d9c65709952490c970beaa2599ef45e74431f",
+  "scope": "agent-core loop, new Word generation, and new PowerPoint blank/paragraph generation dependency closures, and the XLSX future-function storage marker implementation",
+  "modifications": [],
+  "files": {
+    "LICENSE": "68e32334df324ef4fc79fad3a26487e5abac36055a484bb6c8d7ecf9d8350885",
+    "NOTICE": "26fa7a458f2463af07f96af3d4b26b3cc3b4de688340838e3c9b3b958d390882",
+    "packages/agent-core/src/types.ts": "08003016ab747b9469c79b46cb1e8c638afcaa9f2a7024d3caa480acacdff357",
+    "packages/agent-core/src/skill.ts": "f4b2757eab1669d7bf03d7bd199b330fd289bdead870752751a581ec4eca2415",
+    "packages/agent-core/src/loop.ts": "16faa56a3af4b15f9cf520a80e739bd7f5dab98711a385daaea0c2c34dc6b558",
+    "packages/docx-engine/src/blank.ts": "cc06bd422b92771a3973baa6328c414ebddc1219cbc1002ea608fd8d8a87c5a2",
+    "packages/docx-engine/src/generate.ts": "e66cb2ef3424600d1efa0e43a570d3cc72c9546c544b683026b173e32272749d",
+    "packages/docx-engine/src/types.ts": "2d3193b5b41a93c7f43a21f24c3369655e270e37b3e67bdec8182b6a01b08d3f",
+    "packages/docx-engine/src/checkbox-control.ts": "b85f06cb856396f9a99566bde52f424c010d380f45bf54a28b4a27a93b94deb5",
+    "packages/docx-engine/src/xml-utils.ts": "838c23df106ac27b998349335fe3fc0e7baae849b326dc28c080ff05afb72bbe",
+    "packages/pptx-engine/src/blank.ts": "00e09354a2bcdb81e2da07ad9ab84b0948abcb300ef3242e298aa40cbe26a290",
+    "packages/pptx-engine/src/generate.ts": "5b841c7d150e617d90268fe35dd5408232619e81c491e1dec7a6ae95ef2a5b6d",
+    "packages/pptx-engine/src/types.ts": "0a3b868145e2471df39a8317da61c31418b72fd056bea0fd908b8627834331a3",
+    "packages/pptx-engine/src/xml-utils.ts": "00eac92f9b0bfa5ff4439329e585046596493d90c8811d74035173850557b78f",
+    "packages/pptx-engine/src/redaction-xml.ts": "4b680b7e401f07021fd540ec9232d05e37b5e960c5015d6a24d9b2d0756bf4d9",
+    "packages/agent-core/src/redact-range.ts": "f7d0fbb396f61c1456f4e7164febbff9b7bf7377e6d94de2154cf51085a51177",
+    "packages/pptx-engine/src/chart.ts": "8da70f11d4adf880c31edb3a981e37c9fcaa799c3bb87fe6fa27b049445e26e4",
+    "packages/pptx-engine/src/theme.ts": "b5334d65ff8f03e5dcb62832843f6cf200cb633707d95a971b9b04b4ff970b4a",
+    "packages/pptx-engine/src/color.ts": "7f7b73805863b32bd248604ebad9b22c53893f34484a4068fa26dfce60a3e047",
+    "packages/xlsx-gateway/src/gateway/future-functions.ts": "e20d15a15a949bba348297d741e7887c75b6369f2a0748fe25dfa8b51d08cfc6"
+  }
+}

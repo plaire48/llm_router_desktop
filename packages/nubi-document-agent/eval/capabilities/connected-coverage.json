@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "kind": "coverage_pointer",
+  "supersededReason": "The old 162-operation public catalog omitted 10 host-only PPT operations.",
+  "current": "genoffice-execution-coverage.json",
+  "target": "genoffice-parity-target.json",
+  "summary": [
+    {
+      "domain": "word",
+      "target": 45,
+      "fileVerifiedOperations": 45,
+      "editorActualExecutionPending": 0
+    },
+    {
+      "domain": "excel",
+      "target": 55,
+      "fileVerifiedOperations": 55,
+      "editorActualExecutionPending": 0
+    },
+    {
+      "domain": "powerpoint",
+      "target": 72,
+      "fileVerifiedOperations": 72,
+      "editorActualExecutionPending": 0
+    }
+  ],
+  "passedTrials": 519,
+  "generalOfficeQualityMeasured": false
+}

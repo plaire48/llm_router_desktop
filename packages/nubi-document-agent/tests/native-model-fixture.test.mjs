@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';import{createNativeModelFixture}from'../eval/native-model-fixture.mjs';
+test('evaluation boundary accepts native-valid dotted getter paths rather than rejecting model calls spuriously',async()=>{
+ const h=createNativeModelFixture('excel');const r=await h.connection.call('inspect_office',{steps:[{target:'document',action:'get',member:'Worksheets.Count'},{target:'document.Worksheets',action:'get',member:'Item',args:[1],id:'sheet'},{target:'sheet',action:'get',member:'Range.Value2',args:['A1']}]},new AbortController().signal);assert.equal(r.results[0],1);assert.equal(r.results[2],2);
+});
+test('PowerPoint preservation can inspect its native NotesPage text instead of failing at the fixture boundary',async()=>{const h=createNativeModelFixture('powerpoint');const r=await h.connection.call('inspect_office',{steps:[{target:'document',action:'get',member:'Slides.Item',args:[1],id:'slide'},{target:'slide',action:'get',member:'NotesPage.Shapes.Item.TextFrame.TextRange.Text',args:[2]}]},new AbortController().signal);assert.equal(r.results[1],'발표자 기록 보존');});

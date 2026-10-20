@@ -1,0 +1,22 @@
+{
+  "type": "object", "additionalProperties": false,
+  "properties": {
+    "paperSize": {"type": "string", "enum": ["A4", "Letter"]},
+    "title": {"type": "string"},
+    "sections": {
+      "type": "array", "items": {
+        "type": "object", "additionalProperties": false,
+        "properties": {
+          "heading": {"type": "string"},
+          "paragraphs": {"type": "array", "items": {"type": "array", "items": {"type": "object", "additionalProperties": false, "properties": {"text": {"type": "string"}, "bold": {"type": "boolean"}}, "required": ["text", "bold"]}}},
+          "table": {"anyOf": [
+            {"type": "null"},
+            {"type": "object", "additionalProperties": false, "properties": {"headers": {"type": "array", "items": {"type": "string"}}, "rows": {"type": "array", "items": {"type": "array", "items": {"type": "string"}}}}, "required": ["headers", "rows"]}
+          ]}
+        },
+        "required": ["heading", "paragraphs", "table"]
+      }
+    }
+  },
+  "required": ["paperSize", "title", "sections"]
+}

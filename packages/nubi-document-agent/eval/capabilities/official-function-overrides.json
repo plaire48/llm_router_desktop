@@ -1,0 +1,10 @@
+{
+  "STOCKHISTORY": {
+    "introduced": "Microsoft 365",
+    "office2016Candidate": false,
+    "versionEvidence": "official_function_page_applies_to_and_subscription_requirement",
+    "versionSource": "https://support.microsoft.com/en-us/excel/functions/stockhistory-function",
+    "verifiedAt": "2026-10-16",
+    "reason": "The function page lists Microsoft 365 only and requires a Microsoft 365 subscription. The alphabetical index has no introduction marker."
+  }
+}

@@ -1,0 +1,11 @@
+// Development-only: inspect the already installed GenOffice companion formula dependency.
+import{createRequire}from'node:module';import{readFile,writeFile}from'node:fs/promises';import{resolve,dirname,join}from'node:path';import{createHash}from'node:crypto';
+const req=createRequire(join(resolve(process.argv[2]),'package.json')),entry=req.resolve('@univerjs/engine-formula'),engine=req('@univerjs/engine-formula'),pkgFile=resolve(dirname(entry),'../../package.json'),pkg=JSON.parse(await readFile(pkgFile)),sha=bytes=>createHash('sha256').update(bytes).digest('hex');
+const official=JSON.parse(await readFile(new URL('../eval/capabilities/official-excel-functions.json',import.meta.url))),names=new Map(official.functions.map(r=>[r.name,r]));
+const registered=new Set(engine.ALL_IMPLEMENTED_FUNCTIONS.map(([,name])=>name));
+const categories=Object.keys(engine).filter(k=>k.startsWith('FUNCTION_NAMES_')),all=new Map();
+for(const category of categories)for(const name of Object.values(engine[category]))if(typeof name==='string')all.set(name,{name,category:category.slice(15),registeredImplementation:registered.has(name),office2016Candidate:names.get(name)?.office2016Candidate??null,verification:'not_evaluated'});
+for(const name of registered)if(!all.has(name))all.set(name,{name,category:'OTHER',registeredImplementation:true,office2016Candidate:names.get(name)?.office2016Candidate??null,verification:'not_evaluated'});
+const rows=[...all.values()].sort((a,b)=>a.name.localeCompare(b.name));
+const result={kind:'existing_companion_formula_dependency_inventory',package:pkg.name,version:pkg.version,license:pkg.license,entrySha256:sha(await readFile(entry)),packageSha256:sha(await readFile(pkgFile)),source:'Existing Office X companion workspace dependency; this package is not newly installed or adopted by Nubi',claim:'Registry presence is not function execution or a pinned upstream runtime guarantee',functions:rows,summary:{listed:rows.length,registeredImplementations:registered.size,registeredOffice2016Candidates:rows.filter(r=>r.registeredImplementation&&r.office2016Candidate===true).length}};
+await writeFile(new URL('../eval/capabilities/existing-genoffice-formula-engine.json',import.meta.url),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify(result.summary));

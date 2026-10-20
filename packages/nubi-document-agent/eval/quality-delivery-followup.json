@@ -1,0 +1,9 @@
+[
+  {
+    "id": "codex-delivery-powerpoint",
+    "provider": "codex",
+    "domain": "powerpoint",
+    "businessId": "delivery",
+    "plan": "artifacts/quality-business-1/codex-delivery-powerpoint/initial-plan.json"
+  }
+]

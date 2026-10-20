@@ -1,0 +1,3755 @@
+{
+  "kind": "existing_companion_formula_dependency_inventory",
+  "package": "@univerjs/engine-formula",
+  "version": "0.25.1",
+  "license": "Apache-2.0",
+  "entrySha256": "4f06e146e87c079b1684dba6d61b19905ce5d433ddf7de3ed66c3773949e140d",
+  "packageSha256": "6fabc681196d82b499a1aad1069c3108385b3d3db2a3196b8966ca38fe9013f2",
+  "source": "Existing Office X companion workspace dependency; this package is not newly installed or adopted by Nubi",
+  "claim": "Registry presence is not function execution or a pinned upstream runtime guarantee",
+  "functions": [
+    {
+      "name": "ABS",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ACCRINT",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ACCRINTM",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ACOS",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ACOSH",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ACOT",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ACOTH",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ADDRESS",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "AGGREGATE",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "AMORDEGRC",
+      "category": "FINANCIAL",
+      "registeredImplementation": false,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "AMORLINC",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "AND",
+      "category": "LOGICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ARABIC",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "AREAS",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ARRAY_CONSTRAIN",
+      "category": "ARRAY",
+      "registeredImplementation": true,
+      "office2016Candidate": null,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ARRAYTOTEXT",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ASC",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ASIN",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ASINH",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ATAN",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ATAN2",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ATANH",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "AVEDEV",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "AVERAGE",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "AVERAGE.WEIGHTED",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": null,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "AVERAGEA",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "AVERAGEIF",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "AVERAGEIFS",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "BAHTTEXT",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "BASE",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "BESSELI",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "BESSELJ",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "BESSELK",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "BESSELY",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "BETA.DIST",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "BETA.INV",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "BETADIST",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "BETAINV",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "BIN2DEC",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "BIN2HEX",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "BIN2OCT",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "BINOM.DIST",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "BINOM.DIST.RANGE",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "BINOM.INV",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "BINOMDIST",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "BITAND",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "BITLSHIFT",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "BITOR",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "BITRSHIFT",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "BITXOR",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "BYCOL",
+      "category": "LOGICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "BYROW",
+      "category": "LOGICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CALL",
+      "category": "TEXT",
+      "registeredImplementation": false,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CEILING",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CEILING.MATH",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CEILING.PRECISE",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CELL",
+      "category": "INFORMATION",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CHAR",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CHIDIST",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CHIINV",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CHISQ.DIST",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CHISQ.DIST.RT",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CHISQ.INV",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CHISQ.INV.RT",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CHISQ.TEST",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CHITEST",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CHOOSE",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CHOOSECOLS",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CHOOSEROWS",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CLEAN",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CODE",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "COLUMN",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "COLUMNS",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "COMBIN",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "COMBINA",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "COMPARE",
+      "category": "OTHER",
+      "registeredImplementation": true,
+      "office2016Candidate": null,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "COMPLEX",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CONCAT",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CONCATENATE",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CONFIDENCE",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CONFIDENCE.NORM",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CONFIDENCE.T",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CONVERT",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CORREL",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "COS",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "COSH",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "COT",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "COTH",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "COUNT",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "COUNTA",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "COUNTBLANK",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "COUNTIF",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "COUNTIFS",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "COUPDAYBS",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "COUPDAYS",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "COUPDAYSNC",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "COUPNCD",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "COUPNUM",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "COUPPCD",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "COVAR",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "COVARIANCE.P",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "COVARIANCE.S",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CRITBINOM",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CSC",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CSCH",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CUBE",
+      "category": "OTHER",
+      "registeredImplementation": true,
+      "office2016Candidate": null,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CUBEKPIMEMBER",
+      "category": "CUBE",
+      "registeredImplementation": false,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CUBEMEMBER",
+      "category": "CUBE",
+      "registeredImplementation": false,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CUBEMEMBERPROPERTY",
+      "category": "CUBE",
+      "registeredImplementation": false,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CUBERANKEDMEMBER",
+      "category": "CUBE",
+      "registeredImplementation": false,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CUBESET",
+      "category": "CUBE",
+      "registeredImplementation": false,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CUBESETCOUNT",
+      "category": "CUBE",
+      "registeredImplementation": false,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CUBEVALUE",
+      "category": "CUBE",
+      "registeredImplementation": false,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CUMIPMT",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "CUMPRINC",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DATE",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DATEDIF",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DATEVALUE",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DAVERAGE",
+      "category": "DATABASE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DAY",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DAYS",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DAYS360",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DB",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DBCS",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DCOUNT",
+      "category": "DATABASE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DCOUNTA",
+      "category": "DATABASE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DDB",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DEC2BIN",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DEC2HEX",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DEC2OCT",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DECIMAL",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DEGREES",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DELTA",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DEVSQ",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DGET",
+      "category": "DATABASE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DISC",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DIVIDED",
+      "category": "OTHER",
+      "registeredImplementation": true,
+      "office2016Candidate": null,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DMAX",
+      "category": "DATABASE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DMIN",
+      "category": "DATABASE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DOLLAR",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DOLLARDE",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DOLLARFR",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DPRODUCT",
+      "category": "DATABASE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DROP",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DSTDEV",
+      "category": "DATABASE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DSTDEVP",
+      "category": "DATABASE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DSUM",
+      "category": "DATABASE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DURATION",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DVAR",
+      "category": "DATABASE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "DVARP",
+      "category": "DATABASE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "EDATE",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "EFFECT",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ENCODEURL",
+      "category": "WEB",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "EOMONTH",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "EPOCHTODATE",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": null,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ERF",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ERF.PRECISE",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ERFC",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ERFC.PRECISE",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ERROR.TYPE",
+      "category": "INFORMATION",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "EUROCONVERT",
+      "category": "TEXT",
+      "registeredImplementation": false,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "EVEN",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "EXACT",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "EXP",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "EXPAND",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "EXPON.DIST",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "EXPONDIST",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "F.DIST",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "F.DIST.RT",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "F.INV",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "F.INV.RT",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "F.TEST",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FACT",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FACTDOUBLE",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FALSE",
+      "category": "LOGICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FDIST",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FILTER",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FILTERXML",
+      "category": "WEB",
+      "registeredImplementation": false,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FIND",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FINDB",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FINV",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FISHER",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FISHERINV",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FIXED",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FLATTEN",
+      "category": "ARRAY",
+      "registeredImplementation": true,
+      "office2016Candidate": null,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FLOOR",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FLOOR.MATH",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FLOOR.PRECISE",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FORECAST",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FORECAST.ETS",
+      "category": "STATISTICAL",
+      "registeredImplementation": false,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FORECAST.ETS.CONFINT",
+      "category": "STATISTICAL",
+      "registeredImplementation": false,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FORECAST.ETS.SEASONALITY",
+      "category": "STATISTICAL",
+      "registeredImplementation": false,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FORECAST.ETS.STAT",
+      "category": "STATISTICAL",
+      "registeredImplementation": false,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FORECAST.LINEAR",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FORMULATEXT",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FREQUENCY",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FTEST",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FV",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "FVSCHEDULE",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "GAMMA",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "GAMMA.DIST",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "GAMMA.INV",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "GAMMADIST",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "GAMMAINV",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "GAMMALN",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "GAMMALN.PRECISE",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "GAUSS",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "GCD",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "GEOMEAN",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "GESTEP",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "GETPIVOTDATA",
+      "category": "LOOKUP",
+      "registeredImplementation": false,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "GROWTH",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "HARMEAN",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "HEX2BIN",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "HEX2DEC",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "HEX2OCT",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "HLOOKUP",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "HOUR",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "HSTACK",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "HYPERLINK",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "HYPGEOM.DIST",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "HYPGEOMDIST",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IF",
+      "category": "LOGICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IFERROR",
+      "category": "LOGICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IFNA",
+      "category": "LOGICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IFS",
+      "category": "LOGICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMABS",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMAGE",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMAGINARY",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMARGUMENT",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMCONJUGATE",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMCOS",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMCOSH",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMCOT",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMCOTH",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": null,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMCSC",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMCSCH",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMDIV",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMEXP",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMLN",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMLOG",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": null,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMLOG10",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMLOG2",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMPOWER",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMPRODUCT",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMREAL",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMSEC",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMSECH",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMSIN",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMSINH",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMSQRT",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMSUB",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMSUM",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMTAN",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IMTANH",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": null,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "INDEX",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "INDIRECT",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "INFO",
+      "category": "INFORMATION",
+      "registeredImplementation": false,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "INT",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "INTERCEPT",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "INTRATE",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IPMT",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "IRR",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ISBETWEEN",
+      "category": "INFORMATION",
+      "registeredImplementation": true,
+      "office2016Candidate": null,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ISBLANK",
+      "category": "INFORMATION",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ISDATE",
+      "category": "INFORMATION",
+      "registeredImplementation": true,
+      "office2016Candidate": null,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ISEMAIL",
+      "category": "INFORMATION",
+      "registeredImplementation": true,
+      "office2016Candidate": null,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ISERR",
+      "category": "INFORMATION",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ISERROR",
+      "category": "INFORMATION",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ISEVEN",
+      "category": "INFORMATION",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ISFORMULA",
+      "category": "INFORMATION",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ISLOGICAL",
+      "category": "INFORMATION",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ISNA",
+      "category": "INFORMATION",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ISNONTEXT",
+      "category": "INFORMATION",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ISNUMBER",
+      "category": "INFORMATION",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ISO.CEILING",
+      "category": "MATH",
+      "registeredImplementation": false,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ISODD",
+      "category": "INFORMATION",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ISOMITTED",
+      "category": "INFORMATION",
+      "registeredImplementation": false,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ISOWEEKNUM",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ISPMT",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ISREF",
+      "category": "INFORMATION",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ISTEXT",
+      "category": "INFORMATION",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ISURL",
+      "category": "INFORMATION",
+      "registeredImplementation": true,
+      "office2016Candidate": null,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "KURT",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "LAMBDA",
+      "category": "LOGICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "LARGE",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "LCM",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "LEFT",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "LEFTB",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "LEN",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "LENB",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "LET",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "LINEST",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "LN",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "LOG",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "LOG10",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "LOGEST",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "LOGINV",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "LOGNORM.DIST",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "LOGNORM.INV",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "LOGNORMDIST",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "LOOKUP",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "LOWER",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MAKEARRAY",
+      "category": "LOGICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MAP",
+      "category": "LOGICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MARGINOFERROR",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": null,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MATCH",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MAX",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MAXA",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MAXIFS",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MDETERM",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MDURATION",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MEDIAN",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MID",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MIDB",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MIN",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MINA",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MINIFS",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MINUS",
+      "category": "OTHER",
+      "registeredImplementation": true,
+      "office2016Candidate": null,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MINUTE",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MINVERSE",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MIRR",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MMULT",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MOD",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MODE",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MODE.MULT",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MODE.SNGL",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MONTH",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MROUND",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MULTINOMIAL",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MULTIPLY",
+      "category": "OTHER",
+      "registeredImplementation": true,
+      "office2016Candidate": null,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "MUNIT",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "N",
+      "category": "INFORMATION",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "NA",
+      "category": "INFORMATION",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "NEGBINOM.DIST",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "NEGBINOMDIST",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "NETWORKDAYS",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "NETWORKDAYS.INTL",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "NOMINAL",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "NORM.DIST",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "NORM.INV",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "NORM.S.DIST",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "NORM.S.INV",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "NORMDIST",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "NORMINV",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "NORMSDIST",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "NORMSINV",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "NOT",
+      "category": "LOGICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "NOW",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "NPER",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "NPV",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "NUMBERSTRING",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": null,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "NUMBERVALUE",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "OCT2BIN",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "OCT2DEC",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "OCT2HEX",
+      "category": "ENGINEERING",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ODD",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ODDFPRICE",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ODDFYIELD",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ODDLPRICE",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ODDLYIELD",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "OFFSET",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "OR",
+      "category": "LOGICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "PDURATION",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "PEARSON",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "PERCENTILE",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "PERCENTILE.EXC",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "PERCENTILE.INC",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "PERCENTRANK",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "PERCENTRANK.EXC",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "PERCENTRANK.INC",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "PERMUT",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "PERMUTATIONA",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "PHI",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "PHONETIC",
+      "category": "TEXT",
+      "registeredImplementation": false,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "PI",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "PLUS",
+      "category": "OTHER",
+      "registeredImplementation": true,
+      "office2016Candidate": null,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "PMT",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "POISSON",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "POISSON.DIST",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "POWER",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "PPMT",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "PRICE",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "PRICEDISC",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "PRICEMAT",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "PROB",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "PRODUCT",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "PROPER",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "PV",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "QUARTILE",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "QUARTILE.EXC",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "QUARTILE.INC",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "QUOTIENT",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "RADIANS",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "RAND",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "RANDARRAY",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "RANDBETWEEN",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "RANK",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "RANK.AVG",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "RANK.EQ",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "RATE",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "RECEIVED",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "REDUCE",
+      "category": "LOGICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "REGEXEXTRACT",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "REGEXMATCH",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": null,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "REGEXREPLACE",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "REGISTER.ID",
+      "category": "TEXT",
+      "registeredImplementation": false,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "REPLACE",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "REPLACEB",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "REPT",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "RIGHT",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "RIGHTB",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ROMAN",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ROUND",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ROUNDBANK",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": null,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ROUNDDOWN",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ROUNDUP",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ROW",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ROWS",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "RRI",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "RSQ",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "RTD",
+      "category": "LOOKUP",
+      "registeredImplementation": false,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SCAN",
+      "category": "LOGICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SEARCH",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SEARCHB",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SEC",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SECH",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SECOND",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SEQUENCE",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SERIESSUM",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SHEET",
+      "category": "INFORMATION",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SHEETS",
+      "category": "INFORMATION",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SIGN",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SIN",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SINH",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SKEW",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SKEW.P",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SLN",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SLOPE",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SMALL",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SORT",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SORTBY",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SQRT",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SQRTPI",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "STANDARDIZE",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "STDEV",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "STDEV.P",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "STDEV.S",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "STDEVA",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "STDEVP",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "STDEVPA",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "STEYX",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SUBSTITUTE",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SUBTOTAL",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SUM",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SUMIF",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SUMIFS",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SUMPRODUCT",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SUMSQ",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SUMX2MY2",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SUMX2PY2",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SUMXMY2",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SWITCH",
+      "category": "LOGICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "SYD",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "T",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "T.DIST",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "T.DIST.2T",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "T.DIST.RT",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "T.INV",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "T.INV.2T",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "T.TEST",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TAKE",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TAN",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TANH",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TBILLEQ",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TBILLPRICE",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TBILLYIELD",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TDIST",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TEXT",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TEXTAFTER",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TEXTBEFORE",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TEXTJOIN",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TEXTSPLIT",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TIME",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TIMEVALUE",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TINV",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TO_DATE",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": null,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TOCOL",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TODAY",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TOROW",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TRANSPOSE",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TREND",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TRIM",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TRIMMEAN",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TRUE",
+      "category": "LOGICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TRUNC",
+      "category": "MATH",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TTEST",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "TYPE",
+      "category": "INFORMATION",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "UNICHAR",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "UNICODE",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "UNIQUE",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "UPPER",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "VALUE",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "VALUETOTEXT",
+      "category": "TEXT",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "VAR",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "VAR.P",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "VAR.S",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "VARA",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "VARP",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "VARPA",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "VDB",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "VLOOKUP",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "VSTACK",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "WEBSERVICE",
+      "category": "WEB",
+      "registeredImplementation": false,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "WEEKDAY",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "WEEKNUM",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "WEIBULL",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "WEIBULL.DIST",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "WORKDAY",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "WORKDAY.INTL",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "WRAPCOLS",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "WRAPROWS",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "XIRR",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "XLOOKUP",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "XMATCH",
+      "category": "LOOKUP",
+      "registeredImplementation": true,
+      "office2016Candidate": false,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "XNPV",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "XOR",
+      "category": "LOGICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "YEAR",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "YEARFRAC",
+      "category": "DATE",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "YIELD",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "YIELDDISC",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "YIELDMAT",
+      "category": "FINANCIAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "Z.TEST",
+      "category": "STATISTICAL",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    },
+    {
+      "name": "ZTEST",
+      "category": "COMPATIBILITY",
+      "registeredImplementation": true,
+      "office2016Candidate": true,
+      "verification": "not_evaluated"
+    }
+  ],
+  "summary": {
+    "listed": 534,
+    "registeredImplementations": 511,
+    "registeredOffice2016Candidates": 448
+  }
+}

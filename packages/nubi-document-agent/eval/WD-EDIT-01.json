@@ -1,0 +1,20 @@
+{
+  "id": "WD-EDIT-01",
+  "kind": "existing-word-local-edit",
+  "request": "회의 안내의 날짜를 3월 12일에서 3월 19일로 바꿔 주세요. 나머지 내용과 서식은 유지하고 저장은 하지 마세요.",
+  "targetRef": "host-document:meeting",
+  "snapshot": {
+    "binding": { "app": "word", "officeSessionId": "office-session-1", "documentId": "meeting-document", "revision": "r1" },
+    "blocks": [
+      { "id": "p1", "style": { "name": "Heading 1" }, "runs": [{ "id": "r1", "text": "회의 안내", "style": { "bold": true, "fontSize": 16 } }] },
+      { "id": "p2", "style": { "name": "Normal", "spacingAfter": 6 }, "runs": [
+        { "id": "r2", "text": "개최일은 3월 12일입니다. ", "style": { "fontSize": 11 } },
+        { "id": "r3", "text": "참석자는 기존과 같습니다.", "style": { "bold": true, "fontSize": 11 } }
+      ] }
+    ]
+  },
+  "expected": { "blockId": "p2", "runId": "r2", "text": "개최일은 3월 19일입니다. ", "saved": false },
+  "preserve": ["all other text", "all run styles", "all paragraph styles", "paragraph and run order", "original file on disk"],
+  "evidenceRequired": ["actual target binding", "host approval", "readback of full observed snapshot", "non-target preservation"],
+  "notMeasured": ["Windows Office 2016", "NASCA", "real model quality", "page rendering", "save and reopen"]
+}

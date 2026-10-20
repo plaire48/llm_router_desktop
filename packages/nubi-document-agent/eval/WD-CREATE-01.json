@@ -1,0 +1,52 @@
+{
+  "id": "WD-CREATE-01",
+  "synthetic": true,
+  "scope": "new_unencrypted_word_draft",
+  "request": "팀장에게 제출할 문서 작성 시범 운영 주간 보고서를 한국어로 작성하세요. 제목은 '문서 작성 시범 운영 주간 보고'로 하세요. 결론을 먼저 쓰고 문서별 작성 및 검토 현황을 편집 가능한 4열 표로 정리하세요. 합계와 검토 완료율을 계산하세요. 검토 대기 3건의 처리 계획과 배포 결정을 포함하세요. 중요한 결론은 굵게 표시하세요. 숫자와 날짜를 임의로 추가하지 마세요. A4 1쪽을 목표로 하고 제목과 절 제목은 검정색으로 구성하세요. 표 머리글은 문서 종류, 작성, 검토 완료, 검토 대기로 쓰고 마지막 행에 합계를 넣으세요.",
+  "sources": {
+    "period": "2026년 10월 12일부터 10월 15일까지",
+    "recipient": "팀장",
+    "counts": [
+      {
+        "document": "Word",
+        "created": 3,
+        "reviewed": 2,
+        "pending": 1
+      },
+      {
+        "document": "Excel",
+        "created": 2,
+        "reviewed": 1,
+        "pending": 1
+      },
+      {
+        "document": "PowerPoint",
+        "created": 1,
+        "reviewed": 0,
+        "pending": 1
+      }
+    ],
+    "pendingActions": [
+      {
+        "document": "Word",
+        "action": "표 서식 검토",
+        "owner": "김민수",
+        "due": "10월 16일"
+      },
+      {
+        "document": "Excel",
+        "action": "합계 수식 검증",
+        "owner": "이지은",
+        "due": "10월 16일"
+      },
+      {
+        "document": "PowerPoint",
+        "action": "출처 확인",
+        "owner": "박서준",
+        "due": "10월 19일"
+      }
+    ],
+    "decision": "배포는 보류하고 검토 대기 3건을 처리한 뒤 10월 19일 16시에 다시 결정한다.",
+    "unknown": "PowerPoint의 비용 근거는 확인 중이다. 비용 금액을 추정하거나 확정하지 않는다."
+  }
+}

@@ -1,0 +1,7 @@
+import test from'node:test';import assert from'node:assert/strict';import{readFile}from'node:fs/promises';
+test('formula evidence retains every current candidate and all unresolved contracts',async()=>{
+ const evidence=JSON.parse(await readFile(new URL('../eval/capabilities/formula-execution-coverage.json',import.meta.url))),official=JSON.parse(await readFile(new URL('../eval/capabilities/official-excel-functions.json',import.meta.url)));
+ assert.deepEqual(evidence.functions.map(x=>x.name),official.functions.filter(x=>x.office2016Candidate).map(x=>x.name));assert.equal(evidence.functions.some(x=>x.name==='STOCKHISTORY'),false);assert.equal(evidence.functions.reduce((n,f)=>n+f.contractCount,0),evidence.checks.planned);
+ for(const f of evidence.functions){assert.equal(f.fullArgumentsVerified,false);assert.equal(f.nativeVerified,false);if(f.execution==='three_saved_contracts_verified'){assert.equal(f.evidence.length,3);assert.deepEqual(f.evidence.map(x=>x.repetition),[1,2,3]);assert.ok(f.evidence.every(x=>x.passed&&x.reference.value!=='#NAME?'&&x.actual?.error!=='#NAME?'));}else assert.ok(f.nextImplementation?.length>30,f.name);}
+ assert.ok(evidence.functions.find(x=>x.name==='NA').evidence.every(x=>x.actual.error==='#N/A'));assert.equal(evidence.functions.find(x=>x.name==='FORECAST.ETS').execution,'cached_excel_numerical_gap');assert.equal(evidence.functions.find(x=>x.name==='CUBEVALUE').execution,'host_capability_required');
+});
