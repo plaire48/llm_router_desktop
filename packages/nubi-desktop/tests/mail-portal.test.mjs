@@ -248,3 +248,11 @@ test('a closing SSO page cannot strand the login while an error-page probe is pe
  const pending=host.connect();await settled(()=>reading);rows=[];ready=true;old.emit('destroyed');
  assert.equal((await pending).connected,true);assert.equal(old.eventNames().length,0);host.dispose();
 });
+
+test('a login whose session check keeps failing stops after three checks and offers POP3 instead of probing on its own',async()=>{
+ const {host,calls}=loginFixture();let probes=0;
+ host.identify=async()=>{probes++;throw Error('mail_portal_forbidden');};
+ await assert.rejects(host.connect(),/mail_portal_login_failed/);
+ assert.equal(probes,3);assert.equal(host.status().connecting,false);assert.equal(host.status().fallback,'pop3');
+ assert(!calls.some(c=>c.action==='portalConnect'));host.dispose();
+});

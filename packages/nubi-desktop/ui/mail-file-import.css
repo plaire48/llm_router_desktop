@@ -37,3 +37,6 @@
 .nubi-mail-import-resume button { flex:none; }
 .nubi-mail-import-resume small { color:var(--nubi-text-secondary); font:var(--deck-font-caption); }
 .nubi-mail-import-resume.nubi-mail-import-card-action>button { width:100%; }
+/* POP3 fallback card (2026-10-21): two stacked fields in the same card rhythm as the portal card. */
+.nubi-mail-pop3-fields { display:grid; gap:var(--cx-space-2); }
+.nubi-mail-pop3-fields .cx-kit-input, .nubi-mail-pop3-fields input { width:100%; }

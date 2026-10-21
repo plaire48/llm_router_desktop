@@ -74,7 +74,10 @@ function recordFault(component,details={}){
  void mkdir(storage,{recursive:true}).then(()=>writeFile(path.join(storage,'last-host-fault.json'),JSON.stringify(record),{mode:0o600})).catch(()=>{});
 }
 process.on('uncaughtExceptionMonitor',()=>recordFault('main'));
-async function portalMailStatus(snapshot,{includeMessages=true}={}){void mailPortal.restore();const status=snapshot||await invoke('mail',{action:'status',includeMessages}),portal=mailPortal.status();return {...status,protocol:'portal',serverProfile:'portal',connected:portal.connected,connecting:portal.connecting,checking:portal.checking,error:portal.error||status.error,folders:portal.folders.length?portal.folders:status.folders,portal,progress:{...status.progress,stage:portal.connecting?'connecting':portal.checking?'checking':!portal.connected&&!status.localCount?'disconnected':status.progress.stage,lastCheckedAt:portal.lastCheckedAt}};}
+async function portalMailStatus(snapshot,{includeMessages=true}={}){void mailPortal.restore();const status=snapshot||await invoke('mail',{action:'status',includeMessages}),portal=mailPortal.status();
+ // POP3 is the fallback when the portal login fails (사용자 지시 2026-10-21); a POP3 connection reports itself.
+ if(status.serverProfile==='company'&&status.connected&&!portal.connected&&!portal.connecting)return {...status,protocol:'pop3',portal,fallback:null};
+ return {fallback:portal.fallback,...status,protocol:'portal',serverProfile:'portal',connected:portal.connected,connecting:portal.connecting,checking:portal.checking,error:portal.error||status.error,folders:portal.folders.length?portal.folders:status.folders,portal,progress:{...status.progress,stage:portal.connecting?'connecting':portal.checking?'checking':!portal.connected&&!status.localCount?'disconnected':status.progress.stage,lastCheckedAt:portal.lastCheckedAt}};}
 function invoke(method,args={}){if(!worker)return Promise.reject(Error('host_disconnected'));return worker.invoke(method,args);}
 // What the window needs to hear from the host itself (the worker restarted, or gave up): nubi:host-event.
 function hostEvent(event){if(window&&!window.isDestroyed()&&!window.webContents.isDestroyed())window.webContents.send('nubi:host-event',event);}
@@ -322,7 +325,15 @@ app.whenReady().then(async()=>{
   }
   if(method==='importMailFolder'){if(source!=='electron')throw Error('mail_portal_desktop_only');const directory=await choose(['openDirectory'],'메일 파일 폴더 선택');return directory?invoke('mail',{action:'importFolder',directory}):{cancelled:true};}
   if(method==='mail'){
-   if(['connect','setIdentity'].includes(args.action))throw Error('mail_portal_only');
+   // POP3 with the person's own ID and password, only as the fallback of a portal login that did not work.
+   if(args.action==='connect'){
+    if(source!=='electron')throw Error('mail_portal_desktop_only');
+    if(args.serverProfile!=='company')throw Error('mail_portal_only');
+    const portal=mailPortal.status();if(portal.connected||portal.connecting||portal.checking)throw Error('mail_busy');
+    if(portal.fallback!=='pop3'&&!portal.error)throw Error('mail_portal_first');
+    return await portalMailStatus(await invoke('mail',{action:'connect',requestId:args.requestId,serverProfile:'company',user:args.user,password:args.password,...(args.destination?{destination:args.destination}:{}),...(args.recipientAddress?{recipientAddress:args.recipientAddress}:{})}));
+   }
+   if(args.action==='setIdentity')throw Error('mail_portal_only');
    if(/^portal(?:Connect|Import|Folders|Known|Rejected|Document)$/.test(args.action||'')||['download','importFolder'].includes(args.action))throw Error('method_invalid');
    if(args.action==='approvals')return await mailPortal.approvals(args);
    if(args.action==='approvalRead')return await mailPortal.approvalRead(args);

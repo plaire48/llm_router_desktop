@@ -14,6 +14,8 @@ export const mailConnectionErrors={
   mail_portal_additional_auth:{title:'추가 인증이 필요해요',detail:'사내 SSO에서 추가 확인을 요청했거나 로그인이 완료되지 않았어요.'},
   mail_portal_logout_failed:{title:'로그아웃을 확인하지 못했어요',detail:'메일 수집은 멈췄어요. 앱을 다시 시작한 뒤 확인해 주세요.'},
   mail_portal_only:{title:'포털 로그인으로 연결해 주세요',detail:'메일 연결은 사내 포털을 사용합니다. 아이디와 비밀번호를 누비 설정에 입력하지 않아도 됩니다.'},
+  mail_portal_login_failed:{title:'포털 로그인으로 메일을 가져오지 못했어요',detail:'로그인 뒤 세션 확인을 세 번 했지만 메일 서버가 응답하지 않았어요. 다시 로그인하거나 아래 POP3로 연결해 주세요.'},
+  mail_portal_first:{title:'먼저 포털 로그인을 시도해 주세요',detail:'POP3는 포털 로그인이 안 될 때 쓰는 대체 연결이에요.'},
   mail_portal_login:{title:'포털에 로그인해 주세요',detail:'로그인되어 있지 않거나 세션이 만료됐어요. 포털 로그인 버튼으로 다시 연결해 주세요.'},
   mail_portal_sso:{title:'포털 로그인 페이지에서 오류가 발생했어요',detail:'메일 연결을 완료하지 못했어요. 포털 로그인을 다시 열어 주세요. 계속되면 일반 브라우저에서도 kor3.samsung.net이 열리는지 확인해 주세요.'},
   mail_portal_identity:{title:'포털 사용자 정보를 확인해 주세요',detail:'로그인은 열렸지만 메일과 결재를 조회할 사용자 정보를 확인하지 못했어요. 다시 로그인해 주세요.'},

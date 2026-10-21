@@ -6,13 +6,16 @@ const {readMailPage}=require('./mail-page-execution.cjs');
 const {ORIGIN,LOGIN_URL,portalOrigin,foldersOf,identityOf,portalFetch,portalFetchSource}=require('./mail-portal-contract.cjs');
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const MAIL_POLL_INTERVAL_MS=5*60*1000;
+// After the person leaves the sign-in pages, the session is checked a few times (propagation delay), then the login
+// stops and offers POP3 instead of probing on its own (사용자 지시 2026-10-21: 알아서 여러 번 하지 말 것).
+const LOGIN_PROBE_LIMIT=3;
 const loginLocation=value=>{try{return loginRedirect(new URL(value),LOGIN_URL);}catch{return false;}};
 const homeLocation=value=>{try{const url=new URL(value),home=new URL(LOGIN_URL);return !url.username&&!url.password&&url.hostname===home.hostname&&url.port===home.port&&(url.origin===home.origin||home.protocol==='http:'&&url.protocol==='https:')&&!loginLocation(value);}catch{return false;}};
 class MailPortal {
  // Login happens in the app's own browser tab (openPage/closePage) when the host offers one; the hidden window only
  // runs the read-only portal fetches on the same persistent session (user request 2026-10-14: no separate popup).
  constructor({BrowserWindow,invoke,parent,openPage=null,closePage=null,getPageContents=null,fetchSession=mailSessionFetch,onDisconnected=()=>{}}){this.onDisconnected=onDisconnected;this.fetchSession=fetchSession;this.BrowserWindow=BrowserWindow;this.invoke=invoke;this.parent=parent;this.openPage=openPage;this.closePage=closePage;this.getPageContents=getPageContents;this.page=null;this.state={connected:false,connecting:false,checking:false,folders:[],error:null};this.epoch=0;this.origin=ORIGIN;this.access=new AbortController();}
- status(){return {...this.state};}
+ status(){return {...this.state,fallback:this.state.fallback??null};}
  async identify(epoch=this.epoch){
   const read=async(...args)=>{if(epoch!==this.epoch)throw Error('mail_cancelled');const result=await this.read(...args);if(epoch!==this.epoch)throw Error('mail_cancelled');return result;};
   // Match the supplied userscript: portal session identity wins over the mail account ID.
@@ -156,7 +159,7 @@ class MailPortal {
    // Finish an invalidated restore before starting the interactive session. No overlapping SSO requests.
    this.window?.webContents.stop?.();await this.restoring;if(epoch!==this.epoch)throw Error('mail_cancelled');
    await this.windowForLogin(true,epoch);this.state.loginStage='authenticating';let identity,folders;
-   let deadline=Date.now()+5*60*1000,authFailures=0;
+   let deadline=Date.now()+5*60*1000,authFailures=0,probeFailures=0;
    while(epoch===this.epoch){
     const loginContents=()=>this.page&&this.getPageContents?this.getPageContents(this.page.tabId):[];
     const rows=loginContents();
@@ -199,6 +202,7 @@ class MailPortal {
      if(loginContents().some(mailDialogPending)){await wait(250);continue;}
      if(!['mail_portal_login','mail_portal_forbidden','mail_portal_request','mail_portal_format','mail_portal_redirect'].includes(error.message))throw error;
      if(epoch!==this.epoch)break;
+     if(++probeFailures>=LOGIN_PROBE_LIMIT)throw Error('mail_portal_login_failed');
      const authenticationPending=['mail_portal_login','mail_portal_forbidden'].includes(error.message);
      if(authenticationPending){this.state.loginStage='authenticating';deadline=Date.now()+5*60*1000;authFailures++;}
      const pause=authenticationPending?Math.min(10000,2000*authFailures):2000;
@@ -215,10 +219,10 @@ class MailPortal {
    if(epoch!==this.epoch)throw Error('mail_cancelled');if(!identity||!folders)throw Error('mail_portal_timeout');
    await this.invoke('mail',{action:'portalConnect',identity:identity.id,email:identity.email,folders,destination:args.destination});
    if(epoch!==this.epoch)throw Error('mail_cancelled');
-   this.approvalCache=new Map();this.approvalCacheBytes=0;this.approvalPending=new Map();this.identity=identity;this.state={connected:true,connecting:false,checking:false,loginStage:'connected',folders,error:null,connectionState:'connected',nextRetryAt:null};this.closeLoginPage();
+   this.approvalCache=new Map();this.approvalCacheBytes=0;this.approvalPending=new Map();this.identity=identity;this.state={connected:true,connecting:false,checking:false,loginStage:'connected',folders,error:null,connectionState:'connected',nextRetryAt:null,fallback:null};this.closeLoginPage();
    // Return after login; collection stays outside the UI's admission call.
    void this.sync().catch(()=>{});return this.status();
-  }catch(error){if(epoch===this.epoch){this.closeLoginPage();this.state={...this.state,connecting:false,connected:false,loginStage:null,error:/^mail_/.test(error.message)?error.message:'mail_portal_request'};}throw Error(epoch!==this.epoch?'mail_cancelled':this.state.error);}
+  }catch(error){if(epoch===this.epoch){this.closeLoginPage();this.state={...this.state,connecting:false,connected:false,loginStage:null,error:/^mail_/.test(error.message)?error.message:'mail_portal_request',fallback:error.message==='mail_cancelled'?null:'pop3'};}throw Error(epoch!==this.epoch?'mail_cancelled':this.state.error);}
  }
  sync(input={}){
   if(this.syncing)return this.syncing;
@@ -269,7 +273,7 @@ class MailPortal {
    await this.disconnect();if(current!==this.epoch)return;
    let failure=code;try{await this.clearPortalSession();}catch{failure='mail_portal_logout_failed';}
    if(current!==this.epoch)return;
-   this.state={...this.state,error:failure,connectionState:'authentication_required',failureCode:code};
+   this.state={...this.state,error:failure,connectionState:'authentication_required',failureCode:code,fallback:'pop3'};
    this.onDisconnected({code:failure});
   })();this.sessionClearing=pending;
   try{await pending;}finally{if(this.sessionClearing===pending)this.sessionClearing=null;}
