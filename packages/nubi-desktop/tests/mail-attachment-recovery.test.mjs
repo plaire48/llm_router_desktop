@@ -24,7 +24,7 @@ test('the worker reads Word, Excel and PowerPoint attachment bytes',async()=>{
 
 test('Windows accepts a verified parser result and local folder attachments work without portal credentials',async t=>{
  const root=await mkdtemp(path.join(os.tmpdir(),'mail-attachment-recovery-'));const mail=new PersonalMail({storageRoot:root},{personalRoot:path.join(root,'mail')});
- t.after(async()=>{mail.dispose();await rm(root,{recursive:true,force:true});});
+ t.after(async()=>{await mail.dispose();await rm(root,{recursive:true,force:true});});
  mail.autoWiki=true;mail.drain=async()=>{};const id='a'.repeat(64),bytes=Buffer.from('한글 첨부 본문'),attachment={id:'000-'+sha(bytes).slice(0,16),filename:'letter.txt',sha256:sha(bytes),contentState:'text_read',text:bytes.toString()};
  const row={id,protocol:'local',account:'local-folder',state:'queued',sourceHash:'original',attachmentState:'queued'};
  mail.store.set('mail:'+id,row);mail.source=async()=>({subject:'로컬 메일',text:'본문',attachments:[attachment]});await mkdir(path.join(mail.rawRoot,id),{recursive:true});await writeFile(path.join(mail.rawRoot,id,attachment.id+'.bin'),bytes);

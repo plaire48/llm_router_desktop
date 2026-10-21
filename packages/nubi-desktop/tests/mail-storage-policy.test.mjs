@@ -17,7 +17,7 @@ test('attachment opt-out removes payload from raw copy, retains inline images an
  assert.equal(await mailForStorage(mail,true),mail,'default preserves original bytes');
 });
 test('preference persists, excluded attachments do not create attention, download is explicit and relocation failure preserves preference',async t=>{
- const root=await mkdtemp(path.join(os.tmpdir(),'nubi-storage-policy-'));const host={storageRoot:path.join(root,'state')},options={personalRoot:path.join(root,'mail')};let mail=new PersonalMail(host,options);t.after(async()=>{mail.dispose();await rm(root,{recursive:true,force:true,maxRetries:3,retryDelay:100});});await mail.call({action:'setAutoWiki',enabled:false});
+ const root=await mkdtemp(path.join(os.tmpdir(),'nubi-storage-policy-'));const host={storageRoot:path.join(root,'state')},options={personalRoot:path.join(root,'mail')};let mail=new PersonalMail(host,options);t.after(async()=>{await mail.dispose();await rm(root,{recursive:true,force:true,maxRetries:3,retryDelay:100});});await mail.call({action:'setAutoWiki',enabled:false});
  assert.equal(mail.status().includeAttachments,true);await mail.call({action:'confirmStorage',includeAttachments:false});mail.dispose();mail=new PersonalMail(host,options);assert.equal(mail.status().includeAttachments,false);
  const raw=await message(),parsed=await normalizePortalMail(raw);mail.store.set('account:fixture',{seen:[]});
  await mail.intake({mails:[{...parsed,uidl:'one',protocol:'local'}]},mail.generation,{collectOnly:true,accountId:'fixture'});
@@ -32,7 +32,7 @@ test('preference persists, excluded attachments do not create attention, downloa
 
 test('discarded originals retain encrypted evidence across reopen, search and agent windows',async t=>{
  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-evidence-')),host={storageRoot:path.join(root,'state')},options={personalRoot:path.join(root,'mail')};let service=new PersonalMail(host,options);
- t.after(async()=>{service.dispose();await rm(root,{recursive:true,force:true,maxRetries:3,retryDelay:100});});
+ t.after(async()=>{await service.dispose();await rm(root,{recursive:true,force:true,maxRetries:3,retryDelay:100});});
  await service.call({action:'setAutoWiki',enabled:false});await service.call({action:'confirmStorage',includeAttachments:false});
  const raw=await new MailComposer({from:'test@example.test',to:'owner@example.test',subject:'Scope',text:'Body evidence',attachments:[{filename:'notes.md',content:'# Decision\nUniqueEvidence352 deadline Friday'}]}).compile().build();
  const mail=await normalizePortalMail(raw);await service.intake({mails:[{...mail,uidl:'evidence',protocol:'local'}]},service.generation,{collectOnly:true,accountId:'fixture'});
@@ -64,7 +64,7 @@ test('discarded originals retain encrypted evidence across reopen, search and ag
 });
 test('failed extraction never acknowledges or discards the source; retry retains completed receipts',async t=>{
  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-evidence-retry-')),service=new PersonalMail({storageRoot:path.join(root,'state')},{personalRoot:path.join(root,'mail')});
- t.after(async()=>{service.dispose();await rm(root,{recursive:true,force:true,maxRetries:3,retryDelay:100});});
+ t.after(async()=>{await service.dispose();await rm(root,{recursive:true,force:true,maxRetries:3,retryDelay:100});});
  await service.call({action:'setAutoWiki',enabled:false});await service.call({action:'confirmStorage',includeAttachments:false});service.store.set('account:fixture',{seen:[]});
  const parsed=await normalizePortalMail(await message()),incoming={...parsed,uidl:'retry',protocol:'pop3'};
  const extract=service.extractAttachment.bind(service);service.extractAttachment=async()=>{throw Error('document_timeout');};

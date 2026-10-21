@@ -20,7 +20,7 @@ test('mail attachment reading is on and the feature gates no longer refuse attac
     complete:async()=>({content:JSON.stringify({summary:'본문 예산 요청',category:'direct_request',priority:'high',facts:['메일 본문에 예산 요청이 있다.'],actionItems:[]})})
   }};
   const mail=new PersonalMail(host,{personalRoot:path.join(root,'mail')});
-  t.after(async()=>{mail.dispose();await rm(root,{recursive:true,force:true});});
+  t.after(async()=>{await mail.dispose();await rm(root,{recursive:true,force:true});});
   mail.autoWiki=true;mail.paused=false;mail.account='fixture-account';mail.credentials={};mail.destination={provider:'fixture',model:'fixture'};
   mail.store.set('account:'+mail.account,{seen:[]});
   await mkdir(mail.wikiRoot,{recursive:true});

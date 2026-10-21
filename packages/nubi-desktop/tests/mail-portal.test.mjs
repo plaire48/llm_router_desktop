@@ -26,7 +26,7 @@ test('the same-origin adapter admits only the provided read endpoints and never 
  assert.deepEqual(foldersOf(folders).map(folder=>folder.mailbox),['inbox','sent','draft','spam']);assert.equal(identityOf({userInfo:{epUserId:'fixture-user',email:'owner@example.test',domainSet:'fixture@host'}}).setCd,'fixture');
 });
 test('portal EML is stored and searched with folder isolation, original hashes and no AI call for drafts/spam',async t=>{
- const directory=await mkdtemp(path.join(os.tmpdir(),'nubi-portal-'));const mail=new PersonalMail({storageRoot:directory},{personalRoot:path.join(directory,'mail'),pull:()=>assert.fail('must not contact POP3')});t.after(async()=>{mail.dispose();await rm(directory,{recursive:true,force:true});});
+ const directory=await mkdtemp(path.join(os.tmpdir(),'nubi-portal-'));const mail=new PersonalMail({storageRoot:directory},{personalRoot:path.join(directory,'mail'),pull:()=>assert.fail('must not contact POP3')});t.after(async()=>{await mail.dispose();await rm(directory,{recursive:true,force:true});});
  const personalFolders=foldersOf([...folders,{folderID:6,folderName:'개인 프로젝트 자료',mailCount:1}]);
  await mail.call({action:'setAutoWiki',enabled:false});await mail.call({action:'portalConnect',identity:'fixture-user',email:'owner@example.test',folders:personalFolders});
  const metadata={subject:'Portal metadata contract',localdate:'2026-10-13T12:34:00+09:00',receivedAddress:'alias@example.test',toRecipients:[{name:'alias@example.test',email:'other@example.test'}],ccRecipients:[{email:'alias@example.test'}]};

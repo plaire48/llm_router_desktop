@@ -11,7 +11,7 @@ const sha=value=>createHash('sha256').update(value).digest('hex');
 async function fixture(t){
  const root=await realpath(await mkdtemp(path.join(os.tmpdir(),'nubi-mail-resume-'))),input=path.join(root,'input');await mkdir(input);
  const host={storageRoot:path.join(root,'state')},options={personalRoot:path.join(root,'mail')};let mail=new PersonalMail(host,options);await mail.call({action:'setAutoWiki',enabled:false});
- t.after(async()=>{mail.importController?.abort();await mail.importTask;mail.dispose();await rm(root,{recursive:true,force:true});});
+ t.after(async()=>{mail.importController?.abort();await mail.importTask;await mail.dispose();await rm(root,{recursive:true,force:true});});
  return {root,input,get mail(){return mail;},async restart(){mail.dispose();await mail.importTask;mail=new PersonalMail(host,options);return mail;}};
 }
 test('resume after app exit skips completed MIME reads, retries remaining and changed files',async t=>{

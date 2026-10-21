@@ -17,7 +17,7 @@ function makeHost(root){return {storageRoot:path.join(root,'state'),agent:{runni
 
 test('originals move to a chosen folder and stay readable there',async t=>{
   const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-raw-'));
-  const mail=new PersonalMail(makeHost(root),{personalRoot:path.join(root,'mail')});t.after(async()=>{mail.dispose();await rm(root,{recursive:true,force:true,maxRetries:3,retryDelay:100});});
+  const mail=new PersonalMail(makeHost(root),{personalRoot:path.join(root,'mail')});t.after(async()=>{await mail.dispose();await rm(root,{recursive:true,force:true,maxRetries:3,retryDelay:100});});
   mail.autoWiki=true;mail.paused=false;mail.account='fixture-account';mail.credentials={};mail.destination={provider:'fixture',model:'fixture'};mail.store.set('account:'+mail.account,{seen:[]});
   await mail.prepare();
   await mail.intake({uidls:['one'],mails:[{uidl:'one',raw:Buffer.from('Subject: hi\r\n\r\nbody'),attachments:[],normalized:{subject:'예산 확인',from:'a@example.invalid',text:'본문',attachments:[]}}]},mail.generation);
@@ -38,7 +38,7 @@ test('originals move to a chosen folder and stay readable there',async t=>{
 
 test('portal collection waits for storage confirmation, then reuses it after restart',async t=>{
  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-storage-guide-'));
- const host=makeHost(root),options={personalRoot:path.join(root,'mail')};let mail=new PersonalMail(host,options);t.after(async()=>{mail.dispose();await rm(root,{recursive:true,force:true,maxRetries:3,retryDelay:100});});
+ const host=makeHost(root),options={personalRoot:path.join(root,'mail')};let mail=new PersonalMail(host,options);t.after(async()=>{await mail.dispose();await rm(root,{recursive:true,force:true,maxRetries:3,retryDelay:100});});
  await mail.call({action:'portalConnect',identity:'fixture-user',folders:[]});assert.equal(mail.status().requiresStorageSetup,true);
  const portal=new MailPortal({invoke:(_method,args)=>mail.call(args)});t.after(()=>portal.dispose());portal.state.connected=true;portal.identity={setCd:''};let reads=0;
  portal.read=async operation=>{reads++;assert.equal(operation,'folders');return [];};
@@ -49,7 +49,7 @@ test('portal collection waits for storage confirmation, then reuses it after res
 
 test('failed relocation preserves the old path and every original',async t=>{
  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-storage-failure-'));
- const mail=new PersonalMail(makeHost(root),{personalRoot:path.join(root,'mail')});t.after(async()=>{mail.dispose();await rm(root,{recursive:true,force:true,maxRetries:3,retryDelay:100});});await mail.prepare();
+ const mail=new PersonalMail(makeHost(root),{personalRoot:path.join(root,'mail')});t.after(async()=>{await mail.dispose();await rm(root,{recursive:true,force:true,maxRetries:3,retryDelay:100});});await mail.prepare();
  const before=mail.rawRoot;await mkdir(path.join(before,'original'));await writeFile(path.join(before,'original/message.eml'),'original mail');
  const set=mail.store.set.bind(mail.store);mail.store.set=(key,value)=>{if(key==='setting:raw-root')throw Error('fixture_commit_failed');return set(key,value);};
  const target=path.join(root,'new-location');await assert.rejects(mail.relocateRaw(target),/fixture_commit_failed/);
@@ -58,13 +58,13 @@ test('failed relocation preserves the old path and every original',async t=>{
 
 test('a previously chosen location does not ask again',async t=>{
  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-storage-existing-'));
- const mail=new PersonalMail(makeHost(root),{personalRoot:path.join(root,'mail')});t.after(async()=>{mail.dispose();await rm(root,{recursive:true,force:true,maxRetries:3,retryDelay:100});});
+ const mail=new PersonalMail(makeHost(root),{personalRoot:path.join(root,'mail')});t.after(async()=>{await mail.dispose();await rm(root,{recursive:true,force:true,maxRetries:3,retryDelay:100});});
  mail.store.set('setting:raw-root',{path:path.join(root,'chosen')});assert.equal(mail.status().requiresStorageSetup,false);
 });
 
 test('relocation exposes live verified progress while independent status requests stay responsive',async t=>{
  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-move-progress-'));
- const mail=new PersonalMail(makeHost(root),{personalRoot:path.join(root,'mail')});t.after(async()=>{mail.dispose();await rm(root,{recursive:true,force:true,maxRetries:3,retryDelay:100});});await mail.prepare();
+ const mail=new PersonalMail(makeHost(root),{personalRoot:path.join(root,'mail')});t.after(async()=>{await mail.dispose();await rm(root,{recursive:true,force:true,maxRetries:3,retryDelay:100});});await mail.prepare();
  const bytes=Buffer.alloc(32*1024,65);for(let group=0;group<8;group++){const directory=path.join(mail.rawRoot,'group-'+group);await mkdir(directory);for(let n=0;n<12;n++)await writeFile(path.join(directory,n+'.bin'),bytes);}
  let done=false;const samples=[];
  const moving=mail.relocateRaw(path.join(root,'new')).finally(()=>{done=true;});
@@ -79,7 +79,7 @@ test('relocation exposes live verified progress while independent status request
 });
 
 test('background relocation returns a job before completion and rejects overlapping moves',async t=>{
- const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-move-job-'));const mail=new PersonalMail(makeHost(root),{personalRoot:path.join(root,'mail')});t.after(async()=>{mail.dispose();await rm(root,{recursive:true,force:true,maxRetries:3,retryDelay:100});});await mail.prepare();
+ const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-move-job-'));const mail=new PersonalMail(makeHost(root),{personalRoot:path.join(root,'mail')});t.after(async()=>{await mail.dispose();await rm(root,{recursive:true,force:true,maxRetries:3,retryDelay:100});});await mail.prepare();
  await mkdir(path.join(mail.rawRoot,'original'));for(let n=0;n<12;n++)await writeFile(path.join(mail.rawRoot,'original',n+'.eml'),'original '+n);
  const job=await mail.call({action:'startRawMove',directory:path.join(root,'new'),includeAttachments:false});assert(job.id);assert.equal(job.moving,true);
  await assert.rejects(mail.call({action:'startRawMove',directory:path.join(root,'overlap')}),/mail_busy/);assert.equal((await mail.call({action:'storageProgress',id:job.id})).progress.id,job.id);
