@@ -12,14 +12,14 @@ concurrency:
   cancel-in-progress: true
 jobs:
   gates-fast:
-    # Two parallel parts of one chain (release plan R1, 2026-10-20): "unit" runs npm test,
+    # Three parallel parts: unit-a/unit-b split test filenames in sorted halves;
     # "ui" runs the remaining fast checks. scripts/run-gate-part.mjs partitions the same
     # package.json chain that check-gate-coverage verifies, so coverage and order stay intact.
     name: gates-fast (${{ matrix.part }})
     strategy:
       fail-fast: false
       matrix:
-        part: [unit, ui]
+        part: [unit-a, unit-b, ui]
     runs-on: ubuntu-latest
     timeout-minutes: 35
     defaults:

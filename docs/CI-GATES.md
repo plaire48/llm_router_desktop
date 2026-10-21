@@ -128,3 +128,15 @@ fast ui의 test:safety는 기존 안전107시험 재사용과 고정 base→후�
 Q7 G5/Q8 후속(2026-10-21): G5는 기존 fast ui 화면38개 흐름에서 이름/대비/Tab순환을 함께 검사한다. 새 Node/네이티브 단위0. 브라우저 계약31개1.88초(기존13개1.31초), 공유 화면46.75초 중 감사1.019초는 로컬 관찰이며 CI 증분은 미측정이다. Q8 메일1280 격리Electron 재측정은 입력41ms/한도50ms, 작업/프리징/힙위반0, exit0. 높은 부하에서도 위반0은 통과하는 답15를 유지했다. 전체Actions 또는 Windows 성공으로 확대하지 않는다.
 
 지정 후보 차단(2026-10-21): G5 포함93파일의 첫 실제Claude업로더 대조에서 `release_input_changed`4건이 나왔다. 병행 작업이 이어져 다음 대조에는 `runtime/openwiki-source.ts`까지5건이었다. 정확한 후보별 수치/경로는 최신 SHA명세와 입력 검사 JSON을 따른다. main a837ad61에 없는 병행 위키 문맥 접기/검토 복구 변경(`extensions/aipro-chat/openwiki-agent.js`, `packages/nubi-desktop/runtime/desktop-features.mjs`, `packages/openwiki/src/agent/repository-runner.ts`, `packages/openwiki/src/agent/repository-semantic-review.ts`)이 현재 compile 입력에 포함된 원인이다. 이 병행 파일들을 임의로 업로드 목록에 넣거나 비교에서 빼지 않았다. 최신93파일 명세는 **로컬 검토용, 후보 입력 게이트 차단** 상태다. 이전91파일 실제후보 exit0는 이전소스 증거로만 유지한다. Claude가 병행 변경을 검토해 같은 후보에 정합시킨 뒤 실제 입력 게이트를 다시 돌려야 한다. 상세 SHA는 `.superpowers/sdd/2026-10-20-release-acceptance/q3-q8-g5-parallel-inputs.json`.
+
+
+## 2026-10-21 unit 이름순 두 분할
+
+사용자 전달 기준 main405a4b48/29차 진행,21~28차 녹색,27차 unit17분19초. 이 기록은 사용자 전달이며 이번 로컬 작업에서 Actions 결과를 새로 조회하지 않았다. 새로운 matrix는 `[unit-a, unit-b, ui]`다. `run-gate-part.mjs`가 `tests/*.test.mjs`를 이름순 정렬하고 ceil(n/2)에서 나눈다. 현재421파일은211/210이며 중복/누락0이다. 각 unit은 `npm run pretest` 뒤 package.json의 기존 `node --test --test-concurrency=1` 옵션으로 자기 파일만 실행한다. ui는 기존32명령(준비 포함)의 순서 그대로다. Windows 전체 npm test와 릴리스 게이트는 바꾸지 않았다.
+
+워크플로와 고정 시험을 같은 목록에 포함한다. 집중6시험 통과(최초149.8ms, 후속522.0ms), 순수Node/네이티브실행0. 게이트 집합 검사 ok. 각 job20분 게이트 제한/실패 아티팩트7일/미판정 요약을 유지한다. 파일 수로 나눈 것이므로 실행 시간 균등이나20분 이내를 미리 보장하지 않는다. 다음 Actions의 unit-a/unit-b/ui/전체 소요는 업로드 후 측정해야 한다. 새 unit 시험 파일은 자동 재분할되며 두 부분의 합집합을 실제 파일 목록과 대조하는 시험이 따른다. 제품 화면 변경이 없어 이 과제의1280/440캡처는 해당 없음.
+
+최종 분할 집중6시험은163.4ms, 실패0이다. 기존149.8/522.0ms는 중간 실행 이력으로 보존한다.
+
+
+33차 이후 재인계(2026-10-21): 현재 작업 폴더427개 단위 파일을214/213으로 나누며 ui는 준비 포함33명령이다. T8 연결 검사 6.678초가 fast ui에 추가됐고 T8 연결 자체의 새 단위/네이티브 시험은0이다. 별도 M1/G0 묶음은 main 대비 신규30개이며 기존 reset4개를 포함한34개 집중1.383초다. 지정 후보의 파일 수는 실제 후보에서 다시 계산한다. 분할/워크플로 고정 집중6시험634.6ms, 실패0. 분할 자체의 Actions 소요는 아직 미측정이다. main7765864c의33차 ui 고정 대화 중복 실패와 재실행 녹색은 사용자 전달이며, 이번에 Actions를 새 조회한 결과가 아니다. 최종 SHA는 `.superpowers/sdd/2026-10-21-m1a-teach-handoff/upload-inputs.json` ci 그룹을 따른다. 이전 파일 수/소요는 당시 기록이다.
