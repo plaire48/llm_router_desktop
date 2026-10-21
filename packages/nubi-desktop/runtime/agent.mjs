@@ -8,6 +8,7 @@ import {proposeSideTask,mergeSideTasks} from './side-tasks.mjs';
 import {registerOutput} from './output-files.mjs';
 import {addChapter} from './chapters.mjs';
 import {DOCUMENT_CONSISTENCY_TOOL,compareDocumentValues} from './document-consistency.mjs';
+import {DOCUMENT_FORM_TOOL,fillDocumentForm,documentFormRelevant} from './document-form-tool.mjs';
 import {rememberBrowserScreen,learnBrowserScreen,answerBrowserScreen} from './browser-agent-host.mjs';
 import {EDITOR_TOOLS,editorDefinitions,editorStatus,executeEditor,decideEditor,continueEditor} from './live-editor-host.mjs';
 import {cancelEditor} from './live-editor-host.mjs';
@@ -138,6 +139,7 @@ const FULL_DESCRIPTION_OVERRIDES={
   update_plan:"Plan outcome steps.",
   ask_openwiki:"Delegate synthesis or how/why research; it researches openwiki/ separately.",
   compare_document_values:"Compare exact numeric source ranges.",
+  fill_document_form:"Fill a Word form from the user's words into a copy.",
   learn_browser_screen:"Learn authorized screen structure and meaning.",
   remember_browser_screen:"Remember authorized screen structure.",
   inspect_environment:"Inspect manifests and host tools.",
@@ -387,7 +389,7 @@ export function installAgent(ProjectService) {
       tool('ask_user', 'Ask ONE missing decision with 2-4 grounded choices or free text.', {question:string(180),selection:{enum:['single','multiple']},choices:{type:'array',minItems:2,maxItems:4,items:{type:'object',properties:{label:string(80),description:string(160)},required:['label'],additionalProperties:false}},input_mode:{type:'string',enum:['text','long_text']},input_placeholder:{type:'string',minLength:1,maxLength:100,pattern:'^[^\\r\\n]+$'}},['question']),
 
     ].filter(item=>!['delegate_to_browser','delegate_to_office'].includes(item.function.name)&&(computerAvailable||!COMPUTER_TOOL_NAMES.has(item.function.name)));
-    tools.push(DOCUMENT_CONSISTENCY_TOOL,...nativeOfficeDefinitions(this,taskId),...editorDefinitions(this,taskId),tool('remember_browser_screen','Learn the current authorized browser screen structure for later matching screens. Uses the current host model and project-private screen wiki. Saves labels only; not task results, field values, execution authority or verified procedures.',{},[]));
+    tools.push(DOCUMENT_CONSISTENCY_TOOL,...(documentFormRelevant(this,task)?[DOCUMENT_FORM_TOOL]:[]),...nativeOfficeDefinitions(this,taskId),...editorDefinitions(this,taskId),tool('remember_browser_screen','Learn the current authorized browser screen structure for later matching screens. Uses the current host model and project-private screen wiki. Saves labels only; not task results, field values, execution authority or verified procedures.',{},[]));
     tools.push(tool('learn_browser_screen','When the user asks to learn the current screen, save structural guidance and ask a grounded question only if its business meaning is unclear. Answers stay in the project private screen wiki, bound to this tab and document. Never grants execution authority. Call again after an answer only if more explanation is needed.',{},[]));
     // Both direct plans and fallback planning use the browser's outcome rules.
     tools=tools.map(item=>item.function.name==='update_plan'?{...item,function:{...item.function,description:item.function.description+' '+PLANNING_OUTCOME_GUIDE}}:item);
@@ -636,6 +638,7 @@ export function installAgent(ProjectService) {
       }
       else if(name==='update_plan'){const initial=task.workPlan?.runId!==runId,steps=workPlanSteps(args,{initial});const intent=args.intent?workIntent(args.intent,{...capabilityContext(),skills:skills.skills}):initial?workIntent(undefined,capabilityContext()):task.workPlan.intent;const before=initial?[]:task.workPlan?.steps||[],updates=task.workPlan?.updates||[];task.workPlan={intent,runId,updates:[...updates,{runId,revision:(task.workPlan?.revision||0)+1,before,after:steps,reason:args.explanation||'',at:new Date().toISOString()}].slice(-20),revision:(task.workPlan?.revision||0)+1,steps,at:new Date().toISOString()};persistTask();result={ok:true,plan:steps,intent,instruction:'Intent is a provisional interpretation, not permission or execution evidence. Load selected skills before using them; preserve literal requests and later answers.'};}
       else if(name==='compare_document_values')result=await compareDocumentValues(this,task,args,signal);
+      else if(name==='fill_document_form')result=await fillDocumentForm(this,task,args);
       else if(name==='read_attached_document')result=await read(()=>readChatDocument(this,{...args,...readRoom()},task));
       else if(name==='personal_mail_query')result=await read(()=>this.mail({...args,action:'query'}));
       else if(name==='mail_facts')result=await read(()=>this.mail({...args,action:'facts'}));

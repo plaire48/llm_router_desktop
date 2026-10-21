@@ -24,6 +24,14 @@ const requireProject=(service,projectId)=>{service.ready();if(projectId!==servic
 const plansOf=service=>service.documentFormPlans??=new Map();
 const safeCode=error=>/^[a-z_]+$/.test(error?.message||'')?error.message:'form_plan_failed';
 
+/** Starts a fill of a document the caller has read (the chat agent, Task K): no registration, no stored form. */
+export async function startDirectFormPlan(service,{taskId,bytes,documentPath,request,sources}){
+  const workspace=await service.target(taskId),{extractFormMap}=await import('./docx-snapshot.mjs'),{formPreview}=await import('./document-forms.mjs');
+  const {map,items,hash}=await extractFormMap(bytes,{name:path.basename(documentPath)});
+  const preview=formPreview(map,{name:path.basename(documentPath),source:path.basename(documentPath),registeredAt:new Date().toISOString()});
+  if(!preview.fillable)return {notFillable:preview.notFillable??'이 문서에서 채울 칸을 찾지 못했어요.',preview};
+  return startPlan(service,workspace,{name:path.basename(documentPath,path.extname(documentPath)),request,sources,form:{map,items,hash,source:null,preview,direct:{bytes,path:documentPath}}});
+}
 export function installDocumentForms(Service){
   Service.prototype.documentForm=async function(args={}){
     requireProject(this,args.projectId);
@@ -90,7 +98,8 @@ const settle=plan=>new Promise(resolve=>{plan.onAsk=resolve;plan.run.finally(res
 const pause=(plan,state)=>{plan.state=state;plan.onAsk?.();return new Promise((resolve,reject)=>{plan.resume=resolve;plan.controller.signal.addEventListener('abort',()=>reject(new Error('cancelled')),{once:true});});};
 
 async function startPlan(service,workspace,args){
-  const {map,items,hash,source,preview}=await loadForm(workspace,args.name);
+  // Direct mode (Task K): the chat agent passes a document it just read; nothing is registered.
+  const {map,items,hash,source,preview}=args.form??await loadForm(workspace,args.name);
   if(!map)fail('form_fill_unsupported_app');
   // A read-only protected form (Task J7) is kept as a template but Word would not let anyone write it.
   if(preview?.fillable===false)fail('form_not_fillable');
@@ -99,7 +108,7 @@ async function startPlan(service,workspace,args){
   if(!service.providers?.status?.()?.connected)fail('provider_missing');
   const {history,refs}=await gatherSources(workspace,args.sources);
   const controller=new AbortController(),invoke=modelTransport(service,{signal:controller.signal});
-  const plan={id:'form-plan:'+randomUUID(),name:args.name,hash,map,source,workspace,request,answers:[],history,refs,controller,state:'running',error:null,questions:[],pending:null,answered:new Map(),pushed:new Set(),sectionSources:new Map(),activity:[],onAsk:null,createdAt:Date.now(),
+  const plan={id:'form-plan:'+randomUUID(),name:args.name,hash,map,source,direct:args.form?.direct??null,workspace,request,answers:[],history,refs,controller,state:'running',error:null,questions:[],pending:null,answered:new Map(),pushed:new Set(),sectionSources:new Map(),activity:[],onAsk:null,createdAt:Date.now(),
     card:null,approvals:0,writer:null,output:null,written:null,
     requirements:Array.isArray(args.requirements)?args.requirements.filter(x=>typeof x==='string'&&x.trim()).map(x=>x.trim().slice(0,300)).slice(0,20):[]};
   // The model answers in the sheet's JSON; a refused sheet goes back with the reason, at most three tries.
@@ -168,15 +177,17 @@ async function applyPlan(service,workspace,args){
   const relative=String(args.output??'').replaceAll('\\','/').replace(/^\.\//,'');if(!relative||path.posix.isAbsolute(relative)||/^[A-Za-z]:/.test(relative)||relative.split('/').some(part=>!part||part==='.'||part==='..'))fail('form_output_invalid');
   await mkdir(path.dirname(path.join(workspace,relative)),{recursive:true});
   const target=await scopedFile(workspace,relative,{newFile:true});
-  if(!plan.source)fail('form_source_missing');
-  const source=await scopedFile(workspace,plan.source);
-  if(path.resolve(target)===path.resolve(source))fail('form_source_protected');
+  // A direct plan carries the bytes it was made from and the document's own path (which may be outside the Workspace,
+  // opened in Office); the copy is never that path.
+  if(!plan.source&&!plan.direct)fail('form_source_missing');
+  const source=plan.direct?plan.direct.path:await scopedFile(workspace,plan.source);
+  if(source&&path.resolve(target).toLowerCase()===path.resolve(source).toLowerCase())fail('form_source_protected');
   const exists=await lstat(target).then(()=>true,error=>{if(error.code==='ENOENT')return false;throw error;});
   if(exists&&args.overwrite!==true)fail('form_output_exists');
-  const bytes=await readFile(source).catch(error=>{if(error.code==='ENOENT')fail('form_source_missing');throw error;});
+  const bytes=plan.direct?plan.direct.bytes:await readFile(source).catch(error=>{if(error.code==='ENOENT')fail('form_source_missing');throw error;});
   // A picture box takes an image file inside the Workspace only (Task J5); the writer checks it is a PNG or JPEG.
   const resolveImage=async rel=>{try{const file=await scopedFile(workspace,rel),stat=await lstat(file);return stat.isFile()&&stat.size<=20*1024*1024?await readFile(file):null;}catch{return null;}};
-  plan.writer=await createDocxWriter(bytes,{name:path.basename(plan.source),resolveImage});plan.output=args.output;plan.sourceBytes=bytes;plan.state='running';
+  plan.writer=await createDocxWriter(bytes,{name:path.basename(plan.source??plan.direct.path),resolveImage});plan.output=args.output;plan.sourceBytes=bytes;plan.state='running';
   plan.run=plan.fill.run({kind:'form_apply'}).then(()=>{if(plan.state!=='cancelled')plan.state='applied';},error=>{if(plan.state!=='cancelled'){plan.state='failed';plan.error=safeCode(error);plan.issue=String(error?.issue??'').slice(0,500)||null;}});
   await settle(plan);return finish(plan);
 }
