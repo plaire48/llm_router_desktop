@@ -16,7 +16,8 @@ export class Store {
       // Wait only for ownership; no task, tool or write is replayed.
       this.owner.exec(`PRAGMA busy_timeout=${ownerWaitMs}; BEGIN IMMEDIATE`);
       this.db = new DatabaseSync(path.join(directory, 'workspace.db'));
-      this.db.exec('PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS records (key TEXT PRIMARY KEY, value TEXT NOT NULL); CREATE TABLE IF NOT EXISTS events (sequence INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, kind TEXT NOT NULL, value TEXT NOT NULL);');
+      // busy_timeout first: switching to WAL can meet a closing reader (the mail list worker) for a moment.
+      this.db.exec('PRAGMA busy_timeout=5000; PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS records (key TEXT PRIMARY KEY, value TEXT NOT NULL); CREATE TABLE IF NOT EXISTS events (sequence INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, kind TEXT NOT NULL, value TEXT NOT NULL);');
       // SQLite LIKE uses NOCASE by default; the binary primary key cannot serve
       // these prefix reads, so otherwise each status field scans all history.
       this.db.exec('CREATE INDEX IF NOT EXISTS records_prefix ON records(key COLLATE NOCASE)');

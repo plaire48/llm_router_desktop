@@ -9844,6 +9844,720 @@
       "reviewer": "Codex",
       "reviewedAt": "2026-10-20",
       "reviewCard": 224
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "0f856bb077f05a89",
+      "occurrences": 2,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 270
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "f91e5fc00d524072",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 271
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "9a643aafc74ec140",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 272
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "ba0631253cbd915c",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 273
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "94691f5b99ab8c54",
+      "occurrences": 29,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 274
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "81e892cd8e92203a",
+      "occurrences": 2,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 275
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "221cd0956a154393",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 276
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "b59339fc32f3191e",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 277
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "25b1d0af3d50440c",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 278
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "480451e26e192c27",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 279
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "f2badd25c51293df",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 280
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "2ad2f46ea3977271",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 281
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "beb7201c0a1839d1",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 282
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "a0324c8888670353",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 283
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "6e9c3656d4c0cb7c",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 284
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "7075a32448126017",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 285
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "0851a3fb296b6051",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 286
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "77101d90fd1a2b81",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 287
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "8d639ac830efbda2",
+      "occurrences": 2,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 288
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "1d3e1f1bd56db6a1",
+      "occurrences": 2,
+      "classification": "public_organization_contact",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed public issuer, security, mailing list or bug-reporting contact documented by the upstream distribution; not an application user contact. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 289
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "c65c5c7dcc362bac",
+      "occurrences": 2,
+      "classification": "public_organization_contact",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed public issuer, security, mailing list or bug-reporting contact documented by the upstream distribution; not an application user contact. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 290
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "6b9536b43b85f851",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 291
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "836496313e3e14db",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 292
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "5c6390c62a355b5e",
+      "occurrences": 2,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 293
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "b6dd8312ba44d7cc",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 294
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "59190f05e806055f",
+      "occurrences": 7,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 223
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "3c51116159b668a4",
+      "occurrences": 7,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 224
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "c226a67a68d4b072",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 295
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "3c4d7b93e02c747f",
+      "occurrences": 2,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 296
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "4bafcb8c075f0e3a",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 297
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "f7d319ffc1b0b628",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 298
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "a6eb13730e55ea72",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 299
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "91e10d9cd422c9de",
+      "occurrences": 2,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 300
+    },
+    {
+      "path": "LICENSES.chromium.html",
+      "sha256": "5d545ce8065079f38a82472ab93bd62fcdf73cd319f0771ef51c45c7e243f1d4",
+      "kind": "email",
+      "fingerprint": "5aadf5e67b072e6a",
+      "occurrences": 2,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "LICENSES.chromium.html"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the Electron win32-x64 ZIP verified against electron checksums.json.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 301
+    },
+    {
+      "path": "resources/app.asar.unpacked/node_modules/@vscode/ripgrep-win32-x64/bin/rg.exe",
+      "sha256": "f9dde63498b3193f098355dbec97af99dc4f6b8fa0df5ed04114a03012c042cb",
+      "kind": "email",
+      "fingerprint": "2c1aec01316a2b44",
+      "occurrences": 2,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://registry.npmjs.org/@vscode/ripgrep-win32-x64/-/ripgrep-win32-x64-1.18.0.tgz",
+        "integrity": "sha512-KNPvtElldqILHdnAetujPaowkNbpqJy3ssIGGN6F6Kve9Qi+nNLI2DN01O83JjCEVQbCzl8Ov3QZ9Eov3BR8Dg==",
+        "artifactPath": "package/bin/rg.exe"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the integrity-verified public npm tarball.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 22
+    },
+    {
+      "path": "resources/app.asar.unpacked/node_modules/@vscode/ripgrep-win32-x64/bin/rg.exe",
+      "sha256": "f9dde63498b3193f098355dbec97af99dc4f6b8fa0df5ed04114a03012c042cb",
+      "kind": "email",
+      "fingerprint": "897e2313c48892da",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://registry.npmjs.org/@vscode/ripgrep-win32-x64/-/ripgrep-win32-x64-1.18.0.tgz",
+        "integrity": "sha512-KNPvtElldqILHdnAetujPaowkNbpqJy3ssIGGN6F6Kve9Qi+nNLI2DN01O83JjCEVQbCzl8Ov3QZ9Eov3BR8Dg==",
+        "artifactPath": "package/bin/rg.exe"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the integrity-verified public npm tarball.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 23
+    },
+    {
+      "path": "resources/app.asar.unpacked/node_modules/@vscode/ripgrep-win32-x64/bin/rg.exe",
+      "sha256": "f9dde63498b3193f098355dbec97af99dc4f6b8fa0df5ed04114a03012c042cb",
+      "kind": "email",
+      "fingerprint": "04423285ad06faf6",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://registry.npmjs.org/@vscode/ripgrep-win32-x64/-/ripgrep-win32-x64-1.18.0.tgz",
+        "integrity": "sha512-KNPvtElldqILHdnAetujPaowkNbpqJy3ssIGGN6F6Kve9Qi+nNLI2DN01O83JjCEVQbCzl8Ov3QZ9Eov3BR8Dg==",
+        "artifactPath": "package/bin/rg.exe"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the integrity-verified public npm tarball.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 20
+    },
+    {
+      "path": "resources/app.asar.unpacked/node_modules/@vscode/ripgrep-win32-x64/bin/rg.exe",
+      "sha256": "f9dde63498b3193f098355dbec97af99dc4f6b8fa0df5ed04114a03012c042cb",
+      "kind": "email",
+      "fingerprint": "06b3686b4d875347",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://registry.npmjs.org/@vscode/ripgrep-win32-x64/-/ripgrep-win32-x64-1.18.0.tgz",
+        "integrity": "sha512-KNPvtElldqILHdnAetujPaowkNbpqJy3ssIGGN6F6Kve9Qi+nNLI2DN01O83JjCEVQbCzl8Ov3QZ9Eov3BR8Dg==",
+        "artifactPath": "package/bin/rg.exe"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the integrity-verified public npm tarball.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 21
+    },
+    {
+      "path": "resources/app.asar/node_modules/@vscode/ripgrep-win32-x64/bin/rg.exe",
+      "sha256": "f9dde63498b3193f098355dbec97af99dc4f6b8fa0df5ed04114a03012c042cb",
+      "kind": "email",
+      "fingerprint": "2c1aec01316a2b44",
+      "occurrences": 2,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://registry.npmjs.org/@vscode/ripgrep-win32-x64/-/ripgrep-win32-x64-1.18.0.tgz",
+        "integrity": "sha512-KNPvtElldqILHdnAetujPaowkNbpqJy3ssIGGN6F6Kve9Qi+nNLI2DN01O83JjCEVQbCzl8Ov3QZ9Eov3BR8Dg==",
+        "artifactPath": "package/bin/rg.exe"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the integrity-verified public npm tarball.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 22
+    },
+    {
+      "path": "resources/app.asar/node_modules/@vscode/ripgrep-win32-x64/bin/rg.exe",
+      "sha256": "f9dde63498b3193f098355dbec97af99dc4f6b8fa0df5ed04114a03012c042cb",
+      "kind": "email",
+      "fingerprint": "897e2313c48892da",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://registry.npmjs.org/@vscode/ripgrep-win32-x64/-/ripgrep-win32-x64-1.18.0.tgz",
+        "integrity": "sha512-KNPvtElldqILHdnAetujPaowkNbpqJy3ssIGGN6F6Kve9Qi+nNLI2DN01O83JjCEVQbCzl8Ov3QZ9Eov3BR8Dg==",
+        "artifactPath": "package/bin/rg.exe"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the integrity-verified public npm tarball.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 23
+    },
+    {
+      "path": "resources/app.asar/node_modules/@vscode/ripgrep-win32-x64/bin/rg.exe",
+      "sha256": "f9dde63498b3193f098355dbec97af99dc4f6b8fa0df5ed04114a03012c042cb",
+      "kind": "email",
+      "fingerprint": "04423285ad06faf6",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://registry.npmjs.org/@vscode/ripgrep-win32-x64/-/ripgrep-win32-x64-1.18.0.tgz",
+        "integrity": "sha512-KNPvtElldqILHdnAetujPaowkNbpqJy3ssIGGN6F6Kve9Qi+nNLI2DN01O83JjCEVQbCzl8Ov3QZ9Eov3BR8Dg==",
+        "artifactPath": "package/bin/rg.exe"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the integrity-verified public npm tarball.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 20
+    },
+    {
+      "path": "resources/app.asar/node_modules/@vscode/ripgrep-win32-x64/bin/rg.exe",
+      "sha256": "f9dde63498b3193f098355dbec97af99dc4f6b8fa0df5ed04114a03012c042cb",
+      "kind": "email",
+      "fingerprint": "06b3686b4d875347",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://registry.npmjs.org/@vscode/ripgrep-win32-x64/-/ripgrep-win32-x64-1.18.0.tgz",
+        "integrity": "sha512-KNPvtElldqILHdnAetujPaowkNbpqJy3ssIGGN6F6Kve9Qi+nNLI2DN01O83JjCEVQbCzl8Ov3QZ9Eov3BR8Dg==",
+        "artifactPath": "package/bin/rg.exe"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Exact file bytes match the integrity-verified public npm tarball.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 21
     }
   ]
 }

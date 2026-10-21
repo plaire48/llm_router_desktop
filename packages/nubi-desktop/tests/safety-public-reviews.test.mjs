@@ -11,3 +11,11 @@ test('reviews cannot authorize key patterns, missing provenance, fingerprints fr
  const dup=await inspectSafetyBundle({directory:dir,publicReviews:{version:1,findings:[review,review]}});assert.equal(dup.ok,false);
  await writeFile(path.join(dir,'key.txt'),'ghp_'+'Dd49'.repeat(9));const result=await inspectSafetyBundle({directory:dir,publicReviews:{version:1,findings:[review]}});assert(result.issues.some(x=>x.kind==='secret'));
 }));
+test('a blocking bundle finding carries the exact file hash for review pinning',async()=>{
+ const dir=await mkdtemp(path.join(os.tmpdir(),'safety-hash-'));try{
+  const bytes=Buffer.from('author '+'someone'+'@public-upstream.dev');await writeFile(path.join(dir,'notice.txt'),bytes);
+  const result=await inspectSafetyBundle({directory:dir,publicReviews:{version:1,findings:[]}});
+  const finding=result.issues.find(x=>x.code==='safety_sensitive_pattern');assert.equal(result.ok,false);
+  assert.equal(finding.sha256,createHash('sha256').update(bytes).digest('hex'));
+ }finally{await rm(dir,{recursive:true,force:true});}
+});

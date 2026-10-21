@@ -68,7 +68,11 @@ export async function inspectSafetyTree({paths,readCandidate}){
 
 export async function inspectSafetyBundle({directory,publicReviews}){
  const reviews=createPublicReviewIndex(publicReviews),root=await realpath(path.resolve(directory)),issues=reviews.issues,publicAttributions=[],reviewedPublicFindings=[],visited=new Set();let checked=0,archiveFiles=0;
- const record=(file,bytes)=>{checked++;for(const finding of reviews.classify(file,bytes,scanSensitivePatterns(file,bytes,{classifyPublicAttribution:true})))(finding.disposition==='public_attribution'?publicAttributions:finding.disposition==='reviewed_public_data'?reviewedPublicFindings:issues).push(finding);};
+ const record=(file,bytes)=>{checked++;let sha256;for(const finding of reviews.classify(file,bytes,scanSensitivePatterns(file,bytes,{classifyPublicAttribution:true}))){
+  if(finding.disposition==='public_attribution')publicAttributions.push(finding);else if(finding.disposition==='reviewed_public_data')reviewedPublicFindings.push(finding);
+  // A blocking finding carries the exact file hash, so a review can pin these bytes without another build.
+  else issues.push(finding.code==='safety_sensitive_pattern'?{...finding,sha256:sha256??=hash(bytes)}:finding);
+ }};
  const inspectFile=async(absolute,file)=>{
    if(visited.has(absolute))return;visited.add(absolute);
    try{
@@ -77,20 +81,21 @@ export async function inspectSafetyBundle({directory,publicReviews}){
      for(const name of asar.listPackage(absolute)){
       const member=name.replaceAll('\\','/').replace(/^\//,'');
       if(!member||member.split('/').some(p=>p==='..'||p==='')){issues.push({code:'safety_archive_path',path:file});continue;}
-      const node=asar.statFile(absolute,member,false),display=file+'/'+member;
+      // @electron/asar splits member paths with path.sep, so Windows needs backslashes (forward slashes found nothing and hid the whole archive).
+      const inner=member.split('/').join(path.sep),node=asar.statFile(absolute,inner,false),display=file+'/'+member;
       if(node.link){issues.push({code:'safety_bundle_link',path:display});continue;}
       if(node.files)continue;
       if(verification(member)){issues.push({code:'safety_upload_path',path:display});continue;}
       if(/\.(?:asar|zip|7z|gz|tgz|tar)$/i.test(member)){issues.push({code:'safety_archive_unsupported',path:display});continue;}
       if(node.unpacked){
-       const physical=absolute+'.unpacked/'+member;
+       const physical=path.join(absolute+'.unpacked',inner);
        // Every ancestor must stay inside the payload and must not be a link.
        for(let check=physical;check!==root;check=path.dirname(check)){
         if(!check.startsWith(root+path.sep)||(await lstat(check)).isSymbolicLink())throw Error('unsafe_unpacked');
        }
        if(!((await realpath(physical)).startsWith(root+path.sep)))throw Error('unsafe_unpacked');
       }
-      record(display,asar.extractFile(absolute,member,false));archiveFiles++;
+      record(display,asar.extractFile(absolute,inner,false));archiveFiles++;
      }
      asar.uncache(absolute);
     }else if(/\.(?:zip|7z|gz|tgz|tar)$/i.test(file))issues.push({code:'safety_archive_unsupported',path:file});
