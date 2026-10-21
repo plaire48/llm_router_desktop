@@ -61,9 +61,16 @@ try{
   // 1. The worker is killed: a child of the Electron process this check started.
   const mainPid=app.process().pid;
   // Windows has no pgrep/ps: the children of the main process and their command lines come from Win32_Process.
-  const childProcesses=()=>process.platform==='win32'
-    ?execFileSync('powershell.exe',['-NoLogo','-NoProfile','-NonInteractive','-Command',`Get-CimInstance Win32_Process -Filter 'ParentProcessId=${Number(mainPid)}' | ForEach-Object { [string]$_.ProcessId + [char]9 + [string]$_.CommandLine }`],{encoding:'utf8'}).split(/\r?\n/).filter(Boolean).map(line=>{const [pid,...rest]=line.split('\t');return {pid:pid.trim(),command:rest.join('\t')};})
-    :execFileSync('pgrep',['-P',String(mainPid)]).toString().trim().split('\n').filter(Boolean).map(pid=>{try{return {pid,command:execFileSync('ps',['-o','command=','-p',pid]).toString()};}catch{return {pid,command:''};}});
+  // Windows has no pgrep/ps. Win32_Process gives every process with its parent and command line; the worker is looked
+  // for among all descendants of the launched process, since a launcher may stand between it and the main process.
+  const childProcesses=()=>{
+    if(process.platform!=='win32')return execFileSync('pgrep',['-P',String(mainPid)]).toString().trim().split('\n').filter(Boolean).map(pid=>{try{return {pid,command:execFileSync('ps',['-o','command=','-p',pid]).toString()};}catch{return {pid,command:''};}});
+    const rows=JSON.parse(execFileSync('powershell.exe',['-NoLogo','-NoProfile','-NonInteractive','-Command','Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,CommandLine | ConvertTo-Json -Compress'],{encoding:'utf8',maxBuffer:32*1024*1024}));
+    const list=(Array.isArray(rows)?rows:[rows]).map(row=>({pid:String(row.ProcessId),parent:String(row.ParentProcessId),command:String(row.CommandLine??'')}));
+    const found=[],queue=[String(mainPid)];
+    while(queue.length){const parent=queue.shift();for(const row of list)if(row.parent===parent&&!found.includes(row)){found.push(row);queue.push(row.pid);}}
+    return found;
+  };
   const worker=childProcesses().find(row=>row.command.includes('service-entry.mjs'))?.pid;
   assert.ok(worker,'the worker is a child of the main process');
   await page.evaluate(()=>{window.__hostEvents=[];window.nubi.onHostEvent(event=>window.__hostEvents.push(event));});
