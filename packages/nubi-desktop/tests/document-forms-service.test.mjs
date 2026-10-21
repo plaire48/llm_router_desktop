@@ -165,4 +165,10 @@ test('registration opens the form in Office: the connected host captures everyth
   const stored=JSON.parse(await readFile(path.join(f.root,'.nubi','forms','기안문','capture.json'),'utf8'));
   assert.deepEqual([stored.engine,stored.assets[0].path,stored.document.images[0].asset],['office','assets/image-1.png','image-1']);
   assert.equal((await readFile(path.join(f.root,'.nubi','forms','기안문','source.docx'))).length,(await readFile(source)).length);
+  const {xlsxFixture}=await import('./helpers-office-fixtures.mjs');await writeFile(path.join(f.root,'서식','견적서.xlsx'),await xlsxFixture());
+  await assert.rejects(s.invoke('documentForm',{action:'register',projectId,taskId:task.id,source:'서식/견적서.xlsx'}),/form_office_app_mismatch/,'a Word connection does not capture an Excel file');
+  const sheet=await s.invoke('documentForm',{action:'register',projectId,source:'서식/견적서.xlsx',engine:'file',acknowledgeFileOnly:true});
+  assert.deepEqual([sheet.capture.app,sheet.preview.fillable],['excel',false]);
+  await assert.rejects(s.invoke('documentForm',{action:'questions',projectId,name:'견적서'}),/form_fill_unsupported_app/);
+  await assert.rejects(s.invoke('documentForm',{action:'plan',projectId,name:'견적서',request:'견적'}),/form_fill_unsupported_app/);
 });

@@ -83,3 +83,13 @@ test('the Office fill writes a whole sheet into the copy, applies nothing the se
   assert.equal(after.items.find(item=>item.id==='t2/r3/c3').text,'보고');
   assert.deepEqual(after.items.filter(item=>item.kind==='paragraph'&&['계약 협의','후속 보고'].includes(item.text)).map(item=>item.style),['본문','본문']);
 });
+
+test('a paragraph added to a section does not make the paragraphs after it look changed (forms baseline 1차, trip)',async()=>{
+  const source=await docxFromBlocks(FORMS.trip),before=await docxSnapshot(source);
+  const last=before.items.filter(item=>item.kind==='paragraph'&&item.text==='(출장 결과와 후속 조치를 기재)')[0];
+  const {buffer}=await applyDocxOperations(source,[{type:'replace_text',targetId:last.id,text:'이상 없음'},{type:'insert_paragraphs',after:last.id,like:last.id,paragraphs:[{text:'다음 점검은 12월'}]}]);
+  const check=await verifyDocxCopy(source,buffer,{targets:[last.id]});
+  assert.deepEqual(check.changedParagraphs.map(c=>[c.kind,c.id,c.beforeId??null]),[['changed',last.id,last.id],['inserted','p-'+(Number(last.id.slice(2))+1),null]]);
+  assert.deepEqual(check.violations.map(v=>v.kind),['inserted'],'an insertion the targets do not list is still reported');
+  const allowed=await verifyDocxCopy(source,buffer,{targets:[last.id,'p-'+(Number(last.id.slice(2))+1)]});assert.deepEqual(allowed.violations,[]);
+});

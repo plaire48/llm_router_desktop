@@ -11,7 +11,7 @@ function pageOf(document){
   return {width:points(size?.attrs['w:w'])??595,height:points(size?.attrs['w:h'])??842,TopMargin:points(margin?.attrs['w:top'])??72,BottomMargin:points(margin?.attrs['w:bottom'])??72,LeftMargin:points(margin?.attrs['w:left'])??72,RightMargin:points(margin?.attrs['w:right'])??72,changed:false};
 }
 // Longest common subsequence of two text lists: pairs of matching indexes in order.
-function align(a,b){
+export function align(a,b){
   const n=a.length,m=b.length,table=Array.from({length:n+1},()=>new Uint16Array(m+1));
   for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)table[i][j]=a[i]===b[j]?table[i+1][j+1]+1:Math.max(table[i+1][j],table[i][j+1]);
   const pairs=[];let i=0,j=0;

@@ -1,0 +1,92 @@
+{
+ "model": "claude-sonnet-5-5",
+ "connection": {
+  "provider": "claude",
+  "model": "claude-sonnet-5-5"
+ },
+ "soffice": "available",
+ "startedAt": "2026-10-21T00:12:20.510Z",
+ "summary": {
+  "cases": 5,
+  "success": 5,
+  "meanAccuracy": 1,
+  "preserved": 5,
+  "opened": 5,
+  "medianMs": 17349,
+  "modelCalls": 18
+ },
+ "cases": [
+  {
+   "id": "gianmun",
+   "success": true,
+   "accuracy": 1,
+   "preserved": true,
+   "opened": true,
+   "asksOk": true,
+   "guidesLeft": 0,
+   "modelCalls": 5,
+   "ms": 20419,
+   "checks": "칸 6/6, 목차 3/3, 남은 안내 문구 0, 서식 유지, 근거 확인",
+   "asked": []
+  },
+  {
+   "id": "trip",
+   "success": true,
+   "accuracy": 1,
+   "preserved": true,
+   "opened": true,
+   "asksOk": true,
+   "guidesLeft": 0,
+   "modelCalls": 4,
+   "ms": 17349,
+   "checks": "칸 4/4, 목차 2/2, 남은 안내 문구 0, 서식 유지, 근거 확인",
+   "asked": []
+  },
+  {
+   "id": "pumui",
+   "success": true,
+   "accuracy": 1,
+   "preserved": true,
+   "opened": true,
+   "asksOk": true,
+   "guidesLeft": 0,
+   "modelCalls": 1,
+   "ms": 6198,
+   "checks": "칸 7/7, 목차 0/0, 남은 안내 문구 0, 서식 유지, 근거 확인",
+   "asked": []
+  },
+  {
+   "id": "weekly",
+   "success": true,
+   "accuracy": 1,
+   "preserved": true,
+   "opened": true,
+   "asksOk": true,
+   "guidesLeft": 0,
+   "modelCalls": 3,
+   "ms": 14672,
+   "checks": "칸 2/2, 목차 1/1, 남은 안내 문구 0, 서식 유지, 근거 확인",
+   "asked": []
+  },
+  {
+   "id": "trip-missing",
+   "success": true,
+   "accuracy": 1,
+   "preserved": true,
+   "opened": true,
+   "asksOk": true,
+   "guidesLeft": 0,
+   "modelCalls": 5,
+   "ms": 20812,
+   "checks": "칸 4/4, 목차 2/2, 남은 안내 문구 0, 서식 유지, 근거 확인",
+   "asked": [
+    "s4"
+   ]
+  }
+ ],
+ "notes": [
+  "1차: trip 보존 실패는 검증의 문단 id 비교 결함(새 문단 뒤 마지막 빈 문단이 바뀐 것으로 보임) → 글자 정렬로 수정",
+  "렌더(Mac LibreOffice): 1~2차는 한글이 네모로 나옴(fontconfig가 macOS 글꼴을 못 봄) → fonts.conf로 수정, 3차 확인",
+  "새로 만들기 2과제(document-agent createWordDocument)는 이번 기준선에 없음"
+ ]
+}

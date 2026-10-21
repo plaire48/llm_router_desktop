@@ -34,3 +34,13 @@ test('with soffice a synthetic form renders to PNG pages beside a PDF, before an
     assert.ok((await readFile(result.pdf)).subarray(0,4).toString()==='%PDF');
   }
 });
+
+test('on macOS a Korean form renders with a Korean system font, not missing-glyph boxes',async t=>{
+  if(process.platform!=='darwin'||!await findSoffice()){t.diagnostic('macOS with LibreOffice only');return;}
+  const dir=await realpath(await mkdtemp(path.join(os.tmpdir(),'nubi-render-')));t.after(()=>rm(dir,{recursive:true,force:true}));
+  const file=path.join(dir,'한글.docx');await writeFile(file,await docxFromBlocks([{p:{runs:[{text:'한글 글꼴 확인',font:'맑은 고딕'}]}}]));
+  const result=await renderDocumentPages(file,{outDir:path.join(dir,'out'),maxPages:1});
+  assert.equal(result.status,'rendered');
+  const fonts=[...new Set((await readFile(result.pdf)).toString('latin1').match(/\/BaseFont\s*\/[A-Za-z0-9+_-]+/g)??[])].join(' ');
+  assert.match(fonts,/AppleGothic|AppleSDGothic|AppleMyungjo|Nanum|NotoSansCJK|NotoSansKR/,'a Korean font is embedded: '+fonts);
+});

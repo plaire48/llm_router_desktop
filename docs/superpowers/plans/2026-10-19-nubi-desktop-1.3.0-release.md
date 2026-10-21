@@ -261,6 +261,8 @@
 
 > **Actions 35차 녹색(2026-10-21 07:58~08:30, Claude, 39513949062, Office Task C documentForm와 양식 부품 번들 21파일 f09e0534):** unit 13분 54초, ui 7분 15초. 16~35차 연속 녹색. 공유 파일 4개(package.json, gate-baseline.json, build-runtime.mjs, project-service.mjs)는 OVERRIDE로 main+이 변경만.
 
+> **Actions 36차, 37차 녹색(2026-10-21, Claude):** 36차 39515536431 d092c2d7(Office Task D/E 10파일) unit 14분 22초, ui 8분 28초. 37차 39518886028 2709b4db(Office 캡처 계약과 등록, 비교 DTO §8 답 33, 15파일) unit 11분 44초, ui 9분 02초. 16~37차 연속 녹색.
+
 > 우선순위 변경(2026-10-21 02:50, 사용자): 1.3.0 릴리스 절차보다 현재 기능 고도화가 최우선이다. Task 11~13은 Claude가 문서 양식 작성 계획(docs/superpowers/plans/2026-10-21-nubi-document-forms.md)으로 이어받고, 릴리스 전용 과제와 릴리스 입력 게이트 기본 켬은 보류한다. 업로드 전 CI 녹색 확인은 유지한다.
 
 ## Task R1: 게이트를 GitHub Actions로

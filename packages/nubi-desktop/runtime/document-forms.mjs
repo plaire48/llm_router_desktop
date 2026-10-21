@@ -5,7 +5,7 @@
 import {mkdir,readFile,writeFile,readdir,realpath,lstat} from 'node:fs/promises';
 import path from 'node:path';
 import {extractFormMap} from './docx-snapshot.mjs';
-import {docxCapture} from './docx-capture.mjs';
+import {captureOfficeFile,officeAppOf} from './office-file-capture.mjs';
 import {validateCapture,captureRecord,captureSummary} from './office-capture.mjs';
 import {mapSummary} from '../generated/office-forms.mjs';
 import {scopedFile,hash,fail} from './files.mjs';
@@ -24,7 +24,9 @@ async function formDir(workspace,name,{create=false}={}){
 }
 /** A readable summary of a map for the registration card: no values, labels and kinds only. */
 export function formPreview(map,{name,source,registeredAt,capture=null}){
-  return {name,source,registeredAt,summary:mapSummary(map),...(capture?{engine:capture.engine,fidelity:capture.fidelity,app:capture.app,office:capture.office??null,capture:captureSummary(capture)}:{}),
+  // Excel and PowerPoint forms are stored whole now; their fill maps come later, so their preview is the capture's.
+  if(!map)return {name,source,registeredAt,summary:capture?captureSummary(capture):'',fillable:false,slots:[],sections:[],notes:[],unsure:0,...(capture?{engine:capture.engine,fidelity:capture.fidelity,app:capture.app,office:capture.office??null,capture:captureSummary(capture)}:{})};
+  return {name,source,registeredAt,summary:mapSummary(map),fillable:true,...(capture?{engine:capture.engine,fidelity:capture.fidelity,app:capture.app,office:capture.office??null,capture:captureSummary(capture)}:{}),
     slots:map.slots.map(slot=>({id:slot.id,kind:slot.kind,label:slot.label,...(slot.valueType?{valueType:slot.valueType}:{}),required:slot.required!==false,...(slot.header?{header:slot.header,emptyRows:slot.emptyRows}:{}),...(slot.guides?{guides:slot.guides}:{})})),
     sections:map.sections.map(section=>({id:section.id,title:section.title,needsText:section.needsText,...(section.listString?{listString:section.listString}:{})})),
     notes:map.notes.map(note=>note.text),unsure:map.unsure.length};
@@ -34,10 +36,13 @@ export function formPreview(map,{name,source,registeredAt,capture=null}){
 export async function registerForm({workspace,source,name,capture=null}){
   if(typeof source!=='string'||!source)fail('form_source_required');
   const formName=name?safeFormName(name):formNameFromFile(source);
+  const app=officeAppOf(source);if(!app)fail('form_format_unsupported');
   const bytes=await readFile(source).catch(error=>{if(error.code==='ENOENT')fail('form_source_missing');throw error;});
-  const {map,hash:sourceHash,items}=await extractFormMap(bytes,{name:path.basename(source)});
-  const captured=validateCapture(capture??await docxCapture(bytes,{name:path.basename(source)}));
-  if(captured.source.hash!==sourceHash)fail('form_capture_source_mismatch');
+  const sourceHash=hash(bytes);
+  // Word forms get the fill map now; Excel and PowerPoint forms are captured and kept whole.
+  const {map,items}=app==='word'?await extractFormMap(bytes,{name:path.basename(source)}):{map:null,items:null};
+  const captured=validateCapture(capture??await captureOfficeFile(bytes,{name:path.basename(source)}));
+  if(captured.source.hash!==sourceHash||captured.app!==app)fail('form_capture_source_mismatch');
   const {root,rel}=await formDir(workspace,formName,{create:true});
   const registeredAt=new Date().toISOString();
   const sourceRel=path.isAbsolute(source)&&(await realpath(source)).startsWith(root+path.sep)?path.relative(root,await realpath(source)):null;
@@ -53,33 +58,35 @@ export async function registerForm({workspace,source,name,capture=null}){
     const assetRel=`assets/${asset.id}${extensionOf}`;await writeFile(await scopedFile(root,`${rel}/${assetRel}`,{newFile:true}),asset.bytes);assetPaths.set(asset.id,assetRel);
   }
   await writeFile(await scopedFile(root,`${rel}/capture.json`,{newFile:true}),JSON.stringify(captureRecord(captured,assetPaths),null,0)+'\n');
-  await writeFile(await scopedFile(root,`${rel}/form-map.json`,{newFile:true}),JSON.stringify({...map,registeredAt},null,1)+'\n');
+  if(map)await writeFile(await scopedFile(root,`${rel}/form-map.json`,{newFile:true}),JSON.stringify({...map,registeredAt},null,1)+'\n');
   await writeFile(await scopedFile(root,`${rel}/source.sha256`,{newFile:true}),sourceHash+(sourceRel?' '+sourceRel:'')+'\n');
   await writeFile(await scopedFile(root,`${rel}/preview.json`,{newFile:true}),JSON.stringify(preview,null,1)+'\n');
   // The form's own items (labels and guide text, no values): the fill run's ledger needs them without the source file.
-  await writeFile(await scopedFile(root,`${rel}/items.json`,{newFile:true}),JSON.stringify(items,null,0)+'\n');
+  if(items)await writeFile(await scopedFile(root,`${rel}/items.json`,{newFile:true}),JSON.stringify(items,null,0)+'\n');
   return {name:formName,map,hash:sourceHash,preview,changed:false,copy:copyRel,capture:{engine:captured.engine,fidelity:captured.fidelity,app:captured.app,summary:captureSummary(captured),assets:assetPaths.size}};
 }
 /** The kept map; `changed` says whether the source file (when it is still in the Workspace) differs from the registered one. */
 export async function loadForm(workspace,name,{source}={}){
   const {root,rel}=await formDir(workspace,name);
-  let text;try{text=await readFile(await scopedFile(root,`${rel}/form-map.json`),'utf8');}catch(error){if(error.code==='ENOENT')fail('form_missing');throw error;}
-  let map;try{map=JSON.parse(text);}catch{fail('form_map_invalid');}
-  if(map?.kind!=='template_map'||!Array.isArray(map.slots))fail('form_map_invalid');
+  // A Word form has a fill map; an Excel or PowerPoint form has its capture only. A folder with neither is not a form.
+  let text=null;try{text=await readFile(await scopedFile(root,`${rel}/form-map.json`),'utf8');}catch(error){if(error.code!=='ENOENT')throw error;}
+  let map=null;
+  if(text!==null){try{map=JSON.parse(text);}catch{fail('form_map_invalid');}if(map?.kind!=='template_map'||!Array.isArray(map.slots))fail('form_map_invalid');}
   const record=(await readFile(await scopedFile(root,`${rel}/source.sha256`),'utf8').catch(()=>'')).trim(),[registeredHash,...rest]=record.split(' '),sourceRel=rest.join(' ')||null;
-  const preview=JSON.parse(await readFile(await scopedFile(root,`${rel}/preview.json`),'utf8').catch(()=>'null'));
-  const items=JSON.parse(await readFile(await scopedFile(root,`${rel}/items.json`),'utf8').catch(()=>'null'));
-  const capture=JSON.parse(await readFile(await scopedFile(root,`${rel}/capture.json`),'utf8').catch(()=>'null'));
+  // Files a form may lack (an Excel form has no items, an older registration no capture) read as null.
+  const optional=async file=>{try{return JSON.parse(await readFile(await scopedFile(root,`${rel}/${file}`),'utf8'));}catch(error){if(error.code==='ENOENT'||error instanceof SyntaxError)return null;throw error;}};
+  const preview=await optional('preview.json'),items=await optional('items.json'),capture=await optional('capture.json');
   const copy=(await readdir(path.join(root,rel))).find(entry=>/^source\.[a-z0-9]+$/.test(entry))??null;
+  if(!map&&!capture)fail('form_missing');
   const candidate=source??(sourceRel?path.join(root,sourceRel):null);
   let changed=null;
   if(candidate){try{changed=hash(await readFile(candidate))!==registeredHash;}catch(error){if(error.code!=='ENOENT')throw error;changed=null;}}
-  return {name,map,items:Array.isArray(items)?items:null,hash:registeredHash,source:sourceRel,copy:copy?`${rel}/${copy}`:null,capture:capture&&typeof capture==='object'?capture:null,preview,changed};
+  return {name,app:capture?.app??(map?'word':null),map,items:Array.isArray(items)?items:null,hash:registeredHash,source:sourceRel,copy:copy?`${rel}/${copy}`:null,capture:capture&&typeof capture==='object'?capture:null,preview,changed};
 }
 export async function listForms(workspace){
   const root=await realpath(workspace);let names=[];
   try{names=(await readdir(path.join(root,FORMS_DIR),{withFileTypes:true})).filter(e=>e.isDirectory()&&NAME.test(e.name)).map(e=>e.name);}catch(error){if(error.code!=='ENOENT')throw error;}
-  const forms=[];for(const name of names.sort()){try{const {preview,hash:sourceHash}=await loadForm(workspace,name);forms.push({name,summary:preview?.summary??'',registeredAt:preview?.registeredAt??null,hash:sourceHash});}catch{/* A broken folder is not listed. */}}
+  const forms=[];for(const name of names.sort()){try{const {preview,hash:sourceHash}=await loadForm(workspace,name);forms.push({name,summary:preview?.summary??'',registeredAt:preview?.registeredAt??null,hash:sourceHash,app:preview?.app??'word',fillable:preview?.fillable!==false,fidelity:preview?.fidelity??null});}catch{/* A broken folder is not listed. */}}
   return forms;
 }
 const groupOf=slot=>slot.kind==='cell'?slot.target.split('/')[0]:slot.kind==='rows'?slot.target:slot.section??'body';

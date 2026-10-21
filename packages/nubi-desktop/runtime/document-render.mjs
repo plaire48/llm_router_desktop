@@ -4,7 +4,7 @@
 // with Office itself. Nothing here writes the source document: LibreOffice reads it and writes into outDir.
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
-import {mkdir,readFile,rename,access,readdir,rm} from 'node:fs/promises';
+import {mkdir,readFile,rename,access,readdir,rm,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 
@@ -30,9 +30,20 @@ async function pageCount(pdfPath){
     const matches=bytes.toString('latin1').match(/\/Type\s*\/Page(?![s\w])/g);return Math.max(1,matches?.length??1);
   }
 }
+// Headless LibreOffice on macOS draws through fontconfig, which does not see the system fonts: Korean became boxes and
+// the PDF embedded LinuxLibertine (measured 2026-10-21, forms baseline renders). A fontconfig file naming the macOS font
+// folders gives it Apple SD Gothic Neo and the rest. Elsewhere the system fontconfig is used as it is.
+const MAC_FONT_DIRS=['/System/Library/Fonts','/System/Library/Fonts/Supplemental','/Library/Fonts',path.join(process.env.HOME??'','Library/Fonts')];
+async function fontEnvironment(profile){
+  if(process.platform!=='darwin'||process.env.FONTCONFIG_FILE)return process.env;
+  const file=path.join(profile,'fonts.conf'),cache=path.join(profile,'fontconfig-cache');
+  const escape=value=>value.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  await writeFile(file,`<?xml version="1.0"?>\n<!DOCTYPE fontconfig SYSTEM "fonts.dtd">\n<fontconfig>${MAC_FONT_DIRS.map(dir=>`<dir>${escape(dir)}</dir>`).join('')}<cachedir>${escape(cache)}</cachedir></fontconfig>\n`);
+  return {...process.env,FONTCONFIG_FILE:file};
+}
 async function convert(soffice,profile,file,outDir,target,timeoutMs){
   await mkdir(outDir,{recursive:true});
-  await run(soffice,[`-env:UserInstallation=${pathToFileURL(profile).href}`,'--headless','--norestore','--nologo','--convert-to',target,'--outdir',outDir,file],{timeout:timeoutMs,maxBuffer:4*1024*1024});
+  await run(soffice,[`-env:UserInstallation=${pathToFileURL(profile).href}`,'--headless','--norestore','--nologo','--convert-to',target,'--outdir',outDir,file],{timeout:timeoutMs,maxBuffer:4*1024*1024,env:await fontEnvironment(profile)});
 }
 /** Renders every page (up to maxPages) of a document to PNG files in outDir. */
 export async function renderDocumentPages(file,{outDir,soffice,timeoutMs=120000,maxPages=12}={}){

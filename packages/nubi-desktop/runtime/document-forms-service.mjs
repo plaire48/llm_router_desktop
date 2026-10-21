@@ -35,7 +35,7 @@ export function installDocumentForms(Service){
       const {name,hash,preview,capture:stored,copy}=await registerForm({workspace,source,name:args.name,capture});return {name,hash,preview,capture:stored,copy};
     }
     if(action==='list')return {forms:await listForms(workspace)};
-    if(action==='questions'){const {map,hash,changed}=await loadForm(workspace,args.name);return {hash,changed,...formQuestionPlan(map,args.values&&typeof args.values==='object'?args.values:{})};}
+    if(action==='questions'){const {map,hash,changed}=await loadForm(workspace,args.name);if(!map)fail('form_fill_unsupported_app');return {hash,changed,...formQuestionPlan(map,args.values&&typeof args.values==='object'?args.values:{})};}
     if(action==='plan')return startPlan(this,workspace,args);
     if(action==='answer')return answerPlan(this,args);
     if(action==='apply')return applyPlan(this,workspace,args);
@@ -91,6 +91,7 @@ const pause=(plan,state)=>{plan.state=state;plan.onAsk?.();return new Promise((r
 
 async function startPlan(service,workspace,args){
   const {map,items,hash,source}=await loadForm(workspace,args.name);
+  if(!map)fail('form_fill_unsupported_app');
   if(!items)fail('form_items_missing');
   const request=String(args.request??'').trim();if(!request)fail('form_request_required');
   if(!service.providers?.status?.()?.connected)fail('provider_missing');
@@ -211,6 +212,8 @@ async function captureForRegistration(service,workspace,source,args){
   if(engine==='file'){if(args.acknowledgeFileOnly!==true)fail('form_office_required');return null;}
   if(engine!=='office')fail('form_engine_invalid');
   const host=nativeOfficeHost(service,args.taskId);if(!host)fail('form_office_required');
+  const {officeAppOf}=await import('./office-file-capture.mjs');
+  if(officeAppOf(source)!==host.app)fail('form_office_app_mismatch');
   const scratchRel=path.posix.join(FORMS_DIR,'.capture-'+randomUUID().slice(0,8));
   await mkdir(path.join(workspace,scratchRel),{recursive:true});
   const outDir=await scopedFile(workspace,scratchRel);

@@ -88,7 +88,8 @@
 
 - [x] Step 1: 시험(2026-10-21 11:55). `tests/docx-capture.test.mjs` 2건(run의 글꼴/크기/색/굵게/기울임, 그림 자산과 기준 문단과 크기, 머리글과 바닥글, 용지와 여백, 표 셀 폭, 계약 검증의 거절 7가지), `document-forms.test.mjs`(등록 폴더: assets, capture.json, form-map.json, items.json, preview.json, source.docx 사본, source.sha256; preview.fidelity), `document-forms-service.test.mjs` 5번째(Office 연결 없이는 `form_office_required`, file 엔진은 acknowledgeFileOnly 필수, 가짜 호스트의 `office_capture_template`로 등록하면 자산 저장과 Office로 확인함 표시, 임시 폴더 정리). `tests/docx-compare.test.mjs`(§8 답 33 비교 DTO).
 - [x] Step 2: 구현. `runtime/office-capture.mjs`(계약 v1 검증, 요약, 기록), `runtime/docx-capture.mjs`(file 엔진), `runtime/docx-compare.mjs`(기존 비교기용 before/after 블록, 문단은 글자 정렬, 셀은 자리), `document-forms.mjs`(원본 바이트 사본 읽기 전용, capture.json과 assets), `document-forms-service.mjs`(register 기본 engine office: 작업의 네이티브 Office 연결로 `office_capture_template {path,outDir,maxAssets:200,renders:true}` 호출, 자산 읽어 저장, 원본 경로 일치 검사; written에 compare), `native-office-host.mjs`(`nativeOfficeHost` 읽기 전용 접근자).
-- [x] Step 3: 통과(10/10). 호스트 명령 자체는 Task H(Codex). Excel/PowerPoint 캡처는 계약에 있고 file 엔진과 지도/채움은 후속.
+- [x] Step 3: 통과(10/10). 호스트 명령 자체는 Task H(Codex).
+- [x] (2026-10-21 12:40) Excel/PowerPoint file 엔진: `runtime/xlsx-capture.mjs`(exceljs: 숨김 시트 포함 모든 시트, 값/수식/결과, 숫자 서식, 글꼴/채움/테두리/정렬, 병합, 서식만 있는 빈 셀, 데이터 유효성(셀 목록에 없는 것도), 조건부 서식, 열 너비와 행 높이, 탭 색, 이름 정의, 그림 자산과 위치, 차트 종류와 제목), `runtime/pptx-capture.mjs`(슬라이드 순서, 레이아웃 이름, 배경, 자리표시자, 위치와 크기(pt), run의 글꼴/크기/색/굵게, 그림 자산과 설명, 표, 차트, 그룹, 노트), `runtime/office-file-capture.mjs`(확장자로 앱 선택). 등록은 세 앱 모두 원본 사본과 capture.json과 assets를 저장하고, 채움 지도는 Word만 만든다(Excel/PowerPoint는 `fillable:false`, questions/plan은 `form_fill_unsupported_app`). Office 연결의 앱과 파일의 앱이 다르면 `form_office_app_mismatch`. 시험 `tests/office-file-capture.test.mjs` 3, 등록 1, 서비스 보강.
 
 ### Task F: 화면(양식 등록, 질문 카드, 채움표 확인, 전후 비교, 저장)
 
@@ -100,4 +101,5 @@
 
 ### Task G: 벤치마크 기준선
 
-- [ ] 설계 §4의 Word 10과제 중 양식 채우기 4개와 새로 만들기 2개를 합성 양식으로 돌려 복구 없이 열림, 비대상 보존, 양식 정확도를 코드로 채점하고 `eval/document-forms/`에 기록. 렌더는 이 Mac의 LibreOffice로 사람이 확인한다.
+- [x] (2026-10-21 12:40) 양식 채우기 기준선: `eval/document-forms/run.mjs`(제품 경로 register → plan → answer → apply, 로그인한 Claude 모델, 코드 채점: 열림(파싱과 LibreOffice 변환), 비대상 보존(verifyDocxCopy), 칸 값과 목차 낱말, 남은 안내 문구, 빠진 값 질문). 합성 5과제(기안문, 출장 보고, 품의서, 주간 보고, 값이 빠진 출장 보고) 결과 `eval/document-forms/synthetic-baseline-2026-10-21.json`: 5/5 성공, 정확도 1.0, 보존 5/5, 열림 5/5, 질문 1/1, 중앙값 17.3초, 모델 호출 합 18(과제당 1~5). 1차에서 찾은 결함 둘을 고쳤다. ① 검증이 문단을 id로 비교해 새 문단 뒤 마지막 빈 문단을 대상 밖 변경으로 보고 → 글자 정렬(LCS)로 수정, 회귀 시험 추가. ② Mac LibreOffice 렌더에서 한글이 네모(fontconfig가 macOS 글꼴을 못 봄) → 렌더 때 macOS 글꼴 폴더를 담은 fonts.conf, 시험은 PDF에 한글 글꼴이 들어갔는지 확인. 채점기 시험 `tests/document-forms-eval.test.mjs`.
+- [ ] 새로 만들기 2과제(document-agent `createWordDocument`)와 Office 2016 실기 확인은 남음.

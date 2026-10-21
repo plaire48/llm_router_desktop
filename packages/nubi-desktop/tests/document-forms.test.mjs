@@ -49,3 +49,17 @@ test('the question plan asks for required empty slots first, one question per ta
   assert.deepEqual(later.filled.map(f=>f.id),['s1','s2','s3','s4','sec-1','sec-3']);
   assert.equal(later.summary,'칸 4개, 표 행 1개, 목차 2개');
 });
+
+test('Excel and PowerPoint forms are stored whole: capture, assets and source copy, listed but not yet fillable',async t=>{
+  const root=await workspace(t);const {xlsxFixture,pptxFixture}=await import('./helpers-office-fixtures.mjs');
+  await writeFile(path.join(root,'견적서.xlsx'),await xlsxFixture());await writeFile(path.join(root,'주간보고.pptx'),await pptxFixture());
+  const excel=await registerForm({workspace:root,source:path.join(root,'견적서.xlsx')});
+  assert.deepEqual([excel.name,excel.map,excel.preview.fillable,excel.preview.app,excel.capture.app,excel.capture.assets],['견적서',null,false,'excel','excel',1]);
+  assert.match(excel.preview.summary,/^시트 2개\(견적서, 코드\)/);
+  assert.deepEqual((await readdir(path.join(root,'.nubi','forms','견적서'))).sort(),['assets','capture.json','preview.json','source.sha256','source.xlsx']);
+  const slides=await registerForm({workspace:root,source:path.join(root,'주간보고.pptx')});
+  assert.deepEqual([slides.preview.app,slides.preview.summary],['powerpoint','슬라이드 2장, 도형 5개, 그림 1개 (파일만 읽음)']);
+  const loaded=await loadForm(root,'주간보고');assert.deepEqual([loaded.app,loaded.map,loaded.capture.document.slides.length,loaded.copy],['powerpoint',null,2,'.nubi/forms/주간보고/source.pptx']);
+  assert.deepEqual((await listForms(root)).map(f=>[f.name,f.app,f.fillable]),[['견적서','excel',false],['주간보고','powerpoint',false]]);
+  await writeFile(path.join(root,'메모.hwp'),'x');await assert.rejects(registerForm({workspace:root,source:path.join(root,'메모.hwp')}),/form_format_unsupported/);
+});

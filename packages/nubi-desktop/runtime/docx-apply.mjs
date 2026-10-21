@@ -6,6 +6,7 @@
 import JSZip from 'jszip';
 import {createHash} from 'node:crypto';
 import {parseXml,snapshotParts,docxParts} from './docx-snapshot.mjs';
+import {align} from './docx-compare.mjs';
 import {fail} from './files.mjs';
 
 const refuse=code=>{throw new Error(code);};
@@ -225,11 +226,18 @@ export async function verifyDocxCopy(original,copy,{targets=[]}={}){
     if(!x||!y||digest(x)!==digest(y))changedEntries.push(name);
   }
   const [before,after]=await Promise.all([docxSnapshotItems(original),docxSnapshotItems(copy)]);
-  const byId=items=>new Map(items.map(item=>[item.id,item]));
-  const was=byId(before),now=byId(after),changed=[];
+  // Cells and fields keep their ids; paragraphs are aligned by text, so a paragraph after an insertion (its id moved by
+  // one) is not reported as changed. Measured 2026-10-21 (forms baseline 1차, trip): the trailing empty paragraph was
+  // reported as a change outside the targets after a section gained a paragraph.
+  const changed=[],paragraphs=items=>items.filter(item=>item.kind==='paragraph');
+  const was=new Map(before.filter(item=>item.kind!=='paragraph').map(item=>[item.id,item])),now=new Map(after.filter(item=>item.kind!=='paragraph').map(item=>[item.id,item]));
   for(const [id,item] of now){const old=was.get(id);if(!old)changed.push({id,kind:'inserted',text:item.text});else if(old.text!==item.text)changed.push({id,kind:'changed',before:old.text,after:item.text});}
   for(const id of was.keys())if(!now.has(id))changed.push({id,kind:'removed'});
+  const oldParagraphs=paragraphs(before),newParagraphs=paragraphs(after);let i=0,j=0;
+  const gap=(iEnd,jEnd)=>{while(i<iEnd||j<jEnd){if(i<iEnd&&j<jEnd){changed.push({id:newParagraphs[j].id,beforeId:oldParagraphs[i].id,kind:'changed',before:oldParagraphs[i].text,after:newParagraphs[j].text});i++;j++;}else if(j<jEnd){changed.push({id:newParagraphs[j].id,kind:'inserted',text:newParagraphs[j].text});j++;}else{changed.push({id:oldParagraphs[i].id,kind:'removed'});i++;}}};
+  for(const [a,b] of align(oldParagraphs.map(p=>p.text),newParagraphs.map(p=>p.text))){gap(a,b);i=a+1;j=b+1;}
+  gap(oldParagraphs.length,newParagraphs.length);
   const allowed=new Set(targets);
-  return {sameEntries:changedEntries.every(name=>name==='word/document.xml'),changedEntries,changedParagraphs:changed,violations:allowed.size?changed.filter(item=>!allowed.has(item.id)):[]};
+  return {sameEntries:changedEntries.every(name=>name==='word/document.xml'),changedEntries,changedParagraphs:changed,violations:allowed.size?changed.filter(item=>!allowed.has(item.id)&&!(item.beforeId&&allowed.has(item.beforeId))):[]};
 }
 async function docxSnapshotItems(bytes){const parts=await docxParts(bytes);return snapshotParts(parts).items;}
