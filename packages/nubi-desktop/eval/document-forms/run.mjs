@@ -24,14 +24,18 @@ export const CASES=[
     expected:{cells:{'t1/r1/c2':{text:'구매-2026-031'},'t1/r1/c4':{numbers:[2026,10,20]},'t1/r2/c2':{text:'총무팀'},'t1/r2/c4':{text:'정하늘'},'t1/r3/c2':{text:'회의실 의자 교체'},'t1/r4/c2':{text:'1,200,000'},'t1/r5/c2':{text:'의자'}},sections:{}}},
   {id:'weekly',form:'weekly',name:'주간 보고',request:'주간 업무 보고를 써 주세요. 보고자 한도윤, 보고 기간 2026. 10. 13. ~ 10. 17. 금주 실적: 신규 화면 설계 완료, 성능 시험 2회 진행. 차주 계획: 화면 구현 시작, 성능 개선안 정리. 특이 사항은 없음.',
     expected:{cells:{'t1/r1/c2':{text:'한도윤'},'t1/r1/c4':{numbers:[10,13]},'t2/r2/c1':{text:'화면 설계'},'t3/r2/c1':{text:'화면 구현'}},sections:{'3. 특이 사항':['없음']}}},
+  // Task J (2026-10-21): typed controls, a legacy field, a bookmark, a text box and a header table in one form.
+  {id:'application',form:'application',formOptions:'APPLICATION_OPTIONS',name:'교육 신청서',request:'교육 신청서를 써 주세요. 문서번호 교육팀-2026-022, 성명 김민수, 신청 구분 재수강, 교육일 2026. 11. 12., 숙박 필요 없음, 추천인 박지영, 담당자 이서준.',
+    expected:{cells:{'header1:t1/r1/c2':{text:'교육팀-2026-022'},'ff-1':{text:'김민수'},'f-1':{text:'재수강'},'f-2':{numbers:[2026,11,12]},'f-3':{checked:false},'bm-1':{text:'박지영'},'box1:p-1':{text:'이서준'}}}},
   {id:'trip-missing',form:'trip',name:'출장 보고 2',request:'출장 결과 보고서를 써 주세요. 출장자 이서준, 소속 기술지원팀, 출장지 광주 지사. 출장 목적은 지사 장비 교체입니다. 결과 및 향후 계획: 교체 완료, 사후 점검은 다음 달.',
     answers:{s4:'2026. 11. 3. ~ 2026. 11. 4.'},
     expected:{asks:['s4'],cells:{'t1/r2/c2':{text:'광주'},'t1/r3/c2':{numbers:[2026,11,3,2026,11,4]}},sections:{'1. 출장 목적':['교체']}}}
 ];
 
 export function gradeCase(testCase,{copyItems,written,checks,asked,opened}){
-  const cell=id=>copyItems.find(item=>item.id===id)?.text??'';
-  const cells=Object.entries(testCase.expected.cells??{}).map(([target,want])=>{const text=cell(target);const ok=want.text?has(text,want.text):holds(text,want.numbers);return {target,ok,text:text.slice(0,120),want:want.text??want.numbers.join('.')};});
+  const cell=id=>copyItems.find(item=>item.id===id)?.text??'',item=id=>copyItems.find(entry=>entry.id===id);
+  // A checkbox is graded by its state; a checkbox written as text would not have one.
+  const cells=Object.entries(testCase.expected.cells??{}).map(([target,want])=>{const text=cell(target);const ok=want.checked!==undefined?item(target)?.checked===want.checked&&!item(target)?.showingPlaceholder:want.text?has(text,want.text):holds(text,want.numbers);return {target,ok,text:text.slice(0,120),want:want.checked!==undefined?'checked='+want.checked:want.text??want.numbers.join('.')};});
   const paragraphs=copyItems.filter(item=>item.kind==='paragraph');
   const sections=Object.entries(testCase.expected.sections??{}).map(([title,words])=>{
     const at=paragraphs.findIndex(p=>p.text.trim()===title);const next=paragraphs.findIndex((p,k)=>k>at&&/^\d+\.\s/.test(p.text.trim()));
@@ -57,7 +61,7 @@ async function main(){
   const {git}=await import('../../runtime/files.mjs');
   const {docxSnapshot}=await import('../../runtime/docx-snapshot.mjs');
   const {renderDocumentPages,findSoffice}=await import('../../runtime/document-render.mjs');
-  const {docxFromBlocks,FORMS}=await import('../../tests/helpers-docx-fixture.mjs');
+  const fixtures=await import('../../tests/helpers-docx-fixture.mjs'),{docxFromBlocks,FORMS}=fixtures;
   const report={model,startedAt:new Date().toISOString(),soffice:await findSoffice()?'available':'missing',cases:[]};
   const providers=createDesktopProviders({hostLabel:'누비 양식 작성 점검'});
   let calls=0;
@@ -72,7 +76,7 @@ async function main(){
       try{
         await mkdir(path.join(root,'서식'),{recursive:true});await git(root,['init','-q']);await git(root,['config','user.email','eval@example.invalid']);await git(root,['config','user.name','Eval']);
         await writeFile(path.join(root,'README.md'),'# 양식 점검\n');await git(root,['add','.']);await git(root,['commit','-qm','init']);
-        const source=path.join(root,'서식',testCase.form+'.docx');await writeFile(source,await docxFromBlocks(FORMS[testCase.form]));
+        const source=path.join(root,'서식',testCase.form+'.docx');await writeFile(source,await docxFromBlocks(FORMS[testCase.form],testCase.formOptions?fixtures[testCase.formOptions]:undefined));
         service=new ProjectService({storageRoot:path.join(dir,'state')});await service.open(root);
         // One login serves every case: a case's service must not dispose the shared connection.
         service.providers=new Proxy(providers,{get:(target,key)=>key==='dispose'?()=>{}:typeof target[key]==='function'?target[key].bind(target):target[key]});

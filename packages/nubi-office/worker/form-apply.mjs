@@ -4,7 +4,7 @@
 // are found through the ledger (form-ledger.mjs): a section's text goes only into its guide paragraphs and the
 // paragraphs this run added to it, never into the form's own text around them.
 import {isHeading,markOf} from './word-form-map.mjs';
-import {renderValue} from './form-values.mjs';
+import {renderValue,parseBoolean,parseDate} from './form-values.mjs';
 import {guideSpans} from './guide-text.mjs';
 import {locate,region,record} from './form-ledger.mjs';
 
@@ -63,6 +63,31 @@ function sectionOperation(items,map,ledger,entry){
   }
   return null;
 }
+// A content control takes its own kind of value (Task J1): a checkbox is checked or not, a dropdown takes one of its
+// items, a date control takes a date. A value it cannot hold stops with the reason; it is never written as text.
+export function fieldOperation(slot,current,raw,value,ledger){
+  const label=slot.label||slot.target;
+  // A picture box takes an image file the user named in the Workspace (Task J5); the writer reads and checks it.
+  if(slot.valueType==='image'){
+    const path=String(raw??'').trim();if(!path)return{blocked:`"${label}"에 넣을 그림 파일을 알려 주세요.`};
+    return ledger?.written?.[slot.id]===path?null:{operation:{type:'fill_picture',targetId:current.id,path}};
+  }
+  if(slot.valueType==='boolean'){
+    const checked=parseBoolean(raw);if(checked===null)return{blocked:`"${label}" 체크 상자에 넣을 값을 알 수 없습니다. 체크할지(예) 말지(아니오) 알려 주세요.`};
+    return current.checked===checked?null:{operation:{type:'fill_field',targetId:current.id,checked}};
+  }
+  if(slot.valueType==='choice'){
+    const norm=text=>String(text??'').normalize('NFC').replace(/\s+/g,'').toLowerCase(),chosen=(slot.options??[]).find(option=>norm(option)===norm(raw));
+    if(!chosen)return{blocked:`"${label}"에는 목록의 값(${(slot.options??[]).join(', ')}) 중 하나만 넣을 수 있습니다.`};
+    return current.text===chosen&&!current.showingPlaceholder?null:{operation:{type:'fill_field',targetId:current.id,text:chosen}};
+  }
+  if(slot.valueType==='date'&&current.controlType==='date'){
+    const date=parseDate(raw);if(!date)return{blocked:`"${label}" 날짜를 알 수 없습니다.`};
+    const iso=`${date.y}-${String(date.m).padStart(2,'0')}-${String(date.d).padStart(2,'0')}`;
+    return current.date===iso?null:{operation:{type:'fill_field',targetId:current.id,date:iso}};
+  }
+  return current.text===line(value)&&!current.showingPlaceholder?null:{operation:{type:'fill_field',targetId:current.id,text:line(value)}};
+}
 // The next write: {operation, owner} (owner: the slot or section it writes), {blocked: reason} when Word cannot write
 // what is wanted, or null when the copy holds the sheet.
 export function nextOperation(snapshot,map,sheet,ledger){
@@ -76,7 +101,8 @@ export function nextOperation(snapshot,map,sheet,ledger){
       if(was!==undefined&&was!==text&&once(current.text,was))return{operation:{type:'replace_guide',targetId:current.id,guide:was,text},owner};
       continue;
     }
-    if(slot.kind==='field'){if(current.text!==line(value))return{operation:{type:'fill_field',targetId:current.id,text:line(value)},owner};continue;}
+    if(slot.kind==='bookmark'){if(current.text!==line(value))return{operation:{type:'fill_bookmark',targetId:current.id,text:line(value)},owner};continue;}
+    if(slot.kind==='field'){const next=fieldOperation(slot,current,cell.value,value,ledger);if(next)return next.blocked?next:{...next,owner};continue;}
     if(current.text===value)continue;
     if(current.editable!==false)return{operation:{type:'fill_cell',targetId:current.id,text:value},owner};
     // A cell of runs in two formats ("담당:" in bold, then the guide): each guide is replaced in place.
@@ -117,6 +143,7 @@ export async function applyFill({map,sheet,read,apply,ledger,limit=300}){
     operations.push({operation:next.operation,checks:receipt?.checks??[]});
     // The write happened: the ledger follows it before its checks are judged.
     record(ledger,snapshot.items,next.operation,receipt,next.owner?.section);
+    if(next.owner?.slot&&next.operation.type==='fill_picture')ledger.written[next.owner.slot]=next.operation.path;
     if(next.owner?.slot&&next.operation.type==='replace_guide'&&map.slots.find(slot=>slot.id===next.owner.slot)?.kind==='guide')ledger.written[next.owner.slot]=next.operation.text;
     if(!Array.isArray(receipt?.checks)||!receipt.checks.length||receipt.checks.some(check=>check.status!=='met'))return{done:false,operations,failed:{operation:next.operation,checks:receipt?.checks??[]}};
   }

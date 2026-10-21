@@ -26,8 +26,10 @@ async function formDir(workspace,name,{create=false}={}){
 export function formPreview(map,{name,source,registeredAt,capture=null}){
   // Excel and PowerPoint forms are stored whole now; their fill maps come later, so their preview is the capture's.
   if(!map)return {name,source,registeredAt,summary:capture?captureSummary(capture):'',fillable:false,slots:[],sections:[],notes:[],unsure:0,...(capture?{engine:capture.engine,fidelity:capture.fidelity,app:capture.app,office:capture.office??null,capture:captureSummary(capture)}:{})};
-  return {name,source,registeredAt,summary:mapSummary(map),fillable:true,...(capture?{engine:capture.engine,fidelity:capture.fidelity,app:capture.app,office:capture.office??null,capture:captureSummary(capture)}:{}),
-    slots:map.slots.map(slot=>({id:slot.id,kind:slot.kind,label:slot.label,...(slot.valueType?{valueType:slot.valueType}:{}),required:slot.required!==false,...(slot.header?{header:slot.header,emptyRows:slot.emptyRows}:{}),...(slot.guides?{guides:slot.guides}:{})})),
+  // A form with nothing Word lets us write (read-only protection, Task J7) is stored but not offered for filling.
+  const writable=map.slots.length>0||map.sections.some(section=>section.needsText),blocked=map.unsure.find(entry=>!entry.target&&entry.reason)?.reason;
+  return {name,source,registeredAt,summary:mapSummary(map),fillable:writable,...(!writable&&blocked?{notFillable:blocked}:{}),...(capture?{engine:capture.engine,fidelity:capture.fidelity,app:capture.app,office:capture.office??null,capture:captureSummary(capture)}:{}),
+    slots:map.slots.map(slot=>({id:slot.id,kind:slot.kind,label:slot.label,...(slot.valueType?{valueType:slot.valueType}:{}),...(slot.options?{options:slot.options}:{}),required:slot.required!==false,...(slot.header?{header:slot.header,emptyRows:slot.emptyRows}:{}),...(slot.guides?{guides:slot.guides}:{})})),
     sections:map.sections.map(section=>({id:section.id,title:section.title,needsText:section.needsText,...(section.listString?{listString:section.listString}:{})})),
     notes:map.notes.map(note=>note.text),unsure:map.unsure.length};
 }
@@ -99,7 +101,7 @@ export function formQuestionPlan(map,values={}){
     const value=values[slot.id];
     if(present(value)){filled.push({id:slot.id,label:slot.label});continue;}
     if(slot.kind==='rows'){add(groupOf(slot),{slot:slot.id,label:slot.label,kind:'rows',header:slot.header,emptyRows:slot.emptyRows,required:false});continue;}
-    add(groupOf(slot),{slot:slot.id,label:slot.label,kind:slot.valueType??'text',required:slot.required!==false,...(slot.guides?.length?{example:slot.guides[0]}:EXAMPLES[slot.valueType]?{example:EXAMPLES[slot.valueType]}:{})});
+    add(groupOf(slot),{slot:slot.id,label:slot.label,kind:slot.valueType??'text',required:slot.required!==false,...(slot.options?{options:slot.options,...(slot.freeText?{freeText:true}:{})}:{}),...(slot.guides?.length?{example:slot.guides[0]}:EXAMPLES[slot.valueType]?{example:EXAMPLES[slot.valueType]}:{})});
   }
   for(const section of map.sections){
     if(!section.needsText)continue;

@@ -1,0 +1,470 @@
+{
+ "model": "claude-sonnet-5-5",
+ "startedAt": "2026-10-21T03:35:24.104Z",
+ "soffice": "available",
+ "cases": [
+  {
+   "id": "gianmun",
+   "success": true,
+   "error": null,
+   "plan": {
+    "state": "ready",
+    "error": null,
+    "questions": []
+   },
+   "render": {
+    "status": "rendered",
+    "pages": 1
+   },
+   "opened": true,
+   "preserved": true,
+   "guidesLeft": 0,
+   "accuracy": 1,
+   "asksOk": true,
+   "cells": [
+    {
+     "target": "t1/r1/c2",
+     "ok": true,
+     "text": "영업팀-2026-014",
+     "want": "영업팀-2026-014"
+    },
+    {
+     "target": "t1/r1/c4",
+     "ok": true,
+     "text": "2026. 10. 21.",
+     "want": "2026.10.21"
+    },
+    {
+     "target": "t1/r2/c2",
+     "ok": true,
+     "text": "김민수",
+     "want": "김민수"
+    },
+    {
+     "target": "t1/r2/c4",
+     "ok": true,
+     "text": "박지영 팀장",
+     "want": "박지영"
+    },
+    {
+     "target": "t1/r3/c2",
+     "ok": true,
+     "text": "경영지원팀",
+     "want": "경영지원팀"
+    },
+    {
+     "target": "t1/r4/c2",
+     "ok": true,
+     "text": "하반기 거래처 방문 계획",
+     "want": "하반기 거래처 방문 계획"
+    }
+   ],
+   "sections": [
+    {
+     "title": "1. 개요",
+     "ok": true,
+     "body": "하반기 주요 거래처 5곳을 방문하여 계약을 갱신하고자 한다."
+    },
+    {
+     "title": "2. 추진 내용",
+     "ok": true,
+     "body": "11월 첫째 주에는 부산, 둘째 주에는 대구를 방문한다."
+    },
+    {
+     "title": "3. 행정 사항",
+     "ok": true,
+     "body": "출장비는 영업팀 예산으로 처리합니다. ※ 작성 요령: 각 항목은 개조식으로 작성합니다. "
+    }
+   ],
+   "asks": [],
+   "checks": "칸 6/6, 목차 3/3, 남은 안내 문구 0, 서식 유지, 근거 확인",
+   "unresolved": 0,
+   "remaining": null,
+   "counts": {
+    "changedParagraphs": 3,
+    "insertedParagraphs": 0,
+    "removedParagraphs": 0,
+    "changedCells": 6
+   },
+   "ms": 23712,
+   "modelCalls": 5
+  },
+  {
+   "id": "trip",
+   "success": true,
+   "error": null,
+   "plan": {
+    "state": "ready",
+    "error": null,
+    "questions": []
+   },
+   "render": {
+    "status": "rendered",
+    "pages": 1
+   },
+   "opened": true,
+   "preserved": true,
+   "guidesLeft": 0,
+   "accuracy": 1,
+   "asksOk": true,
+   "cells": [
+    {
+     "target": "t1/r1/c2",
+     "ok": true,
+     "text": "이서준",
+     "want": "이서준"
+    },
+    {
+     "target": "t1/r1/c4",
+     "ok": true,
+     "text": "기술지원팀",
+     "want": "기술지원팀"
+    },
+    {
+     "target": "t1/r2/c2",
+     "ok": true,
+     "text": "대전 연구단지",
+     "want": "대전"
+    },
+    {
+     "target": "t1/r3/c2",
+     "ok": true,
+     "text": "2026. 10. 14. ~ 2026. 10. 15.",
+     "want": "2026.10.14.2026.10.15"
+    },
+    {
+     "target": "t2/r2/c3",
+     "ok": true,
+     "text": "장비 점검",
+     "want": "장비 점검"
+    },
+    {
+     "target": "t2/r3/c3",
+     "ok": true,
+     "text": "고객 회의",
+     "want": "고객 회의"
+    },
+    {
+     "target": "t2/r4/c3",
+     "ok": true,
+     "text": "결과 정리",
+     "want": "결과 정리"
+    }
+   ],
+   "sections": [
+    {
+     "title": "1. 출장 목적",
+     "ok": true,
+     "body": "연구단지 장비 정기 점검을 위하여 대전 연구단지에 출장함."
+    },
+    {
+     "title": "3. 결과 및 향후 계획",
+     "ok": true,
+     "body": "연구단지 장비 정기 점검 결과 이상 없음을 확인하였다. 다음 점검은 12월에 실시할 예정이다. "
+    }
+   ],
+   "asks": [],
+   "checks": "칸 4/4, 목차 2/2, 남은 안내 문구 0, 서식 유지, 근거 확인",
+   "unresolved": 0,
+   "remaining": null,
+   "counts": {
+    "changedParagraphs": 2,
+    "insertedParagraphs": 1,
+    "removedParagraphs": 0,
+    "changedCells": 13
+   },
+   "ms": 19835,
+   "modelCalls": 4
+  },
+  {
+   "id": "pumui",
+   "success": true,
+   "error": null,
+   "plan": {
+    "state": "ready",
+    "error": null,
+    "questions": []
+   },
+   "render": {
+    "status": "rendered",
+    "pages": 1
+   },
+   "opened": true,
+   "preserved": true,
+   "guidesLeft": 0,
+   "accuracy": 1,
+   "asksOk": true,
+   "cells": [
+    {
+     "target": "t1/r1/c2",
+     "ok": true,
+     "text": "구매-2026-031",
+     "want": "구매-2026-031"
+    },
+    {
+     "target": "t1/r1/c4",
+     "ok": true,
+     "text": "2026. 10. 20.",
+     "want": "2026.10.20"
+    },
+    {
+     "target": "t1/r2/c2",
+     "ok": true,
+     "text": "총무팀",
+     "want": "총무팀"
+    },
+    {
+     "target": "t1/r2/c4",
+     "ok": true,
+     "text": "정하늘",
+     "want": "정하늘"
+    },
+    {
+     "target": "t1/r3/c2",
+     "ok": true,
+     "text": "회의실 의자 교체",
+     "want": "회의실 의자 교체"
+    },
+    {
+     "target": "t1/r4/c2",
+     "ok": true,
+     "text": "금 일백이십만원정 (₩1,200,000)",
+     "want": "1,200,000"
+    },
+    {
+     "target": "t1/r5/c2",
+     "ok": true,
+     "text": "노후 의자 10개를 새 의자로 교체합니다.",
+     "want": "의자"
+    }
+   ],
+   "sections": [],
+   "asks": [],
+   "checks": "칸 7/7, 목차 0/0, 남은 안내 문구 0, 서식 유지, 근거 확인",
+   "unresolved": 0,
+   "remaining": null,
+   "counts": {
+    "changedParagraphs": 0,
+    "insertedParagraphs": 0,
+    "removedParagraphs": 0,
+    "changedCells": 7
+   },
+   "ms": 8567,
+   "modelCalls": 1
+  },
+  {
+   "id": "weekly",
+   "success": true,
+   "error": null,
+   "plan": {
+    "state": "ready",
+    "error": null,
+    "questions": []
+   },
+   "render": {
+    "status": "rendered",
+    "pages": 1
+   },
+   "opened": true,
+   "preserved": true,
+   "guidesLeft": 0,
+   "accuracy": 1,
+   "asksOk": true,
+   "cells": [
+    {
+     "target": "t1/r1/c2",
+     "ok": true,
+     "text": "한도윤",
+     "want": "한도윤"
+    },
+    {
+     "target": "t1/r1/c4",
+     "ok": true,
+     "text": "2026. 10. 13. ~ 10. 17.",
+     "want": "10.13"
+    },
+    {
+     "target": "t2/r2/c1",
+     "ok": true,
+     "text": "신규 화면 설계",
+     "want": "화면 설계"
+    },
+    {
+     "target": "t3/r2/c1",
+     "ok": true,
+     "text": "화면 구현",
+     "want": "화면 구현"
+    }
+   ],
+   "sections": [
+    {
+     "title": "3. 특이 사항",
+     "ok": true,
+     "body": "없음 "
+    }
+   ],
+   "asks": [],
+   "checks": "칸 2/2, 목차 1/1, 남은 안내 문구 0, 서식 유지, 근거 확인",
+   "unresolved": 0,
+   "remaining": null,
+   "counts": {
+    "changedParagraphs": 1,
+    "insertedParagraphs": 0,
+    "removedParagraphs": 0,
+    "changedCells": 10
+   },
+   "ms": 18931,
+   "modelCalls": 3
+  },
+  {
+   "id": "application",
+   "success": true,
+   "error": null,
+   "plan": {
+    "state": "ready",
+    "error": null,
+    "questions": []
+   },
+   "render": {
+    "status": "rendered",
+    "pages": 1
+   },
+   "opened": true,
+   "preserved": true,
+   "guidesLeft": 0,
+   "accuracy": 1,
+   "asksOk": true,
+   "cells": [
+    {
+     "target": "header1:t1/r1/c2",
+     "ok": true,
+     "text": "교육팀-2026-022",
+     "want": "교육팀-2026-022"
+    },
+    {
+     "target": "ff-1",
+     "ok": true,
+     "text": "김민수",
+     "want": "김민수"
+    },
+    {
+     "target": "f-1",
+     "ok": true,
+     "text": "재수강",
+     "want": "재수강"
+    },
+    {
+     "target": "f-2",
+     "ok": true,
+     "text": "2026. 11. 12.",
+     "want": "2026.11.12"
+    },
+    {
+     "target": "f-3",
+     "ok": true,
+     "text": "☐",
+     "want": "checked=false"
+    },
+    {
+     "target": "bm-1",
+     "ok": true,
+     "text": "박지영",
+     "want": "박지영"
+    },
+    {
+     "target": "box1:p-1",
+     "ok": true,
+     "text": "담당: 이서준",
+     "want": "이서준"
+    }
+   ],
+   "sections": [],
+   "asks": [],
+   "checks": "칸 7/7, 목차 0/0, 남은 안내 문구 0, 서식 유지, 근거 확인",
+   "unresolved": 0,
+   "remaining": null,
+   "counts": {
+    "changedParagraphs": 1,
+    "insertedParagraphs": 0,
+    "removedParagraphs": 0,
+    "changedCells": 3
+   },
+   "ms": 16781,
+   "modelCalls": 2
+  },
+  {
+   "id": "trip-missing",
+   "success": true,
+   "error": null,
+   "plan": {
+    "state": "ready",
+    "error": null,
+    "questions": [
+     "s4"
+    ]
+   },
+   "render": {
+    "status": "rendered",
+    "pages": 1
+   },
+   "opened": true,
+   "preserved": true,
+   "guidesLeft": 0,
+   "accuracy": 1,
+   "asksOk": true,
+   "cells": [
+    {
+     "target": "t1/r2/c2",
+     "ok": true,
+     "text": "광주 지사",
+     "want": "광주"
+    },
+    {
+     "target": "t1/r3/c2",
+     "ok": true,
+     "text": "2026. 11. 3. ~ 2026. 11. 4.",
+     "want": "2026.11.3.2026.11.4"
+    }
+   ],
+   "sections": [
+    {
+     "title": "1. 출장 목적",
+     "ok": true,
+     "body": "기술지원팀 이서준은 광주 지사의 장비 교체를 위해 출장하였다."
+    }
+   ],
+   "asks": [
+    {
+     "slot": "s4",
+     "ok": true
+    }
+   ],
+   "checks": "칸 4/4, 목차 2/2, 남은 안내 문구 0, 서식 유지, 근거 확인",
+   "unresolved": 0,
+   "remaining": null,
+   "counts": {
+    "changedParagraphs": 2,
+    "insertedParagraphs": 1,
+    "removedParagraphs": 0,
+    "changedCells": 4
+   },
+   "ms": 24265,
+   "modelCalls": 5
+  }
+ ],
+ "connection": {
+  "provider": "claude",
+  "model": "claude-sonnet-5-5"
+ },
+ "summary": {
+  "cases": 6,
+  "success": 6,
+  "meanAccuracy": 1,
+  "preserved": 6,
+  "opened": 6,
+  "medianMs": 19835,
+  "modelCalls": 20
+ },
+ "finishedAt": "2026-10-21T03:37:17.900Z",
+ "note": "Task J (Word 2016 전체 채우기) 뒤 재측정. 합성 양식과 요청만 사용."
+}

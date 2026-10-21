@@ -42,7 +42,9 @@ function tableBlocks(items,changedCells,cellTextBefore){
 /** The comparison DTO: {app, before:{blocks,page}, after:{blocks,page}, changes, counts}. */
 export async function compareDocx(beforeBytes,afterBytes,{name='양식.docx'}={}){
   const [beforeParts,afterParts]=await Promise.all([docxParts(beforeBytes),docxParts(afterBytes)]);
-  const before=snapshotParts(beforeParts,{name}).items,after=snapshotParts(afterParts,{name}).items;
+  // Header and footer items (Task J2) are shown in their own lists below, not as body blocks.
+  const body=items=>items.filter(item=>!item.part);
+  const before=body(snapshotParts(beforeParts,{name}).items),after=body(snapshotParts(afterParts,{name}).items);
   const beforeParagraphs=before.filter(x=>x.kind==='paragraph'),afterParagraphs=after.filter(x=>x.kind==='paragraph');
   // Equal texts pair up; between two pairs, the leftover paragraphs pair in order as changed, the rest are inserted
   // or removed. A changed paragraph keeps its before id so the viewer can show the old text under it.

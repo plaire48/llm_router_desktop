@@ -14,7 +14,8 @@ const clip=(text,max=120)=>String(text??'').trim().slice(0,max);
 export const isHeading=item=>item?.kind==='paragraph'&&(item.outlineLevel>=1&&item.outlineLevel<=9||!item.listString&&item.text.length<=40&&NUMBERED.test(item.text)&&!isGuideText(item.text));
 export const isNote=item=>item?.kind==='paragraph'&&!isHeading(item)&&NOTE.test(item.text);
 // A cell to fill is empty or holds guide text; a cell with other text is a label or fixed text.
-const isValueCell=cell=>blank(cell.text)||guideSpans(cell.text).length>0;
+// A cell that holds a content control (a checkbox, a date) is where a value goes, not a label.
+const isValueCell=cell=>blank(cell.text)||guideSpans(cell.text).length>0||cell.controls>0;
 // Text that is only guide text: without its guide spans, no letter or digit is left ("(추진 배경을 기재)"). A paragraph
 // like that is where a section's text goes; one with a label ("시행일자: 20XX. XX. XX.") is a slot for one value, though
 // most of its characters are guide text.
@@ -84,31 +85,73 @@ function tableSlots(cells,unsure){
       valueType:valueType(labels[i],cell.text),required:!!labels[i]};
   });
 }
+// The value a content control takes (Task J1, 2026-10-21). Desktop reads Word's control type by name; the Office
+// add-in host reports Word's number (1 is plain text) and writes plain text only, so its other controls stay unsure.
+export function controlValueType(item){
+  const type=item.controlType;
+  if(type===1||type==='text'||type==='richText'||type==='combo'||type===undefined)return'text';
+  return{checkbox:'boolean',dropdown:'choice',date:'date',picture:'image'}[type]??null;
+}
+function fieldSlot(item,label){
+  const valueType=controlValueType(item);if(!valueType||item.writable===false&&typeof item.controlType==='string')return null;
+  const options=Array.isArray(item.options)&&item.options.length?item.options.map(option=>option.text):null;
+  return{kind:'field',target:item.id,label,valueType,...(options?{options,...(valueType==='choice'?{}:{freeText:true})}:{}),...(item.dateFormat?{dateFormat:item.dateFormat}:{}),current:clip(item.showingPlaceholder?'':item.text,200),required:true};
+}
+// A slot in a header, footer (Task J2) or text box (J3) is named for where it is: "머리글 문서번호", "바닥글 첫 쪽 보안 등급".
+const partLabel=item=>!item?.part?'':item.partKind==='textbox'?'글상자'+(/^box(\d+)$/.exec(item.part)?.[1]>1?' '+item.part.slice(3):''):(item.partKind==='footer'?'바닥글':'머리글')+(item.partType==='first'?' 첫 쪽':item.partType==='even'?' 짝수 쪽':'');
+const named=(item,label)=>item?.part?clip([partLabel(item),label].filter(Boolean).join(' '),60):label;
 export function wordFormMap(snapshot){
   const items=snapshot.items??[],slots=[],sections=[],notes=[],unsure=[],tables=new Map(),placed=new Set();let section=null;
   for(const item of items)if(item.kind==='cell')(tables.get(item.table)??tables.set(item.table,[]).get(item.table)).push(item);
   const add=slot=>{slots.push({id:'s'+(slots.length+1),...slot});};
   for(const item of items){
-    if(item.kind==='field'){add({kind:'field',target:item.id,label:clip(item.title||item.tag||item.text,60),valueType:'text',required:true});continue;}
+    if(item.kind==='field'){
+      // A control in a cell is placed with its table, labelled like the cell.
+      if(item.cell)continue;
+      const holder=item.paragraph&&items.find(other=>other.id===item.paragraph),around=holder?clip(holder.text.replace(item.text,'').replace(/[\s:：]+$/,'').trim(),60):'';
+      const slot=fieldSlot(item,named(item,clip(item.title||item.tag||around||item.text,60)));
+      if(slot)add(slot);else unsure.push({target:item.id,reason:'채울 수 없는 컨트롤'});
+      continue;
+    }
+    // An empty bookmark the author named (Task J6) is a slot: its name, or the words before it for a name like Text1.
+    if(item.kind==='bookmark'){
+      if(item.writable===false||String(item.text??'').trim())continue;
+      const name=/^[A-Za-z_]+\d*$/.test(item.name)?'':item.name.replace(/_/g,' ');
+      add({kind:'bookmark',target:item.id,label:named(item,clip(name||item.before||item.name,60)),valueType:valueType(name||item.before||'',''),current:'',required:true});
+      continue;
+    }
     if(item.kind==='cell'){
       if(placed.has(item.table))continue;placed.add(item.table);section?.tables.push(item.table);
-      for(const slot of tableSlots(tables.get(item.table),unsure))add(slot.kind==='rows'&&section?{...slot,label:section.title,section:section.id}:slot);
+      for(const found of tableSlots(tables.get(item.table),unsure)){
+        // A header or footer table keeps its rows; its cells are named for the part.
+        if(item.part&&found.kind==='rows'){unsure.push({target:found.target,reason:`${partLabel(item)} 표의 행은 늘리지 않습니다`});continue;}
+        const slot=item.part?{...found,label:named(item,found.label)}:found;
+        const inside=slot.kind==='cell'?items.filter(other=>other.kind==='field'&&other.cell===slot.target):[];
+        if(inside.length){
+          // The cell's controls take its value: one control takes the cell's label, several add their own titles.
+          inside.forEach((field,k)=>{const made=fieldSlot(field,clip(inside.length>1?[slot.label,field.title||field.tag||k+1].filter(Boolean).join(' '):slot.label||named(field,field.title||field.tag),60));if(made)add(made);else unsure.push({target:field.id,reason:'채울 수 없는 컨트롤'});});
+          continue;
+        }
+        add(slot.kind==='rows'&&section?{...slot,label:section.title,section:section.id}:slot);
+      }
       continue;
     }
     if(item.kind!=='paragraph')continue;
-    if(isHeading(item)){section={id:'sec-'+(sections.length+1),title:clip(item.text,80),heading:item.id,level:item.outlineLevel>=1&&item.outlineLevel<=9?item.outlineLevel:1,body:[],tables:[]};sections.push(section);continue;}
-    if(isNote(item)){notes.push({id:'n'+(notes.length+1),target:item.id,text:clip(item.text,200),action:'keep',...(section?{section:section.id}:{})});continue;}
     const spans=valueSpans(item.text);
+    // A header or footer paragraph is never a section or a note: only its guide spans are slots, a whole guide line too.
+    if(item.part&&!spans.length)continue;
+    if(!item.part&&isHeading(item)){section={id:'sec-'+(sections.length+1),title:clip(item.text,80),heading:item.id,level:item.outlineLevel>=1&&item.outlineLevel<=9?item.outlineLevel:1,body:[],tables:[]};sections.push(section);continue;}
+    if(!item.part&&isNote(item)){notes.push({id:'n'+(notes.length+1),target:item.id,text:clip(item.text,200),action:'keep',...(section?{section:section.id}:{})});continue;}
     // A guide inside a sentence ("시행일자: 20XX. XX. XX.") is a slot labelled by the text before it. Word replaces a guide
     // that appears once in its paragraph: a guide the paragraph repeats ("성명: ○○○  직위: ○○○") is replaced with the
     // label before it (wrap keeps that label).
-    if(spans.length&&!wholeGuide(item.text)){
+    if(spans.length&&(item.part||!wholeGuide(item.text))){
       spans.forEach((span,k)=>{
         const from=k?spans[k-1].end:0,before=item.text.slice(from,span.start),once=text=>item.text.indexOf(text)===item.text.lastIndexOf(text);
         const label=clip(before.replace(/^[\s,，]+|[\s:：]+$/g,''),60)||clip(item.text.slice(0,span.start).replace(/[\s:：]+$/,''),60);
         const guide=once(span.text)?span.text:item.text.slice(from,span.end);
         if(!once(guide)){unsure.push({target:item.id,reason:'같은 안내 문구가 겹친 문단'});return;}
-        add({kind:'guide',target:item.id,label,guide,...(guide===span.text?{}:{wrap:[before,'']}),guides:[span.text],...(span.parts?{parts:span.parts}:{}),valueType:valueType(label,span.text),required:true});
+        add({kind:'guide',target:item.id,label:named(item,label),guide,...(guide===span.text?{}:{wrap:[before,'']}),guides:[span.text],...(span.parts?{parts:span.parts}:{}),valueType:valueType(label,span.text),required:true});
       });
       continue;
     }
@@ -127,6 +170,13 @@ export function wordFormMap(snapshot){
     return{...rest,needsText,...(sample?{sample:sample.id,style:sample.style}:{}),...(mark?{mark}:{}),...(room?{room}:{}),...(list?{listSample:list.id,listString:list.listString}:{}),
       guide:guides.map(p=>clip(p.text,120)).join(' / '),guideParagraphs:guides.map(p=>p.id),...(inside.length?{tables:inside}:{})};
   });
+  // Restrict Editing (Task J7): a form protected for filling in takes values in its fields only; a read-only one none.
+  const protection=snapshot.protection?.enforced?snapshot.protection.edit:null,readOnly=['readOnly','comments'].includes(protection);
+  if(readOnly||protection==='forms'){
+    const kept=readOnly?[]:slots.filter(slot=>slot.kind==='field');
+    if(kept.length!==slots.length||finished.some(section=>section.needsText))unsure.push({reason:readOnly?'읽기 전용으로 보호된 문서입니다. Word에서 편집 제한을 풀어야 채울 수 있습니다.':'양식 보호 문서라 입력 컨트롤과 양식 필드에만 씁니다. 다른 칸은 Word에서 편집 제한을 풀어야 채울 수 있습니다.'});
+    slots.splice(0,slots.length,...kept);for(const section of finished)section.needsText=false;
+  }
   return{kind:'template_map',version:1,host:'word',source:{scopeId:snapshot.scopeId,fingerprint:snapshot.fingerprint,name:snapshot.name},slots,sections:finished,notes,
     styles:[...new Set(finished.filter(s=>s.needsText&&s.style).map(s=>s.style))],unsure};
 }
@@ -148,7 +198,7 @@ export function mapStructureKey(map){
 // targets stay with code (research 2026-10-01: do not make the model fill arguments the harness already knows).
 export function mapForModel(map){
   return{
-    slots:map.slots.map(slot=>({slot:slot.id,kind:slot.kind,label:slot.label,valueType:slot.valueType??'text',
+    slots:map.slots.map(slot=>({slot:slot.id,kind:slot.kind,label:slot.label,valueType:slot.valueType??'text',...(slot.options?{options:slot.options,...(slot.freeText?{freeText:true}:{})}:{}),
       ...(slot.kind==='rows'?{header:slot.header,emptyRows:slot.emptyRows}:{current:slot.current??slot.guide??'',guides:slot.guides??(slot.guide?[slot.guide]:[])}),...(slot.required?{}:{optional:true})})),
     sections:map.sections.filter(section=>section.needsText).map(section=>({section:section.id,title:section.title,asks:section.guide,list:!!section.listString}))
   };

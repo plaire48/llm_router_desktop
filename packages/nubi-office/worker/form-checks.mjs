@@ -4,7 +4,7 @@
 // ledger (form-ledger.mjs), as they were written.
 import {guideSpans} from './guide-text.mjs';
 import {markOf} from './word-form-map.mjs';
-import {sectionBody} from './form-apply.mjs';
+import {sectionBody,fieldOperation} from './form-apply.mjs';
 import {locate,region} from './form-ledger.mjs';
 import {renderValue,numbersIn} from './form-values.mjs';
 
@@ -19,7 +19,9 @@ export function formChecks({map,original,filled,sheet,sources,ledger}){
   const written=section=>region(ledger,filled,section).filter(({item,origin})=>{const mark=markOf(ledger.original.get(origin??section.sample)?.text??'');return(mark&&item.text.startsWith(mark)?item.text.slice(mark.length):item.text).trim();}).map(part=>part.item);
   // Structure: every required slot holds a value, every section its text, the outline and the tables as the form has them.
   for(const slot of map.slots.filter(s=>s.required)){
-    const current=at(slot.target),text=current?.text??'',met=!!current&&(slot.kind==='guide'?!text.includes(slot.guide):!!text.trim()&&!guideSpans(text).length);
+    // A checkbox always holds a state; another control is filled when its placeholder is gone (Task J1).
+    const current=at(slot.target),text=current?.text??'',typed=slot.kind==='field'&&['boolean','choice','date','image'].includes(slot.valueType);
+    const met=!!current&&(slot.kind==='guide'?!text.includes(slot.guide):slot.valueType==='boolean'&&slot.kind==='field'?typeof current.checked==='boolean':typed?!current.showingPlaceholder&&(slot.valueType==='image'||!!text.trim()):!!text.trim()&&!guideSpans(text).length);
     add('칸 채움',met,`${slot.label||slot.target}: ${text.trim()||'비어 있음'}`,{slot:slot.id});
   }
   for(const section of map.sections.filter(s=>s.needsText)){
@@ -47,8 +49,9 @@ export function formChecks({map,original,filled,sheet,sources,ledger}){
   // section are the user's, or the form's own.
   for(const cell of sheet.cells??[]){
     const slot=slots.get(cell.slot);if(!slot)continue;
-    const value=renderValue(slot,cell.value),current=at(slot.target)?.text??'';
-    const met=slot.kind==='guide'?current.includes(line((slot.wrap?.[0]??'')+value+(slot.wrap?.[1]??''))):slot.kind==='field'?current===line(value):current===value;
+    const value=renderValue(slot,cell.value),item=at(slot.target),current=item?.text??'';
+    // A field holds its value when the writer has nothing more to write to it: its state, item, date or text.
+    const met=slot.kind==='guide'?current.includes(line((slot.wrap?.[0]??'')+value+(slot.wrap?.[1]??''))):slot.kind==='field'?!!item&&fieldOperation(slot,item,cell.value,value,ledger)===null:slot.kind==='bookmark'?current===line(value):current===value;
     add('값 근거',met,`${slot.label}: ${current}`,{slot:cell.slot});
   }
   const given=numbersIn([...sources.values()].filter(source=>source.role==='user').map(source=>source.text).join('\n'));

@@ -68,7 +68,8 @@ test('a content control is a field item with its tag, title, type and placeholde
   const bytes=await docxFromBlocks([{p:{text:'신청서',style:'Title'}},{control:{tag:'dept',title:'부서명',type:'text',placeholder:true,text:'부서를 입력하세요'}},{p:{text:'끝.',style:'본문'}}]);
   const {map,items}=await extractFormMap(bytes);
   const field=items.find(item=>item.kind==='field');
-  assert.deepEqual([field.id,field.tag,field.title,field.controlType,field.showingPlaceholder,field.text,field.writable],['f-1','dept','부서명','text',true,'부서를 입력하세요',false]);
+  // Task J1 (2026-10-21): an unlocked text control is written by fill_field, so it reads as writable.
+  assert.deepEqual([field.id,field.tag,field.title,field.controlType,field.showingPlaceholder,field.text,field.writable],['f-1','dept','부서명','text',true,'부서를 입력하세요',true]);
   assert.deepEqual(map.slots.map(slot=>[slot.kind,slot.target,slot.label,slot.required]),[['field','f-1','부서명',true]]);
   await assert.rejects(docxSnapshot(Buffer.from('not a zip')),/docx_invalid/);
   await assert.rejects(docxSnapshot(Buffer.alloc(0)),/docx_invalid/);

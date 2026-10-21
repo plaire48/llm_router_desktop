@@ -88,6 +88,11 @@ function formatted(type,text,shape,parts){
 // The text to write for a slot: a date or a period in the notation of its guide, an amount in the form's own frame
 // (each guide span in its notation), a cell that holds its own label ("담당: ○○○ (인)") with that label, anything else as
 // given without the request's conversational ending.
+// A checkbox value from the user's words (Task J1): yes, agreed, applies, checked, or the opposite. Anything else is
+// not guessed.
+const YES=/^(?:예|네|응|yes|y|true|o|ㅇ|v|✓|✔|☑|☒|■|체크|선택|동의|동의함|동의합니다|해당|해당함|있음|사용|포함|참석|신청|필요|필요함)$/i;
+const NO=/^(?:아니오|아니요|아니|no|n|false|x|✗|☐|□|미체크|미선택|미동의|비동의|동의하지\s*않음|해당\s*없음|미해당|없음|미사용|불포함|불참|미신청|필요\s*없음|불필요|안\s*함)$/i;
+export function parseBoolean(value){const text=String(value??'').trim().replace(/[.!]$/,'');return YES.test(text)?true:NO.test(text)?false:null;}
 export function renderValue(slot,value){
   const text=String(value??'').trim(),type=slot?.valueType??'text',guides=slot?.guides??(slot?.guide?[slot.guide]:[]);
   const parts=slot?.parts??(guides.length>1&&type==='period'?guides.slice(0,2):undefined);

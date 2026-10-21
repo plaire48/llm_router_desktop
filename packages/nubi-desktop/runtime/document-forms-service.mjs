@@ -35,7 +35,7 @@ export function installDocumentForms(Service){
       const {name,hash,preview,capture:stored,copy}=await registerForm({workspace,source,name:args.name,capture});return {name,hash,preview,capture:stored,copy};
     }
     if(action==='list')return {forms:await listForms(workspace)};
-    if(action==='questions'){const {map,hash,changed}=await loadForm(workspace,args.name);if(!map)fail('form_fill_unsupported_app');return {hash,changed,...formQuestionPlan(map,args.values&&typeof args.values==='object'?args.values:{})};}
+    if(action==='questions'){const {map,hash,changed,preview}=await loadForm(workspace,args.name);if(!map)fail('form_fill_unsupported_app');if(preview?.fillable===false)fail('form_not_fillable');return {hash,changed,...formQuestionPlan(map,args.values&&typeof args.values==='object'?args.values:{})};}
     if(action==='plan')return startPlan(this,workspace,args);
     if(action==='answer')return answerPlan(this,args);
     if(action==='apply')return applyPlan(this,workspace,args);
@@ -90,8 +90,10 @@ const settle=plan=>new Promise(resolve=>{plan.onAsk=resolve;plan.run.finally(res
 const pause=(plan,state)=>{plan.state=state;plan.onAsk?.();return new Promise((resolve,reject)=>{plan.resume=resolve;plan.controller.signal.addEventListener('abort',()=>reject(new Error('cancelled')),{once:true});});};
 
 async function startPlan(service,workspace,args){
-  const {map,items,hash,source}=await loadForm(workspace,args.name);
+  const {map,items,hash,source,preview}=await loadForm(workspace,args.name);
   if(!map)fail('form_fill_unsupported_app');
+  // A read-only protected form (Task J7) is kept as a template but Word would not let anyone write it.
+  if(preview?.fillable===false)fail('form_not_fillable');
   if(!items)fail('form_items_missing');
   const request=String(args.request??'').trim();if(!request)fail('form_request_required');
   if(!service.providers?.status?.()?.connected)fail('provider_missing');
@@ -170,7 +172,9 @@ async function applyPlan(service,workspace,args){
   const exists=await lstat(target).then(()=>true,error=>{if(error.code==='ENOENT')return false;throw error;});
   if(exists&&args.overwrite!==true)fail('form_output_exists');
   const bytes=await readFile(source).catch(error=>{if(error.code==='ENOENT')fail('form_source_missing');throw error;});
-  plan.writer=await createDocxWriter(bytes,{name:path.basename(plan.source)});plan.output=args.output;plan.sourceBytes=bytes;plan.state='running';
+  // A picture box takes an image file inside the Workspace only (Task J5); the writer checks it is a PNG or JPEG.
+  const resolveImage=async rel=>{try{const file=await scopedFile(workspace,rel),stat=await lstat(file);return stat.isFile()&&stat.size<=20*1024*1024?await readFile(file):null;}catch{return null;}};
+  plan.writer=await createDocxWriter(bytes,{name:path.basename(plan.source),resolveImage});plan.output=args.output;plan.sourceBytes=bytes;plan.state='running';
   plan.run=plan.fill.run({kind:'form_apply'}).then(()=>{if(plan.state!=='cancelled')plan.state='applied';},error=>{if(plan.state!=='cancelled'){plan.state='failed';plan.error=safeCode(error);plan.issue=String(error?.issue??'').slice(0,500)||null;}});
   await settle(plan);return finish(plan);
 }

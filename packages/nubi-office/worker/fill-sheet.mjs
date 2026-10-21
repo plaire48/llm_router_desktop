@@ -6,7 +6,7 @@ import Type from 'typebox';
 import {Value} from 'typebox/value';
 import {modelJson} from './model-json.mjs';
 import {guideSpans} from './guide-text.mjs';
-import {quoteHolds,numbersIn,parseDate,parsePeriod} from './form-values.mjs';
+import {quoteHolds,numbersIn,parseDate,parsePeriod,parseBoolean} from './form-values.mjs';
 
 const Source=Type.String({maxLength:40});
 export const CELL_SHEET=Type.Object({
@@ -69,9 +69,12 @@ export function parseCellSheet(response,map,sources,{today=new Date()}={}){
   const assistant=source=>sources.get(source)?.role==='assistant';
   for(const cell of sheet.cells){
     const slot=bySlot.get(cell.slot);
-    if(!slot||!['cell','guide','field'].includes(slot.kind)){problems.push(`${cell.slot} is not a cell, guide or field slot of the map`);continue;}
+    if(!slot||!['cell','guide','field','bookmark'].includes(slot.kind)){problems.push(`${cell.slot} is not a cell, guide, field or bookmark slot of the map`);continue;}
     if(seen.has(cell.slot))problems.push(`${cell.slot} is filled twice`);seen.add(cell.slot);
     if(!plain(cell.value))problems.push(`${cell.slot} has no value: put a slot without a value in missing`);
+    // A typed control takes its own kind of value (Task J1): a checkbox yes or no, a list one of its options.
+    else if(slot.valueType==='boolean'&&parseBoolean(cell.value)===null)problems.push(`${cell.slot} is a checkbox: its value is 예 or 아니오 (or the user's own words for yes or no)`);
+    else if(slot.valueType==='choice'&&!(slot.options??[]).some(option=>plain(option)===plain(cell.value)))problems.push(`${cell.slot} takes one of its options exactly: ${(slot.options??[]).join(', ')}`);
     else if(guideSpans(cell.value).length)problems.push(`${cell.slot} value is guide text, not the user's value`);
     else if(assistant(cell.source))problems.push(`${cell.slot} quote is the assistant's (${cell.source}): only the user's words are a source; ask the user in missing`);
     else if(!quoted(cell.source,cell.quote))problems.push(`${cell.slot} quote is not in ${cell.source}: copy the user's words exactly`);
@@ -93,7 +96,7 @@ export function parseCellSheet(response,map,sources,{today=new Date()}={}){
     else if(!plain(entry.question))problems.push(`${entry.slot} needs a question`);
     seen.add(entry.slot);
   }
-  const open=map.slots.filter(slot=>slot.required&&['cell','guide','field'].includes(slot.kind)&&!seen.has(slot.id));
+  const open=map.slots.filter(slot=>slot.required&&['cell','guide','field','bookmark'].includes(slot.kind)&&!seen.has(slot.id));
   if(open.length)problems.push(`required slots without a value or a question: ${open.map(slot=>`${slot.id} (${slot.label||slot.target})`).join(', ')}`);
   if(problems.length)refuse(problems.slice(0,8).join('; ')+'.');
   for(const cell of sheet.cells)cell.value=withYear(bySlot.get(cell.slot).valueType,cell.value,year);
