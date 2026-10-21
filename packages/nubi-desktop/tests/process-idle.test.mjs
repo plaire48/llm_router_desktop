@@ -76,6 +76,8 @@ test('servers, manual commands and user cancellations do not create idle recover
   service.processes.stop(stopped.id);
   await new Promise(r=>setTimeout(r,120));
   assert.equal(service.task(task.id).question,undefined);
+  // Ending the shell takes longer on a busy Windows runner ('stopping' at 120ms, build v 2026-10-22): wait for the end.
+  for(let i=0;i<200&&service.processes.poll(stopped.id).state==='stopping';i++)await new Promise(r=>setTimeout(r,50));
   assert.equal(service.processes.poll(stopped.id).state,'cancelled');
   assert.equal(service.recoveryQueue.size,0);
   assert.equal(service.processes.poll(server.id).state,'running');assert.equal(service.processes.poll(manual.id).state,'running');
