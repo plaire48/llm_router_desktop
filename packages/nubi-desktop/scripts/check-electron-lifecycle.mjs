@@ -81,7 +81,8 @@ try{
   const after=await page.evaluate(()=>window.nubi.request('overview',{}));assert.equal(after.root,root,'the project is open in the new worker');
   const restoredRoutines=await page.evaluate(()=>window.nubi.request('listRoutines'));assert.equal(restoredRoutines.items[0].lastTaskId,result.routineTaskId);assert.equal(restoredRoutines.items[0].enabled,false);result.routineRetainedAfterWorkerRestart=true;
   result.hostEvents=await page.evaluate(()=>window.__hostEvents.map(event=>event.type));
-  const fault=JSON.parse(await readFile(path.join(storage,'last-host-fault.json'),'utf8'));assert.equal(fault.component,'worker');assert.equal(fault.reason,'killed');result.fault=fault;
+  const fault=JSON.parse(await readFile(path.join(storage,'last-host-fault.json'),'utf8'));assert.equal(fault.component,'worker');// Windows reports no signal for a terminated child (TerminateProcess), so the worker's end is an abnormal exit there.
+  assert.equal(fault.reason,process.platform==='win32'?'abnormal-exit':'killed');result.fault=fault;
   result.workerPids=[worker,childProcesses().find(row=>row.command.includes('service-entry.mjs'))?.pid];
   assert.notEqual(result.workerPids[0],result.workerPids[1]);
   // 2. A second start leaves at once; the first still answers.

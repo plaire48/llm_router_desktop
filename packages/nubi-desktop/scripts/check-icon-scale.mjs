@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import {rendererBundleOptions} from './renderer-bundle.mjs';
 
 const baseline=process.argv.includes('--baseline'),phase=baseline?'before':'after';
-const dir=path.resolve('verification/icon-scale-2026-10-17'),bundle=dir+(baseline?'/fixture-before':'/fixture');await mkdir(bundle,{recursive:true});
+const dir=path.resolve('verification/icon-scale-2026-10-17'),bundle=path.join(dir,baseline?'fixture-before':'fixture');await mkdir(bundle,{recursive:true});
 if(baseline){
  // Reuse the already verified pre-icon build, not a recreation from new CSS.
  if(!await readFile(bundle+'/app.css','utf8').catch(()=>null))await cp('verification/all-surfaces/fixture',bundle,{recursive:true});
