@@ -21,6 +21,7 @@ export async function resetMail(mail,{confirmed=false}={}){
    if(Date.now()-start>30000)throw Error('mail_reset_wait');
    await new Promise(resolve=>setTimeout(resolve,40));
   }
+  await mail.searchIndex?.dispose();mail.searchIndex=null;await mail.listing?.dispose();mail.listing=null;
   await mail.rawMigration;await mail.wikiReady;
   const raw=(await ownedEntries(mail.rawRoot)).filter(name=>/^(?:[a-f0-9]{64}|\.[a-f0-9]{64}\.pending)$/.test(name));
   await ownedEntries(mail.wikiStoreRoot);
@@ -37,6 +38,7 @@ export async function resetMail(mail,{confirmed=false}={}){
   mail.store.db.exec('BEGIN IMMEDIATE');
   try{
    for(const {key} of mail.store.entries(''))if(!key.startsWith('setting:')||['setting:local-import','setting:check-window','setting:reset-pending'].includes(key))mail.store.delete(key);
+   if(mail.store.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='mail_list'").get())mail.store.db.exec('DELETE FROM mail_list; DELETE FROM nubi_mail_list_dirty');
    mail.store.db.exec('COMMIT');
   }catch(error){mail.store.db.exec('ROLLBACK');throw error;}
   mail.account=null;mail.baselineCount=0;mail.lastCheckedAt=null;mail.nextCheckAt=null;mail.error=null;mail.importProgress=null;

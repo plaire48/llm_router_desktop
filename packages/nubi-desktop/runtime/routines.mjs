@@ -1,3 +1,4 @@
+import {createRoutineUiActions} from './routine-ui.mjs';
 import {randomUUID} from 'node:crypto';
 import {wikiChatBlocked} from './wiki-chat-admission.mjs';
 import {humanDecisions} from '../ui/human-decisions.mjs';
@@ -41,6 +42,7 @@ export function createRoutineScheduler({store,run,now=()=>Date.now(),interval=60
 }
 export function createRoutineManager({store,listProjects,serviceFor,now=()=>Date.now(),canStart=()=>true,onActivity=()=>{}}){
  const owner=async routine=>{const project=(await listProjects()).find(p=>p.id===routine.projectId);if(!project)fail('project_missing');return serviceFor(project);};
+ const ui=createRoutineUiActions({store,owner});
  const watched=new WeakSet();
  const notify=(service,taskId,phase)=>{try{onActivity({projectId:service.projectId,taskId,phase});}catch{/* UI delivery never replays work. */}};
  const notifySupervision=(service,r)=>{try{onActivity({projectId:service.projectId,routineId:r.id,routineName:r.name,slug:r.slug,phase:'supervision_required'});}catch{/* see above */}};
@@ -95,7 +97,8 @@ export function createRoutineManager({store,listProjects,serviceFor,now=()=>Date
   }
  });
  return {observe,get busy(){return scheduler.busy;},start:()=>scheduler.start(),stop:()=>scheduler.stop(),tick:()=>scheduler.tick(),runNow:({id})=>scheduler.runNow(id),
-  async list(){return {items:store.list('routine:').map(r=>({...r,nextRunAt:r.enabled?nextRun(r,now()):null})),projects:await listProjects()};},
+  catalog:args=>ui.catalog(args),resolvePromotion:args=>ui.resolve(args),
+  async list({promotions=false}={}){const items=store.list('routine:').map(r=>({...r,nextRunAt:r.enabled?nextRun(r,now()):null}));if(promotions)for(const row of items){try{row.promotion=await ui.promotion(row);}catch{row.promotion=null;}}return {items,projects:await listProjects()};},
   async save(input){
    const kind=input?.kind??'prompt';
    if(!['prompt','workflow'].includes(kind)||typeof input?.name!=='string'||!input.name.trim()||input.name.length>80||typeof input.projectId!=='string'||typeof input.enabled!=='boolean')fail('routine_invalid');

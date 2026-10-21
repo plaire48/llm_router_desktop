@@ -36,7 +36,7 @@
     "design:check": "node scripts/check-identity.mjs",
     "verify:identity": "npm run build && npm run test:ui && npm run test:skills-ui && npm run test:shared-ui && npm run test:forms-ui && npm run test:mail-ui && npm run test:modals-ui",
     "test:forms-ui": "node scripts/check-design-rules.mjs && node scripts/check-form-clarity.mjs && node scripts/check-form-cards-ui.mjs",
-    "test:mail-ui": "node scripts/check-mail-ui.mjs && node scripts/check-mail-admission.mjs && node scripts/check-mail-stability.mjs",
+    "test:mail-ui": "node scripts/check-mail-ui.mjs && node scripts/check-mail-admission.mjs && node scripts/check-mail-stability.mjs && node scripts/check-mail-thread-card.mjs",
     "test:modals-ui": "node scripts/check-modals.mjs",
     "test:responsiveness-ui": "node scripts/check-ui-responsiveness.mjs",
     "start:web": "node scripts/start-web.mjs",

@@ -1,0 +1,15 @@
+.desktop-shell .nubi-mail-thread-card { margin-block:var(--cx-space-3); border:1px solid var(--deck-line); border-radius:var(--nubi-work-control-radius); background:var(--nubi-surface-base); color:var(--nubi-text-primary); font:var(--deck-font-body); }
+.desktop-shell .nubi-mail-thread-card>summary { display:flex; align-items:center; gap:var(--cx-space-2); padding:var(--cx-space-3); cursor:pointer; list-style:none; font-weight:var(--nubi-weight-label); }
+.desktop-shell .nubi-mail-thread-card>summary::-webkit-details-marker { display:none; }
+.desktop-shell .nubi-mail-thread-card>summary>svg:last-child { margin-inline-start:auto; }
+.desktop-shell .nubi-mail-thread-detail { padding:0 var(--cx-space-3) var(--cx-space-3); }
+.desktop-shell .nubi-mail-thread-detail dl { margin:0 0 var(--cx-space-3); display:grid; gap:var(--cx-space-2); }
+.desktop-shell .nubi-mail-thread-detail dl>div { display:grid; grid-template-columns:5em minmax(0,1fr); gap:var(--cx-space-2); }
+.desktop-shell .nubi-mail-thread-detail dt { color:var(--nubi-text-secondary); }
+.desktop-shell .nubi-mail-thread-detail dd { margin:0; overflow-wrap:anywhere; }
+.desktop-shell .nubi-mail-thread-detail ul { list-style:none; padding:0; margin:0; max-block-size:calc(var(--cx-space-4) * 16); overflow:auto; }
+.desktop-shell .nubi-mail-thread-detail li { border-top:1px solid var(--deck-line); content-visibility:auto; contain-intrinsic-block-size:auto 48px; }
+.desktop-shell .nubi-mail-thread-detail li>button { display:flex; justify-content:space-between; gap:var(--cx-space-2); width:100%; text-align:start; padding:var(--cx-space-2) 0; border:0; background:transparent; }
+.desktop-shell .nubi-mail-thread-detail li>button>span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.desktop-shell .nubi-mail-thread-detail time { color:var(--nubi-text-secondary); white-space:nowrap; font:var(--deck-font-caption); }
+.desktop-shell .nubi-mail-thread-detail nav { display:flex; align-items:center; justify-content:flex-end; gap:var(--cx-space-2); margin-top:var(--cx-space-2); }

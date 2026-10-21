@@ -55,3 +55,21 @@ test('partial cleanup does not report success or resume collection; retry finish
  mail.store.delete=remove;await f.reopen();assert.equal(f.mail.status().resetPending,true);
  await f.mail.call({action:'reset',confirmed:true});assert.equal(f.mail.rows().length,0);assert.equal(f.mail.status().resetPending,false);
 });
+test('reset closes the list worker and clears its metadata projection',async t=>{
+ const {mail}=await fixture(t);await seed(mail);
+ assert.equal((await mail.call({action:'search',query:'',limit:20})).total,1);
+ assert.equal(mail.store.db.prepare('SELECT count(*) n FROM mail_list').get().n,1);
+ const old=mail.listing.disk;
+ await mail.call({action:'reset',confirmed:true});
+ assert.equal(old.closed,true);
+ assert.equal(mail.store.db.prepare('SELECT count(*) n FROM mail_list').get().n,0);
+ assert.equal((await mail.call({action:'search',query:'',limit:20})).total,0);
+});
+test('list status and filter suggestions do not allocate the entire collection',async t=>{
+ const {mail}=await fixture(t);await seed(mail);
+ const rows=mail.rows;mail.rows=()=>assert.fail('full_collection_forbidden');
+ try{
+  const status=await mail.call({action:'status',includeMessages:false});assert.equal(status.counts.received,1);assert(!Object.hasOwn(status,'messages'));
+  const facets=await mail.call({action:'facets'});assert(facets.senders.some(x=>x.address==='fixture@example.invalid'));
+ }finally{mail.rows=rows;}
+});
