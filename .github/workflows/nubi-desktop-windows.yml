@@ -25,7 +25,8 @@ jobs:
   windows:
     needs: windows-shell-probe
     runs-on: windows-latest
-    timeout-minutes: 50
+    # Normal runs take about 35 minutes; the large Wiki fixture step alone may need up to 50 on a slow runner.
+    timeout-minutes: 90
     defaults:
       run:
         working-directory: packages/nubi-desktop
@@ -134,9 +135,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify resumable mail, large Wiki sources and completion notices
         # A hang must fail with the test name and keep the log (build z was cancelled at 41 minutes without one).
-        timeout-minutes: 25
+        # The 20,000-file Git fixture alone took 5 to over 15 minutes on shared runners (builds y, aa), so the
+        # limits cover setup time, which is never a product timing verdict.
+        timeout-minutes: 50
         run: |
-          node --test --test-concurrency=1 --test-timeout=900000 tests/wiki-large-project.test.mjs tests/git-clone-progress.test.mjs tests/mail-import-resume.test.mjs tests/mail-storage-policy.test.mjs tests/mail-raw-root.test.mjs tests/wiki-notifications.test.mjs tests/answer-notifications.test.mjs tests/answer-source-integrity.test.mjs tests/mail-knowledge.test.mjs
+          node --test --test-concurrency=1 --test-timeout=2700000 tests/wiki-large-project.test.mjs tests/git-clone-progress.test.mjs tests/mail-import-resume.test.mjs tests/mail-storage-policy.test.mjs tests/mail-raw-root.test.mjs tests/wiki-notifications.test.mjs tests/answer-notifications.test.mjs tests/answer-source-integrity.test.mjs tests/mail-knowledge.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify startup input recovery and commit graph boundaries
         run: |
