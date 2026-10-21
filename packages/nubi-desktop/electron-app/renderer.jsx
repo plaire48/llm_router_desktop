@@ -178,7 +178,8 @@ function App(){
    if(options?.expectedHash&&item.hash!==options.expectedHash)throw Error('answer_source_changed');
    if(options?.expectedHash&&item.dirty)throw Error('editor_dirty');
    if(!alive.current||request!==openRequest.current||options?.canPresent&&!options.canPresent())return null;
-   item.sourceSelection=options?.line?{line:options.line,endLine:options.endLine,id:crypto.randomUUID()}:null;if(options?.source)item.editSource=true;
+   // Revealing a source range chooses the editor; clearing its highlight after typing must not switch to preview.
+   item.sourceSelection=options?.line?{line:options.line,endLine:options.endLine,id:crypto.randomUUID()}:null;if(options?.source||options?.line)item.editSource=true;
    activateBuffer(item,options);
    if(options?.revealInExplorer){const base=directoryRef.current;if(base&&!rel.startsWith(base+'/'))setDirectory('');setFileReveal({id:crypto.randomUUID(),path:rel,key:item.key});}
    setRevision(value=>value+1);return item;

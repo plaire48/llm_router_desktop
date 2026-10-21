@@ -1,3 +1,4 @@
+import {seedRoutineScenes,checkRoutineScenes} from './workflow-routine-scenes.mjs';
 import {captureDesign} from './design-rules.mjs';
 // Actual desktop host + scripted loopback model + synthetic package only.
 import {_electron as electron} from 'playwright';
@@ -10,7 +11,7 @@ import {setTimeout as delay} from 'node:timers/promises';
 import assert from 'node:assert/strict';
 import {parse,stringify} from 'yaml';
 import {startFixtureModel} from './fixture-model.mjs';
-import {killProcessTree,desktopTestWindow} from './electron-test-window.mjs';
+import {desktopTestWindow,killProcessTree} from './electron-test-window.mjs';
 import {hash} from '../runtime/files.mjs';
 const tag=process.env.WORKFLOW_TAG||'after';assert.match(tag,/^[a-z0-9-]+$/);
 const require=createRequire(import.meta.url),dir=path.resolve('verification/workflow-pilot/'+tag);await mkdir(dir,{recursive:true});
@@ -43,15 +44,14 @@ async function waitRun(runId,stepId,phase){return poll(()=>request('workflowRun'
 async function approve(runId,stepId,phase='supervision',label='진행'){
  await waitRun(runId,stepId,phase);const question=page.locator(`[data-step-id="${stepId}"]`).getByRole('region',{name:'답변이 필요한 질문',exact:true});await question.waitFor();await question.locator('.question-option').filter({hasText:label}).click();await question.getByRole('button',{name:/답변 보내기|^보내기$/}).click();
 }
-// Electron's helper processes can still hold their data files (state/app/DIPS) for a moment after close on Windows;
-// rm retries busy files (Windows gates 2026-10-21).
 async function close(){if(app){const instance=app;app=null;await instance.close();}}
 try{
  for(const width of [1280,440]){
   draftTurns=0;reportTurns=0;temporary=await realpath(await mkdtemp(path.join(os.tmpdir(),'nubi-workflow-pilot-')));const root=path.join(temporary,'project'),storage=path.join(temporary,'state');await cp('tests/workflow-fixture-project',root,{recursive:true});await mkdir(storage);await mkdir(path.join(root,'out'));await writeFile(path.join(root,'openwiki/home.md'),'# 합성 시범\n\n[pilot-change-policy](pilot-change-policy.md)\n');
   const stopDir=path.join(root,'.nubi/workflows/stop-pilot');await cp(path.join(root,'.nubi/workflows/change-request-definition'),stopDir,{recursive:true});const definition=parse(await readFile(path.join(stopDir,'workflow.yaml'),'utf8'));definition.name='합성 중단 확인';await writeFile(path.join(stopDir,'workflow.yaml'),stringify(definition));
+  await seedRoutineScenes(root,storage);
   const git=args=>execFileSync('git',['-C',root,...args],{stdio:'ignore'});git(['init','-q']);git(['config','user.name','Fixture']);git(['config','user.email','fixture@example.invalid']);git(['add','.']);git(['commit','-qm','Synthetic workflow pilot']);await writeFile(path.join(storage,'last-project.json'),JSON.stringify({root}));
-  await launch(storage,width);await openCatalog();await page.getByRole('button',{name:'합성 변경 요청 정의서 작성',exact:true}).click();await page.getByRole('button',{name:'검증',exact:true}).click();await page.getByText('합성 검증 통과',{exact:true}).waitFor();await assert.rejects(access(path.join(root,'out/change-request.md')));assert.equal((await request('state')).proposals.length,0);checks.push({width,scene:'dry-run',effects:0});
+  await launch(storage,width);await openCatalog();await checkRoutineScenes({page,request,width,dir,checks});if(process.env.WORKFLOW_ROUTINES_ONLY==='1'){await close();await rm(temporary,{recursive:true,force:true,maxRetries:20,retryDelay:250});temporary=null;continue;}await page.getByRole('button',{name:'합성 변경 요청 정의서 작성',exact:true}).click();await page.getByRole('button',{name:'검증',exact:true}).click();await page.getByText('합성 검증 통과',{exact:true}).waitFor();await assert.rejects(access(path.join(root,'out/change-request.md')));assert.equal((await request('state')).proposals.length,0);checks.push({width,scene:'dry-run',effects:0});
   await page.getByRole('button',{name:'실행',exact:true}).click();await page.getByRole('dialog',{name:'워크플로우 실행',exact:true}).getByRole('button',{name:'실행',exact:true}).click();await page.locator('.nubi-workflow-run').waitFor();
   const row=(await request('listWorkflows')).find(r=>r.slug==='change-request-definition');const runId=row.lastRun.id;await approve(runId,'read-ticket');await approve(runId,'draft');
   const card=page.getByRole('article',{name:'change-request.md 변경 제안',exact:true});await card.waitFor({timeout:60000});await assert.rejects(access(path.join(root,'out/change-request.md')));await captureDesign(page,{path:path.join(dir,`proposal-${width}.png`)});await card.getByRole('button',{name:'반영',exact:true}).click();

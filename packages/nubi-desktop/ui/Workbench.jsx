@@ -453,6 +453,8 @@ export function Workbench({createEditorDraft,connectEditor,api:requestApi,initia
     commandExpansion.current={projectId:project?.projectId,taskId,records:new Set()};
   const commandRecordExpansion=commandExpansion.current.records;
   const taskActions=(project?.setupActions||[]).filter(a=>a.taskId===taskId).reverse();
+  // A turn can finish before its commands. Keep displayed records fresh even when another process is selected.
+  const commandRecordPending=!!taskId&&(project?.processes||[]).some(process=>['checking','running','stopping'].includes(process.state)&&(process.taskId===taskId||taskActions.some(action=>action.resultProcessId===process.id)));
   const setupHandlers={onAlways:action=>perform(async()=>{setApproval(await api('allowCommand',{kind:'setup',id:action.id}));const value=await api('decideSetupAction',{id:action.id,fingerprint:action.fingerprint,decision:'approve'});await refresh();if(value.resultProcessId){const result=await api('poll',{id:value.resultProcessId});setProcessResult(result);openTerminal?.({processId:result.id,cwd:result.cwd});setPanel(null);}}),onDecision:(action,decision)=>perform(async()=>{const value=await api('decideSetupAction',{id:action.id,fingerprint:action.fingerprint,decision,elevationConsent:action.privilege==='administrator'});await refresh();if(value.resultProcessId){const result=await api('poll',{id:value.resultProcessId});setProcessResult(result);openTerminal?.({processId:result.id,cwd:result.cwd});setPanel(null);}}),onStop:process=>perform(async()=>setProcessResult(await api('stop',{id:process.id})))};
   const commandCards=items=>{const actions=showProgress?items:items.filter(action=>{const process=action.resultProcessId?[processResult,...(project?.processes||[])].find(row=>row?.id===action.resultProcessId):null;return action.state!=='rejected'&&!(action.state==='started'&&process?.state==='completed'&&(!process.recoveryState||process.recoveryState==='review'));});return actions.length?<SetupActions expansion={commandRecordExpansion} actions={actions} proposals={proposals} processes={project?.processes||[]} latest={processResult} onOpenTerminal={openTerminal} profiles={project?.profiles||[]} disabled={busy||running||!!task.question||task.state==='cancelled'} {...setupHandlers}/>:null;};
   const runCommands=runIds=>commandCards(taskActions.filter(a=>a.runId&&runIds.includes(a.runId)&&a.state!=='proposed'));
@@ -598,10 +600,10 @@ export function Workbench({createEditorDraft,connectEditor,api:requestApi,initia
   // Reflect login/model changes from either surface without replaying actions.
   useEffect(()=>{let pending=false;const sync=async()=>{if(document.hidden||pending)return;pending=true;try{const value=await api('provider',{action:'status'});if(mounted.current)setProvider(previous=>JSON.stringify(previous)===JSON.stringify(value)?previous:value);}catch{}finally{pending=false;}};const timer=setInterval(sync,2000);window.addEventListener('focus',sync);return()=>{clearInterval(timer);window.removeEventListener('focus',sync);};},[api]);
   useEffect(()=>{
-    if(!wikiChatBlocked&&!activeTask&&!project?.backgroundProjects?.length&&!(sendingOutgoing&&taskId)&&!provider?.pending&&!['checking','running','stopping'].includes(processResult?.state)&&!['queued','diagnosing'].includes(processResult?.recoveryState))return;
+    if(!wikiChatBlocked&&!activeTask&&!commandRecordPending&&!project?.backgroundProjects?.length&&!(sendingOutgoing&&taskId)&&!provider?.pending&&!['checking','running','stopping'].includes(processResult?.state)&&!['queued','diagnosing'].includes(processResult?.recoveryState))return;
     let alive=true;const projectId=project?.projectId;
     const check=async()=>{if((document.hidden&&!window.nubi?.desktop)||polling.current)return;polling.current=true;try{
-      let needsState=wikiChatBlocked||!!activeTask||!!project?.backgroundProjects?.length||!!(sendingOutgoing&&taskId),providerValue,processValue;
+      let needsState=wikiChatBlocked||!!activeTask||commandRecordPending||!!project?.backgroundProjects?.length||!!(sendingOutgoing&&taskId),providerValue,processValue;
       if(provider?.pending){providerValue=await api('provider');if(!alive)return;needsState ||= providerValue.connected;}
       if(processResult&&(['checking','running','stopping'].includes(processResult.state)||['queued','diagnosing'].includes(processResult.recoveryState))){processValue=await api('poll',{id:processResult.id});if(!alive)return;needsState=true;}
       // One snapshot per cycle, after any command update. Discard late replies on navigation.
@@ -613,7 +615,7 @@ export function Workbench({createEditorDraft,connectEditor,api:requestApi,initia
     }catch{}finally{polling.current=false;}};
     const timer=setInterval(check,1000);const visible=()=>{if(!document.hidden)void check();};document.addEventListener('visibilitychange',visible);
     return()=>{alive=false;clearInterval(timer);document.removeEventListener('visibilitychange',visible);};
-  },[wikiChatBlocked,activeTask?.id,provider?.pending,processResult?.id,processResult?.state,processResult?.recoveryState,taskId,project?.projectId,project?.backgroundProjects?.length,sendingOutgoing?.id]);
+  },[wikiChatBlocked,activeTask?.id,commandRecordPending,provider?.pending,processResult?.id,processResult?.state,processResult?.recoveryState,taskId,project?.projectId,project?.backgroundProjects?.length,sendingOutgoing?.id]);
   // A paired Nubi sends requests and results at any time (user decision 2026-10-01): while one is paired, or a
   // pairing address waits to be used, the header count and the exchanged tasks stay current.
   const [inviteUntil,setInviteUntil]=useState(0),linked=!!project?.peerLinks?.length||inviteUntil>0;

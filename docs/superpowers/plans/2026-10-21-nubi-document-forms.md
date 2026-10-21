@@ -142,5 +142,5 @@
 
 - [x] K1 에이전트 도구 `fill_document_form`(runtime/document-form-tool.mjs): 원본은 지정 경로나 이 대화에 연결된 Word 문서(Workspace에서 같은 이름을 찾고 Office로 같은 파일과 저장 상태 확인). 값은 사용자 메시지에서만. 빠진 값은 needs_values로 돌려 에이전트가 채팅으로 묻고, 답을 받으면 `문서/<양식> 작성.docx`(덮어쓰지 않음)에 쓰고 검사한 뒤 기본 앱으로 연다. 도구 예산 때문에 양식 작업일 때만 제공한다.
 - [x] K2 실모델 대화 점검 2/2(eval/document-forms/chat-run.mjs): 빠진 출장 기간을 채팅으로 묻고 사본 작성, 원본 바이트 동일.
-- [ ] K3 UI(Codex): '양식으로 등록', '양식으로 작성' 버튼과 FormRegisterCard, FormFillCard, DocumentFormControl, 질문 카드 제거. 채팅의 일반 질문과 결과 메시지만 쓴다. 쓴 사본은 기존 문서 미리보기와 변경 표시로 볼 수 있으면 충분하다.
+- [x] K3 UI(Codex): '양식으로 등록', '양식으로 작성' 버튼과 FormRegisterCard, FormFillCard, DocumentFormControl, 질문 카드 제거. 채팅의 일반 질문과 결과 메시지만 쓴다. 쓴 사본은 기존 문서 미리보기와 변경 표시로 볼 수 있으면 충분하다.
 - [ ] K4 서버 쪽 정리(Claude, K3 뒤): documentForm의 register/list/questions 화면 전용 동작은 K3에서 호출이 없어지면 지운다.
