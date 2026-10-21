@@ -1,10 +1,11 @@
-import React,{useId,useState} from 'react';
-import {CxButton,CxInput,CxTextarea} from '@e2e/cx-design-system';
+import React,{useId,useState,useEffect,useRef} from 'react';
+import {CxButton,CxInput} from '@e2e/cx-design-system';
 import {InteractionSurface} from '../../../extensions/aipro-chat/src/InteractionSurface.jsx';
 import {SettingsField,SettingsSection} from './SettingsSection.jsx';
+import {FormQuestionField} from './FormQuestionField.jsx';
 import {NativeDocumentPreview} from './NativeDocumentPreview.jsx';
 import {CollectionTable} from './CollectionTable.jsx';
-import {formState,formSourceText,validFormOutput} from './form-cards-view.mjs';
+import {formState,formSourceText,validFormOutput,formQuestionPages} from './form-cards-view.mjs';
 
 function Evidence({sources=[]}){return sources.map((source,i)=><p className="nubi-form-source" key={i}>{formSourceText(source)}</p>);}
 function FillSheet({sheet={}}){return <div className="nubi-form-sheet">
@@ -13,9 +14,15 @@ function FillSheet({sheet={}}){return <div className="nubi-form-sheet">
  {(sheet.sections||[]).map((section,i)=><section key={section.section||i}><h3>{section.title||section.section}</h3>{(section.paragraphs||[]).map((p,j)=><p key={j}>{typeof p==='string'?p:p.text}</p>)}<Evidence sources={section.sources||[]}/></section>)}
  {sheet.missing?.length>0&&<p role="status">아직 채우지 못한 칸: {sheet.missing.map(x=>x.label||x.slot).join(', ')}</p>}
  </div>;}
-export function FormFillCard({plan,busy,output,onOutput,source,onAnswer,onApply,onCancel,onRefresh,onRender,images={},onOpen}){
- const id=useId(),[answers,setAnswers]=useState({}),state=formState(plan),sheet=state==='approval'?plan.card?.fill:plan.sheet;
- if(state==='asking')return <form onSubmit={e=>{e.preventDefault();onAnswer(answers);}}><SettingsSection icon="message" title="작성에 필요한 내용">{(plan.questions||[]).map((q,i)=><SettingsField key={q.slot} id={`${id}-${i}`} label={q.label||q.slot} description={q.question}><CxTextarea disabled={busy} value={answers[q.slot]||''} onChange={e=>setAnswers(v=>({...v,[q.slot]:e.target.value}))}/></SettingsField>)}</SettingsSection><div className="nubi-form-actions"><CxButton disabled={busy} onClick={onCancel}>작성 취소</CxButton><CxButton type="submit" variant="primary" disabled={busy}>답변 보내기</CxButton></div></form>;
+export function FormFillCard({plan,busy,output,onOutput,source,onAnswer,onApply,onCancel,onRefresh,onRender,images={},onOpen,questionPlan,files=[]}){
+ const id=useId(),[answers,setAnswers]=useState({}),[page,setPage]=useState(0),[reviewAnswers,setReviewAnswers]=useState(false),questionForm=useRef(null),state=formState(plan),sheet=state==='approval'?plan.card?.fill:plan.sheet;
+ const pages=formQuestionPages(plan,questionPlan),multiple=pages.length>1,current=Math.min(page,Math.max(0,pages.length-1));
+ useEffect(()=>{if(multiple&&state==='asking')questionForm.current?.querySelector(reviewAnswers?'[data-answer-review]':'select:not(:disabled),input:not(:disabled),textarea:not(:disabled),button:not(:disabled)')?.focus();},[current,reviewAnswers,state,multiple]);
+ if(state==='asking')return <form ref={questionForm} onSubmit={e=>{e.preventDefault();if(multiple&&!reviewAnswers){if(current<pages.length-1)setPage(current+1);else setReviewAnswers(true);}else onAnswer(answers);}}>
+ {reviewAnswers?<section aria-label="답변 검토"><h3 data-answer-review tabIndex={-1}>입력한 내용을 확인해 주세요</h3><dl className="nubi-form-answer-review">{pages.flatMap(page=>page.questions).map(q=><div key={q.slot}><dt>{q.label||q.slot}</dt><dd>{answers[q.slot]||'아직 답하지 않았어요'}</dd></div>)}</dl></section>:<>
+ {multiple&&<p className="nubi-form-source" role="status">{current+1} / {pages.length}</p>}
+ <SettingsSection icon="message" title={multiple?pages[current]?.title:'작성에 필요한 내용'}>{(pages[current]?.questions||[]).map(q=><FormQuestionField key={q.slot} question={q} files={files} disabled={busy} value={answers[q.slot]??''} onChange={value=>setAnswers(previous=>({...previous,[q.slot]:value}))}/>)}</SettingsSection></>}
+ <div className="nubi-form-actions"><CxButton disabled={busy} onClick={onCancel}>작성 취소</CxButton>{multiple&&(current>0||reviewAnswers)&&<CxButton type="button" disabled={busy} onClick={()=>{if(reviewAnswers)setReviewAnswers(false);else setPage(current-1);}}>이전</CxButton>}<CxButton type="submit" variant="primary" disabled={busy}>{multiple&&!reviewAnswers?(current<pages.length-1?'다음':'답변 검토'):'답변 보내기'}</CxButton></div></form>;
  return <InteractionSurface className="nubi-form-card action-approval" icon="file" title={state==='ready'?'사본에 채울 내용':state==='approval'?(plan.card?.title||'수정된 채움표 확인'):state==='written'?'사본 저장 결과':'문서 작성 상태'}>
  {state==='running'?<p role="status">문서를 작성하고 있어요.</p>:state==='failed'?<p role="alert">작성을 마치지 못했어요. 현재 상태를 확인해 주세요.</p>:state==='cancelled'?<p role="status">작성을 취소했어요.</p>:state==='unknown'?<p role="alert">작성 상태를 확인하지 못했어요.</p>:null}
  {state==='approval'&&plan.card?.summary&&<p>{plan.card.summary}</p>}

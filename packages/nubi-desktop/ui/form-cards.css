@@ -18,3 +18,10 @@
 .nubi-document-form-control[hidden]{display:none}
 
 .nubi-form-card .nubi-document-preview-heading strong{color:var(--nubi-text-on-accent)}
+
+.nubi-form-boolean{display:flex;gap:var(--cx-space-2);flex-wrap:wrap}
+.nubi-form-boolean button[aria-pressed=true]{background:var(--deck-blue-soft);color:var(--deck-blue-deep);border-color:var(--deck-blue)}
+.nubi-form-choice{display:grid;gap:var(--cx-space-3)}
+.nubi-form-answer-review{display:grid;gap:var(--cx-space-4)}
+.nubi-form-answer-review dt{font-weight:var(--nubi-weight-label)}
+.nubi-form-answer-review dd{margin:var(--cx-space-1) 0 0;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--deck-sub)}
