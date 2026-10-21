@@ -27,7 +27,8 @@ function fixtureModel(calls){
 async function registered(f){
   await mkdir(path.join(f.root,'서식'),{recursive:true});
   await writeFile(path.join(f.root,'서식','출장.docx'),await docxFromBlocks(FORMS.trip));
-  return f.service.invoke('documentForm',{action:'register',projectId:f.service.projectId,source:'서식/출장.docx',name:'출장 보고'});
+  // Tests register through the file engine and say so; the product registers through Office (see the last test).
+  return f.service.invoke('documentForm',{action:'register',projectId:f.service.projectId,source:'서식/출장.docx',name:'출장 보고',engine:'file',acknowledgeFileOnly:true});
 }
 
 test('a plan fills from the request and materials with evidence, asks the open slot in one card, and finishes with the answer',async t=>{
@@ -96,6 +97,8 @@ test('apply writes the checked sheet into a copy inside the Workspace, never int
   const written=await s.invoke('documentForm',{action:'apply',projectId:s.projectId,planId:plan.planId,output:'out/출장-작성.docx'});
   assert.equal(written.state,'written',JSON.stringify({error:written.error,activity:written.activity}));
   assert.equal(written.checks.summary,'칸 4/4, 목차 2/2, 남은 안내 문구 0, 서식 유지, 근거 확인');assert.deepEqual(written.checks.unmet,[]);
+  assert.equal(written.compare.app,'word');assert.equal(written.compare.counts.changedCells,4);assert.ok(written.compare.after.blocks.some(block=>block.kind==='table'&&block.cells.some(cell=>cell.changed&&cell.before==='')),'the viewer gets the old cell text (empty) under the new value');
+  assert.equal(written.written.counts.changedCells,4);
   assert.deepEqual([written.written.output,written.written.sameEntries,written.written.violations,written.written.operations>=6],['out/출장-작성.docx',true,[],true]);
   assert.ok(prompts.some(p=>p.startsWith('WORD_FORM_REVIEWER')),'the checklist review ran after the write');
   const {docxSnapshot}=await import('../runtime/docx-snapshot.mjs');
@@ -131,4 +134,35 @@ test('render after a write gives before and after pages when LibreOffice is ther
   assert.match(real.render.after.pages[0].path,/^\.nubi\/forms\/출장 보고\/renders\/[0-9a-f]{8}\/after\/page-1\.png$/);
   assert.ok((await readFile(path.join(f.root,real.render.before.pages[0].path))).length>1000);
   assert.deepEqual((await s.invoke('documentForm',{action:'status',projectId:s.projectId,planId:plan.planId})).render.after.pageCount,real.render.after.pageCount);
+});
+
+test('registration opens the form in Office: the connected host captures everything, and without Office the file engine needs an explicit acknowledgement',async t=>{
+  const f=await fixture(t),s=f.service,projectId=s.projectId;
+  await mkdir(path.join(f.root,'서식'),{recursive:true});const source=path.join(f.root,'서식','기안문.docx');
+  const {docxFromBlocks:build,FORMS:forms}=await import('./helpers-docx-fixture.mjs');await writeFile(source,await build(forms.gianmun));
+  await assert.rejects(s.invoke('documentForm',{action:'register',projectId,source:'서식/기안문.docx'}),/form_office_required/,'no Office connection: no registration');
+  await assert.rejects(s.invoke('documentForm',{action:'register',projectId,source:'서식/기안문.docx',engine:'file'}),/form_office_required/,'the file engine must be acknowledged');
+  await assert.rejects(s.invoke('documentForm',{action:'register',projectId,source:'서식/기안문.docx',engine:'nope'}),/form_engine_invalid/);
+  const task=await s.createTask({request:'양식 등록'});
+  const {registerNativeOfficeConnection}=await import('../runtime/native-office-host.mjs');
+  const {docxCapture}=await import('../runtime/docx-capture.mjs');
+  const calls=[];
+  registerNativeOfficeConnection(s,{environment:'fixture',app:'word',documentTitle:'기안문.docx',documentId:'doc-1',officeSessionId:'office-1',officeVersion:'16.0 (Office 2016)',scope:{projectId,taskId:task.id},
+    async call(name,payload){calls.push([name,payload]);
+      // The fixture host writes an asset file into outDir and returns the contract without bytes, as the real host does.
+      const file=await docxCapture(await readFile(payload.path),{name:'기안문.docx'});
+      await writeFile(path.join(payload.outDir,'logo.png'),Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==','base64'));
+      const document={...file.document,images:[{anchor:'p-1',asset:'image-1',inline:true,name:'logo.png',widthCm:2,heightCm:1}]};
+      return {documentPath:payload.path,capture:{schemaVersion:1,app:'word',engine:'office',fidelity:'office',office:{version:'16.0 (Office 2016)',build:'16.0.5'},source:file.source,document,assets:[{id:'image-1',kind:'image',name:'logo.png',contentType:'image/png',path:'logo.png'}]}};
+    }},{allowFixture:true});
+  const registered=await s.invoke('documentForm',{action:'register',projectId,taskId:task.id,source:'서식/기안문.docx'});
+  assert.deepEqual([calls[0][0],calls[0][1].maxAssets,calls[0][1].renders,path.basename(calls[0][1].path)],['office_capture_template',200,true,'기안문.docx']);
+  assert.deepEqual([registered.capture.engine,registered.capture.fidelity,registered.capture.assets,registered.preview.fidelity,registered.preview.office.version],['office','office',1,'office','16.0 (Office 2016)']);
+  assert.match(registered.preview.capture,/그림 1개.*Office로 확인함/);
+  const {readdir}=await import('node:fs/promises');
+  assert.deepEqual((await readdir(path.join(f.root,'.nubi','forms','기안문','assets'))),['image-1.png']);
+  assert.ok(!(await readdir(path.join(f.root,'.nubi','forms'))).some(name=>name.startsWith('.capture-')),'the scratch capture folder is removed');
+  const stored=JSON.parse(await readFile(path.join(f.root,'.nubi','forms','기안문','capture.json'),'utf8'));
+  assert.deepEqual([stored.engine,stored.assets[0].path,stored.document.images[0].asset],['office','assets/image-1.png','image-1']);
+  assert.equal((await readFile(path.join(f.root,'.nubi','forms','기안문','source.docx'))).length,(await readFile(source)).length);
 });

@@ -12,6 +12,8 @@
 
 ## 전역 제약
 
+- **등록은 Office를 열어 전체 내용을 가져온다(사용자 지시 2026-10-21 11:20).** 텍스트, 서식(글꼴, 크기, 색), 그림, 수식, 모든 시트, 도형을 캡처 계약 v1로 저장하고 원본 바이트 사본을 함께 둔다. 파일만 읽는 등록(`engine:'file'`)은 Mac과 CI의 시험 전용이며 제품에서는 호출자가 `acknowledgeFileOnly:true`를 명시해야 하고 결과에 `fidelity:'file'`이 남는다. 설계 §3 "양식 등록은 Office를 열어 전체를 가져온다".
+
 - 원본 양식 파일은 절대 쓰지 않는다. 출력 경로가 원본과 같으면 `form_source_protected`.
 - OOXML 쓰기는 풀기 → 바뀌는 문단 조각만 편집 → 묶기. 바뀌지 않는 zip 항목은 바이트 동일.
 - 비밀값과 사내 자료는 시험 픽스처에 넣지 않는다. 픽스처는 합성 양식만.
@@ -70,13 +72,31 @@
 - [x] Step 2: 구현. `runtime/document-render.mjs`: `findSoffice`(NUBI_SOFFICE → 흔한 위치 → PATH, false면 찾지 않음), `renderDocumentPages`(격리 프로필로 PDF 변환, pdfjs로 쪽수(없으면 /Type /Page 수), 쪽마다 `writer_png_Export` PageRange로 PNG, 상한 12쪽), `renderBeforeAfter`. 서비스 `documentForm render`.
 - [x] Step 3: 통과(2/2, 서비스 4/4). CI(ubuntu)에는 LibreOffice가 없어 unavailable 경로만 돈다. Windows 설치판은 COM 렌더가 아니라 Office 자체 확인이다(§8 답 25).
 
+### Task H: Office 전체 캡처 명령 (Codex, C# 호스트)
+
+**Files:** Modify `packages/nubi-office/native/Nubi.Office.Host/ContentPort.cs`(`office_capture_template` 분기), Create `ContentCapture.cs`(Word, Excel, PowerPoint 캡처), Modify `NubiPane.cs`(읽기 전용 분류). 시험: `Nubi.Office.Tests`에 캡처 JSON 스키마 검사(COM 없이 가짜 문서), 실제 Office는 사용자 PC.
+
+**Interfaces:** `office_capture_template {scopeId, outDir, maxAssets:200, renders:true}` → 캡처 계약 v1(설계 §3). 자산과 렌더는 outDir에 파일로 쓰고 JSON에는 경로만. 문서는 바꾸지 않는다(읽기만, 렌더는 ExportAsFixedFormat/Slide.Export/Range.CopyPicture를 임시 폴더로).
+
+- [ ] Step 1: 시험. Word 합성 문서(그림 1, 머리글, 각주, 굵은 빨간 run, 표 음영)에서 runs 서식, 그림 자산, 머리글 글이 JSON에 있고 renders가 쪽 수만큼 있다. Excel 2시트(수식, 숫자 서식, 채움색, 병합, 이름 정의)와 PowerPoint 2슬라이드(자리표시자, 그림)도 같은 방식.
+- [ ] Step 2: 구현.
+- [ ] Step 3: 통과(사용자 PC Office 2016 확인 포함).
+
+### Task I: Desktop 캡처 수신과 등록 엔진 (Claude)
+
+**Files:** Create `runtime/office-capture.mjs`(계약 검증과 요약), `runtime/docx-capture.mjs`(file 엔진: runs 서식, 그림, 머리글과 바닥글, 각주, 구역), Modify `runtime/document-forms.mjs`(원본 사본, capture.json, assets), `runtime/document-forms-service.mjs`(register engine 'office'는 연결된 네이티브 호스트로 캡처, 없으면 `form_office_required`; 'file'은 acknowledgeFileOnly), `runtime/native-office-host.mjs`(연결 접근자).
+
+- [x] Step 1: 시험(2026-10-21 11:55). `tests/docx-capture.test.mjs` 2건(run의 글꼴/크기/색/굵게/기울임, 그림 자산과 기준 문단과 크기, 머리글과 바닥글, 용지와 여백, 표 셀 폭, 계약 검증의 거절 7가지), `document-forms.test.mjs`(등록 폴더: assets, capture.json, form-map.json, items.json, preview.json, source.docx 사본, source.sha256; preview.fidelity), `document-forms-service.test.mjs` 5번째(Office 연결 없이는 `form_office_required`, file 엔진은 acknowledgeFileOnly 필수, 가짜 호스트의 `office_capture_template`로 등록하면 자산 저장과 Office로 확인함 표시, 임시 폴더 정리). `tests/docx-compare.test.mjs`(§8 답 33 비교 DTO).
+- [x] Step 2: 구현. `runtime/office-capture.mjs`(계약 v1 검증, 요약, 기록), `runtime/docx-capture.mjs`(file 엔진), `runtime/docx-compare.mjs`(기존 비교기용 before/after 블록, 문단은 글자 정렬, 셀은 자리), `document-forms.mjs`(원본 바이트 사본 읽기 전용, capture.json과 assets), `document-forms-service.mjs`(register 기본 engine office: 작업의 네이티브 Office 연결로 `office_capture_template {path,outDir,maxAssets:200,renders:true}` 호출, 자산 읽어 저장, 원본 경로 일치 검사; written에 compare), `native-office-host.mjs`(`nativeOfficeHost` 읽기 전용 접근자).
+- [x] Step 3: 통과(10/10). 호스트 명령 자체는 Task H(Codex). Excel/PowerPoint 캡처는 계약에 있고 file 엔진과 지도/채움은 후속.
+
 ### Task F: 화면(양식 등록, 질문 카드, 채움표 확인, 전후 비교, 저장)
 
-**Files:** Create `ui/FormRegisterCard.jsx`, `ui/FormFillCard.jsx`, `ui/form-cards.css`, `tests/form-cards-ui-fixture.jsx`, `scripts/check-form-cards-ui.mjs`; Modify `ui/Workbench.jsx`(진입: 문서 파일을 열었을 때 "양식으로 등록"과 "양식으로 작성"), `electron-app/lib/main.cjs` dispatch.
+**Files:** Create `ui/FormRegisterCard.jsx`, `ui/FormFillCard.jsx`, `ui/form-cards.css`, `tests/form-cards-ui-fixture.jsx`, `scripts/check-form-cards-ui.mjs`; Modify `electron-app/FileWorkspace.jsx`(실제 문서 파일 진입에서 "양식으로 등록"과 "양식으로 작성"); Create `ui/DocumentFormControl.jsx`, `ui/form-cards-view.mjs`, `tests/form-cards-view.test.mjs`. 기존 Electron main의 일반 dispatch와 `documentForm` 등록을 사용하므로 생성물 `lib/main.cjs`는 편집하지 않음.
 
-- [ ] Step 1: 시험(1280/440 캡처, 디자인 규칙). 등록 카드는 칸 목록과 라벨 수정, 질문 카드는 한 묶음 폼(기존 WorkflowPanel 입력 폼 양식 재사용), 채움표 카드는 OfficeTransaction 양식, 전후 비교는 두 페이지 그림과 바뀐 칸 표시.
-- [ ] Step 2: 구현. 모션과 접근성 규칙 준수.
-- [ ] Step 3: 통과.
+- [x] Step 1: 시험(1280/440 캡처, 디자인 규칙). 등록 카드는 칸 목록과 라벨 수정, 질문 카드는 한 묶음 폼(기존 WorkflowPanel 입력 폼 양식 재사용), 채움표 카드는 OfficeTransaction 양식, 전후 비교는 두 페이지 그림과 바뀐 칸 표시.
+- [x] Step 2: 구현. 모션과 접근성 규칙 준수.
+- [ ] Step 3: 기존 전달 계약 화면 통과(2026-10-21), 사용자 후속의 기존 음영 비교 연결은 설계 §8 질문33 답 대기. 호스트 회귀 포함 9/9, 1280/440 FileWorkspace 합성 포트 흐름과 공통 디자인/접근성 검사. 새 순수 Node 3건. renderer 빌드/게이트 집합 통과. 실제 모델/Windows/설치판은 별도. `docs/DOCUMENT-FORMS-TASK-F-2026-10-21.md` 참조.
 
 ### Task G: 벤치마크 기준선
 

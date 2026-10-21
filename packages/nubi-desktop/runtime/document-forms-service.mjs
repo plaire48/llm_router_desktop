@@ -6,13 +6,16 @@
 // open slots in one card, and the sheet is written again with the answers. Writing (apply) goes to a copy only, never
 // to the form's source file; the copy is read back after every part and checked against the map.
 import {randomUUID} from 'node:crypto';
-import {readFile,writeFile,mkdir,lstat} from 'node:fs/promises';
+import {readFile,writeFile,mkdir,lstat,rm,realpath} from 'node:fs/promises';
 import path from 'node:path';
 import {createFormFill,modelJson} from '../generated/office-forms.mjs';
 import {registerForm,loadForm,listForms,formQuestionPlan} from './document-forms.mjs';
 import {createDocxWriter,verifyDocxCopy} from './docx-apply.mjs';
+import {compareDocx} from './docx-compare.mjs';
 import {renderBeforeAfter} from './document-render.mjs';
 import {FORMS_DIR} from './document-forms.mjs';
+import {nativeOfficeHost} from './native-office-host.mjs';
+import {validateCapture} from './office-capture.mjs';
 import {modelTransport} from './recovery.mjs';
 import {readSource,scopedFile,fail} from './files.mjs';
 
@@ -28,7 +31,8 @@ export function installDocumentForms(Service){
     if(action==='register'){
       if(typeof args.source!=='string'||!args.source)fail('form_source_required');
       const source=path.isAbsolute(args.source)?args.source:path.join(workspace,args.source);
-      const {name,hash,preview}=await registerForm({workspace,source,name:args.name});return {name,hash,preview};
+      const capture=await captureForRegistration(this,workspace,source,args);
+      const {name,hash,preview,capture:stored,copy}=await registerForm({workspace,source,name:args.name,capture});return {name,hash,preview,capture:stored,copy};
     }
     if(action==='list')return {forms:await listForms(workspace)};
     if(action==='questions'){const {map,hash,changed}=await loadForm(workspace,args.name);return {hash,changed,...formQuestionPlan(map,args.values&&typeof args.values==='object'?args.values:{})};}
@@ -78,6 +82,7 @@ function view(plan){
     ...(unresolved?.length?{unresolved:unresolved.map(c=>({item:c.item,target:c.target,status:c.status}))}:{}),
     ...(remaining?{remaining:{slots:remaining.slots,sections:remaining.sections,what:remaining.what}}:{}),
     ...(plan.written?{written:plan.written}:{}),
+    ...(plan.compare?{compare:plan.compare}:{}),
     ...(plan.render?{render:plan.render}:{})};
 }
 /** Resolves when the run ends or stops to ask or to wait for an approval. */
@@ -176,7 +181,9 @@ async function finish(plan){
     await mkdir(path.dirname(target),{recursive:true});await writeFile(target,copy);
     const targets=[...plan.map.slots.map(slot=>slot.target),...plan.writer.applied.flatMap(entry=>[entry.operation.targetId,...(entry.receipt?.inserted??[])].filter(Boolean))];
     const verify=await verifyDocxCopy(plan.sourceBytes,copy,{targets});
-    plan.written={output:plan.output,operations:plan.writer.applied.length,sameEntries:verify.sameEntries,changedParagraphs:verify.changedParagraphs.length,violations:verify.violations.map(item=>item.id),at:new Date().toISOString()};
+    // The existing Office change viewer shows this comparison (§8 답 33): before and after blocks with old texts.
+    plan.compare=await compareDocx(plan.sourceBytes,copy,{name:path.basename(plan.output)});
+    plan.written={output:plan.output,operations:plan.writer.applied.length,sameEntries:verify.sameEntries,changedParagraphs:verify.changedParagraphs.length,violations:verify.violations.map(item=>item.id),counts:plan.compare.counts,at:new Date().toISOString()};
     plan.state='written';
   }
   return view(plan);
@@ -193,4 +200,30 @@ async function renderPlan(service,workspace,args){
   const view=result=>({status:result.status,...(result.reason?{reason:result.reason}:{}),engine:result.engine,pageCount:result.pageCount,pages:result.pages.map(page=>({index:page.index,path:path.relative(workspace,page.path).split(path.sep).join('/')}))});
   plan.render={before:view(before),after:view(after),at:new Date().toISOString()};
   return {planId:plan.id,render:plan.render};
+}
+
+// Registration opens the form in Office and takes everything (사용자 지시 2026-10-21): the task's native Office
+// connection runs the host's capture into a scratch folder inside the Workspace, the asset files are read back, and the
+// capture travels to the store with the source bytes. The file engine (docx reader) is for tests and for a machine
+// without Office, only when the caller says so, and its result is marked fidelity 'file'.
+async function captureForRegistration(service,workspace,source,args){
+  const engine=args.engine??'office';
+  if(engine==='file'){if(args.acknowledgeFileOnly!==true)fail('form_office_required');return null;}
+  if(engine!=='office')fail('form_engine_invalid');
+  const host=nativeOfficeHost(service,args.taskId);if(!host)fail('form_office_required');
+  const scratchRel=path.posix.join(FORMS_DIR,'.capture-'+randomUUID().slice(0,8));
+  await mkdir(path.join(workspace,scratchRel),{recursive:true});
+  const outDir=await scopedFile(workspace,scratchRel);
+  try{
+    const result=await host.call('office_capture_template',{path:source,outDir,maxAssets:200,renders:true});
+    const capture=result?.capture;if(!capture||typeof capture!=='object')fail('form_capture_invalid');
+    if(typeof result.documentPath==='string'&&(await realpath(result.documentPath).catch(()=>result.documentPath))!==await realpath(source).catch(()=>source))fail('form_capture_source_mismatch');
+    const assets=[];
+    for(const asset of Array.isArray(capture.assets)?capture.assets:[]){
+      if(typeof asset?.path!=='string'||asset.path.split(/[\\/]/).includes('..')||path.isAbsolute(asset.path))fail('form_capture_invalid');
+      const bytes=await readFile(path.join(outDir,asset.path)).catch(()=>null);if(!bytes)fail('form_capture_asset_missing');
+      const {path:_,...rest}=asset;assets.push({...rest,bytes:new Uint8Array(bytes)});
+    }
+    return validateCapture({...capture,engine:'office',fidelity:'office',office:capture.office??{version:String(host.document?.officeVersion??'')||'unknown'},assets});
+  }finally{await rm(outDir,{recursive:true,force:true}).catch(()=>{});}
 }

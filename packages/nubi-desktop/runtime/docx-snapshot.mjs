@@ -30,11 +30,11 @@ export function parseXml(xml){
   if(stack.length!==1)fail('docx_xml_invalid');
   return root;
 }
-const isElement=node=>typeof node==='object'&&node!==null;
-const childrenNamed=(node,name)=>node.children.filter(child=>isElement(child)&&child.name===name);
-const firstNamed=(node,name)=>node.children.find(child=>isElement(child)&&child.name===name)??null;
-const findFirst=(node,name)=>{for(const child of node.children){if(!isElement(child))continue;if(child.name===name)return child;const found=findFirst(child,name);if(found)return found;}return null;};
-const flag=(node,name)=>{const found=firstNamed(node,name);if(!found)return false;const value=found.attrs['w:val'];return value===undefined||!['0','false','off'].includes(value);};
+export const isElement=node=>typeof node==='object'&&node!==null;
+export const childrenNamed=(node,name)=>node.children.filter(child=>isElement(child)&&child.name===name);
+export const firstNamed=(node,name)=>node.children.find(child=>isElement(child)&&child.name===name)??null;
+export const findFirst=(node,name)=>{for(const child of node.children){if(!isElement(child))continue;if(child.name===name)return child;const found=findFirst(child,name);if(found)return found;}return null;};
+export const flag=(node,name)=>{const found=firstNamed(node,name);if(!found)return false;const value=found.attrs['w:val'];return value===undefined||!['0','false','off'].includes(value);};
 
 function readStyles(xml){
   const styles=new Map();if(!xml)return styles;
@@ -67,7 +67,7 @@ function runFormat(rPr){
   return {bold:rPr?flag(rPr,'w:b'):false,size:rPr&&firstNamed(rPr,'w:sz')?Number(firstNamed(rPr,'w:sz').attrs['w:val'])/2:null,font:rPr?(firstNamed(rPr,'w:rFonts')?.attrs['w:eastAsia']??firstNamed(rPr,'w:rFonts')?.attrs['w:ascii']??null):null};
 }
 // The text of one run: w:t, tabs and breaks; deleted text (w:delText) is not part of the paragraph.
-function runText(run){
+export function runText(run){
   let text='';
   const walk=node=>{for(const child of node.children){if(!isElement(child))continue;if(child.name==='w:t')text+=child.children.filter(x=>typeof x==='string').join('');else if(child.name==='w:tab')text+='\t';else if(child.name==='w:br'||child.name==='w:cr')text+='\n';else if(child.name==='w:noBreakHyphen')text+='-';else if(child.name!=='w:rPr'&&child.name!=='w:delText')walk(child);}};
   walk(run);return text;

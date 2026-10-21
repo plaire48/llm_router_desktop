@@ -15,11 +15,14 @@ test('registering a form writes its three files, lists it, and notices when the 
   await writeFile(source,await docxFromBlocks(FORMS.gianmun)).catch(async()=>{const {mkdir}=await import('node:fs/promises');await mkdir(path.dirname(source),{recursive:true});await writeFile(source,await docxFromBlocks(FORMS.gianmun));});
   const registered=await registerForm({workspace:root,source});
   assert.equal(registered.name,'기안문');assert.match(registered.hash,/^sha256:/);assert.equal(registered.preview.summary,'칸 6개, 목차 3개, 작성 요령 1개');
-  assert.deepEqual((await readdir(path.join(root,'.nubi','forms','기안문'))).sort(),['form-map.json','items.json','preview.json','source.sha256']);
+  assert.deepEqual((await readdir(path.join(root,'.nubi','forms','기안문'))).sort(),['assets','capture.json','form-map.json','items.json','preview.json','source.docx','source.sha256']);
   const stored=JSON.parse(await readFile(path.join(root,'.nubi','forms','기안문','form-map.json'),'utf8'));
   assert.equal(stored.kind,'template_map');assert.equal(stored.slots.length,6);
   assert.match(await readFile(path.join(root,'.nubi','forms','기안문','source.sha256'),'utf8'),/^sha256:[0-9a-f]{64} 서식\/기안문\.docx\n$/);
   const loaded=await loadForm(root,'기안문');
+  assert.deepEqual([loaded.copy,loaded.capture.engine,loaded.capture.fidelity,loaded.capture.app,loaded.preview.fidelity,loaded.capture.document.paragraphs.length>0],['.nubi/forms/기안문/source.docx','file','file','word','file',true]);
+  assert.match(loaded.preview.capture,/파일만 읽음/);
+  assert.equal((await readFile(path.join(root,'.nubi','forms','기안문','source.docx'))).length,(await readFile(source)).length,'the original bytes are kept');
   assert.equal(loaded.changed,false);assert.equal(loaded.hash,registered.hash);assert.equal(loaded.source,'서식/기안문.docx');assert.equal(loaded.preview.slots[1].valueType,'date');
   assert.deepEqual((await listForms(root)).map(form=>[form.name,form.summary]),[['기안문','칸 6개, 목차 3개, 작성 요령 1개']]);
   await writeFile(source,await docxFromBlocks(FORMS.trip));

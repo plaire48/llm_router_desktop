@@ -48,6 +48,12 @@ export function registerNativeOfficeConnection(service,connection,{allowFixture=
  save(service,task,{...prior,binding:structuredClone(binding(connection)),generation,state:blocked(prior)?'attention':'connected',pending:null,connectedAt:now()});
  return {generation,...binding(connection)};
 }
+/** A task's native Office connection for read-only host calls (document forms capture): the guarded call, the app and
+ * the bound document; null when the task has none. Mutations stay behind the approval the connection enforces. */
+export function nativeOfficeHost(service,taskId){
+  const entry=taskId?rows(service).get(taskId):null;if(!entry)return null;
+  return {app:entry.connection.app,environment:entry.connection.environment,document:binding(entry.connection),call:(name,input,signal)=>entry.nativeConnection.call(name,input,signal)};
+}
 export function nativeOfficeStatus(service,taskId){
  const task=service.task(taskId),entry=rows(service).get(taskId);let connected=false;try{entry?.alive();connected=!!entry;}catch{}
  return {connected,apps:['word','excel','powerpoint'],...(task.nativeOffice||{}),instruction:connected?'Only this task-bound open Office document is available. Changes need one-time approval, native approval and readback. Saved='+(task.nativeOffice?.saveReceipt?.saved===true?'true (separate host save receipt)':task.nativeOffice?.saveUncertain?'unconfirmed':'false')+'. Uncertain effects permit observation only.':'No native Office host is connected. Connect a trusted host with an open document; do not parse NASCA files, launch Office through shell, or claim a native write.'};

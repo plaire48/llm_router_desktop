@@ -5,6 +5,8 @@
 import {mkdir,readFile,writeFile,readdir,realpath,lstat} from 'node:fs/promises';
 import path from 'node:path';
 import {extractFormMap} from './docx-snapshot.mjs';
+import {docxCapture} from './docx-capture.mjs';
+import {validateCapture,captureRecord,captureSummary} from './office-capture.mjs';
 import {mapSummary} from '../generated/office-forms.mjs';
 import {scopedFile,hash,fail} from './files.mjs';
 
@@ -21,28 +23,42 @@ async function formDir(workspace,name,{create=false}={}){
   return {root,rel,dir};
 }
 /** A readable summary of a map for the registration card: no values, labels and kinds only. */
-export function formPreview(map,{name,source,registeredAt}){
-  return {name,source,registeredAt,summary:mapSummary(map),
+export function formPreview(map,{name,source,registeredAt,capture=null}){
+  return {name,source,registeredAt,summary:mapSummary(map),...(capture?{engine:capture.engine,fidelity:capture.fidelity,app:capture.app,office:capture.office??null,capture:captureSummary(capture)}:{}),
     slots:map.slots.map(slot=>({id:slot.id,kind:slot.kind,label:slot.label,...(slot.valueType?{valueType:slot.valueType}:{}),required:slot.required!==false,...(slot.header?{header:slot.header,emptyRows:slot.emptyRows}:{}),...(slot.guides?{guides:slot.guides}:{})})),
     sections:map.sections.map(section=>({id:section.id,title:section.title,needsText:section.needsText,...(section.listString?{listString:section.listString}:{})})),
     notes:map.notes.map(note=>note.text),unsure:map.unsure.length};
 }
-/** Reads the source docx (inside the Workspace or anywhere the person chose) and keeps its map under .nubi/forms. */
-export async function registerForm({workspace,source,name}){
+/** Registers a form: the source is read (never written), its bytes are kept as a read-only copy beside the map, and the
+ * registration capture (Office host, or the file engine for tests) is stored with its assets. */
+export async function registerForm({workspace,source,name,capture=null}){
   if(typeof source!=='string'||!source)fail('form_source_required');
   const formName=name?safeFormName(name):formNameFromFile(source);
   const bytes=await readFile(source).catch(error=>{if(error.code==='ENOENT')fail('form_source_missing');throw error;});
   const {map,hash:sourceHash,items}=await extractFormMap(bytes,{name:path.basename(source)});
+  const captured=validateCapture(capture??await docxCapture(bytes,{name:path.basename(source)}));
+  if(captured.source.hash!==sourceHash)fail('form_capture_source_mismatch');
   const {root,rel}=await formDir(workspace,formName,{create:true});
   const registeredAt=new Date().toISOString();
   const sourceRel=path.isAbsolute(source)&&(await realpath(source)).startsWith(root+path.sep)?path.relative(root,await realpath(source)):null;
-  const preview=formPreview(map,{name:formName,source:sourceRel??path.basename(source),registeredAt});
+  const preview=formPreview(map,{name:formName,source:sourceRel??path.basename(source),registeredAt,capture:captured});
+  // The original bytes stay with the registration, read-only: nothing the capture does not list is lost.
+  const extension=path.extname(source).toLowerCase()||'.docx',copyRel=`${rel}/source${extension}`;
+  await writeFile(await scopedFile(root,copyRel,{newFile:true}),bytes,{mode:0o444}).catch(async error=>{if(error.code!=='EEXIST'&&error.code!=='EACCES'&&error.code!=='EPERM')throw error;const {chmod}=await import('node:fs/promises');await chmod(path.join(root,copyRel),0o644);await writeFile(path.join(root,copyRel),bytes);await chmod(path.join(root,copyRel),0o444);});
+  await mkdir(path.join(root,rel,'assets'),{recursive:true});
+  const assetPaths=new Map();
+  for(const asset of captured.assets){
+    if(!asset.bytes)continue;
+    const extensionOf=asset.name.includes('.')?'.'+asset.name.split('.').pop().toLowerCase().replace(/[^a-z0-9]/g,''):'';
+    const assetRel=`assets/${asset.id}${extensionOf}`;await writeFile(await scopedFile(root,`${rel}/${assetRel}`,{newFile:true}),asset.bytes);assetPaths.set(asset.id,assetRel);
+  }
+  await writeFile(await scopedFile(root,`${rel}/capture.json`,{newFile:true}),JSON.stringify(captureRecord(captured,assetPaths),null,0)+'\n');
   await writeFile(await scopedFile(root,`${rel}/form-map.json`,{newFile:true}),JSON.stringify({...map,registeredAt},null,1)+'\n');
   await writeFile(await scopedFile(root,`${rel}/source.sha256`,{newFile:true}),sourceHash+(sourceRel?' '+sourceRel:'')+'\n');
   await writeFile(await scopedFile(root,`${rel}/preview.json`,{newFile:true}),JSON.stringify(preview,null,1)+'\n');
   // The form's own items (labels and guide text, no values): the fill run's ledger needs them without the source file.
   await writeFile(await scopedFile(root,`${rel}/items.json`,{newFile:true}),JSON.stringify(items,null,0)+'\n');
-  return {name:formName,map,hash:sourceHash,preview,changed:false};
+  return {name:formName,map,hash:sourceHash,preview,changed:false,copy:copyRel,capture:{engine:captured.engine,fidelity:captured.fidelity,app:captured.app,summary:captureSummary(captured),assets:assetPaths.size}};
 }
 /** The kept map; `changed` says whether the source file (when it is still in the Workspace) differs from the registered one. */
 export async function loadForm(workspace,name,{source}={}){
@@ -53,10 +69,12 @@ export async function loadForm(workspace,name,{source}={}){
   const record=(await readFile(await scopedFile(root,`${rel}/source.sha256`),'utf8').catch(()=>'')).trim(),[registeredHash,...rest]=record.split(' '),sourceRel=rest.join(' ')||null;
   const preview=JSON.parse(await readFile(await scopedFile(root,`${rel}/preview.json`),'utf8').catch(()=>'null'));
   const items=JSON.parse(await readFile(await scopedFile(root,`${rel}/items.json`),'utf8').catch(()=>'null'));
+  const capture=JSON.parse(await readFile(await scopedFile(root,`${rel}/capture.json`),'utf8').catch(()=>'null'));
+  const copy=(await readdir(path.join(root,rel))).find(entry=>/^source\.[a-z0-9]+$/.test(entry))??null;
   const candidate=source??(sourceRel?path.join(root,sourceRel):null);
   let changed=null;
   if(candidate){try{changed=hash(await readFile(candidate))!==registeredHash;}catch(error){if(error.code!=='ENOENT')throw error;changed=null;}}
-  return {name,map,items:Array.isArray(items)?items:null,hash:registeredHash,source:sourceRel,preview,changed};
+  return {name,map,items:Array.isArray(items)?items:null,hash:registeredHash,source:sourceRel,copy:copy?`${rel}/${copy}`:null,capture:capture&&typeof capture==='object'?capture:null,preview,changed};
 }
 export async function listForms(workspace){
   const root=await realpath(workspace);let names=[];

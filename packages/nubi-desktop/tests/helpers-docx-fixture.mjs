@@ -7,14 +7,15 @@ const BUILT_IN={Normal:{name:'Normal'},Title:{name:'Title'},Heading1:{name:'head
 const styleId=name=>BUILT_IN[name]?name:'Custom'+Buffer.from(name).toString('hex');
 
 function run(span){
-  const props=span.bold?'<w:rPr><w:b/></w:rPr>':'';
-  return `<w:r>${props}<w:t xml:space="preserve">${escape(span.text)}</w:t></w:r>`;
+  const props=[span.font?`<w:rFonts w:ascii="${escape(span.font)}" w:eastAsia="${escape(span.font)}"/>`:'',span.bold?'<w:b/>':'',span.italic?'<w:i/>':'',span.color?`<w:color w:val="${span.color}"/>`:'',span.size?`<w:sz w:val="${span.size*2}"/>`:''].join('');
+  if(span.image){const {rId,cx,cy,name}=span.image;return `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="1" name="${escape(name)}"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="${escape(name)}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;}
+  return `<w:r>${props?`<w:rPr>${props}</w:rPr>`:''}<w:t xml:space="preserve">${escape(span.text)}</w:t></w:r>`;
 }
 function paragraph(p,lists){
   const spans=Array.isArray(p.runs)?p.runs:[{text:p.text??'',bold:!!p.bold}];
   let props=p.style?`<w:pStyle w:val="${styleId(p.style)}"/>`:'';
   if(p.list){const numId=lists.numId(p.list);props+=`<w:numPr><w:ilvl w:val="${(p.list.level??1)-1}"/><w:numId w:val="${numId}"/></w:numPr>`;}
-  return `<w:p>${props?`<w:pPr>${props}</w:pPr>`:''}${spans.filter(s=>s.text).map(run).join('')}</w:p>`;
+  return `<w:p>${props?`<w:pPr>${props}</w:pPr>`:''}${spans.filter(s=>s.text||s.image).map(run).join('')}</w:p>`;
 }
 function table(rows,lists){
   const columns=Math.max(...rows.map(row=>row.reduce((n,cell)=>n+(typeof cell==='object'&&cell.span?cell.span:1),0)));
@@ -43,21 +44,30 @@ function numberingXml(lists){
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">${abstracts}${nums}</w:numbering>`;
 }
 
-/** blocks: [{p:{text|runs,style,bold,list:{kind,id,level}}} | {table:{rows:[[cell]]}} | {control:{tag,title,type,placeholder,text}}]. */
-export async function docxFromBlocks(blocks,{trailingParagraph=true}={}){
+/** blocks: [{p:{text|runs,style,bold,list:{kind,id,level}}} | {table:{rows:[[cell]]}} | {control:{tag,title,type,placeholder,text}} | {image:{name,bytes,cx,cy}}]; options.header/footer add a part. */
+export async function docxFromBlocks(blocks,{trailingParagraph=true,header=null,footer=null}={}){
+  const media=[];
   const lists={kinds:new Set(),ids:new Map(),numId(list){const key=list.id??list.kind;this.kinds.add(list.kind);if(!this.ids.has(key))this.ids.set(key,{numId:this.ids.size+1,kind:list.kind});return this.ids.get(key).numId;}};
   const parts=[];const names=new Set();
   for(const block of blocks){
     if(block.p){if(block.p.style)names.add(block.p.style);parts.push(paragraph(block.p,lists));}
     else if(block.table){for(const row of block.table.rows)for(const cell of row)if(typeof cell==='object'&&cell.style)names.add(cell.style);parts.push(table(block.table.rows,lists));}
     else if(block.control)parts.push(contentControl(block.control,lists));
+    else if(block.image){const rId='rIdImg'+(media.length+1);media.push({rId,...block.image});parts.push(paragraph({runs:[{text:'',image:{rId,cx:block.image.cx??914400,cy:block.image.cy??914400,name:block.image.name}}]},lists));}
   }
   if(trailingParagraph)parts.push('<w:p/>');
-  const document=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${parts.join('')}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/></w:sectPr></w:body></w:document>`;
+  const NS='xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"';
+  const refs=(header?'<w:headerReference w:type="default" r:id="rIdHeader"/>':'')+(footer?'<w:footerReference w:type="default" r:id="rIdFooter"/>':'');
+  const document=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${NS}><w:body>${parts.join('')}<w:sectPr>${refs}<w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr></w:body></w:document>`;
   const zip=new JSZip();
   zip.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>');
   zip.file('_rels/.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
-  zip.file('word/_rels/document.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/></Relationships>');
+  const mediaRels=media.map(m=>`<Relationship Id="${m.rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${m.name}"/>`).join('');
+  const partRels=(header?'<Relationship Id="rIdHeader" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>':'')+(footer?'<Relationship Id="rIdFooter" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>':'');
+  zip.file('word/_rels/document.xml.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>${mediaRels}${partRels}</Relationships>`);
+  for(const m of media)zip.file('word/media/'+m.name,m.bytes);
+  if(header)zip.file('word/header1.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr ${NS}>${paragraph({text:header},lists)}</w:hdr>`);
+  if(footer)zip.file('word/footer1.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr ${NS}>${paragraph({text:footer},lists)}</w:ftr>`);
   zip.file('word/document.xml',document);
   zip.file('word/styles.xml',stylesXml([...names]));
   zip.file('word/numbering.xml',numberingXml(lists));
