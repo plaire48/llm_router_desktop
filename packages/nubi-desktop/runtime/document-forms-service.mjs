@@ -163,7 +163,9 @@ async function applyPlan(service,workspace,args){
   if(plan.state!=='ready')fail('form_plan_not_ready');
   if(typeof args.output!=='string'||!/\.docx$/i.test(args.output))fail('form_output_invalid');
   // The copy stays inside the Workspace: a relative path without '..', its folder made if needed.
-  const relative=path.normalize(args.output);if(path.isAbsolute(relative)||relative.split(path.sep).includes('..'))fail('form_output_invalid');
+  // The copy's place is a Workspace path with '/': path.normalize would turn it into '\\' on Windows, which the
+  // Workspace path check refuses (Windows gates 2026-10-21: every apply failed with path_scope).
+  const relative=String(args.output??'').replaceAll('\\','/').replace(/^\.\//,'');if(!relative||path.posix.isAbsolute(relative)||/^[A-Za-z]:/.test(relative)||relative.split('/').some(part=>!part||part==='.'||part==='..'))fail('form_output_invalid');
   await mkdir(path.dirname(path.join(workspace,relative)),{recursive:true});
   const target=await scopedFile(workspace,relative,{newFile:true});
   if(!plan.source)fail('form_source_missing');

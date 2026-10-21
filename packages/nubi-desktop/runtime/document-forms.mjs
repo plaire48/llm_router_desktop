@@ -47,7 +47,8 @@ export async function registerForm({workspace,source,name,capture=null}){
   if(captured.source.hash!==sourceHash||captured.app!==app)fail('form_capture_source_mismatch');
   const {root,rel}=await formDir(workspace,formName,{create:true});
   const registeredAt=new Date().toISOString();
-  const sourceRel=path.isAbsolute(source)&&(await realpath(source)).startsWith(root+path.sep)?path.relative(root,await realpath(source)):null;
+  // Workspace paths are stored with '/' on every system (Windows build 2026-10-21 wrote 서식\\기안문.docx).
+  const sourceRel=path.isAbsolute(source)&&(await realpath(source)).startsWith(root+path.sep)?path.relative(root,await realpath(source)).split(path.sep).join('/'):null;
   const preview=formPreview(map,{name:formName,source:sourceRel??path.basename(source),registeredAt,capture:captured});
   // The original bytes stay with the registration, read-only: nothing the capture does not list is lost.
   const extension=path.extname(source).toLowerCase()||'.docx',copyRel=`${rel}/source${extension}`;
@@ -74,7 +75,7 @@ export async function loadForm(workspace,name,{source}={}){
   let text=null;try{text=await readFile(await scopedFile(root,`${rel}/form-map.json`),'utf8');}catch(error){if(error.code!=='ENOENT')throw error;}
   let map=null;
   if(text!==null){try{map=JSON.parse(text);}catch{fail('form_map_invalid');}if(map?.kind!=='template_map'||!Array.isArray(map.slots))fail('form_map_invalid');}
-  const record=(await readFile(await scopedFile(root,`${rel}/source.sha256`),'utf8').catch(()=>'')).trim(),[registeredHash,...rest]=record.split(' '),sourceRel=rest.join(' ')||null;
+  const record=(await readFile(await scopedFile(root,`${rel}/source.sha256`),'utf8').catch(()=>'')).trim(),[registeredHash,...rest]=record.split(' '),sourceRel=rest.join(' ').replaceAll('\\','/')||null;
   // Files a form may lack (an Excel form has no items, an older registration no capture) read as null.
   const optional=async file=>{try{return JSON.parse(await readFile(await scopedFile(root,`${rel}/${file}`),'utf8'));}catch(error){if(error.code==='ENOENT'||error instanceof SyntaxError)return null;throw error;}};
   const preview=await optional('preview.json'),items=await optional('items.json'),capture=await optional('capture.json');

@@ -49,8 +49,9 @@ async function convert(soffice,profile,file,outDir,target,timeoutMs){
 export async function renderDocumentPages(file,{outDir,soffice,timeoutMs=120000,maxPages=12}={}){
   if(typeof file!=='string'||!file||typeof outDir!=='string'||!outDir)throw new Error('render_arguments_invalid');
   const binary=await findSoffice({soffice});
-  if(!binary)return {status:'unavailable',reason:'soffice_missing',engine:null,pages:[],pageCount:0};
+  // A file this renderer cannot convert is refused before looking for LibreOffice, on any machine.
   const filter=FILTERS[path.extname(file).toLowerCase()];if(!filter)return {status:'unavailable',reason:'format_unsupported',engine:null,pages:[],pageCount:0};
+  if(!binary)return {status:'unavailable',reason:'soffice_missing',engine:null,pages:[],pageCount:0};
   const base=path.basename(file,path.extname(file)),profile=path.join(outDir,'.profile');
   try{
     await mkdir(profile,{recursive:true});

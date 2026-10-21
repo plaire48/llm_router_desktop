@@ -4916,23 +4916,6 @@
       "reviewCard": 177
     },
     {
-      "path": "resources/app.asar/lib/backend/service-entry.mjs",
-      "sha256": "e662ceccfd6c08e92eeb29a6db26ffcc1e0a982d931c0b05e56b490f7be654a4",
-      "kind": "email",
-      "fingerprint": "0c1b0841813a8275",
-      "occurrences": 1,
-      "classification": "public_package_attribution",
-      "source": {
-        "url": "https://registry.npmjs.org/encoding-japanese/-/encoding-japanese-2.4.0.tgz",
-        "integrity": "sha512-PE0KjlsDy9JSsoU4C2Q8NXb1kC4c+bZRac9ZvHXUE4q1Ht63gScKMdEy9jst9+Fi3M4eDkqzkEhBZvix4blP2A==",
-        "artifactPath": "package/package.json"
-      },
-      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Bundled finding is present in the integrity-verified original public dependency; generated target bytes are separately SHA bound.",
-      "reviewer": "Claude",
-      "reviewedAt": "2026-10-21",
-      "reviewCard": 175
-    },
-    {
       "path": "resources/app.asar/lib/frontend/chunks/pdf.worker.mjs",
       "sha256": "df3bf6bf6b8b8dac8a4042d8c4ecf1cf21e1d197e0fe231c192122409eba656b",
       "kind": "email",
