@@ -281,6 +281,10 @@ jobs:
       - name: Check complete release source patterns
         continue-on-error: true
         run: node scripts/check-safety-regression.mjs --tree $env:GITHUB_SHA --output verification/safety-tree.json
+      # The unit tests import generated/openwiki.mjs, which only the runtime compile produces (run 39521986002 failed
+      # 382 test files without it). The Linux gates compile before the same step.
+      - name: Compile shared runtime
+        run: npm run compile
       - name: Run fast gates
         id: fast
         run: npm run test:gates:fast

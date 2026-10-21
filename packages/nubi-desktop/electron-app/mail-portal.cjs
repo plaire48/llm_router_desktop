@@ -202,9 +202,12 @@ class MailPortal {
      if(loginContents().some(mailDialogPending)){await wait(250);continue;}
      if(!['mail_portal_login','mail_portal_forbidden','mail_portal_request','mail_portal_format','mail_portal_redirect'].includes(error.message))throw error;
      if(epoch!==this.epoch)break;
-     if(++probeFailures>=LOGIN_PROBE_LIMIT)throw Error('mail_portal_login_failed');
+     // While a sign-in page is open the person may still be signing in: that is waiting, not retrying. Once no sign-in
+     // page is open, the session is checked LOGIN_PROBE_LIMIT times and the login stops (Windows check 2026-10-21: a
+     // portal that shows its form at home kept probing while the person typed).
+     if(!loginContents().some(contents=>!contents.isDestroyed?.())&&++probeFailures>=LOGIN_PROBE_LIMIT)throw Error('mail_portal_login_failed');
      const authenticationPending=['mail_portal_login','mail_portal_forbidden'].includes(error.message);
-     if(authenticationPending){this.state.loginStage='authenticating';deadline=Date.now()+5*60*1000;authFailures++;}
+     if(authenticationPending){this.state.loginStage='authenticating';authFailures++;}
      const pause=authenticationPending?Math.min(10000,2000*authFailures):2000;
      // Slow down unauthenticated probes, but react promptly to navigation,
      // native alerts and explicit cancellation instead of sleeping uninterruptibly.
@@ -213,7 +216,6 @@ class MailPortal {
       const current=loginContents();
       if(current.some(mailDialogPending)||current.some(contents=>contents.isLoadingMainFrame?.()))break;
      }
-     if(authenticationPending)deadline=Date.now()+5*60*1000;
     }
    }
    if(epoch!==this.epoch)throw Error('mail_cancelled');if(!identity||!folders)throw Error('mail_portal_timeout');

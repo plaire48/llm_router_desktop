@@ -22,7 +22,7 @@ test('runs keep font, size, colour and emphasis; pictures become assets with the
   const guide=capture.document.paragraphs.find(p=>p.text.startsWith('담당'));
   assert.deepEqual(guide.runs,[{text:'담당: '},{text:'(이름 기재)',color:'#FF0000',bold:true,italic:true}]);
   assert.equal(capture.document.images.length,1);
-  const image=capture.document.images[0];assert.deepEqual([image.asset,image.anchor,image.inline,image.widthCm,image.heightCm,image.name],['image-1','p-2',true,2.54,1.27,'logo.png']);
+  const image=capture.document.images[0];assert.deepEqual([image.asset,image.paragraph,image.inline,image.width,image.height,image.name],['image-1','p-2',true,72,36,'logo.png'],'size in points');
   assert.deepEqual(capture.assets.map(a=>[a.id,a.kind,a.name,a.contentType,a.bytes.length]),[['image-1','image','logo.png','image/png',PNG.length]]);
   assert.deepEqual(capture.document.headers.map(h=>h.text),['사내 문서 양식']);assert.deepEqual(capture.document.footers.map(f=>f.text),['1 / 1']);
   assert.deepEqual(capture.document.section,{page:{widthMm:210,heightMm:297,orientation:'portrait'},margins:{top:72,bottom:72,left:72,right:72}});

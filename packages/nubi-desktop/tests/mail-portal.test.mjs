@@ -249,8 +249,10 @@ test('a closing SSO page cannot strand the login while an error-page probe is pe
  assert.equal((await pending).connected,true);assert.equal(old.eventNames().length,0);host.dispose();
 });
 
-test('a login whose session check keeps failing stops after three checks and offers POP3 instead of probing on its own',async()=>{
+test('once the sign-in page is closed, a failing session check stops after three checks and offers POP3 instead of probing on its own',async()=>{
  const {host,calls}=loginFixture();let probes=0;
+ // No sign-in page is open any more: the person finished or closed it, so the checks count.
+ host.getPageContents=()=>[];
  host.identify=async()=>{probes++;throw Error('mail_portal_forbidden');};
  await assert.rejects(host.connect(),/mail_portal_login_failed/);
  assert.equal(probes,3);assert.equal(host.status().connecting,false);assert.equal(host.status().fallback,'pop3');

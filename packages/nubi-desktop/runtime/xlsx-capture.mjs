@@ -57,7 +57,10 @@ async function chartsBySheet(zip){
 export async function xlsxCapture(bytes,{name='양식.xlsx'}={}){
   if(!bytes||!bytes.length)fail('xlsx_invalid');
   const {default:ExcelJS}=await import('exceljs');
-  const book=new ExcelJS.Workbook();try{await book.xlsx.load(bytes);}catch{fail('xlsx_invalid');}
+  const book=new ExcelJS.Workbook();
+  // exceljs cannot read every workbook (charts on their own sheet, some drawings: forms baseline 2026-10-21). Excel forms
+  // are stored whole in 1.3.0 and filled in 1.3.1, so such a workbook keeps its source copy and a sheet list (partial).
+  try{await book.xlsx.load(bytes);}catch{return partialCapture(bytes,name);}
   const zip=await JSZip.loadAsync(bytes).catch(()=>fail('xlsx_invalid')),charts=await chartsBySheet(zip);
   const assets=[],mediaAsset=new Map();
   const assetFor=imageId=>{
@@ -99,4 +102,12 @@ export async function xlsxCapture(bytes,{name='양식.xlsx'}={}){
       colors:[...new Set(sheets.flatMap(sheet=>sheet.cells.flatMap(cell=>[cell.font?.color,cell.fill?.color])).filter(color=>color&&color.startsWith('#')))]},
     assets};
   return validateCapture(capture);
+}
+
+async function partialCapture(bytes,name){
+  let zip;try{zip=await JSZip.loadAsync(bytes);}catch{fail('xlsx_invalid');}
+  const workbook=await zip.file('xl/workbook.xml')?.async('string');if(!workbook)fail('xlsx_invalid');
+  const sheets=childrenNamed(findFirst(parseXml(workbook),'sheets')??{children:[]},'sheet').map(sheet=>({name:sheet.attrs.name,state:sheet.attrs.state??'visible',cells:[],partial:true}));
+  if(!sheets.length)fail('xlsx_invalid');
+  return validateCapture({schemaVersion:CAPTURE_SCHEMA_VERSION,app:'excel',engine:'file',fidelity:'file',office:null,source:{name,bytes:bytes.length,hash:hash(bytes)},document:{sheets,partial:true,definedNames:[],fonts:[],colors:[]},assets:[]});
 }

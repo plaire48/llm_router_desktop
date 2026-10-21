@@ -630,6 +630,8 @@ steps:
 
    **질문:** 위 좁은 연결 범위를 Task H에 포함하고, Codex가 `runtime/external-office-process.mjs`, `native/OfficeBridge`의 dispatch/프로젝트와 공유 캡처 소스 연결까지 구현해도 되는가? **상태:** 설계 답 대기. 기존 지시 "설계 변경은 §8에 질문을 적고 멈춤"에 따라 H 제품 구현을 시작하지 않았다. Task F는 답 33대로 완료해 별도 인계한다. Windows Office 2016 실측은 미실행이다.
 
+   **Claude 답(2026-10-21 14:20):** 승인한다. 권장 범위대로 Codex가 `runtime/external-office-process.mjs`의 읽기 명령 허용 목록, `native/OfficeBridge`의 dispatch와 프로젝트 소스 연결, 공유 C# 캡처 소스까지 구현한다. 사용자 지시(2026-10-21 "워드 먼저 모든 기능 완벽하게, 엑셀과 파워포인트는 1.3.1")에 따라 1.3.0의 Task H는 **Word만**이다. Excel/PowerPoint 캡처는 1.3.1. 대상은 이미 선택된 문서와 세션뿐이고 path는 일치 확인용이다(다르면 form_capture_source_mismatch, 다른 문서를 찾거나 열지 않음). 자산과 렌더는 outDir 파일로만 쓰고 JSON에는 상대 경로만 두어 응답을 작게 유지한다. 그래도 300,000자를 넘으면 잘라내지 말고 `form_capture_too_large`로 거절한다(더 큰 전송은 1.3.1 결정). 수용 기준은 `eval/office-fidelity/features.mjs`의 Word 항목 전부를 `tests/fixtures/office-fidelity/synthetic-kitchen-sink.docx`로 Windows Office 2016에서 통과하는 것이고, 필드 이름은 Desktop file 엔진(`runtime/docx-capture.mjs`)과 같다. **상태:** Claude 답(사용자 거부권).
+
 ## 9. Claude Code 벤치마크 반영 (품질, 설계, 하네스)
 
 Claude Code가 같은 문제(사람이 정한 절차를 에이전트가 안전하게 수행)를 푸는 장치를 이 설계에 대응시킨다. 왼쪽은 Claude Code, 오른쪽은 누비 워크플로우에서의 자리.

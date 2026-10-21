@@ -105,3 +105,11 @@
 
 - [x] (2026-10-21 12:40) 양식 채우기 기준선: `eval/document-forms/run.mjs`(제품 경로 register → plan → answer → apply, 로그인한 Claude 모델, 코드 채점: 열림(파싱과 LibreOffice 변환), 비대상 보존(verifyDocxCopy), 칸 값과 목차 낱말, 남은 안내 문구, 빠진 값 질문). 합성 5과제(기안문, 출장 보고, 품의서, 주간 보고, 값이 빠진 출장 보고) 결과 `eval/document-forms/synthetic-baseline-2026-10-21.json`: 5/5 성공, 정확도 1.0, 보존 5/5, 열림 5/5, 질문 1/1, 중앙값 17.3초, 모델 호출 합 18(과제당 1~5). 1차에서 찾은 결함 둘을 고쳤다. ① 검증이 문단을 id로 비교해 새 문단 뒤 마지막 빈 문단을 대상 밖 변경으로 보고 → 글자 정렬(LCS)로 수정, 회귀 시험 추가. ② Mac LibreOffice 렌더에서 한글이 네모(fontconfig가 macOS 글꼴을 못 봄) → 렌더 때 macOS 글꼴 폴더를 담은 fonts.conf, 시험은 PDF에 한글 글꼴이 들어갔는지 확인. 채점기 시험 `tests/document-forms-eval.test.mjs`.
 - [ ] 새로 만들기 2과제(document-agent `createWordDocument`)와 Office 2016 실기 확인은 남음.
+
+### Office 기능 점검표 (2026-10-21 14:40, 사용자 지시 "오피스에서 할 수 있는 모든 걸 다 테스트", "워드 먼저 모든 기능 완벽하게, 엑셀과 파워포인트는 1.3.1")
+
+- [x] 점검 파일 생성기 `eval/office-fidelity/make_fixtures.py`(python-docx/openpyxl/python-pptx와 직접 쓴 OOXML)와 고정 파일 `tests/fixtures/office-fidelity/synthetic-kitchen-sink.{docx,xlsx,pptx}`. 세 파일 모두 LibreOffice에서 열린다.
+- [x] 채점표 `eval/office-fidelity/features.mjs`(Word 38, Excel 25, PowerPoint 20 항목)와 `report.mjs`. 처음 측정: Word 11/38, PowerPoint 7/20, Excel은 exceljs가 차트 시트에서 읽기 실패.
+- [x] Word file 엔진 다시 작성(`runtime/docx-capture.mjs`, 공용 `runtime/ooxml-parts.mjs`): run 서식 전부, 문단 서식, 스타일 목록 번호(스냅숏도 스타일 numPr 해석), 표(병합, 음영, 머리글 반복, 중첩), 인라인/떠 있는 그림(위치, 배치, 자르기), 도형과 글상자, 차트(종류, 제목, 계열), 수식, 링크, 책갈피, 필드, 각주와 미주, 메모, 변경 추적, 입력 컨트롤 4종, 구역(방향, 단), 머리글과 바닥글(종류별), 스타일, 테마. 결과 **Word 38/38**(`tests/office-fidelity.test.mjs`). 비교 DTO에 머리글과 바닥글 글자 추가.
+- [x] Excel 읽기 실패 시 시트 목록만 담은 부분 캡처로 저장(원본 사본은 그대로). Excel 25항목, PowerPoint 20항목 보강은 1.3.1.
+- [ ] Windows Office 2016에서 같은 채점표(Task H, Word).

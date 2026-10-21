@@ -4,6 +4,16 @@
 // aligned by text so an inserted paragraph does not make every later one look changed; cells align by their place.
 import {docxParts,parseXml,snapshotParts,findFirst,firstNamed} from './docx-snapshot.mjs';
 
+// Header and footer text of a docx, part by part, so the viewer shows them beside the body (사용자 지적 2026-10-21: 머리글 반영).
+async function headerFooterTexts(zip){
+  const out={headers:[],footers:[]};
+  for(const name of Object.keys(zip.files).filter(n=>/^word\/(header|footer)\d*\.xml$/.test(n)).sort()){
+    const xml=await zip.file(name).async('string'),text=[...xml.matchAll(/<w:p[ >][\s\S]*?<\/w:p>/g)].map(p=>[...p[0].matchAll(/<w:t(?: [^>]*)?>([^<]*)<\/w:t>/g)].map(m=>m[1]).join('')).join('\n');
+    (name.includes('header')?out.headers:out.footers).push({part:name.slice(5),text});
+  }
+  return out;
+}
+
 const points=value=>value===undefined||value===null||value===''?null:Math.round(Number(value)/20);
 function pageOf(document){
   const body=findFirst(parseXml(document),'w:body'),sectPr=body?[...body.children].reverse().find(child=>typeof child==='object'&&child?.name==='w:sectPr'):null;
@@ -57,7 +67,8 @@ export async function compareDocx(beforeBytes,afterBytes,{name='양식.docx'}={}
   const afterById=new Map(afterBlocks.map(block=>[block.target,block])),beforeById=new Map(beforeBlocks.map(block=>[block.id,block]));
   const afterOrdered=order(after).map(entry=>entry.kind==='table'?afterTables.get(entry.id):afterById.get(entry.id)).filter(Boolean);
   const beforeOrdered=order(before).map(entry=>entry.kind==='table'?beforeTables.get(entry.id):beforeById.get(entry.id)).filter(Boolean);
-  const page=pageOf(afterParts.document);
-  return {app:'word',before:{blocks:beforeOrdered,page:pageOf(beforeParts.document)},after:{blocks:afterOrdered,page:{...page,changed:changes.length>0}},changes,
+  const page=pageOf(afterParts.document),[beforeHF,afterHF]=await Promise.all([headerFooterTexts(beforeParts.zip),headerFooterTexts(afterParts.zip)]);
+  const marked=(list,old)=>list.map(item=>({...item,changed:(old.find(o=>o.part===item.part)?.text??null)!==item.text}));
+  return {app:'word',before:{blocks:beforeOrdered,page:pageOf(beforeParts.document),headers:beforeHF.headers,footers:beforeHF.footers},after:{blocks:afterOrdered,page:{...page,changed:changes.length>0},headers:marked(afterHF.headers,beforeHF.headers),footers:marked(afterHF.footers,beforeHF.footers)},changes,
     counts:{changedParagraphs:changes.filter(c=>c.kind==='paragraph'&&c.change==='changed').length,insertedParagraphs:changes.filter(c=>c.change==='inserted'&&c.kind==='paragraph').length,removedParagraphs:changes.filter(c=>c.change==='removed').length,changedCells:changes.filter(c=>c.kind==='cell').length}};
 }

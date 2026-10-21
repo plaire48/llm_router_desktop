@@ -42,11 +42,13 @@ function readStyles(xml){
     const id=style.attrs['w:styleId'];if(!id)continue;
     const pPr=firstNamed(style,'w:pPr'),rPr=firstNamed(style,'w:rPr'),outline=pPr&&firstNamed(pPr,'w:outlineLvl');
     styles.set(id,{id,name:firstNamed(style,'w:name')?.attrs['w:val']??id,basedOn:firstNamed(style,'w:basedOn')?.attrs['w:val']??null,
-      outlineLevel:outline?Number(outline.attrs['w:val'])+1:null,bold:rPr?flag(rPr,'w:b'):null,size:rPr&&firstNamed(rPr,'w:sz')?Number(firstNamed(rPr,'w:sz').attrs['w:val'])/2:null});
+      outlineLevel:outline?Number(outline.attrs['w:val'])+1:null,bold:rPr?flag(rPr,'w:b'):null,size:rPr&&firstNamed(rPr,'w:sz')?Number(firstNamed(rPr,'w:sz').attrs['w:val'])/2:null,
+      // A list style (List Bullet, 개조식) numbers its paragraphs through the style's numPr, not the paragraph's.
+      numPr:pPr&&firstNamed(pPr,'w:numPr')?{numId:firstNamed(firstNamed(pPr,'w:numPr'),'w:numId')?.attrs['w:val']??null,ilvl:firstNamed(firstNamed(pPr,'w:numPr'),'w:ilvl')?.attrs['w:val']??null}:null});
   }
   // Outline level and size follow the basedOn chain, as Word resolves them.
   const resolve=(id,key,seen=new Set())=>{const style=styles.get(id);if(!style||seen.has(id))return null;seen.add(id);return style[key]??(style.basedOn?resolve(style.basedOn,key,seen):null);};
-  for(const style of styles.values()){style.outlineLevel=resolve(style.id,'outlineLevel')??10;style.size=resolve(style.id,'size');}
+  for(const style of styles.values()){style.outlineLevel=resolve(style.id,'outlineLevel')??10;style.size=resolve(style.id,'size');style.numPr=resolve(style.id,'numPr');}
   return styles;
 }
 function readNumbering(xml){
@@ -54,7 +56,7 @@ function readNumbering(xml){
   const root=findFirst(parseXml(xml),'w:numbering')??{children:[]};
   for(const abstract of childrenNamed(root,'w:abstractNum')){
     const levels=new Map();
-    for(const lvl of childrenNamed(abstract,'w:lvl'))levels.set(Number(lvl.attrs['w:ilvl']),{format:firstNamed(lvl,'w:numFmt')?.attrs['w:val']??'decimal',text:firstNamed(lvl,'w:lvlText')?.attrs['w:val']??'',start:Number(firstNamed(lvl,'w:start')?.attrs['w:val']??1)});
+    for(const lvl of childrenNamed(abstract,'w:lvl')){const ind=firstNamed(firstNamed(lvl,'w:pPr')??{children:[]},'w:ind');levels.set(Number(lvl.attrs['w:ilvl']),{format:firstNamed(lvl,'w:numFmt')?.attrs['w:val']??'decimal',text:firstNamed(lvl,'w:lvlText')?.attrs['w:val']??'',start:Number(firstNamed(lvl,'w:start')?.attrs['w:val']??1),indent:ind?Number(ind.attrs['w:left']??ind.attrs['w:start']??0)/20:null});}
     abstracts.set(abstract.attrs['w:abstractNumId'],levels);
   }
   for(const num of childrenNamed(root,'w:num'))nums.set(num.attrs['w:numId'],firstNamed(num,'w:abstractNumId')?.attrs['w:val']??null);
@@ -88,9 +90,15 @@ const sameFormat=(a,b)=>a.bold===b.bold&&a.size===b.size&&a.font===b.font;
 class Reader{
   constructor(parts){this.styles=readStyles(parts.styles);this.numbering=readNumbering(parts.numbering);this.counters=new Map();this.items=[];this.locations=new Map();this.fields=0;this.paragraphs=0;this.tables=0;}
   styleOf(id){return id&&this.styles.get(id)||null;}
-  listString(pPr){
-    const numPr=pPr&&firstNamed(pPr,'w:numPr');if(!numPr)return null;
-    const numId=firstNamed(numPr,'w:numId')?.attrs['w:val'],level=Number(firstNamed(numPr,'w:ilvl')?.attrs['w:val']??0);
+  listInfo(pPr,style){
+    const own=pPr&&firstNamed(pPr,'w:numPr'),numId=(own&&firstNamed(own,'w:numId')?.attrs['w:val'])??style?.numPr?.numId,level=Number((own&&firstNamed(own,'w:ilvl')?.attrs['w:val'])??style?.numPr?.ilvl??0);
+    if(!numId||numId==='0')return {listString:null};
+    const lvl=this.numbering.abstracts.get(this.numbering.nums.get(numId))?.get(level);
+    return {listString:this.listString(pPr,style),listLevel:level,...(lvl?.indent!=null?{listIndent:lvl.indent}:{})};
+  }
+  listString(pPr,style){
+    const numPr=pPr&&firstNamed(pPr,'w:numPr');if(!numPr&&!style?.numPr)return null;
+    const numId=(numPr&&firstNamed(numPr,'w:numId')?.attrs['w:val'])??style.numPr.numId,level=Number((numPr&&firstNamed(numPr,'w:ilvl')?.attrs['w:val'])??style?.numPr?.ilvl??0);
     const abstract=this.numbering.abstracts.get(this.numbering.nums.get(numId));const lvl=abstract?.get(level);if(!numId||!lvl)return null;
     for(const key of [...this.counters.keys()])if(key.startsWith(numId+'/')&&Number(key.slice(numId.length+1))>level)this.counters.delete(key);
     const n=(this.counters.get(numId+'/'+level)??lvl.start-1)+1;this.counters.set(numId+'/'+level,n);
@@ -107,7 +115,7 @@ class Reader{
     const bold=merged.length?merged.every(run=>run.bold):paragraphBold||style?.bold===true;
     const writable=!fields&&!counts.controls,editable=writable&&merged.length<=1&&text.length<=4000;
     let at=0;const textRuns=merged.map(run=>{const entry={start:at,length:run.text.length};at+=run.text.length;return entry;});
-    return {text:text.slice(0,4000),truncated:text.length>4000,style:style?.name??styleId??'Normal',...(style?.size?{fontSize:style.size}:{}),outlineLevel,listString:this.listString(pPr),bold,editable,writable,fields,controls:counts.controls,runs:merged.length,textRuns,fragmentEditable:writable&&merged.length>0&&merged.length<=128,range:{start:node.start,end:node.end}};
+    return {text:text.slice(0,4000),truncated:text.length>4000,style:style?.name??styleId??'Normal',...(style?.size?{fontSize:style.size}:{}),outlineLevel,...this.listInfo(pPr,style),bold,editable,writable,fields,controls:counts.controls,runs:merged.length,textRuns,fragmentEditable:writable&&merged.length>0&&merged.length<=128,range:{start:node.start,end:node.end}};
   }
   field(node,paragraphId=null){
     const pr=firstNamed(node,'w:sdtPr')??{children:[]},content=firstNamed(node,'w:sdtContent');
