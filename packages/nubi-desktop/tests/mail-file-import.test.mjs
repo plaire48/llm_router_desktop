@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,writeFile,readFile,rm,symlink,realpath,truncate} from 'node:fs/promises';
@@ -9,7 +10,7 @@ import {mailFileKind} from '../runtime/mail-file-kinds.mjs';
 import {normalizePortalMail} from '../runtime/mail-portal-content.mjs';
 const eml=body=>Buffer.from('Subject: Archive evidence\r\nFrom: Alice <alice@example.test>\r\nTo: owner@example.test\r\nCc: team@example.test\r\nDate: Tue, 13 Oct 2026 09:00:00 +0900\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n'+body);
 const mhtml=Buffer.from('MIME-Version: 1.0\r\nContent-Type: multipart/related; boundary=b; type="text/html"\r\n\r\n--b\r\nContent-Type: text/html; charset=utf-8\r\nContent-Location: https://example.test/page\r\n\r\n<html><body><table><tr><td>기안 근거 MHTML</td></tr></table><img src="https://example.invalid/tracker"></body></html>\r\n--b--\r\n');
-async function fixture(t,providers){const root=await realpath(await mkdtemp(path.join(os.tmpdir(),'nubi-mail-import-'))),input=path.join(root,'source');await mkdir(input);let mail=new PersonalMail({storageRoot:path.join(root,'state'),providers},{personalRoot:path.join(root,'personal'),pull:()=>assert.fail('no network mail collection')});t.after(async()=>{mail.importController?.abort();await mail.importTask;mail.dispose();await Promise.all([mail.rawDisposed,mail.wikiDisposed]);await rm(root,{recursive:true,force:true});});return {root,input,mail};}
+async function fixture(t,providers){const root=await realpath(await mkdtemp(path.join(os.tmpdir(),'nubi-mail-import-'))),input=path.join(root,'source');await mkdir(input);let mail=new PersonalMail({storageRoot:path.join(root,'state'),providers},{personalRoot:path.join(root,'personal'),pull:()=>assert.fail('no network mail collection')});t.after(async()=>{mail.importController?.abort();await mail.importTask;mail.dispose();await Promise.all([mail.rawDisposed,mail.wikiDisposed]);});removeLater(root);return {root,input,mail};}
 async function put(root,name,bytes){const file=path.join(root,name);await mkdir(path.dirname(file),{recursive:true});await writeFile(file,bytes);return file;}
 async function waitFor(check){for(let n=0;n<500;n++){if(check())return;await new Promise(resolve=>setTimeout(resolve,20));}assert.fail('mail processing did not settle');}
 test('recurses through nested and hidden folders; closest AUTO folder classifies each document',async t=>{
@@ -46,7 +47,7 @@ test('imports MIME, MHTML and mysingle, preserves source bytes, classifies searc
  const original=await mail.download({id:row.id,kind:'raw',expectedSourceHash:row.sourceHash});assert.equal(original.filename,'review.mysingle');assert.deepEqual(Buffer.from(original.bytes,'base64'),single);
  const web=await mail.read(mail.rows().find(row=>row.mailbox==='submitted').id,{includePresentation:true});assert.match(web.mail.text,/기안 근거 MHTML/);assert.deepEqual(web.mail.presentation.images,[]);assert.equal(web.mail.subject,'submission.mhtml');
  await mail.startFolderImport(input);await mail.importTask;assert.equal(mail.status().localImport.imported,0);assert.equal(mail.status().localImport.duplicates,6);
- mail.dispose();const restored=new PersonalMail({storageRoot:path.join(root,'state')},{personalRoot:path.join(root,'personal')});assert.equal(restored.rows().length,5);assert.equal(restored.status().localImport.duplicates,6);assert.equal((await restored.call({action:'search',query:'결재',filters:{mailbox:'local:processed'}})).total,1);restored.dispose();
+ mail.dispose();const restored=new PersonalMail({storageRoot:path.join(root,'state')},{personalRoot:path.join(root,'personal')});assert.equal(restored.rows().length,5);assert.equal(restored.status().localImport.duplicates,6);assert.equal((await restored.call({action:'search',query:'결재',filters:{mailbox:'local:processed'}})).total,1);restored.dispose();await Promise.all([restored.rawDisposed,restored.wikiDisposed]);
 });
 test('uses the Personal OpenWiki synthesizer without a portal login and records folder classification, not approval execution',async t=>{
  const calls=[],providers={catalogs:()=>[{provider:'chatgpt',models:[{id:'fixture'}]}],status:()=>({connected:true,provider:'chatgpt',model:'fixture'}),complete:async messages=>{calls.push(messages);return {content:JSON.stringify({summary:'보관된 결재 문서입니다.',category:'approval',priority:'medium',facts:['문서에 검토 내용이 있다.'],actionItems:[]})};}};

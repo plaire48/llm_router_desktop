@@ -27,5 +27,6 @@ test('wiki failure chain never records free text or paths and stops on cycles an
   let deep=new Error('wiki_leaf');
   for(let index=0;index<8;index++)deep=new Error('wiki_level_'+index,{cause:deep});
   assert.equal(wikiFailureChain(deep).chain.length,5);
-  assert.deepEqual(wikiFailureChain(null),{at:wikiFailureChain(null).at,chain:[]});
+  // One call: two calls can straddle a millisecond (Windows gates 2026-10-21, at 420 vs 421).
+  const empty=wikiFailureChain(null);assert.deepEqual(empty,{at:empty.at,chain:[]});assert.ok(!Number.isNaN(Date.parse(empty.at)));
 });
