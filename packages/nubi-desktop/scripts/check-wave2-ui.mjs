@@ -17,6 +17,32 @@ const waitForAdmission=page=>page.locator('.nubi-conversation-scroll[data-admiss
 try {
  browserServer=await chromium.launchServer({channel:'chrome',headless:true});
  browser=await chromium.connect(browserServer.wsEndpoint());
+ // Exercise the real Workbench relocation, not a longer wait for a collapsed receipt.
+ if(!process.argv.includes('--routines-only'))for(const width of [1280,440])for(const expanded of [true,false]){
+  const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});page.on('pageerror',error=>errors.push(error.message));
+  await page.goto('http://127.0.0.1:'+server.address().port+'/?integrated&command-record-race');
+  const opener=page.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await opener.count())await opener.click();
+  await page.getByRole('button',{name:'대화 검색',exact:true}).click();await page.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').first().click();
+  const record=page.locator('.nubi-command-record').filter({has:page.locator('strong[title="명령 결과 확인"]')});await record.waitFor();
+  assert.equal(await record.getAttribute('open'),null,'new records start collapsed');
+  assert.equal(await record.locator('.nubi-terminal-output').count(),0,'collapsed output is not mounted');
+  const original=await record.elementHandle();
+  await record.locator('summary').focus();await page.keyboard.press('Enter');
+  await record.locator('.nubi-terminal-output').waitFor();
+  if(!expanded){await record.locator('summary').click();await page.waitForFunction(()=>!document.querySelector('.nubi-command-record').open);}
+  await page.evaluate(()=>window.finishCommandTurn());
+  await page.getByText('명령 기록을 확인했습니다.',{exact:true}).waitFor();
+  assert.equal(await original.evaluate(node=>node.isConnected),false,'turn completion actually remounts the command record');
+  await page.screenshot({path:path.join(dir,`command-record-${width}-${expanded?'open':'closed'}.png`)});
+  assert.equal(await record.evaluate(node=>node.open),expanded,'user expansion survives final-answer remount');
+  assert.equal(await record.locator('.nubi-terminal-output').count(),expanded?1:0,'output mounting follows the retained choice');
+  const other=page.locator('.nubi-command-record').filter({has:page.locator('strong[title="다른 명령 기록"]')});
+  assert.equal(await other.getAttribute('open'),null,'another action ID does not inherit expansion');
+  assert.equal(await other.locator('.nubi-terminal-output').count(),0);
+  if(expanded){assert.match(await record.innerText(),/command-output/);await record.getByRole('button',{name:'터미널 열기',exact:true}).click();assert.equal(await page.evaluate(()=>window.openedTerminal.processId),'command-process');}
+  checks.push({scene:'command-record-remount',width,expanded,realRemount:true,keyboard:true,independentAction:true});await page.close();
+ }
+ if(!process.argv.includes('--command-record-only')){
  if(!process.argv.includes('--routines-only')){
  for(const width of [1280,440]){
   const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});page.on('pageerror',error=>errors.push(error.message));
@@ -173,9 +199,10 @@ try {
   await page.locator('.nubi-feedback-toast').waitFor();assert(await warning.evaluate(node=>node.scrollWidth<=node.clientWidth+1));
   await page.screenshot({path:path.join(dir,'after-edit-failure-'+width+'.png')});checks.push({scene:'after-edit-failure',width,pathVisible:true,retryFailureToast:true});await page.close();
  }
+ }
  assert.deepEqual(errors,[]);
  await writeFile(path.join(dir,'result.json'),JSON.stringify({checks,errors,scope:'Synthetic Workbench fixture on macOS; no live model or Windows verification.'},null,2));
- console.log('PASS: chapters, archive, output cards, side tasks and interrupted recovery');
+ console.log('PASS:',checks.length,'scenes:',[...new Set(checks.map(check=>check.scene))].join(', '));
 }finally{
  let deadline;
  const child=browserServer?.process();
