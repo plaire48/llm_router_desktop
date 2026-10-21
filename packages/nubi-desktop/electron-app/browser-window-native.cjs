@@ -21,6 +21,10 @@ class BrowserWindowNative {
  fail(error){this.ready?.reject(error);this.ready=null;for(const p of this.pending.values()){clearTimeout(p.timer);p.reject(error);}this.pending.clear();}
  request(action,args={}){if(!this.child?.stdin.writable)return Promise.reject(Error('dock_helper_unavailable'));const id=randomUUID();return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{this.pending.delete(id);reject(Error('dock_result_unconfirmed'));},3000);this.pending.set(id,{resolve,reject,timer});this.child.stdin.write(JSON.stringify({id,action,args})+'\n',error=>{if(error){clearTimeout(timer);this.pending.delete(id);reject(Error('dock_helper_disconnected'));}});});}
  async recover(){if(!this.recovery)return;const record=this.recovery;await this.start(this.executable);await this.request('recover',record);this.recovery=null;}
- async close(){const child=this.child;if(!child)return;this.closing=true;try{await this.request('shutdown');}finally{child.stdin.end();if(child.exitCode===null)await new Promise(resolve=>{const timer=setTimeout(resolve,1500);child.once('exit',()=>{clearTimeout(timer);resolve();});});if(this.child===child)this.child=null;this.closing=false;}}
+ async close(){const child=this.child;if(!child)return;this.closing=true;try{await this.request('shutdown');}finally{child.stdin.end();if(child.exitCode===null)await new Promise(resolve=>{const timer=setTimeout(resolve,1500);child.once('exit',()=>{clearTimeout(timer);resolve();});});
+   // A helper that did not exit after shutdown is ended: it must never outlive the app (a leftover helper locked its own
+   // file and blocked the next build, Windows gates 2026-10-21; on a PC it would block updates and uninstall).
+   if(child.exitCode===null&&child.signalCode===null){try{child.kill();}catch{}}
+   if(this.child===child)this.child=null;this.closing=false;}}
 }
 module.exports={BrowserWindowNative};

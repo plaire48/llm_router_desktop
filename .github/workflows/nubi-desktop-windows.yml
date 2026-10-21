@@ -300,6 +300,14 @@ jobs:
       - name: Run Electron gates even after a fast-gate failure
         if: ${{ !cancelled() && steps.fast.outcome != 'skipped' }}
         run: npm run test:gates:electron
+      # A check that ended Electron by force can leave its window bridge helper running, which locks the helper's file
+      # for the payload build (EPERM, 2026-10-21). Only this job's leftovers exist on the runner; their count is logged.
+      - name: Stop leftover window bridge helpers
+        if: ${{ !cancelled() && steps.fast.outcome != 'skipped' }}
+        run: |
+          $left = @(Get-Process -Name 'Nubi.BrowserWindowBridge' -ErrorAction SilentlyContinue)
+          Write-Output "leftover window bridge helpers: $($left.Count)"
+          $left | Stop-Process -Force -ErrorAction SilentlyContinue
       - name: Build and inspect actual release payload
         if: ${{ !cancelled() && steps.fast.outcome != 'skipped' }}
         run: node scripts/package-windows.mjs --payload-only
