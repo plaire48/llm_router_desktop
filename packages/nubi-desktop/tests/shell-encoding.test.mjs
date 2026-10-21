@@ -56,11 +56,13 @@ test('separate stdout chunks preserve a split UTF-8 character in real process ou
 });
 
 test('Windows PowerShell preserves Korean output, UTF-8 source reads and explicit legacy decoding', {skip:process.platform!=='win32'}, async t=>{
+  // The profile runs PowerShell 7 when it is installed and Windows PowerShell 5.1 otherwise (shell-discovery.cjs), so the
+  // explicit byte read uses each version's own switch; the check is the same on both.
   const {service,root}=await fixture(t),content='누비 한글 문서 확인',file=path.join(root,'한글 원문.txt');
   await writeFile(file,content,'utf8');
   await writeFile(path.join(root,'utf16.txt'),Buffer.concat([Buffer.from([0xff,0xfe]),Buffer.from(content,'utf16le')]));
   await writeFile(path.join(root,'latin.txt'),Buffer.from([0xe9]));
-  const record=await service.processes.start({cwd:root,taskId:'encoding',profile:'powershell',autoDiagnose:false,script:"Write-Output '한글 직접 출력'; Get-Content -LiteralPath './한글 원문.txt'; Get-Content -LiteralPath './utf16.txt'; Get-Content -LiteralPath './latin.txt' -Encoding Byte; [Console]::Error.WriteLine('한글 오류 출력'); exit 7"});
+  const record=await service.processes.start({cwd:root,taskId:'encoding',profile:'powershell',autoDiagnose:false,script:"Write-Output '한글 직접 출력'; Get-Content -LiteralPath './한글 원문.txt'; Get-Content -LiteralPath './utf16.txt'; if($PSVersionTable.PSVersion.Major -ge 6){Get-Content -LiteralPath './latin.txt' -AsByteStream}else{Get-Content -LiteralPath './latin.txt' -Encoding Byte}; [Console]::Error.WriteLine('한글 오류 출력'); exit 7"});
   const deadline=Date.now()+15000;
   while(service.processes.active.size&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,30));
   const result=service.processes.poll(record.id);
