@@ -74,7 +74,7 @@
 **Files:** `ui/BrowserTeachPanel.jsx`(계획 초안과 질문 묶음, 번호 주석판, 시험 실행과 캡처 검수, 저장), `ui/BrowserScriptCard.jsx`(실행 결과, 초안 승인). 기존 양식 재사용: 목록 행, 진행 행, deck-dialog, 캡처 검수. 1280/440 캡처와 디자인 규칙 검사.
 
 - [x] 화면 조각과 합성 포트 검사(2026-10-21): T4 함수 직접 재사용, 구조 관찰/캡처 바인딩과 번호 좌표, 질문, 시험 요청, 캡처 검수, draft 저장/승인 표시. 순수 Node 3개와 1280/440 흐름/공통 디자인/접근성 검사 통과. 보고서 `docs/BROWSER-TEACH-T8-UI-2026-10-21.md`.
-- [ ] 제품 연결과 T8 완료(Codex): §8 답 32(2026-10-21 07:40)로 호스트 경로 `browserTeach`가 생겼다(설계 §11j). 남은 것은 화면 진입과 콜백 연결뿐이다: 브라우저 창의 녹화 시작/중지 → `record start/stop`, 패널 `onTest/onSave/onApprove` → `test/save/approve`, 닫기 → `discard`. 이전 메모(답 전): 현재 `browser.script`는 승인된 저장 카드만 실행하고 녹화 전달/미승인 초안 시험 연결은 없다. UI는 실행/저장/승인 콜백이 없으면 해당 버튼을 비활성화한다. 새 엔진이나 임의 승인 상태를 만들지 않았다.
+- [x] 제품 UI 연결(2026-10-21, Codex): §8 답32 host browserTeach에 브라우저 공용 녹화 시작/중지, test/save/approve 및 닫기 discard를 연결했다. 내부/외부 1280/440 합성 RPC 화면 검사, 원래 check-wave2-ui와 보호/빈 녹화/늦은 응답 경계 통과. observation/capture null은 화면 확인 비활성 유지. 보고서 `docs/BROWSER-TEACH-T8-CONNECTION-2026-10-21.md`. 실제 브라우저 왕복/구조 관찰 연결은 Claude 후속으로 분리한다.
 
 ## 순서
 

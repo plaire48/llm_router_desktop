@@ -42,7 +42,7 @@ test('a recording becomes a draft card with slots, a one-time trial runs with th
   await assert.rejects(s.browserTeach({action:'test',binding:{...binding,sessionId:'other'},draftKey:'k',card}),/browser_teach_session_invalid/);
   await assert.rejects(s.browserTeach({action:'test',binding:{...binding,projectId:'other'},draftKey:'k',card}),/project_changed/);
   await assert.rejects(s.browserTeach({action:'test',binding,draftKey:'k',card:{...card,steps:card.steps.slice(1)}}),/browser_teach_card_changed/);
-  const edited={...card,teach:{purpose:'검색 결과 확인',steps:{0:{valueSource:{kind:'literal_pending'}}}}};
+  const edited={...card,inputs:card.inputs.map(input=>({...input,label:'조회 조건'})),teach:{purpose:'검색 결과 확인',steps:{0:{valueSource:{kind:'literal_pending'}}}}};
   const run=await s.browserTeach({action:'test',binding,draftKey:'k1',card:edited});
   assert.equal(run.success,true);assert.equal(run.steps,2);assert.equal(run.draftKey,'k1');assert.deepEqual(run.binding,binding);assert.match(run.receiptId,/^teach-run:/);
   assert.equal(run.captures.length,1);assert.match(run.captures[0].dataUrl,/^data:image\/png;base64,/);
@@ -55,7 +55,7 @@ test('a recording becomes a draft card with slots, a one-time trial runs with th
   assert.equal(saved.script.status,'draft');assert.equal(saved.script.slug,'양식-제출');assert.equal(saved.script.version,1);assert.match(saved.script.hash,/^sha256:/);
   const dir=path.join(f.root,'.nubi','browser-scripts','양식-제출');
   const stored=JSON.parse(await readFile(path.join(dir,'card.json'),'utf8'));
-  assert.equal(stored.status,'draft');assert.equal(stored.teach.purpose,'검색 결과 확인');assert.ok(!JSON.stringify(stored).includes('누비'));
+  assert.equal(stored.inputs[0].label,'조회 조건');assert.deepEqual(stored.steps,card.steps);assert.equal(stored.status,'draft');assert.equal(stored.teach.purpose,'검색 결과 확인');assert.ok(!JSON.stringify(stored).includes('누비'));
   assert.equal((await readdir(path.join(dir,'runs'))).length,1);assert.equal((await readdir(path.join(dir,'captures'))).length,1);
   assert.match(await readFile(path.join(dir,'README.md'),'utf8'),/검색 결과 확인/);
   await assert.rejects(s.browserTeach({action:'approve',binding,draftKey:'k1',...saved.script,receiptId:run.receiptId,captureIds:[]}),/browser_teach_evidence_missing/);

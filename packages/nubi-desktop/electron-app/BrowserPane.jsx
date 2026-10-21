@@ -1,3 +1,4 @@
+import {BrowserTeachControl} from '../ui/BrowserTeachControl.jsx';
 import {networkMessage} from './browser-network-error.cjs';
 import {BrowserAuthNotice} from './BrowserAuthNotice.jsx';
 import {CopyButton} from '../../../extensions/aipro-chat/src/CopyButton.jsx';
@@ -6,16 +7,16 @@ import {CxButton, CxInput, Icon} from '@e2e/cx-design-system';
 import {BrowserMark,StopMark} from '../ui/marks.jsx';
 import {ExternalBrowserPane,externalBrowserMessage} from './ExternalBrowserPane.jsx';
 const hasOpenDialog=()=>document.documentElement.hasAttribute('data-project-switching')||document.body.hasAttribute('data-nubi-opening')||[...document.querySelectorAll('[role="dialog"],[aria-modal="true"]')].some(node=>node.getClientRects().length&&!node.closest('[hidden],[aria-hidden="true"],[inert]'));
-export function BrowserPane({api,visible,obscured=false,onError,onState,controller}) {
+export function BrowserPane({api,projectId,visible,obscured=false,onError,onState,controller}) {
  const [configuration,setConfiguration]=useState(window.nubi.desktop===true?null:{mode:'internal',showInternal:true}),inner=useRef(null),owner=useRef(0),alive=useRef(true);
  const refresh=async()=>{const current=++owner.current;try{const next=await api('browserConnection',{action:'status'});if(alive.current&&current===owner.current)setConfiguration(previous=>JSON.stringify(previous)===JSON.stringify(next)?previous:next);}catch(error){if(alive.current&&current===owner.current)onError(Error(externalBrowserMessage(error.message)));}};
  useEffect(()=>{if(window.nubi.desktop!==true)return;alive.current=true;void refresh();const close=window.nubi.onHostEvent?.(event=>{if(['external_browser_changed','external_browser_opened','external_browser_open_failed','browser_dock_changed'].includes(event.type)){void refresh();if(event.type==='external_browser_open_failed')onError(Error(externalBrowserMessage(event.error)));}}),browserClose=window.nubi.onBrowserEvent?.(()=>void refresh());return()=>{alive.current=false;owner.current++;close?.();browserClose?.();};},[api]);
+ const [teachOpen,setTeachOpen]=useState(false);
  const external=configuration?.mode==='external'&&!configuration.showInternal;
  useEffect(()=>{if(external)onState?.(configuration);},[configuration,external]);
  useImperativeHandle(controller,()=>({action:async(action,args={})=>{if(!external)return inner.current?.action(action,args);try{const value=await api('browser',{action,...args});onState?.(value);void refresh();}catch(error){onError(Error(externalBrowserMessage(error.message)));}}}),[api,external]);
- if(external)return <ExternalBrowserPane api={api} visible={visible} obscured={obscured} status={configuration} onUpdate={setConfiguration} onError={onError}/>;
- if(!configuration)return <section className="desktop-browser-empty" hidden={!visible} role="status">브라우저 연결 확인 중</section>;
- return <InternalBrowserPane api={api} visible={visible} obscured={obscured} onError={onError} onState={onState} controller={inner}/>;
+ const content=external?<ExternalBrowserPane api={api} visible={visible} obscured={obscured||teachOpen} status={configuration} onUpdate={setConfiguration} onError={onError}/>:!configuration?<section className="desktop-browser-empty" hidden={!visible} role="status">브라우저 연결 확인 중</section>:<InternalBrowserPane api={api} visible={visible} obscured={obscured||teachOpen} onError={onError} onState={onState} controller={inner}/>;
+ return <div className="nubi-browser-host" hidden={!visible}><BrowserTeachControl api={api} projectId={projectId} visible={visible} onObscured={setTeachOpen}/>{content}</div>;
 }
 function InternalBrowserPane({api,visible,obscured=false,onError,onState,controller}) {
  const [state,setState]=useState({tabs:[],active:null}),[url,setUrl]=useState(''),[find,setFind]=useState(false),[query,setQuery]=useState('');

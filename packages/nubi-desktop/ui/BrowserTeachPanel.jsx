@@ -3,28 +3,32 @@ import {CxButton,CxInput,CxSelect,DetailPanel,Icon} from '@e2e/cx-design-system'
 import {SettingsSection,SettingsField,PanelTitle} from './SettingsSection.jsx';
 import {CaptureChips} from './CaptureChips.jsx';
 import {BrowserScriptCard} from './BrowserScriptCard.jsx';
-import {teachDraft,boardProjection,bindingKey,runMatches,reviewable} from './browser-teach-view.mjs';
+import {teachDraft,unnamedTeachInput,boardProjection,bindingKey,runMatches,reviewable} from './browser-teach-view.mjs';
 import './browser-teach.css';
 
 // Ports are host-owned. Missing ports disable actions; this component never creates a replay engine.
 // Re-key on project/session/revision/card changes so a late result cannot affect a different recording.
 export function BrowserTeachPanel(props){return <TeachSession key={bindingKey(props.binding)+JSON.stringify(props.card)} {...props}/>;}
-function TeachSession({binding,card,observation,capture,onTest,onSave,onApprove,onClose}){
- const [answers,setAnswers]=useState({}),[run,setRun]=useState(null),[inspected,setInspected]=useState([]),[saved,setSaved]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[board,setBoard]=useState(false),[selected,setSelected]=useState(null),[confirm,setConfirm]=useState(false),[unconfirmed,setUnconfirmed]=useState(false);
+function TeachSession({binding,card,observation,capture,onTest,onSave,onApprove,onClose,onBusyChange,embedded=false}){
+ const [labels,setLabels]=useState({}),[answers,setAnswers]=useState({}),[run,setRun]=useState(null),[inspected,setInspected]=useState([]),[saved,setSaved]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[board,setBoard]=useState(false),[selected,setSelected]=useState(null),[confirm,setConfirm]=useState(false),[unconfirmed,setUnconfirmed]=useState(false);
  const alive=useRef(true),locked=useRef(false),revision=useRef(0),form=useId();
  useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);
- const draft=useMemo(()=>teachDraft(card,answers),[card,answers]),draftKey=JSON.stringify(draft.card);
+ useEffect(()=>{onBusyChange?.(busy);return()=>onBusyChange?.(false);},[busy,onBusyChange]);
+ const draft=useMemo(()=>teachDraft(card,answers,labels),[card,answers,labels]);
+ // Input labels are presentation metadata. Renaming never changes recorded steps or replays a trial.
+ const draftKey=useMemo(()=>JSON.stringify(teachDraft(card,answers).card),[card,answers]);
  const rows=useMemo(()=>boardProjection(observation,capture),[observation,capture]);
+ const unnamed=(card.inputs||[]).filter(unnamedTeachInput);
  const choice=q=>typeof answers[q.id]==='object'?({mail:'메일에서',wiki:'위키에서'}[answers[q.id].kind]||q.choices[0]):answers[q.id]||q.choices?.[0];
  const ready=draft.questions.every(q=>q.kind==='value'?(!['메일에서','위키에서'].includes(choice(q))||Boolean(answers[q.id]?.field?.trim()||answers[q.id]?.page?.trim())):typeof answers[q.id]==='string'&&answers[q.id].trim());
  const approvedEvidence=reviewable(run,binding,draftKey,inspected);
  function change(id,value){revision.current++;setAnswers(old=>({...old,[id]:value}));setRun(null);setInspected([]);setSaved(null);setError('');}
  async function act(action,issued=false){if(locked.current)return;locked.current=true;setBusy(true);setError('');const current=revision.current;try{await action(()=>alive.current&&current===revision.current);}catch{if(alive.current&&current===revision.current){setError('작업 결과를 확인하지 못했어요.');if(issued)setUnconfirmed(true);}}finally{locked.current=false;if(alive.current)setBusy(false);}}
  async function test(){setConfirm(false);await act(async live=>{const value=await onTest({binding,draftKey,card:draft.card});if(!live())return;if(!runMatches(value,binding,draftKey)||!value.receiptId)throw Error('run_unconfirmed');setRun(value);setInspected([]);},true);}
- async function save(){await act(async live=>{const value=await onSave({binding,draftKey,card:draft.card,receiptId:run?.receiptId||null});if(!live())return;if(!runMatches(value,binding,draftKey)||!value.script?.hash||!value.script?.version||value.script.status!=='draft')throw Error('save_unconfirmed');setSaved(value.script);});}
- async function approve(identity){await act(async live=>{const value=await onApprove({binding,draftKey,...identity,captureIds:inspected});if(!live())return;if(!runMatches(value,binding,draftKey)||value.script?.status!=='reviewed'||value.script.hash!==saved.hash||value.script.version!==saved.version||value.script.slug!==saved.slug)throw Error('approval_unconfirmed');setSaved(value.script);});}
- return <section className="nubi-browser-teach" aria-label="브라우저 가르치기" aria-busy={busy}>
-  <header className="nubi-browser-teach-heading"><PanelTitle icon="linkExternal">브라우저 가르치기</PanelTitle>{onClose&&<CxButton aria-label="닫기" title="닫기" disabled={busy} onClick={onClose}><Icon name="xClose" size={18}/></CxButton>}</header>
+ async function save(){await act(async live=>{const value=await onSave({binding,draftKey,card:draft.card,receiptId:run?.receiptId||null});if(!live())return;if(!runMatches(value,binding,draftKey)||!value.script?.hash||!value.script?.version||value.script.status!=='draft')throw Error('save_unconfirmed');setSaved({...draft.card,...value.script});});}
+ async function approve(identity){await act(async live=>{const value=await onApprove({binding,draftKey,...identity,captureIds:inspected});if(!live())return;if(!runMatches(value,binding,draftKey)||value.script?.status!=='reviewed'||value.script.hash!==saved.hash||value.script.version!==saved.version||value.script.slug!==saved.slug)throw Error('approval_unconfirmed');setSaved({...saved,...value.script});});}
+ return <section className="nubi-browser-teach" data-embedded={embedded||undefined} aria-label="브라우저 가르치기" aria-busy={busy}>
+  {!embedded&&<header className="nubi-browser-teach-heading"><PanelTitle icon="linkExternal">브라우저 가르치기</PanelTitle>{onClose&&<CxButton aria-label="닫기" title="닫기" disabled={busy} onClick={onClose}><Icon name="xClose" size={18}/></CxButton>}</header>}
   <p className="nubi-muted">기록한 순서와 값의 출처를 확인하고 한 번 실행해 보세요.</p>
   {error&&<p role="alert">작업을 완료하지 못했어요. 실행 결과를 확인한 뒤 다시 시도해 주세요.</p>}
   <SettingsSection icon="list" title={draft.plan.title||'계획 초안'}>
@@ -32,7 +36,9 @@ function TeachSession({binding,card,observation,capture,onTest,onSave,onApprove,
    <CxButton disabled={!rows.length} onClick={()=>setBoard(true)}><Icon name="image" size={18}/>화면에서 확인</CxButton>
   </SettingsSection>
   {draft.questions.length>0&&<SettingsSection icon="helpCircle" title="필요한 내용만 확인할게요">
-   {draft.questions.map(q=><React.Fragment key={q.id}><SettingsField id={form+q.id} label={q.prompt} description={q.kind==='value'&&answers[q.id]==='고정값'?'값은 절차에 저장하지 않고 실행할 때 별도로 받습니다.':undefined}>
+   {draft.questions.map(q=><React.Fragment key={q.id}>
+    {q.kind==='value'&&unnamed.some(input=>input.slot===q.slot)&&<SettingsField id={form+'label:'+q.slot} label={`입력값 ${unnamed.findIndex(input=>input.slot===q.slot)+1} 이름`}><CxInput disabled={busy||Boolean(saved)} value={labels[q.slot]??card.inputs.find(input=>input.slot===q.slot)?.label??''} maxLength={80} onChange={e=>setLabels(old=>({...old,[q.slot]:e.target.value}))}/></SettingsField>}
+    <SettingsField id={form+q.id} label={q.prompt} description={q.kind==='value'&&answers[q.id]==='고정값'?'값은 절차에 저장하지 않고 실행할 때 별도로 받습니다.':undefined}>
     {q.choices?<CxSelect disabled={busy||Boolean(saved)} value={choice(q)} onChange={e=>change(q.id,e.target.value)}>{q.choices.map(choice=><option key={choice}>{choice}</option>)}</CxSelect>:<CxInput disabled={busy||Boolean(saved)} value={answers[q.id]||''} maxLength={400} onChange={e=>change(q.id,e.target.value)}/>}
    </SettingsField>
     {q.kind==='value'&&choice(q)==='메일에서'&&<SettingsField id={form+q.id+'-field'} label="메일에서 사용할 항목" description="본문을 복사하지 않고 항목 이름만 적습니다."><CxInput disabled={busy||Boolean(saved)} value={answers[q.id]?.field||''} placeholder="예: subject" onChange={e=>change(q.id,{kind:'mail',field:e.target.value})}/></SettingsField>}
@@ -45,7 +51,7 @@ function TeachSession({binding,card,observation,capture,onTest,onSave,onApprove,
   {saved?<BrowserScriptCard script={saved} run={run} busy={busy} canApprove={approvedEvidence} onApprove={onApprove?approve:undefined}/>:<div className="nubi-browser-teach-actions"><CxButton disabled={busy||!ready||!onSave} onClick={save}>초안 저장</CxButton><CxButton variant="primary" disabled={busy||Boolean(run)||unconfirmed||!ready||!onTest} onClick={()=>setConfirm(true)}>시험 실행</CxButton></div>}
   {unconfirmed&&<p role="status">실행 결과가 미확정입니다. 호스트에서 확인할 때까지 다시 실행하지 않습니다.</p>}
   {!onTest&&<p className="nubi-muted">브라우저 실행 연결을 기다리고 있어요. 아직 실행하지 않았습니다.</p>}
-  {confirm&&<DetailPanel className="deck-dialog nubi-panel" variant="modal" title={<PanelTitle icon="arrowRight">시험 실행</PanelTitle>} onClose={()=>setConfirm(false)} footer={<CxButton variant="primary" disabled={busy} onClick={test}>실행 요청</CxButton>}><p>기록한 {draft.plan.steps.length}단계를 현재 브라우저에 실행합니다.</p><p>제출과 저장은 기존 승인 규칙을 따릅니다. 입력값과 실제 대상은 호스트에서 다시 확인합니다.</p></DetailPanel>}
+  {confirm&&<DetailPanel className="deck-dialog nubi-panel" variant="modal" title={<PanelTitle icon="arrowRight">시험 실행</PanelTitle>} onClose={()=>setConfirm(false)} footer={<CxButton variant="primary" disabled={busy} onClick={test}>실행 요청</CxButton>}><p>녹화 때 입력한 값으로 한 번만 실행합니다</p><p>기록한 {draft.plan.steps.length}단계를 현재 브라우저에 실행합니다.</p><p>제출과 저장은 기존 승인 규칙을 따릅니다. 입력값과 실제 대상은 호스트에서 다시 확인합니다.</p></DetailPanel>}
   {board&&<DetailPanel className="deck-dialog nubi-panel nubi-panel--wide" variant="modal" title={<PanelTitle icon="image">화면에서 확인</PanelTitle>} onClose={()=>setBoard(false)}>
    <p className="nubi-muted">번호는 이 화면을 설명하기 위한 표시예요. 실행 대상으로 저장하지 않습니다.</p>
    <div className="nubi-browser-board"><img src={capture.dataUrl} alt="관찰한 브라우저 화면" width={capture.width} height={capture.height}/>{rows.filter(r=>r.rect).map(row=><button type="button" key={row.number} className="nubi-browser-board-box" style={{left:row.rect.left+'%',top:row.rect.top+'%',width:row.rect.width+'%',height:row.rect.height+'%'}} aria-label={`${row.number}번 ${row.name||row.role}`} title={`${row.number}번 ${row.name||row.role}`} aria-pressed={selected===row.number} onClick={()=>setSelected(row.number)}><span>{row.number}</span></button>)}</div>

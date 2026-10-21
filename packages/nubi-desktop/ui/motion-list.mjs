@@ -28,6 +28,9 @@ export function installListMotion(root,selector='.nubi-session-row'){
      // Parent navigation/date groups disappear immediately. Never reinsert a
      // removed subtree merely to animate its former children.
      if(row!==node||!height||!record.target.isConnected||budget--<=0)continue;
+     // Moving between date/pinned groups is not removal. React already placed
+     // the same conversation in its new group; do not reinsert an exit copy.
+     if(row.dataset.sessionId&&[...root.querySelectorAll(selector)].some(current=>current.dataset.sessionId===row.dataset.sessionId))continue;
      row.dataset.motionLeaving='true';row.inert=true;row.setAttribute('aria-hidden','true');record.target.insertBefore(row,record.nextSibling?.parentNode===record.target?record.nextSibling:null);
      if(!animate(row,height,false))row.remove();
     }

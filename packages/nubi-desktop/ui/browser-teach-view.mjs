@@ -1,7 +1,19 @@
 // Pure projection of the existing T4 module. No recorder, execution or storage ownership here.
 import {draftPlan,questionsFor,applyAnswers,annotationBoard} from '../../nubi-browser-agent/src/teach.ts';
-export function teachDraft(card,answers={}){
- const plan=draftPlan(card);return {plan,questions:questionsFor(plan),card:applyAnswers(card,plan,answers)};
+export const unnamedTeachInput=input=>!String(input.label||'').trim()||input.label==='입력값';
+export function teachDraft(card,answers={},labels={}){
+ const labeled={...card,inputs:(card.inputs||[]).map(input=>{
+  const label=Object.hasOwn(labels,input.slot)&&typeof labels[input.slot]==='string'?labels[input.slot].trim().slice(0,80):'';
+  return unnamedTeachInput(input)&&label?{...input,label}:input;
+ })};
+ const plan=draftPlan(labeled);plan.purpose=String(card.teach?.purpose||'').trim();
+ plan.steps=plan.steps.map(step=>{
+  const original=card.inputs?.find(input=>input.slot===step.slot),input=labeled.inputs.find(input=>input.slot===step.slot);
+  if(!original||!unnamedTeachInput(original)||!input?.label)return step;
+  const before='‘'+step.target+'’',after='‘'+input.label+'’';
+  return {...step,target:input.label,summary:step.summary.replace(before,after),reason:step.reason.replace(before,after)};
+ });
+ return {plan,questions:questionsFor(plan),card:applyAnswers(labeled,plan,answers)};
 }
 export function bindingKey(binding){return JSON.stringify([binding?.projectId,binding?.sessionId,binding?.revision]);}
 export function boardProjection(observation,capture){

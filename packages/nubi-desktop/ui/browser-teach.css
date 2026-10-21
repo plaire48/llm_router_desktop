@@ -23,3 +23,12 @@
 .nubi-browser-board-list{list-style:none;margin:0;padding:0}
 .nubi-browser-board-list button{display:block;text-align:left;width:100%;padding:var(--cx-space-3);color:var(--deck-ink);background:transparent;border:0;border-bottom:calc(var(--cx-space-1)/4) solid var(--deck-line);font:inherit;cursor:pointer}
 .nubi-browser-board-list button[aria-pressed=true]{background:var(--deck-blue-soft);border-radius:var(--deck-control-radius)}
+.nubi-browser-host{display:flex;flex-direction:column;flex:1;min-height:0;min-width:0;overflow:hidden}
+.nubi-browser-host[hidden]{display:none}
+.nubi-browser-host>.desktop-browser,.nubi-browser-host>.nubi-external-browser{flex:1;min-height:0}
+.nubi-browser-teach-control{display:flex;align-items:center;gap:var(--cx-space-3);flex-wrap:wrap;padding:var(--cx-space-2) var(--cx-space-3);border-bottom:calc(var(--cx-space-1)/4) solid var(--deck-line)}
+.nubi-browser-teach-control[hidden]{display:none}
+.nubi-browser-teach-control>p{margin:0;color:var(--nubi-note-ink)}
+.nubi-browser-teach[data-embedded]{width:100%;height:auto;overflow:visible;padding:0}
+
+.nubi-browser-teach-intro{flex:1;min-width:0;font-size:var(--deck-type-caption);line-height:var(--deck-line-body)}

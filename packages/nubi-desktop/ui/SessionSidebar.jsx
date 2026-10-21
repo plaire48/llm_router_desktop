@@ -12,11 +12,16 @@ import {WorkspaceBrand} from './WorkspaceBrand.jsx';
 import {ArchiveMark, FolderMark, FolderOpenMark, RecoveryStatus} from './marks.jsx';
 
 const taskState = {running:'진행 중', stopping:'중지 중', waiting_input:'답변 대기', paused:'복구 대기', failed:'확인 필요'};
+const storedPins=projectId=>{try{const saved=JSON.parse(localStorage.getItem(`nubi-pinned-tasks:${projectId}`));return Array.isArray(saved)?[...new Set(saved.filter(id=>typeof id==='string'))]:[];}catch{return [];}};
 // One conversation list by date, as in the browser agent's history (user decision 2026-09-30): the current conversation
 // is the soft blue row, and deleting is the trash icon with a confirmation. A running conversation has no trash.
 export function SessionSidebar({conversationTools=true,projects=[],onSwitchProject,onRenameProject,onRemoveProject,brand = false, compactAt = 900, compact, project, wikiJob, selected, open, disabled, onToggle, onChooseProject, onSearch, onNew, onSelect, onDelete, onUsage, onExport, onArchive, onPinsChange, onCopyProjectPath, filesMode=false, activeFile, onOpenFile}) {
   const [editingProject,setEditingProject]=useState(null),[projectName,setProjectName]=useState(''),[removingProject,setRemovingProject]=useState(null),[projectBusy,setProjectBusy]=useState(false);
-  const [removing, setRemoving] = useState(null), [deleting, setDeleting] = useState(false), [expanded, setExpanded] = useState(true), [showAll, setShowAll] = useState(false), [pinned, setPinned] = useState([]), [archived, setArchived] = useState(false), [pinBusy,setPinBusy]=useState(false);
+  const initialPins=useMemo(()=>storedPins(project?.projectId),[project?.projectId]);
+  const [pinState,setPinState]=useState(()=>({projectId:project?.projectId,ids:initialPins}));
+  const pinned=pinState.projectId===project?.projectId?pinState.ids:initialPins;
+  const setPinned=ids=>setPinState({projectId:project?.projectId,ids});
+  const [removing, setRemoving] = useState(null), [deleting, setDeleting] = useState(false), [expanded, setExpanded] = useState(true), [showAll, setShowAll] = useState(false), [archived, setArchived] = useState(false), [pinBusy,setPinBusy]=useState(false);
   const sidebar=useRef(null),pinFocus=useRef(null);
   useEffect(()=>sidebar.current?installListMotion(sidebar.current):undefined,[project?.projectId]);
   useLayoutEffect(()=>{const id=pinFocus.current;if(!id)return;pinFocus.current=null;[...sidebar.current.querySelectorAll('.nubi-session-row')].find(node=>node.dataset.sessionId===id)?.querySelector('summary')?.focus();},[pinned,project?.conversationNavigation?.pinnedIds]);
@@ -29,7 +34,9 @@ export function SessionSidebar({conversationTools=true,projects=[],onSwitchProje
     document.addEventListener('keydown', close);
     return () => document.removeEventListener('keydown', close);
   }, [open, onToggle, compactAt, compact]);
-  useEffect(() => { if (!project?.projectId) return; setExpanded(true); setShowAll(false); setArchived(false); try { const saved=JSON.parse(localStorage.getItem(`nubi-pinned-tasks:${project.projectId}`)); setPinned(Array.isArray(saved)?[...new Set(saved.filter(id=>typeof id==='string'))]:[]); } catch { setPinned([]); } }, [project?.projectId]);
+  // First paint and the migration request use the same local snapshot. Switch
+  // once to the host list when initialized; never briefly render an empty pin list.
+  useEffect(() => { if (!project?.projectId) return; setExpanded(true); setShowAll(false); setArchived(false);setPinned(initialPins); }, [project?.projectId]);
 
   if (!project) return null;
   async function remove() {
