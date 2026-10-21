@@ -2,7 +2,7 @@ import {createPublicReviewIndex} from './safety-public-reviews.mjs';
 import {certificateIssuerContacts,publicAttribution} from './safety-public-attributions.mjs';
 import {createRequire} from 'node:module';
 import {inflateSync} from 'node:zlib';
-import path from 'node:path';import {readFile,writeFile,mkdir,readdir,lstat,realpath} from 'node:fs/promises';import {createHash} from 'node:crypto';import {execFile} from 'node:child_process';import {promisify} from 'node:util';import {fileURLToPath,pathToFileURL} from 'node:url';
+import path from 'node:path';import {readFileSync} from 'node:fs';import {readFile,writeFile,mkdir,readdir,lstat,realpath} from 'node:fs/promises';import {createHash} from 'node:crypto';import {execFile} from 'node:child_process';import {promisify} from 'node:util';import {fileURLToPath,pathToFileURL} from 'node:url';
 import {gitCandidate} from './check-release-inputs.mjs';
 const exec=promisify(execFile),hash=b=>createHash('sha256').update(b).digest('hex'),manifestPath='packages/nubi-desktop/fixtures-manifest.json';
 const verification=p=>p.split('/').includes('verification');
@@ -66,8 +66,10 @@ export async function inspectSafetyTree({paths,readCandidate}){
  return {ok:issues.length===0,policyVersion:1,mode:'tree',checked,excludedVerification,publicAttributions,issues};
 }
 
-export async function inspectSafetyBundle({directory,publicReviews}){
- const reviews=createPublicReviewIndex(publicReviews),root=await realpath(path.resolve(directory)),issues=reviews.issues,publicAttributions=[],reviewedPublicFindings=[],visited=new Set();let checked=0,archiveFiles=0;
+// npm installs electron.exe for the build host from the checksum-verified Electron release; reviews pin its exact hash.
+const ELECTRON_DIST=fileURLToPath(new URL('../node_modules/electron/dist/',import.meta.url));
+export async function inspectSafetyBundle({directory,publicReviews,upstreamRoot=ELECTRON_DIST}){
+ const reviews=createPublicReviewIndex(publicReviews,{upstream:item=>readFileSync(path.join(upstreamRoot,item.source.artifactPath)),scan:(file,bytes)=>scanSensitivePatterns(file,bytes,{classifyPublicAttribution:true})}),root=await realpath(path.resolve(directory)),issues=reviews.issues,publicAttributions=[],reviewedPublicFindings=[],visited=new Set();let checked=0,archiveFiles=0;
  const record=(file,bytes)=>{checked++;let sha256;for(const finding of reviews.classify(file,bytes,scanSensitivePatterns(file,bytes,{classifyPublicAttribution:true}))){
   if(finding.disposition==='public_attribution')publicAttributions.push(finding);else if(finding.disposition==='reviewed_public_data')reviewedPublicFindings.push(finding);
   // A blocking finding carries the exact file hash, so a review can pin these bytes without another build.

@@ -10561,7 +10561,6 @@
     },
     {
       "path": "Nubi Workspace.exe",
-      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
       "kind": "email",
       "fingerprint": "46434cca93b7ebb5",
       "occurrences": 9,
@@ -10571,14 +10570,15 @@
         "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
         "artifactPath": "electron.exe"
       },
-      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Bound to the pinned upstream electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json: the finding must appear there with the same count. The packaged file is that executable with resource, fuse and embedded ASAR integrity edits, so its own bytes change on every build.",
       "reviewer": "Claude",
       "reviewedAt": "2026-10-21",
-      "reviewCard": 1
+      "reviewCard": 1,
+      "binding": "packaged_electron_executable",
+      "upstreamSha256": "925726b259b7c7a56033790c73efec607d08514895af21b17b3764fec65c6097"
     },
     {
       "path": "Nubi Workspace.exe",
-      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
       "kind": "email",
       "fingerprint": "439caf3a901bc930",
       "occurrences": 1,
@@ -10588,14 +10588,15 @@
         "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
         "artifactPath": "electron.exe"
       },
-      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Bound to the pinned upstream electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json: the finding must appear there with the same count. The packaged file is that executable with resource, fuse and embedded ASAR integrity edits, so its own bytes change on every build.",
       "reviewer": "Claude",
       "reviewedAt": "2026-10-21",
-      "reviewCard": 10
+      "reviewCard": 10,
+      "binding": "packaged_electron_executable",
+      "upstreamSha256": "925726b259b7c7a56033790c73efec607d08514895af21b17b3764fec65c6097"
     },
     {
       "path": "Nubi Workspace.exe",
-      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
       "kind": "email",
       "fingerprint": "295dee0d3dbb93aa",
       "occurrences": 2,
@@ -10605,14 +10606,15 @@
         "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
         "artifactPath": "electron.exe"
       },
-      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Bound to the pinned upstream electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json: the finding must appear there with the same count. The packaged file is that executable with resource, fuse and embedded ASAR integrity edits, so its own bytes change on every build.",
       "reviewer": "Claude",
       "reviewedAt": "2026-10-21",
-      "reviewCard": 11
+      "reviewCard": 11,
+      "binding": "packaged_electron_executable",
+      "upstreamSha256": "925726b259b7c7a56033790c73efec607d08514895af21b17b3764fec65c6097"
     },
     {
       "path": "Nubi Workspace.exe",
-      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
       "kind": "email",
       "fingerprint": "ccb7d90077a41777",
       "occurrences": 1,
@@ -10622,14 +10624,15 @@
         "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
         "artifactPath": "electron.exe"
       },
-      "evidence": "Reviewed binary/protobuf/metric identifier data; the matching byte sequence is not a contact field. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "evidence": "Reviewed binary/protobuf/metric identifier data; the matching byte sequence is not a contact field. Bound to the pinned upstream electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json: the finding must appear there with the same count. The packaged file is that executable with resource, fuse and embedded ASAR integrity edits, so its own bytes change on every build.",
       "reviewer": "Claude",
       "reviewedAt": "2026-10-21",
-      "reviewCard": 2
+      "reviewCard": 2,
+      "binding": "packaged_electron_executable",
+      "upstreamSha256": "925726b259b7c7a56033790c73efec607d08514895af21b17b3764fec65c6097"
     },
     {
       "path": "Nubi Workspace.exe",
-      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
       "kind": "email",
       "fingerprint": "44f79fc2aec366c1",
       "occurrences": 1,
@@ -10639,14 +10642,15 @@
         "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
         "artifactPath": "electron.exe"
       },
-      "evidence": "Reviewed binary/protobuf/metric identifier data; the matching byte sequence is not a contact field. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "evidence": "Reviewed binary/protobuf/metric identifier data; the matching byte sequence is not a contact field. Bound to the pinned upstream electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json: the finding must appear there with the same count. The packaged file is that executable with resource, fuse and embedded ASAR integrity edits, so its own bytes change on every build.",
       "reviewer": "Claude",
       "reviewedAt": "2026-10-21",
-      "reviewCard": 302
+      "reviewCard": 302,
+      "binding": "packaged_electron_executable",
+      "upstreamSha256": "925726b259b7c7a56033790c73efec607d08514895af21b17b3764fec65c6097"
     },
     {
       "path": "Nubi Workspace.exe",
-      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
       "kind": "email",
       "fingerprint": "074684e897dc2c78",
       "occurrences": 4,
@@ -10656,14 +10660,15 @@
         "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
         "artifactPath": "electron.exe"
       },
-      "evidence": "Reviewed public issuer, security, mailing list or bug-reporting contact documented by the upstream distribution; not an application user contact. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "evidence": "Reviewed public issuer, security, mailing list or bug-reporting contact documented by the upstream distribution; not an application user contact. Bound to the pinned upstream electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json: the finding must appear there with the same count. The packaged file is that executable with resource, fuse and embedded ASAR integrity edits, so its own bytes change on every build.",
       "reviewer": "Claude",
       "reviewedAt": "2026-10-21",
-      "reviewCard": 5
+      "reviewCard": 5,
+      "binding": "packaged_electron_executable",
+      "upstreamSha256": "925726b259b7c7a56033790c73efec607d08514895af21b17b3764fec65c6097"
     },
     {
       "path": "Nubi Workspace.exe",
-      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
       "kind": "email",
       "fingerprint": "a91a875a2d351d80",
       "occurrences": 1,
@@ -10673,14 +10678,15 @@
         "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
         "artifactPath": "electron.exe"
       },
-      "evidence": "Reviewed public issuer, security, mailing list or bug-reporting contact documented by the upstream distribution; not an application user contact. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "evidence": "Reviewed public issuer, security, mailing list or bug-reporting contact documented by the upstream distribution; not an application user contact. Bound to the pinned upstream electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json: the finding must appear there with the same count. The packaged file is that executable with resource, fuse and embedded ASAR integrity edits, so its own bytes change on every build.",
       "reviewer": "Claude",
       "reviewedAt": "2026-10-21",
-      "reviewCard": 6
+      "reviewCard": 6,
+      "binding": "packaged_electron_executable",
+      "upstreamSha256": "925726b259b7c7a56033790c73efec607d08514895af21b17b3764fec65c6097"
     },
     {
       "path": "Nubi Workspace.exe",
-      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
       "kind": "email",
       "fingerprint": "4e6412b62f31e475",
       "occurrences": 1,
@@ -10690,14 +10696,15 @@
         "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
         "artifactPath": "electron.exe"
       },
-      "evidence": "Reviewed public issuer, security, mailing list or bug-reporting contact documented by the upstream distribution; not an application user contact. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "evidence": "Reviewed public issuer, security, mailing list or bug-reporting contact documented by the upstream distribution; not an application user contact. Bound to the pinned upstream electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json: the finding must appear there with the same count. The packaged file is that executable with resource, fuse and embedded ASAR integrity edits, so its own bytes change on every build.",
       "reviewer": "Claude",
       "reviewedAt": "2026-10-21",
-      "reviewCard": 7
+      "reviewCard": 7,
+      "binding": "packaged_electron_executable",
+      "upstreamSha256": "925726b259b7c7a56033790c73efec607d08514895af21b17b3764fec65c6097"
     },
     {
       "path": "Nubi Workspace.exe",
-      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
       "kind": "email",
       "fingerprint": "16d266c6fd2658b8",
       "occurrences": 1,
@@ -10707,14 +10714,15 @@
         "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
         "artifactPath": "electron.exe"
       },
-      "evidence": "Reviewed public issuer, security, mailing list or bug-reporting contact documented by the upstream distribution; not an application user contact. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "evidence": "Reviewed public issuer, security, mailing list or bug-reporting contact documented by the upstream distribution; not an application user contact. Bound to the pinned upstream electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json: the finding must appear there with the same count. The packaged file is that executable with resource, fuse and embedded ASAR integrity edits, so its own bytes change on every build.",
       "reviewer": "Claude",
       "reviewedAt": "2026-10-21",
-      "reviewCard": 8
+      "reviewCard": 8,
+      "binding": "packaged_electron_executable",
+      "upstreamSha256": "925726b259b7c7a56033790c73efec607d08514895af21b17b3764fec65c6097"
     },
     {
       "path": "Nubi Workspace.exe",
-      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
       "kind": "email",
       "fingerprint": "5d75483c2d80a0ba",
       "occurrences": 2,
@@ -10724,14 +10732,15 @@
         "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
         "artifactPath": "electron.exe"
       },
-      "evidence": "Reviewed public issuer, security, mailing list or bug-reporting contact documented by the upstream distribution; not an application user contact. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "evidence": "Reviewed public issuer, security, mailing list or bug-reporting contact documented by the upstream distribution; not an application user contact. Bound to the pinned upstream electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json: the finding must appear there with the same count. The packaged file is that executable with resource, fuse and embedded ASAR integrity edits, so its own bytes change on every build.",
       "reviewer": "Claude",
       "reviewedAt": "2026-10-21",
-      "reviewCard": 3
+      "reviewCard": 3,
+      "binding": "packaged_electron_executable",
+      "upstreamSha256": "925726b259b7c7a56033790c73efec607d08514895af21b17b3764fec65c6097"
     },
     {
       "path": "Nubi Workspace.exe",
-      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
       "kind": "email",
       "fingerprint": "e296ef61e0846e59",
       "occurrences": 1,
@@ -10741,14 +10750,15 @@
         "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
         "artifactPath": "electron.exe"
       },
-      "evidence": "Reviewed public issuer, security, mailing list or bug-reporting contact documented by the upstream distribution; not an application user contact. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "evidence": "Reviewed public issuer, security, mailing list or bug-reporting contact documented by the upstream distribution; not an application user contact. Bound to the pinned upstream electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json: the finding must appear there with the same count. The packaged file is that executable with resource, fuse and embedded ASAR integrity edits, so its own bytes change on every build.",
       "reviewer": "Claude",
       "reviewedAt": "2026-10-21",
-      "reviewCard": 9
+      "reviewCard": 9,
+      "binding": "packaged_electron_executable",
+      "upstreamSha256": "925726b259b7c7a56033790c73efec607d08514895af21b17b3764fec65c6097"
     },
     {
       "path": "Nubi Workspace.exe",
-      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
       "kind": "email",
       "fingerprint": "9aa39ab1a5858dbd",
       "occurrences": 2,
@@ -10758,14 +10768,15 @@
         "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
         "artifactPath": "electron.exe"
       },
-      "evidence": "Reviewed public issuer, security, mailing list or bug-reporting contact documented by the upstream distribution; not an application user contact. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "evidence": "Reviewed public issuer, security, mailing list or bug-reporting contact documented by the upstream distribution; not an application user contact. Bound to the pinned upstream electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json: the finding must appear there with the same count. The packaged file is that executable with resource, fuse and embedded ASAR integrity edits, so its own bytes change on every build.",
       "reviewer": "Claude",
       "reviewedAt": "2026-10-21",
-      "reviewCard": 4
+      "reviewCard": 4,
+      "binding": "packaged_electron_executable",
+      "upstreamSha256": "925726b259b7c7a56033790c73efec607d08514895af21b17b3764fec65c6097"
     },
     {
       "path": "Nubi Workspace.exe",
-      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
       "kind": "email",
       "fingerprint": "a47b34058660f50f",
       "occurrences": 1,
@@ -10775,14 +10786,15 @@
         "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
         "artifactPath": "electron.exe"
       },
-      "evidence": "Reviewed binary/protobuf/metric identifier data; the matching byte sequence is not a contact field. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "evidence": "Reviewed binary/protobuf/metric identifier data; the matching byte sequence is not a contact field. Bound to the pinned upstream electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json: the finding must appear there with the same count. The packaged file is that executable with resource, fuse and embedded ASAR integrity edits, so its own bytes change on every build.",
       "reviewer": "Claude",
       "reviewedAt": "2026-10-21",
-      "reviewCard": 303
+      "reviewCard": 303,
+      "binding": "packaged_electron_executable",
+      "upstreamSha256": "925726b259b7c7a56033790c73efec607d08514895af21b17b3764fec65c6097"
     },
     {
       "path": "Nubi Workspace.exe",
-      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
       "kind": "email",
       "fingerprint": "bf1e305abf381932",
       "occurrences": 1,
@@ -10792,14 +10804,15 @@
         "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
         "artifactPath": "electron.exe"
       },
-      "evidence": "Reviewed binary/protobuf/metric identifier data; the matching byte sequence is not a contact field. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "evidence": "Reviewed binary/protobuf/metric identifier data; the matching byte sequence is not a contact field. Bound to the pinned upstream electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json: the finding must appear there with the same count. The packaged file is that executable with resource, fuse and embedded ASAR integrity edits, so its own bytes change on every build.",
       "reviewer": "Claude",
       "reviewedAt": "2026-10-21",
-      "reviewCard": 304
+      "reviewCard": 304,
+      "binding": "packaged_electron_executable",
+      "upstreamSha256": "925726b259b7c7a56033790c73efec607d08514895af21b17b3764fec65c6097"
     },
     {
       "path": "Nubi Workspace.exe",
-      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
       "kind": "email",
       "fingerprint": "a4d6fbd47620cf85",
       "occurrences": 1,
@@ -10809,10 +10822,12 @@
         "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
         "artifactPath": "electron.exe"
       },
-      "evidence": "Reviewed binary/protobuf/metric identifier data; the matching byte sequence is not a contact field. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "evidence": "Reviewed binary/protobuf/metric identifier data; the matching byte sequence is not a contact field. Bound to the pinned upstream electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json: the finding must appear there with the same count. The packaged file is that executable with resource, fuse and embedded ASAR integrity edits, so its own bytes change on every build.",
       "reviewer": "Claude",
       "reviewedAt": "2026-10-21",
-      "reviewCard": 305
+      "reviewCard": 305,
+      "binding": "packaged_electron_executable",
+      "upstreamSha256": "925726b259b7c7a56033790c73efec607d08514895af21b17b3764fec65c6097"
     }
   ]
 }

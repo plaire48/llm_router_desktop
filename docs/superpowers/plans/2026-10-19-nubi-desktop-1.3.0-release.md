@@ -441,3 +441,5 @@ Q7 G5/Q8 재개(2026-10-21): 기존 공통38개 흐름/39캡처에 접근성 이
 설치판 4~6회차(2026-10-21, Claude): unit-a 녹색. ASAR 16,795개 검사, 공개 검토 601건 통과. 남은 차단은 Nubi Workspace.exe 15건뿐이다. embedded ASAR integrity 퓨즈 때문에 exe 바이트가 빌드마다 바뀐다(d와 f 사이 ASAR 검토 파일 249개는 같은데 exe sha는 다름). 그래서 정확한 sha 검토는 원리상 통과할 수 없다. 제안(사용자 결정 대기): 최상위 exe 한 개만, 고정된 원본 electron.exe sha256(npm이 checksums.json으로 검증해 설치한 node_modules/electron/dist)에 같은 종류, 지문, 횟수로 있는 발견만 통과시키고 새 값은 계속 차단한다. 로컬 구현과 시험 완료, 미업로드. 6회차 앞의 5회차는 명령 기록 펼침 대기 시간 초과(간헐, 같은 코드의 4회차는 통과)로 실패했다.
 
 Word 전체 채우기(2026-10-21, Claude, 양식 계획 Task J): 사용자 지시에 따라 Word 2016 개체 모델 기준 목록을 만들고 J1~J8을 구현했다. 실모델 6/6. 설치판 빌드는 실행 파일 검토 규칙의 사용자 결정을 기다린다.
+
+실행 파일 검토 규칙 승인(2026-10-21, 사용자 "네 제안방법으로 설치파일 릴리즈"): Nubi Workspace.exe 한 개만 binding packaged_electron_executable로, 고정 sha의 원본 electron.exe(node_modules/electron/dist)에 같은 종류, 지문, 횟수로 있는 발견만 통과한다. 새 값, 원본 해시 불일치, 다른 경로는 계속 막는다.
