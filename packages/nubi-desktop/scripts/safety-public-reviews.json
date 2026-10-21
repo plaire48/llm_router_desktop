@@ -4917,7 +4917,7 @@
     },
     {
       "path": "resources/app.asar/lib/backend/service-entry.mjs",
-      "sha256": "f6196025570bc448ec95e90a8673699886f611b89a32f1d09267baf690d34dab",
+      "sha256": "e662ceccfd6c08e92eeb29a6db26ffcc1e0a982d931c0b05e56b490f7be654a4",
       "kind": "email",
       "fingerprint": "0c1b0841813a8275",
       "occurrences": 1,
