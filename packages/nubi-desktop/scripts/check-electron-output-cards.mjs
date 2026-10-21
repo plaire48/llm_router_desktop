@@ -23,7 +23,10 @@ await writeFile(path.join(storage,'last-project.json'),JSON.stringify({root}));c
 let app,page;const errors=[],checks=[];
 try{
  app=await electron.launch({executablePath:require('electron'),args:['electron-app'],env:{...process.env,NUBI_STORAGE_ROOT:storage,OPENWIKI_CONFIG_DIR:path.join(temp,'personal'),ELECTRON_RUN_AS_NODE:undefined}});
- page=await desktopTestWindow(app);page.setDefaultTimeout(20000);page.on('pageerror',error=>errors.push(error.message));await page.locator('.desktop-shell[data-startup-ready=true]').waitFor({timeout:60000});await page.emulateMedia({reducedMotion:'reduce'});
+ page=await desktopTestWindow(app);page.setDefaultTimeout(20000);
+ // Same content size on every platform: a Windows frame makes the default window narrower, which is the overlay layout
+ // where an open preview covers the conversation (Windows gates 2026-10-21). This check is about the cards, not the layout.
+ await (await app.browserWindow(page)).evaluate(window=>window.setContentSize(1480,960));await page.waitForFunction(()=>innerWidth>=1400);page.on('pageerror',error=>errors.push(error.message));await page.locator('.desktop-shell[data-startup-ready=true]').waitFor({timeout:60000});await page.emulateMedia({reducedMotion:'reduce'});
  if(await page.getByRole('dialog').count())await page.keyboard.press('Escape');
  const openTask=async()=>{const opener=page.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await opener.count())await opener.click();await page.getByRole('navigation',{name:'대화 목록',exact:true}).getByRole('button',{name:'산출물 열기 검증',exact:true}).click();await page.getByRole('group',{name:'산출물'}).waitFor();};
  await openTask();const cards=page.getByRole('group',{name:'산출물'});assert.equal(await cards.getByRole('button').count(),5);

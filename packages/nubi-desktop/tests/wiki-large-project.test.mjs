@@ -25,7 +25,10 @@ test('more than 20,000 sources survive folder/Git enumeration, Wiki generation a
   assert.equal(folder.truncated,false);assert.equal(folder.paths.length,count+2);assert(folder.paths.includes('src/마지막 파일.txt'));assert(!folder.paths.includes('.env'));assert(!folder.paths.includes('ignored.txt'),'ignore is applied during inventory before the source cap');assert.equal(folder.excluded.ignored,1);
   // Fixture setup must not inherit Windows CRLF conversion or the interactive Git timeout.
   await git(root,['init','-q']);await git(root,['config','core.autocrlf','false']);
-  await git(root,['add','-A'],{timeout:WIKI_GIT_PREPARATION_TIMEOUT});await git(root,['-c','user.name=Fixture','-c','user.email=fixture@localhost','-c','commit.gpgSign=false','commit','-qm','Many sources'],{timeout:WIKI_GIT_PREPARATION_TIMEOUT});
+  // Making the 20,000-file fixture commit is setup, not the product's preparation: a shared Windows runner (real-time
+  // scanning) took over 10 minutes for this add alone (Windows build s, 2026-10-21), so setup has its own longer limit.
+  const FIXTURE_GIT_TIMEOUT=20*60*1000;
+  await git(root,['add','-A'],{timeout:FIXTURE_GIT_TIMEOUT});await git(root,['-c','user.name=Fixture','-c','user.email=fixture@localhost','-c','commit.gpgSign=false','commit','-qm','Many sources'],{timeout:FIXTURE_GIT_TIMEOUT});
   assert.equal((await listFiles(root)).truncated,true,'interactive search retains its bounded contract');
   assert.deepEqual((await listWikiSourceFiles(root)).paths,folder.paths);
   const sources=await wikiSources(root);
