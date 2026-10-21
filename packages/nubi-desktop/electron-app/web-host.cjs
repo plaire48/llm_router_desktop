@@ -26,7 +26,8 @@ async function startWebHost({frontend,dispatch,port=4318}) {
   // The renderer URL includes a build hash. Inject the bridge independently of
   // that URL so refreshing a new build still connects to the owned host.
   // A page without a head (a fixture, a stripped build) still gets the bridge: before the body's first child, else first.
-  let data=await readFile(file);if(file.endsWith('/index.html')){const text=data.toString(),tag='<script src="/host-bridge.js"></script>';data=text.includes('</head>')?text.replace('</head>',tag+'</head>'):/<body[^>]*>/i.test(text)?text.replace(/<body[^>]*>/i,open=>open+tag):tag+text;}
+  let data=await readFile(file);// Compare the file name: realpath gives '\\' on Windows, where endsWith('/index.html') never matched and no bridge was injected.
+  if(path.basename(file)==='index.html'){const text=data.toString(),tag='<script src="/host-bridge.js"></script>';data=text.includes('</head>')?text.replace('</head>',tag+'</head>'):/<body[^>]*>/i.test(text)?text.replace(/<body[^>]*>/i,open=>open+tag):tag+text;}
   res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Cross-Origin-Resource-Policy':'same-origin'}).end(req.method==='HEAD'?undefined:data);
  }catch{if(!res.headersSent)res.writeHead(404);res.end();}});
  await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(port,'127.0.0.1',resolve);});origin=`http://127.0.0.1:${server.address().port}`;

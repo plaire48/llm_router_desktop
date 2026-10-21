@@ -63,3 +63,17 @@ test('a current ingestion projection never exposes a stale cached body snippet',
  put('mail:m119',{id:'m119',account:'other',sourceHash:'new',date:'2027-01-01',listMetadata:{sourceHash:'new',subject:'새 합성 메일',attachments:[]}});index.sync();
  const item=index.page({limit:1}).items[0];assert.equal(item.row.id,'m119');assert.equal(item.metadataKnown,true);assert.equal(item.snippet,'');
 });
+test('a mail record written again while it waits for the list is not refused (Windows startup migration)',async()=>{
+ // A record write is an upsert, and SQLite lets the outer statement's conflict policy override the trigger's
+ // INSERT OR IGNORE: the second write of a dirty record failed with UNIQUE on nubi_mail_list_dirty (Windows gates
+ // 2026-10-21, office-reader migration re-saving every mail at startup).
+ const {mkdtempSync,rmSync}=await import('node:fs'),os=await import('node:os'),path=await import('node:path'),{Store}=await import('../runtime/store.mjs');
+ const dir=mkdtempSync(path.join(os.tmpdir(),'mail-list-dirty-'));
+ try{
+  const plain=new Store(dir);plain.set('mail:retained',{id:'retained',state:'saved'});plain.close();
+  const store=new Store(dir,{mailList:true});
+  try{store.set('mail:retained',{id:'retained',state:'saved',attachmentState:'queued'});store.set('mail:retained',{id:'retained',state:'saved'});
+   assert.equal(store.db.prepare("SELECT count(*) n FROM nubi_mail_list_dirty WHERE id='retained'").get().n<=1,true);}
+  finally{store.close();}
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});

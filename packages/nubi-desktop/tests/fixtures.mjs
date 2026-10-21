@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import {mkdtemp,mkdir,writeFile,realpath,rm} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -35,6 +36,6 @@ export async function fixture(t,{scriptedReview=false,scriptedPlanning=false}={}
       return complete(messages,...args);
     };
   }});}
-  t.after(async()=>{service.dispose();while(service.processes.active.size)await new Promise(r=>setTimeout(r,30));service.store.close();await rm(directory,{recursive:true,force:true});});
+  t.after(async()=>{service.dispose();while(service.processes.active.size)await new Promise(r=>setTimeout(r,30));service.store.close();removeLater(directory);});
   return {service,root,directory};
 }

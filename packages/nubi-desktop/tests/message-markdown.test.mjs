@@ -1,3 +1,4 @@
+import {pathToFileURL} from 'node:url';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {build} from 'esbuild';
@@ -7,7 +8,7 @@ import path from 'node:path';
 const dir=await mkdtemp(path.join(tmpdir(),'nubi-markdown-'));
 const result=await build({stdin:{contents:`import React from 'react';import{renderToStaticMarkup}from'react-dom/server';import rehypeRaw from'../../extensions/aipro-chat/node_modules/rehype-raw/index.js';import{MessageBody,markdownHtmlPlugins}from'../../extensions/aipro-chat/src/MessageBody.jsx';export{markdownHtmlPlugins,rehypeRaw};export const render=content=>renderToStaticMarkup(React.createElement(MessageBody,{content,role:'assistant'}));`,resolveDir:process.cwd(),loader:'jsx'},bundle:true,platform:'node',format:'esm',banner:{js:"import {createRequire} from 'node:module';const require=createRequire(import.meta.url);"},write:false,external:['node:*'],loader:{'.css':'empty'},nodePaths:[path.resolve('node_modules')],alias:{react:path.resolve('node_modules/react'),'react-dom':path.resolve('node_modules/react-dom')}});
 await writeFile(path.join(dir,'render.mjs'),result.outputFiles[0].text);
-const {markdownHtmlPlugins,rehypeRaw,render}=await import(path.join(dir,'render.mjs'));
+const {markdownHtmlPlugins,rehypeRaw,render}=await import(pathToFileURL(path.join(dir,'render.mjs')).href);
 test.after(()=>rm(dir,{recursive:true,force:true}));
 test('plain Markdown skips the HTML parser while retaining sanitization',()=>{
  assert.equal(typeof markdownHtmlPlugins,'function');

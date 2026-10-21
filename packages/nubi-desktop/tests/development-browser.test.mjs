@@ -25,8 +25,10 @@ test('one approved hybrid workflow uses per-step BrowserSession receipts and nev
 async function browserFixture(t,options={}){
  const {service,root}=await fixture(t,options),task=await service.createTask({request:'개발 서버에서 이름을 입력하고 결과를 확인해 주세요.'});
  await writeFile(path.join(root,'server.cjs'),`const s=require('node:http').createServer((q,r)=>r.end('<title>Preview</title>'));s.listen(0,'127.0.0.1',()=>console.log('http://127.0.0.1:'+s.address().port));`);
- const p=await service.processes.start({cwd:root,taskId:task.id,script:`'${process.execPath}' server.cjs`,autoDiagnose:false});
- for(let i=0;i<100&&!service.processes.poll(p.id).output.includes('http://');i++)await new Promise(r=>setTimeout(r,10));
+ // The host shell is PowerShell on Windows, where a quoted path runs only through the call operator; a cold Windows
+ // runner also needs more than one second to start node (Windows gates 2026-10-21).
+ const p=await service.processes.start({cwd:root,taskId:task.id,script:process.platform==='win32'?`& '${process.execPath}' server.cjs`:`'${process.execPath}' server.cjs`,autoDiagnose:false});
+ for(let i=0;i<300&&!service.processes.poll(p.id).output.includes('http://');i++)await new Promise(r=>setTimeout(r,50));
  const url=service.processes.poll(p.id).output.match(/http:\/\/\S+/)[0];
  let documentId='doc-1',value='',opens=0,writes=0,origin=new URL(url).origin,uncertain=false;
  const wire=(text,ok=true)=>({ok,text,structured:undefined});

@@ -1,7 +1,8 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import {test} from 'node:test';import assert from 'node:assert/strict';import {mkdtemp,rm} from 'node:fs/promises';import os from 'node:os';import path from 'node:path';
 import {DesktopUsage} from '../runtime/usage.mjs';
 test('the ledger keeps dollar cost per provider for today, the week and the total',async t=>{
-  const dir=await mkdtemp(path.join(os.tmpdir(),'nubi-usage-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+  const dir=await mkdtemp(path.join(os.tmpdir(),'nubi-usage-'));removeLater(dir);
   const usage=new DesktopUsage(dir);t.after(()=>usage.close());
   const first=usage.start({provider:'claude'});usage.finish(first,{prompt_tokens:10,completion_tokens:2,total_tokens:12,cost_usd:0.25});
   const second=usage.start({provider:'claude'});usage.finish(second,{prompt_tokens:4,completion_tokens:1,total_tokens:5,cost_usd:0.1});
@@ -15,7 +16,7 @@ test('the ledger keeps dollar cost per provider for today, the week and the tota
   assert.equal(usage.summary().usage.total.claude.costUsd,0.05);assert.equal(usage.summary().usage.total.claude.total,19);
 });
 test('reset clears all providers and periods durably and starts a fresh accounting boundary',async t=>{
-  const dir=await mkdtemp(path.join(os.tmpdir(),'nubi-usage-reset-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+  const dir=await mkdtemp(path.join(os.tmpdir(),'nubi-usage-reset-'));removeLater(dir);
   let usage=new DesktopUsage(dir);t.after(()=>usage.close());
   for(const provider of ['aipro','chatgpt','fabrix','claude']){const id=usage.start({provider});usage.finish(id,{prompt_tokens:10,completion_tokens:2,total_tokens:12,cost_usd:0.2});}
   const pending=usage.start({provider:'claude'});
@@ -29,7 +30,7 @@ test('reset clears all providers and periods durably and starts a fresh accounti
   assert.equal(usage.summary().usage.total.chatgpt.total,5);assert.equal(usage.summary().usage.total.aipro.total,0);
 });
 test('a reset write failure preserves counters and pending calls instead of claiming zero',async t=>{
-  const dir=await mkdtemp(path.join(os.tmpdir(),'nubi-usage-reset-error-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+  const dir=await mkdtemp(path.join(os.tmpdir(),'nubi-usage-reset-error-'));removeLater(dir);
   const usage=new DesktopUsage(dir);t.after(()=>usage.close());const id=usage.start({provider:'claude'});
   const set=usage.store.set.bind(usage.store);usage.store.set=()=>{throw Error('disk_full');};
   assert.throws(()=>usage.reset(),/usage_save_failed/);assert.equal(usage.summary().usage.total.claude.calls,1);

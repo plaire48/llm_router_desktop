@@ -263,6 +263,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm ci --prefix ../nubi-document-agent --ignore-scripts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Unit tests read Office workbooks through the nubi-office dependencies, as the Linux gates install them.
+          npm ci --prefix ../nubi-office --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm ci
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Install locked OpenWiki dependencies
@@ -276,6 +279,9 @@ jobs:
         run: npx --no-install playwright install chrome
       - name: Build owned process helper
         run: node scripts/build-process-host.mjs
+      # The Windows Electron build requires the browser window bridge (build-electron.mjs throws without it on win32).
+      - name: Build browser window bridge
+        run: node scripts/build-browser-window-bridge.mjs
       - name: Check gate coverage
         run: node scripts/check-gate-coverage.mjs
       - name: Check complete release source patterns

@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,rm} from 'node:fs/promises';
@@ -71,7 +72,7 @@ test('unknown runs, unknown steps and invalid status never create checkpoints',(
   assert.deepEqual(store.get('workflow-run:'+run.id).steps,{});
 });
 test('SQLite reopen retains workflow binding, output references and the human waiting point',async t=>{
-  const directory=await mkdtemp(path.join(tmpdir(),'nubi-workflow-store-'));t.after(()=>rm(directory,{recursive:true,force:true}));
+  const directory=await mkdtemp(path.join(tmpdir(),'nubi-workflow-store-'));removeLater(directory);
   let store=new Store(directory);const run=start(store);markStep(store,run.id,'a',{status:'complete',output:{summary:'가'.repeat(23000)}});markStep(store,run.id,'b',{status:'waiting'});store.close();
   store=new Store(directory);t.after(()=>store.close());const restored=store.get('workflow-run:'+run.id);
   assert.equal(restored.hash,'sha256:sample');assert.equal(restored.slug,'sample');assert.equal(resumePoint(restored),'b');assert.equal(readStepOutput(store,restored.steps.a).summary.length,23000);

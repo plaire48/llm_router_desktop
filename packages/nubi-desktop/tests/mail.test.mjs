@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createServer} from 'node:tls';
@@ -27,7 +28,7 @@ async function fixture(t){
    else if(cmd==='QUIT')socket.end('+OK bye\r\n');else socket.write('-ERR bad command\r\n');
   }});
  });await new Promise(r=>server.listen(0,'127.0.0.1',r));
- t.after(async()=>{for(const socket of sockets)socket.destroy();await new Promise(r=>server.close(r));await rm(root,{recursive:true,force:true});});
+ t.after(async()=>{for(const socket of sockets)socket.destroy();await new Promise(r=>server.close(r));});removeLater(root);
  return {root,commands,mailbox,endpoint:{host:'127.0.0.1',port:server.address().port,servername:'localhost',tlsOptions:{ca:cert}},auth:value=>authFail=value,userAuth:value=>userFail=value,expectPassword:value=>expectedPassword=value,uidl:value=>uidlFail=value,listing:value=>uidlText=value};
 }
 // The company profile: automatic Wiki summaries stay on by default, and the password is taken as typed. The Gmail test

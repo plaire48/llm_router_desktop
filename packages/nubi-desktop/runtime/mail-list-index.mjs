@@ -43,13 +43,17 @@ export class MailListIndex {
   if(!db.prepare('PRAGMA table_xinfo(mail_list)').all().some(column=>column.name==='recipient'))db.exec("ALTER TABLE mail_list ADD COLUMN recipient TEXT GENERATED ALWAYS AS (json_extract(metadata,'$.mail.to')) VIRTUAL");
   for(const action of ['INSERT','UPDATE','DELETE']){
    const value=action==='DELETE'?'OLD':'NEW';
-   db.exec(`CREATE TRIGGER IF NOT EXISTS nubi_mail_list_${action.toLowerCase()} AFTER ${action} ON records
+   // A record write is an upsert, and SQLite lets the firing statement's conflict policy override a trigger's
+   // INSERT OR IGNORE: the second write of a record already waiting here failed with UNIQUE (Windows startup migration,
+   // 2026-10-21). The trigger inserts only a missing id, and is recreated so databases with the old one are fixed.
+   const name=`nubi_mail_list_${action.toLowerCase()}`;
+   db.exec(`BEGIN IMMEDIATE; DROP TRIGGER IF EXISTS ${name}; CREATE TRIGGER ${name} AFTER ${action} ON records
     WHEN ${value}.key GLOB 'mail:*' OR ${value}.key GLOB 'mail-index:*' OR ${value}.key GLOB 'mail-user:*' OR ${value}.key GLOB 'mail-identit*'
     BEGIN
      UPDATE nubi_mail_list_meta SET revision=revision+1 WHERE id=1;
-     INSERT OR IGNORE INTO nubi_mail_list_dirty SELECT substr(${value}.key,6) WHERE ${value}.key GLOB 'mail:*';
-     INSERT OR IGNORE INTO nubi_mail_list_dirty SELECT substr(${value}.key,12) WHERE ${value}.key GLOB 'mail-index:*';
-    END;`);
+     INSERT INTO nubi_mail_list_dirty SELECT substr(${value}.key,6) WHERE ${value}.key GLOB 'mail:*' AND NOT EXISTS (SELECT 1 FROM nubi_mail_list_dirty WHERE id=substr(${value}.key,6));
+     INSERT INTO nubi_mail_list_dirty SELECT substr(${value}.key,12) WHERE ${value}.key GLOB 'mail-index:*' AND NOT EXISTS (SELECT 1 FROM nubi_mail_list_dirty WHERE id=substr(${value}.key,12));
+    END; COMMIT;`);
   }
   if(!db.prepare('SELECT 1 FROM nubi_mail_list_meta WHERE id=3').get()){
    db.exec("BEGIN IMMEDIATE; INSERT OR IGNORE INTO nubi_mail_list_dirty SELECT substr(key,6) FROM records WHERE key GLOB 'mail:*'; INSERT INTO nubi_mail_list_meta VALUES(3,0); COMMIT;");

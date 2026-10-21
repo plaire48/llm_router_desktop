@@ -5,7 +5,7 @@
 // the directory is watched and changed pages are encrypted again.
 import {createCipheriv,createDecipheriv,randomBytes} from 'node:crypto';
 import {mkdir,readdir,readFile,writeFile,rm,rename,lstat,chmod,stat,watch as watchPromise} from 'node:fs/promises';
-import {watch} from 'node:fs';
+import {watch,realpathSync} from 'node:fs';
 import path from 'node:path';
 export const KEY_NAME='mail-wiki-key';
 const MAGIC=Buffer.from('NWK1'),IV=12,TAG=16;
@@ -67,7 +67,10 @@ export class MailWikiVault{
   // Session pages changed outside the runtime (wiki screen edits) are encrypted again after a short quiet period.
   startWatch(){
     if(this.watcher||this.disposed)return;
-    try{this.watcher=watch(this.sessionRoot,{persistent:false},(_event,name)=>{if(typeof name==='string'&&(pageName(name)))this.touch(name);});this.watcher.on('error',()=>{});}catch{this.watcher=null;}
+    // Watch the folder by its long real path: libuv on Windows aborts the whole process (fs-event.c assertion) when a
+    // folder given by its 8.3 short name (C:\\Users\\NAME~1\\..., common for Korean or long user names) reports a change.
+    let root=this.sessionRoot;try{root=realpathSync.native(this.sessionRoot);}catch{}
+    try{this.watcher=watch(root,{persistent:false},(_event,name)=>{if(typeof name==='string'&&(pageName(name)))this.touch(name);});this.watcher.on('error',()=>{});}catch{this.watcher=null;}
     this.timer=setInterval(()=>void this.syncAll(),30000);this.timer.unref?.();
   }
   touch(name){if(this.disposed)return;this.pending.add(name);clearTimeout(this.debounce);this.debounce=setTimeout(()=>void this.sync(),500);}
