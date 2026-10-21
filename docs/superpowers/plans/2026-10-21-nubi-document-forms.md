@@ -135,3 +135,12 @@
 - [x] J8 XML에 묶인 컨트롤: 사용자 지정 XML과 문서 속성 값을 함께 씀, 단순 경로만.
 
 검증: 새 시험 8파일, 양식 시험 56개 통과. 실모델 6/6(`eval/document-forms/synthetic-baseline-2026-10-21-j.json`). Office 추가 기능 시험의 실패 7건은 작업 전과 같다(이 작업과 무관). UI는 질문 카드의 선택형(`kind: choice`, `options`), 예/아니오(`boolean`), 그림 파일(`image`) 입력이 Codex 몫이다.
+
+## Task K: 대화에서 양식 채우기, 폼 화면 제거 (2026-10-21, 사용자 결정)
+
+사용자 지시: "양식 만들기를 왜 폼으로 만들어? 없애. 오피스에서 열고 문서를 알아서 읽어서 양식을 인식하게." 결정 3가지: 매번 바로 인식(저장하는 양식 목록 없음), 사본에 쓰고 Office로 열기, 빠진 값은 채팅에서 한 번에 묻기.
+
+- [x] K1 에이전트 도구 `fill_document_form`(runtime/document-form-tool.mjs): 원본은 지정 경로나 이 대화에 연결된 Word 문서(Workspace에서 같은 이름을 찾고 Office로 같은 파일과 저장 상태 확인). 값은 사용자 메시지에서만. 빠진 값은 needs_values로 돌려 에이전트가 채팅으로 묻고, 답을 받으면 `문서/<양식> 작성.docx`(덮어쓰지 않음)에 쓰고 검사한 뒤 기본 앱으로 연다. 도구 예산 때문에 양식 작업일 때만 제공한다.
+- [x] K2 실모델 대화 점검 2/2(eval/document-forms/chat-run.mjs): 빠진 출장 기간을 채팅으로 묻고 사본 작성, 원본 바이트 동일.
+- [ ] K3 UI(Codex): '양식으로 등록', '양식으로 작성' 버튼과 FormRegisterCard, FormFillCard, DocumentFormControl, 질문 카드 제거. 채팅의 일반 질문과 결과 메시지만 쓴다. 쓴 사본은 기존 문서 미리보기와 변경 표시로 볼 수 있으면 충분하다.
+- [ ] K4 서버 쪽 정리(Claude, K3 뒤): documentForm의 register/list/questions 화면 전용 동작은 K3에서 호출이 없어지면 지운다.

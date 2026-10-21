@@ -1,3 +1,4 @@
+import os from 'node:os';
 import {captureDesign} from './design-rules.mjs';
 import {build,stop} from 'esbuild';
 import {_electron as electron} from 'playwright';
@@ -14,7 +15,7 @@ await build({entryPoints:['tests/surface-audit-fixture.jsx'],outfile:path.join(b
 stop();
 await cp('../../extensions/aipro-chat/public/icons',path.join(bundle,'icons'),{recursive:true});
 await writeFile(path.join(bundle,'index.html'),'<!doctype html><html lang="ko"><title>누비 전체 화면 검토</title><link rel="stylesheet" href="app.css"><body><div class="desktop-shell" data-toolbar="true" data-platform="darwin" data-layout="split"><div id="toolbar" class="desktop-titlebar"></div><div class="desktop-workspace-body"><div class="desktop-agent" id="root"></div></div></div><script type="module" src="app.js"></script></body></html>');
-const storage=await mkdtemp('/tmp/nubi-all-surfaces-'),require=createRequire(import.meta.url);
+const storage=await mkdtemp(path.join(os.tmpdir(),'nubi-all-surfaces-')),require=createRequire(import.meta.url);
 const app=await electron.launch({executablePath:require('electron'),args:['electron-app'],env:{...process.env,NUBI_STORAGE_ROOT:storage,ELECTRON_RUN_AS_NODE:undefined}});
 const records=[],errors=[];let p;
 async function load(query){await p.goto('file://'+path.join(bundle,'index.html')+'?'+query);await p.locator('.nubi-workbench,.deck-dialog,.nubi-bar,.nubi-mail-history').first().waitFor();await p.emulateMedia({reducedMotion:'reduce'});await p.evaluate(()=>document.fonts.ready);}

@@ -60,8 +60,11 @@ try{
   await page.keyboard.press('Escape');result.routineQuestionNoticeVisible=true;
   // 1. The worker is killed: a child of the Electron process this check started.
   const mainPid=app.process().pid;
-  const children=execFileSync('pgrep',['-P',String(mainPid)]).toString().trim().split('\n').filter(Boolean);
-  const worker=children.find(pid=>{try{return execFileSync('ps',['-o','command=','-p',pid]).toString().includes('service-entry.mjs');}catch{return false;}});
+  // Windows has no pgrep/ps: the children of the main process and their command lines come from Win32_Process.
+  const childProcesses=()=>process.platform==='win32'
+    ?execFileSync('powershell.exe',['-NoLogo','-NoProfile','-NonInteractive','-Command',`Get-CimInstance Win32_Process -Filter 'ParentProcessId=${Number(mainPid)}' | ForEach-Object { [string]$_.ProcessId + [char]9 + [string]$_.CommandLine }`],{encoding:'utf8'}).split(/\r?\n/).filter(Boolean).map(line=>{const [pid,...rest]=line.split('\t');return {pid:pid.trim(),command:rest.join('\t')};})
+    :execFileSync('pgrep',['-P',String(mainPid)]).toString().trim().split('\n').filter(Boolean).map(pid=>{try{return {pid,command:execFileSync('ps',['-o','command=','-p',pid]).toString()};}catch{return {pid,command:''};}});
+  const worker=childProcesses().find(row=>row.command.includes('service-entry.mjs'))?.pid;
   assert.ok(worker,'the worker is a child of the main process');
   await page.evaluate(()=>{window.__hostEvents=[];window.nubi.onHostEvent(event=>window.__hostEvents.push(event));});
   process.kill(Number(worker),'SIGKILL');
@@ -72,8 +75,7 @@ try{
   const restoredRoutines=await page.evaluate(()=>window.nubi.request('listRoutines'));assert.equal(restoredRoutines.items[0].lastTaskId,result.routineTaskId);assert.equal(restoredRoutines.items[0].enabled,false);result.routineRetainedAfterWorkerRestart=true;
   result.hostEvents=await page.evaluate(()=>window.__hostEvents.map(event=>event.type));
   const fault=JSON.parse(await readFile(path.join(storage,'last-host-fault.json'),'utf8'));assert.equal(fault.component,'worker');assert.equal(fault.reason,'killed');result.fault=fault;
-  const children2=execFileSync('pgrep',['-P',String(mainPid)]).toString().trim().split('\n').filter(Boolean);
-  result.workerPids=[worker,children2.find(pid=>{try{return execFileSync('ps',['-o','command=','-p',pid]).toString().includes('service-entry.mjs');}catch{return false;}})];
+  result.workerPids=[worker,childProcesses().find(row=>row.command.includes('service-entry.mjs'))?.pid];
   assert.notEqual(result.workerPids[0],result.workerPids[1]);
   // 2. A second start leaves at once; the first still answers.
   const second=spawn(require('electron'),['electron-app'],{env,stdio:'ignore'});

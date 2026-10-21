@@ -235,6 +235,9 @@ jobs:
     env:
       NUBI_SAFETY_BASE: ${{ github.event.before || github.event.pull_request.base.sha || '' }}
       NUBI_SAFETY_REF: ${{ github.sha }}
+      # A GitHub-hosted Windows runner is shared hardware: timing limits are recorded unjudged, as in the Linux gates
+      # (§8 답 15). Functional checks stay judged.
+      NUBI_SHARED_RUNNER: "1"
     permissions:
       contents: read
     defaults:
