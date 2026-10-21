@@ -133,8 +133,10 @@ jobs:
           node --test --test-concurrency=1 tests/process-idle.test.mjs tests/terminal-stream.test.mjs tests/terminal-mouse.test.mjs tests/powershell-output.test.mjs tests/interactive-terminal.test.mjs tests/setup-actions.test.mjs tests/recovery.test.mjs tests/mcp-approval-flow.test.mjs tests/tool-argument-view.test.mjs tests/mail-browser-login.test.mjs tests/workspace-inquiry-flow.test.mjs tests/mail-auth-lifecycle.test.mjs tests/mail-session-recovery.test.mjs tests/mail-attachment-recovery.test.mjs tests/mail-credential-login.test.mjs tests/mail-portal-bundle.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify resumable mail, large Wiki sources and completion notices
+        # A hang must fail with the test name and keep the log (build z was cancelled at 41 minutes without one).
+        timeout-minutes: 25
         run: |
-          node --test --test-concurrency=1 tests/wiki-large-project.test.mjs tests/git-clone-progress.test.mjs tests/mail-import-resume.test.mjs tests/mail-storage-policy.test.mjs tests/mail-raw-root.test.mjs tests/wiki-notifications.test.mjs tests/answer-notifications.test.mjs tests/answer-source-integrity.test.mjs tests/mail-knowledge.test.mjs
+          node --test --test-concurrency=1 --test-timeout=900000 tests/wiki-large-project.test.mjs tests/git-clone-progress.test.mjs tests/mail-import-resume.test.mjs tests/mail-storage-policy.test.mjs tests/mail-raw-root.test.mjs tests/wiki-notifications.test.mjs tests/answer-notifications.test.mjs tests/answer-source-integrity.test.mjs tests/mail-knowledge.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify startup input recovery and commit graph boundaries
         run: |

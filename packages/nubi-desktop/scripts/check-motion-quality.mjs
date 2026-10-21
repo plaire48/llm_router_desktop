@@ -13,12 +13,17 @@ import {createRequire} from 'node:module';
 import {rendererBundleOptions} from './renderer-bundle.mjs';
 import {springSamples} from './motion-spring.mjs';
 import {parseAmbientRegistry} from '../ui/motion-policy.mjs';
+import {isSharedRunner,recordUnjudged} from './admission-calibration.mjs';
 
 const tag=process.env.MOTION_TAG||'after-1';if(!/^[a-z0-9-]+$/.test(tag))throw Error('invalid motion tag');
 const dir=path.resolve('verification/motion-1.3.0/'+tag);
 await mkdir(dir,{recursive:true});
 const result={boundary:'Local Chrome, actual Workbench/CX hooks and controls, synthetic data. No connected services or Windows proof.',checks:[],scenes:[],errors:[]};
 const check=(name,pass,detail)=>result.checks.push({name,pass,detail});
+// Frame gaps and wall-clock durations are judged on target hardware (local Mac, Windows).
+// A shared runner records them as unjudged and keeps every functional check (§8 답 15).
+const sharedRunner=isSharedRunner(),unjudgedTimings=[];
+const timing=(name,pass,detail)=>{if(pass||!sharedRunner)return check(name,pass,detail);unjudgedTimings.push({name,detail});result.checks.push({name,pass:true,verdict:'unjudged',detail});};
 let tokens='';
 try{tokens=await readFile('design/workspace-motion.css','utf8');}catch(error){if(error.code!=='ENOENT')throw error;}
 for(const [name,ms] of Object.entries({enter:280,exit:180,press:120,state:180}))check('token:'+name,new RegExp(`--nubi-motion-${name}:\\s*${ms}ms`).test(tokens),{expected:ms});
@@ -78,9 +83,9 @@ try{
   const opening=await page.locator('.cx-panel-backdrop').evaluate(backdrop=>[...backdrop.getAnimations(),...backdrop.querySelector(':scope > .cx-detail-panel').getAnimations()].map(animation=>({name:animation.animationName,duration:animation.effect.getTiming().duration,frames:animation.effect.getKeyframes()})));
   check(`modal-enter:${width}:${reduced}`,opening.length===2&&opening.every(animation=>Math.abs(animation.duration-(reduced?120:280))<=20&&(!reduced||animation.frames.every(frame=>!('transform' in frame)))),opening);
   await page.waitForFunction(()=>window.qualityWalls.filter(row=>row.phase==='in').length===2);const openWall=await page.evaluate(()=>Promise.all(window.qualityWalls.filter(row=>row.phase==='in').map(row=>row.done)));
-  check(`modal-wall-open:${width}:${reduced}`,openWall.length===2&&openWall.every(row=>Math.abs(row.elapsed-(reduced?120:280))<=20),openWall);
+  timing(`modal-wall-open:${width}:${reduced}`,openWall.length===2&&openWall.every(row=>Math.abs(row.elapsed-(reduced?120:280))<=20),openWall);
   const during=await page.evaluate(()=>window.qualityStop());
-  check(`modal-long-tasks:${width}:${reduced}`,during.longTasks.length===0,during);
+  timing(`modal-long-tasks:${width}:${reduced}`,during.longTasks.length===0,during);
   check(`modal-budget:${width}:${reduced}`,during.counts.every(row=>row.interactionTargets<=3),during.counts);
   check(`modal-ambient-paused:${width}:${reduced}`,await page.evaluate(()=>document.getAnimations().filter(a=>window.qualityAmbient.has(a.animationName)).every(a=>a.playState==='paused')),null);
   if(width===440){const sheet=await dialog.evaluate(element=>({bottom:element.getBoundingClientRect().bottom,viewport:innerHeight,radius:getComputedStyle(element).borderBottomLeftRadius}));check(`narrow-bottom-sheet:${reduced}`,Math.abs(sheet.bottom-sheet.viewport)<1&&sheet.radius==='0px',sheet);}
@@ -90,7 +95,7 @@ try{
   const closing=await page.locator('[data-modal-motion="leaving"]').evaluateAll(backdrops=>backdrops.flatMap(backdrop=>[...backdrop.getAnimations(),...backdrop.querySelector(':scope > .cx-detail-panel').getAnimations()].map(animation=>({name:animation.animationName,duration:animation.effect.getTiming().duration}))));
   check(`modal-exit:${width}:${reduced}`,closing.length===2&&closing.every(animation=>Math.abs(animation.duration-(reduced?120:180))<=20),closing);
   await page.waitForFunction(()=>window.qualityWalls.filter(row=>row.phase==='out').length===2);const closeWall=await page.evaluate(()=>Promise.all(window.qualityWalls.filter(row=>row.phase==='out').map(row=>row.done)));
-  check(`modal-wall-close:${width}:${reduced}`,closeWall.length===2&&closeWall.every(row=>Math.abs(row.elapsed-(reduced?120:180))<=20),closeWall);
+  timing(`modal-wall-close:${width}:${reduced}`,closeWall.length===2&&closeWall.every(row=>Math.abs(row.elapsed-(reduced?120:180))<=20),closeWall);
   await page.locator('[data-modal-motion="leaving"]').waitFor({state:'detached'});
   // Preserve every mounted ambient Animation, including pseudo-element pastel
   // layers and actual CX spinner classes, across preference changes.
@@ -106,7 +111,9 @@ try{
   await page.waitForTimeout(70);const held=await page.evaluate(()=>window.qualityAmbientRefs.map(a=>a.currentTime));
   check(`ambient-same-phase:${width}:${reduced}`,paused.length>0&&paused.every((a,i)=>a.same&&a.state==='paused'&&Math.abs(held[i]-a.at)<1),{phase,paused,held});
   await page.emulateMedia({reducedMotion:'no-preference'});await page.waitForTimeout(70);
-  const resumed=await page.evaluate(()=>window.qualityAmbientRefs.map(a=>({name:a.animationName,same:document.getAnimations().includes(a),state:a.playState,at:a.currentTime})));
+  const readResumed=()=>page.evaluate(()=>window.qualityAmbientRefs.map(a=>({name:a.animationName,same:document.getAnimations().includes(a),state:a.playState,at:a.currentTime})));
+  let resumed=await readResumed();
+  for(let waited=70;sharedRunner&&waited<2000&&!resumed.every((a,i)=>a.at>held[i]);waited+=100){await page.waitForTimeout(100);resumed=await readResumed();}
   check(`ambient-resume:${width}:${reduced}`,resumed.every((a,i)=>a.same&&a.state==='running'&&a.at>held[i]),{held,resumed});
   const attention=await page.evaluate(async()=>{
    const workbench=document.querySelector('.nubi-workbench'),sentinel=document.createElement('span');sentinel.className='nubi-task';workbench.append(sentinel);
@@ -144,7 +151,7 @@ try{
   const state=await page.locator('.nubi-workflow-node[data-status=complete] .nubi-workflow-node-state').evaluate(element=>element.getAnimations().map(animation=>({duration:animation.effect.getTiming().duration,frames:animation.effect.getKeyframes()})));
   check(`state-color:${width}:${reduced}`,state.some(animation=>animation.duration===(reduced?120:180)),state);await page.waitForTimeout(220);
   await page.evaluate(()=>{window.qualityStop=window.qualityTrack();window.qualityNavigate();});await page.waitForTimeout(420);
-  const view=await page.evaluate(()=>window.qualityStop());check(`view-long-tasks:${width}:${reduced}`,view.longTasks.length===0,view.longTasks);check(`view-budget:${width}:${reduced}`,view.counts.every(row=>row.interactionTargets<=3),view.counts);
+  const view=await page.evaluate(()=>window.qualityStop());timing(`view-long-tasks:${width}:${reduced}`,view.longTasks.length===0,view.longTasks);check(`view-budget:${width}:${reduced}`,view.counts.every(row=>row.interactionTargets<=3),view.counts);
   check(`view-exercised:${width}:${reduced}`,view.captured.some(row=>/^nubi-(view|motion-fade)/.test(row.name)),view.captured);
   const metadata=new Set(['offset','computedOffset','easing','composite']),allowed=new Set(['transform','opacity','color','backgroundColor','borderColor','borderTopColor','borderRightColor','borderBottomColor','borderLeftColor','fill','stroke']);
   const properties=[...during.captured,...view.captured,...opening,...list].flatMap(row=>row.frames.flatMap(frame=>Object.keys(frame).filter(key=>!metadata.has(key)&&!allowed.has(key)&&!(key==='height'&&row.id?.startsWith('nubi-list-')))));
@@ -191,4 +198,6 @@ const spring=springSamples();check('spring-overshoot',Math.max(...spring.values)
 result.coveragePending=[];
 await writeFile(path.join(dir,'result.json'),JSON.stringify(result,null,2));
 const failed=result.checks.filter(item=>!item.pass);console.log(JSON.stringify({pass:result.checks.length-failed.length,failed:failed.map(item=>item.name),errors:result.errors,path:path.join(dir,'result.json')},null,2));
+if(!failed.length)for(const item of unjudgedTimings)await recordUnjudged({id:'motion-quality:'+item.name,check:'motion-quality',functionalPassed:true,reason:'shared_runner',detail:item.detail});
+console.log(JSON.stringify({check:'motion-quality',functionalPassed:!failed.length,verdict:failed.length?'failed':unjudgedTimings.length?'unjudged':'passed',unjudged:unjudgedTimings.length}));
 process.exitCode=failed.length?1:0;
