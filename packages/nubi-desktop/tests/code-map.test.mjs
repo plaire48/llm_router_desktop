@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,writeFile} from 'node:fs/promises';
@@ -76,7 +77,7 @@ test('pageRank is stable, sums to one and favours nodes with many in-links',()=>
 test('folder plan representatives follow code-map importance and the planning context carries the map',async t=>{
  const {folderPlan,folderPlanningContext}=await import('../runtime/wiki-folder-plan.mjs');
  const {mkdtemp:tmp,mkdir:md,writeFile:wf,rm}=await import('node:fs/promises');
- const root=await tmp(path.join(os.tmpdir(),'nubi-code-map-plan-'));t.after(()=>rm(root,{recursive:true,force:true}));
+ const root=await tmp(path.join(os.tmpdir(),'nubi-code-map-plan-'));removeLater(root);
  // One folder, eight files. The entry reaches zz-deep only through core; b..f form a
  // chain with one direct import each. Direct import counts tie them, so alphabetical
  // order drops zz-deep. PageRank seeded at the entry point ranks zz-deep above the chain.

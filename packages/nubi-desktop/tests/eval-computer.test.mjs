@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import {test} from 'node:test';
 import {featureTest} from './beta-feature.mjs';
 const computerTest=featureTest('computerUse');
@@ -23,7 +24,7 @@ function scripted(steps){
     return steps[at++]?.(result,messages)||{content:'끝났습니다.',calls:[]};
   }};
 }
-const temporary=async t=>{const parent=await mkdtemp(path.join(os.tmpdir(),'nubi-computer-test-'));t.after(()=>rm(parent,{recursive:true,force:true}));return parent;};
+const temporary=async t=>{const parent=await mkdtemp(path.join(os.tmpdir(),'nubi-computer-test-'));removeLater(parent);return parent;};
 
 test('the cases are valid, use known controls and cover reading, input, refusal and a question',async()=>{
   const {cases,apps}=await loadComputerCases();

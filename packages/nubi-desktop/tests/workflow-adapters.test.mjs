@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {writeFile,symlink,mkdtemp,rm} from 'node:fs/promises';
@@ -27,7 +28,7 @@ test('document reads, existence and hashes produce bound host receipts',async t=
 });
 test('document adapters reject traversal, absolute paths and escaping links',async t=>{
   const {adapters,root}=await setup(t);for(const value of ['../outside','/etc/passwd'])await assert.rejects(adapters.documents.hash({path:value},ctx),/path_scope/);
-  const external=await mkdtemp(path.join(tmpdir(),'nubi-adapter-out-'));t.after(()=>rm(external,{recursive:true,force:true}));await writeFile(path.join(external,'x.txt'),'outside');await symlink(path.join(external,'x.txt'),path.join(root,'escape.txt'));
+  const external=await mkdtemp(path.join(tmpdir(),'nubi-adapter-out-'));removeLater(external);await writeFile(path.join(external,'x.txt'),'outside');await symlink(path.join(external,'x.txt'),path.join(root,'escape.txt'));
   await assert.rejects(adapters.documents.read({path:'escape.txt'},ctx),/path_scope/);
 });
 function browser(service,{navigate=false}={}){

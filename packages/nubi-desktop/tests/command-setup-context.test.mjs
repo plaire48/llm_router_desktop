@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,realpath,writeFile,rm} from 'node:fs/promises';
@@ -9,7 +10,7 @@ import {SourceObservations} from '../runtime/source-edits.mjs';
 
 async function sample(t){
  const root=await realpath(await mkdtemp(path.join(os.tmpdir(),'nubi-setup-context-')));
- t.after(()=>rm(root,{recursive:true,force:true}));
+ removeLater(root);
  const content='Read only. Preserve the original files.';
  await writeFile(path.join(root,'README.md'),content);
  return {root,content,ref:{path:'README.md',hash:hash(content)}};

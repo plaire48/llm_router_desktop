@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,writeFile,readFile,rm,symlink,access} from 'node:fs/promises';
@@ -8,7 +9,7 @@ import {pinCorpus} from '../eval/pin-corpus.mjs';
 
 async function pinned(t,files={'src/a.mjs':'export const a=1;\n','openwiki/home.md':'# 집\n','openwiki/.claims/home.json':'{}\n'}){
   const base=await mkdtemp(path.join(os.tmpdir(),'nubi-corpus-test-')),source=path.join(base,'source'),directory=path.join(base,'pinned');
-  t.after(()=>rm(base,{recursive:true,force:true}));
+  removeLater(base);
   for(const [file,content] of Object.entries(files)){await mkdir(path.dirname(path.join(source,file)),{recursive:true});await writeFile(path.join(source,file),content);}
   await mkdir(path.join(source,'node_modules','x'),{recursive:true});await writeFile(path.join(source,'node_modules','x','index.js'),'ignored');
   const corpora={'order-service':{source,include:['.']}};
@@ -38,7 +39,7 @@ test('changes after the snapshot are listed, including new and deleted files',as
 test('a snapshot that differs from its manifest is refused and leaves nothing behind',async t=>{
   const {directory}=await pinned(t),file=path.join(directory,'order-service.manifest.json');
   const manifest=JSON.parse(await readFile(file,'utf8'));manifest.files[0].sha256='0'.repeat(64);await writeFile(file,JSON.stringify(manifest));
-  const parent=await mkdtemp(path.join(os.tmpdir(),'nubi-corpus-parent-'));t.after(()=>rm(parent,{recursive:true,force:true}));
+  const parent=await mkdtemp(path.join(os.tmpdir(),'nubi-corpus-parent-'));removeLater(parent);
   await assert.rejects(createWorkspace({corpus:'order-service',directory,parent}),/corpus_changed/);
   assert.deepEqual(await listFiles(parent),[]);
 });
@@ -53,7 +54,7 @@ test('unknown corpora, missing snapshots and unsafe manifest paths are refused',
 });
 
 test('a link inside a corpus source is refused',async t=>{
-  const base=await mkdtemp(path.join(os.tmpdir(),'nubi-corpus-link-'));t.after(()=>rm(base,{recursive:true,force:true}));
+  const base=await mkdtemp(path.join(os.tmpdir(),'nubi-corpus-link-'));removeLater(base);
   await writeFile(path.join(base,'real.txt'),'x');await symlink(path.join(base,'real.txt'),path.join(base,'link.txt'));
   await assert.rejects(listFiles(base),/corpus_link/);
 });

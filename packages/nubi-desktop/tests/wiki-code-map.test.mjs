@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,writeFile,rm,symlink} from 'node:fs/promises';
@@ -12,7 +13,7 @@ const inputs=rows=>Object.entries(rows).map(([path,content])=>({path,content,has
 const decode=text=>JSON.parse(text.slice(text.indexOf('\n')+1));
 async function fixture(t,rows){
   const root=await mkdtemp(path.join(os.tmpdir(),'nubi-code-map-'));
-  t.after(()=>rm(root,{recursive:true,force:true}));
+  removeLater(root);
   for(const [rel,content] of Object.entries(rows)){await mkdir(path.dirname(path.join(root,rel)),{recursive:true});await writeFile(path.join(root,rel),content);}
   return root;
 }

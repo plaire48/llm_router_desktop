@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,readFile,writeFile,rm,readdir} from 'node:fs/promises';
@@ -29,7 +30,7 @@ const cases=[
   {id:'T2-second-case',title:'둘째',suite:'wiki',split:'holdout',corpus:'order-service',request:'무료 배송 기준이 얼마야?',followUps:[],expect:{state:'review',asked:false,answer_includes:[['50,000']]}},
 ];
 async function setup(t){
-  const base=await mkdtemp(path.join(os.tmpdir(),'nubi-run-test-'));t.after(()=>rm(base,{recursive:true,force:true}));
+  const base=await mkdtemp(path.join(os.tmpdir(),'nubi-run-test-'));removeLater(base);
   const corpusDirectory=path.join(base,'pinned');await pinCorpus('order-service',{directory:corpusDirectory,corpora:{'order-service':{source,include:['.']}}});
   return {parent:base,corpusDirectory,candidate:{hash:'a'.repeat(64),files:1}};
 }
@@ -107,7 +108,7 @@ test('two reports of one model and corpus are compared case by case and by purpo
 });
 
 test('the candidate identity changes with a runtime file and refuses a stale build record',async t=>{
-  const packageRoot=await mkdtemp(path.join(os.tmpdir(),'nubi-candidate-'));t.after(()=>rm(packageRoot,{recursive:true,force:true}));
+  const packageRoot=await mkdtemp(path.join(os.tmpdir(),'nubi-candidate-'));removeLater(packageRoot);
   await mkdir(path.join(packageRoot,'runtime'));await mkdir(path.join(packageRoot,'generated'));await mkdir(path.join(packageRoot,'shared'));
   await writeFile(path.join(packageRoot,'runtime','agent.mjs'),'one');await writeFile(path.join(packageRoot,'runtime','notes.txt'),'ignored');await writeFile(path.join(packageRoot,'shared','core.js'),'core');
   await assert.rejects(candidateIdentity({packageRoot}),/candidate_inputs_missing/);

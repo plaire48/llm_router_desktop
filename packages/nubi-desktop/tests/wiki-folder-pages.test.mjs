@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 // Gaps found on 2026-10-12 while reviewing OpenWiki in the Electron app: the pages the
 // screen shows must reach the agent, a failure must keep its cause, Nubi's own records
 // are not a Wiki, a run nothing can reach any more must end, and one unreadable page
@@ -111,7 +112,7 @@ test('the run receipt sees uncommitted edits and folders without Git through the
   await writeFile(path.join(root,'app.txt'),'edited, not committed\n');
   assert.deepEqual(await wikiChangeSummary(root),{state:'stale',changedFiles:1,sample:['app.txt']});
   // Roots are real paths, as the service opens them (the temporary folder is a symbolic link on macOS).
-  const temp=await realpath(await mkdtemp(path.join(os.tmpdir(),'nubi-plain-'))),folder=path.join(temp,'source');t.after(()=>rm(temp,{recursive:true,force:true}));
+  const temp=await realpath(await mkdtemp(path.join(os.tmpdir(),'nubi-plain-'))),folder=path.join(temp,'source');removeLater(temp);
   await mkdir(path.join(folder,'openwiki'),{recursive:true});await writeFile(path.join(folder,'app.txt'),'plain\n');await writeFile(path.join(folder,'openwiki/home.md'),'# Home\n');
   await writeFile(path.join(folder,'openwiki/.last-update.json'),JSON.stringify({status:'complete',command:'init'}));
   await writeFile(path.join(folder,'openwiki/.nubi-sources.json'),JSON.stringify({schemaVersion:1,files:{'app.txt':hash('plain\n')}}));

@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,rm,stat,chmod,mkdir} from 'node:fs/promises';
@@ -56,7 +57,7 @@ test('a lost session rejects the call with a code that is not retried',async t=>
 });
 
 test('a socket directory readable by others is refused',{skip:!posix},async t=>{
-  const directory=await mkdtemp(path.join(os.tmpdir(),'nubi-relay-open-'));t.after(()=>rm(directory,{recursive:true,force:true}));
+  const directory=await mkdtemp(path.join(os.tmpdir(),'nubi-relay-open-'));removeLater(directory);
   const open=path.join(directory,'open');await mkdir(open,{mode:0o755});await chmod(open,0o755);
   await assert.rejects(startRelayServer({providers:{status,complete:async()=>({})},socketPath:path.join(open,'model.sock')}),/socket_directory_not_private/);
 });
@@ -67,7 +68,7 @@ test('the socket itself is owner-only',{skip:!posix},async t=>{
 });
 
 test('a missing session and an overlong socket path fail with clear codes',{skip:!posix},async t=>{
-  const directory=await mkdtemp(path.join(os.tmpdir(),'nubi-relay-none-'));t.after(()=>rm(directory,{recursive:true,force:true}));
+  const directory=await mkdtemp(path.join(os.tmpdir(),'nubi-relay-none-'));removeLater(directory);
   await assert.rejects(connectRelayProviders({socketPath:path.join(directory,'absent.sock')}),/worker_disconnected/);
   const long=path.join(directory,'x'.repeat(120),'model.sock');
   await assert.rejects(connectRelayProviders({socketPath:long}),/socket_path_too_long/);

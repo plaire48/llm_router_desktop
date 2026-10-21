@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import {featureTest} from './beta-feature.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -8,7 +9,7 @@ import {createHash} from 'node:crypto';
 import {PersonalMail} from './helpers-personal-mail.mjs';
 const sha=text=>createHash('sha256').update(text).digest('hex');
 async function fixture(t){
- const root=await mkdtemp(path.join(os.tmpdir(),'mail-knowledge-'));t.after(()=>rm(root,{recursive:true,force:true}));
+ const root=await mkdtemp(path.join(os.tmpdir(),'mail-knowledge-'));removeLater(root);
  const mail=Object.create(PersonalMail.prototype),id='a'.repeat(64),text='# Selected mail\n\nOpenWiki summary for this source';
  const row={id,state:'saved',sourceHash:'original-hash',path:path.join(root,'selected.md'),wikiHash:sha(text)};
  await writeFile(row.path,text);await writeFile(path.join(root,'unrelated.md'),'Unrelated private mail');

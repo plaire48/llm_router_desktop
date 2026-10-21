@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
@@ -13,7 +14,7 @@ function ports(history){
  return {history,Notification,getWindow:()=>({isDestroyed:()=>false}),send:()=>{},platform:'win32',options};
 }
 test('delivered notifications survive renderer clear and host restart without storing content',async t=>{
- const dir=await mkdtemp(path.join(os.tmpdir(),'nubi-notices-'));t.after(()=>rm(dir,{recursive:true,force:true}));const file=path.join(dir,'history.json');
+ const dir=await mkdtemp(path.join(os.tmpdir(),'nubi-notices-'));removeLater(dir);const file=path.join(dir,'history.json');
  const history=createNotificationHistory(file);await history.ready;const p=ports(history);
  const decision={id:'project:task:question',action:'show',summary:'PRIVATE QUESTION'},answer={projectId:'p',taskId:'t',runId:'r'},wiki={projectId:'p',jobId:'j',phase:'created'};
  const factories=[createDecisionNotices,createAnswerNotices,createWikiNotices],values=[decision,answer,wiki];
@@ -25,7 +26,7 @@ test('delivered notifications survive renderer clear and host restart without st
  await restored.flush();
 });
 test('mail outage is notified once until a successful reconnect resets it',async t=>{
- const dir=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-notices-'));t.after(()=>rm(dir,{recursive:true,force:true}));const file=path.join(dir,'history.json'),history=createNotificationHistory(file);await history.ready;
+ const dir=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-notices-'));removeLater(dir);const file=path.join(dir,'history.json'),history=createNotificationHistory(file);await history.ready;
  const notices=createMailLoginNotices(ports(history));assert.equal(notices.show({code:'mail_portal_login'}).shown,true);notices.clear();assert.equal(notices.show({code:'mail_portal_login'}).shown,false);await history.flush();
  const restored=createNotificationHistory(file);await restored.ready;const reopened=createMailLoginNotices(ports(restored));assert.equal(reopened.show({code:'mail_portal_login'}).shown,false);reopened.reset();assert.equal(reopened.show({code:'mail_portal_login'}).shown,true);
  await restored.flush();

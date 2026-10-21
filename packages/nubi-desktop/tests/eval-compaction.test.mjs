@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,rm,readFile,readdir} from 'node:fs/promises';
@@ -30,7 +31,7 @@ test('the scenarios are valid, name known corpora and cover every probe kind',as
 });
 
 test('a scenario fitting the advertised lean tools is probed without unnecessary compaction',async t=>{
-  const parent=await mkdtemp(path.join(os.tmpdir(),'nubi-compaction-test-'));t.after(()=>rm(parent,{recursive:true,force:true}));
+  const parent=await mkdtemp(path.join(os.tmpdir(),'nubi-compaction-test-'));removeLater(parent);
   const [scenario]=await loadScenarios(),providers=scripted(),result=await runScenario({scenario,providers,parent});
   assert.equal(result.error,null);assert.deepEqual(result.stepFailures,[],'every replayed step succeeded');
   assert.equal(result.compacted,false,'unused tool schemas must not trigger history compaction');assert.equal(result.compactions.length,0);assert.equal(providers.seen.summaries,0);assert.equal(result.summaries.length,0);
@@ -42,14 +43,14 @@ test('a scenario fitting the advertised lean tools is probed without unnecessary
 });
 
 test('the second scenario reads long pages of the public corpus without a failed step',async t=>{
-  const parent=await mkdtemp(path.join(os.tmpdir(),'nubi-compaction-test-'));t.after(()=>rm(parent,{recursive:true,force:true}));
+  const parent=await mkdtemp(path.join(os.tmpdir(),'nubi-compaction-test-'));removeLater(parent);
   const scenario=(await loadScenarios())[1],result=await runScenario({scenario,providers:scripted(),parent});
   assert.equal(result.error,null);assert.deepEqual(result.stepFailures,[]);
   assert.equal(result.probes.length,scenario.probes.length);
 });
 
 test('a report counts probes by kind, kept text and compactions that freed nothing',async t=>{
-  const parent=await mkdtemp(path.join(os.tmpdir(),'nubi-compaction-test-'));t.after(()=>rm(parent,{recursive:true,force:true}));
+  const parent=await mkdtemp(path.join(os.tmpdir(),'nubi-compaction-test-'));removeLater(parent);
   const outputDir=path.join(parent,'out'),[scenario]=await loadScenarios();
   const report=await evaluateCompaction({providers:scripted(),scenarios:[scenario],outputDir,parent,candidate:{hash:'c'.repeat(64),files:1}});
   assert.equal(report.kind,REPORT_KIND);assert.equal(report.summary.scenarios,1);assert.equal(report.summary.probes,scenario.probes.length);

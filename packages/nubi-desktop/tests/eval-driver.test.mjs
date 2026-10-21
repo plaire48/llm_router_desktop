@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,readFile,rm} from 'node:fs/promises';
@@ -22,7 +23,7 @@ const scripted=actor=>({status,dispose(){},async complete(messages,tools,signal)
   return actor({messages,tools,signal,result:last?JSON.parse(last.content):null});
 }});
 async function setup(t){
-  const base=await mkdtemp(path.join(os.tmpdir(),'nubi-driver-test-'));t.after(()=>rm(base,{recursive:true,force:true}));
+  const base=await mkdtemp(path.join(os.tmpdir(),'nubi-driver-test-'));removeLater(base);
   const corpusDirectory=path.join(base,'pinned');await pinCorpus('order-service',{directory:corpusDirectory,corpora:{'order-service':{source,include:['.']}}});
   return {parent:base,corpusDirectory};
 }
@@ -170,7 +171,7 @@ test('allowed file proposals are applied before the command, so the command sees
 test('E5: a command the project does not have is repaired and the corrected command answers',async t=>{
   const {loadCases}=await import('../eval/cases.mjs');
   const [testCase]=await loadCases({ids:['E5-missing-script']});
-  const base=await mkdtemp(path.join(os.tmpdir(),'nubi-driver-test-'));t.after(()=>rm(base,{recursive:true,force:true}));
+  const base=await mkdtemp(path.join(os.tmpdir(),'nubi-driver-test-'));removeLater(base);
   const corpusDirectory=path.join(base,'pinned'),failing=path.join(path.dirname(fileURLToPath(import.meta.url)),'..','eval','corpus-src','order-failing');
   await pinCorpus('order-failing',{directory:corpusDirectory,corpora:{'order-failing':{source:failing,include:['.']}}});
   let round=0;
@@ -193,7 +194,7 @@ test('E5: a command the project does not have is repaired and the corrected comm
 test('the review is told a wrong command is unfinished until a corrected command follows it',async t=>{
   const {loadCases}=await import('../eval/cases.mjs');
   const [testCase]=await loadCases({ids:['E5-missing-script']});
-  const base=await mkdtemp(path.join(os.tmpdir(),'nubi-driver-test-'));t.after(()=>rm(base,{recursive:true,force:true}));
+  const base=await mkdtemp(path.join(os.tmpdir(),'nubi-driver-test-'));removeLater(base);
   const corpusDirectory=path.join(base,'pinned'),failing=path.join(path.dirname(fileURLToPath(import.meta.url)),'..','eval','corpus-src','order-failing');
   await pinCorpus('order-failing',{directory:corpusDirectory,corpora:{'order-failing':{source:failing,include:['.']}}});
   const reviewing=actor=>{const reviewed=[];return {reviewed,providers:{status,dispose(){},async complete(messages,tools,signal){

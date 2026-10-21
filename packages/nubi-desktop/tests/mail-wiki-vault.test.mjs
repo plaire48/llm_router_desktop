@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,readdir,readFile,writeFile,rm,stat} from 'node:fs/promises';
@@ -7,7 +8,7 @@ import os from 'node:os';
 import {MailWikiVault,encryptPage,decryptPage,KEY_NAME} from '../runtime/mail-wiki-vault.mjs';
 
 const memorySecrets=()=>{const map=new Map();return {get:async key=>map.get(key)??null,set:async(key,value)=>{map.set(key,value);},map};};
-const fixture=async t=>{const root=await mkdtemp(path.join(os.tmpdir(),'nubi-wiki-vault-'));t.after(()=>rm(root,{recursive:true,force:true}));return {root,store:path.join(root,'wiki'),session:path.join(root,'session-wiki')};};
+const fixture=async t=>{const root=await mkdtemp(path.join(os.tmpdir(),'nubi-wiki-vault-'));removeLater(root);return {root,store:path.join(root,'wiki'),session:path.join(root,'session-wiki')};};
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 
 test('pages round-trip through AES-256-GCM and a tampered page is refused',()=>{

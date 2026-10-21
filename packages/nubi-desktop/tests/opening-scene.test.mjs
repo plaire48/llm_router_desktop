@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import vm from 'node:vm';
 import {EventEmitter} from 'node:events';
 import test from 'node:test';
@@ -19,7 +20,7 @@ test('unavailable local storage never suppresses the opening',()=>{
  assert(needsOpeningScene(storage,'x'));assert.doesNotThrow(()=>rememberOpeningScene(storage,'x'));
 });
 test('installed marker rotates independently of user profile and supports deferred first launch',async t=>{
- const dir=await mkdtemp(path.join(os.tmpdir(),'nubi-install-stamp-'));t.after(()=>rm(dir,{recursive:true,force:true}));const executable=path.join(dir,'nubi.exe');await writeFile(executable,'fixture');
+ const dir=await mkdtemp(path.join(os.tmpdir(),'nubi-install-stamp-'));removeLater(dir);const executable=path.join(dir,'nubi.exe');await writeFile(executable,'fixture');
  const args={packaged:true,platform:'win32',executable};const old=await installationStamp(args);assert.match(old,/^[a-f0-9]{64}$/);
  let previous=old;
  for(const uuid of ['11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222']){await writeFile(path.join(dir,INSTALLATION_MARKER),'{'+uuid.toUpperCase()+'}');const stamp=await installationStamp(args);assert.match(stamp,/^[a-f0-9]{64}$/);assert.notEqual(stamp,previous);assert.equal(await installationStamp(args),stamp);previous=stamp;}

@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,writeFile,readFile,rm} from 'node:fs/promises';
@@ -8,7 +9,7 @@ import {inspectCommitHistory as inspect} from '../runtime/commit-history.mjs';
 
 async function fixture(t){
   const root=await mkdtemp(path.join(os.tmpdir(),'nubi-history-'));
-  t.after(()=>rm(root,{recursive:true,force:true}));
+  removeLater(root);
   const run=args=>git(root,args);
   await run(['init','-b','main']);await run(['config','user.name','검증 작성자']);await run(['config','user.email','history@example.invalid']);
   await writeFile(path.join(root,'one.txt'),'first\n');await writeFile(path.join(root,'two.txt'),'second\n');
@@ -43,7 +44,7 @@ test('repeated file reads reuse comparison but keep scope and ancestry checks',a
   await assert.rejects(inspect(service,{commit,path:'missing.txt'}),/path_scope/);
   await run(['checkout','--orphan','unrelated']);await run(['rm','-rf','.']);await run(['commit','--allow-empty','-m','unrelated']);
   await assert.rejects(inspect(service,{commit,path:'one.txt'}),'cache does not bypass branch ancestry');
-  const other=await mkdtemp(path.join(os.tmpdir(),'nubi-history-other-'));t.after(()=>rm(other,{recursive:true,force:true}));service.root=other;
+  const other=await mkdtemp(path.join(os.tmpdir(),'nubi-history-other-'));removeLater(other);service.root=other;
   assert.equal((await inspect(service)).commits.length,0,'another root cannot reuse the previous catalog');
 });
 

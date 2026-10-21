@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,readFile,readdir,rm,symlink} from 'node:fs/promises';
@@ -9,7 +10,7 @@ import {createProviders} from '../../nubi-office/worker/providers.mjs';
 const signal=()=>new AbortController().signal;
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 async function fixture(t){
- const directory=await mkdtemp(path.join(os.tmpdir(),'nubi-connections-'));t.after(()=>rm(directory,{recursive:true,force:true}));const key=randomBytes(32);
+ const directory=await mkdtemp(path.join(os.tmpdir(),'nubi-connections-'));removeLater(directory);const key=randomBytes(32);
  const safeStorage={isAsyncEncryptionAvailable:async()=>true,getSelectedStorageBackend:()=> 'gnome_libsecret',encryptStringAsync:async value=>{const iv=randomBytes(12),cipher=createCipheriv('aes-256-gcm',key,iv);const body=Buffer.concat([cipher.update(value,'utf8'),cipher.final()]);return Buffer.concat([iv,cipher.getAuthTag(),body]);},decryptStringAsync:async bytes=>{const decipher=createDecipheriv('aes-256-gcm',key,bytes.subarray(0,12));decipher.setAuthTag(bytes.subarray(12,28));return {result:Buffer.concat([decipher.update(bytes.subarray(28)),decipher.final()]).toString(),shouldReEncrypt:false};}};
  return {directory,safeStorage,vault:connectionVault({directory,safeStorage})};
 }

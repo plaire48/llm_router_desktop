@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,readFile,writeFile,rm} from 'node:fs/promises';
@@ -5,7 +6,7 @@ import path from 'node:path';
 import os from 'node:os';
 import {ProjectCatalog} from '../electron-app/project-catalog.cjs';
 
-async function fixture(t){const root=await mkdtemp(path.join(os.tmpdir(),'nubi-project-list-'));t.after(()=>rm(root,{recursive:true,force:true}));return {root,catalog:new ProjectCatalog(root)};}
+async function fixture(t){const root=await mkdtemp(path.join(os.tmpdir(),'nubi-project-list-'));removeLater(root);return {root,catalog:new ProjectCatalog(root)};}
 test('multiple projects survive restart, deduplicate and retain custom names',async t=>{
  const {root,catalog}=await fixture(t);
  const a={projectId:'a',root:path.join(root,'a'),name:'Project A'},b={projectId:'b',root:path.join(root,'b'),name:'Project B'};

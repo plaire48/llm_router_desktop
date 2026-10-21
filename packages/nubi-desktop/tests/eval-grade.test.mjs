@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {execFile} from 'node:child_process';
@@ -9,7 +10,7 @@ import {gradeCase,mentions} from '../eval/grade.mjs';
 
 const exec=promisify(execFile);
 async function workspace(t,files={'src/a.mjs':'export const value = 1;\n','src/legacy/keep.mjs':'export const legacy = 4500;\n'}){
-  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-grade-'));t.after(()=>rm(root,{recursive:true,force:true}));
+  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-grade-'));removeLater(root);
   for(const [file,content] of Object.entries(files)){await mkdir(path.dirname(path.join(root,file)),{recursive:true});await writeFile(path.join(root,file),content);}
   const git=args=>exec('git',args,{cwd:root});
   await git(['init','-q']);await git(['config','user.email','grade@example.invalid']);await git(['config','user.name','Grade']);await git(['config','commit.gpgsign','false']);await git(['add','-A']);await git(['commit','-qm','snapshot']);

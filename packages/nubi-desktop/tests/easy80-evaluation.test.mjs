@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile,readdir,mkdtemp,rm} from 'node:fs/promises';
@@ -43,7 +44,7 @@ test('a correct-looking answer cannot pass without actual commands, source citat
 });
 
 test('mail fixtures expose real local Personal Wiki queries and separate original mail reads',async t=>{
- const root=await mkdtemp(path.join(os.tmpdir(),'nubi-easy80-mail-'));t.after(()=>rm(root,{recursive:true,force:true}));
+ const root=await mkdtemp(path.join(os.tmpdir(),'nubi-easy80-mail-'));removeLater(root);
  const c=(await loadEasyCases()).find(c=>c.category==='mail'),service={};await configureEasyService(c,service,{stateRoot:root});
  const query=await service.mail({action:'query',query:c.title});assert.ok(JSON.stringify(query).includes(mailId(c,0)));
  const files=await readdir(path.join(root,'fixture-personal'));assert.equal(files.length,4);

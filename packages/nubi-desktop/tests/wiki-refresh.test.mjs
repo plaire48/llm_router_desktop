@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,rm} from 'node:fs/promises';
@@ -7,14 +8,14 @@ import {git} from '../runtime/files.mjs';
 import {pullSources} from '../runtime/wiki-refresh.mjs';
 
 test('a folder that is not a git repository and one without a remote skip the pull and still report why',async t=>{
-  const plain=await mkdtemp(path.join(os.tmpdir(),'nubi-refresh-plain-'));t.after(()=>rm(plain,{recursive:true,force:true}));
+  const plain=await mkdtemp(path.join(os.tmpdir(),'nubi-refresh-plain-'));removeLater(plain);
   assert.deepEqual(await pullSources(plain),{attempted:false,reason:'not_git_repository'});
-  const repo=await mkdtemp(path.join(os.tmpdir(),'nubi-refresh-repo-'));t.after(()=>rm(repo,{recursive:true,force:true}));
+  const repo=await mkdtemp(path.join(os.tmpdir(),'nubi-refresh-repo-'));removeLater(repo);
   await git(repo,['init','-q']);
   assert.deepEqual(await pullSources(repo),{attempted:false,reason:'no_remote'});
 });
 test('a remote that cannot be reached is a reported failure, never a prompt or a throw',async t=>{
-  const repo=await mkdtemp(path.join(os.tmpdir(),'nubi-refresh-remote-'));t.after(()=>rm(repo,{recursive:true,force:true}));
+  const repo=await mkdtemp(path.join(os.tmpdir(),'nubi-refresh-remote-'));removeLater(repo);
   await git(repo,['init','-q']);await git(repo,['remote','add','origin',path.join(repo,'missing-remote')]);
   const result=await pullSources(repo);
   assert.equal(result.attempted,true);assert.equal(result.ok,false);assert.ok(['git_pull_failed','git_auth','git_timeout','git_diverged','git_upstream_missing'].includes(result.reason),result.reason);
@@ -25,7 +26,7 @@ import {snapshotFolderHistory} from '../runtime/wiki-folder-history.mjs';
 import {wikiSources} from '../runtime/wiki-snapshot.mjs';
 const commit=async(root,message)=>{await git(root,['add','-A']);await git(root,['-c','user.name=Fixture','-c','user.email=test@localhost','-c','commit.gpgSign=false','commit','-qm',message]);};
 async function remoteFixture(t){
- const temp=await mkdtemp(path.join(os.tmpdir(),'nubi-refresh-live-'));t.after(()=>rm(temp,{recursive:true,force:true}));
+ const temp=await mkdtemp(path.join(os.tmpdir(),'nubi-refresh-live-'));removeLater(temp);
  const origin=path.join(temp,'origin'),local=path.join(temp,'local');await mkdir(origin);await git(origin,['init','-q']);await writeFile(path.join(origin,'app.txt'),'v1');await commit(origin,'Initial');await git(temp,['clone','-q',origin,local]);return {temp,origin,local};
 }
 test('refresh fast-forwards to the configured upstream and preserves local wiki pages',async t=>{
@@ -44,7 +45,7 @@ test('missing upstream is actionable and never silently reads the old local copy
  const {local}=await remoteFixture(t);await git(local,['branch','--unset-upstream']);assert.equal((await pullSources(local)).reason,'git_upstream_missing');
 });
 test('plain folders keep private incremental commits including deletions without touching the source',async t=>{
- const temp=await mkdtemp(path.join(os.tmpdir(),'nubi-folder-history-'));t.after(()=>rm(temp,{recursive:true,force:true}));
+ const temp=await mkdtemp(path.join(os.tmpdir(),'nubi-folder-history-'));removeLater(temp);
  const root=path.join(temp,'source'),storage=path.join(temp,'state');await mkdir(root);await writeFile(path.join(root,'a.txt'),'one');await writeFile(path.join(root,'.env'),'PRIVATE');
  const first=await snapshotFolderHistory(storage,await wikiSources(root));assert.equal((await git(first.root,['rev-list','--count','HEAD'])).trim(),'1');assert.doesNotMatch(await git(first.root,['ls-files']),/\.env/);
  assert.equal((await snapshotFolderHistory(storage,await wikiSources(root))).head,first.head);

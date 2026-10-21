@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 // The simulated app must satisfy the real adapter: every check here goes
 // through WinappComputer and the host functions, not through the runner alone.
 import {test} from 'node:test';
@@ -87,7 +88,7 @@ computerTest('a password and a read-only field keep their protection',async t=>{
 
 test('a capture shows the labels and values of the controls, and a password as dots',async t=>{
   const {mkdtemp,rm,readFile:read}=await import('node:fs/promises'),os=await import('node:os'),pathModule=await import('node:path'),{PNG}=await import('pngjs');
-  const directory=await mkdtemp(pathModule.join(os.tmpdir(),'nubi-app-render-'));t.after(()=>rm(directory,{recursive:true,force:true}));
+  const directory=await mkdtemp(pathModule.join(os.tmpdir(),'nubi-app-render-'));removeLater(directory);
   const host=createAppHost(definition),whole=pathModule.join(directory,'window.png'),part=pathModule.join(directory,'amount.png');
   const first=await host.runner(['ui','screenshot','--capture-screen','-w','4100','--output',whole,'--json']);
   assert.deepEqual([first.width,first.height,first.elementId],[900,860,null]);

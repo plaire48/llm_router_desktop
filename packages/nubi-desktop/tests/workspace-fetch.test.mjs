@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
@@ -23,7 +24,7 @@ test('Workspace reconstructs empty success and cache responses without inventing
 test('Talk like removal uses the real renderer bridge and reads back the removal',async t=>{
  const before=globalThis.window;t.after(()=>{globalThis.window=before;});
  const result=await build({entryPoints:['ui/ai-workspace/talkClient.js'],bundle:true,platform:'node',format:'esm',write:false,logLevel:'silent'});
- const directory=await mkdtemp(path.join(os.tmpdir(),'nubi-workspace-client-'));t.after(()=>rm(directory,{recursive:true,force:true}));const file=path.join(directory,'talk.mjs');await writeFile(file,result.outputFiles[0].text);const {createTalkClient}=await import(pathToFileURL(file));
+ const directory=await mkdtemp(path.join(os.tmpdir(),'nubi-workspace-client-'));removeLater(directory);const file=path.join(directory,'talk.mjs');await writeFile(file,result.outputFiles[0].text);const {createTalkClient}=await import(pathToFileURL(file));
  let liked=true;const calls=[];
  globalThis.window={nubi:{request:async(method,args)=>{
   calls.push(args);assert.equal(method,'ghesFetch');assert.equal(args.headers.authorization,undefined);

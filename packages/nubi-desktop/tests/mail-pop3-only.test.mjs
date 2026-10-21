@@ -1,3 +1,4 @@
+import {DESKTOP_FEATURES} from '../runtime/beta-features.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,rm,readFile} from 'node:fs/promises';
@@ -15,14 +16,16 @@ test('withdrawn IMAP settings return to POP3 without changing retained mail reco
  const packets=[],mail=new PersonalMail({storageRoot},{personalRoot:path.join(root,'mail'),pull:async input=>{packets.push(input);return {uidls:[],mails:[],failed:[],delaySeconds:60};}});
  t.after(async()=>{mail.dispose();await Promise.all([mail.rawDisposed,mail.wikiDisposed]);await rm(root,{recursive:true,force:true});});
  assert.equal(mail.status().serverProfile,'company');assert.equal(mail.store.get('setting:server-profile'),'company');
- assert.deepEqual(mail.store.get('mail:retained'),retained);
+ // On Windows the Office attachment reader's one-time migration queues each mail's attachments again (mail.mjs); the
+ // record is otherwise unchanged.
+ assert.deepEqual(mail.store.get('mail:retained'),process.platform==='win32'&&DESKTOP_FEATURES.mailAttachmentReading?{...retained,attachmentState:'queued'}:retained);
  await assert.rejects(mail.call({action:'connect',serverProfile:'company_imap',requestId:'stale',user:'fixture',password:'fixture'}),/mail_input_invalid/);
  assert.equal(packets.length,0);
  await mail.call({action:'connect',requestId:'current',user:'fixture',password:' fixture-password '});
  assert.deepEqual(packets[0].endpoint,{host:'pop3.samsung.net',port:995,tls:true,protocol:'pop3'});
  assert.equal(packets[0].password,' fixture-password ');assert.equal(packets[0].sentPath,undefined);
  await assert.rejects(mail.call({action:'setSentFolder',path:'Sent'}),/mail_input_invalid/);
- assert.deepEqual(mail.store.get('mail:retained'),retained);
+ assert.deepEqual(mail.store.get('mail:retained'),process.platform==='win32'&&DESKTOP_FEATURES.mailAttachmentReading?{...retained,attachmentState:'queued'}:retained);
 });
 
 test('POP3 reconnect reuses UIDL and raw receipt while retaining HTML and recipient classification',async t=>{

@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,rm,writeFile,readFile,readdir,realpath} from 'node:fs/promises';
@@ -8,7 +9,7 @@ import {docxFromBlocks,FORMS} from './helpers-docx-fixture.mjs';
 
 // Document forms plan Task B: a registered form keeps its map, source hash and preview; the question plan asks for the
 // required values only, one question per table or section.
-async function workspace(t){const dir=await realpath(await mkdtemp(path.join(os.tmpdir(),'nubi-forms-')));t.after(()=>rm(dir,{recursive:true,force:true}));return dir;}
+async function workspace(t){const dir=await realpath(await mkdtemp(path.join(os.tmpdir(),'nubi-forms-')));removeLater(dir);return dir;}
 
 test('registering a form writes its three files, lists it, and notices when the source changes',async t=>{
   const root=await workspace(t),source=path.join(root,'서식','기안문.docx');

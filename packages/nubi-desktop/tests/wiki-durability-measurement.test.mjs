@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,writeFile,readFile,rm} from 'node:fs/promises';
@@ -42,7 +43,7 @@ test('Q1 measurement retains a failed attempt and still executes the remaining r
 });
 
 test('Q1 preserves an existing measurement instead of overwriting it on rerun',async t=>{
- const directory=await mkdtemp(path.join(os.tmpdir(),'q1-output-'));t.after(()=>rm(directory,{recursive:true,force:true}));
+ const directory=await mkdtemp(path.join(os.tmpdir(),'q1-output-'));removeLater(directory);
  const file=path.join(directory,'first.json');await writeFile(file,'original measurement');
  assert.equal(typeof measurement.reserveDurabilityOutput,'function');
  await assert.rejects(measurement.reserveDurabilityOutput(file,{status:'running'}),{code:'EEXIST'});

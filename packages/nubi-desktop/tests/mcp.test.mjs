@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,readFile,rm} from 'node:fs/promises';
@@ -9,7 +10,7 @@ import {McpRegistry,mcpToolName,parseMcpToolName,describeToolResult,MCP_SECRET_P
 
 const fixture=fileURLToPath(new URL('./mcp-fixture-server.mjs',import.meta.url));
 const memorySecrets=()=>{const map=new Map();return {get:async key=>map.get(key)??null,set:async(key,value)=>{map.set(key,value);},delete:async key=>{map.delete(key);},map};};
-const temp=async t=>{const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mcp-'));t.after(()=>rm(root,{recursive:true,force:true}));return root;};
+const temp=async t=>{const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mcp-'));removeLater(root);return root;};
 
 test('tool names round-trip and results are bounded text',()=>{
   assert.equal(mcpToolName('ghes','list_issues'),'mcp__ghes__list_issues');

@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile,readdir,mkdtemp,rm} from 'node:fs/promises';
@@ -52,7 +53,7 @@ test('gold-looking answers cannot pass without all execution and source receipts
 });
 
 test('all five mail originals are searchable while summaries do not reveal answers',async t=>{
- const root=await mkdtemp(path.join(os.tmpdir(),'nubi-medium-mail-'));t.after(()=>rm(root,{recursive:true,force:true}));
+ const root=await mkdtemp(path.join(os.tmpdir(),'nubi-medium-mail-'));removeLater(root);
  for(const c of (await loadMediumCases()).filter(c=>c.category==='mail')){
   const service={},stateRoot=path.join(root,c.id);await configureMediumService(c,service,{stateRoot});
   const query=JSON.stringify(await service.mail({action:'query',query:c.title}));

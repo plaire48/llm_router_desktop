@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {execFile} from 'node:child_process';
@@ -28,7 +29,7 @@ test('cancelled preparation starts no Git process and timeout codes remain speci
 
 test('owned snapshot copies never race automatic maintenance even with a low inherited GC threshold',async t=>{
  const temp=await mkdtemp(path.join(os.tmpdir(),'wiki-history-maintenance-'));
- t.after(()=>rm(temp,{recursive:true,force:true}));
+ removeLater(temp);
  const storage=path.join(temp,'state'),history=path.join(storage,'wiki-folder-history'),copy=path.join(temp,'copy'),trace=path.join(temp,'trace.jsonl');
  await mkdir(history,{recursive:true});await git(history,['init','-q']);await git(history,['config','gc.auto','1']);
  const sources=Array.from({length:8000},(_,i)=>{const content='Synthetic source '+i+'\n';return {path:'source-'+i+'.txt',content,hash:hash(content)};});

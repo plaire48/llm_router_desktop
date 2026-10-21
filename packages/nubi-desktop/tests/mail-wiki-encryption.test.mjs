@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,readdir,readFile,rm,stat} from 'node:fs/promises';
@@ -23,7 +24,7 @@ async function runtime(root,secrets){
 const settle=async(mail,predicate)=>{for(let i=0;i<200&&!predicate();i++)await new Promise(r=>setTimeout(r,25));};
 
 test('mail wiki pages are stored encrypted, served from a session copy and wiped on dispose',async t=>{
-  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-enc-'));t.after(()=>rm(root,{recursive:true,force:true}));
+  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-enc-'));removeLater(root);
   const secrets=memorySecrets();let mail=await runtime(root,secrets);
   const store=mail.wikiStoreRoot,session=mail.wikiRoot;
   assert.notEqual(store,session);assert.equal(mail.status().encryption.state,'on');assert.equal(mail.status().wikiRoot,session);
@@ -43,7 +44,7 @@ test('mail wiki pages are stored encrypted, served from a session copy and wiped
 });
 
 test('without a usable vault the pages stay plain and the status says unavailable',async t=>{
-  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-plain-'));t.after(()=>rm(root,{recursive:true,force:true}));
+  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-plain-'));removeLater(root);
   const mail=new PersonalMail(makeHost(root,{get:async()=>{throw Error('secret_unavailable');},set:async()=>{}}),{personalRoot:path.join(root,'mail')});t.after(()=>{mail.dispose();});await mail.ensureWiki();
   assert.equal(mail.status().encryption.wikiState,'unavailable');assert.equal(mail.wikiRoot,mail.wikiStoreRoot);
 });

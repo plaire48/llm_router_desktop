@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,writeFile,rm} from 'node:fs/promises';
@@ -109,7 +110,7 @@ test('malformed cases are rejected with the failing field',()=>{
 });
 
 test('a case file must be named after its id and selection refuses unknown ids',async t=>{
-  const directory=await mkdtemp(path.join(os.tmpdir(),'nubi-cases-'));t.after(()=>rm(directory,{recursive:true,force:true}));
+  const directory=await mkdtemp(path.join(os.tmpdir(),'nubi-cases-'));removeLater(directory);
   await mkdir(path.join(directory,'texts'));await writeFile(path.join(directory,'texts','note.md'),'회의록');
   await writeFile(path.join(directory,'T1-valid-case.json'),JSON.stringify({...valid,followUps:[{before:'앞\n',file:'texts/note.md',after:'\n뒤'},'둘째']}));
   const [loaded]=await loadCases({directory});

@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,writeFile,mkdir,symlink,rm} from 'node:fs/promises';
@@ -8,7 +9,7 @@ import {fixture} from './fixtures.mjs';
 import {ProjectService} from '../runtime/project-service.mjs';
 import {installAgent} from '../runtime/agent.mjs';
 installAgent(ProjectService);
-async function files(t){const directory=await mkdtemp(path.join(os.tmpdir(),'nubi-output-')),root=path.join(directory,'project');await mkdir(root);t.after(()=>rm(directory,{recursive:true,force:true}));return {root,directory};}
+async function files(t){const directory=await mkdtemp(path.join(os.tmpdir(),'nubi-output-')),root=path.join(directory,'project');await mkdir(root);removeLater(directory);return {root,directory};}
 test('registers exact bytes and kinds; refuses missing, directories, private and outside paths',async t=>{
  const {root}=await files(t),task={id:'t',outputs:[]};
  for(const [name,kind] of [['report.md','text'],['capture.png','image'],['report.pdf','pdf'],['report.docx','office'],['report.xlsx','office'],['report.pptx','office']]){

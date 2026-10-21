@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,writeFile,readFile,rm,stat,realpath} from 'node:fs/promises';
@@ -64,7 +65,7 @@ test('more than 20,000 sources survive folder/Git enumeration, Wiki generation a
 });
 
 test('large inventory cancellation stops the scan and lazy snapshot refuses a changed source',async t=>{
-  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-wiki-scan-'));t.after(()=>rm(root,{recursive:true,force:true}));
+  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-wiki-scan-'));removeLater(root);
   await writeFile(path.join(root,'source.txt'),'original');
   const sources=await wikiSources(root);await writeFile(path.join(root,'source.txt'),'changed');
   const copy=path.join(root,'copy');await mkdir(copy);await assert.rejects(writeWikiSnapshot(copy,sources),/source_stale/);

@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,rm,readFile} from 'node:fs/promises';
@@ -9,7 +10,7 @@ import {saveBrowserScript,loadBrowserScript,listBrowserScripts,reviewBrowserScri
 const card=()=>({schemaVersion:1,title:'견적서 제출',status:'draft',inputs:[{slot:'v1',label:'Full Name'},{slot:'v2',label:'Choose',kind:'choice'}],
   steps:[{tool:'click_element',target:{role:'link',name:'FP 산정',kind:'control',tag:'a'}},{tool:'fill_form',fields:[{target:{role:'textbox',name:'Full Name',kind:'field',tag:'input',type:'text'},slot:'v1'}]},{tool:'select_option',target:{role:'combobox',name:'Choose',kind:'control',tag:'select'},slot:'v2'},{tool:'click_element',target:{role:'button',name:'Submit',kind:'control',tag:'button'}}],
   teach:{purpose:'FP 산정 메뉴에서 견적서를 낸다',steps:{'1':{reason:'이름을 넣는다',guard:false,slot:'v1',valueSource:{kind:'mail',field:'from'}},'3':{reason:'견적을 접수한다',guard:true,assert:{text:'접수 번호가 보인다'}}}}});
-async function workspace(t){const dir=await mkdtemp(path.join(os.tmpdir(),'nubi-scripts-'));t.after(()=>rm(dir,{recursive:true,force:true}));return dir;}
+async function workspace(t){const dir=await mkdtemp(path.join(os.tmpdir(),'nubi-scripts-'));removeLater(dir);return dir;}
 
 test('a script is saved with a readable README, loads back and is listed; a changed card returns to draft with a new version',async t=>{
   const root=await workspace(t);

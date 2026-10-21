@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import test from 'node:test';import assert from 'node:assert/strict';
 import {mkdtemp,writeFile,mkdir,rm} from 'node:fs/promises';import path from 'node:path';import os from 'node:os';import {execFile} from 'node:child_process';import {promisify} from 'node:util';
 import {inspectReleaseInputs,gitCandidate} from '../scripts/check-release-inputs.mjs';
@@ -45,7 +46,7 @@ test('file-relative and node_modules-relative assets are not sibling packages',a
  const f=fixture();f.files.set(desktop+'/scripts/assets.cjs',Buffer.from("const a=path.join(__dirname,'../runtime/entry.mjs');const b=createRequire(import.meta.url)('../electron-app/reader.cjs');const c=path.resolve(path.dirname(entry),'../prebuilds');"));assert.equal((await check(f)).ok,true);
 });
 test('Git adapter reads immutable trees after checkout bytes change',async t=>{
- const root=await mkdtemp(path.join(os.tmpdir(),'nubi-release-inputs-'));t.after(()=>rm(root,{recursive:true,force:true}));await mkdir(path.join(root,'a'));await writeFile(path.join(root,'a','source.mjs'),'before');await exec('git',['init','-q'],{cwd:root});await exec('git',['add','.'],{cwd:root});const {stdout}=await exec('git',['write-tree'],{cwd:root});await writeFile(path.join(root,'a','source.mjs'),'after');const candidate=await gitCandidate({repo:root,ref:stdout.trim()});assert.deepEqual(candidate.paths,['a/source.mjs']);assert.equal((await candidate.readCandidate('a/source.mjs')).toString(),'before');
+ const root=await mkdtemp(path.join(os.tmpdir(),'nubi-release-inputs-'));removeLater(root);await mkdir(path.join(root,'a'));await writeFile(path.join(root,'a','source.mjs'),'before');await exec('git',['init','-q'],{cwd:root});await exec('git',['add','.'],{cwd:root});const {stdout}=await exec('git',['write-tree'],{cwd:root});await writeFile(path.join(root,'a','source.mjs'),'after');const candidate=await gitCandidate({repo:root,ref:stdout.trim()});assert.deepEqual(candidate.paths,['a/source.mjs']);assert.equal((await candidate.readCandidate('a/source.mjs')).toString(),'before');
 });
 test('Windows release packaging checks immutable inputs after compile and before packaging',async()=>{
  const doc=parse(await readFile(new URL('../../../.github/workflows/nubi-desktop-windows.yml',import.meta.url),'utf8'));

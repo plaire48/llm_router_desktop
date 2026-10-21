@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,writeFile,rm,mkdir} from 'node:fs/promises';
@@ -11,7 +12,7 @@ const {createClaudeCliUsage,readToken,USAGE_URL}=createRequire(import.meta.url)(
 const credentials=async(root,record)=>{await mkdir(path.join(root,'.claude'),{recursive:true});await writeFile(path.join(root,'.claude','.credentials.json'),JSON.stringify(record));};
 
 test('the CLI token is read from the credential file and never returned with the usage',async t=>{
-  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-cli-usage-'));t.after(()=>rm(root,{recursive:true,force:true}));
+  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-cli-usage-'));removeLater(root);
   await credentials(root,{claudeAiOauth:{accessToken:'sk-ant-oat-secret',expiresAt:Date.now()+3600000}});
   const env={CLAUDE_CONFIG_DIR:path.join(root,'.claude')};
   assert.equal(await readToken({platform:'win32',env}),'sk-ant-oat-secret');
@@ -24,7 +25,7 @@ test('the CLI token is read from the credential file and never returned with the
 });
 
 test('no sign-in, an expired token and a rejected request are reported by code',async t=>{
-  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-cli-usage-'));t.after(()=>rm(root,{recursive:true,force:true}));
+  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-cli-usage-'));removeLater(root);
   const env={CLAUDE_CONFIG_DIR:path.join(root,'.claude')};
   await assert.rejects(createClaudeCliUsage({platform:'win32',env,fetchImpl:async()=>{throw Error('unreachable');}}).read(),/claude_cli_login/);
   await credentials(root,{claudeAiOauth:{accessToken:'old',expiresAt:Date.now()-1000}});
@@ -36,7 +37,7 @@ test('no sign-in, an expired token and a rejected request are reported by code',
 
 // Enterprise plans are limited by spend in dollars and may have no 5-hour or 7-day window (user report 2026-10-14).
 test('spend in dollars and model-scoped weekly limits are read; a spend-only answer is not a format error',async t=>{
-  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-cli-usage-'));t.after(()=>rm(root,{recursive:true,force:true}));
+  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-cli-usage-'));removeLater(root);
   await credentials(root,{claudeAiOauth:{accessToken:'enterprise',expiresAt:Date.now()+3600000}});
   const env={CLAUDE_CONFIG_DIR:path.join(root,'.claude')};
   const body={five_hour:null,seven_day:null,spend:{used:{amount_minor:1234,currency:'USD',exponent:2},limit:{amount_minor:10000,currency:'USD',exponent:2},percent:12.34,enabled:true},

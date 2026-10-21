@@ -1,3 +1,4 @@
+import {removeLater} from './helpers-cleanup.mjs';
 // The mouse and keyboard cases A17 to A26 (2026-09-30), each carried out by a scripted model the way a good one
 // would, through the real service and adapter against the simulated app. A case that passes here can be passed by
 // a model; the wrong gesture leaves the app unchanged.
@@ -26,7 +27,7 @@ function scripted(steps){
 }
 const {cases,apps}=await loadComputerCases();
 async function run(t,id,steps){
-  const parent=await mkdtemp(path.join(os.tmpdir(),'nubi-input-case-'));t.after(()=>rm(parent,{recursive:true,force:true}));
+  const parent=await mkdtemp(path.join(os.tmpdir(),'nubi-input-case-'));removeLater(parent);
   const testCase=cases.find(item=>item.id===id),providers=scripted(steps);
   const result=await runComputerCase({testCase,app:apps.get(testCase.app).definition,providers,parent});
   return {result,graded:gradeComputer(testCase,result),providers};
