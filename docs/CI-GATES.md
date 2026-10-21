@@ -140,3 +140,14 @@ Q7 G5/Q8 후속(2026-10-21): G5는 기존 fast ui 화면38개 흐름에서 이�
 
 
 33차 이후 재인계(2026-10-21): 현재 작업 폴더427개 단위 파일을214/213으로 나누며 ui는 준비 포함33명령이다. T8 연결 검사 6.678초가 fast ui에 추가됐고 T8 연결 자체의 새 단위/네이티브 시험은0이다. 별도 M1/G0 묶음은 main 대비 신규30개이며 기존 reset4개를 포함한34개 집중1.383초다. 지정 후보의 파일 수는 실제 후보에서 다시 계산한다. 분할/워크플로 고정 집중6시험634.6ms, 실패0. 분할 자체의 Actions 소요는 아직 미측정이다. main7765864c의33차 ui 고정 대화 중복 실패와 재실행 녹색은 사용자 전달이며, 이번에 Actions를 새 조회한 결과가 아니다. 최종 SHA는 `.superpowers/sdd/2026-10-21-m1a-teach-handoff/upload-inputs.json` ci 그룹을 따른다. 이전 파일 수/소요는 당시 기록이다.
+
+
+## 2026-10-21 42~45차 업로드와 Windows 런타임 묶음
+
+사용자 전달: 42차 eadca3a0(Task H Word, office-mail-ui), 43차 3c38f590(M1, frozen package.json/gate-baseline), 44차 a9fc3cda(T8, frozen), 45차 e1c3dbbe(unit-a/unit-b 분할)를 업로드했고 모든 파일 SHA를 대조했다. 이후 편집 기준은 main e1c3dbbe다. 이 기록을 추가하기 전 두 대상 문서가 해당 커밋과 같음을 로컬에서 확인했다.
+
+릴리스 빌드 2차 39523868379 실패 원인은 사용자 전달 기준으로 service-entry ESM 묶음에 TypeScript CJS가 포함된 것이다. Windows worker에서 getNodeSystem의 __filename 참조로 ERR_AMBIGUOUS_MODULE_SYNTAX가 발생했다. 43차의 build-runtime이 typescript를 external에 추가했으며, e1c3dbbe 소스에서도 이를 확인했다. 이 수정의 Windows 실행 성공은 빌드 결과로 별도 확인한다.
+
+릴리스 빌드 3차 39527458188, 브랜치 `codex/nubi-desktop-windows-release-1.3.0-20261021c`는 사용자 통보 당시 진행 중이다. 이번 문서 정리에서 Actions 상태를 새로 조회하지 않았으며 성공으로 표시하지 않는다.
+
+앞으로 런타임 묶음에 CJS 라이브러리를 추가할 때는 (1) ESM 안에 묶을 수 있는지와 external 필요 여부, (2) external 의존성의 실제 패키징 포함/해석 경로, (3) Windows의 패키징된 worker 기동과 해당 모듈을 사용하는 최초 호출을 확인한다. 소스 import/로컬 번들 성공만으로 Windows 기동을 통과시키지 않는다. 실패하면 run id, 오류 코드, 수정 커밋과 재실행 결과를 남긴다.

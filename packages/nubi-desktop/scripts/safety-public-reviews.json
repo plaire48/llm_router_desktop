@@ -4917,7 +4917,7 @@
     },
     {
       "path": "resources/app.asar/lib/backend/service-entry.mjs",
-      "sha256": "39a7031881dc732aa17c684e922e514a8289ebca43dade07ec1de11ec33ab374",
+      "sha256": "f6196025570bc448ec95e90a8673699886f611b89a32f1d09267baf690d34dab",
       "kind": "email",
       "fingerprint": "0c1b0841813a8275",
       "occurrences": 1,
@@ -4928,8 +4928,8 @@
         "artifactPath": "package/package.json"
       },
       "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Bundled finding is present in the integrity-verified original public dependency; generated target bytes are separately SHA bound.",
-      "reviewer": "Codex",
-      "reviewedAt": "2026-10-20",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
       "reviewCard": 175
     },
     {
@@ -10558,6 +10558,261 @@
       "reviewer": "Claude",
       "reviewedAt": "2026-10-21",
       "reviewCard": 21
+    },
+    {
+      "path": "Nubi Workspace.exe",
+      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
+      "kind": "email",
+      "fingerprint": "46434cca93b7ebb5",
+      "occurrences": 9,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "electron.exe"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 1
+    },
+    {
+      "path": "Nubi Workspace.exe",
+      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
+      "kind": "email",
+      "fingerprint": "439caf3a901bc930",
+      "occurrences": 1,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "electron.exe"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 10
+    },
+    {
+      "path": "Nubi Workspace.exe",
+      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
+      "kind": "email",
+      "fingerprint": "295dee0d3dbb93aa",
+      "occurrences": 2,
+      "classification": "public_package_attribution",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "electron.exe"
+      },
+      "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 11
+    },
+    {
+      "path": "Nubi Workspace.exe",
+      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
+      "kind": "email",
+      "fingerprint": "ccb7d90077a41777",
+      "occurrences": 1,
+      "classification": "encoded_data",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "electron.exe"
+      },
+      "evidence": "Reviewed binary/protobuf/metric identifier data; the matching byte sequence is not a contact field. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 2
+    },
+    {
+      "path": "Nubi Workspace.exe",
+      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
+      "kind": "email",
+      "fingerprint": "44f79fc2aec366c1",
+      "occurrences": 1,
+      "classification": "encoded_data",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "electron.exe"
+      },
+      "evidence": "Reviewed binary/protobuf/metric identifier data; the matching byte sequence is not a contact field. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 302
+    },
+    {
+      "path": "Nubi Workspace.exe",
+      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
+      "kind": "email",
+      "fingerprint": "074684e897dc2c78",
+      "occurrences": 4,
+      "classification": "public_organization_contact",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "electron.exe"
+      },
+      "evidence": "Reviewed public issuer, security, mailing list or bug-reporting contact documented by the upstream distribution; not an application user contact. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 5
+    },
+    {
+      "path": "Nubi Workspace.exe",
+      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
+      "kind": "email",
+      "fingerprint": "a91a875a2d351d80",
+      "occurrences": 1,
+      "classification": "public_organization_contact",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "electron.exe"
+      },
+      "evidence": "Reviewed public issuer, security, mailing list or bug-reporting contact documented by the upstream distribution; not an application user contact. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 6
+    },
+    {
+      "path": "Nubi Workspace.exe",
+      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
+      "kind": "email",
+      "fingerprint": "4e6412b62f31e475",
+      "occurrences": 1,
+      "classification": "public_organization_contact",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "electron.exe"
+      },
+      "evidence": "Reviewed public issuer, security, mailing list or bug-reporting contact documented by the upstream distribution; not an application user contact. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 7
+    },
+    {
+      "path": "Nubi Workspace.exe",
+      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
+      "kind": "email",
+      "fingerprint": "16d266c6fd2658b8",
+      "occurrences": 1,
+      "classification": "public_organization_contact",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "electron.exe"
+      },
+      "evidence": "Reviewed public issuer, security, mailing list or bug-reporting contact documented by the upstream distribution; not an application user contact. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 8
+    },
+    {
+      "path": "Nubi Workspace.exe",
+      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
+      "kind": "email",
+      "fingerprint": "5d75483c2d80a0ba",
+      "occurrences": 2,
+      "classification": "public_organization_contact",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "electron.exe"
+      },
+      "evidence": "Reviewed public issuer, security, mailing list or bug-reporting contact documented by the upstream distribution; not an application user contact. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 3
+    },
+    {
+      "path": "Nubi Workspace.exe",
+      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
+      "kind": "email",
+      "fingerprint": "e296ef61e0846e59",
+      "occurrences": 1,
+      "classification": "public_organization_contact",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "electron.exe"
+      },
+      "evidence": "Reviewed public issuer, security, mailing list or bug-reporting contact documented by the upstream distribution; not an application user contact. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 9
+    },
+    {
+      "path": "Nubi Workspace.exe",
+      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
+      "kind": "email",
+      "fingerprint": "9aa39ab1a5858dbd",
+      "occurrences": 2,
+      "classification": "public_organization_contact",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "electron.exe"
+      },
+      "evidence": "Reviewed public issuer, security, mailing list or bug-reporting contact documented by the upstream distribution; not an application user contact. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 4
+    },
+    {
+      "path": "Nubi Workspace.exe",
+      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
+      "kind": "email",
+      "fingerprint": "a47b34058660f50f",
+      "occurrences": 1,
+      "classification": "encoded_data",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "electron.exe"
+      },
+      "evidence": "Reviewed binary/protobuf/metric identifier data; the matching byte sequence is not a contact field. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 303
+    },
+    {
+      "path": "Nubi Workspace.exe",
+      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
+      "kind": "email",
+      "fingerprint": "bf1e305abf381932",
+      "occurrences": 1,
+      "classification": "encoded_data",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "electron.exe"
+      },
+      "evidence": "Reviewed binary/protobuf/metric identifier data; the matching byte sequence is not a contact field. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 304
+    },
+    {
+      "path": "Nubi Workspace.exe",
+      "sha256": "7dfe1260200fe9c90b4fa73060484c77daf8a2a69189ef3689e17f594643e9ae",
+      "kind": "email",
+      "fingerprint": "a4d6fbd47620cf85",
+      "occurrences": 1,
+      "classification": "encoded_data",
+      "source": {
+        "url": "https://github.com/electron/electron/releases/download/v42.11.10/electron-v42.11.10-win32-x64.zip",
+        "integrity": "sha256-70777758a1b3eb606f2ecc51e45d8c78275e8cfc4f71cb1e54f794db7a7d6c55",
+        "artifactPath": "electron.exe"
+      },
+      "evidence": "Reviewed binary/protobuf/metric identifier data; the matching byte sequence is not a contact field. Every finding exists with the same count in electron.exe of the Electron win32-x64 ZIP verified against electron checksums.json; the target is that executable renamed with packaging resource and fuse edits.",
+      "reviewer": "Claude",
+      "reviewedAt": "2026-10-21",
+      "reviewCard": 305
     }
   ]
 }
