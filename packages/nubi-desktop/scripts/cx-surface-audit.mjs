@@ -14,10 +14,31 @@ export async function auditCxSurface(page,{scope='page',contrastMode='wcag'}={})
   // explicitly unmeasured, never treated as white.
   const gradientBounds=value=>{
    if(!/^linear-gradient\((?:[\d.]+deg|to (?:left|right|top|bottom)(?: (?:left|right|top|bottom))?),/.test(value))return null;
-   const stops=[...value.matchAll(/rgba?\([^)]+\)/g)].map(m=>color(m[0]));
-   const rest=value.replace(/^linear-gradient\([^,]+,/,'').slice(0,-1).replace(/rgba?\([^)]+\)/g,'');
+   const pattern=/rgba?\([^)]+\)|color\(srgb [^)]+\)/g,tokens=[...value.matchAll(pattern)].map(m=>m[0]);
+   const stops=tokens.map(token=>{if(!token.startsWith('color('))return color(token);const channels=token.slice(11,-1).trim().split(/\s+/).map(Number);return channels.length===3&&channels.every(n=>Number.isFinite(n)&&n>=0&&n<=1)?channels.map(n=>n*255).concat(1):[0,0,0,0];});
+   const rest=value.replace(/^linear-gradient\([^,]+,/,'').slice(0,-1).replace(pattern,'');
    if(stops.length<2||stops.some(p=>p[3]!==1)||/[^\s,.\d%+-]/.test(rest))return null;
-   return [Math.min,Math.max].map(bound=>[0,1,2].map(i=>bound(...stops.map(p=>p[i]))).concat(1));
+   const bounds=[Math.min,Math.max].map(bound=>[0,1,2].map(i=>bound(...stops.map(p=>p[i]))).concat(1));
+   if(tokens.some(token=>token.startsWith('color('))){
+    // Modern defaults may interpolate in Oklab. Its linear matrix commutes
+    // with interpolation: bound the cube-root LMS segments, cube them, and
+    // apply the inverse matrix with interval arithmetic. No sampled pixels
+    // are assumed to be the extrema. CSS Color 4, section 19.
+    const forward=[[.4122214708,.5363325363,.0514459929],[.2119034982,.6806995451,.1073969566],[.0883024619,.2817188376,.6299787005]],inverse=[[4.0767416621,-3.3077115913,.2309699292],[-1.2684380046,2.6097574011,-.3413193965],[-.0041960863,-.7034186147,1.707614701]];
+    const linear=n=>n<=.04045?n/12.92:((n+.055)/1.055)**2.4,encode=n=>255*(n<=.0031308?12.92*n:1.055*n**(1/2.4)-.055);
+    const lms=stops.map(p=>forward.map(row=>Math.cbrt(row.reduce((sum,n,i)=>sum+n*linear(p[i]/255),0))));
+    for(let i=1;i<lms.length;i++)for(let part=0;part<32;part++){
+     const endpoints=[part/32,(part+1)/32].map(t=>lms[i].map((n,c)=>(lms[i-1][c]+t*(n-lms[i-1][c]))**3));
+     const ranges=[Math.min,Math.max].map(bound=>endpoints[0].map((n,c)=>bound(n,endpoints[1][c])));
+     for(let c=0;c<3;c++)for(let side=0;side<2;side++){
+      const n=inverse[c].reduce((sum,k,j)=>sum+k*ranges[k>=0?side:1-side][j],0);
+      // Out-of-gamut mapping is deliberately unsupported, not presumed clipped.
+      if(n<0||n>1)return null;
+      bounds[side][c]=(side?Math.max:Math.min)(bounds[side][c],encode(n)+(side?1:-1));
+     }
+    }
+   }
+   return bounds;
   };
   const label=node=>(node.getAttribute('aria-label')?.trim()||[...(node.getAttribute('aria-labelledby')||'').split(/\s+/)].map(id=>document.getElementById(id)?.textContent||'').join(' ').trim()||[...(node.labels||[])].map(n=>n.textContent).join(' ').trim()||node.getAttribute('title')?.trim()||[...node.childNodes].map(n=>n.nodeType===Node.TEXT_NODE?n.textContent:n.nodeType===Node.ELEMENT_NODE&&!n.matches('[aria-hidden=true]')?(n.tagName==='IMG'?n.getAttribute('alt')||'':n.textContent):'').join(' ').trim()).slice(0,100);
   const selector=node=>{const parts=[];for(let n=node;n&&n!==document.body;n=n.parentElement){parts.unshift(n.tagName.toLowerCase()+[...n.classList].map(c=>'.'+CSS.escape(c)).join('')+':nth-child('+([...n.parentElement.children].indexOf(n)+1)+')');if(n===root)break;}return parts.join(' > ');};

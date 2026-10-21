@@ -5,3 +5,5 @@
 .nubi-routine-list{list-style:none;padding:0;margin:var(--cx-space-4) 0;}
 .nubi-routine-list>li{padding-block:var(--cx-space-4);border-bottom:1px solid var(--deck-line);}
 .nubi-routine-list p{overflow-wrap:anywhere;}
+
+.nubi-routine-title{display:flex;align-items:center;gap:var(--cx-space-2);}.nubi-routine-title>.nubi-setting-toggle{flex:1;min-width:0;}.nubi-routine-promotion{border:1px dashed var(--deck-line);border-radius:var(--cx-radius-lg);padding:var(--cx-space-3);margin-top:var(--cx-space-3);}.nubi-routine-promotion p{margin:0 0 var(--cx-space-2);}.nubi-routine-actions{flex-wrap:wrap;}
