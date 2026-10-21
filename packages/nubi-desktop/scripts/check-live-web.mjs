@@ -1,3 +1,4 @@
+import {killProcessTree} from './electron-test-window.mjs';
 import {captureDesign} from './design-rules.mjs';
 // The local web Workspace (docs/LIVE-WORKSPACE-2026-10-01.md): the real Electron host serves its own frontend over a
 // loopback port with a capability-bound bridge, and a browser drives the same project. Revived on 2026-10-07 with the
@@ -44,4 +45,4 @@ try{
   assert.deepEqual(bridgeErrors.filter(error=>error.method==='openCurrent'),[],'startup surfaces restore the same project without busy errors');
   await writeFile('verification/live-web/result.json',JSON.stringify({platform:process.platform,checks,errors,bridgeErrors,boundary:'Actual Electron worker serving a headless Chrome over loopback with a temporary Git project. No provider login.'},null,2));console.log(JSON.stringify({checks,errors}));
 }catch(error){await mkdir('verification/live-web',{recursive:true});await page.screenshot({path:'verification/live-web/failure.png'}).catch(()=>{});console.log('page errors:',JSON.stringify(errors));console.log('bridge errors:',JSON.stringify(bridgeErrors));console.log('failure:',error.message.split('\n').slice(0,6).join(' | '));throw error;}
-finally{const bounded=(promise,ms)=>Promise.race([promise.catch(()=>{}),new Promise(resolve=>setTimeout(resolve,ms).unref())]);await bounded(browser.close(),10000);await bounded(app.close(),15000);try{app.process().kill('SIGKILL');}catch{}await rm(temporary,{recursive:true,force:true});}
+finally{const bounded=(promise,ms)=>Promise.race([promise.catch(()=>{}),new Promise(resolve=>setTimeout(resolve,ms).unref())]);await bounded(browser.close(),10000);await bounded(app.close(),15000);killProcessTree(app.process());await rm(temporary,{recursive:true,force:true});}

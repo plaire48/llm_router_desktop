@@ -1,3 +1,4 @@
+import {killProcessTree} from './electron-test-window.mjs';
 import {DESIGN_MOTION_FILES,sourceDesignIssues} from './design-rules.mjs';
 import {captureDesign} from './design-rules.mjs';
 // P2 red baseline. This collects current product styles and real Workbench
@@ -182,7 +183,7 @@ try{
 }catch(error){result.errors.push(error.stack);}
 finally{
  server.closeAllConnections();
- if(electronApp){const nativeProcess=electronApp.process();let deadline;const closed=await Promise.race([electronApp.close().then(()=>true,error=>{result.errors.push('native teardown: '+error.message);return false;}),new Promise(resolve=>{deadline=setTimeout(()=>resolve(false),5000);deadline.unref();})]);clearTimeout(deadline);check('native-teardown-clean',closed&&nativeProcess.exitCode===0,{closed,exitCode:nativeProcess.exitCode});if(!closed){result.errors.push('native teardown timeout');nativeProcess.kill('SIGKILL');}}
+ if(electronApp){const nativeProcess=electronApp.process();let deadline;const closed=await Promise.race([electronApp.close().then(()=>true,error=>{result.errors.push('native teardown: '+error.message);return false;}),new Promise(resolve=>{deadline=setTimeout(()=>resolve(false),5000);deadline.unref();})]);clearTimeout(deadline);check('native-teardown-clean',closed&&nativeProcess.exitCode===0,{closed,exitCode:nativeProcess.exitCode});if(!closed){result.errors.push('native teardown timeout');killProcessTree(nativeProcess);}}
  if(storage)await rm(storage,{recursive:true,force:true});await browser?.close();await new Promise(resolve=>server.close(resolve));
 }
 check('page-errors-zero',result.errors.length===0,result.errors);

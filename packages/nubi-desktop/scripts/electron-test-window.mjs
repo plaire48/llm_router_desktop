@@ -1,3 +1,4 @@
+import {execFileSync} from 'node:child_process';
 // Portal authentication also owns hidden BrowserWindows. Select the packaged
 // workspace explicitly and give cold Windows startup its own readiness budget.
 export async function desktopTestWindow(app, {timeout = 60000} = {}) {
@@ -14,4 +15,13 @@ export async function desktopTestWindow(app, {timeout = 60000} = {}) {
     await new Promise(resolve => setTimeout(resolve, 100));
   }
   throw new Error('Desktop main window did not open: ' + app.windows().map(page => page.url()).join(', '));
+}
+
+// Ends a launched Electron and everything it started. On Windows a killed process leaves its children running (the
+// app behind a launcher, its worker, its window helper); a relaunch then met the single-instance lock and the check
+// waited for ever (Windows gates 2026-10-21). taskkill /T ends the whole tree there.
+export function killProcessTree(child){
+  if(!child?.pid)return;
+  if(process.platform==='win32'){try{execFileSync('taskkill',['/PID',String(child.pid),'/T','/F'],{stdio:'ignore'});}catch{}return;}
+  try{child.kill('SIGKILL');}catch{}
 }
