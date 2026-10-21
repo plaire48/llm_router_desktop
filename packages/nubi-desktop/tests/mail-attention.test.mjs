@@ -9,7 +9,7 @@ import {parsePop3Content} from '../../openwiki/src/connectors/sources/pop3-conte
 async function fixture(t,extra={}){
  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-attention-')),host={storageRoot:path.join(root,'state'),...extra.host},options={personalRoot:path.join(root,'mail'),...extra.options};
  let mail=new PersonalMail(host,options);
- t.after(async()=>{await mail.dispose();await rm(root,{recursive:true,force:true});});
+ t.after(async()=>{mail.dispose();await Promise.all([mail.rawDisposed,mail.wikiDisposed]);await rm(root,{recursive:true,force:true});});
  return {mail,host,options,reopen(){mail.dispose();mail=new PersonalMail(host,options);return mail;}};
 }
 const row=(id,error='mail_summary_failed')=>({id,account:'owner',state:'attention',subject:'Contract '+id,from:'Alice <alice@example.test>',sourceHash:'retained-source-'+id,uidl:'PRIVATE_UIDL_'+id,path:'PRIVATE_STORAGE_PATH',error});

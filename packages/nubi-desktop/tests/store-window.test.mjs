@@ -14,7 +14,7 @@ test('bounded history retains existing order, updates, prefixes, deletion and un
 });
 test('display keeps a selected old conversation and full-text search still reaches older answers',async t=>{
  const dir=await mkdtemp(path.join(os.tmpdir(),'nubi-old-conversation-')),root=path.join(dir,'project');await mkdir(root);
- const service=new ProjectService({storageRoot:path.join(dir,'state')});t.after(async()=>{await service.dispose();await rm(dir,{recursive:true,force:true});});await service.open(root,{initializeWiki:false});
+ const service=new ProjectService({storageRoot:path.join(dir,'state')});t.after(async()=>{service.dispose();await rm(dir,{recursive:true,force:true});});await service.open(root,{initializeWiki:false});
  for(let i=0;i<70;i++)service.store.set('task:t'+i,{id:'t'+i,state:'done',request:'Request '+i,createdAt:new Date(1700000000000+i).toISOString(),messages:[{role:'assistant',content:i===0?'Unique oldest answer breadfruit':'Answer '+i}]});
  const rows=service.displayTasks('t0');assert.equal(rows.length,51);assert.equal(rows.at(-1).id,'t0');assert.equal(service.displayTasks('t69').length,50);
  const history=service.conversationHistory({query:'breadfruit'});assert(JSON.stringify(history).includes('t0'));

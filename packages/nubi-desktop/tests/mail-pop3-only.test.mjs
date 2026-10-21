@@ -13,7 +13,7 @@ test('withdrawn IMAP settings return to POP3 without changing retained mail reco
  const retained={id:'retained',account:'old-account',uidl:'original-uid',state:'saved',subject:'Retained',from:'sender@example.test',sourceHash:'original-hash'};
  store.set('setting:server-profile','company_imap');store.set('mail:retained',retained);store.close();
  const packets=[],mail=new PersonalMail({storageRoot},{personalRoot:path.join(root,'mail'),pull:async input=>{packets.push(input);return {uidls:[],mails:[],failed:[],delaySeconds:60};}});
- t.after(async()=>{await mail.dispose();await rm(root,{recursive:true,force:true});});
+ t.after(async()=>{mail.dispose();await Promise.all([mail.rawDisposed,mail.wikiDisposed]);await rm(root,{recursive:true,force:true});});
  assert.equal(mail.status().serverProfile,'company');assert.equal(mail.store.get('setting:server-profile'),'company');
  assert.deepEqual(mail.store.get('mail:retained'),retained);
  await assert.rejects(mail.call({action:'connect',serverProfile:'company_imap',requestId:'stale',user:'fixture',password:'fixture'}),/mail_input_invalid/);
@@ -30,7 +30,7 @@ test('POP3 reconnect reuses UIDL and raw receipt while retaining HTML and recipi
  const raw=Buffer.from('Subject: Contract\r\nFrom: Alice <alice@example.test>\r\nTo: other@example.test\r\nCc: owner@example.test\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<table><tr><td>Contract body</td></tr></table>');
  const parsed=await parsePop3Content(raw),normalized={subject:parsed.subject,from:parsed.from.text,to:parsed.to.text,cc:parsed.cc.text,bcc:'',date:null,text:parsed.text,contentVersion:parsed.contentVersion,attachments:[]},packets=[];
  const mail=new PersonalMail({storageRoot:path.join(root,'state')},{personalRoot:path.join(root,'mail'),pull:async input=>{packets.push(input);return {uidls:['opaque-pop3-uid'],mails:input.known?.includes('opaque-pop3-uid')?[]:[{uidl:'opaque-pop3-uid',raw,normalized,attachments:[]}],failed:[],delaySeconds:60};}});
- t.after(async()=>{await mail.dispose();await rm(root,{recursive:true,force:true});});
+ t.after(async()=>{mail.dispose();await Promise.all([mail.rawDisposed,mail.wikiDisposed]);await rm(root,{recursive:true,force:true});});
  const args={action:'connect',requestId:'first',user:'owner@example.test',password:'fixture',recipientAddress:'owner@example.test'};
  await mail.call(args);const row=mail.rows()[0],file=path.join(mail.root,'raw',row.id,'manifest.json'),receipt=await mail.rawVault.read(file);
  const result=await mail.call({action:'search',query:'Contract',filters:{mailbox:'inbox',roles:['cc']}});

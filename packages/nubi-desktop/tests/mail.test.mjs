@@ -90,7 +90,7 @@ test('unconnected model leaves the queue intact; a model connected later is used
 });
 test('cancelled connection cannot activate or persist a late result',async t=>{
  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-cancel-'));let release;
- const mail=new PersonalMail({storageRoot:root},{personalRoot:path.join(root,'personal'),pull:()=>new Promise(r=>release=r)});t.after(async()=>{await mail.dispose();await rm(root,{recursive:true,force:true});});
+ const mail=new PersonalMail({storageRoot:root},{personalRoot:path.join(root,'personal'),pull:()=>new Promise(r=>release=r)});t.after(async()=>{mail.dispose();await Promise.all([mail.rawDisposed,mail.wikiDisposed]);await rm(root,{recursive:true,force:true});});
  const pending=mail.call({action:'connect',requestId:'slow',...credentials});await mail.call({action:'cancelConnect',requestId:'slow'});release({uidls:[],mails:[],delaySeconds:60});await assert.rejects(pending,/mail_cancelled/);assert.equal(mail.status().connected,false);assert.equal(mail.rows().length,0);
 });
 test('oversize retrieval is quarantined without starving later mail; duplicate UIDLs remain usable',async t=>{

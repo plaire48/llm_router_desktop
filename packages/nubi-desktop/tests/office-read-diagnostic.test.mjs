@@ -35,7 +35,7 @@ test('background Office diagnostics survive storage and retry rereads only the f
  const {PersonalMail}=await import('./helpers-personal-mail.mjs');const {createHash}=await import('node:crypto');
  const sha=bytes=>createHash('sha256').update(bytes).digest('hex');const root=await mkdtemp(path.join(os.tmpdir(),'nubi-office-mail-'));
  const host={storageRoot:path.join(root,'state')},options={personalRoot:path.join(root,'mail')};let mail=new PersonalMail(host,options);
- t.after(async()=>{await mail.dispose();await rm(root,{recursive:true,force:true});});
+ t.after(async()=>{mail.dispose();await Promise.all([mail.rawDisposed,mail.wikiDisposed]);await rm(root,{recursive:true,force:true});});
  const id='a'.repeat(64),bytes=Buffer.from('protected fixture'),part={id:'000-'+sha(bytes).slice(0,16),filename:'계약.docx',sha256:sha(bytes)},cached={id:'cached',filename:'읽은 문서.txt',sha256:'cached-hash'};
  const row={id,protocol:'local',account:'local-folder',state:'saved',path:'wiki/preserved.md',sourceHash:'source',attachmentState:'queued'};
  mail.store.set('mail:'+id,row);mail.store.set('attachment:'+id+':cached',{state:'complete',sourceHash:'source',sha256:cached.sha256,text:'already read'});

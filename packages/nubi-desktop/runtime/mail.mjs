@@ -758,9 +758,6 @@ export class PersonalMail {
   }
   async query(query,args={}){return this.searchMail({...args,query,limit:args.limit||10});}
   disconnect(){this.paused=true;this.generation++;clearTimeout(this.timer);this.cancelPull?.();this.attachmentRead?.abort();this.synthesis?.abort();if(this.credentials)this.credentials.password='';this.credentials=null;this.connecting=null;this.activeRequestId=null;}
-  dispose(){if(this.importController&&this.importProgress)this.store.set('setting:local-import',{...this.importProgress,state:'interrupted'});this.importController?.abort();clearInterval(this.processingTimer);this.disconnect();this.contentCache.clear();this.listDisposed=Promise.all([this.searchIndex?.dispose(),this.listing?.dispose()]);this.disposed=true;for(const controller of this.documentReaders||[])controller.abort();this.store.close();this.rawDisposed=Promise.all([this.rawMigration,this.listDisposed]).then(()=>this.rawVault.dispose());this.wikiDisposed=this.wikiVault?this.wikiVault.dispose().catch(()=>{}):Promise.resolve();
-    // Resolves when the list worker, raw vault and wiki vault have closed their files: Windows cannot delete a folder
-    // whose database a closing worker still holds (EBUSY on workspace.db-shm, Windows build 2026-10-21).
-    return Promise.all([this.listDisposed,this.rawDisposed,this.wikiDisposed]).then(()=>{});}
+  dispose(){if(this.importController&&this.importProgress)this.store.set('setting:local-import',{...this.importProgress,state:'interrupted'});this.importController?.abort();clearInterval(this.processingTimer);this.disconnect();this.contentCache.clear();this.listDisposed=Promise.all([this.searchIndex?.dispose(),this.listing?.dispose()]);this.disposed=true;for(const controller of this.documentReaders||[])controller.abort();this.store.close();this.rawDisposed=Promise.all([this.rawMigration,this.listDisposed]).then(()=>this.rawVault.dispose());this.wikiDisposed=this.wikiVault?this.wikiVault.dispose().catch(()=>{}):Promise.resolve();}
 }
 export async function mail(args){this.personalMail ||=new PersonalMail(this,this.mailOptions);return this.personalMail.call(args);}
