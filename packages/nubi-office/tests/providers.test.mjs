@@ -177,3 +177,18 @@ test('per-call summary output budget reaches AI Pro without changing the next an
   await p.complete([{role:'user',content:'Summarize'}],[],new AbortController().signal,undefined,undefined,undefined,{maxTokens:999999});
   assert.equal(bodies[2].max_tokens,16384);
 });
+
+test('AI Pro reasoning levels follow the model: GLM 5.2 high (default) or max, Qwen3.8 27B low, medium (default) or high',async()=>{
+  const bodies=[];
+  const p=createProviders({startLogin:async()=>({result:Promise.resolve({token:'private-token',models:[{id:'GLM-5.2-512K',label:'Glm 5.2'},{id:'QWEN3.8-27B-FP8-256K',label:'Qwen3.8 27B'},{id:'aipro-model',label:'Other'}]}),cancel(){}}),
+    fetchImpl:async(url,opts)=>{bodies.push(JSON.parse(opts.body));return Response.json({choices:[{message:{content:'ok'}}]});}});
+  await p.login('aipro');await new Promise(r=>setImmediate(r));
+  p.model('GLM-5.2-512K');assert.deepEqual([p.status().reasoningOptions,p.status().reasoningEffort],[['high','max'],'high']);
+  p.reasoning('max');await p.complete([],[],new AbortController().signal,()=>{},()=>{});assert.equal(bodies.at(-1).reasoning_effort,'max');
+  assert.throws(()=>p.reasoning('low'),/invalid_reasoning_effort/);
+  p.model('QWEN3.8-27B-FP8-256K');assert.deepEqual([p.status().reasoningOptions,p.status().reasoningEffort],[['low','medium','high'],'medium']);
+  p.reasoning('high');await p.complete([],[],new AbortController().signal,()=>{},()=>{});assert.equal(bodies.at(-1).reasoning_effort,'high');
+  assert.throws(()=>p.reasoning('max'),/invalid_reasoning_effort/);
+  p.model('aipro-model');assert.deepEqual(p.status().reasoningOptions,['low','medium','xhigh'],'other models keep the earlier list');
+  p.dispose();
+});

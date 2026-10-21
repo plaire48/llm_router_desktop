@@ -51,6 +51,7 @@
     "node scripts/check-wiki-search-ui.mjs",
     "node --test --test-concurrency=1 tests/tool-budget.test.mjs tests/compaction-observations.test.mjs tests/compaction-reads.test.mjs tests/compaction-wiki-evidence.test.mjs tests/compaction-turn.test.mjs tests/irreversible-actions.test.mjs tests/approval-policy.test.mjs tests/mcp-approval-flow.test.mjs tests/workflow-runner.test.mjs tests/workflow-mcp.test.mjs",
     "node scripts/check-safety-regression.mjs",
-    "node scripts/check-design-rules.mjs"
+    "node scripts/check-design-rules.mjs",
+    "node scripts/check-form-cards-ui.mjs"
   ]
 }

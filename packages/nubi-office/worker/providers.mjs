@@ -47,6 +47,10 @@ const catalog = payload => (payload?.modelList || []).map(m => ({
 // Prefer the enterprise catalog's actual Qwen 3.8 27B ID. Never fabricate a
 // public model ID/context size, filter alternatives, or replace a user choice.
 // GLM first on AI Pro (user decision 2026-10-14), then the catalog's Qwen 3.8 27B, then the first listed.
+// AI Pro reasoning levels per model family (사용자 지시 2026-10-21): GLM 5.2 takes high (default) or max, Qwen3.8 27B
+// takes low, medium (default) or high. Other AI Pro models keep the earlier list, where xhigh means the server default.
+export const AIPRO_REASONING=Object.freeze([{match:/glm[-_ ]?5\.2/i,options:['high','max'],default:'high'},{match:/qwen[-_ ]?3\.8[-_ ]?27b/i,options:['low','medium','high'],default:'medium'}]);
+export const aiproReasoning=modelId=>AIPRO_REASONING.find(family=>family.match.test(String(modelId??'')))??null;
 export function defaultOfficeModel(models) {
   const glm=value=>/(?:^|[^a-z])glm(?:[^a-z]|$)/i.test(value||'');
   const match=value=>/qwen[\s_.-]*3[\s_.-]*8[\s_.-]*27b(?:\b|[_-])/i.test(value||'');
@@ -103,7 +107,7 @@ export function createProviders(deps = {}) {
   const persistActive=()=>{if(api.onActiveProvider){const value=active;persistence=persistence.catch(()=>{}).then(()=>api.onActiveProvider(value)).catch(()=>{persistenceError='connection_not_saved';});}};
 
   const reasoningOptions = (provider, session = sessions.get(provider)) => {
-    if (provider === 'aipro') return ['low','medium','xhigh'];
+    if (provider === 'aipro') return aiproReasoning(session?.model)?.options??['low','medium','xhigh'];
     if (provider !== 'chatgpt') return [];
     const reported = api.accountCatalog === true ? session?.models.find(item=>item.id===session.model)?.reasoningOptions : undefined;
     return Array.isArray(reported) ? reported : ['low','medium','high','xhigh','max'];
@@ -111,7 +115,7 @@ export function createProviders(deps = {}) {
   const startModel = (provider, models) => models.some(item => item.id === chosen.get(provider)) ? chosen.get(provider) : defaultOfficeModel(models);
   const startReasoning = (provider, session) => {
     const allowed=reasoningOptions(provider,session), preferred=chosenReasoning.get(provider);
-    const fallback=session?.models.find(item=>item.id===session.model)?.defaultReasoning;
+    const fallback=session?.models.find(item=>item.id===session.model)?.defaultReasoning??(provider==='aipro'?aiproReasoning(session?.model)?.default:undefined);
     return allowed.includes(preferred)?preferred:allowed.includes(fallback)?fallback:allowed.includes('medium')?'medium':allowed[0]||null;
   };
   const status = () => ({providers: Object.entries(PROVIDERS).map(([id, label]) => ({id, label, connected: sessions.has(id), connectionId: connectionId(sessions.get(id))})), provider: active,
@@ -270,7 +274,7 @@ export function createProviders(deps = {}) {
     }
     let result, httpFailure, inferenceDiagnostic, usageRequest, reportedUsage,appliedMaxTokens=wiki?.maxTokens;
     const toolChoice=tools.length&&options.toolChoice==='required'&&provider!=='fabrix'?'required':'auto';
-    if(provider==='chatgpt'&&!reasoningOptions(provider,session).includes(session.reasoningEffort))session={...session,reasoningEffort:startReasoning(provider,session)};
+    if(['chatgpt','aipro'].includes(provider)&&!reasoningOptions(provider,session).includes(session.reasoningEffort))session={...session,reasoningEffort:startReasoning(provider,session)};
     const inferenceFetch=async(...args)=>{
       checkWiki();const response=await api.fetchImpl(...args);
       if(!response.ok)httpFailure={status:response.status,retryAfterMs:retryAfterMs(response.headers)};

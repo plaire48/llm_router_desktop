@@ -74,6 +74,8 @@
 
 ### Task H: Office 전체 캡처 명령 (Codex, C# 호스트)
 
+2026-10-21 Codex 확인: Desktop 실제 통로와 본 Files/Interfaces가 다르다. 워크플로우 설계 §8 질문34와 `docs/OFFICE-CAPTURE-TASK-H-2026-10-21.md` 참조. 제품 구현 전 연결 범위 답 대기.
+
 **Files:** Modify `packages/nubi-office/native/Nubi.Office.Host/ContentPort.cs`(`office_capture_template` 분기), Create `ContentCapture.cs`(Word, Excel, PowerPoint 캡처), Modify `NubiPane.cs`(읽기 전용 분류). 시험: `Nubi.Office.Tests`에 캡처 JSON 스키마 검사(COM 없이 가짜 문서), 실제 Office는 사용자 PC.
 
 **Interfaces:** `office_capture_template {scopeId, outDir, maxAssets:200, renders:true}` → 캡처 계약 v1(설계 §3). 자산과 렌더는 outDir에 파일로 쓰고 JSON에는 경로만. 문서는 바꾸지 않는다(읽기만, 렌더는 ExportAsFixedFormat/Slide.Export/Range.CopyPicture를 임시 폴더로).
@@ -97,7 +99,7 @@
 
 - [x] Step 1: 시험(1280/440 캡처, 디자인 규칙). 등록 카드는 칸 목록과 라벨 수정, 질문 카드는 한 묶음 폼(기존 WorkflowPanel 입력 폼 양식 재사용), 채움표 카드는 OfficeTransaction 양식, 전후 비교는 두 페이지 그림과 바뀐 칸 표시.
 - [x] Step 2: 구현. 모션과 접근성 규칙 준수.
-- [ ] Step 3: 기존 전달 계약 화면 통과(2026-10-21), 사용자 후속의 기존 음영 비교 연결은 설계 §8 질문33 답 대기. 호스트 회귀 포함 9/9, 1280/440 FileWorkspace 합성 포트 흐름과 공통 디자인/접근성 검사. 새 순수 Node 3건. renderer 빌드/게이트 집합 통과. 실제 모델/Windows/설치판은 별도. `docs/DOCUMENT-FORMS-TASK-F-2026-10-21.md` 참조.
+- [x] Step 3: 답 33/38차 계약 화면 통과(2026-10-21). written.compare를 기존 NativeDocumentPreview에 연결. 음영/원본 잠깐 보기/삽입과 삭제 내역, Excel/PPT 저장됨 및 작성 차단, fidelity 표시. 1280/440 FileWorkspace 합성 호스트 화면과 디자인/접근성 검사 통과. 집중 20/20 뒤 새 표시 시험 포함 순수 Node 4/4, 기존 Office UI 6장면 통과. 전체 게이트와 실제 모델/Windows/설치판은 별도. `docs/DOCUMENT-FORMS-TASK-F-2026-10-21.md` 및 새 SHA 명세 참조.
 
 ### Task G: 벤치마크 기준선
 

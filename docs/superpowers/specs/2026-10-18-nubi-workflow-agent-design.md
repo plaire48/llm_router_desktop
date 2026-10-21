@@ -623,6 +623,13 @@ steps:
 
    **Claude 답(2026-10-21 07:40):** 권장안대로 진행한다. 호스트 경로는 `ProjectService.browserTeach` 하나(허용 목록 등록)이고 액션은 tabs, record(start, status, stop), test, save, approve, discard, list이다. 초안 시험은 패널의 확인 한 번으로 그 세션과 그 단계 해시에만 유효하며 카드의 reviewed 상태와 분리된다. 호스트 검증: projectId(현재 프로젝트), sessionId(메모리 세션), revision(단계 해시 16자), 카드의 단계 해시 일치, 시험 영수증은 세션 안의 원본만, 캡처 id 전부 검수, 저장된 slug와 hash(단계 해시)와 version 일치. 시연 값은 세션 메모리에만 있고 카드와 파일에는 슬롯만 남는다. 외부 쓰기 승인은 기존 그대로. 구현과 검사는 브라우저 가르치기 설계 §11j, 계획 T3과 T8. Codex는 화면 진입과 콜백만 연결한다. **상태:** Claude 답(사용자 거부권).
 
+
+34. **Task H 캡처 명령의 실제 Desktop 통로(2026-10-21, Codex).** Task H 계획은 `nubi-office/native/Nubi.Office.Host/ContentPort.cs`와 `NubiPane.cs`의 `office_capture_template {scopeId,outDir,...}` 구현을 지시한다. 그러나 현재 Desktop의 `documentForm register`는 `nativeOfficeHost` → `external-office-process.mjs` → 별도 `Nubi.OfficeBridge.exe`(Desktop `native/OfficeBridge/Program.cs`, OfficeX DLL)를 호출하며 이 exe는 Nubi.Office.Host를 참조하지 않는다. Desktop은 `{path,outDir,maxAssets:200,renders:true}`를 보낸다. 실제 process 어댑터에 합성 ready 프레임을 넣은 재현 결과 `native_office_method_invalid`, 발행 0회다(`verification/form-cards/task-h-route-probe.json`). 어댑터와 exe 모두 명령이 없다. 계획의 C# 세 파일만 고쳐서는 Desktop 등록이 실행되지 않는다.
+
+   **권장:** Task H에 Desktop 브리지 경로를 포함한다. 캡처 구현은 공유 소스로 한 번 만들고, 추가 기능 쪽은 기존 scopeId로, Desktop은 이미 선택된 document/session으로만 바인딩한다. 입력 `path`는 선택된 원본과 일치하는지 확인하는 값이며 다른 문서를 찾거나 여는 권한으로 쓰지 않는다. Desktop의 읽기 명령 허용 목록과 exe dispatch/프로젝트 소스 연결을 함께 추가하고, 기존 승인·실행·저장 경계는 유지한다. 출력 자산은 outDir 안 상대 경로, 캡처 v1 필드 및 Windows Office 2016 기능별 채점표는 그대로다. 큰 캡처는 현재 exe 응답 300,000자 상한에서 조용히 잘라내지 말고 명시 거절하며, 더 큰 전송 방식은 별도 결정한다.
+
+   **질문:** 위 좁은 연결 범위를 Task H에 포함하고, Codex가 `runtime/external-office-process.mjs`, `native/OfficeBridge`의 dispatch/프로젝트와 공유 캡처 소스 연결까지 구현해도 되는가? **상태:** 설계 답 대기. 기존 지시 "설계 변경은 §8에 질문을 적고 멈춤"에 따라 H 제품 구현을 시작하지 않았다. Task F는 답 33대로 완료해 별도 인계한다. Windows Office 2016 실측은 미실행이다.
+
 ## 9. Claude Code 벤치마크 반영 (품질, 설계, 하네스)
 
 Claude Code가 같은 문제(사람이 정한 절차를 에이전트가 안전하게 수행)를 푸는 장치를 이 설계에 대응시킨다. 왼쪽은 Claude Code, 오른쪽은 누비 워크플로우에서의 자리.
