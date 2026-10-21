@@ -49,3 +49,22 @@ const candidateId='a'.repeat(32),choices={app:'word',selectionRequired:true,docu
 test('unbound helper exposes choices and only selected response establishes document metadata',async()=>{const h=fixture(choices),host=await h.opening;assert.equal(host.selectionRequired,true);await assert.rejects(host.call('inspect_office',{}),/selection_required/);await assert.rejects(host.call('bind_document',{candidateId:'invented'}),/selection_changed/);assert.equal(h.sent.length,0);const selected=host.call('bind_document',{candidateId});h.emit({type:'result',sessionId:'session',id:h.sent[0].id,sequence:1,result:{app:'word',candidateId,documentId:'selected-document',documentTitle:'보고서',officeVersion:'16.0'}});await selected;assert.equal(host.selectionRequired,false);assert.equal({...host}.documentId,'selected-document');await assert.rejects(host.call('bind_document',{candidateId}),/selection_changed/);host.close();});
 test('a response for a different candidate retires the helper instead of binding another window',async()=>{const h=fixture(choices),host=await h.opening,p=host.call('bind_document',{candidateId});h.emit({type:'result',sessionId:'session',id:h.sent[0].id,sequence:1,result:{app:'word',candidateId:'b'.repeat(32),documentId:'wrong',documentTitle:'보고서'}});await assert.rejects(p,/protocol_invalid/);assert.equal(host.isAlive(),false);assert.equal(host.documentId,undefined);});
 test('duplicate discovery IDs fail closed before a candidate can be selected',async()=>{const h=fixture({...choices,documents:[...choices.documents,...choices.documents]});await assert.rejects(h.opening,/protocol_invalid/);assert.equal(h.child.killed,true);});
+
+test('Word capture uses the selected read-only session and preserves explicit size rejection',async()=>{
+ const h=fixture(),host=await h.opening;
+ try {
+  const capture=host.call('office_capture_template',{path:'C:/synthetic.docx',outDir:'C:/capture',renders:true,maxAssets:200});
+  assert.equal(h.sent[0]?.name,'office_capture_template');
+  h.emit({type:'result',sessionId:'session',id:h.sent[0].id,sequence:1,result:{capture:{app:'word',engine:'office'}}});
+  assert.equal((await capture).capture.engine,'office');
+  const large=host.call('office_capture_template',{path:'C:/synthetic.docx',outDir:'C:/capture'});
+  h.emit({type:'result',sessionId:'session',id:h.sent[1].id,sequence:2,error:'form_capture_too_large'});
+  await assert.rejects(large,e=>e.message==='form_capture_too_large'&&!e.writeResultUncertain);
+  assert.equal(h.sent.length,2);
+ } finally {host.close();}
+});
+test('capture cannot select another document by supplying a path',async()=>{
+ const h=fixture(choices),host=await h.opening;
+ try {await assert.rejects(host.call('office_capture_template',{path:'C:/other.docx'}),/selection_required/);assert.equal(h.sent.length,0);}
+ finally {host.close();}
+});

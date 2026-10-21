@@ -9,6 +9,7 @@ using System.Windows.Forms;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Nubi.Office.Core;
+using Nubi.Office.Capture;
 
 namespace Nubi.Office.Host
 {
@@ -44,6 +45,10 @@ namespace Nubi.Office.Host
         public JToken Dispatch(string method,JObject payload)
         {
             string Required(string key)=>(string?)payload[key]??throw new OfficeFault("invalid_request");
+            if(method=="office_capture_template"){
+                if(host!="word")throw new OfficeFault("form_capture_unsupported_app");
+                return Get(Required("scopeId")).CaptureTemplate((object)app,payload);
+            }
             if(method=="office_read")return Read(Required("scopeId"),(int?)payload["offset"]??0);
             if(method=="office_read_text")return ReadText(Required("scopeId"),Required("expectedFingerprint"),Required("itemId"),Required("field"),(int?)payload["offset"]??0,(int?)payload["maxChars"]??4000);
             if(method=="office_receipt")return receipts.TryGetValue(Required("operationId"),out var receipt)?receipt.DeepClone():new JObject{["outcome"]="not_executed"};
@@ -86,7 +91,11 @@ namespace Nubi.Office.Host
                     if(checks.Any(c=>(string?)c["status"]=="unknown"))throw new OfficeFault("write_uncertain");
                     int offset=0;string? target=(string?)expected["targetId"];
                     if(target!=null){var position=after.FindIndex(i=>(string?)i["id"]==target);if(position>=0)offset=position/40*40;}
-                    result=new JObject{["verified"]=true,["checks"]=checks,["targetId"]=expected["targetId"]?.DeepClone(),["snapshot"]=Read(document.Id,offset)};
+                    result=new JObject{["verified"]=true,["checks"]=checks,["targetId"]=expected["targetId"]?.DeepClone()};
+                    // insert_paragraphs names the paragraphs it added and remove_paragraph the one it removed.
+                    if(expected["inserted"]!=null)result["inserted"]=expected["inserted"]!.DeepClone();
+                    if(expected["removed"]!=null)result["removed"]=expected["removed"]!.DeepClone();
+                    result["snapshot"]=Read(document.Id,offset);
                 }
                 receipts[operationId]=new JObject{["outcome"]="applied",["result"]=result.DeepClone()};return result;
             }catch{throw new OfficeFault(method=="office_save"?"document_save_uncertain":"write_uncertain");}
@@ -143,6 +152,14 @@ namespace Nubi.Office.Host
         public string Name=>(string)Doc.Name;
         public void EnsureOpen(){try{var ignored=Name;if(!string.Equals(boundName,(string)Doc.FullName,StringComparison.OrdinalIgnoreCase))throw new OfficeFault("source_changed");}catch(OfficeFault){throw;}catch{throw new OfficeFault("document_closed");}}
         public static string Hash(string value){using(var sha=SHA256.Create())return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(value))).Replace("-","").ToLowerInvariant();}
+        public JObject CaptureTemplate(object application,JObject payload)
+        {
+            EnsureOpen();
+            var input=(JObject)payload.DeepClone();
+            if(input["path"]==null)input["path"]=(string)Doc.FullName;
+            try{return ContentCapture.CaptureWord(new ComWordCaptureDocument((object)Doc,application,EnsureOpen),input);}
+            catch(CaptureException error){throw new OfficeFault(error.Message);}
+        }
         public abstract List<JObject> Items();
         public abstract string ReadText(string itemId,string field);
         public abstract string Fingerprint(List<JObject> items);

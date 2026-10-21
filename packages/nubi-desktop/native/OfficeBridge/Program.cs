@@ -12,15 +12,16 @@ using System.Threading;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using OfficeX.Core;
+using Nubi.Office.Capture;
 
 namespace Nubi.OfficeBridge {
  // A dedicated STA process owns one existing Office document. It has no model,
  // network listener, shell executor, Office launcher or encrypted file reader.
  static class Program {
-  static OpenDocuments documents;static object application,window,port,files;static Type portType;static Assembly host;
+  static OpenDocuments documents;static object application,window,port,files,captureDocument;static Type portType;static Assembly host;
   static OfficeAutomationSession session;static string sessionId;static bool writeIssued;static string officeApp;static string windowHandle;static readonly HashSet<string> restored=new HashSet<string>();
   static readonly BindingFlags Instance=BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic;
-  static void Emit(object value){string text=Wire.Json(value);if(text.Length>300000)throw new OfficeFault("native_office_frame_limit");Console.Out.WriteLine(text);Console.Out.Flush();}
+  static void Emit(object value,string overflowCode="native_office_frame_limit"){string text=Wire.Json(value);if(text.Length>300000)throw new OfficeFault(overflowCode);Console.Out.WriteLine(text);Console.Out.Flush();}
   static string Code(Exception e){while(e.InnerException!=null)e=e.InnerException;return Regex.IsMatch(e.Message??"","^[a-z][a-z_]{2,70}$")?e.Message:e is COMException?"native_office_not_available":"native_office_call_failed";}
   static object Invoke(object target,string method,params object[] args)=>target.GetType().GetMethod(method,Instance).Invoke(target,args);
   static object Get(object target,string member)=>host.GetType("OfficeX.ExcelHost.OfficeDispatch",true).GetMethod("Get").Invoke(null,new object[]{target,member,new object[0]});
@@ -32,7 +33,7 @@ namespace Nubi.OfficeBridge {
   static object Call(string name,JObject input){
    if(name=="bind_document"){
     Keys(input,"candidateId");if(port!=null)throw new OfficeFault("native_office_already_bound");
-    var selected=documents.Select((string)input["candidateId"]);application=selected.Application;window=selected.Window;
+    var selected=documents.Select((string)input["candidateId"]);application=selected.Application;window=selected.Window;captureDocument=selected.Document;
     object hwnd=host.GetType("OfficeX.ExcelHost.OfficeWindow",true).GetMethod("Handle").Invoke(null,new[]{window,(object)officeApp});
     windowHandle=Convert.ToString(hwnd,CultureInfo.InvariantCulture);
     portType=host.GetType("OfficeX.ExcelHost.OfficeAutomationPort",true);port=Activator.CreateInstance(portType,Instance,null,new[]{application,(object)officeApp,hwnd},CultureInfo.InvariantCulture);
@@ -45,6 +46,11 @@ namespace Nubi.OfficeBridge {
    }
    if(port==null)throw new OfficeFault("native_office_selection_required",invocationStarted:false);
    ((IOfficeAutomationPort)port).CheckSource();
+   if(name=="office_capture_template"){
+    Keys(input,"path","outDir","maxAssets","renders");
+    if(officeApp!="word")throw new OfficeFault("form_capture_unsupported_app");
+    return ContentCapture.CaptureWord(new ComWordCaptureDocument(captureDocument,application,()=>((IOfficeAutomationPort)port).CheckSource()),input);
+   }
    if(name=="inspect_office"){Keys(input,"steps");return session.Inspect(Steps(input["steps"]));}
    if(name=="execute_office_operations"){
     Keys(input,"snapshotId","summary","steps","checks");if(writeIssued)throw new OfficeFault("native_office_write_already_issued",invocationStarted:false);
@@ -81,7 +87,7 @@ namespace Nubi.OfficeBridge {
      var frame=Parse(line);Keys(frame,"type","sessionId","id","sequence","name","input");
      string id=(string)frame["id"],name=(string)frame["name"];
      if((string)frame["type"]!="call"||(string)frame["sessionId"]!=sessionId||frame["sequence"]?.Type!=JTokenType.Integer||(int)frame["sequence"]!=++sequence||!Regex.IsMatch(id??"","^[a-zA-Z0-9-]{1,100}$")||!ids.Add(id)||ids.Count>10000)throw new OfficeFault("native_office_protocol_invalid");
-     try{var result=Call(name,frame["input"] as JObject);Emit(new{type="result",sessionId,id,sequence,result});}
+     try{var result=Call(name,frame["input"] as JObject);Emit(new{type="result",sessionId,id,sequence,result},name=="office_capture_template"?"form_capture_too_large":"native_office_frame_limit");}
      catch(Exception e){
       // Prepare/checkpoint/source failures before Apply are known not to have
       // edited the document. A failure after issue stays uncertain.

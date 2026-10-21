@@ -2,7 +2,7 @@ import {spawn} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
 import path from 'node:path';
 
-const methods=new Set(['bind_document','inspect_office','execute_office_operations','calculate_office','save_document','list_checkpoints','restore_checkpoint','window_identity']);
+const methods=new Set(['bind_document','office_capture_template','inspect_office','execute_office_operations','calculate_office','save_document','list_checkpoints','restore_checkpoint','window_identity']);
 const validDocument=c=>typeof c?.documentId==='string'&&c.documentId.length>0&&c.documentId.length<=160&&typeof c.documentTitle==='string'&&c.documentTitle.length<=300;
 const validChoices=rows=>Array.isArray(rows)&&rows.length>0&&rows.length<=64&&new Set(rows.map(r=>r?.candidateId)).size===rows.length&&rows.every(r=>/^[a-f0-9]{32}$/.test(r?.candidateId)&&typeof r.documentTitle==='string'&&r.documentTitle.length<=300&&Number.isInteger(r.windowNumber)&&r.windowNumber>0&&r.windowNumber<=64);
 const code=value=>typeof value==='string'&&/^[a-z][a-z_]{2,70}$/.test(value)?value:'native_office_call_failed';

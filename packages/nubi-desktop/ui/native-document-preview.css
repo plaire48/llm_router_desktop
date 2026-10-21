@@ -22,3 +22,9 @@
 .nubi-word-paper p[data-changed]:after,.nubi-word-table td[data-changed]:after{display:none}
 
 .nubi-ppt-shape[data-changed][aria-pressed=true]{outline:2px solid var(--preview-accent);outline-offset:3px}
+
+.nubi-word-story{padding:var(--cx-space-3) var(--cx-space-4);background:var(--nubi-surface-base);border-block:1px solid var(--deck-line);font-size:var(--deck-type-body);line-height:var(--deck-line-body)}
+.nubi-word-story strong{font-size:var(--deck-type-caption);color:var(--nubi-text-secondary)}
+.nubi-word-story p{margin-block:var(--cx-space-2);white-space:pre-wrap;overflow-wrap:anywhere}
+
+.nubi-word-story .nubi-office-changed-text{color:var(--nubi-text-primary)}

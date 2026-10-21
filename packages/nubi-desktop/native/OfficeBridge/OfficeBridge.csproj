@@ -6,6 +6,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Security" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="Microsoft.CSharp" />
+    <Compile Include="../../../nubi-office/native/Shared/WordCaptureProjection.cs" Link="WordCaptureProjection.cs" />
+    <Compile Include="../../../nubi-office/native/Shared/ContentCapture.cs" Link="ContentCapture.cs" />
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net472" Version="1.0.3" PrivateAssets="all" />
     <Reference Include="OfficeX.Core"><HintPath>$(OfficeXNativeDirectory)/OfficeX.Core.dll</HintPath></Reference>
     <Reference Include="Newtonsoft.Json"><HintPath>$(OfficeXNativeDirectory)/Newtonsoft.Json.dll</HintPath></Reference>

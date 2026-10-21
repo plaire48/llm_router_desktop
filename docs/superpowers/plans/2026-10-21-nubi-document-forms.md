@@ -74,15 +74,15 @@
 
 ### Task H: Office 전체 캡처 명령 (Codex, C# 호스트)
 
-2026-10-21 Codex 확인: Desktop 실제 통로와 본 Files/Interfaces가 다르다. 워크플로우 설계 §8 질문34와 `docs/OFFICE-CAPTURE-TASK-H-2026-10-21.md` 참조. 제품 구현 전 연결 범위 답 대기.
+2026-10-21 §8 답34 승인대로 **1.3.0은 Word만** 구현한다. Excel/PowerPoint는 1.3.1이다. 기존 추가 기능 scopeId와 Desktop의 선택 문서/session을 공유 C# 소스로 연결한다.
 
-**Files:** Modify `packages/nubi-office/native/Nubi.Office.Host/ContentPort.cs`(`office_capture_template` 분기), Create `ContentCapture.cs`(Word, Excel, PowerPoint 캡처), Modify `NubiPane.cs`(읽기 전용 분류). 시험: `Nubi.Office.Tests`에 캡처 JSON 스키마 검사(COM 없이 가짜 문서), 실제 Office는 사용자 PC.
+**Files:** `packages/nubi-office/native/Shared/{ContentCapture,WordCaptureProjection}.cs`, `Nubi.Office.Host/{ContentPort.cs,NubiPane.cs,Nubi.Office.Host.csproj}`, `Nubi.Office.CaptureTests/`; Desktop `runtime/external-office-process.mjs`, `native/OfficeBridge/{Program.cs,OfficeBridge.csproj}`, `tests/external-office-process.test.mjs`, `eval/office-fidelity/run-native-word.mjs`.
 
-**Interfaces:** `office_capture_template {scopeId, outDir, maxAssets:200, renders:true}` → 캡처 계약 v1(설계 §3). 자산과 렌더는 outDir에 파일로 쓰고 JSON에는 경로만. 문서는 바꾸지 않는다(읽기만, 렌더는 ExportAsFixedFormat/Slide.Export/Range.CopyPicture를 임시 폴더로).
+**Interfaces:** 추가 기능 `office_capture_template {scopeId,outDir,maxAssets:200,renders:true}`, Desktop `{path,outDir,maxAssets:200,renders:true}` → `{capture}` 계약 v1. path는 선택 문서 확인용이며 불일치는 form_capture_source_mismatch. 자산/쪽 PDF는 outDir, JSON에는 상대 경로만. 300,000자 초과는 form_capture_too_large. 문서 쓰기/저장 없음.
 
-- [ ] Step 1: 시험. Word 합성 문서(그림 1, 머리글, 각주, 굵은 빨간 run, 표 음영)에서 runs 서식, 그림 자산, 머리글 글이 JSON에 있고 renders가 쪽 수만큼 있다. Excel 2시트(수식, 숫자 서식, 채움색, 병합, 이름 정의)와 PowerPoint 2슬라이드(자리표시자, 그림)도 같은 방식.
-- [ ] Step 2: 구현.
-- [ ] Step 3: 통과(사용자 PC Office 2016 확인 포함).
+- [x] Step 1: 로컬 시험. 합성 kitchen-sink Word를 시험 전용 Flat OPC로 투영해 같은 WORD_FEATURES 38/38과 DTO 검증. 가짜 문서의 쪽별 렌더/원본 보존/실패 정리 등 10개. 미지원 전송 실패부터 확인하고 선택/오류 전송 Node 2개 추가. **Windows Office 성적이 아님.**
+- [x] Step 2: Word 공유 캡처와 양쪽 dispatch/프로젝트 연결. OfficeBridge와 추가 기능 net472 컴파일 오류 0. 보고서 `docs/OFFICE-CAPTURE-TASK-H-2026-10-21.md`, 전체 SHA 목록 포함.
+- [ ] Step 3: 사용자 Windows Office 2016에서 synthetic-kitchen-sink.docx의 WORD_FEATURES 38개와 원본 불변, 렌더 전 페이지 확인. 연결된 Windows가 없어 미실행.
 
 ### Task I: Desktop 캡처 수신과 등록 엔진 (Claude)
 

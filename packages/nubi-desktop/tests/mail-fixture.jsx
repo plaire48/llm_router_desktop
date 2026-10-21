@@ -14,7 +14,7 @@ import '../design/workspace-density.css';
 import '../design/workspace-dialogs.css';
 import '../design/workspace-icons.css';
 // The '메일 설정' dialog of the Workbench: MailLibrary inside a DetailPanel, with the toast host that shows its action errors.
-// Two ways in (2026-10-14): the portal login and a folder of saved mail files. No password field exists any more.
+// Two ways in (2026-10-14): the portal login and a folder of saved mail files. The POP3 fallback is only exposed after a host-reported portal failure.
 window.mailCalls=[];window.mailFail=false;window.mailSlow=false;
 const status={serverProfile:'company',protocol:'portal',encryption:{state:'on',migration:{state:'completed'}},connected:false,connecting:false,autoWiki:true,watchPaused:false,checking:false,summarizing:false,readingAttachments:false,counts:{received:0,queued:0,saved:0,attention:0},messages:[],storageRoot:'/fixture/personal',wikiRoot:'/fixture/personal/wiki',rawRoot:'/fixture/personal/raw',baselineCount:0,catalogs:[{provider:'aipro',models:[{id:'fixture',label:'Fixture'}]}],destination:null,localImport:null,localCount:0,localKinds:[]};
 window.setMailImportFixture=progress=>{status.localImport=progress;};
@@ -26,7 +26,8 @@ async function api(method,args={}){
  window.mailCalls.push(structuredClone(args));
  if(args.action==='resumeImport')status.localImport={...status.localImport,state:'importing',startedAt:new Date().toISOString()};
  if(args.action==='cancelImport')status.localImport={...status.localImport,state:'cancelled'};
- if(args.action==='portalLogin'){if(window.mailSlow){status.connecting=true;try{await new Promise(r=>window.releaseMail=r);}finally{status.connecting=false;}}if(window.mailFail){status.error=typeof window.mailFail==='string'?window.mailFail:'mail_portal_login';throw Error(status.error);}status.error=null;status.connected=true;status.counts={received:1,saved:1,queued:0,attention:0};status.messages=[{id:'one',subject:'계약 검토',state:'saved',from:'sender@fixture',fetchedAt:new Date().toISOString()}];status.destination=args.destination;status.nextCheckAt=new Date(Date.now()+60000).toISOString();}
+ if(args.action==='connect'){await new Promise(resolve=>window.resolvePop3=resolve);if(window.pop3Fail){status.error='mail_auth';throw Error('mail_auth');}status.protocol='pop3';status.connected=true;status.error=null;}
+ if(args.action==='portalLogin'){if(window.mailSlow){status.connecting=true;try{await new Promise(r=>window.releaseMail=r);}finally{status.connecting=false;}}if(window.mailFail){if(window.mailFallback)status.fallback='pop3';status.error=typeof window.mailFail==='string'?window.mailFail:'mail_portal_login';throw Error(status.error);}status.error=null;status.connected=true;status.counts={received:1,saved:1,queued:0,attention:0};status.messages=[{id:'one',subject:'계약 검토',state:'saved',from:'sender@fixture',fetchedAt:new Date().toISOString()}];status.destination=args.destination;status.nextCheckAt=new Date(Date.now()+60000).toISOString();}
  if(args.action==='reset'){if(args.confirmed!==true)throw Error('mail_reset_confirmation');status.connected=false;status.counts={received:0,saved:0,queued:0,attention:0};status.messages=[];status.localImport=null;status.localCount=0;status.localKinds=[];}
  if(args.action==='setAutoWiki')status.autoWiki=args.enabled;
  if(args.action==='disconnect'||args.action==='cancelConnect')status.connected=false;

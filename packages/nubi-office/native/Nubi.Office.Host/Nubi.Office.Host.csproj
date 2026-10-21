@@ -2,14 +2,17 @@
   <PropertyGroup><TargetFramework>net472</TargetFramework><LangVersion>latest</LangVersion><Nullable>enable</Nullable><TreatWarningsAsErrors>true</TreatWarningsAsErrors><AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects><CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies></PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Nubi.Office.Core/Nubi.Office.Core.csproj" />
+    <Compile Include="../Shared/WordCaptureProjection.cs" Link="WordCaptureProjection.cs" />
+    <Compile Include="../Shared/ContentCapture.cs" Link="ContentCapture.cs" />
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net472" Version="1.0.3" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3240.44" />
-    <PackageReference Include="Microsoft.Office.Interop.Excel" Version="15.0.4795.1001" />
-    <PackageReference Include="Microsoft.Office.Interop.Word" Version="15.0.4797.1004" />
-    <PackageReference Include="Microsoft.Office.Interop.PowerPoint" Version="15.0.4420.1018" />
+    <PackageReference Include="Microsoft.Office.Interop.Excel" Version="15.0.4795.1001" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Office.Interop.Word" Version="15.0.4797.1004" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Office.Interop.PowerPoint" Version="15.0.4420.1018" ExcludeAssets="runtime" PrivateAssets="all" />
     <PackageReference Include="DocumentFormat.OpenXml" Version="3.3.0" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Security" />
     <Reference Include="System.Windows.Forms" /><Reference Include="System.Drawing" /><Reference Include="System.Net.Http" /><Reference Include="System.IO.Compression" /><Reference Include="System.IO.Compression.FileSystem" /><Reference Include="System.Xml.Linq" />
   </ItemGroup>
+  <Import Project="../OfficeInterop.targets" />
 </Project>

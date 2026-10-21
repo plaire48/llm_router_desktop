@@ -30,16 +30,25 @@ namespace Nubi.Office.Host
         private bool observingView;
         private int viewEpoch;
         private bool initialized;
-        public NubiPane(Excel.Application application, string packageRoot)
+        // The add-ins pass Office objects as object. The host embeds its interop types, so no Office interop type
+        // crosses the assembly boundary and no add-in needs the Excel interop assembly to call this.
+        public NubiPane(object application, string packageRoot)
         {
-            officeVersion=()=>application.Version;root = packageRoot; views=new OfficeView(root); documents = new DocumentPort(application); port = new ExcelPort(application); engine = new WorkbookEngine(port); Controls.Add(web);
-            Load += async (_, __) => {try {await Initialize();} catch {Controls.Clear(); Controls.Add(new Label {Text = "누비를 시작하지 못했습니다. 설치 파일의 런타임과 WebView2를 확인하세요.", Dock = DockStyle.Fill});}};
+            var excel = (Excel.Application)application;
+            officeVersion=()=>excel.Version;root = packageRoot; views=new OfficeView(root); documents = new DocumentPort(excel); port = new ExcelPort(excel); engine = new WorkbookEngine(port); Controls.Add(web);
+            Load += async (_, __) => {try {await Initialize();} catch (Exception failure) {ShowStartupFailure(failure);}};
         }
         public NubiPane(object application, object window, string packageRoot, string officeHost)
         {
             if(officeHost!="word"&&officeHost!="powerpoint")throw new OfficeFault("unsupported_office_host");
             officeVersion=()=>Convert.ToString(((dynamic)application).Version)??"";host=officeHost;root=packageRoot;views=new OfficeView(root);content=new ContentPort(application,window,host);Controls.Add(web);
-            Load += async (_, __) => {try {await Initialize();} catch {Controls.Clear();Controls.Add(new Label{Text="누비를 시작하지 못했습니다. 설치 파일과 WebView2를 확인하세요.",Dock=DockStyle.Fill});}};
+            Load += async (_, __) => {try {await Initialize();} catch (Exception failure) {ShowStartupFailure(failure);}};
+        }
+        private void ShowStartupFailure(Exception failure)
+        {
+            var log = PaneFailureLog.Write(host, "누비 화면 시작", failure);
+            Controls.Clear();
+            Controls.Add(new Label {Dock = DockStyle.Fill, Padding = new Padding(12), Text = "누비를 시작하지 못했습니다. 설치 파일의 런타임과 WebView2를 확인하세요.\r\n\r\n원인: " + PaneFailureLog.Summary(failure) + (log == null ? "" : "\r\n\r\n자세한 기록: " + log)});
         }
         private async Task Initialize()
         {
@@ -65,7 +74,8 @@ namespace Nubi.Office.Host
             if (e.Source != Page || web.Source?.AbsoluteUri != Page || worker == null) return;
             string? id = null, method = null;
             try {
-                if (e.WebMessageAsJson.Length > 250000) throw new OfficeFault("message_limit");
+                // A run start carries the selection and the whole conversation; each may reach 1,000,000 characters.
+                if (e.WebMessageAsJson.Length > 8000000) throw new OfficeFault("message_limit");
                 var message = JObject.Parse(e.WebMessageAsJson); id = (string?)message["id"];
                 if (id == null || !System.Text.RegularExpressions.Regex.IsMatch(id, "^[a-zA-Z0-9_-]{1,100}$")) return;
                 method = (string?)message["method"]; var payload = message["payload"] as JObject ?? new JObject(); JToken result;
@@ -138,7 +148,7 @@ namespace Nubi.Office.Host
                     if(method=="selection")result=content.Selection();
                     else if(method!=null&&method.StartsWith("office_",StringComparison.Ordinal))result=content.Dispatch(method,payload);
                     else if(method=="history")result=new JArray();
-                    else if(new[]{"session","connect","login","cancelLogin","disconnect","selectProvider","selectModel","refreshModels","runStart","runLookup","runStatus","runCancel","toolResult"}.Contains(method))result=await worker.Call(method!,payload);
+                    else if(new[]{"a2a","session","connect","login","cancelLogin","disconnect","selectProvider","selectModel","refreshModels","runStart","runLookup","runStatus","runCancel","toolResult"}.Contains(method))result=await worker.Call(method!,payload);
                     else throw new OfficeFault("unsupported_operation");
                     Reply(new JObject{["id"]=id,["ok"]=true,["result"]=result});return;
                 }
@@ -160,7 +170,7 @@ namespace Nubi.Office.Host
                     case "restore": result = engine.Restore(Required("changeId")); break;
                     case "history": result = engine.History(); break;
                     case "focus": engine.Focus(Required("scopeId")); result = new JObject { ["focused"] = true }; break;
-                    case "session": case "connect": case "login": case "cancelLogin": case "disconnect": case "selectProvider": case "selectModel": case "refreshModels": case "runStart": case "runLookup": case "runStatus": case "runCancel": case "toolResult":
+                    case "a2a": case "session": case "connect": case "login": case "cancelLogin": case "disconnect": case "selectProvider": case "selectModel": case "refreshModels": case "runStart": case "runLookup": case "runStatus": case "runCancel": case "toolResult":
                         result = await worker.Call(method!, payload); break;
                     default: throw new OfficeFault("unknown_method");
                 }
@@ -172,7 +182,7 @@ namespace Nubi.Office.Host
             if (error is OfficeFault fault) return fault.Code;
             // Only a read rejection can be retried by the worker. Never label
             // a possibly executed write/save as safe to replay.
-            bool read = method == "office_read" || method == "office_read_text" || method == "office_receipt" || method == "read" || method == "workbook_sheets" || method == "workbook_structure" || method == "workbook_range" || method == "reconcile" || method == "document_reconcile" || method == "document_read";
+            bool read = method == "office_capture_template" || method == "office_read" || method == "office_read_text" || method == "office_receipt" || method == "read" || method == "workbook_sheets" || method == "workbook_structure" || method == "workbook_range" || method == "reconcile" || method == "document_reconcile" || method == "document_read";
             if (read && error is COMException com &&
                 (com.ErrorCode == unchecked((int)0x80010001) || com.ErrorCode == unchecked((int)0x8001010A))) return method?.StartsWith("office_",StringComparison.Ordinal)==true?"office_busy":"excel_busy";
             return "office_failed";
