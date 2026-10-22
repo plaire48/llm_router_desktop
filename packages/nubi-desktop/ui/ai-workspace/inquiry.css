@@ -53,7 +53,7 @@
 .inquiry-detail-header .inquiry-feed-meta {flex-wrap:wrap}
 .inquiry-detail-header .inquiry-feed-meta small {margin-left:0}
 .inquiry-external-link {margin-left:auto;color:var(--brand-ink)}
-.inquiry-assignees {font-size:var(--cx-type-caption);color:var(--layout-muted);margin:var(--cx-space-3) 0 0;}
+.inquiry-assignees {margin:var(--cx-space-3) 0 0;}
 .inquiry-answers {margin-top:var(--cx-space-6);padding-top:var(--cx-space-4);border-top:1px solid var(--layout-border)}
 .inquiry-answers h3 {font:var(--cx-weight-medium) var(--cx-type-section)/var(--deck-line-body) var(--cx-font-family);margin:0 0 var(--cx-space-4);}
 .inquiry-answers h3>span {color:var(--brand-ink);margin-left:var(--cx-space-1);}

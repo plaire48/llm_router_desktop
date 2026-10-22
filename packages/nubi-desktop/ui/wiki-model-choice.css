@@ -1,0 +1,4 @@
+/* The wiki model and reasoning chips sit in one row, as in the composer and on the project start screen. */
+.nubi-wiki-model-chips { display:flex; align-items:center; flex-wrap:wrap; gap:var(--cx-space-2); min-width:0; }
+.nubi-wiki-rebuild-model { display:grid; gap:var(--cx-space-2); margin-top:var(--cx-space-3); }
+.nubi-wiki-rebuild-model>span { color:var(--deck-sub); font:var(--deck-font-caption); }

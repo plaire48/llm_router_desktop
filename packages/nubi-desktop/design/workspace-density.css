@@ -1,7 +1,6 @@
 /* Desktop-only cascade: keep root specificity without descendant queries. */
 /* One native title/toolbar row and tighter vertical padding for Electron. */
 .desktop-shell[data-toolbar=true] { flex-direction:column; position:relative; padding:calc(var(--nubi-toolbar-height) + var(--nubi-workspace-inset)) var(--nubi-workspace-inset) var(--nubi-workspace-inset); box-sizing:border-box; background:var(--deck-background); }
-.desktop-shell[data-toolbar=true][data-mail-progress="true"] { padding-bottom:calc(var(--nubi-mail-footer-height) + var(--nubi-workspace-inset)); }
 .desktop-titlebar { position:absolute; top:0; left:env(titlebar-area-x,0px); width:env(titlebar-area-width,100%); height:var(--nubi-toolbar-height); z-index:30; }
 /* Shared copy/status notifications must leave native window controls usable. */
 [data-toolbar="true"][data-toolbar] body .cx-toast-region { top:calc(var(--nubi-toolbar-height) + var(--cx-space-3)); }
@@ -9,7 +8,7 @@
 .desktop-shell[data-toolbar=true] > .desktop-workspace-body { border:1px solid var(--deck-line); border-radius:var(--nubi-workspace-radius); background:var(--nubi-surface-base); isolation:isolate; }
 @media(max-width:760px) { .desktop-shell[data-toolbar=true] { --nubi-workspace-inset:var(--cx-space-2); } }
 @media(forced-colors:active) { .desktop-shell[data-toolbar=true] { background:Canvas; } }
-.nubi-window-toolbar { --nubi-toolbar-gap:var(--cx-space-4); display:flex; align-items:center; gap:var(--nubi-toolbar-gap); height:100%; padding-inline:var(--cx-space-3); box-sizing:border-box; background:var(--deck-section-surface); border-bottom:1px solid var(--deck-line); -webkit-app-region:drag; user-select:none; }
+.nubi-window-toolbar { --nubi-toolbar-gap:var(--cx-space-4); display:flex; align-items:center; height:100%; padding-inline:var(--cx-space-3); box-sizing:border-box; background:var(--deck-section-surface); border-bottom:1px solid var(--deck-line); -webkit-app-region:drag; user-select:none; }
 .desktop-shell[data-platform=darwin] .nubi-window-toolbar { padding-left:var(--nubi-toolbar-mac-inset); }
 .nubi-toolbar-navigation,.nubi-toolbar-actions { display:flex; align-items:center; gap:var(--cx-space-1); flex:none; }
 .nubi-toolbar-navigation { padding-right:var(--cx-space-4); border-right:1px solid var(--deck-line); }
@@ -32,12 +31,11 @@
 .desktop-shell .nubi-workbench .nubi-main { padding-top:var(--cx-space-2); }
 .desktop-shell .nubi-workbench .nubi-task { padding-top:0; }
 .desktop-shell .nubi-workbench .composer { padding:var(--nubi-box-block) var(--cx-space-3); border-radius:var(--nubi-box-radius); }
-.desktop-shell .nubi-workbench .composer textarea.aipro-message-input { min-height:36px; padding-block:var(--cx-space-1); }
+.desktop-shell .nubi-workbench .composer textarea.aipro-message-input { padding-block:var(--cx-space-1); }
 .desktop-shell .nubi-workbench :is(.composer-bottom,.composer-tools) { min-height:36px; }
-.desktop-shell .nubi-workbench .composer-bottom { margin-top:0; }
 .desktop-shell .nubi-workbench :is(.context-trigger.cx-kit-button,.composer-send,.nubi-composer-stop) { width:36px; min-width:36px; height:36px; min-height:36px; padding:var(--cx-space-1); }
 .desktop-shell .nubi-workbench .nubi-followup { margin-top:var(--cx-space-3); }
-.desktop-shell .nubi-workbench .nubi-agent-activity .task-plan { padding:var(--nubi-box-block) var(--cx-space-3); border-radius:var(--nubi-box-radius); }
+.desktop-shell .nubi-workbench .nubi-agent-activity .task-plan { border-radius:var(--nubi-box-radius); }
 .desktop-shell .nubi-workbench .task-plan ol { margin-top:var(--cx-space-2); gap:var(--cx-space-1); }
 .desktop-shell .nubi-workbench .task-plan li { padding-block:var(--cx-space-1); }
 .desktop-shell .nubi-workbench .question-card { padding-block:var(--nubi-box-block); }
@@ -61,9 +59,7 @@
 :root:root .nubi-approval-mode-item { padding-block:var(--cx-space-2); }
 :root:root :is(.nubi-marketplace-card,.nubi-custom-skill-row,.nubi-history-item.cx-kit-button,.nubi-file-link.cx-kit-button,.nubi-search-result.cx-kit-button) { padding-block:var(--cx-space-2); }
 :root:root .nubi-marketplace-card .nubi-skill-description {
- display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
- white-space:normal; margin-block:var(--cx-space-1); font-size:var(--deck-type-caption);
- line-height:var(--deck-line-caption); color:var(--deck-sub);
+ display:-webkit-box; margin-block:var(--cx-space-1); font-size:var(--deck-type-caption);
 }
 :root:root .nubi-skill-dropzone { padding-block:var(--cx-space-4); }
 :root:root :is(.usage-account,.usage-statistics,.context-statistics) { margin-block:0; padding-block:var(--cx-space-2); }
@@ -92,7 +88,7 @@
  width:auto; min-width:0; height:auto; min-height:36px; padding:var(--cx-space-2) var(--cx-space-3);
  font-size:var(--deck-type-body); white-space:nowrap; flex:none;
 }
-.desktop-shell .nubi-workspace-navigation.nubi-workspace-rail { width:var(--nubi-rail-width); padding-inline:var(--cx-space-2); gap:var(--cx-space-2); overflow-y:auto; overflow-x:hidden; }
+.desktop-shell .nubi-workspace-navigation.nubi-workspace-rail { width:var(--nubi-rail-width); padding-inline:var(--cx-space-2); overflow-y:auto; overflow-x:hidden; }
 .desktop-shell .nubi-workspace-rail .cx-kit-button { display:flex; flex-direction:column; gap:var(--cx-space-1); width:100%; height:auto; min-height:56px; padding:var(--cx-space-2) var(--cx-space-1); }
 .desktop-shell .nubi-workspace-rail .cx-kit-button > span:not(.nubi-account-avatar) { position:static; display:block; width:auto; height:auto; overflow:visible; clip:auto; clip-path:none; font-size:var(--deck-type-caption); word-break:keep-all; text-align:center; }
 .nubi-window-toolbar { gap:var(--cx-space-3); }
@@ -103,7 +99,6 @@
 .nubi-toolbar-account .nubi-account-button { display:inline-flex; align-items:center; gap:var(--cx-space-2); min-height:36px; padding:var(--cx-space-1) var(--cx-space-2); border:0; background:transparent; white-space:nowrap; }
 .nubi-toolbar-account .nubi-account-button:hover { background:var(--deck-blue-soft); }
 .desktop-shell .nubi-workbench :is(.composer-bottom,.composer-leading,.composer-tools) { flex-wrap:nowrap; gap:var(--nubi-action-gap); }
-.desktop-shell .nubi-workbench .composer-bottom { margin-top:var(--cx-space-2); }
 .desktop-shell .nubi-workbench :is(.composer-send,.nubi-composer-stop,.context-trigger.cx-kit-button,.nubi-approval-mode,.nubi-composer-skill-trigger,.nubi-reasoning-trigger,.composer-tools>.cx-kit-button) { width:auto; min-width:0; height:auto; min-height:36px; gap:var(--cx-space-2); padding:var(--cx-space-2); }
 .desktop-shell .nubi-workbench .nubi-approval-mode span { display:inline; }
 .desktop-shell .nubi-workbench .model-trigger { width:auto; max-width:240px; }
@@ -115,8 +110,7 @@
 :root:root :is(.nubi-marketplace-card,.nubi-custom-skill-row) { grid-template-columns:24px minmax(0,1fr); row-gap:var(--cx-space-2); }
 :root:root :is(.nubi-marketplace-actions,.nubi-custom-skill-actions) { grid-column:2; grid-row:auto; justify-content:flex-start; gap:var(--nubi-action-gap); margin-top:var(--cx-space-2); flex-wrap:wrap; }
 :root:root :is(.nubi-library-toolbar,.nubi-custom-skill-toolbar,.nubi-provider-footer,.nubi-approval-actions,.nubi-skill-header-actions) { gap:var(--nubi-action-gap); flex-wrap:wrap; }
-:root:root .nubi-skill-tabs { gap:var(--nubi-action-gap); margin-bottom:var(--cx-space-4); }
-:root:root .nubi-skill-header-actions { flex-basis:100%; margin-left:0; }
+:root:root .nubi-skill-header-actions { flex-basis:100%; }
 .nubi-actions-disclosure { min-width:0; }
 .nubi-actions-disclosure > summary { display:inline-flex; align-items:center; gap:var(--cx-space-2); min-height:36px; padding:var(--cx-space-2); list-style:none; cursor:pointer; font-size:var(--deck-type-body); border-radius:var(--nubi-box-radius); }
 .nubi-actions-disclosure > summary::-webkit-details-marker { display:none; }
@@ -140,10 +134,10 @@
 .desktop-shell .desktop-list>.cx-kit-button { display:flex; flex-wrap:wrap; gap:var(--cx-space-2); }
 @media(max-width:700px) {
  :root:root { --nubi-toolbar-height:48px; }
- .nubi-window-toolbar { grid-template-columns:minmax(0,1fr) auto; gap:var(--cx-space-1) var(--cx-space-2); padding-block:var(--cx-space-1); }
+ .nubi-window-toolbar { grid-template-columns:minmax(0,1fr) auto; }
  .nubi-window-toolbar .nubi-logo { gap:var(--cx-space-1); }
  .nubi-toolbar-account .nubi-account-button > .nubi-account-name-label { display:none; }
- .nubi-toolbar-navigation { grid-column:1; grid-row:1; border:0; }
+ .nubi-toolbar-navigation { grid-column:1; grid-row:1; }
  .nubi-toolbar-account { grid-column:2; grid-row:1; justify-self:end; }
  .nubi-toolbar-actions { grid-column:2; grid-row:2; justify-self:end; }
  .nubi-toolbar-context { grid-column:1; grid-row:2; }
@@ -166,21 +160,20 @@
 .desktop-shell :is(.nubi-mail-local-action,.nubi-tools-shell-trigger,.desktop-dock-action,.desktop-explorer-toggle) { width:auto; min-width:0; height:auto; min-height:36px; padding:var(--cx-space-2); gap:var(--cx-space-2); }
 :root:root :is(.nubi-mail-quick-filters,.nubi-marketplace-toolbar,.nubi-account-footer,.nubi-dialog-actions,.nubi-mail-dialog-actions) { gap:var(--nubi-action-gap); flex-wrap:wrap; }
 
-.desktop-shell .nubi-workbench .nubi-compose-card .model-trigger.cx-kit-button { width:auto; min-width:0; padding-inline:var(--cx-space-2); }
+.desktop-shell .nubi-workbench .nubi-compose-card .model-trigger.cx-kit-button { width:auto; padding-inline:var(--cx-space-2); }
 .desktop-shell .nubi-workbench .nubi-compose-card .nubi-approval-mode-button.cx-kit-button { width:auto; min-width:0; padding-inline:var(--cx-space-2); }
 .desktop-shell .message-actions .cx-action-button { width:auto; height:auto; min-height:36px; padding:var(--cx-space-2); gap:var(--cx-space-2); font-size:var(--deck-type-caption); }
 .desktop-shell .nubi-file-actions { flex-wrap:wrap; gap:var(--nubi-action-gap); }
 .desktop-shell .nubi-file-actions .cx-kit-button { width:auto; height:auto; min-height:36px; padding:var(--cx-space-2); gap:var(--cx-space-2); }
 @media(max-width:700px) {
- .nubi-window-toolbar { display:grid; }
  .desktop-shell[data-layout="split"] .nubi-workbench .nubi-workbench-content { min-width:0; }
  .nubi-window-toolbar .nubi-toolbar-navigation { margin:0; padding-right:0; }
  .nubi-window-toolbar .nubi-toolbar-context { min-width:0; }
 }
 
 :root:root :is(.desktop-shell,.deck-dialog) .cx-action-button.nubi-labelled-action { width:auto; min-width:0; height:auto; min-height:36px; padding:var(--cx-space-2) var(--cx-space-3); gap:var(--cx-space-2); }
-.desktop-shell .nubi-workbench .nubi-task .message-actions .cx-action-button { width:auto; min-width:0; height:auto; min-height:36px; padding:var(--cx-space-2); gap:var(--cx-space-2); }
-.desktop-shell .nubi-workbench .nubi-task .message-actions { gap:var(--cx-space-1); flex-wrap:nowrap; }
+.desktop-shell .nubi-workbench .nubi-task .message-actions .cx-action-button { gap:var(--cx-space-2); }
+.desktop-shell .nubi-workbench .nubi-task .message-actions { gap:var(--cx-space-1); }
 @media(pointer:coarse) {
  :root:root :is(.desktop-shell,.deck-dialog) :is(.cx-action-button.nubi-labelled-action,.nubi-modal-close,.nubi-approval-mode-button,.model-trigger,.desktop-pane-controls .cx-kit-button,.message-actions .cx-action-button) { min-height:44px; }
 }
@@ -243,7 +236,7 @@
 .desktop-shell .nubi-workbench .composer-bottom { display:flex; align-items:center; flex-wrap:nowrap; gap:var(--nubi-control-gap); margin-top:var(--cx-space-1); }
 .desktop-shell .nubi-workbench .composer-leading { flex:1 1 auto; min-width:0; gap:var(--nubi-control-gap); align-items:center; }
 .desktop-shell .nubi-workbench .composer-tools { flex:none; margin-left:auto; gap:var(--nubi-control-gap); align-self:flex-end; }
-.desktop-shell .nubi-workbench .nubi-compose-card .nubi-reasoning-trigger.cx-kit-button { background:transparent; color:var(--nubi-reasoning-ink,var(--deck-sub)); border:0; box-shadow:none; }
+.desktop-shell .nubi-workbench :is(.nubi-compose-card,.nubi-start-model,.nubi-wiki-model-chips) .nubi-reasoning-trigger.cx-kit-button { background:transparent; color:var(--nubi-reasoning-ink,var(--deck-sub)); border:0; box-shadow:none; }
 .desktop-shell .nubi-workbench .model-trigger[data-provider="aipro"] { --nubi-model-surface:var(--provider-aipro-soft); --nubi-model-ink:var(--deck-blue-deep); }
 .desktop-shell .nubi-workbench .model-trigger[data-provider="chatgpt"] { --nubi-model-surface:var(--provider-chatgpt); --nubi-model-ink:var(--deck-ink); }
 .desktop-shell .nubi-workbench .model-trigger[data-provider="fabrix"] { --nubi-model-surface:linear-gradient(120deg,var(--provider-fabrix-start),var(--provider-fabrix-end)); --nubi-model-ink:var(--provider-fabrix-ink); }
@@ -436,8 +429,8 @@
 
 /* Controls stay on one row. Less essential names yield to their named icons. */
 :root:root { --nubi-control-icon:var(--nubi-icon-control); --nubi-navigation-icon:var(--nubi-icon-navigation); --nubi-warning-ink:color-mix(in srgb,var(--deck-orange) 42%,var(--deck-ink)); --nubi-ai-ink:color-mix(in srgb,var(--deck-violet) 75%,var(--deck-ink)); }
-.desktop-shell .nubi-workspace-navigation.nubi-workspace-rail { --nubi-icon-size:var(--nubi-icon-navigation); align-items:center; padding:var(--cx-space-3) var(--cx-space-1); gap:var(--cx-space-3); }
-.desktop-shell .nubi-workspace-navigation.nubi-workspace-rail .cx-kit-button { flex:none; width:44px; min-width:44px; height:44px; min-height:44px; padding:var(--cx-space-2); gap:0; border-radius:var(--cx-space-3); }
+.desktop-shell .nubi-workspace-navigation.nubi-workspace-rail { --nubi-icon-size:var(--nubi-icon-navigation); align-items:center; padding:var(--cx-space-3) var(--cx-space-1); }
+.desktop-shell .nubi-workspace-navigation.nubi-workspace-rail .cx-kit-button { flex:none; width:44px; min-width:44px; height:44px; min-height:44px; padding:var(--cx-space-2); gap:0; }
 :root:root .nubi-workspace-rail .cx-kit-button[data-icon-only] { width:44px; min-width:44px; height:44px; min-height:44px; padding:var(--cx-space-2); }
 .desktop-shell .nubi-workspace-rail :is(svg,.nubi-team-mark) { width:var(--nubi-navigation-icon); height:var(--nubi-navigation-icon); flex:none; }
 .desktop-shell .nubi-workspace-rail .nubi-rail-team { color:var(--nubi-ai-ink); margin-top:auto; }
@@ -451,7 +444,7 @@
 .desktop-shell .nubi-workbench .nubi-compose-card .model-trigger-label { display:flex; min-width:0; overflow:hidden; white-space:nowrap; }
 .desktop-shell .nubi-workbench .nubi-compose-card .model-trigger-label > * { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .desktop-shell .nubi-workbench .nubi-compose-card .nubi-approval-mode-button[data-mode=commands] { color:var(--nubi-warning-ink); background:var(--deck-orange-soft); }
-.desktop-shell .nubi-workbench .nubi-compose-card .nubi-reasoning-trigger > svg { color:var(--nubi-reasoning-ink,var(--nubi-ai-ink)); }
+.desktop-shell .nubi-workbench :is(.nubi-compose-card,.nubi-start-model,.nubi-wiki-model-chips) .nubi-reasoning-trigger > svg { color:var(--nubi-reasoning-ink,var(--nubi-ai-ink)); }
 @container workspace-composer (max-width:640px) {
  .desktop-shell .nubi-workbench .nubi-compose-card .nubi-approval-mode-button.cx-kit-button { width:36px; min-width:36px; padding-inline:var(--cx-space-2); }
  .desktop-shell .nubi-workbench .nubi-compose-card .nubi-approval-mode-button > :is(span,svg:last-child) { display:none; }
@@ -476,7 +469,7 @@
 :root:root .nubi-approval-mode-item > span { display:block; min-width:0; }
 :root:root .nubi-approval-mode-item strong { white-space:nowrap; }
 :root:root .nubi-approval-mode-item[aria-checked=true] { background:var(--deck-blue-soft); }
-:root:root .nubi-approval-mode-description { padding:var(--cx-space-2) var(--cx-space-3); color:var(--deck-sub); font:var(--deck-font-caption); }
+:root:root .nubi-approval-mode-description { color:var(--deck-sub); font:var(--deck-font-caption); }
 :root:root .nubi-approval-mode-note { color:var(--nubi-warning-ink); background:var(--deck-orange-soft); border-radius:calc(var(--cx-space-1) * 2.5); padding:calc(var(--cx-space-1) * 2.5) var(--cx-space-3); }
 @media(max-width:700px) {
  .nubi-window-toolbar { display:flex; flex-wrap:nowrap; gap:var(--cx-space-1); padding-block:0; }
@@ -549,7 +542,7 @@
 :root:root .nubi-custom-skill-copy > .nubi-skill-needs-attention { display:inline-flex; align-items:center; gap:var(--cx-space-2); color:var(--nubi-warning-ink); }
 :root:root .nubi-custom-skill-actions { gap:calc(var(--cx-space-1) * 1.5); }
 :root:root .nubi-custom-skill-actions .cx-action-button > svg { width:18px; height:18px; }
-:root:root .nubi-skill-tabs .nubi-skill-tab-label { display:inline-flex; align-items:center; justify-content:center; gap:calc(var(--cx-space-1) * 1.5); white-space:nowrap; min-height:36px; }
+:root:root .nubi-skill-tabs .nubi-skill-tab-label { display:inline-flex; align-items:center; justify-content:center; white-space:nowrap; }
 @container skill-library (max-width:28em) {
  :root:root .nubi-skill-tabs { gap:var(--cx-space-2); }
  :root:root .nubi-skill-tabs .agent-tabs { flex:none; }
@@ -1068,7 +1061,7 @@
 .desktop-shell .nubi-workbench .nubi-result-review[data-folded]>.nubi-review-next { margin-block-end:0; }
 .nubi-review-slot:empty { display:none; }
 /* The model's thoughts inside a run's record: quiet, folded with the record once the answer is out. */
-.desktop-shell .nubi-workbench .nubi-thoughts { margin:var(--cx-space-2) 0 0; color:var(--nubi-text-secondary); }
+.desktop-shell .nubi-workbench .nubi-thoughts { color:var(--nubi-text-secondary); }
 .desktop-shell .nubi-workbench .nubi-thoughts>summary { display:flex; align-items:center; gap:var(--cx-space-2); width:fit-content; cursor:pointer; list-style:none; padding:var(--cx-space-1) 0; font-size:var(--deck-type-caption); font-weight:var(--nubi-weight-label); }
 .desktop-shell .nubi-workbench .nubi-thoughts>summary::-webkit-details-marker { display:none; }
 .desktop-shell .nubi-workbench .nubi-thoughts>summary>svg:last-child { transition:transform var(--nubi-motion-state) ease; }

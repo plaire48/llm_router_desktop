@@ -54,6 +54,7 @@
     "node scripts/check-design-rules.mjs",
     "node scripts/check-mail-thread-card.mjs",
     "node scripts/check-browser-teach-connection.mjs",
-    "node scripts/check-document-chat-ui.mjs"
+    "node scripts/check-document-chat-ui.mjs",
+    "node scripts/check-personal-start-ui.mjs"
   ]
 }

@@ -1,3 +1,5 @@
+// The fixture uses the production CSS pipeline (CX pruning, plan 2a), so captures show what installs.
+import {cxReferenceCssPlugin} from './cx-reference-css.mjs';
 import os from 'node:os';
 import {captureDesign} from './design-rules.mjs';
 import {build,stop} from 'esbuild';
@@ -11,7 +13,7 @@ import {assertDialogChrome} from './identity-browser.mjs';
 import {auditCxSurface} from './cx-surface-audit.mjs';
 const dir=path.resolve(process.env.NUBI_SURFACE_OUTPUT||'verification/all-surfaces'),bundle=path.join(dir,'fixture');
 await mkdir(bundle,{recursive:true});
-await build({entryPoints:['tests/surface-audit-fixture.jsx'],outfile:path.join(bundle,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.webp':'file','.woff2':'file','.woff':'file'},define:{__APP_VERSION__:'"fixture"','process.env.NODE_ENV':'"production"'}});
+await build({plugins:[cxReferenceCssPlugin()],entryPoints:['tests/surface-audit-fixture.jsx'],outfile:path.join(bundle,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.webp':'file','.woff2':'file','.woff':'file'},define:{__APP_VERSION__:'"fixture"','process.env.NODE_ENV':'"production"'}});
 stop();
 await cp('../../extensions/aipro-chat/public/icons',path.join(bundle,'icons'),{recursive:true});
 await writeFile(path.join(bundle,'index.html'),'<!doctype html><html lang="ko"><title>누비 전체 화면 검토</title><link rel="stylesheet" href="app.css"><body><div class="desktop-shell" data-toolbar="true" data-platform="darwin" data-layout="split"><div id="toolbar" class="desktop-titlebar"></div><div class="desktop-workspace-body"><div class="desktop-agent" id="root"></div></div></div><script type="module" src="app.js"></script></body></html>');

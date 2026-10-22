@@ -7,9 +7,10 @@
 @import "../../../extensions/aipro-chat/src/approval.css";
 @import "../../../extensions/aipro-chat/src/deck-surfaces.css";
 /* The supplied deck is the source of brand colors, typography and motion. */
+/* Local font fallbacks stay here for the identity check, although the identity layer later sets this variable. */
 :root { --cx-font-family: "Pretendard Variable", Pretendard, "Noto Sans KR", -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
 .nubi-widget { background: var(--deck-background); color: var(--deck-ink); overflow: auto; }
-.nubi-workbench { position: relative; min-height: 100%; font: var(--deck-font-body); }
+.nubi-workbench { position: relative; min-height: 100%; }
 .nubi-workbench *, .nubi-workbench *::before, .nubi-workbench *::after { box-sizing: border-box; }
 .nubi-bar { display: flex; align-items: center; gap:calc(var(--cx-space-1) * 4.5); padding:calc(var(--cx-space-1) * 4.5) var(--cx-space-7); }
 .nubi-project-label { color: var(--deck-sub); font-size: var(--cx-type-body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -69,7 +70,7 @@
 .nubi-run-form { padding:calc(var(--cx-space-1) * 5.5); border-radius:var(--deck-panel-radius); background:var(--deck-card); margin:calc(var(--cx-space-1) * 4.5) 0; }
 .nubi-run-form > label { display:block; font-weight:var(--nubi-weight-strong); margin-bottom:calc(var(--cx-space-1) * 2.5); }
 .nubi-run-form small { display:block; color:var(--deck-sub); font-size:var(--cx-type-caption); margin-top:calc(var(--cx-space-1) * 2.5); }
-.nubi-settings { display:grid; gap:calc(var(--cx-space-1) * 2.5); padding:var(--cx-space-1) 0 var(--cx-space-3); }
+.nubi-settings { padding:var(--cx-space-1) 0 var(--cx-space-3); }
 .nubi-settings label { font-weight:var(--nubi-weight-strong); }
 .nubi-settings select { width:100%; }
 .nubi-settings p { margin:0; }
@@ -112,12 +113,11 @@
 #nubi-workspace { overflow:auto; min-width:0; }
 
 /* The extension's entry, greeting, provider picker and composer stay intact. */
-.nubi-workbench { font:var(--deck-font-label); isolation:isolate; }
+.nubi-workbench { isolation:isolate; }
 .nubi-bar,.nubi-main { position:relative; z-index:1; }
 .nubi-workbench .aipro-login { min-height:calc(100vh - 240px); padding:calc(var(--cx-space-1) * 10) var(--cx-space-6) var(--cx-space-6); }
 .nubi-workbench .aipro-login-card { max-width:420px; margin:auto; }
 .nubi-start { align-items:center; gap:var(--cx-space-6); padding:calc(var(--cx-space-1) * 9) 0 var(--cx-space-3); min-height:calc(100vh - 280px); justify-content:center; }
-.nubi-start .welcome { padding:0; }
 .nubi-start .nubi-compose-card { width:100%; max-width:var(--nubi-chat-width,1120px); margin-inline:0; }
 .nubi-workbench .model-trigger { max-width:300px; }
 .nubi-workbench .model-trigger>span { overflow:hidden; text-overflow:ellipsis; }
@@ -185,7 +185,6 @@
 .nubi-workbench .agent-intro h1 {white-space:normal;word-break:keep-all;}
 
 /* Workspace reading scale: stable at narrow IDE widths; keep the deck identity. */
-.nubi-workbench { font:var(--deck-font-body); }
 
 .nubi-task .message-body,.nubi-task .interaction-card { font:var(--nubi-weight-regular) var(--nubi-reading-size)/var(--nubi-reading-leading) var(--cx-font-family); letter-spacing:normal; }
 .nubi-task .message-body { max-width:78ch; overflow-wrap:anywhere; }
@@ -201,7 +200,6 @@
 .nubi-search-result.nubi-voc-result > span { font:var(--deck-font-body); display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; overflow:hidden; }
 
 .nubi-skill-library .nubi-inline { flex-wrap: wrap; }
-.nubi-skill-card { padding:calc(var(--cx-space-1) * 3.5) 0; border-top: 1px solid var(--deck-line); }
 .nubi-skill-card p { margin:calc(var(--cx-space-1) * 1.5) 0 calc(var(--cx-space-1) * 2.5); overflow-wrap: anywhere; }
 .nubi-skill-card small { display: block; margin-top:var(--cx-space-2); color: var(--deck-sub); overflow-wrap: anywhere; }
 
@@ -217,6 +215,6 @@
 .nubi-mail-heading, .nubi-mail-manage, .nubi-mail-recovery { display: flex; align-items: center; flex-wrap: wrap; gap: var(--cx-space-2); }
 .nubi-mail-heading { justify-content: space-between; }
 .nubi-mail-summary { display: grid; gap: var(--cx-space-2); }
-.nubi-mail-row { display: grid; gap: var(--cx-space-2); padding: var(--cx-space-3) 0; border-bottom: 1px solid var(--deck-line); }
+.nubi-mail-row { gap: var(--cx-space-2); padding: var(--cx-space-3) 0; }
 .nubi-mail-text { white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; padding: var(--cx-space-3); background: var(--deck-tint); border-radius: var(--deck-control-radius); max-height: 320px; overflow: auto; }
 .nubi-mail-path { overflow-wrap: anywhere; }

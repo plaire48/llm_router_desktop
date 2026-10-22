@@ -20,3 +20,11 @@ test('a shared runner records without judging',()=>{
 test('a run without any measured row cannot pass',()=>{
  assert.deepEqual(judgeLightFlow([],{env:{}}),{pass:false,failures:['no measured scene']});
 });
+// Plan 2a: the verdict takes the median of three runs and a missing scene fails (plan 1 deferred minor).
+import {judgeLightFlowRuns} from '../scripts/check-light-flow.mjs';
+test('light-flow takes the median of three runs and fails on a missing scene',()=>{
+ const r=m=>({scene:'chat',width:1280,missedFrameRatio:m,longTasks:1,styleRecalcMaxMs:10});
+ assert.equal(judgeLightFlowRuns([[r(0.02)],[r(0.09)],[r(0.03)]],{env:{},expected:['chat:1280']}).pass,true);
+ assert.deepEqual(judgeLightFlowRuns([[r(0.02)]],{env:{},expected:['chat:1280','mail:1280']}).failures,['mail:1280 missing']);
+ assert.equal(judgeLightFlowRuns([[r(0.09)],[r(0.08)],[r(0.02)]],{env:{},expected:['chat:1280']}).pass,false);
+});

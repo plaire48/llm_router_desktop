@@ -6,7 +6,7 @@
 .nubi-action-pointer svg { position:relative; width:28px; height:32px; overflow:visible; fill:var(--nubi-pointer-ink); stroke:var(--deck-card); stroke-width:2.5; filter:var(--nubi-pointer-shadow); stroke-linejoin:round; }
 .nubi-action-halo { position:absolute; width:16px; height:16px; left:-8px; top:-8px; border:1.5px solid var(--nubi-pointer-ink); border-radius:50%; opacity:0; }
 .is-click .nubi-action-halo[data-demo=true],.is-invoke .nubi-action-halo[data-demo=true] { animation:nubi-click-ring var(--nubi-pointer-feedback) var(--nubi-ease-out) both; }
-.nubi-action-preview figcaption { padding:var(--cx-space-2,var(--cx-space-2)) var(--cx-space-3,var(--cx-space-3)); font:var(--deck-font-body); color:var(--layout-muted); }
+.nubi-action-preview figcaption { padding:var(--cx-space-2,var(--cx-space-2)) var(--cx-space-3,var(--cx-space-3)); color:var(--layout-muted); }
 .nubi-cursor-example-surface { display:grid; place-items:center; min-height:180px; padding:var(--cx-space-5,var(--cx-space-6)); }
 .nubi-cursor-example-surface>span { border:1px solid var(--cx-border); border-radius:var(--cx-radius-control); padding:var(--cx-space-3) var(--cx-space-6); background:var(--layout-surface); color:var(--layout-text); }
 .nubi-action-stage[data-motion=off] .nubi-action-pointer,.nubi-action-stage[data-motion=off] .nubi-action-halo { animation:none; transition:none; }

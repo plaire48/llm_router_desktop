@@ -66,7 +66,7 @@
   color:var(--nubi-text-primary);
 }
 :root:root .deck-dialog .nubi-panel-title { display:inline-flex; align-items:center; gap:var(--nubi-work-control-gap); min-width:0; white-space:nowrap; }
-:root:root .deck-dialog .nubi-panel-title > :is(svg,img) { width:var(--nubi-icon-large); height:var(--nubi-icon-large); flex:none; object-fit:contain; }
+:root:root .deck-dialog .nubi-panel-title > :is(svg,img) { object-fit:contain; }
 :root:root .deck-dialog .nubi-panel-title-icon {
   display:inline-flex; align-items:center; justify-content:center; flex:none;
   width:var(--nubi-dialog-symbol-size); height:var(--nubi-dialog-symbol-size);

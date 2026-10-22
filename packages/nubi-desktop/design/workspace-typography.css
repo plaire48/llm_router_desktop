@@ -159,7 +159,6 @@ body {
 .desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) li > p { margin-block:0 .5em; }
 .desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) :is(h1,h2,h3,h4) { margin-block:var(--nubi-prose-section-gap) .65em; line-height:var(--deck-line-heading); }
 .desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) > :first-child { margin-top:0; }
-.desktop-shell .nubi-workbench .nubi-task .message-body:not(.progress-markdown) > :last-child { margin-bottom:0; }
 
 /* Reading rhythm: consistent leading, restrained tracking and clear emphasis. */
 :root, .nubi-workbench { --nubi-reading-leading:1.7; --nubi-prose-paragraph-gap:.75em; --nubi-prose-section-gap:1.25em; --nubi-prose-list-gap:.35em; }

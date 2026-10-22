@@ -1,3 +1,5 @@
+// The fixture uses the production CSS pipeline (CX pruning, plan 2a), so captures show what installs.
+import {cxReferenceCssPlugin} from './cx-reference-css.mjs';
 import {captureDesign as captureDesignBase,assertAccessibilityRules} from './design-rules.mjs';
 import {build,stop as stopBuildService} from 'esbuild';
 import {assertDesktopDialog} from './identity-browser.mjs';
@@ -14,12 +16,14 @@ async function captureDesign(target,options){
  const page=typeof target.context==='function'?target:target.page();
  // Inspect the settled screen, as the existing screenshot already does.
  await page.evaluate(()=>Promise.all(document.getAnimations().filter(a=>a.playState==='running'&&a.effect?.getComputedTiming().endTime<=300).map(a=>a.finished.catch(()=>{}))));
+ // NUBI_STYLE_SNAPSHOT_DIR: every element's computed style at this capture, for CSS refactors (scripts/compare-styles.mjs).
+ if(process.env.NUBI_STYLE_SNAPSHOT_DIR){const styles=await page.evaluate(()=>[document.body,...document.body.querySelectorAll('*')].map(el=>{const cs=getComputedStyle(el),style={};for(const k of cs)style[k]=cs.getPropertyValue(k);return {tag:el.tagName,cls:String(el.className?.baseVal??el.className).slice(0,80),style};}));await mkdir(process.env.NUBI_STYLE_SNAPSHOT_DIR,{recursive:true});await writeFile(path.join(process.env.NUBI_STYLE_SNAPSHOT_DIR,path.basename(options.path).replace(/\.png$/,'.json')),JSON.stringify(styles));}
  const auditStarted=performance.now(),facts=await assertAccessibilityRules(page);accessibility.push({capture:options.path,durationMs:performance.now()-auditStarted,...facts});
  await writeFile(path.join(dir,'accessibility.json'),JSON.stringify({checks:accessibility,boundary:'Existing shared product UI with synthetic APIs; keyboard traversal and flat-color contrast, not assistive-technology certification.'},null,2));
  return captureDesignBase(target,options);
 }
 
-await build({entryPoints:['tests/shared-ui-fixture.jsx'],outfile:path.join(dir,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.webp':'file','.woff2':'file','.woff':'file'},define:{__APP_VERSION__:'"fixture"','process.env.NODE_ENV':'"production"'}});
+await build({plugins:[cxReferenceCssPlugin()],entryPoints:['tests/shared-ui-fixture.jsx'],outfile:path.join(dir,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.webp':'file','.woff2':'file','.woff':'file'},define:{__APP_VERSION__:'"fixture"','process.env.NODE_ENV':'"production"'}});
 await cp('../../extensions/aipro-chat/public/icons',path.join(dir,'icons'),{recursive:true});
 await writeFile(path.join(dir,'index.html'),'<!doctype html><html lang="ko"><title>Nubi synthetic flow check</title><link rel="stylesheet" href="app.css"><div id="root"></div><script type="module" src="app.js"></script></html>');
 const server=createServer(async(req,res)=>{try{const requested=path.resolve(dir,'.'+new URL(req.url,'http://localhost').pathname.replace(/\/$/,'/index.html'));if(!requested.startsWith(dir+path.sep))throw Error();const ext=path.extname(requested),data=await readFile(requested);res.writeHead(200,{'content-type':({'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.svg':'image/svg+xml','.woff2':'font/woff2','.webp':'image/webp'})[ext]||'application/octet-stream'}).end(data);}catch{res.writeHead(404).end();}});await new Promise(r=>server.listen(0,'127.0.0.1',r));
@@ -35,7 +39,7 @@ async function openHistory(){await p.locator('.nubi-sidebar').waitFor({state:'at
 async function newConversation(){await openSidebar();await p.getByRole('button',{name:'새 대화',exact:true}).click();}
 const record=checks.push.bind(checks);checks.push=(...items)=>{console.log(items.join('\n'));return record(...items);};
 try{
- browser=await chromium.launch({channel:process.platform==='win32'?'msedge':'chrome',headless:true});p=await browser.newPage({viewport:{width:1280,height:950}});p.on('pageerror',e=>{errors.push(e.message);console.error('pageerror:',e.message);});await p.goto(page());
+ browser=await chromium.launch({channel:process.platform==='win32'?'msedge':'chrome',headless:true});p=await browser.newPage({viewport:{width:1280,height:950}});if(process.env.NUBI_STYLE_SNAPSHOT_DIR)await p.addInitScript(()=>{let seed=7;Math.random=()=>{seed=(seed+0x6D2B79F5)|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};});/* seeded, so the greeting repeats across snapshot runs */p.on('pageerror',e=>{errors.push(e.message);console.error('pageerror:',e.message);});await p.goto(page());
  await p.locator('.aipro-login').getByRole('button',{name:'AI Pro',exact:true}).click();await p.getByRole('textbox',{name:'작업 요청'}).waitFor();assert.equal(await p.locator('.aipro-login').count(),0);checks.push('login state transitions to shared Welcome and composer');
  const requestBox=p.getByRole('textbox',{name:'작업 요청'}),smallHeight=await requestBox.evaluate(e=>e.clientHeight);
  const welcomeTitle=await p.locator('h1.welcome-title').innerText();

@@ -72,7 +72,7 @@ async function exercise(id,durationMs){
 }
 try{
  if(mode==='browser')browser=await chromium.launch({channel:'chrome',headless:true,args:runOptions.chromeArgs});
- else{storage=await mkdtemp(path.join(os.tmpdir(),'nubi-freeze-'));const require=createRequire(import.meta.url);app=await electron.launch({executablePath:require('electron'),args:['tests/freeze-electron.cjs',url],env:{...process.env,NUBI_FREEZE_STORAGE:storage,ELECTRON_RUN_AS_NODE:undefined},cwd:process.cwd()});}
+ else{storage=await mkdtemp(path.join(os.tmpdir(),'nubi-freeze-'));const require=createRequire(import.meta.url);app=await electron.launch({executablePath:require('electron'),args:['tests/freeze-electron.cjs',url],env:{...process.env,NUBI_FREEZE_STORAGE:storage,ELECTRON_RUN_AS_NODE:undefined},cwd:process.cwd()});await app.firstWindow();await writeFile(path.join(dir,'gpu.json'),JSON.stringify({software:process.env.NUBI_FREEZE_SOFTWARE==='1',status:await app.evaluate(()=>globalThis.__nubiFreezeGpu())},null,1));}
  for(const width of widths)for(const scene of FREEZE_SCENES.filter(s=>!only||s.id===only)){
   if(scene.id==='workflow'&&!DESKTOP_FEATURES.workflows){console.log(JSON.stringify({scene:scene.id,width,skipped:'workflows_feature_off'}));continue;}// workflows are off in this release (design light-flow §5.1)
   page=mode==='browser'?await browser.newPage({viewport:{width,height:900}}):await app.firstWindow();if(mode==='electron')await app.evaluate(({BrowserWindow},w)=>BrowserWindow.getAllWindows()[0].setContentSize(w,900),width);

@@ -20,7 +20,7 @@
 .workspace-image-field { display:grid; gap:var(--cx-gap-xs); }
 .workspace-image-field small { margin-left:var(--cx-gap-xs); font-size:var(--cx-type-caption); color:var(--layout-muted); }
 .workspace-image-field > div { display:flex; align-items:center; gap:var(--cx-gap-sm); }
-.workspace-image-upload { position:relative; display:inline-flex; align-items:center; gap:var(--cx-gap-xs); padding:var(--cx-gap-xs) var(--cx-gap-sm); min-height:var(--cx-control); border:1px solid var(--layout-border); border-radius:var(--cx-radius-control); cursor:pointer; }
+.workspace-image-upload { position:relative; display:inline-flex; align-items:center; gap:var(--cx-gap-xs); min-height:var(--cx-control); border:1px solid var(--layout-border); border-radius:var(--cx-radius-control); cursor:pointer; }
 .workspace-image-upload input { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
 .workspace-image-upload:focus-within { outline:2px solid var(--brand-action); outline-offset:2px; }
 .workspace-image-upload[data-has-input-disabled="true"]:is(html *) { opacity:.5; }

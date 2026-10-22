@@ -12,24 +12,26 @@ function readStored(provider) {
   try { const stored = localStorage.getItem(`nubi-reasoning:${provider}`), value = provider === 'chatgpt' && stored === 'ultra' ? 'max' : stored; return OPTIONS[provider]?.some(item => item.id === value) ? value : DEFAULTS[provider]; } catch { return DEFAULTS[provider]; }
 }
 
-export function ReasoningPicker({api, provider, disabled}) {
+// value and onApply make it a controlled chip for a saved setting (the wiki generation model), with leadingOptions such as
+// 자동 before the provider levels and resetTo for the reset button; without them it applies to the conversation as before.
+export function ReasoningPicker({api, provider, disabled, value, onApply, leadingOptions = [], resetTo}) {
   const claude=provider?.provider==='claude';
   const optional = provider?.provider === 'chatgpt' && provider?.connected ? ['none','minimal'].filter(id=>provider.reasoningOptions?.includes(id)).map(id=>({id,label:reasoningLabel('chatgpt',id)})) : [];
-  const options = claude
+  const options = [...leadingOptions, ...(claude
     ? (provider.reasoningOptions || []).map(id => OPTIONS.claude.find(item => item.id === id)).filter(Boolean)
-    : [...optional, ...(OPTIONS[provider?.provider] || []).filter(item => !provider?.connected || !Array.isArray(provider.reasoningOptions) || provider.reasoningOptions.includes(item.id))];
-  const [open, setOpen] = useState(false), [changing, setChanging] = useState(false), [effort, setEffort] = useState(() => provider?.reasoningEffort === 'ultra' ? 'max' : provider?.reasoningEffort || readStored(provider?.provider));
+    : [...optional, ...(OPTIONS[provider?.provider] || []).filter(item => !provider?.connected || !Array.isArray(provider.reasoningOptions) || provider.reasoningOptions.includes(item.id))])];
+  const external = value ?? (provider?.reasoningEffort === 'ultra' ? 'max' : provider?.reasoningEffort || readStored(provider?.provider));
+  const [open, setOpen] = useState(false), [changing, setChanging] = useState(false), [effort, setEffort] = useState(external);
   const [menuStyle, setMenuStyle] = useState(undefined);
   const anchor = useRef(null), dialog = useRef(null), trigger = useRef(null), pending = useRef(false), currentSelection = useRef(null), mounted = useRef(true);
   const confirmed = useRef(effort), gesture = useRef(null);
   currentSelection.current = JSON.stringify([provider?.provider,provider?.model]);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useEffect(() => {
-    const value = provider?.reasoningEffort === 'ultra' ? 'max' : provider?.reasoningEffort || readStored(provider?.provider);
-    confirmed.current = value;
+    confirmed.current = external;
     gesture.current = null;
-    setEffort(value);
-  }, [provider?.provider, provider?.model, provider?.reasoningEffort]);
+    setEffort(external);
+  }, [provider?.provider, provider?.model, external]);
   useEffect(()=>{setOpen(false);},[provider?.provider,provider?.model]);
   useLayoutEffect(() => {
     if (!open || !anchor.current) return;
@@ -65,6 +67,7 @@ export function ReasoningPicker({api, provider, disabled}) {
   async function choose(item) {
     if (!item || pending.current || disabled) return;
     if (item.id === confirmed.current) { setEffort(item.id); return; }
+    if (onApply) { confirmed.current = item.id; setEffort(item.id); onApply(item.id); return; }
     const providerId = provider.provider, previous = confirmed.current, selection = currentSelection.current;
     pending.current = true; setChanging(true);
     setEffort(item.id);
@@ -82,9 +85,9 @@ export function ReasoningPicker({api, provider, disabled}) {
   }
   function close(){if(changing)return;cancelGesture();setOpen(false);}
   return <div className="nubi-reasoning-anchor" data-provider={provider?.provider} ref={anchor}>
-    <CxButton ref={trigger} className="nubi-reasoning-trigger" aria-label="추론 정도" title={claude?`Claude 추론 요청: --effort ${selected.id}`:`추론 정도: ${selected.label}`} aria-haspopup="dialog" aria-expanded={open} disabled={disabled||changing} onClick={() => setOpen(value => !value)}><Icon name="automation" size={18}/><span className="nubi-reasoning-label"><span>{selected.label}</span></span></CxButton>
+    <CxButton ref={trigger} className="nubi-reasoning-trigger" aria-label="추론 정도" title={claude&&selected.id!=='auto'?`Claude 추론 요청: --effort ${selected.id}`:`추론 정도: ${selected.label}`} aria-haspopup="dialog" aria-expanded={open} disabled={disabled||changing} onClick={() => setOpen(value => !value)}><Icon name="automation" size={18}/><span className="nubi-reasoning-label"><span>{selected.label}</span></span></CxButton>
     {open && <AnchoredDialog dialogRef={dialog} title="추론 정도 조절" className="nubi-reasoning-menu" provider={provider?.provider} style={menuStyle} initialFocus='input[type="range"]' busy={changing} onClose={close}>
-      <div className="nubi-reasoning-heading"><strong>{selected.label}</strong><CxButton className="nubi-reasoning-reset" data-icon-only aria-label="추론 정도를 기본값으로 되돌리기" title="기본값으로 되돌리기" disabled={disabled||changing} onClick={() => choose(options.find(item => item.id === DEFAULTS[provider.provider]) || options[0])}><Icon name="resetFilters" size={18}/></CxButton><CxButton className="nubi-reasoning-close nubi-modal-close" data-icon-only aria-label="추론 창 닫기" title="닫기" disabled={changing} onClick={close}><Icon name="xClose" size={18}/></CxButton></div>
+      <div className="nubi-reasoning-heading"><strong>{selected.label}</strong><CxButton className="nubi-reasoning-reset" data-icon-only aria-label="추론 정도를 기본값으로 되돌리기" title="기본값으로 되돌리기" disabled={disabled||changing} onClick={() => choose(options.find(item => item.id === (resetTo ?? DEFAULTS[provider.provider])) || options[0])}><Icon name="resetFilters" size={18}/></CxButton><CxButton className="nubi-reasoning-close nubi-modal-close" data-icon-only aria-label="추론 창 닫기" title="닫기" disabled={changing} onClick={close}><Icon name="xClose" size={18}/></CxButton></div>
       <div className="nubi-reasoning-slider-wrap" style={{'--nubi-reasoning-progress':`${selectedIndex / Math.max(1, options.length - 1) * 100}%`}}>
         <input className="nubi-reasoning-slider" type="range" min="0" max={options.length - 1} step="1" value={selectedIndex} disabled={disabled||changing} aria-label="추론 정도" aria-valuetext={selected.label}
           onPointerDown={event => { if (event.button === 0) { gesture.current = 'pointer'; event.currentTarget.setPointerCapture(event.pointerId); } }}

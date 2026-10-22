@@ -12,8 +12,6 @@
 .nubi-mail-storage-setup .nubi-mail-storage-progress { display:grid; gap:var(--cx-space-2); margin-top:var(--cx-space-3); font:var(--deck-font-caption); color:var(--nubi-text-secondary); }
 .nubi-mail-storage-progress time { margin-left:auto; white-space:nowrap; font-variant-numeric:tabular-nums; }
 .nubi-mail-storage-setup [role=alert] { font:var(--deck-font-caption); color:var(--nubi-text-danger); }
-
-.nubi-mail-storage-option { margin:var(--cx-space-4) 0 var(--cx-space-3); display:grid; gap:var(--cx-space-1); }
 .nubi-mail-storage-option label { font:var(--deck-font-body); font-weight:var(--nubi-weight-emphasis); color:var(--nubi-text-primary); }
 
 .nubi-mail-storage-note { margin-top:var(--cx-space-3); }

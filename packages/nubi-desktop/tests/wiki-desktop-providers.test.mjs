@@ -17,3 +17,19 @@ test('a wiki API request keeps its provider while the conversation uses Claude',
 test('a wiki Claude request uses its temporary model and effort while the conversation uses API',async t=>{const {p,native,wire}=await setup(t);await p.select('aipro');const result=await complete(p,request(p,'claude','synthetic-opus'));const args=native[0];assert.equal(args[args.indexOf('--model')+1],'synthetic-opus');assert.equal(args[args.indexOf('--effort')+1],'high');assert.equal(wire.length,0);assert.equal(result.requestOptions.maxTokens,null);assert.equal(p.status().provider,'aipro');await p.select('claude');assert.equal(p.status().model,'synthetic-sonnet');assert.equal(p.status().reasoningEffort,'medium');});
 test('Claude wiki eight-call guard rejects nine and sixteen permits them without executing CLI tools',async t=>{const {p,native}=await setup(t,9);const options=request(p,'claude','synthetic-opus');await assert.rejects(complete(p,options),/response_invalid/);const result=await complete(p,{...options,maxToolCalls:16});assert.equal(result.calls.length,9);assert(native.every(args=>args.includes('--safe-mode')&&args[args.indexOf('--tools')+1]===''));});
 test('stale Claude bindings and unsupported explicit effort fail before a CLI model call',async t=>{const {p,native}=await setup(t);const options=request(p,'claude','synthetic-opus');for(const patch of [{connectionId:'stale'},{model:'missing'},{effort:'xhigh'},{maxToolCalls:17}])await assert.rejects(complete(p,{...options,...patch}));assert.equal(native.length,0);});
+test('automatic wiki effort follows the reasoning chosen for the conversation model it uses (user decision 2026-10-23)',async t=>{
+ const {resolveWikiGeneration}=await import('../runtime/wiki-generation.mjs');
+ const {p}=await setup(t);await p.select('claude');await p.reasoning('low');
+ const service=settings=>({providers:p,store:{get:()=>settings}});
+ assert.equal(resolveWikiGeneration(service({})).applied.effort,'low','automatic model and effort: the conversation pair');
+ assert.equal(resolveWikiGeneration(service({model:'synthetic-sonnet',provider:'claude',effort:'auto'})).applied.effort,'low','same model chosen explicitly');
+ assert.equal(resolveWikiGeneration(service({model:'synthetic-sonnet',provider:'claude',effort:'medium'})).applied.effort,'medium','an explicit wiki effort wins');
+ assert.equal(resolveWikiGeneration(service({model:'synthetic-opus',provider:'claude',effort:'auto'})).applied.effort,'low','another model of the same connection keeps the chosen effort when it supports it');
+ await p.reasoning('medium');assert.equal(resolveWikiGeneration(service({model:'synthetic-opus',provider:'claude',effort:'auto'})).applied.effort,'high','an effort the wiki model lacks falls back to the provider default');
+});
+test('an automatic wiki model whose conversation model lacks the saved effort uses the automatic effort instead of failing',async t=>{
+ const {resolveWikiGeneration}=await import('../runtime/wiki-generation.mjs');
+ const {p}=await setup(t);await p.select('claude');await p.reasoning('low');
+ const view=resolveWikiGeneration({providers:p,store:{get:()=>({model:'auto',effort:'max'})}});
+ assert.equal(view.applied.effort,'low','the conversation model has no max, so the chip shows 자동 and the wiki follows it');
+});

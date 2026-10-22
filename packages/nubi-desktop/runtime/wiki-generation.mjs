@@ -21,7 +21,13 @@ export function resolveWikiGeneration(service,value=service.store?.get('setting:
  const selected=settings.model==='auto'?(preferred||{provider:status.provider,model:status.model}):settings;
  const catalog=catalogs.find(c=>c.provider===selected.provider&&c.models.some(m=>m.id===selected.model));
  if(!catalog)return {settings,models,applied:null,request:null};
- const request=service.providers.wikiRequest({purpose:'wiki',provider:selected.provider,model:selected.model,connectionId:catalog.connectionId,effort:settings.effort,maxToolCalls:settings.maxToolCalls});
+ // Automatic effort follows the reasoning chosen for the conversation (user decision 2026-10-23) when the wiki uses that
+ // connection and its model offers that level; otherwise the provider default applies.
+ // An automatic model can change under a saved explicit effort; one it lacks reads as automatic, as the reasoning chip shows.
+ const efforts=models.find(m=>m.provider===selected.provider&&m.model===selected.model)?.efforts||[];
+ const effort=settings.model==='auto'&&settings.effort!=='auto'&&!efforts.includes(settings.effort)?'auto':settings.effort;
+ const conversationEffort=effort==='auto'&&selected.provider===status.provider&&efforts.includes(status.reasoningEffort)?status.reasoningEffort:null;
+ const request=service.providers.wikiRequest({purpose:'wiki',provider:selected.provider,model:selected.model,connectionId:catalog.connectionId,effort:conversationEffort||effort,maxToolCalls:settings.maxToolCalls});
  const page=service.providers.wikiRequest({...request,maxTokens:settings.pageMaxTokens});
  return {settings,models,request,connectionId:request.connectionId,applied:{provider:request.provider,model:request.model,effort:request.effort,concurrency:settings.concurrency,maxToolCalls:request.maxToolCalls,pageMaxTokens:page.maxTokens,selection:settings.model==='auto'?(preferred?'priority':'current'):'explicit'}};
 }
