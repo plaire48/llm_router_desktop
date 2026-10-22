@@ -87,3 +87,30 @@ test('view and modal boundaries coalesce animation discovery before the next pai
  try{stop=installMotionPolicy(doc);reads=0;for(let i=0;i<5;i++)listeners.get('nubi-motion-change')();observers.find(observer=>observer.target===root).callback();assert.equal(reads,0,'phase notifications must not repeatedly flush the whole document before React commits');next();assert.equal(reads,1,'one read reconciles all boundaries in the paint');doc.hidden=true;listeners.get('visibilitychange')();assert.equal(bird.playState,'paused','a hidden window pauses immediately even without another paint');}
  finally{stop?.();for(const[key,value]of Object.entries(saved))if(value===undefined)delete globalThis[key];else globalThis[key]=value;}
 });
+// Decorative ambient loops are held while idle; status loops and the brand bird run (design light-flow §6).
+test('decorative ambient loops are held, status loops and the brand bird keep running',async()=>{
+ const {IDLE_AMBIENT_HELD}=await import('../ui/motion-policy.mjs');
+ for(const name of ['nubi-pastel-flow','deck-twinkle','nubi-water-aura','bird-blink','bird-idle-base','nubi-bird-flight'])assert.ok(IDLE_AMBIENT_HELD.has(name),name);
+ for(const name of ['nubi-brand-float','master-spin','nubi-live-spin','nubi-live-breathe','nubi-wiki-scan','nubi-progress-breathe'])assert.ok(!IDLE_AMBIENT_HELD.has(name),name);
+ const reg=parseAmbientRegistry('nubi-pastel-flow:26000:transform;deck-twinkle:3000:opacity;nubi-brand-float:4000:transform;master-spin:800:transform');
+ const pastel=animation('nubi-pastel-flow',{repeat:true,duration:26000,properties:['transform']}),twinkle=animation('deck-twinkle',{repeat:true,duration:3000,properties:['opacity']}),brand=animation('nubi-brand-float',{repeat:true,duration:4000,properties:['transform']}),spin=animation('master-spin',{repeat:true,duration:800,properties:['transform']});
+ const owned=new Set();reconcileMotion([pastel,twinkle,brand,spin],{registry:reg,paused:false,owned,held:IDLE_AMBIENT_HELD});
+ assert.deepEqual([pastel,twinkle,brand,spin].map(a=>a.playState),['paused','paused','running','running']);
+ assert.equal(pastel.currentTime,47,'held, not cancelled');
+});
+test('a window shown again does not revive held decoration, while the brand bird resumes',()=>{
+ const reg=parseAmbientRegistry('nubi-pastel-flow:26000:transform;nubi-brand-float:4000:transform');const held=new Set(['nubi-pastel-flow']);
+ const pastel=animation('nubi-pastel-flow',{repeat:true,duration:26000,properties:['transform']}),brand=animation('nubi-brand-float',{repeat:true,duration:4000,properties:['transform']});
+ const owned=new Set();
+ reconcileMotion([pastel,brand],{registry:reg,paused:false,owned,held});
+ reconcileMotion([pastel,brand],{registry:reg,paused:true,owned,held});assert.equal(brand.playState,'paused');
+ reconcileMotion([pastel,brand],{registry:reg,paused:false,owned,held});
+ assert.equal(pastel.playState,'paused');assert.equal(brand.playState,'running');
+});
+test('the installed policy holds a disallowed ambient loop while the app is idle',()=>{
+ const saved=Object.fromEntries(['matchMedia','getComputedStyle','MutationObserver','requestAnimationFrame','cancelAnimationFrame'].map(key=>[key,globalThis[key]])),listeners=new Map();let next;const head=new EventTarget(),root={hasAttribute:()=>false,removeAttribute(){}},pastel=animation('nubi-pastel-flow',{repeat:true,duration:26000,properties:['transform']});pastel.effect.target={};
+ globalThis.matchMedia=()=>Object.assign(new EventTarget(),{matches:false});globalThis.getComputedStyle=element=>element===root?{getPropertyValue:()=>'nubi-pastel-flow:26000:transform'}:{animationName:'nubi-pastel-flow',animationDuration:'26s'};globalThis.MutationObserver=class{constructor(callback){this.callback=callback;}observe(){}disconnect(){}};globalThis.requestAnimationFrame=callback=>{next=callback;return 1;};globalThis.cancelAnimationFrame=()=>{};
+ const doc={hidden:false,head,documentElement:root,styleSheets:[{cssRules:[{type:7,name:'nubi-pastel-flow',cssRules:[{style:['transform']}]}]}],getAnimations:()=>[pastel],addEventListener:(name,listener)=>listeners.set(name,listener),removeEventListener(){}};let stop;
+ try{stop=installMotionPolicy(doc);listeners.get('animationstart')({type:'animationstart',animationName:'nubi-pastel-flow',target:pastel.effect.target});next?.();assert.equal(pastel.playState,'paused');assert.equal(pastel.cancelled,false);}
+ finally{stop?.();for(const[key,value]of Object.entries(saved))if(value===undefined)delete globalThis[key];else globalThis[key]=value;}
+});

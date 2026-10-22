@@ -92,7 +92,7 @@
 .nubi-workflow-row:focus-visible{outline:calc(var(--cx-space-1)/2) solid var(--deck-blue);outline-offset:calc(var(--cx-space-1)/2);border-radius:var(--nubi-box-radius)}
 @media(max-width:45em){.nubi-workflow-columns>nav{flex-basis:100%}}
 
-.nubi-workbench[data-host-layout=integrated]:has(.nubi-sidebar[data-open=false] .nubi-sidebar-brand) .nubi-workflows{padding-block-start:calc(var(--cx-space-8)*2 + var(--cx-space-6))}
+.nubi-workbench[data-host-layout=integrated][data-sidebar-brand-collapsed="true"][data-sidebar-brand-collapsed][data-sidebar-brand-collapsed] .nubi-workflows{padding-block-start:calc(var(--cx-space-8)*2 + var(--cx-space-6))}
 
 .nubi-workflow-header .nubi-wiki-badge{width:calc(var(--cx-space-1)*7);height:calc(var(--cx-space-1)*7)}
 .nubi-workflow-header{gap:var(--cx-space-3)}
@@ -100,7 +100,7 @@
 @media(max-width:45em){.nubi-workflows,.nubi-workflow-run{padding-inline:var(--cx-space-5)}}
 
 .nubi-workflows[data-shell-title]>.nubi-workflow-header>h1{display:none}
-@media(max-width:45em){.nubi-workflows[data-shell-title]>.nubi-workflow-header>h1{display:block}:root:has(.nubi-workflows[data-shell-title]) .nubi-window-toolbar .nubi-toolbar-context{display:none}:root:has(.nubi-workflows[data-shell-title]) .nubi-window-toolbar .nubi-toolbar-actions{margin-inline-start:auto}}
+@media(max-width:45em){.nubi-workflows[data-shell-title]>.nubi-workflow-header>h1{display:block}:root[data-workflows-title="true"][data-workflows-title] .nubi-window-toolbar .nubi-toolbar-context{display:none}:root[data-workflows-title="true"][data-workflows-title] .nubi-window-toolbar .nubi-toolbar-actions{margin-inline-start:auto}}
 
 .desktop-shell .nubi-workbench .nubi-workflow-stage .nubi-workflow-stage-heading>strong{font-weight:var(--nubi-weight-emphasis)}
 

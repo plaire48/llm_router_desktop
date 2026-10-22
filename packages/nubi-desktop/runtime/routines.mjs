@@ -3,6 +3,8 @@ import {randomUUID} from 'node:crypto';
 import {wikiChatBlocked} from './wiki-chat-admission.mjs';
 import {humanDecisions} from '../ui/human-decisions.mjs';
 import {loadWorkflowPackage,saveWorkflowSchedule,formatWorkflowSchedule} from './workflow-package.mjs';
+import {DESKTOP_FEATURES} from './beta-features.mjs';
+import {workflowsEnabled,requireWorkflows} from './workflow-feature.mjs';
 const SLUG=/^[a-z0-9][a-z0-9-]{0,79}$/;
 const fail=code=>{throw Error(code);};
 const iso=value=>new Date(value).toISOString();
@@ -40,7 +42,7 @@ export function createRoutineScheduler({store,run,now=()=>Date.now(),interval=60
  return {get busy(){return pending>0;},runNow:id=>serial(()=>execute(id,true)),tick:()=>serial(async()=>{if(stopped)return;for(const r of dueRoutines(store,now())){try{await execute(r.id,false);}catch{update(r.id,{lastError:'routine_not_ready'});}}}),
   start(){stopped=false;if(timer)return;void this.tick().catch(()=>{});timer=setInterval(()=>{void this.tick().catch(()=>{});},interval);timer.unref?.();},stop(){stopped=true;clearInterval(timer);timer=null;}};
 }
-export function createRoutineManager({store,listProjects,serviceFor,now=()=>Date.now(),canStart=()=>true,onActivity=()=>{}}){
+export function createRoutineManager({store,listProjects,serviceFor,now=()=>Date.now(),canStart=()=>true,onActivity=()=>{},features=DESKTOP_FEATURES}){
  const owner=async routine=>{const project=(await listProjects()).find(p=>p.id===routine.projectId);if(!project)fail('project_missing');return serviceFor(project);};
  const ui=createRoutineUiActions({store,owner});
  const watched=new WeakSet();
@@ -96,7 +98,7 @@ export function createRoutineManager({store,listProjects,serviceFor,now=()=>Date
    notify(service,task.id,'started');observe(service);return {taskId:task.id,projectId:service.projectId};
   }
  });
- return {observe,get busy(){return scheduler.busy;},start:()=>scheduler.start(),stop:()=>scheduler.stop(),tick:()=>scheduler.tick(),runNow:({id})=>scheduler.runNow(id),
+ const api={observe,get busy(){return scheduler.busy;},start:()=>scheduler.start(),stop:()=>scheduler.stop(),tick:()=>scheduler.tick(),runNow:({id})=>scheduler.runNow(id),
   catalog:args=>ui.catalog(args),resolvePromotion:args=>ui.resolve(args),
   async list({promotions=false}={}){const items=store.list('routine:').map(r=>({...r,nextRunAt:r.enabled?nextRun(r,now()):null}));if(promotions)for(const row of items){try{row.promotion=await ui.promotion(row);}catch{row.promotion=null;}}return {items,projects:await listProjects()};},
   async save(input){
@@ -120,4 +122,17 @@ export function createRoutineManager({store,listProjects,serviceFor,now=()=>Date
   },
   delete({id,confirmed}){if(confirmed!==true)fail('routine_confirmation');store.delete('routine:'+id);return {deleted:true};}
  };
+ return withWorkflowSwitch(api,{store,now,features});
+}
+// Routines run prompts and workflows on a schedule; both are off in this release (design light-flow §5.1). Nothing is
+// scheduled, saved or deleted, stored routines stay as they were, and the person who had routines is told once.
+const ROUTINE_NOTICE_KEY='notice:routines-paused-1.3.1';
+const ROUTINE_NOTICE_TEXT='루틴은 다음 판에서 다시 켜집니다. 저장한 루틴은 그대로 있어요.';
+function withWorkflowSwitch(api,{store,now,features}){
+ api.notice=()=>({show:!workflowsEnabled(features)&&store.list('routine:').length>0&&!store.get(ROUTINE_NOTICE_KEY),text:ROUTINE_NOTICE_TEXT});
+ api.acknowledgeNotice=()=>{store.set(ROUTINE_NOTICE_KEY,{at:iso(now())});return api.notice();};
+ if(workflowsEnabled(features))return api;
+ const off=()=>requireWorkflows(features);
+ Object.assign(api,{start:()=>{},tick:async()=>{},runNow:async()=>off(),save:async()=>off(),delete:()=>off(),catalog:async()=>off(),resolvePromotion:async()=>off()});
+ return api;
 }

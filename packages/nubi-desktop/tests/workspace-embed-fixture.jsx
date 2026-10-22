@@ -6,7 +6,7 @@ import {GhesAccount} from '../ui/GhesAccount.jsx';
 import {AiWorkspaceEmbed} from '../ui/AiWorkspaceEmbed.jsx';
 import {prepareWorkspaceSite} from '../ui/ai-workspace/workspace/workspaceSite.js';
 
-import '../electron-app/workbench.css';import '../design/workspace-identity.css';import '../electron-app/shell.css';import '../electron-app/ios-tokens.css';import '../design/workspace-typography.css';import '../design/workspace-density.css';import '../design/workspace-dialogs.css';
+import '../electron-app/workbench.css';import '../design/workspace-identity.css';import '../ui/shell-state-auto.mjs';import '../electron-app/shell.css';import '../electron-app/ios-tokens.css';import '../design/workspace-typography.css';import '../design/workspace-density.css';import '../design/workspace-dialogs.css';
 import '../design/workspace-icons.css';
 window.calls=[];window.unhandled=[];window.openFailure=false;
 const user={id:7,login:'nubi',name:'김누비',email:'nubi@example.test',type:'User'};

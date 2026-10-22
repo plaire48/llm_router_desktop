@@ -38,7 +38,7 @@
 
 .desktop-shell .nubi-mail-history>.nubi-catalog-tabs { flex:none; margin-top:var(--cx-space-3); }
 .desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-history-list { overflow:visible; }
-.desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-results:has(.nubi-mail-table) { min-width:0; }
+.desktop-shell .nubi-mail-history[data-layout=table] .nubi-mail-results[data-has-mail-table="true"] { min-width:0; }
 
 .desktop-shell .nubi-mail-table :is(th,td):first-child { position:sticky; left:0; z-index:2; background:var(--nubi-surface-base); }
 .desktop-shell .nubi-mail-table th:first-child { z-index:3; }

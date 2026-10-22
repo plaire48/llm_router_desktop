@@ -1,3 +1,6 @@
+import {DESKTOP_FEATURES} from '../runtime/beta-features.mjs';
+// Workflows are off in this release (design light-flow §5.1): the check stays in the gate and reports a skip.
+if(!DESKTOP_FEATURES.workflows){console.log(JSON.stringify({check:'electron-workflow',skipped:'workflows_feature_off'}));process.exit(0);}
 import {seedRoutineScenes,checkRoutineScenes} from './workflow-routine-scenes.mjs';
 import {captureDesign} from './design-rules.mjs';
 // Actual desktop host + scripted loopback model + synthetic package only.

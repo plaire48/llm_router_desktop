@@ -543,5 +543,44 @@ try{
    await captureDesign(p,{path:`verification/ui-queue-layout-${width}.png`,animations:'disabled'});
  }
  checks.push('queued input, pending admission and consumed message keep metadata in normal flow at 1280, 620 and 440px');
+ {// Layout facts are attributes now, not :has() (design light-flow §1.1): they follow the DOM both ways.
+  await mkdir('verification/light-flow',{recursive:true});
+  await p.setViewportSize({width:440,height:900});await p.goto(page());const login=p.locator('.aipro-login').getByRole('button',{name:'AI Pro',exact:true});await Promise.race([login.waitFor(),p.locator('.nubi-workbench').waitFor()]);if(await login.count())await login.click();
+  const shell=()=>p.locator('.desktop-shell').first(),bench=()=>p.locator('.nubi-workbench').first();
+  await openSidebar();await p.locator('.nubi-sidebar[data-open="true"]').waitFor();
+  assert.equal(await shell().getAttribute('data-sidebar-open'),'true');assert.equal(await p.locator('html').getAttribute('data-sidebar-open'),'true');
+  await captureDesign(p,{path:'verification/light-flow/state-roundtrip-440-sidebar-open.png',animations:'disabled'});
+  await closeSidebar();await p.locator('.nubi-sidebar[data-open="true"]').waitFor({state:'detached'}).catch(()=>{});
+  assert.equal(await shell().getAttribute('data-sidebar-open'),'false');
+  await captureDesign(p,{path:'verification/light-flow/state-roundtrip-440-sidebar-closed.png',animations:'disabled'});
+  await p.setViewportSize({width:1280,height:950});const box=p.getByRole('textbox',{name:'작업 요청'});await box.focus();
+  assert.equal(await bench().getAttribute('data-composer-focus'),'true');
+  await captureDesign(p,{path:'verification/light-flow/state-roundtrip-1280-composer-focus.png',animations:'disabled'});
+  await box.evaluate(e=>e.blur());assert.equal(await bench().getAttribute('data-composer-focus'),'false');
+  await captureDesign(p,{path:'verification/light-flow/state-roundtrip-1280-composer-blur.png',animations:'disabled'});
+  checks.push('layout facts follow the DOM both ways: sidebar overlay open and closed, composer focus and blur');
+ }
+ if(!DESKTOP_FEATURES.workflows){// workflows and routines are off since 2026-10-22 (design light-flow §5.1): nothing workflow-shaped is reachable
+  await p.setViewportSize({width:1280,height:950});await p.goto(page('workflow-off'));const signIn=async()=>{const login=p.locator('.aipro-login').getByRole('button',{name:'AI Pro',exact:true});await Promise.race([login.waitFor(),p.locator('.nubi-workbench').waitFor()]);if(await login.count())await login.click();await p.locator('.nubi-workbench').waitFor();};await signIn();
+  await p.getByText('루틴은 다음 판에서 다시 켜집니다. 저장한 루틴은 그대로 있어요.',{exact:true}).waitFor();
+  await p.waitForFunction(()=>window.routineNoticeAcknowledged===1,null,{timeout:8000});// acknowledged after its full toast time
+  assert.equal(await p.getByRole('button',{name:'워크플로우',exact:true}).count(),0);
+  assert.equal(await p.getByRole('button',{name:'루틴으로 등록',exact:true}).count(),0);
+  await p.getByRole('button',{name:'설정',exact:true}).first().click();await p.getByRole('dialog',{name:'설정'}).waitFor();
+  assert.equal(await p.getByRole('dialog',{name:'설정'}).getByRole('button',{name:'루틴',exact:true}).count(),0);await p.keyboard.press('Escape');
+  // Stored workflow, interrupted workflow and workflow-step conversations: readable, with no way to continue.
+  for(const [name,content] of [['합성 정의서 워크플로우','자료 모으기'],['중단된 정의서 워크플로우','자료 모으기'],['정의서 단계 대화','단계 대화 기록이에요.']]){
+   await openSidebar();await p.getByRole('button',{name}).first().click();await closeSidebar();
+   await p.getByText(content,{exact:true}).first().waitFor();
+   await p.getByText('이 판에서는 워크플로우가 꺼져 있어요.',{exact:true}).waitFor();
+   const task=p.locator('.nubi-task');
+   for(const label of ['이어서 진행','중단','확인하기','다시 확인'])assert.equal(await task.getByRole('button',{name:label,exact:true}).count(),0,name+': no '+label);
+   assert.equal(await task.getByRole('textbox').count(),0,name+': no composer or answer field');
+  }
+  assert.deepEqual(await p.evaluate(()=>window.workflowWrites||[]),[],'nothing tried to change a workflow');
+  await p.reload();await signIn();await p.waitForTimeout(400);
+  assert.equal(await p.getByText('루틴은 다음 판에서 다시 켜집니다. 저장한 루틴은 그대로 있어요.',{exact:true}).count(),0,'the notice shows once');
+  checks.push('workflows off: no workflow or routine entry, stored workflow conversation readable without continuing, routine notice once');
+ }
  await writeFile('verification/shared-ui-result.json',JSON.stringify({scope:'synthetic UI provider states; not live authentication or model inference',checks,errors},null,2));console.log(JSON.stringify({passed:checks.length,checks},null,2));
 }catch(error){await p?.screenshot({path:'verification/shared-ui-failure.png'});await writeFile('verification/shared-ui-failure.html',await p.content());throw error;}finally{server.closeAllConnections();await browser?.close();await new Promise(r=>server.close(r));stopBuildService();}

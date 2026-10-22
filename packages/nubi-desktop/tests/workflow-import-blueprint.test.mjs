@@ -1,5 +1,5 @@
 import {workflowReport} from '../runtime/workflow-report.mjs';
-import {test} from 'node:test';import assert from 'node:assert/strict';import {readFile,writeFile,mkdir,readdir} from 'node:fs/promises';import path from 'node:path';import {parse} from 'yaml';
+import {featureTest} from './beta-feature.mjs';const test=featureTest('workflows');import assert from 'node:assert/strict';import {readFile,writeFile,mkdir,readdir} from 'node:fs/promises';import path from 'node:path';import {parse} from 'yaml';
 import * as blueprintModule from '../runtime/workflow-import-blueprint.mjs';
 import {convertBlueprint} from '../runtime/workflow-import-blueprint.mjs';import {validateWorkflow} from '../runtime/workflow-schema.mjs';import {fixture} from './fixtures.mjs';import {loadWorkflowPackage} from '../runtime/workflow-package.mjs';import {createWorkflowRunner} from '../runtime/workflow-runner.mjs';
 const source=await readFile(new URL('./fixtures/blueprint-sample.yaml',import.meta.url),'utf8'),sample=parse(source);

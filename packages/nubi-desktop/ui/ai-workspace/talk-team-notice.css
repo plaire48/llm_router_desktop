@@ -5,7 +5,7 @@
 .talk-team-options {border-top:1px solid var(--layout-row-border);}
 .talk-team-options>label {display:flex;align-items:center;gap:var(--cx-space-2);min-height:var(--cx-control);padding:var(--cx-option-block) var(--cx-space-2);border-bottom:1px solid var(--layout-row-border);cursor:pointer;}
 .talk-team-options>label.is-selected {background:var(--brand-surface);}
-.talk-team-options>label:has(input:disabled) {color:var(--layout-muted);cursor:default;}
+.talk-team-options>label[data-has-input-disabled="true"]:is(html *) {color:var(--layout-muted);cursor:default;}
 .talk-team-options .ui-icon {color:var(--brand-ink);flex-shrink:0;}
 .talk-team-options span {flex:1;min-width:0;}
 .talk-team-options strong {display:block;font:var(--nubi-weight-label) var(--deck-type-caption)/var(--deck-line-body) var(--cx-font-family);}

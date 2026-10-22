@@ -13,6 +13,7 @@ import {animatedSetter} from '../ui/viewTransition.js';
 import {useSidebarResize} from '../ui/useSidebarResize.js';
 import '../electron-app/workbench.css';
 import '../design/workspace-identity.css';
+import '../ui/shell-state-auto.mjs';// layout facts as attributes, as the renderer host does (design light-flow §1.1)
 import '../electron-app/shell.css';
 import '../electron-app/ios-tokens.css';
 import '../design/workspace-typography.css';

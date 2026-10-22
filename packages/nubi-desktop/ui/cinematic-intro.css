@@ -67,7 +67,7 @@
 .nubi-intro[data-mode="brief"] .nubi-intro-brand-bird { animation-delay:.6s; }
 @keyframes nubi-intro-title-brief { from{opacity:0;transform:translate(-50%,-47%)} to{opacity:1;transform:translate(-50%,-50%)} }
 /* Nothing of the app shows through before the scene: the waiting bird stays hidden while it plays. */
-body:has(.nubi-intro) .nubi-preparing { visibility:hidden; }
+[data-intro="true"] body .nubi-preparing { visibility:hidden; }
 /* Completing wins over either form's fill animation. */
 .nubi-intro[data-mode][data-phase="complete"] .nubi-intro-progress > span, .nubi-intro[data-mode][data-phase="leave"] .nubi-intro-progress > span { animation:none; transform:scaleX(1); transition:transform .38s cubic-bezier(.2,.8,.2,1); }
 /* Until the scene starts it holds its first frame (startup work first, then the flight in real time). */

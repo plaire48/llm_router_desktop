@@ -1,4 +1,4 @@
-import {test} from 'node:test';import assert from 'node:assert/strict';import {readFile,writeFile,mkdir,symlink,readdir} from 'node:fs/promises';import path from 'node:path';
+import {featureTest} from './beta-feature.mjs';const test=featureTest('workflows');import assert from 'node:assert/strict';import {readFile,writeFile,mkdir,symlink,readdir} from 'node:fs/promises';import path from 'node:path';
 import {fixture} from './fixtures.mjs';import {convertE2eTask} from '../runtime/workflow-import-e2e.mjs';import {validateWorkflow} from '../runtime/workflow-schema.mjs';import {loadWorkflowPackage} from '../runtime/workflow-package.mjs';
 const sample=JSON.parse(await readFile(new URL('./fixtures/e2e-task-sample.json',import.meta.url),'utf8'));
 test('fifteen synthetic nodes preserve references and explicit joins in a validated draft',()=>{

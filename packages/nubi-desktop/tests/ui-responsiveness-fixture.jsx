@@ -10,6 +10,7 @@ import {useModalDismissalPolicy} from '../ui/useModalDismissalPolicy.js';
 import {useModalMotion} from '../ui/modalMotion.js';
 import '../node_modules/@e2e/cx-design-system/dist/styles.css';
 import '../design/workspace-identity.css';
+import '../ui/shell-state-auto.mjs';// layout facts as attributes, as the renderer host does (design light-flow §1.1)
 import '../design/workspace-dialogs.css';
 import '../design/workspace-icons.css';
 import '../electron-app/modal-motion.css';

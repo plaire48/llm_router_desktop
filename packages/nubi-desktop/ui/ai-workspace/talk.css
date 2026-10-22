@@ -14,7 +14,7 @@
 .talk-answer-filter.native-select {width:112px}
 .discussion-locked {padding:var(--cx-space-2) var(--cx-space-3);margin:var(--cx-space-2) 0;color:var(--layout-muted);background:var(--layout-soft);border-radius:var(--cx-radius-control);font:var(--nubi-weight-regular) var(--cx-type-body)/var(--deck-line-body) var(--cx-font-family);}
 .talk-comment-head>.discussion-answer {flex-shrink:0;justify-content:center;width:22px;height:22px;border:1px solid var(--brand-border);border-radius:50%;background:var(--brand-surface)}
-.talk-workspace .comment-entry:has(>.talk-comment-head>.discussion-answer) {padding:var(--cx-space-2) var(--cx-space-3);border-left:2px solid var(--brand-mid);border-radius:var(--cx-radius-control);background:var(--brand-surface);}
+.talk-workspace .comment-entry[data-has-discussion-answer="true"][data-has-discussion-answer] {padding:var(--cx-space-2) var(--cx-space-3);border-left:2px solid var(--brand-mid);border-radius:var(--cx-radius-control);background:var(--brand-surface);}
 .talk-workspace .talk-comment-head {flex-wrap:wrap;gap:var(--cx-space-1);}
 .talk-workspace .talk-comment-head>.talk-author {margin-right:auto;min-width:0}
 .discussion-poll {border:1px solid var(--layout-border);border-radius:var(--cx-radius-card);padding:var(--cx-space-4);margin:var(--cx-space-4) 0;max-width:100%;font:var(--nubi-weight-regular) var(--cx-type-body)/var(--deck-line-body) var(--cx-font-family);}
@@ -139,19 +139,19 @@
  .talk-search input {width:100%}
  .talk-filter-tools {display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:var(--cx-space-2);}
  .talk-workspace .talk-search {grid-column:1/-1;width:auto;margin:0}
- .talk-workspace .talk-filter-tools:not(:has([data-action=myPosts])) {grid-template-columns:minmax(0,1fr) auto}
+ .talk-workspace .talk-filter-tools:not([data-has-my-posts="true"]) {grid-template-columns:minmax(0,1fr) auto}
  .talk-feed-card-header,.talk-post-link {padding:var(--cx-space-3)}
  .talk-feed-counts {margin-inline:var(--cx-space-3)}
  .talk-filter-tools .table-page-size {margin-left:auto}
  .talk-sort.native-select {min-width:0;width:100%}
- .talk-toolbar:has(.talk-category-filter) {display:grid;grid-template-columns:var(--cx-control) minmax(0,1fr) minmax(128px,1.2fr);gap:var(--cx-space-2);}
- .talk-workspace .talk-filter-tools:has(.talk-category-filter) {display:contents}
- .talk-toolbar:has(.talk-category-filter) .talk-search {grid-column:1/-1;grid-row:1;width:calc(100% - 80px);margin:0}
- .talk-toolbar:has(.talk-category-filter) .talk-view-toggle {grid-column:3;grid-row:1;justify-self:end;margin:0}
- .talk-toolbar:has(.talk-category-filter):not(:has([data-action=myPosts])) .talk-sort {grid-column:1/3}
+ .talk-toolbar[data-has-category-filter="true"] {display:grid;grid-template-columns:var(--cx-control) minmax(0,1fr) minmax(128px,1.2fr);gap:var(--cx-space-2);}
+ .talk-workspace .talk-filter-tools[data-has-category-filter="true"] {display:contents}
+ .talk-toolbar[data-has-category-filter="true"] .talk-search {grid-column:1/-1;grid-row:1;width:calc(100% - 80px);margin:0}
+ .talk-toolbar[data-has-category-filter="true"] .talk-view-toggle {grid-column:3;grid-row:1;justify-self:end;margin:0}
+ .talk-toolbar[data-has-category-filter="true"]:not([data-has-my-posts="true"]) .talk-sort {grid-column:1/3}
  .talk-toolbar .talk-category-filter {grid-column:3;width:100%;min-width:0}
  .talk-toolbar .talk-answer-filter {grid-column:1/3;width:100%;min-width:0}
- .talk-toolbar:has(.talk-category-filter) .table-page-size {grid-column:3;justify-self:end;margin:0}
+ .talk-toolbar[data-has-category-filter="true"] .table-page-size {grid-column:3;justify-self:end;margin:0}
  .talk-author {gap:var(--cx-space-2)}
  .talk-author time {padding-left:0}
  .talk-post-meta {align-items:flex-start}

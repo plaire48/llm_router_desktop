@@ -6,6 +6,7 @@ import {Workbench} from '../ui/Workbench.jsx';
 import '../electron-app/workbench.css';
 import '../../nubi-vscode/design/host.css';
 import '../design/workspace-identity.css';
+import '../ui/shell-state-auto.mjs';// layout facts as attributes, as the renderer host does (design light-flow §1.1)
 async function api(method,args={}){
  const response=await fetch('/api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({method,args})});const value=await response.json();if(!response.ok)throw Error(value.error);return value;
 }

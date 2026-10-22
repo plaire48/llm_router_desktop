@@ -9,6 +9,7 @@ import {ProjectWikiProgress} from '../ui/ProjectWikiProgress.jsx';
 import '../../../extensions/aipro-chat/design/agent-deck.css';
 import '../electron-app/workbench.css';
 import '../design/workspace-identity.css';
+import '../ui/shell-state-auto.mjs';// layout facts as attributes, as the renderer host does (design light-flow §1.1)
 import '../design/workspace-typography.css';
 const html='<h2>프로젝트 일정 안내</h2><p>안녕하세요. <strong>10월 23일까지 검토</strong> 부탁드립니다.</p><table style="width:100%"><tr style="background-color:#E8F1FE"><th>항목</th><th>일정</th></tr><tr><td>기능 검토</td><td>10월 20일</td></tr><tr><td>최종 반영</td><td>10월 23일</td></tr></table><script>parent.unsafe=true</script><img src="file:///secret" alt="표시할 수 없는 이미지">';
 const api=async(method,args)=>args.action==='roots'?{items:[{id:'project',name:'누비 프로젝트',kind:'code'}]}:new Promise(()=>{});

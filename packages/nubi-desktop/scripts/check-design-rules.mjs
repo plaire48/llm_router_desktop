@@ -5,6 +5,13 @@ import {DESIGN_MOTION_FILES,sourceDesignIssues,assertDesignRules,assertAccessibi
 const sourceIssues=[];
 for(const file of DESIGN_MOTION_FILES)sourceIssues.push(...sourceDesignIssues(file,await readFile(file,'utf8')));
 assert.deepEqual(sourceIssues,[],'Motion values belong to workspace-motion.css');
+// :has() recalculated the whole document's style on every DOM change (design light-flow §1.1, §6: zero in app CSS);
+// those facts are attributes now (ui/shell-state.mjs: root facts and LOCAL_HAS).
+{const {readdir}=await import('node:fs/promises');const pathModule=await import('node:path');
+ const cssFiles=async dir=>(await readdir(dir,{withFileTypes:true})).flatMap(e=>e.isDirectory()?(dir==='electron-app'&&e.name==='lib')||e.name==='node_modules'?[]:[pathModule.join(dir,e.name)]:e.name.endsWith('.css')?[pathModule.join(dir,e.name)]:[]);
+ const walk=async dirs=>{const out=[];for(const d of dirs){for(const entry of await cssFiles(d)){if(entry.endsWith('.css'))out.push(entry);else out.push(...await walk([entry]));}}return out;};
+ const found=[];for(const file of await walk(['design','ui','electron-app']))for(const issue of sourceDesignIssues(file,await readFile(file,'utf8'),{has:true}))if(issue.rule==='has_selector')found.push(file+':'+issue.line+' '+issue.selector);
+ assert.deepEqual(found,[],':has() is replaced by shell-state attributes');}
 const browser=await chromium.launch({channel:'chrome',headless:true}),checks=[];
 const style='<style>:root{--nubi-surface-base:white;--nubi-motion-enter:280ms;--nubi-motion-exit:180ms;--nubi-motion-press:120ms;--nubi-motion-state:180ms}@media(prefers-reduced-motion:reduce){:root{--nubi-motion-enter:120ms;--nubi-motion-exit:120ms;--nubi-motion-state:120ms}}[data-design-surface]{padding:20px}.tint{background:rgb(230,240,255)}</style>';
 try{

@@ -1,4 +1,4 @@
-import {installWorkflowService} from './workflow-service.mjs';
+import {installWorkflowService} from './workflow-service.mjs';import {guardWorkflowMethods} from './workflow-feature.mjs';
 import {summarizeTaskMetrics} from './run-metrics.mjs';
 import {conversationMarkdown,conversationFilename} from './conversation-export.mjs';
 import {setAfterEditCheck,queueAfterEditCheck} from './after-edit-check.mjs';
@@ -299,6 +299,8 @@ export class ProjectService {
   saveRoutine(args){if(!this.routines)fail('routine_not_ready');return this.routines.save(args);}
   deleteRoutine(args){if(!this.routines)fail('routine_not_ready');return this.routines.delete(args);}
   runRoutineNow(args){if(!this.routines)fail('routine_not_ready');return this.routines.runNow(args);}
+  routineNotice(){return this.routines?this.routines.notice():{show:false};}
+  acknowledgeRoutineNotice(){return this.routines?this.routines.acknowledgeNotice():{show:false};}
   taskUsage({taskId}) {this.task(taskId);return summarizeTaskMetrics(this.store,taskId);}
   exportConversation({taskId}) {
     const task=this.task(taskId);return {filename:conversationFilename(task),markdown:conversationMarkdown(task,{workflowRun:task.kind==='workflow'?this.store.get('workflow-run:'+task.workflowRunId):undefined})};
@@ -440,7 +442,7 @@ export class ProjectService {
     if(this.appUpdateLocked)fail('update_installing');
     if(method==='prepareAppUpdate')return this.prepareAppUpdate();
     const allowed = new Set(['importBlueprint','importE2eTask','listWorkflows','validateWorkflow','dryRunWorkflow','startWorkflow','workflowRun','cancelWorkflow','resumeWorkflow','editorLink','liveEditor','reviseNativeOfficeDraft','nativeOfficeStatus','importDocumentSelection','chatDocument','capture','captureWorkspace','previewFile','browseDirectory','terminalCommand','projectPath','proposalText','artifactText','initializeWiki','wikiInitialization','saveSource','commitHistory','mailDocument','mail','wikiUpdate','analysisHistory','memories','listSkills','removeSkill','skillMarketplace','connectSkillMarketplace','disconnectSkillMarketplace','importSkill','importVoc','queryVoc','readVoc','computer','applyNewFile','decideSetupAction','collaboration','codeOutline','recoverySnapshot','resumeAgent','diagnoseProcess','applyCommandRepair','knowledgeMap','knowledgeQuery','initializeKnowledgeCatalog','exportKnowledgeMap','databaseConnection','open','knowledgeStatus','recordKnowledge','comparison','connectKnowledge','overview','state','setShellPreference','read','search','wikiQuery','createTask','exportConversation','taskUsage','listRoutines','saveRoutine','deleteRoutine','runRoutineNow','exportRequirement','createWorktree','propose','prepareProposal','proposalArtifacts','confirmProposal','mergeProposal','diff','run','exportReport','compare','provider','fabrix','agentInput','startAgent','answerAgent','saveQuestionDraft','stopAgent','deleteTask','approvalPolicy','setApprovalMode','allowCommand','removeAllowedCommand','autoApprovals']);
-    allowed.add('wikiCoverage');allowed.add('browserTeach');allowed.add('documentForm');allowed.add('registerWorkflowRoutine');allowed.add('listRoutineWorkflows');allowed.add('resolveRoutinePromotion');allowed.add('wikiGeneration');allowed.add('wikiLifecycle');allowed.add('inspectCode');allowed.add('inspectDevServer');allowed.add('mcp');allowed.add('removeAllowedMcpTool');allowed.add('rejectCommandRepair');allowed.add('cancelProposal');allowed.add('gitAvailability');allowed.add('conversationHistory');allowed.add('usage');for(const method of ['setAfterEditCheck','retryAfterEditCheck','startSideTask','dismissSideTask','markTaskRead','archiveTask','setAutoArchiveDays','setPinnedTasks'])allowed.add(method);allowed.add('editorSource');allowed.add('regenerateAnswer');allowed.add('skillTrash');
+    allowed.add('routineNotice');allowed.add('acknowledgeRoutineNotice');allowed.add('wikiCoverage');allowed.add('browserTeach');allowed.add('documentForm');allowed.add('registerWorkflowRoutine');allowed.add('listRoutineWorkflows');allowed.add('resolveRoutinePromotion');allowed.add('wikiGeneration');allowed.add('wikiLifecycle');allowed.add('inspectCode');allowed.add('inspectDevServer');allowed.add('mcp');allowed.add('removeAllowedMcpTool');allowed.add('rejectCommandRepair');allowed.add('cancelProposal');allowed.add('gitAvailability');allowed.add('conversationHistory');allowed.add('usage');for(const method of ['setAfterEditCheck','retryAfterEditCheck','startSideTask','dismissSideTask','markTaskRead','archiveTask','setAutoArchiveDays','setPinnedTasks'])allowed.add(method);allowed.add('editorSource');allowed.add('regenerateAnswer');allowed.add('skillTrash');
     if (method === 'poll') { this.ready(); return this.processes.poll(args.id); }
     if (method === 'stop') { this.ready(); return this.processes.stop(args.id); }
     if (method === 'events') { this.ready(); return this.store.events(args.after); }
@@ -456,3 +458,4 @@ installBrowserTeach(ProjectService);
 installDocumentForms(ProjectService);
 
 installWorkflowService(ProjectService);
+guardWorkflowMethods(ProjectService);

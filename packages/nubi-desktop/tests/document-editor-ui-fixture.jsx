@@ -3,7 +3,7 @@ import React,{useState} from 'react';import {createRoot} from 'react-dom/client'
 import {OfficeWindowPane} from '../electron-app/OfficeWindowPane.jsx';
 import {QuestionDecision} from '../ui/QuestionDecision.jsx';
 import {useEditorConnection} from '../ui/EditorConnection.jsx';import PdfPreview from '../ui/PdfPreview.jsx';
-import '../electron-app/workbench.css';import '../design/workspace-identity.css';import '../electron-app/shell.css';import '../electron-app/ios-tokens.css';import '../design/workspace-typography.css';import '../design/workspace-density.css';import '../design/workspace-dialogs.css';import '../design/workspace-icons.css';import '../ui/document-preview.css';import '../design/office-connection.css';
+import '../electron-app/workbench.css';import '../design/workspace-identity.css';import '../ui/shell-state-auto.mjs';import '../electron-app/shell.css';import '../electron-app/ios-tokens.css';import '../design/workspace-typography.css';import '../design/workspace-density.css';import '../design/workspace-dialogs.css';import '../design/workspace-icons.css';import '../ui/document-preview.css';import '../design/office-connection.css';
 window.editorFixture={delay:false,disconnects:0,requests:[]};
 const connectEditor=async()=>{if(window.editorFixture.delay)await new Promise(resolve=>{window.editorFixture.release=resolve;});return {title:'긴 문서 이름의 읽기와 편집.txt',attach:async()=>{},disconnect:async()=>{window.editorFixture.disconnects++;}};};
 const api=async(method,args)=>{window.editorFixture.requests.push({method,...args});if(method==='externalTextEditor')throw Error('editor_windows_required');if(method==='editorLink')return {code:'fixture-pair-code',pairId:'fixture'};return {};};

@@ -1,3 +1,4 @@
+import {DESKTOP_FEATURES} from '../runtime/beta-features.mjs';
 import {captureDesign} from './design-rules.mjs';
 import {assertDialogIdentity,assertDialogChrome} from './identity-browser.mjs';
 import {build,stop as stopBuildService} from 'esbuild';
@@ -188,7 +189,8 @@ try {
   checks.push({scene:'conversation-usage',width,purposes:6,partialTokens:true,missingTokens:true,noPrice:true});await page.close();
  }
  }
- for(const width of [1280,440,360]){
+ if(!DESKTOP_FEATURES.workflows)checks.push({scene:'routines',skipped:'workflows_feature_off'});// routines are off with workflows in this release (design light-flow §5.1)
+ else for(const width of [1280,440,360]){
   const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});page.on('pageerror',error=>errors.push(error.message));
   await page.goto('http://127.0.0.1:'+server.address().port+'/?integrated&routines');
   await page.getByRole('button',{name:'설정',exact:true}).click();await page.getByRole('button',{name:'루틴',exact:true}).click();await page.getByRole('button',{name:'루틴 추가',exact:true}).click();

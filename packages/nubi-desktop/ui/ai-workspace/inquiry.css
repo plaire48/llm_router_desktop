@@ -86,7 +86,7 @@
 .inquiry-assignment-list {list-style:none;margin:var(--cx-space-2) 0 0;padding:0;border-top:1px solid var(--layout-border);}
 .inquiry-assignment-list li {border-bottom:1px solid var(--layout-row-border)}
 .inquiry-assignment-list label {display:flex;align-items:center;gap:var(--cx-space-2);padding:calc(var(--cx-space-1) * 1.5) var(--cx-space-2);cursor:pointer;}
-.inquiry-assignment-list label:has(input:checked) {background:var(--brand-surface)}
+.inquiry-assignment-list label[data-has-input-checked="true"]:is(html *) {background:var(--brand-surface)}
 .inquiry-assignment-list input {flex:none;width:16px;height:16px;accent-color:var(--brand-action)}
 .inquiry-assignment-person {display:flex;flex:1;min-width:0;flex-direction:column;gap:calc(var(--cx-space-1) * 0.5);overflow-wrap:anywhere;}
 .inquiry-assignment-person strong {font-size:var(--deck-type-caption);font-weight:var(--nubi-weight-label);color:var(--brand-action);}

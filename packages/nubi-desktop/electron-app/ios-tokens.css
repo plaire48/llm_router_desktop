@@ -129,8 +129,8 @@
 }
 .desktop-shell .aipro-login-card .agent-intro {gap:var(--cx-space-3);margin-top:var(--cx-space-3)}
 .desktop-shell .aipro-login-card .provider-options {margin-top:calc(var(--cx-space-6) + var(--cx-space-4))}
-.desktop-shell .aipro-login-card:not(:has(.agent-intro)) {gap:var(--cx-space-6)}
-.desktop-shell .aipro-login-card:not(:has(.agent-intro)) .provider-options {margin-top:var(--cx-space-4)}
+.desktop-shell .aipro-login-card:not([data-has-agent-intro="true"]) {gap:var(--cx-space-6)}
+.desktop-shell .aipro-login-card:not([data-has-agent-intro="true"]) .provider-options {margin-top:var(--cx-space-4)}
 .desktop-shell .aipro-login .provider-button[data-provider] {
   min-height:52px;padding-inline:var(--cx-space-4);border-radius:var(--deck-control-radius);
   background:var(--provider-surface);color:var(--provider-ink);border-color:transparent;box-shadow:none;
@@ -204,13 +204,13 @@
 }
 .desktop-shell .nubi-workbench .model-trigger-label,
 .desktop-shell .nubi-workbench .model-trigger-label > * {transform:none;translate:none;animation:none}
-:root:has(.desktop-shell) .model-dialog {color:var(--deck-ink)}
-:root:has(.desktop-shell) .model-dialog :is(.model-option,.model-option-text) {color:var(--deck-ink)}
-:root:has(.desktop-shell) .model-dialog .provider-tabs [role="tab"] {color:var(--deck-sub)}
-:root:has(.desktop-shell) .model-dialog .provider-switcher[data-provider="aipro"] .provider-tabs [aria-selected="true"] {color:var(--deck-blue-deep)}
-:root:has(.desktop-shell) .model-dialog .provider-switcher[data-provider="chatgpt"] .provider-tabs [aria-selected="true"] {color:var(--deck-ink)}
-:root:has(.desktop-shell) .model-dialog .provider-switcher[data-provider="fabrix"] .provider-tabs [aria-selected="true"] {color:var(--provider-fabrix-ink)}
-:root:has(.desktop-shell) .model-dialog .provider-tab-icon.with-name {gap:var(--cx-space-3)}
+:root[data-desktop-shell="true"] .model-dialog {color:var(--deck-ink)}
+:root[data-desktop-shell="true"] .model-dialog :is(.model-option,.model-option-text) {color:var(--deck-ink)}
+:root[data-desktop-shell="true"] .model-dialog .provider-tabs [role="tab"] {color:var(--deck-sub)}
+:root[data-desktop-shell="true"] .model-dialog .provider-switcher[data-provider="aipro"] .provider-tabs [aria-selected="true"] {color:var(--deck-blue-deep)}
+:root[data-desktop-shell="true"] .model-dialog .provider-switcher[data-provider="chatgpt"] .provider-tabs [aria-selected="true"] {color:var(--deck-ink)}
+:root[data-desktop-shell="true"] .model-dialog .provider-switcher[data-provider="fabrix"] .provider-tabs [aria-selected="true"] {color:var(--provider-fabrix-ink)}
+:root[data-desktop-shell="true"] .model-dialog .provider-tab-icon.with-name {gap:var(--cx-space-3)}
 
 .desktop-shell .nubi-workbench .nubi-task .message-assistant {padding-block:var(--cx-space-2);margin-block:var(--cx-space-4)}
 .desktop-shell .nubi-workbench .nubi-task .nubi-request {margin-block:var(--nubi-section-gap);}
@@ -391,10 +391,10 @@
 /* The start screen's gradient keeps drifting while the person types (user request 2026-10-14: "그라데이션이 움직였으면").
    Elsewhere typing still quiets the backdrop. Wider, slower drift; transform only. Dialogs, a hidden window, a paused
    motion setting and reduced motion still stop it. */
-:root:not([data-motion="paused"]):not([data-motion-visibility="hidden"]):not(:has(.cx-panel-backdrop)) .desktop-shell:has(.nubi-start.is-empty) .deck-blob { animation-play-state:running; opacity:.3 !important; }
-.desktop-shell:has(.nubi-start.is-empty) .deck-blob-blue { animation:nubi-start-drift-a var(--nubi-ambient-pastel-a) cubic-bezier(.45,0,.55,1) infinite alternate; }
-.desktop-shell:has(.nubi-start.is-empty) .deck-blob-violet { animation:nubi-start-drift-b var(--nubi-ambient-pastel-b) cubic-bezier(.45,0,.55,1) infinite alternate; animation-delay:-11s; }
-.desktop-shell:has(.nubi-start.is-empty) .deck-blob-teal { animation:nubi-start-drift-c var(--nubi-ambient-pastel-c) cubic-bezier(.45,0,.55,1) infinite alternate; animation-delay:-6s; }
+:root:not([data-motion="paused"]):not([data-motion-visibility="hidden"]):not([data-panel-backdrop="true"]) .desktop-shell[data-start-empty="true"][data-start-empty] .deck-blob { animation-play-state:running; opacity:.3 !important; }
+.desktop-shell[data-start-empty="true"][data-start-empty] .deck-blob-blue { animation:nubi-start-drift-a var(--nubi-ambient-pastel-a) cubic-bezier(.45,0,.55,1) infinite alternate; }
+.desktop-shell[data-start-empty="true"][data-start-empty] .deck-blob-violet { animation:nubi-start-drift-b var(--nubi-ambient-pastel-b) cubic-bezier(.45,0,.55,1) infinite alternate; animation-delay:-11s; }
+.desktop-shell[data-start-empty="true"][data-start-empty] .deck-blob-teal { animation:nubi-start-drift-c var(--nubi-ambient-pastel-c) cubic-bezier(.45,0,.55,1) infinite alternate; animation-delay:-6s; }
 @keyframes nubi-start-drift-a { 0%{transform:translate3d(-6vw,-4vh,0) scale(.95)} 50%{transform:translate3d(14vw,10vh,0) scale(1.15)} 100%{transform:translate3d(4vw,22vh,0) scale(1.02)} }
 @keyframes nubi-start-drift-b { 0%{transform:translate3d(8vw,6vh,0) scale(1.05)} 50%{transform:translate3d(-16vw,-12vh,0) scale(.92)} 100%{transform:translate3d(-4vw,-24vh,0) scale(1.12)} }
 @keyframes nubi-start-drift-c { 0%{transform:translate3d(-4vw,14vh,0) scale(.94)} 50%{transform:translate3d(-20vw,-6vh,0) scale(1.18)} 100%{transform:translate3d(6vw,-10vh,0) scale(1)} }
@@ -424,7 +424,7 @@ body.nubi-desktop-host {
 @media (prefers-reduced-motion: reduce) { .desktop-shell :is(.nubi-mail-result,.nubi-custom-skill-row,.nubi-marketplace-row,.nubi-mcp-item,.usage-account,.nubi-server-notice):hover { transform:none; } }
 
 /* 위키 설정: less padding inside (user feedback 2026-10-14: "콘텐츠 안에 패딩이 너무 많아"). */
-.nubi-panel--wide .cx-panel-body:has(> .nubi-library) { padding:var(--cx-space-3) calc(var(--cx-space-1) * 4.5) var(--cx-space-4); gap:calc(var(--cx-space-1) * 2.5); }
+.nubi-panel--wide .cx-panel-body[data-has-library="true"] { padding:var(--cx-space-3) calc(var(--cx-space-1) * 4.5) var(--cx-space-4); gap:calc(var(--cx-space-1) * 2.5); }
 .nubi-library { gap:var(--cx-space-2); }
 .nubi-library .nubi-wiki-update { padding:var(--cx-space-3) calc(var(--cx-space-1) * 3.5); gap:calc(var(--cx-space-1) * 1.5); }
 .nubi-library .nubi-wiki-update .nubi-action-tile { width:32px; height:32px; min-width:32px; }

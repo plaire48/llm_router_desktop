@@ -4,7 +4,7 @@
    Shared browser/Office components and provider brand surfaces are preserved. */
 /* Anchored pickers retain their existing compact content/header while CX owns
    their one shared focus and background-lock lifecycle. */
-:root:root .cx-panel-backdrop:has(> .nubi-anchored-dialog) { background:transparent; }
+:root:root .cx-panel-backdrop[data-has-anchored-dialog="true"] { background:transparent; }
 :root:root .cx-detail-panel.nubi-anchored-dialog > .cx-panel-header { display:none; }
 :root:root .cx-detail-panel.nubi-anchored-dialog > .cx-panel-body,
 :root:root .nubi-anchored-content { display:contents; }
@@ -221,9 +221,9 @@
 
 /* The native caption and app menu stay undimmed. Portaled and stacked dialogs
    share the same content boundary; hosts without a toolbar retain full coverage. */
-:root:has(.desktop-shell[data-toolbar=true]) { --nubi-dialog-top-inset:var(--nubi-toolbar-height); }
-:root:has(.desktop-shell[data-toolbar=true]) .cx-panel-backdrop { top:var(--nubi-dialog-top-inset); }
-:root:has(.desktop-shell[data-toolbar=true]) .cx-panel-backdrop > .cx-detail-panel {
+:root[data-toolbar="true"][data-toolbar] { --nubi-dialog-top-inset:var(--nubi-toolbar-height); }
+:root[data-toolbar="true"][data-toolbar] .cx-panel-backdrop { top:var(--nubi-dialog-top-inset); }
+:root[data-toolbar="true"][data-toolbar] .cx-panel-backdrop > .cx-detail-panel {
   max-height:calc(100dvh - var(--nubi-dialog-top-inset) - 2 * var(--cx-space-3));
 }
 :root:root .cx-panel-backdrop > .deck-dialog { width:min(var(--nubi-dialog-width-standard),100%); }
@@ -262,8 +262,8 @@
 :root:root .nubi-decision-dialog .nubi-approval-bar>.cx-kit-button { min-width:0; padding-inline:var(--cx-space-2); }
 
 /* Four Desktop providers need room for the icon and name of each service. */
-:root:root .cx-panel-backdrop > .model-dialog:has([data-provider="claude"]) { width:min(var(--nubi-dialog-width-standard),100%); }
-:root:root .model-dialog:has([data-provider="claude"]) .provider-toolbar { container-type:inline-size; }
+:root:root .cx-panel-backdrop > .model-dialog[data-has-claude-provider="true"] { width:min(var(--nubi-dialog-width-standard),100%); }
+:root:root .model-dialog[data-has-claude-provider="true"] .provider-toolbar { container-type:inline-size; }
 @container (max-width:400px) {
   .model-dialog .provider-tab-name { position:absolute; width:1px; height:1px; padding:0; margin:calc(var(--cx-space-1) * -0.25); overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
 }
@@ -397,7 +397,7 @@
 :root:root :is(.nubi-decision-dialog,.nubi-question-form) .question-option:focus-visible { outline:2px solid var(--deck-blue-deep); outline-offset:3px; }
 
 /* Codex-style question sheet: one heading and one flat choice list. */
-:root:root .nubi-decision-dialog:has(.nubi-question-form) { width:min(740px,100%); }
+:root:root .nubi-decision-dialog[data-has-question-form="true"] { width:min(740px,100%); }
 :root:root .nubi-question-form .question-card { display:grid; gap:var(--cx-space-3); margin:0; }
 :root:root .nubi-question-form .question-selection-hint { margin:0; color:var(--deck-sub); }
 :root:root .nubi-question-form .question-options { margin:0; gap:var(--cx-space-1); }

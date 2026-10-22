@@ -8,6 +8,7 @@ import {WikiRepository} from '../ui/WikiRepository.jsx';
 import {teamWorkspaceMark} from '../ui/TeamWorkspaceMark.js';
 import {MailSourcePane} from '../ui/MailSourcePane.jsx';
 import React,{useState,useMemo,useRef,useEffect,useLayoutEffect,Suspense,lazy} from 'react';
+import {installShellState} from '../ui/shell-state.mjs';
 import {createRoot} from 'react-dom/client';
 import {flushSync} from 'react-dom';
 import {ProjectSwitchCover} from '../ui/ProjectSwitchCover.jsx';
@@ -75,6 +76,8 @@ function App(){
  const [projectTransition,setProjectTransition]=useState(null),projectRequest=useRef(null);
  useEffect(()=>window.nubi.onHostEvent?.(event=>{if(event.type==='project_open_progress'&&event.requestId===projectRequest.current&&projectRequest.current)setProjectTransition(previous=>previous?{...previous,stage:event.stage}:previous);}),[]);
  useEffect(()=>window.nubi.onHostEvent?.(event=>{if(event.type==='git_clone_progress'&&event.requestId===cloneRequest.current&&cloneRequest.current)setCloneProgress(previous=>({...event,startedAt:previous?.startedAt||Date.now()}));}),[]);
+ // Layout facts as attributes instead of :has() (design light-flow §1.1); Workbench installs the same observer.
+ useLayoutEffect(()=>installShellState(document),[]);
  const [introDone,setIntroDone]=useState(false),[startupReady,setStartupReady]=useState(false),[startupOpen,setStartupOpen]=useState(false),[startupRequest,setStartupRequest]=useState(null),[wikiPrompt,setWikiPrompt]=useState(null);
  const [paneExpanded,setPaneExpandedRaw]=useState(false);
  const shellNode=useRef(null),paneToggle=useRef(null),expandedRef=useRef(false);expandedRef.current=paneExpanded;

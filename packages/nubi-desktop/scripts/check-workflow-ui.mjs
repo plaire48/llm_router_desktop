@@ -1,3 +1,6 @@
+import {DESKTOP_FEATURES} from '../runtime/beta-features.mjs';
+// Workflows are off in this release (design light-flow §5.1): the check stays in the gate and reports a skip.
+if(!DESKTOP_FEATURES.workflows){console.log(JSON.stringify({check:'workflow-ui',skipped:'workflows_feature_off'}));process.exit(0);}
 import {assertDesignRules,sourceDesignIssues} from './design-rules.mjs';
 import {captureDesign} from './design-rules.mjs';
 import {build,stop} from 'esbuild';import {readFile,writeFile,mkdir,cp} from 'node:fs/promises';import {createServer} from 'node:http';import path from 'node:path';import assert from 'node:assert/strict';import {chromium} from 'playwright';import {rendererBundleOptions} from './renderer-bundle.mjs';

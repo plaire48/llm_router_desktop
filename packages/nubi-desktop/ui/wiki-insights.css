@@ -6,7 +6,7 @@
 .nubi-wiki-insights :is(p,small){font:var(--deck-font-caption);color:var(--deck-sub);line-height:var(--deck-line-body)}
 .nubi-wiki-insights-heading{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--cx-space-3)}
 .nubi-wiki-insights-heading>div:first-child{display:grid;gap:var(--cx-space-1)}
-:root:has(.desktop-shell) .nubi-wiki-insights-heading>.nubi-catalog-tabs{flex:0 0 auto;max-width:100%}
+:root[data-desktop-shell="true"] .nubi-wiki-insights-heading>.nubi-catalog-tabs{flex:0 0 auto;max-width:100%}
 .nubi-wiki-insight-search{display:flex;align-items:center;flex-wrap:wrap;gap:var(--cx-space-2)}
 .nubi-wiki-insight-search>.cx-search-field{flex:1 1 220px;min-width:0}
 .nubi-wiki-insight-search>:is(.cx-select,select){flex:0 1 190px;min-width:0}

@@ -50,6 +50,7 @@
     "test:mail-background-ui": "node scripts/check-mail-background-ui.mjs",
     "check:office-reader": "node scripts/check-office-reader.mjs",
     "test:chat-ui": "node scripts/check-codex-chat-ui.mjs after && node scripts/check-conversation-admission.mjs",
+    "test:light-flow": "node scripts/check-light-flow.mjs",
     "test:freeze-scenes": "node scripts/check-freeze-both.mjs",
     "test:freeze-scenes:browser": "node scripts/check-freeze-scenes.mjs",
     "test:freeze-scenes:electron": "node scripts/check-freeze-scenes.mjs --electron",

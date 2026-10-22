@@ -46,3 +46,15 @@ export function conversationAdmissionViolations(rows){
  if(rows.some((row,index)=>index&&row.count-rows[index-1].count>4))failures.push('admission_batch');
  return failures;
 }
+// Condition A (design 2026-10-22 §6): Chrome flags (e.g. --disable-gpu) and CPU throttling are opt-in; defaults are today's run.
+export function freezeRunOptions(env=process.env){
+ const chromeArgs=(env.FREEZE_CHROME_ARGS||'').split(/\s+/).filter(Boolean);
+ const raw=env.FREEZE_CPU_THROTTLE??'1';if(!/^[1-9]\d*$/.test(raw))throw Error('freeze_throttle_invalid');
+ return {chromeArgs,cpuThrottle:Number(raw)};
+}
+// Style recalculation cost, the measured cause of the 1.3.0 frame drops (design §1.1).
+export function styleRecalcStats(events){
+ const durations=events.filter(e=>e.ph==='X'&&e.name==='UpdateLayoutTree'&&e.dur>=0).map(e=>e.dur/1000);
+ const round=n=>Math.round(n*10)/10;
+ return {styleRecalcCount:durations.length,styleRecalcMaxMs:round(Math.max(0,...durations)),styleRecalcTotalMs:round(durations.reduce((a,b)=>a+b,0))};
+}

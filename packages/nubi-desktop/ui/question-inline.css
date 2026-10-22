@@ -5,30 +5,30 @@
 .nubi-question-inline .question-option-copy strong { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 /* Grid tracks must shrink with long labels, rather than push Send off screen. */
-:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline :is(.question-card,.question-options) { grid-template-columns:minmax(0,1fr); min-width:0; max-width:100%; }
-:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline :is(.question-option,.interaction-input,.cx-kit-field) { min-width:0; max-width:100%; box-sizing:border-box; }
-:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .nubi-question-prompt { white-space:normal; overflow-wrap:anywhere; font-weight:var(--nubi-weight-emphasis); }
-:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-option-copy>span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-card--compact .interaction-entry { flex:1 1 0; }
-:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-card--compact .question-send { flex:none; min-height:40px; }
-:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-option-index svg { display:block; flex:none; }
-:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .interaction-input-actions { flex-shrink:0; }
+:root[data-desktop-shell="true"] .nubi-question-form.nubi-question-inline :is(.question-card,.question-options) { grid-template-columns:minmax(0,1fr); min-width:0; max-width:100%; }
+:root[data-desktop-shell="true"] .nubi-question-form.nubi-question-inline :is(.question-option,.interaction-input,.cx-kit-field) { min-width:0; max-width:100%; box-sizing:border-box; }
+:root[data-desktop-shell="true"] .nubi-question-form.nubi-question-inline .nubi-question-prompt { white-space:normal; overflow-wrap:anywhere; font-weight:var(--nubi-weight-emphasis); }
+:root[data-desktop-shell="true"] .nubi-question-form.nubi-question-inline .question-option-copy>span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+:root[data-desktop-shell="true"] .nubi-question-form.nubi-question-inline .question-card--compact .interaction-entry { flex:1 1 0; }
+:root[data-desktop-shell="true"] .nubi-question-form.nubi-question-inline .question-card--compact .question-send { flex:none; min-height:40px; }
+:root[data-desktop-shell="true"] .nubi-question-form.nubi-question-inline .question-option-index svg { display:block; flex:none; }
+:root[data-desktop-shell="true"] .nubi-question-form.nubi-question-inline .interaction-input-actions { flex-shrink:0; }
 .nubi-question-choice-hint { position:fixed; z-index:1600; box-sizing:border-box; max-height:min(240px,40vh); overflow:auto; padding:var(--cx-space-3) var(--cx-space-4); border:1px solid var(--deck-line); border-radius:var(--deck-control-radius); box-shadow:var(--deck-shadow-tile); background:var(--nubi-surface-base); color:var(--deck-ink); font:var(--deck-font-body); white-space:normal; overflow-wrap:anywhere; }
 
-:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-card--compact .question-send:not(:disabled) { background:var(--deck-blue); color:var(--nubi-surface-base); border-color:transparent; }
+:root[data-desktop-shell="true"] .nubi-question-form.nubi-question-inline .question-card--compact .question-send:not(:disabled) { background:var(--deck-blue); color:var(--nubi-surface-base); border-color:transparent; }
 
-:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-card--compact .question-option.cx-kit-button,
-:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-card--compact .question-option.cx-kit-button:hover:not(:disabled) {
+:root[data-desktop-shell="true"] .nubi-question-form.nubi-question-inline .question-card--compact .question-option.cx-kit-button,
+:root[data-desktop-shell="true"] .nubi-question-form.nubi-question-inline .question-card--compact .question-option.cx-kit-button:hover:not(:disabled) {
  padding:var(--cx-space-2) var(--cx-space-3); min-height:44px; gap:var(--cx-space-3); border-radius:var(--deck-control-radius); overflow:hidden; transform:none;
 }
-:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-card--compact .question-option-index {
+:root[data-desktop-shell="true"] .nubi-question-form.nubi-question-inline .question-card--compact .question-option-index {
  box-sizing:border-box; display:grid; place-items:center; flex:0 0 20px; width:20px; height:20px; margin:0; padding:0; border:0; border-radius:var(--cx-space-1); line-height:var(--nubi-line-solid); align-self:center;
 }
-:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-card--compact .question-option-index svg { width:14px; height:14px; margin:0; }
+:root[data-desktop-shell="true"] .nubi-question-form.nubi-question-inline .question-card--compact .question-option-index svg { width:14px; height:14px; margin:0; }
 
 
-:root:has(.desktop-shell) .nubi-question-inline .question-send{font-size:var(--deck-type-caption)}
-:root:has(.desktop-shell) .nubi-question-inline .question-send span{font-size:inherit}
+:root[data-desktop-shell="true"] .nubi-question-inline .question-send{font-size:var(--deck-type-caption)}
+:root[data-desktop-shell="true"] .nubi-question-inline .question-send span{font-size:inherit}
 
 .nubi-question-learning-context{color:var(--nubi-text-secondary);font-size:var(--deck-type-caption);line-height:var(--deck-line-body);overflow-wrap:anywhere}
 .nubi-question-learning-context>span{display:block;margin-top:var(--cx-space-1)}
@@ -39,8 +39,8 @@
 @media(max-width:640px){.nubi-editor-change-review{grid-template-columns:1fr}}
 
 /* Choice rows have one hierarchy: prompt, label and optional explanation. */
-:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-card--compact .question-option.cx-kit-button{background:var(--nubi-surface-base);border:0;border-block-end:1px solid var(--deck-line);border-radius:0}
-:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-option-copy strong{font-weight:var(--nubi-weight-label)}
-:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-card--compact .question-option.cx-kit-button[aria-checked=true]{background:var(--nubi-surface-selected)}
-:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .question-option[aria-checked=true] .question-option-index{color:var(--deck-blue)}
-:root:has(.desktop-shell) .nubi-question-form.nubi-question-inline .interaction-input{background:transparent}
+:root[data-desktop-shell="true"] .nubi-question-form.nubi-question-inline .question-card--compact .question-option.cx-kit-button{background:var(--nubi-surface-base);border:0;border-block-end:1px solid var(--deck-line);border-radius:0}
+:root[data-desktop-shell="true"] .nubi-question-form.nubi-question-inline .question-option-copy strong{font-weight:var(--nubi-weight-label)}
+:root[data-desktop-shell="true"] .nubi-question-form.nubi-question-inline .question-card--compact .question-option.cx-kit-button[aria-checked=true]{background:var(--nubi-surface-selected)}
+:root[data-desktop-shell="true"] .nubi-question-form.nubi-question-inline .question-option[aria-checked=true] .question-option-index{color:var(--deck-blue)}
+:root[data-desktop-shell="true"] .nubi-question-form.nubi-question-inline .interaction-input{background:transparent}

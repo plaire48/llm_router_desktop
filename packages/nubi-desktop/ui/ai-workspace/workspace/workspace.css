@@ -8,7 +8,7 @@
 .workspace-content { min-width:0; }
 .workspace-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--cx-gap-md); list-style:none; margin:0; padding:0; }
 .workspace-card { display:flex; flex-direction:column; min-width:0; border:1px solid var(--layout-border); border-radius:var(--cx-radius-card); background:var(--layout-surface); overflow:hidden; }
-.workspace-card:has(.workspace-card-link:hover),.workspace-card:focus-within { border-color:var(--brand-mid); }
+.workspace-card[data-has-link-hover="true"][data-has-link-hover],.workspace-card:focus-within { border-color:var(--brand-mid); }
 .workspace-card-link { display:flex; flex:1; flex-direction:column; gap:var(--cx-gap-sm); min-width:0; padding:var(--cx-gap-lg); color:var(--layout-text); text-decoration:none; }
 .workspace-card-link:hover { background:var(--brand-surface); }
 .workspace-card-link:focus-visible { outline:2px solid var(--brand-action); outline-offset:-3px; }
@@ -23,7 +23,7 @@
 .workspace-image-upload { position:relative; display:inline-flex; align-items:center; gap:var(--cx-gap-xs); padding:var(--cx-gap-xs) var(--cx-gap-sm); min-height:var(--cx-control); border:1px solid var(--layout-border); border-radius:var(--cx-radius-control); cursor:pointer; }
 .workspace-image-upload input { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
 .workspace-image-upload:focus-within { outline:2px solid var(--brand-action); outline-offset:2px; }
-.workspace-image-upload:has(input:disabled) { opacity:.5; }
+.workspace-image-upload[data-has-input-disabled="true"]:is(html *) { opacity:.5; }
 .workspace-card h2 { margin:0; font-size:var(--cx-type-section); line-height:var(--deck-line-caption); font-weight:var(--nubi-weight-emphasis); color:var(--layout-text); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .workspace-card-link > p { flex:1; margin:0; min-height:3em; white-space:pre-wrap; word-break:keep-all; overflow-wrap:anywhere; font-size:var(--cx-type-body); line-height:var(--nubi-reading-leading); color:var(--layout-text); }
 .workspace-card-footer { display:flex; gap:var(--cx-gap-xs); align-items:center; padding:0 var(--cx-gap-lg) var(--cx-gap-md); }

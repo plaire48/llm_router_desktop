@@ -1,6 +1,6 @@
 import '@e2e/cx-design-system/styles.css';
 import React,{useState} from 'react';import {createRoot} from 'react-dom/client';import {SkillManager} from '../ui/SkillManager.jsx';import {WikiBrowser} from '../ui/WikiBrowser.jsx';
-import '../electron-app/workbench.css';import '../design/workspace-identity.css';import '../electron-app/shell.css';import '../electron-app/ios-tokens.css';import '../design/workspace-typography.css';import '../design/workspace-density.css';import '../design/workspace-dialogs.css';
+import '../electron-app/workbench.css';import '../design/workspace-identity.css';import '../ui/shell-state-auto.mjs';import '../electron-app/shell.css';import '../electron-app/ios-tokens.css';import '../design/workspace-typography.css';import '../design/workspace-density.css';import '../design/workspace-dialogs.css';
 import '../design/workspace-icons.css';
 window.calls=[];const post={key:'d1',title:'실무에서 써 본 AI 활용 방법',body:'함께 확인하며 일하는 방법을 공유합니다.',author:{login:'nubi',name:'김누비'},createdAt:'2026-10-13T09:00:00Z',updatedAt:'2026-10-13T09:00:00Z',comments:2,category:{name:'경험 공유'}};
 const files={'home.md':{path:'home.md',title:'서비스 운영',hash:'old',content:'# 서비스 운영\n\n[배포 절차](deploy.md)'},'deploy.md':{path:'deploy.md',title:'배포 절차',hash:'deploy',content:'# 배포 절차\n\n검증 후 배포합니다.'}};

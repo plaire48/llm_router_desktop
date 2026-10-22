@@ -89,7 +89,7 @@
  .desktop-shell .welcome-emblem .agent-mark[data-mood=working] .bird-base {animation:bird-wing-base var(--nubi-ambient-bird-work) linear infinite!important;animation-play-state:var(--nubi-ambient-play)!important}
  .desktop-shell .welcome-emblem .agent-mark[data-mood=working] .bird-wing {animation:bird-wing var(--nubi-ambient-bird-work) linear infinite!important;animation-play-state:var(--nubi-ambient-play)!important}
  .desktop-shell .nubi-brand-emblem .agent-mark[data-mood=idle] {animation:nubi-brand-float var(--nubi-ambient-brand-float) ease-in-out infinite!important;animation-play-state:var(--nubi-ambient-play)!important}
- .desktop-shell .welcome-emblem:has(>.agent-mark:is([data-mood=idle],[data-mood=working],[data-mood=celebrate])) {animation:nubi-bird-flight var(--nubi-ambient-bird-flight) ease-in-out infinite!important;animation-play-state:var(--nubi-ambient-play)!important}
+ .desktop-shell .welcome-emblem[data-has-idle-mark="true"][data-has-idle-mark] {animation:nubi-bird-flight var(--nubi-ambient-bird-flight) ease-in-out infinite!important;animation-play-state:var(--nubi-ambient-play)!important}
  .desktop-shell .welcome-emblem>.agent-mark[data-mood=idle] {animation:nubi-bird-curious var(--nubi-ambient-bird-curious) ease-in-out infinite!important;animation-play-state:var(--nubi-ambient-play)!important}
  .desktop-shell .deck-spark {animation:deck-twinkle var(--nubi-ambient-spark) ease-in-out infinite!important;animation-play-state:var(--nubi-ambient-play)!important}
  .desktop-shell :is(.welcome-emblem,.agent-mark,.agent-mark>img,.deck-spark,.deck-blob),
@@ -99,8 +99,8 @@
  }
  /* Preserve existing attention holds: work and composing pause local art,
     while the outer shell wash keeps its own global attention policy. */
- .desktop-shell .nubi-workbench:is(:has(.nubi-task),:has(.composer:focus-within)) .deck-ambient :is(.deck-blob,.deck-spark),
- .desktop-shell .nubi-workbench:has(.composer:focus-within) .welcome-emblem::before {animation-play-state:paused!important;will-change:auto!important}
+ .desktop-shell .nubi-workbench:is([data-has-task="true"],[data-composer-focus="true"][data-composer-focus]) .deck-ambient :is(.deck-blob,.deck-spark),
+ .desktop-shell .nubi-workbench[data-composer-focus="true"][data-composer-focus] .welcome-emblem::before {animation-play-state:paused!important;will-change:auto!important}
  .desktop-shell .nubi-message[data-message-offscreen] :is(.agent-mark,.agent-mark>img) {animation-play-state:paused!important;will-change:auto!important}
 }
 /* Geometry is immediate; only the two pictures of the central screen move.

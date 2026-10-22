@@ -6,6 +6,7 @@ import {SystemDecisionNotifications} from '../ui/SystemDecisionNotifications.jsx
 
 import '../electron-app/workbench.css';
 import '../design/workspace-identity.css';
+import '../ui/shell-state-auto.mjs';// layout facts as attributes, as the renderer host does (design light-flow §1.1)
 import '../design/workspace-typography.css';
 import '../design/workspace-density.css';
 window.notices=[];window.nubi={desktop:true,request:async(method,args)=>{if(method==='decisionNotice')window.notices.push(args);return {};},onDecisionNotice:()=>()=>{}};

@@ -17,3 +17,10 @@ test('reduced motion has a real upper bound and normal mode preserves the approv
 test('sidebar project and search overlap is a shared failure even while a modal owns the content scope',()=>{
  assert.equal(typeof rules.judgeDesignFacts,'function');assert(rules.judgeDesignFacts({sidebarOverlap:true}).some(x=>x.rule==='sidebar_overlap'));
 });
+// :has() made every DOM change recalculate the whole document's style (design light-flow §1.1); it is not allowed back.
+test('has_selector reports every :has() selector with its line',async()=>{
+ const rules=await import('../scripts/design-rules.mjs');
+ const issues=rules.sourceDesignIssues('ui/x.css','.a{color:red}\n/* .c:has(.d) */\n.b:has(.c), .e{color:red}\n:root:has(.desktop-shell) .f{color:red}\n',{has:true});
+ assert.deepEqual(issues.filter(i=>i.rule==='has_selector').map(i=>[i.line,i.selector]),[[3,'.b:has(.c)'],[4,':root:has(.desktop-shell) .f']]);
+ assert.deepEqual(rules.sourceDesignIssues('ui/x.css','.b:has(.c){color:red}'),[],'the rule is opt-in for older callers');
+});

@@ -435,7 +435,7 @@
 .desktop-shell .desktop-pane > header .desktop-pane-expand.cx-kit-button { display:flex; align-items:center; justify-content:center; flex:none; width:32px; height:32px; min-width:32px; min-height:32px; padding:var(--cx-space-2); border:0; border-radius:var(--deck-control-radius); box-shadow:none; background:transparent; color:var(--deck-sub); }
 .desktop-shell .desktop-pane > header .desktop-pane-expand.cx-kit-button:hover { background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
 .desktop-shell .desktop-pane > header .desktop-pane-expand.cx-kit-button:focus-visible { outline:2px solid var(--deck-blue); outline-offset:-2px; }
-:root:has(.nubi-workbench[data-large-text=true]) {
+:root[data-large-text="true"][data-large-text] {
   --nubi-reading-size: 1.125rem;
   --deck-type-body: 1.0625rem;
   --deck-type-caption: 1rem;
@@ -477,7 +477,7 @@
 .nubi-panel .nubi-error { margin:0 0 var(--cx-space-3); }
 .nubi-panel { position:relative; }
 .nubi-panel-navigation { margin:0; }
-.nubi-panel:has(.nubi-panel-navigation) .nubi-panel-title-icon { visibility:hidden; }
+.nubi-panel[data-has-panel-navigation="true"] .nubi-panel-title-icon { visibility:hidden; }
 .nubi-panel-navigation > .nubi-panel-back { position:absolute; top:var(--nubi-modal-title-inset); left:var(--nubi-modal-inset); }
 .nubi-panel-back.cx-action-button { padding:0; width:var(--deck-field-height); min-height:var(--deck-field-height); color:var(--deck-blue-deep); background:var(--deck-blue-soft); border-color:transparent; }
 .nubi-panel-back:focus-visible { outline:2px solid var(--deck-blue-deep); outline-offset:2px; }
@@ -763,7 +763,7 @@
    as the narrow bar intends (its flex:1 above used to keep it on the first line and pull the actions left). */
 .nubi-workbench .nubi-bar .nubi-header-actions { margin-left:auto; }
 .nubi-workbench .nubi-bar .nubi-project-label:empty { display:none; }
-.nubi-workbench-layout:has(.nubi-sidebar[data-open="true"]) .nubi-bar .nubi-project-label { display:none; }
+.nubi-workbench-layout[data-sidebar-open="true"][data-sidebar-open] .nubi-bar .nubi-project-label { display:none; }
 @media(max-width:600px) { .nubi-workbench .nubi-bar .nubi-project-label { flex-basis:100%; } }
 .nubi-start .welcome { margin:clamp(var(--cx-space-8),8vh,84px) auto 0; padding:var(--cx-space-4) 0; }
 /* The bird grows with the window (user request 2026-09-30: the screen is large, the bird was small at 88px).
@@ -886,8 +886,8 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 @media(max-width:900px) { .nubi-sidebar { position:absolute; z-index:11; left:0; top:0; height:100%; min-height:100vh; box-shadow:var(--deck-shadow); } .nubi-sidebar[data-open="true"] { animation:nubi-sidebar-enter var(--nubi-sidebar-motion) var(--deck-ease) both; } .nubi-sidebar-scrim { display:block; position:absolute; inset:0; z-index:10; background:var(--deck-overlay); animation:nubi-sidebar-scrim-enter var(--nubi-sidebar-motion) var(--deck-ease) both; } }
 @media(max-width:600px) { .nubi-workbench .model-trigger.cx-kit-button { max-width:64vw; } .nubi-workbench .model-trigger-label { gap:var(--cx-space-1); } }
 @media(prefers-reduced-motion:reduce) { .nubi-workbench { --nubi-sidebar-motion:var(--nubi-motion-reduced); } }
-.nubi-workbench:has(.nubi-task) .deck-ambient :is(.deck-blob,.deck-spark),
-.nubi-workbench:has(.composer:focus-within) .deck-ambient :is(.deck-blob,.deck-spark) { animation-play-state:paused; }
+.nubi-workbench[data-has-task="true"] .deck-ambient :is(.deck-blob,.deck-spark),
+.nubi-workbench[data-composer-focus="true"][data-composer-focus] .deck-ambient :is(.deck-blob,.deck-spark) { animation-play-state:paused; }
 
 /* Actual document-worker events stay beside the plan, with details on demand. */
 .nubi-document-progress { padding-block: var(--cx-space-4); min-width: 0; }
@@ -1201,7 +1201,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 }
 
 /* As in the browser chat, only the transcript scrolls; the input dock stays usable. */
-.nubi-workbench .nubi-main:has(.nubi-task) { overflow:hidden; }
+.nubi-workbench .nubi-main[data-has-task="true"] { overflow:hidden; }
 .nubi-workbench .nubi-task { height:100%; min-height:0; }
 .nubi-workbench .nubi-conversation-wrap { position:relative; display:flex; flex-direction:column; flex:1; min-height:0; width:100%; max-width:var(--nubi-chat-width); margin-inline:auto; }
 .nubi-workbench .nubi-conversation-scroll { flex:1; min-height:0; overflow-y:auto; scrollbar-width:none; scrollbar-gutter:auto; }
@@ -1256,7 +1256,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 @media(prefers-reduced-motion:reduce) { .nubi-workbench .nubi-enter { animation:none; } }
 
 /* The current-step line already carries this status when the plan is collapsed. */
-.nubi-workbench .task-plan:has(.task-plan-current) [data-plan-overview]:not([open]) .task-plan-pause { display:none; }
+.nubi-workbench .task-plan[data-has-plan-current="true"] [data-plan-overview]:not([open]) .task-plan-pause { display:none; }
 
 /* Reveal the usable shell immediately; Theia awaits this transition before startup completes. */
 .theia-preload { transition:none; }
@@ -1281,8 +1281,6 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
   .nubi-workbench .nubi-start { padding-top:var(--cx-space-3); }
   .nubi-workbench .nubi-welcome h1 { overflow-wrap:anywhere; }
 }
-/* Theia renders a close element even for non-closable titles. */
-.lm-TabBar-tab:has(.nubi-workspace-tab-icon) .lm-TabBar-tabCloseIcon { display:none; }
 #shell-tab-nubi-workspace > .lm-TabBar-tabCloseIcon { display:none!important; }
 .nubi-mail-history{padding:calc(var(--cx-space-1) * 5.5) var(--cx-space-7);min-height:100vh;}.nubi-mail-history-bar{display:flex;align-items:center;gap:var(--cx-space-3);border-bottom:1px solid var(--deck-line);padding-bottom:var(--cx-space-4);}.nubi-mail-history-bar h1{font-size:var(--deck-type-title);margin:0;}.nubi-mail-history-bar>span{color:var(--nubi-text-secondary);font-size:var(--deck-type-caption);margin-right:auto;}.nubi-mail-history-body{display:grid;grid-template-columns:280px minmax(0,1fr);gap:var(--cx-space-6);margin-top:calc(var(--cx-space-1) * 5.5);}.nubi-mail-history-list>h2{font-size:var(--deck-type-caption);color:var(--nubi-text-secondary);margin:calc(var(--cx-space-1) * 5.5) 0 var(--cx-space-2);}.nubi-mail-history-row.cx-kit-button{display:flex;flex-direction:column;align-items:stretch;text-align:left;width:100%;gap:calc(var(--cx-space-1) * 1.25);border:0;background:transparent;border-radius:var(--cx-space-3);padding:var(--cx-space-3);margin:var(--cx-space-1) 0;white-space:normal;}.nubi-mail-history-row[aria-pressed=true]{background:var(--nubi-surface-selected);}.nubi-mail-history-row strong{font-size:var(--deck-type-caption);font-weight:var(--nubi-weight-emphasis);}.nubi-mail-history-row small,.nubi-mail-history-row>span{font-size:var(--deck-type-caption);color:var(--nubi-text-secondary);overflow-wrap:anywhere;}.nubi-mail-history-detail{padding:0 var(--cx-space-2);min-width:0;}.nubi-mail-history-detail h2{font-size:var(--nubi-type-section);line-height:var(--deck-line-caption);}.nubi-mail-history-detail pre{font:inherit;font-size:var(--deck-type-caption);line-height:var(--nubi-reading-leading);white-space:pre-wrap;overflow-wrap:anywhere;}.nubi-mail-attachment.cx-kit-button{display:flex;gap:calc(var(--cx-space-1) * 2.5);align-items:center;width:100%;padding:var(--cx-space-3);margin:calc(var(--cx-space-1) * 1.5) 0;background:var(--nubi-surface-inset);border-color:var(--deck-line);}.nubi-mail-attachment>span{flex:1;text-align:left;overflow-wrap:anywhere}@container nubi-workspace (max-width:800px){.nubi-mail-history-body{grid-template-columns:minmax(0,1fr)}.nubi-mail-history-list{max-height:340px;overflow:auto}.nubi-mail-history{padding:calc(var(--cx-space-1) * 4.5);}}
 
@@ -1307,10 +1305,10 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 @keyframes nubi-bird-swim { 0%,100%{transform:translate(0,0) rotate(-1deg)} 35%{transform:translate(9px,-11px) rotate(2deg)} 70%{transform:translate(-7px,-4px) rotate(-2deg)} }
 :root[data-motion="paused"] .nubi-workbench[data-host-layout="integrated"] .welcome-emblem::before,
 :root[data-motion-visibility="hidden"] .nubi-workbench[data-host-layout="integrated"] .welcome-emblem::before,
-.nubi-workbench[data-host-layout="integrated"]:has([role="dialog"]) .welcome-emblem::before { animation-play-state:paused; }
+.nubi-workbench[data-host-layout="integrated"][data-dialog-open="true"] .welcome-emblem::before { animation-play-state:paused; }
 @media(prefers-reduced-motion:reduce){.nubi-workbench[data-host-layout="integrated"] .welcome-emblem::before{animation:none}}
 .nubi-mail-history { height:100%; min-height:0; overflow:auto; }
-.nubi-workbench[data-host-layout="integrated"]:has(.composer:focus-within) .welcome-emblem::before { animation-play-state:paused; }
+.nubi-workbench[data-host-layout="integrated"][data-composer-focus="true"][data-composer-focus] .welcome-emblem::before { animation-play-state:paused; }
 
 /* Keep the login entrance expressive. Conversation updates should settle in place;
    only the status spinner and deliberate title marquee continue to move. */
@@ -1355,7 +1353,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-mail-model-value>:is(img,svg) { flex:none; }
 .nubi-mail-model-value>small { flex:none; color:var(--deck-sub); font:var(--deck-font-caption); }
 .nubi-mail-model-disclosure>.nubi-mail-model-picker { padding:var(--cx-space-2) var(--cx-space-3) var(--cx-space-3); }
-.nubi-mail-model-disclosure .nubi-mail-section-heading:not(:has(.provider-account-actions)) { display:none; }
+.nubi-mail-model-disclosure .nubi-mail-section-heading:not([data-has-account-actions="true"]) { display:none; }
 .nubi-mail-model-disclosure .provider-account-actions { margin-inline-start:auto; }
 .nubi-mail-help { color:var(--deck-sub); font:var(--deck-font-caption); }
 .nubi-mail-help>summary { width:fit-content; padding:var(--cx-space-1) 0; font:inherit; cursor:pointer; }
@@ -1441,7 +1439,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 
 /* Close actions belong to individual document/web chips, outside the tab button. */
 .desktop-workspace-tab { display:flex; align-items:center; flex:none; max-width:220px; border-radius:var(--deck-control-radius); background:transparent; }
-.desktop-workspace-tab:has([aria-selected=true]) { background:var(--deck-card); }
+.desktop-workspace-tab[data-has-tab-selected="true"] { background:var(--deck-card); }
 .desktop-workspace-tab:hover { background:var(--deck-blue-soft); }
 .desktop-shell .desktop-file-tabs .desktop-tab-select { display:flex; align-items:center; justify-content:flex-start; gap:var(--cx-space-2); flex:1; min-width:0; min-height:32px; padding:var(--cx-space-2) var(--cx-space-2) var(--cx-space-2) var(--cx-space-3); border:0; background:transparent; color:var(--deck-sub); font:var(--deck-font-label); box-shadow:none; }
 .desktop-shell .desktop-file-tabs .desktop-tab-select[aria-selected=true] { color:var(--deck-blue-deep); }
@@ -1460,7 +1458,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 /* Both auxiliary pane controls share the same upper-right anchor. */
 .desktop-pane-controls { display:flex; align-items:center; gap:var(--cx-space-1); margin-left:auto; flex:none; }
 .desktop-shell { --nubi-mail-footer-height:36px; }
-.desktop-shell:has(>.desktop-mail-progress) { padding-bottom:var(--nubi-mail-footer-height); box-sizing:border-box; }
+.desktop-shell[data-mail-progress="true"] { padding-bottom:var(--nubi-mail-footer-height); box-sizing:border-box; }
 .desktop-mail-progress { position:absolute; bottom:0; left:0; right:0; height:var(--nubi-mail-footer-height); box-sizing:border-box; display:flex; align-items:center; gap:var(--cx-space-4); padding:var(--cx-space-2) var(--cx-space-4); background:var(--deck-tint); color:var(--deck-sub); font:var(--deck-font-caption); font-size:var(--deck-type-caption); z-index:21; }
 .nubi-mail-progress-state,.nubi-mail-progress-counts { display:flex; align-items:center; gap:var(--cx-space-2); min-width:0; }
 .nubi-mail-progress-state { color:var(--deck-blue-deep); }
@@ -1473,8 +1471,8 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .desktop-mail-progress .nubi-mail-timestamp { margin-left:auto; white-space:nowrap; }
 .nubi-mail-progress-next { margin-left:auto; white-space:nowrap; }
 .nubi-mail-timestamp + .nubi-mail-progress-next { margin-left:0; }
-.desktop-shell:has(>.desktop-mail-progress) .desktop-pane[data-expanded=true] { bottom:var(--nubi-mail-footer-height); height:auto; }
-.desktop-shell:has(>.desktop-mail-progress)[data-layout="overlay"] .desktop-pane { height:calc(100% - var(--nubi-mail-footer-height)); }
+.desktop-shell[data-mail-progress="true"] .desktop-pane[data-expanded=true] { bottom:var(--nubi-mail-footer-height); height:auto; }
+.desktop-shell[data-mail-progress="true"][data-layout="overlay"] .desktop-pane { height:calc(100% - var(--nubi-mail-footer-height)); }
 @media(max-width:1000px){.desktop-shell { --nubi-mail-footer-height:64px; }.desktop-mail-progress { flex-wrap:wrap; align-content:center; gap:var(--cx-space-1) var(--cx-space-3); }}
 @media(max-width:620px){.desktop-mail-progress { gap:var(--cx-space-2); padding-inline:var(--cx-space-2); }.nubi-mail-progress-next { display:none; }.nubi-mail-progress-counts { gap:var(--cx-space-2); }}
 
@@ -1503,7 +1501,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-mail-recent li strong { font-weight:var(--nubi-weight-label); color:var(--deck-ink); }
 @container nubi-workspace (max-width:800px){.nubi-mail-history-body { grid-template-columns:minmax(0,1fr); }}
 .desktop-shell .desktop-agent>.nubi-workbench { height:100%; min-height:0; }
-.desktop-shell:has(>.desktop-mail-progress) .nubi-sidebar[data-open="true"],.desktop-shell:has(>.desktop-mail-progress) .nubi-sidebar-resize { height:calc(100vh - var(--nubi-mail-footer-height)); }
+.desktop-shell[data-mail-progress="true"] .nubi-sidebar[data-open="true"],.desktop-shell[data-mail-progress="true"] .nubi-sidebar-resize { height:calc(100vh - var(--nubi-mail-footer-height)); }
 
 .nubi-mail-history { container-type:inline-size; container-name:nubi-mail-view; }
 @container nubi-mail-view (max-width:640px){.nubi-mail-history-body { grid-template-columns:minmax(0,1fr); }.nubi-mail-history-list { max-height:340px; overflow:auto; }}
@@ -1618,7 +1616,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 @media(prefers-reduced-motion:reduce){.desktop-mail-progress .status-spinner { animation:none; }}
 
 .nubi-message-timestamp { color:var(--nubi-note-ink); font:var(--deck-font-caption); font-size:var(--deck-type-caption); white-space:nowrap; font-variant-numeric:tabular-nums; margin-right:var(--cx-space-2); }
-.nubi-workbench .nubi-task .message-actions:has(.nubi-message-timestamp,.nubi-response-time) { opacity:1; }
+.nubi-workbench .nubi-task .message-actions[data-has-message-time="true"] { opacity:1; }
 
 /* Mail evidence belongs to the draft, the admitted queue row and the message. */
 .nubi-mail-ask { width:fit-content; margin:var(--cx-space-2) 0; padding:calc(var(--cx-space-1) * 1.75) var(--cx-space-3); gap:var(--cx-space-2); border:0; border-radius:999px; background:var(--deck-blue-soft); color:var(--deck-blue-deep); font-size:var(--deck-type-caption); font-weight:var(--nubi-weight-strong); box-shadow:none; }
@@ -1672,8 +1670,8 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-applied-files .nubi-applied-more { justify-content:space-between; color:var(--deck-sub); font-size:var(--deck-type-caption); }
 .nubi-applied-trigger:focus-visible { outline:2px solid var(--deck-blue); outline-offset:-3px; }
 @media(max-width:1300px) {
- .desktop-shell:has(.desktop-mail-progress>.nubi-wiki-initialization) { --nubi-mail-footer-height:64px; }
- .desktop-mail-progress:has(>.nubi-wiki-initialization) { flex-wrap:wrap; align-content:center; gap:var(--cx-space-1) var(--cx-space-3); }
+ .desktop-shell[data-wiki-initializing="true"][data-wiki-initializing] { --nubi-mail-footer-height:64px; }
+ .desktop-mail-progress[data-has-wiki-initialization="true"] { flex-wrap:wrap; align-content:center; gap:var(--cx-space-1) var(--cx-space-3); }
 }
 .nubi-workbench .nubi-task .message-actions .copy-control { opacity:1; }
 /* Local mail management uses the same compact controls as search and files. */
@@ -1683,8 +1681,8 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-mail-saved-trigger:hover,.nubi-mail-local-action:hover,.nubi-mail-local-action[aria-pressed=true] { background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
 .nubi-mail-local-action[aria-pressed=true]>svg,.nubi-mail-pin-filter[aria-pressed=true]>svg:first-child { fill:currentColor; }
 .nubi-mail-filters[open]>.nubi-mail-filter-fields { max-height:none; overflow:visible; }
-.nubi-mail-search:has(>.nubi-mail-filters[open]) { overflow-y:auto; }
-.nubi-mail-search:has(>.nubi-mail-filters[open])>.nubi-mail-results { min-height:180px; }
+.nubi-mail-search[data-has-filters-open="true"][data-has-filters-open] { overflow-y:auto; }
+.nubi-mail-search[data-has-filters-open="true"][data-has-filters-open]>.nubi-mail-results { min-height:180px; }
 @container mail-list (min-width:660px) {
  .nubi-mail-filters>.nubi-mail-filter-fields,.nubi-mail-extra-filters>div { grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:var(--cx-space-4); }
  .nubi-mail-extra-filters { grid-column:1/-1; }

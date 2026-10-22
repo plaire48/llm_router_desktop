@@ -1,10 +1,10 @@
 /* Desktop-only cascade: keep root specificity without descendant queries. */
 /* One native title/toolbar row and tighter vertical padding for Electron. */
 .desktop-shell[data-toolbar=true] { flex-direction:column; position:relative; padding:calc(var(--nubi-toolbar-height) + var(--nubi-workspace-inset)) var(--nubi-workspace-inset) var(--nubi-workspace-inset); box-sizing:border-box; background:var(--deck-background); }
-.desktop-shell[data-toolbar=true]:has(>.desktop-mail-progress) { padding-bottom:calc(var(--nubi-mail-footer-height) + var(--nubi-workspace-inset)); }
+.desktop-shell[data-toolbar=true][data-mail-progress="true"] { padding-bottom:calc(var(--nubi-mail-footer-height) + var(--nubi-workspace-inset)); }
 .desktop-titlebar { position:absolute; top:0; left:env(titlebar-area-x,0px); width:env(titlebar-area-width,100%); height:var(--nubi-toolbar-height); z-index:30; }
 /* Shared copy/status notifications must leave native window controls usable. */
-body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nubi-toolbar-height) + var(--cx-space-3)); }
+[data-toolbar="true"][data-toolbar] body .cx-toast-region { top:calc(var(--nubi-toolbar-height) + var(--cx-space-3)); }
 .desktop-workspace-body { display:flex; flex:1; min-width:0; min-height:0; position:relative; overflow:hidden; }
 .desktop-shell[data-toolbar=true] > .desktop-workspace-body { border:1px solid var(--deck-line); border-radius:var(--nubi-workspace-radius); background:var(--nubi-surface-base); isolation:isolate; }
 @media(max-width:760px) { .desktop-shell[data-toolbar=true] { --nubi-workspace-inset:var(--cx-space-2); } }
@@ -25,8 +25,8 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .desktop-shell[data-toolbar=true] .nubi-workbench[data-host-layout=integrated] .nubi-sidebar { padding-top:var(--cx-space-2); }
 .desktop-shell[data-toolbar=true] .nubi-workbench[data-host-layout=integrated] .nubi-mail-history { padding-top:var(--cx-space-4); }
 .desktop-shell[data-toolbar=true] .nubi-sidebar-scrim { min-height:0; height:100%; }
-.desktop-shell[data-toolbar=true]:has(>.desktop-mail-progress) .nubi-sidebar[data-open=true],
-.desktop-shell[data-toolbar=true]:has(>.desktop-mail-progress) .nubi-sidebar-resize { height:100%; }
+.desktop-shell[data-toolbar=true][data-mail-progress="true"] .nubi-sidebar[data-open=true],
+.desktop-shell[data-toolbar=true][data-mail-progress="true"] .nubi-sidebar-resize { height:100%; }
 .desktop-shell[data-toolbar=true] .desktop-pane[data-expanded=true],
 .desktop-shell[data-toolbar=true][data-layout=overlay] .desktop-pane { top:0; bottom:0; height:100%; }
 .desktop-shell .nubi-workbench .nubi-main { padding-top:var(--cx-space-2); }
@@ -206,7 +206,7 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
  display:inline-flex; align-items:center; justify-content:center; flex:none;
  width:36px; min-width:36px; height:36px; min-height:36px; padding:var(--cx-space-2); gap:0;
 }
-.desktop-shell .nubi-workspace-rail .cx-kit-button:not(:has(>span)) { min-height:44px; height:44px; }
+.desktop-shell .nubi-workspace-rail .cx-kit-button:not(:where([data-has-span-child="true"]):is(html *)) { min-height:44px; height:44px; }
 :root:root .nubi-actions-disclosure > summary { justify-content:center; min-width:36px; min-height:36px; padding:var(--cx-space-2); }
 @media(pointer:coarse) {
  :root:root :is(.desktop-shell,.deck-dialog,.nubi-skill-menu) :is([data-icon-only],.nubi-modal-close,.cx-panel-header-actions .cx-action-button),
@@ -277,7 +277,7 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .nubi-mail-page-popover>label>select { max-width:150px; }
 .nubi-mail-select { width:var(--nubi-mail-selection-size); min-width:var(--nubi-mail-selection-size); min-height:var(--nubi-mail-selection-size); display:flex; align-items:center; justify-content:center; cursor:pointer; }
 .nubi-mail-select input { width:17px; height:17px; accent-color:var(--deck-blue); cursor:pointer; }
-.nubi-mail-select:has(input:focus-visible) { outline:2px solid var(--deck-blue-deep); outline-offset:-3px; border-radius:var(--cx-space-2); }
+.nubi-mail-select[data-has-input-focus-visible="true"]:is(html *) { outline:2px solid var(--deck-blue-deep); outline-offset:-3px; border-radius:var(--cx-space-2); }
 .nubi-mail-row { display:flex; align-items:center; border-bottom:1px solid var(--deck-line); border-radius:var(--cx-space-2); }
 .nubi-mail-row[data-selected=true] { background:var(--deck-blue-soft); }
 .desktop-shell .nubi-mail-row .nubi-mail-result { flex:1; min-width:0; display:grid; grid-template-columns:180px minmax(0,1fr) auto; column-gap:var(--nubi-group-gap); row-gap:var(--cx-space-1); padding:var(--nubi-mail-row-block) var(--cx-space-3); margin:0; border-radius:var(--cx-space-2); background:transparent; }
@@ -362,7 +362,7 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 :root:root .welcome-art:hover .agent-mark:is([data-mood="idle"],[data-mood="celebrate"]) :is(.bird-base,.bird-blink,.bird-wing) { opacity:0; animation:none; }
 :root:root .welcome-art:hover .agent-mark:is([data-mood="idle"],[data-mood="celebrate"]) .bird-smile { opacity:1; animation:none; }
 @media(prefers-reduced-motion:no-preference) {
- :root:root .welcome-emblem:has(> .agent-mark:is([data-mood="idle"],[data-mood="working"],[data-mood="celebrate"])) { animation:nubi-bird-flight var(--nubi-bird-flight) ease-in-out infinite; }
+ :root:root .welcome-emblem[data-has-idle-mark="true"][data-has-idle-mark] { animation:nubi-bird-flight var(--nubi-bird-flight) ease-in-out infinite; }
  :root:root .welcome-emblem > .agent-mark[data-mood="idle"] { animation:nubi-bird-curious var(--nubi-bird-curious-duration) ease-in-out infinite; transform-origin:50% 65%; }
  :root:root .welcome-emblem > .agent-mark[data-mood="idle"] .bird-base { animation:bird-idle-base var(--nubi-bird-flight) linear infinite; }
  :root:root .welcome-emblem > .agent-mark[data-mood="idle"] .bird-wing { animation:bird-idle-wing var(--nubi-bird-flight) linear infinite; }
@@ -631,8 +631,8 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .desktop-shell .nubi-workbench[data-host-layout=integrated][data-compact=false] .nubi-sidebar-resize { position:relative; left:auto; top:auto; flex:none; }
 /* A compact project drawer must sit above the auxiliary editor. Its original
    isolation context trapped the drawer beneath the editor's overlay. */
-.desktop-shell[data-layout="overlay"]:has(.nubi-sidebar[data-open="true"]) .nubi-workbench { isolation:auto; }
-.desktop-shell[data-layout="overlay"]:has(.nubi-sidebar[data-open="true"]) .nubi-workbench-layout { z-index:auto; }
+.desktop-shell[data-layout="overlay"][data-sidebar-open="true"][data-sidebar-open] .nubi-workbench { isolation:auto; }
+.desktop-shell[data-layout="overlay"][data-sidebar-open="true"][data-sidebar-open] .nubi-workbench-layout { z-index:auto; }
 .desktop-shell[data-layout="overlay"] .nubi-sidebar[data-open="true"] { z-index:41; }
 .desktop-shell[data-layout="overlay"] .nubi-sidebar-scrim { z-index:40; }
 
@@ -711,7 +711,7 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
  background:var(--deck-blue-soft); color:var(--deck-blue-deep); background-image:none;
 }
 :root:root .desktop-file-tabs .desktop-workspace-tab { border-radius:var(--nubi-work-control-radius); }
-:root:root .desktop-file-tabs .desktop-workspace-tab:has([aria-selected=true]) { background:var(--deck-blue-soft); }
+:root:root .desktop-file-tabs .desktop-workspace-tab[data-has-tab-selected="true"] { background:var(--deck-blue-soft); }
 :root:root .desktop-file-tabs > .cx-kit-button,
 :root:root :is(.nubi-custom-skill-toolbar) [data-icon-only] {
  width:var(--nubi-work-control-height); min-width:var(--nubi-work-control-height); height:var(--nubi-work-control-height); min-height:var(--nubi-work-control-height); padding:var(--cx-space-2); border-radius:var(--nubi-work-control-radius);
@@ -968,10 +968,10 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .desktop-shell .nubi-document-progress > p.nubi-document-attention > svg { flex:none; margin-top:calc((var(--deck-type-body) * var(--deck-line-body) - var(--cx-space-4)) / 2); }
 .desktop-shell .nubi-document-progress > p.nubi-document-attention > span { min-width:0; }
 .desktop-shell .nubi-document-progress[data-state=partial] > .nubi-document-progress-heading > svg { color:var(--nubi-warning-ink); }
-.desktop-shell .nubi-document-progress summary:has(> svg ~ svg) > svg:first-of-type { margin-left:0; transform:none; flex:none; }
+.desktop-shell .nubi-document-progress summary:where([data-has-icon-pair="true"]):is(html *):is(html *) > svg:first-of-type { margin-left:0; transform:none; flex:none; }
 
 /* Seconds sit beside the spinner and never force a control onto another row. */
-.desktop-shell .nubi-workbench .agent-step-status:has(>.nubi-response-time) { display:inline-flex; align-items:center; gap:var(--cx-space-2); width:auto; flex:none; }
+.desktop-shell .nubi-workbench .agent-step-status[data-has-response-time="true"] { display:inline-flex; align-items:center; gap:var(--cx-space-2); width:auto; flex:none; }
 .desktop-shell .nubi-workbench .nubi-response-time { white-space:nowrap; font-variant-numeric:tabular-nums; }
 .desktop-shell .nubi-launch-progress { display:flex; align-items:center; gap:var(--cx-space-2); color:var(--deck-sub); font:var(--deck-font-body); }
 .desktop-shell .nubi-launch-progress > .status-spinner { flex:none; }
@@ -1157,7 +1157,7 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 :root:root .nubi-inquiry-page > .nubi-skill-page-body { flex:1; min-height:0; display:flex; flex-direction:column; }
 .desktop-shell .nubi-inquiry-page .nubi-ai-workspace-embed { flex:1; min-height:0; }
 .desktop-shell .nubi-inquiry-page .inquiry-select { border-left:0; border-radius:var(--cx-radius-control); }
-@media(min-width:1001px) { .desktop-shell .nubi-inquiry-page:has(.has-inquiry-sidebar:not(.is-composing)) .service-desk-slot-controls > [data-action=back] { display:none; } }
+@media(min-width:1001px) { .desktop-shell .nubi-inquiry-page[data-has-inquiry-sidebar="true"][data-has-inquiry-sidebar] .service-desk-slot-controls > [data-action=back] { display:none; } }
 
 @media(min-width:1001px) { :root:root .nubi-inquiry-page .service-desk-slot-controls .inquiry-mobile-refresh { display:none; } }
 /* Keep inquiry lists and the reader tall; only their contents scroll. */
@@ -1232,7 +1232,7 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 .desktop-shell .nubi-workbench[data-workspace-screen="conversation"] :is(.nubi-activity-record,.nubi-thoughts,.nubi-command-record) > summary { font:var(--deck-font-caption); }
 @media(hover:hover) and (pointer:fine) {
  .desktop-shell .nubi-workbench[data-workspace-screen="conversation"] .nubi-task .message .message-actions { opacity:0; transition:opacity var(--nubi-motion-press) var(--nubi-motion-ease); }
- .desktop-shell .nubi-workbench[data-workspace-screen="conversation"] .nubi-task .message:is(:hover,:focus-within,:has([role="alert"],[data-copy-state="copied"],[data-copy-state="error"])) .message-actions { opacity:1; }
+ .desktop-shell .nubi-workbench[data-workspace-screen="conversation"] .nubi-task .message:is(:hover,:focus-within,[data-has-message-state="true"]) .message-actions { opacity:1; }
 }
 @container workspace-agent (max-width:520px) {
  .desktop-shell .nubi-workbench[data-workspace-screen="conversation"] .nubi-task .message-user { max-width:92%; }
@@ -1284,7 +1284,7 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 }
 /* The labelled approval region owns the gutter bleed too, so its child does
    not paint outside the region. Keep the card and its reading edge unchanged. */
-.desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-setup-summary:has(>.nubi-approval-form) {
+.desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-setup-summary[data-has-approval-form="true"] {
  box-sizing:border-box; margin-inline:calc(-1 * var(--nubi-transcript-card-inset));
  width:calc(100% + 2 * var(--nubi-transcript-card-inset));
 }
@@ -1342,7 +1342,7 @@ body:has(.desktop-shell[data-toolbar=true]) .cx-toast-region { top:calc(var(--nu
 }
 /* Workflow approvals have a separate right-aligned column beside the map.
    Its column already owns the gutter; transcript bleed would overlap the map. */
-.desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-workflow-decision :is(.nubi-question-inline,.nubi-approval-form,.nubi-setup-summary:has(>.nubi-approval-form)) {
+.desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-workflow-decision :is(.nubi-question-inline,.nubi-approval-form,.nubi-setup-summary[data-has-approval-form="true"]) {
  margin-inline:0; width:100%; max-width:100%;
 }
 

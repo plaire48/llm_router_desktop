@@ -1,7 +1,7 @@
 import React,{useState} from 'react';import {createRoot} from 'react-dom/client';
 import '@e2e/cx-design-system/styles.css';
 import '../electron-app/workbench.css';import '../electron-app/shell.css';import '../electron-app/ios-tokens.css';
-import '../design/workspace-identity.css';import '../design/workspace-typography.css';import '../design/workspace-density.css';import '../design/workspace-dialogs.css';import '../design/workspace-icons.css';
+import '../design/workspace-identity.css';import '../ui/shell-state-auto.mjs';import '../design/workspace-typography.css';import '../design/workspace-density.css';import '../design/workspace-dialogs.css';import '../design/workspace-icons.css';
 import {BrowserTeachPanel} from '../ui/BrowserTeachPanel.jsx';
 const canvas=document.createElement('canvas');canvas.width=800;canvas.height=400;const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,800,400);ctx.fillStyle='#191F28';ctx.font='24px sans-serif';ctx.fillText('합성 검색 화면',40,50);ctx.strokeStyle='#3182F6';ctx.strokeRect(40,100,440,60);ctx.fillText('검색어',55,138);ctx.strokeRect(540,100,180,60);ctx.fillText('제출',590,138);
 const dataUrl=canvas.toDataURL();

@@ -1,3 +1,4 @@
+import {DESKTOP_FEATURES} from '../runtime/beta-features.mjs';
 import {captureDesign} from './design-rules.mjs';
 import {startFixtureModel} from './fixture-model.mjs';
 // The lifecycle of the real Electron host (2026-10-05): the worker restarts after it is killed, a second start leaves the first window running,
@@ -42,6 +43,7 @@ try{
   const overview=await page.evaluate(()=>window.nubi.request('overview',{}));assert.equal(overview?.root,root,JSON.stringify(overview));
   routineFixture=await startFixtureModel({respond:({call})=>call('ask_user',{question:'루틴에서 확인할 범위를 알려 주세요.'})});
   const connected=await page.evaluate(input=>window.nubi.request('provider',{action:'connect',input}),routineFixture.connection);assert.equal(connected.connected,true);
+  if(DESKTOP_FEATURES.workflows){// routines are off with workflows in this release (design light-flow §5.1)
   await page.getByRole('button',{name:'설정',exact:true}).click();await page.getByRole('button',{name:'루틴',exact:true}).click();await page.getByRole('button',{name:'루틴 추가',exact:true}).click();
   const form=page.getByRole('dialog',{name:'루틴 설정',exact:true});await form.getByLabel('이름',{exact:true}).fill('매일 자료 점검');await form.getByLabel('요청',{exact:true}).fill('루틴 실행 범위를 확인해 주세요');await form.getByRole('switch',{name:'예약 실행',exact:true}).click();await form.getByRole('button',{name:'저장',exact:true}).click();
   const routines=page.getByRole('dialog',{name:'루틴',exact:true});await routines.getByRole('switch',{name:'매일 자료 점검'}).waitFor();assert.equal(await routines.getByRole('switch',{name:'매일 자료 점검'}).getAttribute('aria-checked'),'false');
@@ -58,6 +60,7 @@ try{
   await page.getByRole('button',{name:/^알림/}).first().click();
   await page.getByText('답변 요청: 루틴에서 확인할 범위를 알려 주세요.',{exact:true}).waitFor();
   await page.keyboard.press('Escape');result.routineQuestionNoticeVisible=true;
+  }else result.routineScene='skipped: workflows_feature_off';
   // 1. The worker is killed: a child of the Electron process this check started.
   const mainPid=app.process().pid;
   // Windows has no pgrep/ps: the children of the main process and their command lines come from Win32_Process.
@@ -79,7 +82,7 @@ try{
   // The renderer tells the user (renderer.jsx onHostEvent → toast).
   await page.getByText('누비 실행기를 다시 시작했어요').waitFor({timeout:5000});result.restartToast=true;
   const after=await page.evaluate(()=>window.nubi.request('overview',{}));assert.equal(after.root,root,'the project is open in the new worker');
-  const restoredRoutines=await page.evaluate(()=>window.nubi.request('listRoutines'));assert.equal(restoredRoutines.items[0].lastTaskId,result.routineTaskId);assert.equal(restoredRoutines.items[0].enabled,false);result.routineRetainedAfterWorkerRestart=true;
+  if(DESKTOP_FEATURES.workflows){const restoredRoutines=await page.evaluate(()=>window.nubi.request('listRoutines'));assert.equal(restoredRoutines.items[0].lastTaskId,result.routineTaskId);assert.equal(restoredRoutines.items[0].enabled,false);result.routineRetainedAfterWorkerRestart=true;}
   result.hostEvents=await page.evaluate(()=>window.__hostEvents.map(event=>event.type));
   const fault=JSON.parse(await readFile(path.join(storage,'last-host-fault.json'),'utf8'));assert.equal(fault.component,'worker');// Windows reports no signal for a terminated child (TerminateProcess), so the worker's end is an abnormal exit there.
   assert.equal(fault.reason,process.platform==='win32'?'abnormal-exit':'killed');result.fault=fault;

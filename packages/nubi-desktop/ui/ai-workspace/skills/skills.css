@@ -7,7 +7,7 @@
 .skill-list-panel { display:flex; flex-direction:column; flex:1 0 120px; height:0; min-height:120px; }
 /* Keep search, scope and actions in their own tracks regardless of shared list styles. */
 .skill-toolbar { display:grid; grid-template-columns:minmax(0,1fr) auto; grid-template-areas:"scope actions" "search search" "selection selection"; align-items:center; gap:var(--cx-gap-xs) var(--cx-gap-md); margin-top:var(--cx-gap-md); }
-.skill-toolbar:not(:has(.skill-toolbar-selection)) { grid-template-areas:"scope actions" "search search"; }
+.skill-toolbar:not(.skill-toolbar-selection) { grid-template-areas:"scope actions" "search search"; }
 .skill-toolbar-scope { grid-area:scope; min-width:0; }
 .skill-toolbar .skill-toolbar-search { grid-area:search; width:100%; min-width:0; }
 .skill-toolbar-actions { grid-area:actions; display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:var(--cx-space-1); min-width:0; }
@@ -113,7 +113,7 @@ button.skill-tag[aria-pressed="true"] { color:var(--nubi-text-on-accent); backgr
 .skill-upload-field > svg { color:var(--brand-mid); }
 .skill-upload-copy > span { color:var(--layout-muted); font-size:var(--cx-type-caption); }
 .skill-upload-field.has-file { border-style:solid; border-color:var(--brand-border); background:var(--brand-surface); }
-.skill-upload-field:has(input:disabled) { cursor:wait; }
+.skill-upload-field[data-has-input-disabled="true"]:is(html *) { cursor:wait; }
 .skill-file-summary { display:flex; flex-wrap:wrap; justify-content:space-between; gap:var(--cx-gap-sm); color:var(--layout-muted); font-size:var(--cx-type-caption); }
 .skill-file-summary code { color:var(--brand-ink); overflow-wrap:anywhere; }
 .skill-footer-spacer,.skill-footer-meta { margin-right:auto; }
@@ -127,7 +127,7 @@ button.skill-tag[aria-pressed="true"] { color:var(--nubi-text-on-accent); backgr
 .skill-conflict > .btn { white-space:normal; text-align:left; }
 @media(max-width:520px) {
   .skill-toolbar { grid-template-columns:minmax(0,1fr); grid-template-areas:"scope" "search" "actions" "selection"; }
-  .skill-toolbar:not(:has(.skill-toolbar-selection)) { grid-template-areas:"scope" "search" "actions"; }
+  .skill-toolbar:not(.skill-toolbar-selection) { grid-template-areas:"scope" "search" "actions"; }
   .skill-toolbar-actions { gap:0; }
 }
 @media(max-width:600px) {

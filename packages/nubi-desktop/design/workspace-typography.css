@@ -77,39 +77,39 @@ body {
 
 /* Apply the same hierarchy to every owned screen, including body portals.
    Editor/terminal contents have their own readable monospace token below. */
-:root:has(.desktop-shell) :is(.deck-dialog,.nubi-skill-menu,.nubi-reasoning-menu,.nubi-approval-mode-menu,.nubi-applied-menu,.nubi-command-menu) {
+:root[data-desktop-shell="true"] :is(.deck-dialog,.nubi-skill-menu,.nubi-reasoning-menu,.nubi-approval-mode-menu,.nubi-applied-menu,.nubi-command-menu) {
   font-family:var(--nubi-font-family); font-size:var(--deck-type-body);
   line-height:var(--deck-line-body); letter-spacing:normal;
 }
-:root:has(.desktop-shell) :is(.desktop-shell,.deck-dialog,.nubi-skill-menu,.nubi-reasoning-menu,.nubi-approval-mode-menu,.nubi-applied-menu,.nubi-command-menu) :is(p,label,summary) {
+:root[data-desktop-shell="true"] :is(.desktop-shell,.deck-dialog,.nubi-skill-menu,.nubi-reasoning-menu,.nubi-approval-mode-menu,.nubi-applied-menu,.nubi-command-menu) :is(p,label,summary) {
   line-height:var(--deck-line-body); letter-spacing:normal;
   word-break:keep-all; overflow-wrap:anywhere;
 }
-:root:has(.desktop-shell) :is(.deck-dialog,.nubi-skill-menu,.nubi-reasoning-menu,.nubi-approval-mode-menu,.nubi-applied-menu,.nubi-command-menu) :is(button,input,textarea,select) {
+:root[data-desktop-shell="true"] :is(.deck-dialog,.nubi-skill-menu,.nubi-reasoning-menu,.nubi-approval-mode-menu,.nubi-applied-menu,.nubi-command-menu) :is(button,input,textarea,select) {
   font-family:var(--nubi-font-family); font-size:var(--deck-type-body);
   line-height:var(--deck-line-body); letter-spacing:normal;
 }
-:root:has(.desktop-shell) :is(.desktop-shell,.deck-dialog,.nubi-skill-menu,.nubi-reasoning-menu,.nubi-approval-mode-menu,.nubi-applied-menu,.nubi-command-menu) small {
+:root[data-desktop-shell="true"] :is(.desktop-shell,.deck-dialog,.nubi-skill-menu,.nubi-reasoning-menu,.nubi-approval-mode-menu,.nubi-applied-menu,.nubi-command-menu) small {
   font-size:var(--deck-type-caption); line-height:var(--deck-line-caption);
   letter-spacing:normal; color:var(--nubi-note-ink);
 }
-:root:has(.desktop-shell) :is(.deck-dialog,.nubi-skill-menu,.nubi-reasoning-menu,.nubi-approval-mode-menu) strong {
+:root[data-desktop-shell="true"] :is(.deck-dialog,.nubi-skill-menu,.nubi-reasoning-menu,.nubi-approval-mode-menu) strong {
   font-weight:var(--nubi-weight-emphasis);
 }
-:root:has(.desktop-shell) :is(.nubi-skill-page-header h1,.nubi-mail-history-bar h1) {
+:root[data-desktop-shell="true"] :is(.nubi-skill-page-header h1,.nubi-mail-history-bar h1) {
   font-size:var(--deck-type-heading); line-height:var(--deck-line-heading); font-weight:var(--nubi-weight-emphasis);
 }
-:root:has(.desktop-shell) :is(.deck-dialog,.nubi-skill-page,.nubi-mail-history,.desktop-pane) h3 {
+:root[data-desktop-shell="true"] :is(.deck-dialog,.nubi-skill-page,.nubi-mail-history,.desktop-pane) h3 {
   font-size:var(--deck-type-body); line-height:var(--deck-line-body); font-weight:var(--nubi-weight-emphasis);
 }
-:root:has(.desktop-shell) :is(.usage-caption,.usage-label,.usage-provider-name,.usage-stat-label,.usage-provider-note,.context-note,.context-label,.context-stat-label,.context-model,.nubi-skill-menu-section,.nubi-skill-menu-status,.nubi-reasoning-value,.nubi-history-meta,.nubi-input-time,.nubi-document-worker-heading>span,.nubi-wiki-elapsed,.nubi-wiki-percent,.desktop-tools-label,.desktop-git-caption,.desktop-git-state,.desktop-terminal-recovery) {
+:root[data-desktop-shell="true"] :is(.usage-caption,.usage-label,.usage-provider-name,.usage-stat-label,.usage-provider-note,.context-note,.context-label,.context-stat-label,.context-model,.nubi-skill-menu-section,.nubi-skill-menu-status,.nubi-reasoning-value,.nubi-history-meta,.nubi-input-time,.nubi-document-worker-heading>span,.nubi-wiki-elapsed,.nubi-wiki-percent,.desktop-tools-label,.desktop-git-caption,.desktop-git-state,.desktop-terminal-recovery) {
   font-size:var(--deck-type-caption); line-height:var(--deck-line-caption); letter-spacing:normal;
   color:var(--nubi-note-ink);
 }
-:root:has(.desktop-shell) :is(.nubi-skill-name strong,.nubi-custom-skill-copy strong,.nubi-skill-menu-copy strong,.nubi-history-item strong,.nubi-action-head h3,.nubi-document-progress-heading strong,.nubi-document-worker-heading strong,.nubi-role-worker-heading strong) {
+:root[data-desktop-shell="true"] :is(.nubi-skill-name strong,.nubi-custom-skill-copy strong,.nubi-skill-menu-copy strong,.nubi-history-item strong,.nubi-action-head h3,.nubi-document-progress-heading strong,.nubi-document-worker-heading strong,.nubi-role-worker-heading strong) {
   font-size:var(--deck-type-body); line-height:var(--deck-line-body); font-weight:var(--nubi-weight-emphasis);
 }
-:root:has(.desktop-shell) :is(.usage-stat-value,.context-stat-value) {
+:root[data-desktop-shell="true"] :is(.usage-stat-value,.context-stat-value) {
   font-size:var(--deck-type-heading); line-height:var(--deck-line-heading); font-weight:var(--nubi-weight-emphasis);
 }
 .desktop-shell .desktop-pane :is(.desktop-list>.cx-kit-button,.desktop-tools-menu .cx-kit-button,.desktop-git-toolbar select) {
@@ -128,20 +128,20 @@ body {
 .desktop-crash { font-family:var(--nubi-font-family); font-size:var(--deck-type-body); line-height:var(--deck-line-body); }
 .desktop-crash h1 { font-size:var(--deck-type-heading); }
 .desktop-crash-detail code { font-size:var(--deck-type-caption); }
-:root:has(.desktop-shell) :is(.nubi-beta,.nubi-session-date,.nubi-session-count,.nubi-applied-counts,.nubi-applied-menu>header,.nubi-pill,.deck-status,.nubi-mail-local-tags>span,.nubi-mail-filter-chip,.nubi-mail-history-bar>span,.desktop-dirty) {
+:root[data-desktop-shell="true"] :is(.nubi-beta,.nubi-session-date,.nubi-session-count,.nubi-applied-counts,.nubi-applied-menu>header,.nubi-pill,.deck-status,.nubi-mail-local-tags>span,.nubi-mail-filter-chip,.nubi-mail-history-bar>span,.desktop-dirty) {
   font-size:var(--deck-type-caption); line-height:var(--deck-line-caption); letter-spacing:normal;
 }
 .desktop-shell .nubi-wiki-initialization.is-inline strong,
-:root:has(.desktop-shell) :is(.nubi-startup-connections .nubi-muted,.nubi-terminal-shell,.nubi-terminal-path,.nubi-terminal-cwd,.nubi-terminal-line) {
+:root[data-desktop-shell="true"] :is(.nubi-startup-connections .nubi-muted,.nubi-terminal-shell,.nubi-terminal-path,.nubi-terminal-cwd,.nubi-terminal-line) {
   font-size:var(--deck-type-caption); line-height:var(--deck-line-caption);
 }
 .desktop-shell :is(.nubi-logo-product,.nubi-workbench .nubi-logo-product) { font:var(--deck-font-label); letter-spacing:normal; }
 /* Ported CX identity/time metadata otherwise keeps its library 12px rule. */
-:root:has(.desktop-shell) :is(.nubi-ai-workspace-embed,.nubi-workspace-panel) :is(.cx-person-login,time) {
+:root[data-desktop-shell="true"] :is(.nubi-ai-workspace-embed,.nubi-workspace-panel) :is(.cx-person-login,time) {
   font-size:var(--deck-type-caption); line-height:var(--deck-line-caption);
   font-weight:var(--nubi-weight-regular); color:var(--nubi-text-secondary);
 }
-:root:has(.desktop-shell) :is(.nubi-ai-workspace-embed,.nubi-workspace-panel) .cx-person-name {
+:root[data-desktop-shell="true"] :is(.nubi-ai-workspace-embed,.nubi-workspace-panel) .cx-person-name {
   font-size:var(--deck-type-caption); line-height:var(--deck-line-caption);
   font-weight:var(--nubi-weight-label); color:var(--nubi-text-primary);
 }
@@ -202,6 +202,6 @@ body {
  font-size:var(--deck-type-body); line-height:var(--deck-line-body); font-weight:var(--nubi-weight-emphasis);
 }
 /* Paths are required context on a dark command receipt, not muted page text. */
-:root:has(.desktop-shell) .nubi-terminal-bar :is(.nubi-terminal-cwd,.nubi-terminal-cwd .nubi-drift-text) {
+:root[data-desktop-shell="true"] .nubi-terminal-bar :is(.nubi-terminal-cwd,.nubi-terminal-cwd .nubi-drift-text) {
  color:var(--nubi-terminal-muted);
 }

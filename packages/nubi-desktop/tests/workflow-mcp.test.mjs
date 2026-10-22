@@ -1,4 +1,4 @@
-import {test} from 'node:test';import assert from 'node:assert/strict';import {mkdir,writeFile} from 'node:fs/promises';import path from 'node:path';import {createHash} from 'node:crypto';
+import {featureTest} from './beta-feature.mjs';const test=featureTest('workflows');import assert from 'node:assert/strict';import {mkdir,writeFile} from 'node:fs/promises';import path from 'node:path';import {createHash} from 'node:crypto';
 import {fixture} from './fixtures.mjs';import {ProjectService} from '../runtime/project-service.mjs';import {installAgent} from '../runtime/agent.mjs';import {createWorkflowRunner} from '../runtime/workflow-runner.mjs';import {loadWorkflowPackage} from '../runtime/workflow-package.mjs';import {allowMcpTool,approvalPolicy} from '../runtime/approval-policy.mjs';
 installAgent(ProjectService);
 async function setup(t,{readOnly=false,externalWrite=true,never=false,fail=false,structured={saved:true},outputs,then=[]}={}){

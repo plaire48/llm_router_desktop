@@ -3,13 +3,29 @@ import {readFile} from 'node:fs/promises';
 import {auditCxSurface} from './cx-surface-audit.mjs';
 const accessibilityExceptions=JSON.parse(await readFile(new URL('./design-exceptions.json',import.meta.url),'utf8')).exceptions;
 export const DESIGN_MOTION_FILES=['design/workspace-identity.css','design/workspace-density.css','design/workspace-typography.css','design/workspace-icons.css','design/workspace-pastel.css','ui/workflow.css','ui/loading-note.css','electron-app/ios-tokens.css','electron-app/modal-motion.css','ui/computer-use.css','ui/tool-arguments.css','ui/project-switch-cover.css','electron-app/external-browser.css','electron-app/workbench.css'];
-export function sourceDesignIssues(file,source,{colors=false,layout=false}={}){
+export function sourceDesignIssues(file,source,{colors=false,layout=false,has=false}={}){
  const clean=source.replace(/\/\*[\s\S]*?\*\//g,''),issues=[],add=(rule,offset)=>issues.push({rule,file,offset});
  if(colors)for(const m of clean.matchAll(/#[0-9a-fA-F]{3,8}\b/g))add('color_literal',m.index);
  if(layout)for(const m of clean.matchAll(/\d+(?:\.\d+)?px\b|\u00b7/g))add('layout_literal',m.index);
  for(const m of clean.matchAll(/(?:^|[;{])\s*(transition(?:-duration)?|animation(?:-duration)?|--[\w-]*(?:duration|motion|cycle|delay)[\w-]*)\s*:\s*([^;}]+)/g)){
   if(file!=='design/workspace-motion.css'&&/\b(?:\d*\.)?\d+(?:ms|s)\b/.test(m[2]))add('motion_literal',m.index);
   if(m[1]==='transition'&&/\ball\b/.test(m[2]))add('transition_all',m.index);
+ }
+ if(has)issues.push(...hasSelectorIssues(file,source));
+ return issues;
+}
+// :has() made every DOM change recalculate the whole document's style (design light-flow §1.1, 2026-10-22).
+function hasSelectorIssues(file,source){
+ const clean=source.replace(/\/\*[\s\S]*?\*\//g,c=>c.replace(/[^\n]/g,' ')),issues=[];
+ for(const m of clean.matchAll(/([^{};]+)\{/g)){
+  if(m[1].trim().startsWith('@'))continue;
+  let depth=0,start=0;const prelude=m[1],parts=[];
+  for(let i=0;i<=prelude.length;i++){const c=prelude[i];if(c==='(')depth++;else if(c===')')depth--;else if((c===','&&depth===0)||i===prelude.length){parts.push([start,prelude.slice(start,i)]);start=i+1;}}
+  for(const [at,text] of parts){
+   if(!text.includes(':has('))continue;
+   const lead=text.length-text.trimStart().length,offset=m.index+at+lead;
+   issues.push({rule:'has_selector',file,offset,line:clean.slice(0,offset).split('\n').length,selector:text.trim().replace(/\s+/g,' ')});
+  }
  }
  return issues;
 }

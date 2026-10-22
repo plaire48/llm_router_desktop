@@ -50,6 +50,7 @@ import {assertWorkflowCall} from './workflow-policy.mjs';
 import {recordWorkflowEvidence} from './workflow-evidence.mjs';
 import {STEP_OUTPUT_TOOL,workflowStepContext,workflowStepClosed,submitStepOutput} from './workflow-step.mjs';
 import {createWorkflowRunner} from './workflow-runner.mjs';
+import {requireWorkflows} from './workflow-feature.mjs';
 import {PLANNING_OUTCOME_GUIDE} from '../../../extensions/aipro-chat/task-plan.js';
 import {CAPABILITY_GUIDANCE,taskCapabilities,skillCatalog,discoverCapabilities,readSkill,useSkill,listSkillResources} from './agent-capabilities.mjs';
 import {DESKTOP_FEATURES} from './beta-features.mjs';
@@ -285,6 +286,7 @@ export function installAgent(ProjectService) {
     const task = this.task(taskId);
     if(task.kind==='workflow')throw Error('workflow_use_runner');
     const workflowStep=workflowStepContext(this,task);
+    if(workflowStep)requireWorkflows();
     if(workflowStep&&workflowStepClosed(this,task))throw Error('workflow_step_closed');
     if(this.workflowActive&&!workflowStep)throw Error('agent_busy');
     const redoRequested=task.replyRegeneration?.state==='requested';
@@ -1032,7 +1034,7 @@ export function installAgent(ProjectService) {
     if(task.state!=='waiting_input'||!task.question||this.agent?.running)throw new Error('question_changed');
     const text=typeof task.question==='string' ? answer : questionAnswer(task.question,choice||{questionId:task.question.id,text:answer});
     if(typeof text!=='string'||!text.trim()||text.length>QUESTION_TEXT_LIMIT)throw new Error('answer_invalid');
-    if(task.kind==='workflow')return createWorkflowRunner(this).resume(task.workflowRunId,{answer:task.question.workflow?.answers?.[text]||text});
+    if(task.kind==='workflow'){requireWorkflows();return createWorkflowRunner(this).resume(task.workflowRunId,{answer:task.question.workflow?.answers?.[text]||text});}
     if(task.question.processIdle)return this.answerProcessIdle(task,text);
     requireWikiChatReady(this);
     if(!this.providers?.status().connected)throw new Error('provider_missing');
@@ -1050,7 +1052,7 @@ export function installAgent(ProjectService) {
     return this.startAgent({taskId,answer:text});
   };
   ProjectService.prototype.stopAgent = async function ({taskId}) {
-    if(this.task(taskId).kind==='workflow'){await createWorkflowRunner(this).cancel(this.task(taskId).workflowRunId);return this.task(taskId);}
+    if(this.task(taskId).kind==='workflow'){requireWorkflows();await createWorkflowRunner(this).cancel(this.task(taskId).workflowRunId);return this.task(taskId);}
     for(const pending of this.repairStarts?.values()||[])if(pending.taskId===taskId)pending.controller.abort();
     cancelNativeOffice(this,taskId);
     cancelEditor(this,taskId);

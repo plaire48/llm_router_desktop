@@ -12,7 +12,7 @@ import os from 'node:os';
 import {createRequire} from 'node:module';
 import {rendererBundleOptions} from './renderer-bundle.mjs';
 import {springSamples} from './motion-spring.mjs';
-import {parseAmbientRegistry} from '../ui/motion-policy.mjs';
+import {parseAmbientRegistry,IDLE_AMBIENT_HELD} from '../ui/motion-policy.mjs';
 import {isSharedRunner,recordUnjudged} from './admission-calibration.mjs';
 
 const tag=process.env.MOTION_TAG||'after-1';if(!/^[a-z0-9-]+$/.test(tag))throw Error('invalid motion tag');
@@ -71,7 +71,9 @@ try{
   const ambient=await page.evaluate(()=>document.getAnimations().filter(animation=>animation.playState==='running').map(animation=>({name:animation.animationName||animation.transitionProperty||'WAAPI',target:String(animation.effect?.target?.className?.baseVal??animation.effect?.target?.className??''),duration:animation.effect.getTiming().duration,iterations:animation.effect.getTiming().iterations===Infinity?'infinite':animation.effect.getTiming().iterations})));
   const registry=await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--nubi-ambient-registry'));
   const names=parseAmbientRegistry(registry);await page.evaluate(names=>window.qualityAmbient=new Set(names),[...names.keys()]);
-  if(!reduced)check(`pastel-path-exercised:${width}`,ambient.some(animation=>animation.name==='nubi-pastel-flow'),ambient);
+  // Decoration is held while idle (design light-flow §6): the pastel layer is still mounted, at a held phase.
+  if(!reduced){const pastel=await page.evaluate(()=>document.getAnimations().filter(a=>a.animationName==='nubi-pastel-flow').map(a=>a.playState));check(`pastel-path-exercised:${width}`,pastel.length>0&&pastel.every(state=>state==='paused'),pastel);}
+  check(`ambient-idle-held-only:${width}:${reduced}`,ambient.filter(animation=>IDLE_AMBIENT_HELD.has(animation.name)).length===0,ambient);
   await page.mouse.move(-1,-1);
   check(`ambient-registered:${width}:${reduced}`,ambient.filter(animation=>animation.iterations==='infinite').every(animation=>names.has(animation.name)),ambient);
   check(`interaction-concurrency:${width}:${reduced}`,ambient.filter(animation=>!names.has(animation.name)).length<=3,ambient);
@@ -123,9 +125,9 @@ try{
    await Promise.all(art.map(a=>a.ready));
    const paused=art.map(a=>({name:a.animationName,target:a.effect.target.className,same:document.getAnimations().includes(a),state:a.playState,at:a.currentTime}));await new Promise(resolve=>setTimeout(resolve,70));
    const held=art.map(a=>a.currentTime);sentinel.remove();await new Promise(resolve=>setTimeout(resolve,70));
-   return {paused,held,resumed:art.map(a=>({same:document.getAnimations().includes(a),state:a.playState,at:a.currentTime}))};
+   return {paused,held,resumed:art.map(a=>({name:a.animationName,same:document.getAnimations().includes(a),state:a.playState,at:a.currentTime}))};
   });
-  check(`work-attention-pause:${width}:${reduced}`,attention.paused.length>0&&attention.paused.every((a,i)=>a.same&&a.state==='paused'&&Math.abs(a.at-attention.held[i])<1)&&attention.resumed.every((a,i)=>a.same&&a.state==='running'&&a.at>attention.held[i]),attention);
+  check(`work-attention-pause:${width}:${reduced}`,attention.paused.length>0&&attention.paused.every((a,i)=>a.same&&a.state==='paused'&&Math.abs(a.at-attention.held[i])<1)&&attention.resumed.every((a,i)=>a.same&&IDLE_AMBIENT_HELD.has(a.name)?a.state==='paused'&&Math.abs(a.at-attention.held[i])<1:a.same&&a.state==='running'&&a.at>attention.held[i]),attention);
   await page.emulateMedia({reducedMotion:reduced?'reduce':'no-preference'});
   result.scenes.push({width,reduced,ambient,opening,closing,transition:during,openWall,closeWall,phase:{paused,held,resumed}});
   await page.goto(`http://127.0.0.1:${server.address().port}/?quality-controls`);

@@ -1,6 +1,6 @@
 /* Text axes belong to the content, not to an icon's intrinsic width.
    Keep authored document indentation, table columns and centered empty states. */
-:root:has(.desktop-shell){
+:root[data-desktop-shell="true"]{
  --nubi-text-row-inset:var(--cx-space-3);
  --nubi-text-row-icon:var(--cx-space-4);
  --nubi-text-row-gap:var(--cx-space-3);
@@ -71,7 +71,7 @@
 
 /* The bottom surround includes its status text: reserve the same complete
    band on all four sides instead of adding footer height to the outer inset. */
-.desktop-shell[data-toolbar=true]:has(>.desktop-mail-progress){
+.desktop-shell[data-toolbar=true][data-mail-progress="true"]{
  --nubi-workspace-inset:var(--cx-space-8);
  --nubi-mail-footer-height:var(--nubi-workspace-inset);
  padding-bottom:var(--nubi-workspace-inset);

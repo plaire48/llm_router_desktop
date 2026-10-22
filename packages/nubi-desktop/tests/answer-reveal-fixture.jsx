@@ -7,6 +7,7 @@ import {useAnswerReveal} from '../ui/useAnswerReveal.js';
 
 import '../electron-app/workbench.css';
 import '../design/workspace-identity.css';
+import '../ui/shell-state-auto.mjs';// layout facts as attributes, as the renderer host does (design light-flow §1.1)
 import '../design/workspace-typography.css';
 const answer='**메일 검색을 개선했습니다.**\n\n제목과 본문을 함께 검색하고, 선택한 메일의 원문을 확인할 수 있습니다. '+
   '한글과 이모지 👨‍👩‍👧‍👦도 자연스럽게 이어집니다.\n\n- 검색 조건과 날짜 범위를 유지합니다.\n- 원문 출처를 눌러 근거를 확인할 수 있습니다.\n\n'+

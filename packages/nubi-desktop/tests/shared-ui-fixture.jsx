@@ -13,6 +13,7 @@ import {Workbench} from '../ui/Workbench.jsx';
 
 import '../electron-app/workbench.css';
 import '../design/workspace-identity.css';
+import '../ui/shell-state-auto.mjs';// layout facts as attributes, as the renderer host does (design light-flow §1.1)
 import '../electron-app/shell.css';
 import '../electron-app/ios-tokens.css';
 import '../design/workspace-typography.css';
@@ -49,6 +50,14 @@ if(proposalFixture){
 if(wikiChatFixture){project.backgroundProjects=[{projectId:'background-wiki',root:'/fixture/background',running:false,wikiChatJob:{id:'background-job',projectId:'background-wiki',kind:'update',state:'running',percent:50}}];window.wikiProjectSwitches=[];}
 const reviewFailureFixture=new URLSearchParams(location.search).get('review-failure');
 if(reviewFailureFixture){connected=true;project.tasks=[{id:'review-failure-task',request:'요구사항과 결과를 확인해 주세요.',state:'paused',checkpoint:{runId:'review-failed-run'},criteria:[],messages:[],trace:[],resultReview:{status:'error',reason:reviewFailureFixture},reviewDraft:{content:'검토 전 보관된 답변입니다.'}}];}
+// Workflows and routines are off in this release: a stored workflow conversation and a saved routine still exist.
+const workflowOffFixture=new URLSearchParams(location.search).has('workflow-off');
+// The runner never writes messages to the umbrella task: its results live in the workflow-run record (final review 2026-10-22).
+if(workflowOffFixture)project.tasks=[
+ {id:'workflow-task',kind:'workflow',workflowRunId:'fixture-run',request:'합성 정의서 워크플로우',criteria:[],state:'waiting_input',question:{id:'workflow-question',kind:'text',text:'다음 단계로 갈까요?'},messages:[],trace:[]},
+ {id:'workflow-interrupted',kind:'workflow',workflowRunId:'fixture-run-2',request:'중단된 정의서 워크플로우',criteria:[],state:'interrupted',messages:[],trace:[]},
+ {id:'workflow-step-task',origin:{kind:'workflow_step',runId:'fixture-run',stepId:'collect'},request:'정의서 단계 대화',criteria:[],state:'interrupted',messages:[{id:'step-message',role:'assistant',content:'단계 대화 기록이에요.'}],trace:[]}];
+const workflowRunFixture=runId=>({run:{id:runId,workflow:{name:'합성 정의서 워크플로우',steps:[{id:'collect',name:'자료 모으기',kind:'tool',action_summary:'합성 자료 확인'},{id:'write',name:'정의서 쓰기',kind:'tool',action_summary:'합성 정의서 작성'}],lanes:[]},status:runId==='fixture-run'?'waiting':'partial',cursor:'write',createdAt:'2026-10-21T09:00:00.000Z',updatedAt:'2026-10-21T09:05:00.000Z',steps:{collect:{status:'complete',startedAt:'2026-10-21T09:00:00.000Z',summary:'합성 자료를 정리했어요.'},write:{status:'interrupted',startedAt:'2026-10-21T09:03:00.000Z'}}},task:{id:runId,state:'interrupted'}});
 const decisionFixture=new URLSearchParams(location.search).get('decision');
 if(decisionFixture){
  connected=true;window.decisionCalls=[];
@@ -251,6 +260,10 @@ async function api(method,args={}){
   if(documentChatFixture&&method==='startAgent'){const task=project.tasks[0];window.documentChatAnswer=args.answer;task.messages.push({id:'values',role:'user',content:args.answer,runId:'form-write'},{id:'written',role:'assistant',content:'사본을 문서/출장 작성.docx에 저장했어요. 원본은 그대로 두었습니다.',runId:'form-write'});task.state='review';return {taskId:task.id,state:'review'};}
 
   if(afterEditFailureFixture&&method==='retryAfterEditCheck'){window.afterEditRetries=(window.afterEditRetries||0)+1;throw Object.assign(Error('source_stale'),{details:{path:'src/app.mjs'}});}
+  if(workflowOffFixture&&method==='workflowRun'){window.workflowRunReads=(window.workflowRunReads||0)+1;return workflowRunFixture(args.runId);}
+  if(workflowOffFixture&&['resumeWorkflow','cancelWorkflow','answerAgent','startAgent'].includes(method)){window.workflowWrites=(window.workflowWrites||[]).concat(method);throw Error('workflow_feature_off');}
+  if(method==='routineNotice')return workflowOffFixture&&!sessionStorage.getItem('routine-notice-acknowledged')?{show:true,text:'루틴은 다음 판에서 다시 켜집니다. 저장한 루틴은 그대로 있어요.'}:{show:false};
+  if(method==='acknowledgeRoutineNotice'){window.routineNoticeAcknowledged=(window.routineNoticeAcknowledged||0)+1;sessionStorage.setItem('routine-notice-acknowledged','1');return {show:false};}
   if(method==='listRoutines'){if(window.routineFailure)throw Error('fixture_read_failure');return {items:structuredClone(routineRows),projects:[{id:project.projectId,name:project.name}]};}
   if(method==='listRoutineWorkflows')return [structuredClone(routineWorkflow)];
   if(method==='resolveRoutinePromotion'){const row=routineRows.find(row=>row.id===args.id);if(!row?.promotion)throw Error('routine_promotion_unavailable');row.promotion.state=args.action==='dismiss'?'dismissed':'accepted';return {slug:'synthetic-promoted',projectId:row.projectId};}

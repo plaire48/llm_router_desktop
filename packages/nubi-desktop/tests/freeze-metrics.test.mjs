@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {freezeMetrics,freezeViolations,FREEZE_SCENES,displayInterval} from '../scripts/freeze-metrics.mjs';
+import {freezeMetrics,freezeViolations,FREEZE_SCENES,displayInterval,freezeRunOptions,styleRecalcStats} from '../scripts/freeze-metrics.mjs';
 const measure=raw=>freezeMetrics({displayIntervalMs:1000/60,...raw});
 test('freeze measurements retain every late task and frame instead of filtering out freezes',()=>{
  const result=measure({tasks:[{startTime:10,duration:51},{startTime:20,duration:201}],frames:[16.6,16.7,220],inputs:[12,60],heapBytes:42});
@@ -60,4 +60,17 @@ test('conversation admission preserves first4, bounded batches and the exact300m
  assert(conversationAdmissionViolations(rows.slice(0,-1)).includes('admission_incomplete'));
  assert(conversationAdmissionViolations([]).includes('admission_samples_missing'));
  assert(conversationAdmissionViolations([{count:4,at:0},{count:40,at:100}]).includes('admission_batch'));
+});
+
+// Condition A (design 2026-10-22 §6): GPU off and a slower CPU are opt-in run options; defaults keep today's run.
+test('freeze run options default to today and read condition A from the environment',()=>{
+ assert.deepEqual(freezeRunOptions({}),{chromeArgs:[],cpuThrottle:1});
+ assert.deepEqual(freezeRunOptions({FREEZE_CHROME_ARGS:'--disable-gpu  --foo',FREEZE_CPU_THROTTLE:'4'}),{chromeArgs:['--disable-gpu','--foo'],cpuThrottle:4});
+ assert.throws(()=>freezeRunOptions({FREEZE_CPU_THROTTLE:'0'}),/freeze_throttle_invalid/);
+ assert.throws(()=>freezeRunOptions({FREEZE_CPU_THROTTLE:'2.5'}),/freeze_throttle_invalid/);
+});
+test('style recalculation stats come from complete UpdateLayoutTree events only',()=>{
+ const events=[{ph:'X',name:'UpdateLayoutTree',dur:12000},{ph:'X',name:'UpdateLayoutTree',dur:79400},{ph:'B',name:'UpdateLayoutTree'},{ph:'X',name:'Layout',dur:50000}];
+ assert.deepEqual(styleRecalcStats(events),{styleRecalcCount:2,styleRecalcMaxMs:79.4,styleRecalcTotalMs:91.4});
+ assert.deepEqual(styleRecalcStats([]),{styleRecalcCount:0,styleRecalcMaxMs:0,styleRecalcTotalMs:0});
 });

@@ -12,7 +12,7 @@
 .nubi-policy-link:focus-visible { outline:2px solid var(--deck-blue); outline-offset:4px; border-radius:var(--deck-control-radius); }
 
 .nubi-policy-content { display:grid; gap:var(--cx-space-4); }
-:root:has(.desktop-shell) .nubi-panel.nubi-external-ai-policy .nubi-policy-content :is(h3,p) { margin:0; }
+:root[data-desktop-shell="true"] .nubi-panel.nubi-external-ai-policy .nubi-policy-content :is(h3,p) { margin:0; }
 
 .nubi-policy-section { padding:var(--cx-space-4); border-radius:var(--nubi-work-control-radius); background:var(--deck-tint); }
 .nubi-policy-heading { display:flex; align-items:center; gap:var(--nubi-work-control-gap); margin-bottom:var(--cx-space-1); }

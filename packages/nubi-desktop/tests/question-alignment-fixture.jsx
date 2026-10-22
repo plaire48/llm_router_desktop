@@ -4,7 +4,7 @@ import {createRoot} from 'react-dom/client';
 import {QuestionDecision} from '../ui/QuestionDecision.jsx';
 
 import '../electron-app/workbench.css';
-import '../design/workspace-identity.css';import '../electron-app/shell.css';import '../electron-app/ios-tokens.css';
+import '../design/workspace-identity.css';import '../ui/shell-state-auto.mjs';import '../electron-app/shell.css';import '../electron-app/ios-tokens.css';
 import '../design/workspace-typography.css';
 import '../design/workspace-density.css';import '../design/workspace-dialogs.css';
 import '../design/workspace-icons.css';

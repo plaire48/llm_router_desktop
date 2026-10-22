@@ -1,7 +1,7 @@
 import React,{useLayoutEffect,useState} from 'react';import {createRoot} from 'react-dom/client';
 import '@e2e/cx-design-system/styles.css';
 import '../electron-app/workbench.css';import '../electron-app/shell.css';import '../electron-app/ios-tokens.css';
-import '../design/workspace-identity.css';import '../design/workspace-typography.css';import '../design/workspace-density.css';import '../design/workspace-dialogs.css';import '../design/workspace-icons.css';
+import '../design/workspace-identity.css';import '../ui/shell-state-auto.mjs';import '../design/workspace-typography.css';import '../design/workspace-density.css';import '../design/workspace-dialogs.css';import '../design/workspace-icons.css';
 import {BrowserPane} from '../electron-app/BrowserPane.jsx';import {SessionSidebar} from '../ui/SessionSidebar.jsx';
 const params=new URLSearchParams(location.search),external=params.has('external');
 const card={schemaVersion:1,title:'합성 조회 절차',inputs:[],steps:[{tool:'click_element',target:{role:'button',name:'검색'}}]};
