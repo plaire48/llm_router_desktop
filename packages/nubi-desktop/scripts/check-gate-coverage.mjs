@@ -16,7 +16,8 @@ export function checkGateCoverage(scripts,baseline){
  const fast=expandGateCommands(scripts['test:gates:fast'],scripts),electron=expandGateCommands(scripts['test:gates:electron'],scripts),both=[...fast,...electron];
  const expected=[...baseline.commands,...(baseline.additions||[])],counts=new Map();for(const cmd of both)counts.set(cmd,(counts.get(cmd)||0)+1);
  const missing=expected.filter(cmd=>!counts.has(cmd)),extra=[...counts.keys()].filter(cmd=>!expected.includes(cmd)),duplicates=[...counts].filter(([,n])=>n!==1).map(([cmd])=>cmd);
- const pretestPreserved=scripts.pretest===baseline.pretest;
+ const expectedPretest=[baseline.pretest,...(baseline.pretestAdditions||[])].join(' && ');
+ const pretestPreserved=scripts.pretest===expectedPretest;
  const umbrella=String(scripts['test:gates']||'').replace(/^node scripts\/check-gate-coverage.mjs\s*&&\s*/,'');
  const umbrellaPreserved=umbrella==='npm run test:gates:fast && npm run test:gates:electron';
  return {ok:!missing.length&&!extra.length&&!duplicates.length&&pretestPreserved&&umbrellaPreserved,fast,electron,missing,extra,duplicates,pretestPreserved,umbrellaPreserved};

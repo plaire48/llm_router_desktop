@@ -36,7 +36,7 @@ export function ProjectSwitchCover({progress,transition}){
  return <div ref={node} className="nubi-project-switch-cover" data-leaving={leaving||undefined} role="status" aria-label="프로젝트 여는 중" aria-busy={active} aria-hidden={!active||undefined} inert={!active||undefined}>
   <div className="nubi-project-switch-scene">
    <div className="nubi-preparing-brand" aria-hidden="true"><AgentMark size={56}/><NubiWordmark/><span>Workspace</span></div>
-   {shown?.progress?<GitCloneProgress progress={shown.progress}/>:shown?.transition?<ProjectOpenProgress transition={shown.transition}/>:<div className="nubi-preparing-bar" aria-hidden="true"><span/></div>}
+   {shown?.progress?<GitCloneProgress progress={shown.progress}/>:shown?.transition?<ProjectOpenProgress transition={shown.transition}/>:<TaskProgressBar className="nubi-preparing-bar" label="프로젝트 준비" active={active}/>}
   </div>
  </div>;
 }

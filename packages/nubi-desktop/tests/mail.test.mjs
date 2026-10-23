@@ -63,6 +63,25 @@ test('compatible UIDL rows retain opaque IDs across TLS retrieval and repeated s
  f.listing('1 '+longId+'\n2 missing extra');await assert.rejects(pullPop3({...credentials,endpoint:f.endpoint,known:[]}),/mail_uidl_format/);
  assert(!f.commands.includes('DELE'));
 });
+test('POP3 authentication is reported before listing and never reported on rejected credentials',async t=>{
+ const f=await fixture(t);let accepted=0;f.uidl(true);
+ await assert.rejects(pullPop3({...credentials,endpoint:f.endpoint,onAuthenticated:()=>{accepted++;}}),/mail_listing_failed/);assert.equal(accepted,1);
+ f.auth(true);accepted=0;await assert.rejects(pullPop3({...credentials,endpoint:f.endpoint,onAuthenticated:()=>{accepted++;}}),/mail_auth_login_rejected/);assert.equal(accepted,0);
+});
+test('POP3 worker progress does not finish the pull or expose credentials',async t=>{
+ const f=await fixture(t),events=[];const mail=new PersonalMail({storageRoot:path.join(f.root,'worker-state')},{personalRoot:path.join(f.root,'worker-personal')});t.after(()=>mail.dispose());
+ const result=await mail.pull({...credentials,endpoint:f.endpoint,onAuthenticated:(...values)=>events.push(values)});
+ assert.deepEqual(events,[[]]);assert.deepEqual(result.uidls,[]);assert.deepEqual(result.mails,[]);
+});
+test('POP3 success is published while the first mailbox pull remains in progress',async t=>{
+ const root=await mkdtemp(path.join(os.tmpdir(),'nubi-pop3-early-'));removeLater(root);let release,resolveAccepted,finished=false;
+ const waiting=new Promise(resolve=>{release=resolve;}),accepted=new Promise(resolve=>{resolveAccepted=resolve;}),events=[];
+ const host={storageRoot:root,providers:{catalogs:()=>CATALOGS,status:()=>({connected:true,...destination})},notifyMailConnection:value=>{events.push(value);resolveAccepted();}};
+ const mail=new PersonalMail(host,{personalRoot:path.join(root,'personal'),pull:async input=>{input.onAuthenticated?.();await waiting;return {uidls:[],mails:[],delaySeconds:60};}});t.after(()=>mail.dispose());
+ const operation=mail.call({action:'connect',requestId:'early-confirmed',...credentials}).finally(()=>{finished=true;});
+ try{await Promise.race([accepted,new Promise(resolve=>setTimeout(resolve,300))]);assert.equal(events.length,1);assert.equal(finished,false);assert.equal(mail.status().connected,true);assert.equal(mail.status().connecting,false);assert.equal(mail.status().checking,true);assert.equal(mail.status().progress.stage,'checking');assert.deepEqual(events,[{requestId:'early-confirmed'}]);}
+ finally{release();await operation;}
+});
 test('durable personal intake, attachments, no secret persistence, restart and user edits',async t=>{
  const f=await fixture(t);f.mailbox.push({uidl:'old',raw:simple('old')});let calls=0;
  const host={storageRoot:path.join(f.root,'state'),providers:{catalogs:()=>CATALOGS,status:()=>({connected:true,...destination}),complete:async()=>{calls++;return {content:JSON.stringify(answer)};}}};
@@ -90,9 +109,9 @@ test('unconnected model leaves the queue intact; a model connected later is used
  await mail.call({action:'resume',destination});assert.deepEqual(mail.status().destination,destination);
 });
 test('cancelled connection cannot activate or persist a late result',async t=>{
- const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-cancel-'));let release;
- const mail=new PersonalMail({storageRoot:root},{personalRoot:path.join(root,'personal'),pull:()=>new Promise(r=>release=r)});t.after(async()=>{mail.dispose();await Promise.all([mail.rawDisposed,mail.wikiDisposed]);await rm(root,{recursive:true,force:true});});
- const pending=mail.call({action:'connect',requestId:'slow',...credentials});await mail.call({action:'cancelConnect',requestId:'slow'});release({uidls:[],mails:[],delaySeconds:60});await assert.rejects(pending,/mail_cancelled/);assert.equal(mail.status().connected,false);assert.equal(mail.rows().length,0);
+ const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-cancel-'));let release,ready;const entered=new Promise(resolve=>ready=resolve);
+ const mail=new PersonalMail({storageRoot:root},{personalRoot:path.join(root,'personal'),pull:()=>new Promise(r=>{release=r;ready();})});t.after(async()=>{mail.dispose();await Promise.all([mail.rawDisposed,mail.wikiDisposed]);await rm(root,{recursive:true,force:true});});
+ const pending=mail.call({action:'connect',requestId:'slow',...credentials});await entered;await mail.call({action:'cancelConnect',requestId:'slow'});release({uidls:[],mails:[],delaySeconds:60});await assert.rejects(pending,/mail_cancelled/);assert.equal(mail.status().connected,false);assert.equal(mail.rows().length,0);
 });
 test('oversize retrieval is quarantined without starving later mail; duplicate UIDLs remain usable',async t=>{
  const f=await fixture(t);f.mailbox.push({uidl:'huge',raw:Buffer.alloc(10*1024*1024+100,65)},{uidl:'small',raw:simple('small')});

@@ -77,7 +77,7 @@ export function AnalysisHistory({api,task,showHistory=false,reviewSlot=null}) {
     const timer=running?setInterval(refreshVisible,1200):null;
     if(running)document.addEventListener('visibilitychange',refreshVisible);
     return()=>{if(timer)clearInterval(timer);document.removeEventListener('visibilitychange',refreshVisible);generation.current++;busy.current=false;};
-  },[api,task.id,task.state]);
+  },[api,task.id,task.state,task.resultReview]);
   const merged=mergeRoleHistory(records,task);
   if(task.documentAnalysis){const index=merged.findIndex(record=>record.kind==='document'&&record.id===task.documentAnalysis.id);const snapshot={...task.documentAnalysis,kind:'document'};if(index<0)merged.unshift(snapshot);else if(running||!snapshot.updatedAt||snapshot.updatedAt>=merged[index].updatedAt)merged[index]=snapshot;}
   if(!merged.length&&!error)return null;

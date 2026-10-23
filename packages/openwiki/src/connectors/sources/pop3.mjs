@@ -97,7 +97,7 @@ export function classifyPop3Error(error,endpoint=POP3_SERVER){
   if(error?.command?.startsWith('RETR'))return 'mail_retrieval_failed';
   return 'mail_connection_failed';
 }
-export async function pullPop3({user,password,known=null,skip=[],signal,endpoint=POP3_SERVER,timeoutMs=60000,maxMailBytes=MAX_MAIL}){
+export async function pullPop3({user,password,known=null,skip=[],signal,onAuthenticated,endpoint=POP3_SERVER,timeoutMs=60000,maxMailBytes=MAX_MAIL}){
   if(!Number.isSafeInteger(maxMailBytes)||maxMailBytes<1||maxMailBytes>MAX_MAIL)throw new Error('mail_input_invalid');
   if(typeof user!=='string'||!user.trim()||user.length>320||typeof password!=='string'||!password||password.length>2048||/[\r\n\0]/.test(user+password))throw new Error('mail_input_invalid');
   const client=new FragmentSafePop3({user,password,...endpoint,tls:true,parseStreamToString:false,timeout:15000,tlsOptions:{...endpoint.tlsOptions,rejectUnauthorized:true,minVersion:'TLSv1.2'}});
@@ -109,6 +109,9 @@ export async function pullPop3({user,password,known=null,skip=[],signal,endpoint
     if(signal?.aborted)throw new Error('mail_cancelled');
     return await Promise.race([cancelled,(async()=>{
       await authenticate(client,user,password);
+      // Optional host observation after PASS succeeds, before mailbox work.
+      // No credential or server response is delivered to the callback.
+      onAuthenticated?.();
       let delay=60;
       // CAPA is optional in POP3. Only -ERR means unsupported; transport errors fail.
       try{const [,stream]=await client.command('CAPA');const text=(await bytes(stream,65536)).toString('ascii');const value=text.match(/^LOGIN-DELAY\s+(\d+)/im)?.[1];if(value){const seconds=Number(value);if(!Number.isSafeInteger(seconds)||seconds>2147483)throw new Error('mail_protocol');delay=Math.max(60,seconds);}}

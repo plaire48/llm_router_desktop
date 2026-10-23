@@ -13,7 +13,7 @@ export class ProjectServices{
  share(service){
   const primary=this.primary;
   for(const name of ['providers','providerRestoring','personalMail','usageLedger','marketplaceToken','marketplaceReader','marketplaceConnected','marketplaceCatalog','marketplaceAuthRequired','marketplaceRevision','marketplaceController'])Object.defineProperty(service,name,{configurable:true,get:()=>primary[name],set:value=>{primary[name]=value;}});
-  for(const name of ['connectionVault','openWorkspacePage','closeWorkspaceAuthPage','syncWikiSources','playwrightRequest','captureWorkspacePage','captureWorkspaceWindow','notifyAnswer','notifyWiki','routines'])service[name]=primary[name];
+  for(const name of ['connectionVault','openWorkspacePage','closeWorkspaceAuthPage','syncWikiSources','playwrightRequest','captureWorkspacePage','captureWorkspaceWindow','notifyAnswer','notifyWiki','notifyActivity','notifyStream','routines'])service[name]=primary[name];
   service.mail=args=>primary.mail(args);
   return service;
  }
@@ -36,6 +36,7 @@ export class ProjectServices{
   if((method==='provider'&&args.action&&args.action!=='status'||method==='fabrix'&&args.method==='CONNECT_FABRIX')&&services.some(service=>service.agent?.running))throw Error('agent_busy');
   let result;try{result=await this.current.invoke(method,args);}finally{this.primary.routines?.observe?.(this.current);}
   if(method==='prepareAppUpdate')this.updateLocked=true;
+  if(method==='state'&&args.streamOnly)return result;
   return ['overview','state'].includes(method)?{...result,...this.status()}:result;
  }
  status(){const background=this.background();return {backgroundProjects:background.map(({decisions,...project})=>({...project,waitingInput:decisions.length>0})),backgroundDecisions:background.flatMap(project=>project.decisions),backgroundActive:background.some(project=>project.running)};}

@@ -1,11 +1,35 @@
 const {readFile,readdir}=require('node:fs/promises');
 const path=require('node:path');
 const {execFile}=require('node:child_process');
+const {POWERSHELL_TEXT_ARGS,POWERSHELL_UTF8_PREFIX}=require('../runtime/powershell-encoding.mjs');
+const RESULT='NUBI_BROWSER_DISCOVERY:';
+function discoveryError(code,cause){return Object.assign(new Error(code,{cause}),{stage:'browser_discovery',actionIssued:false,exitCode:Number.isInteger(cause?.code)?cause.code:null});}
+function discoveryMetadata(stdout){
+ const lines=String(stdout||'').replace(/^\uFEFF/,'').split(/\r?\n/).filter(line=>line.startsWith(RESULT));
+ if(lines.length!==1)throw Error('browser_samsung_discovery_protocol');
+ const value=JSON.parse(lines[0].slice(RESULT.length));
+ if(!value||Array.isArray(value)||typeof value!=='object')throw Error('browser_samsung_discovery_protocol');
+ for(const key of ['executable','userDataDir'])if(value[key]!==null&&(typeof value[key]!=='string'||value[key].includes('\0')||!path.win32.isAbsolute(value[key])))throw Error('browser_samsung_discovery_protocol');
+ return {executable:value.executable,userDataDir:value.userDataDir};
+}
 // Fixed read-only metadata projection. Never print command lines, URLs,
 // authentication stores, cookies, profile bodies or policy values to logs.
-function samsungInstallation({execute=execFile}={}){
- const script="$ErrorActionPreference='Stop'; $p=Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -in @('browser','samsunginternet') } | ForEach-Object { try { $f=$_.Path; $v=[System.Diagnostics.FileVersionInfo]::GetVersionInfo($f); if($v.CompanyName -match 'Samsung' -or $v.ProductName -match 'Samsung'){ $f } } catch {} } | Select-Object -First 1; $d=$null; foreach($k in @('HKCU:\\Software\\Policies\\Samsung\\Internet','HKLM:\\Software\\Policies\\Samsung\\Internet')){try{$v=Get-ItemProperty -LiteralPath $k -Name UserDataDir -ErrorAction Stop; if($v.UserDataDir){$d=[Environment]::ExpandEnvironmentVariables($v.UserDataDir);break}}catch{}}; @{executable=$p;userDataDir=$d} | ConvertTo-Json -Compress";
- return new Promise((resolve,reject)=>execute('powershell.exe',['-NoLogo','-NoProfile','-NonInteractive','-Command',script],{windowsHide:true,timeout:8000,maxBuffer:4096},(error,stdout)=>{if(error)return reject(Error('browser_samsung_unavailable'));try{const value=JSON.parse(stdout);resolve({executable:typeof value.executable==='string'&&path.win32.isAbsolute(value.executable)?value.executable:null,userDataDir:typeof value.userDataDir==='string'&&path.win32.isAbsolute(value.userDataDir)?value.userDataDir:null});}catch{reject(Error('browser_samsung_unavailable'));}}));
+function samsungInstallation({execute=execFile,env=process.env}={}){
+ const script=[
+  "$ErrorActionPreference='Stop'; $candidates=@(Get-Process -Name browser,samsunginternet,samsungbrowser -ErrorAction SilentlyContinue | ForEach-Object {try{$_.Path}catch{}})",
+  "foreach($base in @('HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\App Paths','HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\App Paths')){foreach($name in @('browser.exe','samsunginternet.exe','samsungbrowser.exe')){try{$candidates+=Get-ItemPropertyValue -LiteralPath ($base+'\\'+$name) -Name '(default)' -ErrorAction Stop}catch{}}}",
+  "$p=$null; foreach($f in ($candidates | Select-Object -Unique)){try{$v=[System.Diagnostics.FileVersionInfo]::GetVersionInfo($f);if($v.CompanyName -match 'Samsung' -or $v.ProductName -match 'Samsung'){$p=$f;break}}catch{}}",
+  "if(!$p){foreach($base in @($env:LOCALAPPDATA,$env:ProgramFiles,${env:ProgramFiles(x86)})){if(!$base){continue};$vendor=Join-Path $base 'Samsung';if(!(Test-Path -LiteralPath $vendor -PathType Container)){continue};foreach($f in (Get-ChildItem -LiteralPath $vendor -Filter '*.exe' -File -Recurse -Depth 4 -ErrorAction SilentlyContinue | Where-Object {$_.Name -in @('browser.exe','samsunginternet.exe','samsungbrowser.exe')} | Select-Object -First 16)){try{$v=$f.VersionInfo;if($v.CompanyName -match 'Samsung' -or $v.ProductName -match 'Samsung'){$p=$f.FullName;break}}catch{}};if($p){break}}}",
+  "$d=$null; foreach($k in @('HKCU:\\Software\\Policies\\Samsung\\Internet','HKLM:\\Software\\Policies\\Samsung\\Internet')){try{$v=Get-ItemProperty -LiteralPath $k -Name UserDataDir -ErrorAction Stop;if($v.UserDataDir){$d=[Environment]::ExpandEnvironmentVariables($v.UserDataDir);break}}catch{}}; [Console]::Out.WriteLine('NUBI_BROWSER_DISCOVERY:'+(@{executable=$p;userDataDir=$d} | ConvertTo-Json -Compress))"
+ ].join('; ');
+ // This fixed read-only helper has a JSON stdout contract. Progress is not
+ // protocol data; real errors/exit status remain failures even with a frame.
+ const binary=path.win32.join(env.SystemRoot||'C:\\Windows','System32','WindowsPowerShell','v1.0','powershell.exe');
+ const encoded=Buffer.from(POWERSHELL_UTF8_PREFIX+"$ProgressPreference='SilentlyContinue';\n"+script,'utf16le').toString('base64');
+ return new Promise((resolve,reject)=>execute(binary,[...POWERSHELL_TEXT_ARGS,'-EncodedCommand',encoded],{env,encoding:'utf8',shell:false,windowsHide:true,timeout:8000,maxBuffer:16384},(error,stdout)=>{
+  if(error)return reject(discoveryError(error.code==='ERR_CHILD_PROCESS_STDIO_MAXBUFFER'?'browser_samsung_discovery_protocol':error.killed===true?'browser_samsung_discovery_timeout':'browser_samsung_discovery_failed',error));
+  try{resolve(discoveryMetadata(stdout));}catch(cause){reject(discoveryError('browser_samsung_discovery_protocol',cause));}
+ }));
 }
 async function samsungPortFile({localAppData=process.env.LOCALAPPDATA,userDataDir}={}){
  if(userDataDir){const exact=path.join(userDataDir,'DevToolsActivePort');try{await readFile(exact);return exact;}catch{throw Error('browser_connection_permission_required');}}

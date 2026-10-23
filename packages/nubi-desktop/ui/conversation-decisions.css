@@ -36,6 +36,11 @@
 .nubi-decision-receipt>summary>svg{flex:none}
 .nubi-decision-receipt[open]>summary>svg{rotate:180deg}
 .nubi-decision-receipt>p{white-space:pre-wrap;overflow-wrap:anywhere}
+.nubi-decision-submission{display:flex;align-items:center;gap:var(--cx-space-2);font:var(--deck-font-body);color:var(--deck-sub);overflow-wrap:anywhere}
+.nubi-live-draft{min-width:0;margin-block:var(--cx-space-3);font:var(--deck-font-body);color:var(--deck-ink)}
+.nubi-live-draft>small{font:var(--deck-font-caption);color:var(--deck-sub)}
+.nubi-live-draft>.message-body{white-space:pre-wrap;overflow-wrap:anywhere;margin-block:var(--cx-space-2)}
+.nubi-command-output-preview>pre{white-space:pre-wrap;overflow-wrap:anywhere;font-family:var(--nubi-code-family);font-size:var(--deck-type-caption);line-height:var(--deck-line-body);color:var(--deck-sub);margin-block:var(--cx-space-2)}
 @media(pointer:coarse){.desktop-shell .nubi-workbench .nubi-decision-pages button{min-width:44px;min-height:44px}}
 
 

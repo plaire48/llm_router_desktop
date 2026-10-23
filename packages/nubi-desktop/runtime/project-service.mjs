@@ -78,7 +78,9 @@ export class ProjectService {
     if(exactRoot&&top!==resolved)fail('clone_root_mismatch');
     if (this.root === top && this.store?.db.isOpen) {this.runAutoArchive();if(['local','remote'].includes(sourceKind))this.store.set('setting:wiki-source',{mode:sourceKind});if(initializeWiki){this.wikiInitEnabled=true;await this.initializeWiki();}await this.resumeWikiUpdates();return this.overview();}
     if (this.afterEditChecks?.size || this.sideTaskStarts?.size || this.skillImportBusy || this.vocBusy || this.computerBusy || this.newFileBusy || this.setupBusy || this.repairStarts?.size || this.processes?.active.size || this.processes?.pending.size || this.unsettledOperations?.size || this.reconciling || this.agent?.running || this.recordingKnowledge || this.databaseBusy || this.collaborationBusy) fail('project_busy');
-    const projectId = hash(top).slice(7, 31), store = new Store(path.join(this.storageRoot, projectId));
+    const projectId = hash(top).slice(7, 31), store = new Store(path.join(this.storageRoot, projectId),{onChange:key=>{
+      if(this.projectId===projectId&&/^(?:task|proposal|setup-action|command-repair|process|computer-action):/.test(key))this.activityChanged();
+    }});
     disposeEditorLink(this);disposeEditors(this);disposeNativeOffice(this);await disposeDevelopmentBrowser(this);await this.collaborationServer?.close();this.collaborationServer=null;this.knowledge?.server.close(); this.knowledge=null; this.store?.close(); this.root = top; this.projectId = projectId; this.agentRuns?.clear();this.lastAgent=null;
     this.wikiInitController?.abort();this.wikiUpdateRun?.controller.abort();this.wikiRefreshJob?.controller.abort();this.store = store;this.viewingTaskId=null;this.workspaceKind=kind==='conversation'?'conversation':'project';this.wikiInitEnabled=initializeWiki!==false;if(['local','remote'].includes(sourceKind))store.set('setting:wiki-source',{mode:sourceKind});
     interruptDocumentResearch(this.store);
@@ -139,7 +141,9 @@ export class ProjectService {
   }
   async workspaceChanges(args={}) {return inspectWorkspaceChanges(this,args);}
   async appliedFileSummary(args={}) {return appliedFileSummary(this,args);}
-  state({taskId}={}) { this.ready(); return {wikiChatBlocked:wikiChatBlocked(this),wikiChatJob:wikiChatJob(this),afterEditCheck:this.store.get('setting:after-edit-check')||null,computer:computerState(this),setupActions:this.store.list('setup-action:',{limit:50}).map(approvalActionView), collaborations:collaborationRows(this),peerTasks:peerRows(this),peerLinks:peerLinks(this), tasks: this.displayTasks(taskId), conversationNavigation:this.conversationNavigation(), proposals: this.store.list('proposal:',{limit:50}).map(approvalActionView), processes: this.store.list('process:',{limit:20}), comparisons: this.store.list('comparison:',{limit:20}),commandRepairs:this.store.list('command-repair:',{limit:30}).map(approvalActionView)}; }
+  activityChanged(){try{if(!this.disposed&&this.projectId)this.notifyActivity?.({projectId:this.projectId});}catch{}}
+  streamChanged(){try{if(!this.disposed&&this.projectId)this.notifyStream?.({projectId:this.projectId});}catch{}}
+  state({taskId,streamOnly=false}={}) { this.ready(); if(streamOnly){const run=this.agentForTask(taskId);return {stream:run?.running&&run.timing?{taskId,runId:run.runId,streamRevision:run.streamRevision||0,streamingAnswer:run.streamingAnswer||'',streamingReasoning:run.streamingReasoning||'',timing:run.timing.snapshot()}:null};} return {wikiChatBlocked:wikiChatBlocked(this),wikiChatJob:wikiChatJob(this),afterEditCheck:this.store.get('setting:after-edit-check')||null,computer:computerState(this),setupActions:this.store.list('setup-action:',{limit:50}).map(approvalActionView), collaborations:collaborationRows(this),peerTasks:peerRows(this),peerLinks:peerLinks(this), tasks: this.displayTasks(taskId), conversationNavigation:this.conversationNavigation(), proposals: this.store.list('proposal:',{limit:50}).map(approvalActionView), processes: this.store.list('process:',{limit:20}), comparisons: this.store.list('comparison:',{limit:20}),commandRepairs:this.store.list('command-repair:',{limit:30}).map(approvalActionView)}; }
   conversationNavigation(){
     this.ready();const pins=this.store.get('setting:pinned-tasks');
     return {tasks:this.store.taskSummaries().map(task=>({...task,pinned:!!pins?.ids?.includes(task.id)})),pinnedIds:pins?.ids??null,autoArchiveDays:this.store.get('setting:auto-archive-days')?.days??30};
@@ -186,7 +190,7 @@ export class ProjectService {
   }
   displayTasks(taskId){const tasks=this.store.list('task:',{limit:50});if(taskId&&!tasks.some(task=>task.id===taskId)){const selected=this.store.get('task:'+taskId);if(selected)tasks.push(selected);}return tasks.map(task=>this.displayTask(task));}
   conversationHistory(args={}) {this.ready();if(args.taskId){if(typeof args.taskId!=='string')fail('task_missing');return this.displayTask(this.task(args.taskId));}return searchConversations(this.store.list('task:'),args);}
-  displayTask(task){task={...task,pinned:!!this.store?.get('setting:pinned-tasks')?.ids?.includes(task.id)};const run=this.agentForTask(task.id);return run?.running&&run.timing?{...task,streamingAnswer:run.streamingAnswer||'',streamingReasoning:run.streamingReasoning||'',responseTiming:{...(task.responseTiming?.runId===run.runId?task.responseTiming:{}),...run.timing.snapshot(),runId:run.runId}}:task;}
+  displayTask(task){task={...task,pinned:!!this.store?.get('setting:pinned-tasks')?.ids?.includes(task.id)};const run=this.agentForTask(task.id);return run?.running&&run.timing?{...task,streamRevision:run.streamRevision||0,streamingAnswer:run.streamingAnswer||'',streamingReasoning:run.streamingReasoning||'',responseTiming:{...(task.responseTiming?.runId===run.runId?task.responseTiming:{}),...run.timing.snapshot(),runId:run.runId}}:task;}
   task(taskId) { const task = this.store.get('task:' + taskId); if (!task) fail('task_missing'); return task; }
   async target(taskId) {
     if (!taskId) return this.root;

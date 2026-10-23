@@ -1,0 +1,97 @@
+import {captureDesign} from './design-rules.mjs';
+import {build} from 'esbuild';
+import {mkdir,writeFile,readFile,cp,mkdtemp,rm} from 'node:fs/promises';
+import {createServer} from 'node:http';
+import path from 'node:path';
+import {_electron} from 'playwright';
+import {createRequire} from 'node:module';
+import os from 'node:os';
+import assert from 'node:assert/strict';
+const dir=path.resolve('verification/realtime-actions-2026-10-23');await mkdir(dir,{recursive:true});
+await build({entryPoints:['tests/shared-ui-fixture.jsx'],outfile:path.join(dir,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.woff2':'file','.woff':'file','.webp':'file','.svg':'file'},define:{__APP_VERSION__:'"fixture"','process.env.NODE_ENV':'"production"'}});
+await cp('../../extensions/aipro-chat/public/icons',path.join(dir,'icons'),{recursive:true});
+await writeFile(path.join(dir,'index.html'),'<!doctype html><html lang="ko"><title>Nubi synthetic flow check</title><link rel="stylesheet" href="app.css"><div id="root"></div><script type="module" src="app.js"></script></html>');
+const server=createServer(async(req,res)=>{try{const requested=path.resolve(dir,'.'+new URL(req.url,'http://localhost').pathname.replace(/\/$/,'/index.html'));if(!requested.startsWith(dir+path.sep))throw Error();const ext=path.extname(requested),data=await readFile(requested);res.writeHead(200,{'content-type':({'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.svg':'image/svg+xml','.woff2':'font/woff2','.webp':'image/webp'})[ext]||'application/octet-stream'}).end(data);}catch{res.writeHead(404).end();}});await new Promise(r=>server.listen(0,'127.0.0.1',r));
+let browser,p,temporary;const checks=[],errors=[];
+try{
+ temporary=await mkdtemp(path.join(os.tmpdir(),'nubi-realtime-render-'));const entry=path.join(temporary,'main.cjs');
+ await writeFile(entry,"const {app,BrowserWindow}=require('electron');app.whenReady().then(()=>new BrowserWindow({width:1280,height:900,show:true,webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false,backgroundThrottling:false}}).loadURL('about:blank'));app.on('window-all-closed',()=>app.quit());");
+ browser=await _electron.launch({executablePath:createRequire(import.meta.url)('electron'),args:[entry],env:{...process.env,ELECTRON_RUN_AS_NODE:undefined}});p=await browser.firstWindow();p.setDefaultTimeout(8000);p.on('pageerror',error=>errors.push(error.message));
+ for(const width of [2560,1920,1280,760,440]){
+  const win=await browser.browserWindow(p);await win.evaluate((window,width)=>{window.setMinimumSize(1,1);window.setContentSize(width,900);},width);await p.setViewportSize({width,height:900});
+  if(width===440)await p.evaluate(()=>localStorage.setItem('nubi.workspace.show-progress.v1','false'));
+  await p.goto('http://127.0.0.1:'+server.address().port+'/?integrated&toolbar&realtime-actions');
+  const active=p.locator('[data-decision-panel]:not([hidden])');
+  const reveal=p.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await reveal.count())await reveal.click();
+  await p.locator('.nubi-session-select').filter({hasText:'다른 대화'}).click();
+  const decisionAt=Date.now();
+  await p.evaluate(()=>{window.liveHoldReads();window.liveOpenDecision();});
+  await active.getByRole('button',{name:'반영',exact:true}).waitFor({timeout:800});const decisionOpenMs=Date.now()-decisionAt;await p.evaluate(()=>window.releaseLiveReads());
+  const widths=[];
+  const measure=async sidebar=>{
+   const geometry=await p.evaluate(()=>{const box=selector=>document.querySelector(selector).getBoundingClientRect().toJSON(),main=document.querySelector('.nubi-main'),style=getComputedStyle(main);return {content:box('.nubi-workbench-content'),main:box('.nubi-main'),transcript:box('.nubi-conversation-wrap'),composer:box('.nubi-followup-stack'),decision:box('.nubi-conversation-decisions'),insetLeft:parseFloat(style.paddingLeft),insetRight:parseFloat(style.paddingRight),overflow:document.documentElement.scrollWidth>innerWidth+1};});
+   assert(!geometry.overflow,'chat never adds horizontal window scrolling');
+   assert(Math.abs(geometry.main.width-geometry.content.width)<2,'main fills the space beside the sidebar');
+   for(const key of ['transcript','composer','decision']){
+    assert(Math.abs(geometry[key].width-(geometry.main.width-geometry.insetLeft-geometry.insetRight))<2,`${key} fills the available width`);
+    assert(Math.abs(geometry[key].x-(geometry.main.x+geometry.insetLeft))<2,`${key} shares the left edge`);
+   }
+   widths.push({sidebar,...geometry});
+  };
+  if(width>=1280)await measure('open');
+  const close=p.getByRole('button',{name:'사이드바 접기',exact:true});if(await close.count())await close.click();
+  await measure('closed');
+  if(width===2560)await captureDesign(p,{path:path.join(dir,'full-width-decision-2560.png')});
+  const apply=active.getByRole('button',{name:'반영',exact:true});await apply.waitFor();
+  assert.equal(await active.getByText('문법 검사 대상 아님',{exact:true}).count(),0,'parser coverage never becomes an approval decision');
+  const at=Date.now();await apply.evaluate(button=>{button.click();button.click();});
+  await p.locator('[data-decision-submission="live-file"]').waitFor();
+  const responseMs=Date.now()-at;assert(responseMs<800,'form responds before the apply promise settles');
+  assert.equal(await active.locator('.nubi-proposal-card').count(),0,'the frozen approval form leaves the pending area');
+  assert.deepEqual(await p.evaluate(()=>window.liveCalls),['apply']);
+  assert.equal(await p.locator('.nubi-conversation-scroll [data-decision-submission="live-file"]').count(),1,'processing is visible in the transcript');
+  await captureDesign(p,{path:path.join(dir,`applying-${width}.png`)});
+  await p.evaluate(()=>window.failLiveAction());await apply.waitFor();
+  await p.evaluate(()=>window.liveCalls=[]);await apply.click();await p.locator('[data-decision-submission="live-file"]').waitFor();
+  await p.evaluate(()=>{window.delayLiveStart=true;window.finishLiveAction();});await p.locator('[data-decision-submission="live-file"]').waitFor({state:'hidden'});
+  await p.waitForFunction(()=>typeof window.finishLiveStart==='function');await p.locator('.nubi-conversation-scroll').getByText('다음 작업을 준비하고 있어요',{exact:true}).waitFor();
+  await p.evaluate(()=>window.finishLiveStart());
+  await p.evaluate(()=>window.liveStream('첫 문장을 작성하고 있습니다.'));
+  const draft=p.getByRole('region',{name:'작성 중인 초안',exact:true});await draft.getByText('첫 문장을 작성하고 있습니다.',{exact:true}).waitFor();await p.locator('.desktop-mail-progress [data-workspace-operation]').getByText('답변 작성 중',{exact:true}).waitFor();
+  await p.evaluate(()=>window.liveStream('첫 문장을 작성하고 있습니다.\n두 번째 내용이 추가됩니다.'));
+  await draft.getByText(/두 번째 내용이 추가됩니다/).waitFor();
+  assert((await p.evaluate(()=>window.liveStreamReads))>=2,'public text uses the lightweight stream read');
+  await p.evaluate(()=>{window.liveBurstCount=0;window.liveBurst=setInterval(()=>window.liveStream('작성 중인 내용 '+(++window.liveBurstCount)),80);});
+  const composer=p.getByRole('textbox',{name:'추가 요청',exact:true});await composer.fill('진행 중에도 추가 내용을 작성합니다.');await p.waitForFunction(()=>window.liveBurstCount>=5);
+  assert.equal(await composer.inputValue(),'진행 중에도 추가 내용을 작성합니다.');assert(await composer.evaluate(node=>document.activeElement===node),'stream updates keep input focus');await p.evaluate(()=>clearInterval(window.liveBurst));
+  await p.evaluate(()=>window.liveStream('첫 문장을 작성하고 있습니다.\n두 번째 내용이 추가됩니다.'));
+  await draft.getByText(/두 번째 내용이 추가됩니다/).waitFor();
+  assert.equal(await p.locator('.message-assistant').count(),0,'an unfinished draft is never presented as a final answer');
+  assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+  await captureDesign(p,{path:path.join(dir,`streaming-${width}.png`)});
+  await p.evaluate(()=>window.liveComplete());await draft.waitFor({state:'hidden'});await p.getByText('실시간으로 작성한 최종 응답입니다.',{exact:true}).waitFor();
+  await p.evaluate(()=>window.liveQuestion());const field=active.getByRole('textbox');await p.locator('.desktop-mail-progress [data-workspace-operation]').getByText('답변 대기',{exact:true}).waitFor();await field.fill('작성할 내용을 유지합니다.');await active.getByRole('button',{name:'답변 보내기',exact:true}).click();
+  await p.locator('[data-decision-submission="live-question"]').waitFor();await p.evaluate(()=>window.failLiveAction());await field.waitFor();assert.equal(await field.inputValue(),'작성할 내용을 유지합니다.');
+  await active.getByText(/답변을 보내지 못했습니다|source_stale/).waitFor();
+  await active.getByRole('button',{name:'답변 보내기',exact:true}).click();await p.locator('[data-decision-submission="live-question"]').waitFor();await p.evaluate(()=>window.finishLiveAction());await p.locator('[data-question-receipt="live-question"]').waitFor();
+  await p.evaluate(()=>window.liveCommand());await active.getByRole('button',{name:'승인',exact:true}).click();await p.locator('[data-decision-submission="live-command"]').waitFor();
+  const terminalAt=Date.now();await p.evaluate(()=>{window.openedTerminal=null;window.liveHoldReads();window.finishLiveAction();});await p.waitForFunction(()=>window.openedTerminal?.processId==='live-process',null,{timeout:800});const terminalRevealMs=Date.now()-terminalAt;await p.evaluate(()=>window.releaseLiveReads());const record=p.locator('.nubi-command-record');await record.waitFor();await p.locator('.desktop-mail-progress [data-workspace-operation]').getByText('명령 실행 중',{exact:true}).waitFor();
+  await p.evaluate(()=>window.liveOutput());await p.getByLabel('실시간 실행 출력',{exact:true}).getByText(/v24.0.0/).waitFor();
+  await record.locator('summary').click();await record.getByText(/v24.0.0/).waitFor();
+  await captureDesign(p,{path:path.join(dir,`command-${width}.png`)});
+  await p.evaluate(()=>window.liveReview({state:'ready',checks:[{requirementId:'windows',state:'unknown',detail:'Windows에서 설치 후 재실행은 확인하지 못했어요.'}]}));
+  const review=p.locator('.nubi-result-review');await review.locator('.nubi-document-progress-heading strong').getByText('Windows에서 설치 후 재실행은 확인하지 못했어요.',{exact:true}).waitFor();
+  assert.equal(await review.getAttribute('data-tone'),'neutral');assert.equal(await p.getByText('확인할 내용이 남아 있어요',{exact:true}).count(),0);
+  const gapFits=await review.locator('.nubi-document-progress-heading strong').evaluate(node=>node.scrollWidth<=node.clientWidth+1);assert(gapFits,'the concrete gap remains readable at the current width');
+  await captureDesign(p,{path:path.join(dir,`concrete-gap-${width}.png`)});
+  await p.evaluate(()=>window.liveReview({state:'failed',reason:'model_timeout',checks:[]}));await review.getByText('결과 검토를 마치지 못했어요',{exact:true}).waitFor();
+  await review.locator('.nubi-review-fold>summary').click();await review.getByText(/AI의 검토 응답을 제시간에 받지 못했어요/).waitFor();assert.equal(await review.getAttribute('data-tone'),'warning');
+  await p.evaluate(()=>window.liveReview({state:'ready',nextStep:'설치판에서 메일 연결을 확인해 주세요.',checks:[{requirementId:'local',state:'supported',detail:'로컬 검사 통과'}]}));
+  await review.locator('.nubi-document-progress-heading strong').getByText('설치판에서 메일 연결을 확인해 주세요.',{exact:true}).waitFor();assert.equal(await review.getAttribute('data-tone'),'neutral');
+  await captureDesign(p,{path:path.join(dir,`concrete-next-step-${width}.png`)});
+  await p.evaluate(()=>window.liveReview({state:'ready',checks:[]}));await review.waitFor({state:'hidden'});assert.equal(await p.locator('.nubi-review-evidence').count(),0,'empty checks produce neither a warning nor a success claim');
+  checks.push({width,widths,responseMs,decisionOpenMs,terminalRevealMs,checks:['transcript, composer and decision fill available width with shared gutters','observed form opens while state reads are held','terminal is revealed from its real receipt before state refresh','immediate apply acknowledgement','duplicate click guarded','apply failure restores form','handoff keeps processing visible','lightweight live draft grows before completion','stream updates preserve typing and focus','final answer delivered once','question failure retains draft and error','command approval and output update live','internal parser coverage hidden','concrete review gap and next step','real review error preserved']});
+ }
+ assert.deepEqual(errors,[]);await writeFile(path.join(dir,'report.json'),JSON.stringify({checks,errors,scope:'actual Electron renderer with deferred synthetic operations; no live provider or Windows verification'},null,2));console.log(JSON.stringify({checks,errors}));
+}catch(error){await p?.screenshot({path:path.join(dir,'failure.png')});await writeFile(path.join(dir,'failure.txt'),String(error.stack)+'\n'+JSON.stringify(errors)+'\n'+await p?.locator('body').innerText());throw error;}
+finally{await browser?.close();await new Promise(resolve=>server.close(resolve));if(temporary)await rm(temporary,{recursive:true,force:true});}

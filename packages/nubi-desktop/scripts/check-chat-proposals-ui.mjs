@@ -33,6 +33,6 @@ try{
   assert.equal(dimensions.overflow,false,JSON.stringify(dimensions));assert(Math.abs(dimensions.composer-dimensions.conversation)<2);assert(dimensions.right<=width&&dimensions.left>=0);assert(dimensions.conversation<dimensions.content,'keep side gutters');measurements.push(dimensions);
   await p.screenshot({path:path.join(dir,'chat-'+width+'.png'),animations:'disabled'});
  }
- assert(measurements[1].conversation>measurements[0].conversation+60,JSON.stringify(measurements));assert(measurements[2].conversation<=1121);
+ assert(measurements[1].conversation>measurements[0].conversation+60,JSON.stringify(measurements));assert(measurements[2].conversation>measurements[1].conversation+400,'wide chat keeps growing with available space');
  assert.deepEqual(errors,[]);await writeFile(path.join(dir,'checks.json'),JSON.stringify({scope:'Actual React/CX UI with synthetic task states, not Windows/live GHES',measurements,errors},null,2));console.log(JSON.stringify(measurements));console.log('PASS: pending cards hidden during analysis, apply/cancel after review, cancellation, uncertainty preserved, responsive chat widths and diff colors.');
 }catch(error){await p?.screenshot({path:path.join(dir,'failure.png')});console.log(JSON.stringify(errors));console.log((await p?.locator('body').innerText())?.slice(-7000));throw error;}finally{await browser?.close();await new Promise(resolve=>server.close(resolve));}

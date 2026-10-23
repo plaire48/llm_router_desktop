@@ -1,5 +1,6 @@
 import {createRoutineManager} from './routines.mjs';
 import {Store} from './store.mjs';
+import {createActivityNotifier} from './activity-notifier.mjs';
 import path from 'node:path';
 import {ProjectCatalog} from '../electron-app/project-catalog.cjs';
 import {disableHostedTracing,configureSystemTrust} from './worker-environment.mjs';
@@ -16,6 +17,9 @@ installAgent(ProjectService);
 const service = new ProjectService({storageRoot:process.env.NUBI_STORAGE_ROOT});service.memoryExtraction=true;service.mailFacts=true;service.mailSemanticReview=true;service.progressNarration=true;
 service.notifyAnswer=value=>{if(process.connected)process.send?.({answerCompleted:value},()=>{});};
 service.notifyWiki=value=>{if(process.connected)process.send?.({wikiCompleted:value},()=>{});};
+service.notifyMailConnection=value=>{if(process.connected)process.send?.({mailConnection:{requestId:value.requestId}},()=>{});};
+service.notifyActivity=createActivityNotifier(value=>{if(process.connected)process.send?.({workspaceActivity:value},()=>{});});
+service.notifyStream=createActivityNotifier(value=>{if(process.connected)process.send?.({workspaceStream:value},()=>{});});
 installWorkspaceBrowser(service);
 installWikiGitBridge(service);
 installConnectionVault(service);
@@ -32,4 +36,4 @@ process.on('message', async message => {
   try {if(projects.updateLocked)throw Error('update_installing');const result=await (message.method==='_externalOffice'?externalOffice.request(projects.current,message.args):projects.invoke(message.method,message.args));if(['open','deleteTask'].includes(message.method))externalOffice.pruneSelections(projects.current);process.send?.({id:message.id,result});}
   catch(error) {process.send?.({id:message.id,error:/^[a-z_]{3,50}$/.test(error.message) ? error.message : 'operation_failed'});}
 });
-process.on('disconnect',()=>{service.routines.stop();externalOffice.dispose();projects.dispose();setTimeout(()=>process.exit(0),1800);});
+process.on('disconnect',()=>{service.notifyActivity.dispose();service.notifyStream.dispose();service.routines.stop();externalOffice.dispose();projects.dispose();setTimeout(()=>process.exit(0),1800);});

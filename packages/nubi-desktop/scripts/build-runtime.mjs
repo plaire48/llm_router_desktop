@@ -1,4 +1,5 @@
 import './build-document-agent-native.mjs';
+import {prepareOpenCodeEngine} from './prepare-opencode-engine.mjs';
 import {build} from 'esbuild';
 import './build-browser-agent-core.mjs';
 import './build-office-forms.mjs';
@@ -89,6 +90,9 @@ const updateSources=Object.keys(updateBuild.metafile.inputs).filter(p=>!p.includ
 const updateHash=createHash('sha256');for(const file of updateSources){updateHash.update(file.replaceAll('\\','/'));updateHash.update(await readFile(file));}
 await writeFile('generated/runtime-provenance.json',JSON.stringify({openwiki:{name:wikiPackage.name,version:wikiPackage.version,sourceSha256:wikiHash.digest('hex'),sourceFiles:wikiSources.length,scope:'Bundled retrieval, Claims, read-only document research, repository evidence and pairing. Not the full CLI.'},openwikiUpdate:{sourceSha256:updateHash.digest('hex'),sourceFiles:updateSources.length,scope:'The repository update runner (openwiki --update), run with the Desktop model on the user\'s approval. A separate file loaded only for an update.'},documentResearch:{dependencyLock:'extensions/aipro-chat/package-lock.json',dependencies:researchDependencies}},null,2)+'\n');
 await mkdir('extension/lib/node',{recursive:true});
+const codingEngine=await prepareOpenCodeEngine();
+await rm('extension/lib/node/opencode-engine',{recursive:true,force:true});
+await cp(codingEngine.directory,path.join('extension/lib/node/opencode-engine',codingEngine.target),{recursive:true});
 await rm('extension/lib/node/process-host',{recursive:true,force:true});
 try{await cp('generated/process-host','extension/lib/node/process-host',{recursive:true});}catch(error){if(process.platform==='win32'||error.code!=='ENOENT')throw error;}
 await copyFile('extension/src/node/git-askpass.cjs','extension/lib/node/git-askpass.cjs');

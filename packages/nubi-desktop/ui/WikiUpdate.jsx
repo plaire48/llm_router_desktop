@@ -52,7 +52,7 @@ export function WikiUpdate({api,openPath,initialization,onApplied,currentModel,c
   const quietCurrent=!update&&data.status?.state==='current';
   return <section className="nubi-recovery-card nubi-wiki-update" aria-label="위키 갱신" data-current={quietCurrent||undefined}>
     <div className="nubi-action-head"><span className="nubi-action-tile" aria-hidden="true"><Icon name={quietCurrent?'check':'bookmark'} size={20}/></span><div><h3>{view.title}</h3>{lead&&<p>{lead}</p>}</div>{state&&!quietCurrent&&<DeckStatus>{state}</DeckStatus>}</div>
-    {completed!==null&&<div className="nubi-progress" data-active={update?.state==='running'} role="progressbar" aria-label="갱신 진행" aria-valuemin={0} aria-valuemax={progress.total} aria-valuenow={completed}><span style={{width:`${completed/progress.total*100}%`}}/></div>}
+    {update?.state==='running'&&<TaskProgressBar label="갱신 진행" value={completed??undefined} max={progress?.total}/>}
     {update?.state==='running'&&<ProgressEstimate identity={`${update.id}:${progress?.stage}`} completed={completed} total={progress?.total}/>}
     {update&&<WikiPageProgress pages={update.pageStates} heartbeatAt={update.heartbeatAt} now={now}/>}
     {busy&&<p role="status" className="nubi-muted"><Icon name="refresh" size={16}/> 코드와 위키 확인 중</p>}

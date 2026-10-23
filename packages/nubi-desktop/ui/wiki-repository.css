@@ -42,7 +42,7 @@
 .nubi-wiki-file-checks span,.nubi-wiki-files span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .nubi-wiki-file-checks input,.nubi-wiki-select-all input { flex:none; accent-color:var(--deck-blue); }
 .nubi-wiki-upload-progress { display:grid; gap:var(--cx-space-2); font:var(--deck-font-caption); color:var(--nubi-text-action); }
-.nubi-wiki-upload-progress progress { width:100%; accent-color:var(--deck-blue); }
+.nubi-wiki-upload-progress .nubi-progress { margin-top:0; }
 .desktop-team-workspace>.nubi-team-sections { flex:none; display:flex; align-items:center; gap:var(--cx-space-2); padding:var(--cx-space-2) var(--cx-space-3); border-bottom:1px solid var(--deck-line); }
 .nubi-team-sections button { display:inline-flex; align-items:center; gap:var(--cx-space-2); white-space:nowrap; }
 .nubi-team-sections button[aria-selected=true] { background:var(--nubi-surface-selected); color:var(--nubi-text-action); font-weight:var(--nubi-weight-emphasis); }

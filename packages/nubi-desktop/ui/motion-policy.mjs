@@ -24,15 +24,18 @@ const priority=animation=>/nubi-modal-|nubi-view-/.test(animation.animationName|
 // (spinners, live progress, wiki scan, working-bird moods) still run, because they say work is happening; the brand
 // bird's float is the one decoration kept.
 export const IDLE_AMBIENT_HELD=Object.freeze(new Set(['nubi-pastel-flow','deck-twinkle','nubi-water-aura','nubi-water-drift','nubi-ambient-blue','nubi-ambient-teal','nubi-ambient-violet','nubi-start-drift-a','nubi-start-drift-b','nubi-start-drift-c','nubi-emblem-drift','bird-idle-base','bird-idle-smile','bird-idle-wing','bird-blink','nubi-bird-flight','nubi-bird-curious','nubi-bird-swim']));
-export function reconcileMotion(animations,{registry,paused,projectSwitching=false,reduced=false,owned,limit=3,metadataCache,held=null}){
+export function reconcileMotion(animations,{registry,paused,progressPaused=paused,projectSwitching=false,reduced=false,owned,limit=3,metadataCache,held=null}){
  const targets=new Set();let ambient=0,unknown=0;
  for(const animation of [...animations].sort((a,b)=>priority(a)-priority(b))){
   if(!animation.effect||animation.playState==='idle'||animation.playState==='finished')continue;
-  const name=animation.animationName||animation.id||'',timing=animation.effect.getTiming(),entry=registry.get(name),props=properties(animation,entry&&animation.animationName?metadataCache:undefined);
+  const name=animation.animationName||animation.id||'',timing=animation.effect.getTiming(),target=animation.effect.target;
+  const progressFill=target?.matches?.('.nubi-progress>span')&&(name==='nubi-progress-pending'||animation.transitionProperty==='transform');
+  const entry=registry.get(name)||(progressFill&&animation.transitionProperty==='transform'?registry.get('nubi-progress-fill'):undefined),props=properties(animation,entry&&animation.animationName?metadataCache:undefined);
   if(entry){
    ambient++;
    if(!entry.durations.includes(timing.duration)||props.some(property=>!entry.properties.includes(property))){animation.cancel();unknown++;continue;}
-   const hold=paused||!!held?.has(name)||projectSwitching&&!animation.effect.target?.closest?.('.nubi-project-switch-cover');
+   // Essential fill in the top modal continues while covered decoration pauses.
+   const hold=(progressFill&&target.closest?.('.cx-panel-backdrop[data-modal-top=true]')?progressPaused:paused)||!!held?.has(name)||projectSwitching&&!target?.closest?.('.nubi-project-switch-cover');
    if(hold&&animation.playState==='running'){owned.add(animation);animation.pause();}
    else if(!hold&&owned.delete(animation)&&animation.playState==='paused')animation.play();
    continue;
@@ -43,9 +46,9 @@ export function reconcileMotion(animations,{registry,paused,projectSwitching=fal
   const key=animation.effect.target, pseudo=animation.effect.pseudoElement;
   // All color channels on one control are one animated element. Snapshot
   // pseudo-elements are separate pictures, even though their target is html.
-  const target=pseudo||key;
-  if(!targets.has(target)&&targets.size>=limit){animation.cancel();continue;}
-  targets.add(target);
+  const motionTarget=pseudo||key;
+  if(!targets.has(motionTarget)&&targets.size>=limit){animation.cancel();continue;}
+  targets.add(motionTarget);
  }
  for(const animation of owned)if(!animations.includes(animation))owned.delete(animation);
  return {ambient,unknown,interactionTargets:targets.size};
@@ -72,7 +75,7 @@ export function installMotionPolicy(doc=document){
  const paused=()=>doc.hidden||root.hasAttribute('data-nubi-window-hidden')||reduced.matches||root.hasAttribute('data-nubi-transition')||root.hasAttribute('data-motion-panel');
  const sync=()=>{
   const animations=doc.getAnimations().filter(animation=>!animation.effect?.target?.closest?.('.nubi-intro,.nubi-connecting'));
-  return reconcileMotion(animations,{registry,paused:paused(),projectSwitching:root.hasAttribute('data-project-switching'),reduced:reduced.matches,owned,metadataCache,held:IDLE_AMBIENT_HELD});
+  return reconcileMotion(animations,{registry,paused:paused(),progressPaused:doc.hidden||root.hasAttribute('data-nubi-window-hidden')||root.hasAttribute('data-nubi-transition')||reduced.matches,projectSwitching:root.hasAttribute('data-project-switching'),reduced:reduced.matches,owned,metadataCache,held:IDLE_AMBIENT_HELD});
  };
  const frame=frameCoalescer(sync),schedule=event=>{
   if(event?.target?.closest?.('.nubi-intro,.nubi-connecting'))return;

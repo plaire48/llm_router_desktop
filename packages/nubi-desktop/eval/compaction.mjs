@@ -71,9 +71,13 @@ function fixed(messages){
   return null;
 }
 
-export async function runScenario({scenario,providers,parent,corpusDirectory}){
+export async function runScenario({scenario,providers,parent,corpusDirectory,engine='pi'}){
   const workspace=await createWorkspace({corpus:scenario.corpus,parent,directory:corpusDirectory});
   const service=new ProjectService({storageRoot:workspace.stateRoot}),status=providers.status(),started=Date.now();
+  // These existing probe scenarios are a fixed Pi context-manager profile.
+  // Native OpenCode has a separate transport/compaction integration suite.
+  if(engine==='pi')service.codingRunner=(await import('../../../extensions/aipro-chat/agent-runtime.js')).runAgent;
+  else if(engine!=='opencode')throw Error('evaluation_engine_invalid');
   const summaries=[],failures=[];let turn=0,step=0,sequence=0,last=null,taskId;
   const limited={...status,models:(status.models||[]).map(model=>model.id!==status.model?model:{...model,contextLength:Math.min(model.contextLength||Infinity,scenario.contextLength)})};
   service.providers={status:()=>limited,dispose(){},async complete(messages,tools=[],signal,onText,onPhase){

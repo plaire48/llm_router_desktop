@@ -9,15 +9,25 @@ function share(previous,next,depth=0){
   const array=Array.isArray(next);
   if(array!==Array.isArray(previous))return next;
   if(!array&&(Object.getPrototypeOf(next)!==Object.prototype||Object.getPrototypeOf(previous)!==Object.prototype))return next;
+  // A lightweight actor update can overtake a full state reply. Retain its
+  // newer public text for this run while accepting the reply's other facts.
+  if(!array&&previous.id===next.id&&next.state==='running'&&Number.isSafeInteger(next.streamRevision)&&previous.streamRevision>next.streamRevision&&previous.responseTiming?.runId===next.responseTiming?.runId)
+    next={...next,streamRevision:previous.streamRevision,streamingAnswer:previous.streamingAnswer,streamingReasoning:previous.streamingReasoning,responseTiming:{...next.responseTiming,elapsedMs:previous.responseTiming.elapsedMs}};
   const keys=Object.keys(next),oldKeys=Object.keys(previous);
   let changed=keys.length!==oldKeys.length||(array&&next.length!==previous.length);
-  const result=array?new Array(next.length):{};
-  for(const key of keys){
+  // Polling commonly changes only a timer or one streaming field. Do not build
+  // and discard every unchanged message/source record on the renderer thread.
+  let result=changed?(array?new Array(next.length):{}):null;
+  for(let index=0;index<keys.length;index++){
+    const key=keys[index];
     const exists=Object.hasOwn(previous,key),value=exists?share(previous[key],next[key],depth+1):next[key];
-    Object.defineProperty(result,key,{value,writable:true,enumerable:true,configurable:true});
-    if(!exists||!Object.is(value,previous[key]))changed=true;
+    if(!result&&(!exists||!Object.is(value,previous[key]))){
+      result=array?new Array(next.length):{};
+      for(let prior=0;prior<index;prior++){const name=keys[prior];Object.defineProperty(result,name,{value:previous[name],writable:true,enumerable:true,configurable:true});}
+    }
+    if(result)Object.defineProperty(result,key,{value,writable:true,enumerable:true,configurable:true});
   }
-  return changed?result:previous;
+  return result||previous;
 }
 export function mergeSnapshot(previous,next){
   if(!previous||!next||typeof next!=='object')return previous;

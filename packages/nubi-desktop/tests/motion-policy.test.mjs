@@ -30,6 +30,25 @@ test('externally paused ambient is not resumed by motion cleanup',()=>{
  const bird=animation('bird',{repeat:true,duration:8000,properties:['opacity']});bird.playState='paused';
  reconcileMotion([bird],{registry,paused:false,owned:new Set()});assert.equal(bird.playState,'paused');
 });
+test('top-modal progress fills continue over paused decoration and stop in hidden windows',()=>{
+ const progressRegistry=parseAmbientRegistry('nubi-progress-pending:12000:transform');
+ const target={matches:selector=>selector==='.nubi-progress>span',closest:selector=>selector==='.cx-panel-backdrop[data-modal-top=true]'?{}:null};
+ const fill=animation('nubi-progress-pending',{duration:12000,properties:['transform'],target}),owned=new Set();
+ reconcileMotion([fill],{registry:progressRegistry,paused:true,progressPaused:false,owned});assert.equal(fill.playState,'running');assert.equal(fill.cancelled,false);
+ reconcileMotion([fill],{registry:progressRegistry,paused:true,progressPaused:true,owned});assert.equal(fill.playState,'paused');assert.equal(fill.currentTime,47);
+ reconcileMotion([fill],{registry:progressRegistry,paused:true,progressPaused:false,owned});assert.equal(fill.playState,'running');assert.equal(fill.currentTime,47);
+ const covered=animation('nubi-progress-pending',{duration:12000,properties:['transform'],target:{matches:()=>true,closest:()=>null}});
+ reconcileMotion([covered],{registry:progressRegistry,paused:true,progressPaused:false,owned});assert.equal(covered.playState,'paused','only the top modal bypasses the background pause');
+});
+test('only the registered progress fill can use a slow transform transition',()=>{
+ const progressRegistry=parseAmbientRegistry('nubi-progress-fill:600:transform'),owned=new Set();
+ const fill=animation('',{duration:600,properties:['transform'],target:{matches:()=>true}});fill.transitionProperty='transform';
+ const unrelated=animation('',{duration:600,properties:['transform'],target:{matches:()=>false}});unrelated.transitionProperty='transform';
+ const wrong=animation('',{duration:800,properties:['transform'],target:{matches:()=>true}});wrong.transitionProperty='transform';
+ const layout=animation('',{duration:600,properties:['width'],target:{matches:()=>true}});layout.transitionProperty='width';
+ reconcileMotion([fill,unrelated,wrong,layout],{registry:progressRegistry,paused:false,owned});
+ assert.equal(fill.cancelled,false);assert([unrelated,wrong,layout].every(value=>value.cancelled));
+});
 test('project opening holds covered motion while visible progress respects visibility and reduced motion',()=>{
  const bird=animation('bird',{repeat:true,duration:8000,properties:['opacity']}),progress=animation('progress',{repeat:true,duration:1800,properties:['transform'],target:{closest:selector=>selector==='.nubi-project-switch-cover'?{}:null}}),owned=new Set();
  reconcileMotion([bird,progress],{registry,paused:false,projectSwitching:true,owned});assert.equal(bird.playState,'paused');assert.equal(progress.playState,'running');

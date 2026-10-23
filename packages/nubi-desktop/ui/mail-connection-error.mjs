@@ -2,7 +2,7 @@
 import {NUBI_VERSION} from './app-version.mjs';
 const listing='로그인은 완료됐어요. 메일 목록을 읽는 단계에서 멈췄어요.';
 export const mailConnectionErrors={
-  external_browser_connection_required:{title:'외부 브라우저를 연결해 주세요',detail:'오른쪽 웹 화면에서 브라우저 연결을 누른 뒤 메일 연결을 다시 눌러 주세요. 연결 확장은 처음 한 번 설치하면 됩니다.'},
+  external_browser_connection_required:{title:'외부 브라우저를 연결해 주세요',detail:'오른쪽 웹 화면에서 브라우저 연결을 누르고 업무 탭을 선택해 주세요. 확장 프로그램 설치 없이 연결해요.'},
   external_browser_portal_permission_required:{title:'이 포털의 메일 읽기를 허용해 주세요',detail:'브라우저의 포털 탭에서 누비 연결 확장을 열고 메일 읽기를 허용한 뒤 다시 연결해 주세요.'},
   external_browser_result_unconfirmed:{title:'브라우저 연결을 확인해 주세요',detail:'메일 수집을 멈췄어요. 브라우저의 누비 연결 상태를 확인한 뒤 다시 연결해 주세요. 저장된 메일은 유지됩니다.'},
   mail_encryption_migration:{title:'기존 원문 암호화를 마치지 못했어요',detail:'파일은 유지했습니다. 저장 위치와 권한을 확인한 뒤 다시 시도해 주세요.'},

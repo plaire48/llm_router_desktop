@@ -20,25 +20,26 @@ export function installGlassSurface(layer,{axis='x',selector,targetWrapper}={}){
  const [backdrop,canvas]=layer.querySelectorAll('canvas');
  const selection=layer.querySelector('.nubi-liquid-glass__selection');
  const reduced=matchMedia('(prefers-reduced-motion: reduce)'),opaque=matchMedia('(prefers-reduced-transparency: reduce)'),forced=matchMedia('(forced-colors: active)');
- let renderer=null,spring=null,frame=0,measureFrame=0,previous=0,disposed=false,visible=true,lost=false;
+ let renderer=null,spring=null,frame=0,measureFrame=0,previous=0,disposed=false,visible=true,lost=false,attempted=false;
  let width=0,height=0,dpr=1,radius=14,pointer=[-1000,-1000],pressed=false,hover=false,interaction=1,target=null;
  let textureWidth=0,textureHeight=0,textureDpr=0;
  const metrics={frames:0,textureUploads:0,pixels:0};layer.glassMetrics=metrics;
  host.classList.add('nubi-liquid-glass-host');
  const quiet=()=>doc.hidden||!visible||root.hasAttribute('data-nubi-window-hidden')||root.hasAttribute('data-motion-panel')||root.hasAttribute('data-project-switching')||!!doc.querySelector('.nubi-intro,.cx-panel-backdrop');
- const supported=()=>!opaque.matches&&!forced.matches&&!lost;
+ const supported=()=>!opaque.matches&&!forced.matches;
+ const mode=()=>renderer&&!lost?'webgl':'css';
  const mark=(state,moving=false)=>{host.dataset.liquidGlass=state;layer.dataset.glassMoving=String(moving);};
- const cancel=()=>{cancelAnimationFrame(frame);frame=0;previous=0;mark(renderer&&supported()?'webgl':'fallback');};
+ const cancel=()=>{cancelAnimationFrame(frame);frame=0;previous=0;mark(supported()?mode():'fallback');};
  function draw(rect,now){
-  if(!renderer||quiet()||!supported())return;
+  if(quiet()||!supported())return;
   const scale=reduced.matches?1:interaction;
   const shaped=rect?{x:rect.x+rect.width*(1-scale)/2,y:rect.y+rect.height*(1-scale)/2,width:rect.width*scale,height:rect.height*scale}:null;
   selection.hidden=!shaped;
   if(shaped)Object.assign(selection.style,{transform:`translate3d(${shaped.x}px,${shaped.y}px,0)`,width:shaped.width+'px',height:shaped.height+'px',borderRadius:radius+'px'});
-  renderer.draw(shaped,{pointer,strength:.78,time:reduced.matches?0:now/1000,radius});metrics.frames++;
+  renderer?.draw(shaped,{pointer,strength:.78,time:reduced.matches?0:now/1000,radius});metrics.frames++;
  }
  function tick(now){
-  frame=0;if(disposed||quiet()||!supported()||!renderer)return cancel();
+  frame=0;if(disposed||quiet()||!supported())return cancel();
   const dt=Math.min(.1,(now-(previous||now-16.67))/1000);previous=now;
   const result=spring?stepGlassSpring(spring,dt,{axis,reduced:reduced.matches}):{rect:null,moving:false};
   const desired=pressed?.96:hover?1.025:1;
@@ -48,21 +49,22 @@ export function installGlassSurface(layer,{axis='x',selector,targetWrapper}={}){
   // other frame and makes the spring visibly step at 30fps. Pixel bounds and
   // stopping the idle loop bound GPU work without dropping moving frames.
   draw(result.rect,now);
-  mark('webgl',moving);
+  mark(mode(),moving);
   if(moving)frame=requestAnimationFrame(tick);else previous=0;
  }
- const wake=()=>{if(!frame&&!quiet()&&supported()&&renderer)frame=requestAnimationFrame(tick);};
+ const wake=()=>{if(!frame&&!quiet()&&supported())frame=requestAnimationFrame(tick);};
  function measure(){
   measureFrame=0;if(disposed)return;
   if(!supported()){cancel();mark('fallback');return;}
   const bounds=host.getBoundingClientRect();width=host.clientWidth;height=host.clientHeight;
   if(!width||!height||quiet()){cancel();return;}
-  if(!renderer)renderer=createGlassRenderer(canvas);
-  if(!renderer){mark('fallback');return;}
+  // Losing WebGL removes optical refraction, not selection motion or input.
+  // Do not retry a failed context on every tab/scroll mutation.
+  if(!attempted&&!lost){attempted=true;renderer=createGlassRenderer(canvas);}
   // At most 180k backing pixels per surface, even on Retina/4K displays.
   dpr=Math.min(devicePixelRatio||1,1.5,Math.sqrt(180000/(width*height)));
   Object.assign(layer.style,{left:host.scrollLeft+'px',top:host.scrollTop+'px',width:width+'px',height:height+'px'});
-  if(width!==textureWidth||height!==textureHeight||dpr!==textureDpr){
+  if(renderer&&(width!==textureWidth||height!==textureHeight||dpr!==textureDpr)){
    if(!paintGlassBackdrop(backdrop,width,height,dpr,glassPalette(host))){mark('fallback');return;}
    renderer.resize(width,height,dpr,backdrop);textureWidth=width;textureHeight=height;textureDpr=dpr;metrics.textureUploads++;metrics.pixels=canvas.width*canvas.height;
   }
@@ -72,7 +74,7 @@ export function installGlassSurface(layer,{axis='x',selector,targetWrapper}={}){
    radius=parseFloat(getComputedStyle(node).borderTopLeftRadius)||14;
    if(!spring)spring=createGlassSpring(target);else targetGlassSpring(spring,target,{snap:reduced.matches});
   }else{target=null;spring=null;}
-  mark('webgl');wake();
+  mark(mode());wake();
  }
  const queue=()=>{if(!disposed&&!measureFrame)measureFrame=requestAnimationFrame(measure);};
  const media=()=>{if(!supported()){cancel();mark('fallback');}else{textureWidth=0;queue();}};
@@ -86,8 +88,8 @@ export function installGlassSurface(layer,{axis='x',selector,targetWrapper}={}){
  const leave=()=>{pointer=[-1000,-1000];hover=false;pressed=false;wake();};
  const down=event=>{if(event.target.closest('button,[role=tab]')){pressed=true;move(event);wake();}};
  const up=()=>{pressed=false;wake();};
- const contextLost=event=>{event.preventDefault();lost=true;renderer=null;cancel();mark('fallback');};
- const contextRestored=()=>{lost=false;textureWidth=0;renderer=null;queue();};
+ const contextLost=event=>{event.preventDefault();lost=true;renderer=null;cancel();queue();};
+ const contextRestored=()=>{lost=false;attempted=false;textureWidth=0;renderer=null;queue();};
  canvas.addEventListener('webglcontextlost',contextLost);canvas.addEventListener('webglcontextrestored',contextRestored);
  const events=[['scroll',queue],['pointermove',move],['pointerleave',leave],['pointerdown',down],['pointerup',up],['pointercancel',leave]];
  for(const [name,handler]of events)host.addEventListener(name,handler,{passive:true});

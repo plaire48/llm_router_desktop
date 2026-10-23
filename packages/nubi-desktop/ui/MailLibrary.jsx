@@ -62,19 +62,21 @@ function MailConnectionProgress({onCancel,cancelling,stage,method}){
  const duration=elapsed>=60?`${Math.floor(elapsed/60)}분 ${elapsed%60}초`:`${elapsed}초`;
  return <div className="nubi-mail-connection-overlay"><div className="nubi-mail-connection-progress" role="status"><div className="nubi-preparing-emblem" aria-hidden="true"><span className="nubi-preparing-orbit"/><AgentMark size={30} mood="still"/></div><div><strong>{method==='desktop'?'Knox Desktop 화면 읽는 중':method==='pop3'?'POP3 연결 확인 중':stage==='advancing'?'로그인 화면으로 이동 중':stage==='confirmation'?'포털 안내 확인 필요':stage==='verifying'?'메일 연결 확인 중':'포털 로그인 확인 중'}</strong><span className="nubi-mail-login-hint">{method==='desktop'?'열린 메일의 본문과 정보를 확인하고 있어요.':method==='pop3'?'메일 서버에 연결하고 있어요.':stage==='advancing'?'세션 만료 안내를 확인하고 있어요.':stage==='confirmation'?'포털 팝업을 확인한 뒤 로그인해 주세요.':stage==='verifying'?'메일함을 확인하고 있어요.':'열린 포털에서 로그인해 주세요.'}</span><time aria-live="off">{duration}</time></div></div><CxButton ref={cancel} disabled={cancelling} onClick={onCancel}><Icon name="xClose" size={16}/>연결 취소</CxButton></div>;
 }
-export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProviderAction,providerBusy=false,onConnectionBusy}){
+export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProviderAction,providerBusy=false,onConnectionBusy,onConnected}){
   const [status,setStatus]=useState(null),[busy,setBusy]=useState(false),[chosen,setChosen]=useState('');
   const [modelOpen,setModelOpen]=useState(false),[connectionError,setConnectionError]=useState(null);
   const [settingsRevealed,setSettingsRevealed]=useState(false);
   const [cancelling,setCancelling]=useState(false),[pickingFolder,setPickingFolder]=useState(false);
   const modelSummary=useRef(null);
+  const connected=useRef(onConnected);connected.current=onConnected;
+  const confirmConnection=value=>{if(pending.current&&!cancelledConnect.current&&value?.connected&&value.protocol==='pop3'&&value.connectionRequestId===pending.current){pending.current=null;setConnecting(false);onConnectionBusy?.(false);connected.current?.();}};
   const alive=useRef(true),pending=useRef(null),lock=useRef(false),cancelledConnect=useRef(false),importing=useRef(false);
   useEffect(()=>{
     alive.current=true;let reading=false;
-    const refresh=async()=>{if(reading)return;reading=true;try{const value=await api('mail',{action:'status',includeMessages:false});if(alive.current){setStatus(value);if(value.portal?.connectionState==='connected'&&!value.error)setConnectionError(null);setChosen(current=>current||modelKey(value.destination||value.activeModel));}}catch{if(alive.current)notifyWorkspaceToast('메일 설정을 읽지 못했어요. 다시 열어 주세요.',{error:true});}finally{reading=false;}};
-    void refresh();const timer=setInterval(refresh,3000);
+    const refresh=async()=>{if(reading)return;reading=true;try{const value=await api('mail',{action:'status',includeMessages:false});if(alive.current){setStatus(value);confirmConnection(value);if(value.portal?.connectionState==='connected'&&!value.error)setConnectionError(null);setChosen(current=>current||modelKey(value.destination||value.activeModel));}}catch{if(alive.current)notifyWorkspaceToast('메일 설정을 읽지 못했어요. 다시 열어 주세요.',{error:true});}finally{reading=false;}};
+    void refresh();const timer=setInterval(refresh,3000);const unsubscribe=window.nubi?.onHostEvent?.(event=>{if(event.type==='mail_pop3_connected'&&event.requestId===pending.current&&!cancelledConnect.current)void refresh();});
     // The login continues in the host while the panel is closed (the app browser tab opens over it); only an explicit cancel stops it (2026-10-14).
-    return()=>{alive.current=false;clearInterval(timer);};
+    return()=>{alive.current=false;clearInterval(timer);unsubscribe?.();};
   },[api]);
   const models=(status?.catalogs||[]).flatMap(catalog=>catalog.models.map(item=>({provider:catalog.provider,model:item.id,displayName:item.label||item.id,label:`${labels[catalog.provider]||catalog.provider} / ${item.label||item.id}`})));
   const destination=models.find(item=>modelKey(item)===chosen),autoWiki=status?.autoWiki===true;
@@ -89,7 +91,7 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
   const showSettings=!!status?.resetPending||settingsRevealed||status?.connected||!!status?.destination||status?.counts?.received>0;
   async function act(operation){
     if(lock.current)return;lock.current=true;setBusy(true);
-    try{const value=await operation();if(alive.current){setStatus(value);setConnectionError(null);}return value;}
+    try{const value=await operation();if(alive.current){setStatus(value);setConnectionError(null);confirmConnection(value);}return value;}
     catch(error){if(alive.current&&!(error.message==='mail_cancelled'&&cancelledConnect.current)){if(error.message==='mail_cancelled')notifyWorkspaceToast('포털 로그인 요청이 중단됐어요. 다시 연결해 주세요.');else if(Object.hasOwn(mailConnectionErrors,error.message))setConnectionError(error.message);else notifyWorkspaceToast(errors[error.message]||('메일 설정을 완료하지 못했어요.'+(/^mail_[a-z_]+$/.test(error.message)?` (${error.message})`:'')),{error:true});}}
     finally{lock.current=false;if(alive.current)setBusy(false);}
   }
@@ -97,7 +99,7 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
   // Each connection method is explicit. The POP3 password stays in this
   // form until it is sent and is cleared right after; the host keeps it in memory only.
   const [pop3,setPop3]=useState({user:'',password:''});
-  async function connectPop3(event){event.preventDefault();const input={...pop3};setPop3(old=>({...old,password:''}));if(!input.user.trim()||!input.password)return;const requestId=globalThis.crypto?.randomUUID?.()||String(Date.now());pending.current=requestId;await act(()=>api('mail',{action:'connect',serverProfile:'company',user:input.user.trim(),password:input.password,rememberUser:remember,requestId}));}
+  async function connectPop3(event){event.preventDefault();const input={...pop3};setPop3(old=>({...old,password:''}));if(!input.user.trim()||!input.password)return;const requestId=globalThis.crypto?.randomUUID?.()||String(Date.now());pending.current=requestId;cancelledConnect.current=false;setConnecting(true);try{await act(()=>api('mail',{action:'connect',serverProfile:'company',user:input.user.trim(),password:input.password,rememberUser:remember,requestId}));}finally{if(alive.current)setConnecting(false);}}
   const [remember,setRemember]=useState(true);
   useEffect(()=>{if(status?.pop3User)setPop3(old=>old.user?old:{...old,user:status.pop3User});},[status?.pop3User]);
 
@@ -106,7 +108,7 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
     cancelledConnect.current=true;
     try{const value=await api('mail',{action:'cancelConnect',requestId:pending.current});if(alive.current){setStatus(value);}}
     catch{if(alive.current)notifyWorkspaceToast('연결 취소를 확인하지 못했어요. 잠시 후 다시 확인해 주세요.',{error:true});}
-    finally{if(alive.current)setCancelling(false);}
+    finally{pending.current=null;if(alive.current){setCancelling(false);setConnecting(false);}}
   }
   async function selectModel(name,selectedProvider){
     const item=models.find(item=>item.provider===selectedProvider&&item.model===name);if(!item)return false;

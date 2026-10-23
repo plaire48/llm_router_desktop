@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
+import {createHostActivityTracker} from '../ui/host-activity.mjs';
 import {normalizePortalMail} from '../runtime/mail-portal-content.mjs';
 const require=createRequire(import.meta.url);
 const {MailPortal}=require('../electron-app/mail-portal.cjs');
@@ -68,8 +69,9 @@ test('actual main dispatch awaits approval rejections and renderer restores thei
   const dispatch=vm.runInNewContext(main.slice(start,end)+'\ndispatch',{installingUpdate:false,DESKTOP_FEATURES:{computerUse:false},invoke:async()=>({connectionMethod:'portal'}),mailPortal:{[action]:async()=>{await Promise.resolve();throw approvalFailure({message:'mail_portal_unavailable',httpStatus:502},action==='approvals'?'list':'document');}},safeApprovalFailure});
   const result=await dispatch('mail',{action});assert.equal(result.__nubiError,'mail_portal_unavailable');assert.equal(result.approvalFailure.httpStatus,502);
   const renderer=await readFile('electron-app/renderer.jsx','utf8');const line=renderer.split('\n').find(line=>line.startsWith('const request=async('));assert(line);let cleared=0;
-  const request=vm.runInNewContext(line+'\nrequest',{markBusy(){},clearBusy(){cleared++;},window:{nubi:{request:async()=>result}}});
-  await assert.rejects(request('mail',{action}),error=>error.approvalFailure.httpStatus===502&&error.message==='mail_portal_unavailable');assert.equal(cleared,1);
+  const tracker=createHostActivityTracker({delayMs:0}),hostActivity={run:async(...args)=>{try{return await tracker.run(...args);}finally{cleared++;}}};
+  const request=vm.runInNewContext(line+'\nrequest',{hostActivity,window:{nubi:{request:async()=>result}}});
+  await assert.rejects(request('mail',{action}),error=>error.approvalFailure.httpStatus===502&&error.message==='mail_portal_unavailable');assert.equal(cleared,1);assert.equal(tracker.getSnapshot(),null);
  }
 });
 

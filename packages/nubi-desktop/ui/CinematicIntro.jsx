@@ -5,6 +5,7 @@ import {NUBI_VERSION as VERSION} from './app-version.mjs';
 import './cinematic-intro.css';
 import {openingSceneId,openingSceneMode,rememberOpeningScene} from './opening-scene.mjs';
 import {startIntroFlight} from './introFlight.js';
+import {TaskProgressBar} from './TaskProgressBar.jsx';
 
 // Opening scene, once per launch (user requests 2026-10-14: "영화의 한 장면처럼", more cuts, a real sky, a progress bar,
 // a smooth hand-over, and finally "우리가 새가 되어서 날아가는 느낌"). Seen through the bird's eyes: we glide over the
@@ -80,7 +81,7 @@ export function CinematicIntro({ready=false,onFinish}){
         <span className="nubi-intro-version" aria-label={`버전 ${VERSION}`}>{VERSION}</span>
       </div>
       <div className="nubi-intro-loading">
-        <div className="nubi-intro-progress" data-ready={ready} role="progressbar" aria-label="Workspace 시작 준비" aria-valuemin={0} aria-valuemax={100} aria-valuenow={ready?100:undefined} aria-valuetext={ready?'준비 완료':'Workspace 준비 중'}><span/></div>
+        <TaskProgressBar className="nubi-intro-progress" label="Workspace 시작 준비" value={ready?100:undefined} valueText={ready?'준비 완료':'Workspace 준비 중'}/>
         <div className="nubi-intro-progress-status" role="status">
           <span>{ready?'준비 완료':'Workspace 준비 중'}</span>
           {ready&&<span className="nubi-intro-progress-value">100%</span>}

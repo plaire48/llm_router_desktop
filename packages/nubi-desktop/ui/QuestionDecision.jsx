@@ -32,7 +32,7 @@ export function QuestionDecision({question:incomingQuestion,disabled,blocked,onC
   const focus=event=>{if(event.detail!==question.id)return;form.current?.scrollIntoView({block:'center'});form.current?.querySelector('button:not(:disabled),textarea:not(:disabled)')?.focus({preventScroll:true});};
   document.addEventListener('nubi-open-decision',focus);return()=>document.removeEventListener('nubi-open-decision',focus);
  },[question.id]);
- return <ConversationDecision id={question.id} blocked={disabled||blocked||answering}><section ref={form} className="nubi-question-form nubi-question-inline" style={{'--nubi-question-number-digits':String(questionDisplayOptions(question,{allowText:question.inputMode!=='none'}).length).length}} data-decision-id={question.id} aria-label="답변이 필요한 질문" aria-busy={answering}
+ return <ConversationDecision id={question.id} blocked={disabled||blocked||answering} submitting={answering} statusLabel={question.toolRequest?'승인 요청을 전달하고 있어요':'답변을 전달하고 있어요'}><section ref={form} className="nubi-question-form nubi-question-inline" style={{'--nubi-question-number-digits':String(questionDisplayOptions(question,{allowText:question.inputMode!=='none'}).length).length}} data-decision-id={question.id} aria-label="답변이 필요한 질문" aria-busy={answering}
   onPointerOver={showChoice} onFocusCapture={showChoice} onKeyDownCapture={event=>{if(event.key==='Escape')setHint(null);}}
   onPointerLeave={event=>{if(!tip.current?.contains(event.relatedTarget))setHint(null);}} onBlurCapture={()=>setHint(null)}>
   <span className="nubi-question-caption">{question.toolRequest?<TerminalMark size={16}/>:<Icon name="helpCircle" size={16}/>}<span>{question.toolRequest?"도구 실행 승인":"질문"}</span></span>

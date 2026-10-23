@@ -13,7 +13,7 @@ class BrowserRouter {
  async open(url,options={}){
   const target=httpBrowserAddress(url);
   // Existing provider authentication keeps its own protected host and callback.
-  if(options.authentication||this.showInternal){
+  if(options.authentication||this.mode==='internal'){
    this.externalFocus=false;const row=this.internal.create(target,options);this.internal.publish('opened');return {opened:true,tabId:row.id,userInteractionRequired:true};
   }
   this.externalFocus=true;await this.internal.request({action:'layout',visible:false});
@@ -37,15 +37,22 @@ class BrowserRouter {
  async playwright(action,args,options={}){
   if(action==='bring'){if(this.mode!=='external')throw Error('external_browser_disabled');this.externalFocus=true;return this.dock?this.dock.bring({signal:options.signal,source:'chat'}):Promise.reject(Error('dock_unavailable'));}
   if(action==='dockDetach')return this.dock?this.dock.detach():Promise.reject(Error('dock_unavailable'));
-  if(action==='open'&&!this.showInternal&&!this.external.status().connected)return this.open(args.url);
+  if(['tabs','open'].includes(action)&&this.mode==='external'&&!this.external.status().connected){
+   const waiting={connected:false,automation:false,connectionRequired:true,instruction:'The external browser is open but automation is not connected. Show the Nubi browser connection control and wait for the user to allow the connection and select a work tab. Do not repeat browser_open, launch another browser, install Playwright or run shell commands to repair this connection.'};
+   const result=action==='open'?await this.open(args.url):{tabs:[]};
+   this.notify({type:'browser_connection_required',state:this.configuration()});return {...result,...waiting};
+  }
   // An explicitly observed internal tab remains usable after a preference
-  // switch; new chat opens follow the surface currently displayed.
+  // switch; new work pages always follow the selected runtime, even while an
+  // internal provider sign-in view is visible.
   if(args?.tabId&&this.internal.tabs.has(args.tabId))return this.internalPlaywright.request(action,args);
-  if(!this.showInternal&&this.dock?.status().windowDocked&&!this.dock.status().automationReady)throw Error('browser_automation_unavailable');
-  return this.showInternal?this.internalPlaywright.request(action,args):this.external.request(action,args);
+  if(this.mode==='external'&&this.dock?.status().windowDocked&&!this.dock.status().automationReady)throw Error('browser_automation_unavailable');
+  if(this.mode==='internal')return this.internalPlaywright.request(action,args);
+  if(action==='open'){this.externalFocus=true;await this.internal.request({action:'layout',visible:false});const result=await this.external.request(action,args);this.notify({type:'external_browser_opened',state:this.configuration()});return result;}
+  return this.external.request(action,args);
  }
  async ui(args={}){
-  if(args.action==='new'&&!this.showInternal){
+  if(args.action==='new'&&this.mode==='external'){
    this.externalFocus=true;await this.internal.request({action:'layout',visible:false});
    if(args.url)await this.open(args.url);this.notify({type:'external_browser_opened',state:this.configuration()});return this.external.status();
   }

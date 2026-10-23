@@ -4,13 +4,15 @@ import asyncio
 import hashlib
 import json
 import os
+import secrets
 import shutil
 import socket
 import stat
 import tempfile
 from collections import deque
 from collections.abc import Callable
-from contextlib import suppress
+from contextlib import asynccontextmanager, suppress
+from contextvars import ContextVar
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -120,9 +122,57 @@ class OpenCodeRuntime:
         self._last_health_error: str | None = None
         self._lock = asyncio.Lock()
         self._profile_lock = asyncio.Lock()
+        self._server_password = secrets.token_urlsafe(32)
+        self._active_requests = 0
+        self._in_request = ContextVar(f"opencode_request_{id(self)}", default=None)
+        self._in_configuration = ContextVar(f"opencode_configuration_{id(self)}", default=None)
         self._api_profile_configs: dict[str, dict[str, object]] = {}
         self._api_profile_signatures: dict[str, tuple[str, ...]] = {}
         self.tool_bridge = OpenCodeToolBridge(self.directory)
+
+    @property
+    def auth(self) -> httpx.BasicAuth | None:
+        return httpx.BasicAuth("opencode", self._server_password) if self.auto_start else None
+
+    @asynccontextmanager
+    async def request_guard(self):
+        async with self._profile_lock:
+            self._active_requests += 1
+        token = self._in_request.set(asyncio.current_task())
+        try:
+            yield
+        finally:
+            self._in_request.reset(token)
+            self._active_requests -= 1
+
+    @asynccontextmanager
+    async def _profile_scope(self):
+        if self._in_configuration.get() is asyncio.current_task():
+            yield
+            return
+        async with self._profile_lock:
+            token = self._in_configuration.set(asyncio.current_task())
+            try:
+                yield
+            finally:
+                self._in_configuration.reset(token)
+
+    @asynccontextmanager
+    async def configuration_guard(self):
+        """Protect persistent profile/secret writes and their runtime restart together."""
+        async with self._profile_scope():
+            self._require_idle_configuration()
+            yield
+
+    def _require_idle_configuration(self) -> None:
+        own_request = 1 if self._in_request.get() is asyncio.current_task() else 0
+        if self._active_requests > own_request or self.tool_bridge.active_count:
+            raise RouterError(
+                "OpenCode has active requests or pending tools. Finish them before changing profiles.",
+                type="invalid_request_error",
+                code="opencode_runtime_busy",
+                status_code=409,
+            )
 
     @property
     def binary_available(self) -> bool:
@@ -134,7 +184,9 @@ class OpenCodeRuntime:
 
     async def ready(self, client: httpx.AsyncClient) -> bool:
         try:
-            response = await client.get(f"{self.base_url}/global/health", timeout=1.0)
+            response = await client.get(
+                f"{self.base_url}/global/health", timeout=1.0, auth=self.auth
+            )
             if response.status_code != 200:
                 self._last_health_error = f"HTTP {response.status_code}"
                 return False
@@ -318,8 +370,9 @@ class OpenCodeRuntime:
             credential_env,
             hashlib.sha256(credential.encode("utf-8")).hexdigest(),
         )
-        async with self._profile_lock:
+        async with self._profile_scope():
             if self._api_profile_signatures.get(profile.name) != signature:
+                self._require_idle_configuration()
                 self._api_profile_configs[provider_id] = config
                 self._api_profile_signatures[profile.name] = signature
                 await self.close()
@@ -328,14 +381,16 @@ class OpenCodeRuntime:
     async def remove_profile(self, profile: Profile) -> None:
         if not is_aipro_profile(profile):
             return
-        async with self._profile_lock:
+        async with self._profile_scope():
+            self._require_idle_configuration()
             self._api_profile_configs.pop(self.provider_id(profile), None)
             self._api_profile_signatures.pop(profile.name, None)
             await self.close()
 
     async def clear_aipro_browser_profiles(self) -> None:
         """Drop browser-JWT configs after logout so future starts contain no stale auth refs."""
-        async with self._profile_lock:
+        async with self._profile_scope():
+            self._require_idle_configuration()
             browser_profiles = [
                 name
                 for name, signature in self._api_profile_signatures.items()
@@ -358,6 +413,17 @@ class OpenCodeRuntime:
         timeout: float = 300.0,
     ) -> None:
         """Run ChatGPT OAuth through the router-owned OpenCode server."""
+        async with self._profile_scope():
+            self._require_idle_configuration()
+            await self._login_openai(client, browser_opener=browser_opener, timeout=timeout)
+
+    async def _login_openai(
+        self,
+        client: httpx.AsyncClient,
+        *,
+        browser_opener: BrowserOpener,
+        timeout: float,
+    ) -> None:
         await self.ensure_started(client)
         restart_after_login = self.process is not None
         params = {"directory": str(self.directory)}
@@ -365,6 +431,7 @@ class OpenCodeRuntime:
             authorize = await client.post(
                 f"{self.base_url}/provider/openai/oauth/authorize",
                 params=params,
+                auth=self.auth,
                 json={"method": 0},
             )
             authorize.raise_for_status()
@@ -398,6 +465,7 @@ class OpenCodeRuntime:
                 callback = await client.post(
                     f"{self.base_url}/provider/openai/oauth/callback",
                     params=params,
+                    auth=self.auth,
                     json={"method": 0},
                     timeout=None,
                 )
@@ -556,6 +624,8 @@ class OpenCodeRuntime:
                 "OPENCODE_DISABLE_AUTOUPDATE": "true",
                 "OPENCODE_DISABLE_TERMINAL_TITLE": "true",
                 "OPENCODE_CONFIG_CONTENT": json.dumps(config),
+                "OPENCODE_SERVER_USERNAME": "opencode",
+                "OPENCODE_SERVER_PASSWORD": self._server_password,
                 "XDG_CACHE_HOME": str(self.directory / "cache"),
                 "XDG_CONFIG_HOME": str(self.directory / "config"),
                 "XDG_DATA_HOME": str(self.directory / "data"),

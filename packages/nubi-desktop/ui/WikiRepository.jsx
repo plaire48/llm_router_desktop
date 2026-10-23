@@ -10,6 +10,7 @@ import {notifyWorkspaceToast} from './WorkspaceToast.jsx';
 import './wiki-repository.css';
 import {WikiPeoplePicker} from './WikiPeoplePicker.jsx';
 import {LoadingNote} from './LoadingNote.jsx';
+import {TaskProgressBar} from './TaskProgressBar.jsx';
 import {DeckDisclosure} from '../../../extensions/aipro-chat/src/DeckSurfaces.jsx';
 const errors={wiki_share_read_failed:'공유 위키 저장소의 기준 버전을 가져오지 못했어요. 새로고침해 주세요. 계속되면 저장소 접근 권한과 기본 브랜치를 확인해 주세요.',wiki_share_integrity:'받은 위키 파일이 저장소의 해시와 달라요. 새로고침 후 다시 확인해 주세요.',wiki_share_permission:'nuri 저장소의 쓰기 권한과 위키 관리자를 확인해 주세요.',wiki_share_missing:'nuri 저장소 또는 공유 위키에 접근할 수 없어요.',wiki_share_changed:'다른 변경이 먼저 저장됐어요. 목록을 새로고침해 주세요.',wiki_share_source_changed:'선택한 파일이 바뀌었어요. 폴더를 다시 선택해 주세요.',wiki_share_fields:'이름, 설명, 버전과 관리자 아이디를 확인해 주세요.',wiki_share_version:'기존보다 높은 버전을 입력해 주세요. 예: 1.0.1',wiki_share_empty:'공유할 Markdown 문서를 선택해 주세요.',wiki_share_limit:'문서는 500개, 합계 20MB까지 공유할 수 있어요.',wiki_share_symlink:'바로가기 대신 원본 문서 폴더를 선택해 주세요.',wiki_share_encoding:'UTF-8 Markdown 문서만 공유할 수 있어요.',wiki_share_invalid:'위키 목록 또는 파일 형식을 확인하지 못했어요.',wiki_share_network:'사내망 연결을 확인하고 다시 시도해 주세요.',wiki_share_exists:'같은 버전의 폴더가 이미 있어요. 다른 저장 위치를 선택해 주세요.',wiki_share_stage_expired:'파일 선택이 만료됐어요. 폴더를 다시 선택해 주세요.',wiki_share_unconfirmed:'저장 응답을 확인하지 못했어요. 다시 등록하기 전에 목록을 새로고침해 주세요.',wiki_share_download_unconfirmed:'저장한 파일을 확인하지 못했어요. 다운로드 폴더를 확인해 주세요.',ghes_login_required:'GitHub에 로그인해 주세요.',ghes_session_expired:'GitHub 로그인이 만료됐어요.',ghes_session_changed:'계정이 바뀌었어요. 목록을 다시 열어 주세요.'};
 const errorText=e=>errors[e?.message]||'위키를 확인하지 못했어요. 다시 시도해 주세요.';
@@ -70,7 +71,7 @@ function WikiEditor({api,item,snapshot,onClose,onSaved}){
    <section className="nubi-wiki-upload"><div><strong>공유할 문서</strong><CxButton disabled={busy} onClick={choose}><FolderMark size={16}/>{stage?'다시 선택':'폴더 선택'}</CxButton></div><p>{form.mode==='personal'?'공유할 문서만 선택하세요.':'openwiki 폴더에서 공유할 Markdown 문서를 선택하세요.'}</p>
    {stage&&<><label className="nubi-wiki-select-all"><input type="checkbox" disabled={busy} checked={selected.length===stage.files.length} onChange={e=>setSelected(e.target.checked?stage.files.map(file=>file.path):[])}/>전체 선택 <span>{selected.length}개 선택</span></label><div className="nubi-wiki-file-checks">{stage.files.map(file=><label key={file.path}><input type="checkbox" disabled={busy} checked={selected.includes(file.path)} onChange={e=>setSelected(old=>e.target.checked?[...old,file.path]:old.filter(x=>x!==file.path))}/><Icon name="file" size={16}/><span title={file.path}>{file.path}</span></label>)}</div></>}
    </section>
-   {busy&&<div role="status" className="nubi-wiki-upload-progress">{progress?.phase==='upload'?<><span>문서 업로드 {progress.completed}/{progress.total}</span><progress max={progress.total} value={progress.completed}/></>:<span>{progress?.phase==='save'?'저장 결과 확인 중':'선택한 내용을 확인하고 있어요.'}</span>}</div>}
+   {busy&&<div role="status" className="nubi-wiki-upload-progress">{progress?.phase==='upload'?<span>문서 업로드 {progress.completed}/{progress.total}</span>:<span>{progress?.phase==='save'?'저장 결과 확인 중':'선택한 내용을 확인하고 있어요.'}</span>}<TaskProgressBar label="위키 공유" max={progress?.total} value={progress?.phase==='upload'&&progress.total>0?progress.completed:undefined}/></div>}
    {error&&<p role="alert" className="nubi-wiki-repo-error">{error}</p>}
   </form>
  </DetailPanel>;

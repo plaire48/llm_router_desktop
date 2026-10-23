@@ -95,9 +95,14 @@ def test_chat_completion_request_translates_to_opencode_session_prompt():
 
     assert body["model"] == {"providerID": "openai", "modelID": "gpt-5.6-sol"}
     assert "Be concise." in body["system"]
-    assert "User: First question" in body["system"]
-    assert "Assistant: First answer" in body["system"]
-    assert body["parts"] == [{"type": "text", "text": "Final question"}]
+    assert "First question" not in body["system"]
+    assert "First answer" not in body["system"]
+    history = json.loads(body["parts"][0]["text"].split("\n", 1)[1])
+    assert [(item["role"], item["content"]) for item in history] == [
+        ("user", "First question"),
+        ("assistant", "First answer"),
+    ]
+    assert body["parts"][-1] == {"type": "text", "text": "Final question"}
 
 
 def test_aipro_model_reference_uses_the_router_managed_custom_provider():

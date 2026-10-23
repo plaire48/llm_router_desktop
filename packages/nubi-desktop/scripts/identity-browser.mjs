@@ -26,6 +26,7 @@ export async function assertDialogChrome(dialog) {
     }:null,insets:parts.map(node=>[getComputedStyle(node).paddingLeft,getComputedStyle(node).paddingRight]),
       titleWeight:getComputedStyle(title).fontWeight,
       radius:getComputedStyle(root).borderRadius,
+      bottomSheet:document.documentElement.hasAttribute('data-modal-motion')&&matchMedia('(max-width:760px)').matches&&root.parentElement?.matches('.cx-panel-backdrop.is-modal'),
       close:close?.checkVisibility()?{width:close.getBoundingClientRect().width,height:close.getBoundingClientRect().height,radius:getComputedStyle(close).borderRadius}:null,
       sectionGap:getComputedStyle(root.querySelector(':scope > .cx-panel-body')).rowGap,leadingGlyph:(()=>{const glyph=root.querySelector('.cx-panel-header .nubi-panel-title>:is(.nubi-panel-title-icon,svg,img)');if(!glyph?.checkVisibility())return null;const header=root.querySelector('.cx-panel-header'),box=glyph.getBoundingClientRect(),bounds=header.getBoundingClientRect();return {left:box.left,min:bounds.left+parseFloat(getComputedStyle(header).paddingLeft)};})()};
   });
@@ -40,7 +41,7 @@ export async function assertDialogChrome(dialog) {
     assert(g.contextOffsets.every(value=>value===0),'Context body has no extra horizontal indent');
   }
   assert.equal(facts.titleWeight,String(adaptation.modal.titleWeight));
-  assert.equal(facts.radius,adaptation.modal.radius+'px');
+  assert.equal(facts.radius,facts.bottomSheet?`${adaptation.modal.radius}px ${adaptation.modal.radius}px 0px 0px`:adaptation.modal.radius+'px');
   assert.equal(facts.sectionGap,adaptation.modal.sectionGap+'px');if(facts.leadingGlyph)assert(facts.leadingGlyph.left>=facts.leadingGlyph.min-1,'Title icons stay inside the shared gutter');
   if(facts.close){assert.equal(facts.close.width,facts.close.height,'Close target must be square');assert(facts.close.width>=adaptation.workControl.height);assert.equal(facts.close.radius,adaptation.workControl.radius+'px');}
   return facts;

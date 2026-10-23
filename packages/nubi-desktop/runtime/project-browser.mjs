@@ -37,8 +37,9 @@ export function installProjectBrowser(Service) {
     if(document){const preview=await documentReader.readFileDocument(bytes,input,{workerPath:new URL('./mail-attachment-worker.mjs',import.meta.url)});requireProject(this,projectId);if(await this.target(taskId)!==root||hash(await readFile(file))!==hash(bytes))fail('source_stale');return {path:input,root,hash:hash(bytes),document:preview};}
     return {path:input,root,hash:hash(bytes),content:`data:${mime};base64,${bytes.toString('base64')}`};
   };
-  Service.prototype.browseDirectory=async function({projectId,path:input='',taskId}) {
+  Service.prototype.browseDirectory=async function({projectId,path:input='',taskId,includeEntries=true}) {
     requireProject(this,projectId);const root=await this.target(taskId),location=await directory(this,input,root);
+    if(includeEntries===false){requireProject(this,projectId);if(await this.target(taskId)!==root)fail('project_changed');return location;}
     const rows=await readdir(location.absolute,{withFileTypes:true});
     const entries=rows.filter(row=>!row.isSymbolicLink()&&(row.isFile()||row.isDirectory()))
       .map(row=>({id:location.relative?`${location.relative}/${row.name}`:row.name,name:row.name,path:location.relative?`${location.relative}/${row.name}`:row.name,directory:row.isDirectory(),extension:row.isFile()?path.extname(row.name).slice(1).toLowerCase():''}))

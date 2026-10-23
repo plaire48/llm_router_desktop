@@ -15,7 +15,7 @@ function CommandRecord({action,process,state,profiles,onOpenTerminal,onStop,expa
  const [expanded,setExpanded]=useState(()=>expansion?.has(action.id)||false);
  const changeExpanded=value=>{if(value)expansion?.add(action.id);else expansion?.delete(action.id);setExpanded(value);};
  const shell=profiles.find(item=>item.id===(process?.profile||action.profile))?.label||process?.profile||action.profile;
- return <details className="nubi-process-fold nubi-command-record" open={expanded} onToggle={event=>{if(event.currentTarget.isConnected)changeExpanded(event.currentTarget.open);}}>
+ return <><details className="nubi-process-fold nubi-command-record" open={expanded} onToggle={event=>{if(event.currentTarget.isConnected)changeExpanded(event.currentTarget.open);}}>
   {/* Commit the choice before a final-answer render can move this receipt. Native
       toggle is queued later; detached records must not overwrite the current one. */}
   <summary onClick={event=>{event.preventDefault();changeExpanded(!expanded);}}><TerminalMark size={16}/><strong title={action.title}>{action.title}</strong>{active(process)&&<span className="status-spinner" aria-hidden="true"/>}<small role="status">{state}</small><Icon name="chevronDown" size={14}/></summary>
@@ -25,7 +25,7 @@ function CommandRecord({action,process,state,profiles,onOpenTerminal,onStop,expa
     status={process?<><span className="nubi-terminal-state" data-state={process.state}>{processLabels[process.state]||process.state}</span>{process.exitCode!==null&&process.exitCode!==undefined&&<span className="nubi-terminal-exit" title="종료 코드">exit {process.exitCode}</span>}{process.state==='running'&&onStop&&<CxButton className="nubi-terminal-stop" aria-label="명령 중지" title="명령 중지" onClick={()=>onStop(process)}><span className="stop-symbol" aria-hidden="true"/></CxButton>}</>:action.state==='rejected'?'실행하지 않았어요.':'실행 기록이 없습니다.'}/>
    {onOpenTerminal&&action.resultProcessId&&<div className="nubi-command-record-actions"><CxButton onClick={()=>onOpenTerminal({cwd:process?.cwd||action.workspace,contextId:action.id,processId:action.resultProcessId})}><TerminalMark size={16}/>터미널 열기</CxButton></div>}
   </div>}
- </details>;
+ </details>{!expanded&&active(process)&&process.output&&<div className="nubi-command-output-preview" aria-label="실시간 실행 출력"><pre>{process.output.slice(-1200).split('\n').slice(-4).join('\n')}</pre></div>}</>;
 }
 // Expanding reads the existing command/result only; it never starts a process.
 export function SetupActions({actions,proposals=[],processes=[],latest=null,profiles=[],disabled,onDecision,onAlways,onStop,onOpenTerminal,expansion}) {

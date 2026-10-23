@@ -1,18 +1,21 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {replaceObserved,SourceObservations} from '../runtime/source-edits.mjs';
 import {hash} from '../runtime/files.mjs';
-// Edit matching adopted from opencode (MIT, packages/core/src/tool/plugin/edit.ts): exact, then typographic punctuation and
-// spaces normalized, then line by line ignoring trailing whitespace, all on the LF view so CRLF files keep their endings.
+// The explicit OpenCode matcher preserves CRLF and observed ranges. Exact matching remains the default;
+// typographic punctuation is literal content, and replaceAll still requires every changed occurrence to be observed.
 const file=(content,path='src/a.js')=>({path,content,hash:hash(content),lines:content.split('\n').length});
-function edit(content,edits){const f=file(content),seen=new SourceObservations();seen.observe({...f,start:1,end:f.lines});return replaceObserved(f,f.hash,edits,seen);}
+function edit(content,edits,options){const f=file(content),seen=new SourceObservations();seen.observe({...f,start:1,end:f.lines});return replaceObserved(f,f.hash,edits,seen,options);}
 test('a CRLF file matches LF text and keeps its CRLF endings',()=>{
- assert.equal(edit('a\r\nb\r\nc\r\n',[{oldText:'b\nc\n',newText:'B\nC\nD\n'}]),'a\r\nB\r\nC\r\nD\r\n');
+ assert.equal(edit('a\r\nb\r\nc\r\n',[{oldText:'b\nc\n',newText:'B\nC\nD\n'}],{matching:'opencode'}),'a\r\nB\r\nC\r\nD\r\n');
 });
-test('typographic quotes, dashes and special spaces match their plain forms',()=>{
- assert.equal(edit('const s = “hi” – ok;\n',[{oldText:'const s = "hi" - ok;',newText:'const s = "bye";'}]),'const s = "bye";\n');
+test('typographic quotes and dashes remain significant source content in both modes',()=>{
+ for(const matching of ['exact','opencode'])assert.throws(()=>edit('const s = “hi” – ok;\n',[{oldText:'const s = "hi" - ok;',newText:'const s = "bye";'}],{matching}),/edit_text_missing/);
 });
 test('trailing whitespace on the source lines does not block a match',()=>{
- assert.equal(edit('x = 1;   \ny = 2;\t\nz = 3;\n',[{oldText:'x = 1;\ny = 2;\n',newText:'x = 10;\ny = 20;\n'}]),'x = 10;\ny = 20;\nz = 3;\n');
+ assert.equal(edit('x = 1;   \ny = 2;\t\nz = 3;\n',[{oldText:'x = 1;\ny = 2;\n',newText:'x = 10;\ny = 20;\n'}],{matching:'opencode'}),'x = 10;\ny = 20;\nz = 3;\n');
+});
+test('an OpenCode fallback consumes one observed CRLF and preserves a following blank line',()=>{
+ assert.equal(edit('x = 1;   \r\ny = 2;\t\r\n\r\nz = 3;\r\n',[{oldText:'x = 1;\ny = 2;\n',newText:'x = 10;\ny = 20;\n'}],{matching:'opencode'}),'x = 10;\r\ny = 20;\r\n\r\nz = 3;\r\n');
 });
 test('replaceAll changes every occurrence; without it an ambiguous match reports the count and lines',()=>{
  assert.equal(edit('a();\nb();\na();\n',[{oldText:'a();',newText:'c();',replaceAll:true}]),'c();\nb();\nc();\n');
@@ -23,8 +26,12 @@ test('a missing text reports the closest line of the read range',()=>{
 });
 test('the read-range and stale-hash guards still apply to tolerant matches',()=>{
  const f=file('a\r\nb\r\nc\r\n'),seen=new SourceObservations();seen.observe({...f,start:1,end:1});
- assert.throws(()=>replaceObserved(f,f.hash,[{oldText:'c\n',newText:'C\n'}],seen),/source_read_required/);
+ assert.throws(()=>replaceObserved(f,f.hash,[{oldText:'c\n',newText:'C\n'}],seen,{matching:'opencode'}),/source_read_required/);
  assert.throws(()=>replaceObserved(f,'stale',[{oldText:'a\n',newText:'A\n'}],seen),/source_stale/);
+});
+test('replaceAll cannot change an unread repeated occurrence',()=>{
+ const f=file('a();\nb();\na();\n'),seen=new SourceObservations();seen.observe({...f,start:1,end:1});
+ for(const matching of ['exact','opencode'])assert.throws(()=>replaceObserved(f,f.hash,[{oldText:'a();',newText:'c();',replaceAll:true}],seen,{matching}),/source_read_required/);
 });
 test('argument normalization keeps replaceAll and its snake_case alias',async()=>{
  const {normalizeProposalArgs}=await import('../runtime/proposal-args.mjs');

@@ -4,6 +4,17 @@ import {CxButton,Icon} from '@e2e/cx-design-system';
 import './conversation-decisions.css';
 
 const DecisionContext=createContext(null);
+const DecisionActionContext=createContext(null);
+export const DecisionActionProvider=DecisionActionContext.Provider;
+export function useDecisionAction(){return useContext(DecisionActionContext)||((operation)=>operation?.());}
+export function useDecisionSubmission(){
+ const [pending,setPending]=useState(false),locked=useRef(false);
+ const submit=useCallback(async operation=>{
+  if(locked.current||!operation)return;locked.current=true;setPending(true);
+  try{return await operation();}finally{locked.current=false;setPending(false);}
+ },[]);
+ return {pending,submit};
+}
 
 // Only live decisions leave their chronological position. Completed records
 // remain in the transcript, owned by the original run/message.
@@ -16,7 +27,8 @@ export function ConversationDecisionProvider({children}){
   }));
   return()=>setItems(current=>current.filter(row=>row.key!==item.key));
  },[]);
- const active=items.find(item=>item.key===selected)||items.find(item=>!item.blocked)||items[0];
+ const waiting=items.filter(item=>!item.submitting);
+ const active=waiting.find(item=>item.key===selected)||waiting.find(item=>!item.blocked)||waiting[0];
  const select=useCallback(key=>setSelected(key),[]);
  useEffect(()=>{
   const reveal=event=>{
@@ -35,23 +47,23 @@ export function ConversationDecisionProvider({children}){
  return <DecisionContext.Provider value={value}>{children}</DecisionContext.Provider>;
 }
 
-export function ConversationDecision({id,blocked=false,children}){
+export function ConversationDecision({id,blocked=false,submitting=false,statusLabel='선택한 동작을 처리하고 있어요',children}){
  const context=useContext(DecisionContext),anchor=useRef(null),[key]=useState(()=>Symbol('decision'));
  const register=context?.register;
  useLayoutEffect(()=>{
-  if(register)return register({key,id,blocked,anchor:anchor.current});
- },[register,key,id,blocked]);
+  if(register)return register({key,id,blocked,submitting,statusLabel,anchor:anchor.current});
+ },[register,key,id,blocked,submitting,statusLabel]);
  if(!context)return children;
  const active=context.active===key;
  return <><span ref={anchor} hidden data-decision-anchor={id}/>{context.host&&createPortal(
-  <div data-decision-panel={id} hidden={!active} inert={!active} aria-hidden={!active||undefined}>{children}</div>,context.host
+  <div data-decision-panel={id} hidden={!active||submitting} inert={!active||submitting} aria-hidden={!active||submitting||undefined}>{children}</div>,context.host
  )}</>;
 }
 
 export function ConversationDecisionHost(){
  const context=useContext(DecisionContext);
  if(!context)return null;
- const {items,active,select,setHost}=context,index=items.findIndex(item=>item.key===active);
+ const {active,select,setHost}=context,items=context.items.filter(item=>!item.submitting),index=items.findIndex(item=>item.key===active);
  return <section className="nubi-conversation-decisions" aria-label="확인이 필요한 항목" hidden={!items.length}>
   {items.length>1&&<nav className="nubi-decision-pages" aria-label="확인 항목 이동">
    <output aria-live="polite" aria-label="현재 확인 항목">{index+1}/{items.length}</output>
@@ -60,6 +72,13 @@ export function ConversationDecisionHost(){
   </nav>}
   <div ref={setHost} className="nubi-decision-panels"/>
  </section>;
+}
+
+export function ConversationDecisionActivity({working=false,label}){
+ const context=useContext(DecisionContext);
+ const submissions=context?.items.filter(item=>item.submitting)||[];
+ if(!submissions.length)return working?<p className="nubi-decision-submission nubi-working-status" role="status"><span className="status-spinner" aria-hidden="true"/>{label||'요청한 동작을 처리하고 있어요'}</p>:null;
+ return submissions.map(item=><p className="nubi-decision-submission nubi-working-status" key={item.id} data-decision-submission={item.id} role="status"><span className="status-spinner" aria-hidden="true"/>{label||item.statusLabel}</p>);
 }
 
 export function QuestionReceipt({question}){

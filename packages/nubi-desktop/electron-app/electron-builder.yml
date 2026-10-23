@@ -5,6 +5,7 @@ artifactName: Nubi-Workspace-beta-${version}-${arch}-Setup.${ext}
 electronVersion: 42.11.10
 asar: true
 asarUnpack:
+  - lib/backend/opencode-engine/**/*
   - lib/backend/process-host/**/*
   - lib/backend/external-office-native/**/*
   - lib/backend/openwiki-update/openwiki/skills/**/*

@@ -1,6 +1,7 @@
 import {diffLines} from 'diff';
 import {fail, hash} from './files.mjs';
-import {matchView,normalizeForMatch} from './edit-match.mjs';
+import {normalizeForMatch} from './edit-match.mjs';
+import {LineTrimmedReplacer,IndentationFlexibleReplacer} from './vendor/opencode/edit-replacers.mjs';
 
 // Observations belong to one model run. A stale summary or a human opening an
 // editor does not count as the model having read the replacement range.
@@ -44,17 +45,62 @@ function closestLine(file,observations,oldText){
   }
   return best&&best.score>=0.5?{line:best.line,text:best.text}:null;
 }
-export function replaceObserved(file, expectedHash, edits, observations) {
+function observedMatch(content,oldText,{replaceAll=false,matching='opencode'}={}){
+  const exact=content.indexOf(oldText);
+  if(exact>=0){const matches=[];let at=exact;while(at>=0){matches.push({start:at,end:at+oldText.length});at=content.indexOf(oldText,at+oldText.length);}if(matches.length>1&&!replaceAll)failWith('edit_text_ambiguous',{matches:matches.length,lines:matches.map(match=>lineOf(content,match.start))});return matches;}
+  if(matching==='exact')fail('edit_text_missing');
+  const matches=new Map();
+  // Preserve OpenCode's whitespace handling without its semantic anchor guess.
+  // All candidates, not the first best candidate, must identify one span.
+  for(const replacer of [LineTrimmedReplacer,IndentationFlexibleReplacer])for(const rawCandidate of replacer(content,oldText)){
+    // The upstream generators split on LF. Their final line may retain the CR
+    // of the following CRLF; replacing it would silently create a mixed EOL.
+    const candidate=rawCandidate.endsWith('\r')&&!oldText.endsWith('\r')?rawCandidate.slice(0,-1):rawCandidate;
+    if(!candidate.trim()||candidate.replace(/\s/g,'')!==oldText.replace(/\s/g,''))continue;
+    let at=content.indexOf(candidate);
+    while(at>=0){
+      let end=at+candidate.length;
+      // The upstream line replacer omits a requested trailing newline from its
+      // candidate. Include that observed newline so replacement keeps one copy.
+      if(oldText.endsWith('\n')&&!candidate.endsWith('\n')){
+        const length=content.startsWith('\r\n',end)?2:content.startsWith('\n',end)?1:0;
+        if(!length){at=content.indexOf(candidate,at+1);continue;}end+=length;
+      }
+      matches.set(at+':'+end,{start:at,end});if(matches.size>1)fail('edit_text_ambiguous');at=content.indexOf(candidate,at+1);
+    }
+  }
+  if(!matches.size)fail('edit_text_missing');return [...matches.values()];
+}
+
+export function preserveSourceFormat(before,content,{lineEndings='preserve'}={}){
+  if(typeof content!=='string'||!['preserve','lf','crlf'].includes(lineEndings))fail('edits_invalid');
+  const ending=lineEndings==='crlf'||lineEndings==='preserve'&&before.includes('\r\n')?'\r\n':'\n';
+  let text=content.replaceAll('\r\n','\n').replaceAll('\n',ending);
+  if(before.startsWith('\uFEFF')&&!text.startsWith('\uFEFF'))text='\uFEFF'+text;
+  return text;
+}
+
+export function replaceObserved(file, expectedHash, edits, observations,{matching='exact'}={}) {
   if (file.hash !== expectedHash) fail('source_stale');
+  if(!['exact','opencode'].includes(matching))fail('edits_invalid');
   if (!Array.isArray(edits) || !edits.length || edits.length > 10) fail('edits_invalid');
   const changes = edits.flatMap((edit,index) => {
     if (!edit || typeof edit.oldText !== 'string' || !edit.oldText || edit.oldText.length > 20000 || typeof edit.newText !== 'string' || edit.newText.length > 20000 || edit.replaceAll!==undefined&&typeof edit.replaceAll!=='boolean') fail('edits_invalid');
-    const view = matchView(file.content, edit.oldText, edit.newText);
-    if (!view.matches.length) failWith('edit_text_missing',{edit:index,...(closestLine(file,observations,edit.oldText)?{closest:closestLine(file,observations,edit.oldText)}:{})});
-    if (view.matches.length > 1 && !edit.replaceAll) failWith('edit_text_ambiguous',{edit:index,matches:view.matches.length,lines:view.matches.map(match=>lineOf(file.content,match.start))});
-    return view.matches.map(match=>{
-      observations.require(file, lineOf(file.content,match.start), lineOf(file.content,Math.max(match.start,match.end - 1)));
-      return {start: match.start, end: match.end, text: view.replace(match)};
+    const ending=file.content.includes('\r\n')?'\r\n':'\n';
+    const oldText=matching==='opencode'?edit.oldText.replaceAll('\r\n','\n').replaceAll('\n',ending):edit.oldText;
+    // Keep the BOM outside the matched span. It is file encoding metadata.
+    const bom=matching==='opencode'&&file.content.startsWith('\uFEFF')?1:0;
+    let matches;
+    try {
+      matches=observedMatch(file.content.slice(bom),oldText,{replaceAll:edit.replaceAll,matching});
+    } catch(error) {
+      if(error.message==='edit_text_missing'){const closest=closestLine(file,observations,edit.oldText);error.details={edit:index,...(closest?{closest}:{})};}
+      throw error;
+    }
+    return matches.map(match=>{
+      const start=match.start+bom,end=match.end+bom;
+      observations.require(file,lineOf(file.content,start),lineOf(file.content,Math.max(start,end-1)));
+      return {start,end,text:matching==='opencode'?edit.newText.replaceAll('\r\n','\n').replaceAll('\n',ending):edit.newText};
     });
   }).sort((a, b) => a.start - b.start);
   if (changes.some((change, index) => index && change.start < changes[index - 1].end)) fail('edits_overlap');

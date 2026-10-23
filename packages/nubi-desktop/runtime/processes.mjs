@@ -32,7 +32,12 @@ export function shellArguments(shell, profile, script, {interactive=false}={}) {
   return [...POWERSHELL_TEXT_ARGS.filter(arg=>!interactive||arg!=='-NonInteractive'),'-EncodedCommand',encoded];
 }
 
-export async function shellProfiles({platform=process.platform,bashCandidates,env=process.env,exists,lookup}={}) {
+const cachedProfiles=discovery.createShellProfileCache(()=>discoverShellProfiles());
+export function shellProfiles(options) {
+ if(options!==undefined)return discoverShellProfiles(options);
+ return cachedProfiles(JSON.stringify([process.platform,...['ProgramFiles','SystemRoot','LOCALAPPDATA','NUBI_BASH_PATH','PATH'].map(name=>process.env[name])]));
+}
+async function discoverShellProfiles({platform=process.platform,bashCandidates,env=process.env,exists,lookup}={}) {
   if (platform !== 'win32') return [{id: 'bash', label: 'Bash', executable: '/bin/bash', args: ['--noprofile', '--norc', '-c']}];
   const system32=path.win32.join(env.SystemRoot || 'C:\\Windows','System32');
   const profiles = [{id: 'powershell', label: 'PowerShell', executable: await discovery.powerShellExecutable({env,exists,lookup}), args: ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command']},

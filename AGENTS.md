@@ -1,6 +1,14 @@
 # AGENTS.md
 
+## Main 반영 기준 (사용자 결정 2026-10-23)
+
+- 개발과 해당 변경의 검증이 끝나면 MUST 완료한 변경을 해당 제품 저장소의 `main`에 커밋하고 원격 `main`까지 바로 반영한다. 이 지시는 매번의 정상적인 main 반영을 승인한 것이므로 같은 승인을 다시 묻지 않는다.
+- 누비 Desktop 소스의 대상은 `plaire48/llm_router_desktop`의 `main`이다. 현재 폴더의 라우터 `origin`과 혼동하지 않는다. 기존 main의 변경을 보존하며 강제 푸시, reset, clean, 자동 stash나 다른 미완료 작업의 일괄 커밋은 하지 않는다.
+- 소스 입력과 업로드 안전 검사를 유지하고 실제 원격 SHA를 확인한다. 소스 main 반영, CI 통과, 설치판 배포와 Windows 실기기 검증은 각각 구분해 보고한다. 기존 업로더 담당자 제한은 사용자가 명시한 이 main 반영 범위에서 대체한다.
+
 This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+
+- OpenCode 감사 후속 2026-10-23: 관리형 서버는 인스턴스별 인증을 유지하고 진행 요청/대기 도구를 끊는 프로필 변경과 로그인 재시작을 거절한다. 도구 결과 재개는 최초 모델/지시/함수/출력 조건을 대조하고 불일치 때 결과를 발행하지 않는다. 과거 메시지는 역할을 표시한 자료로 전달하며 native 역할 완전 호환이라고 표시하지 않는다. 만료 정리와 최대 32개 MCP 슬롯, 미확정 정리 슬롯 격리를 유지한다. `tests/test_opencode_safety.py`와 `tools/check_opencode_inheritance.py`는 회귀 기준이며 실제 모델/Windows/제품 전체 품질과 구분한다.
 
 ## 프로젝트
 

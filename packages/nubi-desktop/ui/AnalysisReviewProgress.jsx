@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
 import {Icon} from '@e2e/cx-design-system';
-const labels={ready:'확인할 내용이 남아 있어요',revise:'보완할 결과가 있어요',failed:'결과 검토를 마치지 못했어요',interrupted:'결과 검토가 중단됐어요',cancelled:'결과 검토가 중지됐어요'};
+import {reviewPresentation} from './review-presentation.mjs';
 const failureReasons={review_json_invalid:'AI의 검토 응답 형식이 맞지 않아요.',review_schema_invalid:'AI의 검토 항목과 근거가 맞지 않아요.',review_envelope_invalid:'AI가 검토 결과 대신 다른 응답을 보냈어요.',review_output_limit:'AI의 검토 응답이 길이 제한으로 끊겼어요.',unauthorized:'AI 연결이 만료됐어요. 다시 로그인해 주세요.',model_unavailable:'AI 연결을 확인하지 못했어요.',model_timeout:'AI의 검토 응답을 제시간에 받지 못했어요.',context_input_too_large:'검토할 내용이 모델의 문맥 한도를 넘었어요.'};
 const checkLabels={supported:'근거 확인',pending:'승인 또는 진행 대기',unknown:'미확인'};
 function ReviewCheck({check}) {
@@ -14,10 +14,10 @@ export function AnalysisReviewProgress({review,running}){
   const active=running&&review.state==='running',open=expanded??active;
   const fold=!active;
   const checks=review.checks||[],unresolved=checks.filter(check=>check.state!=='supported');
-  const supported=review.state==='ready'&&checks.length>0&&checks.every(check=>check.state==='supported')&&!review.omittedHandoffs&&!review.omittedUnresolvedHandoffs&&!review.nextStep;
+  const {visible,supported,heading:summary,tone,icon}=reviewPresentation(review,running);
+  if(!visible)return null;
   if(supported)return <details className="nubi-review-evidence" aria-label="확인한 근거"><summary><Icon name="check" size={14}/>확인한 근거 {checks.length}개<Icon name="chevronDown" size={14}/></summary><ol>{checks.map(check=><li key={check.requirementId}>{check.detail}</li>)}</ol></details>;
-  const tone=active?'active':'warning';
-  const heading=<div className="nubi-document-progress-heading" role="status"><Icon name={active?'search':'alertCircle'} size={18}/><strong>{active?'답변과 근거를 대조하고 있어요':labels[review.state]||'검토 응답 미확인'}</strong>{fold&&unresolved.length>0&&<span className="nubi-review-count">{unresolved.length}개</span>}{fold&&<Icon name="chevronDown" size={14}/>}</div>;
+  const heading=<div className="nubi-document-progress-heading" role="status"><Icon name={icon} size={18}/><strong>{summary}</strong>{fold&&unresolved.length>1&&<span className="nubi-review-count">{unresolved.length}개</span>}{fold&&<Icon name="chevronDown" size={14}/>}</div>;
   const next=review.nextStep&&<p className="nubi-review-next"><strong>다음 단계</strong><span>{review.nextStep}</span></p>;
   const body=<>
     {review.state==='failed'&&<p>{failureReasons[review.reason]||'검토 응답을 받지 못했어요.'} 요청과 실행 기록은 보관했습니다. 아래 복구 버튼으로 이어갈 수 있어요.</p>}
@@ -38,7 +38,7 @@ export function AnalysisReviewProgress({review,running}){
   // failure reason and check evidence remain available on deliberate expansion.
   if(fold)return <section className="nubi-document-progress nubi-result-review" aria-label="분석 결과 검토" data-state={review.state} data-tone={tone} data-folded="">
     <details className="nubi-review-fold"><summary>{heading}</summary>{body}</details>
-    {next}
+    {next&&review.nextStep!==summary&&next}
   </section>;
   return <section className="nubi-document-progress nubi-result-review" aria-label="분석 결과 검토" data-state={review.state} data-tone={tone}>
     {heading}{body}

@@ -1,0 +1,28 @@
+{
+  "version": "1.19.4",
+  "commit": "148842ef7cb1bc34192b3fff57d0f9721ab9c801",
+  "repository": "https://github.com/anomalyco/opencode",
+  "release": "https://github.com/anomalyco/opencode/releases/tag/v1.19.4",
+  "targets": {
+    "darwin-arm64": {
+      "archive": "opencode-darwin-arm64.zip",
+      "sha256": "c400a2f8c8ab7e99478a7f4dd1a466b57bf33888e520d85c55780a5464c4b689",
+      "size": 64291659
+    },
+    "darwin-x64": {
+      "archive": "opencode-darwin-x64.zip",
+      "sha256": "123ebd72609c4f8dbae0485cdac39b9aedfeb6576b2eef64f2e73152b1de82f4",
+      "size": 69113309
+    },
+    "win32-x64": {
+      "archive": "opencode-windows-x64.zip",
+      "sha256": "93b899277bd6f68803009e32bf71772ce43c34b18adf1e93b9b4d8780fdf62e5",
+      "size": 81744896
+    },
+    "linux-x64": {
+      "archive": "opencode-linux-x64.tar.gz",
+      "sha256": "849bd6b3d959a1d2ef200ed1634a51c79a45ca236aa26665d75debd694805cce",
+      "size": 79667571
+    }
+  }
+}

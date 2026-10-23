@@ -3,6 +3,7 @@ import {mkdtemp,mkdir,writeFile,realpath,rm} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {ProjectService} from '../runtime/project-service.mjs';
+import {runAgent} from '../../../extensions/aipro-chat/agent-runtime.js';
 import {git} from '../runtime/files.mjs';
 import {WORK_PLAN_PROMPT} from '../runtime/work-plan.mjs';
 import {REVIEW_PROMPT} from '../runtime/result-review.mjs';
@@ -24,6 +25,9 @@ export async function fixture(t,{scriptedReview=false,scriptedPlanning=false}={}
   await writeFile(path.join(root,'openwiki','home.md'),'# Project knowledge\n\nThe welcome screen uses app.txt.\n');
   await git(root,['add','.']);await git(root,['commit','-qm','Initial fixture']);
   const service=new ProjectService({storageRoot:path.join(directory,'state')});await service.open(root);
+  // Focused host tests retain their scripted turn driver. Native-engine tests
+  // explicitly clear this injection and run the bundled original executable.
+  service.codingRunner=runAgent;
   // Existing focused tool tests script executor turns only. Supply a distinct
   // reviewer response without consuming those scripts. End-to-end review tests
   // opt into scriptedReview and exercise the real review/provider boundary.

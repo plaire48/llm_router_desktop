@@ -5,7 +5,7 @@ import os
 import time
 import webbrowser
 from collections.abc import Awaitable, Callable
-from contextlib import suppress
+from contextlib import nullcontext, suppress
 from typing import Any, Literal
 
 import httpx
@@ -621,6 +621,7 @@ def build_control_router(
                 provider_response = await client.get(
                     f"{active_opencode_runtime.base_url}/provider",
                     params={"directory": str(active_opencode_runtime.directory)},
+                    auth=getattr(active_opencode_runtime, "auth", None),
                 )
                 provider_response.raise_for_status()
                 provider_payload = provider_response.json()
@@ -693,27 +694,34 @@ def build_control_router(
                 code="profile_exists",
                 status_code=409,
             )
-        profile = profile_from_payload(payload)
-        if profile.provider == "openai" and profile.auth == "oauth":
-            client = await client_getter()
-            await active_opencode_runtime.ensure_started(client)
-        if is_aipro_profile(profile) and (
-            profile.auth == "api_key" or active_aipro_store.status()["connected"]
-        ):
-            client = await client_getter()
-            await active_opencode_runtime.ensure_profile(client, profile)
-        registry.upsert(profile)
-        profiles_file.save(registry)
-        return {
-            "profile": profile.name,
-            "inference_engine": (
-                "opencode"
-                if (profile.provider == "openai" and profile.auth == "oauth")
-                or is_aipro_profile(profile)
-                else None
-            ),
-            "gateway": _gateway_data(settings),
-        }
+        changes_runtime = payload.provider == "aipro" or is_aipro_base_url(payload.base_url or "")
+        guard = (
+            getattr(active_opencode_runtime, "configuration_guard", nullcontext)
+            if changes_runtime
+            else nullcontext
+        )
+        async with guard():
+            profile = profile_from_payload(payload)
+            if profile.provider == "openai" and profile.auth == "oauth":
+                client = await client_getter()
+                await active_opencode_runtime.ensure_started(client)
+            if is_aipro_profile(profile) and (
+                profile.auth == "api_key" or active_aipro_store.status()["connected"]
+            ):
+                client = await client_getter()
+                await active_opencode_runtime.ensure_profile(client, profile)
+            registry.upsert(profile)
+            profiles_file.save(registry)
+            return {
+                "profile": profile.name,
+                "inference_engine": (
+                    "opencode"
+                    if (profile.provider == "openai" and profile.auth == "oauth")
+                    or is_aipro_profile(profile)
+                    else None
+                ),
+                "gateway": _gateway_data(settings),
+            }
 
     @router.put("/v1/profiles/{profile_name}", dependencies=protected)
     async def update_profile(profile_name: str, payload: ProfileWrite) -> dict[str, Any]:
@@ -725,39 +733,57 @@ def build_control_router(
                 code="profile_name_immutable",
                 status_code=409,
             )
-        profile = profile_from_payload(payload, existing)
-        remove_stored_api_key = existing.auth == "api_key" and profile.auth == "none"
-        if is_aipro_profile(existing) and not is_aipro_profile(profile):
-            await active_opencode_runtime.remove_profile(existing)
-        if profile.provider == "openai" and profile.auth == "oauth":
-            client = await client_getter()
-            await active_opencode_runtime.ensure_started(client)
-        if is_aipro_profile(profile) and (
-            profile.auth == "api_key" or active_aipro_store.status()["connected"]
-        ):
-            client = await client_getter()
-            await active_opencode_runtime.ensure_profile(client, profile)
-        registry.upsert(profile, previous_name=profile_name)
-        profiles_file.save(registry)
-        if remove_stored_api_key:
-            secrets_store.delete(profile_name)
-        return {
-            "profile": profile.name,
-            "inference_engine": (
-                "opencode"
-                if (profile.provider == "openai" and profile.auth == "oauth")
-                or is_aipro_profile(profile)
-                else None
-            ),
-            "gateway": _gateway_data(settings),
-        }
+        changes_runtime = (
+            payload.provider == "aipro"
+            or is_aipro_base_url(payload.base_url or "")
+            or is_aipro_profile(existing)
+        )
+        guard = (
+            getattr(active_opencode_runtime, "configuration_guard", nullcontext)
+            if changes_runtime
+            else nullcontext
+        )
+        async with guard():
+            profile = profile_from_payload(payload, existing)
+            remove_stored_api_key = existing.auth == "api_key" and profile.auth == "none"
+            if is_aipro_profile(existing) and not is_aipro_profile(profile):
+                await active_opencode_runtime.remove_profile(existing)
+            if profile.provider == "openai" and profile.auth == "oauth":
+                client = await client_getter()
+                await active_opencode_runtime.ensure_started(client)
+            if is_aipro_profile(profile) and (
+                profile.auth == "api_key" or active_aipro_store.status()["connected"]
+            ):
+                client = await client_getter()
+                await active_opencode_runtime.ensure_profile(client, profile)
+            registry.upsert(profile, previous_name=profile_name)
+            profiles_file.save(registry)
+            if remove_stored_api_key:
+                secrets_store.delete(profile_name)
+            return {
+                "profile": profile.name,
+                "inference_engine": (
+                    "opencode"
+                    if (profile.provider == "openai" and profile.auth == "oauth")
+                    or is_aipro_profile(profile)
+                    else None
+                ),
+                "gateway": _gateway_data(settings),
+            }
 
     @router.delete("/v1/profiles/{profile_name}", dependencies=protected)
     async def delete_profile(profile_name: str) -> dict[str, Any]:
-        profile = registry.delete(profile_name)
-        await active_opencode_runtime.remove_profile(profile)
-        profiles_file.save(registry)
-        secrets_store.delete(profile_name)
+        profile = registry.resolve(profile_name)
+        guard = (
+            getattr(active_opencode_runtime, "configuration_guard", nullcontext)
+            if is_aipro_profile(profile)
+            else nullcontext
+        )
+        async with guard():
+            await active_opencode_runtime.remove_profile(profile)
+            registry.delete(profile_name)
+            profiles_file.save(registry)
+            secrets_store.delete(profile_name)
         return {"profile": profile_name, "status": "deleted"}
 
     @router.post("/v1/profiles/{profile_name}/start", dependencies=protected)

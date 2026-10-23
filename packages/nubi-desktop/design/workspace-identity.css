@@ -3,6 +3,7 @@
 /* Desktop adaptation of the supplied HTML. Palette and shared components
    come from agent-deck.css; this layer closes host and portal differences. */
 :root {
+  --nubi-progress-height:6px;
   --nubi-welcome-bird-size: clamp(176px, min(31vh, 42vw), 280px);
   --nubi-welcome-inset: clamp(16px, 4vh, 40px);
   --deck-blue: var(--nuvi-primary);
@@ -254,7 +255,7 @@
   --nubi-dialog-field-gap: var(--cx-space-2);
   --nubi-dialog-symbol-size: 2rem;
   --nubi-chat-width: clamp(700px, 94cqi, 1480px);
-  --nubi-chat-reading-width: 70rem;
+  --nubi-chat-reading-width: 100%;
   --nubi-transcript-icon-size: var(--nubi-icon-control);
   --nubi-question-marker-min-size: max(var(--cx-space-5), var(--nubi-transcript-icon-size));
   --nubi-question-pencil-inset: calc(var(--nubi-icon-inline) * .15);
@@ -712,8 +713,12 @@
 :is(.nubi-workbench, .nubi-panel) .nubi-search > .nubi-icon-button { position:absolute; right:2px; top:50%; transform:translateY(-50%); }
 /* OpenWiki (user decision 2026-09-30): the update's progress as a bar, what it sends to the model as a note, pages as
    chips; results with the title and freshness first, then the passage, then where it is. */
-.nubi-progress { height:6px; margin-top:var(--cx-space-3); border-radius:var(--deck-pill-radius); background:var(--deck-tint); overflow:hidden; }
-.nubi-progress > span { display:block; height:100%; border-radius:inherit; background:var(--deck-blue); transition:none; }
+.nubi-progress { width:100%; height:var(--nubi-progress-height); flex:none; margin-top:var(--cx-space-3); border-radius:var(--deck-pill-radius); background:var(--deck-tint); overflow:hidden; }
+.nubi-progress > span { display:block; width:100%; height:100%; border-radius:inherit; background:var(--deck-blue); transform-origin:left center; transition:transform var(--nubi-progress-fill-duration) var(--nubi-ease-out); }
+/* Capacity/usage meters share the track, retaining their real values and the
+   existing provider colours. They never receive pending-work animation. */
+:is(.desktop-shell,.cx-panel-backdrop) .context-bar { height:var(--nubi-progress-height); border-radius:var(--deck-pill-radius); background:var(--deck-tint); }
+:is(.desktop-shell,.cx-panel-backdrop) .context-bar>span { border-radius:inherit; }
 .nubi-action-note { display:flex; align-items:flex-start; gap:var(--cx-space-2); margin:var(--cx-space-3) 0 0; padding:calc(var(--cx-space-1) * 2.5) var(--cx-space-3); border-radius:var(--deck-inset-radius); background:var(--deck-tint); color:var(--deck-sub); font:var(--deck-font-caption); }
 .nubi-action-note > svg { flex:none; margin-top:calc(var(--cx-space-1) * 0.25); color:var(--deck-blue); }
 .nubi-page-chips { display:flex; flex-wrap:wrap; gap:calc(var(--cx-space-1) * 1.5); margin:var(--cx-space-3) 0 0; padding:0; list-style:none; }
@@ -1056,7 +1061,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 :is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-allowed li{display:flex;align-items:center;gap:calc(var(--cx-space-1) * 1.5);padding:calc(var(--cx-space-1) * 0.5) 0 calc(var(--cx-space-1) * 0.5) var(--cx-space-1);}
 :is(.nubi-workbench, .nubi-panel, .nubi-approval-mode-layer) .nubi-approval-allowed code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:var(--deck-font-body);color:var(--deck-ink)}
 
-/* Keep the conversation in one reading column with its composer at the bottom. */
+/* Share the available conversation width with its bottom composer. */
 .nubi-workbench { height:100vh; overflow:hidden; }
 .nubi-workbench-layout { height:100%; min-height:0; }
 .nubi-workbench-content { display:flex; flex-direction:column; min-height:0; container-type:inline-size; container-name:nubi-chat-area; }
@@ -1850,9 +1855,10 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-wiki-progress-dialog .nubi-wiki-initialization-line { flex-wrap:nowrap;gap:var(--cx-space-3); }
 .nubi-wiki-progress-dialog .nubi-wiki-percent { margin-left:auto; }
 .nubi-wiki-eta { display:block;margin-top:var(--cx-space-2);color:var(--nubi-text-secondary); }
-.nubi-progress.is-indeterminate span { width:30%;animation:nubi-wiki-scan var(--nubi-ambient-progress) linear infinite; }
-@keyframes nubi-wiki-scan { from { transform:translateX(-100%); } to { transform:translateX(334%); } }
-@media(prefers-reduced-motion:reduce){.nubi-progress.is-indeterminate span{animation:none;transform:none;}}
+/* Pending activity fills once and holds; only real measurements have a %. */
+.nubi-progress.is-indeterminate>span { transform:scaleX(var(--nubi-progress-pending-start)); transition:none; }
+@media(prefers-reduced-motion:reduce){.nubi-progress>span{transition:none}.nubi-progress.is-indeterminate>span{animation-play-state:paused!important;}}
+@media(forced-colors:active){.nubi-progress{background:Canvas;outline:1px solid CanvasText;outline-offset:-1px}.nubi-progress>span{background:Highlight}}
 
 /* Git empty results share the existing Nubi mascot and readable CX tokens. */
 .nubi-git-empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--cx-space-4); min-height:196px; padding:var(--cx-space-5) var(--cx-space-3); box-sizing:border-box; }
@@ -1896,10 +1902,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 @keyframes nubi-live-spin { to { transform:rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .nubi-agent-activity[data-activity-live=true] .agent-trace > summary > svg:first-child,.nubi-agent-activity[data-activity-live=true] .agent-trace > summary > .agent-trace-title { animation:none; } }
 
-/* Any host request slower than 400 ms shows a moving line under the toolbar so a wait reads as work, not a freeze (2026-10-14). */
-html[data-host-busy] .desktop-shell::after { content:""; position:fixed; left:0; right:0; top:var(--desktop-toolbar-height,48px); height:2px; z-index:40; pointer-events:none; background:linear-gradient(90deg,transparent 0%,var(--deck-blue) 50%,transparent 100%); background-size:40% 100%; animation:nubi-host-busy var(--nubi-ambient-host) linear infinite; }
-@keyframes nubi-host-busy { from { transform:translateX(-40%); } to { transform:translateX(140%); } }
-@media (prefers-reduced-motion: reduce) { html[data-host-busy] .desktop-shell::after { animation:none; background:var(--deck-blue-soft); } }
+/* Host operations are named in the shared bottom status bar. */
 
 /* While another project opens, the current workbench fades instead of sitting frozen; the next one fades in (2026-10-14). */
 .nubi-workbench .nubi-main, .nubi-workbench .nubi-sidebar { transition:opacity var(--nubi-motion-state) ease; }

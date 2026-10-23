@@ -17,7 +17,7 @@ export const TOOL_RULES=`Tool rules.
 - wiki_query: Excerpts/evidenceIds support record_change_plan, includeHistory adds older revisions; synthesis uses ask_openwiki.
 - mail_facts: Read original mail for conditions behind dated quotes.
 - update_plan: Initially intent and one in_progress, later all completed allowed; review outcomes, preserve scope/approvals, disclose excerpt/original access and dated-source uncertainty without extra PDFs, quotas or rankings.
-- ask_openwiki: Researches openwiki/ separately; Simple documented facts can use wiki_query with wiki.language, exhaustive review is only for an explicit whole-Wiki request and costs many calls, and check current source for stale/missing evidence or code-dependent claims.
+- ask_openwiki: researches openwiki/ separately; Simple documented facts can use wiki_query with wiki.language, exhaustive review is only for an explicit whole-Wiki request and costs many calls, and check current source for stale/missing evidence or code-dependent claims.
 - compare_document_values: Read sources with current hashes, UTF-16 ranges and task-bound attachments; strict decimal/grouped equality verifies neither units, formulas nor whole documents.
 - learn_browser_screen: Save requested structure in the project-private tab/document scope; clarify unresolved meaning without granting execution authority.
 - remember_browser_screen: Current host model saves matching-screen labels to private Wiki, never results, values, authority or verified procedures.

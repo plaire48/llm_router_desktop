@@ -84,7 +84,7 @@ import {createDesktopProviders as createProviders} from './desktop-providers.mjs
 import {desktopChatGPTModels} from './chatgpt-catalog.mjs';
 import {fabrix} from './fabrix.mjs';
 import {compare} from './comparison.mjs';
-import {SourceObservations, replaceObserved} from './source-edits.mjs';
+import {SourceObservations, replaceObserved,preserveSourceFormat} from './source-edits.mjs';
 import {rememberWikiEvidence,validateWikiEvidence,wikiOverview,wikiPages,wikiAnswer,groundWikiAnswer} from './wiki-evidence.mjs';
 import {keepWikiEvidence,carriedWikiEvidence} from './wiki-carry.mjs';
 import {CHANGE_PLAN_SCHEMA,normalizeChangePlanArgs,recordChangePlan,requirePlannedEdit} from './change-plan.mjs';
@@ -97,6 +97,7 @@ import {REVIEW_RECOVERY_TOOLS,reviewRecoveryTools} from './review-recovery.mjs';
 import {createRunMetrics} from './run-metrics.mjs';
 import {recoveryInstruction,RECOVERABLE_CODES,computerInstruction} from './tool-feedback.mjs';
 import {createToolRecoveryLoop} from './tool-recovery-loop.mjs';
+import {preferOpenCodeCoding} from './coding-engine-routing.mjs';
 
 const tool = (name, description, properties, required = Object.keys(properties)) => ({type: 'function', function: {name, description, parameters: {type: 'object', properties, required, additionalProperties: false}}});
 const string = maxLength => ({type: 'string', maxLength});
@@ -117,16 +118,16 @@ const FULL_DESCRIPTION_OVERRIDES={
   inspect_workspace_changes:"Read Git status or a bounded diff.",
   read_analysis_handoff:"Read a saved analyst handoff.",
   propose_setup_action:"Prepare an exact command for approval.",
-  delegate_research:"Investigate scoped sources in a read-only worker.",
-  continue_research:"Follow up with an existing research worker.",
-  analyze_documents:"Analyze bounded text files with read-only workers.",
+  delegate_research:"Research scoped sources read-only.",
+  continue_research:"Continue an existing research worker.",
+  analyze_documents:"Analyze bounded text files read-only.",
   read_attached_document:"Read a bounded attached-document range.",
   delegate_analysis:"Delegate isolated analysis of frozen evidence.",
   update_wiki:"Refresh OpenWiki on the user's request.",
-  read_personal_mail:"Read one local mail or its attachment by id.",
+  read_personal_mail:"Read local mail or attachment by id.",
   personal_mail_query:"Search local mail and Personal Wiki.",
   discover_capabilities:"Find skill metadata and host workflows.",
-  collect_analysis:"Collect finished or historical analyst reports.",
+  collect_analysis:"Collect finished or saved analyst reports.",
   recovery_snapshot:"Inspect saved host state before recovery.",
   compare_local_pages:"Compare two observed localhost pages.",
   propose_command_repair:"Propose a corrected failed command for review.",
@@ -138,7 +139,7 @@ const FULL_DESCRIPTION_OVERRIDES={
   mail_facts:"Find dated, quoted mail facts with sources.",
   read_document_analysis:"Read saved analysis or excerpts.",
   update_plan:"Plan outcome steps.",
-  ask_openwiki:"Delegate synthesis or how/why; researches openwiki/ separately.",
+  ask_openwiki:"Delegate synthesis/how/why research in openwiki/.",
   compare_document_values:"Compare exact numeric source ranges.",
   fill_document_form:"Fill a Word form from the user's words into a copy.",
   learn_browser_screen:"Learn authorized screen structure and meaning.",
@@ -147,9 +148,9 @@ const FULL_DESCRIPTION_OVERRIDES={
   code_outline:"List declarations and imports.",
   inspect_path:"Inspect a new path and rules.",
   propose_new_file:"Propose a new text file for review.",
-  propose_patch:"Propose exact replacements in freshly read ranges.",
+  propose_patch:"Propose replacements in observed ranges.",
   propose_edit:"Propose a whole-file edit for review.",
-  read_source:"Read source lines with their hash and nextStart.",
+  read_source:"Read source lines, hash, nextStart.",
   record_change_plan:"Record the change plan.",
   read_process_output:"Read or search a process log by processId.",
 };
@@ -395,8 +396,8 @@ export function installAgent(ProjectService) {
       tool('knowledge_query', 'Find concepts, source, DB schema and Wiki relations; focusId explores up to two hops.', {query: string(500),focusId:string(500)}, ['query']),
       tool('wiki_query', 'Search Wiki words; returns excerpts/evidenceIds for record_change_plan. includeHistory adds older revisions. For synthesis use ask_openwiki.', {query: string(500),includeHistory:{type:'boolean'}}, ['query']),
       {type:'function',function:{name:'record_change_plan',description:'Record the change plan before edits: summary, requirements, targets (path, reason, requirementIds, action), checks, assumptions.',parameters:CHANGE_PLAN_SCHEMA}},
-      tool('propose_patch', 'Up to 10 non-overlapping replacements in ranges read this run; oldText matches exactly or ignoring trailing spaces and quote/dash forms, keeping CRLF. Unique unless replaceAll.', {path: string(1000), expectedHash: string(100), edits: {type:'array', minItems:1, maxItems:10, items:{type:'object', properties:{oldText:{type:'string',minLength:1,maxLength:20000},newText:string(20000),replaceAll:{type:'boolean'}},required:['oldText','newText'],additionalProperties:false}}, reason: string(2000)}),
-      tool('propose_edit', 'Prepare a reviewable whole-file edit using its observed hash; needs every line read this run.', {path: string(1000), expectedHash: string(100), content: string(200000), reason: string(2000)}),
+      tool('propose_patch', 'Prepare up to 10 non-overlapping replacements in freshly read ranges. Exact by default; matching=opencode admits one unique observed whitespace/indentation span, preserving CRLF. replaceAll explicitly replaces every identical observed occurrence.', {path: string(1000), expectedHash: string(100), matching:{enum:['exact','opencode']}, edits: {type:'array', minItems:1, maxItems:10, items:{type:'object', properties:{oldText:{type:'string',minLength:1,maxLength:20000},newText:string(20000),replaceAll:{type:'boolean'}},required:['oldText','newText'],additionalProperties:false}}, reason: string(2000)},['path','expectedHash','edits','reason']),
+      tool('propose_edit', 'Prepare a whole-file edit using its observed hash; needs every line read this run. Preserve BOM and line endings by default. Explicit lineEndings conversion must match the user request.', {path: string(1000), expectedHash: string(100), content: string(200000), reason: string(2000),lineEndings:{enum:['preserve','lf','crlf']}},['path','expectedHash','content','reason']),
       tool('ask_user', 'Ask ONE missing decision with 2-4 grounded choices or free text.', {question:string(180),selection:{enum:['single','multiple']},choices:{type:'array',minItems:2,maxItems:4,items:{type:'object',properties:{label:string(80),description:string(160)},required:['label'],additionalProperties:false}},input_mode:{type:'string',enum:['text','long_text']},input_placeholder:{type:'string',minLength:1,maxLength:100,pattern:'^[^\\r\\n]+$'}},['question']),
 
     ].filter(item=>!['delegate_to_browser','delegate_to_office'].includes(item.function.name)&&(computerAvailable||!COMPUTER_TOOL_NAMES.has(item.function.name)));
@@ -412,7 +413,7 @@ export function installAgent(ProjectService) {
     else tools=[...tools,...await this.mcpDefinitions()];
     // A run that delegated waits for that task: it ends without review, and the task's end continues the conversation.
     let delegations=0;const waitingPeer=()=>delegations>0&&!!pendingPeer(this,task);
-    const invokeModel = modelTransport(this,{signal:controller.signal,metrics,onText:text=>{if(!controller.signal.aborted&&this.agent?.runId===runId)this.agent.streamingAnswer=text.slice(0,100000);},onReasoning:text=>{if(!controller.signal.aborted&&this.agent?.runId===runId)this.agent.streamingReasoning=text.slice(-6000);},onRetry:(attempt,facts)=>{task.recovery={state:'retrying',attempt,...facts,at:new Date().toISOString()};persistTask();}});
+    const invokeModel = modelTransport(this,{signal:controller.signal,metrics,onText:text=>{if(!controller.signal.aborted&&this.agent?.runId===runId){this.agent.streamingAnswer=text.slice(0,100000);this.agent.streamRevision=(this.agent.streamRevision||0)+1;this.streamChanged();}},onReasoning:text=>{if(!controller.signal.aborted&&this.agent?.runId===runId){this.agent.streamingReasoning=text.slice(-6000);this.agent.streamRevision=(this.agent.streamRevision||0)+1;this.streamChanged();}},onRetry:(attempt,facts)=>{task.recovery={state:'retrying',attempt,...facts,at:new Date().toISOString()};persistTask();}});
     // lastWire is the request as the model received it, after compaction. lastSource is the same
     // conversation before compaction: the run context counts its positions in that one.
     let lastWire=[],lastSource=null,planningHistory=[],overflowing=false,reviewRecoveryActive=false,thoughtCount=0,captureNotes=[],plannerFailures=0,actionsIssued=false;
@@ -490,6 +491,7 @@ export function installAgent(ProjectService) {
     const offerCarried=()=>{for(const {excerpt,...row} of carried)(observations.wikiEvidence||=new Map()).set(row.evidenceId,row);};
     // A compaction forgets the reads and the Wiki evidence of this run. Those that the compacted conversation still holds whole count again.
     const reobserve=wire=>{if(compacted){compacted=false;for(const read of observedReads(wire))observations.observe(read);for(const [id,row] of wikiInView(wire,wikiBefore))(observations.wikiEvidence||=new Map()).set(id,row);wikiBefore=new Map();offerCarried();}return wire;};
+    const forgetObservations=()=>{compacted=true;computerReads.clear();computerAppReads.clear();loadedSkills.clear();observations.files.clear();observations.processes?.clear();observations.environment?.clear();observations.newPaths.clear();for(const entry of observations.wikiEvidence||[])wikiBefore.set(...entry);observations.wikiEvidence?.clear();};
     const withoutCleared=wire=>{
       if(!clearedResults.size)return wire;
       const names=new Map();for(const message of wire)for(const item of message.tool_calls||[])names.set(item.id,item.function?.name);
@@ -554,7 +556,7 @@ export function installAgent(ProjectService) {
     };
     // After a compaction the gauge shows the compacted size until the next answer is counted.
     const rememberCompaction=(summary,trigger)=>{metrics.compaction({trigger,beforeTokens:summary.beforeTokens,afterTokens:summary.afterTokens});const at=new Date().toISOString();task.context={...task.context,phase:'ready',status:'completed',compactions:(task.context?.compactions||0)+1,beforeTokens:summary.beforeTokens,afterTokens:summary.afterTokens,estimated:true,at,...(Number.isSafeInteger(summary.afterTokens)?{usage:gauge(null,()=>summary.afterTokens,at,'compaction')}:{})};persistTask();};
-    const persistTask = () => { const current = this.task(taskId); for (const key of ['state','question','error','messages','chapters','outputs','trace','sources','evidenceCount','changePlan','questionHistory','checkpoint','recovery','context','resultReview','reviewDraft','workPlan','activityHistory','documentAnalysis','computerConnectionRequest','peerWait','peerFacts','responseTiming','mailReferences','documentReferences','replyRegeneration','thoughts','runBudget','pendingMcp','mcpApprovals','mcpContinuation']) if (key in task) current[key] = task[key]; if(task.sideTasks||current.sideTasks)current.sideTasks=task.sideTasks=mergeSideTasks(current.sideTasks,task.sideTasks); this.store.set('task:'+taskId,current); };
+    const persistTask = () => { const current = this.task(taskId); for (const key of ['state','question','error','messages','chapters','outputs','trace','sources','evidenceCount','changePlan','questionHistory','checkpoint','recovery','context','resultReview','reviewDraft','workPlan','activityHistory','documentAnalysis','computerConnectionRequest','peerWait','peerFacts','responseTiming','mailReferences','documentReferences','replyRegeneration','thoughts','runBudget','executionEngine','pendingMcp','mcpApprovals','mcpContinuation']) if (key in task) current[key] = task[key]; if(task.sideTasks||current.sideTasks)current.sideTasks=task.sideTasks=mergeSideTasks(current.sideTasks,task.sideTasks); this.store.set('task:'+taskId,current); };
     const showQuestion=question=>{
       const at=new Date().toISOString(),called=this.providers.status();
       task.question={...question,runId};
@@ -758,8 +760,8 @@ export function installAgent(ProjectService) {
       else if (name === 'propose_edit' || name === 'propose_patch') {
         const current = await this.read({path:args.path, taskId, full:true});
         let content = args.content;
-        if (name === 'propose_patch') content = replaceObserved(current, args.expectedHash, args.edits, observations);
-        else observations.require(current);
+        if (name === 'propose_patch') content = replaceObserved(current, args.expectedHash, args.edits, observations,{matching:args.matching});
+        else {observations.require(current);content=preserveSourceFormat(current.content,content,{lineEndings:args.lineEndings});}
         requirePlannedEdit(task,args.path,current.hash,runId,current.projectRules.fingerprint);
         await validateWikiEvidence(this,taskId,task.changePlan.wikiEvidence||[]);
         result = await this.propose({taskId,path:args.path,expectedHash:args.expectedHash,content,reason:args.reason,signal,rulesFingerprint:current.projectRules.fingerprint});
@@ -878,7 +880,7 @@ export function installAgent(ProjectService) {
     if(searchScope(requestCommand))systemMessages.splice(1);
     // The product runtime asks for a one-line narration before each tool call (shown as progress notes, user request 2026-10-14); evals and tests keep the base prompt.
     if(!searchScope(requestCommand)&&!planningOnly&&needsDevelopmentGuidance(task,this.store.list('setup-action:'))){systemMessages.push({role:'system',content:DEVELOPMENT_GUIDANCE});const map=await codingMapContext(this,taskId,{signal:controller.signal});if(map)systemMessages.push({role:'system',content:map});}
-    if(this.progressNarration===true)systemMessages.push({role:'system',content:'Before each tool call, say in one short Korean sentence what you will do next; it is shown as progress in the conversation. When a command starts a server or another long-running process, do not wait for it to exit: tell the user it is running, give the local address, open it with open_workspace_page when available, and say how to stop it.'});
+    if(this.progressNarration===true)systemMessages.push({role:'system',content:'Own validation: unsupported syntax analysis is a checker coverage gap, not a code failure or a user decision. Use relevant project checks or browser inspection when available, under existing approval rules. Report actual failed checks or the specific unverified environment and next step; avoid generic remaining-check warnings. Before each tool call, say in one short Korean sentence what you will do next; it is shown as progress in the conversation. When a command starts a server or another long-running process, do not wait for it to exit: tell the user it is running, give the local address, open it with open_workspace_page when available, and say how to stop it.'});
     systemMessages.push({role:'system',content:SOURCE_GUIDANCE});
     if(!searchScope(requestCommand))systemMessages.push({role:'system',content:await environmentBlock(this)});
     // Memory (2026-10-14): a few facts the person stated earlier, chosen by overlap with this request. Off when the person switched it off or in an eval.
@@ -960,7 +962,12 @@ export function installAgent(ProjectService) {
       context=createRunContext({model:budgetModel,tools:definitions(),
         protectedMessages,isSupersededMessage:message=>message.role==='user'&&message.content===initialReceipts.content,compactionDeferred:packed.compactionDeferred,
         getRequirements:()=>[JSON.stringify({originalCriteria:task.criteria,answeredQuestions:task.questionHistory||[],workPlan:task.workPlan||null}),hostReceipts({includeCapabilities:false}).content],signal:controller.signal,invoke:summarize,
-        save:async summary=>{this.store.set('context:'+taskId,summary);compacted=true;computerReads.clear();computerAppReads.clear();loadedSkills.clear();observations.files.clear();observations.processes?.clear();observations.environment?.clear();observations.newPaths.clear();for(const entry of observations.wikiEvidence||[])wikiBefore.set(...entry);observations.wikiEvidence?.clear();rememberCompaction(summary,overflowing?'overflow':'threshold');}});
+        save:async summary=>{this.store.set('context:'+taskId,summary);forgetObservations();rememberCompaction(summary,overflowing?'overflow':'threshold');}});
+      const runWorkspaceAgent=async options=>{
+        if(!preferOpenCodeCoding(task,{workspaceKind:this.workspaceKind||'project',scope:searchScope(requestCommand)}))return runAgent(options);
+        const runner=this.codingRunner||(await import('./opencode-coding-engine.mjs')).runOpenCodeAgent;
+        return runner({...options,tools:progressTools(options.tools,true,{compact:true}),model:budgetModel,requestAnchors:[{role:'user',content:task.request},...((task.messages||[]).findLast(message=>message.role==='user')?.content!==task.request?[{role:'user',content:(task.messages||[]).findLast(message=>message.role==='user')?.content||task.request}]:[])],completeCompaction:wire=>invokeModel(wire,[],controller.signal,'summary'),onContextCompacted:forgetObservations,onEngine:engine=>{task.executionEngine=engine;persistTask();this.store.event('coding_engine_used',{taskId,runId,...engine});}});
+      };
       return runReviewedAgent({messages:packed.messages,signal:controller.signal,maxRounds:()=>actionsIssued||recoveryProcessId?REVIEW_ROUNDS:(this.readOnlyReviewRounds??1),// An app action that waits for the user's decision is a wait like a question: the user reviews the proposal itself.
         hasInput:()=>!!pendingAgentInput(this,taskId),waiting:()=>commandApprovalPending||!!task.question||pendingComputerConnection(task)||waitingPeer()||this.store.list('computer-action:').some(action=>action.taskId===taskId&&action.state==='proposed'),continuation:()=>conversationOf(lastSource||lastWire),
         // A compaction during a revision keeps the answer under revision and the feedback of the latest review.
@@ -999,7 +1006,7 @@ export function installAgent(ProjectService) {
             persistTask();
           }
         },
-        run:(messages,round,{reviewRecovery=false}={})=>{reviewRound=round;reviewRecoveryActive=reviewRecovery;return runAgent({messages, createWikiSearch:createNativeWikiQuestionSearch, tools:reviewRecovery?reviewRecoveryTools(tools):tools,repairArguments:true,argumentRepairs:{read_personal_mail:normalizeMailReadArgs,record_change_plan:normalizeChangePlanArgs,...Object.fromEntries(['propose_new_file','propose_edit','propose_patch'].map(proposal=>[proposal,value=>normalizeProposalArgs(proposal,value,task)]))},takeInput:()=>{const pending=pendingAgentInput(this,taskId);if(pending){const nextCommand=resolveAgentCommand(pending.text,skills.skills);requestCommand=nextCommand||(searchScope(requestCommand)?requestCommand:null);if(requestCommand?.action)throw Error('agent_command_ui_only');planningOnly ||= requestCommand?.command==='plan';}return takeAgentInput(this,task);},resumePlan:task.workPlan?.runId===runId?task.workPlan.steps:undefined, observationSources:{...COMPUTER_EVIDENCE_SOURCES,read_attached_document:'historical',read_personal_mail:'historical',personal_mail_query:'historical',read_process_output:'historical',read_conversation:'historical',list_skill_resources:'historical',use_skill:'historical',read_skill:'historical',discover_capabilities:'historical',analyze_documents:'historical',ask_openwiki:'historical',read_document_analysis:'historical'}, signal:controller.signal, modelId:this.providers.status().model, complete, execute, onDelegated:async({tool,result})=>{
+        run:(messages,round,{reviewRecovery=false}={})=>{reviewRound=round;reviewRecoveryActive=reviewRecovery;return runWorkspaceAgent({messages, createWikiSearch:createNativeWikiQuestionSearch, tools:reviewRecovery?reviewRecoveryTools(tools):tools,repairArguments:true,argumentRepairs:{read_personal_mail:normalizeMailReadArgs,record_change_plan:normalizeChangePlanArgs,...Object.fromEntries(['propose_new_file','propose_edit','propose_patch'].map(proposal=>[proposal,value=>normalizeProposalArgs(proposal,value,task)]))},takeInput:()=>{const pending=pendingAgentInput(this,taskId);if(pending){const nextCommand=resolveAgentCommand(pending.text,skills.skills);requestCommand=nextCommand||(searchScope(requestCommand)?requestCommand:null);if(requestCommand?.action)throw Error('agent_command_ui_only');planningOnly ||= requestCommand?.command==='plan';}return takeAgentInput(this,task);},resumePlan:task.workPlan?.runId===runId?task.workPlan.steps:undefined, observationSources:{...COMPUTER_EVIDENCE_SOURCES,read_attached_document:'historical',read_personal_mail:'historical',personal_mail_query:'historical',read_process_output:'historical',read_conversation:'historical',list_skill_resources:'historical',use_skill:'historical',read_skill:'historical',discover_capabilities:'historical',analyze_documents:'historical',ask_openwiki:'historical',read_document_analysis:'historical'}, signal:controller.signal, modelId:this.providers.status().model, complete, execute, onDelegated:async({tool,result})=>{
           if(tool!=='ask_openwiki')return result;
           // The cited text becomes Wiki evidence of this run under the ids the answer uses, so a change plan cites them as they are.
           // Grounding reads the current pages. When it fails the answer still returns; its ids are then not citable.

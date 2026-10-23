@@ -57,5 +57,8 @@
   "retiredFeatures": {
     "date": "2026-10-22",
     "reason": "User requested removal of workflow and browser recording features. Other gate commands and limits are preserved."
-  }
+  },
+  "pretestAdditions": [
+    "npm run build:opencode-engine"
+  ]
 }

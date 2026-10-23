@@ -8,9 +8,9 @@ const {powerShellExecutable}=require('../runtime/shell-discovery.cjs');
 // Initialize only this interactive shell. Query its actual version for the
 // banner; keep the normal prompt and never change system locale or profiles.
 const powershellStartup=POWERSHELL_UTF8_PREFIX+"Write-Host ('PowerShell ' + $PSVersionTable.PSVersion.ToString())";
-async function interactiveShell(profile,{platform=process.platform,env=process.env,exists=access,lookup=exec}={}){
+async function interactiveShell(profile,{platform=process.platform,env=process.env,exists=access,lookup=exec,verifiedExecutable}={}){
  if(profile==='powershell'&&platform==='win32'){
-  const executable=await powerShellExecutable({env,exists,lookup});
+  const executable=verifiedExecutable||await powerShellExecutable({env,exists,lookup});
   return {executable,argv:['-NoLogo','-NoProfile','-NoExit','-OutputFormat','Text','-EncodedCommand',Buffer.from(powershellStartup,'utf16le').toString('base64')]};
  }else if(profile==='cmd'&&platform==='win32')return {executable:path.win32.join(env.SystemRoot||'C:\\Windows','System32','cmd.exe'),argv:['/D']};
  return null;
@@ -42,9 +42,9 @@ class TerminalHost{
   if(generation!==this.generation)throw Error('terminal_disconnected');
   const existing=this.sessions.get(id);if(existing&&existing!==projectId)throw Error('terminal_session_missing');
   if(existing)return this.call('open',{id,projectId});
-  trace('directory');const location=await this.invoke('browseDirectory',{projectId,path:args.path||''});
+  trace('directory');const location=await this.invoke('browseDirectory',{projectId,path:args.path||'',includeEntries:false});
   trace('profiles');const profile=(await this.profiles()).find(item=>item.id===(args.profile||configuration.shellPreference||(process.platform==='win32'?'powershell':'bash')));if(!profile)throw Error('shell_unavailable');
-  trace('shell');const shell=await this.resolveShell(profile.id)||{executable:profile.executable,argv:profile.id==='bash'?['--noprofile','--norc','-i']:[]};
+  trace('shell');const shell=await this.resolveShell(profile.id,{verifiedExecutable:profile.executable})||{executable:profile.executable,argv:profile.id==='bash'?['--noprofile','--norc','-i']:[]};
   if(!shell.executable)throw Error('shell_unavailable');
   // Folder/model work may have changed while shell discovery was pending.
   trace('revalidate');await this.invoke('projectPath',{projectId});

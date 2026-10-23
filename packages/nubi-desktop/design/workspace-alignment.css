@@ -92,6 +92,9 @@
 }
 .desktop-shell .desktop-mail-progress .nubi-mail-progress-open>strong{font:inherit;font-weight:var(--nubi-weight-label)}
 .desktop-shell .desktop-mail-progress .nubi-mail-progress-open>:is(svg,.status-spinner){width:var(--nubi-text-row-icon);height:var(--nubi-text-row-icon);flex:0 0 var(--nubi-text-row-icon)}
+.desktop-shell .desktop-mail-progress .nubi-workspace-operation{display:flex;align-items:center;gap:var(--cx-space-2);min-width:0;max-width:100%;font:inherit;color:var(--nubi-text-secondary)}
+.nubi-workspace-operation>span:not(.status-spinner){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nubi-workspace-operation>:is(svg,.status-spinner,small){flex:none}
 
 /* Action groups share spacing tokens instead of shrinking to two pixels.
    Compact pointer layouts retain 4px; coarse pointers keep the full 8px. */

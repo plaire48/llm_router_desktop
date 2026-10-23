@@ -1,0 +1,5 @@
+.progress-fixture { min-height:100vh; padding:24px; box-sizing:border-box; }
+.progress-fixture>.nubi-workbench { width:100%; flex:1; min-width:0; max-width:760px; min-height:calc(100vh - 48px); margin:auto; }
+.progress-fixture section { margin-block:24px; }
+.progress-fixture h1,.progress-fixture h2 { font:var(--deck-font-body); font-weight:var(--nubi-weight-emphasis); color:var(--nubi-text-primary); }
+.progress-fixture-actions { display:flex; flex-wrap:wrap; gap:var(--cx-space-3); }

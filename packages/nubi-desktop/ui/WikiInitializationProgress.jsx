@@ -1,5 +1,6 @@
 import {WikiCoverageSummary} from './WikiCoverageBadge.jsx';
 import {ProgressEstimate} from './ProgressEstimate.jsx';
+import {TaskProgressBar} from './TaskProgressBar.jsx';
 import {wikiModelErrors} from './wiki-model-errors.mjs';
 import {gitErrors} from './git-errors.mjs';
 import React, {useEffect, useState} from 'react';
@@ -55,8 +56,7 @@ export function WikiInitializationProgress({job, inline=false,heading=true,onRes
       {inline&&running&&duration&&<span className="nubi-wiki-elapsed">진행 {duration}</span>}
       {!running&&job.state==='completed'&&<span className="nubi-wiki-elapsed">{job.pages}개 문서{job.excludedFiles>0?` / 제외 ${job.excludedFiles}개 파일`:''}{job.changedDuringRun>0?` / 생성 중 바뀐 파일 ${job.changedDuringRun}개, 갱신 필요`:''}{job.lastModelError?` / 모델 오류 ${job.lastModelError}`:''}{duration?` / ${duration}`:''}</span>}
     </div>}
-    {!inline&&running&&percent===null&&<div className="nubi-progress is-indeterminate" data-active={running} role="progressbar" aria-label={title}><span/></div>}
-    {!inline&&percent!==null&&<div className="nubi-progress" data-active={running} role="progressbar" aria-label={`${title} 진행률`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-valuetext={`${percent}%${job.total>0?` (${job.completed}/${job.total})`:''}`}><span style={{width:`${percent}%`}}/></div>}
+    {!inline&&running&&<TaskProgressBar label={percent===null?title:`${title} 진행률`} value={percent??undefined} active={running} valueText={percent===null?undefined:`${percent}%${job.total>0?` (${job.completed}/${job.total})`:''}`}/>}
     {!inline&&running&&<div className="nubi-wiki-progress-meta">
       {job.total>0&&percent!==null?<span><strong>{job.completed.toLocaleString()}</strong> / {job.total.toLocaleString()}{['reading','snapshot','snapshot_git','publishing'].includes(job.stage)?'개 파일':'개 문서'}</span>:job.stage==='scanning'&&job.completed>0?<span>파일 {job.completed.toLocaleString()}개 확인</span>:null}
       {duration&&<span className="nubi-wiki-elapsed">진행 {duration}</span>}

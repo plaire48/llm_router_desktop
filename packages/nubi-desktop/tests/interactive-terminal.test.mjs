@@ -62,3 +62,8 @@ test('interactive Git Bash receives the verified installation environment root',
  await host.request({action:'open',id:'git',projectId:'p',gitBashRoot:'untrusted'});
  assert.equal(observed.gitBashRoot,root);assert.equal(observed.executable,root+'\\usr\\bin\\bash.exe');
 });
+test('opening a shell validates its directory without requesting a full file listing',async()=>{
+ const calls=[];const host=new TerminalHost({notify:()=>{},profiles:async()=>[{id:'bash',executable:'/bin/bash'}],resolveShell:async()=>null,invoke:async(method,args)=>{calls.push({method,args});return method==='projectPath'?{projectId:'a',shellPreference:'bash'}:{absolute:'/fixture'};}});
+ host.call=async()=>({state:'running'});await host.request({action:'open',id:'fast',projectId:'a'});
+ assert.equal(calls.find(row=>row.method==='browseDirectory').args.includeEntries,false);assert.equal(calls.filter(row=>row.method==='projectPath').length,2);
+});

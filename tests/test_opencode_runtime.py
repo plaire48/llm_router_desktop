@@ -405,7 +405,9 @@ async def test_runtime_starts_a_pure_isolated_headless_server(tmp_path, monkeypa
     assert "OPENAI_BASE_URL" not in environment
     assert "OPENCODE_AUTH_CONTENT" not in environment
     assert "OPENCODE_DISABLE_DEFAULT_PLUGINS" not in environment
-    assert "OPENCODE_SERVER_PASSWORD" not in environment
+    assert environment.get("OPENCODE_SERVER_USERNAME") == "opencode"
+    assert bool(environment.get("OPENCODE_SERVER_PASSWORD"))
+    assert environment.get("OPENCODE_SERVER_PASSWORD") != "do-not-inherit"
     assert environment["OPENCODE_DISABLE_AUTOUPDATE"] == "true"
     assert environment["OPENCODE_DISABLE_TERMINAL_TITLE"] == "true"
     assert environment["NODE_EXTRA_CA_CERTS"] == str(company_ca)
@@ -480,7 +482,7 @@ async def test_runtime_configures_aipro_as_an_opencode_custom_provider(tmp_path,
         "name": "AI Pro (aipro-team)",
         "options": {
             "baseURL": "https://aipro.company.test/v1",
-            "apiKey": "{env:AIPRO_API_KEY}",
+            "apiKey": "{env:" + profile.api_key_env + "}",
             "headers": {"Authorization": "Bearer {env:AIPRO_API_KEY}"},
         },
         "models": {"company-model": {"name": "company-model"}},

@@ -13,6 +13,7 @@ from llm_router.control import ClaudeWebLogin, OpenAIWebLogin
 from llm_router.credentials.anthropic_oauth import TokenStore
 from llm_router.credentials.openai_oauth import OPENAI_TOKEN_URL, OpenAIAccountStore
 from llm_router.models import Profile
+from llm_router.opencode_runtime import OpenCodeRuntime
 from llm_router.profile_secrets import ProfileSecretStore
 from llm_router.server import create_app
 
@@ -116,7 +117,7 @@ def _client(
             "auth_mode": "chatgpt",
             "tokens": {
                 "access_token": _jwt({"exp": time.time() + openai_expires_in}),
-                "refresh_token": "openai-refresh-secret",
+                "refresh_token": "test-refresh",
                 "account_id": "account_1",
             },
         }
@@ -155,7 +156,7 @@ def test_auth_status_reports_browser_providers_without_exposing_tokens(tmp_path)
     assert providers["aipro"]["endpoint"] == "https://aipro.sdsdev.co.kr/api/v1"
     assert set(providers) == {"anthropic", "openai", "aipro"}
     assert response.headers["cache-control"] == "private, no-store"
-    assert "openai-refresh-secret" not in response.text
+    assert "test-refresh" not in response.text
     assert "access_token" not in response.text
 
 
@@ -166,7 +167,7 @@ def test_initial_auth_status_refreshes_an_expired_openai_browser_token(tmp_path)
             200,
             json={
                 "access_token": _jwt({"exp": time.time() + 7200}),
-                "refresh_token": "openai-refresh-new",
+                "refresh_token": "new-refresh",
                 "expires_in": 7200,
             },
         )
@@ -185,7 +186,7 @@ def test_initial_auth_status_refreshes_an_expired_openai_browser_token(tmp_path)
     assert refresh.call_count == 1
     assert openai["connected"] is True
     assert openai["status"] == "connected"
-    assert saved["refresh_token"] == "openai-refresh-new"
+    assert saved["refresh_token"] == "new-refresh"
     assert saved["expires_at"] > time.time()
 
 
@@ -520,7 +521,7 @@ def test_browser_login_profiles_reject_api_key_auth(tmp_path):
                     "provider": provider,
                     "auth": "api_key",
                     "model": "public-model",
-                    "api_key": "must-not-be-stored",
+                    "api_key": "test-no-store",
                 },
             )
 
@@ -528,7 +529,7 @@ def test_browser_login_profiles_reject_api_key_auth(tmp_path):
             assert response.json()["error"]["code"] == "browser_login_required"
 
     secrets_path = tmp_path / "secrets.json"
-    assert not secrets_path.exists() or "must-not-be-stored" not in secrets_path.read_text()
+    assert not secrets_path.exists() or "test-no-store" not in secrets_path.read_text()
 
 
 def test_aipro_api_key_profile_is_an_opencode_gateway_route(tmp_path):
@@ -645,7 +646,7 @@ def test_fabrix_profile_stores_both_secrets_and_uses_shared_gateway(tmp_path):
                 "model": "019a-model-id",
                 "base_url": "https://fabrix.company.test",
                 "client_key": "fabrix-client-secret",
-                "api_key": "fabrix-token-secret",
+                "api_key": "test-fabrix",
             },
         )
         listed = client.get("/v1/profiles", headers=AUTH)
@@ -664,7 +665,53 @@ def test_fabrix_profile_stores_both_secrets_and_uses_shared_gateway(tmp_path):
     assert "api_key_env" not in profile
     assert "client_key_env" not in profile
     assert "fabrix-client-secret" not in listed.text
-    assert "fabrix-token-secret" not in listed.text
+    assert "test-fabrix" not in listed.text
     yaml_text = (tmp_path / "profiles.yaml").read_text()
     assert "fabrix-client-secret" not in yaml_text
-    assert "fabrix-token-secret" not in yaml_text
+    assert "test-fabrix" not in yaml_text
+
+
+def test_busy_profile_changes_preserve_saved_profile_and_secret(tmp_path):
+    runtime = OpenCodeRuntime(directory=tmp_path / "runtime")
+
+    async def started(*_):
+        pass
+
+    runtime.ensure_started = started
+    payload = {
+        "name": "aipro-guard",
+        "provider": "aipro",
+        "auth": "api_key",
+        "model": "original-model",
+        "api_key": "test-original",
+    }
+    with _client(tmp_path, opencode_runtime=runtime) as client:
+        assert client.post("/v1/profiles", headers=AUTH, json=payload).status_code == 200
+        secrets_before = (tmp_path / "secrets.json").read_bytes()
+        profiles_before = (tmp_path / "profiles.yaml").read_bytes()
+        runtime._active_requests = 1
+        try:
+            responses = [
+                client.put(
+                    "/v1/profiles/aipro-guard",
+                    headers=AUTH,
+                    json={**payload, "model": "changed-model", "api_key": "fixture-changed"},
+                ),
+                client.delete("/v1/profiles/aipro-guard", headers=AUTH),
+                client.post("/v1/profiles", headers=AUTH, json={**payload, "name": "new-profile"}),
+            ]
+            assert [response.status_code for response in responses] == [409, 409, 409]
+            assert all(
+                response.json()["error"]["code"] == "opencode_runtime_busy"
+                for response in responses
+            )
+            assert (tmp_path / "secrets.json").read_bytes() == secrets_before
+            assert (tmp_path / "profiles.yaml").read_bytes() == profiles_before
+            listed = client.get("/v1/profiles", headers=AUTH).json()["data"]
+            assert (
+                next(item for item in listed if item["name"] == "aipro-guard")["model"]
+                == "original-model"
+            )
+            assert not any(item["name"] == "new-profile" for item in listed)
+        finally:
+            runtime._active_requests = 0

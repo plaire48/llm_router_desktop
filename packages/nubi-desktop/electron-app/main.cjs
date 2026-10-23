@@ -24,7 +24,7 @@ const {PlaywrightHost}=require('./playwright-host.cjs');
 const {ExternalBrowserHost}=require('./external-browser-host.cjs');
 const {createExternalBrowserContentPort}=require('./external-browser-content-port.cjs');
 const {ChromeDirectConnection}=require('./chrome-direct-connection.cjs');
-const {samsungInstallation,samsungPortFile}=require('./samsung-browser-discovery.cjs');
+const {samsungPortFile}=require('./samsung-browser-discovery.cjs');
 let browserContentPort;
 const {BrowserLaunch}=require('./external-browser-launch.cjs');
 const {BrowserRouter}=require('./browser-router.cjs');
@@ -168,6 +168,9 @@ app.whenReady().then(async()=>{
   child.stderr.on('data',chunk=>{void workerLog(chunk);});return child;
  },onMessage:message=>{
   if(message?.routineActivity){hostEvent({type:'routine_activity',...message.routineActivity});return;}
+  if(typeof message?.workspaceActivity?.projectId==='string'&&/^[a-zA-Z0-9_-]{1,80}$/.test(message.workspaceActivity.projectId)){hostEvent({type:'workspace_activity',projectId:message.workspaceActivity.projectId});return;}
+  if(typeof message?.workspaceStream?.projectId==='string'&&/^[a-zA-Z0-9_-]{1,80}$/.test(message.workspaceStream.projectId)){hostEvent({type:'workspace_stream',projectId:message.workspaceStream.projectId});return;}
+  if(typeof message?.mailConnection?.requestId==='string'&&/^[\w-]{1,80}$/.test(message.mailConnection.requestId)){hostEvent({type:'mail_pop3_connected',requestId:message.mailConnection.requestId});return;}
   if(message?.wikiCompleted){wikiNotices.show(message.wikiCompleted);return;}
   if(message?.answerCompleted){answerNotices.show(message.answerCompleted);return;}
   if(message?.playwrightCancel){browserDockControllers.get(message.playwrightCancel.id)?.abort();return;}
@@ -245,7 +248,7 @@ app.whenReady().then(async()=>{
  browserRouter=new BrowserRouter({internal:browserHost,external:externalBrowser,launch:browserLaunch,notify:hostEvent});browserRouter.internalPlaywright=new PlaywrightHost(browserHost);
  browserContentPort=createExternalBrowserContentPort({browser:externalBrowser,router:browserRouter,window,Menu,clipboard,directFactory:async()=>{
   if(process.platform!=='win32')return new ChromeDirectConnection();
-  const installation=await samsungInstallation();browserLaunch.connectionExecutable=installation.executable||browserLaunch.preference.executable;
+  const installation=await browserLaunch.samsung();
   return new ChromeDirectConnection({portFile:()=>samsungPortFile({userDataDir:installation.userDataDir})});
  }});
  browserDock=new BrowserWindowDock({native:new BrowserWindowNative({directory:path.join(app.isPackaged?process.resourcesPath:__dirname,'browser-window-bridge'),parent:window}),external:externalBrowser,launch:browserLaunch,notify:event=>{if(event.type==='external_browser_opened'){window.show();window.focus();}hostEvent(event);}});browserRouter.dock=browserDock;

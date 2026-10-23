@@ -232,7 +232,7 @@ export class PersonalMail {
   }
   status({includeMessages=true,rollup}={}){
     if(!rollup){this.resumeProcessing();if(this.store.mailList)rollup=mailStatusRollup(this.store,{account:this.account,attachmentReading:DESKTOP_FEATURES.mailAttachmentReading});}
-    const rows=rollup?[]:this.rows(),issues=rollup?{items:[],rejected:(this.store.get('account:'+this.account)?.rejected||[]).filter(item=>item.error!=='mail_cancelled')}:this.attention();const status={connectionMethod:this.connectionMethod,resetPending:this.store.get('setting:reset-pending')===true,accountKey:this.account||null,localImport:this.importProgress||this.store.get('setting:local-import')||null,localCount:rollup?.localCount??rows.filter(row=>row.protocol==='local').length,localKinds:rollup?.localKinds??[...new Set(rows.filter(row=>row.protocol==='local').map(row=>row.mailbox))],folders:this.store.get('portal-folders:'+this.account)||[],server:servers[this.serverProfile],serverProfile:this.serverProfile,protocol:servers[this.serverProfile].protocol||'pop3',connected:!!this.credentials,identityConfigured:!!(this.store.get('mail-identities:'+this.account)||[]).length,identityRevision:this.store.get('mail-identity-revision:'+this.account)||0,connecting:!!this.connecting,checking:!!this.checking,paused:this.paused,autoWiki:this.autoWiki,watchPaused:this.watchPaused,summarizing:!!this.synthesis,lastCheckedAt:this.lastCheckedAt||null,nextCheckAt:this.nextCheckAt||null,error:(this.rawVault?.progress?.state==='failed'?this.rawVault.progress.error:this.error)||null,baselineCount:this.baselineCount||0,storageRoot:this.root,rawRoot:this.rawRoot,includeAttachments:this.includeAttachments,requiresStorageSetup:!this.storageConfigured,storageMoving:!!this.relocating,storageProgress:this.storageProgress||null,wikiRoot:this.wikiRoot,encryption:{state:this.rawVault?.state||'locked',wikiState:this.wikiVault?.state||'off',migration:this.rawVault?.progress||null},rejected:this.store.get('account:'+this.account)?.rejected||[],destination:this.destination,activeModel:model(this.host),catalogs:this.host.providers?.catalogs?.()||[],readingAttachments:!!this.attachmentRead,progress:this.progress(rollup),recentChecks:this.store.get('mail-checks:'+this.account)||[],counts:rollup?{received:rollup.received,queued:rollup.queued,saved:rollup.saved,attentionTotal:rollup.attention.total+issues.rejected.length,attachmentAttention:rollup.attention.attachment,attention:rollup.attention.summary}:{received:rows.length,queued:rows.filter(r=>r.state==='queued').length,saved:rows.filter(r=>r.state==='saved').length,attentionTotal:issues.items.length+issues.rejected.length,attachmentAttention:issues.items.filter(r=>r.attachmentFailures.length).length,attention:issues.items.filter(r=>r.summary).length},...(includeMessages?{messages:(rollup?this.store.list('mail:',{limit:50}):rows.slice(0,50)).map(({id,subject,from,date,fetchedAt,state,error,path:wikiPath})=>({id,subject,from,date,fetchedAt,state,error,wikiPath}))}:{} )};
+    const rows=rollup?[]:this.rows(),issues=rollup?{items:[],rejected:(this.store.get('account:'+this.account)?.rejected||[]).filter(item=>item.error!=='mail_cancelled')}:this.attention();const status={connectionMethod:this.connectionMethod,resetPending:this.store.get('setting:reset-pending')===true,accountKey:this.account||null,localImport:this.importProgress||this.store.get('setting:local-import')||null,localCount:rollup?.localCount??rows.filter(row=>row.protocol==='local').length,localKinds:rollup?.localKinds??[...new Set(rows.filter(row=>row.protocol==='local').map(row=>row.mailbox))],folders:this.store.get('portal-folders:'+this.account)||[],server:servers[this.serverProfile],serverProfile:this.serverProfile,protocol:servers[this.serverProfile].protocol||'pop3',connected:!!this.credentials,connectionRequestId:this.activeRequestId||null,identityConfigured:!!(this.store.get('mail-identities:'+this.account)||[]).length,identityRevision:this.store.get('mail-identity-revision:'+this.account)||0,connecting:!!this.connecting,checking:!!this.checking,paused:this.paused,autoWiki:this.autoWiki,watchPaused:this.watchPaused,summarizing:!!this.synthesis,lastCheckedAt:this.lastCheckedAt||null,nextCheckAt:this.nextCheckAt||null,error:(this.rawVault?.progress?.state==='failed'?this.rawVault.progress.error:this.error)||null,baselineCount:this.baselineCount||0,storageRoot:this.root,rawRoot:this.rawRoot,includeAttachments:this.includeAttachments,requiresStorageSetup:!this.storageConfigured,storageMoving:!!this.relocating,storageProgress:this.storageProgress||null,wikiRoot:this.wikiRoot,encryption:{state:this.rawVault?.state||'locked',wikiState:this.wikiVault?.state||'off',migration:this.rawVault?.progress||null},rejected:this.store.get('account:'+this.account)?.rejected||[],destination:this.destination,activeModel:model(this.host),catalogs:this.host.providers?.catalogs?.()||[],readingAttachments:!!this.attachmentRead,progress:this.progress(rollup),recentChecks:this.store.get('mail-checks:'+this.account)||[],counts:rollup?{received:rollup.received,queued:rollup.queued,saved:rollup.saved,attentionTotal:rollup.attention.total+issues.rejected.length,attachmentAttention:rollup.attention.attachment,attention:rollup.attention.summary}:{received:rows.length,queued:rows.filter(r=>r.state==='queued').length,saved:rows.filter(r=>r.state==='saved').length,attentionTotal:issues.items.length+issues.rejected.length,attachmentAttention:issues.items.filter(r=>r.attachmentFailures.length).length,attention:issues.items.filter(r=>r.summary).length},...(includeMessages?{messages:(rollup?this.store.list('mail:',{limit:50}):rows.slice(0,50)).map(({id,subject,from,date,fetchedAt,state,error,path:wikiPath})=>({id,subject,from,date,fetchedAt,state,error,wikiPath}))}:{} )};
     const bulkCount=rollup?.received??rows.length;
     if(bulkCount>=10000){const index=this.searchIndex?.persistent?.progress();const indexed=index?.indexed??0;status.organizationMode='topic';status.counts.indexed=indexed;status.progress.indexed=indexed;status.progress.remaining=index?.pending??bulkCount;if(this.autoWiki&&!this.error&&!this.checking&&!this.attachmentRead)status.progress.stage=status.progress.remaining?'indexing':'indexed';}
     const desktop=this.desktopSource.snapshot();status.desktop=desktop;
@@ -447,18 +447,29 @@ export class PersonalMail {
     this.desktopSource.disconnect({remote:true});this.disconnect();this.serverProfile=serverProfile;this.store.set('setting:mail-connection-method','pop3');this.error=null;
     const generation=this.generation,credentials={user:args.user.trim(),password,endpoint:server},id=sha(server.host+'\0'+credentials.user);
     const attempt={id:args.requestId};this.connecting=attempt;const previous=this.store.get('account:'+id);
+    let authenticated=false;
+    const accept=()=>{
+      if(authenticated)return;if(generation!==this.generation)throw Error('mail_cancelled');
+      this.credentials=credentials;this.account=id;this.baselineCount=previous?(previous.baselineCount??previous.seen.length):0;
+      if(args.recipientAddress)this.saveIdentity(id,args.recipientAddress);
+      this.serverProfile=serverProfile;this.store.set('setting:server-profile',serverProfile);
+      this.paused=!this.autoWiki;this.destination=args.destination||this.destination||model(this.host);this.store.set('setting:destination',this.destination);
+      authenticated=true;this.error=null;this.connecting=null;this.activeRequestId=args.requestId;this.checking=true;
+      try{this.host.notifyMailConnection?.({requestId:args.requestId});}catch{/* Status polling can recover a missed UI notice; never replay authentication. */}
+    };
     try{
-      const result=await this.pull({...credentials,known:this.autoWiki?this.knownUids(id):null,skip:[]});
-      if(generation!==this.generation)throw new Error('mail_cancelled');
       await this.prepare();if(generation!==this.generation)throw new Error('mail_cancelled');
+      const result=await this.pull({...credentials,known:this.autoWiki?this.knownUids(id):null,skip:[],onAuthenticated:accept});
+      if(generation!==this.generation)throw new Error('mail_cancelled');
+      accept();
       this.credentials=credentials;this.account=id;if(args.recipientAddress)this.saveIdentity(id,args.recipientAddress);this.baselineCount=previous?(previous.baselineCount??previous.seen.length):result.uidls.length;
       this.serverProfile=serverProfile;this.store.set('setting:server-profile',serverProfile);
       await this.rememberPop3User(args.rememberUser===false?null:credentials.user);
       if(!previous)this.store.set('account:'+id,{seen:[],baselineCount:result.uidls.length,baselineAt:now()});
       this.paused=!this.autoWiki;this.destination=args.destination||this.destination||model(this.host);this.store.set('setting:destination',this.destination);this.error=null;
-      if(this.autoWiki)await this.intake(result,generation);else this.recordListing(result);this.schedule(result.delaySeconds);this.activeRequestId=args.requestId;this.connecting=null;this.resumeProcessing();return this.status();
+      if(this.autoWiki)await this.intake(result,generation);else this.recordListing(result);this.schedule(result.delaySeconds);this.activeRequestId=args.requestId;this.connecting=null;this.checking=false;this.resumeProcessing();return this.status();
     }catch(error){if(generation===this.generation){this.credentials=null;this.error=code(error);}throw new Error(code(error));}
-    finally{if(this.connecting===attempt)this.connecting=null;credentials.password=this.credentials===credentials?credentials.password:'';}
+    finally{if(this.connecting===attempt)this.connecting=null;if(generation===this.generation)this.checking=false;credentials.password=this.credentials===credentials?credentials.password:'';}
   }
   async rememberPop3User(user){
     this.pop3User=user;const vault=this.host?.connectionVault;if(!vault)return;
@@ -550,14 +561,14 @@ export class PersonalMail {
   ensureWiki(){if(!this.wikiVault)return Promise.resolve();return this.wikiReady ||=(async()=>{await privateDir(this.root);if(await this.wikiVault.ready()){await this.wikiVault.hydrate();this.wikiRoot=this.wikiVault.sessionRoot;}})().catch(error=>{this.wikiReady=null;throw error;});}
   // Rows written before encryption point into the old plain folder; pages are resolved by name under the current root.
   pagePath(file){return this.wikiVault?.active?path.join(this.wikiRoot,path.basename(String(file||''))):file;}
-  pull(input){
-    if(this.pullOverride)return this.pullOverride(input);
+  pull({onAuthenticated,...input}){
+    if(this.pullOverride)return this.pullOverride({...input,...(onAuthenticated?{onAuthenticated}:{})});
     return new Promise((resolve,reject)=>{
-      const worker=new Worker(this.workerFile,{workerData:input,resourceLimits:{maxOldGenerationSizeMb:192},execArgv:[],stdout:true,stderr:true});worker.stdout.resume();worker.stderr.resume();let done=false;
+      const worker=new Worker(this.workerFile,{workerData:{...input,...(onAuthenticated?{reportAuthentication:true}:{})},resourceLimits:{maxOldGenerationSizeMb:192},execArgv:[],stdout:true,stderr:true});worker.stdout.resume();worker.stderr.resume();let done=false;
       const finish=value=>{if(done)return;done=true;clearTimeout(timer);worker.terminate();if(this.worker===worker)this.worker=null;this.cancelPull=null;value.error?reject(new Error(value.error)):resolve(value.result);};
       this.worker=worker;this.cancelPull=()=>finish({error:'mail_cancelled'});
       const timer=setTimeout(()=>finish({error:'mail_timeout'}),65000);
-      worker.once('message',finish);worker.once('error',()=>finish({error:'mail_connection_failed'}));worker.once('exit',()=>finish({error:'mail_connection_failed'}));
+      worker.on('message',value=>{if(done)return;if(value.authenticated===true){try{onAuthenticated?.();}catch(error){finish({error:code(error)});}return;}finish(value);});worker.once('error',()=>finish({error:'mail_connection_failed'}));worker.once('exit',()=>finish({error:'mail_connection_failed'}));
     });
   }
   recordCheckWindow(seconds=60){this.pollDelay=Math.max(60,seconds);const delay=this.pollDelay*1000;this.nextCheckAt=new Date(Date.now()+delay).toISOString();this.store.set('setting:check-window',{nextCheckAt:this.nextCheckAt,lastCheckedAt:this.lastCheckedAt,delaySeconds:this.pollDelay});return delay;}
@@ -873,7 +884,7 @@ export class PersonalMail {
     this.searchIndex ||=new MailSearch(this);return this.searchIndex.search(args);
   }
   async query(query,args={}){return this.searchMail({...args,query,limit:args.limit||10});}
-  disconnect(){this.paused=true;this.generation++;clearTimeout(this.timer);this.cancelPull?.();this.attachmentRead?.abort();this.synthesis?.abort();if(this.credentials)this.credentials.password='';this.credentials=null;this.connecting=null;this.activeRequestId=null;}
+  disconnect(){this.paused=true;this.generation++;clearTimeout(this.timer);this.cancelPull?.();this.attachmentRead?.abort();this.synthesis?.abort();if(this.credentials)this.credentials.password='';this.credentials=null;this.connecting=null;this.checking=false;this.activeRequestId=null;}
   dispose(){if(this.importController&&this.importProgress)this.store.set('setting:local-import',{...this.importProgress,state:'interrupted'});this.desktopSource.dispose();this.importController?.abort();clearInterval(this.processingTimer);this.disconnect();this.contentCache.clear();this.listDisposed=Promise.all([this.searchIndex?.dispose(),this.listing?.dispose()]);this.disposed=true;for(const controller of this.documentReaders||[])controller.abort();this.store.close();this.rawDisposed=Promise.all([this.rawMigration,this.listDisposed]).then(()=>this.rawVault.dispose());this.wikiDisposed=this.wikiVault?this.wikiVault.dispose().catch(()=>{}):Promise.resolve();}
 }
 export async function mail(args){this.personalMail ||=new PersonalMail(this,this.mailOptions);return this.personalMail.call(args);}

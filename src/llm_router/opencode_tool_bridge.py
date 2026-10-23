@@ -8,6 +8,8 @@ import sys
 import threading
 import time
 import uuid
+from collections.abc import Awaitable, Callable
+from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, TextIO
@@ -89,11 +91,14 @@ class BridgeContext:
     profile_name: str
     directory: Path
     tool_names: tuple[str, ...]
+    slot: int = 0
+    request_contract: str | None = None
     created_at: float = field(default_factory=time.monotonic)
     returned_call_ids: set[str] = field(default_factory=set)
     pending_call_ids: set[str] = field(default_factory=set)
     result_paths: dict[str, Path] = field(default_factory=dict)
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    cleanup_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
     @property
     def opencode_tool_ids(self) -> tuple[str, ...]:
@@ -121,6 +126,32 @@ class OpenCodeToolBridge:
         self._contexts: dict[str, BridgeContext] = {}
         self._calls: dict[str, BridgeContext] = {}
         self._lock = asyncio.Lock()
+        self._prefix = f"llmrouter_{uuid.uuid4().hex[:16]}"
+        self._quarantined: set[int] = set()
+        self._reaper: asyncio.Task[None] | None = None
+        self.cleanup: Callable[[BridgeContext], Awaitable[None]] | None = None
+
+    @property
+    def active_count(self) -> int:
+        return len(self._contexts)
+
+    async def _reap(self) -> None:
+        try:
+            while self._contexts:
+                await asyncio.sleep(min(60.0, max(0.01, self.tool_timeout / 2)))
+                for context in list(self._contexts.values()):
+                    if context.expired(self.tool_timeout):
+                        if self.cleanup is None:
+                            await self.discard(context)
+                        else:
+                            try:
+                                await self.cleanup(context)
+                            except Exception:  # noqa: BLE001 - isolate failing cleanup and quarantine its slot
+                                # Never reuse an uncertain MCP registration.
+                                await self.discard(context, reusable=False)
+        finally:
+            if self._reaper is asyncio.current_task():
+                self._reaper = None
 
     async def create(
         self,
@@ -139,20 +170,47 @@ class OpenCodeToolBridge:
                 code="invalid_tools",
                 status_code=422,
             )
+        async with self._lock:
+            occupied = {context.slot for context in self._contexts.values()} | self._quarantined
+            slot = next((value for value in range(32) if value not in occupied), None)
+            if slot is None:
+                raise RouterError(
+                    "OpenCode has too many pending or uncertain tool sessions.",
+                    code="opencode_tool_capacity",
+                    status_code=503,
+                )
+            # Reserve before the first filesystem await so concurrent creates
+            # cannot share a registration.
+            self._quarantined.add(slot)
         bridge_id = uuid.uuid4().hex
         context = BridgeContext(
             id=bridge_id,
-            mcp_name=f"llmrouter_{bridge_id[:16]}",
+            mcp_name=f"{self._prefix}_{slot}",
             session_id=session_id,
             profile_name=profile_name,
             directory=self.root / bridge_id,
             tool_names=tuple(names),
+            slot=slot,
         )
-        await asyncio.to_thread(
-            _atomic_json, context.directory / "tools.json", {"tools": definitions}
+        writing = asyncio.create_task(
+            asyncio.to_thread(
+                _atomic_json, context.directory / "tools.json", {"tools": definitions}
+            )
         )
+        try:
+            await asyncio.shield(writing)
+        except BaseException:
+            with suppress(Exception):
+                await writing
+            await asyncio.to_thread(shutil.rmtree, context.directory, True)
+            async with self._lock:
+                self._quarantined.discard(slot)
+            raise
         async with self._lock:
             self._contexts[context.id] = context
+            self._quarantined.discard(slot)
+            if self._reaper is None:
+                self._reaper = asyncio.create_task(self._reap())
         return context
 
     def mcp_config(self, context: BridgeContext) -> dict[str, Any]:
@@ -178,6 +236,12 @@ class OpenCodeToolBridge:
         records = await asyncio.to_thread(self._call_records, context)
         new = [call for call in records if call.id not in context.returned_call_ids]
         async with self._lock:
+            if context.id not in self._contexts or context.expired(self.tool_timeout):
+                raise RouterError(
+                    "The OpenCode tool session expired during observation.",
+                    code="opencode_tool_session_expired",
+                    status_code=409,
+                )
             for call in new:
                 context.returned_call_ids.add(call.id)
                 context.pending_call_ids.add(call.id)
@@ -251,6 +315,20 @@ class OpenCodeToolBridge:
         messages: list[ChatMessage],
     ) -> None:
         async with context.lock:
+            provided = {str(message.tool_call_id) for message in messages}
+            if (
+                context.id not in self._contexts
+                or context.expired(self.tool_timeout)
+                or not provided
+                or provided != context.pending_call_ids
+                or len(provided) != len(messages)
+            ):
+                raise RouterError(
+                    "These tool results are expired, duplicated or already submitted.",
+                    type="invalid_request_error",
+                    code="opencode_tool_results_unavailable",
+                    status_code=409,
+                )
             for message in messages:
                 call_id = str(message.tool_call_id)
                 result_path = context.result_paths[call_id]
@@ -265,18 +343,36 @@ class OpenCodeToolBridge:
                     context.pending_call_ids.discard(call_id)
                     self._calls.pop(call_id, None)
 
-    async def discard(self, context: BridgeContext) -> None:
+    async def discard(self, context: BridgeContext, *, reusable: bool = True) -> None:
         async with self._lock:
             self._contexts.pop(context.id, None)
+            if not reusable:
+                self._quarantined.add(context.slot)
             for call_id in tuple(context.returned_call_ids):
                 self._calls.pop(call_id, None)
         await asyncio.to_thread(shutil.rmtree, context.directory, True)
+        if (
+            not self._contexts
+            and self._reaper is not None
+            and self._reaper is not asyncio.current_task()
+        ):
+            task, self._reaper = self._reaper, None
+            task.cancel()
+            with suppress(asyncio.CancelledError):
+                await task
 
     async def close(self) -> None:
+        if self._reaper is not None and self._reaper is not asyncio.current_task():
+            task, self._reaper = self._reaper, None
+            task.cancel()
+            with suppress(asyncio.CancelledError):
+                await task
         async with self._lock:
             contexts = list(self._contexts.values())
             self._contexts.clear()
             self._calls.clear()
+            self._quarantined.clear()
+            self.cleanup = None
         for context in contexts:
             await asyncio.to_thread(shutil.rmtree, context.directory, True)
         await asyncio.to_thread(shutil.rmtree, self.root, True)

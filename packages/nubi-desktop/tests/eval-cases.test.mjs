@@ -121,7 +121,7 @@ test('a case file must be named after its id and selection refuses unknown ids',
   await assert.rejects(loadCases({directory}),/case_invalid:wrong-name\.json:file_name/);
 });
 
-test('the compaction case really compacts under its model limit and keeps running',async t=>{
+test('the Pi compaction contract case really compacts under its model limit and keeps running',async t=>{
   const [testCase]=await loadCases({ids:['L1-condition-after-compaction'],includeDiagnostics:true});
   const status=()=>({connected:true,provider:'fixture',model:'fixture',models:[{id:'fixture',contextLength:400000,maxOutputTokens:4096}]});
   const providers={status,dispose(){},async complete(messages){
@@ -132,7 +132,8 @@ test('the compaction case really compacts under its model limit and keeps runnin
     try{const {requirements}=JSON.parse(messages[1].content);if(Array.isArray(requirements))return {content:JSON.stringify({status:'ready',checks:requirements.map(r=>({requirementId:r.id,state:'unknown',evidenceIds:[],detail:'fixture'})),nextStep:''}),calls:[]};}catch{/* Not the reviewer. */}
     return {content:'확인했습니다.',calls:[]};
   }};
-  const result=await runCase({testCase,providers});t.after(result.dispose);
+  const {runAgent}=await import('../../../extensions/aipro-chat/agent-runtime.js');
+  const result=await runCase({testCase,providers,configureService:service=>{service.codingRunner=runAgent;}});t.after(result.dispose);
   assert.equal(result.error,null);assert.equal(result.state,'review');assert.equal(result.interactions,3);
   assert.ok(result.compactions>0,'compactions: '+result.compactions);
   assert.ok(result.metrics.events.some(event=>event.kind==='metric_model'&&event.purpose==='summary'));

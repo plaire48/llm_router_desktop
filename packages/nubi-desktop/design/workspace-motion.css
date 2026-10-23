@@ -14,6 +14,13 @@
  --nubi-motion-stagger:24ms;
  --nubi-motion-pressed-x:1.025;
  --nubi-motion-pressed-y:.95;
+ --nubi-motion-menu-offset:4px;
+ --nubi-motion-menu-scale:.96;
+ --nubi-progress-fill-duration:600ms;
+ --nubi-progress-pending-duration:12s;
+ --nubi-progress-pending-start:.08;
+ --nubi-progress-pending-end:.68;
+ --nubi-progress-play:running;
  /* Interactive result cards never defer visibility behind a stagger. */
  --nubi-motion-delay:0ms;
  --nubi-pointer-move:var(--nubi-motion-state);
@@ -65,20 +72,22 @@
  --nubi-ambient-greeting:280ms;
  --nubi-ambient-spin-live:4s;
  --nubi-ambient-pulse:2.8s;
- --nubi-ambient-host:1.1s;
  --nubi-ambient-water:14s;
  --nubi-ambient-water-aura:11s;
  --nubi-ambient-swim:9s;
- --nubi-ambient-registry:"nubi-liquid-drift:24000/28000:transform;bird-idle-base:8000:opacity;bird-idle-wing:8000:opacity;bird-idle-smile:8000:opacity;bird-blink:8000:opacity;bird-wing-base:2800:opacity;bird-wing:2800:opacity;bird-sigh:280/2800:transform;bird-tear:2800:transform,opacity;nubi-bird-flight:8000:transform;nubi-bird-curious:12000:transform;nubi-brand-float:6000:transform;nubi-bird-dance:1200:transform;nubi-answer-breathe:8000/2800:transform;nubi-answer-greeting:280:transform;nubi-brand-greeting:280:transform;nubi-pastel-flow:72000/96000:transform;nubi-progress-breathe:8000:opacity;deck-twinkle:3200:transform,opacity;nubi-start-drift-a:26000:transform;nubi-start-drift-b:31000:transform;nubi-start-drift-c:23000:transform;nubi-ambient-blue:16000:transform;nubi-ambient-violet:20000:transform;nubi-ambient-teal:18000:transform;nubi-water-drift:14000:transform;nubi-water-aura:11000:transform;nubi-bird-swim:9000/11000:transform;nubi-emblem-drift:13200:transform;nubi-live-breathe:1800:opacity;nubi-wiki-scan:1800:transform;nubi-workflow-pulse:2800:opacity;nubi-hourglass-flip:4000:transform;spin:800/900/1000/1200/1600/2400:transform;deck-spin:800/1000:transform;nubi-host-busy:1100:transform";
+ --nubi-ambient-registry:"nubi-liquid-drift:24000/28000:transform;bird-idle-base:8000:opacity;bird-idle-wing:8000:opacity;bird-idle-smile:8000:opacity;bird-blink:8000:opacity;bird-wing-base:2800:opacity;bird-wing:2800:opacity;bird-sigh:280/2800:transform;bird-tear:2800:transform,opacity;nubi-bird-flight:8000:transform;nubi-bird-curious:12000:transform;nubi-brand-float:6000:transform;nubi-bird-dance:1200:transform;nubi-answer-breathe:8000/2800:transform;nubi-answer-greeting:280:transform;nubi-brand-greeting:280:transform;nubi-pastel-flow:72000/96000:transform;nubi-progress-breathe:8000:opacity;deck-twinkle:3200:transform,opacity;nubi-start-drift-a:26000:transform;nubi-start-drift-b:31000:transform;nubi-start-drift-c:23000:transform;nubi-ambient-blue:16000:transform;nubi-ambient-violet:20000:transform;nubi-ambient-teal:18000:transform;nubi-water-drift:14000:transform;nubi-water-aura:11000:transform;nubi-bird-swim:9000/11000:transform;nubi-emblem-drift:13200:transform;nubi-live-breathe:1800:opacity;nubi-progress-pending:12000:transform;nubi-progress-fill:600:transform;nubi-workflow-pulse:2800:opacity;nubi-hourglass-flip:4000:transform;spin:800/900/1000/1200/1600/2400:transform;deck-spin:800/1000:transform";
 }
 :root:is([data-nubi-transition],[data-nubi-window-hidden],[data-motion-panel],[data-motion-visibility=hidden],[data-motion=paused]) {
  --nubi-ambient-play:paused;
  --nubi-ambient-will-change:auto;
 }
+:root:is([data-nubi-transition],[data-nubi-window-hidden],[data-motion-visibility=hidden],[data-motion=paused]) {--nubi-progress-play:paused}
+@keyframes nubi-progress-pending {from{transform:scaleX(var(--nubi-progress-pending-start))}to{transform:scaleX(var(--nubi-progress-pending-end))}}
 @media(prefers-reduced-motion:reduce) {
  :root:root {
   --nubi-motion-enter:var(--nubi-motion-reduced); --nubi-motion-exit:var(--nubi-motion-reduced);
   --nubi-motion-press:var(--nubi-motion-reduced); --nubi-motion-state:var(--nubi-motion-reduced);
+  --nubi-progress-play:paused;
   --nubi-motion-list:var(--nubi-motion-reduced);
   --nubi-ambient-play:paused; --nubi-ambient-will-change:auto;
  }
@@ -86,6 +95,8 @@
 /* Canonical ambient definitions outrank old component reduced-motion rules
    without removing/recreating their animation timelines. */
 @layer nubi-ambient {
+ .nubi-progress.is-indeterminate:not([data-active=false])>span {animation:nubi-progress-pending var(--nubi-progress-pending-duration) var(--nubi-ease-out) forwards!important;animation-play-state:var(--nubi-ambient-play)!important}
+ .cx-panel-backdrop[data-modal-top=true] .nubi-progress.is-indeterminate>span {animation-play-state:var(--nubi-progress-play)!important}
  /* QA90 transcript marks are static; only the central and titlebar birds move. */
  .desktop-shell .answer-model .nubi-answer-mark,.desktop-shell .answer-model .nubi-answer-mark>img {animation:none!important;transform:none!important}
  .desktop-shell :is(.welcome-emblem,.nubi-brand-emblem) .agent-mark[data-mood=idle] .bird-base {animation:bird-idle-base var(--nubi-ambient-bird-expression) linear infinite!important;animation-play-state:var(--nubi-ambient-play)!important}
@@ -132,16 +143,19 @@
   transition:transform var(--nubi-motion-enter) var(--nubi-ease-spring),background-color var(--nubi-motion-state) var(--nubi-ease-out),color var(--nubi-motion-state) var(--nubi-ease-out),border-color var(--nubi-motion-state) var(--nubi-ease-out)!important;
  }
  :is(.desktop-shell,.cx-panel-backdrop) :is(.cx-kit-button,.cx-action-button,.nubi-session-select,.nubi-start-card,.nubi-file-card,.nubi-workflow-node,.nubi-workflow-row,.nubi-mail-result,.nubi-icon-button,.nubi-custom-skill-row,.nubi-marketplace-row,.nubi-mcp-item,.nubi-wiki-table tbody tr,.usage-account,.nubi-server-notice,[role=menuitem],[role=option]):active:not(:disabled):not([aria-disabled=true]) {
-  transform:scale(var(--nubi-motion-pressed-scale))!important; transition-duration:var(--nubi-motion-press)!important;transition-timing-function:var(--nubi-ease-out)!important;
+  transform:scale(var(--nubi-motion-pressed-x),var(--nubi-motion-pressed-y))!important; transition-duration:var(--nubi-motion-press)!important;transition-timing-function:var(--nubi-ease-out)!important;
  }
  :is(.desktop-shell,.cx-panel-backdrop) :is(.cx-kit-button,.cx-action-button,.nubi-session-select,.nubi-start-card,.nubi-file-card,.nubi-workflow-node,.nubi-workflow-row,.nubi-mail-result,.nubi-icon-button,.nubi-custom-skill-row,.nubi-marketplace-row,.nubi-mcp-item,.nubi-wiki-table tbody tr,.usage-account,.nubi-server-notice,[role=menuitem],[role=option]):not(:active) {transform:none!important}
  .desktop-shell :is(.nubi-enter,.nubi-loading-note) {animation:nubi-motion-fade var(--nubi-motion-load) var(--nubi-ease-out) both!important}
  /* Transcript admission remains immediate, retaining its 4->40/300ms contract. */
  .desktop-shell .nubi-conversation-scroll .nubi-enter {animation:none!important}
  .desktop-shell .nubi-main,.desktop-shell .nubi-sidebar {transition:opacity var(--nubi-motion-state) var(--nubi-ease-out)!important}
+ .nubi-actions-disclosure-body:popover-open {animation:nubi-view-menu-in var(--nubi-motion-enter) var(--nubi-ease-spring) backwards}
 }
+@keyframes nubi-view-menu-in {from{opacity:0;transform:translateY(var(--nubi-menu-enter-y,calc(var(--nubi-motion-menu-offset) * -1))) scale(var(--nubi-motion-menu-scale))}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce) {
  @layer nubi-reduced {
+  .nubi-actions-disclosure-body:popover-open {animation:nubi-motion-fade var(--nubi-motion-reduced) linear backwards!important}
   ::view-transition-old(nubi-main){animation:nubi-motion-fade-out var(--nubi-motion-reduced) linear both!important}
   ::view-transition-new(nubi-main){animation:nubi-motion-fade var(--nubi-motion-reduced) linear both!important}
  }
@@ -156,11 +170,9 @@
 @layer nubi-ambient {
  .desktop-shell .status-spinner,body.nubi-desktop-host .status-spinner {animation:nubi-hourglass-flip var(--nubi-ambient-spinner-period,var(--nubi-ambient-spin)) var(--nubi-ease-out) infinite!important;animation-play-state:var(--nubi-ambient-play)!important;will-change:auto!important}
  .desktop-shell .nubi-mail-watching-spinner {--nubi-ambient-spinner-period:var(--nubi-ambient-spin-watch)}
- .desktop-shell :is(.nubi-progress.is-indeterminate,.nubi-preparing-bar)>span {animation:nubi-wiki-scan var(--nubi-ambient-progress) linear infinite!important;animation-play-state:var(--nubi-ambient-play)!important}
  .desktop-shell .nubi-workflow-stage[data-status=running] .nubi-workflow-stage-state {animation:nubi-workflow-pulse var(--nubi-ambient-pulse) ease-in-out infinite!important;animation-play-state:var(--nubi-ambient-play)!important}
  .desktop-shell .nubi-agent-activity[data-activity-live=true] .agent-trace>summary::before {animation:nubi-hourglass-flip var(--nubi-ambient-spin-live) var(--nubi-ease-out) infinite!important;animation-play-state:var(--nubi-ambient-play)!important}
  .desktop-shell .nubi-agent-activity[data-activity-live=true] .agent-trace-title {animation:nubi-live-breathe var(--nubi-ambient-progress) ease-in-out infinite!important;animation-play-state:var(--nubi-ambient-play)!important}
- html[data-host-busy] .desktop-shell::after {animation:nubi-host-busy var(--nubi-ambient-host) linear infinite!important;animation-play-state:var(--nubi-ambient-play)!important}
  .desktop-shell .nubi-brand-emblem .agent-mark[data-mood=celebrate] {animation:nubi-brand-greeting var(--nubi-ambient-greeting) ease-in-out 2!important;animation-play-state:var(--nubi-ambient-play)!important}
  .desktop-shell .welcome-emblem::before {animation:nubi-water-aura var(--nubi-ambient-water-aura) ease-in-out infinite alternate!important;animation-play-state:var(--nubi-ambient-play)!important;will-change:auto!important}
  .desktop-shell .deck-blob {animation:nubi-pastel-flow var(--nubi-ambient-surround) var(--nubi-pastel-ease) infinite alternate!important;animation-play-state:var(--nubi-ambient-play)!important;will-change:auto!important}

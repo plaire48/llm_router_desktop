@@ -54,10 +54,7 @@
 @keyframes nubi-intro-title { from{opacity:0} to{opacity:1} }
 :root:root .nubi-intro[data-mode="full"] .nubi-brand-emblem .agent-mark { animation:none; }
 .nubi-intro-loading { width:min(var(--nubi-intro-progress-width),calc(100vw - var(--cx-space-7) * 2)); display:grid; gap:var(--cx-space-3); }
-.nubi-intro-progress { position:relative; height:var(--nubi-intro-progress-height); border-radius:var(--cx-radius-pill,999px); overflow:hidden; background:var(--deck-line); }
-.nubi-intro-progress > span { position:absolute; inset:0; border-radius:inherit; transform-origin:0 50%; background:linear-gradient(90deg,var(--deck-teal),var(--deck-blue)); }
-.nubi-intro-progress[data-ready="false"] > span { width:36%; animation:nubi-intro-wait var(--nubi-ambient-progress) ease-in-out infinite; }
-@keyframes nubi-intro-wait { from{transform:translateX(-100%)} to{transform:translateX(280%)} }
+.nubi-intro .nubi-intro-progress { margin-top:0; }
 .nubi-intro-progress-status { display:flex; align-items:center; justify-content:space-between; gap:var(--cx-space-4); font:var(--deck-font-caption); color:var(--deck-sub); }
 .nubi-intro-progress-value { font-weight:var(--nubi-weight-emphasis); color:var(--deck-blue-deep); font-variant-numeric:tabular-nums; }
 
@@ -69,7 +66,6 @@
 /* Later launches: only the logo and the progress bar on the app's own background, no sky (user decision 2026-10-14). */
 .nubi-intro[data-mode="brief"] { background:var(--nubi-surface-base); background-image:var(--nubi-workspace-gradient,none); }
 .nubi-intro[data-mode="brief"] :is(.nubi-intro-horizon,.nubi-intro-echo,.nubi-intro-tunnel,.nubi-intro-flash) { display:none; }
-.nubi-intro[data-mode="brief"] .nubi-intro-progress { background:var(--deck-line); }
 .nubi-intro[data-mode="brief"] .nubi-intro-title { animation:nubi-intro-title-brief .45s ease-out both; }
 @keyframes nubi-intro-title-brief { from{opacity:0;transform:translate(-50%,-47%)} to{opacity:1;transform:translate(-50%,-50%)} }
 /* Nothing of the app shows through before the scene: the waiting bird stays hidden while it plays. */

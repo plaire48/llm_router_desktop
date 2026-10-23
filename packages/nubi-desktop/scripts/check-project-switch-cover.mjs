@@ -31,11 +31,12 @@ try{
  assert.equal(await page.locator('.desktop-workspace-body').evaluate(el=>el.inert),true);
  await page.getByRole('status',{name:'프로젝트 여는 중',exact:true}).waitFor();
  await page.waitForTimeout(350);
- const loading=await page.evaluate(()=>{const rows=document.getAnimations().filter(a=>a.effect?.getTiming().iterations===Infinity).map(a=>({name:a.animationName,state:a.playState,behind:!!a.effect?.target?.closest?.('.desktop-workspace-body'),cover:!!a.effect?.target?.closest?.('.nubi-project-switch-cover')}));return {rows,events:window.loadingMotionEvents};});
+ const loading=await page.evaluate(()=>{const rows=document.getAnimations().map(a=>({name:a.animationName,state:a.playState,duration:a.effect?.getTiming().duration,iterations:a.effect?.getTiming().iterations,behind:!!a.effect?.target?.closest?.('.desktop-workspace-body'),cover:!!a.effect?.target?.closest?.('.nubi-project-switch-cover')}));return {rows,events:window.loadingMotionEvents};});
  await writeFile(path.join(out,'loading-motion.json'),JSON.stringify(loading,null,2));
  assert(loading.rows.some(a=>a.behind),'exercise real background effects');
  assert.equal(loading.rows.filter(a=>a.behind&&a.state==='running').length,0,'covered project animations must pause while reading');
- assert.deepEqual(loading.rows.filter(a=>a.cover&&a.state==='running').map(a=>a.name),['nubi-wiki-scan'],'only the one-way progress track repeats in the loader');
+ assert.deepEqual(loading.rows.filter(a=>a.cover&&a.state==='running').map(a=>a.name),['nubi-progress-pending'],'only the slow progress fill runs in the loader');
+ assert(loading.rows.some(a=>a.cover&&a.name==='nubi-progress-pending'&&a.duration===12000&&a.iterations===1),'pending fill runs once and holds');
  assert(loading.events.includes('nubi-view-project-loader-enter'),'exercise shared spring entrance');
 
  const progress=page.getByRole('region',{name:'프로젝트 이동 진행'});await progress.getByText('project-alpha',{exact:true}).waitFor();await page.waitForFunction(()=>/^[1-9]\d*초 경과$/.test(document.querySelector('.nubi-project-open-progress time')?.textContent||''));assert.equal(await progress.getByRole('progressbar').getAttribute('value'),null);await page.screenshot({path:path.join(out,'switching.png')});
@@ -63,5 +64,5 @@ try{
 
  assert.equal(await page.locator('.nubi-saved-project[data-current="true"] .nubi-sidebar-project-name').innerText(),'project-alpha');
  assert.equal(await page.locator('.desktop-workspace-body').evaluate(el=>el.inert),false);assert.deepEqual(errors,[]);
- await writeFile(path.join(out,'result.json'),JSON.stringify({passed:true,frames,errors,failureRestoresOriginal:true,elapsedSeconds:true,projectName:true,realHostStages:true,backgroundPaused:true,sharedEntranceExit:true,reducedMotion:true,loaderOnlyProgressRepeats:true,boundary:'Actual macOS Electron with temporary local projects, delayed switch response. Windows installer not tested.'},null,2));console.log('Project switch cover passed');
+ await writeFile(path.join(out,'result.json'),JSON.stringify({passed:true,frames,errors,failureRestoresOriginal:true,elapsedSeconds:true,projectName:true,realHostStages:true,backgroundPaused:true,sharedEntranceExit:true,reducedMotion:true,loaderProgressFillsOnce:true,boundary:'Actual macOS Electron with temporary local projects, delayed switch response. Windows installer not tested.'},null,2));console.log('Project switch cover passed');
 }catch(error){if(page)await page.screenshot({path:path.join(out,'failure.png')});throw error;}finally{await app?.close();await rm(temp,{recursive:true,force:true});}

@@ -11,6 +11,7 @@ Versions are pinned in the package lock. Original source notices and installed p
 | xterm.js / Fit addon | 6.0.0 / 0.11.0 | MIT | Manual command output terminal and container fitting |
 | Univer core / formula engine / sheets / sheets-formula | 0.25.1 | Apache-2.0 | Worker calculation of captured native Excel cells; bundled dependency notices in vendor/licenses/native-excel/index.json |
 | Pi agent-core / pi-ai | 0.86.1 | MIT | Existing Nubi agent and provider runtime |
+| OpenCode CLI | 1.19.4, commit `148842ef7cb1bc34192b3fff57d0f9721ab9c801` | MIT | Original executable runs project coding sessions through admitted host model and tools |
 | @vscode/ripgrep | 1.18.0 | MIT wrapper; ripgrep MIT OR Unlicense | Bounded native source search; platform package retained by npm |
 | TypeScript | 5.9.3 | Apache-2.0 | In-memory JS/TS syntax diagnostics and declaration outlines |
 | jsonc-parser | 3.3.1 | MIT | Strict JSON and explicit JSONC syntax checks |
@@ -45,6 +46,12 @@ Windows packaging additionally uses electron-builder 26.15.3 (MIT) and Microsoft
 
 User skill package import uses yauzl 3.4.0 (MIT), pinned as a direct dependency. It reads bounded ZIP entry streams; Nubi checks paths, byte limits and CRC before storing skill resources. Upstream notice: Copyright (c) 2014 Josh Wolfe. The complete MIT notice is retained in the distributed dependency license inventory.
 
+
+## OpenCode coding execution and edit source
+
+The original OpenCode executable is downloaded from the official `anomalyco/opencode` v1.19.4 release at build time. Archive identity, platform and SHA-256 digests are pinned in `runtime/opencode-engine-release.json`; the packaged manifest additionally records the extracted executable digest. Its MIT notice is retained in `vendor/licenses/opencode-LICENSE.txt` and beside the executable. OpenCode Desktop was downloaded and inspected as an architecture reference; its application and UI are not redistributed by this change.
+
+`runtime/vendor/opencode/edit-replacers.mjs` contains the original pure replacement functions from `packages/opencode/src/tool/edit.ts`, lines 217–737, with TypeScript types erased. `provenance.json` records the exact source commit and hash. Nubi admits only exact and uniquely resolved line-trimmed/common-indentation matches under current source observations. It does not enable the semantic block-anchor or intraline whitespace-normalization fallbacks. The source credits Cline and Gemini; their original notices are retained in `vendor/licenses/opencode-cline-LICENSE.txt` and `vendor/licenses/opencode-gemini-LICENSE.txt`. Full notices are copied to the distributed license directory by the existing build.
 
 ## Read-only document research
 

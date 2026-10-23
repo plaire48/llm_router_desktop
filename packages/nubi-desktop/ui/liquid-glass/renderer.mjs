@@ -26,8 +26,16 @@ export function createGlassRenderer(canvas){
    resize(w,h,ratio,backdrop){width=w;height=h;dpr=ratio;canvas.width=Math.max(1,Math.round(w*ratio));canvas.height=Math.max(1,Math.round(h*ratio));gl.viewport(0,0,canvas.width,canvas.height);gl.bindTexture(gl.TEXTURE_2D,texture);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,backdrop);},
    draw(rect,{pointer=[-1000,-1000],strength=.78,time=0,radius=14}={}){
     gl.useProgram(program);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
+    // A small lens must not run the refractive shader over a full-height rail.
+    // Clear the previous lens first, then shade only its visible edge coverage.
+    if(!rect||![rect.x,rect.y,rect.width,rect.height].every(Number.isFinite)||rect.width<=0||rect.height<=0)return;
+    const padding=12,left=Math.max(0,Math.floor((rect.x-padding)*dpr)),right=Math.min(canvas.width,Math.ceil((rect.x+rect.width+padding)*dpr));
+    const bottom=Math.max(0,Math.floor((height-rect.y-rect.height-padding)*dpr)),top=Math.min(canvas.height,Math.ceil((height-rect.y+padding)*dpr));
+    if(right<=left||top<=bottom)return;
     rects.fill(0);if(rect){rects.set([rect.x,rect.y,Math.max(1,rect.width),Math.max(1,rect.height)]);radii[0]=radius;}
-    gl.uniform2f(uniforms.size,width,height);gl.uniform1f(uniforms.dpr,dpr);gl.uniform1f(uniforms.strength,strength);gl.uniform1f(uniforms.time,time);gl.uniform2fv(uniforms.pointer,pointer);gl.uniform1i(uniforms.count,rect?1:0);gl.uniform4fv(uniforms.rects,rects);gl.uniform1fv(uniforms.radii,radii);gl.uniform1fv(uniforms.modes,modes);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+    gl.uniform2f(uniforms.size,width,height);gl.uniform1f(uniforms.dpr,dpr);gl.uniform1f(uniforms.strength,strength);gl.uniform1f(uniforms.time,time);gl.uniform2fv(uniforms.pointer,pointer);gl.uniform1i(uniforms.count,1);gl.uniform4fv(uniforms.rects,rects);gl.uniform1fv(uniforms.radii,radii);gl.uniform1fv(uniforms.modes,modes);
+    gl.enable(gl.SCISSOR_TEST);gl.scissor(left,bottom,right-left,top-bottom);
+    try{gl.drawArrays(gl.TRIANGLE_STRIP,0,4);}finally{gl.disable(gl.SCISSOR_TEST);}
    },
    dispose(){dispose();gl.getExtension('WEBGL_lose_context')?.loseContext();}
   };

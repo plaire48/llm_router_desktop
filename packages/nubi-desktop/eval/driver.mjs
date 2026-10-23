@@ -18,7 +18,7 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 if(!ProjectService.prototype.startAgent)installAgent(ProjectService);
 
 // Waits until an approved command has finished and the run the host starts to read its result has ended.
-async function settleCommand(service,processId,expired){
+export async function settleCommand(service,processId,expired){
   for(;;){
     if(expired())return;
     const agent=service.agent,record=service.store.get('process:'+processId);

@@ -32,3 +32,22 @@ test('deleted nested fields, shorter arrays and nulls are never hidden as unchan
  assert.equal(Object.hasOwn(merged.task,'__proto__'),true);
  assert.equal({}.polluted,undefined);
 });
+
+test('a late change retains shared fields across a reordered snapshot',()=>{
+ const previous={task:{id:'t',messages:[{content:'Retain this answer'}],sources:[{path:'source.md'}],elapsed:1}};
+ const incoming={task:{sources:structuredClone(previous.task.sources),messages:structuredClone(previous.task.messages),id:'t',elapsed:2}};
+ const merged=mergeSnapshot(previous,incoming);
+ assert.equal(merged.task.messages,previous.task.messages);assert.equal(merged.task.sources,previous.task.sources);assert.equal(merged.task.elapsed,2);assert.equal(previous.task.elapsed,1);
+});
+
+test('copying a shared prefix preserves an own proto field without changing the prototype',()=>{
+ const previous=JSON.parse('{"task":{"stable":"value","__proto__":{"safe":true},"elapsed":1}}'),incoming=structuredClone(previous);incoming.task.elapsed=2;
+ const merged=mergeSnapshot(previous,incoming);
+ assert.equal(Object.getPrototypeOf(merged.task),Object.prototype);assert.equal(Object.hasOwn(merged.task,'__proto__'),true);assert.equal(merged.task.__proto__,previous.task.__proto__);assert.equal({}.safe,undefined);
+});
+
+test('a sparse array preserves holes and length when a later element changes',()=>{
+ const previous={rows:new Array(5)},incoming={rows:new Array(5)};previous.rows[0]={id:'stable'};previous.rows[4]=1;incoming.rows[0]={id:'stable'};incoming.rows[4]=2;
+ const merged=mergeSnapshot(previous,incoming);
+ assert.equal(merged.rows.length,5);assert.equal(1 in merged.rows,false);assert.equal(merged.rows[0],previous.rows[0]);assert.equal(merged.rows[4],2);
+});
