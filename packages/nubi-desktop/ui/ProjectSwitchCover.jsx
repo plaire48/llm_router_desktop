@@ -7,6 +7,7 @@ import {motionDuration} from './motion-policy.mjs';
 import {AgentMark,NubiWordmark} from '../../../extensions/aipro-chat/src/AgentMark.jsx';
 import './nubi-preparing.css';
 import './project-switch-cover.css';
+import {WorkspaceAtmosphere} from './WorkspaceAtmosphere.jsx';
 
 // Present before the first async project request, without unmounting drafts or
 // moving layout. The renderer removes the guard only after the next UI commits.
@@ -34,6 +35,7 @@ export function ProjectSwitchCover({progress,transition}){
  },[progress,transition,active]);
  const leaving=!active&&!!retained,shown=active?{progress,transition}:retained;
  return <div ref={node} className="nubi-project-switch-cover" data-leaving={leaving||undefined} role="status" aria-label="프로젝트 여는 중" aria-busy={active} aria-hidden={!active||undefined} inert={!active||undefined}>
+  <WorkspaceAtmosphere scene="project" active={active}/>
   <div className="nubi-project-switch-scene">
    <div className="nubi-preparing-brand" aria-hidden="true"><AgentMark size={56}/><NubiWordmark/><span>Workspace</span></div>
    {shown?.progress?<GitCloneProgress progress={shown.progress}/>:shown?.transition?<ProjectOpenProgress transition={shown.transition}/>:<TaskProgressBar className="nubi-preparing-bar" label="프로젝트 준비" active={active}/>}

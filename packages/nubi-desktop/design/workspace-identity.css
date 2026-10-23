@@ -4,6 +4,8 @@
    come from agent-deck.css; this layer closes host and portal differences. */
 :root {
   --nubi-progress-height:6px;
+  --nubi-atmosphere-opacity:.62;
+  --nubi-atmosphere-chat-opacity:.38;
   --nubi-welcome-bird-size: clamp(176px, min(31vh, 42vw), 280px);
   --nubi-welcome-inset: clamp(16px, 4vh, 40px);
   --deck-blue: var(--nuvi-primary);

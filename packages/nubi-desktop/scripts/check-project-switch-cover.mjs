@@ -16,6 +16,13 @@ try{
  await page.locator('.nubi-window-toolbar button[aria-label^="사이드바"]').waitFor();
  if(await page.getByRole('button',{name:'사이드바 펼치기',exact:true}).count())await page.getByRole('button',{name:'사이드바 펼치기',exact:true}).click();
  await page.getByRole('button',{name:'project-alpha 대화 접기',exact:true}).waitFor();
+ await page.locator('.nubi-workbench-content>.nubi-workspace-atmosphere[data-running=true]').waitFor();
+ await page.screenshot({path:path.join(out,'main-background.png')});
+ await page.getByRole('button',{name:'프로젝트 추가',exact:true}).click();
+ const projectForm=page.getByRole('dialog',{name:'프로젝트 연결',exact:true});await projectForm.waitFor();
+ assert.equal(await projectForm.locator('.nubi-workspace-atmosphere').count(),0,'creation modal has no added background');
+ await page.waitForFunction(()=>![...document.querySelectorAll('.nubi-workspace-atmosphere')].some(node=>node.dataset.running==='true'));
+ await page.screenshot({path:path.join(out,'create-unchanged.png')});await page.keyboard.press('Escape');await projectForm.waitFor({state:'hidden'});
  await app.evaluate(({dialog},root)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[root]});},roots[1]);
  const second=await page.evaluate(()=>window.nubi.request('chooseFolder',{}));assert(second.projectId,JSON.stringify(second));
  await page.reload();await page.locator('.desktop-shell[data-startup-ready="true"]').waitFor();await page.keyboard.press('Escape');
@@ -35,7 +42,11 @@ try{
  await writeFile(path.join(out,'loading-motion.json'),JSON.stringify(loading,null,2));
  assert(loading.rows.some(a=>a.behind),'exercise real background effects');
  assert.equal(loading.rows.filter(a=>a.behind&&a.state==='running').length,0,'covered project animations must pause while reading');
- assert.deepEqual(loading.rows.filter(a=>a.cover&&a.state==='running').map(a=>a.name),['nubi-progress-pending'],'only the slow progress fill runs in the loader');
+ assert.deepEqual(loading.rows.filter(a=>a.cover&&a.state==='running').map(a=>a.name),['nubi-progress-pending'],'the slow fill is the only CSS ambient loop; the foreground material has one bounded canvas');
+ const material=page.locator('.nubi-project-switch-cover .nubi-workspace-atmosphere');
+ const materialState=await material.evaluate(node=>({renderer:node.dataset.renderer,running:node.dataset.running,pixels:node.querySelector('canvas').width*node.querySelector('canvas').height}));
+ assert(['webgl','static'].includes(materialState.renderer));assert(materialState.pixels<=64000);if(materialState.renderer==='webgl')assert.equal(materialState.running,'true');
+ await writeFile(path.join(out,'material.json'),JSON.stringify(materialState,null,2));
  assert(loading.rows.some(a=>a.cover&&a.name==='nubi-progress-pending'&&a.duration===12000&&a.iterations===1),'pending fill runs once and holds');
  assert(loading.events.includes('nubi-view-project-loader-enter'),'exercise shared spring entrance');
 

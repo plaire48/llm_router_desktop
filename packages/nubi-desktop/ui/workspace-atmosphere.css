@@ -1,0 +1,16 @@
+/* One colour field behind stationary text and controls. No moving DOM or blur. */
+.nubi-workspace-atmosphere { position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;opacity:var(--nubi-atmosphere-opacity);contain:strict; }
+.nubi-workspace-atmosphere canvas { position:absolute;inset:0;width:100%;height:100%;display:none; }
+.nubi-workspace-atmosphere[data-renderer=webgl] canvas { display:block; }
+.nubi-workspace-atmosphere>i { position:absolute;inset:0;background:radial-gradient(ellipse at 24% 30%,var(--nuvi-aqua),transparent 44%),radial-gradient(ellipse at 73% 44%,var(--nuvi-periwinkle),transparent 46%),radial-gradient(ellipse at 46% 77%,var(--nuvi-mint),transparent 46%);opacity:.44; }
+.nubi-workspace-atmosphere>i+i { display:none; }
+.nubi-workspace-atmosphere[data-renderer=webgl]>i { display:none; }
+.nubi-intro>.nubi-workspace-atmosphere { z-index:1; }
+.nubi-intro-title { z-index:2; }
+.nubi-project-switch-scene { position:relative;z-index:1; }
+.nubi-project-switch-cover { overflow:hidden;isolation:isolate; }
+.nubi-workbench-content { position:relative;isolation:isolate; }
+.nubi-workbench-content>.nubi-workspace-atmosphere { z-index:-1; }
+.nubi-workbench[data-workspace-screen=conversation] .nubi-workspace-atmosphere { opacity:var(--nubi-atmosphere-chat-opacity); }
+@media(prefers-reduced-motion:reduce) { .nubi-workspace-atmosphere canvas { display:none!important; }.nubi-workspace-atmosphere>i:first-child { display:block!important; } }
+@media(forced-colors:active) { .nubi-workspace-atmosphere { display:none; } }

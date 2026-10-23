@@ -21,6 +21,7 @@
  --nubi-progress-pending-start:.08;
  --nubi-progress-pending-end:.68;
  --nubi-progress-play:running;
+ --nubi-atmosphere-cycle:48s;
  /* Interactive result cards never defer visibility behind a stagger. */
  --nubi-motion-delay:0ms;
  --nubi-pointer-move:var(--nubi-motion-state);

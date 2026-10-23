@@ -6,6 +6,7 @@ import './cinematic-intro.css';
 import {openingSceneId,openingSceneMode,rememberOpeningScene} from './opening-scene.mjs';
 import {startIntroFlight} from './introFlight.js';
 import {TaskProgressBar} from './TaskProgressBar.jsx';
+import {WorkspaceAtmosphere} from './WorkspaceAtmosphere.jsx';
 
 // Opening scene, once per launch (user requests 2026-10-14: "영화의 한 장면처럼", more cuts, a real sky, a progress bar,
 // a smooth hand-over, and finally "우리가 새가 되어서 날아가는 느낌"). Seen through the bird's eyes: we glide over the
@@ -75,6 +76,7 @@ export function CinematicIntro({ready=false,onFinish}){
     <div className="nubi-intro-tunnel"/>
     <div className="nubi-intro-flash"/>
     {mode==='full'&&<div className="nubi-intro-whiteout"/>}
+    {phase!=='scenes'&&<WorkspaceAtmosphere scene="intro" active={phase==='title'||phase==='complete'}/>}
     <div className="nubi-intro-title">
       <div className="nubi-intro-lockup">
         <WorkspaceBrand variant="intro"/>
