@@ -1,18 +1,13 @@
-import {Worker} from 'node:worker_threads';
+import {readTasks} from './read-task-pool.mjs';
 import {diffLines} from 'diff';
 import {hash,readSource,fail} from './files.mjs';
 import {posix as pathPosix} from 'node:path';
 import {realpath} from 'node:fs/promises';
 
 const supported=file=>/\.(?:[cm]?[jt]sx?|jsonc?|ya?ml)$/i.test(file);
-export function runCodeAnalysis(input,{signal,timeoutMs=5000}={}){
-  return new Promise(resolve=>{
-    if(signal?.aborted){resolve({error:'cancelled'});return;}
-    let worker;try{worker=new Worker(new URL('./code-analysis-worker.mjs',import.meta.url),{workerData:input,execArgv:[],resourceLimits:{maxOldGenerationSizeMb:256}});}catch{resolve({error:'analysis_unavailable'});return;}let done=false;
-    const finish=value=>{if(done)return;done=true;clearTimeout(timer);signal?.removeEventListener('abort',cancel);worker.terminate().catch(()=>{});resolve(value);};
-    const cancel=()=>finish({error:'cancelled'}),timer=setTimeout(()=>finish({error:'analysis_timeout'}),timeoutMs);
-    signal?.addEventListener('abort',cancel,{once:true});worker.once('message',finish);worker.once('error',()=>finish({error:'analysis_unavailable'}));worker.once('exit',()=>finish({error:'analysis_unavailable'}));
-  });
+export async function runCodeAnalysis(input,{signal,timeoutMs=5000}={}){
+  try{return await readTasks.run(input.mode==='repository'?'repository':'interactive','code-analysis',input,{signal,timeoutMs});}
+  catch(error){return {error:error.message==='read_task_cancelled'?'cancelled':error.message==='read_task_timeout'?'analysis_timeout':'analysis_unavailable'};}
 }
 // Existing errors count as existing only on lines left unchanged by the edit.
 function unchangedLines(before,after){

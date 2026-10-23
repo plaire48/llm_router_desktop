@@ -108,7 +108,8 @@ else for(const file of ['office-document.ps1','mail-attachment-worker.mjs','docu
 await rm('extension/lib/node/openwiki-update',{recursive:true,force:true});
 await cp('generated/openwiki-update','extension/lib/node/openwiki-update',{recursive:true});
 await copyFile('generated/native-excel-calculator-worker.mjs','extension/lib/node/native-excel-calculator-worker.mjs');
-for (const worker of ['schema-worker','database-worker','code-analysis-worker','mail-worker','mail-list-worker','mail-portal-worker',...(DESKTOP_FEATURES.mailAttachmentReading?['mail-attachment-worker']:[])]) await build({entryPoints:[`runtime/${worker}.mjs`],outfile:`extension/lib/node/${worker}.mjs`,bundle:true,minify:MINIFY,keepNames:true,platform:'node',format:'esm',target:'node24',external:['knex','knex-schema-inspector','typescript','jsonc-parser','./document-extract.mjs'],banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);"}});
+const workerBuilds=[];
+for (const worker of ['schema-worker','database-worker','code-analysis-worker','read-task-worker','mail-worker','mail-list-worker','mail-portal-worker',...(DESKTOP_FEATURES.mailAttachmentReading?['mail-attachment-worker']:[])]) workerBuilds.push(await build({metafile:true,entryPoints:[`runtime/${worker}.mjs`],outfile:`extension/lib/node/${worker}.mjs`,bundle:true,minify:MINIFY,keepNames:true,platform:'node',format:'esm',target:'node24',external:['knex','knex-schema-inspector','typescript','jsonc-parser','./document-extract.mjs'],banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);"}}));
 const sourceWiki={name:'nubi-source-wiki',setup(builder){builder.onResolve({filter:/openwiki\.mjs$/},args=>path.resolve(args.resolveDir,args.path)===path.resolve('generated/openwiki.mjs')?{path:path.resolve('runtime/openwiki-source.ts')}:undefined);}};
 // The host imports the update runner from the folder next to it.
 const deferredDocuments={name:'nubi-deferred-documents',setup(builder){builder.onResolve({filter:/document-extract\.mjs$/},args=>path.resolve(args.resolveDir,args.path)===path.resolve('runtime/document-extract.mjs')?{path:'./document-extract.mjs',external:true}:undefined);}};
@@ -136,7 +137,7 @@ if(Object.keys(uiBuild.metafile.inputs).some(file=>/@a2a-js\/sdk|nubi-a2a\/(?:cl
 // Release snapshots copy the actual shared source dependency closure rather
 // than silently taking unrelated in-progress Office/browser changes. Modules the
 // build replaces (nubi-*: namespaces) are not files.
-await writeFile('generated/source-inputs.json',JSON.stringify([...new Set([wikiBuild,updateBuild,runtimeBuild,uiBuild,mainBuild].flatMap(bundle=>Object.keys(bundle.metafile.inputs)).filter(file=>!file.includes('node_modules')&&!/^nubi-[a-z-]+:/.test(file)))].sort(),null,2)+'\n');
+await writeFile('generated/source-inputs.json',JSON.stringify([...new Set([wikiBuild,updateBuild,runtimeBuild,uiBuild,mainBuild,...workerBuilds].flatMap(bundle=>Object.keys(bundle.metafile.inputs)).filter(file=>!file.includes('node_modules')&&!/^nubi-[a-z-]+:/.test(file)))].sort(),null,2)+'\n');
 
 if(DESKTOP_FEATURES.mailAttachmentReading){
 await build({entryPoints:['runtime/document-extract.mjs'],outfile:'extension/lib/node/document-extract.mjs',bundle:true,minify:MINIFY,keepNames:true,platform:'node',format:'esm',target:'node24',banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);"}});

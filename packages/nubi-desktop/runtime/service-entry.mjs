@@ -1,6 +1,7 @@
 import {createRoutineManager} from './routines.mjs';
 import {Store} from './store.mjs';
 import {createActivityNotifier} from './activity-notifier.mjs';
+import {readTasks} from './read-task-pool.mjs';
 import path from 'node:path';
 import {ProjectCatalog} from '../electron-app/project-catalog.cjs';
 import {disableHostedTracing,configureSystemTrust} from './worker-environment.mjs';
@@ -33,7 +34,7 @@ const {ExternalOffice}=await import('./external-office.mjs');
 const externalOffice=new ExternalOffice();
 process.on('message', async message => {
   if (!message || typeof message.id !== 'string' || typeof message.method !== 'string') return;
-  try {if(projects.updateLocked)throw Error('update_installing');const result=await (message.method==='_externalOffice'?externalOffice.request(projects.current,message.args):projects.invoke(message.method,message.args));if(['open','deleteTask'].includes(message.method))externalOffice.pruneSelections(projects.current);process.send?.({id:message.id,result});}
-  catch(error) {process.send?.({id:message.id,error:/^[a-z_]{3,50}$/.test(error.message) ? error.message : 'operation_failed'});}
+  try {if(projects.updateLocked)throw Error('update_installing');const result=await (message.method==='_externalOffice'?externalOffice.request(projects.current,message.args):projects.invoke(message.method,message.args));if(['open','deleteTask'].includes(message.method))externalOffice.pruneSelections(projects.current);if(process.connected)process.send?.({id:message.id,result},()=>{});}
+  catch(error) {if(process.connected)process.send?.({id:message.id,error:/^[a-z_]{3,50}$/.test(error.message) ? error.message : 'operation_failed'},()=>{});}
 });
-process.on('disconnect',()=>{service.notifyActivity.dispose();service.notifyStream.dispose();service.routines.stop();externalOffice.dispose();projects.dispose();setTimeout(()=>process.exit(0),1800);});
+process.on('disconnect',()=>{void readTasks.close();service.notifyActivity.dispose();service.notifyStream.dispose();service.routines.stop();externalOffice.dispose();projects.dispose();setTimeout(()=>process.exit(0),1800);});

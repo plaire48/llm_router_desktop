@@ -27,7 +27,10 @@ test('JSON comments have explicit format scope; unsupported languages and timeou
   assert.equal((await checkCodeQuality('tsconfig.json','{}','{/* comment */ "strict":true,}')).state,'passed');
   assert.equal((await checkCodeQuality('package.json','{}','{/* comment */ "name":"x"}')).state,'blocked');
   assert.equal((await checkCodeQuality('legacy.py','pass','not Python syntax')).state,'unsupported');
-  const timeout=await checkCodeQuality('a.ts','const a=1;','const a=2;',{timeoutMs:1});assert.equal(timeout.state,'unavailable');assert.throws(()=>requireCodeQuality(timeout),/quality_unavailable/);
+  // A warm parser can finish two constants within 1 ms. Exercise actual CPU
+  // work so the deadline test does not depend on starting a fresh worker.
+  const large=Array.from({length:12000},(_,i)=>`export const value${i}:number=${i};`).join('\n');
+  const timeout=await checkCodeQuality('a.ts','const a=1;',large,{timeoutMs:1});assert.equal(timeout.state,'unavailable');assert.throws(()=>requireCodeQuality(timeout),/quality_unavailable/);
   const c=new AbortController();c.abort();assert.equal((await runCodeAnalysis({mode:'outline',path:'a.ts',content:'const x=1;'},{signal:c.signal})).error,'cancelled');
 });
 

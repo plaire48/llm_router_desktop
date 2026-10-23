@@ -47,7 +47,7 @@ export async function folderPlan(root,files,{signal,now=Date.now(),excluded={ign
  let codeMapSummary=null;
  if(withCodeMap&&entries.length<=50000){
   try{
-   const map=await codeMap(root,entries.map(f=>f.path),{signal});const best=map.ranking[0]?.score||0;
+   const map=await codeMap(root,entries.map(f=>f.path),{signal,projection:'navigation'});const best=map.ranking[0]?.score||0;
    for(const row of map.ranking)if(best>0)ranks.set(row.path,(ranks.get(row.path)||0)+Math.round(100*row.score/best));
    codeMapSummary={summary:map.summary,entrypoints:map.entrypoints,top:map.ranking.slice(0,60).map(row=>({path:row.path,importedBy:row.importedBy,entrypoint:row.entrypoint,definitions:map.files[row.path].definitions.slice(0,8).map(d=>d.name)}))};
   }catch(error){signal?.throwIfAborted();codeMapSummary={skipped:/^[a-z_]{3,40}$/.test(error.message)?error.message:'code_map_failed'};}

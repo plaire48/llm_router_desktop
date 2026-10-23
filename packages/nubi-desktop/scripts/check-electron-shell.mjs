@@ -49,7 +49,12 @@ try{page=await desktopTestWindow(app);await page.bringToFront();page.setDefaultT
  // real current choices without starting a connection from a visual check.
  const mailMethod=page.getByRole('dialog',{name:'메일 설정',exact:true}).getByRole('combobox',{name:'메일 연결 방식',exact:true});await mailMethod.waitFor();assert.deepEqual(await mailMethod.locator('option').evaluateAll(nodes=>nodes.map(node=>({value:node.value,label:node.textContent}))),[{value:'desktop',label:'Knox Desktop'},{value:'pop3',label:'POP3'},{value:'portal',label:'포털 (외부 브라우저)'}]);
  await page.keyboard.press('Escape');await page.getByRole('dialog',{name:'메일 설정',exact:true}).waitFor({state:'hidden'});await page.getByRole('button',{name:'홈',exact:true}).click();await page.getByRole('heading',{name:'메일',exact:true}).waitFor({state:'hidden'});
- await page.getByRole('button',{name:'위키 설정',exact:true}).click();await page.getByRole('dialog',{name:'위키 설정',exact:true}).waitFor();await page.keyboard.press('Escape');await page.getByRole('dialog',{name:'위키 설정',exact:true}).waitFor({state:'hidden'});
+ await page.getByRole('button',{name:'위키 설정',exact:true}).click();
+ // Status-loading progress follows the shared background-modal contract. Reopen
+ // its retained panel from the queue rather than expecting the busy panel to stay.
+ await page.getByRole('button',{name:/^백그라운드 작업/}).click();
+ await page.getByRole('dialog',{name:'백그라운드 작업',exact:true}).getByRole('button',{name:'위키 상태 불러오는 중 작업 열기',exact:true}).click();
+ await page.getByRole('dialog',{name:'위키 설정',exact:true}).waitFor();await page.keyboard.press('Escape');await page.getByRole('dialog',{name:'위키 설정',exact:true}).waitFor({state:'hidden'});
  // Record the real native API calls on Windows; macOS has different window controls.
  if(process.platform==='win32')await (await app.browserWindow(page)).evaluate(win=>{const apply=win.setTitleBarOverlay.bind(win);win.captionUpdates=[];win.setTitleBarOverlay=options=>{win.captionUpdates.push(options);return apply(options);};});
  await page.getByRole('button',{name:'설정',exact:true}).click();await page.getByRole('dialog',{name:'설정',exact:true}).getByLabel('기본 터미널').waitFor();

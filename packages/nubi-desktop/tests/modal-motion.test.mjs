@@ -32,6 +32,11 @@ test('automation can opt out while reduced motion retains the inert close lifecy
   assert.match(motion,/prefers-reduced-motion: reduce/);
   assert.match(motion,/if\(!html\.dataset\.modalMotion\)return;/);
   assert.match(motion,/node\.inert=true;node\.setAttribute\('aria-hidden','true'\);/);
-  const transitions=await read('ui/viewTransition.js');
-  assert.match(transitions,/!document\.querySelector\('[^']*\.cx-panel-backdrop'\)/);
+  // Exercise the transition guard rather than matching its selector spelling:
+  // parked background dialogs now intentionally exclude [hidden] backdrops.
+  const {transitioned}=await import('../ui/viewTransition.js'),previous=globalThis.document;
+  let captures=0,updates=0;
+  globalThis.document={hidden:false,documentElement:{hasAttribute:()=>false},body:{hasAttribute:()=>false},querySelector:()=>({}),startViewTransition(){captures++;}};
+  try{transitioned(()=>updates++);await Promise.resolve();assert.equal(captures,0,'a visible modal must not be captured a second time');assert.equal(updates,1,'the live update must not wait for a modal transition');}
+  finally{if(previous===undefined)delete globalThis.document;else globalThis.document=previous;}
 });

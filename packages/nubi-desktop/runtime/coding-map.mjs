@@ -23,7 +23,7 @@ export async function codingMapContext(service,taskId,{signal,limit=30,maxBytes=
   let entry=cache.get(service);
   if(entry?.key!==key){
    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),deadlineMs);
-   try{entry={key,map:await compute(root,[...files,...manifests],{signal:signal?AbortSignal.any([signal,controller.signal]):controller.signal})};}finally{clearTimeout(timer);}
+   try{entry={key,map:await compute(root,[...files,...manifests],{signal:signal?AbortSignal.any([signal,controller.signal]):controller.signal,projection:'navigation'})};}finally{clearTimeout(timer);}
    cache.set(service,entry);
   }
   return codeMapContext(entry.map,{limit,maxBytes});

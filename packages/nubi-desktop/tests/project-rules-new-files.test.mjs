@@ -89,7 +89,14 @@ test('new files require observed absence, syntax validation and human applicatio
   const proposal=await service.proposeNewFile({taskId:task.id,path:'helper.ts',content:'export const result = 2;\n'});assert.equal(proposal.quality.state,'passed');
   await assert.rejects(readFile(path.join(root,'helper.ts')),/ENOENT/);assert.equal((await collectKnowledge(service,task.id)).packet.sources[0].state,'pending_creation');
   await assert.rejects(service.mergeProposal({proposalId:proposal.id}),/proposal_missing/);
-  const results=await Promise.allSettled([service.applyNewFile({proposalId:proposal.id}),service.applyNewFile({proposalId:proposal.id})]);assert.equal(results.filter(r=>r.status==='fulfilled').length,1);
+  const results=await Promise.allSettled([service.applyNewFile({proposalId:proposal.id}),service.applyNewFile({proposalId:proposal.id})]);
+  // With a warm parser, the other caller can finish its checkpoint after the
+  // first write and receive its verified alreadyApplied receipt. Count writes,
+  // not successful replies, so the check is independent of parser startup time.
+  const completed=results.filter(r=>r.status==='fulfilled').map(r=>r.value);assert.equal(completed.filter(value=>!value.alreadyApplied).length,1);
+  for(const value of completed){assert.equal(value.state,'applied');assert.equal(value.afterHash,proposal.afterHash);}
+  for(const result of results.filter(r=>r.status==='rejected'))assert.match(result.reason.message,/agent_busy/);
+  assert.equal(service.store.events().filter(event=>event.kind==='proposal_applied'&&event.value.proposalId===proposal.id).length,1);
   assert.equal(await readFile(path.join(root,'helper.ts'),'utf8'),'export const result = 2;\n');assert.equal((await service.applyNewFile({proposalId:proposal.id})).alreadyApplied,true);
   service.store.close();await service.open(root);assert.equal((await service.prepareProposal({proposalId:proposal.id})).alreadyApplied,true);
   await writeFile(path.join(root,'helper.ts'),'Human change');await assert.rejects(service.applyNewFile({proposalId:proposal.id}),/applied_changed/);assert.equal(await readFile(path.join(root,'helper.ts'),'utf8'),'Human change');
