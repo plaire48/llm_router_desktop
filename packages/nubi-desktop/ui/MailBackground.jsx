@@ -24,18 +24,20 @@ export function MailBackground({api,status,observedAt,onStatus,onUnavailable,onC
  }
  useEffect(()=>{alive.current=true;void reload(true);const timer=setInterval(()=>{if(!actionLock.current)void reload();},3000);return()=>{alive.current=false;epoch.current++;clearInterval(timer);};},[api,offset]);
  useEffect(()=>{if(!notice)return;const timer=setTimeout(()=>setNotice(''),2500);return()=>clearTimeout(timer);},[notice]);
- async function act(action,id){
+ async function act(action,id,sourceHash){
   if(actionLock.current)return;actionLock.current=true;setBusy(true);setActionFailure('');
-  try{await api('mail',{action,...(id?{id}:{})});if(alive.current){await reload(true);setNotice(action==='retryDownloads'?'다음 서버 확인 때 다시 받습니다.':'다시 처리를 요청했어요.');}}
-  catch(error){if(alive.current)setActionFailure(error.message==='mail_busy'?'현재 메일 정리가 끝나면 다시 눌러 주세요.':mailAttentionInfo(error.message).title);}
+  try{const result=await api('mail',{action,...(id?{id,sourceHash}:{})});if(alive.current){
+   if(result?.counts&&result?.progress)onStatus(result);
+   if(action==='retry'&&id)setPage(current=>current?{...current,items:current.items.filter(row=>row.id!==id),total:Math.max(0,current.total-current.items.filter(row=>row.id===id).length)}:current);
+   setNotice(action==='retryDownloads'?'다음 서버 확인 때 다시 받습니다.':result?.retry?.alreadyPending?'이미 처리 중이거나 대기 중이에요.':result?.retry?.completed?'이미 처리가 끝났어요.':'처리 대기열에 넣었어요.');void reload(true);
+  }}
+  catch(error){if(alive.current)setActionFailure(error.message==='mail_busy'?'메일 설정을 적용 중이에요. 잠시 후 다시 시도해 주세요.':mailAttentionInfo(error.message).title);}
   finally{actionLock.current=false;if(alive.current)setBusy(false);}
  }
  const serverError=status?.error&&status.error!=='mail_cancelled'?mailAttentionInfo(status.error):null;
  const selectedModel=status?.destination||status?.activeModel;
  const modelAvailable=(status?.catalogs||[]).some(catalog=>catalog.provider===selectedModel?.provider&&(catalog.models||[]).some(model=>model.id===selectedModel?.model));
  const modelWaiting=status?.progress?.stage==='waiting_model'||!!(status?.connected&&status.autoWiki&&(page?.items||[]).some(row=>row.summary!==false)&&!modelAvailable);
- const canRetry=!(!status?.connected&&!status?.localCount)&&status.autoWiki&&!modelWaiting&&!status.summarizing&&!status.readingAttachments;
- const canReadAttachments=!(!status?.connected&&!status?.localCount)&&status.autoWiki&&!status.summarizing&&!status.readingAttachments;
  const messageLabel=row=>row.subject||'제목 없음';
  const openSource=row=>onOpenMessage?.({id:row.id,sourceHash:row.sourceHash});
  const processing=mailProcessingState(status);
@@ -49,7 +51,7 @@ export function MailBackground({api,status,observedAt,onStatus,onUnavailable,onC
   {page?.retrieval?.count>0&&<div className="nubi-mail-background-notice"><Icon name="download" size={16}/><span title={mailAttentionInfo(page.retrieval.errors?.[0]).title}>{mailAttentionInfo(page.retrieval.errors?.[0]).title} ({page.retrieval.count}개)</span>{!page.retrieval.errors?.every(code=>code==='mail_size_limit')&&<CxButton disabled={busy||(!status?.connected&&!status?.localCount)||!status?.autoWiki} onClick={()=>act('retryDownloads')}><Icon name="refresh" size={16}/>다시 받기</CxButton>}</div>}
   <div className="nubi-mail-background-items" aria-label="확인 필요한 메일">
    {page&&!failure&&<p className="nubi-mail-background-list-label">{page.total||page.retrieval?.count?`확인 필요한 메일 ${page.total+(page.retrieval?.count||0)}개`:'확인 필요한 메일이 없어요'}</p>}
-   {(page?.items||[]).map(row=>{const issue=mailAttentionRowInfo(row);return <div key={row.id} className="nubi-mail-background-item">{issue.attachmentsOnly?<FileKindIcon name={issue.filename} size={18}/>:<Icon name="mail" size={18}/>}<div className="nubi-mail-background-copy"><strong title={messageLabel(row)+(row.from?' / '+row.from:'')}>{messageLabel(row)}</strong><span title={issue.detail}>{issue.title}</span>{row.attachmentFailures?.some(item=>officeReadHelp(item.officeDiagnostic))&&<details className="nubi-office-issue"><summary>원인과 확인 방법</summary><p>{issue.detail}</p></details>}</div><div className="nubi-mail-background-actions">{onOpenMessage&&<CxButton className="nubi-icon-button" aria-label={`${messageLabel(row)} 원문 보기`} title="원문 보기" onClick={()=>openSource(row)}><Icon name="file" size={16}/></CxButton>}{issue.action==='settings'?<CxButton onClick={onSettings}><Icon name="sliders" size={16}/>설정</CxButton>:issue.action==='retry'&&<CxButton aria-label={issue.attachmentsOnly?'다시 읽기':'다시 정리'} title={issue.attachmentsOnly?'다시 읽기':'다시 정리'} disabled={busy||!(issue.attachmentsOnly?canReadAttachments:canRetry)} onClick={()=>act('retry',row.id)}><Icon name="refresh" size={16}/><span className="nubi-mail-background-action-label">{issue.attachmentsOnly?'다시 읽기':'다시 정리'}</span></CxButton>}</div></div>;})}
+   {(page?.items||[]).map(row=>{const issue=mailAttentionRowInfo(row);return <div key={row.id} className="nubi-mail-background-item">{issue.attachmentsOnly?<FileKindIcon name={issue.filename} size={18}/>:<Icon name="mail" size={18}/>}<div className="nubi-mail-background-copy"><strong title={messageLabel(row)+(row.from?' / '+row.from:'')}>{messageLabel(row)}</strong><span title={issue.detail}>{issue.title}</span>{row.attachmentFailures?.some(item=>officeReadHelp(item.officeDiagnostic))&&<details className="nubi-office-issue"><summary>원인과 확인 방법</summary><p>{issue.detail}</p></details>}</div><div className="nubi-mail-background-actions">{onOpenMessage&&<CxButton className="nubi-icon-button" aria-label={`${messageLabel(row)} 원문 보기`} title="원문 보기" onClick={()=>openSource(row)}><Icon name="file" size={16}/></CxButton>}{issue.action==='settings'?<CxButton onClick={onSettings}><Icon name="sliders" size={16}/>설정</CxButton>:issue.action==='retry'&&<CxButton aria-label={issue.attachmentsOnly?'다시 읽기':'다시 정리'} title={issue.attachmentsOnly?'다시 읽기':'다시 정리'} disabled={busy} onClick={()=>act('retry',row.id,row.sourceHash)}><Icon name="refresh" size={16}/><span className="nubi-mail-background-action-label">{issue.attachmentsOnly?'다시 읽기':'다시 정리'}</span></CxButton>}</div></div>;})}
   </div>
  </DetailPanel>;
 }

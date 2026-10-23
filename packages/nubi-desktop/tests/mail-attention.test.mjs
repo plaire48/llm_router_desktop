@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {mkdtemp,rm} from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
@@ -13,6 +14,71 @@ async function fixture(t,extra={}){
  return {mail,host,options,reopen(){mail.dispose();mail=new PersonalMail(host,options);return mail;}};
 }
 const row=(id,error='mail_summary_failed')=>({id,account:'owner',state:'attention',subject:'Contract '+id,from:'Alice <alice@example.test>',sourceHash:'retained-source-'+id,uidl:'PRIVATE_UIDL_'+id,path:'PRIVATE_STORAGE_PATH',error});
+const until=async condition=>{for(let i=0;i<400&&!condition();i++)await new Promise(resolve=>setTimeout(resolve,5));assert(condition(),'background queue advances');};
+
+test('retry queues behind live processing, acknowledges duplicates and preserves the active mail',async t=>{
+ const {mail}=await fixture(t);mail.account='owner';mail.autoWiki=false;
+ const active={...row('active'),state:'summarizing',error:null,attachmentState:'complete'},queued={...row('next'),attachmentState:'complete'};
+ mail.store.set('mail:active',active);mail.store.set('mail:next',queued);mail.synthesis=new AbortController();
+ const first=await mail.call({action:'retry',id:'next',sourceHash:queued.sourceHash});
+ assert.equal(first.retry.queued,1);assert.deepEqual(mail.store.get('mail:active'),active);assert.equal(mail.store.get('mail:next').state,'queued');
+ const stored=mail.store.get('mail:next'),again=await mail.call({action:'retry',id:'next',sourceHash:queued.sourceHash});
+ assert.equal(again.retry.alreadyPending,true);assert.deepEqual(mail.store.get('mail:next'),stored);
+ await assert.rejects(mail.call({action:'retry',id:'next',sourceHash:'changed'}),/mail_source_changed/);
+ mail.synthesis=null;
+});
+
+test('a queued retry survives reopening while automatic organization is off',async t=>{
+ const f=await fixture(t);f.mail.account='owner';f.mail.autoWiki=false;f.mail.store.set('mail:next',{...row('next'),protocol:'local',attachmentState:'complete'});
+ await f.mail.call({action:'retry',id:'next'});const reopened=f.reopen();
+ assert.equal(reopened.store.get('mail:next').state,'queued');assert.equal(reopened.store.get('mail:next').sourceHash,'retained-source-next');
+});
+test('a summary waiting on failed attachments can queue the attachment retry while another reader works',async t=>{
+ const {mail}=await fixture(t);mail.account='owner';mail.autoWiki=false;mail.attachmentRead=new AbortController();
+ const item={...row('next'),state:'queued',error:null,attachmentState:'attention',attachmentFailures:[{filename:'budget.xlsx',error:'document_office_timeout'}]};mail.store.set('mail:next',item);
+ const result=await mail.call({action:'retry',id:'next'});assert.equal(result.retry.queued,1);assert.equal(mail.store.get('mail:next').attachmentState,'queued');
+ assert.equal((await mail.call({action:'retry',id:'next'})).retry.alreadyPending,true);mail.attachmentRead=null;
+});
+
+test('an attachment retry follows the active reader and retains the saved Wiki and completed attachment cache',async t=>{
+ const {mail}=await fixture(t);await until(()=>!mail.reconciling);mail.autoWiki=false;
+ const bytes=Buffer.from('fixture attachment'),hash=createHash('sha256').update(bytes).digest('hex');
+ for(const id of ['active','next'])mail.store.set('mail:'+id,{...row(id),protocol:'local',state:'saved',path:id+'.md',error:null,attachmentState:id==='active'?'queued':'attention',attachmentFailures:id==='active'?[]:[{error:'document_timeout'}]});
+ const cache={sourceHash:row('next').sourceHash,sha256:hash,state:'complete',text:'retained cached text',reader:'document_parser'};mail.store.set('attachment:next:cached',cache);
+ const attachment=(id,filename)=>({id,filename,sha256:hash});
+ mail.source=async item=>({attachments:[...(item.id==='next'?[attachment('cached','retained.txt')]:[]),attachment('failed',item.id+'.txt')]});mail.readAttachmentBytes=async()=>bytes;
+ const calls=[],release=new Map();mail.extractAttachment=async(_bytes,part)=>{calls.push(part.filename);await new Promise(resolve=>release.set(part.filename,resolve));return {text:'read '+part.filename};};
+ mail.autoWiki=true;const running=mail.readAttachments();await until(()=>calls.length===1);const active=mail.store.get('mail:active');
+ try{
+  assert.equal((await mail.call({action:'retry',id:'next'})).retry.queued,1);assert.equal((await mail.call({action:'retry',id:'next'})).retry.alreadyPending,true);assert.deepEqual(mail.store.get('mail:active'),active);assert.deepEqual(calls,['active.txt']);
+  release.get('active.txt')();await running;await until(()=>calls.length===2);assert.deepEqual(calls,['active.txt','next.txt']);release.get('next.txt')();await until(()=>!mail.attachmentRead);
+  const next=mail.store.get('mail:next');assert.equal(next.state,'saved');assert.equal(next.path,'next.md');assert.equal(next.attachmentState,'complete');assert.deepEqual(mail.store.get('attachment:next:cached'),cache);
+  assert.equal((await mail.call({action:'retry',id:'next'})).retry.completed,true);assert.deepEqual(calls,['active.txt','next.txt']);
+ }finally{for(const finish of release.values())finish();}
+});
+
+test('retry returns a queue receipt before slow prepared-Wiki reconciliation completes',async t=>{
+ const {mail}=await fixture(t);mail.account='owner';mail.autoWiki=false;mail.store.set('mail:next',row('next'));
+ let finish,entered=false;const reconciliation=new Promise(resolve=>{finish=resolve;});mail.reconcilePrepared=async()=>{entered=true;await reconciliation;};
+ const pending=mail.call({action:'retry',id:'next'});await until(()=>entered);
+ let acknowledged=false;void pending.then(()=>{acknowledged=true;});
+ try{await until(()=>acknowledged);assert.equal(mail.store.get('mail:next').state,'queued');}finally{finish();await pending;}
+});
+
+test('the current prepared save finishes before a queued retry starts, without another model call',async t=>{
+ const {mail}=await fixture(t,{host:{providers:{status:()=>({connected:true,provider:'aipro',model:'fixture'}),catalogs:()=>[{provider:'aipro',models:[{id:'fixture'}]}],complete(){assert.fail('prepared work must not invoke the model');}}}});
+ await until(()=>!mail.reconciling);
+ mail.account='owner';mail.autoWiki=true;mail.destination={provider:'aipro',model:'fixture'};
+ const prepared=id=>({...row(id),protocol:'local',state:id==='active'?'queued':'attention',attachmentState:'complete',prepared:{text:'kept '+id,path:id+'.md',hash:'hash'}});
+ mail.store.set('mail:active',prepared('active'));mail.store.set('mail:next',prepared('next'));
+ mail.read=async()=>({mail:{subject:'fixture',from:'fixture',text:'body',attachments:[]}});mail.source=async()=>({});
+ const calls=[],release=new Map();mail.savePrepared=async(item,prepared,timing)=>{calls.push(item.id);await new Promise(resolve=>release.set(item.id,resolve));const {prepared:unused,...saved}=item;mail.store.set('mail:'+item.id,{...saved,state:'saved',error:null});return true;};
+ const running=mail.drain();await until(()=>calls.length===1);
+ try{
+  await mail.call({action:'retry',id:'next'});await mail.call({action:'retry',id:'next'});assert.deepEqual(calls,['active']);assert.equal(mail.store.get('mail:next').state,'queued');
+  release.get('active')();await running;await until(()=>calls.length===2);assert.deepEqual(calls,['active','next']);release.get('next')();await until(()=>!mail.synthesis);assert.equal(mail.store.get('mail:next').state,'saved');
+ }finally{for(const finish of release.values())finish();}
+});
 
 test('lightweight status omits message lists while retaining counts and progress',async t=>{
  const {mail}=await fixture(t);mail.account='owner';mail.autoWiki=false;

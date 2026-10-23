@@ -422,11 +422,23 @@ export class PersonalMail {
     if(action==='retryDownloads'){if(!this.account)throw new Error('mail_not_connected');const account=this.store.get('account:'+this.account);this.store.set('account:'+this.account,{...account,rejected:[]});this.error=null;return this.status();}
     if(action==='retry'){
       if(this.rawVault.progress?.state==='failed'){this.rawMigration=null;await this.ensureRaw();await this.rawMigration;if(this.rawVault.progress?.state==='failed')throw Error(this.rawVault.progress.error);}
-      if(this.synthesis||this.attachmentRead)throw new Error('mail_busy');
-      if(args.id){const row=this.store.get('mail:'+args.id);if(!row)throw Error('mail_missing');if(row.protocol!=='local'&&row.account!==this.account||!this.attention().items.some(item=>item.id===row.id)||row.error==='mail_source_changed'||row.attachmentFailures?.some(item=>item.error==='mail_source_changed'))throw Error('mail_source_changed');}
-      for(const row of this.rows().filter(r=>(!args.id||r.id===args.id)&&(r.protocol==='local'||r.account===this.account)&&r.attachmentState==='attention'&&r.error!=='mail_source_changed'&&!r.attachmentFailures?.some(item=>item.error==='mail_source_changed')))this.store.set('mail:'+row.id,{...row,attachmentState:'queued'});
-      for(const row of this.rows().filter(r=>(!args.id||r.id===args.id)&&(r.protocol==='local'||r.account===this.account)&&r.state==='attention'&&r.error!=='mail_source_changed'&&!r.attachmentFailures?.some(item=>item.error==='mail_source_changed')))this.store.set('mail:'+row.id,{...row,state:'queued',error:null,summaryAttempts:0});
-      this.error=null;await this.reconcilePrepared(args.id);void this.drain();return this.status();
+      if(args.id){
+        const row=this.store.get('mail:'+args.id);if(!row)throw Error('mail_missing');
+        if(row.protocol!=='local'&&row.account!==this.account||args.sourceHash!==undefined&&args.sourceHash!==row.sourceHash||row.error==='mail_source_changed'||row.attachmentFailures?.some(item=>item.error==='mail_source_changed'))throw Error('mail_source_changed');
+        // A delayed/double click acknowledges the existing item. Never reset a
+        // running reader/save or turn an already delivered Wiki into new work.
+        if(row.state!=='attention'&&row.attachmentState!=='attention'&&(['queued','summarizing'].includes(row.state)||['queued','reading'].includes(row.attachmentState)))return {...this.status(),retry:{queued:0,alreadyPending:true}};
+        if(row.state==='saved'&&['complete','unsupported',undefined].includes(row.attachmentState))return {...this.status(),retry:{queued:0,completed:true}};
+        if(!this.attention().items.some(item=>item.id===row.id))throw Error('mail_source_changed');
+      }
+      const queued=new Set();
+      for(const row of this.rows().filter(r=>(!args.id||r.id===args.id)&&(r.protocol==='local'||r.account===this.account)&&r.attachmentState==='attention'&&r.error!=='mail_source_changed'&&!r.attachmentFailures?.some(item=>item.error==='mail_source_changed'))){this.store.set('mail:'+row.id,{...row,attachmentState:'queued'});queued.add(row.id);}
+      for(const row of this.rows().filter(r=>(!args.id||r.id===args.id)&&(r.protocol==='local'||r.account===this.account)&&r.state==='attention'&&r.error!=='mail_source_changed'&&!r.attachmentFailures?.some(item=>item.error==='mail_source_changed'))){this.store.set('mail:'+row.id,{...row,state:'queued',error:null,summaryAttempts:0});queued.add(row.id);}
+      this.error=null;
+      // Persist acceptance first. Existing readers/drains own execution and
+      // resume the queue after their current item; reconciliation may be slow.
+      void this.reconcilePrepared(args.id).then(()=>this.resumeProcessing()).catch(()=>{});
+      return {...this.status(),retry:{queued:queued.size}};
     }
     if(['list','search','facets','threadCard','thread'].includes(action)){
       this.listing ||= new MailListService(this);
