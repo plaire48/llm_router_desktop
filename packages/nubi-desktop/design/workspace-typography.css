@@ -44,7 +44,8 @@ body {
 .desktop-shell .nubi-session-row .nubi-session-select.cx-kit-button { font-weight:var(--nubi-weight-label); }
 .desktop-shell .nubi-session-row[data-current="true"] .nubi-session-title { font-weight:var(--nubi-weight-emphasis); }
 .desktop-shell .nubi-workbench .nubi-conversation-title { font-weight:var(--nubi-weight-emphasis); letter-spacing:normal; }
-.desktop-shell .nubi-workbench .nubi-start .welcome-title { font-weight:var(--nubi-weight-strong); line-height:var(--deck-line-heading); letter-spacing:normal; }
+.desktop-shell .nubi-workbench :is(.nubi-start,.aipro-login) .welcome-title,
+.desktop-shell .nubi-workbench .aipro-login .agent-intro h1 { font-size:var(--nubi-welcome-title-size); font-weight:var(--nubi-weight-emphasis); line-height:var(--deck-line-heading); letter-spacing:normal; color:var(--nuvi-text); white-space:normal; text-wrap:balance; }
 .desktop-shell .aipro-login .provider-button[data-provider] .provider-label > span {
   font-size:var(--deck-type-body); font-weight:var(--nubi-weight-emphasis); line-height:var(--deck-line-body); letter-spacing:normal;
 }

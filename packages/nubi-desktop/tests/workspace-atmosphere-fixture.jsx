@@ -10,6 +10,9 @@ import '../design/workspace-identity.css';
 import '../electron-app/shell.css';
 import '../electron-app/ios-tokens.css';
 import '../design/workspace-typography.css';
+import '../design/workspace-density.css';
+import '../design/workspace-icons.css';
+import '../design/workspace-pastel.css';
 import '../design/workspace-dialogs.css';
 const scene=new URLSearchParams(location.search).get('scene')||'project',startedAt=Date.now();
 function Fixture(){

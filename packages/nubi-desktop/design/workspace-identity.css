@@ -4,8 +4,10 @@
    come from agent-deck.css; this layer closes host and portal differences. */
 :root {
   --nubi-progress-height:6px;
-  --nubi-atmosphere-opacity:.62;
-  --nubi-atmosphere-chat-opacity:.38;
+  --nubi-atmosphere-opacity:.48;
+  --nubi-scene-atmosphere-opacity:.90;
+  --nubi-atmosphere-chat-opacity:.30;
+  --nubi-welcome-title-size: clamp(1.375rem,2.4vw,1.75rem);
   --nubi-welcome-bird-size: clamp(176px, min(31vh, 42vw), 280px);
   --nubi-welcome-inset: clamp(16px, 4vh, 40px);
   --deck-blue: var(--nuvi-primary);
@@ -192,16 +194,17 @@
   --nubi-tracking-display: -.02em;
   --nubi-tracking-code: .12em;
   /* Artwork surfaces preserve the existing startup scene, separately from UI. */
-  --nubi-intro-stage: rgb(243 230 216);
+  --nubi-intro-stage: var(--nuvi-background);
+  --nubi-intro-horizon-tone: linear-gradient(130deg,color-mix(in srgb,var(--nuvi-aqua) 18%,transparent),color-mix(in srgb,var(--nuvi-lavender) 14%,transparent));
   --nubi-intro-vignette: radial-gradient(ellipse at 43% 50%,transparent 35%,rgba(40,30,60,.28) 85%,rgba(20,16,40,.45) 100%);
-  --nubi-intro-glow: radial-gradient(closest-side,rgba(255,255,250,.95) 0,rgba(255,246,226,.82) 18%,rgba(255,232,200,.5) 40%,rgba(255,226,196,.2) 65%,rgba(255,226,196,0) 100%);
+  --nubi-intro-glow: radial-gradient(closest-side,var(--nuvi-surface),color-mix(in srgb,var(--nuvi-surface) 82%,transparent) 18%,color-mix(in srgb,var(--nuvi-aqua) 30%,transparent) 45%,transparent 100%);
   --nubi-intro-fade: var(--nubi-surface-base);
   --nubi-intro-sheen: linear-gradient(90deg,transparent,color-mix(in srgb,var(--nubi-surface-base) 60%,transparent),transparent);
   --nubi-intro-emblem-size: clamp(3rem,14vw,4rem);
-  --nubi-intro-wordmark-height: clamp(2rem,10vw,3rem);
-  --nubi-intro-wordmark-width: clamp(3.5rem,17.5vw,5.25rem);
-  --nubi-intro-product-type: clamp(1.25rem,5.5vw,1.75rem);
-  --nubi-intro-version-type: clamp(1.25rem,5vw,1.5rem);
+  --nubi-intro-wordmark-height: clamp(1.75rem,6vw,2rem);
+  --nubi-intro-wordmark-width: clamp(3.0625rem,10.5vw,3.5rem);
+  --nubi-intro-product-type: clamp(1.125rem,4vw,1.5rem);
+  --nubi-intro-version-type: .875rem;
   --nubi-intro-progress-width: 22.5rem;
   --nubi-intro-progress-height: .625rem;
   --nubi-tour-highlight-shadow: 0 0 0 2px var(--deck-blue),0 0 0 6px var(--deck-blue-soft),var(--deck-shadow);
@@ -216,7 +219,11 @@
   --nubi-brand-emblem-size: 2rem;
   --nubi-brand-wordmark-height: 1.25rem;
   --nubi-brand-wordmark-width: 2.1875rem;
-  --nubi-brand-badge-type: .875rem;
+  --nubi-brand-badge-type: .75rem;
+  --nubi-brand-product-type: .9375rem;
+  --nubi-brand-version-ink: var(--nuvi-text-secondary);
+  --nubi-progress-track: color-mix(in srgb,var(--nuvi-primary) 10%,var(--nuvi-surface));
+  --nubi-progress-fill: linear-gradient(105deg,var(--nuvi-aqua-ink),var(--nuvi-primary));
   --nubi-brand-radius: .625rem;
   --nubi-navigation-radius: .875rem;
   --nubi-brand-surface: linear-gradient(145deg,var(--deck-blue-soft),color-mix(in srgb,var(--deck-green-soft) 60%,var(--deck-card)));
@@ -715,8 +722,8 @@
 :is(.nubi-workbench, .nubi-panel) .nubi-search > .nubi-icon-button { position:absolute; right:2px; top:50%; transform:translateY(-50%); }
 /* OpenWiki (user decision 2026-09-30): the update's progress as a bar, what it sends to the model as a note, pages as
    chips; results with the title and freshness first, then the passage, then where it is. */
-.nubi-progress { width:100%; height:var(--nubi-progress-height); flex:none; margin-top:var(--cx-space-3); border-radius:var(--deck-pill-radius); background:var(--deck-tint); overflow:hidden; }
-.nubi-progress > span { display:block; width:100%; height:100%; border-radius:inherit; background:var(--deck-blue); transform-origin:left center; transition:transform var(--nubi-progress-fill-duration) var(--nubi-ease-out); }
+.nubi-progress { width:100%; height:var(--nubi-progress-height); flex:none; margin-top:var(--cx-space-3); border-radius:var(--deck-pill-radius); background:var(--nubi-progress-track); overflow:hidden; }
+.nubi-progress > span { display:block; width:100%; height:100%; border-radius:inherit; background:var(--nubi-progress-fill); transform-origin:left center; transition:transform var(--nubi-progress-fill-duration) var(--nubi-ease-out); }
 /* Capacity/usage meters share the track, retaining their real values and the
    existing provider colours. They never receive pending-work animation. */
 :is(.desktop-shell,.cx-panel-backdrop) .context-bar { height:var(--nubi-progress-height); border-radius:var(--deck-pill-radius); background:var(--deck-tint); }

@@ -44,8 +44,8 @@ try{
  assert.equal(loading.rows.filter(a=>a.behind&&a.state==='running').length,0,'covered project animations must pause while reading');
  assert.deepEqual(loading.rows.filter(a=>a.cover&&a.state==='running').map(a=>a.name),['nubi-progress-pending'],'the slow fill is the only CSS ambient loop; the foreground material has one bounded canvas');
  const material=page.locator('.nubi-project-switch-cover .nubi-workspace-atmosphere');
- const materialState=await material.evaluate(node=>({renderer:node.dataset.renderer,running:node.dataset.running,pixels:node.querySelector('canvas').width*node.querySelector('canvas').height}));
- assert(['webgl','static'].includes(materialState.renderer));assert(materialState.pixels<=64000);if(materialState.renderer==='webgl')assert.equal(materialState.running,'true');
+ const materialState=await material.evaluate(node=>({renderer:node.dataset.renderer,running:node.dataset.running,material:node.dataset.material,pixels:node.querySelector('canvas').width*node.querySelector('canvas').height}));
+ assert(['webgl','static'].includes(materialState.renderer));assert(materialState.pixels<=160000);if(materialState.renderer==='webgl'){assert.equal(materialState.running,'true');assert.equal(materialState.material,'liquid-glass-ring');}
  await writeFile(path.join(out,'material.json'),JSON.stringify(materialState,null,2));
  assert(loading.rows.some(a=>a.cover&&a.name==='nubi-progress-pending'&&a.duration===12000&&a.iterations===1),'pending fill runs once and holds');
  assert(loading.events.includes('nubi-view-project-loader-enter'),'exercise shared spring entrance');

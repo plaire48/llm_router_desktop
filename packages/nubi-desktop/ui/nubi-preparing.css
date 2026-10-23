@@ -38,8 +38,7 @@
 /* The logo and a progress bar on the app's background (2026-10-14), like later launches' opening. */
 .nubi-workbench .nubi-preparing { align-content:center; justify-items:center; gap:calc(var(--cx-space-1) * 6.5); overflow:hidden; }
 .nubi-workbench .nubi-preparing { isolation:isolate; }
-.nubi-preparing-brand { display:flex; align-items:center; gap:var(--cx-space-3); color:var(--deck-blue-deep); font-size:calc(var(--cx-type-title) * 1.4); font-weight:var(--nubi-weight-emphasis); animation:nubi-preparing-rise .45s ease-out both; }
-.nubi-preparing-brand img.nubi-wordmark { height:42px; width:auto; }
+.nubi-preparing-brand { display:grid; justify-items:center; max-width:100%; animation:nubi-preparing-rise .45s ease-out both; }
 .nubi-progress.nubi-preparing-bar { width:min(300px,60%); margin-top:0; }
 @keyframes nubi-preparing-rise { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
 .nubi-preparing[data-leaving] { pointer-events:none; animation:nubi-sky-out .5s ease-in both; }

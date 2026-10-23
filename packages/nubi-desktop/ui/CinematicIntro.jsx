@@ -80,7 +80,6 @@ export function CinematicIntro({ready=false,onFinish}){
     <div className="nubi-intro-title">
       <div className="nubi-intro-lockup">
         <WorkspaceBrand variant="intro"/>
-        <span className="nubi-intro-version" aria-label={`버전 ${VERSION}`}>{VERSION}</span>
       </div>
       <div className="nubi-intro-loading">
         <TaskProgressBar className="nubi-intro-progress" label="Workspace 시작 준비" value={ready?100:undefined} valueText={ready?'준비 완료':'Workspace 준비 중'}/>

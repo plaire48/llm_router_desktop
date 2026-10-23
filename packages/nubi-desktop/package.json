@@ -139,6 +139,7 @@
     "remark-gfm": "4.0.1",
     "saxes": "6.0.0",
     "tedious": "20.0.0",
+    "three": "0.186.1",
     "turndown": "^7.2.4",
     "turndown-plugin-gfm": "^1.0.2",
     "typescript": "5.9.3",

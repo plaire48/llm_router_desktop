@@ -24,7 +24,7 @@
 :root:root .desktop-shell {background:var(--nuvi-background);}
 :root:root .desktop-shell .nubi-workbench {background:var(--nuvi-background);}
 :root:root .desktop-shell .welcome-title .welcome-accent {
- background:none;color:var(--nuvi-primary-hover);-webkit-text-fill-color:currentColor;
+ background:none;color:var(--nuvi-text);-webkit-text-fill-color:currentColor;
 }
 .nubi-liquid-scene {
  position:absolute;inset:0;z-index:0;overflow:clip;pointer-events:none;

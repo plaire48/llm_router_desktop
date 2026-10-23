@@ -5,6 +5,8 @@
 .nubi-workspace-atmosphere>i { position:absolute;inset:0;background:radial-gradient(ellipse at 24% 30%,var(--nuvi-aqua),transparent 44%),radial-gradient(ellipse at 73% 44%,var(--nuvi-periwinkle),transparent 46%),radial-gradient(ellipse at 46% 77%,var(--nuvi-mint),transparent 46%);opacity:.44; }
 .nubi-workspace-atmosphere>i+i { display:none; }
 .nubi-workspace-atmosphere[data-renderer=webgl]>i { display:none; }
+.nubi-workspace-atmosphere:is([data-scene=intro],[data-scene=project]) { opacity:var(--nubi-scene-atmosphere-opacity); background:var(--nubi-brand-motion-glass); }
+.nubi-workspace-atmosphere:is([data-scene=intro],[data-scene=project])>i:first-child { inset:auto;left:50%;top:50%;translate:-50% -50%;width:max(95vh,110vw);aspect-ratio:1;border-radius:50%;background:var(--nuvi-brand-gradient);mask-image:radial-gradient(closest-side,transparent 44%,#000 48%,#000 76%,transparent 80%);opacity:.5; }
 .nubi-intro>.nubi-workspace-atmosphere { z-index:1; }
 .nubi-intro-title { z-index:2; }
 .nubi-project-switch-scene { position:relative;z-index:1; }

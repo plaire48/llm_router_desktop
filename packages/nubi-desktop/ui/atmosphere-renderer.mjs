@@ -52,7 +52,7 @@ export function createAtmosphereRenderer(canvas){
   const attribute=gl.getAttribLocation(program,'a_position');gl.enableVertexAttribArray(attribute);gl.vertexAttribPointer(attribute,2,gl.FLOAT,false,0,0);gl.clearColor(0,0,0,0);
   const uniforms={time:gl.getUniformLocation(program,'u_time'),aspect:gl.getUniformLocation(program,'u_aspect'),blobs:gl.getUniformLocation(program,'u_blobs[0]'),colors:gl.getUniformLocation(program,'u_colors[0]')};let aspect=1;
   return {
-   budget,
+   budget,material:'organic-field',
    resize(width,height,dpr){const size=atmosphereSize(width,height,dpr,budget);aspect=width/height||1;if(canvas.width!==size.width||canvas.height!==size.height){canvas.width=size.width;canvas.height=size.height;gl.viewport(0,0,size.width,size.height);}},
    draw(state,colors){
     atmosphereBlobs(state,blobs);for(let i=0;i<6;i++)palette.set(colors[i],i*3);

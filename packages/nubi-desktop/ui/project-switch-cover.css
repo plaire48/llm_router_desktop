@@ -9,7 +9,7 @@ html[data-project-switching] .nubi-project-switch-cover { display:grid; }
 /* Hold the covered workspace at its current phase, including toolbar and
    shell decoration. The visible progress track is the only ambient exception. */
 :root:root[data-project-switching] { --nubi-ambient-play:paused; --nubi-ambient-will-change:auto; }
-.nubi-project-switch-scene { display:grid; justify-items:center; gap:calc(var(--cx-space-1) * 6.5); }
+.nubi-project-switch-scene { display:grid; justify-items:center; width:min(var(--nubi-intro-progress-width),calc(100vw - var(--cx-space-6) * 2)); gap:calc(var(--cx-space-1) * 6.5); }
 .nubi-project-switch-scene .nubi-preparing-brand { animation:none; }
 html[data-project-switching] .nubi-project-switch-scene { animation:nubi-view-project-loader-enter var(--nubi-motion-enter) var(--nubi-ease-spring) both; }
 .nubi-project-stage-label { animation:nubi-view-project-stage-reveal var(--nubi-motion-state) var(--nubi-ease-out) both; }
@@ -44,10 +44,11 @@ html[data-project-switching] body > :not(#root):not(script):not(style):not(link)
 
 .nubi-git-clone-detail > span { min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 
+.nubi-project-switch-scene .nubi-git-clone-progress { width:100%; }
 .nubi-project-open-progress .nubi-git-clone-heading { margin-bottom:var(--cx-space-3); }
 .nubi-project-open-progress .nubi-git-clone-heading > svg { flex:none; }
 .nubi-project-open-progress .nubi-git-clone-heading strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.nubi-project-open-progress .nubi-git-clone-stage { gap:var(--cx-space-3); }
+.nubi-project-open-progress .nubi-git-clone-stage { gap:var(--cx-space-3); font:var(--deck-font-caption); }
 .nubi-project-open-progress .nubi-git-clone-stage > span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .nubi-project-open-progress time { flex:none; color:var(--nubi-text-secondary); font-size:var(--cx-type-caption); font-variant-numeric:tabular-nums; }
 .nubi-project-open-wait { margin:var(--cx-space-3) 0 0; color:var(--nubi-text-secondary); font-size:var(--cx-type-caption); line-height:var(--deck-line-body); }

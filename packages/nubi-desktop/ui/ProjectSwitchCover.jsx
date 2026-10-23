@@ -4,7 +4,7 @@ import {durationLabel} from '../runtime/response-timing.mjs';
 import {GitCloneProgress} from './GitCloneProgress.jsx';
 import {TaskProgressBar} from './TaskProgressBar.jsx';
 import {motionDuration} from './motion-policy.mjs';
-import {AgentMark,NubiWordmark} from '../../../extensions/aipro-chat/src/AgentMark.jsx';
+import {WorkspaceBrand} from './WorkspaceBrand.jsx';
 import './nubi-preparing.css';
 import './project-switch-cover.css';
 import {WorkspaceAtmosphere} from './WorkspaceAtmosphere.jsx';
@@ -37,7 +37,7 @@ export function ProjectSwitchCover({progress,transition}){
  return <div ref={node} className="nubi-project-switch-cover" data-leaving={leaving||undefined} role="status" aria-label="프로젝트 여는 중" aria-busy={active} aria-hidden={!active||undefined} inert={!active||undefined}>
   <WorkspaceAtmosphere scene="project" active={active}/>
   <div className="nubi-project-switch-scene">
-   <div className="nubi-preparing-brand" aria-hidden="true"><AgentMark size={56}/><NubiWordmark/><span>Workspace</span></div>
+   <div className="nubi-preparing-brand" aria-hidden="true"><WorkspaceBrand variant="loading"/></div>
    {shown?.progress?<GitCloneProgress progress={shown.progress}/>:shown?.transition?<ProjectOpenProgress transition={shown.transition}/>:<TaskProgressBar className="nubi-preparing-bar" label="프로젝트 준비" active={active}/>}
   </div>
  </div>;

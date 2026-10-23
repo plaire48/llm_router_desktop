@@ -25,7 +25,8 @@
   width:var(--nubi-brand-emblem-size); height:var(--nubi-brand-emblem-size);
   border-radius:var(--nubi-brand-radius); background:var(--nubi-brand-surface);
 }
-:is(.desktop-shell,.nubi-intro) .nubi-brand-name { display:inline-flex; align-items:center; gap:var(--cx-space-2); min-width:0; }
+:is(.desktop-shell,.nubi-intro) .nubi-brand-name { display:grid; justify-items:start; gap:calc(var(--cx-space-1) * .5); min-width:0; }
+:is(.desktop-shell,.nubi-intro) .nubi-brand-title { display:flex; align-items:center; gap:var(--cx-space-2); min-width:0; }
 :is(.desktop-shell,.nubi-intro) .nubi-workspace-brand .nubi-wordmark {
   width:var(--nubi-brand-wordmark-width); height:var(--nubi-brand-wordmark-height); object-fit:contain;
 }
@@ -38,14 +39,27 @@
   :is(.desktop-shell,.nubi-intro) .nubi-brand-wordmark > .nubi-wordmark { opacity:0; }
 }
 :is(.desktop-shell,.nubi-intro) .nubi-workspace-brand .nubi-logo-product {
-  font:var(--deck-font-caption); font-weight:var(--nubi-weight-label); color:var(--deck-sub); letter-spacing:normal;
+  font:var(--nubi-weight-label) var(--nubi-brand-product-type)/var(--nubi-line-solid) var(--cx-font-family); color:var(--deck-sub); letter-spacing:normal;
 }
-.desktop-shell .nubi-workspace-brand .nubi-beta {
-  display:inline-flex;
-  flex:none; padding:var(--cx-space-1) var(--cx-space-2); border-radius:var(--cx-radius-pill,999px);
-  background:var(--deck-blue-soft); color:var(--deck-blue-deep);
-  font:var(--nubi-weight-label) var(--nubi-brand-badge-type)/var(--nubi-line-solid) var(--cx-font-family);
+:is(.desktop-shell,.nubi-intro) .nubi-workspace-brand .nubi-version-badge {
+  display:block; margin:0; padding:0; background:transparent; color:var(--nubi-brand-version-ink);
+  font:var(--nubi-weight-regular) var(--nubi-brand-badge-type)/var(--nubi-line-solid) var(--cx-font-family);
+  font-variant-numeric:tabular-nums; letter-spacing:normal;
 }
+:is(.desktop-shell,.nubi-intro) .nubi-workspace-brand:is([data-variant=intro],[data-variant=loading]) {
+  --nubi-brand-emblem-size:var(--nubi-intro-emblem-size);
+  --nubi-brand-wordmark-height:var(--nubi-intro-wordmark-height);
+  --nubi-brand-wordmark-width:var(--nubi-intro-wordmark-width);
+  --nubi-brand-product-type:var(--nubi-intro-product-type);
+  --nubi-brand-badge-type:var(--nubi-intro-version-type);
+  gap:var(--cx-space-4); max-width:100%;
+}
+:is(.desktop-shell,.nubi-intro) .nubi-workspace-brand:is([data-variant=intro],[data-variant=loading]) .nubi-brand-emblem { background:transparent; }
+:is(.desktop-shell,.nubi-intro) .nubi-workspace-brand:is([data-variant=intro],[data-variant=loading]) .nubi-brand-title { flex-wrap:wrap; gap:var(--cx-space-3); }
+:is(.desktop-shell,.nubi-intro) .nubi-workspace-brand:is([data-variant=intro],[data-variant=loading]) .nubi-brand-name { gap:var(--cx-space-2); }
+:is(.desktop-shell,.nubi-intro) .nubi-workspace-brand:is([data-variant=intro],[data-variant=loading]) .nubi-logo-product { color:var(--nuvi-text); }
+:is(.desktop-shell,.nubi-intro) .nubi-workspace-brand:is([data-variant=intro],[data-variant=loading]) .nubi-brand-emblem .agent-mark { width:var(--nubi-brand-emblem-size); height:var(--nubi-brand-emblem-size); }
+
 .desktop-shell .nubi-window-toolbar { background:var(--nubi-chrome-surface); }
 .desktop-shell .nubi-toolbar-navigation { gap:var(--cx-space-3); }
 .desktop-shell .nubi-toolbar-navigation:not([data-aligned=true]) { border-right:0; padding-right:var(--cx-space-2); }
@@ -84,7 +98,7 @@
 }
 @media(forced-colors:active) {
   .desktop-shell :is(.nubi-window-toolbar,.nubi-workspace-navigation.nubi-workspace-rail,.nubi-brand-emblem) { background:Canvas; }
-  .desktop-shell .nubi-workspace-brand .nubi-beta { background:Canvas; color:CanvasText; }
+  :is(.desktop-shell,.nubi-intro) .nubi-workspace-brand .nubi-version-badge { color:CanvasText; }
   :is(.desktop-shell,.nubi-intro) .nubi-brand-wordmark::after { display:none; }
   :is(.desktop-shell,.nubi-intro) .nubi-brand-wordmark > .nubi-wordmark { opacity:1; }
   .desktop-shell .nubi-workspace-rail [aria-pressed=true] { outline:1px solid Highlight; outline-offset:-2px; }
