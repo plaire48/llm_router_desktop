@@ -99,3 +99,19 @@ test('host adoption rechecks cancellation after releasing the previous connectio
  const adopting=host.adoptDirect(connection,{isCurrent:()=>current});current=false;release();
  await assert.rejects(adopting,/browser_connection_changed/);assert.equal(closed,1);assert.equal(host.status().connected,false);
 });
+test('an existing browser endpoint works without a DevToolsActivePort file or any browser launch',async t=>{
+ const f=await fixture(t),{ChromeDirectConnection}=require('../electron-app/chrome-direct-connection.cjs');
+ await rm(path.join(f.directory,'DevToolsActivePort'));
+ const direct=new ChromeDirectConnection({endpoint:async()=>f.endpoint,portFile:path.join(f.directory,'DevToolsActivePort')});t.after(()=>direct.close());
+ const tabs=await direct.connect();assert.equal(tabs.some(x=>x.id==='work-target'),true);
+ assert.equal(f.calls.some(x=>x.method==='Target.createTarget'||x.method==='Target.attachToTarget'),false);
+ await direct.choose('work-target');await direct.close();
+ assert.equal(f.calls.some(x=>x.method==='Browser.close'||x.method==='Target.closeTarget'),false);
+});
+test('a missing endpoint never launches a browser settings window during connection',async t=>{
+ const {ExternalBrowserHost}=require('../electron-app/external-browser-host.cjs'),{createExternalBrowserContentPort}=require('../electron-app/external-browser-content-port.cjs'),{EventEmitter}=require('node:events');
+ const browser=new ExternalBrowserHost(),window=new EventEmitter();window.isDestroyed=()=>false;window.webContents={isDestroyed:()=>false,send(){}};let settings=0;
+ const router={mode:'external',launch:{preference:{browser:'custom'},connectionSettings:async()=>{settings++;}}};
+ const port=createExternalBrowserContentPort({browser,router,window,directFactory:()=>({connect:async()=>{throw Error('browser_connection_permission_required');},close:async()=>{}})});t.after(async()=>{port.dispose();await browser.stop();});
+ await assert.rejects(()=>port.request({action:'connect'}));assert.equal(settings,0);assert.equal(browser.status().connected,false);
+});

@@ -16,4 +16,6 @@ test('browser connection surface exposes tab choice and permission wait without 
  assert.doesNotMatch(idle,/확장 프로그램 없이|연결 허용/);
  const unavailable=renderToStaticMarkup(React.createElement(ExternalBrowserPane,{visible:true,api:()=>{},onUpdate(){},status:{connected:false,targetBrowser:'samsung',connectionPhase:'unavailable',connectionError:'browser_connection_not_ready'}}));
  assert.match(unavailable,/연결 주소를 찾지 못했어요/);assert.doesNotMatch(unavailable,/연결 허용|켜고 승인/);
+ const unsupported=renderToStaticMarkup(React.createElement(ExternalBrowserPane,{visible:true,api:()=>{},onUpdate(){},status:{connected:false,targetBrowser:'samsung',connectionPhase:'unavailable',connectionError:'browser_samsung_control_unavailable'}}));
+ assert.match(unsupported,/실행 중이지만 웹 제어 연결을 찾지 못했어요/);assert.doesNotMatch(unsupported,/연결 허용|켜고 승인|확장.*설치/);
 });

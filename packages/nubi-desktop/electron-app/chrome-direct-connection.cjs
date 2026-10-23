@@ -1,4 +1,4 @@
-const {readFile}=require('node:fs/promises');
+const {checkedBrowserEndpoint,browserEndpointFile}=require('./browser-endpoint.cjs');
 const path=require('node:path');
 const os=require('node:os');
 const {randomUUID}=require('node:crypto');
@@ -15,13 +15,13 @@ function chromePortFile({platform=process.platform,home=os.homedir(),localAppDat
 }
 const restricted=value=>{try{const u=new URL(value);return !['http:','https:'].includes(u.protocol)||u.username||u.password||/^(?:epsso\.|accounts\.|login\.)/i.test(u.hostname)||/\/(?:loginapp|saml|oauth|authorize|sso)(?:\/|$)/i.test(u.pathname)||[...u.searchParams.keys(),...new URLSearchParams(u.hash.slice(1)).keys()].some(k=>/^(?:code|token|access_token|id_token|refresh_token|SAMLRequest|SAMLResponse)$/i.test(k));}catch{return true;}};
 class ChromeDirectConnection{
- constructor({portFile=chromePortFile(),timeout=15000,onTabs=()=>{},onEvent=()=>{},onDisconnect=()=>{}}={}){Object.assign(this,{portFile,timeout,onTabs,onEvent,onDisconnect});this.pending=new Map();this.records=new Map();this.sessions=new Map();this.candidates=new Map();this.nextId=0;this.serial=0;this.attached=new Set();}
+ constructor({endpoint,portFile=chromePortFile(),timeout=15000,onTabs=()=>{},onEvent=()=>{},onDisconnect=()=>{}}={}){Object.assign(this,{endpoint,portFile,timeout,onTabs,onEvent,onDisconnect});this.pending=new Map();this.records=new Map();this.sessions=new Map();this.candidates=new Map();this.nextId=0;this.serial=0;this.attached=new Set();}
  async connect({signal,permissionTimeout=90000}={}){
-  signal?.throwIfAborted();let text;
-  try{const file=typeof this.portFile==='function'?await this.portFile():this.portFile;text=await readFile(file,'utf8');}catch(error){throw Error(error.message==='browser_samsung_unavailable'?error.message:'browser_connection_permission_required');}
-  if(text.length>1024||!/^\d{1,5}\r?\n\/devtools\/browser\/[A-Za-z0-9-]+\r?\n?$/.test(text))throw Error('browser_connection_unavailable');
-  const [port,route]=text.trim().split(/\r?\n/);if(+port<1||+port>65535)throw Error('browser_connection_unavailable');
-  const socket=new WebSocket(`ws://127.0.0.1:${port}${route}`,{maxPayload:140*1024*1024});this.socket=socket;
+  signal?.throwIfAborted();let endpoint;
+  if(this.endpoint)endpoint=checkedBrowserEndpoint(await (typeof this.endpoint==='function'?this.endpoint({signal}):this.endpoint));
+  else try{endpoint=await browserEndpointFile(typeof this.portFile==='function'?await this.portFile():this.portFile);}catch(error){throw Error(['browser_samsung_unavailable','browser_connection_unavailable'].includes(error.message)?error.message:'browser_connection_permission_required');}
+  signal?.throwIfAborted();
+  const socket=new WebSocket(endpoint,{maxPayload:140*1024*1024});this.socket=socket;
   socket.on('error',()=>{});socket.on('message',bytes=>this.receive(bytes));socket.on('close',()=>{if(this.socket!==socket)return;this.socket=null;this.rejectPending();this.onDisconnect();});
   try{
    await new Promise((resolve,reject)=>{

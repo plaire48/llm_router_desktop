@@ -24,7 +24,7 @@ const {PlaywrightHost}=require('./playwright-host.cjs');
 const {ExternalBrowserHost}=require('./external-browser-host.cjs');
 const {createExternalBrowserContentPort}=require('./external-browser-content-port.cjs');
 const {ChromeDirectConnection}=require('./chrome-direct-connection.cjs');
-const {samsungPortFile}=require('./samsung-browser-discovery.cjs');
+const {samsungBrowserEndpoint}=require('./samsung-browser-discovery.cjs');
 let browserContentPort;
 const {BrowserLaunch}=require('./external-browser-launch.cjs');
 const {BrowserRouter}=require('./browser-router.cjs');
@@ -248,8 +248,8 @@ app.whenReady().then(async()=>{
  browserRouter=new BrowserRouter({internal:browserHost,external:externalBrowser,launch:browserLaunch,notify:hostEvent});browserRouter.internalPlaywright=new PlaywrightHost(browserHost);
  browserContentPort=createExternalBrowserContentPort({browser:externalBrowser,router:browserRouter,window,Menu,clipboard,directFactory:async()=>{
   if(process.platform!=='win32')return new ChromeDirectConnection();
-  const installation=await browserLaunch.samsung();
-  return new ChromeDirectConnection({portFile:()=>samsungPortFile({userDataDir:installation.userDataDir})});
+  const executable=browserLaunch.preference.browser==='custom'?browserLaunch.preference.executable:undefined;
+  return new ChromeDirectConnection({endpoint:options=>samsungBrowserEndpoint({...options,executable})});
  }});
  browserDock=new BrowserWindowDock({native:new BrowserWindowNative({directory:path.join(app.isPackaged?process.resourcesPath:__dirname,'browser-window-bridge'),parent:window}),external:externalBrowser,launch:browserLaunch,notify:event=>{if(event.type==='external_browser_opened'){window.show();window.focus();}hostEvent(event);}});browserRouter.dock=browserDock;
  officeDock=new OfficeWindowDock({native:new BrowserWindowNative({directory:path.join(app.isPackaged?process.resourcesPath:__dirname,'browser-window-bridge'),parent:window}),identity:args=>invoke('_externalOffice',{...args,action:'window'}),notify:hostEvent});

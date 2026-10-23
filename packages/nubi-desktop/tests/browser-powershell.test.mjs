@@ -30,3 +30,20 @@ test('serialized, ambiguous or malformed metadata is not promoted into an execut
 test('Windows PowerShell executes the actual fixed discovery script without requiring Samsung installation',{skip:process.platform!=='win32'},async()=>{
  const result=await samsungInstallation();for(const key of ['executable','userDataDir'])assert(result[key]===null||typeof result[key]==='string');
 });
+test('running Samsung discovery accepts only bounded loopback listener metadata from its fixed helper',async()=>{
+ const {samsungRunningBrowser}=createRequire(import.meta.url)('../electron-app/samsung-browser-discovery.cjs');
+ const value={running:true,userDataDir:null,listeners:[{address:'127.0.0.1',port:9222},{address:'::1',port:9333}]};
+ const result=await samsungRunningBrowser({execute:(_file,_args,_options,done)=>done(null,frame(value),progress)});assert.deepEqual(result,value);
+ for(const listeners of [[{address:'0.0.0.0',port:9222}],[{address:'evil.test',port:9222}],[{address:'127.0.0.1',port:0}],Array.from({length:9},()=>({address:'127.0.0.1',port:9222}))])await assert.rejects(()=>samsungRunningBrowser({execute:(_file,_args,_options,done)=>done(null,frame({...value,listeners}),'')}),/browser_samsung_discovery_protocol/);
+});
+test('Windows PowerShell inspects existing Samsung listeners without changing the browser',{skip:process.platform!=='win32'},async()=>{
+ const {samsungRunningBrowser}=createRequire(import.meta.url)('../electron-app/samsung-browser-discovery.cjs');
+ const value=await samsungRunningBrowser();assert.equal(typeof value.running,'boolean');assert(Array.isArray(value.listeners));
+});
+test('existing-browser executable selection is literal helper input and cannot be inherited from the parent environment',async()=>{
+ const {samsungRunningBrowser}=createRequire(import.meta.url)('../electron-app/samsung-browser-discovery.cjs'),seen=[];
+ const execute=(_file,_args,options,done)=>{seen.push(options.env.NUBI_BROWSER_EXECUTABLE);done(null,frame({running:false,userDataDir:null,listeners:[]}),'');};
+ const env={NUBI_BROWSER_EXECUTABLE:'C:\\Other\\browser.exe'};await samsungRunningBrowser({env,execute});
+ await samsungRunningBrowser({env,execute,executable:'C:\\Selected Samsung\\browser.exe'});assert.deepEqual(seen,['','C:\\Selected Samsung\\browser.exe']);
+ await assert.rejects(()=>samsungRunningBrowser({execute,executable:'relative.exe'}),/external_browser_executable_invalid/);assert.equal(seen.length,2);
+});

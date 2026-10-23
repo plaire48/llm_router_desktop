@@ -17,7 +17,7 @@ export function ExternalBrowserPane({api,visible,obscured=false,status,onUpdate,
   <div className="nubi-external-browser-content">
    <span className="nubi-external-brand"><AgentMark size={44} mood={busy||connecting||status?.dock?.phase==='connecting'?'working':'idle'}/></span>
    <h2>{status?.connected?'브라우저와 연결됐어요':choosing?'연결할 업무 탭을 골라 주세요':connecting?(status.connectionPhase==='checking'?'브라우저를 확인하고 있어요':'브라우저에 연결하고 있어요'):unavailable?'브라우저에 연결하지 못했어요':'외부 브라우저와 함께 작업하세요'}</h2>
-   <p>{connecting?'완료되면 바로 알려드릴게요. 다른 작업을 계속해도 돼요.':unavailable?'기존 브라우저와 탭은 그대로 열려 있어요.':'로그인한 업무 탭을 그대로 연결해요.'}</p>
+   <p>{connecting?'완료되면 바로 알려드릴게요. 다른 작업을 계속해도 돼요.':unavailable?(['browser_samsung_not_running','browser_selected_not_running'].includes(status.connectionError)?'브라우저를 연 뒤 다시 연결해 주세요.':'기존 브라우저와 탭은 그대로 유지해요.'):'로그인한 업무 탭을 그대로 연결해요.'}</p>
    {notice&&<p className="nubi-external-guide" role="status">{notice}</p>}
    {canDock&&<><CxButton disabled={busy} onClick={()=>void act(()=>{onBeforeBring?.();return api('browserConnection',{action:'dockBring'});})}><Icon name="arrowLeft" size={16}/>브라우저 가져오기</CxButton>
    <small>창 제목 표시줄을 누비 오른쪽에 끌어놓아도 돼요.</small></>}

@@ -1,4 +1,6 @@
 export const externalBrowserMessage=code=>({
+ browser_samsung_not_running:'열려 있는 삼성브라우저를 찾지 못했어요.',browser_samsung_control_unavailable:'삼성브라우저는 실행 중이지만 웹 제어 연결을 찾지 못했어요.',
+ browser_selected_not_running:'선택한 브라우저의 열린 창을 찾지 못했어요.',browser_control_unavailable:'브라우저는 실행 중이지만 웹 제어 연결을 찾지 못했어요.',
  browser_connection_settings_unavailable:'이 브라우저에서 연결 설정 화면을 확인하지 못했어요.',
  browser_connection_not_ready:'현재 삼성브라우저의 연결 주소를 찾지 못했어요.',browser_connection_setup_required:'브라우저 설정을 열었어요. 연결 설정을 켠 뒤 다시 연결해 주세요.',
  browser_samsung_discovery_failed:'브라우저 위치 확인 중 PowerShell 실행이 실패했어요.',browser_samsung_discovery_timeout:'브라우저 위치 확인이 늦어 연결을 멈췄어요. 다시 연결해 주세요.',browser_samsung_discovery_protocol:'브라우저 실행 정보의 응답 형식을 확인하지 못했어요.',

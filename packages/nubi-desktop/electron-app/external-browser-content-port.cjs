@@ -31,7 +31,7 @@ function createExternalBrowserContentPort({browser,router,window,Menu,clipboard,
     // Chromium compatibility does not imply Chrome's consent settings exist.
     // Missing endpoint metadata is a result, not a 90-second permission poll.
     if(router.launch?.preference?.browser==='samsung')throw Error('browser_connection_not_ready');
-    await router.launch.connectionSettings();throw Error('browser_connection_setup_required');
+    throw Error('browser_connection_unavailable');
    }
    if(controller.signal.aborted)throw Error('dock_cancelled');
    pendingDirect=client;browser.connectionPhase='choose_tab';browser.publish();

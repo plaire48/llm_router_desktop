@@ -16,9 +16,15 @@ class BrowserRouter {
   if(options.authentication||this.mode==='internal'){
    this.externalFocus=false;const row=this.internal.create(target,options);this.internal.publish('opened');return {opened:true,tabId:row.id,userInteractionRequired:true};
   }
+  if(!this.external.status().connected){this.externalFocus=true;return this.connectionWait({opened:false,external:true});}
   this.externalFocus=true;await this.internal.request({action:'layout',visible:false});
-  const result=this.external.status().connected?await this.external.openPage(target):await this.launch.open(target);
+  const result=await this.external.openPage(target);
   this.notify({type:'external_browser_opened',state:this.configuration()});return result;
+ }
+ connectionWait(result){
+  const state=this.configuration();
+  this.notify({type:'browser_connection_required',state});
+  return {...result,connected:false,automation:false,connectionRequired:true,connectionPhase:state.connectionPhase||null,error:state.connectionError||null,instruction:'Reuse the already-running external browser. Show the Nubi connection control and its current connection error, then select an existing work tab when available. Do not assume this browser has Chrome permission settings. Do not repeat browser_open, launch another browser, install Playwright or run shell commands to repair this connection.'};
  }
  async setMode(mode){
   if(!['external','internal'].includes(mode))throw Error('browser_action_invalid');
@@ -39,9 +45,7 @@ class BrowserRouter {
   if(action==='bring'){if(this.mode!=='external')throw Error('external_browser_disabled');this.externalFocus=true;return this.dock?this.dock.bring({signal:options.signal,source:'chat'}):Promise.reject(Error('dock_unavailable'));}
   if(action==='dockDetach')return this.dock?this.dock.detach():Promise.reject(Error('dock_unavailable'));
   if(['tabs','open'].includes(action)&&this.mode==='external'&&!this.external.status().connected){
-   const waiting={connected:false,automation:false,connectionRequired:true,instruction:'The external browser is open but automation is not connected. Show the Nubi browser connection control and wait for the user to allow the connection and select a work tab. Do not repeat browser_open, launch another browser, install Playwright or run shell commands to repair this connection.'};
-   const result=action==='open'?await this.open(args.url):{tabs:[]};
-   this.notify({type:'browser_connection_required',state:this.configuration()});return {...result,...waiting};
+   return action==='open'?this.open(args.url):this.connectionWait({tabs:[]});
   }
   // An explicitly observed internal tab remains usable after a preference
   // switch; new work pages always follow the selected runtime, even while an

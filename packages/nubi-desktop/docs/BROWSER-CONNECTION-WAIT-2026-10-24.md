@@ -1,5 +1,11 @@
 # Browser connection wait and truthful capability reporting
 
+Follow-up: [reuse the running Samsung Browser](EXISTING-SAMSUNG-BROWSER-2026-10-24.md)
+supersedes the one-time Chrome settings launch below. Connection attempts now
+open no settings window, and external address/MCP requests do not launch a
+browser before a work tab is connected. The earlier executed results below are
+preserved as evidence for that earlier source version.
+
 The external browser connection surface no longer says that installation of an
 extension is unnecessary. Its primary action remains Browser connection.
 

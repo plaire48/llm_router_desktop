@@ -51,3 +51,14 @@ test('capture retains observed internal tab routing and imported external docume
  assert.deepEqual(await router.capture({tabId:'old-tab'}),{image:'old-tab'});
  assert.deepEqual(await router.capture({maxWidth:900}),{action:'capture',args:{maxWidth:900,tabId:'external-tab',documentId:'external-document'}});
 });
+test('MCP opening before connection preserves the existing browser without launching or assuming a permission screen',async()=>{
+ const {router,calls,launch}=ports();router.external.status=()=>({connected:false,connectionPhase:'unavailable',connectionError:'browser_samsung_control_unavailable'});
+ launch.open=async()=>{calls.push(['launch']);return {opened:true};};
+ for(let i=0;i<2;i++){
+  const result=await router.playwright('open',{url:'https://example.test/work'});
+  assert.equal(result.opened,false);assert.equal(result.connectionRequired,true);assert.equal(result.error,'browser_samsung_control_unavailable');
+  assert.doesNotMatch(result.instruction,/wait for the user to allow/i);
+ }
+ assert.equal(calls.some(c=>c[0]==='launch'||c[0]==='internal'),false);
+ await assert.rejects(()=>router.playwright('open',{url:'file:///private'}),/browser_url_invalid/);
+});
