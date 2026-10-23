@@ -13,7 +13,7 @@ import {rendererBundleOptions} from './renderer-bundle.mjs';
 // The source is a local test site, not a company account or production SSO.
 const require=createRequire(import.meta.url),base=path.resolve('.'),temporary=await mkdtemp(path.join(os.tmpdir(),'nubi-content-')),out=path.resolve('verification/direct-browser-content-2026-10-23');
 await mkdir(out,{recursive:true});await mkdir(path.join(temporary,'app'));
-const checks=[],errors=[],timings=[];
+const checks=[],errors=[],timings=[],connectionTimings={};
 const html=`<!doctype html><html lang="ko"><meta charset="utf-8"><style>*{box-sizing:border-box}body{margin:0;font:18px system-ui;color:#191f28;background:#fff}.header{background:#e8f1fe;padding:28px 32px}main{padding:32px}button,input{font:inherit;padding:12px;margin:8px 12px 8px 0}input{width:400px}#menu{position:fixed;display:none;background:#191f28;color:white;padding:14px;border-radius:8px;z-index:2}.bottom{margin-top:1100px;padding:30px;background:#eef8f5}</style><div class="header"><h1>업무 포털</h1><p id="session"></p></div><main><button id="count">처리 0</button><input id="text" aria-label="업무 내용" placeholder="업무 내용을 입력하세요"><p id="mirror">입력 대기</p><a id="link" href="/next">다음 업무</a><div class="bottom">스크롤한 원래 페이지</div></main><div id="menu">사이트 우클릭 메뉴</div><script>let n=0;count.onclick=()=>count.textContent='처리 '+(++n);text.oninput=()=>mirror.textContent=text.value||'입력 대기';document.addEventListener('contextmenu',e=>{if(e.target.id==='count'){e.preventDefault();menu.style.cssText='display:block;left:'+e.clientX+'px;top:'+e.clientY+'px'}});document.addEventListener('click',e=>{if(e.target.id!=='count')menu.style.display='none'});fetch('/identity').then(r=>r.json()).then(x=>session.textContent=x.authenticated?'기존 세션 유지':'로그인 필요')</script></html>`;
 const server=createServer((req,res)=>{
  if(req.url==='/identity'){res.setHeader('Content-Type','application/json');res.end(JSON.stringify({authenticated:(req.headers.cookie||'').includes('nubi_qa=verified')}));return;}
@@ -33,19 +33,19 @@ const {BrowserHost}=require(${JSON.stringify(modulePath('browser-host.cjs'))});
 const {BrowserRouter}=require(${JSON.stringify(modulePath('browser-router.cjs'))});
 const {createExternalBrowserContentPort}=require(${JSON.stringify(modulePath('external-browser-content-port.cjs'))});
 const {ChromeDirectConnection}=require(${JSON.stringify(modulePath('chrome-direct-connection.cjs'))});
-let window,external,router,port,menu,qaClipboard='',connectUrl='';
+let window,external,router,port,menu,qaClipboard='',connectUrl='',holdDiscovery=false,releaseDiscovery;
 const nativeBuild=Menu.buildFromTemplate.bind(Menu);Menu.buildFromTemplate=items=>{menu={items,instance:nativeBuild(items)};return menu.instance};
 app.whenReady().then(()=>{
 window=new BrowserWindow({width:1120,height:850,webPreferences:{preload:${JSON.stringify(modulePath('preload.cjs'))},contextIsolation:true,sandbox:true,nodeIntegration:false}});
 external=new ExternalBrowserHost({onChange:state=>window.webContents.send('nubi:host-event',{type:'external_browser_changed',state})});
-const internal=new BrowserHost(window,{partition:'qa-only'});router=new BrowserRouter({internal,external,launch:{preference:{mode:'external'},status:()=>({mode:'external'}),open:async url=>{connectUrl=url;return {opened:true}}}});
-port=createExternalBrowserContentPort({browser:external,router,window,Menu,clipboard:{readText:()=>qaClipboard,writeText:value=>qaClipboard=value},directFactory:()=>new ChromeDirectConnection({portFile:${JSON.stringify(path.join(temporary,'chrome-state/DevToolsActivePort'))}})});
+const internal=new BrowserHost(window,{partition:'qa-only'});router=new BrowserRouter({internal,external,launch:{preference:{mode:'external',browser:'samsung'},status:()=>({mode:'external',targetBrowser:'samsung'}),open:async url=>{connectUrl=url;return {opened:true}}}});
+port=createExternalBrowserContentPort({browser:external,router,window,Menu,clipboard:{readText:()=>qaClipboard,writeText:value=>qaClipboard=value},directFactory:async()=>{if(holdDiscovery)await new Promise(resolve=>releaseDiscovery=resolve);return new ChromeDirectConnection({portFile:${JSON.stringify(path.join(temporary,'chrome-state/DevToolsActivePort'))}})}});
 ipcMain.handle('nubi:request',async(event,method,args={})=>{
 if(event.sender!==window.webContents)throw Error('renderer_invalid');
 if(method==='browserMirror')return port.request(args);
 if(method==='browserConnection'){if(args.action==='status')return router.configuration();if(args.action==='pair')return external.pair();if(args.action==='focus')return external.focus(args.tabId);if(args.action==='disconnect'){await external.stop();return router.configuration();}}
 if(method==='browser')return router.ui(args);
-if(method==='qa'){if(args.action==='launch')return {url:connectUrl};if(args.action==='state')return {mirror:external.mirror.current&&{...external.mirror.current},state:router.configuration()};if(args.action==='clipboard')return {text:qaClipboard};if(args.action==='menu')return menu?.items.map(x=>({label:x.label,type:x.type}));if(args.action==='menuClick'){menu?.instance.closePopup(window);menu?.items.find(x=>x.label===args.label)?.click?.();return {clicked:true}}if(args.action==='capture')return port.capture(async()=>({captured:true}));if(args.action==='automation')return external.request('check',{tabId:external.active});if(args.action==='inputText'){return external.command('cdp',{tabId:external.active,documentId:external.tab(external.active).automationDocument,method:'Input.insertText',params:{text:args.text}})}}
+if(method==='qa'){if(args.action==='holdDiscovery'){holdDiscovery=true;return {held:true};}if(args.action==='releaseDiscovery'){holdDiscovery=false;releaseDiscovery?.();return {released:true};}if(args.action==='launch')return {url:connectUrl};if(args.action==='state')return {mirror:external.mirror.current&&{...external.mirror.current},state:router.configuration()};if(args.action==='clipboard')return {text:qaClipboard};if(args.action==='menu')return menu?.items.map(x=>({label:x.label,type:x.type}));if(args.action==='menuClick'){menu?.instance.closePopup(window);menu?.items.find(x=>x.label===args.label)?.click?.();return {clicked:true}}if(args.action==='capture')return port.capture(async()=>({captured:true}));if(args.action==='automation')return external.request('check',{tabId:external.active});if(args.action==='inputText'){return external.command('cdp',{tabId:external.active,documentId:external.tab(external.active).automationDocument,method:'Input.insertText',params:{text:args.text}})}}
 throw Error('method_invalid')});
 window.loadFile(${JSON.stringify(path.join(temporary,'app/frontend/index.html'))});
 });app.on('before-quit',()=>{port?.dispose();external?.dispose()});`;
@@ -54,6 +54,17 @@ window.loadFile(${JSON.stringify(path.join(temporary,'app/frontend/index.html'))
  viewer=await app.firstWindow();viewer.setDefaultTimeout(15000);viewer.on('pageerror',error=>errors.push(error.message));
  const request=(method,args)=>viewer.evaluate(({method,args})=>window.nubi.request(method,args),{method,args});
  await viewer.getByRole('heading',{name:'외부 브라우저와 함께 작업하세요'}).waitFor();
+ assert.equal(await viewer.getByText('확장 프로그램 없이 연결해요.',{exact:false}).count(),0);
+ await request('qa',{action:'holdDiscovery'});const acknowledged=performance.now();
+ await viewer.getByRole('button',{name:'브라우저 연결',exact:true}).click();await viewer.getByRole('heading',{name:'브라우저를 확인하고 있어요'}).waitFor();
+ checks.push('느린 설치 조회를 기다리지 않고 실제 Electron에 확인 상태 표시');connectionTimings.acknowledgementMs=performance.now()-acknowledged;
+ await viewer.getByRole('button',{name:'검증 모달',exact:true}).click();await viewer.getByRole('dialog',{name:'검증 모달'}).waitFor();await viewer.getByRole('button',{name:'모달 닫기',exact:true}).click();
+ await viewer.getByRole('button',{name:'취소',exact:true}).click();await request('qa',{action:'releaseDiscovery'});
+ await viewer.getByRole('button',{name:'브라우저 연결',exact:true}).waitFor();
+ await viewer.getByRole('button',{name:'브라우저 연결',exact:true}).click();await viewer.getByRole('alert').filter({hasText:'현재 삼성브라우저의 연결 주소를 찾지 못했어요.'}).waitFor();
+ assert.equal(await viewer.getByText('브라우저에서 연결을 허용해 주세요',{exact:true}).count(),0);
+ assert(await viewer.getByRole('button',{name:'브라우저 연결',exact:true}).isEnabled());
+ await viewer.screenshot({path:path.join(out,'samsung-endpoint-unavailable.png')});checks.push('합성 삼성 설정에서 엔드포인트 부재를 즉시 표시하고 재시도와 입력을 유지');
  let executable=process.env.NUBI_TEST_CHROMIUM;
  if(!executable){const cache=path.join(os.homedir(),'Library/Caches/ms-playwright');for(const name of (await readdir(cache)).filter(x=>/^chromium-\d+$/.test(x)).sort((a,b)=>Number(b.split('-')[1])-Number(a.split('-')[1]))){const candidate=path.join(cache,name,'chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing');try{await access(candidate);executable=candidate;break;}catch{}}}
  browser=await chromium.launchPersistentContext(path.join(temporary,'chrome-state'),{executablePath:executable,headless:false,viewport:null,args:['--remote-debugging-port=0']});
@@ -89,6 +100,6 @@ window.loadFile(${JSON.stringify(path.join(temporary,'app/frontend/index.html'))
  await source.goto(origin+'/work');await viewer.locator('[data-mirror-phase=ready]').waitFor();await source.getByText('기존 세션 유지').waitFor();checks.push('원본 탐색 뒤 새 문서에 재연결하고 기존 HttpOnly 세션 유지');
  await browser.close();browser=null;await viewer.getByRole('heading',{name:'외부 브라우저와 함께 작업하세요'}).waitFor();assert.equal(await viewer.locator('.desktop-browser-toolbar:visible').count(),0);checks.push('브라우저 종료 뒤 연결 안내를 표시하며 내부 웹뷰로 우회하지 않음');
  assert.deepEqual(errors,[]);
- const report={checks,timings:{measurement:'Test interaction round trip including locator reads and Electron click to original Chromium DOM update; excludes frame presentation and is not a product latency benchmark',samplesMs:timings},scope:'actual temporary Chromium without extensions + actual Electron modules + local synthetic authenticated site; clipboard adapter is in memory',unverified:['Windows and Samsung browser including its connection permission UI','company SSO and mail APIs','physical Korean IME and native file picker','installer and real model workflow']};await writeFile(path.join(out,'report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
+ const report={checks,connectionTimings:{measurement:'Electron click to visible checking state with synthetic held discovery; not Samsung runtime latency',...connectionTimings},timings:{measurement:'Test interaction round trip including locator reads and Electron click to original Chromium DOM update; excludes frame presentation and is not a product latency benchmark',samplesMs:timings},scope:'actual temporary Chromium without extensions + actual Electron modules + local synthetic authenticated site; clipboard adapter is in memory',unverified:['Windows and Samsung browser including its connection permission UI','company SSO and mail APIs','physical Korean IME and native file picker','installer and real model workflow']};await writeFile(path.join(out,'report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
 }catch(error){await writeFile(path.join(out,'failure.txt'),String(error.stack||error));if(source&&!source.isClosed())await source.screenshot({path:path.join(out,'failure-source.png')}).catch(()=>{});if(viewer)await viewer.screenshot({path:path.join(out,'failure.png')}).catch(()=>{});throw error;}
 finally{await browser?.close().catch(()=>{});await Promise.race([app?.close().catch(()=>{}),new Promise(resolve=>setTimeout(resolve,5000))]);await new Promise(resolve=>server.close(resolve));await rm(temporary,{recursive:true,force:true});}

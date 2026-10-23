@@ -1,4 +1,5 @@
 import {ATMOSPHERE_LIMITS,atmosphereSize,atmosphereBlobs} from './atmosphere-model.mjs';
+import {waitForWebGLProgram} from './webgl-ready.mjs';
 const vertex=`
 attribute vec2 a_position;
 varying vec2 v_uv;
@@ -40,21 +41,25 @@ export function createAtmosphereRenderer(canvas){
  const info=gl.getExtension('WEBGL_debug_renderer_info');
  const software=info&&/swiftshader|llvmpipe|softpipe|software|microsoft basic render/i.test(String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)));
  const budget=software?ATMOSPHERE_LIMITS.softwarePixels:ATMOSPHERE_LIMITS.pixels;
- let program,vertices;const shaders=[],blobs=new Float32Array(18),palette=new Float32Array(18);
- const dispose=()=>{if(vertices)gl.deleteBuffer(vertices);if(program)gl.deleteProgram(program);for(const shader of shaders)gl.deleteShader(shader);};
+ let program,vertices,compilation,uniforms,compiled=false,disposed=false;const shaders=[],blobs=new Float32Array(18),palette=new Float32Array(18);
+ const dispose=()=>{if(disposed)return;disposed=true;compilation?.cancel();if(vertices)gl.deleteBuffer(vertices);if(program)gl.deleteProgram(program);for(const shader of shaders)gl.deleteShader(shader);};
  try{
   for(const [type,source] of [[gl.VERTEX_SHADER,vertex],[gl.FRAGMENT_SHADER,fragment]]){
-   const shader=gl.createShader(type);if(!shader)throw Error('atmosphere_shader');shaders.push(shader);gl.shaderSource(shader,source);gl.compileShader(shader);if(!gl.getShaderParameter(shader,gl.COMPILE_STATUS))throw Error('atmosphere_compile');
+   const shader=gl.createShader(type);if(!shader)throw Error('atmosphere_shader');shaders.push(shader);gl.shaderSource(shader,source);gl.compileShader(shader);
   }
-  program=gl.createProgram();if(!program)throw Error('atmosphere_program');for(const shader of shaders)gl.attachShader(program,shader);gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error('atmosphere_link');
+  program=gl.createProgram();if(!program)throw Error('atmosphere_program');for(const shader of shaders)gl.attachShader(program,shader);gl.linkProgram(program);
+  compilation=waitForWebGLProgram(gl,program);
+  const ready=compilation.ready.then(success=>{if(!success||disposed){if(!disposed)dispose();return false;}try{
   vertices=gl.createBuffer();if(!vertices)throw Error('atmosphere_buffer');
   gl.useProgram(program);gl.bindBuffer(gl.ARRAY_BUFFER,vertices);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
   const attribute=gl.getAttribLocation(program,'a_position');gl.enableVertexAttribArray(attribute);gl.vertexAttribPointer(attribute,2,gl.FLOAT,false,0,0);gl.clearColor(0,0,0,0);
-  const uniforms={time:gl.getUniformLocation(program,'u_time'),aspect:gl.getUniformLocation(program,'u_aspect'),blobs:gl.getUniformLocation(program,'u_blobs[0]'),colors:gl.getUniformLocation(program,'u_colors[0]')};let aspect=1;
+  uniforms={time:gl.getUniformLocation(program,'u_time'),aspect:gl.getUniformLocation(program,'u_aspect'),blobs:gl.getUniformLocation(program,'u_blobs[0]'),colors:gl.getUniformLocation(program,'u_colors[0]')};compiled=true;return true;
+  }catch{dispose();return false;}});let aspect=1;
   return {
-   budget,material:'organic-field',
+   budget,material:'organic-field',ready,
    resize(width,height,dpr){const size=atmosphereSize(width,height,dpr,budget);aspect=width/height||1;if(canvas.width!==size.width||canvas.height!==size.height){canvas.width=size.width;canvas.height=size.height;gl.viewport(0,0,size.width,size.height);}},
    draw(state,colors){
+    if(!compiled||disposed)return;
     atmosphereBlobs(state,blobs);for(let i=0;i<6;i++)palette.set(colors[i],i*3);
     gl.useProgram(program);gl.uniform1f(uniforms.time,state.phase);gl.uniform1f(uniforms.aspect,aspect);gl.uniform3fv(uniforms.blobs,blobs);gl.uniform3fv(uniforms.colors,palette);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
    },

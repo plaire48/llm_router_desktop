@@ -69,6 +69,14 @@ const projectRelative=(root,value)=>{if(!root)return null;const canonical=text=>
 const digest=async text=>'sha256:'+Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text))),b=>b.toString(16).padStart(2,'0')).join('');
 function App(){
  const pendingActivity=useSyncExternalStore(hostActivity.subscribe,hostActivity.getSnapshot);
+ useEffect(()=>{let finish;const stop=window.nubi.onHostEvent?.(event=>{
+  if(event.type==='external_browser_changed'){
+   const active=['checking','connecting'].includes(event.state?.connectionPhase);
+   if(active&&!finish)finish=hostActivity.begin('browserMirror',{action:'connect'});
+   else if(!active){finish?.();finish=null;}
+  }else if(event.type==='browser_connection_completed')notifyWorkspaceToast('브라우저와 연결됐어요.',{success:true});
+  else if(event.type==='browser_connection_failed')showError(externalBrowserMessage(event.error));
+ });return()=>{stop?.();finish?.();};},[]);
  const [conversationActivity,setConversationActivity]=useState(null);
  const [officeDockState,setOfficeDockState]=useState(null);
  useModalDismissalPolicy();

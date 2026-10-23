@@ -26,6 +26,7 @@ class BrowserLaunch {
  async mode(mode){if(!['external','internal'].includes(mode))throw Error('browser_action_invalid');const next={...this.preference,mode};await this.save(next);this.preference=next;return this.status();}
  async save(preference=this.preference){await mkdir(this.storage,{recursive:true});await writeFile(path.join(this.storage,'browser-preference.json'),JSON.stringify(preference),{mode:0o600});}
  async connectionSettings(){
+  if(this.preference.browser==='samsung')throw Error('browser_connection_settings_unavailable');
   const url='chrome://inspect/#remote-debugging';
   const executable=this.platform==='darwin'?'/usr/bin/open':this.platform==='win32'?this.preference.executable||(await this.samsung()).executable:'google-chrome';
   if(!executable)throw Error('browser_samsung_unavailable');

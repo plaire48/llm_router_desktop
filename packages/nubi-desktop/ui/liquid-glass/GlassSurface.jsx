@@ -1,5 +1,6 @@
 import React,{useLayoutEffect,useRef} from 'react';
 import {createGlassRenderer} from './renderer.mjs';
+import {createAtmosphereWorkerRenderer} from '../atmosphere-worker-client.mjs';
 import {glassPalette,paintGlassBackdrop} from './backdrop.mjs';
 import {createGlassSpring,targetGlassSpring,stepGlassSpring} from './spring.mjs';
 import './liquid-glass.css';
@@ -20,16 +21,16 @@ export function installGlassSurface(layer,{axis='x',selector,targetWrapper}={}){
  const [backdrop,canvas]=layer.querySelectorAll('canvas');
  const selection=layer.querySelector('.nubi-liquid-glass__selection');
  const reduced=matchMedia('(prefers-reduced-motion: reduce)'),opaque=matchMedia('(prefers-reduced-transparency: reduce)'),forced=matchMedia('(forced-colors: active)');
- let renderer=null,spring=null,frame=0,measureFrame=0,previous=0,disposed=false,visible=true,lost=false,attempted=false;
+ let renderer=null,rendererReady=false,spring=null,frame=0,measureFrame=0,previous=0,disposed=false,visible=true,lost=false,attempted=false;
  let width=0,height=0,dpr=1,radius=14,pointer=[-1000,-1000],pressed=false,hover=false,interaction=1,target=null;
  let textureWidth=0,textureHeight=0,textureDpr=0;
  const metrics={frames:0,textureUploads:0,pixels:0};layer.glassMetrics=metrics;
  host.classList.add('nubi-liquid-glass-host');
  const quiet=()=>doc.hidden||!visible||root.hasAttribute('data-nubi-window-hidden')||root.hasAttribute('data-motion-panel')||root.hasAttribute('data-project-switching')||!!doc.querySelector('.nubi-intro,.cx-panel-backdrop:not([hidden])');
  const supported=()=>!opaque.matches&&!forced.matches;
- const mode=()=>renderer&&!lost?'webgl':'css';
+ const mode=()=>renderer&&rendererReady&&!lost?'webgl':'css';
  const mark=(state,moving=false)=>{host.dataset.liquidGlass=state;layer.dataset.glassMoving=String(moving);};
- const cancel=()=>{cancelAnimationFrame(frame);frame=0;previous=0;mark(supported()?mode():'fallback');};
+ const cancel=()=>{cancelAnimationFrame(frame);renderer?.pause?.();frame=0;previous=0;mark(supported()?mode():'fallback');};
  function draw(rect,now){
   if(quiet()||!supported())return;
   const scale=reduced.matches?1:interaction;
@@ -60,13 +61,26 @@ export function installGlassSurface(layer,{axis='x',selector,targetWrapper}={}){
   if(!width||!height||quiet()){cancel();return;}
   // Losing WebGL removes optical refraction, not selection motion or input.
   // Do not retry a failed context on every tab/scroll mutation.
-  if(!attempted&&!lost){attempted=true;renderer=createGlassRenderer(canvas);}
+  if(!attempted&&!lost){attempted=true;
+   const connect=candidate=>{
+    if(disposed){candidate?.dispose();return;}renderer=candidate;
+    if(candidate?.thread==='worker'){canvas.dataset.thread='worker';metrics.gpu=candidate.metrics;}
+    candidate?.onState?.(state=>{if(disposed||renderer!==candidate)return;rendererReady=state==='ready';if(state==='failed')renderer=null;if(rendererReady)queue();else cancel();});
+    candidate?.ready.then(ready=>{if(disposed||lost||renderer!==candidate)return;rendererReady=ready;if(!ready){candidate.dispose();renderer=null;}textureWidth=0;queue();});queue();
+   };
+   if(typeof Worker==='function'&&typeof canvas.transferControlToOffscreen==='function')import('../atmosphere-worker.mjs').then(({atmosphereWorkerURL})=>{
+    if(disposed)return;const worker=atmosphereWorkerURL!==import.meta.url?createAtmosphereWorkerRenderer(canvas,atmosphereWorkerURL,{kind:'glass'}):null;connect(worker||createGlassRenderer(canvas));
+   }).catch(()=>{if(!disposed)mark('css');});
+   else connect(createGlassRenderer(canvas));
+  }
   // At most 180k backing pixels per surface, even on Retina/4K displays.
   dpr=Math.min(devicePixelRatio||1,1.5,Math.sqrt(180000/(width*height)));
   Object.assign(layer.style,{left:host.scrollLeft+'px',top:host.scrollTop+'px',width:width+'px',height:height+'px'});
   if(renderer&&(width!==textureWidth||height!==textureHeight||dpr!==textureDpr)){
-   if(!paintGlassBackdrop(backdrop,width,height,dpr,glassPalette(host))){mark('fallback');return;}
-   renderer.resize(width,height,dpr,backdrop);textureWidth=width;textureHeight=height;textureDpr=dpr;metrics.textureUploads++;metrics.pixels=canvas.width*canvas.height;
+   const palette=glassPalette(host);
+   if(renderer.thread==='worker')renderer.resize(width,height,dpr,palette);
+   else{if(!paintGlassBackdrop(backdrop,width,height,dpr,palette)){mark('fallback');return;}renderer.resize(width,height,dpr,backdrop);}
+   textureWidth=width;textureHeight=height;textureDpr=dpr;metrics.textureUploads++;metrics.pixels=renderer.thread==='worker'?Math.round(width*dpr)*Math.round(height*dpr):canvas.width*canvas.height;
   }
   const selected=host.querySelector(selector),node=targetWrapper?selected?.closest(targetWrapper)||selected:selected;
   if(node?.checkVisibility()){
@@ -88,13 +102,15 @@ export function installGlassSurface(layer,{axis='x',selector,targetWrapper}={}){
  const leave=()=>{pointer=[-1000,-1000];hover=false;pressed=false;wake();};
  const down=event=>{if(event.target.closest('button,[role=tab]')){pressed=true;move(event);wake();}};
  const up=()=>{pressed=false;wake();};
- const contextLost=event=>{event.preventDefault();lost=true;renderer=null;cancel();queue();};
- const contextRestored=()=>{lost=false;attempted=false;textureWidth=0;renderer=null;queue();};
+ const contextLost=event=>{event.preventDefault();lost=true;renderer?.dispose();renderer=null;rendererReady=false;cancel();queue();};
+ const contextRestored=()=>{lost=false;attempted=false;textureWidth=0;renderer=null;rendererReady=false;queue();};
  canvas.addEventListener('webglcontextlost',contextLost);canvas.addEventListener('webglcontextrestored',contextRestored);
  const events=[['scroll',queue],['pointermove',move],['pointerleave',leave],['pointerdown',down],['pointerup',up],['pointercancel',leave]];
  for(const [name,handler]of events)host.addEventListener(name,handler,{passive:true});
  doc.addEventListener('pointerup',up,{passive:true});doc.addEventListener('visibilitychange',media);doc.addEventListener('nubi-motion-change',queue);
- window.addEventListener('resize',queue,{passive:true});doc.fonts?.addEventListener('loadingdone',queue);doc.fonts?.ready.then(()=>{if(!disposed)queue();});
+ // Loadingdone covers late font metrics. Reading FontFaceSet.ready here forces
+ // layout during the React commit, even when all fonts are already loaded.
+ window.addEventListener('resize',queue,{passive:true});doc.fonts?.addEventListener('loadingdone',queue);
  for(const query of [reduced,opaque,forced])query.addEventListener('change',media);
  queue();
  return()=>{

@@ -70,10 +70,10 @@ export function installMotionPolicy(doc=document){
  let owner=owners.get(doc),active=true;
  if(owner){owner.count++;return()=>release();}
  const reduced=matchMedia('(prefers-reduced-motion: reduce)'),owned=new Set(),root=doc.documentElement;
- let metadataCache=new WeakMap();
- const registry=parseAmbientRegistry(getComputedStyle(root).getPropertyValue('--nubi-ambient-registry'));
+ let metadataCache=new WeakMap(),registry;
  const paused=()=>doc.hidden||root.hasAttribute('data-nubi-window-hidden')||reduced.matches||root.hasAttribute('data-nubi-transition')||root.hasAttribute('data-motion-panel');
  const sync=()=>{
+  registry??=parseAmbientRegistry(getComputedStyle(root).getPropertyValue('--nubi-ambient-registry'));
   const animations=doc.getAnimations().filter(animation=>!animation.effect?.target?.closest?.('.nubi-intro,.nubi-connecting'));
   return reconcileMotion(animations,{registry,paused:paused(),progressPaused:doc.hidden||root.hasAttribute('data-nubi-window-hidden')||root.hasAttribute('data-nubi-transition')||reduced.matches,projectSwitching:root.hasAttribute('data-project-switching'),reduced:reduced.matches,owned,metadataCache,held:IDLE_AMBIENT_HELD});
  };
@@ -89,12 +89,12 @@ export function installMotionPolicy(doc=document){
  doc.addEventListener('visibilitychange',sync);doc.addEventListener('nubi-motion-change',schedule);
  reduced.addEventListener('change',sync);
  const observer=new MutationObserver(schedule);observer.observe(root,{attributes:true,attributeFilter:['data-motion-panel','data-project-switching']});
- const invalidateStyles=()=>{metadataCache=new WeakMap();frame.schedule();};
+ const invalidateStyles=()=>{metadataCache=new WeakMap();registry=undefined;frame.schedule();};
  const styleHead=doc.head,styles=styleHead?new MutationObserver(invalidateStyles):null;
  styles?.observe(styleHead,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['href','rel','media','disabled']});styleHead?.addEventListener?.('load',invalidateStyles,true);
  const stopHost=globalThis.window?.nubi?.onHostEvent?.(event=>{if(event?.type!=='window_visibility'||typeof event.visible!=='boolean')return;root.toggleAttribute('data-nubi-window-hidden',!event.visible);sync();});
  owner={count:1,stop(){stopHost?.();frame.cancel();observer.disconnect();styles?.disconnect();styleHead?.removeEventListener?.('load',invalidateStyles,true);for(const name of ['animationstart','transitionrun'])doc.removeEventListener(name,schedule,true);doc.removeEventListener('visibilitychange',sync);doc.removeEventListener('nubi-motion-change',schedule);reduced.removeEventListener('change',sync);for(const animation of owned)if(animation.playState==='paused')animation.play();owned.clear();root.removeAttribute?.('data-nubi-window-hidden');}};
- owners.set(doc,owner);sync();
+ owners.set(doc,owner);frame.schedule();
  return()=>release();
  function release(){if(!active)return;active=false;if(!--owner.count){owner.stop();owners.delete(doc);}}
 }

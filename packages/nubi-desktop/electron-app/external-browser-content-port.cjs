@@ -20,26 +20,32 @@ function createExternalBrowserContentPort({browser,router,window,Menu,clipboard,
   connecting=true;const controller=new AbortController();connectionAbort=controller;
   const abort=()=>controller.abort();signal?.addEventListener('abort',abort,{once:true});if(signal?.aborted)controller.abort();
   let client;try{
-   await pendingDirect?.close();pendingDirect=null;pendingUrl=url||null;if(replace)await browser.stop();
-   browser.connectionPhase='permission';browser.candidates=[];browser.publish();
-   client=await directFactory();let opened=false;const deadline=Date.now()+90000;
-   for(;;){
-    if(controller.signal.aborted)throw Error('dock_cancelled');
-    try{browser.candidates=await client.connect({signal:controller.signal,permissionTimeout:Math.max(1,deadline-Date.now())});break;}
-    catch(error){if(error.message!=='browser_connection_permission_required'||Date.now()>=deadline)throw error;if(!opened){await router.launch.connectionSettings();opened=true;}await new Promise(resolve=>setTimeout(resolve,300));}
+   await pendingDirect?.close();if(controller.signal.aborted||router.mode!=='external')throw Error('dock_cancelled');pendingDirect=null;pendingUrl=url||null;if(replace)await browser.stop();
+   browser.connectionPhase='checking';browser.connectionError=null;browser.candidates=[];browser.publish();
+   client=await directFactory();
+   if(controller.signal.aborted||router.mode!=='external')throw Error('dock_cancelled');
+   browser.connectionPhase='connecting';browser.publish();
+   try{browser.candidates=await client.connect({signal:controller.signal,permissionTimeout:15000});}
+   catch(error){
+    if(error.message!=='browser_connection_permission_required')throw error;
+    // Chromium compatibility does not imply Chrome's consent settings exist.
+    // Missing endpoint metadata is a result, not a 90-second permission poll.
+    if(router.launch?.preference?.browser==='samsung')throw Error('browser_connection_not_ready');
+    await router.launch.connectionSettings();throw Error('browser_connection_setup_required');
    }
    if(controller.signal.aborted)throw Error('dock_cancelled');
    pendingDirect=client;browser.connectionPhase='choose_tab';browser.publish();
    if(!forceChoose&&browser.candidates.length===1)return await chooseDirect(browser.candidates[0].id);
    return {choosing:true};
-  }catch(error){await client?.close();browser.connectionPhase=null;browser.candidates=[];browser.publish();throw error;}
-  finally{signal?.removeEventListener('abort',abort);connecting=false;if(connectionAbort===controller)connectionAbort=null;}
+  }catch(cause){const error=controller.signal.aborted?Error('dock_cancelled'):cause;await client?.close();if(connectionAbort===controller){browser.connectionPhase=error.message==='dock_cancelled'?null:error.message==='browser_connection_setup_required'?'setup':'unavailable';browser.connectionError=error.message==='dock_cancelled'?null:/^[a-z_]+$/.test(error.message)?error.message:'browser_connection_unavailable';browser.candidates=[];browser.publish();if(browser.connectionError)router.notify?.({type:'browser_connection_failed',error:browser.connectionError});}throw error;}
+  finally{signal?.removeEventListener('abort',abort);if(connectionAbort===controller){connecting=false;connectionAbort=null;}}
  };
  const chooseDirect=async candidateId=>{
   if(selecting)throw Error('external_browser_busy');selecting=true;try{
   const client=pendingDirect;if(!client)throw Error('browser_connection_changed');
-  await client.choose(candidateId);if(client!==pendingDirect)throw Error('browser_connection_changed');pendingDirect=null;
-  await browser.adoptDirect(client);if(pendingUrl){const url=pendingUrl;pendingUrl=null;await browser.openPage(url);}router.externalFocus=true;router.notify?.({type:'external_browser_opened',state:router.configuration()});window.show?.();window.focus?.();return {connected:true};
+  if(router.mode!=='external'||router.changingMode)throw Error('external_browser_disabled');
+  await client.choose(candidateId);if(client!==pendingDirect)throw Error('browser_connection_changed');
+  await browser.adoptDirect(client,{isCurrent:()=>client===pendingDirect&&router.mode==='external'&&!router.changingMode});pendingDirect=null;if(pendingUrl){const url=pendingUrl;pendingUrl=null;await browser.openPage(url);}router.externalFocus=true;router.notify?.({type:'external_browser_opened',state:router.configuration()});router.notify?.({type:'browser_connection_completed'});window.show?.();window.focus?.();return {connected:true};
   }finally{selecting=false;}
  };
  const quickConnect=async({resolveProof,url,signal,replace=false,open}={})=>{
@@ -64,9 +70,11 @@ function createExternalBrowserContentPort({browser,router,window,Menu,clipboard,
     return {connected:true};
    }finally{signal?.removeEventListener('abort',cancel);controller.signal.removeEventListener('abort',cancel);}
   }catch(error){if(owner&&browser.quick===owner&&!browser.status().connected)await browser.stop();throw error;}
-  finally{connecting=false;if(connectionAbort===controller)connectionAbort=null;}
+  finally{if(connectionAbort===controller){connecting=false;connectionAbort=null;}}
  };
  browser.quickConnect=quickConnect;
+ const cancelPending=async()=>{const controller=connectionAbort;connectionAbort=null;connecting=false;controller?.abort();const client=pendingDirect;pendingDirect=null;pendingUrl=null;browser.connectionPhase=null;browser.connectionError=null;browser.candidates=[];browser.publish();await client?.close();return {cancelled:true};};
+ browser.cancelPendingConnection=cancelPending;
  async function request(args={}){
   if(args.action==='stop'){
    // The viewer clears its canvas before sending stop. Internal invalidation
@@ -74,10 +82,13 @@ function createExternalBrowserContentPort({browser,router,window,Menu,clipboard,
    sensitive.delete(args.streamId);return mirror.stop(args);
   }
   if(router.mode!=='external')throw Error('external_browser_disabled');
-  if(args.action==='connect')return quickConnect();
+  if(args.action==='connect'){
+   if(args.background===true){if(!connecting)void quickConnect().catch(()=>{});return {connecting:true};}
+   return quickConnect();
+  }
   if(args.action==='chooseTab')return chooseDirect(args.candidateId);
   if(args.action==='refreshTabs'){if(!pendingDirect)throw Error('browser_connection_changed');browser.candidates=await pendingDirect.list();browser.publish();return {choosing:true};}
-  if(args.action==='cancelConnect'){connectionAbort?.abort();await pendingDirect?.close();pendingDirect=null;browser.connectionPhase=null;browser.candidates=[];browser.publish();return {cancelled:true};}
+  if(args.action==='cancelConnect')return cancelPending();
   if(args.action==='start')return mirror.start(args);
   if(args.action==='ack')return mirror.ack(args);
   if(args.action==='input')return mirror.input(args);
@@ -87,6 +98,6 @@ function createExternalBrowserContentPort({browser,router,window,Menu,clipboard,
   throw Error('browser_action_invalid');
  }
  const assertCaptureAllowed=()=>{if(sensitive.size)throw Error('browser_auth_protected');};
- return {request,async capture(work){assertCaptureAllowed();const epoch=protectedEpoch,value=await work();assertCaptureAllowed();if(epoch!==protectedEpoch)throw Error('browser_auth_protected');return value;},dispose(){connectionAbort?.abort();void pendingDirect?.close();pendingDirect=null;if(browser.quickConnect===quickConnect)delete browser.quickConnect;for(const name of ['hide','minimize'])window.removeListener(name,pause);if(mirror.onEvent===event)mirror.onEvent=previous;void mirror.stop();}};
+ return {request,async capture(work){assertCaptureAllowed();const epoch=protectedEpoch,value=await work();assertCaptureAllowed();if(epoch!==protectedEpoch)throw Error('browser_auth_protected');return value;},dispose(){connectionAbort?.abort();void pendingDirect?.close();pendingDirect=null;if(browser.quickConnect===quickConnect)delete browser.quickConnect;if(browser.cancelPendingConnection===cancelPending)delete browser.cancelPendingConnection;for(const name of ['hide','minimize'])window.removeListener(name,pause);if(mirror.onEvent===event)mirror.onEvent=previous;void mirror.stop();}};
 }
 module.exports={createExternalBrowserContentPort};

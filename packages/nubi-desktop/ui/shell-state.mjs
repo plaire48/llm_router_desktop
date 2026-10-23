@@ -71,9 +71,25 @@ export function scopeArgument(argument){
  for(let i=0;i<=argument.length;i++){const c=argument[i];if(c==='('||c==='[')depth++;else if(c===')'||c===']')depth--;else if((c===','&&depth===0)||i===argument.length){parts.push(argument.slice(start,i).trim());start=i+1;}}
  return parts.map(part=>/^[>+~]/.test(part)?':scope '+part:':scope '+part).join(', ');
 }
-export function applyLocalFacts(doc,entries=LOCAL_HAS){
+export function applyLocalFacts(doc,entries=LOCAL_HAS,subjects){
  for(const entry of entries){const scoped=entry.scoped||=scopeArgument(entry.argument),name='data-has-'+entry.name;
-  for(const node of doc.querySelectorAll(entry.subject)){const value=String(!!node.querySelector(scoped));if(node.getAttribute(name)!==value)node.setAttribute(name,value);}}
+  for(const node of subjects?[...subjects].filter(node=>node.matches(entry.subject)):doc.querySelectorAll(entry.subject)){const value=String(!!node.querySelector(scoped));if(node.getAttribute(name)!==value)node.setAttribute(name,value);}}
+}
+// A message/field change can affect its own subject and its ancestors. Only new
+// elements or a changed selector attribute can introduce subjects below it.
+// Keep this in the mutation delivery, before paint, without rescanning siblings.
+function changedSubjects(changes,selector){
+ const subjects=new Set();
+ const collect=(node,descendants=false)=>{
+  if(node?.nodeType!==1)return;
+  for(let parent=node;parent;parent=parent.parentElement)if(parent.matches(selector))subjects.add(parent);
+  if(descendants)for(const child of node.querySelectorAll(selector))subjects.add(child);
+ };
+ if(Array.isArray(changes))for(const change of changes){
+  collect(change.target,change.type==='attributes');
+  for(const added of change.addedNodes||[])collect(added,true);
+ }else if(changes?.target)collect(changes.target);
+ return subjects;
 }
 const SHELL_TARGETS=['.desktop-shell','.nubi-workbench','.nubi-workbench-layout','.nubi-main'];
 const installed=new WeakMap();
@@ -81,9 +97,9 @@ const installed=new WeakMap();
 export function installShellState(doc=globalThis.document){
  if(!doc?.documentElement)return ()=>{};
  const existing=installed.get(doc);if(existing){existing.users++;return existing.release;}
- const local=LOCAL_HAS.map(entry=>({...entry})),hoverEntries=local.filter(entry=>entry.hover);
- const update=()=>{const state=shellState(readShellFacts(doc));applyShellState(doc.documentElement,state);for(const selector of SHELL_TARGETS)for(const node of doc.querySelectorAll(selector))applyShellState(node,state);applyLocalFacts(doc,local);};
- const hover=event=>{if(event.target?.closest?.(hoverEntries.map(e=>e.subject).join(',')))applyLocalFacts(doc,hoverEntries);};
+ const local=LOCAL_HAS.map(entry=>({...entry})),hoverEntries=local.filter(entry=>entry.hover),selector=local.map(entry=>entry.subject).join(','),hoverSelector=hoverEntries.map(entry=>entry.subject).join(',');
+ const update=changes=>{const state=shellState(readShellFacts(doc));applyShellState(doc.documentElement,state);for(const selector of SHELL_TARGETS)for(const node of doc.querySelectorAll(selector))applyShellState(node,state);applyLocalFacts(doc,local,changes?changedSubjects(changes,selector):undefined);};
+ const hover=event=>{if(event.target?.closest?.(hoverSelector))applyLocalFacts(doc,hoverEntries,changedSubjects(event,hoverSelector));};
  // Mutation callbacks run before the next paint, so a changed fact never shows one frame of the old style.
  const observer=new MutationObserver(update);
  observer.observe(doc.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['class','role','data-open','data-toolbar','data-large-text','data-shell-title','open','disabled','aria-selected','data-mood','data-copy-state','data-provider']});

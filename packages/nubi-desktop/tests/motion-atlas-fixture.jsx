@@ -31,10 +31,10 @@ function App(){
 }
 createRoot(document.getElementById('root')).render(<App/>);
 
-window.atlasOptics=()=>{
+window.atlasOptics=async()=>{
  const canvas=document.createElement('canvas'),source=document.createElement('canvas');source.width=240;source.height=100;
  const context=source.getContext('2d');for(let x=0;x<240;x++){context.fillStyle=x%12<6?'#365F82':'#EAF5F8';context.fillRect(x,0,1,100);}
- const renderer=createGlassRenderer(canvas);if(!renderer)return {supported:false};renderer.resize(240,100,1,source);
+ const renderer=createGlassRenderer(canvas);if(!renderer)return {supported:false};renderer.resize(240,100,1,source);await renderer.ready;
  const gl=renderer.gl,original=gl.drawArrays.bind(gl),draws=[];
  gl.drawArrays=(...args)=>{draws.push(gl.isEnabled(gl.SCISSOR_TEST)?Array.from(gl.getParameter(gl.SCISSOR_BOX)):[0,0,canvas.width,canvas.height]);return original(...args);};
  renderer.draw({x:40,y:30,width:100,height:40},{radius:14,time:0});

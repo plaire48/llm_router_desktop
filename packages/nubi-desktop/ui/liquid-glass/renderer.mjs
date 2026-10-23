@@ -1,30 +1,35 @@
 import {vertexShader,fragmentShader} from './reference-shader.mjs';
+import {waitForWebGLProgram} from '../webgl-ready.mjs';
 
 export function createGlassRenderer(canvas){
  const gl=canvas.getContext('webgl',{alpha:true,antialias:false,depth:false,stencil:false,premultipliedAlpha:false,preserveDrawingBuffer:false,powerPreference:'low-power'});
  if(!gl)return null;
- let program,buffer,texture;const shaders=[];
- const dispose=()=>{if(texture)gl.deleteTexture(texture);if(buffer)gl.deleteBuffer(buffer);if(program)gl.deleteProgram(program);for(const shader of shaders)gl.deleteShader(shader);};
+ let program,buffer,texture,compilation,uniforms,compiled=false,disposed=false,backdrop;const shaders=[];
+ let width=1,height=1,dpr=1;
+ const dispose=()=>{if(disposed)return;disposed=true;compilation?.cancel();if(texture)gl.deleteTexture(texture);if(buffer)gl.deleteBuffer(buffer);if(program)gl.deleteProgram(program);for(const shader of shaders)gl.deleteShader(shader);};
  try {
   for(const [type,source]of [[gl.VERTEX_SHADER,vertexShader],[gl.FRAGMENT_SHADER,fragmentShader]]){
    const shader=gl.createShader(type);if(!shader)throw Error('glass_shader');shaders.push(shader);gl.shaderSource(shader,source);gl.compileShader(shader);
   }
   program=gl.createProgram();if(!program)throw Error('glass_program');for(const shader of shaders)gl.attachShader(program,shader);gl.linkProgram(program);
-  if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error('glass_link');
+  compilation=waitForWebGLProgram(gl,program);
+  const ready=compilation.ready.then(success=>{if(!success||disposed){if(!disposed)dispose();return false;}try{
   gl.useProgram(program);buffer=gl.createBuffer();texture=gl.createTexture();if(!buffer||!texture)throw Error('glass_resource');
   gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
   const attribute=gl.getAttribLocation(program,'a_position');gl.enableVertexAttribArray(attribute);gl.vertexAttribPointer(attribute,2,gl.FLOAT,false,0,0);
   gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,texture);
   for(const [name,value]of [[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE],[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR]])gl.texParameteri(gl.TEXTURE_2D,name,value);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
-  const uniforms=Object.fromEntries(['bg','size','dpr','strength','time','pointer','count','rects','radii','modes'].map(name=>[name,gl.getUniformLocation(program,'u_'+name+(['rects','radii','modes'].includes(name)?'[0]':''))]));
+  uniforms=Object.fromEntries(['bg','size','dpr','strength','time','pointer','count','rects','radii','modes'].map(name=>[name,gl.getUniformLocation(program,'u_'+name+(['rects','radii','modes'].includes(name)?'[0]':''))]));
   gl.uniform1i(uniforms.bg,0);
-  let width=1,height=1,dpr=1;
+  compiled=true;if(backdrop)gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,backdrop);return true;
+  }catch{dispose();return false;}});
   const rects=new Float32Array(48),radii=new Float32Array(12),modes=new Float32Array(12);modes[0]=2;
   return {
-   gl,
-   resize(w,h,ratio,backdrop){width=w;height=h;dpr=ratio;canvas.width=Math.max(1,Math.round(w*ratio));canvas.height=Math.max(1,Math.round(h*ratio));gl.viewport(0,0,canvas.width,canvas.height);gl.bindTexture(gl.TEXTURE_2D,texture);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,backdrop);},
+   gl,ready,
+   resize(w,h,ratio,source){width=w;height=h;dpr=ratio;backdrop=source;canvas.width=Math.max(1,Math.round(w*ratio));canvas.height=Math.max(1,Math.round(h*ratio));gl.viewport(0,0,canvas.width,canvas.height);if(compiled&&!disposed){gl.bindTexture(gl.TEXTURE_2D,texture);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,backdrop);}},
    draw(rect,{pointer=[-1000,-1000],strength=.78,time=0,radius=14}={}){
+    if(!compiled||disposed)return;
     gl.useProgram(program);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
     // A small lens must not run the refractive shader over a full-height rail.
     // Clear the previous lens first, then shade only its visible edge coverage.

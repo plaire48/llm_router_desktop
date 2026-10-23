@@ -11,9 +11,9 @@ const {ExternalBrowserMirror}=require('./external-browser-mirror.cjs');
 // No remote-debugging port, second agent loop or browser profile import.
 class ExternalBrowserHost {
  constructor({onChange=()=>{},onMirrorEvent=()=>{},timeout=15000}={}){this.onChange=onChange;this.timeout=timeout;this.tabs=new Map();this.pending=new Map();this.active=null;this.generation=null;this.playwright=new PlaywrightHost(this);this.mirror=new ExternalBrowserMirror(this,{onEvent:onMirrorEvent});}
- status(){return {mode:'external',connected:!!(this.peer||this.direct)&&this.ready===true,automation:!!(this.peer||this.direct)&&this.ready===true,connectionKind:this.direct?'direct':'extension',connectionPhase:this.connectionPhase||null,candidates:this.candidates||[],windowEmbedded:false,windowId:this.windowId??null,active:this.active,tabs:[...this.tabs.values()].map(row=>({id:row.id,title:row.title,url:row.url,documentId:row.automationDocument,protected:row.authentication,external:true})),pairing:!!this.ticket&&Date.now()<this.expiresAt};}
- async adoptDirect(connection){
-  await this.stop();this.direct=connection;this.ready=true;this.generation=randomUUID();this.windowId=connection.windowId;this.browserVersion=connection.version?.userAgent||connection.version?.product||'Chrome';this.connectionPhase=null;this.candidates=[];
+ status(){return {mode:'external',connected:!!(this.peer||this.direct)&&this.ready===true,automation:!!(this.peer||this.direct)&&this.ready===true,connectionKind:this.direct?'direct':'extension',connectionPhase:this.connectionPhase||null,connectionError:this.connectionError||null,candidates:this.candidates||[],windowEmbedded:false,windowId:this.windowId??null,active:this.active,tabs:[...this.tabs.values()].map(row=>({id:row.id,title:row.title,url:row.url,documentId:row.automationDocument,protected:row.authentication,external:true})),pairing:!!this.ticket&&Date.now()<this.expiresAt};}
+ async adoptDirect(connection,{isCurrent=()=>true}={}){
+  await this.stop();if(!isCurrent()){await connection.close();throw Error('browser_connection_changed');}this.direct=connection;this.ready=true;this.generation=randomUUID();this.windowId=connection.windowId;this.browserVersion=connection.version?.userAgent||connection.version?.product||'Chrome';this.connectionPhase=null;this.candidates=[];
   const owner=this.generation;connection.onTabs=values=>{if(this.generation===owner)this.updateTabs(values);};connection.onFrame=packet=>{if(this.generation===owner)this.mirror.frame(packet);};
   connection.onEvent=packet=>{if(this.generation!==owner)return;const row=this.tabs.get(packet.tabId);if(row&&row.automationDocument===packet.documentId)row.view.webContents.debugger.emit('message',null,packet.method,packet.params,packet.sessionId);};
   connection.onDisconnect=()=>{if(this.generation===owner){this.direct=null;this.disconnected();}};this.updateTabs(await connection.command('tabs'));this.publish();return this.status();
@@ -117,7 +117,7 @@ class ExternalBrowserHost {
   for(const item of this.pending.values()){clearTimeout(item.timer);item.reject(Error('external_browser_result_unconfirmed'));}this.pending.clear();
   for(const row of this.tabs.values())row.view.webContents.emit('destroyed');this.tabs.clear();this.active=null;this.publish();
  }
- async stop(){clearTimeout(this.expiry);clearInterval(this.heartbeat);this.ticket=null;this.quick=null;this.connectionPhase=null;this.candidates=[];const direct=this.direct;this.direct=null;await direct?.close();this.peer?.terminate();this.disconnected();const server=this.server,http=this.httpServer;this.server=null;this.httpServer=null;if(server)await new Promise(resolve=>server.close(resolve));if(http)await new Promise(resolve=>http.close(resolve));}
+ async stop(){clearTimeout(this.expiry);clearInterval(this.heartbeat);this.ticket=null;this.quick=null;this.connectionPhase=null;this.connectionError=null;this.candidates=[];const direct=this.direct;this.direct=null;await direct?.close();this.peer?.terminate();this.disconnected();const server=this.server,http=this.httpServer;this.server=null;this.httpServer=null;if(server)await new Promise(resolve=>server.close(resolve));if(http)await new Promise(resolve=>http.close(resolve));}
  dispose(){void this.stop();}
 }
 module.exports={ExternalBrowserHost};

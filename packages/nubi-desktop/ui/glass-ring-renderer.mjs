@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {ATMOSPHERE_LIMITS} from './atmosphere-model.mjs';
 const cssColour=(colour,white=0)=>`rgb(${colour.map(c=>Math.round((c*(1-white)+white)*255)).join(',')})`;
 function gradientTexture(colours,environment=false){
- const canvas=document.createElement('canvas');canvas.width=256;canvas.height=environment?128:256;
+ const canvas=typeof document==='undefined'?new OffscreenCanvas(256,environment?128:256):document.createElement('canvas');canvas.width=256;canvas.height=environment?128:256;
  const ctx=canvas.getContext('2d'),gradient=ctx.createLinearGradient(0,0,canvas.width,canvas.height);
  colours.forEach((c,i)=>gradient.addColorStop(i/(colours.length-1),cssColour(c,environment ? .10 : .62)));ctx.fillStyle=gradient;ctx.fillRect(0,0,canvas.width,canvas.height);
  if(environment){
@@ -37,7 +37,7 @@ export function createGlassRingRenderer(canvas,{colors}={}){
    transformed+=normal*(.025*wave1+.012*wave2+.009*wave3);`);};material.customProgramCacheKey=()=> 'nubi-liquid-ring-v1';
   const ring=new THREE.Mesh(geometry,material);scene.add(ring);
   const key=new THREE.DirectionalLight(0xffffff,1.6);key.position.set(-3,4,4);scene.add(key);const fill=new THREE.DirectionalLight(0xffffff,.8);fill.position.set(3,-1,2);scene.add(fill);
-  canvas.dataset.context='webgl2';
+  if(canvas.dataset)canvas.dataset.context='webgl2';
   return {budget,material:'liquid-glass-ring',resize(width,height,dpr){const ratio=Math.min(1,dpr,Math.sqrt(budget/(width*height)));renderer.setSize(Math.max(1,Math.floor(width*ratio)),Math.max(1,Math.floor(height*ratio)),false);camera.aspect=width/height||1;camera.updateProjectionMatrix();ring.scale.setScalar(Math.max(.85,Math.min(1.3,camera.aspect)));},draw(state){const t=state.elapsed;time.value=t;ring.rotation.z=-.25+t*.078;ring.rotation.x=-.17+Math.sin(t*.28)*.13;ring.rotation.y=.28+Math.sin(t*.20)*.27;ring.position.y=.06+Math.sin(t*.58)*.065;renderer.render(scene,camera);},dispose};
  }catch{dispose();return null;}
 }

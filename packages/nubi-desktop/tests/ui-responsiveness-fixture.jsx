@@ -1,14 +1,17 @@
 import {useWikiScopePerformance} from './wiki-scope-performance.jsx';
+import './graphics-worker-probe.mjs';
 import React,{useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {DetailPanel} from '@e2e/cx-design-system';
 import {AnchoredDialog} from '../ui/AnchoredDialog.jsx';
+import {WorkspaceActionMenu} from '../ui/WorkspaceActionMenu.jsx';
 import {useModalDismissalPolicy} from '../ui/useModalDismissalPolicy.js';
 import {useModalMotion} from '../ui/modalMotion.js';
 import '../node_modules/@e2e/cx-design-system/dist/styles.css';
 import '../design/workspace-identity.css';
 import '../ui/shell-state-auto.mjs';// layout facts as attributes, as the renderer host does (design light-flow §1.1)
 import '../design/workspace-dialogs.css';
+import '../design/workspace-density.css';
 import '../design/workspace-icons.css';
 import '../electron-app/modal-motion.css';
 
@@ -27,6 +30,7 @@ function App(){
  return <main className="desktop-shell" inert={shellLocked}>
   <button ref={trigger} onClick={()=>setAnchored(true)}>메뉴 열기</button>
   <button onClick={()=>setCount(value=>value+1)}>응답 확인 {count}</button><input aria-label="메인 입력"/>
+  <WorkspaceActionMenu label="작업 관리"><button onClick={()=>setChild(true)}>첫 작업</button><button>두 번째 작업</button></WorkspaceActionMenu>
   {anchored&&<Anchored trigger={trigger} onClose={()=>setAnchored(false)} onChild={()=>setChild(true)}/>}
   {child&&<DetailPanel title="상세 창" variant="modal" className="deck-dialog" hideHelp onClose={()=>setChild(false)}><input aria-label="상세 입력"/></DetailPanel>}
  {wikiScopeUI}</main>;

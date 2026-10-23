@@ -12,4 +12,8 @@ test('browser connection surface exposes tab choice and permission wait without 
  globalThis.window={nubi:{platform:'darwin'}};t.after(()=>delete globalThis.window);
  const {ExternalBrowserPane}=await import(pathToFileURL(output));const html=renderToStaticMarkup(React.createElement(ExternalBrowserPane,{visible:true,api:()=>{},onUpdate(){},status:{connected:false,connectionPhase:'choose_tab',candidates:[{id:'one',title:'업무 페이지',origin:'https://work.test'}]}}));
  assert.match(html,/업무 페이지/);assert.doesNotMatch(html,/연결 확장 폴더|개발자 모드|확장을.*설치/);
+ const idle=renderToStaticMarkup(React.createElement(ExternalBrowserPane,{visible:true,api:()=>{},onUpdate(){},status:{connected:false,targetBrowser:'samsung'}}));
+ assert.doesNotMatch(idle,/확장 프로그램 없이|연결 허용/);
+ const unavailable=renderToStaticMarkup(React.createElement(ExternalBrowserPane,{visible:true,api:()=>{},onUpdate(){},status:{connected:false,targetBrowser:'samsung',connectionPhase:'unavailable',connectionError:'browser_connection_not_ready'}}));
+ assert.match(unavailable,/연결 주소를 찾지 못했어요/);assert.doesNotMatch(unavailable,/연결 허용|켜고 승인/);
 });

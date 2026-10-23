@@ -31,7 +31,24 @@ function readLens(selector){
 }
 try {
  page=await desktopTestWindow(app);page.setDefaultTimeout(15000);page.on('pageerror',e=>errors.push(e.message));
- await page.addInitScript(()=>Object.defineProperty(navigator,'webdriver',{get:()=>false}));await page.reload();
+ await page.locator('.desktop-shell[data-startup-ready=true]').waitFor({timeout:60000});
+ await page.waitForFunction(()=>!document.querySelector('.nubi-intro')&&!document.querySelector('.desktop-shell')?.inert);
+ if(await page.getByText('메일을 연결해 주세요').count())await page.keyboard.press('Escape');
+ await page.waitForFunction(()=>{const layer=document.querySelector('.nubi-workspace-rail .nubi-liquid-glass');return layer?.glassMetrics?.gpu?.frames>0&&layer.dataset.glassMoving==='false';});
+ facts.worker=await page.locator('.nubi-workspace-rail .nubi-liquid-glass').evaluate(layer=>({thread:layer.querySelector('.nubi-liquid-glass__lens').dataset.thread,...layer.glassMetrics.gpu}));
+ assert.equal(facts.worker.thread,'worker');assert(facts.worker.buffer[0]*facts.worker.buffer[1]>0&&facts.worker.buffer[0]*facts.worker.buffer[1]<=181000);
+ await page.getByRole('button',{name:'메일',exact:true}).click();await page.waitForFunction(y=>{const layer=document.querySelector('.nubi-workspace-rail .nubi-liquid-glass');return layer?.dataset.glassMoving==='false'&&layer.glassMetrics?.gpu?.rect?.y>y+20;},facts.worker.rect.y);
+ const workerAfter=await page.locator('.nubi-workspace-rail .nubi-liquid-glass').evaluate(layer=>layer.glassMetrics.gpu);
+ assert(workerAfter.frames>facts.worker.frames);assert(workerAfter.rect.y>facts.worker.rect.y+20);record('production-electron-worker-navigation-and-bounded-pixels');
+ await captureDesign(page,{path:path.join(out,'worker-mail.png'),animations:'disabled',scale:'css'});
+ await page.getByRole('button',{name:'홈',exact:true}).click();
+ await page.waitForFunction(()=>document.querySelector('.nubi-workspace-rail button[aria-label="홈"]')?.getAttribute('aria-pressed')==='true');
+ // The animation opt-in also enables first-run guidance. Its separate flow
+ // must not steal focus from the native menu/optical journey in this profile.
+ // This suite reads uniforms directly to verify optical/spring math and the
+ // supported main-thread fallback. Real worker pixels/loss are checked by the
+ // responsiveness suite, without adding diagnostic commands to product IPC.
+ await page.addInitScript(()=>{Object.defineProperty(navigator,'webdriver',{get:()=>false});localStorage.setItem('nubi-first-run-tour-v1','done');HTMLCanvasElement.prototype.transferControlToOffscreen=undefined;});await page.reload();
  await page.locator('.desktop-shell[data-startup-ready=true]').waitFor({timeout:60000});await page.waitForFunction(()=>!document.querySelector('.nubi-intro')&&!document.querySelector('.desktop-shell')?.inert);
  assert.equal(await page.evaluate(()=>document.documentElement.dataset.modalMotion),'on');
  facts.gpu=await app.evaluate(({app})=>app.getGPUFeatureStatus());
@@ -47,7 +64,7 @@ try {
  assert.equal(await projectMenu.evaluate(node=>getComputedStyle(node).animationName),'nubi-view-menu-in');
  await settleDialog(projectMenu);facts.projectMenu=await projectMenu.evaluate(node=>{const rect=node.getBoundingClientRect();return {left:rect.left,top:rect.top,right:rect.right,bottom:rect.bottom,width:innerWidth,height:innerHeight,origin:getComputedStyle(node).transformOrigin,focusInside:node.contains(document.activeElement)};});
  assert(facts.projectMenu.focusInside&&facts.projectMenu.left>=8&&facts.projectMenu.top>=8&&facts.projectMenu.right<=facts.projectMenu.width-8&&facts.projectMenu.bottom<=facts.projectMenu.height-8);
- await capture('project-menu-wide');await page.keyboard.press('Escape');await projectMenu.waitFor({state:'hidden'});assert(await projectTrigger.evaluate(node=>node===document.activeElement));record('production-anchored-menu-motion-bounds-and-keyboard');
+ await capture('project-menu-wide');await page.keyboard.press('Escape');await projectMenu.waitFor({state:'hidden'});await page.waitForFunction(()=>document.querySelector('summary[aria-label="Nubi Glass 프로젝트 관리"]')===document.activeElement,null,{timeout:3000});assert(await projectTrigger.evaluate(node=>node===document.activeElement));record('production-anchored-menu-motion-bounds-and-keyboard');
  facts.travel=await page.evaluate(async()=>{
   const nav=document.querySelector('.nubi-workspace-rail'),canvas=nav.querySelector('.nubi-liquid-glass__lens'),gl=canvas.getContext('webgl');
   const read=()=>{const p=gl.getParameter(gl.CURRENT_PROGRAM);return Array.from(gl.getUniform(p,gl.getUniformLocation(p,'u_rects[0]'))).slice(0,4);};
@@ -97,5 +114,5 @@ try {
  await app.evaluate(async({BrowserWindow},file)=>{const reference=new BrowserWindow({width:1200,height:850,webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}});await reference.loadFile(file);},path.resolve('../../design-reference/nubi-liquid-glass-demo.html'));
  const reference=app.windows().at(-1);await reference.locator('#dock').waitFor();await reference.getByRole('button',{name:'Agents',exact:true}).click();await reference.waitForTimeout(800);await reference.screenshot({path:path.join(out,'reference-demo.png'),scale:'css'});record('supplied-demo-rendered-for-visual-comparison');
  assert.deepEqual(errors,[]);await writeFile(path.join(out,'result.json'),JSON.stringify({checks,facts,errors,boundary:'Actual built Electron UI on macOS with a temporary local project; synthetic optical stripes exercise the shader in an Electron fixture. The live neutral material samples a hidden neutral texture and adds no coloured scene: arbitrary DOM refraction is not implemented. OS preference delivery, Windows and real provider/SSO are separate.'},null,2));console.log(JSON.stringify({passed:checks.length,errors}));
-}catch(error){await page?.screenshot({path:path.join(out,'failure.png')}).catch(()=>{});await writeFile(path.join(out,'failure.txt'),error.stack);throw error;}
+}catch(error){if(page)console.error('focus',await page.evaluate(()=>({active:document.activeElement?.outerHTML.slice(0,500),inert:document.querySelector('.desktop-shell')?.inert,focus:document.hasFocus(),triggers:[...document.querySelectorAll('summary[aria-label]')].map(n=>({name:n.getAttribute('aria-label'),visible:n.checkVisibility(),inert:!!n.closest('[inert]'),html:n.outerHTML.slice(0,160)})),popover:[...document.querySelectorAll('[popover]')].map(node=>({open:node.matches(':popover-open'),display:getComputedStyle(node).display}))})).catch(()=>null));await page?.screenshot({path:path.join(out,'failure.png')}).catch(()=>{});await writeFile(path.join(out,'failure.txt'),error.stack);throw error;}
 finally{await app.close();await rm(storage,{recursive:true,force:true});}

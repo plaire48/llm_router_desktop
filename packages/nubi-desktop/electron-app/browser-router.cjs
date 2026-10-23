@@ -26,6 +26,7 @@ class BrowserRouter {
   if(mode===this.mode)return this.configuration();
   this.changingMode=true;
   try{
+   await this.external.cancelPendingConnection?.();
    await this.external.mirror?.stop();
    if(this.dock&&(this.dock.operation||['preparing','attaching','docked','detaching','error'].includes(this.dock.status().phase))){const restored=await this.dock.cancel();if(restored?.cancelled===false)throw Error('dock_restore_unconfirmed');}
    this.internalPlaywright?.dispose();

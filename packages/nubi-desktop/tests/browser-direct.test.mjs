@@ -73,3 +73,29 @@ test('direct tab selection can be cancelled without adopting or closing any orig
  await assert.rejects(()=>port.request({action:'chooseTab',candidateId:'work-target'}),/browser_connection_changed/);
  assert.equal(host.status().connected,false);assert.equal(f.calls.some(x=>x.method==='Target.attachToTarget'||x.method==='Target.closeTarget'),false);
 });
+test('background connection acknowledges before discovery and a missing Samsung endpoint never waits for Chrome settings',async t=>{
+ const {ExternalBrowserHost}=require('../electron-app/external-browser-host.cjs'),{createExternalBrowserContentPort}=require('../electron-app/external-browser-content-port.cjs'),{EventEmitter}=require('node:events');
+ const host=new ExternalBrowserHost(),window=new EventEmitter();window.isDestroyed=()=>false;window.webContents={isDestroyed:()=>false,send(){}};
+ let release,attempts=0;const factory=new Promise(done=>release=done),router={mode:'external',launch:{preference:{browser:'samsung'},connectionSettings:async()=>assert.fail('Samsung must not open an assumed Chrome permission page')}};
+ const port=createExternalBrowserContentPort({browser:host,router,window,directFactory:()=>factory});t.after(async()=>{port.dispose();release({close:async()=>{}});await host.stop();});
+ const request=port.request({action:'connect',background:true});request.catch(()=>{});
+ const early=await Promise.race([request,new Promise(resolve=>setImmediate(()=>resolve('still waiting')))]);assert.deepEqual(early,{connecting:true});
+ release({connect:async()=>{attempts++;throw Error('browser_connection_permission_required');},close:async()=>{}});
+ await new Promise(resolve=>setImmediate(resolve));assert.equal(attempts,1);assert.equal(host.status().connectionPhase,'unavailable');assert.equal(host.status().connectionError,'browser_connection_not_ready');
+});
+test('cancelling slow discovery allows a new attempt and late results cannot overwrite its tab choice',async t=>{
+ const {ExternalBrowserHost}=require('../electron-app/external-browser-host.cjs'),{createExternalBrowserContentPort}=require('../electron-app/external-browser-content-port.cjs'),{EventEmitter}=require('node:events');
+ const host=new ExternalBrowserHost(),window=new EventEmitter();window.isDestroyed=()=>false;window.webContents={isDestroyed:()=>false,send(){}};let first,attempts=0,closed=0;
+ const slow=new Promise(resolve=>first=resolve),client={connect:async()=>[{id:'current',title:'Current'},{id:'other',title:'Other'}],close:async()=>{}};
+ const port=createExternalBrowserContentPort({browser:host,router:{mode:'external'},window,directFactory:()=>++attempts===1?slow:client});t.after(async()=>{port.dispose();await host.stop();});
+ await port.request({action:'connect',background:true});await new Promise(resolve=>setImmediate(resolve));await port.request({action:'cancelConnect'});
+ await port.request({action:'connect',background:true});await new Promise(resolve=>setImmediate(resolve));
+ first({connect:async()=>assert.fail('cancelled discovery must never connect'),close:async()=>closed++});await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(closed,1);assert.equal(host.status().connectionPhase,'choose_tab');assert.equal(host.status().candidates[0].id,'current');
+});
+test('host adoption rechecks cancellation after releasing the previous connection',async()=>{
+ const {ExternalBrowserHost}=require('../electron-app/external-browser-host.cjs'),host=new ExternalBrowserHost();let release,current=true,closed=0;
+ host.stop=()=>new Promise(resolve=>release=resolve);const connection={close:async()=>closed++};
+ const adopting=host.adoptDirect(connection,{isCurrent:()=>current});current=false;release();
+ await assert.rejects(adopting,/browser_connection_changed/);assert.equal(closed,1);assert.equal(host.status().connected,false);
+});
