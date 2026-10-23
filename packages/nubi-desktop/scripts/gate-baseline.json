@@ -57,7 +57,9 @@
     "node scripts/check-background-tasks.mjs",
     "node scripts/check-background-tasks-electron.mjs",
     "node scripts/check-project-preparation-ui.mjs",
-    "node scripts/check-read-task-isolation-electron.mjs"
+    "node scripts/check-read-task-isolation-electron.mjs",
+    "node scripts/check-mail-processing-ui.mjs",
+    "node scripts/check-mail-processing-ui.mjs --electron"
   ],
   "retiredFeatures": {
     "date": "2026-10-22",

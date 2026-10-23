@@ -367,7 +367,7 @@ export class PersonalMail {
     }
     if(action==='attention'){
       // Resume recoverable work before taking both projections, without an await between them.
-      const current=this.status(),status=Object.fromEntries(['accountKey','localCount','connected','connecting','checking','autoWiki','watchPaused','summarizing','readingAttachments','error','destination','activeModel','catalogs','progress','counts','folders','nextCheckAt'].map(key=>[key,current[key]])),{items:rows,rejected}=this.attention();
+      const current=this.status({includeMessages:false}),status=Object.fromEntries(['accountKey','localCount','connectionMethod','protocol','connected','connecting','checking','autoWiki','watchPaused','summarizing','readingAttachments','error','destination','activeModel','catalogs','progress','counts','folders','lastCheckedAt','nextCheckAt','resetPending'].map(key=>[key,current[key]])),{items:rows,rejected}=this.attention();
       const offset=Number.isSafeInteger(args.offset)&&args.offset>=0?args.offset:0;
       return {total:rows.length,offset,items:rows.slice(offset,offset+10),retrieval:{count:rejected.length,errors:[...new Set(rejected.map(item=>code(Error(item.error))))]},status};
     }

@@ -1,0 +1,22 @@
+# Mail processing details
+
+The footer's “메일 처리 상태 확인” action previously opened an attention-list viewer. Normal processing stages and quantities were omitted. A rejected list read replaced the heading with “상태를 다시 확인해 주세요”, discarded the error cause, and offered no refresh action. The attention projection also omitted the connection method and last server-check time. This source investigation does not identify the original user's Windows request error.
+
+The existing status dialog now shows the current stage, known stored/completed/queued/server-pending/attention counts, connection method, selected model, and observed check/save times. Attachment and search preparation percentages use their own actual completed/total quantities. An unknown denominator has no invented percentage. Estimates reuse the common observed-throughput component, and stage changes reset its identity. The status bar uses `queue={false}` so inspecting a running job does not park this dialog as another background job.
+
+Attention-list reads remain a single coherent status/list snapshot. If the list fails, one lightweight status read (`includeMessages:false`) can still refresh the processing information. If both reads fail, the last snapshot remains visible with its actual observed timestamp and live footer timing stops. Failed list reads never imply there are no affected messages. Known errors use existing fixed diagnostics and instructions; arbitrary server text is excluded. The icon refresh requests only the existing attention/status endpoints, preserving the host's automatic resume behavior. It emits no explicit collection, attachment or Wiki retry command. Existing explicit retry/source/settings actions, source hashes, pagination, and close/reopen focus remain intact. Late rejected reads do not start fallback requests after the owning dialog closes.
+
+The attention endpoint retains its explicit display-field projection and adds only connection/check metadata. It no longer requests the unused 50-message preview from `status()`. This is not a redesign of the attention storage query or of SQLite ownership, and is not a full large-mail performance claim.
+
+The change reuses the current CX DetailPanel, Nubi typography/spacing tokens, TaskProgressBar, ProgressEstimate, fixed mail diagnostics and existing polling guards. No new framework or dependency was introduced. Normal progress and recoverable errors stay separately visible, following the existing loading-state design guidance.
+
+## Verification
+
+- A new backend regression first failed because attention requested the default message preview. The corrected snapshot retains protocol, connection method and check times without that preview.
+- Four state tests cover current/paused/disabled work, real stage quantities, unknown denominators and private error exclusion.
+- `scripts/check-mail-processing-ui.mjs` covers the real footer and shared dialog in Chrome. Its `--electron` mode runs the built macOS Workspace with synthetic mail IPC responses. It checks failure fallback, stale snapshots, recovery, real attachment percentage, footer recovery, wide/narrow geometry, enlarged text, reduced motion, and close/reopen focus.
+- Existing attention/attachment UI checks retain individual retry, source-hash binding and resolved-item re-entry checks.
+
+The full `npm test` run recorded 2,646 passes, 201 existing feature-disabled skips and one failure: the new UI checks had not yet been recorded in the gate-additions manifest. Both commands were then added without removing or weakening the frozen baseline. The final focused run of mail and gate tests passed 21/21. The first full-run failure remains recorded separately from that correction. The Electron build succeeded. The new browser and built macOS Electron checks each passed 7 scenarios; mail states in both are synthetic. Existing attention/attachment UI checks passed at 1000/360 px, and the standard built Electron shell passed 24 checks. The legacy browser checkers also needed the existing shared stylesheet's SVG asset loader.
+
+Live company mail, the original Windows failure, Windows Office, installer/update and real-model processing are separate acceptance boundaries.

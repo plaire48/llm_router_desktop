@@ -1,6 +1,15 @@
 .nubi-mail-background-title,.nubi-mail-background-loading { display:inline-flex; align-items:center; gap:var(--cx-space-2); }
 .nubi-mail-background-summary { display:flex; align-items:center; gap:var(--cx-space-2); min-height:var(--nubi-work-control-height); }
 .nubi-mail-background-summary>strong { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--nubi-text-primary); font-weight:var(--nubi-weight-emphasis); }
+.nubi-mail-processing-details { display:grid; gap:var(--cx-space-3); min-width:0; padding-block:var(--cx-space-3); border-bottom:1px solid var(--deck-line); }
+.nubi-mail-processing-details p { margin:0; color:var(--nubi-text-secondary); font-size:var(--deck-type-body); line-height:var(--deck-line-body); overflow-wrap:anywhere; }
+.nubi-mail-processing-counts,.nubi-mail-processing-metadata { display:flex; flex-wrap:wrap; align-items:center; column-gap:var(--cx-space-4); row-gap:var(--cx-space-2); min-width:0; font-size:var(--deck-type-caption); line-height:var(--deck-line-caption); color:var(--nubi-text-secondary); }
+.nubi-mail-processing-counts b { color:var(--nubi-text-primary); font-weight:var(--nubi-weight-emphasis); }
+.nubi-mail-processing-metadata>span { min-width:0; overflow-wrap:anywhere; }
+.nubi-mail-processing-measurement { display:grid; gap:var(--cx-space-2); color:var(--nubi-text-secondary); font-size:var(--deck-type-caption); line-height:var(--deck-line-caption); }
+.nubi-mail-processing-measurement>span { display:flex; flex-wrap:wrap; justify-content:space-between; gap:var(--cx-space-2); }
+.nubi-mail-processing-measurement b { color:var(--nubi-text-action); font-weight:var(--nubi-weight-emphasis); }
+.nubi-mail-background-list-label { margin-block:var(--cx-space-3); color:var(--nubi-text-secondary); font-size:var(--deck-type-caption); line-height:var(--deck-line-caption); }
 .nubi-mail-background-items { min-width:0; }
 .nubi-mail-background-item { display:flex; align-items:center; gap:var(--cx-space-3); padding-block:var(--cx-space-3); border-bottom:1px solid var(--deck-line); }
 .nubi-mail-background-item>svg { flex:none; color:var(--nubi-text-secondary); }
@@ -16,6 +25,11 @@
 .nubi-mail-background-notice>svg { flex:none; color:var(--nubi-text-action); }
 .nubi-mail-background-notice>span { min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .nubi-mail-background-notice>button { flex:none; white-space:nowrap; }
+.nubi-mail-background-notice>div { flex:1; min-width:0; overflow-wrap:anywhere; }
+.nubi-mail-background-notice p { margin-block:var(--cx-space-1) 0; }
+.nubi-mail-background-error { align-items:flex-start; }
+.nubi-mail-background-error>svg { color:var(--nubi-text-danger); }
+.nubi-mail-background-error>span { white-space:normal; overflow-wrap:anywhere; }
 .desktop-mail-progress .nubi-mail-progress-open { display:inline-flex; align-items:center; gap:var(--cx-space-2); border:0; padding:var(--cx-space-1) var(--cx-space-2); background:transparent; color:inherit; border-radius:var(--nubi-work-control-radius); font:inherit; white-space:nowrap; cursor:pointer; }
 .desktop-mail-progress .nubi-mail-progress-open:hover { background:var(--nubi-surface-selected); color:var(--nubi-text-action); }
 .desktop-mail-progress .nubi-mail-progress-open:focus-visible { outline:2px solid var(--nubi-text-action); outline-offset:2px; }

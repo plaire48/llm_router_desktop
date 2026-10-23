@@ -22,6 +22,18 @@ test('lightweight status omits message lists while retaining counts and progress
  assert.equal((await mail.call({action:'status'})).messages[0].id,'saved');
 });
 
+test('attention snapshot retains connection and check times without loading message previews',async t=>{
+ const {mail}=await fixture(t);mail.account='owner';mail.autoWiki=false;
+ mail.lastCheckedAt='2026-10-24T01:02:03.000Z';mail.nextCheckAt='2026-10-24T01:03:03.000Z';
+ const originalStatus=mail.status.bind(mail);let includeMessages;
+ mail.status=options=>{includeMessages=options?.includeMessages;return originalStatus(options);};
+ const {status}=await mail.call({action:'attention'});
+ assert.equal(includeMessages,false);
+ assert.equal(status.lastCheckedAt,mail.lastCheckedAt);assert.equal(status.nextCheckAt,mail.nextCheckAt);
+ assert.equal(status.connectionMethod,mail.connectionMethod);assert.equal(status.protocol,originalStatus({includeMessages:false}).protocol);
+ assert.equal(Object.hasOwn(status,'messages'),false);
+});
+
 test('attention pages show only active-account display facts and bounded server failures',async t=>{
  const {mail}=await fixture(t);mail.account='owner';
  for(let i=0;i<23;i++)mail.store.set('mail:'+i,row(String(i)));
