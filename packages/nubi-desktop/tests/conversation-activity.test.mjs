@@ -70,3 +70,23 @@ test('live timer refresh and archived progress preserve the originating message'
 });
 
 test('empty workspace has no progress anchor',()=>{assert.equal(conversationActivity(null).anchor,undefined);assert.equal(conversationActivity(undefined).atStart,false);});
+
+test('asking a question and then answering preserves the original plan/record position',()=>{
+ const first=user('origin'),steer=user('later'),question={id:'q',runId:'r',text:'어느 형식인가요?'};
+ const task={id:'task',state:'running',responseTiming:{runId:'r',afterMessageId:'origin'},messages:[first,steer]};
+ assert.equal(conversationActivity(task).afterMessage,first);
+ task.state='waiting_input';task.question=question;
+ task.messages.push({...answer('question','r'),questionId:'q',content:question.text});
+ assert.equal(conversationActivity(task).afterMessage,first,'waiting must not move the plan below later text');
+ const history={runId:'r',question,responseTiming:task.responseTiming,afterMessageId:'origin',trace:[]};
+ task.activityHistory=[history];task.state='running';task.question=null;task.responseTiming={runId:'next',afterMessageId:'later'};
+ const layout=conversationActivity(task);
+ assert.equal(layout.after.get(first)?.[0],history,'answered question keeps its chronological record');
+ assert.equal(layout.before.has(task.messages[2]),false);
+});
+
+test('initial plan stays at the initial request while its question is pending',()=>{
+ const task={id:'task',state:'waiting_input',question:{id:'q',runId:'r'},responseTiming:{runId:'r',afterMessageId:'task'},messages:[user('later'),{...answer('question','r'),questionId:'q'}]};
+ assert.equal(conversationActivity(task).atStart,true);
+ assert.equal(conversationActivity(task).anchor,null);
+});

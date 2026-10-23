@@ -103,3 +103,21 @@
 @media(pointer:coarse) {
  .desktop-shell .nubi-workbench .nubi-compose-card :is(.composer-bottom,.composer-leading,.composer-tools,.model-picker) {gap:var(--nubi-control-gap);}
 }
+
+/* Conversation prose, plans and receipts share the typed-text start. Leading
+   symbols occupy the existing gutter instead of indenting each heading. */
+.desktop-shell .nubi-workbench .nubi-conversation-wrap :is(
+ .nubi-activity-record>summary,.nubi-thoughts>summary,.nubi-command-record>summary,
+ .nubi-activity-sources>summary,.agent-trace>summary,
+ .task-plan [data-plan-overview]>summary,.nubi-document-progress-heading
+){position:relative;padding-inline-start:0}
+.desktop-shell .nubi-workbench .nubi-conversation-wrap :is(
+ .nubi-activity-record>summary,.nubi-thoughts>summary,.nubi-command-record>summary,
+ .nubi-activity-sources>summary,.agent-trace>summary,
+ .task-plan [data-plan-overview]>summary,.nubi-document-progress-heading
+)>svg:first-child{
+ position:absolute;inset-inline-start:calc(-1 * (var(--nubi-transcript-icon-size) + var(--nubi-activity-gap)));
+}
+/* Collapsed execution errors stay quiet; details preserve the original status. */
+.desktop-shell .nubi-workbench .nubi-agent-activity .agent-trace[data-state=attention]>summary,
+.desktop-shell .nubi-workbench .nubi-result-review[data-folded] .nubi-document-progress-heading{color:var(--nubi-text-secondary)}

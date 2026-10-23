@@ -7,17 +7,22 @@ import {TaskRevert} from './TaskRevert.jsx';
 
 function Counts({stats}){return stats?.state==='counted'?<span className="nubi-applied-counts" aria-label={`추가 ${stats.added}줄, 삭제 ${stats.removed}줄`}><span>+{stats.added}</span><span>−{stats.removed}</span></span>:null;}
 export function AppliedFileChanges({api,taskId,receipts,onOpen}){
-  const [open,setOpen]=useState(true),[all,setAll]=useState(false),[packet,setPacket]=useState(null),[loading,setLoading]=useState(false),[failed,setFailed]=useState(false),[opening,setOpening]=useState(null),[retry,setRetry]=useState(0);
+  const [open,setOpen]=useState(false),[all,setAll]=useState(false),[packet,setPacket]=useState(null),[loading,setLoading]=useState(false),[failed,setFailed]=useState(false),[opening,setOpening]=useState(null),[retry,setRetry]=useState(0);
   const epoch=useRef(0),listId=useId();
   const revision=receipts.map(row=>row.id+':'+row.afterHash).join('|'),total=new Set(receipts.map(row=>row.path)).size;
-  useEffect(()=>{setOpen(true);setAll(false);},[taskId]);
+  useEffect(()=>{setOpen(false);setAll(false);},[taskId,revision]);
   useEffect(()=>{
-    const request=++epoch.current;setPacket(null);setLoading(!!total);setFailed(false);setOpening(null);
-    if(total)void api('appliedFileSummary',{taskId}).then(value=>{if(request===epoch.current)setPacket(value);}).catch(()=>{if(request===epoch.current)setFailed(true);}).finally(()=>{if(request===epoch.current)setLoading(false);});
+    ++epoch.current;setPacket(null);setLoading(false);setFailed(false);setOpening(null);
     return()=>{epoch.current++;};
   },[api,taskId,revision,retry]);
+  useEffect(()=>{
+    if(!open||!total||packet||loading||failed)return;
+    const request=epoch.current;setLoading(true);
+    void api('appliedFileSummary',{taskId}).then(value=>{if(request===epoch.current)setPacket(value);}).catch(()=>{if(request===epoch.current)setFailed(true);}).finally(()=>{if(request===epoch.current)setLoading(false);});
+  },[api,taskId,revision,retry,open,total,packet,loading,failed]);
   if(!total)return null;
-  const files=packet?.files||[],visible=all?files:files.slice(0,3);
+  const paths=new Set(receipts.map(row=>row.path)),files=(packet?.files||[]).filter(row=>paths.has(row.path)),visible=all?files:files.slice(0,3);
+  const stats=files.length&&files.every(row=>row.stats?.state==='counted')?files.reduce((sum,row)=>({added:sum.added+row.stats.added,removed:sum.removed+row.stats.removed}),{added:0,removed:0}):null;
   async function show(row){
     if(opening)return;
     const request=epoch.current,canPresent=()=>request===epoch.current;setOpening(row.path);
@@ -27,7 +32,7 @@ export function AppliedFileChanges({api,taskId,receipts,onOpen}){
   }
   return <section className="nubi-applied-files" aria-label="변경한 파일">
     <button className="nubi-applied-trigger" aria-expanded={open} aria-controls={listId} onClick={()=>setOpen(value=>!value)}>
-      <strong>파일 {total}개 변경됨</strong>{packet?.totals&&<Counts stats={{state:'counted',...packet.totals}}/>}<Icon name={open?'chevronDown':'chevronRight'} size={16}/>
+      <strong>파일 {total}개 변경됨</strong>{stats&&<Counts stats={{state:'counted',...stats}}/>}<Icon name={open?'chevronDown':'chevronRight'} size={16}/>
     </button>
     {open&&<div id={listId} className="nubi-applied-list" aria-busy={loading}>
       {loading?<p role="status"><span className="status-spinner"/>변경 확인 중</p>:failed?<CxButton onClick={()=>setRetry(value=>value+1)}><Icon name="refresh" size={16}/>다시 불러오기</CxButton>:visible.map(row=><CxButton key={row.path} className="nubi-applied-row" disabled={!!opening} title={row.path} aria-label={`${row.path} 변경 비교`} onClick={()=>show(row)}>

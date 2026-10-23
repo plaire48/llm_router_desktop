@@ -24,3 +24,13 @@ test('provider notes sit between operations without reordering receipts',()=>{
  assert.deepEqual(activityTimeline(trace,notes).map(block=>[block.kind,block.id]),[['tools','a'],['memo','memo'],['tools','b'],['memo','legacy']]);
  assert.deepEqual({trace,notes},original);
 });
+
+test('quiet chat groups adjacent failures while preserving every status and spoken boundary',()=>{
+ const trace=[tool('a','error'),tool('b','error'),{id:'note',tool:'progress_note',content:'다른 방법을 확인합니다.'},tool('c','cancelled'),tool('d','done')];
+ const copy=structuredClone(trace),blocks=activityTimeline(trace,[],{groupAttention:true});
+ assert.deepEqual(blocks.map(block=>[block.kind,block.steps?.map(step=>[step.id,step.status])]),[
+  ['tools',[['a','error'],['b','error']]],['note',undefined],['tools',[['c','cancelled'],['d','done']]]
+ ]);
+ assert.equal(blocks[0].attention,true);assert.equal(blocks[2].attention,true);
+ assert.deepEqual(trace,copy);
+});

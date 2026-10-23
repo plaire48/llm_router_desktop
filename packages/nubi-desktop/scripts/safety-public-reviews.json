@@ -4832,7 +4832,7 @@
     },
     {
       "path": "resources/app.asar/lib/backend/document-extract.mjs",
-      "sha256": "ed6e83e3383fea5d6163b212653471b4541685df114f1bacb7c9cb4d910720c8",
+      "sha256": "8e4ae75d674a5fe5a1ee3250aad474c5978b878a1656d298a7de8e06936ffe09",
       "kind": "email",
       "fingerprint": "0c1b0841813a8275",
       "occurrences": 1,
@@ -4844,12 +4844,12 @@
       },
       "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Bundled finding is present in the integrity-verified original public dependency; generated target bytes are separately SHA bound.",
       "reviewer": "Codex",
-      "reviewedAt": "2026-10-20",
+      "reviewedAt": "2026-10-23",
       "reviewCard": 175
     },
     {
       "path": "resources/app.asar/lib/backend/mail-portal-worker.mjs",
-      "sha256": "e5a8d5ea57645454cd727a911c4818f5cac6b2ac47f69cbb731744a27cc07cc2",
+      "sha256": "919009f47aa43b3003f7af31c3f6c5eebfbcb5d4cb46fcfc61a9bb23e85db6ec",
       "kind": "email",
       "fingerprint": "0c1b0841813a8275",
       "occurrences": 1,
@@ -4861,12 +4861,12 @@
       },
       "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Bundled finding is present in the integrity-verified original public dependency; generated target bytes are separately SHA bound.",
       "reviewer": "Codex",
-      "reviewedAt": "2026-10-20",
+      "reviewedAt": "2026-10-23",
       "reviewCard": 175
     },
     {
       "path": "resources/app.asar/lib/backend/mail-worker.mjs",
-      "sha256": "734b6336b62b726b203cf79e81d5a6b8c786b1bd4758aacefd2f6b96e1a1a10b",
+      "sha256": "390570218a8afa5395ffb9560ec029efec34b3b981f7270f8013ba04daff8854",
       "kind": "email",
       "fingerprint": "0c1b0841813a8275",
       "occurrences": 1,
@@ -4878,7 +4878,7 @@
       },
       "evidence": "Reviewed copyright/AUTHORS/package author or contributor attribution; public upstream authorship, not a user account. Bundled finding is present in the integrity-verified original public dependency; generated target bytes are separately SHA bound.",
       "reviewer": "Codex",
-      "reviewedAt": "2026-10-20",
+      "reviewedAt": "2026-10-23",
       "reviewCard": 175
     },
     {

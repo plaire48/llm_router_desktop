@@ -213,3 +213,21 @@
  :root:root .desktop-shell .nubi-session-row[data-current=true] {background:Highlight;color:HighlightText;box-shadow:none;}
  :root:root .desktop-shell .nubi-workspace-rail button[aria-pressed=true]::after {content:none;}
 }
+
+/* The one pending decision shares the existing glass material. Prose and
+   historical receipts keep their opaque reading surface. */
+:root:root .desktop-shell .nubi-workbench .nubi-conversation-decisions{
+ background:var(--nubi-glass-control);border:1px solid var(--nubi-glass-edge);
+ border-radius:var(--nubi-composer-radius);box-shadow:var(--nubi-glass-shadow);
+ padding-block:var(--cx-space-4);
+ -webkit-backdrop-filter:var(--nubi-glass-filter);backdrop-filter:var(--nubi-glass-filter);
+}
+:root:root .desktop-shell .nubi-workbench .nubi-decision-panels :is(.nubi-question-inline,.nubi-approval-form,.nubi-proposal-card,.nubi-connection-question){background:transparent;border-block:0}
+:root:root .desktop-shell .nubi-workbench .nubi-question-inline[data-liquid-glass=webgl] .question-option[aria-checked=true]{background:transparent;box-shadow:none}
+.desktop-shell .nubi-workbench .nubi-question-inline.nubi-liquid-glass-host>:not(.nubi-liquid-glass){position:relative;z-index:1}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+ :root:root .desktop-shell .nubi-workbench .nubi-conversation-decisions{background:var(--nubi-surface-milk)}
+}
+@media(forced-colors:active){
+ :root:root .desktop-shell .nubi-workbench .nubi-conversation-decisions{background:Canvas;border-color:CanvasText;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+}

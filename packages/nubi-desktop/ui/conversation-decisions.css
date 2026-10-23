@@ -1,0 +1,40 @@
+/* Centered column, one reading edge. Hidden pages retain their drafts. */
+.desktop-shell .nubi-workbench .nubi-conversation-decisions[hidden],
+.nubi-conversation-decisions [data-decision-panel][hidden]{display:none!important}
+.desktop-shell .nubi-workbench .nubi-conversation-decisions{
+ box-sizing:border-box;width:100%;min-width:0;max-height:60vh;max-height:60dvh;
+ overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;
+ padding-inline:var(--nubi-text-input-inset,var(--cx-space-4));
+ border-inline:1px solid transparent;text-align:start;
+}
+.desktop-shell .nubi-workbench .nubi-decision-pages{
+ display:flex;align-items:center;justify-content:flex-end;gap:var(--cx-space-2);
+ margin-bottom:var(--cx-space-2);font:var(--deck-font-caption);color:var(--deck-sub);
+}
+.nubi-decision-pages output{font-variant-numeric:tabular-nums}
+.desktop-shell .nubi-workbench .nubi-decision-pages button{min-width:32px;min-height:32px;padding:var(--cx-space-1)}
+.desktop-shell .nubi-workbench .nubi-decision-panels :is(.nubi-question-inline,.nubi-approval-form,.nubi-proposal-card,.nubi-connection-question){
+ box-sizing:border-box;width:100%;max-width:100%;margin:0;padding-inline:0;
+ border-inline:0;border-radius:0;box-shadow:none;text-align:start;
+}
+.desktop-shell .nubi-workbench .nubi-decision-panels :is(.question-card,.question-options,.nubi-approval-form-body){min-width:0;max-width:100%}
+.desktop-shell .nubi-workbench .nubi-decision-panels .question-card{margin:0;padding:0}
+.desktop-shell .nubi-workbench .nubi-decision-panels :is(.nubi-question-caption,.nubi-approval-form>header){position:relative;padding-inline-start:0}
+.desktop-shell .nubi-workbench .nubi-decision-panels :is(.nubi-question-caption,.nubi-approval-form>header)>svg:first-child{display:none}
+.desktop-shell .nubi-workbench .nubi-decision-panels .nubi-question-prompt{margin-inline:0}
+.desktop-shell .nubi-workbench .nubi-decision-panels .nubi-proposal-card{padding-block:var(--cx-space-3)}
+.desktop-shell .nubi-workbench .nubi-decision-panels .nubi-proposal-file{position:relative;padding-inline:0;gap:0}
+.desktop-shell .nubi-workbench .nubi-decision-panels .nubi-proposal-file>.desktop-file-icon{display:none}
+.desktop-shell .nubi-workbench .nubi-decision-panels .nubi-proposal-file>svg:last-child{margin-inline-start:var(--cx-space-2)}
+.desktop-shell .nubi-workbench .nubi-decision-panels .nubi-approval-bar{justify-content:flex-start}
+.desktop-shell .nubi-workbench .nubi-decision-panels .nubi-approval-bar .nubi-approval-note{flex-basis:100%}
+.desktop-shell .nubi-workbench .nubi-decision-receipt{margin-block:var(--cx-space-3);min-width:0;font:var(--deck-font-body)}
+.desktop-shell .nubi-workbench .nubi-decision-receipt>summary{display:flex;align-items:center;gap:var(--cx-space-2);cursor:pointer;list-style:none}
+.nubi-decision-receipt>summary::-webkit-details-marker{display:none}
+.nubi-decision-receipt>summary>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nubi-decision-receipt>summary>small{flex:none;color:var(--deck-sub);font:var(--deck-font-caption)}
+.nubi-decision-receipt>summary>svg{flex:none}
+.nubi-decision-receipt[open]>summary>svg{rotate:180deg}
+.nubi-decision-receipt>p{white-space:pre-wrap;overflow-wrap:anywhere}
+@media(pointer:coarse){.desktop-shell .nubi-workbench .nubi-decision-pages button{min-width:44px;min-height:44px}}
+

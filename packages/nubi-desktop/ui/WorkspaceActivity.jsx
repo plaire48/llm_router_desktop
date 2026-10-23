@@ -78,7 +78,7 @@ export function WorkspaceActivity({task,run,historical=false,predecessors=run?.p
   // Provider-supplied notes stay available on demand, separate from public progress updates.
   const thoughts=[...predecessors.flatMap(previous=>previous.thoughts||[]),...(task.thoughts||[]).filter(thought=>thought.runId===runId)];
   const rawSteps=new Map([...prior,...own].map(step=>[step.id,step]));
-  const timeline=activityTimeline(trace.map(event=>({...event,at:rawSteps.get(event.id)?.at,startedAt:rawSteps.get(event.id)?.startedAt,label:event.label||activityOptions.toolLabels[event.tool]})),collapsed?[]:thoughts);
+  const timeline=activityTimeline(trace.map(event=>({...event,at:rawSteps.get(event.id)?.at,startedAt:rawSteps.get(event.id)?.startedAt,label:event.label||activityOptions.toolLabels[event.tool]})),collapsed?[]:thoughts,{groupAttention:true});
   const thinking=live&&task.streamingReasoning?task.streamingReasoning.slice(-600).replace(/^\S*\s/,''):'';
   if (!currentPlan?.steps?.length && !trace.length && !live && !thoughts.length && !sources.length) return null;
   return <section className="nubi-agent-activity" data-run-id={runId} data-historical={historical||undefined} aria-label="계획과 진행 상황" aria-busy={live} data-activity-live={live||undefined}>
@@ -94,7 +94,7 @@ export function WorkspaceActivity({task,run,historical=false,predecessors=run?.p
             <AgentTrace key={`${block.id}:${block.attention}`} compactStatuses summaryTitle={activityToolSummary(block.steps)} steps={block.steps} traceOptions={activityOptions}
               renderStepDetails={(step,content)=>{const detail=argumentSteps.get(step.id);return detail?<ToolArguments value={detail.arguments} readOnly={detail.readOnly} summary={content}/>:null;}}
               live={live&&block.steps.some(step=>['running','queued'].includes(step.status))} question={task.question}
-              preserveCompleted defaultExpanded={block.attention} completed={verified} verified={verified}
+              preserveCompleted defaultExpanded={false} completed={verified} verified={verified}
               awaitingUser={waiting&&block.steps.some(step=>step.tool==='ask_user')} stopped={['paused','interrupted','cancelled','failed'].includes(task.state)}/>
             <CaptureThumbs captures={block.steps.flatMap(step=>captureSteps.get(step.id)||[])} label="작업 중 캡처한 화면"/>
           </div>)}

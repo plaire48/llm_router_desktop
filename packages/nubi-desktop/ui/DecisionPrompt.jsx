@@ -1,6 +1,7 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {CxButton,DetailPanel,Icon} from '@e2e/cx-design-system';
 import {TerminalMark} from './marks.jsx';
+import {ConversationDecision} from './ConversationDecisions.jsx';
 
 // Notifications never take focus, answer questions or approve an action.
 // Only a deliberate click opens a decision, and only one can be open at once.
@@ -20,10 +21,11 @@ export function DecisionPrompt({id,title,summary,icon='helpCircle',label='확인
  },[id]);
  useEffect(()=>()=>release(),[]);
  const mark=icon==='terminal'?<TerminalMark size={18}/>:<Icon name={icon} size={18}/>;
- if(inline&&pending)return <section ref={form} tabIndex={-1} className="nubi-approval-form" data-decision-id={id} aria-label={title}>
+ if(inline&&pending)return <ConversationDecision id={id} blocked={blocked}><section ref={form} tabIndex={-1} className="nubi-approval-form" data-decision-id={id} aria-label={title}>
   <header>{mark}<strong>{summary||title}</strong><span>승인 필요</span></header>
   <div className="nubi-approval-form-body">{typeof children==='function'?children({onDefer:()=>{}}):children}</div>
- </section>;
+ </section></ConversationDecision>;
+ if(inline)return <details className="nubi-decision-receipt" data-decision-id={id}><summary><span>{summary||title}</span><Icon name="chevronDown" size={16}/></summary><div>{typeof children==='function'?children({onDefer:()=>{}}):children}</div></details>;
  return <div className="nubi-decision-prompt" data-decision-id={id}>
   <span className="nubi-decision-summary">{mark}<span title={summary}>{summary}</span></span>
   <CxButton ref={trigger} className="nubi-text-button" disabled={blocked} onClick={()=>open?close():reveal()}><Icon name="arrowRight" size={16}/>{label}</CxButton>

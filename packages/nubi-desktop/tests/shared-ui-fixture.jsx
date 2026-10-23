@@ -28,6 +28,18 @@ if(new URLSearchParams(location.search).has('catalog')){connected=true;window.ca
 const models=[{id:'qwen-fixture',label:'Qwen fixture',contextLength:32000},{id:'second-exact-id',label:'Second fixture',contextLength:64000}];
 // A project whose OpenWiki exists: without wiki files or a running initialization the Workbench shows the project start screen instead of the composer (2026-10-05).
 const project={projectId:'fixture',name:'검증 프로젝트',branch:'main',files:[],wikiFiles:['openwiki/업무-지침.md'],tasks:[],proposals:[],processes:[],comparisons:[],profiles:[{id:'bash',label:'Bash'}]};
+const decisionSequence=new URLSearchParams(location.search).has('decision-sequence');
+if(decisionSequence){
+ connected=true;window.decisionSequenceCalls=[];const runId='11111111-1111-4111-8111-111111111111',at='2026-10-23T01:00:00Z';
+ const task={id:'decision-sequence',request:'순서와 승인 화면을 확인해 주세요.',state:'running',createdAt:at,criteria:[],trace:[],messages:[{id:'sequence-note',role:'assistant',content:'먼저 자료를 확인했습니다.',runId,at},{id:'sequence-steer',role:'user',content:'이 문장 뒤로 계획을 옮기지 마세요.',at:'2026-10-23T01:00:01Z'}],responseTiming:{runId,afterMessageId:'decision-sequence',startedAt:at},workPlan:{runId,steps:[{text:'자료 확인',status:'completed',expected_outcome:'자료를 확인합니다.'},{text:'결과 정리',status:'pending',expected_outcome:'결과를 정리합니다.'}]}};
+ task.trace=[1,2,3].map(number=>({id:runId+':0:'+number,runId,tool:'read_source',label:'자료 조회',status:'error',reason:'source_missing'}));
+ task.trace.push({id:runId+':0:4',runId,tool:'progress_note',content:'다른 경로로 확인을 이어갑니다.'});
+ project.tasks=[task];
+ project.setupActions=[1,2].map(number=>({id:'sequence-command-'+number,taskId:task.id,runId,title:'확인 명령 '+number,kind:'inspect',reason:'승인할 때만 실행합니다.',profile:'bash',workspace:'/fixture',script:'node --version',effects:'파일을 변경하지 않습니다.',fingerprint:'synthetic-'+number,state:'proposed'}));
+ project.proposals=[{id:'sequence-file',taskId:task.id,runId,path:'src/example.mjs',kind:'create',reason:'검토한 내용을 반영합니다.',state:'proposed',afterHash:'synthetic',stats:{state:'counted',added:11,removed:0},quality:{state:'passed'}}];
+ window.askSequenceQuestion=()=>{task.state='waiting_input';task.question={id:'sequence-question',runId,text:'결과를 어떻게 정리할까요?',kind:'choice',options:[{id:'table',label:'표로 정리'},{id:'text',label:'문장으로 정리'}]};task.messages.push({id:'sequence-question-message',role:'assistant',runId,questionId:task.question.id,content:task.question.text,at:'2026-10-23T01:00:02Z'});document.dispatchEvent(new Event('visibilitychange'));};
+ window.finishSequence=()=>{task.state='review';task.messages.push({id:'sequence-final',role:'assistant',runId,content:'요청한 확인을 마쳤습니다.',at:'2026-10-23T01:01:00Z'});document.dispatchEvent(new Event('visibilitychange'));};
+}
 const conversationUsageFixture=new URLSearchParams(location.search).has('usage');
 if(conversationUsageFixture){connected=true;project.tasks=[{id:'conversation-usage',request:'사용량 확인',criteria:[],messages:[],trace:[],state:'review'}];}
 const afterEditFailureFixture=new URLSearchParams(location.search).has('after-edit-failure');
@@ -341,6 +353,16 @@ async function api(method,args={}){
     return usageSnapshot();
   }
 
+  if(decisionSequence){
+   if(method==='startAgent')return {taskId:project.tasks[0].id,state:project.tasks[0].state};
+   if(method==='cancelProposal'){project.proposals.find(row=>row.id===args.proposalId).state='cancelled';return {state:'cancelled'};}
+   if(method==='saveQuestionDraft'){project.tasks[0].question.draft=args.draft;return {saved:true};}
+   if(method==='answerAgent'){
+    window.decisionSequenceCalls.push({method,...args});const task=project.tasks[0],q=task.question;
+    task.questionHistory=[...(task.questionHistory||[]),{...q,answer:{text:args.choice.text||q.options.find(option=>option.id===args.choice.optionId)?.label}}];task.question=null;task.state='review';return {accepted:true};
+   }
+   if(method==='decideSetupAction')window.decisionSequenceCalls.push({method,...args});
+  }
   if(decisionFixture){
    if(method==='saveQuestionDraft'){project.tasks[0].question.draft=args.draft;return {saved:true};}
    if(method==='answerAgent'){if(window.decisionSendFailure)throw Error('model_unavailable');window.decisionCalls.push({method,...args});project.tasks[0].question=null;project.tasks[0].state='review';return {accepted:true};}

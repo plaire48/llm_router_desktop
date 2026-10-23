@@ -1,3 +1,4 @@
+import {ConversationDecision} from './ConversationDecisions.jsx';
 import React,{useState} from 'react';
 import {CxButton, CxNotice} from '@e2e/cx-design-system';
 import {WorkspaceAction as ActionButton} from './WorkspaceAction.jsx';
@@ -25,7 +26,7 @@ export function ComputerConnectionForm({taskId,request,state,api,refresh,disable
     }finally{setBusy(false);}
   }
   async function cancel(){if(busy)return;setBusy(true);try{await api('computer',{method:'cancel_connection',taskId,requestId:request.id});await refresh();}catch{setError('취소하지 못했어요. 다시 시도해 주세요.');}finally{setBusy(false);}}
-  return <div className="nubi-connection-question nubi-question-form" role="region" aria-label="확인할 앱 연결">
+  return <ConversationDecision id={request.id} blocked={disabled||busy}><div className="nubi-connection-question nubi-question-form" role="region" aria-label="확인할 앱 연결">
     <QuestionForm key={options.map(option=>option.id).join('|')} confirmChoices selectionMode="single" showActionLabels question={{id:request.id,text:connected?'이 앱으로 이어갈까요?':registered?'등록한 앱으로 진행할까요?':windows?.length?'어느 창에 연결할까요?':'어떤 앱을 확인할까요?',kind:'choice',options,draft:request.draft||'',inputPlaceholder:'앱 이름과 필요한 내용을 적어 주세요.'}} headingAction={<ActionButton action="close" label="연결 취소" title="연결 취소" disabled={disabled||busy} onClick={cancel}/>} disabled={disabled||busy} formatError={cause=>connectionErrors[cause?.message]||'요청을 처리하지 못했어요. 입력은 유지했습니다. 다시 확인해 주세요.'} onChoose={choose} onDraft={draft=>api('computer',{method:'save_connection_draft',taskId,requestId:request.id,draft})}>
       {({disabled:blocked})=><>
         {!connected&&<p className="nubi-muted">{request.reason}</p>}
@@ -36,5 +37,5 @@ export function ComputerConnectionForm({taskId,request,state,api,refresh,disable
       </>}
     </QuestionForm>
     {error&&<CxNotice tone="danger">{error}</CxNotice>}
-  </div>;
+  </div></ConversationDecision>;
 }
