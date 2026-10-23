@@ -22,7 +22,7 @@
     "typescript": "5.9.3"
   },
   "devDependencies": {
-    "electron": "42.11.10"
+    "electron": "45.0.0"
   },
   "scripts": {
     "bundle": "node ../scripts/build-electron.mjs",

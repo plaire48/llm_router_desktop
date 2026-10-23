@@ -5,12 +5,16 @@ import {inspectReleaseInputs,gitCandidate} from '../scripts/check-release-inputs
 import {readFile} from 'node:fs/promises';import {parse} from 'yaml';
 const exec=promisify(execFile),desktop='packages/nubi-desktop';
 function fixture(){
- const files=new Map(Object.entries({[desktop+'/runtime/entry.mjs']:"import '../../nubi-document-agent/src/index.mjs';",[desktop+'/scripts/build.mjs']:"await build({entryPoints:['../nubi-browser-agent/src/index.ts'],outfile:'generated/browser.mjs'});",[desktop+'/package.json']:'{}','packages/nubi-document-agent/package.json':'{}','packages/nubi-document-agent/src/index.mjs':'export const answer=42;','packages/nubi-browser-agent/package.json':'{}','packages/nubi-browser-agent/src/index.ts':'export const x=1;','.github/workflows/nubi-desktop-gates.yml':'name: gates','.github/workflows/nubi-desktop-windows.yml':'name: windows','docs/HOTFIX-1.3.0.md':'# Changes','docs/INSTALL-AND-UPDATE-1.3.0.md':'# Install'}).map(([p,b])=>[p,Buffer.from(b)]));
+ const files=new Map(Object.entries({'.nvmrc':'24.22.1\n',[desktop+'/runtime/entry.mjs']:"import '../../nubi-document-agent/src/index.mjs';",[desktop+'/scripts/build.mjs']:"await build({entryPoints:['../nubi-browser-agent/src/index.ts'],outfile:'generated/browser.mjs'});",[desktop+'/package.json']:'{}','packages/nubi-document-agent/package.json':'{}','packages/nubi-document-agent/src/index.mjs':'export const answer=42;','packages/nubi-browser-agent/package.json':'{}','packages/nubi-browser-agent/src/index.ts':'export const x=1;','.github/workflows/nubi-desktop-gates.yml':'name: gates','.github/workflows/nubi-desktop-windows.yml':'name: windows','docs/HOTFIX-1.3.0.md':'# Changes','docs/INSTALL-AND-UPDATE-1.3.0.md':'# Install'}).map(([p,b])=>[p,Buffer.from(b)]));
  return {files,source:new Map(files),manifest:Buffer.from('["runtime/entry.mjs","../nubi-document-agent/src/index.mjs"]')};
 }
 function check(f,extra={}){return inspectReleaseInputs({paths:[...f.files.keys()],readCandidate:async p=>f.files.get(p),readSource:async p=>f.source.get(p),manifest:f.manifest,...extra});}
+test('the CI Node pin must exist and match the audited source bytes',async()=>{
+ const missing=fixture();missing.files.delete('.nvmrc');assert((await check(missing)).issues.some(r=>r.code==='release_required_missing'&&r.path==='.nvmrc'));
+ const changed=fixture();changed.files.set('.nvmrc',Buffer.from('25.4.0\n'));assert((await check(changed)).issues.some(r=>r.code==='release_input_changed'&&r.path==='.nvmrc'));
+});
 test('audit discovers sibling packages from scripts and imports and hashes every compiled source',async()=>{
- const out=await check(fixture());assert.equal(out.ok,true);assert.deepEqual(out.siblings.map(r=>r.name),['nubi-browser-agent','nubi-document-agent']);assert.equal(out.compiledInputCount,2);assert.equal(out.inputs.length,3);assert(out.inputs.every(r=>r.sha256===r.sourceSha256&&r.sha256.length===64));
+ const out=await check(fixture());assert.equal(out.ok,true);assert.deepEqual(out.siblings.map(r=>r.name),['nubi-browser-agent','nubi-document-agent']);assert.equal(out.compiledInputCount,2);assert.equal(out.inputs.length,4);assert(out.inputs.every(r=>r.sha256===r.sourceSha256&&r.sha256.length===64));
 });
 test('missing document-agent is blocked even outside the compiled manifest',async()=>{
  const f=fixture();f.manifest=Buffer.from('["runtime/entry.mjs"]');f.files.delete('packages/nubi-document-agent/package.json');const out=await check(f);assert.equal(out.ok,false);assert(out.issues.some(r=>r.code==='release_package_missing'&&r.path==='packages/nubi-document-agent/package.json'));

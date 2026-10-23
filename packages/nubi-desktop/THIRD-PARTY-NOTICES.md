@@ -5,7 +5,7 @@ Versions are pinned in the package lock. Original source notices and installed p
 | Component | Version | License | Use |
 |---|---|---|---|
 | Eclipse Theia | 1.75.0 | EPL-2.0 OR GPL-2.0-only WITH Classpath-exception-2.0 | IDE, Monaco integration, browser and desktop host |
-| Electron | 42.11.10 | MIT; bundled Chromium/Node notices also apply | Desktop window |
+| Electron | 45.0.0 | MIT; bundled Chromium/Node notices also apply | Desktop window |
 | React / React DOM | 19.2.8 | MIT | Shared UI |
 | React Arborist | 3.16.0 | MIT | Virtualized file explorer selection and keyboard navigation |
 | xterm.js / Fit addon | 6.0.0 / 0.11.0 | MIT | Manual command output terminal and container fitting |

@@ -12,7 +12,7 @@ A new 1.2.8 build uses its own run-specific release tag. Never replace the insta
 
 ## Current standalone Electron build (2026-10-12)
 
-The current target is `electron-app` with Electron 42.11.10, not Theia. `npm run package:windows` requires a Windows x64 host and creates a per-user NSIS installer. The current product label is **누비 Workspace Beta**; the package version remains 1.1.1.
+The current target is `electron-app` with Electron 45.0.0 (bundled Node 24.22.0). Builds use Node 24.22.1 LTS from the repository `.nvmrc`. `npm run package:windows` requires a Windows x64 host and creates a per-user NSIS installer. The current product label is **누비 Workspace Beta**; the package version remains 1.3.0. See [the runtime upgrade record](NODE-UPGRADE-2026-10-24.md) for the separate source, local runtime and Windows validation boundaries.
 
 `prepare-app-icon.mjs` copies the existing transparent `extensions/aipro-chat/design/brand/bird-master.png` master without redesign. The window and macOS development Dock use the same icon; electron-builder generates the executable and NSIS icon from that master. Desktop and Start menu links reference the installed executable. [Official electron-builder icon configuration](https://www.electron.build/docs/features/icons-and-images/).
 

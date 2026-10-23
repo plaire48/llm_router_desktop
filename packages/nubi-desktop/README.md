@@ -38,7 +38,7 @@ Desktop의 메인 색은 기존 누비 파랑 `#3182F6`입니다. 진한 파랑 
 
 ## 실행
 
-이 저장소를 기준으로 Node 24 LTS와 Git이 필요합니다. 실제 화면 비교에는 설치된 Chrome/macOS 또는 Edge/Windows를 사용하거나 `npx playwright install chromium`으로 브라우저를 준비합니다.
+개발과 빌드는 저장소 루트의 `.nvmrc`에 고정한 Node 24.22.1 LTS와 Git을 사용합니다. nvm 사용자는 루트에서 `nvm install && nvm use`로 맞춥니다. Desktop CI도 같은 파일을 읽습니다. 설치된 앱은 시스템 Node 설치 없이 Electron 45.0.0의 내장 Node 24.22.0으로 실행됩니다. 두 런타임의 검증 범위는 [Node 업그레이드](docs/NODE-UPGRADE-2026-10-24.md)를 따릅니다. 실제 화면 비교에는 설치된 Chrome/macOS 또는 Edge/Windows를 사용하거나 `npx playwright install chromium`으로 브라우저를 준비합니다.
 
 ```sh
 cd packages/nubi-desktop

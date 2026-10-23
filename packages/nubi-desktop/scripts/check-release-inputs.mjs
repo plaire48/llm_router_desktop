@@ -6,7 +6,7 @@ import {promisify} from 'node:util';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import ts from 'typescript';
 const exec=promisify(execFile),desktop='packages/nubi-desktop',hash=b=>createHash('sha256').update(b).digest('hex');
-const required=[desktop+'/package.json','.github/workflows/nubi-desktop-gates.yml','.github/workflows/nubi-desktop-windows.yml'];
+const required=['.nvmrc',desktop+'/package.json','.github/workflows/nubi-desktop-gates.yml','.github/workflows/nubi-desktop-windows.yml'];
 function sourcePath(value){
  if(typeof value!=='string'||!value||/[\x00-\x1f]/.test(value)||/^(?:[A-Za-z]:|\/)/.test(value))throw Error('release_path_scope');
  const result=path.posix.normalize(path.posix.join(desktop,value.replaceAll('\\','/')));
@@ -81,6 +81,7 @@ export async function inspectReleaseInputs({paths,readCandidate,readSource,manif
   if(!present.has(p)){issue('release_input_missing',p);return;}if(!regular(p)){issue('release_entry_mode',p);return;}
   try {const [candidate,source]=await Promise.all([readCandidate(p),readSource(p)]);if(!candidate||!source){issue('release_source_unavailable',p);return;}const row={path:p,sha256:hash(candidate),sourceSha256:hash(source)};rows.set(p,row);if(row.sha256!==row.sourceSha256)issue('release_input_changed',p);if(follow)collect(p,candidate,true);}catch {issue('release_source_unavailable',p);}
  }
+ await validate('.nvmrc');
  await Promise.all(sources.map(p=>validate(p,!p.startsWith(desktop+'/'))));
  while(referencesQueue.length){
   const batch=referencesQueue.splice(0);await Promise.all(batch.map(async reference=>{const key=reference.path+'|'+reference.module;if(visited.has(key))return;visited.add(key);if(visited.size>20000){issue('release_reference_limit',reference.path);return;}if(generated(reference.path)||reference.path.includes('/node_modules/'))return validate(reference.path,true);const target=resolveReference(reference,present);if(!target){issue('release_reference_missing',reference.path);return;}await validate(target,true);}));

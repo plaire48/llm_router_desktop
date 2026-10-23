@@ -2,7 +2,7 @@ appId: nubi.workspace
 productName: 누비 Workspace
 executableName: Nubi Workspace
 artifactName: Nubi-Workspace-beta-${version}-${arch}-Setup.${ext}
-electronVersion: 42.11.10
+electronVersion: 45.0.0
 asar: true
 asarUnpack:
   - lib/backend/opencode-engine/**/*
