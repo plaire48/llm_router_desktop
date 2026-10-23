@@ -38,6 +38,12 @@ if(decisionSequence){
  project.setupActions=[1,2].map(number=>({id:'sequence-command-'+number,taskId:task.id,runId,title:'확인 명령 '+number,kind:'inspect',reason:'승인할 때만 실행합니다.',profile:'bash',workspace:'/fixture',script:'node --version',effects:'파일을 변경하지 않습니다.',fingerprint:'synthetic-'+number,state:'proposed'}));
  project.proposals=[{id:'sequence-file',taskId:task.id,runId,path:'src/example.mjs',kind:'create',reason:'검토한 내용을 반영합니다.',state:'proposed',afterHash:'synthetic',stats:{state:'counted',added:11,removed:0},quality:{state:'passed'}}];
  window.askSequenceQuestion=()=>{task.state='waiting_input';task.question={id:'sequence-question',runId,text:'결과를 어떻게 정리할까요?',kind:'choice',options:[{id:'table',label:'표로 정리'},{id:'text',label:'문장으로 정리'}]};task.messages.push({id:'sequence-question-message',role:'assistant',runId,questionId:task.question.id,content:task.question.text,at:'2026-10-23T01:00:02Z'});document.dispatchEvent(new Event('visibilitychange'));};
+ window.advanceSequenceWithChangePlan=()=>{
+  task.changePlan={id:'sequence-change-plan',runId,summary:'원래 실행의 파일 변경 계획',requirements:[],targets:[{path:'src/example.mjs',reason:'검토한 변경'}],checks:[],assumptions:[],impact:{items:[],unmapped:[]}};
+  task.activityHistory=[{runId,state:'review',workPlan:task.workPlan,trace:task.trace,responseTiming:task.responseTiming,afterMessageId:task.id}];
+  const next='22222222-2222-4222-8222-222222222222';task.messages.push({id:'sequence-next-request',role:'user',content:'다음 요청을 확인해 주세요.',at:'2026-10-23T01:02:00Z'});task.messages.push({id:'sequence-next-answer',role:'assistant',runId:next,content:'다음 요청의 자료를 확인하고 있습니다.',at:'2026-10-23T01:02:01Z'});
+  task.state='running';task.responseTiming={runId:next,afterMessageId:'sequence-next-request',startedAt:'2026-10-23T01:02:00Z'};task.workPlan={runId:next,steps:[{text:'다음 자료 확인',status:'in_progress',expected_outcome:'다음 자료를 확인합니다.'}]};task.trace=[];window.dispatchEvent(new Event('focus'));
+ };
  window.finishSequence=()=>{task.state='review';task.messages.push({id:'sequence-final',role:'assistant',runId,content:'요청한 확인을 마쳤습니다.',at:'2026-10-23T01:01:00Z'});document.dispatchEvent(new Event('visibilitychange'));};
 }
 const conversationUsageFixture=new URLSearchParams(location.search).has('usage');

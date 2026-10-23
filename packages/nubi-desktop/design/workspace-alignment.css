@@ -104,6 +104,9 @@
  .desktop-shell .nubi-workbench .nubi-compose-card :is(.composer-bottom,.composer-leading,.composer-tools,.model-picker) {gap:var(--nubi-control-gap);}
 }
 
+/* Reserve the existing symbol gutter inside the centered reading column. */
+.desktop-shell .nubi-workbench[data-workspace-screen=conversation]{--nubi-text-input-inset:var(--cx-space-6)}
+
 /* Conversation prose, plans and receipts share the typed-text start. Leading
    symbols occupy the existing gutter instead of indenting each heading. */
 .desktop-shell .nubi-workbench .nubi-conversation-wrap :is(
@@ -121,3 +124,5 @@
 /* Collapsed execution errors stay quiet; details preserve the original status. */
 .desktop-shell .nubi-workbench .nubi-agent-activity .agent-trace[data-state=attention]>summary,
 .desktop-shell .nubi-workbench .nubi-result-review[data-folded] .nubi-document-progress-heading{color:var(--nubi-text-secondary)}
+
+.desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-activity-note{padding-inline-start:0}

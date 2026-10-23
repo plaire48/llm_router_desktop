@@ -38,3 +38,13 @@
 .nubi-decision-receipt>p{white-space:pre-wrap;overflow-wrap:anywhere}
 @media(pointer:coarse){.desktop-shell .nubi-workbench .nubi-decision-pages button{min-width:44px;min-height:44px}}
 
+
+:root:root .desktop-shell .nubi-workbench .nubi-decision-panels .nubi-question-inline{
+ --nubi-question-marker-size:calc(var(--nubi-question-marker-min-size) + (var(--nubi-question-number-digits,1) - 1) * 1ch);
+}
+:root:root .desktop-shell .nubi-workbench .nubi-decision-panels .question-option-index{
+ flex-basis:var(--nubi-question-marker-size);width:var(--nubi-question-marker-size);font-variant-numeric:tabular-nums;
+}
+:root:root .desktop-shell .nubi-workbench .nubi-decision-panels .question-option[aria-checked=true] .question-option-index{
+ background:transparent;color:var(--nubi-text-action);
+}

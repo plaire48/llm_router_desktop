@@ -73,8 +73,8 @@ try{
   const field=active.getByRole('textbox',{name:'기타',exact:true});await field.fill('입력 내용 유지');
   await p.getByRole('button',{name:'다음 확인 항목',exact:true}).click();assert.equal(await active.count(),1);
   await p.getByRole('button',{name:'이전 확인 항목',exact:true}).click();assert.equal(await field.inputValue(),'입력 내용 유지');
-  const geometry=await p.evaluate(()=>{const note=document.querySelector('[data-message-key="sequence-note"] .message-body'),plan=document.querySelector('[data-plan-overview]>summary>span:first-of-type'),prompt=document.querySelector('[data-decision-panel]:not([hidden]) .nubi-question-prompt'),column=document.querySelector('.nubi-followup-stack');return {noteX:note.getBoundingClientRect().x,planX:plan.getBoundingClientRect().x,promptX:prompt.getBoundingClientRect().x,column:column.getBoundingClientRect().toJSON(),overflow:document.documentElement.scrollWidth>innerWidth+1};});
-  assert(Math.abs(geometry.noteX-geometry.promptX)<=1,JSON.stringify(geometry));assert(Math.abs(geometry.noteX-geometry.planX)<=1,JSON.stringify(geometry));assert(!geometry.overflow);assert.equal(await p.locator('.nubi-decision-pages output').innerText(),'1/3');
+  const geometry=await p.evaluate(()=>{const note=document.querySelector('[data-message-key="sequence-note"] .message-body'),progress=document.querySelector('.nubi-activity-note .message-body'),plan=document.querySelector('[data-plan-overview]>summary>span:first-of-type'),prompt=document.querySelector('[data-decision-panel]:not([hidden]) .nubi-question-prompt'),column=document.querySelector('.nubi-followup-stack');return {noteX:note.getBoundingClientRect().x,progressX:progress.getBoundingClientRect().x,planX:plan.getBoundingClientRect().x,promptX:prompt.getBoundingClientRect().x,column:column.getBoundingClientRect().toJSON(),overflow:document.documentElement.scrollWidth>innerWidth+1};});
+  assert(Math.abs(geometry.noteX-geometry.promptX)<=1,JSON.stringify(geometry));assert(Math.abs(geometry.noteX-geometry.planX)<=1,JSON.stringify(geometry));assert(Math.abs(geometry.noteX-geometry.progressX)<=1,JSON.stringify(geometry));assert(!geometry.overflow);assert.equal(await p.locator('.nubi-decision-pages output').innerText(),'1/3');
   await captureDesign(p,{path:path.join(dir,'question-'+width+'.png'),animations:'disabled'});
   await active.getByRole('button',{name:'답변 보내기',exact:true}).click();await p.locator('[data-question-receipt="sequence-question"]').waitFor();
   assert.equal(await p.locator('[data-question-receipt="sequence-question"]').getAttribute('open'),null,'answered question collapses immediately');
@@ -97,6 +97,9 @@ try{
   assert.equal(await p.locator('.nubi-applied-trigger').getAttribute('aria-expanded'),'false');
   assert.equal(await p.locator('.nubi-applied-row').count(),0,'changed file rows remain collapsed');
   await captureDesign(p,{path:path.join(dir,'completed-'+width+'.png'),animations:'disabled'});
+  await p.evaluate(()=>window.advanceSequenceWithChangePlan());
+  const changePlan=p.getByText('작업 계획 (1개 파일)',{exact:true});await changePlan.waitFor();
+  assert(await changePlan.evaluate(node=>!!(node.compareDocumentPosition(document.querySelector('[data-message-key="sequence-note"]'))&Node.DOCUMENT_POSITION_FOLLOWING)),'a later run cannot move the prior file plan to its own position');
   checks.push({width,glass,glassMode,...geometry,checks:['single pending form','pager and draft preservation','shared reading edge','no forms inside transcript','immediate collapse','stable plan position','folded command receipts']});
  }
  for(const width of [1280,440]){

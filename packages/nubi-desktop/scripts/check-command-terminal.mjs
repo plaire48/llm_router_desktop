@@ -38,7 +38,7 @@ try{
  const overview=await request('overview');const expected=overview.defaultShell;
  await request('provider',{action:'connect',input:fixture.connection});await composer().fill('/terminal');await page.getByRole('option',{name:/터미널.*직접 입력/}).click();await page.locator('.desktop-terminal[data-terminal-state=running]:visible').waitFor();assert.equal(fixture.calls.length,0);checks.push('slash opens a terminal directly without a model call');
  await composer().fill('명령 확인 파일을 만든 뒤 결과를 확인해 주세요');await page.getByRole('button',{name:'전송',exact:true}).click();
- await page.getByRole('button',{name:'승인',exact:true}).waitFor({timeout:60000});assert.equal(await page.locator('.nubi-current-decisions').getByRole('button',{name:'승인',exact:true}).count(),1);await page.getByRole('button',{name:'승인',exact:true}).click();
+ await page.getByRole('button',{name:'승인',exact:true}).waitFor({timeout:60000});assert.equal(await page.locator('.nubi-current-decisions, .nubi-conversation-decisions').getByRole('button',{name:'승인',exact:true}).count(),1);await page.getByRole('button',{name:'승인',exact:true}).click();
  await page.locator('.desktop-terminal[data-terminal-state=completed]:visible').waitFor({timeout:60000});
  terminal=page.locator('.desktop-terminal:visible');
  assert.match(await terminal.innerText(),/명령 종료/);await waitLine('agent-output');

@@ -55,7 +55,7 @@ try{
   await p.locator('.nubi-session-select').filter({hasText:'명령 순서 확인'}).click();
   const records=p.locator('.nubi-command-record');await records.first().waitFor();
   assert.deepEqual(await records.locator('summary strong').allTextContents(),['첫 번째 실행','두 번째 실행']);
-  assert.equal(await p.locator('.nubi-current-decisions').getByRole('button',{name:'승인',exact:true}).count(),1);
+  assert.equal(await p.locator('.nubi-current-decisions, .nubi-conversation-decisions').getByRole('button',{name:'승인',exact:true}).count(),1);
   assert.equal(await p.locator('.nubi-setup-summary .nubi-terminal').count(),1,'only pending command has an inline approval preview');
   await records.first().locator('summary').click();await records.first().getByRole('button',{name:'터미널 열기'}).click();
   assert.equal(await p.evaluate(()=>window.openedTerminal.processId),'process-first');
