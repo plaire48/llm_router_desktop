@@ -1,0 +1,7 @@
+# Liquid Glass jump-to-latest control
+
+The conversation's existing latest-message button now paints a 40 px glass lens inside a 44 px hit area. It reuses the shared glass, sky/aqua, edge, shadow, focus and motion tokens. The arrow and real button remain stationary while only the decorative rim responds to hover/press. No canvas, animation loop, dependency or scroll behavior was added. The existing accessible name, tooltip, hidden state and follow-latest callback remain in Workbench.
+
+Reduced motion disables rim deformation. Reduced transparency and missing backdrop-filter support use an opaque surface. Forced colors use system button colors and a visible border/focus ring. The glass styling remains confined to the floating control.
+
+Verification: Electron build and design identity checks passed. The existing chat UI checker passed six conversation widths/pointer cases and five entry cases; the existing streaming/manual-reading/follow-latest regression passed. An additional local inspection of the built macOS Electron Workspace used an actual temporary draft, without invoking a model, to confirm the 44 px target, fixed arrow during hover, keyboard and mouse follow-latest actions, preserved input, reduced motion, high contrast and a 440 px enlarged-text window (five scenarios). Screenshots were reviewed with the surrounding conversation and input area. Windows GPU/installer behavior and real-model output were not measured.

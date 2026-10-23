@@ -143,14 +143,34 @@
  -webkit-backdrop-filter:var(--nubi-glass-filter);
  backdrop-filter:var(--nubi-glass-filter);
 }
-:root:root .desktop-shell .nubi-bar .nubi-icon-button,
-:root:root .desktop-shell .nubi-jump-latest {
+:root:root .desktop-shell .nubi-bar .nubi-icon-button {
  background:var(--nubi-glass-control);
  border-color:var(--nubi-glass-edge);
  box-shadow:var(--nubi-glass-shadow);
  -webkit-backdrop-filter:var(--nubi-glass-filter);
  backdrop-filter:var(--nubi-glass-filter);
 }
+/* A small glass lens keeps its 44 px hit area and glyph stationary. Only the
+   decorative rim settles on interaction; no canvas or continuous animation. */
+:root:root .desktop-shell .nubi-workbench .nubi-jump-latest.cx-kit-button {
+ isolation:isolate;background:transparent;border:0;box-shadow:none;
+ color:var(--nubi-text-action);transform:none;
+}
+:root:root .desktop-shell .nubi-jump-latest::before {
+ content:"";position:absolute;inset:2px;z-index:-1;pointer-events:none;border-radius:inherit;
+ border:1px solid var(--nubi-liquid-selection-edge);
+ background:radial-gradient(ellipse at 26% 0%,var(--nubi-glass-highlight),transparent 62%),radial-gradient(ellipse at 90% 100%,color-mix(in srgb,var(--nubi-calm-aqua) 30%,transparent),transparent 70%),var(--nubi-glass-chrome);
+ box-shadow:var(--nubi-glass-shadow),inset 0 -1px 2px color-mix(in srgb,var(--nubi-calm-sky) 24%,transparent);
+ -webkit-backdrop-filter:var(--nubi-glass-filter);backdrop-filter:var(--nubi-glass-filter);
+ transition:transform var(--nubi-motion-enter) var(--nubi-ease-spring);
+}
+@media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference) {
+ :root:root .desktop-shell .nubi-jump-latest:hover::before {transform:scale(1.04);}
+}
+@media(prefers-reduced-motion:no-preference) {
+ :root:root .desktop-shell .nubi-jump-latest:active::before {transform:scale(.94);}
+}
+:root:root .desktop-shell .nubi-jump-latest:focus-visible {outline:2px solid var(--nubi-text-action);outline-offset:2px;}
 /* Keep the text field milky and legible; its rim carries the glass depth. */
 :root:root .desktop-shell .nubi-workbench .nubi-compose-card {
  border-radius:var(--nubi-composer-radius);
@@ -186,13 +206,15 @@
  :root:root .desktop-shell .nubi-workspace-navigation.nubi-workspace-rail,
  :root:root .desktop-shell .nubi-window-toolbar,
  :root:root .desktop-shell .nubi-bar .nubi-icon-button,
- :root:root .desktop-shell .nubi-jump-latest {background:var(--nubi-surface-milk);}
+ :root:root .desktop-shell .nubi-jump-latest::before {background:var(--nubi-surface-milk);}
 }
 @media(prefers-reduced-transparency:reduce) {
  :root:root .desktop-shell .nubi-liquid-scene {display:none;}
+ :root:root .desktop-shell .nubi-jump-latest::before {background:var(--nubi-surface-milk);backdrop-filter:none;-webkit-backdrop-filter:none;}
 }
 @media(prefers-reduced-motion:reduce) {
  :root:root .desktop-shell .nubi-workspace-rail button[aria-pressed=true]::after {animation:none;}
+ :root:root .desktop-shell .nubi-jump-latest::before {transition:none;transform:none;}
 }
 @media(forced-colors:active) {
  :root:root .desktop-shell .nubi-mail-history-bar,
@@ -204,7 +226,6 @@
  :root:root .desktop-shell .nubi-workspace-navigation.nubi-workspace-rail,
  :root:root .desktop-shell .nubi-window-toolbar,
  :root:root .desktop-shell .nubi-bar .nubi-icon-button,
- :root:root .desktop-shell .nubi-jump-latest,
  :root:root .desktop-shell .nubi-workbench .nubi-compose-card,
  :root:root .desktop-shell .nubi-workbench .nubi-compose-card:focus-within {
   background:Canvas;border-color:CanvasText;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;
@@ -213,6 +234,9 @@
  :root:root .desktop-shell .nubi-workspace-rail button[aria-pressed=true]:not(.nubi-rail-team):is(:hover,:focus-visible):not(:disabled),
  :root:root .desktop-shell .nubi-session-row[data-current=true] {background:Highlight;color:HighlightText;box-shadow:none;}
  :root:root .desktop-shell .nubi-workspace-rail button[aria-pressed=true]::after {content:none;}
+ :root:root .desktop-shell .nubi-workbench .nubi-jump-latest.cx-kit-button {color:ButtonText;}
+ :root:root .desktop-shell .nubi-jump-latest::before {background:ButtonFace;border-color:ButtonText;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;}
+ :root:root .desktop-shell .nubi-jump-latest:focus-visible {outline-color:Highlight;}
 }
 
 /* The one pending decision shares the existing glass material. Prose and

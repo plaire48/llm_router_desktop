@@ -1336,7 +1336,7 @@ button.nubi-start-card:hover:not(:disabled) .nubi-start-go svg { transform:trans
 .nubi-workbench :is(.nubi-main,.nubi-conversation-scroll)::-webkit-scrollbar,
 .nubi-workbench .composer textarea.aipro-message-input::-webkit-scrollbar { display:none; width:0; height:0; }
 .nubi-workbench .nubi-conversation-content > .nubi-enter { display:flex; flex-direction:column; }
-.nubi-workbench .nubi-jump-latest.cx-kit-button { position:absolute; bottom:var(--cx-space-2); left:50%; translate:-50% 0; z-index:3; width:32px; min-width:32px; height:32px; min-height:32px; padding:0; border:0; border-radius:50%; background:var(--deck-card); color:var(--deck-sub); box-shadow:var(--deck-shadow-tile); }
+.nubi-workbench .nubi-jump-latest.cx-kit-button { position:absolute; bottom:var(--cx-space-2); left:50%; translate:-50% 0; z-index:3; width:44px; min-width:44px; height:44px; min-height:44px; padding:0; border:0; border-radius:50%; background:var(--deck-card); color:var(--deck-sub); box-shadow:var(--deck-shadow-tile); }
 .nubi-workbench .nubi-jump-latest.cx-kit-button:hover { background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
 .nubi-workbench .nubi-followup-stack { position:static; flex:none; margin-top:var(--cx-space-3); }
 
