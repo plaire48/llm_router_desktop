@@ -47,8 +47,9 @@ try{
  const record=page.locator('.nubi-command-record').last();await record.waitFor();assert.equal(await record.getAttribute('open'),null);
  assert.equal(await record.locator('.nubi-terminal').count(),0,'collapsed record defers output rendering');
  await record.locator('summary').click();const open=record.getByRole('button',{name:'터미널 열기',exact:true});
- await record.locator('.nubi-terminal-output').waitFor();assert.match(await record.locator('.nubi-terminal-output').innerText(),/agent-output/);
- await record.locator('.nubi-terminal-state[data-state=completed]').waitFor({timeout:4000});assert.equal(await record.locator('.nubi-terminal-state').getAttribute('data-state'),'completed','chat receipt reaches the same final state as its terminal');assert.equal(await record.locator('.nubi-terminal-exit').innerText(),'exit 0');assert.equal(await record.getByRole('button',{name:'명령 중지',exact:true}).count(),0);
+ // A slow Windows runner shows the record before its output arrives: wait for the output, then assert it (2026-10-23).
+ await record.locator('.nubi-terminal-output').filter({hasText:'agent-output'}).waitFor({timeout:30000});assert.match(await record.locator('.nubi-terminal-output').innerText(),/agent-output/);
+ await record.locator('.nubi-terminal-state[data-state=completed]').waitFor({timeout:30000});assert.equal(await record.locator('.nubi-terminal-state').getAttribute('data-state'),'completed','chat receipt reaches the same final state as its terminal');assert.equal(await record.locator('.nubi-terminal-exit').innerText(),'exit 0');assert.equal(await record.getByRole('button',{name:'명령 중지',exact:true}).count(),0);
  const receipt=await record.locator('.nubi-terminal-output').innerText();assert.match(receipt,/receipt-color-ok/);assert.doesNotMatch(receipt,/\x1b|\[32m|\[0m/);await waitLine('receipt-color-ok');
  const count=await page.locator('.desktop-terminal').count();await open.click();assert.equal(await page.locator('.desktop-terminal').count(),count);
  await record.locator('summary').click();await page.waitForTimeout(1200);assert.equal(await record.getAttribute('open'),null,'polling preserves collapsed record');
