@@ -1,4 +1,4 @@
-import {mailAttentionInfo} from './mail-attention-state.mjs';
+import {mailAttentionInfo,officeReadStatus} from './mail-attention-state.mjs';
 
 export const mailProcessingStages={indexing:'메일 검색 준비 중',indexed:'메일 검색 준비 완료',ready:'정리 완료',connecting:'메일 연결 중',disconnected:'메일 연결 필요',off:'자동 정리 꺼짐',checking:'새 메일 확인 중',attachments:'첨부 읽는 중',organizing:'메일 정리 중',waiting_model:'모델 연결 대기',waiting_agent:'현재 작업 후 정리',queued:'정리 대기',paused:'수집 일시중지',attention:'확인 필요',watching:'새 메일 확인 대기'};
 const descriptions={
@@ -19,10 +19,13 @@ export function mailProcessingState(status){
  const counts=[['보관된 메일',totals.received],['정리 완료',progress.completed??totals.saved],[paused?'정리 보류':'정리 대기',progress.queued??totals.queued],['받을 메일',progress.pendingServer],['확인 필요',progress.attention??totals.attentionTotal]].filter(([,value])=>count(value)).map(([label,value])=>({label,value}));
  let measurement=null;
  const attachment=progress.attachment;
+ const office=stage==='attachments'?officeReadStatus(attachment?.current?.office):null;
  if(stage==='attachments'&&count(attachment?.completed)&&count(attachment?.total)&&attachment.total>0&&attachment.completed<=attachment.total)measurement={label:'첨부 읽기',completed:attachment.completed,total:attachment.total};
+ if(office)measurement=null;
+ if(office?.stage==='read'&&office.unitLabel)measurement={label:office.sheetIndex?`현재 시트 ${office.sheetIndex}/${office.sheetCount} 읽기`:'Office 본문 읽기',completed:office.completed,total:office.total,unit:office.unitLabel,identity:`${attachment.current.id}:${office.unit}:${office.sheetIndex||0}`};
  if(['indexing','indexed'].includes(stage)&&count(progress.indexed)&&count(progress.remaining)&&progress.indexed+progress.remaining>0)measurement={label:'검색 준비',completed:progress.indexed,total:progress.indexed+progress.remaining};
  const method=status.protocol==='desktop'||status.connectionMethod==='desktop'?'Knox Desktop':status.protocol==='portal'||status.connectionMethod==='portal'?'포털':'POP3';
- return {stage,title:mailProcessingStages[stage]||'메일 처리 중',detail:descriptions[stage]||'현재 메일 처리 정보를 확인하고 있어요.',counts,measurement,connection:status.connecting?`${method} 연결 중`:status.connected?`${method} 연결됨`:'서버 연결 없음'};
+ return {stage,title:mailProcessingStages[stage]||'메일 처리 중',detail:office?[attachment.current.filename,office.label].filter(Boolean).join(' / '):descriptions[stage]||'현재 메일 처리 정보를 확인하고 있어요.',counts,measurement,...(office?{office}:{}),connection:status.connecting?`${method} 연결 중`:status.connected?`${method} 연결됨`:'서버 연결 없음'};
 }
 
 export function mailStatusReadIssue(error){

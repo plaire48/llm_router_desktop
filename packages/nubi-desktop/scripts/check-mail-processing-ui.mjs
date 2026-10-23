@@ -44,6 +44,19 @@ try{
  await page.emulateMedia({reducedMotion:'reduce'});await page.evaluate(()=>document.documentElement.style.fontSize='150%');assert(await dialog.evaluate(node=>node.scrollWidth<=node.clientWidth+1));
  await dialog.getByRole('button',{name:'닫기',exact:true}).click();await dialog.waitFor({state:'hidden'});await page.waitForFunction(()=>document.activeElement?.getAttribute('aria-label')==='메일 처리 상태 확인');await trigger.click();await bar.waitFor();await dialog.getByText('40%',{exact:true}).waitFor();checks.push('Reduced motion, enlarged text, close focus and reopening preserve the processing state');
  await dialog.getByRole('button',{name:'닫기',exact:true}).click();await dialog.waitFor({state:'hidden'});await setProbe({statusError:'mail_timeout'});await trigger.getByText('상태 확인 중',{exact:true}).waitFor();await trigger.click();await bar.waitFor();await trigger.getByText('첨부 읽는 중',{exact:true}).waitFor();checks.push('A successful panel snapshot clears an earlier footer read failure immediately');
+ // Office counters are per sheet. Reading 100% still has verification/cleanup
+ // pending, and changing sheets resets the measured quantity and speed basis.
+ await page.evaluate(()=>document.documentElement.style.fontSize='');
+ const current={id:'office-fixture',filename:'분기별 예산 검토.xlsx',office:{app:'excel',stage:'read',unit:'cells',completed:1200,total:2400,sheetIndex:2,sheetCount:3,elapsedMs:80000}};
+ const officeStatus={...initial,progress:{...initial.progress,stage:'attachments',attachment:{completed:0,total:1,current}}};
+ await setProbe({status:officeStatus,statusError:null,attentionError:null});await dialog.getByRole('button',{name:'메일 상태 새로고침',exact:true}).click();
+ await dialog.getByText(/분기별 예산 검토.xlsx.*현재 시트 2\/3/).waitFor();const officeBar=dialog.getByRole('progressbar',{name:'현재 시트 2/3 읽기 진행률',exact:true});await officeBar.waitFor();assert.equal(await officeBar.getAttribute('aria-valuenow'),'1200');await dialog.getByText('50%',{exact:true}).waitFor();await dialog.getByText(/1,200\/2,400셀/).waitFor();
+ for(const width of [1000,360]){
+  if(native){const window=await app.browserWindow(page);await window.evaluate((window,width)=>window.setContentSize(width,850),width);}await page.setViewportSize({width,height:850});await dialog.evaluate(node=>Promise.all(node.getAnimations().map(animation=>animation.finished.catch(()=>{}))));
+  assert(await dialog.evaluate(node=>node.scrollWidth<=node.clientWidth+1));await page.screenshot({path:out+'/office-'+width+'.png',animations:'disabled'});
+ }
+ await setProbe({status:{...officeStatus,progress:{...officeStatus.progress,attachment:{...officeStatus.progress.attachment,current:{...current,office:{app:'excel',stage:'verify',elapsedMs:81000}}}}}});await dialog.getByRole('button',{name:'메일 상태 새로고침',exact:true}).click();await dialog.getByText(/Excel.*읽기 결과 확인/).waitFor();await officeBar.waitFor({state:'hidden'});assert.equal(await dialog.getByRole('progressbar').count(),0,'verification has no invented percentage');
+ checks.push('Office shows the current sheet, actual cell counts and elapsed time; verification is separate from attachment completion');
  const calls=native?await app.evaluate(()=>globalThis.mailProcessingProbe.calls):await page.evaluate(()=>window.calls);assert(calls.every(call=>call.action!=='status'||call.includeMessages===false));assert(calls.every(call=>['status','attention'].includes(call.action)));assert.deepEqual(errors,[]);
  await writeFile(out+'/result.json',JSON.stringify({passed:true,checks,errors,boundary:native?'Built macOS Electron host with synthetic mail IPC states. Not company POP3, real model or Windows acceptance.':'Production footer and CX components with synthetic mail API states in Chrome. Not installed Windows or live mail.'},null,2));console.log(JSON.stringify({passed:true,checks:checks.length,out}));
 }catch(error){await page?.screenshot({path:out+'/failure.png'}).catch(()=>{});throw error;}

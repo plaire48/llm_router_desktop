@@ -2,6 +2,7 @@ import {spawn} from 'node:child_process';
 import {mkdtemp,readFile,writeFile,lstat,rm} from 'node:fs/promises';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
+import {StringDecoder} from 'node:string_decoder';
 import {officeReadDiagnostic} from './office-read-diagnostic.mjs';
 
 const formats={word:['doc','docx','docm','dot','dotx','dotm','rtf'],excel:['xls','xlsx','xlsm','xlt','xltx','xltm'],powerpoint:['ppt','pptx','pptm','pps','ppsx','ppsm','pot','potx','potm']};
@@ -16,6 +17,47 @@ export function officeDocumentFormat(filename='',contentType=''){
 }
 const failures=new Set(['document_limit','document_empty','document_office_missing','document_office_version','document_office_policy','document_office_read_failed','document_office_busy','document_office_cleanup','mail_source_changed']);
 let officeQueue=Promise.resolve();
+export const OFFICE_READ_LIMITS=Object.freeze({idleMs:120000,maxMs:900000});
+
+// Only explicit, bounded progress frames extend the inactivity deadline. This
+// does not treat a heartbeat, stderr noise or a repeated counter as progress.
+export function runOfficeDocumentProcess({binary,script,env,request,signal,onProgress,spawnProcess=spawn,limits=OFFICE_READ_LIMITS}){
+ return new Promise((resolve,reject)=>{
+  if(signal?.aborted)return reject(Error('mail_cancelled'));
+  const child=spawnProcess(binary,['-NoLogo','-NoProfile','-NonInteractive','-STA','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{stdio:['pipe','pipe','pipe'],windowsHide:true,env});
+  const chunks=[],decoder=new StringDecoder('utf8'),started=performance.now();
+  let size=0,failure,settled=false,idleTimer,pending='',dropping=false,last={app:request.app,stage:'prepare'};
+  const elapsed=()=>Math.min(86400000,Math.round(performance.now()-started));
+  const stop=(code,timeoutKind)=>{if(failure)return;failure=Object.assign(Error(code),{officeDiagnostic:officeReadDiagnostic({...last,elapsedMs:elapsed(),...(timeoutKind?{timeoutKind}:{})})});clearTimeout(idleTimer);child.kill();};
+  const arm=()=>{clearTimeout(idleTimer);idleTimer=setTimeout(()=>stop('document_office_timeout','idle'),limits.idleMs);};
+  const abort=()=>stop('mail_cancelled'),maximum=setTimeout(()=>stop('document_office_timeout','overall'),limits.maxMs);
+  const frame=line=>{
+   if(failure||!line.startsWith('NUBI_OFFICE_PROGRESS '))return;
+   let value;try{value=officeReadDiagnostic(JSON.parse(line.slice(21)));}catch{return;}
+   if(!value?.stage||value.app!==request.app)return;
+   const changed=value.stage!==last.stage||value.unit!==last.unit||value.sheetIndex!==last.sheetIndex||value.completed>last.completed;
+   if(!changed)return;
+   last=value;arm();try{onProgress?.({...value,elapsedMs:elapsed()});}catch{/* Observation failure never replays or fails an Office read. */}
+  };
+  child.stdout.on('data',chunk=>{size+=chunk.length;if(size>48*1024*1024)stop('document_limit');else if(!failure)chunks.push(chunk);});
+  child.stderr.on('data',chunk=>{
+   for(const part of decoder.write(chunk).split(/(?<=\n)/)){
+    if(part.endsWith('\n')){if(!dropping&&pending.length+part.length<=2048)frame((pending+part).trimEnd());pending='';dropping=false;}
+    else if(!dropping){if(pending.length+part.length>2048){pending='';dropping=true;}else pending+=part;}
+   }
+  });
+  child.stdin.on('error',()=>{});
+  child.once('error',()=>stop('document_office_missing'));
+  child.once('close',code=>{
+   if(settled)return;settled=true;clearTimeout(idleTimer);clearTimeout(maximum);signal?.removeEventListener('abort',abort);
+   if(failure)return reject(failure);
+   try{resolve(parseOfficeDocumentResponse(Buffer.concat(chunks).toString('utf8'),code));}
+   catch(error){error.officeDiagnostic ||= officeReadDiagnostic({...last,elapsedMs:elapsed()});reject(error);}
+  });
+  arm();signal?.addEventListener('abort',abort,{once:true});if(signal?.aborted)abort();
+  child.stdin.end(JSON.stringify(request));
+ });
+}
 
 // Only a byte-identical copy inside the account's ACL-restricted raw directory
 // is opened. No ZIP editor, decrypted sidecar, macro, save or format conversion.
@@ -24,7 +66,7 @@ export async function readOfficeDocument(bytes,attachment,options={}){
   try{await previous;if(options.signal?.aborted)throw Error('mail_cancelled');return await readOfficeDocumentNow(bytes,attachment,options);}
   finally{release();}
 }
-async function readOfficeDocumentNow(bytes,attachment,{signal,directory,restrictDirectory}={}){
+async function readOfficeDocumentNow(bytes,attachment,{signal,directory,restrictDirectory,onProgress}={}){
   if(process.platform!=='win32')throw Error('document_office_required');
   const format=officeDocumentFormat(attachment.filename,attachment.contentType);
   if(!format)throw Error('document_format');
@@ -42,24 +84,7 @@ async function readOfficeDocumentNow(bytes,attachment,{signal,directory,restrict
     const script=await readFile(new URL('./office-document.ps1',import.meta.url),'utf8');
     const env={};for(const key of ['SystemRoot','WINDIR','TEMP','TMP','USERPROFILE','APPDATA','LOCALAPPDATA','USERNAME','USERDOMAIN','HOMEDRIVE','HOMEPATH','PATH'])if(process.env[key])env[key]=process.env[key];
     const binary=path.win32.join(env.SystemRoot||env.WINDIR||'C:\\Windows','System32','WindowsPowerShell','v1.0','powershell.exe');
-    const result=await new Promise((resolve,reject)=>{
-      if(signal?.aborted)return reject(Error('mail_cancelled'));
-      const child=spawn(binary,['-NoLogo','-NoProfile','-NonInteractive','-STA','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{stdio:['pipe','pipe','pipe'],windowsHide:true,env});
-      const chunks=[];let size=0,failure,settled=false;
-      const stop=code=>{failure ||= code;child.kill();};
-      const abort=()=>stop('mail_cancelled');
-      const timer=setTimeout(()=>stop('document_office_timeout'),60000);
-      signal?.addEventListener('abort',abort,{once:true});
-      child.stdout.on('data',chunk=>{size+=chunk.length;if(size>48*1024*1024)stop('document_limit');else chunks.push(chunk);});
-      child.stderr.resume();child.stdin.on('error',()=>{});
-      child.once('error',()=>{failure ||= 'document_office_missing';});
-      child.once('close',code=>{
-        if(settled)return;settled=true;clearTimeout(timer);signal?.removeEventListener('abort',abort);
-        if(failure)return reject(Error(failure));
-        try{resolve(parseOfficeDocumentResponse(Buffer.concat(chunks).toString('utf8'),code));}catch(error){reject(error);}
-      });
-      child.stdin.end(JSON.stringify({file,app:format.app,expectedHash}));
-    });
+    const result=await runOfficeDocumentProcess({binary,script,env,request:{file,app:format.app,expectedHash},signal,onProgress});
     if(signal?.aborted)throw Error('mail_cancelled');
     if(sha(await readFile(file))!==expectedHash)throw Error('mail_source_changed');
     return result;

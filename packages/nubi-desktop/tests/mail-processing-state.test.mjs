@@ -28,3 +28,10 @@ test('status read diagnostics use fixed causes and never show raw server message
  assert.doesNotMatch(JSON.stringify(mailStatusReadIssue(Error('PRIVATE token=SECRET'))),/PRIVATE|SECRET/);
  assert.equal(mailProcessingState(null),null);
 });
+test('Office progress measures the current sheet and changes its estimate identity for another sheet',()=>{
+ const current={id:'attachment',filename:'예산.xlsx',office:{app:'excel',stage:'read',unit:'cells',completed:1200,total:2400,sheetIndex:2,sheetCount:3,elapsedMs:80000}};
+ const state=office=>mailProcessingState({connected:true,autoWiki:true,progress:{stage:'attachments',attachment:{completed:0,total:1,current:{...current,office}}}});
+ const value=state(current.office);assert.match(value.detail,/예산.xlsx.*현재 시트 2\/3/);assert.deepEqual(value.measurement,{label:'현재 시트 2/3 읽기',completed:1200,total:2400,unit:'셀',identity:'attachment:cells:2'});
+ assert.notEqual(state({...current.office,sheetIndex:3}).measurement.identity,value.measurement.identity);
+ const verifying=state({app:'excel',stage:'verify'});assert.match(verifying.detail,/읽기 결과 확인/);assert.equal(verifying.measurement,null,'100 percent cell extraction is not a completed attachment');
+});

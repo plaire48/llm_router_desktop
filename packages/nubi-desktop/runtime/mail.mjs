@@ -136,7 +136,7 @@ export class PersonalMail {
     if(!delay){void this.cycle().catch(()=>{});return;}
     this.timer=setTimeout(()=>{this.timer=null;void this.cycle().catch(()=>{});},delay);this.timer.unref?.();
   }
-  async extractAttachment(bytes,attachment,signal,directory,{useActiveModel=false}={}){
+  async extractAttachment(bytes,attachment,signal,directory,{useActiveModel=false,onOfficeProgress}={}){
     if(!DESKTOP_FEATURES.mailAttachmentReading)throw Error('mail_attachment_beta_disabled');
     if(this.disposed||signal.aborted)throw Error('mail_cancelled');
     this.documentReaders ||= new Set();
@@ -149,7 +149,7 @@ export class PersonalMail {
     
     signal=controller.signal;
     // User decision 2026-10-23: Windows Office documents are opened through COM.
-    return await readAttachmentDocument({attachment,office:()=>readOfficeDocument(bytes,attachment,{signal:controller.signal,directory,restrictDirectory:privateDir}),parse:()=>new Promise((resolve,reject)=>{
+    return await readAttachmentDocument({attachment,office:()=>readOfficeDocument(bytes,attachment,{signal:controller.signal,directory,restrictDirectory:privateDir,onProgress:onOfficeProgress}),parse:()=>new Promise((resolve,reject)=>{
       if(signal.aborted)return reject(new Error('mail_cancelled'));
       const worker=new Worker(new URL('./mail-attachment-worker.mjs',import.meta.url),{workerData:{bytes,filename:attachment.filename||'',contentType:(attachment.contentType||'')+(attachment.charset?'; charset='+attachment.charset:'')},resourceLimits:{maxOldGenerationSizeMb:Math.min(1024,Math.max(256,Math.ceil(bytes.length/1048576)*6))},execArgv:[],stdout:true,stderr:true});
       worker.stdout.resume();worker.stderr.resume();let settled=false;
@@ -175,7 +175,15 @@ export class PersonalMail {
         try{
           if(previous?.sourceHash===row.sourceHash&&previous.sha256===attachment.sha256&&previous.state==='complete'&&officeCacheUsable({...attachment,reader:previous.reader})){completed++;continue;}
           const bytes=await this.readAttachmentBytes({id:row.id,sourceHash:row.sourceHash,attachmentDirectory:path.join(this.rawRoot,row.id)},attachment);if(sha(bytes)!==attachment.sha256)throw new Error('mail_source_changed');
-          const document=attachment.contentState==='text_read'&&attachment.text?{text:attachment.text,coverage:'첨부 본문 텍스트'}:await this.extractAttachment(bytes,attachment,controller.signal,path.join(this.rawRoot,row.id));
+          let lastProgressAt=0,lastStage='';const startedAt=now();
+          const onOfficeProgress=value=>{
+            check();const office=officeReadDiagnostic(value),current=this.store.get('mail:'+row.id);if(!office||current?.sourceHash!==row.sourceHash)return;
+            const stamp=Date.now(),stage=[office.stage,office.sheetIndex].join(':');
+            if(stamp-lastProgressAt<500&&stage===lastStage&&office.completed!==office.total)return;
+            lastProgressAt=stamp;lastStage=stage;
+            this.store.set('mail:'+row.id,{...current,attachmentProgress:{completed,total:mail.attachments.length,current:{id:attachment.id,filename:attachment.filename,startedAt,office}}});
+          };
+          const document=attachment.contentState==='text_read'&&attachment.text?{text:attachment.text,coverage:'첨부 본문 텍스트'}:await this.extractAttachment(bytes,attachment,controller.signal,path.join(this.rawRoot,row.id),{onOfficeProgress});
           check();await this.source(row);check();
           this.store.set(key,{sourceHash:row.sourceHash,sha256:attachment.sha256,state:'complete',text:document.text,segments:document.segments||[],coverage:document.coverage,...(document.html?{html:document.html}:{}),reader:document.reader||'document_parser',officeVersion:document.officeVersion||null,readerVersion:5});completed++;
         }catch(error){

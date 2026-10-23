@@ -39,11 +39,21 @@ export function mailAttentionInfo(code){
 }
 
 const officeStages={prepare:'읽기 사본 준비',activate:'Office 실행',configure:'읽기 설정',open:'파일 열기',read:'본문 읽기',verify:'읽기 결과 확인',close:'문서 닫기',restore:'Office 설정 복구',release:'읽기 연결 정리'};
+export function officeReadStatus(value){
+ const diagnostic=officeReadDiagnostic(value);if(!diagnostic?.stage)return null;
+ const name={word:'Word',excel:'Excel',powerpoint:'PowerPoint'}[diagnostic.app]||'Office';
+ const sheet=diagnostic.sheetIndex?`현재 시트 ${diagnostic.sheetIndex}/${diagnostic.sheetCount}`:'';
+ const unit={cells:'셀',slides:'장',characters:'자'}[diagnostic.unit];
+ return {...diagnostic,label:[name,officeStages[diagnostic.stage],sheet].filter(Boolean).join(' / '),unitLabel:unit};
+}
 export function officeReadHelp(value){
  const diagnostic=officeReadDiagnostic(value);if(!diagnostic)return '';
  const facts=[{word:'Word',excel:'Excel',powerpoint:'PowerPoint'}[diagnostic.app],diagnostic.officeVersion,officeStages[diagnostic.stage],diagnostic.hresult].filter(Boolean).join(' / ');
+ const status=officeReadStatus(diagnostic),amount=status?.unitLabel?`${status.sheetIndex?`현재 시트 ${status.sheetIndex}/${status.sheetCount}, `:''}${status.completed.toLocaleString('ko-KR')}/${status.total.toLocaleString('ko-KR')}${status.unitLabel} 읽음`:'';
+ const elapsed=diagnostic.elapsedMs!==undefined?`${Math.round(diagnostic.elapsedMs/1000)}초 경과`:'';
+ const timeout=diagnostic.timeoutKind==='idle'?'최근 읽기 진행을 확인하지 못해 중단했어요.':diagnostic.timeoutKind==='overall'?'전체 읽기 제한 시간에 도달했어요.':'';
  const action=['activate','configure','open','read'].includes(diagnostic.stage)?'Office에서 해당 첨부를 직접 열어 안내나 대기 창을 확인한 뒤 다시 읽어 주세요.':'';
- return [facts,action,diagnostic.cleanupFailed?'읽기용 사본 정리도 확인이 필요해요.':''].filter(Boolean).join('\n');
+ return [facts,[amount,elapsed].filter(Boolean).join(' / '),timeout,action,diagnostic.cleanupFailed?'읽기용 사본 정리도 확인이 필요해요.':''].filter(Boolean).join('\n');
 }
 export function mailAttentionRowInfo(row){
  const failures=row.attachmentFailures||[],attachmentsOnly=row.summary===false&&failures.length>0;
