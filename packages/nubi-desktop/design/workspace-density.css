@@ -1162,6 +1162,15 @@
 .desktop-shell .nubi-workbench[data-workspace-screen="conversation"] {
  --nubi-chat-width:var(--nubi-chat-reading-width);
 }
+/* One edge for the transcript and input dock. Empty and existing conversations
+   share the same bottom inset; only the transcript owns vertical scrolling. */
+.desktop-shell .nubi-workbench .nubi-main:is([data-has-task="true"],[data-empty-conversation="true"]) {
+ --nubi-chat-width:100%;max-width:none;min-width:0;
+ padding-inline:var(--cx-space-4);padding-bottom:var(--cx-space-2);
+}
+.desktop-shell .nubi-workbench .nubi-main[data-has-task="true"] :is(.nubi-conversation-wrap,.nubi-followup-stack,.nubi-followup) {
+ width:100%;max-width:none;min-width:0;margin-inline:0;
+}
 .desktop-shell .nubi-workbench[data-workspace-screen="conversation"] .nubi-conversation-content {
  padding-block:var(--cx-space-6) var(--cx-space-8);
 }
@@ -1192,7 +1201,7 @@
  border-color:var(--deck-line); box-shadow:none;
 }
 .desktop-shell .nubi-workbench[data-workspace-screen="conversation"] .nubi-followup-stack {
- padding-top:var(--cx-space-3); padding-bottom:var(--cx-space-1); background:var(--nubi-surface-base);
+ margin-top:0;padding-block:0;background:var(--nubi-surface-base);
 }
 /* Completed work remains a short disclosure; exceptions keep their existing visible form. */
 .desktop-shell .nubi-workbench .nubi-activity-record:not([open])>summary {
