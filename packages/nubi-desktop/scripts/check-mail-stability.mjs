@@ -22,6 +22,15 @@ try{
  const results=page.getByRole('region',{name:'메일 검색 결과'});
  await results.locator('tbody tr').first().waitFor();
  await page.waitForFunction(()=>document.querySelector('.nubi-mail-results')?.dataset.admission==='complete');
+ if(!process.argv.includes('--baseline')){
+  const checkedAt='2026-10-24T01:02:00.000Z',appliedAt='2026-10-24T01:01:00.000Z';
+  await page.evaluate(({checkedAt,appliedAt})=>{window.mailRecent={lastCheckedAt:checkedAt,progress:{lastAppliedAt:appliedAt},recentChecks:[{kind:'checked',at:checkedAt,received:3,pendingServer:2,attention:1},{kind:'organized',at:appliedAt,completed:1,durationMs:10000}]};},{checkedAt,appliedAt});
+  const recent=page.getByRole('group',{name:'최근 수집 정보',exact:true});await recent.getByText('수신 3개 / 남음 2개 / 확인 필요 1개',{exact:true}).waitFor();
+  assert.equal(await recent.locator('summary,button,details').count(),0,'recent collection information requires no extra action');assert.equal(await recent.locator('time[datetime="'+checkedAt+'"]').count(),1);assert.equal(await recent.locator('time[datetime="'+appliedAt+'"]').count(),1);
+  for(const width of [1280,360]){await page.setViewportSize({width,height:900});assert(await recent.evaluate(node=>node.scrollWidth<=node.clientWidth+1));await captureDesign(page,{path:path.join(dir,'recent-inline-'+width+'.png'),fullPage:true});}
+  await page.evaluate(()=>{window.mailRecent={recentChecks:[{kind:'error',at:'2026-10-24T01:03:00.000Z',error:'PRIVATE_SERVER_REPLY'}]};});await recent.getByText('서버 연결 확인 필요',{exact:true}).waitFor();assert.doesNotMatch(await recent.innerText(),/PRIVATE/);
+  await page.evaluate(()=>{window.mailRecent=undefined;});await page.setViewportSize({width:1440,height:900});
+ }
  assert.deepEqual(await page.evaluate(()=>window.mailScrollWrites),[],'initial top-aligned results do not force layout by writing scrollTop');
  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
  const renders=await page.evaluate(()=>window.mailSearchRenderCount);

@@ -14,7 +14,6 @@ import {MailReader} from './MailReader.jsx';
 import {MailKnowledgeSearch} from './MailKnowledgeSearch.jsx';
 import {MailTimestamp} from './MailTimestamp.jsx';
 import {durationLabel} from '../runtime/response-timing.mjs';
-import {mailTableDate} from '../runtime/mail-presentation.mjs';
 import {notifyWorkspaceToast} from './WorkspaceToast.jsx';
 import {LoadingNote} from './LoadingNote.jsx';
 
@@ -75,6 +74,7 @@ export function MailHistory({detailHost,api,onDocument,onAsk,onAskSearch,onSetti
   finally{if(alive.current)setRefreshing(false);}
  }
  const checkedAt=status?.progress?.checkedAt||status?.lastCheckedAt;
+ const recentActivity=status?.recentChecks?.[0];
  const personalFolders=personalMailFolders(status?.folders),personalSelected=personalFolders.some(folder=>'folder:'+folder.id===mailbox);
  useLayoutEffect(()=>{const tabs=mailboxTabs.current,scroll=tabs?.parentElement,active=tabs?.querySelector('[aria-selected="true"]');if(!scroll||!active)return;const observer=new ResizeObserver(()=>{const box=scroll.getBoundingClientRect(),item=active.getBoundingClientRect();if(item.right>box.right)scroll.scrollLeft+=item.right-box.right+8;else if(item.left<box.left)scroll.scrollLeft-=box.left-item.left+8;});observer.observe(scroll);observer.observe(active);return()=>observer.disconnect();},[mailbox,personalFolders.length]);
  function selectMailbox(value){initialMailboxApplied.current=true;if(value==='personal')value=personalFolders.some(folder=>'folder:'+folder.id===lastPersonalFolder.current)?lastPersonalFolder.current:'folder:'+personalFolders[0].id;if(value.startsWith('folder:'))lastPersonalFolder.current=value;closeReader();setMailbox(value);setQuery('');if(viewState)viewState.current={...viewState.current,mailbox:value,personalFolder:lastPersonalFolder.current,query:'',search:undefined};}
@@ -83,6 +83,10 @@ export function MailHistory({detailHost,api,onDocument,onAsk,onAskSearch,onSetti
   <header className="nubi-mail-history-bar">{onReturn&&<ActionButton action="back" label="대화로 돌아가기" onClick={onReturn}/>}<Icon name="mail" size={22}/><h1>메일</h1><span>{status?.counts?.received??0}개</span><ActionButton action="refresh" label="새 메일 확인" disabled={refreshing||status?.checking||status?.connecting} onClick={reload}/>{(refreshing||status?.checking)&&<span className="status-spinner" role="status" aria-label="메일 확인 중"/>}<CxButton ref={connectionRef} className="nubi-mail-connect-link" onClick={onSettings}><Icon name="mail" size={18}/><span>{status?.desktop||status?.connected||status?.localCount?'메일 설정':'포털 로그인'}</span></CxButton></header>
   <WorkspaceCatalogTabs wide label="포털 자료" idPrefix="portal-view" active={portalView} onChange={value=>{setPortalView(value);if(value==='approvals')closeReader();}} items={[{key:'mail',label:<><Icon name="mail" size={16}/>메일</>},{key:'approvals',label:<><Icon name="clipboardCheck" size={16}/>결재</>}]}/>
   {portalView==='approvals'?<ApprovalHistory api={api} onSettings={onSettings} status={status} onAsk={onAsk} onAskSearch={onAskSearch} onDocument={onDocument} revision={revision}/>:<>
+  {(checkedAt||status?.progress?.lastAppliedAt||recentActivity)&&<div className="nubi-mail-recent" role="group" aria-label="최근 수집 정보"><span className="nubi-mail-recent-label"><Icon name="clock" size={14}/>최근 수집</span>
+   <dl className="nubi-mail-recent-times" aria-label="수집 시각">{status?.progress?.lastAppliedAt&&<div><dt><Icon name="check" size={14}/>최근 반영</dt><dd><MailTimestamp at={status.progress.lastAppliedAt} label=""/></dd></div>}{checkedAt&&<div><dt><Icon name="refresh" size={14}/>서버 확인</dt><dd><MailTimestamp at={checkedAt} label=""/></dd></div>}</dl>
+   {recentActivity&&<span className="nubi-mail-recent-result"><Icon name={recentActivity.kind==='organized'?'check':recentActivity.kind==='error'?'alertCircle':'download'} size={14}/><span>{recentActivity.kind==='organized'?`정리 완료 ${recentActivity.completed}개${durationLabel(recentActivity.durationMs)?` / ${durationLabel(recentActivity.durationMs)}`:''}`:recentActivity.kind==='error'?'서버 연결 확인 필요':`수신 ${recentActivity.received}개${recentActivity.pendingServer==null?'':` / 남음 ${recentActivity.pendingServer}개`}${recentActivity.attention?` / 확인 필요 ${recentActivity.attention}개`:''}`}</span>{recentActivity.at!==checkedAt&&recentActivity.at!==status?.progress?.lastAppliedAt&&<MailTimestamp at={recentActivity.at} label=""/>}</span>}
+  </div>}
   <WorkspaceCatalogTabs containerRef={mailboxTabs} wide={false} label="메일함" idPrefix="mailbox" active={personalSelected?'personal':mailbox} onChange={selectMailbox} items={[...mailboxTabsFor(status).map(({key,label,icon})=>({key,label:<><Icon name={icon} size={16}/>{label}</>})),...(personalFolders.length?[{key:'personal',label:<><FolderMark size={16}/>개인 폴더</>}]:[])]}/>
   {personalSelected&&<div className="nubi-mail-personal-folder"><FolderMark size={16}/><CxSelect singleLine aria-label="개인 폴더 선택" title={personalFolders.find(folder=>'folder:'+folder.id===mailbox)?.name} value={mailbox} onChange={event=>selectMailbox(event.target.value)}>{personalFolders.map(folder=><option key={folder.id} value={'folder:'+folder.id}>{folder.name||'개인 폴더'}</option>)}</CxSelect></div>}
   <div className="nubi-mail-history-body">
@@ -94,9 +98,7 @@ export function MailHistory({detailHost,api,onDocument,onAsk,onAskSearch,onSetti
    </article>
    </AuxiliaryDetail>
   </div>
-  {(checkedAt||status?.progress?.lastAppliedAt||status?.recentChecks?.length>0)&&<details className="nubi-mail-recent"><summary><Icon name="clock" size={14}/>최근 수집<Icon name="chevronDown" size={12}/></summary>
-   <dl className="nubi-mail-recent-times" aria-label="수집 시각">{status?.progress?.lastAppliedAt&&<div><dt><Icon name="check" size={14}/>최근 반영</dt><dd><MailTimestamp at={status.progress.lastAppliedAt} label=""/></dd></div>}{checkedAt&&<div><dt><Icon name="refresh" size={14}/>서버 확인</dt><dd><MailTimestamp at={checkedAt} label=""/></dd></div>}</dl>
-   <ol>{(status.recentChecks||[]).map((record,index)=><li key={`${record.at}:${index}`}><Icon name={record.kind==='organized'?'check':record.kind==='error'?'alertCircle':'download'} size={14}/><span><strong>{record.kind==='organized'?`정리 완료 ${record.completed}개${durationLabel(record.durationMs)?` / ${durationLabel(record.durationMs)}`:''}`:record.kind==='error'?'서버 연결 확인 필요':`수신 ${record.received}개${record.pendingServer===null?'':` / 남음 ${record.pendingServer}개`}${record.attention?` / 확인 필요 ${record.attention}개`:''}`}</strong><time dateTime={record.at}>{mailTableDate(record.at)}</time></span></li>)}</ol></details>}
+
   </>}
  </section>;
 }

@@ -18,7 +18,7 @@ window.switchAccount=()=>{identity++;generation++;rows=[{...rows[0],id:'account-
 async function api(method,args={}){
  window.mailCalls.push({method,...args});
  if(method!=='mail')throw Error('unexpected_api');
- if(args.action==='status')return {connected:true,accountKey:String(identity),identityRevision:0,progress:{lastAppliedAt:String(generation)},counts:{received:rows.length},folders:[]};
+ if(args.action==='status')return {connected:true,accountKey:String(identity),identityRevision:0,progress:{lastAppliedAt:String(generation)},counts:{received:rows.length},folders:[],...window.mailRecent};
  if(args.action==='history')return {total:rows.length,messages:structuredClone(rows)};
  if(args.action==='facets')return {tags:[],senders:[]};
  if(args.action==='portalSync')return {connected:true,accountKey:String(identity),identityRevision:0,progress:{lastAppliedAt:String(generation)}};
