@@ -6,6 +6,7 @@ import {TaskProgressBar} from './TaskProgressBar.jsx';
 import {backgroundJobId} from './background-task-queue.mjs';
 import {projectPreparation} from './project-preparation.mjs';
 import {wikiProgress} from './wiki-progress.mjs';
+import {AgentMark} from '../../../extensions/aipro-chat/src/AgentMark.jsx';
 import './project-wiki-progress.css';
 
 export function WikiProjectIdentity({name,root}){
@@ -26,13 +27,14 @@ export function useWorkbenchEdge(node){
   },[node]);
   return edge;
 }
-export function ProjectWikiProgress({job,projectName,projectRoot,onStop,onSelectScope,onOpenWiki,connected}){
+export function ProjectWikiProgress({job,projectName,projectRoot,onStop,onSelectScope,onOpenWiki,connected,chatNotice}){
   const [expanded,setExpanded]=useState(false),view=projectPreparation(job),ready=view.phase==='ready',progress=wikiProgress(job);
   return <section className="nubi-project-wiki-progress" data-preparation-phase={view.phase} aria-label="프로젝트 위키 작성">
     <div className="nubi-project-wiki-progress-body">
       <WikiProjectIdentity name={projectName} root={projectRoot}/>
       {job?.state==='running'&&onStop&&<CxButton data-icon-only onClick={onStop} aria-label="위키 작성 중지" title="위키 작성 중지"><Icon name="xClose" size={16}/></CxButton>}
     </div>
+    {chatNotice&&<div className="nubi-wiki-chat-guide" role="note" aria-label="뱁새 안내"><AgentMark size={64} mood="working"/><p>{chatNotice}</p></div>}
     <WikiProgressSteps job={job}/>
     <strong key={view.phase} className="nubi-project-journey-title" role="status">{view.title}</strong>
     {ready?<div className="nubi-project-ready"><p>{connected?'질문을 입력하면 이 프로젝트의 자료를 함께 참고해요.':'모델을 연결하면 이 프로젝트의 자료로 대화할 수 있어요.'}</p>{onOpenWiki&&<CxButton onClick={onOpenWiki}><Icon name="bookmark" size={16}/>위키 보기</CxButton>}</div>:<>

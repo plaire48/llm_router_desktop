@@ -9,6 +9,11 @@
 .nubi-project-wiki-progress>.nubi-wiki-initialization::before{content:none}
 .nubi-project-wiki-progress .nubi-progress{margin-top:0}
 .nubi-project-wiki-progress .nubi-wiki-progress-meta{gap:var(--cx-space-2);font-size:var(--cx-type-caption)}
+.nubi-workbench .nubi-compose-card[hidden]{display:none}
+.nubi-wiki-chat-guide{display:flex;align-items:center;justify-content:center;gap:var(--cx-space-3);padding:var(--cx-space-3) 0;min-width:0}
+.nubi-wiki-chat-guide>.agent-mark{flex:none}
+.nubi-wiki-chat-guide>p{position:relative;min-width:0;max-width:48ch;margin:0;padding:var(--cx-space-3) var(--cx-space-4);border-radius:var(--deck-tile-radius);background:var(--deck-blue-soft);color:var(--nubi-text-primary);font-size:var(--cx-type-body);font-weight:var(--nubi-weight-label);line-height:var(--deck-line-body);word-break:keep-all;overflow-wrap:anywhere}
+.nubi-wiki-chat-guide>p::before{content:"";position:absolute;inset-inline-start:calc(-1 * var(--cx-space-2));top:calc(50% - var(--cx-space-2));width:var(--cx-space-2);height:var(--cx-space-4);background:var(--deck-blue-soft);clip-path:polygon(100% 0,100% 100%,0 50%)}
 .nubi-wiki-project-identity {display:flex;align-items:center;gap:var(--cx-space-2);min-width:0;max-width:100%;color:var(--nubi-text-primary);font-size:var(--cx-type-body);}
 .nubi-wiki-project-identity > svg {flex:none;color:var(--deck-blue);}
 .nubi-wiki-project-identity strong {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:var(--nubi-weight-emphasis);}

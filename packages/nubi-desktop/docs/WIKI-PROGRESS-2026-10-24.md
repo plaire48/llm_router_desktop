@@ -51,3 +51,22 @@ Validation for this change:
 
 These checks do not measure real-model accuracy or completion time and do not
 verify a Windows device, company account, installer or deployed binary.
+
+## Mascot chat guidance follow-up
+
+While the current project's Wiki blocks chat, the working bird says
+“위키 작성이 끝나면 이 프로젝트에서 대화할 수 있어요.” in a shared-token speech
+bubble. Both new-conversation and follow-up composer forms are hidden with their
+tools, rather than displaying the notice inside a disabled textbox. The forms
+remain mounted so the draft, selected command and parent-held evidence survive.
+Host admission guards, real progress, scope selection, stop and saved history
+are unchanged. Only the existing host lock release restores the composer; a
+writing-stage 100 percent does not unlock it or submit a draft.
+
+Validation: 24 related unit checks and 14 actual Workbench/Chrome flow checks
+passed. The latter cover hidden entry and follow-up forms, the bird's notice,
+preserved drafts/history, actual completed-state re-entry, no automatic submit,
+wide/narrow windows, enlarged text and reduced motion. The provider and Wiki
+states are fixtures. Windows, a real model and installer acceptance remain
+separate. Screenshots/readback are in
+`verification/project-preparation-2026-10-23/` from the updated harness.

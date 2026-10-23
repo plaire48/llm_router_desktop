@@ -8,7 +8,7 @@ import {TerminalMark} from './marks.jsx';
 
 // Shared Nubi composer: model, approval and context stay inside the input surface.
 // While running, a draft goes to the inbox and Stop remains available.
-export function WorkspaceComposer({className = '', inputRef, id = 'message-input', value, onSubmit, sendDisabled, sending=false, modelControl, actionControl, contextControl, evidenceControl, onStop, onMinimumWidth, commandApi, taskId, onCommand, ...inputProps}) {
+export function WorkspaceComposer({className = '', hidden=false, inputRef, id = 'message-input', value, onSubmit, sendDisabled, sending=false, modelControl, actionControl, contextControl, evidenceControl, onStop, onMinimumWidth, commandApi, taskId, onCommand, ...inputProps}) {
   const [skills,setSkills]=useState([]),draft=splitComposerDraft(value,skills);
   const writeInput=event=>inputProps.onChange({target:{value:updateComposerInput(value,event.target.value,skills)}});
   const commands=useComposerCommands({api:commandApi,taskId,value:draft.input,inputRef,onChange:writeInput,onCommand,onCatalog:setSkills,onSelect:(item,input)=>inputProps.onChange({target:{value:`/${item.command} ${input}`}})});
@@ -35,7 +35,7 @@ export function WorkspaceComposer({className = '', inputRef, id = 'message-input
     let disposed = false;
     const pixels = value => parseFloat(value) || 0;
     const measure = () => {
-      if (disposed || !node.isConnected) return;
+      if (disposed || !node.isConnected || node.hidden) return;
       
       const groupWidth = group => {
         if (!group) return 0;
@@ -86,7 +86,7 @@ export function WorkspaceComposer({className = '', inputRef, id = 'message-input
     else {measure(); window.addEventListener('resize', measure);}
     return () => {observer?.disconnect(); window.removeEventListener('resize', measure);};
   }, [inputRef, value, expanded]);
-  function submit(event){event.preventDefault();if(!cannotSend)onSubmit(event);}
+  function submit(event){event.preventDefault();if(!hidden&&!cannotSend)onSubmit(event);}
   function clearCommand(){inputProps.onChange({target:{value:draft.input}});inputRef.current?.focus({preventScroll:true});}
   function keyDown(event){
     if(commands.onKeyDown(event))return;
@@ -94,7 +94,7 @@ export function WorkspaceComposer({className = '', inputRef, id = 'message-input
     inputProps.onKeyDown?.(event);
     if(!event.defaultPrevented&&event.key==='Enter'&&!event.shiftKey&&!event.nativeEvent.isComposing&&event.keyCode!==229)submit(event);
   }
-  return <form ref={form} className={`composer ${className}`} onSubmit={submit}>
+  return <form ref={form} hidden={hidden} className={`composer ${className}`} onSubmit={submit}>
     <div className="nubi-composer-surface">
     {evidenceControl}
     {draft.selection&&<div className="nubi-command-chip-row" role="group" aria-label="선택한 명령 또는 스킬"><CxButton type="button" className="nubi-command-chip" aria-label={draft.selection.title} aria-description="두 번 누르거나 Delete 키로 선택 해제" title="두 번 누르면 선택 해제" onDoubleClick={clearCommand} onKeyDown={event=>{if(['Enter',' ','Delete','Backspace'].includes(event.key)){event.preventDefault();event.stopPropagation();clearCommand();}}}>{draft.selection.icon==='terminal'?<TerminalMark size={17}/>:<Icon name={draft.selection.icon} size={17}/>}<span>{draft.selection.title}</span></CxButton></div>}
@@ -106,6 +106,6 @@ export function WorkspaceComposer({className = '', inputRef, id = 'message-input
       requestAnimationFrame(() => inputRef.current?.focus());
     }} aria-label={expanded?'접기':'더 보기'} title={expanded?'입력 접기':'입력 펼치기'}><Icon name={expanded?'chevronUp':'chevronDown'} size={16}/></CxButton>}{onStop ? <>{value.trim()&&<CxButton type="submit" variant="primary" data-icon-only aria-label="대기열에 추가" title="대기열에 추가" disabled={cannotSend}><Icon name="arrowUp" size={20}/></CxButton>}<CxButton type="button" className="nubi-composer-stop" data-icon-only aria-label="중지" title="작업 중지" onClick={onStop}><span className="stop-symbol" aria-hidden="true"/></CxButton></> : <CxButton type="submit" variant="primary" data-icon-only aria-label={sending?"요청 접수 중":"전송"} title={sending?"요청 접수 중":"전송"} disabled={cannotSend}>{sending?<span className="status-spinner" aria-hidden="true"/>:<Icon name="arrowUp" size={20}/>}</CxButton>}</>}/>
     </div>
-    {commands.popup}
+    {!hidden&&commands.popup}
   </form>;
 }
