@@ -1,0 +1,28 @@
+{
+  "id": "C21-price-validation",
+  "title": "입력 검증 추가",
+  "suite": "edit",
+  "split": "dev",
+  "corpus": "order-service",
+  "request": "주문 항목의 가격이 0 이상의 정수가 아니면 createOrder가 'invalid_price' 오류를 내게 해 줘. 금액은 원 단위 정수만 받아.",
+  "approvals": [
+    "patch"
+  ],
+  "expect": {
+    "state": "review",
+    "test": {
+      "files": {
+        "test/eval-hidden.test.mjs": "import {test} from 'node:test';\nimport assert from 'node:assert/strict';\nimport {createOrder} from '../src/order.mjs';\n\ntest('hidden check', async () => {\n  for (const price of [-1, 10.5, '1000', null]) assert.throws(() => createOrder({items: [{price, quantity: 1}]}), /invalid_price/);\n  assert.equal(createOrder({items: [{price: 0, quantity: 1}]}).subtotal, 0);\n});\n"
+      },
+      "command": [
+        "node",
+        "--test",
+        "test/eval-hidden.test.mjs"
+      ]
+    },
+    "unchanged_except": [
+      "src/order.mjs",
+      "test/order.test.mjs"
+    ]
+  }
+}

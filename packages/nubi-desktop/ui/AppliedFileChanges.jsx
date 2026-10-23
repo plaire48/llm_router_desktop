@@ -3,6 +3,7 @@ import {CxButton,Icon} from '@e2e/cx-design-system';
 import {DriftLabel} from './DriftLabel.jsx';
 import {FileKindIcon} from './FileKindIcon.jsx';
 import {notifyWorkspaceToast} from './WorkspaceToast.jsx';
+import {TaskRevert} from './TaskRevert.jsx';
 
 function Counts({stats}){return stats?.state==='counted'?<span className="nubi-applied-counts" aria-label={`추가 ${stats.added}줄, 삭제 ${stats.removed}줄`}><span>+{stats.added}</span><span>−{stats.removed}</span></span>:null;}
 export function AppliedFileChanges({api,taskId,receipts,onOpen}){
@@ -34,6 +35,7 @@ export function AppliedFileChanges({api,taskId,receipts,onOpen}){
       </CxButton>)}
       {files.length>3&&<CxButton className="nubi-applied-more" aria-expanded={all} onClick={()=>setAll(value=>!value)}><span>{all?'접기':`파일 ${files.length-3}개 더 보기`}</span><Icon name={all?'chevronUp':'chevronRight'} size={16}/></CxButton>}
       {packet?.truncated&&<p>먼저 100개 파일을 표시해요.</p>}
+      {!loading&&<TaskRevert api={api} taskId={taskId} revision={revision}/>}
     </div>}
   </section>;
 }

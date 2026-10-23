@@ -26,12 +26,13 @@ test('default selection uses catalog windows and explicit IDs cannot bypass the 
   assert.equal(diagnostics[0].modelLimits.contextLength,22000);
 });
 
-test('the case set has twenty-nine valid cases split twenty to nine',async()=>{
+// 2026-10-23: seventeen edit cases C6-C22 added for the code-30 coding set (eval/code-30), ten dev and seven holdout.
+test('the case set has forty-six valid cases split thirty to sixteen',async()=>{
   const cases=await loadCases({includeDiagnostics:true});
-  assert.equal(cases.length,29);
-  assert.equal(cases.filter(item=>item.split==='dev').length,20);assert.equal(cases.filter(item=>item.split==='holdout').length,9);
+  assert.equal(cases.length,46);
+  assert.equal(cases.filter(item=>item.split==='dev').length,30);assert.equal(cases.filter(item=>item.split==='holdout').length,16);
   const count=suite=>cases.filter(item=>item.suite===suite).length;
-  assert.deepEqual([count('wiki'),count('source'),count('edit'),count('document'),count('conversation'),count('command')],[6,5,5,3,4,6]);
+  assert.deepEqual([count('wiki'),count('source'),count('edit'),count('document'),count('conversation'),count('command')],[6,5,22,3,4,6]);
   for(const suite of ['wiki','source','edit','document','conversation','command'])assert.ok(cases.some(item=>item.suite===suite&&item.split==='holdout'),suite+' has a holdout case');
 });
 
@@ -200,4 +201,14 @@ test('the provider case accepts the display name of AI Pro and still needs the c
   assert.ok(accepts(await readFile(new URL('./recorded/W4-S28.txt',import.meta.url),'utf8')),'S28 is accepted');
   assert.ok(!accepts('선택 가능한 제공자는 14개이고 AI Pro와 FabriX가 있습니다.'),'a wrong count is refused');
   assert.ok(!accepts('선택 가능한 제공자는 17개입니다. Wiki에 없는 것은 FabriX입니다.'),'AI Pro must be named');
+});
+// A new case file may carry the synthetic- prefix the upload safety check expects of new evaluation data (2026-10-23).
+test('a case file is named after its id, with or without the synthetic- prefix',async()=>{
+  const {mkdtemp,writeFile}=await import('node:fs/promises'),os=await import('node:os'),path=await import('node:path');
+  const directory=await mkdtemp(path.join(os.tmpdir(),'nubi-cases-'));removeLater(directory);
+  const value={id:'C99-name-check',title:'이름',suite:'edit',split:'dev',corpus:'order-service',request:'고쳐 줘',expect:{state:'review'}};
+  await writeFile(path.join(directory,'synthetic-C99-name-check.json'),JSON.stringify(value));
+  assert.deepEqual((await loadCases({directory})).map(item=>item.id),['C99-name-check']);
+  await writeFile(path.join(directory,'other-C99-name-check.json'),JSON.stringify({...value,id:'C98-name-check'}));
+  await assert.rejects(loadCases({directory}),/file_name/);
 });

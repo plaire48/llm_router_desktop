@@ -37,7 +37,7 @@ import {pathToFileURL} from 'node:url';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {searchSource} from './source-search.mjs';
-import {checkCodeQuality,requireCodeQuality,codeOutline} from './code-quality.mjs';
+import {checkCodeQuality,requireCodeQuality,codeOutline,checkTypes} from './code-quality.mjs';
 import {inspectCode} from './code-intelligence.mjs';
 import {inspectDevServer} from './development-server.mjs';
 import {disposeDevelopmentBrowser} from './browser-agent-host.mjs';
@@ -58,6 +58,7 @@ import {startSideTask,dismissSideTask} from './side-tasks.mjs';
 import {storeCaptures,readCapture} from './captures.mjs';
 import {importDocumentSelection,readChatDocument,validateDocuments} from './chat-documents.mjs';
 import {inspectWorkspaceChanges} from './workspace-changes.mjs';
+import {checkpointBefore} from './checkpoints.mjs';
 
 const exec = promisify(execFile);
 const id = () => randomUUID();
@@ -221,7 +222,7 @@ export class ProjectService {
   }
   async inspectPath({taskId,path}) {return inspectNewPath(await this.target(taskId),path);}
   async proposeNewFile(args) {return proposeNewFile.call(this,args);}
-  async applyNewFile(args) {const result=await applyNewFile.call(this,args);const proposal=this.store.get('proposal:'+args.proposalId);if(proposal?.state==='applied'){await queueAfterEditCheck(this,proposal.taskId);const origin=this.task(proposal.taskId).origin;if(origin?.kind==='workflow_step')queueMicrotask(()=>this.workflowRunner?.notify(origin.runId).catch(()=>{}));}return result;}
+  async applyNewFile(args) {const pending=this.store.get('proposal:'+args?.proposalId);if(pending?.kind==='create'&&pending.state==='proposed')await checkpointBefore(this,pending.taskId,'before_new_file',{proposalId:pending.id});const result=await applyNewFile.call(this,args);const proposal=this.store.get('proposal:'+args.proposalId);if(proposal?.state==='applied'){await queueAfterEditCheck(this,proposal.taskId);const origin=this.task(proposal.taskId).origin;if(origin?.kind==='workflow_step')queueMicrotask(()=>this.workflowRunner?.notify(origin.runId).catch(()=>{}));}return result;}
   async search(args) { return searchSource.call(this,args); }
   async codeOutline(args) { this.ready();return codeOutline.call(this,args); }
   async inspectCode(args) { this.ready();return inspectCode.call(this,args); }
@@ -360,16 +361,17 @@ export class ProjectService {
     const rules=await projectRules(root,rel);await validateProjectRules(root,rel,rulesFingerprint);
     if (current.hash !== expectedHash) fail('source_stale');
     const quality=await checkCodeQuality(rel,current.content,content,{signal});requireCodeQuality(quality);
+    const typeCheck=await checkTypes(root,rel,current.content,content,{signal});
     if(signal?.aborted)fail('cancelled');
     await validateProjectRules(root,rel,rules.fingerprint);
     if((await readSource(root,rel)).hash!==expectedHash)fail('source_stale');
-    const previous=this.store.list('proposal:').find(p=>p.taskId===taskId&&p.path===rel&&p.expectedHash===expectedHash&&p.rulesFingerprint===rules.fingerprint&&p.afterHash===hash(content)&&p.state==='proposed');if(previous){previous.sourceChanged=false;previous.mergeConflicted=false;previous.quality=quality;this.store.set('proposal:'+previous.id,previous);return {...previous,reused:true};}
+    const previous=this.store.list('proposal:').find(p=>p.taskId===taskId&&p.path===rel&&p.expectedHash===expectedHash&&p.rulesFingerprint===rules.fingerprint&&p.afterHash===hash(content)&&p.state==='proposed');if(previous){previous.sourceChanged=false;previous.mergeConflicted=false;previous.quality=quality;previous.typeCheck=typeCheck;this.store.set('proposal:'+previous.id,previous);return {...previous,reused:true};}
     const key = id(), folder = path.join(this.store.directory, 'proposals', key); await mkdir(folder, {recursive: true});
     const before = path.join(folder, 'before' + path.extname(rel)), after = path.join(folder, 'after' + path.extname(rel));
     await writeFile(before, current.content); await writeFile(after, content);
     // The run that proposed it: a command proposed later in the same run waits for it (setup-actions.mjs).
     const runId=this.agent?.running&&this.agent.taskId===taskId?this.agent.runId:undefined;
-    const proposal = {id: key, taskId, path: rel, rulesFingerprint:rules.fingerprint, expectedHash, afterHash: hash(content), before, after, content, quality, stats: summarizeDiff(current.content, content), reason: String(reason).slice(0, 2000), state: 'proposed', createdAt: new Date().toISOString(),...(runId?{runId}:{})};
+    const proposal = {id: key, taskId, path: rel, rulesFingerprint:rules.fingerprint, expectedHash, afterHash: hash(content), before, after, content, quality, typeCheck, stats: summarizeDiff(current.content, content), reason: String(reason).slice(0, 2000), state: 'proposed', createdAt: new Date().toISOString(),...(runId?{runId}:{})};
     this.store.set('proposal:' + key, proposal);
     // Only the newest proposal of a file can be applied: an older open one of the task is superseded.
     for(const older of this.store.list('proposal:').filter(p=>p.id!==key&&p.taskId===taskId&&p.path===rel&&p.state==='proposed'))this.store.set('proposal:'+older.id,{...older,state:'superseded'});
@@ -400,7 +402,7 @@ export class ProjectService {
     if (proposal.state === 'applied' && current.hash !== proposal.afterHash) fail('applied_changed');
     if(current.hash===proposal.afterHash)return {...await this.confirmProposal({proposalId}),alreadyApplied:true,uri:pathToFileURL(path.join(root,proposal.path)).href};
     if (proposal.state !== 'applied' && current.hash !== proposal.expectedHash){this.store.set('proposal:'+proposalId,{...proposal,sourceChanged:true});fail('source_stale');}
-    if(proposal.state!=='applied'){proposal.quality=await checkCodeQuality(proposal.path,current.content,proposal.content);if(this.store.get('proposal:'+proposalId)?.state!=='proposed')fail('proposal_missing');this.store.set('proposal:'+proposalId,proposal);requireCodeQuality(proposal.quality);}
+    if(proposal.state!=='applied'){proposal.quality=await checkCodeQuality(proposal.path,current.content,proposal.content);if(this.store.get('proposal:'+proposalId)?.state!=='proposed')fail('proposal_missing');this.store.set('proposal:'+proposalId,proposal);requireCodeQuality(proposal.quality);await checkpointBefore(this,proposal.taskId,'before_edit',{proposalId});}
     return {...proposal, alreadyApplied: proposal.state === 'applied', uri: pathToFileURL(path.join(root, proposal.path)).href, beforeUri: pathToFileURL(proposal.before).href, afterUri: pathToFileURL(proposal.after).href};
   }
   async confirmProposal({proposalId}) {
@@ -442,6 +444,7 @@ export class ProjectService {
     if(this.appUpdateLocked)fail('update_installing');
     if(method==='prepareAppUpdate')return this.prepareAppUpdate();
     const allowed = new Set(['importBlueprint','importE2eTask','listWorkflows','validateWorkflow','dryRunWorkflow','startWorkflow','workflowRun','cancelWorkflow','resumeWorkflow','editorLink','liveEditor','reviseNativeOfficeDraft','nativeOfficeStatus','importDocumentSelection','chatDocument','capture','captureWorkspace','previewFile','browseDirectory','terminalCommand','projectPath','proposalText','artifactText','initializeWiki','wikiInitialization','saveSource','commitHistory','mailDocument','mail','wikiUpdate','analysisHistory','memories','listSkills','removeSkill','skillMarketplace','connectSkillMarketplace','disconnectSkillMarketplace','importSkill','importVoc','queryVoc','readVoc','computer','applyNewFile','decideSetupAction','collaboration','codeOutline','recoverySnapshot','resumeAgent','diagnoseProcess','applyCommandRepair','knowledgeMap','knowledgeQuery','initializeKnowledgeCatalog','exportKnowledgeMap','databaseConnection','open','knowledgeStatus','recordKnowledge','comparison','connectKnowledge','overview','state','setShellPreference','read','search','wikiQuery','createTask','exportConversation','taskUsage','listRoutines','saveRoutine','deleteRoutine','runRoutineNow','exportRequirement','createWorktree','propose','prepareProposal','proposalArtifacts','confirmProposal','mergeProposal','diff','run','exportReport','compare','provider','fabrix','agentInput','startAgent','answerAgent','saveQuestionDraft','stopAgent','deleteTask','approvalPolicy','setApprovalMode','allowCommand','removeAllowedCommand','autoApprovals']);
+    for(const name of ['checkpoints','revertCheckpoint','undoRevert'])allowed.add(name);
     allowed.add('routineNotice');allowed.add('acknowledgeRoutineNotice');allowed.add('wikiCoverage');allowed.add('browserTeach');allowed.add('documentForm');allowed.add('registerWorkflowRoutine');allowed.add('listRoutineWorkflows');allowed.add('resolveRoutinePromotion');allowed.add('wikiGeneration');allowed.add('wikiLifecycle');allowed.add('inspectCode');allowed.add('inspectDevServer');allowed.add('mcp');allowed.add('removeAllowedMcpTool');allowed.add('rejectCommandRepair');allowed.add('cancelProposal');allowed.add('gitAvailability');allowed.add('conversationHistory');allowed.add('usage');for(const method of ['setAfterEditCheck','retryAfterEditCheck','startSideTask','dismissSideTask','markTaskRead','archiveTask','setAutoArchiveDays','setPinnedTasks'])allowed.add(method);allowed.add('editorSource');allowed.add('regenerateAnswer');allowed.add('skillTrash');
     if (method === 'poll') { this.ready(); return this.processes.poll(args.id); }
     if (method === 'stop') { this.ready(); return this.processes.stop(args.id); }

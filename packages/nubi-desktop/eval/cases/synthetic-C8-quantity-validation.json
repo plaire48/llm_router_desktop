@@ -1,0 +1,28 @@
+{
+  "id": "C8-quantity-validation",
+  "title": "입력 검증 추가",
+  "suite": "edit",
+  "split": "holdout",
+  "corpus": "order-service",
+  "request": "주문 항목의 수량이 1 이상의 정수가 아니면 createOrder가 'invalid_quantity' 오류를 내게 해 줘.",
+  "approvals": [
+    "patch"
+  ],
+  "expect": {
+    "state": "review",
+    "test": {
+      "files": {
+        "test/eval-hidden.test.mjs": "import {test} from 'node:test';\nimport assert from 'node:assert/strict';\nimport {createOrder} from '../src/order.mjs';\n\ntest('hidden check', async () => {\n  for (const quantity of [0, -1, 1.5, '2']) assert.throws(() => createOrder({items: [{price: 1000, quantity}]}), /invalid_quantity/);\n  assert.equal(createOrder({items: [{price: 1000, quantity: 2}]}).subtotal, 2000);\n  assert.throws(() => createOrder({items: []}), /empty_order/);\n});\n"
+      },
+      "command": [
+        "node",
+        "--test",
+        "test/eval-hidden.test.mjs"
+      ]
+    },
+    "unchanged_except": [
+      "src/order.mjs",
+      "test/order.test.mjs"
+    ]
+  }
+}

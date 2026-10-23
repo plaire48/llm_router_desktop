@@ -1,0 +1,29 @@
+{
+  "id": "C16-retry-max-delay",
+  "title": "재시도 간격 상한",
+  "suite": "edit",
+  "split": "dev",
+  "corpus": "cache-retry",
+  "request": "재시도 대기 시간이 1초(1000ms)를 넘지 않게 해 줘. 지금처럼 100ms에서 두 배씩 늘어나.",
+  "approvals": [
+    "patch"
+  ],
+  "expect": {
+    "state": "review",
+    "test": {
+      "files": {
+        "test/eval-hidden.test.mjs": "import {test} from 'node:test';\nimport assert from 'node:assert/strict';\nimport {withRetry} from '../src/retry.mjs';\n\ntest('hidden check', async () => {\n  const delays = [];\n  await assert.rejects(withRetry(async () => { throw Object.assign(Error('x'), {retryable: true}); }, {retries: 5, sleep: async ms => delays.push(ms)}));\n  assert.deepEqual(delays, [100, 200, 400, 800, 1000]);\n});\n"
+      },
+      "command": [
+        "node",
+        "--test",
+        "test/eval-hidden.test.mjs"
+      ]
+    },
+    "unchanged_except": [
+      "src/retry.mjs",
+      "test/boundaries.mjs",
+      "README.md"
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "id": "C13-status-history",
+  "title": "불변 객체 갱신",
+  "suite": "edit",
+  "split": "holdout",
+  "corpus": "order-service",
+  "request": "move로 상태를 바꿀 때마다 주문의 history 배열에 {from, to}를 순서대로 남겨 줘. 원래 주문 객체는 바꾸지 마.",
+  "approvals": [
+    "patch"
+  ],
+  "expect": {
+    "state": "review",
+    "test": {
+      "files": {
+        "test/eval-hidden.test.mjs": "import {test} from 'node:test';\nimport assert from 'node:assert/strict';\nimport {move} from '../src/status.mjs';\n\ntest('hidden check', async () => {\n  const order = {status: 'received'};\n  const paid = move(order, 'paid');\n  const shipped = move(paid, 'shipped');\n  assert.deepEqual(shipped.history, [{from: 'received', to: 'paid'}, {from: 'paid', to: 'shipped'}]);\n  assert.deepEqual(paid.history, [{from: 'received', to: 'paid'}]);\n  assert.equal(order.history, undefined);\n  assert.equal(order.status, 'received');\n});\n"
+      },
+      "command": [
+        "node",
+        "--test",
+        "test/eval-hidden.test.mjs"
+      ]
+    },
+    "unchanged_except": [
+      "src/status.mjs",
+      "test/order.test.mjs",
+      "test/status.test.mjs",
+      "openwiki/concepts/order-status.md"
+    ]
+  }
+}

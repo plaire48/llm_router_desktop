@@ -95,7 +95,10 @@ export async function evaluate({providers,cases,trials=1,outputDir,limits=EVALUA
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
   const option=name=>{const index=process.argv.indexOf('--'+name);return index>0?process.argv[index+1]:undefined;};
   const {connectRelayProviders,defaultSocketPath}=await import('./relay.mjs');
-  const split=option('split'),cases=await loadCases({ids:option('cases')?.split(','),suites:option('suites')?.split(','),...(split&&split!=='all'?{split}:{})});
+  // --set code-30: the coding set (opencode benchmark item 10, 2026-10-23), listed in eval/code-30/synthetic-cases.json.
+  const {readFile}=await import('node:fs/promises');
+  const set=option('set')?JSON.parse(await readFile(path.join(root,'eval',option('set'),'synthetic-cases.json'),'utf8').catch(()=>{console.error('과제 묶음을 찾지 못했습니다: '+option('set'));process.exit(2);})):undefined;
+  const split=option('split'),cases=await loadCases({ids:option('cases')?.split(',')||set,suites:option('suites')?.split(','),...(split&&split!=='all'?{split}:{})});
   if(!cases.length){console.error('조건에 맞는 과제가 없습니다.');process.exit(2);}
   const outputDir=path.resolve(option('out')||path.join(root,'verification','eval-live',new Date().toISOString().replace(/[:.]/g,'-')));
   let providers;

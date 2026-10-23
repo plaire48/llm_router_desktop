@@ -4,7 +4,7 @@ import {randomUUID} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
 import {relativeFile,fail,readSource,hash} from './files.mjs';
 import {projectRules,validateProjectRules} from './project-rules.mjs';
-import {checkCodeQuality,requireCodeQuality} from './code-quality.mjs';
+import {checkCodeQuality,requireCodeQuality,checkTypes} from './code-quality.mjs';
 import {summarizeDiff} from './source-edits.mjs';
 
 export async function inspectNewPath(root,rel) {
@@ -23,14 +23,15 @@ export async function proposeNewFile({taskId,path:rel,content,reason='',signal,r
   const root=await this.target(taskId),observed=await inspectNewPath(root,rel);
   await validateProjectRules(root,rel,rulesFingerprint);
   const quality=await checkCodeQuality(rel,'',content,{signal});requireCodeQuality(quality);
+  const typeCheck=await checkTypes(root,rel,'',content,{signal});
   if(signal?.aborted)fail('cancelled');
   await inspectNewPath(root,rel);await validateProjectRules(root,rel,observed.projectRules.fingerprint);
-  const previous=this.store.list('proposal:').find(p=>p.taskId===taskId&&p.path===rel&&p.kind==='create'&&p.afterHash===hash(content)&&p.rulesFingerprint===observed.projectRules.fingerprint&&p.state==='proposed');if(previous)return previous;
+  const previous=this.store.list('proposal:').find(p=>p.taskId===taskId&&p.path===rel&&p.kind==='create'&&p.afterHash===hash(content)&&p.rulesFingerprint===observed.projectRules.fingerprint&&p.state==='proposed');if(previous)return {...previous,typeCheck};
   const id=randomUUID(),folder=path.join(this.store.directory,'proposals',id);await mkdir(folder,{recursive:true});
   const before=path.join(folder,'before'+path.extname(rel)),after=path.join(folder,'after'+path.extname(rel));
   await writeFile(before,'');await writeFile(after,content);
   const runId=this.agent?.running&&this.agent.taskId===taskId?this.agent.runId:undefined;
-  const proposal={id,taskId,path:rel,kind:'create',expectedHash:'absent',afterHash:hash(content),before,after,content,reason:String(reason).slice(0,2000),quality,stats:summarizeDiff('',content),rulesFingerprint:observed.projectRules.fingerprint,state:'proposed',createdAt:new Date().toISOString(),...(runId?{runId}:{})};
+  const proposal={id,taskId,path:rel,kind:'create',expectedHash:'absent',afterHash:hash(content),before,after,content,reason:String(reason).slice(0,2000),quality,typeCheck,stats:summarizeDiff('',content),rulesFingerprint:observed.projectRules.fingerprint,state:'proposed',createdAt:new Date().toISOString(),...(runId?{runId}:{})};
   this.store.set('proposal:'+id,proposal);
   // Only the newest proposal of a file can be applied: an older open one of the task is superseded.
   for(const older of this.store.list('proposal:').filter(p=>p.id!==id&&p.taskId===taskId&&p.path===rel&&p.state==='proposed'))this.store.set('proposal:'+older.id,{...older,state:'superseded'});

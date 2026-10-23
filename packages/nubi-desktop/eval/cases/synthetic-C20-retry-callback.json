@@ -1,0 +1,29 @@
+{
+  "id": "C20-retry-callback",
+  "title": "콜백 옵션 추가",
+  "suite": "edit",
+  "split": "dev",
+  "corpus": "cache-retry",
+  "request": "withRetry 옵션에 onRetry(attempt, error) 콜백을 추가해 줘. 다시 시도하기 직전에 한 번씩 부르고, 실패한 시도 번호(0부터)와 오류를 넘겨.",
+  "approvals": [
+    "patch"
+  ],
+  "expect": {
+    "state": "review",
+    "test": {
+      "files": {
+        "test/eval-hidden.test.mjs": "import {test} from 'node:test';\nimport assert from 'node:assert/strict';\nimport {withRetry} from '../src/retry.mjs';\n\ntest('hidden check', async () => {\n  const seen = [];\n  let attempts = 0;\n  const result = await withRetry(async () => { if (attempts++ < 2) throw Object.assign(Error('e' + attempts), {retryable: true}); return 9; }, {sleep: async () => {}, onRetry: (attempt, error) => seen.push([attempt, error.message])});\n  assert.equal(result, 9);\n  assert.deepEqual(seen, [[0, 'e1'], [1, 'e2']]);\n  assert.equal(await withRetry(async () => 1), 1);\n});\n"
+      },
+      "command": [
+        "node",
+        "--test",
+        "test/eval-hidden.test.mjs"
+      ]
+    },
+    "unchanged_except": [
+      "src/retry.mjs",
+      "test/boundaries.mjs",
+      "README.md"
+    ]
+  }
+}

@@ -1,4 +1,5 @@
 // Classification only. Existing host approval and execution contracts remain authoritative.
+export function commandSegments(script){return segments(script);}
 function segments(script){
  const result=[],words=[];let word='',quote=null,started=false;
  const flush=()=>{if(started)words.push(word);word='';started=false;};

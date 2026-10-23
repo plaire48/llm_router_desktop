@@ -1,0 +1,29 @@
+{
+  "id": "C19-cache-max-entries",
+  "title": "용량 제한",
+  "suite": "edit",
+  "split": "holdout",
+  "corpus": "cache-retry",
+  "request": "createCache에 세 번째 인자로 {maxEntries}를 받아서, 넘치면 가장 먼저 넣은 항목부터 지우게 해 줘. 지정하지 않으면 지금처럼 제한이 없어.",
+  "approvals": [
+    "patch"
+  ],
+  "expect": {
+    "state": "review",
+    "test": {
+      "files": {
+        "test/eval-hidden.test.mjs": "import {test} from 'node:test';\nimport assert from 'node:assert/strict';\nimport {createCache} from '../src/cache.mjs';\n\ntest('hidden check', async () => {\n  const cache = createCache(1000, () => 0, {maxEntries: 2});\n  cache.set('a', 1); cache.set('b', 2); cache.set('c', 3);\n  assert.equal(cache.get('a'), undefined);\n  assert.equal(cache.get('b'), 2);\n  assert.equal(cache.get('c'), 3);\n  const open = createCache(1000, () => 0);\n  for (let i = 0; i < 50; i++) open.set('k' + i, i);\n  assert.equal(open.get('k0'), 0);\n});\n"
+      },
+      "command": [
+        "node",
+        "--test",
+        "test/eval-hidden.test.mjs"
+      ]
+    },
+    "unchanged_except": [
+      "src/cache.mjs",
+      "test/boundaries.mjs",
+      "README.md"
+    ]
+  }
+}

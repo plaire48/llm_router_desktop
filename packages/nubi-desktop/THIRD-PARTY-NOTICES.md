@@ -125,6 +125,17 @@ The captured-cell worker includes the existing modified LibreOffice depreciation
 `packages/core/src/tool/plugin/edit.ts`): exact, normalized-punctuation and trailing-whitespace matching on the LF view,
 and line endings taken from the matched region.
 
+Also adapted from the same commit:
+
+- `runtime/tool-output.mjs`: oversized tool output (`packages/core/src/tool-output.ts`), head within 2000 lines and 50 KiB
+  plus a retained full-output file.
+- `runtime/command-prefix.mjs`: command prefixes for always-allow rules (`packages/core/src/shell/parse.ts` ARITY and
+  prefix, `packages/core/src/util/wildcard.ts`).
+- `runtime/snapshot.mjs`: shadow Git snapshots (`packages/core/src/snapshot.ts`, tree capture, diff and restore in
+  `packages/core/src/git.ts`) and step revert (`packages/core/src/session/revert.ts`).
+- `eval/replay.mjs`: recorded model call replay (`packages/http-recorder/src/http/matching.ts`): first unused match and
+  request differences.
+
 MIT License
 
 Copyright (c) 2025 opencode

@@ -1,0 +1,29 @@
+{
+  "id": "C7-island-extra-fee",
+  "title": "지역별 추가 요금",
+  "suite": "edit",
+  "split": "dev",
+  "corpus": "order-service",
+  "request": "도서 지역(island) 추가 배송비를 6,000원으로 올려 줘. 제주는 지금처럼 4,500원이야.",
+  "approvals": [
+    "patch"
+  ],
+  "expect": {
+    "state": "review",
+    "test": {
+      "files": {
+        "test/eval-hidden.test.mjs": "import {test} from 'node:test';\nimport assert from 'node:assert/strict';\nimport {shippingFee} from '../src/shipping.mjs';\nimport {exportRow} from '../src/legacy/export.mjs';\n\ntest('hidden check', async () => {\n  assert.equal(shippingFee(10000, 'island'), 9000);\n  assert.equal(shippingFee(60000, 'island'), 6000);\n  assert.equal(shippingFee(10000, 'jeju'), 7500);\n  assert.equal(shippingFee(10000, 'seoul'), 3000);\n  assert.equal(exportRow({total: 1, shipping: 1, status: 'received'}, 'island'), '1,1,4500,received');\n});\n"
+      },
+      "command": [
+        "node",
+        "--test",
+        "test/eval-hidden.test.mjs"
+      ]
+    },
+    "unchanged_except": [
+      "src/shipping.mjs",
+      "test/shipping.test.mjs",
+      "openwiki/concepts/shipping-policy.md"
+    ]
+  }
+}

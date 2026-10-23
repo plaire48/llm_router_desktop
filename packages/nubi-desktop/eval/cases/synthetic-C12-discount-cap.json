@@ -1,0 +1,29 @@
+{
+  "id": "C12-discount-cap",
+  "title": "상한 추가",
+  "suite": "edit",
+  "split": "dev",
+  "corpus": "order-service",
+  "request": "할인 금액이 50,000원을 넘지 않게 해 줘. 할인 후 금액은 지금처럼 10원 단위로 내림해.",
+  "approvals": [
+    "patch"
+  ],
+  "expect": {
+    "state": "review",
+    "test": {
+      "files": {
+        "test/eval-hidden.test.mjs": "import {test} from 'node:test';\nimport assert from 'node:assert/strict';\nimport {applyDiscount} from '../src/discount.mjs';\n\ntest('hidden check', async () => {\n  assert.equal(applyDiscount(1000000, 'vip'), 950000);\n  assert.equal(applyDiscount(10000, 'gold'), 9300);\n  assert.equal(applyDiscount(12345, 'silver'), 11970);\n  assert.equal(applyDiscount(500005, 'vip'), 450000);\n});\n"
+      },
+      "command": [
+        "node",
+        "--test",
+        "test/eval-hidden.test.mjs"
+      ]
+    },
+    "unchanged_except": [
+      "src/discount.mjs",
+      "test/discount.test.mjs",
+      "openwiki/concepts/discount-policy.md"
+    ]
+  }
+}

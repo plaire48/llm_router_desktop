@@ -1,0 +1,30 @@
+{
+  "id": "C14-coupon-new-file",
+  "title": "새 모듈",
+  "suite": "edit",
+  "split": "dev",
+  "corpus": "order-service",
+  "request": "src/coupon.mjs에 applyCoupon(amount, code) 함수를 새로 만들어 줘. WELCOME10은 10% 할인(10원 단위 내림), FLAT3000은 3,000원 할인(0원 아래로는 내려가지 않음), 모르는 코드는 'unknown_coupon' 오류를 내.",
+  "approvals": [
+    "new_file",
+    "patch"
+  ],
+  "expect": {
+    "state": "review",
+    "test": {
+      "files": {
+        "test/eval-hidden.test.mjs": "import {test} from 'node:test';\nimport assert from 'node:assert/strict';\nimport {applyCoupon} from '../src/coupon.mjs';\n\ntest('hidden check', async () => {\n  assert.equal(applyCoupon(12345, 'WELCOME10'), 11110);\n  assert.equal(applyCoupon(10000, 'FLAT3000'), 7000);\n  assert.equal(applyCoupon(2000, 'FLAT3000'), 0);\n  assert.throws(() => applyCoupon(1000, 'NOPE'), /unknown_coupon/);\n});\n"
+      },
+      "command": [
+        "node",
+        "--test",
+        "test/eval-hidden.test.mjs"
+      ]
+    },
+    "unchanged_except": [
+      "src/coupon.mjs",
+      "test/coupon.test.mjs",
+      "openwiki/architecture/modules.md"
+    ]
+  }
+}

@@ -9,7 +9,8 @@
 import {readFile} from 'node:fs/promises';
 import path from 'node:path';
 import {fail} from './files.mjs';
-import {irreversibleCommand,irreversibleProposal} from './irreversible-actions.mjs';
+import {irreversibleCommand,irreversibleProposal,commandSegments} from './irreversible-actions.mjs';
+import {allowPattern,wildcardMatch} from './command-prefix.mjs';
 
 export const APPROVAL_MODES=Object.freeze(['ask','edits','commands']);
 const KEY='setting:approvals',ALLOWED_LIMIT=100;
@@ -28,15 +29,36 @@ export function setApprovalMode(store,mode){
   if(!APPROVAL_MODES.includes(mode))fail('approval_mode_invalid');
   store.set(KEY,{...approvalPolicy(store),mode});return approvalPolicy(store);
 }
-export const commandAllowed=(policy,{profile,script})=>policy.allowedCommands.some(item=>item.profile===profile&&item.script===plain(script));
-// "Always allow" keeps the exact command for its shell. It never covers an administrator command.
+// Always-allow prefixes adopted from opencode (packages/core/src/shell/parse.ts, permission.ts at d93568f3; user request
+// 2026-10-23): allowing a command also saves the deciding words of each subcommand ("npm run test *"). A later command
+// runs by itself only when every subcommand matches a saved prefix of the same shell and it is not irreversible. A line
+// with substitution, redirection, escapes or grouping is not read, so only its exact text can be allowed, and deletion
+// and privilege programs never get a prefix.
+const UNREAD=/[`$<>()\\{}]/;
+const NEVER_GENERAL=new Set(['rm','rmdir','del','erase','rd','ri','remove-item','sudo','su','doas','runas','dd','mkfs','format','diskpart','shutdown','reboot','kill','killall','taskkill','stop-process','chmod','chown','icacls','takeown']);
+const program=word=>String(word||'').split(/[\\/]/).at(-1).toLowerCase().replace(/\.(?:exe|cmd|bat)$/,'');
+export function commandScan(script){
+  const text=plain(script);
+  if(!text||UNREAD.test(text))return null;
+  const parts=commandSegments(text);
+  return parts.length?parts.map(words=>({resource:words.join(' '),save:NEVER_GENERAL.has(program(words[0]))?null:allowPattern(words)})):null;
+}
+const prefixAllowed=(policy,{profile,script})=>{
+  const scan=commandScan(script);
+  if(!scan||irreversibleCommand(script).matched)return false;
+  const patterns=policy.allowedCommands.filter(item=>item.profile===profile).flatMap(item=>Array.isArray(item.patterns)?item.patterns:[]);
+  return patterns.length>0&&scan.every(part=>part.save!==null&&patterns.some(pattern=>wildcardMatch(part.resource,pattern)));
+};
+export const commandAllowed=(policy,{profile,script})=>policy.allowedCommands.some(item=>item.profile===profile&&item.script===plain(script))||prefixAllowed(policy,{profile,script});
+// "Always allow" keeps the exact command for its shell plus its prefixes. It never covers an administrator command.
 export function allowCommand(store,{profile,script,privilege}){
   if(privilege==='administrator')fail('approval_administrator');
   if(typeof profile!=='string'||!profile||!plain(script)||plain(script).length>16000)fail('approval_command_invalid');
   const policy=approvalPolicy(store);
-  if(!commandAllowed(policy,{profile,script})){
+  if(!policy.allowedCommands.some(item=>item.profile===profile&&item.script===plain(script))){
     if(policy.allowedCommands.length>=ALLOWED_LIMIT)fail('approval_command_limit');
-    store.set(KEY,{...policy,allowedCommands:[...policy.allowedCommands,{profile,script:plain(script),addedAt:new Date().toISOString()}]});
+    const patterns=[...new Set((commandScan(script)||[]).map(part=>part.save).filter(Boolean))];
+    store.set(KEY,{...policy,allowedCommands:[...policy.allowedCommands,{profile,script:plain(script),patterns,addedAt:new Date().toISOString()}]});
   }
   return approvalPolicy(store);
 }

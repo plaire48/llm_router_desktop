@@ -1,0 +1,30 @@
+{
+  "id": "C22-status-label",
+  "title": "조회 함수 추가",
+  "suite": "edit",
+  "split": "holdout",
+  "corpus": "order-service",
+  "request": "주문 상태 코드를 한국어 이름으로 바꾸는 statusLabel(status) 함수를 src/status.mjs에 추가해 줘. received는 접수, paid는 결제 완료, shipped는 배송 중, delivered는 배송 완료, cancelled는 취소야. 모르는 상태는 'unknown_status' 오류를 내.",
+  "approvals": [
+    "patch"
+  ],
+  "expect": {
+    "state": "review",
+    "test": {
+      "files": {
+        "test/eval-hidden.test.mjs": "import {test} from 'node:test';\nimport assert from 'node:assert/strict';\nimport {statusLabel} from '../src/status.mjs';\n\ntest('hidden check', async () => {\n  assert.equal(statusLabel('received'), '접수');\n  assert.equal(statusLabel('paid'), '결제 완료');\n  assert.equal(statusLabel('shipped'), '배송 중');\n  assert.equal(statusLabel('delivered'), '배송 완료');\n  assert.equal(statusLabel('cancelled'), '취소');\n  assert.throws(() => statusLabel('lost'), /unknown_status/);\n  assert.throws(() => statusLabel('toString'), /unknown_status/);\n});\n"
+      },
+      "command": [
+        "node",
+        "--test",
+        "test/eval-hidden.test.mjs"
+      ]
+    },
+    "unchanged_except": [
+      "src/status.mjs",
+      "test/order.test.mjs",
+      "test/status.test.mjs",
+      "openwiki/concepts/order-status.md"
+    ]
+  }
+}

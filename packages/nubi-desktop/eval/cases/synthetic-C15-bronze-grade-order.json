@@ -1,0 +1,29 @@
+{
+  "id": "C15-bronze-grade-order",
+  "title": "표와 함수 함께",
+  "suite": "edit",
+  "split": "holdout",
+  "corpus": "order-service",
+  "request": "할인율 표에 bronze(2%) 등급을 추가하고, 할인율이 높은 순서로 등급 이름 목록을 돌려주는 gradesByRate() 함수를 src/discount.mjs에 추가해 줘.",
+  "approvals": [
+    "patch"
+  ],
+  "expect": {
+    "state": "review",
+    "test": {
+      "files": {
+        "test/eval-hidden.test.mjs": "import {test} from 'node:test';\nimport assert from 'node:assert/strict';\nimport {discountRate, gradesByRate} from '../src/discount.mjs';\n\ntest('hidden check', async () => {\n  assert.equal(discountRate('bronze'), 2);\n  assert.deepEqual(gradesByRate(), ['vip', 'gold', 'silver', 'bronze', 'normal']);\n  assert.equal(discountRate('vip'), 12);\n});\n"
+      },
+      "command": [
+        "node",
+        "--test",
+        "test/eval-hidden.test.mjs"
+      ]
+    },
+    "unchanged_except": [
+      "src/discount.mjs",
+      "test/discount.test.mjs",
+      "openwiki/concepts/discount-policy.md"
+    ]
+  }
+}

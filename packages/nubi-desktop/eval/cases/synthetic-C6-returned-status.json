@@ -1,0 +1,30 @@
+{
+  "id": "C6-returned-status",
+  "title": "주문 상태 추가",
+  "suite": "edit",
+  "split": "dev",
+  "corpus": "order-service",
+  "request": "배송된 주문을 반품할 수 있게 해 줘. shipped 다음 상태로 returned를 추가하고, returned에서는 더 바뀔 수 없어.",
+  "approvals": [
+    "patch"
+  ],
+  "expect": {
+    "state": "review",
+    "test": {
+      "files": {
+        "test/eval-hidden.test.mjs": "import {test} from 'node:test';\nimport assert from 'node:assert/strict';\nimport {canMove, move} from '../src/status.mjs';\n\ntest('hidden check', async () => {\n  assert.equal(canMove('shipped', 'returned'), true);\n  assert.equal(canMove('shipped', 'delivered'), true);\n  assert.equal(canMove('returned', 'delivered'), false);\n  assert.equal(canMove('paid', 'returned'), false);\n  assert.equal(move({status: 'shipped'}, 'returned').status, 'returned');\n});\n"
+      },
+      "command": [
+        "node",
+        "--test",
+        "test/eval-hidden.test.mjs"
+      ]
+    },
+    "unchanged_except": [
+      "src/status.mjs",
+      "test/order.test.mjs",
+      "test/status.test.mjs",
+      "openwiki/concepts/order-status.md"
+    ]
+  }
+}

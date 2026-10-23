@@ -100,3 +100,30 @@ test('deletion does not expose an older proposal for the same path to auto appro
  proposal('src/a.mjs',{kind:'patch'});proposal('src/a.mjs',{kind:'delete'});
  const safe=proposal('src/b.mjs',{kind:'patch'});assert.deepEqual((await auto()).proposals,[safe]);
 });
+// opencode always-allow prefixes (user request 2026-10-23): allowing "npm run test -- --grep a" also allows "npm run
+// test", never another script, an irreversible command, a deletion program or a line the scanner cannot read.
+test('always allow saves the deciding prefix of each subcommand and covers the same prefix later',async t=>{
+ const {service,action,auto}=await setup(t);
+ const id=action('git status --short && npm run test -- --grep a');
+ assert.deepEqual(service.allowCommand({id}).allowedCommands[0].patterns,['git status *','npm run test *']);
+ service.store.set('setup-action:'+id,{...service.store.get('setup-action:'+id),state:'done'});
+ const later=action('npm run test');
+ assert.deepEqual((await auto()).command,{kind:'setup',id:later,fingerprint:'f'+later,script:'npm run test',reason:'allowed'});
+});
+test('a prefix never covers another subcommand, an unread line, a deletion program or an irreversible command',async t=>{
+ const {service,action,auto}=await setup(t);
+ for(const script of ['git push origin main','npm run test','rm build/out.txt']){const id=action(script);service.allowCommand({id});service.store.set('setup-action:'+id,{...service.store.get('setup-action:'+id),state:'done'});}
+ assert.deepEqual(service.approvalPolicy().allowedCommands.map(item=>item.patterns),[['git push *'],['npm run test *'],[]]);
+ for(const script of ['npm run deploy','npm run test && npm run deploy','npm run test > out.txt','npm run test $(whoami)','rm other.txt','git push --force origin main']){
+  const id=action(script);
+  assert.equal((await auto()).command,null,script);
+  service.store.set('setup-action:'+id,{...service.store.get('setup-action:'+id),state:'done'});
+ }
+ const same=action('git push origin feature');assert.equal((await auto()).command?.id,same);
+});
+test('a prefix belongs to the shell it was allowed in',async t=>{
+ const {service,action,auto}=await setup(t);
+ const id=action('npm run test');service.allowCommand({id});service.store.set('setup-action:'+id,{...service.store.get('setup-action:'+id),state:'done'});
+ action('npm run test -- --grep b',{profile:'powershell'});
+ assert.equal((await auto()).command,null);
+});

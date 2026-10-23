@@ -45,7 +45,7 @@ const structuredPart=value=>{if(!value||typeof value!=='object')return undefined
 export function describeToolResult(result){
   const parts=Array.isArray(result?.content)?result.content:[];
   const text=parts.map(part=>part?.type==='text'?String(part.text??''):part?.type==='image'?`[이미지 ${part.mimeType||''}]`:part?.type==='resource'?`[리소스 ${part.resource?.uri||''}]\n${String(part.resource?.text??'')}`:`[${part?.type||'content'}]`).join('\n').trim();
-  return {ok:result?.isError!==true,text:clip(text,MCP_LIMITS.resultChars),structured:structuredPart(result?.structuredContent)};
+  return {ok:result?.isError!==true,text:clip(text,MCP_LIMITS.resultChars),...(text.length>MCP_LIMITS.resultChars?{full:text}:{}),structured:structuredPart(result?.structuredContent)};
 }
 export class McpRegistry{
   // file: the app-level server list. secrets: the connection vault client ({get,set,delete}) or null. loadSdk: injectable

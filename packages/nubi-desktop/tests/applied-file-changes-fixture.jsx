@@ -16,7 +16,13 @@ const names=['design/workspace-density.css','ui/CaptureChips.jsx','ui/SetupActio
 const files=names.map((path,i)=>({path,hash:'hash-'+i,state:'verified',stats:{state:'counted',added:i+1,removed:i%3}}));
 const receipts=files.map((row,i)=>({...row,id:String(i),afterHash:row.hash}));
 window.calls=[];window.opened=[];
-const api=async(method,args)=>{window.calls.push({method,...args});if(window.failSummary)throw Error('unavailable');return {files,total:files.length,totals:{added:45,removed:9}};};
+const checkpoints=[{id:'c2',reason:'before_command',createdAt:'2026-10-23T03:12:00Z'},{id:'c1',reason:'before_edit',createdAt:'2026-10-23T03:10:00Z'}];
+window.revert=null;
+const api=async(method,args)=>{window.calls.push({method,...args});
+ if(method==='checkpoints')return {items:checkpoints,revert:window.revert};
+ if(method==='revertCheckpoint'){window.revert={checkpointId:args.checkpointId,files:['a.js','b.js']};return {files:['a.js','b.js']};}
+ if(method==='undoRevert'){const files=window.revert.files;window.revert=null;return {files};}
+ if(window.failSummary)throw Error('unavailable');return {files,total:files.length,totals:{added:45,removed:9}};};
 const before=Array.from({length:100},(_,i)=>`const value${i} = ${i};`).join('\n')+'\n',after=before.replace('const value70 = 70;','const value70 = 170;\nconst added = true;');
 function App(){const [diff,setDiff]=useState(null),[task,setTask]=useState('one');window.changeTask=setTask;return <main className="desktop-shell" style={{display:'flex',gap:24,padding:24,boxSizing:'border-box',height:'100vh',background:'#F1F7FE'}}><div style={{flex:1,minWidth:0,overflow:'auto'}}><p style={{fontSize:15}}>변경 사항을 반영했습니다.</p><AppliedFileChanges api={api} taskId={task} receipts={receipts} onOpen={async(row,{canPresent})=>{window.opened.push(row.path);if(window.delayOpen)await new Promise(r=>setTimeout(r,window.delayOpen));if(canPresent())setDiff({path:row.path,before,after,applied:true});}}/></div>{diff&&<aside style={{display:'flex',flexDirection:'column',width:'48%',minWidth:0,height:'90vh'}}><h3 style={{fontSize:14}}>{diff.path} 변경 비교</h3><GitDiff diff={diff}/></aside>}</main>;}
 createRoot(document.getElementById('root')).render(<App/>);

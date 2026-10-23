@@ -1,0 +1,30 @@
+{
+  "id": "C17-cache-invalidate",
+  "title": "삭제와 무효화",
+  "suite": "edit",
+  "split": "holdout",
+  "corpus": "cache-retry",
+  "request": "캐시에 delete(key)를 추가하고, createService가 돌려주는 lookup 함수에 invalidate(key)를 붙여서 그 키만 다음 조회 때 다시 가져오게 해 줘.",
+  "approvals": [
+    "patch"
+  ],
+  "expect": {
+    "state": "review",
+    "test": {
+      "files": {
+        "test/eval-hidden.test.mjs": "import {test} from 'node:test';\nimport assert from 'node:assert/strict';\nimport {createService} from '../src/service.mjs';\nimport {createCache} from '../src/cache.mjs';\n\ntest('hidden check', async () => {\n  const cache = createCache(1000, () => 0);\n  cache.set('a', 1);\n  cache.delete('a');\n  assert.equal(cache.get('a'), undefined);\n  let calls = 0;\n  const lookup = createService(async key => { calls++; return key + calls; }, {now: () => 0});\n  assert.equal(await lookup('a'), 'a1');\n  assert.equal(await lookup('b'), 'b2');\n  lookup.invalidate('a');\n  assert.equal(await lookup('a'), 'a3');\n  assert.equal(await lookup('b'), 'b2');\n});\n"
+      },
+      "command": [
+        "node",
+        "--test",
+        "test/eval-hidden.test.mjs"
+      ]
+    },
+    "unchanged_except": [
+      "src/cache.mjs",
+      "src/service.mjs",
+      "test/boundaries.mjs",
+      "README.md"
+    ]
+  }
+}

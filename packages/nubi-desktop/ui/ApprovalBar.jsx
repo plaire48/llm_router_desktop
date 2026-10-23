@@ -8,7 +8,7 @@ export function ApprovalBar({approveLabel = '실행', approveIcon = 'play', reje
   return <div className="nubi-approval-bar">
     {children}
     {onReject && <CxButton className="nubi-text-button nubi-approval-reject" aria-label={rejectLabel} title={rejectLabel} disabled={disabled} onClick={onReject}><Icon name="xClose" size={16}/><span>{rejectLabel}</span></CxButton>}
-    {onAlways && <CxButton className="nubi-text-button" disabled={disabled || approveDisabled} title="같은 명령은 다음부터 확인 없이 실행해요" onClick={onAlways}><Icon name="check" size={16}/>항상 허용</CxButton>}
+    {onAlways && <CxButton className="nubi-text-button" disabled={disabled || approveDisabled} title="같은 명령과 앞부분이 같은 명령(예: npm run test)은 다음부터 확인 없이 실행해요" onClick={onAlways}><Icon name="check" size={16}/>항상 허용</CxButton>}
     <CxButton variant="primary" disabled={disabled || approveDisabled} onClick={onApprove}><Icon name={approveIcon} size={16}/>{approveLabel}</CxButton>
   </div>;
 }

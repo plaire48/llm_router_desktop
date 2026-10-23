@@ -1,0 +1,216 @@
+{
+  "C6-returned-status": {
+    "replace": [
+      {
+        "path": "src/status.mjs",
+        "find": "  shipped: ['delivered'],\n",
+        "replace": "  shipped: ['delivered', 'returned'],\n"
+      },
+      {
+        "path": "src/status.mjs",
+        "find": "  cancelled: [],\n",
+        "replace": "  cancelled: [],\n  returned: [],\n"
+      }
+    ]
+  },
+  "C7-island-extra-fee": {
+    "replace": [
+      {
+        "path": "src/shipping.mjs",
+        "find": "export const REMOTE_EXTRA = 4500;\nconst REMOTE_REGIONS = new Set(['jeju', 'island']);\n",
+        "replace": "export const REMOTE_EXTRA = 4500;\nexport const ISLAND_EXTRA = 6000;\nconst REMOTE_REGIONS = new Set(['jeju', 'island']);\n"
+      },
+      {
+        "path": "src/shipping.mjs",
+        "find": "  return base + (REMOTE_REGIONS.has(region) ? REMOTE_EXTRA : 0);\n",
+        "replace": "  return base + (region === 'island' ? ISLAND_EXTRA : REMOTE_REGIONS.has(region) ? REMOTE_EXTRA : 0);\n"
+      },
+      {
+        "path": "test/shipping.test.mjs",
+        "find": "assert.equal(shippingFee(60000, 'island'), 4500);",
+        "replace": "assert.equal(shippingFee(60000, 'island'), 6000);"
+      }
+    ]
+  },
+  "C8-quantity-validation": {
+    "replace": [
+      {
+        "path": "src/order.mjs",
+        "find": "  if (!Array.isArray(items) || !items.length) throw new Error('empty_order');\n",
+        "replace": "  if (!Array.isArray(items) || !items.length) throw new Error('empty_order');\n  if (items.some(item => !Number.isInteger(item.quantity) || item.quantity < 1)) throw new Error('invalid_quantity');\n"
+      }
+    ]
+  },
+  "C9-discount-100-won": {
+    "replace": [
+      {
+        "path": "src/discount.mjs",
+        "find": "// 할인 후 금액은 10원 단위로 내림한다.",
+        "replace": "// 할인 후 금액은 100원 단위로 내림한다."
+      },
+      {
+        "path": "src/discount.mjs",
+        "find": "  return Math.floor(amount * (100 - discountRate(grade)) / 1000) * 10;",
+        "replace": "  return Math.floor(amount * (100 - discountRate(grade)) / 10000) * 100;"
+      },
+      {
+        "path": "test/discount.test.mjs",
+        "find": "test('할인 후 금액은 10원 단위로 내림한다'",
+        "replace": "test('할인 후 금액은 100원 단위로 내림한다'"
+      },
+      {
+        "path": "test/discount.test.mjs",
+        "find": "assert.equal(applyDiscount(12345, 'silver'), 11970);",
+        "replace": "assert.equal(applyDiscount(12345, 'silver'), 11900);"
+      }
+    ]
+  },
+  "C10-order-item-count": {
+    "replace": [
+      {
+        "path": "src/order.mjs",
+        "find": "  return {subtotal, discounted, shipping, total: discounted + shipping, status: 'received'};",
+        "replace": "  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);\n  return {subtotal, discounted, shipping, total: discounted + shipping, itemCount, status: 'received'};"
+      },
+      {
+        "path": "test/order.test.mjs",
+        "find": "{subtotal: 40000, discounted: 37200, shipping: 7500, total: 44700, status: 'received'}",
+        "replace": "{subtotal: 40000, discounted: 37200, shipping: 7500, total: 44700, itemCount: 2, status: 'received'}"
+      }
+    ]
+  },
+  "C11-vip-free-shipping": {
+    "replace": [
+      {
+        "path": "src/shipping.mjs",
+        "find": "export function shippingFee(total, region) {",
+        "replace": "export function shippingFee(total, region, grade) {"
+      },
+      {
+        "path": "src/shipping.mjs",
+        "find": "  const base = total >= FREE_SHIPPING_MIN ? 0 : BASE_FEE;",
+        "replace": "  const base = total >= FREE_SHIPPING_MIN || grade === 'vip' ? 0 : BASE_FEE;"
+      },
+      {
+        "path": "src/order.mjs",
+        "find": "  const shipping = shippingFee(discounted, region);",
+        "replace": "  const shipping = shippingFee(discounted, region, grade);"
+      }
+    ]
+  },
+  "C12-discount-cap": {
+    "replace": [
+      {
+        "path": "src/discount.mjs",
+        "find": "  return Math.floor(amount * (100 - discountRate(grade)) / 1000) * 10;",
+        "replace": "  const discounted = Math.floor(amount * (100 - discountRate(grade)) / 1000) * 10;\n  return Math.max(discounted, Math.floor(Math.max(0, amount - 50000) / 10) * 10);"
+      }
+    ]
+  },
+  "C13-status-history": {
+    "replace": [
+      {
+        "path": "src/status.mjs",
+        "find": "  return {...order, status: to};",
+        "replace": "  return {...order, status: to, history: [...(order.history || []), {from: order.status, to}]};"
+      }
+    ]
+  },
+  "C14-coupon-new-file": {
+    "write": {
+      "src/coupon.mjs": "export function applyCoupon(amount, code) {\n  if (code === 'WELCOME10') return Math.floor(amount * 90 / 1000) * 10;\n  if (code === 'FLAT3000') return Math.max(0, amount - 3000);\n  throw new Error('unknown_coupon');\n}\n"
+    }
+  },
+  "C15-bronze-grade-order": {
+    "replace": [
+      {
+        "path": "src/discount.mjs",
+        "find": "export const RATES = Object.freeze({normal: 0, silver: 3, gold: 7, vip: 12});",
+        "replace": "export const RATES = Object.freeze({normal: 0, bronze: 2, silver: 3, gold: 7, vip: 12});\n\nexport function gradesByRate() {\n  return Object.keys(RATES).sort((a, b) => RATES[b] - RATES[a]);\n}"
+      }
+    ]
+  },
+  "C16-retry-max-delay": {
+    "replace": [
+      {
+        "path": "src/retry.mjs",
+        "find": "      await sleep(100 * 2 ** attempt);",
+        "replace": "      await sleep(Math.min(1000, 100 * 2 ** attempt));"
+      }
+    ]
+  },
+  "C17-cache-invalidate": {
+    "replace": [
+      {
+        "path": "src/cache.mjs",
+        "find": "    set(key, value) { entries.set(key, { value, expiresAt: now() + ttlMs }); },",
+        "replace": "    set(key, value) { entries.set(key, { value, expiresAt: now() + ttlMs }); },\n    delete(key) { return entries.delete(key); },"
+      },
+      {
+        "path": "src/service.mjs",
+        "find": "  return async function lookup(key, options = {}) {",
+        "replace": "  const lookup = async function lookup(key, options = {}) {"
+      },
+      {
+        "path": "src/service.mjs",
+        "find": "    cache.set(key, value);\n    return value;\n  };",
+        "replace": "    cache.set(key, value);\n    return value;\n  };\n  lookup.invalidate = key => { cache.delete(key); };\n  return lookup;"
+      }
+    ]
+  },
+  "C18-retry-on-503": {
+    "replace": [
+      {
+        "path": "src/retry.mjs",
+        "find": "      if (!error.retryable || attempt >= retries) throw error;",
+        "replace": "      if (!(error.retryable || error.status === 503) || attempt >= retries) throw error;"
+      }
+    ]
+  },
+  "C19-cache-max-entries": {
+    "replace": [
+      {
+        "path": "src/cache.mjs",
+        "find": "export function createCache(ttlMs, now = Date.now) {",
+        "replace": "export function createCache(ttlMs, now = Date.now, { maxEntries = Infinity } = {}) {"
+      },
+      {
+        "path": "src/cache.mjs",
+        "find": "    set(key, value) { entries.set(key, { value, expiresAt: now() + ttlMs }); },",
+        "replace": "    set(key, value) {\n      entries.delete(key);\n      entries.set(key, { value, expiresAt: now() + ttlMs });\n      while (entries.size > maxEntries) entries.delete(entries.keys().next().value);\n    },"
+      }
+    ]
+  },
+  "C20-retry-callback": {
+    "replace": [
+      {
+        "path": "src/retry.mjs",
+        "find": "export async function withRetry(task, { retries = 2, signal, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)) } = {}) {",
+        "replace": "export async function withRetry(task, { retries = 2, signal, onRetry, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)) } = {}) {"
+      },
+      {
+        "path": "src/retry.mjs",
+        "find": "      await sleep(100 * 2 ** attempt);",
+        "replace": "      onRetry?.(attempt, error);\n      await sleep(100 * 2 ** attempt);"
+      }
+    ]
+  },
+  "C21-price-validation": {
+    "replace": [
+      {
+        "path": "src/order.mjs",
+        "find": "  if (!Array.isArray(items) || !items.length) throw new Error('empty_order');\n",
+        "replace": "  if (!Array.isArray(items) || !items.length) throw new Error('empty_order');\n  if (items.some(item => !Number.isInteger(item.price) || item.price < 0)) throw new Error('invalid_price');\n"
+      }
+    ]
+  },
+  "C22-status-label": {
+    "replace": [
+      {
+        "path": "src/status.mjs",
+        "find": "export function canMove(from, to) {",
+        "replace": "const LABELS = Object.freeze({received: '접수', paid: '결제 완료', shipped: '배송 중', delivered: '배송 완료', cancelled: '취소'});\n\nexport function statusLabel(status) {\n  if (!Object.hasOwn(LABELS, status)) throw new Error('unknown_status');\n  return LABELS[status];\n}\n\nexport function canMove(from, to) {"
+      }
+    ]
+  }
+}

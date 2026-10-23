@@ -1,6 +1,6 @@
 {
   "name": "nubi-desktop",
-  "version": "1.3.1",
+  "version": "1.3.0",
   "private": true,
   "engines": {
     "node": ">=24.0.0 <26"
@@ -50,13 +50,13 @@
     "test:mail-background-ui": "node scripts/check-mail-background-ui.mjs",
     "check:office-reader": "node scripts/check-office-reader.mjs",
     "test:chat-ui": "node scripts/check-codex-chat-ui.mjs after && node scripts/check-conversation-admission.mjs",
-    "test:light-flow": "node scripts/check-light-flow.mjs",
     "test:freeze-scenes": "node scripts/check-freeze-both.mjs",
     "test:freeze-scenes:browser": "node scripts/check-freeze-scenes.mjs",
     "test:freeze-scenes:electron": "node scripts/check-freeze-scenes.mjs --electron",
-    "test:gates:fast": "npm test && npm run design:check && npm run test:forms-ui && npm run test:mail-ui && npm run test:modals-ui && npm run test:responsiveness-ui && npm run test:shared-ui && node scripts/check-workflow-ui.mjs && node scripts/check-motion-performance.mjs after && npm run test:wave2-ui && node scripts/check-browser-teach-connection.mjs && npm run test:workspace-ui && npm run test:icons-ui && npm run test:chat-ui && node scripts/check-irreversible-ui.mjs && node scripts/check-community-wiki-ui.mjs && node scripts/check-profile-wiki-ui.mjs && node scripts/check-activity-readability.mjs && node scripts/check-review-failure-ui.mjs && node scripts/check-wiki-scope-ui.mjs && node scripts/check-wiki-durability-ui.mjs && node scripts/check-wiki-generation-ui.mjs && node scripts/check-personal-start-ui.mjs && node scripts/check-wiki-coverage-ui.mjs && node scripts/check-wiki-search-ui.mjs && npm run test:safety",
-    "test:gates:electron": "npm run build:electron && npm run test:ui && npm run test:skills-ui && npm run test:agent-ui && npm run test:live-web && npm run test:lifecycle && npm run test:all-surfaces && node scripts/check-electron-output-cards.mjs && node scripts/check-development-execution-electron.mjs && node scripts/check-electron-mcp-approval.mjs && node scripts/check-electron-workflow.mjs && node scripts/check-motion-quality.mjs && npm run test:freeze-scenes",
-    "test:safety": "node --test --test-concurrency=1 tests/tool-budget.test.mjs tests/compaction-observations.test.mjs tests/compaction-reads.test.mjs tests/compaction-wiki-evidence.test.mjs tests/compaction-turn.test.mjs tests/irreversible-actions.test.mjs tests/approval-policy.test.mjs tests/mcp-approval-flow.test.mjs tests/workflow-runner.test.mjs tests/workflow-mcp.test.mjs && node scripts/check-safety-regression.mjs"
+    "test:gates:fast": "npm test && npm run design:check && npm run test:forms-ui && npm run test:mail-ui && npm run test:modals-ui && npm run test:responsiveness-ui && npm run test:shared-ui && node scripts/check-motion-performance.mjs after && npm run test:wave2-ui && npm run test:workspace-ui && npm run test:icons-ui && npm run test:chat-ui && node scripts/check-irreversible-ui.mjs && node scripts/check-community-wiki-ui.mjs && node scripts/check-profile-wiki-ui.mjs && node scripts/check-activity-readability.mjs && node scripts/check-review-failure-ui.mjs && node scripts/check-wiki-scope-ui.mjs && node scripts/check-wiki-durability-ui.mjs && node scripts/check-wiki-generation-ui.mjs && node scripts/check-wiki-coverage-ui.mjs && node scripts/check-wiki-search-ui.mjs && npm run test:safety && npm run test:lean-ui",
+    "test:gates:electron": "npm run build:electron && npm run test:ui && npm run test:skills-ui && npm run test:agent-ui && npm run test:live-web && npm run test:lifecycle && npm run test:all-surfaces && node scripts/check-electron-output-cards.mjs && node scripts/check-development-execution-electron.mjs && node scripts/check-electron-mcp-approval.mjs && node scripts/check-motion-quality.mjs && npm run test:freeze-scenes",
+    "test:safety": "node --test --test-concurrency=1 tests/tool-budget.test.mjs tests/compaction-observations.test.mjs tests/compaction-reads.test.mjs tests/compaction-wiki-evidence.test.mjs tests/compaction-turn.test.mjs tests/irreversible-actions.test.mjs tests/approval-policy.test.mjs tests/mcp-approval-flow.test.mjs && node scripts/check-safety-regression.mjs",
+    "test:lean-ui": "node scripts/check-removed-features-ui.mjs"
   },
   "devDependencies": {
     "@types/node": "24.10.1",
@@ -68,7 +68,6 @@
     "@univerjs/sheets-formula": "0.25.1",
     "electron-builder": "26.15.3",
     "esbuild": "0.25.12",
-    "postcss": "8.5.29",
     "react-tooltip": "4.5.1",
     "serialize-javascript": "7.0.5",
     "trash": "7.2.0"
@@ -96,7 +95,6 @@
     "@vscode/ripgrep": "1.18.0",
     "@xterm/addon-fit": "0.11.0",
     "@xterm/xterm": "6.0.0",
-    "@xyflow/react": "12.12.0",
     "ajv": "8.20.0",
     "diff": "9.0.0",
     "dompurify": "3.4.15",

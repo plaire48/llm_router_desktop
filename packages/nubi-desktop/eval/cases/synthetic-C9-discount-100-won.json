@@ -1,0 +1,30 @@
+{
+  "id": "C9-discount-100-won",
+  "title": "반올림 규칙 변경",
+  "suite": "edit",
+  "split": "dev",
+  "corpus": "order-service",
+  "request": "할인 후 금액을 10원 단위가 아니라 100원 단위로 내림하게 바꿔 줘.",
+  "approvals": [
+    "patch"
+  ],
+  "expect": {
+    "state": "review",
+    "test": {
+      "files": {
+        "test/eval-hidden.test.mjs": "import {test} from 'node:test';\nimport assert from 'node:assert/strict';\nimport {applyDiscount} from '../src/discount.mjs';\n\ntest('hidden check', async () => {\n  assert.equal(applyDiscount(12345, 'silver'), 11900);\n  assert.equal(applyDiscount(10000, 'gold'), 9300);\n  assert.equal(applyDiscount(99, 'normal'), 0);\n  assert.throws(() => applyDiscount(10.5, 'gold'), /invalid_amount/);\n});\n"
+      },
+      "command": [
+        "node",
+        "--test",
+        "test/eval-hidden.test.mjs"
+      ]
+    },
+    "unchanged_except": [
+      "src/discount.mjs",
+      "test/discount.test.mjs",
+      "test/order.test.mjs",
+      "openwiki/concepts/discount-policy.md"
+    ]
+  }
+}

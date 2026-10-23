@@ -67,7 +67,10 @@ import {installRecovery,modelTransport,boundedRead,READ_TOOLS,beginOperation,end
 import {installMemory,memoryStores,memoryEnabled,listMemories,rankMemories,memoryGuidance,rememberExchange,memoryRequest} from './memory.mjs';
 import {installApprovalPolicy,approvalPolicy,mcpToolAllowed,allowMcpTool} from './approval-policy.mjs';
 import {irreversibleMcpTool} from './irreversible-actions.mjs';
-import {installMcp,parseMcpToolName} from './mcp.mjs';
+import {installMcp,parseMcpToolName,MCP_LIMITS} from './mcp.mjs';
+import {saveTaskToolOutput} from './tool-output.mjs';
+import {installCheckpoints} from './checkpoints.mjs';
+import {codingMapContext} from './coding-map.mjs';
 import {normalizeSearchArgs} from './search-args.mjs';
 import {runAgent,progressTools} from '../../../extensions/aipro-chat/agent-runtime.js';
 import {createRunContext,contextBudget,contextTokens} from '../../../extensions/aipro-chat/context-manager.js';
@@ -233,7 +236,7 @@ const READ_TOGETHER=new Set(['spawn_task','dismiss_task','mark_chapter','send_fi
 const ASK_OPENWIKI='Delegate a synthesis or how/why question to OpenWiki. It researches openwiki/ separately and returns sources and gaps. Simple documented facts can use wiki_query/current pages directly. Use the Wiki language (wiki.language). Default to targeted search; exhaustive review is only for an explicit whole-Wiki request and costs many calls. Wiki may be stale (wiki.updatedAt) or omit code details: check current source when the claim needs it or evidence is missing.';
 export function installAgent(ProjectService) {
   installMemory(ProjectService);
-  installRecovery(ProjectService);installApprovalPolicy(ProjectService);installMcp(ProjectService);
+  installRecovery(ProjectService);installApprovalPolicy(ProjectService);installMcp(ProjectService);installCheckpoints(ProjectService);
   ProjectService.prototype.regenerateAnswer = regenerateAnswer;
   ProjectService.prototype.compare = compare; ProjectService.prototype.fabrix = fabrix;
   ProjectService.prototype.provider = async function ({action = 'status', input = {}} = {}) {
@@ -780,6 +783,8 @@ export function installAgent(ProjectService) {
             result={ok:false,error:/^[a-z_]+$/.test(error.message)?error.message:'mcp_call_failed',execution:notStarted?'not_started':'unconfirmed',...(notStarted?{actionIssued:false}:{}),instruction:'Inspect the bound development page and existing receipts. Preserve uncertain actions; never replay a write solely because its response failed.'};
           }
           if(outcome?.capture){rememberCapture(outcome.capture,name);const analysis=await analyzeCapture({status:this.providers.status(),shot:outcome.capture,question:args.question,invoke:invokeModel,signal:childSignal||signal});outcome={ok:analysis.ok,text:JSON.stringify(analysis)};}
+          // A result past the bound keeps its head and saves the whole text the model can read back (opencode tool-output).
+          if(outcome?.full)outcome={...outcome,text:(await saveTaskToolOutput(this,taskId,outcome.full,{maxBytes:MCP_LIMITS.resultChars})).text};
           if(outcome)
           result={ok:outcome.ok,server:found.serverId,tool:found.tool.name,text:outcome.text,...(outcome.browserAgent?{browserAgent:outcome.browserAgent}:{}),...(outcome.serverCheck?{serverCheck:outcome.serverCheck}:{}),...(outcome.observationError?{observationError:outcome.observationError}:{}),...(!outcome.ok&&!found.readOnly?{execution:outcome.execution||'unconfirmed',instruction:'Inspect current page state before another action. Do not blindly repeat this write.'}:{}),...(outcome.structured!==undefined?{structured:outcome.structured}:{})};
         }
@@ -869,7 +874,7 @@ export function installAgent(ProjectService) {
     // Explicit lookup commands cannot execute these editing/computer workflows.
     if(searchScope(requestCommand))systemMessages.splice(1);
     // The product runtime asks for a one-line narration before each tool call (shown as progress notes, user request 2026-10-14); evals and tests keep the base prompt.
-    if(!searchScope(requestCommand)&&!planningOnly&&needsDevelopmentGuidance(task,this.store.list('setup-action:')))systemMessages.push({role:'system',content:DEVELOPMENT_GUIDANCE});
+    if(!searchScope(requestCommand)&&!planningOnly&&needsDevelopmentGuidance(task,this.store.list('setup-action:'))){systemMessages.push({role:'system',content:DEVELOPMENT_GUIDANCE});const map=await codingMapContext(this,taskId,{signal:controller.signal});if(map)systemMessages.push({role:'system',content:map});}
     if(this.progressNarration===true)systemMessages.push({role:'system',content:'Before each tool call, say in one short Korean sentence what you will do next; it is shown as progress in the conversation. When a command starts a server or another long-running process, do not wait for it to exit: tell the user it is running, give the local address, open it with open_workspace_page when available, and say how to stop it.'});
     systemMessages.push({role:'system',content:SOURCE_GUIDANCE});
     if(!searchScope(requestCommand))systemMessages.push({role:'system',content:await environmentBlock(this)});

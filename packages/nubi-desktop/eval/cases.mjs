@@ -77,7 +77,8 @@ export async function loadCases({directory=CASE_DIRECTORY,ids,suites,split,inclu
     let value;try{value=JSON.parse(await readFile(path.join(directory,name),'utf8'));}catch{throw new Error('case_unreadable:'+name);}
     const problems=validateCase(value);
     if(problems.length)throw new Error('case_invalid:'+name+':'+problems.join(','));
-    if(name!==value.id+'.json')throw new Error('case_invalid:'+name+':file_name');
+    // New case files carry the synthetic- prefix of new evaluation data (upload safety check, 2026-10-23).
+    if(name!==value.id+'.json'&&name!=='synthetic-'+value.id+'.json')throw new Error('case_invalid:'+name+':file_name');
     cases.push({...value,followUps:await resolveTurns(value,directory)});
   }
   if(new Set(cases.map(item=>item.id)).size!==cases.length)throw new Error('case_duplicate');

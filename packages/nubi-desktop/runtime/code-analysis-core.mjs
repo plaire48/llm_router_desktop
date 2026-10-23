@@ -69,7 +69,40 @@ function intelligence(input){
   }
   return {engine:'typescript@'+ts.version,scope:'admitted_source_snapshot',locations,unresolvedImports,truncated:locations.length>=80};
 }
+// Type errors an edit introduces, as opencode reports language-server diagnostics after an edit (packages/opencode edit
+// tool, MAX_DIAGNOSTICS_PER_FILE 20). The edited file is checked before and after with the TypeScript standard library
+// and the project files it imports; an error counts as existing when the same code and message were there before.
+export const TYPE_DIAGNOSTICS_LIMIT=20;
+const slash=value=>String(value).replaceAll('\\','/');
+function types(input){
+  const options={noEmit:true,allowJs:true,checkJs:true,strict:true,skipLibCheck:true,types:[],target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext,moduleResolution:ts.ModuleResolutionKind.Bundler,jsx:ts.JsxEmit.Preserve,lib:['lib.es2022.d.ts','lib.dom.d.ts','lib.dom.iterable.d.ts']};
+  const libDirectory=slash(path.dirname(ts.getDefaultLibFilePath(options))),isLib=name=>slash(name).startsWith(libDirectory+'/');
+  const libs=new Map();
+  const check=content=>{
+    const files=new Map(input.files.map(file=>['/'+file.path,file.content]));files.set('/'+input.path,content);
+    const host={
+      getSourceFile:name=>{
+        if(files.has(name))return sourceFile(name,files.get(name));
+        if(!isLib(name))return undefined;
+        if(!libs.has(name)){const text=ts.sys.readFile(name);libs.set(name,text===undefined?undefined:sourceFile(name,text));}
+        return libs.get(name);
+      },
+      getDefaultLibFileName:value=>ts.getDefaultLibFilePath(value),getDefaultLibLocation:()=>libDirectory,writeFile(){},getCurrentDirectory:()=>'/',getDirectories:()=>[],
+      directoryExists:directory=>isLib(directory+'/x')||[...files.keys()].some(name=>name.startsWith(directory.replace(/\/$/,'')+'/')),
+      fileExists:name=>files.has(name)||isLib(name)&&ts.sys.fileExists(name),readFile:name=>files.get(name)??(isLib(name)?ts.sys.readFile(name):undefined),
+      getCanonicalFileName:name=>name,useCaseSensitiveFileNames:()=>true,getNewLine:()=>'\n'};
+    const program=ts.createProgram(['/'+input.path],options,host),source=program.getSourceFile('/'+input.path);
+    return [...program.getSyntacticDiagnostics(source),...program.getSemanticDiagnostics(source)].filter(d=>d.category===ts.DiagnosticCategory.Error)
+      .map(d=>({code:'TS'+d.code,message:trim(ts.flattenDiagnosticMessageText(d.messageText,' ')),...position(content,d.start||0)}));
+  };
+  const before=check(input.before),after=check(input.after),remaining=new Map();
+  for(const d of before)remaining.set(d.code+'\n'+d.message,(remaining.get(d.code+'\n'+d.message)||0)+1);
+  const introduced=[];let existingCount=0;
+  for(const d of after){const key=d.code+'\n'+d.message,left=remaining.get(key)||0;if(left){remaining.set(key,left-1);existingCount++;}else introduced.push(d);}
+  return {engine:'typescript@'+ts.version,state:'checked',introduced:introduced.slice(0,TYPE_DIAGNOSTICS_LIMIT),introducedCount:introduced.length,existingCount,truncated:introduced.length>TYPE_DIAGNOSTICS_LIMIT};
+}
 export function analyzeCode(input){
+  if(input.mode==='types')return types(input);
   if(input.mode==='intelligence')return intelligence(input);
   if(input.mode==='repository')return analyzeRepository(input);
   if(input.mode==='outline')return outline(input.path,input.content);

@@ -1,6 +1,8 @@
 import {Worker} from 'node:worker_threads';
 import {diffLines} from 'diff';
 import {hash,readSource,fail} from './files.mjs';
+import {posix as pathPosix} from 'node:path';
+import {realpath} from 'node:fs/promises';
 
 const supported=file=>/\.(?:[cm]?[jt]sx?|jsonc?|ya?ml)$/i.test(file);
 export function runCodeAnalysis(input,{signal,timeoutMs=5000}={}){
@@ -38,4 +40,38 @@ export async function codeOutline({path,taskId,signal}){
   const result=await runCodeAnalysis({mode:'outline',path,content:file.content},{signal});
   if(result.error)fail(result.error==='cancelled'?'cancelled':'quality_unavailable');
   return {...result,path,hash:file.hash,instruction:'Declaration locations and import strings only, not runtime call paths or resolved dependencies. Read the relevant ranges using read_source before planning or editing. An outline does not authorize edits.'};
+}
+// After-edit type diagnostics (opencode, 2026-10-23): TypeScript files, and JavaScript files that opt in with
+// // @ts-check, are checked with the files they import. Only new errors are reported, at most 20, and they never block
+// the proposal: the model gets them as a notice to fix.
+const TYPED=/\.[cm]?tsx?$/i,SCRIPT=/\.[cm]?jsx?$/i,TS_CHECK=/^\s*\/\/\s*@ts-check\b/m;
+const SPECIFIER=/(?:import|export)\s[^'"]*?from\s*['"](\.{1,2}\/[^'"]+)['"]|import\s*\(\s*['"](\.{1,2}\/[^'"]+)['"]\s*\)|require\(\s*['"](\.{1,2}\/[^'"]+)['"]\s*\)/g;
+const NEIGHBOR_LIMIT=30;
+function candidates(from,specifier){
+  const base=pathPosix.normalize(pathPosix.join(pathPosix.dirname(from),specifier));
+  const stem=base.replace(/\.(?:[cm]?js|jsx)$/i,'');
+  return [...new Set([base,...['.ts','.tsx','.d.ts','.mts','.cts'].map(ext=>stem+ext),...['.js','.mjs','.cjs','.jsx'].map(ext=>base+ext),...['/index.ts','/index.tsx','/index.js'].map(ext=>base+ext)])].filter(file=>!file.startsWith('../'));
+}
+async function neighbors(root,file,contents){
+  const result=[],seen=new Set([file]);
+  for(const content of contents)for(const match of String(content).matchAll(SPECIFIER)){
+    const specifier=match[1]||match[2]||match[3];
+    for(const candidate of candidates(file,specifier)){
+      if(seen.has(candidate))continue;
+      const found=await readSource(root,candidate).catch(()=>null);
+      if(!found)continue;
+      seen.add(candidate);result.push({path:candidate,content:found.content});break;
+    }
+    if(result.length>=NEIGHBOR_LIMIT)return result;
+  }
+  return result;
+}
+export const typeCheckable=(file,content)=>TYPED.test(file)||SCRIPT.test(file)&&TS_CHECK.test(content);
+export async function checkTypes(root,file,before,after,{signal,timeoutMs=20000}={}){
+  const rel=String(file).split(pathPosix.sep).join('/');
+  if(!typeCheckable(rel,after))return {state:'skipped'};
+  const files=await neighbors(await realpath(root).catch(()=>root),rel,[before,after]);
+  const result=await runCodeAnalysis({mode:'types',path:rel,before,after,files},{signal,timeoutMs});
+  if(result.error)return {state:'unavailable',error:result.error};
+  return {...result,...(result.introduced.length?{notice:`Type errors detected in this file, please fix:\n<diagnostics file="${rel}">\n${result.introduced.map(d=>`ERROR [${d.line}:${d.column}] ${d.message}`).join('\n')}\n</diagnostics>`}:{})};
 }

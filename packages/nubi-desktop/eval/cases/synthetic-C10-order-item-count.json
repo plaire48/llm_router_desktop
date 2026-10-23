@@ -1,0 +1,28 @@
+{
+  "id": "C10-order-item-count",
+  "title": "결과 필드 추가",
+  "suite": "edit",
+  "split": "dev",
+  "corpus": "order-service",
+  "request": "createOrder 결과에 전체 수량 합계를 itemCount로 추가해 줘.",
+  "approvals": [
+    "patch"
+  ],
+  "expect": {
+    "state": "review",
+    "test": {
+      "files": {
+        "test/eval-hidden.test.mjs": "import {test} from 'node:test';\nimport assert from 'node:assert/strict';\nimport {createOrder} from '../src/order.mjs';\n\ntest('hidden check', async () => {\n  const order = createOrder({items: [{price: 1000, quantity: 2}, {price: 500, quantity: 3}]});\n  assert.equal(order.itemCount, 5);\n  assert.equal(order.subtotal, 3500);\n  assert.equal(order.total, 6500);\n});\n"
+      },
+      "command": [
+        "node",
+        "--test",
+        "test/eval-hidden.test.mjs"
+      ]
+    },
+    "unchanged_except": [
+      "src/order.mjs",
+      "test/order.test.mjs"
+    ]
+  }
+}

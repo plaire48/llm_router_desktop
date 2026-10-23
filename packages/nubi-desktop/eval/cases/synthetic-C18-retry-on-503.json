@@ -1,0 +1,29 @@
+{
+  "id": "C18-retry-on-503",
+  "title": "재시도 조건 확장",
+  "suite": "edit",
+  "split": "dev",
+  "corpus": "cache-retry",
+  "request": "retryable 표시가 없어도 status가 503인 오류는 재시도해 줘. 다른 오류는 지금처럼 retryable일 때만 재시도해.",
+  "approvals": [
+    "patch"
+  ],
+  "expect": {
+    "state": "review",
+    "test": {
+      "files": {
+        "test/eval-hidden.test.mjs": "import {test} from 'node:test';\nimport assert from 'node:assert/strict';\nimport {withRetry} from '../src/retry.mjs';\n\ntest('hidden check', async () => {\n  let attempts = 0;\n  assert.equal(await withRetry(async () => { if (attempts++ < 2) throw Object.assign(Error('busy'), {status: 503}); return 'ok'; }, {sleep: async () => {}}), 'ok');\n  assert.equal(attempts, 3);\n  attempts = 0;\n  await assert.rejects(withRetry(async () => { attempts++; throw Object.assign(Error('bad'), {status: 500}); }, {sleep: async () => {}}), /bad/);\n  assert.equal(attempts, 1);\n});\n"
+      },
+      "command": [
+        "node",
+        "--test",
+        "test/eval-hidden.test.mjs"
+      ]
+    },
+    "unchanged_except": [
+      "src/retry.mjs",
+      "test/boundaries.mjs",
+      "README.md"
+    ]
+  }
+}

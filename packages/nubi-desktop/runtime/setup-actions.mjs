@@ -4,6 +4,7 @@ import {shellProfiles,processInputRevision} from './processes.mjs';
 import Ajv from 'ajv';
 import {preferredShell} from './environment-inspection.mjs';
 import {toolArgumentIssues} from '../../../extensions/aipro-chat/tool-validation.js';
+import {checkpointBefore} from './checkpoints.mjs';
 
 const text = maxLength => ({type:'string',minLength:1,maxLength});
 export const SETUP_ACTION_SCHEMA = {
@@ -140,6 +141,8 @@ export async function decideSetupAction({id,fingerprint,decision,elevationConsen
       if(current!==ref.hash&&!this.store.list('proposal:').some(p=>p.taskId===value.taskId&&p.path===ref.path&&p.state==='applied'&&p.expectedHash===ref.hash&&p.afterHash===current))fail('setup_changed');
     }
     if(this.disposed||this.task(value.taskId).state==='cancelled'||this.task(value.taskId).question)fail('setup_cancelled');
+    // A command can change any file: keep the files as they are now, so the task can be reverted to this point.
+    if(value.kind!=='input')await checkpointBefore(this,value.taskId,'before_command',{setupActionId:value.id});
     if(value.kind==='input'){
       const record=this.processes.records.get(value.processId);
       if(!record||record.taskId!==value.taskId||record.cwd!==value.inputTarget?.cwd||record.script!==value.inputTarget?.command)fail('process_input_changed');

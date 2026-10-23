@@ -7,6 +7,7 @@ import {setTimeout as wait} from 'node:timers/promises';
 import {hash,fail} from './files.mjs';
 import {processOutputDiagnostic} from './powershell-output.mjs';
 import {terminalReadableText} from './terminal-readable-text.mjs';
+import {TOOL_OUTPUT_ID} from './tool-output.mjs';
 
 const PAGE_BYTES=8000,SCAN_BYTES=262144,MAX_MATCHES=10;
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
@@ -60,21 +61,23 @@ function utf8Range(buffer,start,end){
 
 export async function readProcessOutput(service,taskId,{processId,offset=0,query,revision,waitMs=0}={},signal){
   service.task(taskId);signal?.throwIfAborted();
-  if(typeof processId!=='string'||!uuid.test(processId)||!Number.isSafeInteger(offset)||offset<0||query!==undefined&&(typeof query!=='string'||!query.length||query.length>200)||revision!==undefined&&(typeof revision!=='string'||!/^sha256:[a-f0-9]{64}$/.test(revision)))fail('process_log_arguments');
+  if(typeof processId!=='string'||!(uuid.test(processId)||TOOL_OUTPUT_ID.test(processId))||!Number.isSafeInteger(offset)||offset<0||query!==undefined&&(typeof query!=='string'||!query.length||query.length>200)||revision!==undefined&&(typeof revision!=='string'||!/^sha256:[a-f0-9]{64}$/.test(revision)))fail('process_log_arguments');
   if(offset>0&&!revision)fail('process_log_revision_required');
   if(!Number.isSafeInteger(waitMs)||waitMs<0||waitMs>5000)fail('process_log_arguments');
-  let record=service.store.get('process:'+processId);
+  // A tool_<id> is a saved oversized tool output (tool-output.mjs), read the same way as a finished process log.
+  const savedOutput=TOOL_OUTPUT_ID.test(processId);
+  let record=service.store.get((savedOutput?'tool-output:':'process:')+processId);
   if(!record||record.taskId!==taskId)fail('process_log_missing');
   // Wait for fresh output or exit without launching another command. Return
   // the current running state at the deadline; elapsed time is not readiness.
   const output=record.output,deadline=Date.now()+waitMs;
   while(record.state==='running'&&record.output===output&&Date.now()<deadline){
     await wait(Math.min(100,deadline-Date.now()),undefined,{signal});
-    record=service.store.get('process:'+processId);
+    record=service.store.get((savedOutput?'tool-output:':'process:')+processId);
     if(!record||record.taskId!==taskId)fail('process_log_missing');
   }
   // Never accept an arbitrary model path or a persisted logPath override.
-  const components=record.privilege==='administrator'?['elevation',processId,'output.log']:['logs',processId+'.log'];
+  const components=savedOutput?['tool-output',processId]:record.privilege==='administrator'?['elevation',processId,'output.log']:['logs',processId+'.log'];
   const root=await realpath(service.store.directory),target=path.join(root,...components);let handle;
   try{
     for(let i=1;i<=components.length;i++){const stat=await lstat(path.join(root,...components.slice(0,i)));if(stat.isSymbolicLink()||i<components.length&&!stat.isDirectory()||i===components.length&&(!stat.isFile()||stat.nlink>1))fail('process_log_scope');}
@@ -90,7 +93,7 @@ export async function readProcessOutput(service,taskId,{processId,offset=0,query
     let bytesRead=0;
     while(bytesRead<buffer.length){signal?.throwIfAborted();const read=await handle.read(buffer,bytesRead,buffer.length-bytesRead,offset+bytesRead);if(!read.bytesRead)break;bytesRead+=read.bytesRead;}
     const bytes=buffer.subarray(0,bytesRead);
-    const common={processId,state:record.state,execution:record.execution||'unknown',exitCode:record.exitCode??null,available:true,historical:true,source:'saved_log',revision:currentVersion,revisionKind:'file_metadata',totalBytes:before.size,logIncomplete:!!record.logIncomplete,interactive:record.interactive===true,...(record.interactive&&record.state==='running'?{inputRevision:processInputRevision(record)}:{}),instruction};
+    const common={processId,state:record.state,execution:record.execution||'unknown',exitCode:record.exitCode??null,available:true,historical:true,source:savedOutput?'saved_tool_output':'saved_log',revision:currentVersion,revisionKind:'file_metadata',totalBytes:before.size,logIncomplete:!!record.logIncomplete,interactive:record.interactive===true,...(record.interactive&&record.state==='running'?{inputRevision:processInputRevision(record)}:{}),instruction};
     let result;
     if(!needle){const range=utf8Range(bytes,0,Math.min(scanEnd-offset,bytes.length));result={...common,offset:offset+range.start,endOffset:offset+range.end,text:range.text,encodingLoss:range.encodingLoss,nextOffset:offset+range.end<before.size?offset+range.end:null};}
     else{

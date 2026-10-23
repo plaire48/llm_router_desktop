@@ -51,7 +51,7 @@ export function ApprovalModeControl({policy,disabled,onMode,onRemove}){
       <p className="nubi-approval-mode-note"><Icon name="infoCircle" size={14}/>관리자 명령과 앱 조작은 항상 확인해요.</p>
       {allowed.length>0&&<div className="nubi-approval-allowed" role="group" aria-label="항상 허용한 명령">
         <strong>항상 허용한 명령</strong>
-        <ul>{allowed.map(item=><li key={item.profile+'\n'+item.script}><code title={item.script}>{item.script}</code><ActionButton action="delete" label={item.script+' 허용 해제'} title="허용 해제" onClick={()=>{menu.current?.querySelector('[aria-checked="true"]')?.focus();onRemove(item);}}/></li>)}</ul>
+        <ul>{allowed.map(item=><li key={item.profile+'\n'+item.script}><code title={item.script}>{item.patterns?.length?item.patterns.join(', '):item.script}</code><ActionButton action="delete" label={(item.patterns?.length?item.patterns.join(', '):item.script)+' 허용 해제'} title="허용 해제" onClick={()=>{menu.current?.querySelector('[aria-checked="true"]')?.focus();onRemove(item);}}/></li>)}</ul>
       </div>}
     </AnchoredDialog>}
   </div>
