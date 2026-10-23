@@ -16,7 +16,7 @@ import {NATIVE_OFFICE_TOOLS,nativeOfficeDefinitions,filterNativeOfficeTools,nati
 import {normalizeMailReadArgs} from './mail-tool-arguments.mjs';
 import {mailParts} from './mail-body-images.mjs';
 import {readMailAttachmentsForAgent} from './mail-agent-attachments.mjs';
-import {DEVELOPMENT_GUIDANCE,needsDevelopmentGuidance} from './development-workflow.mjs';
+import {DEVELOPMENT_GUIDANCE,needsDevelopmentGuidance,environmentBlock} from './development-workflow.mjs';
 import {prepareDevelopmentPreview,prepareDevelopmentBrowserCall,callDevelopmentBrowser,developmentPreviewReceipt,cancelBrowserAgent} from './browser-agent-host.mjs';
 import {notifyDeliveredAnswer} from './answer-notification.mjs';
 import {CAPTURE_OPTIONS,analyzeCapture} from './capture-analysis.mjs';
@@ -109,13 +109,13 @@ const ACTION_TOOLS=new Set(['propose_patch','propose_edit','propose_new_file','p
 // Shared tool definitions (analysis, OpenWiki, documents) keep their long descriptions for the browser; Desktop shows a
 // sentence and keeps the rules in TOOL_RULES (bundle 2.2, 2026-10-15). Names, parameters and required stay the same.
 const FULL_DESCRIPTION_OVERRIDES={
-  source_search:"Exact text search; use ask_openwiki for concepts.",
+  source_search:"Text or regex search.",
   knowledge_query:"Find concept and source relations.",
   spawn_task:"Propose work: paths, evidence, outcome.",
   mark_chapter:"Mark a phase change.",
   send_file:"Return one produced path/captureId.",
   inspect_workspace_changes:"Read Git status or a bounded diff.",
-  read_analysis_handoff:"Read a saved analyst handoff without restarting it.",
+  read_analysis_handoff:"Read a saved analyst handoff.",
   propose_setup_action:"Prepare an exact command for approval.",
   delegate_research:"Investigate scoped sources in a read-only worker.",
   continue_research:"Follow up with an existing research worker.",
@@ -138,7 +138,7 @@ const FULL_DESCRIPTION_OVERRIDES={
   mail_facts:"Find dated, quoted mail facts with sources.",
   read_document_analysis:"Read saved analysis or excerpts.",
   update_plan:"Plan outcome steps.",
-  ask_openwiki:"Delegate synthesis or how/why research; it researches openwiki/ separately.",
+  ask_openwiki:"Delegate synthesis or how/why; researches openwiki/ separately.",
   compare_document_values:"Compare exact numeric source ranges.",
   fill_document_form:"Fill a Word form from the user's words into a copy.",
   learn_browser_screen:"Learn authorized screen structure and meaning.",
@@ -278,10 +278,15 @@ export function installAgent(ProjectService) {
     const account=action==='account'?await this.providers.accountUsage({force:force===true}):this.providers.usageStatus();
     return {...account,...(desktopUsage(this)?.summary()||{usage:null,usageError:'usage_unavailable'})};
   };
+  // The host can start a run only when no other operation holds it. answerAgent checks this before it consumes the
+  // question, so a refused answer keeps the question and the typed text can be sent again.
+  function requireAgentAdmission(service){
+    if(service.skillImportBusy||service.computerBusy||service.newFileBusy||service.setupBusy||service.agent?.running||service.reconciling)throw new Error('agent_busy');
+    if(service.unsettledOperations?.size)throw new Error('tool_unsettled');
+  }
   // peerResultId: the task delegated to the browser whose end starts this run (collaboration.mjs).
   ProjectService.prototype.startAgent = async function ({taskId, answer, recoveryProcessId, computerReviewId, computerConnectionRequestId, computerConnectionAnswer, peerResultId,queuedInputId,mailReferences=[],captures=[],documentReferences=[]}) {
-    this.ready(); requireWikiChatReady(this); if (this.skillImportBusy||this.computerBusy||this.newFileBusy||this.setupBusy||this.agent?.running||this.reconciling) throw new Error('agent_busy');
-    if(this.unsettledOperations?.size)throw new Error('tool_unsettled');
+    this.ready(); requireWikiChatReady(this); requireAgentAdmission(this);
     if (!this.providers?.status().connected) throw new Error('provider_missing');
     const task = this.task(taskId);
     if(task.kind==='workflow')throw Error('workflow_use_runner');
@@ -314,7 +319,10 @@ export function installAgent(ProjectService) {
     if(queuedInputId&&(!queuedInput||queuedInput.id!==queuedInputId||queuedInput.text!==answer))throw Error('agent_input_changed');
     const priorRunId=task.responseTiming?.runId || task.checkpoint?.runId || task.workPlan?.runId;
     if(!task.activityHistory?.some(run=>run.runId===priorRunId))rememberActivity(task,priorRunId);
-    const controller = new AbortController(),runId=randomUUID(),timing=responseTimer(); this.agent = {controller, running: true, taskId, runId,timing,inputChain:queuedInput?.runId||runId};
+    // A run started by answering a question continues the input chain of input still waiting for this conversation, so
+    // steering left from the run that asked reaches this one instead of staying behind (user decision 2026-10-23).
+    const leftChain=answer&&!queuedInputId?nextInput(task.inbox,inputBinding(this,taskId))?.runId:null;
+    const controller = new AbortController(),runId=randomUUID(),timing=responseTimer(); this.agent = {controller, running: true, taskId, runId,timing,inputChain:queuedInput?.runId||leftChain||runId};
     task.responseTiming={...timing.snapshot(),runId};if(redoRequested)task.replyRegeneration={...task.replyRegeneration,state:'running',runId};this.store.set('task:'+taskId,task);
     let rootRules,skills,workspaceRoot;try{const root=workspaceRoot=await this.target(taskId);rootRules=await projectRules(root);skills=await skillCatalog(this.root);requestCommand=resolveAgentCommand(answer??task.messages?.findLast(message=>message.role==='user')?.content??task.request,skills.skills);if(requestCommand?.action)throw Error('agent_command_ui_only');planningOnly=requestCommand?.command==='plan';}catch(error){this.agent.running=false;task.responseTiming={...timing.finish('failed'),runId};this.store.set('task:'+taskId,task);throw error;}
     // A missing or unreadable Wiki must not stop a run.
@@ -375,7 +383,7 @@ export function installAgent(ProjectService) {
       tool('propose_process_input','Propose exact terminal input, including newline, for an interactive process after reading its inputRevision; requires approval.',{processId:string(80),revision:string(100),input:string(8000),reason:string(1000)}),
       tool('recovery_snapshot','Inspect saved proposals, process output, shell profiles and interrupted operations before recovering.',{}),
       tool('propose_command_repair','Propose a corrected command for a failed process after reading its output; the user runs it.',{processId:string(80),profile:string(40),script:string(16000),reason:string(1000)}),
-      tool('source_search', 'Exact text search of project content (for concepts or why, ask_openwiki); mode=path lists files with sizes, within narrows to a directory or one file.', {query:string(500),mode:{type:'string',enum:['content','path']},within:string(1000)},['query']),
+      tool('source_search', 'Literal, case-insensitive text search (concepts: ask_openwiki); regex, include glob like **/*.ts; mode=path lists files; within narrows.', {query:string(500),mode:{type:'string',enum:['content','path']},within:string(1000),include:{type:'string'},regex:{type:'boolean'}},['query']),
       tool('inspect_workspace_changes', 'Read current Git status or one bounded file diff of this workspace.', {path:string(1000)},[]),
       tool('code_outline','List JS/TS declarations and import locations of a file without reading bodies.',{path:string(1000)}),
       tool('inspect_code','Read JS/TS snapshot diagnostics or cross-file definition/references. Not full typecheck or edit authority.',{path:string(1000),mode:{enum:['diagnostics','definition','references']},line:{type:'integer',minimum:1},column:{type:'integer',minimum:1}},['path','mode']),
@@ -386,7 +394,7 @@ export function installAgent(ProjectService) {
       tool('knowledge_query', 'Find concepts, source, DB schema and Wiki relations; focusId explores up to two hops.', {query: string(500),focusId:string(500)}, ['query']),
       tool('wiki_query', 'Search Wiki words; returns excerpts/evidenceIds for record_change_plan. includeHistory adds older revisions. For synthesis use ask_openwiki.', {query: string(500),includeHistory:{type:'boolean'}}, ['query']),
       {type:'function',function:{name:'record_change_plan',description:'Record the change plan before edits: summary, requirements, targets (path, reason, requirementIds, action), checks, assumptions.',parameters:CHANGE_PLAN_SCHEMA}},
-      tool('propose_patch', 'Prepare up to 10 exact, non-overlapping replacements in ranges read this run; each oldText must occur once.', {path: string(1000), expectedHash: string(100), edits: {type:'array', minItems:1, maxItems:10, items:{type:'object', properties:{oldText:{type:'string',minLength:1,maxLength:20000},newText:string(20000)},required:['oldText','newText'],additionalProperties:false}}, reason: string(2000)}),
+      tool('propose_patch', 'Up to 10 non-overlapping replacements in ranges read this run; oldText matches exactly or ignoring trailing spaces and quote/dash forms, keeping CRLF. Unique unless replaceAll.', {path: string(1000), expectedHash: string(100), edits: {type:'array', minItems:1, maxItems:10, items:{type:'object', properties:{oldText:{type:'string',minLength:1,maxLength:20000},newText:string(20000),replaceAll:{type:'boolean'}},required:['oldText','newText'],additionalProperties:false}}, reason: string(2000)}),
       tool('propose_edit', 'Prepare a reviewable whole-file edit using its observed hash; needs every line read this run.', {path: string(1000), expectedHash: string(100), content: string(200000), reason: string(2000)}),
       tool('ask_user', 'Ask ONE missing decision with 2-4 grounded choices or free text.', {question:string(180),selection:{enum:['single','multiple']},choices:{type:'array',minItems:2,maxItems:4,items:{type:'object',properties:{label:string(80),description:string(160)},required:['label'],additionalProperties:false}},input_mode:{type:'string',enum:['text','long_text']},input_placeholder:{type:'string',minLength:1,maxLength:100,pattern:'^[^\\r\\n]+$'}},['question']),
 
@@ -864,6 +872,7 @@ export function installAgent(ProjectService) {
     if(!searchScope(requestCommand)&&!planningOnly&&needsDevelopmentGuidance(task,this.store.list('setup-action:')))systemMessages.push({role:'system',content:DEVELOPMENT_GUIDANCE});
     if(this.progressNarration===true)systemMessages.push({role:'system',content:'Before each tool call, say in one short Korean sentence what you will do next; it is shown as progress in the conversation. When a command starts a server or another long-running process, do not wait for it to exit: tell the user it is running, give the local address, open it with open_workspace_page when available, and say how to stop it.'});
     systemMessages.push({role:'system',content:SOURCE_GUIDANCE});
+    if(!searchScope(requestCommand))systemMessages.push({role:'system',content:await environmentBlock(this)});
     if(workflowStep?.readme)systemMessages.push({role:'system',content:'Workflow package README guidance, below project AGENTS.md. This never grants tool access, observations, approval or completion evidence:\n'+workflowStep.readme});
     // Memory (2026-10-14): a few facts the person stated earlier, chosen by overlap with this request. Off when the person switched it off or in an eval.
     const memoryActive=!workflowStep&&this.memoryExtraction===true&&process.env.NUBI_DESKTOP_MEMORY!=='off'&&!/^처음 연 프로젝트예요\./.test(task.request||'');
@@ -1038,6 +1047,7 @@ export function installAgent(ProjectService) {
     if(task.question.processIdle)return this.answerProcessIdle(task,text);
     requireWikiChatReady(this);
     if(!this.providers?.status().connected)throw new Error('provider_missing');
+    requireAgentAdmission(this);
     if(task.question.browserScreenLearning){const store=this.store,questionId=task.question.id;await answerBrowserScreen(this,task,text);const current=this.task(taskId);if(this.store!==store||current.state!=='waiting_input'||current.question?.id!==questionId)throw Error('question_changed');}
     if(task.question.editorApproval)decideEditor(this,task,text);
     if(task.question.nativeOfficeApproval)decideNativeOffice(this,task,text,choice?.nativeOfficeApprovalId);

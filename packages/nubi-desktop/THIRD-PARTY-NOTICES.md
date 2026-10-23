@@ -118,3 +118,26 @@ DOMPurify 3.4.15 (Apache-2.0 OR MPL-2.0) also sanitizes the Desktop email presen
 ## Captured Excel calculation sources
 
 The captured-cell worker includes the existing modified LibreOffice depreciation and seasonal-period calculation adapters (MPL-2.0). Their complete modified source, original sources, revision manifest, MPL-2.0 and Apache-2.0 notices are distributed under `vendor/licenses/native-excel/source` and copied into the host's `lib/licenses/native-excel/source`. The wrapper only enables ETS.SEASONALITY; other ETS adapters retain their documented numerical verification gap. It does not read Office files.
+
+## opencode (adapted source)
+
+`runtime/edit-match.mjs` adapts the edit matching of opencode (https://github.com/anomalyco/opencode, commit d93568f3,
+`packages/core/src/tool/plugin/edit.ts`): exact, normalized-punctuation and trailing-whitespace matching on the LF view,
+and line endings taken from the matched region.
+
+MIT License
+
+Copyright (c) 2025 opencode
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy,
+modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

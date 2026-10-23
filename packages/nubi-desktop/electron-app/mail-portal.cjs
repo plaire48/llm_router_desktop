@@ -1,14 +1,15 @@
 const {approvalStep,approvalFailure}=require('./approval-failure.cjs');
-const {mailDialogPending,mailDialogOpen,mailDialogGuide}=require('./mail-session-dialog.cjs');
+const {mailDialogPending,mailDialogGuide}=require('./mail-session-dialog.cjs');
 const {loginRedirect}=require('./mail-session-recovery.cjs');
 const {mailSessionFetch}=require('./mail-session-fetch.cjs');
 const {readMailPage}=require('./mail-page-execution.cjs');
 const {ORIGIN,LOGIN_URL,portalOrigin,foldersOf,identityOf,portalFetch,portalFetchSource}=require('./mail-portal-contract.cjs');
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const MAIL_POLL_INTERVAL_MS=5*60*1000;
-// After the person leaves the sign-in pages, the session is checked a few times (propagation delay), then the login
-// stops and offers POP3 instead of probing on its own (사용자 지시 2026-10-21: 알아서 여러 번 하지 말 것).
-const LOGIN_PROBE_LIMIT=3;
+// Portal login waits as in 1.2.9 (사용자 지시 2026-10-23): the person signs in and answers the portal's own dialogs (확인 or
+// X) while the app waits quietly. Five minutes after the login started it stops with 연결이 안 됐습니다 and never retries on
+// its own; the person starts another login (사용자 지시 2026-10-21: 알아서 여러 번 하지 말 것).
+const LOGIN_DEADLINE_MS=5*60*1000;
 const loginLocation=value=>{try{return loginRedirect(new URL(value),LOGIN_URL);}catch{return false;}};
 const homeLocation=value=>{try{const url=new URL(value),home=new URL(LOGIN_URL);return !url.username&&!url.password&&url.hostname===home.hostname&&url.port===home.port&&(url.origin===home.origin||home.protocol==='http:'&&url.protocol==='https:')&&!loginLocation(value);}catch{return false;}};
 class MailPortal {
@@ -159,39 +160,34 @@ class MailPortal {
    // Finish an invalidated restore before starting the interactive session. No overlapping SSO requests.
    this.window?.webContents.stop?.();await this.restoring;if(epoch!==this.epoch)throw Error('mail_cancelled');
    await this.windowForLogin(true,epoch);this.state.loginStage='authenticating';let identity,folders;
-   let deadline=Date.now()+5*60*1000,authFailures=0,probeFailures=0;
+   const deadline=Date.now()+(this.loginDeadlineMs??LOGIN_DEADLINE_MS);let authFailures=0;
    while(epoch===this.epoch){
+    if(Date.now()>=deadline)throw Error('mail_portal_login_timeout');
     const loginContents=()=>this.page&&this.getPageContents?this.getPageContents(this.page.tabId):[];
     const rows=loginContents();
     if(rows.some(mailDialogPending)){
      this.state.loginStage=rows.some(contents=>mailDialogGuide(contents)==='advancing')?'advancing':'confirmation';
-     const humanWaiting=rows.some(mailDialogOpen);
-     if(humanWaiting)deadline=Date.now()+5*60*1000;
-     else if(Date.now()>=deadline)throw Error('mail_portal_timeout');
      await wait(250);
-     // Waiting for the person's decision is not a portal/network timeout.
-     if(humanWaiting)deadline=Date.now()+5*60*1000;
      continue;
     }
     if(epoch!==this.epoch)break;
     // Credentials and confirmation are human input, not network inactivity.
     const active=rows.filter(contents=>!contents.isDestroyed()).at(-1);
     if(active&&loginLocation(active.getURL())){
-     this.state.loginStage='authenticating';deadline=Date.now()+5*60*1000;
+     this.state.loginStage='authenticating';
      await wait(250);continue;
     }
-    if(Date.now()>=deadline)throw Error('mail_portal_timeout');
     this.state.loginStage='authenticating';
     try{
      ({identity,folders}=await this.identify(epoch));
-     if(loginContents().some(mailDialogPending)){deadline=Date.now()+5*60*1000;continue;}
+     if(loginContents().some(mailDialogPending))continue;
      if(this.page&&this.getPageContents){
       // Both the visible portal and the shared session must be authenticated.
       // Propagation delays belong to the same login attempt, not a fatal close.
       this.state.loginStage='verifying';
       folders=foldersOf(await this.readSession('folders',{setCd:identity.setCd}));
       if(epoch!==this.epoch)throw Error('mail_cancelled');
-      if(loginContents().some(mailDialogPending)){deadline=Date.now()+5*60*1000;continue;}
+      if(loginContents().some(mailDialogPending))continue;
      }
      break;
     }
@@ -202,23 +198,20 @@ class MailPortal {
      if(loginContents().some(mailDialogPending)){await wait(250);continue;}
      if(!['mail_portal_login','mail_portal_forbidden','mail_portal_request','mail_portal_format','mail_portal_redirect'].includes(error.message))throw error;
      if(epoch!==this.epoch)break;
-     // While a sign-in page is open the person may still be signing in: that is waiting, not retrying. Once no sign-in
-     // page is open, the session is checked LOGIN_PROBE_LIMIT times and the login stops (Windows check 2026-10-21: a
-     // portal that shows its form at home kept probing while the person typed).
-     if(!loginContents().some(contents=>!contents.isDestroyed?.())&&++probeFailures>=LOGIN_PROBE_LIMIT)throw Error('mail_portal_login_failed');
+     // Not signed in yet: keep waiting for the person, checking less often (up to every 10 seconds) until the deadline.
      const authenticationPending=['mail_portal_login','mail_portal_forbidden'].includes(error.message);
      if(authenticationPending){this.state.loginStage='authenticating';authFailures++;}
      const pause=authenticationPending?Math.min(10000,2000*authFailures):2000;
      // Slow down unauthenticated probes, but react promptly to navigation,
      // native alerts and explicit cancellation instead of sleeping uninterruptibly.
-     for(let elapsed=0;elapsed<pause&&epoch===this.epoch;elapsed+=250){
+     for(let elapsed=0;elapsed<pause&&epoch===this.epoch&&Date.now()<deadline;elapsed+=250){
       await wait(250);
       const current=loginContents();
       if(current.some(mailDialogPending)||current.some(contents=>contents.isLoadingMainFrame?.()))break;
      }
     }
    }
-   if(epoch!==this.epoch)throw Error('mail_cancelled');if(!identity||!folders)throw Error('mail_portal_timeout');
+   if(epoch!==this.epoch)throw Error('mail_cancelled');if(!identity||!folders)throw Error('mail_portal_login_timeout');
    await this.invoke('mail',{action:'portalConnect',identity:identity.id,email:identity.email,folders,destination:args.destination});
    if(epoch!==this.epoch)throw Error('mail_cancelled');
    this.approvalCache=new Map();this.approvalCacheBytes=0;this.approvalPending=new Map();this.identity=identity;this.state={connected:true,connecting:false,checking:false,loginStage:'connected',folders,error:null,connectionState:'connected',nextRetryAt:null,fallback:null};this.closeLoginPage();

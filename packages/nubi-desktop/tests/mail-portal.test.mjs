@@ -249,12 +249,22 @@ test('a closing SSO page cannot strand the login while an error-page probe is pe
  assert.equal((await pending).connected,true);assert.equal(old.eventNames().length,0);host.dispose();
 });
 
-test('once the sign-in page is closed, a failing session check stops after three checks and offers POP3 instead of probing on its own',async()=>{
- const {host,calls}=loginFixture();let probes=0;
- // No sign-in page is open any more: the person finished or closed it, so the checks count.
+// Portal login waits as in 1.2.9 (user decision 2026-10-23): no early failure and no retries of its own. Five minutes
+// after the login started it reports 연결이 안 됐습니다 and stops; only the person starts another login.
+test('once the sign-in page is closed, the login waits quietly until its deadline and then stops without checking again',async()=>{
+ const {host,calls}=loginFixture();let probes=0;host.loginDeadlineMs=1500;
  host.getPageContents=()=>[];
  host.identify=async()=>{probes++;throw Error('mail_portal_forbidden');};
- await assert.rejects(host.connect(),/mail_portal_login_failed/);
- assert.equal(probes,3);assert.equal(host.status().connecting,false);assert.equal(host.status().fallback,'pop3');
+ const started=Date.now();
+ await assert.rejects(host.connect(),/mail_portal_login_timeout/);
+ assert(Date.now()-started>=1400,'it waited for the deadline instead of stopping after a few checks');
+ assert.equal(host.status().connecting,false);assert.equal(host.status().error,'mail_portal_login_timeout');
+ const after=probes;await sleep(1200);assert.equal(probes,after,'nothing is checked after the login stopped');
  assert(!calls.some(c=>c.action==='portalConnect'));host.dispose();
+});
+test('a sign-in page that stays open does not extend the five-minute deadline',{timeout:15000},async()=>{
+ const {host,contents}=loginFixture();host.loginDeadlineMs=1200;
+ const page=contents(LOGIN_URL);host.getPageContents=()=>[page];
+ host.identify=async()=>{throw Error('mail_portal_forbidden');};
+ await assert.rejects(host.connect(),/mail_portal_login_timeout/);host.dispose();
 });

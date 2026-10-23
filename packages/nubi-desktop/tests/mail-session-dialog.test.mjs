@@ -11,7 +11,7 @@ function fixture(){
 }
 test('only known portal session-expired alerts require navigation after manual confirmation',()=>{
  assert(expiredSessionDialog(notice));
- for(const change of [{type:'prompt'},{message:'로그인 정보를 저장할까요?'},{url:'https://www.samsung.net.evil.test/loginapp/logout'},{url:'https://user:password@www.samsung.net/loginapp/logout'},{url:'https://www.samsung.net:8443/loginapp/logout'}])assert.equal(expiredSessionDialog({...notice,...change}),false);
+ for(const change of [{type:'prompt'},{message:'로그인 정보를 저장할까요?'},{url:'https://www.samsung.net.evil.test/loginapp/logout'},{url:Object.assign(new URL('https://www.samsung.net/loginapp/logout'),{username:'user',password:'password'}).href},{url:'https://www.samsung.net:8443/loginapp/logout'}])assert.equal(expiredSessionDialog({...notice,...change}),false);
 });
 test('known native expiry alerts advance automatically and block probes through the redirect gap',()=>{
  const {contents,commands,emit}=fixture();
@@ -29,7 +29,9 @@ test('unrelated confirmation remains manual and does not require a redirect',()=
  assert.equal(commands.length,1);contents.debugger.detach();assert.equal(contents.debugger.listenerCount('message'),0);assert.equal(contents.listenerCount('did-start-navigation'),0);
 });
 
-test('a human confirmation can wait beyond five minutes and resumes only after confirmation and navigation',async t=>{
+// Portal login waits as in 1.2.9 (user decision 2026-10-23): the person answers the portal's dialog while the app waits
+// without probing, and five minutes after the login started it stops with 연결이 안 됐습니다.
+test('a human confirmation waits without probes and resumes only after confirmation and navigation',async t=>{
  const {MailPortal}=await import('../electron-app/mail-portal.cjs');
  t.mock.timers.enable({apis:['Date'],now:1000});
  const {contents,emit,commands}=fixture();Object.assign(contents,{getURL:()=> 'https://www.samsung.net/loginapp/login',isDestroyed:()=>false});
@@ -37,7 +39,7 @@ test('a human confirmation can wait beyond five minutes and resumes only after c
  host.page={tabId:'fixture'};host.windowForLogin=async()=>{};host.sync=async()=>{};host.readSession=async()=>[{folderID:'1',folderName:'Inbox'}];let probes=0;
  host.identify=async()=>{probes++;return {identity:{id:'owner',userId:'owner'},folders:[]};};
  emit('Page.javascriptDialogOpening',{...notice,type:'confirm',message:'작업을 진행할까요?'});const connecting=host.connect();
- await new Promise(r=>setTimeout(r,20));t.mock.timers.setTime(11*60*1000);await new Promise(r=>setTimeout(r,300));
+ await new Promise(r=>setTimeout(r,20));t.mock.timers.setTime(4*60*1000);await new Promise(r=>setTimeout(r,300));
  assert.equal(host.status().connecting,true);assert.equal(host.status().loginStage,'confirmation');assert.equal(probes,0);
  emit('Page.javascriptDialogClosed',{result:true});contents.getURL=()=> 'http://kor3.samsung.net/portalapp/home';contents.emit('did-start-navigation',{},contents.getURL(),false,true);
  assert.equal((await connecting).connected,true);assert.equal(probes,1);assert.deepEqual(commands,[{method:'Page.enable',args:undefined}]);
@@ -73,14 +75,26 @@ test('an existing debugger connection does not disable expiry handling',()=>{
  assert(commands.some(row=>row.method==='Page.handleJavaScriptDialog'));
 });
 
-test('login input waits beyond five minutes without API probes and remains cancellable',async t=>{
+test('login input waits without API probes and remains cancellable',async t=>{
  const {MailPortal}=await import('../electron-app/mail-portal.cjs');
  t.mock.timers.enable({apis:['Date'],now:1000});
  const contents={getURL:()=> 'https://www.samsung.net/loginapp/login',isDestroyed:()=>false};
  const host=new MailPortal({getPageContents:()=>[contents],invoke:async()=>({})});t.after(()=>host.dispose());
  host.page={tabId:'fixture'};host.windowForLogin=async()=>{};let probes=0;host.identify=async()=>{probes++;throw Error('mail_portal_forbidden');};
  const pending=host.connect();await new Promise(r=>setTimeout(r,20));
- t.mock.timers.setTime(20*60*1000);await new Promise(r=>setTimeout(r,300));
+ t.mock.timers.setTime(4*60*1000);await new Promise(r=>setTimeout(r,300));
  assert.equal(host.status().connecting,true);assert.equal(host.status().loginStage,'authenticating');assert.equal(probes,0);
  await host.disconnect();await assert.rejects(pending,/mail_cancelled/);
+});
+
+for(const [name,dialog] of [['an open portal confirmation',true],['a sign-in page still being filled in',false]])test(`${name} does not keep the login past five minutes`,async t=>{
+ const {MailPortal}=await import('../electron-app/mail-portal.cjs');
+ t.mock.timers.enable({apis:['Date'],now:1000});
+ const {contents,emit}=fixture();Object.assign(contents,{getURL:()=> 'https://www.samsung.net/loginapp/login',isDestroyed:()=>false});
+ const host=new MailPortal({getPageContents:()=>[contents],invoke:async()=>({})});t.after(()=>host.dispose());
+ host.page={tabId:'fixture'};host.windowForLogin=async()=>{};host.closeLoginPage=()=>{};let probes=0;host.identify=async()=>{probes++;throw Error('mail_portal_forbidden');};
+ if(dialog)emit('Page.javascriptDialogOpening',{...notice,type:'confirm',message:'작업을 진행할까요?'});
+ const pending=host.connect();await new Promise(r=>setTimeout(r,20));
+ t.mock.timers.setTime(1000+6*60*1000);
+ await assert.rejects(pending,/mail_portal_login_timeout/);assert.equal(probes,0);assert.equal(host.status().connecting,false);assert.equal(host.status().error,'mail_portal_login_timeout');
 });

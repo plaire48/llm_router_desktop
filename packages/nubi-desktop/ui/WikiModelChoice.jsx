@@ -40,5 +40,5 @@ export function useWikiModelChoice(api){
 }
 export function WikiRebuildModel({control,disabled=false}){
  const {view,value,open}=control;if(!view||!value)return null;
- return <div className="nubi-wiki-rebuild-model">{open?<WikiModelSelection view={view} value={value} disabled={disabled} onBack={()=>control.setOpen(false)} onChoose={control.choose}/>:<><span>만들 모델</span><WikiModelChips view={view} value={value} disabled={disabled} onOpen={()=>control.setOpen(true)} onChange={control.change}/></>}</div>;
+ return <div className="nubi-wiki-rebuild-model" role="group" aria-label="만들 모델">{open?<WikiModelSelection view={view} value={value} disabled={disabled} onBack={()=>control.setOpen(false)} onChoose={control.choose}/>:<><span>만들 모델</span><WikiModelChips view={view} value={value} disabled={disabled} onOpen={()=>control.setOpen(true)} onChange={control.change}/></>}</div>;
 }

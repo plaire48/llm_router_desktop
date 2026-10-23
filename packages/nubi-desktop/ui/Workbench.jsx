@@ -1,4 +1,5 @@
 import {WikiGenerationSettings} from './WikiGenerationSettings.jsx';
+import {detachedQuestions as decidedQuestionsOf} from './decided-questions.mjs';
 import {WikiScopeSheet} from './WikiScopeSheet.jsx';
 import {WorkflowRunView} from './WorkflowRunView.jsx';
 import {afterEditCheckMessage} from './after-edit-check-message.mjs';
@@ -374,7 +375,7 @@ export function Workbench({createEditorDraft,connectEditor,api:requestApi,initia
     let alive=true;setWikiGenerationView(null);
     api('wikiGeneration').then(value=>{if(alive)setWikiGenerationView(value?.settings?value:{unsupported:true});}).catch(error=>{if(alive)setWikiGenerationView(error?.message==='method_invalid'?{unsupported:true}:{error:true});});
     return()=>{alive=false;};
-  },[api,project?.projectId,panel,provider?.provider,provider?.model,wikiGenerationReload]);
+  },[api,project?.projectId,panel,provider?.provider,provider?.model,provider?.reasoningEffort,wikiGenerationReload]);
   const wikiCurrentModel=wikiGenerationView?.applied?.model||(wikiGenerationView?.unsupported?provider?.model:undefined),wikiCurrentProvider=wikiGenerationView?.applied?.provider||(wikiGenerationView?.unsupported?provider?.provider:undefined);
   // A server started from the conversation opens in the app browser by itself, once per server (user request 2026-10-14:
   // "서버 띄우면 앱 웹에서 띄워서 보여야지"); the card below stays for reopening and stopping it.
@@ -487,7 +488,7 @@ export function Workbench({createEditorDraft,connectEditor,api:requestApi,initia
   useEffect(()=>{if(!workflowTarget?.pending||workflowTarget.projectId!==project?.projectId||tabsProject!==project.projectId)return;setWikiPage(false);setMailPage(false);setSkillsPage(false);setPanel('workflows');setWorkflowTarget(current=>current===workflowTarget?{...current,pending:false}:current);if(activeView)void workspaceView?.(null);},[workflowTarget,project?.projectId,tabsProject]);
   const [openingDecision,setOpeningDecision]=useState(null),decisionProject=useRef(project?.projectId);decisionProject.current=project?.projectId;
   // Answering from the toast uses the same request as the conversation's question form.
-  async function answerDecisionFromToast(decision,choice){await perform(async()=>{await api('answerAgent',{taskId:decision.taskId,choice});await refresh();});}
+  async function answerDecisionFromToast(decision,choice){await perform(async()=>{try{await api('answerAgent',{taskId:decision.taskId,choice});}finally{void refresh();}});}
   async function openHumanDecision(decision){
    if(decision.projectId&&decision.projectId!==project?.projectId&&focusDecision)return focusDecision(decision);
    await perform(async()=>{
@@ -505,8 +506,8 @@ export function Workbench({createEditorDraft,connectEditor,api:requestApi,initia
   },[openingDecision,taskId,busy,project]);
   // Workflow umbrellas and their step conversations stay readable while workflows are off (design light-flow §5.1).
   const workflowOff=!DESKTOP_FEATURES.workflows&&(task?.kind==='workflow'||task?.origin?.kind==='workflow_step');
-  const questionControl=!workflowOff&&task?.question&&task.state==='waiting_input'?<QuestionDecision key={task.question.id||task.id} question={typeof task.question==='string'?{id:task.id,text:task.question,options:[],kind:'text'}:task.question} disabled={busy||running||wikiChatBlocked} blocked={!!panel} onNativeEdit={args=>api('reviseNativeOfficeDraft',{taskId,...args})} onDraft={draft=>api('saveQuestionDraft',{taskId,questionId:task.question.id,draft})} onChoose={async choice=>{await api('answerAgent',{taskId,choice,...(typeof task.question==='string'?{answer:choice.text}:{})});await refresh();return true;}}/>:null;
-  const detachedQuestions=(task?.questionHistory||[]).filter(question=>!task.messages.some(message=>message.role==='assistant'&&message.questionId===question.id)||!task.messages.some(message=>message.role==='user'&&message.content===question.answer?.text));
+  const questionControl=!workflowOff&&task?.question&&task.state==='waiting_input'?<QuestionDecision key={task.question.id||task.id} question={typeof task.question==='string'?{id:task.id,text:task.question,options:[],kind:'text'}:task.question} disabled={busy||running||wikiChatBlocked} blocked={!!panel} onNativeEdit={args=>api('reviseNativeOfficeDraft',{taskId,...args})} onDraft={draft=>api('saveQuestionDraft',{taskId,questionId:task.question.id,draft})} onChoose={async choice=>{try{await api('answerAgent',{taskId,choice,...(typeof task.question==='string'?{answer:choice.text}:{})});}finally{void refresh();}return true;}}/>:null;
+  const detachedQuestions=decidedQuestionsOf(task);
   const conversationKey=task&&!mailPage&&!skillsPage?`${project?.projectId}:${task.id}`:null;
   const conversationScroll=useConversationScroll(conversationKey);
   const [chapterJump,setChapterJump]=useState(null);
@@ -954,7 +955,7 @@ export function Workbench({createEditorDraft,connectEditor,api:requestApi,initia
           {DESKTOP_FEATURES.computerUse&&<ComputerUse showControls={false} key={`computer-${task.id}`} taskId={taskId} state={project.computer} api={api} refresh={refresh} disabled={busy||running||!!task.question||task.state==='cancelled'}/>}
 
           {showProgress&&task.changePlan&&<DeckDisclosure key={changePlanLive?'change-plan:live':'change-plan'} attention={changePlanLive} icon="clipboardCheck" title={`작업 계획 (${task.changePlan.targets.length}개 파일)`}><p>{task.changePlan.summary}</p><ul className="nubi-plan-list">{task.changePlan.requirements.map(r=><li key={r.id}><strong>{r.text}</strong><small>{r.criterionId?'완료 조건 '+r.criterionId:'누비가 정리한 요구사항'}</small></li>)}</ul>{task.changePlan.targets.map(target=><CxButton className="nubi-file-link" key={target.path} onClick={()=>perform(()=>openPath(target.path,taskId))}><Icon name="file" size={16}/><DriftLabel as="strong">{target.path}</DriftLabel><span>{target.reason}</span></CxButton>)}<p className="nubi-muted">관련 항목 {task.changePlan.impact.items.reduce((n,item)=>n+item.nodes.length,0)}개를 검토합니다.{task.changePlan.impact.unmapped.length?' 연결 정보가 없는 파일은 영향 범위를 따로 확인해야 해요.':''}</p>{task.changePlan.wikiEvidence?.length>0&&<DeckDisclosure title={`계획의 위키 근거 ${task.changePlan.wikiEvidence.length}개`}>{task.changePlan.wikiEvidence.map(row=><CxButton key={row.evidenceId} className="nubi-file-link" onClick={()=>perform(()=>openPath(row.path,taskId))}><Icon name="file" size={16}/><DriftLabel>{row.path}:{row.start}</DriftLabel></CxButton>)}<p className="nubi-muted">계획에 사용한 문서입니다. 제안을 만들 때 변경 여부를 다시 확인합니다.</p></DeckDisclosure>}<h3>완료할 일</h3><ul className="nubi-plan-list">{task.changePlan.checks.map((check,i)=><li key={i}>{check.description}<small>{({test:'테스트',browser:'실제 화면',inspection:'직접 확인'})[check.method]}</small></li>)}</ul>{task.changePlan.assumptions.length>0&&<p className="nubi-muted">전제: {task.changePlan.assumptions.join(', ')}</p>}</DeckDisclosure>}
-          {showProgress&&!!detachedQuestions.length&&<DeckDisclosure title="확인한 요구사항" icon="check">{detachedQuestions.map((q,i)=><div className="nubi-decided-question" key={q.id||i}><p>{q.text}</p><strong>{q.answer.text}</strong></div>)}</DeckDisclosure>}
+          {showProgress&&!!detachedQuestions.length&&<DeckDisclosure title="확인한 요구사항" icon="check">{detachedQuestions.map((q,i)=><div className="nubi-decided-question" key={q.id||i}><p>{q.text}</p><strong>{q.answer?.text}</strong></div>)}</DeckDisclosure>}
           {uncertainProposals.length>0&&<section className="nubi-results" aria-label="파일 저장 확인">{uncertainProposals.map(p=><div key={p.id}><strong>{p.path}</strong><p>{p.state==='attention'?'저장 결과를 확인해 주세요. 파일을 다시 쓰지 않습니다.':'같은 경로에 파일이 생겼어요. 현재 내용을 확인해 주세요.'}</p><CxButton onClick={()=>perform(()=>review(p.id))}><Icon name="columns" size={18}/>비교</CxButton></div>)}</section>}
 
           {commandCards((project?.processes||[]).filter(row=>row.taskId===taskId&&!taskActions.some(action=>action.resultProcessId===row.id)).reverse().map(row=>({id:row.id,state:'started',title:'명령 실행',script:row.script,workspace:row.cwd,resultProcessId:row.id})))}

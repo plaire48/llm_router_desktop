@@ -1,3 +1,4 @@
+import {DESKTOP_FEATURES} from '../runtime/beta-features.mjs';
 import {AfterFirstPaint} from './AfterFirstPaint.jsx';
 import {MAILBOX_TABS,mailboxSelection,personalMailFolders} from './mailbox-navigation.mjs';
 import {CxSelect} from './WorkspaceSelect.jsx';
@@ -55,7 +56,7 @@ export function MailHistory({api,onDocument,onAsk,onAskSearch,onSettings,connect
    const attachment=context.match?.kind==='attachment'&&value.mail.attachments.find(item=>item.id===context.match.attachmentId);
    if(attachment&&['document_read','text_read'].includes(attachment.contentState)&&!context.match.filenameOnly)await onDocument?.(id,attachment.id,{sourceHash:value.sourceHash,attachmentHash:attachment.sha256,...(context.match.page||context.match.slide||context.match.sheet?{location:{...(context.match.page?{page:context.match.page}:{}),...(context.match.slide?{slide:context.match.slide}:{}),...(context.match.sheet?{sheet:context.match.sheet}:{})}}:{}),query:context.query,canPresent:()=>alive.current&&attempt===selection.current});
    return alive.current&&attempt===selection.current;
-  }catch{if(alive.current&&attempt===selection.current)notifyWorkspaceToast('원문이 바뀌었거나 읽을 수 없어요.',{error:true});return false;}
+  }catch(error){if(alive.current&&attempt===selection.current){setSource(null);notifyWorkspaceToast(error.message==='mail_source_missing'?'Knox 원문 파일이 없어요. Desktop Message의 저장 위치를 확인해 주세요.':error.message==='mail_source_unavailable'?'Knox 원문에 접근하지 못했어요. 드라이브와 읽기 권한을 확인해 주세요.':'원문이 바뀌었거나 읽을 수 없어요.',{error:true});}return false;}
   finally{if(alive.current&&attempt===selection.current)setLoading(false);}
  },[api,onDocument,viewState]);
  async function reload(){
@@ -63,7 +64,7 @@ export function MailHistory({api,onDocument,onAsk,onAskSearch,onSettings,connect
   try{
    let current=await api('mail',{action:'status',includeMessages:false});
    if(current.connected&&!current.checking&&!current.connecting){
-    if(!current.nextCheckAt||Date.now()>=Date.parse(current.nextCheckAt))current=await api('mail',{action:'portalSync'});
+    if(!current.nextCheckAt||Date.now()>=Date.parse(current.nextCheckAt))current=await api('mail',{action:current.desktop?.mode==='desktop'?'desktopSync':'portalSync'});
     else notifyWorkspaceToast(`다음 메일 확인은 ${new Date(current.nextCheckAt).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}이에요.`);
    }
    // Checking the server must not replace the rows the user is reading.
@@ -77,7 +78,7 @@ export function MailHistory({api,onDocument,onAsk,onAskSearch,onSettings,connect
  function selectMailbox(value){if(value==='personal')value=personalFolders.some(folder=>'folder:'+folder.id===lastPersonalFolder.current)?lastPersonalFolder.current:'folder:'+personalFolders[0].id;if(value.startsWith('folder:'))lastPersonalFolder.current=value;closeReader();setMailbox(value);setQuery('');if(viewState)viewState.current={...viewState.current,mailbox:value,personalFolder:lastPersonalFolder.current,query:'',search:undefined};}
  const revision=JSON.stringify([status?.identityRevision,status?.counts?.received]);
  return <section className="nubi-mail-history" data-layout="table" data-selected={!!source||loading} aria-label="메일 이력">
-  <header className="nubi-mail-history-bar">{onReturn&&<ActionButton action="back" label="대화로 돌아가기" onClick={onReturn}/>}<Icon name="mail" size={22}/><h1>메일</h1><span>{status?.counts?.received??0}개</span><ActionButton action="refresh" label="새 메일 확인" disabled={refreshing||status?.checking||status?.connecting} onClick={reload}/>{(refreshing||status?.checking)&&<span className="status-spinner" role="status" aria-label="메일 확인 중"/>}<CxButton ref={connectionRef} className="nubi-mail-connect-link" onClick={onSettings}><Icon name="mail" size={18}/><span>{status?.connected||status?.localCount?'메일 설정':'포털 로그인'}</span></CxButton></header>
+  <header className="nubi-mail-history-bar">{onReturn&&<ActionButton action="back" label="대화로 돌아가기" onClick={onReturn}/>}<Icon name="mail" size={22}/><h1>메일</h1><span>{status?.counts?.received??0}개</span><ActionButton action="refresh" label="새 메일 확인" disabled={refreshing||status?.checking||status?.connecting} onClick={reload}/>{(refreshing||status?.checking)&&<span className="status-spinner" role="status" aria-label="메일 확인 중"/>}<CxButton ref={connectionRef} className="nubi-mail-connect-link" onClick={onSettings}><Icon name="mail" size={18}/><span>{!DESKTOP_FEATURES.mailPortal||status?.desktop||status?.connected||status?.localCount?'메일 설정':'포털 로그인'}</span></CxButton></header>
   <WorkspaceCatalogTabs wide label="포털 자료" idPrefix="portal-view" active={portalView} onChange={value=>{setPortalView(value);if(value==='approvals')closeReader();}} items={[{key:'mail',label:<><Icon name="mail" size={16}/>메일</>},{key:'approvals',label:<><Icon name="clipboardCheck" size={16}/>결재</>}]}/>
   {portalView==='approvals'?<ApprovalHistory api={api} onSettings={onSettings} status={status} onAsk={onAsk} onAskSearch={onAskSearch} onDocument={onDocument} revision={revision}/>:<>
   <WorkspaceCatalogTabs containerRef={mailboxTabs} wide={false} label="메일함" idPrefix="mailbox" active={personalSelected?'personal':mailbox} onChange={selectMailbox} items={[...MAILBOX_TABS.map(({key,label,icon})=>({key,label:<><Icon name={icon} size={16}/>{label}</>})),...(personalFolders.length?[{key:'personal',label:<><FolderMark size={16}/>개인 폴더</>}]:[])]}/>

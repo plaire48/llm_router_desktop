@@ -178,3 +178,25 @@ test('mail organization stores grounded statements and exposes coverage through 
  const result=await mail.call({action:'facts',query:'계약'});
  assert.equal(result.facts[0].value,'계약 검토 요청');assert.equal(result.facts[0].grounding,'source_excerpt');assert.equal(result.coverage[0].complete,true);
 });
+
+// Mail source choice (user decision 2026-10-23): POP3 remembers the login ID in the OS-protected connection vault, never
+// the password, and never in plain files.
+test('a POP3 connection remembers only the login ID in the protected vault, and unticking 아이디 기억 forgets it',async t=>{
+ const f=await fixture(t),vault=new Map();
+ const connectionVault={get:async key=>vault.get(key)??null,set:async(key,value)=>{vault.set(key,value);},delete:async key=>{vault.delete(key);}};
+ const host={storageRoot:path.join(f.root,'state'),connectionVault,providers:{catalogs:()=>CATALOGS,status:()=>({connected:true,...destination}),complete:async()=>({content:'{}'})}};
+ const open=()=>new PersonalMail(host,{personalRoot:path.join(f.root,'personal'),pull:input=>pullPop3({...input,endpoint:f.endpoint})});
+ const mail=open();
+ await mail.call({action:'setAutoWiki',enabled:false});
+ await mail.call({action:'connect',requestId:'remember',...credentials,destination});
+ assert.equal(mail.status().pop3User,credentials.user);
+ assert(![...vault.values()].some(value=>value.includes(credentials.password)),'the password never reaches the vault');
+ const scan=async dir=>{let text='';for(const item of await readdir(dir,{withFileTypes:true})){const file=path.join(dir,item.name);text+=item.isDirectory()?await scan(file):(await readFile(file)).toString('latin1');}return text;};
+ const disk=await scan(f.root);assert(!disk.includes(credentials.user),'no plain copy of the login ID on disk');
+ await mail.call({action:'disconnect'});assert.equal(mail.status().pop3User,credentials.user,'disconnecting keeps the remembered ID');
+ mail.dispose();const reopened=open();t.after(()=>reopened.dispose());await reopened.pop3UserReady;assert.equal(reopened.status().pop3User,credentials.user,'the ID comes back after a restart');
+ await reopened.call({action:'setAutoWiki',enabled:false});
+ reopened.nextCheckAt=null;// the server wait has passed
+ await reopened.call({action:'connect',requestId:'forget',...credentials,rememberUser:false,destination});
+ assert.equal(reopened.status().pop3User,null);assert.equal(vault.has('mail:pop3-user'),false);
+});

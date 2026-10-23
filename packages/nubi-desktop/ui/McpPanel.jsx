@@ -46,7 +46,7 @@ export function McpPanel({api}){
  };
  if(!data)return <LoadingNote>MCP 서버를 불러오는 중</LoadingNote>;
  if(pasting)return <div className="nubi-mcp-form" aria-label="MCP 설정 붙여넣기">
-  <header className="nubi-mcp-form-head"><WorkspaceAction action="back" label="목록으로 돌아가기" onClick={()=>setPasting(false)}/><h3>설정 붙여넣기</h3></header>
+  <header className="nubi-mcp-form-head"><WorkspaceAction action="back" label="목록으로 돌아가기" onClick={()=>{setPasting(false);setPasted('');}}/><h3>설정 붙여넣기</h3></header>
   <p className="nubi-muted">Claude, Cursor, VS Code 같은 앱의 MCP 설정 JSON을 그대로 붙여 넣으면 서버를 모두 추가하고 바로 연결해요. 환경 변수와 헤더 값은 이 PC의 보관소에만 저장돼요.</p>
   <textarea className="nubi-mcp-paste" aria-label="MCP 설정 JSON" spellCheck={false} value={pasted} onChange={event=>setPasted(event.target.value)} placeholder={'{\n  "mcpServers": {\n    "github": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-github"], "env": { "GITHUB_TOKEN": "…" } },\n    "company": { "url": "https://mcp.company.local/mcp", "headers": { "Authorization": "Bearer …" } }\n  }\n}'}/>
   <div className="nubi-mcp-form-actions"><CxButton variant="primary" disabled={busy||!pasted.trim()} onClick={()=>void importJson()}><Icon name="plus" size={16}/><span>추가하고 연결</span></CxButton></div>

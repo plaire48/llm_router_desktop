@@ -27,7 +27,8 @@ try {
  checks.push('required account/database fields stop submission before RPC');
  await form.getByLabel('DB 이름',{exact:true}).fill('project');await form.getByLabel('사용자',{exact:true}).fill('reader');await form.getByLabel('비밀번호',{exact:true}).fill('fixture-password');
  await p.evaluate(()=>window.dbFail=true);await form.getByRole('button',{name:'연결해서 읽기'}).click();await form.getByText(/DB에 연결하지 못했어요/).waitFor();
- assert.equal(await form.getByLabel('DB 이름',{exact:true}).inputValue(),'project');assert.equal(await form.getByLabel('비밀번호',{exact:true}).inputValue(),'fixture-password');
+ assert.equal(await form.getByLabel('DB 이름',{exact:true}).inputValue(),'project');// The password leaves the form as soon as it is sent, also when the connection fails (user decision 2026-10-23).
+ assert.equal(await form.getByLabel('비밀번호',{exact:true}).inputValue(),'');await form.getByLabel('비밀번호',{exact:true}).fill('fixture-password');
  checks.push('failed connection retains entered values for correction');
  await p.evaluate(()=>window.dbFail=false);
  for(const [engine,port,schema] of [['postgres',5432,'public'],['mysql',3306,'project'],['mariadb',3306,'project'],['sqlserver',1433,'dbo'],['oracle',1521,'READER']]){

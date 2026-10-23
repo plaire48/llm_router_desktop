@@ -51,8 +51,8 @@ function DatabaseConnections({api,onChanged}){
   async function retryStatus(){if(lock.current)return;lock.current=true;setBusy(true);try{await readStatus();}finally{lock.current=false;if(alive.current)setBusy(false);}}
   const update=(key,value)=>setForm(f=>({...f,[key]:value}));
   async function run(action,id){if(lock.current)return;lock.current=true;setBusy(true);setError('');try{
-    const {id:unused,...input}=form;input.host=input.host.trim();input.database=input.database.trim();input.user=input.user.trim();input.schema=['mysql','mariadb'].includes(input.engine)?input.database:input.engine==='oracle'?input.user.toUpperCase():input.schema.trim();statusRevision.current++;const receipt=await api('databaseConnection',{action,id,input:action==='connect'?input:undefined});
-    if(!alive.current)return;setForm(f=>({...f,password:''}));
+    const {id:unused,...input}=form;input.host=input.host.trim();input.database=input.database.trim();input.user=input.user.trim();input.schema=['mysql','mariadb'].includes(input.engine)?input.database:input.engine==='oracle'?input.user.toUpperCase():input.schema.trim();statusRevision.current++;setForm(f=>({...f,password:''}));const receipt=await api('databaseConnection',{action,id,input:action==='connect'?input:undefined});
+    if(!alive.current)return;
     if(action==='disconnect')setConnections(current=>current.filter(c=>c.id!==id));
     else setConnections(current=>[...current.filter(c=>c.id!==id),{id,engine:action==='connect'?input.engine:current.find(c=>c.id===id)?.engine,schema:action==='connect'?input.schema:current.find(c=>c.id===id)?.schema,tables:receipt.tables,collectedAt:receipt.collectedAt}]);
     await readStatus(true);await onChanged();

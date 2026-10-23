@@ -9,6 +9,8 @@ import {isMimeMailContent} from './mail-mime-content.mjs';
 import {mailAttention} from './mail-attention.mjs';
 import {LOCAL_MAIL_KINDS,APPROVAL_KINDS} from './mail-file-kinds.mjs';
 import {scanMailFolder,readMailImportFile} from './mail-file-import.mjs';
+import {DesktopMailSource,separateDesktopStorage} from './mail-desktop-source.mjs';
+import {desktopMailReference,desktopReferenceMetadata,readDesktopMailReference} from './mail-desktop-reference.mjs';
 import {recipientRole as classifyRecipient,mailAddresses} from './mail-presentation.mjs';
 import {applyPortalMetadata} from './portal-mail-metadata.mjs';
 import {DESKTOP_FEATURES} from './beta-features.mjs';
@@ -35,7 +37,9 @@ import {stripQuotedReply,threadKey,mailFrontMatter} from './mail-thread.mjs';
 
 const sha=value=>createHash('sha256').update(value).digest('hex'),now=()=>new Date().toISOString();
 const servers=Object.freeze({portal:Object.freeze({host:'kor3.samsung.net',port:443,tls:true,protocol:'portal'}),company:Object.freeze({host:'pop3.samsung.net',port:995,tls:true,protocol:'pop3'}),gmail_test:Object.freeze({host:'pop.gmail.com',port:995,tls:true})});
-const errors=new Set(['mail_attachment_analysis_failed','mail_encryption_unavailable','mail_encryption_integrity','mail_encryption_key_lost','mail_portal_login','mail_portal_approval_login','mail_portal_request','mail_portal_format','mail_portal_timeout','mail_portal_page_limit','mail_identity_invalid','mail_input_invalid','mail_auth_failed','mail_auth_user_rejected','mail_auth_login_rejected','mail_mailbox_busy','mail_gmail_app_password_format','mail_gmail_app_password_required','mail_gmail_web_login_required','mail_gmail_pop_disabled','mail_gmail_credentials_invalid','mail_tls_error','mail_tls_untrusted','mail_tls_expired','mail_tls_hostname','mail_tls_unavailable','mail_dns_failed','mail_connection_refused','mail_listing_failed','mail_retrieval_failed','mail_timeout','mail_connection_failed','mail_uidl_invalid','mail_uidl_format','mail_uidl_id_length','mail_uidl_characters','mail_uidl_number_conflict','mail_protocol','mail_size_limit','mail_cancelled','mail_parse_failed','mail_summary_invalid','mail_source_changed','mail_model_changed','mail_model_missing','mail_file_conflict','mail_storage_failed','mail_storage_permission','mail_summary_failed']);
+const POP3_USER_KEY='mail:pop3-user';
+const errors=new Set(['mail_attachment_analysis_failed','mail_encryption_unavailable','mail_encryption_integrity','mail_encryption_key_lost','mail_portal_login','mail_portal_approval_login','mail_portal_request','mail_portal_format','mail_portal_timeout','mail_portal_login_timeout','mail_portal_page_limit','mail_identity_invalid','mail_input_invalid','mail_auth_failed','mail_auth_user_rejected','mail_auth_login_rejected','mail_mailbox_busy','mail_gmail_app_password_format','mail_gmail_app_password_required','mail_gmail_web_login_required','mail_gmail_pop_disabled','mail_gmail_credentials_invalid','mail_tls_error','mail_tls_untrusted','mail_tls_expired','mail_tls_hostname','mail_tls_unavailable','mail_dns_failed','mail_connection_refused','mail_listing_failed','mail_retrieval_failed','mail_timeout','mail_connection_failed','mail_uidl_invalid','mail_uidl_format','mail_uidl_id_length','mail_uidl_characters','mail_uidl_number_conflict','mail_protocol','mail_size_limit','mail_cancelled','mail_parse_failed','mail_summary_invalid','mail_source_changed','mail_model_changed','mail_model_missing','mail_file_conflict','mail_storage_failed','mail_storage_permission','mail_summary_failed']);
+for(const error of ['mail_source_missing','mail_source_unavailable'])errors.add(error);
 const code=error=>errors.has(error?.message)?error.message:'mail_storage_failed';
 export const MAIL_SUMMARY_RETRIES=3;
 const model=host=>{const value=host.providers?.status();return value?.connected&&value.model?{provider:value.provider,model:value.model}:null;};
@@ -55,12 +59,16 @@ async function exclusive(file,data){
   catch(error){if(error.code!=='EEXIST')throw error;if(!(await lstat(file)).isFile()||(await lstat(file)).isSymbolicLink()||sha(await readFile(file))!==sha(data))throw new Error('mail_file_conflict');}
 }
 export class PersonalMail {
-  constructor(host,{personalRoot,wikiRoot,workerFile=new URL('./mail-worker.mjs',import.meta.url),pull}={}){
+  constructor(host,{personalRoot,wikiRoot,workerFile=new URL('./mail-worker.mjs',import.meta.url),pull,desktopSource}={}){
     this.host=host;this.root=personalRoot||path.join(resolveOpenWikiHomeDir(),'connectors','pop3');this.wikiRoot=wikiRoot||(personalRoot?path.join(personalRoot,'wiki'):path.join(resolveOpenWikiHomeDir(),'wiki','sources','pop3'));
     // Mail wiki pages are encrypted at rest (user decision 2026-10-14); the session copy becomes wikiRoot in ensureWiki().
     this.wikiStoreRoot=this.wikiRoot;this.wikiVault=new MailWikiVault({storeRoot:this.wikiStoreRoot,sessionRoot:path.join(this.root,'session-wiki'),secrets:host?.connectionVault||null,protect:protectMailDirectory,log:(...args)=>host?.log?.('mail_wiki_vault',...args)});this.workerFile=workerFile;this.pullOverride=pull;this.generation=0;this.paused=true;this.watchPaused=false;
     this.store=new Store(path.join(host.storageRoot,'personal-mail'),{mailList:true});
+    this.desktopSource=new DesktopMailSource(this,desktopSource);
     this.contentCache=new Map();
+    // The POP3 login ID is remembered in the OS-protected connection vault, never in plain settings, and the password
+    // never leaves memory (user decision 2026-10-23). Without a vault it is remembered for this run only.
+    this.pop3User=null;this.pop3UserReady=Promise.resolve(host?.connectionVault?.get(POP3_USER_KEY)).then(raw=>{const user=raw?JSON.parse(raw)?.user:null;if(typeof user==='string'&&!this.pop3User)this.pop3User=user;}).catch(()=>{});
     this.rawVault=new MailRawVault({root:()=>this.rawRoot,secrets:host?.connectionVault,readFile,exclusive,privateDir,stopped:()=>!!this.disposed});
     this.serverProfile=Object.hasOwn(servers,this.store.get('setting:server-profile'))?this.store.get('setting:server-profile'):'company';
     if(this.store.get('setting:server-profile')==='company_imap')this.store.set('setting:server-profile','company');
@@ -110,6 +118,7 @@ export class PersonalMail {
   }
   resumeCollection(){
     clearTimeout(this.timer);
+    if(this.desktopSource.enabled){this.desktopSource.wake();return;}
     if(this.resetting||this.store.get('setting:reset-pending')||this.serverProfile==='portal'||!this.credentials||!this.autoWiki||this.watchPaused||this.disposed||this.checking||this.connecting)return;
     const delay=Math.max(0,Date.parse(this.nextCheckAt)-Date.now()||0);
     if(!delay){void this.cycle().catch(()=>{});return;}
@@ -156,7 +165,7 @@ export class PersonalMail {
         check();const key='attachment:'+row.id+':'+attachment.id,previous=this.store.get(key);
         try{
           if(previous?.sourceHash===row.sourceHash&&previous.sha256===attachment.sha256&&previous.state==='complete'){completed++;continue;}
-          const bytes=await this.rawVault.read(path.join(this.rawRoot,row.id,attachment.id+'.bin'));if(sha(bytes)!==attachment.sha256)throw new Error('mail_source_changed');
+          const bytes=await this.readAttachmentBytes({id:row.id,sourceHash:row.sourceHash,attachmentDirectory:path.join(this.rawRoot,row.id)},attachment);if(sha(bytes)!==attachment.sha256)throw new Error('mail_source_changed');
           const document=attachment.contentState==='text_read'&&attachment.text?{text:attachment.text,coverage:'첨부 본문 텍스트'}:await this.extractAttachment(bytes,attachment,controller.signal,path.join(this.rawRoot,row.id));
           check();await this.source(row);check();
           this.store.set(key,{sourceHash:row.sourceHash,sha256:attachment.sha256,state:'complete',text:document.text,segments:document.segments||[],coverage:document.coverage,...(document.html?{html:document.html}:{}),reader:document.reader||'document_parser',officeVersion:document.officeVersion||null,readerVersion:5});completed++;
@@ -173,6 +182,14 @@ export class PersonalMail {
   }
   async readAttachmentBytes(source,attachment){
     if(attachment.contentState==='not_stored'||attachment.originalStored===false)throw Error('mail_attachment_not_stored');
+    const row=this.store.get('mail:'+source.id);
+    if(row?.sourceStorage==='desktop_reference'){
+      if(row.sourceHash!==source.sourceHash)throw Error('mail_source_changed');
+      const raw=await this.sourceBytes(row);
+      if(attachment.bodyData){const part=mailDataImages((await parsePop3Content(raw)).html).find(item=>item.id===attachment.id&&item.sha256===attachment.sha256);if(!part)throw Error('mail_source_changed');return part.content;}
+      const parsed=await this.parsePortal(raw.toString('base64'),{filename:path.basename(row.desktopReference.relative)}),part=parsed.attachments.find(item=>item.id===attachment.id&&item.sha256===attachment.sha256);
+      if(!part)throw Error('mail_source_changed');return Buffer.from(part.content);
+    }
     if(!attachment.bodyData)return this.rawVault.read(path.join(source.attachmentDirectory,attachment.id+'.bin'));
     const raw=await this.rawVault.read(path.join(source.attachmentDirectory,'message.eml'));if(sha(raw)!==source.sourceHash)throw Error('mail_source_changed');
     const part=mailDataImages((await parsePop3Content(raw)).html).find(item=>item.id===attachment.id&&item.sha256===attachment.sha256);if(!part)throw Error('mail_source_changed');return part.content;
@@ -212,7 +229,11 @@ export class PersonalMail {
   }
   status({includeMessages=true,rollup}={}){
     if(!rollup)this.resumeProcessing();
-    const rows=rollup?[]:this.rows(),issues=rollup?{items:[],rejected:(this.store.get('account:'+this.account)?.rejected||[]).filter(item=>item.error!=='mail_cancelled')}:this.attention();return {resetPending:this.store.get('setting:reset-pending')===true,accountKey:this.account||null,localImport:this.importProgress||this.store.get('setting:local-import')||null,localCount:rollup?.localCount??rows.filter(row=>row.protocol==='local').length,localKinds:rollup?.localKinds??[...new Set(rows.filter(row=>row.protocol==='local').map(row=>row.mailbox))],folders:this.store.get('portal-folders:'+this.account)||[],server:servers[this.serverProfile],serverProfile:this.serverProfile,protocol:servers[this.serverProfile].protocol||'pop3',connected:!!this.credentials,identityConfigured:!!(this.store.get('mail-identities:'+this.account)||[]).length,identityRevision:this.store.get('mail-identity-revision:'+this.account)||0,connecting:!!this.connecting,checking:!!this.checking,paused:this.paused,autoWiki:this.autoWiki,watchPaused:this.watchPaused,summarizing:!!this.synthesis,lastCheckedAt:this.lastCheckedAt||null,nextCheckAt:this.nextCheckAt||null,error:(this.rawVault?.progress?.state==='failed'?this.rawVault.progress.error:this.error)||null,baselineCount:this.baselineCount||0,storageRoot:this.root,rawRoot:this.rawRoot,includeAttachments:this.includeAttachments,requiresStorageSetup:!this.storageConfigured,storageMoving:!!this.relocating,storageProgress:this.storageProgress||null,wikiRoot:this.wikiRoot,encryption:{state:this.rawVault?.state||'locked',wikiState:this.wikiVault?.state||'off',migration:this.rawVault?.progress||null},rejected:this.store.get('account:'+this.account)?.rejected||[],destination:this.destination,activeModel:model(this.host),catalogs:this.host.providers?.catalogs?.()||[],readingAttachments:!!this.attachmentRead,progress:this.progress(rollup),recentChecks:this.store.get('mail-checks:'+this.account)||[],counts:rollup?{received:rollup.received,queued:rollup.queued,saved:rollup.saved,attentionTotal:rollup.attention.total+issues.rejected.length,attachmentAttention:rollup.attention.attachment,attention:rollup.attention.summary}:{received:rows.length,queued:rows.filter(r=>r.state==='queued').length,saved:rows.filter(r=>r.state==='saved').length,attentionTotal:issues.items.length+issues.rejected.length,attachmentAttention:issues.items.filter(r=>r.attachmentFailures.length).length,attention:issues.items.filter(r=>r.summary).length},...(includeMessages?{messages:(rollup?this.store.list('mail:',{limit:50}):rows.slice(0,50)).map(({id,subject,from,date,fetchedAt,state,error,path:wikiPath})=>({id,subject,from,date,fetchedAt,state,error,wikiPath}))}:{} )};
+    const rows=rollup?[]:this.rows(),issues=rollup?{items:[],rejected:(this.store.get('account:'+this.account)?.rejected||[]).filter(item=>item.error!=='mail_cancelled')}:this.attention();const status={resetPending:this.store.get('setting:reset-pending')===true,accountKey:this.account||null,localImport:this.importProgress||this.store.get('setting:local-import')||null,localCount:rollup?.localCount??rows.filter(row=>row.protocol==='local').length,localKinds:rollup?.localKinds??[...new Set(rows.filter(row=>row.protocol==='local').map(row=>row.mailbox))],folders:this.store.get('portal-folders:'+this.account)||[],server:servers[this.serverProfile],serverProfile:this.serverProfile,protocol:servers[this.serverProfile].protocol||'pop3',connected:!!this.credentials,identityConfigured:!!(this.store.get('mail-identities:'+this.account)||[]).length,identityRevision:this.store.get('mail-identity-revision:'+this.account)||0,connecting:!!this.connecting,checking:!!this.checking,paused:this.paused,autoWiki:this.autoWiki,watchPaused:this.watchPaused,summarizing:!!this.synthesis,lastCheckedAt:this.lastCheckedAt||null,nextCheckAt:this.nextCheckAt||null,error:(this.rawVault?.progress?.state==='failed'?this.rawVault.progress.error:this.error)||null,baselineCount:this.baselineCount||0,storageRoot:this.root,rawRoot:this.rawRoot,includeAttachments:this.includeAttachments,requiresStorageSetup:!this.storageConfigured,storageMoving:!!this.relocating,storageProgress:this.storageProgress||null,wikiRoot:this.wikiRoot,encryption:{state:this.rawVault?.state||'locked',wikiState:this.wikiVault?.state||'off',migration:this.rawVault?.progress||null},rejected:this.store.get('account:'+this.account)?.rejected||[],destination:this.destination,activeModel:model(this.host),catalogs:this.host.providers?.catalogs?.()||[],readingAttachments:!!this.attachmentRead,progress:this.progress(rollup),recentChecks:this.store.get('mail-checks:'+this.account)||[],counts:rollup?{received:rollup.received,queued:rollup.queued,saved:rollup.saved,attentionTotal:rollup.attention.total+issues.rejected.length,attachmentAttention:rollup.attention.attachment,attention:rollup.attention.summary}:{received:rows.length,queued:rows.filter(r=>r.state==='queued').length,saved:rows.filter(r=>r.state==='saved').length,attentionTotal:issues.items.length+issues.rejected.length,attachmentAttention:issues.items.filter(r=>r.attachmentFailures.length).length,attention:issues.items.filter(r=>r.summary).length},...(includeMessages?{messages:(rollup?this.store.list('mail:',{limit:50}):rows.slice(0,50)).map(({id,subject,from,date,fetchedAt,state,error,path:wikiPath})=>({id,subject,from,date,fetchedAt,state,error,wikiPath}))}:{} )};
+    const desktop=this.desktopSource.snapshot();status.desktop=desktop;
+    status.pop3User=this.pop3User||null;
+    if(desktop.connected)Object.assign(status,{protocol:'desktop',serverProfile:'desktop',accountKey:desktop.profileId,connected:true,requiresStorageSetup:false,checking:desktop.checking,connecting:desktop.connecting,lastCheckedAt:desktop.lastCheckedAt,nextCheckAt:desktop.nextCheckAt,error:status.error||desktop.error,progress:{...status.progress,stage:desktop.checking?'checking':!this.autoWiki?'off':this.watchPaused?'paused':status.progress.stage==='ready'?'watching':status.progress.stage}});
+    return status;
   }
   async parsePortal(raw,{includePresentation=false,filename='',bodyLimit,signal}={}){
     if(signal?.aborted)throw Error('mail_cancelled');
@@ -225,19 +246,19 @@ export class PersonalMail {
       worker.once('message',value=>finish(value.error,value.result));worker.once('error',()=>finish('mail_parse_failed'));worker.once('exit',()=>finish('mail_parse_failed'));
     });
   }
-  async startFolderImport(directory,{includeAttachments=this.includeAttachments}={}){
+  async startFolderImport(directory,{includeAttachments=this.includeAttachments,source='folder'}={}){
     if(this.relocating||this.importController)throw Error('mail_busy');
     if(typeof directory!=='string'||!path.isAbsolute(directory))throw Error('mail_import_folder');
     const controller=new AbortController();this.importController=controller;
     try{await this.prepare();}catch(error){this.importController=null;throw error;}
-    this.importProgress={state:'scanning',directory,includeAttachments,startedAt:now(),total:0,completed:0,imported:0,duplicates:0,resumed:0,failures:[]};
+    this.importProgress={state:'scanning',directory,includeAttachments,source,startedAt:now(),total:0,completed:0,imported:0,duplicates:0,resumed:0,failures:[]};
     const progress=this.importProgress;
     const checkpoint=()=>{if(!this.disposed)this.store.set('setting:local-import',{...progress,state:['scanning','importing'].includes(progress.state)?'interrupted':progress.state});};
     checkpoint();let checkpointAt=Date.now();
     const savePeriodically=()=>{if(Date.now()-checkpointAt>1000){checkpoint();checkpointAt=Date.now();}};
     this.importTask=(async()=>{
       try{
-        const scanned=await scanMailFolder(directory,{signal:controller.signal,onScan:total=>{progress.total=total;savePeriodically();}});
+        const scanned=await scanMailFolder(directory,{signal:controller.signal,...(source==='desktop'?{extensions:new Set(['.mysingle']),excludeDirectories:['INDEX']}:{}) ,onScan:total=>{progress.total=total;savePeriodically();}});
         progress.directory=scanned.root;progress.state='importing';progress.total=scanned.files.length;progress.failures=scanned.failures;checkpoint();
         const accountId=sha('nubi-local-mail-files-v1');
         if(!this.store.get('account:'+accountId))this.store.set('account:'+accountId,{seen:[],baselineCount:0});
@@ -248,22 +269,24 @@ export class PersonalMail {
           let finished=false;
           try{
             const existing=receipt&&this.store.get('mail:'+receipt.id);
-            if(receipt?.signature===item.signature&&existing?.sourceHash===receipt.sourceHash){progress.duplicates++;progress.resumed++;finished=true;continue;}
+            if(receipt?.signature===item.signature&&existing?.sourceHash===receipt.sourceHash&&(source!=='desktop'||existing.sourceStorage==='desktop_reference'&&existing.desktopReference?.root===scanned.root&&existing.desktopReference?.relative===item.relative&&!existing.desktopCopyCleanup)){progress.duplicates++;progress.resumed++;finished=true;continue;}
             const raw=await readMailImportFile(scanned.root,item,controller.signal),uidl=sha(Buffer.concat([Buffer.from(item.kind+'\0'),raw])),id=sha(accountId+'\0'+uidl);
             if(this.disposed||controller.signal.aborted)throw Error('mail_cancelled');
-            if(this.store.get('mail:'+id))progress.duplicates++;
+            const previous=this.store.get('mail:'+id),reference=source==='desktop'?desktopMailReference(scanned.root,item):null;
+            if(previous){if(reference)await this.bindDesktopReference(previous,reference,raw,controller.signal);progress.duplicates++;}
             else{
               const parsed=await this.parsePortal(raw.toString('base64'),{filename:path.basename(item.file),signal:controller.signal});
               Object.assign(parsed.normalized,{sourceFolder:item.relative.split(/[\\/]/).slice(0,-1).join('/'),documentKind:item.kind,documentKindLabel:LOCAL_MAIL_KINDS[item.kind].label,classificationSource:'folder_name',sourceType:APPROVAL_KINDS.includes(item.kind)?'approval':'mail'});
+              if(source==='desktop')parsed.normalized.sourceApp='knox_desktop';
               if(!parsed.normalized.text?.trim())throw Error('mail_import_empty');
               if(controller.signal.aborted||this.disposed)throw Error('mail_cancelled');
-              await this.intake({mails:[{...parsed,uidl,protocol:'local',mailbox:item.kind}]},this.generation,{collectOnly:true,accountId,includeAttachments,signal:controller.signal});
+              await this.intake({mails:[{...parsed,uidl,protocol:'local',mailbox:item.kind,...(reference?{desktopReference:reference}:{})}]},this.generation,{collectOnly:true,accountId,includeAttachments,signal:controller.signal});
               progress.imported++;
             }
             if(this.disposed)throw Error('mail_cancelled');
-            // Commit the receipt only after the original, manifest and queue row exist.
+            // Commit only after the reference (or legacy stored copy) and queue row exist.
             this.store.set(receiptKey,{id,signature:item.signature,sourceHash:this.store.get('mail:'+id).sourceHash});finished=true;
-          }catch(error){if(error.message==='mail_cancelled'||this.disposed)throw Error('mail_cancelled');if(error.code==='ENOSPC')throw Error('mail_storage_full');if(['EACCES','EPERM','EROFS'].includes(error.code)&&typeof error.path==='string'&&!path.relative(this.rawRoot,error.path).startsWith('..'))throw Error('mail_storage_permission');if(error.message?.startsWith('mail_encryption_'))throw error;progress.failures.push({file:item.relative,error:['mail_attachment_analysis_failed','mail_import_empty','mail_import_protected','mail_source_changed','mail_size_limit','mail_parse_failed','mail_timeout'].includes(error.message)?error.message:'mail_import_read'});finished=true;}
+          }catch(error){if(error.message==='mail_cancelled'||this.disposed)throw Error('mail_cancelled');if(error.code==='ENOSPC'||error.errcode===13)throw Error('mail_storage_full');if(error.errcode===8)throw Error('mail_storage_permission');if(['EACCES','EPERM','EROFS'].includes(error.code)&&typeof error.path==='string'&&!path.relative(this.rawRoot,error.path).startsWith('..'))throw Error('mail_storage_permission');if(error.message?.startsWith('mail_encryption_'))throw error;progress.failures.push({file:item.relative,error:['mail_attachment_analysis_failed','mail_import_empty','mail_import_protected','mail_source_changed','mail_size_limit','mail_parse_failed','mail_timeout'].includes(error.message)?error.message:'mail_import_read'});finished=true;}
           finally{if(finished)progress.completed++;savePeriodically();}
         }
         progress.state='completed';
@@ -302,12 +325,15 @@ export class PersonalMail {
       const rollup=await this.listing.disk.request('stats',{account:this.account,attachmentReading:DESKTOP_FEATURES.mailAttachmentReading});
       return this.status({includeMessages:args.includeMessages!==false,rollup});
     }
+    if(action==='desktopConnect'){await this.desktopSource.connect(args.profileId);return this.status();}
+    if(action==='desktopSync'){void this.desktopSource.sync({manual:true}).catch(error=>{this.desktopSource.error=error.message;});return this.status();}
+    if(action==='usePortalSource'){this.desktopSource.disconnect({remote:true});return this.status();}
     if(action==='importFolder')return this.startFolderImport(args.directory);
-    if(action==='resumeImport'){const progress=this.store.get('setting:local-import');if(!progress?.directory)throw Error('mail_import_folder');return this.startFolderImport(progress.directory,{includeAttachments:progress.includeAttachments});}
-    if(action==='cancelImport'){this.importController?.abort();return this.status();}
+    if(action==='resumeImport'){const progress=this.store.get('setting:local-import');if(!progress?.directory)throw Error('mail_import_folder');if(progress.source==='desktop'){this.watchPaused=false;this.store.set('setting:watch-paused',false);void this.desktopSource.sync({manual:true}).catch(error=>{this.desktopSource.error=error.message;});return this.status();}return this.startFolderImport(progress.directory,{includeAttachments:progress.includeAttachments});}
+    if(action==='cancelImport'){if(this.desktopSource.ownsImport){this.watchPaused=true;this.store.set('setting:watch-paused',true);this.desktopSource.pause();}this.importController?.abort();return this.status();}
     if(action==='portalConnect'){
       if(typeof args.identity!=='string'||!args.identity.trim()||args.identity.length>320||!Array.isArray(args.folders)||args.folders.length>500)throw Error('mail_input_invalid');
-      if(args.destination)this.selectedModel(args.destination);this.disconnect();const generation=this.generation;await this.prepare();if(generation!==this.generation)throw Error('mail_cancelled');
+      if(args.destination)this.selectedModel(args.destination);this.desktopSource.disconnect({remote:true});this.disconnect();const generation=this.generation;await this.prepare();if(generation!==this.generation)throw Error('mail_cancelled');
       this.account=sha('kor3.samsung.net\0'+args.identity);this.credentials={source:'portal',user:args.identity};this.serverProfile='portal';this.store.set('setting:server-profile','portal');
       if(!this.store.get('account:'+this.account))this.store.set('account:'+this.account,{seen:[],baselineCount:0});
       if(args.email)this.saveIdentity(this.account,args.email);this.store.set('portal-folders:'+this.account,args.folders);this.destination=args.destination||this.destination||model(this.host);this.store.set('setting:destination',this.destination);this.paused=!this.autoWiki;this.error=null;return this.status();
@@ -331,12 +357,12 @@ export class PersonalMail {
     }
     if(action==='setIdentity'){if(!this.account||!this.credentials)throw Error('mail_not_connected');this.saveIdentity(this.account,args.address);return this.status();}
     if(action==='history'){const query=typeof args.query==='string'?args.query.trim().toLocaleLowerCase():'';if(query.length>500)throw new Error('mail_input_invalid');const rows=this.rows().filter(row=>(row.subject+' '+row.from).toLocaleLowerCase().includes(query)).sort((a,b)=>String(b.date||b.fetchedAt).localeCompare(String(a.date||a.fetchedAt)));const offset=Number.isSafeInteger(args.offset)&&args.offset>=0?args.offset:0;return {total:rows.length,messages:rows.slice(offset,offset+100).map(({id,subject,from,date,fetchedAt,state,error,attachmentState,attachmentProgress,summaryTiming})=>({id,subject,from,date,fetchedAt,state,error,attachmentState,attachmentProgress,summaryTiming}))};}
-    if(action==='cancelConnect'){if(args.requestId===this.connecting?.id||args.requestId===this.activeRequestId)this.disconnect();return this.status();}
-    if(action==='disconnect'){this.disconnect();return this.status();}
-    if(action==='pauseWatch'){this.watchPaused=true;this.store.set('setting:watch-paused',true);clearTimeout(this.timer);this.cancelPull?.();return this.status();}
+    if(action==='cancelConnect'){if(this.desktopSource.connecting)this.desktopSource.disconnect();if(args.requestId===this.connecting?.id||args.requestId===this.activeRequestId)this.disconnect();return this.status();}
+    if(action==='disconnect'){this.desktopSource.disconnect();this.disconnect();return this.status();}
+    if(action==='pauseWatch'){this.watchPaused=true;this.store.set('setting:watch-paused',true);this.desktopSource.pause();clearTimeout(this.timer);this.cancelPull?.();return this.status();}
     if(action==='resumeWatch'){this.watchPaused=false;this.store.set('setting:watch-paused',false);this.resumeCollection();return this.status();}
     if(action==='setAutoWiki'&&typeof args.enabled!=='boolean')throw new Error('mail_input_invalid');
-    if(action==='pause'||(action==='setAutoWiki'&&!args.enabled)){this.autoWiki=false;this.store.set('setting:auto-wiki',false);this.paused=true;this.generation++;clearTimeout(this.timer);this.cancelPull?.();this.attachmentRead?.abort();for(const controller of this.documentReaders||[])controller.abort();this.synthesis?.abort();return this.status();}
+    if(action==='pause'||(action==='setAutoWiki'&&!args.enabled)){this.autoWiki=false;this.store.set('setting:auto-wiki',false);this.desktopSource.pause();this.paused=true;this.generation++;clearTimeout(this.timer);this.cancelPull?.();this.attachmentRead?.abort();for(const controller of this.documentReaders||[])controller.abort();this.synthesis?.abort();return this.status();}
     if(action==='setRawRoot')return this.relocateRaw(args.directory,{includeAttachments:args.includeAttachments});
     if(action==='confirmStorage'){
       if(this.relocating||this.importController||this.checking)throw Error('mail_busy');
@@ -394,8 +420,10 @@ export class PersonalMail {
     if(this.connecting||this.checking)throw new Error('mail_busy');
     const serverProfile=args.serverProfile??this.serverProfile;
     if(!Object.hasOwn(servers,serverProfile))throw new Error('mail_input_invalid');
+    this.desktopSource.disconnect({remote:true});
     const server=servers[serverProfile],gmailTest=serverProfile==='gmail_test';
     if(typeof args.requestId!=='string'||!/^[\w-]{1,80}$/.test(args.requestId)||typeof args.user!=='string'||!args.user.trim()||args.user.length>320||typeof args.password!=='string'||!args.password||args.password.length>2048||/[\r\n\0]/.test(args.user)||(!gmailTest&&/[\r\n\0]/.test(args.password)))throw new Error('mail_input_invalid');
+    if(args.rememberUser!==undefined&&typeof args.rememberUser!=='boolean')throw new Error('mail_input_invalid');
     if(args.recipientAddress&&(typeof args.recipientAddress!=='string'||args.recipientAddress.length>320||!/^([^\s<>@]+)@([^\s<>@]+\.[^\s<>@]+)$/.test(args.recipientAddress.trim())))throw Error('mail_identity_invalid');
     const password=mailPassword(serverProfile,args.password);
     if(args.destination)this.selectedModel(args.destination);
@@ -410,11 +438,16 @@ export class PersonalMail {
       await this.prepare();if(generation!==this.generation)throw new Error('mail_cancelled');
       this.credentials=credentials;this.account=id;if(args.recipientAddress)this.saveIdentity(id,args.recipientAddress);this.baselineCount=previous?(previous.baselineCount??previous.seen.length):result.uidls.length;
       this.serverProfile=serverProfile;this.store.set('setting:server-profile',serverProfile);
+      await this.rememberPop3User(args.rememberUser===false?null:credentials.user);
       if(!previous)this.store.set('account:'+id,{seen:[],baselineCount:result.uidls.length,baselineAt:now()});
       this.paused=!this.autoWiki;this.destination=args.destination||this.destination||model(this.host);this.store.set('setting:destination',this.destination);this.error=null;
       if(this.autoWiki)await this.intake(result,generation);else this.recordListing(result);this.schedule(result.delaySeconds);this.activeRequestId=args.requestId;this.connecting=null;this.resumeProcessing();return this.status();
     }catch(error){if(generation===this.generation){this.credentials=null;this.error=code(error);}throw new Error(code(error));}
     finally{if(this.connecting===attempt)this.connecting=null;credentials.password=this.credentials===credentials?credentials.password:'';}
+  }
+  async rememberPop3User(user){
+    this.pop3User=user;const vault=this.host?.connectionVault;if(!vault)return;
+    try{if(user)await vault.set(POP3_USER_KEY,JSON.stringify({user}));else await vault.delete(POP3_USER_KEY);}catch{}
   }
   saveIdentity(account,address){
     if(typeof address!=='string'||address.length>320||!/^([^\s<>@]+)@([^\s<>@]+\.[^\s<>@]+)$/.test(address.trim()))throw Error('mail_identity_invalid');
@@ -437,6 +470,7 @@ export class PersonalMail {
   async relocateRaw(directory,{includeAttachments=this.includeAttachments}={}){
     if(typeof includeAttachments!=='boolean')throw Error('mail_input_invalid');
     if(typeof directory!=='string'||!path.isAbsolute(directory)||directory.includes('\0'))throw new Error('mail_input_invalid');
+    if(this.desktopSource.enabled)separateDesktopStorage(this.desktopSource.saved.root,directory);
     if(this.relocating||this.checking||this.synthesis||this.attachmentRead||this.importController)throw new Error('mail_busy');
     this.relocating=true;const copied=[];let committed=false;
     const progress=this.storageProgress={id:randomUUID(),state:'running',stage:'scanning',startedAt:now(),completed:0,total:null,bytes:0,totalBytes:null};
@@ -444,6 +478,7 @@ export class PersonalMail {
     await this.ensureRaw();await this.rawMigration;if(this.rawVault.progress?.state==='failed')throw Error(this.rawVault.progress.error);
     await privateDir(this.rawRoot);await mkdir(directory,{recursive:true});
     const from=await realpath(this.rawRoot),selected=await realpath(directory),to=path.basename(selected)==='nubi-mail-raw'?selected:path.join(selected,'nubi-mail-raw');
+    if(this.desktopSource.enabled)separateDesktopStorage(this.desktopSource.saved.root,to);
     if(path.resolve(to)===path.resolve(from)){await privateDir(to);this.store.set('setting:raw-root',{path:to,includeAttachments,changedAt:now()});this.store.set('setting:raw-root-confirmed',true);Object.assign(progress,{state:'completed',stage:'complete',finishedAt:now()});return {...this.status(),storageMoving:false};}
     const inside=(child,parent)=>{const rel=path.relative(parent,child);return !rel.startsWith('..')&&!path.isAbsolute(rel);};
     if(inside(to,from)||inside(from,to))throw new Error('mail_storage_nested');
@@ -534,7 +569,15 @@ export class PersonalMail {
     if(this.relocating||this.resetting||this.store.get('setting:reset-pending'))throw Error('mail_busy');
     await this.ensureRaw();
     for(const incoming of result.mails){
-      if(generation!==this.generation||this.disposed||!collectOnly&&!this.autoWiki)throw new Error('mail_cancelled');
+      if(signal?.aborted||generation!==this.generation||this.disposed||!collectOnly&&!this.autoWiki)throw new Error('mail_cancelled');
+      if(incoming.desktopReference){
+        if(!collectOnly||incoming.protocol!=='local')throw Error('mail_input_invalid');
+        const id=sha(accountId+'\0'+incoming.uidl),reference=incoming.desktopReference,sourceHash=sha(Buffer.from(incoming.raw)),mail=incoming.normalized;
+        // Keep a metadata projection only. Body, HTML, MIME and attachment bytes
+        // remain exclusively in Desktop Message and are parsed on demand.
+        this.store.set('mail:'+id,{id,account:accountId,mailbox:incoming.mailbox||'inbox',protocol:'local',uidl:incoming.uidl,sourceStorage:'desktop_reference',desktopReference:reference,manifestHash:sha(JSON.stringify(reference)),sourceHash,subject:mail.subject,from:mail.from,date:mail.date,fetchedAt:now(),searchEstimateBytes:Math.max(16384,Buffer.byteLength(JSON.stringify(mail))*6),listMetadata:{sourceHash,...mailListMetadata(mail)},recipientRole:this.recipientRole(mail,{account:accountId,mailbox:incoming.mailbox,protocol:'local'}),state:['queue','trash'].includes(incoming.mailbox)?'collected':'queued',attachmentState:mail.attachments.some(part=>!['inline','body'].includes(part.presentation))?(DESKTOP_FEATURES.mailAttachmentReading?'queued':'unsupported'):'complete'});
+        continue;
+      }
       let mail=await mailForStorage(incoming,includeAttachments);
       if(this.disposed||generation!==this.generation)throw Error('mail_cancelled');
       const id=sha(accountId+'\0'+mail.uidl),raw=Buffer.from(mail.raw),sourceHash=sha(raw),target=path.join(this.rawRoot,id),pending=path.join(this.rawRoot,'.'+id+'.pending');
@@ -556,7 +599,7 @@ export class PersonalMail {
       if(generation!==this.generation||this.disposed||!collectOnly&&!this.autoWiki)throw new Error('mail_cancelled');
       if(created){await rename(pending,target);directory=target;}
       if(this.disposed)throw Error('mail_cancelled');
-      if(!this.store.get('mail:'+id))this.store.set('mail:'+id,{id,account:accountId,mailbox:mail.mailbox||'inbox',folderId:mail.folderId||null,protocol:mail.protocol||'pop3',searchEstimateBytes:Math.max(16384,Buffer.byteLength(JSON.stringify(manifest.mail))*6),listMetadata:{sourceHash,...mailListMetadata(manifest.mail)},recipientRole:this.recipientRole(manifest.mail,{account:accountId,mailbox:mail.mailbox||'inbox',protocol:mail.protocol||'pop3'}),uidl:mail.uidl,subject:manifest.mail.subject,from:manifest.mail.from,date:manifest.mail.date,fetchedAt:manifest.fetchedAt,sourceHash,manifestHash:sha(JSON.stringify(manifest)),state:mail.protocol==='portal'&&!['inbox','sent'].includes(mail.mailbox)?'collected':'queued',attachmentState:manifest.mail.attachments.some(part=>part.contentState!=='not_stored')?(DESKTOP_FEATURES.mailAttachmentReading?'queued':'unsupported'):'complete'});
+      if(!this.store.get('mail:'+id))this.store.set('mail:'+id,{id,account:accountId,mailbox:mail.mailbox||'inbox',folderId:mail.folderId||null,protocol:mail.protocol||'pop3',searchEstimateBytes:Math.max(16384,Buffer.byteLength(JSON.stringify(manifest.mail))*6),listMetadata:{sourceHash,...mailListMetadata(manifest.mail)},recipientRole:this.recipientRole(manifest.mail,{account:accountId,mailbox:mail.mailbox||'inbox',protocol:mail.protocol||'pop3'}),uidl:mail.uidl,subject:manifest.mail.subject,from:manifest.mail.from,date:manifest.mail.date,fetchedAt:manifest.fetchedAt,sourceHash,manifestHash:sha(JSON.stringify(manifest)),state:mail.protocol==='portal'&&!['inbox','sent'].includes(mail.mailbox)||manifest.mail.sourceApp==='knox_desktop'&&['queue','trash'].includes(mail.mailbox)?'collected':'queued',attachmentState:manifest.mail.attachments.some(part=>part.contentState!=='not_stored')?(DESKTOP_FEATURES.mailAttachmentReading?'queued':'unsupported'):'complete'});
       } catch(error) {if(created&&directory===pending)await rm(pending,{recursive:true,force:true});throw error;}
       // Checkpoint only after raw bytes, manifest and durable queue all exist.
       const account=this.store.get('account:'+accountId);if(mail.protocol!=='local'&&!account.seen.includes(mail.uidl))this.store.set('account:'+accountId,{...account,seen:[...account.seen,mail.uidl]});
@@ -564,12 +607,60 @@ export class PersonalMail {
     if(result.failed?.length){const account=this.store.get('account:'+accountId);this.store.set('account:'+accountId,{...account,rejected:[...(account.rejected||[]),...result.failed].slice(-1000)});this.error=result.failed[0].error;}
     if(!collectOnly)this.recordListing(result);this.lastCheckedAt=now();this.failures=0;if(!collectOnly){void this.readAttachments();void this.drain();}
   }
+  async sourceBytes(row){
+    let raw;
+    if(row.sourceStorage==='desktop_reference'){
+      if(!row.desktopReference||sha(JSON.stringify(row.desktopReference))!==row.manifestHash)throw Error('mail_source_changed');
+      raw=await readDesktopMailReference(row.desktopReference);
+    }else raw=await this.rawVault.read(path.join(this.rawRoot,row.id,'message.eml'));
+    if(sha(raw)!==row.sourceHash)throw Error('mail_source_changed');
+    return raw;
+  }
+  async bindDesktopReference(row,reference,raw,signal){
+    // Body-only legacy exports have a different hash and remain archived as
+    // such. Never silently rebind existing citations to different bytes.
+    if(row.sourceHash!==sha(raw))return;
+    if(signal?.aborted||this.disposed)throw Error('mail_cancelled');
+    if(row.sourceStorage!=='desktop_reference')await this.source(row);
+    if(signal?.aborted||this.disposed)throw Error('mail_cancelled');
+    const next={...row,sourceStorage:'desktop_reference',desktopReference:reference,manifestHash:sha(JSON.stringify(reference)),...(row.sourceStorage!=='desktop_reference'?{desktopCopyCleanup:{sourceHash:row.sourceHash,manifestHash:row.manifestHash}}:{})};
+    // The SQLite commit is the authority switch. Interrupted cleanup leaves
+    // only owned encrypted duplicates, never a pointer to a removed original.
+    this.store.set('mail:'+row.id,next);
+    await this.removeDesktopCopies(next,signal);
+  }
+  async removeDesktopCopies(row,signal){
+    if(!row.desktopCopyCleanup)return;
+    await this.rawMigration;
+    await this.sourceBytes(row);
+    const directory=path.join(this.rawRoot,row.id),manifestFile=path.join(directory,'manifest.json');
+    let manifest;
+    try{const bytes=await this.rawVault.read(manifestFile);if(sha(bytes)!==row.desktopCopyCleanup.manifestHash)throw Error('mail_source_changed');manifest=JSON.parse(bytes);}
+    catch(error){if(error.code!=='ENOENT')throw error;}
+    if(manifest){
+      if(manifest.id!==row.id||manifest.sourceHash!==row.desktopCopyCleanup.sourceHash)throw Error('mail_source_changed');
+      const files=[['message.eml',manifest.sourceHash],...(manifest.mail.attachments||[]).filter(part=>part.contentState!=='not_stored'&&part.originalStored!==false).map(part=>{
+        if(!/^\d{3}-[a-f0-9]{16}$/.test(part.id))throw Error('mail_source_changed');return [part.id+'.bin',part.sha256];
+      }),['manifest.json',row.desktopCopyCleanup.manifestHash]];
+      // Verify every remaining payload before deleting any. Only these exact
+      // owned files are removed; never recursively delete a source directory.
+      const verified=[];
+      for(const [name,expected] of files){const file=path.join(directory,name);try{if(sha(await this.rawVault.read(file))!==expected)throw Error('mail_source_changed');verified.push([file,expected]);}catch(error){if(error.code!=='ENOENT')throw error;}}
+      await this.sourceBytes(row);
+      for(const [file,expected] of verified){if(signal?.aborted||this.disposed)throw Error('mail_cancelled');if(sha(await this.rawVault.read(file))!==expected)throw Error('mail_source_changed');await rm(await this.rawVault.storedPath(file));}
+    }
+    const current=this.store.get('mail:'+row.id);
+    if(current?.sourceStorage==='desktop_reference'&&current.manifestHash===row.manifestHash){const {desktopCopyCleanup,...complete}=current;this.store.set('mail:'+row.id,complete);}
+  }
   async source(row,{imageCoverage=false}={}){
-    const directory=path.join(this.rawRoot,row.id),files=[path.join(directory,'manifest.json'),path.join(directory,'message.eml')];
-    for(const file of [this.rawRoot,directory])if((await lstat(file)).isSymbolicLink())throw new Error('mail_source_changed');
-    const [manifest,raw]=await Promise.all(files.map(file=>this.rawVault.read(file)));if(sha(manifest)!==row.manifestHash||sha(raw)!==row.sourceHash)throw new Error('mail_source_changed');
-    const mail=JSON.parse(manifest).mail;
-    for(const attachment of mail.attachments||[]){if(attachment.contentState==='not_stored'||attachment.originalStored===false)continue;const file=path.join(directory,attachment.id+'.bin');if(!/^\d{3}-[a-f0-9]{16}$/.test(attachment.id)||sha(await this.rawVault.read(file))!==attachment.sha256)throw new Error('mail_source_changed');}
+    const directory=path.join(this.rawRoot,row.id),raw=await this.sourceBytes(row);let mail;
+    if(row.sourceStorage==='desktop_reference'){
+      mail={...(await this.parsePortal(raw.toString('base64'),{filename:path.basename(row.desktopReference.relative)})).normalized,...desktopReferenceMetadata(row.desktopReference),storage:{mode:'desktop_reference'}};
+    }else{
+      for(const file of [this.rawRoot,directory])if((await lstat(file)).isSymbolicLink())throw new Error('mail_source_changed');
+      const manifest=await this.rawVault.read(path.join(directory,'manifest.json'));if(sha(manifest)!==row.manifestHash)throw new Error('mail_source_changed');mail=JSON.parse(manifest).mail;
+      for(const attachment of mail.attachments||[]){if(attachment.contentState==='not_stored'||attachment.originalStored===false)continue;const file=path.join(directory,attachment.id+'.bin');if(!/^\d{3}-[a-f0-9]{16}$/.test(attachment.id)||sha(await this.rawVault.read(file))!==attachment.sha256)throw new Error('mail_source_changed');}
+    }
     // Rehydrate legacy manifests from the verified original without rewriting
     // their receipt/hash, refetching mail or losing user edits. A bounded cache
     // avoids repeated MIME conversion during search; integrity is checked above.
@@ -662,14 +753,13 @@ export class PersonalMail {
   async read(id,{includeKnowledge=false,includePresentation=false}={}){
     if(typeof id!=='string'||!/^([a-f0-9]{64})$/.test(id))throw Error('mail_missing');
     const row=this.store.get('mail:'+id);if(!row)throw Error('mail_missing');const mail=await this.source(row,{imageCoverage:true});mail.recipientRole=this.recipientRole(mail,row);
-    if(mail.truncated){const bytes=await this.rawVault.read(path.join(this.rawRoot,id,'message.eml'));if(sha(bytes)!==row.sourceHash)throw Error('mail_source_changed');const parsed=await parsePop3Content(bytes);mail.text=parsed.text.slice(0,500000);mail.truncated=parsed.text.length>500000;}
+    if(mail.truncated){const bytes=await this.sourceBytes(row);const parsed=await parsePop3Content(bytes);mail.text=parsed.text.slice(0,500000);mail.truncated=parsed.text.length>500000;}
     const withExtraction=attachment=>{if(attachment.contentState==='not_stored')return attachment;if(!DESKTOP_FEATURES.mailAttachmentReading)return {id:attachment.id,filename:attachment.filename,contentType:attachment.contentType,size:attachment.size,sha256:attachment.sha256,contentState:'unsupported',text:'',segments:[]};if(attachment.originalStored===false)return attachment;const record=this.store.get('attachment:'+id+':'+attachment.id);return record?.sourceHash===row.sourceHash&&record.sha256===attachment.sha256?{...attachment,text:record.state==='complete'?record.text||'':'',segments:record.state==='complete'?record.segments||[]:[],contentState:record.state==='complete'?'document_read':'document_attention',readerVersion:record.readerVersion,coverage:record.coverage||null,html:record.html||undefined,reader:record.reader||null,officeVersion:record.officeVersion||null,error:record.error||null,...(officeReadDiagnostic(record.officeDiagnostic)?{officeDiagnostic:officeReadDiagnostic(record.officeDiagnostic)}:{})}:attachment;};
     mail.attachments=mail.attachments.map(withExtraction);mail.inlineImages=(mail.inlineImages||[]).map(withExtraction);
     // Presentation is opt-in for the reader only. Search, Personal Wiki and
     // agent evidence keeps text and image references; image bytes go only to the vision model.
     if(includePresentation){
-      const bytes=await this.rawVault.read(path.join(this.rawRoot,id,'message.eml'));
-      if(sha(bytes)!==row.sourceHash)throw Error('mail_source_changed');
+      const bytes=await this.sourceBytes(row);
       const parsed=await parsePop3Content(bytes);
       mail.presentation=mailPresentation(parsed);
       if(mail.storage?.mode==='body_only')mail.presentation.images=mail.presentation.images.map(image=>({...image,id:mail.inlineImages.find(part=>part.sha256===image.sha256)?.id||image.id}));
@@ -712,7 +802,7 @@ export class PersonalMail {
         filename=safeName(part.filename||'첨부파일');
       }
     }else{
-      const raw=await this.rawVault.read(path.join(source.attachmentDirectory,'message.eml'));if(sha(raw)!==source.sourceHash)throw Error('mail_source_changed');
+      const row=this.store.get('mail:'+source.id);if(row?.sourceHash!==source.sourceHash)throw Error('mail_source_changed');const raw=await this.sourceBytes(row);
       if(kind==='raw'){bytes=raw;filename=source.mail.storage?.mode==='body_only'?subject+'-body-only.eml':source.mail.sourceFilename?safeName(source.mail.sourceFilename):subject+'.eml';}
       else{const parsed=await parsePop3Content(raw);bytes=Buffer.from('\uFEFF'+[source.mail.subject,source.mail.from,source.mail.date||'', '',parsed.text||source.mail.text||''].join('\r\n').replace(/\r?\n/g,'\r\n'),'utf8');filename=subject+'.txt';}
     }
@@ -721,6 +811,13 @@ export class PersonalMail {
   }
   async searchSignature(row){
     if(!/^[a-f0-9]{64}$/.test(row.id))throw Error('mail_source_changed');
+    if(row.sourceStorage==='desktop_reference'){
+      // Revalidate even when a memory search entry is cached. A missing or
+      // changed Knox file must not become current evidence through that cache.
+      await this.sourceBytes(row);const stats=[];
+      if(row.path){try{const value=await lstat(row.path);if(value.isSymbolicLink())throw Error('mail_source_changed');stats.push([value.size,value.mtimeMs,value.ctimeMs]);}catch(error){if(error.code!=='ENOENT')throw error;stats.push('missing');}}
+      return sha(JSON.stringify([row.sourceHash,row.manifestHash,row.state,row.contentScope,row.attachmentState,DESKTOP_FEATURES.mailAttachmentReading,stats,this.store.entries('attachment:'+row.id+':')]));
+    }
     const directory=path.join(this.rawRoot,row.id),files=[this.rawRoot,directory,await this.rawVault.storedPath(path.join(directory,'manifest.json')),await this.rawVault.storedPath(path.join(directory,'message.eml'))],stats=[];
     if(row.path)files.push(row.path);
     for(const file of files){try{const value=await lstat(file);if(value.isSymbolicLink())throw Error('mail_source_changed');stats.push([file,value.size,value.mtimeMs,value.ctimeMs]);}catch(error){if(file===row.path&&error.code==='ENOENT')stats.push([file,'missing']);else throw error;}}
@@ -758,6 +855,6 @@ export class PersonalMail {
   }
   async query(query,args={}){return this.searchMail({...args,query,limit:args.limit||10});}
   disconnect(){this.paused=true;this.generation++;clearTimeout(this.timer);this.cancelPull?.();this.attachmentRead?.abort();this.synthesis?.abort();if(this.credentials)this.credentials.password='';this.credentials=null;this.connecting=null;this.activeRequestId=null;}
-  dispose(){if(this.importController&&this.importProgress)this.store.set('setting:local-import',{...this.importProgress,state:'interrupted'});this.importController?.abort();clearInterval(this.processingTimer);this.disconnect();this.contentCache.clear();this.listDisposed=Promise.all([this.searchIndex?.dispose(),this.listing?.dispose()]);this.disposed=true;for(const controller of this.documentReaders||[])controller.abort();this.store.close();this.rawDisposed=Promise.all([this.rawMigration,this.listDisposed]).then(()=>this.rawVault.dispose());this.wikiDisposed=this.wikiVault?this.wikiVault.dispose().catch(()=>{}):Promise.resolve();}
+  dispose(){if(this.importController&&this.importProgress)this.store.set('setting:local-import',{...this.importProgress,state:'interrupted'});this.desktopSource.dispose();this.importController?.abort();clearInterval(this.processingTimer);this.disconnect();this.contentCache.clear();this.listDisposed=Promise.all([this.searchIndex?.dispose(),this.listing?.dispose()]);this.disposed=true;for(const controller of this.documentReaders||[])controller.abort();this.store.close();this.rawDisposed=Promise.all([this.rawMigration,this.listDisposed]).then(()=>this.rawVault.dispose());this.wikiDisposed=this.wikiVault?this.wikiVault.dispose().catch(()=>{}):Promise.resolve();}
 }
 export async function mail(args){this.personalMail ||=new PersonalMail(this,this.mailOptions);return this.personalMail.call(args);}

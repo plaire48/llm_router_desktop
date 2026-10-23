@@ -1,0 +1,84 @@
+name: Nubi Desktop Windows quick build
+# Fast installer for hands-on testing (user decision 2026-10-23): basic checks and the installer only.
+# The full installer workflow (nubi-desktop-windows.yml) keeps the UI, upgrade, reinstall and uninstall checks.
+on:
+  push:
+    branches:
+      - codex/nubi-desktop-windows-quick*
+  workflow_dispatch: null
+permissions:
+  contents: read
+jobs:
+  quick:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: packages/nubi-desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+          cache: npm
+          cache-dependency-path: |
+            packages/nubi-desktop/package-lock.json
+            extensions/aipro-chat/package-lock.json
+      - name: Install locked dependencies
+        shell: pwsh
+        run: |
+          npm ci --prefix ../../extensions/aipro-chat --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm ci --prefix ../nubi-a2a --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm ci --prefix ../nubi-document-agent --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Install OpenWiki-SDS locked dependencies
+        working-directory: packages/openwiki
+        shell: pwsh
+        run: |
+          npm install --global pnpm@11.25.0
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          pnpm install --frozen-lockfile --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build owned command process helper
+        run: node scripts/build-process-host.mjs
+      - name: Compile shared runtime
+        run: npm run compile
+      - name: Check immutable release inputs
+        shell: pwsh
+        run: node scripts/check-release-inputs.mjs --repo ../.. --source-root ../.. --ref $env:GITHUB_SHA --output verification/release-inputs.json
+      - name: Basic Windows checks
+        shell: pwsh
+        run: |
+          node --test tests/connection-vault.test.mjs tests/electron-lifecycle.test.mjs tests/connection-readiness.test.mjs tests/model-catalog-refresh.test.mjs tests/project-catalog.test.mjs tests/windows-process-stop.test.mjs tests/git-bash-profile.test.mjs tests/model-retry-busy.test.mjs tests/source-edit-matching.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build installer
+        env:
+          NUBI_UI_OUTPUT: verification/pdf-chat
+        run: npm run package:windows
+      - name: Collect installer
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $payload = New-Item release/quick-payload -ItemType Directory -Force
+          Copy-Item release/windows/*-Setup.exe, release/windows/*.sha256, "docs/HOTFIX-$version.md", "docs/INSTALL-AND-UPDATE-$version.md", scripts/Publish-NubiUpdate.ps1 $payload
+          Copy-Item "docs/HOTFIX-$version.md" (Join-Path $payload 'release-notes.txt')
+          $manifest = @(Get-ChildItem $payload -File | ForEach-Object { @{ name=$_.Name; sha256=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(); bytes=$_.Length } })
+          @{ version=$version; commit=$env:GITHUB_SHA; runId=$env:GITHUB_RUN_ID; quick=$true; files=$manifest } | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $payload 'candidate.json') -Encoding utf8
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nubi-quick-installer-${{ github.run_id }}
+          path: packages/nubi-desktop/release/quick-payload/
+          retention-days: 7
+          if-no-files-found: error
+      - name: Preserve diagnostics
+        if: failure()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: nubi-quick-diagnostics
+          path: packages/nubi-desktop/verification/
+          retention-days: 3

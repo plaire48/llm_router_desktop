@@ -1,0 +1,8 @@
+/* How mail comes in (user decision 2026-10-23): two options in the existing import-card style, the chosen one tinted. */
+.nubi-mail-source-choice { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:var(--cx-space-2); }
+.nubi-mail-source-option { display:flex; align-items:flex-start; gap:var(--cx-space-2); padding:var(--cx-space-3); border-radius:var(--deck-radius-card,14px); background:var(--deck-card); cursor:pointer; }
+.nubi-mail-source-option[data-selected] { background:var(--deck-tint); }
+.nubi-mail-source-option>input { margin:3px 0 0; accent-color:var(--deck-blue); }
+.nubi-mail-source-option>span { display:grid; gap:2px; min-width:0; }
+.nubi-mail-source-option small { color:var(--deck-sub); font:var(--deck-font-caption); }
+.nubi-mail-remember { display:inline-flex; align-items:center; gap:var(--cx-space-1); color:var(--deck-sub); font:var(--deck-font-caption); }

@@ -18,12 +18,16 @@ try{
  browser=await chromium.launch({channel:'chrome',headless:true});
  for(const [scenario,switches] of [['fresh',1],['personal',0]]){
   const page=await browser.newPage({viewport:{width:1280,height:900}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(`http://127.0.0.1:${server.address().port}/?scenario=${scenario}`);
+  await page.goto(`http://127.0.0.1:${server.address().port}/?scenario=${scenario}&integrated`);
+  // The mascot, greeting and model chips sit at the top of the start screens (user decision 2026-10-23), not centred.
+  const placement=async()=>page.evaluate(()=>{const section=document.querySelector('section.nubi-start'),welcome=section.querySelector('.welcome'),chip=section.querySelector('.model-trigger');return {gap:Math.round(welcome.getBoundingClientRect().top-section.getBoundingClientRect().top),chip:Math.round(chip.getBoundingClientRect().top),height:innerHeight};});
   const start=page.getByRole('button',{name:'프로젝트 없이 대화',exact:true});await start.waitFor({timeout:15000});
+  {const at=await placement();assert(at.gap<=24,scenario+': start screen mascot at the top '+JSON.stringify(at));assert(at.chip<at.height/2,scenario+': start screen model chip in the upper half '+JSON.stringify(at));}
   // Connecting a project offers the composer's model and reasoning chips (user decision 2026-10-23).
   assert.equal(await page.getByRole('button',{name:'모델 변경',exact:true}).count(),1,scenario+': model chip');assert.equal(await page.getByRole('button',{name:'추론 정도',exact:true}).count(),1,scenario+': reasoning chip');await start.click();
   await page.locator('.nubi-compose-card').waitFor({state:'visible',timeout:5000}).catch(()=>{});
   const composer=await page.locator('.nubi-compose-card').isVisible(),picker=await page.getByRole('button',{name:'프로젝트 없이 대화',exact:true}).count();
+  if(composer){const at=await placement();assert(at.gap<=24,scenario+': chat mascot at the top '+JSON.stringify(at));assert(at.chip<at.height/2,scenario+': chat model chip in the upper half '+JSON.stringify(at));}
   const switched=await page.evaluate(()=>window.workspaceSwitches);
   results.push({scenario,composer,picker,switched});await page.close();
   assert.deepEqual(errors,[],scenario+': no page errors');

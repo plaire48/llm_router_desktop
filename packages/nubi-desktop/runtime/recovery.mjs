@@ -26,7 +26,7 @@ export function modelTransport(service,{signal,onRetry,onSlow,onResumed,waitPoli
   return (messages,tools,childSignal=signal,purpose='actor',{retries,visionModel,maxTokens,toolChoice,responseFormat,retryInvalidResponse=true,wikiRequest,typedToolArguments}={})=>{
     if(wikiRequest&&purpose!=='wiki_update')throw Error('invalid_model');
     const callLimit=wikiRequest?.maxToolCalls||8,callBatchLimit=callLimit===8?batchLimit:{...batchLimit,content:batchLimit.content.replace('at most 8','at most '+callLimit)};
-    const options={retries:3,minTimeout:2000,...waitPolicy,...service.recoveryOptions?.model};
+    const options={retries:3,busyRetries:7,minTimeout:2000,maxTimeout:10000,...waitPolicy,...service.recoveryOptions?.model};
     // Keep the existing system/payload positions used by structured planners.
     const at=messages.findIndex(message=>message.role==='system'&&typeof message.content==='string');
     const base=tools.length&&!messages.some(message=>message.role==='system'&&typeof message.content==='string'&&message.content.includes('at most '+callLimit+' tool calls'))?(at<0?[callBatchLimit,...messages]:messages.map((message,index)=>index===at?{...message,content:message.content+'\n'+callBatchLimit.content}:message)):messages;
@@ -40,7 +40,7 @@ export function modelTransport(service,{signal,onRetry,onSlow,onResumed,waitPoli
       // asked for again within this budget: the shared policy retries only network, timeout, 429 and 5xx, and one
       // server-side stream error ended a run (measured 2026-10-12, S29: 2 of 6 identical requests for an hour).
       catch(error){const code=safeError(error);if(code==='response_invalid')rejected=true;measured?.fail(code);throw Object.assign(new Error(({network_error:'network',network_timeout:'model_timeout'})[code]||code),{status:error.status,retryAfterMs:error.retryAfterMs,...(code==='response_invalid'?{retryable:retryInvalidResponse}:{}),...(error.apiDiagnostic?{apiDiagnostic:error.apiDiagnostic}:{})});}
-    },{signal:childSignal,cooldown,...options,...(Number.isSafeInteger(retries)?{retries:Math.min(retries,options.retries)}:{}),onRetry,onSlow,onResumed});
+    },{signal:childSignal,cooldown,...options,...(Number.isSafeInteger(retries)?{retries:Math.min(retries,options.retries),busyRetries:Math.min(retries,options.busyRetries??options.retries)}:{}),onRetry,onSlow,onResumed});
   };
 }
 

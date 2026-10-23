@@ -9,7 +9,7 @@ const ALIASES={
   expectedHash:['hash','sha','expected_hash','currentHash','current_hash','fileHash'],
   edits:['changes','replacements','patches','patch'],
 };
-const EDIT_ALIASES={oldText:['old','old_text','search','find','before','original','from'],newText:['new','new_text','replace','replacement','after','to']};
+const EDIT_ALIASES={oldText:['old','old_text','search','find','before','original','from'],newText:['new','new_text','replace','replacement','after','to'],replaceAll:['replace_all','all']};
 const FIELDS={propose_new_file:['path','content','reason'],propose_edit:['path','expectedHash','content','reason'],propose_patch:['path','expectedHash','edits','reason']};
 const isObject=value=>!!value&&typeof value==='object'&&!Array.isArray(value);
 const lines=value=>Array.isArray(value)&&value.every(item=>typeof item==='string')?value.join('\n'):value;
@@ -28,7 +28,7 @@ export function normalizeProposalArgs(name,args,task){
   if(!fields||!isObject(args))return args;
   const out=mapKeys(args,ALIASES,fields);
   if(Object.hasOwn(out,'content'))out.content=lines(out.content);
-  if(Array.isArray(out.edits))out.edits=out.edits.map(edit=>{const mapped=mapKeys(edit,EDIT_ALIASES,['oldText','newText']);if(isObject(mapped)){mapped.oldText=lines(mapped.oldText);mapped.newText=lines(mapped.newText);}return mapped;});
+  if(Array.isArray(out.edits))out.edits=out.edits.map(edit=>{const mapped=mapKeys(edit,EDIT_ALIASES,['oldText','newText','replaceAll']);if(isObject(mapped)){mapped.oldText=lines(mapped.oldText);mapped.newText=lines(mapped.newText);}return mapped;});
   if(typeof out.reason!=='string'||!out.reason.trim()){
     const planned=task?.changePlan?.targets?.find(target=>target.path===out.path)?.reason;
     if(typeof planned==='string'&&planned.trim())out.reason=planned;

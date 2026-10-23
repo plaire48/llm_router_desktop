@@ -14,7 +14,7 @@ export async function resetMail(mail,{confirmed=false}={}){
  if(mail.resetting||mail.relocating)throw Error('mail_busy');
  mail.resetting=true;mail.store.set('setting:reset-pending',true);
  mail.resetProgress={stage:'stopping',completed:0,total:null,startedAt:new Date().toISOString()};
- mail.disconnect();mail.importController?.abort();for(const controller of mail.documentReaders||[])controller.abort();
+ mail.desktopSource?.disconnect();mail.disconnect();mail.importController?.abort();for(const controller of mail.documentReaders||[])controller.abort();
  try{
   const start=Date.now();
   while(mail.activeCalls||mail.checking||mail.synthesis||mail.attachmentRead||mail.reconciling||mail.importController||mail.documentReaders?.size){

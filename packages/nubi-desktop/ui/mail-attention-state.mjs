@@ -10,6 +10,8 @@ const issues={
  mail_storage_permission:{title:'메일 저장 위치의 권한을 확인해 주세요',action:'settings'},
  mail_file_conflict:{title:'저장된 위키가 변경됐어요',action:'retry'},
  mail_source_changed:{title:'보관한 원문이 변경됐어요',action:'source'},
+ mail_source_missing:{title:'Knox 원문 파일을 찾을 수 없어요',action:'settings'},
+ mail_source_unavailable:{title:'Knox 원문의 읽기 권한을 확인해 주세요',action:'settings'},
  mail_attachment_analysis_failed:{title:'첨부를 읽지 못해 수집하지 않았어요',action:'settings'},
  mail_parse_failed:{title:'메일 본문을 읽지 못했어요',action:'settings'},
  mail_size_limit:{title:'이 메일은 원문 보관 범위(96MB)를 넘었어요',action:null},

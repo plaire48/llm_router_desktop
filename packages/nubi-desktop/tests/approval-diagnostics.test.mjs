@@ -65,7 +65,7 @@ test('diagnostic sanitizer drops private fields and rejects unknown codes',()=>{
 test('actual main dispatch awaits approval rejections and renderer restores their diagnostics',async()=>{
  const main=await readFile('electron-app/main.cjs','utf8');const start=main.indexOf('const dispatch=async('),end=main.indexOf('\n const terminalLog=boundedLog(',start);assert(start>=0&&end>start);
  for(const action of ['approvals','approvalRead','approvalTitle']){
-  const dispatch=vm.runInNewContext(main.slice(start,end)+'\ndispatch',{installingUpdate:false,DESKTOP_FEATURES:{computerUse:false},mailPortal:{[action]:async()=>{await Promise.resolve();throw approvalFailure({message:'mail_portal_unavailable',httpStatus:502},action==='approvals'?'list':'document');}},safeApprovalFailure});
+  const dispatch=vm.runInNewContext(main.slice(start,end)+'\ndispatch',{installingUpdate:false,DESKTOP_FEATURES:{computerUse:false},invoke:async()=>({}),mailPortal:{[action]:async()=>{await Promise.resolve();throw approvalFailure({message:'mail_portal_unavailable',httpStatus:502},action==='approvals'?'list':'document');}},safeApprovalFailure});
   const result=await dispatch('mail',{action});assert.equal(result.__nubiError,'mail_portal_unavailable');assert.equal(result.approvalFailure.httpStatus,502);
   const renderer=await readFile('electron-app/renderer.jsx','utf8');const line=renderer.split('\n').find(line=>line.startsWith('const request=async('));assert(line);let cleared=0;
   const request=vm.runInNewContext(line+'\nrequest',{markBusy(){},clearBusy(){cleared++;},window:{nubi:{request:async()=>result}}});

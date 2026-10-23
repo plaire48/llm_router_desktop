@@ -89,6 +89,8 @@ try{
   {await page.locator('.nubi-feedback-toast').getByRole('button',{name:'알림 닫기'}).click().catch(()=>{});
    await trigger().click();await page.getByRole('dialog',{name:'도구 목록',exact:true}).getByRole('button',{name:/^MCP 서버/}).click();
    const mcp=page.getByRole('dialog',{name:'MCP 서버',exact:true});await mcp.getByRole('button',{name:'설정 붙여넣기',exact:true}).click();
+   // Leaving the paste screen discards what was pasted (it can hold tokens or headers); reopening starts empty.
+   await mcp.getByRole('textbox',{name:'MCP 설정 JSON'}).fill('{"mcpServers":{"left":{"headers":{"Authorization":"synthetic-leftover"}}}}');await mcp.getByRole('button',{name:'목록으로 돌아가기',exact:true}).click();await mcp.getByRole('button',{name:'설정 붙여넣기',exact:true}).click();assert.equal(await mcp.getByRole('textbox',{name:'MCP 설정 JSON'}).inputValue(),'','pasted MCP settings are discarded on back');
    await mcp.getByRole('textbox',{name:'MCP 설정 JSON'}).fill(JSON.stringify({mcpServers:{'fixture tools':{command:process.execPath,args:[path.resolve('tests/mcp-fixture-server.mjs'),'stdio']}}}));
    await mcp.getByRole('button',{name:'추가하고 연결',exact:true}).click();
    await mcp.getByText('도구 2개',{exact:true}).first().waitFor({timeout:30000});await mcp.locator('.nubi-mcp-toolbox').filter({hasText:'도구 2개'}).locator('summary').click();await mcp.getByText('echo',{exact:true}).waitFor();await mcp.getByText('add_note',{exact:true}).waitFor();

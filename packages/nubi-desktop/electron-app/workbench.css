@@ -119,6 +119,9 @@
 .nubi-workbench .aipro-login-card { max-width:420px; margin:auto; }
 .nubi-start { align-items:center; gap:var(--cx-space-6); padding:calc(var(--cx-space-1) * 9) 0 var(--cx-space-3); min-height:calc(100vh - 280px); justify-content:center; }
 .nubi-start .nubi-compose-card { width:100%; max-width:var(--nubi-chat-width,1120px); margin-inline:0; }
+/* The mascot, greeting and model chips start at the top of the start screens, not centred (user decision 2026-10-23). */
+.desktop-shell .nubi-workbench .nubi-start.chat-page.is-empty { justify-content:flex-start; padding-top:var(--cx-space-3); }
+.desktop-shell .nubi-workbench .nubi-start.chat-page.is-empty .welcome { margin-top:0; padding-top:0; }
 .nubi-workbench .model-trigger { max-width:300px; }
 .nubi-workbench .model-trigger>span { overflow:hidden; text-overflow:ellipsis; }
 .nubi-request.message-user { margin:var(--cx-space-5) 0 var(--cx-space-6) auto; width:fit-content; max-width:88%; padding:var(--cx-space-3) calc(var(--cx-space-1) * 4.5); border-radius:calc(var(--cx-space-1) * 4.5); background:var(--deck-blue-soft); font:var(--deck-font-label); }

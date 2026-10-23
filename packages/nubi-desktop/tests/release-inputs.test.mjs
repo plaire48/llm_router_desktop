@@ -83,3 +83,8 @@ test('v2 does not treat output directories and copy destinations as source input
 test('v2 binds a generated output to the unchanged build script, not just its entry file',async()=>{
  const f=fixture();const build=desktop+'/scripts/build.mjs';f.files.set(build,Buffer.from("await build({entryPoints:['runtime/entry.mjs'],outfile:'generated/worker.mjs'});"));f.manifest=Buffer.from('["generated/worker.mjs"]');f.source.set(build,Buffer.from("await build({entryPoints:['runtime/entry.mjs'],outfile:'generated/other.mjs'});"));const result=await check(f);assert.equal(result.ok,false);assert(result.issues.some(r=>r.code==='release_input_changed'&&r.path===build));
 });
+test('the command line audits the release documents of the package version',async()=>{
+ const pkg=JSON.parse(await readFile(new URL('../package.json',import.meta.url),'utf8'));
+ const run=await exec(process.execPath,[new URL('../scripts/check-release-inputs.mjs',import.meta.url).pathname,'--ref','HEAD'],{maxBuffer:64*1024*1024}).catch(error=>error);
+ assert.equal(JSON.parse(run.stdout).version,pkg.version);
+});

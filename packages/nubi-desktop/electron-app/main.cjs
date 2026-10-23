@@ -28,6 +28,7 @@ const {BrowserWindowDock}=require('./browser-window-dock.cjs');
 const {ExternalMailPortal}=require('./external-mail-portal.cjs');
 const {BrowserHost}=require('./browser-host.cjs');
 const {MailPortal}=require('./mail-portal.cjs');
+const {mailSourceStatus}=require('./mail-source-status.cjs');
 const {ClaudeWeb}=require('./claude-web.cjs');
 const {TerminalHost}=require('./terminal-host.cjs');
 const {shellProfiles}=require('../runtime/processes.mjs');
@@ -74,10 +75,7 @@ function recordFault(component,details={}){
  void mkdir(storage,{recursive:true}).then(()=>writeFile(path.join(storage,'last-host-fault.json'),JSON.stringify(record),{mode:0o600})).catch(()=>{});
 }
 process.on('uncaughtExceptionMonitor',()=>recordFault('main'));
-async function portalMailStatus(snapshot,{includeMessages=true}={}){void mailPortal.restore();const status=snapshot||await invoke('mail',{action:'status',includeMessages}),portal=mailPortal.status();
- // POP3 is the fallback when the portal login fails (사용자 지시 2026-10-21); a POP3 connection reports itself.
- if(status.serverProfile==='company'&&status.connected&&!portal.connected&&!portal.connecting)return {...status,protocol:'pop3',portal,fallback:null};
- return {fallback:portal.fallback,...status,protocol:'portal',serverProfile:'portal',connected:portal.connected,connecting:portal.connecting,checking:portal.checking,error:portal.error||status.error,folders:portal.folders.length?portal.folders:status.folders,portal,progress:{...status.progress,stage:portal.connecting?'connecting':portal.checking?'checking':!portal.connected&&!status.localCount?'disconnected':status.progress.stage,lastCheckedAt:portal.lastCheckedAt}};}
+async function portalMailStatus(snapshot,{includeMessages=true}={}){return mailSourceStatus({snapshot,invoke,portal:mailPortal,includeMessages,portalEnabled:DESKTOP_FEATURES.mailPortal});}
 function invoke(method,args={}){if(!worker)return Promise.reject(Error('host_disconnected'));return worker.invoke(method,args);}
 // What the window needs to hear from the host itself (the worker restarted, or gave up): nubi:host-event.
 function hostEvent(event){if(window&&!window.isDestroyed()&&!window.webContents.isDestroyed())window.webContents.send('nubi:host-event',event);}
@@ -325,34 +323,49 @@ app.whenReady().then(async()=>{
   }
   if(method==='importMailFolder'){if(source!=='electron')throw Error('mail_portal_desktop_only');const directory=await choose(['openDirectory'],'메일 파일 폴더 선택');return directory?invoke('mail',{action:'importFolder',directory}):{cancelled:true};}
   if(method==='mail'){
-   // POP3 with the person's own ID and password, only as the fallback of a portal login that did not work.
+   if(['desktopConnect','desktopSync'].includes(args.action)){
+    if(source!=='electron')throw Error('mail_desktop_only');
+    if(args.action==='desktopConnect'){
+     await mailPortal.disconnect();mailLoginNotices.clear();
+    }
+    return portalMailStatus(await invoke('mail',{action:args.action,...(typeof args.profileId==='string'?{profileId:args.profileId}:{})}));
+   }
+   // POP3 with the person's own ID and password. With the portal off it is one of the two ways mail comes in (user
+   // decision 2026-10-23); with the portal on it stays the fallback of a portal login that did not work.
    if(args.action==='connect'){
     if(source!=='electron')throw Error('mail_portal_desktop_only');
     if(args.serverProfile!=='company')throw Error('mail_portal_only');
     const portal=mailPortal.status();if(portal.connected||portal.connecting||portal.checking)throw Error('mail_busy');
-    if(portal.fallback!=='pop3'&&!portal.error)throw Error('mail_portal_first');
-    return await portalMailStatus(await invoke('mail',{action:'connect',requestId:args.requestId,serverProfile:'company',user:args.user,password:args.password,...(args.destination?{destination:args.destination}:{}),...(args.recipientAddress?{recipientAddress:args.recipientAddress}:{})}));
+    if(DESKTOP_FEATURES.mailPortal&&portal.fallback!=='pop3'&&!portal.error)throw Error('mail_portal_first');
+    return await portalMailStatus(await invoke('mail',{action:'connect',requestId:args.requestId,serverProfile:'company',user:args.user,password:args.password,...(args.destination?{destination:args.destination}:{}),...(args.recipientAddress?{recipientAddress:args.recipientAddress}:{}),...(typeof args.rememberUser==='boolean'?{rememberUser:args.rememberUser}:{})}));
    }
    if(args.action==='setIdentity')throw Error('mail_portal_only');
-   if(/^portal(?:Connect|Import|Folders|Known|Rejected|Document)$/.test(args.action||'')||['download','importFolder'].includes(args.action))throw Error('method_invalid');
+   if(/^portal(?:Connect|Import|Folders|Known|Rejected|Document)$/.test(args.action||'')||['download','importFolder','usePortalSource'].includes(args.action))throw Error('method_invalid');
+   if(['portalSync','check','retryDownloads'].includes(args.action)&&(await invoke('mail',{action:'status',includeMessages:false})).desktop?.mode==='desktop')return portalMailStatus(await invoke('mail',{action:'desktopSync'}));
+   if(['approvals','approvalRead','approvalTitle'].includes(args.action)&&(await invoke('mail',{action:'status',includeMessages:false})).desktop?.mode==='desktop')throw Error('mail_desktop_archive_only');
+   // Portal off (user decision 2026-10-23): no portal login, and a POP3 refresh checks POP3 instead of the portal.
+   if(!DESKTOP_FEATURES.mailPortal&&['portalSession','portalLogin'].includes(args.action))throw Error('mail_portal_off');
+   if(!DESKTOP_FEATURES.mailPortal&&['portalSync','check'].includes(args.action)){try{return portalMailStatus(await invoke('mail',{action:'check'}));}catch(error){if(['mail_check_wait','mail_busy','mail_not_connected'].includes(error.message))return portalMailStatus();throw error;}}
    if(args.action==='approvals')return await mailPortal.approvals(args);
    if(args.action==='approvalRead')return await mailPortal.approvalRead(args);
    if(args.action==='approvalTitle')return await mailPortal.approvalTitle(args);
    if(args.action==='portalCredentials')throw Error('method_invalid');
    if(args.action==='portalSession'){
     if(source!=='electron')throw Error('mail_portal_desktop_only');
+    await invoke('mail',{action:'usePortalSource'});
     const result=await mailPortal.sessionReady();
     if(result.connected){mailLoginNotices.reset();hostEvent({type:'mail_portal_connected',requiresStorageSetup:(await invoke('mail',{action:'status',includeMessages:false})).requiresStorageSetup});}
     return {...await portalMailStatus(),requiresLogin:result.requiresLogin===true};
    }
    if(args.action==='portalLogin'){
     if(source!=='electron')throw Error('mail_portal_desktop_only');mailPortal.requestId=args.requestId;
+    await invoke('mail',{action:'usePortalSource'});
     try{await mailPortal.connect({destination:args.destination});}catch(error){if(error.message!=='mail_cancelled')hostEvent({type:'mail_portal_failed',error:/^mail_[a-z_]+$/.test(error.message)?error.message:'mail_portal_request'});throw error;}
     mailLoginNotices.reset();hostEvent({type:'mail_portal_connected',requiresStorageSetup:(await invoke('mail',{action:'status',includeMessages:false})).requiresStorageSetup});return portalMailStatus();
    }
    // Cancel stops whatever portal connection is running, even when the screen that asked was reopened and no longer
    // holds the request id (user report 2026-10-14: 연결 취소 kept connecting).
-   if(args.action==='cancelConnect'){if(args.requestId===mailPortal.requestId||mailPortal.status().connecting)await mailPortal.disconnect();return portalMailStatus();}
+   if(args.action==='cancelConnect'){if((await invoke('mail',{action:'status',includeMessages:false})).desktop?.mode==='desktop')return portalMailStatus(await invoke('mail',{action:'cancelConnect'}));if(args.requestId===mailPortal.requestId||mailPortal.status().connecting)await mailPortal.disconnect();return portalMailStatus();}
    if(args.action==='reset'){if(source!=='electron'||args.confirmed!==true)throw Error('mail_reset_confirmation');if(resettingData||wikiLibrary.writes.size)throw Error('mail_busy');resettingData=true;try{await mailPortal.disconnect();await invoke('mail',args);Object.assign(mailPortal.state,{folders:[],lastCheckedAt:null,completed:0,total:null,discovered:0});mailPortal.approvalCacheBytes=0;hostEvent({type:'mail_data_reset'});return await portalMailStatus();}finally{resettingData=false;}}
    if(args.action==='disconnect'){await mailPortal.disconnect();await mailPortal.clearPortalSession();mailLoginNotices.clear();return portalMailStatus();}
    if(args.action==='confirmStorage'){if(source!=='electron')throw Error('mail_desktop_only');await invoke('mail',{action:'confirmStorage',includeAttachments:args.includeAttachments});if(mailPortal.status().connected)void mailPortal.sync().catch(()=>{});return portalMailStatus();}

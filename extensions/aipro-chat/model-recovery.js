@@ -8,7 +8,10 @@ export const MODEL_WAIT_POLICY = Object.freeze({idleMs: 120000, attemptMs: 30000
 // Keep active streaming's normal ceiling, but do not resend the same expensive
 // image request automatically after silence. The existing task recovery owns it.
 export const IMAGE_MODEL_WAIT_POLICY = Object.freeze({idleMs: 30000, attemptMs: 300000, slowMs: 8000, retries: 0});
-const serverDelay = error => ([429, 503].includes(error?.status) || error?.retryable === true && ['rate_limited', 'upstream'].includes(error.message)) && Number.isFinite(error.retryAfterMs) && error.retryAfterMs >= 0 ? error.retryAfterMs : 0;
+// A busy server (429/503, or the provider's retryable rate_limited/upstream) may get more attempts than other
+// failures through busyRetries (adopted from opencode's retry policy, 2026-10-23).
+const busyError = error => [429, 503].includes(error?.status) || error?.retryable === true && ['rate_limited', 'upstream'].includes(error?.message);
+const serverDelay = error => busyError(error) && Number.isFinite(error.retryAfterMs) && error.retryAfterMs >= 0 ? error.retryAfterMs : 0;
 async function waitForRetry(ms, signal) {
   if (signal.aborted) throw new Error('cancelled');
   await new Promise((resolve, reject) => {
@@ -52,7 +55,8 @@ export function retryableModelError(error) {
 
 // Retry inference only. Browser actions have already produced receipts and are
 // never replayed by this transport helper. A successful attempt resets its budget.
-export async function recoverModel(run, {signal, onRetry = () => {}, onSlow = () => {}, onResumed = () => {}, idleMs = MODEL_WAIT_POLICY.idleMs, attemptMs = MODEL_WAIT_POLICY.attemptMs, retryTimeouts = true, slowMs = MODEL_WAIT_POLICY.slowMs, minTimeout = 1000, retries = 3, cooldown = createModelCooldown()} = {}) {
+export async function recoverModel(run, {signal, onRetry = () => {}, onSlow = () => {}, onResumed = () => {}, idleMs = MODEL_WAIT_POLICY.idleMs, attemptMs = MODEL_WAIT_POLICY.attemptMs, retryTimeouts = true, slowMs = MODEL_WAIT_POLICY.slowMs, minTimeout = 1000, maxTimeout = 8000, retries = 3, busyRetries = retries, cooldown = createModelCooldown()} = {}) {
+  const withinBudget = (error, attemptNumber) => attemptNumber <= (busyError(error) ? Math.max(retries, busyRetries) : retries);
   try {
     return await pRetry(async attempt => {
       if (signal.aborted) throw new Error('cancelled');
@@ -83,12 +87,12 @@ export async function recoverModel(run, {signal, onRetry = () => {}, onSlow = ()
       try {return await Promise.race([run({signal: controller.signal, activity, attempt}), interrupted]);}
       catch (error) {if (controller.signal.aborted) throw new Error(controller.signal.reason === 'model_timeout' ? 'model_timeout' : 'cancelled'); throw error;}
       finally {settled = true; clearTimeout(timer); clearTimeout(hardTimer); clearTimeout(slowTimer); signal.removeEventListener('abort', abort); controller.signal.removeEventListener('abort', rejectAbort);}
-    }, {signal, retries, minTimeout, maxTimeout: 8000, factor: 2, randomize: true,
-      shouldRetry: ({error}) => !signal.aborted && (retryTimeouts||error.message!=='model_timeout') && retryableModelError(error) && cooldown.allows(error),
+    }, {signal, retries: Math.max(retries, busyRetries), minTimeout, maxTimeout, factor: 2, randomize: true,
+      shouldRetry: ({error, attemptNumber}) => !signal.aborted && (retryTimeouts||error.message!=='model_timeout') && retryableModelError(error) && cooldown.allows(error) && withinBudget(error, attemptNumber),
       onFailedAttempt: ({error, attemptNumber, retriesLeft}) => {
         if (!signal.aborted && (retryTimeouts||error.message!=='model_timeout') && retryableModelError(error)) {
           cooldown.hold(error);
-          if (retriesLeft && cooldown.allows(error)) {
+          if (retriesLeft && cooldown.allows(error) && withinBudget(error, attemptNumber)) {
             try {onRetry(attemptNumber, {status: error.status, code: error.message === 'model_timeout' ? 'model_timeout' : undefined, retryAfterMs: serverDelay(error)});} catch { /* Optional UI feedback cannot break recovery. */ }
           }
         }

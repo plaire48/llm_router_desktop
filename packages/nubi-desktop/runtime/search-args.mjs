@@ -4,6 +4,10 @@ const QUERY=['query','pattern','text','q','search','keyword','term','needle'];
 const WITHIN=['within','path','directory','dir','folder','file','scope','glob','in'];
 const MODE={content:'content',contents:'content',text:'content',grep:'content',search:'content',path:'path',paths:'path',files:'path',file:'path',filename:'path',filenames:'path',name:'path',names:'path',list:'path'};
 const KIND={all:'all',wiki:'wiki',source:'all',code:'all',project:'all',docs:'wiki'};
+const INCLUDE=['include','filePattern','file_pattern','includePattern','files'];
+const REGEX=['regex','isRegex','is_regex','useRegex','use_regex'];
+const CASE=['caseSensitive','case_sensitive','matchCase','match_case'];
+const flag=value=>value===true||value==='true'?true:value===false||value==='false'?false:undefined;
 const first=value=>Array.isArray(value)?value.find(item=>typeof item==='string'&&item.trim())??value[0]:value;
 const text=value=>{const item=first(value);return typeof item==='string'?item:typeof item==='number'?String(item):undefined;};
 export function normalizeSearchArgs(args){
@@ -13,7 +17,10 @@ export function normalizeSearchArgs(args){
   for(const key of WITHIN){const value=text(args[key]);if(value!==undefined&&value.trim()){out.within=value.trim();break;}}
   const mode=text(args.mode??args.type??args.target);if(mode!==undefined){const mapped=MODE[mode.trim().toLowerCase()];out.mode=mapped||mode;}
   const kind=text(args.kind??args.source);if(kind!==undefined){const mapped=KIND[kind.trim().toLowerCase()];out.kind=mapped||kind;}
-  // A glob like "src/**/*.ts" names a directory scope; the search itself is exact text, so the file pattern is dropped.
-  if(typeof out.within==='string'&&/[*?]/.test(out.within)){const base=out.within.split(/[*?]/)[0].replace(/\/+$/,'');if(base)out.within=base;else delete out.within;}
+  for(const key of REGEX){const value=flag(args[key]);if(value!==undefined){out.regex=value;break;}}
+  for(const key of CASE){const value=flag(args[key]);if(value!==undefined){out.caseSensitive=value;break;}}
+  for(const key of INCLUDE){const value=text(args[key]);if(value!==undefined&&value.trim()){out.include=value.trim();break;}}
+  // A glob like "src/**/*.ts" given as the scope keeps its directory as within and passes the pattern on as include.
+  if(typeof out.within==='string'&&/[*?{]/.test(out.within)){out.include??=out.within;const prefix=out.within.split(/[*?{]/)[0],directory=prefix.slice(0,Math.max(0,prefix.lastIndexOf('/')));if(directory)out.within=directory;else delete out.within;}
   return out;
 }
