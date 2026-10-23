@@ -7,6 +7,7 @@ import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import {DESKTOP_FEATURES} from '../runtime/beta-features.mjs';
 import {WELCOME_GREETINGS} from '../ui/welcome-greetings.mjs';
+import {captureDesign} from './design-rules.mjs';
 const dir=path.resolve('verification/welcome-typing-2026-10-16');await mkdir(dir,{recursive:true});
 await build({entryPoints:['tests/shared-ui-fixture.jsx'],outfile:path.join(dir,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.woff2':'file','.woff':'file','.svg':'dataurl','.webp':'file'},define:{__APP_VERSION__:'"fixture"','process.env.NODE_ENV':'"production"'}});
 await cp('../../extensions/aipro-chat/public/icons',path.join(dir,'icons'),{recursive:true});
@@ -22,7 +23,7 @@ try {
  const title=p.locator('.welcome-title'),typed=title.locator('.welcome-typed');
  const partial=()=>p.waitForFunction(()=>{const el=document.querySelector('.welcome-typed'),all=document.querySelector('.welcome-reserve');return el&&all&&el.textContent.length>0&&el.textContent.length<all.textContent.length;});
  await partial();const first=await typed.innerText(),before=await title.boundingBox();
- await p.screenshot({path:path.join(dir,'typing.png'),animations:'disabled'});
+ await captureDesign(p,{path:path.join(dir,'typing.png'),animations:'disabled'});
  await p.waitForFunction(()=>!document.querySelector('.welcome-cursor')?.classList.contains('is-typing'));
  const full=await typed.innerText(),after=await title.boundingBox();assert(full.length>first.length);assert(Math.abs(before.height-after.height)<1);
  const opener=p.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await opener.count())await opener.click();
@@ -35,6 +36,15 @@ try {
  await p.locator('.nubi-sidebar').getByRole('button',{name:'새 대화',exact:true}).click();
  assert.equal(await typed.evaluate(el=>getComputedStyle(el).visibility),'hidden');
  assert.equal(await title.locator('.welcome-reserve').evaluate(el=>getComputedStyle(el).visibility),'visible');
+ for(const width of [1920,1280,760,440,360]){
+  await p.setViewportSize({width,height:950});
+  const metrics=await title.evaluate((heading,lines)=>{
+   const style=getComputedStyle(heading),available=heading.parentElement.getBoundingClientRect(),box=heading.getBoundingClientRect(),probe=heading.cloneNode(true);probe.style.cssText=`position:fixed;left:${box.left}px;top:${box.top}px;width:${box.width}px;visibility:hidden;pointer-events:none`;heading.parentElement.append(probe);probe.querySelector('.welcome-typed')?.remove();const reserve=probe.querySelector('.welcome-reserve');let fits=true,maxHeight=0;
+   try{for(const line of lines){reserve.textContent=line;const range=document.createRange();range.selectNodeContents(reserve);for(const rect of range.getClientRects())if(rect.width>1)fits&&=rect.left>=available.left-1&&rect.right<=available.right+1;maxHeight=Math.max(maxHeight,probe.getBoundingClientRect().height);}}finally{probe.remove();}
+   return {font:parseFloat(style.fontSize),fits,maxHeight};
+  },WELCOME_GREETINGS.flatMap(period=>period.lines));
+  assert(metrics.font>=28&&metrics.font<=36);assert(metrics.fits,'every greeting fits without cutting off larger type');assert(await p.locator('.nubi-compose-card').evaluate(node=>node.getBoundingClientRect().bottom<=innerHeight+1));await captureDesign(p,{path:path.join(dir,'larger-greeting-'+width+'.png'),animations:'disabled'});
+ }
  assert.deepEqual(errors,[]);console.log('PASS: initial and new-chat greetings type progressively, retain layout, stay still while composing, and respect reduced motion.');
- await writeFile(path.join(dir,'result.json'),JSON.stringify({passed:true,checks:['initial typing','new greeting types again','stable heading height','no restart while composing','reduced motion full text'],boundary:'Synthetic provider with actual Workbench in Chrome.'},null,2));
+ await writeFile(path.join(dir,'result.json'),JSON.stringify({passed:true,checks:['initial typing','new greeting types again','stable heading height','no restart while composing','reduced motion full text','28-36px greeting across 1920/1280/760/440/360px','all greeting variants fit without truncation'],boundary:'Synthetic provider with actual Workbench in Chrome.'},null,2));
 }finally{await browser?.close();server.closeAllConnections();await new Promise(r=>server.close(r));stopBuildService();}

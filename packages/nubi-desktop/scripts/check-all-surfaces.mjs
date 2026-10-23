@@ -206,10 +206,10 @@ try{
    await p.setViewportSize({width,height:950});await load('integrated&modals&toolbar&context&greeting-hour='+hour);await p.locator('.welcome-title').waitFor();
    const title=p.locator('.welcome-title .visually-hidden'),greeting=await title.innerText();assert(WELCOME_GREETINGS.find(period=>hour<period.until).lines.includes(greeting));
    await p.getByRole('textbox',{name:'작업 요청',exact:true}).fill('인사를 바꾸지 않는 초안');assert.equal(await title.innerText(),greeting);
-   const measurements=await p.locator('.welcome-title').evaluate((heading,lines)=>{const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d'),style=getComputedStyle(heading);ctx.font=style.font;return {available:heading.parentElement.clientWidth,widest:Math.max(...lines.map(line=>ctx.measureText(line).width)),nowrap:getComputedStyle(heading.querySelector('.welcome-display')).whiteSpace};},WELCOME_GREETINGS.flatMap(period=>period.lines));
-   assert(measurements.widest<=measurements.available,'all greeting variants fit the current width');assert.equal(measurements.nowrap,'nowrap');
+   const measurements=await p.locator('.welcome-title').evaluate((heading,lines)=>{const style=getComputedStyle(heading),available=heading.parentElement.getBoundingClientRect(),box=heading.getBoundingClientRect(),probe=heading.cloneNode(true);probe.style.cssText=`position:fixed;left:${box.left}px;top:${box.top}px;width:${box.width}px;visibility:hidden;pointer-events:none`;heading.parentElement.append(probe);probe.querySelector('.welcome-typed')?.remove();const reserve=probe.querySelector('.welcome-reserve');let fits=true;try{for(const line of lines){reserve.textContent=line;const range=document.createRange();range.selectNodeContents(reserve);for(const rect of range.getClientRects())if(rect.width>1)fits&&=rect.left>=available.left-1&&rect.right<=available.right+1;}}finally{probe.remove();}return {font:parseFloat(style.fontSize),fits};},WELCOME_GREETINGS.flatMap(period=>period.lines));
+   assert(measurements.fits,'all greeting variants fit the current width');assert(measurements.font>=28&&measurements.font<=36,'greeting scales with the larger mascot');
    await p.getByRole('textbox',{name:'작업 요청',exact:true}).fill('');await p.getByRole('button',{name:'새 대화',exact:true}).first().click();assert.notEqual(await title.innerText(),greeting);
-   await captureDesign(p,{path:path.join(dir,`welcome-${hour}-${width}.png`)});records.push({screen:'welcome',width,hour,greeting,oneLine:true,stableWhileTyping:true});
+   await captureDesign(p,{path:path.join(dir,`welcome-${hour}-${width}.png`)});records.push({screen:'welcome',width,hour,greeting,readableWrapping:true,stableWhileTyping:true});
   }
  }
  if(process.env.NUBI_PICKER_ONLY){

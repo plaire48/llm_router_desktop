@@ -341,7 +341,11 @@
 /* The welcome bird flies on one gentle path. Its greeting adds only a
    small roll, so the old stacked translation/bounce does not return. */
 .desktop-shell .nubi-start .welcome { width:100%; min-width:0; container-type:inline-size; }
-.desktop-shell .nubi-workbench .nubi-start .welcome .welcome-title { font-size:var(--deck-type-title); }
+.desktop-shell .nubi-workbench .nubi-start .welcome .welcome-title { font-size:var(--nubi-greeting-size); max-width:100%; }
+.desktop-shell .nubi-start .welcome-title .welcome-display { max-width:100%; white-space:normal; overflow-wrap:anywhere; }
+.desktop-shell .nubi-start .welcome-title .welcome-reserve::after { content:""; display:inline-block; width:calc(.14em + 2px); }
+.desktop-shell .nubi-start .welcome-title .welcome-typed { max-width:100%; }
+.desktop-shell .nubi-start .welcome-title .welcome-cursor { position:static; display:inline-block; vertical-align:-.05em; }
 :root:root { --nubi-bird-flight:var(--nubi-ambient-bird-flight); --nubi-bird-greeting:var(--nubi-ambient-bird-greeting); --nubi-bird-blink:var(--nubi-ambient-bird-expression); }
 :root:root .welcome-emblem,
 :root:root .welcome-emblem::before,
