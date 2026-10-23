@@ -4,7 +4,7 @@ export function installModalStack() {
   const layers = new Map();
   let sequence = 0;
   const markTop = () => {
-    const active = [...layers.keys()].filter(node => node.isConnected && node.dataset.modalMotion !== 'leaving');
+    const active = [...layers.keys()].filter(node => node.isConnected && !node.hidden && node.dataset.modalMotion !== 'leaving');
     for (const node of layers.keys()) {
       if (node === active.at(-1)) node.dataset.modalTop = 'true';
       else delete node.dataset.modalTop;
@@ -44,5 +44,6 @@ export function installModalStack() {
   for (const node of document.body.children) register(node);
   markTop();
   observer.observe(document.body, {childList:true});
-  return () => { observer.disconnect(); for (const [node, original] of layers) restore(node, original); layers.clear(); };
+  const visibility=new MutationObserver(markTop);visibility.observe(document.body,{subtree:true,attributes:true,attributeFilter:['hidden']});
+  return () => { observer.disconnect(); visibility.disconnect(); for (const [node, original] of layers) restore(node, original); layers.clear(); };
 }

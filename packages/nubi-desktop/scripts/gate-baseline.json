@@ -53,7 +53,9 @@
     "node scripts/check-mail-thread-card.mjs",
     "node scripts/check-document-chat-ui.mjs",
     "node scripts/check-removed-features-ui.mjs",
-    "node scripts/check-workspace-atmosphere.mjs"
+    "node scripts/check-workspace-atmosphere.mjs",
+    "node scripts/check-background-tasks.mjs",
+    "node scripts/check-background-tasks-electron.mjs"
   ],
   "retiredFeatures": {
     "date": "2026-10-22",

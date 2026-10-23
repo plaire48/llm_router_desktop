@@ -25,7 +25,7 @@ export function installGlassSurface(layer,{axis='x',selector,targetWrapper}={}){
  let textureWidth=0,textureHeight=0,textureDpr=0;
  const metrics={frames:0,textureUploads:0,pixels:0};layer.glassMetrics=metrics;
  host.classList.add('nubi-liquid-glass-host');
- const quiet=()=>doc.hidden||!visible||root.hasAttribute('data-nubi-window-hidden')||root.hasAttribute('data-motion-panel')||root.hasAttribute('data-project-switching')||!!doc.querySelector('.nubi-intro,.cx-panel-backdrop');
+ const quiet=()=>doc.hidden||!visible||root.hasAttribute('data-nubi-window-hidden')||root.hasAttribute('data-motion-panel')||root.hasAttribute('data-project-switching')||!!doc.querySelector('.nubi-intro,.cx-panel-backdrop:not([hidden])');
  const supported=()=>!opaque.matches&&!forced.matches;
  const mode=()=>renderer&&!lost?'webgl':'css';
  const mark=(state,moving=false)=>{host.dataset.liquidGlass=state;layer.dataset.glassMoving=String(moving);};

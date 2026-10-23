@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createProgressEstimator,progressEstimateLabel} from '../ui/remaining-time.mjs';
+import {createProgressEstimator,progressEstimateLabel,compactProgressEstimateLabel} from '../ui/remaining-time.mjs';
 test('observed throughput produces a remaining time without inventing completion',()=>{
  const sample=createProgressEstimator();
  assert.equal(sample({id:'read',completed:0,total:100,now:0}).state,'measuring');
@@ -22,4 +22,8 @@ test('unknown totals and invalid observations never produce an ETA number',()=>{
  for(const total of [undefined,0,NaN,Infinity])assert.equal(sample({id:'scan',completed:10,total,now:1000}).state,'unknown');
  assert.equal(progressEstimateLabel({state:'unknown'}),'전체 작업량 확인 중');
  assert.equal(progressEstimateLabel({state:'finishing'}),'마무리 확인 중');
+});
+test('compact queue time fits one row while preserving unknown and finishing states',()=>{
+ assert.equal(compactProgressEstimateLabel({state:'unknown'}),'계산 중');assert.equal(compactProgressEstimateLabel({state:'finishing'}),'확인 중');
+ assert.equal(compactProgressEstimateLabel({state:'estimated',remainingMs:79000}),'~1:20');assert.equal(compactProgressEstimateLabel({state:'estimated',remainingMs:3720000}),'~1h02m');assert.equal(compactProgressEstimateLabel({state:'estimated',remainingMs:360000000}),'>99h');
 });

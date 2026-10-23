@@ -3,6 +3,7 @@ import {CxButton,Icon} from '@e2e/cx-design-system';
 import {WikiInitializationProgress} from './WikiInitializationProgress.jsx';
 import {FolderMark} from './marks.jsx';
 import {TaskProgressBar} from './TaskProgressBar.jsx';
+import {backgroundJobId} from './background-task-queue.mjs';
 import {projectPreparation} from './project-preparation.mjs';
 import './project-wiki-progress.css';
 
@@ -37,7 +38,7 @@ export function ProjectWikiProgress({job,projectName,projectRoot,onStop,onSelect
     <strong key={view.phase} className="nubi-project-journey-title" role="status">{view.title}</strong>
     {ready?<div className="nubi-project-ready"><p>{connected?'질문을 입력하면 이 프로젝트의 자료를 함께 참고해요.':'모델을 연결하면 이 프로젝트의 자료로 대화할 수 있어요.'}</p>{onOpenWiki&&<CxButton onClick={onOpenWiki}><Icon name="bookmark" size={16}/>위키 보기</CxButton>}</div>:<>
       <WikiInitializationProgress job={job} inline/>
-      {job?.state==='running'&&<TaskProgressBar label="프로젝트 자료 준비" value={job.percent}/>}
+      {job?.state==='running'&&<TaskProgressBar backgroundTask={backgroundJobId('wiki',job)} label="프로젝트 자료 준비" value={job.percent}/>}
       {view.phase==='scope'&&onSelectScope&&<CxButton variant="primary" onClick={onSelectScope}><FolderMark size={16}/>범위 선택</CxButton>}
       <details className="deck-disclosure nubi-project-preparation-detail" open={expanded} onToggle={event=>setExpanded(event.currentTarget.open)}>
         <summary><Icon name="list" size={16}/><span>준비 상세</span><Icon name="chevronDown" size={16}/></summary>

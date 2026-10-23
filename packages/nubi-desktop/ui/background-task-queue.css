@@ -1,0 +1,32 @@
+.cx-panel-backdrop[data-task-background=true] {display:none!important;}
+.desktop-shell[data-background-tasks=true] {--nubi-mail-footer-height:52px;}
+.nubi-task-queue-trigger {position:relative;display:inline-flex;align-items:center;justify-content:center;flex:none;width:44px;min-height:44px;padding:0;border:0;border-radius:var(--nubi-radius-control);background:var(--deck-blue-soft);color:var(--deck-blue-deep);font:inherit;cursor:pointer;}
+.nubi-task-queue-trigger i {position:absolute;right:4px;bottom:5px;width:5px;height:5px;border-radius:50%;background:currentColor;}
+.nubi-task-queue-trigger:focus-visible,.nubi-background-tasks-popup button:focus-visible {outline:2px solid var(--deck-blue);outline-offset:2px;}
+.nubi-background-tasks-popup {position:fixed;z-index:1190;display:block;box-sizing:border-box;width:min(360px,calc(100vw - 24px));height:auto;padding:var(--cx-space-2);border:1px solid var(--deck-line);border-radius:var(--nubi-radius-control);background:var(--nubi-surface-base);color:var(--deck-ink);box-shadow:var(--deck-shadow);font:var(--deck-font-caption);transform-origin:left bottom;animation:nubi-task-popover-enter var(--nubi-motion-enter) var(--nubi-ease-spring) both;}
+.nubi-background-tasks-popup[data-leaving=true] {pointer-events:none;animation:nubi-task-popover-exit var(--nubi-motion-exit) var(--nubi-ease-out) both;}
+.nubi-background-task-list {display:grid;grid-template-columns:minmax(0,1fr) minmax(24px,48px) minmax(2.5em,3em) minmax(3em,3.75em) var(--nubi-task-action-size,24px);gap:var(--cx-space-2) var(--cx-space-1);list-style:none;margin:0;padding:0;overflow:visible;}
+.nubi-background-task-list>li {display:grid;grid-template-columns:subgrid;grid-column:1/-1;align-items:center;min-width:0;}
+.nubi-background-task-status {display:flex;align-items:center;gap:var(--cx-space-1);min-width:0;min-height:18px;line-height:1.2;}
+.nubi-background-task-open {display:flex;align-items:center;gap:var(--cx-space-1);flex:1;min-width:0;padding:0;border:0;background:transparent;color:var(--deck-ink);font:inherit;text-align:left;}
+button.nubi-background-task-open {cursor:pointer;}
+.nubi-background-task-open>svg {flex:none;color:var(--deck-blue-deep);}
+.nubi-background-task-list>li[data-task-state=failed] .nubi-background-task-open>svg {color:var(--nubi-text-danger);}
+.nubi-background-task-list>li[data-task-state=completed] .nubi-background-task-open>svg {color:var(--cx-success);}
+.nubi-background-task-open>span {overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.nubi-background-task-control {display:inline-flex;align-items:center;justify-content:center;flex:none;width:24px;height:24px;padding:0;border:0;border-radius:var(--nubi-radius-control);background:transparent;color:var(--deck-sub);cursor:pointer;}
+.nubi-background-task-meter {min-width:0;}
+.nubi-background-task-meter .nubi-progress {min-width:0;margin:0;}
+.nubi-background-task-list>li>output,.nubi-background-task-list>li>time {min-width:0;text-align:right;color:var(--deck-sub);font:inherit;line-height:var(--deck-line-caption);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.nubi-background-task-navigation {display:flex;align-items:center;justify-content:space-between;margin-top:var(--cx-space-2);color:var(--deck-sub);}
+.nubi-background-task-pagination {display:flex;align-items:center;gap:var(--cx-space-1);margin-left:auto;font-variant-numeric:tabular-nums;}
+.nubi-background-task-control:hover {background:var(--deck-blue-soft);color:var(--deck-blue-deep);}
+.nubi-background-task-control:disabled {opacity:.35;cursor:default;}
+.nubi-background-task-empty {margin:0;padding:var(--cx-space-1) 0;color:var(--deck-sub);}
+.nubi-background-modal-action {min-width:44px;min-height:44px;}
+@keyframes nubi-task-popover-enter {from {opacity:0;transform:translateY(8px) scale(.98,.96);}to {opacity:1;transform:none;}}
+@keyframes nubi-task-popover-exit {from {opacity:1;transform:none;}to {opacity:0;transform:translateY(5px) scale(.99,.98);}}
+@media(prefers-reduced-motion:reduce) {.nubi-background-tasks-popup,.nubi-background-tasks-popup[data-leaving=true] {animation:none;transform:none;}}
+@media(max-width:1000px) {.desktop-shell[data-background-tasks=true] {--nubi-mail-footer-height:80px;}}
+@media(forced-colors:active) {.nubi-background-tasks-popup,.nubi-task-queue-trigger {background:Canvas;color:CanvasText;border:1px solid CanvasText;}}
+@media(pointer:coarse) {.nubi-background-task-list {--nubi-task-action-size:44px;}.nubi-background-task-control {width:44px;height:44px;}.nubi-background-task-open {min-height:44px;}}

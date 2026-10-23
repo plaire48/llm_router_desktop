@@ -19,7 +19,7 @@ const STEPS=[
 const PAD=6;
 const seen=()=>{try{return localStorage.getItem(KEY)==='done';}catch{return true;}};
 const remember=()=>{try{localStorage.setItem(KEY,'done');}catch{}};
-const dialogOpen=()=>!!document.querySelector('.cx-panel-backdrop,[role="dialog"][aria-modal="true"]:not(.nubi-tour),[role="alertdialog"]');
+const dialogOpen=()=>!!document.querySelector('.cx-panel-backdrop:not([hidden]),[role="dialog"][aria-modal="true"]:not(.nubi-tour),[role="alertdialog"]');
 // The union of the visible elements a step points at.
 function stepRect(step){
   const boxes=[];

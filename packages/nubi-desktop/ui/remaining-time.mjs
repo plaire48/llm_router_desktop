@@ -21,3 +21,10 @@ export function progressEstimateLabel(estimate){
  if(estimate.state==='finishing')return '마무리 확인 중';
  return `현재 단계 약 ${durationLabel(Math.max(5,Math.ceil(estimate.remainingMs/5000)*5)*1000,{keepSeconds:true})} 남음`;
 }
+export function compactProgressEstimateLabel(estimate){
+ if(estimate.state==='finishing')return '확인 중';
+ if(estimate.state!=='estimated')return '계산 중';
+ const seconds=Math.max(5,Math.ceil(estimate.remainingMs/5000)*5),hours=Math.floor(seconds/3600),minutes=Math.floor(seconds/60)%60;
+ if(hours>=100)return '>99h';
+ return hours?`~${hours}h${String(minutes).padStart(2,'0')}m`:`~${minutes}:${String(seconds%60).padStart(2,'0')}`;
+}

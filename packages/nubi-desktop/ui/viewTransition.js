@@ -11,7 +11,7 @@ const canAnimate=()=>typeof document!=='undefined'&&typeof document.startViewTra
   &&!(typeof navigator!=='undefined'&&navigator.webdriver)
   // An open or leaving dialog covers the layout with its scrim and has its own motion (modalMotion.js); morphing the
   // page underneath would animate the dialog a second time inside the root snapshot.
-  &&!document.documentElement?.hasAttribute('data-project-switching')&&!document.body?.hasAttribute('data-nubi-opening')&&!document.querySelector('.nubi-intro,.cx-panel-backdrop');
+  &&!document.documentElement?.hasAttribute('data-project-switching')&&!document.body?.hasAttribute('data-nubi-opening')&&!document.querySelector('.nubi-intro,.cx-panel-backdrop:not([hidden])');
 const quiet=promise=>{promise?.catch?.(()=>{});};
 export function cancelViewTransition(){
  if(running){running.flush();running.transition.skipTransition();}

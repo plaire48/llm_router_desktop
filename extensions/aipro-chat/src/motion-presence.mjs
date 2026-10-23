@@ -7,15 +7,15 @@ export function installMotionPresence(doc=document,Observer=MutationObserver){
  if(!group){
   let last,removal,expanded=[];
   const sync=()=>{
-   expanded=[...doc.querySelectorAll('[aria-haspopup="dialog"][aria-expanded="true"]')];
+   expanded=[...doc.querySelectorAll('[aria-haspopup="dialog"][aria-expanded="true"]')].filter(node=>!node.closest('[hidden]'));
    // Only an open control needs subtree removal observation. Closed transcripts
    // keep the cheap body-portal boundary and never trigger a document query.
    if(expanded.length){removal||=new Observer(()=>{if(expanded.some(node=>!node.isConnected))sync();});removal.observe(doc.body,{childList:true,subtree:true});}else removal?.disconnect();
-   const open=[...doc.body.children].some(node=>node.matches?.('.cx-panel-backdrop'))||expanded.length>0;
+   const open=[...doc.body.children].some(node=>node.matches?.('.cx-panel-backdrop')&&!node.hidden)||expanded.length>0;
    if(open!==last){last=open;doc.documentElement.toggleAttribute('data-motion-panel',open);}
   };
   const portals=new Observer(sync),controls=new Observer(sync);
-  portals.observe(doc.body,{childList:true});controls.observe(doc.body,{attributes:true,subtree:true,attributeFilter:['aria-expanded','aria-haspopup']});
+  portals.observe(doc.body,{childList:true});controls.observe(doc.body,{attributes:true,subtree:true,attributeFilter:['aria-expanded','aria-haspopup','hidden']});
   group={count:0,portals,controls,stopRemoval:()=>removal?.disconnect()};owners.set(doc,group);sync();
  }
  group.count++;let active=true;

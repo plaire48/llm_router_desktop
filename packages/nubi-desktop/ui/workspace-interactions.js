@@ -10,7 +10,7 @@ export function installWorkspaceInteractions(root){
  const doc=root.ownerDocument,media=matchMedia('(prefers-reduced-motion: reduce)'),effects=new Set(),surfaces=new Set(),timers=new Set();
  let disposed=false,selection=null,drag=null,rubber=null,rubberTimer=null,layoutFrame=0,layoutUntil=0;
  const pendingLayout=new Map();
- const allowed=()=>!disposed&&!doc.hidden&&!media.matches&&!['data-nubi-window-hidden','data-project-switching','data-motion-panel'].some(name=>doc.documentElement.hasAttribute(name))&&!doc.querySelector('.cx-panel-backdrop,.nubi-intro');
+ const allowed=()=>!disposed&&!doc.hidden&&!media.matches&&!['data-nubi-window-hidden','data-project-switching','data-motion-panel'].some(name=>doc.documentElement.hasAttribute(name))&&!doc.querySelector('.cx-panel-backdrop:not([hidden]),.nubi-intro');
  const later=(fn,ms)=>{const timer=setTimeout(()=>{timers.delete(timer);fn();},ms);timers.add(timer);return timer;};
  const stopEffects=()=>{for(const effect of effects)effect.cancel();effects.clear();for(const surface of surfaces)surface.remove();surfaces.clear();selection=null;};
  function animate(node,frames,id='nubi-atlas-enter',duration=motionDuration('enter'),delay=0){
