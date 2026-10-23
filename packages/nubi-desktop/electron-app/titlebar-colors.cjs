@@ -15,6 +15,15 @@ function captionColors(background,symbol,overlays=[]) {
  for(const value of overlays){const layer=rgba(value);if(!layer)continue;const alpha=Math.max(0,Math.min(1,layer[3]));color=color.map((c,i)=>i<3?layer[i]*alpha+c*(1-alpha):1);ink=ink.map((c,i)=>i<3?layer[i]*alpha+c*(1-alpha):1);}
  return {color:hex(color),symbolColor:hex(ink)};
 }
+// The toolbar is glass: a transparent background colour under a gradient. Composite the backgrounds from the nearest
+// opaque surface up (layers run outermost first) and the gradient's last stop, which sits under the controls on the right.
+const COLOR_TOKEN=/color\(srgb[^)]*\)|rgba?\([^)]*\)|#[\da-f]{6}(?:[\da-f]{2})?\b/gi;
+function surfaceColor(layers,gradient='') {
+ const stops=String(gradient||'').match(COLOR_TOKEN)||[];
+ let color=rgba(DEFAULT_TITLEBAR.color);
+ for(const value of [...layers,stops.at(-1)]){const layer=rgba(value);if(!layer)continue;const alpha=Math.max(0,Math.min(1,layer[3]));color=color.map((c,i)=>i<3?layer[i]*alpha+c*(1-alpha):1);}
+ return hex(color);
+}
 function validateCaptionColors(colors) {
  if(!colors||!['color','symbolColor'].every(key=>/^#[\da-f]{6}$/i.test(colors[key]||'')))throw Error('titlebar_color_invalid');
 }
@@ -23,4 +32,4 @@ function applyCaptionColors(window,colors,platform=process.platform) {
  if(!['win32','linux'].includes(platform)||window.isDestroyed())return;
  window.setTitleBarOverlay({color:colors.color,symbolColor:colors.symbolColor,height:DEFAULT_TITLEBAR.height});
 }
-module.exports={DEFAULT_TITLEBAR,captionColors,applyCaptionColors,validateCaptionColors};
+module.exports={DEFAULT_TITLEBAR,captionColors,surfaceColor,applyCaptionColors,validateCaptionColors};

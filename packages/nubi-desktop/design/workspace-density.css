@@ -663,9 +663,9 @@
 :root:root .nubi-skill-tabs .agent-tab-controls [role=tab] { flex:none; width:auto; min-height:44px; padding:var(--cx-space-2) var(--cx-space-4); border-radius:var(--deck-control-radius); font:var(--deck-font-body); font-weight:var(--nubi-weight-label); color:var(--deck-sub); }
 :root:root .nubi-skill-tabs .agent-tab-controls [role=tab][aria-selected=true] { color:var(--deck-blue-deep); background:var(--deck-blue-soft); }
 :root:root .nubi-skill-tabs .nubi-skill-tab-label { min-height:0; gap:var(--cx-space-2); }
-:root:root .nubi-skill-page { --nubi-skill-page-width:1200px; }
-:root:root .nubi-skill-page-header { max-width:var(--nubi-skill-page-width); margin:auto; padding:var(--cx-space-5) var(--nubi-page-inset) var(--cx-space-2); border:0; }
-:root:root .nubi-skill-page-body { max-width:var(--nubi-skill-page-width); padding:var(--cx-space-4) var(--nubi-page-inset) var(--cx-space-8); }
+/* Title and content fill the page edge to edge and share one inset (user request 2026-10-23). */
+:root:root .nubi-skill-page-header { max-width:none; margin:0; padding:var(--cx-space-5) var(--nubi-page-inset) var(--cx-space-2); border:0; }
+:root:root .nubi-skill-page-body { max-width:none; margin:0; padding:var(--cx-space-4) var(--nubi-page-inset) var(--cx-space-8); }
 :root:root .nubi-marketplace-card .nubi-skill-name strong { font-weight:var(--nubi-weight-label); line-height:var(--deck-line-body); }
 :root:root .nubi-marketplace-card .nubi-skill-description { font:var(--deck-font-caption); }
 :root:root .nubi-marketplace-card .nubi-marketplace-installed { width:28px; height:28px; justify-content:center; flex:none; color:var(--nubi-text-success); }
@@ -720,8 +720,8 @@
 .desktop-shell .nubi-workbench .nubi-task .message-actions > :is(.nubi-message-timestamp,.copy-control,.cx-action-button) { flex:none; }
 .desktop-shell .nubi-workbench .nubi-task .message-actions .copy-control { display:inline-flex; align-items:center; flex-wrap:nowrap; }
 .desktop-shell .nubi-workbench .nubi-task .message-actions .nubi-message-timestamp { margin-right:0; }
-.desktop-shell .nubi-workbench .nubi-task .message-actions .nubi-response-time { min-width:0; margin-right:0; white-space:nowrap; overflow:hidden; }
-.desktop-shell .nubi-workbench .nubi-task .message-actions .nubi-response-time > span { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+/* The duration never shrinks or clips: Windows glyph widths cut '12초' to '12' (user report 2026-10-23). */
+.desktop-shell .nubi-workbench .nubi-task .message-actions .nubi-response-time { flex:none; margin-right:0; white-space:nowrap; overflow:visible; }
 /* Copy failure is already announced by the shared toast; retain its accessible description. */
 .desktop-shell .nubi-workbench .nubi-task .message-actions .copy-error { position:absolute; width:1px; height:1px; padding:0; margin:calc(var(--cx-space-1) * -0.25); overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0; }
 

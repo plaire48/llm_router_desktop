@@ -1,5 +1,5 @@
 import {useLayoutEffect} from 'react';
-import {captionColors} from './titlebar-colors.cjs';
+import {captionColors,surfaceColor} from './titlebar-colors.cjs';
 
 // Native window controls sit above the web surface and cannot receive its scrim.
 // Read the rendered CX colors, including stacked dialogs, instead of duplicating tokens.
@@ -12,7 +12,8 @@ export function useNativeTitlebar(request) {
    const toolbar=document.querySelector('.nubi-window-toolbar');if(!toolbar)return;
    const style=getComputedStyle(toolbar),symbol=style.getPropertyValue('--deck-sub').trim();
    // Dialog scrims do not recolour the native controls any more (user decision 2026-10-14: their hover shading vanished).
-   const colors=captionColors(style.backgroundColor,symbol,[]),key=JSON.stringify(colors);
+   const layers=[];for(let node=toolbar;node instanceof Element;node=node.parentElement)layers.unshift(getComputedStyle(node).backgroundColor);
+   const colors=captionColors(surfaceColor(layers,style.backgroundImage),symbol,[]),key=JSON.stringify(colors);
    if(key===last)return;last=key;
    void request('titlebarAppearance',colors).catch(()=>{if(last===key)last='';});
   };

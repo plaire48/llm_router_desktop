@@ -39,7 +39,11 @@ try{
   assert.equal(await page.evaluate(()=>window.mailCalls.filter(call=>call.action==='disconnect').length),1);
   checks.push({width,mode,scope:'existing settings, encrypted UIA original path and folder selection, explicit window choice, UIA refresh, auto OFF, disconnect preserving metadata'});await page.close();
  }
- for(const method of ['portal','pop3']){
+ // The portal is off in the product (user decision 2026-10-23): a saved portal choice opens as Knox Desktop with no portal option.
+ page=await browser.newPage({viewport:{width:1280,height:1000},reducedMotion:'reduce'});page.on('pageerror',error=>errors.push(error.message));await page.goto('http://127.0.0.1:'+server.address().port+'/?desktop=portal-compat');
+ await page.getByRole('region',{name:'Knox Desktop 메일',exact:true}).waitFor();assert.equal(await page.locator('option[value="portal"]').count(),0,'no portal option while the portal is off');
+ checks.push({method:'portal',scope:'a saved portal choice opens as Knox Desktop while the portal is off'});await page.close();
+ for(const method of ['pop3']){
   page=await browser.newPage({viewport:{width:1280,height:1000},reducedMotion:'reduce'});page.on('pageerror',error=>errors.push(error.message));await page.goto('http://127.0.0.1:'+server.address().port+'/?desktop='+method+'-compat');
   const dialog=page.getByRole('dialog',{name:'메일 설정',exact:true}),collection=dialog.getByRole('region',{name:'수집 범위',exact:true});await collection.waitFor();assert.equal(await page.getByRole('region',{name:'Knox Desktop 메일',exact:true}).count(),0);
   await collection.getByText('본문과 첨부 내용',{exact:true}).waitFor();assert(await collection.getByRole('switch',{name:'첨부 원본도 보관',exact:true}).isVisible());

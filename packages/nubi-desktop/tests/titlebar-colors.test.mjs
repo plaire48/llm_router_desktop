@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {captionColors,applyCaptionColors,DEFAULT_TITLEBAR} from '../electron-app/titlebar-colors.cjs';
+import {captionColors,applyCaptionColors,surfaceColor,DEFAULT_TITLEBAR} from '../electron-app/titlebar-colors.cjs';
 
 test('native caption follows the same scrim and restores after the last dialog closes',()=>{
  const base=captionColors('rgb(241, 247, 254)','#4E5968');
@@ -29,4 +29,12 @@ test('native updates preserve caption height and reject non-color payloads',()=>
  applyCaptionColors(window,DEFAULT_TITLEBAR,'darwin');
  applyCaptionColors({...window,isDestroyed:()=>true},DEFAULT_TITLEBAR,'win32');
  assert.equal(calls.length,1);
+});
+
+// A glass toolbar paints with a gradient over a transparent background colour (2026-10-23): the native caption takes the
+// nearest opaque surface under it with the gradient's right end on top, never black.
+test('a transparent toolbar takes the opaque surface below it and the right end of its gradient',()=>{
+ assert.equal(surfaceColor(['rgb(250, 252, 255)','rgba(0, 0, 0, 0)']),'#fafcff');
+ assert.equal(surfaceColor(['rgb(250, 252, 255)','rgba(0, 0, 0, 0)'],'linear-gradient(145deg, color(srgb 1 1 1 / 0.78), color(srgb 0 0 1 / 0.5))'),'#7d7eff');
+ assert.equal(surfaceColor(['rgba(0, 0, 0, 0)']),'#fafcff','no opaque surface falls back to the default caption');
 });
