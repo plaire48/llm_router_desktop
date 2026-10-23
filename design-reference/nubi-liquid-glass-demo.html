@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nubi Workspace — Liquid Glass Prototype</title>
+<style>
+  :root { color-scheme: light; --ink:#24314d; --muted:#65738c; --accent:#7768db; }
+  *, *::before, *::after { box-sizing: border-box; }
+  html,body { margin:0; min-height:100%; }
+  body { background:#e9eef7; color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; -webkit-font-smoothing:antialiased; }
+  .page { max-width:1190px; margin:0 auto; padding:22px 16px 18px; }
+  .stage { height:706px; position:relative; isolation:isolate; overflow:hidden; border-radius:32px; background:#e7edf8; border:1px solid rgba(255,255,255,.9); box-shadow:0 24px 80px #43588229, 0 1px 3px #6e8bb326; }
+  .bg-canvas, .glass-canvas { position:absolute; inset:0; display:block; width:100%; height:100%; }
+  .bg-canvas { z-index:0; }
+  .glass-canvas { z-index:2; pointer-events:none; }
+  .chrome { position:absolute; z-index:3; top:0; left:0; width:100%; height:64px; display:flex; align-items:center; justify-content:space-between; padding:0 31px; border-bottom:1px solid #ffffff5e; background:linear-gradient(180deg,#ffffff4b,transparent); }
+  .chrome-left,.chrome-right { display:flex; align-items:center; gap:18px; }
+  .traffic { display:flex; align-items:center; gap:7px; }
+  .traffic i { width:11px; height:11px; border-radius:50%; background:#ee9d9f; border:1px solid #ffffff60; }
+  .traffic i:nth-child(2){ background:#edca85; }.traffic i:nth-child(3){background:#a4d8b3;}
+  .chrome-name { font-size:12px; font-weight:700; letter-spacing:.025em; color:#6e7c99; }
+  .chrome-right { gap:11px; color:#71809d; font-size:11px; font-weight:700; letter-spacing:.09em; }
+  .live-led { width:6px;height:6px;border-radius:50%;background:#56bd9b;box-shadow:0 0 0 4px #65c8a723; }
+  .avatar { display:grid; place-items:center; height:29px; width:29px; margin-left:10px; background:#8d93b1; color:white; border-radius:50%; font-size:12px; font-weight:800; box-shadow:inset 0 1px 1px #ffffff6b,0 2px 6px #65739138; }
+  .brand { position:absolute; z-index:3; left:60px; top:100px; display:flex;align-items:center;gap:10px; color:#2d3854; font-weight:800;font-size:17px;letter-spacing:-.06em; }
+  .brand-icon { width:29px; height:29px; position:relative; display:block; filter:drop-shadow(0 2px 3px #5e76ae38); }
+  .brand-icon::before { content:"";position:absolute;width:22px;height:23px;top:2px;left:2px;background:linear-gradient(135deg,#64c5e0,#8a77e0 76%);border-radius:65% 40% 62% 38%;transform:rotate(-27deg); }
+  .brand-icon::after { content:"";position:absolute;width:11px;height:11px;top:2px;right:0;background:linear-gradient(140deg,#e5b9f3,#9acdf5);border-radius:50%;box-shadow:inset 0 2px 3px #ffffff77; }
+  .hero { position:absolute;z-index:3;left:60px;top:140px;width:min(600px,65%);pointer-events:none; }
+  .eyebrow { display:flex;align-items:center;gap:9px;font-size:10px;letter-spacing:.19em;font-weight:800;color:#7985a0;margin-bottom:17px; }
+  .eyebrow i {display:block;width:16px;height:1px;background:#7587c7;}
+  h1 { white-space:pre-line; font-weight:710; font-size:clamp(38px,5.4vw,65px); line-height:1.045; letter-spacing:-.061em; color:#202d49; margin:0; min-height:140px; transition: opacity .22s ease,transform .28s ease; }
+  .hero p {font-size:14px;line-height:1.75;color:#66768e;letter-spacing:-.015em;margin:16px 0 0;transition:opacity .22s ease;}
+  .orb { position:absolute; z-index:3; width:179px;height:179px;top:144px;right:120px; cursor:grab;touch-action:none;user-select:none; border:0; background:transparent; border-radius:50%; transition:transform .2s ease; }
+  .orb:active {cursor:grabbing;transform:scale(.985);} .orb:focus-visible{outline:2px solid #8876d8;outline-offset:3px;}
+  .orb-center {pointer-events:none;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:7px;color:#526078;text-align:center;}
+  .orb-center svg { width:29px;height:29px;stroke:#6179a6;filter:drop-shadow(0 1px 0 #fff8); }
+  .orb-center span {font-size:9px;font-weight:800;letter-spacing:.18em;color:#66728a;}
+  .orb-hint {z-index:3;position:absolute;right:138px;top:341px;font-size:10px;letter-spacing:.015em;color:#7986a2;font-weight:600;user-select:none;}
+  .segment {position:absolute;left:59px;top:399px;z-index:3;width:324px;height:51px;display:flex;align-items:stretch;padding:5px;border-radius:30px;}
+  .segment-pill {position:absolute;z-index:0;top:5px;height:41px;width:104px;left:5px;pointer-events:none;border-radius:999px; }
+  .segment button {position:relative;z-index:1;flex:1;min-width:0;background:none;border:none;color:#7c89a1;font:700 12px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;border-radius:23px;cursor:pointer;transition:color .18s;}
+  .segment button[aria-selected="true"] {color:#283b60;}
+  .segment button:focus-visible{outline:2px solid #9988e6;outline-offset:4px;}
+  .summary-grid { position:absolute;z-index:3;top:464px;left:59px;right:59px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;}
+  .summary-card {height:129px;border:0;text-align:left;color:var(--ink);padding:21px 20px;background:transparent;border-radius:27px;cursor:pointer;position:relative;overflow:hidden;transition:transform .22s ease; }
+  .summary-card:hover {transform:translateY(-4px);}.summary-card:active{transform:translateY(-1px) scale(.985)}
+  .summary-card:focus-visible{outline:2px solid #9783e1;outline-offset:3px;}
+  .card-head {display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+  .mini-icon {display:grid;place-items:center;width:29px;height:29px;border-radius:11px;background:#a5a0e32c; color:#7a6dc9;}
+  .mini-icon svg {width:17px;height:17px;stroke-width:1.9;}
+  .summary-card:nth-child(2) .mini-icon{background:#66bace28;color:#2798ad;} .summary-card:nth-child(3) .mini-icon{background:#db9fc033;color:#c077a4;}
+  .card-arrow {width:16px;height:16px;stroke:#8896ac;stroke-width:1.8;}
+  .card-title {font-size:13px;font-weight:730;letter-spacing:-.02em;margin-bottom:5px;color:#33415d;}
+  .card-desc {font-size:11px;color:#75839e;font-weight:500;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .card-val {position:absolute;right:18px;bottom:18px;color:#425173;font-size:21px;font-weight:690;letter-spacing:-.035em;}
+  .dock {position:absolute;z-index:4;left:50%;transform:translateX(-50%);bottom:28px;width:560px;max-width:calc(100% - 52px);height:74px;display:flex;justify-content:space-between;padding:6px;border-radius:45px;}
+  .dock-pill {position:absolute;z-index:0;left:6px;top:6px;width:109.6px;height:62px;pointer-events:none;border-radius:999px;}
+  .dock button {flex:1;min-width:0;border:0;border-radius:36px;position:relative;z-index:1;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#74829d;transition:color .2s ease;}
+  .dock button svg {width:21px;height:21px;stroke-width:1.85;transition:transform .35s cubic-bezier(.2,1.4,.2,1);}
+  .dock button:hover svg {transform:translateY(-2px);}
+  .dock button span {font-size:10px;letter-spacing:-.025em;font-weight:680;}
+  .dock button[aria-current="page"] {color:#364969;}
+  .dock button[aria-current="page"] svg {transform:translateY(-1px) scale(1.07);}
+  .dock button:focus-visible{outline:2px solid #9585dd;outline-offset:0;}
+  .footer-note {position:absolute;left:60px;bottom:51px;z-index:3;color:#8d98ae;font-size:9px;letter-spacing:.13em;font-weight:750;}
+  .hint {display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin:15px 8px 0;color:#687891;font-size:12px;font-weight:600;}
+  .controls {display:flex;align-items:center;gap:17px;}
+  .strength {display:flex;align-items:center;gap:11px;}
+  .strength input {appearance:none;-webkit-appearance:none;width:122px;height:5px;border-radius:99px;background:linear-gradient(to right,#7978d7 0%,#81b1da 80%,#c7d2e5 80%);cursor:pointer;}
+  .strength input::-webkit-slider-thumb{appearance:none;width:15px;height:15px;border:3px solid white;background:#7b7bdb;box-shadow:0 1px 7px #4d68a342;border-radius:50%;}
+  .strength input::-moz-range-thumb{width:10px;height:10px;border:3px solid white;background:#7b7bdb;box-shadow:0 1px 7px #4d68a342;border-radius:50%;}
+  .switch {font:700 11px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#596f93;border:1px solid #cad6e9;background:#ffffff8c;border-radius:99px;cursor:pointer;padding:9px 12px;white-space:nowrap;}
+  .switch[aria-pressed="false"]{color:#909aad;background:#e5eaf3;}
+  .switch:focus-visible,.strength input:focus-visible{outline:2px solid #8f80da;outline-offset:3px;}
+  @media(max-width:900px){ .hero{width:70%;}.orb{right:7%;width:146px;height:146px;top:174px}.orb-hint{right:8%;top:330px}.footer-note{display:none;} .summary-card{padding:17px 16px}.card-val{font-size:18px;} }
+  @media(max-width:620px){
+    .page{padding:10px 8px 18px;}
+    .stage{height:837px;border-radius:25px;}
+    .chrome{height:56px;padding:0 18px;}.chrome-right{font-size:9px;gap:7px}.chrome-name{display:none}.avatar{margin-left:2px}
+    .brand{top:82px;left:25px;}
+    .hero{top:137px;left:25px;width:calc(100% - 40px);}
+    .eyebrow{margin-bottom:13px;font-size:9px;}
+    h1{font-size:clamp(39px,10.5vw,51px);min-height:105px;}
+    .hero p{font-size:12px;margin-top:10px;max-width:235px;line-height:1.6;}
+    .orb{width:111px;height:111px;right:23px;top:304px;}
+    .orb-center svg{width:22px;height:22px}.orb-center span{font-size:7px}
+    .orb-hint{right:22px;top:421px;font-size:9px;}
+    .segment{top:349px;left:23px;width:min(288px,calc(100% - 151px));min-width:225px;height:48px;padding:4px;}
+    .segment-pill{top:4px;left:4px;height:40px;}
+    .segment button{font-size:10px;}
+    .summary-grid{top:465px;left:22px;right:22px;grid-template-columns:1fr;gap:9px;}
+    .summary-card{height:84px;padding:11px 18px;border-radius:23px;}
+    .card-head{margin-bottom:2px;}.mini-icon{width:24px;height:24px;border-radius:9px;}.mini-icon svg{width:15px;height:15px;}
+    .card-title{font-size:12px;margin-bottom:3px}.card-desc{font-size:10px}.card-val{bottom:14px;right:19px;}
+    .dock{height:68px;bottom:17px;max-width:calc(100% - 28px);padding:5px;}
+    .dock-pill{height:58px;top:5px;left:5px;}
+    .dock button svg{width:19px;height:19px;}.dock button span{font-size:9px;}
+    .hint{font-size:11px;align-items:flex-start;}.controls{gap:10px;}.strength input{width:85px;}
+  }
+  @media(max-width:390px){.orb{right:20px;width:98px;height:98px;top:300px}.orb-hint{right:16px;top:404px}.segment{min-width:205px;}.segment button{font-size:9px;} }
+  @media(prefers-reduced-motion:reduce){.summary-card,.dock button svg,.orb{transition:none;}}
+</style>
+</head>
+<body>
+<div class="page">
+  <main class="stage" id="stage" aria-label="Liquid Glass 인터랙티브 데모">
+    <canvas class="bg-canvas" id="bgCanvas" aria-hidden="true"></canvas>
+    <canvas class="glass-canvas" id="glassCanvas" aria-hidden="true"></canvas>
+    <header class="chrome">
+      <div class="chrome-left"><div class="traffic" aria-hidden="true"><i></i><i></i><i></i></div><div class="chrome-name">NUBI WORKSPACE</div></div>
+      <div class="chrome-right"><span class="live-led"></span><span>LIVE PROTOTYPE</span><span class="avatar" aria-hidden="true">N</span></div>
+    </header>
+    <div class="brand"><span class="brand-icon" aria-hidden="true"></span>nubi<span style="font-size:11px;font-weight:650;letter-spacing:.01em;color:#798aa6;margin-left:3px">workspace</span></div>
+    <div class="hero" aria-live="polite">
+      <div class="eyebrow"><i></i><span id="eyebrow">YOUR CREATIVE SPACE</span></div>
+      <h1 id="heroTitle">Everything,
+in motion.</h1>
+      <p id="heroDescription">아이디어부터 자동화까지, 하나의 흐름으로 연결하세요.<br>당신의 작업이 자연스럽게 이어지는 공간.</p>
+    </div>
+    <button class="orb" id="orb" data-glass data-glass-type="orb" aria-label="굴절 유리 렌즈 — 드래그로 움직이기">
+      <span class="orb-center"><svg fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4"/></svg><span>DRAG ME</span></span>
+    </button>
+    <div class="orb-hint">렌즈를 드래그해 보세요 ↗</div>
+    <div class="segment" id="segment" data-glass data-glass-type="dock" role="tablist" aria-label="대시보드 보기">
+      <div class="segment-pill" id="segmentPill" data-glass data-glass-type="active"></div>
+      <button role="tab" aria-selected="true" data-seg="0">Overview</button>
+      <button role="tab" aria-selected="false" data-seg="1">Activity</button>
+      <button role="tab" aria-selected="false" data-seg="2">Insights</button>
+    </div>
+    <div class="summary-grid" aria-label="작업 모듈">
+      <button class="summary-card" data-glass data-glass-type="card" data-jump="1">
+        <div class="card-head"><span class="mini-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg></span><svg class="card-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18 18 6M8 6h10v10"/></svg></div>
+        <div class="card-title">Agent Factory</div><div class="card-desc" id="desc0">실행 중인 AI Agent</div><div class="card-val" id="value0">08</div>
+      </button>
+      <button class="summary-card" data-glass data-glass-type="card" data-jump="2">
+        <div class="card-head"><span class="mini-icon"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="2.5" y="4" width="7" height="7" rx="2"/><rect x="14.5" y="13" width="7" height="7" rx="2"/><path d="M9.5 7.5h5v9"/></svg></span><svg class="card-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18 18 6M8 6h10v10"/></svg></div>
+        <div class="card-title">Workflow Studio</div><div class="card-desc" id="desc1">편집 중인 워크플로우</div><div class="card-val" id="value1">12</div>
+      </button>
+      <button class="summary-card" data-glass data-glass-type="card" data-jump="3">
+        <div class="card-head"><span class="mini-icon"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="6" cy="7" r="2"/><circle cx="18" cy="7" r="2"/><circle cx="12" cy="18" r="2"/><path d="m7.8 8.2 3.1 7.8M16.2 8.2 13 16M8 7h8"/></svg></span><svg class="card-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18 18 6M8 6h10v10"/></svg></div>
+        <div class="card-title">Connected Tools</div><div class="card-desc" id="desc2">연결된 MCP 및 서비스</div><div class="card-val" id="value2">06</div>
+      </button>
+    </div>
+    <div class="footer-note">MADE TO FEEL ALIVE • LIQUID GLASS LAB</div>
+    <nav class="dock" id="dock" data-glass data-glass-type="dock" aria-label="메인 메뉴">
+      <div class="dock-pill" id="dockPill" data-glass data-glass-type="active" aria-hidden="true"></div>
+      <button data-tab="0" aria-current="page"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 21v-7h6v7"/></svg><span>Home</span></button>
+      <button data-tab="1"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="13" rx="4"/><path d="M12 3v4M9 3h6M8 13h.01M16 13h.01M9 17h6"/></svg><span>Agents</span></button>
+      <button data-tab="2"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="9" r="2"/><circle cx="11" cy="19" r="2"/><path d="M7 6h6a6 6 0 0 1 6 6v-1M5 8v5a6 6 0 0 0 6 6"/></svg><span>Studio</span></button>
+      <button data-tab="3"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><path d="M17.5 14v7M14 17.5h7"/></svg><span>Tools</span></button>
+      <button data-tab="4"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M10.3 3.6a2 2 0 0 1 3.4 0l.6 1a2 2 0 0 0 2.1 1l1.1-.3a2 2 0 0 1 2.4 2.5l-.3 1.1a2 2 0 0 0 1 2.1l1 .6a2 2 0 0 1 0 3.4l-1 .6a2 2 0 0 0-1 2.1l.3 1.1a2 2 0 0 1-2.4 2.5l-1.1-.3a2 2 0 0 0-2.1 1l-.6 1a2 2 0 0 1-3.4 0l-.6-1a2 2 0 0 0-2.1-1l-1.1.3a2 2 0 0 1-2.4-2.5l.3-1.1a2 2 0 0 0-1-2.1l-1-.6a2 2 0 0 1 0-3.4l1-.6a2 2 0 0 0 1-2.1l-.3-1.1a2 2 0 0 1 2.4-2.5l1.1.3a2 2 0 0 0 2.1-1z" transform="translate(0 -1) scale(.92) translate(1 1)"/><circle cx="12" cy="12" r="3"/></svg><span>Settings</span></button>
+    </nav>
+  </main>
+  <div class="hint"><div>탭을 눌러보거나, 원형 렌즈를 드래그해 보세요.</div><div class="controls"><label class="strength">굴절 강도 <input type="range" id="strength" min="0" max="100" value="78" aria-label="굴절 강도"></label><button class="switch" id="motionToggle" aria-pressed="true">● Elastic ON</button></div></div>
+</div>
+<script>
+(function(){
+  'use strict';
+  const stage=document.getElementById('stage');
+  const bgCanvas=document.getElementById('bgCanvas');
+  const glassCanvas=document.getElementById('glassCanvas');
+  const ctx=bgCanvas.getContext('2d',{alpha:false});
+  const gl=glassCanvas.getContext('webgl',{alpha:false,antialias:false,preserveDrawingBuffer:false,powerPreference:'low-power'});
+  const reduceMotion=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let w=1,h=1,dpr=1; let strength=.78,elastic=!reduceMotion,dragging=false;
+  let pointer=[-1000,-1000];
+  const dock=document.getElementById('dock');
+  const dPill=document.getElementById('dockPill');
+  const dockTabs=[...dock.querySelectorAll('button[data-tab]')];
+  const segmented=document.getElementById('segment');
+  const sPill=document.getElementById('segmentPill');
+  const segTabs=[...segmented.querySelectorAll('button[data-seg]')];
+  const orb=document.getElementById('orb');
+  const title=document.getElementById('heroTitle'),eyebrow=document.getElementById('eyebrow'),description=document.getElementById('heroDescription');
+  const contents=[
+    ['YOUR CREATIVE SPACE','Everything,\nin motion.','아이디어부터 자동화까지, 하나의 흐름으로 연결하세요.<br>당신의 작업이 자연스럽게 이어지는 공간.'],
+    ['INTELLIGENT TEAMMATES','Your agents,\nat work.','반복되는 업무는 Agent에게 맡기고,<br>중요한 판단과 창의적인 일에 집중하세요.'],
+    ['DESIGN THE FLOW','Shape your\nnext workflow.','작업 단계를 연결하고, 예외를 정리하고,<br>유연한 자동화 흐름을 설계하세요.'],
+    ['CONNECTED ECOSYSTEM','Tools that\nwork together.','필요한 도구를 하나로 연결하면,<br>일하는 방식이 훨씬 간결해집니다.'],
+    ['MAKE IT YOURS','A space that\nfeels like you.','빛, 움직임, 반응을 취향에 맞춰<br>나만의 작업 공간을 만들어보세요.']
+  ];
+  const metrics=[
+    [['08','실행 중인 AI Agent'],['12','편집 중인 워크플로우'],['06','연결된 MCP 및 서비스']],
+    [['24','오늘 완료한 실행'],['07','오늘 수정한 플로우'],['13','최근 도구 호출']],
+    [['98%','최근 실행 성공률'],['2.4×','워크플로우 처리 속도'],['16h','절감된 반복 작업 시간']]
+  ];
+  let currentTab=0, currentSeg=0;
+  const spring={dock:{x:0,v:0,target:0,w:0,initialized:false},seg:{x:0,v:0,target:0,w:0,initialized:false}};
+  function posFor(parent,buttons,index,pad){
+    const a=buttons[index].getBoundingClientRect(), p=parent.getBoundingClientRect();
+    return {x:a.left-p.left, w:a.width};
+  }
+  function selectTab(i){
+    currentTab=i; dockTabs.forEach((b,k)=>k===i?b.setAttribute('aria-current','page'):b.removeAttribute('aria-current'));
+    const [e,t,d]=contents[i];
+    title.style.opacity='0.2'; title.style.transform='translateY(6px)';description.style.opacity='0.2';
+    clearTimeout(selectTab.timer);
+    selectTab.timer=setTimeout(()=>{eyebrow.textContent=e;title.textContent=t;description.innerHTML=d;title.style.opacity='1'; title.style.transform='translateY(0)';description.style.opacity='1';},95);
+    const p=posFor(dock,dockTabs,i,6);spring.dock.target=p.x;spring.dock.w=p.w;
+  }
+  function selectSeg(i){
+    currentSeg=i;segTabs.forEach((b,k)=>b.setAttribute('aria-selected',String(k===i)));
+    const items=metrics[i];
+    for(let j=0;j<3;j++){document.getElementById('value'+j).textContent=items[j][0];document.getElementById('desc'+j).textContent=items[j][1]}
+    const p=posFor(segmented,segTabs,i,5);spring.seg.target=p.x;spring.seg.w=p.w;
+  }
+  dockTabs.forEach((b,i)=>b.addEventListener('click',()=>selectTab(i)));
+  segTabs.forEach((b,i)=>b.addEventListener('click',()=>selectSeg(i)));
+  document.querySelectorAll('[data-jump]').forEach(b=>b.addEventListener('click',()=>selectTab(+b.dataset.jump)));
+  document.getElementById('strength').addEventListener('input',e=>{strength=+e.target.value/100;e.target.style.background=`linear-gradient(to right,#7978d7 0%,#81b1da ${strength*100}%,#c7d2e5 ${strength*100}%)`});
+  document.getElementById('motionToggle').addEventListener('click',function(){elastic=!elastic;this.setAttribute('aria-pressed',String(elastic));this.textContent=elastic?'● Elastic ON':'○ Elastic OFF'});
+  let orbOffset=[0,0],dragStart=[0,0],orbStart=[0,0];
+  function boundOrb(x,y){return [Math.max(10,Math.min(stage.clientWidth-orb.offsetWidth-10,x)),Math.max(74,Math.min(stage.clientHeight-orb.offsetHeight-126,y))]}
+  orb.addEventListener('pointerdown',e=>{dragging=true;orb.setPointerCapture(e.pointerId);const br=orb.getBoundingClientRect(),sr=stage.getBoundingClientRect();dragStart=[e.clientX,e.clientY];orbStart=[br.left-sr.left,br.top-sr.top];e.preventDefault()});
+  orb.addEventListener('pointermove',e=>{if(!dragging)return;const [x,y]=boundOrb(orbStart[0]+e.clientX-dragStart[0],orbStart[1]+e.clientY-dragStart[1]);orb.style.left=x+'px';orb.style.top=y+'px';orb.style.right='auto'});
+  function stopDrag(){dragging=false}
+  orb.addEventListener('pointerup',stopDrag);orb.addEventListener('pointercancel',stopDrag);
+  stage.addEventListener('pointermove',e=>{const r=stage.getBoundingClientRect();pointer=[e.clientX-r.left,e.clientY-r.top]});
+  stage.addEventListener('pointerleave',()=>{pointer=[-1000,-1000]});
+
+  let program=null, texture=null, attribute=null, uniforms={};
+  const vertex=`attribute vec2 a_position; void main(){gl_Position=vec4(a_position,0.0,1.0);}`;
+  const fragment=`precision highp float;
+  uniform sampler2D u_bg;
+  uniform vec2 u_size;
+  uniform float u_dpr;
+  uniform float u_strength;
+  uniform float u_time;
+  uniform vec2 u_pointer;
+  uniform int u_count;
+  uniform vec4 u_rects[12];
+  uniform float u_radii[12];
+  uniform float u_modes[12];
+  float sdfBox(vec2 p,vec2 halfSize,float radius){vec2 q=abs(p)-halfSize+radius;return length(max(q,0.0))+min(max(q.x,q.y),0.0)-radius;}
+  vec3 backdrop(vec2 p){vec2 uv=vec2(p.x/u_size.x,1.0-p.y/u_size.y);return texture2D(u_bg,clamp(uv,vec2(0.001),vec2(0.999))).rgb;}
+  void main(){
+    vec2 p=vec2(gl_FragCoord.x/u_dpr,u_size.y-gl_FragCoord.y/u_dpr);
+    vec3 color=backdrop(p);
+    for(int i=0;i<12;i++){
+      if(i>=u_count) break;
+      vec4 rc=u_rects[i];
+      vec2 center=rc.xy+.5*rc.zw;
+      vec2 local=p-center;
+      float r=min(u_radii[i],min(rc.z,rc.w)*.5);
+      float d=sdfBox(local,.5*rc.zw,r);
+      if(d>28.0)continue;
+      float mode=u_modes[i];
+      float shadow=(1.0-smoothstep(0.0,24.0,max(d,0.0)))*smoothstep(-1.0,3.0,d);
+      color *= (1.0-.082*shadow);
+      if(d>2.0)continue;
+      float dx=sdfBox(local+vec2(1.0,0.0),.5*rc.zw,r)-sdfBox(local-vec2(1.0,0.0),.5*rc.zw,r);
+      float dy=sdfBox(local+vec2(0.0,1.0),.5*rc.zw,r)-sdfBox(local-vec2(0.0,1.0),.5*rc.zw,r);
+      vec2 n=normalize(vec2(dx,dy)+vec2(.00001));
+      float rimProximity=exp(-pow((d+9.0)/16.0,2.0));
+      float power=mode>2.5?22.0:mode>1.5?14.0:mode>0.5?12.0:9.0;
+      vec2 shift=n*power*u_strength*rimProximity;
+      vec3 refracted=vec3(backdrop(p-shift*1.17).r,backdrop(p-shift).g,backdrop(p-shift*.82).b);
+      float whiten=mode>2.5?.145:mode>1.5?.24:mode>.5?.12:.17;
+      vec3 glass=mix(refracted,vec3(.99,.995,1.0),whiten);
+      float rim=exp(-pow((d+1.0)/1.75,2.0));
+      float inner=exp(-pow((d+7.0)/5.5,2.0));
+      float light=pow(max(dot(n,normalize(vec2(-.73,-.68))),0.0),1.6);
+      float dark=pow(max(dot(n,normalize(vec2(.75,.7))),0.0),1.8);
+      float pointerSpec=exp(-length(p-u_pointer)/170.0)*.08;
+      glass+=vec3(1.0,.99,.995)*rim*(.16+.50*light+.10*sin(u_time*.5)+pointerSpec);
+      glass+=vec3(.97,.98,1.0)*inner*(.034+.13*light);
+      glass-=vec3(.07,.09,.1)*rim*dark*.6;
+      if(mode>1.5&&mode<2.5){glass=mix(glass,vec3(.83,.88,1.0),.08);glass+=vec3(.015,.012,.045);}
+      if(mode>2.5){glass+=rim*vec3(.05,.08,.12)*.26;}
+      glass=clamp(glass,0.0,1.0);
+      float coverage=1.0-smoothstep(-1.25,1.6,d);
+      color=mix(color,glass,coverage);
+    }
+    gl_FragColor=vec4(color,1.0);
+  }`;
+  function initGL(){
+    if(!gl)return false;
+    const createShader=(type,source)=>{const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){console.warn('Liquid glass shader',gl.getShaderInfoLog(s));return null}return s};
+    const vs=createShader(gl.VERTEX_SHADER,vertex),fs=createShader(gl.FRAGMENT_SHADER,fragment);if(!vs||!fs)return false;
+    program=gl.createProgram();gl.attachShader(program,vs);gl.attachShader(program,fs);gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS)){console.warn(gl.getProgramInfoLog(program));return false;}
+    gl.useProgram(program);const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+    attribute=gl.getAttribLocation(program,'a_position');gl.enableVertexAttribArray(attribute);gl.vertexAttribPointer(attribute,2,gl.FLOAT,false,0,0);
+    texture=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,texture);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
+    for(const n of ['bg','size','dpr','strength','time','pointer','count','rects','radii','modes']) uniforms[n]=gl.getUniformLocation(program,'u_'+n+(['rects','radii','modes'].includes(n)?'[0]':''));
+    gl.uniform1i(uniforms.bg,0);
+    return true;
+  }
+  const supportsGL=initGL();
+  const fallback2d=(!gl || !supportsGL) ? glassCanvas.getContext('2d',{alpha:false}) : null;
+  function resize(){
+    w=stage.clientWidth; h=stage.clientHeight;dpr=Math.min(window.devicePixelRatio||1,1.5);
+    bgCanvas.width=Math.round(w*dpr); bgCanvas.height=Math.round(h*dpr);
+    glassCanvas.width=Math.round(w*dpr);glassCanvas.height=Math.round(h*dpr);
+    if(gl)gl.viewport(0,0,glassCanvas.width,glassCanvas.height);
+    for(const [k,parent,buttons,pill] of [['dock',dock,dockTabs,dPill],['seg',segmented,segTabs,sPill]]){
+      const p=posFor(parent,buttons,k==='dock'?currentTab:currentSeg,0);
+      const s=spring[k];s.target=p.x;s.w=p.w;if(!s.initialized){s.x=p.x;s.initialized=true;}
+      pill.style.width=s.w+'px';pill.style.left=s.x+'px';
+    }
+    paintBackground(performance.now()/1000);
+  }
+  function glow(cx,cy,rx,ry,color,opacity){
+    ctx.save();ctx.translate(cx,cy);ctx.scale(rx,ry);
+    const grad=ctx.createRadialGradient(0,0,0,0,0,1);grad.addColorStop(0,`rgba(${color},${opacity})`);grad.addColorStop(.4,`rgba(${color},${opacity*.55})`);grad.addColorStop(1,`rgba(${color},0)`);
+    ctx.fillStyle=grad;ctx.fillRect(-1,-1,2,2);ctx.restore();
+  }
+  function paintBackground(t){
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    const base=ctx.createLinearGradient(0,0,w,h);base.addColorStop(0,'#eef2fa');base.addColorStop(.52,'#e1ebf7');base.addColorStop(1,'#f1eaf8');ctx.fillStyle=base;ctx.fillRect(0,0,w,h);
+    const bob=Math.sin(t*.29),bob2=Math.cos(t*.35);
+    glow(w*.22+35*bob,h*.95,w*.54,h*.49,'167,207,255',.68);
+    glow(w*.74+25*bob2,h*.24,w*.43,h*.51,'193,178,255',.75);
+    glow(w*.91,h*.79-24*bob,w*.33,h*.4,'248,176,205',.47);
+    glow(w*.49,h*.50,w*.46,h*.29,'163,242,227',.4);
+    glow(w*.68,h*.94,w*.39,h*.32,'181,203,255',.35);
+    glow(w*.08,h*.14,w*.36,h*.40,'254,255,255',.75);
+    // Graphic ribbons provide detail that refracts visibly through the glass.
+    ctx.save();ctx.globalAlpha=.35;
+    let grad=ctx.createLinearGradient(w*.6,h*.16,w*1.05,h*.82);grad.addColorStop(0,'#96bef4');grad.addColorStop(.52,'#b9a8f0');grad.addColorStop(1,'#eebccf');
+    ctx.lineWidth=Math.max(30,w*.045);ctx.lineCap='round';ctx.strokeStyle=grad;ctx.beginPath();ctx.moveTo(w*.79,-h*.15);ctx.bezierCurveTo(w*.66,h*.22,w*.99,h*.31,w*.8,h*.55);ctx.bezierCurveTo(w*.63,h*.77,w*.98,h*.87,w*1.10,h*1.03);ctx.stroke();
+    ctx.lineWidth=Math.max(6,w*.012);ctx.strokeStyle='#f7feff';ctx.globalAlpha=.55;ctx.beginPath();ctx.moveTo(w*.70,-h*.07);ctx.bezierCurveTo(w*.56,h*.27,w*.91,h*.37,w*.71,h*.60);ctx.bezierCurveTo(w*.55,h*.80,w*.93,h*.98,w*1.09,h*1.14);ctx.stroke();
+    ctx.lineWidth=Math.max(2,w*.004);ctx.strokeStyle='#8d94d8';ctx.globalAlpha=.10;ctx.beginPath();ctx.moveTo(w*.83,-h*.13);ctx.bezierCurveTo(w*.64,h*.22,w*.96,h*.32,w*.80,h*.54);ctx.bezierCurveTo(w*.65,h*.78,w*.98,h*.85,w*1.11,h*1.01);ctx.stroke();ctx.restore();
+    glow(w*.82,h*.47,150,150,'255,255,255',.29);
+    // Dots and short strokes give recognizable optical distortion references.
+    ctx.save();ctx.fillStyle='#8398be';ctx.globalAlpha=.12;
+    for(let y=88;y<h-90;y+=28){for(let x=Math.floor(w*.65);x<w-12;x+=28){ctx.beginPath();ctx.arc(x,y,1.05,0,Math.PI*2);ctx.fill();}}
+    ctx.restore();
+    const shine=ctx.createLinearGradient(0,0,0,h);shine.addColorStop(0,'rgba(255,255,255,.4)');shine.addColorStop(.47,'rgba(255,255,255,0)');shine.addColorStop(1,'rgba(250,255,255,.16)');ctx.fillStyle=shine;ctx.fillRect(0,0,w,h);
+  }
+  function updateSpring(s,pill,dt){
+    const delta=s.target-s.x;
+    if(elastic){
+      // Semi-implicit damped spring: moves, stretches in travel direction, then settles.
+      const a=220*delta-25*s.v;
+      s.v+=a*dt;s.x+=s.v*dt;
+    }else{s.x+=(s.target-s.x)*Math.min(1,dt*13);s.v=0;}
+    if(Math.abs(s.x-s.target)<.02&&Math.abs(s.v)<.04){s.x=s.target;s.v=0;}
+    const stretch=elastic?Math.min(55,Math.abs(s.v)*.061):0;
+    const lead=s.v>=0?0:-stretch;
+    pill.style.left=(s.x+lead)+'px';pill.style.width=(s.w+stretch)+'px';
+  }
+  function shapes(){
+    const bounds=stage.getBoundingClientRect();
+    const elems=[...stage.querySelectorAll('[data-glass]')];
+    // Nested elements must paint last. Segmented and dock highlights are after their parents.
+    elems.sort((a,b)=>{
+      const depth=(el)=>{let n=0;while(el!==stage&&el){el=el.parentNode;n++}return n};
+      const da=depth(a),db=depth(b);return da===db?0:da-db;
+    });
+    const rects=[],radii=[],modes=[];
+    for(const el of elems.slice(0,12)){
+      const r=el.getBoundingClientRect();if(r.width<=0||r.height<=0)continue;
+      rects.push(r.left-bounds.left,r.top-bounds.top,r.width,r.height);
+      const type=el.dataset.glassType;
+      radii.push(type==='orb'?r.width/2:type==='card'?27:r.height/2);
+      modes.push(type==='orb'?3:type==='active'?2:type==='dock'?1:0);
+    }
+    while(rects.length<48)rects.push(0);while(radii.length<12)radii.push(0);while(modes.length<12)modes.push(0);
+    return {rects,radii,modes,count:Math.min(elems.length,12)};
+  }
+  function sdfAt(px,py,halfw,halfh,r){
+    const ax=Math.abs(px)-halfw+r,ay=Math.abs(py)-halfh+r;
+    return Math.hypot(Math.max(ax,0),Math.max(ay,0))+Math.min(Math.max(ax,ay),0)-r;
+  }
+  function drawFallback(){
+    const g=fallback2d;if(!g)return;
+    g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+    g.drawImage(bgCanvas,0,0,bgCanvas.width,bgCanvas.height,0,0,w,h);
+    const {rects,radii,modes,count}=shapes();
+    for(let i=0;i<count;i++){
+      const k=i*4,x=rects[k],y=rects[k+1],sw=rects[k+2],sh=rects[k+3],r=radii[i],mode=modes[i];
+      if(sw<=0||sh<=0)continue;
+      const path=new Path2D();path.roundRect(x,y,sw,sh,r);
+      g.save();g.shadowColor='rgba(55,76,112,.14)';g.shadowBlur=20;g.shadowOffsetY=9;g.fillStyle='rgba(255,255,255,.13)';g.fill(path);g.restore();
+      g.save();g.clip(path);
+      const tile=mode===3?5:mode===2?6:mode===1?12:13;
+      const lensStrength=mode===3?20:mode===2?14:mode===1?10:7;
+      for(let yy=0;yy<sh;yy+=tile){
+        const rh=Math.min(tile,sh-yy);
+        for(let xx=0;xx<sw;xx+=tile){
+          const rw=Math.min(tile,sw-xx);
+          const localX=xx+rw/2-sw/2,localY=yy+rh/2-sh/2;
+          const dd=sdfAt(localX,localY,sw/2,sh/2,r);
+          const nx=sdfAt(localX+1,localY,sw/2,sh/2,r)-sdfAt(localX-1,localY,sw/2,sh/2,r);
+          const ny=sdfAt(localX,localY+1,sw/2,sh/2,r)-sdfAt(localX,localY-1,sw/2,sh/2,r);
+          const norm=Math.hypot(nx,ny)||1;
+          const falloff=Math.exp(-Math.pow((dd+9)/16,2));
+          const power=lensStrength*strength*falloff;
+          const dx=nx/norm*power,dy=ny/norm*power;
+          const srcX=Math.max(0,Math.min(w-rw,x+xx-dx));
+          const srcY=Math.max(0,Math.min(h-rh,y+yy-dy));
+          g.drawImage(bgCanvas,srcX*dpr,srcY*dpr,rw*dpr,rh*dpr,x+xx,y+yy,rw+.35,rh+.35);
+        }
+      }
+      const wash=g.createLinearGradient(x,y,x+sw,y+sh);
+      const amt=mode===2?.27:mode===3?.13:mode===1?.12:.20;
+      wash.addColorStop(0,'rgba(255,255,255,'+(amt+.16)+')');
+      wash.addColorStop(.48,'rgba(255,255,255,'+amt*.55+')');
+      wash.addColorStop(1,'rgba(224,235,255,'+amt*.68+')');
+      g.fillStyle=wash;g.fill(path);
+      const inner=g.createLinearGradient(x,y,x+sw*.28,y+sh*.7);
+      inner.addColorStop(0,'rgba(255,255,255,.34)');inner.addColorStop(.6,'rgba(255,255,255,0)');inner.addColorStop(1,'rgba(71,99,150,.07)');
+      g.fillStyle=inner;g.fill(path);
+      g.restore();
+      const rim=g.createLinearGradient(x,y,x+sw*.72,y+sh);
+      rim.addColorStop(0,'rgba(255,255,255,.97)');rim.addColorStop(.48,'rgba(255,255,255,.48)');rim.addColorStop(1,'rgba(137,154,193,.26)');
+      g.save();g.lineWidth=1.35;g.strokeStyle=rim;g.stroke(path);
+      g.translate(0,.9);g.lineWidth=.6;g.strokeStyle='rgba(255,255,255,.55)';g.stroke(path);g.restore();
+    }
+  }
+  let previous=0,lastFrame=-1000;
+  function tick(now){
+    requestAnimationFrame(tick);
+    const dt=Math.min(.04,(now-(previous||now))/1000);previous=now;
+    updateSpring(spring.dock,dPill,dt);updateSpring(spring.seg,sPill,dt);
+    // Cap shader work while keeping spring updates at display refresh rate.
+    if(now-lastFrame<25)return;lastFrame=now;
+    paintBackground(now/1000);
+    if(!supportsGL){drawFallback();return;}
+    gl.useProgram(program);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D,texture);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,bgCanvas);
+    const s=shapes();
+    gl.uniform2f(uniforms.size,w,h);gl.uniform1f(uniforms.dpr,dpr);
+    gl.uniform1f(uniforms.strength,strength);gl.uniform1f(uniforms.time,now/1000);
+    gl.uniform2f(uniforms.pointer,pointer[0],pointer[1]);gl.uniform1i(uniforms.count,s.count);
+    gl.uniform4fv(uniforms.rects,new Float32Array(s.rects));gl.uniform1fv(uniforms.radii,new Float32Array(s.radii));gl.uniform1fv(uniforms.modes,new Float32Array(s.modes));
+    gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+  }
+  window.addEventListener('resize',resize,{passive:true});
+  resize(); selectSeg(0);
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
