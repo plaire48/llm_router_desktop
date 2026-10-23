@@ -36,7 +36,8 @@ class BrowserWindowDock {
     check();for(const nonce of nonces){try{const result=await this.native.request('resolveProof',{candidateId:selected.candidateId,nonce});check();if(result.candidateId===selected.candidateId)return nonce;}catch(error){check();if(!['dock_proof_pending','dock_window_mismatch'].includes(error.message))throw error;}}
     throw Error('dock_window_mismatch');
    };
-   await this.external.quickConnect({resolveProof,signal:controller.signal,replace:true,...(selected.executable?{open:url=>this.launch.open(url,{executable:selected.executable})}: {})});check();
+   const connection=await this.external.quickConnect({resolveProof,signal:controller.signal,replace:true,...(selected.executable?{open:url=>this.launch.open(url,{executable:selected.executable})}: {})});check();
+   if(connection?.choosing){this.phase='idle';this.automationReady=false;this.publish();return {choosing:true,displayMode:'tab-content'};}
    this.phase='idle';this.automationReady=true;this.publish();return {connected:true,displayMode:'tab-content',browserPreserved:true};
   }catch(error){if(epoch===this.epoch){this.phase=error.message==='dock_cancelled'?'idle':'error';this.error=error.message;this.publish();}throw error;}
   finally{signal?.removeEventListener('abort',abort);if(this.contentAbort===controller)this.contentAbort=null;}

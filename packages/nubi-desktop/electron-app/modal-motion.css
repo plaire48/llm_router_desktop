@@ -13,7 +13,7 @@
 @layer nubi-modal-motion {
  :root[data-modal-motion] .cx-panel-backdrop {backdrop-filter:none!important;animation:nubi-modal-scrim-in var(--nubi-modal-open) var(--nubi-ease-out) backwards!important}
  :root[data-modal-motion] .cx-panel-backdrop>.cx-detail-panel {animation:nubi-modal-sheet-in var(--nubi-modal-open) var(--nubi-modal-spring) backwards!important}
- :root[data-modal-motion] .cx-detail-panel.nubi-modal-morphing {background:transparent!important;box-shadow:none!important;animation:none!important;position:relative;z-index:1}
+ :root[data-modal-motion] .cx-detail-panel.nubi-modal-morphing {background:transparent!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;animation:none!important;position:relative;z-index:1}
  :root[data-modal-motion] .cx-panel-backdrop[data-modal-motion=swap] {animation:none!important}
  :root[data-modal-motion] .cx-panel-backdrop[data-modal-motion=swap]>.cx-detail-panel {animation:nubi-modal-sheet-in var(--nubi-modal-open) var(--nubi-modal-spring) backwards!important}
  :root[data-modal-motion] .cx-panel-backdrop[data-modal-motion=leaving] {animation:nubi-modal-scrim-out var(--nubi-modal-close) var(--nubi-modal-drop) forwards!important}

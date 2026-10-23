@@ -1,10 +1,8 @@
 // Connection method is explicit. A status read never switches collection
 // methods or restores an unrelated portal session.
-// portalEnabled false: the portal is off in the product (user decision 2026-10-23), so a portal choice reads as Knox Desktop.
-async function mailSourceStatus({snapshot,invoke,portal,includeMessages=true,portalEnabled=true}){
+async function mailSourceStatus({snapshot,invoke,portal,includeMessages=true}){
  const status=snapshot||await invoke('mail',{action:'status',includeMessages});
- const chosen=status.connectionMethod||(status.desktop?.mode==='desktop'?'desktop':status.serverProfile==='company'&&status.connected?'pop3':'portal');
- const method=chosen==='portal'&&portalEnabled===false?'desktop':chosen;
+ const method=status.connectionMethod||(status.desktop?.mode==='desktop'?'desktop':status.serverProfile==='company'&&status.connected?'pop3':'portal');
  if(method==='desktop'){
   const source=status.desktop;
   const localError=/^mail_(?:portal|auth|gmail|tls|dns|connection|uidl)/.test(status.error||'')?null:status.error;

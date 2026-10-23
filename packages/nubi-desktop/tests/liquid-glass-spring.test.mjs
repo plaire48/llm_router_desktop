@@ -2,6 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createGlassSpring,targetGlassSpring,stepGlassSpring} from '../ui/liquid-glass/spring.mjs';
 const rect=(x=0,y=0,width=104,height=40)=>({x,y,width,height});
+test('the same elapsed movement stays consistent across 30Hz, 60Hz and 120Hz',()=>{
+ const positions=[30,60,120].map(hz=>{const state=createGlassSpring(rect());targetGlassSpring(state,rect(600));for(let frame=0;frame<hz/5;frame++)stepGlassSpring(state,1/hz);return state.values.x;});
+ assert(Math.max(...positions)-Math.min(...positions)<1,JSON.stringify(positions));
+});
 test('selection travels, stretches in its travel direction and settles on the real target',()=>{
  const state=createGlassSpring(rect());targetGlassSpring(state,rect(210,0,140));
  const first=stepGlassSpring(state,1/60);

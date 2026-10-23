@@ -10,6 +10,12 @@ function animation(name,{repeat=false,target={},duration=280,properties=['opacit
  return value;
 }
 const registry=parseAmbientRegistry('bird:8000:transform,opacity;progress:1800:transform');
+test('modal surface and live text remain synchronized when a hovered button consumes motion budget',()=>{
+ const surface=animation('',{properties:['transform']}),content=animation('',{properties:['transform']});surface.id='nubi-modal-surface';content.id='nubi-modal-content';
+ const scrim=animation('nubi-modal-scrim-in'),hover=animation('color');hover.transitionProperty='background-color';
+ const stats=reconcileMotion([hover,surface,content,scrim],{registry,paused:true,owned:new Set()});
+ assert.equal(stats.interactionTargets,3);assert.equal(surface.cancelled,false);assert.equal(content.cancelled,false);assert.equal(scrim.cancelled,false);assert.equal(hover.cancelled,true);
+});
 test('ambient registry requires named durations and compositor properties',()=>{
  assert.equal(registry.get('bird').duration,8000);assert.deepEqual(registry.get('bird').properties,['transform','opacity']);
  assert.throws(()=>parseAmbientRegistry('bird:8000:width'),/property/);

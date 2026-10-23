@@ -19,7 +19,7 @@ const properties=(animation,cache)=>{
  const props=[...new Set(animation.effect.getKeyframes().flatMap(frame=>Object.keys(frame).filter(key=>!metadata.has(key))))];
  cache?.set(animation,{effect:animation.effect,name:animation.animationName,props});return props;
 };
-const priority=animation=>/nubi-modal-|nubi-view-/.test(animation.animationName||'')?0:/press/.test(animation.id||animation.animationName||'')||animation.transitionProperty?1:/nubi-list-/.test(animation.id||animation.animationName||'')?2:3;
+const priority=animation=>/nubi-modal-|nubi-view-/.test(animation.animationName||animation.id||'')?0:/press/.test(animation.id||animation.animationName||'')||animation.transitionProperty?1:/nubi-list-/.test(animation.id||animation.animationName||'')?2:3;
 // Decorative ambient loops held at their phase (design light-flow §6: 22 idle loops → at most 3). Status loops
 // (spinners, live progress, wiki scan, working-bird moods) still run, because they say work is happening; the brand
 // bird's float is the one decoration kept.

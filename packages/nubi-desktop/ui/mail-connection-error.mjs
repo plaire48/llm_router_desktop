@@ -22,7 +22,6 @@ export const mailConnectionErrors={
   mail_portal_identity:{title:'포털 사용자 정보를 확인해 주세요',detail:'로그인은 열렸지만 메일과 결재를 조회할 사용자 정보를 확인하지 못했어요. 다시 로그인해 주세요.'},
   mail_portal_format:{title:'포털 응답을 확인하지 못했어요',detail:'목록이나 원문 형식이 예상과 달라요. 다시 불러와 주세요.'},
   mail_portal_request:{title:'사내 포털에 연결하지 못했어요',detail:'사내망이나 VPN을 확인해 주세요. 메일 연결을 해제했어요. 확인한 뒤 다시 로그인해 주세요.'},
-  mail_portal_off:{title:'포털 연결은 지금 쓰지 않아요',detail:'Knox Desktop Message나 POP3로 연결해 주세요.'},
   mail_portal_login_timeout:{title:'연결이 안 됐습니다',detail:'5분 동안 포털 로그인이 끝나지 않아 연결을 멈췄어요. 다시 하려면 포털 로그인을 눌러 주세요.'},
   mail_portal_endpoint_unavailable:{title:'포털의 메일 읽기 주소를 확인하지 못했어요',detail:'이 포털에서 메일 조회 기능을 사용할 수 있는지 확인한 뒤 다시 연결해 주세요.'},
   mail_portal_timeout:{title:'포털 응답이 늦어요',detail:'메일 연결을 해제했어요. 사내망이나 VPN을 확인한 뒤 다시 로그인해 주세요.'},

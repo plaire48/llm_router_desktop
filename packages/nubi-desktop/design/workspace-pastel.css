@@ -153,6 +153,7 @@
 }
 /* Keep the text field milky and legible; its rim carries the glass depth. */
 :root:root .desktop-shell .nubi-workbench .nubi-compose-card {
+ border-radius:var(--nubi-composer-radius);
  background:var(--nubi-surface-milk);
  border-color:var(--nubi-glass-edge);
  box-shadow:var(--nubi-glass-shadow);

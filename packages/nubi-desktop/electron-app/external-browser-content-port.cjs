@@ -2,7 +2,7 @@ const {mirrorMenu}=require('./browser-mirror-menu.cjs');
 
 // Main owns this port. Call request only from its trusted Electron renderer
 // route. It is deliberately absent from worker/model/browser-page RPC.
-function createExternalBrowserContentPort({browser,router,window,Menu,clipboard}){
+function createExternalBrowserContentPort({browser,router,window,Menu,clipboard,directFactory}){
  const mirror=browser.mirror,sensitive=new Set();let protectedEpoch=0;
  const emit=value=>{if(!window.isDestroyed()&&!window.webContents.isDestroyed())window.webContents.send('nubi:browser-mirror',value);};
  const previous=mirror.onEvent;
@@ -13,8 +13,37 @@ function createExternalBrowserContentPort({browser,router,window,Menu,clipboard}
  mirror.onEvent=event;
  const pause=()=>void mirror.stop();for(const name of ['hide','minimize'])window.on(name,pause);
  const report=(args,error)=>emit({type:'error',streamId:args.streamId,error:/^[a-z_]+$/.test(error.message)?error.message:'browser_mirror_changed'});
- let connecting=false,connectionAbort=null;
+ let connecting=false,connectionAbort=null,pendingDirect=null,pendingUrl=null,selecting=false;
+ const directConnect=async({signal,replace=false,url,forceChoose=false}={})=>{
+  if(connecting)throw Error('external_browser_busy');
+  if(browser.status().connected&&!replace)return {connected:true};
+  connecting=true;const controller=new AbortController();connectionAbort=controller;
+  const abort=()=>controller.abort();signal?.addEventListener('abort',abort,{once:true});if(signal?.aborted)controller.abort();
+  let client;try{
+   await pendingDirect?.close();pendingDirect=null;pendingUrl=url||null;if(replace)await browser.stop();
+   browser.connectionPhase='permission';browser.candidates=[];browser.publish();
+   client=await directFactory();let opened=false;const deadline=Date.now()+90000;
+   for(;;){
+    if(controller.signal.aborted)throw Error('dock_cancelled');
+    try{browser.candidates=await client.connect({signal:controller.signal,permissionTimeout:Math.max(1,deadline-Date.now())});break;}
+    catch(error){if(error.message!=='browser_connection_permission_required'||Date.now()>=deadline)throw error;if(!opened){await router.launch.connectionSettings();opened=true;}await new Promise(resolve=>setTimeout(resolve,300));}
+   }
+   if(controller.signal.aborted)throw Error('dock_cancelled');
+   pendingDirect=client;browser.connectionPhase='choose_tab';browser.publish();
+   if(!forceChoose&&browser.candidates.length===1)return await chooseDirect(browser.candidates[0].id);
+   return {choosing:true};
+  }catch(error){await client?.close();browser.connectionPhase=null;browser.candidates=[];browser.publish();throw error;}
+  finally{signal?.removeEventListener('abort',abort);connecting=false;if(connectionAbort===controller)connectionAbort=null;}
+ };
+ const chooseDirect=async candidateId=>{
+  if(selecting)throw Error('external_browser_busy');selecting=true;try{
+  const client=pendingDirect;if(!client)throw Error('browser_connection_changed');
+  await client.choose(candidateId);if(client!==pendingDirect)throw Error('browser_connection_changed');pendingDirect=null;
+  await browser.adoptDirect(client);if(pendingUrl){const url=pendingUrl;pendingUrl=null;await browser.openPage(url);}router.externalFocus=true;router.notify?.({type:'external_browser_opened',state:router.configuration()});window.show?.();window.focus?.();return {connected:true};
+  }finally{selecting=false;}
+ };
  const quickConnect=async({resolveProof,url,signal,replace=false,open}={})=>{
+  if(directFactory)return directConnect({signal,replace,url,forceChoose:!!resolveProof});
   if(connecting)throw Error('external_browser_busy');
   if(browser.status().connected&&!replace)return {connected:true};
   connecting=true;let owner;const controller=new AbortController();connectionAbort=controller;
@@ -46,6 +75,9 @@ function createExternalBrowserContentPort({browser,router,window,Menu,clipboard}
   }
   if(router.mode!=='external')throw Error('external_browser_disabled');
   if(args.action==='connect')return quickConnect();
+  if(args.action==='chooseTab')return chooseDirect(args.candidateId);
+  if(args.action==='refreshTabs'){if(!pendingDirect)throw Error('browser_connection_changed');browser.candidates=await pendingDirect.list();browser.publish();return {choosing:true};}
+  if(args.action==='cancelConnect'){connectionAbort?.abort();await pendingDirect?.close();pendingDirect=null;browser.connectionPhase=null;browser.candidates=[];browser.publish();return {cancelled:true};}
   if(args.action==='start')return mirror.start(args);
   if(args.action==='ack')return mirror.ack(args);
   if(args.action==='input')return mirror.input(args);
@@ -55,6 +87,6 @@ function createExternalBrowserContentPort({browser,router,window,Menu,clipboard}
   throw Error('browser_action_invalid');
  }
  const assertCaptureAllowed=()=>{if(sensitive.size)throw Error('browser_auth_protected');};
- return {request,async capture(work){assertCaptureAllowed();const epoch=protectedEpoch,value=await work();assertCaptureAllowed();if(epoch!==protectedEpoch)throw Error('browser_auth_protected');return value;},dispose(){connectionAbort?.abort();if(browser.quickConnect===quickConnect)delete browser.quickConnect;for(const name of ['hide','minimize'])window.removeListener(name,pause);if(mirror.onEvent===event)mirror.onEvent=previous;void mirror.stop();}};
+ return {request,async capture(work){assertCaptureAllowed();const epoch=protectedEpoch,value=await work();assertCaptureAllowed();if(epoch!==protectedEpoch)throw Error('browser_auth_protected');return value;},dispose(){connectionAbort?.abort();void pendingDirect?.close();pendingDirect=null;if(browser.quickConnect===quickConnect)delete browser.quickConnect;for(const name of ['hide','minimize'])window.removeListener(name,pause);if(mirror.onEvent===event)mirror.onEvent=previous;void mirror.stop();}};
 }
 module.exports={createExternalBrowserContentPort};

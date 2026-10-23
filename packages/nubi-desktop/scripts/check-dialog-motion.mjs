@@ -5,8 +5,9 @@ import {createServer} from 'node:http';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 
-const dir=path.resolve('verification/motion-tabs-2026-10-15');await mkdir(dir,{recursive:true});
-await build({stdin:{contents:"import './tests/shared-ui-fixture.jsx'; import './electron-app/modal-motion.css'; import {installModalMotion} from './ui/modalMotion.js'; window.stopMotion=installModalMotion();",resolveDir:process.cwd()},outfile:path.join(dir,'app.js'),bundle:true,format:'esm',platform:'browser',alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.woff2':'file','.woff':'file','.webp':'file'},define:{__APP_VERSION__:'"fixture"','process.env.NODE_ENV':'"production"'}});
+const tag=process.env.MODAL_MOTION_TAG;if(tag&&!/^[a-z0-9-]+$/.test(tag))throw Error('invalid modal tag');
+const dir=path.resolve(tag?'verification/'+tag:'verification/motion-tabs-2026-10-15');await mkdir(dir,{recursive:true});
+await build({stdin:{contents:"import './tests/shared-ui-fixture.jsx'; import './electron-app/modal-motion.css'; import {installModalMotion} from './ui/modalMotion.js'; window.stopMotion=installModalMotion();",resolveDir:process.cwd()},outfile:path.join(dir,'app.js'),bundle:true,format:'esm',platform:'browser',alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.svg':'file','.woff2':'file','.woff':'file','.webp':'file'},define:{__APP_VERSION__:'"fixture"','process.env.NODE_ENV':'"production"'}});
 await cp('../../extensions/aipro-chat/public/icons',path.join(dir,'icons'),{recursive:true});
 await writeFile(path.join(dir,'index.html'),'<!doctype html><html lang="ko"><meta charset="utf-8"><title>누비 모션 검증</title><link rel="stylesheet" href="app.css"><div id="root"></div><script type="module" src="app.js"></script></html>');
 const server=createServer(async(req,res)=>{try{const target=path.resolve(dir,'.'+new URL(req.url,'http://localhost').pathname.replace(/\/$/,'/index.html'));if(!target.startsWith(dir+path.sep))throw Error();res.setHeader('content-type',({'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.woff2':'font/woff2'})[path.extname(target)]||'application/octet-stream');res.end(await readFile(target));}catch{res.writeHead(404).end();}});
@@ -17,7 +18,19 @@ try{
   const context=await browser.newContext({viewport:{width:1280,height:950},reducedMotion:reduced?'reduce':'no-preference',...(!reduced?{recordVideo:{dir:path.join(dir,'video'),size:{width:1280,height:950}}}:{})});
   // Production normally disables animations for webdriver. Deliberately opt in
   // here so this test exercises real animation lifecycle and interruption.
-  await context.addInitScript(()=>Object.defineProperty(navigator,'webdriver',{get:()=>false}));
+  await context.addInitScript(()=>{
+   Object.defineProperty(navigator,'webdriver',{get:()=>false});
+   window.resizeDeliveries=[];const Original=ResizeObserver,previous=new WeakMap();
+   window.ResizeObserver=class extends Original{constructor(callback){super((entries,observer)=>{
+    callback(entries,observer);
+    for(const {target}of entries){if(!target.matches('.cx-detail-panel'))continue;
+     const next={width:target.offsetWidth,height:target.offsetHeight,viewport:innerWidth+':'+innerHeight},old=previous.get(target);previous.set(target,next);
+     if(old&&old.viewport===next.viewport&&Math.abs(old.width-next.width)+Math.abs(old.height-next.height)>2&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+      const surface=target.parentElement?.querySelector('.nubi-modal-morph-surface');window.resizeDeliveries.push({surface:!!surface,tracks:[...(surface?.getAnimations()||[]),...target.getAnimations()].map(animation=>animation.id).filter(Boolean)});
+     }
+    }
+   });}};
+  });
   const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
   await page.goto(`http://127.0.0.1:${server.address().port}/?context&modals&integrated`);
   // Settings can fill the viewport; use an intrinsic-height production modal
@@ -40,6 +53,7 @@ try{
    }else{await page.waitForTimeout(30);assert.equal(await page.locator('.nubi-modal-morph-surface').count(),0);}
   }
   await page.waitForFunction(()=>!document.querySelector('.nubi-modal-morph-surface'));
+  if(!reduced){const deliveries=await page.evaluate(()=>window.resizeDeliveries);assert(deliveries.length>=3);assert(deliveries.every(value=>value.surface&&['nubi-modal-surface','nubi-modal-content'].every(id=>value.tracks.includes(id))),'both tracks must exist in the resize delivery before paint: '+JSON.stringify(deliveries));checks.push('resize inversion and synchronized tracks are installed before paint');}
   assert(Math.abs((await dialog.boundingBox()).height-initial.height)<24);
   assert.equal(await dialog.evaluate(el=>el.contains(document.activeElement)),true);
   checks.push(`${reduced?'reduced':'normal'}: grow, interrupt, shrink, stable text and focus`);

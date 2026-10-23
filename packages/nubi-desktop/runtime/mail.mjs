@@ -333,7 +333,6 @@ export class PersonalMail {
     }
     if(action==='selectMethod'){
       if(!MAIL_CONNECTION_METHODS.includes(args.method))throw Error('mail_input_invalid');
-      if(args.method==='portal'&&!DESKTOP_FEATURES.mailPortal)throw Error('mail_portal_off');
       if(this.relocating||this.importController||this.checking||this.connecting||this.synthesis||this.attachmentRead||this.desktopSource.running||this.desktopSource.connecting)throw Error('mail_busy');
       if(this.connectionMethod!==args.method){this.disconnect();this.desktopSource.disconnect({remote:args.method!=='desktop'});this.nextCheckAt=null;this.lastCheckedAt=null;this.store.delete('setting:check-window');}
       this.store.set('setting:mail-connection-method',args.method);

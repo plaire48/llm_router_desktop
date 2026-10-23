@@ -1,4 +1,3 @@
-// The portal code path stays tested with the switch on; the product ships with it off (user decision 2026-10-23).
 import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';import vm from 'node:vm';
 const main=await readFile(new URL('../electron-app/main.cjs',import.meta.url),'utf8'),start=main.indexOf('const dispatch=async('),end=main.indexOf('\n const terminalLog=boundedLog(',start);assert(start>=0&&end>start);
 function fixture(method='portal',connected=false){
@@ -6,7 +5,7 @@ function fixture(method='portal',connected=false){
  const invoke=async(_method,args)=>{calls.push({...args});if(args.action==='selectMethod')state.connectionMethod=args.method;if(args.action==='connect')state.connected=true;return {...state};};
  const mailPortal={status:()=>({...portalState}),disconnect:async()=>{calls.push({action:'portalDisconnect'});portalState.connected=false;},connect:async()=>{calls.push({action:'portalConnect'});throw Error('external_browser_connection_required');}};
  const browserRouter={mode:'internal',externalFocus:false,setMode:async mode=>{calls.push({action:'setBrowserMode',mode});browserRouter.mode=mode;},configuration:()=>({mode:browserRouter.mode})};
- const dispatch=vm.runInNewContext(main.slice(start,end)+'\ndispatch',{installingUpdate:false,DESKTOP_FEATURES:{computerUse:false,mailPortal:true},mailPortal,invoke,portalMailStatus:async snapshot=>snapshot||{...state},mailLoginNotices:{reset(){},clear(){}},hostEvent:event=>events.push(event),browserRouter,browserContentPort:{request:async args=>({action:args.action})}});
+ const dispatch=vm.runInNewContext(main.slice(start,end)+'\ndispatch',{installingUpdate:false,DESKTOP_FEATURES:{computerUse:false},mailPortal,invoke,portalMailStatus:async snapshot=>snapshot||{...state},mailLoginNotices:{reset(){},clear(){}},hostEvent:event=>events.push(event),browserRouter,browserContentPort:{request:async args=>({action:args.action})}});
  return {dispatch,calls,events,state};
 }
 test('main keeps a live portal on repeated selection and switches to independent POP3',async()=>{

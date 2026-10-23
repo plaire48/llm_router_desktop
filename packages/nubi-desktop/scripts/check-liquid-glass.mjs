@@ -8,7 +8,8 @@ import {createRequire} from 'node:module';
 import {mkdtemp,mkdir,writeFile,rm} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 import os from 'node:os';import path from 'node:path';import assert from 'node:assert/strict';
-const out=path.resolve('verification/liquid-glass-webgl/native'),fixture=path.join(out,'fixture');await mkdir(fixture,{recursive:true});
+const tag=process.env.GLASS_TAG||'native';if(!/^[a-z0-9-]+$/.test(tag))throw Error('invalid glass tag');
+const out=path.resolve('verification/liquid-glass-webgl',tag),fixture=path.join(out,'fixture');await mkdir(fixture,{recursive:true});
 await build({...rendererBundleOptions(),entryPoints:['tests/liquid-glass-fixture.jsx'],outdir:fixture,entryNames:'probe',splitting:false});stop();
 await writeFile(path.join(fixture,'index.html'),'<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="probe.css"><div id="root"></div><script type="module" src="probe.js"></script>');
 const storage=await mkdtemp(path.join(os.tmpdir(),'nubi-liquid-glass-')),project=path.join(storage,'Nubi Glass');await mkdir(project);
@@ -41,6 +42,8 @@ try {
   return {before,samples,after:read()};
  });
  assert(facts.travel.after[1]>facts.travel.before[1]+20);assert(facts.travel.samples.some(r=>r[1]>facts.travel.before[1]+1&&r[1]<facts.travel.after[1]-1));assert(facts.travel.samples.some(r=>r[3]>facts.travel.before[3]+1));record('reference-spring-travel-and-directional-stretch');
+ const advancing=facts.travel.samples.slice(2,20).filter((rect,index)=>Math.abs(rect[1]-facts.travel.samples[index+1][1])>.001).length;
+ facts.travel.cadence={advancing,observed:18};assert(advancing>=15,'visible glass must advance on each display frame while travelling: '+JSON.stringify(facts.travel.cadence));record('display-frame-cadence-without-30fps-throttle');
  await capture('mail-wide');
  const selectedButton=page.locator(rail+' button[aria-label="메일"]');await selectedButton.hover();await page.waitForTimeout(200);
  const hovered=await page.evaluate(readLens,rail);await page.mouse.down();await page.waitForTimeout(120);const pressed=await page.evaluate(readLens,rail);await page.mouse.up();

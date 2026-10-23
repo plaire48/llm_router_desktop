@@ -1,7 +1,6 @@
 // Morph the dialog surface, not its text. The live panel takes its natural size
 // immediately; an inert surface behind it bridges the old/new bounds with FLIP.
 // No per-frame React updates, layout animation or delayed focus/approval state.
-import {frameCoalescer} from './frame-coalescer.mjs';
 export function installModalResizeMotion(allowed){
  if(typeof ResizeObserver!=='function')return()=>{};
  const records=new Map(),viewport=()=>`${innerWidth}:${innerHeight}`;
@@ -23,14 +22,16 @@ export function installModalResizeMotion(allowed){
   Object.assign(surface.style,{left:`${to.left}px`,top:`${to.top}px`,width:`${to.width}px`,height:`${to.height}px`});
   if(!record.surface){backdrop.append(surface);record.surface=surface;panel.classList.add('nubi-modal-morphing');}
   record.animation=surface.animate([{transform:`translate(${from.left-to.left}px,${from.top-to.top}px) scale(${from.width/to.width},${from.height/to.height})`},{transform:'none'}],{duration,easing});
+  record.animation.id='nubi-modal-surface';
   // Move the live text with the surface. Repeated progress/size updates must
   // not flash the entire form back to 35% opacity or scale its text.
   record.reveal=panel.animate([{transform:`translate(${from.left-to.left}px,${from.top-to.top}px)`},{transform:'none'}],{duration,easing:contentEasing});
+  record.reveal.id='nubi-modal-content';
   const animation=record.animation;
   animation.finished.then(()=>{if(record.animation===animation)stop(record);},()=>{});
  }
  const pending=new Set();
- const paint=frameCoalescer(()=>{
+ const paint=()=>{
   const panels=[...pending];pending.clear();
   if(!allowed())return;
   const screen=viewport();
@@ -40,8 +41,12 @@ export function installModalResizeMotion(allowed){
    if(from&&record.viewport===screen)morph(record,from,next);else stop(record);
    record.from=null;record.rect=next;record.viewport=screen;
   }
- });
- const observer=new ResizeObserver(entries=>{for(const {target} of entries)if(records.has(target))pending.add(target);if(pending.size)paint.schedule();});
+ };
+ // ResizeObserver runs after layout and before paint. Deferring its FLIP to
+ // the next rAF paints the new bounds once, then jumps back to the old bounds.
+ // Batch all reads before writes in this delivery; transforms do not resize
+ // the observed panel and cannot create an observer layout feedback loop.
+ const observer=new ResizeObserver(entries=>{for(const {target} of entries)if(records.has(target))pending.add(target);if(pending.size)paint();});
  function attach(backdrop,from){
   if(!backdrop.matches?.('.cx-panel-backdrop:is(.is-modal,.is-confirmation):not([data-modal-motion="leaving"])'))return;
   const panel=backdrop.querySelector(':scope > .cx-detail-panel');if(!panel||records.has(panel))return;
@@ -58,7 +63,7 @@ export function installModalResizeMotion(allowed){
  });
  mutations.observe(document.body,{childList:true});
  for(const node of document.querySelectorAll('.cx-panel-backdrop'))attach(node);
- const quiet=()=>{if(!allowed()){paint.cancel();pending.clear();for(const record of records.values()){stop(record);record.rect=null;record.from=null;}}};
+ const quiet=()=>{if(!allowed()){pending.clear();for(const record of records.values()){stop(record);record.rect=null;record.from=null;}}};
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');reduced.addEventListener('change',quiet);document.addEventListener('visibilitychange',quiet);
- return()=>{paint.cancel();pending.clear();mutations.disconnect();observer.disconnect();reduced.removeEventListener('change',quiet);document.removeEventListener('visibilitychange',quiet);for(const record of records.values())stop(record);records.clear();};
+ return()=>{pending.clear();mutations.disconnect();observer.disconnect();reduced.removeEventListener('change',quiet);document.removeEventListener('visibilitychange',quiet);for(const record of records.values())stop(record);records.clear();};
 }

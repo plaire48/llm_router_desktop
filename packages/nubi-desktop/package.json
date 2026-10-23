@@ -51,6 +51,7 @@
     "check:office-reader": "node scripts/check-office-reader.mjs",
     "test:chat-ui": "node scripts/check-codex-chat-ui.mjs after && node scripts/check-conversation-admission.mjs",
     "test:light-flow": "node scripts/check-light-flow.mjs",
+    "test:browser-direct": "npm run build:electron && node --test tests/browser-direct.test.mjs tests/browser-direct-ui.test.mjs tests/browser-mirror.test.mjs tests/browser-content-port.test.mjs && node scripts/check-direct-browser-shell.mjs && node scripts/check-direct-browser-content.mjs",
     "test:freeze-scenes": "node scripts/check-freeze-both.mjs",
     "test:freeze-scenes:browser": "node scripts/check-freeze-scenes.mjs",
     "test:freeze-scenes:electron": "node scripts/check-freeze-scenes.mjs --electron",

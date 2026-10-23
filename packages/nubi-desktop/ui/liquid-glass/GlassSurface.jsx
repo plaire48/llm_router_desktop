@@ -20,7 +20,7 @@ export function installGlassSurface(layer,{axis='x',selector,targetWrapper}={}){
  const [backdrop,canvas]=layer.querySelectorAll('canvas');
  const selection=layer.querySelector('.nubi-liquid-glass__selection');
  const reduced=matchMedia('(prefers-reduced-motion: reduce)'),opaque=matchMedia('(prefers-reduced-transparency: reduce)'),forced=matchMedia('(forced-colors: active)');
- let renderer=null,spring=null,frame=0,measureFrame=0,previous=0,lastDraw=-Infinity,disposed=false,visible=true,lost=false;
+ let renderer=null,spring=null,frame=0,measureFrame=0,previous=0,disposed=false,visible=true,lost=false;
  let width=0,height=0,dpr=1,radius=14,pointer=[-1000,-1000],pressed=false,hover=false,interaction=1,target=null;
  let textureWidth=0,textureHeight=0,textureDpr=0;
  const metrics={frames:0,textureUploads:0,pixels:0};layer.glassMetrics=metrics;
@@ -39,13 +39,15 @@ export function installGlassSurface(layer,{axis='x',selector,targetWrapper}={}){
  }
  function tick(now){
   frame=0;if(disposed||quiet()||!supported()||!renderer)return cancel();
-  const dt=Math.min(.04,(now-(previous||now-16.67))/1000);previous=now;
+  const dt=Math.min(.1,(now-(previous||now-16.67))/1000);previous=now;
   const result=spring?stepGlassSpring(spring,dt,{axis,reduced:reduced.matches}):{rect:null,moving:false};
   const desired=pressed?.96:hover?1.025:1;
-  interaction=reduced.matches?1:interaction+(desired-interaction)*Math.min(1,dt*20);
+  interaction=reduced.matches?1:interaction+(desired-interaction)*(1-Math.exp(-dt*20));
   const moving=result.moving||Math.abs(desired-interaction)>.0002;
-  // Reference caps shader work while spring integration follows display Hz.
-  if(now-lastDraw>=25||!moving){draw(result.rect,now);lastDraw=now;}
+  // Present each display frame. A 25ms gate on a 60Hz display discards every
+  // other frame and makes the spring visibly step at 30fps. Pixel bounds and
+  // stopping the idle loop bound GPU work without dropping moving frames.
+  draw(result.rect,now);
   mark('webgl',moving);
   if(moving)frame=requestAnimationFrame(tick);else previous=0;
  }

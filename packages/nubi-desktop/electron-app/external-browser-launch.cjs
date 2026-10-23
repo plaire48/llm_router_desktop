@@ -18,6 +18,13 @@ class BrowserLaunch {
  }
  async mode(mode){if(!['external','internal'].includes(mode))throw Error('browser_action_invalid');const next={...this.preference,mode};await this.save(next);this.preference=next;return this.status();}
  async save(preference=this.preference){await mkdir(this.storage,{recursive:true});await writeFile(path.join(this.storage,'browser-preference.json'),JSON.stringify(preference),{mode:0o600});}
+ async connectionSettings(){
+  const url='chrome://inspect/#remote-debugging';
+  const executable=this.platform==='darwin'?'/usr/bin/open':this.platform==='win32'?this.connectionExecutable||this.preference.executable:'google-chrome';
+  if(!executable)throw Error('browser_samsung_unavailable');
+  const args=this.platform==='darwin'?['-a','Google Chrome',url]:[url];
+  await new Promise((resolve,reject)=>{const child=this.launch(executable,args,{shell:false,detached:true,stdio:'ignore'});child.once('error',()=>reject(Error('browser_chrome_unavailable')));child.once('spawn',()=>{child.unref();resolve();});});return {opened:true};
+ }
  async open(value,{executable=this.preference.executable}={}){
   const url=httpBrowserAddress(value);
   if(!executable){try{await this.shell.openExternal(url);}catch{throw Error('external_browser_launch_failed');}return {opened:true,external:true,automation:false,loginSession:'system-default-browser',userInteractionRequired:true};}

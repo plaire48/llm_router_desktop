@@ -109,6 +109,6 @@ export function createTabMirror({chrome,send,row,attached}){
   send({type:'mirrorFrame',streamId:stream.streamId,tabId:String(stream.tabId),documentId:stream.documentId,sequence,data,viewport:{width:metadata.deviceWidth,height:metadata.deviceHeight},timestamp:metadata.timestamp});
   return true;
  }
- function invalidate(tabId){if(current&&(tabId===undefined||current.tabId===tabId)){const previous=current;current=null;void serial(()=>end(previous));}}
+ function invalidate(tabId){if(current&&(tabId===undefined||current.tabId===tabId)){const previous=current;current=null;return serial(()=>end(previous));}return Promise.resolve();}
  return {dispatch,frame,invalidate,active:tabId=>current?.tabId===Number(tabId),interacting:tabId=>current?.tabId===Number(tabId)&&current.manualUntil>Date.now()};
 }

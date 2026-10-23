@@ -23,6 +23,8 @@ const {captureWindow}=require('./window-capture.cjs');
 const {PlaywrightHost}=require('./playwright-host.cjs');
 const {ExternalBrowserHost}=require('./external-browser-host.cjs');
 const {createExternalBrowserContentPort}=require('./external-browser-content-port.cjs');
+const {ChromeDirectConnection}=require('./chrome-direct-connection.cjs');
+const {samsungInstallation,samsungPortFile}=require('./samsung-browser-discovery.cjs');
 let browserContentPort;
 const {BrowserLaunch}=require('./external-browser-launch.cjs');
 const {BrowserRouter}=require('./browser-router.cjs');
@@ -78,7 +80,7 @@ function recordFault(component,details={}){
  void mkdir(storage,{recursive:true}).then(()=>writeFile(path.join(storage,'last-host-fault.json'),JSON.stringify(record),{mode:0o600})).catch(()=>{});
 }
 process.on('uncaughtExceptionMonitor',()=>recordFault('main'));
-async function portalMailStatus(snapshot,{includeMessages=true}={}){return mailSourceStatus({snapshot,invoke,portal:mailPortal,includeMessages,portalEnabled:DESKTOP_FEATURES.mailPortal});}
+async function portalMailStatus(snapshot,{includeMessages=true}={}){return mailSourceStatus({snapshot,invoke,portal:mailPortal,includeMessages});}
 function invoke(method,args={}){if(!worker)return Promise.reject(Error('host_disconnected'));return worker.invoke(method,args);}
 // What the window needs to hear from the host itself (the worker restarted, or gave up): nubi:host-event.
 function hostEvent(event){if(window&&!window.isDestroyed()&&!window.webContents.isDestroyed())window.webContents.send('nubi:host-event',event);}
@@ -241,7 +243,11 @@ app.whenReady().then(async()=>{
  externalBrowser=new ExternalBrowserHost({onChange:state=>{hostEvent({type:'external_browser_changed',state});if(!state.connected&&browserDock?.automationReady){browserDock.automationReady=false;browserDock.publish();}if(!state.connected&&externalMailPortal?.state.connected)void externalMailPortal.failSession(Error('mail_portal_login')).catch(()=>{});}});
  browserLaunch=new BrowserLaunch({storage,dialog,shell:require('electron').shell,parent:window});await browserLaunch.load();
  browserRouter=new BrowserRouter({internal:browserHost,external:externalBrowser,launch:browserLaunch,notify:hostEvent});browserRouter.internalPlaywright=new PlaywrightHost(browserHost);
- browserContentPort=createExternalBrowserContentPort({browser:externalBrowser,router:browserRouter,window,Menu,clipboard});
+ browserContentPort=createExternalBrowserContentPort({browser:externalBrowser,router:browserRouter,window,Menu,clipboard,directFactory:async()=>{
+  if(process.platform!=='win32')return new ChromeDirectConnection();
+  const installation=await samsungInstallation();browserLaunch.connectionExecutable=installation.executable||browserLaunch.preference.executable;
+  return new ChromeDirectConnection({portFile:()=>samsungPortFile({userDataDir:installation.userDataDir})});
+ }});
  browserDock=new BrowserWindowDock({native:new BrowserWindowNative({directory:path.join(app.isPackaged?process.resourcesPath:__dirname,'browser-window-bridge'),parent:window}),external:externalBrowser,launch:browserLaunch,notify:event=>{if(event.type==='external_browser_opened'){window.show();window.focus();}hostEvent(event);}});browserRouter.dock=browserDock;
  officeDock=new OfficeWindowDock({native:new BrowserWindowNative({directory:path.join(app.isPackaged?process.resourcesPath:__dirname,'browser-window-bridge'),parent:window}),identity:args=>invoke('_externalOffice',{...args,action:'window'}),notify:hostEvent});
  window.on('close',event=>{if(!quitting&&browserDock){event.preventDefault();app.quit();}});
@@ -344,7 +350,6 @@ app.whenReady().then(async()=>{
    if(args.action==='selectMethod'){
     if(source!=='electron')throw Error('mail_portal_desktop_only');
     if(!['desktop','pop3','portal'].includes(args.method))throw Error('mail_input_invalid');
-    if(args.method==='portal'&&!DESKTOP_FEATURES.mailPortal)throw Error('mail_portal_off');
     const portal=mailPortal.status();if(portal.connecting||portal.checking)throw Error('mail_busy');
     const previous=await invoke('mail',{action:'status',includeMessages:false});
     const selected=await invoke('mail',{action:'selectMethod',method:args.method});
@@ -370,9 +375,6 @@ app.whenReady().then(async()=>{
    if(/^portal(?:Connect|Import|Folders|Known|Rejected|Document)$/.test(args.action||'')||['download','importFolder','usePortalSource'].includes(args.action))throw Error('method_invalid');
    if(['portalSync','check','retryDownloads'].includes(args.action)&&(await invoke('mail',{action:'status',includeMessages:false})).connectionMethod==='desktop')return portalMailStatus(await invoke('mail',{action:'desktopSync'}));
    if(['approvals','approvalRead','approvalTitle'].includes(args.action)&&(await invoke('mail',{action:'status',includeMessages:false})).connectionMethod==='desktop')throw Error('mail_desktop_archive_only');
-   // Portal off (user decision 2026-10-23): no portal login, and a POP3 refresh checks POP3 instead of the portal.
-   if(!DESKTOP_FEATURES.mailPortal&&['portalSession','portalLogin'].includes(args.action))throw Error('mail_portal_off');
-   if(!DESKTOP_FEATURES.mailPortal&&['portalSync','check'].includes(args.action)){try{return portalMailStatus(await invoke('mail',{action:'check'}));}catch(error){if(['mail_check_wait','mail_busy','mail_not_connected'].includes(error.message))return portalMailStatus();throw error;}}
    if(args.action==='approvals')return await mailPortal.approvals(args);
    if(args.action==='approvalRead')return await mailPortal.approvalRead(args);
    if(args.action==='approvalTitle')return await mailPortal.approvalTitle(args);
