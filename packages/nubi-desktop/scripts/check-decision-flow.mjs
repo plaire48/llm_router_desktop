@@ -46,7 +46,7 @@ try{
    }
    assert.equal(await p.evaluate(()=>window.decisionCalls.length),0);
    await form.screenshot({path:path.join(dir,kind+'-'+width+'.png'),animations:'disabled'});
-   await send.click();await form.waitFor({state:'hidden'});
+   await send.click();await form.waitFor({state:'hidden'});await p.waitForFunction(()=>window.decisionCalls.length===1);
    assert.equal(await p.evaluate(()=>window.decisionCalls.length),1);
    assert.equal(await p.evaluate(()=>window.decisionCalls[0].method),kind==='question'?'answerAgent':'decideSetupAction');
   }
@@ -64,7 +64,7 @@ try{
  await p.waitForFunction(()=>document.activeElement?.matches('.nubi-approval-form'));
  assert.equal(await p.evaluate(()=>window.decisionCalls.length),0,'OS click only reveals inline form');
  assert.equal(await p.locator('[aria-modal="true"]').count(),0);
- await form.getByRole('button',{name:'취소',exact:true}).click();await form.waitFor({state:'hidden'});
+ await form.getByRole('button',{name:'취소',exact:true}).click();await form.waitFor({state:'hidden'});await p.waitForFunction(()=>window.decisionCalls.length===1);
  assert.equal(await p.evaluate(()=>window.decisionCalls[0].decision),'reject');
  await p.waitForFunction(id=>window.nativeNotices.some(row=>row.action==='clear'&&row.id===id),noticeId);
  console.log('PASS native-event bridge focuses inline approval and cancellation clears notice. OS delivery mocked.');

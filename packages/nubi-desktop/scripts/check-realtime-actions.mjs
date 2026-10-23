@@ -43,21 +43,27 @@ try{
   await measure('closed');
   if(width===2560)await captureDesign(p,{path:path.join(dir,'full-width-decision-2560.png')});
   const apply=active.getByRole('button',{name:'반영',exact:true});await apply.waitFor();
+  const clickDecision=button=>button.evaluate(button=>{window.liveAcknowledgementPainted=false;requestAnimationFrame(()=>{window.liveAcknowledgementPainted=!!document.querySelector('[data-decision-submission]')&&!document.querySelector('[data-decision-panel]:not([hidden])');});button.click();button.click();});
   assert.equal(await active.getByText('문법 검사 대상 아님',{exact:true}).count(),0,'parser coverage never becomes an approval decision');
-  const at=Date.now();await apply.evaluate(button=>{button.click();button.click();});
+  const at=Date.now();await clickDecision(apply);
   await p.locator('[data-decision-submission="live-file"]').waitFor();
   const responseMs=Date.now()-at;assert(responseMs<800,'form responds before the apply promise settles');
   assert.equal(await active.locator('.nubi-proposal-card').count(),0,'the frozen approval form leaves the pending area');
-  assert.deepEqual(await p.evaluate(()=>window.liveCalls),['apply']);
+  await p.waitForFunction(()=>window.liveCalls.length===1);assert.deepEqual(await p.evaluate(()=>window.liveCalls),['apply']);
+  assert.deepEqual(await p.evaluate(()=>window.liveActionSnapshots[0]),{kind:'apply',formHidden:true,activityVisible:true,painted:true},'acknowledgement is rendered before editor or host work starts');
   assert.equal(await p.locator('.nubi-conversation-scroll [data-decision-submission="live-file"]').count(),1,'processing is visible in the transcript');
   await captureDesign(p,{path:path.join(dir,`applying-${width}.png`)});
   await p.evaluate(()=>window.failLiveAction());await apply.waitFor();
-  await p.evaluate(()=>window.liveCalls=[]);await apply.click();await p.locator('[data-decision-submission="live-file"]').waitFor();
+  await p.evaluate(()=>window.liveCalls=[]);await clickDecision(apply);await p.locator('[data-decision-submission="live-file"]').waitFor();await p.waitForFunction(()=>window.liveCalls.length===1);
   await p.evaluate(()=>{window.delayLiveStart=true;window.finishLiveAction();});await p.locator('[data-decision-submission="live-file"]').waitFor({state:'hidden'});
   await p.waitForFunction(()=>typeof window.finishLiveStart==='function');await p.locator('.nubi-conversation-scroll').getByText('다음 작업을 준비하고 있어요',{exact:true}).waitFor();
   await p.evaluate(()=>window.finishLiveStart());
   await p.evaluate(()=>window.liveStream('첫 문장을 작성하고 있습니다.'));
   const draft=p.getByRole('region',{name:'작성 중인 초안',exact:true});await draft.getByText('첫 문장을 작성하고 있습니다.',{exact:true}).waitFor();await p.locator('.desktop-mail-progress [data-workspace-operation]').getByText('답변 작성 중',{exact:true}).waitFor();
+  const journal=p.locator('.nubi-activity-record[open]').last();
+  if(await journal.count()){await journal.locator(':scope>summary').click();await draft.waitFor({state:'visible',timeout:800});assert.equal(await draft.evaluate(node=>!!node.closest('details')),false,'public writing stays outside the folded journal');}
+  await p.evaluate(()=>window.liveTool('read_source'));const operation=p.locator('[data-live-operation]');await operation.getByText('소스 읽기 중',{exact:true}).waitFor({timeout:800});assert.equal(await operation.evaluate(node=>!!node.closest('details')),false,'current action stays visible with its actual name');
+  await p.evaluate(()=>{window.liveTool(null);window.liveStream('첫 문장을 작성하고 있습니다.');});await operation.getByText('답변 작성 중',{exact:true}).waitFor();
   await p.evaluate(()=>window.liveStream('첫 문장을 작성하고 있습니다.\n두 번째 내용이 추가됩니다.'));
   await draft.getByText(/두 번째 내용이 추가됩니다/).waitFor();
   assert((await p.evaluate(()=>window.liveStreamReads))>=2,'public text uses the lightweight stream read');
@@ -70,11 +76,11 @@ try{
   assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
   await captureDesign(p,{path:path.join(dir,`streaming-${width}.png`)});
   await p.evaluate(()=>window.liveComplete());await draft.waitFor({state:'hidden'});await p.getByText('실시간으로 작성한 최종 응답입니다.',{exact:true}).waitFor();
-  await p.evaluate(()=>window.liveQuestion());const field=active.getByRole('textbox');await p.locator('.desktop-mail-progress [data-workspace-operation]').getByText('답변 대기',{exact:true}).waitFor();await field.fill('작성할 내용을 유지합니다.');await active.getByRole('button',{name:'답변 보내기',exact:true}).click();
-  await p.locator('[data-decision-submission="live-question"]').waitFor();await p.evaluate(()=>window.failLiveAction());await field.waitFor();assert.equal(await field.inputValue(),'작성할 내용을 유지합니다.');
+  await p.evaluate(()=>window.liveQuestion());const field=active.getByRole('textbox');await p.locator('.desktop-mail-progress [data-workspace-operation]').getByText('답변 대기',{exact:true}).waitFor();await field.fill('작성할 내용을 유지합니다.');await clickDecision(active.getByRole('button',{name:'답변 보내기',exact:true}));
+  await p.locator('[data-decision-submission="live-question"]').waitFor();await p.waitForFunction(()=>window.liveCalls.filter(kind=>kind==='answer').length===1);await p.evaluate(()=>window.failLiveAction());await field.waitFor();assert.equal(await field.inputValue(),'작성할 내용을 유지합니다.');
   await active.getByText(/답변을 보내지 못했습니다|source_stale/).waitFor();
-  await active.getByRole('button',{name:'답변 보내기',exact:true}).click();await p.locator('[data-decision-submission="live-question"]').waitFor();await p.evaluate(()=>window.finishLiveAction());await p.locator('[data-question-receipt="live-question"]').waitFor();
-  await p.evaluate(()=>window.liveCommand());await active.getByRole('button',{name:'승인',exact:true}).click();await p.locator('[data-decision-submission="live-command"]').waitFor();
+  await clickDecision(active.getByRole('button',{name:'답변 보내기',exact:true}));await p.locator('[data-decision-submission="live-question"]').waitFor();await p.waitForFunction(()=>window.liveCalls.filter(kind=>kind==='answer').length===2);await p.evaluate(()=>window.finishLiveAction());await p.locator('[data-question-receipt="live-question"]').waitFor();
+  await p.evaluate(()=>window.liveCommand());await clickDecision(active.getByRole('button',{name:'승인',exact:true}));await p.locator('[data-decision-submission="live-command"]').waitFor();await p.waitForFunction(()=>window.liveCalls.includes('command'));
   const terminalAt=Date.now();await p.evaluate(()=>{window.openedTerminal=null;window.liveHoldReads();window.finishLiveAction();});await p.waitForFunction(()=>window.openedTerminal?.processId==='live-process',null,{timeout:800});const terminalRevealMs=Date.now()-terminalAt;await p.evaluate(()=>window.releaseLiveReads());const record=p.locator('.nubi-command-record');await record.waitFor();await p.locator('.desktop-mail-progress [data-workspace-operation]').getByText('명령 실행 중',{exact:true}).waitFor();
   await p.evaluate(()=>window.liveOutput());await p.getByLabel('실시간 실행 출력',{exact:true}).getByText(/v24.0.0/).waitFor();
   await record.locator('summary').click();await record.getByText(/v24.0.0/).waitFor();
@@ -90,7 +96,8 @@ try{
   await review.locator('.nubi-document-progress-heading strong').getByText('설치판에서 메일 연결을 확인해 주세요.',{exact:true}).waitFor();assert.equal(await review.getAttribute('data-tone'),'neutral');
   await captureDesign(p,{path:path.join(dir,`concrete-next-step-${width}.png`)});
   await p.evaluate(()=>window.liveReview({state:'ready',checks:[]}));await review.waitFor({state:'hidden'});assert.equal(await p.locator('.nubi-review-evidence').count(),0,'empty checks produce neither a warning nor a success claim');
-  checks.push({width,widths,responseMs,decisionOpenMs,terminalRevealMs,checks:['transcript, composer and decision fill available width with shared gutters','observed form opens while state reads are held','terminal is revealed from its real receipt before state refresh','immediate apply acknowledgement','duplicate click guarded','apply failure restores form','handoff keeps processing visible','lightweight live draft grows before completion','stream updates preserve typing and focus','final answer delivered once','question failure retains draft and error','command approval and output update live','internal parser coverage hidden','concrete review gap and next step','real review error preserved']});
+  const acknowledgements=await p.evaluate(()=>window.liveActionSnapshots);assert(acknowledgements.every(item=>item.formHidden&&item.activityVisible&&item.painted),'every decision paints its acknowledgement before work starts');assert.deepEqual(await p.evaluate(()=>window.liveCalls),['apply','answer','answer','command'],'double clicks never dispatch another action');
+  checks.push({width,widths,responseMs,decisionOpenMs,terminalRevealMs,acknowledgements,checks:['transcript, composer and decision fill available width with shared gutters','observed form opens while state reads are held','terminal is revealed from its real receipt before state refresh','every decision paints before processing','duplicate clicks guarded for files, questions and commands','apply failure restores form','handoff keeps processing visible','folding records never hides public writing or current operation','lightweight live draft grows before completion','stream updates preserve typing and focus','final answer delivered once','question failure retains draft and error','command approval and output update live','internal parser coverage hidden','concrete review gap and next step','real review error preserved']});
  }
  assert.deepEqual(errors,[]);await writeFile(path.join(dir,'report.json'),JSON.stringify({checks,errors,scope:'actual Electron renderer with deferred synthetic operations; no live provider or Windows verification'},null,2));console.log(JSON.stringify({checks,errors}));
 }catch(error){await p?.screenshot({path:path.join(dir,'failure.png')});await writeFile(path.join(dir,'failure.txt'),String(error.stack)+'\n'+JSON.stringify(errors)+'\n'+await p?.locator('body').innerText());throw error;}

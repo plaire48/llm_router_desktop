@@ -1,5 +1,4 @@
 import {CaptureThumbs} from './CaptureChips.jsx';
-import {LiveDraft} from './LiveDraft.jsx';
 import {ResponseTime} from './ResponseTime.jsx';
 import React from 'react';
 import {AgentTrace} from '../../../extensions/aipro-chat/src/AgentTrace.jsx';
@@ -99,7 +98,6 @@ export function WorkspaceActivity({task,run,historical=false,predecessors=run?.p
               awaitingUser={waiting&&block.steps.some(step=>step.tool==='ask_user')} stopped={['paused','interrupted','cancelled','failed'].includes(task.state)}/>
             <CaptureThumbs captures={block.steps.flatMap(step=>captureSteps.get(step.id)||[])} label="작업 중 캡처한 화면"/>
           </div>)}
-        {live&&<LiveDraft task={task}/>}
         {live&&(contextLabel||!currentStep)&&<div className="nubi-activity-current" role="status"><span className="status-spinner" aria-hidden="true"/><span>{contextLabel||currentStep?.label||idleLabel}</span></div>}
         {(collapsed&&thoughts.length>0||thinking)&&<details className="nubi-thoughts" aria-label="모델이 생각한 내용">
           <summary><Icon name="lightbulb" size={16}/><span>작업 메모</span><Icon name="chevronDown" size={14}/></summary>
