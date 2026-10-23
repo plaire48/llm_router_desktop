@@ -27,7 +27,7 @@ export function BackgroundTaskQueue(){
  {present&&createPortal(<section ref={popup} className="nubi-background-tasks-popup" role="dialog" tabIndex={-1} aria-label="백그라운드 작업" aria-hidden={!open||undefined} inert={!open||undefined} data-leaving={!open||undefined} style={position}>
   <ol className="nubi-background-task-list" aria-label={history?'완료 기록':'작업 목록'}>{visible.map(row=>{
    const active=taskIsActive(row.state),running=row.state==='running'||row.state==='queued',percent=row.state==='completed'?100:row.value===null?null:Math.floor(row.value/row.max*100);
-   const text=running||row.state==='waiting'?(row.label||`${labels[row.state]} ${row.title}`):`${labels[row.state]} ${row.title}`;
+   const text=row.state==='completed'&&row.completedLabel?row.completedLabel:running||row.state==='waiting'?(row.label||`${labels[row.state]} ${row.title}`):`${labels[row.state]} ${row.title}`;
    const detail=[row.title,labels[row.state],row.label,durationLabel(Math.max(0,(row.finishedAt||now)-row.startedAt),{keepSeconds:true}),row.risk].filter(Boolean).join('\n');
    const icon=<Icon name={row.state==='completed'?'check':row.state==='failed'?'alertCircle':'clock'} size={14}/>;
    const estimate=backgroundTasks.estimate(row.id,now),remaining=compactProgressEstimateLabel(estimate),remainingDetail=estimate.state==='estimated'?progressEstimateLabel(estimate):estimate.state==='finishing'?'마무리 확인 중':'시간 계산 중';
@@ -35,7 +35,7 @@ export function BackgroundTaskQueue(){
     <div className="nubi-background-task-status">{row.canOpen?<button type="button" className="nubi-background-task-open" aria-label={`${row.title} 작업 열기`} title={detail} onClick={()=>reveal(row.id)}>{icon}<span>{text}</span></button>:<span className="nubi-background-task-open">{icon}<span>{text}</span></span>}
     </div>
     <div className="nubi-background-task-meter"><TaskProgressBar queue={false} label={`${row.title} 진행률`} value={row.state==='completed'?100:row.value??undefined} max={row.state==='completed'?100:row.max} active={running}/></div>
-    <output aria-label="진행률">{percent===null?'—':`${percent}%`}</output><time data-estimate-state={running?estimate.state:undefined} aria-label={running?`남은 시간 ${remainingDetail}`:'남은 시간 해당 없음'} title={running?`${remainingDetail}\n현재 단계에서 실제 처리한 양과 속도로 추정해요.`:undefined}>{running?remaining:'—'}</time>
+    <output aria-label="진행률" title={`${row.label||row.title}: 현재 단계 진행률`}>{percent===null?'—':`${percent}%`}</output><time data-estimate-state={running?estimate.state:undefined} aria-label={running?`남은 시간 ${remainingDetail}`:'남은 시간 해당 없음'} title={running?`${remainingDetail}\n현재 단계에서 실제 처리한 양과 속도로 추정해요.`:undefined}>{running?remaining:'—'}</time>
     {active&&row.canCancel?<button type="button" className="nubi-background-task-control" aria-label={`${row.title} 중지`} title="중지" onClick={()=>backgroundTasks.cancel(row.id)}><Icon name="xClose" size={14}/></button>:!active?<button type="button" className="nubi-background-task-control" aria-label={`${row.title} 기록 닫기`} title="기록 닫기" onClick={()=>backgroundTasks.dismiss(row.id)}><Icon name="xClose" size={14}/></button>:null}
    </li>;
   })}</ol>

@@ -1,7 +1,8 @@
 import {createProgressEstimator} from './remaining-time.mjs';
+import {wikiProgress} from './wiki-progress.mjs';
 const states=new Set(['queued','running','waiting','completed','failed','cancelled','interrupted']);
 export const taskIsActive=state=>['queued','running','waiting'].includes(state);
-const fields=['title','label','risk','state','value','max','phase','startedAt','finishedAt'];
+const fields=['title','label','completedLabel','risk','state','value','max','phase','startedAt','finishedAt'];
 export function createBackgroundTaskQueue({now=Date.now,historyLimit=30}={}){
  const rows=new Map(),actions=new Map(),estimates=new Map(),listeners=new Set();let serial=0,snapshot=[];
  const estimate=(id,at=now())=>{const row=rows.get(id);if(!row||row.state!=='running')return {state:'unknown'};if(!estimates.has(id))estimates.set(id,createProgressEstimator());return estimates.get(id)({id:row.phase||row.title,completed:row.value,total:row.max,now:at});};
@@ -43,5 +44,6 @@ export function mailImportTask(job){
 export function wikiPreparationTask(job){
  const id=backgroundJobId('wiki',job);if(!id)return null;
  const state=({running:'running',completed:'completed',cancelled:'cancelled',attention:'failed',paused:'waiting',partial:'waiting'})[job.state];if(!state)return null;
- return {id,title:'프로젝트 위키 준비',state,label:job.state==='partial'?'일부 완료. 남은 문서 확인':job.state==='paused'?'연결 대기':job.state==='attention'?'준비 결과 확인 필요':undefined,value:Number.isFinite(job.percent)?job.percent:null,max:100,startedAt:Date.parse(job.startedAt)};
+ const progress=wikiProgress(job);
+ return {id,title:'프로젝트 위키 준비',state,label:job.state==='partial'?`위키 ${job.pages||0}개 완료. 남은 문서 확인`:job.state==='paused'?'연결 대기':job.state==='attention'?'준비 결과 확인 필요':job.state==='completed'?`위키 ${job.pages||0}개 완료. 위키 보기`:progress.summary,completedLabel:`위키 ${job.pages||0}개 완료. 위키 보기`,risk:[progress.remainingLabel,progress.nextLabel,'진행률과 예상 시간은 현재 단계 기준입니다.'].filter(Boolean).join(' '),phase:progress.phase,value:progress.completed,max:progress.total||100,startedAt:Date.parse(job.startedAt),finishedAt:Date.parse(job.finishedAt)};
 }

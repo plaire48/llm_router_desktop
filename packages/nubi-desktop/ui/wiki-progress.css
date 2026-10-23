@@ -1,0 +1,10 @@
+.nubi-wiki-progress-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));list-style:none;margin:0;padding:var(--cx-space-1);gap:var(--cx-space-1);background:var(--deck-surface);border-radius:var(--deck-control-radius);font:var(--deck-font-caption);color:var(--nubi-text-secondary)}
+.nubi-wiki-progress-steps>li{display:flex;align-items:center;justify-content:center;gap:var(--cx-space-1);min-width:0;padding:var(--cx-space-2) var(--cx-space-1);border-radius:var(--deck-control-radius)}
+.nubi-wiki-progress-steps>li>svg{flex:none}
+.nubi-wiki-progress-steps>li[aria-current=step]{background:var(--nubi-brand-motion-surface);color:var(--deck-blue-deep);font-weight:var(--nubi-weight-label)}
+.nubi-wiki-progress-steps>li[data-complete]{color:var(--deck-blue-deep)}
+.nubi-wiki-progress-steps>li>span{overflow-wrap:anywhere}
+.nubi-wiki-initialization:not(.is-inline) .nubi-wiki-progress-meta{flex-wrap:wrap;white-space:normal}
+.nubi-wiki-next-stage{color:var(--nubi-text-secondary)}
+@media(max-width:480px){.nubi-wiki-progress-steps>li{flex-direction:column;text-align:center}}
+@media(forced-colors:active){.nubi-wiki-progress-steps>li[aria-current=step]{outline:1px solid Highlight;color:Highlight}}

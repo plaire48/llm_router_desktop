@@ -61,11 +61,12 @@
     "test:freeze-scenes:browser": "node scripts/check-freeze-scenes.mjs",
     "test:freeze-scenes:electron": "node scripts/check-freeze-scenes.mjs --electron",
     "test:gates:fast": "npm test && npm run design:check && npm run test:forms-ui && npm run test:mail-ui && npm run test:modals-ui && npm run test:responsiveness-ui && npm run test:shared-ui && node scripts/check-motion-performance.mjs after && npm run test:wave2-ui && npm run test:workspace-ui && npm run test:icons-ui && npm run test:chat-ui && node scripts/check-irreversible-ui.mjs && node scripts/check-community-wiki-ui.mjs && node scripts/check-profile-wiki-ui.mjs && node scripts/check-activity-readability.mjs && node scripts/check-review-failure-ui.mjs && node scripts/check-wiki-scope-ui.mjs && node scripts/check-wiki-durability-ui.mjs && node scripts/check-wiki-generation-ui.mjs && node scripts/check-wiki-coverage-ui.mjs && node scripts/check-wiki-search-ui.mjs && npm run test:safety && npm run test:lean-ui",
-    "test:gates:electron": "npm run build:electron && npm run test:ui && npm run test:skills-ui && npm run test:agent-ui && npm run test:live-web && npm run test:lifecycle && npm run test:all-surfaces && node scripts/check-electron-output-cards.mjs && node scripts/check-development-execution-electron.mjs && node scripts/check-electron-mcp-approval.mjs && node scripts/check-motion-quality.mjs && npm run test:freeze-scenes && npm run test:workspace-atmosphere && npm run test:background-tasks",
+    "test:gates:electron": "npm run build:electron && npm run test:ui && npm run test:skills-ui && npm run test:agent-ui && npm run test:live-web && npm run test:lifecycle && npm run test:all-surfaces && node scripts/check-electron-output-cards.mjs && node scripts/check-development-execution-electron.mjs && node scripts/check-electron-mcp-approval.mjs && node scripts/check-motion-quality.mjs && npm run test:freeze-scenes && npm run test:workspace-atmosphere && npm run test:background-tasks && npm run test:wiki-progress",
     "test:safety": "node --test --test-concurrency=1 tests/tool-budget.test.mjs tests/compaction-observations.test.mjs tests/compaction-reads.test.mjs tests/compaction-wiki-evidence.test.mjs tests/compaction-turn.test.mjs tests/irreversible-actions.test.mjs tests/approval-policy.test.mjs tests/mcp-approval-flow.test.mjs && node scripts/check-safety-regression.mjs",
     "test:lean-ui": "node scripts/check-removed-features-ui.mjs",
     "test:workspace-atmosphere": "node scripts/check-workspace-atmosphere.mjs",
-    "test:background-tasks": "node scripts/check-background-tasks.mjs && node scripts/check-background-tasks-electron.mjs"
+    "test:background-tasks": "node scripts/check-background-tasks.mjs && node scripts/check-background-tasks-electron.mjs",
+    "test:wiki-progress": "node scripts/check-project-preparation-ui.mjs"
   },
   "devDependencies": {
     "@types/node": "24.10.1",

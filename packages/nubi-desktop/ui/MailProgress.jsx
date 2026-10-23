@@ -10,14 +10,14 @@ import React,{useEffect,useRef,useState} from 'react';
 import {Icon} from '@e2e/cx-design-system';
 const stages={indexing:'메일 검색 준비 중',indexed:'메일 검색 준비 완료',ready:'정리 완료',connecting:'메일 연결 중',disconnected:'메일 연결 필요',off:'자동 정리 꺼짐',checking:'새 메일 확인 중',attachments:'첨부 읽는 중',organizing:'메일 정리 중',waiting_model:'모델 연결 대기',waiting_agent:'현재 작업 후 정리',queued:'정리 대기',paused:'수집 일시중지',attention:'확인 필요',watching:'새 메일 확인 대기'};
 const active=new Set(['connecting','checking','attachments','organizing','indexing']);
-export function MailProgress({api,wiki,activity,onSettings,onOpenMessage}){
+export function MailProgress({api,wiki,activity,onSettings,onOpenMessage,onOpenWiki}){
   const [status,setStatus]=useState(null),[unavailable,setUnavailable]=useState(false);
   const [open,setOpen]=useState(false),trigger=useRef(null);
   const queued=useBackgroundTasks();
   useEffect(()=>{const shell=document.querySelector('.desktop-shell');shell?.toggleAttribute('data-background-tasks',queued.length>0);if(shell&&queued.length)shell.dataset.backgroundTasks='true';return()=>shell?.removeAttribute('data-background-tasks');},[queued.length>0]);
   useEffect(()=>enableBackgroundTasks(),[]);
   useBackgroundTaskState(mailImportTask(status?.localImport),{open:onSettings,cancel:()=>api('mail',{action:'cancelImport'})});
-  useBackgroundTaskState(wikiPreparationTask(wiki),{cancel:()=>api('wikiInitialization',{action:'cancel'})});
+  useBackgroundTaskState(wikiPreparationTask(wiki),{open:onOpenWiki?()=>onOpenWiki(wiki):undefined,cancel:()=>api('wikiInitialization',{action:'cancel'})});
   useEffect(()=>{
     if(open)return; // The open panel owns its status and list snapshot.
     let alive=true,pending=false;
@@ -31,8 +31,8 @@ export function MailProgress({api,wiki,activity,onSettings,onOpenMessage}){
     const unsubscribe=window.nubi?.onHostEvent?.(event=>{if(['mail_pop3_connected','mail_portal_connected'].includes(event.type))void refresh();});
     return()=>{alive=false;clearInterval(timer);unsubscribe?.();};
   },[api,open]);
-  const showMail=!!status&&(status?.connected||status?.connecting||status?.counts?.received>0||status?.error&&status?.error!=='mail_cancelled'||open),showWiki=wiki?.state==='running';
-  if(!showMail&&!showWiki&&!activity&&!queued.length)return null;
+  const showMail=!!status&&(status?.connected||status?.connecting||status?.counts?.received>0||status?.error&&status?.error!=='mail_cancelled'||open),showWiki=wiki?.state==='running',wikiReady=wiki?.state==='completed'&&!!onOpenWiki;
+  if(!showMail&&!showWiki&&!wikiReady&&!activity&&!queued.length)return null;
   const progress=status?.progress||{stage:status?.connecting?'connecting':!status?.connected&&!status?.localCount?'disconnected':!status?.autoWiki?'off':status?.checking?'checking':status?.readingAttachments?'attachments':status?.summarizing?'organizing':status?.error?'attention':status?.watchPaused?'paused':'watching',completed:status?.counts?.saved||0,remaining:null,queued:status?.counts?.queued||0,attention:status?.counts?.attentionTotal??((status?.counts?.attention||0)+(status?.counts?.attachmentAttention||0))};
   // Current controls take precedence over a processing snapshot from before
   // stopping. Collection pause is distinct from turning auto organization off.
@@ -46,6 +46,7 @@ export function MailProgress({api,wiki,activity,onSettings,onOpenMessage}){
     <BackgroundTaskQueue/>
     <WorkspaceOperationStatus activity={activity}/>
     {showWiki&&<WikiInitializationProgress job={wiki} inline/>}
+    {wikiReady&&<button type="button" className="nubi-mail-progress-state nubi-mail-progress-open" aria-label={`위키 ${wiki.pages||0}개 완료, 위키 보기`} title="완료한 위키 보기" onClick={()=>onOpenWiki(wiki)}><Icon name="check" size={14}/><strong>위키 {wiki.pages||0}개 완료</strong><Icon name="chevronRight" size={14}/></button>}
     {showMail&&<><button ref={trigger} type="button" className="nubi-mail-progress-state nubi-mail-progress-open" aria-label="메일 처리 상태 확인" title="확인 필요한 메일과 조치 보기" aria-haspopup="dialog" aria-expanded={open} onClick={()=>setOpen(value=>!value)}>{active.has(stage)||(background&&stage==='watching')?<span className={`status-spinner${stage==='watching'?' nubi-mail-watching-spinner':''}`} aria-hidden="true"/>:<Icon name={stage==='attention'?'alertCircle':'mail'} size={14}/>}<strong>{unavailable?'상태 확인 중':stages[stage]||'메일 처리 중'}</strong></button>
     {showCounts&&<span className="nubi-mail-progress-counts">{progress.indexed>0&&<span>검색 가능 <b>{progress.indexed}</b></span>}{progress.completed>0&&<span>완료 <b>{progress.completed}</b></span>}{pending>0&&<span>{stopped?'보류':progress.remaining==null?'정리 대기':'남음'} <b>{pending}</b></span>}{progress.attention>0&&<span>확인 필요 <b>{progress.attention}</b></span>}</span>}
     {!stopped&&progress.timing&&<ResponseTime timing={progress.timing} label={progress.timing.kind==='saving'?'저장':'정리'} live/>}

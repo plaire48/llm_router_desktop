@@ -77,7 +77,7 @@ export function useBackgroundTaskState(task,controls){
  useEffect(()=>{
   if(!task?.id)return;
   backgroundTasks.update(task.id,task);
- },[task?.id,task?.title,task?.label,task?.risk,task?.state,task?.value,task?.max,task?.startedAt,task?.finishedAt]);
+ },[task?.id,task?.title,task?.label,task?.completedLabel,task?.risk,task?.state,task?.value,task?.max,task?.phase,task?.startedAt,task?.finishedAt]);
  useEffect(()=>{
   const id=task?.id;if(!id)return;const bound={};
   for(const key of ['open','cancel'])if(controlsRef.current[key])bound[key]=()=>{if(controlsRef.current.id===id)return controlsRef.current[key]?.();};

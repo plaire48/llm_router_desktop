@@ -193,8 +193,8 @@ export function installDesktopFeatures(Service){
       if(updateResult?.partial){
         check();const done=Object.entries(job.pageStates||{}).filter(([,page])=>page.state==='done').map(([rel])=>rel.replace(/^\/?openwiki\//,''));
         const preparedRoot=await realpath(temporary),paths=[];await verifyWikiPages(preparedRoot,done,{check});for(const rel of done)paths.push('.claims/'+rel.replace(/\.md$/,'.json'),rel);
-        job.stage='publishing';job.published||={};
-        await publishWikiOutput({root,copy:temporary,paths,published:job.published,check,save:()=>persist(true),onFile:(completed,target,value,created)=>{if(created)published.push({target,hash:value});}});
+        Object.assign(job,{stage:'publishing',stageStartedAt:new Date().toISOString(),total:paths.length,completed:0,percent:0});job.published||={};persist(true);
+        await publishWikiOutput({root,copy:temporary,paths,published:job.published,check,save:()=>persist(true),onFile:(completed,target,value,created)=>{if(created)published.push({target,hash:value});job.completed=completed;job.percent=Math.floor(100*completed/Math.max(1,job.total));persist();}});
         Object.assign(job,{state:'partial',partial:true,percent:null,canResume:true,pages:done.length,sourceFiles:sources.length,finishedAt:new Date().toISOString()});persist(true);return;
       }
       check();scopeJournal={...scopeJournal,done:round+1};

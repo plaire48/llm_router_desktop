@@ -19,6 +19,7 @@ for(const humanEdit of [false,true])test(`partial Wiki publishes verified pages 
  service.wikiInitializer=async({root:current,onEvent})=>{copy=current;await writePage(copy,'first');await writeFile(path.join(copy,'openwiki/.run.json'),'retained checkpoint fixture');onEvent({type:'durability',pages:{'/openwiki/first.md':{state:'done'},'/openwiki/second.md':{state:'skipped',error:'network'}},heartbeatAt:Date.now(),partial:true});return {partial:true};};
  await service.initializeWiki();await service.wikiInitPromise;
  const partial=service.wikiInitialization();assert.equal(partial.state,'partial',JSON.stringify(partial));assert.equal(partial.canResume,true);
+ assert.equal(partial.completed,2,'page and Claims file have both passed publication readback');assert.equal(partial.total,2,'partial publication counts output files, not the previous writing plan');assert.equal(partial.percent,null,'partial publication never claims the whole Wiki is complete');
  assert.equal(await readFile(path.join(root,'openwiki/first.md'),'utf8'),'# first\n');await access(path.join(copy,'openwiki/.run.json'));
  await assert.rejects(access(path.join(root,'openwiki/second.md')));
  if(humanEdit)await writeFile(path.join(root,'openwiki/first.md'),'Human edit\n');

@@ -1,10 +1,11 @@
 import React,{useLayoutEffect,useRef,useState} from 'react';
 import {CxButton,Icon} from '@e2e/cx-design-system';
-import {WikiInitializationProgress} from './WikiInitializationProgress.jsx';
+import {WikiInitializationProgress,WikiProgressSteps} from './WikiInitializationProgress.jsx';
 import {FolderMark} from './marks.jsx';
 import {TaskProgressBar} from './TaskProgressBar.jsx';
 import {backgroundJobId} from './background-task-queue.mjs';
 import {projectPreparation} from './project-preparation.mjs';
+import {wikiProgress} from './wiki-progress.mjs';
 import './project-wiki-progress.css';
 
 export function WikiProjectIdentity({name,root}){
@@ -26,19 +27,17 @@ export function useWorkbenchEdge(node){
   return edge;
 }
 export function ProjectWikiProgress({job,projectName,projectRoot,onStop,onSelectScope,onOpenWiki,connected}){
-  const [expanded,setExpanded]=useState(false),view=projectPreparation(job),ready=view.phase==='ready';
+  const [expanded,setExpanded]=useState(false),view=projectPreparation(job),ready=view.phase==='ready',progress=wikiProgress(job);
   return <section className="nubi-project-wiki-progress" data-preparation-phase={view.phase} aria-label="프로젝트 위키 작성">
     <div className="nubi-project-wiki-progress-body">
       <WikiProjectIdentity name={projectName} root={projectRoot}/>
       {job?.state==='running'&&onStop&&<CxButton data-icon-only onClick={onStop} aria-label="위키 작성 중지" title="위키 작성 중지"><Icon name="xClose" size={16}/></CxButton>}
     </div>
-    <ol className="nubi-project-journey" aria-label="프로젝트 준비 단계" style={{'--nubi-project-step':view.step}}>
-      {['연결','자료 정리','대화'].map((label,index)=><li key={label} aria-current={index===view.step?'step':undefined} data-complete={index<view.step||undefined}>{index<view.step?<Icon name="check" size={16}/>:index===0?<FolderMark size={16}/>:<Icon name={index===2?'message':'bookmark'} size={16}/>} {label}</li>)}
-    </ol>
+    <WikiProgressSteps job={job}/>
     <strong key={view.phase} className="nubi-project-journey-title" role="status">{view.title}</strong>
     {ready?<div className="nubi-project-ready"><p>{connected?'질문을 입력하면 이 프로젝트의 자료를 함께 참고해요.':'모델을 연결하면 이 프로젝트의 자료로 대화할 수 있어요.'}</p>{onOpenWiki&&<CxButton onClick={onOpenWiki}><Icon name="bookmark" size={16}/>위키 보기</CxButton>}</div>:<>
       <WikiInitializationProgress job={job} inline/>
-      {job?.state==='running'&&<TaskProgressBar backgroundTask={backgroundJobId('wiki',job)} label="프로젝트 자료 준비" value={job.percent}/>}
+      {job?.state==='running'&&<><TaskProgressBar backgroundTask={backgroundJobId('wiki',job)} label={`${progress.label} 진행률`} value={progress.completed??undefined} max={progress.total} valueText={progress.remainingLabel||undefined} estimate={{identity:progress.phase,completed:progress.completed,total:progress.total}}/><div className="nubi-wiki-progress-meta"><span>{progress.remainingLabel||progress.nextLabel}</span></div>{progress.percent===100&&<small className="nubi-wiki-next-stage">{progress.nextLabel}</small>}</>}
       {view.phase==='scope'&&onSelectScope&&<CxButton variant="primary" onClick={onSelectScope}><FolderMark size={16}/>범위 선택</CxButton>}
       <details className="deck-disclosure nubi-project-preparation-detail" open={expanded} onToggle={event=>setExpanded(event.currentTarget.open)}>
         <summary><Icon name="list" size={16}/><span>준비 상세</span><Icon name="chevronDown" size={16}/></summary>

@@ -1,5 +1,6 @@
 // What the OpenWiki update card shows. Text only: no input, no state.
 import {wikiModelErrors} from './wiki-model-errors.mjs';
+import {wikiUpdateProgress} from './wiki-progress.mjs';
 const FRESHNESS={source_changed:'원본이 바뀜',unavailable:'원본이 없음',document_changed:'페이지가 직접 바뀜'};
 const CHANGE={modified:'수정',added:'추가',deleted:'삭제'};
 const STAGE={snapshot_git:'분석 기준 준비',publishing:'저장 확인',preparing_runtime:'실행기 확인',preparing_skills:'준비 파일 연결',planning:'계획',replanning:'계획 다시 세움',generating:'페이지 작성',reviewing:'내용 검토',finalizing:'마무리',noop:'바뀐 페이지 없음'};
@@ -22,7 +23,8 @@ export function wikiUpdateView({status,update,initialization}){
   }
   if(update?.state==='running'){
     const last=[...(update.events||[])].reverse().find(event=>event.type==='progress');
-    const stage=last?(STAGE[last.stage]||last.stage)+(last.index&&last.total?` ${last.index}/${last.total}`:'')+(last.page?`: ${last.page}`:''):'준비';
+    const progress=wikiUpdateProgress(update);
+    const stage=progress.completed!==null?progress.summary:last?(STAGE[last.stage]||last.stage)+(last.index&&last.total?` ${last.index}/${last.total}`:'')+(last.page?`: ${last.page}`:''):'준비';
     return {title:'위키 갱신 중',lines:[stage,'복사본에서 실행해요. 끝나면 확인하고 반영합니다.'],pages:[],actions:['cancel']};
   }
   if(update?.state==='ready'){

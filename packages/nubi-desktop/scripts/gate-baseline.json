@@ -55,7 +55,8 @@
     "node scripts/check-removed-features-ui.mjs",
     "node scripts/check-workspace-atmosphere.mjs",
     "node scripts/check-background-tasks.mjs",
-    "node scripts/check-background-tasks-electron.mjs"
+    "node scripts/check-background-tasks-electron.mjs",
+    "node scripts/check-project-preparation-ui.mjs"
   ],
   "retiredFeatures": {
     "date": "2026-10-22",

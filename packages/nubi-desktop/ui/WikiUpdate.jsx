@@ -7,8 +7,9 @@ import {DeckStatus,DeckDisclosure} from '../../../extensions/aipro-chat/src/Deck
 import {wikiUpdateView} from './wiki-update-view.mjs';
 import {ApprovalBar} from './ApprovalBar.jsx';
 import {durationLabel} from '../runtime/response-timing.mjs';
-import {WikiPageProgress} from './WikiInitializationProgress.jsx';
+import {WikiPageProgress,WikiProgressSteps} from './WikiInitializationProgress.jsx';
 import {TaskProgressBar} from './TaskProgressBar.jsx';
+import {wikiUpdateProgress} from './wiki-progress.mjs';
 
 const errors={...wikiRefreshErrors,wiki_update_conflict:'갱신하는 동안 작업 공간의 페이지가 바뀌어 반영하지 않았어요. 다시 갱신해 주세요.',wiki_update_busy:'이미 갱신 중이에요.',wiki_model_confirmation:'보관한 작업의 모델이 바뀌었어요. 변경할 모델을 확인한 뒤 이어 주세요.',wiki_update_changed:'그 사이 저장소가 바뀌었어요. 상태를 다시 확인해 주세요.',wiki_update_not_needed:'위키가 이미 최신이에요.'};
 const states={partial:'일부 반영',running:'갱신 중',ready:'반영 대기',applied:'반영됨',failed:'실패',cancelled:'멈춤',discarded:'버림'};
@@ -43,7 +44,7 @@ export function WikiUpdate({api,openPath,initialization,onApplied,currentModel,c
   const run=()=>act(async()=>{setNotice('');const result=await api('wikiUpdate',update?.state==='proposed'&&update.coverageFiles?.length?{method:'run',id:update.id,fingerprint:update.fingerprint}:{method:'refresh'});setNotice(update?.state==='proposed'&&update.coverageFiles?(result.state==='ready'?'갱신 결과를 확인하고 반영해 주세요.':'선택한 파일 작성을 시작했어요.'):wikiRefreshNotice(result));await onApplied?.();});
   const [lead,...rest]=view.lines,modelUse=rest.find(line=>MODEL_USE.test(line)),notes=rest.filter(line=>line!==modelUse);
   const progress=update?.state==='running'?[...(update.events||[])].reverse().find(event=>event.type==='progress'):null;
-  const completed=progress?.stage==='generating'&&progress.total>0&&Number.isSafeInteger(progress.completed)?Math.max(0,Math.min(progress.total,progress.completed)):null;
+  const progressView=wikiUpdateProgress(update||{}),completed=progressView.completed;
   const duration=durationLabel(Math.max(0,now-Date.parse(update?.startedAt)));
   const state=update?.state==='running'&&duration?`진행 ${duration}`:update?.canResume?'보관됨':update?states[update.state]:data.status?.state==='current'?'최신':data.status?.state==='stale'?'갱신 필요':'';
   const pageList=<ul className="nubi-page-chips">{view.pages.map(page=><li key={page.path}>{update?.state==='proposed'&&update.coverageFiles?<span className="nubi-page-chip"><Icon name="file" size={14}/><span>{page.path}</span></span>:<CxButton className="nubi-page-chip" disabled={busy||update?.state==='running'} title={page.path} onClick={()=>openPath?.(page.path)}><Icon name="file" size={14}/><span>{page.path}</span><span className="nubi-page-change">{page.label}</span></CxButton>}</li>)}</ul>;
@@ -52,8 +53,8 @@ export function WikiUpdate({api,openPath,initialization,onApplied,currentModel,c
   const quietCurrent=!update&&data.status?.state==='current';
   return <section className="nubi-recovery-card nubi-wiki-update" aria-label="위키 갱신" data-current={quietCurrent||undefined}>
     <div className="nubi-action-head"><span className="nubi-action-tile" aria-hidden="true"><Icon name={quietCurrent?'check':'bookmark'} size={20}/></span><div><h3>{view.title}</h3>{lead&&<p>{lead}</p>}</div>{state&&!quietCurrent&&<DeckStatus>{state}</DeckStatus>}</div>
-    {update?.state==='running'&&<TaskProgressBar label="갱신 진행" value={completed??undefined} max={progress?.total}/>}
-    {update?.state==='running'&&<ProgressEstimate identity={`${update.id}:${progress?.stage}`} completed={completed} total={progress?.total}/>}
+    {update?.state==='running'&&<><WikiProgressSteps job={{...update,stage:progress?.stage||update.stage}}/><TaskProgressBar label="갱신 진행" phase={progressView.phase} value={completed??undefined} max={progressView.total} valueText={completed===null?undefined:`${progressView.label} ${progressView.percent}%, ${progressView.quantity}, ${progressView.remainingLabel}`}/><div className="nubi-wiki-progress-meta"><span>{progressView.quantity}</span><span>{progressView.remainingLabel}</span></div></>}
+    {update?.state==='running'&&<ProgressEstimate identity={progressView.phase} completed={completed} total={progressView.total}/>}
     {update&&<WikiPageProgress pages={update.pageStates} heartbeatAt={update.heartbeatAt} now={now}/>}
     {busy&&<p role="status" className="nubi-muted"><Icon name="refresh" size={16}/> 코드와 위키 확인 중</p>}
     {notice&&!busy&&!error&&<p role="status" className="nubi-muted">{notice}</p>}
