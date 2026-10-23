@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import {DESKTOP_FEATURES} from '../runtime/beta-features.mjs';
 import {WELCOME_GREETINGS} from '../ui/welcome-greetings.mjs';
 const dir=path.resolve('verification/activity-readability');await mkdir(dir,{recursive:true});
-await build({entryPoints:['tests/shared-ui-fixture.jsx'],outfile:path.join(dir,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.woff2':'file','.woff':'file','.webp':'file'},define:{__APP_VERSION__:'"fixture"','process.env.NODE_ENV':'"production"'}});
+await build({entryPoints:['tests/shared-ui-fixture.jsx'],outfile:path.join(dir,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.svg':'dataurl','.woff2':'file','.woff':'file','.webp':'file'},define:{__APP_VERSION__:'"fixture"','process.env.NODE_ENV':'"production"'}});
 await cp('../../extensions/aipro-chat/public/icons',path.join(dir,'icons'),{recursive:true});
 await writeFile(path.join(dir,'index.html'),'<!doctype html><html lang="ko"><title>Nubi synthetic flow check</title><link rel="stylesheet" href="app.css"><div id="root"></div><script type="module" src="app.js"></script></html>');
 const server=createServer(async(req,res)=>{try{const requested=path.resolve(dir,'.'+new URL(req.url,'http://localhost').pathname.replace(/\/$/,'/index.html'));if(!requested.startsWith(dir+path.sep))throw Error();const ext=path.extname(requested),data=await readFile(requested);res.writeHead(200,{'content-type':({'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.svg':'image/svg+xml','.woff2':'font/woff2','.webp':'image/webp'})[ext]||'application/octet-stream'}).end(data);}catch{res.writeHead(404).end();}});await new Promise(r=>server.listen(0,'127.0.0.1',r));
@@ -42,6 +42,13 @@ try{
   await captureDesign(p,{path:path.join(dir,`running-${width}.png`),animations:'disabled'});
   for(const row of await trace.locator(':scope > summary').all())await row.click();
   assert.equal(await trace.locator('li[data-tool]').count(),6);
+  for(const row of await trace.locator('li[data-tool]').all()){
+   assert.equal(await row.locator('.agent-step-status>svg').count(),1,'each step has one visible leading tool or attention icon');
+  }
+  for(const summary of await trace.locator(':scope>summary').all()){
+   const mark=summary.locator(':scope>svg').first();assert.equal(await mark.getAttribute('data-icon-set'),'lucide');
+   const box=await mark.boundingBox();assert(box.x>=0&&box.x+box.width<=width,'leading tool icons remain inside the window');
+  }
   await trace.locator('li[data-tool]').first().waitFor();// the opened fold renders its rows on the next React commit
   await plan.locator(':scope > summary').click();
   await plan.getByText('메일 원문 확인',{exact:true}).waitFor();
@@ -77,9 +84,18 @@ try{
   await p.mouse.move(0,0);await commandCopy.focus();assert.equal(await commandCopy.evaluate(e=>getComputedStyle(e.closest('.nubi-terminal-copy')).opacity),'1','keyboard reveals controls');
 await captureDesign(p,{path:path.join(dir,`execution-${width}.png`),animations:'disabled'});
   await p.locator('.nubi-conversation-scroll').evaluate(el=>{el.scrollTop=0;});
-  await p.evaluate(()=>window.activityState('paused'));await trace.locator('li[data-status=error]').waitFor();assert(await trace.locator('li[data-status=error]').isVisible());
+  await p.evaluate(()=>window.activityState('paused'));
+  const attention=activity.locator('.agent-trace[data-state=attention]');await attention.locator(':scope>summary').waitFor();
+  if(!await attention.evaluate(node=>node.open))await attention.locator(':scope>summary').click();
+  await attention.locator('li[data-status=error]').waitFor();assert(await attention.locator('li[data-status=error]').isVisible());
   await captureDesign(p,{path:path.join(dir,`attention-${width}.png`),animations:'disabled'});
   assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  if(width===1280){
+   const zoom=await p.addStyleTag({content:'html{font-size:200%!important}'});
+   assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'enlarged text has no window overflow');
+   const mark=attention.locator(':scope>summary>svg').first();const box=await mark.boundingBox();assert(box.x>=0&&box.width>=16);
+   await captureDesign(p,{path:path.join(dir,'attention-200-percent.png'),animations:'disabled'});await zoom.evaluate(node=>node.remove());
+  }
   await p.reload();
   const reopen=p.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await reopen.count())await reopen.click();
   await p.getByRole('button',{name:'대화 검색',exact:true}).click();await p.getByRole('dialog',{name:'대화 검색',exact:true}).locator('.nubi-history-item').first().click();
@@ -115,7 +131,7 @@ await captureDesign(p,{path:path.join(dir,`execution-${width}.png`),animations:'
  assert.equal(await review.locator('.nubi-review-fold').getAttribute('open'),null);
  await review.locator('.nubi-review-fold > summary').click();
  await review.locator('.nubi-review-open-items p').waitFor();
- assert(await review.getByText('파일 재열기 근거가 없습니다.',{exact:true}).isVisible());
+ assert(await review.locator('.nubi-review-open-items p').getByText('파일 재열기 근거가 없습니다.',{exact:true}).isVisible());
  assert.equal(await review.locator('.nubi-review-detail').getAttribute('open'),null);
  await review.scrollIntoViewIfNeeded();await captureDesign(p,{path:path.join(dir,'review-next-action.png'),animations:'disabled'});
  await p.goto('http://127.0.0.1:'+server.address().port+'/?integrated&progress&activity-readability&polling-response');
@@ -131,5 +147,5 @@ await captureDesign(p,{path:path.join(dir,`execution-${width}.png`),animations:'
  await p.locator('.nubi-command-record .nubi-terminal-state[data-state=completed]').waitFor();
  await p.locator('.nubi-command-record .nubi-terminal-output').getByText('실행 완료 확인',{exact:true}).waitFor();
  console.log('PASS: running agent plus command uses one state snapshot per cycle and presents final output.');
- assert.deepEqual(errors,[]);console.log('PASS: 1280/440/360px aligned activity heading and trace rows, chronological notes/tools, one timer, folded tools and plan criteria accessible, compact worker results, automatic error expansion. Synthetic Workbench flow.');
+ assert.deepEqual(errors,[]);console.log('PASS: 1280/440/360px aligned activity heading and trace rows, chronological notes/tools, one timer, folded tools and plan criteria accessible, compact worker results, attention marker and expandable error details. Synthetic Workbench flow.');
 }finally{await browser?.close();server.close();}

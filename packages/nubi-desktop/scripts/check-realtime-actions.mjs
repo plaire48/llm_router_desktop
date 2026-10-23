@@ -63,6 +63,13 @@ try{
   const journal=p.locator('.nubi-activity-record[open]').last();
   if(await journal.count()){await journal.locator(':scope>summary').click();await draft.waitFor({state:'visible',timeout:800});assert.equal(await draft.evaluate(node=>!!node.closest('details')),false,'public writing stays outside the folded journal');}
   await p.evaluate(()=>window.liveTool('read_source'));const operation=p.locator('[data-live-operation]');await operation.getByText('소스 읽기 중',{exact:true}).waitFor({timeout:800});assert.equal(await operation.evaluate(node=>!!node.closest('details')),false,'current action stays visible with its actual name');
+  assert.equal(await operation.locator(':scope>svg').getAttribute('data-icon'),'file','source work has its own leading icon while the journal is folded');
+  for(const [tool,label,icon] of [['source_search','프로젝트 파일 검색 중','search'],['propose_setup_action','실행할 명령 준비 중','terminal'],['read_process_output','실행 기록 확인 중','terminal'],['inspect_workspace_page','웹 화면 확인 중','browser'],['propose_patch','필요한 구간 수정 중','pencil']]){
+   await p.evaluate(tool=>window.liveTool(tool),tool);await operation.getByText(label,{exact:true}).waitFor({timeout:800});
+   assert.equal(await operation.locator(':scope>svg').getAttribute('data-icon'),icon);
+   assert.equal(await p.locator('.desktop-mail-progress [data-workspace-operation]>svg').getAttribute('data-icon'),icon,'footer and conversation describe the same actual tool');
+   if(tool==='propose_setup_action'&&[1280,440].includes(width))await captureDesign(p,{path:path.join(dir,`command-tool-${width}.png`)});
+  }
   await p.evaluate(()=>{window.liveTool(null);window.liveStream('첫 문장을 작성하고 있습니다.');});await operation.getByText('답변 작성 중',{exact:true}).waitFor();
   await p.evaluate(()=>window.liveStream('첫 문장을 작성하고 있습니다.\n두 번째 내용이 추가됩니다.'));
   await draft.getByText(/두 번째 내용이 추가됩니다/).waitFor();
@@ -82,6 +89,7 @@ try{
   await clickDecision(active.getByRole('button',{name:'답변 보내기',exact:true}));await p.locator('[data-decision-submission="live-question"]').waitFor();await p.waitForFunction(()=>window.liveCalls.filter(kind=>kind==='answer').length===2);await p.evaluate(()=>window.finishLiveAction());await p.locator('[data-question-receipt="live-question"]').waitFor();
   await p.evaluate(()=>window.liveCommand());await clickDecision(active.getByRole('button',{name:'승인',exact:true}));await p.locator('[data-decision-submission="live-command"]').waitFor();await p.waitForFunction(()=>window.liveCalls.includes('command'));
   const terminalAt=Date.now();await p.evaluate(()=>{window.openedTerminal=null;window.liveHoldReads();window.finishLiveAction();});await p.waitForFunction(()=>window.openedTerminal?.processId==='live-process',null,{timeout:800});const terminalRevealMs=Date.now()-terminalAt;await p.evaluate(()=>window.releaseLiveReads());const record=p.locator('.nubi-command-record');await record.waitFor();await p.locator('.desktop-mail-progress [data-workspace-operation]').getByText('명령 실행 중',{exact:true}).waitFor();
+  assert.equal(await p.locator('.desktop-mail-progress [data-workspace-operation]>svg').getAttribute('data-icon'),'terminal');
   await p.evaluate(()=>window.liveOutput());await p.getByLabel('실시간 실행 출력',{exact:true}).getByText(/v24.0.0/).waitFor();
   await record.locator('summary').click();await record.getByText(/v24.0.0/).waitFor();
   await captureDesign(p,{path:path.join(dir,`command-${width}.png`)});

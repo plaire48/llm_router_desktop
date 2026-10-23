@@ -83,7 +83,7 @@ function TraceJournal({owner, read, live, diagnostics = false}) {
   </details>;
 }
 
-export function AgentTrace({summaryTitle, summaryAside, renderStepDetails, renderStepElapsed, idleElapsed, compactStatuses = false, debugMode = false, steps, captures = [], question, completed, verified = false, live = false, journalOwner, readJournal, diagnosticOwner, readDiagnostics, traceOptions, preserveNotes = false, preserveCompleted = false, recentCompleted = 0, awaitingUser = false, stopped = false, defaultExpanded, idleLabel = '다음 단계 확인 중'}) {
+export function AgentTrace({summaryTitle, summaryIcon, summaryAside, renderStepIcon, renderStepDetails, renderStepElapsed, idleElapsed, compactStatuses = false, debugMode = false, steps, captures = [], question, completed, verified = false, live = false, journalOwner, readJournal, diagnosticOwner, readDiagnostics, traceOptions, preserveNotes = false, preserveCompleted = false, recentCompleted = 0, awaitingUser = false, stopped = false, defaultExpanded, idleLabel = '다음 단계 확인 중'}) {
   const [expanded, setExpanded] = useState(null), [showAll, setShowAll] = useState(false);
   const [opened, setOpened] = useState(() => new Set());
   const stepList=useRef(null),followSteps=useRef(true);
@@ -113,14 +113,14 @@ export function AgentTrace({summaryTitle, summaryAside, renderStepDetails, rende
     // Keep the reader's place if a new tool starts or the answer completes.
     if (open) setExpanded(true);
   };
-  return <TraceSurface open={expanded ?? defaultExpanded ?? (live || preserveNotes)} onOpenChange={setExpanded} live={live} running={running} waiting={waiting} stopped={stopped} attention={attention && !verified} summaryAside={summaryAside} title={summaryTitle || (!debugMode ? '진행 상황' : analyses.length && verified ? '메인 에이전트 완료' : undefined)}>
+  return <TraceSurface open={expanded ?? defaultExpanded ?? (live || preserveNotes)} onOpenChange={setExpanded} live={live} running={running} waiting={waiting} stopped={stopped} attention={attention && !verified} summaryIcon={summaryIcon} summaryAside={summaryAside} title={summaryTitle || (!debugMode ? '진행 상황' : analyses.length && verified ? '메인 에이전트 완료' : undefined)}>
     <ol ref={stepList} onScroll={event=>{const list=event.currentTarget;followSteps.current=list.scrollHeight-list.clientHeight-list.scrollTop<24;}}>{!!analyses.length && <li className="subagent-section"><SubagentProgress steps={analyses} live={live}/></li>}{visible.map((step, index) => {
       const key = step.id || `legacy-${steps.indexOf(step)}`;
       if (step.tool === 'progress_note') return <li key={key} className="agent-progress-note"><Icon name="message" size={14}/><MessageBody content={step.content} compact/></li>;
       const reason = SCRIPT_FAILURES[step.reason]?.[0];
       const label = step.status === 'error' ? traceOptions?.errorLabels?.[step.reason] || reason || traceOptions?.toolErrorLabels?.[step.tool] || statusText.error : step.status === 'waiting' && step.tool === 'ask_user' ? '답변 대기' : statusText[step.status];
       const images = step.id ? screenshots.filter(capture => capture.traceId === step.id) : [];
-      const content = <TraceStep status={step.status} elapsed={live&&step.status==='running'?renderStepElapsed?.(step):null} label={step.status === 'recovered' && reason ? `${reason} 이후 결과 검증 완료` : label}>{step.planStep && step.planStep !== visible[index - 1]?.planStep && <span className="agent-trace-plan"><InlineMarkdown content={step.planStep}/></span>}{step.label ? <InlineMarkdown content={step.label}/> : toolLabels[step.tool]}<span className={compactStatuses&&['running','done'].includes(step.status)?'visually-hidden':'agent-tool-state'} title={step.status==='error'&&step.reason?step.reason:undefined}> {step.status === 'running' ? '중' : label}</span></TraceStep>;
+      const content = <TraceStep status={step.status} icon={renderStepIcon?.(step)} elapsed={live&&step.status==='running'?renderStepElapsed?.(step):null} label={step.status === 'recovered' && reason ? `${reason} 이후 결과 검증 완료` : label}>{step.planStep && step.planStep !== visible[index - 1]?.planStep && <span className="agent-trace-plan"><InlineMarkdown content={step.planStep}/></span>}{step.label ? <InlineMarkdown content={step.label}/> : toolLabels[step.tool]}<span className={compactStatuses&&['running','done'].includes(step.status)?'visually-hidden':'agent-tool-state'} title={step.status==='error'&&step.reason?step.reason:undefined}> {step.status === 'running' ? '중' : label}</span></TraceStep>;
       return <li key={key} data-tool={step.tool} data-status={step.status} data-step-id={step.id}>
         {renderStepDetails?.(step,content) || (images.length ? <CaptureStep captures={images} onToggle={open => toggleCapture(step.id, open)}>{content}</CaptureStep> : content)}
       </li>;

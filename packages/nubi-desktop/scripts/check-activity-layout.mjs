@@ -23,7 +23,7 @@ try {
  assert.deepEqual(kinds,['note','tools','memo','tools','note','memo','tools']);
  assert.equal(await p.locator('.nubi-thoughts[open]').count(),0);
  assert.equal(await p.locator('.nubi-activity-sources').count(),1);
- const coordinates=await p.locator('.nubi-activity-record>summary,.nubi-thoughts>summary,.nubi-activity-sources>summary,.nubi-command-record>summary').evaluateAll(els=>els.map(el=>({kind:el.parentElement.className,x:el.getBoundingClientRect().x,icon:el.querySelector('svg')?.getBoundingClientRect().x,text:[...el.children].find(c=>c.tagName!=='svg')?.getBoundingClientRect().x})));
+ const coordinates=await p.locator('.nubi-activity-record>summary,.nubi-thoughts>summary,.nubi-activity-sources>summary,.nubi-command-record>summary,.nubi-working-status').evaluateAll(els=>els.map(el=>({kind:el.parentElement.className,x:el.getBoundingClientRect().x,icon:el.querySelector('svg')?.getBoundingClientRect().x,text:[...el.children].find(c=>c.tagName!=='svg')?.getBoundingClientRect().x})));
  assert(coordinates.length>=5);
  assert(Math.max(...coordinates.map(c=>c.icon))-Math.min(...coordinates.map(c=>c.icon))<=1,JSON.stringify(coordinates));
  assert(Math.max(...coordinates.map(c=>c.text))-Math.min(...coordinates.map(c=>c.text))<=1,JSON.stringify(coordinates));

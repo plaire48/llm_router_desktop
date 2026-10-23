@@ -1,5 +1,4 @@
 import {createResearchHandoff} from './research-handoff.js';
-import {appendFileSync} from 'node:fs';
 import {BaseChatModel} from '@langchain/core/language_models/chat_models';
 import {AIMessage} from '@langchain/core/messages';
 import {convertToOpenAITool} from '@langchain/core/utils/function_calling';
@@ -54,20 +53,6 @@ export function foldWikiWire(wire, {budget = WIKI_WIRE_BUDGET, keepLast = 8, min
   if (!folded.size) return wire;
   return wire.map((message, index) => folded.has(index) ? {...message, content: folded.get(index)} : message);
 }
-// Eval-only diagnostic (wiki quality scorecard, design C10): when the scorecard runner sets both
-// NUBI_WIKI_EVAL=1 and NUBI_WIKI_EVAL_TRACE=<file>, the newest tool result of every request is
-// appended there (tool name and the first 4,000 characters). Never set in the product.
-function traceNewestToolResult(wire) {
-  const file = process.env.NUBI_WIKI_EVAL === '1' ? process.env.NUBI_WIKI_EVAL_TRACE : '';
-  if (!file) return;
-  try {
-    const last = [...wire].reverse().find(message => message.role === 'tool');
-    if (!last) return;
-    let tool = null;
-    for (const message of wire) for (const call of message.tool_calls || []) if (call.id === last.tool_call_id) tool = call.function?.name;
-    appendFileSync(file, JSON.stringify({at: new Date().toISOString(), tool, characters: (last.content || '').length, content: String(last.content || '').slice(0, 4000)}) + '\n');
-  } catch { /* Diagnostics never change the run. */ }
-}
 // Credentials remain in the existing host transport. No OpenWiki CLI auth/environment is loaded.
 export class NubiOpenWikiModel extends BaseChatModel {
   constructor({complete, signal, modelId, taskId}) {super({}); this.complete = complete; this.parentSignal = signal; this.modelId = modelId; this.taskId = taskId;}
@@ -77,7 +62,6 @@ export class NubiOpenWikiModel extends BaseChatModel {
     const signal = options.signal ? AbortSignal.any([this.parentSignal, options.signal]) : this.parentSignal;
     signal.throwIfAborted();
     const wire = foldWikiWire(wikiWire(messages));
-    traceNewestToolResult(wire);
     const response = await this.complete(wire, options.tools || [], {signal, taskId:this.taskId, role:'research', modelId:this.modelId});
     signal.throwIfAborted();
     if (response.finishReason === 'length') throw new Error('output_limit');

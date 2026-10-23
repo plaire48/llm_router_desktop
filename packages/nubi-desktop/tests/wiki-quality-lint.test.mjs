@@ -1,6 +1,9 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {lintPages,gradeWikiUse} from '../eval/wiki-quality/run.mjs';
+import {mkdtemp,readFile,rm} from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import {lintPages,gradeWikiUse,traceNewestWikiToolResult} from '../eval/wiki-quality/run.mjs';
 
 test('usage grading normalizes page paths but requires current target-source evidence beyond a plan link',()=>{
  const row={path:'openwiki/guide.md',freshness:'unverified',sourceReferences:[]},linked=['openwiki/guide.md'];
@@ -28,4 +31,12 @@ test('repository-aware evaluation accepts an existing source README link and sti
  const pages={'guide.md':'# Guide\n\n[Source](../README.md)\n[Missing](../missing.md)\n'};
  const result=lintPages(pages,{repositoryPaths:['README.md']});
  assert.equal(result.brokenLinks,1);assert.equal(result.rows[0].issues[0].target,'missing.md');
+});
+
+test('evaluation-only diagnostics preserve the newest bounded tool result without changing messages or throwing',async t=>{
+ const root=await mkdtemp(path.join(os.tmpdir(),'nubi-wiki-trace-'));t.after(()=>rm(root,{recursive:true,force:true}));
+ const file=path.join(root,'trace.jsonl'),wire=[{role:'assistant',tool_calls:[{id:'first',function:{name:'read_file'}},{id:'latest',function:{name:'grep'}}]},{role:'tool',tool_call_id:'first',content:'older fixture result'},{role:'tool',tool_call_id:'latest',content:'synthetic '.repeat(1000)}],original=structuredClone(wire);
+ traceNewestWikiToolResult(wire,file);const row=JSON.parse((await readFile(file,'utf8')).trim());
+ assert.equal(row.tool,'grep');assert.equal(row.characters,wire.at(-1).content.length);assert.equal(row.content.length,4000);assert.deepEqual(wire,original);
+ assert.doesNotThrow(()=>traceNewestWikiToolResult(wire,path.join(root,'missing','trace.jsonl')));
 });

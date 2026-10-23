@@ -6,6 +6,7 @@
 //
 // Usage: node eval/wiki-quality/run.mjs --root <repo> --out <dir> [--model claude-sonnet-5-5] [--probes 10] [--skip-init] [--timeout-min 40]
 import {mkdir,readFile,rm,writeFile,readdir} from 'node:fs/promises';
+import {appendFileSync} from 'node:fs';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {lintWikiPages,inspectWikiPage,summarizeWikiQuality} from '../../runtime/wiki-quality.mjs';
@@ -21,14 +22,22 @@ export function gradeWikiUse(file,rows,linkedPages){
  return {linked:hits.some(row=>linked.has(page(row.path))),grounded:hits.some(row=>row.freshness==='source_matched'&&row.sourceReferences?.some(ref=>ref.path===file&&ref.state==='source_matched'))};
 }
 
+// Evaluation diagnostics belong to this Node runner, never to the shared
+// browser model adapter. A failed trace cannot affect model execution.
+export function traceNewestWikiToolResult(wire,file){
+ try{
+  const last=wire.findLast(message=>message.role==='tool');if(!last)return;
+  const tool=wire.flatMap(message=>message.tool_calls||[]).find(call=>call.id===last.tool_call_id)?.function?.name||null;
+  appendFileSync(file,JSON.stringify({at:new Date().toISOString(),tool,characters:(last.content||'').length,content:String(last.content||'').slice(0,4000)})+'\n');
+ }catch{ /* Diagnostics never change the run. */ }
+}
+
 const isMain=process.argv[1]&&pathToFileURL(path.resolve(process.argv[1])).href===import.meta.url;
 if(isMain)await main();
 async function main(){
 const option=name=>{const at=process.argv.indexOf('--'+name);return at>0?process.argv[at+1]:undefined;};
 const root=option('root')&&path.resolve(option('root')),out=option('out')&&path.resolve(option('out')),model=option('model')||'claude-sonnet-5-5',probes=Number(option('probes')||10),timeoutMs=Number(option('timeout-min')||40)*60000,skipInit=process.argv.includes('--skip-init');
 if(!root||!out){console.error('사용법: node eval/wiki-quality/run.mjs --root <repo> --out <dir> [--model] [--probes N] [--skip-init] [--timeout-min M]');process.exit(2);}
-// Eval-only diagnostic (design C10): the adapter appends the newest tool result of every request to out/trace.jsonl.
-process.env.NUBI_WIKI_EVAL='1';process.env.NUBI_WIKI_EVAL_TRACE=path.join(out,'trace.jsonl');
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 await mkdir(out,{recursive:true});
 process.env.OPENWIKI_CONFIG_DIR=path.join(out,'openwiki-home');
@@ -51,6 +60,8 @@ const report={root,model,startedAt:new Date().toISOString(),steps:{}};
 let service,providers;
 try{
  providers=createDesktopProviders({hostLabel:'누비 위키 품질 점검'});
+ const complete=providers.complete.bind(providers);
+ providers.complete=(...args)=>{traceNewestWikiToolResult(args[0],path.join(out,'trace.jsonl'));return complete(...args);};
  await providers.connect({provider:'claude'});if(!providers.status().models.some(m=>m.id===model))throw Error('model_unavailable:'+model);await providers.model(model);
  report.connection={provider:providers.status().provider,model:providers.status().model,plan:providers.status().plan||null};
  if(!skipInit)await rm(path.join(root,'openwiki'),{recursive:true,force:true});

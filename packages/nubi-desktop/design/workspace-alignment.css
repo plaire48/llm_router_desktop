@@ -115,12 +115,12 @@
 .desktop-shell .nubi-workbench .nubi-conversation-wrap :is(
  .nubi-activity-record>summary,.nubi-thoughts>summary,.nubi-command-record>summary,
  .nubi-activity-sources>summary,.agent-trace>summary,
- .task-plan [data-plan-overview]>summary,.nubi-document-progress-heading
+ .task-plan [data-plan-overview]>summary,.nubi-document-progress-heading,.nubi-working-status
 ){position:relative;padding-inline-start:0}
 .desktop-shell .nubi-workbench .nubi-conversation-wrap :is(
  .nubi-activity-record>summary,.nubi-thoughts>summary,.nubi-command-record>summary,
  .nubi-activity-sources>summary,.agent-trace>summary,
- .task-plan [data-plan-overview]>summary,.nubi-document-progress-heading
+ .task-plan [data-plan-overview]>summary,.nubi-document-progress-heading,.nubi-working-status
 )>svg:first-child{
  position:absolute;inset-inline-start:calc(-1 * (var(--nubi-transcript-icon-size) + var(--nubi-activity-gap)));
 }

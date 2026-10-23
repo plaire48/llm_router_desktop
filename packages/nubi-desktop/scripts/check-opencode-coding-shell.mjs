@@ -33,6 +33,11 @@ try{
  const state=await request('state',{taskId:task.id}),current=state.tasks.find(item=>item.id===task.id);
  assert.equal(current.executionEngine.id,'opencode');assert.equal(current.executionEngine.version,'1.19.4');assert(current.executionEngine.sessionId);assert.equal(await readFile(path.join(root,'app.ts'),'utf8'),original);
  const proposal=state.proposals.find(item=>item.taskId===task.id);assert.equal(proposal.content,'export function value() {\r\n    return 2;\r\n}\r\n');checks.push('actual built renderer and worker use the bundled original OpenCode before host approval');
+ const record=page.locator('.nubi-activity-record').last();if(!await record.evaluate(node=>node.open))await record.locator(':scope>summary').click();
+ for(const summary of await record.locator('.agent-trace>summary').all())await summary.click();
+ await record.locator('li[data-tool=read_source] .agent-step-status>svg[data-icon=file]').first().waitFor();
+ assert(await record.locator('.agent-trace>summary>svg[data-icon-set=lucide]').count()>0);
+ checks.push('actual OpenCode host tool records display semantic leading icons before applying the change');
  const dismiss=page.locator('.nubi-feedback-toast').getByRole('button',{name:'알림 닫기',exact:true});if(await dismiss.count())await dismiss.click();await captureDesign(page,{path:out+'/proposal-1280.png'});await resize(440);await captureDesign(page,{path:out+'/proposal-440.png'});
  await active.getByRole('button',{name:'반영',exact:true}).click();await page.waitForFunction(()=>!document.querySelector('[data-decision-panel]:not([hidden]) .nubi-proposal-card'));
  await new Promise((resolve,reject)=>{const deadline=Date.now()+10000;const poll=async()=>{if((await readFile(path.join(root,'app.ts'),'utf8')).includes('return 2;'))resolve();else if(Date.now()>deadline)reject(Error('apply_timeout'));else setTimeout(poll,50);};void poll();});

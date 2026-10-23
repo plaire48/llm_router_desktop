@@ -56,6 +56,7 @@ import {WorkspaceInputs} from './WorkspaceInputs.jsx';
 import {LiveDraft} from './LiveDraft.jsx';
 import {WorkspaceActivity,toolLabels} from './WorkspaceActivity.jsx';
 import {workspaceOperation} from './workspace-operation.mjs';
+import {Icon as ToolIcon} from './LucideIcon.jsx';
 import {conversationActivity} from './conversation-activity.mjs';
 import {NubiPreparing} from './NubiPreparing.jsx';
 
@@ -1015,7 +1016,7 @@ export function Workbench({onActivityChange,detailHost,createEditorDraft,connect
           {!reviewMessage&&<div ref={setReviewSlot} className="nubi-review-slot"/>}
           {!showProgress&&!running&&task.resultReview&&(!task.resultReview.runId||task.resultReview.runId===activityRunId)&&(task.resultReview.status!=='ready'||task.resultReview.nextStep||task.resultReview.checks?.some(check=>check.state!=='supported'))&&<AnalysisReviewProgress review={{...task.resultReview,state:task.resultReview.status==='error'?'failed':task.resultReview.status}} running={false}/>}
           {running&&<LiveDraft task={task}/>}
-          {running&&<p className="nubi-launch-progress nubi-working-status nubi-progress-atmosphere" role="status" data-live-operation><span className="status-spinner" aria-hidden="true"/><span>{footerOperation?.label||'요청한 동작 처리 중'}</span><ResponseTime timing={task.responseTiming} label="" showIcon={false} live/></p>}
+          {running&&<p className="nubi-launch-progress nubi-working-status nubi-progress-atmosphere" role="status" data-live-operation>{footerOperation?.icon&&<ToolIcon name={footerOperation.icon} size={16}/>}<span>{footerOperation?.label||'요청한 동작 처리 중'}</span><span className="status-spinner" aria-hidden="true"/><ResponseTime timing={task.responseTiming} label="" showIcon={false} live/></p>}
           {/* Commands of runs not shown as records above (older records without a run) keep their place here. */}
           {commandCards(taskActions.filter(a=>a.state!=='proposed'&&(!a.runId||!placedRunIds.has(a.runId))))}
           {/* The run stopped at its call or time budget (bundle 3.3, 2026-10-15): say so and offer to go on. */}
