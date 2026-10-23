@@ -2,6 +2,7 @@ import {MailListClient} from './mail-list-client.mjs';
 import {mailFilters} from './mail-search-options.mjs';
 import {mailSender} from './mail-presentation.mjs';
 import {mailPreview} from './mail-preview.mjs';
+import {mailRoleValue} from './mail-recipient-role.mjs';
 export class MailListService {
   constructor(owner){this.owner=owner;this.store=owner.store;this.disk=new MailListClient(this.store.directory);}
   dispose(){return this.disk.close();}
@@ -11,7 +12,7 @@ export class MailListService {
     filters=mailFilters(filters);
     const packet=await this.disk.request('page',{query,filters,sort,limit,cursor,page,relatedTo});
     const results=packet.items.map(({row,mail,local,metadataKnown})=>{
-      const role=this.owner.recipientRole?.(mail,row)||row.recipientRole||'unknown';
+      const role=mailRoleValue(this.owner.recipientRole?.(mail,row)||row.recipientRole);
       return {id:row.id,sourceId:row.id,sourceHash:row.sourceHash,title:mail.subject,subject:mail.subject,from:mail.from,senderLabel:mailSender(mail),recipientRole:role,mailbox:row.mailbox||'inbox',date:mail.date,fetchedAt:row.fetchedAt,state:row.state,attachmentState:row.attachmentState,attachmentCount:metadataKnown?mail.attachments.length:null,metadataKnown,local,preview:mailPreview({...mail,text:''},[],{}),excerpt:'',matches:[],sourceState:'metadata',mail:{from:mail.from,date:mail.date,savedAt:row.savedAt||null}};
     });
     const {items,...paging}=packet;

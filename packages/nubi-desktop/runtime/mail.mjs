@@ -17,6 +17,7 @@ import {separateDesktopStorage} from './mail-desktop-source.mjs';
 import {DesktopUiaMailSource,uiaMailCapture} from './mail-desktop-uia.mjs';
 import {desktopMailReference,desktopReferenceMetadata,readDesktopMailReference} from './mail-desktop-reference.mjs';
 import {recipientRole as classifyRecipient,mailAddresses} from './mail-presentation.mjs';
+import {mailRoleValue} from './mail-recipient-role.mjs';
 import {applyPortalMetadata} from './portal-mail-metadata.mjs';
 import {DESKTOP_FEATURES} from './beta-features.mjs';
 import {responseTimer} from './response-timing.mjs';
@@ -482,12 +483,12 @@ export class PersonalMail {
   }
   recipientRole(mail,row){
     if(row.mailbox==='sent')return 'sent';
-    if(row.protocol==='portal'&&mail.receivedAddress){for(const role of ['to','cc','bcc'])if((mail.recipientAddresses?.[role]||mailAddresses(mail[role])).some(address=>address.toLowerCase()===mail.receivedAddress))return role;return 'unknown';}
+    if(row.protocol==='portal'&&mail.receivedAddress){for(const role of ['to','cc','bcc'])if((mail.recipientAddresses?.[role]||mailAddresses(mail[role])).some(address=>address.toLowerCase()===mail.receivedAddress))return role;return 'bcc';}
     const keys=this.store.get('mail-identities:'+row.account)||[];
-    if(keys.length){for(const role of ['to','cc','bcc'])if((mail.recipientAddresses?.[role]||mailAddresses(mail[role])).some(address=>keys.includes(sha(address.trim().toLowerCase()))))return role;return 'unknown';}
+    if(keys.length){for(const role of ['to','cc','bcc'])if((mail.recipientAddresses?.[role]||mailAddresses(mail[role])).some(address=>keys.includes(sha(address.trim().toLowerCase()))))return role;return 'bcc';}
     if(row.account===this.account&&this.credentials){const role=classifyRecipient(mail,this.credentials.user);if(role!=='unknown')return role;}
     for(const role of ['to','cc','bcc'])for(const address of mailAddresses(mail[role]))if(Object.values(servers).some(server=>sha(server.host+'\0'+address)===row.account))return role;
-    return row.recipientRole&&row.recipientRole!=='unknown'?row.recipientRole:'unknown';
+    return mailRoleValue(row.recipientRole);
   }
   knownUids(account){return this.rows().filter(row=>row.account===account).map(row=>row.uidl);}
   // Mail and attachment originals live under the mail folder unless the person picked another place (user request 2026-10-14).

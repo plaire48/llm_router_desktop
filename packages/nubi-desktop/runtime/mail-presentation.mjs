@@ -1,11 +1,12 @@
+import {mailRoleValue} from './mail-recipient-role.mjs';
 export const MAIL_SORTS=['relevance','newest','oldest','subject-asc','subject-desc','sender-asc','sender-desc','role-asc','role-desc'];
-export const mailRoleLabel=value=>({to:'수신',cc:'참조',bcc:'비밀참조',sent:'발신',unknown:'미확인'})[value]||'미확인';
+export const mailRoleLabel=value=>({to:'수신',cc:'참조',bcc:'비밀참조',sent:'발신'})[mailRoleValue(value)];
 export function mailAddresses(value){return [...String(value||'').matchAll(/[^\s<>;,"()]+@[^\s<>;,"()]+/g)].map(match=>match[0]);}
 export function recipientRole(mail,recipient){
  if(!recipient||!recipient.includes('@'))return 'unknown';
  const key=recipient.trim().toLowerCase();
  for(const role of ['to','cc','bcc'])if(mailAddresses(mail[role]).some(address=>address.toLowerCase()===key))return role;
- // Missing To/Cc is not proof of Bcc: aliases and mailing lists are possible.
+ // Keep header matching literal; normalize the product category separately.
  return 'unknown';
 }
 export function mailSender(mail){

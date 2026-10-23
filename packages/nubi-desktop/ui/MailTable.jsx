@@ -3,6 +3,7 @@ import React,{memo,useEffect,useLayoutEffect,useMemo,useRef} from 'react';
 import {Icon} from '@e2e/cx-design-system';
 import {MailMatchText} from './MailMatchText.jsx';
 import {mailSender,mailRoleLabel,mailTableDate} from '../runtime/mail-presentation.mjs';
+import {mailRoleValue} from '../runtime/mail-recipient-role.mjs';
 import './mail-table.css';
 import {useProgressiveList} from './useProgressiveList.js';
 import {MailColumnFilter} from './MailColumnFilter.jsx';
@@ -27,6 +28,6 @@ const MailRow=memo(function MailRow({row,index,checked,opened,blocked,selecting,
   <td onClick={event=>event.stopPropagation()}><label className="nubi-mail-select"><input type="checkbox" aria-label={`${row.title||'제목 없음'} 선택`} checked={checked} disabled={blocked||selecting} onChange={()=>toggle(row)}/></label></td>
   <td><button className="nubi-mail-result" disabled={blocked} aria-pressed={opened} title={row.title||'제목 없음'}><span>{row.local?.pinned&&<Icon name="bookmark" size={15} className="nubi-mail-pinned-mark"/>}<Icon name="mail" size={18}/><strong><MailMatchText text={row.title||'제목 없음'} query={query}/></strong>{row.attachmentCount>0&&<Icon name="file" size={14}/>}</span>{query&&<small><MailMatchText text={row.preview||row.excerpt||''} query={query}/></small>}</button></td>
   <td title={row.senderLabel||mailSender(row)}><MailMatchText text={row.senderLabel||mailSender(row)} query={query}/></td>
-  <td><span className="nubi-mail-role" data-role={row.recipientRole||'unknown'} title={!row.recipientRole||row.recipientRole==='unknown'?'본인 메일 주소와 원문의 To/Cc/Bcc가 일치하지 않아요. 메일 설정의 수신 구분을 확인해 주세요.':undefined}>{mailRoleLabel(row.recipientRole)}</span></td>
+  <td><span className="nubi-mail-role" data-role={mailRoleValue(row.recipientRole)}>{mailRoleLabel(row.recipientRole)}</span></td>
   <td><time dateTime={row.date||undefined}>{mailTableDate(row.date)}</time></td>
  </tr>;});

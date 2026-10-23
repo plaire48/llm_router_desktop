@@ -41,6 +41,13 @@ test('filters precede paging and pinned metadata changes invalidate cursors',t=>
  assert.throws(()=>index.page({limit:100000}),/mail_input_invalid/);
  assert.throws(()=>index.page({limit:10,cursor:'garbage'}),/mail_input_invalid/);
 });
+test('Bcc filtering and sorting include legacy unknown and absent recipient categories',t=>{
+ const {index,put,db}=fixture(t);
+ for(const [id,role] of [['m000','unknown'],['m001','bcc'],['m002','cc']]){const row=JSON.parse(db.prepare('SELECT value FROM records WHERE key=?').get('mail:'+id).value);put('mail:'+id,{...row,recipientRole:role});}
+ index.sync();const page=index.page({filters:{roles:['bcc']},sort:'role-asc',limit:100});
+ assert.equal(page.total,119);assert(page.items.some(item=>item.row.id==='m000'));assert(page.items.some(item=>item.row.id==='m001'));assert(!page.items.some(item=>item.row.id==='m002'));
+ const second=index.page({filters:{roles:['bcc']},sort:'role-asc',limit:100,cursor:page.nextCursor});assert.equal(new Set([...page.items,...second.items].map(item=>item.row.id)).size,119);
+});
 test('disk status counts and latest completed timing match the existing scoped contract',t=>{
  const {index,put}=fixture(t);
  put('mail:m001',{id:'m001',account:'a',state:'attention',error:'mail_summary_failed',attachmentState:'attention',attachmentFailures:[{error:'document_read_failed'}]});

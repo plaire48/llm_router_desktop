@@ -11,9 +11,15 @@ function fixture(){
   rows.forEach(row=>data.set('mail:'+row.id,row));
   return {search:new MailSearch(owner),rows,sources};
 }
+test('Bcc search covers unclassified stored mail and old unknown filters without changing headers',async()=>{
+ const {search,rows,sources}=fixture();rows[0].recipientRole='unknown';rows[1].recipientRole='cc';
+ const before=structuredClone(sources);const result=await search.search({filters:{roles:['bcc']}});
+ assert.equal(result.total,1);assert.equal(result.results[0].id,'one');assert.equal(result.results[0].recipientRole,'bcc');
+ assert.equal((await search.search({filters:{roles:['unknown']}})).total,1);assert.deepEqual(sources,before);
+});
 test('ordinary terms ignore URL tracking parameters across chunks while exact URLs remain searchable',async()=>{
   const {search,sources}=fixture();
-  sources.one.from=sources.two.from='LinkedIn <notice@linkedin.com>';
+  sources.one.from=sources.two.from='LinkedIn <notice@linkedin.example.test>';
   sources.one.text='RAG 기초 강의 자료';
   sources.two.text='메시지 알림 https://linkedin.com/messaging?token='+ 'a'.repeat(1400)+'RAGtail';
   const result=await search.search({query:'LinkedIn RAG'});

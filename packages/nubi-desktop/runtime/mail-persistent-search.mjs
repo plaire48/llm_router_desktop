@@ -3,6 +3,7 @@ import {createHash,createHmac,randomBytes} from 'node:crypto';
 import {chmod,lstat,rm} from 'node:fs/promises';
 import {setImmediate as yieldTurn} from 'node:timers/promises';
 import {createPersistentWikiIndex} from '../generated/openwiki.mjs';
+import {MAIL_RECIPIENT_ROLE_SQL} from './mail-recipient-role.mjs';
 
 // The existing vault owns the key. No body, attachment text or new plaintext
 // source cache is persisted here. FTS sees keyed tokens only.
@@ -84,7 +85,7 @@ export class PersistentMailSearch {
  }
  eligible(filters,relatedTo){
   const base=this.store.mailList.where(filters),clauses=base.sql?[base.sql.slice(7)]:[],args=[...base.args];
-  if(filters.roles?.length){clauses.push(`coalesce(json_extract(m.metadata,'$.row.recipientRole'),'unknown') IN (${filters.roles.map(()=>'?').join(',')})`);args.push(...filters.roles);}
+  if(filters.roles?.length){clauses.push(`${MAIL_RECIPIENT_ROLE_SQL} IN (${filters.roles.map(()=>'?').join(',')})`);args.push(...filters.roles);}
   if(filters.filename){clauses.push("m.known=1 AND EXISTS(SELECT 1 FROM json_each(m.metadata,'$.mail.attachments') a WHERE nubi_mail_contains(json_extract(a.value,'$.filename'),?))");args.push(filters.filename);}
   if(filters.types?.length){clauses.push(`m.known=1 AND EXISTS(SELECT 1 FROM json_each(m.metadata,'$.mail.attachments') a WHERE nubi_mail_kind(json_extract(a.value,'$.filename'),json_extract(a.value,'$.contentType')) IN (${filters.types.map(()=>'?').join(',')}))`);args.push(...filters.types);}
   if(relatedTo){const root=this.store.db.prepare('SELECT account,thread FROM mail_list WHERE id=?').get(relatedTo);if(!root)throw Error('mail_missing');clauses.push('m.account=? AND m.thread=? AND m.id!=?');args.push(root.account,root.thread,relatedTo);}

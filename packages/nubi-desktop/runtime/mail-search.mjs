@@ -4,6 +4,7 @@ import {MailListService} from './mail-list-service.mjs';
 import {MailListClient} from './mail-list-client.mjs';
 import {LOCAL_MAIL_KINDS,APPROVAL_KINDS} from './mail-file-kinds.mjs';
 import {MAIL_SORTS,mailSender,mailRoleLabel} from './mail-presentation.mjs';
+import {mailRoleValue} from './mail-recipient-role.mjs';
 import {DESKTOP_FEATURES} from './beta-features.mjs';
 import {mailRelations} from './mail-relations.cjs';
 import MiniSearch from 'minisearch';
@@ -22,7 +23,7 @@ const addresses=value=>[...new Set((String(value||'').match(/[^\s<>;,"()]+@[^\s<
 function fits(entry,filters,user) {
   const {mail,row}=entry,date=Date.parse(row[filters.dateField]);
   if(filters.subject&&!lower(mail.subject).includes(lower(filters.subject)))return false;
-  if(filters.roles.length&&!filters.roles.includes(entry.recipientRole||'unknown'))return false;
+  if(filters.roles.length&&!filters.roles.includes(mailRoleValue(entry.recipientRole)))return false;
   if(filters.mailbox==='mail'&&APPROVAL_KINDS.includes(row.mailbox))return false;
   if(filters.mailbox.startsWith('local:')&&(row.protocol!=='local'||row.mailbox!==filters.mailbox.slice(6)))return false;
   if(!['all','mail'].includes(filters.mailbox)&&!filters.mailbox.startsWith('local:')&&(filters.mailbox.startsWith('folder:')?String(row.folderId)!==filters.mailbox.slice(7):(row.mailbox||'inbox')!==filters.mailbox))return false;
@@ -98,7 +99,7 @@ export class MailSearch {
           }else entry={...entry,row};
           if(budget){estimatedBytes+=Math.max(16384,Buffer.byteLength(JSON.stringify(entry))*6);if(estimatedBytes>=budget.maxBytes){this.memoryCache.clear();throw Error('mail_body_search_pending');}this.memoryCache.set(row.id,entry);}
           if(selectedRows){const bytes=2*((entry.mail.text?.length||0)+(entry.knowledge?.length||0)+entry.mail.attachments.reduce((sum,a)=>sum+(a.text?.length||0)+(a.segments||[]).reduce((n,s)=>n+(s.text?.length||0),0),0));if(estimatedBytes+bytes>64*1024*1024){readLimited=true;break;}estimatedBytes+=bytes;}
-          entries.push({...entry,recipientRole:this.owner.recipientRole?.(entry.mail,row)||row.recipientRole||'unknown'});
+          entries.push({...entry,recipientRole:mailRoleValue(this.owner.recipientRole?.(entry.mail,row)||row.recipientRole)});
         }catch(error){if(error.message==='mail_body_search_pending')throw error;unavailable.push(row.id);}
       }
       return {entries,unavailable,readLimited};
@@ -155,7 +156,7 @@ export class MailSearch {
       const {row,mail}=entry,hits=groups.get(row.id).sort((a,b)=>b.score-a.score),unique=[];
       for(const hit of hits)if(!unique.some(other=>other.kind===hit.kind&&other.attachmentId===hit.attachmentId&&other.page===hit.page&&other.slide===hit.slide&&other.sheet===hit.sheet)){unique.push(hit);}
       const match=(query?unique[0]:null)||{kind:'body',excerpt:excerpt(mail.text,[]),start:0};
-      return {...(relationById.has(row.id)?{relationship:relationById.get(row.id)}:{}),id:row.id,sourceId:row.id,sourceHash:row.sourceHash,title:mail.subject,subject:mail.subject,from:mail.from,senderLabel:mailSender(mail),recipientRole:entry.recipientRole||'unknown',mailbox:row.mailbox||'inbox',date:mail.date,fetchedAt:row.fetchedAt,state:row.state,attachmentState:row.attachmentState,attachmentCount:mail.attachments.length,unreadAttachments:mail.attachments.filter(a=>!['document_read','text_read'].includes(a.contentState)).length,bodyTruncated:mail.truncated===true,summaryTiming:row.summaryTiming,local:userState(this.store,row.id),match,matches:unique.slice(0,8),moreLocations:unique.length>8,excerpt:match.excerpt,bodyExcerpt:excerpt(mail.text,terms),preview:mailPreview(mail,terms,match),score:hits[0]?.score||0,sourceState:match.sourceState||'indexed',mail:{from:mail.from,date:mail.date,savedAt:row.savedAt||null},provenance:{kind:match.kind,start:match.start||0,...(match.attachmentId?{attachmentId:match.attachmentId}:{}),...(match.page?{page:match.page}:{})}};
+      return {...(relationById.has(row.id)?{relationship:relationById.get(row.id)}:{}),id:row.id,sourceId:row.id,sourceHash:row.sourceHash,title:mail.subject,subject:mail.subject,from:mail.from,senderLabel:mailSender(mail),recipientRole:mailRoleValue(entry.recipientRole),mailbox:row.mailbox||'inbox',date:mail.date,fetchedAt:row.fetchedAt,state:row.state,attachmentState:row.attachmentState,attachmentCount:mail.attachments.length,unreadAttachments:mail.attachments.filter(a=>!['document_read','text_read'].includes(a.contentState)).length,bodyTruncated:mail.truncated===true,summaryTiming:row.summaryTiming,local:userState(this.store,row.id),match,matches:unique.slice(0,8),moreLocations:unique.length>8,excerpt:match.excerpt,bodyExcerpt:excerpt(mail.text,terms),preview:mailPreview(mail,terms,match),score:hits[0]?.score||0,sourceState:match.sourceState||'indexed',mail:{from:mail.from,date:mail.date,savedAt:row.savedAt||null},provenance:{kind:match.kind,start:match.start||0,...(match.attachmentId?{attachmentId:match.attachmentId}:{}),...(match.page?{page:match.page}:{})}};
     });
     const stamp=row=>Number.isFinite(Date.parse(row.date))?Date.parse(row.date):Date.parse(row.fetchedAt)||0;
     const column=sort.startsWith('subject-')?'title':sort.startsWith('sender-')?'senderLabel':sort.startsWith('role-')?'recipientRole':null;
@@ -176,7 +177,7 @@ export class MailSearch {
   async listPage({filters,sort,limit,cursor,page}){
     const packet=await this.disk.request('page',{filters,sort,limit,cursor,page});
     const results=packet.items.map(({row,mail,local,metadataKnown,snippet})=>{
-      const role=this.owner.recipientRole?.(mail,row)||row.recipientRole||'unknown';
+      const role=mailRoleValue(this.owner.recipientRole?.(mail,row)||row.recipientRole);
       return {id:row.id,sourceId:row.id,sourceHash:row.sourceHash,title:mail.subject,subject:mail.subject,from:mail.from,senderLabel:mailSender(mail),recipientRole:role,mailbox:row.mailbox||'inbox',date:mail.date,fetchedAt:row.fetchedAt,state:row.state,attachmentState:row.attachmentState,attachmentCount:metadataKnown?mail.attachments.length:null,metadataKnown,local,preview:mailPreview({...mail,text:snippet||''},[],{}),excerpt:excerpt(snippet||'',[]),matches:[],sourceState:'metadata',mail:{from:mail.from,date:mail.date,savedAt:row.savedAt||null}};
     });
     const {items,...paging}=packet;

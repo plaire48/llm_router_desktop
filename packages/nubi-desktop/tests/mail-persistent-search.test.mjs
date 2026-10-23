@@ -12,6 +12,9 @@ test('large mailboxes search body evidence, persist privately and update only di
  put('one','PrivateZephyr 승인되었습니다.','h1');put('two','다른 업무입니다.','h2');
  let result;for(let i=0;i<10;i++){result=await search.search({query:'PrivateZephyr 승인'});if(!result.retrieval.incomplete)break;}
  assert.equal(result.searchMode,'fulltext');assert.deepEqual(result.results.map(r=>r.id),['one']);
+ assert.equal(result.results[0].recipientRole,'bcc');
+ assert.deepEqual((await search.search({query:'PrivateZephyr 승인',filters:{roles:['bcc']}})).results.map(r=>r.id),['one']);
+ assert.deepEqual((await search.search({query:'PrivateZephyr 승인',filters:{roles:['unknown']}})).results.map(r=>r.id),['one']);
  const before=reads;await search.search({query:'PrivateZephyr 승인'});assert(reads-before<=1,'warm query reads only selected original');
  put('one','일정은 금요일입니다.','h3');
  for(let i=0;i<10;i++){result=await search.search({query:'PrivateZephyr'});if(!result.retrieval.incomplete)break;}

@@ -2,6 +2,7 @@ import {mailTermPosition} from './mail-text.mjs';
 import {createHash} from 'node:crypto';
 import {threadKey} from './mail-thread.mjs';
 import {mailAddresses} from './mail-presentation.mjs';
+import {MAIL_RECIPIENT_ROLE_SQL,MAIL_RECIPIENT_ROLE_POLICY} from './mail-recipient-role.mjs';
 import {DESKTOP_FEATURES} from './beta-features.mjs';
 import {mailAttention} from './mail-attention.mjs';
 import {APPROVAL_KINDS} from './mail-file-kinds.mjs';
@@ -146,11 +147,11 @@ export class MailListIndex {
   if(query&&filters.locations?.length&&!filters.locations.includes('subject'))clauses.push('0');
   if(filters.filename){clauses.push("m.known=1 AND EXISTS(SELECT 1 FROM json_each(m.metadata,'$.mail.attachments') a WHERE nubi_mail_contains(json_extract(a.value,'$.filename'),?))");args.push(filters.filename);}
   if(filters.types?.length){clauses.push("m.known=1 AND EXISTS(SELECT 1 FROM json_each(m.metadata,'$.mail.attachments') a WHERE nubi_mail_kind(json_extract(a.value,'$.filename'),json_extract(a.value,'$.contentType')) IN ("+filters.types.map(()=>'?').join(',')+"))");args.push(...filters.types);}
-  if(filters.roles?.length){clauses.push("coalesce(json_extract(m.metadata,'$.row.recipientRole'),'unknown') IN ("+filters.roles.map(()=>'?').join(',')+")");args.push(...filters.roles);}
+  if(filters.roles?.length){clauses.push(MAIL_RECIPIENT_ROLE_SQL+" IN ("+filters.roles.map(()=>'?').join(',')+")");args.push(...filters.roles);}
   if(relatedTo){const root=this.db.prepare('SELECT account,thread FROM mail_list WHERE id=?').get(relatedTo);if(!root)throw Error('mail_missing');clauses.push('m.account=? AND m.thread=? AND m.id!=?');args.push(root.account,root.thread,relatedTo);}
   const sql=clauses.length?' WHERE '+clauses.join(' AND '):'',join=" FROM mail_list m"+(query?" INDEXED BY nubi_mail_list_search_v2":"")+" LEFT JOIN records u ON u.key='mail-user:'||m.id";
-  const revision=this.db.prepare('SELECT revision FROM nubi_mail_list_meta WHERE id=1').get().revision,hash=fingerprint([revision,filters,sort,query,relatedTo,limit]);
-  const field=sort.startsWith('subject-')?"coalesce(m.subject,'')":sort.startsWith('sender-')?"coalesce(m.\"from\",'')":sort.startsWith('role-')?"coalesce(json_extract(m.metadata,'$.row.recipientRole'),'unknown')":'m.stamp';
+  const revision=this.db.prepare('SELECT revision FROM nubi_mail_list_meta WHERE id=1').get().revision,hash=fingerprint([revision,filters,sort,query,relatedTo,limit,MAIL_RECIPIENT_ROLE_POLICY]);
+  const field=sort.startsWith('subject-')?"coalesce(m.subject,'')":sort.startsWith('sender-')?"coalesce(m.\"from\",'')":sort.startsWith('role-')?MAIL_RECIPIENT_ROLE_SQL:'m.stamp';
   const direction=sort==='oldest'||sort.endsWith('-asc')?'ASC':'DESC',op=direction==='ASC'?'>':'<',order=field+' '+direction+',m.id ASC';
   let position=null,offset=0,reset=false;
   if(cursor){try{const value=JSON.parse(Buffer.from(cursor,'base64url'));if(value.kind!=='keyset'||!Number.isSafeInteger(value.offset)||value.offset<0||value.after&&(!['string','number'].includes(typeof value.after.value)||typeof value.after.id!=='string'))throw Error();if(value.fingerprint===hash){position=value.after;offset=value.offset;}else reset=true;}catch{throw Error('mail_input_invalid');}}
