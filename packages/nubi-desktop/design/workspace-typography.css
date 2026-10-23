@@ -16,6 +16,24 @@ body {
   line-height:var(--deck-line-body);
   letter-spacing:normal;
 }
+/* Native carets inherit the readable font. Give the line box room without
+   resizing editor helpers, terminal input or checkbox/radio controls. */
+:is(.desktop-shell,.deck-dialog) :is(.cx-kit-input,.text-input,.native-select,.text-area):not([type=checkbox],[type=radio],[type=range],[type=file],[type=hidden]) {
+  min-height:var(--nubi-field-height);
+  padding-block:var(--nubi-field-block);
+  caret-color:var(--nubi-text-primary);
+}
+:root:root :is(.desktop-shell,.deck-dialog) textarea.cx-kit-textarea:not(.aipro-message-input) {
+  padding:var(--nubi-field-area-inset);
+}
+:is(.desktop-shell,.deck-dialog) .cx-input-shell {
+  min-height:var(--nubi-field-height);
+}
+:is(.desktop-shell,.deck-dialog) .cx-input-shell>input {
+  min-height:0;
+  padding-block:var(--nubi-field-block);
+  caret-color:var(--nubi-text-primary);
+}
 .desktop-shell .nubi-workbench .nubi-task .message-body,
 .desktop-shell .nubi-workbench .nubi-task .interaction-card,
 .desktop-shell .nubi-workbench .composer textarea.aipro-message-input,

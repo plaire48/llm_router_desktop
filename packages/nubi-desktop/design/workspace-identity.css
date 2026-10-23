@@ -100,6 +100,12 @@
   --deck-line-caption: 1.5;
   --nubi-reading-size: 1rem;
   --nubi-reading-leading: 1.8;
+  --nubi-field-height: 2.75rem;
+  --nubi-field-block: var(--cx-space-2);
+  --nubi-field-inline: var(--cx-space-3);
+  --nubi-field-area-inset: var(--cx-space-3);
+  --cx-field-height: var(--nubi-field-height);
+  --cx-field-padding: var(--nubi-field-inline);
   --nubi-prose-paragraph-gap: 1em;
   --nubi-prose-section-gap: 1.5em;
   --nubi-prose-list-gap: .5em;
@@ -132,8 +138,8 @@
   --nubi-toolbar-mac-inset: 88px;
   --nubi-compact-control: 32px;
   --nubi-box-block: 8px;
-  --nubi-composer-block: var(--cx-space-2);
-  --nubi-composer-input-min: 2.25rem;
+  --nubi-composer-block: var(--cx-space-3);
+  --nubi-composer-input-min: var(--nubi-field-height);
   --nubi-box-radius: var(--nubi-radius-control);
   --nubi-action-gap: var(--cx-space-3);
   --nubi-row-block: var(--cx-space-3);

@@ -52,7 +52,8 @@ async function audit(name,selector='body'){
   const weightOutliers=nodes.filter(e=>![400,500,600,700].includes(Number(getComputedStyle(e).fontWeight))).map(summary);
   const sizeOutliers=nodes.filter(e=>!e.closest('.nubi-welcome,.nubi-start,.aipro-login,.nubi-logo')&&!scale.some(size=>Math.abs(size-parseFloat(getComputedStyle(e).fontSize))<.15)).map(summary);
   const typography=Object.fromEntries(['fontFamily','fontSize','fontWeight','color'].map(property=>[property,[...new Set(nodes.map(e=>getComputedStyle(e)[property]))]]));
-  return {small,familyOutliers,weightOutliers,sizeOutliers,typography,clippedActions,hiddenNames,wrappedControls,overflow:document.documentElement.scrollWidth>innerWidth+1,dialog:r?{left:r.left,top:r.top,right:r.right,bottom:r.bottom,width:r.width,height:r.height}:null,width:innerWidth,height:innerHeight};
+  const fields=[...root.querySelectorAll('input,textarea,select')].filter(node=>node.checkVisibility({opacityProperty:true})&&!node.closest('[inert],.monaco-editor,.xterm')&&!['checkbox','radio','range','file','hidden','button','submit','color'].includes(node.type)).map(node=>{const style=getComputedStyle(node);return {name:node.getAttribute('aria-label')||node.placeholder||node.name||node.tagName,font:parseFloat(style.fontSize),line:parseFloat(style.lineHeight),height:node.clientHeight,block:parseFloat(style.paddingTop)+parseFloat(style.paddingBottom),inline:[parseFloat(style.paddingLeft),parseFloat(style.paddingRight)],caret:style.caretColor};});
+  return {small,familyOutliers,weightOutliers,sizeOutliers,typography,fields,clippedActions,hiddenNames,wrappedControls,overflow:document.documentElement.scrollWidth>innerWidth+1,dialog:r?{left:r.left,top:r.top,right:r.right,bottom:r.bottom,width:r.width,height:r.height}:null,width:innerWidth,height:innerHeight};
  });
  const composers=await p.locator('.nubi-composer-surface').evaluateAll(surfaces=>surfaces.map(surface=>{
   const bounds=surface.getBoundingClientRect(),buttons=[...surface.querySelectorAll('.composer-bottom button')].filter(e=>e.checkVisibility()&&!e.closest('[role=dialog],[role=menu]'));
@@ -60,7 +61,7 @@ async function audit(name,selector='body'){
   return {positions:buttons.map((e,i)=>({name:e.getAttribute('aria-label'),x:boxes[i].x,y:boxes[i].y,w:boxes[i].width,h:boxes[i].height})),singleRow:boxes.every(r=>Math.abs((r.top+r.bottom)/2-(boxes[0].top+boxes[0].bottom)/2)<2),height:bounds.height,inputHeight:field?.getBoundingClientRect().height,inputEmpty:!field?.value,approval:!!surface.querySelector('.nubi-approval-mode-button'),context:!!surface.querySelector('.context-trigger'),inside:boxes.every(r=>r.left>=bounds.left&&r.right<=bounds.right+1&&r.top>=bounds.top&&r.bottom<=bounds.bottom+1),overlap:boxes.some((a,i)=>boxes.slice(i+1).some(b=>Math.min(a.right,b.right)-Math.max(a.left,b.left)>1&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>1)),modelColor:model?getComputedStyle(model).backgroundColor:null,modelGradient:model?getComputedStyle(model).backgroundImage:null,ringWidth:surface.querySelector('.context-ring')?.getBoundingClientRect().width,ringFont:parseFloat(getComputedStyle(surface.querySelector('.context-ring text')).fontSize)};
  }));
  for(const composer of composers){assert(composer.approval&&composer.context,name+': approval and context inside input');assert(composer.inside&&!composer.overlap,name+': composer controls fit without overlap');assert(composer.singleRow,name+': composer controls stay on one row '+JSON.stringify(composer.positions));assert(composer.modelColor!=='rgba(0, 0, 0, 0)'||composer.modelGradient!=='none',name+': model retains provider surface');assert(composer.ringWidth>=40&&composer.ringFont>=14,name+': context number readable at native size');}
- if(name==='chat-preview-1280'){assert(composers[0].inputEmpty);assert(composers[0].inputHeight<=40,'empty input starts at one line');assert(composers[0].height<=110,'comfortable composer avoids excess vertical padding');}
+ if(name==='chat-preview-1280'){assert(composers[0].inputEmpty);assert(composers[0].inputHeight>=44&&composers[0].inputHeight<=56,'empty input leaves room around one readable line');assert(composers[0].height<=128,'comfortable composer keeps its tools close to the input');}
  const tones=await p.evaluate(()=>{
   const root=document.querySelector('.desktop-shell'),probe=document.createElement('span');root.append(probe);
   const canvas=document.createElement('canvas');canvas.width=canvas.height=1;const ctx=canvas.getContext('2d',{willReadFrequently:true});
@@ -75,6 +76,7 @@ async function audit(name,selector='body'){
  if(!process.argv.includes('--diagnostic'))assert.deepEqual(metrics.small,[],name+': text below caption token');
  if(!process.argv.includes('--diagnostic')){assert.deepEqual(metrics.familyOutliers,[],name+': non-Workspace text family');assert.deepEqual(metrics.weightOutliers,[],name+': non-token text weight');assert.deepEqual(metrics.sizeOutliers,[],name+': text outside the common type scale');}
  if(metrics.dialog){const r=metrics.dialog;assert(r.left>=-1&&r.top>=-1&&r.right<=metrics.width+1&&r.bottom<=metrics.height+1,name+': dialog clipped');}
+ for(const field of metrics.fields){assert(!Number.isFinite(field.line)||field.height-field.block>=field.line-1,name+': input line/caret clipped '+JSON.stringify(field));assert(field.caret!=='rgba(0, 0, 0, 0)',name+': native caret stays visible');}
  const cx=await auditCxSurface(p);
  assert.deepEqual(cx.missingNames,[],name+': visible controls have names');
  assert.deepEqual(cx.contrast,[],name+': text contrast over plain measured backgrounds');
@@ -143,7 +145,7 @@ try{
 
   for(const state of ['current','stale','ready','failed','running']){await load('screen=wiki&state='+state);await p.locator('.nubi-wiki-update').waitFor();await audit('wiki-'+state+'-'+width);}
   for(const screen of ['question','analysis','setup','progress']){await load('screen='+screen);await p.locator('.question-card,.nubi-document-progress,.nubi-setup-summary,.desktop-mail-progress').first().waitFor();await audit(screen+'-'+width);}
-  await load('screen=applied');await p.getByRole('button',{name:/^파일 \d+개 변경됨/}).waitFor();await p.locator('.nubi-applied-list').waitFor();await audit('applied-'+width);
+  await load('screen=applied');await p.getByRole('button',{name:/^파일 \d+개 변경됨/}).click();await p.locator('.nubi-applied-list').waitFor();await audit('applied-'+width);
  }
  // Full mail workflow uses real production components in Electron with bounded synthetic sources.
  await p.setViewportSize({width:1600,height:950});await load('integrated&modals&toolbar&mail-flow');

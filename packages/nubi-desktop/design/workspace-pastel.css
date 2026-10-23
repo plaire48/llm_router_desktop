@@ -180,8 +180,8 @@
  backdrop-filter:none;
 }
 :root:root .desktop-shell .nubi-workbench .nubi-compose-card:focus-within {
- border-color:var(--deck-blue-soft);
- box-shadow:var(--nubi-glass-focus-shadow);
+ border-color:var(--nubi-glass-edge);
+ box-shadow:var(--nubi-glass-shadow);
 }
 :root:root .desktop-shell .nubi-workspace-rail button[aria-pressed=true]:not(.nubi-rail-team),
 :root:root .desktop-shell .nubi-workspace-rail button[aria-pressed=true]:not(.nubi-rail-team):is(:hover,:focus-visible):not(:disabled),

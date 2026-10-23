@@ -91,7 +91,7 @@
 :root:root .deck-dialog :is(.deck-field-label,.nubi-settings-field>label,.nubi-mail-field-title) svg { width:var(--nubi-icon-small); height:var(--nubi-icon-small); flex:none; }
 :root:root .deck-dialog :is(input,select,textarea) { font:var(--deck-font-body); color:var(--nubi-text-primary); }
 :root:root .deck-dialog :is(.cx-kit-input,.cx-input-shell,select) {
-  min-height:var(--nubi-work-control-height); border-radius:var(--nubi-work-control-radius);
+  min-height:var(--nubi-field-height); border-radius:var(--nubi-work-control-radius);
   background:var(--nubi-surface-inset); border:1px solid transparent; box-shadow:none;
 }
 :root:root .deck-dialog :is(.cx-kit-input,.cx-input-shell,select):focus-within {
@@ -140,12 +140,12 @@
   font-size:var(--deck-type-body);
 }
 :root:root :is(.nubi-ai-workspace-embed,.nubi-workspace-panel,.inquiry-recipient-popover) :is(.text-input,.native-select,.text-area,.cx-input-shell) {
-  min-width:0; min-height:var(--nubi-work-control-height);
+  min-width:0; min-height:var(--nubi-field-height);
   border:1px solid transparent; border-radius:var(--nubi-work-control-radius);
   background-color:var(--nubi-surface-inset); color:var(--nubi-text-primary);
   font:var(--deck-font-body); box-shadow:none;
 }
-:root:root :is(.nubi-ai-workspace-embed,.nubi-workspace-panel) :is(.text-input,.native-select) { height:var(--nubi-work-control-height); }
+:root:root :is(.nubi-ai-workspace-embed,.nubi-workspace-panel) :is(.text-input,.native-select) { height:var(--nubi-field-height); }
 :root:root :is(.nubi-ai-workspace-embed,.nubi-workspace-panel) :is(.text-input,.text-area) { padding-inline:var(--cx-space-3); }
 :root:root :is(.nubi-ai-workspace-embed,.nubi-workspace-panel) :is(.workspace-form,.service-desk-form)>label { font-weight:var(--nubi-weight-label); gap:var(--nubi-dialog-field-gap); }
 :root:root :is(.nubi-ai-workspace-embed,.nubi-workspace-panel,.inquiry-recipient-popover) .cx-action-button {
