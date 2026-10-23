@@ -4,8 +4,8 @@ import {parsePop3Content,mailPartPresentation} from '../../openwiki/src/connecto
 
 // A body-only copy is explicitly not the byte-identical original. Never mutate
 // an existing receipt or delete previously stored attachments when settings change.
-export async function mailForStorage(mail,includeAttachments){
- if(includeAttachments||!(mail.attachments||[]).some(part=>part.presentation!=='inline'))return mail;
+export async function mailForStorage(mail,includeAttachments,{retainOriginals=true}={}){
+ if(retainOriginals&&(includeAttachments||!(mail.attachments||[]).some(part=>part.presentation!=='inline')))return mail;
  const original=Buffer.from(mail.raw),originalSha256=createHash('sha256').update(original).digest('hex');
  const parsed=await parsePop3Content(original);
  const kept=parsed.attachments.filter(part=>mailPartPresentation(part,parsed.html)==='inline');
@@ -20,7 +20,7 @@ export async function mailForStorage(mail,includeAttachments){
  const message=composer.compile();message.keepBcc=true;
  const raw=await message.build();
  return {...mail,raw,attachments:mail.attachments.filter(part=>['inline','body'].includes(part.presentation)),normalized:{...mail.normalized,
-  storage:{mode:'body_only',originalSha256,originalBytes:original.length,storedBytes:raw.length},
+  storage:{mode:'body_only',originalStored:false,originalSha256,originalBytes:original.length,storedBytes:raw.length},
   attachments:mail.normalized.attachments.map(part=>['inline','body'].includes(part.presentation)?part:{...part,contentState:'not_stored',text:''})}};
 }
 

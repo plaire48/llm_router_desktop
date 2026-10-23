@@ -6,7 +6,7 @@ async function mailSourceStatus({snapshot,invoke,portal,includeMessages=true}){
  if(method==='desktop'){
   const source=status.desktop;
   const localError=/^mail_(?:portal|auth|gmail|tls|dns|connection|uidl)/.test(status.error||'')?null:status.error;
-  return {...status,connectionMethod:'desktop',protocol:'desktop',serverProfile:'desktop',connected:source.connected,connecting:source.connecting,checking:source.checking,requiresStorageSetup:false,fallback:null,error:status.encryption?.migration?.state==='failed'?status.encryption.migration.error:source.error||localError,portal:{connected:false,connecting:false,checking:false,connectionState:'disconnected'},progress:{...status.progress,stage:source.connecting?'connecting':source.checking?'checking':!source.connected&&!status.localCount?'disconnected':status.progress.stage}};
+  return {...status,connectionMethod:'desktop',protocol:'desktop',serverProfile:'desktop',connected:source.connected,connecting:source.connecting,checking:source.checking,requiresStorageSetup:status.intakeConfigured===false,fallback:null,error:status.encryption?.migration?.state==='failed'?status.encryption.migration.error:source.error||localError,portal:{connected:false,connecting:false,checking:false,connectionState:'disconnected'},progress:{...status.progress,stage:source.connecting?'connecting':source.checking?'checking':!source.connected&&!status.localCount?'disconnected':status.progress.stage}};
  }
  if(method==='pop3')return {...status,connectionMethod:'pop3',protocol:'pop3',serverProfile:'company',portal:{connected:false,connecting:false,checking:false,connectionState:'disconnected'},fallback:null};
  void portal.restore();const current=portal.status();

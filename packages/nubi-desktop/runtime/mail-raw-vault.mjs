@@ -4,7 +4,7 @@ import path from 'node:path';
 
 export const RAW_KEY_NAME='mail-raw-key';
 const MAGIC=Buffer.from('NMR1'),hash=bytes=>createHash('sha256').update(bytes).digest('hex');
-const payload=name=>name==='message.eml'||name==='uia.json'||name==='manifest.json'||/^\d{3}-[a-f0-9]{16}\.bin$/.test(name);
+const payload=name=>name==='message.eml'||name==='body.eml'||name==='uia.json'||name==='manifest.json'||/^\d{3}-[a-f0-9]{16}\.bin$/.test(name);
 const sourceId=directory=>path.basename(directory).replace(/^\.([a-f0-9]{64})\.pending$/,'$1');
 const context=file=>Buffer.from(sourceId(path.dirname(file))+'/'+path.basename(file));
 export function encryptRaw(key,bytes,aad){
@@ -111,7 +111,7 @@ export class MailRawVault{
     const row=getRow?getRow(sourceId(directory)):(indexed ||= new Map(rows().map(row=>[row.id,row]))).get(sourceId(directory));let manifest;
     try{manifest=JSON.parse(await this.access(path.join(directory,'manifest.json'),{expectedHash:row?.manifestHash}));}catch(error){if(error.code!=='ENOENT')throw error;}
     for(const filename of plain){
-     const expectedHash=filename==='manifest.json'?row?.manifestHash:['message.eml','uia.json'].includes(filename)?row?.sourceHash||manifest?.sourceHash:manifest?.mail?.attachments?.find(item=>filename===item.id+'.bin')?.sha256;
+     const expectedHash=filename==='manifest.json'?row?.manifestHash:['message.eml','body.eml','uia.json'].includes(filename)?row?.sourceHash||manifest?.sourceHash:manifest?.mail?.attachments?.find(item=>filename===item.id+'.bin')?.sha256;
      await this.access(path.join(directory,filename),{expectedHash});this.progress.completed++;
     }
    }

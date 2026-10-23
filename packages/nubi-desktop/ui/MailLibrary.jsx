@@ -1,6 +1,5 @@
 import {DataResetConfirmation} from './DataResetConfirmation.jsx';
-import {MailAttachmentStorageOption} from './MailAttachmentStorageOption.jsx';
-import {MailStorageSetup} from './MailStorageSetup.jsx';
+import {MailIntakeSetup as MailStorageSetup} from './MailIntakeSetup.jsx';
 import {MailFileImport} from './MailFileImport.jsx';
 import {KnoxDesktopMail,desktopMailErrors} from './KnoxDesktopMail.jsx';
 import {DESKTOP_PROVIDER_LABELS} from './provider-labels.mjs';
@@ -27,33 +26,18 @@ Object.assign(errors,{mail_storage_permission:'로그인은 확인했지만 개�
 errors.mail_gmail_app_password_format='Google에서 생성한 16자리 앱 비밀번호를 입력해 주세요. 일반 계정 비밀번호로는 연결할 수 없어요.';
 const pickerError=message=>notifyWorkspaceToast(message,{error:true});
 const sectionTitle=(icon,text)=><span className="nubi-mail-section-title"><span className="nubi-mail-section-icon" aria-hidden="true"><Icon name={icon} size={18}/></span><strong>{text}</strong></span>;
-const storageErrors={mail_busy:'메일을 정리하는 중이에요. 끝난 뒤 다시 바꿔 주세요.',mail_storage_not_empty:'비어 있는 폴더를 골라 주세요.',mail_storage_nested:'지금 위치 안이나 바깥 상위 폴더는 고를 수 없어요.',mail_input_invalid:'폴더를 다시 골라 주세요.'};
-function MailStorage({api,status,onStatus,busy=false}){
-  const desktop=(status?.connectionMethod||status?.desktop?.mode)==='desktop'&&status?.desktop?.transport==='uia';
-  const [setup,setSetup]=useState(false),[resetOpen,setResetOpen]=useState(false),[saving,setSaving]=useState(false);
-  const lock=useRef(false);
-  const storageBusy=busy||saving||!status||status.storageMoving||status.checking||['scanning','importing'].includes(status.localImport?.state);
-  async function setAttachments(includeAttachments){
-    if(lock.current||storageBusy)return;lock.current=true;setSaving(true);
-    try{onStatus?.(await api('mail',{action:'confirmStorage',includeAttachments}));}
-    catch(error){notifyWorkspaceToast(storageErrors[error.message]||'보관 설정을 저장하지 못했어요. 다시 시도해 주세요.',{error:true});}
-    finally{lock.current=false;setSaving(false);}
-  }
-  return <><section className="nubi-mail-section nubi-mail-collection" aria-label="수집 범위">
-    <header className="nubi-mail-section-heading">{sectionTitle('mail','수집 범위')}</header>
-    <div className="nubi-mail-collection-evidence"><Icon name="check" size={18}/><div><strong>{desktop?'화면에서 읽은 원문 보관':'본문과 첨부 내용'}</strong><small>{desktop?'읽은 본문과 메타데이터를 암호화해 저장하고 위키에 활용해요.':'위키 작성과 검색에 함께 활용해요.'}</small></div></div>
-    {!desktop&&<MailAttachmentStorageOption checked={status?.includeAttachments!==false} disabled={storageBusy} onChange={value=>void setAttachments(value)}/>}
-    <div className="nubi-mail-collection-location"><FolderMark size={18}/><div><strong>원문 저장 위치</strong><span title={status?.rawRoot}>{status?.rawRoot||'불러오는 중…'}</span></div>
-      <CopyButton label="메일 저장 폴더 경로 복사" resetKey={status?.rawRoot} disabled={!status?.rawRoot} onCopy={()=>api('copyMailStoragePath',{kind:'raw'})}/><ActionButton action="edit" iconOnly label="원본 위치 변경" title="원본 위치 변경" disabled={storageBusy||status?.summarizing||status?.readingAttachments} onClick={()=>setSetup(true)}/>
-    </div>
-    <details className="nubi-mail-storage"><summary><span className="nubi-mail-field-title"><FolderMark size={16}/>데이터 관리</span><Icon name="chevronDown" size={16}/></summary>
-    <small className="nubi-mail-collection-note">{desktop?'저장한 원문은 당시 화면의 읽기 기록이에요. 최신 내용은 Knox Desktop에서 다시 읽어 주세요.':'보관 설정은 새 메일부터 적용해요. 임시보관함과 스팸함은 자동 정리에서 제외해요.'}</small>
-      <dl aria-label="위키 저장 경로"><div className="nubi-mail-storage-row"><dt>정리한 위키</dt><dd><code>{status?.wikiRoot||'불러오는 중…'}</code><CopyButton label="정리한 위키 경로 복사" resetKey={status?.wikiRoot} disabled={!status?.wikiRoot} onCopy={()=>api('copyMailStoragePath',{kind:'wiki'})}/></dd></div></dl>
-      <CxButton disabled={!status||status.storageMoving||status.connecting} onClick={()=>setResetOpen(true)}><Icon name="trash" size={16}/>{status?.resetPending?'초기화 다시 시도':'메일 데이터 초기화'}</CxButton>{status?.resetPending&&<p role="status">초기화가 끝나지 않아 수집을 멈췄어요.</p>}
-    </details>
-  </section>{resetOpen&&<DataResetConfirmation kind="mail" api={api} onClose={()=>setResetOpen(false)} onDone={value=>{onStatus?.(value);setResetOpen(false);if(!window.nubi?.onHostEvent)window.dispatchEvent(new Event('nubi-mail-reset'));notifyWorkspaceToast('메일 데이터를 초기화했어요. 포털이나 폴더에서 다시 가져올 수 있어요.',{success:true});}}/>}{setup&&<MailStorageSetup api={api} status={status} onClose={()=>setSetup(false)} onDone={value=>{onStatus?.(value);setSetup(false);const leftover=value?.storageProgress?.leftover;leftover?notifyWorkspaceToast(`메일 저장 설정을 적용했어요. 이전 위치에 항목 ${leftover}개가 남아 있어 직접 지워 주세요.`,{error:true}):notifyWorkspaceToast('메일 저장 설정을 적용했어요.',{success:true});}}/>}</>;
+function MailStorage({api,status,onStatus,onSaved,busy=false}){
+ const [setup,setSetup]=useState(false),[resetOpen,setResetOpen]=useState(false);
+ const blocked=busy||!status||status.storageMoving||status.checking||status.summarizing||status.readingAttachments;
+ const exclusions=(status?.intakePolicy?.excludeSenders?.length||0)+(status?.intakePolicy?.excludeSubjects?.length||0);
+ return <><section className="nubi-mail-section nubi-mail-collection" aria-label="수집 범위">
+  <header className="nubi-mail-section-heading">{sectionTitle('mail','가져오기 설정')}<ActionButton action="edit" iconOnly label="메일 가져오기 설정 변경" disabled={blocked} onClick={()=>setSetup(true)}/></header>
+  <p className="nubi-note">{status?.intakeConfigured?'저장한 조건으로 메일을 가져와요.':'가져오기 전에 대상과 저장 위치를 선택해 주세요.'}{exclusions>0?` 제외 조건 ${exclusions}개`:''}</p>
+  <div className="nubi-mail-collection-location"><FolderMark size={18}/><div><strong>{status?.retainOriginals===false?'검색과 위키용 본문만 보관':'원문 저장 위치'}</strong><span title={status?.rawRoot}>{status?.retainOriginals===false?'원문 파일과 일반 첨부 원본은 저장하지 않아요.':status?.rawRoot||'불러오는 중…'}</span></div></div>
+  <div className="nubi-mail-collection-location"><FolderMark size={18}/><div><strong>위키 저장 위치</strong><span title={status?.wikiStoreRoot||status?.wikiRoot}>{status?.wikiStoreRoot||status?.wikiRoot||'불러오는 중…'}</span></div><CopyButton label="정리한 위키 경로 복사" resetKey={status?.wikiStoreRoot||status?.wikiRoot} disabled={!status?.wikiRoot} onCopy={()=>api('copyMailStoragePath',{kind:'wiki'})}/></div>
+  <details className="nubi-mail-storage"><summary>데이터 관리</summary><CxButton disabled={blocked} onClick={()=>setResetOpen(true)}><Icon name="trash" size={16}/>{status?.resetPending?'초기화 다시 시도':'메일 데이터 초기화'}</CxButton>{status?.resetPending&&<p role="status">초기화가 끝나지 않아 수집을 멈췄어요.</p>}</details>
+ </section>{resetOpen&&<DataResetConfirmation kind="mail" api={api} onClose={()=>setResetOpen(false)} onDone={value=>{onStatus?.(value);setResetOpen(false);if(!window.nubi?.onHostEvent)window.dispatchEvent(new Event('nubi-mail-reset'));notifyWorkspaceToast('메일 데이터를 초기화했어요. 포털이나 폴더에서 다시 가져올 수 있어요.',{success:true});}}/>}{setup&&<MailStorageSetup api={api} status={status} onClose={()=>setSetup(false)} onDone={value=>{onStatus?.(value);setSetup(false);notifyWorkspaceToast(value.storageWarnings?.length?'설정을 저장했어요. 이전 위치에 남은 파일은 직접 정리해 주세요.':'메일 가져오기 설정을 저장했어요.',{success:!value.storageWarnings?.length,error:!!value.storageWarnings?.length});onSaved?.();}}/>}</>;
 }
-
 function MailConnectionProgress({onCancel,cancelling,stage,method}){
  const [started]=useState(()=>Date.now()),[elapsed,setElapsed]=useState(0);
  const cancel=useRef(null);
@@ -62,10 +46,11 @@ function MailConnectionProgress({onCancel,cancelling,stage,method}){
  const duration=elapsed>=60?`${Math.floor(elapsed/60)}분 ${elapsed%60}초`:`${elapsed}초`;
  return <div className="nubi-mail-connection-overlay"><div className="nubi-mail-connection-progress" role="status"><div className="nubi-preparing-emblem" aria-hidden="true"><span className="nubi-preparing-orbit"/><AgentMark size={30} mood="still"/></div><div><strong>{method==='desktop'?'Knox Desktop 화면 읽는 중':method==='pop3'?'POP3 연결 확인 중':stage==='advancing'?'로그인 화면으로 이동 중':stage==='confirmation'?'포털 안내 확인 필요':stage==='verifying'?'메일 연결 확인 중':'포털 로그인 확인 중'}</strong><span className="nubi-mail-login-hint">{method==='desktop'?'열린 메일의 본문과 정보를 확인하고 있어요.':method==='pop3'?'메일 서버에 연결하고 있어요.':stage==='advancing'?'세션 만료 안내를 확인하고 있어요.':stage==='confirmation'?'포털 팝업을 확인한 뒤 로그인해 주세요.':stage==='verifying'?'메일함을 확인하고 있어요.':'열린 포털에서 로그인해 주세요.'}</span><time aria-live="off">{duration}</time></div></div><CxButton ref={cancel} disabled={cancelling} onClick={onCancel}><Icon name="xClose" size={16}/>연결 취소</CxButton></div>;
 }
-export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProviderAction,providerBusy=false,onConnectionBusy,onConnected}){
+export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProviderAction,providerBusy=false,onConnectionBusy,onConnected,onSettingsSaved}){
   const [status,setStatus]=useState(null),[busy,setBusy]=useState(false),[chosen,setChosen]=useState('');
   const [modelOpen,setModelOpen]=useState(false),[connectionError,setConnectionError]=useState(null);
-  const [settingsRevealed,setSettingsRevealed]=useState(false);
+  const [intakeOpen,setIntakeOpen]=useState(false);const afterIntake=useRef(null);
+  function withIntake(operation){if(!status)return;if(status.intakeConfigured===false){afterIntake.current=operation;setIntakeOpen(true);return;}return operation();}
   const [cancelling,setCancelling]=useState(false),[pickingFolder,setPickingFolder]=useState(false);
   const modelSummary=useRef(null);
   const connected=useRef(onConnected);connected.current=onConnected;
@@ -87,15 +72,14 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
   const connectionPending=connecting||status?.connecting===true;
   useEffect(()=>{onConnectionBusy?.(connectionPending);},[connectionPending,onConnectionBusy]);
   useEffect(()=>()=>onConnectionBusy?.(false),[onConnectionBusy]);
-  useEffect(()=>{if(status?.connected)setSettingsRevealed(true);},[status?.connected]);
-  const showSettings=!!status?.resetPending||settingsRevealed||status?.connected||!!status?.destination||status?.counts?.received>0;
+  const showSettings=!!status;
   async function act(operation){
     if(lock.current)return;lock.current=true;setBusy(true);
     try{const value=await operation();if(alive.current){setStatus(value);setConnectionError(null);confirmConnection(value);}return value;}
     catch(error){if(alive.current&&!(error.message==='mail_cancelled'&&cancelledConnect.current)){if(error.message==='mail_cancelled')notifyWorkspaceToast('포털 로그인 요청이 중단됐어요. 다시 연결해 주세요.');else if(Object.hasOwn(mailConnectionErrors,error.message))setConnectionError(error.message);else notifyWorkspaceToast(errors[error.message]||('메일 설정을 완료하지 못했어요.'+(/^mail_[a-z_]+$/.test(error.message)?` (${error.message})`:'')),{error:true});}}
     finally{lock.current=false;if(alive.current)setBusy(false);}
   }
-  function connectPortal(){window.dispatchEvent(new Event('nubi-mail-login'));}
+  function connectPortal(){withIntake(()=>window.dispatchEvent(new Event('nubi-mail-login')));}
   // Each connection method is explicit. The POP3 password stays in this
   // form until it is sent and is cleared right after; the host keeps it in memory only.
   const [pop3,setPop3]=useState({user:'',password:''});
@@ -134,7 +118,7 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
   const connectionCode=connectionBusy?null:connectionError||status?.error;
   // The import runs in the worker with its own progress and stop; the dialog must not lock for its duration.
   async function importFolder(){if(importing.current||lock.current||settingsBusy)return;importing.current=true;setPickingFolder(true);try{const value=await api('importMailFolder');if(alive.current&&!value.cancelled){setStatus(value);setConnectionError(null);}}catch(error){if(alive.current)notifyWorkspaceToast(errors[error.message]||('메일 파일을 가져오지 못했어요.'+(/^mail_[a-z_]+$/.test(error.message)?` (${error.message})`:'')),{error:true});}finally{importing.current=false;if(alive.current)setPickingFolder(false);}}
-  const fileImport=<MailFileImport collapsed={!!status?.connected} card={!status?.connected} progress={status?.localImport} busy={connectionBusy||!status} onChoose={()=>void importFolder()} onResume={()=>act(()=>api('mail',{action:'resumeImport'}))} onCancel={()=>act(()=>api('mail',{action:'cancelImport'}))}/>;
+  const fileImport=<MailFileImport collapsed={!!status?.connected} card={!status?.connected} progress={status?.localImport} busy={connectionBusy||!status} onChoose={()=>withIntake(()=>void importFolder())} onResume={()=>withIntake(()=>act(()=>api('mail',{action:'resumeImport'})))} onCancel={()=>act(()=>api('mail',{action:'cancelImport'}))}/>;
   const failure=Object.hasOwn(mailConnectionErrors,connectionCode)?mailConnectionErrors[connectionCode]:null;
   const loginExpired=connectionCode==='mail_portal_login';
   const connectionMethod=status?.connectionMethod||(status?.desktop?.mode==='desktop'?'desktop':status?.protocol==='pop3'?'pop3':'portal'),desktopMode=connectionMethod==='desktop';
@@ -143,10 +127,10 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
     <section className="nubi-mail-section" aria-label="메일 계정 설정">
       <label className="nubi-mail-connection-method"><span>연결 방식</span><CxSelect aria-label="메일 연결 방식" value={connectionMethod} disabled={settingsBusy||!status||status.summarizing||status.readingAttachments||status.checking} onChange={event=>void act(()=>api('mail',{action:'selectMethod',method:event.target.value}))}><option value="desktop">Knox Desktop</option><option value="pop3">POP3</option><option value="portal">포털 (외부 브라우저)</option></CxSelect></label>
       {status?.connected&&<header className="nubi-mail-section-heading">{sectionTitle('mail',desktopMode?'Knox Desktop 연결됨':status.protocol==='pop3'?(status.pop3User?`POP3로 연결됨 (${status.pop3User})`:'POP3로 연결됨'):'사내 포털 연결됨')}<span className="nubi-mail-connection-actions">{!desktopMode&&status.encryption?.state==='on'&&status.encryption?.migration?.state==='completed'&&<span className="nubi-mail-lock" role="img" aria-label="메일 원문과 첨부 암호화 저장" title="메일 원문과 첨부 암호화 저장"><LockMark size={16}/></span>}{status.encryption?.state==='unavailable'&&<span className="nubi-mail-lock" data-state="unavailable" role="img" aria-label="이 PC에서는 암호화 저장을 사용할 수 없어요" title="이 PC에서는 암호화 저장을 사용할 수 없어요"><LockMark size={16}/></span>}<ActionButton action="logout" iconOnly label={desktopMode?'Knox Desktop 연결 해제':'메일 로그아웃'} title={desktopMode?'Knox Desktop 연결 해제':'메일 로그아웃'} disabled={settingsBusy} onClick={()=>act(()=>api('mail',{action:'disconnect'}))}/></span></header>}
-      {desktopMode&&status&&<KnoxDesktopMail source={status.desktop} busy={settingsBusy} onConnect={profileId=>act(()=>api('mail',{action:'desktopConnect',...(profileId?{profileId}:{})}))} onSync={()=>act(()=>api('mail',{action:'desktopSync'}))}/>}
+      {desktopMode&&status&&<KnoxDesktopMail source={status.desktop} busy={settingsBusy} onConnect={profileId=>withIntake(()=>act(()=>api('mail',{action:'desktopConnect',...(profileId?{profileId}:{})})))} onSync={()=>withIntake(()=>act(()=>api('mail',{action:'desktopSync'})))}/>}
       {!status?.connected&&<div className="nubi-mail-import-options" role="group" aria-label="메일 가져오는 방법">
         {connectionMethod==='portal'&&<div className="nubi-mail-import-card nubi-mail-portal-card" data-recommended="true"><div className="nubi-mail-import-heading"><span className="nubi-mail-import-icon" aria-hidden="true"><BrowserMark size={20}/></span><div><strong>{loginExpired?'메일 로그인이 만료됐어요':'포털 (외부 브라우저)'}</strong><small>{loginExpired?'저장한 메일은 유지돼요.':'외부 브라우저에서 SSO 로그인한 세션으로 메일과 결재를 가져와요.'}</small></div></div><div className="nubi-mail-import-card-action"><CxButton variant="primary" className="nubi-mail-connect" disabled={settingsBusy||!status} onClick={connectPortal}><Icon name="logIn" size={18}/><span>{loginExpired?'다시 로그인':'포털 로그인'}</span></CxButton></div></div>}
-        {connectionMethod==='pop3'&&<form className="nubi-mail-import-card nubi-mail-pop3-card" aria-label="POP3로 연결" onSubmit={connectPop3}><div className="nubi-mail-import-heading"><span className="nubi-mail-import-icon" aria-hidden="true"><PersonMark size={20}/></span><div><strong>POP3로 연결</strong><small>메일 계정 아이디와 비밀번호로 POP3 서버에서 가져와요.</small></div></div><div className="nubi-mail-pop3-fields"><CxInput aria-label="메일 아이디" placeholder="메일 아이디" autoComplete="username" value={pop3.user} disabled={settingsBusy} onChange={e=>setPop3(old=>({...old,user:e.target.value}))}/><CxInput aria-label="메일 비밀번호" placeholder="비밀번호" type="password" autoComplete="current-password" value={pop3.password} disabled={settingsBusy} onChange={e=>setPop3(old=>({...old,password:e.target.value}))}/></div><label className="nubi-mail-remember"><input type="checkbox" checked={remember} disabled={settingsBusy} onChange={event=>setRemember(event.target.checked)}/>아이디 기억</label><div className="nubi-mail-import-card-action"><CxButton type="submit" disabled={settingsBusy||!status||!pop3.user.trim()||!pop3.password}><Icon name="logIn" size={18}/><span>POP3로 연결</span></CxButton></div></form>}
+        {connectionMethod==='pop3'&&<form className="nubi-mail-import-card nubi-mail-pop3-card" aria-label="POP3로 연결" onSubmit={event=>{event.preventDefault();withIntake(()=>connectPop3({preventDefault(){}}));}}><div className="nubi-mail-import-heading"><span className="nubi-mail-import-icon" aria-hidden="true"><PersonMark size={20}/></span><div><strong>POP3로 연결</strong><small>메일 계정 아이디와 비밀번호로 POP3 서버에서 가져와요.</small></div></div><div className="nubi-mail-pop3-fields"><CxInput aria-label="메일 아이디" placeholder="메일 아이디" autoComplete="username" value={pop3.user} disabled={settingsBusy} onChange={e=>setPop3(old=>({...old,user:e.target.value}))}/><CxInput aria-label="메일 비밀번호" placeholder="비밀번호" type="password" autoComplete="current-password" value={pop3.password} disabled={settingsBusy} onChange={e=>setPop3(old=>({...old,password:e.target.value}))}/></div><label className="nubi-mail-remember"><input type="checkbox" checked={remember} disabled={settingsBusy} onChange={event=>setRemember(event.target.checked)}/>아이디 기억</label><div className="nubi-mail-import-card-action"><CxButton type="submit" disabled={settingsBusy||!status||!pop3.user.trim()||!pop3.password}><Icon name="logIn" size={18}/><span>POP3로 연결</span></CxButton></div></form>}
         {!desktopMode&&fileImport}
       </div>}
       {failure&&<details className="nubi-mail-connection-error" key={connectionCode}>
@@ -167,8 +151,9 @@ export function MailLibrary({api,openWebPage,provider,onProviderLogin,onProvider
     </details>}
     {status?.connected&&autoWiki&&status.watchPaused&&<CxButton disabled={busy||status.checking} onClick={()=>act(()=>api('mail',{action:'resumeWatch'}))}><Icon name="refresh" size={16}/>수집 재개</CxButton>}
     {(status?.counts.attachmentAttention>0||status?.counts.attention>0)&&<CxButton disabled={busy||!autoWiki||status.readingAttachments||status.summarizing} onClick={()=>act(()=>api('mail',{action:'retry'}))}><Icon name="refresh" size={16}/>읽기와 정리 다시 시도</CxButton>}
-    <MailStorage api={api} busy={settingsBusy} status={status} onStatus={setStatus}/></>}
+    <MailStorage api={api} busy={settingsBusy} status={status} onStatus={setStatus} onSaved={onSettingsSaved}/></>}
     </div>
+    {intakeOpen&&status&&<MailStorageSetup api={api} status={status} onClose={()=>{afterIntake.current=null;setIntakeOpen(false);}} onDone={value=>{setStatus(value);setIntakeOpen(false);const next=afterIntake.current;afterIntake.current=null;next?.();}}/>}
     {connectionPending&&<MailConnectionProgress onCancel={cancelConnection} cancelling={cancelling} method={connectionMethod} stage={status?.portal?.loginStage||status?.loginStage}/>}
   </div>;
 }

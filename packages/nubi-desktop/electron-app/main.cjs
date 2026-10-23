@@ -350,6 +350,7 @@ app.whenReady().then(async()=>{
   }
   if(method==='importMailFolder'){if(source!=='electron')throw Error('mail_portal_desktop_only');const directory=await choose(['openDirectory'],'메일 파일 폴더 선택');return directory?invoke('mail',{action:'importFolder',directory}):{cancelled:true};}
   if(method==='mail'){
+   if(args.action==='configureIntake'){if(source!=='electron')throw Error('mail_desktop_only');if(mailPortal.status().checking||args.wikiDirectory&&wikiLibrary.writes.size)throw Error('mail_busy');const value=await invoke('mail',args);if(mailPortal.status().connected)void mailPortal.sync().catch(()=>{});return portalMailStatus(value);}
    if(args.action==='selectMethod'){
     if(source!=='electron')throw Error('mail_portal_desktop_only');
     if(!['desktop','pop3','portal'].includes(args.method))throw Error('mail_input_invalid');
@@ -409,6 +410,10 @@ app.whenReady().then(async()=>{
   }
   // The person picks where mail and attachment originals live; the mail runtime moves what is already there.
   if(method==='chooseMcpFolder'){if(source!=='electron')throw Error('mcp_desktop_only');const directory=await choose(['openDirectory'],'MCP 서버 작업 폴더');return directory?{path:directory}:{cancelled:true};}
+  if(method==='chooseMailStorageFolder'){
+   if(source!=='electron'||!['raw','wiki'].includes(args.kind))throw Error('mail_desktop_only');
+   const directory=await choose(['openDirectory','createDirectory'],args.kind==='wiki'?'메일 위키 저장 위치':'메일 원문 저장 위치');return directory?{path:directory}:{cancelled:true};
+  }
   if(method==='chooseMailRawRoot'){
    if(source!=='electron')throw Error('mail_desktop_only');if(mailPortal.status().checking)throw Error('mail_busy');
    const directory=await choose(['openDirectory','createDirectory'],'메일 원문과 첨부파일 저장 위치');if(!directory)return {cancelled:true};
@@ -422,7 +427,7 @@ app.whenReady().then(async()=>{
   }
   if(method==='copyMailStoragePath'){
    if(!['raw','wiki'].includes(args.kind))throw Error('mail_storage_kind_invalid');
-   const status=await invoke('mail',{action:'status'}),storagePath=args.kind==='raw'?status.rawRoot:status.wikiRoot;
+   const status=await invoke('mail',{action:'status'}),storagePath=args.kind==='raw'?status.rawRoot:status.wikiStoreRoot||status.wikiRoot;
    if(typeof storagePath!=='string'||!path.isAbsolute(storagePath))throw Error('mail_storage_unavailable');
    clipboard.writeText(storagePath);return {path:storagePath};
   }

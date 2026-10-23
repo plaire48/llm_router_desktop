@@ -80,9 +80,10 @@ export class DesktopUiaMailSource{
    this.persist({mode:'desktop',transport:'uia',enabled:true,profile,root:null,profileId:null,lastCheckedAt:null});
   }catch(error){if(error.message!=='mail_cancelled'&&epoch===this.epoch)this.error=/^mail_[a-z_]+$/.test(error.message)?error.message:'mail_desktop_uia_unavailable';throw error;}
   finally{if(this.connecting===controller)this.connecting=null;}
-  void this.sync({manual:true}).catch(()=>{});return this.snapshot();
+  if(this.mail.intakeConfigured)void this.sync({manual:true}).catch(()=>{});return this.snapshot();
  }
  async sync({manual=false}={}){
+  if(!this.mail.intakeConfigured||this.mail.configuringIntake)return;
   if(!this.enabled)throw Error('mail_desktop_not_connected');if(this.running||this.connecting||this.mail.importController||this.mail.relocating)throw Error('mail_busy');if(this.mail.disposed||this.mail.resetting||this.mail.store.get('setting:reset-pending'))throw Error('mail_cancelled');if(!manual&&(!this.mail.autoWiki||this.mail.watchPaused))return;
   clearTimeout(this.timer);this.timer=null;this.nextCheckAt=null;const controller=new AbortController(),epoch=this.epoch,generation=this.mail.generation;this.running=controller;
   try{const observed=await this.request({action:'snapshot',binding:this.saved.profile.binding},controller.signal);cancelled(controller.signal);if(epoch!==this.epoch||generation!==this.mail.generation||this.mail.disposed)throw Error('mail_cancelled');if(!sameBinding(observed.binding,this.saved.profile.binding))throw Error('mail_desktop_source_changed');
@@ -93,7 +94,7 @@ export class DesktopUiaMailSource{
   finally{if(this.running===controller)this.running=null;if(['mail_storage_full','mail_storage_permission','mail_encryption_unavailable','mail_encryption_integrity','mail_encryption_key_lost'].includes(this.error)){this.mail.watchPaused=true;this.mail.store.set('setting:watch-paused',true);}this.schedule();}
  }
  schedule(){clearTimeout(this.timer);this.timer=null;this.nextCheckAt=null;if(!this.enabled||this.mail.disposed||this.mail.resetting||this.mail.store.get('setting:reset-pending')||!this.mail.autoWiki||this.mail.watchPaused)return;this.nextCheckAt=new Date(Date.now()+this.intervalMs).toISOString();this.timer=setTimeout(()=>{this.timer=null;void this.sync().catch(()=>this.schedule());},this.intervalMs);this.timer.unref?.();}
- wake(){if(this.enabled&&!this.running&&!this.connecting&&!this.timer)void this.sync().catch(()=>this.schedule());}
+ wake(){if(this.mail.intakeConfigured&&this.enabled&&!this.running&&!this.connecting&&!this.timer)void this.sync().catch(()=>this.schedule());}
  pause(){clearTimeout(this.timer);this.timer=null;this.nextCheckAt=null;this.connecting?.abort();this.running?.abort();}
  disconnect({remote=false}={}){this.epoch++;this.pause();this.persist({enabled:false,...(remote?{mode:'portal'}:{})});this.error=null;}
  dispose(){this.epoch++;this.pause();}

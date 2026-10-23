@@ -2,6 +2,7 @@ import '@e2e/cx-design-system/styles.css';
 import React,{useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {DetailPanel,CxButton} from '@e2e/cx-design-system';
+import {DEFAULT_MAIL_INTAKE,normalizeMailIntake} from '../runtime/mail-intake-policy.mjs';
 import {MailLibrary} from '../ui/MailLibrary.jsx';
 import {WorkspaceToast} from '../ui/WorkspaceToast.jsx';
 
@@ -20,14 +21,19 @@ const status={serverProfile:'company',protocol:'portal',encryption:{state:'on',m
 const desktopCase=new URLSearchParams(location.search).get('desktop');
 if(desktopCase)status.desktop={mode:'desktop',transport:'uia',storageMode:'desktop_uia',supported:desktopCase!=='unsupported',connected:false,connecting:false,checking:false,error:null,profiles:[],rawRoot:status.rawRoot};
 if(['portal-compat','pop3-compat'].includes(desktopCase)){status.connectionMethod=desktopCase.split('-')[0];status.localCount=1;status.counts.received=1;status.localKinds=['other'];}
+if(new URLSearchParams(location.search).has('intake')){Object.assign(status,{intakeConfigured:false,intakePolicy:DEFAULT_MAIL_INTAKE,requiresStorageSetup:true,retainOriginals:true,wikiStoreRoot:status.wikiRoot,connectionMethod:new URLSearchParams(location.search).get('method')||'desktop'});status.desktop={mode:'desktop',transport:'uia',supported:true,connected:false};}
 window.setMailImportFixture=progress=>{status.localImport=progress;};
 async function api(method,args={}){
  if(method==='importMailFolder'){window.mailCalls.push({action:'importMailFolder'});status.localImport={state:'completed',total:1,completed:1,imported:1,duplicates:0,failures:[],startedAt:new Date().toISOString()};status.localCount=1;status.localKinds=['AUTO_INBOX','other'];return structuredClone(status);}
  if(method==='copyMailStoragePath')return {copied:true};
+ if(method==='chooseMailStorageFolder'){window.mailCalls.push({action:method,...args});return window.cancelFolder?{cancelled:true}:{path:'/fixture/selected/'+args.kind};}
  if(method==='chooseMailRawRoot'){window.mailCalls.push({action:'chooseMailRawRoot'});status.rawRoot='/fixture/selected/uia-originals';if(status.desktop)status.desktop.rawRoot=status.rawRoot;return structuredClone(status);}
  if(method!=='mail')throw Error('fixture_method');
  if(args.action==='status')return structuredClone(status);
+ if(args.action==='storageProgress')return {moving:false,progress:null};
  window.mailCalls.push(structuredClone(args));
+ if(args.action==='configureIntake'){if(window.intakeFail)throw Error('mail_storage_not_empty');status.intakePolicy=normalizeMailIntake(args.policy);Object.assign(status,{intakeConfigured:true,requiresStorageSetup:false,retainOriginals:status.intakePolicy.retainOriginals,includeAttachments:args.includeAttachments});if(args.rawDirectory)status.rawRoot=args.rawDirectory+'/nubi-mail-raw';if(args.wikiDirectory)status.wikiStoreRoot=args.wikiDirectory+'/nubi-mail-wiki';}
+
  if(args.action==='desktopConnect'){
   if(desktopCase==='multiple'&&!args.profileId){status.desktop.requiresSelection=true;status.desktop.profiles=[{id:'one',label:'Knox Desktop 첫 창'},{id:'two',label:'Knox Desktop 다른 창'}];}
   else{status.connected=true;Object.assign(status.desktop,{connected:true,requiresSelection:false,profileId:args.profileId||'one',label:args.profileId==='two'?'Knox Desktop 다른 창':'Knox Desktop 첫 창'});status.localCount=2;status.counts.received=2;status.localKinds=['other'];status.localImport=null;}
